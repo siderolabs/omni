@@ -72,6 +72,7 @@ func (s *ResourceServer) DependencyGraph(ctx context.Context, req *resources.Dep
 	}
 
 	filterControllers := xslices.ToSet(req.Controllers)
+	filterResources := xslices.ToSet(req.Resources)
 
 	res := &resources.DependencyGraphResponse{}
 
@@ -84,6 +85,12 @@ func (s *ResourceServer) DependencyGraph(ctx context.Context, req *resources.Dep
 	}
 
 	addNode := func(edge controller.DependencyEdge, t resources.DependencyGraphResponse_Node_Type) error {
+		if len(req.Resources) != 0 && t == resources.DependencyGraphResponse_Node_RESOURCE {
+			if _, ok := filterResources[edge.ResourceType]; !ok {
+				return nil
+			}
+		}
+
 		var label string
 
 		switch t {
@@ -239,14 +246,24 @@ func (s *ResourceServer) DependencyGraph(ctx context.Context, req *resources.Dep
 	}
 
 	for _, edge := range graph.Edges {
+		addController := true
+		addResource := true
+
 		if len(filterControllers) != 0 {
-			if _, ok := filterControllers[edge.ControllerName]; !ok {
-				continue
-			}
+			_, addController = filterControllers[edge.ControllerName]
 		}
 
-		genNodeID(edge.ControllerName)
-		genNodeID(edge.ResourceType)
+		if len(filterResources) != 0 {
+			_, addResource = filterResources[edge.ResourceType]
+		}
+
+		if addController {
+			genNodeID(edge.ControllerName)
+		}
+
+		if addResource {
+			genNodeID(edge.ResourceType)
+		}
 	}
 
 	for _, edge := range graph.Edges {

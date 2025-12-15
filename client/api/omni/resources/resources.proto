@@ -107,6 +107,7 @@ message ControllersResponse {
 message DependencyGraphRequest {
   repeated string controllers = 1;
   bool show_destroy_ready = 2;
+  repeated string resources = 3;
 }
 
 message DependencyGraphResponse {

@@ -110,6 +110,7 @@ export type ControllersResponse = {
 export type DependencyGraphRequest = {
   controllers?: string[]
   show_destroy_ready?: boolean
+  resources?: string[]
 }
 
 export type DependencyGraphResponseNode = {

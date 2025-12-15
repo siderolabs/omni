@@ -234,6 +234,7 @@ export const ConfigID = "siderolink-config";
 export const ConnectionParamsType = "ConnectionParams.omni.sidero.dev";
 export const DefaultJoinTokenID = "default";
 export const DefaultJoinTokenType = "DefaultJoinTokens.omni.sidero.dev";
+export const GRPCTunnelConfigType = "GRPCTunnelConfigs.omni.sidero.dev";
 export const JoinTokenType = "JoinTokens.omni.sidero.dev";
 export const JoinTokenStatusType = "JoinTokenStatuses.omni.sidero.dev";
 export const JoinTokenUsageType = "JoinTokenUsages.omni.sidero.dev";

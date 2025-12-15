@@ -348,6 +348,11 @@ func (m *DependencyGraphRequest) CloneVT() *DependencyGraphRequest {
 		copy(tmpContainer, rhs)
 		r.Controllers = tmpContainer
 	}
+	if rhs := m.Resources; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Resources = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -853,6 +858,15 @@ func (this *DependencyGraphRequest) EqualVT(that *DependencyGraphRequest) bool {
 	}
 	if this.ShowDestroyReady != that.ShowDestroyReady {
 		return false
+	}
+	if len(this.Resources) != len(that.Resources) {
+		return false
+	}
+	for i, vx := range this.Resources {
+		vy := that.Resources[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -1834,6 +1848,15 @@ func (m *DependencyGraphRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.Resources) > 0 {
+		for iNdEx := len(m.Resources) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Resources[iNdEx])
+			copy(dAtA[i:], m.Resources[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Resources[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if m.ShowDestroyReady {
 		i--
 		if m.ShowDestroyReady {
@@ -2371,6 +2394,12 @@ func (m *DependencyGraphRequest) SizeVT() (n int) {
 	}
 	if m.ShowDestroyReady {
 		n += 2
+	}
+	if len(m.Resources) > 0 {
+		for _, s := range m.Resources {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -4453,6 +4482,38 @@ func (m *DependencyGraphRequest) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.ShowDestroyReady = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Resources", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Resources = append(m.Resources, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

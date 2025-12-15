@@ -1018,6 +1018,7 @@ type DependencyGraphRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Controllers      []string               `protobuf:"bytes,1,rep,name=controllers,proto3" json:"controllers,omitempty"`
 	ShowDestroyReady bool                   `protobuf:"varint,2,opt,name=show_destroy_ready,json=showDestroyReady,proto3" json:"show_destroy_ready,omitempty"`
+	Resources        []string               `protobuf:"bytes,3,rep,name=resources,proto3" json:"resources,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -1064,6 +1065,13 @@ func (x *DependencyGraphRequest) GetShowDestroyReady() bool {
 		return x.ShowDestroyReady
 	}
 	return false
+}
+
+func (x *DependencyGraphRequest) GetResources() []string {
+	if x != nil {
+		return x.Resources
+	}
+	return nil
 }
 
 type DependencyGraphResponse struct {
@@ -1325,10 +1333,11 @@ const file_omni_resources_resources_proto_rawDesc = "" +
 	"\x0eDeleteResponse\"\x14\n" +
 	"\x12ControllersRequest\"7\n" +
 	"\x13ControllersResponse\x12 \n" +
-	"\vcontrollers\x18\x01 \x03(\tR\vcontrollers\"h\n" +
+	"\vcontrollers\x18\x01 \x03(\tR\vcontrollers\"\x86\x01\n" +
 	"\x16DependencyGraphRequest\x12 \n" +
 	"\vcontrollers\x18\x01 \x03(\tR\vcontrollers\x12,\n" +
-	"\x12show_destroy_ready\x18\x02 \x01(\bR\x10showDestroyReady\"\xdf\x03\n" +
+	"\x12show_destroy_ready\x18\x02 \x01(\bR\x10showDestroyReady\x12\x1c\n" +
+	"\tresources\x18\x03 \x03(\tR\tresources\"\xdf\x03\n" +
 	"\x17DependencyGraphResponse\x12B\n" +
 	"\x05nodes\x18\x01 \x03(\v2,.omni.resources.DependencyGraphResponse.NodeR\x05nodes\x12B\n" +
 	"\x05edges\x18\x02 \x03(\v2,.omni.resources.DependencyGraphResponse.EdgeR\x05edges\x1a\xd6\x01\n" +
