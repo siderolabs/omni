@@ -33,7 +33,9 @@ import {
 } from '@/api/resources'
 import CodeBlock from '@/components/common/CodeBlock/CodeBlock.vue'
 import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink, getLegacyDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
@@ -274,7 +276,7 @@ function shortVersion(version?: string) {
 
     <p class="flex items-center gap-1">
       Your image schematic ID is:
-      <code class="rounded bg-naturals-n4 px-2 py-1">{{ schematic.id }}</code>
+      <code class="rounded bg-naturals-n4 px-2 py-1 wrap-anywhere">{{ schematic.id }}</code>
       <CopyButton :text="schematic.id" />
     </p>
 
@@ -313,21 +315,11 @@ function shortVersion(version?: string) {
       >
         <template v-if="bootMethod === PlatformConfigSpecBootMethod.DISK_IMAGE">
           <template v-if="formState.secureBoot">
-            <dt>SecureBoot Disk Image</dt>
-            <dd>
-              <a
-                class="link-primary"
-                :href="platformSecureBootDiskImagePath"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {{ platformSecureBootDiskImagePath }}
-              </a>
-
-              <span v-if="formState.hardwareType === 'metal'" class="ml-1 inline-flex">
-                (
+            <dt>
+              SecureBoot Disk Image
+              <Tooltip v-if="formState.hardwareType === 'metal'" description="Documentation">
                 <a
-                  class="link-primary"
+                  class="link-primary align-bottom"
                   :href="
                     getDocsLink(
                       'talos',
@@ -338,10 +330,23 @@ function shortVersion(version?: string) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  SecureBoot documentation
+                  <TIcon
+                    icon="documentation"
+                    aria-label="SecureBoot documentation"
+                    class="size-4"
+                  />
                 </a>
-                )
-              </span>
+              </Tooltip>
+            </dt>
+            <dd>
+              <a
+                class="link-primary"
+                :href="platformSecureBootDiskImagePath"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ platformSecureBootDiskImagePath }}
+              </a>
             </dd>
           </template>
           <template v-else>
@@ -386,21 +391,11 @@ function shortVersion(version?: string) {
         </template>
         <template v-else-if="bootMethod === PlatformConfigSpecBootMethod.ISO">
           <template v-if="formState.secureBoot">
-            <dt>SecureBoot ISO</dt>
-            <dd>
-              <a
-                class="link-primary"
-                :href="isoSecureBootPath"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {{ isoSecureBootPath }}
-              </a>
-
-              <span class="ml-1 inline-flex">
-                (
+            <dt>
+              SecureBoot ISO
+              <Tooltip description="Documentation">
                 <a
-                  class="link-primary"
+                  class="link-primary align-bottom"
                   :href="
                     getDocsLink(
                       'talos',
@@ -411,23 +406,31 @@ function shortVersion(version?: string) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  SecureBoot documentation
+                  <TIcon
+                    icon="documentation"
+                    aria-label="SecureBoot documentation"
+                    class="size-4"
+                  />
                 </a>
-                )
-              </span>
+              </Tooltip>
+            </dt>
+            <dd>
+              <a
+                class="link-primary"
+                :href="isoSecureBootPath"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ isoSecureBootPath }}
+              </a>
             </dd>
           </template>
           <template v-else>
-            <dt>ISO</dt>
-            <dd>
-              <a class="link-primary" :href="isoPath" target="_blank" rel="noopener noreferrer">
-                {{ isoPath }}
-              </a>
-
-              <span v-if="formState.hardwareType === 'metal'" class="ml-1 inline-flex">
-                (
+            <dt>
+              ISO
+              <Tooltip v-if="formState.hardwareType === 'metal'" description="Documentation">
                 <a
-                  class="link-primary"
+                  class="link-primary align-bottom"
                   :href="
                     getDocsLink(
                       'talos',
@@ -438,30 +441,24 @@ function shortVersion(version?: string) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  ISO documentation
+                  <TIcon icon="documentation" aria-label="ISO documentation" class="size-4" />
                 </a>
-                )
-              </span>
+              </Tooltip>
+            </dt>
+            <dd>
+              <a class="link-primary" :href="isoPath" target="_blank" rel="noopener noreferrer">
+                {{ isoPath }}
+              </a>
             </dd>
           </template>
         </template>
         <template v-else-if="bootMethod === PlatformConfigSpecBootMethod.PXE">
-          <dt v-if="formState.secureBoot">SecureBoot PXE (iPXE script)</dt>
-          <dt v-else>PXE boot (iPXE script)</dt>
-          <dd>
-            <a
-              class="link-primary"
-              :href="schematic.pxeUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {{ schematic.pxeUrl }}
-            </a>
-
-            <span v-if="formState.hardwareType === 'metal'" class="ml-1 inline-flex">
-              (
+          <dt>
+            <template v-if="formState.secureBoot">SecureBoot PXE (iPXE script)</template>
+            <template v-else>PXE boot (iPXE script)</template>
+            <Tooltip v-if="formState.hardwareType === 'metal'" description="Documentation">
               <a
-                class="link-primary"
+                class="link-primary ml-1 align-bottom"
                 :href="
                   getDocsLink(
                     'talos',
@@ -472,10 +469,15 @@ function shortVersion(version?: string) {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                PXE documentation
+                <TIcon icon="documentation" aria-label="PXE documentation" class="size-4" />
               </a>
-              )
-            </span>
+            </Tooltip>
+          </dt>
+          <dd class="flex items-center gap-1">
+            <code class="whitespace-wrap rounded bg-naturals-n4 px-2 py-1 wrap-anywhere">
+              {{ schematic.pxeUrl }}
+            </code>
+            <CopyButton :text="schematic.id" />
           </dd>
         </template>
       </template>

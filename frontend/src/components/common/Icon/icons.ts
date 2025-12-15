@@ -60,6 +60,7 @@ export const icons = {
   dashboard: defineAsyncComponent(() => import('../../icons/IconDashboard.vue')),
   delete: defineAsyncComponent(() => import('../../icons/IconDelete.vue')),
   document: DocumentIcon,
+  documentation: defineAsyncComponent(() => import('../../icons/IconDocumentation.vue')),
   dot: defineAsyncComponent(() => import('../../icons/IconDot.vue')),
   'drop-right': defineAsyncComponent(() => import('../../icons/IconDropRight.vue')),
   'drop-up': defineAsyncComponent(() => import('../../icons/IconDropUp.vue')),
