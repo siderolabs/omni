@@ -53,7 +53,7 @@ const addLabel = async () => {
   modelValue.value = {
     ...modelValue.value,
     [key.trim()]: {
-      value: value.trim() ?? '',
+      value: value?.trim() ?? '',
       canRemove: true,
     },
   }

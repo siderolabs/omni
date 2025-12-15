@@ -119,6 +119,12 @@ export type KubernetesSyncManifestResponse = {
   skipped?: boolean
 }
 
+export type CreateSchematicRequestOverlay = {
+  image?: string
+  name?: string
+  options?: string
+}
+
 export type CreateSchematicRequest = {
   extensions?: string[]
   extra_kernel_args?: string[]
@@ -128,6 +134,7 @@ export type CreateSchematicRequest = {
   secure_boot?: boolean
   siderolink_grpc_tunnel_mode?: CreateSchematicRequestSiderolinkGRPCTunnelMode
   join_token?: string
+  overlay?: CreateSchematicRequestOverlay
 }
 
 export type CreateSchematicResponse = {

@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	pgpclient "github.com/siderolabs/go-api-signature/pkg/pgp/client"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
+	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v4"
 
@@ -238,6 +239,7 @@ func createSchematic(ctx context.Context, client *client.Client, media *omni.Ins
 	return resp, nil
 }
 
+//nolint:gocyclo,gocyclop,cyclop
 func downloadImageTo(ctx context.Context, client *client.Client, media *omni.InstallationMedia, output string, grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode) error {
 	schematicResp, err := createSchematic(ctx, client, media, grpcTunnelMode)
 	if err != nil {
@@ -256,7 +258,25 @@ func downloadImageTo(ctx context.Context, client *client.Client, media *omni.Ins
 	}
 
 	if downloadCmdFlags.pxe {
-		fmt.Println(schematicResp.PxeUrl)
+		var features *omni.FeaturesConfig
+
+		features, err = safe.ReaderGetByID[*omni.FeaturesConfig](ctx, client.Omni().State(), omni.FeaturesConfigID)
+		if err != nil {
+			return err
+		}
+
+		supportsOverlays := quirks.New(downloadCmdFlags.talosVersion).SupportsOverlay()
+
+		filename := media.TypedSpec().Value.GenerateFilename(!supportsOverlays, downloadCmdFlags.secureBoot, false)
+
+		var pxeURL *url.URL
+
+		pxeURL, err = url.Parse(features.TypedSpec().Value.ImageFactoryPxeBaseUrl)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(pxeURL.JoinPath("pxe", schematicResp.SchematicId, downloadCmdFlags.talosVersion, filename).String())
 
 		return nil
 	}

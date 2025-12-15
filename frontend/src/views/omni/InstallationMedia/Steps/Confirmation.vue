@@ -12,10 +12,10 @@ import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import {
+  type CreateSchematicRequestOverlay,
   CreateSchematicRequestSiderolinkGRPCTunnelMode,
   ManagementService,
 } from '@/api/omni/management/management.pb'
-import type { InstallationMediaSpec } from '@/api/omni/specs/omni.pb'
 import {
   type PlatformConfigSpec,
   PlatformConfigSpecArch,
@@ -24,8 +24,6 @@ import {
 } from '@/api/omni/specs/virtual.pb'
 import {
   CloudPlatformConfigType,
-  EphemeralNamespace,
-  InstallationMediaType,
   LabelsMeta,
   MetalPlatformConfigType,
   SBCConfigType,
@@ -121,40 +119,10 @@ const selectedSBC = computed(() =>
   SBCs.value?.find((sbc) => sbc.metadata.id === formState.value.sbcType),
 )
 
-const profile = computed(() =>
-  selectedSBC.value
-    ? selectedSBC.value.metadata.id
-    : selectedPlatform.value
-      ? selectedPlatform.value.metadata.id
-      : undefined,
-)
-
-const { data: medias, loading: mediaLoading } = useResourceList<InstallationMediaSpec>({
-  runtime: Runtime.Omni,
-  resource: {
-    type: InstallationMediaType,
-    namespace: EphemeralNamespace,
-  },
-})
-
-const noMediaFound = ref(false)
 const schematicLoading = ref(false)
 const schematicError = ref<string>()
 
 const schematic = computedAsync(async () => {
-  const media = medias.value?.find(
-    (m) => m.spec.architecture === arch.value && m.spec.profile === profile.value,
-  )
-
-  if (!media) {
-    if (!mediaLoading.value) {
-      noMediaFound.value = true
-    }
-
-    return
-  }
-
-  noMediaFound.value = false
   schematicLoading.value = true
 
   const machineLabels = Object.entries(formState.value.machineUserLabels ?? {}).reduce<
@@ -168,13 +136,25 @@ const schematic = computedAsync(async () => {
   )
 
   try {
-    const { schematic_id, schematic_yml, pxe_url } = await ManagementService.CreateSchematic({
+    let overlay: CreateSchematicRequestOverlay | undefined
+
+    if (selectedSBC.value) {
+      overlay = {
+        name: selectedSBC.value.spec.overlay_name,
+        image: selectedSBC.value.spec.overlay_image,
+        options: formState.value.overlayOptions
+          ? JSON.stringify(formState.value.overlayOptions)
+          : undefined,
+      }
+    }
+
+    const { schematic_id, schematic_yml } = await ManagementService.CreateSchematic({
       extensions: formState.value.systemExtensions,
       extra_kernel_args: formState.value.cmdline?.split(' ').filter((item) => item.trim()),
       meta_values: {
         [LabelsMeta]: dump({ machineLabels }),
       },
-      media_id: media.metadata.id,
+      overlay: overlay,
       talos_version: formState.value.talosVersion,
       secure_boot: formState.value.secureBoot,
       siderolink_grpc_tunnel_mode: formState.value.useGrpcTunnel
@@ -186,13 +166,20 @@ const schematic = computedAsync(async () => {
     return {
       id: schematic_id,
       yml: schematic_yml,
-      pxeUrl: pxe_url,
     }
   } catch (error) {
     schematicError.value = error?.message || String(error)
   } finally {
     schematicLoading.value = false
   }
+})
+
+const secureBootSuffix = computed(() => {
+  if (!formState.value.secureBoot) {
+    return ''
+  }
+
+  return '-secureboot'
 })
 
 // true if the platform supports boot methods other than disk-image.
@@ -205,15 +192,9 @@ const notOnlyDiskImage = computed(
 
 const factoryUrl = computed(() => features.value?.spec.image_factory_base_url)
 
-const secureBootInstallerImage = computed(() =>
-  supportsUnifiedInstaller.value
-    ? `${factoryUrl.value}/${formState.value.hardwareType}-installer-secureboot/${schematic.value?.id}:${formState.value.talosVersion}`
-    : `${factoryUrl.value}/installer-secureboot/${schematic.value?.id}:${formState.value.talosVersion}`,
-)
-
 const installerImage = computed(() =>
   supportsUnifiedInstaller.value
-    ? `${factoryUrl.value}/${formState.value.hardwareType}-installer/${schematic.value?.id}:${formState.value.talosVersion}`
+    ? `${factoryUrl.value}/${formState.value.hardwareType}-installer${secureBootSuffix.value}/${schematic.value?.id}:${formState.value.talosVersion}`
     : `${factoryUrl.value}/installer/${schematic.value?.id}:${formState.value.talosVersion}`,
 )
 
@@ -231,15 +212,17 @@ const sbcDiskImagePath = computed(() => {
   return `${imageBaseURL.value}/${path}`
 })
 
-const platformDiskImagePath = computed(() =>
+const pxeBootBaseUrl = computed(() => features.value?.spec.image_factory_pxe_base_url)
+
+const pxeBootURL = computed(() =>
   selectedPlatform.value
-    ? `${imageBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}.${selectedPlatform.value.spec.disk_image_suffix}`
+    ? `${pxeBootBaseUrl.value}/${schematic.value?.id}/${formState.value.talosVersion}/${selectedPlatform.value?.metadata.id}-${arch.value}${secureBootSuffix.value}`
     : undefined,
 )
 
-const platformSecureBootDiskImagePath = computed(() =>
+const platformDiskImagePath = computed(() =>
   selectedPlatform.value
-    ? `${imageBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}-secureboot.${selectedPlatform.value.spec.disk_image_suffix}`
+    ? `${imageBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}${secureBootSuffix.value}.${selectedPlatform.value.spec.disk_image_suffix}`
     : undefined,
 )
 
@@ -251,13 +234,7 @@ const qcow2DiskImagePath = computed(() =>
 
 const isoPath = computed(() =>
   selectedPlatform.value
-    ? `${imageBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}.iso`
-    : undefined,
-)
-
-const isoSecureBootPath = computed(() =>
-  selectedPlatform.value
-    ? `${imageBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}-secureboot.iso`
+    ? `${imageBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}${secureBootSuffix.value}.iso`
     : undefined,
 )
 
@@ -341,11 +318,11 @@ function shortVersion(version?: string) {
             <dd>
               <a
                 class="link-primary"
-                :href="platformSecureBootDiskImagePath"
+                :href="platformDiskImagePath"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {{ platformSecureBootDiskImagePath }}
+                {{ platformDiskImagePath }}
               </a>
             </dd>
           </template>
@@ -415,13 +392,8 @@ function shortVersion(version?: string) {
               </Tooltip>
             </dt>
             <dd>
-              <a
-                class="link-primary"
-                :href="isoSecureBootPath"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {{ isoSecureBootPath }}
+              <a class="link-primary" :href="isoPath" target="_blank" rel="noopener noreferrer">
+                {{ isoPath }}
               </a>
             </dd>
           </template>
@@ -475,9 +447,9 @@ function shortVersion(version?: string) {
           </dt>
           <dd class="flex items-center gap-1">
             <code class="whitespace-wrap rounded bg-naturals-n4 px-2 py-1 wrap-anywhere">
-              {{ schematic.pxeUrl }}
+              {{ pxeBootURL }}
             </code>
-            <CopyButton :text="schematic.id" />
+            <CopyButton :text="pxeBootURL" />
           </dd>
         </template>
       </template>
@@ -490,8 +462,7 @@ function shortVersion(version?: string) {
         following installer image to the machine configuration:
       </p>
 
-      <CodeBlock v-if="formState.secureBoot" :code="secureBootInstallerImage" />
-      <CodeBlock v-else :code="installerImage" />
+      <CodeBlock :code="installerImage" />
     </template>
 
     <template v-if="formState.talosVersion && gte(formState.talosVersion, '1.12.0-alpha.2')">
@@ -679,11 +650,6 @@ function shortVersion(version?: string) {
       <TSpinner class="size-4" />
       Generating schematic ...
     </p>
-
-    <TAlert v-if="noMediaFound" title="Failed to create schematic" type="error">
-      No installation media available for
-      <span class="font-medium text-naturals-n14">{{ profile }}-{{ arch }}</span>
-    </TAlert>
 
     <TAlert v-if="schematicError" title="Failed to create schematic" type="error">
       {{ schematicError }}

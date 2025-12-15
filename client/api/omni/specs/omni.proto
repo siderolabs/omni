@@ -1053,6 +1053,9 @@ message FeaturesConfigSpec {
 
   // TalosPreReleaseVersionsEnabled is true when --enable-talos-pre-release-versions is set.
   bool talos_pre_release_versions_enabled = 8;
+
+  // ImageFactoryPxeBaseUrl is the base URL of the image factory PXE server.
+  string image_factory_pxe_base_url = 9;
 }
 
 message UserPilotSettings {

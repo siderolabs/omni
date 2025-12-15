@@ -691,6 +691,7 @@ export type FeaturesConfigSpec = {
   user_pilot_settings?: UserPilotSettings
   stripe_settings?: StripeSettings
   talos_pre_release_versions_enabled?: boolean
+  image_factory_pxe_base_url?: string
 }
 
 export type UserPilotSettings = {

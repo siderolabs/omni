@@ -7,6 +7,7 @@ package grpc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 
@@ -27,7 +28,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // CreateSchematic implements ManagementServer.
@@ -96,50 +96,17 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		Customization: customization,
 	}
 
-	media, err := safe.ReaderGetByID[*omni.InstallationMedia](ctx, s.omniState, request.MediaId)
+	s.logger.Info("ensure schematic", zap.Reflect("schematic", schematicRequest))
+
+	schematicRequest.Overlay, err = s.getOverlay(ctx, request)
 	if err != nil {
 		return nil, err
 	}
-
-	supportsOverlays := quirks.New(request.TalosVersion).SupportsOverlay()
-
-	if media.TypedSpec().Value.Overlay != "" && supportsOverlays {
-		var overlays []client.OverlayInfo
-
-		overlays, err = s.imageFactoryClient.OverlaysVersions(ctx, request.TalosVersion)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get overlays list for the Talos version: %w", err)
-		}
-
-		index := slices.IndexFunc(overlays, func(value client.OverlayInfo) bool {
-			return value.Name == media.TypedSpec().Value.Overlay
-		})
-
-		if index == -1 {
-			return nil, fmt.Errorf("failed to find overlay with name %q", media.TypedSpec().Value.Overlay)
-		}
-
-		overlay := overlays[index]
-
-		schematicRequest.Overlay = schematic.Overlay{
-			Name:  overlay.Name,
-			Image: overlay.Image,
-		}
-	}
-
-	s.logger.Info("ensure schematic", zap.Reflect("schematic", schematicRequest))
 
 	schematicInfo, err := s.imageFactoryClient.EnsureSchematic(ctx, schematicRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure schematic: %w", err)
 	}
-
-	pxeURL, err := config.Config.GetImageFactoryPXEBaseURL()
-	if err != nil {
-		return nil, err
-	}
-
-	filename := media.TypedSpec().Value.GenerateFilename(!supportsOverlays, request.SecureBoot, false)
 
 	schematicYml, err := yaml.Marshal(schematicRequest)
 	if err != nil {
@@ -149,8 +116,60 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 	return &management.CreateSchematicResponse{
 		SchematicId:       schematicInfo.FullID,
 		SchematicYml:      string(schematicYml),
-		PxeUrl:            pxeURL.JoinPath("pxe", schematicInfo.FullID, request.TalosVersion, filename).String(),
 		GrpcTunnelEnabled: tunnelEnabled,
+	}, nil
+}
+
+func (s *managementServer) getOverlay(ctx context.Context, req *management.CreateSchematicRequest) (schematic.Overlay, error) {
+	if !quirks.New(req.TalosVersion).SupportsOverlay() {
+		return schematic.Overlay{}, nil
+	}
+
+	if req.Overlay != nil {
+		options := map[string]any{}
+
+		if err := json.Unmarshal([]byte(req.Overlay.Options), &options); err != nil {
+			return schematic.Overlay{}, err
+		}
+
+		return schematic.Overlay{
+			Name:    req.Overlay.Name,
+			Image:   req.Overlay.Image,
+			Options: options,
+		}, nil
+	}
+
+	if req.MediaId == "" {
+		return schematic.Overlay{}, nil
+	}
+
+	media, err := safe.ReaderGetByID[*omni.InstallationMedia](ctx, s.omniState, req.MediaId)
+	if err != nil {
+		return schematic.Overlay{}, err
+	}
+
+	if media.TypedSpec().Value.Overlay == "" {
+		return schematic.Overlay{}, nil
+	}
+
+	overlays, err := s.imageFactoryClient.OverlaysVersions(ctx, req.TalosVersion)
+	if err != nil {
+		return schematic.Overlay{}, fmt.Errorf("failed to get overlays list for the Talos version: %w", err)
+	}
+
+	index := slices.IndexFunc(overlays, func(value client.OverlayInfo) bool {
+		return value.Name == media.TypedSpec().Value.Overlay
+	})
+
+	if index == -1 {
+		return schematic.Overlay{}, fmt.Errorf("failed to find overlay with name %q", media.TypedSpec().Value.Overlay)
+	}
+
+	overlay := overlays[index]
+
+	return schematic.Overlay{
+		Name:  overlay.Name,
+		Image: overlay.Image,
 	}, nil
 }
 

@@ -1747,6 +1747,7 @@ func (m *FeaturesConfigSpec) CloneVT() *FeaturesConfigSpec {
 	r.UserPilotSettings = m.UserPilotSettings.CloneVT()
 	r.StripeSettings = m.StripeSettings.CloneVT()
 	r.TalosPreReleaseVersionsEnabled = m.TalosPreReleaseVersionsEnabled
+	r.ImageFactoryPxeBaseUrl = m.ImageFactoryPxeBaseUrl
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -5200,6 +5201,9 @@ func (this *FeaturesConfigSpec) EqualVT(that *FeaturesConfigSpec) bool {
 		return false
 	}
 	if this.TalosPreReleaseVersionsEnabled != that.TalosPreReleaseVersionsEnabled {
+		return false
+	}
+	if this.ImageFactoryPxeBaseUrl != that.ImageFactoryPxeBaseUrl {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -11343,6 +11347,13 @@ func (m *FeaturesConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.ImageFactoryPxeBaseUrl) > 0 {
+		i -= len(m.ImageFactoryPxeBaseUrl)
+		copy(dAtA[i:], m.ImageFactoryPxeBaseUrl)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ImageFactoryPxeBaseUrl)))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.TalosPreReleaseVersionsEnabled {
 		i--
 		if m.TalosPreReleaseVersionsEnabled {
@@ -15927,6 +15938,10 @@ func (m *FeaturesConfigSpec) SizeVT() (n int) {
 	}
 	if m.TalosPreReleaseVersionsEnabled {
 		n += 2
+	}
+	l = len(m.ImageFactoryPxeBaseUrl)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -29157,6 +29172,38 @@ func (m *FeaturesConfigSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.TalosPreReleaseVersionsEnabled = bool(v != 0)
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ImageFactoryPxeBaseUrl", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ImageFactoryPxeBaseUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

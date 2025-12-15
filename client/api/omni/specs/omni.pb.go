@@ -5030,8 +5030,10 @@ type FeaturesConfigSpec struct {
 	StripeSettings *StripeSettings `protobuf:"bytes,7,opt,name=stripe_settings,json=stripeSettings,proto3" json:"stripe_settings,omitempty"`
 	// TalosPreReleaseVersionsEnabled is true when --enable-talos-pre-release-versions is set.
 	TalosPreReleaseVersionsEnabled bool `protobuf:"varint,8,opt,name=talos_pre_release_versions_enabled,json=talosPreReleaseVersionsEnabled,proto3" json:"talos_pre_release_versions_enabled,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	// ImageFactoryPxeBaseUrl is the base URL of the image factory PXE server.
+	ImageFactoryPxeBaseUrl string `protobuf:"bytes,9,opt,name=image_factory_pxe_base_url,json=imageFactoryPxeBaseUrl,proto3" json:"image_factory_pxe_base_url,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *FeaturesConfigSpec) Reset() {
@@ -5118,6 +5120,13 @@ func (x *FeaturesConfigSpec) GetTalosPreReleaseVersionsEnabled() bool {
 		return x.TalosPreReleaseVersionsEnabled
 	}
 	return false
+}
+
+func (x *FeaturesConfigSpec) GetImageFactoryPxeBaseUrl() string {
+	if x != nil {
+		return x.ImageFactoryPxeBaseUrl
+	}
+	return ""
 }
 
 type UserPilotSettings struct {
@@ -9894,7 +9903,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x05error\x18\x05 \x01(\tR\x05error\x12,\n" +
 	"\x12has_explicit_alias\x18\x06 \x01(\bR\x10hasExplicitAlias\"R\n" +
 	"\x1eClusterWorkloadProxyStatusSpec\x120\n" +
-	"\x14num_exposed_services\x18\x01 \x01(\rR\x12numExposedServices\"\x90\x04\n" +
+	"\x14num_exposed_services\x18\x01 \x01(\rR\x12numExposedServices\"\xcc\x04\n" +
 	"\x12FeaturesConfigSpec\x128\n" +
 	"\x18enable_workload_proxying\x18\x01 \x01(\bR\x16enableWorkloadProxying\x12K\n" +
 	"\x14etcd_backup_settings\x18\x02 \x01(\v2\x19.specs.EtcdBackupSettingsR\x12etcdBackupSettings\x12<\n" +
@@ -9903,7 +9912,8 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x16image_factory_base_url\x18\x05 \x01(\tR\x13imageFactoryBaseUrl\x12H\n" +
 	"\x13user_pilot_settings\x18\x06 \x01(\v2\x18.specs.UserPilotSettingsR\x11userPilotSettings\x12>\n" +
 	"\x0fstripe_settings\x18\a \x01(\v2\x15.specs.StripeSettingsR\x0estripeSettings\x12J\n" +
-	"\"talos_pre_release_versions_enabled\x18\b \x01(\bR\x1etalosPreReleaseVersionsEnabled\"0\n" +
+	"\"talos_pre_release_versions_enabled\x18\b \x01(\bR\x1etalosPreReleaseVersionsEnabled\x12:\n" +
+	"\x1aimage_factory_pxe_base_url\x18\t \x01(\tR\x16imageFactoryPxeBaseUrl\"0\n" +
 	"\x11UserPilotSettings\x12\x1b\n" +
 	"\tapp_token\x18\x01 \x01(\tR\bappToken\"I\n" +
 	"\x0eStripeSettings\x12\x18\n" +

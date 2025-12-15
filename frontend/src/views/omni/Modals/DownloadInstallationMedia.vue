@@ -50,6 +50,52 @@ import { showError, showSuccess } from '@/notification'
 import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
+const supportsOverlay = (talosVersion?: string) =>
+  !!talosVersion && semver.gte(talosVersion, '1.7.0')
+
+const buildImageFactoryPXEURL = (
+  imageFactoryBaseURL: string,
+  schematic: string,
+  talosVersion: string,
+  profile: string,
+  architecture: string,
+  secureBoot: boolean,
+  overlay?: string,
+): string => {
+  const base = features.value?.spec.image_factory_pxe_base_url
+
+  return `${base}/pxe/${schematic}/${talosVersion}/${generateFilename(profile, architecture, secureBoot, overlay, !supportsOverlay(talosVersion))}`
+}
+
+const generateFilename = (
+  profile: string,
+  architecture: string,
+  secureBoot: boolean,
+  overlay?: string,
+  legacySBC?: boolean,
+): string => {
+  let filename = ''
+
+  // SBC handling
+  if (overlay) {
+    if (legacySBC) {
+      filename += `metal-${profile}`
+    } else {
+      filename += 'metal'
+    }
+  } else {
+    filename += profile
+  }
+
+  filename += `-${architecture}`
+
+  if (secureBoot) {
+    filename += '-secureboot'
+  }
+
+  return filename
+}
+
 enum Phase {
   Idle = 0,
   Generating = 1,
@@ -288,7 +334,11 @@ const schematicReq = computed(() => {
 })
 
 const createSchematic = async () => {
-  if (creatingSchematic.value) {
+  if (
+    creatingSchematic.value ||
+    !features.value?.spec.image_factory_base_url ||
+    !installationMedia.value
+  ) {
     return
   }
 
@@ -297,7 +347,15 @@ const createSchematic = async () => {
   try {
     const resp = await ManagementService.CreateSchematic(schematicReq.value)
 
-    pxeBootUrl.value = resp.pxe_url
+    pxeBootUrl.value = buildImageFactoryPXEURL(
+      features.value?.spec.image_factory_base_url,
+      resp.schematic_id!,
+      selectedTalosVersion.value,
+      installationMedia.value.spec.profile!,
+      installationMedia.value.spec.architecture!,
+      secureBoot.value,
+      installationMedia.value?.spec.overlay,
+    )
     schematicID.value = resp.schematic_id
   } finally {
     creatingSchematic.value = false

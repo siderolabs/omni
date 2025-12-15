@@ -125,6 +125,12 @@ message KubernetesSyncManifestResponse {
 }
 
 message CreateSchematicRequest {
+  message Overlay {
+    string image = 1;
+    string name = 2;
+    string options = 3;
+  }
+
   enum SiderolinkGRPCTunnelMode {
     AUTO = 0;
     DISABLED = 1;
@@ -139,6 +145,7 @@ message CreateSchematicRequest {
   bool secure_boot = 6;
   SiderolinkGRPCTunnelMode siderolink_grpc_tunnel_mode = 7;
   string join_token = 8;
+  Overlay overlay = 9;
 }
 
 message CreateSchematicResponse {

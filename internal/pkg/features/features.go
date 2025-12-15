@@ -34,6 +34,13 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 
 		res.TypedSpec().Value.AuditLogEnabled = config.Config.Logs.Audit.Path != "" //nolint:staticcheck
 		res.TypedSpec().Value.ImageFactoryBaseUrl = config.Config.Registries.ImageFactoryBaseURL
+
+		imageFactoryPXEBaseURL, err := config.Config.GetImageFactoryPXEBaseURL()
+		if err != nil {
+			return err
+		}
+
+		res.TypedSpec().Value.ImageFactoryPxeBaseUrl = imageFactoryPXEBaseURL.String()
 		res.TypedSpec().Value.UserPilotSettings = &specs.UserPilotSettings{
 			AppToken: config.Config.Account.UserPilot.AppToken,
 		}
