@@ -32,6 +32,7 @@ type clusterResources struct {
 	extensions *layeredResources[*omni.ExtensionsConfiguration]
 
 	machineSetNodes            map[string][]*omni.MachineSetNode
+	kernelArgs                 map[string]*omni.KernelArgs
 	clusterMachineInstallDisks map[string]string
 
 	cluster *omni.Cluster
@@ -40,8 +41,8 @@ type clusterResources struct {
 }
 
 // ExportTemplate exports the cluster configuration as a template.
-func ExportTemplate(ctx context.Context, st state.State, clusterID string, writer io.Writer) (models.List, error) {
-	resources, err := collectClusterResources(ctx, st, clusterID)
+func ExportTemplate(ctx context.Context, st state.State, clusterID string, includeKernelArgs bool, writer io.Writer) (models.List, error) {
+	resources, err := collectClusterResources(ctx, st, clusterID, includeKernelArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +82,10 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, write
 	for _, machineSetNodes := range resources.machineSetNodes {
 		for _, machineSetNode := range machineSetNodes {
 			machineModel, transformErr := transformMachineSetNodeToModel(machineSetNode,
+				resources.kernelArgs[machineSetNode.Metadata().ID()],
 				resources.patches.clusterMachine[machineSetNode.Metadata().ID()],
 				resources.clusterMachineInstallDisks[machineSetNode.Metadata().ID()],
+				includeKernelArgs,
 			)
 			if transformErr != nil {
 				return nil, transformErr
@@ -189,7 +192,9 @@ func transformConfigPatchesToModels(configPatches []*omni.ConfigPatch) (models.P
 	return patchModels, nil
 }
 
-func transformMachineSetNodeToModel(machineSetNode *omni.MachineSetNode, patches []*omni.ConfigPatch, installDisk string) (models.Machine, error) {
+func transformMachineSetNodeToModel(machineSetNode *omni.MachineSetNode, kernelArgsRes *omni.KernelArgs,
+	patches []*omni.ConfigPatch, installDisk string, includeKernelArgs bool,
+) (models.Machine, error) {
 	_, locked := machineSetNode.Metadata().Annotations().Get(omni.MachineLocked)
 
 	patchModels, err := transformConfigPatchesToModels(patches)
@@ -197,7 +202,7 @@ func transformMachineSetNodeToModel(machineSetNode *omni.MachineSetNode, patches
 		return models.Machine{}, err
 	}
 
-	return models.Machine{
+	machine := models.Machine{
 		Meta: models.Meta{
 			Kind: models.KindMachine,
 		},
@@ -208,7 +213,21 @@ func transformMachineSetNodeToModel(machineSetNode *omni.MachineSetNode, patches
 			Disk: installDisk,
 		},
 		Patches: patchModels,
-	}, nil
+	}
+
+	if !includeKernelArgs {
+		return machine, nil
+	}
+
+	var kernelArgs []string
+
+	if kernelArgsRes != nil {
+		kernelArgs = kernelArgsRes.TypedSpec().Value.Args
+	}
+
+	machine.KernelArgs.Set(kernelArgs)
+
+	return machine, nil
 }
 
 func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.MachineSetNode, patches []*omni.ConfigPatch) (models.MachineSet, error) {
@@ -378,7 +397,7 @@ func getUserDescriptors(res resource.Resource) models.Descriptors {
 	}
 }
 
-func collectClusterResources(ctx context.Context, st state.State, clusterID string) (clusterResources, error) {
+func collectClusterResources(ctx context.Context, st state.State, clusterID string, includeKernelArgs bool) (clusterResources, error) {
 	cluster, err := safe.StateGetByID[*omni.Cluster](ctx, st, clusterID)
 	if err != nil {
 		return clusterResources{}, fmt.Errorf("error getting cluster %q: %w", clusterID, err)
@@ -399,6 +418,7 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 	}
 
 	machineSetNodes := make(map[string][]*omni.MachineSetNode, machineSetNodeList.Len())
+	machineKernelArgs := make(map[string]*omni.KernelArgs, machineSetNodeList.Len())
 
 	for machineSetNode := range machineSetNodeList.All() {
 		machineSetLabel, ok := machineSetNode.Metadata().Labels().Get(omni.LabelMachineSet)
@@ -419,6 +439,20 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 		}
 
 		machineSetNodes[machineSetLabel] = append(machineSetNodes[machineSetLabel], machineSetNode)
+
+		if !includeKernelArgs {
+			continue
+		}
+
+		var kernelArgs *omni.KernelArgs
+
+		if kernelArgs, err = safe.StateGetByID[*omni.KernelArgs](ctx, st, machineSetNode.Metadata().ID()); err != nil && !state.IsNotFoundError(err) {
+			return clusterResources{}, fmt.Errorf("error getting kernel args for machine set node %q: %w", machineSetNode.Metadata().ID(), err)
+		}
+
+		if kernelArgs != nil {
+			machineKernelArgs[machineSetNode.Metadata().ID()] = kernelArgs
+		}
 	}
 
 	clusterMachineInstallDisks := map[string]string{}
@@ -450,6 +484,7 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 		cluster:                    cluster,
 		machineSets:                slices.AppendSeq(make([]*omni.MachineSet, 0, machineSetList.Len()), machineSetList.All()),
 		machineSetNodes:            machineSetNodes,
+		kernelArgs:                 machineKernelArgs,
 		patches:                    patches,
 		extensions:                 extensions,
 		clusterMachineInstallDisks: clusterMachineInstallDisks,

@@ -19,7 +19,7 @@ import (
 )
 
 // MachineSet is a base model for controlplane and workers.
-type MachineSet struct {
+type MachineSet struct { //nolint:govet
 	Meta             `yaml:",inline"`
 	SystemExtensions `yaml:",inline"`
 
@@ -44,6 +44,9 @@ type MachineSet struct {
 
 	// MachineSet patches.
 	Patches PatchList `yaml:"patches,omitempty"`
+
+	// KernelArgs are the additional kernel arguments.
+	KernelArgs KernelArgs `yaml:",inline"`
 }
 
 // BootstrapSpec defines the model for setting the bootstrap specification, i.e. restoring from a backup, in the machine set.
@@ -161,6 +164,11 @@ func (machineset *MachineSet) Validate() error {
 		multiErr = multierror.Append(multiErr, fmt.Errorf("machine set can not have both machines and machine class defined"))
 	}
 
+	_, kernelArgsDefined := machineset.KernelArgs.Get()
+	if kernelArgsDefined && machineset.MachineClass != nil {
+		multiErr = multierror.Append(multiErr, fmt.Errorf("kernelArgs cannot be defined for machine set since it uses machine class"))
+	}
+
 	return multiErr
 }
 
@@ -214,6 +222,10 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 	}
 
 	if machineset.MachineClass != nil {
+		if _, clusterKernelArgsDefined := ctx.ClusterLevelKernelArgs.Get(); clusterKernelArgsDefined {
+			return nil, fmt.Errorf("kernelArgs cannot be defined at cluster level for this machine set since it uses a machine class")
+		}
+
 		machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
 			Name:           machineset.MachineClass.Name,
 			MachineCount:   machineset.MachineClass.Size.Value,
@@ -232,6 +244,15 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 			}
 
 			resourceList = append(resourceList, machineSetNode)
+
+			_, machineExplicitlyDefinedInTemplate := ctx.MachineDescriptors[machineID]
+			if machineExplicitlyDefinedInTemplate { // kernel args will be translated at the lowest level (machine level)
+				continue
+			}
+
+			if kernelArgs, ok := machineset.translateKernelArgs(ctx, machineID); ok {
+				resourceList = append(resourceList, kernelArgs)
+			}
 		}
 	}
 
@@ -254,4 +275,16 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 	)
 
 	return append(resourceList, schematicConfigurations...), nil
+}
+
+func (machineset *MachineSet) translateKernelArgs(ctx TranslateContext, id MachineID) (res resource.Resource, defined bool) {
+	if args, ok := machineset.KernelArgs.Get(); ok {
+		return buildKernelArgsResource(id, args), true
+	}
+
+	if args, ok := ctx.ClusterLevelKernelArgs.Get(); ok {
+		return buildKernelArgsResource(id, args), true
+	}
+
+	return nil, false
 }

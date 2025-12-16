@@ -123,14 +123,24 @@ func (l List) Validate() error {
 // Translate assumes that the template is valid.
 func (l List) Translate() ([]resource.Resource, error) {
 	context := TranslateContext{
-		LockedMachines:     make(map[MachineID]struct{}),
-		MachineDescriptors: make(map[MachineID]Descriptors),
+		LockedMachines:            map[MachineID]struct{}{},
+		MachineDescriptors:        map[MachineID]Descriptors{},
+		MachineSetLevelKernelArgs: map[MachineID]KernelArgs{},
 	}
 
 	for _, model := range l {
 		switch m := model.(type) {
 		case *Cluster:
 			context.ClusterName = m.Name
+			context.ClusterLevelKernelArgs = m.KernelArgs
+		case *ControlPlane:
+			for _, machineID := range m.Machines {
+				context.MachineSetLevelKernelArgs[machineID] = m.KernelArgs
+			}
+		case *Workers:
+			for _, machineID := range m.Machines {
+				context.MachineSetLevelKernelArgs[machineID] = m.KernelArgs
+			}
 		case *Machine:
 			context.MachineDescriptors[m.Name] = m.Descriptors
 
@@ -172,8 +182,10 @@ func (l List) Translate() ([]resource.Resource, error) {
 
 		resourceIDs[r.Metadata().Type()][r.Metadata().ID()] = struct{}{}
 
-		if r.Metadata().Type() == omni.ClusterType {
+		switch r.Metadata().Type() {
+		case omni.ClusterType, omni.KernelArgsType:
 			continue
+		default:
 		}
 
 		if l, _ := r.Metadata().Labels().Get(omni.LabelCluster); l != context.ClusterName {
