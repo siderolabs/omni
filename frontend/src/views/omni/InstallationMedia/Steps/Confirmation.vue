@@ -5,10 +5,10 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computedAsync } from '@vueuse/core'
+import { computedAsync, useEventListener } from '@vueuse/core'
 import { dump } from 'js-yaml'
 import { gte, parse } from 'semver'
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import {
@@ -37,10 +37,13 @@ import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink, getLegacyDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
+import { Phase, useDownloadImage } from '@/methods/useDownloadImage'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceList } from '@/methods/useResourceList'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
+import { showError } from '@/notification'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const formState = defineModel<FormState>({ required: true })
 
@@ -72,6 +75,29 @@ const arch = computed(() => {
 })
 
 const { data: features } = useFeatures()
+const imageDownloadDialog = useTemplateRef<HTMLDialogElement>('downloadImageDialog')
+const {
+  phase: imageDownloadPhase,
+  error: imageDownloadError,
+  bytesDownloadedFormatted,
+  abort: abortImageDownload,
+  download: _downloadImage,
+} = useDownloadImage()
+
+async function downloadImage(url: string) {
+  try {
+    imageDownloadDialog.value?.showModal()
+    await _downloadImage(url)
+  } finally {
+    imageDownloadDialog.value?.close()
+  }
+}
+
+useEventListener(imageDownloadDialog, 'close', abortImageDownload)
+
+watch(imageDownloadError, (error) => {
+  if (error) showError('Image download failed', error.message)
+})
 
 const { downloads } = useTalosctlDownloads()
 
@@ -274,10 +300,12 @@ function shortVersion(version?: string) {
         <dt>Disk Image</dt>
         <dd>
           <a
+            v-if="sbcDiskImagePath"
             class="link-primary"
             :href="sbcDiskImagePath"
             target="_blank"
             rel="noopener noreferrer"
+            @click.prevent="downloadImage(sbcDiskImagePath)"
           >
             {{ sbcDiskImagePath }}
           </a>
@@ -316,10 +344,12 @@ function shortVersion(version?: string) {
             </dt>
             <dd>
               <a
+                v-if="platformDiskImagePath"
                 class="link-primary"
                 :href="platformDiskImagePath"
                 target="_blank"
                 rel="noopener noreferrer"
+                @click.prevent="downloadImage(platformDiskImagePath)"
               >
                 {{ platformDiskImagePath }}
               </a>
@@ -330,10 +360,12 @@ function shortVersion(version?: string) {
               <dt>Disk Image (raw)</dt>
               <dd>
                 <a
+                  v-if="platformDiskImagePath"
                   class="link-primary"
                   :href="platformDiskImagePath"
                   target="_blank"
                   rel="noopener noreferrer"
+                  @click.prevent="downloadImage(platformDiskImagePath)"
                 >
                   {{ platformDiskImagePath }}
                 </a>
@@ -341,10 +373,12 @@ function shortVersion(version?: string) {
               <dt>Disk Image (qcow2)</dt>
               <dd>
                 <a
+                  v-if="qcow2DiskImagePath"
                   class="link-primary"
                   :href="qcow2DiskImagePath"
                   target="_blank"
                   rel="noopener noreferrer"
+                  @click.prevent="downloadImage(qcow2DiskImagePath)"
                 >
                   {{ qcow2DiskImagePath }}
                 </a>
@@ -354,10 +388,12 @@ function shortVersion(version?: string) {
               <dt>Disk Image</dt>
               <dd>
                 <a
+                  v-if="platformDiskImagePath"
                   class="link-primary"
                   :href="platformDiskImagePath"
                   target="_blank"
                   rel="noopener noreferrer"
+                  @click.prevent="downloadImage(platformDiskImagePath)"
                 >
                   {{ platformDiskImagePath }}
                 </a>
@@ -391,7 +427,14 @@ function shortVersion(version?: string) {
               </Tooltip>
             </dt>
             <dd>
-              <a class="link-primary" :href="isoPath" target="_blank" rel="noopener noreferrer">
+              <a
+                v-if="isoPath"
+                class="link-primary"
+                :href="isoPath"
+                target="_blank"
+                rel="noopener noreferrer"
+                @click.prevent="downloadImage(isoPath)"
+              >
                 {{ isoPath }}
               </a>
             </dd>
@@ -417,7 +460,14 @@ function shortVersion(version?: string) {
               </Tooltip>
             </dt>
             <dd>
-              <a class="link-primary" :href="isoPath" target="_blank" rel="noopener noreferrer">
+              <a
+                v-if="isoPath"
+                class="link-primary"
+                :href="isoPath"
+                target="_blank"
+                rel="noopener noreferrer"
+                @click.prevent="downloadImage(isoPath)"
+              >
                 {{ isoPath }}
               </a>
             </dd>
@@ -643,10 +693,33 @@ function shortVersion(version?: string) {
         </dd>
       </dl>
     </template>
+
+    <dialog
+      ref="downloadImageDialog"
+      closedby="any"
+      class="modal-window fixed inset-0 m-auto gap-2 not-open:hidden open:backdrop:bg-naturals-n0/90"
+    >
+      <div class="mb-5 flex items-center justify-between text-xl text-naturals-n14">
+        <h3 class="text-base text-naturals-n14">Image download</h3>
+
+        <CloseButton @click="abortImageDownload" />
+      </div>
+
+      <p class="flex items-center gap-1.5">
+        <TSpinner class="size-3" />
+
+        <span v-if="imageDownloadPhase === Phase.Generating">Generating ...</span>
+        <span v-else-if="imageDownloadPhase === Phase.Loading">Loading ...</span>
+
+        <span v-if="imageDownloadPhase === Phase.Loading" class="self-center">
+          {{ bytesDownloadedFormatted }}
+        </span>
+      </p>
+    </dialog>
   </div>
   <div v-else class="flex flex-col gap-4">
     <p v-if="schematicLoading" class="flex items-center gap-2 text-sm">
-      <TSpinner class="size-4" />
+      <TSpinner class="size-3" />
       Generating schematic ...
     </p>
 

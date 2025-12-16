@@ -49,6 +49,7 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 			MinCommit: config.Config.Logs.Stripe.MinCommit,
 		}
 		res.TypedSpec().Value.TalosPreReleaseVersionsEnabled = config.Config.Features.EnableTalosPreReleaseVersions
+		res.TypedSpec().Value.AccountName = config.Config.Account.Name
 
 		return nil
 	}
