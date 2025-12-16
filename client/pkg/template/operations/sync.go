@@ -47,13 +47,16 @@ func SyncTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, 
 		return fmt.Errorf("error syncing template: %w", err)
 	}
 
-	// sync flow:
-	//  1. create missing resources
-	//  2. update resources
-	//  3. delete resources last
-	//
-	// this follows the idea of a scaling up first
+	return sync(ctx, syncResult, out, st, syncOptions)
+}
 
+// sync flow:
+//  1. create missing resources
+//  2. update resources
+//  3. delete resources last
+//
+// this follows the idea of a scaling up first.
+func sync(ctx context.Context, syncResult *template.SyncResult, out io.Writer, st state.State, syncOptions SyncOptions) error {
 	yellow := color.New(color.FgYellow)
 	boldFunc := color.New(color.Bold).SprintfFunc()
 
@@ -66,7 +69,7 @@ func SyncTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, 
 		yellow.Fprintf(out, "* creating%s %s\n", dryRun, boldFunc(utils.Describe(r))) //nolint:errcheck
 
 		if syncOptions.Verbose {
-			if err = utils.RenderDiff(out, nil, r); err != nil {
+			if err := utils.RenderDiff(out, nil, r); err != nil {
 				return err
 			}
 		}
@@ -75,7 +78,7 @@ func SyncTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, 
 			continue
 		}
 
-		if err = st.Create(ctx, r); err != nil {
+		if err := st.Create(ctx, r); err != nil {
 			return err
 		}
 	}
@@ -84,7 +87,7 @@ func SyncTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, 
 		yellow.Fprintf(out, "* updating%s %s\n", dryRun, boldFunc(utils.Describe(p.New))) //nolint:errcheck
 
 		if syncOptions.Verbose {
-			if err = utils.RenderDiff(os.Stdout, p.Old, p.New); err != nil {
+			if err := utils.RenderDiff(os.Stdout, p.Old, p.New); err != nil {
 				return err
 			}
 		}
@@ -93,7 +96,7 @@ func SyncTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, 
 			continue
 		}
 
-		if err = st.Update(ctx, p.New); err != nil {
+		if err := st.Update(ctx, p.New); err != nil {
 			return err
 		}
 	}

@@ -227,6 +227,21 @@ spec: {}
 
 
 
+################################ Kernel Args
+metadata:
+  namespace: default
+  type: KernelArgs.omni.sidero.dev
+  id: 024780fe-b0d6-43e0-a868-b142ba0a67a6
+  annotations:
+    omni.sidero.dev/managed-by-cluster-templates:
+spec:
+  args:
+    - arg-1
+    - arg-2
+---
+
+
+
 ################################ Config Patches - user defined
 metadata:
   namespace: default

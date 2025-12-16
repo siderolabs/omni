@@ -5,20 +5,22 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
-import { type Resource, ResourceService } from '@/api/grpc'
+import { ResourceService } from '@/api/grpc'
 import { type KernelArgsSpec, type KernelArgsStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withRuntime } from '@/api/options'
 import { DefaultNamespace, KernelArgsStatusType, KernelArgsType } from '@/api/resources'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
+import { useResourceGet } from '@/methods/useResourceGet.ts'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
+import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const args = ref('')
@@ -50,22 +52,16 @@ const md = {
   type: KernelArgsType,
 }
 
-let kernelArgs: Resource<KernelArgsSpec> | undefined = undefined
-let initialArgs: string
-
-onMounted(async () => {
-  try {
-    kernelArgs = await ResourceService.Get<Resource<KernelArgsSpec>>(md, withRuntime(Runtime.Omni))
-
-    args.value = (kernelArgs.spec.args || []).map((arg) => arg.trim()).join(' ')
-
-    initialArgs = args.value
-  } catch (e) {
-    if (e.code !== Code.NOT_FOUND) {
-      throw e
-    }
-  }
+const { data: kernelArgs } = useResourceGet<KernelArgsSpec>({
+  runtime: Runtime.Omni,
+  resource: md,
 })
+
+const initialArgs = computed(
+  () => kernelArgs.value?.spec.args?.map((arg) => arg.trim()).join(' ') ?? '',
+)
+
+watch(initialArgs, () => (args.value = initialArgs.value))
 
 const handleUpdateKernelArgs = async () => {
   try {
@@ -88,7 +84,7 @@ const updateKernelArgs = async () => {
     .filter((arg) => arg.trim() !== '')
   const emptyArgs = argsSplit.length === 0
 
-  if (!kernelArgs && emptyArgs) {
+  if (!kernelArgs.value && emptyArgs) {
     return
   }
 
@@ -106,7 +102,7 @@ const updateKernelArgs = async () => {
     return
   }
 
-  if (!kernelArgs) {
+  if (!kernelArgs.value) {
     await ResourceService.Create(
       {
         metadata: md,
@@ -120,9 +116,13 @@ const updateKernelArgs = async () => {
     return
   }
 
-  kernelArgs.spec.args = argsSplit
+  kernelArgs.value.spec.args = argsSplit
 
-  await ResourceService.Update(kernelArgs, kernelArgs.metadata.version, withRuntime(Runtime.Omni))
+  await ResourceService.Update(
+    kernelArgs.value,
+    kernelArgs.value.metadata.version,
+    withRuntime(Runtime.Omni),
+  )
 }
 
 const editArgs = ref(false)
@@ -148,6 +148,8 @@ const close = () => {
       </h3>
       <CloseButton @click="close" />
     </div>
+
+    <ManagedByTemplatesWarning :resource="kernelArgs" />
 
     <template v-if="unmetConditions.length > 0">
       <div class="font-bold text-primary-p3">

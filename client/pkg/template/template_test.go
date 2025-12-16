@@ -7,7 +7,9 @@ package template_test
 import (
 	"bytes"
 	_ "embed"
+	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -23,6 +25,8 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/compression"
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/template"
 )
 
@@ -34,6 +38,9 @@ var cluster2 []byte
 
 //go:embed testdata/cluster3.yaml
 var cluster3 []byte
+
+//go:embed testdata/cluster-with-kernel-args.yaml
+var clusterWithKernelArgs []byte
 
 //go:embed testdata/cluster-valid-bootstrapspec.yaml
 var clusterValidBootstrapSpec []byte
@@ -73,6 +80,9 @@ var cluster3Resources []byte
 
 //go:embed testdata/cluster-valid-bootstrapspec-resources.yaml
 var clusterValidBootstrapSpecResources []byte
+
+//go:embed testdata/cluster-with-kernel-args-resources.yaml
+var clusterWithKernelArgsResources []byte
 
 func TestLoad(t *testing.T) {
 	for _, tt := range []struct { //nolint:govet
@@ -134,6 +144,10 @@ func TestValidate(t *testing.T) {
 		{
 			name: "cluster3",
 			data: cluster3,
+		},
+		{
+			name: "clusterWithKernelArgs",
+			data: clusterWithKernelArgs,
 		},
 		{
 			name: "clusterInvalid1",
@@ -317,6 +331,11 @@ func TestTranslate(t *testing.T) {
 			template: clusterValidBootstrapSpec,
 			expected: clusterValidBootstrapSpecResources,
 		},
+		{
+			name:     "clusterWithKernelArgs",
+			template: clusterWithKernelArgs,
+			expected: clusterWithKernelArgsResources,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			templ, err := template.Load(bytes.NewReader(tt.template))
@@ -430,4 +449,145 @@ func TestDelete(t *testing.T) {
 	assert.Len(t, syncDelete.Destroy, 2)
 	assert.Len(t, syncDelete.Destroy[0], 0)
 	assert.Len(t, syncDelete.Destroy[1], 1)
+}
+
+func TestSync_KernelArgs_Lifecycle(t *testing.T) {
+	t.Chdir("testdata")
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	ctx := t.Context()
+
+	// 1. Initial Sync: Apply the template with KernelArgs
+	templ, err := template.Load(bytes.NewReader(clusterWithKernelArgs))
+	require.NoError(t, err)
+
+	syncRes, err := templ.Sync(ctx, st)
+	require.NoError(t, err)
+
+	// Apply initial creation
+	for _, r := range syncRes.Create {
+		require.NoError(t, st.Create(ctx, r))
+	}
+
+	// Verify KernelArgs exist and have the managed annotation
+	// Using machine "dba8..." which inherits from Cluster level in your test data
+	kaID := resource.NewMetadata(resources.DefaultNamespace, omni.KernelArgsType, "dba84301-9a87-40f6-b775-0480aa3ce704", resource.VersionUndefined)
+	ka, err := st.Get(ctx, kaID)
+	require.NoError(t, err)
+	require.NotNil(t, ka)
+	_, ok := ka.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates)
+	assert.True(t, ok, "KernelArgs should initially be managed by template")
+
+	clusterWithKernelArgsRemoved := removeKernelArgs(t, clusterWithKernelArgs)
+
+	templRemoved, err := template.Load(bytes.NewReader(clusterWithKernelArgsRemoved))
+	require.NoError(t, err)
+
+	syncResRemoved, err := templRemoved.Sync(ctx, st)
+	require.NoError(t, err)
+
+	// CRITICAL CHECK: The operation should be an UPDATE (to remove annotation), NOT a DESTROY
+	foundUpdate := false
+
+	for _, u := range syncResRemoved.Update {
+		if u.New.Metadata().ID() == "dba84301-9a87-40f6-b775-0480aa3ce704" && u.New.Metadata().Type() == omni.KernelArgsType {
+			foundUpdate = true
+			_, ok := u.New.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates)
+			assert.False(t, ok, "Managed annotation should be removed on orphan")
+		}
+	}
+
+	assert.True(t, foundUpdate, "KernelArgs should be updated (orphaned), not destroyed")
+
+	// Ensure it is NOT in the Destroy list
+	for _, phase := range syncResRemoved.Destroy {
+		for _, r := range phase {
+			if r.Metadata().Type() == omni.KernelArgsType {
+				assert.Fail(t, "KernelArgs should never be in the Destroy list")
+			}
+		}
+	}
+
+	// Apply the update to state for the next step
+	for _, u := range syncResRemoved.Update {
+		require.NoError(t, st.Update(ctx, u.New))
+	}
+
+	// 3. Delete Template (Full Deletion Logic)
+	// First, restore the managed state so we can test deletion behavior
+	// Re-sync original template
+	syncResRestore, err := templ.Sync(ctx, st)
+	require.NoError(t, err)
+
+	for _, u := range syncResRestore.Update {
+		require.NoError(t, st.Update(ctx, u.New))
+	}
+
+	// Now perform the delete
+	deleteRes, err := templ.Delete(ctx, st)
+	require.NoError(t, err)
+
+	// CRITICAL CHECK: Deleting the template should UPDATE (orphan) KernelArgs, not destroy them
+	foundUpdateDelete := false
+
+	for _, u := range deleteRes.Update {
+		if u.New.Metadata().ID() == "dba84301-9a87-40f6-b775-0480aa3ce704" && u.New.Metadata().Type() == omni.KernelArgsType {
+			foundUpdateDelete = true
+			_, ok := u.New.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates)
+			assert.False(t, ok, "Managed annotation should be removed on template delete")
+		}
+	}
+
+	assert.True(t, foundUpdateDelete, "KernelArgs should be orphaned on template delete")
+
+	// Ensure it is NOT in the Destroy list
+	for _, phase := range deleteRes.Destroy {
+		for _, r := range phase {
+			if r.Metadata().Type() == omni.KernelArgsType {
+				assert.Fail(t, "KernelArgs should not be destroyed on template delete")
+			}
+		}
+	}
+}
+
+func removeKernelArgs(t *testing.T, in []byte) []byte {
+	t.Helper()
+
+	var out bytes.Buffer
+
+	dec := yaml.NewDecoder(bytes.NewReader(in))
+	enc := yaml.NewEncoder(&out)
+	enc.SetIndent(2)
+
+	for {
+		var doc yaml.Node
+		if err := dec.Decode(&doc); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			require.NoError(t, err)
+		}
+
+		if len(doc.Content) > 0 && doc.Content[0].Kind == yaml.MappingNode {
+			mapNode := doc.Content[0]
+
+			var newContent []*yaml.Node
+
+			for i := 0; i < len(mapNode.Content); i += 2 {
+				if mapNode.Content[i].Value == "kernelArgs" {
+					continue
+				}
+
+				newContent = append(newContent, mapNode.Content[i], mapNode.Content[i+1])
+			}
+
+			mapNode.Content = newContent
+		}
+
+		err := enc.Encode(&doc)
+		require.NoError(t, err)
+	}
+
+	return out.Bytes()
 }

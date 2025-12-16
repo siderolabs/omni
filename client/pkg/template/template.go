@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -139,7 +140,9 @@ func (t *Template) ClusterName() (string, error) {
 }
 
 // actualResources returns a list of resources in the state related to the cluster template.
-func (t *Template) actualResources(ctx context.Context, st state.State) ([]resource.Resource, error) {
+//
+//nolint:gocognit
+func (t *Template) actualResources(ctx context.Context, st state.State, expectedResources []resource.Resource) ([]resource.Resource, error) {
 	clusterName, err := t.models.ClusterName()
 	if err != nil {
 		return nil, err
@@ -171,14 +174,49 @@ func (t *Template) actualResources(ctx context.Context, st state.State) ([]resou
 			return nil, err
 		}
 
-		actualResources = append(actualResources,
-			xslices.Filter(items.Items,
-				func(r resource.Resource) bool {
-					_, programmaticallyCreatedMachineSetNode := r.Metadata().Labels().Get(omni.LabelManagedByMachineSetNodeController)
+		filteredItems := xslices.Filter(items.Items,
+			func(r resource.Resource) bool {
+				_, programmaticallyCreatedMachineSetNode := r.Metadata().Labels().Get(omni.LabelManagedByMachineSetNodeController)
 
-					return !programmaticallyCreatedMachineSetNode && r.Metadata().Owner() == ""
-				},
-			)...)
+				return !programmaticallyCreatedMachineSetNode && r.Metadata().Owner() == ""
+			},
+		)
+		actualResources = append(actualResources, filteredItems...)
+
+		if resourceType == omni.MachineSetNodeType {
+			for _, node := range filteredItems {
+				kernelArgs, getErr := st.Get(ctx, omni.NewKernelArgs(node.Metadata().ID()).Metadata())
+				if getErr != nil && !state.IsNotFoundError(getErr) {
+					return nil, getErr
+				}
+
+				if kernelArgs != nil {
+					actualResources = append(actualResources, kernelArgs)
+				}
+			}
+		}
+	}
+
+	// In the code below, we make sure that we check each expected resource from the template, in case
+	// it was not found by the previous queries (e.g., because it doesn't have the cluster label).
+	// This ensures that resources like KernelArgs are also included in the actual resources.
+
+	for _, expectedResource := range expectedResources {
+		alreadyAdded := slices.ContainsFunc(actualResources, func(res resource.Resource) bool {
+			return metadataKey(*res.Metadata()) == metadataKey(*expectedResource.Metadata())
+		})
+		if alreadyAdded {
+			continue
+		}
+
+		actual, getErr := st.Get(ctx, *expectedResource.Metadata())
+		if getErr != nil && !state.IsNotFoundError(getErr) {
+			return nil, getErr
+		}
+
+		if actual != nil && actual.Metadata().Owner() == "" {
+			actualResources = append(actualResources, actual)
+		}
 	}
 
 	return actualResources, nil
@@ -205,13 +243,36 @@ func splitResourcesToDelete(toDelete []resource.Resource) [][]resource.Resource 
 
 // Delete returns a sync result which lists what needs to be deleted from state to remove template from the cluster.
 func (t *Template) Delete(ctx context.Context, st state.State) (*SyncResult, error) {
-	actualResources, err := t.actualResources(ctx, st)
+	actualResources, err := t.actualResources(ctx, st, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	clusterName, err := t.models.ClusterName()
+	if err != nil {
+		return nil, err
+	}
+
+	toDelete := make([]resource.Resource, 0, len(actualResources))
+	toUpdate := make([]UpdateChange, 0, len(actualResources))
+
+	for _, actualResource := range actualResources {
+		updateChange, destroyRes, handleErr := getOperationForNoMoreExpectedResource(actualResource, clusterName)
+		if handleErr != nil {
+			return nil, handleErr
+		}
+
+		switch {
+		case updateChange != nil:
+			toUpdate = append(toUpdate, *updateChange)
+		case destroyRes != nil:
+			toDelete = append(toDelete, destroyRes)
+		}
+	}
+
 	syncResult := SyncResult{
-		Destroy: splitResourcesToDelete(actualResources),
+		Update:  toUpdate,
+		Destroy: splitResourcesToDelete(toDelete),
 	}
 
 	return &syncResult, nil
@@ -233,7 +294,7 @@ func (t *Template) Sync(ctx context.Context, st state.State) (*SyncResult, error
 		return nil, err
 	}
 
-	actualResources, err := t.actualResources(ctx, st)
+	actualResources, err := t.actualResources(ctx, st, expectedResources)
 	if err != nil {
 		return nil, err
 	}
@@ -259,14 +320,17 @@ func (t *Template) Sync(ctx context.Context, st state.State) (*SyncResult, error
 				syncResult.Update = append(syncResult.Update, UpdateChange{Old: actualResource, New: expectedResource})
 			}
 		} else {
-			// check that actual resource belongs to the cluster to avoid removing resources from other clusters
-			if actualResource.Metadata().Type() != omni.ClusterType {
-				if clusterLabel, _ := actualResource.Metadata().Labels().Get(omni.LabelCluster); clusterLabel != clusterName {
-					return nil, fmt.Errorf("resource %s belongs to cluster %q, but template is for cluster %q", resource.String(actualResource), clusterLabel, clusterName)
-				}
+			updateRes, destroyRes, handleErr := getOperationForNoMoreExpectedResource(actualResource, clusterName)
+			if handleErr != nil {
+				return nil, handleErr
 			}
 
-			toDelete = append(toDelete, actualResource)
+			switch {
+			case updateRes != nil:
+				syncResult.Update = append(syncResult.Update, *updateRes)
+			case destroyRes != nil:
+				toDelete = append(toDelete, destroyRes)
+			}
 		}
 
 		delete(expectedResourceMap, metadataKey(*actualResource.Metadata()))
@@ -274,11 +338,8 @@ func (t *Template) Sync(ctx context.Context, st state.State) (*SyncResult, error
 
 	for _, expectedResource := range expectedResourceMap {
 		if _, ok := expectedResourceMap[metadataKey(*expectedResource.Metadata())]; ok {
-			// check that no such resource exists (for a different cluster)
-			if actualResource, err := st.Get(ctx, *expectedResource.Metadata()); err == nil {
-				clusterLabel, _ := actualResource.Metadata().Labels().Get(omni.LabelCluster)
-
-				return nil, fmt.Errorf("resource %s already exists from cluster %q, but template is for cluster %q", resource.String(actualResource), clusterLabel, clusterName)
+			if err = validateNoResourceConflictOnCreate(ctx, st, expectedResource); err != nil {
+				return nil, err
 			}
 
 			syncResult.Create = append(syncResult.Create, expectedResource)
@@ -290,6 +351,52 @@ func (t *Template) Sync(ctx context.Context, st state.State) (*SyncResult, error
 	syncResult.Destroy = splitResourcesToDelete(toDelete)
 
 	return &syncResult, nil
+}
+
+func getOperationForNoMoreExpectedResource(actualResource resource.Resource, clusterName string) (update *UpdateChange, destroy resource.Resource, err error) {
+	switch actualResource.Metadata().Type() {
+	case omni.KernelArgsType:
+		_, hasManagedByTemplatesAnnotation := actualResource.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates)
+		if !hasManagedByTemplatesAnnotation {
+			return nil, nil, nil
+		}
+
+		expectedKernelArgs := actualResource.DeepCopy()
+		expectedKernelArgs.Metadata().Annotations().Delete(omni.ResourceManagedByClusterTemplates)
+
+		return &UpdateChange{Old: actualResource, New: expectedKernelArgs}, nil, nil
+	default:
+		// check that actual resource belongs to the cluster to avoid removing resources from other clusters
+		if actualResource.Metadata().Type() != omni.ClusterType {
+			if clusterLabel, _ := actualResource.Metadata().Labels().Get(omni.LabelCluster); clusterLabel != clusterName {
+				return nil, nil, fmt.Errorf("resource %s belongs to cluster %q, but template is for cluster %q", resource.String(actualResource), clusterLabel, clusterName)
+			}
+		}
+
+		return nil, actualResource, nil
+	}
+}
+
+// validateNoResourceConflictOnCreate checks that creating expectedResource will not conflict with existing resources in the state.
+func validateNoResourceConflictOnCreate(ctx context.Context, st state.State, expectedResource resource.Resource) error {
+	if expectedResource.Metadata().Type() == omni.KernelArgsType { // no cluster relation, nothing to check
+		return nil
+	}
+
+	actualResource, err := st.Get(ctx, *expectedResource.Metadata())
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	if actualResource == nil { // doesn't exist, all good
+		return nil
+	}
+
+	// unexpected resource
+
+	clusterLabel, _ := actualResource.Metadata().Labels().Get(omni.LabelCluster)
+
+	return fmt.Errorf("resource %s already exists for cluster %q, cannot create a conflicting resource for a different cluster", resource.String(actualResource), clusterLabel)
 }
 
 func deduplicateDeletion(toDelete []resource.Resource) []resource.Resource {

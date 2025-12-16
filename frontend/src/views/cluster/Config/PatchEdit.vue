@@ -523,7 +523,7 @@ onMounted(async () => {
   <div class="relative -mx-6 -mb-6 flex flex-1 flex-col overflow-hidden" :style="{ width: 'auto' }">
     <div class="flex flex-1 flex-col overflow-hidden px-6 pb-16">
       <PageHeader :title="title" :subtitle="subtitle" :notes="notes" />
-      <ManagedByTemplatesWarning :cluster="currentCluster" />
+      <ManagedByTemplatesWarning :resource="currentCluster" />
       <div v-if="state === State.NotExists" class="mb-4 flex items-center gap-3">
         <TInput v-model="patchName" title="Name" />
         <TInput v-model="patchDescription" class="flex-1" title="Description" />

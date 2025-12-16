@@ -131,7 +131,7 @@ onMounted(async () => {
 <template>
   <div class="flex flex-col gap-3">
     <PageHeader :title="`Add Machines to Cluster ${$route.params.cluster}`" />
-    <ManagedByTemplatesWarning :cluster="currentCluster" />
+    <ManagedByTemplatesWarning :resource="currentCluster" />
     <template v-if="existingResources.length > 0">
       <div class="text-naturals-n13">Machine Sets</div>
       <MachineSets />

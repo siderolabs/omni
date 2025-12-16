@@ -1,0 +1,265 @@
+metadata:
+    namespace: default
+    type: Clusters.omni.sidero.dev
+    id: kernel-args-test-cluster
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    annotations:
+        omni.sidero.dev/managed-by-cluster-templates:
+spec:
+    kubernetesversion: 1.34.2
+    talosversion: 1.11.5
+    features:
+        enableworkloadproxy: false
+        diskencryption: false
+        useembeddeddiscoveryservice: false
+    backupconfiguration: null
+---
+metadata:
+    namespace: default
+    type: MachineSets.omni.sidero.dev
+    id: kernel-args-test-cluster-control-planes
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: kernel-args-test-cluster
+        omni.sidero.dev/role-controlplane:
+spec:
+    updatestrategy: 1
+    machineclass: null
+    bootstrapspec: null
+    deletestrategy: 0
+    updatestrategyconfig: null
+    deletestrategyconfig: null
+    machineallocation: null
+---
+metadata:
+    namespace: default
+    type: MachineSetNodes.omni.sidero.dev
+    id: 03595977-1864-4e8a-b917-b40a6080de2f
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: kernel-args-test-cluster
+        omni.sidero.dev/machine-set: kernel-args-test-cluster-control-planes
+        omni.sidero.dev/role-controlplane:
+spec: {}
+---
+metadata:
+    namespace: default
+    type: MachineSetNodes.omni.sidero.dev
+    id: 424c3bbe-1ec2-475e-b804-abf77d6b6c30
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: kernel-args-test-cluster
+        omni.sidero.dev/machine-set: kernel-args-test-cluster-control-planes
+        omni.sidero.dev/role-controlplane:
+spec: {}
+---
+metadata:
+    namespace: default
+    type: KernelArgs.omni.sidero.dev
+    id: 424c3bbe-1ec2-475e-b804-abf77d6b6c30
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    annotations:
+        omni.sidero.dev/managed-by-cluster-templates:
+spec:
+    args:
+        - cp-kernel-arg-1
+        - cp-kernel-arg-2
+---
+metadata:
+    namespace: default
+    type: MachineSetNodes.omni.sidero.dev
+    id: ac5a7d82-3802-488f-8d2e-3e8f925199b8
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: kernel-args-test-cluster
+        omni.sidero.dev/machine-set: kernel-args-test-cluster-control-planes
+        omni.sidero.dev/role-controlplane:
+spec: {}
+---
+metadata:
+    namespace: default
+    type: MachineSets.omni.sidero.dev
+    id: kernel-args-test-cluster-workers
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: kernel-args-test-cluster
+        omni.sidero.dev/role-worker:
+spec:
+    updatestrategy: 1
+    machineclass: null
+    bootstrapspec: null
+    deletestrategy: 0
+    updatestrategyconfig: null
+    deletestrategyconfig: null
+    machineallocation: null
+---
+metadata:
+    namespace: default
+    type: MachineSetNodes.omni.sidero.dev
+    id: b7201377-6194-4796-a831-295e865668e2
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: kernel-args-test-cluster
+        omni.sidero.dev/machine-set: kernel-args-test-cluster-workers
+        omni.sidero.dev/role-worker:
+spec: {}
+---
+metadata:
+    namespace: default
+    type: MachineSetNodes.omni.sidero.dev
+    id: 6d8f28c6-2358-4503-936a-723508112185
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: kernel-args-test-cluster
+        omni.sidero.dev/machine-set: kernel-args-test-cluster-workers
+        omni.sidero.dev/role-worker:
+spec: {}
+---
+metadata:
+    namespace: default
+    type: MachineSets.omni.sidero.dev
+    id: kernel-args-test-cluster-workers-2
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: kernel-args-test-cluster
+        omni.sidero.dev/role-worker:
+spec:
+    updatestrategy: 1
+    machineclass: null
+    bootstrapspec: null
+    deletestrategy: 0
+    updatestrategyconfig: null
+    deletestrategyconfig: null
+    machineallocation: null
+---
+metadata:
+    namespace: default
+    type: MachineSetNodes.omni.sidero.dev
+    id: dba84301-9a87-40f6-b775-0480aa3ce704
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: kernel-args-test-cluster
+        omni.sidero.dev/machine-set: kernel-args-test-cluster-workers-2
+        omni.sidero.dev/role-worker:
+spec: {}
+---
+metadata:
+    namespace: default
+    type: KernelArgs.omni.sidero.dev
+    id: 03595977-1864-4e8a-b917-b40a6080de2f
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    annotations:
+        omni.sidero.dev/managed-by-cluster-templates:
+spec:
+    args:
+        - machine-kernel-arg-1
+---
+metadata:
+    namespace: default
+    type: KernelArgs.omni.sidero.dev
+    id: dba84301-9a87-40f6-b775-0480aa3ce704
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    annotations:
+        omni.sidero.dev/managed-by-cluster-templates:
+spec:
+    args:
+        - cluster-kernel-arg-1
+        - cluster-kernel-arg-2
+---
+metadata:
+    namespace: default
+    type: KernelArgs.omni.sidero.dev
+    id: ac5a7d82-3802-488f-8d2e-3e8f925199b8
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    annotations:
+        omni.sidero.dev/managed-by-cluster-templates:
+spec:
+    args:
+        - cp-kernel-arg-1
+        - cp-kernel-arg-2
+---
+metadata:
+    namespace: default
+    type: KernelArgs.omni.sidero.dev
+    id: b7201377-6194-4796-a831-295e865668e2
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    annotations:
+        omni.sidero.dev/managed-by-cluster-templates:
+spec:
+    args: []
+---
+metadata:
+    namespace: default
+    type: KernelArgs.omni.sidero.dev
+    id: 6d8f28c6-2358-4503-936a-723508112185
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    annotations:
+        omni.sidero.dev/managed-by-cluster-templates:
+spec:
+    args:
+        - worker-kernel-arg-1
+        - worker-kernel-arg-2

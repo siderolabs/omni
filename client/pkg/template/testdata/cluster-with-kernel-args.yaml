@@ -1,0 +1,50 @@
+kind: Cluster
+name: kernel-args-test-cluster
+kubernetes:
+  version: v1.34.2
+talos:
+  version: v1.11.5
+kernelArgs:
+  - cluster-kernel-arg-1
+  - cluster-kernel-arg-2
+---
+kind: ControlPlane
+machines:
+  - 03595977-1864-4e8a-b917-b40a6080de2f # Case: Explicit Override
+  - 424c3bbe-1ec2-475e-b804-abf77d6b6c30 # Case: Implicit Inheritance
+  - ac5a7d82-3802-488f-8d2e-3e8f925199b8 # Case: Explicit Inheritance (No Args Key)
+kernelArgs:
+  - cp-kernel-arg-1
+  - cp-kernel-arg-2
+---
+kind: Workers
+machines:
+  - b7201377-6194-4796-a831-295e865668e2 # Case: Force Empty []
+  - 6d8f28c6-2358-4503-936a-723508112185 # Case: Explicit Null (Should behave like [])
+kernelArgs:
+  - worker-kernel-arg-1
+  - worker-kernel-arg-2
+---
+kind: Workers
+name: workers-2
+machines:
+  - dba84301-9a87-40f6-b775-0480aa3ce704 # Case: Cluster Fallback (Set has no args)
+---
+kind: Machine
+name: 03595977-1864-4e8a-b917-b40a6080de2f
+kernelArgs:
+  - machine-kernel-arg-1
+---
+kind: Machine
+name: dba84301-9a87-40f6-b775-0480aa3ce704
+---
+kind: Machine
+name: ac5a7d82-3802-488f-8d2e-3e8f925199b8
+---
+kind: Machine
+name: b7201377-6194-4796-a831-295e865668e2
+kernelArgs: []
+---
+kind: Machine
+name: 6d8f28c6-2358-4503-936a-723508112185
+kernelArgs: null # same as the key not existing

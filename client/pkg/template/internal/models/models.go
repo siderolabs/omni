@@ -25,12 +25,11 @@ type Meta struct {
 
 // TranslateContext is a context for translation.
 type TranslateContext struct {
-	LockedMachines map[MachineID]struct{}
-
-	MachineDescriptors map[MachineID]Descriptors
-
-	// ClusterName is the name of the cluster.
-	ClusterName string
+	LockedMachines            map[MachineID]struct{}
+	MachineDescriptors        map[MachineID]Descriptors
+	MachineSetLevelKernelArgs map[MachineID]KernelArgs
+	ClusterLevelKernelArgs    KernelArgs
+	ClusterName               string
 }
 
 // SystemExtensions is embedded in Cluster, MachineSet and Machine objects.

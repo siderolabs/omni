@@ -19,9 +19,10 @@ import (
 )
 
 var exportCmdFlags struct {
-	cluster string
-	output  string
-	force   bool
+	cluster           string
+	output            string
+	includeKernelArgs bool
+	force             bool
 }
 
 // exportCmd represents the template export command.
@@ -54,7 +55,7 @@ func export(ctx context.Context, client *client.Client) (err error) {
 		defer func() { err = errors.Join(err, output.Close()) }()
 	}
 
-	_, err = operations.ExportTemplate(ctx, client.Omni().State(), exportCmdFlags.cluster, output)
+	_, err = operations.ExportTemplate(ctx, client.Omni().State(), exportCmdFlags.cluster, exportCmdFlags.includeKernelArgs, output)
 
 	return err
 }
@@ -62,6 +63,8 @@ func export(ctx context.Context, client *client.Client) (err error) {
 func init() {
 	exportCmd.Flags().StringVarP(&exportCmdFlags.cluster, "cluster", "c", "", "cluster name")
 	exportCmd.Flags().StringVarP(&exportCmdFlags.output, "output", "o", "", "output file (default: stdout)")
+	exportCmd.Flags().BoolVarP(&exportCmdFlags.includeKernelArgs, "include-kernel-args", "", false,
+		"include kernel arguments (KernelArgs resources) in the exported template")
 	exportCmd.Flags().BoolVarP(&exportCmdFlags.force, "force", "f", false, "overwrite output file if it exists")
 
 	ensure.NoError(exportCmd.MarkFlagRequired("cluster"))
