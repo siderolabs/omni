@@ -62,7 +62,7 @@ export default defineConfig(({ command }) => {
       `script-src 'self' 'nonce-${cspNonce}' https://*.userpilot.io`,
       "media-src 'self' https://js.userpilot.io",
       'img-src * data:',
-      "connect-src 'self' https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io",
+      "connect-src 'self' https://factory.staging.talos.dev https://factory.talos.dev https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io",
       "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.userpilot.io",
       "style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com",
       'frame-src https://*.auth0.com',

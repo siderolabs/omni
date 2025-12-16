@@ -9,7 +9,7 @@ import { DocumentArrowDownIcon } from '@heroicons/vue/24/outline'
 import { useClipboard } from '@vueuse/core'
 import yaml from 'js-yaml'
 import * as semver from 'semver'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -45,18 +45,12 @@ import Labels, { type LabelSelectItem } from '@/components/common/Labels/Labels.
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import { formatBytes } from '@/methods'
 import { useFeatures } from '@/methods/features'
+import { useDownloadImage } from '@/methods/useDownloadImage'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-
-enum Phase {
-  Idle = 0,
-  Generating = 1,
-  Loading = 2,
-}
 
 const installExtensions = ref<Record<string, boolean>>({})
 const router = useRouter()
@@ -64,23 +58,13 @@ const route = useRoute()
 const { data: features } = useFeatures()
 const { copy } = useClipboard()
 
-const phase = ref(Phase.Idle)
+const { isGenerating, abort: abortDownload, download: downloadImage } = useDownloadImage()
 const showDescriptions = ref(false)
-const fileSizeLoaded = ref(0)
 const kernelArguments = ref('')
 const creatingSchematic = ref(false)
 const joinToken = ref('')
 
-let controller: AbortController
 let closed = false
-
-const abortDownload = () => {
-  phase.value = Phase.Idle
-
-  if (controller) {
-    controller.abort()
-  }
-}
 
 const close = () => {
   abortDownload()
@@ -268,8 +252,6 @@ onMounted(async () => {
   joinToken.value = defaultTokenStatus.spec.name!
 })
 
-onUnmounted(abortDownload)
-
 const installationMedia = computed(() => options.value.get(selectedOption.value))
 
 const schematicReq = computed(() => {
@@ -339,93 +321,16 @@ watch(schematicReq, () => {
   schematicID.value = undefined
 })
 
-const getFilename = (headers: Headers) => {
-  const disposition = headers.get('Content-Disposition')
-  if (!disposition) {
-    throw new Error('no filename header in the response')
-  }
-
-  const parts = disposition.split(';')
-
-  return parts[1].split('=')[1]
-}
-
 const download = async () => {
-  abortDownload()
-
-  controller = new AbortController()
-
-  if (!installationMedia.value) {
-    return
-  }
-
-  const doRequest = async (...[url, init]: Parameters<typeof fetch>) => {
-    const resp = await fetch(url, init)
-
-    if (!resp.ok) {
-      throw new Error(`request failed: ${resp.status} ${await resp.text()}`)
-    }
-
-    return resp
-  }
-
   try {
     await createSchematic()
     if (!omniDownloadPath.value) throw new Error('Download URL not found')
 
-    phase.value = Phase.Generating
-
-    await doRequest(omniDownloadPath.value, {
-      signal: controller.signal,
-      method: 'HEAD',
-      headers: new Headers({ 'Cache-Control': 'no-store' }),
-    })
-
-    phase.value = Phase.Loading
-
-    const resp = await doRequest(omniDownloadPath.value, { signal: controller.signal })
-
-    fileSizeLoaded.value = 0
-
-    const filename = getFilename(resp.headers)
-
-    const res = new Response(
-      new ReadableStream({
-        async start(controller) {
-          const reader = resp.body!.getReader()
-
-          for (;;) {
-            const { done, value } = await reader.read()
-            if (done) {
-              break
-            }
-
-            fileSizeLoaded.value += value.byteLength
-            controller.enqueue(value)
-          }
-
-          controller.close()
-        },
-      }),
-    )
-
-    const a = document.createElement('a')
-    const objectURL = window.URL.createObjectURL(await res.blob())
-    a.style.display = 'none'
-    a.href = objectURL
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(objectURL)
-    a.remove()
+    await downloadImage(omniDownloadPath.value)
 
     close()
   } catch (e) {
     showError('Download Failed', e.message)
-
-    throw e
-  } finally {
-    phase.value = Phase.Idle
   }
 }
 
@@ -438,8 +343,6 @@ const copyLink = async () => {
     showSuccess('Copied image download URL')
   } catch (e) {
     showError('Generate link failed', e.message)
-
-    throw e
   }
 }
 
@@ -459,10 +362,6 @@ const copyPxeBootUrl = async () => {
   if (pxeBootUrl.value) copy(pxeBootUrl.value)
   showSuccess('Copied PXE Boot URL')
 }
-
-const downloaded = computed(() => {
-  return formatBytes(fileSizeLoaded.value)
-})
 </script>
 
 <template>
@@ -472,15 +371,14 @@ const downloaded = computed(() => {
       <CloseButton @click="close" />
     </div>
 
-    <div v-if="phase !== Phase.Idle" class="flex flex-col items-center">
+    <div v-if="isGenerating" class="flex flex-col items-center">
       <div class="flex items-center gap-2">
         <DocumentArrowDownIcon class="h-5 w-5" />
         {{ installationMedia?.spec.name }}
       </div>
       <div class="flex items-center gap-2">
         <TSpinner class="h-5 w-5" />
-        <span v-if="phase === Phase.Loading">{{ downloaded }}</span>
-        <span v-else>Generating Image</span>
+        <span>Generating Image</span>
       </div>
     </div>
     <template v-else>
