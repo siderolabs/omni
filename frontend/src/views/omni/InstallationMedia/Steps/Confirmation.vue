@@ -5,8 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useEventListener } from '@vueuse/core'
 import { gte, parse } from 'semver'
-import { computed } from 'vue'
+import { computed, useTemplateRef, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import {
@@ -29,12 +30,15 @@ import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink, getLegacyDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
+import { Phase, useDownloadImage } from '@/methods/useDownloadImage'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
+import { showError } from '@/notification'
 import { formStateToPreset } from '@/views/omni/InstallationMedia/formStateToPreset'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 import { usePresetDownloadLinks } from '@/views/omni/InstallationMedia/usePresetDownloadLinks'
 import { usePresetSchematic } from '@/views/omni/InstallationMedia/usePresetSchematic'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const formState = defineModel<FormState>({ required: true })
 
@@ -46,6 +50,29 @@ const talosctlAvailable = computed(
 )
 
 const { data: features } = useFeatures()
+const imageDownloadDialog = useTemplateRef<HTMLDialogElement>('downloadImageDialog')
+const {
+  phase: imageDownloadPhase,
+  error: imageDownloadError,
+  bytesDownloadedFormatted,
+  abort: abortImageDownload,
+  download: _downloadImage,
+} = useDownloadImage()
+
+async function downloadImage(url: string) {
+  try {
+    imageDownloadDialog.value?.showModal()
+    await _downloadImage(url)
+  } finally {
+    imageDownloadDialog.value?.close()
+  }
+}
+
+useEventListener(imageDownloadDialog, 'close', abortImageDownload)
+
+watch(imageDownloadError, (error) => {
+  if (error) showError('Image download failed', error.message)
+})
 
 const { downloads } = useTalosctlDownloads()
 
@@ -160,6 +187,7 @@ function shortVersion(version?: string) {
               :href="documentation.link"
               target="_blank"
               rel="noopener noreferrer"
+              @click.prevent="downloadImage(documentation.link)"
             >
               <TIcon icon="documentation" :aria-label="documentation.label" class="size-4" />
             </a>
@@ -370,6 +398,29 @@ function shortVersion(version?: string) {
         </dd>
       </dl>
     </template>
+
+    <dialog
+      ref="downloadImageDialog"
+      closedby="any"
+      class="modal-window fixed inset-0 m-auto gap-2 not-open:hidden open:backdrop:bg-naturals-n0/90"
+    >
+      <div class="mb-5 flex items-center justify-between text-xl text-naturals-n14">
+        <h3 class="text-base text-naturals-n14">Image download</h3>
+
+        <CloseButton @click="abortImageDownload" />
+      </div>
+
+      <p class="flex items-center gap-1.5">
+        <TSpinner class="size-3" />
+
+        <span v-if="imageDownloadPhase === Phase.Generating">Generating ...</span>
+        <span v-else-if="imageDownloadPhase === Phase.Loading">Loading ...</span>
+
+        <span v-if="imageDownloadPhase === Phase.Loading" class="self-center">
+          {{ bytesDownloadedFormatted }}
+        </span>
+      </p>
+    </dialog>
   </div>
   <div v-else class="flex flex-col gap-4">
     <p v-if="schematicLoading" class="flex items-center gap-2 text-sm">
