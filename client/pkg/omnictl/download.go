@@ -239,7 +239,7 @@ func createSchematic(ctx context.Context, client *client.Client, media *omni.Ins
 	return resp, nil
 }
 
-//nolint:gocyclo,gocyclop,cyclop
+//nolint:gocyclo,gocyclo,cyclop
 func downloadImageTo(ctx context.Context, client *client.Client, media *omni.InstallationMedia, output string, grpcTunnelMode management.CreateSchematicRequest_SiderolinkGRPCTunnelMode) error {
 	schematicResp, err := createSchematic(ctx, client, media, grpcTunnelMode)
 	if err != nil {
@@ -257,14 +257,12 @@ func downloadImageTo(ctx context.Context, client *client.Client, media *omni.Ins
 		return fmt.Errorf("%q doesn't support secure boot", media.TypedSpec().Value.Name)
 	}
 
+	features, err := safe.ReaderGetByID[*omni.FeaturesConfig](ctx, client.Omni().State(), omni.FeaturesConfigID)
+	if err != nil {
+		return err
+	}
+
 	if downloadCmdFlags.pxe {
-		var features *omni.FeaturesConfig
-
-		features, err = safe.ReaderGetByID[*omni.FeaturesConfig](ctx, client.Omni().State(), omni.FeaturesConfigID)
-		if err != nil {
-			return err
-		}
-
 		supportsOverlays := quirks.New(downloadCmdFlags.talosVersion).SupportsOverlay()
 
 		filename := media.TypedSpec().Value.GenerateFilename(!supportsOverlays, downloadCmdFlags.secureBoot, false)
@@ -281,7 +279,7 @@ func downloadImageTo(ctx context.Context, client *client.Client, media *omni.Ins
 		return nil
 	}
 
-	req, err := createRequest(ctx, client, schematicResp.SchematicId, media)
+	req, err := createRequest(ctx, features.TypedSpec().Value.ImageFactoryBaseUrl, schematicResp.SchematicId, media)
 	if err != nil {
 		return err
 	}
@@ -350,6 +348,14 @@ func downloadImageTo(ctx context.Context, client *client.Client, media *omni.Ins
 			return fmt.Errorf("failed to auto-detect filename from the response headers, filename is not present in the content disposition header")
 		}
 
+		filename = fmt.Sprintf(
+			"%s-%s-%s%s",
+			media.TypedSpec().Value.DestFilePrefix,
+			downloadCmdFlags.talosVersion,
+			schematicResp.SchematicId[:6],
+			filepath.Ext(filename),
+		)
+
 		dest = filepath.Join(output, filename)
 	}
 
@@ -385,15 +391,21 @@ func filterMedia[T any](ctx context.Context, client *client.Client, check func(v
 	return result, nil
 }
 
-func createRequest(ctx context.Context, client *client.Client, schematic string, image *omni.InstallationMedia) (*http.Request, error) {
-	u, err := url.Parse(client.Endpoint())
+func createRequest(ctx context.Context, baseURL, schematic string, image *omni.InstallationMedia) (*http.Request, error) {
+	u, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
 	}
 
 	u.Scheme = "https"
 
-	u.Path, err = url.JoinPath(u.Path, "image", schematic, downloadCmdFlags.talosVersion, image.Metadata().ID())
+	u.Path, err = url.JoinPath(u.Path, "image", schematic, downloadCmdFlags.talosVersion,
+		image.TypedSpec().Value.GenerateFilename(
+			!quirks.New(downloadCmdFlags.talosVersion).SupportsOverlay(),
+			downloadCmdFlags.secureBoot,
+			true,
+		),
+	)
 	if err != nil {
 		return nil, err
 	}
