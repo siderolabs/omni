@@ -29,9 +29,13 @@ import (
 
 // operatorMethodSet is the set of methods that are allowed to be called by the minimum role of os:operator.
 var operatorMethodSet = xslices.ToSet([]string{
-	machine.MachineService_EtcdAlarmList_FullMethodName,
 	machine.MachineService_EtcdAlarmDisarm_FullMethodName,
+	machine.MachineService_EtcdAlarmList_FullMethodName,
 	machine.MachineService_EtcdDefragment_FullMethodName,
+	machine.MachineService_EtcdDowngradeCancel_FullMethodName,
+	machine.MachineService_EtcdDowngradeEnable_FullMethodName,
+	machine.MachineService_EtcdDowngradeValidate_FullMethodName,
+	machine.MachineService_EtcdForfeitLeadership_FullMethodName,
 	machine.MachineService_EtcdStatus_FullMethodName,
 	machine.MachineService_PacketCapture_FullMethodName,
 	machine.MachineService_Reboot_FullMethodName,
