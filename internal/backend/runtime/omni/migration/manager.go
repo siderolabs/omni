@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
@@ -42,200 +41,202 @@ type Manager struct {
 
 // NewManager creates new Manager.
 func NewManager(state state.State, logger *zap.Logger) *Manager {
+	v1_0_0 := "v1.0.0"
+
 	return &Manager{
 		state:  state,
 		logger: logger,
 		migrations: []*migration{
 			// The order of migrations is important.
 			{
-				callback: clusterInfo,
+				callback: gapError(v1_0_0),
 				name:     "clusterInfo",
 			},
 			{
-				callback: deprecateClusterMachineTemplates,
+				callback: gapError(v1_0_0),
 				name:     "deprecateClusterMachineTemplates",
 			},
 			{
-				callback: clusterMachinesToMachineSets,
+				callback: gapError(v1_0_0),
 				name:     "clusterMachinesToMachineSets",
 			},
 			{
-				callback: changePublicKeyOwner,
+				callback: gapError(v1_0_0),
 				name:     "changePublicKeyOwner",
 			},
 			{
-				callback: addDefaultScopesToUsers,
+				callback: gapError(v1_0_0),
 				name:     "addDefaultScopesToUsers",
 			},
 			{
-				callback: setRollingStrategyOnControlPlaneMachineSets,
+				callback: gapError(v1_0_0),
 				name:     "setRollingStrategyOnControlPlaneMachineSets",
 			},
 			{
-				callback: updateConfigPatchLabels,
+				callback: gapError(v1_0_0),
 				name:     "updateConfigPatchLabels",
 			},
 			{
-				callback: updateMachineFinalizers,
+				callback: gapError(v1_0_0),
 				name:     "updateMachineFinalizers",
 			},
 			{
-				callback: labelConfigPatches,
+				callback: gapError(v1_0_0),
 				name:     "labelConfigPatches",
 			},
 			{
-				callback: updateMachineStatusClusterRelations,
+				callback: gapError(v1_0_0),
 				name:     "updateMachineStatusClusterRelations",
 			},
-			// re-run the following 3 migrations as 'V2' as there was a problem with concurrent Omni instances running
 			{
-				callback: updateMachineFinalizers,
+				callback: gapError(v1_0_0),
 				name:     "updateMachineFinalizersV2",
 			},
 			{
-				callback: labelConfigPatches,
+				callback: gapError(v1_0_0),
 				name:     "labelConfigPatchesV2",
 			},
 			{
-				callback: updateMachineStatusClusterRelations,
+				callback: gapError(v1_0_0),
 				name:     "updateMachineStatusClusterRelationsV2",
 			},
 			{
-				callback: addServiceAccountScopesToUsers,
+				callback: gapError(v1_0_0),
 				name:     "addServiceAccountScopesToUsers",
 			},
 			{
-				callback: clusterInstallImageToTalosVersion,
+				callback: gapError(v1_0_0),
 				name:     "clusterInstallImageToTalosVersion",
 			},
 			{
-				callback: migrateLabels,
+				callback: gapError(v1_0_0),
 				name:     "migrateLabels",
 			},
 			{
-				callback: dropOldLabels,
+				callback: gapError(v1_0_0),
 				name:     "dropOldLabels",
 			},
 			{
-				callback: convertScopesToRoles,
+				callback: gapError(v1_0_0),
 				name:     "convertScopesToRoles",
 			},
 			{
-				callback: lowercaseAllIdentities,
+				callback: gapError(v1_0_0),
 				name:     "lowercaseAllIdentities",
 			},
 			{
-				callback: removeConfigPatchesFromClusterMachines,
+				callback: gapError(v1_0_0),
 				name:     "removeConfigPatchesFromClusterMachines",
 			},
 			{
-				callback: machineInstallDiskPatches,
+				callback: gapError(v1_0_0),
 				name:     "machineInstallDiskPatches",
 			},
 			{
-				callback: siderolinkCounters,
+				callback: gapError(v1_0_0),
 				name:     "siderolinkCounters",
 			},
 			{
-				callback: fixClusterTalosVersionOwnership,
+				callback: gapError(v1_0_0),
 				name:     "fixClusterTalosVersionOwnership",
 			},
 			{
-				callback: updateClusterMachineConfigPatchesLabels,
+				callback: gapError(v1_0_0),
 				name:     "updateClusterMachineConfigPatchesLabels",
 			},
 			{
-				callback: clearEmptyConfigPatches,
+				callback: gapError(v1_0_0),
 				name:     "clearEmptyConfigPatches",
 			},
 			{
-				callback: cleanupDanglingSchematicConfigurations,
+				callback: gapError(v1_0_0),
 				name:     "cleanupDanglingSchematicConfigurations",
 			},
 			{
-				callback: cleanupExtensionsConfigurationStatuses,
+				callback: gapError(v1_0_0),
 				name:     "cleanupExtensionsConfigurationStatuses",
 			},
 			{
-				callback: dropSchematicConfigurationsControllerFinalizer,
+				callback: gapError(v1_0_0),
 				name:     "dropSchematicConfigurationsControllerFinalizer",
 			},
 			{
-				callback: generateAllMaintenanceConfigs,
+				callback: gapError(v1_0_0),
 				name:     "generateAllMaintenanceConfigs",
 			},
 			{
-				callback: setMachineStatusSnapshotOwner,
+				callback: gapError(v1_0_0),
 				name:     "setMachineStatusSnapshotOwner",
 			},
 			{
-				callback: migrateInstallImageConfigIntoGenOptions,
+				callback: gapError(v1_0_0),
 				name:     "migrateInstallImageConfigIntoGenOptions",
 			},
 			{
-				callback: dropGeneratedMaintenanceConfigs,
+				callback: gapError(v1_0_0),
 				name:     "dropGeneratedMaintenanceConfigs",
 			},
 			{
-				callback: deleteAllResources(resource.NewMetadata(resources.DefaultNamespace, MachineSetRequiredMachinesType, "", resource.VersionUndefined)),
+				callback: gapError(v1_0_0),
 				name:     "deleteMachineSetRequiredMachines",
 			},
 			{
-				callback: deleteAllResources(resource.NewMetadata(resources.DefaultNamespace, MachineClassStatusType, "", resource.VersionUndefined)),
+				callback: gapError(v1_0_0),
 				name:     "deleteMachineClassStatuses",
 			},
 			{
-				callback: removeMaintenanceConfigPatchFinalizers,
+				callback: gapError(v1_0_0),
 				name:     "removeMaintenanceConfigPatchFinalizers",
 			},
 			{
-				callback: noopMigration,
+				callback: gapError(v1_0_0),
 				name:     "compressMachineConfigsAndPatches",
 			},
 			{
-				callback: noopMigration,
+				callback: gapError(v1_0_0),
 				name:     "compressConfigsAndMachinePatches",
 			},
 			{
-				callback: compressConfigPatches,
+				callback: gapError(v1_0_0),
 				name:     "compressConfigPatches",
 			},
 			{
-				callback: moveEtcdBackupStatuses,
+				callback: gapError(v1_0_0),
 				name:     "moveEtcdBackupStatuses",
 			},
 			{
-				callback: noopMigration,
+				callback: gapError(v1_0_0),
 				name:     "oldVersionContractFix",
 			},
 			{
-				callback: dropObsoleteConfigPatches,
+				callback: gapError(v1_0_0),
 				name:     "dropObsoleteConfigPatches",
 			},
 			{
-				callback: markVersionContract,
+				callback: gapError(v1_0_0),
 				name:     "markVersionContract",
 			},
 			{
-				callback: dropMachineClassStatusFinalizers,
+				callback: gapError(v1_0_0),
 				name:     "dropMachineClassStatusFinalizers",
 			},
 			{
-				callback: createProviders,
+				callback: gapError(v1_0_0),
 				name:     "createProviders",
 			},
 			{
-				callback: migrateConnectionParamsToController,
+				callback: gapError(v1_0_0),
 				name:     "migrateConnectionParamsToController",
 			},
 			{
-				callback: populateJoinTokenUsage,
+				callback: gapError(v1_0_0),
 				name:     "populateJoinTokenUsage",
 			},
 			{
-				callback: populateNodeUniqueTokens,
+				callback: gapError(v1_0_0),
 				name:     "populateNodeUniqueTokens",
 			},
+			// The migrations > v1.0 (i.e., >=v1.1.0) below
 			{
 				callback: moveClusterTaintFromResourceToLabel,
 				name:     "moveClusterTaintFromResourceToLabel",

@@ -146,12 +146,6 @@ export enum MachineUpgradeStatusSpecPhase {
   UpToDate = 3,
 }
 
-export enum ExtensionsConfigurationStatusSpecPhase {
-  Unknown = 0,
-  Ready = 1,
-  Failed = 2,
-}
-
 export enum MachineExtensionsStatusSpecItemPhase {
   Installed = 0,
   Installing = 1,
@@ -319,7 +313,6 @@ export type ClusterSpecFeatures = {
 }
 
 export type ClusterSpec = {
-  install_image?: string
   kubernetes_version?: string
   talos_version?: string
   features?: ClusterSpecFeatures
@@ -421,13 +414,6 @@ export type ClusterMachineIdentitySpec = {
   nodename?: string
   node_ips?: string[]
   discovery_service_endpoint?: string
-}
-
-export type ClusterMachineTemplateSpec = {
-  install_image?: string
-  kubernetes_version?: string
-  install_disk?: string
-  patch?: string
 }
 
 export type ClusterMachineStatusSpecProvisionStatus = {
@@ -826,12 +812,6 @@ export type MachineUpgradeStatusSpec = {
   status?: string
   error?: string
   is_maintenance?: boolean
-}
-
-export type ExtensionsConfigurationStatusSpec = {
-  phase?: ExtensionsConfigurationStatusSpecPhase
-  error?: string
-  extensions?: string[]
 }
 
 export type MachineExtensionsSpec = {

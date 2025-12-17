@@ -19,7 +19,6 @@ metadata:
     - ClusterController
     - SecretsController
 spec:
-  installimage: ""
   kubernetesversion: 1.28.2
   talosversion: 1.5.5
   features:
