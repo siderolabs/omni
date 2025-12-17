@@ -102,6 +102,15 @@ func init() {
 		res.TypedSpec().Value.ApidAvailable = true
 		res.TypedSpec().Value.ConfigApplyStatus = specs.ConfigApplyStatus_APPLIED
 
+		machineStatus, err := safe.ReaderGetByID[*omni.MachineStatus](ctx, st, res.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if machineStatus != nil {
+			res.TypedSpec().Value.ManagementAddress = machineStatus.TypedSpec().Value.ManagementAddress
+		}
+
 		return nil
 	})
 
