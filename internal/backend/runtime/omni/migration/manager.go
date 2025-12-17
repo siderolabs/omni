@@ -8,10 +8,10 @@ package migration
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
@@ -31,6 +31,10 @@ type Callback func(ctx context.Context, state state.State, logger *zap.Logger, m
 type migration struct {
 	callback Callback
 	name     string
+	// failWithRequiredMaxVersion will make this migration fail if specified, with the message "please upgrade to at most %s first".
+	//
+	// Note: the versions above this value might still be able to migrate, but are not guaranteed, since the migration might already be dropped.
+	failWithRequiredMaxVersion string
 }
 
 // Manager runs COSI state migrations.
@@ -42,200 +46,206 @@ type Manager struct {
 
 // NewManager creates new Manager.
 func NewManager(state state.State, logger *zap.Logger) *Manager {
+	// We choose v1.1.0 as the cutoff point, not v1.0.0, because the embedded etcd version was updated from 3.5 to 3.6 in v1.1.0, which causes the following issue:
+	// - User tries to upgrade from an old Omni version, e.g., v0.52.0 to the latest Omni version, e.g., v1.5.0.
+	// - The migrations fail due to cutoff/cleanup, telling user to upgrade to v1.0.0 first.
+	// - User tries to run v1.0.0, but it fails with etcd downgrade error - etcd is attempted to be downgraded from 3.6 to 3.5.
+	v1dot1dot0 := "v1.1.0"
+
 	return &Manager{
 		state:  state,
 		logger: logger,
 		migrations: []*migration{
 			// The order of migrations is important.
 			{
-				callback: clusterInfo,
-				name:     "clusterInfo",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "clusterInfo",
 			},
 			{
-				callback: deprecateClusterMachineTemplates,
-				name:     "deprecateClusterMachineTemplates",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "deprecateClusterMachineTemplates",
 			},
 			{
-				callback: clusterMachinesToMachineSets,
-				name:     "clusterMachinesToMachineSets",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "clusterMachinesToMachineSets",
 			},
 			{
-				callback: changePublicKeyOwner,
-				name:     "changePublicKeyOwner",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "changePublicKeyOwner",
 			},
 			{
-				callback: addDefaultScopesToUsers,
-				name:     "addDefaultScopesToUsers",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "addDefaultScopesToUsers",
 			},
 			{
-				callback: setRollingStrategyOnControlPlaneMachineSets,
-				name:     "setRollingStrategyOnControlPlaneMachineSets",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "setRollingStrategyOnControlPlaneMachineSets",
 			},
 			{
-				callback: updateConfigPatchLabels,
-				name:     "updateConfigPatchLabels",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "updateConfigPatchLabels",
 			},
 			{
-				callback: updateMachineFinalizers,
-				name:     "updateMachineFinalizers",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "updateMachineFinalizers",
 			},
 			{
-				callback: labelConfigPatches,
-				name:     "labelConfigPatches",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "labelConfigPatches",
 			},
 			{
-				callback: updateMachineStatusClusterRelations,
-				name:     "updateMachineStatusClusterRelations",
-			},
-			// re-run the following 3 migrations as 'V2' as there was a problem with concurrent Omni instances running
-			{
-				callback: updateMachineFinalizers,
-				name:     "updateMachineFinalizersV2",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "updateMachineStatusClusterRelations",
 			},
 			{
-				callback: labelConfigPatches,
-				name:     "labelConfigPatchesV2",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "updateMachineFinalizersV2",
 			},
 			{
-				callback: updateMachineStatusClusterRelations,
-				name:     "updateMachineStatusClusterRelationsV2",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "labelConfigPatchesV2",
 			},
 			{
-				callback: addServiceAccountScopesToUsers,
-				name:     "addServiceAccountScopesToUsers",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "updateMachineStatusClusterRelationsV2",
 			},
 			{
-				callback: clusterInstallImageToTalosVersion,
-				name:     "clusterInstallImageToTalosVersion",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "addServiceAccountScopesToUsers",
 			},
 			{
-				callback: migrateLabels,
-				name:     "migrateLabels",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "clusterInstallImageToTalosVersion",
 			},
 			{
-				callback: dropOldLabels,
-				name:     "dropOldLabels",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "migrateLabels",
 			},
 			{
-				callback: convertScopesToRoles,
-				name:     "convertScopesToRoles",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "dropOldLabels",
 			},
 			{
-				callback: lowercaseAllIdentities,
-				name:     "lowercaseAllIdentities",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "convertScopesToRoles",
 			},
 			{
-				callback: removeConfigPatchesFromClusterMachines,
-				name:     "removeConfigPatchesFromClusterMachines",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "lowercaseAllIdentities",
 			},
 			{
-				callback: machineInstallDiskPatches,
-				name:     "machineInstallDiskPatches",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "removeConfigPatchesFromClusterMachines",
 			},
 			{
-				callback: siderolinkCounters,
-				name:     "siderolinkCounters",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "machineInstallDiskPatches",
 			},
 			{
-				callback: fixClusterTalosVersionOwnership,
-				name:     "fixClusterTalosVersionOwnership",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "siderolinkCounters",
 			},
 			{
-				callback: updateClusterMachineConfigPatchesLabels,
-				name:     "updateClusterMachineConfigPatchesLabels",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "fixClusterTalosVersionOwnership",
 			},
 			{
-				callback: clearEmptyConfigPatches,
-				name:     "clearEmptyConfigPatches",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "updateClusterMachineConfigPatchesLabels",
 			},
 			{
-				callback: cleanupDanglingSchematicConfigurations,
-				name:     "cleanupDanglingSchematicConfigurations",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "clearEmptyConfigPatches",
 			},
 			{
-				callback: cleanupExtensionsConfigurationStatuses,
-				name:     "cleanupExtensionsConfigurationStatuses",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "cleanupDanglingSchematicConfigurations",
 			},
 			{
-				callback: dropSchematicConfigurationsControllerFinalizer,
-				name:     "dropSchematicConfigurationsControllerFinalizer",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "cleanupExtensionsConfigurationStatuses",
 			},
 			{
-				callback: generateAllMaintenanceConfigs,
-				name:     "generateAllMaintenanceConfigs",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "dropSchematicConfigurationsControllerFinalizer",
 			},
 			{
-				callback: setMachineStatusSnapshotOwner,
-				name:     "setMachineStatusSnapshotOwner",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "generateAllMaintenanceConfigs",
 			},
 			{
-				callback: migrateInstallImageConfigIntoGenOptions,
-				name:     "migrateInstallImageConfigIntoGenOptions",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "setMachineStatusSnapshotOwner",
 			},
 			{
-				callback: dropGeneratedMaintenanceConfigs,
-				name:     "dropGeneratedMaintenanceConfigs",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "migrateInstallImageConfigIntoGenOptions",
 			},
 			{
-				callback: deleteAllResources(resource.NewMetadata(resources.DefaultNamespace, MachineSetRequiredMachinesType, "", resource.VersionUndefined)),
-				name:     "deleteMachineSetRequiredMachines",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "dropGeneratedMaintenanceConfigs",
 			},
 			{
-				callback: deleteAllResources(resource.NewMetadata(resources.DefaultNamespace, MachineClassStatusType, "", resource.VersionUndefined)),
-				name:     "deleteMachineClassStatuses",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "deleteMachineSetRequiredMachines",
 			},
 			{
-				callback: removeMaintenanceConfigPatchFinalizers,
-				name:     "removeMaintenanceConfigPatchFinalizers",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "deleteMachineClassStatuses",
 			},
 			{
-				callback: noopMigration,
-				name:     "compressMachineConfigsAndPatches",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "removeMaintenanceConfigPatchFinalizers",
 			},
 			{
-				callback: noopMigration,
-				name:     "compressConfigsAndMachinePatches",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "compressMachineConfigsAndPatches",
 			},
 			{
-				callback: compressConfigPatches,
-				name:     "compressConfigPatches",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "compressConfigsAndMachinePatches",
 			},
 			{
-				callback: moveEtcdBackupStatuses,
-				name:     "moveEtcdBackupStatuses",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "compressConfigPatches",
 			},
 			{
-				callback: noopMigration,
-				name:     "oldVersionContractFix",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "moveEtcdBackupStatuses",
 			},
 			{
-				callback: dropObsoleteConfigPatches,
-				name:     "dropObsoleteConfigPatches",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "oldVersionContractFix",
 			},
 			{
-				callback: markVersionContract,
-				name:     "markVersionContract",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "dropObsoleteConfigPatches",
 			},
 			{
-				callback: dropMachineClassStatusFinalizers,
-				name:     "dropMachineClassStatusFinalizers",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "markVersionContract",
 			},
 			{
-				callback: createProviders,
-				name:     "createProviders",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "dropMachineClassStatusFinalizers",
 			},
 			{
-				callback: migrateConnectionParamsToController,
-				name:     "migrateConnectionParamsToController",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "createProviders",
 			},
 			{
-				callback: populateJoinTokenUsage,
-				name:     "populateJoinTokenUsage",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "migrateConnectionParamsToController",
 			},
 			{
-				callback: populateNodeUniqueTokens,
-				name:     "populateNodeUniqueTokens",
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "populateJoinTokenUsage",
 			},
+			{
+				failWithRequiredMaxVersion: v1dot1dot0,
+				name:                       "populateNodeUniqueTokens",
+			},
+			// The migrations > v1.1.0 (i.e., >=v1.2.0) below
 			{
 				callback: moveClusterTaintFromResourceToLabel,
 				name:     "moveClusterTaintFromResourceToLabel",
@@ -287,8 +297,20 @@ func WithMaxVersion(version int) Option {
 	}
 }
 
-// Run COSI state migrations.
-func (m *Manager) Run(ctx context.Context, opt ...Option) error {
+// ErrDropped is returned when a migration is too old and has been dropped.
+//
+// In this case, the user should upgrade to a version that supports the required max version first.
+var ErrDropped = errors.New("migration is dropped (too old)")
+
+// Result represents the result of running migrations.
+type Result struct {
+	DBVersion    *system.DBVersion
+	TotalTime    time.Duration
+	StartVersion uint64
+}
+
+// Run runs COSI state migrations.
+func (m *Manager) Run(ctx context.Context, opt ...Option) (Result, error) {
 	opts := Options{}
 
 	for _, o := range opt {
@@ -300,19 +322,26 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) error {
 		m.state,
 		system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID).Metadata(),
 	)
-	if err != nil {
-		if !state.IsNotFoundError(err) {
-			return err
-		}
+	if err != nil && !state.IsNotFoundError(err) {
+		return Result{}, err
 	}
 
 	logger := m.logger.With(zap.Bool("filter_enabled", opts.filter != nil), zap.Bool("fresh_omni", version == nil))
 
-	if version == nil {
+	isFreshInstall := version == nil
+	if isFreshInstall {
 		version = system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
 
+		for _, mig := range m.migrations {
+			if mig.failWithRequiredMaxVersion == "" {
+				break
+			}
+
+			version.TypedSpec().Value.Version++
+		}
+
 		if err = m.state.Create(ctx, version); err != nil {
-			return err
+			return Result{}, err
 		}
 	}
 
@@ -322,7 +351,7 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) error {
 	logger = logger.With(zap.Uint64("start_version", currentVersion), zap.Int("target_version", opts.maxVersion))
 
 	if len(m.migrations) < int(currentVersion) {
-		return fmt.Errorf("the current version of Omni is too old to run with the current DB version: %d", currentVersion)
+		return Result{}, fmt.Errorf("the current version of Omni is too old to run with the current DB version: %d", currentVersion)
 	}
 
 	migrations := m.migrations[currentVersion:opts.maxVersion]
@@ -338,6 +367,8 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) error {
 
 	total := time.Now()
 
+	var updatedDBVersion *system.DBVersion
+
 	for i, mig := range migrations {
 		if opts.filter != nil && !opts.filter(mig.name) {
 			logger.Info("skipping migration", zap.String("migration_name", mig.name), zap.Int("version", i))
@@ -350,25 +381,34 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) error {
 
 		mLogger.Info("running migration")
 
+		if mig.failWithRequiredMaxVersion != "" {
+			return Result{}, fmt.Errorf("failed to run migration %q, need to upgrade to at most %q first: %w", mig.name, mig.failWithRequiredMaxVersion, ErrDropped)
+		}
+
 		if err = mig.callback(ctx, m.state, mLogger, migrationContext{
 			initialDBVersion: currentVersion,
 			migrations:       m.migrations,
 		}); err != nil {
-			return fmt.Errorf("migration %s failed: %w", mig.name, err)
+			return Result{}, fmt.Errorf("migration %s failed: %w", mig.name, err)
 		}
 
 		mLogger.Info("migration completed", zap.Duration("took", time.Since(start)))
 
-		if _, err = safe.StateUpdateWithConflicts(ctx, m.state, version.Metadata(), func(dbVer *system.DBVersion) error {
+		if updatedDBVersion, err = safe.StateUpdateWithConflicts(ctx, m.state, version.Metadata(), func(dbVer *system.DBVersion) error {
 			dbVer.TypedSpec().Value.Version = currentVersion + uint64(i+1)
 
 			return nil
 		}); err != nil {
-			return err
+			return Result{}, err
 		}
 	}
 
-	logger.Info("all migrations completed", zap.Duration("total", time.Since(total)))
+	totalTime := time.Since(total)
+	logger.Info("all migrations completed", zap.Duration("total", totalTime))
 
-	return nil
+	return Result{
+		StartVersion: currentVersion,
+		TotalTime:    totalTime,
+		DBVersion:    updatedDBVersion,
+	}, nil
 }

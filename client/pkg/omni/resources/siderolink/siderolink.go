@@ -35,7 +35,4 @@ func init() {
 	registry.MustRegisterResource(NodeUniqueTokenType, &NodeUniqueToken{})
 	registry.MustRegisterResource(NodeUniqueTokenStatusType, &NodeUniqueTokenStatus{})
 	registry.MustRegisterResource(GRPCTunnelConfigType, &GRPCTunnelConfig{})
-
-	// NOTE: this resource is not used anymore, but still used in the migration code.
-	registry.MustRegisterResource(DeprecatedLinkCounterType, &DeprecatedLinkCounter{})
 }

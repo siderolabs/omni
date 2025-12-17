@@ -460,7 +460,6 @@ func (m *ClusterSpec) CloneVT() *ClusterSpec {
 		return (*ClusterSpec)(nil)
 	}
 	r := new(ClusterSpec)
-	r.InstallImage = m.InstallImage
 	r.KubernetesVersion = m.KubernetesVersion
 	r.TalosVersion = m.TalosVersion
 	r.Features = m.Features.CloneVT()
@@ -827,26 +826,6 @@ func (m *ClusterMachineIdentitySpec) CloneVT() *ClusterMachineIdentitySpec {
 }
 
 func (m *ClusterMachineIdentitySpec) CloneMessageVT() proto.Message {
-	return m.CloneVT()
-}
-
-func (m *ClusterMachineTemplateSpec) CloneVT() *ClusterMachineTemplateSpec {
-	if m == nil {
-		return (*ClusterMachineTemplateSpec)(nil)
-	}
-	r := new(ClusterMachineTemplateSpec)
-	r.InstallImage = m.InstallImage
-	r.KubernetesVersion = m.KubernetesVersion
-	r.InstallDisk = m.InstallDisk
-	r.Patch = m.Patch
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = make([]byte, len(m.unknownFields))
-		copy(r.unknownFields, m.unknownFields)
-	}
-	return r
-}
-
-func (m *ClusterMachineTemplateSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -2256,29 +2235,6 @@ func (m *MachineUpgradeStatusSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
-func (m *ExtensionsConfigurationStatusSpec) CloneVT() *ExtensionsConfigurationStatusSpec {
-	if m == nil {
-		return (*ExtensionsConfigurationStatusSpec)(nil)
-	}
-	r := new(ExtensionsConfigurationStatusSpec)
-	r.Phase = m.Phase
-	r.Error = m.Error
-	if rhs := m.Extensions; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.Extensions = tmpContainer
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = make([]byte, len(m.unknownFields))
-		copy(r.unknownFields, m.unknownFields)
-	}
-	return r
-}
-
-func (m *ExtensionsConfigurationStatusSpec) CloneMessageVT() proto.Message {
-	return m.CloneVT()
-}
-
 func (m *MachineExtensionsSpec) CloneVT() *MachineExtensionsSpec {
 	if m == nil {
 		return (*MachineExtensionsSpec)(nil)
@@ -3531,9 +3487,6 @@ func (this *ClusterSpec) EqualVT(that *ClusterSpec) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.InstallImage != that.InstallImage {
-		return false
-	}
 	if this.KubernetesVersion != that.KubernetesVersion {
 		return false
 	}
@@ -3979,34 +3932,6 @@ func (this *ClusterMachineIdentitySpec) EqualVT(that *ClusterMachineIdentitySpec
 
 func (this *ClusterMachineIdentitySpec) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*ClusterMachineIdentitySpec)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-func (this *ClusterMachineTemplateSpec) EqualVT(that *ClusterMachineTemplateSpec) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.InstallImage != that.InstallImage {
-		return false
-	}
-	if this.KubernetesVersion != that.KubernetesVersion {
-		return false
-	}
-	if this.InstallDisk != that.InstallDisk {
-		return false
-	}
-	if this.Patch != that.Patch {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ClusterMachineTemplateSpec) EqualMessageVT(thatMsg proto.Message) bool {
-	that, ok := thatMsg.(*ClusterMachineTemplateSpec)
 	if !ok {
 		return false
 	}
@@ -5950,37 +5875,6 @@ func (this *MachineUpgradeStatusSpec) EqualVT(that *MachineUpgradeStatusSpec) bo
 
 func (this *MachineUpgradeStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*MachineUpgradeStatusSpec)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-func (this *ExtensionsConfigurationStatusSpec) EqualVT(that *ExtensionsConfigurationStatusSpec) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Phase != that.Phase {
-		return false
-	}
-	if this.Error != that.Error {
-		return false
-	}
-	if len(this.Extensions) != len(that.Extensions) {
-		return false
-	}
-	for i, vx := range this.Extensions {
-		vy := that.Extensions[i]
-		if vx != vy {
-			return false
-		}
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ExtensionsConfigurationStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
-	that, ok := thatMsg.(*ExtensionsConfigurationStatusSpec)
 	if !ok {
 		return false
 	}
@@ -8116,13 +8010,6 @@ func (m *ClusterSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x12
 	}
-	if len(m.InstallImage) > 0 {
-		i -= len(m.InstallImage)
-		copy(dAtA[i:], m.InstallImage)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.InstallImage)))
-		i--
-		dAtA[i] = 0xa
-	}
 	return len(dAtA) - i, nil
 }
 
@@ -9031,67 +8918,6 @@ func (m *ClusterMachineIdentitySpec) MarshalToSizedBufferVT(dAtA []byte) (int, e
 		i -= len(m.NodeIdentity)
 		copy(dAtA[i:], m.NodeIdentity)
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.NodeIdentity)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *ClusterMachineTemplateSpec) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ClusterMachineTemplateSpec) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ClusterMachineTemplateSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.Patch) > 0 {
-		i -= len(m.Patch)
-		copy(dAtA[i:], m.Patch)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Patch)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.InstallDisk) > 0 {
-		i -= len(m.InstallDisk)
-		copy(dAtA[i:], m.InstallDisk)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.InstallDisk)))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.KubernetesVersion) > 0 {
-		i -= len(m.KubernetesVersion)
-		copy(dAtA[i:], m.KubernetesVersion)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.KubernetesVersion)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.InstallImage) > 0 {
-		i -= len(m.InstallImage)
-		copy(dAtA[i:], m.InstallImage)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.InstallImage)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -12898,60 +12724,6 @@ func (m *MachineUpgradeStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	return len(dAtA) - i, nil
 }
 
-func (m *ExtensionsConfigurationStatusSpec) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ExtensionsConfigurationStatusSpec) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ExtensionsConfigurationStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i -= len(m.unknownFields)
-		copy(dAtA[i:], m.unknownFields)
-	}
-	if len(m.Extensions) > 0 {
-		for iNdEx := len(m.Extensions) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Extensions[iNdEx])
-			copy(dAtA[i:], m.Extensions[iNdEx])
-			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Extensions[iNdEx])))
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
-	if len(m.Error) > 0 {
-		i -= len(m.Error)
-		copy(dAtA[i:], m.Error)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Error)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.Phase != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Phase))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *MachineExtensionsSpec) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -14957,10 +14729,6 @@ func (m *ClusterSpec) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.InstallImage)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
 	l = len(m.KubernetesVersion)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
@@ -15327,32 +15095,6 @@ func (m *ClusterMachineIdentitySpec) SizeVT() (n int) {
 		}
 	}
 	l = len(m.DiscoveryServiceEndpoint)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *ClusterMachineTemplateSpec) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.InstallImage)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	l = len(m.KubernetesVersion)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	l = len(m.InstallDisk)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	l = len(m.Patch)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -16840,29 +16582,6 @@ func (m *MachineUpgradeStatusSpec) SizeVT() (n int) {
 	}
 	if m.IsMaintenance {
 		n += 2
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *ExtensionsConfigurationStatusSpec) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Phase != 0 {
-		n += 1 + protohelpers.SizeOfVarint(uint64(m.Phase))
-	}
-	l = len(m.Error)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	if len(m.Extensions) > 0 {
-		for _, s := range m.Extensions {
-			l = len(s)
-			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -20993,38 +20712,6 @@ func (m *ClusterSpec) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: ClusterSpec: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field InstallImage", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.InstallImage = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field KubernetesVersion", wireType)
@@ -23449,185 +23136,6 @@ func (m *ClusterMachineIdentitySpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.DiscoveryServiceEndpoint = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *ClusterMachineTemplateSpec) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return protohelpers.ErrIntOverflow
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ClusterMachineTemplateSpec: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ClusterMachineTemplateSpec: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field InstallImage", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.InstallImage = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field KubernetesVersion", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.KubernetesVersion = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field InstallDisk", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.InstallDisk = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Patch", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Patch = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -32831,140 +32339,6 @@ func (m *MachineUpgradeStatusSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.IsMaintenance = bool(v != 0)
-		default:
-			iNdEx = preIndex
-			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *ExtensionsConfigurationStatusSpec) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return protohelpers.ErrIntOverflow
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ExtensionsConfigurationStatusSpec: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ExtensionsConfigurationStatusSpec: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Phase", wireType)
-			}
-			m.Phase = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Phase |= ExtensionsConfigurationStatusSpec_Phase(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Error = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Extensions", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Extensions = append(m.Extensions, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

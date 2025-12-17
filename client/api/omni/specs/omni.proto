@@ -296,8 +296,7 @@ message ClusterSpec {
     bool use_embedded_discovery_service = 3;
   }
 
-  // InstallImage the installer image to use.
-  string install_image = 1 [deprecated = true];
+  reserved 1;
 
   // KubernetesVersion to use on the node.
   string kubernetes_version = 2;
@@ -490,21 +489,6 @@ message ClusterMachineIdentitySpec {
   //
   // It is empty if discovery service is not enabled.
   string discovery_service_endpoint = 9;
-}
-
-// ClusterMachineTemplateSpec
-message ClusterMachineTemplateSpec {
-  // InstallImage the installer image to use.
-  string install_image = 1;
-
-  // KubernetesVersion to use on the node.
-  string kubernetes_version = 2;
-
-  // InstallDisk Talos system disk.
-  string install_disk = 3;
-
-  // Patch represents machinery config patch.
-  string patch = 5;
 }
 
 enum ConfigApplyStatus {
@@ -1248,20 +1232,6 @@ message MachineUpgradeStatusSpec {
   bool is_maintenance = 8;
 }
 
-// ExtensionsConfigurationStatusSpec is the status of the generated schematic.
-// Deprecated: to be removed.
-message ExtensionsConfigurationStatusSpec {
-  enum Phase {
-    Unknown = 0;
-    Ready = 1;
-    Failed = 2;
-  }
-
-  Phase phase = 1;
-  string error = 2;
-  repeated string extensions = 3;
-}
-
 // MachineExtensionsSpec is the extensions list to be used for a machine.
 message MachineExtensionsSpec {
   repeated string extensions = 1;
@@ -1357,7 +1327,7 @@ message ClusterDiagnosticsSpec {
   repeated Node nodes = 1;
 }
 
-// MachineClassStatusSpec describes an Omni MachineRequestSetPressure resource spec.
+// MachineRequestSetPressureSpec describes an Omni MachineRequestSetPressure resource spec.
 message MachineRequestSetPressureSpec {
   // RequiredMachines is the number of machines required by all machine sets which are using the request set.
   uint32 required_machines = 1;

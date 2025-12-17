@@ -872,10 +872,6 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterMachineTemplate(resources.DefaultNamespace, uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
 				resource:       omni.NewClusterStatus(resources.DefaultNamespace, uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
@@ -1075,10 +1071,6 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewExtensionsConfigurationStatus(resources.DefaultNamespace, uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
 				resource:              omni.NewMachineStatusMetrics(resources.EphemeralNamespace, uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
@@ -1226,7 +1218,6 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 		// delete excluded resources from the untested set
 		delete(untestedResourceTypes, k8s.KubernetesResourceType)
-		delete(untestedResourceTypes, siderolink.DeprecatedLinkCounterType)
 		delete(untestedResourceTypes, authres.AuthConfigType)
 
 		for _, tc := range testCases {

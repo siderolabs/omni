@@ -293,7 +293,7 @@ func initResources(ctx context.Context, resourceState state.State, logger *zap.L
 		return err
 	}
 
-	if err := migration.NewManager(resourceState, logger.With(logging.Component("migration"))).Run(ctx); err != nil {
+	if _, err := migration.NewManager(resourceState, logger.With(logging.Component("migration"))).Run(ctx); err != nil {
 		return err
 	}
 

@@ -23,11 +23,11 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
-type ExtensionsConfigurationStatusSuite struct {
+type MachineExtensionsSuite struct {
 	OmniSuite
 }
 
-func (suite *ExtensionsConfigurationStatusSuite) TestReconcile() {
+func (suite *MachineExtensionsSuite) TestReconcile() {
 	suite.startRuntime()
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
@@ -132,10 +132,10 @@ func (suite *ExtensionsConfigurationStatusSuite) TestReconcile() {
 	}
 }
 
-func TestExtensionsConfigurationStatusSuite(t *testing.T) {
+func TestMachineExtensionsSuite(t *testing.T) {
 	t.Parallel()
 
-	suite.Run(t, new(ExtensionsConfigurationStatusSuite))
+	suite.Run(t, new(MachineExtensionsSuite))
 }
 
 func TestMachineExtensionsPriority(t *testing.T) {
