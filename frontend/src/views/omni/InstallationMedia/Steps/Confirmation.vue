@@ -142,9 +142,7 @@ const schematic = computedAsync(async () => {
       overlay = {
         name: selectedSBC.value.spec.overlay_name,
         image: selectedSBC.value.spec.overlay_image,
-        options: formState.value.overlayOptions
-          ? JSON.stringify(formState.value.overlayOptions)
-          : undefined,
+        options: formState.value.overlayOptions,
       }
     }
 

@@ -14,6 +14,7 @@ import type { SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
 import { SBCConfigType, VirtualNamespace } from '@/api/resources'
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
+import TextArea from '@/components/common/TextArea/TextArea.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceList } from '@/methods/useResourceList'
@@ -95,7 +96,7 @@ const selectedSBC = computed(() =>
     <p>Skip this step if unsure.</p>
 
     <template v-if="supportsOverlayOptions && selectedSBC">
-      <TInput
+      <TextArea
         v-model="formState.overlayOptions"
         placeholder="configTxtAppend: 'dtoverlay=vc4-fkms-v3d'"
         title="Extra overlay options (advanced)"

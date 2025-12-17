@@ -7,7 +7,6 @@ package grpc
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"slices"
 
@@ -133,8 +132,10 @@ func (s *managementServer) getOverlay(ctx context.Context, req *management.Creat
 	if req.Overlay != nil {
 		options := map[string]any{}
 
-		if err := json.Unmarshal([]byte(req.Overlay.Options), &options); err != nil {
-			return schematic.Overlay{}, err
+		if req.Overlay.Options != "" {
+			if err := yaml.Unmarshal([]byte(req.Overlay.Options), &options); err != nil {
+				return schematic.Overlay{}, err
+			}
 		}
 
 		return schematic.Overlay{
