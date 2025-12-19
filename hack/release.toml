@@ -6,7 +6,9 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v1.3.0"
+previous = "v1.4.0"
+
+[notes]
 
 [notes.aaa-urgent-sqlite-migration]
 title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
@@ -15,6 +17,7 @@ This release consolidates **Discovery service state**, **Audit logs**, **Machine
 
 **1. New Required Flag**
 You **must** set the new `--sqlite-storage-path` (or `.storage.sqlite.path`) flag. There is no default value, and Omni will not start without it.
+It **must** be a path to the SQLite file (will be created by Omni), **not** a directory, e.g., `--sqlite-storage-path=/path/to/omni-sqlite.db`.
 
 **2. Audit Logging Changes**
 A new flag `--audit-log-enabled` (or `.logs.audit.enabled`) has been introduced to explicitly enable or disable audit logging.
@@ -42,62 +45,4 @@ The following flags (and config keys) are deprecated and kept solely to facilita
 The following flags have been removed and are no longer supported:
 * `--machine-log-storage-flush-period` (`.logs.machine.storage.flushPeriod`)
 * `--machine-log-storage-flush-jitter` (`.logs.machine.storage.flushJitter`)
-"""
-
-[notes.infra-provider-cleanup]
-title = "Force Deletion of Infra Provider Resources"
-description = """\
-Added the ability to force-delete `MachineRequests` and `InfraMachines` managed by Infra providers.
-This allows for the cleanup of resources and finalizers even if the underlying provider is unresponsive or deleted.
-"""
-
-[notes.auth-saml-dynamic-roles]
-title = "Dynamic SAML Label Role Updates"
-description = """\
-Added support for dynamically updating SAML label roles on every login via the new `update_on_each_login` field.
-"""
-
-[notes.auth-extend-oidc-support]
-title = "Support for OIDC Providers without Email Verified Claim"
-description = """\
-Enabled support for OIDC providers, such as Azure, that do not provide the `email_verified` claim during authentication.
-"""
-
-[notes.backend-platform-info]
-title = "Virtual Resources for Platform Information"
-description = """\
-Platform and SBC information is now pulled from Talos machinery and presented as virtual resources:
-`MetalPlatformConfig`, `CloudPlatformConfig`, and `SBCConfig`. They support `Get` and `List` operations.
-"""
-
-[notes.backend-machine-classes-logic]
-title = "Machine Class Logic Updates"
-description = """\
-Added support for locks, node deletion, and restore operations when using machine classes.
-"""
-
-[notes.talos-version-downgrade-prevention]
-title = "Prevent Talos Minor Version Downgrades"
-description = """\
-Omni now prevents downgrading the Talos minor version below the initial version used to create the cluster.
-This safeguard prevents machine configurations from entering a broken state due to unsupported features in older versions.
-"""
-
-[notes.frontend-oidc-warning]
-title = "OIDC Warning for Kubeconfig Download"
-description = """\
-A warning toast is now displayed when downloading kubeconfig to inform users that the OIDC plugin is required before using the file with kubectl.
-"""
-
-[notes.frontend-cli-install-options]
-title = "Automated CLI Install Options"
-description = """\
-Automated installation options have been added to the CLI section of the homepage, supplementing the existing manual options.
-"""
-
-[notes.frontend-ui-improvements]
-title = "UI/UX Improvements"
-description = """\
-Various UI improvements including pre-selecting the correct binary for the user's platform, truncating long items in the ongoing tasks list,
-hiding JSON schema descriptions behind tooltips, and standardizing link styling.
 """
