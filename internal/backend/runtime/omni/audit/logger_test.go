@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -262,4 +263,133 @@ func readAllEvents(t *testing.T, rdr auditlog.Reader) []auditlog.Event {
 
 		events = append(events, evt)
 	}
+}
+
+func TestMigrateLineExceedingDefaultBuffer(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+
+	// Setup Source: File Logger with an 80KB line (exceeds default 64KB bufio buffer).
+	dir := t.TempDir()
+	fileStore := auditlogfile.New(dir)
+
+	const hugeSize = 80 * 1024
+
+	hugeString := strings.Repeat("a", hugeSize)
+
+	event := auditlog.MakeEvent("create", "huge.resource", &auditlog.Data{
+		Session: auditlog.Session{UserID: hugeString},
+	})
+	event.TimeMillis = time.Now().Add(-1 * time.Hour).UnixMilli()
+
+	require.NoError(t, fileStore.Write(ctx, event))
+
+	// Setup Destination: SQLite
+	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbConf := config.Default().Storage.SQLite
+	dbConf.Path = dbPath
+
+	db, err := sqlite.OpenDB(dbConf)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	// Trigger Migration
+	logConf := config.LogsAudit{
+		Enabled:       pointer.To(true),
+		Path:          dir,
+		SQLiteTimeout: 5 * time.Second,
+	}
+
+	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)
+	require.NoError(t, err)
+
+	// Verify Data in SQLite
+	rdr, err := auditLogger.Reader(ctx, time.Time{}, time.Now().Add(time.Hour))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, rdr.Close()) })
+
+	events := readAllEvents(t, rdr)
+	require.Len(t, events, 1)
+	assert.Equal(t, hugeString, events[0].Data.Session.UserID)
+
+	// Verify Clean Migration (files should be removed)
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	assert.Empty(t, entries)
+}
+
+func TestMigrateLineExceedingMaxBuffer(t *testing.T) {
+	t.Parallel()
+
+	// Short timeout ensures the test fails fast if the "infinite loop" bug occurs.
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+
+	// Setup Source: File Logger with a 5MB line (exceeds new 4MB buffer).
+	dir := t.TempDir()
+	fileStore := auditlogfile.New(dir)
+
+	// Line 1: Valid Small Event (Should be migrated)
+	validEvt1 := auditlog.MakeEvent("create", "valid.resource.1", &auditlog.Data{
+		Session: auditlog.Session{UserID: "user-small-1"},
+	})
+	validEvt1.TimeMillis = time.Now().Add(-2 * time.Hour).UnixMilli()
+	require.NoError(t, fileStore.Write(ctx, validEvt1))
+
+	// Line 2: TOO Huge (> 16MB). Scanner returns "bufio.Scanner: token too long" error, migration should abort.
+	const hugeSize = 17 * 1024 * 1024
+
+	hugeString := strings.Repeat("a", hugeSize)
+
+	hugeEvt := auditlog.MakeEvent("create", "too.huge.resource", &auditlog.Data{
+		Session: auditlog.Session{UserID: hugeString},
+	})
+	hugeEvt.TimeMillis = time.Now().Add(-1 * time.Hour).UnixMilli()
+	require.NoError(t, fileStore.Write(ctx, hugeEvt))
+
+	// Line 3: Valid Small Event (Should NOT be migrated due to abort)
+	validEvt2 := auditlog.MakeEvent("create", "valid.resource.2", &auditlog.Data{
+		Session: auditlog.Session{UserID: "user-small-2"},
+	})
+	validEvt2.TimeMillis = time.Now().UnixMilli()
+	require.NoError(t, fileStore.Write(ctx, validEvt2))
+
+	// Setup Destination: SQLite
+	dbPath := filepath.Join(t.TempDir(), "test.db")
+	dbConf := config.Default().Storage.SQLite
+	dbConf.Path = dbPath
+
+	db, err := sqlite.OpenDB(dbConf)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	// Trigger Migration
+	logConf := config.LogsAudit{
+		Enabled:       pointer.To(true),
+		Path:          dir,
+		SQLiteTimeout: 5 * time.Second,
+	}
+
+	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)
+	require.NoError(t, err)
+
+	// Verify Database State (Only first event migrated)
+	rdr, err := auditLogger.Reader(ctx, time.Time{}, time.Now().Add(time.Hour))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, rdr.Close()) })
+
+	events := readAllEvents(t, rdr)
+	require.Len(t, events, 1)
+	assert.Equal(t, "user-small-1", events[0].Data.Session.UserID)
+
+	// Verify Abort (Files preserved due to read failure)
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	assert.NotEmpty(t, entries)
 }
