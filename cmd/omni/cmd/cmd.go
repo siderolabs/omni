@@ -502,6 +502,12 @@ func defineLogsFlags() {
 		cmdConfig.Logs.Machine.Storage.CleanupInterval, "interval between machine log cleanup runs")
 	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Machine.Storage.CleanupOlderThan, "machine-log-cleanup-older-than",
 		cmdConfig.Logs.Machine.Storage.CleanupOlderThan, "age threshold for machine log entries to be cleaned up")
+	rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.Storage.MaxLinesPerMachine, "machine-log-max-lines-per-machine",
+		cmdConfig.Logs.Machine.Storage.MaxLinesPerMachine, "maximum number of log lines to keep per machine")
+	rootCmd.Flags().Float64Var(&cmdConfig.Logs.Machine.Storage.CleanupProbability, "machine-log-cleanup-probability",
+		cmdConfig.Logs.Machine.Storage.CleanupProbability, "probability of running a size-based cleanup after each log write")
+
+	rootCmd.Flags().MarkHidden("machine-log-cleanup-probability") //nolint:errcheck
 
 	rootCmd.Flags().StringSliceVar(&cmdConfig.Logs.ResourceLogger.Types, "log-resource-updates-types",
 		cmdConfig.Logs.ResourceLogger.Types, "list of resource types whose updates should be logged")
