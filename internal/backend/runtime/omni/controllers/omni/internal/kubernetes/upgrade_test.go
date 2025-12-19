@@ -647,7 +647,7 @@ func TestUpgradePath(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			upgradePath := kubernetes.CalculateUpgradePath(test.machineMap, test.kubernetesStatus, test.desiredVersion)
+			upgradePath := kubernetes.CalculateUpgradePath(test.machineMap, test.kubernetesStatus, test.desiredVersion, map[string]string{})
 			assert.Equal(t, test.expected.AllComponentsReady, upgradePath.AllComponentsReady)
 			assert.Equal(t, test.expected.NotReadyStatus, upgradePath.NotReadyStatus)
 			assert.Equal(t, test.expected.BlockedNodes(), upgradePath.BlockedNodes())

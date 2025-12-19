@@ -40,6 +40,25 @@ func (c Component) Patch(version string) Patcher {
 	}
 }
 
+// PatchWithDigest returns a patcher for a specific component using pre-resolved image digests.
+func (c Component) PatchWithDigest(componentImages map[string]string) Patcher {
+	switch c {
+	case APIServer:
+		return MultiPatcher(
+			patchAPIServerWithDigest(componentImages["kube-apiserver"]),
+			patchKubeProxyWithDigest(componentImages["kube-proxy"]),
+		)
+	case ControllerManager:
+		return patchControllerManagerWithDigest(componentImages["kube-controller-manager"])
+	case Scheduler:
+		return patchSchedulerWithDigest(componentImages["kube-scheduler"])
+	case Kubelet:
+		return patchKubeletWithDigest(componentImages["kubelet"])
+	default:
+		panic("unknown component")
+	}
+}
+
 // Valid returns true if the component is valid.
 func (c Component) Valid() bool {
 	switch c {

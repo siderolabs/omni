@@ -112,8 +112,28 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 					return fmt.Errorf("failed to build nodename to machine map: %w", err)
 				}
 
-				// check if all Kubernetes components are ready
-				upgradePath := kubernetes.CalculateUpgradePath(nodenameToMachineMap, kubernetesStatus, cluster.TypedSpec().Value.KubernetesVersion)
+				desiredVersion := cluster.TypedSpec().Value.KubernetesVersion
+
+				k8sVersion, err := safe.ReaderGet[*omni.KubernetesVersion](
+					ctx,
+					r,
+					omni.NewKubernetesVersion(resources.DefaultNamespace, desiredVersion).Metadata(),
+				)
+				if err != nil {
+					return fmt.Errorf("failed to get kubernetes version %s: %w", desiredVersion, err)
+				}
+
+				componentImages := k8sVersion.TypedSpec().Value.ComponentImages
+				if componentImages == nil {
+					componentImages = make(map[string]string)
+				}
+
+				upgradePath := kubernetes.CalculateUpgradePath(
+					nodenameToMachineMap,
+					kubernetesStatus,
+					desiredVersion,
+					componentImages,
+				)
 
 				upgradeStatus.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
@@ -253,6 +273,23 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 		),
 		qtransform.WithExtraMappedInput[*omni.ImagePullStatus](
 			qtransform.MapperSameID[*omni.Cluster](),
+		),
+		qtransform.WithExtraMappedInput[*omni.KubernetesVersion](
+			// KubernetesVersion resources are needed to resolve component image digests
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, md controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				clusters, err := safe.ReaderListAll[*omni.Cluster](ctx, r)
+				if err != nil {
+					return nil, err
+				}
+
+				var affectedClusters []resource.Pointer
+
+				for cluster := range clusters.All() {
+					affectedClusters = append(affectedClusters, cluster.Metadata())
+				}
+
+				return affectedClusters, nil
+			},
 		),
 		qtransform.WithExtraMappedInput[*omni.TalosVersion](
 			// if TalosVersion changes, it might be that CompatibleKubernetesVersions field changed

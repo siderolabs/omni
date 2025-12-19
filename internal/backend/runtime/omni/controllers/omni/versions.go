@@ -27,6 +27,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	consts "github.com/siderolabs/omni/internal/pkg/constants"
+	kubernetesinternal "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/kubernetes"
 	"github.com/siderolabs/omni/internal/pkg/registry"
 )
 
@@ -300,6 +301,20 @@ func (ctrl *VersionsController) reconcileKubernetesVersions(ctx context.Context,
 
 		if err = safe.WriterModify(ctx, r, k8sVersion, func(res *omni.KubernetesVersion) error {
 			res.TypedSpec().Value.Version = v
+
+			// Resolve component images to digest
+			componentRefs := kubernetesinternal.GetComponentImageRefs(v)
+			componentImages := make(map[string]string, len(componentRefs))
+
+			for name, imageRef := range componentRefs{
+				resolved, resolveErr := registry.ResolveDigest(ctx, imageRef)
+				if resolveErr != nil {
+					return fmt.Errorf("resolve digest for %s: %w", name, resolveErr)
+				}
+				componentImages[name] = resolved
+			}
+
+			res.TypedSpec().Value.ComponentImages = componentImages
 
 			return nil
 		}); err != nil {

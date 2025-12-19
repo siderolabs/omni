@@ -56,7 +56,7 @@ func (path *UpgradePath) BlockedNodes() []string {
 // CalculateUpgradePath calculates the upgrade path for the cluster.
 //
 //nolint:gocyclo,cyclop,gocognit
-func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *omni.KubernetesStatus, desiredVersion string) *UpgradePath {
+func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *omni.KubernetesStatus, desiredVersion string, componentImages map[string]string) *UpgradePath {
 	upgradePath := &UpgradePath{
 		ClusterID: kubernetesStatus.Metadata().ID(),
 	}
@@ -79,7 +79,13 @@ func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *om
 		machineID, ok := nodenameToMachineMap.ControlPlanes[nodename]
 
 		if ok && component.Valid() {
-			patch := component.Patch(desiredVersion)
+			var patch Patcher
+
+			if len(componentImages) > 0 {
+				patch = component.PatchWithDigest(componentImages)
+			} else {
+				patch = component.Patch(desiredVersion)
+			}
 
 			addImagesToNode(nodename, patch.UsedImages)
 
@@ -105,7 +111,13 @@ func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *om
 			return
 		}
 
-		patch := Kubelet.Patch(desiredVersion)
+		var patch Patcher
+
+		if len(componentImages) > 0 {
+			patch = Kubelet.PatchWithDigest(componentImages)
+		} else {
+			patch = Kubelet.Patch(desiredVersion)
+		}
 
 		addImagesToNode(nodename, patch.UsedImages)
 

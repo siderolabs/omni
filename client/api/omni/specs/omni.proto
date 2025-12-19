@@ -661,6 +661,8 @@ message LoadBalancerStatusSpec {
 // KubernetesVersionSpec represents an available Kubernetes version.
 message KubernetesVersionSpec {
   string version = 1;
+  map<string, string> component_images = 2;
+  bool signature_valid = 3; 
 }
 
 // TalosVersionSpec represents an available Talos version.
