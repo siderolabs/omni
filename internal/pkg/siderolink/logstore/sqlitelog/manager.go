@@ -197,5 +197,5 @@ func NewStoreManager(ctx context.Context, db *sql.DB, config config.LogsMachineS
 
 // Create implements the LogStoreManager interface.
 func (m *StoreManager) Create(id string) (logstore.LogStore, error) {
-	return NewStore(m.config.SQLiteTimeout, m.db, id, m.logger)
+	return NewStore(m.config, m.db, id, m.logger)
 }
