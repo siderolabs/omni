@@ -83,8 +83,9 @@ func migrateFromFileToSQLite(ctx context.Context, fileAuditLogger Logger, dbAudi
 	defer reader.Close() //nolint:errcheck
 
 	var (
-		migrated, readFailed, writeFailed int
-		lastTs                            int64 // track the last valid timestamp to keep ordering for corrupt events
+		readFailed            bool
+		migrated, writeFailed int
+		lastTs                int64 // track the last valid timestamp to keep ordering for corrupt events
 	)
 
 	for {
@@ -97,9 +98,9 @@ func migrateFromFileToSQLite(ctx context.Context, fileAuditLogger Logger, dbAudi
 
 			logger.Warn("failed to read audit log while doing migration", zap.Error(err))
 
-			readFailed++
+			readFailed = true
 
-			continue
+			break
 		}
 
 		var event auditlog.Event
@@ -133,15 +134,15 @@ func migrateFromFileToSQLite(ctx context.Context, fileAuditLogger Logger, dbAudi
 		migrated++
 	}
 
-	if migrated > 0 || readFailed > 0 || writeFailed > 0 {
+	if migrated > 0 || readFailed || writeFailed > 0 {
 		logger.Info("audit log migration summary",
 			zap.Int("migrated", migrated),
-			zap.Int("read_failed", readFailed),
+			zap.Bool("read_failed", readFailed),
 			zap.Int("write_failed", writeFailed),
 		)
 	}
 
-	if readFailed > 0 || writeFailed > 0 {
+	if readFailed || writeFailed > 0 {
 		logger.Warn("skipping deletion of old audit log files due to migration errors - manual cleanup may be required")
 
 		return nil

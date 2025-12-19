@@ -169,6 +169,7 @@ func (l *logReader) Close() error {
 func (l *logReader) Read() ([]byte, error) {
 	if l.scanner == nil {
 		l.scanner = bufio.NewScanner(l.rdr)
+		l.scanner.Buffer(nil, 16*1024*1024) // 16MB max line size
 	}
 
 	if !l.scanner.Scan() {
