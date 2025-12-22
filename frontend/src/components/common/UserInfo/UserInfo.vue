@@ -32,10 +32,10 @@ const {
 const auth0 = useAuth0()
 
 const identity = computed(
-  () => email || auth0.user.value?.email?.toLowerCase() || identityStorage.value,
+  () => email || auth0?.user?.value?.email?.toLowerCase() || identityStorage.value,
 )
-const picture = computed(() => avatar || auth0.user.value?.picture)
-const name = computed(() => fullname || auth0.user.value?.name)
+const picture = computed(() => avatar || auth0?.user?.value?.picture)
+const name = computed(() => fullname || auth0?.user?.value?.name)
 </script>
 
 <template>
