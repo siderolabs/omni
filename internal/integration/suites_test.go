@@ -1213,7 +1213,7 @@ Test flow of cluster creation and scaling using cluster templates.`)
 
 		t.Parallel()
 
-		options.claimMachines(t, 5)
+		options.claimMachines(t, 7)
 
 		t.Run(
 			"TestClusterTemplateFlow",

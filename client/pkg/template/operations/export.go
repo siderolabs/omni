@@ -483,8 +483,10 @@ func collectResourceLayers[T meta.ResourceWithRD](ctx context.Context, st state.
 	}
 
 	resources.ForEach(func(item T) {
+		_, programmaticallyCreatedMachineSetNode := item.Metadata().Labels().Get(omni.LabelManagedByMachineSetNodeController)
+
 		// skip the resources with an owner, as they are not user-defined
-		if item.Metadata().Owner() != "" {
+		if item.Metadata().Owner() != "" || programmaticallyCreatedMachineSetNode {
 			return
 		}
 
