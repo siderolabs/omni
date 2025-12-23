@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -26,6 +27,9 @@ func newSQLitePersistentState(ctx context.Context, db *sql.DB, logger *zap.Logge
 	st, err := sqlite.NewState(ctx, db, store.ProtobufMarshaler{},
 		sqlite.WithLogger(logger),
 		sqlite.WithTablePrefix("metrics_"),
+		// run aggressive compaction, as we store frequently updated link counters here
+		sqlite.WithCompactionInterval(5*time.Minute),
+		sqlite.WithCompactMinAge(10*time.Minute),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sqlite state: %w", err)
