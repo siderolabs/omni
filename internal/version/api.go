@@ -8,4 +8,4 @@ package version
 // API represents the current API version of the backend, and is checked by the clients for compatibility.
 //
 // When the backend API changes in a breaking way, this needs to be bumped.
-const API uint32 = 1
+const API uint32 = 2
