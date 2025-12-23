@@ -87,5 +87,5 @@ func deleteTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 		syncResult.Destroy = slices.Insert(syncResult.Destroy, 0, extensionsConfigurations.Items, links, allPatches)
 	}
 
-	return syncDelete(ctx, syncResult, out, st, syncOptions)
+	return sync(ctx, syncResult, out, st, syncOptions)
 }

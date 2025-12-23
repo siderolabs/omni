@@ -44,6 +44,9 @@ type Machine struct { //nolint:govet
 
 	// ClusterMachine patches.
 	Patches PatchList `yaml:"patches,omitempty"`
+
+	// KernelArgs are the additional kernel arguments.
+	KernelArgs KernelArgs `yaml:",inline"`
 }
 
 // MachineInstall provides machine install configuration.
@@ -145,7 +148,30 @@ func (machine *Machine) Translate(ctx TranslateContext) ([]resource.Resource, er
 		pair.MakePair(omni.LabelClusterMachine, string(machine.Name)),
 	)
 
+	res, defined := machine.translateKernelArgs(ctx)
+	if defined {
+		resourceList = append(resourceList, res)
+	}
+
 	return append(resourceList, schematicConfigurations...), nil
+}
+
+func (machine *Machine) translateKernelArgs(ctx TranslateContext) (res resource.Resource, defined bool) {
+	if args, ok := machine.KernelArgs.Get(); ok {
+		return buildKernelArgsResource(machine.Name, args), true
+	}
+
+	msKernelArgs := ctx.MachineSetLevelKernelArgs[machine.Name]
+
+	if args, ok := msKernelArgs.Get(); ok {
+		return buildKernelArgsResource(machine.Name, args), true
+	}
+
+	if args, ok := ctx.ClusterLevelKernelArgs.Get(); ok {
+		return buildKernelArgsResource(machine.Name, args), true
+	}
+
+	return nil, false
 }
 
 func init() {

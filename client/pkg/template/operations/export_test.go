@@ -11,6 +11,7 @@ import (
 	"errors"
 	"io"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -34,6 +35,9 @@ import (
 //go:embed testdata/export/cluster-template.yaml
 var clusterTemplate string
 
+//go:embed testdata/export/cluster-template-with-kernel-args.yaml
+var clusterTemplateWithKernelArgs string
+
 //go:embed testdata/export/cluster-resources.yaml
 var clusterResources []byte
 
@@ -45,19 +49,38 @@ type resources struct {
 }
 
 func TestExport(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-	t.Cleanup(cancel)
+	for _, input := range []struct {
+		name              string
+		expectedOutput    string
+		includeKernelArgs bool
+	}{
+		{
+			name:              "without kernel args",
+			includeKernelArgs: false,
+			expectedOutput:    clusterTemplate,
+		},
+		{
+			name:              "with kernel args",
+			includeKernelArgs: true,
+			expectedOutput:    clusterTemplateWithKernelArgs,
+		},
+	} {
+		t.Run(input.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			t.Cleanup(cancel)
 
-	st := buildState(ctx, t)
+			st := buildState(ctx, t)
 
-	// export a template from resources created via the UI
-	exportedTemplate := assertTemplate(ctx, t, st)
+			// export a template from resources created via the UI
+			exportedTemplate := assertTemplate(ctx, t, st, input.expectedOutput, input.includeKernelArgs)
 
-	// sync the exported template back into the state and assert that the state is unchanged
-	assertSync(ctx, t, st, exportedTemplate)
+			// sync the exported template back into the state and assert that the state is unchanged
+			assertSync(ctx, t, st, exportedTemplate)
 
-	// export a template one more time and assert that it's still the same as the first exported template
-	assertTemplate(ctx, t, st)
+			// export a template one more time and assert that it's still the same as the first exported template
+			assertTemplate(ctx, t, st, input.expectedOutput, input.includeKernelArgs)
+		})
+	}
 }
 
 // assertSync asserts that the state is unchanged after syncing back the exported template.
@@ -143,22 +166,26 @@ func readResources(ctx context.Context, t *testing.T, st state.State) resources 
 	}
 }
 
-func assertTemplate(ctx context.Context, t *testing.T, st state.State) string {
+func assertTemplate(ctx context.Context, t *testing.T, st state.State, expected string, includeKernelArgs bool) string {
 	var sb strings.Builder
 
-	modelList, err := operations.ExportTemplate(ctx, st, "export-test", &sb)
+	modelList, err := operations.ExportTemplate(ctx, st, "export-test", includeKernelArgs, &sb)
 	require.NoError(t, err)
 
-	assertAllFieldsSet(t, modelList)
+	assertAllFieldsSet(t, modelList, includeKernelArgs)
 
-	assert.Equal(t, clusterTemplate, sb.String())
+	exportedTemplate := sb.String()
 
-	return clusterTemplate
+	t.Logf("exported template: %q", exportedTemplate)
+
+	assert.Equal(t, expected, exportedTemplate)
+
+	return exportedTemplate
 }
 
 // assertAllFieldsSet asserts that all fields of the models are set at least once.
 // This is to ensure that the exporter is handling all fields of the models as new fields are added.
-func assertAllFieldsSet(t *testing.T, modelList models.List) {
+func assertAllFieldsSet(t *testing.T, modelList models.List, includeKernelArgs bool) {
 	machineSetTypeName := reflect.TypeFor[models.MachineSet]().String()
 	modelFieldToIsZero := make(map[string]bool)
 
@@ -187,7 +214,16 @@ func assertAllFieldsSet(t *testing.T, modelList models.List) {
 		}
 	}
 
+	excludedFields := []string{"models.Cluster.KernelArgs", "models.MachineSet.KernelArgs"}
+	if !includeKernelArgs {
+		excludedFields = append(excludedFields, "models.Machine.KernelArgs")
+	}
+
 	for modelField, isZero := range modelFieldToIsZero {
+		if slices.Contains(excludedFields, modelField) {
+			continue
+		}
+
 		assert.False(t, isZero, "field %q was never set, is the field handled by the exporter?", modelField)
 	}
 }

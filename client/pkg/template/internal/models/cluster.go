@@ -45,6 +45,9 @@ type Cluster struct { //nolint:govet
 
 	// Cluster-wide patches.
 	Patches PatchList `yaml:"patches,omitempty"`
+
+	// KernelArgs are the additional kernel arguments.
+	KernelArgs KernelArgs `yaml:",inline"`
 }
 
 // Features defines cluster-wide features.

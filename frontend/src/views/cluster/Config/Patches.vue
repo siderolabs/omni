@@ -269,7 +269,7 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col gap-4 overflow-y-auto">
-    <ManagedByTemplatesWarning :cluster="cluster" />
+    <ManagedByTemplatesWarning :resource="cluster" />
     <div class="flex gap-4">
       <TInput v-model="filter" class="flex-1" placeholder="Search..." icon="search" />
       <TButton type="highlighted" :disabled="!canManageConfigPatches" @click="openPatchCreate">
