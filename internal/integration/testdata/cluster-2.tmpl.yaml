@@ -35,3 +35,9 @@ patches:
           interfaces:
             - interface: dummy-if
               dummy: true
+---
+kind: Workers
+name: {{ .MachineClassBasedMachineSetName }}
+machineClass:
+  name: {{ .MachineClass }}
+  size: 2

@@ -174,7 +174,9 @@ func (t *Template) actualResources(ctx context.Context, st state.State) ([]resou
 		actualResources = append(actualResources,
 			xslices.Filter(items.Items,
 				func(r resource.Resource) bool {
-					return r.Metadata().Owner() == ""
+					_, programmaticallyCreatedMachineSetNode := r.Metadata().Labels().Get(omni.LabelManagedByMachineSetNodeController)
+
+					return !programmaticallyCreatedMachineSetNode && r.Metadata().Owner() == ""
 				},
 			)...)
 	}
