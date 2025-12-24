@@ -156,3 +156,93 @@ func patchKubeProxy(version string) Patcher {
 		UsedImages: []string{img},
 	}
 }
+
+// patchAPIServerWithDigest patches the kube-apiserver image using a pre-resolved digest.
+func patchAPIServerWithDigest(imageWithDigest string) Patcher {
+	return Patcher{
+		Apply: func(config *v1alpha1.Config) {
+			if config.ClusterConfig == nil {
+				config.ClusterConfig = &v1alpha1.ClusterConfig{}
+			}
+
+			if config.ClusterConfig.APIServerConfig == nil {
+				config.ClusterConfig.APIServerConfig = &v1alpha1.APIServerConfig{}
+			}
+
+			config.ClusterConfig.APIServerConfig.ContainerImage = imageWithDigest
+		},
+		UsedImages: []string{imageWithDigest},
+	}
+}
+
+// patchControllerManagerWithDigest patches the kube-controller-manager image using a pre-resolved digest.
+func patchControllerManagerWithDigest(imageWithDigest string) Patcher {
+    return Patcher{
+        Apply: func(config *v1alpha1.Config) {
+            if config.ClusterConfig == nil {
+                config.ClusterConfig = &v1alpha1.ClusterConfig{}
+            }
+
+            if config.ClusterConfig.ControllerManagerConfig == nil {
+                config.ClusterConfig.ControllerManagerConfig = &v1alpha1.ControllerManagerConfig{}
+            }
+
+            config.ClusterConfig.ControllerManagerConfig.ContainerImage = imageWithDigest
+        },
+        UsedImages: []string{imageWithDigest},
+    }
+}
+
+// patchSchedulerWithDigest patches the kube-scheduler image using a pre-resolved digest.
+func patchSchedulerWithDigest(imageWithDigest string) Patcher {
+    return Patcher{
+        Apply: func(config *v1alpha1.Config) {
+            if config.ClusterConfig == nil {
+                config.ClusterConfig = &v1alpha1.ClusterConfig{}
+            }
+
+            if config.ClusterConfig.SchedulerConfig == nil {
+                config.ClusterConfig.SchedulerConfig = &v1alpha1.SchedulerConfig{}
+            }
+
+            config.ClusterConfig.SchedulerConfig.ContainerImage = imageWithDigest
+        },
+        UsedImages: []string{imageWithDigest},
+    }
+}
+
+// patchKubeletWithDigest patches the kubelet image using a pre-resolved digest.
+func patchKubeletWithDigest(imageWithDigest string) Patcher {
+    return Patcher{
+        Apply: func(config *v1alpha1.Config) {
+            if config.MachineConfig == nil {
+                config.MachineConfig = &v1alpha1.MachineConfig{}
+            }
+
+            if config.MachineConfig.MachineKubelet == nil {
+                config.MachineConfig.MachineKubelet = &v1alpha1.KubeletConfig{}
+            }
+
+            config.MachineConfig.MachineKubelet.KubeletImage = imageWithDigest
+        },
+        UsedImages: []string{imageWithDigest},
+    }
+}
+
+// patchKubeProxyWithDigest patches the kube-proxy image using a pre-resolved digest.
+func patchKubeProxyWithDigest(imageWithDigest string) Patcher {
+    return Patcher{
+        Apply: func(config *v1alpha1.Config) {
+            if config.ClusterConfig == nil {
+                config.ClusterConfig = &v1alpha1.ClusterConfig{}
+            }
+
+            if config.ClusterConfig.ProxyConfig == nil {
+                config.ClusterConfig.ProxyConfig = &v1alpha1.ProxyConfig{}
+            }
+
+            config.ClusterConfig.ProxyConfig.ContainerImage = imageWithDigest
+        },
+        UsedImages: []string{imageWithDigest},
+    }
+}
