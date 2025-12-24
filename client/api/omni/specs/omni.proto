@@ -1056,6 +1056,9 @@ message FeaturesConfigSpec {
 
   // ImageFactoryPxeBaseUrl is the base URL of the image factory PXE server.
   string image_factory_pxe_base_url = 9;
+
+  // AccountName is the name of the omni instance.
+  string account_name = 10;
 }
 
 message UserPilotSettings {
