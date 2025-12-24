@@ -248,6 +248,7 @@ func TestIntegration(t *testing.T) {
 		t.Run("OmniUpgradeVerify", testOmniUpgradeVerify(testOptions))
 		t.Run("ClusterImport", func(t *testing.T) { testClusterImport(t, testOptions) })
 		t.Run("KernelArgsUpdate", func(t *testing.T) { testKernelArgsUpdate(t, testOptions) })
+		t.Run("RotateCA", func(t *testing.T) { testRotateCA(t, testOptions) })
 	})
 
 	postRunHooks(t, testOptions)

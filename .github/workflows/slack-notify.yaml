@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-12-02T21:54:43Z by kres 571923f.
+# Generated on 2025-12-15T13:30:28Z by kres 4b09af7.
 
 "on":
   workflow_run:
@@ -17,6 +17,7 @@
       - e2e-omni-upgrade-cron
       - e2e-cluster-import-cron
       - e2e-minor-talos-upgrade-cron
+      - e2e-rotate-ca-cron
     types:
       - completed
 name: slack-notify

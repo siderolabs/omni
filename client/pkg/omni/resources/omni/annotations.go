@@ -52,4 +52,16 @@ const (
 	//
 	// tsgen:KernelArgsInitialized
 	KernelArgsInitialized = SystemLabelPrefix + "kernel-args-initialized"
+
+	// TaintedByBreakGlassTimestamp is set on the ClusterStatus when it was tainted by break glass.
+	// The presence of the taint is determined by the label LabelClusterTaintedByBreakGlass on the ClusterStatus resource.
+	TaintedByBreakGlassTimestamp = SystemLabelPrefix + "tainted-by-break-glass-timestamp"
+
+	// RotateTalosCAVersion is the version of RotateTalosCAVersion resource.
+	// This annotation is set on the ClusterSecrets resource after the CA rotation is completed.
+	RotateTalosCAVersion = SystemLabelPrefix + "rotate-talos-ca-version"
+
+	// RotateTalosCATimestamp indicates the time when CA rotation was completed.
+	// This annotation is set on the ClusterSecrets resource.
+	RotateTalosCATimestamp = SystemLabelPrefix + "rotate-talos-ca-timestamp"
 )

@@ -179,6 +179,23 @@ export enum InfraMachineConfigSpecMachinePowerState {
   POWER_STATE_ON = 2,
 }
 
+export enum ClusterSecretsRotationStatusSpecPhase {
+  OK = 0,
+  PRE_ROTATE = 1,
+  ROTATE = 2,
+  POST_ROTATE = 3,
+}
+
+export enum ClusterSecretsRotationStatusSpecComponent {
+  NONE = 0,
+  TALOS_CA = 1,
+}
+
+export enum ClusterMachineSecretsRotationSpecStatus {
+  IDLE = 0,
+  IN_PROGRESS = 1,
+}
+
 export type MachineSpec = {
   management_address?: string
   connected?: boolean
@@ -489,6 +506,9 @@ export type ClusterBootstrapStatusSpec = {
 export type ClusterSecretsSpec = {
   data?: Uint8Array
   imported?: boolean
+  rotate_data?: Uint8Array
+  rotation_phase?: ClusterSecretsRotationStatusSpecPhase
+  component_in_rotation?: ClusterSecretsRotationStatusSpecComponent
 }
 
 export type ImportedClusterSecretsSpec = {
@@ -663,7 +683,7 @@ type BaseOngoingTaskSpec = {
 }
 
 export type OngoingTaskSpec = BaseOngoingTaskSpec
-  & OneOf<{ talos_upgrade: TalosUpgradeStatusSpec; kubernetes_upgrade: KubernetesUpgradeStatusSpec; destroy: DestroyStatusSpec; machine_upgrade: MachineUpgradeStatusSpec }>
+  & OneOf<{ talos_upgrade: TalosUpgradeStatusSpec; kubernetes_upgrade: KubernetesUpgradeStatusSpec; destroy: DestroyStatusSpec; machine_upgrade: MachineUpgradeStatusSpec; secret_rotation: ClusterSecretsRotationStatusSpec }>
 
 export type ClusterMachineEncryptionKeySpec = {
   data?: Uint8Array
@@ -961,4 +981,22 @@ export type InfraProviderCombinedStatusSpec = {
 
 export type MachineConfigDiffSpec = {
   diff?: string
+}
+
+export type RotateTalosCASpec = {
+}
+
+export type ClusterSecretsRotationStatusSpec = {
+  phase?: ClusterSecretsRotationStatusSpecPhase
+  component?: ClusterSecretsRotationStatusSpecComponent
+  error?: string
+  step?: string
+  status?: string
+  cluster_secrets_version?: string
+}
+
+export type ClusterMachineSecretsRotationSpec = {
+  phase?: ClusterSecretsRotationStatusSpecPhase
+  status?: ClusterMachineSecretsRotationSpecStatus
+  cluster_secrets_version?: string
 }
