@@ -70,7 +70,7 @@ func TestGetPrivateClaimsFromScopes(t *testing.T) {
 		},
 	}
 
-	identity := auth.NewIdentity(resources.DefaultNamespace, userIdentity)
+	identity := auth.NewIdentity(userIdentity)
 
 	identity.TypedSpec().Value.UserId = userID
 
@@ -171,7 +171,7 @@ func TestSetUserinfoFromScopes(t *testing.T) {
 		},
 	}
 
-	identity := auth.NewIdentity(resources.DefaultNamespace, userIdentity)
+	identity := auth.NewIdentity(userIdentity)
 
 	identity.TypedSpec().Value.UserId = userID
 
@@ -223,7 +223,7 @@ func TestTokenIntrospection(t *testing.T) {
 	userIdentity := req.GetSubject()
 	userID := "test-user-id"
 
-	identity := auth.NewIdentity(resources.DefaultNamespace, userIdentity)
+	identity := auth.NewIdentity(userIdentity)
 
 	identity.TypedSpec().Value.UserId = userID
 

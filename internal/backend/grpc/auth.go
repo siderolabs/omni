@@ -111,7 +111,7 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 		LoginUrl:    s.buildLoginURL(pubKey.id),
 	}
 
-	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(resources.DefaultNamespace, email).Metadata())
+	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(email).Metadata())
 	if state.IsNotFoundError(err) {
 		s.logger.Error("public key not registered, identity not found",
 			zap.String("email", email),
@@ -302,7 +302,7 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		return nil, status.Error(codes.InvalidArgument, "public key id is required")
 	}
 
-	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(resources.DefaultNamespace, email).Metadata())
+	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(email).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, status.Errorf(codes.PermissionDenied, "The identity %q is not authorized for this instance", email)

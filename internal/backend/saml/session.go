@@ -283,7 +283,7 @@ func (sp *SessionProvider) ensureUser(ctx context.Context, email string, samlLab
 }
 
 func (sp *SessionProvider) updateIdentityLabels(ctx context.Context, identity string, samlLabels map[string]string) error {
-	identityPtr := auth.NewIdentity(resources.DefaultNamespace, identity).Metadata()
+	identityPtr := auth.NewIdentity(identity).Metadata()
 
 	_, err := safe.StateUpdateWithConflicts[*auth.Identity](ctx, sp.state, identityPtr, func(r *auth.Identity) error {
 		var toDelete []string

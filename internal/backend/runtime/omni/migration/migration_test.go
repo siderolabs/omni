@@ -903,18 +903,18 @@ func (suite *MigrationSuite) TestLowercaseEmails() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	identityUppercase := authres.NewIdentity(resources.DefaultNamespace, "USER@a.com")
+	identityUppercase := authres.NewIdentity("USER@a.com")
 	identityUppercase.TypedSpec().Value.UserId = "123"
 	identityUppercase.Metadata().Labels().Set("user-id", "123")
 
-	identityConflict := authres.NewIdentity(resources.DefaultNamespace, "B@a.com")
+	identityConflict := authres.NewIdentity("B@a.com")
 	identityConflict.TypedSpec().Value.UserId = "555"
-	identityUnchanged := authres.NewIdentity(resources.DefaultNamespace, "b@a.com")
+	identityUnchanged := authres.NewIdentity("b@a.com")
 	identityUnchanged.TypedSpec().Value.UserId = "111"
 
-	identityOverwrite := authres.NewIdentity(resources.DefaultNamespace, "C@a.com")
+	identityOverwrite := authres.NewIdentity("C@a.com")
 	identityOverwrite.TypedSpec().Value.UserId = "ABC"
-	identityOverwritten := authres.NewIdentity(resources.DefaultNamespace, "c@a.com")
+	identityOverwritten := authres.NewIdentity("c@a.com")
 	identityOverwritten.TypedSpec().Value.UserId = "eee"
 
 	publicKey := authres.NewPublicKey(resources.DefaultNamespace, "1")
@@ -941,17 +941,17 @@ func (suite *MigrationSuite) TestLowercaseEmails() {
 	suite.Require().Error(err)
 
 	// USER@a.com should be replaced by user@a.com
-	identity, err := safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity(resources.DefaultNamespace, "user@a.com").Metadata())
+	identity, err := safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity("user@a.com").Metadata())
 	suite.Require().NoError(err)
 
 	suite.Require().Equal(identityUppercase.TypedSpec().Value.UserId, identity.TypedSpec().Value.UserId)
 	suite.Require().True(identityUppercase.Metadata().Labels().Equal(*identity.Metadata().Labels()))
 
 	// b@a.com should not be replaced as it's newer than B@a.com
-	identity, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity(resources.DefaultNamespace, "b@a.com").Metadata())
+	identity, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity("b@a.com").Metadata())
 	suite.Require().NoError(err)
 
-	_, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity(resources.DefaultNamespace, "B@a.com").Metadata())
+	_, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity("B@a.com").Metadata())
 	suite.Require().Error(err)
 
 	suite.Require().Equal(identityUnchanged.TypedSpec().Value.UserId, identity.TypedSpec().Value.UserId)
@@ -963,7 +963,7 @@ func (suite *MigrationSuite) TestLowercaseEmails() {
 
 	// c@a.com is overwritten by C@a.com as it has older creation time
 	// should have a new spec with the new user id
-	identity, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity(resources.DefaultNamespace, "c@a.com").Metadata())
+	identity, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity("c@a.com").Metadata())
 	suite.Require().NoError(err)
 	suite.Require().Equal(identityOverwrite.TypedSpec().Value.UserId, identity.TypedSpec().Value.UserId)
 }
@@ -2087,9 +2087,9 @@ func (suite *MigrationSuite) TestCreateProviders() {
 	p3status := infra.NewProviderStatus("p3")
 	p3status.Metadata().SetPhase(resource.PhaseTearingDown)
 
-	identity1 := authres.NewIdentity(resources.DefaultNamespace, "p1"+access.InfraProviderServiceAccountNameSuffix)
-	identity4 := authres.NewIdentity(resources.DefaultNamespace, "p4"+access.InfraProviderServiceAccountNameSuffix)
-	identityServiceAccount := authres.NewIdentity(resources.DefaultNamespace, "p5"+access.ServiceAccountNameSuffix)
+	identity1 := authres.NewIdentity("p1"+access.InfraProviderServiceAccountNameSuffix)
+	identity4 := authres.NewIdentity("p4"+access.InfraProviderServiceAccountNameSuffix)
+	identityServiceAccount := authres.NewIdentity("p5"+access.ServiceAccountNameSuffix)
 
 	suite.Require().NoError(suite.state.Create(ctx, p1status))
 	suite.Require().NoError(suite.state.Create(ctx, p2status))

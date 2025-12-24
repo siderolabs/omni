@@ -55,7 +55,7 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	ptr := authres.NewIdentity(resources.DefaultNamespace, id).Metadata()
+	ptr := authres.NewIdentity(id).Metadata()
 
 	_, err := st.Get(ctx, ptr)
 	if err == nil {
@@ -116,7 +116,7 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 	}
 
 	// create the identity resource representing the service account
-	identity := authres.NewIdentity(resources.DefaultNamespace, id)
+	identity := authres.NewIdentity(id)
 	identity.TypedSpec().Value.UserId = user.Metadata().ID()
 	identity.Metadata().Labels().Set(authres.LabelIdentityUserID, newUserID)
 	identity.Metadata().Labels().Set(authres.LabelIdentityTypeServiceAccount, "")
@@ -138,7 +138,7 @@ func Destroy(ctx context.Context, st state.State, name string) error {
 	sa := access.ParseServiceAccountFromName(name)
 	id := sa.FullID()
 
-	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(resources.DefaultNamespace, id).Metadata())
+	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(id).Metadata())
 	if err != nil {
 		return err
 	}

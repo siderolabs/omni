@@ -36,7 +36,7 @@ func deleteUsers(emails ...string) func(ctx context.Context, client *client.Clie
 		toDelete := make([]resource.Pointer, 0, len(emails)*2)
 
 		for _, email := range emails {
-			identity := auth.NewIdentity(resources.DefaultNamespace, email)
+			identity := auth.NewIdentity(email)
 
 			existing, err := safe.ReaderGetByID[*auth.Identity](ctx, client.Omni().State(), email)
 			if err != nil {
