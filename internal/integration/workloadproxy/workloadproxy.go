@@ -95,8 +95,8 @@ func Test(ctx context.Context, t *testing.T, omniClient *client.Client, clusterI
 	}
 
 	var (
-		allServices            []serviceContext
-		allExposedServices     []*omni.ExposedService
+		allServices            []serviceContext       //nolint:prealloc
+		allExposedServices     []*omni.ExposedService //nolint:prealloc
 		deploymentsToScaleDown []deploymentContext
 	)
 

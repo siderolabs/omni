@@ -50,20 +50,23 @@ func TestStatusHandler(t *testing.T) {
 
 	//nolint:govet
 	for _, tt := range []struct {
-		name                   string
-		machineSet             *omni.MachineSet
-		machineSetNodes        []*omni.MachineSetNode
-		clusterMachines        []*omni.ClusterMachine
-		clusterMachineStatuses []*omni.ClusterMachineStatus
-		expectedStatus         *specs.MachineSetStatusSpec
+		name                         string
+		machineSet                   *omni.MachineSet
+		machineSetNodes              []*omni.MachineSetNode
+		clusterMachines              []*omni.ClusterMachine
+		clusterMachineStatuses       []*omni.ClusterMachineStatus
+		clusterMachineConfigStatuses []*omni.ClusterMachineConfigStatus
+		pendingMachineUpdates        []*omni.MachinePendingUpdates
+		expectedStatus               *specs.MachineSetStatusSpec
 	}{
 		{
 			name: "running no machines",
 			expectedStatus: &specs.MachineSetStatusSpec{
-				Phase:      specs.MachineSetPhase_Running,
-				Ready:      true,
-				Machines:   &specs.Machines{},
-				ConfigHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+				Phase:                specs.MachineSetPhase_Running,
+				Ready:                true,
+				Machines:             &specs.Machines{},
+				ConfigHash:           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 		{
@@ -89,7 +92,8 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 2,
 				},
-				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigHash:           "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 		{
@@ -106,6 +110,18 @@ func TestStatusHandler(t *testing.T) {
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
 				newClusterMachineStatus("b", specs.ClusterMachineStatusSpec_RUNNING, true, true),
 			},
+			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
+				omni.NewClusterMachineConfigStatus("a"),
+				omni.NewClusterMachineConfigStatus("b"),
+			},
+			pendingMachineUpdates: []*omni.MachinePendingUpdates{
+				withSpecSetter(omni.NewMachinePendingUpdates("a"), func(res *omni.MachinePendingUpdates) {
+					res.TypedSpec().Value.ConfigDiff = "-"
+				}),
+				withSpecSetter(omni.NewMachinePendingUpdates("b"), func(res *omni.MachinePendingUpdates) {
+					res.TypedSpec().Value.ConfigDiff = "-"
+				}),
+			},
 			expectedStatus: &specs.MachineSetStatusSpec{
 				Phase: specs.MachineSetPhase_Reconfiguring,
 				Ready: false,
@@ -115,7 +131,8 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 2,
 				},
-				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigHash:           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 		{
@@ -140,7 +157,8 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 1,
 				},
-				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigHash:           "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 		{
@@ -164,7 +182,8 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 1,
 					Requested: 2,
 				},
-				ConfigHash: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+				ConfigHash:           "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 		{
@@ -190,7 +209,8 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 2,
 				},
-				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigHash:           "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 		{
@@ -216,7 +236,8 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 1,
 					Requested: 2,
 				},
-				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigHash:           "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 		{
@@ -239,7 +260,8 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 1,
 					Requested: 1,
 				},
-				ConfigHash: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+				ConfigHash:           "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 		{
@@ -266,7 +288,8 @@ func TestStatusHandler(t *testing.T) {
 				MachineAllocation: &specs.MachineSetSpec_MachineAllocation{
 					MachineCount: 4,
 				},
-				ConfigHash: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+				ConfigHash:           "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 		{
@@ -293,7 +316,8 @@ func TestStatusHandler(t *testing.T) {
 				MachineAllocation: &specs.MachineSetSpec_MachineAllocation{
 					MachineCount: 0,
 				},
-				ConfigHash: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+				ConfigHash:           "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 		{
@@ -319,7 +343,8 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 2,
 				},
-				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigHash:           "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 		{
@@ -336,6 +361,18 @@ func TestStatusHandler(t *testing.T) {
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
 				newClusterMachineStatus("b", specs.ClusterMachineStatusSpec_RUNNING, true, true),
 			},
+			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
+				omni.NewClusterMachineConfigStatus("a"),
+				omni.NewClusterMachineConfigStatus("b"),
+			},
+			pendingMachineUpdates: []*omni.MachinePendingUpdates{
+				withSpecSetter(omni.NewMachinePendingUpdates("a"), func(res *omni.MachinePendingUpdates) {
+					res.TypedSpec().Value.ConfigDiff = "something"
+				}),
+				withSpecSetter(omni.NewMachinePendingUpdates("b"), func(res *omni.MachinePendingUpdates) {
+					res.TypedSpec().Value.ConfigDiff = "something"
+				}),
+			},
 			expectedStatus: &specs.MachineSetStatusSpec{
 				Phase: specs.MachineSetPhase_Reconfiguring,
 				Ready: false,
@@ -345,7 +382,8 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 2,
 				},
-				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+				ConfigHash:           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+				ConfigUpdatesAllowed: true,
 			},
 		},
 	} {
@@ -360,7 +398,6 @@ func TestStatusHandler(t *testing.T) {
 			require := require.New(t)
 
 			clusterMachineConfigStatuses := make([]*omni.ClusterMachineConfigStatus, 0, len(tt.clusterMachines))
-			clusterMachineConfigPatches := make([]*omni.ClusterMachineConfigPatches, 0, len(tt.clusterMachines))
 
 			for _, cm := range tt.clusterMachines {
 				version := resource.VersionUndefined.Next()
@@ -368,24 +405,25 @@ func TestStatusHandler(t *testing.T) {
 				cm.Metadata().SetVersion(version)
 
 				clusterMachineConfigStatuses = append(clusterMachineConfigStatuses, withSpecSetter(
-					withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(cm.Metadata().ID()), version),
+					withClusterMachineConfigVersionSetter(omni.NewClusterMachineConfigStatus(cm.Metadata().ID()), version),
 					func(r *omni.ClusterMachineConfigStatus) {
 						r.TypedSpec().Value.ClusterMachineConfigSha256 = cm.Metadata().ID()
 					},
 				))
+			}
 
-				clusterMachineConfigPatches = append(clusterMachineConfigPatches, omni.NewClusterMachineConfigPatches(cm.Metadata().ID()))
+			if tt.clusterMachineConfigStatuses != nil {
+				clusterMachineConfigStatuses = tt.clusterMachineConfigStatuses
 			}
 
 			rc, err := machineset.NewReconciliationContext(
 				omni.NewCluster("test"),
 				machineSet,
 				newHealthyLB("test"),
-				&fakePatchHelper{},
 				tt.machineSetNodes,
 				tt.clusterMachines,
 				clusterMachineConfigStatuses,
-				clusterMachineConfigPatches,
+				tt.pendingMachineUpdates,
 				tt.clusterMachineStatuses,
 			)
 

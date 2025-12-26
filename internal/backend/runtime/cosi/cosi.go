@@ -212,10 +212,11 @@ func Watch(ctx context.Context, st state.State, md resource.Metadata, out chan<-
 
 	var err error
 
-	//nolint:prealloc
-	opts := []state.WatchKindOption{
+	opts := make([]state.WatchKindOption, 0, len(queries)+1)
+
+	opts = append(opts,
 		state.WithBootstrapContents(true),
-	}
+	)
 
 	for _, query := range queries {
 		opts = append(opts, state.WatchWithLabelQuery(resource.RawLabelQuery(query)))

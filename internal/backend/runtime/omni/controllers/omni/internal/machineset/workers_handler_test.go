@@ -65,7 +65,7 @@ func TestWorkersHandler(t *testing.T) {
 				omni.NewClusterMachineConfigPatches("a"),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
+				withClusterMachineConfigVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
 			},
 			expectOperations: []machineset.Operation{
 				&machineset.Destroy{ID: "b"},
@@ -88,7 +88,7 @@ func TestWorkersHandler(t *testing.T) {
 				omni.NewClusterMachineConfigPatches("a"),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
+				withClusterMachineConfigVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
 			},
 			expectOperations: []machineset.Operation{
 				&machineset.Destroy{ID: "b"},
@@ -115,8 +115,8 @@ func TestWorkersHandler(t *testing.T) {
 				omni.NewClusterMachineConfigPatches("d"),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("d"), version),
+				withClusterMachineConfigVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
+				withClusterMachineConfigVersionSetter(omni.NewClusterMachineConfigStatus("d"), version),
 			},
 			pendingConfigPatches: map[resource.ID][]*omni.ConfigPatch{
 				"a": {
@@ -129,24 +129,6 @@ func TestWorkersHandler(t *testing.T) {
 				},
 				&machineset.Teardown{
 					ID: "d",
-				},
-				&machineset.Update{
-					ID: "a",
-				},
-			},
-		},
-		{
-			name:       "update a machine",
-			machineSet: &specs.MachineSetSpec{},
-			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode("a", machineSet),
-			},
-			clusterMachines: []*omni.ClusterMachine{
-				omni.NewClusterMachine("a"),
-			},
-			expectOperations: []machineset.Operation{
-				&machineset.Update{
-					ID: "a",
 				},
 			},
 		},
@@ -163,7 +145,7 @@ func TestWorkersHandler(t *testing.T) {
 				omni.NewClusterMachineConfigPatches("a"),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
+				withClusterMachineConfigVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
 			},
 			expectOperations: []machineset.Operation{},
 		},
@@ -182,13 +164,10 @@ func TestWorkersHandler(t *testing.T) {
 				cluster,
 				machineSet,
 				newHealthyLB(cluster.Metadata().ID()),
-				&fakePatchHelper{
-					tt.pendingConfigPatches,
-				},
 				tt.machineSetNodes,
 				tt.clusterMachines,
 				tt.clusterMachineConfigStatuses,
-				tt.clusterMachineConfigPatches,
+				nil,
 				nil,
 			)
 
@@ -207,11 +186,6 @@ func TestWorkersHandler(t *testing.T) {
 
 					require.True(ok, "the operation at %d is not create", i)
 					require.Equal(create.ID, value.ID)
-				case *machineset.Update:
-					update, ok := expected.(*machineset.Update)
-
-					require.True(ok, "the operation at %d is not update", i)
-					require.Equal(update.ID, value.ID)
 				case *machineset.Teardown:
 					destroy, ok := expected.(*machineset.Teardown)
 

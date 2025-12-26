@@ -101,7 +101,7 @@ func AssertWorkerNodesRollingConfigUpdate(testCtx context.Context, cli *client.C
 			if numRebooting > maxRebootingAtOnce {
 				maxRebootingAtOnce = numRebooting
 			}
-		}, timeoutDuration, 1*time.Second)
+		}, timeoutDuration, 500*time.Millisecond)
 
 		assert.Len(t, rebootedIDs, clusterMachineList.Len(), "expected all the machines to be rebooted")
 		assert.Equal(t, maxParallelism, maxRebootingAtOnce, "expected a maximum of %d machines to be rebooting at the same time", maxParallelism)

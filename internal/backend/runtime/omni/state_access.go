@@ -81,6 +81,7 @@ var (
 		omni.DiscoveryAffiliateDeleteTaskType,
 		omni.RedactedClusterMachineConfigType,
 		omni.MachineConfigDiffType,
+		omni.MachinePendingUpdatesType,
 		infra.InfraMachineType,
 		infra.InfraMachineStatusType,
 	})
@@ -433,6 +434,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.MachineStatusSnapshotType,
 		omni.MachineStatusLinkType,
 		omni.MachineConfigGenOptionsType,
+		omni.MachinePendingUpdatesType,
 		omni.SchematicType,
 		omni.SchematicConfigurationType,
 		omni.InfraProviderCombinedStatusType,
@@ -589,6 +591,7 @@ func filterAccessByType(access state.Access) error {
 		omni.MachineStatusType,
 		omni.MachineStatusLinkType,
 		omni.MachineStatusSnapshotType,
+		omni.MachinePendingUpdatesType,
 		omni.MaintenanceConfigStatusType,
 		omni.KubernetesVersionType,
 		omni.TalosExtensionsType,
