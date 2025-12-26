@@ -261,7 +261,6 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 			data := buffer.Data()
 
 			assert.Contains(cfg.TypedSpec().Value.GenerationError, expectedError, string(data))
-			assert.Empty(cfg.TypedSpec().Value.ClusterMachineVersion)
 		},
 	)
 }
