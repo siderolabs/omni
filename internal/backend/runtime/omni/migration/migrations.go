@@ -35,6 +35,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/clustermachine"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/auth/scope"
 )
@@ -2103,43 +2104,26 @@ func makeMachineSetNodesOwnerEmpty(ctx context.Context, st state.State, logger *
 			continue
 		}
 
-		machineSet, ok := machineSetNode.Metadata().Labels().Get(omni.LabelMachineSet)
-		if !ok {
-			continue
-		}
+		machineSetNode.Metadata().Labels().Set(omni.LabelManagedByMachineSetNodeController, "")
 
-		updated := omni.NewMachineSetNode(resources.DefaultNamespace, machineSetNode.Metadata().ID(),
-			omni.NewMachineSet(resources.DefaultNamespace, machineSet),
-		)
-
-		for _, fin := range *machineSetNode.Metadata().Finalizers() {
-			updated.Metadata().Finalizers().Add(fin)
-		}
-
-		updated.TypedSpec().Value = machineSetNode.TypedSpec().Value
-
-		updated.Metadata().SetPhase(machineSetNode.Metadata().Phase())
-		updated.Metadata().SetVersion(machineSetNode.Metadata().Version())
-
-		updated.Metadata().Labels().Do(func(temp kvutils.TempKV) {
-			for key, value := range machineSetNode.Metadata().Labels().Raw() {
-				temp.Set(key, value)
-			}
-		})
-
-		updated.Metadata().Annotations().Do(func(temp kvutils.TempKV) {
-			for key, value := range machineSetNode.Metadata().Annotations().Raw() {
-				temp.Set(key, value)
-			}
-		})
-
-		updated.Metadata().Labels().Set(omni.LabelManagedByMachineSetNodeController, "")
-
-		if err = updated.Metadata().SetOwner(""); err != nil {
+		if err = changeOwner(ctx, st, machineSetNode, ""); err != nil {
 			return err
 		}
+	}
 
-		if err = st.Update(ctx, updated, state.WithUpdateOwner(machineSetNode.Metadata().Owner()), state.WithExpectedPhaseAny()); err != nil {
+	return nil
+}
+
+func changeClusterMachineConfigPatchesOwner(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	clusterMachineConfigPatches, err := safe.ReaderListAll[*omni.ClusterMachineConfigPatches](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	controllerName := clustermachine.NewConfigPatchesController().ControllerName
+
+	for cmcp := range clusterMachineConfigPatches.All() {
+		if err = changeOwner(ctx, st, cmcp, controllerName); err != nil {
 			return err
 		}
 	}

@@ -137,29 +137,6 @@ func TestControlPlanesHandler(t *testing.T) {
 			},
 		},
 		{
-			name:       "update a machine",
-			machineSet: &specs.MachineSetSpec{},
-			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
-			},
-			clusterMachines: []*omni.ClusterMachine{
-				omni.NewClusterMachine(resources.DefaultNamespace, "a"),
-			},
-			expectOperations: []machineset.Operation{
-				&machineset.Update{
-					ID: "a",
-				},
-			},
-			etcdStatus: &check.EtcdStatusResult{
-				Members: map[string]check.EtcdMemberStatus{
-					"a": {
-						Healthy: true,
-					},
-				},
-				HealthyMembers: 1,
-			},
-		},
-		{
 			name:       "update with outdated",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
@@ -232,19 +209,14 @@ func TestControlPlanesHandler(t *testing.T) {
 			cluster.TypedSpec().Value.TalosVersion = "v1.5.4"
 			cluster.TypedSpec().Value.KubernetesVersion = "v1.29.1"
 
-			patchHelper := &fakePatchHelper{
-				patches: tt.patches,
-			}
-
 			rc, err := machineset.NewReconciliationContext(
 				cluster,
 				machineSet,
 				newHealthyLB(cluster.Metadata().ID()),
-				patchHelper,
 				tt.machineSetNodes,
 				tt.clusterMachines,
 				tt.clusterMachineConfigStatuses,
-				tt.clusterMachineConfigPatches,
+				nil,
 				nil,
 			)
 
@@ -274,11 +246,6 @@ func TestControlPlanesHandler(t *testing.T) {
 
 					require.True(ok, "the operation at %d is not create", i)
 					require.Equal(create.ID, value.ID)
-				case *machineset.Update:
-					update, ok := expected.(*machineset.Update)
-
-					require.True(ok, "the operation at %d is not update", i)
-					require.Equal(update.ID, value.ID)
 				case *machineset.Teardown:
 					destroy, ok := expected.(*machineset.Teardown)
 

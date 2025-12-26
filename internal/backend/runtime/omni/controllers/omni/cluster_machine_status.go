@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"errors"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -21,6 +22,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
 // ClusterMachineStatusController reflects the status of a machine that is a member of a cluster.
@@ -58,14 +60,6 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					omni.LabelWorkerRole,
 					omni.LabelMachineSet,
 				)
-
-				_, updateLocked := clusterMachine.Metadata().Labels().Get(omni.UpdateLocked)
-
-				if updateLocked {
-					clusterMachineStatus.Metadata().Labels().Set(omni.UpdateLocked, "")
-				} else {
-					clusterMachineStatus.Metadata().Labels().Delete(omni.UpdateLocked)
-				}
 
 				if machine != nil && machine.TypedSpec().Value.Connected {
 					clusterMachineStatus.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
@@ -109,10 +103,37 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					_, locked = machineSetNode.Metadata().Annotations().Get(omni.MachineLocked)
 				}
 
+				clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
+				if !ok {
+					return errors.New("failed to get cluster from the cluster machine")
+				}
+
+				cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
+				if !locked {
+					if cluster != nil {
+						_, locked = cluster.Metadata().Annotations().Get(omni.ClusterLocked)
+					}
+				}
+
 				if locked {
 					clusterMachineStatus.Metadata().Annotations().Set(omni.MachineLocked, "")
 				} else {
 					clusterMachineStatus.Metadata().Annotations().Delete(omni.MachineLocked)
+				}
+
+				pendingMachineUpdate, err := safe.ReaderGetByID[*omni.MachinePendingUpdates](ctx, r, clusterMachine.Metadata().ID())
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
+				if pendingMachineUpdate != nil && locked {
+					clusterMachineStatus.Metadata().Labels().Set(omni.UpdateLocked, "")
+				} else {
+					clusterMachineStatus.Metadata().Labels().Delete(omni.UpdateLocked)
 				}
 
 				if machineStatus.TypedSpec().Value.Network != nil {
@@ -250,6 +271,12 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 		),
 		qtransform.WithExtraMappedInput[*infra.MachineStatus](
 			qtransform.MapperSameID[*omni.ClusterMachine](),
+		),
+		qtransform.WithExtraMappedInput[*omni.MachinePendingUpdates](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
+		),
+		qtransform.WithExtraMappedInput[*omni.Cluster](
+			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput[*infra.MachineRequestStatus](
 			qtransform.MapperFuncFromTyped[*infra.MachineRequestStatus](
