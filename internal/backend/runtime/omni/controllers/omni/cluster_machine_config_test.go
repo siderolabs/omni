@@ -260,7 +260,6 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 			data := buffer.Data()
 
 			assert.Contains(cfg.TypedSpec().Value.GenerationError, expectedError, string(data))
-			assert.Empty(cfg.TypedSpec().Value.ClusterMachineVersion)
 		},
 	)
 }
@@ -511,6 +510,7 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 
 		fallthrough
 	case "1.12.1":
+	case "1.13.1":
 	default:
 		suite.T().Fatalf("untested initial version: %s", initialVersion)
 	}

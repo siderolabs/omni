@@ -7,6 +7,7 @@ package machineconfig
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -15,7 +16,13 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/hexops/gotextdiff"
+	"github.com/hexops/gotextdiff/myers"
+	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xerrors"
+	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
@@ -30,33 +37,38 @@ type ReconciliationContext struct {
 	machineConfig         *omni.ClusterMachineConfig
 	machineConfigStatus   *omni.ClusterMachineConfigStatus
 	machineStatusSnapshot *omni.MachineStatusSnapshot
+	clusterMachine        *omni.ClusterMachine
 	installImage          *specs.MachineConfigGenOptionsSpec_InstallImage
 
-	lastConfigError        string
+	lastConfigError       string
+	redactedMachineConfig []byte
+
 	shouldUpgrade          bool
 	compareFullSchematicID bool
+	configUpdatesAllowed   bool
+	locked                 bool
 }
 
-func checkClusterReady(ctx context.Context, r controller.Reader, machineConfig *omni.ClusterMachineConfig) error {
+func checkClusterReady(ctx context.Context, r controller.Reader, machineConfig *omni.ClusterMachineConfig) (bool, error) {
 	clusterName, ok := machineConfig.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
-		return nil
+		return false, nil
 	}
 
 	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("cluster doesn't exist")
+			return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("cluster doesn't exist")
 		}
 
-		return err
+		return false, err
 	}
 
 	if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked && cluster.Metadata().Phase() == resource.PhaseRunning {
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("reconciling cluster machine config is not allowed: the cluster %q is locked", clusterName)
+		return true, nil
 	}
 
-	return nil
+	return false, nil
 }
 
 func checkMachineStatus(ctx context.Context, r controller.Reader, machineStatus *omni.MachineStatus) error {
@@ -107,21 +119,60 @@ func (rc *ReconciliationContext) SchematicEqual(schematicInfo talos.SchematicInf
 }
 
 // BuildReconciliationContext is the COSI reader dependent method to build the reconciliation context.
+//
+//nolint:gocognit,gocyclo,cyclop
 func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	machineConfig *omni.ClusterMachineConfig, machineConfigStatus *omni.ClusterMachineConfigStatus,
 ) (*ReconciliationContext, error) {
-	if machineConfig.TypedSpec().Value.GenerationError != "" {
-		return &ReconciliationContext{
-			lastConfigError: machineConfig.TypedSpec().Value.GenerationError,
-		}, nil
-	}
-
-	if err := checkClusterReady(ctx, r, machineConfig); err != nil {
+	desiredConfig, err := machineConfig.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
 		return nil, err
 	}
 
-	statusSnapshot, err := safe.ReaderGet[*omni.MachineStatusSnapshot](ctx, r,
-		omni.NewMachineStatusSnapshot(machineConfig.Metadata().ID()).Metadata(),
+	defer desiredConfig.Free()
+
+	rc := &ReconciliationContext{
+		machineConfig:       machineConfig,
+		machineConfigStatus: machineConfigStatus,
+	}
+
+	config, err := configloader.NewFromBytes(desiredConfig.Data())
+	if err != nil {
+		return nil, err
+	}
+
+	rc.redactedMachineConfig, err = config.RedactSecrets(x509.Redacted).EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
+	if err != nil {
+		return nil, err
+	}
+
+	machineSetNode, err := safe.ReaderGetByID[*omni.MachineSetNode](ctx, r, machineConfig.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine set node not found: %w", machineConfig.Metadata().ID(), err)
+		}
+
+		return nil, err
+	}
+
+	_, locked := machineSetNode.Metadata().Annotations().Get(omni.MachineLocked)
+	// we also check config SHA not being empty here as we don't want to block the initial config creation
+	rc.locked = locked && machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != ""
+
+	rc.lastConfigError = machineConfig.TypedSpec().Value.GenerationError
+
+	if rc.lastConfigError != "" {
+		return rc, nil
+	}
+
+	if !rc.locked {
+		if rc.locked, err = checkClusterReady(ctx, r, machineConfig); err != nil {
+			return nil, err
+		}
+	}
+
+	rc.machineStatusSnapshot, err = safe.ReaderGetByID[*omni.MachineStatusSnapshot](ctx, r,
+		machineConfig.Metadata().ID(),
 	)
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -131,7 +182,7 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, fmt.Errorf("failed to get machine status snapshot '%s': %w", machineConfig.Metadata().ID(), err)
 	}
 
-	machineStatus, err := safe.ReaderGet[*omni.MachineStatus](ctx, r, omni.NewMachineStatus(machineConfig.Metadata().ID()).Metadata())
+	rc.machineStatus, err = safe.ReaderGetByID[*omni.MachineStatus](ctx, r, machineConfig.Metadata().ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine status not found: %w", machineConfig.Metadata().ID(), err)
@@ -140,11 +191,11 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, fmt.Errorf("failed to get machine status '%s': %w", machineConfig.Metadata().ID(), err)
 	}
 
-	if err = checkMachineStatus(ctx, r, machineStatus); err != nil {
+	if err = checkMachineStatus(ctx, r, rc.machineStatus); err != nil {
 		return nil, err
 	}
 
-	genOptions, err := safe.ReaderGet[*omni.MachineConfigGenOptions](ctx, r, omni.NewMachineConfigGenOptions(machineConfig.Metadata().ID()).Metadata())
+	genOptions, err := safe.ReaderGetByID[*omni.MachineConfigGenOptions](ctx, r, machineConfig.Metadata().ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine config gen options not found: %w", machineConfig.Metadata().ID(), err)
@@ -153,36 +204,100 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, fmt.Errorf("failed to get install image '%s': %w", machineConfig.Metadata().ID(), err)
 	}
 
-	installImage := genOptions.TypedSpec().Value.InstallImage
-	if installImage == nil {
+	rc.installImage = genOptions.TypedSpec().Value.InstallImage
+	if rc.installImage == nil {
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install image not found", machineConfig.Metadata().ID())
 	}
 
-	schematicMismatch := machineConfigStatus.TypedSpec().Value.SchematicId != installImage.SchematicId
+	schematicMismatch := machineConfigStatus.TypedSpec().Value.SchematicId != rc.installImage.SchematicId
 
-	compareFullSchematicID, err := kernelargs.UpdateSupported(machineStatus, func() (*omni.ClusterMachineConfig, error) {
+	rc.compareFullSchematicID, err = kernelargs.UpdateSupported(rc.machineStatus, func() (*omni.ClusterMachineConfig, error) {
 		return machineConfig, nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to determine if kernel args update is supported for machine %q: %w", machineConfig.Metadata().ID(), err)
 	}
 
-	if compareFullSchematicID {
-		schematicMismatch = schematicMismatch || machineStatus.TypedSpec().Value.Schematic.FullId != installImage.SchematicId
+	if rc.compareFullSchematicID {
+		schematicMismatch = schematicMismatch || rc.machineStatus.TypedSpec().Value.Schematic.FullId != rc.installImage.SchematicId
 	} else {
-		schematicMismatch = schematicMismatch || machineStatus.TypedSpec().Value.Schematic.Id != installImage.SchematicId
+		schematicMismatch = schematicMismatch || rc.machineStatus.TypedSpec().Value.Schematic.Id != rc.installImage.SchematicId
 	}
 
-	talosVersionMismatch := strings.TrimLeft(machineStatus.TypedSpec().Value.TalosVersion, "v") != machineConfigStatus.TypedSpec().Value.TalosVersion ||
-		machineConfigStatus.TypedSpec().Value.TalosVersion != installImage.TalosVersion
+	talosVersionMismatch := strings.TrimLeft(rc.machineStatus.TypedSpec().Value.TalosVersion, "v") != machineConfigStatus.TypedSpec().Value.TalosVersion ||
+		machineConfigStatus.TypedSpec().Value.TalosVersion != rc.installImage.TalosVersion
 
-	return &ReconciliationContext{
-		machineStatus:          machineStatus,
-		machineStatusSnapshot:  statusSnapshot,
-		machineConfig:          machineConfig,
-		machineConfigStatus:    machineConfigStatus,
-		shouldUpgrade:          schematicMismatch || talosVersionMismatch,
-		compareFullSchematicID: compareFullSchematicID,
-		installImage:           installImage,
-	}, nil
+	machineSetName, ok := machineConfig.Metadata().Labels().Get(omni.LabelMachineSet)
+	if !ok {
+		return nil, errors.New("failed to get machine set name from the machine config resource")
+	}
+
+	machineSetStatus, err := safe.ReaderGetByID[*omni.MachineSetStatus](ctx, r, machineSetName)
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	rc.configUpdatesAllowed = true
+
+	if machineSetStatus != nil {
+		rc.configUpdatesAllowed = machineSetStatus.TypedSpec().Value.ConfigUpdatesAllowed
+	}
+
+	rc.clusterMachine, err = safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, machineConfig.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	rc.shouldUpgrade = schematicMismatch || talosVersionMismatch
+
+	return rc, nil
+}
+
+func computeDiff(previousData, newData []byte) (string, error) {
+	if len(previousData) != 0 && len(newData) != 0 {
+		previousConfig, err := configloader.NewFromBytes(previousData)
+		if err != nil {
+			return "", err
+		}
+
+		newConfig, err := configloader.NewFromBytes(newData)
+		if err != nil {
+			return "", err
+		}
+
+		// exclude the install section from the diff, as this part is handled by the upgrades
+		if previousConfig.RawV1Alpha1() != nil {
+			if previousConfig, err = previousConfig.PatchV1Alpha1(func(c *v1alpha1.Config) error {
+				cfg := newConfig.RawV1Alpha1()
+				if cfg == nil {
+					return nil
+				}
+
+				c.MachineConfig.MachineInstall = newConfig.RawV1Alpha1().MachineConfig.MachineInstall
+
+				return nil
+			}); err != nil {
+				return "", err
+			}
+		}
+
+		previousData, err = previousConfig.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
+		if err != nil {
+			return "", err
+		}
+	}
+
+	oldConfigString := string(previousData)
+	newConfigString := string(newData)
+
+	edits := myers.ComputeEdits("", oldConfigString, newConfigString)
+	diff := gotextdiff.ToUnified("", "", oldConfigString, edits)
+	diffStr := strings.TrimSpace(fmt.Sprint(diff))
+	diffStr = strings.Replace(diffStr, "--- \n+++ \n", "", 1) // trim the URIs, as they do not make sense in this context
+
+	if strings.TrimSpace(diffStr) == "" {
+		return "", nil
+	}
+
+	return diffStr, nil
 }

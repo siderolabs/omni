@@ -11,10 +11,9 @@ func ReconcileWorkers(rc *ReconciliationContext) []Operation {
 
 	toCreate := rc.GetMachinesToCreate()
 	toTeardown := rc.GetMachinesToTeardown()
-	toUpdate := rc.GetMachinesToUpdate()
 	toDestroy := rc.GetMachinesToDestroy()
 
-	operations := make([]Operation, 0, len(toCreate)+len(toTeardown)+len(toUpdate)+len(toDestroy))
+	operations := make([]Operation, 0, len(toCreate)+len(toTeardown)+len(toDestroy))
 
 	for _, id := range toDestroy {
 		operations = append(operations, &Destroy{ID: id})
@@ -26,10 +25,6 @@ func ReconcileWorkers(rc *ReconciliationContext) []Operation {
 
 	for _, id := range toTeardown {
 		operations = append(operations, &Teardown{ID: id, Quota: &quota})
-	}
-
-	for _, id := range toUpdate {
-		operations = append(operations, &Update{ID: id, Quota: &quota})
 	}
 
 	return operations

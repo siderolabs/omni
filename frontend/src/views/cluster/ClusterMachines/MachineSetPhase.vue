@@ -31,6 +31,8 @@ const phaseName = (machineset: Resource<MachineSetStatusSpec>): string => {
       return 'Failed'
     case MachineSetPhase.Reconfiguring:
       return 'Reconfiguring'
+    case MachineSetPhase.Upgrading:
+      return 'Upgrading'
     default:
       return 'Unknown'
   }
@@ -38,6 +40,7 @@ const phaseName = (machineset: Resource<MachineSetStatusSpec>): string => {
 
 const phaseIcon = (machineset: Resource<MachineSetStatusSpec>): IconType => {
   switch (machineset?.spec.phase) {
+    case MachineSetPhase.Upgrading:
     case MachineSetPhase.ScalingUp:
     case MachineSetPhase.ScalingDown:
     case MachineSetPhase.Reconfiguring:
@@ -59,6 +62,7 @@ const phaseIcon = (machineset: Resource<MachineSetStatusSpec>): IconType => {
 
 const phaseColor = (machineset): string => {
   switch (machineset?.spec.phase) {
+    case MachineSetPhase.Upgrading:
     case MachineSetPhase.ScalingUp:
     case MachineSetPhase.ScalingDown:
     case MachineSetPhase.Reconfiguring:

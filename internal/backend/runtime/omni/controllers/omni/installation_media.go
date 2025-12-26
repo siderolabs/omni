@@ -12,11 +12,11 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
+	"github.com/siderolabs/talos/pkg/machinery/platforms"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/boards"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -39,7 +39,6 @@ type installationMediaSpec struct {
 	ContentType     string
 	Overlay         string
 	MinTalosVersion string
-	SBC             bool
 }
 
 var installationMedia = []installationMediaSpec{
@@ -270,89 +269,6 @@ var installationMedia = []installationMediaSpec{
 		Type:         rawType,
 		ContentType:  "application/x-xz",
 	},
-
-	// SBC images
-	{
-		Name:         "Banana Pi BPI-M64 (arm64)",
-		Architecture: arm64Arch,
-		Profile:      constants.BoardBananaPiM64,
-		Type:         rawType,
-		SBC:          true,
-		ContentType:  "application/x-xz",
-	},
-	{
-		Name:         "Jetson Nano",
-		Architecture: arm64Arch,
-		Profile:      constants.BoardJetsonNano,
-		Type:         rawType,
-		SBC:          true,
-		ContentType:  "application/x-xz",
-	},
-	{
-		Name:         "Libre Computer Profile ALL-H3-CC",
-		Architecture: arm64Arch,
-		Profile:      constants.BoardLibretechAllH3CCH5,
-		Type:         rawType,
-		SBC:          true,
-		ContentType:  "application/x-xz",
-	},
-	{
-		Name:         "Pine64",
-		Architecture: arm64Arch,
-		Profile:      constants.BoardPine64,
-		Type:         rawType,
-		SBC:          true,
-		ContentType:  "application/x-xz",
-	},
-	{
-		Name:         "Pine64 Rock64",
-		Architecture: arm64Arch,
-		Profile:      constants.BoardRock64,
-		Type:         rawType,
-		SBC:          true,
-		ContentType:  "application/x-xz",
-	},
-	{
-		Name:         "Radxa ROCK PI 4",
-		Architecture: arm64Arch,
-		Profile:      constants.BoardRockpi4,
-		Type:         rawType,
-		SBC:          true,
-		ContentType:  "application/x-xz",
-	},
-	{
-		Name:         "Radxa ROCK PI 4C",
-		Architecture: arm64Arch,
-		Profile:      constants.BoardRockpi4c,
-		Type:         rawType,
-		SBC:          true,
-		ContentType:  "application/x-xz",
-	},
-	{
-		Name:         "Raspberry Pi 4 Model B",
-		Architecture: arm64Arch,
-		Profile:      constants.BoardRPiGeneric,
-		Type:         rawType,
-		SBC:          true,
-		ContentType:  "application/x-xz",
-	},
-	{
-		Name:         "Nano Pi R4S",
-		Architecture: arm64Arch,
-		Profile:      constants.BoardNanoPiR4S,
-		Type:         rawType,
-		SBC:          true,
-		ContentType:  "application/x-xz",
-	},
-	{
-		Name:            "Turing RK1",
-		Architecture:    arm64Arch,
-		Profile:         "turingrk1",
-		Type:            rawType,
-		SBC:             true,
-		ContentType:     "application/x-xz",
-		MinTalosVersion: "1.9.0",
-	},
 }
 
 // InstallationMediaController manages omni.InstallationMedia.
@@ -398,14 +314,29 @@ func (ctrl *InstallationMediaController) Run(ctx context.Context, r controller.R
 			newMedia.TypedSpec().Value.ContentType = m.ContentType
 			newMedia.TypedSpec().Value.DestFilePrefix = fmt.Sprintf("%s-omni-%s", fname.srcPrefix, config.Config.Account.Name)
 			newMedia.TypedSpec().Value.Extension = fname.extension
-			newMedia.TypedSpec().Value.NoSecureBoot = m.SBC
 			newMedia.TypedSpec().Value.MinTalosVersion = m.MinTalosVersion
+			newMedia.TypedSpec().Value.Overlay = m.Overlay
 
-			overlay := boards.GetOverlay(m.Profile)
+			tracker.keep(newMedia)
 
-			if overlay != nil {
-				newMedia.TypedSpec().Value.Overlay = overlay.Name
-			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create installation media resource: %w", err)
+		}
+	}
+
+	for _, cfg := range platforms.SBCs() {
+		err := safe.WriterModify(ctx, r, omni.NewInstallationMedia(cfg.Name+".raw.xz"), func(newMedia *omni.InstallationMedia) error {
+			newMedia.TypedSpec().Value.Architecture = "arm64"
+			newMedia.TypedSpec().Value.Name = cfg.Label
+			newMedia.TypedSpec().Value.Profile = constants.PlatformMetal
+			newMedia.TypedSpec().Value.ContentType = "application/x-xz"
+			newMedia.TypedSpec().Value.DestFilePrefix = fmt.Sprintf("metal-%s-omni-%s", cfg.OverlayName, config.Config.Account.Name)
+			newMedia.TypedSpec().Value.Extension = "raw.xz"
+			newMedia.TypedSpec().Value.NoSecureBoot = true
+			newMedia.TypedSpec().Value.MinTalosVersion = cfg.MinVersion.String()
+			newMedia.TypedSpec().Value.Overlay = cfg.OverlayName
 
 			tracker.keep(newMedia)
 
@@ -428,10 +359,6 @@ type filename struct {
 // Generate filenames for installation media at runtime so we know the account name.
 func generateFilename(m installationMediaSpec) filename {
 	profile := m.Profile
-
-	if m.SBC {
-		profile = "metal-" + m.Profile
-	}
 
 	extension := m.Type
 

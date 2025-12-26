@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
-	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
@@ -41,11 +40,13 @@ func AssertSomeImagesAreDownloadable(testCtx context.Context, client *client.Cli
 			spec := val.TypedSpec().Value
 
 			switch spec.Profile {
-			case constants.BoardRPiGeneric:
-				fallthrough
 			case "aws":
 				fallthrough
 			case "iso":
+				images = append(images, val)
+			}
+
+			if spec.Overlay == "rpi_generic" {
 				images = append(images, val)
 			}
 		}

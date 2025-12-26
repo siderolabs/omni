@@ -243,6 +243,19 @@ func init() {
 		return nil
 	})
 
+	addDefaults(func(ctx context.Context, st state.State, res *omni.MachineSetStatus) error {
+		machineSet, err := safe.ReaderGetByID[*omni.MachineSet](ctx, st, res.Metadata().ID())
+		if err != nil {
+			return err
+		}
+
+		helpers.CopyAllLabels(machineSet, res)
+
+		res.TypedSpec().Value.ConfigUpdatesAllowed = true
+
+		return nil
+	})
+
 	addDefaults(func(ctx context.Context, st state.State, res *omni.ClusterMachineConfig) error {
 		clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, st, res.Metadata().ID())
 		if err != nil {
@@ -328,6 +341,7 @@ func init() {
 	setOwner[*omni.MachineConfigGenOptions](omnictrl.NewMachineConfigGenOptionsController().ControllerName)
 	setOwner[*omni.TalosConfig](omnictrl.NewTalosConfigController(omnictrl.DefaultDebounceDuration).ControllerName)
 	setOwner[*omni.Machine](omnictrl.NewMachineController().ControllerName)
+	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController().ControllerName)
 }
 
 // GetOwner returns the default owner used by the mock library for the resource.

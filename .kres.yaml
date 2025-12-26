@@ -320,9 +320,10 @@ spec:
       WITH_RACE: true
     jobs:
       - name: e2e-short-secureboot
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e-short-secureboot
@@ -332,9 +333,10 @@ spec:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$"
           ENABLE_SECUREBOOT: true
       - name: e2e-short
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -344,9 +346,10 @@ spec:
         environmentOverride:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$"
       - name: e2e-scaling
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -356,9 +359,10 @@ spec:
         environmentOverride:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|RollingUpdateParallelism)$"
       - name: e2e-forced-removal
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -368,9 +372,10 @@ spec:
         environmentOverride:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ForcedMachineRemoval|ReplaceControlPlanes|ConfigPatching|KubernetesNodeAudit)$"
       - name: e2e-upgrades
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -381,9 +386,10 @@ spec:
           TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosUpgrades|KubernetesUpgrades)$"
       - name: e2e-misc-upgrades
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -395,9 +401,10 @@ spec:
           TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|MaintenanceUpgrade)$"
       - name: e2e-templates
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -408,9 +415,10 @@ spec:
           TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ClusterTemplate)$"
       - name: e2e-backups
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -421,9 +429,10 @@ spec:
           TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|EtcdBackupAndRestore)$"
       - name: e2e-workload-proxy
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -434,9 +443,10 @@ spec:
           TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|WorkloadProxy)$"
       - name: e2e-omni-upgrade
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -449,9 +459,10 @@ spec:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(OmniUpgradeVerify)$"
           WITH_QEMU_TALOS_VERSION_OVERRIDE: true
       - name: e2e-cluster-import
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -464,9 +475,10 @@ spec:
           CREATE_QEMU_MACHINES: false
           CREATE_TALOS_CLUSTER: true
       - name: e2e-minor-talos-upgrade
-        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -595,10 +607,10 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.1/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/96e604874b17e7aa8b62bfb25737f349e539bc5a/api/common/common.proto
       subdirectory: common/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.1/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/96e604874b17e7aa8b62bfb25737f349e539bc5a/api/machine/machine.proto
       subdirectory: talos/machine/
       genGateway: true
     - source: https://raw.githubusercontent.com/cosi-project/specification/a25fac056c642b32468b030387ab94c17bc3ba1d/proto/v1alpha1/resource.proto
@@ -632,18 +644,18 @@ kind: js.Protobuf
 spec:
   baseSpecPath: /client/api
   files:
-     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.7.7/pkg/machinery/config/schemas/config.schema.json
-       destination: frontend/src/schemas/config_1_7.schema.json
-     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.8.4/pkg/machinery/config/schemas/config.schema.json
-       destination: frontend/src/schemas/config_1_8.schema.json
-     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.9.6/pkg/machinery/config/schemas/config.schema.json
-       destination: frontend/src/schemas/config_1_9.schema.json
-     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.10.9/pkg/machinery/config/schemas/config.schema.json
-       destination: frontend/src/schemas/config_1_10.schema.json
-     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.6/pkg/machinery/config/schemas/config.schema.json
-       destination: frontend/src/schemas/config_1_11.schema.json
-     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.1/pkg/machinery/config/schemas/config.schema.json
-       destination: frontend/src/schemas/config_1_12.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.7.7/pkg/machinery/config/schemas/config.schema.json
+      destination: frontend/src/schemas/config_1_7.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.8.4/pkg/machinery/config/schemas/config.schema.json
+      destination: frontend/src/schemas/config_1_8.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.9.6/pkg/machinery/config/schemas/config.schema.json
+      destination: frontend/src/schemas/config_1_9.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.10.9/pkg/machinery/config/schemas/config.schema.json
+      destination: frontend/src/schemas/config_1_10.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.6/pkg/machinery/config/schemas/config.schema.json
+      destination: frontend/src/schemas/config_1_11.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.1/pkg/machinery/config/schemas/config.schema.json
+      destination: frontend/src/schemas/config_1_12.schema.json
   destinationRoot: src/api
   specs:
     - source: client/api/common/omni.proto
@@ -685,7 +697,7 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/status.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.1/api/machine/machine.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/96e604874b17e7aa8b62bfb25737f349e539bc5a/api/machine/machine.proto
       subdirectory: talos/machine
       genGateway: true
     - source: https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/any.proto
@@ -703,7 +715,7 @@ spec:
     - source: https://raw.githubusercontent.com/googleapis/googleapis/master/google/rpc/code.proto
       subdirectory: google/rpc/
       genGateway: true
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.1/api/common/common.proto
+    - source: https://raw.githubusercontent.com/siderolabs/talos/96e604874b17e7aa8b62bfb25737f349e539bc5a/api/common/common.proto
       subdirectory: common/
       genGateway: true
     - source: https://raw.githubusercontent.com/cosi-project/specification/a25fac056c642b32468b030387ab94c17bc3ba1d/proto/v1alpha1/resource.proto

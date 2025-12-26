@@ -11,6 +11,7 @@ import (
 	"context"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
@@ -29,6 +30,9 @@ endpoint: '[fdae:41e4:649b:9303::1]:8091'`
 // AssertMaintenanceTestConfigIsPresent asserts that the test configuration is present on a machine in maintenance mode.
 func AssertMaintenanceTestConfigIsPresent(ctx context.Context, omniState state.State, cluster resource.ID, machineIndex int) TestFunc {
 	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(ctx, time.Minute*5)
+		defer cancel()
+
 		machineStatusList, err := safe.StateListAll[*omni.MachineStatus](ctx, omniState, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)))
 		require.NoError(t, err)
 

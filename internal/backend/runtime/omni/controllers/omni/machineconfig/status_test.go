@@ -10,7 +10,9 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,8 +20,11 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
+	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -27,7 +32,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
-	mc "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
@@ -37,12 +42,12 @@ const (
 	imageFactoryHost = "factory-test.talos.dev"
 )
 
-//nolint:gocognit,maintidx
+//nolint:gocognit,maintidx,gocyclo,cyclop
 func TestMachineConfigStatusController(t *testing.T) {
 	t.Parallel()
 
 	addControllers := func(_ context.Context, testContext testutils.TestContext) {
-		require.NoError(t, testContext.Runtime.RegisterQController(mc.NewClusterMachineConfigStatusController(imageFactoryHost)))
+		require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost)))
 	}
 
 	awaitAllMachinesConfigured := func(ctx context.Context, t *testing.T, st state.State, clusterName string) {
@@ -519,6 +524,233 @@ func TestMachineConfigStatusController(t *testing.T) {
 			)
 		})
 	})
+
+	// Wait for the initial configs to be created.
+	// Lock the machine.
+	// Update the config, check that lock works.
+	// Unlock the machine see the config being applied.
+	t.Run("applyLocked", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+			func(ctx context.Context, testContext testutils.TestContext) {
+				machineServices := testutils.NewMachineServices(t, testContext.State)
+
+				cluster, machines := createCluster(ctx, t, testContext.State, machineServices, "apply-reset", 3, 3)
+
+				machineServices.ForEach(func(m *testutils.MachineServiceMock) {
+					m.OnReset = resetHandler
+				})
+
+				ids := xslices.Map(machines, func(m *omni.ClusterMachine) string {
+					return m.Metadata().ID()
+				})
+
+				rmock.MockList[*omni.MachineSetNode](ctx, t, testContext.State,
+					options.IDs(ids),
+					options.ItemOptions(
+						options.Modify(func(r *omni.MachineSetNode) error {
+							r.Metadata().Annotations().Set(omni.MachineLocked, "")
+
+							return nil
+						}),
+					),
+				)
+
+				awaitAllMachinesConfigured(ctx, t, testContext.State, cluster.Metadata().ID())
+
+				machineServices.ForEach(func(machineServer *testutils.MachineServiceMock) {
+					assert.GreaterOrEqual(t, len(machineServer.GetApplyRequests()), 1)
+				})
+
+				rmock.MockList[*omni.ClusterMachineConfig](ctx, t, testContext.State,
+					options.IDs(ids),
+					options.ItemOptions(
+						options.Modify(func(r *omni.ClusterMachineConfig) error {
+							return r.TypedSpec().Value.SetUncompressedData([]byte(`machine:
+  network:
+    kubespan:
+      enabled: true`))
+						}),
+					),
+				)
+
+				rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.MachinePendingUpdates, assert *assert.Assertions) {
+					assert.NotEmpty(res.TypedSpec().Value.ConfigDiff)
+				})
+
+				// unlock all machines
+				rmock.MockList[*omni.MachineSetNode](ctx, t, testContext.State,
+					options.IDs(ids),
+					options.ItemOptions(
+						options.Modify(func(r *omni.MachineSetNode) error {
+							r.Metadata().Annotations().Delete(omni.MachineLocked)
+
+							return nil
+						}),
+					),
+				)
+
+				for _, id := range ids {
+					rtestutils.AssertNoResource[*omni.MachinePendingUpdates](ctx, t, testContext.State, id)
+				}
+
+				rmock.Destroy[*omni.ClusterMachineConfig](ctx, t, testContext.State, ids)
+
+				for _, m := range ids {
+					rtestutils.AssertNoResource[*omni.ClusterMachineConfigStatus](ctx, t, testContext.State, m)
+				}
+
+				machineServices.ForEach(func(machineServer *testutils.MachineServiceMock) {
+					assert.GreaterOrEqual(t, len(machineServer.GetResetRequests()), 1)
+				})
+			},
+		)
+	})
+
+	// Test graceful rollout with max parallelism.
+	t.Run("gracefulConfigRollout", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+			func(ctx context.Context, testContext testutils.TestContext) {
+				clusterName := "graceful"
+
+				machineServices := testutils.NewMachineServices(t, testContext.State)
+
+				_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 3, 3)
+
+				var mu sync.Mutex
+
+				mockReboot := map[string]struct{}{}
+
+				awaitAllMachinesConfigured(ctx, t, testContext.State, clusterName)
+
+				// faking reboot mode on the apply config calls
+				machineServices.ForEach(func(m *testutils.MachineServiceMock) {
+					m.OnApplyConfig = func(_ context.Context, _ *machine.ApplyConfigurationRequest, _ state.State, id string) (*machine.ApplyConfigurationResponse, error) {
+						mu.Lock()
+
+						_, reboot := mockReboot[id]
+
+						mu.Unlock()
+
+						mode := machine.ApplyConfigurationRequest_NO_REBOOT
+						if reboot {
+							mode = machine.ApplyConfigurationRequest_REBOOT
+						}
+
+						return &machine.ApplyConfigurationResponse{
+							Messages: []*machine.ApplyConfiguration{
+								{
+									Mode: mode,
+								},
+							},
+						}, nil
+					}
+				})
+
+				ids := xslices.Map(machines, func(m *omni.ClusterMachine) string {
+					mu.Lock()
+					defer mu.Unlock()
+
+					mockReboot[m.Metadata().ID()] = struct{}{}
+
+					return m.Metadata().ID()
+				})
+
+				cfg := `machine:
+  network:
+    kubespan:
+      enabled: true`
+
+				rmock.MockList[*omni.ClusterMachineConfig](ctx, t, testContext.State,
+					options.IDs(ids),
+					options.ItemOptions(
+						options.Modify(func(r *omni.ClusterMachineConfig) error {
+							return r.TypedSpec().Value.SetUncompressedData([]byte(cfg))
+						}),
+					),
+				)
+
+				// as we have 3 machines do the routine 3 times
+				for range 3 {
+					getUpdatedID := func() string {
+						var updatedID string
+
+						require.EventuallyWithT(t, func(collect *assert.CollectT) {
+							clusterMachines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, testContext.State)
+							require.NoError(t, err)
+
+							for machine := range clusterMachines.All() {
+								if machine.Metadata().Finalizers().Has(machineconfig.ConfigUpdateFinalizer) {
+									updatedID = machine.Metadata().ID()
+
+									break
+								}
+							}
+
+							assert.NotEmpty(collect, updatedID)
+						}, time.Second*5, time.Millisecond*100)
+
+						return updatedID
+					}
+
+					// wait for the machine to start updating
+					updatedID := getUpdatedID()
+
+					// update was started, drop the id from the id list
+					ids = slices.DeleteFunc(ids, func(id string) bool {
+						return id == updatedID
+					})
+
+					if len(ids) != 0 {
+						rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.MachinePendingUpdates, assert *assert.Assertions) {
+							assert.NotEmpty(res.TypedSpec().Value.ConfigDiff)
+						})
+					}
+
+					mu.Lock()
+					delete(mockReboot, updatedID)
+					mu.Unlock()
+
+					// poke machine set node to trigger update after we switch the updatedID to NO_REBOOT mode
+					rmock.Mock[*omni.MachineSetNode](ctx, t, testContext.State,
+						options.WithID(updatedID),
+						options.EmptyLabel("poke"),
+					)
+
+					rtestutils.AssertResources(ctx, t, testContext.State, []string{updatedID}, func(res *omni.ClusterMachine, assert *assert.Assertions) {
+						assert.False(res.Metadata().Finalizers().Has(machineconfig.ConfigUpdateFinalizer))
+					})
+				}
+
+				config, err := configloader.NewFromBytes([]byte(cfg))
+				require.NoError(t, err)
+
+				rawConfig, err := config.RedactSecrets(x509.Redacted).EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
+				require.NoError(t, err)
+
+				rtestutils.AssertAll(ctx, t, testContext.State, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+					buf, err := res.TypedSpec().Value.GetUncompressedData()
+
+					assert.NoError(err)
+
+					if err == nil {
+						defer buf.Free()
+					}
+
+					assert.EqualValues(string(rawConfig), string(buf.Data()))
+				})
+			},
+		)
+	})
 }
 
 func createCluster(
@@ -565,6 +797,13 @@ func createCluster(
 
 		return res
 	}
+
+	rmock.MockList[*omni.MachineSetStatus](ctx, t, st,
+		options.IDs([]string{
+			cpMachineSet.Metadata().ID(),
+			workersMachineSet.Metadata().ID(),
+		}),
+	)
 
 	// create control planes
 	rmock.MockList[*omni.MachineSetNode](ctx, t, st,

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://talos.dev/v1.12/schemas/config.schema.json",
+  "$id": "https://talos.dev/v1.13/schemas/config.schema.json",
   "$defs": {
     "block.DiskSelector": {
       "properties": {
@@ -249,6 +249,80 @@
       ],
       "description": "ExistingVolumeConfig is an existing volume configuration document.\\nExisting volumes allow to mount partitions (or whole disks) that were created\\noutside of Talos. Volume will be mounted under `/var/mnt/\u003cname\u003e`.\\nThe existing volume config name should not conflict with user volume names.\\n"
     },
+    "block.ExternalMountSpec": {
+      "properties": {
+        "readOnly": {
+          "type": "boolean",
+          "title": "readOnly",
+          "description": "Mount the volume read-only.\n",
+          "markdownDescription": "Mount the volume read-only.",
+          "x-intellij-html-description": "\u003cp\u003eMount the volume read-only.\u003c/p\u003e\n"
+        },
+        "virtiofs": {
+          "$ref": "#/$defs/block.VirtiofsMountSpec",
+          "title": "virtiofs",
+          "description": "Virtiofs mount options.\n",
+          "markdownDescription": "Virtiofs mount options.",
+          "x-intellij-html-description": "\u003cp\u003eVirtiofs mount options.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "ExternalMountSpec describes how the external volume is mounted."
+    },
+    "block.ExternalVolumeConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "ExternalVolumeConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "name": {
+          "type": "string",
+          "title": "name",
+          "description": "Name of the mount.\n\nName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\n",
+          "markdownDescription": "Name of the mount.\n\nName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.",
+          "x-intellij-html-description": "\u003cp\u003eName of the mount.\u003c/p\u003e\n\n\u003cp\u003eName might be between 1 and 34 characters long and can only contain:\nlowercase and uppercase ASCII letters, digits, and hyphens.\u003c/p\u003e\n"
+        },
+        "filesystemType": {
+          "enum": [
+            "virtiofs",
+            "nfs"
+          ],
+          "title": "filesystemType",
+          "description": "Filesystem type.\n",
+          "markdownDescription": "Filesystem type.",
+          "x-intellij-html-description": "\u003cp\u003eFilesystem type.\u003c/p\u003e\n"
+        },
+        "mount": {
+          "$ref": "#/$defs/block.ExternalMountSpec",
+          "title": "mount",
+          "description": "The mount describes additional mount options.\n",
+          "markdownDescription": "The mount describes additional mount options.",
+          "x-intellij-html-description": "\u003cp\u003eThe mount describes additional mount options.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "description": "ExternalVolumeConfig is an external disk mount configuration document.\\nExternal volumes allow to mount volumes that were created outside of Talos,\\nover the network or API. Volume will be mounted under `/var/mnt/\u003cname\u003e`.\\nThe external volume config name should not conflict with user volume names.\\n"
+    },
     "block.FilesystemSpec": {
       "properties": {
         "type": {
@@ -489,6 +563,20 @@
         "kind"
       ],
       "description": "UserVolumeConfig is a user volume configuration document.\\nUser volume is automatically allocated as a partition on the specified disk\\nand mounted under `/var/mnt/\u003cname\u003e`.\\nThe partition label is automatically generated as `u-\u003cname\u003e`.\\n"
+    },
+    "block.VirtiofsMountSpec": {
+      "properties": {
+        "tag": {
+          "type": "string",
+          "title": "tag",
+          "description": "Selector tag for the Virtiofs mount.\n",
+          "markdownDescription": "Selector tag for the Virtiofs mount.",
+          "x-intellij-html-description": "\u003cp\u003eSelector tag for the Virtiofs mount.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "VirtiofsMountSpec describes Virtiofs mount options."
     },
     "block.VolumeConfigV1Alpha1": {
       "properties": {
@@ -2065,6 +2153,94 @@
       "type": "object",
       "description": "IngressRule is a ingress rule."
     },
+    "network.KubeSpanConfigV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "KubeSpanConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "enabled": {
+          "type": "boolean",
+          "title": "enabled",
+          "description": "Enable the KubeSpan feature.\nCluster discovery should be enabled with cluster.discovery.enabled for KubeSpan to be enabled.\n",
+          "markdownDescription": "Enable the KubeSpan feature.\nCluster discovery should be enabled with cluster.discovery.enabled for KubeSpan to be enabled.",
+          "x-intellij-html-description": "\u003cp\u003eEnable the KubeSpan feature.\nCluster discovery should be enabled with cluster.discovery.enabled for KubeSpan to be enabled.\u003c/p\u003e\n"
+        },
+        "advertiseKubernetesNetworks": {
+          "type": "boolean",
+          "title": "advertiseKubernetesNetworks",
+          "description": "Control whether Kubernetes pod CIDRs are announced over KubeSpan from the node.\nIf disabled, CNI handles pod-to-pod traffic encapsulation.\nIf enabled, KubeSpan takes over pod-to-pod traffic directly.\n",
+          "markdownDescription": "Control whether Kubernetes pod CIDRs are announced over KubeSpan from the node.\nIf disabled, CNI handles pod-to-pod traffic encapsulation.\nIf enabled, KubeSpan takes over pod-to-pod traffic directly.",
+          "x-intellij-html-description": "\u003cp\u003eControl whether Kubernetes pod CIDRs are announced over KubeSpan from the node.\nIf disabled, CNI handles pod-to-pod traffic encapsulation.\nIf enabled, KubeSpan takes over pod-to-pod traffic directly.\u003c/p\u003e\n"
+        },
+        "allowDownPeerBypass": {
+          "type": "boolean",
+          "title": "allowDownPeerBypass",
+          "description": "Skip sending traffic via KubeSpan if the peer connection state is not up.\nThis provides configurable choice between connectivity and security.\n",
+          "markdownDescription": "Skip sending traffic via KubeSpan if the peer connection state is not up.\nThis provides configurable choice between connectivity and security.",
+          "x-intellij-html-description": "\u003cp\u003eSkip sending traffic via KubeSpan if the peer connection state is not up.\nThis provides configurable choice between connectivity and security.\u003c/p\u003e\n"
+        },
+        "harvestExtraEndpoints": {
+          "type": "boolean",
+          "title": "harvestExtraEndpoints",
+          "description": "KubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nDisabled by default. Do not enable with high peer counts (\u0026gt;50).\n",
+          "markdownDescription": "KubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nDisabled by default. Do not enable with high peer counts (\u003e50).",
+          "x-intellij-html-description": "\u003cp\u003eKubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nDisabled by default. Do not enable with high peer counts (\u0026gt;50).\u003c/p\u003e\n"
+        },
+        "mtu": {
+          "type": "integer",
+          "title": "mtu",
+          "description": "KubeSpan link MTU size.\nDefault value is 1420.\n",
+          "markdownDescription": "KubeSpan link MTU size.\nDefault value is 1420.",
+          "x-intellij-html-description": "\u003cp\u003eKubeSpan link MTU size.\nDefault value is 1420.\u003c/p\u003e\n"
+        },
+        "filters": {
+          "$ref": "#/$defs/network.KubeSpanFiltersConfig",
+          "title": "filters",
+          "description": "KubeSpan advanced filtering of network addresses.\nSettings are optional and apply only to this node.\n",
+          "markdownDescription": "KubeSpan advanced filtering of network addresses.\nSettings are optional and apply only to this node.",
+          "x-intellij-html-description": "\u003cp\u003eKubeSpan advanced filtering of network addresses.\nSettings are optional and apply only to this node.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "description": "KubeSpanConfig is a config document to configure KubeSpan."
+    },
+    "network.KubeSpanFiltersConfig": {
+      "properties": {
+        "endpoints": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "title": "endpoints",
+          "description": "Filter node addresses which will be advertised as KubeSpan endpoints for peer-to-peer Wireguard connections.\n\nBy default, all addresses are advertised, and KubeSpan cycles through all endpoints until it finds one that works.\n\nDefault value: no filtering.\n",
+          "markdownDescription": "Filter node addresses which will be advertised as KubeSpan endpoints for peer-to-peer Wireguard connections.\n\nBy default, all addresses are advertised, and KubeSpan cycles through all endpoints until it finds one that works.\n\nDefault value: no filtering.",
+          "x-intellij-html-description": "\u003cp\u003eFilter node addresses which will be advertised as KubeSpan endpoints for peer-to-peer Wireguard connections.\u003c/p\u003e\n\n\u003cp\u003eBy default, all addresses are advertised, and KubeSpan cycles through all endpoints until it finds one that works.\u003c/p\u003e\n\n\u003cp\u003eDefault value: no filtering.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "KubeSpanFiltersConfig configures KubeSpan endpoint filters."
+    },
     "network.KubespanEndpointsConfigV1Alpha1": {
       "properties": {
         "apiVersion": {
@@ -2914,6 +3090,47 @@
         "publicKey"
       ],
       "description": "WireguardPeer describes a Wireguard peer configuration."
+    },
+    "runtime.EnvironmentV1Alpha1": {
+      "properties": {
+        "apiVersion": {
+          "enum": [
+            "v1alpha1"
+          ],
+          "title": "apiVersion",
+          "description": "apiVersion is the API version of the resource.\n",
+          "markdownDescription": "apiVersion is the API version of the resource.",
+          "x-intellij-html-description": "\u003cp\u003eapiVersion is the API version of the resource.\u003c/p\u003e\n"
+        },
+        "kind": {
+          "enum": [
+            "EnvironmentConfig"
+          ],
+          "title": "kind",
+          "description": "kind is the kind of the resource.\n",
+          "markdownDescription": "kind is the kind of the resource.",
+          "x-intellij-html-description": "\u003cp\u003ekind is the kind of the resource.\u003c/p\u003e\n"
+        },
+        "variables": {
+          "patternProperties": {
+            ".*": {
+              "type": "string"
+            }
+          },
+          "type": "object",
+          "title": "variables",
+          "description": "This field allows for the addition of environment variables.\nAll environment variables are set on PID 1 in addition to every service.\nPropagation of environment variables to services is done only at initial service start time.\nTo modify environment variables for services, the node must be restarted.\nMultiple values for the same environment variable (in multiple documents) will replace previous values, with the last one taking precedence.\nFully removing an environment variable can only be achieved by removing it from the document and restarting the machine.\nEnvironment variable names are validated, and should:\n  - start with an uppercase letter, lowercase letter, or an underscore () character, and\n  - contain only uppercase and lowercase letters, underscore () characters, and numbers.\n",
+          "markdownDescription": "This field allows for the addition of environment variables.\nAll environment variables are set on PID 1 in addition to every service.\nPropagation of environment variables to services is done only at initial service start time.\nTo modify environment variables for services, the node must be restarted.\nMultiple values for the same environment variable (in multiple documents) will replace previous values, with the last one taking precedence.\nFully removing an environment variable can only be achieved by removing it from the document and restarting the machine.\nEnvironment variable names are validated, and should:\n  - start with an uppercase letter, lowercase letter, or an underscore (_) character, and\n  - contain only uppercase and lowercase letters, underscore (_) characters, and numbers.",
+          "x-intellij-html-description": "\u003cp\u003eThis field allows for the addition of environment variables.\nAll environment variables are set on PID 1 in addition to every service.\nPropagation of environment variables to services is done only at initial service start time.\nTo modify environment variables for services, the node must be restarted.\nMultiple values for the same environment variable (in multiple documents) will replace previous values, with the last one taking precedence.\nFully removing an environment variable can only be achieved by removing it from the document and restarting the machine.\nEnvironment variable names are validated, and should:\n  - start with an uppercase letter, lowercase letter, or an underscore (\u003cem\u003e) character, and\n  - contain only uppercase and lowercase letters, underscore (\u003c/em\u003e) characters, and numbers.\u003c/p\u003e\n"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind"
+      ],
+      "description": "EnvironmentConfig is an environment config document."
     },
     "runtime.EventSinkV1Alpha1": {
       "properties": {
@@ -4277,23 +4494,6 @@
       "type": "object",
       "description": "KubePrism describes the configuration for the KubePrism load balancer."
     },
-    "v1alpha1.KubeSpanFilters": {
-      "properties": {
-        "endpoints": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array",
-          "title": "endpoints",
-          "description": "Filter node addresses which will be advertised as KubeSpan endpoints for peer-to-peer Wireguard connections.\n\nBy default, all addresses are advertised, and KubeSpan cycles through all endpoints until it finds one that works.\n\nDefault value: no filtering.\n",
-          "markdownDescription": "Filter node addresses which will be advertised as KubeSpan endpoints for peer-to-peer Wireguard connections.\n\nBy default, all addresses are advertised, and KubeSpan cycles through all endpoints until it finds one that works.\n\nDefault value: no filtering.",
-          "x-intellij-html-description": "\u003cp\u003eFilter node addresses which will be advertised as KubeSpan endpoints for peer-to-peer Wireguard connections.\u003c/p\u003e\n\n\u003cp\u003eBy default, all addresses are advertised, and KubeSpan cycles through all endpoints until it finds one that works.\u003c/p\u003e\n\n\u003cp\u003eDefault value: no filtering.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "KubeSpanFilters struct describes KubeSpan advanced network addresses filtering."
-    },
     "v1alpha1.KubeletConfig": {
       "properties": {
         "image": {
@@ -4602,13 +4802,6 @@
           "markdownDescription": "Used to provide static pod definitions to be run by the kubelet directly bypassing the kube-apiserver.\n\nStatic pods can be used to run components which should be started before the Kubernetes control plane is up.\nTalos doesn't validate the pod definition.\nUpdates to this field can be applied without a reboot.\n\nSee https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/.",
           "x-intellij-html-description": "\u003cp\u003eUsed to provide static pod definitions to be run by the kubelet directly bypassing the kube-apiserver.\u003c/p\u003e\n\n\u003cp\u003eStatic pods can be used to run components which should be started before the Kubernetes control plane is up.\nTalos doesn\u0026rsquo;t validate the pod definition.\nUpdates to this field can be applied without a reboot.\u003c/p\u003e\n\n\u003cp\u003eSee \u003ca href=\"https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/\" target=\"_blank\"\u003ehttps://kubernetes.io/docs/tasks/configure-pod-container/static-pod/\u003c/a\u003e.\u003c/p\u003e\n"
         },
-        "network": {
-          "$ref": "#/$defs/v1alpha1.NetworkConfig",
-          "title": "network",
-          "description": "Provides machine specific network configuration options.\n",
-          "markdownDescription": "Provides machine specific network configuration options.",
-          "x-intellij-html-description": "\u003cp\u003eProvides machine specific network configuration options.\u003c/p\u003e\n"
-        },
         "install": {
           "$ref": "#/$defs/v1alpha1.InstallConfig",
           "title": "install",
@@ -4625,18 +4818,6 @@
           "description": "Allows the addition of user specified files.\nThe value of op can be create, overwrite, or append.\nIn the case of create, path must not exist.\nIn the case of overwrite, and append, path must be a valid file.\nIf an op value of append is used, the existing file will be appended.\nNote that the file contents are not required to be base64 encoded.\n",
           "markdownDescription": "Allows the addition of user specified files.\nThe value of `op` can be `create`, `overwrite`, or `append`.\nIn the case of `create`, `path` must not exist.\nIn the case of `overwrite`, and `append`, `path` must be a valid file.\nIf an `op` value of `append` is used, the existing file will be appended.\nNote that the file contents are not required to be base64 encoded.",
           "x-intellij-html-description": "\u003cp\u003eAllows the addition of user specified files.\nThe value of \u003ccode\u003eop\u003c/code\u003e can be \u003ccode\u003ecreate\u003c/code\u003e, \u003ccode\u003eoverwrite\u003c/code\u003e, or \u003ccode\u003eappend\u003c/code\u003e.\nIn the case of \u003ccode\u003ecreate\u003c/code\u003e, \u003ccode\u003epath\u003c/code\u003e must not exist.\nIn the case of \u003ccode\u003eoverwrite\u003c/code\u003e, and \u003ccode\u003eappend\u003c/code\u003e, \u003ccode\u003epath\u003c/code\u003e must be a valid file.\nIf an \u003ccode\u003eop\u003c/code\u003e value of \u003ccode\u003eappend\u003c/code\u003e is used, the existing file will be appended.\nNote that the file contents are not required to be base64 encoded.\u003c/p\u003e\n"
-        },
-        "env": {
-          "patternProperties": {
-            ".*": {
-              "type": "string"
-            }
-          },
-          "type": "object",
-          "title": "env",
-          "description": "The env field allows for the addition of environment variables.\nAll environment variables are set on PID 1 in addition to every service.\n",
-          "markdownDescription": "The `env` field allows for the addition of environment variables.\nAll environment variables are set on PID 1 in addition to every service.",
-          "x-intellij-html-description": "\u003cp\u003eThe \u003ccode\u003eenv\u003c/code\u003e field allows for the addition of environment variables.\nAll environment variables are set on PID 1 in addition to every service.\u003c/p\u003e\n"
         },
         "sysctls": {
           "patternProperties": {
@@ -4857,69 +5038,6 @@
       "type": "object",
       "description": "MachineSeccompProfile defines seccomp profiles for the machine."
     },
-    "v1alpha1.NetworkConfig": {
-      "properties": {
-        "kubespan": {
-          "$ref": "#/$defs/v1alpha1.NetworkKubeSpan",
-          "title": "kubespan",
-          "description": "Configures KubeSpan feature.\n",
-          "markdownDescription": "Configures KubeSpan feature.",
-          "x-intellij-html-description": "\u003cp\u003eConfigures KubeSpan feature.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "NetworkConfig represents the machine's networking config values."
-    },
-    "v1alpha1.NetworkKubeSpan": {
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "title": "enabled",
-          "description": "Enable the KubeSpan feature.\nCluster discovery should be enabled with .cluster.discovery.enabled for KubeSpan to be enabled.\n",
-          "markdownDescription": "Enable the KubeSpan feature.\nCluster discovery should be enabled with .cluster.discovery.enabled for KubeSpan to be enabled.",
-          "x-intellij-html-description": "\u003cp\u003eEnable the KubeSpan feature.\nCluster discovery should be enabled with .cluster.discovery.enabled for KubeSpan to be enabled.\u003c/p\u003e\n"
-        },
-        "advertiseKubernetesNetworks": {
-          "type": "boolean",
-          "title": "advertiseKubernetesNetworks",
-          "description": "Control whether Kubernetes pod CIDRs are announced over KubeSpan from the node.\nIf disabled, CNI handles encapsulating pod-to-pod traffic into some node-to-node tunnel,\nand KubeSpan handles the node-to-node traffic.\nIf enabled, KubeSpan will take over pod-to-pod traffic and send it over KubeSpan directly.\nWhen enabled, KubeSpan should have a way to detect complete pod CIDRs of the node which\nis not always the case with CNIs not relying on Kubernetes for IPAM.\n",
-          "markdownDescription": "Control whether Kubernetes pod CIDRs are announced over KubeSpan from the node.\nIf disabled, CNI handles encapsulating pod-to-pod traffic into some node-to-node tunnel,\nand KubeSpan handles the node-to-node traffic.\nIf enabled, KubeSpan will take over pod-to-pod traffic and send it over KubeSpan directly.\nWhen enabled, KubeSpan should have a way to detect complete pod CIDRs of the node which\nis not always the case with CNIs not relying on Kubernetes for IPAM.",
-          "x-intellij-html-description": "\u003cp\u003eControl whether Kubernetes pod CIDRs are announced over KubeSpan from the node.\nIf disabled, CNI handles encapsulating pod-to-pod traffic into some node-to-node tunnel,\nand KubeSpan handles the node-to-node traffic.\nIf enabled, KubeSpan will take over pod-to-pod traffic and send it over KubeSpan directly.\nWhen enabled, KubeSpan should have a way to detect complete pod CIDRs of the node which\nis not always the case with CNIs not relying on Kubernetes for IPAM.\u003c/p\u003e\n"
-        },
-        "allowDownPeerBypass": {
-          "type": "boolean",
-          "title": "allowDownPeerBypass",
-          "description": "Skip sending traffic via KubeSpan if the peer connection state is not up.\nThis provides configurable choice between connectivity and security: either traffic is always\nforced to go via KubeSpan (even if Wireguard peer connection is not up), or traffic can go directly\nto the peer if Wireguard connection can’t be established.\n",
-          "markdownDescription": "Skip sending traffic via KubeSpan if the peer connection state is not up.\nThis provides configurable choice between connectivity and security: either traffic is always\nforced to go via KubeSpan (even if Wireguard peer connection is not up), or traffic can go directly\nto the peer if Wireguard connection can't be established.",
-          "x-intellij-html-description": "\u003cp\u003eSkip sending traffic via KubeSpan if the peer connection state is not up.\nThis provides configurable choice between connectivity and security: either traffic is always\nforced to go via KubeSpan (even if Wireguard peer connection is not up), or traffic can go directly\nto the peer if Wireguard connection can\u0026rsquo;t be established.\u003c/p\u003e\n"
-        },
-        "harvestExtraEndpoints": {
-          "type": "boolean",
-          "title": "harvestExtraEndpoints",
-          "description": "KubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nThis feature is disabled by default, don’t enable it\nwith high number of peers (\u0026gt;50) in the KubeSpan network (performance issues).\n",
-          "markdownDescription": "KubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nThis feature is disabled by default, don't enable it\nwith high number of peers (\u003e50) in the KubeSpan network (performance issues).",
-          "x-intellij-html-description": "\u003cp\u003eKubeSpan can collect and publish extra endpoints for each member of the cluster\nbased on Wireguard endpoint information for each peer.\nThis feature is disabled by default, don\u0026rsquo;t enable it\nwith high number of peers (\u0026gt;50) in the KubeSpan network (performance issues).\u003c/p\u003e\n"
-        },
-        "mtu": {
-          "type": "integer",
-          "title": "mtu",
-          "description": "KubeSpan link MTU size.\nDefault value is 1420.\n",
-          "markdownDescription": "KubeSpan link MTU size.\nDefault value is 1420.",
-          "x-intellij-html-description": "\u003cp\u003eKubeSpan link MTU size.\nDefault value is 1420.\u003c/p\u003e\n"
-        },
-        "filters": {
-          "$ref": "#/$defs/v1alpha1.KubeSpanFilters",
-          "title": "filters",
-          "description": "KubeSpan advanced filtering of network addresses .\n\nSettings in this section are optional, and settings apply only to the node.\n",
-          "markdownDescription": "KubeSpan advanced filtering of network addresses .\n\nSettings in this section are optional, and settings apply only to the node.",
-          "x-intellij-html-description": "\u003cp\u003eKubeSpan advanced filtering of network addresses .\u003c/p\u003e\n\n\u003cp\u003eSettings in this section are optional, and settings apply only to the node.\u003c/p\u003e\n"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "NetworkKubeSpan struct describes KubeSpan configuration."
-    },
     "v1alpha1.ProxyConfig": {
       "properties": {
         "disabled": {
@@ -5129,6 +5247,9 @@
       "$ref": "#/$defs/block.ExistingVolumeConfigV1Alpha1"
     },
     {
+      "$ref": "#/$defs/block.ExternalVolumeConfigV1Alpha1"
+    },
+    {
       "$ref": "#/$defs/block.RawVolumeConfigV1Alpha1"
     },
     {
@@ -5186,6 +5307,9 @@
       "$ref": "#/$defs/network.HostnameConfigV1Alpha1"
     },
     {
+      "$ref": "#/$defs/network.KubeSpanConfigV1Alpha1"
+    },
+    {
       "$ref": "#/$defs/network.KubespanEndpointsConfigV1Alpha1"
     },
     {
@@ -5214,6 +5338,9 @@
     },
     {
       "$ref": "#/$defs/network.WireguardConfigV1Alpha1"
+    },
+    {
+      "$ref": "#/$defs/runtime.EnvironmentV1Alpha1"
     },
     {
       "$ref": "#/$defs/runtime.EventSinkV1Alpha1"

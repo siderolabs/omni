@@ -153,7 +153,7 @@ func findImage(ctx context.Context, client *client.Client, name, arch string) (*
 		}
 
 		return val, strings.EqualFold(spec.Name, name) ||
-			strings.EqualFold(spec.Profile, name)
+			strings.EqualFold(spec.Profile, name) || strings.EqualFold(spec.Overlay, name)
 	})
 	if err != nil {
 		return nil, err

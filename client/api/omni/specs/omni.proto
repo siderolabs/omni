@@ -446,7 +446,7 @@ message ClusterMachineConfigSpec {
   //
   // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   bytes data = 1;
-  string cluster_machine_version = 2;
+  reserved 2;
   string generation_error = 3;
 
   // CompressedData contains the config bytes. It is only set if the config is not compressed. Otherwise, CompressedData is set instead.
@@ -600,11 +600,36 @@ message ClusterMachineConfigStatusSpec {
   reserved 2;
 
   string cluster_machine_config_version = 3;
-  string cluster_machine_version = 4;
+  reserved 4;
   string cluster_machine_config_sha256 = 5;
   string last_config_error = 6;
   string talos_version = 7;
   string schematic_id = 8;
+
+  // RedactedClusterMachineConfig contains the config bytes. It is only set if the config is not compressed. Otherwise, CompressedData is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+  string redacted_current_machine_config = 9;
+
+  // CompressedRedactedMachineConfig contains the config bytes. It is only set if the config is not compressed. Otherwise, CompressedData is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+  bytes compressed_redacted_machine_config = 10;
+}
+
+message MachinePendingUpdatesSpec {
+  message Upgrade {
+    string from_schematic = 1;
+    string to_schematic = 2;
+
+    string from_version = 3;
+    string to_version = 4;
+  }
+
+  // Upgrade represents pending machine upgrade.
+  Upgrade upgrade = 1;
+  // ConfigDiff represents the redacted machine config diff.
+  string config_diff = 2;
 }
 
 // ClusterBootstrapStatusSpec keeps track of bootstrap calls for a cluster.
@@ -699,6 +724,7 @@ enum MachineSetPhase {
   Destroying = 4;
   Failed = 5;
   Reconfiguring = 6;
+  Upgrading = 7;
 }
 
 // MachineSetSpec describes the cluster machine group.
@@ -838,6 +864,15 @@ message MachineSetStatusSpec {
   MachineSetSpec.MachineAllocation machine_allocation = 6;
   // LockedUpdates is the number of machines which have pending config update but are locked.
   uint32 locked_updates = 7;
+  // ConfigUpdatesAllowed controls graceful rollout of the machine config.
+  // If false, no new config updates should happen.
+  bool config_updates_allowed = 8;
+
+  // UpdateStrategy is the update strategy of the machine set.
+  MachineSetSpec.UpdateStrategy update_strategy = 9;
+
+  // UpdateStrategyConfig defines the update strategy configuration.
+  MachineSetSpec.UpdateStrategyConfig update_strategy_config = 10;
 }
 
 // MachineSetNodeSpec is a binding between ClusterMachine and MachineSet.

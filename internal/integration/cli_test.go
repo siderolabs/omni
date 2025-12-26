@@ -21,7 +21,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
-	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/require"
 
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
@@ -51,11 +50,13 @@ func AssertDownloadUsingCLI(testCtx context.Context, client *client.Client, omni
 			spec := val.TypedSpec().Value
 
 			switch spec.Profile {
-			case constants.BoardRPiGeneric:
-				fallthrough
 			case "aws":
 				fallthrough
 			case "iso":
+				images = append(images, val)
+			}
+
+			if spec.Overlay == "rpi_generic" {
 				images = append(images, val)
 			}
 		}

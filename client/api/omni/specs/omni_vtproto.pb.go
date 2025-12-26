@@ -757,7 +757,6 @@ func (m *ClusterMachineConfigSpec) CloneVT() *ClusterMachineConfigSpec {
 		return (*ClusterMachineConfigSpec)(nil)
 	}
 	r := new(ClusterMachineConfigSpec)
-	r.ClusterMachineVersion = m.ClusterMachineVersion
 	r.GenerationError = m.GenerationError
 	r.WithoutComments = m.WithoutComments
 	r.GrubUseUkiCmdline = m.GrubUseUkiCmdline
@@ -956,11 +955,16 @@ func (m *ClusterMachineConfigStatusSpec) CloneVT() *ClusterMachineConfigStatusSp
 	}
 	r := new(ClusterMachineConfigStatusSpec)
 	r.ClusterMachineConfigVersion = m.ClusterMachineConfigVersion
-	r.ClusterMachineVersion = m.ClusterMachineVersion
 	r.ClusterMachineConfigSha256 = m.ClusterMachineConfigSha256
 	r.LastConfigError = m.LastConfigError
 	r.TalosVersion = m.TalosVersion
 	r.SchematicId = m.SchematicId
+	r.RedactedCurrentMachineConfig = m.RedactedCurrentMachineConfig
+	if rhs := m.CompressedRedactedMachineConfig; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.CompressedRedactedMachineConfig = tmpBytes
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -969,6 +973,44 @@ func (m *ClusterMachineConfigStatusSpec) CloneVT() *ClusterMachineConfigStatusSp
 }
 
 func (m *ClusterMachineConfigStatusSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *MachinePendingUpdatesSpec_Upgrade) CloneVT() *MachinePendingUpdatesSpec_Upgrade {
+	if m == nil {
+		return (*MachinePendingUpdatesSpec_Upgrade)(nil)
+	}
+	r := new(MachinePendingUpdatesSpec_Upgrade)
+	r.FromSchematic = m.FromSchematic
+	r.ToSchematic = m.ToSchematic
+	r.FromVersion = m.FromVersion
+	r.ToVersion = m.ToVersion
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *MachinePendingUpdatesSpec_Upgrade) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *MachinePendingUpdatesSpec) CloneVT() *MachinePendingUpdatesSpec {
+	if m == nil {
+		return (*MachinePendingUpdatesSpec)(nil)
+	}
+	r := new(MachinePendingUpdatesSpec)
+	r.Upgrade = m.Upgrade.CloneVT()
+	r.ConfigDiff = m.ConfigDiff
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *MachinePendingUpdatesSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -1309,6 +1351,9 @@ func (m *MachineSetStatusSpec) CloneVT() *MachineSetStatusSpec {
 	r.ConfigHash = m.ConfigHash
 	r.MachineAllocation = m.MachineAllocation.CloneVT()
 	r.LockedUpdates = m.LockedUpdates
+	r.ConfigUpdatesAllowed = m.ConfigUpdatesAllowed
+	r.UpdateStrategy = m.UpdateStrategy
+	r.UpdateStrategyConfig = m.UpdateStrategyConfig.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -3872,9 +3917,6 @@ func (this *ClusterMachineConfigSpec) EqualVT(that *ClusterMachineConfigSpec) bo
 	if string(this.Data) != string(that.Data) {
 		return false
 	}
-	if this.ClusterMachineVersion != that.ClusterMachineVersion {
-		return false
-	}
 	if this.GenerationError != that.GenerationError {
 		return false
 	}
@@ -4136,9 +4178,6 @@ func (this *ClusterMachineConfigStatusSpec) EqualVT(that *ClusterMachineConfigSt
 	if this.ClusterMachineConfigVersion != that.ClusterMachineConfigVersion {
 		return false
 	}
-	if this.ClusterMachineVersion != that.ClusterMachineVersion {
-		return false
-	}
 	if this.ClusterMachineConfigSha256 != that.ClusterMachineConfigSha256 {
 		return false
 	}
@@ -4151,11 +4190,67 @@ func (this *ClusterMachineConfigStatusSpec) EqualVT(that *ClusterMachineConfigSt
 	if this.SchematicId != that.SchematicId {
 		return false
 	}
+	if this.RedactedCurrentMachineConfig != that.RedactedCurrentMachineConfig {
+		return false
+	}
+	if string(this.CompressedRedactedMachineConfig) != string(that.CompressedRedactedMachineConfig) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *ClusterMachineConfigStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*ClusterMachineConfigStatusSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *MachinePendingUpdatesSpec_Upgrade) EqualVT(that *MachinePendingUpdatesSpec_Upgrade) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.FromSchematic != that.FromSchematic {
+		return false
+	}
+	if this.ToSchematic != that.ToSchematic {
+		return false
+	}
+	if this.FromVersion != that.FromVersion {
+		return false
+	}
+	if this.ToVersion != that.ToVersion {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MachinePendingUpdatesSpec_Upgrade) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*MachinePendingUpdatesSpec_Upgrade)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *MachinePendingUpdatesSpec) EqualVT(that *MachinePendingUpdatesSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Upgrade.EqualVT(that.Upgrade) {
+		return false
+	}
+	if this.ConfigDiff != that.ConfigDiff {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MachinePendingUpdatesSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*MachinePendingUpdatesSpec)
 	if !ok {
 		return false
 	}
@@ -4607,6 +4702,15 @@ func (this *MachineSetStatusSpec) EqualVT(that *MachineSetStatusSpec) bool {
 		return false
 	}
 	if this.LockedUpdates != that.LockedUpdates {
+		return false
+	}
+	if this.ConfigUpdatesAllowed != that.ConfigUpdatesAllowed {
+		return false
+	}
+	if this.UpdateStrategy != that.UpdateStrategy {
+		return false
+	}
+	if !this.UpdateStrategyConfig.EqualVT(that.UpdateStrategyConfig) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8836,13 +8940,6 @@ func (m *ClusterMachineConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.ClusterMachineVersion) > 0 {
-		i -= len(m.ClusterMachineVersion)
-		copy(dAtA[i:], m.ClusterMachineVersion)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClusterMachineVersion)))
-		i--
-		dAtA[i] = 0x12
-	}
 	if len(m.Data) > 0 {
 		i -= len(m.Data)
 		copy(dAtA[i:], m.Data)
@@ -9393,6 +9490,20 @@ func (m *ClusterMachineConfigStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (in
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.CompressedRedactedMachineConfig) > 0 {
+		i -= len(m.CompressedRedactedMachineConfig)
+		copy(dAtA[i:], m.CompressedRedactedMachineConfig)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CompressedRedactedMachineConfig)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.RedactedCurrentMachineConfig) > 0 {
+		i -= len(m.RedactedCurrentMachineConfig)
+		copy(dAtA[i:], m.RedactedCurrentMachineConfig)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.RedactedCurrentMachineConfig)))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if len(m.SchematicId) > 0 {
 		i -= len(m.SchematicId)
 		copy(dAtA[i:], m.SchematicId)
@@ -9421,19 +9532,123 @@ func (m *ClusterMachineConfigStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (in
 		i--
 		dAtA[i] = 0x2a
 	}
-	if len(m.ClusterMachineVersion) > 0 {
-		i -= len(m.ClusterMachineVersion)
-		copy(dAtA[i:], m.ClusterMachineVersion)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClusterMachineVersion)))
-		i--
-		dAtA[i] = 0x22
-	}
 	if len(m.ClusterMachineConfigVersion) > 0 {
 		i -= len(m.ClusterMachineConfigVersion)
 		copy(dAtA[i:], m.ClusterMachineConfigVersion)
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ClusterMachineConfigVersion)))
 		i--
 		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MachinePendingUpdatesSpec_Upgrade) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MachinePendingUpdatesSpec_Upgrade) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MachinePendingUpdatesSpec_Upgrade) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ToVersion) > 0 {
+		i -= len(m.ToVersion)
+		copy(dAtA[i:], m.ToVersion)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ToVersion)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.FromVersion) > 0 {
+		i -= len(m.FromVersion)
+		copy(dAtA[i:], m.FromVersion)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.FromVersion)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.ToSchematic) > 0 {
+		i -= len(m.ToSchematic)
+		copy(dAtA[i:], m.ToSchematic)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ToSchematic)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.FromSchematic) > 0 {
+		i -= len(m.FromSchematic)
+		copy(dAtA[i:], m.FromSchematic)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.FromSchematic)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MachinePendingUpdatesSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MachinePendingUpdatesSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MachinePendingUpdatesSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ConfigDiff) > 0 {
+		i -= len(m.ConfigDiff)
+		copy(dAtA[i:], m.ConfigDiff)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ConfigDiff)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Upgrade != nil {
+		size, err := m.Upgrade.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -10364,6 +10579,31 @@ func (m *MachineSetStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.UpdateStrategyConfig != nil {
+		size, err := m.UpdateStrategyConfig.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	}
+	if m.UpdateStrategy != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.UpdateStrategy))
+		i--
+		dAtA[i] = 0x48
+	}
+	if m.ConfigUpdatesAllowed {
+		i--
+		if m.ConfigUpdatesAllowed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
 	}
 	if m.LockedUpdates != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.LockedUpdates))
@@ -15130,10 +15370,6 @@ func (m *ClusterMachineConfigSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	l = len(m.ClusterMachineVersion)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
 	l = len(m.GenerationError)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
@@ -15354,10 +15590,6 @@ func (m *ClusterMachineConfigStatusSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	l = len(m.ClusterMachineVersion)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
 	l = len(m.ClusterMachineConfigSha256)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
@@ -15371,6 +15603,58 @@ func (m *ClusterMachineConfigStatusSpec) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.SchematicId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.RedactedCurrentMachineConfig)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.CompressedRedactedMachineConfig)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MachinePendingUpdatesSpec_Upgrade) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.FromSchematic)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ToSchematic)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.FromVersion)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ToVersion)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MachinePendingUpdatesSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Upgrade != nil {
+		l = m.Upgrade.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ConfigDiff)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -15756,6 +16040,16 @@ func (m *MachineSetStatusSpec) SizeVT() (n int) {
 	}
 	if m.LockedUpdates != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.LockedUpdates))
+	}
+	if m.ConfigUpdatesAllowed {
+		n += 2
+	}
+	if m.UpdateStrategy != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.UpdateStrategy))
+	}
+	if m.UpdateStrategyConfig != nil {
+		l = m.UpdateStrategyConfig.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -22804,38 +23098,6 @@ func (m *ClusterMachineConfigSpec) UnmarshalVT(dAtA []byte) error {
 				m.Data = []byte{}
 			}
 			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ClusterMachineVersion", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ClusterMachineVersion = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field GenerationError", wireType)
@@ -24243,38 +24505,6 @@ func (m *ClusterMachineConfigStatusSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.ClusterMachineConfigVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ClusterMachineVersion", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ClusterMachineVersion = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ClusterMachineConfigSha256", wireType)
@@ -24402,6 +24632,370 @@ func (m *ClusterMachineConfigStatusSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.SchematicId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RedactedCurrentMachineConfig", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RedactedCurrentMachineConfig = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompressedRedactedMachineConfig", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CompressedRedactedMachineConfig = append(m.CompressedRedactedMachineConfig[:0], dAtA[iNdEx:postIndex]...)
+			if m.CompressedRedactedMachineConfig == nil {
+				m.CompressedRedactedMachineConfig = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MachinePendingUpdatesSpec_Upgrade) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MachinePendingUpdatesSpec_Upgrade: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MachinePendingUpdatesSpec_Upgrade: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FromSchematic", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FromSchematic = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ToSchematic", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ToSchematic = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FromVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FromVersion = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ToVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ToVersion = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MachinePendingUpdatesSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MachinePendingUpdatesSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MachinePendingUpdatesSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Upgrade", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Upgrade == nil {
+				m.Upgrade = &MachinePendingUpdatesSpec_Upgrade{}
+			}
+			if err := m.Upgrade.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigDiff", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ConfigDiff = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -26884,6 +27478,81 @@ func (m *MachineSetStatusSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigUpdatesAllowed", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.ConfigUpdatesAllowed = bool(v != 0)
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdateStrategy", wireType)
+			}
+			m.UpdateStrategy = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.UpdateStrategy |= MachineSetSpec_UpdateStrategy(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdateStrategyConfig", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.UpdateStrategyConfig == nil {
+				m.UpdateStrategyConfig = &MachineSetSpec_UpdateStrategyConfig{}
+			}
+			if err := m.UpdateStrategyConfig.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

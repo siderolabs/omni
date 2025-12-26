@@ -1047,23 +1047,6 @@ export type ClusterConfig = {
   allow_scheduling_on_control_planes?: boolean
 }
 
-export type GenerateConfigurationRequest = {
-  config_version?: string
-  cluster_config?: ClusterConfig
-  machine_config?: MachineConfig
-  override_time?: GoogleProtobufTimestamp.Timestamp
-}
-
-export type GenerateConfiguration = {
-  metadata?: CommonCommon.Metadata
-  data?: Uint8Array[]
-  talosconfig?: Uint8Array
-}
-
-export type GenerateConfigurationResponse = {
-  messages?: GenerateConfiguration[]
-}
-
 export type GenerateClientConfigurationRequest = {
   roles?: string[]
   crt_ttl?: GoogleProtobufDuration.Duration
@@ -1271,9 +1254,6 @@ export class MachineService {
   }
   static EtcdDowngradeCancel(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<EtcdDowngradeCancelResponse> {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, EtcdDowngradeCancelResponse>("POST", `/machine.MachineService/EtcdDowngradeCancel`, req, ...options)
-  }
-  static GenerateConfiguration(req: GenerateConfigurationRequest, ...options: fm.fetchOption[]): Promise<GenerateConfigurationResponse> {
-    return fm.fetchReq<GenerateConfigurationRequest, GenerateConfigurationResponse>("POST", `/machine.MachineService/GenerateConfiguration`, req, ...options)
   }
   static Hostname(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<HostnameResponse> {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, HostnameResponse>("POST", `/machine.MachineService/Hostname`, req, ...options)

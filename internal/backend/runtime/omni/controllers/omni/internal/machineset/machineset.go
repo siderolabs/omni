@@ -56,26 +56,6 @@ func ReconcileMachines(ctx context.Context, r controller.ReaderWriter, logger *z
 
 	machineSet := rc.GetMachineSet()
 
-	for _, clusterMachine := range rc.GetClusterMachines() {
-		if clusterMachine.Metadata().Phase() == resource.PhaseRunning {
-			if err := safe.WriterModify(ctx, r, clusterMachine, func(clusteMachine *omni.ClusterMachine) error {
-				if rc.GetLockedUpdates().Contains(clusteMachine.Metadata().ID()) {
-					clusteMachine.Metadata().Labels().Set(omni.UpdateLocked, "")
-
-					return nil
-				}
-
-				if _, ok := clusteMachine.Metadata().Labels().Get(omni.UpdateLocked); ok {
-					clusteMachine.Metadata().Labels().Delete(omni.UpdateLocked)
-				}
-
-				return nil
-			}); err != nil {
-				return false, err
-			}
-		}
-	}
-
 	_, isControlPlane := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 
 	switch {

@@ -47,9 +47,9 @@ func withUpdateInputVersions[T, R resource.Resource](res T, inputs ...R) T {
 	return res
 }
 
-func withClusterMachineVersionSetter(cmcs *omni.ClusterMachineConfigStatus, version resource.Version) *omni.ClusterMachineConfigStatus {
+func withClusterMachineConfigVersionSetter(cmcs *omni.ClusterMachineConfigStatus, version resource.Version) *omni.ClusterMachineConfigStatus {
 	return withSpecSetter(cmcs, func(cmcs *omni.ClusterMachineConfigStatus) {
-		cmcs.TypedSpec().Value.ClusterMachineVersion = version.String()
+		cmcs.TypedSpec().Value.ClusterMachineConfigVersion = version.String()
 	})
 }
 

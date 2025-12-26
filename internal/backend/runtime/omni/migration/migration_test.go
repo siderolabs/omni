@@ -25,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/clustermachine"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/migration"
 )
 
@@ -296,6 +297,53 @@ func (suite *MigrationSuite) TestMakeMachineSetNodeOwnerEmpty() {
 	suite.Assert().True(labelSet)
 	suite.Assert().Empty(msnTearingDown.Metadata().Owner())
 	suite.Assert().Equal(resource.PhaseTearingDown, msnTearingDown.Metadata().Phase())
+}
+
+func (suite *MigrationSuite) TestChangeClusterMachineConfigPatchesOwner() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	labelID := "custom"
+
+	cmcpRunning := omni.NewClusterMachineConfigPatches("owned")
+
+	cmcpRunning.Metadata().Finalizers().Add("fin")
+	cmcpRunning.Metadata().Labels().Set(labelID, "val")
+	cmcpRunning.Metadata().Annotations().Set(labelID, "val")
+
+	cmcpTearingDown := omni.NewClusterMachineConfigPatches("tearingDown")
+	cmcpTearingDown.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	suite.Require().NoError(suite.state.Create(ctx, cmcpRunning,
+		state.WithCreateOwner(omnictrl.NewMachineSetStatusController().ControllerName)),
+	)
+	suite.Require().NoError(suite.state.Create(ctx, cmcpTearingDown,
+		state.WithCreateOwner(omnictrl.NewMachineSetStatusController().ControllerName)),
+	)
+
+	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("changeClusterMachineConfigPatchesOwner")))
+
+	suite.Require().NoError(err)
+
+	cmcpRunning, err = safe.ReaderGetByID[*omni.ClusterMachineConfigPatches](ctx, suite.state, cmcpRunning.Metadata().ID())
+	suite.Require().NoError(err)
+
+	cmcpTearingDown, err = safe.ReaderGetByID[*omni.ClusterMachineConfigPatches](ctx, suite.state, cmcpTearingDown.Metadata().ID())
+	suite.Require().NoError(err)
+
+	owner := clustermachine.NewConfigPatchesController().ControllerName
+
+	suite.Assert().Equal(owner, cmcpRunning.Metadata().Owner())
+
+	val, _ := cmcpRunning.Metadata().Annotations().Get(labelID)
+	suite.Assert().Equal("val", val)
+	val, _ = cmcpRunning.Metadata().Annotations().Get(labelID)
+	suite.Assert().Equal("val", val)
+
+	suite.Assert().False(cmcpRunning.Metadata().Finalizers().Empty())
+
+	suite.Assert().Equal(owner, cmcpTearingDown.Metadata().Owner())
+	suite.Assert().Equal(resource.PhaseTearingDown, cmcpTearingDown.Metadata().Phase())
 }
 
 func TestMigrationSuite(t *testing.T) {

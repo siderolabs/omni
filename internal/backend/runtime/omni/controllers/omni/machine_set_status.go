@@ -15,7 +15,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/gen/xslices"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -33,29 +32,6 @@ const requeueInterval = time.Second * 30
 
 // NewMachineSetStatusController creates new MachineSetStatusController.
 func NewMachineSetStatusController() *MachineSetStatusController {
-	mapMachineIDToMachineSet := func(ctx context.Context, r controller.QRuntime, res controller.ReducedResourceMetadata, label string) ([]resource.Pointer, error) {
-		id, ok := res.Labels().Get(label)
-		if !ok {
-			return nil, nil
-		}
-
-		input, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, id)
-		if err != nil {
-			if state.IsNotFoundError(err) {
-				return nil, nil
-			}
-		}
-
-		id, ok = input.Metadata().Labels().Get(omni.LabelMachineSet)
-		if !ok {
-			return nil, nil
-		}
-
-		return []resource.Pointer{
-			omni.NewMachineSet(id).Metadata(),
-		}, nil
-	}
-
 	handler := &machineSetStatusHandler{}
 
 	return qtransform.NewQController(
@@ -84,6 +60,9 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 			mappers.MapByMachineSetLabel[*omni.MachineSet](),
 		),
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigStatus](
+			mappers.MapByMachineSetLabel[*omni.MachineSet](),
+		),
+		qtransform.WithExtraMappedInput[*omni.MachinePendingUpdates](
 			mappers.MapByMachineSetLabel[*omni.MachineSet](),
 		),
 		qtransform.WithExtraMappedInput[*omni.ClusterSecrets](
@@ -124,52 +103,9 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 				}, nil
 			},
 		),
-		qtransform.WithExtraMappedInput[*omni.ConfigPatch](
-			// config patch to machine set if the machine is allocated, checks by different layers, if is on the cluster layer,
-			// matches all machine sets
-			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, patch controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
-				clusterName, ok := patch.Labels().Get(omni.LabelCluster)
-				if !ok {
-					// no cluster, map by the machine ID
-					return mapMachineIDToMachineSet(ctx, r, patch, omni.LabelMachine)
-				}
-
-				// cluster machine patch
-				pointers, err := mapMachineIDToMachineSet(ctx, r, patch, omni.LabelClusterMachine)
-				if err != nil {
-					return nil, err
-				}
-
-				if pointers != nil {
-					return pointers, err
-				}
-
-				// machine set level patch
-				machineSetID, ok := patch.Labels().Get(omni.LabelMachineSet)
-				if ok {
-					return []resource.Pointer{
-						omni.NewMachineSet(machineSetID).Metadata(),
-					}, nil
-				}
-
-				// cluster level patch, find all machine sets in a cluster
-				list, err := r.List(ctx, omni.NewMachineSet("").Metadata(), state.WithLabelQuery(
-					resource.LabelEqual(omni.LabelCluster, clusterName),
-				))
-				if err != nil {
-					return nil, err
-				}
-
-				return xslices.Map(list.Items, func(r resource.Resource) resource.Pointer { return r.Metadata() }), nil
-			},
-		),
 		qtransform.WithExtraOutputs(
 			controller.Output{
 				Type: omni.ClusterMachineType,
-				Kind: controller.OutputExclusive,
-			},
-			controller.Output{
-				Type: omni.ClusterMachineConfigPatchesType,
 				Kind: controller.OutputExclusive,
 			},
 		),

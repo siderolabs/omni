@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -221,10 +220,6 @@ func (ctrl *MachineExtensionsController) Reconcile(ctx context.Context, logger *
 
 			return nil
 		}); err != nil {
-			if state.IsPhaseConflictError(err) {
-				return controller.NewRequeueError(err, time.Millisecond*100)
-			}
-
 			return err
 		}
 	}

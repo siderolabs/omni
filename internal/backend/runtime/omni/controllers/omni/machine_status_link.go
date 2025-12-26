@@ -97,8 +97,7 @@ func (ctrl *MachineStatusLinkController) Run(ctx context.Context, rt controller.
 			return r.Metadata().ID(), r
 		})
 
-		//nolint:prealloc
-		var finalIDs []resource.ID
+		finalIDs := make([]resource.ID, 0, len(machineStatusMap)+len(linkMap))
 
 		finalIDs = append(finalIDs, xmaps.Keys(machineStatusMap)...)
 		finalIDs = append(finalIDs, xmaps.Keys(linkMap)...)

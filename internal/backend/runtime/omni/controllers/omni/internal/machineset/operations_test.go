@@ -105,13 +105,6 @@ func TestCreate(t *testing.T) {
 		cluster,
 		machineSet,
 		newHealthyLB(cluster.Metadata().ID()),
-		&fakePatchHelper{
-			patches: map[string][]*omni.ConfigPatch{
-				"aa": {
-					patch,
-				},
-			},
-		},
 		[]*omni.MachineSetNode{
 			omni.NewMachineSetNode("aa", machineSet),
 		},
@@ -129,176 +122,13 @@ func TestCreate(t *testing.T) {
 
 	helpers.UpdateInputsVersions(clusterMachine, patch)
 
-	inputsSHA, ok := clusterMachine.Metadata().Annotations().Get(helpers.InputResourceVersionAnnotation)
-	require.True(ok)
-
 	require.NoError(create.Apply(ctx, rt, logger, rc))
 
 	clusterMachine, err = safe.ReaderGetByID[*omni.ClusterMachine](ctx, rt, "aa")
 
-	actualInputsSHA, ok := clusterMachine.Metadata().Annotations().Get(helpers.InputResourceVersionAnnotation)
-	require.True(ok)
-	require.Equal(inputsSHA, actualInputsSHA)
-
 	require.NoError(err)
 
 	require.NotEmpty(clusterMachine.TypedSpec().Value.KubernetesVersion)
-
-	clusterMachineConfigPatches, err := safe.ReaderGetByID[*omni.ClusterMachineConfigPatches](ctx, rt, "aa")
-
-	require.NoError(err)
-
-	patches, err := clusterMachineConfigPatches.TypedSpec().Value.GetUncompressedPatches()
-	require.NoError(err)
-
-	require.NotEmpty(patches)
-}
-
-// TestUpdate run update 4 times:
-// - quota is 2, the machine has 1 patch.
-// - quota is 1, the machine should have 2 patches, verify that config patches resource was synced.
-// - quota is 0, the machine is still updating, so the update should work.
-// - quota is 0, the machine config status is synced, no update should happen.
-func TestUpdate(t *testing.T) {
-	rt := createRuntime()
-
-	cluster := omni.NewCluster("test")
-	cluster.TypedSpec().Value.KubernetesVersion = "v1.6.4"
-
-	machineSet := omni.NewMachineSet("machineset")
-	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
-
-	quota := &machineset.ChangeQuota{
-		Update: 2,
-	}
-
-	update := machineset.Update{ID: "aa", Quota: quota}
-
-	require := require.New(t)
-
-	ctx := t.Context()
-
-	patch1 := omni.NewConfigPatch("some")
-
-	err := patch1.TypedSpec().Value.SetUncompressedData([]byte(`machine:
-  network:
-    kubespan:
-      enabled: true`))
-	require.NoError(err)
-
-	patch2 := omni.NewConfigPatch("some")
-
-	err = patch2.TypedSpec().Value.SetUncompressedData([]byte(`machine:
-  network:
-    hostname: some`))
-	require.NoError(err)
-
-	patchHelper := &fakePatchHelper{
-		patches: map[string][]*omni.ConfigPatch{
-			"aa": {
-				patch1,
-			},
-		},
-	}
-
-	clusterMachine := omni.NewClusterMachine("aa")
-	clusterMachine.Metadata().SetVersion(resource.VersionUndefined.Next())
-
-	configStatus := omni.NewClusterMachineConfigStatus("aa")
-	configStatus.TypedSpec().Value.ClusterMachineVersion = clusterMachine.Metadata().Version().String()
-
-	var rc *machineset.ReconciliationContext
-
-	updateReconciliationContext := func() {
-		rc, err = machineset.NewReconciliationContext(
-			cluster,
-			machineSet,
-			newHealthyLB(cluster.Metadata().ID()),
-			patchHelper,
-			[]*omni.MachineSetNode{
-				omni.NewMachineSetNode("aa", machineSet),
-			},
-			[]*system.ResourceLabels[*omni.MachineStatus]{
-				system.NewResourceLabels[*omni.MachineStatus]("aa"),
-			},
-			[]*omni.ClusterMachine{
-				clusterMachine,
-			},
-			[]*omni.ClusterMachineConfigStatus{
-				configStatus,
-			},
-			[]*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches("aa"),
-			},
-			nil,
-		)
-		require.NoError(err)
-	}
-
-	updateReconciliationContext()
-
-	require.NoError(update.Apply(ctx, rt, logger, rc))
-
-	require.Equal(1, quota.Update)
-
-	patchHelper.patches["aa"] = append(patchHelper.patches["aa"], patch2)
-
-	updateReconciliationContext()
-
-	clusterMachine = omni.NewClusterMachine("aa")
-	helpers.UpdateInputsVersions(clusterMachine, patch1, patch2)
-
-	inputsSHA, ok := clusterMachine.Metadata().Annotations().Get(helpers.InputResourceVersionAnnotation)
-	require.True(ok)
-
-	require.NoError(update.Apply(ctx, rt, logger, rc))
-
-	require.Equal(0, quota.Update)
-
-	clusterMachine, err = safe.ReaderGetByID[*omni.ClusterMachine](ctx, rt, "aa")
-
-	actualInputsSHA, ok := clusterMachine.Metadata().Annotations().Get(helpers.InputResourceVersionAnnotation)
-	require.True(ok)
-	require.Equal(inputsSHA, actualInputsSHA)
-
-	require.NoError(err)
-
-	require.NotEmpty(clusterMachine.TypedSpec().Value.KubernetesVersion)
-
-	clusterMachineConfigPatches, err := safe.ReaderGetByID[*omni.ClusterMachineConfigPatches](ctx, rt, "aa")
-
-	require.NoError(err)
-
-	patches, err := clusterMachineConfigPatches.TypedSpec().Value.GetUncompressedPatches()
-	require.NoError(err)
-
-	require.NotEmpty(patches)
-
-	patchHelper.patches["aa"] = append(patchHelper.patches["aa"], patch1)
-
-	updateReconciliationContext()
-
-	clusterMachine, err = safe.ReaderGetByID[*omni.ClusterMachine](ctx, rt, "aa")
-	version := clusterMachine.Metadata().Version()
-
-	// update should happen as the machine update is still pending
-	require.NoError(update.Apply(ctx, rt, logger, rc))
-
-	clusterMachine, err = safe.ReaderGetByID[*omni.ClusterMachine](ctx, rt, "aa")
-	require.False(clusterMachine.Metadata().Version().Equal(version))
-
-	version = clusterMachine.Metadata().Version()
-
-	// simulate config synced
-	configStatus.TypedSpec().Value.ClusterMachineVersion = clusterMachine.Metadata().Version().String()
-
-	updateReconciliationContext()
-
-	// update shouldn't happen as the quota reached
-	require.NoError(update.Apply(ctx, rt, logger, rc))
-
-	clusterMachine, err = safe.ReaderGetByID[*omni.ClusterMachine](ctx, rt, "aa")
-	require.True(clusterMachine.Metadata().Version().Equal(version))
 }
 
 // TestTeardown create 2 cluster machine, destroy with quota 1, first should proceed, second should skip.
@@ -335,7 +165,6 @@ func TestTeardown(t *testing.T) {
 		cluster,
 		machineSet,
 		newHealthyLB(cluster.Metadata().ID()),
-		&fakePatchHelper{},
 		[]*omni.MachineSetNode{
 			omni.NewMachineSetNode("aa", machineSet),
 			omni.NewMachineSetNode("bb", machineSet),
@@ -396,14 +225,10 @@ func TestDestroy(t *testing.T) {
 		cm.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 		cm.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
 
-		cmcp := omni.NewClusterMachineConfigPatches(cm.Metadata().ID())
-		helpers.CopyAllLabels(cm, cmcp)
-
 		machine := omni.NewMachine(cm.Metadata().ID())
 		machine.Metadata().Finalizers().Add(machineset.ControllerName)
 
 		require.NoError(rt.Create(ctx, cm))
-		require.NoError(rt.Create(ctx, cmcp))
 		require.NoError(rt.Create(ctx, machine))
 
 		_, err := rt.Teardown(ctx, cm.Metadata())
@@ -416,7 +241,6 @@ func TestDestroy(t *testing.T) {
 		cluster,
 		machineSet,
 		newHealthyLB(cluster.Metadata().ID()),
-		&fakePatchHelper{},
 		nil,
 		nil,
 		clusterMachines,
@@ -434,8 +258,6 @@ func TestDestroy(t *testing.T) {
 
 	rtestutils.AssertNoResource[*omni.ClusterMachine](ctx, t, rt.State, "aa")
 	rtestutils.AssertNoResource[*omni.ClusterMachine](ctx, t, rt.State, "bb")
-	rtestutils.AssertNoResource[*omni.ClusterMachineConfigPatches](ctx, t, rt.State, "aa")
-	rtestutils.AssertNoResource[*omni.ClusterMachineConfigPatches](ctx, t, rt.State, "bb")
 	rtestutils.AssertResources(ctx, t, rt.State, []string{"aa", "bb"}, func(r *omni.Machine, assertion *assert.Assertions) {
 		assertion.True(r.Metadata().Finalizers().Empty())
 	})

@@ -269,6 +269,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: makeMachineSetNodesOwnerEmpty,
 				name:     "makeMachineSetNodesOwnerEmpty",
 			},
+			{
+				callback: changeClusterMachineConfigPatchesOwner,
+				name:     "changeClusterMachineConfigPatchesOwner",
+			},
 		},
 	}
 }

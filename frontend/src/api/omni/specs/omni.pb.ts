@@ -34,6 +34,7 @@ export enum MachineSetPhase {
   Destroying = 4,
   Failed = 5,
   Reconfiguring = 6,
+  Upgrading = 7,
 }
 
 export enum ConditionType {
@@ -398,7 +399,6 @@ export type ClusterMachineTalosVersionSpec = {
 
 export type ClusterMachineConfigSpec = {
   data?: Uint8Array
-  cluster_machine_version?: string
   generation_error?: string
   compressed_data?: Uint8Array
   without_comments?: boolean
@@ -463,11 +463,24 @@ export type ClusterConfigVersionSpec = {
 
 export type ClusterMachineConfigStatusSpec = {
   cluster_machine_config_version?: string
-  cluster_machine_version?: string
   cluster_machine_config_sha256?: string
   last_config_error?: string
   talos_version?: string
   schematic_id?: string
+  redacted_current_machine_config?: string
+  compressed_redacted_machine_config?: Uint8Array
+}
+
+export type MachinePendingUpdatesSpecUpgrade = {
+  from_schematic?: string
+  to_schematic?: string
+  from_version?: string
+  to_version?: string
+}
+
+export type MachinePendingUpdatesSpec = {
+  upgrade?: MachinePendingUpdatesSpecUpgrade
+  config_diff?: string
 }
 
 export type ClusterBootstrapStatusSpec = {
@@ -575,6 +588,9 @@ export type MachineSetStatusSpec = {
   config_hash?: string
   machine_allocation?: MachineSetSpecMachineAllocation
   locked_updates?: number
+  config_updates_allowed?: boolean
+  update_strategy?: MachineSetSpecUpdateStrategy
+  update_strategy_config?: MachineSetSpecUpdateStrategyConfig
 }
 
 export type MachineSetNodeSpec = {

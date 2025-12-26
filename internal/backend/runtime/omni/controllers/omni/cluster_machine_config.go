@@ -198,7 +198,6 @@ func reconcileClusterMachineConfig(
 
 	inputs := []resource.Resource{
 		secrets,
-		clusterMachine,
 		loadBalancerConfig,
 		cluster,
 		clusterMachineConfigPatches,
@@ -211,11 +210,6 @@ func reconcileClusterMachineConfig(
 	}
 
 	helpers.CopyLabels(clusterMachine, machineConfig, omni.LabelMachineSet, omni.LabelCluster, omni.LabelControlPlaneRole, omni.LabelWorkerRole)
-
-	// TODO: temporary transition code, remove in the future
-	if clusterMachine.TypedSpec().Value.KubernetesVersion == "" {
-		return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("kubernetes version is not set yet"))
-	}
 
 	installImage := machineConfigGenOptions.TypedSpec().Value.InstallImage
 	if installImage == nil {
@@ -285,7 +279,6 @@ func reconcileClusterMachineConfig(
 		machineConfig.TypedSpec().Value.WithoutComments = true
 	}
 
-	machineConfig.TypedSpec().Value.ClusterMachineVersion = clusterMachine.Metadata().Version().String()
 	machineConfig.TypedSpec().Value.GenerationError = ""
 	machineConfig.TypedSpec().Value.GrubUseUkiCmdline = conf.Machine().Install().GrubUseUKICmdline()
 
