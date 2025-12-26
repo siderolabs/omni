@@ -164,6 +164,11 @@ export const clusterSync = async (resources: Resource[], old?: Resource[]) => {
 
     for (const key in resourcesMap) {
       const md = resourcesMap[key].metadata
+
+      if (md.labels?.[LabelManagedByMachineSetNodeController] !== undefined) {
+        continue
+      }
+
       toDestroy.push({
         id: md.id,
         namespace: md.namespace,
