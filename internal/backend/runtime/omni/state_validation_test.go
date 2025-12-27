@@ -1091,7 +1091,7 @@ func TestIdentitySAMLValidation(t *testing.T) {
 		Enabled: true,
 	})...)
 
-	user := auth.NewIdentity(resources.DefaultNamespace, "aaa@example.org")
+	user := auth.NewIdentity("aaa@example.org")
 
 	assert := assert.New(t)
 
@@ -1144,18 +1144,18 @@ func TestCreateIdentityValidation(t *testing.T) {
 
 	assert := assert.New(t)
 
-	err := st.Create(ctx, auth.NewIdentity(resources.DefaultNamespace, "aaA"))
+	err := st.Create(ctx, auth.NewIdentity("aaA"))
 
 	assert.True(validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(err, "must be lowercase")
 	assert.ErrorContains(err, "not a valid email address")
 
-	err = st.Create(ctx, auth.NewIdentity(resources.DefaultNamespace, "aaa"))
+	err = st.Create(ctx, auth.NewIdentity("aaa"))
 
 	assert.True(validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(err, "not a valid email address")
 
-	assert.NoError(st.Create(ctx, auth.NewIdentity(resources.DefaultNamespace, "aaa@example.org")))
+	assert.NoError(st.Create(ctx, auth.NewIdentity("aaa@example.org")))
 }
 
 func TestExposedServiceAliasValidation(t *testing.T) {

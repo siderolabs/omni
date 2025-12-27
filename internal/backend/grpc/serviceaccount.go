@@ -62,7 +62,7 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 	sa := pkgaccess.ParseServiceAccountFromName(req.Name)
 	id := sa.FullID()
 
-	identity, err := safe.StateGet[*authres.Identity](ctx, s.omniState, authres.NewIdentity(resources.DefaultNamespace, id).Metadata())
+	identity, err := safe.StateGet[*authres.Identity](ctx, s.omniState, authres.NewIdentity(id).Metadata())
 	if err != nil {
 		return nil, err
 	}

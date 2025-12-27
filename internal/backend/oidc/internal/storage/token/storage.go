@@ -302,7 +302,7 @@ func (s *Storage) getImpersonateGroups(ctx context.Context, cluster, userID stri
 func (s *Storage) impersonateGroupsFromUser(ctx context.Context, userID string) ([]string, error) {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	identity, err := safe.StateGet[*auth.Identity](ctx, s.state, auth.NewIdentity(resources.DefaultNamespace, userID).Metadata())
+	identity, err := safe.StateGet[*auth.Identity](ctx, s.state, auth.NewIdentity(userID).Metadata())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get identity: %w", err)
 	}
@@ -342,7 +342,7 @@ func (s *Storage) impersonateGroupsFromAccessPolicy(ctx context.Context, cluster
 		return nil, fmt.Errorf("failed to get cluster: %w", err)
 	}
 
-	identityRes, err := safe.StateGet[*auth.Identity](ctx, s.state, auth.NewIdentity(resources.DefaultNamespace, userID).Metadata())
+	identityRes, err := safe.StateGet[*auth.Identity](ctx, s.state, auth.NewIdentity(userID).Metadata())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get identity: %w", err)
 	}

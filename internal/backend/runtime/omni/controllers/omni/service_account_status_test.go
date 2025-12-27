@@ -35,15 +35,15 @@ func (suite *ClusterServiceAccountStatusSuite) TestReconcile() {
 	suite.startRuntime()
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewServiceAccountStatusController()))
 
-	infraProviderServiceAccount := auth.NewIdentity(resources.DefaultNamespace, "p1"+access.InfraProviderServiceAccountNameSuffix)
+	infraProviderServiceAccount := auth.NewIdentity("p1"+access.InfraProviderServiceAccountNameSuffix)
 	infraProviderServiceAccount.TypedSpec().Value.UserId = "user2"
 	infraProviderServiceAccount.Metadata().Labels().Set(auth.LabelIdentityTypeServiceAccount, "")
 
-	serviceAccount := auth.NewIdentity(resources.DefaultNamespace, "u1"+access.ServiceAccountNameSuffix)
+	serviceAccount := auth.NewIdentity("u1"+access.ServiceAccountNameSuffix)
 	serviceAccount.TypedSpec().Value.UserId = "user1"
 	serviceAccount.Metadata().Labels().Set(auth.LabelIdentityTypeServiceAccount, "")
 
-	userIdentity := auth.NewIdentity(resources.DefaultNamespace, "p1")
+	userIdentity := auth.NewIdentity("p1")
 	userIdentity.TypedSpec().Value.UserId = "user1"
 
 	user1 := auth.NewUser(resources.DefaultNamespace, serviceAccount.TypedSpec().Value.UserId)

@@ -45,7 +45,7 @@ func RoleForCluster(ctx context.Context, id resource.ID, st state.State) (role.R
 		return userRole, false, nil
 	}
 
-	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(resources.DefaultNamespace, identityVal.Identity).Metadata())
+	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(identityVal.Identity).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return userRole, false, nil

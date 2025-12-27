@@ -38,7 +38,7 @@ func (c infraProviderCleanupTestHelper) prepareProvider(t *testing.T, ctx contex
 
 	user := auth.NewUser(resources.DefaultNamespace, userID)
 	user.TypedSpec().Value.Role = "Admin"
-	serviceAccount := auth.NewIdentity(resources.DefaultNamespace, providerID+access.InfraProviderServiceAccountNameSuffix)
+	serviceAccount := auth.NewIdentity(providerID+access.InfraProviderServiceAccountNameSuffix)
 	serviceAccount.Metadata().Labels().Set(auth.LabelIdentityTypeServiceAccount, "")
 	serviceAccount.Metadata().Labels().Set(auth.LabelIdentityUserID, userID)
 	serviceAccount.TypedSpec().Value.UserId = userID

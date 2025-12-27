@@ -41,7 +41,7 @@ func createUser(email string) func(ctx context.Context, client *client.Client) e
 
 		user.TypedSpec().Value.Role = createCmdFlags.role
 
-		identity := auth.NewIdentity(resources.DefaultNamespace, email)
+		identity := auth.NewIdentity(email)
 
 		identity.Metadata().Labels().Set(auth.LabelIdentityUserID, user.Metadata().ID())
 

@@ -791,14 +791,14 @@ func lowercaseAllIdentities(ctx context.Context, st state.State, _ *zap.Logger, 
 
 		var existing *auth.Identity
 
-		existing, err = safe.ReaderGet[*auth.Identity](ctx, st, auth.NewIdentity(identity.Metadata().Namespace(), lowercase).Metadata())
+		existing, err = safe.ReaderGet[*auth.Identity](ctx, st, auth.NewIdentity(lowercase).Metadata())
 		if err != nil && !state.IsNotFoundError(err) {
 			return err
 		}
 
 		switch {
 		case existing == nil:
-			res := auth.NewIdentity(identity.Metadata().Namespace(), lowercase)
+			res := auth.NewIdentity(lowercase)
 			helpers.CopyAllLabels(identity, res)
 
 			res.TypedSpec().Value = identity.TypedSpec().Value
@@ -1767,7 +1767,7 @@ func dropMachineClassStatusFinalizers(ctx context.Context, st state.State, logge
 // createProviders creates infra.Provider resource for each existing infra.ProviderStatus.
 // This migration is required to avoid breaking user's providers connection which were created before 0.50.
 func createProviders(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
-	identities, err := st.List(ctx, auth.NewIdentity(resources.DefaultNamespace, "").Metadata())
+	identities, err := st.List(ctx, auth.NewIdentity("").Metadata())
 	if err != nil {
 		return err
 	}

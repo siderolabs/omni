@@ -653,7 +653,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 		// fully client-managed resources
 
-		identity := authres.NewIdentity(resources.DefaultNamespace, uuid.New().String())
+		identity := authres.NewIdentity(uuid.New().String())
 		accessPolicy := authres.NewAccessPolicy()
 		samlLabelRule := authres.NewSAMLLabelRule(resources.DefaultNamespace, uuid.New().String())
 		cluster := omni.NewCluster(resources.DefaultNamespace, uuid.New().String())
