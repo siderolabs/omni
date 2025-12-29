@@ -11,34 +11,42 @@ import { gte, parse } from 'semver'
 import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { type Resource, ResourceService } from '@/api/grpc'
 import {
   type CreateSchematicRequestOverlay,
   CreateSchematicRequestSiderolinkGRPCTunnelMode,
   ManagementService,
 } from '@/api/omni/management/management.pb'
+import { GrpcTunnelMode, type InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import {
   type PlatformConfigSpec,
   PlatformConfigSpecArch,
   PlatformConfigSpecBootMethod,
   type SBCConfigSpec,
 } from '@/api/omni/specs/virtual.pb'
+import { withRuntime } from '@/api/options'
 import {
   CloudPlatformConfigType,
+  DefaultNamespace,
+  InstallationMediaConfigType,
   LabelsMeta,
   MetalPlatformConfigType,
   SBCConfigType,
   VirtualNamespace,
 } from '@/api/resources'
+import TButton from '@/components/common/Button/TButton.vue'
 import CodeBlock from '@/components/common/CodeBlock/CodeBlock.vue'
 import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink, getLegacyDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceList } from '@/methods/useResourceList'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
@@ -106,6 +114,65 @@ const { data: metalProvider } = useResourceGet<PlatformConfigSpec>(() => ({
     id: 'metal',
   },
 }))
+
+const imageId = computed(() => formState.value.name)
+
+const { data: existingImage, loading: existingImageLoading } =
+  useResourceWatch<InstallationMediaConfigSpec>(() => ({
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: DefaultNamespace,
+      type: InstallationMediaConfigType,
+      id: imageId.value,
+    },
+  }))
+
+const savePresetDisabled = computed(
+  () => !imageId.value || existingImageLoading.value || !!existingImage.value,
+)
+
+async function savePreset() {
+  if (savePresetDisabled.value) return
+
+  await ResourceService.Create<Resource<InstallationMediaConfigSpec>>(
+    {
+      metadata: {
+        namespace: DefaultNamespace,
+        type: InstallationMediaConfigType,
+        id: imageId.value,
+      },
+      spec: {
+        architecture: arch.value,
+        bootloader: formState.value.bootloader,
+        cloud:
+          selectedPlatform.value && selectedPlatform.value.metadata.id !== 'metal'
+            ? { platform: selectedPlatform.value.metadata.id }
+            : undefined,
+        sbc: selectedSBC.value
+          ? {
+              overlay: selectedSBC.value.metadata.id,
+              overlay_options: formState.value.overlayOptions,
+            }
+          : undefined,
+        grpc_tunnel: formState.value.useGrpcTunnel
+          ? GrpcTunnelMode.ENABLED
+          : GrpcTunnelMode.DISABLED,
+        talos_version: formState.value.talosVersion,
+        install_extensions: formState.value.systemExtensions,
+        join_token: formState.value.joinToken,
+        kernel_args: formState.value.cmdline,
+        machine_labels: formState.value.machineUserLabels
+          ? Object.entries(formState.value.machineUserLabels).reduce<Record<string, string>>(
+              (prev, [key, { value }]) => ({ ...prev, [key]: value }),
+              {},
+            )
+          : undefined,
+        secure_boot: formState.value.secureBoot,
+      },
+    },
+    withRuntime(Runtime.Omni),
+  )
+}
 
 const selectedPlatform = computed(() =>
   formState.value.hardwareType === 'metal'
@@ -257,6 +324,13 @@ function shortVersion(version?: string) {
       <code class="rounded bg-naturals-n4 px-2 py-1 wrap-anywhere">{{ schematic.id }}</code>
       <CopyButton :text="schematic.id" />
     </p>
+
+    <!-- TODO: Refactor to modal -->
+    <h3 class="text-sm text-naturals-n14">Save preset</h3>
+    <div class="flex gap-2">
+      <TInput v-model.trim="formState.name" title="Name" />
+      <TButton :disabled="savePresetDisabled" type="highlighted" @click="savePreset">Save</TButton>
+    </div>
 
     <CodeBlock :code="schematic.yml" />
 

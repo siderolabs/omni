@@ -107,7 +107,7 @@ const moveDownClicked = (index: number) => {
         class="flex flex-col divide-y divide-naturals-n4 border-t border-naturals-n4"
       >
         <div
-          v-for="(_, index) in control.data"
+          v-for="(_, index) in control.data as unknown[]"
           :key="`${control.path}-${index}`"
           class="flex items-center px-3 py-1"
         >
