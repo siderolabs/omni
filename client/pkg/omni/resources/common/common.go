@@ -39,4 +39,5 @@ var UserManagedResourceTypes = []resource.Type{
 	omni.InfraMachineConfigType,
 	omni.NodeForceDestroyRequestType,
 	infra.ProviderType,
+	omni.RotateTalosCAType,
 }
