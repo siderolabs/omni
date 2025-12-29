@@ -7,6 +7,8 @@ package machineset
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -20,7 +22,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configpatch"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
 )
 
@@ -32,7 +33,6 @@ const (
 // ChangeQuota defines allowed number of machine deletes and update for a single reconcile call.
 type ChangeQuota struct {
 	Teardown int
-	Update   int
 }
 
 // Use decreases quota type by 1 if it's > 0 or returns false if no more op of the kind are available.
@@ -46,8 +46,6 @@ func (q *ChangeQuota) Use(op int) bool {
 	switch op {
 	case opDelete:
 		qvalue = &q.Teardown
-	case opUpdate:
-		qvalue = &q.Update
 	default:
 		panic(fmt.Sprintf("unknown op kind %d", op))
 	}
@@ -67,37 +65,30 @@ func (q *ChangeQuota) Use(op int) bool {
 
 // ReconciliationContext describes all related data for one reconciliation call of the machine set status controller.
 type ReconciliationContext struct {
-	machineSet                      *omni.MachineSet
-	cluster                         *omni.Cluster
-	patchesByMachine                map[resource.ID][]*omni.ConfigPatch
-	machineSetNodesMap              map[resource.ID]*omni.MachineSetNode
-	clusterMachinesMap              map[resource.ID]*omni.ClusterMachine
-	clusterMachineConfigStatusesMap map[resource.ID]*omni.ClusterMachineConfigStatus
-	clusterMachineConfigPatchesMap  map[resource.ID]*omni.ClusterMachineConfigPatches
-	clusterMachineStatusesMap       map[resource.ID]*omni.ClusterMachineStatus
+	machineSet                *omni.MachineSet
+	cluster                   *omni.Cluster
+	machineSetNodesMap        map[resource.ID]*omni.MachineSetNode
+	clusterMachinesMap        map[resource.ID]*omni.ClusterMachine
+	clusterMachineStatusesMap map[resource.ID]*omni.ClusterMachineStatus
 
 	clusterName string
+	configHash  string
 
 	runningMachineSetNodesSet set.Set[string]
 	idsTearingDown            set.Set[string]
-	idsUnconfigured           set.Set[string]
 	idsOutdated               set.Set[string]
 	idsDestroyReady           set.Set[string]
-	idsUpdateLocked           set.Set[string]
 
 	idsToTeardown []string
 	idsToCreate   []string
-	idsToUpdate   []string
 	idsToDestroy  []string
 
 	lbHealthy bool
 }
 
-type patchHelper interface {
-	Get(*omni.ClusterMachine, *omni.MachineSet) ([]*omni.ConfigPatch, error)
-}
-
 // BuildReconciliationContext is the COSI reader dependent method to build the reconciliation context.
+//
+//nolint:gocognit
 func BuildReconciliationContext(ctx context.Context, r controller.Reader, machineSet *omni.MachineSet) (*ReconciliationContext, error) {
 	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
@@ -136,9 +127,9 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader, machin
 		return nil, fmt.Errorf("failed to list cluster machine config statuses for the machine set %q: %w", machineSet.Metadata().ID(), err)
 	}
 
-	clusterMachineConfigPatches, err := safe.ReaderListAll[*omni.ClusterMachineConfigPatches](ctx, r, query)
+	machinePendingUpdates, err := safe.ReaderListAll[*omni.MachinePendingUpdates](ctx, r, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list cluster machine config patches for the machine set %q: %w", machineSet.Metadata().ID(), err)
+		return nil, fmt.Errorf("failed to list machine pending updates for the machine set %q: %w", machineSet.Metadata().ID(), err)
 	}
 
 	clusterMachineStatuses, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, r, query)
@@ -146,20 +137,14 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader, machin
 		return nil, fmt.Errorf("failed to list cluster machine config statuses for the machine set %q: %w", machineSet.Metadata().ID(), err)
 	}
 
-	configPatchHelper, err := configpatch.NewHelper(ctx, r)
-	if err != nil {
-		return nil, fmt.Errorf("error creating config patch helper: %w", err)
-	}
-
 	return NewReconciliationContext(
 		cluster,
 		machineSet,
 		loadBalancerStatus,
-		configPatchHelper,
 		toSlice(machineSetNodes),
 		toSlice(clusterMachines),
 		toSlice(clusterMachineConfigStatuses),
-		toSlice(clusterMachineConfigPatches),
+		toSlice(machinePendingUpdates),
 		toSlice(clusterMachineStatuses),
 	)
 }
@@ -169,11 +154,10 @@ func NewReconciliationContext(
 	cluster *omni.Cluster,
 	machineSet *omni.MachineSet,
 	loadbalancerStatus *omni.LoadBalancerStatus,
-	patchHelper patchHelper,
 	machineSetNodes []*omni.MachineSetNode,
 	clusterMachines []*omni.ClusterMachine,
 	clusterMachineConfigStatuses []*omni.ClusterMachineConfigStatus,
-	clusterMachineConfigPatches []*omni.ClusterMachineConfigPatches,
+	machinePendingUpdates []*omni.MachinePendingUpdates,
 	clusterMachineStatuses []*omni.ClusterMachineStatus,
 ) (*ReconciliationContext, error) {
 	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
@@ -182,10 +166,9 @@ func NewReconciliationContext(
 	}
 
 	rc := &ReconciliationContext{
-		machineSet:       machineSet,
-		cluster:          cluster,
-		clusterName:      clusterName,
-		patchesByMachine: map[resource.ID][]*omni.ConfigPatch{},
+		machineSet:  machineSet,
+		cluster:     cluster,
+		clusterName: clusterName,
 	}
 
 	checkLocked := func(r *omni.MachineSetNode) bool {
@@ -203,12 +186,10 @@ func NewReconciliationContext(
 	}
 
 	rc.clusterMachinesMap = toMap(clusterMachines)
-	rc.clusterMachineConfigStatusesMap = toMap(clusterMachineConfigStatuses)
-	rc.clusterMachineConfigPatchesMap = toMap(clusterMachineConfigPatches)
 	rc.clusterMachineStatusesMap = toMap(clusterMachineStatuses)
 	rc.machineSetNodesMap = toMap(machineSetNodes)
 	rc.runningMachineSetNodesSet = toSet(xslices.Filter(machineSetNodes, checkRunning))
-	rc.idsUpdateLocked = make(set.Set[string])
+	rc.idsOutdated = toSet(machinePendingUpdates)
 
 	clusterMachinesSet := toSet(clusterMachines)
 	lockedMachinesSet := toSet(xslices.Filter(machineSetNodes, checkLocked))
@@ -245,77 +226,26 @@ func NewReconciliationContext(
 
 	rc.idsTearingDown = set.Difference(tearingDownMachinesSet, rc.idsDestroyReady)
 
-	updateCandidates := set.Values(
-		set.Difference(
-			set.Intersection(
-				rc.runningMachineSetNodesSet,
-				clusterMachinesSet,
-			),
-			tearingDownMachinesSet,
-		),
-	)
-
 	for id := range set.Union(rc.runningMachineSetNodesSet, clusterMachinesSet) {
 		clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, id)
 
 		helpers.CopyAllLabels(machineSet, clusterMachine)
 
 		clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
-
-		patches, err := patchHelper.Get(clusterMachine, machineSet)
-		if err != nil {
-			return nil, err
-		}
-
-		rc.patchesByMachine[clusterMachine.Metadata().ID()] = patches
-	}
-
-	updateMachine := func(id string) {
-		if lockedMachinesSet.Contains(id) {
-			rc.idsUpdateLocked.Add(id)
-
-			return
-		}
-
-		rc.idsToUpdate = append(rc.idsToUpdate, id)
-	}
-
-	for _, id := range updateCandidates {
-		clusterMachine := rc.clusterMachinesMap[id].DeepCopy().(*omni.ClusterMachine) //nolint:forcetypeassert,errcheck
-
-		_, ok := rc.clusterMachineConfigPatchesMap[id]
-		if !ok {
-			updateMachine(id)
-
-			continue
-		}
-
-		patches := rc.patchesByMachine[id]
-
-		if helpers.UpdateInputsVersions(clusterMachine, patches...) {
-			updateMachine(id)
-		}
-	}
-
-	rc.idsOutdated = make(set.Set[string])
-	rc.idsUnconfigured = make(set.Set[string])
-
-	for id := range set.Difference(clusterMachinesSet, tearingDownMachinesSet) {
-		clusterMachineConfigStatus, ok := rc.clusterMachineConfigStatusesMap[id]
-		if !ok {
-			rc.idsUnconfigured.Add(id)
-
-			continue
-		}
-
-		if isUpdating(rc.clusterMachinesMap[id], clusterMachineConfigStatus) {
-			rc.idsOutdated.Add(id)
-		}
 	}
 
 	if loadbalancerStatus != nil {
 		rc.lbHealthy = loadbalancerStatus.TypedSpec().Value.Healthy
 	}
+
+	configHashHasher := sha256.New()
+
+	for _, status := range clusterMachineConfigStatuses {
+		configHashHasher.Write([]byte(status.TypedSpec().Value.ClusterMachineConfigSha256))
+	}
+
+	// combined hash of all cluster machine config hashes
+	rc.configHash = hex.EncodeToString(configHashHasher.Sum(nil))
 
 	return rc, nil
 }
@@ -335,27 +265,9 @@ func (rc *ReconciliationContext) GetMachinesToCreate() []string {
 	return rc.idsToCreate
 }
 
-// GetMachinesToUpdate returns all machine IDs which have outdated config patches.
-func (rc *ReconciliationContext) GetMachinesToUpdate() []string {
-	return rc.idsToUpdate
-}
-
-// GetLockedUpdates returns all machine IDs which have pending updates but are locked.
-func (rc *ReconciliationContext) GetLockedUpdates() set.Set[string] {
-	return rc.idsUpdateLocked
-}
-
 // GetTearingDownMachines returns all ClusterMachines in TearingDown phase.
 func (rc *ReconciliationContext) GetTearingDownMachines() set.Set[string] {
 	return rc.idsTearingDown
-}
-
-// GetUpdatingMachines returns all ClusterMachines which have outdated config patches, or not configured at all.
-func (rc *ReconciliationContext) GetUpdatingMachines() set.Set[string] {
-	return set.Union(
-		rc.idsOutdated,
-		rc.idsUnconfigured,
-	)
 }
 
 // GetOutdatedMachines returns the list of machines which are currently being configured.
@@ -427,28 +339,11 @@ func (rc *ReconciliationContext) GetClusterMachineStatuses() map[resource.ID]*om
 	return rc.clusterMachineStatusesMap
 }
 
-// GetClusterMachineConfigStatuses reads the related machine set resources.
-func (rc *ReconciliationContext) GetClusterMachineConfigStatuses() map[resource.ID]*omni.ClusterMachineConfigStatus {
-	return rc.clusterMachineConfigStatusesMap
-}
-
 // GetClusterMachine by the id.
 func (rc *ReconciliationContext) GetClusterMachine(id resource.ID) (*omni.ClusterMachine, bool) {
 	cm, ok := rc.clusterMachinesMap[id]
 
 	return cm, ok
-}
-
-// GetClusterMachineConfigStatus by the id.
-func (rc *ReconciliationContext) GetClusterMachineConfigStatus(id resource.ID) (*omni.ClusterMachineConfigStatus, bool) {
-	cm, ok := rc.clusterMachineConfigStatusesMap[id]
-
-	return cm, ok
-}
-
-// GetConfigPatches reads previosly collected confignpatches for a machine.
-func (rc *ReconciliationContext) GetConfigPatches(id resource.ID) []*omni.ConfigPatch {
-	return rc.patchesByMachine[id]
 }
 
 // LBHealthy returns the health status of the loadbalancer for the current cluster.
@@ -464,7 +359,6 @@ func (rc *ReconciliationContext) CalculateQuota() ChangeQuota {
 	)
 
 	quota.Teardown = getParallelismOrDefault(machineSetSpec.DeleteStrategy, machineSetSpec.DeleteStrategyConfig, -1)
-	quota.Update = getParallelismOrDefault(machineSetSpec.UpdateStrategy, machineSetSpec.UpdateStrategyConfig, 1)
 
 	// final delete quota is MaxParallelism minus machines in tearing down phase
 	if quota.Teardown > 0 {
@@ -472,15 +366,6 @@ func (rc *ReconciliationContext) CalculateQuota() ChangeQuota {
 
 		if quota.Teardown < 0 {
 			quota.Teardown = 0
-		}
-	}
-
-	// final update quota is MaxParallelism minus currently updated machines count
-	if quota.Update > 0 {
-		quota.Update -= len(rc.GetUpdatingMachines())
-
-		if quota.Update < 0 {
-			quota.Update = 0
 		}
 	}
 
@@ -497,10 +382,6 @@ func getParallelismOrDefault(strategyType specs.MachineSetSpec_UpdateStrategy, s
 	}
 
 	return def
-}
-
-func isUpdating(clusterMachine *omni.ClusterMachine, clusterMachineConfigStatus *omni.ClusterMachineConfigStatus) bool {
-	return clusterMachineConfigStatus.TypedSpec().Value.ClusterMachineVersion != clusterMachine.Metadata().Version().String() || clusterMachineConfigStatus.TypedSpec().Value.LastConfigError != ""
 }
 
 func toSet[T resource.Resource](resources []T) set.Set[resource.ID] {
