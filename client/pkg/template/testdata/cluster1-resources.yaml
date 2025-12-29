@@ -10,7 +10,6 @@ metadata:
     annotations:
         omni.sidero.dev/managed-by-cluster-templates:
 spec:
-    installimage: ""
     kubernetesversion: 1.18.2
     talosversion: 1.5.0
     features:
