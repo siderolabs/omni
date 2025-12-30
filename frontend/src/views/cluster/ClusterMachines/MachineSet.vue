@@ -266,11 +266,13 @@ const sectionHeadingId = useId()
         }})
       </div>
 
-      <TActionsBox v-if="canRemoveMachineSet" class="self-center justify-self-end">
-        <TActionsBoxItem icon="delete" danger @select="() => openMachineSetDestroy(machineSet)">
-          Destroy Machine Set
-        </TActionsBoxItem>
-      </TActionsBox>
+      <div class="flex items-center justify-end">
+        <TActionsBox v-if="canRemoveMachineSet">
+          <TActionsBoxItem icon="delete" danger @select="() => openMachineSetDestroy(machineSet)">
+            Destroy Machine Set
+          </TActionsBoxItem>
+        </TActionsBox>
+      </div>
     </div>
 
     <ClusterMachine

@@ -5,8 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { Ref } from 'vue'
-import { computed, onMounted, ref, toRefs, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -30,12 +29,10 @@ import {
   TalosUpgradeStatusType,
   VirtualNamespace,
 } from '@/api/resources'
-import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import RadialBar from '@/components/common/Charts/RadialBar.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TAlert from '@/components/TAlert.vue'
-import { getContext } from '@/context'
 import { formatBytes, setupBackupStatus } from '@/methods'
 import { setupClusterPermissions } from '@/methods/auth'
 import {
@@ -48,6 +45,7 @@ import {
   setUseEmbeddedDiscoveryService,
 } from '@/methods/cluster'
 import { embeddedDiscoveryServiceFeatureAvailable, useFeatures } from '@/methods/features'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
 import OverviewRightPanel from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
 import ClusterEtcdBackupCheckbox from '@/views/omni/Clusters/ClusterEtcdBackupCheckbox.vue'
@@ -63,49 +61,41 @@ type Props = {
   currentCluster: Resource<ClusterSpec>
 }
 
-const props = defineProps<Props>()
-const { currentCluster } = toRefs(props)
+const { currentCluster } = defineProps<Props>()
 
-const enableWorkloadProxy = ref(currentCluster.value.spec.features?.enable_workload_proxy || false)
+const enableWorkloadProxy = ref(currentCluster.spec.features?.enable_workload_proxy || false)
 const useEmbeddedDiscoveryService = ref(
-  currentCluster.value.spec.features?.use_embedded_discovery_service || false,
+  currentCluster.spec.features?.use_embedded_discovery_service || false,
 )
 
-watch(currentCluster, (cluster) => {
-  enableWorkloadProxy.value = cluster.spec.features?.enable_workload_proxy || false
-  useEmbeddedDiscoveryService.value = cluster.spec.features?.use_embedded_discovery_service || false
-})
+watch(
+  () => currentCluster,
+  (cluster) => {
+    enableWorkloadProxy.value = cluster.spec.features?.enable_workload_proxy || false
+    useEmbeddedDiscoveryService.value =
+      cluster.spec.features?.use_embedded_discovery_service || false
+  },
+)
 
 const { status: backupStatus } = setupBackupStatus()
 
-const context = getContext()
+const clusterId = computed(() => currentCluster.metadata.id ?? '')
 
-const kubernetesUpgradeStatus: Ref<Resource<KubernetesUpgradeStatusSpec> | undefined> = ref()
-const kubernetesUpgradeStatusWatch = new Watch(kubernetesUpgradeStatus)
-
-kubernetesUpgradeStatusWatch.setup({
+const { data: kubernetesUpgradeStatus } = useResourceWatch<KubernetesUpgradeStatusSpec>({
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: KubernetesUpgradeStatusType,
-    id: context.cluster,
+    id: clusterId.value,
   },
 })
 
-const clusterStatus: Ref<Resource<ClusterStatusSpec> | undefined> = ref()
-
-const usage: Ref<Resource<KubernetesUsageSpec> | undefined> = ref()
-
-const usageWatch = new Watch(usage)
-
-const clusterStatusWatch = new Watch(clusterStatus)
-
-clusterStatusWatch.setup({
+const { data: clusterStatus } = useResourceWatch<ClusterStatusSpec>({
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: ClusterStatusType,
-    id: context.cluster,
+    id: clusterId.value,
   },
 })
 
@@ -113,53 +103,37 @@ const showStats = computed(() => {
   return (clusterStatus.value?.spec.machines?.total ?? 0) < clusterSizeStatsThreshold
 })
 
-usageWatch.setup(
-  computed(() => {
-    if (!clusterStatus.value) {
-      return
-    }
+const { data: usage } = useResourceWatch<KubernetesUsageSpec>({
+  skip: !clusterStatus.value || !showStats.value,
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: VirtualNamespace,
+    type: KubernetesUsageType,
+    id: clusterId.value,
+  },
+})
 
-    if (!showStats.value) {
-      return
-    }
-
-    return {
-      runtime: Runtime.Omni,
-      resource: {
-        namespace: VirtualNamespace,
-        type: KubernetesUsageType,
-        id: context.cluster,
-      },
-    }
-  }),
-)
-
-const talosUpgradeStatus: Ref<Resource<TalosUpgradeStatusSpec> | undefined> = ref()
-const talosUpgradeStatusWatch = new Watch(talosUpgradeStatus)
-
-talosUpgradeStatusWatch.setup({
+const { data: talosUpgradeStatus } = useResourceWatch<TalosUpgradeStatusSpec>({
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: TalosUpgradeStatusType,
-    id: context.cluster,
+    id: clusterId.value,
   },
 })
 
-const { canManageClusterFeatures } = setupClusterPermissions(
-  computed(() => currentCluster.value.metadata.id as string),
-)
+const { canManageClusterFeatures } = setupClusterPermissions(clusterId)
 
 const { data: features } = useFeatures()
 
 const isEmbeddedDiscoveryServiceAvailable = ref(false)
 
 const toggleUseEmbeddedDiscoveryService = async (value: boolean) => {
-  await setUseEmbeddedDiscoveryService(context.cluster ?? '', value)
+  await setUseEmbeddedDiscoveryService(clusterId.value, value)
 }
 
 const clusterLocked = computed(() => {
-  return currentCluster?.value?.metadata.annotations?.[ClusterLocked] !== undefined
+  return currentCluster.metadata.annotations?.[ClusterLocked] !== undefined
 })
 
 const machineLockedForTalosUpgrade = computed(() => {
@@ -280,7 +254,7 @@ onMounted(async () => {
               type="secondary"
               class="place-self-end"
               icon="close"
-              @click="revertKubernetesUpgrade(context.cluster ?? '')"
+              @click="revertKubernetesUpgrade(clusterId)"
             >
               Cancel
             </TButton>
@@ -341,7 +315,7 @@ onMounted(async () => {
               type="secondary"
               class="place-self-end"
               icon="close"
-              @click="revertTalosUpgrade(context.cluster ?? '')"
+              @click="revertTalosUpgrade(clusterId)"
             >
               Cancel
             </TButton>
@@ -359,9 +333,7 @@ onMounted(async () => {
               <ClusterWorkloadProxyingCheckbox
                 :model-value="enableWorkloadProxy"
                 :disabled="!canManageClusterFeatures"
-                @update:model-value="
-                  (value) => setClusterWorkloadProxy(context.cluster ?? '', value)
-                "
+                @update:model-value="(value) => setClusterWorkloadProxy(clusterId, value)"
               />
               <EmbeddedDiscoveryServiceCheckbox
                 :model-value="useEmbeddedDiscoveryService"
@@ -371,7 +343,7 @@ onMounted(async () => {
               <ClusterEtcdBackupCheckbox
                 :backup-status="backupStatus"
                 :cluster="currentCluster.spec"
-                @update:cluster="(spec) => setClusterEtcdBackupsConfig(context.cluster ?? '', spec)"
+                @update:cluster="(spec) => setClusterEtcdBackupsConfig(clusterId, spec)"
               />
             </div>
           </div>
@@ -390,7 +362,9 @@ onMounted(async () => {
           <div class="overview-box-header">
             <span class="overview-box-title">Machines</span>
           </div>
-          <ClusterMachines :cluster-i-d="context.cluster!" />
+          <div class="grid grid-cols-[repeat(4,1fr)_--spacing(18)]">
+            <ClusterMachines is-subgrid :cluster-i-d="clusterId" />
+          </div>
         </div>
       </div>
       <OverviewRightPanel
