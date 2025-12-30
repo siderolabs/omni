@@ -92,6 +92,8 @@ const supportedK8sVersions = computed(() =>
 )
 
 interface VersionGroup {
+  clusterSupportsGroup: boolean
+  minTalosVersion: string
   upgradeable: boolean
   versions: {
     upgradeable: boolean
@@ -101,6 +103,9 @@ interface VersionGroup {
 
 const groupedK8sVersions = computed(() => {
   const oldestSupportedVersion = supportedK8sVersions.value[0]
+  const clusterTalosVersion = allTalosVersions.value.find(
+    (v) => v.spec.version === cluster.value?.spec.talos_version,
+  )
 
   return allK8sVersions.value
     .map((v) => semver.parse(v.spec.version, false, true))
@@ -113,6 +118,14 @@ const groupedK8sVersions = computed(() => {
       const majorMinor = `${major}.${minor}`
 
       result[majorMinor] ||= {
+        clusterSupportsGroup:
+          clusterTalosVersion?.spec.compatible_kubernetes_versions?.some((v) =>
+            semver.satisfies(v, majorMinor),
+          ) ?? false,
+        minTalosVersion:
+          allTalosVersions.value.find((v) =>
+            v.spec.compatible_kubernetes_versions?.some((v) => semver.satisfies(v, majorMinor)),
+          )?.spec.version ?? 'unknown',
         upgradeable: isVersionUpgradeable(`${major}.${minor}.0`),
         versions: [],
       }
@@ -213,7 +226,10 @@ const upgradeClick = async () => {
         class="flex max-h-64 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
       >
         <template
-          v-for="({ upgradeable: groupUpgradeable, versions }, group) in groupedK8sVersions"
+          v-for="(
+            { minTalosVersion, clusterSupportsGroup, upgradeable: groupUpgradeable, versions },
+            group
+          ) in groupedK8sVersions"
           :key="group"
         >
           <RadioGroupLabel
@@ -224,11 +240,9 @@ const upgradeClick = async () => {
             {{
               groupUpgradeable
                 ? ''
-                : allTalosVersions
-                      .find((v) => v.spec.version === cluster?.spec.talos_version)
-                      ?.spec.compatible_kubernetes_versions?.some((v) => semver.satisfies(v, group))
+                : clusterSupportsGroup
                   ? " - Can't skip minor version upgrades"
-                  : ` - Requires Talos version ${allTalosVersions.find((v) => v.spec.compatible_kubernetes_versions?.some((v) => semver.satisfies(v, group)))?.spec.version}`
+                  : ` - Requires Talos version ${minTalosVersion}`
             }}
           </RadioGroupLabel>
           <div class="flex flex-col gap-1">
