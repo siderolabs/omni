@@ -13,9 +13,9 @@ import (
 )
 
 // NewKubernetesResource creates new cluster config version resource.
-func NewKubernetesResource(ns string, id resource.ID, spec KubernetesResourceSpec) *KubernetesResource {
+func NewKubernetesResource(id resource.ID, spec KubernetesResourceSpec) *KubernetesResource {
 	return typed.NewResource[KubernetesResourceSpec, KubernetesResourceExtension](
-		resource.NewMetadata(ns, KubernetesResourceType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, KubernetesResourceType, id, resource.VersionUndefined),
 		spec,
 	)
 }

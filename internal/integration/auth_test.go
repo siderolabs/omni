@@ -1139,7 +1139,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		// no access resources
 		testCases = append(testCases, []resourceAuthzTestCase{
 			{
-				resource: oidc.NewJWTPublicKey(resources.DefaultNamespace, uuid.New().String()),
+				resource: oidc.NewJWTPublicKey(uuid.New().String()),
 			},
 			{
 				resource: system.NewDBVersion(uuid.New().String()),
