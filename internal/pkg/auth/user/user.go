@@ -17,14 +17,13 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 // EnsureInitialResources creates the auth.User and auth.Identity resources if they are not present.
 func EnsureInitialResources(ctx context.Context, st state.State, logger *zap.Logger, initialUsers []string) error {
-	items, err := st.List(ctx, auth.NewUser(resources.DefaultNamespace, "").Metadata())
+	items, err := st.List(ctx, auth.NewUser("").Metadata())
 	if err != nil {
 		return err
 	}
@@ -50,7 +49,7 @@ func EnsureInitialResources(ctx context.Context, st state.State, logger *zap.Log
 func Ensure(ctx context.Context, st state.State, email string, role role.Role, updateRole bool) error {
 	email = strings.ToLower(email)
 
-	identity, err := safe.StateGet[*auth.Identity](ctx, st, auth.NewIdentity(resources.DefaultNamespace, email).Metadata())
+	identity, err := safe.StateGet[*auth.Identity](ctx, st, auth.NewIdentity(email).Metadata())
 	if err != nil {
 		if !state.IsNotFoundError(err) {
 			return err
@@ -58,7 +57,7 @@ func Ensure(ctx context.Context, st state.State, email string, role role.Role, u
 
 		newUserID := uuid.New().String()
 
-		identity = auth.NewIdentity(resources.DefaultNamespace, email)
+		identity = auth.NewIdentity(email)
 		identity.TypedSpec().Value.UserId = newUserID
 		identity.Metadata().Labels().Set(auth.LabelIdentityUserID, newUserID)
 
@@ -68,7 +67,7 @@ func Ensure(ctx context.Context, st state.State, email string, role role.Role, u
 		}
 	}
 
-	user := auth.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId)
+	user := auth.NewUser(identity.TypedSpec().Value.UserId)
 
 	user.TypedSpec().Value.Role = string(role)
 

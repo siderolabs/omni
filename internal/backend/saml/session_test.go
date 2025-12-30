@@ -21,7 +21,6 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/saml"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -216,22 +215,22 @@ func TestReadLabelsFromAssertion(t *testing.T) {
 func TestRoleInSAMLLabelRules(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 
-	operatorRoleToDeveloper := auth.NewSAMLLabelRule(resources.DefaultNamespace, "assign-operator-to-developer")
+	operatorRoleToDeveloper := auth.NewSAMLLabelRule("assign-operator-to-developer")
 
 	operatorRoleToDeveloper.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/developer"}
 	operatorRoleToDeveloper.TypedSpec().Value.AssignRole = string(role.Operator)
 
-	readerRoleToDeveloper := auth.NewSAMLLabelRule(resources.DefaultNamespace, "assign-reader-to-developer")
+	readerRoleToDeveloper := auth.NewSAMLLabelRule("assign-reader-to-developer")
 
 	readerRoleToDeveloper.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/developer"}
 	readerRoleToDeveloper.TypedSpec().Value.AssignRole = string(role.Reader)
 
-	adminRoleToManager := auth.NewSAMLLabelRule(resources.DefaultNamespace, "assign-admin-to-manager")
+	adminRoleToManager := auth.NewSAMLLabelRule("assign-admin-to-manager")
 
 	adminRoleToManager.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/manager"}
 	adminRoleToManager.TypedSpec().Value.AssignRole = string(role.Admin)
 
-	invalidRoleToFoobar := auth.NewSAMLLabelRule(resources.DefaultNamespace, "assign-invalid-role-to-foobar")
+	invalidRoleToFoobar := auth.NewSAMLLabelRule("assign-invalid-role-to-foobar")
 
 	invalidRoleToFoobar.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/foobar"}
 	invalidRoleToFoobar.TypedSpec().Value.AssignRole = "invalid-role"

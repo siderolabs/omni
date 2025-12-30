@@ -20,7 +20,6 @@ import (
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -54,7 +53,7 @@ func TestAccessValidator(t *testing.T) {
 	key, err := pgp.GenerateKey("test", "", "test@example.com", 8*time.Hour)
 	require.NoError(t, err)
 
-	publicKey := auth.NewPublicKey(resources.DefaultNamespace, "test-public-key-id")
+	publicKey := auth.NewPublicKey("test-public-key-id")
 
 	armored, err := key.ArmorPublic()
 	require.NoError(t, err)

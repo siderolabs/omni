@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
@@ -35,67 +34,67 @@ func TestCheck(t *testing.T) {
 
 	checkResult, err := accesspolicy.Check(accessPolicy,
 		omni.NewCluster("cluster-group-1-cluster-1").Metadata(),
-		auth.NewIdentity(resources.DefaultNamespace, "user-group-1-user-1").Metadata())
+		auth.NewIdentity("user-group-1-user-1").Metadata())
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"k8s-group-1", "k8s-group-2"}, checkResult.KubernetesImpersonateGroups)
 
 	checkResult, err = accesspolicy.Check(accessPolicy,
 		omni.NewCluster("cluster-group-1-cluster-1").Metadata(),
-		auth.NewIdentity(resources.DefaultNamespace, "user-group-1-user-2").Metadata())
+		auth.NewIdentity("user-group-1-user-2").Metadata())
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"k8s-group-1", "k8s-group-2"}, checkResult.KubernetesImpersonateGroups)
 
 	checkResult, err = accesspolicy.Check(accessPolicy,
 		omni.NewCluster("cluster-group-1-cluster-1").Metadata(),
-		auth.NewIdentity(resources.DefaultNamespace, "standalone-user-1").Metadata())
+		auth.NewIdentity("standalone-user-1").Metadata())
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"k8s-group-1", "k8s-group-2"}, checkResult.KubernetesImpersonateGroups)
 
 	checkResult, err = accesspolicy.Check(accessPolicy,
 		omni.NewCluster("standalone-cluster-1").Metadata(),
-		auth.NewIdentity(resources.DefaultNamespace, "standalone-user-1").Metadata())
+		auth.NewIdentity("standalone-user-1").Metadata())
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"k8s-group-1", "k8s-group-2"}, checkResult.KubernetesImpersonateGroups)
 
 	checkResult, err = accesspolicy.Check(accessPolicy,
 		omni.NewCluster("cluster-group-1-cluster-1").Metadata(),
-		auth.NewIdentity(resources.DefaultNamespace, "user-group-2-user-1").Metadata())
+		auth.NewIdentity("user-group-2-user-1").Metadata())
 	require.NoError(t, err)
 	assert.Empty(t, checkResult.KubernetesImpersonateGroups)
 
 	checkResult, err = accesspolicy.Check(accessPolicy,
 		omni.NewCluster("cluster-group-2-cluster-1").Metadata(),
-		auth.NewIdentity(resources.DefaultNamespace, "user-group-2-user-1").Metadata())
+		auth.NewIdentity("user-group-2-user-1").Metadata())
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"k8s-group-3", "k8s-group-4"}, checkResult.KubernetesImpersonateGroups)
 
 	checkResult, err = accesspolicy.Check(accessPolicy,
 		omni.NewCluster("cluster-group-2-cluster-1").Metadata(),
-		auth.NewIdentity(resources.DefaultNamespace, "user-group-2-user-2").Metadata())
+		auth.NewIdentity("user-group-2-user-2").Metadata())
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"k8s-group-3", "k8s-group-4"}, checkResult.KubernetesImpersonateGroups)
 
 	checkResult, err = accesspolicy.Check(accessPolicy,
 		omni.NewCluster("cluster-group-2-cluster-1").Metadata(),
-		auth.NewIdentity(resources.DefaultNamespace, "user-group-2-user-3").Metadata())
+		auth.NewIdentity("user-group-2-user-3").Metadata())
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"k8s-group-3", "k8s-group-4"}, checkResult.KubernetesImpersonateGroups)
 
 	checkResult, err = accesspolicy.Check(accessPolicy,
 		omni.NewCluster("cluster-group-2-cluster-1").Metadata(),
-		auth.NewIdentity(resources.DefaultNamespace, "standalone-user-2").Metadata())
+		auth.NewIdentity("standalone-user-2").Metadata())
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"k8s-group-3", "k8s-group-4"}, checkResult.KubernetesImpersonateGroups)
 
 	checkResult, err = accesspolicy.Check(accessPolicy,
 		omni.NewCluster("standalone-cluster-2").Metadata(),
-		auth.NewIdentity(resources.DefaultNamespace, "standalone-user-2").Metadata())
+		auth.NewIdentity("standalone-user-2").Metadata())
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"k8s-group-3", "k8s-group-4"}, checkResult.KubernetesImpersonateGroups)
 
 	checkResult, err = accesspolicy.Check(accessPolicy,
 		omni.NewCluster("cluster-group-2-cluster-1").Metadata(),
-		auth.NewIdentity(resources.DefaultNamespace, "user-group-1-user-1").Metadata())
+		auth.NewIdentity("user-group-1-user-1").Metadata())
 	require.NoError(t, err)
 	assert.Empty(t, checkResult.KubernetesImpersonateGroups)
 }

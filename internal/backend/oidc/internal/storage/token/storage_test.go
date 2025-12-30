@@ -20,7 +20,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
@@ -70,11 +69,11 @@ func TestGetPrivateClaimsFromScopes(t *testing.T) {
 		},
 	}
 
-	identity := auth.NewIdentity(resources.DefaultNamespace, userIdentity)
+	identity := auth.NewIdentity(userIdentity)
 
 	identity.TypedSpec().Value.UserId = userID
 
-	user := auth.NewUser(resources.DefaultNamespace, userID)
+	user := auth.NewUser(userID)
 	user.TypedSpec().Value.Role = string(role.None)
 
 	cluster := omni.NewCluster(clusterID)
@@ -171,11 +170,11 @@ func TestSetUserinfoFromScopes(t *testing.T) {
 		},
 	}
 
-	identity := auth.NewIdentity(resources.DefaultNamespace, userIdentity)
+	identity := auth.NewIdentity(userIdentity)
 
 	identity.TypedSpec().Value.UserId = userID
 
-	user := auth.NewUser(resources.DefaultNamespace, userID)
+	user := auth.NewUser(userID)
 
 	// will bring constants.DefaultAccessGroup scope
 	user.TypedSpec().Value.Role = string(role.Operator)
@@ -223,11 +222,11 @@ func TestTokenIntrospection(t *testing.T) {
 	userIdentity := req.GetSubject()
 	userID := "test-user-id"
 
-	identity := auth.NewIdentity(resources.DefaultNamespace, userIdentity)
+	identity := auth.NewIdentity(userIdentity)
 
 	identity.TypedSpec().Value.UserId = userID
 
-	user := auth.NewUser(resources.DefaultNamespace, userID)
+	user := auth.NewUser(userID)
 
 	// will bring constants.DefaultAccessGroup scope
 	user.TypedSpec().Value.Role = string(role.Operator)

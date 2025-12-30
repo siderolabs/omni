@@ -12,7 +12,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth"
@@ -45,7 +44,7 @@ func RoleForCluster(ctx context.Context, id resource.ID, st state.State) (role.R
 		return userRole, false, nil
 	}
 
-	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(resources.DefaultNamespace, identityVal.Identity).Metadata())
+	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(identityVal.Identity).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return userRole, false, nil

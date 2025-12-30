@@ -25,7 +25,6 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
@@ -62,12 +61,12 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 	sa := pkgaccess.ParseServiceAccountFromName(req.Name)
 	id := sa.FullID()
 
-	identity, err := safe.StateGet[*authres.Identity](ctx, s.omniState, authres.NewIdentity(resources.DefaultNamespace, id).Metadata())
+	identity, err := safe.StateGet[*authres.Identity](ctx, s.omniState, authres.NewIdentity(id).Metadata())
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := safe.StateGet[*authres.User](ctx, s.omniState, authres.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId).Metadata())
+	user, err := safe.StateGet[*authres.User](ctx, s.omniState, authres.NewUser(identity.TypedSpec().Value.UserId).Metadata())
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +79,7 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 		return nil, err
 	}
 
-	publicKeyResource := authres.NewPublicKey(resources.DefaultNamespace, key.ID)
+	publicKeyResource := authres.NewPublicKey(key.ID)
 	publicKeyResource.Metadata().Labels().Set(authres.LabelPublicKeyUserID, identity.TypedSpec().Value.UserId)
 
 	publicKeyResource.TypedSpec().Value.PublicKey = key.Data

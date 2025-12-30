@@ -17,7 +17,6 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 
 	"github.com/siderolabs/omni/client/pkg/access"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -202,7 +201,7 @@ func deleteServiceAccount(ctx context.Context, r controller.ReaderWriter, name s
 		return false, err
 	}
 
-	userMD := auth.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId).Metadata()
+	userMD := auth.NewUser(identity.TypedSpec().Value.UserId).Metadata()
 
 	for _, f := range []func() (bool, error){
 		func() (bool, error) {

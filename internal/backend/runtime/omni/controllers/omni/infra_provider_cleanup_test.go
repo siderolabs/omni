@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/pkg/access"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -36,13 +35,13 @@ func (c infraProviderCleanupTestHelper) prepareProvider(t *testing.T, ctx contex
 	providerStatus := infra.NewProviderStatus(providerID)
 	providerHealthStatus := infra.NewProviderHealthStatus(providerID)
 
-	user := auth.NewUser(resources.DefaultNamespace, userID)
+	user := auth.NewUser(userID)
 	user.TypedSpec().Value.Role = "Admin"
-	serviceAccount := auth.NewIdentity(resources.DefaultNamespace, providerID+access.InfraProviderServiceAccountNameSuffix)
+	serviceAccount := auth.NewIdentity(providerID + access.InfraProviderServiceAccountNameSuffix)
 	serviceAccount.Metadata().Labels().Set(auth.LabelIdentityTypeServiceAccount, "")
 	serviceAccount.Metadata().Labels().Set(auth.LabelIdentityUserID, userID)
 	serviceAccount.TypedSpec().Value.UserId = userID
-	publicKey := auth.NewPublicKey(resources.DefaultNamespace, "test-public-key")
+	publicKey := auth.NewPublicKey("test-public-key")
 	publicKey.Metadata().Labels().Set(auth.LabelIdentityUserID, userID)
 
 	require.NoError(t, st.Create(ctx, provider))

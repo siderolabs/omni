@@ -24,7 +24,6 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/op"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
@@ -302,12 +301,12 @@ func (s *Storage) getImpersonateGroups(ctx context.Context, cluster, userID stri
 func (s *Storage) impersonateGroupsFromUser(ctx context.Context, userID string) ([]string, error) {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	identity, err := safe.StateGet[*auth.Identity](ctx, s.state, auth.NewIdentity(resources.DefaultNamespace, userID).Metadata())
+	identity, err := safe.StateGet[*auth.Identity](ctx, s.state, auth.NewIdentity(userID).Metadata())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get identity: %w", err)
 	}
 
-	user, err := safe.StateGet[*auth.User](ctx, s.state, auth.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.GetUserId()).Metadata())
+	user, err := safe.StateGet[*auth.User](ctx, s.state, auth.NewUser(identity.TypedSpec().Value.GetUserId()).Metadata())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
@@ -342,7 +341,7 @@ func (s *Storage) impersonateGroupsFromAccessPolicy(ctx context.Context, cluster
 		return nil, fmt.Errorf("failed to get cluster: %w", err)
 	}
 
-	identityRes, err := safe.StateGet[*auth.Identity](ctx, s.state, auth.NewIdentity(resources.DefaultNamespace, userID).Metadata())
+	identityRes, err := safe.StateGet[*auth.Identity](ctx, s.state, auth.NewIdentity(userID).Metadata())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get identity: %w", err)
 	}

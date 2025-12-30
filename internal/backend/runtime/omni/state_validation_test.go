@@ -30,7 +30,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -1091,7 +1090,7 @@ func TestIdentitySAMLValidation(t *testing.T) {
 		Enabled: true,
 	})...)
 
-	user := auth.NewIdentity(resources.DefaultNamespace, "aaa@example.org")
+	user := auth.NewIdentity("aaa@example.org")
 
 	assert := assert.New(t)
 
@@ -1144,18 +1143,18 @@ func TestCreateIdentityValidation(t *testing.T) {
 
 	assert := assert.New(t)
 
-	err := st.Create(ctx, auth.NewIdentity(resources.DefaultNamespace, "aaA"))
+	err := st.Create(ctx, auth.NewIdentity("aaA"))
 
 	assert.True(validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(err, "must be lowercase")
 	assert.ErrorContains(err, "not a valid email address")
 
-	err = st.Create(ctx, auth.NewIdentity(resources.DefaultNamespace, "aaa"))
+	err = st.Create(ctx, auth.NewIdentity("aaa"))
 
 	assert.True(validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(err, "not a valid email address")
 
-	assert.NoError(st.Create(ctx, auth.NewIdentity(resources.DefaultNamespace, "aaa@example.org")))
+	assert.NoError(st.Create(ctx, auth.NewIdentity("aaa@example.org")))
 }
 
 func TestExposedServiceAliasValidation(t *testing.T) {
@@ -1292,7 +1291,7 @@ func TestSAMLLabelRuleValidation(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.SAMLLabelRuleValidationOptions()...)
 
-	labelRule := auth.NewSAMLLabelRule(resources.DefaultNamespace, "test-label-rule")
+	labelRule := auth.NewSAMLLabelRule("test-label-rule")
 	labelRule.TypedSpec().Value.AssignRole = "invalid"
 	labelRule.TypedSpec().Value.MatchLabels = []string{"--invalid--- ===== 5"}
 

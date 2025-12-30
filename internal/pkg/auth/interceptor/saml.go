@@ -20,7 +20,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth"
@@ -103,7 +102,7 @@ func (i *SAML) intercept(ctx context.Context) (context.Context, error) {
 func (i *SAML) getSession(ctx context.Context, sessionID string) (*authres.SAMLAssertion, error) {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	acs, err := safe.StateGet[*authres.SAMLAssertion](ctx, i.state, authres.NewSAMLAssertion(resources.DefaultNamespace, sessionID).Metadata())
+	acs, err := safe.StateGet[*authres.SAMLAssertion](ctx, i.state, authres.NewSAMLAssertion(sessionID).Metadata())
 	if err != nil {
 		i.logger.Info("invalid session", zap.Error(err))
 

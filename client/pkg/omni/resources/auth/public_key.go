@@ -21,9 +21,9 @@ import (
 )
 
 // NewPublicKey creates a new PublicKey resource.
-func NewPublicKey(ns, id string) *PublicKey {
+func NewPublicKey(id string) *PublicKey {
 	return typed.NewResource[PublicKeySpec, PublicKeyExtension](
-		resource.NewMetadata(ns, PublicKeyType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, PublicKeyType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.PublicKeySpec{}),
 	)
 }

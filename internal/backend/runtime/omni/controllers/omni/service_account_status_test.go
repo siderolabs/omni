@@ -16,7 +16,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -35,24 +34,24 @@ func (suite *ClusterServiceAccountStatusSuite) TestReconcile() {
 	suite.startRuntime()
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewServiceAccountStatusController()))
 
-	infraProviderServiceAccount := auth.NewIdentity(resources.DefaultNamespace, "p1"+access.InfraProviderServiceAccountNameSuffix)
+	infraProviderServiceAccount := auth.NewIdentity("p1" + access.InfraProviderServiceAccountNameSuffix)
 	infraProviderServiceAccount.TypedSpec().Value.UserId = "user2"
 	infraProviderServiceAccount.Metadata().Labels().Set(auth.LabelIdentityTypeServiceAccount, "")
 
-	serviceAccount := auth.NewIdentity(resources.DefaultNamespace, "u1"+access.ServiceAccountNameSuffix)
+	serviceAccount := auth.NewIdentity("u1" + access.ServiceAccountNameSuffix)
 	serviceAccount.TypedSpec().Value.UserId = "user1"
 	serviceAccount.Metadata().Labels().Set(auth.LabelIdentityTypeServiceAccount, "")
 
-	userIdentity := auth.NewIdentity(resources.DefaultNamespace, "p1")
+	userIdentity := auth.NewIdentity("p1")
 	userIdentity.TypedSpec().Value.UserId = "user1"
 
-	user1 := auth.NewUser(resources.DefaultNamespace, serviceAccount.TypedSpec().Value.UserId)
+	user1 := auth.NewUser(serviceAccount.TypedSpec().Value.UserId)
 	user1.TypedSpec().Value.Role = string(role.Admin)
 
-	user2 := auth.NewUser(resources.DefaultNamespace, infraProviderServiceAccount.TypedSpec().Value.UserId)
+	user2 := auth.NewUser(infraProviderServiceAccount.TypedSpec().Value.UserId)
 	user2.TypedSpec().Value.Role = string(role.InfraProvider)
 
-	publicKey := auth.NewPublicKey(resources.DefaultNamespace, "asdf")
+	publicKey := auth.NewPublicKey("asdf")
 	publicKey.Metadata().Labels().Set(auth.LabelPublicKeyUserID, user1.Metadata().ID())
 	publicKey.TypedSpec().Value.Identity = &specs.Identity{
 		Email: serviceAccount.Metadata().ID(),
