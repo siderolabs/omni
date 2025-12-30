@@ -14,9 +14,9 @@ import (
 )
 
 // NewJWTPublicKey creates new JWTPublicKey state.
-func NewJWTPublicKey(ns, id string) *JWTPublicKey {
+func NewJWTPublicKey(id string) *JWTPublicKey {
 	return typed.NewResource[JWTPublicKeySpec, JWTPublicKeyExtension](
-		resource.NewMetadata(ns, JWTPublicKeyType, id, resource.VersionUndefined),
+		resource.NewMetadata(NamespaceName, JWTPublicKeyType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.JWTPublicKeySpec{}),
 	)
 }
