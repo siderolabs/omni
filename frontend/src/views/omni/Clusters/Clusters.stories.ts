@@ -24,6 +24,7 @@ import {
   MachineSetSpecMachineAllocationType,
   type MachineSetStatusSpec,
 } from '@/api/omni/specs/omni.pb'
+import type { ClusterPermissionsSpec } from '@/api/omni/specs/virtual.pb'
 import {
   ClusterDiagnosticsType,
   ClusterLocked,
@@ -275,16 +276,11 @@ export const Data: Story = {
                 can_download_support_bundle: true,
               },
               metadata: {
-                created: '2025-10-01T18:42:13Z',
-                updated: '2025-10-01T18:42:13Z',
-                namespace: 'virtual',
-                type: 'ClusterPermissions.omni.sidero.dev',
+                namespace: VirtualNamespace,
+                type: ClusterPermissionsType,
                 id: 'talos-test-cluster',
-                owner: '',
-                phase: 'running',
-                version: 1,
               },
-            }),
+            } as Resource<ClusterPermissionsSpec>),
           })
         }),
       ],

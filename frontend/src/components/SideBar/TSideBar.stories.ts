@@ -8,6 +8,7 @@ import { http, HttpResponse } from 'msw'
 import { vueRouter } from 'storybook-vue3-router'
 import { RouterView } from 'vue-router'
 
+import type { Resource } from '@/api/grpc'
 import type { GetRequest } from '@/api/omni/resources/resources.pb'
 import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
 import type {
@@ -17,6 +18,7 @@ import type {
   KubernetesUpgradeManifestStatusSpec,
   MachineStatusMetricsSpec,
 } from '@/api/omni/specs/omni.pb'
+import type { ClusterPermissionsSpec } from '@/api/omni/specs/virtual.pb'
 import {
   ClusterMachineIdentityType,
   ClusterPermissionsType,
@@ -416,16 +418,11 @@ export const Default: Story = {
                 can_download_support_bundle: true,
               },
               metadata: {
-                created: '2025-10-23T09:34:12Z',
-                updated: '2025-10-23T09:34:12Z',
-                namespace: 'virtual',
-                type: 'ClusterPermissions.omni.sidero.dev',
+                namespace: VirtualNamespace,
+                type: ClusterPermissionsType,
                 id: 'talos-default',
-                owner: '',
-                phase: 'running',
-                version: '1',
               },
-            }),
+            } as Resource<ClusterPermissionsSpec>),
           })
         }),
 
