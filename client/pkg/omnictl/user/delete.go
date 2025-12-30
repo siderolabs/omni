@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -36,14 +35,14 @@ func deleteUsers(emails ...string) func(ctx context.Context, client *client.Clie
 		toDelete := make([]resource.Pointer, 0, len(emails)*2)
 
 		for _, email := range emails {
-			identity := auth.NewIdentity(resources.DefaultNamespace, email)
+			identity := auth.NewIdentity(email)
 
 			existing, err := safe.ReaderGetByID[*auth.Identity](ctx, client.Omni().State(), email)
 			if err != nil {
 				return err
 			}
 
-			toDelete = append(toDelete, identity.Metadata(), auth.NewUser(resources.DefaultNamespace, existing.TypedSpec().Value.UserId).Metadata())
+			toDelete = append(toDelete, identity.Metadata(), auth.NewUser(existing.TypedSpec().Value.UserId).Metadata())
 		}
 
 		for _, md := range toDelete {

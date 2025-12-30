@@ -50,7 +50,7 @@ func TestAudit(t *testing.T) {
 
 	hooks.Init(l)
 
-	res := auth.NewPublicKey(resources.DefaultNamespace, "917e47635eb900d0ae66271dd1e06966e048c4f3")
+	res := auth.NewPublicKey("917e47635eb900d0ae66271dd1e06966e048c4f3")
 
 	res.Metadata().Labels().Set(auth.LabelPublicKeyUserID, "002cf196-1767-43fd-8e3d-91241e2ce70c")
 
