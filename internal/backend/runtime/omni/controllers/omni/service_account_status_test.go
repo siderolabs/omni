@@ -52,7 +52,7 @@ func (suite *ClusterServiceAccountStatusSuite) TestReconcile() {
 	user2 := auth.NewUser(resources.DefaultNamespace, infraProviderServiceAccount.TypedSpec().Value.UserId)
 	user2.TypedSpec().Value.Role = string(role.InfraProvider)
 
-	publicKey := auth.NewPublicKey(resources.DefaultNamespace, "asdf")
+	publicKey := auth.NewPublicKey("asdf")
 	publicKey.Metadata().Labels().Set(auth.LabelPublicKeyUserID, user1.Metadata().ID())
 	publicKey.TypedSpec().Value.Identity = &specs.Identity{
 		Email: serviceAccount.Metadata().ID(),

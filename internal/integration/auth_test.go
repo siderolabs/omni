@@ -1156,7 +1156,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource: system.NewCertRefreshTick(resources.DefaultNamespace, uuid.New().String()),
 			},
 			{
-				resource: authres.NewPublicKey(resources.DefaultNamespace, uuid.New().String()),
+				resource: authres.NewPublicKey(uuid.New().String()),
 			},
 			{
 				resource: omni.NewEtcdAuditResult(resources.DefaultNamespace, uuid.New().String()),

@@ -42,7 +42,7 @@ func (c infraProviderCleanupTestHelper) prepareProvider(t *testing.T, ctx contex
 	serviceAccount.Metadata().Labels().Set(auth.LabelIdentityTypeServiceAccount, "")
 	serviceAccount.Metadata().Labels().Set(auth.LabelIdentityUserID, userID)
 	serviceAccount.TypedSpec().Value.UserId = userID
-	publicKey := auth.NewPublicKey(resources.DefaultNamespace, "test-public-key")
+	publicKey := auth.NewPublicKey("test-public-key")
 	publicKey.Metadata().Labels().Set(auth.LabelIdentityUserID, userID)
 
 	require.NoError(t, st.Create(ctx, provider))

@@ -79,7 +79,7 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 
 	newUserID := uuid.NewString()
 
-	publicKeyResource := authres.NewPublicKey(resources.DefaultNamespace, key.ID)
+	publicKeyResource := authres.NewPublicKey(key.ID)
 	publicKeyResource.Metadata().Labels().Set(authres.LabelPublicKeyUserID, newUserID)
 
 	if sa.IsInfraProvider {
@@ -150,7 +150,7 @@ func Destroy(ctx context.Context, st state.State, name string) error {
 
 	pubKeys, err := st.List(
 		ctx,
-		authres.NewPublicKey(resources.DefaultNamespace, "").Metadata(),
+		authres.NewPublicKey("").Metadata(),
 		state.WithLabelQuery(resource.LabelEqual(authres.LabelIdentityUserID, identity.TypedSpec().Value.UserId)),
 	)
 	if err != nil {

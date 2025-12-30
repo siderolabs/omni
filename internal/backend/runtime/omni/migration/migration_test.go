@@ -193,9 +193,9 @@ func (suite *MigrationSuite) Test_changePublicKeyOwner() {
 	defer cancel()
 
 	keys := []*authres.PublicKey{
-		authres.NewPublicKey(resources.DefaultNamespace, "test1"),
-		authres.NewPublicKey(resources.DefaultNamespace, "test2"),
-		authres.NewPublicKey(resources.DefaultNamespace, "test3"),
+		authres.NewPublicKey("test1"),
+		authres.NewPublicKey("test2"),
+		authres.NewPublicKey("test3"),
 	}
 
 	for _, key := range keys[:2] {
@@ -727,10 +727,10 @@ func (suite *MigrationSuite) TestAddServiceAccountScopesToUsers() {
 	user2 := authres.NewUser(resources.DefaultNamespace, fmt.Sprintf("user2-%s", id))
 	user2.TypedSpec().Value.Scopes = scope.NewScopes(scope.UserAny).Strings()
 
-	publicKey1 := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("publicKey1-%s", id))
+	publicKey1 := authres.NewPublicKey(fmt.Sprintf("publicKey1-%s", id))
 	publicKey1.TypedSpec().Value.Scopes = scope.NewScopes(scope.ClusterAny).Strings()
 
-	publicKey2 := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("publicKey2-%s", id))
+	publicKey2 := authres.NewPublicKey(fmt.Sprintf("publicKey2-%s", id))
 
 	suite.Require().NoError(suite.state.Create(ctx, user1))
 	suite.Require().NoError(suite.state.Create(ctx, user2))
@@ -824,19 +824,19 @@ func (suite *MigrationSuite) TestConvertScopesToRoles() {
 	userWithServiceAccountScopes := authres.NewUser(resources.DefaultNamespace, fmt.Sprintf("userWithServiceAccountScopes-%s", uuid.New().String()))
 	userWithServiceAccountScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.ServiceAccountCreate).Strings()
 
-	pubKeyWithNoScopes := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("pubKeyWithNoScopes-%s", uuid.New().String()))
+	pubKeyWithNoScopes := authres.NewPublicKey(fmt.Sprintf("pubKeyWithNoScopes-%s", uuid.New().String()))
 	pubKeyWithNoScopes.TypedSpec().Value.Scopes = []string{}
 
-	pubKeyWithReadScopes := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("pubKeyWithReadScopes-%s", uuid.New().String()))
+	pubKeyWithReadScopes := authres.NewPublicKey(fmt.Sprintf("pubKeyWithReadScopes-%s", uuid.New().String()))
 	pubKeyWithReadScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.MachineRead, scope.ClusterRead).Strings()
 
-	pubKeyWithModifyScopes := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("pubKeyWithModifyScopes-%s", uuid.New().String()))
+	pubKeyWithModifyScopes := authres.NewPublicKey(fmt.Sprintf("pubKeyWithModifyScopes-%s", uuid.New().String()))
 	pubKeyWithModifyScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.ClusterModify).Strings()
 
-	pubKeyWithUserMgmtScopes := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("pubKeyWithUserMgmtScopes-%s", uuid.New().String()))
+	pubKeyWithUserMgmtScopes := authres.NewPublicKey(fmt.Sprintf("pubKeyWithUserMgmtScopes-%s", uuid.New().String()))
 	pubKeyWithUserMgmtScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.UserRead).Strings()
 
-	pubKeyWithServiceAccountScopes := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("pubKeyWithServiceAccountScopes-%s", uuid.New().String()))
+	pubKeyWithServiceAccountScopes := authres.NewPublicKey(fmt.Sprintf("pubKeyWithServiceAccountScopes-%s", uuid.New().String()))
 	pubKeyWithServiceAccountScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.ServiceAccountCreate).Strings()
 
 	suite.Require().NoError(suite.state.Create(ctx, userWithNoScopes))
@@ -917,12 +917,12 @@ func (suite *MigrationSuite) TestLowercaseEmails() {
 	identityOverwritten := authres.NewIdentity(resources.DefaultNamespace, "c@a.com")
 	identityOverwritten.TypedSpec().Value.UserId = "eee"
 
-	publicKey := authres.NewPublicKey(resources.DefaultNamespace, "1")
+	publicKey := authres.NewPublicKey("1")
 	publicKey.TypedSpec().Value.Identity = &specs.Identity{
 		Email: "USER@a.com",
 	}
 
-	danglingPublicKey := authres.NewPublicKey(resources.DefaultNamespace, "2")
+	danglingPublicKey := authres.NewPublicKey("2")
 
 	suite.Require().NoError(suite.state.Create(ctx, identityUppercase))
 	suite.Require().NoError(suite.state.Create(ctx, identityConflict))

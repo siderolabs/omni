@@ -171,7 +171,7 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 		}
 	}
 
-	newPubKey := authres.NewPublicKey(resources.DefaultNamespace, pubKey.id)
+	newPubKey := authres.NewPublicKey(pubKey.id)
 
 	_, err = safe.StateGet[*authres.PublicKey](ctx, s.state, newPubKey.Metadata())
 	if state.IsNotFoundError(err) {
@@ -208,7 +208,7 @@ func (s *authServer) AwaitPublicKeyConfirmation(ctx context.Context, request *au
 	ctx, cancel := context.WithTimeout(ctx, awaitPublicKeyConfirmationTimeout)
 	defer cancel()
 
-	pubKey := authres.NewPublicKey(resources.DefaultNamespace, request.GetPublicKeyId())
+	pubKey := authres.NewPublicKey(request.GetPublicKeyId())
 
 	_, err := s.state.WatchFor(ctx, pubKey.Metadata(),
 		state.WithEventTypes(state.Created, state.Updated),
@@ -311,7 +311,7 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		return nil, err
 	}
 
-	pubKey, err := safe.StateGet[*authres.PublicKey](ctx, s.state, authres.NewPublicKey(resources.DefaultNamespace, request.GetPublicKeyId()).Metadata())
+	pubKey, err := safe.StateGet[*authres.PublicKey](ctx, s.state, authres.NewPublicKey(request.GetPublicKeyId()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, status.Error(codes.PermissionDenied, "permission denied")

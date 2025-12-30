@@ -80,7 +80,7 @@ func (s *managementServer) RenewServiceAccount(ctx context.Context, req *managem
 		return nil, err
 	}
 
-	publicKeyResource := authres.NewPublicKey(resources.DefaultNamespace, key.ID)
+	publicKeyResource := authres.NewPublicKey(key.ID)
 	publicKeyResource.Metadata().Labels().Set(authres.LabelPublicKeyUserID, identity.TypedSpec().Value.UserId)
 
 	publicKeyResource.TypedSpec().Value.PublicKey = key.Data
