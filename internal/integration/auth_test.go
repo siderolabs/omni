@@ -672,7 +672,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		extensionsConfiguration := omni.NewExtensionsConfiguration(uuid.New().String())
 		extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
-		machineExtensions := omni.NewMachineExtensions(resources.DefaultNamespace, uuid.New().String())
+		machineExtensions := omni.NewMachineExtensions(uuid.New().String())
 		machineExtensions.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
 
 		machineExtensionsStatus := omni.NewMachineExtensionsStatus(uuid.New().String())

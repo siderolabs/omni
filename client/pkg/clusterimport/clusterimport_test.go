@@ -53,7 +53,6 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/siderolabs/omni/client/pkg/clusterimport"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
