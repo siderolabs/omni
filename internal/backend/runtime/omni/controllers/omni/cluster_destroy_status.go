@@ -17,7 +17,6 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
@@ -38,24 +37,24 @@ func NewClusterDestroyStatusController() *ClusterDestroyStatusController {
 		qtransform.Settings[*omni.Cluster, *omni.ClusterDestroyStatus]{
 			Name: ClusterDestroyStatusControllerName,
 			MapMetadataFunc: func(cluster *omni.Cluster) *omni.ClusterDestroyStatus {
-				return omni.NewClusterDestroyStatus(resources.DefaultNamespace, cluster.Metadata().ID())
+				return omni.NewClusterDestroyStatus(cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(clusterDestroyStatus *omni.ClusterDestroyStatus) *omni.Cluster {
-				return omni.NewCluster(resources.DefaultNamespace, clusterDestroyStatus.Metadata().ID())
+				return omni.NewCluster(clusterDestroyStatus.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, cluster *omni.Cluster, clusterDestroyStatus *omni.ClusterDestroyStatus) error {
 				if cluster.Metadata().Phase() != resource.PhaseTearingDown {
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("not tearing down")
 				}
 
-				msStatuses, err := r.List(ctx, omni.NewMachineSetStatus(resources.DefaultNamespace, "").Metadata(), state.WithLabelQuery(
+				msStatuses, err := r.List(ctx, omni.NewMachineSetStatus("").Metadata(), state.WithLabelQuery(
 					resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()),
 				))
 				if err != nil {
 					return fmt.Errorf("failed to list control planes %w", err)
 				}
 
-				cmStatuses, err := r.List(ctx, omni.NewClusterMachineStatus(resources.DefaultNamespace, "").Metadata(),
+				cmStatuses, err := r.List(ctx, omni.NewClusterMachineStatus("").Metadata(),
 					state.WithLabelQuery(resource.LabelEqual(
 						omni.LabelCluster, cluster.Metadata().ID()),
 					),

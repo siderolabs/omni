@@ -117,8 +117,8 @@ func TestValidations(t *testing.T) {
 	)
 
 	// prepare resources
-	cluster := omni.NewCluster(resources.DefaultNamespace, "something")
-	machine := omni.NewMachine(resources.DefaultNamespace, "something")
+	cluster := omni.NewCluster("something")
+	machine := omni.NewMachine("something")
 	machine.Metadata().Labels().Set("foo", "bar")
 
 	// try to create cluster
@@ -226,7 +226,7 @@ func TestTeardownDestroyValidations(t *testing.T) {
 		),
 	)
 
-	res := omni.NewCluster(resources.DefaultNamespace, "something")
+	res := omni.NewCluster("something")
 
 	require.NoError(t, st.Create(t.Context(), res))
 

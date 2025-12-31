@@ -289,7 +289,7 @@ func TestInfraProviderSpecificNamespace(t *testing.T) {
 
 	// try to create a resource with omni-internal type, i.e., "ExposedServices.omni.sidero.dev" in the infra-provider specific namespace - assert that it is not allowed
 
-	omniRes := omni.NewExposedService(infraProviderResNamespace, "test-res-3")
+	omniRes := omni.NewExposedService("test-res-3")
 
 	err = st.Create(ctx, omniRes)
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))

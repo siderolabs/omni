@@ -115,7 +115,6 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 		var clusterStatus *omni.ClusterStatus
 
 		clusterStatus, err = safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(
-			resources.DefaultNamespace,
 			item.Metadata().ID(),
 		).Metadata())
 		if err != nil {
@@ -168,7 +167,7 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 		id := cfg.Metadata().ID()
 
 		if _, ok := stopped[id]; ok {
-			if err := safe.WriterModify(ctx, r, omni.NewLoadBalancerStatus(resources.DefaultNamespace, id), func(status *omni.LoadBalancerStatus) error {
+			if err := safe.WriterModify(ctx, r, omni.NewLoadBalancerStatus(id), func(status *omni.LoadBalancerStatus) error {
 				status.Metadata().Labels().Set(omni.LabelCluster, id)
 
 				status.TypedSpec().Value.Stopped = true
@@ -197,7 +196,7 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 
 func (ctrl *LoadBalancerController) updateHealthStatus(ctx context.Context, r controller.Runtime) error {
 	for id, healthy := range ctrl.loadBalancers.GetHealthStatus() {
-		if err := safe.WriterModify(ctx, r, omni.NewLoadBalancerStatus(resources.DefaultNamespace, id), func(status *omni.LoadBalancerStatus) error {
+		if err := safe.WriterModify(ctx, r, omni.NewLoadBalancerStatus(id), func(status *omni.LoadBalancerStatus) error {
 			status.Metadata().Labels().Set(omni.LabelCluster, id)
 
 			status.TypedSpec().Value.Stopped = false

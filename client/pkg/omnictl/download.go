@@ -30,7 +30,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/meta"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omnictl/config"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
@@ -493,7 +492,7 @@ func getExtensions(ctx context.Context, client *client.Client) ([]string, error)
 	extensions, err := safe.StateGet[*omni.TalosExtensions](
 		ctx,
 		client.Omni().State(),
-		omni.NewTalosExtensions(resources.DefaultNamespace, strings.TrimLeft(downloadCmdFlags.talosVersion, "v")).Metadata(),
+		omni.NewTalosExtensions(strings.TrimLeft(downloadCmdFlags.talosVersion, "v")).Metadata(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get extensions for talos version %q: %w", downloadCmdFlags.talosVersion, err)

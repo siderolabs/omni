@@ -15,7 +15,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -33,7 +32,7 @@ func NewStatusController() *StatusController {
 				return omni.NewKernelArgsStatus(ms.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(status *omni.KernelArgsStatus) *omni.MachineStatus {
-				return omni.NewMachineStatus(resources.DefaultNamespace, status.Metadata().ID())
+				return omni.NewMachineStatus(status.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, ms *omni.MachineStatus, status *omni.KernelArgsStatus) error {
 				helpers.SyncLabels(ms, status, omni.LabelCluster, omni.LabelMachineSet)

@@ -198,7 +198,6 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 	clusterMachineIdentity := clusterMachineIdentities[clusterMachine.Metadata().ID()]
 
 	secrets, err := safe.ReaderGet[*omni.ClusterSecrets](ctx, r, omni.NewClusterSecrets(
-		resources.DefaultNamespace,
 		clusterName,
 	).Metadata())
 	if err != nil {

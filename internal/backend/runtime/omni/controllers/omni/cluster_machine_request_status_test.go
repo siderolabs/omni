@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -33,7 +32,7 @@ func (suite *ClusterMachineRequestStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineRequestStatusController()))
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "test")
+	machineSet := omni.NewMachineSet("test")
 
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, "test")
 	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")

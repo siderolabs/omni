@@ -45,7 +45,6 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/integration/kubernetes"
@@ -149,7 +148,7 @@ func testToggleFeature(ctx context.Context, t *testing.T, logger *zap.Logger, om
 	logger.Info("test turning off and on the feature for the cluster", zap.String("clusterID", cluster.clusterID))
 
 	setFeatureToggle := func(enabled bool) {
-		_, err := safe.StateUpdateWithConflicts(ctx, omniClient.Omni().State(), omni.NewCluster(resources.DefaultNamespace, cluster.clusterID).Metadata(), func(res *omni.Cluster) error {
+		_, err := safe.StateUpdateWithConflicts(ctx, omniClient.Omni().State(), omni.NewCluster(cluster.clusterID).Metadata(), func(res *omni.Cluster) error {
 			res.TypedSpec().Value.Features.EnableWorkloadProxy = enabled
 
 			return nil

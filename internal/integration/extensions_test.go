@@ -144,7 +144,7 @@ func UpdateExtensions(ctx context.Context, cli *client.Client, cluster string, e
 			}
 
 			if extensionsConfig == nil {
-				extensionsConfig = omni.NewExtensionsConfiguration(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+				extensionsConfig = omni.NewExtensionsConfiguration(clusterMachine.Metadata().ID())
 
 				require.NoError(t, updateSpec(extensionsConfig))
 

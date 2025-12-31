@@ -36,7 +36,7 @@ func TestSequenceEvent(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 
-	testMachine := omni.NewMachine(resources.DefaultNamespace, "test-machine")
+	testMachine := omni.NewMachine("test-machine")
 	infraMachine := infra.NewMachine("test-machine")
 
 	testMachine.Metadata().Labels().Set(omni.MachineAddressLabel, "127.0.0.1")

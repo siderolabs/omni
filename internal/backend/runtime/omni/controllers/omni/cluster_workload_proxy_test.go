@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -38,7 +37,7 @@ func (suite *ClusterWorkloadProxySuite) TestReconcile() {
 
 	configPatchID := fmt.Sprintf("950-cluster-%s-workload-proxying", cluster.Metadata().ID())
 
-	configPatch := omni.NewConfigPatch(resources.DefaultNamespace, configPatchID)
+	configPatch := omni.NewConfigPatch(configPatchID)
 
 	assertResource(&suite.OmniSuite, configPatch.Metadata(), func(res *omni.ConfigPatch, assertion *assert.Assertions) {
 		buffer, err := res.TypedSpec().Value.GetUncompressedData()

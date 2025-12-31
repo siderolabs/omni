@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -42,7 +41,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh, nil)))
 
-	m := omni.NewMachine(resources.DefaultNamespace, "1")
+	m := omni.NewMachine("1")
 	m.TypedSpec().Value.Connected = true
 	m.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
 
@@ -51,7 +50,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestReconcile() {
 	// make sure that the machine became visible in the cached state
 	rtestutils.AssertResource(ctx, suite.T(), suite.cachedState, m.Metadata().ID(), func(r *omni.Machine, assertion *assert.Assertions) {})
 
-	snapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, m.Metadata().ID())
+	snapshot := omni.NewMachineStatusSnapshot(m.Metadata().ID())
 
 	snapshot.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{
 		Stage: machine.MachineStatusEvent_BOOTING,
@@ -73,7 +72,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestReconcile() {
 		assertion.EqualValues(snapshot.TypedSpec().Value, r.TypedSpec().Value)
 	})
 
-	snapshot = omni.NewMachineStatusSnapshot(resources.DefaultNamespace, "not exists")
+	snapshot = omni.NewMachineStatusSnapshot("not exists")
 
 	// ignore events for machines that do not exist
 	suite.Require().True(channel.SendWithContext(ctx, siderolinkEventsCh, snapshot))
@@ -103,16 +102,16 @@ func (suite *MachineStatusSnapshotControllerSuite) TestReconcile() {
 
 	clusterName := "cluster"
 
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "2")
+	clusterMachine := omni.NewClusterMachine("2")
 	clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 
 	suite.Require().NoError(suite.state.Create(ctx, clusterMachine))
 
-	talosConfig := omni.NewTalosConfig(resources.DefaultNamespace, clusterName)
+	talosConfig := omni.NewTalosConfig(clusterName)
 
 	suite.Require().NoError(suite.state.Create(ctx, talosConfig))
 
-	m = omni.NewMachine(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+	m = omni.NewMachine(clusterMachine.Metadata().ID())
 	m.TypedSpec().Value.Connected = true
 	m.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
 

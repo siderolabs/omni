@@ -106,7 +106,7 @@ func SaveClusterSnapshot(testCtx context.Context, client *client.Client, cluster
 
 		_, err = safe.StateUpdateWithConflicts(ctx,
 			client.Omni().State(),
-			omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(),
+			omni.NewCluster(clusterName).Metadata(),
 			func(res *omni.Cluster) error {
 				res.Metadata().Annotations().Set(annotationSnapshot, string(snapshotData))
 

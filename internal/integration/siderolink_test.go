@@ -78,7 +78,7 @@ func AssertLinksConnected(testCtx context.Context, st state.State) TestFunc {
 
 				// the link counter for this link must be created
 				msl, err := safe.StateGet[*omni.MachineStatusLink](ctx, st,
-					omni.NewMachineStatusLink(resources.MetricsNamespace, link.Metadata().ID()).Metadata(),
+					omni.NewMachineStatusLink(link.Metadata().ID()).Metadata(),
 				)
 				assert.NoError(err)
 

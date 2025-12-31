@@ -15,9 +15,9 @@ import (
 )
 
 // NewTalosExtensions creates new Kubernetes component version/readiness state.
-func NewTalosExtensions(ns, id string) *TalosExtensions {
+func NewTalosExtensions(id string) *TalosExtensions {
 	return typed.NewResource[TalosExtensionsSpec, TalosExtensionsExtension](
-		resource.NewMetadata(ns, TalosExtensionsType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, TalosExtensionsType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.TalosExtensionsSpec{}),
 	)
 }

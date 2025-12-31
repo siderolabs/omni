@@ -71,7 +71,7 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 
 		machineClassName := "tmpl-cluster-machine-class"
 
-		err := safe.StateModify(ctx, st, omni.NewMachineClass(resources.DefaultNamespace, machineClassName), func(r *omni.MachineClass) error {
+		err := safe.StateModify(ctx, st, omni.NewMachineClass(machineClassName), func(r *omni.MachineClass) error {
 			r.TypedSpec().Value.MatchLabels = []string{"!" + pickedByManualAllocation}
 
 			return nil
@@ -104,7 +104,7 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 			}
 
 			for _, m := range mIDs {
-				err = safe.StateModify(ctx, st, omni.NewMachineLabels(resources.DefaultNamespace, m), func(labels *omni.MachineLabels) error {
+				err = safe.StateModify(ctx, st, omni.NewMachineLabels(m), func(labels *omni.MachineLabels) error {
 					labels.Metadata().Labels().Set(pickedByManualAllocation, "")
 
 					return nil
@@ -113,7 +113,7 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 				require.NoError(err)
 
 				t.Cleanup(func() {
-					err = safe.StateModify(testCtx, st, omni.NewMachineLabels(resources.DefaultNamespace, m), func(labels *omni.MachineLabels) error {
+					err = safe.StateModify(testCtx, st, omni.NewMachineLabels(m), func(labels *omni.MachineLabels) error {
 						labels.Metadata().Labels().Delete(pickedByManualAllocation)
 
 						return nil
@@ -161,16 +161,15 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 
 			// add finalizer on the machine set node to make the test fail if it tries to delete the machine set node unexpectedly
 			require.NoError(st.AddFinalizer(ctx,
-				omni.NewMachineSetNode(resources.DefaultNamespace, automaticallyAllocatedMachines[0], machineSet).Metadata(),
+				omni.NewMachineSetNode(automaticallyAllocatedMachines[0], machineSet).Metadata(),
 				lockDelete,
 			))
 
 			t.Cleanup(func() {
 				err = st.RemoveFinalizer(testCtx,
 					omni.NewMachineSetNode(
-						resources.DefaultNamespace,
 						automaticallyAllocatedMachines[0],
-						omni.NewMachineSet(resources.DefaultNamespace, ""),
+						omni.NewMachineSet(""),
 					).Metadata(),
 					lockDelete,
 				)
@@ -236,7 +235,7 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 		for _, id := range automaticallyAllocatedMachines {
 			require.Contains(newAutomaticallyALlocatedMachines, id)
 
-			require.NoError(st.RemoveFinalizer(ctx, omni.NewMachineSetNode(resources.DefaultNamespace, id, omni.NewMachineSet(resources.DefaultNamespace, "")).Metadata(),
+			require.NoError(st.RemoveFinalizer(ctx, omni.NewMachineSetNode(id, omni.NewMachineSet("")).Metadata(),
 				lockDelete,
 			))
 		}

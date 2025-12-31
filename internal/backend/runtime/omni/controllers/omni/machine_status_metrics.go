@@ -151,7 +151,7 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 
 		metricsSpec := ctrl.gatherMetrics(machineStatuses.All(), pendingMachines)
 
-		if err = safe.WriterModify(ctx, r, omni.NewMachineStatusMetrics(resources.EphemeralNamespace, omni.MachineStatusMetricsID),
+		if err = safe.WriterModify(ctx, r, omni.NewMachineStatusMetrics(omni.MachineStatusMetricsID),
 			func(res *omni.MachineStatusMetrics) error {
 				res.TypedSpec().Value = metricsSpec
 

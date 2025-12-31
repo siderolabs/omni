@@ -168,7 +168,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	original := omnires.NewCluster(resources.DefaultNamespace, "clusterID")
+	original := omnires.NewCluster("clusterID")
 
 	type args struct {
 		privateKeySource string

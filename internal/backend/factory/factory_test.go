@@ -41,7 +41,7 @@ func TestParseRequest(t *testing.T) {
 	defer cancel()
 
 	for id, spec := range specs {
-		res := omni.NewInstallationMedia(resources.EphemeralNamespace, id)
+		res := omni.NewInstallationMedia(id)
 		res.TypedSpec().Value = spec
 
 		require.NoError(t, state.Create(ctx, res))

@@ -54,7 +54,7 @@ func TestLinkCleanup(t *testing.T) {
 
 	usage := siderolink.NewJoinTokenUsage(id)
 	uniqueToken := siderolink.NewNodeUniqueToken(id)
-	labels := omnires.NewMachineLabels(resources.DefaultNamespace, id)
+	labels := omnires.NewMachineLabels(id)
 
 	require.NoError(t, st.Create(ctx, link))
 	require.NoError(t, st.Create(ctx, usage))

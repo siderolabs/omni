@@ -49,7 +49,7 @@ func AssertWorkerNodesRollingConfigUpdate(testCtx context.Context, cli *client.C
 		t.Cleanup(cancel)
 
 		// update worker machine set to have rolling update with specified max parallelism
-		_, err = safe.StateUpdateWithConflicts[*omni.MachineSet](ctx, st, omni.NewMachineSet(resources.DefaultNamespace, workersResourceID).Metadata(), func(ms *omni.MachineSet) error {
+		_, err = safe.StateUpdateWithConflicts[*omni.MachineSet](ctx, st, omni.NewMachineSet(workersResourceID).Metadata(), func(ms *omni.MachineSet) error {
 			ms.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling
 			ms.TypedSpec().Value.UpdateStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
 				Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{
@@ -63,7 +63,7 @@ func AssertWorkerNodesRollingConfigUpdate(testCtx context.Context, cli *client.C
 
 		// create reboot-requiring config patch for the machine set
 		epochSeconds := time.Now().Unix()
-		machineSetPatch := omni.NewConfigPatch(resources.DefaultNamespace,
+		machineSetPatch := omni.NewConfigPatch(
 			fmt.Sprintf("000-test-update-parallelism-%d", epochSeconds),
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelMachineSet, workersResourceID))
@@ -133,7 +133,7 @@ func AssertWorkerNodesRollingScaleDown(testCtx context.Context, cli *client.Clie
 		t.Cleanup(cancel)
 
 		// update worker machine set to have rolling update max parallelism of 2
-		_, err = safe.StateUpdateWithConflicts[*omni.MachineSet](ctx, st, omni.NewMachineSet(resources.DefaultNamespace, workersResourceID).Metadata(), func(ms *omni.MachineSet) error {
+		_, err = safe.StateUpdateWithConflicts[*omni.MachineSet](ctx, st, omni.NewMachineSet(workersResourceID).Metadata(), func(ms *omni.MachineSet) error {
 			ms.TypedSpec().Value.DeleteStrategy = specs.MachineSetSpec_Rolling
 			ms.TypedSpec().Value.DeleteStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
 				Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{

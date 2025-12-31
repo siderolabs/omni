@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -38,7 +37,7 @@ func (suite *MachineJoinConfigSuite) TestReconcile() {
 	apiConfig.TypedSpec().Value.LogsPort = 8092
 	apiConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "http://127.0.0.1"
 
-	machine := omni.NewMachine(resources.DefaultNamespace, "machine1")
+	machine := omni.NewMachine("machine1")
 
 	params := siderolink.NewJoinTokenUsage(machine.Metadata().ID())
 	params.TypedSpec().Value.TokenId = "jtoken"

@@ -78,12 +78,12 @@ func TestTeardownAndDestroy(t *testing.T) {
 	}
 
 	resources := []resource.Resource{
-		omni.NewConfigPatch(resources.DefaultNamespace, "100"),
-		omni.NewConfigPatch(resources.DefaultNamespace, "101"),
-		omni.NewConfigPatch(resources.DefaultNamespace, "102"),
-		omni.NewConfigPatch(resources.DefaultNamespace, "103"),
-		omni.NewConfigPatch(resources.DefaultNamespace, "104"),
-		omni.NewConfigPatch(resources.DefaultNamespace, "105"),
+		omni.NewConfigPatch("100"),
+		omni.NewConfigPatch("101"),
+		omni.NewConfigPatch("102"),
+		omni.NewConfigPatch("103"),
+		omni.NewConfigPatch("104"),
+		omni.NewConfigPatch("105"),
 	}
 
 	withFinalizer := 4

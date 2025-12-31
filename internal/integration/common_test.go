@@ -90,17 +90,17 @@ func nodes(ctx context.Context, cli *client.Client, clusterName string, labels .
 	nodeList := make([]node, 0, clusterMachineList.Len())
 
 	for clusterMachine := range clusterMachineList.All() {
-		machine, err := safe.StateGet[*omni.Machine](ctx, st, omni.NewMachine(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata())
+		machine, err := safe.StateGet[*omni.Machine](ctx, st, omni.NewMachine(clusterMachine.Metadata().ID()).Metadata())
 		if err != nil && !state.IsNotFoundError(err) {
 			return nil, err
 		}
 
-		machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, st, omni.NewMachineStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata())
+		machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, st, omni.NewMachineStatus(clusterMachine.Metadata().ID()).Metadata())
 		if err != nil && !state.IsNotFoundError(err) {
 			return nil, err
 		}
 
-		clusterMachineStatus, err := safe.StateGet[*omni.ClusterMachineStatus](ctx, st, omni.NewClusterMachineStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata())
+		clusterMachineStatus, err := safe.StateGet[*omni.ClusterMachineStatus](ctx, st, omni.NewClusterMachineStatus(clusterMachine.Metadata().ID()).Metadata())
 		if err != nil && !state.IsNotFoundError(err) {
 			return nil, err
 		}
@@ -135,7 +135,7 @@ func nodes(ctx context.Context, cli *client.Client, clusterName string, labels .
 }
 
 func talosClientForMachine(ctx context.Context, cli *client.Client, machineID resource.ID) (*talosclient.Client, error) {
-	machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, cli.Omni().State(), omni.NewMachineStatus(resources.DefaultNamespace, machineID).Metadata())
+	machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, cli.Omni().State(), omni.NewMachineStatus(machineID).Metadata())
 	if err != nil {
 		return nil, err
 	}

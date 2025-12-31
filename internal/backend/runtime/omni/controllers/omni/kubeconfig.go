@@ -22,7 +22,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -40,10 +39,10 @@ func NewKubeconfigController(certificateValidity time.Duration) *KubeconfigContr
 		qtransform.Settings[*omni.ClusterSecrets, *omni.Kubeconfig]{
 			Name: "KubeconfigController",
 			MapMetadataFunc: func(secrets *omni.ClusterSecrets) *omni.Kubeconfig {
-				return omni.NewKubeconfig(resources.DefaultNamespace, secrets.Metadata().ID())
+				return omni.NewKubeconfig(secrets.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(kubeconfig *omni.Kubeconfig) *omni.ClusterSecrets {
-				return omni.NewClusterSecrets(resources.DefaultNamespace, kubeconfig.Metadata().ID())
+				return omni.NewClusterSecrets(kubeconfig.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, secrets *omni.ClusterSecrets, kubeconfig *omni.Kubeconfig) error {
 				lbConfig, err := safe.ReaderGetByID[*omni.LoadBalancerConfig](ctx, r, secrets.Metadata().ID())

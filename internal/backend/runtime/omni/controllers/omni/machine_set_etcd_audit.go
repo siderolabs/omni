@@ -33,7 +33,6 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -72,10 +71,10 @@ func NewMachineSetEtcdAuditController(talosClientFactory *talos.ClientFactory, m
 					return optional.None[*omni.EtcdAuditResult]()
 				}
 
-				return optional.Some(omni.NewEtcdAuditResult(resources.DefaultNamespace, cluster))
+				return optional.Some(omni.NewEtcdAuditResult(cluster))
 			},
 			UnmapMetadataFunc: func(etcdAuditResult *omni.EtcdAuditResult) *omni.MachineSet {
-				return omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(etcdAuditResult.Metadata().ID()))
+				return omni.NewMachineSet(omni.ControlPlanesResourceID(etcdAuditResult.Metadata().ID()))
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, machineSet *omni.MachineSet, etcdAuditResult *omni.EtcdAuditResult) error {
 				logger.Debug("etcd audit: running for machine set", zap.String("machine_set", machineSet.Metadata().ID()))
@@ -87,7 +86,7 @@ func NewMachineSetEtcdAuditController(talosClientFactory *talos.ClientFactory, m
 
 				logger = logger.With(zap.String("cluster", cluster))
 
-				clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(resources.DefaultNamespace, cluster).Metadata())
+				clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(cluster).Metadata())
 				if err != nil {
 					if state.IsNotFoundError(err) {
 						return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("no ClusterStatus found for cluster %q: %w", cluster, err)
@@ -164,7 +163,7 @@ func NewMachineSetEtcdAuditController(talosClientFactory *talos.ClientFactory, m
 			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, cs controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				id := omni.ControlPlanesResourceID(cs.ID())
 
-				return []resource.Pointer{omni.NewMachineSet(cs.Namespace(), id).Metadata()}, nil
+				return []resource.Pointer{omni.NewMachineSet(id).Metadata()}, nil
 			},
 		),
 		qtransform.WithExtraMappedInput[*omni.MachineSetNode](
@@ -185,7 +184,7 @@ func NewMachineSetEtcdAuditController(talosClientFactory *talos.ClientFactory, m
 			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, tc controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				id := omni.ControlPlanesResourceID(tc.ID())
 
-				return []resource.Pointer{omni.NewMachineSet(tc.Namespace(), id).Metadata()}, nil
+				return []resource.Pointer{omni.NewMachineSet(id).Metadata()}, nil
 			},
 		),
 		qtransform.WithConcurrency(4),
@@ -429,7 +428,7 @@ func (auditor *etcdAuditor) removeMember(ctx context.Context, cli *talos.Client,
 }
 
 func (auditor *etcdAuditor) getNodeClient(ctx context.Context, r controller.Reader, cluster, id string) (*client.Client, error) {
-	clusterMachineStatus, err := safe.ReaderGet[*omni.ClusterMachineStatus](ctx, r, omni.NewClusterMachineStatus(resources.DefaultNamespace, id).Metadata())
+	clusterMachineStatus, err := safe.ReaderGet[*omni.ClusterMachineStatus](ctx, r, omni.NewClusterMachineStatus(id).Metadata())
 	if err != nil {
 		return nil, err
 	}
@@ -438,7 +437,7 @@ func (auditor *etcdAuditor) getNodeClient(ctx context.Context, r controller.Read
 		return nil, errSkipNode
 	}
 
-	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(resources.DefaultNamespace, cluster).Metadata())
+	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(cluster).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("talosconfig for cluster %q is not found: %w", cluster, err)

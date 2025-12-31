@@ -15,9 +15,9 @@ import (
 )
 
 // NewKubeconfig creates new Kubeconfig resource.
-func NewKubeconfig(ns resource.Namespace, id resource.ID) *Kubeconfig {
+func NewKubeconfig(id resource.ID) *Kubeconfig {
 	return typed.NewResource[KubeconfigSpec, KubeconfigExtension](
-		resource.NewMetadata(ns, KubeconfigType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, KubeconfigType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.KubeconfigSpec{}),
 	)
 }

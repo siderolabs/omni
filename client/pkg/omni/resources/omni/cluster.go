@@ -22,9 +22,9 @@ import (
 )
 
 // NewCluster creates new cluster resource.
-func NewCluster(ns string, id resource.ID) *Cluster {
+func NewCluster(id resource.ID) *Cluster {
 	return typed.NewResource[ClusterSpec, ClusterExtension](
-		resource.NewMetadata(ns, ClusterType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterSpec{}),
 	)
 }

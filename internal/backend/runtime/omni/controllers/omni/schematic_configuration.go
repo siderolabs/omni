@@ -23,7 +23,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
@@ -48,10 +47,10 @@ func NewSchematicConfigurationController(imageFactoryClient ImageFactoryClient) 
 		qtransform.Settings[*omni.MachineStatus, *omni.SchematicConfiguration]{
 			Name: SchematicConfigurationControllerName,
 			MapMetadataFunc: func(machineStatus *omni.MachineStatus) *omni.SchematicConfiguration {
-				return omni.NewSchematicConfiguration(resources.DefaultNamespace, machineStatus.Metadata().ID())
+				return omni.NewSchematicConfiguration(machineStatus.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(schematicConfiguration *omni.SchematicConfiguration) *omni.MachineStatus {
-				return omni.NewMachineStatus(resources.DefaultNamespace, schematicConfiguration.Metadata().ID())
+				return omni.NewMachineStatus(schematicConfiguration.Metadata().ID())
 			},
 			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger,
 				machineStatus *omni.MachineStatus, schematicConfiguration *omni.SchematicConfiguration,
@@ -70,7 +69,7 @@ func NewSchematicConfigurationController(imageFactoryClient ImageFactoryClient) 
 				})
 			},
 			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, machineStatus *omni.MachineStatus) error {
-				statusMD := omni.NewMachineExtensionsStatus(resources.DefaultNamespace, machineStatus.Metadata().ID()).Metadata()
+				statusMD := omni.NewMachineExtensionsStatus(machineStatus.Metadata().ID()).Metadata()
 
 				ready, err := helpers.TeardownAndDestroy(ctx, r, statusMD)
 				if err != nil {
@@ -81,7 +80,7 @@ func NewSchematicConfigurationController(imageFactoryClient ImageFactoryClient) 
 					return nil
 				}
 
-				err = r.RemoveFinalizer(ctx, omni.NewMachineExtensions(resources.DefaultNamespace, machineStatus.Metadata().ID()).Metadata(), SchematicConfigurationControllerName)
+				err = r.RemoveFinalizer(ctx, omni.NewMachineExtensions(machineStatus.Metadata().ID()).Metadata(), SchematicConfigurationControllerName)
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
 				}
@@ -107,7 +106,7 @@ func NewSchematicConfigurationController(imageFactoryClient ImageFactoryClient) 
 				ids := make([]resource.Pointer, 0, cmList.Len())
 
 				for clusterMachine := range cmList.All() {
-					msPtr := omni.NewMachineStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+					msPtr := omni.NewMachineStatus(clusterMachine.Metadata().ID())
 					ids = append(ids, msPtr.Metadata())
 				}
 
@@ -175,7 +174,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	var (
 		cluster                 *omni.Cluster
-		machineExtensionsStatus = omni.NewMachineExtensionsStatus(resources.DefaultNamespace, ms.Metadata().ID())
+		machineExtensionsStatus = omni.NewMachineExtensionsStatus(ms.Metadata().ID())
 		talosVersion            = strings.TrimLeft(ms.TypedSpec().Value.TalosVersion, "v")
 	)
 

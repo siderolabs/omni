@@ -164,7 +164,7 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 
 	client := management.NewManagementServiceClient(suite.conn)
 
-	media := omni.NewInstallationMedia(resources.EphemeralNamespace, "test")
+	media := omni.NewInstallationMedia("test")
 
 	suite.Require().NoError(suite.state.Create(ctx, media))
 

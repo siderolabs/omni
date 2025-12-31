@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -37,7 +36,7 @@ func (suite *MachineSuite) TestReconcile() {
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewMachine(resources.DefaultNamespace, link1.Metadata().ID()).Metadata(),
+		*omni.NewMachine(link1.Metadata().ID()).Metadata(),
 		func(res *omni.Machine, _ *assert.Assertions) {
 			require.Equal(suite.T(), "fdae:41e4:649b:9303:7396:c9b3:213a:a86f", res.TypedSpec().Value.ManagementAddress)
 		},
@@ -48,13 +47,13 @@ func (suite *MachineSuite) TestReconcile() {
 		NodeSubnet:    netip.MustParsePrefix("fdae:41e4:649b:9303:648e:f4a7:8ca4:ac75/64").String(),
 	})
 
-	suite.Assert().NoError(suite.assertNoResource(*omni.NewMachine(resources.DefaultNamespace, link2.Metadata().ID()).Metadata())())
+	suite.Assert().NoError(suite.assertNoResource(*omni.NewMachine(link2.Metadata().ID()).Metadata())())
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, link2))
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewMachine(resources.DefaultNamespace, link2.Metadata().ID()).Metadata(),
+		*omni.NewMachine(link2.Metadata().ID()).Metadata(),
 		func(res *omni.Machine, _ *assert.Assertions) {
 			require.Equal(suite.T(), "fdae:41e4:649b:9303:648e:f4a7:8ca4:ac75", res.TypedSpec().Value.ManagementAddress)
 		},

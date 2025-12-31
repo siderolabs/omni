@@ -42,37 +42,35 @@ func TestPeersPool(t *testing.T) {
 
 		require.NoError(t, pool.Add(ctx, &specs.SiderolinkSpec{
 			NodePublicKey: id1,
-		}, omni.NewCluster(resources.DefaultNamespace, "a").Metadata()))
+		}, omni.NewCluster("a").Metadata()))
 
 		require.NoError(t, pool.Add(ctx, &specs.SiderolinkSpec{
 			NodePublicKey: id1,
-		}, omni.NewCluster(resources.DefaultNamespace, "a").Metadata()))
-
+		}, omni.NewCluster("a").Metadata()))
 		require.NoError(t, pool.Add(ctx, &specs.SiderolinkSpec{
 			NodePublicKey: id1,
-		}, omni.NewCluster(resources.DefaultNamespace, "b").Metadata()))
+		}, omni.NewCluster("b").Metadata()))
 
 		assert.Len(t, wgHandler.GetPeersMap(), 1)
 
 		require.NoError(t, pool.Add(ctx, &specs.SiderolinkSpec{
 			NodePublicKey: id2,
-		}, omni.NewCluster(resources.DefaultNamespace, "b").Metadata()))
+		}, omni.NewCluster("b").Metadata()))
 
 		assert.Len(t, wgHandler.GetPeersMap(), 2)
 
 		require.NoError(t, pool.Remove(ctx, siderolink.GetPeerID(&specs.SiderolinkSpec{
 			NodePublicKey: id2,
-		}), omni.NewCluster(resources.DefaultNamespace, "b").Metadata()))
+		}), omni.NewCluster("b").Metadata()))
 
 		require.NoError(t, pool.Remove(ctx, siderolink.GetPeerID(&specs.SiderolinkSpec{
 			NodePublicKey: id1,
-		}), omni.NewCluster(resources.DefaultNamespace, "b").Metadata()))
-
+		}), omni.NewCluster("b").Metadata()))
 		assert.Len(t, wgHandler.GetPeersMap(), 1)
 
 		require.NoError(t, pool.Remove(ctx, siderolink.GetPeerID(&specs.SiderolinkSpec{
 			NodePublicKey: id1,
-		}), omni.NewCluster(resources.DefaultNamespace, "a").Metadata()))
+		}), omni.NewCluster("a").Metadata()))
 
 		assert.Len(t, wgHandler.GetPeersMap(), 0)
 	})

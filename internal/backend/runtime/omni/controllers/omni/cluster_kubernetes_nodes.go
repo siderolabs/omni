@@ -17,7 +17,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
@@ -34,7 +33,7 @@ func NewClusterKubernetesNodesController() *ClusterKubernetesNodesController {
 		qtransform.Settings[*omni.ClusterUUID, *omni.ClusterKubernetesNodes]{
 			Name: "ClusterKubernetesNodesController",
 			MapMetadataFunc: func(clusterUUID *omni.ClusterUUID) *omni.ClusterKubernetesNodes {
-				return omni.NewClusterKubernetesNodes(resources.DefaultNamespace, clusterUUID.Metadata().ID())
+				return omni.NewClusterKubernetesNodes(clusterUUID.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(clusterKubernetesNodes *omni.ClusterKubernetesNodes) *omni.ClusterUUID {
 				return omni.NewClusterUUID(clusterKubernetesNodes.Metadata().ID())

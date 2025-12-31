@@ -15,9 +15,9 @@ import (
 )
 
 // NewMachineRequestSetStatus creates new MachineRequestSetStatus.
-func NewMachineRequestSetStatus(ns, id string) *MachineRequestSetStatus {
+func NewMachineRequestSetStatus(id string) *MachineRequestSetStatus {
 	return typed.NewResource[MachineRequestSetStatusSpec, MachineRequestSetStatusExtension](
-		resource.NewMetadata(ns, MachineRequestSetStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, MachineRequestSetStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineRequestSetStatusSpec{}),
 	)
 }

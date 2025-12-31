@@ -15,9 +15,9 @@ import (
 )
 
 // NewMachineExtensions creates new MachineExtensions resource.
-func NewMachineExtensions(ns string, id resource.ID) *MachineExtensions {
+func NewMachineExtensions(id resource.ID) *MachineExtensions {
 	return typed.NewResource[MachineExtensionsSpec, MachineExtensionsExtension](
-		resource.NewMetadata(ns, MachineExtensionsType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, MachineExtensionsType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineExtensionsSpec{}),
 	)
 }

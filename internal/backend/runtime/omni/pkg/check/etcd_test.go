@@ -80,7 +80,7 @@ func TestCanScaleDown(t *testing.T) {
 			err := check.CanScaleDown(&check.EtcdStatusResult{
 				Members:        members,
 				HealthyMembers: tt.healthy,
-			}, omni.NewClusterMachine(resources.DefaultNamespace, strconv.FormatInt(int64(tt.index), 10)))
+			}, omni.NewClusterMachine(strconv.FormatInt(int64(tt.index), 10)))
 			if !tt.shouldFail {
 				require.NoError(t, err)
 

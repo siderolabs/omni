@@ -148,7 +148,7 @@ func TestConnectionParamsKernelArgs(t *testing.T) {
 			}
 
 			if tt.machine != nil {
-				m := omni.NewMachine(resources.DefaultNamespace, "machine-1")
+				m := omni.NewMachine("machine-1")
 				m.TypedSpec().Value.UseGrpcTunnel = tt.machine.useGRPCTUnnel
 
 				if tt.machine.requestID != "" {
@@ -354,7 +354,7 @@ certificates: ""
 			}
 
 			if tt.machine != nil {
-				m := omni.NewMachine(resources.DefaultNamespace, "machine-1")
+				m := omni.NewMachine("machine-1")
 				m.TypedSpec().Value.UseGrpcTunnel = tt.machine.useGRPCTUnnel
 
 				if tt.machine.requestID != "" {

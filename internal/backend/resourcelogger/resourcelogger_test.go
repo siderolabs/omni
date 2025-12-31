@@ -46,9 +46,9 @@ func TestResourceLogger(t *testing.T) {
 			require.NoError(t, resourceRegistry.Register(ctx, r))
 		}
 
-		machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test")
-		cbs := omni.NewClusterBootstrapStatus(resources.DefaultNamespace, "test")
-		cp := omni.NewConfigPatch(resources.DefaultNamespace, "test")
+		machineStatus := omni.NewMachineStatus("test")
+		cbs := omni.NewClusterBootstrapStatus("test")
+		cp := omni.NewConfigPatch("test")
 
 		logObserverCore, observedLogs := observer.New(zapcore.InfoLevel)
 

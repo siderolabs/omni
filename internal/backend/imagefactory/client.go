@@ -16,7 +16,6 @@ import (
 	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
@@ -110,7 +109,7 @@ func (cli *Client) ensureSingleSchematic(ctx context.Context, schematic schemati
 	}
 
 	schematicResource := omni.NewSchematic(
-		resources.DefaultNamespace, schematicID,
+		schematicID,
 	)
 
 	res, err := safe.StateGetByID[*omni.Schematic](ctx, cli.state, schematicID)

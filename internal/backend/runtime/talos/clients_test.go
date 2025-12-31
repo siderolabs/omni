@@ -78,7 +78,7 @@ func (suite *ClientsSuite) TestGetClient() {
 		}))
 	suite.Require().NoError(err)
 
-	talosconfig := omni.NewTalosConfig(resources.DefaultNamespace, clusterName)
+	talosconfig := omni.NewTalosConfig(clusterName)
 	spec := talosconfig.TypedSpec().Value
 
 	context := configBundle.TalosCfg.Contexts[configBundle.TalosCfg.Context]
@@ -87,14 +87,14 @@ func (suite *ClientsSuite) TestGetClient() {
 	spec.Crt = context.Crt
 	spec.Key = context.Key
 
-	clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterName)
+	clusterStatus := omni.NewClusterStatus(clusterName)
 	clusterStatus.TypedSpec().Value.Available = true
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterStatus), state.WithCreateOwner((&omnictrl.ClusterStatusController{}).Name()))
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, talosconfig))
 
-	clusterEndpoint := omni.NewClusterEndpoint(resources.DefaultNamespace, clusterName)
+	clusterEndpoint := omni.NewClusterEndpoint(clusterName)
 	clusterEndpoint.TypedSpec().Value.ManagementAddresses = []string{"localhost"}
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterEndpoint))
 

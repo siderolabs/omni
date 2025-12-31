@@ -103,7 +103,7 @@ func (suite *MachineStatusSuite) TestMachineConnected() {
 	defer cancel()
 
 	// given
-	machine := omni.NewMachine(resources.DefaultNamespace, testID)
+	machine := omni.NewMachine(testID)
 	machine.TypedSpec().Value.Connected = true
 
 	// when
@@ -142,9 +142,9 @@ func (suite *MachineStatusSuite) TestMachineReportingEvents() {
 	suite.setup()
 
 	// given
-	machine := omni.NewMachine(resources.DefaultNamespace, testID)
+	machine := omni.NewMachine(testID)
 
-	machineStatusSnapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, testID)
+	machineStatusSnapshot := omni.NewMachineStatusSnapshot(testID)
 	machineStatusSnapshot.TypedSpec().Value = &specs.MachineStatusSnapshotSpec{
 		MachineStatus: &machineapi.MachineStatusEvent{},
 	}
@@ -173,14 +173,14 @@ func (suite *MachineStatusSuite) TestClusterRelation() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 	defer cancel()
 
-	machine := omni.NewMachine(resources.DefaultNamespace, testID)
+	machine := omni.NewMachine(testID)
 	machine.TypedSpec().Value.Connected = true
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "ms1")
+	machineSet := omni.NewMachineSet("ms1")
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, "cluster1")
 	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 
-	machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, testID, machineSet)
+	machineSetNode := omni.NewMachineSetNode(testID, machineSet)
 
 	suite.Assert().NoError(suite.state.Create(ctx, machine))
 	suite.Assert().NoError(suite.state.Create(ctx, machineSet))
@@ -214,7 +214,7 @@ func (suite *MachineStatusSuite) TestClusterRelation() {
 func (suite *MachineStatusSuite) TestMachineUserLabels() {
 	suite.setup()
 
-	machine := omni.NewMachine(resources.DefaultNamespace, testID)
+	machine := omni.NewMachine(testID)
 	spec := machine.TypedSpec().Value
 
 	spec.Connected = true
@@ -235,7 +235,7 @@ func (suite *MachineStatusSuite) TestMachineUserLabels() {
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, metaKey))
 
-	machineStatusSnapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, testID)
+	machineStatusSnapshot := omni.NewMachineStatusSnapshot(testID)
 	machineStatusSnapshot.TypedSpec().Value = &specs.MachineStatusSnapshotSpec{
 		MachineStatus: &machineapi.MachineStatusEvent{},
 	}
@@ -258,7 +258,7 @@ func (suite *MachineStatusSuite) TestMachineUserLabels() {
 
 	// now create user labels and see how it merges initial and user labels
 
-	machineLabels := omni.NewMachineLabels(resources.DefaultNamespace, testID)
+	machineLabels := omni.NewMachineLabels(testID)
 	machineLabels.Metadata().Labels().Set("test", "")
 
 	suite.Assert().NoError(suite.state.Create(suite.ctx, machineLabels))
@@ -454,7 +454,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 
 			id := "test-" + tt.name
 
-			machine := omni.NewMachine(resources.DefaultNamespace, id)
+			machine := omni.NewMachine(id)
 			spec := machine.TypedSpec().Value
 
 			spec.Connected = true

@@ -15,9 +15,9 @@ import (
 )
 
 // NewTalosUpgradeStatus creates new LoadBalancer state.
-func NewTalosUpgradeStatus(ns, id string) *TalosUpgradeStatus {
+func NewTalosUpgradeStatus(id string) *TalosUpgradeStatus {
 	return typed.NewResource[TalosUpgradeStatusSpec, TalosUpgradeStatusExtension](
-		resource.NewMetadata(ns, TalosUpgradeStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, TalosUpgradeStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.TalosUpgradeStatusSpec{}),
 	)
 }

@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterWorkloadProxyStatus creates new ClusterWorkloadProxyStatus resource.
-func NewClusterWorkloadProxyStatus(ns string, id resource.ID) *ClusterWorkloadProxyStatus {
+func NewClusterWorkloadProxyStatus(id resource.ID) *ClusterWorkloadProxyStatus {
 	return typed.NewResource[ClusterWorkloadProxyStatusSpec, ClusterWorkloadProxyStatusExtension](
-		resource.NewMetadata(ns, ClusterWorkloadProxyStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterWorkloadProxyStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterWorkloadProxyStatusSpec{}),
 	)
 }

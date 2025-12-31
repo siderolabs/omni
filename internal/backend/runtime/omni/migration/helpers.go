@@ -12,14 +12,13 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
 func reconcileConfigInputs(ctx context.Context, st state.State, item *omni.ClusterMachine, withGenOptions, withTalosVersion bool) error {
-	config := omni.NewClusterMachineConfig(resources.DefaultNamespace, item.Metadata().ID())
+	config := omni.NewClusterMachineConfig(item.Metadata().ID())
 
 	_, err := st.Get(ctx, config.Metadata())
 	if err != nil {
@@ -37,19 +36,19 @@ func reconcileConfigInputs(ctx context.Context, st state.State, item *omni.Clust
 	}
 
 	res := []resource.Resource{
-		omni.NewClusterSecrets(resources.DefaultNamespace, clusterName),
+		omni.NewClusterSecrets(clusterName),
 		item,
-		omni.NewLoadBalancerConfig(resources.DefaultNamespace, clusterName),
-		omni.NewCluster(resources.DefaultNamespace, clusterName),
-		omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, item.Metadata().ID()),
+		omni.NewLoadBalancerConfig(clusterName),
+		omni.NewCluster(clusterName),
+		omni.NewClusterMachineConfigPatches(item.Metadata().ID()),
 	}
 
 	if withGenOptions {
-		res = append(res, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, item.Metadata().ID()))
+		res = append(res, omni.NewMachineConfigGenOptions(item.Metadata().ID()))
 	}
 
 	if withTalosVersion {
-		res = append(res, omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, item.Metadata().ID()))
+		res = append(res, omni.NewClusterMachineTalosVersion(item.Metadata().ID()))
 	}
 
 	inputs := make([]resource.Resource, 0, len(res))

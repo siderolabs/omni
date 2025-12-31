@@ -53,7 +53,7 @@ func TestOperatorTalosconfig(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, state.IsNotFoundError(err))
 
-	secrets := omni.NewClusterSecrets(resources.DefaultNamespace, "cluster1")
+	secrets := omni.NewClusterSecrets("cluster1")
 
 	bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), config.TalosVersion1_7)
 	require.NoError(t, err)
@@ -73,9 +73,9 @@ func TestOperatorTalosconfig(t *testing.T) {
 
 	require.NotEmpty(t, config.Contexts)
 
-	m1 := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "3")
-	m2 := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "2")
-	m3 := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "1")
+	m1 := omni.NewClusterMachineIdentity("3")
+	m2 := omni.NewClusterMachineIdentity("2")
+	m3 := omni.NewClusterMachineIdentity("1")
 
 	m1.Metadata().Labels().Set(omni.LabelCluster, "cluster1")
 	m2.Metadata().Labels().Set(omni.LabelCluster, "cluster1")
