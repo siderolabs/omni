@@ -15,7 +15,6 @@ import (
 	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -69,7 +68,7 @@ func (h *LogHandler) Start(ctx context.Context) error {
 
 		if err := h.omniState.WatchKind(
 			ctx,
-			omni.NewMachine(resources.DefaultNamespace, "").Metadata(),
+			omni.NewMachine("").Metadata(),
 			eventCh,
 			state.WithBootstrapContents(true),
 		); err != nil {

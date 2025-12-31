@@ -134,7 +134,7 @@ func (ctrl *RedactedClusterMachineConfigController) MapInput(_ context.Context, 
 	switch pointer.Type() {
 	case omni.ClusterMachineConfigType:
 		return []resource.Pointer{
-			omni.NewRedactedClusterMachineConfig(resources.DefaultNamespace, pointer.ID()).Metadata(),
+			omni.NewRedactedClusterMachineConfig(pointer.ID()).Metadata(),
 		}, nil
 	default:
 		return nil, fmt.Errorf("unexpected input type %q", pointer.Type())
@@ -148,7 +148,7 @@ func (ctrl *RedactedClusterMachineConfigController) reconcileRunning(ctx context
 		}
 	}
 
-	err := safe.WriterModify(ctx, r, omni.NewRedactedClusterMachineConfig(resources.DefaultNamespace, cmc.Metadata().ID()), func(res *omni.RedactedClusterMachineConfig) error {
+	err := safe.WriterModify(ctx, r, omni.NewRedactedClusterMachineConfig(cmc.Metadata().ID()), func(res *omni.RedactedClusterMachineConfig) error {
 		if !helpers.UpdateInputsVersions(res, cmc) { // config input hasn't changed, skip the update
 			return nil
 		}
@@ -216,7 +216,7 @@ func (ctrl *RedactedClusterMachineConfigController) reconcileTearingDown(ctx con
 		return fmt.Errorf("failed to destroy diff for machine config %q: %w", cmc.Metadata().ID(), err)
 	}
 
-	cmcr := omni.NewRedactedClusterMachineConfig(resources.DefaultNamespace, cmc.Metadata().ID()).Metadata()
+	cmcr := omni.NewRedactedClusterMachineConfig(cmc.Metadata().ID()).Metadata()
 
 	if _, err = helpers.TeardownAndDestroy(ctx, r, cmcr); err != nil {
 		return err

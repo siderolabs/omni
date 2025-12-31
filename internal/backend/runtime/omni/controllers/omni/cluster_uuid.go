@@ -31,7 +31,7 @@ func NewClusterUUIDController() *ClusterUUIDController {
 				return omni.NewClusterUUID(cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(clusterUUID *omni.ClusterUUID) *omni.Cluster {
-				return omni.NewCluster(clusterUUID.Metadata().Namespace(), clusterUUID.Metadata().ID())
+				return omni.NewCluster(clusterUUID.Metadata().ID())
 			},
 			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, cluster *omni.Cluster, clusterUUID *omni.ClusterUUID) error {
 				if clusterUUID.TypedSpec().Value.GetUuid() != "" {

@@ -22,15 +22,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 func TestUpdateInputsVersions(t *testing.T) {
-	out := omni.NewCluster("default", "test")
+	out := omni.NewCluster("test")
 
-	in := []resource.Resource{omni.NewMachine("default", "test1"), omni.NewMachine("default", "test2")}
+	in := []resource.Resource{omni.NewMachine("test1"), omni.NewMachine("test2")}
 
 	assert.True(t, helpers.UpdateInputsVersions(out, in...))
 
@@ -39,7 +38,7 @@ func TestUpdateInputsVersions(t *testing.T) {
 
 	assert.False(t, helpers.UpdateInputsVersions(out, in...))
 
-	in = append(in, omni.NewClusterMachine("default", "cm1"))
+	in = append(in, omni.NewClusterMachine("cm1"))
 
 	assert.True(t, helpers.UpdateInputsVersions(out, in...))
 
@@ -84,7 +83,7 @@ func TestGetTalosClient(t *testing.T) {
 			var clusterMachine *omni.ClusterMachine
 
 			if tt.stage != machine.MachineStatusEvent_UNKNOWN {
-				machineStatusSnapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, "m1")
+				machineStatusSnapshot := omni.NewMachineStatusSnapshot("m1")
 
 				machineStatusSnapshot.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{
 					Stage: tt.stage,
@@ -94,13 +93,13 @@ func TestGetTalosClient(t *testing.T) {
 			}
 
 			if tt.withCluster {
-				cluster := omni.NewCluster(resources.DefaultNamespace, "test")
+				cluster := omni.NewCluster("test")
 
-				clusterMachine = omni.NewClusterMachine(resources.DefaultNamespace, "m1")
+				clusterMachine = omni.NewClusterMachine("m1")
 
 				clusterMachine.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
-				talosConfig := omni.NewTalosConfig(resources.DefaultNamespace, cluster.Metadata().ID())
+				talosConfig := omni.NewTalosConfig(cluster.Metadata().ID())
 
 				bundle, err := secrets.NewBundle(secrets.NewFixedClock(time.Now()), config.TalosVersion1_10)
 				require.NoError(t, err)

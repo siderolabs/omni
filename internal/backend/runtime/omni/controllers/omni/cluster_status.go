@@ -40,10 +40,10 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 		qtransform.Settings[*omni.Cluster, *omni.ClusterStatus]{
 			Name: ClusterStatusControllerName,
 			MapMetadataFunc: func(cluster *omni.Cluster) *omni.ClusterStatus {
-				return omni.NewClusterStatus(resources.DefaultNamespace, cluster.Metadata().ID())
+				return omni.NewClusterStatus(cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(clusterStatus *omni.ClusterStatus) *omni.Cluster {
-				return omni.NewCluster(resources.DefaultNamespace, clusterStatus.Metadata().ID())
+				return omni.NewCluster(clusterStatus.Metadata().ID())
 			},
 			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, cluster *omni.Cluster, clusterStatus *omni.ClusterStatus) error {
 				shouldUseEmbeddedDiscoveryService := func() (bool, error) {

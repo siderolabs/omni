@@ -32,7 +32,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/pkg/meta"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -75,10 +74,10 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 		qtransform.Settings[*omni.ClusterMachineConfig, *omni.ClusterMachineConfigStatus]{
 			Name: "ClusterMachineConfigStatusController",
 			MapMetadataFunc: func(machineConfig *omni.ClusterMachineConfig) *omni.ClusterMachineConfigStatus {
-				return omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, machineConfig.Metadata().ID())
+				return omni.NewClusterMachineConfigStatus(machineConfig.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(machineConfigStatus *omni.ClusterMachineConfigStatus) *omni.ClusterMachineConfig {
-				return omni.NewClusterMachineConfig(resources.DefaultNamespace, machineConfigStatus.Metadata().ID())
+				return omni.NewClusterMachineConfig(machineConfigStatus.Metadata().ID())
 			},
 			TransformFunc:                   ctrl.reconcileRunning,
 			FinalizerRemovalExtraOutputFunc: ctrl.reconcileTearingDown,
@@ -457,7 +456,7 @@ func (ctrl *ClusterMachineConfigStatusController) reset(
 
 	machineID := machineConfig.Metadata().ID()
 
-	machineStatus, err := safe.ReaderGet[*omni.MachineStatus](ctx, r, omni.NewMachineStatus(resources.DefaultNamespace, machineID).Metadata())
+	machineStatus, err := safe.ReaderGet[*omni.MachineStatus](ctx, r, omni.NewMachineStatus(machineID).Metadata())
 	if err != nil && !state.IsNotFoundError(err) {
 		return fmt.Errorf("failed to get machine status '%s': %w", machineID, err)
 	}
@@ -478,7 +477,7 @@ func (ctrl *ClusterMachineConfigStatusController) reset(
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine '%s' is not connected", machineID)
 	}
 
-	statusSnapshot, err := safe.ReaderGet[*omni.MachineStatusSnapshot](ctx, r, omni.NewMachineStatusSnapshot(resources.DefaultNamespace, machineID).Metadata())
+	statusSnapshot, err := safe.ReaderGet[*omni.MachineStatusSnapshot](ctx, r, omni.NewMachineStatusSnapshot(machineID).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine '%s' status snapshot is not found: %w", machineID, err)
@@ -529,7 +528,7 @@ func (ctrl *ClusterMachineConfigStatusController) reset(
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](wrappedErr)
 	}
 
-	clusterMachine, err := safe.ReaderGet[*omni.ClusterMachine](ctx, r, omni.NewClusterMachine(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata())
+	clusterMachine, err := safe.ReaderGet[*omni.ClusterMachine](ctx, r, omni.NewClusterMachine(machineConfig.Metadata().ID()).Metadata())
 	if err != nil {
 		return fmt.Errorf("finalizer: failed to get cluster machine '%s': %w", machineConfig.Metadata().ID(), err)
 	}
@@ -682,7 +681,7 @@ func (ctrl *ClusterMachineConfigStatusController) shouldResetGraceful(
 		return false, fmt.Errorf("failed to determine machine set of the cluster machine %s", clusterMachine.Metadata().ID())
 	}
 
-	machineSet, err := safe.ReaderGet[*omni.MachineSet](ctx, r, omni.NewMachineSet(resources.DefaultNamespace, machineSetName).Metadata())
+	machineSet, err := safe.ReaderGet[*omni.MachineSet](ctx, r, omni.NewMachineSet(machineSetName).Metadata())
 	if err != nil {
 		return false, fmt.Errorf("failed to get machine set '%s': %w", machineSetName, err)
 	}
@@ -732,7 +731,7 @@ func (ctrl *ClusterMachineConfigStatusController) getClient(
 		return nil, errors.New("no cluster name label")
 	}
 
-	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(resources.DefaultNamespace, clusterName).Metadata())
+	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(clusterName).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("cluster '%s' talosconfig not found: %w", clusterName, err)

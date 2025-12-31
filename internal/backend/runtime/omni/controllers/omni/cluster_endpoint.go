@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
@@ -30,10 +29,10 @@ func NewClusterEndpointController() *ClusterEndpointController {
 		qtransform.Settings[*omni.Cluster, *omni.ClusterEndpoint]{
 			Name: "ClusterEndpointController",
 			MapMetadataFunc: func(cluster *omni.Cluster) *omni.ClusterEndpoint {
-				return omni.NewClusterEndpoint(resources.DefaultNamespace, cluster.Metadata().ID())
+				return omni.NewClusterEndpoint(cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(clusterEndpoint *omni.ClusterEndpoint) *omni.Cluster {
-				return omni.NewCluster(resources.DefaultNamespace, clusterEndpoint.Metadata().ID())
+				return omni.NewCluster(clusterEndpoint.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, cluster *omni.Cluster, clusterEndpoint *omni.ClusterEndpoint) error {
 				items, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, r,

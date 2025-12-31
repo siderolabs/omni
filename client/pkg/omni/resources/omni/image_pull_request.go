@@ -15,9 +15,9 @@ import (
 )
 
 // NewImagePullRequest creates a new ImagePullRequest state.
-func NewImagePullRequest(ns, id string) *ImagePullRequest {
+func NewImagePullRequest(id string) *ImagePullRequest {
 	return typed.NewResource[ImagePullRequestSpec, ImagePullRequestExtension](
-		resource.NewMetadata(ns, ImagePullRequestType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ImagePullRequestType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ImagePullRequestSpec{}),
 	)
 }

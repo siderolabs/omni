@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -44,62 +43,62 @@ func TestConfigPatchCleanup(t *testing.T) {
 
 func testConfigPatchCleanup(ctx context.Context, t *testing.T, st state.State) {
 	// create the initial orphan patch
-	earlyPatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-early-patch")
+	earlyPatch := omni.NewConfigPatch("test-early-patch")
 	require.NoError(t, st.Create(ctx, earlyPatch))
 
 	time.Sleep(15 * 24 * time.Hour) // advance, then create all other resources
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "test-cluster")
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "test-machine-set")
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "test-cluster-machine")
-	machine := omni.NewMachine(resources.DefaultNamespace, "test-machine")
+	cluster := omni.NewCluster("test-cluster")
+	machineSet := omni.NewMachineSet("test-machine-set")
+	clusterMachine := omni.NewClusterMachine("test-cluster-machine")
+	machine := omni.NewMachine("test-machine")
 
 	require.NoError(t, st.Create(ctx, cluster))
 	require.NoError(t, st.Create(ctx, machineSet))
 	require.NoError(t, st.Create(ctx, clusterMachine))
 	require.NoError(t, st.Create(ctx, machine))
 
-	clusterPatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-cluster-patch")
+	clusterPatch := omni.NewConfigPatch("test-cluster-patch")
 	clusterPatch.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
-	clusterWithNonExistentMachinePatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-cluster-no-machine-patch")
+	clusterWithNonExistentMachinePatch := omni.NewConfigPatch("test-cluster-no-machine-patch")
 	clusterWithNonExistentMachinePatch.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 	clusterWithNonExistentMachinePatch.Metadata().Labels().Set(omni.LabelMachine, "non-existent-machine")
 
-	machineSetPatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-machine-set-patch")
+	machineSetPatch := omni.NewConfigPatch("test-machine-set-patch")
 	machineSetPatch.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 	machineSetPatch.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
 
-	clusterMachinePatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-cluster-machine-patch")
+	clusterMachinePatch := omni.NewConfigPatch("test-cluster-machine-patch")
 	clusterMachinePatch.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 	clusterMachinePatch.Metadata().Labels().Set(omni.LabelClusterMachine, clusterMachine.Metadata().ID())
 
-	machinePatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-machine-patch")
+	machinePatch := omni.NewConfigPatch("test-machine-patch")
 	machinePatch.Metadata().Labels().Set(omni.LabelMachine, machine.Metadata().ID())
 
-	nonExistentClusterPatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-cluster-patch-non-existent")
+	nonExistentClusterPatch := omni.NewConfigPatch("test-cluster-patch-non-existent")
 	nonExistentClusterPatch.Metadata().Labels().Set(omni.LabelCluster, "non-existent-cluster")
 
-	nonExistentMachineSetPatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-machine-set-patch-non-existent")
+	nonExistentMachineSetPatch := omni.NewConfigPatch("test-machine-set-patch-non-existent")
 	nonExistentMachineSetPatch.Metadata().Labels().Set(omni.LabelMachineSet, "non-existent-machine-set")
 
-	nonExistentClusterMachinePatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-cluster-machine-patch-non-existent")
+	nonExistentClusterMachinePatch := omni.NewConfigPatch("test-cluster-machine-patch-non-existent")
 	nonExistentClusterMachinePatch.Metadata().Labels().Set(omni.LabelClusterMachine, "non-existent-cluster-machine")
 
-	nonExistentMachinePatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-machine-patch-non-existent")
+	nonExistentMachinePatch := omni.NewConfigPatch("test-machine-patch-non-existent")
 	nonExistentMachinePatch.Metadata().Labels().Set(omni.LabelMachine, "non-existent-machine")
 
-	unassociatedPatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-unassociated-patch")
+	unassociatedPatch := omni.NewConfigPatch("test-unassociated-patch")
 
-	tearingDownPatch := omni.NewConfigPatch(resources.DefaultNamespace, "test-tearing-down-patch")
+	tearingDownPatch := omni.NewConfigPatch("test-tearing-down-patch")
 	tearingDownPatch.Metadata().SetPhase(resource.PhaseTearingDown)
 
-	patchWithOwner := omni.NewConfigPatch(resources.DefaultNamespace, "test-patch-with-owner")
+	patchWithOwner := omni.NewConfigPatch("test-patch-with-owner")
 
 	patchWithOwner.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 	require.NoError(t, patchWithOwner.Metadata().SetOwner("some-owner"))
 
-	patchWithFinalizer := omni.NewConfigPatch(resources.DefaultNamespace, "test-patch-with-finalizer")
+	patchWithFinalizer := omni.NewConfigPatch("test-patch-with-finalizer")
 	patchWithFinalizer.Metadata().Finalizers().Add("some-finalizer")
 
 	require.NoError(t, st.Create(ctx, clusterPatch))

@@ -26,7 +26,6 @@ import (
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -567,7 +566,7 @@ func TestOrphanLogsCleanup(t *testing.T) {
 	logger.Info("Populate state with machines...")
 
 	for i := range numLive {
-		m := omni.NewMachine(resources.DefaultNamespace, fmt.Sprintf("live-%d", i))
+		m := omni.NewMachine(fmt.Sprintf("live-%d", i))
 		require.NoError(t, state.Create(ctx, m))
 
 		// mark some of the machines as tearing down - their logs should still be preserved

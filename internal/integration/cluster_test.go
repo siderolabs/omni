@@ -98,7 +98,7 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 				options.BeforeClusterCreateFunc(ctx, t, cli, machineIDs)
 			}
 
-			cluster := omni.NewCluster(resources.DefaultNamespace, options.Name)
+			cluster := omni.NewCluster(options.Name)
 			cluster.TypedSpec().Value.TalosVersion = options.MachineOptions.TalosVersion
 			cluster.TypedSpec().Value.KubernetesVersion = options.MachineOptions.KubernetesVersion
 			cluster.TypedSpec().Value.Features = options.Features
@@ -157,13 +157,13 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 
 		require := require.New(t)
 
-		cluster := omni.NewCluster(resources.DefaultNamespace, options.Name)
+		cluster := omni.NewCluster(options.Name)
 		cluster.TypedSpec().Value.TalosVersion = options.MachineOptions.TalosVersion
 		cluster.TypedSpec().Value.KubernetesVersion = options.MachineOptions.KubernetesVersion
 		cluster.TypedSpec().Value.Features = options.Features
 		cluster.TypedSpec().Value.BackupConfiguration = options.EtcdBackup
 
-		kubespanEnabler := omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("%s-kubespan-enabler", options.Name))
+		kubespanEnabler := omni.NewConfigPatch(fmt.Sprintf("%s-kubespan-enabler", options.Name))
 		kubespanEnabler.Metadata().Labels().Set(omni.LabelCluster, options.Name)
 
 		err := kubespanEnabler.TypedSpec().Value.SetUncompressedData([]byte(`machine:
@@ -180,7 +180,7 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 			ensureAllowSchedulingOnControlPlanesConfigPatch(ctx, t, st, options.Name)
 		}
 
-		machineClass := omni.NewMachineClass(resources.DefaultNamespace, options.Name)
+		machineClass := omni.NewMachineClass(options.Name)
 
 		if options.InfraProvider != "" {
 			createOrUpdate(ctx, t, st, machineClass, func(r *omni.MachineClass) error {
@@ -206,7 +206,7 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 }
 
 func ensureAllowSchedulingOnControlPlanesConfigPatch(ctx context.Context, t *testing.T, st state.State, clusterID resource.ID) {
-	createOrUpdate(ctx, t, st, omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("400-%s-control-planes-untaint", clusterID)), func(patch *omni.ConfigPatch) error {
+	createOrUpdate(ctx, t, st, omni.NewConfigPatch(fmt.Sprintf("400-%s-control-planes-untaint", clusterID)), func(patch *omni.ConfigPatch) error {
 		patch.Metadata().Labels().Set(omni.LabelCluster, clusterID)
 		patch.Metadata().Labels().Set(omni.LabelMachineSet, omni.ControlPlanesResourceID(clusterID))
 
@@ -709,14 +709,12 @@ type bindMachineOptions struct {
 
 func bindMachine(ctx context.Context, t *testing.T, st state.State, bindOpts bindMachineOptions) {
 	configPatchInstallDisk := omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		fmt.Sprintf("000-%s-%s-install-disk", bindOpts.clusterName, bindOpts.machineID),
 		pair.MakePair(omni.LabelCluster, bindOpts.clusterName),
 		pair.MakePair(omni.LabelClusterMachine, bindOpts.machineID),
 	)
 
 	configPatchHostname := omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		fmt.Sprintf("001-%s-%s-hostname", bindOpts.clusterName, bindOpts.machineID),
 		pair.MakePair(omni.LabelCluster, bindOpts.clusterName),
 		pair.MakePair(omni.LabelClusterMachine, bindOpts.machineID),
@@ -802,7 +800,7 @@ func bindMachine(ctx context.Context, t *testing.T, st state.State, bindOpts bin
 		id = omni.ControlPlanesResourceID(bindOpts.clusterName)
 	}
 
-	ms := omni.NewMachineSet(resources.DefaultNamespace, id)
+	ms := omni.NewMachineSet(id)
 	ms.Metadata().Labels().Set(omni.LabelCluster, bindOpts.clusterName)
 	ms.Metadata().Labels().Set(bindOpts.role, "")
 
@@ -838,7 +836,7 @@ func bindMachine(ctx context.Context, t *testing.T, st state.State, bindOpts bin
 		return nil
 	})
 
-	machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, bindOpts.machineID, ms)
+	machineSetNode := omni.NewMachineSetNode(bindOpts.machineID, ms)
 
 	_, ok := machineSetNode.Metadata().Labels().Get(omni.LabelCluster)
 	require.Truef(t, ok, "the machine label cluster is not set on the machine set node")
@@ -1003,7 +1001,7 @@ func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.S
 			machineCount = options.ControlPlanes
 		}
 
-		ms := omni.NewMachineSet(resources.DefaultNamespace, id)
+		ms := omni.NewMachineSet(id)
 
 		createOrUpdate(ctx, t, st, ms, func(r *omni.MachineSet) error {
 			r.Metadata().Labels().Set(omni.LabelCluster, options.Name)
@@ -1034,7 +1032,6 @@ func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.S
 	// populate uuid patches for each machine matching the machine class
 	for _, machineID := range ids {
 		configPatch := omni.NewConfigPatch(
-			resources.DefaultNamespace,
 			fmt.Sprintf("000-%s-uuid-patch", machineID),
 			pair.MakePair(omni.LabelCluster, options.Name),
 			pair.MakePair(omni.LabelClusterMachine, machineID),

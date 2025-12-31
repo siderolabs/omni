@@ -19,7 +19,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/stripe/stripe-go/v76"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -111,7 +110,7 @@ func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 	stripe.SetBackend(stripe.APIBackend, mockBackend)
 
 	// Register 1 machine and wait for the debounce so we can ensure that the min commit is what's actually reported
-	metrics := omni.NewMachineStatusMetrics(resources.EphemeralNamespace, omni.MachineStatusMetricsID)
+	metrics := omni.NewMachineStatusMetrics(omni.MachineStatusMetricsID)
 	metrics.TypedSpec().Value.RegisteredMachinesCount = 1
 	suite.Require().NoError(suite.state.Create(suite.ctx, metrics))
 

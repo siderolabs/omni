@@ -15,7 +15,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
@@ -33,7 +32,7 @@ func NewMachineJoinConfigController() *MachineJoinConfigController {
 				return siderolinkres.NewMachineJoinConfig(provider.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(config *siderolinkres.MachineJoinConfig) *omni.Machine {
-				return omni.NewMachine(resources.DefaultNamespace, config.Metadata().ID())
+				return omni.NewMachine(config.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, machine *omni.Machine, machineJoinConfig *siderolinkres.MachineJoinConfig) error {
 				tokenUsage, err := safe.ReaderGetByID[*siderolinkres.JoinTokenUsage](ctx, r, machine.Metadata().ID())

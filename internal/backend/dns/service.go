@@ -17,7 +17,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -116,14 +115,14 @@ func (d *Service) Start(ctx context.Context) error {
 	ch := make(chan state.Event)
 
 	if err := d.omniState.WatchKind(ctx,
-		omni.NewClusterMachineIdentity(resources.DefaultNamespace, "").Metadata(), ch,
+		omni.NewClusterMachineIdentity("").Metadata(), ch,
 		state.WithBootstrapContents(true),
 	); err != nil {
 		return err
 	}
 
 	if err := d.omniState.WatchKind(ctx,
-		omni.NewMachineStatus(resources.DefaultNamespace, "").Metadata(), ch,
+		omni.NewMachineStatus("").Metadata(), ch,
 		state.WithBootstrapContents(true),
 	); err != nil {
 		return err

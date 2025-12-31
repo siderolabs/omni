@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/loadbalancer"
@@ -149,12 +148,12 @@ func (suite *LoadBalancerSuite) TestLoadBalancers() {
 	suite.startRuntime()
 
 	createLoadBalancer := func(bindPort int) {
-		loadBalancer := omniresources.NewLoadBalancerConfig(resources.DefaultNamespace, strconv.Itoa(bindPort))
+		loadBalancer := omniresources.NewLoadBalancerConfig(strconv.Itoa(bindPort))
 		loadBalancer.TypedSpec().Value.BindPort = strconv.Itoa(bindPort)
 
 		suite.Require().NoError(suite.state.Create(suite.ctx, loadBalancer))
 
-		clusterStatus := omniresources.NewClusterStatus(resources.DefaultNamespace, strconv.Itoa(bindPort))
+		clusterStatus := omniresources.NewClusterStatus(strconv.Itoa(bindPort))
 		clusterStatus.TypedSpec().Value.HasConnectedControlPlanes = true
 
 		suite.Require().NoError(suite.state.Create(suite.ctx, clusterStatus))
@@ -201,7 +200,7 @@ func (suite *LoadBalancerSuite) TestLoadBalancers() {
 	// update cluster status to not have connected control planes
 	clusterStatus1, err := safe.StateUpdateWithConflicts(
 		suite.ctx, suite.state,
-		omniresources.NewClusterStatus(resources.DefaultNamespace, strconv.Itoa(bindPort1)).Metadata(),
+		omniresources.NewClusterStatus(strconv.Itoa(bindPort1)).Metadata(),
 		func(r *omniresources.ClusterStatus) error {
 			r.TypedSpec().Value.HasConnectedControlPlanes = false
 
@@ -250,7 +249,7 @@ func (suite *LoadBalancerSuite) newLoadBalancerSetup(newLoadBalancerFunc loadbal
 func (suite *LoadBalancerSuite) assertStatus(id string, expectedHealthy, expectedStopped bool) {
 	assertResource(
 		&suite.OmniSuite,
-		*omniresources.NewLoadBalancerStatus(resources.DefaultNamespace, id).Metadata(),
+		*omniresources.NewLoadBalancerStatus(id).Metadata(),
 		func(res *omniresources.LoadBalancerStatus, assertions *assert.Assertions) {
 			lbStatus := res.TypedSpec().Value
 			assertions.Equal(expectedHealthy, lbStatus.Healthy)
@@ -266,12 +265,12 @@ func (suite *LoadBalancerSuite) TestChangeAddress() {
 
 	const testID = ""
 
-	loadBalancer := omniresources.NewLoadBalancerConfig(resources.DefaultNamespace, testID)
+	loadBalancer := omniresources.NewLoadBalancerConfig(testID)
 	expectedBindPort := 20000
 	loadBalancer.TypedSpec().Value.BindPort = strconv.Itoa(expectedBindPort)
 	suite.Require().NoError(suite.state.Create(suite.ctx, loadBalancer))
 
-	clusterStatus := omniresources.NewClusterStatus(resources.DefaultNamespace, testID)
+	clusterStatus := omniresources.NewClusterStatus(testID)
 	clusterStatus.TypedSpec().Value.HasConnectedControlPlanes = true
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterStatus))
@@ -307,7 +306,7 @@ func (suite *LoadBalancerSuite) TestChangeAddress() {
 
 	assertResource(
 		&suite.OmniSuite,
-		*omniresources.NewLoadBalancerStatus(resources.EphemeralNamespace, testID).Metadata(),
+		*omniresources.NewLoadBalancerStatus(testID).Metadata(),
 		func(res *omniresources.LoadBalancerStatus, assertions *assert.Assertions) {
 			lbStatus := res.TypedSpec().Value
 
@@ -328,12 +327,12 @@ func (suite *LoadBalancerSuite) TestStopLoadBalancer() {
 
 	const testID = ""
 
-	loadBalancer := omniresources.NewLoadBalancerConfig(resources.DefaultNamespace, testID)
+	loadBalancer := omniresources.NewLoadBalancerConfig(testID)
 	expectedBindPort := 20000
 	loadBalancer.TypedSpec().Value.BindPort = strconv.Itoa(expectedBindPort)
 	suite.Require().NoError(suite.state.Create(suite.ctx, loadBalancer))
 
-	clusterStatus := omniresources.NewClusterStatus(resources.DefaultNamespace, testID)
+	clusterStatus := omniresources.NewClusterStatus(testID)
 	clusterStatus.TypedSpec().Value.HasConnectedControlPlanes = true
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterStatus))
@@ -346,7 +345,7 @@ func (suite *LoadBalancerSuite) TestStopLoadBalancer() {
 
 	expectSignal(suite, mock.shutdownMethodCalled, struct{}{})
 
-	suite.assertNoResource(*omniresources.NewLoadBalancerStatus(resources.DefaultNamespace, testID).Metadata())
+	suite.assertNoResource(*omniresources.NewLoadBalancerStatus(testID).Metadata())
 }
 
 func (suite *LoadBalancerSuite) TestUpdateUpstreams() {
@@ -356,7 +355,7 @@ func (suite *LoadBalancerSuite) TestUpdateUpstreams() {
 
 	const testID = ""
 
-	loadBalancer := omniresources.NewLoadBalancerConfig(resources.DefaultNamespace, testID)
+	loadBalancer := omniresources.NewLoadBalancerConfig(testID)
 	expectedBindPort := 20000
 	loadBalancer.TypedSpec().Value.BindPort = strconv.Itoa(expectedBindPort)
 	loadBalancer.TypedSpec().Value.Endpoints = []string{
@@ -364,7 +363,7 @@ func (suite *LoadBalancerSuite) TestUpdateUpstreams() {
 	}
 	suite.Require().NoError(suite.state.Create(suite.ctx, loadBalancer))
 
-	clusterStatus := omniresources.NewClusterStatus(resources.DefaultNamespace, testID)
+	clusterStatus := omniresources.NewClusterStatus(testID)
 	clusterStatus.TypedSpec().Value.HasConnectedControlPlanes = true
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterStatus))

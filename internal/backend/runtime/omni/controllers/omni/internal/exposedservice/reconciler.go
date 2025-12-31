@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -81,7 +80,7 @@ func (reconciler *Reconciler) ReconcileServices() ([]*omni.ExposedService, error
 
 		exposedService := reconciler.exposedServices[exposedServiceID]
 		if exposedService == nil {
-			exposedService = omni.NewExposedService(resources.DefaultNamespace, reconciler.cluster+"/"+svcID)
+			exposedService = omni.NewExposedService(reconciler.cluster + "/" + svcID)
 		}
 
 		keep, err := reconciler.reconcileService(exposedService, service, logger)

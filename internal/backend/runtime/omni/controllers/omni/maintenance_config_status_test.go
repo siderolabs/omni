@@ -65,7 +65,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, link))
 
-	machineStatus := omnires.NewMachineStatus(resources.DefaultNamespace, "test-machine")
+	machineStatus := omnires.NewMachineStatus("test-machine")
 	machineStatus.TypedSpec().Value.Maintenance = true
 
 	machineStatus.TypedSpec().Value.ManagementAddress = "test-address"

@@ -26,7 +26,6 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/client"
 
 	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
@@ -230,7 +229,7 @@ func GetTalosClient[T interface {
 		return createInsecureClient()
 	}
 
-	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(resources.DefaultNamespace, clusterName).Metadata())
+	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(clusterName).Metadata())
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, fmt.Errorf("cluster '%s' failed to get talosconfig: %w", clusterName, err)
 	}

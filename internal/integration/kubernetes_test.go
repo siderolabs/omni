@@ -33,7 +33,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/integration/kubernetes"
 )
@@ -165,7 +164,7 @@ func AssertKubernetesUpgradeFlow(testCtx context.Context, st state.State, manage
 		})
 		require.NoError(t, err)
 
-		cluster, err := safe.StateGet[*omni.Cluster](ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata())
+		cluster, err := safe.StateGet[*omni.Cluster](ctx, st, omni.NewCluster(clusterName).Metadata())
 		require.NoError(t, err)
 
 		// lock the cluster
@@ -177,7 +176,7 @@ func AssertKubernetesUpgradeFlow(testCtx context.Context, st state.State, manage
 		require.NoError(t, err)
 
 		// attempt triggering an upgrade
-		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.TypedSpec().Value.KubernetesVersion = kubernetesVersion
 
 			return nil
@@ -194,7 +193,7 @@ func AssertKubernetesUpgradeFlow(testCtx context.Context, st state.State, manage
 		require.NoError(t, err)
 
 		// trigger an upgrade
-		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.TypedSpec().Value.KubernetesVersion = kubernetesVersion
 
 			return nil
@@ -316,7 +315,7 @@ func AssertKubernetesUpgradeIsRevertible(testCtx context.Context, st state.State
 		t.Logf("attempting an upgrade of cluster %q to %q", clusterName, badKubernetesVersion)
 
 		// trigger an upgrade to a bad version
-		_, err := safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+		_, err := safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.Metadata().Annotations().Set(constants.DisableValidation, "")
 
 			cluster.TypedSpec().Value.KubernetesVersion = badKubernetesVersion
@@ -339,7 +338,7 @@ func AssertKubernetesUpgradeIsRevertible(testCtx context.Context, st state.State
 
 		t.Log("revert an upgrade")
 
-		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.TypedSpec().Value.KubernetesVersion = currentKubernetesVersion
 
 			return nil

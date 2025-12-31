@@ -24,7 +24,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/siderolabs/omni/client/api/common"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/k8s"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
@@ -114,7 +113,7 @@ func TestBreakGlassKubeconfig(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, state.IsNotFoundError(err))
 
-	kubeconfigResource := omni.NewKubeconfig(resources.DefaultNamespace, "cluster1")
+	kubeconfigResource := omni.NewKubeconfig("cluster1")
 
 	kubeconfigResource.TypedSpec().Value.Data = adminKubeconfig
 
@@ -128,9 +127,9 @@ func TestBreakGlassKubeconfig(t *testing.T) {
 
 	require.NotEmpty(t, config.Clusters)
 
-	m1 := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "3")
-	m2 := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "2")
-	m3 := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "1")
+	m1 := omni.NewClusterMachineIdentity("3")
+	m2 := omni.NewClusterMachineIdentity("2")
+	m3 := omni.NewClusterMachineIdentity("1")
 
 	m1.Metadata().Labels().Set(omni.LabelCluster, "cluster1")
 	m3.Metadata().Labels().Set(omni.LabelCluster, "cluster1")

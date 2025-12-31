@@ -15,9 +15,9 @@ import (
 )
 
 // NewKubernetesStatus creates new Kubernetes component version/readiness state.
-func NewKubernetesStatus(ns, id string) *KubernetesStatus {
+func NewKubernetesStatus(id string) *KubernetesStatus {
 	return typed.NewResource[KubernetesStatusSpec, KubernetesStatusExtension](
-		resource.NewMetadata(ns, KubernetesStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, KubernetesStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.KubernetesStatusSpec{}),
 	)
 }

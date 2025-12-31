@@ -22,7 +22,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
@@ -47,10 +46,10 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 		qtransform.Settings[*omni.Cluster, *omni.TalosUpgradeStatus]{
 			Name: TalosUpgradeStatusControllerName,
 			MapMetadataFunc: func(cluster *omni.Cluster) *omni.TalosUpgradeStatus {
-				return omni.NewTalosUpgradeStatus(resources.DefaultNamespace, cluster.Metadata().ID())
+				return omni.NewTalosUpgradeStatus(cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(upgradeStatus *omni.TalosUpgradeStatus) *omni.Cluster {
-				return omni.NewCluster(resources.DefaultNamespace, upgradeStatus.Metadata().ID())
+				return omni.NewCluster(upgradeStatus.Metadata().ID())
 			},
 			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cluster *omni.Cluster, upgradeStatus *omni.TalosUpgradeStatus) error {
 				_, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked)
@@ -149,7 +148,7 @@ func NewTalosUpgradeStatusController() *TalosUpgradeStatusController {
 						return nil, nil
 					}
 
-					return []resource.Pointer{omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata()}, nil
+					return []resource.Pointer{omni.NewCluster(clusterName).Metadata()}, nil
 				},
 			),
 		),
@@ -218,7 +217,7 @@ func updateMachines(
 }
 
 func getMachineName(ctx context.Context, r controller.ReaderWriter, id resource.ID) (string, error) {
-	identity, err := safe.ReaderGet[*omni.ClusterMachineIdentity](ctx, r, omni.NewClusterMachineIdentity(resources.DefaultNamespace, id).Metadata())
+	identity, err := safe.ReaderGet[*omni.ClusterMachineIdentity](ctx, r, omni.NewClusterMachineIdentity(id).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return id, nil
@@ -263,7 +262,7 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 		err              error
 	)
 
-	clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata())
+	clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(cluster.Metadata().ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
@@ -308,7 +307,7 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 
 		var configStatus *omni.ClusterMachineConfigStatus
 
-		configStatus, err = safe.ReaderGet[*omni.ClusterMachineConfigStatus](ctx, r, omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, machine.Metadata().ID()).Metadata())
+		configStatus, err = safe.ReaderGet[*omni.ClusterMachineConfigStatus](ctx, r, omni.NewClusterMachineConfigStatus(machine.Metadata().ID()).Metadata())
 		if err != nil && !state.IsNotFoundError(err) {
 			return err
 		}
@@ -447,7 +446,7 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 }
 
 func getOrCreateResource(ctx context.Context, r controller.ReaderWriter, machine *omni.ClusterMachine, talosVersion, schematicID string) (*omni.ClusterMachineTalosVersion, error) {
-	res := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, machine.Metadata().ID())
+	res := omni.NewClusterMachineTalosVersion(machine.Metadata().ID())
 
 	clusterMachineTalosVersion, err := safe.ReaderGet[*omni.ClusterMachineTalosVersion](ctx, r, res.Metadata())
 	if err != nil {
@@ -483,7 +482,7 @@ func updateMachine(ctx context.Context, r controller.ReaderWriter, logger *zap.L
 }
 
 func createInitialTalosVersion(ctx context.Context, r controller.ReaderWriter, machine *omni.ClusterMachine, talosVersion, schematicID string) (*omni.ClusterMachineTalosVersion, error) {
-	res := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, machine.Metadata().ID())
+	res := omni.NewClusterMachineTalosVersion(machine.Metadata().ID())
 
 	helpers.CopyAllLabels(machine, res)
 
@@ -503,7 +502,7 @@ func cleanupResources(ctx context.Context, r controller.ReaderWriter, clusterMac
 			return nil
 		}
 
-		if err := r.Destroy(ctx, omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata()); err != nil && !state.IsNotFoundError(err) {
+		if err := r.Destroy(ctx, omni.NewClusterMachineTalosVersion(clusterMachine.Metadata().ID()).Metadata()); err != nil && !state.IsNotFoundError(err) {
 			return err
 		}
 

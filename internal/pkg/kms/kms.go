@@ -16,7 +16,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
@@ -40,7 +39,7 @@ func (m *Manager) Register(srv *grpc.Server) {
 	grpcServer := server.NewServer(func(ctx context.Context, nodeUUID string) ([]byte, error) {
 		ctx = actor.MarkContextAsInternalActor(ctx)
 
-		res, err := safe.StateGet[*omni.ClusterMachineEncryptionKey](ctx, m.state, omni.NewClusterMachineEncryptionKey(resources.DefaultNamespace, nodeUUID).Metadata())
+		res, err := safe.StateGet[*omni.ClusterMachineEncryptionKey](ctx, m.state, omni.NewClusterMachineEncryptionKey(nodeUUID).Metadata())
 		if err != nil {
 			m.logger.Error("failed to get encryption key for node", zap.String("machine", nodeUUID), zap.Error(err))
 

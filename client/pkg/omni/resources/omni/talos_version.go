@@ -15,9 +15,9 @@ import (
 )
 
 // NewTalosVersion creates new cluster resource.
-func NewTalosVersion(ns string, id resource.ID) *TalosVersion {
+func NewTalosVersion(id resource.ID) *TalosVersion {
 	return typed.NewResource[TalosVersionSpec, TalosVersionExtension](
-		resource.NewMetadata(ns, TalosVersionType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, TalosVersionType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.TalosVersionSpec{}),
 	)
 }

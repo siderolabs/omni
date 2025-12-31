@@ -23,9 +23,9 @@ const KubernetesVersionType = resource.Type("KubernetesVersions.omni.sidero.dev"
 type KubernetesVersion = typed.Resource[KubernetesVersionSpec, KubernetesVersionExtension]
 
 // NewKubernetesVersion creates new KubernetesVersion resource.
-func NewKubernetesVersion(ns resource.Namespace, id resource.ID) *KubernetesVersion {
+func NewKubernetesVersion(id resource.ID) *KubernetesVersion {
 	return typed.NewResource[KubernetesVersionSpec, KubernetesVersionExtension](
-		resource.NewMetadata(ns, KubernetesVersionType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, KubernetesVersionType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(
 			&specs.KubernetesVersionSpec{},
 		),
