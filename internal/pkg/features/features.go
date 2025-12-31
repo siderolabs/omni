@@ -16,7 +16,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -57,7 +56,7 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 		return nil
 	}
 
-	featuresConfig := omni.NewFeaturesConfig(resources.DefaultNamespace, omni.FeaturesConfigID)
+	featuresConfig := omni.NewFeaturesConfig(omni.FeaturesConfigID)
 
 	_, err := st.Get(ctx, featuresConfig.Metadata())
 	if err != nil {

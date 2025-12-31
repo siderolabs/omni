@@ -85,7 +85,7 @@ func (ctrl *ClusterMetricsController) Run(ctx context.Context, r controller.Runt
 			ctrl.metricNumClusterFeatures.WithLabelValues(feature).Set(float64(num))
 		}
 
-		if err = safe.WriterModify(ctx, r, omni.NewClusterMetrics(resources.EphemeralNamespace, omni.ClusterMetricsID), func(res *omni.ClusterMetrics) error {
+		if err = safe.WriterModify(ctx, r, omni.NewClusterMetrics(omni.ClusterMetricsID), func(res *omni.ClusterMetrics) error {
 			res.TypedSpec().Value.Features = featureMetrics
 
 			return nil

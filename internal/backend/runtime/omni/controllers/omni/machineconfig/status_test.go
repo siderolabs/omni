@@ -25,7 +25,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/meta"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	mc "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
@@ -63,7 +62,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	}
 
 	upgradeHandler := func(ctx context.Context, ur *machine.UpgradeRequest, st state.State, id string) (*machine.UpgradeResponse, error) {
-		if err := safe.StateModify(ctx, st, omni.NewMachineStatus(resources.DefaultNamespace, id), func(res *omni.MachineStatus) error {
+		if err := safe.StateModify(ctx, st, omni.NewMachineStatus(id), func(res *omni.MachineStatus) error {
 			urlString, tag, found := strings.Cut(ur.Image, ":")
 			if !found {
 				return fmt.Errorf("bad install image")
@@ -95,7 +94,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	resetHandler := func(ctx context.Context, _ *machine.ResetRequest, st state.State, id string) (*machine.ResetResponse, error) {
 		t.Logf("setting maintenance for %v", id)
 
-		if err := safe.StateModify(ctx, st, omni.NewMachineStatusSnapshot(resources.DefaultNamespace, id),
+		if err := safe.StateModify(ctx, st, omni.NewMachineStatusSnapshot(id),
 			func(res *omni.MachineStatusSnapshot) error {
 				res.TypedSpec().Value.MachineStatus.Stage = machine.MachineStatusEvent_MAINTENANCE
 

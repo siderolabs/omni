@@ -66,7 +66,7 @@ func statusTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 
 	watchCh := make(chan state.Event)
 
-	if err = st.Watch(ctx, omni.NewClusterStatus(resources.DefaultNamespace, clusterName).Metadata(), watchCh); err != nil {
+	if err = st.Watch(ctx, omni.NewClusterStatus(clusterName).Metadata(), watchCh); err != nil {
 		return err
 	}
 

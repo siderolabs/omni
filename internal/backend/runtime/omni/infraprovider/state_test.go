@@ -13,6 +13,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
+	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/resource/typed"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -289,7 +290,10 @@ func TestInfraProviderSpecificNamespace(t *testing.T) {
 
 	// try to create a resource with omni-internal type, i.e., "ExposedServices.omni.sidero.dev" in the infra-provider specific namespace - assert that it is not allowed
 
-	omniRes := omni.NewExposedService(infraProviderResNamespace, "test-res-3")
+	omniRes := typed.NewResource[omni.ExposedServiceSpec, omni.ExposedServiceExtension](
+		resource.NewMetadata(infraProviderResNamespace, omni.ExposedServiceType, "test-res-3", resource.VersionUndefined),
+		protobuf.NewResourceSpec(&specs.ExposedServiceSpec{}),
+	)
 
 	err = st.Create(ctx, omniRes)
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))

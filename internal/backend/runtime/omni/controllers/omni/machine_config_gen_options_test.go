@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -164,16 +163,16 @@ func TestGenInstallConfig(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			ms := omni.NewMachineStatus(resources.DefaultNamespace, "id")
+			ms := omni.NewMachineStatus("id")
 
 			if tt.machineStatusSpec != nil {
 				ms.TypedSpec().Value = tt.machineStatusSpec
 			}
 
-			talosVersion := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, "id")
+			talosVersion := omni.NewClusterMachineTalosVersion("id")
 			talosVersion.TypedSpec().Value.TalosVersion = tt.talosVersion
 
-			genOptions := omni.NewMachineConfigGenOptions(resources.DefaultNamespace, "id")
+			genOptions := omni.NewMachineConfigGenOptions("id")
 
 			omnictrl.GenInstallConfig(ms, talosVersion, genOptions)
 

@@ -253,7 +253,7 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 	})
 
 	err = forAllCompatibleVersions(talosVersions, k8sVersions, func(talosVer string, compatibleK8sVersions []string) error {
-		talosVersion := omni.NewTalosVersion(resources.DefaultNamespace, talosVer)
+		talosVersion := omni.NewTalosVersion(talosVer)
 		if writeErr := safe.WriterModify(ctx, r, talosVersion, func(res *omni.TalosVersion) error {
 			res.TypedSpec().Value.Version = talosVer
 			res.TypedSpec().Value.CompatibleKubernetesVersions = compatibleK8sVersions
@@ -296,7 +296,7 @@ func (ctrl *VersionsController) reconcileKubernetesVersions(ctx context.Context,
 	versions := ctrl.getVersionsAfter(allVersions, minK8sVersion, false)
 
 	for _, v := range versions {
-		k8sVersion := omni.NewKubernetesVersion(resources.DefaultNamespace, v)
+		k8sVersion := omni.NewKubernetesVersion(v)
 
 		if err = safe.WriterModify(ctx, r, k8sVersion, func(res *omni.KubernetesVersion) error {
 			res.TypedSpec().Value.Version = v

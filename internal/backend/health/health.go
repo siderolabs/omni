@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
@@ -32,7 +31,7 @@ type Handler struct {
 func NewHandler(state state.State, logger *zap.Logger) http.Handler {
 	return &Handler{
 		state:  state,
-		ptr:    omni.NewTalosVersion(resources.DefaultNamespace, "health-check").Metadata(),
+		ptr:    omni.NewTalosVersion("health-check").Metadata(),
 		logger: logger,
 	}
 }

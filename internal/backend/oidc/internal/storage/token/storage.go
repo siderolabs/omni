@@ -337,7 +337,7 @@ func (s *Storage) impersonateGroupsFromAccessPolicy(ctx context.Context, cluster
 		return nil, fmt.Errorf("failed to get access policy: %w", err)
 	}
 
-	clusterRes, err := safe.StateGet[*omni.Cluster](ctx, s.state, omni.NewCluster(resources.DefaultNamespace, cluster).Metadata())
+	clusterRes, err := safe.StateGet[*omni.Cluster](ctx, s.state, omni.NewCluster(cluster).Metadata())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cluster: %w", err)
 	}

@@ -85,7 +85,7 @@ func (ctrl *ClusterWorkloadProxyController) Run(ctx context.Context, r controlle
 		for cluster := range clusterList.All() {
 			id := fmt.Sprintf("950-cluster-%s-workload-proxying", cluster.Metadata().ID())
 
-			configPatch := omni.NewConfigPatch(resources.DefaultNamespace, id)
+			configPatch := omni.NewConfigPatch(id)
 
 			if !cluster.TypedSpec().Value.GetFeatures().GetEnableWorkloadProxy() {
 				if destroyErr := r.Destroy(ctx, configPatch.Metadata()); destroyErr != nil && !state.IsNotFoundError(destroyErr) {

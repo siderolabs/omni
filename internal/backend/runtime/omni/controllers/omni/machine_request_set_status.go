@@ -19,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 
 	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
@@ -39,10 +38,10 @@ func NewMachineRequestSetStatusController() *MachineRequestSetStatusController {
 		qtransform.Settings[*omni.MachineRequestSet, *omni.MachineRequestSetStatus]{
 			Name: MachineRequestSetStatusControllerName,
 			MapMetadataFunc: func(pool *omni.MachineRequestSet) *omni.MachineRequestSetStatus {
-				return omni.NewMachineRequestSetStatus(resources.DefaultNamespace, pool.Metadata().ID())
+				return omni.NewMachineRequestSetStatus(pool.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(status *omni.MachineRequestSetStatus) *omni.MachineRequestSet {
-				return omni.NewMachineRequestSet(resources.DefaultNamespace, status.Metadata().ID())
+				return omni.NewMachineRequestSet(status.Metadata().ID())
 			},
 			TransformExtraOutputFunc:        h.reconcileRunning,
 			FinalizerRemovalExtraOutputFunc: h.reconcileTearingDown,
@@ -367,7 +366,7 @@ func mapMachineToMachineRequest(ctx context.Context, _ *zap.Logger, r controller
 	}
 
 	return []resource.Pointer{
-		omni.NewMachineRequestSet(resources.DefaultNamespace, machineRequestSetName).Metadata(),
+		omni.NewMachineRequestSet(machineRequestSetName).Metadata(),
 	}, nil
 }
 

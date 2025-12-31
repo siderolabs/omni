@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterMachineConfigStatus creates new cluster machine status resource.
-func NewClusterMachineConfigStatus(ns string, id resource.ID) *ClusterMachineConfigStatus {
+func NewClusterMachineConfigStatus(id resource.ID) *ClusterMachineConfigStatus {
 	return typed.NewResource[ClusterMachineConfigStatusSpec, ClusterMachineConfigStatusExtension](
-		resource.NewMetadata(ns, ClusterMachineConfigStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterMachineConfigStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterMachineConfigStatusSpec{}),
 	)
 }

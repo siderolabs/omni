@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/kubernetes"
 )
@@ -38,7 +37,7 @@ func TestNewMachineMap(t *testing.T) {
 	}
 
 	for _, node := range cpNodes {
-		cm := omni.NewClusterMachineStatus(resources.DefaultNamespace, machineID(node))
+		cm := omni.NewClusterMachineStatus(machineID(node))
 		cm.Metadata().Labels().Set(omni.LabelCluster, "cluster1")
 		cm.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 
@@ -48,7 +47,7 @@ func TestNewMachineMap(t *testing.T) {
 	}
 
 	for _, node := range workerNodes {
-		cm := omni.NewClusterMachineStatus(resources.DefaultNamespace, machineID(node))
+		cm := omni.NewClusterMachineStatus(machineID(node))
 		cm.Metadata().Labels().Set(omni.LabelCluster, "cluster1")
 		cm.Metadata().Labels().Set(omni.LabelWorkerRole, "")
 
@@ -61,7 +60,7 @@ func TestNewMachineMap(t *testing.T) {
 		require.NoError(t, st.Create(ctx, cm))
 	}
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "cluster1")
+	cluster := omni.NewCluster("cluster1")
 
 	machineMap, err := kubernetes.NewMachineMap(ctx, st, cluster)
 	require.NoError(t, err)

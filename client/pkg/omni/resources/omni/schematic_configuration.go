@@ -15,9 +15,9 @@ import (
 )
 
 // NewSchematicConfiguration creates new schematic configuration resource.
-func NewSchematicConfiguration(ns string, id resource.ID) *SchematicConfiguration {
+func NewSchematicConfiguration(id resource.ID) *SchematicConfiguration {
 	return typed.NewResource[SchematicConfigurationSpec, SchematicConfigurationExtension](
-		resource.NewMetadata(ns, SchematicConfigurationType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, SchematicConfigurationType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.SchematicConfigurationSpec{}),
 	)
 }

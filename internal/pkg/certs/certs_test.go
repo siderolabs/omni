@@ -27,7 +27,7 @@ func TestIsTalosCertificateStale(t *testing.T) {
 	data, err := json.Marshal(bundle)
 	require.NoError(t, err)
 
-	secrets := omni.NewClusterSecrets("", "")
+	secrets := omni.NewClusterSecrets("")
 	secrets.TypedSpec().Value.Data = data
 
 	cert, _, err := certs.TalosAPIClientCertificateFromSecrets(secrets, constants.CertificateValidityTime, role.All)

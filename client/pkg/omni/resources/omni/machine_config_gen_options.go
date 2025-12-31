@@ -15,9 +15,9 @@ import (
 )
 
 // NewMachineConfigGenOptions creates new MachineConfigGenOptions resource.
-func NewMachineConfigGenOptions(ns string, id resource.ID) *MachineConfigGenOptions {
+func NewMachineConfigGenOptions(id resource.ID) *MachineConfigGenOptions {
 	return typed.NewResource[MachineConfigGenOptionsSpec, MachineConfigGenOptionsExtension](
-		resource.NewMetadata(ns, MachineConfigGenOptionsType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, MachineConfigGenOptionsType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineConfigGenOptionsSpec{}),
 	)
 }

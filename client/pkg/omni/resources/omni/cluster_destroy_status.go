@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterDestroyStatus creates new cluster destroy status.
-func NewClusterDestroyStatus(ns string, id resource.ID) *ClusterDestroyStatus {
+func NewClusterDestroyStatus(id resource.ID) *ClusterDestroyStatus {
 	return typed.NewResource[ClusterDestroyStatusSpec, ClusterDestroyStatusExtension](
-		resource.NewMetadata(ns, ClusterDestroyStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterDestroyStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.DestroyStatusSpec{}),
 	)
 }

@@ -158,7 +158,7 @@ func (ctrl *ClusterMachineIdentityController) reconcileCollectors(ctx context.Co
 		}
 
 		machine, err := safe.ReaderGet[*omni.Machine](ctx, r,
-			omni.NewMachine(resources.DefaultNamespace, id).Metadata(),
+			omni.NewMachine(id).Metadata(),
 		)
 		if err != nil {
 			if state.IsNotFoundError(err) {

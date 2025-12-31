@@ -49,7 +49,7 @@ func (suite *MachineSetStatusSuite) createMachineSet(clusterName string, machine
 
 func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string, machineSetName string, machines []string, opts ...option) *omni.MachineSet {
 	options := initOptions(&options{healthy: true}, opts...)
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+	cluster := omni.NewCluster(clusterName)
 
 	cluster.TypedSpec().Value.TalosVersion = "1.2.1"
 	cluster.TypedSpec().Value.KubernetesVersion = "1.25.0"
@@ -59,7 +59,7 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 		suite.Require().NoError(err)
 	}
 
-	clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterName)
+	clusterStatus := omni.NewClusterStatus(clusterName)
 
 	clusterStatus.TypedSpec().Value.Available = true
 
@@ -68,7 +68,7 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 		suite.Require().NoError(err)
 	}
 
-	secrets := omni.NewClusterSecrets(resources.DefaultNamespace, clusterName)
+	secrets := omni.NewClusterSecrets(clusterName)
 
 	bundle, err := talossecrets.NewBundle(talossecrets.NewClock(), config.TalosVersionCurrent)
 	suite.Require().NoError(err)
@@ -83,11 +83,11 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 		suite.Require().NoError(err)
 	}
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, machineSetName)
+	machineSet := omni.NewMachineSet(machineSetName)
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 	spec := machineSet.TypedSpec().Value
 
-	loadbalancer := omni.NewLoadBalancerStatus(resources.DefaultNamespace, clusterName)
+	loadbalancer := omni.NewLoadBalancerStatus(clusterName)
 	loadbalancer.TypedSpec().Value.Healthy = options.healthy
 
 	err = suite.state.Create(suite.ctx, loadbalancer)
@@ -101,7 +101,7 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 		extraPatchName := fmt.Sprintf("%s-patch-extra%d", machineSetName, i)
 
 		extraPatch := omni.NewConfigPatch(
-			resources.DefaultNamespace, extraPatchName,
+			extraPatchName,
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelMachineSet, machineSetName),
 		)
@@ -131,7 +131,7 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, machineSet))
 
-	patch1 := omni.NewConfigPatch(resources.DefaultNamespace, patchName, pair.MakePair(omni.LabelCluster, clusterName))
+	patch1 := omni.NewConfigPatch(patchName, pair.MakePair(omni.LabelCluster, clusterName))
 
 	err = patch1.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
@@ -145,7 +145,7 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 	}
 
 	for _, machine := range machines {
-		mchn := omni.NewMachine(resources.DefaultNamespace, machine)
+		mchn := omni.NewMachine(machine)
 		mchn.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
 
 		err = suite.state.Create(suite.ctx, mchn)
@@ -153,7 +153,7 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 			suite.Require().NoError(err)
 		}
 
-		machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, machine)
+		machineStatus := omni.NewMachineStatus(machine)
 
 		machineStatus.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
 		machineStatus.TypedSpec().Value.Connected = true
@@ -166,11 +166,11 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 			suite.Require().NoError(err)
 		}
 
-		msn := omni.NewMachineSetNode(resources.DefaultNamespace, machine, machineSet)
+		msn := omni.NewMachineSetNode(machine, machineSet)
 
 		suite.Require().NoError(suite.state.Create(suite.ctx, msn))
 
-		clusterMachineIdentity := omni.NewClusterMachineIdentity(resources.DefaultNamespace, machine)
+		clusterMachineIdentity := omni.NewClusterMachineIdentity(machine)
 
 		err = suite.state.Create(suite.ctx, clusterMachineIdentity)
 		if !state.IsConflictError(err) {
@@ -184,7 +184,7 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 //nolint:unparam
 func (suite *MachineSetStatusSuite) updateStage(nodes []string, stage specs.ClusterMachineStatusSpec_Stage, ready bool) {
 	for _, node := range nodes {
-		cms := omni.NewClusterMachineStatus(resources.DefaultNamespace, node)
+		cms := omni.NewClusterMachineStatus(node)
 		cms.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
 		spec := cms.TypedSpec().Value
 
@@ -226,7 +226,7 @@ func (suite *MachineSetStatusSuite) syncConfig(nodes []string) {
 		))
 		suite.Assert().NoError(err)
 
-		cmcs := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, node)
+		cmcs := omni.NewClusterMachineConfigStatus(node)
 		spec := cmcs.TypedSpec().Value
 		spec.ClusterMachineVersion = machine.Metadata().Version().String()
 
@@ -286,13 +286,13 @@ func (suite *MachineSetStatusSuite) TestScaleUp() {
 
 // TestEmptyTeardown should destroy the machine sets without cluster machines.
 func (suite *MachineSetStatusSuite) TestEmptyTeardown() {
-	cluster := omni.NewCluster(resources.DefaultNamespace, "test")
+	cluster := omni.NewCluster("test")
 
-	ms := omni.NewMachineSet(resources.DefaultNamespace, "tearingdown")
+	ms := omni.NewMachineSet("tearingdown")
 	ms.Metadata().SetPhase(resource.PhaseTearingDown)
 	ms.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
-	msn := omni.NewMachineSetNode(resources.DefaultNamespace, "1", ms)
+	msn := omni.NewMachineSetNode("1", ms)
 	msn.Metadata().Finalizers().Add(machineset.ControllerName)
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, cluster))
@@ -331,7 +331,7 @@ func (suite *MachineSetStatusSuite) TestScaleDown() {
 
 	suite.updateStage(expectedMachines, specs.ClusterMachineStatusSpec_RUNNING, true)
 
-	loadbalancer := omni.NewLoadBalancerStatus(resources.DefaultNamespace, clusterName)
+	loadbalancer := omni.NewLoadBalancerStatus(clusterName)
 	_, err := safe.StateUpdateWithConflicts(
 		suite.ctx,
 		suite.state,
@@ -345,7 +345,7 @@ func (suite *MachineSetStatusSuite) TestScaleDown() {
 	suite.Require().NoError(err)
 
 	suite.Assert().NoError(retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(
-		suite.assertNoResource(*omni.NewClusterMachine(resources.DefaultNamespace, machines[0]).Metadata()),
+		suite.assertNoResource(*omni.NewClusterMachine(machines[0]).Metadata()),
 	))
 
 	suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_Running)
@@ -367,7 +367,7 @@ func (suite *MachineSetStatusSuite) TestScaleDownWithMaxParallelism() {
 	for _, m := range machines {
 		assertResource(
 			&suite.OmniSuite,
-			*omni.NewClusterMachine(resources.DefaultNamespace, m).Metadata(),
+			*omni.NewClusterMachine(m).Metadata(),
 			func(machine *omni.ClusterMachine, assertions *assert.Assertions) {
 				assertions.NoError(suite.assertLabels(machine, omni.LabelCluster, clusterName, omni.LabelMachineSet, machineSet.Metadata().ID()))
 			},
@@ -388,7 +388,7 @@ func (suite *MachineSetStatusSuite) TestScaleDownWithMaxParallelism() {
 
 	watchCh := make(chan safe.WrappedStateEvent[*omni.ClusterMachine])
 
-	err = safe.StateWatchKind(suite.ctx, suite.state, omni.NewClusterMachine(resources.DefaultNamespace, "").Metadata(), watchCh)
+	err = safe.StateWatchKind(suite.ctx, suite.state, omni.NewClusterMachine("").Metadata(), watchCh)
 	suite.Require().NoError(err)
 
 	for _, machine := range machines[1:] {
@@ -477,7 +477,7 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 	for _, m := range machines {
 		assertResource(
 			&suite.OmniSuite,
-			*omni.NewClusterMachine(resources.DefaultNamespace, m).Metadata(),
+			*omni.NewClusterMachine(m).Metadata(),
 			func(machine *omni.ClusterMachine, assertions *assert.Assertions) {
 				assertions.NoError(suite.assertLabels(machine, omni.LabelCluster, clusterName, omni.LabelMachineSet, machineSet.Metadata().ID()))
 			},
@@ -485,7 +485,7 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 
 		assertResource(
 			&suite.OmniSuite,
-			*omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, m).Metadata(),
+			*omni.NewClusterMachineConfigPatches(m).Metadata(),
 			func(res *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
 				patches, err := res.TypedSpec().Value.GetUncompressedPatches()
 				assertions.NoError(err)
@@ -503,7 +503,6 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 
 	// create a ClusterMachine-level patch for the running machine[0]
 	machinePatch := omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		machines[0]+"-cluster-machine",
 		pair.MakePair(omni.LabelCluster, clusterName),
 		pair.MakePair(omni.LabelClusterMachine, machines[0]),
@@ -532,7 +531,6 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 
 	// create a Machine-level patch for the running machine[0]
 	machinePatch = omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		machines[0]+"-machine",
 		pair.MakePair(omni.LabelMachine, machines[0]),
 	)
@@ -549,7 +547,7 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 	// the running machine[0] should still have the old list of patches, because there is a non-running machine[2]
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0]).Metadata(),
+		*omni.NewClusterMachineConfigPatches(machines[0]).Metadata(),
 		func(res *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
 			patches, patchesErr := res.TypedSpec().Value.GetUncompressedPatches()
 			assertions.NoError(patchesErr)
@@ -559,7 +557,7 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 	)
 
 	// create a ClusterMachine-level patch for the machine[2] which is still not ready
-	machinePatch = omni.NewConfigPatch(resources.DefaultNamespace, machines[2],
+	machinePatch = omni.NewConfigPatch(machines[2],
 		pair.MakePair(omni.LabelCluster, clusterName),
 		pair.MakePair(omni.LabelClusterMachine, machines[2]),
 	)
@@ -574,7 +572,7 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 	// the non-running machine[2] should be updated to have the new patch
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[2]).Metadata(),
+		*omni.NewClusterMachineConfigPatches(machines[2]).Metadata(),
 		func(res *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
 			patches, err := res.TypedSpec().Value.GetUncompressedPatches()
 			assertions.NoError(err)
@@ -589,7 +587,7 @@ func (suite *MachineSetStatusSuite) TestConfigUpdate() {
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0]).Metadata(),
+		*omni.NewClusterMachineConfigPatches(machines[0]).Metadata(),
 		func(res *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
 			patches, err := res.TypedSpec().Value.GetUncompressedPatches()
 			assertions.NoError(err)
@@ -615,7 +613,7 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 	for _, m := range machines {
 		assertResource(
 			&suite.OmniSuite,
-			*omni.NewClusterMachine(resources.DefaultNamespace, m).Metadata(),
+			*omni.NewClusterMachine(m).Metadata(),
 			func(machine *omni.ClusterMachine, assertions *assert.Assertions) {
 				assertions.NoError(suite.assertLabels(machine, omni.LabelCluster, clusterName, omni.LabelMachineSet, machineSet.Metadata().ID()))
 			},
@@ -623,7 +621,7 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 
 		assertResource(
 			&suite.OmniSuite,
-			*omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, m).Metadata(),
+			*omni.NewClusterMachineConfigPatches(m).Metadata(),
 			func(res *omni.ClusterMachineConfigPatches, assertions *assert.Assertions) {
 				patches, err := res.TypedSpec().Value.GetUncompressedPatches()
 				assertions.NoError(err)
@@ -639,12 +637,12 @@ func (suite *MachineSetStatusSuite) TestConfigUpdateWithMaxParallelism() {
 
 	watchCh := make(chan safe.WrappedStateEvent[*omni.ClusterMachineConfigPatches])
 
-	err := safe.StateWatchKind(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "").Metadata(), watchCh)
+	err := safe.StateWatchKind(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches("").Metadata(), watchCh)
 	suite.Require().NoError(err)
 
 	suite.assertMachinesState(machines, clusterName, machineSet.Metadata().ID())
 
-	machineSetPatch := omni.NewConfigPatch(resources.DefaultNamespace, machineSet.Metadata().ID()+"-patch",
+	machineSetPatch := omni.NewConfigPatch(machineSet.Metadata().ID()+"-patch",
 		pair.MakePair(omni.LabelCluster, clusterName), pair.MakePair(omni.LabelMachineSet, machineSet.Metadata().ID()))
 
 	err = machineSetPatch.TypedSpec().Value.SetUncompressedData([]byte(`{"machine":{"env":{"AAA":"BBB"}}}`))
@@ -843,7 +841,7 @@ func (suite *MachineSetStatusSuite) TestMachineLocks() {
 
 	suite.updateStage(machines, specs.ClusterMachineStatusSpec_RUNNING, true)
 
-	machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, machines[1], machineSet)
+	machineSetNode := omni.NewMachineSetNode(machines[1], machineSet)
 
 	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, machineSetNode.Metadata(), func(ms *omni.MachineSetNode) error {
 		ms.Metadata().Annotations().Set(omni.MachineLocked, "")
@@ -868,7 +866,6 @@ func (suite *MachineSetStatusSuite) TestMachineLocks() {
 	})
 
 	patch := omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		machineSet.Metadata().ID()+"-patch",
 		pair.MakePair(
 			omni.LabelCluster, clusterName,
@@ -897,7 +894,7 @@ func (suite *MachineSetStatusSuite) TestMachineLocks() {
 	eg.Go(func() error {
 		events := make(chan safe.WrappedStateEvent[*omni.ClusterMachine])
 
-		if e := safe.StateWatchKind(ctx, suite.state, omni.NewClusterMachine(resources.DefaultNamespace, "").Metadata(), events); e != nil {
+		if e := safe.StateWatchKind(ctx, suite.state, omni.NewClusterMachine("").Metadata(), events); e != nil {
 			return e
 		}
 
@@ -970,7 +967,7 @@ func (suite *MachineSetStatusSuite) TestClusterLocks() {
 		)
 	})
 
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(res *omni.Cluster) error {
+	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewCluster(clusterName).Metadata(), func(res *omni.Cluster) error {
 		res.Metadata().Annotations().Set(omni.ClusterLocked, "")
 
 		return nil
@@ -979,7 +976,6 @@ func (suite *MachineSetStatusSuite) TestClusterLocks() {
 	suite.Require().NoError(err)
 
 	patch := omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		machineSet.Metadata().ID()+"-patch",
 		pair.MakePair(
 			omni.LabelCluster, clusterName,
@@ -1008,7 +1004,7 @@ func (suite *MachineSetStatusSuite) TestClusterLocks() {
 	eg.Go(func() error {
 		events := make(chan safe.WrappedStateEvent[*omni.ClusterMachine])
 
-		if e := safe.StateWatchKind(ctx, suite.state, omni.NewClusterMachine(resources.DefaultNamespace, "").Metadata(), events); e != nil {
+		if e := safe.StateWatchKind(ctx, suite.state, omni.NewClusterMachine("").Metadata(), events); e != nil {
 			return e
 		}
 
@@ -1030,7 +1026,7 @@ func (suite *MachineSetStatusSuite) TestClusterLocks() {
 		assertions.Lenf(patches, 1, "cluster is locked but machine %s was updated", machine.Metadata().ID())
 	})
 
-	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(res *omni.Cluster) error {
+	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewCluster(clusterName).Metadata(), func(res *omni.Cluster) error {
 		res.Metadata().Annotations().Delete(omni.ClusterLocked)
 
 		return nil
@@ -1059,7 +1055,7 @@ func (suite *MachineSetStatusSuite) TestMachineIsAddedToAnotherMachineSet() {
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, machines, func(*omni.ClusterMachine, *assert.Assertions) {})
 
-	_, err := safe.StateUpdateWithConflicts(ctx, suite.state, omni.NewClusterMachine(resources.DefaultNamespace, "node01").Metadata(), func(
+	_, err := safe.StateUpdateWithConflicts(ctx, suite.state, omni.NewClusterMachine("node01").Metadata(), func(
 		res *omni.ClusterMachine,
 	) error {
 		res.Metadata().Finalizers().Add("locked")
@@ -1073,7 +1069,7 @@ func (suite *MachineSetStatusSuite) TestMachineIsAddedToAnotherMachineSet() {
 
 	suite.createMachineSet(clusterName, "machine-set-2", machines)
 
-	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, omni.NewClusterMachine(resources.DefaultNamespace, "node01").Metadata(), func(
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, omni.NewClusterMachine("node01").Metadata(), func(
 		res *omni.ClusterMachine,
 	) error {
 		res.Metadata().Finalizers().Remove("locked")
@@ -1127,7 +1123,7 @@ func (suite *MachineSetStatusSuite) assertMachines(machines []string, check func
 	for _, m := range machines {
 		assertResource(
 			&suite.OmniSuite,
-			*omni.NewClusterMachine(resources.DefaultNamespace, m).Metadata(),
+			*omni.NewClusterMachine(m).Metadata(),
 			check,
 		)
 	}
@@ -1137,7 +1133,7 @@ func (suite *MachineSetStatusSuite) assertMachinePatches(machines []string, chec
 	for _, m := range machines {
 		assertResource(
 			&suite.OmniSuite,
-			*omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, m).Metadata(),
+			*omni.NewClusterMachineConfigPatches(m).Metadata(),
 			check,
 		)
 	}

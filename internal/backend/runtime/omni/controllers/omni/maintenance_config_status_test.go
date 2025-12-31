@@ -19,7 +19,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -65,7 +64,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, link))
 
-	machineStatus := omnires.NewMachineStatus(resources.DefaultNamespace, "test-machine")
+	machineStatus := omnires.NewMachineStatus("test-machine")
 	machineStatus.TypedSpec().Value.Maintenance = true
 
 	machineStatus.TypedSpec().Value.ManagementAddress = "test-address"

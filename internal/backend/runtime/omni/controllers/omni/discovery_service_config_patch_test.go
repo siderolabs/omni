@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
@@ -33,7 +32,7 @@ func (suite *DiscoveryServiceConfigPatchSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
-	clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, "test-cluster-1")
+	clusterStatus := omni.NewClusterStatus("test-cluster-1")
 	patchID := omnictrl.DiscoveryServiceConfigPatchPrefix + clusterStatus.Metadata().ID()
 
 	clusterStatus.TypedSpec().Value.UseEmbeddedDiscoveryService = true

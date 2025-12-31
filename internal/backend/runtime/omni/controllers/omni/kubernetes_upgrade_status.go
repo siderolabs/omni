@@ -21,7 +21,6 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
@@ -43,10 +42,10 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 		qtransform.Settings[*omni.Cluster, *omni.KubernetesUpgradeStatus]{
 			Name: KubernetesUpgradeStatusControllerName,
 			MapMetadataFunc: func(cluster *omni.Cluster) *omni.KubernetesUpgradeStatus {
-				return omni.NewKubernetesUpgradeStatus(resources.DefaultNamespace, cluster.Metadata().ID())
+				return omni.NewKubernetesUpgradeStatus(cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(upgradeStatus *omni.KubernetesUpgradeStatus) *omni.Cluster {
-				return omni.NewCluster(resources.DefaultNamespace, upgradeStatus.Metadata().ID())
+				return omni.NewCluster(upgradeStatus.Metadata().ID())
 			},
 			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cluster *omni.Cluster, upgradeStatus *omni.KubernetesUpgradeStatus) error {
 				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
@@ -55,7 +54,7 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("kubernetes upgrades are not allowed: the cluster is locked")
 				}
 
-				kubernetesStatus, err := safe.ReaderGet[*omni.KubernetesStatus](ctx, r, omni.NewKubernetesStatus(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata())
+				kubernetesStatus, err := safe.ReaderGet[*omni.KubernetesStatus](ctx, r, omni.NewKubernetesStatus(cluster.Metadata().ID()).Metadata())
 				if err != nil {
 					if state.IsNotFoundError(err) {
 						return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
@@ -75,7 +74,7 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 					upgradeStatus.TypedSpec().Value.CurrentUpgradeVersion = ""
 				}
 
-				clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata())
+				clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(cluster.Metadata().ID()).Metadata())
 				if err != nil {
 					if state.IsNotFoundError(err) {
 						return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
@@ -294,7 +293,7 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 }
 
 func updateImagePullRequest(ctx context.Context, r controller.ReaderWriter, upgradePath *kubernetes.UpgradePath) (sts *omni.ImagePullStatus, done bool, err error) {
-	request, err := safe.WriterModifyWithResult[*omni.ImagePullRequest](ctx, r, omni.NewImagePullRequest(resources.DefaultNamespace, upgradePath.ClusterID), func(r *omni.ImagePullRequest) error {
+	request, err := safe.WriterModifyWithResult[*omni.ImagePullRequest](ctx, r, omni.NewImagePullRequest(upgradePath.ClusterID), func(r *omni.ImagePullRequest) error {
 		var nodeImageList []*specs.ImagePullRequestSpec_NodeImageList
 
 		for _, node := range upgradePath.AllNodes {
@@ -316,7 +315,7 @@ func updateImagePullRequest(ctx context.Context, r controller.ReaderWriter, upgr
 		return nil, false, fmt.Errorf("failed to update ImagePullRequest: %w", err)
 	}
 
-	sts, err = safe.ReaderGet[*omni.ImagePullStatus](ctx, r, omni.NewImagePullStatus(resources.DefaultNamespace, upgradePath.ClusterID).Metadata())
+	sts, err = safe.ReaderGet[*omni.ImagePullStatus](ctx, r, omni.NewImagePullStatus(upgradePath.ClusterID).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, false, nil
@@ -340,7 +339,7 @@ func applyUpgradePatches(ctx context.Context, r controller.Writer, cluster *omni
 
 	for _, patch := range patches {
 		if err := safe.WriterModify(ctx, r,
-			omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("900-cm-%s-kubernetes-upgrade", patch.MachineID)),
+			omni.NewConfigPatch(fmt.Sprintf("900-cm-%s-kubernetes-upgrade", patch.MachineID)),
 			func(configPatch *omni.ConfigPatch) error {
 				var cfg v1alpha1.Config
 

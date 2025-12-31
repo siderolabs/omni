@@ -20,7 +20,6 @@ import (
 	"github.com/siderolabs/gen/xslices"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
@@ -47,10 +46,10 @@ func NewClusterWorkloadProxyStatusController(workloadProxyReconciler WorkloadPro
 		qtransform.Settings[*omni.Cluster, *omni.ClusterWorkloadProxyStatus]{
 			Name: ClusterWorkloadProxyStatusControllerName,
 			MapMetadataFunc: func(cluster *omni.Cluster) *omni.ClusterWorkloadProxyStatus {
-				return omni.NewClusterWorkloadProxyStatus(resources.DefaultNamespace, cluster.Metadata().ID())
+				return omni.NewClusterWorkloadProxyStatus(cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(ClusterWorkloadProxyStatus *omni.ClusterWorkloadProxyStatus) *omni.Cluster {
-				return omni.NewCluster(resources.DefaultNamespace, ClusterWorkloadProxyStatus.Metadata().ID())
+				return omni.NewCluster(ClusterWorkloadProxyStatus.Metadata().ID())
 			},
 			TransformExtraOutputFunc:        helper.transform,
 			FinalizerRemovalExtraOutputFunc: helper.teardown,

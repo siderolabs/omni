@@ -15,9 +15,9 @@ import (
 )
 
 // NewLoadBalancerStatus creates new LoadBalancerStatus state.
-func NewLoadBalancerStatus(ns, id string) *LoadBalancerStatus {
+func NewLoadBalancerStatus(id string) *LoadBalancerStatus {
 	return typed.NewResource[LoadBalancerStatusSpec, LoadBalancerStatusExtension](
-		resource.NewMetadata(ns, LoadBalancerStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, LoadBalancerStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.LoadBalancerStatusSpec{}),
 	)
 }

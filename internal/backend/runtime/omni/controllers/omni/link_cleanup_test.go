@@ -19,7 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
@@ -54,7 +53,7 @@ func TestLinkCleanup(t *testing.T) {
 
 	usage := siderolink.NewJoinTokenUsage(id)
 	uniqueToken := siderolink.NewNodeUniqueToken(id)
-	labels := omnires.NewMachineLabels(resources.DefaultNamespace, id)
+	labels := omnires.NewMachineLabels(id)
 
 	require.NoError(t, st.Create(ctx, link))
 	require.NoError(t, st.Create(ctx, usage))

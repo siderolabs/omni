@@ -25,7 +25,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -49,7 +48,7 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 			return nil
 		}
 
-		talosVersion, err := safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(resources.DefaultNamespace, res.TypedSpec().Value.TalosVersion).Metadata())
+		talosVersion, err := safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(res.TypedSpec().Value.TalosVersion).Metadata())
 		if err != nil {
 			if state.IsNotFoundError(err) && skipTalosVersion {
 				return nil
@@ -702,7 +701,7 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 		// relation label validations are done at relationLabelsValidationOptions
 		machineSetName, _ := res.Metadata().Labels().Get(omni.LabelMachineSet)
 
-		machineSet, err := safe.ReaderGet[*omni.MachineSet](ctx, st, omni.NewMachineSet(resources.DefaultNamespace, machineSetName).Metadata())
+		machineSet, err := safe.ReaderGet[*omni.MachineSet](ctx, st, omni.NewMachineSet(machineSetName).Metadata())
 		if err != nil {
 			if state.IsNotFoundError(err) {
 				return nil, machineSetName, nil
@@ -718,7 +717,7 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 		// relation label validations are done at relationLabelsValidationOptions
 		clusterName, _ := res.Metadata().Labels().Get(omni.LabelCluster)
 
-		cluster, err := safe.ReaderGet[*omni.Cluster](ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata())
+		cluster, err := safe.ReaderGet[*omni.Cluster](ctx, st, omni.NewCluster(clusterName).Metadata())
 		if err != nil {
 			if state.IsNotFoundError(err) {
 				return nil, clusterName, nil
@@ -1227,7 +1226,7 @@ func validateMachineRequestSet(ctx context.Context, st state.State, oldRes, res 
 func validateTalosVersion(ctx context.Context, st state.State, current, newVersion string) error {
 	var currentVersionIsDeprecated bool
 
-	talosVersion, err := safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(resources.DefaultNamespace, newVersion).Metadata())
+	talosVersion, err := safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(newVersion).Metadata())
 	if err != nil {
 		return fmt.Errorf("invalid talos version %q: %w", newVersion, err)
 	}
@@ -1235,7 +1234,7 @@ func validateTalosVersion(ctx context.Context, st state.State, current, newVersi
 	if current != "" {
 		var ver *omni.TalosVersion
 
-		ver, err := safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(resources.DefaultNamespace, current).Metadata())
+		ver, err := safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(current).Metadata())
 		if err != nil && !state.IsNotFoundError(err) {
 			return err
 		}

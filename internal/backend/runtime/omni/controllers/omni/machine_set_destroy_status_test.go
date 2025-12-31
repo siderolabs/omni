@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -37,12 +36,12 @@ func TestMachineSetDestroyStatusController(t *testing.T) {
 			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineSetDestroyStatusController()))
 		},
 		func(ctx context.Context, testContext testutils.TestContext) {
-			machineSet := omni.NewMachineSet(resources.DefaultNamespace, "ms1")
+			machineSet := omni.NewMachineSet("ms1")
 			machineSet.Metadata().Finalizers().Add("foo") // put a finalizer to mimic the machine set teardown
 			require.NoError(t, testContext.State.Create(ctx, machineSet))
 
 			for i := range 2 {
-				cms := omni.NewClusterMachineStatus(resources.DefaultNamespace, "cm"+strconv.Itoa(i))
+				cms := omni.NewClusterMachineStatus("cm" + strconv.Itoa(i))
 				cms.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
 				require.NoError(t, testContext.State.Create(ctx, cms))
 			}

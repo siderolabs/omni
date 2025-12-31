@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
@@ -81,10 +80,10 @@ func createRuntime() *runtime {
 func TestCreate(t *testing.T) {
 	rt := createRuntime()
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "test")
+	cluster := omni.NewCluster("test")
 	cluster.TypedSpec().Value.KubernetesVersion = "v1.6.2"
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machineset")
+	machineSet := omni.NewMachineSet("machineset")
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
 	create := machineset.Create{ID: "aa"}
@@ -93,7 +92,7 @@ func TestCreate(t *testing.T) {
 
 	ctx := t.Context()
 
-	patch := omni.NewConfigPatch(resources.DefaultNamespace, "some")
+	patch := omni.NewConfigPatch("some")
 
 	err := patch.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
@@ -113,7 +112,7 @@ func TestCreate(t *testing.T) {
 			},
 		},
 		[]*omni.MachineSetNode{
-			omni.NewMachineSetNode(resources.DefaultNamespace, "aa", machineSet),
+			omni.NewMachineSetNode("aa", machineSet),
 		},
 		nil,
 		nil,
@@ -122,7 +121,7 @@ func TestCreate(t *testing.T) {
 	)
 	require.NoError(err)
 
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "aa")
+	clusterMachine := omni.NewClusterMachine("aa")
 
 	helpers.UpdateInputsVersions(clusterMachine, patch)
 
@@ -159,10 +158,10 @@ func TestCreate(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	rt := createRuntime()
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "test")
+	cluster := omni.NewCluster("test")
 	cluster.TypedSpec().Value.KubernetesVersion = "v1.6.4"
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machineset")
+	machineSet := omni.NewMachineSet("machineset")
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
 	quota := &machineset.ChangeQuota{
@@ -175,7 +174,7 @@ func TestUpdate(t *testing.T) {
 
 	ctx := t.Context()
 
-	patch1 := omni.NewConfigPatch(resources.DefaultNamespace, "some")
+	patch1 := omni.NewConfigPatch("some")
 
 	err := patch1.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
@@ -183,7 +182,7 @@ func TestUpdate(t *testing.T) {
       enabled: true`))
 	require.NoError(err)
 
-	patch2 := omni.NewConfigPatch(resources.DefaultNamespace, "some")
+	patch2 := omni.NewConfigPatch("some")
 
 	err = patch2.TypedSpec().Value.SetUncompressedData([]byte(`machine:
   network:
@@ -198,10 +197,10 @@ func TestUpdate(t *testing.T) {
 		},
 	}
 
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "aa")
+	clusterMachine := omni.NewClusterMachine("aa")
 	clusterMachine.Metadata().SetVersion(resource.VersionUndefined.Next())
 
-	configStatus := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "aa")
+	configStatus := omni.NewClusterMachineConfigStatus("aa")
 	configStatus.TypedSpec().Value.ClusterMachineVersion = clusterMachine.Metadata().Version().String()
 
 	var rc *machineset.ReconciliationContext
@@ -213,7 +212,7 @@ func TestUpdate(t *testing.T) {
 			newHealthyLB(cluster.Metadata().ID()),
 			patchHelper,
 			[]*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "aa", machineSet),
+				omni.NewMachineSetNode("aa", machineSet),
 			},
 			[]*omni.ClusterMachine{
 				clusterMachine,
@@ -222,7 +221,7 @@ func TestUpdate(t *testing.T) {
 				configStatus,
 			},
 			[]*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "aa"),
+				omni.NewClusterMachineConfigPatches("aa"),
 			},
 			nil,
 		)
@@ -239,7 +238,7 @@ func TestUpdate(t *testing.T) {
 
 	updateReconciliationContext()
 
-	clusterMachine = omni.NewClusterMachine(resources.DefaultNamespace, "aa")
+	clusterMachine = omni.NewClusterMachine("aa")
 	helpers.UpdateInputsVersions(clusterMachine, patch1, patch2)
 
 	inputsSHA, ok := clusterMachine.Metadata().Annotations().Get(helpers.InputResourceVersionAnnotation)
@@ -299,10 +298,10 @@ func TestUpdate(t *testing.T) {
 func TestTeardown(t *testing.T) {
 	rt := createRuntime()
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "test")
+	cluster := omni.NewCluster("test")
 	cluster.TypedSpec().Value.KubernetesVersion = "v1.6.3"
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machineset")
+	machineSet := omni.NewMachineSet("machineset")
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
 	quota := machineset.ChangeQuota{
@@ -314,8 +313,8 @@ func TestTeardown(t *testing.T) {
 	ctx := t.Context()
 
 	clusterMachines := []*omni.ClusterMachine{
-		omni.NewClusterMachine(resources.DefaultNamespace, "aa"),
-		omni.NewClusterMachine(resources.DefaultNamespace, "bb"),
+		omni.NewClusterMachine("aa"),
+		omni.NewClusterMachine("bb"),
 	}
 
 	for _, cm := range clusterMachines {
@@ -331,8 +330,8 @@ func TestTeardown(t *testing.T) {
 		newHealthyLB(cluster.Metadata().ID()),
 		&fakePatchHelper{},
 		[]*omni.MachineSetNode{
-			omni.NewMachineSetNode(resources.DefaultNamespace, "aa", machineSet),
-			omni.NewMachineSetNode(resources.DefaultNamespace, "bb", machineSet),
+			omni.NewMachineSetNode("aa", machineSet),
+			omni.NewMachineSetNode("bb", machineSet),
 		},
 		clusterMachines,
 		nil,
@@ -366,10 +365,10 @@ func TestTeardown(t *testing.T) {
 func TestDestroy(t *testing.T) {
 	rt := createRuntime()
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "test")
+	cluster := omni.NewCluster("test")
 	cluster.TypedSpec().Value.KubernetesVersion = "v1.6.3"
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machineset")
+	machineSet := omni.NewMachineSet("machineset")
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
 	require := require.New(t)
@@ -378,18 +377,18 @@ func TestDestroy(t *testing.T) {
 	defer cancel()
 
 	clusterMachines := []*omni.ClusterMachine{
-		omni.NewClusterMachine(resources.DefaultNamespace, "aa"),
-		omni.NewClusterMachine(resources.DefaultNamespace, "bb"),
+		omni.NewClusterMachine("aa"),
+		omni.NewClusterMachine("bb"),
 	}
 
 	for _, cm := range clusterMachines {
 		cm.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 		cm.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
 
-		cmcp := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, cm.Metadata().ID())
+		cmcp := omni.NewClusterMachineConfigPatches(cm.Metadata().ID())
 		helpers.CopyAllLabels(cm, cmcp)
 
-		machine := omni.NewMachine(resources.DefaultNamespace, cm.Metadata().ID())
+		machine := omni.NewMachine(cm.Metadata().ID())
 		machine.Metadata().Finalizers().Add(machineset.ControllerName)
 
 		require.NoError(rt.Create(ctx, cm))

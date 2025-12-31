@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
@@ -39,7 +38,7 @@ type MachineSetNodeSuite struct {
 func newMachineClass(selectors ...string) *omni.MachineClass {
 	id := uuid.New().String()
 
-	cls := omni.NewMachineClass(resources.DefaultNamespace, id)
+	cls := omni.NewMachineClass(id)
 	cls.TypedSpec().Value.MatchLabels = selectors
 
 	return cls
@@ -53,9 +52,9 @@ func (suite *MachineSetNodeSuite) createMachines(labels ...map[string]string) []
 	for i, l := range labels {
 		id := fmt.Sprintf("machine%d", suite.machinesOffset+i)
 
-		machine := omni.NewMachine(resources.DefaultNamespace, id)
+		machine := omni.NewMachine(id)
 
-		machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, id)
+		machineStatus := omni.NewMachineStatus(id)
 
 		machineStatus.Metadata().Labels().Do(func(temp kvutils.TempKV) {
 			for k, v := range l {
@@ -117,7 +116,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 		},
 	)
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "auto")
+	machineSet := omni.NewMachineSet("auto")
 
 	assertMachineSetNode := func(machine *omni.MachineStatus) {
 		rtestutils.AssertResources(
@@ -142,7 +141,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 		)
 	}
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "cluster1")
+	cluster := omni.NewCluster("cluster1")
 	cluster.TypedSpec().Value.TalosVersion = "1.6.0"
 
 	suite.Require().NoError(suite.state.Create(ctx, cluster))
@@ -246,7 +245,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(ctx, machineRequest))
 
-	machine := omni.NewMachine(resources.DefaultNamespace, machines[3].Metadata().ID()).Metadata()
+	machine := omni.NewMachine(machines[3].Metadata().ID()).Metadata()
 
 	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machine,
 		func(res *omni.Machine) error {
@@ -274,7 +273,7 @@ func TestSortFunction(t *testing.T) {
 
 		machineStatuses[id] = system.NewResourceLabels[*omni.MachineStatus](id)
 
-		machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, id, omni.NewMachineSet(resources.DefaultNamespace, "ms"))
+		machineSetNode := omni.NewMachineSetNode(id, omni.NewMachineSet("ms"))
 		machineSetNode.Metadata().SetCreated(time.Now())
 
 		machineSetNodes = append(machineSetNodes, machineSetNode)

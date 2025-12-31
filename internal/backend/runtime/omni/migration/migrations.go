@@ -29,7 +29,7 @@ func moveClusterTaintFromResourceToLabel(ctx context.Context, st state.State, _ 
 	}
 
 	for taint := range clusterTaints.All() {
-		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewClusterStatus(resources.DefaultNamespace, taint.Metadata().ID()).Metadata(), func(res *omni.ClusterStatus) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewClusterStatus(taint.Metadata().ID()).Metadata(), func(res *omni.ClusterStatus) error {
 			res.Metadata().Labels().Set(omni.LabelClusterTaintedByBreakGlass, "")
 
 			return nil
@@ -210,8 +210,8 @@ func makeMachineSetNodesOwnerEmpty(ctx context.Context, st state.State, _ *zap.L
 			continue
 		}
 
-		updated := omni.NewMachineSetNode(resources.DefaultNamespace, machineSetNode.Metadata().ID(),
-			omni.NewMachineSet(resources.DefaultNamespace, machineSet),
+		updated := omni.NewMachineSetNode(machineSetNode.Metadata().ID(),
+			omni.NewMachineSet(machineSet),
 		)
 
 		for _, fin := range *machineSetNode.Metadata().Finalizers() {

@@ -20,7 +20,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/powerstage"
@@ -59,7 +58,7 @@ func TestWatcher(t *testing.T) {
 	expectSnapshot(ctx, t, snapshotCh, status.Metadata().ID(), specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERED_OFF)
 	expectNotification(ctx, t, notifyCh)
 
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, status.Metadata().ID())
+	clusterMachine := omni.NewClusterMachine(status.Metadata().ID())
 	require.NoError(t, st.Create(ctx, clusterMachine))
 
 	expectSnapshot(ctx, t, snapshotCh, clusterMachine.Metadata().ID(), specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERING_ON)

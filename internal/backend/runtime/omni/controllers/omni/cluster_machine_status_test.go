@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -49,9 +48,9 @@ func (suite *ClusterMachineStatusSuite) TestNoMachineStatusSnapShotClusterStatus
 
 	// given
 	testID := "testID"
-	machine := omni.NewMachine(resources.DefaultNamespace, testID)
-	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, testID)
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, testID)
+	machine := omni.NewMachine(testID)
+	machineStatus := omni.NewMachineStatus(testID)
+	clusterMachine := omni.NewClusterMachine(testID)
 
 	// when
 	suite.Assert().NoError(suite.state.Create(suite.ctx, machine))
@@ -65,7 +64,7 @@ func (suite *ClusterMachineStatusSuite) TestNoMachineStatusSnapShotClusterStatus
 func (suite *ClusterMachineStatusSuite) TestApplyConfigErrorPropagation() {
 	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true, false)
 
-	md := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, testID).Metadata()
+	md := omni.NewClusterMachineConfigStatus(testID).Metadata()
 	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, md, func(s *omni.ClusterMachineConfigStatus) error {
 		s.TypedSpec().Value.LastConfigError = "TestApplyConfigErrorPropagation error"
 
@@ -73,7 +72,7 @@ func (suite *ClusterMachineStatusSuite) TestApplyConfigErrorPropagation() {
 	})
 	suite.Require().NoError(err)
 
-	clusterMachineStatus := omni.NewClusterMachineStatus(resources.DefaultNamespace, testID)
+	clusterMachineStatus := omni.NewClusterMachineStatus(testID)
 
 	err = retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(suite.ctx, func(ctx context.Context) error {
 		res, resErr := safe.StateGet[*omni.ClusterMachineStatus](ctx, suite.state, clusterMachineStatus.Metadata())
@@ -101,7 +100,7 @@ func (suite *ClusterMachineStatusSuite) TestApplyConfigErrorPropagation() {
 func (suite *ClusterMachineStatusSuite) TestOutdatedConfig() {
 	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true, false)
 
-	md := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, testID).Metadata()
+	md := omni.NewClusterMachineConfigStatus(testID).Metadata()
 	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, md, func(s *omni.ClusterMachineConfigStatus) error {
 		s.TypedSpec().Value.ClusterMachineConfigVersion = "42"
 
@@ -109,7 +108,7 @@ func (suite *ClusterMachineStatusSuite) TestOutdatedConfig() {
 	})
 	suite.Require().NoError(err)
 
-	clusterMachineStatus := omni.NewClusterMachineStatus(resources.DefaultNamespace, testID)
+	clusterMachineStatus := omni.NewClusterMachineStatus(testID)
 
 	err = retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(suite.ctx, func(ctx context.Context) error {
 		res, resErr := safe.StateGet[*omni.ClusterMachineStatus](ctx, suite.state, clusterMachineStatus.Metadata())
@@ -135,22 +134,22 @@ func (suite *ClusterMachineStatusSuite) setupStageTest(machineStatusEvent *machi
 
 	testID := "testID"
 
-	machine := omni.NewMachine(resources.DefaultNamespace, testID)
+	machine := omni.NewMachine(testID)
 	machine.TypedSpec().Value.Connected = connected
-	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, testID)
+	machineStatus := omni.NewMachineStatus(testID)
 
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, testID)
+	clusterMachine := omni.NewClusterMachine(testID)
 
-	statusSnapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, testID)
+	statusSnapshot := omni.NewMachineStatusSnapshot(testID)
 	statusSnapshot.TypedSpec().Value.MachineStatus = machineStatusEvent
 
-	clusterMachineConfigStatus := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, testID)
+	clusterMachineConfigStatus := omni.NewClusterMachineConfigStatus(testID)
 
 	if isControlPlaneNode {
 		clusterMachine.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 	}
 
-	machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, testID, omni.NewMachineSet(resources.DefaultNamespace, "ms"))
+	machineSetNode := omni.NewMachineSetNode(testID, omni.NewMachineSet("ms"))
 
 	suite.Assert().NoError(suite.state.Create(suite.ctx, machine))
 	suite.Assert().NoError(suite.state.Create(suite.ctx, machineStatus))
@@ -163,7 +162,7 @@ func (suite *ClusterMachineStatusSuite) setupStageTest(machineStatusEvent *machi
 func (suite *ClusterMachineStatusSuite) assertStage(expectedStage specs.ClusterMachineStatusSpec_Stage, expectedReadiness, expectedApidAvailable bool) {
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterMachineStatus(resources.DefaultNamespace, "testID").Metadata(),
+		*omni.NewClusterMachineStatus("testID").Metadata(),
 		func(status *omni.ClusterMachineStatus, assertions *assert.Assertions) {
 			statusVal := status.TypedSpec().Value
 

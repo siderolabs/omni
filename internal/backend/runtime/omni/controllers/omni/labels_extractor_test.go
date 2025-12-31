@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -37,7 +36,7 @@ func (suite *LabelsExtractorControllerSuite) TestReconcile() {
 
 	clusterName := "testcluster"
 
-	machine := omni.NewMachineStatus(resources.DefaultNamespace, "1")
+	machine := omni.NewMachineStatus("1")
 	machine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 
 	suite.Require().NoError(suite.state.Create(ctx, machine))

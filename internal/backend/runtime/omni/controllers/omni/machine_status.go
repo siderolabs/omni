@@ -153,7 +153,7 @@ func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger
 		omni.MachineStatusSnapshotType,
 		siderolink.MachineJoinConfigType:
 		return []resource.Pointer{
-			omni.NewMachine(resources.DefaultNamespace, ptr.ID()).Metadata(),
+			omni.NewMachine(ptr.ID()).Metadata(),
 		}, nil
 	case omni.TalosConfigType:
 		machines, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, ptr.ID())))
@@ -164,7 +164,7 @@ func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger
 		res := make([]resource.Pointer, 0, machines.Len())
 
 		machines.ForEach(func(r *omni.ClusterMachineStatus) {
-			res = append(res, omni.NewMachine(resources.DefaultNamespace, r.Metadata().ID()).Metadata())
+			res = append(res, omni.NewMachine(r.Metadata().ID()).Metadata())
 		})
 
 		return res, nil
@@ -177,7 +177,7 @@ func (ctrl *MachineStatusController) MapInput(ctx context.Context, _ *zap.Logger
 func (ctrl *MachineStatusController) Reconcile(ctx context.Context,
 	logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer,
 ) error {
-	machine, err := safe.ReaderGet[*omni.Machine](ctx, r, omni.NewMachine(ptr.Namespace(), ptr.ID()).Metadata())
+	machine, err := safe.ReaderGet[*omni.Machine](ctx, r, omni.NewMachine(ptr.ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -245,7 +245,7 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 		ctrl.runner.StartTask(ctx, logger, machine.Metadata().ID(), spec, ctrl.notifyCh)
 	}
 
-	return safe.WriterModify(ctx, r, omni.NewMachineStatus(resources.DefaultNamespace, machine.Metadata().ID()), func(m *omni.MachineStatus) error {
+	return safe.WriterModify(ctx, r, omni.NewMachineStatus(machine.Metadata().ID()), func(m *omni.MachineStatus) error {
 		spec := m.TypedSpec().Value
 
 		helpers.CopyLabels(machine, m, omni.LabelMachineRequest, omni.LabelMachineRequestSet, omni.LabelNoManualAllocation, omni.LabelIsManagedByStaticInfraProvider)
@@ -372,7 +372,7 @@ func (ctrl *MachineStatusController) updateMachineConnectionStatus(machine *omni
 func (ctrl *MachineStatusController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machine *omni.Machine) error {
 	ctrl.runner.StopTask(logger, machine.Metadata().ID())
 
-	md := omni.NewMachineStatus(resources.DefaultNamespace, machine.Metadata().ID()).Metadata()
+	md := omni.NewMachineStatus(machine.Metadata().ID()).Metadata()
 
 	ready, err := helpers.TeardownAndDestroy(ctx, r, md)
 	if err != nil {
@@ -388,7 +388,7 @@ func (ctrl *MachineStatusController) reconcileTearingDown(ctx context.Context, r
 
 //nolint:gocyclo,cyclop,gocognit
 func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r controller.QRuntime, event machinetask.Info) error {
-	if err := safe.WriterModify(ctx, r, omni.NewMachineStatus(resources.DefaultNamespace, event.MachineID), func(m *omni.MachineStatus) error {
+	if err := safe.WriterModify(ctx, r, omni.NewMachineStatus(event.MachineID), func(m *omni.MachineStatus) error {
 		spec := m.TypedSpec().Value
 
 		if event.LastError != nil {

@@ -15,9 +15,9 @@ import (
 )
 
 // NewExposedService creates new ExposedService resource.
-func NewExposedService(ns string, id resource.ID) *ExposedService {
+func NewExposedService(id resource.ID) *ExposedService {
 	return typed.NewResource[ExposedServiceSpec, ExposedServiceExtension](
-		resource.NewMetadata(ns, ExposedServiceType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ExposedServiceType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ExposedServiceSpec{}),
 	)
 }

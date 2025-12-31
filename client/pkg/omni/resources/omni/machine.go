@@ -18,9 +18,9 @@ import (
 )
 
 // NewMachine creates new Machine state.
-func NewMachine(ns, id string) *Machine {
+func NewMachine(id string) *Machine {
 	return typed.NewResource[MachineSpec, MachineExtension](
-		resource.NewMetadata(ns, MachineType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, MachineType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineSpec{}),
 	)
 }

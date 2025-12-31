@@ -15,14 +15,14 @@ import (
 )
 
 // NewMachineSetNode creates new MachineSetNode resource.
-func NewMachineSetNode(ns string, id resource.ID, owner resource.Resource) *MachineSetNode {
+func NewMachineSetNode(id resource.ID, owner resource.Resource) *MachineSetNode {
 	// this should never happen, simple sanity check
 	if owner.Metadata().Type() != MachineSetType {
 		panic("the owner of a machine set node must always be a machine set")
 	}
 
 	res := typed.NewResource[MachineSetNodeSpec, MachineSetNodeExtension](
-		resource.NewMetadata(ns, MachineSetNodeType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, MachineSetNodeType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineSetNodeSpec{}),
 	)
 

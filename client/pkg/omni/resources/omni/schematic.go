@@ -15,9 +15,9 @@ import (
 )
 
 // NewSchematic creates new schematic resource.
-func NewSchematic(ns string, id resource.ID) *Schematic {
+func NewSchematic(id resource.ID) *Schematic {
 	return typed.NewResource[SchematicSpec, SchematicExtension](
-		resource.NewMetadata(ns, SchematicType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, SchematicType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.SchematicSpec{}),
 	)
 }

@@ -833,17 +833,17 @@ func createClusters(ctx context.Context, t *testing.T, clusterNames []string, st
 	clustersData := make([]*omni.BackupData, 0, len(clusterNames))
 
 	for _, name := range clusterNames {
-		secrets := omni.NewClusterSecrets(resources.DefaultNamespace, name)
+		secrets := omni.NewClusterSecrets(name)
 		secrets.TypedSpec().Value.Data = secretsJSON
 
 		require.NoError(t, st.Create(ctx, secrets))
 
-		cluster := omni.NewCluster(resources.DefaultNamespace, name)
+		cluster := omni.NewCluster(name)
 		cluster.TypedSpec().Value.TalosVersion = "1.3.0"
 		cluster.TypedSpec().Value.BackupConfiguration = &specs.EtcdBackupConf{Interval: durationpb.New(backupInterval), Enabled: true}
 
 		require.NoError(t, st.Create(ctx, cluster))
-		require.NoError(t, st.Create(ctx, omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(name))))
+		require.NoError(t, st.Create(ctx, omni.NewMachineSet(omni.ControlPlanesResourceID(name))))
 
 		var backupData *omni.BackupData
 

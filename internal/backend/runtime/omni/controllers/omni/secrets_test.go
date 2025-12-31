@@ -24,7 +24,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
@@ -41,11 +40,11 @@ func (suite *ClusterSecretsSuite) TestNewSecrets() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "clusterID")
+	cluster := omni.NewCluster("clusterID")
 	cluster.TypedSpec().Value.TalosVersion = "1.2.3"
 	require.NoError(suite.state.Create(suite.ctx, cluster))
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
+	machineSet := omni.NewMachineSet(omni.ControlPlanesResourceID(cluster.Metadata().ID()))
 	require.NoError(suite.state.Create(suite.ctx, machineSet))
 
 	var foundClusterSecrets *omni.ClusterSecrets
@@ -53,7 +52,7 @@ func (suite *ClusterSecretsSuite) TestNewSecrets() {
 	// The only test I could think at this time, was simply to test bundle existence.
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata(),
+		*omni.NewClusterSecrets(cluster.Metadata().ID()).Metadata(),
 		func(res *omni.ClusterSecrets, _ *assert.Assertions) {
 			foundClusterSecrets = res
 			clusterSecretsSpec := foundClusterSecrets.TypedSpec().Value
@@ -112,7 +111,7 @@ func (suite *ClusterSecretsSuite) TestSecretsFromBackup() {
 	suite.startRuntime()
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(&mockBackupStoreFactory{})))
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "clusterID")
+	cluster := omni.NewCluster("clusterID")
 	cluster.TypedSpec().Value.TalosVersion = "1.2.3"
 
 	require.NoError(suite.state.Create(suite.ctx, cluster))
@@ -130,7 +129,7 @@ func (suite *ClusterSecretsSuite) TestSecretsFromBackup() {
 
 	require.NoError(suite.state.Create(suite.ctx, backupData))
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
+	machineSet := omni.NewMachineSet(omni.ControlPlanesResourceID(cluster.Metadata().ID()))
 	machineSet.TypedSpec().Value.BootstrapSpec = &specs.MachineSetSpec_BootstrapSpec{
 		ClusterUuid: "test-uuid",
 		Snapshot:    "test-snapshot",
@@ -146,7 +145,7 @@ func (suite *ClusterSecretsSuite) TestSecretsFromBackup() {
 	// The only test I could think at this time, was simply to test bundle existence.
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata(),
+		*omni.NewClusterSecrets(cluster.Metadata().ID()).Metadata(),
 		func(res *omni.ClusterSecrets, _ *assert.Assertions) {
 			foundClusterSecrets = res
 			clusterSecretsSpec := foundClusterSecrets.TypedSpec().Value
@@ -176,12 +175,12 @@ func (suite *ClusterSecretsSuite) TestImportedSecrets() {
 	clusterID := "clusterID"
 
 	// create ImportedClusterSecret, as it will be looked up by SecretsController to attempt importing secrets bundle
-	importedClusterSecrets := omni.NewImportedClusterSecrets(resources.DefaultNamespace, clusterID)
+	importedClusterSecrets := omni.NewImportedClusterSecrets(clusterID)
 	importedClusterSecrets.TypedSpec().Value.Data = validSecretsBundle
 
 	require.NoError(suite.state.Create(suite.ctx, importedClusterSecrets))
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster := omni.NewCluster(clusterID)
 	cluster.TypedSpec().Value.TalosVersion = "1.10.5"
 
 	require.NoError(suite.state.Create(suite.ctx, cluster))
@@ -194,7 +193,7 @@ func (suite *ClusterSecretsSuite) TestImportedSecrets() {
 
 	require.NoError(suite.state.Create(suite.ctx, clusterUUID))
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
+	machineSet := omni.NewMachineSet(omni.ControlPlanesResourceID(cluster.Metadata().ID()))
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 
@@ -204,7 +203,7 @@ func (suite *ClusterSecretsSuite) TestImportedSecrets() {
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata(),
+		*omni.NewClusterSecrets(cluster.Metadata().ID()).Metadata(),
 		func(res *omni.ClusterSecrets, _ *assert.Assertions) {
 			foundClusterSecrets = res
 			clusterSecretsSpec := foundClusterSecrets.TypedSpec().Value

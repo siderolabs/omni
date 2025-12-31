@@ -12,7 +12,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -25,10 +24,10 @@ func NewClusterConfigVersionController() *ClusterConfigVersionController {
 		qtransform.Settings[*omni.Cluster, *omni.ClusterConfigVersion]{
 			Name: "ClusterConfigVersionController",
 			MapMetadataFunc: func(cluster *omni.Cluster) *omni.ClusterConfigVersion {
-				return omni.NewClusterConfigVersion(resources.DefaultNamespace, cluster.Metadata().ID())
+				return omni.NewClusterConfigVersion(cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(clusterConfigVersion *omni.ClusterConfigVersion) *omni.Cluster {
-				return omni.NewCluster(resources.DefaultNamespace, clusterConfigVersion.Metadata().ID())
+				return omni.NewCluster(clusterConfigVersion.Metadata().ID())
 			},
 			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, cluster *omni.Cluster, clusterVersion *omni.ClusterConfigVersion) error {
 				if cluster.TypedSpec().Value.TalosVersion != "" {

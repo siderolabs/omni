@@ -55,10 +55,10 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
 			Name: ClusterMachineConfigControllerName,
 			MapMetadataFunc: func(clusterMachine *omni.ClusterMachine) *omni.ClusterMachineConfig {
-				return omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+				return omni.NewClusterMachineConfig(clusterMachine.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(machineConfig *omni.ClusterMachineConfig) *omni.ClusterMachine {
-				return omni.NewClusterMachine(resources.DefaultNamespace, machineConfig.Metadata().ID())
+				return omni.NewClusterMachine(machineConfig.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, clusterMachine *omni.ClusterMachine, machineConfig *omni.ClusterMachineConfig) error {
 				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, imageFactoryHost)
@@ -107,7 +107,7 @@ func reconcileClusterMachineConfig(
 		return fmt.Errorf("missing cluster label on %s", clusterMachine.Metadata().ID())
 	}
 
-	cluster, err := safe.ReaderGet[*omni.Cluster](ctx, r, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata())
+	cluster, err := safe.ReaderGet[*omni.Cluster](ctx, r, omni.NewCluster(clusterName).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
@@ -134,7 +134,7 @@ func reconcileClusterMachineConfig(
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("cluster label on %s doesn't match", machineSetNode.Metadata().ID())
 	}
 
-	secrets, err := safe.ReaderGet[*omni.ClusterSecrets](ctx, r, omni.NewClusterSecrets(resources.DefaultNamespace, clusterName).Metadata())
+	secrets, err := safe.ReaderGet[*omni.ClusterSecrets](ctx, r, omni.NewClusterSecrets(clusterName).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
@@ -143,7 +143,7 @@ func reconcileClusterMachineConfig(
 		return err
 	}
 
-	loadBalancerConfig, err := safe.ReaderGet[*omni.LoadBalancerConfig](ctx, r, omni.NewLoadBalancerConfig(resources.DefaultNamespace, clusterName).Metadata())
+	loadBalancerConfig, err := safe.ReaderGet[*omni.LoadBalancerConfig](ctx, r, omni.NewLoadBalancerConfig(clusterName).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
@@ -152,7 +152,7 @@ func reconcileClusterMachineConfig(
 		return err
 	}
 
-	clusterConfigVersion, err := safe.ReaderGet[*omni.ClusterConfigVersion](ctx, r, omni.NewClusterConfigVersion(resources.DefaultNamespace, clusterName).Metadata())
+	clusterConfigVersion, err := safe.ReaderGet[*omni.ClusterConfigVersion](ctx, r, omni.NewClusterConfigVersion(clusterName).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
@@ -164,7 +164,7 @@ func reconcileClusterMachineConfig(
 	clusterMachineConfigPatches, err := safe.ReaderGet[*omni.ClusterMachineConfigPatches](
 		ctx,
 		r,
-		omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(),
+		omni.NewClusterMachineConfigPatches(clusterMachine.Metadata().ID()).Metadata(),
 	)
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -177,7 +177,7 @@ func reconcileClusterMachineConfig(
 	machineConfigGenOptions, err := safe.ReaderGet[*omni.MachineConfigGenOptions](
 		ctx,
 		r,
-		omni.NewMachineConfigGenOptions(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(),
+		omni.NewMachineConfigGenOptions(clusterMachine.Metadata().ID()).Metadata(),
 	)
 	if err != nil {
 		if state.IsNotFoundError(err) {

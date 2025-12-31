@@ -40,7 +40,6 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	ctlcfg "github.com/siderolabs/omni/client/pkg/omnictl/config"
@@ -295,7 +294,7 @@ func (s *managementServer) markClusterAsTainted(ctx context.Context, name string
 	if _, err := safe.StateUpdateWithConflicts(
 		ctx,
 		s.omniState,
-		omnires.NewClusterStatus(resources.DefaultNamespace, name).Metadata(),
+		omnires.NewClusterStatus(name).Metadata(),
 		func(res *omnires.ClusterStatus) error {
 			res.Metadata().Labels().Set(omnires.LabelClusterTaintedByBreakGlass, "")
 
@@ -429,7 +428,7 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 		return nil, status.Error(codes.InvalidArgument, "unable to extract request context")
 	}
 
-	upgradeStatus, err := safe.StateGet[*omnires.KubernetesUpgradeStatus](ctx, s.omniState, omnires.NewKubernetesUpgradeStatus(resources.DefaultNamespace, requestContext.Name).Metadata())
+	upgradeStatus, err := safe.StateGet[*omnires.KubernetesUpgradeStatus](ctx, s.omniState, omnires.NewKubernetesUpgradeStatus(requestContext.Name).Metadata())
 	if err != nil {
 		return nil, err
 	}
@@ -846,7 +845,7 @@ func (s *managementServer) triggerManifestResync(ctx context.Context, requestCon
 	_, err := safe.StateUpdateWithConflicts(
 		ctx,
 		s.omniState,
-		omnires.NewKubernetesUpgradeStatus(resources.DefaultNamespace, requestContext.Name).Metadata(),
+		omnires.NewKubernetesUpgradeStatus(requestContext.Name).Metadata(),
 		func(res *omnires.KubernetesUpgradeStatus) error {
 			res.Metadata().Annotations().Set("manifest-rollout", strconv.Itoa(int(time.Now().Unix())))
 

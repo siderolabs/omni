@@ -15,9 +15,9 @@ import (
 )
 
 // NewKubernetesUpgradeManifestStatus creates new LoadBalancer state.
-func NewKubernetesUpgradeManifestStatus(ns, id string) *KubernetesUpgradeManifestStatus {
+func NewKubernetesUpgradeManifestStatus(id string) *KubernetesUpgradeManifestStatus {
 	return typed.NewResource[KubernetesUpgradeManifestStatusSpec, KubernetesUpgradeManifestStatusExtension](
-		resource.NewMetadata(ns, KubernetesUpgradeManifestStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, KubernetesUpgradeManifestStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.KubernetesUpgradeManifestStatusSpec{}),
 	)
 }

@@ -153,7 +153,7 @@ func (ctrl *KubernetesStatusController) Run(ctx context.Context, r controller.Ru
 
 			// services are not updated, which means the update was a status update.
 
-			if err := safe.WriterModify(ctx, r, omni.NewKubernetesStatus(resources.DefaultNamespace, ev.cluster),
+			if err := safe.WriterModify(ctx, r, omni.NewKubernetesStatus(ev.cluster),
 				func(r *omni.KubernetesStatus) error {
 					r.Metadata().Labels().Set(omni.LabelCluster, ev.cluster)
 
@@ -314,7 +314,7 @@ func (ctrl *KubernetesStatusController) reconcileRunners(ctx context.Context, r 
 			continue
 		}
 
-		if err := r.Destroy(ctx, omni.NewKubernetesStatus(resources.DefaultNamespace, cluster).Metadata()); err != nil {
+		if err := r.Destroy(ctx, omni.NewKubernetesStatus(cluster).Metadata()); err != nil {
 			return fmt.Errorf("error destroying kubernetes status: %w", err)
 		}
 	}

@@ -369,7 +369,7 @@ func toListResult(machines []*omni.MachineStatus) runtime.ListResult {
 }
 
 func newMachine(i int, val *specs.MachineStatusSpec) *omni.MachineStatus {
-	machine := omni.NewMachineStatus("default", fmt.Sprintf("id%d", i))
+	machine := omni.NewMachineStatus(fmt.Sprintf("id%d", i))
 
 	machine.Metadata().SetVersion(ensure.Value(resource.ParseVersion("1")))
 

@@ -15,9 +15,9 @@ import (
 )
 
 // NewMachineSetDestroyStatus creates new cluster destroy status.
-func NewMachineSetDestroyStatus(ns string, id resource.ID) *MachineSetDestroyStatus {
+func NewMachineSetDestroyStatus(id resource.ID) *MachineSetDestroyStatus {
 	return typed.NewResource[MachineSetDestroyStatusSpec, MachineSetDestroyStatusExtension](
-		resource.NewMetadata(ns, MachineSetDestroyStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.EphemeralNamespace, MachineSetDestroyStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.DestroyStatusSpec{}),
 	)
 }

@@ -18,7 +18,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -38,7 +37,7 @@ func NewMachineController() *MachineController {
 		qtransform.Settings[*siderolink.Link, *omni.Machine]{
 			Name: "MachineController",
 			MapMetadataFunc: func(link *siderolink.Link) *omni.Machine {
-				return omni.NewMachine(resources.DefaultNamespace, link.Metadata().ID())
+				return omni.NewMachine(link.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(machine *omni.Machine) *siderolink.Link {
 				return siderolink.NewLink(machine.Metadata().ID(), nil)

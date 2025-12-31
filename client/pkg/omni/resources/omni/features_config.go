@@ -21,9 +21,9 @@ const (
 )
 
 // NewFeaturesConfig creates new FeaturesConfig state.
-func NewFeaturesConfig(ns string, id resource.ID) *FeaturesConfig {
+func NewFeaturesConfig(id resource.ID) *FeaturesConfig {
 	return typed.NewResource[FeaturesConfigSpec, FeaturesConfigExtension](
-		resource.NewMetadata(ns, FeaturesConfigType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, FeaturesConfigType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.FeaturesConfigSpec{}),
 	)
 }

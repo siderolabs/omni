@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -51,7 +50,7 @@ func (suite *RedactedClusterMachineConfigSuite) TestReconcile() {
 
 	id := "test"
 
-	cmc := omni.NewClusterMachineConfig(resources.DefaultNamespace, id)
+	cmc := omni.NewClusterMachineConfig(id)
 
 	suite.Require().NoError(cmc.TypedSpec().Value.SetUncompressedData([]byte(`version: v1alpha1
 machine:

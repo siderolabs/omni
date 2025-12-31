@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterConfigVersion creates new cluster config version resource.
-func NewClusterConfigVersion(ns string, id resource.ID) *ClusterConfigVersion {
+func NewClusterConfigVersion(id resource.ID) *ClusterConfigVersion {
 	return typed.NewResource[ClusterConfigVersionSpec, ClusterConfigVersionExtension](
-		resource.NewMetadata(ns, ClusterConfigVersionType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterConfigVersionType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterConfigVersionSpec{}),
 	)
 }

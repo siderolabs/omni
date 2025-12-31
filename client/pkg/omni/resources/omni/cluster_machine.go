@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterMachine creates new cluster machine resource.
-func NewClusterMachine(ns string, id resource.ID) *ClusterMachine {
+func NewClusterMachine(id resource.ID) *ClusterMachine {
 	return typed.NewResource[ClusterMachineSpec, ClusterMachineExtension](
-		resource.NewMetadata(ns, ClusterMachineType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterMachineType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterMachineSpec{}),
 	)
 }

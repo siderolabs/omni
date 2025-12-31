@@ -33,7 +33,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/client"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -82,7 +81,7 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Clie
 
 		t.Logf("creating large config patch with size: %v", sizeHumanReadable)
 
-		configPatch := omni.NewConfigPatch(resources.DefaultNamespace, id, pair.MakePair(omni.LabelCluster, clusterName))
+		configPatch := omni.NewConfigPatch(id, pair.MakePair(omni.LabelCluster, clusterName))
 
 		// apply the large config patch that creates a dummy interface
 		createOrUpdate(ctx, t, st, configPatch, func(p *omni.ConfigPatch) error {
@@ -174,7 +173,7 @@ func AssertConfigPatchWithReboot(testCtx context.Context, cli *client.Client, cl
       permissions: 0o666
       path: %s
       op: create`, file)
-		configPatch := omni.NewConfigPatch(resources.DefaultNamespace, id,
+		configPatch := omni.NewConfigPatch(id,
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelClusterMachine, nodeID))
 
@@ -253,7 +252,7 @@ func AssertConfigPatchWithInvalidConfig(testCtx context.Context, cli *client.Cli
       permissions: 0o666
       path: %s
       op: create`, file)
-		configPatch := omni.NewConfigPatch(resources.DefaultNamespace, id,
+		configPatch := omni.NewConfigPatch(id,
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelClusterMachine, cmID))
 
@@ -303,7 +302,6 @@ func AssertConfigPatchMachineSet(testCtx context.Context, cli *client.Client, cl
 		configPatchYAML := fmt.Sprintf(dummyIfacePatchTemplate, iface)
 
 		configPatch := omni.NewConfigPatch(
-			resources.DefaultNamespace,
 			id,
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelMachineSet, workerMachineSetName),
@@ -354,7 +352,7 @@ func AssertConfigPatchSingleClusterMachine(testCtx context.Context, cli *client.
 		iface := fmt.Sprintf("dummy%d", epochSeconds)
 		configPatchYAML := fmt.Sprintf(dummyIfacePatchTemplate, iface)
 
-		configPatch := omni.NewConfigPatch(resources.DefaultNamespace, id,
+		configPatch := omni.NewConfigPatch(id,
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelClusterMachine, cmID))
 

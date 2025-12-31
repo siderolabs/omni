@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -94,7 +93,7 @@ func (suite *ImagePullStatusControllerSuite) SetupTest() {
 }
 
 func (suite *ImagePullStatusControllerSuite) TestImagePullStatus() {
-	pr1 := omni.NewImagePullRequest(resources.DefaultNamespace, "pr-1")
+	pr1 := omni.NewImagePullRequest("pr-1")
 
 	pr1.Metadata().Labels().Set(omni.LabelCluster, "pr-1-cluster")
 
@@ -109,7 +108,7 @@ func (suite *ImagePullStatusControllerSuite) TestImagePullStatus() {
 		},
 	}
 
-	pr2 := omni.NewImagePullRequest(resources.DefaultNamespace, "pr-2")
+	pr2 := omni.NewImagePullRequest("pr-2")
 
 	pr2.Metadata().Labels().Set(omni.LabelCluster, "pr-2-cluster")
 
@@ -152,7 +151,7 @@ func (suite *ImagePullStatusControllerSuite) TestImagePullStatus() {
 
 		// assert the ImagePullStatus at the end
 
-		sts1, err := safe.StateGet[*omni.ImagePullStatus](suite.ctx, suite.state, omni.NewImagePullStatus(resources.DefaultNamespace, pr1.Metadata().ID()).Metadata())
+		sts1, err := safe.StateGet[*omni.ImagePullStatus](suite.ctx, suite.state, omni.NewImagePullStatus(pr1.Metadata().ID()).Metadata())
 		assert.NoError(collect, err)
 
 		if sts1 == nil { // not there yet
@@ -172,7 +171,7 @@ func (suite *ImagePullStatusControllerSuite) TestImagePullStatus() {
 		assert.Equal(collect, sts1.TypedSpec().Value.GetTotalCount(), uint32(6))     // the total count also includes images already on the node
 		assert.Equal(collect, sts1.TypedSpec().Value.GetLastProcessedError(), "")
 
-		sts2, err := safe.StateGet[*omni.ImagePullStatus](suite.ctx, suite.state, omni.NewImagePullStatus(resources.DefaultNamespace, pr2.Metadata().ID()).Metadata())
+		sts2, err := safe.StateGet[*omni.ImagePullStatus](suite.ctx, suite.state, omni.NewImagePullStatus(pr2.Metadata().ID()).Metadata())
 		assert.NoError(collect, err)
 
 		if sts2 == nil { // not there yet
@@ -216,7 +215,7 @@ func (suite *ImagePullStatusControllerSuite) TestImagePullStatus() {
 			assert.Equal(collect, pullImageRequest{cluster: "pr-2-cluster", node: "node-4", image: "node-4-image-2"}, suite.imageClient.pullRequests[4])
 		}
 
-		sts2, err := safe.StateGet[*omni.ImagePullStatus](suite.ctx, suite.state, omni.NewImagePullStatus(resources.DefaultNamespace, pr2.Metadata().ID()).Metadata())
+		sts2, err := safe.StateGet[*omni.ImagePullStatus](suite.ctx, suite.state, omni.NewImagePullStatus(pr2.Metadata().ID()).Metadata())
 		assert.NoError(collect, err)
 
 		assert.Equal(collect, sts2.TypedSpec().Value.GetRequestVersion(), pr2.Metadata().Version().String())

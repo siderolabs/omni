@@ -25,7 +25,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime"
@@ -52,15 +51,15 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 		qtransform.Settings[*omni.ClusterSecrets, *omni.KubernetesUpgradeManifestStatus]{
 			Name: KubernetesUpgradeManifestStatusControllerName,
 			MapMetadataFunc: func(upgradeStatus *omni.ClusterSecrets) *omni.KubernetesUpgradeManifestStatus {
-				return omni.NewKubernetesUpgradeManifestStatus(resources.DefaultNamespace, upgradeStatus.Metadata().ID())
+				return omni.NewKubernetesUpgradeManifestStatus(upgradeStatus.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(manifestStatus *omni.KubernetesUpgradeManifestStatus) *omni.ClusterSecrets {
-				return omni.NewClusterSecrets(resources.DefaultNamespace, manifestStatus.Metadata().ID())
+				return omni.NewClusterSecrets(manifestStatus.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, clusterSecrets *omni.ClusterSecrets, manifestStatus *omni.KubernetesUpgradeManifestStatus) error {
 				clusterID := clusterSecrets.Metadata().ID()
 
-				loadbalancerStatus, err := safe.ReaderGet[*omni.LoadBalancerStatus](ctx, r, omni.NewLoadBalancerStatus(resources.DefaultNamespace, clusterID).Metadata())
+				loadbalancerStatus, err := safe.ReaderGet[*omni.LoadBalancerStatus](ctx, r, omni.NewLoadBalancerStatus(clusterID).Metadata())
 				if err != nil && !state.IsNotFoundError(err) {
 					return fmt.Errorf("failed to get loadbalancer status: %w", err)
 				}
@@ -70,7 +69,7 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 					return nil
 				}
 
-				clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(resources.DefaultNamespace, clusterID).Metadata())
+				clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r, omni.NewClusterStatus(clusterID).Metadata())
 				if err != nil && !state.IsNotFoundError(err) {
 					return fmt.Errorf("failed to get cluster status: %w", err)
 				}
@@ -87,7 +86,7 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 					return nil
 				}
 
-				k8sUpgradeStatus, err := safe.ReaderGet[*omni.KubernetesUpgradeStatus](ctx, r, omni.NewKubernetesUpgradeStatus(resources.DefaultNamespace, clusterID).Metadata())
+				k8sUpgradeStatus, err := safe.ReaderGet[*omni.KubernetesUpgradeStatus](ctx, r, omni.NewKubernetesUpgradeStatus(clusterID).Metadata())
 				if err != nil && !state.IsNotFoundError(err) {
 					return fmt.Errorf("failed to get kubernetes upgrade status: %w", err)
 				}
@@ -97,7 +96,7 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 					return nil
 				}
 
-				talosUpgradeStatus, err := safe.ReaderGet[*omni.TalosUpgradeStatus](ctx, r, omni.NewTalosUpgradeStatus(resources.DefaultNamespace, clusterID).Metadata())
+				talosUpgradeStatus, err := safe.ReaderGet[*omni.TalosUpgradeStatus](ctx, r, omni.NewTalosUpgradeStatus(clusterID).Metadata())
 				if err != nil && !state.IsNotFoundError(err) {
 					return fmt.Errorf("failed to get talos upgrade status: %w", err)
 				}
@@ -108,7 +107,7 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 				}
 
 				// get the controlplane machine set status
-				machineSetStatuses, err := safe.ReaderList[*omni.MachineSetStatus](ctx, r, omni.NewMachineSetStatus(resources.DefaultNamespace, "").Metadata(),
+				machineSetStatuses, err := safe.ReaderList[*omni.MachineSetStatus](ctx, r, omni.NewMachineSetStatus("").Metadata(),
 					state.WithLabelQuery(
 						resource.LabelEqual(omni.LabelCluster, clusterID),
 						resource.LabelExists(omni.LabelControlPlaneRole),
@@ -142,7 +141,7 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 				}
 
 				// we are ready to perform manifest checks, set a global timeout for the operation
-				ctx, err = r.ContextWithTeardown(ctx, omni.NewMachineSet(resources.DefaultNamespace, controlplaneMachineSetStatus.Metadata().ID()).Metadata())
+				ctx, err = r.ContextWithTeardown(ctx, omni.NewMachineSet(controlplaneMachineSetStatus.Metadata().ID()).Metadata())
 				if err != nil {
 					return fmt.Errorf("failed to set teardown context: %w", err)
 				}

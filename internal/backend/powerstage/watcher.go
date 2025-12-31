@@ -15,7 +15,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
@@ -55,7 +54,7 @@ func (watcher *Watcher) Run(ctx context.Context) error {
 		return err
 	}
 
-	if err := watcher.state.WatchKind(ctx, omni.NewClusterMachine(resources.DefaultNamespace, "").Metadata(), eventCh); err != nil {
+	if err := watcher.state.WatchKind(ctx, omni.NewClusterMachine("").Metadata(), eventCh); err != nil {
 		return fmt.Errorf("failed to watch cluster machines: %w", err)
 	}
 
@@ -112,7 +111,7 @@ func (watcher *Watcher) handleEvent(ctx context.Context, event state.Event) erro
 
 		infraMachineStatus = res
 
-		_, err = watcher.state.Get(ctx, omni.NewClusterMachine(resources.DefaultNamespace, infraMachineStatus.Metadata().ID()).Metadata())
+		_, err = watcher.state.Get(ctx, omni.NewClusterMachine(infraMachineStatus.Metadata().ID()).Metadata())
 		if err != nil && !state.IsNotFoundError(err) {
 			return fmt.Errorf("failed to get cluster machine for infra machine status %s: %w", infraMachineStatus.Metadata().ID(), err)
 		}
@@ -124,7 +123,7 @@ func (watcher *Watcher) handleEvent(ctx context.Context, event state.Event) erro
 		return nil
 	}
 
-	snapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, infraMachineStatus.Metadata().ID())
+	snapshot := omni.NewMachineStatusSnapshot(infraMachineStatus.Metadata().ID())
 
 	if clusterMachineExists { // the machine is assigned to a cluster, mark it as "powering on"
 		snapshot.TypedSpec().Value.PowerStage = specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERING_ON

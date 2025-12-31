@@ -45,7 +45,6 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -324,7 +323,7 @@ func AssertEtcdMembershipMatchesOmniResources(testCtx context.Context, client *c
 			for _, machineID := range machineIDs {
 				var machineStatus *omni.MachineStatus
 
-				machineStatus, err = safe.StateGet[*omni.MachineStatus](ctx, client.Omni().State(), omni.NewMachineStatus(resources.DefaultNamespace, machineID).Metadata())
+				machineStatus, err = safe.StateGet[*omni.MachineStatus](ctx, client.Omni().State(), omni.NewMachineStatus(machineID).Metadata())
 				require.NoError(collect, err)
 
 				clusterMachines[machineStatus.TypedSpec().Value.Network.Hostname] = struct{}{}
@@ -385,7 +384,7 @@ func AssertTalosMembersMatchOmni(testCtx context.Context, client *client.Client,
 			var clusterMachineIdentity *omni.ClusterMachineIdentity
 
 			clusterMachineIdentity, err = safe.StateGet[*omni.ClusterMachineIdentity](ctx, client.Omni().State(),
-				omni.NewClusterMachineIdentity(resources.DefaultNamespace, machineID).Metadata(),
+				omni.NewClusterMachineIdentity(machineID).Metadata(),
 			)
 
 			require.NoError(err)
@@ -492,7 +491,7 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, clusterName
 			asrt.Contains(r.TypedSpec().Value.UpgradeVersions, newTalosVersion, resourceDetails(r))
 		})
 
-		cluster, err := safe.StateGet[*omni.Cluster](ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata())
+		cluster, err := safe.StateGet[*omni.Cluster](ctx, st, omni.NewCluster(clusterName).Metadata())
 		require.NoError(t, err)
 
 		// lock the cluster
@@ -503,7 +502,7 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, clusterName
 		})
 		require.NoError(t, err)
 
-		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.TypedSpec().Value.TalosVersion = newTalosVersion
 
 			return nil
@@ -522,7 +521,7 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, clusterName
 		t.Logf("upgrading cluster %q to %q", clusterName, newTalosVersion)
 
 		// trigger an upgrade
-		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.TypedSpec().Value.TalosVersion = newTalosVersion
 
 			return nil
@@ -553,7 +552,6 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, clusterName
 			t.Logf("Pinning etcd version to %s for Talos v1.11", talosconstants.DefaultEtcdVersion)
 
 			configPatchEtcd := omni.NewConfigPatch(
-				resources.DefaultNamespace,
 				fmt.Sprintf("001-%s-pin-etcd", clusterName),
 			)
 
@@ -586,7 +584,7 @@ func AssertTalosExtensionsUpdateFlow(testCtx context.Context, client *client.Cli
 		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
 		defer cancel()
 
-		res := omni.NewExtensionsConfiguration(resources.DefaultNamespace, clusterName)
+		res := omni.NewExtensionsConfiguration(clusterName)
 
 		res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 
@@ -625,7 +623,7 @@ func AssertTalosUpgradeIsRevertible(testCtx context.Context, st state.State, clu
 		t.Logf("attempting an upgrade of cluster %q to %q", clusterName, badTalosVersion)
 
 		// trigger an upgrade to a bad version
-		_, err := safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+		_, err := safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.Metadata().Annotations().Set(constants.DisableValidation, "")
 
 			cluster.TypedSpec().Value.TalosVersion = badTalosVersion
@@ -644,7 +642,7 @@ func AssertTalosUpgradeIsRevertible(testCtx context.Context, st state.State, clu
 
 		t.Log("revert an upgrade")
 
-		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.TypedSpec().Value.TalosVersion = currentTalosVersion
 
 			return nil
@@ -668,7 +666,7 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 
 		t.Logf("apply upgrade to %s", newTalosVersion)
 
-		_, err := safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+		_, err := safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.TypedSpec().Value.TalosVersion = newTalosVersion
 
 			return nil
@@ -679,7 +677,7 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 
 		t.Logf("watching for the machines in cluster %q", clusterName)
 
-		require.NoError(t, st.WatchKind(ctx, omni.NewClusterMachineStatus(resources.DefaultNamespace, "").Metadata(), events,
+		require.NoError(t, st.WatchKind(ctx, omni.NewClusterMachineStatus("").Metadata(), events,
 			state.WatchWithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		))
 
@@ -704,7 +702,6 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 						var cmtv *omni.ClusterMachineTalosVersion
 
 						cmtv, err = safe.ReaderGet[*omni.ClusterMachineTalosVersion](ctx, st, omni.NewClusterMachineTalosVersion(
-							resources.DefaultNamespace,
 							res.Metadata().ID(),
 						).Metadata())
 
@@ -736,7 +733,7 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 		})
 
 		// revert the update
-		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata(), func(cluster *omni.Cluster) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(cluster *omni.Cluster) error {
 			cluster.TypedSpec().Value.TalosVersion = currentTalosVersion
 
 			return nil
@@ -791,7 +788,7 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 		pickUnallocatedMachines(ctx, t, st, 1, nil, func(machineIDs []resource.ID) {
 			allocatedMachineIDs = machineIDs
 
-			cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+			cluster := omni.NewCluster(clusterName)
 			cluster.TypedSpec().Value.TalosVersion = talosVersion1
 			cluster.TypedSpec().Value.KubernetesVersion = kubernetesVersion
 
@@ -833,7 +830,7 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 		t.Logf("creating a cluster on version %q using same machines", talosVersion2)
 
 		// re-create the cluster on talosVersion2
-		cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+		cluster := omni.NewCluster(clusterName)
 		cluster.TypedSpec().Value.TalosVersion = talosVersion2
 		cluster.TypedSpec().Value.KubernetesVersion = kubernetesVersion
 

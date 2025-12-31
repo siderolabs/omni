@@ -155,7 +155,7 @@ func Validate(accessPolicy *auth.AccessPolicy) error {
 		}
 
 		// evaluate the test
-		clusterMD := omni.NewCluster(resources.DefaultNamespace, clusterName).Metadata()
+		clusterMD := omni.NewCluster(clusterName).Metadata()
 		identityMD := auth.NewIdentity(resources.DefaultNamespace, userName).Metadata()
 
 		for key, value := range test.GetUser().GetLabels() {

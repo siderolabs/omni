@@ -19,7 +19,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
@@ -33,7 +32,7 @@ func NewClusterDiagnosticsController() *ClusterDiagnosticsController {
 		qtransform.Settings[*omni.ClusterUUID, *omni.ClusterDiagnostics]{
 			Name: "ClusterDiagnosticsController",
 			MapMetadataFunc: func(uuid *omni.ClusterUUID) *omni.ClusterDiagnostics {
-				return omni.NewClusterDiagnostics(resources.DefaultNamespace, uuid.Metadata().ID())
+				return omni.NewClusterDiagnostics(uuid.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(diagnostics *omni.ClusterDiagnostics) *omni.ClusterUUID {
 				return omni.NewClusterUUID(diagnostics.Metadata().ID())

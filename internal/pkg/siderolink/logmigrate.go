@@ -14,7 +14,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore/circularlog"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore/sqlitelog"
@@ -26,7 +25,7 @@ func migrateLogStoreToSQLite(ctx context.Context, circularStoreManager *circular
 		return fmt.Errorf("failed to get machine IDs from circular log store manager: %w", err)
 	}
 
-	machineList, err := omniState.List(ctx, omni.NewMachine(resources.DefaultNamespace, "").Metadata())
+	machineList, err := omniState.List(ctx, omni.NewMachine("").Metadata())
 	if err != nil {
 		return fmt.Errorf("failed to list machines from state: %w", err)
 	}

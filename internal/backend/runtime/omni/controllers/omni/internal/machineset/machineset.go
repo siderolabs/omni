@@ -18,7 +18,6 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/pkg/check"
 )
@@ -134,7 +133,7 @@ func UpdateFinalizers(ctx context.Context, r controller.ReaderWriter, rc *Reconc
 	// add finalizers to all machines which have running cluster machines.
 	for _, clusterMachine := range rc.GetClusterMachines() {
 		if clusterMachine.Metadata().Phase() == resource.PhaseRunning && !clusterMachine.Metadata().Finalizers().Has(ControllerName) {
-			if err := r.AddFinalizer(ctx, omni.NewMachine(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(), ControllerName); err != nil {
+			if err := r.AddFinalizer(ctx, omni.NewMachine(clusterMachine.Metadata().ID()).Metadata(), ControllerName); err != nil {
 				if state.IsNotFoundError(err) {
 					continue
 				}

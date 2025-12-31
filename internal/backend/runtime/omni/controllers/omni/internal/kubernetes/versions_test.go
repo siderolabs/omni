@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/kubernetes"
 )
@@ -59,7 +58,7 @@ func TestCalculateUpgradeVersions(t *testing.T) {
 
 			st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-			tv := omni.NewTalosVersion(resources.DefaultNamespace, test.talosVersion)
+			tv := omni.NewTalosVersion(test.talosVersion)
 			tv.TypedSpec().Value.Version = test.talosVersion
 			tv.TypedSpec().Value.CompatibleKubernetesVersions = test.compatibleK8s
 

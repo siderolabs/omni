@@ -15,9 +15,9 @@ import (
 )
 
 // NewEtcdAuditResult creates new etcd audit result.
-func NewEtcdAuditResult(ns string, id resource.ID) *EtcdAuditResult {
+func NewEtcdAuditResult(id resource.ID) *EtcdAuditResult {
 	return typed.NewResource[EtcdAuditResultSpec, EtcdAuditResultExtension](
-		resource.NewMetadata(ns, EtcdAuditResultType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, EtcdAuditResultType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.EtcdAuditResultSpec{}),
 	)
 }

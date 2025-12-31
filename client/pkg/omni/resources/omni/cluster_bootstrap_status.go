@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterBootstrapStatus creates new cluster bootstrap status resource.
-func NewClusterBootstrapStatus(ns string, id resource.ID) *ClusterBootstrapStatus {
+func NewClusterBootstrapStatus(id resource.ID) *ClusterBootstrapStatus {
 	return typed.NewResource[ClusterBootstrapStatusSpec, ClusterBootstrapStatusExtension](
-		resource.NewMetadata(ns, ClusterBootstrapStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterBootstrapStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterBootstrapStatusSpec{}),
 	)
 }

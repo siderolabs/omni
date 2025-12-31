@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -32,13 +31,12 @@ func (suite *ClusterSuite) TestReconcile() {
 
 	clusterName := "talos-default-1"
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+	cluster := omni.NewCluster(clusterName)
 
 	machines := make([]*omni.ClusterMachine, 10)
 
 	for i := range machines {
 		machine := omni.NewClusterMachine(
-			resources.DefaultNamespace,
 			fmt.Sprintf("node-%d", i),
 		)
 
@@ -54,7 +52,7 @@ func (suite *ClusterSuite) TestReconcile() {
 
 	assertResource(
 		&suite.OmniSuite,
-		omni.NewCluster(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata(),
+		omni.NewCluster(cluster.Metadata().ID()).Metadata(),
 		func(res *omni.Cluster, assertions *assert.Assertions) {
 			assertions.False(res.Metadata().Finalizers().Empty())
 		},

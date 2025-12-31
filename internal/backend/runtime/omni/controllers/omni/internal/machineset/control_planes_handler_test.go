@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/pkg/check"
@@ -21,7 +20,7 @@ import (
 
 //nolint:maintidx
 func TestControlPlanesHandler(t *testing.T) {
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "test")
+	machineSet := omni.NewMachineSet("test")
 
 	version := resource.VersionUndefined.Next()
 
@@ -43,9 +42,9 @@ func TestControlPlanesHandler(t *testing.T) {
 			name:       "create nodes",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", machineSet),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "c", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
+				omni.NewMachineSetNode("b", machineSet),
+				omni.NewMachineSetNode("c", machineSet),
 			},
 			expectOperations: []machineset.Operation{
 				&machineset.Create{ID: "a"},
@@ -57,13 +56,13 @@ func TestControlPlanesHandler(t *testing.T) {
 			name:       "create nodes when scaling down",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", machineSet),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "c", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
+				omni.NewMachineSetNode("b", machineSet),
+				omni.NewMachineSetNode("c", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				omni.NewClusterMachine(resources.DefaultNamespace, "a"),
-				tearingDown(omni.NewClusterMachine(resources.DefaultNamespace, "b")),
+				omni.NewClusterMachine("a"),
+				tearingDown(omni.NewClusterMachine("b")),
 			},
 			expectOperations: []machineset.Operation{
 				&machineset.Create{ID: "c"},
@@ -73,12 +72,12 @@ func TestControlPlanesHandler(t *testing.T) {
 			name:       "destroy tearing down",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				omni.NewClusterMachine(resources.DefaultNamespace, "a"),
-				tearingDownNoFinalizers(omni.NewClusterMachine(resources.DefaultNamespace, "b")),
-				omni.NewClusterMachine(resources.DefaultNamespace, "c"),
+				omni.NewClusterMachine("a"),
+				tearingDownNoFinalizers(omni.NewClusterMachine("b")),
+				omni.NewClusterMachine("c"),
 			},
 			expectOperations: []machineset.Operation{
 				&machineset.Teardown{ID: "b"},
@@ -88,12 +87,12 @@ func TestControlPlanesHandler(t *testing.T) {
 			name:       "destroy one",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				omni.NewClusterMachine(resources.DefaultNamespace, "a"),
-				omni.NewClusterMachine(resources.DefaultNamespace, "c"),
-				omni.NewClusterMachine(resources.DefaultNamespace, "d"),
+				omni.NewClusterMachine("a"),
+				omni.NewClusterMachine("c"),
+				omni.NewClusterMachine("d"),
 			},
 			expectOperations: []machineset.Operation{
 				&machineset.Teardown{
@@ -116,11 +115,11 @@ func TestControlPlanesHandler(t *testing.T) {
 			name:       "requeue due to unhealthy etcd",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				omni.NewClusterMachine(resources.DefaultNamespace, "a"),
-				omni.NewClusterMachine(resources.DefaultNamespace, "c"),
+				omni.NewClusterMachine("a"),
+				omni.NewClusterMachine("c"),
 			},
 			expectError:      true,
 			expectOperations: []machineset.Operation{},
@@ -140,10 +139,10 @@ func TestControlPlanesHandler(t *testing.T) {
 			name:       "update a machine",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				omni.NewClusterMachine(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachine("a"),
 			},
 			expectOperations: []machineset.Operation{
 				&machineset.Update{
@@ -163,20 +162,20 @@ func TestControlPlanesHandler(t *testing.T) {
 			name:       "update with outdated",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
+				omni.NewMachineSetNode("b", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version.Next())),
-				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "b"), version)),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version.Next())),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("b"), version)),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "b"),
+				omni.NewClusterMachineConfigPatches("a"),
+				omni.NewClusterMachineConfigPatches("b"),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "b"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("b"), version),
 			},
 			expectOperations: []machineset.Operation{},
 			etcdStatus: &check.EtcdStatusResult{
@@ -192,7 +191,7 @@ func TestControlPlanesHandler(t *testing.T) {
 			},
 			patches: map[string][]*omni.ConfigPatch{
 				"b": {
-					omni.NewConfigPatch(resources.DefaultNamespace, "1"),
+					omni.NewConfigPatch("1"),
 				},
 			},
 		},
@@ -200,16 +199,16 @@ func TestControlPlanesHandler(t *testing.T) {
 			name:       "no actions",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version)),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version)),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachineConfigPatches("a"),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
 			},
 			expectOperations: []machineset.Operation{},
 			etcdStatus: &check.EtcdStatusResult{
@@ -228,7 +227,7 @@ func TestControlPlanesHandler(t *testing.T) {
 			machineSet.TypedSpec().Value = tt.machineSet
 			machineSet.Metadata().Labels().Set(omni.LabelCluster, tt.name)
 
-			cluster := omni.NewCluster(resources.DefaultNamespace, tt.name)
+			cluster := omni.NewCluster(tt.name)
 			cluster.TypedSpec().Value.TalosVersion = "v1.5.4"
 			cluster.TypedSpec().Value.KubernetesVersion = "v1.29.1"
 

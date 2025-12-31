@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -39,8 +38,8 @@ func (suite *KubernetesNodeAuditSuite) TestReconcile() {
 
 	// create cluster1 that has a Kubernetes node mismatch
 
-	cluster1KubernetesNodes := omni.NewClusterKubernetesNodes(resources.DefaultNamespace, "cluster1")
-	cluster1KubernetesStatus := omni.NewKubernetesStatus(resources.DefaultNamespace, "cluster1")
+	cluster1KubernetesNodes := omni.NewClusterKubernetesNodes("cluster1")
+	cluster1KubernetesStatus := omni.NewKubernetesStatus("cluster1")
 
 	cluster1KubernetesNodes.TypedSpec().Value.Nodes = []string{"cluster1-node1", "cluster1-node2", "cluster1-node3"}
 	cluster1KubernetesStatus.TypedSpec().Value.Nodes = []*specs.KubernetesStatusSpec_NodeStatus{
@@ -53,8 +52,8 @@ func (suite *KubernetesNodeAuditSuite) TestReconcile() {
 
 	// create cluster2 that has no Kubernetes node mismatch
 
-	cluster2KubernetesNodes := omni.NewClusterKubernetesNodes(resources.DefaultNamespace, "cluster2")
-	cluster2KubernetesStatus := omni.NewKubernetesStatus(resources.DefaultNamespace, "cluster2")
+	cluster2KubernetesNodes := omni.NewClusterKubernetesNodes("cluster2")
+	cluster2KubernetesStatus := omni.NewKubernetesStatus("cluster2")
 
 	cluster2KubernetesNodes.TypedSpec().Value.Nodes = []string{"cluster2-node1", "cluster2-node2", "cluster2-node3"}
 	cluster2KubernetesStatus.TypedSpec().Value.Nodes = []*specs.KubernetesStatusSpec_NodeStatus{
@@ -70,12 +69,12 @@ func (suite *KubernetesNodeAuditSuite) TestReconcile() {
 
 	// assert the audit results
 
-	assertResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult(resources.DefaultNamespace, "cluster1").Metadata(),
+	assertResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult("cluster1").Metadata(),
 		func(res *omni.KubernetesNodeAuditResult, assertion *assert.Assertions) {
 			assertion.Equal([]string{"cluster1-node4"}, res.TypedSpec().Value.DeletedNodes)
 		})
 
-	assertNoResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult(resources.DefaultNamespace, "cluster2"))
+	assertNoResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult("cluster2"))
 
 	// assert the Kubernetes state
 
@@ -105,12 +104,12 @@ func (suite *KubernetesNodeAuditSuite) TestReconcile() {
 
 	// assert the audit results
 
-	assertResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult(resources.DefaultNamespace, "cluster1").Metadata(),
+	assertResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult("cluster1").Metadata(),
 		func(res *omni.KubernetesNodeAuditResult, assertion *assert.Assertions) {
 			assertion.Equal([]string{"cluster1-node5"}, res.TypedSpec().Value.DeletedNodes)
 		})
 
-	assertResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult(resources.DefaultNamespace, "cluster2").Metadata(),
+	assertResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult("cluster2").Metadata(),
 		func(res *omni.KubernetesNodeAuditResult, assertion *assert.Assertions) {
 			assertion.Equal([]string{"cluster2-node2", "cluster2-node3"}, res.TypedSpec().Value.DeletedNodes)
 		})

@@ -16,7 +16,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -113,7 +112,7 @@ func (cluster *Cluster) Validate() error {
 
 // Translate into Omni resources.
 func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, error) {
-	clusterResource := omni.NewCluster(resources.DefaultNamespace, cluster.Name)
+	clusterResource := omni.NewCluster(cluster.Name)
 
 	clusterResource.Metadata().Annotations().Set(omni.ResourceManagedByClusterTemplates, "")
 

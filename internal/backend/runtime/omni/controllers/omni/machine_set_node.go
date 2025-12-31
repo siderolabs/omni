@@ -194,7 +194,7 @@ func (ctrl *MachineSetNodeController) MapInput(
 			return nil, nil
 		}
 
-		return []resource.Pointer{omni.NewMachineSet(resources.DefaultNamespace, machineSetID).Metadata()}, nil
+		return []resource.Pointer{omni.NewMachineSet(machineSetID).Metadata()}, nil
 	case infra.MachineRequestType:
 		machines, err := safe.ReaderListAll[*omni.Machine](ctx, r,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequest, ptr.ID())),
@@ -397,7 +397,7 @@ func (ctrl *MachineSetNodeController) getMachineAllocation(ctx context.Context, 
 		return nil, nil //nolint:nilnil
 	}
 
-	machineClass, err := safe.ReaderGet[*omni.MachineClass](ctx, r, omni.NewMachineClass(resources.DefaultNamespace, machineAllocation.Name).Metadata())
+	machineClass, err := safe.ReaderGet[*omni.MachineClass](ctx, r, omni.NewMachineClass(machineAllocation.Name).Metadata())
 	if err != nil {
 		return nil, err
 	}
@@ -561,7 +561,7 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 			id := machine.Metadata().ID()
 
-			msn := omni.NewMachineSetNode(resources.DefaultNamespace, id, machineSet)
+			msn := omni.NewMachineSetNode(id, machineSet)
 
 			msn.Metadata().Labels().Set(omni.LabelManagedByMachineSetNodeController, "")
 
@@ -693,7 +693,7 @@ func getMachineSets(ctx context.Context, r controller.QRuntime, machineID resour
 		return nil, nil
 	}
 
-	return []resource.Pointer{omni.NewMachineSet(resources.DefaultNamespace, machineSetID).Metadata()}, nil
+	return []resource.Pointer{omni.NewMachineSet(machineSetID).Metadata()}, nil
 }
 
 // getUpscalableMachinesets returns machine sets that have room to grow.

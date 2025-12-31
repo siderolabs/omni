@@ -15,9 +15,9 @@ import (
 )
 
 // NewMachineClass creates new MachineClass resource.
-func NewMachineClass(ns string, id resource.ID) *MachineClass {
+func NewMachineClass(id resource.ID) *MachineClass {
 	return typed.NewResource[MachineClassSpec, MachineClassExtension](
-		resource.NewMetadata(ns, MachineClassType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, MachineClassType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineClassSpec{}),
 	)
 }

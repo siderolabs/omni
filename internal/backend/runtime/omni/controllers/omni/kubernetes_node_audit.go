@@ -23,7 +23,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
@@ -56,10 +55,10 @@ func NewKubernetesNodeAuditController(getKubernetesClientFunc GetKubernetesClien
 		qtransform.Settings[*omni.ClusterKubernetesNodes, *omni.KubernetesNodeAuditResult]{
 			Name: "KubernetesNodeAuditController",
 			MapMetadataFunc: func(nodes *omni.ClusterKubernetesNodes) *omni.KubernetesNodeAuditResult {
-				return omni.NewKubernetesNodeAuditResult(resources.DefaultNamespace, nodes.Metadata().ID())
+				return omni.NewKubernetesNodeAuditResult(nodes.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(result *omni.KubernetesNodeAuditResult) *omni.ClusterKubernetesNodes {
-				return omni.NewClusterKubernetesNodes(resources.DefaultNamespace, result.Metadata().ID())
+				return omni.NewClusterKubernetesNodes(result.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, nodes *omni.ClusterKubernetesNodes, result *omni.KubernetesNodeAuditResult) error {
 				status, err := safe.ReaderGetByID[*omni.KubernetesStatus](ctx, r, nodes.Metadata().ID())

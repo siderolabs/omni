@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -32,7 +31,7 @@ func TestReconcile(t *testing.T) {
 	}, func(ctx context.Context, testContext testutils.TestContext) {
 		const id = "test"
 
-		ms := omni.NewMachineStatus(resources.DefaultNamespace, id)
+		ms := omni.NewMachineStatus(id)
 		ms.TypedSpec().Value.KernelCmdline = "current cmdline"
 
 		require.NoError(t, testContext.State.Create(ctx, ms))
@@ -91,7 +90,7 @@ func TestReconcile(t *testing.T) {
 
 		// Make the machine non-UKI, add the machine to a cluster with GrubUseUkiCmdline set to false in its config.
 		// Assert that the machine does not support updating the kernel args.
-		cmc := omni.NewClusterMachineConfig(resources.DefaultNamespace, id)
+		cmc := omni.NewClusterMachineConfig(id)
 		require.NoError(t, testContext.State.Create(ctx, cmc))
 
 		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, ms.Metadata(), func(res *omni.MachineStatus) error {

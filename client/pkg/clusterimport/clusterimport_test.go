@@ -53,7 +53,6 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/siderolabs/omni/client/pkg/clusterimport"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
@@ -438,12 +437,12 @@ func (data *testData) prepareOmniState(ctx context.Context, t *testing.T) {
 
 		require.NoError(t, omniState.Create(ctx, siderolinkAPIConfig))
 
-		talosVersionRes := omni.NewTalosVersion(resources.DefaultNamespace, strings.TrimLeft(data.talosVersion, "v"))
+		talosVersionRes := omni.NewTalosVersion(strings.TrimLeft(data.talosVersion, "v"))
 		talosVersionRes.TypedSpec().Value.CompatibleKubernetesVersions = []string{strings.TrimLeft(data.kubernetesVersion, "v")}
 		require.NoError(t, omniState.Create(ctx, talosVersionRes))
 
 		if data.anotherTalosVersion != "" {
-			anotherTalosVersionRes := omni.NewTalosVersion(resources.DefaultNamespace, strings.TrimLeft(data.anotherTalosVersion, "v"))
+			anotherTalosVersionRes := omni.NewTalosVersion(strings.TrimLeft(data.anotherTalosVersion, "v"))
 			anotherTalosVersionRes.TypedSpec().Value.CompatibleKubernetesVersions = []string{strings.TrimLeft(data.kubernetesVersion, "v")}
 			require.NoError(t, omniState.Create(ctx, anotherTalosVersionRes))
 		}

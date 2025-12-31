@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterEndpoint creates new cluster machine status resource.
-func NewClusterEndpoint(ns string, id resource.ID) *ClusterEndpoint {
+func NewClusterEndpoint(id resource.ID) *ClusterEndpoint {
 	return typed.NewResource[ClusterEndpointSpec, ClusterEndpointExtension](
-		resource.NewMetadata(ns, ClusterEndpointType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterEndpointType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterEndpointSpec{}),
 	)
 }

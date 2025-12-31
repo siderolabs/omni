@@ -129,7 +129,7 @@ func TestMachineStatusReconcileLabels(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			ms := omni.NewMachineStatus("", "")
+			ms := omni.NewMachineStatus("")
 
 			ms.TypedSpec().Value = test.spec
 
@@ -141,7 +141,7 @@ func TestMachineStatusReconcileLabels(t *testing.T) {
 }
 
 func TestLookup(t *testing.T) {
-	ms := omni.NewMachineStatus("", "")
+	ms := omni.NewMachineStatus("")
 	ms.TypedSpec().Value = &specs.MachineStatusSpec{
 		Cluster: "random-cluster",
 		PlatformMetadata: &specs.MachineStatusSpec_PlatformMetadata{

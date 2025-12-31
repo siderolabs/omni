@@ -18,7 +18,6 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
@@ -122,7 +121,7 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	}
 
 	statusSnapshot, err := safe.ReaderGet[*omni.MachineStatusSnapshot](ctx, r,
-		omni.NewMachineStatusSnapshot(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata(),
+		omni.NewMachineStatusSnapshot(machineConfig.Metadata().ID()).Metadata(),
 	)
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -132,7 +131,7 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, fmt.Errorf("failed to get machine status snapshot '%s': %w", machineConfig.Metadata().ID(), err)
 	}
 
-	machineStatus, err := safe.ReaderGet[*omni.MachineStatus](ctx, r, omni.NewMachineStatus(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata())
+	machineStatus, err := safe.ReaderGet[*omni.MachineStatus](ctx, r, omni.NewMachineStatus(machineConfig.Metadata().ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine status not found: %w", machineConfig.Metadata().ID(), err)
@@ -145,7 +144,7 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, err
 	}
 
-	genOptions, err := safe.ReaderGet[*omni.MachineConfigGenOptions](ctx, r, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, machineConfig.Metadata().ID()).Metadata())
+	genOptions, err := safe.ReaderGet[*omni.MachineConfigGenOptions](ctx, r, omni.NewMachineConfigGenOptions(machineConfig.Metadata().ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine config gen options not found: %w", machineConfig.Metadata().ID(), err)

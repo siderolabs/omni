@@ -124,7 +124,7 @@ func (ctrl *ClusterLoadBalancerController) Run(ctx context.Context, r controller
 				return err
 			}
 
-			err = safe.WriterModify(ctx, r, omni.NewLoadBalancerConfig(resources.DefaultNamespace, cluster.Metadata().ID()), func(config *omni.LoadBalancerConfig) error {
+			err = safe.WriterModify(ctx, r, omni.NewLoadBalancerConfig(cluster.Metadata().ID()), func(config *omni.LoadBalancerConfig) error {
 				spec := config.TypedSpec().Value
 
 				spec.Endpoints = endpoints
@@ -159,7 +159,7 @@ func (ctrl *ClusterLoadBalancerController) Run(ctx context.Context, r controller
 }
 
 func (ctrl *ClusterLoadBalancerController) getEndpoints(ctx context.Context, r controller.Runtime, clusterName string) ([]string, error) {
-	clusterEndpoints, err := safe.ReaderGet[*omni.ClusterEndpoint](ctx, r, omni.NewClusterEndpoint(resources.DefaultNamespace, clusterName).Metadata())
+	clusterEndpoints, err := safe.ReaderGet[*omni.ClusterEndpoint](ctx, r, omni.NewClusterEndpoint(clusterName).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, nil

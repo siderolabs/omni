@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterMachineIdentity creates new cluster machine identity resource.
-func NewClusterMachineIdentity(ns string, id resource.ID) *ClusterMachineIdentity {
+func NewClusterMachineIdentity(id resource.ID) *ClusterMachineIdentity {
 	return typed.NewResource[ClusterMachineIdentitySpec, ClusterMachineIdentityExtension](
-		resource.NewMetadata(ns, ClusterMachineIdentityType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterMachineIdentityType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterMachineIdentitySpec{}),
 	)
 }

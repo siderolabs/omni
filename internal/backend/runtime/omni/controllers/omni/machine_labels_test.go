@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -34,12 +33,12 @@ func (suite *MachineLabelsSuite) TestLabelsReconcile() {
 	require.NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineStatusController()))
 
 	machineStatus := omni.NewMachineStatus(
-		resources.DefaultNamespace, "machine",
+		"machine",
 	)
 
 	require.NoError(suite.state.Create(suite.ctx, machineStatus))
 
-	labels := omni.NewMachineLabels(resources.DefaultNamespace, "machine")
+	labels := omni.NewMachineLabels("machine")
 	labels.Metadata().Labels().Set("my-awesome-label", "value")
 
 	require.NoError(suite.state.Create(suite.ctx, labels))

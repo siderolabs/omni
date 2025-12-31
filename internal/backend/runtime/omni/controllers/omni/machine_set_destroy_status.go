@@ -17,7 +17,6 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
@@ -38,17 +37,17 @@ func NewMachineSetDestroyStatusController() *MachineSetDestroyStatusController {
 		qtransform.Settings[*omni.MachineSet, *omni.MachineSetDestroyStatus]{
 			Name: MachineSetDestroyStatusControllerName,
 			MapMetadataFunc: func(machineSet *omni.MachineSet) *omni.MachineSetDestroyStatus {
-				return omni.NewMachineSetDestroyStatus(resources.EphemeralNamespace, machineSet.Metadata().ID())
+				return omni.NewMachineSetDestroyStatus(machineSet.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(machineSetDestroyStatus *omni.MachineSetDestroyStatus) *omni.MachineSet {
-				return omni.NewMachineSet(resources.DefaultNamespace, machineSetDestroyStatus.Metadata().ID())
+				return omni.NewMachineSet(machineSetDestroyStatus.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, machineSet *omni.MachineSet, machineSetDestroyStatus *omni.MachineSetDestroyStatus) error {
 				if machineSet.Metadata().Phase() != resource.PhaseTearingDown {
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("not tearing down")
 				}
 
-				cmStatuses, err := r.List(ctx, omni.NewClusterMachineStatus(resources.DefaultNamespace, "").Metadata(),
+				cmStatuses, err := r.List(ctx, omni.NewClusterMachineStatus("").Metadata(),
 					state.WithLabelQuery(resource.LabelEqual(
 						omni.LabelMachineSet, machineSet.Metadata().ID()),
 					),

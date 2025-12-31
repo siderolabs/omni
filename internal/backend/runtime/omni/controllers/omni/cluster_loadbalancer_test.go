@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -40,7 +39,7 @@ func (suite *ClusterLoadBalancerSuite) TestReconcile() {
 
 	cluster, _ := suite.createCluster(clusterName, 1, 1)
 
-	md := *omni.NewLoadBalancerConfig(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata()
+	md := *omni.NewLoadBalancerConfig(cluster.Metadata().ID()).Metadata()
 
 	// remove the LB config created by the mock setup to let the controller handle it
 	suite.Require().NoError(suite.state.Destroy(suite.ctx, md))
@@ -65,7 +64,7 @@ func (suite *ClusterLoadBalancerSuite) TestReconcile() {
 
 	secondCluster, _ := suite.createCluster(secondClusterName, 1, 1)
 
-	secondMD := *omni.NewLoadBalancerConfig(resources.DefaultNamespace, secondCluster.Metadata().ID()).Metadata()
+	secondMD := *omni.NewLoadBalancerConfig(secondCluster.Metadata().ID()).Metadata()
 
 	// remove the LB config created by the mock setup to let the controller handle it
 	suite.Require().NoError(suite.state.Destroy(suite.ctx, secondMD))
@@ -98,7 +97,7 @@ func (suite *ClusterLoadBalancerSuite) TestReconcile() {
 	// wait for cluster machine statuses to be created
 	rtestutils.AssertResources(suite.ctx, suite.T(), suite.state, ids, func(*omni.ClusterMachineStatus, *assert.Assertions) {})
 
-	md = *omni.NewLoadBalancerConfig(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata()
+	md = *omni.NewLoadBalancerConfig(cluster.Metadata().ID()).Metadata()
 
 	// remove the LB config created by the mock setup to let the controller handle it
 	suite.Require().NoError(suite.state.Destroy(suite.ctx, md))

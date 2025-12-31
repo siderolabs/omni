@@ -18,7 +18,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
@@ -35,10 +34,10 @@ func NewTalosExtensionsController(imageFactoryClient *imagefactory.Client) *Talo
 		qtransform.Settings[*omni.TalosVersion, *omni.TalosExtensions]{
 			Name: "TalosExtensionsController",
 			MapMetadataFunc: func(version *omni.TalosVersion) *omni.TalosExtensions {
-				return omni.NewTalosExtensions(resources.DefaultNamespace, version.Metadata().ID())
+				return omni.NewTalosExtensions(version.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(r *omni.TalosExtensions) *omni.TalosVersion {
-				return omni.NewTalosVersion(resources.DefaultNamespace, r.Metadata().ID())
+				return omni.NewTalosVersion(r.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, _ controller.Reader, _ *zap.Logger, version *omni.TalosVersion, extensionsResource *omni.TalosExtensions) error {
 				ctx, cancel := context.WithTimeout(ctx, time.Second*10)

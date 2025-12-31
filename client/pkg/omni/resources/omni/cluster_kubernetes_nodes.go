@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterKubernetesNodes creates a new cluster kubernetes nodes resource.
-func NewClusterKubernetesNodes(ns string, id resource.ID) *ClusterKubernetesNodes {
+func NewClusterKubernetesNodes(id resource.ID) *ClusterKubernetesNodes {
 	return typed.NewResource[ClusterKubernetesNodesSpec, ClusterKubernetesNodesExtension](
-		resource.NewMetadata(ns, ClusterKubernetesNodesType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterKubernetesNodesType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterKubernetesNodesSpec{}),
 	)
 }

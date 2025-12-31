@@ -25,7 +25,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
@@ -98,7 +97,7 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 	require.NoError(suite.runtime.RegisterQController(omnictrl.NewMachineRequestSetStatusController()))
 	require.NoError(suite.runtime.RegisterQController(newTestInfraProvider()))
 
-	machineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, "test")
+	machineRequestSet := omni.NewMachineRequestSet("test")
 
 	machineRequestSet.TypedSpec().Value.ProviderId = "test"
 	machineRequestSet.TypedSpec().Value.TalosVersion = "v1.7.5"
@@ -303,7 +302,7 @@ func TestInfraProviderDeletion(t *testing.T) {
 	}, func(ctx context.Context, testContext testutils.TestContext) {
 		st := testContext.State
 
-		machineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, "test-machine-request-set")
+		machineRequestSet := omni.NewMachineRequestSet("test-machine-request-set")
 		machineRequestSet.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
 		machineRequestSet.TypedSpec().Value.MachineCount = 1
 		machineRequestSet.TypedSpec().Value.ProviderId = providerID

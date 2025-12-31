@@ -15,9 +15,9 @@ import (
 )
 
 // NewOngoingTask creates new OngoingTask state.
-func NewOngoingTask(ns, id string) *OngoingTask {
+func NewOngoingTask(id string) *OngoingTask {
 	return typed.NewResource[OngoingTaskSpec, OngoingTaskExtension](
-		resource.NewMetadata(ns, OngoingTaskType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.EphemeralNamespace, OngoingTaskType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.OngoingTaskSpec{}),
 	)
 }

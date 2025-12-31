@@ -20,7 +20,6 @@ import (
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
@@ -87,7 +86,7 @@ func (handler *Handler) handleMachineStatusEvent(ctx context.Context, event *mac
 		zap.Any("status", event.Status),
 	)
 
-	snapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, machineID)
+	snapshot := omni.NewMachineStatusSnapshot(machineID)
 
 	snapshot.TypedSpec().Value.MachineStatus = event
 

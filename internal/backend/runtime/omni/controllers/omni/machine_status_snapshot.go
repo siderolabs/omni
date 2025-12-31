@@ -111,7 +111,7 @@ func (ctrl *MachineStatusSnapshotController) MapInput(ctx context.Context, _ *za
 		fallthrough
 	case omni.MachineType:
 		return []resource.Pointer{
-			omni.NewMachine(resources.DefaultNamespace, ptr.ID()).Metadata(),
+			omni.NewMachine(ptr.ID()).Metadata(),
 		}, nil
 	case omni.TalosConfigType:
 		machines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, ptr.ID())))
@@ -122,7 +122,7 @@ func (ctrl *MachineStatusSnapshotController) MapInput(ctx context.Context, _ *za
 		res := make([]resource.Pointer, 0, machines.Len())
 
 		machines.ForEach(func(r *omni.ClusterMachine) {
-			res = append(res, omni.NewMachine(resources.DefaultNamespace, r.Metadata().ID()).Metadata())
+			res = append(res, omni.NewMachine(r.Metadata().ID()).Metadata())
 		})
 
 		return res, nil
@@ -135,7 +135,7 @@ func (ctrl *MachineStatusSnapshotController) MapInput(ctx context.Context, _ *za
 func (ctrl *MachineStatusSnapshotController) Reconcile(ctx context.Context,
 	logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer,
 ) error {
-	machine, err := safe.ReaderGet[*omni.Machine](ctx, r, omni.NewMachine(ptr.Namespace(), ptr.ID()).Metadata())
+	machine, err := safe.ReaderGet[*omni.Machine](ctx, r, omni.NewMachine(ptr.ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -193,7 +193,7 @@ func (ctrl *MachineStatusSnapshotController) reconcileRunning(ctx context.Contex
 func (ctrl *MachineStatusSnapshotController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machine *omni.Machine) error {
 	ctrl.runner.StopTask(logger, machine.Metadata().ID())
 
-	md := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, machine.Metadata().ID()).Metadata()
+	md := omni.NewMachineStatusSnapshot(machine.Metadata().ID()).Metadata()
 
 	ready, err := helpers.TeardownAndDestroy(ctx, r, md)
 	if err != nil {
@@ -221,7 +221,7 @@ func (ctrl *MachineStatusSnapshotController) reconcileSnapshot(ctx context.Conte
 		return nil
 	}
 
-	if err = safe.WriterModify(ctx, r, omni.NewMachineStatusSnapshot(resources.DefaultNamespace, snapshot.Metadata().ID()), func(m *omni.MachineStatusSnapshot) error {
+	if err = safe.WriterModify(ctx, r, omni.NewMachineStatusSnapshot(snapshot.Metadata().ID()), func(m *omni.MachineStatusSnapshot) error {
 		if snapshot.TypedSpec().Value.MachineStatus != nil { // if this is a power stage snapshot, it will not contain machine status, so we preserve the existing value
 			m.TypedSpec().Value.MachineStatus = snapshot.TypedSpec().Value.MachineStatus
 		}

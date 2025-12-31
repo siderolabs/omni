@@ -1166,7 +1166,7 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 
 		t.Run(
 			"ResourceAuthzWithACLShouldWork",
-			AssertResourceAuthzWithACL(t.Context(), options.omniClient, options.clientConfig),
+			AssertResourceAuthzWithACL(t.Context(), options.omniClient),
 		)
 
 		clusterName := "integration-auth"

@@ -89,7 +89,7 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 		{"1.4.0", []string{"1.27.0", "1.27.1"}, false},
 		{"1.5.0", []string{"1.28.0", "1.28.1", "1.29.0", "1.30.0", "1.30.1", "1.30.2"}, false},
 	} {
-		talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, prep.version)
+		talosVersion := omnires.NewTalosVersion(prep.version)
 		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = prep.compatibleK8s
 		talosVersion.TypedSpec().Value.Deprecated = prep.deprecated
 
@@ -162,7 +162,7 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 				// generate random cluster name
 				clusterName := "test-cluster-" + GenerateRandomString(t, 6)
 
-				cluster := omnires.NewCluster(resources.DefaultNamespace, clusterName)
+				cluster := omnires.NewCluster(clusterName)
 
 				t.Cleanup(func() {
 					_ = innerSt.Destroy(ctx, cluster.Metadata()) //nolint:errcheck // ignore error on cleanup
@@ -388,8 +388,8 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 				// generate random cluster name
 				clusterName := "test-cluster-" + GenerateRandomString(t, 6)
 
-				cluster := omnires.NewCluster(resources.DefaultNamespace, clusterName)
-				clusterConfigVersion := omnires.NewClusterConfigVersion(resources.DefaultNamespace, clusterName)
+				cluster := omnires.NewCluster(clusterName)
+				clusterConfigVersion := omnires.NewClusterConfigVersion(clusterName)
 
 				t.Cleanup(func() {
 					_ = innerSt.Destroy(ctx, cluster.Metadata())              //nolint:errcheck // ignore error on cleanup
@@ -411,7 +411,7 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 				require.NoError(t, innerSt.Create(ctx, clusterConfigVersion))
 
 				if tc.upgrading != nil {
-					kubernetesUpgrade := omnires.NewKubernetesUpgradeStatus(resources.DefaultNamespace, clusterName)
+					kubernetesUpgrade := omnires.NewKubernetesUpgradeStatus(clusterName)
 
 					t.Cleanup(func() {
 						_ = innerSt.Destroy(ctx, kubernetesUpgrade.Metadata()) //nolint:errcheck // ignore error on cleanup
@@ -474,7 +474,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 			Enabled: false,
 		})
 
-		cluster := omnires.NewCluster(resources.DefaultNamespace, "test")
+		cluster := omnires.NewCluster("test")
 
 		cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
 			UseEmbeddedDiscoveryService: true,
@@ -494,12 +494,12 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 			Enabled: false,
 		})
 
-		talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.7.4")
+		talosVersion := omnires.NewTalosVersion("1.7.4")
 		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.1"}
 
 		require.NoError(t, st.Create(ctx, talosVersion))
 
-		cluster := omnires.NewCluster(resources.DefaultNamespace, "test")
+		cluster := omnires.NewCluster("test")
 		cluster.TypedSpec().Value.TalosVersion = "1.7.4"
 		cluster.TypedSpec().Value.KubernetesVersion = "1.30.1"
 
@@ -523,12 +523,12 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 			Enabled: true,
 		})
 
-		talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.7.4")
+		talosVersion := omnires.NewTalosVersion("1.7.4")
 		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.1"}
 
 		require.NoError(t, st.Create(ctx, talosVersion))
 
-		cluster := omnires.NewCluster(resources.DefaultNamespace, "test")
+		cluster := omnires.NewCluster("test")
 		cluster.TypedSpec().Value.TalosVersion = "1.7.4"
 		cluster.TypedSpec().Value.KubernetesVersion = "1.30.1"
 		cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
@@ -559,7 +559,7 @@ func TestRelationLabelsValidation(t *testing.T) {
 
 	// MachineSet
 
-	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, machineSetID)
+	machineSet := omnires.NewMachineSet(machineSetID)
 
 	err := st.Create(ctx, machineSet)
 	assert.True(t, validated.IsValidationError(err), "expected validation error")
@@ -589,7 +589,7 @@ func TestRelationLabelsValidation(t *testing.T) {
 
 	machineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
 
-	machineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, machineSetNodeId, machineSet)
+	machineSetNode := omnires.NewMachineSetNode(machineSetNodeId, machineSet)
 
 	machineSetNode.Metadata().Labels().Delete(omnires.LabelCluster)
 	machineSetNode.Metadata().Labels().Delete(omnires.LabelMachineSet)
@@ -639,7 +639,7 @@ func TestMachineSetValidation(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.MachineSetValidationOptions(innerSt, etcdBackupStoreFactory)...)
 
-	machineSet1 := omnires.NewMachineSet(resources.DefaultNamespace, "test-cluster-wrong-suffix")
+	machineSet1 := omnires.NewMachineSet("test-cluster-wrong-suffix")
 
 	// cluster doesn't exist
 
@@ -647,7 +647,7 @@ func TestMachineSetValidation(t *testing.T) {
 	assert.True(t, validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(t, err, "does not exist")
 
-	require.NoError(t, st.Create(ctx, omnires.NewCluster(resources.DefaultNamespace, "test-cluster")))
+	require.NoError(t, st.Create(ctx, omnires.NewCluster("test-cluster")))
 
 	machineSet1.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
 
@@ -657,7 +657,7 @@ func TestMachineSetValidation(t *testing.T) {
 	assert.True(t, validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(t, err, "machine set must have either")
 
-	require.NoError(t, st.Create(ctx, omnires.NewCluster(resources.DefaultNamespace, "wrong-cluster")))
+	require.NoError(t, st.Create(ctx, omnires.NewCluster("wrong-cluster")))
 	machineSet1.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
 	machineSet1.Metadata().Labels().Set(omnires.LabelCluster, "wrong-cluster")
 
@@ -677,13 +677,13 @@ func TestMachineSetValidation(t *testing.T) {
 
 	// control plane machine set with correct id on already bootstrapped cluster
 
-	status := omnires.NewClusterBootstrapStatus(resources.DefaultNamespace, "test-cluster")
+	status := omnires.NewClusterBootstrapStatus("test-cluster")
 
 	status.TypedSpec().Value.Bootstrapped = true
 
 	require.NoError(t, st.Create(ctx, status))
 
-	machineSet2 := omnires.NewMachineSet(resources.DefaultNamespace, "test-cluster-control-planes")
+	machineSet2 := omnires.NewMachineSet("test-cluster-control-planes")
 
 	machineSet2.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
 	machineSet2.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
@@ -701,7 +701,7 @@ func TestMachineSetValidation(t *testing.T) {
 
 	// worker machine set with id reserved for control plane
 
-	machineSet3 := omnires.NewMachineSet(resources.DefaultNamespace, "test-cluster-control-planes")
+	machineSet3 := omnires.NewMachineSet("test-cluster-control-planes")
 
 	machineSet3.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
 	machineSet3.Metadata().Labels().Set(omnires.LabelWorkerRole, "")
@@ -712,14 +712,14 @@ func TestMachineSetValidation(t *testing.T) {
 
 	// no cluster exists
 
-	machineSet4 := omnires.NewMachineSet(resources.DefaultNamespace, "test-cluster-tearing-down-control-planes")
+	machineSet4 := omnires.NewMachineSet("test-cluster-tearing-down-control-planes")
 	machineSet4.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster-tearing-down")
 	machineSet4.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
 
 	// cluster exists and is tearing down
 
-	require.NoError(t, st.Create(ctx, omnires.NewCluster(resources.DefaultNamespace, "test-cluster-tearing-down")))
-	_, err = state.WrapCore(st).Teardown(ctx, omnires.NewCluster(resources.DefaultNamespace, "test-cluster-tearing-down").Metadata())
+	require.NoError(t, st.Create(ctx, omnires.NewCluster("test-cluster-tearing-down")))
+	_, err = state.WrapCore(st).Teardown(ctx, omnires.NewCluster("test-cluster-tearing-down").Metadata())
 	require.NoError(t, err)
 
 	err = st.Create(ctx, machineSet4)
@@ -753,13 +753,13 @@ func TestMachineSetBootstrapSpecValidation(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.MachineSetValidationOptions(innerSt, &etcdBackupStoreFactory)...)
 
-	cluster := omnires.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster := omnires.NewCluster(clusterID)
 
 	require.NoError(t, st.Create(ctx, cluster))
 
 	// worker machine set with bootstrap spec - not allowed
 
-	workerMachineSet := omnires.NewMachineSet(resources.DefaultNamespace, omnires.WorkersResourceID(clusterID))
+	workerMachineSet := omnires.NewMachineSet(omnires.WorkersResourceID(clusterID))
 
 	workerMachineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
 	workerMachineSet.Metadata().Labels().Set(omnires.LabelWorkerRole, "")
@@ -789,7 +789,7 @@ func TestMachineSetBootstrapSpecValidation(t *testing.T) {
 
 	require.NoError(t, st.Create(ctx, backupData))
 
-	controlPlaneMachineSet := omnires.NewMachineSet(resources.DefaultNamespace, omnires.ControlPlanesResourceID(clusterID))
+	controlPlaneMachineSet := omnires.NewMachineSet(omnires.ControlPlanesResourceID(clusterID))
 
 	controlPlaneMachineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
 	controlPlaneMachineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
@@ -855,10 +855,10 @@ func TestMachineSetLockedAnnotation(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
 
-	cluster := omnires.NewCluster(resources.DefaultNamespace, "test-cluster")
-	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, "test-machine-set")
+	cluster := omnires.NewCluster("test-cluster")
+	machineSet := omnires.NewMachineSet("test-machine-set")
 	machineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
-	machineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, "test-machine-set", machineSet)
+	machineSetNode := omnires.NewMachineSetNode("test-machine-set", machineSet)
 
 	machineSetNode.Metadata().Annotations().Set(omnires.MachineLocked, "")
 
@@ -883,7 +883,7 @@ func TestMachineSetLockedAnnotation(t *testing.T) {
 	machineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
 	assert.NoError(st.Update(ctx, machineSet))
 
-	machineSetNode = omnires.NewMachineSetNode(resources.DefaultNamespace, "test-machine-set-1", machineSet)
+	machineSetNode = omnires.NewMachineSetNode("test-machine-set-1", machineSet)
 	assert.NoError(st.Create(ctx, machineSetNode))
 
 	_, err = safe.StateUpdateWithConflicts(ctx, s, machineSetNode.Metadata(), func(n *omnires.MachineSetNode) error {
@@ -894,7 +894,7 @@ func TestMachineSetLockedAnnotation(t *testing.T) {
 
 	assert.ErrorContains(err, "locking controlplanes is not allowed")
 
-	machineSetNode = omnires.NewMachineSetNode(resources.DefaultNamespace, "test-machine-set-2", machineSet)
+	machineSetNode = omnires.NewMachineSetNode("test-machine-set-2", machineSet)
 	machineSetNode.Metadata().Annotations().Set(omnires.MachineLocked, "")
 	assert.ErrorContains(st.Create(ctx, machineSetNode), "locking controlplanes is not allowed")
 }
@@ -929,16 +929,16 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	machineSetNodeID := fmt.Sprintf("machine-%s", uuid.New())
 	newMachineSetNodeID := fmt.Sprintf("machine-%s", uuid.New())
 
-	cluster := omnires.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster := omnires.NewCluster(clusterID)
 	cluster.TypedSpec().Value.KubernetesVersion = "1.32.7"
 	cluster.TypedSpec().Value.TalosVersion = "1.10.6"
-	clusterStatus := omnires.NewClusterStatus(resources.DefaultNamespace, clusterID)
-	talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.10.6")
+	clusterStatus := omnires.NewClusterStatus(clusterID)
+	talosVersion := omnires.NewTalosVersion("1.10.6")
 	talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.32.7", "1.32.8"}
-	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, machineSetID)
+	machineSet := omnires.NewMachineSet(machineSetID)
 	machineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
 	machineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
-	machineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, machineSetNodeID, machineSet)
+	machineSetNode := omnires.NewMachineSetNode(machineSetNodeID, machineSet)
 
 	assert := assert.New(t)
 
@@ -951,7 +951,7 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	cluster.Metadata().Annotations().Set(omnires.ClusterLocked, "")
 	assert.NoError(st.Update(ctx, cluster))
 
-	newMachineSet := omnires.NewMachineSet(resources.DefaultNamespace, newMachineSetID)
+	newMachineSet := omnires.NewMachineSet(newMachineSetID)
 	newMachineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
 	newMachineSet.Metadata().Labels().Set(omnires.LabelWorkerRole, "")
 
@@ -970,7 +970,7 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	assert.True(validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(err, fmt.Sprintf(`removing machine set "%s" from the cluster "%s" is not allowed: the cluster is locked`, machineSetID, clusterID))
 
-	newMachineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, newMachineSetNodeID, machineSet)
+	newMachineSetNode := omnires.NewMachineSetNode(newMachineSetNodeID, machineSet)
 	newMachineSetNode.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
 	newMachineSetNode.Metadata().Labels().Set(omnires.LabelMachineSet, machineSetID)
 
@@ -1042,20 +1042,20 @@ func TestClusterImport(t *testing.T) {
 	machineSetID := "test-cluster-control-planes"
 	machineSetNodeID := fmt.Sprintf("machine-%s", uuid.New())
 
-	cluster := omnires.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster := omnires.NewCluster(clusterID)
 	cluster.Metadata().Annotations().Set(omnires.ClusterLocked, "")
 	cluster.Metadata().Annotations().Set(omnires.ClusterImportIsInProgress, "")
 	cluster.TypedSpec().Value.KubernetesVersion = "1.32.7"
 	cluster.TypedSpec().Value.TalosVersion = "1.10.6"
-	clusterStatus := omnires.NewClusterStatus(resources.DefaultNamespace, clusterID)
+	clusterStatus := omnires.NewClusterStatus(clusterID)
 	clusterStatus.Metadata().Labels().Set(omnires.LabelClusterTaintedByImporting, "")
 
-	talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.10.6")
+	talosVersion := omnires.NewTalosVersion("1.10.6")
 	talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.32.7", "1.32.8"}
-	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, machineSetID)
+	machineSet := omnires.NewMachineSet(machineSetID)
 	machineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
 	machineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
-	machineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, machineSetNodeID, machineSet)
+	machineSetNode := omnires.NewMachineSetNode(machineSetNodeID, machineSet)
 
 	assert := assert.New(t)
 
@@ -1167,7 +1167,7 @@ func TestExposedServiceAliasValidation(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.ExposedServiceValidationOptions()...)
 
-	exposedService := omnires.NewExposedService(resources.DefaultNamespace, "test-exposed-service")
+	exposedService := omnires.NewExposedService("test-exposed-service")
 
 	err := st.Create(ctx, exposedService)
 
@@ -1201,7 +1201,7 @@ func TestConfigPatchValidation(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.ConfigPatchValidationOptions(innerSt)...)
 
-	configPatch := omnires.NewConfigPatch(resources.DefaultNamespace, "test-config-patch")
+	configPatch := omnires.NewConfigPatch("test-config-patch")
 
 	patchDataNotAllowed := strings.TrimSpace(`
 cluster:
@@ -1234,13 +1234,13 @@ machine:
 
 	clusterID := "tearing-one"
 
-	cluster := omnires.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster := omnires.NewCluster(clusterID)
 
 	require.NoError(t, st.Create(ctx, cluster))
 	_, err = innerSt.Teardown(ctx, cluster.Metadata())
 	require.NoError(t, err)
 
-	configPatch = omnires.NewConfigPatch(resources.DefaultNamespace, "another")
+	configPatch = omnires.NewConfigPatch("another")
 	configPatch.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
 
 	err = st.Create(ctx, configPatch)
@@ -1248,7 +1248,7 @@ machine:
 
 	msID := "machineset"
 
-	ms := omnires.NewMachineSet(resources.DefaultNamespace, msID)
+	ms := omnires.NewMachineSet(msID)
 
 	require.NoError(t, st.Create(ctx, ms))
 	_, err = innerSt.Teardown(ctx, ms.Metadata())
@@ -1329,9 +1329,9 @@ func TestMachineSetClassesValidation(t *testing.T) {
 		)...,
 	)
 
-	require.NoError(t, st.Create(ctx, omnires.NewCluster(resources.DefaultNamespace, "test-cluster")))
+	require.NoError(t, st.Create(ctx, omnires.NewCluster("test-cluster")))
 
-	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, "test-cluster-control-planes")
+	machineSet := omnires.NewMachineSet("test-cluster-control-planes")
 
 	machineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
 	machineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
@@ -1350,7 +1350,7 @@ func TestMachineSetClassesValidation(t *testing.T) {
 
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 
-	machineClass := omnires.NewMachineClass(resources.DefaultNamespace, "test-class")
+	machineClass := omnires.NewMachineClass("test-class")
 
 	require.NoError(t, st.Create(ctx, machineClass))
 
@@ -1360,7 +1360,7 @@ func TestMachineSetClassesValidation(t *testing.T) {
 
 	require.NoError(t, st.Create(ctx, machineSet))
 
-	machineSetNode := omnires.NewMachineSetNode(resources.DefaultNamespace, "machine", machineSet)
+	machineSetNode := omnires.NewMachineSetNode("machine", machineSet)
 
 	err = st.Create(ctx, machineSetNode)
 
@@ -1402,9 +1402,9 @@ func TestMachineClassValidation(t *testing.T) {
 		omni.MachineClassValidationOptions(state.WrapCore(innerSt))...,
 	)
 
-	require.NoError(t, st.Create(ctx, omnires.NewCluster(resources.DefaultNamespace, "test-cluster")))
+	require.NoError(t, st.Create(ctx, omnires.NewCluster("test-cluster")))
 
-	machineSet := omnires.NewMachineSet(resources.DefaultNamespace, "test-cluster-control-planes")
+	machineSet := omnires.NewMachineSet("test-cluster-control-planes")
 
 	machineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
 	machineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
@@ -1413,7 +1413,7 @@ func TestMachineClassValidation(t *testing.T) {
 		Name: "test-class",
 	}
 
-	machineClass := omnires.NewMachineClass(resources.DefaultNamespace, "test-class")
+	machineClass := omnires.NewMachineClass("test-class")
 
 	err := st.Create(ctx, machineClass)
 
@@ -1454,7 +1454,7 @@ func TestMachineClassValidation(t *testing.T) {
 
 	// auto provision
 
-	talosVersion := omnires.NewTalosVersion(resources.DefaultNamespace, "1.8.0")
+	talosVersion := omnires.NewTalosVersion("1.8.0")
 	talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.0", "1.30.1"}
 
 	providerStatus := infra.NewProviderStatus("exists")
@@ -1595,7 +1595,7 @@ func TestSchematicConfigurationValidation(t *testing.T) {
 
 	st := validated.NewState(innerSt, omni.SchematicConfigurationValidationOptions()...)
 
-	res := omnires.NewSchematicConfiguration(resources.DefaultNamespace, "test")
+	res := omnires.NewSchematicConfiguration("test")
 
 	require.True(t, validated.IsValidationError(st.Create(ctx, res)), "expected validation error")
 
@@ -1619,11 +1619,11 @@ func TestSchematicConfigurationValidation(t *testing.T) {
 func TestMachineRequestSetValidation(t *testing.T) {
 	t.Parallel()
 
-	talosVersion1 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.2.0")
+	talosVersion1 := omnires.NewTalosVersion("1.2.0")
 	talosVersion1.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.27.0", "1.27.1"}
 	talosVersion1.TypedSpec().Value.Deprecated = true
 
-	talosVersion2 := omnires.NewTalosVersion(resources.DefaultNamespace, "1.7.5")
+	talosVersion2 := omnires.NewTalosVersion("1.7.5")
 	talosVersion2.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.0"}
 
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
@@ -1641,7 +1641,7 @@ func TestMachineRequestSetValidation(t *testing.T) {
 
 	st := validated.NewState(innerSt, omni.MachineRequestSetValidationOptions(innerSt)...)
 
-	res := omnires.NewMachineRequestSet(resources.DefaultNamespace, "test")
+	res := omnires.NewMachineRequestSet("test")
 
 	err := st.Create(ctx, res)
 
@@ -1682,7 +1682,7 @@ func TestInfraMachineConfigValidation(t *testing.T) {
 	st := validated.NewState(innerSt, omni.InfraMachineConfigValidationOptions(innerSt)...)
 	wrappedState := state.WrapCore(st)
 
-	conf := omnires.NewInfraMachineConfig(resources.DefaultNamespace, "test")
+	conf := omnires.NewInfraMachineConfig("test")
 	link := siderolink.NewLink("test", nil)
 
 	require.NoError(t, st.Create(ctx, conf))
@@ -1692,7 +1692,7 @@ func TestInfraMachineConfigValidation(t *testing.T) {
 	require.NoError(t, st.Destroy(ctx, conf.Metadata()))
 
 	// recreate the conf, as accepted this time
-	conf = omnires.NewInfraMachineConfig(resources.DefaultNamespace, "test")
+	conf = omnires.NewInfraMachineConfig("test")
 	conf.TypedSpec().Value.AcceptanceStatus = specs.InfraMachineConfigSpec_ACCEPTED
 
 	require.NoError(t, st.Create(ctx, conf))
@@ -1736,8 +1736,8 @@ func TestNodeForceDestroyRequestValidation(t *testing.T) {
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(t, err, `cannot create/update a NodeForceDestroyRequest for node "test", as there is no matching cluster machine`)
 
-	require.NoError(t, st.Create(ctx, omnires.NewClusterMachine(resources.DefaultNamespace, "test"))) // create the matching cluster machine
-	require.NoError(t, st.Create(ctx, req))                                                           // assert that we can create the destroy request now
+	require.NoError(t, st.Create(ctx, omnires.NewClusterMachine("test"))) // create the matching cluster machine
+	require.NoError(t, st.Create(ctx, req))                               // assert that we can create the destroy request now
 }
 
 func TestJoinTokenValidation(t *testing.T) {
@@ -1861,7 +1861,7 @@ func TestImportedClusterSecretValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.ImportedClusterSecretValidationOptions(innerSt, true)...)
-	res := omnires.NewImportedClusterSecrets(resources.DefaultNamespace, "test")
+	res := omnires.NewImportedClusterSecrets("test")
 
 	res.TypedSpec().Value.Data = brokenSecrets
 	require.True(t, validated.IsValidationError(st.Create(ctx, res)), "expected validation error")
@@ -1884,7 +1884,7 @@ func TestImportedClusterSecretValidation(t *testing.T) {
 	assert.ErrorContains(t, err, "certs.k8saggregator is required")
 	assert.ErrorContains(t, err, "certs.os is invalid")
 
-	cluster := omnires.NewCluster(resources.DefaultNamespace, "test")
+	cluster := omnires.NewCluster("test")
 	require.NoError(t, st.Create(ctx, cluster))
 
 	res.TypedSpec().Value.Data = validSecrets
@@ -1905,21 +1905,21 @@ func TestInfraProviderValidation(t *testing.T) {
 	provider := infra.NewProvider("test")
 	require.NoError(t, st.Create(ctx, provider))
 
-	machine := omnires.NewMachine(resources.DefaultNamespace, "machine")
+	machine := omnires.NewMachine("machine")
 	machine.Metadata().Labels().Set(omnires.LabelIsManagedByStaticInfraProvider, "")
 	machine.Metadata().Labels().Set(omnires.LabelInfraProviderID, provider.Metadata().ID())
 	require.NoError(t, st.Create(ctx, machine))
 
-	machine2 := omnires.NewMachine(resources.DefaultNamespace, "machine2")
+	machine2 := omnires.NewMachine("machine2")
 	machine2.Metadata().Labels().Set(omnires.LabelIsManagedByStaticInfraProvider, "")
 	machine2.Metadata().Labels().Set(omnires.LabelInfraProviderID, "different-provider")
 	require.NoError(t, st.Create(ctx, machine2))
 
-	machine3 := omnires.NewMachine(resources.DefaultNamespace, "machine3")
+	machine3 := omnires.NewMachine("machine3")
 	machine3.Metadata().Labels().Set(omnires.LabelInfraProviderID, "non-static-provider")
 	require.NoError(t, st.Create(ctx, machine3))
 
-	machine4 := omnires.NewMachine(resources.DefaultNamespace, "machine4")
+	machine4 := omnires.NewMachine("machine4")
 	require.NoError(t, st.Create(ctx, machine4))
 
 	err := st.Destroy(ctx, provider.Metadata())

@@ -29,7 +29,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/meta"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
@@ -164,7 +163,7 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 
 	client := management.NewManagementServiceClient(suite.conn)
 
-	media := omni.NewInstallationMedia(resources.EphemeralNamespace, "test")
+	media := omni.NewInstallationMedia("test")
 
 	suite.Require().NoError(suite.state.Create(ctx, media))
 

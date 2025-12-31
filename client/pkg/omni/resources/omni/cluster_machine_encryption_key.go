@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterMachineEncryptionKey creates new cluster machine encryption key resource.
-func NewClusterMachineEncryptionKey(ns string, id resource.ID) *ClusterMachineEncryptionKey {
+func NewClusterMachineEncryptionKey(id resource.ID) *ClusterMachineEncryptionKey {
 	return typed.NewResource[ClusterMachineEncryptionKeySpec, ClusterMachineEncryptionKeyExtension](
-		resource.NewMetadata(ns, ClusterMachineEncryptionKeyType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterMachineEncryptionKeyType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterMachineEncryptionKeySpec{}),
 	)
 }

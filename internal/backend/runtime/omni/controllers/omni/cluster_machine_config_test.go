@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -73,7 +72,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	clusterName := "talos-default-2"
 	cluster, machines := suite.createClusterWithTalosVersion(clusterName, 1, 1, "1.10.0")
 
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
 			patches, err := config.TypedSpec().Value.GetUncompressedPatches()
 			suite.Require().NoError(err)
@@ -91,7 +90,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	for i, m := range machines {
 		assertResource(
 			&suite.OmniSuite,
-			*omni.NewClusterMachineConfig(resources.DefaultNamespace, m.Metadata().ID()).Metadata(),
+			*omni.NewClusterMachineConfig(m.Metadata().ID()).Metadata(),
 			func(cfg *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 				buffer, bufferErr := cfg.TypedSpec().Value.GetUncompressedData()
 				suite.Require().NoError(bufferErr)
@@ -126,7 +125,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 
 	newImage := fmt.Sprintf("%s:v1.0.2", conf.Config.Registries.Talos)
 
-	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
 			patches, patchesErr := config.TypedSpec().Value.GetUncompressedPatches()
 			suite.Require().NoError(patchesErr)
@@ -143,7 +142,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			spec := res.TypedSpec().Value
 
@@ -165,7 +164,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 
 	for _, m := range machines {
 		suite.Assert().NoError(retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(
-			suite.assertNoResource(*omni.NewClusterMachineConfig(resources.DefaultNamespace, m.Metadata().ID()).Metadata()),
+			suite.assertNoResource(*omni.NewClusterMachineConfig(m.Metadata().ID()).Metadata()),
 		))
 	}
 }
@@ -191,7 +190,7 @@ func (suite *ClusterMachineConfigSuite) TestGeneratePreserveFeatures() {
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			spec := res.TypedSpec().Value
 
@@ -213,7 +212,7 @@ func (suite *ClusterMachineConfigSuite) TestGeneratePreserveFeatures() {
 
 	for _, m := range machines {
 		suite.Assert().NoError(retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(
-			suite.assertNoResource(*omni.NewClusterMachineConfig(resources.DefaultNamespace, m.Metadata().ID()).Metadata()),
+			suite.assertNoResource(*omni.NewClusterMachineConfig(m.Metadata().ID()).Metadata()),
 		))
 	}
 }
@@ -230,7 +229,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 	_, machines := suite.createCluster(clusterName, 1, 0)
 	suite.Require().Greater(len(machines), 0)
 
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
 			patches, err := config.TypedSpec().Value.GetUncompressedPatches()
 			suite.Require().NoError(err)
@@ -249,7 +248,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
 		func(cfg *omni.ClusterMachineConfig, assert *assert.Assertions) {
 			expectedError := "yaml: unmarshal errors"
 
@@ -304,7 +303,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerateWithoutComments() {
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+		*omni.NewClusterMachineConfigStatus(machines[0].Metadata().ID()).Metadata(),
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			assertions.True(res.TypedSpec().Value.WithoutComments)
 		},
@@ -313,7 +312,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerateWithoutComments() {
 	cmc, err := safe.StateUpdateWithConflicts(
 		suite.ctx,
 		suite.state,
-		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
 		func(res *omni.ClusterMachineConfig) error {
 			res.TypedSpec().Value.WithoutComments = false
 
@@ -346,7 +345,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerateWithoutComments() {
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			assertions.NotEqual(res.Metadata().Version(), cmc.Metadata().Version())
 			inputVersionNew, _ := res.Metadata().Annotations().Get(helpers.InputResourceVersionAnnotation)
@@ -379,7 +378,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerateWithoutComments() {
 
 	newImage := fmt.Sprintf("%s:v1.10.1", conf.Config.Registries.Talos)
 
-	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
 			patches, patchesErr := config.TypedSpec().Value.GetUncompressedPatches()
 			suite.Require().NoError(patchesErr)
@@ -396,7 +395,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerateWithoutComments() {
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			inputVersionNew, _ := res.Metadata().Annotations().Get(helpers.InputResourceVersionAnnotation)
 			assertions.NotEqual(inputVersionOld, inputVersionNew)
@@ -418,7 +417,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerateWithoutComments() {
 
 	for _, m := range machines {
 		suite.Assert().NoError(retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(
-			suite.assertNoResource(*omni.NewClusterMachineConfig(resources.DefaultNamespace, m.Metadata().ID()).Metadata()),
+			suite.assertNoResource(*omni.NewClusterMachineConfig(m.Metadata().ID()).Metadata()),
 		))
 	}
 }
@@ -438,7 +437,7 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 
 	assertResource( // assert the initialConfig and initialize the previousConfig with it
 		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machines[0].Metadata().ID()).Metadata(),
+		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			buffer, bufferErr := res.TypedSpec().Value.GetUncompressedData()
 			suite.Require().NoError(bufferErr)
@@ -530,7 +529,7 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityTo(previousTa
 	clusterID, machineID resource.ID, previousConfig config.Provider,
 ) (currentConfig config.Provider) {
 	suite.T().Logf("upgrade %s->%s", previousTalosVersion, upgradeTalosVersion)
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewCluster(resources.DefaultNamespace, clusterID).Metadata(), func(res *omni.Cluster) error {
+	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewCluster(clusterID).Metadata(), func(res *omni.Cluster) error {
 		res.TypedSpec().Value.TalosVersion = upgradeTalosVersion
 
 		return nil
@@ -539,7 +538,7 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityTo(previousTa
 
 	assertResource(
 		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(resources.DefaultNamespace, machineID).Metadata(),
+		*omni.NewClusterMachineConfig(machineID).Metadata(),
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			spec := res.TypedSpec().Value
 

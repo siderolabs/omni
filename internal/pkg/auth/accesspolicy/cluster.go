@@ -54,7 +54,7 @@ func RoleForCluster(ctx context.Context, id resource.ID, st state.State) (role.R
 		return role.None, false, err
 	}
 
-	clusterMD := omni.NewCluster(resources.DefaultNamespace, id).Metadata()
+	clusterMD := omni.NewCluster(id).Metadata()
 
 	checkResult, err := Check(accessPolicy, clusterMD, identity.Metadata())
 	if err != nil {

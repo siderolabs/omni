@@ -15,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
-	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omnictl/cluster/kubernetes"
 	"github.com/siderolabs/omni/client/pkg/omnictl/cluster/template"
@@ -46,7 +45,7 @@ func setClusterLocked(clusterID resource.ID, lock bool) func(context.Context, *c
 	return func(ctx context.Context, client *client.Client) error {
 		st := client.Omni().State()
 
-		cluster, err := safe.StateGet[*omni.Cluster](ctx, st, omni.NewCluster(omniresources.DefaultNamespace, clusterID).Metadata())
+		cluster, err := safe.StateGet[*omni.Cluster](ctx, st, omni.NewCluster(clusterID).Metadata())
 		if err != nil {
 			return err
 		}

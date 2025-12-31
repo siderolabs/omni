@@ -19,7 +19,6 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/role"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -37,10 +36,10 @@ func NewTalosConfigController(certificateValidity time.Duration) *TalosConfigCon
 		qtransform.Settings[*omni.ClusterSecrets, *omni.TalosConfig]{
 			Name: "TalosConfigController",
 			MapMetadataFunc: func(secrets *omni.ClusterSecrets) *omni.TalosConfig {
-				return omni.NewTalosConfig(resources.DefaultNamespace, secrets.Metadata().ID())
+				return omni.NewTalosConfig(secrets.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(talosConfig *omni.TalosConfig) *omni.ClusterSecrets {
-				return omni.NewClusterSecrets(resources.DefaultNamespace, talosConfig.Metadata().ID())
+				return omni.NewClusterSecrets(talosConfig.Metadata().ID())
 			},
 			TransformFunc: func(_ context.Context, _ controller.Reader, logger *zap.Logger, secrets *omni.ClusterSecrets, talosConfig *omni.TalosConfig) error {
 				staleCertificate, err := certs.IsBase64EncodedCertificateStale(talosConfig.TypedSpec().Value.Crt, certificateValidity)

@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -98,7 +97,7 @@ func TestValidateStateConfig(t *testing.T) {
 
 	// fail with machines below 1.6, pass with above 1.6
 
-	machine := omni.NewMachineStatus(resources.DefaultNamespace, "1")
+	machine := omni.NewMachineStatus("1")
 	machine.TypedSpec().Value.TalosVersion = "v1.5.5"
 
 	require.NoError(t, state.Create(ctx, machine))

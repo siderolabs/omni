@@ -17,7 +17,6 @@ import (
 	"github.com/siderolabs/gen/xslices"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configpatch"
@@ -256,7 +255,7 @@ func NewReconciliationContext(
 	)
 
 	for id := range set.Union(rc.runningMachineSetNodesSet, clusterMachinesSet) {
-		clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, id)
+		clusterMachine := omni.NewClusterMachine(id)
 
 		helpers.CopyAllLabels(machineSet, clusterMachine)
 

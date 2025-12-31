@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterDiagnostics creates new cluster machine diagnostics resource.
-func NewClusterDiagnostics(ns string, id resource.ID) *ClusterDiagnostics {
+func NewClusterDiagnostics(id resource.ID) *ClusterDiagnostics {
 	return typed.NewResource[ClusterDiagnosticsSpec, ClusterDiagnosticsExtension](
-		resource.NewMetadata(ns, ClusterDiagnosticsType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterDiagnosticsType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterDiagnosticsSpec{}),
 	)
 }

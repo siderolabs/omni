@@ -22,7 +22,6 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -52,13 +51,13 @@ func (suite *MigrationSuite) TestMoveClusterTaintFromResourceToLabel() {
 	clusterID := "cluster1"
 	deletedClusterID := "cluster2"
 
-	taint := omni.NewClusterTaint(resources.DefaultNamespace, clusterID)
+	taint := omni.NewClusterTaint(clusterID)
 	suite.Require().NoError(suite.state.Create(ctx, taint))
 
-	danglingTaint := omni.NewClusterTaint(resources.DefaultNamespace, deletedClusterID)
+	danglingTaint := omni.NewClusterTaint(deletedClusterID)
 	suite.Require().NoError(suite.state.Create(ctx, danglingTaint))
 
-	clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterID)
+	clusterStatus := omni.NewClusterStatus(clusterID)
 	suite.Require().NoError(suite.state.Create(ctx, clusterStatus, state.WithCreateOwner(omnictrl.ClusterStatusControllerName)))
 
 	_, taintBreakGlass := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByBreakGlass)
@@ -90,7 +89,7 @@ func (suite *MigrationSuite) TestDropExtraInputFinalizers() {
 
 	const resourceID = "cms1"
 
-	cms := omni.NewClusterMachineStatus(resources.DefaultNamespace, resourceID)
+	cms := omni.NewClusterMachineStatus(resourceID)
 	cms.Metadata().Finalizers().Add("MachineSetDestroyStatusController")
 	cms.Metadata().Finalizers().Add("MachineStatusController")
 	cms.Metadata().Finalizers().Add("SomeOtherFinalizer")
@@ -120,7 +119,7 @@ func (suite *MigrationSuite) TestMoveInfraProviderAnnotationsToLabels() {
 
 	link3 := siderolink.NewLink("link3", &specs.SiderolinkSpec{})
 
-	machine1 := omni.NewMachine(resources.DefaultNamespace, "machine1")
+	machine1 := omni.NewMachine("machine1")
 	machine1.Metadata().Annotations().Set(omni.LabelInfraProviderID, "test-id-3")
 
 	suite.Require().NoError(suite.state.Create(ctx, link1))
@@ -171,17 +170,17 @@ func (suite *MigrationSuite) TestDropSchematicConfigFinalizerFromClusterMachines
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	cm1 := omni.NewClusterMachine(resources.DefaultNamespace, "cm1")
+	cm1 := omni.NewClusterMachine("cm1")
 	cm1.Metadata().Finalizers().Add(omnictrl.SchematicConfigurationControllerName)
 	cm1.Metadata().SetPhase(resource.PhaseTearingDown)
 	suite.Require().NoError(suite.state.Create(ctx, cm1))
 
-	cm2 := omni.NewClusterMachine(resources.DefaultNamespace, "cm2")
+	cm2 := omni.NewClusterMachine("cm2")
 	cm2.Metadata().Finalizers().Add(omnictrl.SchematicConfigurationControllerName)
 	suite.Require().NoError(cm2.Metadata().SetOwner("some-owner"))
 	suite.Require().NoError(suite.state.Create(ctx, cm2, state.WithCreateOwner("some-owner")))
 
-	cm3 := omni.NewClusterMachine(resources.DefaultNamespace, "cm3")
+	cm3 := omni.NewClusterMachine("cm3")
 	suite.Require().NoError(suite.state.Create(ctx, cm3))
 
 	cm3VersionBefore := cm3.Metadata().Version()
@@ -208,17 +207,17 @@ func (suite *MigrationSuite) TestDropTalosUpgradeStatusFinalizersFromSchematicCo
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	sc1 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "sc1")
+	sc1 := omni.NewSchematicConfiguration("sc1")
 	sc1.Metadata().Finalizers().Add(omnictrl.TalosUpgradeStatusControllerName)
 	sc1.Metadata().SetPhase(resource.PhaseTearingDown)
 	suite.Require().NoError(suite.state.Create(ctx, sc1))
 
-	sc2 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "sc2")
+	sc2 := omni.NewSchematicConfiguration("sc2")
 	sc2.Metadata().Finalizers().Add(omnictrl.TalosUpgradeStatusControllerName)
 	suite.Require().NoError(sc2.Metadata().SetOwner("some-owner"))
 	suite.Require().NoError(suite.state.Create(ctx, sc2, state.WithCreateOwner("some-owner")))
 
-	sc3 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "sc3")
+	sc3 := omni.NewSchematicConfiguration("sc3")
 	suite.Require().NoError(suite.state.Create(ctx, sc3))
 
 	sc3VersionBefore := sc3.Metadata().Version()
@@ -246,17 +245,17 @@ func (suite *MigrationSuite) TestMakeMachineSetNodeOwnerEmpty() {
 
 	labelID := "custom"
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "ms1")
+	machineSet := omni.NewMachineSet("ms1")
 
-	msnRunning := omni.NewMachineSetNode(resources.DefaultNamespace, "running", machineSet)
+	msnRunning := omni.NewMachineSetNode("running", machineSet)
 
-	msnOwned := omni.NewMachineSetNode(resources.DefaultNamespace, "owned", machineSet)
+	msnOwned := omni.NewMachineSetNode("owned", machineSet)
 
 	msnOwned.Metadata().Finalizers().Add("fin")
 	msnOwned.Metadata().Labels().Set(labelID, "val")
 	msnOwned.Metadata().Annotations().Set(labelID, "val")
 
-	msnTearingDown := omni.NewMachineSetNode(resources.DefaultNamespace, "tearingDown", machineSet)
+	msnTearingDown := omni.NewMachineSetNode("tearingDown", machineSet)
 	msnTearingDown.Metadata().SetPhase(resource.PhaseTearingDown)
 
 	suite.Require().NoError(suite.state.Create(ctx, msnRunning))

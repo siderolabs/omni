@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterTaint creates new cluster taint resource.
-func NewClusterTaint(ns string, id resource.ID) *ClusterTaint {
+func NewClusterTaint(id resource.ID) *ClusterTaint {
 	return typed.NewResource[ClusterTaintSpec, ClusterTaintExtension](
-		resource.NewMetadata(ns, ClusterTaintType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterTaintType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterTaintSpec{}),
 	)
 }

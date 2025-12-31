@@ -28,7 +28,7 @@ text: "test"`
 )
 
 func TestClusterMachineConfigPatchesSpecW_marshal(t *testing.T) {
-	original := omni.NewClusterMachineConfigPatches("default", "1")
+	original := omni.NewClusterMachineConfigPatches("1")
 
 	err := original.TypedSpec().Value.SetUncompressedPatches([]string{newLineAndText, justText})
 	require.NoError(t, err)
@@ -50,7 +50,7 @@ func TestClusterMachineConfigPatchesSpecW_marshal(t *testing.T) {
 }
 
 func ExampleClusterMachineSpec_marshal() {
-	original := omni.NewClusterMachineConfigPatches("default", "1")
+	original := omni.NewClusterMachineConfigPatches("1")
 
 	if err := original.TypedSpec().Value.SetUncompressedPatches([]string{newLineAndText, justText}); err != nil {
 		panic(err)

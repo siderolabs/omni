@@ -656,26 +656,26 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		identity := authres.NewIdentity(resources.DefaultNamespace, uuid.New().String())
 		accessPolicy := authres.NewAccessPolicy()
 		samlLabelRule := authres.NewSAMLLabelRule(resources.DefaultNamespace, uuid.New().String())
-		cluster := omni.NewCluster(resources.DefaultNamespace, uuid.New().String())
+		cluster := omni.NewCluster(uuid.New().String())
 		cluster.TypedSpec().Value.TalosVersion = "1.2.2"
-		configPatch := omni.NewConfigPatch(resources.DefaultNamespace, uuid.New().String())
-		machineLabels := omni.NewMachineLabels(resources.DefaultNamespace, uuid.New().String())
-		machineSet := omni.NewMachineSet(resources.DefaultNamespace, uuid.New().String())
+		configPatch := omni.NewConfigPatch(uuid.New().String())
+		machineLabels := omni.NewMachineLabels(uuid.New().String())
+		machineSet := omni.NewMachineSet(uuid.New().String())
 		machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
-		machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, uuid.New().String(), machineSet)
-		machineClass := omni.NewMachineClass(resources.DefaultNamespace, uuid.New().String())
-		machineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, uuid.New().String())
-		infraMachineConfig := omni.NewInfraMachineConfig(resources.DefaultNamespace, uuid.New().String())
+		machineSetNode := omni.NewMachineSetNode(uuid.New().String(), machineSet)
+		machineClass := omni.NewMachineClass(uuid.New().String())
+		machineRequestSet := omni.NewMachineRequestSet(uuid.New().String())
+		infraMachineConfig := omni.NewInfraMachineConfig(uuid.New().String())
 		grpcTunnelConfig := siderolink.NewGRPCTunnelConfig(uuid.New().String())
 		installationMediaConfig := omni.NewInstallationMediaConfig(uuid.NewString())
 
-		extensionsConfiguration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, uuid.New().String())
+		extensionsConfiguration := omni.NewExtensionsConfiguration(uuid.New().String())
 		extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
-		machineExtensions := omni.NewMachineExtensions(resources.DefaultNamespace, uuid.New().String())
+		machineExtensions := omni.NewMachineExtensions(uuid.New().String())
 		machineExtensions.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
 
-		machineExtensionsStatus := omni.NewMachineExtensionsStatus(resources.DefaultNamespace, uuid.New().String())
+		machineExtensionsStatus := omni.NewMachineExtensionsStatus(uuid.New().String())
 		machineExtensionsStatus.Metadata().Labels().Set(omni.LabelCluster, uuid.New().String())
 
 		kernelArgs := omni.NewKernelArgs(uuid.New().String())
@@ -687,7 +687,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 		require.NoError(t, err)
 
-		importedClusterSecret := omni.NewImportedClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID())
+		importedClusterSecret := omni.NewImportedClusterSecrets(cluster.Metadata().ID())
 
 		testCases := []resourceAuthzTestCase{
 			{
@@ -824,59 +824,59 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isSignatureSufficient: true,
 			},
 			{
-				resource:       omni.NewClusterBootstrapStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterBootstrapStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterConfigVersion(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterConfigVersion(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterDestroyStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterDestroyStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterEndpoint(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterEndpoint(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterKubernetesNodes(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterKubernetesNodes(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterMachineIdentity(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterMachineIdentity(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterMachineStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterMachineStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterMachineConfigPatches(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterMachineTalosVersion(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterMachine(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterMachine(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterMachineConfigStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterMachineRequestStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterMachineRequestStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterDiagnostics(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterDiagnostics(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -884,11 +884,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewClusterWorkloadProxyStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterWorkloadProxyStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewKubernetesNodeAuditResult(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewKubernetesNodeAuditResult(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -896,20 +896,20 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewControlPlaneStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewControlPlaneStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewExposedService(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewExposedService(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:              omni.NewFeaturesConfig(resources.DefaultNamespace, uuid.New().String()),
+				resource:              omni.NewFeaturesConfig(uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
 			{
-				resource:       omni.NewKubernetesStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewKubernetesStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -933,71 +933,71 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewKubernetesUpgradeManifestStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewKubernetesUpgradeManifestStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewKubernetesUpgradeStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewKubernetesUpgradeStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewLoadBalancerConfig(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewLoadBalancerConfig(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewLoadBalancerStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewLoadBalancerStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewMachine(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewMachine(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewMachineSetStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewMachineSetStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewMachineStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewMachineStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewMachineStatusLink(resources.MetricsNamespace, uuid.New().String()),
+				resource:       omni.NewMachineStatusLink(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewMachineStatusSnapshot(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewMachineStatusSnapshot(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewMachineConfigGenOptions(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewMachineConfigGenOptions(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:              omni.NewOngoingTask(resources.DefaultNamespace, "res"),
+				resource:              omni.NewOngoingTask("res"),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
 			{
-				resource:              omni.NewKubernetesVersion(resources.DefaultNamespace, uuid.New().String()),
+				resource:              omni.NewKubernetesVersion(uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
 			{
-				resource:              omni.NewTalosVersion(resources.DefaultNamespace, uuid.New().String()),
+				resource:              omni.NewTalosVersion(uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
 			{
-				resource:       omni.NewTalosUpgradeStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewTalosUpgradeStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:              omni.NewInstallationMedia(resources.DefaultNamespace, uuid.New().String()),
+				resource:              omni.NewInstallationMedia(uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
 			{
-				resource:       omni.NewRedactedClusterMachineConfig(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewRedactedClusterMachineConfig(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -1005,11 +1005,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewImagePullRequest(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewImagePullRequest(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewImagePullStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewImagePullStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -1050,7 +1050,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewMachineSetDestroyStatus(resources.EphemeralNamespace, uuid.New().String()),
+				resource:       omni.NewMachineSetDestroyStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -1058,35 +1058,35 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewSchematic(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewSchematic(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:              omni.NewTalosExtensions(resources.DefaultNamespace, uuid.New().String()),
+				resource:              omni.NewTalosExtensions(uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
 			{
-				resource:       omni.NewSchematicConfiguration(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewSchematicConfiguration(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:              omni.NewMachineStatusMetrics(resources.EphemeralNamespace, uuid.New().String()),
+				resource:              omni.NewMachineStatusMetrics(uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
 			{
-				resource:              omni.NewClusterMetrics(resources.EphemeralNamespace, uuid.New().String()),
+				resource:              omni.NewClusterMetrics(uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
 			{
-				resource:              omni.NewClusterStatusMetrics(resources.EphemeralNamespace, uuid.New().String()),
+				resource:              omni.NewClusterStatusMetrics(uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
 			{
-				resource:       omni.NewClusterTaint(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewClusterTaint(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -1098,7 +1098,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewMachineRequestSetStatus(resources.DefaultNamespace, uuid.New().String()),
+				resource:       omni.NewMachineRequestSetStatus(uuid.New().String()),
 				allowedVerbSet: allVerbsSet,
 			},
 			{
@@ -1151,31 +1151,31 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource: authres.NewPublicKey(resources.DefaultNamespace, uuid.New().String()),
 			},
 			{
-				resource: omni.NewEtcdAuditResult(resources.DefaultNamespace, uuid.New().String()),
+				resource: omni.NewEtcdAuditResult(uuid.New().String()),
 			},
 			{
-				resource: omni.NewKubeconfig(resources.DefaultNamespace, uuid.New().String()),
+				resource: omni.NewKubeconfig(uuid.New().String()),
 			},
 			{
-				resource: omni.NewTalosConfig(resources.DefaultNamespace, uuid.New().String()),
+				resource: omni.NewTalosConfig(uuid.New().String()),
 			},
 			{
 				resource: siderolink.NewConfig(),
 			},
 			{
-				resource: omni.NewClusterMachineConfig(resources.DefaultNamespace, uuid.New().String()),
+				resource: omni.NewClusterMachineConfig(uuid.New().String()),
 			},
 			{
-				resource: omni.NewClusterSecrets(resources.DefaultNamespace, uuid.New().String()),
+				resource: omni.NewClusterSecrets(uuid.New().String()),
 			},
 			{
 				resource: authres.NewSAMLAssertion(resources.DefaultNamespace, uuid.New().String()),
 			},
 			{
-				resource: omni.NewClusterMachineEncryptionKey(resources.DefaultNamespace, uuid.New().String()),
+				resource: omni.NewClusterMachineEncryptionKey(uuid.New().String()),
 			},
 			{
-				resource: omni.NewEtcdBackupEncryption(resources.DefaultNamespace, uuid.New().String()),
+				resource: omni.NewEtcdBackupEncryption(uuid.New().String()),
 			},
 			{
 				resource: omni.NewBackupData(uuid.New().String()),
@@ -1627,7 +1627,7 @@ func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, clie
 }
 
 // AssertResourceAuthzWithACL tests the authorization checks of with ACLs.
-func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, clientConfig *clientconfig.ClientConfig) TestFunc {
+func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client) TestFunc {
 	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs(grpcutil.LogLevelOverrideMetadataKey, zapcore.PanicLevel.String()))
 
 	return func(t *testing.T) {
@@ -1670,7 +1670,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 
 		t.Cleanup(func() { userCli.Close() }) //nolint:errcheck
 
-		clusterUnauthorized := omni.NewCluster(resources.DefaultNamespace, "unauthorized-"+testID)
+		clusterUnauthorized := omni.NewCluster("unauthorized-" + testID)
 		clusterUnauthorized.TypedSpec().Value.TalosVersion = constants.DefaultTalosVersion
 		clusterUnauthorized.TypedSpec().Value.KubernetesVersion = "1.32.7"
 
@@ -1686,7 +1686,7 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 		t.Cleanup(func() { destroy(ctx, t, rootCli, clusterUnauthorized.Metadata()) })
 
 		// create a cluster that is authorized to the user by the ACL
-		clusterAuthorized := omni.NewCluster(resources.DefaultNamespace, clusterAuthorizedID)
+		clusterAuthorized := omni.NewCluster(clusterAuthorizedID)
 		clusterAuthorized.TypedSpec().Value.TalosVersion = constants.DefaultTalosVersion
 		clusterAuthorized.TypedSpec().Value.KubernetesVersion = "1.32.7"
 
@@ -1710,13 +1710,13 @@ func AssertResourceAuthzWithACL(ctx context.Context, rootCli *client.Client, cli
 		require.NoError(t, err)
 
 		// test the logic for a config patch without any cluster association
-		configPatchUnauthorized := omni.NewConfigPatch(resources.DefaultNamespace, "unauthorized-"+testID)
+		configPatchUnauthorized := omni.NewConfigPatch("unauthorized-" + testID)
 
 		err = userState.Create(ctx, configPatchUnauthorized)
 		assert.ErrorContains(t, err, "insufficient role")
 
 		// test the logic for a config patch with an authorized cluster association
-		configPatchAuthorized := omni.NewConfigPatch(resources.DefaultNamespace, "authorized"+testID)
+		configPatchAuthorized := omni.NewConfigPatch("authorized" + testID)
 		configPatchAuthorized.Metadata().Labels().Set(omni.LabelCluster, clusterAuthorized.Metadata().ID())
 
 		err = configPatchAuthorized.TypedSpec().Value.SetUncompressedData([]byte("debug: true"))

@@ -91,7 +91,7 @@ func (c *Client) Connected(ctx context.Context, r controller.Reader) (bool, erro
 	}
 
 	clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r,
-		omni.NewClusterStatus(resources.DefaultNamespace, c.clusterName).Metadata(),
+		omni.NewClusterStatus(c.clusterName).Metadata(),
 	)
 	if err != nil {
 		return false, fmt.Errorf("failed to get cluster status for cluster %q: %w", c.GetClusterName(), err)
@@ -270,7 +270,7 @@ func (factory *ClientFactory) release(clusterName string) {
 
 func (factory *ClientFactory) build(ctx context.Context, clusterName string) (*Client, error) {
 	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](ctx, factory.omniState,
-		omni.NewClusterEndpoint(resources.DefaultNamespace, clusterName).Metadata(),
+		omni.NewClusterEndpoint(clusterName).Metadata(),
 	)
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -301,8 +301,8 @@ func (factory *ClientFactory) build(ctx context.Context, clusterName string) (*C
 // StartCacheManager starts watching the relevant resources to do the client cache invalidation.
 func (factory *ClientFactory) StartCacheManager(ctx context.Context) error {
 	eventCh := make(chan state.Event)
-	clusterEndpointMd := omni.NewClusterEndpoint(resources.DefaultNamespace, "").Metadata()
-	talosconfigMd := omni.NewTalosConfig(resources.DefaultNamespace, "").Metadata()
+	clusterEndpointMd := omni.NewClusterEndpoint("").Metadata()
+	talosconfigMd := omni.NewTalosConfig("").Metadata()
 
 	err := factory.omniState.WatchKind(ctx, clusterEndpointMd, eventCh)
 	if err != nil {

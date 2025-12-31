@@ -12,7 +12,6 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/siderolabs/omni/client/pkg/client"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/template"
 	"github.com/siderolabs/omni/client/pkg/version"
@@ -60,7 +59,7 @@ func Example() {
 	}()
 
 	// Getting the resources from the Omni state.
-	machines, err := safe.StateList[*omni.MachineStatus](ctx, st, omni.NewMachineStatus(resources.DefaultNamespace, "").Metadata())
+	machines, err := safe.StateList[*omni.MachineStatus](ctx, st, omni.NewMachineStatus("").Metadata())
 	if err != nil {
 		log.Panicf("failed to get machines %s", err)
 	}

@@ -107,7 +107,7 @@ func (ctrl *OngoingTaskController) Run(ctx context.Context, r controller.Runtime
 			}
 
 			id := fmt.Sprintf("machine-%s-maintenance-upgrade", machineUpgradeStatus.Metadata().ID())
-			task := omni.NewOngoingTask(resources.EphemeralNamespace, id)
+			task := omni.NewOngoingTask(id)
 
 			tracker.keep(task)
 
@@ -126,7 +126,7 @@ func (ctrl *OngoingTaskController) Run(ctx context.Context, r controller.Runtime
 
 		if err = destroyStatuses.ForEachErr(func(s *omni.ClusterDestroyStatus) error {
 			id := fmt.Sprintf("%s-destroy", s.Metadata().ID())
-			task := omni.NewOngoingTask(resources.EphemeralNamespace, id)
+			task := omni.NewOngoingTask(id)
 
 			tracker.keep(task)
 
@@ -149,7 +149,7 @@ func (ctrl *OngoingTaskController) Run(ctx context.Context, r controller.Runtime
 			}
 
 			id := fmt.Sprintf("%s-talos-update", s.Metadata().ID())
-			task := omni.NewOngoingTask(resources.EphemeralNamespace, id)
+			task := omni.NewOngoingTask(id)
 
 			tracker.keep(task)
 
@@ -172,7 +172,7 @@ func (ctrl *OngoingTaskController) Run(ctx context.Context, r controller.Runtime
 			}
 
 			id := fmt.Sprintf("%s-kubernetes-update", s.Metadata().ID())
-			task := omni.NewOngoingTask(resources.EphemeralNamespace, id)
+			task := omni.NewOngoingTask(id)
 
 			tracker.keep(task)
 

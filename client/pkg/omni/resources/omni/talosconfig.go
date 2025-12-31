@@ -16,9 +16,9 @@ import (
 )
 
 // NewTalosConfig creates new Talos config resource.
-func NewTalosConfig(ns resource.Namespace, id resource.ID) *TalosConfig {
+func NewTalosConfig(id resource.ID) *TalosConfig {
 	return typed.NewResource[TalosConfigSpec, TalosConfigExtension](
-		resource.NewMetadata(ns, TalosConfigType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, TalosConfigType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.TalosConfigSpec{}),
 	)
 }

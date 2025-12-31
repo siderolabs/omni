@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterMachineConfigPatches creates new cluster machine config patches resource.
-func NewClusterMachineConfigPatches(ns string, id resource.ID) *ClusterMachineConfigPatches {
+func NewClusterMachineConfigPatches(id resource.ID) *ClusterMachineConfigPatches {
 	return typed.NewResource[ClusterMachineConfigPatchesSpec, ClusterMachineConfigPatchesExtension](
-		resource.NewMetadata(ns, ClusterMachineConfigPatchesType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterMachineConfigPatchesType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterMachineConfigPatchesSpec{}),
 	)
 }

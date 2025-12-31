@@ -20,7 +20,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
@@ -43,10 +42,10 @@ func NewClusterBootstrapStatusController(etcdBackupStoreFactory store.Factory) *
 		qtransform.Settings[*omni.ClusterStatus, *omni.ClusterBootstrapStatus]{
 			Name: ClusterBootstrapStatusControllerName,
 			MapMetadataFunc: func(clusterStatus *omni.ClusterStatus) *omni.ClusterBootstrapStatus {
-				return omni.NewClusterBootstrapStatus(resources.DefaultNamespace, clusterStatus.Metadata().ID())
+				return omni.NewClusterBootstrapStatus(clusterStatus.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(bootstrapStatus *omni.ClusterBootstrapStatus) *omni.ClusterStatus {
-				return omni.NewClusterStatus(resources.DefaultNamespace, bootstrapStatus.Metadata().ID())
+				return omni.NewClusterStatus(bootstrapStatus.Metadata().ID())
 			},
 			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, clusterStatus *omni.ClusterStatus, bootstrapStatus *omni.ClusterBootstrapStatus) error {
 				cpMachineSet, err := safe.ReaderGetByID[*omni.MachineSet](ctx, r, omni.ControlPlanesResourceID(clusterStatus.Metadata().ID()))
@@ -217,7 +216,7 @@ func recoverEtcdFromBackup(ctx context.Context, r controller.Reader, talosCli *c
 }
 
 func getTalosClientForBootstrap(ctx context.Context, r controller.Reader, clusterName string) (*client.Client, error) {
-	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(resources.DefaultNamespace, clusterName).Metadata())
+	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(clusterName).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, talos.NewClientNotReadyError(fmt.Errorf("talosconfig not found for cluster %q", clusterName))

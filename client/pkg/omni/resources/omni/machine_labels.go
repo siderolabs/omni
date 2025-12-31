@@ -15,9 +15,9 @@ import (
 )
 
 // NewMachineLabels creates new machine labels resource.
-func NewMachineLabels(ns string, id resource.ID) *MachineLabels {
+func NewMachineLabels(id resource.ID) *MachineLabels {
 	return typed.NewResource[MachineLabelsSpec, MachineLabelsExtension](
-		resource.NewMetadata(ns, MachineLabelsType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, MachineLabelsType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineLabelsSpec{}),
 	)
 }

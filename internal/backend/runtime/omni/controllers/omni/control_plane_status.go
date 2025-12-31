@@ -21,7 +21,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/pkg/check"
@@ -42,10 +41,10 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 		qtransform.Settings[*omni.MachineSet, *omni.ControlPlaneStatus]{
 			Name: "ControlPlaneStatusController",
 			MapMetadataFunc: func(machineSet *omni.MachineSet) *omni.ControlPlaneStatus {
-				return omni.NewControlPlaneStatus(resources.DefaultNamespace, machineSet.Metadata().ID())
+				return omni.NewControlPlaneStatus(machineSet.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(cpStatus *omni.ControlPlaneStatus) *omni.MachineSet {
-				return omni.NewMachineSet(resources.DefaultNamespace, cpStatus.Metadata().ID())
+				return omni.NewMachineSet(cpStatus.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, machineSet *omni.MachineSet, cpStatus *omni.ControlPlaneStatus) error {
 				if _, isControlplane := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole); !isControlplane {

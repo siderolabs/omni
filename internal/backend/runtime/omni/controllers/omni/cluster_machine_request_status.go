@@ -19,7 +19,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -38,7 +37,7 @@ func NewClusterMachineRequestStatusController() *ClusterMachineRequestStatusCont
 		qtransform.Settings[*infra.MachineRequest, *omni.ClusterMachineRequestStatus]{
 			Name: clusterMachineRequestStatusControllerName,
 			MapMetadataFunc: func(machineRequest *infra.MachineRequest) *omni.ClusterMachineRequestStatus {
-				return omni.NewClusterMachineRequestStatus(resources.DefaultNamespace, machineRequest.Metadata().ID())
+				return omni.NewClusterMachineRequestStatus(machineRequest.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(clusterMachineStatus *omni.ClusterMachineRequestStatus) *infra.MachineRequest {
 				return infra.NewMachineRequest(clusterMachineStatus.Metadata().ID())

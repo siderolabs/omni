@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -55,7 +54,7 @@ func (suite *MachineStatusLinkSuite) TestBasicMachineOnAndOff() {
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
 	createJoinParams(suite.ctx, suite.state, suite.T())
 
-	machine := omni.NewMachine(resources.DefaultNamespace, testID)
+	machine := omni.NewMachine(testID)
 	machine.TypedSpec().Value.Connected = true
 
 	suite.create(machine)
@@ -93,13 +92,13 @@ func (suite *MachineStatusLinkSuite) TestBasicMachineOnAndOff() {
 
 	rtestutils.Destroy[*omni.Machine](suite.ctx, suite.T(), suite.state, []string{machine.Metadata().ID()})
 
-	msl := omni.NewMachineStatusLink(resources.MetricsNamespace, testID)
+	msl := omni.NewMachineStatusLink(testID)
 
 	assertNoResource(&suite.OmniSuite, msl)
 }
 
 func (suite *MachineStatusLinkSuite) TestTwoMachines() {
-	machine1 := omni.NewMachine(resources.DefaultNamespace, testID)
+	machine1 := omni.NewMachine(testID)
 	machine1.TypedSpec().Value.Connected = true
 
 	suite.Require().NoError(suite.machineService.state.Create(suite.ctx, runtime.NewSecurityStateSpec(runtime.NamespaceName)))
@@ -138,14 +137,14 @@ func (suite *MachineStatusLinkSuite) TestTwoMachines() {
 		},
 	)
 
-	machine2 := omni.NewMachine(resources.DefaultNamespace, testID2)
+	machine2 := omni.NewMachine(testID2)
 	machine2.TypedSpec().Value.Connected = true
 
 	suite.create(machine2)
 
 	rtestutils.Destroy[*omni.Machine](suite.ctx, suite.T(), suite.state, []string{machine1.Metadata().ID()})
 
-	assertNoResource(&suite.OmniSuite, omni.NewMachineStatusLink(resources.MetricsNamespace, testID))
+	assertNoResource(&suite.OmniSuite, omni.NewMachineStatusLink(testID))
 
 	assertResource(
 		&suite.OmniSuite,

@@ -42,9 +42,9 @@ func AdditionalWorkersResourceID(clusterName, name string) string {
 }
 
 // NewMachineSet creates new MachineSet resource.
-func NewMachineSet(ns string, id resource.ID) *MachineSet {
+func NewMachineSet(id resource.ID) *MachineSet {
 	return typed.NewResource[MachineSetSpec, MachineSetExtension](
-		resource.NewMetadata(ns, MachineSetType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, MachineSetType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineSetSpec{}),
 	)
 }

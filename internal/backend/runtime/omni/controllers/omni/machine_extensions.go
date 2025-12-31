@@ -205,7 +205,7 @@ func (ctrl *MachineExtensionsController) Reconcile(ctx context.Context, logger *
 	configs := slices.Collect(configList.All())
 
 	for _, clusterMachine := range clusterMachines {
-		status := omni.NewMachineExtensions(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+		status := omni.NewMachineExtensions(clusterMachine.Metadata().ID())
 
 		tracker.keep(status)
 

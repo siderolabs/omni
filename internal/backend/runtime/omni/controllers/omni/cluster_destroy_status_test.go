@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -37,17 +36,17 @@ func TestClusterDestroyStatusController(t *testing.T) {
 		func(ctx context.Context, testContext testutils.TestContext) {
 			st := testContext.State
 
-			c := omni.NewCluster(resources.DefaultNamespace, "c1")
+			c := omni.NewCluster("c1")
 			c.Metadata().Finalizers().Add("foo") // put a finalizer to mimic the cluster teardown
 			c.Metadata().Finalizers().Add(omnictrl.ClusterStatusControllerName)
 			require.NoError(t, st.Create(ctx, c))
 
-			machineSet := omni.NewMachineSetStatus(resources.DefaultNamespace, "ms1")
+			machineSet := omni.NewMachineSetStatus("ms1")
 			machineSet.Metadata().Labels().Set(omni.LabelCluster, c.Metadata().ID())
 			require.NoError(t, st.Create(ctx, machineSet))
 
 			for i := range 2 {
-				cms := omni.NewClusterMachineStatus(resources.DefaultNamespace, "cm"+strconv.Itoa(i))
+				cms := omni.NewClusterMachineStatus("cm" + strconv.Itoa(i))
 				cms.Metadata().Labels().Set(omni.LabelCluster, c.Metadata().ID())
 				cms.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
 				require.NoError(t, st.Create(ctx, cms))

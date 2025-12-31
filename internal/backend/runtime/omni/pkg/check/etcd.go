@@ -306,7 +306,6 @@ func EtcdStatus(ctx context.Context, r controller.Reader, machineSet *omni.Machi
 		}
 
 		identity, err = safe.ReaderGet[*omni.ClusterMachineIdentity](ctx, r, omni.NewClusterMachineIdentity(
-			resources.DefaultNamespace,
 			status.Metadata().ID(),
 		).Metadata())
 		if err != nil {

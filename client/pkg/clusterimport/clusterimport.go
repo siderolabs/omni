@@ -39,7 +39,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/image"
 	"github.com/siderolabs/omni/client/pkg/machineconfig"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
@@ -153,7 +152,7 @@ func BuildContext(ctx context.Context, input Input, omniState state.State, image
 		return nil, fmt.Errorf("minimum required version of talos is %s", constants.MinTalosVersion)
 	}
 
-	talosVersionMatrix, err := safe.ReaderGetByID[*omni.TalosVersion](ctx, omniState, omni.NewTalosVersion(resources.DefaultNamespace, versions.TalosVersion).Metadata().ID())
+	talosVersionMatrix, err := safe.ReaderGetByID[*omni.TalosVersion](ctx, omniState, omni.NewTalosVersion(versions.TalosVersion).Metadata().ID())
 	if err != nil {
 		return nil, fmt.Errorf("failed to read talos version: %w", err)
 	}
@@ -295,7 +294,7 @@ func newContext(input Input, talosCli talosClientWrapper, imageFactoryClient Ima
 		}
 	}
 
-	ics := omni.NewImportedClusterSecrets(resources.DefaultNamespace, clusterID)
+	ics := omni.NewImportedClusterSecrets(clusterID)
 	secretsBundle := secrets.NewBundleFromConfig(secrets.NewFixedClock(time.Now()), nodeInfoMap[controlPlanes[0]].machineConfig.Provider())
 
 	bundleYaml, err := yaml.Marshal(secretsBundle)
@@ -305,17 +304,17 @@ func newContext(input Input, talosCli talosClientWrapper, imageFactoryClient Ima
 
 	ics.TypedSpec().Value.Data = string(bundleYaml)
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster := omni.NewCluster(clusterID)
 	cluster.Metadata().Annotations().Set(omni.ClusterLocked, "")
 	cluster.Metadata().Annotations().Set(omni.ClusterImportIsInProgress, "")
 	cluster.TypedSpec().Value.TalosVersion, _ = strings.CutPrefix(versions.TalosVersion, "v")
 	cluster.TypedSpec().Value.KubernetesVersion, _ = strings.CutPrefix(versions.KubernetesVersion, "v")
 
-	controlPlaneMachineSet := omni.NewMachineSet(resources.DefaultNamespace, clusterID+"-control-planes")
+	controlPlaneMachineSet := omni.NewMachineSet(clusterID + "-control-planes")
 	controlPlaneMachineSet.Metadata().Labels().Set(omni.LabelCluster, clusterID)
 	controlPlaneMachineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 
-	workerMachineSet := omni.NewMachineSet(resources.DefaultNamespace, clusterID+"-workers")
+	workerMachineSet := omni.NewMachineSet(clusterID + "-workers")
 	workerMachineSet.Metadata().Labels().Set(omni.LabelCluster, clusterID)
 	workerMachineSet.Metadata().Labels().Set(omni.LabelWorkerRole, "")
 
@@ -326,13 +325,13 @@ func newContext(input Input, talosCli talosClientWrapper, imageFactoryClient Ima
 		info := nodeInfoMap[node]
 
 		if info.isControlPlane {
-			machineSetNode := *omni.NewMachineSetNode(resources.DefaultNamespace, info.machineID, controlPlaneMachineSet)
+			machineSetNode := *omni.NewMachineSetNode(info.machineID, controlPlaneMachineSet)
 			machineSetNode.Metadata().Labels().Set(omni.LabelCluster, clusterID)
 			machineSetNode.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 			machineSetNode.Metadata().Labels().Set(omni.LabelMachineSet, controlPlaneMachineSet.Metadata().ID())
 			machineSetNodesMap[machineSetNode.Metadata().ID()] = &machineSetNode
 		} else {
-			machineSetNode := *omni.NewMachineSetNode(resources.DefaultNamespace, info.machineID, workerMachineSet)
+			machineSetNode := *omni.NewMachineSetNode(info.machineID, workerMachineSet)
 			machineSetNode.Metadata().Labels().Set(omni.LabelCluster, clusterID)
 			machineSetNode.Metadata().Labels().Set(omni.LabelWorkerRole, "")
 			machineSetNode.Metadata().Labels().Set(omni.LabelMachineSet, workerMachineSet.Metadata().ID())
@@ -375,7 +374,7 @@ func newContext(input Input, talosCli talosClientWrapper, imageFactoryClient Ima
 			}
 
 			configPatchId := fmt.Sprintf("%d-%s", (i+1)*10, info.machineID)
-			configPatch := omni.NewConfigPatch(resources.DefaultNamespace, configPatchId)
+			configPatch := omni.NewConfigPatch(configPatchId)
 			configPatch.Metadata().Labels().Set(omni.LabelCluster, clusterID)
 			configPatch.Metadata().Labels().Set(omni.LabelClusterMachine, info.machineID)
 			configPatch.Metadata().Annotations().Set(omni.ConfigPatchName, "User defined patch")

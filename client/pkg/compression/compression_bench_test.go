@@ -13,7 +13,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/compression"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -80,7 +79,7 @@ func TestDictionaryCompressionSize(t *testing.T) {
 }
 
 func buildConfig(tb testing.TB, large bool, compressionConfig specs.CompressionConfig) *omni.ClusterMachineConfig {
-	config := omni.NewClusterMachineConfig(resources.DefaultNamespace, "test")
+	config := omni.NewClusterMachineConfig("test")
 
 	configData := testConfigSmall
 	if large {

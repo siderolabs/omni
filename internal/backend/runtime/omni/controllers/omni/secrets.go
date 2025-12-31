@@ -42,10 +42,10 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 		qtransform.Settings[*omni.Cluster, *omni.ClusterSecrets]{
 			Name: "SecretsController",
 			MapMetadataFunc: func(cluster *omni.Cluster) *omni.ClusterSecrets {
-				return omni.NewClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID())
+				return omni.NewClusterSecrets(cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(secrets *omni.ClusterSecrets) *omni.Cluster {
-				return omni.NewCluster(resources.DefaultNamespace, secrets.Metadata().ID())
+				return omni.NewCluster(secrets.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, cluster *omni.Cluster, secrets *omni.ClusterSecrets) error {
 				if len(secrets.TypedSpec().Value.GetData()) != 0 {
@@ -84,7 +84,7 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 					return fmt.Errorf("reader does not support uncached reads")
 				}
 
-				icsRes, err := uncachedReader.GetUncached(ctx, omni.NewImportedClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata())
+				icsRes, err := uncachedReader.GetUncached(ctx, omni.NewImportedClusterSecrets(cluster.Metadata().ID()).Metadata())
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
 				}

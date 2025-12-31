@@ -92,7 +92,7 @@ func deleteMachine(ctx context.Context, st state.State, id resource.ID, force bo
 	ctx, cancel := context.WithTimeout(ctx, machineDeleteCmdFlags.timeout)
 	defer cancel()
 
-	clusterMachineMD := omni.NewClusterMachine(omniresources.DefaultNamespace, id).Metadata()
+	clusterMachineMD := omni.NewClusterMachine(id).Metadata()
 
 	clusterMachine, err := st.Get(ctx, clusterMachineMD)
 	if err != nil {

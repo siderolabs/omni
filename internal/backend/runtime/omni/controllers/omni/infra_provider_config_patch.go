@@ -18,7 +18,6 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -33,7 +32,7 @@ func NewInfraProviderConfigPatchController() *InfraProviderConfigPatchController
 		qtransform.Settings[*infra.ConfigPatchRequest, *omni.ConfigPatch]{
 			Name: "ConfigPatchRequestController",
 			MapMetadataFunc: func(request *infra.ConfigPatchRequest) *omni.ConfigPatch {
-				return omni.NewConfigPatch(resources.DefaultNamespace, request.Metadata().ID())
+				return omni.NewConfigPatch(request.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(configPatch *omni.ConfigPatch) *infra.ConfigPatchRequest {
 				return infra.NewConfigPatchRequest(configPatch.Metadata().ID())

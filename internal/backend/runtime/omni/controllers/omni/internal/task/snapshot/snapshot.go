@@ -20,7 +20,6 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	machinetask "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/machine"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -119,7 +118,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, notifyCh
 		case state.Bootstrapped, state.Destroyed, state.Noop:
 			// ignore
 		case state.Created, state.Updated:
-			snapshot := omni.NewMachineStatusSnapshot(resources.DefaultNamespace, spec.MachineID)
+			snapshot := omni.NewMachineStatusSnapshot(spec.MachineID)
 
 			machineStatusSpec := event.Resource.Spec().(*runtime.MachineStatusSpec) //nolint:forcetypeassert,errcheck
 

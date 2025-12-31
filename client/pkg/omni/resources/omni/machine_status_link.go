@@ -18,9 +18,9 @@ import (
 )
 
 // NewMachineStatusLink creates new MachineStatusLink resource.
-func NewMachineStatusLink(ns string, id resource.ID) *MachineStatusLink {
+func NewMachineStatusLink(id resource.ID) *MachineStatusLink {
 	return typed.NewResource[MachineStatusLinkSpec, MachineStatusLinkExtension](
-		resource.NewMetadata(ns, MachineStatusLinkType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.MetricsNamespace, MachineStatusLinkType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineStatusLinkSpec{}),
 	)
 }

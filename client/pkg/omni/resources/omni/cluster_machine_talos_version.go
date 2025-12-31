@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterMachineTalosVersion creates a new ClusterMachineTalosVersion state.
-func NewClusterMachineTalosVersion(ns, id string) *ClusterMachineTalosVersion {
+func NewClusterMachineTalosVersion(id string) *ClusterMachineTalosVersion {
 	return typed.NewResource[ClusterMachineTalosVersionSpec, ClusterMachineTalosVersionExtension](
-		resource.NewMetadata(ns, ClusterMachineTalosVersionType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterMachineTalosVersionType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterMachineTalosVersionSpec{}),
 	)
 }

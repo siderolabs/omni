@@ -20,7 +20,6 @@ import (
 	"go.uber.org/zap"
 	"go.yaml.in/yaml/v4"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
@@ -63,12 +62,12 @@ func NewDiscoveryServiceConfigPatchController(embeddedDiscoveryServicePort int) 
 		qtransform.Settings[*omni.ClusterStatus, *omni.ConfigPatch]{
 			Name: "DiscoveryServiceConfigPatchController",
 			MapMetadataFunc: func(cluster *omni.ClusterStatus) *omni.ConfigPatch {
-				return omni.NewConfigPatch(resources.DefaultNamespace, DiscoveryServiceConfigPatchPrefix+cluster.Metadata().ID())
+				return omni.NewConfigPatch(DiscoveryServiceConfigPatchPrefix + cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(configPatch *omni.ConfigPatch) *omni.ClusterStatus {
 				id := strings.TrimPrefix(configPatch.Metadata().ID(), DiscoveryServiceConfigPatchPrefix)
 
-				return omni.NewClusterStatus(resources.DefaultNamespace, id)
+				return omni.NewClusterStatus(id)
 			},
 			TransformExtraOutputFunc: func(_ context.Context, _ controller.ReaderWriter, _ *zap.Logger, cluster *omni.ClusterStatus, configPatch *omni.ConfigPatch) error {
 				configPatch.Metadata().Labels().Set(omni.LabelSystemPatch, "")
