@@ -117,7 +117,10 @@ spec:
             secretName: {{ .Values.volumes.gpg.secretName }}
         - name: etcd
           persistentVolumeClaim:
-            claimName: {{ .Values.volumes.etcd.persistentVolumeClaimName }}
+            claimName: {{ .Values.volumes.etcd.persistentVolumeClaim.Name }}
+        - name: sqlite
+          persistentVolumeClaim:
+            claimName: {{ .Values.volumes.sqlite.persistentVolumeClaim.Name }}
         {{- if .Values.customVolumes }}
         {{- with .Values.customVolumes }}
         {{- toYaml . | nindent 8 }}
