@@ -42,7 +42,7 @@ For instructions on developing Omni, see [DEVELOPMENT.md](DEVELOPMENT.md).
 ## Community
 
 - Support: Questions, bugs, feature requests [GitHub Issues](https://github.com/siderolabs/omni/issues)
-- Slack: Join our [slack channel](https://slack.dev.talos-systems.io)
+- Slack: Join our [slack channel](https://taloscommunity.slack.com/). Request access via [inviter.co](https://inviter.co/sidero-labs-community).
 - Twitter: [@SideroLabs](https://twitter.com/SideroLabs)
 - Email: [info@SideroLabs.com](mailto:info@SideroLabs.com)
 

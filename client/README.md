@@ -17,7 +17,7 @@ For instructions on using Omni, see the [Documentation](https://omni.siderolabs.
 
 ## Community
 
-- Slack: Join our [slack channel](https://slack.dev.talos-systems.io)
+- Slack: Join our [slack channel](https://taloscommunity.slack.com/). Request access via [inviter.co](https://inviter.co/sidero-labs-community).
 - Support: Questions, bugs, feature requests [GitHub Discussions](https://github.com/talos-systems/talos/discussions)
 - Forum: [community](https://groups.google.com/a/SideroLabs.com/forum/#!forum/community)
 - Twitter: [@SideroLabs](https://twitter.com/SideroLabs)
