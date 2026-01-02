@@ -50,7 +50,7 @@ func TestLinkCleanup(t *testing.T) {
 
 	id := "test-link-cleanup"
 
-	link := siderolink.NewLink(resources.DefaultNamespace, id, nil)
+	link := siderolink.NewLink(id, nil)
 
 	usage := siderolink.NewJoinTokenUsage(id)
 	uniqueToken := siderolink.NewNodeUniqueToken(id)

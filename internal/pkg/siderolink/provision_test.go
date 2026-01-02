@@ -33,7 +33,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -134,13 +133,13 @@ func TestProvision(t *testing.T) {
 
 		require.NoError(t, state.Create(ctx, config))
 
-		tokenRes := siderolinkres.NewJoinToken(resources.DefaultNamespace, validToken)
+		tokenRes := siderolinkres.NewJoinToken(validToken)
 
 		tokenRes.TypedSpec().Value.Name = "default"
 
 		require.NoError(t, state.Create(ctx, tokenRes))
 
-		tokenStatusRes := siderolinkres.NewJoinTokenStatus(resources.DefaultNamespace, validToken)
+		tokenStatusRes := siderolinkres.NewJoinTokenStatus(validToken)
 
 		tokenStatusRes.TypedSpec().Value.Name = "default"
 		tokenStatusRes.TypedSpec().Value.IsDefault = true
@@ -238,7 +237,7 @@ func TestProvision(t *testing.T) {
 				JoinToken:     pointer.To(tt.token),
 			}
 
-			link := siderolinkres.NewLink(resources.DefaultNamespace, request.NodeUuid, &specs.SiderolinkSpec{
+			link := siderolinkres.NewLink(request.NodeUuid, &specs.SiderolinkSpec{
 				NodePublicKey: "",
 				NodeSubnet:    "asdf",
 			})
@@ -463,7 +462,7 @@ func TestProvision(t *testing.T) {
 				}
 
 				if tt.linkSpec != nil {
-					link := siderolinkres.NewLink(resources.DefaultNamespace, machine, tt.linkSpec)
+					link := siderolinkres.NewLink(machine, tt.linkSpec)
 					if !tt.talosNotInstalled {
 						link.Metadata().Annotations().Set(siderolinkres.ForceValidNodeUniqueToken, "")
 					}
@@ -494,7 +493,7 @@ func TestProvision(t *testing.T) {
 			JoinToken:     pointer.To(validToken),
 		}
 
-		link := siderolinkres.NewLink(resources.DefaultNamespace, request.NodeUuid, &specs.SiderolinkSpec{})
+		link := siderolinkres.NewLink(request.NodeUuid, &specs.SiderolinkSpec{})
 
 		require.NoError(t, state.Create(ctx, link))
 
@@ -525,7 +524,7 @@ func TestProvision(t *testing.T) {
 			JoinToken:     pointer.To(validToken),
 		}
 
-		link := siderolinkres.NewLink(resources.DefaultNamespace, request.NodeUuid, &specs.SiderolinkSpec{})
+		link := siderolinkres.NewLink(request.NodeUuid, &specs.SiderolinkSpec{})
 
 		nodeUniqueToken := siderolinkres.NewNodeUniqueToken(request.NodeUuid)
 		nodeUniqueToken.TypedSpec().Value.Token = validToken

@@ -41,7 +41,7 @@ func NewMachineController() *MachineController {
 				return omni.NewMachine(resources.DefaultNamespace, link.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(machine *omni.Machine) *siderolink.Link {
-				return siderolink.NewLink(resources.DefaultNamespace, machine.Metadata().ID(), nil)
+				return siderolink.NewLink(machine.Metadata().ID(), nil)
 			},
 			TransformFunc: helper.transform,
 		},
@@ -59,7 +59,7 @@ func NewMachineController() *MachineController {
 					}
 
 					return []resource.Pointer{
-						siderolink.NewLink(resources.DefaultNamespace, res.TypedSpec().Value.Id, nil).Metadata(),
+						siderolink.NewLink(res.TypedSpec().Value.Id, nil).Metadata(),
 					}, nil
 				},
 			),
@@ -69,7 +69,7 @@ func NewMachineController() *MachineController {
 		),
 		qtransform.WithExtraMappedInput[*infra.Machine](
 			func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, infraMachine controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
-				ptr := siderolink.NewLink(resources.DefaultNamespace, infraMachine.ID(), nil).Metadata()
+				ptr := siderolink.NewLink(infraMachine.ID(), nil).Metadata()
 
 				return []resource.Pointer{ptr}, nil
 			},

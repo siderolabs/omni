@@ -25,7 +25,6 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
@@ -108,7 +107,7 @@ func (suite *LinkStatusControllerSuite) TestReconcile() {
 		NodePublicKey: severalReferences,
 	}
 
-	link := siderolinkres.NewLink(resources.DefaultNamespace, "1", spec)
+	link := siderolinkres.NewLink("1", spec)
 
 	suite.Require().NoError(suite.state.Create(ctx, link))
 
@@ -131,7 +130,7 @@ func (suite *LinkStatusControllerSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(ctx, pendingMachine))
 
-	link = siderolinkres.NewLink(resources.DefaultNamespace, "3", &specs.SiderolinkSpec{
+	link = siderolinkres.NewLink("3", &specs.SiderolinkSpec{
 		NodePublicKey: "bbbb",
 	})
 
@@ -154,7 +153,7 @@ func (suite *LinkStatusControllerSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
-	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, siderolinkres.NewLink(resources.DefaultNamespace, "3", nil).Metadata(), func(
+	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, siderolinkres.NewLink("3", nil).Metadata(), func(
 		res *siderolinkres.Link,
 	) error {
 		res.TypedSpec().Value.NodePublicKey = "ffff"

@@ -74,7 +74,7 @@ func deleteTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 			}
 
 			allPatches = append(allPatches, patches.Items...)
-			links = append(links, siderolink.NewLink(resources.DefaultNamespace, machine.Metadata().ID(), nil))
+			links = append(links, siderolink.NewLink(machine.Metadata().ID(), nil))
 		}
 
 		extensionsConfigurations, err := st.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ExtensionsConfigurationType, "", resource.VersionUndefined),

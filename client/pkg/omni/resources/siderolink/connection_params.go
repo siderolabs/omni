@@ -24,9 +24,9 @@ const (
 // NewConnectionParams creates new ConnectionParams state.
 //
 // Deprecated: replaced by DefaultJoinToken to store the default token and APIConfig to store the rest of the arguments.
-func NewConnectionParams(ns, id string) *ConnectionParams {
+func NewConnectionParams(id string) *ConnectionParams {
 	return typed.NewResource[ConnectionParamsSpec, ConnectionParamsExtension](
-		resource.NewMetadata(ns, ConnectionParamsType, id, resource.VersionUndefined),
+		resource.NewMetadata(Namespace, ConnectionParamsType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ConnectionParamsSpec{}),
 	)
 }

@@ -29,7 +29,7 @@ func (suite *MachineSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineController()))
 
-	link1 := siderolink.NewLink(siderolink.Namespace, "nodeID1", &specs.SiderolinkSpec{
+	link1 := siderolink.NewLink("nodeID1", &specs.SiderolinkSpec{
 		NodePublicKey: "HDAvKeXJAzYtOCaXPLWGASM2BgatwAnCSxrdcwXBxRk=",
 		NodeSubnet:    netip.MustParsePrefix("fdae:41e4:649b:9303:7396:c9b3:213a:a86f/64").String(),
 	})
@@ -43,7 +43,7 @@ func (suite *MachineSuite) TestReconcile() {
 		},
 	)
 
-	link2 := siderolink.NewLink(siderolink.Namespace, "nodeID2", &specs.SiderolinkSpec{
+	link2 := siderolink.NewLink("nodeID2", &specs.SiderolinkSpec{
 		NodePublicKey: "U522JKmQy/99NeMZa537ZHDlkJPv1SYaK0n8NTKIn3w=",
 		NodeSubnet:    netip.MustParsePrefix("fdae:41e4:649b:9303:648e:f4a7:8ca4:ac75/64").String(),
 	})

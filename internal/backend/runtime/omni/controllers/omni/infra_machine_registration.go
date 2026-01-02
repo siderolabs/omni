@@ -14,7 +14,6 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -37,7 +36,7 @@ func NewInfraMachineRegistrationController() *InfraMachineRegistrationController
 				return optional.Some(infra.NewMachineRegistration(link.Metadata().ID()))
 			},
 			UnmapMetadataFunc: func(machine *infra.MachineRegistration) *siderolink.Link {
-				return siderolink.NewLink(resources.DefaultNamespace, machine.Metadata().ID(), nil)
+				return siderolink.NewLink(machine.Metadata().ID(), nil)
 			},
 			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, link *siderolink.Link, machine *infra.MachineRegistration) error {
 				providerID, ok := link.Metadata().Labels().Get(omni.LabelInfraProviderID)

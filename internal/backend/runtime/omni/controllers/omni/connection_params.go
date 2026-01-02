@@ -17,7 +17,6 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -37,7 +36,7 @@ func NewConnectionParamsController() *ConnectionParamsController {
 		qtransform.Settings[*siderolinkres.Config, *siderolinkres.ConnectionParams]{ //nolint:staticcheck
 			Name: ConnectionParamsControllerName,
 			MapMetadataFunc: func(res *siderolinkres.Config) *siderolinkres.ConnectionParams { //nolint:staticcheck
-				return siderolinkres.NewConnectionParams(resources.DefaultNamespace, res.Metadata().ID()) //nolint:staticcheck
+				return siderolinkres.NewConnectionParams(res.Metadata().ID()) //nolint:staticcheck
 			},
 			UnmapMetadataFunc: func(*siderolinkres.ConnectionParams) *siderolinkres.Config { //nolint:staticcheck
 				return siderolinkres.NewConfig()

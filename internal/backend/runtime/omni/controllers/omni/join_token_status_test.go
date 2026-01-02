@@ -17,7 +17,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -40,7 +39,7 @@ func (suite *JoinTokenStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewJoinTokenStatusController()))
 
-	token := siderolink.NewJoinToken(resources.DefaultNamespace, "token1")
+	token := siderolink.NewJoinToken("token1")
 	token.TypedSpec().Value.Name = "some name"
 
 	suite.Require().NoError(suite.state.Create(ctx, token))

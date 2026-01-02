@@ -22,7 +22,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/pkg/client"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -98,7 +97,7 @@ var (
 				_, err := safe.StateUpdateWithConflicts(
 					ctx,
 					client.Omni().State(),
-					siderolink.NewJoinToken(resources.DefaultNamespace, id).Metadata(),
+					siderolink.NewJoinToken(id).Metadata(),
 					func(res *siderolink.JoinToken) error {
 						res.TypedSpec().Value.Revoked = true
 
@@ -128,7 +127,7 @@ var (
 				_, err := safe.StateUpdateWithConflicts(
 					ctx,
 					client.Omni().State(),
-					siderolink.NewJoinToken(resources.DefaultNamespace, id).Metadata(),
+					siderolink.NewJoinToken(id).Metadata(),
 					func(res *siderolink.JoinToken) error {
 						res.TypedSpec().Value.Revoked = false
 
@@ -192,7 +191,7 @@ var (
 				_, err := safe.StateUpdateWithConflicts(
 					ctx,
 					client.Omni().State(),
-					siderolink.NewJoinToken(resources.DefaultNamespace, id).Metadata(),
+					siderolink.NewJoinToken(id).Metadata(),
 					func(res *siderolink.JoinToken) error {
 						res.TypedSpec().Value.ExpirationTime = timestamppb.New(time.Now().Add(joinTokenRenewFlags.ttl))
 
@@ -319,7 +318,7 @@ var (
 					return err
 				}
 
-				err := client.Omni().State().TeardownAndDestroy(ctx, siderolink.NewJoinToken(resources.DefaultNamespace, id).Metadata())
+				err := client.Omni().State().TeardownAndDestroy(ctx, siderolink.NewJoinToken(id).Metadata())
 				if err != nil {
 					return fmt.Errorf("failed to delete a join token: %w", err)
 				}

@@ -13,7 +13,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
@@ -59,7 +58,7 @@ func Abort(ctx context.Context, omniState state.State, clusterID string, logWrit
 	for msn := range machineSetNodes.All() {
 		fmt.Fprintf(logWriter, "removing link for machine %q from Omni\n", msn.Metadata().ID()) //nolint:errcheck
 
-		_, linkErr := omniState.Teardown(ctx, siderolink.NewLink(resources.DefaultNamespace, msn.Metadata().ID(), nil).Metadata())
+		_, linkErr := omniState.Teardown(ctx, siderolink.NewLink(msn.Metadata().ID(), nil).Metadata())
 		if linkErr != nil {
 			return fmt.Errorf("failed to destroy siderolink %q: %w", msn.Metadata().ID(), linkErr)
 		}

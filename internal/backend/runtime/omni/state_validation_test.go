@@ -1683,7 +1683,7 @@ func TestInfraMachineConfigValidation(t *testing.T) {
 	wrappedState := state.WrapCore(st)
 
 	conf := omnires.NewInfraMachineConfig(resources.DefaultNamespace, "test")
-	link := siderolink.NewLink(resources.DefaultNamespace, "test", nil)
+	link := siderolink.NewLink("test", nil)
 
 	require.NoError(t, st.Create(ctx, conf))
 	require.NoError(t, st.Create(ctx, link))
@@ -1751,7 +1751,7 @@ func TestJoinTokenValidation(t *testing.T) {
 	st := validated.NewState(innerSt, omni.JoinTokenValidationOptions(innerSt)...)
 	wrappedState := state.WrapCore(st)
 
-	normalJoinToken := siderolink.NewJoinToken(resources.DefaultNamespace, "1234567812345678")
+	normalJoinToken := siderolink.NewJoinToken("1234567812345678")
 	normalJoinToken.TypedSpec().Value.Name = "hello"
 
 	assert.NoError(t, wrappedState.Create(ctx, normalJoinToken))
@@ -1805,11 +1805,11 @@ func TestDefaultJoinTokenValidation(t *testing.T) {
 
 	defaultToken := siderolink.NewDefaultJoinToken()
 
-	joinToken := siderolink.NewJoinToken(resources.DefaultNamespace, "mm")
+	joinToken := siderolink.NewJoinToken("mm")
 
 	require.NoError(t, st.Create(ctx, joinToken))
 
-	joinToken = siderolink.NewJoinToken(resources.DefaultNamespace, "mmmm")
+	joinToken = siderolink.NewJoinToken("mmmm")
 
 	require.NoError(t, st.Create(ctx, joinToken))
 

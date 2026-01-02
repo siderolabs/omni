@@ -15,9 +15,9 @@ import (
 )
 
 // NewJoinTokenStatus creates a new JoinTokenStatus resource.
-func NewJoinTokenStatus(ns, id string) *JoinTokenStatus {
+func NewJoinTokenStatus(id string) *JoinTokenStatus {
 	return typed.NewResource[JoinTokenStatusSpec, JoinTokenStatusExtension](
-		resource.NewMetadata(ns, JoinTokenStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, JoinTokenStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.JoinTokenStatusSpec{}),
 	)
 }
