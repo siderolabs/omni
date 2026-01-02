@@ -111,14 +111,14 @@ func (suite *MigrationSuite) TestMoveInfraProviderAnnotationsToLabels() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	link1 := siderolink.NewLink(resources.DefaultNamespace, "link1", &specs.SiderolinkSpec{})
+	link1 := siderolink.NewLink("link1", &specs.SiderolinkSpec{})
 	link1.Metadata().Annotations().Set(omni.LabelInfraProviderID, "test-id-1")
 
-	link2 := siderolink.NewLink(resources.DefaultNamespace, "link2", &specs.SiderolinkSpec{})
+	link2 := siderolink.NewLink("link2", &specs.SiderolinkSpec{})
 	link2.Metadata().Annotations().Set(omni.LabelInfraProviderID, "test-id-2")
 	link2.Metadata().SetPhase(resource.PhaseTearingDown)
 
-	link3 := siderolink.NewLink(resources.DefaultNamespace, "link3", &specs.SiderolinkSpec{})
+	link3 := siderolink.NewLink("link3", &specs.SiderolinkSpec{})
 
 	machine1 := omni.NewMachine(resources.DefaultNamespace, "machine1")
 	machine1.Metadata().Annotations().Set(omni.LabelInfraProviderID, "test-id-3")

@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -42,7 +41,7 @@ func (suite *MachineRequestLinkSuite) TestReconcile() {
 	status.TypedSpec().Value.Id = uuid
 
 	suite.Require().NoError(suite.state.Create(ctx, status))
-	suite.Require().NoError(suite.state.Create(ctx, siderolink.NewLink(resources.DefaultNamespace, uuid, nil)))
+	suite.Require().NoError(suite.state.Create(ctx, siderolink.NewLink(uuid, nil)))
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{uuid}, func(link *siderolink.Link, assert *assert.Assertions) {
 		request, ok := link.Metadata().Labels().Get(omni.LabelMachineRequest)
