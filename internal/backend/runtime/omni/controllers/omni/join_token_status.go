@@ -17,7 +17,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
@@ -35,10 +34,10 @@ func NewJoinTokenStatusController() *JoinTokenStatusController {
 		qtransform.Settings[*siderolink.JoinToken, *siderolink.JoinTokenStatus]{
 			Name: joinTokenStatusControllerName,
 			MapMetadataFunc: func(res *siderolink.JoinToken) *siderolink.JoinTokenStatus {
-				return siderolink.NewJoinTokenStatus(resources.DefaultNamespace, res.Metadata().ID())
+				return siderolink.NewJoinTokenStatus(res.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(res *siderolink.JoinTokenStatus) *siderolink.JoinToken {
-				return siderolink.NewJoinToken(resources.DefaultNamespace, res.Metadata().ID())
+				return siderolink.NewJoinToken(res.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, joinToken *siderolink.JoinToken, joinTokenStatus *siderolink.JoinTokenStatus) error {
 				defaultJoinToken, err := safe.ReaderGetByID[*siderolink.DefaultJoinToken](ctx, r, siderolink.DefaultJoinTokenID)
@@ -157,7 +156,7 @@ func NewJoinTokenStatusController() *JoinTokenStatusController {
 		qtransform.WithExtraMappedInput[*siderolink.JoinTokenUsage](
 			qtransform.MapperFuncFromTyped[*siderolink.JoinTokenUsage](
 				func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, usage *siderolink.JoinTokenUsage) ([]resource.Pointer, error) {
-					return []resource.Pointer{siderolink.NewJoinToken(resources.DefaultNamespace, usage.TypedSpec().Value.TokenId).Metadata()}, nil
+					return []resource.Pointer{siderolink.NewJoinToken(usage.TypedSpec().Value.TokenId).Metadata()}, nil
 				},
 			),
 		),
@@ -182,7 +181,7 @@ func NewJoinTokenStatusController() *JoinTokenStatusController {
 					return nil, err
 				}
 
-				return []resource.Pointer{siderolink.NewJoinToken(resources.DefaultNamespace, usage.TypedSpec().Value.TokenId).Metadata()}, nil
+				return []resource.Pointer{siderolink.NewJoinToken(usage.TypedSpec().Value.TokenId).Metadata()}, nil
 			},
 		),
 		qtransform.WithConcurrency(4),

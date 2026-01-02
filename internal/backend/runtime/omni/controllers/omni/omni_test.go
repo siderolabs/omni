@@ -546,7 +546,7 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 
 		machines[i] = clusterMachine
 
-		link := siderolink.NewLink(resources.DefaultNamespace, clusterMachine.Metadata().ID(), &specs.SiderolinkSpec{
+		link := siderolink.NewLink(clusterMachine.Metadata().ID(), &specs.SiderolinkSpec{
 			Connected: true,
 		})
 

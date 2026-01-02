@@ -1146,7 +1146,7 @@ func (suite *MigrationSuite) TestSiderolinkCounterMigration() {
 	version.TypedSpec().Value.Version = 1
 	suite.Require().NoError(suite.state.Create(ctx, version))
 
-	counter := siderolink.NewDeprecatedLinkCounter(resources.MetricsNamespace, "test")
+	counter := siderolink.NewDeprecatedLinkCounter("test")
 	counter.TypedSpec().Value.BytesReceived = 100
 	counter.TypedSpec().Value.BytesSent = 200
 	counter.TypedSpec().Value.LastAlive = timestamppb.Now()
@@ -1485,7 +1485,7 @@ func (suite *MigrationSuite) TestDropAllMaintenanceConfigs() {
 
 	defer cancel()
 
-	connectionParams := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID) //nolint:staticcheck
+	connectionParams := siderolink.NewConnectionParams(siderolink.ConfigID) //nolint:staticcheck
 	connectionParams.TypedSpec().Value.ApiEndpoint = "grpc://127.0.0.1:8080"
 
 	suite.Require().NoError(suite.state.Create(ctx, connectionParams))
@@ -2124,7 +2124,7 @@ func (suite *MigrationSuite) TestMigrateConnectionParamsToController() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID) //nolint:staticcheck
+	params := siderolink.NewConnectionParams(siderolink.ConfigID) //nolint:staticcheck
 
 	suite.Require().NoError(suite.state.Create(ctx, params))
 
@@ -2143,12 +2143,12 @@ func (suite *MigrationSuite) TestPopulateJoinTokenUsage() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	params := siderolink.NewConnectionParams(resources.DefaultNamespace, siderolink.ConfigID) //nolint:staticcheck
+	params := siderolink.NewConnectionParams(siderolink.ConfigID) //nolint:staticcheck
 	params.TypedSpec().Value.JoinToken = "defaulttoken"
 
 	suite.Require().NoError(suite.state.Create(ctx, params))
 
-	link := siderolink.NewLink(resources.DefaultNamespace, "machine1", nil)
+	link := siderolink.NewLink("machine1", nil)
 
 	suite.Require().NoError(suite.state.Create(ctx, link))
 
@@ -2165,13 +2165,13 @@ func (suite *MigrationSuite) TestUniqueTokenResource() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	link1 := siderolink.NewLink(resources.DefaultNamespace, "machine1", &specs.SiderolinkSpec{
+	link1 := siderolink.NewLink("machine1", &specs.SiderolinkSpec{
 		NodeUniqueToken: "mmmmmmmm", //nolint:staticcheck
 	})
 
-	link2 := siderolink.NewLink(resources.DefaultNamespace, "machine2", &specs.SiderolinkSpec{})
+	link2 := siderolink.NewLink("machine2", &specs.SiderolinkSpec{})
 
-	link3 := siderolink.NewLink(resources.DefaultNamespace, "machine3", &specs.SiderolinkSpec{})
+	link3 := siderolink.NewLink("machine3", &specs.SiderolinkSpec{})
 	link3.Metadata().SetPhase(resource.PhaseTearingDown)
 
 	suite.Require().NoError(suite.state.Create(ctx, link1))
@@ -2259,14 +2259,14 @@ func (suite *MigrationSuite) TestMoveInfraProviderAnnotationsToLabels() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	link1 := siderolink.NewLink(resources.DefaultNamespace, "link1", &specs.SiderolinkSpec{})
+	link1 := siderolink.NewLink("link1", &specs.SiderolinkSpec{})
 	link1.Metadata().Annotations().Set(omni.LabelInfraProviderID, "test-id-1")
 
-	link2 := siderolink.NewLink(resources.DefaultNamespace, "link2", &specs.SiderolinkSpec{})
+	link2 := siderolink.NewLink("link2", &specs.SiderolinkSpec{})
 	link2.Metadata().Annotations().Set(omni.LabelInfraProviderID, "test-id-2")
 	link2.Metadata().SetPhase(resource.PhaseTearingDown)
 
-	link3 := siderolink.NewLink(resources.DefaultNamespace, "link3", &specs.SiderolinkSpec{})
+	link3 := siderolink.NewLink("link3", &specs.SiderolinkSpec{})
 
 	machine1 := omni.NewMachine(resources.DefaultNamespace, "machine1")
 	machine1.Metadata().Annotations().Set(omni.LabelInfraProviderID, "test-id-3")

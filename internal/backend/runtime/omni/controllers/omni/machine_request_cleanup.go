@@ -15,7 +15,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -57,7 +56,7 @@ func NewMachineRequestStatusCleanupController() *MachineRequestStatusCleanupCont
 				),
 				customcleanup.NewHandler[*infra.MachineRequestStatus, *siderolink.Link](
 					func(ctx context.Context, r controller.Runtime, req *infra.MachineRequestStatus) error {
-						_, err := r.Teardown(ctx, siderolink.NewLink(resources.DefaultNamespace, req.TypedSpec().Value.Id, nil).Metadata(), controller.WithOwner(""))
+						_, err := r.Teardown(ctx, siderolink.NewLink(req.TypedSpec().Value.Id, nil).Metadata(), controller.WithOwner(""))
 						if err != nil {
 							if state.IsNotFoundError(err) {
 								return nil

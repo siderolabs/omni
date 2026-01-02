@@ -16,9 +16,9 @@ import (
 // NOTE: This resources is not used anymore, but still used in the migration code.
 
 // NewDeprecatedLinkCounter creates new LinkCounter state.
-func NewDeprecatedLinkCounter(ns, id string) *DeprecatedLinkCounter {
+func NewDeprecatedLinkCounter(id string) *DeprecatedLinkCounter {
 	return typed.NewResource[DeprecatedLinkCounterSpec, DeprecatedLinkCounterExtension](
-		resource.NewMetadata(ns, DeprecatedLinkCounterType, id, resource.VersionUndefined),
+		resource.NewMetadata(CounterNamespace, DeprecatedLinkCounterType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.SiderolinkCounterSpec{}),
 	)
 }

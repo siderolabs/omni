@@ -40,7 +40,6 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
@@ -395,7 +394,7 @@ func (manager *Manager) ensureDefaultJoinToken(ctx context.Context, token string
 		}
 	}
 
-	joinToken := siderolink.NewJoinToken(resources.DefaultNamespace, token)
+	joinToken := siderolink.NewJoinToken(token)
 
 	joinToken.TypedSpec().Value.Name = "initial token"
 

@@ -14,9 +14,9 @@ import (
 )
 
 // NewLink creates new Link state.
-func NewLink(ns, id string, spec *specs.SiderolinkSpec) *Link {
+func NewLink(id string, spec *specs.SiderolinkSpec) *Link {
 	return typed.NewResource[LinkSpec, LinkExtension](
-		resource.NewMetadata(ns, LinkType, id, resource.VersionUndefined),
+		resource.NewMetadata(Namespace, LinkType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(spec),
 	)
 }
