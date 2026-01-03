@@ -15,9 +15,9 @@ import (
 )
 
 // NewSAMLAssertion creates a new SAMLAssertion resource.
-func NewSAMLAssertion(ns, id string) *SAMLAssertion {
+func NewSAMLAssertion(id string) *SAMLAssertion {
 	return typed.NewResource[SAMLAssertionSpec, SAMLAssertionExtension](
-		resource.NewMetadata(ns, SAMLAssertionType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, SAMLAssertionType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.SAMLAssertionSpec{}),
 	)
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -49,13 +48,13 @@ func (suite *KeyPrunerSuite) setup() *clock.Mock {
 func (suite *KeyPrunerSuite) TestRemoveExpiredKey() {
 	fakeClock := suite.setup()
 
-	publicKey := authres.NewPublicKey(resources.DefaultNamespace, testID)
+	publicKey := authres.NewPublicKey(testID)
 	publicKey.TypedSpec().Value.Confirmed = true
 	publicKey.TypedSpec().Value.Expiration = timestamppb.New(fakeClock.Now().Add(defaultExpirationTime))
 
 	fakeClock.Add(4 * time.Second)
 
-	publicKey2 := authres.NewPublicKey(resources.DefaultNamespace, "testID2")
+	publicKey2 := authres.NewPublicKey("testID2")
 	publicKey2.TypedSpec().Value.Confirmed = true
 	publicKey2.TypedSpec().Value.Expiration = timestamppb.New(fakeClock.Now().Add(defaultExpirationTime))
 

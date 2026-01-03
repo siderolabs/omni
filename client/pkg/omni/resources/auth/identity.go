@@ -15,9 +15,9 @@ import (
 )
 
 // NewIdentity creates a new Identity resource.
-func NewIdentity(ns, id string) *Identity {
+func NewIdentity(id string) *Identity {
 	return typed.NewResource[IdentitySpec, IdentityExtension](
-		resource.NewMetadata(ns, IdentityType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, IdentityType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.IdentitySpec{}),
 	)
 }

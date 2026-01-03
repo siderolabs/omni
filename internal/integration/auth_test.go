@@ -653,9 +653,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 		// fully client-managed resources
 
-		identity := authres.NewIdentity(resources.DefaultNamespace, uuid.New().String())
+		identity := authres.NewIdentity(uuid.New().String())
 		accessPolicy := authres.NewAccessPolicy()
-		samlLabelRule := authres.NewSAMLLabelRule(resources.DefaultNamespace, uuid.New().String())
+		samlLabelRule := authres.NewSAMLLabelRule(uuid.New().String())
 		cluster := omni.NewCluster(resources.DefaultNamespace, uuid.New().String())
 		cluster.TypedSpec().Value.TalosVersion = "1.2.2"
 		configPatch := omni.NewConfigPatch(resources.DefaultNamespace, uuid.New().String())
@@ -696,7 +696,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isAdminOnly:    true,
 			},
 			{
-				resource:       authres.NewUser(resources.DefaultNamespace, uuid.New().String()),
+				resource:       authres.NewUser(uuid.New().String()),
 				allowedVerbSet: allVerbsSet,
 				isAdminOnly:    true,
 			},
@@ -1156,7 +1156,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource: system.NewCertRefreshTick(resources.DefaultNamespace, uuid.New().String()),
 			},
 			{
-				resource: authres.NewPublicKey(resources.DefaultNamespace, uuid.New().String()),
+				resource: authres.NewPublicKey(uuid.New().String()),
 			},
 			{
 				resource: omni.NewEtcdAuditResult(resources.DefaultNamespace, uuid.New().String()),
@@ -1177,7 +1177,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource: omni.NewClusterSecrets(resources.DefaultNamespace, uuid.New().String()),
 			},
 			{
-				resource: authres.NewSAMLAssertion(resources.DefaultNamespace, uuid.New().String()),
+				resource: authres.NewSAMLAssertion(uuid.New().String()),
 			},
 			{
 				resource: omni.NewClusterMachineEncryptionKey(resources.DefaultNamespace, uuid.New().String()),
