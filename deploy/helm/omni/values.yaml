@@ -52,7 +52,13 @@ volumeMounts:
     readOnly: true
 volumes:
   etcd:
-    persistentVolumeClaimName: omni-pvc
+    persistentVolumeClaim:
+      Name: omni-pvc
+      Size: 10G
+  sqlite:
+    persistentVolumeClaim:
+      Name: sqlite-pvc
+      Size: 5G
   tls:
     secretName: null # tls
   gpg:
