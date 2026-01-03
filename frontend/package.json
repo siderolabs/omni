@@ -110,7 +110,7 @@
     "vite-plugin-vue-devtools": "^8.0.3",
     "vitest": "^4.0.9",
     "vue-component-type-helpers": "^3.1.4",
-    "vue-tsc": "^3.1.4",
+    "vue-tsc": "^3.2.1",
     "yaml": "^2.8.1"
   }
 }
