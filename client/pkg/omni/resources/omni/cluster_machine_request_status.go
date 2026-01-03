@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterMachineRequestStatus creates a new ClusterMachineRequestStatus state.
-func NewClusterMachineRequestStatus(ns, id string) *ClusterMachineRequestStatus {
+func NewClusterMachineRequestStatus(id string) *ClusterMachineRequestStatus {
 	return typed.NewResource[ClusterMachineRequestStatusSpec, ClusterMachineRequestStatusExtension](
-		resource.NewMetadata(ns, ClusterMachineRequestStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterMachineRequestStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterMachineRequestStatusSpec{}),
 	)
 }

@@ -391,7 +391,7 @@ func (ctrl *InstallationMediaController) Run(ctx context.Context, r controller.R
 	for _, m := range installationMedia {
 		fname := generateFilename(m)
 
-		err := safe.WriterModify(ctx, r, omni.NewInstallationMedia(resources.EphemeralNamespace, fname.id), func(newMedia *omni.InstallationMedia) error {
+		err := safe.WriterModify(ctx, r, omni.NewInstallationMedia(fname.id), func(newMedia *omni.InstallationMedia) error {
 			newMedia.TypedSpec().Value.Architecture = m.Architecture
 			newMedia.TypedSpec().Value.Name = m.Name
 			newMedia.TypedSpec().Value.Profile = m.Profile

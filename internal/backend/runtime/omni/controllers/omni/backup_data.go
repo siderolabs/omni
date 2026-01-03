@@ -17,7 +17,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -33,7 +32,7 @@ func NewBackupDataController() *BackupDataController {
 				return omni.NewBackupData(cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(backupData *omni.BackupData) *omni.Cluster {
-				return omni.NewCluster(resources.DefaultNamespace, backupData.Metadata().ID())
+				return omni.NewCluster(backupData.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, cluster *omni.Cluster, backupData *omni.BackupData) error {
 				clusterID := cluster.Metadata().ID()

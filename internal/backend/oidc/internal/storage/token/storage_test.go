@@ -77,7 +77,7 @@ func TestGetPrivateClaimsFromScopes(t *testing.T) {
 	user := auth.NewUser(resources.DefaultNamespace, userID)
 	user.TypedSpec().Value.Role = string(role.None)
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster := omni.NewCluster(clusterID)
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
@@ -180,7 +180,7 @@ func TestSetUserinfoFromScopes(t *testing.T) {
 	// will bring constants.DefaultAccessGroup scope
 	user.TypedSpec().Value.Role = string(role.Operator)
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster := omni.NewCluster(clusterID)
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 

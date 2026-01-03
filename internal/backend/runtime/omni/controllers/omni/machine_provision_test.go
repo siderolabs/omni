@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -35,15 +34,15 @@ func (suite *MachineProvisionControllerSuite) TestReconcile() {
 
 	require.NoError(suite.runtime.RegisterQController(omnictrl.NewMachineProvisionController()))
 
-	machineClass := omni.NewMachineClass(resources.DefaultNamespace, "test")
+	machineClass := omni.NewMachineClass("test")
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "ms1")
+	machineSet := omni.NewMachineSet("ms1")
 	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
 		Name:         machineClass.Metadata().ID(),
 		MachineCount: 4,
 	}
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "cluster")
+	cluster := omni.NewCluster("cluster")
 
 	cluster.TypedSpec().Value.TalosVersion = "1.7.7"
 

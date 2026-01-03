@@ -14,7 +14,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -29,7 +28,7 @@ func NewEtcdBackupEncryptionController() *EtcdBackupEncryptionController {
 		qtransform.Settings[*omni.ClusterUUID, *omni.EtcdBackupEncryption]{
 			Name: "EtcdBackupEncryptionController",
 			MapMetadataFunc: func(cluster *omni.ClusterUUID) *omni.EtcdBackupEncryption {
-				return omni.NewEtcdBackupEncryption(resources.DefaultNamespace, cluster.Metadata().ID())
+				return omni.NewEtcdBackupEncryption(cluster.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(backupEncryption *omni.EtcdBackupEncryption) *omni.ClusterUUID {
 				return omni.NewClusterUUID(backupEncryption.Metadata().ID())

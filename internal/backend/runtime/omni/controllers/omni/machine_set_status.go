@@ -19,7 +19,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
@@ -53,7 +52,7 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 		}
 
 		return []resource.Pointer{
-			omni.NewMachineSet(resources.DefaultNamespace, id).Metadata(),
+			omni.NewMachineSet(id).Metadata(),
 		}, nil
 	}
 
@@ -63,10 +62,10 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 		qtransform.Settings[*omni.MachineSet, *omni.MachineSetStatus]{
 			Name: machineset.ControllerName,
 			MapMetadataFunc: func(machineSet *omni.MachineSet) *omni.MachineSetStatus {
-				return omni.NewMachineSetStatus(resources.DefaultNamespace, machineSet.Metadata().ID())
+				return omni.NewMachineSetStatus(machineSet.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(machineSetStatus *omni.MachineSetStatus) *omni.MachineSet {
-				return omni.NewMachineSet(resources.DefaultNamespace, machineSetStatus.Metadata().ID())
+				return omni.NewMachineSet(machineSetStatus.Metadata().ID())
 			},
 			TransformExtraOutputFunc:        handler.reconcileRunning,
 			FinalizerRemovalExtraOutputFunc: handler.reconcileTearingDown,
@@ -105,7 +104,7 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 		qtransform.WithExtraMappedInput[*omni.Machine](
 			// machine to machine set, if the machine is allocated
 			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, machine controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
-				clusterMachine, err := r.Get(ctx, omni.NewClusterMachine(resources.DefaultNamespace, machine.ID()).Metadata())
+				clusterMachine, err := r.Get(ctx, omni.NewClusterMachine(machine.ID()).Metadata())
 				if err != nil {
 					if state.IsNotFoundError(err) {
 						return nil, nil
@@ -118,7 +117,7 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 				}
 
 				return []resource.Pointer{
-					omni.NewMachineSet(resources.DefaultNamespace, machineSetID).Metadata(),
+					omni.NewMachineSet(machineSetID).Metadata(),
 				}, nil
 			},
 		),
@@ -146,12 +145,12 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 				machineSetID, ok := patch.Labels().Get(omni.LabelMachineSet)
 				if ok {
 					return []resource.Pointer{
-						omni.NewMachineSet(resources.DefaultNamespace, machineSetID).Metadata(),
+						omni.NewMachineSet(machineSetID).Metadata(),
 					}, nil
 				}
 
 				// cluster level patch, find all machine sets in a cluster
-				list, err := r.List(ctx, omni.NewMachineSet(resources.DefaultNamespace, "").Metadata(), state.WithLabelQuery(
+				list, err := r.List(ctx, omni.NewMachineSet("").Metadata(), state.WithLabelQuery(
 					resource.LabelEqual(omni.LabelCluster, clusterName),
 				))
 				if err != nil {
@@ -214,7 +213,7 @@ func (handler *machineSetStatusHandler) reconcileTearingDown(ctx context.Context
 	}
 
 	updateStatus := func(clusterMachinesCount uint32) error {
-		mss := omni.NewMachineSetStatus(resources.DefaultNamespace, machineSet.Metadata().ID())
+		mss := omni.NewMachineSetStatus(machineSet.Metadata().ID())
 		notFoundErr := errors.New("not found")
 
 		modifyErr := safe.WriterModify(ctx, r, mss, func(status *omni.MachineSetStatus) error {

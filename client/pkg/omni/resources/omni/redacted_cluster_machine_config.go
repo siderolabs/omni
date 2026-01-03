@@ -15,9 +15,9 @@ import (
 )
 
 // NewRedactedClusterMachineConfig creates new redacted cluster machine config resource.
-func NewRedactedClusterMachineConfig(ns string, id resource.ID) *RedactedClusterMachineConfig {
+func NewRedactedClusterMachineConfig(id resource.ID) *RedactedClusterMachineConfig {
 	return typed.NewResource[RedactedClusterMachineConfigSpec, RedactedClusterMachineConfigExtension](
-		resource.NewMetadata(ns, RedactedClusterMachineConfigType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, RedactedClusterMachineConfigType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.RedactedClusterMachineConfigSpec{}),
 	)
 }

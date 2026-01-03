@@ -15,9 +15,9 @@ import (
 )
 
 // NewInfraMachineConfig creates a new InfraMachineConfig resource.
-func NewInfraMachineConfig(ns, id string) *InfraMachineConfig {
+func NewInfraMachineConfig(id string) *InfraMachineConfig {
 	return typed.NewResource[InfraMachineConfigSpec, InfraMachineConfigExtension](
-		resource.NewMetadata(ns, InfraMachineConfigType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, InfraMachineConfigType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.InfraMachineConfigSpec{}),
 	)
 }

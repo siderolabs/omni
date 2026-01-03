@@ -15,9 +15,9 @@ import (
 )
 
 // NewEtcdBackupEncryption creates new etcd backup encryption info.
-func NewEtcdBackupEncryption(ns string, id resource.ID) *EtcdBackupEncryption {
+func NewEtcdBackupEncryption(id resource.ID) *EtcdBackupEncryption {
 	return typed.NewResource[EtcdBackupEncryptionSpec, EtcdBackupEncryptionExtension](
-		resource.NewMetadata(ns, EtcdBackupEncryptionType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, EtcdBackupEncryptionType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.EtcdBackupEncryptionSpec{}),
 	)
 }

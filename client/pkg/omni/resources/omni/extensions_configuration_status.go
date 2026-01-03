@@ -15,9 +15,9 @@ import (
 )
 
 // NewExtensionsConfigurationStatus creates a new ExtensionsConfigurationStatus resource.
-func NewExtensionsConfigurationStatus(ns string, id resource.ID) *ExtensionsConfigurationStatus {
+func NewExtensionsConfigurationStatus(id resource.ID) *ExtensionsConfigurationStatus {
 	return typed.NewResource[ExtensionsConfigurationStatusSpec, ExtensionsConfigurationStatusExtension](
-		resource.NewMetadata(ns, ExtensionsConfigurationStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ExtensionsConfigurationStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ExtensionsConfigurationStatusSpec{}),
 	)
 }

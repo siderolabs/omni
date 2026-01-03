@@ -12,13 +12,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 )
 
 func TestWorkersHandler(t *testing.T) {
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "test")
+	machineSet := omni.NewMachineSet("test")
 
 	version := resource.VersionUndefined.Next()
 
@@ -40,9 +39,9 @@ func TestWorkersHandler(t *testing.T) {
 			name:       "create nodes",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", machineSet),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "c", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
+				omni.NewMachineSetNode("b", machineSet),
+				omni.NewMachineSetNode("c", machineSet),
 			},
 			expectOperations: []machineset.Operation{
 				&machineset.Create{ID: "a"},
@@ -54,19 +53,19 @@ func TestWorkersHandler(t *testing.T) {
 			name:       "create nodes when scaling down",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", machineSet),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "c", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
+				omni.NewMachineSetNode("b", machineSet),
+				omni.NewMachineSetNode("c", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version)),
-				tearingDownNoFinalizers(omni.NewClusterMachine(resources.DefaultNamespace, "b")),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version)),
+				tearingDownNoFinalizers(omni.NewClusterMachine("b")),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachineConfigPatches("a"),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
 			},
 			expectOperations: []machineset.Operation{
 				&machineset.Destroy{ID: "b"},
@@ -77,19 +76,19 @@ func TestWorkersHandler(t *testing.T) {
 			name:       "destroy multiple",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version)),
-				tearingDownNoFinalizers(omni.NewClusterMachine(resources.DefaultNamespace, "b")),
-				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "c"), version)),
-				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "d"), version)),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version)),
+				tearingDownNoFinalizers(omni.NewClusterMachine("b")),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("c"), version)),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("d"), version)),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachineConfigPatches("a"),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
 			},
 			expectOperations: []machineset.Operation{
 				&machineset.Destroy{ID: "b"},
@@ -101,27 +100,27 @@ func TestWorkersHandler(t *testing.T) {
 			name:       "destroy, create and update at the same time",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", machineSet),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "c", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
+				omni.NewMachineSetNode("b", machineSet),
+				omni.NewMachineSetNode("c", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version)),
-				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "c"), version)),
-				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "d"), version)),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version)),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("c"), version)),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("d"), version)),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "c"),
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "d"),
+				omni.NewClusterMachineConfigPatches("a"),
+				omni.NewClusterMachineConfigPatches("c"),
+				omni.NewClusterMachineConfigPatches("d"),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "d"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("d"), version),
 			},
 			pendingConfigPatches: map[resource.ID][]*omni.ConfigPatch{
 				"a": {
-					omni.NewConfigPatch(resources.DefaultNamespace, "1"),
+					omni.NewConfigPatch("1"),
 				},
 			},
 			expectOperations: []machineset.Operation{
@@ -140,10 +139,10 @@ func TestWorkersHandler(t *testing.T) {
 			name:       "update a machine",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				omni.NewClusterMachine(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachine("a"),
 			},
 			expectOperations: []machineset.Operation{
 				&machineset.Update{
@@ -155,16 +154,16 @@ func TestWorkersHandler(t *testing.T) {
 			name:       "no actions",
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", machineSet),
+				omni.NewMachineSetNode("a", machineSet),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version)),
+				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version)),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachineConfigPatches("a"),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
 			},
 			expectOperations: []machineset.Operation{},
 		},
@@ -175,7 +174,7 @@ func TestWorkersHandler(t *testing.T) {
 			machineSet.TypedSpec().Value = tt.machineSet
 			machineSet.Metadata().Labels().Set(omni.LabelCluster, tt.name)
 
-			cluster := omni.NewCluster(resources.DefaultNamespace, tt.name)
+			cluster := omni.NewCluster(tt.name)
 			cluster.TypedSpec().Value.TalosVersion = "v1.6.0"
 			cluster.TypedSpec().Value.KubernetesVersion = "v1.29.0"
 

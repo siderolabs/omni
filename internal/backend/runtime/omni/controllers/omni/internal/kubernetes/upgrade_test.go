@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/kubernetes"
 )
@@ -26,7 +25,7 @@ func TestUpgradePath(t *testing.T) {
 	t.Parallel()
 
 	kubernetesStatus := func(clusterID resource.ID, spec *specs.KubernetesStatusSpec) *omni.KubernetesStatus {
-		r := omni.NewKubernetesStatus(resources.DefaultNamespace, clusterID)
+		r := omni.NewKubernetesStatus(clusterID)
 		r.TypedSpec().Value = spec
 
 		return r

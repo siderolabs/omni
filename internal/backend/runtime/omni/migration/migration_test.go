@@ -330,7 +330,7 @@ func (suite *MigrationSuite) TestMachineSets() {
 	)
 
 	for i, m := range []string{"c1.m1", "c1.m2", "c1.m3", "c1.m4"} {
-		machine, err := safe.StateGet[*omni.ClusterMachine](ctx, suite.state, omni.NewClusterMachine(resources.DefaultNamespace, m).Metadata())
+		machine, err := safe.StateGet[*omni.ClusterMachine](ctx, suite.state, omni.NewClusterMachine(m).Metadata())
 		suite.Require().NoError(err)
 		suite.assertLabel(machine, "cluster", "c1")
 
@@ -356,8 +356,8 @@ func (suite *MigrationSuite) TestClusterInfoTearingDown() {
 }
 
 func (suite *MigrationSuite) createCluster(ctx context.Context, name string, finalizers ...string) (*omni.Cluster, *omni.ClusterMachineTemplate) {
-	cluster := omni.NewCluster(resources.DefaultNamespace, name)
-	machine := omni.NewClusterMachineTemplate(resources.DefaultNamespace, fmt.Sprintf("%s.uuid", name))
+	cluster := omni.NewCluster(name)
+	machine := omni.NewClusterMachineTemplate(fmt.Sprintf("%s.uuid", name))
 	machine.TypedSpec().Value.Patch = testConfigPatch
 	machine.TypedSpec().Value.InstallDisk = testInstallDisk
 
@@ -380,18 +380,18 @@ func (suite *MigrationSuite) createCluster(ctx context.Context, name string, fin
 }
 
 func (suite *MigrationSuite) createClusterWithMachines(ctx context.Context, name string, machines []machine, withTemplates bool) *omni.Cluster {
-	cluster := omni.NewCluster(resources.DefaultNamespace, name)
+	cluster := omni.NewCluster(name)
 
 	for _, m := range machines {
 		id := fmt.Sprintf("%s.%s", name, m.name)
-		machine := omni.NewClusterMachine(resources.DefaultNamespace, id)
+		machine := omni.NewClusterMachine(id)
 		machine.TypedSpec().Value.KubernetesVersion = "v1.24.0"
 
 		machine.Metadata().Labels().Set("cluster", cluster.Metadata().ID())
 		machine.Metadata().Finalizers().Add(omnictrl.NewClusterMachineConfigController("factory-test.talos.dev", nil).Name())
 
 		if withTemplates {
-			template := omni.NewClusterMachineTemplate(resources.DefaultNamespace, fmt.Sprintf("%s.%s", name, m.name))
+			template := omni.NewClusterMachineTemplate(fmt.Sprintf("%s.%s", name, m.name))
 			template.TypedSpec().Value.Patch = m.patch
 			template.TypedSpec().Value.InstallDisk = testInstallDisk
 			template.TypedSpec().Value.InstallImage = "ghcr.io/siderolabs/installer:v1.1.1"
@@ -457,10 +457,10 @@ func (suite *MigrationSuite) TestRollingStrategyOnControlPlaneMachineSets() {
 
 	ctx := suite.T().Context()
 
-	controlPlaneMachineSet := omni.NewMachineSet(resources.DefaultNamespace, "control-plane-set")
+	controlPlaneMachineSet := omni.NewMachineSet("control-plane-set")
 	controlPlaneMachineSet.Metadata().Labels().Set("role-controlplane", "")
 
-	workerMachineSet := omni.NewMachineSet(resources.DefaultNamespace, "worker-set")
+	workerMachineSet := omni.NewMachineSet("worker-set")
 	workerMachineSet.Metadata().Labels().Set("role-worker", "")
 
 	suite.Require().NoError(suite.state.Create(ctx, controlPlaneMachineSet))
@@ -483,39 +483,36 @@ func (suite *MigrationSuite) TestUpdateConfigPatchLabels() {
 
 	ctx := suite.T().Context()
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "cluster")
+	cluster := omni.NewCluster("cluster")
 	cluster.TypedSpec().Value.InstallImage = fmt.Sprintf("%s:v%s", config.Config.Registries.Talos, constants.DefaultTalosVersion) //nolint:staticcheck
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machine-set")
+	machineSet := omni.NewMachineSet("machine-set")
 	machineSet.Metadata().Labels().Set("cluster", cluster.Metadata().ID())
 
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "cluster-machine")
+	clusterMachine := omni.NewClusterMachine("cluster-machine")
 	clusterMachine.Metadata().Labels().Set("cluster", cluster.Metadata().ID())
 
 	clusterConfigPatch := omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		"config-patch-1",
 		pair.MakePair("cluster-name", cluster.Metadata().ID()),
 	)
 
-	machineSetConfigPatchWithCluster := omni.NewConfigPatch(resources.DefaultNamespace, "config-patch-2",
+	machineSetConfigPatchWithCluster := omni.NewConfigPatch("config-patch-2",
 		pair.MakePair("cluster-name", cluster.Metadata().ID()),
 		pair.MakePair("machine-set-name", machineSet.Metadata().ID()),
 	)
 
 	machineSetConfigPatchWithoutCluster := omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		"config-patch-3",
 		pair.MakePair("machine-set-name", machineSet.Metadata().ID()),
 	)
 
-	clusterMachineConfigPatchWithCluster := omni.NewConfigPatch(resources.DefaultNamespace, "config-patch-4",
+	clusterMachineConfigPatchWithCluster := omni.NewConfigPatch("config-patch-4",
 		pair.MakePair("cluster-name", cluster.Metadata().ID()),
 		pair.MakePair("machine-uuid", clusterMachine.Metadata().ID()),
 	)
 
 	clusterMachineConfigPatchWithoutCluster := omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		"config-patch-5",
 		pair.MakePair("machine-uuid", clusterMachine.Metadata().ID()),
 	)
@@ -578,9 +575,9 @@ func (suite *MigrationSuite) TestMigrateMachineFinalizers() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	m1 := omni.NewMachine(resources.DefaultNamespace, "m1")
-	m2 := omni.NewMachine(resources.DefaultNamespace, "m2")
-	m3 := omni.NewMachine(resources.DefaultNamespace, "m3")
+	m1 := omni.NewMachine("m1")
+	m2 := omni.NewMachine("m2")
+	m3 := omni.NewMachine("m3")
 
 	m1.Metadata().Finalizers().Add("ClusterMachineStatusController")
 	m2.Metadata().Finalizers().Add("ClusterMachineStatusController")
@@ -592,8 +589,8 @@ func (suite *MigrationSuite) TestMigrateMachineFinalizers() {
 	_, err := suite.state.Teardown(ctx, m2.Metadata())
 	suite.Require().NoError(err)
 
-	cm1 := omni.NewClusterMachine(resources.DefaultNamespace, "m1")
-	cm3 := omni.NewClusterMachine(resources.DefaultNamespace, "m3")
+	cm1 := omni.NewClusterMachine("m1")
+	cm3 := omni.NewClusterMachine("m3")
 
 	for _, cm := range []*omni.ClusterMachine{cm1, cm3} {
 		suite.Require().NoError(suite.state.Create(ctx, cm))
@@ -622,8 +619,8 @@ func (suite *MigrationSuite) TestMigrateConfigPatchLabels() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	p1 := omni.NewConfigPatch(resources.DefaultNamespace, "000-p1")
-	p2 := omni.NewConfigPatch(resources.DefaultNamespace, "001-p2")
+	p1 := omni.NewConfigPatch("000-p1")
+	p2 := omni.NewConfigPatch("001-p2")
 
 	for _, p := range []*omni.ConfigPatch{p1, p2} {
 		suite.Require().NoError(suite.state.Create(ctx, p))
@@ -650,17 +647,17 @@ func (suite *MigrationSuite) TestUpdateMachineStatusClusterRelations() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	msControlPlane := omni.NewMachineStatus(resources.DefaultNamespace, "msControlPlane")
+	msControlPlane := omni.NewMachineStatus("msControlPlane")
 	msControlPlane.Metadata().Labels().Set("cluster", "c1")
 	msControlPlane.Metadata().Labels().Set("role-controlplane", "")
 
 	suite.Require().NoError(suite.state.Create(ctx, msControlPlane, state.WithCreateOwner("some-owner")))
 
-	msAvailable := omni.NewMachineStatus(resources.DefaultNamespace, "msAvailable")
+	msAvailable := omni.NewMachineStatus("msAvailable")
 
 	suite.Require().NoError(suite.state.Create(ctx, msAvailable))
 
-	msTearingDown := omni.NewMachineStatus(resources.DefaultNamespace, "msTearingDown")
+	msTearingDown := omni.NewMachineStatus("msTearingDown")
 	msTearingDown.Metadata().Labels().Set("cluster", "c1")
 
 	msTearingDown.Metadata().SetPhase(resource.PhaseTearingDown)
@@ -767,17 +764,17 @@ func (suite *MigrationSuite) TestMigrateLabels() {
 
 	id := uuid.New().String()
 
-	machineStatus := omni.NewClusterMachineStatus(resources.DefaultNamespace, "__1")
+	machineStatus := omni.NewClusterMachineStatus("__1")
 	machineStatus.Metadata().Labels().Set("role-controlplane", "")
 	machineStatus.Metadata().Labels().Set("cluster", "cluster5")
 	suite.Require().NoError(suite.state.Create(ctx, machineStatus))
 
-	machineStatus = omni.NewClusterMachineStatus(resources.DefaultNamespace, id)
+	machineStatus = omni.NewClusterMachineStatus(id)
 	machineStatus.Metadata().Labels().Set("role-worker", "")
 	machineStatus.Metadata().Labels().Set("cluster", "cluster1")
 	suite.Require().NoError(suite.state.Create(ctx, machineStatus))
 
-	machineLabels := omni.NewMachineLabels(resources.DefaultNamespace, id)
+	machineLabels := omni.NewMachineLabels(id)
 	machineLabels.Metadata().Labels().Set("user-label", "value")
 	suite.Require().NoError(suite.state.Create(ctx, machineLabels))
 
@@ -1002,13 +999,13 @@ func (suite *MigrationSuite) TestPatchesExtraction() {
 	suite.createClusterWithMachines(ctx, clusterName, machines, true)
 
 	createResources := []pair.Pair[string, resource.Resource]{
-		pair.MakePair[string, resource.Resource]((&omnictrl.LoadBalancerController{}).Name(), omni.NewLoadBalancerConfig(resources.DefaultNamespace, clusterName)),
-		pair.MakePair[string, resource.Resource]("", omni.NewClusterSecrets(resources.DefaultNamespace, clusterName)),
+		pair.MakePair[string, resource.Resource]((&omnictrl.LoadBalancerController{}).Name(), omni.NewLoadBalancerConfig(clusterName)),
+		pair.MakePair[string, resource.Resource]("", omni.NewClusterSecrets(clusterName)),
 	}
 
 	createResources = append(createResources, xslices.Map(machines, func(m machine) pair.Pair[string, resource.Resource] {
 		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController("factory-test.talos.dev", nil).Name(),
-			omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
+			omni.NewClusterMachineConfig(clusterName+"."+m.name))
 	})...)
 
 	for _, res := range createResources {
@@ -1019,7 +1016,7 @@ func (suite *MigrationSuite) TestPatchesExtraction() {
 	suite.Require().NoError(suite.manager.Run(ctx))
 
 	for _, m := range []string{"patches.m1", "patches.m2", "patches.m3", "patches.m4"} {
-		patches, err := safe.StateGet[*omni.ClusterMachineConfigPatches](ctx, suite.state, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, m).Metadata())
+		patches, err := safe.StateGet[*omni.ClusterMachineConfigPatches](ctx, suite.state, omni.NewClusterMachineConfigPatches(m).Metadata())
 		suite.Require().NoError(err)
 		suite.assertLabel(patches, omni.SystemLabelPrefix+"cluster", "patches")
 
@@ -1028,7 +1025,7 @@ func (suite *MigrationSuite) TestPatchesExtraction() {
 
 		suite.Require().Len(patchList, 1)
 
-		config, err := safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, omni.NewClusterMachineConfig(resources.DefaultNamespace, m).Metadata())
+		config, err := safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, omni.NewClusterMachineConfig(m).Metadata())
 		suite.Require().NoError(err)
 
 		_, ok := config.Metadata().Annotations().Get("inputResourceVersion")
@@ -1058,7 +1055,7 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 
 	m1 := "patches.m1"
 
-	m1Status := omni.NewMachineStatus(resources.DefaultNamespace, m1)
+	m1Status := omni.NewMachineStatus(m1)
 	m1Status.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
 		Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{
 			{
@@ -1071,32 +1068,31 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 		Id: "id",
 	}
 
-	lbStatus := omni.NewLoadBalancerStatus(resources.DefaultNamespace, clusterName)
+	lbStatus := omni.NewLoadBalancerStatus(clusterName)
 	lbStatus.TypedSpec().Value.Healthy = true
 
 	machineSet := omni.NewMachineSet(
-		resources.DefaultNamespace,
 		omni.WorkersResourceID(clusterName),
 	)
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 
-	clusterConfigVersion := omni.NewClusterConfigVersion(resources.DefaultNamespace, clusterName)
+	clusterConfigVersion := omni.NewClusterConfigVersion(clusterName)
 	clusterConfigVersion.TypedSpec().Value.Version = "v1.4"
 
 	createResources := []pair.Pair[string, resource.Resource]{
-		pair.MakePair[string, resource.Resource]((&omnictrl.LoadBalancerController{}).Name(), omni.NewLoadBalancerConfig(resources.DefaultNamespace, clusterName)),
+		pair.MakePair[string, resource.Resource]((&omnictrl.LoadBalancerController{}).Name(), omni.NewLoadBalancerConfig(clusterName)),
 		pair.MakePair[string, resource.Resource]((&omnictrl.LoadBalancerController{}).Name(), lbStatus),
-		pair.MakePair[string, resource.Resource]("", omni.NewClusterSecrets(resources.DefaultNamespace, clusterName)),
+		pair.MakePair[string, resource.Resource]("", omni.NewClusterSecrets(clusterName)),
 		pair.MakePair[string, resource.Resource]("", m1Status),
-		pair.MakePair[string, resource.Resource]("", omni.NewMachine(resources.DefaultNamespace, m1)),
-		pair.MakePair[string, resource.Resource]("", omni.NewMachineSetNode(resources.DefaultNamespace, m1, machineSet)),
+		pair.MakePair[string, resource.Resource]("", omni.NewMachine(m1)),
+		pair.MakePair[string, resource.Resource]("", omni.NewMachineSetNode(m1, machineSet)),
 		pair.MakePair[string, resource.Resource]("", clusterConfigVersion),
 	}
 
 	createResources = append(createResources, xslices.Map(machines, func(m machine) pair.Pair[string, resource.Resource] {
 		return pair.MakePair[string, resource.Resource](omnictrl.NewClusterMachineConfigController("factory-test.talos.dev", nil).Name(),
-			omni.NewClusterMachineConfig(resources.DefaultNamespace, clusterName+"."+m.name))
+			omni.NewClusterMachineConfig(clusterName+"."+m.name))
 	})...)
 
 	for _, res := range createResources {
@@ -1106,11 +1102,11 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 
 	suite.Require().NoError(suite.manager.Run(ctx))
 
-	options, err := safe.StateGet[*omni.MachineConfigGenOptions](ctx, suite.state, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, m1).Metadata())
+	options, err := safe.StateGet[*omni.MachineConfigGenOptions](ctx, suite.state, omni.NewMachineConfigGenOptions(m1).Metadata())
 	suite.Require().NoError(err)
 	suite.Require().Equal("/dev/vdb", options.TypedSpec().Value.InstallDisk)
 
-	config, err := safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, omni.NewClusterMachineConfig(resources.DefaultNamespace, m1).Metadata())
+	config, err := safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, omni.NewClusterMachineConfig(m1).Metadata())
 	suite.Require().NoError(err)
 
 	_, ok := config.Metadata().Annotations().Get("inputResourceVersion")
@@ -1133,7 +1129,7 @@ func (suite *MigrationSuite) TestInstallDiskPatchMigration() {
 		suite.Require().NoError(err)
 	}
 
-	config, err = safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, omni.NewClusterMachineConfig(resources.DefaultNamespace, m1).Metadata())
+	config, err = safe.StateGet[*omni.ClusterMachineConfig](ctx, suite.state, omni.NewClusterMachineConfig(m1).Metadata())
 	suite.Require().NoError(err)
 
 	suite.Require().Equal(oldVer, config.Metadata().Version())
@@ -1154,7 +1150,7 @@ func (suite *MigrationSuite) TestSiderolinkCounterMigration() {
 
 	suite.Require().NoError(suite.manager.Run(ctx))
 
-	msl, err := safe.StateGet[*omni.MachineStatusLink](ctx, suite.state, omni.NewMachineStatusLink(resources.MetricsNamespace, "test").Metadata())
+	msl, err := safe.StateGet[*omni.MachineStatusLink](ctx, suite.state, omni.NewMachineStatusLink("test").Metadata())
 	suite.Require().NoError(err)
 
 	suite.Require().Equal(counter.TypedSpec().Value.BytesReceived, msl.TypedSpec().Value.SiderolinkCounter.BytesReceived)
@@ -1173,8 +1169,8 @@ func (suite *MigrationSuite) TestFixClusterConfigVersionOwnership() {
 	version.TypedSpec().Value.Version = 1
 	suite.Require().NoError(suite.state.Create(ctx, version))
 
-	c1 := omni.NewClusterConfigVersion(resources.DefaultNamespace, "1")
-	c2 := omni.NewClusterConfigVersion(resources.DefaultNamespace, "2")
+	c1 := omni.NewClusterConfigVersion("1")
+	c2 := omni.NewClusterConfigVersion("2")
 
 	expectedName := "ClusterConfigVersionController"
 
@@ -1202,13 +1198,13 @@ func (suite *MigrationSuite) TestUpdateClusterMachineConfigPatchesLabels() {
 	version.TypedSpec().Value.Version = 23
 	suite.Require().NoError(suite.state.Create(ctx, version))
 
-	cp1 := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "1")
-	cp2 := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "2")
+	cp1 := omni.NewClusterMachineConfigPatches("1")
+	cp2 := omni.NewClusterMachineConfigPatches("2")
 
 	suite.Require().NoError(suite.state.Create(ctx, cp1, state.WithCreateOwner("MachineSetStatusController")))
 	suite.Require().NoError(suite.state.Create(ctx, cp2, state.WithCreateOwner("MachineSetStatusController")))
 
-	cm := omni.NewClusterMachine(resources.DefaultNamespace, "2")
+	cm := omni.NewClusterMachine("2")
 
 	cm.Metadata().Labels().Set(omni.LabelMachineSet, "some")
 	cm.Metadata().Labels().Set(omni.LabelCluster, "c1")
@@ -1242,7 +1238,7 @@ func (suite *MigrationSuite) TestUpdateClusterMachineConfigPatchesLabels() {
 func (suite *MigrationSuite) TestClearEmptyConfigPatches() {
 	ctx := suite.T().Context()
 
-	cp1 := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "1")
+	cp1 := omni.NewClusterMachineConfigPatches("1")
 
 	err := cp1.TypedSpec().Value.SetUncompressedPatches([]string{
 		"foo: yaml",
@@ -1252,7 +1248,7 @@ func (suite *MigrationSuite) TestClearEmptyConfigPatches() {
 	})
 	suite.Require().NoError(err)
 
-	cp2 := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "2")
+	cp2 := omni.NewClusterMachineConfigPatches("2")
 
 	err = cp2.TypedSpec().Value.SetUncompressedPatches([]string{
 		"",
@@ -1293,16 +1289,16 @@ func (suite *MigrationSuite) TestCleanupDanglingSchematicConfigurations() {
 	version.TypedSpec().Value.Version = 23
 	suite.Require().NoError(suite.state.Create(ctx, version))
 
-	sc1 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "1")
-	sc2 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "2")
-	sc3 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "3")
+	sc1 := omni.NewSchematicConfiguration("1")
+	sc2 := omni.NewSchematicConfiguration("2")
+	sc3 := omni.NewSchematicConfiguration("3")
 	sc3.Metadata().Finalizers().Add("some-finalizer")
 
 	suite.Require().NoError(suite.state.Create(ctx, sc1, state.WithCreateOwner("SchematicConfigurationController")))
 	suite.Require().NoError(suite.state.Create(ctx, sc2, state.WithCreateOwner("SchematicConfigurationController")))
 	suite.Require().NoError(suite.state.Create(ctx, sc3, state.WithCreateOwner("SchematicConfigurationController")))
 
-	cm := omni.NewClusterMachine(resources.DefaultNamespace, "1")
+	cm := omni.NewClusterMachine("1")
 
 	cm.Metadata().Labels().Set(omni.LabelMachineSet, "some")
 	cm.Metadata().Labels().Set(omni.LabelCluster, "c1")
@@ -1330,7 +1326,7 @@ func (suite *MigrationSuite) TestCleanupExtensionConfigurationStatuses() {
 	version.TypedSpec().Value.Version = 23
 	suite.Require().NoError(suite.state.Create(ctx, version))
 
-	status := omni.NewExtensionsConfigurationStatus(resources.DefaultNamespace, "1")
+	status := omni.NewExtensionsConfigurationStatus("1")
 
 	suite.Require().NoError(suite.state.Create(ctx, status, state.WithCreateOwner("SchematicConfigurationController")))
 
@@ -1346,7 +1342,7 @@ func (suite *MigrationSuite) TestDropExtensionsConfigurationFinalizers() {
 	version := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
 	suite.Require().NoError(suite.state.Create(ctx, version))
 
-	configuration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "1")
+	configuration := omni.NewExtensionsConfiguration("1")
 
 	configuration.Metadata().Finalizers().Add(omnictrl.SchematicConfigurationControllerName)
 	configuration.Metadata().Finalizers().Add(omnictrl.MachineExtensionsControllerName)
@@ -1367,9 +1363,9 @@ func (suite *MigrationSuite) TestSetMachineStatusSnapshotOwner() {
 	defer cancel()
 
 	items := []*omni.MachineStatusSnapshot{
-		omni.NewMachineStatusSnapshot(resources.DefaultNamespace, "test1"),
-		omni.NewMachineStatusSnapshot(resources.DefaultNamespace, "test2"),
-		omni.NewMachineStatusSnapshot(resources.DefaultNamespace, "test3"),
+		omni.NewMachineStatusSnapshot("test1"),
+		omni.NewMachineStatusSnapshot("test2"),
+		omni.NewMachineStatusSnapshot("test3"),
 	}
 
 	for _, item := range items[:2] {
@@ -1407,7 +1403,7 @@ func (suite *MigrationSuite) TestMigrateInstallImageConfigIntoGenOptions() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	suite.T().Cleanup(cancel)
 
-	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test")
+	machineStatus := omni.NewMachineStatus("test")
 
 	machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{
 		SecureBoot:    true,
@@ -1420,26 +1416,26 @@ func (suite *MigrationSuite) TestMigrateInstallImageConfigIntoGenOptions() {
 
 	suite.Require().NoError(suite.state.Create(ctx, machineStatus))
 
-	clusterMachineTalosVersion := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, "test")
+	clusterMachineTalosVersion := omni.NewClusterMachineTalosVersion("test")
 
 	clusterMachineTalosVersion.TypedSpec().Value.TalosVersion = "v1.4.0"
 	clusterMachineTalosVersion.TypedSpec().Value.SchematicId = "test-schematic-id"
 
 	suite.Require().NoError(suite.state.Create(ctx, clusterMachineTalosVersion))
 
-	schematicConfig := omni.NewSchematicConfiguration(resources.DefaultNamespace, "test")
+	schematicConfig := omni.NewSchematicConfiguration("test")
 
 	suite.Require().NoError(suite.state.Create(ctx, schematicConfig))
 
 	// prepare the needed resources for reconcileConfigInputs to update inputs versions in the migration
 
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "test")
-	clusterMachineConfig := omni.NewClusterMachineConfig(resources.DefaultNamespace, "test")
-	configPatches := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "test")
-	genOptions := omni.NewMachineConfigGenOptions(resources.DefaultNamespace, "test")
-	clusterSecrets := omni.NewClusterSecrets(resources.DefaultNamespace, "test-cluster")
-	lbConfig := omni.NewLoadBalancerConfig(resources.DefaultNamespace, "test-cluster")
-	cluster := omni.NewCluster(resources.DefaultNamespace, "test-cluster")
+	clusterMachine := omni.NewClusterMachine("test")
+	clusterMachineConfig := omni.NewClusterMachineConfig("test")
+	configPatches := omni.NewClusterMachineConfigPatches("test")
+	genOptions := omni.NewMachineConfigGenOptions("test")
+	clusterSecrets := omni.NewClusterSecrets("test-cluster")
+	lbConfig := omni.NewLoadBalancerConfig("test-cluster")
+	cluster := omni.NewCluster("test-cluster")
 
 	clusterMachine.Metadata().Labels().Set(omni.LabelCluster, "test-cluster")
 	clusterMachineConfig.Metadata().Annotations().Set(helpers.InputResourceVersionAnnotation, "before")
@@ -1448,16 +1444,16 @@ func (suite *MigrationSuite) TestMigrateInstallImageConfigIntoGenOptions() {
 
 	for _, res := range []resource.Resource{
 		clusterMachine, clusterMachineConfig, configPatches, genOptions, clusterSecrets, lbConfig, cluster,
-		omni.NewMachineStatus(resources.DefaultNamespace, "test2"),
-		omni.NewMachineConfigGenOptions(resources.DefaultNamespace, "test2"),
-		omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, "test2"),
+		omni.NewMachineStatus("test2"),
+		omni.NewMachineConfigGenOptions("test2"),
+		omni.NewClusterMachineTalosVersion("test2"),
 	} {
 		suite.Require().NoError(suite.state.Create(ctx, res, state.WithCreateOwner(res.Metadata().Owner())))
 	}
 
 	suite.Require().NoError(suite.manager.Run(ctx, migration.WithFilter(filterWith("migrateInstallImageConfigIntoGenOptions"))))
 
-	genOptions, err := safe.StateGet[*omni.MachineConfigGenOptions](ctx, suite.state, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, "test").Metadata())
+	genOptions, err := safe.StateGet[*omni.MachineConfigGenOptions](ctx, suite.state, omni.NewMachineConfigGenOptions("test").Metadata())
 	suite.Require().NoError(err)
 
 	installImage := genOptions.TypedSpec().Value.InstallImage
@@ -1516,13 +1512,13 @@ func (suite *MigrationSuite) TestDropAllMaintenanceConfigs() {
 	m1 := "maintenance.m1"
 	m2 := "maintenance.m2"
 
-	m1Status := omni.NewMachineStatus(resources.DefaultNamespace, m1)
+	m1Status := omni.NewMachineStatus(m1)
 	m1Status.TypedSpec().Value.TalosVersion = "v1.4.0"
 	m1Status.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
 		Id: "id",
 	}
 
-	m2Status := omni.NewMachineStatus(resources.DefaultNamespace, m2)
+	m2Status := omni.NewMachineStatus(m2)
 	m2Status.TypedSpec().Value.TalosVersion = "v1.5.0"
 	m2Status.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
 		Id: "id",
@@ -1530,7 +1526,7 @@ func (suite *MigrationSuite) TestDropAllMaintenanceConfigs() {
 
 	suite.Require().NoError(suite.state.Create(ctx, m1Status))
 	suite.Require().NoError(suite.state.Create(ctx, m2Status))
-	suite.Require().NoError(suite.state.Create(ctx, omni.NewConfigPatch(resources.DefaultNamespace, migration.MaintenanceConfigPatchPrefix+m2Status.Metadata().ID())))
+	suite.Require().NoError(suite.state.Create(ctx, omni.NewConfigPatch(migration.MaintenanceConfigPatchPrefix+m2Status.Metadata().ID())))
 
 	deprecatedControllerName := "MaintenanceConfigPatchController"
 
@@ -1605,14 +1601,14 @@ func (suite *MigrationSuite) TestRemoveMaintenanceConfigPatchFinalizers() {
 
 	deprecatedControllerName := "MaintenanceConfigPatchController"
 
-	m1Status := omni.NewMachineStatus(resources.DefaultNamespace, "machine1")
+	m1Status := omni.NewMachineStatus("machine1")
 	m1Status.Metadata().Finalizers().Add(deprecatedControllerName)
 
-	m2Status := omni.NewMachineStatus(resources.DefaultNamespace, "machine2")
+	m2Status := omni.NewMachineStatus("machine2")
 	m2Status.Metadata().Finalizers().Add(deprecatedControllerName)
 	m2Status.Metadata().SetPhase(resource.PhaseTearingDown)
 
-	m3Status := omni.NewMachineStatus(resources.DefaultNamespace, "machine3")
+	m3Status := omni.NewMachineStatus("machine3")
 	m3Status.Metadata().Finalizers().Add(deprecatedControllerName)
 
 	suite.Require().NoError(suite.state.Create(ctx, m1Status, state.WithCreateOwner("MachineStatusController")))
@@ -1649,7 +1645,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 	const ns = resources.DefaultNamespace
 
 	// Ensure we don't compress resources which are not in the running phase
-	thirdPatch := omni.NewConfigPatch(ns, "config-patch-3")
+	thirdPatch := omni.NewConfigPatch("config-patch-3")
 	thirdPatch.Metadata().SetPhase(resource.PhaseTearingDown)
 
 	checkMigrations := []func(t *testing.T){
@@ -1657,7 +1653,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 			ctx,
 			suite.T(),
 			suite.state,
-			omni.NewConfigPatch(ns, "config-patch-0"),
+			omni.NewConfigPatch("config-patch-0"),
 			fillData[*specs.ConfigPatchSpec](bigEnoughText, disabled),
 			checkCompressed[string, *specs.ConfigPatchSpec](bigEnoughTextEncoded),
 			"",
@@ -1666,7 +1662,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 			ctx,
 			suite.T(),
 			suite.state,
-			omni.NewConfigPatch(ns, "config-patch-1"),
+			omni.NewConfigPatch("config-patch-1"),
 			fillData[*specs.ConfigPatchSpec](smallData1, disabled),
 			checkUncompressed[string, *specs.ConfigPatchSpec](smallData1),
 			"",
@@ -1675,7 +1671,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 			ctx,
 			suite.T(),
 			suite.state,
-			omni.NewConfigPatch(ns, "config-patch-2"),
+			omni.NewConfigPatch("config-patch-2"),
 			fillData[*specs.ConfigPatchSpec](smallData2, disabled),
 			checkUncompressed[string, *specs.ConfigPatchSpec](smallData2),
 			"",
@@ -1707,7 +1703,7 @@ func (suite *MigrationSuite) TestCompressUncompressMigrations() {
 		ctx,
 		suite.T(),
 		suite.state,
-		omni.NewConfigPatch(ns, "config-patch-4"),
+		omni.NewConfigPatch("config-patch-4"),
 		func(_ *testing.T, spec *omni.ConfigPatchSpec) {
 			spec.Value.CompressedData = encodedDifferently //nolint:staticcheck
 		},
@@ -1812,14 +1808,12 @@ func (suite *MigrationSuite) TestDropObsoleteConfigPatches() {
 	machine := uuid.NewString()
 
 	obsoleteConfigPatch := omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		"000-23f15aa7-07da-4ba1-8d9a-b42541547ce7-preserve-version-contract",
 		pair.MakePair(omni.LabelCluster, cluster),
 		pair.MakePair(omni.LabelClusterMachine, machine),
 	)
 
 	normalConfigPatch := omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		"000-23f15aa7-07da-4ba1-8d9a-b42541547cee",
 		pair.MakePair(omni.LabelCluster, cluster),
 		pair.MakePair(omni.LabelClusterMachine, machine),
@@ -1852,7 +1846,6 @@ func (suite *MigrationSuite) TestDropObsoleteConfigPatchesSkipped() {
 	machine := uuid.NewString()
 
 	obsoleteConfigPatch := omni.NewConfigPatch(
-		resources.DefaultNamespace,
 		"000-23f15aa7-07da-4ba1-8d9a-b42541547ce7-preserve-version-contract",
 		pair.MakePair(omni.LabelCluster, cluster),
 		pair.MakePair(omni.LabelClusterMachine, machine),
@@ -1874,14 +1867,14 @@ func (suite *MigrationSuite) TestMarkVersionContract() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	clusterConfigVersion12 := omni.NewClusterConfigVersion(resources.DefaultNamespace, "cluster-12")
+	clusterConfigVersion12 := omni.NewClusterConfigVersion("cluster-12")
 	clusterConfigVersion12.TypedSpec().Value.Version = "v1.2.0"
 
-	clusterConfigVersion14 := omni.NewClusterConfigVersion(resources.DefaultNamespace, "cluster-14")
+	clusterConfigVersion14 := omni.NewClusterConfigVersion("cluster-14")
 	clusterConfigVersion14.TypedSpec().Value.Version = "v1.4.8"
 
 	// patch expected: apidCheckExtKeyUsage needs to be preserved
-	cluster12config1 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-12-machine-1")
+	cluster12config1 := omni.NewClusterMachineConfig("cluster-12-machine-1")
 	cluster12config1.Metadata().Labels().Set(omni.LabelCluster, "cluster-12")
 
 	suite.Require().NoError(cluster12config1.TypedSpec().Value.SetUncompressedData([]byte(`machine:
@@ -1890,11 +1883,11 @@ func (suite *MigrationSuite) TestMarkVersionContract() {
     foo: bar
 `)))
 
-	cluster12configStatus1 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-12-machine-1")
+	cluster12configStatus1 := omni.NewClusterMachineConfigStatus("cluster-12-machine-1")
 	cluster12configStatus1.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
 
 	// no patch expected: it does not have any of the features to be preserved
-	cluster12config2 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-12-machine-2")
+	cluster12config2 := omni.NewClusterMachineConfig("cluster-12-machine-2")
 	cluster12config2.Metadata().Labels().Set(omni.LabelCluster, "cluster-12")
 
 	suite.Require().NoError(cluster12config2.TypedSpec().Value.SetUncompressedData([]byte(`machine:
@@ -1902,11 +1895,11 @@ func (suite *MigrationSuite) TestMarkVersionContract() {
     foo: bar
 `)))
 
-	cluster12configStatus2 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-12-machine-2")
+	cluster12configStatus2 := omni.NewClusterMachineConfigStatus("cluster-12-machine-2")
 	cluster12configStatus2.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
 
 	// patch expected: **both** apidCheckExtKeyUsage and diskQuotaSupport need to be preserved
-	cluster12config3 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-12-machine-3")
+	cluster12config3 := omni.NewClusterMachineConfig("cluster-12-machine-3")
 	cluster12config3.Metadata().Labels().Set(omni.LabelCluster, "cluster-12")
 
 	suite.Require().NoError(cluster12config3.TypedSpec().Value.SetUncompressedData([]byte(`machine:
@@ -1918,11 +1911,11 @@ func (suite *MigrationSuite) TestMarkVersionContract() {
     quux: corge
 `)))
 
-	cluster12configStatus3 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-12-machine-3")
+	cluster12configStatus3 := omni.NewClusterMachineConfigStatus("cluster-12-machine-3")
 	cluster12configStatus3.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
 
 	// patch expected: **only** diskQuotaSupport needs to be preserved
-	cluster14config1 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-14-machine-1")
+	cluster14config1 := omni.NewClusterMachineConfig("cluster-14-machine-1")
 	cluster14config1.Metadata().Labels().Set(omni.LabelCluster, "cluster-14")
 
 	suite.Require().NoError(cluster14config1.TypedSpec().Value.SetUncompressedData([]byte(`machine:
@@ -1932,11 +1925,11 @@ func (suite *MigrationSuite) TestMarkVersionContract() {
     apidCheckExtKeyUsage: true
 `)))
 
-	cluster14configStatus1 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-14-machine-1")
+	cluster14configStatus1 := omni.NewClusterMachineConfigStatus("cluster-14-machine-1")
 	cluster14configStatus1.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
 
 	// no patch expected: it does not have any of the features to be preserved
-	cluster14config2 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-14-machine-2")
+	cluster14config2 := omni.NewClusterMachineConfig("cluster-14-machine-2")
 	cluster14config2.Metadata().Labels().Set(omni.LabelCluster, "cluster-14")
 
 	suite.Require().NoError(cluster14config2.TypedSpec().Value.SetUncompressedData([]byte(`machine:
@@ -1944,11 +1937,11 @@ func (suite *MigrationSuite) TestMarkVersionContract() {
     foo: bar
 `)))
 
-	cluster14configStatus2 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-14-machine-2")
+	cluster14configStatus2 := omni.NewClusterMachineConfigStatus("cluster-14-machine-2")
 	cluster14configStatus2.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
 
 	// no patch expected, since it will be in tearing down phase
-	cluster14config3 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-14-machine-3")
+	cluster14config3 := omni.NewClusterMachineConfig("cluster-14-machine-3")
 	cluster14config3.Metadata().Labels().Set(omni.LabelCluster, "cluster-14")
 
 	suite.Require().NoError(cluster14config3.TypedSpec().Value.SetUncompressedData([]byte(`machine:
@@ -1957,11 +1950,11 @@ func (suite *MigrationSuite) TestMarkVersionContract() {
     diskQuotaSupport: true
 `)))
 
-	cluster14configStatus3 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-14-machine-3")
+	cluster14configStatus3 := omni.NewClusterMachineConfigStatus("cluster-14-machine-3")
 	cluster14configStatus3.TypedSpec().Value.ClusterMachineConfigVersion = "1" // mark the v1 to be applied
 
 	// no patch expected, since the ClusterMachineConfigStatus.Spec.ClusterMachineConfigVersion will indicate that this version of config was not applied
-	cluster14config4 := omni.NewClusterMachineConfig(resources.DefaultNamespace, "cluster-14-machine-4")
+	cluster14config4 := omni.NewClusterMachineConfig("cluster-14-machine-4")
 	cluster14config4.Metadata().Labels().Set(omni.LabelCluster, "cluster-14")
 
 	suite.Require().NoError(cluster14config4.TypedSpec().Value.SetUncompressedData([]byte(`machine:
@@ -1970,19 +1963,19 @@ func (suite *MigrationSuite) TestMarkVersionContract() {
     diskQuotaSupport: true
 `)))
 
-	cluster14configStatus4 := omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "cluster-14-machine-4")
+	cluster14configStatus4 := omni.NewClusterMachineConfigStatus("cluster-14-machine-4")
 	cluster14configStatus4.TypedSpec().Value.ClusterMachineConfigVersion = "0" // mark the v0 to be applied, but v1 was not applied
 
 	machineSetStatusControllerName := omnictrl.NewMachineSetStatusController().ControllerName
 
-	cluster12machine1 := omni.NewClusterMachine(resources.DefaultNamespace, cluster12config1.Metadata().ID())
-	cluster12machine2 := omni.NewClusterMachine(resources.DefaultNamespace, cluster12config2.Metadata().ID())
-	cluster12machine3 := omni.NewClusterMachine(resources.DefaultNamespace, cluster12config3.Metadata().ID())
+	cluster12machine1 := omni.NewClusterMachine(cluster12config1.Metadata().ID())
+	cluster12machine2 := omni.NewClusterMachine(cluster12config2.Metadata().ID())
+	cluster12machine3 := omni.NewClusterMachine(cluster12config3.Metadata().ID())
 
-	cluster14machine1 := omni.NewClusterMachine(resources.DefaultNamespace, cluster14config1.Metadata().ID())
-	cluster14machine2 := omni.NewClusterMachine(resources.DefaultNamespace, cluster14config2.Metadata().ID())
-	cluster14machine3 := omni.NewClusterMachine(resources.DefaultNamespace, cluster14config3.Metadata().ID())
-	cluster14machine4 := omni.NewClusterMachine(resources.DefaultNamespace, cluster14config4.Metadata().ID())
+	cluster14machine1 := omni.NewClusterMachine(cluster14config1.Metadata().ID())
+	cluster14machine2 := omni.NewClusterMachine(cluster14config2.Metadata().ID())
+	cluster14machine3 := omni.NewClusterMachine(cluster14config3.Metadata().ID())
+	cluster14machine4 := omni.NewClusterMachine(cluster14config4.Metadata().ID())
 
 	suite.Require().NoError(suite.state.Create(ctx, cluster12machine1, state.WithCreateOwner(machineSetStatusControllerName)))
 	suite.Require().NoError(suite.state.Create(ctx, cluster12machine2, state.WithCreateOwner(machineSetStatusControllerName)))
@@ -2052,13 +2045,13 @@ func (suite *MigrationSuite) TestDropMachineClassStatusFinalizers() {
 
 	finalizer := "MachineClassStatusController"
 
-	c1 := omni.NewMachineClass(resources.DefaultNamespace, "c1")
-	c2 := omni.NewMachineClass(resources.DefaultNamespace, "c2")
+	c1 := omni.NewMachineClass("c1")
+	c2 := omni.NewMachineClass("c2")
 	c2.Metadata().SetPhase(resource.PhaseTearingDown)
 	c2.Metadata().Finalizers().Add(finalizer)
 	c2.Metadata().Finalizers().Add("some")
 
-	c3 := omni.NewMachineClass(resources.DefaultNamespace, "c3")
+	c3 := omni.NewMachineClass("c3")
 	c3.Metadata().Finalizers().Add(finalizer)
 
 	suite.Require().NoError(suite.state.Create(ctx, c1))
@@ -2202,13 +2195,13 @@ func (suite *MigrationSuite) TestMoveClusterTaintFromResourceToLabel() {
 	clusterID := "cluster1"
 	deletedClusterID := "cluster2"
 
-	taint := omni.NewClusterTaint(resources.DefaultNamespace, clusterID)
+	taint := omni.NewClusterTaint(clusterID)
 	suite.Require().NoError(suite.state.Create(ctx, taint))
 
-	danglingTaint := omni.NewClusterTaint(resources.DefaultNamespace, deletedClusterID)
+	danglingTaint := omni.NewClusterTaint(deletedClusterID)
 	suite.Require().NoError(suite.state.Create(ctx, danglingTaint))
 
-	clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterID)
+	clusterStatus := omni.NewClusterStatus(clusterID)
 	suite.Require().NoError(suite.state.Create(ctx, clusterStatus, state.WithCreateOwner(omnictrl.ClusterStatusControllerName)))
 
 	_, taintBreakGlass := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByBreakGlass)
@@ -2239,7 +2232,7 @@ func (suite *MigrationSuite) TestDropExtraInputFinalizers() {
 
 	const resourceID = "cms1"
 
-	cms := omni.NewClusterMachineStatus(resources.DefaultNamespace, resourceID)
+	cms := omni.NewClusterMachineStatus(resourceID)
 	cms.Metadata().Finalizers().Add("MachineSetDestroyStatusController")
 	cms.Metadata().Finalizers().Add("MachineStatusController")
 	cms.Metadata().Finalizers().Add("SomeOtherFinalizer")
@@ -2268,7 +2261,7 @@ func (suite *MigrationSuite) TestMoveInfraProviderAnnotationsToLabels() {
 
 	link3 := siderolink.NewLink(resources.DefaultNamespace, "link3", &specs.SiderolinkSpec{})
 
-	machine1 := omni.NewMachine(resources.DefaultNamespace, "machine1")
+	machine1 := omni.NewMachine("machine1")
 	machine1.Metadata().Annotations().Set(omni.LabelInfraProviderID, "test-id-3")
 
 	suite.Require().NoError(suite.state.Create(ctx, link1))
@@ -2318,17 +2311,17 @@ func (suite *MigrationSuite) TestDropSchematicConfigFinalizerFromClusterMachines
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	cm1 := omni.NewClusterMachine(resources.DefaultNamespace, "cm1")
+	cm1 := omni.NewClusterMachine("cm1")
 	cm1.Metadata().Finalizers().Add(omnictrl.SchematicConfigurationControllerName)
 	cm1.Metadata().SetPhase(resource.PhaseTearingDown)
 	suite.Require().NoError(suite.state.Create(ctx, cm1))
 
-	cm2 := omni.NewClusterMachine(resources.DefaultNamespace, "cm2")
+	cm2 := omni.NewClusterMachine("cm2")
 	cm2.Metadata().Finalizers().Add(omnictrl.SchematicConfigurationControllerName)
 	suite.Require().NoError(cm2.Metadata().SetOwner("some-owner"))
 	suite.Require().NoError(suite.state.Create(ctx, cm2, state.WithCreateOwner("some-owner")))
 
-	cm3 := omni.NewClusterMachine(resources.DefaultNamespace, "cm3")
+	cm3 := omni.NewClusterMachine("cm3")
 	suite.Require().NoError(suite.state.Create(ctx, cm3))
 
 	cm3VersionBefore := cm3.Metadata().Version()
@@ -2354,17 +2347,17 @@ func (suite *MigrationSuite) TestDropTalosUpgradeStatusFinalizersFromSchematicCo
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	sc1 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "sc1")
+	sc1 := omni.NewSchematicConfiguration("sc1")
 	sc1.Metadata().Finalizers().Add(omnictrl.TalosUpgradeStatusControllerName)
 	sc1.Metadata().SetPhase(resource.PhaseTearingDown)
 	suite.Require().NoError(suite.state.Create(ctx, sc1))
 
-	sc2 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "sc2")
+	sc2 := omni.NewSchematicConfiguration("sc2")
 	sc2.Metadata().Finalizers().Add(omnictrl.TalosUpgradeStatusControllerName)
 	suite.Require().NoError(sc2.Metadata().SetOwner("some-owner"))
 	suite.Require().NoError(suite.state.Create(ctx, sc2, state.WithCreateOwner("some-owner")))
 
-	sc3 := omni.NewSchematicConfiguration(resources.DefaultNamespace, "sc3")
+	sc3 := omni.NewSchematicConfiguration("sc3")
 	suite.Require().NoError(suite.state.Create(ctx, sc3))
 
 	sc3VersionBefore := sc3.Metadata().Version()
@@ -2391,17 +2384,17 @@ func (suite *MigrationSuite) TestMakeMachineSetNodeOwnerEmpty() {
 
 	labelID := "custom"
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "ms1")
+	machineSet := omni.NewMachineSet("ms1")
 
-	msnRunning := omni.NewMachineSetNode(resources.DefaultNamespace, "running", machineSet)
+	msnRunning := omni.NewMachineSetNode("running", machineSet)
 
-	msnOwned := omni.NewMachineSetNode(resources.DefaultNamespace, "owned", machineSet)
+	msnOwned := omni.NewMachineSetNode("owned", machineSet)
 
 	msnOwned.Metadata().Finalizers().Add("fin")
 	msnOwned.Metadata().Labels().Set(labelID, "val")
 	msnOwned.Metadata().Annotations().Set(labelID, "val")
 
-	msnTearingDown := omni.NewMachineSetNode(resources.DefaultNamespace, "tearingDown", machineSet)
+	msnTearingDown := omni.NewMachineSetNode("tearingDown", machineSet)
 	msnTearingDown.Metadata().SetPhase(resource.PhaseTearingDown)
 
 	suite.Require().NoError(suite.state.Create(ctx, msnRunning))

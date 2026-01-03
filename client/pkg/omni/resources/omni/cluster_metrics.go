@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterMetrics creates a new ClusterMetrics resource.
-func NewClusterMetrics(ns string, id resource.ID) *ClusterMetrics {
+func NewClusterMetrics(id resource.ID) *ClusterMetrics {
 	return typed.NewResource[ClusterMetricsSpec, ClusterMetricsExtension](
-		resource.NewMetadata(ns, ClusterMetricsType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.EphemeralNamespace, ClusterMetricsType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterMetricsSpec{}),
 	)
 }

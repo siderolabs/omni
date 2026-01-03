@@ -21,7 +21,6 @@ import (
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/dns"
 )
@@ -52,7 +51,7 @@ func (suite *ServiceSuite) SetupTest() {
 	suite.dnsService = dns.NewService(suite.state, suite.logger)
 
 	// create a ClusterMachineIdentity before starting the DNS service to make sure it picks the existing records
-	bootstrapIdentity := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "test-bootstrap-1")
+	bootstrapIdentity := omni.NewClusterMachineIdentity("test-bootstrap-1")
 	bootstrapIdentity.Metadata().Labels().Set(omni.LabelCluster, "test-bootstrap-cluster-1")
 
 	bootstrapIdentity.TypedSpec().Value.Nodename = "test-bootstrap-1-node"
@@ -76,7 +75,7 @@ func (suite *ServiceSuite) TearDownTest() {
 func (suite *ServiceSuite) TestResolve() {
 	suite.assertResolveAddress("test-bootstrap-cluster-1", "test-bootstrap-1-node", "10.0.0.84")
 
-	identity := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "test-1")
+	identity := omni.NewClusterMachineIdentity("test-1")
 	identity.Metadata().Labels().Set(omni.LabelCluster, "test-cluster-1")
 
 	identity.TypedSpec().Value.Nodename = "test-1-node"
@@ -105,7 +104,7 @@ func (suite *ServiceSuite) TestResolve() {
 	suite.assertResolve("10.0.0.42", zeroInfo)
 
 	// update Talos version, assert that it resolves
-	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test-1")
+	machineStatus := omni.NewMachineStatus("test-1")
 	machineStatus.TypedSpec().Value.TalosVersion = "1.4.1"
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
@@ -138,7 +137,7 @@ func (suite *ServiceSuite) TestResolveAllocateAndDeallocate() {
 
 	// In the maintenance mode, we only have MachineStatus, so we start with that
 	// (means cache will be initialized with the data on MachineStatus and nothing else - no ClusterMachineIdentity)
-	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "test-1")
+	machineStatus := omni.NewMachineStatus("test-1")
 
 	machineStatus.TypedSpec().Value.TalosVersion = "3.2.1"
 
@@ -148,7 +147,7 @@ func (suite *ServiceSuite) TestResolveAllocateAndDeallocate() {
 
 	// allocate the machine to a cluster by creating a ClusterMachineIdentity
 
-	identity := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "test-1")
+	identity := omni.NewClusterMachineIdentity("test-1")
 	identity.Metadata().Labels().Set(omni.LabelCluster, "test-cluster-1")
 
 	identity.TypedSpec().Value.Nodename = "test-1-node"

@@ -24,7 +24,6 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -40,7 +39,7 @@ type MachineSetEtcdAuditSuite struct {
 }
 
 func (suite *MachineSetEtcdAuditSuite) createMachineSet(clusterName string, machineSetName string, machines []string) (map[string]*machineService, *omni.MachineSet) {
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+	cluster := omni.NewCluster(clusterName)
 
 	services := map[string]*machineService{}
 
@@ -49,27 +48,27 @@ func (suite *MachineSetEtcdAuditSuite) createMachineSet(clusterName string, mach
 
 	suite.createResource(cluster)
 
-	clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterName)
+	clusterStatus := omni.NewClusterStatus(clusterName)
 
 	clusterStatus.TypedSpec().Value.Available = true
 	clusterStatus.TypedSpec().Value.HasConnectedControlPlanes = true
 
 	suite.createResource(clusterStatus)
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, machineSetName)
+	machineSet := omni.NewMachineSet(machineSetName)
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 
 	machineSet.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling
 
-	config := omni.NewTalosConfig(resources.DefaultNamespace, clusterName)
+	config := omni.NewTalosConfig(clusterName)
 
 	suite.createResource(config)
 
 	for _, machine := range machines {
 		services[machine] = suite.createClusterMachineStatus(machine, clusterName, machineSet)
 
-		msn := omni.NewMachineSetNode(resources.DefaultNamespace, machine, machineSet)
+		msn := omni.NewMachineSetNode(machine, machineSet)
 
 		suite.createResource(msn)
 	}
@@ -91,7 +90,7 @@ func (suite *MachineSetEtcdAuditSuite) createClusterMachineStatus(machine, clust
 
 	suite.Require().NoError(err)
 
-	clusterMachineStatus := omni.NewClusterMachineStatus(resources.DefaultNamespace, machine)
+	clusterMachineStatus := omni.NewClusterMachineStatus(machine)
 	clusterMachineStatus.TypedSpec().Value.ManagementAddress = unixSocket + service.address
 
 	clusterMachineStatus.Metadata().Labels().Set(omni.LabelCluster, clusterName)
@@ -184,7 +183,7 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdAudit() {
 			members: extraMembers,
 			setup: func(ms *omni.MachineSet) {
 				for _, id := range machines {
-					cm := omni.NewClusterMachine(resources.DefaultNamespace, id)
+					cm := omni.NewClusterMachine(id)
 					cm.Metadata().Labels().Set(omni.LabelMachineSet, ms.Metadata().ID())
 					suite.createResource(cm)
 				}
@@ -308,7 +307,7 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
 
 	initIdentities := func(items ...string) {
 		for _, m := range items {
-			identity := omni.NewClusterMachineIdentity(resources.DefaultNamespace, m)
+			identity := omni.NewClusterMachineIdentity(m)
 			identity.TypedSpec().Value.EtcdMemberId = members[m]
 
 			suite.createResource(identity)
@@ -317,7 +316,7 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
 
 	setConnected := func(items ...string) {
 		for _, m := range items {
-			status := omni.NewClusterMachineStatus(resources.DefaultNamespace, m)
+			status := omni.NewClusterMachineStatus(m)
 
 			_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, status.Metadata(), func(res *omni.ClusterMachineStatus) error {
 				res.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")

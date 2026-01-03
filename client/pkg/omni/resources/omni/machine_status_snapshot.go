@@ -15,9 +15,9 @@ import (
 )
 
 // NewMachineStatusSnapshot creates new MachineStatusSnapshot state.
-func NewMachineStatusSnapshot(ns, id string) *MachineStatusSnapshot {
+func NewMachineStatusSnapshot(id string) *MachineStatusSnapshot {
 	return typed.NewResource[MachineStatusSnapshotSpec, MachineStatusSnapshotExtension](
-		resource.NewMetadata(ns, MachineStatusSnapshotType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, MachineStatusSnapshotType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineStatusSnapshotSpec{}),
 	)
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -39,7 +38,7 @@ func (suite *ClusterWorkloadProxyStatusSuite) TestReconcile() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterWorkloadProxyStatusController(workloadProxyReconciler)))
 
 	clusterID := "test-cluster-1"
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster := omni.NewCluster(clusterID)
 	cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
 		EnableWorkloadProxy: true,
 	}
@@ -120,7 +119,7 @@ func (suite *ClusterWorkloadProxyStatusSuite) TestReconcileMappedInputDeletion()
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterWorkloadProxyStatusController(workloadProxyReconciler)))
 
 	clusterID := "test-cluster"
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterID)
+	cluster := omni.NewCluster(clusterID)
 	cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
 		EnableWorkloadProxy: true,
 	}
@@ -162,7 +161,7 @@ func (suite *ClusterWorkloadProxyStatusSuite) TestReconcileMappedInputDeletion()
 func (suite *ClusterWorkloadProxyStatusSuite) createClusterMachineStatus(clusterID string, id resource.ID) *omni.ClusterMachineStatus {
 	suite.T().Helper()
 
-	cms := omni.NewClusterMachineStatus(resources.DefaultNamespace, id)
+	cms := omni.NewClusterMachineStatus(id)
 
 	cms.Metadata().Labels().Set(omni.LabelCluster, clusterID)
 
@@ -177,7 +176,7 @@ func (suite *ClusterWorkloadProxyStatusSuite) createClusterMachineStatus(cluster
 func (suite *ClusterWorkloadProxyStatusSuite) createExposedService(clusterID string, id resource.ID, port uint32) *omni.ExposedService {
 	suite.T().Helper()
 
-	es := omni.NewExposedService(resources.DefaultNamespace, id)
+	es := omni.NewExposedService(id)
 
 	es.Metadata().Labels().Set(omni.LabelCluster, clusterID)
 	es.Metadata().Labels().Set(omni.LabelExposedServiceAlias, id+"-alias")

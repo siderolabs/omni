@@ -35,7 +35,6 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -107,7 +106,7 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.L
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	clusterMachineIdentity := omni.NewClusterMachineIdentity(resources.DefaultNamespace, spec.id)
+	clusterMachineIdentity := omni.NewClusterMachineIdentity(spec.id)
 	clusterMachineIdentity.Metadata().Labels().Set(omni.LabelCluster, spec.clusterName)
 
 	if spec.isControlPlane {

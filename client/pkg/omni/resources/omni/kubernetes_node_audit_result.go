@@ -15,9 +15,9 @@ import (
 )
 
 // NewKubernetesNodeAuditResult creates a new Kubernetes node audit result.
-func NewKubernetesNodeAuditResult(ns string, id resource.ID) *KubernetesNodeAuditResult {
+func NewKubernetesNodeAuditResult(id resource.ID) *KubernetesNodeAuditResult {
 	return typed.NewResource[KubernetesNodeAuditResultSpec, KubernetesNodeAuditResultExtension](
-		resource.NewMetadata(ns, KubernetesNodeAuditResultType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, KubernetesNodeAuditResultType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.KubernetesNodeAuditResultSpec{}),
 	)
 }

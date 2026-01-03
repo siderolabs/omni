@@ -27,7 +27,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
@@ -187,7 +186,7 @@ func (suite *ClusterBootstrapStatusSuite) TestReconcile() {
 
 	clusterName := "talos-default-5"
 
-	cmIdentity := omni.NewClusterMachineIdentity(resources.DefaultNamespace, "test-endpoint")
+	cmIdentity := omni.NewClusterMachineIdentity("test-endpoint")
 	cmIdentity.TypedSpec().Value.NodeIps = []string{"127.0.0.1"}
 
 	cmIdentity.Metadata().Labels().Set(omni.LabelCluster, clusterName)
@@ -217,7 +216,7 @@ func (suite *ClusterBootstrapStatusSuite) TestReconcile() {
 	suite.Require().NoError(err)
 
 	for i, m := range machines {
-		clusterMachineStatus := omni.NewClusterMachineStatus(resources.DefaultNamespace, m.Metadata().ID())
+		clusterMachineStatus := omni.NewClusterMachineStatus(m.Metadata().ID())
 
 		clusterMachineStatus.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 
@@ -231,12 +230,12 @@ func (suite *ClusterBootstrapStatusSuite) TestReconcile() {
 		suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachineStatus))
 	}
 
-	clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, cluster.Metadata().ID())
+	clusterStatus := omni.NewClusterStatus(cluster.Metadata().ID())
 	clusterStatus.TypedSpec().Value.Available = true
 	clusterStatus.TypedSpec().Value.HasConnectedControlPlanes = true
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterStatus))
 
-	md := *omni.NewClusterBootstrapStatus(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata()
+	md := *omni.NewClusterBootstrapStatus(cluster.Metadata().ID()).Metadata()
 	assertResource(
 		&suite.OmniSuite,
 		md,
@@ -258,7 +257,7 @@ func (suite *ClusterBootstrapStatusSuite) TestReconcile() {
 }
 
 func (suite *ClusterBootstrapStatusSuite) testRecoverControlPlaneFromEtcdBackup(clusterID resource.ID, clusterUUID string, backupDataMock etcdbackup.BackupData) {
-	cpMachineSetMd := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(clusterID)).Metadata()
+	cpMachineSetMd := omni.NewMachineSet(omni.ControlPlanesResourceID(clusterID)).Metadata()
 
 	cpMachineSet, err := safe.StateGet[*omni.MachineSet](suite.ctx, suite.state, cpMachineSetMd)
 	suite.Require().NoError(err)
@@ -267,7 +266,7 @@ func (suite *ClusterBootstrapStatusSuite) testRecoverControlPlaneFromEtcdBackup(
 	rtestutils.Destroy[*omni.MachineSet](suite.ctx, suite.T(), suite.state, []resource.ID{cpMachineSetMd.ID()})
 	assertResource(
 		&suite.OmniSuite,
-		omni.NewClusterBootstrapStatus(resources.DefaultNamespace, clusterID).Metadata(),
+		omni.NewClusterBootstrapStatus(clusterID).Metadata(),
 		func(v *omni.ClusterBootstrapStatus, assertions *assert.Assertions) {
 			assertions.False(v.TypedSpec().Value.Bootstrapped, "the cluster still appears to be bootstrapped")
 		},

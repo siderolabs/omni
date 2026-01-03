@@ -10,7 +10,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
 	"github.com/siderolabs/gen/pair"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
@@ -65,7 +64,7 @@ func withLabels[T resource.Resource](r T, labels ...pair.Pair[string, string]) T
 }
 
 func newHealthyLB(id string) *omni.LoadBalancerStatus {
-	return withSpecSetter(omni.NewLoadBalancerStatus(resources.DefaultNamespace, id), func(r *omni.LoadBalancerStatus) {
+	return withSpecSetter(omni.NewLoadBalancerStatus(id), func(r *omni.LoadBalancerStatus) {
 		r.TypedSpec().Value.Healthy = true
 	})
 }

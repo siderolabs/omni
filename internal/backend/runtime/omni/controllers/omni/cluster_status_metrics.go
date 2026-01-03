@@ -80,7 +80,7 @@ func (ctrl *ClusterStatusMetricsController) Run(ctx context.Context, r controlle
 			return err
 		}
 
-		res := omni.NewClusterStatusMetrics(resources.EphemeralNamespace, omni.ClusterStatusMetricsID)
+		res := omni.NewClusterStatusMetrics(omni.ClusterStatusMetricsID)
 
 		res.TypedSpec().Value.Phases = make(map[int32]uint32, len(specs.ClusterStatusSpec_Phase_name))
 

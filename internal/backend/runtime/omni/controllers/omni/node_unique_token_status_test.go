@@ -18,7 +18,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
@@ -45,7 +44,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestNodeUniqueTokenStatus() {
 	createMachine := func(connected, withToken bool, talosVersion string) string {
 		machineStatus := system.NewResourceLabels[*omnires.MachineStatus](fmt.Sprintf("m%d", machineCount))
 
-		machine := omnires.NewMachine(resources.DefaultNamespace, machineStatus.Metadata().ID())
+		machine := omnires.NewMachine(machineStatus.Metadata().ID())
 
 		if connected {
 			machineStatus.Metadata().Labels().Set(omnires.MachineStatusLabelConnected, "")

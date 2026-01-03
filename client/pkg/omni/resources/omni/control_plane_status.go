@@ -15,9 +15,9 @@ import (
 )
 
 // NewControlPlaneStatus creates new ControlPlaneStatus resource.
-func NewControlPlaneStatus(ns string, id resource.ID) *ControlPlaneStatus {
+func NewControlPlaneStatus(id resource.ID) *ControlPlaneStatus {
 	return typed.NewResource[ControlPlaneStatusSpec, ControlPlaneStatusExtension](
-		resource.NewMetadata(ns, ControlPlaneStatusType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ControlPlaneStatusType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ControlPlaneStatusSpec{}),
 	)
 }

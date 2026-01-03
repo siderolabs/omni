@@ -107,7 +107,7 @@ func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap
 
 		// generate user patch if it is defined
 		if item.Value.Patch != "" {
-			patch := omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("500-%s", uuid.New()),
+			patch := omni.NewConfigPatch(fmt.Sprintf("500-%s", uuid.New()),
 				pair.MakePair("machine-uuid", val.Metadata().ID()),
 			)
 
@@ -126,7 +126,6 @@ func deprecateClusterMachineTemplates(ctx context.Context, s state.State, _ *zap
 
 		// generate install disk patch
 		patch := omni.NewConfigPatch(
-			resources.DefaultNamespace,
 			fmt.Sprintf("000-%s", uuid.New()),
 			pair.MakePair("machine-uuid", val.Metadata().ID()),
 		)
@@ -191,7 +190,7 @@ func clusterMachinesToMachineSets(ctx context.Context, s state.State, logger *za
 		}
 
 		if _, ok = machineSets[machineSetID]; !ok {
-			machineSets[machineSetID] = omni.NewMachineSet(resources.DefaultNamespace, machineSetID)
+			machineSets[machineSetID] = omni.NewMachineSet(machineSetID)
 
 			helpers.CopyLabels(item, machineSets[machineSetID], deprecatedCluster, deprecatedWorkerRole, deprecatedControlPlaneRole)
 		}
@@ -216,7 +215,7 @@ func clusterMachinesToMachineSets(ctx context.Context, s state.State, logger *za
 			return err
 		}
 
-		machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, item.Metadata().ID(), machineSets[machineSetID])
+		machineSetNode := omni.NewMachineSetNode(item.Metadata().ID(), machineSets[machineSetID])
 		if err = createOrUpdate(ctx, s, machineSetNode, func(res *omni.MachineSetNode) error {
 			helpers.CopyLabels(machineSetNode, res, deprecatedCluster, deprecatedWorkerRole)
 
@@ -425,7 +424,7 @@ func updateMachineFinalizers(ctx context.Context, s state.State, logger *zap.Log
 			continue
 		}
 
-		cms, err := safe.StateGet[*omni.ClusterMachine](ctx, s, omni.NewClusterMachine(resources.DefaultNamespace, machine.Metadata().ID()).Metadata())
+		cms, err := safe.StateGet[*omni.ClusterMachine](ctx, s, omni.NewClusterMachine(machine.Metadata().ID()).Metadata())
 		if err != nil && !state.IsNotFoundError(err) {
 			return err
 		}
@@ -885,7 +884,7 @@ func removeConfigPatchesFromClusterMachines(ctx context.Context, st state.State,
 	return items.ForEachErr(func(item *omni.ClusterMachine) error {
 		owner := omnictrl.NewMachineSetController().ControllerName
 
-		err = createOrUpdate(ctx, st, omni.NewClusterMachineConfigPatches(item.Metadata().Namespace(), item.Metadata().ID()),
+		err = createOrUpdate(ctx, st, omni.NewClusterMachineConfigPatches(item.Metadata().ID()),
 			func(res *omni.ClusterMachineConfigPatches) error {
 				helpers.CopyAllLabels(item, res)
 
@@ -896,7 +895,7 @@ func removeConfigPatchesFromClusterMachines(ctx context.Context, st state.State,
 
 				var patches []*omni.ConfigPatch
 
-				patches, err = getConfigPatches(ctx, st, item, omni.NewMachineSet(resources.DefaultNamespace, machineSet), omni.SystemLabelPrefix)
+				patches, err = getConfigPatches(ctx, st, item, omni.NewMachineSet(machineSet), omni.SystemLabelPrefix)
 				if err != nil {
 					return err
 				}
@@ -943,7 +942,7 @@ func machineInstallDiskPatches(ctx context.Context, st state.State, _ *zap.Logge
 	}
 
 	return items.ForEachErr(func(item *omni.ClusterMachine) error {
-		machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, st, omni.NewMachineStatus(resources.DefaultNamespace, item.Metadata().ID()).Metadata())
+		machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, st, omni.NewMachineStatus(item.Metadata().ID()).Metadata())
 		if err != nil {
 			if state.IsNotFoundError(err) {
 				return nil
@@ -952,7 +951,7 @@ func machineInstallDiskPatches(ctx context.Context, st state.State, _ *zap.Logge
 			return err
 		}
 
-		if err = createOrUpdate(ctx, st, omni.NewMachineConfigGenOptions(resources.DefaultNamespace, item.Metadata().ID()), func(res *omni.MachineConfigGenOptions) error {
+		if err = createOrUpdate(ctx, st, omni.NewMachineConfigGenOptions(item.Metadata().ID()), func(res *omni.MachineConfigGenOptions) error {
 			omnictrl.GenInstallConfig(machineStatus, nil, res)
 
 			return nil
@@ -979,7 +978,7 @@ func siderolinkCounters(ctx context.Context, s state.State, logger *zap.Logger, 
 	migrated := 0
 
 	for linkCounter := range list.All() {
-		if err = createOrUpdate(ctx, s, omni.NewMachineStatusLink(resources.MetricsNamespace, linkCounter.Metadata().ID()),
+		if err = createOrUpdate(ctx, s, omni.NewMachineStatusLink(linkCounter.Metadata().ID()),
 			func(res *omni.MachineStatusLink) error {
 				res.TypedSpec().Value.SiderolinkCounter = linkCounter.TypedSpec().Value
 
@@ -1016,7 +1015,7 @@ func fixClusterTalosVersionOwnership(ctx context.Context, s state.State, _ *zap.
 			return nil
 		}
 
-		updated := omni.NewClusterConfigVersion(resources.DefaultNamespace, r.Metadata().ID())
+		updated := omni.NewClusterConfigVersion(r.Metadata().ID())
 		updated.TypedSpec().Value = r.TypedSpec().Value
 		updated.Metadata().SetVersion(r.Metadata().Version())
 
@@ -1215,7 +1214,7 @@ func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State
 			talosVersion  *omni.ClusterMachineTalosVersion
 		)
 
-		if machineStatus, err = safe.StateGet[*omni.MachineStatus](ctx, st, omni.NewMachineStatus(resources.DefaultNamespace, genOptions.Metadata().ID()).Metadata()); err != nil {
+		if machineStatus, err = safe.StateGet[*omni.MachineStatus](ctx, st, omni.NewMachineStatus(genOptions.Metadata().ID()).Metadata()); err != nil {
 			if state.IsNotFoundError(err) {
 				continue
 			}
@@ -1224,7 +1223,7 @@ func migrateInstallImageConfigIntoGenOptions(ctx context.Context, st state.State
 		}
 
 		if talosVersion, err = safe.StateGet[*omni.ClusterMachineTalosVersion](ctx, st,
-			omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, genOptions.Metadata().ID()).Metadata()); err != nil {
+			omni.NewClusterMachineTalosVersion(genOptions.Metadata().ID()).Metadata()); err != nil {
 			if state.IsNotFoundError(err) {
 				continue
 			}
@@ -1714,7 +1713,7 @@ func markVersionContract(ctx context.Context, st state.State, logger *zap.Logger
 			continue
 		}
 
-		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewClusterMachine(resources.DefaultNamespace, id).Metadata(), func(res *omni.ClusterMachine) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewClusterMachine(id).Metadata(), func(res *omni.ClusterMachine) error {
 			if preserveApidCheckExtKeyUsage {
 				res.Metadata().Annotations().Set(omni.PreserveApidCheckExtKeyUsage, "")
 			}
@@ -1927,7 +1926,7 @@ func moveClusterTaintFromResourceToLabel(ctx context.Context, st state.State, _ 
 	}
 
 	for taint := range clusterTaints.All() {
-		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewClusterStatus(resources.DefaultNamespace, taint.Metadata().ID()).Metadata(), func(res *omni.ClusterStatus) error {
+		_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewClusterStatus(taint.Metadata().ID()).Metadata(), func(res *omni.ClusterStatus) error {
 			res.Metadata().Labels().Set(omni.LabelClusterTaintedByBreakGlass, "")
 
 			return nil
@@ -2108,8 +2107,8 @@ func makeMachineSetNodesOwnerEmpty(ctx context.Context, st state.State, logger *
 			continue
 		}
 
-		updated := omni.NewMachineSetNode(resources.DefaultNamespace, machineSetNode.Metadata().ID(),
-			omni.NewMachineSet(resources.DefaultNamespace, machineSet),
+		updated := omni.NewMachineSetNode(machineSetNode.Metadata().ID(),
+			omni.NewMachineSet(machineSet),
 		)
 
 		for _, fin := range *machineSetNode.Metadata().Finalizers() {

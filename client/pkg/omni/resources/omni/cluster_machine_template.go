@@ -15,9 +15,9 @@ import (
 )
 
 // NewClusterMachineTemplate creates new cluster machine status resource.
-func NewClusterMachineTemplate(ns string, id resource.ID) *ClusterMachineTemplate {
+func NewClusterMachineTemplate(id resource.ID) *ClusterMachineTemplate {
 	return typed.NewResource[ClusterMachineTemplateSpec, ClusterMachineTemplateExtension](
-		resource.NewMetadata(ns, ClusterMachineTemplateType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ClusterMachineTemplateType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ClusterMachineTemplateSpec{}),
 	)
 }

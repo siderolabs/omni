@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -74,7 +73,7 @@ func TestReconcile(t *testing.T) {
 
 		st := testContext.State
 
-		ms := omni.NewMachineStatus(resources.DefaultNamespace, id)
+		ms := omni.NewMachineStatus(id)
 
 		require.NoError(t, st.Create(ctx, ms))
 
@@ -108,7 +107,7 @@ func TestReconcile(t *testing.T) {
 		currentSchematicID, err := initialSchematic.ID()
 		require.NoError(t, err)
 
-		schematicConfiguration := omni.NewSchematicConfiguration(resources.DefaultNamespace, id)
+		schematicConfiguration := omni.NewSchematicConfiguration(id)
 		schematicConfiguration.TypedSpec().Value.SchematicId = currentSchematicID
 		schematicConfiguration.TypedSpec().Value.KernelArgs = initialSchematic.Customization.ExtraKernelArgs
 		require.NoError(t, st.Create(ctx, schematicConfiguration))
@@ -228,7 +227,7 @@ func updateKernelArgs(ctx context.Context, t *testing.T, st state.State, schemat
 	updatedSchematicID, err := updatedSchematic.ID()
 	require.NoError(t, err)
 
-	_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewSchematicConfiguration(resources.DefaultNamespace, id).Metadata(), func(res *omni.SchematicConfiguration) error {
+	_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewSchematicConfiguration(id).Metadata(), func(res *omni.SchematicConfiguration) error {
 		res.TypedSpec().Value.SchematicId = updatedSchematicID
 		res.TypedSpec().Value.KernelArgs = updatedSchematic.Customization.ExtraKernelArgs
 

@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
@@ -240,7 +239,7 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 	factory.talosVersions = xslices.Map(versions[1:], func(v string) string { return "v" + v })
 
 	for _, v := range versions {
-		version := omni.NewTalosVersion(resources.DefaultNamespace, v)
+		version := omni.NewTalosVersion(v)
 		version.TypedSpec().Value.Version = v
 
 		suite.Require().NoError(suite.state.Create(ctx, version))

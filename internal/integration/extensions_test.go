@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/pkg/client"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
 )
@@ -144,7 +143,7 @@ func UpdateExtensions(ctx context.Context, cli *client.Client, cluster string, e
 			}
 
 			if extensionsConfig == nil {
-				extensionsConfig = omni.NewExtensionsConfiguration(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+				extensionsConfig = omni.NewExtensionsConfiguration(clusterMachine.Metadata().ID())
 
 				require.NoError(t, updateSpec(extensionsConfig))
 

@@ -461,14 +461,14 @@ func (suite *OmniSuite) createCluster(clusterName string, controlPlanes, workers
 }
 
 func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, controlPlanes, workers int, talosVersion string) (*omni.Cluster, []*omni.ClusterMachine) {
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+	cluster := omni.NewCluster(clusterName)
 	cluster.TypedSpec().Value.TalosVersion = talosVersion
 	cluster.TypedSpec().Value.KubernetesVersion = "1.32.0"
 
 	machines := make([]*omni.ClusterMachine, controlPlanes+workers)
 
-	cpMachineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(clusterName))
-	workersMachineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.WorkersResourceID(clusterName))
+	cpMachineSet := omni.NewMachineSet(omni.ControlPlanesResourceID(clusterName))
+	workersMachineSet := omni.NewMachineSet(omni.WorkersResourceID(clusterName))
 
 	cpMachineSet.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 	cpMachineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
@@ -479,7 +479,7 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 	cpMachineSet.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling
 	workersMachineSet.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling
 
-	clusterConfigVersion := omni.NewClusterConfigVersion(resources.DefaultNamespace, clusterName)
+	clusterConfigVersion := omni.NewClusterConfigVersion(clusterName)
 	clusterConfigVersion.TypedSpec().Value.Version = fmt.Sprintf("v%s", talosVersion)
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, cpMachineSet))
@@ -488,11 +488,10 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 
 	for i := range machines {
 		clusterMachine := omni.NewClusterMachine(
-			resources.DefaultNamespace,
 			fmt.Sprintf("%s-node-%d", clusterName, i),
 		)
 
-		clusterMachineConfigPatches := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+		clusterMachineConfigPatches := omni.NewClusterMachineConfigPatches(clusterMachine.Metadata().ID())
 
 		err := clusterMachineConfigPatches.TypedSpec().Value.SetUncompressedPatches([]string{
 			`machine:
@@ -506,7 +505,6 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 		var machineSetNode *omni.MachineSetNode
 
 		machineStatus := omni.NewMachineStatus(
-			resources.DefaultNamespace,
 			clusterMachine.Metadata().ID(),
 		)
 
@@ -530,14 +528,14 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 
 			machineStatus.TypedSpec().Value.Role = specs.MachineStatusSpec_CONTROL_PLANE
 
-			machineSetNode = omni.NewMachineSetNode(resources.DefaultNamespace, clusterMachine.Metadata().ID(), cpMachineSet)
+			machineSetNode = omni.NewMachineSetNode(clusterMachine.Metadata().ID(), cpMachineSet)
 		} else {
 			clusterMachine.Metadata().Labels().Set(omni.LabelWorkerRole, "")
 			clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, workersMachineSet.Metadata().ID())
 
 			machineStatus.TypedSpec().Value.Role = specs.MachineStatusSpec_WORKER
 
-			machineSetNode = omni.NewMachineSetNode(resources.DefaultNamespace, clusterMachine.Metadata().ID(), workersMachineSet)
+			machineSetNode = omni.NewMachineSetNode(clusterMachine.Metadata().ID(), workersMachineSet)
 		}
 
 		clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
@@ -551,7 +549,6 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 		})
 
 		machine := omni.NewMachine(
-			resources.DefaultNamespace,
 			clusterMachine.Metadata().ID(),
 		)
 
@@ -564,7 +561,7 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 	}
 
 	// create loadbalancer lbConfig as it's port is used while generating kubernetes endpoint
-	lbConfig := omni.NewLoadBalancerConfig(resources.DefaultNamespace, clusterName)
+	lbConfig := omni.NewLoadBalancerConfig(clusterName)
 	lbConfig.TypedSpec().Value.BindPort = "6443"
 	lbConfig.TypedSpec().Value.SiderolinkEndpoint = "https://siderolink:6443"
 

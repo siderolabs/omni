@@ -31,7 +31,6 @@ import (
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
-	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -634,14 +633,14 @@ func (r *Runtime) GetCOSIRuntime() *cosiruntime.Runtime {
 func (r *Runtime) RawTalosconfig(ctx context.Context, clusterName string) ([]byte, error) {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](ctx, r.state, omni.NewClusterEndpoint(omniresources.DefaultNamespace, clusterName).Metadata())
+	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](ctx, r.state, omni.NewClusterEndpoint(clusterName).Metadata())
 	if err != nil {
 		return nil, err
 	}
 
 	endpoints := clusterEndpoint.TypedSpec().Value.GetManagementAddresses()
 
-	talosConfig, err := safe.StateGet[*omni.TalosConfig](ctx, r.state, omni.NewTalosConfig(omniresources.DefaultNamespace, clusterName).Metadata())
+	talosConfig, err := safe.StateGet[*omni.TalosConfig](ctx, r.state, omni.NewTalosConfig(clusterName).Metadata())
 	if err != nil {
 		return nil, err
 	}
