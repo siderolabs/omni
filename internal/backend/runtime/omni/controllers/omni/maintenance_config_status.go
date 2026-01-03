@@ -29,7 +29,6 @@ import (
 	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
@@ -77,7 +76,7 @@ func NewMaintenanceConfigStatusController(maintenanceClientFactory MaintenanceCl
 				return omni.NewMaintenanceConfigStatus(link.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(status *omni.MaintenanceConfigStatus) *siderolinkres.Link {
-				return siderolinkres.NewLink(resources.DefaultNamespace, status.Metadata().ID(), nil)
+				return siderolinkres.NewLink(status.Metadata().ID(), nil)
 			},
 			TransformFunc: helper.transform,
 		},

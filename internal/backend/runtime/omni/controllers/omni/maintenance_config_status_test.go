@@ -59,7 +59,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	suite.startRuntime()
 
 	// Trigger a full reconciliation with config apply
-	link := siderolinkres.NewLink(resources.DefaultNamespace, "test-machine", &specs.SiderolinkSpec{})
+	link := siderolinkres.NewLink("test-machine", &specs.SiderolinkSpec{})
 	link.TypedSpec().Value.Connected = true
 	link.TypedSpec().Value.NodePublicKey = "test-public-key-1"
 

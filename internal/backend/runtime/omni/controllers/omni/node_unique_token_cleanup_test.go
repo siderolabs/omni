@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -42,7 +41,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestNodeUniqueTokenCleanup() 
 
 	rtestutils.AssertNoResource[*siderolink.NodeUniqueToken](ctx, suite.T(), suite.state, token.Metadata().ID())
 
-	link := siderolink.NewLink(resources.DefaultNamespace, token.Metadata().ID(), &specs.SiderolinkSpec{})
+	link := siderolink.NewLink(token.Metadata().ID(), &specs.SiderolinkSpec{})
 
 	suite.Require().NoError(suite.state.Create(ctx, token))
 	suite.Require().NoError(suite.state.Create(ctx, link))

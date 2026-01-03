@@ -87,7 +87,7 @@ func TestStaticProviderCleanup(t *testing.T) {
 		st := testContext.State
 		providerMD := infra.NewProvider(providerID).Metadata()
 
-		link := siderolink.NewLink(resources.DefaultNamespace, "test-machine", nil)
+		link := siderolink.NewLink("test-machine", nil)
 		link.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
 		infraMachineStatus := infra.NewMachineStatus(link.Metadata().ID())
 		infraMachineStatus.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
