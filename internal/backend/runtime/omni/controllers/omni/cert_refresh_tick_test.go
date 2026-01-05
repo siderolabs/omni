@@ -12,7 +12,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -28,7 +27,7 @@ func (suite *CertRefreshTickSuite) TestReconcile() {
 
 	watchCh := make(chan state.Event)
 
-	suite.Require().NoError(suite.state.WatchKind(suite.ctx, system.NewCertRefreshTick(resources.EphemeralNamespace, "").Metadata(), watchCh))
+	suite.Require().NoError(suite.state.WatchKind(suite.ctx, system.NewCertRefreshTick("").Metadata(), watchCh))
 
 	// wait for two ticks
 	ticks := 0

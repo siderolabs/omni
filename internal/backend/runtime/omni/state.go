@@ -284,7 +284,7 @@ func initResources(ctx context.Context, resourceState state.State, logger *zap.L
 		}
 	}
 
-	sysVersion := system.NewSysVersion(resources.EphemeralNamespace, system.SysVersionID)
+	sysVersion := system.NewSysVersion(system.SysVersionID)
 	sysVersion.TypedSpec().Value.BackendVersion = version.Tag
 	sysVersion.TypedSpec().Value.InstanceName = config.Config.Account.Name
 	sysVersion.TypedSpec().Value.BackendApiVersion = version.API

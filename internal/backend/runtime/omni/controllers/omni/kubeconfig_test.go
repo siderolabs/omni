@@ -72,7 +72,7 @@ func (suite *KubeconfigSuite) TestReconcile() {
 	time.Sleep(1 * time.Second)
 
 	// issue a refresh tick
-	suite.Require().NoError(suite.state.Create(suite.ctx, system.NewCertRefreshTick(resources.EphemeralNamespace, "refresh")))
+	suite.Require().NoError(suite.state.Create(suite.ctx, system.NewCertRefreshTick("refresh")))
 
 	assertResource(
 		&suite.OmniSuite,

@@ -15,9 +15,9 @@ import (
 )
 
 // NewKubernetesUsage creates new Kubernetes usage resource.
-func NewKubernetesUsage(ns, id string) *KubernetesUsage {
+func NewKubernetesUsage(id string) *KubernetesUsage {
 	return typed.NewResource[KubernetesUsageSpec, KubernetesUsageExtension](
-		resource.NewMetadata(ns, KubernetesUsageType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.VirtualNamespace, KubernetesUsageType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.KubernetesUsageSpec{}),
 	)
 }

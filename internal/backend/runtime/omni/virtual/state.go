@@ -344,7 +344,7 @@ func (v *State) labelsCompletion(ctx context.Context, ptr resource.Pointer) (*vi
 		}
 	}
 
-	completion := virtual.NewLabelsCompletion(resources.VirtualNamespace, ptr.ID())
+	completion := virtual.NewLabelsCompletion(ptr.ID())
 	completion.TypedSpec().Value.Items = labels
 
 	return completion, nil

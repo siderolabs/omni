@@ -131,7 +131,7 @@ func (ku *KubernetesUsage) Start() error {
 			return
 		}
 
-		usage := virtual.NewKubernetesUsage(ku.ptr.Namespace(), ku.ptr.ID())
+		usage := virtual.NewKubernetesUsage(ku.ptr.ID())
 
 		calculateUsage(pods, nodes, usage)
 

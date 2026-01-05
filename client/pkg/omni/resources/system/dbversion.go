@@ -15,9 +15,9 @@ import (
 )
 
 // NewDBVersion creates new DBVersion state.
-func NewDBVersion(ns, id string) *DBVersion {
+func NewDBVersion(id string) *DBVersion {
 	return typed.NewResource[DBVersionSpec, DBVersionExtension](
-		resource.NewMetadata(ns, DBVersionType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, DBVersionType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.DBVersionSpec{}),
 	)
 }

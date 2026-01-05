@@ -15,9 +15,9 @@ import (
 )
 
 // NewCertRefreshTick creates new CertRefreshTick state.
-func NewCertRefreshTick(ns, id string) *CertRefreshTick {
+func NewCertRefreshTick(id string) *CertRefreshTick {
 	return typed.NewResource[CertRefreshTickSpec, CertRefreshTickExtension](
-		resource.NewMetadata(ns, CertRefreshTickType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.EphemeralNamespace, CertRefreshTickType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.CertRefreshTickSpec{}),
 	)
 }

@@ -17,7 +17,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/migration"
 )
@@ -54,7 +53,7 @@ func TestFailOnTooOldDBVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-			dbVersion := system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
+			dbVersion := system.NewDBVersion(system.DBVersionID)
 			dbVersion.TypedSpec().Value.Version = tt.currentVersion
 
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)

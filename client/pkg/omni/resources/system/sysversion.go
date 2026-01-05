@@ -15,9 +15,9 @@ import (
 )
 
 // NewSysVersion creates new SysVersion state.
-func NewSysVersion(ns, id string) *SysVersion {
+func NewSysVersion(id string) *SysVersion {
 	return typed.NewResource[SysVersionSpec, SysVersionExtension](
-		resource.NewMetadata(ns, SysVersionType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.EphemeralNamespace, SysVersionType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.SysVersionSpec{}),
 	)
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 )
 
@@ -320,7 +319,7 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) (Result, error) {
 	version, err := safe.StateGet[*system.DBVersion](
 		ctx,
 		m.state,
-		system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID).Metadata(),
+		system.NewDBVersion(system.DBVersionID).Metadata(),
 	)
 	if err != nil && !state.IsNotFoundError(err) {
 		return Result{}, err
@@ -330,7 +329,7 @@ func (m *Manager) Run(ctx context.Context, opt ...Option) (Result, error) {
 
 	isFreshInstall := version == nil
 	if isFreshInstall {
-		version = system.NewDBVersion(resources.DefaultNamespace, system.DBVersionID)
+		version = system.NewDBVersion(system.DBVersionID)
 
 		for _, mig := range m.migrations {
 			if mig.failWithRequiredMaxVersion == "" {

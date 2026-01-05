@@ -15,9 +15,9 @@ import (
 )
 
 // NewLabelsCompletion creates new LabelsCompletion resource.
-func NewLabelsCompletion(ns string, id resource.ID) *LabelsCompletion {
+func NewLabelsCompletion(id resource.ID) *LabelsCompletion {
 	return typed.NewResource[LabelsCompletionSpec, LabelsCompletionExtension](
-		resource.NewMetadata(ns, LabelsCompletionType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.VirtualNamespace, LabelsCompletionType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.LabelsCompletionSpec{}),
 	)
 }

@@ -913,7 +913,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       virtual.NewKubernetesUsage(resources.MetricsNamespace, uuid.New().String()),
+				resource:       virtual.NewKubernetesUsage(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -929,7 +929,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       virtual.NewLabelsCompletion(resources.MetricsNamespace, uuid.New().String()),
+				resource:       virtual.NewLabelsCompletion(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -1017,7 +1017,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:              system.NewSysVersion(resources.DefaultNamespace, uuid.New().String()),
+				resource:              system.NewSysVersion(uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
 			},
@@ -1142,10 +1142,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource: oidc.NewJWTPublicKey(resources.DefaultNamespace, uuid.New().String()),
 			},
 			{
-				resource: system.NewDBVersion(resources.DefaultNamespace, uuid.New().String()),
+				resource: system.NewDBVersion(uuid.New().String()),
 			},
 			{
-				resource: system.NewCertRefreshTick(resources.DefaultNamespace, uuid.New().String()),
+				resource: system.NewCertRefreshTick(uuid.New().String()),
 			},
 			{
 				resource: authres.NewPublicKey(resources.DefaultNamespace, uuid.New().String()),

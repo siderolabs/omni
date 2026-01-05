@@ -13,7 +13,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 )
 
@@ -60,7 +59,7 @@ func (ctrl *CertRefreshTickController) Run(ctx context.Context, r controller.Run
 			// issue a "refresh" tick to notify all certificate management controllers to refresh certificates
 			if err := safe.WriterModify(
 				ctx, r,
-				system.NewCertRefreshTick(resources.EphemeralNamespace, t.String()),
+				system.NewCertRefreshTick(t.String()),
 				func(*system.CertRefreshTick) error {
 					return nil
 				},

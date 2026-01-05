@@ -159,7 +159,7 @@ If you want to enable the version validation and disable this warning, set githu
 		return nil
 	}
 
-	sysVersion, err := safe.StateGet[*system.SysVersion](ctx, state, system.NewSysVersion(resources.EphemeralNamespace, system.SysVersionID).Metadata())
+	sysVersion, err := safe.StateGet[*system.SysVersion](ctx, state, system.NewSysVersion(system.SysVersionID).Metadata())
 	if err != nil {
 		return err
 	}
