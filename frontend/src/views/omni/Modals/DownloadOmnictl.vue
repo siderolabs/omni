@@ -46,9 +46,11 @@ const defaultValue = computed(() => {
   return options.find((o) => o === `omnictl-${os}-${arch}`) ?? options[2]
 })
 
-const selectedOption = ref(defaultValue)
+const selectedOption = ref<string>()
 
 const download = () => {
+  if (!selectedOption.value) return
+
   close()
 
   const a = document.createElement('a')
@@ -101,7 +103,7 @@ const download = () => {
       <TButton class="h-9 w-32" @click="close">
         <span>Cancel</span>
       </TButton>
-      <TButton class="h-9 w-32" @click="download">
+      <TButton class="h-9 w-32" :disabled="!selectedOption" @click="download">
         <span>Download</span>
       </TButton>
     </div>
