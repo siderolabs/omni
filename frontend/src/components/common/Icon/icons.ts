@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import {
+  ArrowDownTrayIcon,
   ArrowUpCircleIcon,
   ArrowUpTrayIcon,
   CalendarIcon,
@@ -30,6 +31,7 @@ export const icons = {
   'action-horizontal': defineAsyncComponent(() => import('../../icons/IconActionHorizontal.vue')),
   'action-vertical': defineAsyncComponent(() => import('../../icons/IconActionVertical.vue')),
   'arrow-down': defineAsyncComponent(() => import('../../icons/IconArrowDown.vue')),
+  'arrow-down-tray': ArrowDownTrayIcon,
   'arrow-left': defineAsyncComponent(() => import('../../icons/IconArrowLeft.vue')),
   'arrow-right-square': defineAsyncComponent(() => import('../../icons/IconArrowRightSquare.vue')),
   'arrow-right': defineAsyncComponent(() => import('../../icons/IconArrowRight.vue')),
