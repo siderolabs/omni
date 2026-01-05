@@ -9,9 +9,6 @@ import { afterEach, expect, test, vi } from 'vitest'
 
 import TSelectList from './TSelectList.vue'
 
-// Used by reka-ui select, test fails without it
-window.HTMLElement.prototype.hasPointerCapture = vi.fn()
-
 enableAutoUnmount(afterEach)
 
 test('is accessible with inline label', () => {
