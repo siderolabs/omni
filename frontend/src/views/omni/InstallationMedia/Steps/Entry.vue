@@ -7,7 +7,6 @@ included in the LICENSE file.
 <script setup lang="ts">
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
 const formState = defineModel<FormState>({ required: true })
@@ -15,8 +14,6 @@ const formState = defineModel<FormState>({ required: true })
 
 <template>
   <div class="flex flex-col gap-4">
-    <TInput v-model="formState.name" title="Name" overhead-title />
-
     <RadioGroup v-model="formState.hardwareType" label="Hardware Type">
       <RadioGroupOption value="metal">
         Bare-metal Machine

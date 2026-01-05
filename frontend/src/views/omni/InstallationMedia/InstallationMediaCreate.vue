@@ -8,7 +8,7 @@ included in the LICENSE file.
 import { type Component } from 'vue'
 
 import type { SchematicBootloader } from '@/api/omni/management/management.pb'
-import type { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
+import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
 
 type HardwareType = 'metal' | 'cloud' | 'sbc'
@@ -28,7 +28,6 @@ const flows: Record<HardwareType, Component[]> = {
 
 export interface FormState {
   currentStep: number
-  name?: string
   hardwareType?: HardwareType
   talosVersion?: string
   useGrpcTunnel?: boolean
@@ -47,10 +46,13 @@ export interface FormState {
 
 <script setup lang="ts">
 import { useSessionStorage } from '@vueuse/core'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
 import Stepper from '@/components/common/Stepper/Stepper.vue'
+import { showSuccess } from '@/notification'
+import SavePresetModal from '@/views/omni/InstallationMedia/SavePresetModal.vue'
 import CloudProviderStep from '@/views/omni/InstallationMedia/Steps/CloudProvider.vue'
 import ConfirmationStep from '@/views/omni/InstallationMedia/Steps/Confirmation.vue'
 import EntryStep from '@/views/omni/InstallationMedia/Steps/Entry.vue'
@@ -59,6 +61,8 @@ import MachineArchStep from '@/views/omni/InstallationMedia/Steps/MachineArch.vu
 import SBCTypeStep from '@/views/omni/InstallationMedia/Steps/SBCType.vue'
 import SystemExtensionsStep from '@/views/omni/InstallationMedia/Steps/SystemExtensions.vue'
 import TalosVersionStep from '@/views/omni/InstallationMedia/Steps/TalosVersion.vue'
+
+const router = useRouter()
 
 const formState = useSessionStorage<FormState>(
   '_installation_media_form',
@@ -76,6 +80,36 @@ const currentStepComponent = computed(() =>
 )
 
 const stepCount = computed(() => currentFlowSteps.value?.length ?? 0)
+const isLastStep = computed(
+  () => currentFlowSteps.value && formState.value.currentStep === stepCount.value,
+)
+
+function goBackStep() {
+  formState.value.currentStep = Math.max(0, formState.value.currentStep - 1)
+}
+
+function goNextStep() {
+  formState.value.currentStep = Math.min(stepCount.value, formState.value.currentStep + 1)
+}
+
+const savePresetModalOpen = ref(false)
+const isSaved = ref(false)
+
+function openSavePresetModal() {
+  savePresetModalOpen.value = true
+}
+
+function goToPresetList() {
+  formState.value = { currentStep: 0 }
+  router.push({ name: 'InstallationMedia' })
+}
+
+function onSaved(name: string) {
+  showSuccess(`Preset saved as ${name}`)
+
+  isSaved.value = true
+  savePresetModalOpen.value = false
+}
 </script>
 
 <template>
@@ -96,23 +130,29 @@ const stepCount = computed(() => currentFlowSteps.value?.length ?? 0)
         class="mx-auto w-full"
       />
 
-      <div class="flex gap-2 max-md:self-end">
+      <div class="flex items-center gap-2 max-md:self-end">
         <TButton
           v-if="currentFlowSteps && formState.currentStep > 0"
-          :disabled="formState.currentStep <= 0"
-          @click="formState.currentStep = Math.max(0, formState.currentStep - 1)"
+          :disabled="formState.currentStep <= 0 || isSaved"
+          @click="goBackStep"
         >
           Back
         </TButton>
 
         <TButton
           type="highlighted"
-          :disabled="formState.currentStep >= stepCount"
-          @click="formState.currentStep = Math.min(stepCount, formState.currentStep + 1)"
+          @click="isLastStep ? (isSaved ? goToPresetList() : openSavePresetModal()) : goNextStep()"
         >
-          Next
+          {{ isLastStep ? (isSaved ? 'Finished' : 'Save') : 'Next' }}
         </TButton>
       </div>
     </div>
+
+    <SavePresetModal
+      :open="savePresetModalOpen"
+      :form-state
+      @close="savePresetModalOpen = false"
+      @saved="onSaved"
+    />
   </div>
 </template>

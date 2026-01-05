@@ -5,6 +5,7 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import InstallationMediaCreate from './InstallationMediaCreate.vue'
+import * as SavePresetModalStories from './SavePresetModal.stories'
 import * as CloudProviderStories from './Steps/CloudProvider.stories'
 import * as ConfirmationStories from './Steps/Confirmation.stories'
 import * as ExtraArgsStories from './Steps/ExtraArgs.stories'
@@ -30,6 +31,7 @@ export const Default: Story = {
   parameters: {
     msw: {
       handlers: [
+        ...SavePresetModalStories.Default.parameters.msw.handlers,
         ...CloudProviderStories.Default.parameters.msw.handlers,
         ...ConfirmationStories.Default.parameters.msw.handlers,
         ...ExtraArgsStories.Default.parameters.msw.handlers,
