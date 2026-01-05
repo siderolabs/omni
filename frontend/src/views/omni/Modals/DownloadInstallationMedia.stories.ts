@@ -20,6 +20,7 @@ import {
   DefaultJoinTokenType,
   DefaultNamespace,
   EphemeralNamespace,
+  FeaturesConfigID,
   FeaturesConfigType,
   InstallationMediaType,
   JoinTokenStatusType,
@@ -44,13 +45,18 @@ export const Default: Story = {
       handlers: [
         createWatchStreamHandler<FeaturesConfigSpec>({
           expectedOptions: {
-            type: FeaturesConfigType,
             namespace: DefaultNamespace,
+            type: FeaturesConfigType,
+            id: FeaturesConfigID,
           },
           initialResources: [
             {
               spec: { image_factory_base_url: 'https://factory.talos.dev' },
-              metadata: {},
+              metadata: {
+                namespace: DefaultNamespace,
+                type: FeaturesConfigType,
+                id: FeaturesConfigID,
+              },
             },
           ],
         }).handler,

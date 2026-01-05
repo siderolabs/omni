@@ -16,6 +16,7 @@ import {
   ConfigID,
   DefaultNamespace,
   DefaultTalosVersion,
+  FeaturesConfigID,
   FeaturesConfigType,
   JoinTokenStatusType,
   TalosVersionType,
@@ -39,13 +40,18 @@ export const Default = {
       handlers: [
         createWatchStreamHandler<FeaturesConfigSpec>({
           expectedOptions: {
-            type: FeaturesConfigType,
             namespace: DefaultNamespace,
+            type: FeaturesConfigType,
+            id: FeaturesConfigID,
           },
           initialResources: [
             {
               spec: { talos_pre_release_versions_enabled: true },
-              metadata: {},
+              metadata: {
+                namespace: DefaultNamespace,
+                type: FeaturesConfigType,
+                id: FeaturesConfigID,
+              },
             },
           ],
         }).handler,

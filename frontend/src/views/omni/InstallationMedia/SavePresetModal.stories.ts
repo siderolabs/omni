@@ -7,7 +7,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { delay, http, HttpResponse } from 'msw'
 
 import type { CreateRequest, CreateResponse } from '@/api/omni/resources/resources.pb'
-import type { FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
+import type { InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import { DefaultNamespace, InstallationMediaConfigType } from '@/api/resources'
 
@@ -35,7 +35,7 @@ export const Default = {
   parameters: {
     msw: {
       handlers: [
-        createWatchStreamHandler<FeaturesConfigSpec>({
+        createWatchStreamHandler<InstallationMediaConfigSpec>({
           expectedOptions: {
             namespace: DefaultNamespace,
             type: InstallationMediaConfigType,

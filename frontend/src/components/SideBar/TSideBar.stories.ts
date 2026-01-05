@@ -26,6 +26,7 @@ import {
   DefaultNamespace,
   EphemeralNamespace,
   EtcdBackupOverallStatusType,
+  FeaturesConfigID,
   FeaturesConfigType,
   InfraProviderNamespace,
   InfraProviderStatusType,
@@ -364,8 +365,9 @@ export const Default: Story = {
 
         createWatchStreamHandler<FeaturesConfigSpec>({
           expectedOptions: {
-            type: FeaturesConfigType,
             namespace: DefaultNamespace,
+            type: FeaturesConfigType,
+            id: FeaturesConfigID,
           },
           initialResources: [
             {
@@ -383,14 +385,9 @@ export const Default: Story = {
                 stripe_settings: {},
               },
               metadata: {
-                created: '2025-10-17T16:06:40Z',
-                updated: '2025-10-17T16:06:40Z',
-                namespace: 'default',
-                type: 'FeaturesConfigs.omni.sidero.dev',
-                id: 'features-config',
-                owner: '',
-                phase: 'running',
-                version: '1',
+                namespace: DefaultNamespace,
+                type: FeaturesConfigType,
+                id: FeaturesConfigID,
               },
             },
           ],
