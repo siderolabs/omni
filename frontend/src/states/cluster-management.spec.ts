@@ -442,6 +442,7 @@ describe('cluster-management-state', () => {
       }
 
       if (tt.shouldFail) {
+        // eslint-disable-next-line vitest/no-conditional-expect
         expect(run).toThrowError()
 
         return

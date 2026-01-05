@@ -5,6 +5,7 @@
 import type { Node as V1Node } from 'kubernetes-types/core/v1'
 import { coerce } from 'semver'
 import { UAParser } from 'ua-parser-js'
+import { CPUArch, OSName } from 'ua-parser-js/enums'
 import type { ComputedRef, Ref } from 'vue'
 import { computed, ref } from 'vue'
 
@@ -34,10 +35,10 @@ export async function getPlatform() {
     const result = await new UAParser().getResult().withClientHints()
 
     const os = (() => {
-      switch (result.os.name?.toLowerCase()) {
-        case 'macos':
+      switch (true) {
+        case result.os.is(OSName.MACOS):
           return 'darwin'
-        case 'windows':
+        case result.os.is(OSName.WINDOWS):
           return 'windows'
         default:
           return 'linux'
@@ -45,8 +46,8 @@ export async function getPlatform() {
     })()
 
     const arch = (() => {
-      switch (result.cpu.architecture?.toLowerCase()) {
-        case 'arm64':
+      switch (true) {
+        case result.cpu.is(CPUArch.ARM_64):
           return 'arm64'
         default:
           return 'amd64'

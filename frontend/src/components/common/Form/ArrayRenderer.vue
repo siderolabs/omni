@@ -61,28 +61,28 @@ const addButtonClicked = () => {
   )()
 }
 
-const deleteButtonClicked = (index: number) => {
+const deleteButtonClicked = (index: string | number) => {
   if (!p.removeItems || minItemsReached.value) {
     return
   }
 
-  p.removeItems(control.value.path, [index])()
+  p.removeItems(control.value.path, [Number(index)])()
 }
 
-const moveUpClicked = (index: number) => {
+const moveUpClicked = (index: string | number) => {
   if (!p.moveUp) {
     return
   }
 
-  p.moveUp(control.value.path, index)()
+  p.moveUp(control.value.path, Number(index))()
 }
 
-const moveDownClicked = (index: number) => {
+const moveDownClicked = (index: string | number) => {
   if (!p.moveDown) {
     return
   }
 
-  p.moveDown(control.value.path, index)()
+  p.moveDown(control.value.path, Number(index))()
 }
 </script>
 
