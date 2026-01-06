@@ -1,3 +1,68 @@
+## [Omni 1.4.7](https://github.com/siderolabs/omni/releases/tag/v1.4.7) (2026-01-06)
+
+Welcome to the v1.4.7 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+This release consolidates **Discovery service state**, **Audit logs**, **Machine logs**, and **Secondary resources** into a single SQLite storage backend.
+
+**1. New Required Flag**
+You **must** set the new `--sqlite-storage-path` (or `.storage.sqlite.path`) flag. There is no default value, and Omni will not start without it.
+It **must** be a path to the SQLite file (will be created by Omni), **not** a directory, e.g., `--sqlite-storage-path=/path/to/omni-sqlite.db`.
+
+**2. Audit Logging Changes**
+A new flag `--audit-log-enabled` (or `.logs.audit.enabled`) has been introduced to explicitly enable or disable audit logging.
+* **Default:** `true`.
+* **Change:** Previously, audit logging was implicitly enabled only when the path was set. Now, it is enabled by default.
+
+**3. Automatic Migration**
+Omni will automatically migrate your existing data (BoltDB, file-based logs) to the new SQLite database on the first startup. To ensure this happens correctly, simply add the new SQLite flag and **leave your existing storage flags in place** for the first run.
+
+Once the migration is complete, you are free to remove the deprecated flags listed below. If they remain, they will be ignored and eventually dropped in future versions.
+
+**4. Deprecated Flags (Kept for Migration)**
+The following flags (and config keys) are deprecated and kept solely to facilitate the automatic migration:
+* `--audit-log-dir` (`.logs.audit.path`)
+* `--secondary-storage-path` (`.storage.secondary.path`)
+* `--machine-log-storage-path` (`.logs.machine.storage.path`)
+* `--machine-log-storage-enabled` (`.logs.machine.storage.enabled`)
+* `--embedded-discovery-service-snapshot-path` (`.services.embeddedDiscoveryService.snapshotsPath`)
+* `--machine-log-buffer-capacity` (`.logs.machine.bufferInitialCapacity`)
+* `--machine-log-buffer-max-capacity` (`.logs.machine.bufferMaxCapacity`)
+* `--machine-log-buffer-safe-gap` (`.logs.machine.bufferSafetyGap`)
+* `--machine-log-num-compressed-chunks` (`.logs.machine.storage.numCompressedChunks`)
+
+**5. Removed Flags**
+The following flags have been removed and are no longer supported:
+* `--machine-log-storage-flush-period` (`.logs.machine.storage.flushPeriod`)
+* `--machine-log-storage-flush-jitter` (`.logs.machine.storage.flushJitter`)
+
+
+### Contributors
+
+* Edward Sammut Alessi
+* Artem Chernyshev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`e89f08b0`](https://github.com/siderolabs/omni/commit/e89f08b02839d1eee172d5ff98455e7b657e5979) fix: set secureboot for image correctly from download modal
+* [`3a957d40`](https://github.com/siderolabs/omni/commit/3a957d40a3eb046ed9f2baae1229dbce13fb5e4e) fix(frontend): allow selecting all download options for omnictl
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.4.6](https://github.com/siderolabs/omni/releases/tag/v1.4.6)
+
 ## [Omni 1.4.6](https://github.com/siderolabs/omni/releases/tag/v1.4.6) (2025-12-26)
 
 Welcome to the v1.4.6 release of Omni!
