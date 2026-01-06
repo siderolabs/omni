@@ -193,9 +193,9 @@ func (suite *MigrationSuite) Test_changePublicKeyOwner() {
 	defer cancel()
 
 	keys := []*authres.PublicKey{
-		authres.NewPublicKey(resources.DefaultNamespace, "test1"),
-		authres.NewPublicKey(resources.DefaultNamespace, "test2"),
-		authres.NewPublicKey(resources.DefaultNamespace, "test3"),
+		authres.NewPublicKey("test1"),
+		authres.NewPublicKey("test2"),
+		authres.NewPublicKey("test3"),
 	}
 
 	for _, key := range keys[:2] {
@@ -424,11 +424,11 @@ func (suite *MigrationSuite) TestUserDefaultScopes() {
 
 	ctx := suite.T().Context()
 
-	user1 := authres.NewUser(resources.DefaultNamespace, "user1")
+	user1 := authres.NewUser("user1")
 
-	user2 := authres.NewUser(resources.DefaultNamespace, "user2")
+	user2 := authres.NewUser("user2")
 
-	user3 := authres.NewUser(resources.DefaultNamespace, "user3")
+	user3 := authres.NewUser("user3")
 	user3.TypedSpec().Value.Scopes = []string{"scopeExisting1", "scopeExisting2"} //nolint:staticcheck
 
 	suite.Require().NoError(suite.state.Create(ctx, user1))
@@ -721,16 +721,16 @@ func (suite *MigrationSuite) TestAddServiceAccountScopesToUsers() {
 
 	id := uuid.New().String()
 
-	user1 := authres.NewUser(resources.DefaultNamespace, fmt.Sprintf("user1-%s", id))
+	user1 := authres.NewUser(fmt.Sprintf("user1-%s", id))
 	user1.TypedSpec().Value.Scopes = scope.NewScopes(scope.ClusterAny, scope.MachineRead).Strings()
 
-	user2 := authres.NewUser(resources.DefaultNamespace, fmt.Sprintf("user2-%s", id))
+	user2 := authres.NewUser(fmt.Sprintf("user2-%s", id))
 	user2.TypedSpec().Value.Scopes = scope.NewScopes(scope.UserAny).Strings()
 
-	publicKey1 := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("publicKey1-%s", id))
+	publicKey1 := authres.NewPublicKey(fmt.Sprintf("publicKey1-%s", id))
 	publicKey1.TypedSpec().Value.Scopes = scope.NewScopes(scope.ClusterAny).Strings()
 
-	publicKey2 := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("publicKey2-%s", id))
+	publicKey2 := authres.NewPublicKey(fmt.Sprintf("publicKey2-%s", id))
 
 	suite.Require().NoError(suite.state.Create(ctx, user1))
 	suite.Require().NoError(suite.state.Create(ctx, user2))
@@ -809,34 +809,34 @@ func (suite *MigrationSuite) TestConvertScopesToRoles() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	userWithNoScopes := authres.NewUser(resources.DefaultNamespace, fmt.Sprintf("userWithNoScopes-%s", uuid.New().String()))
+	userWithNoScopes := authres.NewUser(fmt.Sprintf("userWithNoScopes-%s", uuid.New().String()))
 	userWithNoScopes.TypedSpec().Value.Scopes = []string{}
 
-	userWithReadScopes := authres.NewUser(resources.DefaultNamespace, fmt.Sprintf("userWithReadScopes-%s", uuid.New().String()))
+	userWithReadScopes := authres.NewUser(fmt.Sprintf("userWithReadScopes-%s", uuid.New().String()))
 	userWithReadScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.MachineRead, scope.ClusterRead).Strings()
 
-	userWithModifyScopes := authres.NewUser(resources.DefaultNamespace, fmt.Sprintf("userWithModifyScopes-%s", uuid.New().String()))
+	userWithModifyScopes := authres.NewUser(fmt.Sprintf("userWithModifyScopes-%s", uuid.New().String()))
 	userWithModifyScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.ClusterModify).Strings()
 
-	userWithUserMgmtScopes := authres.NewUser(resources.DefaultNamespace, fmt.Sprintf("userWithUserMgmtScopes-%s", uuid.New().String()))
+	userWithUserMgmtScopes := authres.NewUser(fmt.Sprintf("userWithUserMgmtScopes-%s", uuid.New().String()))
 	userWithUserMgmtScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.UserRead).Strings()
 
-	userWithServiceAccountScopes := authres.NewUser(resources.DefaultNamespace, fmt.Sprintf("userWithServiceAccountScopes-%s", uuid.New().String()))
+	userWithServiceAccountScopes := authres.NewUser(fmt.Sprintf("userWithServiceAccountScopes-%s", uuid.New().String()))
 	userWithServiceAccountScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.ServiceAccountCreate).Strings()
 
-	pubKeyWithNoScopes := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("pubKeyWithNoScopes-%s", uuid.New().String()))
+	pubKeyWithNoScopes := authres.NewPublicKey(fmt.Sprintf("pubKeyWithNoScopes-%s", uuid.New().String()))
 	pubKeyWithNoScopes.TypedSpec().Value.Scopes = []string{}
 
-	pubKeyWithReadScopes := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("pubKeyWithReadScopes-%s", uuid.New().String()))
+	pubKeyWithReadScopes := authres.NewPublicKey(fmt.Sprintf("pubKeyWithReadScopes-%s", uuid.New().String()))
 	pubKeyWithReadScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.MachineRead, scope.ClusterRead).Strings()
 
-	pubKeyWithModifyScopes := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("pubKeyWithModifyScopes-%s", uuid.New().String()))
+	pubKeyWithModifyScopes := authres.NewPublicKey(fmt.Sprintf("pubKeyWithModifyScopes-%s", uuid.New().String()))
 	pubKeyWithModifyScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.ClusterModify).Strings()
 
-	pubKeyWithUserMgmtScopes := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("pubKeyWithUserMgmtScopes-%s", uuid.New().String()))
+	pubKeyWithUserMgmtScopes := authres.NewPublicKey(fmt.Sprintf("pubKeyWithUserMgmtScopes-%s", uuid.New().String()))
 	pubKeyWithUserMgmtScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.UserRead).Strings()
 
-	pubKeyWithServiceAccountScopes := authres.NewPublicKey(resources.DefaultNamespace, fmt.Sprintf("pubKeyWithServiceAccountScopes-%s", uuid.New().String()))
+	pubKeyWithServiceAccountScopes := authres.NewPublicKey(fmt.Sprintf("pubKeyWithServiceAccountScopes-%s", uuid.New().String()))
 	pubKeyWithServiceAccountScopes.TypedSpec().Value.Scopes = scope.NewScopes(scope.ServiceAccountCreate).Strings()
 
 	suite.Require().NoError(suite.state.Create(ctx, userWithNoScopes))
@@ -903,26 +903,26 @@ func (suite *MigrationSuite) TestLowercaseEmails() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	identityUppercase := authres.NewIdentity(resources.DefaultNamespace, "USER@a.com")
+	identityUppercase := authres.NewIdentity("USER@a.com")
 	identityUppercase.TypedSpec().Value.UserId = "123"
 	identityUppercase.Metadata().Labels().Set("user-id", "123")
 
-	identityConflict := authres.NewIdentity(resources.DefaultNamespace, "B@a.com")
+	identityConflict := authres.NewIdentity("B@a.com")
 	identityConflict.TypedSpec().Value.UserId = "555"
-	identityUnchanged := authres.NewIdentity(resources.DefaultNamespace, "b@a.com")
+	identityUnchanged := authres.NewIdentity("b@a.com")
 	identityUnchanged.TypedSpec().Value.UserId = "111"
 
-	identityOverwrite := authres.NewIdentity(resources.DefaultNamespace, "C@a.com")
+	identityOverwrite := authres.NewIdentity("C@a.com")
 	identityOverwrite.TypedSpec().Value.UserId = "ABC"
-	identityOverwritten := authres.NewIdentity(resources.DefaultNamespace, "c@a.com")
+	identityOverwritten := authres.NewIdentity("c@a.com")
 	identityOverwritten.TypedSpec().Value.UserId = "eee"
 
-	publicKey := authres.NewPublicKey(resources.DefaultNamespace, "1")
+	publicKey := authres.NewPublicKey("1")
 	publicKey.TypedSpec().Value.Identity = &specs.Identity{
 		Email: "USER@a.com",
 	}
 
-	danglingPublicKey := authres.NewPublicKey(resources.DefaultNamespace, "2")
+	danglingPublicKey := authres.NewPublicKey("2")
 
 	suite.Require().NoError(suite.state.Create(ctx, identityUppercase))
 	suite.Require().NoError(suite.state.Create(ctx, identityConflict))
@@ -941,17 +941,17 @@ func (suite *MigrationSuite) TestLowercaseEmails() {
 	suite.Require().Error(err)
 
 	// USER@a.com should be replaced by user@a.com
-	identity, err := safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity(resources.DefaultNamespace, "user@a.com").Metadata())
+	identity, err := safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity("user@a.com").Metadata())
 	suite.Require().NoError(err)
 
 	suite.Require().Equal(identityUppercase.TypedSpec().Value.UserId, identity.TypedSpec().Value.UserId)
 	suite.Require().True(identityUppercase.Metadata().Labels().Equal(*identity.Metadata().Labels()))
 
 	// b@a.com should not be replaced as it's newer than B@a.com
-	identity, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity(resources.DefaultNamespace, "b@a.com").Metadata())
+	identity, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity("b@a.com").Metadata())
 	suite.Require().NoError(err)
 
-	_, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity(resources.DefaultNamespace, "B@a.com").Metadata())
+	_, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity("B@a.com").Metadata())
 	suite.Require().Error(err)
 
 	suite.Require().Equal(identityUnchanged.TypedSpec().Value.UserId, identity.TypedSpec().Value.UserId)
@@ -963,7 +963,7 @@ func (suite *MigrationSuite) TestLowercaseEmails() {
 
 	// c@a.com is overwritten by C@a.com as it has older creation time
 	// should have a new spec with the new user id
-	identity, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity(resources.DefaultNamespace, "c@a.com").Metadata())
+	identity, err = safe.ReaderGet[*authres.Identity](ctx, suite.state, authres.NewIdentity("c@a.com").Metadata())
 	suite.Require().NoError(err)
 	suite.Require().Equal(identityOverwrite.TypedSpec().Value.UserId, identity.TypedSpec().Value.UserId)
 }
@@ -2087,9 +2087,9 @@ func (suite *MigrationSuite) TestCreateProviders() {
 	p3status := infra.NewProviderStatus("p3")
 	p3status.Metadata().SetPhase(resource.PhaseTearingDown)
 
-	identity1 := authres.NewIdentity(resources.DefaultNamespace, "p1"+access.InfraProviderServiceAccountNameSuffix)
-	identity4 := authres.NewIdentity(resources.DefaultNamespace, "p4"+access.InfraProviderServiceAccountNameSuffix)
-	identityServiceAccount := authres.NewIdentity(resources.DefaultNamespace, "p5"+access.ServiceAccountNameSuffix)
+	identity1 := authres.NewIdentity("p1"+access.InfraProviderServiceAccountNameSuffix)
+	identity4 := authres.NewIdentity("p4"+access.InfraProviderServiceAccountNameSuffix)
+	identityServiceAccount := authres.NewIdentity("p5"+access.ServiceAccountNameSuffix)
 
 	suite.Require().NoError(suite.state.Create(ctx, p1status))
 	suite.Require().NoError(suite.state.Create(ctx, p2status))

@@ -20,7 +20,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 )
 
@@ -50,7 +49,7 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 				return optional.Some(auth.NewServiceAccountStatus(identity.Metadata().ID()))
 			},
 			UnmapMetadataFunc: func(r *auth.ServiceAccountStatus) *auth.Identity {
-				return auth.NewIdentity(resources.DefaultNamespace, r.Metadata().ID())
+				return auth.NewIdentity(r.Metadata().ID())
 			},
 			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, identity *auth.Identity, status *auth.ServiceAccountStatus) error {
 				publicKeyList, err := safe.ReaderListAll[*auth.PublicKey](
@@ -138,7 +137,7 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 			qtransform.MapperFuncFromTyped[*auth.PublicKey](
 				func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, key *auth.PublicKey) ([]resource.Pointer, error) {
 					return []resource.Pointer{
-						auth.NewIdentity(resources.DefaultNamespace, key.TypedSpec().Value.Identity.Email).Metadata(),
+						auth.NewIdentity(key.TypedSpec().Value.Identity.Email).Metadata(),
 					}, nil
 				},
 			),

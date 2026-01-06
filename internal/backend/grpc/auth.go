@@ -29,7 +29,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/grpc/cookies"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -111,7 +110,7 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 		LoginUrl:    s.buildLoginURL(pubKey.id),
 	}
 
-	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(resources.DefaultNamespace, email).Metadata())
+	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(email).Metadata())
 	if state.IsNotFoundError(err) {
 		s.logger.Error("public key not registered, identity not found",
 			zap.String("email", email),
@@ -134,7 +133,7 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 	if !request.GetSkipUserRole() {
 		var user *authres.User
 
-		user, err = safe.StateGet[*authres.User](ctx, s.state, authres.NewUser(resources.DefaultNamespace, userID).Metadata())
+		user, err = safe.StateGet[*authres.User](ctx, s.state, authres.NewUser(userID).Metadata())
 		if state.IsNotFoundError(err) {
 			s.logger.Error("public key not registered, user not found",
 				zap.String("email", email),
@@ -171,7 +170,7 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 		}
 	}
 
-	newPubKey := authres.NewPublicKey(resources.DefaultNamespace, pubKey.id)
+	newPubKey := authres.NewPublicKey(pubKey.id)
 
 	_, err = safe.StateGet[*authres.PublicKey](ctx, s.state, newPubKey.Metadata())
 	if state.IsNotFoundError(err) {
@@ -208,7 +207,7 @@ func (s *authServer) AwaitPublicKeyConfirmation(ctx context.Context, request *au
 	ctx, cancel := context.WithTimeout(ctx, awaitPublicKeyConfirmationTimeout)
 	defer cancel()
 
-	pubKey := authres.NewPublicKey(resources.DefaultNamespace, request.GetPublicKeyId())
+	pubKey := authres.NewPublicKey(request.GetPublicKeyId())
 
 	_, err := s.state.WatchFor(ctx, pubKey.Metadata(),
 		state.WithEventTypes(state.Created, state.Updated),
@@ -302,7 +301,7 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		return nil, status.Error(codes.InvalidArgument, "public key id is required")
 	}
 
-	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(resources.DefaultNamespace, email).Metadata())
+	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(email).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, status.Errorf(codes.PermissionDenied, "The identity %q is not authorized for this instance", email)
@@ -311,7 +310,7 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		return nil, err
 	}
 
-	pubKey, err := safe.StateGet[*authres.PublicKey](ctx, s.state, authres.NewPublicKey(resources.DefaultNamespace, request.GetPublicKeyId()).Metadata())
+	pubKey, err := safe.StateGet[*authres.PublicKey](ctx, s.state, authres.NewPublicKey(request.GetPublicKeyId()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, status.Error(codes.PermissionDenied, "permission denied")

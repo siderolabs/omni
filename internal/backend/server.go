@@ -521,7 +521,7 @@ func (s *Server) authenticatorFunc() auth.AuthenticatorFunc {
 	return func(ctx context.Context, fingerprint string) (*auth.Authenticator, error) {
 		ctx = actor.MarkContextAsInternalActor(ctx)
 
-		ptr := authres.NewPublicKey(resources.DefaultNamespace, fingerprint).Metadata()
+		ptr := authres.NewPublicKey(fingerprint).Metadata()
 
 		pubKey, err := safe.StateGet[*authres.PublicKey](ctx, s.state.Default(), ptr)
 		if err != nil {

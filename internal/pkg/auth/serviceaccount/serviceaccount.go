@@ -20,7 +20,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
@@ -55,7 +54,7 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	ptr := authres.NewIdentity(resources.DefaultNamespace, id).Metadata()
+	ptr := authres.NewIdentity(id).Metadata()
 
 	_, err := st.Get(ctx, ptr)
 	if err == nil {
@@ -79,7 +78,7 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 
 	newUserID := uuid.NewString()
 
-	publicKeyResource := authres.NewPublicKey(resources.DefaultNamespace, key.ID)
+	publicKeyResource := authres.NewPublicKey(key.ID)
 	publicKeyResource.Metadata().Labels().Set(authres.LabelPublicKeyUserID, newUserID)
 
 	if sa.IsInfraProvider {
@@ -103,7 +102,7 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 	}
 
 	// create the user resource representing the service account with the same scopes as the public key
-	user := authres.NewUser(resources.DefaultNamespace, newUserID)
+	user := authres.NewUser(newUserID)
 	user.TypedSpec().Value.Role = publicKeyResource.TypedSpec().Value.GetRole()
 
 	if sa.IsInfraProvider {
@@ -116,7 +115,7 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 	}
 
 	// create the identity resource representing the service account
-	identity := authres.NewIdentity(resources.DefaultNamespace, id)
+	identity := authres.NewIdentity(id)
 	identity.TypedSpec().Value.UserId = user.Metadata().ID()
 	identity.Metadata().Labels().Set(authres.LabelIdentityUserID, newUserID)
 	identity.Metadata().Labels().Set(authres.LabelIdentityTypeServiceAccount, "")
@@ -138,7 +137,7 @@ func Destroy(ctx context.Context, st state.State, name string) error {
 	sa := access.ParseServiceAccountFromName(name)
 	id := sa.FullID()
 
-	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(resources.DefaultNamespace, id).Metadata())
+	identity, err := safe.StateGet[*authres.Identity](ctx, st, authres.NewIdentity(id).Metadata())
 	if err != nil {
 		return err
 	}
@@ -150,7 +149,7 @@ func Destroy(ctx context.Context, st state.State, name string) error {
 
 	pubKeys, err := st.List(
 		ctx,
-		authres.NewPublicKey(resources.DefaultNamespace, "").Metadata(),
+		authres.NewPublicKey("").Metadata(),
 		state.WithLabelQuery(resource.LabelEqual(authres.LabelIdentityUserID, identity.TypedSpec().Value.UserId)),
 	)
 	if err != nil {
@@ -171,7 +170,7 @@ func Destroy(ctx context.Context, st state.State, name string) error {
 		destroyErr = multierror.Append(destroyErr, err)
 	}
 
-	err = st.TeardownAndDestroy(ctx, authres.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId).Metadata())
+	err = st.TeardownAndDestroy(ctx, authres.NewUser(identity.TypedSpec().Value.UserId).Metadata())
 	if err != nil && !state.IsNotFoundError(err) {
 		destroyErr = multierror.Append(destroyErr, err)
 	}

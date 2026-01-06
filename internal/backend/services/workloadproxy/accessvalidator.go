@@ -17,7 +17,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
@@ -90,7 +89,7 @@ func (p *SignatureAccessValidator) ValidateAccess(ctx context.Context, publicKey
 
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	publicKey, err := safe.StateGet[*authres.PublicKey](ctx, p.state, authres.NewPublicKey(resources.DefaultNamespace, publicKeyID).Metadata())
+	publicKey, err := safe.StateGet[*authres.PublicKey](ctx, p.state, authres.NewPublicKey(publicKeyID).Metadata())
 	if err != nil {
 		return err
 	}

@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -37,11 +36,11 @@ var createCmd = &cobra.Command{
 
 func createUser(email string) func(ctx context.Context, client *client.Client) error {
 	return func(ctx context.Context, client *client.Client) error {
-		user := auth.NewUser(resources.DefaultNamespace, uuid.NewString())
+		user := auth.NewUser(uuid.NewString())
 
 		user.TypedSpec().Value.Role = createCmdFlags.role
 
-		identity := auth.NewIdentity(resources.DefaultNamespace, email)
+		identity := auth.NewIdentity(email)
 
 		identity.Metadata().Labels().Set(auth.LabelIdentityUserID, user.Metadata().ID())
 

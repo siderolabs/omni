@@ -15,9 +15,9 @@ import (
 )
 
 // NewSAMLLabelRule creates a new SAMLLabelRule resource.
-func NewSAMLLabelRule(ns, id string) *SAMLLabelRule {
+func NewSAMLLabelRule(id string) *SAMLLabelRule {
 	return typed.NewResource[SAMLLabelRuleSpec, SAMLLabelRuleExtension](
-		resource.NewMetadata(ns, SAMLLabelRuleType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, SAMLLabelRuleType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.SAMLLabelRuleSpec{}),
 	)
 }

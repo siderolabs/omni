@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -40,7 +39,7 @@ func setUserRole(email string) func(ctx context.Context, client *client.Client) 
 		}
 
 		_, err = safe.StateUpdateWithConflicts(ctx, client.Omni().State(),
-			auth.NewUser(resources.DefaultNamespace, identity.TypedSpec().Value.UserId).Metadata(),
+			auth.NewUser(identity.TypedSpec().Value.UserId).Metadata(),
 			func(user *auth.User) error {
 				user.TypedSpec().Value.Role = setRoleCmdFlags.role
 

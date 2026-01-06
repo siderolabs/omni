@@ -15,9 +15,9 @@ import (
 )
 
 // NewUser creates a new User resource.
-func NewUser(ns, id string) *User {
+func NewUser(id string) *User {
 	return typed.NewResource[UserSpec, UserExtension](
-		resource.NewMetadata(ns, UserType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, UserType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.UserSpec{}),
 	)
 }

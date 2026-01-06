@@ -30,7 +30,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -146,7 +145,7 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 		return errors.New("couldn't find user identity in the SAML assertion")
 	}
 
-	samlAssertion := auth.NewSAMLAssertion(resources.DefaultNamespace, session)
+	samlAssertion := auth.NewSAMLAssertion(session)
 
 	samlAssertion.TypedSpec().Value.Data, err = json.Marshal(assertion)
 	if err != nil {
@@ -246,7 +245,7 @@ func (sp *SessionProvider) ReadLabelsFromAssertion(ctx context.Context, assertio
 }
 
 func (sp *SessionProvider) ensureUser(ctx context.Context, email string, samlLabels map[string]string) error {
-	users, err := sp.state.List(ctx, auth.NewUser(resources.DefaultNamespace, "").Metadata())
+	users, err := sp.state.List(ctx, auth.NewUser("").Metadata())
 	if err != nil {
 		return err
 	}
@@ -283,7 +282,7 @@ func (sp *SessionProvider) ensureUser(ctx context.Context, email string, samlLab
 }
 
 func (sp *SessionProvider) updateIdentityLabels(ctx context.Context, identity string, samlLabels map[string]string) error {
-	identityPtr := auth.NewIdentity(resources.DefaultNamespace, identity).Metadata()
+	identityPtr := auth.NewIdentity(identity).Metadata()
 
 	_, err := safe.StateUpdateWithConflicts[*auth.Identity](ctx, sp.state, identityPtr, func(r *auth.Identity) error {
 		var toDelete []string
