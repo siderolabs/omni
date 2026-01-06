@@ -31,6 +31,7 @@ export const MaxJoinTokenNameLength = 16;
 export const authPublicKeyIDQueryParam = "public-key-id";
 export const SecureBoot = "secureboot";
 export const DefaultTalosVersion = "1.11.5";
+export const MinTalosVersion = "1.7.0";
 export const PatchWeightInstallDisk = 0;
 export const PatchBaseWeightCluster = 200;
 export const PatchBaseWeightMachineSet = 400;

@@ -12,12 +12,12 @@ import "time"
 const SecureBoot = "secureboot"
 
 // DefaultTalosVersion is pre-selected in the UI, default image and used in the integration tests.
-//
 // tsgen:DefaultTalosVersion
 const DefaultTalosVersion = "1.11.5"
 
 // MinTalosVersion allowed to be used when creating the cluster.
-const MinTalosVersion = "1.6.0"
+// tsgen:MinTalosVersion
+const MinTalosVersion = "1.7.0"
 
 const (
 	// TalosRegistry is the default Talos repository URL.

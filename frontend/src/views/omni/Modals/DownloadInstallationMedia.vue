@@ -135,11 +135,6 @@ const imageProfile = computed(() => {
     ? 'metal'
     : installationMedia.value.spec.profile
 
-  // legacy SBC support
-  if (installationMedia.value.spec.overlay && semver.lt(selectedTalosVersion.value, '1.7.0')) {
-    profile += `-${installationMedia.value.spec.profile}`
-  }
-
   profile += `-${installationMedia.value.spec.architecture}`
 
   if (secureBoot.value && !installationMedia.value.spec.no_secure_boot) {

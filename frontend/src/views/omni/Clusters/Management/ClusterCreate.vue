@@ -381,7 +381,6 @@ const filterByLabel = (e: { key: string; value?: string }) => {
             <div class="flex flex-col gap-1 p-2">
               <p>Encrypt machine disks using Omni as a key management server.</p>
               <p>Once cluster is created it is not possible to update encryption settings.</p>
-              <p class="text-primary-p2">This feature is only available for Talos >= 1.5.0.</p>
             </div>
           </template>
           <TCheckbox

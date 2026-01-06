@@ -3,9 +3,10 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { computedAsync } from '@vueuse/core'
-import { compareLoose } from 'semver'
+import { compareLoose, gte } from 'semver'
 import { computed } from 'vue'
 
+import { MinTalosVersion } from '@/api/resources'
 import { showError } from '@/notification'
 
 export interface TalosctlDownloadsResponse {
@@ -37,7 +38,11 @@ export function useTalosctlDownloads() {
         release_data: { available_versions },
       }: TalosctlDownloadsResponse = await response.json()
 
-      return new Map(Object.entries(available_versions).sort(([a], [b]) => compareLoose(a, b)))
+      return new Map(
+        Object.entries(available_versions)
+          .filter(([v]) => gte(v, MinTalosVersion))
+          .sort(([a], [b]) => compareLoose(a, b)),
+      )
     } catch (e) {
       showError('Error getting latest talos releases', e?.message ?? String(e))
     }

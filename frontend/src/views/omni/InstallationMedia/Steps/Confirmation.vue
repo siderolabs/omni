@@ -44,15 +44,6 @@ import type { FormState } from '@/views/omni/InstallationMedia/InstallationMedia
 
 const formState = defineModel<FormState>({ required: true })
 
-const productionGuideAvailable = computed(
-  () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.5.0'),
-)
-const troubleshootingGuideAvailable = computed(
-  () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.6.0'),
-)
-const supportsOverlay = computed(
-  () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.7.0'),
-)
 const supportsUnifiedInstaller = computed(
   () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.10.0'),
 )
@@ -203,15 +194,7 @@ const imageBaseURL = computed(
   () => `${factoryUrl.value}/image/${schematic.value?.id}/${formState.value.talosVersion}`,
 )
 
-const sbcDiskImagePath = computed(() => {
-  if (!selectedSBC.value) return
-
-  const path = supportsOverlay.value
-    ? `metal-${arch.value}.raw.xz`
-    : `metal-${selectedSBC.value.metadata.id}-${arch.value}.raw.xz`
-
-  return `${imageBaseURL.value}/${path}`
-})
+const sbcDiskImagePath = computed(() => `${imageBaseURL.value}/metal-${arch.value}.raw.xz`)
 
 const pxeBootBaseUrl = computed(() => features.value?.spec.image_factory_pxe_base_url)
 
@@ -601,7 +584,7 @@ function shortVersion(version?: string) {
         </a>
       </li>
 
-      <li v-if="productionGuideAvailable">
+      <li>
         <a
           class="link-primary"
           :href="
@@ -616,7 +599,7 @@ function shortVersion(version?: string) {
         </a>
       </li>
 
-      <li v-if="troubleshootingGuideAvailable">
+      <li>
         <a
           class="link-primary"
           :href="

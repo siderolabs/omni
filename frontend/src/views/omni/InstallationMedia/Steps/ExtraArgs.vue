@@ -22,10 +22,6 @@ import type { FormState } from '@/views/omni/InstallationMedia/InstallationMedia
 
 const formState = defineModel<FormState>({ required: true })
 
-const supportsOverlayOptions = computed(
-  () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.7.0'),
-)
-
 const supportsCustomisingKernelArgs = computed(
   () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.10.0'),
 )
@@ -95,7 +91,7 @@ const selectedSBC = computed(() =>
 
     <p>Skip this step if unsure.</p>
 
-    <template v-if="supportsOverlayOptions && selectedSBC">
+    <template v-if="selectedSBC">
       <TextArea
         v-model="formState.overlayOptions"
         placeholder="configTxtAppend: 'dtoverlay=vc4-fkms-v3d'"

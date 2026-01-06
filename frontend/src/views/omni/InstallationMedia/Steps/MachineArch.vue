@@ -5,7 +5,6 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { gte } from 'semver'
 import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -50,15 +49,10 @@ const selectedCloudProvider = computed(() =>
   cloudProviders.value?.find((provider) => formState.value.cloudPlatform === provider.metadata.id),
 )
 
-const isGte1_5 = computed(
-  () => formState.value.talosVersion && gte(formState.value.talosVersion, '1.5.0'),
-)
-
 const secureBootSupported = computed(
   () =>
-    isGte1_5.value &&
-    (formState.value.hardwareType === 'metal' ||
-      selectedCloudProvider.value?.spec.secure_boot_supported),
+    formState.value.hardwareType === 'metal' ||
+    selectedCloudProvider.value?.spec.secure_boot_supported,
 )
 
 const supportedArchitectures = computed(() => {
