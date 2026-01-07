@@ -15,6 +15,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
+	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/go-circular/zstd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,6 +26,8 @@ import (
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore"
@@ -41,7 +46,7 @@ func TestReadWrite(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	storeManager := setupDB(ctx, t, logger)
+	storeManager, _ := setupDB(ctx, t, logger)
 
 	sqliteStore1, err := storeManager.Create("test-1")
 	require.NoError(t, err)
@@ -101,7 +106,7 @@ func TestFollow(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	storeManager := setupDB(ctx, t, logger)
+	storeManager, _ := setupDB(ctx, t, logger)
 
 	store, err := storeManager.Create("test-1")
 	require.NoError(t, err)
@@ -145,7 +150,7 @@ func TestTruncation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	storeManager := setupDB(ctx, t, logger)
+	storeManager, _ := setupDB(ctx, t, logger)
 
 	// 1. Setup Long ID and Huge Message
 	longID := "machine-" + string(make([]byte, 200))
@@ -193,7 +198,7 @@ func TestManagerLifecycle(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	storeManager := setupDB(ctx, t, logger)
+	storeManager, _ := setupDB(ctx, t, logger)
 	id := "lifecycle-test"
 
 	// 1. Check Exists before creation.
@@ -243,7 +248,7 @@ func TestReaderParameters(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	storeManager := setupDB(ctx, t, logger)
+	storeManager, _ := setupDB(ctx, t, logger)
 	store, err := storeManager.Create("reader-params")
 	require.NoError(t, err)
 
@@ -311,7 +316,7 @@ func TestFollowNoHistory(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	storeManager := setupDB(ctx, t, logger)
+	storeManager, _ := setupDB(ctx, t, logger)
 	store, err := storeManager.Create("follow-no-history")
 	require.NoError(t, err)
 
@@ -346,7 +351,7 @@ func TestFollowTail(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	storeManager := setupDB(ctx, t, logger)
+	storeManager, _ := setupDB(ctx, t, logger)
 	store, err := storeManager.Create("follow-tail")
 	require.NoError(t, err)
 
@@ -395,7 +400,7 @@ func TestFollowRapidWrites(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	storeManager := setupDB(ctx, t, logger)
+	storeManager, _ := setupDB(ctx, t, logger)
 	store, err := storeManager.Create("rapid-writes")
 	require.NoError(t, err)
 
@@ -452,8 +457,10 @@ func TestCleanupProbabilities(t *testing.T) {
 		logConf.MaxLinesPerMachine = limit
 		logConf.CleanupProbability = prob
 
+		state := state.WrapCore(namespaced.NewState(inmem.Build))
+
 		logger := zaptest.NewLogger(t)
-		mgr, err := sqlitelog.NewStoreManager(ctx, db, logConf, logger)
+		mgr, err := sqlitelog.NewStoreManager(ctx, db, logConf, state, logger)
 		require.NoError(t, err)
 
 		return mgr, fmt.Sprintf("machine-prob-%f", prob)
@@ -526,6 +533,74 @@ func TestCleanupProbabilities(t *testing.T) {
 	}
 }
 
+func TestOrphanLogsCleanup(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+	storeManager, state := setupDB(ctx, t, logger)
+
+	const (
+		numLive        = 1000
+		numNonExistent = 1500
+	)
+
+	seedLogs := func(prefix string, count int) {
+		for i := range count {
+			id := fmt.Sprintf("%s-%d", prefix, i)
+			store, storeErr := storeManager.Create(id)
+			require.NoError(t, storeErr)
+
+			require.NoError(t, store.WriteLine(ctx, fmt.Appendf(nil, "log line A for %s", id)))
+			require.NoError(t, store.WriteLine(ctx, fmt.Appendf(nil, "log line B for %s", id)))
+			require.NoError(t, store.Close())
+		}
+	}
+
+	logger.Info("Seed logs...", zap.Int("live", numLive), zap.Int("nonExistent", numNonExistent))
+
+	seedLogs("live", numLive)
+	seedLogs("gone", numNonExistent)
+
+	logger.Info("Populate state with machines...")
+
+	for i := range numLive {
+		m := omni.NewMachine(resources.DefaultNamespace, fmt.Sprintf("live-%d", i))
+		require.NoError(t, state.Create(ctx, m))
+
+		// mark some of the machines as tearing down - their logs should still be preserved
+		if i%10 == 0 {
+			_, err := state.Teardown(ctx, m.Metadata())
+			require.NoError(t, err)
+		}
+	}
+
+	logger.Info("Trigger cleanup...")
+
+	require.NoError(t, storeManager.DoCleanup(ctx))
+
+	logger.Info("Verify results...")
+
+	checkExistence := func(prefix string, count int, shouldExist bool) {
+		for i := range count {
+			id := fmt.Sprintf("%s-%d", prefix, i)
+			exists, existsErr := storeManager.Exists(ctx, id)
+			require.NoError(t, existsErr)
+
+			if shouldExist {
+				assert.Truef(t, exists, "Machine %q should have logs", id)
+			} else {
+				assert.Falsef(t, exists, "Machine %q logs should be deleted", id)
+			}
+		}
+	}
+
+	checkExistence("live", numLive, true)
+	checkExistence("gone", numNonExistent, false)
+}
+
 func testRead(ctx context.Context, t *testing.T, sqliteStore, circularStore logstore.LogStore, expectedLines, tailLines int) {
 	t.Helper()
 
@@ -595,11 +670,10 @@ func assertLine(ctx context.Context, t *testing.T, lineCh <-chan string, expecte
 }
 
 // setupDB helper handles the standard SQLite test setup.
-func setupDB(ctx context.Context, t *testing.T, logger *zap.Logger) *sqlitelog.StoreManager {
+func setupDB(ctx context.Context, t *testing.T, logger *zap.Logger) (*sqlitelog.StoreManager, state.State) {
 	t.Helper()
 
 	path := filepath.Join(t.TempDir(), "test.db")
-
 	conf := config.Default().Storage.SQLite
 	conf.Path = path
 
@@ -610,8 +684,10 @@ func setupDB(ctx context.Context, t *testing.T, logger *zap.Logger) *sqlitelog.S
 		require.NoError(t, db.Close())
 	})
 
-	storeManager, err := sqlitelog.NewStoreManager(ctx, db, config.Default().Logs.Machine.Storage, logger)
+	state := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	storeManager, err := sqlitelog.NewStoreManager(ctx, db, config.Default().Logs.Machine.Storage, state, logger)
 	require.NoError(t, err)
 
-	return storeManager
+	return storeManager, state
 }

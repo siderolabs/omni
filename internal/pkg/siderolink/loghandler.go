@@ -31,7 +31,7 @@ type LogStoreManager interface {
 
 // NewLogHandler returns a new LogHandler.
 func NewLogHandler(secondaryStorageDB *sql.DB, machineMap *MachineMap, omniState state.State, storageConfig *config.LogsMachine, logger *zap.Logger) (*LogHandler, error) {
-	cache, err := NewMachineCache(secondaryStorageDB, storageConfig, logger)
+	cache, err := NewMachineCache(secondaryStorageDB, storageConfig, omniState, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create machine cache: %w", err)
 	}

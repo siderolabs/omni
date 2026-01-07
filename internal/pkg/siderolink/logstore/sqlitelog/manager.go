@@ -14,8 +14,11 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore"
 )
@@ -30,6 +33,7 @@ const (
 
 // StoreManager manages log stores for machines.
 type StoreManager struct {
+	state  state.State
 	db     *sql.DB
 	logger *zap.Logger
 	config config.LogsMachineStorage
@@ -47,7 +51,7 @@ func (m *StoreManager) Run(ctx context.Context) error {
 
 		tickerCh = ticker.C
 		// Do the initial cleanup immediately
-		if err := m.doCleanup(ctx); err != nil {
+		if err := m.DoCleanup(ctx); err != nil {
 			return err
 		}
 	}
@@ -63,35 +67,95 @@ func (m *StoreManager) Run(ctx context.Context) error {
 		case <-tickerCh:
 		}
 
-		if err := m.doCleanup(ctx); err != nil {
+		if err := m.DoCleanup(ctx); err != nil {
 			m.logger.Error("failed to cleanup old logs", zap.Error(err))
 		}
 	}
 }
 
-func (m *StoreManager) doCleanup(ctx context.Context) error {
+// DoCleanup performs the actual cleanup of old and orphaned logs.
+func (m *StoreManager) DoCleanup(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, m.config.SQLiteTimeout)
 	defer cancel()
 
-	query := fmt.Sprintf("DELETE FROM %s WHERE %s < ?", tableName, createdAtColumn)
-	cutoff := time.Now().Add(-m.config.CleanupOlderThan).Unix()
-
-	result, err := m.db.ExecContext(ctx, query, cutoff)
+	// Fetch all live machines - we will keep logs for these machines only
+	machineList, err := m.state.List(ctx, omni.NewMachine(resources.DefaultNamespace, "").Metadata())
 	if err != nil {
-		return fmt.Errorf("failed to cleanup old logs: %w", err)
+		return fmt.Errorf("failed to list machines from state: %w", err)
 	}
 
-	numRowsDeleted, err := result.RowsAffected()
+	machineIDs := make([]string, 0, len(machineList.Items))
+	for _, machine := range machineList.Items {
+		machineIDs = append(machineIDs, truncateMachineID(machine.Metadata().ID()))
+	}
+
+	// Temporary table lives in a single transaction, so we need to do everything in one transaction
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
-		m.logger.Debug("failed to get number of rows affected during logs cleanup", zap.Error(err))
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
-	logLevel := zap.DebugLevel
-	if numRowsDeleted > 0 {
-		logLevel = zap.InfoLevel
+	defer tx.Rollback() //nolint:errcheck
+
+	// Create a temporary table to store active machine IDs - it is used in the join query to delete orphaned logs
+	if _, err = tx.ExecContext(ctx, `CREATE TEMPORARY TABLE machine_ids (machine_id TEXT PRIMARY KEY) STRICT`); err != nil {
+		return fmt.Errorf("failed to create temporary table: %w", err)
 	}
 
-	m.logger.Log(logLevel, "completed logs cleanup", zap.Int64("rows_affected", numRowsDeleted))
+	// Populate the temporary table with active machine IDs
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO machine_ids (machine_id) VALUES (?)")
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+
+	defer stmt.Close() //nolint:errcheck
+
+	for _, id := range machineIDs {
+		if _, err = stmt.ExecContext(ctx, id); err != nil {
+			return fmt.Errorf("failed to insert machine ID %q: %w", id, err)
+		}
+	}
+
+	if err = stmt.Close(); err != nil {
+		return fmt.Errorf("failed to close statement: %w", err)
+	}
+
+	// Delete if:
+	//   (A) Log is older than cutoff (Time-based cleanup)
+	//   OR
+	//   (B) Machine ID is NOT in the active list (Orphan cleanup)
+	deleteSQL := fmt.Sprintf(`DELETE FROM %s WHERE %s < ? OR %s NOT IN (SELECT machine_id FROM machine_ids)`, tableName, createdAtColumn, machineIDColumn)
+
+	cutoff := time.Now().Add(-m.config.CleanupOlderThan)
+
+	result, err := tx.ExecContext(ctx, deleteSQL, cutoff.Unix())
+	if err != nil {
+		return fmt.Errorf("failed to execute unified cleanup: %w", err)
+	}
+
+	rowsDeleted, err := result.RowsAffected()
+	if err != nil {
+		m.logger.Debug("failed to get rows affected", zap.Error(err))
+	}
+
+	// Drop the temp table
+	if _, err = tx.ExecContext(ctx, `DROP TABLE IF EXISTS machine_ids`); err != nil {
+		return fmt.Errorf("failed to drop temporary table: %w", err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	if rowsDeleted > 0 {
+		m.logger.Info("completed logs cleanup",
+			zap.Int64("rows_deleted", rowsDeleted),
+			zap.Int("active_machines", len(machineIDs)),
+			zap.Time("cutoff_time", cutoff),
+		)
+	} else {
+		m.logger.Debug("completed logs cleanup", zap.Int64("rows_deleted", 0))
+	}
 
 	return nil
 }
@@ -162,7 +226,7 @@ type schemaParams struct {
 }
 
 // NewStoreManager creates a new StoreManager.
-func NewStoreManager(ctx context.Context, db *sql.DB, config config.LogsMachineStorage, logger *zap.Logger) (*StoreManager, error) {
+func NewStoreManager(ctx context.Context, db *sql.DB, config config.LogsMachineStorage, omniState state.State, logger *zap.Logger) (*StoreManager, error) {
 	templateParams := schemaParams{
 		TableName:       tableName,
 		IDColumn:        idColumn,
@@ -191,6 +255,7 @@ func NewStoreManager(ctx context.Context, db *sql.DB, config config.LogsMachineS
 	return &StoreManager{
 		config: config,
 		db:     db,
+		state:  omniState,
 		logger: logger,
 	}, nil
 }

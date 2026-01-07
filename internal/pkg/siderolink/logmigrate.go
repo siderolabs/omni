@@ -11,25 +11,42 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore/circularlog"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore/sqlitelog"
 )
 
-func migrateLogStoreToSQLite(ctx context.Context, circularStoreManager *circularlog.StoreManager, sqliteStoreManager *sqlitelog.StoreManager, logger *zap.Logger) error {
+func migrateLogStoreToSQLite(ctx context.Context, circularStoreManager *circularlog.StoreManager, sqliteStoreManager *sqlitelog.StoreManager, omniState state.State, logger *zap.Logger) error {
 	machineIDs, err := circularStoreManager.MachineIDs()
 	if err != nil {
 		return fmt.Errorf("failed to get machine IDs from circular log store manager: %w", err)
 	}
 
+	machineList, err := omniState.List(ctx, omni.NewMachine(resources.DefaultNamespace, "").Metadata())
+	if err != nil {
+		return fmt.Errorf("failed to list machines from state: %w", err)
+	}
+
+	liveMachineIDs := make(map[string]struct{}, len(machineList.Items))
+	for _, machine := range machineList.Items {
+		liveMachineIDs[machine.Metadata().ID()] = struct{}{}
+	}
+
 	logger.Info("starting log store migration to sqlite", zap.Int("machine_count", len(machineIDs)))
 
 	for _, id := range machineIDs {
-		logger.Info("migrate log store to sqlite", zap.String("machine_id", id))
+		if _, ok := liveMachineIDs[id]; !ok {
+			logger.Info("skip migration for machine as it does not exist in state anymore", zap.String("machine_id", id))
+		} else {
+			logger.Info("migrate log store to sqlite", zap.String("machine_id", id))
 
-		if err = migrateMachineLogs(ctx, circularStoreManager, sqliteStoreManager, id, logger); err != nil {
-			return fmt.Errorf("failed to migrate log store for machine %q: %w", id, err)
+			if err = migrateMachineLogs(ctx, circularStoreManager, sqliteStoreManager, id, logger); err != nil {
+				return fmt.Errorf("failed to migrate log store for machine %q: %w", id, err)
+			}
 		}
 
 		if err = circularStoreManager.Remove(ctx, id); err != nil {

@@ -39,12 +39,13 @@ type MachineCache struct {
 	logsConfig             *config.LogsMachine
 	compressor             *zstd.Compressor
 	secondaryStorageDB     *sql.DB
+	state                  state.State
 	mx                     sync.Mutex
 	inited                 bool
 }
 
 // NewMachineCache returns a new MachineCache.
-func NewMachineCache(secondaryStorageDB *sql.DB, logStorageConfig *config.LogsMachine, logger *zap.Logger) (*MachineCache, error) {
+func NewMachineCache(secondaryStorageDB *sql.DB, logStorageConfig *config.LogsMachine, omniState state.State, logger *zap.Logger) (*MachineCache, error) {
 	compressor, err := zstd.NewCompressor()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log compressor: %w", err)
@@ -54,6 +55,7 @@ func NewMachineCache(secondaryStorageDB *sql.DB, logStorageConfig *config.LogsMa
 		logsConfig:         logStorageConfig,
 		compressor:         compressor,
 		secondaryStorageDB: secondaryStorageDB,
+		state:              omniState,
 		logger:             logger,
 	}, nil
 }
@@ -189,14 +191,14 @@ func (m *MachineCache) init(ctx context.Context) error {
 		return nil
 	}
 
-	sqliteLogStoreManager, err := sqlitelog.NewStoreManager(ctx, m.secondaryStorageDB, m.logsConfig.Storage, m.logger)
+	sqliteLogStoreManager, err := sqlitelog.NewStoreManager(ctx, m.secondaryStorageDB, m.logsConfig.Storage, m.state, m.logger)
 	if err != nil {
 		return fmt.Errorf("failed to create sqlite log store manager: %w", err)
 	}
 
 	if m.logsConfig.Storage.Enabled { //nolint:staticcheck
 		circularLogStoreManager := circularlog.NewStoreManager(m.logsConfig, m.compressor, m.logger)
-		if err = migrateLogStoreToSQLite(ctx, circularLogStoreManager, sqliteLogStoreManager, m.logger); err != nil {
+		if err = migrateLogStoreToSQLite(ctx, circularLogStoreManager, sqliteLogStoreManager, m.state, m.logger); err != nil {
 			return fmt.Errorf("failed to migrate log store from circular to sqlite: %w", err)
 		}
 	}
