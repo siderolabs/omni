@@ -196,7 +196,7 @@ func AssertControlPlaneForceReplaceMachine(testCtx context.Context, st state.Sta
 		id := freezeMachine(ctx, t, st, clusterName, options.FreezeAMachineFunc, omni.LabelControlPlaneRole)
 
 		pickUnallocatedMachines(ctx, t, st, 1, nil, func(machineIDs []resource.ID) {
-			t.Logf("Adding machine '%s' to control plane", machineIDs[0])
+			t.Logf("Adding machine %q to control plane", machineIDs[0])
 
 			bindMachine(ctx, t, st, bindMachineOptions{
 				clusterName:  clusterName,
@@ -269,5 +269,5 @@ func wipeMachine(ctx context.Context, t *testing.T, st state.State, id string, w
 	// machine should re-register
 	rtestutils.AssertResources(ctx, t, st, []string{id}, func(*omni.Machine, *assert.Assertions) {})
 
-	t.Logf("Wiped the machine '%s'", id)
+	t.Logf("Wiped the machine %q", id)
 }

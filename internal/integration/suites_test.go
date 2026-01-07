@@ -580,6 +580,8 @@ In between the scaling operations, assert that the cluster is ready and accessib
 
 		t.Parallel()
 
+		options.claimMachines(t, 4)
+
 		clusterName := "integration-scaling-auto-provision"
 
 		t.Run(
@@ -1300,6 +1302,8 @@ Note: this test expects all machines to be provisioned by the bare-metal infra p
 - remove links of the machines
 `)
 		t.Parallel()
+
+		options.claimMachines(t, 4)
 
 		clusterName := "integration-static-infra-provider"
 

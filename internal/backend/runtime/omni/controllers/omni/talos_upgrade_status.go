@@ -452,11 +452,7 @@ func getOrCreateResource(ctx context.Context, r controller.ReaderWriter, machine
 	clusterMachineTalosVersion, err := safe.ReaderGet[*omni.ClusterMachineTalosVersion](ctx, r, res.Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			if err = createInitialTalosVersion(ctx, r, machine, talosVersion, schematicID); err != nil {
-				return nil, err
-			}
-
-			return safe.ReaderGet[*omni.ClusterMachineTalosVersion](ctx, r, res.Metadata())
+			return createInitialTalosVersion(ctx, r, machine, talosVersion, schematicID)
 		}
 
 		return nil, err
@@ -486,7 +482,7 @@ func updateMachine(ctx context.Context, r controller.ReaderWriter, logger *zap.L
 	)
 }
 
-func createInitialTalosVersion(ctx context.Context, r controller.ReaderWriter, machine *omni.ClusterMachine, talosVersion, schematicID string) error {
+func createInitialTalosVersion(ctx context.Context, r controller.ReaderWriter, machine *omni.ClusterMachine, talosVersion, schematicID string) (*omni.ClusterMachineTalosVersion, error) {
 	res := omni.NewClusterMachineTalosVersion(resources.DefaultNamespace, machine.Metadata().ID())
 
 	helpers.CopyAllLabels(machine, res)
@@ -494,7 +490,11 @@ func createInitialTalosVersion(ctx context.Context, r controller.ReaderWriter, m
 	res.TypedSpec().Value.TalosVersion = talosVersion
 	res.TypedSpec().Value.SchematicId = schematicID
 
-	return r.Create(ctx, res)
+	if err := r.Create(ctx, res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func cleanupResources(ctx context.Context, r controller.ReaderWriter, clusterMachines safe.List[*omni.ClusterMachine]) error {

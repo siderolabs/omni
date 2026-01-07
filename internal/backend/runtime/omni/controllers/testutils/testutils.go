@@ -19,6 +19,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup" //nolint:depguard // this is only used in tests
 
@@ -58,6 +59,7 @@ func (b *DynamicStateBuilder) Set(ns resource.Namespace, state state.CoreState) 
 
 type TestOptions struct {
 	StateBuilder namespaced.StateBuilder
+	LogLevel     *zapcore.Level
 	DisableCache bool
 }
 
@@ -85,7 +87,12 @@ func WithRuntime(ctx context.Context, t *testing.T, testOptions TestOptions, bef
 		testOptions.StateBuilder = inmem.Build
 	}
 
-	logger := zaptest.NewLogger(t).With(zap.String("test", t.Name()))
+	var loggerOpts []zaptest.LoggerOption
+	if testOptions.LogLevel != nil {
+		loggerOpts = append(loggerOpts, zaptest.Level(*testOptions.LogLevel))
+	}
+
+	logger := zaptest.NewLogger(t, loggerOpts...).With(zap.String("test", t.Name()))
 	st := state.WrapCore(namespaced.NewState(testOptions.StateBuilder))
 
 	var opts []options.Option

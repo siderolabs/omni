@@ -271,7 +271,7 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 
 					return nil
 				})
-				if err != nil {
+				if err != nil && !state.IsPhaseConflictError(err) {
 					return err
 				}
 			}

@@ -29,6 +29,8 @@ import (
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -109,7 +111,7 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 			}
 
 			for i := range options.ControlPlanes {
-				t.Logf("Adding machine '%s' to control plane (cluster %q)", machineIDs[i], options.Name)
+				t.Logf("Adding machine %q to control plane (cluster %q)", machineIDs[i], options.Name)
 				bindMachine(ctx, t, st, bindMachineOptions{
 					clusterName:                    options.Name,
 					role:                           omni.LabelControlPlaneRole,
@@ -120,7 +122,7 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 			}
 
 			for i := options.ControlPlanes; i < options.ControlPlanes+options.Workers; i++ {
-				t.Logf("Adding machine '%s' to workers (cluster %q)", machineIDs[i], options.Name)
+				t.Logf("Adding machine %q to workers (cluster %q)", machineIDs[i], options.Name)
 				bindMachine(ctx, t, st, bindMachineOptions{
 					clusterName:  options.Name,
 					role:         omni.LabelWorkerRole,
@@ -240,7 +242,7 @@ func ScaleClusterUp(testCtx context.Context, st state.State, options ClusterOpti
 
 		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, options.PickFilterFunc, func(machineIDs []resource.ID) {
 			for i := range options.ControlPlanes {
-				t.Logf("Adding machine '%s' to control plane (cluster %q)", machineIDs[i], options.Name)
+				t.Logf("Adding machine %q to control plane (cluster %q)", machineIDs[i], options.Name)
 
 				bindMachine(ctx, t, st, bindMachineOptions{
 					clusterName:  options.Name,
@@ -251,7 +253,7 @@ func ScaleClusterUp(testCtx context.Context, st state.State, options ClusterOpti
 			}
 
 			for i := options.ControlPlanes; i < options.ControlPlanes+options.Workers; i++ {
-				t.Logf("Adding machine '%s' to workers (cluster %q)", machineIDs[i], options.Name)
+				t.Logf("Adding machine %q to workers (cluster %q)", machineIDs[i], options.Name)
 
 				bindMachine(ctx, t, st, bindMachineOptions{
 					clusterName:  options.Name,
@@ -299,7 +301,7 @@ func ScaleClusterDown(testCtx context.Context, st state.State, options ClusterOp
 			require.Greaterf(t, finalCount, 0, "can't scale down")
 			controlPlanes = controlPlanes[finalCount:]
 
-			t.Logf("Removing machines '%s' from control planes (cluster %q)", controlPlanes, options.Name)
+			t.Logf("Removing machines %q from control planes (cluster %q)", controlPlanes, options.Name)
 
 			rtestutils.Destroy[*omni.MachineSetNode](ctx, t, st, controlPlanes)
 		}
@@ -310,7 +312,7 @@ func ScaleClusterDown(testCtx context.Context, st state.State, options ClusterOp
 			require.GreaterOrEqualf(t, finalCount, 0, "can't scale down")
 			workers = workers[finalCount:]
 
-			t.Logf("Removing machines '%s' from workers (cluster %q)", workers, options.Name)
+			t.Logf("Removing machines %q from workers (cluster %q)", workers, options.Name)
 
 			rtestutils.Destroy[*omni.MachineSetNode](ctx, t, st, workers)
 		}
@@ -329,7 +331,7 @@ func ReplaceControlPlanes(testCtx context.Context, st state.State, options Clust
 
 		pickUnallocatedMachines(ctx, t, st, len(existingControlPlanes), options.PickFilterFunc, func(machineIDs []resource.ID) {
 			for _, machineID := range machineIDs {
-				t.Logf("Adding machine '%s' to control plane (cluster %q)", machineID, options.Name)
+				t.Logf("Adding machine %q to control plane (cluster %q)", machineID, options.Name)
 
 				bindMachine(ctx, t, st, bindMachineOptions{
 					clusterName:  options.Name,
@@ -339,7 +341,7 @@ func ReplaceControlPlanes(testCtx context.Context, st state.State, options Clust
 				})
 			}
 
-			t.Logf("Removing machines '%s' from control planes (cluster %q)", existingControlPlanes, options.Name)
+			t.Logf("Removing machines %q from control planes (cluster %q)", existingControlPlanes, options.Name)
 
 			rtestutils.Destroy[*omni.MachineSetNode](ctx, t, st, existingControlPlanes)
 
@@ -868,6 +870,8 @@ func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, 
 		filterFunc = func(*omni.MachineStatus, []*omni.MachineStatus) bool { return true }
 	}
 
+	logger := zaptest.NewLogger(t)
+
 	err := retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
 		result = result[:0] // clear the result between retries
 
@@ -875,6 +879,15 @@ func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, 
 		if err != nil {
 			return err
 		}
+
+		nodeList, err := st.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, "", resource.VersionUndefined))
+		if err != nil {
+			return err
+		}
+
+		nodeMap := xslices.ToMap(nodeList.Items, func(node resource.Resource) (resource.ID, resource.Resource) {
+			return node.Metadata().ID(), node
+		})
 
 		shuffledMachineStatuses := slices.Collect(machineStatuses.All())
 		rand.Shuffle(len(shuffledMachineStatuses), func(i, j int) {
@@ -884,6 +897,17 @@ func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, 
 		pickedMachineStatuses := make([]*omni.MachineStatus, 0, count)
 
 		for _, machineStatus := range shuffledMachineStatuses {
+			allocatedNode, isAllocated := nodeMap[machineStatus.Metadata().ID()]
+			if isAllocated {
+				allocatedCluster, _ := allocatedNode.Metadata().Labels().Get(omni.LabelCluster)
+
+				logger.Error("machine has the label available but is still allocated to a cluster",
+					zap.String("machine_id", machineStatus.Metadata().ID()),
+					zap.String("allocated_cluster", allocatedCluster))
+
+				continue
+			}
+
 			if filterFunc(machineStatus, pickedMachineStatuses) {
 				pickedMachineStatuses = append(pickedMachineStatuses, machineStatus)
 			}

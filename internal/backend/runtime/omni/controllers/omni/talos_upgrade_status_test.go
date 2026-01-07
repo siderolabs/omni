@@ -160,6 +160,8 @@ func TestTalosUpgradeStatus(t *testing.T) {
 			rmock.Mock[*omni.ClusterMachineConfigStatus](ctx, t, st, testoptions.SameID(machine))
 			rmock.Mock[*omni.SchematicConfiguration](ctx, t, st, testoptions.SameID(machine),
 				testoptions.Modify(func(res *omni.SchematicConfiguration) error {
+					res.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+
 					res.TypedSpec().Value.TalosVersion = cluster.TypedSpec().Value.TalosVersion
 					res.TypedSpec().Value.SchematicId = defaultSchematic
 
@@ -263,6 +265,10 @@ func TestTalosUpgradeStatus(t *testing.T) {
 
 					return nil
 				}))
+
+				rtestutils.AssertResource(ctx, t, st, clusterName, func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
+					assertions.Empty(res.TypedSpec().Value.CurrentUpgradeVersion)
+				})
 
 				rmock.MockList[*omni.SchematicConfiguration](ctx, t, st, testoptions.IDs(xslices.Map(machines, func(machine *omni.ClusterMachine) resource.ID { return machine.Metadata().ID() })),
 					testoptions.ItemOptions(
