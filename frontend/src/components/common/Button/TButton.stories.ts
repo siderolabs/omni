@@ -49,7 +49,8 @@ const meta: Meta<typeof TButton> = {
 }
 
 export default meta
-type Story = StoryObj<typeof meta>
+// Discriminated unions in vue don't play well with storybook
+type Story = StoryObj /*<typeof meta>*/
 
 export const Default: Story = {
   render: (args) => ({

@@ -5,13 +5,20 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { ButtonHTMLAttributes, HTMLAttributes } from 'vue'
+import {
+  type AnchorHTMLAttributes,
+  type ButtonHTMLAttributes,
+  computed,
+  type HTMLAttributes,
+} from 'vue'
+import type { RouterLinkProps } from 'vue-router'
+import { RouterLink } from 'vue-router'
 
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import { cn } from '@/methods/utils'
 
-interface Props extends /* @vue-ignore */ Omit<ButtonHTMLAttributes, 'type'> {
+interface Props {
   type?: 'primary' | 'secondary' | 'subtle' | 'highlighted'
   size?: 'md' | 'sm' | 'xs' | 'xxs'
   icon?: IconType
@@ -19,18 +26,48 @@ interface Props extends /* @vue-ignore */ Omit<ButtonHTMLAttributes, 'type'> {
   class?: HTMLAttributes['class']
 }
 
+interface ButtonProps extends /* @vue-ignore */ Omit<ButtonHTMLAttributes, 'type'> {
+  is?: 'button'
+  href?: never
+  to?: never
+}
+
+interface AnchorProps extends /* @vue-ignore */ AnchorHTMLAttributes {
+  // eslint-disable-next-line vue/no-required-prop-with-default
+  is: 'a'
+  href: string
+  to?: never
+}
+
+interface RLink extends RouterLinkProps {
+  // eslint-disable-next-line vue/no-required-prop-with-default
+  is: 'router-link'
+  href?: never
+  to: RouterLinkProps['to']
+}
+
 const {
+  is = 'button',
+  to,
+  href,
   type = 'primary',
   size = 'md',
   iconPosition = 'right',
   icon,
   class: className,
-} = defineProps<Props>()
+} = defineProps<Props & (ButtonProps | AnchorProps | RLink)>()
+
+const dynamicProps = computed(() => {
+  if (to) return { to }
+  if (href) return { href }
+  return { type: 'button' }
+})
 </script>
 
 <template>
-  <button
-    type="button"
+  <component
+    :is="is === 'router-link' ? RouterLink : is"
+    v-bind="dynamicProps"
     class="flex items-center justify-center gap-1 rounded border transition-colors duration-200"
     :class="
       cn(
@@ -65,5 +102,5 @@ const {
         },
       ]"
     />
-  </button>
+  </component>
 </template>
