@@ -173,7 +173,15 @@ func (suite *ClusterSecretsSuite) TestImportedSecrets() {
 	suite.startRuntime()
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(&mockBackupStoreFactory{})))
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, "clusterID")
+	clusterID := "clusterID"
+
+	// create ImportedClusterSecret, as it will be looked up by SecretsController to attempt importing secrets bundle
+	importedClusterSecrets := omni.NewImportedClusterSecrets(resources.DefaultNamespace, clusterID)
+	importedClusterSecrets.TypedSpec().Value.Data = validSecretsBundle
+
+	require.NoError(suite.state.Create(suite.ctx, importedClusterSecrets))
+
+	cluster := omni.NewCluster(resources.DefaultNamespace, clusterID)
 	cluster.TypedSpec().Value.TalosVersion = "1.10.5"
 
 	require.NoError(suite.state.Create(suite.ctx, cluster))
@@ -186,13 +194,10 @@ func (suite *ClusterSecretsSuite) TestImportedSecrets() {
 
 	require.NoError(suite.state.Create(suite.ctx, clusterUUID))
 
-	// create ImportedClusterSecret, as it will be looked up by SecretsController to attempt importing secrets bundle
-	importedClusterSecrets := omni.NewImportedClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID())
-	importedClusterSecrets.TypedSpec().Value.Data = validSecretsBundle
-
-	require.NoError(suite.state.Create(suite.ctx, importedClusterSecrets))
-
 	machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
+
 	require.NoError(suite.state.Create(suite.ctx, machineSet))
 
 	var foundClusterSecrets *omni.ClusterSecrets

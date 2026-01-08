@@ -67,12 +67,34 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 					return err
 				}
 
-				ics, err := safe.ReaderGetByID[*omni.ImportedClusterSecrets](ctx, r, cluster.Metadata().ID())
-				if err != nil {
-					if !state.IsNotFoundError(err) {
-						return err
+				// Here, we need to use uncached reader, since once Secrets is created, it will never be attempted again,
+				// because of this, we cannot tolerate a stale read - later reconciliation will not put things back in order.
+				// The precise sequence of events we want to avoid is:
+				//
+				// t0: ImportedClusterSecrets is created
+				// t1: Control Plane MachineSet is created
+				// t2: The controller wakes up due to MachineSet was mapped to Cluster:
+				// - it can read the MachineSet and proceeds
+				// - despite ImportedClusterSecrets was created before, it is not yet visible to the controller due to the controller runtime cache
+				// - the controller proceeds to create a new bundle
+				// t3: ImportedClusterSecrets notification wakes up the controller, but the bundle is already there, the controller does not do anything
+
+				uncachedReader, ok := r.(controller.UncachedReader)
+				if !ok {
+					return fmt.Errorf("reader does not support uncached reads")
+				}
+
+				icsRes, err := uncachedReader.GetUncached(ctx, omni.NewImportedClusterSecrets(resources.DefaultNamespace, cluster.Metadata().ID()).Metadata())
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
+				if icsRes != nil {
+					ics, icsOk := icsRes.(*omni.ImportedClusterSecrets)
+					if !icsOk {
+						return fmt.Errorf("unexpected resource type: %T", icsRes)
 					}
-				} else {
+
 					var bundle *talossecrets.Bundle
 
 					bundle, err = omni.FromImportedSecretsToSecretsBundle(ics)
