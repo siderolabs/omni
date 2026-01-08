@@ -1042,6 +1042,9 @@ message FeaturesConfigSpec {
 
   // ImageFactoryPxeBaseUrl is the base URL of the image factory PXE server.
   string image_factory_pxe_base_url = 9;
+
+  // Account represents omni account information.
+  Account account = 10;
 }
 
 message UserPilotSettings {
@@ -1051,6 +1054,12 @@ message UserPilotSettings {
 message StripeSettings {
   bool enabled = 1;
   uint32 min_commit = 2;
+}
+
+
+message Account {
+  string id = 1;
+  string name = 2;
 }
 
 message EtcdBackupSettings {
