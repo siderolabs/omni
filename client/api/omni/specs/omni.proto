@@ -4,6 +4,7 @@ package specs;
 option go_package = "github.com/siderolabs/omni/client/api/omni/specs";
 
 import "talos/machine/machine.proto";
+import "omni/specs/virtual.proto";
 import "omni/management/management.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
@@ -1437,7 +1438,7 @@ message InstallationMediaConfigSpec {
   }
 
   string talos_version = 1;
-  string architecture = 2;
+  PlatformConfigSpec.Arch architecture = 2;
   repeated string install_extensions = 3;
   string kernel_args = 4;
 

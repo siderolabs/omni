@@ -7029,7 +7029,7 @@ func (x *MachineConfigDiffSpec) GetDiff() string {
 type InstallationMediaConfigSpec struct {
 	state             protoimpl.MessageState             `protogen:"open.v1"`
 	TalosVersion      string                             `protobuf:"bytes,1,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
-	Architecture      string                             `protobuf:"bytes,2,opt,name=architecture,proto3" json:"architecture,omitempty"`
+	Architecture      PlatformConfigSpec_Arch            `protobuf:"varint,2,opt,name=architecture,proto3,enum=specs.PlatformConfigSpec_Arch" json:"architecture,omitempty"`
 	InstallExtensions []string                           `protobuf:"bytes,3,rep,name=install_extensions,json=installExtensions,proto3" json:"install_extensions,omitempty"`
 	KernelArgs        string                             `protobuf:"bytes,4,opt,name=kernel_args,json=kernelArgs,proto3" json:"kernel_args,omitempty"`
 	Cloud             *InstallationMediaConfigSpec_Cloud `protobuf:"bytes,5,opt,name=cloud,proto3" json:"cloud,omitempty"`
@@ -7080,11 +7080,11 @@ func (x *InstallationMediaConfigSpec) GetTalosVersion() string {
 	return ""
 }
 
-func (x *InstallationMediaConfigSpec) GetArchitecture() string {
+func (x *InstallationMediaConfigSpec) GetArchitecture() PlatformConfigSpec_Arch {
 	if x != nil {
 		return x.Architecture
 	}
-	return ""
+	return PlatformConfigSpec_AMD64
 }
 
 func (x *InstallationMediaConfigSpec) GetInstallExtensions() []string {
@@ -9457,7 +9457,7 @@ var File_omni_specs_omni_proto protoreflect.FileDescriptor
 
 const file_omni_specs_omni_proto_rawDesc = "" +
 	"\n" +
-	"\x15omni/specs/omni.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a omni/management/management.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/duration.proto\"\x8e\x01\n" +
+	"\x15omni/specs/omni.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x18omni/specs/virtual.proto\x1a omni/management/management.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/duration.proto\"\x8e\x01\n" +
 	"\vMachineSpec\x12-\n" +
 	"\x12management_address\x18\x01 \x01(\tR\x11managementAddress\x12\x1c\n" +
 	"\tconnected\x18\x02 \x01(\bR\tconnected\x12&\n" +
@@ -10166,10 +10166,10 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12 \n" +
 	"\vinitialized\x18\x03 \x01(\bR\vinitialized\"+\n" +
 	"\x15MachineConfigDiffSpec\x12\x12\n" +
-	"\x04diff\x18\x01 \x01(\tR\x04diff\"\xf8\x05\n" +
+	"\x04diff\x18\x01 \x01(\tR\x04diff\"\x98\x06\n" +
 	"\x1bInstallationMediaConfigSpec\x12#\n" +
-	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12\"\n" +
-	"\farchitecture\x18\x02 \x01(\tR\farchitecture\x12-\n" +
+	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12B\n" +
+	"\farchitecture\x18\x02 \x01(\x0e2\x1e.specs.PlatformConfigSpec.ArchR\farchitecture\x12-\n" +
 	"\x12install_extensions\x18\x03 \x03(\tR\x11installExtensions\x12\x1f\n" +
 	"\vkernel_args\x18\x04 \x01(\tR\n" +
 	"kernelArgs\x12>\n" +
@@ -10393,7 +10393,8 @@ var file_omni_specs_omni_proto_goTypes = []any{
 	(*durationpb.Duration)(nil),                               // 156: google.protobuf.Duration
 	(*timestamppb.Timestamp)(nil),                             // 157: google.protobuf.Timestamp
 	(*machine.MachineStatusEvent)(nil),                        // 158: machine.MachineStatusEvent
-	(management.SchematicBootloader)(0),                       // 159: management.SchematicBootloader
+	(PlatformConfigSpec_Arch)(0),                              // 159: specs.PlatformConfigSpec.Arch
+	(management.SchematicBootloader)(0),                       // 160: management.SchematicBootloader
 }
 var file_omni_specs_omni_proto_depIdxs = []int32{
 	115, // 0: specs.MachineStatusSpec.hardware:type_name -> specs.MachineStatusSpec.HardwareStatus
@@ -10471,34 +10472,35 @@ var file_omni_specs_omni_proto_depIdxs = []int32{
 	150, // 72: specs.InfraMachineBMCConfigSpec.ipmi:type_name -> specs.InfraMachineBMCConfigSpec.IPMI
 	151, // 73: specs.InfraMachineBMCConfigSpec.api:type_name -> specs.InfraMachineBMCConfigSpec.API
 	152, // 74: specs.InfraProviderCombinedStatusSpec.health:type_name -> specs.InfraProviderCombinedStatusSpec.Health
-	153, // 75: specs.InstallationMediaConfigSpec.cloud:type_name -> specs.InstallationMediaConfigSpec.Cloud
-	154, // 76: specs.InstallationMediaConfigSpec.sbc:type_name -> specs.InstallationMediaConfigSpec.SBC
-	3,   // 77: specs.InstallationMediaConfigSpec.grpc_tunnel:type_name -> specs.GrpcTunnelMode
-	155, // 78: specs.InstallationMediaConfigSpec.machine_labels:type_name -> specs.InstallationMediaConfigSpec.MachineLabelsEntry
-	159, // 79: specs.InstallationMediaConfigSpec.bootloader:type_name -> management.SchematicBootloader
-	121, // 80: specs.MachineStatusSpec.HardwareStatus.processors:type_name -> specs.MachineStatusSpec.HardwareStatus.Processor
-	122, // 81: specs.MachineStatusSpec.HardwareStatus.memory_modules:type_name -> specs.MachineStatusSpec.HardwareStatus.MemoryModule
-	123, // 82: specs.MachineStatusSpec.HardwareStatus.blockdevices:type_name -> specs.MachineStatusSpec.HardwareStatus.BlockDevice
-	124, // 83: specs.MachineStatusSpec.NetworkStatus.network_links:type_name -> specs.MachineStatusSpec.NetworkStatus.NetworkLinkStatus
-	24,  // 84: specs.MachineStatusSpec.Schematic.overlay:type_name -> specs.Overlay
-	25,  // 85: specs.MachineStatusSpec.Schematic.meta_values:type_name -> specs.MetaValue
-	125, // 86: specs.MachineStatusSpec.Schematic.initial_state:type_name -> specs.MachineStatusSpec.Schematic.InitialState
-	10,  // 87: specs.MachineSetSpec.MachineClass.allocation_type:type_name -> specs.MachineSetSpec.MachineClass.Type
-	11,  // 88: specs.MachineSetSpec.MachineAllocation.allocation_type:type_name -> specs.MachineSetSpec.MachineAllocation.Type
-	131, // 89: specs.MachineSetSpec.UpdateStrategyConfig.rolling:type_name -> specs.MachineSetSpec.RollingUpdateStrategyConfig
-	2,   // 90: specs.ControlPlaneStatusSpec.Condition.type:type_name -> specs.ConditionType
-	14,  // 91: specs.ControlPlaneStatusSpec.Condition.status:type_name -> specs.ControlPlaneStatusSpec.Condition.Status
-	15,  // 92: specs.ControlPlaneStatusSpec.Condition.severity:type_name -> specs.ControlPlaneStatusSpec.Condition.Severity
-	135, // 93: specs.KubernetesStatusSpec.NodeStaticPods.static_pods:type_name -> specs.KubernetesStatusSpec.StaticPodStatus
-	25,  // 94: specs.MachineClassSpec.Provision.meta_values:type_name -> specs.MetaValue
-	3,   // 95: specs.MachineClassSpec.Provision.grpc_tunnel:type_name -> specs.GrpcTunnelMode
-	23,  // 96: specs.MachineConfigGenOptionsSpec.InstallImage.security_state:type_name -> specs.SecurityState
-	18,  // 97: specs.MachineExtensionsStatusSpec.Item.phase:type_name -> specs.MachineExtensionsStatusSpec.Item.Phase
-	98,  // [98:98] is the sub-list for method output_type
-	98,  // [98:98] is the sub-list for method input_type
-	98,  // [98:98] is the sub-list for extension type_name
-	98,  // [98:98] is the sub-list for extension extendee
-	0,   // [0:98] is the sub-list for field type_name
+	159, // 75: specs.InstallationMediaConfigSpec.architecture:type_name -> specs.PlatformConfigSpec.Arch
+	153, // 76: specs.InstallationMediaConfigSpec.cloud:type_name -> specs.InstallationMediaConfigSpec.Cloud
+	154, // 77: specs.InstallationMediaConfigSpec.sbc:type_name -> specs.InstallationMediaConfigSpec.SBC
+	3,   // 78: specs.InstallationMediaConfigSpec.grpc_tunnel:type_name -> specs.GrpcTunnelMode
+	155, // 79: specs.InstallationMediaConfigSpec.machine_labels:type_name -> specs.InstallationMediaConfigSpec.MachineLabelsEntry
+	160, // 80: specs.InstallationMediaConfigSpec.bootloader:type_name -> management.SchematicBootloader
+	121, // 81: specs.MachineStatusSpec.HardwareStatus.processors:type_name -> specs.MachineStatusSpec.HardwareStatus.Processor
+	122, // 82: specs.MachineStatusSpec.HardwareStatus.memory_modules:type_name -> specs.MachineStatusSpec.HardwareStatus.MemoryModule
+	123, // 83: specs.MachineStatusSpec.HardwareStatus.blockdevices:type_name -> specs.MachineStatusSpec.HardwareStatus.BlockDevice
+	124, // 84: specs.MachineStatusSpec.NetworkStatus.network_links:type_name -> specs.MachineStatusSpec.NetworkStatus.NetworkLinkStatus
+	24,  // 85: specs.MachineStatusSpec.Schematic.overlay:type_name -> specs.Overlay
+	25,  // 86: specs.MachineStatusSpec.Schematic.meta_values:type_name -> specs.MetaValue
+	125, // 87: specs.MachineStatusSpec.Schematic.initial_state:type_name -> specs.MachineStatusSpec.Schematic.InitialState
+	10,  // 88: specs.MachineSetSpec.MachineClass.allocation_type:type_name -> specs.MachineSetSpec.MachineClass.Type
+	11,  // 89: specs.MachineSetSpec.MachineAllocation.allocation_type:type_name -> specs.MachineSetSpec.MachineAllocation.Type
+	131, // 90: specs.MachineSetSpec.UpdateStrategyConfig.rolling:type_name -> specs.MachineSetSpec.RollingUpdateStrategyConfig
+	2,   // 91: specs.ControlPlaneStatusSpec.Condition.type:type_name -> specs.ConditionType
+	14,  // 92: specs.ControlPlaneStatusSpec.Condition.status:type_name -> specs.ControlPlaneStatusSpec.Condition.Status
+	15,  // 93: specs.ControlPlaneStatusSpec.Condition.severity:type_name -> specs.ControlPlaneStatusSpec.Condition.Severity
+	135, // 94: specs.KubernetesStatusSpec.NodeStaticPods.static_pods:type_name -> specs.KubernetesStatusSpec.StaticPodStatus
+	25,  // 95: specs.MachineClassSpec.Provision.meta_values:type_name -> specs.MetaValue
+	3,   // 96: specs.MachineClassSpec.Provision.grpc_tunnel:type_name -> specs.GrpcTunnelMode
+	23,  // 97: specs.MachineConfigGenOptionsSpec.InstallImage.security_state:type_name -> specs.SecurityState
+	18,  // 98: specs.MachineExtensionsStatusSpec.Item.phase:type_name -> specs.MachineExtensionsStatusSpec.Item.Phase
+	99,  // [99:99] is the sub-list for method output_type
+	99,  // [99:99] is the sub-list for method input_type
+	99,  // [99:99] is the sub-list for extension type_name
+	99,  // [99:99] is the sub-list for extension extendee
+	0,   // [0:99] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_omni_proto_init() }
@@ -10506,6 +10508,7 @@ func file_omni_specs_omni_proto_init() {
 	if File_omni_specs_omni_proto != nil {
 		return
 	}
+	file_omni_specs_virtual_proto_init()
 	file_omni_specs_omni_proto_msgTypes[51].OneofWrappers = []any{
 		(*OngoingTaskSpec_TalosUpgrade)(nil),
 		(*OngoingTaskSpec_KubernetesUpgrade)(nil),

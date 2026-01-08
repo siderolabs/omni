@@ -14180,12 +14180,10 @@ func (m *InstallationMediaConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, 
 			dAtA[i] = 0x1a
 		}
 	}
-	if len(m.Architecture) > 0 {
-		i -= len(m.Architecture)
-		copy(dAtA[i:], m.Architecture)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Architecture)))
+	if m.Architecture != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Architecture))
 		i--
-		dAtA[i] = 0x12
+		dAtA[i] = 0x10
 	}
 	if len(m.TalosVersion) > 0 {
 		i -= len(m.TalosVersion)
@@ -17115,9 +17113,8 @@ func (m *InstallationMediaConfigSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	l = len(m.Architecture)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	if m.Architecture != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Architecture))
 	}
 	if len(m.InstallExtensions) > 0 {
 		for _, s := range m.InstallExtensions {
@@ -35848,10 +35845,10 @@ func (m *InstallationMediaConfigSpec) UnmarshalVT(dAtA []byte) error {
 			m.TalosVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
-			if wireType != 2 {
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Architecture", wireType)
 			}
-			var stringLen uint64
+			m.Architecture = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return protohelpers.ErrIntOverflow
@@ -35861,24 +35858,11 @@ func (m *InstallationMediaConfigSpec) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				m.Architecture |= PlatformConfigSpec_Arch(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Architecture = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field InstallExtensions", wireType)

@@ -8,6 +8,7 @@ import * as GoogleProtobufDuration from "../../google/protobuf/duration.pb"
 import * as GoogleProtobufTimestamp from "../../google/protobuf/timestamp.pb"
 import * as MachineMachine from "../../talos/machine/machine.pb"
 import * as ManagementManagement from "../management/management.pb"
+import * as SpecsVirtual from "./virtual.pb"
 
 type Absent<T, K extends keyof T> = { [k in Exclude<keyof T, K>]?: undefined };
 type OneOf<T> =
@@ -955,7 +956,7 @@ export type InstallationMediaConfigSpecSBC = {
 
 export type InstallationMediaConfigSpec = {
   talos_version?: string
-  architecture?: string
+  architecture?: SpecsVirtual.PlatformConfigSpecArch
   install_extensions?: string[]
   kernel_args?: string
   cloud?: InstallationMediaConfigSpecCloud
