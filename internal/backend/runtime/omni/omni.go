@@ -54,6 +54,7 @@ import (
 	kernelargsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/producers"
@@ -221,7 +222,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewMachineSetEtcdAuditController(talosClientFactory, time.Minute),
 		omnictrl.NewRedactedClusterMachineConfigController(omnictrl.RedactedClusterMachineConfigControllerOptions{}),
 		omnictrl.NewSchematicConfigurationController(imageFactoryClient),
-		omnictrl.NewSecretsController(storeFactory),
+		secrets.NewSecretsController(storeFactory),
 		omnictrl.NewTalosConfigController(constants.CertificateValidityTime),
 		omnictrl.NewTalosExtensionsController(imageFactoryClient),
 		omnictrl.NewTalosUpgradeStatusController(),
@@ -249,6 +250,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewConnectionParamsController(),
 		omnictrl.NewJoinTokenStatusController(),
 		omnictrl.NewNodeUniqueTokenCleanupController(time.Minute),
+		secrets.NewSecretRotationStatusController(),
 		machineupgrade.NewStatusController(imageFactoryHost, nil),
 		kernelargsctrl.NewStatusController(),
 	}
@@ -346,6 +348,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		importedClusterSecretValidationOptions(defaultState, config.Config.Features.EnableClusterImport),
 		infraProviderValidationOptions(defaultState),
 		installationMediaConfigOptions(),
+		rotateSecretsValidationOptions(defaultState),
 	)
 
 	return &Runtime{
@@ -380,11 +383,13 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*omni.ClusterMachineConfigStatus](),
 		safe.WithResourceCache[*omni.ClusterMachineEncryptionKey](),
 		safe.WithResourceCache[*omni.ClusterMachineIdentity](),
+		safe.WithResourceCache[*omni.ClusterMachineSecretsRotation](),
 		safe.WithResourceCache[*omni.ClusterMachineStatus](),
 		safe.WithResourceCache[*omni.ClusterMachineRequestStatus](),
 		safe.WithResourceCache[*omni.ClusterMachineTalosVersion](),
 		safe.WithResourceCache[*omni.ClusterStatus](),
 		safe.WithResourceCache[*omni.ClusterSecrets](),
+		safe.WithResourceCache[*omni.ClusterSecretsRotationStatus](),
 		safe.WithResourceCache[*omni.ClusterUUID](),
 		safe.WithResourceCache[*omni.ClusterWorkloadProxyStatus](),
 		safe.WithResourceCache[*omni.ControlPlaneStatus](),
@@ -423,6 +428,7 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*omni.MachineStatusSnapshot](),
 		safe.WithResourceCache[*omni.NodeForceDestroyRequest](),
 		safe.WithResourceCache[*omni.RedactedClusterMachineConfig](),
+		safe.WithResourceCache[*omni.RotateTalosCA](),
 		safe.WithResourceCache[*omni.Schematic](),
 		safe.WithResourceCache[*omni.SchematicConfiguration](),
 		safe.WithResourceCache[*omni.TalosConfig](),
@@ -663,7 +669,7 @@ func (r *Runtime) OperatorTalosconfig(ctx context.Context, clusterName string) (
 		return nil, err
 	}
 
-	bundle, err := omni.ToSecretsBundle(s)
+	bundle, err := omni.ToSecretsBundle(s.TypedSpec().Value.GetData())
 	if err != nil {
 		return nil, err
 	}

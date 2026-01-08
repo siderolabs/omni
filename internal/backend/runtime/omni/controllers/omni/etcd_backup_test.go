@@ -54,7 +54,7 @@ import (
 
 // secretsJSON is the secrets used in tests to avoid the expensive secret bundle creation in SecretsController in the tests.
 //
-//go:embed testdata/secrets.json
+//go:embed secrets/testdata/secrets.json
 var secretsJSON []byte
 
 func beforeStart(st state.State, t *testing.T, rt *runtime.Runtime) {

@@ -14,6 +14,7 @@ import (
 	"io"
 	"iter"
 	"math/big"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1843,13 +1844,13 @@ func TestDefaultJoinTokenValidation(t *testing.T) {
 }
 
 var (
-	//go:embed controllers/omni/testdata/secrets-valid.yaml
+	//go:embed controllers/omni/secrets/testdata/secrets-valid.yaml
 	validSecrets string
 
-	//go:embed controllers/omni/testdata/secrets-broken.yaml
+	//go:embed controllers/omni/secrets/testdata/secrets-broken.yaml
 	brokenSecrets string
 
-	//go:embed controllers/omni/testdata/secrets-invalid.yaml
+	//go:embed controllers/omni/secrets/testdata/secrets-invalid.yaml
 	invalidSecrets string
 )
 
@@ -1928,6 +1929,48 @@ func TestInfraProviderValidation(t *testing.T) {
 
 	require.NoError(t, st.Destroy(ctx, machine.Metadata()))
 	require.NoError(t, st.Destroy(ctx, provider.Metadata()))
+}
+
+func TestRotateSecretsValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, omni.RotateSecretsValidationOptions(innerSt)...)
+
+	updateTalosCATimestamp := func(rotateTalosCA *omnires.RotateTalosCA) {
+		rotateTalosCA.Metadata().Annotations().Set("timestamp", strconv.FormatInt(time.Now().Unix(), 10))
+	}
+
+	rotationStatus := omnires.NewClusterSecretsRotationStatus("test")
+	require.NoError(t, st.Create(ctx, rotationStatus))
+
+	rotateTalosCA := omnires.NewRotateTalosCA("test")
+	require.NoError(t, st.Create(ctx, rotateTalosCA))
+
+	updateTalosCATimestamp(rotateTalosCA)
+	require.NoError(t, st.Update(ctx, rotateTalosCA))
+
+	rotationStatus.TypedSpec().Value.Phase = specs.ClusterSecretsRotationStatusSpec_PRE_ROTATE
+	rotationStatus.TypedSpec().Value.Component = specs.ClusterSecretsRotationStatusSpec_TALOS_CA
+	require.NoError(t, st.Update(ctx, rotationStatus))
+
+	updateTalosCATimestamp(rotateTalosCA)
+	err := st.Update(ctx, rotateTalosCA)
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "cannot modify the RotateTalosCAs.omni.sidero.dev \"test\" while a secret rotation is in progress")
+
+	err = st.Destroy(ctx, rotateTalosCA.Metadata())
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "cannot delete the RotateTalosCAs.omni.sidero.dev \"test\" while a secret rotation is in progress")
+
+	rotationStatus.TypedSpec().Value.Phase = specs.ClusterSecretsRotationStatusSpec_OK
+	rotationStatus.TypedSpec().Value.Component = specs.ClusterSecretsRotationStatusSpec_NONE
+	require.NoError(t, st.Update(ctx, rotationStatus))
+
+	require.NoError(t, st.Destroy(ctx, rotateTalosCA.Metadata()))
 }
 
 type mockEtcdBackupStoreFactory struct {
