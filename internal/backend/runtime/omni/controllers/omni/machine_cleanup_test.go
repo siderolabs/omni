@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -37,9 +36,9 @@ func (suite *MachineCleanupSuite) TestCleanup() {
 
 	machineID := "machine-cleanup-test-machine"
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machine-cleanup-test-machine-set")
-	machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, machineID, machineSet)
-	machine := omni.NewMachine(resources.DefaultNamespace, machineID)
+	machineSet := omni.NewMachineSet("machine-cleanup-test-machine-set")
+	machineSetNode := omni.NewMachineSetNode(machineID, machineSet)
+	machine := omni.NewMachine(machineID)
 
 	machine.Metadata().Finalizers().Add(controller.Name())
 
@@ -72,9 +71,9 @@ func (suite *MachineCleanupSuite) TestSkipMachineSetNodeWithOwner() {
 
 	machineID := "machine-cleanup-skip-test-machine"
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, "machine-cleanup-skip-test-machine-set")
-	machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, machineID, machineSet)
-	machine := omni.NewMachine(resources.DefaultNamespace, machineID)
+	machineSet := omni.NewMachineSet("machine-cleanup-skip-test-machine-set")
+	machineSetNode := omni.NewMachineSetNode(machineID, machineSet)
+	machine := omni.NewMachine(machineID)
 
 	machine.Metadata().Finalizers().Add(controller.Name())
 	require.NoError(machineSetNode.Metadata().SetOwner("some-owner"))

@@ -14,7 +14,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -30,10 +29,10 @@ func NewClusterMachineEncryptionKeyController() *ClusterMachineEncryptionKeyCont
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineEncryptionKey]{
 			Name: ClusterMachineEncryptionKeyControllerName,
 			MapMetadataFunc: func(clusterMachine *omni.ClusterMachine) *omni.ClusterMachineEncryptionKey {
-				return omni.NewClusterMachineEncryptionKey(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+				return omni.NewClusterMachineEncryptionKey(clusterMachine.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(clusterMachineEncryptionKey *omni.ClusterMachineEncryptionKey) *omni.ClusterMachine {
-				return omni.NewClusterMachine(resources.DefaultNamespace, clusterMachineEncryptionKey.Metadata().ID())
+				return omni.NewClusterMachine(clusterMachineEncryptionKey.Metadata().ID())
 			},
 			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, _ *omni.ClusterMachine, clusterMachineEncryptionKey *omni.ClusterMachineEncryptionKey) error {
 				if clusterMachineEncryptionKey.TypedSpec().Value.Data != nil {

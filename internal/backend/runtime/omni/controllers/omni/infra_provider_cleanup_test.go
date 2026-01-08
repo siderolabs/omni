@@ -137,10 +137,10 @@ func TestProvisioningProviderCleanup(t *testing.T) {
 		machineRequestStatus := infra.NewMachineRequestStatus("test-machine-request")
 		machineRequestStatus.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
 
-		machineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, "test-machine-request-set")
+		machineRequestSet := omni.NewMachineRequestSet("test-machine-request-set")
 		machineRequestSet.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
 
-		omniOwnedMachineRequestSet := omni.NewMachineRequestSet(resources.DefaultNamespace, "test-machine-request-set-omni-owned")
+		omniOwnedMachineRequestSet := omni.NewMachineRequestSet("test-machine-request-set-omni-owned")
 		omniOwnedMachineRequestSet.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
 
 		require.NoError(t, st.Create(ctx, machineRequestStatus))

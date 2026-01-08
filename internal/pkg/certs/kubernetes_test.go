@@ -27,10 +27,10 @@ func TestIsKubernetesCertificateStale(t *testing.T) {
 	data, err := json.Marshal(bundle)
 	require.NoError(t, err)
 
-	secrets := omni.NewClusterSecrets("", "my-first-cluster")
+	secrets := omni.NewClusterSecrets("my-first-cluster")
 	secrets.TypedSpec().Value.Data = data
 
-	lbConfig := omni.NewLoadBalancerConfig("", "")
+	lbConfig := omni.NewLoadBalancerConfig("")
 	lbConfig.TypedSpec().Value.SiderolinkEndpoint = "https://[2001:db8::1]:6443"
 
 	kubeconfig, err := certs.GenerateKubeconfig(secrets, lbConfig, constants.CertificateValidityTime)

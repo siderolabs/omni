@@ -17,7 +17,6 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
@@ -36,10 +35,10 @@ func NewMachineProvisionController() *MachineProvisionController {
 		qtransform.Settings[*omni.MachineSet, *omni.MachineRequestSet]{
 			Name: MachineProvisionControllerName,
 			MapMetadataFunc: func(res *omni.MachineSet) *omni.MachineRequestSet {
-				return omni.NewMachineRequestSet(resources.DefaultNamespace, res.Metadata().ID())
+				return omni.NewMachineRequestSet(res.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(res *omni.MachineRequestSet) *omni.MachineSet {
-				return omni.NewMachineSet(resources.DefaultNamespace, res.Metadata().ID())
+				return omni.NewMachineSet(res.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, machineSet *omni.MachineSet, machineRequestSet *omni.MachineRequestSet) error {
 				machineAllocation := omni.GetMachineAllocation(machineSet)

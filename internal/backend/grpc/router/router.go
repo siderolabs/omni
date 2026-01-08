@@ -328,7 +328,7 @@ func (r *Router) getClusterCredentials(ctx context.Context, clusterName string) 
 		return nil, status.Errorf(codes.InvalidArgument, "cluster name is not set")
 	}
 
-	secrets, err := safe.StateGet[*omni.ClusterSecrets](ctx, r.cosiState, omni.NewClusterSecrets(resources.DefaultNamespace, clusterName).Metadata())
+	secrets, err := safe.StateGet[*omni.ClusterSecrets](ctx, r.cosiState, omni.NewClusterSecrets(clusterName).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil, status.Errorf(codes.NotFound, "cluster %q is not registered", clusterName)
@@ -343,7 +343,7 @@ func (r *Router) getClusterCredentials(ctx context.Context, clusterName string) 
 		return nil, err
 	}
 
-	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](ctx, r.cosiState, omni.NewClusterEndpoint(resources.DefaultNamespace, clusterName).Metadata())
+	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](ctx, r.cosiState, omni.NewClusterEndpoint(clusterName).Metadata())
 	if err != nil {
 		return nil, err
 	}

@@ -21,7 +21,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -160,7 +159,7 @@ func AssertControlPlaneCanBeRestoredFromBackup(testCtx context.Context, st state
 		require.NotEmpty(t, backupList.Len())
 
 		snapshotName := backupList.Get(0).TypedSpec().Value.GetSnapshot() // the first backup is the most recent one
-		cpMachineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(clusterName))
+		cpMachineSet := omni.NewMachineSet(omni.ControlPlanesResourceID(clusterName))
 
 		cpMachineSet.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 		cpMachineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")

@@ -17,13 +17,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 )
 
 func newClusterMachineStatus(id string, stage specs.ClusterMachineStatusSpec_Stage, ready, connected bool) *omni.ClusterMachineStatus {
-	res := omni.NewClusterMachineStatus(resources.DefaultNamespace, id)
+	res := omni.NewClusterMachineStatus(id)
 	res.TypedSpec().Value.Ready = ready
 	res.TypedSpec().Value.Stage = stage
 
@@ -35,7 +34,7 @@ func newClusterMachineStatus(id string, stage specs.ClusterMachineStatusSpec_Sta
 }
 
 func newMachineSet(machineCount int) *omni.MachineSet {
-	res := omni.NewMachineSet(resources.DefaultNamespace, "test")
+	res := omni.NewMachineSet("test")
 	res.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
 		MachineCount: uint32(machineCount),
 	}
@@ -45,7 +44,7 @@ func newMachineSet(machineCount int) *omni.MachineSet {
 
 //nolint:maintidx
 func TestStatusHandler(t *testing.T) {
-	ms := omni.NewMachineSet("", "")
+	ms := omni.NewMachineSet("")
 
 	var patches []*omni.ConfigPatch
 
@@ -70,12 +69,12 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "running 2 machines",
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", ms),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", ms),
+				omni.NewMachineSetNode("a", ms),
+				omni.NewMachineSetNode("b", ms),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "a"), patches...),
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "b"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("a"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("b"), patches...),
 			},
 			clusterMachineStatuses: []*omni.ClusterMachineStatus{
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
@@ -96,12 +95,12 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "pending update 2 machines",
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", ms),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", ms),
+				omni.NewMachineSetNode("a", ms),
+				omni.NewMachineSetNode("b", ms),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				omni.NewClusterMachine(resources.DefaultNamespace, "a"),
-				omni.NewClusterMachine(resources.DefaultNamespace, "b"),
+				omni.NewClusterMachine("a"),
+				omni.NewClusterMachine("b"),
 			},
 			clusterMachineStatuses: []*omni.ClusterMachineStatus{
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
@@ -122,11 +121,11 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "scaling down",
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", ms),
+				omni.NewMachineSetNode("a", ms),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "a"), patches...),
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "b"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("a"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("b"), patches...),
 			},
 			clusterMachineStatuses: []*omni.ClusterMachineStatus{
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
@@ -147,11 +146,11 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "scaling up",
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", ms),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", ms),
+				omni.NewMachineSetNode("a", ms),
+				omni.NewMachineSetNode("b", ms),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "a"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("a"), patches...),
 			},
 			clusterMachineStatuses: []*omni.ClusterMachineStatus{
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
@@ -171,12 +170,12 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "running 2 machines, not ready",
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", ms),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", ms),
+				omni.NewMachineSetNode("a", ms),
+				omni.NewMachineSetNode("b", ms),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "a"), patches...),
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "b"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("a"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("b"), patches...),
 			},
 			clusterMachineStatuses: []*omni.ClusterMachineStatus{
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, false, true),
@@ -197,12 +196,12 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "running 2 machines, not connected",
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", ms),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", ms),
+				omni.NewMachineSetNode("a", ms),
+				omni.NewMachineSetNode("b", ms),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "a"), patches...),
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "b"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("a"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("b"), patches...),
 			},
 			clusterMachineStatuses: []*omni.ClusterMachineStatus{
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
@@ -223,10 +222,10 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "scaling down and scaling up",
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", ms),
+				omni.NewMachineSetNode("b", ms),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "a"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("a"), patches...),
 			},
 			clusterMachineStatuses: []*omni.ClusterMachineStatus{
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
@@ -246,11 +245,11 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "scaling up machine class",
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", ms),
+				omni.NewMachineSetNode("a", ms),
 			},
 			machineSet: newMachineSet(4),
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "a"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("a"), patches...),
 			},
 			clusterMachineStatuses: []*omni.ClusterMachineStatus{
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
@@ -273,11 +272,11 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "scaling down machine class",
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", ms),
+				omni.NewMachineSetNode("a", ms),
 			},
 			machineSet: newMachineSet(0),
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "a"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("a"), patches...),
 			},
 			clusterMachineStatuses: []*omni.ClusterMachineStatus{
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
@@ -300,12 +299,12 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "unready 2 machines",
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", ms),
-				omni.NewMachineSetNode(resources.DefaultNamespace, "b", ms),
+				omni.NewMachineSetNode("a", ms),
+				omni.NewMachineSetNode("b", ms),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "a"), patches...),
-				withUpdateInputVersions(omni.NewClusterMachine(resources.DefaultNamespace, "b"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("a"), patches...),
+				withUpdateInputVersions(omni.NewClusterMachine("b"), patches...),
 			},
 			clusterMachineStatuses: []*omni.ClusterMachineStatus{
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_BOOTING, true, true),
@@ -326,12 +325,12 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "locked update 2 machines",
 			machineSetNodes: []*omni.MachineSetNode{
-				withLabels(omni.NewMachineSetNode(resources.DefaultNamespace, "a", ms), pair.MakePair(omni.MachineLocked, "")),
-				withLabels(omni.NewMachineSetNode(resources.DefaultNamespace, "b", ms), pair.MakePair(omni.MachineLocked, "")),
+				withLabels(omni.NewMachineSetNode("a", ms), pair.MakePair(omni.MachineLocked, "")),
+				withLabels(omni.NewMachineSetNode("b", ms), pair.MakePair(omni.MachineLocked, "")),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				omni.NewClusterMachine(resources.DefaultNamespace, "a"),
-				omni.NewClusterMachine(resources.DefaultNamespace, "b"),
+				omni.NewClusterMachine("a"),
+				omni.NewClusterMachine("b"),
 			},
 			clusterMachineStatuses: []*omni.ClusterMachineStatus{
 				newClusterMachineStatus("a", specs.ClusterMachineStatusSpec_RUNNING, true, true),
@@ -353,7 +352,7 @@ func TestStatusHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			machineSet := tt.machineSet
 			if machineSet == nil {
-				machineSet = omni.NewMachineSet(resources.DefaultNamespace, "test")
+				machineSet = omni.NewMachineSet("test")
 			}
 
 			machineSet.Metadata().Labels().Set(omni.LabelCluster, "test")
@@ -369,17 +368,17 @@ func TestStatusHandler(t *testing.T) {
 				cm.Metadata().SetVersion(version)
 
 				clusterMachineConfigStatuses = append(clusterMachineConfigStatuses, withSpecSetter(
-					withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, cm.Metadata().ID()), version),
+					withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(cm.Metadata().ID()), version),
 					func(r *omni.ClusterMachineConfigStatus) {
 						r.TypedSpec().Value.ClusterMachineConfigSha256 = cm.Metadata().ID()
 					},
 				))
 
-				clusterMachineConfigPatches = append(clusterMachineConfigPatches, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, cm.Metadata().ID()))
+				clusterMachineConfigPatches = append(clusterMachineConfigPatches, omni.NewClusterMachineConfigPatches(cm.Metadata().ID()))
 			}
 
 			rc, err := machineset.NewReconciliationContext(
-				omni.NewCluster(resources.DefaultNamespace, "test"),
+				omni.NewCluster("test"),
 				machineSet,
 				newHealthyLB("test"),
 				&fakePatchHelper{},
@@ -392,7 +391,7 @@ func TestStatusHandler(t *testing.T) {
 
 			require.NoError(err)
 
-			machineSetStatus := omni.NewMachineSetStatus(resources.DefaultNamespace, "doesn't matter")
+			machineSetStatus := omni.NewMachineSetStatus("doesn't matter")
 
 			machineset.ReconcileStatus(rc, machineSetStatus)
 

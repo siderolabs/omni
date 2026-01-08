@@ -14,7 +14,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -176,7 +175,7 @@ func (machineset *MachineSet) Validate() error {
 func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLabel string) ([]resource.Resource, error) {
 	id := omni.AdditionalWorkersResourceID(ctx.ClusterName, nameSuffix)
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, id)
+	machineSet := omni.NewMachineSet(id)
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, ctx.ClusterName)
 	machineSet.Metadata().Labels().Set(roleLabel, "")
 
@@ -233,7 +232,7 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 		}
 	} else {
 		for _, machineID := range machineset.Machines {
-			machineSetNode := omni.NewMachineSetNode(resources.DefaultNamespace, string(machineID), machineSet)
+			machineSetNode := omni.NewMachineSetNode(string(machineID), machineSet)
 			descriptors := ctx.MachineDescriptors[machineID]
 
 			descriptors.Apply(machineSetNode)

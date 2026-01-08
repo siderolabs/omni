@@ -38,7 +38,7 @@ func NewMachineController() *MachineController {
 		qtransform.Settings[*siderolink.Link, *omni.Machine]{
 			Name: "MachineController",
 			MapMetadataFunc: func(link *siderolink.Link) *omni.Machine {
-				return omni.NewMachine(resources.DefaultNamespace, link.Metadata().ID())
+				return omni.NewMachine(link.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(machine *omni.Machine) *siderolink.Link {
 				return siderolink.NewLink(resources.DefaultNamespace, machine.Metadata().ID(), nil)

@@ -22,7 +22,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
@@ -53,7 +52,7 @@ func NewStatusController(imageFactoryHost string, talosClientFactory TalosClient
 				return omni.NewMachineUpgradeStatus(ms.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(status *omni.MachineUpgradeStatus) *omni.MachineStatus {
-				return omni.NewMachineStatus(resources.DefaultNamespace, status.Metadata().ID())
+				return omni.NewMachineStatus(status.Metadata().ID())
 			},
 			TransformFunc: ctrl.transform,
 		},

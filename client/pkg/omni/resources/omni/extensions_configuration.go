@@ -15,9 +15,9 @@ import (
 )
 
 // NewExtensionsConfiguration creates new ExtensionsConfiguration resource.
-func NewExtensionsConfiguration(ns string, id resource.ID) *ExtensionsConfiguration {
+func NewExtensionsConfiguration(id resource.ID) *ExtensionsConfiguration {
 	return typed.NewResource[ExtensionsConfigurationSpec, ExtensionsConfigurationExtension](
-		resource.NewMetadata(ns, ExtensionsConfigurationType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ExtensionsConfigurationType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ExtensionsConfigurationSpec{}),
 	)
 }

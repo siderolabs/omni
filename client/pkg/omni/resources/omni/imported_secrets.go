@@ -19,9 +19,9 @@ import (
 )
 
 // NewImportedClusterSecrets creates new ImportedClusterSecrets state.
-func NewImportedClusterSecrets(ns string, id resource.ID) *ImportedClusterSecrets {
+func NewImportedClusterSecrets(id resource.ID) *ImportedClusterSecrets {
 	return typed.NewResource[ImportedClusterSecretsSpec, ImportedClusterSecretsExtension](
-		resource.NewMetadata(ns, ImportedClusterSecretsType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ImportedClusterSecretsType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ImportedClusterSecretsSpec{}),
 	)
 }

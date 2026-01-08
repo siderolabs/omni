@@ -15,9 +15,9 @@ import (
 )
 
 // NewMachineRequestSet creates new MachineRequestSet state.
-func NewMachineRequestSet(ns, id string) *MachineRequestSet {
+func NewMachineRequestSet(id string) *MachineRequestSet {
 	return typed.NewResource[MachineRequestSetSpec, MachineRequestSetExtension](
-		resource.NewMetadata(ns, MachineRequestSetType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, MachineRequestSetType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineRequestSetSpec{}),
 	)
 }

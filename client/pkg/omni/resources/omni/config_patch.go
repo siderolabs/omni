@@ -48,9 +48,9 @@ var forbiddenSliceElements = map[string]map[any]struct{}{
 }
 
 // NewConfigPatch creates new ConfigPatch resource.
-func NewConfigPatch(ns string, id resource.ID, labels ...pair.Pair[string, string]) *ConfigPatch {
+func NewConfigPatch(id resource.ID, labels ...pair.Pair[string, string]) *ConfigPatch {
 	res := typed.NewResource[ConfigPatchSpec, ConfigPatchExtension](
-		resource.NewMetadata(ns, ConfigPatchType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ConfigPatchType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ConfigPatchSpec{}),
 	)
 

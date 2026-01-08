@@ -26,7 +26,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/client"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -53,7 +52,7 @@ func machineProvisionHook(t *testing.T, client *client.Client, cfg MachineProvis
 		rtestutils.Destroy[*omni.MachineRequestSet](ctx, t, client.Omni().State(), []string{machineRequestSetName})
 	}
 
-	machineRequestSet = omni.NewMachineRequestSet(resources.DefaultNamespace, machineRequestSetName)
+	machineRequestSet = omni.NewMachineRequestSet(machineRequestSetName)
 
 	machineRequestSet.TypedSpec().Value.Extensions = []string{
 		HelloWorldServiceExtensionName,
@@ -222,7 +221,7 @@ func infraMachinesAcceptHook(t *testing.T, omniState state.State, infraProviderI
 		rtestutils.AssertNoResource[*omni.Machine](ctx, t, omniState, id)
 
 		// Accept the machine
-		infraMachineConfig := omni.NewInfraMachineConfig(resources.DefaultNamespace, id)
+		infraMachineConfig := omni.NewInfraMachineConfig(id)
 
 		infraMachineConfig.TypedSpec().Value.AcceptanceStatus = specs.InfraMachineConfigSpec_ACCEPTED
 
@@ -233,7 +232,7 @@ func infraMachinesAcceptHook(t *testing.T, omniState state.State, infraProviderI
 		require.NoError(t, omniState.Create(ctx, infraMachineConfig))
 
 		if disableKexec {
-			disableKexecConfigPatchRes := omni.NewConfigPatch(resources.DefaultNamespace, fmt.Sprintf("500-%s-disable-kexec", id))
+			disableKexecConfigPatchRes := omni.NewConfigPatch(fmt.Sprintf("500-%s-disable-kexec", id))
 
 			disableKexecConfigPatchRes.Metadata().Labels().Set(omni.LabelMachine, id)
 

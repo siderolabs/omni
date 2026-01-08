@@ -19,7 +19,7 @@ import (
 )
 
 func TestClusterMachineConfigPatchesYAML(t *testing.T) {
-	res := omni.NewClusterMachineConfigPatches("test", "test")
+	res := omni.NewClusterMachineConfigPatches("test")
 
 	// set some patches
 
@@ -63,7 +63,7 @@ func TestClusterMachineConfigPatchesYAML(t *testing.T) {
 }
 
 func TestClusterMachineConfigPatchesJSON(t *testing.T) {
-	res := omni.NewClusterMachineConfigPatches("test", "test")
+	res := omni.NewClusterMachineConfigPatches("test")
 
 	aString := strings.Repeat("a", constants.CompressionThresholdBytes)
 	bString := strings.Repeat("b", constants.CompressionThresholdBytes)

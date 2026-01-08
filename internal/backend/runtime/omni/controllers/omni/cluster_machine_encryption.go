@@ -109,7 +109,7 @@ func (ctrl *ClusterMachineEncryptionController) Run(ctx context.Context, r contr
 
 			clusterName := cluster.Metadata().ID()
 
-			patch := omni.NewConfigPatch(resources.DefaultNamespace,
+			patch := omni.NewConfigPatch(
 				fmt.Sprintf("%s-%s-encryption", constants.EncryptionPatchPrefix, clusterName),
 			)
 

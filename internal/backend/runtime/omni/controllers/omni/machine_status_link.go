@@ -23,7 +23,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	ctrlhelpers "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -132,7 +131,7 @@ func (ctrl *MachineStatusLinkController) Run(ctx context.Context, rt controller.
 }
 
 func (ctrl *MachineStatusLinkController) createMachineStatusLink(ctx context.Context, rt controller.Runtime, ms *omni.MachineStatus, deltas siderolinkmanager.LinkCounterDeltas) error {
-	emptyResource := omni.NewMachineStatusLink(resources.MetricsNamespace, ms.Metadata().ID())
+	emptyResource := omni.NewMachineStatusLink(ms.Metadata().ID())
 
 	err := safe.WriterModify(ctx, rt, emptyResource, func(msl *omni.MachineStatusLink) error {
 		// Just copy labels and metadata from MachineStatus resource.
@@ -164,7 +163,7 @@ func (ctrl *MachineStatusLinkController) createMachineStatusLink(ctx context.Con
 }
 
 func (ctrl *MachineStatusLinkController) keepTearingDownMachineStatusLink(ctx context.Context, rt controller.Runtime, link *siderolink.Link, deltas siderolinkmanager.LinkCounterDeltas) error {
-	emptyResource := omni.NewMachineStatusLink(resources.MetricsNamespace, link.Metadata().ID())
+	emptyResource := omni.NewMachineStatusLink(link.Metadata().ID())
 
 	err := safe.WriterModify(ctx, rt, emptyResource, func(msl *omni.MachineStatusLink) error {
 		ctrlhelpers.CopyLabels(msl, link)

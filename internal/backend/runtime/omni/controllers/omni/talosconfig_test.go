@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -36,11 +35,11 @@ func (suite *TalosConfigSuite) TestReconcile() {
 
 	clusterName := "talos-default-2"
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+	cluster := omni.NewCluster(clusterName)
 	cluster.TypedSpec().Value.TalosVersion = "1.2.0"
 	require.NoError(suite.state.Create(suite.ctx, cluster))
 
-	machineSet := omni.NewMachineSet(resources.DefaultNamespace, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
+	machineSet := omni.NewMachineSet(omni.ControlPlanesResourceID(cluster.Metadata().ID()))
 
 	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 	machineSet.Metadata().Labels().Set(omni.LabelCluster, clusterName)
@@ -49,7 +48,7 @@ func (suite *TalosConfigSuite) TestReconcile() {
 
 	var firstCrt string
 
-	config := omni.NewTalosConfig(resources.DefaultNamespace, clusterName)
+	config := omni.NewTalosConfig(clusterName)
 	assertResource(
 		&suite.OmniSuite,
 		*config.Metadata(),

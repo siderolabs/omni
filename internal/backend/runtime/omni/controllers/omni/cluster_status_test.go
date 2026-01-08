@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
@@ -171,7 +170,7 @@ func (suite *ClusterStatusSuite) TestReconcile() {
 			cluster, _ := suite.createCluster(clusterName, 3, 0)
 
 			if tt.cpMachineSet != nil {
-				machineSetStatus := omni.NewMachineSetStatus(resources.DefaultNamespace, clusterName+"-cp")
+				machineSetStatus := omni.NewMachineSetStatus(clusterName + "-cp")
 				machineSetStatus.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 				machineSetStatus.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 
@@ -181,7 +180,7 @@ func (suite *ClusterStatusSuite) TestReconcile() {
 			}
 
 			if tt.workerMachineSet != nil {
-				machineSetStatus := omni.NewMachineSetStatus(resources.DefaultNamespace, omni.WorkersResourceID(clusterName))
+				machineSetStatus := omni.NewMachineSetStatus(omni.WorkersResourceID(clusterName))
 				machineSetStatus.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 				machineSetStatus.Metadata().Labels().Set(omni.LabelWorkerRole, "")
 
@@ -191,7 +190,7 @@ func (suite *ClusterStatusSuite) TestReconcile() {
 			}
 
 			if tt.cpStatus != nil {
-				cpStatus := omni.NewControlPlaneStatus(resources.DefaultNamespace, clusterName+"-cp")
+				cpStatus := omni.NewControlPlaneStatus(clusterName + "-cp")
 				cpStatus.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 				cpStatus.TypedSpec().Value = tt.cpStatus
 
@@ -199,7 +198,7 @@ func (suite *ClusterStatusSuite) TestReconcile() {
 			}
 
 			if tt.lbStatus != nil {
-				lbStatus := omni.NewLoadBalancerStatus(resources.DefaultNamespace, clusterName)
+				lbStatus := omni.NewLoadBalancerStatus(clusterName)
 				lbStatus.TypedSpec().Value = tt.lbStatus
 
 				suite.Require().NoError(suite.state.Create(ctx, lbStatus))

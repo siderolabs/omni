@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -57,12 +56,12 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	const talosVersion = "1.7.0"
 
-	cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+	cluster := omni.NewCluster(clusterName)
 	cluster.TypedSpec().Value.TalosVersion = talosVersion
 
 	suite.Require().NoError(suite.state.Create(ctx, cluster))
 
-	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, machineName)
+	machineStatus := omni.NewMachineStatus(machineName)
 	machineStatus.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
 
 	// customization:
@@ -87,7 +86,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 		Platform: talosconstants.PlatformMetal,
 	}
 
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, machineName)
+	clusterMachine := omni.NewClusterMachine(machineName)
 	clusterMachine.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 	clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, machineSet)
 
@@ -115,7 +114,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	)
 
 	// set empty extensions list for the cluster
-	extensionsConfiguration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, "test")
+	extensionsConfiguration := omni.NewExtensionsConfiguration("test")
 	extensionsConfiguration.TypedSpec().Value.Extensions = nil
 	extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 
@@ -131,7 +130,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	)
 
 	// override extensions list for the machine set
-	extensionsConfiguration = omni.NewExtensionsConfiguration(resources.DefaultNamespace, "machineset")
+	extensionsConfiguration = omni.NewExtensionsConfiguration("machineset")
 	extensionsConfiguration.TypedSpec().Value.Extensions = []string{
 		"siderolabs/something",
 	}
@@ -180,7 +179,7 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	)
 
 	// override schematics on the machine level
-	extensionsConfiguration = omni.NewExtensionsConfiguration(resources.DefaultNamespace, "zzzz")
+	extensionsConfiguration = omni.NewExtensionsConfiguration("zzzz")
 	extensionsConfiguration.TypedSpec().Value.Extensions = []string{
 		"siderolabs/something-else",
 	}

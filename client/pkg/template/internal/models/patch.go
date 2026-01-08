@@ -13,7 +13,6 @@ import (
 	"github.com/siderolabs/gen/pair"
 	"go.yaml.in/yaml/v4"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -152,7 +151,7 @@ func (patch *Patch) Translate(prefix string, weight int, labels ...pair.Pair[str
 		return nil, fmt.Errorf("failed to read patch %q: %w", name, err)
 	}
 
-	patchResource := omni.NewConfigPatch(resources.DefaultNamespace, id, labels...)
+	patchResource := omni.NewConfigPatch(id, labels...)
 	patchResource.Metadata().Annotations().Set("name", name)
 
 	patch.Descriptors.Apply(patchResource)

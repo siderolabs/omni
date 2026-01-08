@@ -15,9 +15,9 @@ import (
 )
 
 // NewMachineStatusMetrics creates new MachineStatusMetrics resource.
-func NewMachineStatusMetrics(ns string, id resource.ID) *MachineStatusMetrics {
+func NewMachineStatusMetrics(id resource.ID) *MachineStatusMetrics {
 	return typed.NewResource[MachineStatusMetricsSpec, MachineStatusMetricsExtension](
-		resource.NewMetadata(ns, MachineStatusMetricsType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.EphemeralNamespace, MachineStatusMetricsType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.MachineStatusMetricsSpec{}),
 	)
 }

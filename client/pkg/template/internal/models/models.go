@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/pair"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -42,7 +41,7 @@ func (s *SystemExtensions) translate(ctx TranslateContext, nameSuffix string, la
 		return nil
 	}
 
-	configuration := omni.NewExtensionsConfiguration(resources.DefaultNamespace, fmt.Sprintf("schematic-%s", nameSuffix))
+	configuration := omni.NewExtensionsConfiguration(fmt.Sprintf("schematic-%s", nameSuffix))
 
 	configuration.Metadata().Labels().Set(omni.LabelCluster, ctx.ClusterName)
 

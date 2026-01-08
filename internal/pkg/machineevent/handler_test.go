@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/machineevent"
@@ -36,7 +35,7 @@ func TestSequenceEvent(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 
-	testMachine := omni.NewMachine(resources.DefaultNamespace, "test-machine")
+	testMachine := omni.NewMachine("test-machine")
 	infraMachine := infra.NewMachine("test-machine")
 
 	testMachine.Metadata().Labels().Set(omni.MachineAddressLabel, "127.0.0.1")

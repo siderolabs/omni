@@ -36,10 +36,10 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineStatus]{
 			Name: clusterMachineStatusControllerName,
 			MapMetadataFunc: func(clusterMachine *omni.ClusterMachine) *omni.ClusterMachineStatus {
-				return omni.NewClusterMachineStatus(resources.DefaultNamespace, clusterMachine.Metadata().ID())
+				return omni.NewClusterMachineStatus(clusterMachine.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(clusterMachineStatus *omni.ClusterMachineStatus) *omni.ClusterMachine {
-				return omni.NewClusterMachine(resources.DefaultNamespace, clusterMachineStatus.Metadata().ID())
+				return omni.NewClusterMachine(clusterMachineStatus.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, clusterMachine *omni.ClusterMachine, clusterMachineStatus *omni.ClusterMachineStatus) error {
 				machine, err := safe.ReaderGet[*omni.Machine](ctx, r, resource.NewMetadata(resources.DefaultNamespace, omni.MachineType, clusterMachine.Metadata().ID(), resource.VersionUndefined))
@@ -140,7 +140,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 				clusterMachineConfigStatus, err := safe.ReaderGet[*omni.ClusterMachineConfigStatus](
 					ctx,
 					r,
-					omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, clusterMachineStatus.Metadata().ID()).Metadata(),
+					omni.NewClusterMachineConfigStatus(clusterMachineStatus.Metadata().ID()).Metadata(),
 				)
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
@@ -213,7 +213,6 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 				}
 
 				clusterMachineIdentity, err := safe.ReaderGet[*omni.ClusterMachineIdentity](ctx, r, omni.NewClusterMachineIdentity(
-					resources.DefaultNamespace,
 					clusterMachineStatus.Metadata().ID(),
 				).Metadata())
 				if err != nil && !state.IsNotFoundError(err) {
@@ -259,7 +258,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					}
 
 					return []resource.Pointer{
-						omni.NewClusterMachine(resources.DefaultNamespace, request.TypedSpec().Value.Id).Metadata(),
+						omni.NewClusterMachine(request.TypedSpec().Value.Id).Metadata(),
 					}, nil
 				},
 			),

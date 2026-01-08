@@ -15,9 +15,9 @@ import (
 )
 
 // NewInstallationMedia creates new InstallationMedia state.
-func NewInstallationMedia(ns, filename string) *InstallationMedia {
+func NewInstallationMedia(filename string) *InstallationMedia {
 	return typed.NewResource[InstallationMediaSpec, InstallationMediaExtension](
-		resource.NewMetadata(ns, InstallationMediaType, filename, resource.VersionUndefined),
+		resource.NewMetadata(resources.EphemeralNamespace, InstallationMediaType, filename, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.InstallationMediaSpec{}),
 	)
 }

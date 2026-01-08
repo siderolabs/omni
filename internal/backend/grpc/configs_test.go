@@ -38,7 +38,6 @@ import (
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/client"
 	managementclient "github.com/siderolabs/omni/client/pkg/client/management"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
 	"github.com/siderolabs/omni/internal/backend/runtime"
@@ -120,13 +119,13 @@ func TestGenerateConfigs(t *testing.T) {
 	})
 
 	t.Run("kubeconfig enabled success", func(t *testing.T) {
-		cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+		cluster := omni.NewCluster(clusterName)
 		require.NoError(t, st.Default().Create(ctx, cluster))
 
-		clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterName)
+		clusterStatus := omni.NewClusterStatus(clusterName)
 		require.NoError(t, st.Default().Create(ctx, clusterStatus, state.WithCreateOwner(omnictrl.ClusterStatusControllerName)))
 
-		kubeconfigResource := omni.NewKubeconfig(resources.DefaultNamespace, clusterName)
+		kubeconfigResource := omni.NewKubeconfig(clusterName)
 		kubeconfigResource.TypedSpec().Value.Data = adminKubeconfig
 
 		require.NoError(t, st.Default().Create(ctx, kubeconfigResource))
@@ -164,13 +163,13 @@ func TestGenerateConfigs(t *testing.T) {
 	})
 
 	t.Run("talosconfig enabled success", func(t *testing.T) {
-		cluster := omni.NewCluster(resources.DefaultNamespace, clusterName)
+		cluster := omni.NewCluster(clusterName)
 		require.NoError(t, st.Default().Create(ctx, cluster))
 
-		clusterStatus := omni.NewClusterStatus(resources.DefaultNamespace, clusterName)
+		clusterStatus := omni.NewClusterStatus(clusterName)
 		require.NoError(t, st.Default().Create(ctx, clusterStatus, state.WithCreateOwner(omnictrl.ClusterStatusControllerName)))
 
-		secrets := omni.NewClusterSecrets(resources.DefaultNamespace, clusterName)
+		secrets := omni.NewClusterSecrets(clusterName)
 
 		bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), machineryconfig.TalosVersion1_7)
 		require.NoError(t, err)

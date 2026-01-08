@@ -18,7 +18,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
@@ -36,8 +35,8 @@ type Create struct {
 
 // Apply implements Operation interface.
 func (c *Create) Apply(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, rc *ReconciliationContext) error {
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, c.ID)
-	clusterMachineConfigPatches := omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, c.ID)
+	clusterMachine := omni.NewClusterMachine(c.ID)
+	clusterMachineConfigPatches := omni.NewClusterMachineConfigPatches(c.ID)
 
 	machineSet := rc.GetMachineSet()
 	configPatches := rc.GetConfigPatches(c.ID)
@@ -86,7 +85,7 @@ func (d *Teardown) Apply(ctx context.Context, r controller.ReaderWriter, logger 
 
 	logger.Info("teardown cluster machine", zap.String("machine", d.ID))
 
-	if _, err := r.Teardown(ctx, omni.NewClusterMachine(resources.DefaultNamespace, d.ID).Metadata()); err != nil {
+	if _, err := r.Teardown(ctx, omni.NewClusterMachine(d.ID).Metadata()); err != nil {
 		return fmt.Errorf(
 			"error tearing down machine %q in cluster %q: %w",
 			d.ID,
@@ -132,7 +131,7 @@ func (u *Update) Apply(ctx context.Context, r controller.ReaderWriter, logger *z
 	logger.Info("update cluster machine", zap.String("machine", u.ID), zap.Bool("ignore_quota", ignoreQuota))
 
 	// update ClusterMachineConfigPatches resource with the list of matching patches for the machine
-	err := safe.WriterModify(ctx, r, omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, u.ID),
+	err := safe.WriterModify(ctx, r, omni.NewClusterMachineConfigPatches(u.ID),
 		func(clusterMachineConfigPatches *omni.ClusterMachineConfigPatches) error {
 			return setPatches(clusterMachineConfigPatches, configPatches)
 		},
@@ -182,7 +181,7 @@ func (d *Destroy) Apply(ctx context.Context, r controller.ReaderWriter, logger *
 		return nil
 	}
 
-	configPatches := omni.NewClusterMachineConfigPatches(clusterMachine.Metadata().Namespace(), clusterMachine.Metadata().ID())
+	configPatches := omni.NewClusterMachineConfigPatches(clusterMachine.Metadata().ID())
 
 	if err := r.Destroy(ctx, configPatches.Metadata()); err != nil && !state.IsNotFoundError(err) {
 		return err
@@ -195,7 +194,7 @@ func (d *Destroy) Apply(ctx context.Context, r controller.ReaderWriter, logger *
 	// release the Machine finalizer
 	if err := r.RemoveFinalizer(
 		ctx,
-		omni.NewMachine(resources.DefaultNamespace, clusterMachine.Metadata().ID()).Metadata(),
+		omni.NewMachine(clusterMachine.Metadata().ID()).Metadata(),
 		ControllerName,
 	); err != nil && !state.IsNotFoundError(err) {
 		return fmt.Errorf("error removing finalizer from machine %q: %w", clusterMachine.Metadata().ID(), err)

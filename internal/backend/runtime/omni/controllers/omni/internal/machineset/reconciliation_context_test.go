@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
@@ -35,16 +34,16 @@ func (fph *fakePatchHelper) Get(cm *omni.ClusterMachine, _ *omni.MachineSet) ([]
 func TestReconciliationContext(t *testing.T) {
 	t.Parallel()
 
-	tearingDownMachine := omni.NewClusterMachine(resources.DefaultNamespace, "a")
+	tearingDownMachine := omni.NewClusterMachine("a")
 	tearingDownMachine.Metadata().SetPhase(resource.PhaseTearingDown)
 
-	updatedMachine := omni.NewClusterMachine(resources.DefaultNamespace, "a")
+	updatedMachine := omni.NewClusterMachine("a")
 	updatedMachine.Metadata().SetVersion(resource.VersionUndefined.Next().Next())
 
-	lockedMachine := omni.NewMachineSetNode(resources.DefaultNamespace, "b", omni.NewMachineSet("", ""))
+	lockedMachine := omni.NewMachineSetNode("b", omni.NewMachineSet(""))
 	lockedMachine.Metadata().Annotations().Set(omni.MachineLocked, "")
 
-	synced := omni.NewClusterMachine(resources.DefaultNamespace, "a")
+	synced := omni.NewClusterMachine("a")
 	helpers.UpdateInputsAnnotation(synced)
 
 	var configPatches []*omni.ConfigPatch
@@ -92,16 +91,16 @@ func TestReconciliationContext(t *testing.T) {
 				DeleteStrategy: specs.MachineSetSpec_Unset,
 			},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", omni.NewMachineSet("", "")),
+				omni.NewMachineSetNode("a", omni.NewMachineSet("")),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions(withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version), configPatches...),
+				withUpdateInputVersions(withVersion(omni.NewClusterMachine("a"), version), configPatches...),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachineConfigPatches("a"),
 			},
 			expectedQuota: machineset.ChangeQuota{
 				Teardown: -1,
@@ -115,16 +114,16 @@ func TestReconciliationContext(t *testing.T) {
 				DeleteStrategy: specs.MachineSetSpec_Unset,
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version),
+				withVersion(omni.NewClusterMachine("a"), version),
 			},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", omni.NewMachineSet("", "")),
+				omni.NewMachineSetNode("a", omni.NewMachineSet("")),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachineConfigPatches("a"),
 			},
 			expectedQuota: machineset.ChangeQuota{
 				Teardown: -1,
@@ -139,19 +138,19 @@ func TestReconciliationContext(t *testing.T) {
 				DeleteStrategy: specs.MachineSetSpec_Unset,
 			},
 			machineSetNodes: []*omni.MachineSetNode{
-				tearingDown(omni.NewMachineSetNode(resources.DefaultNamespace, "a", newMachineSet(1))),
+				tearingDown(omni.NewMachineSetNode("a", newMachineSet(1))),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withUpdateInputVersions(withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version), configPatches...),
-				withUpdateInputVersions(withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "b"), version), configPatches...),
+				withUpdateInputVersions(withVersion(omni.NewClusterMachine("a"), version), configPatches...),
+				withUpdateInputVersions(withVersion(omni.NewClusterMachine("b"), version), configPatches...),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "b"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("b"), version),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "b"),
+				omni.NewClusterMachineConfigPatches("a"),
+				omni.NewClusterMachineConfigPatches("b"),
 			},
 			expectedQuota: machineset.ChangeQuota{
 				Teardown: -1,
@@ -169,10 +168,10 @@ func TestReconciliationContext(t *testing.T) {
 				lockedMachine,
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "b"), version),
+				withVersion(omni.NewClusterMachine("b"), version),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "b"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("b"), version),
 			},
 			expectedQuota: machineset.ChangeQuota{
 				Teardown: -1,
@@ -187,19 +186,19 @@ func TestReconciliationContext(t *testing.T) {
 			},
 			machineSetNodes: []*omni.MachineSetNode{
 				lockedMachine,
-				omni.NewMachineSetNode(resources.DefaultNamespace, "c", omni.NewMachineSet("", "")),
+				omni.NewMachineSetNode("c", omni.NewMachineSet("")),
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "b"), version),
-				withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "c"), version),
+				withVersion(omni.NewClusterMachine("b"), version),
+				withVersion(omni.NewClusterMachine("c"), version),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "b"), version),
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "c"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("b"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("c"), version),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "b"),
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "c"),
+				omni.NewClusterMachineConfigPatches("b"),
+				omni.NewClusterMachineConfigPatches("c"),
 			},
 			expectedQuota: machineset.ChangeQuota{
 				Teardown: -1,
@@ -219,16 +218,16 @@ func TestReconciliationContext(t *testing.T) {
 				},
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				tearingDown(withUpdateInputVersions(withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version), configPatches...)),
-				withUpdateInputVersions(withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "b"), version), configPatches...),
+				tearingDown(withUpdateInputVersions(withVersion(omni.NewClusterMachine("a"), version), configPatches...)),
+				withUpdateInputVersions(withVersion(omni.NewClusterMachine("b"), version), configPatches...),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "b"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("b"), version),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "b"),
+				omni.NewClusterMachineConfigPatches("a"),
+				omni.NewClusterMachineConfigPatches("b"),
 			},
 			expectedQuota: machineset.ChangeQuota{
 				Teardown: 0,
@@ -244,13 +243,13 @@ func TestReconciliationContext(t *testing.T) {
 				DeleteStrategy: specs.MachineSetSpec_Unset,
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				omni.NewClusterMachine(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachine("a"),
 			},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", omni.NewMachineSet("", "")),
+				omni.NewMachineSetNode("a", omni.NewMachineSet("")),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachineConfigStatus("a"),
 			},
 			expectedQuota: machineset.ChangeQuota{
 				Teardown: -1,
@@ -271,16 +270,16 @@ func TestReconciliationContext(t *testing.T) {
 				DeleteStrategy: specs.MachineSetSpec_Unset,
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				tearingDown(withUpdateInputVersions(withVersion(omni.NewClusterMachine(resources.DefaultNamespace, "a"), version), configPatches...)),
+				tearingDown(withUpdateInputVersions(withVersion(omni.NewClusterMachine("a"), version), configPatches...)),
 			},
 			machineSetNodes: []*omni.MachineSetNode{
-				omni.NewMachineSetNode(resources.DefaultNamespace, "a", omni.NewMachineSet("", "")),
+				omni.NewMachineSetNode("a", omni.NewMachineSet("")),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
-				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus(resources.DefaultNamespace, "a"), version),
+				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
 			},
 			clusterMachineConfigPatches: []*omni.ClusterMachineConfigPatches{
-				omni.NewClusterMachineConfigPatches(resources.DefaultNamespace, "a"),
+				omni.NewClusterMachineConfigPatches("a"),
 			},
 			expectedQuota: machineset.ChangeQuota{
 				Teardown: -1,
@@ -295,7 +294,7 @@ func TestReconciliationContext(t *testing.T) {
 				DeleteStrategy: specs.MachineSetSpec_Unset,
 			},
 			clusterMachines: []*omni.ClusterMachine{
-				tearingDownNoFinalizers(omni.NewClusterMachine(resources.DefaultNamespace, "a")),
+				tearingDownNoFinalizers(omni.NewClusterMachine("a")),
 			},
 			expectedQuota: machineset.ChangeQuota{
 				Teardown: -1,
@@ -310,18 +309,18 @@ func TestReconciliationContext(t *testing.T) {
 			require := require.New(t)
 			assert := assert.New(t)
 
-			machineSet := omni.NewMachineSet(resources.DefaultNamespace, tt.name)
+			machineSet := omni.NewMachineSet(tt.name)
 			machineSet.TypedSpec().Value = tt.machineSet
 			machineSet.Metadata().Labels().Set(omni.LabelCluster, tt.name)
 
-			cluster := omni.NewCluster(resources.DefaultNamespace, tt.name)
+			cluster := omni.NewCluster(tt.name)
 			cluster.TypedSpec().Value.TalosVersion = "v1.6.4"
 			cluster.TypedSpec().Value.KubernetesVersion = "v1.29.0"
 
 			var loadbalancerStatus *omni.LoadBalancerStatus
 
 			if !tt.lbUnhealthy {
-				loadbalancerStatus = omni.NewLoadBalancerStatus(resources.DefaultNamespace, tt.name)
+				loadbalancerStatus = omni.NewLoadBalancerStatus(tt.name)
 				loadbalancerStatus.TypedSpec().Value.Healthy = true
 			}
 

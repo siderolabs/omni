@@ -59,7 +59,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 		assertion.Zero(r.TypedSpec().Value.InstallEventId)
 	})
 
-	machineStatus := omni.NewMachineStatus(resources.DefaultNamespace, "machine-1")
+	machineStatus := omni.NewMachineStatus("machine-1")
 	machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{}
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
@@ -69,7 +69,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	})
 
 	// accept the machine, set its preferred power state to on
-	config := omni.NewInfraMachineConfig(resources.DefaultNamespace, "machine-1")
+	config := omni.NewInfraMachineConfig("machine-1")
 	config.TypedSpec().Value.AcceptanceStatus = specs.InfraMachineConfigSpec_ACCEPTED
 	config.TypedSpec().Value.PowerState = specs.InfraMachineConfigSpec_POWER_STATE_ON
 	config.TypedSpec().Value.ExtraKernelArgs = "foo=bar bar=baz"
@@ -83,7 +83,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	})
 
 	// allocate the machine to a cluster
-	clusterMachine := omni.NewClusterMachine(resources.DefaultNamespace, "machine-1")
+	clusterMachine := omni.NewClusterMachine("machine-1")
 	clusterMachine.Metadata().Labels().Set(omni.LabelCluster, "test-cluster")
 	clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, "test-cluster-control-planes")
 	clusterMachine.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
@@ -91,7 +91,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachine))
 
 	// create schematic configuration
-	schematicConfig := omni.NewSchematicConfiguration(resources.DefaultNamespace, "machine-1")
+	schematicConfig := omni.NewSchematicConfiguration("machine-1")
 
 	schematicConfig.TypedSpec().Value.TalosVersion = "v42.0.0"
 
@@ -103,7 +103,7 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 	})
 
 	// add some extensions
-	extensions := omni.NewMachineExtensions(resources.DefaultNamespace, "machine-1")
+	extensions := omni.NewMachineExtensions("machine-1")
 
 	extensions.TypedSpec().Value.Extensions = []string{"foo", "bar"}
 
