@@ -38,7 +38,7 @@ const steps = computed(() =>
       />
 
       <StepperTrigger
-        class="size-6 shrink-0 items-center justify-center rounded-sm border-2 border-primary-p4 bg-primary-p4 text-xs text-naturals-n14 shadow-sm group-data-disabled:cursor-not-allowed group-data-disabled:opacity-50 group-data-[state=inactive]:border-naturals-n6 group-data-[state=inactive]:bg-transparent group-data-[state=inactive]:text-naturals-n6"
+        class="size-6 shrink-0 items-center justify-center rounded-sm border-2 border-primary-p4 bg-primary-p4 text-xs text-naturals-n14 shadow-sm transition group-data-disabled:cursor-not-allowed group-data-disabled:opacity-50 group-data-[state=inactive]:border-naturals-n6 group-data-[state=inactive]:bg-transparent group-data-[state=inactive]:text-naturals-n6 not-group-data-disabled:hover:brightness-125 active:brightness-75"
       >
         <StepperIndicator>{{ step }}</StepperIndicator>
       </StepperTrigger>

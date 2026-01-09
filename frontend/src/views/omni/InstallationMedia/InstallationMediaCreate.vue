@@ -9,7 +9,9 @@ import { type Component } from 'vue'
 
 import type { SchematicBootloader } from '@/api/omni/management/management.pb'
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 
 type HardwareType = 'metal' | 'cloud' | 'sbc'
 
@@ -63,12 +65,11 @@ import SystemExtensionsStep from '@/views/omni/InstallationMedia/Steps/SystemExt
 import TalosVersionStep from '@/views/omni/InstallationMedia/Steps/TalosVersion.vue'
 
 const router = useRouter()
+const defaultState: FormState = { currentStep: 0 }
 
-const formState = useSessionStorage<FormState>(
-  '_installation_media_form',
-  { currentStep: 0 },
-  { writeDefaults: false },
-)
+const formState = useSessionStorage<FormState>('_installation_media_form', defaultState, {
+  writeDefaults: false,
+})
 
 const currentFlowSteps = computed(() =>
   formState.value.hardwareType ? flows[formState.value.hardwareType] : null,
@@ -100,7 +101,7 @@ function openSavePresetModal() {
 }
 
 function goToPresetList() {
-  formState.value = { currentStep: 0 }
+  formState.value = defaultState
   router.push({ name: 'InstallationMedia' })
 }
 
@@ -123,12 +124,19 @@ function onSaved(name: string) {
     <div
       class="flex w-full shrink-0 items-center gap-4 border-t border-naturals-n4 bg-naturals-n1 px-4 max-md:flex-col max-md:p-4 md:h-16 md:justify-end"
     >
-      <Stepper
-        v-if="currentFlowSteps && formState.currentStep > 0"
-        v-model="formState.currentStep"
-        :step-count="stepCount"
-        class="mx-auto w-full"
-      />
+      <div v-if="currentFlowSteps && formState.currentStep > 0" class="flex grow gap-4">
+        <Tooltip description="Reset wizard">
+          <button
+            class="group isolate size-6 shrink-0 overflow-hidden rounded-sm border border-red-r1 p-0.5 text-red-r1 transition hover:bg-red-r1 hover:text-naturals-n1 active:brightness-75"
+            aria-label="reset wizard"
+            @click="formState = defaultState"
+          >
+            <TIcon icon="close" class="size-full" />
+          </button>
+        </Tooltip>
+
+        <Stepper v-model="formState.currentStep" :step-count="stepCount" class="mx-auto grow" />
+      </div>
 
       <div class="flex items-center gap-2 max-md:self-end">
         <TButton
