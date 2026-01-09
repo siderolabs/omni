@@ -199,7 +199,7 @@ func (s *Storage) generateKey() (*rsa.PrivateKey, error) {
 }
 
 func (s *Storage) storeKey(ctx context.Context, keyID string, privateKey *rsa.PrivateKey) error {
-	key := oidc.NewJWTPublicKey(oidc.NamespaceName, keyID)
+	key := oidc.NewJWTPublicKey(keyID)
 	key.TypedSpec().Value.PublicKey = x509.MarshalPKCS1PublicKey(&privateKey.PublicKey)
 
 	maxTokenFiletime := s.MaxTokenLifetime()
