@@ -5,6 +5,7 @@
 package constants
 
 import (
+	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
 	"github.com/siderolabs/talos/pkg/machinery/resources/k8s"
 	"github.com/siderolabs/talos/pkg/machinery/resources/network"
@@ -15,6 +16,9 @@ import (
 
 // Copy Talos constants to generate them for Typescript.
 const (
+	// Types.
+	// tsgen:PlatformMetalID
+	_ = constants.PlatformMetal
 	// Types.
 	// tsgen:TalosServiceType
 	_ = v1alpha1.ServiceType

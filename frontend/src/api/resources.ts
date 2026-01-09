@@ -40,6 +40,7 @@ export const ExposedServiceLabelAnnotationKey = "omni-kube-service-exposer.sider
 export const ExposedServicePortAnnotationKey = "omni-kube-service-exposer.sidero.dev/port";
 export const ExposedServiceIconAnnotationKey = "omni-kube-service-exposer.sidero.dev/icon";
 export const ExposedServicePrefixAnnotationKey = "omni-kube-service-exposer.sidero.dev/prefix";
+export const PlatformMetalID = "metal";
 export const TalosServiceType = "Services.v1alpha1.talos.dev";
 export const TalosCPUType = "CPUStats.perf.talos.dev";
 export const TalosMemoryType = "MemoryStats.perf.talos.dev";

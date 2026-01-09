@@ -11,7 +11,12 @@ import {
   PlatformConfigSpecArch,
   PlatformConfigSpecBootMethod,
 } from '@/api/omni/specs/virtual.pb'
-import { CloudPlatformConfigType, MetalPlatformConfigType, VirtualNamespace } from '@/api/resources'
+import {
+  CloudPlatformConfigType,
+  MetalPlatformConfigType,
+  PlatformMetalID,
+  VirtualNamespace,
+} from '@/api/resources'
 import { getDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import { useResourceGet } from '@/methods/useResourceGet'
@@ -40,7 +45,7 @@ export function usePresetDownloadLinks(
     resource: {
       namespace: VirtualNamespace,
       type: MetalPlatformConfigType,
-      id: 'metal',
+      id: PlatformMetalID,
     },
   }))
 

@@ -17,6 +17,7 @@ import {
 import {
   CloudPlatformConfigType,
   MetalPlatformConfigType,
+  PlatformMetalID,
   SBCConfigType,
   VirtualNamespace,
 } from '@/api/resources'
@@ -78,7 +79,7 @@ const { data: metalProvider } = useResourceGet<PlatformConfigSpec>(() => ({
   resource: {
     namespace: VirtualNamespace,
     type: MetalPlatformConfigType,
-    id: 'metal',
+    id: PlatformMetalID,
   },
 }))
 

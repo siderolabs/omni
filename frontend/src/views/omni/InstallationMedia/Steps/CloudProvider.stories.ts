@@ -7,7 +7,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
-import type { ListRequest } from '@/api/omni/resources/resources.pb'
+import type { ListRequest, ListResponse } from '@/api/omni/resources/resources.pb'
 import { type PlatformConfigSpec, PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import { CloudPlatformConfigType, VirtualNamespace } from '@/api/resources'
 
@@ -27,7 +27,7 @@ export const Default = {
   parameters: {
     msw: {
       handlers: [
-        http.post<never, ListRequest>(
+        http.post<never, ListRequest, ListResponse>(
           '/omni.resources.ResourceService/List',
           async ({ request }) => {
             const { type, namespace } = await request.clone().json()

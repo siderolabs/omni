@@ -4,7 +4,11 @@
 
 package specs
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/siderolabs/talos/pkg/machinery/constants"
+)
 
 // GenerateFilename gets the final part of the image factory URL.
 func (media *InstallationMediaSpec) GenerateFilename(legacy, secureBoot, withExtension bool) string {
@@ -13,9 +17,9 @@ func (media *InstallationMediaSpec) GenerateFilename(legacy, secureBoot, withExt
 	// SBC handling
 	if media.Overlay != "" {
 		if legacy {
-			builder.WriteString("metal-" + media.Profile)
+			builder.WriteString(constants.PlatformMetal + "-" + media.Profile)
 		} else {
-			builder.WriteString("metal")
+			builder.WriteString(constants.PlatformMetal)
 		}
 	} else {
 		builder.WriteString(media.Profile)

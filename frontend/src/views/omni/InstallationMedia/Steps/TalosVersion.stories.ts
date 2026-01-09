@@ -8,7 +8,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
-import type { GetRequest } from '@/api/omni/resources/resources.pb'
+import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
 import type { FeaturesConfigSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
 import type { JoinTokenStatusSpec, SiderolinkAPIConfigSpec } from '@/api/omni/specs/siderolink.pb'
 import {
@@ -81,24 +81,27 @@ export const Default = {
             })),
         }).handler,
 
-        http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
-          const { id, type, namespace } = await request.clone().json()
+        http.post<never, GetRequest, GetResponse>(
+          '/omni.resources.ResourceService/Get',
+          async ({ request }) => {
+            const { id, type, namespace } = await request.clone().json()
 
-          if (id !== ConfigID || type !== APIConfigType || namespace !== DefaultNamespace) return
+            if (id !== ConfigID || type !== APIConfigType || namespace !== DefaultNamespace) return
 
-          return HttpResponse.json({
-            body: JSON.stringify({
-              metadata: {
-                namespace: DefaultNamespace,
-                type: APIConfigType,
-                id: ConfigID,
-              },
-              spec: {
-                enforce_grpc_tunnel: true,
-              },
-            } satisfies Resource<SiderolinkAPIConfigSpec>),
-          })
-        }),
+            return HttpResponse.json({
+              body: JSON.stringify({
+                metadata: {
+                  namespace: DefaultNamespace,
+                  type: APIConfigType,
+                  id: ConfigID,
+                },
+                spec: {
+                  enforce_grpc_tunnel: true,
+                },
+              } satisfies Resource<SiderolinkAPIConfigSpec>),
+            })
+          },
+        ),
       ],
     },
   },

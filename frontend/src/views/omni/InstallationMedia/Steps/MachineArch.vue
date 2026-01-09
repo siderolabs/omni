@@ -9,13 +9,17 @@ import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { type PlatformConfigSpec, PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
-import { CloudPlatformConfigType, MetalPlatformConfigType, VirtualNamespace } from '@/api/resources'
+import {
+  CloudPlatformConfigType,
+  MetalPlatformConfigType,
+  PlatformMetalID,
+  VirtualNamespace,
+} from '@/api/resources'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceGet } from '@/methods/useResourceGet'
-import { useResourceList } from '@/methods/useResourceList'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
 const formState = defineModel<FormState>({ required: true })
@@ -32,39 +36,30 @@ const { data: metalProvider } = useResourceGet<PlatformConfigSpec>(() => ({
   resource: {
     namespace: VirtualNamespace,
     type: MetalPlatformConfigType,
-    id: 'metal',
+    id: PlatformMetalID,
   },
 }))
 
-const { data: cloudProviders } = useResourceList<PlatformConfigSpec>(() => ({
+const { data: selectedCloudProvider } = useResourceGet<PlatformConfigSpec>(() => ({
   skip: formState.value.hardwareType !== 'cloud',
   runtime: Runtime.Omni,
   resource: {
     namespace: VirtualNamespace,
     type: CloudPlatformConfigType,
+    id: formState.value.cloudPlatform,
   },
 }))
 
-const selectedCloudProvider = computed(() =>
-  cloudProviders.value?.find((provider) => formState.value.cloudPlatform === provider.metadata.id),
-)
-
-const secureBootSupported = computed(
-  () =>
-    formState.value.hardwareType === 'metal' ||
-    selectedCloudProvider.value?.spec.secure_boot_supported,
+const selectedPlatform = computed(() =>
+  formState.value.hardwareType === 'metal' ? metalProvider.value : selectedCloudProvider.value,
 )
 
 const supportedArchitectures = computed(() => {
   switch (formState.value.hardwareType) {
     case 'sbc':
       return [PlatformConfigSpecArch.ARM64]
-    case 'metal':
-      return metalProvider.value?.spec.architectures ?? []
-    case 'cloud':
-      return selectedCloudProvider.value?.spec.architectures ?? []
     default:
-      return []
+      return selectedPlatform.value?.spec.architectures ?? []
   }
 })
 </script>
@@ -97,7 +92,7 @@ const supportedArchitectures = computed(() => {
       </RadioGroupOption>
     </RadioGroup>
 
-    <TCheckbox v-if="secureBootSupported" v-model="formState.secureBoot">
+    <TCheckbox v-if="selectedPlatform?.spec.secure_boot_supported" v-model="formState.secureBoot">
       <div class="flex flex-col">
         <span class="font-medium text-naturals-n14">SecureBoot</span>
         <span>

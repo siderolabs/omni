@@ -47,14 +47,14 @@ var installationMedia = []installationMediaSpec{
 	{
 		Name:         "ISO (amd64)",
 		Architecture: amd64Arch,
-		Profile:      "metal",
+		Profile:      constants.PlatformMetal,
 		Type:         isoType,
 		ContentType:  "application/x-iso-stream",
 	},
 	{
 		Name:         "ISO (arm64)",
 		Architecture: arm64Arch,
-		Profile:      "metal",
+		Profile:      constants.PlatformMetal,
 		Type:         isoType,
 		ContentType:  "application/x-iso-stream",
 	},
@@ -259,14 +259,14 @@ var installationMedia = []installationMediaSpec{
 	{
 		Name:         "Generic image (amd64)",
 		Architecture: amd64Arch,
-		Profile:      "metal",
+		Profile:      constants.PlatformMetal,
 		Type:         rawType,
 		ContentType:  "application/x-xz",
 	},
 	{
 		Name:         "Generic image (arm64)",
 		Architecture: arm64Arch,
-		Profile:      "metal",
+		Profile:      constants.PlatformMetal,
 		Type:         rawType,
 		ContentType:  "application/x-xz",
 	},

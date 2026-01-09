@@ -17,7 +17,7 @@ import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
 import TextArea from '@/components/common/TextArea/TextArea.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { getDocsLink } from '@/methods'
-import { useResourceList } from '@/methods/useResourceList'
+import { useResourceGet } from '@/methods/useResourceGet'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
 const formState = defineModel<FormState>({ required: true })
@@ -30,18 +30,15 @@ const supportsBootloaderSelection = computed(
   () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.12.0-alpha.2'),
 )
 
-const { data: SBCs } = useResourceList<SBCConfigSpec>(() => ({
+const { data: selectedSBC } = useResourceGet<SBCConfigSpec>(() => ({
   skip: formState.value.hardwareType !== 'sbc',
   runtime: Runtime.Omni,
   resource: {
     namespace: VirtualNamespace,
     type: SBCConfigType,
+    id: formState.value.sbcType,
   },
 }))
-
-const selectedSBC = computed(() =>
-  SBCs.value?.find((sbc) => sbc.metadata.id === formState.value.sbcType),
-)
 </script>
 
 <template>

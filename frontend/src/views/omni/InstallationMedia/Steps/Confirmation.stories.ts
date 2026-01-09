@@ -13,8 +13,8 @@ import {
   type CreateSchematicRequest,
   type CreateSchematicResponse,
 } from '@/api/omni/management/management.pb'
-import type { GetRequest, ListRequest } from '@/api/omni/resources/resources.pb'
-import { type FeaturesConfigSpec, type InstallationMediaSpec } from '@/api/omni/specs/omni.pb'
+import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
+import { type FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
 import {
   type PlatformConfigSpec,
   PlatformConfigSpecArch,
@@ -25,14 +25,13 @@ import {
   CloudPlatformConfigType,
   DefaultNamespace,
   DefaultTalosVersion,
-  EphemeralNamespace,
   EtcdBackupOverallStatusID,
   EtcdBackupOverallStatusType,
   FeaturesConfigID,
   FeaturesConfigType,
-  InstallationMediaType,
   MetalPlatformConfigType,
   MetricsNamespace,
+  PlatformMetalID,
   SBCConfigType,
   VirtualNamespace,
 } from '@/api/resources'
@@ -110,15 +109,15 @@ export const Default = {
           })
         }),
 
-        http.post<never, ListRequest>(
-          '/omni.resources.ResourceService/List',
+        http.post<never, GetRequest, GetResponse>(
+          '/omni.resources.ResourceService/Get',
           async ({ request }) => {
             const { type, namespace } = await request.clone().json()
 
             if (type !== CloudPlatformConfigType || namespace !== VirtualNamespace) return
 
-            const items = faker.helpers.multiple<Resource<PlatformConfigSpec>>(
-              () => ({
+            return HttpResponse.json({
+              body: JSON.stringify({
                 metadata: {
                   namespace,
                   type,
@@ -141,26 +140,20 @@ export const Default = {
                       `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
                   ),
                 },
-              }),
-              { count: 20 },
-            )
-
-            return HttpResponse.json({
-              items: items.map((item) => JSON.stringify(item)),
-              total: items.length,
+              } satisfies Resource<PlatformConfigSpec>),
             })
           },
         ),
 
-        http.post<never, ListRequest>(
-          '/omni.resources.ResourceService/List',
+        http.post<never, GetRequest, GetResponse>(
+          '/omni.resources.ResourceService/Get',
           async ({ request }) => {
             const { type, namespace } = await request.clone().json()
 
             if (type !== SBCConfigType || namespace !== VirtualNamespace) return
 
-            const items = faker.helpers.multiple<Resource<SBCConfigSpec>>(
-              () => ({
+            return HttpResponse.json({
+              body: JSON.stringify({
                 metadata: {
                   namespace,
                   type,
@@ -174,81 +167,53 @@ export const Default = {
                       `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
                   ),
                 },
-              }),
-              { count: 20 },
-            )
-
-            return HttpResponse.json({
-              items: items.map((item) => JSON.stringify(item)),
-              total: items.length,
+              } satisfies Resource<SBCConfigSpec>),
             })
           },
         ),
 
-        http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
-          const { id, type, namespace } = await request.clone().json()
-
-          if (id !== 'metal' || type !== MetalPlatformConfigType || namespace !== VirtualNamespace)
-            return
-
-          return HttpResponse.json({
-            body: JSON.stringify({
-              metadata: {
-                namespace,
-                type,
-                id,
-              },
-              spec: {
-                label: 'Bare Metal',
-                boot_methods: [
-                  PlatformConfigSpecBootMethod.DISK_IMAGE,
-                  PlatformConfigSpecBootMethod.ISO,
-                  PlatformConfigSpecBootMethod.PXE,
-                ],
-                disk_image_suffix: 'raw.zst',
-                documentation: '/talos-guides/install/bare-metal-platforms/',
-              },
-            } satisfies Resource<PlatformConfigSpec>),
-          })
-        }),
-
-        http.post<never, ListRequest>(
-          '/omni.resources.ResourceService/List',
+        http.post<never, GetRequest, GetResponse>(
+          '/omni.resources.ResourceService/Get',
           async ({ request }) => {
-            const { type, namespace } = await request.clone().json()
+            const { id, type, namespace } = await request.clone().json()
 
-            if (type !== InstallationMediaType || namespace !== EphemeralNamespace) return
+            if (
+              id !== PlatformMetalID ||
+              type !== MetalPlatformConfigType ||
+              namespace !== VirtualNamespace
+            )
+              return
 
-            const items = faker.helpers.multiple<Resource<InstallationMediaSpec>>(
-              () => ({
+            return HttpResponse.json({
+              body: JSON.stringify({
                 metadata: {
-                  namespace: EphemeralNamespace,
-                  type: InstallationMediaType,
-                  id: faker.string.uuid(),
+                  namespace,
+                  type,
+                  id,
                 },
                 spec: {
-                  architecture: 'arm64',
-                  profile: 'metal',
+                  label: 'Bare Metal',
+                  boot_methods: [
+                    PlatformConfigSpecBootMethod.DISK_IMAGE,
+                    PlatformConfigSpecBootMethod.ISO,
+                    PlatformConfigSpecBootMethod.PXE,
+                  ],
+                  disk_image_suffix: 'raw.zst',
+                  documentation: '/talos-guides/install/bare-metal-platforms/',
                 },
-              }),
-              { count: 20 },
-            )
-
-            return HttpResponse.json({
-              items: items.map((item) => JSON.stringify(item)),
-              total: items.length,
+              } satisfies Resource<PlatformConfigSpec>),
             })
           },
         ),
 
-        http.post<never, CreateSchematicRequest>(
+        http.post<never, CreateSchematicRequest, CreateSchematicResponse>(
           '/management.ManagementService/CreateSchematic',
           async ({ request }) => {
             const { secure_boot, talos_version, join_token } = await request.clone().json()
 
             const schematic_id = faker.string.uuid()
 
-            return HttpResponse.json<CreateSchematicResponse>({
+            return HttpResponse.json({
               schematic_id,
               pxe_url: `https://pxe.factory.talos.dev/pxe/${schematic_id}/${talos_version}/metal-arm64-${secure_boot ? '-secureboot' : ''}`,
               schematic_yml: dump(

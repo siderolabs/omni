@@ -7,29 +7,26 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
-import type { ListRequest } from '@/api/omni/resources/resources.pb'
+import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
 import type { SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
 import { DefaultTalosVersion, SBCConfigType, VirtualNamespace } from '@/api/resources'
 
 import ExtraArgs from './ExtraArgs.vue'
 
-const SBCs = faker.helpers.multiple<Resource<SBCConfigSpec>>(
-  () => ({
-    metadata: {
-      namespace: VirtualNamespace,
-      type: SBCConfigType,
-      id: faker.string.uuid(),
-    },
-    spec: {
-      label: faker.commerce.productName(),
-      documentation: faker.helpers.maybe(() => faker.system.directoryPath()),
-      min_version: faker.helpers.maybe(
-        () => `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
-      ),
-    },
-  }),
-  { count: 20 },
-)
+const SBC: Resource<SBCConfigSpec> = {
+  metadata: {
+    namespace: VirtualNamespace,
+    type: SBCConfigType,
+    id: faker.string.uuid(),
+  },
+  spec: {
+    label: faker.commerce.productName(),
+    documentation: faker.helpers.maybe(() => faker.system.directoryPath()),
+    min_version: faker.helpers.maybe(
+      () => `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
+    ),
+  },
+}
 
 const meta: Meta<typeof ExtraArgs> = {
   component: ExtraArgs,
@@ -45,16 +42,15 @@ export const Default = {
   parameters: {
     msw: {
       handlers: [
-        http.post<never, ListRequest>(
-          '/omni.resources.ResourceService/List',
+        http.post<never, GetRequest, GetResponse>(
+          '/omni.resources.ResourceService/Get',
           async ({ request }) => {
             const { type, namespace } = await request.clone().json()
 
             if (type !== SBCConfigType || namespace !== VirtualNamespace) return
 
             return HttpResponse.json({
-              items: SBCs.map((item) => JSON.stringify(item)),
-              total: SBCs.length,
+              body: JSON.stringify(SBC),
             })
           },
         ),
@@ -92,7 +88,7 @@ export const WithOverlayOptions: Story = {
       currentStep: 0,
       talosVersion: DefaultTalosVersion,
       hardwareType: 'sbc',
-      sbcType: SBCs[0].metadata.id,
+      sbcType: SBC.metadata.id,
     },
   },
 }

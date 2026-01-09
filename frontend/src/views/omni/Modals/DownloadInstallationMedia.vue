@@ -32,6 +32,7 @@ import {
   InstallationMediaType,
   JoinTokenStatusType,
   LabelsMeta,
+  PlatformMetalID,
   SecureBoot,
   TalosVersionType,
 } from '@/api/resources'
@@ -132,7 +133,7 @@ const imageProfile = computed(() => {
   if (!installationMedia.value) return
 
   let profile = installationMedia.value.spec.overlay
-    ? 'metal'
+    ? PlatformMetalID
     : installationMedia.value.spec.profile
 
   profile += `-${installationMedia.value.spec.architecture}`
