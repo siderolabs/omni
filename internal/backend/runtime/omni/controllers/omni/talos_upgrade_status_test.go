@@ -210,12 +210,13 @@ func TestTalosUpgradeStatus(t *testing.T) {
 				st := testContext.State
 				machineServices := testutils.NewMachineServices(t, st)
 				clusterName := "talos-upgrade-cluster"
-				talosVersion := "1.11.3"
-				anotherTalosVersion := "1.11.5"
+				talosVersion := "1.12.1"
+				anotherTalosVersion := "1.12.0"
+				stableTalosVersion := "1.11.6"
 
 				cluster, machines := createCluster(ctx, t, st, machineServices, clusterName, 3, 1, testoptions.WithTalosVersion(talosVersion))
 
-				talosVersions := map[string][]string{"1.10.0": {"1.29.1", "1.32.0", "1.33.0"}, talosVersion: {"1.32.0", "1.33.0"}, anotherTalosVersion: {"1.32.0", "1.33.0", "1.34.2"}}
+				talosVersions := map[string][]string{stableTalosVersion: {"1.29.1", "1.32.0", "1.33.0"}, talosVersion: {"1.32.0", "1.33.0"}, anotherTalosVersion: {"1.32.0", "1.33.0", "1.34.2"}}
 
 				rmock.MockList[*omni.TalosVersion](ctx, t, st,
 					testoptions.IDs(xmaps.Keys(talosVersions)),

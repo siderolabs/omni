@@ -19,7 +19,9 @@
 Omni manages Kubernetes on bare metal, virtual machines, or in a cloud.
 Built on [Talos Linux](https://talos.dev) by the folks at [Sidero](https://siderolabs.com).
 
-Boot from an Omni image. Click to allocate to a cluster. That’s it!
+Boot from an Omni image.
+Click to allocate to a cluster.
+That’s it!
 
 - Vanilla Kubernetes, on your machines, under your control.
 - Elegant UI for management and operations
@@ -31,7 +33,9 @@ Boot from an Omni image. Click to allocate to a cluster. That’s it!
 
 ## Install
 
-Omni is available via a [Business Source License](LICENSE) which allows free installations in non-production environments. If you would like to deploy Omni for production use please contact [Sidero sales](mailto:sales@siderolabs.com). If you would like to subscribe to the hosted version of Omni please see the [SaaS pricing](https://www.siderolabs.com/pricing/).
+Omni is available via a [Business Source License](LICENSE) which allows free installations in non-production environments.
+If you would like to deploy Omni for production use please contact [Sidero sales](mailto:sales@siderolabs.com).
+If you would like to subscribe to the hosted version of Omni please see the [SaaS pricing](https://www.siderolabs.com/pricing/).
 
 If you would like to self-host Omni for non-production workloads please follow the [instructions in the documentation](https://omni.siderolabs.com/how-to-guides/self_hosted/index).
 
@@ -42,7 +46,8 @@ For instructions on developing Omni, see [DEVELOPMENT.md](DEVELOPMENT.md).
 ## Community
 
 - Support: Questions, bugs, feature requests [GitHub Issues](https://github.com/siderolabs/omni/issues)
-- Slack: Join our [slack channel](https://taloscommunity.slack.com/). Request access via [inviter.co](https://inviter.co/sidero-labs-community).
+- Slack: Join our [slack channel](https://taloscommunity.slack.com/).
+  Request access via [inviter.co](https://inviter.co/sidero-labs-community).
 - Twitter: [@SideroLabs](https://twitter.com/SideroLabs)
 - Email: [info@SideroLabs.com](mailto:info@SideroLabs.com)
 

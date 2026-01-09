@@ -14,10 +14,10 @@ import (
 )
 
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
-const AnotherTalosVersion = "1.11.4"
+const AnotherTalosVersion = "1.12.0"
 
 // StableTalosVersion is used in the integration tests for Talos upgrade between minor versions.
-const StableTalosVersion = "1.10.8"
+const StableTalosVersion = "1.11.6"
 
 // MinDiscoveredTalosVersion makes Omni pull the versions from this point.
 const MinDiscoveredTalosVersion = "1.3.0"
@@ -25,7 +25,7 @@ const MinDiscoveredTalosVersion = "1.3.0"
 // DefaultKubernetesVersion is pre-selected in the UI and used in the integration tests.
 //
 // tsgen:DefaultKubernetesVersion
-const DefaultKubernetesVersion = "1.34.2"
+const DefaultKubernetesVersion = "1.35.0"
 
 // DefaultTalosVersion to be used in the tests.
 const DefaultTalosVersion = constants.DefaultTalosVersion

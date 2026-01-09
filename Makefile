@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-12-09T15:32:15Z by kres 4b09af7.
+# Generated on 2026-01-08T15:03:10Z by kres 0e8da31.
 
 # common variables
 
@@ -21,14 +21,14 @@ REGISTRY_AND_USERNAME ?= $(REGISTRY)/$(USERNAME)
 PROTOBUF_GRPC_GATEWAY_TS_VERSION ?= 1.2.1
 TESTPKGS ?= ./...
 JS_BUILD_ARGS ?=
-PROTOBUF_GO_VERSION ?= 1.36.10
+PROTOBUF_GO_VERSION ?= 1.36.11
 GRPC_GO_VERSION ?= 1.6.0
-GRPC_GATEWAY_VERSION ?= 2.27.3
+GRPC_GATEWAY_VERSION ?= 2.27.4
 VTPROTOBUF_VERSION ?= 0.6.0
-GOIMPORTS_VERSION ?= 0.39.0
+GOIMPORTS_VERSION ?= 0.40.0
 GOMOCK_VERSION ?= 0.6.0
 DEEPCOPY_VERSION ?= v0.5.8
-GOLANGCILINT_VERSION ?= v2.7.1
+GOLANGCILINT_VERSION ?= v2.7.2
 GOFUMPT_VERSION ?= v0.9.2
 GO_VERSION ?= 1.25.5
 GO_BUILDFLAGS ?=
@@ -50,6 +50,7 @@ PLATFORM ?= linux/amd64
 PROGRESS ?= auto
 PUSH ?= false
 CI_ARGS ?=
+WITH_BUILD_DEBUG ?=
 BUILDKIT_MULTI_PLATFORM ?=
 COMMON_ARGS = --file=Dockerfile
 COMMON_ARGS += --provenance=false
@@ -82,7 +83,7 @@ COMMON_ARGS += --build-arg=DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
 COMMON_ARGS += --build-arg=GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
 COMMON_ARGS += --build-arg=GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
 COMMON_ARGS += --build-arg=TESTPKGS="$(TESTPKGS)"
-JS_TOOLCHAIN ?= docker.io/node:24.11.1-alpine
+JS_TOOLCHAIN ?= docker.io/node:24.12.0-alpine
 TOOLCHAIN ?= docker.io/golang:1.25-alpine
 
 # extra variables
@@ -138,6 +139,10 @@ The registry and username can be overridden by exporting REGISTRY, and USERNAME
 respectively.
 
 endef
+
+ifneq (, $(filter $(WITH_BUILD_DEBUG), t true TRUE y yes 1))
+BUILD := BUILDX_EXPERIMENTAL=1 docker buildx debug --invoke /bin/sh --on error build
+endif
 
 ifneq (, $(filter $(WITH_RACE), t true TRUE y yes 1))
 GO_BUILDFLAGS += -race

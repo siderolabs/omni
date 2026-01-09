@@ -125,15 +125,6 @@ func testKernelArgsUpdate(t *testing.T, options *TestOptions) {
 
 	t.Run("MachineKernelArgsShouldBeUpdatedInMaintenance", func(t *testing.T) {
 		for machineID := range kernelArgsMap {
-			// TODO: Skip non-UKI machine because of issue: https://github.com/siderolabs/talos/issues/12349. After it's fixed remove the check below.
-			ms, err := safe.StateGetByID[*omni.MachineStatus](ctx, omniState, machineID)
-			require.NoError(t, err)
-
-			if !ms.TypedSpec().Value.SecurityState.GetBootedWithUki() {
-				continue
-			}
-			// End of skipping non-UKI machines.
-
 			updatedKernelArgs, err := safe.StateModifyWithResult(ctx, omniState, omni.NewKernelArgs(machineID), func(res *omni.KernelArgs) error {
 				res.TypedSpec().Value.Args = []string{"maintenance=true"}
 

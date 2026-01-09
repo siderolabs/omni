@@ -13,7 +13,7 @@ const SecureBoot = "secureboot"
 
 // DefaultTalosVersion is pre-selected in the UI, default image and used in the integration tests.
 // tsgen:DefaultTalosVersion
-const DefaultTalosVersion = "1.11.5"
+const DefaultTalosVersion = "1.12.1"
 
 // MinTalosVersion allowed to be used when creating the cluster.
 // tsgen:MinTalosVersion

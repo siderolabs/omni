@@ -21,16 +21,16 @@ echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 # Settings.
 LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
 
-TALOS_VERSION=1.11.5
+TALOS_VERSION=1.12.1
 QEMU_TALOS_VERSION=${TALOS_VERSION}
 ENABLE_TALOS_PRERELEASE_VERSIONS=true
 ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-$LATEST_STABLE_OMNI}"
-KUBERNETES_VERSION=1.34.2
-ANOTHER_KUBERNETES_VERSION=1.33.6
+KUBERNETES_VERSION=1.35.0
+ANOTHER_KUBERNETES_VERSION=1.34.3
 # To use in:
 # - Omni upgrade tests, to prevent Talos changes interfering with Omni changes
 # - Talos minor upgrade tests
-STABLE_TALOS_VERSION=1.10.8
+STABLE_TALOS_VERSION=1.11.6
 WITH_QEMU_TALOS_VERSION_OVERRIDE=${WITH_QEMU_TALOS_VERSION_OVERRIDE:-false}
 if [[ $WITH_QEMU_TALOS_VERSION_OVERRIDE == "true" ]]; then
   QEMU_TALOS_VERSION=$STABLE_TALOS_VERSION
@@ -559,7 +559,6 @@ if [ "${CREATE_TALOS_CLUSTER:-false}" == "true" ]; then
   create_talos_cluster name=test-cluster-import cp_count=1 wk_count=1 cidr=172.28.0.0/24
 fi
 
-# todo: add --omni.stable-talos-version=${STABLE_TALOS_VERSION} \ below when ANOTHER_OMNI_VERSION starts to support it
 if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; then
   docker run \
     --cap-add=NET_ADMIN \
@@ -575,6 +574,7 @@ if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; th
     --network host \
     "ghcr.io/siderolabs/omni-integration-test:${ANOTHER_OMNI_VERSION}" \
     --omni.talos-version=${TALOS_VERSION} \
+    --omni.stable-talos-version=${STABLE_TALOS_VERSION} \
     --omni.kubernetes-version=${KUBERNETES_VERSION} \
     --omni.another-kubernetes-version=${ANOTHER_KUBERNETES_VERSION} \
     --omni.omnictl-path=/_out/omnictl-linux-amd64 \

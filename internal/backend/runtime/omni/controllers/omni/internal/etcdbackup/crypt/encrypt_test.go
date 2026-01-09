@@ -196,7 +196,7 @@ func TestDecrypt_Errors(t *testing.T) {
 				encryptionKey: []byte(encryptionKey),
 				rdr:           strings.NewReader(""),
 			},
-			errCheck: check.ErrorContains("failed to read intro"),
+			errCheck: check.ErrorContains("file is empty"),
 		},
 		{
 			name: "partial backup",
