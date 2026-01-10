@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 import { useLocalStorage } from '@vueuse/core'
 import { Userpilot } from 'userpilot'
-import { computed, ref, watch, watchEffect } from 'vue'
+import { computed, ref, toValue, watchEffect } from 'vue'
 
 import { getNonce } from '@/methods'
 import { currentUser } from '@/methods/auth'
@@ -12,28 +12,36 @@ import { currentUser } from '@/methods/auth'
 import { useFeatures } from './features'
 
 export function useUserpilot() {
-  const { data } = useFeatures()
+  const { data: features } = useFeatures()
   const trackingState = useLocalStorage<boolean | null>('tracking', null)
   const userpilotInitialised = ref(false)
 
-  const token = computed(() => data.value?.spec.user_pilot_settings?.app_token)
-  const trackingFeatureEnabled = computed(() => !!token.value)
+  const userPilotAppToken = computed(() => features.value?.spec.user_pilot_settings?.app_token)
+  const trackingFeatureEnabled = computed(() => !!userPilotAppToken.value)
   const trackingPending = computed(() => trackingState.value === null)
 
   watchEffect((onCleanup) => {
-    if (!token.value || !trackingState.value) return
+    if (!userPilotAppToken.value || !trackingState.value) return
 
-    Userpilot.initialize(token.value, { nonce: getNonce() })
+    Userpilot.initialize(userPilotAppToken.value, { nonce: getNonce() })
     userpilotInitialised.value = true
 
     onCleanup(() => Userpilot.destroy())
   })
 
-  watch([currentUser, userpilotInitialised], ([user, initialised]) => {
-    if (!user || !initialised) return
+  watchEffect(() => {
+    const user = toValue(currentUser)
 
-    Userpilot.identify(user.spec.user_id!, {
-      role: user.spec.role!,
+    if (!user?.spec.user_id || !userpilotInitialised.value) return
+
+    Userpilot.identify(user.spec.user_id, {
+      role: user.spec.role,
+      email: user.spec.identity,
+      created_at: user.metadata.created,
+
+      company: {
+        id: features.value?.spec.account?.id,
+      },
     })
   })
 

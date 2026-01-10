@@ -680,6 +680,7 @@ export type FeaturesConfigSpec = {
   stripe_settings?: StripeSettings
   talos_pre_release_versions_enabled?: boolean
   image_factory_pxe_base_url?: string
+  account?: Account
 }
 
 export type UserPilotSettings = {
@@ -689,6 +690,11 @@ export type UserPilotSettings = {
 export type StripeSettings = {
   enabled?: boolean
   min_commit?: number
+}
+
+export type Account = {
+  id?: string
+  name?: string
 }
 
 export type EtcdBackupSettings = {
