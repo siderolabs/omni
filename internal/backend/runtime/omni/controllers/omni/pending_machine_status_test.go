@@ -17,7 +17,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/meta"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -115,7 +114,7 @@ func (suite *PendingMachineStatusSuite) TestReconcile() {
 		links = append(links, siderolink.NewLinkStatus(pm))
 
 		if m.link != nil {
-			suite.Require().NoError(suite.state.Create(ctx, siderolink.NewLink(resources.DefaultNamespace, m.uuid, m.link)))
+			suite.Require().NoError(suite.state.Create(ctx, siderolink.NewLink(m.uuid, m.link)))
 		}
 	}
 

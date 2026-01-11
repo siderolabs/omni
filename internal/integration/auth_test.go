@@ -681,7 +681,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		kernelArgs := omni.NewKernelArgs(uuid.New().String())
 		kernelArgsStatus := omni.NewKernelArgsStatus(uuid.New().String())
 
-		joinToken := siderolink.NewJoinToken(resources.DefaultNamespace, uuid.New().String())
+		joinToken := siderolink.NewJoinToken(uuid.New().String())
 
 		defaultJoinToken, err := safe.StateGetByID[*siderolink.DefaultJoinToken](rootCtx, rootCli.Omni().State(), siderolink.DefaultJoinTokenID)
 
@@ -1013,7 +1013,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       siderolink.NewConnectionParams(resources.DefaultNamespace, uuid.New().String()),
+				resource:       siderolink.NewConnectionParams(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -1094,7 +1094,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       siderolink.NewLinkStatus(siderolink.NewLink(resources.DefaultNamespace, uuid.NewString(), nil)),
+				resource:       siderolink.NewLinkStatus(siderolink.NewLink(uuid.NewString(), nil)),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -1127,7 +1127,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       siderolink.NewJoinTokenStatus(resources.DefaultNamespace, uuid.NewString()),
+				resource:       siderolink.NewJoinTokenStatus(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -1198,7 +1198,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 		testCases = append(testCases, []resourceAuthzTestCase{
 			{
-				resource:       siderolink.NewLink(resources.DefaultNamespace, uuid.New().String(), &specs.SiderolinkSpec{}),
+				resource:       siderolink.NewLink(uuid.New().String(), &specs.SiderolinkSpec{}),
 				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Update, state.Destroy}),
 			},
 			{

@@ -135,7 +135,7 @@ func (ctrl *InfraMachineController) Reconcile(ctx context.Context, _ *zap.Logger
 		}
 
 		// the link is not found, so we prepare a fake link resource to trigger teardown logic
-		link = siderolink.NewLink(ptr.Namespace(), ptr.ID(), nil)
+		link = siderolink.NewLink(ptr.ID(), nil)
 		link.Metadata().SetPhase(resource.PhaseTearingDown)
 	}
 
@@ -368,7 +368,7 @@ func (ctrl *InfraMachineController) MapInput(ctx context.Context, _ *zap.Logger,
 		omni.MachineExtensionsType,
 		omni.ClusterMachineType,
 		omni.MachineStatusType:
-		return []resource.Pointer{siderolink.NewLink(resources.DefaultNamespace, ptr.ID(), nil).Metadata()}, nil
+		return []resource.Pointer{siderolink.NewLink(ptr.ID(), nil).Metadata()}, nil
 	case infra.InfraProviderStatusType, infra.ProviderType:
 		linkList, err := safe.ReaderListAll[*siderolink.Link](ctx, runtime, state.WithLabelQuery(resource.LabelEqual(omni.LabelInfraProviderID, ptr.ID())))
 		if err != nil {

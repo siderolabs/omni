@@ -809,7 +809,7 @@ func (s *managementServer) CreateJoinToken(ctx context.Context, request *managem
 		return nil, err
 	}
 
-	joinToken := siderolinkres.NewJoinToken(resources.DefaultNamespace, token)
+	joinToken := siderolinkres.NewJoinToken(token)
 
 	if request.Name == "" && len(request.Name) > omni.MaxJoinTokenNameLength {
 		return nil, status.Error(codes.InvalidArgument, "token name is invalid")
