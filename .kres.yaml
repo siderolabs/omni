@@ -57,6 +57,8 @@ spec:
       toplevel: true
     - name: mkcert-uninstall
       toplevel: true
+    - name: run-integration-test-e2e
+      toplevel: true
     - name: run-integration-test
       toplevel: true
       dependants:
@@ -172,6 +174,41 @@ spec:
         docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml down --rmi local --remove-orphans --volumes=$(REMOVE_VOLUMES)
 ---
 kind: custom.Step
+name: run-integration-test-e2e
+spec:
+  sudoInCI: true
+  makefile:
+    enabled: true
+    depends:
+      - omnictl-linux-amd64
+      - omni-linux-amd64
+    script:
+      - >-
+        @hack/test/integration-e2e.sh
+  ghaction:
+    condition: on-pull-request
+    enabled: true
+    sops: true
+    parallelJob:
+      name: integration-test-e2e
+      runnerGroup: large
+      # TODO: Re-enable this
+      # needsOverride: [default, lint, unit-tests]
+    artifacts:
+      enabled: true
+      extraPaths:
+        - "!_out/etcd"
+        - "!_out/secondary-storage/**"
+      additional: # save the integration test artifacts: Talos logs, support bundles, etc.
+        - name: integration-test-e2e
+          always: true
+          continueOnError: true
+          paths:
+            - ${{ github.workspace }}/integration-test-e2e
+    environment:
+      WITH_DEBUG: "true"
+---
+kind: custom.Step
 name: run-integration-test
 spec:
   sudoInCI: true
@@ -210,7 +247,6 @@ spec:
     environment:
       WITH_DEBUG: "true"
       WITH_RACE: "true"
-      INTEGRATION_RUN_E2E_TEST: "true"
       INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|Auth|DefaultCluster|CLICommands)$"
       TALEMU_TEST_ARGS: "--test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$"
       RUN_TALEMU_TESTS: true
@@ -225,7 +261,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$"
           RUN_TALEMU_TESTS: false
           ENABLE_SECUREBOOT: true
@@ -240,7 +275,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-scaling
@@ -254,7 +288,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|RollingUpdateParallelism)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-forced-removal
@@ -268,7 +301,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ForcedMachineRemoval|ReplaceControlPlanes|ConfigPatching|KubernetesNodeAudit)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-upgrades
@@ -282,7 +314,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-templates
@@ -296,7 +327,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ClusterTemplate)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-backups
@@ -310,7 +340,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|EtcdBackupAndRestore)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-workload-proxy
@@ -324,7 +353,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|WorkloadProxy)$"
           RUN_TALEMU_TESTS: false
       - name: e2e-omni-upgrade
@@ -338,7 +366,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_PREPARE_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|OmniUpgradePrepare)$"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(OmniUpgradeVerify)$"
           RUN_TALEMU_TESTS: false
@@ -356,7 +383,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/ClusterImport"
           RUN_TALEMU_TESTS: false
           CREATE_TALOS_CLUSTER: true
@@ -371,7 +397,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosUpgradesMinor)$"
           RUN_TALEMU_TESTS: false
           WITH_QEMU_TALOS_VERSION_OVERRIDE: true

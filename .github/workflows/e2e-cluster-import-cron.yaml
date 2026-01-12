@@ -60,7 +60,6 @@ jobs:
       - name: run-integration-test
         env:
           CREATE_TALOS_CLUSTER: "true"
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/ClusterImport
           RUN_TALEMU_TESTS: "false"
           TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
