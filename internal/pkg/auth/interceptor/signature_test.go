@@ -214,13 +214,12 @@ func encodeRFC4754(curve elliptic.Curve, r, s *big.Int) []byte {
 	byteLen := (bitSize + 7) / 8
 	rb := r.Bytes()
 	sb := s.Bytes()
+	signature := make([]byte, byteLen*2)
 
-	rp := make([]byte, 0, byteLen-len(rb))
-	rp = append(rp, rb...)
-	sp := make([]byte, 0, byteLen-len(sb))
-	sp = append(sp, sb...)
+	copy(signature[byteLen-len(rb):], rb)
+	copy(signature[2*byteLen-len(sb):], sb)
 
-	return append(rp, sp...)
+	return signature
 }
 
 func TestPlainSignature(t *testing.T) {
