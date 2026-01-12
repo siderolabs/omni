@@ -593,22 +593,17 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 	machinesToDestroyCount int,
 	logger *zap.Logger,
 ) error {
-	usedMachineSetNodes, err := safe.Map(machineSetNodes, func(m *omni.MachineSetNode) (*omni.MachineSetNode, error) {
-		return m, nil
-	})
-	if err != nil {
-		return err
-	}
+	usedMachineSetNodes := slices.Collect(machineSetNodes.All())
 
 	// filter only running used machines
-	xslices.FilterInPlace(usedMachineSetNodes, func(r *omni.MachineSetNode) bool {
+	usedMachineSetNodes = xslices.FilterInPlace(usedMachineSetNodes, func(r *omni.MachineSetNode) bool {
 		return r.Metadata().Phase() == resource.PhaseRunning
 	})
 
 	slices.SortStableFunc(usedMachineSetNodes, getSortFunction(machineStatuses))
 
 	// destroy all machines which are currently in tearing down phase and have no finalizers
-	if err = machineSetNodes.ForEachErr(func(machineSetNode *omni.MachineSetNode) error {
+	if err := machineSetNodes.ForEachErr(func(machineSetNode *omni.MachineSetNode) error {
 		if machineSetNode.Metadata().Phase() == resource.PhaseRunning {
 			return nil
 		}
