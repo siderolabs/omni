@@ -47,12 +47,12 @@ func TestMigrateFromFileToSQLite(t *testing.T) {
 	dir := t.TempDir()
 	fileStore := auditlogfile.New(dir)
 
-	event1 := auditlog.MakeEvent("create", "file.resource", &auditlog.Data{Session: auditlog.Session{UserID: "u1"}})
+	event1 := auditlog.MakeEvent("create", "file.resource", "test-id", &auditlog.Data{Session: auditlog.Session{UserID: "u1"}})
 	// ensure time is in the past for determinism
 	event1.TimeMillis = time.Now().Add(-2 * time.Hour).UnixMilli()
 	require.NoError(t, fileStore.Write(ctx, event1))
 
-	event2 := auditlog.MakeEvent("update", "file.resource", &auditlog.Data{Session: auditlog.Session{UserID: "u2"}})
+	event2 := auditlog.MakeEvent("update", "file.resource", "test-id", &auditlog.Data{Session: auditlog.Session{UserID: "u2"}})
 	event2.TimeMillis = time.Now().Add(-1 * time.Hour).UnixMilli()
 	require.NoError(t, fileStore.Write(ctx, event2))
 
@@ -116,7 +116,7 @@ func TestMigrateSkipIfHasData(t *testing.T) {
 	dir := t.TempDir()
 	fileStore := auditlogfile.New(dir)
 
-	fileEvt := auditlog.MakeEvent("create", "file.resource", &auditlog.Data{Session: auditlog.Session{UserID: "file-user"}})
+	fileEvt := auditlog.MakeEvent("create", "file.resource", "test-id", &auditlog.Data{Session: auditlog.Session{UserID: "file-user"}})
 	require.NoError(t, fileStore.Write(ctx, fileEvt))
 
 	// 2. Setup Database with EXISTING DATA
@@ -135,7 +135,7 @@ func TestMigrateSkipIfHasData(t *testing.T) {
 	sqliteStore, err := auditlogsqlite.NewStore(ctx, db, 5*time.Second)
 	require.NoError(t, err)
 
-	dbEvt := auditlog.MakeEvent("create", "db.resource", &auditlog.Data{Session: auditlog.Session{UserID: "db-user"}})
+	dbEvt := auditlog.MakeEvent("create", "db.resource", "test-id", &auditlog.Data{Session: auditlog.Session{UserID: "db-user"}})
 	require.NoError(t, sqliteStore.Write(ctx, dbEvt))
 
 	// 3. Trigger NewLog
@@ -281,7 +281,7 @@ func TestMigrateLineExceedingDefaultBuffer(t *testing.T) {
 
 	hugeString := strings.Repeat("a", hugeSize)
 
-	event := auditlog.MakeEvent("create", "huge.resource", &auditlog.Data{
+	event := auditlog.MakeEvent("create", "huge.resource", "test-id", &auditlog.Data{
 		Session: auditlog.Session{UserID: hugeString},
 	})
 	event.TimeMillis = time.Now().Add(-1 * time.Hour).UnixMilli()
@@ -336,7 +336,7 @@ func TestMigrateLineExceedingMaxBuffer(t *testing.T) {
 	fileStore := auditlogfile.New(dir)
 
 	// Line 1: Valid Small Event (Should be migrated)
-	validEvt1 := auditlog.MakeEvent("create", "valid.resource.1", &auditlog.Data{
+	validEvt1 := auditlog.MakeEvent("create", "valid.resource.1", "user-small-1", &auditlog.Data{
 		Session: auditlog.Session{UserID: "user-small-1"},
 	})
 	validEvt1.TimeMillis = time.Now().Add(-2 * time.Hour).UnixMilli()
@@ -347,14 +347,14 @@ func TestMigrateLineExceedingMaxBuffer(t *testing.T) {
 
 	hugeString := strings.Repeat("a", hugeSize)
 
-	hugeEvt := auditlog.MakeEvent("create", "too.huge.resource", &auditlog.Data{
+	hugeEvt := auditlog.MakeEvent("create", "too.huge.resource", hugeString, &auditlog.Data{
 		Session: auditlog.Session{UserID: hugeString},
 	})
 	hugeEvt.TimeMillis = time.Now().Add(-1 * time.Hour).UnixMilli()
 	require.NoError(t, fileStore.Write(ctx, hugeEvt))
 
 	// Line 3: Valid Small Event (Should NOT be migrated due to abort)
-	validEvt2 := auditlog.MakeEvent("create", "valid.resource.2", &auditlog.Data{
+	validEvt2 := auditlog.MakeEvent("create", "valid.resource.2", "user-small-2", &auditlog.Data{
 		Session: auditlog.Session{UserID: "user-small-2"},
 	})
 	validEvt2.TimeMillis = time.Now().UnixMilli()

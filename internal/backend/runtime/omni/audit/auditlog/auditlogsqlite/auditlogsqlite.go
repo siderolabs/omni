@@ -119,8 +119,8 @@ func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
 	defer cancel()
 
 	var (
-		dataJSON                     []byte
-		actorEmail, resID, clusterID string
+		dataJSON              []byte
+		actorEmail, clusterID string
 	)
 
 	if event.Data != nil {
@@ -134,12 +134,11 @@ func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
 			actorEmail = event.Data.Session.Email
 		}
 
-		resID = extractResourceID(event.Data)
 		clusterID = extractClusterID(event.Data)
 	}
 
 	if _, err := s.db.ExecContext(ctx, query, strPtr(event.Type), strPtr(event.ResourceType), event.TimeMillis, dataJSON,
-		strPtr(actorEmail), strPtr(resID), strPtr(clusterID)); err != nil {
+		strPtr(actorEmail), strPtr(event.ResourceID), strPtr(clusterID)); err != nil {
 		return fmt.Errorf("failed to write audit log event: %w", err)
 	}
 
@@ -160,8 +159,8 @@ func (s *Store) Remove(ctx context.Context, start, end time.Time) error {
 }
 
 func (s *Store) Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error) {
-	query := fmt.Sprintf(`SELECT %s, %s, %s, %s FROM %s WHERE %s >= ? AND %s <= ? ORDER BY %s ASC, %s ASC`, eventTypeColumn,
-		resourceTypeColumn, eventTSMillisColumn, eventDataColumn, tableName, eventTSMillisColumn, eventTSMillisColumn, eventTSMillisColumn, idColumn)
+	query := fmt.Sprintf(`SELECT %s, %s, %s, %s, %s FROM %s WHERE %s >= ? AND %s <= ? ORDER BY %s ASC, %s ASC`, eventTypeColumn,
+		resourceTypeColumn, resourceIDColumn, eventTSMillisColumn, eventDataColumn, tableName, eventTSMillisColumn, eventTSMillisColumn, eventTSMillisColumn, idColumn)
 
 	rows, err := s.db.QueryContext(ctx, query, start.UnixMilli(), end.UnixMilli()) //nolint:rowserrcheck // false positive, we check for .Err() in Read() and Close().
 	if err != nil {
@@ -211,6 +210,7 @@ func (l *logReader) Close() error {
 type rawEvent struct {
 	Type         *string         `json:"event_type,omitempty"`
 	ResourceType *resource.Type  `json:"resource_type,omitempty"`
+	ResourceID   *resource.ID    `json:"resource_id,omitempty"`
 	Data         json.RawMessage `json:"event_data,omitempty"`
 	TimeMillis   int64           `json:"event_ts,omitempty"`
 }
@@ -228,7 +228,7 @@ func (l *logReader) Read() ([]byte, error) {
 
 	var event rawEvent
 
-	if err := l.rows.Scan(&event.Type, &event.ResourceType, &event.TimeMillis, &dataJSON); err != nil {
+	if err := l.rows.Scan(&event.Type, &event.ResourceType, &event.ResourceID, &event.TimeMillis, &dataJSON); err != nil {
 		return nil, fmt.Errorf("failed to scan audit log event: %w", err)
 	}
 
@@ -240,35 +240,6 @@ func (l *logReader) Read() ([]byte, error) {
 	}
 
 	return append(marshaled, '\n'), nil
-}
-
-func extractResourceID(d *auditlog.Data) string {
-	if d == nil {
-		return ""
-	}
-
-	switch {
-	case d.NewUser != nil:
-		return d.NewUser.UserID
-	case d.Machine != nil:
-		return d.Machine.ID
-	case d.MachineLabels != nil:
-		return d.MachineLabels.ID
-	case d.AccessPolicy != nil:
-		return d.AccessPolicy.ID
-	case d.Cluster != nil:
-		return d.Cluster.ID
-	case d.MachineSet != nil:
-		return d.MachineSet.ID
-	case d.MachineSetNode != nil:
-		return d.MachineSetNode.ID
-	case d.ConfigPatch != nil:
-		return d.ConfigPatch.ID
-	case d.MachineConfigDiff != nil:
-		return d.MachineConfigDiff.ID
-	default:
-		return ""
-	}
 }
 
 func extractClusterID(d *auditlog.Data) string {

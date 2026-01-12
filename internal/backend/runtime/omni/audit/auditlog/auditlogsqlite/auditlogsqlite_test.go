@@ -46,13 +46,13 @@ func TestReadWrite(t *testing.T) {
 	assert.False(t, hasData)
 
 	// 2. Write Events
-	event1 := auditlog.MakeEvent("create", "test.resource", &auditlog.Data{
+	event1 := auditlog.MakeEvent("create", "test.resource", "test-id", &auditlog.Data{
 		Session: auditlog.Session{UserID: "user-1"},
 	})
 	// ensure deterministic time for tests
 	event1.TimeMillis = time.Now().Add(-1 * time.Hour).UnixMilli()
 
-	event2 := auditlog.MakeEvent("update", "test.resource", &auditlog.Data{
+	event2 := auditlog.MakeEvent("update", "test.resource", "test-id", &auditlog.Data{
 		Session: auditlog.Session{UserID: "user-2"},
 	})
 	event2.TimeMillis = time.Now().UnixMilli()
@@ -220,7 +220,7 @@ func TestExtractedColumns(t *testing.T) {
 	store, db := setupStore(ctx, t, logger)
 
 	// 1. Event with Actor + Machine ID + Cluster Label
-	evt1 := auditlog.MakeEvent("create", "omni.MachineSetNode", &auditlog.Data{
+	evt1 := auditlog.MakeEvent("create", "omni.MachineSetNode", "machine-123", &auditlog.Data{
 		Session: auditlog.Session{
 			UserID: "user-abc",
 			Email:  "user@example.com",
@@ -234,7 +234,7 @@ func TestExtractedColumns(t *testing.T) {
 	require.NoError(t, store.Write(ctx, evt1))
 
 	// 2. Event with Cluster ID (via Cluster struct)
-	evt2 := auditlog.MakeEvent("update", "omni.Cluster", &auditlog.Data{
+	evt2 := auditlog.MakeEvent("update", "omni.Cluster", "cluster-xyz", &auditlog.Data{
 		Cluster: &auditlog.Cluster{
 			ID: "cluster-xyz",
 		},
@@ -243,7 +243,7 @@ func TestExtractedColumns(t *testing.T) {
 	require.NoError(t, store.Write(ctx, evt2))
 
 	// 3. Event with Cluster ID (via K8SAccess)
-	evt3 := auditlog.MakeEvent("access", "k8s", &auditlog.Data{
+	evt3 := auditlog.MakeEvent("access", "k8s", "", &auditlog.Data{
 		K8SAccess: &auditlog.K8SAccess{
 			ClusterName: "cluster-k8s",
 		},

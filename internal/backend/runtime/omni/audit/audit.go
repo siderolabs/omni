@@ -11,13 +11,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"reflect"
+	"slices"
 	"sync"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
@@ -62,6 +63,25 @@ type Log struct {
 	updateHooks              map[resource.Type]UpdateHook
 	destroyHooks             map[resource.Type]DestroyHook
 	updateWithConflictsHooks map[resource.Type]UpdateWithConflictsHook
+}
+
+func (l *Log) CreateHooksResourceTypes() []resource.Type {
+	return hooksResourceTypes(l, l.createHooks)
+}
+
+func (l *Log) UpdateHooksResourceTypes() []resource.Type {
+	return hooksResourceTypes(l, l.updateHooks)
+}
+
+func (l *Log) DestroyHooksResourceTypes() []resource.Type {
+	return hooksResourceTypes(l, l.destroyHooks)
+}
+
+func hooksResourceTypes[T any](l *Log, m map[resource.Type]T) []resource.Type {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
+	return slices.Collect(maps.Keys(m))
 }
 
 // Reader reads the audit log file by file, oldest to newest within the given time range. The time range
@@ -190,17 +210,15 @@ type (
 	DestroyHook = func(ctx context.Context, ptr resource.Pointer, option ...state.DestroyOption) error
 )
 
-//nolint:govet
-
-// Res is a resource type constraint.
-type Res interface {
-	resource.Resource
-	meta.ResourceDefinitionProvider
-}
+type (
+	CreateHandler  func(ctx context.Context, data *auditlog.Data, res resource.Resource, option ...state.CreateOption) error
+	UpdateHandler  func(ctx context.Context, data *auditlog.Data, oldRes, newRes resource.Resource, option ...state.UpdateOption) error
+	DestroyHandler func(ctx context.Context, data *auditlog.Data, ptr resource.Pointer, option ...state.DestroyOption) error
+)
 
 // ShouldLogCreate adds a creation hook to logger which informs what resource type should be logged and how to log it.
-func ShouldLogCreate[T Res](l *Log, before func(context.Context, *auditlog.Data, T, ...state.CreateOption) error, opts ...Option) {
-	resType, o := resourceType[T](), toOptions(opts...)
+func ShouldLogCreate(l *Log, resType resource.Type, before CreateHandler, opts ...Option) {
+	o := toOptions(opts...)
 
 	setHook(l, l.createHooks, resType, func(ctx context.Context, res resource.Resource, option ...state.CreateOption) error {
 		data := extractData(ctx, o)
@@ -208,12 +226,7 @@ func ShouldLogCreate[T Res](l *Log, before func(context.Context, *auditlog.Data,
 			return nil
 		}
 
-		typedRes, ok := res.(T)
-		if !ok {
-			return fmt.Errorf("resource type %T != expected type %T passed to create hook", res, typedRes)
-		}
-
-		if err := before(ctx, data, typedRes, option...); err != nil {
+		if err := before(ctx, data, res, option...); err != nil {
 			if errors.Is(err, ErrNoLog) {
 				return nil
 			}
@@ -221,7 +234,7 @@ func ShouldLogCreate[T Res](l *Log, before func(context.Context, *auditlog.Data,
 			return err
 		}
 
-		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("create", resType, data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("create", resType, res.Metadata().ID(), data)); err != nil {
 			return fmt.Errorf("failed to write audit log for create event: %w", err)
 		}
 
@@ -230,21 +243,19 @@ func ShouldLogCreate[T Res](l *Log, before func(context.Context, *auditlog.Data,
 }
 
 // ShouldLogUpdate adds an update hook to logger which informs what resource type should be logged and how to log it.
-func ShouldLogUpdate[T Res](l *Log, before func(context.Context, *auditlog.Data, T, T, ...state.UpdateOption) error, opts ...Option) {
-	resType, o := resourceType[T](), toOptions(opts...)
+func ShouldLogUpdate(l *Log, resType resource.Type, before UpdateHandler, opts ...Option) {
+	o := toOptions(opts...)
 
 	setHook(l, l.updateHooks, resType, func(ctx context.Context, oldRes, newRes resource.Resource, opts ...state.UpdateOption) error {
-		oldTypedRes, ok := oldRes.(T)
-		if !ok {
-			return fmt.Errorf("old resource type %T != expected type %T passed to update hook", oldRes, oldTypedRes)
+		if oldRes.Metadata().Type() != resType {
+			return fmt.Errorf("old resource type %q != expected type %q passed to update hook", oldRes.Metadata().Type(), resType)
 		}
 
-		newTypesRed, ok := newRes.(T)
-		if !ok {
-			return fmt.Errorf("new resource type %T != expected type %T passed to update hook", newRes, newTypesRed)
+		if newRes.Metadata().Type() != resType {
+			return fmt.Errorf("new resource type %q != expected type %q passed to update hook", newRes.Metadata().Type(), resType)
 		}
 
-		if isEqualResource(oldTypedRes, newTypesRed) {
+		if isEqualResource(oldRes, newRes) {
 			return nil
 		}
 
@@ -254,11 +265,11 @@ func ShouldLogUpdate[T Res](l *Log, before func(context.Context, *auditlog.Data,
 		}
 
 		eventType := "update"
-		if newTypesRed.Metadata().Phase() == resource.PhaseTearingDown {
+		if newRes.Metadata().Phase() == resource.PhaseTearingDown {
 			eventType = "teardown"
 		}
 
-		if err := before(ctx, data, oldTypedRes, newTypesRed, opts...); err != nil {
+		if err := before(ctx, data, oldRes, newRes, opts...); err != nil {
 			if errors.Is(err, ErrNoLog) {
 				return nil
 			}
@@ -266,7 +277,7 @@ func ShouldLogUpdate[T Res](l *Log, before func(context.Context, *auditlog.Data,
 			return err
 		}
 
-		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent(eventType, resType, data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent(eventType, resType, newRes.Metadata().ID(), data)); err != nil {
 			return fmt.Errorf("failed to write audit log for update event: %w", err)
 		}
 
@@ -275,7 +286,7 @@ func ShouldLogUpdate[T Res](l *Log, before func(context.Context, *auditlog.Data,
 }
 
 // ShouldLogDestroy adds a destruction hook to logger which informs what resource type should be logged and how to log it.
-func ShouldLogDestroy(l *Log, resType resource.Type, before func(context.Context, *auditlog.Data, resource.Pointer, ...state.DestroyOption) error, opts ...Option) {
+func ShouldLogDestroy(l *Log, resType resource.Type, before DestroyHandler, opts ...Option) {
 	o := toOptions(opts...)
 
 	setHook(l, l.destroyHooks, resType, func(ctx context.Context, ptr resource.Pointer, option ...state.DestroyOption) error {
@@ -288,7 +299,7 @@ func ShouldLogDestroy(l *Log, resType resource.Type, before func(context.Context
 			return err
 		}
 
-		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("destroy", resType, data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("destroy", resType, ptr.ID(), data)); err != nil {
 			if errors.Is(err, ErrNoLog) {
 				return nil
 			}
@@ -301,21 +312,19 @@ func ShouldLogDestroy(l *Log, resType resource.Type, before func(context.Context
 }
 
 // ShouldLogUpdateWithConflicts adds an update with conflicts hook to logger which informs what resource type should be logged and how to log it.
-func ShouldLogUpdateWithConflicts[T Res](l *Log, before func(context.Context, *auditlog.Data, T, T, ...state.UpdateOption) error, opts ...Option) {
-	resType, o := resourceType[T](), toOptions(opts...)
+func ShouldLogUpdateWithConflicts(l *Log, resType resource.Type, before UpdateHandler, opts ...Option) {
+	o := toOptions(opts...)
 
 	setHook(l, l.updateWithConflictsHooks, resType, func(ctx context.Context, oldRes, newRes resource.Resource, option ...state.UpdateOption) error {
-		oldTypedRes, ok := oldRes.(T)
-		if !ok {
-			return fmt.Errorf("old resource type %T != expected type %T passed to update hook", oldRes, oldTypedRes)
+		if oldRes.Metadata().Type() != resType {
+			return fmt.Errorf("old resource type %q != expected type %q passed to update hook", oldRes.Metadata().Type(), resType)
 		}
 
-		newTypesRed, ok := newRes.(T)
-		if !ok {
-			return fmt.Errorf("new resource type %T != expected type %T passed to update hook", newRes, newTypesRed)
+		if newRes.Metadata().Type() != resType {
+			return fmt.Errorf("new resource type %q != expected type %q passed to update hook", newRes.Metadata().Type(), resType)
 		}
 
-		if isEqualResource(oldTypedRes, newTypesRed) {
+		if isEqualResource(oldRes, newRes) {
 			return nil
 		}
 
@@ -324,7 +333,7 @@ func ShouldLogUpdateWithConflicts[T Res](l *Log, before func(context.Context, *a
 			return nil
 		}
 
-		if err := before(ctx, data, oldTypedRes, newTypesRed, option...); err != nil {
+		if err := before(ctx, data, oldRes, newRes, option...); err != nil {
 			if errors.Is(err, ErrNoLog) {
 				return nil
 			}
@@ -332,18 +341,12 @@ func ShouldLogUpdateWithConflicts[T Res](l *Log, before func(context.Context, *a
 			return err
 		}
 
-		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("update_with_conflicts", resType, data)); err != nil {
+		if err := l.auditLogger.Write(ctx, auditlog.MakeEvent("update_with_conflicts", resType, newRes.Metadata().ID(), data)); err != nil {
 			return fmt.Errorf("failed to write audit log for update with conflicts events: %w", err)
 		}
 
 		return nil
 	})
-}
-
-func resourceType[T meta.ResourceDefinitionProvider]() resource.Type {
-	var zero T
-
-	return zero.ResourceDefinition().Type
 }
 
 func setHook[T any](l *Log, hooks map[resource.Type]T, resType resource.Type, hook T) {
