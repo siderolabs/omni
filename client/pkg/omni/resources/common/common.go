@@ -40,4 +40,5 @@ var UserManagedResourceTypes = []resource.Type{
 	omni.InstallationMediaConfigType,
 	omni.NodeForceDestroyRequestType,
 	infra.ProviderType,
+	omni.RotateTalosCAType,
 }

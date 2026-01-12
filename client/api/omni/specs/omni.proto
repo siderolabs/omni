@@ -618,6 +618,12 @@ message ClusterSecretsSpec {
   bytes data = 1;
   // imported holds origin of the cluster secrets.
   bool imported = 2;
+  // Bytes holding serialized cluster secrets to rotate to. This will replace data when fully applied.
+  bytes rotate_data = 3;
+
+  ClusterSecretsRotationStatusSpec.Phase rotation_phase = 4;
+
+  ClusterSecretsRotationStatusSpec.Component component_in_rotation = 5;
 }
 
 // ImportedClusterSecretsSpec describes imported cluster secrets.
@@ -977,6 +983,7 @@ message OngoingTaskSpec {
     KubernetesUpgradeStatusSpec kubernetes_upgrade = 3;
     DestroyStatusSpec destroy = 4;
     MachineUpgradeStatusSpec machine_upgrade = 5;
+    ClusterSecretsRotationStatusSpec secret_rotation = 7;
   }
 
   // ResourceId is the ID of the resource the task is being performed on.
@@ -1450,4 +1457,50 @@ message InstallationMediaConfigSpec {
   GrpcTunnelMode grpc_tunnel = 9;
   map<string, string> machine_labels = 10;
   management.SchematicBootloader bootloader = 11;
+}
+
+// RotateTalosCASpec is used to initiate Talos CA rotation.
+message RotateTalosCASpec {}
+
+message ClusterSecretsRotationStatusSpec {
+  enum Phase {
+    OK = 0;
+    PRE_ROTATE = 1;
+    ROTATE = 2;
+    POST_ROTATE = 3;
+  }
+
+  enum Component {
+    NONE = 0;
+    TALOS_CA = 1;
+  }
+
+  // Current rotation phase.
+  Phase phase = 1;
+
+  Component component = 2;
+
+  // If phase is Failed, this contains the error message.
+  string error = 3;
+
+  // Contains the current rotation step.
+  string step = 4;
+
+  // Contains the current rotation step progress.
+  string status = 5;
+
+  string cluster_secrets_version = 6;
+}
+
+message ClusterMachineSecretsRotationSpec {
+  enum Status {
+    IDLE = 0;
+    IN_PROGRESS = 1;
+  }
+
+  ClusterSecretsRotationStatusSpec.Phase phase = 1;
+
+  Status status = 2;
+
+  string cluster_secrets_version = 3;
 }
