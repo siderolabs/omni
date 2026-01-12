@@ -103,6 +103,7 @@ spec:
           {{- end }}
           {{- end }}
         args:
+          - --sqlite-storage-path=/_out/sqlite.db
           - --account-id="{{ .Values.accountUuid }}"
           - --advertised-api-url={{ printf "https://%s/" .Values.domainName }} 
           - --advertised-kubernetes-proxy-url={{ printf "https://%s/" .Values.service.k8sProxy.domainName }}

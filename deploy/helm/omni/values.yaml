@@ -4,7 +4,7 @@ accountUuid:
 privateKeySource: "file:///omni.asc"
 deployment:
   image: ghcr.io/siderolabs/omni
-  tag: "latest"
+  tag: "1.4.7"
   annotations: {}
   imagePullPolicy: IfNotPresent
 auth:
