@@ -8,4 +8,4 @@ RUN npm ci
 COPY e2e ./e2e
 COPY playwright.config.ts ./
 
-CMD ["npm", "run", "test:e2e"]
+CMD npm run test:e2e -- --project=$PROJECT

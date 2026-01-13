@@ -59,6 +59,18 @@ spec:
       toplevel: true
     - name: run-integration-test
       toplevel: true
+    - name: run-integration-qemu
+      toplevel: true
+      dependants:
+        - coverage
+    - name: run-integration-talemu
+      toplevel: true
+      dependants:
+        - coverage
+    - name: run-e2e-qemu
+      toplevel: true
+    - name: run-e2e-talemu
+      toplevel: true
       dependants:
         - coverage
 ---
@@ -184,12 +196,75 @@ spec:
     script:
       - >-
         @hack/test/integration.sh
+---
+kind: custom.Step
+name: run-e2e-qemu
+spec:
+  sudoInCI: true
+  makeTarget: run-integration-test
   ghaction:
     condition: on-pull-request
     enabled: true
     sops: true
     parallelJob:
-      name: integration-test
+      name: e2e-qemu
+      runnerGroup: large
+      needsOverride: [default, lint, unit-tests]
+    artifacts:
+      enabled: true
+      skipDefaultArtifacts: true
+      additional: # save the integration test artifacts: Talos logs, support bundles, etc.
+        - name: e2e-qemu
+          always: true
+          continueOnError: true
+          paths:
+            - ${{ github.workspace }}/integration-test
+    environment:
+      TEST_CLASS: e2e-qemu
+      WITH_DEBUG: true
+      WITH_RACE: true
+---
+kind: custom.Step
+name: run-e2e-talemu
+spec:
+  sudoInCI: true
+  makeTarget: run-integration-test
+  ghaction:
+    condition: on-pull-request
+    enabled: true
+    sops: true
+    parallelJob:
+      name: e2e-talemu
+      runnerGroup: large
+      needsOverride: [default, lint, unit-tests]
+    coverage:
+      inputPaths:
+        - coverage-emulator.txt
+    artifacts:
+      enabled: true
+      skipDefaultArtifacts: true
+      additional: # save the integration test artifacts: Talos logs, support bundles, etc.
+        - name: e2e-talemu
+          always: true
+          continueOnError: true
+          paths:
+            - ${{ github.workspace }}/integration-test
+    environment:
+      TEST_CLASS: e2e-talemu
+      WITH_DEBUG: true
+      WITH_RACE: true
+---
+kind: custom.Step
+name: run-integration-talemu
+spec:
+  sudoInCI: true
+  makeTarget: run-integration-test
+  ghaction:
+    condition: on-pull-request
+    enabled: true
+    sops: true
+    parallelJob:
+      name: integration-talemu
       runnerGroup: large
       needsOverride: [default, lint, unit-tests]
     coverage:
@@ -198,25 +273,54 @@ spec:
         - coverage-integration.txt
     artifacts:
       enabled: true
-      extraPaths:
-        - "!_out/etcd"
-        - "!_out/secondary-storage/**"
+      skipDefaultArtifacts: true
       additional: # save the integration test artifacts: Talos logs, support bundles, etc.
-        - name: integration-test
+        - name: integration-talemu
           always: true
           continueOnError: true
           paths:
             - ${{ github.workspace }}/integration-test
     environment:
-      WITH_DEBUG: "true"
-      WITH_RACE: "true"
-      INTEGRATION_RUN_E2E_TEST: "true"
+      TEST_CLASS: integration-talemu
+      TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
+      WITH_DEBUG: true
+      WITH_RACE: true
+---
+kind: custom.Step
+name: run-integration-qemu
+spec:
+  sudoInCI: true
+  makeTarget: run-integration-test
+  ghaction:
+    condition: on-pull-request
+    enabled: true
+    sops: true
+    parallelJob:
+      name: integration-qemu
+      runnerGroup: large
+      needsOverride: [default, lint, unit-tests]
+    coverage:
+      inputPaths:
+        - coverage-integration.txt
+    artifacts:
+      enabled: true
+      extraPaths:
+        - "!_out/etcd"
+        - "!_out/secondary-storage/**"
+      additional: # save the integration test artifacts: Talos logs, support bundles, etc.
+        - name: integration-qemu
+          always: true
+          continueOnError: true
+          paths:
+            - ${{ github.workspace }}/integration-test
+    environment:
+      TEST_CLASS: integration-qemu
       INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|Auth|DefaultCluster|CLICommands)$"
-      TALEMU_TEST_ARGS: "--test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$"
-      RUN_TALEMU_TESTS: true
+      WITH_DEBUG: true
+      WITH_RACE: true
     jobs:
       - name: e2e-short-secureboot
-        needsOverride: [default, lint, unit-tests]
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
           - '30 1 * * *'
         runnerGroup: large
@@ -225,12 +329,10 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$"
-          RUN_TALEMU_TESTS: false
           ENABLE_SECUREBOOT: true
       - name: e2e-short
-        needsOverride: [default, lint, unit-tests]
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
           - '30 1 * * *'
         runnerGroup: large
@@ -240,11 +342,9 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$"
-          RUN_TALEMU_TESTS: false
       - name: e2e-scaling
-        needsOverride: [default, lint, unit-tests]
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
           - '30 1 * * *'
         runnerGroup: large
@@ -254,11 +354,9 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|RollingUpdateParallelism)$"
-          RUN_TALEMU_TESTS: false
       - name: e2e-forced-removal
-        needsOverride: [default, lint, unit-tests]
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
           - '30 1 * * *'
         runnerGroup: large
@@ -268,11 +366,9 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ForcedMachineRemoval|ReplaceControlPlanes|ConfigPatching|KubernetesNodeAudit)$"
-          RUN_TALEMU_TESTS: false
       - name: e2e-upgrades
-        needsOverride: [default, lint, unit-tests]
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
           - '30 1 * * *'
         runnerGroup: large
@@ -282,11 +378,10 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
+          TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade)$"
-          RUN_TALEMU_TESTS: false
       - name: e2e-templates
-        needsOverride: [default, lint, unit-tests]
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
           - '30 1 * * *'
         runnerGroup: large
@@ -296,11 +391,10 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
+          TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ClusterTemplate)$"
-          RUN_TALEMU_TESTS: false
       - name: e2e-backups
-        needsOverride: [default, lint, unit-tests]
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
           - '30 1 * * *'
         runnerGroup: large
@@ -310,11 +404,10 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
+          TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|EtcdBackupAndRestore)$"
-          RUN_TALEMU_TESTS: false
       - name: e2e-workload-proxy
-        needsOverride: [default, lint, unit-tests]
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
           - '30 1 * * *'
         runnerGroup: large
@@ -324,11 +417,10 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
+          TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|WorkloadProxy)$"
-          RUN_TALEMU_TESTS: false
       - name: e2e-omni-upgrade
-        needsOverride: [default, lint, unit-tests]
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
           - '30 1 * * *'
         runnerGroup: large
@@ -338,15 +430,12 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
+          TEST_CLASS: integration-qemu
           INTEGRATION_PREPARE_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|OmniUpgradePrepare)$"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(OmniUpgradeVerify)$"
-          RUN_TALEMU_TESTS: false
-          WITH_KUBERNETES_VERSION_OVERRIDE: true
-          WITH_TALOS_VERSION_OVERRIDE: true
           WITH_QEMU_TALOS_VERSION_OVERRIDE: true
       - name: e2e-cluster-import
-        needsOverride: [default, lint, unit-tests]
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
           - '30 1 * * *'
         runnerGroup: large
@@ -356,12 +445,12 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
+          TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/ClusterImport"
-          RUN_TALEMU_TESTS: false
+          CREATE_QEMU_MACHINES: false
           CREATE_TALOS_CLUSTER: true
       - name: e2e-minor-talos-upgrade
-        needsOverride: [default, lint, unit-tests]
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:
           - '30 1 * * *'
         runnerGroup: large
@@ -371,9 +460,8 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
+          TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosUpgradesMinor)$"
-          RUN_TALEMU_TESTS: false
           WITH_QEMU_TALOS_VERSION_OVERRIDE: true
 ---
 kind: common.Build

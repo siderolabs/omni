@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-08T15:03:10Z by kres 0e8da31.
+# Generated on 2026-01-14T13:36:25Z by kres 8b6181b-dirty.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -57,21 +57,20 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
-      - name: run-integration-test
+      - name: run-integration-qemu
         env:
+          CREATE_QEMU_MACHINES: "false"
           CREATE_TALOS_CLUSTER: "true"
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/ClusterImport
-          RUN_TALEMU_TESTS: "false"
-          TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
+          TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
           WITH_RACE: "true"
         run: |
           sudo -E make run-integration-test
-      - name: save-integration-test-artifacts
+      - name: save-integration-qemu-artifacts
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
         with:
-          name: integration-test
+          name: integration-qemu
           path: ${{ github.workspace }}/integration-test
           retention-days: "5"

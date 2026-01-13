@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-08T15:03:10Z by kres 0e8da31.
+# Generated on 2026-01-14T12:19:03Z by kres 8b6181b.
 
 # common variables
 
@@ -263,9 +263,6 @@ unit-tests:  ## Performs unit tests
 unit-tests-race:  ## Performs unit tests with race detection enabled.
 	@$(MAKE) target-$@
 
-run-integration-test: integration-test-linux-amd64 omnictl-linux-amd64 omni-linux-amd64
-	@hack/test/integration.sh
-
 .PHONY: $(ARTIFACTS)/acompat-linux-amd64
 $(ARTIFACTS)/acompat-linux-amd64:
 	@$(MAKE) local-acompat-linux-amd64 DEST=$(ARTIFACTS)
@@ -432,6 +429,9 @@ mkcert-generate:
 .PHONY: mkcert-uninstall
 mkcert-uninstall:
 	go run ./hack/generate-certs uninstall
+
+run-integration-test: integration-test-linux-amd64 omnictl-linux-amd64 omni-linux-amd64
+	@hack/test/integration.sh
 
 .PHONY: rekres
 rekres:
