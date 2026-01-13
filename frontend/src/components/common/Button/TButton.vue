@@ -37,6 +37,7 @@ interface AnchorProps extends /* @vue-ignore */ AnchorHTMLAttributes {
   is: 'a'
   href: string
   to?: never
+  disabled?: boolean
 }
 
 interface RLink extends RouterLinkProps {
@@ -44,6 +45,7 @@ interface RLink extends RouterLinkProps {
   is: 'router-link'
   href?: never
   to: RouterLinkProps['to']
+  disabled?: boolean
 }
 
 const {
@@ -54,19 +56,24 @@ const {
   size = 'md',
   iconPosition = 'right',
   icon,
+  disabled,
   class: className,
 } = defineProps<Props & (ButtonProps | AnchorProps | RLink)>()
 
 const dynamicProps = computed(() => {
-  if (to) return { to }
-  if (href) return { href }
-  return { type: 'button' }
+  // <a> does not support disabled, so we force <button> in that case
+  if (!disabled) {
+    if (to) return { to }
+    if (href) return { href }
+  }
+
+  return { type: 'button', disabled }
 })
 </script>
 
 <template>
   <component
-    :is="is === 'router-link' ? RouterLink : is"
+    :is="disabled ? 'button' : is === 'router-link' ? RouterLink : is"
     v-bind="dynamicProps"
     class="flex items-center justify-center gap-1 rounded border transition-colors duration-200"
     :class="

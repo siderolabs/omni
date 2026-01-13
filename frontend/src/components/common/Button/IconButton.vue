@@ -29,6 +29,7 @@ interface AnchorProps extends /* @vue-ignore */ AnchorHTMLAttributes {
   is: 'a'
   href: string
   to?: never
+  disabled?: boolean
 }
 
 interface RLink extends RouterLinkProps {
@@ -36,21 +37,31 @@ interface RLink extends RouterLinkProps {
   is: 'router-link'
   href?: never
   to: RouterLinkProps['to']
+  disabled?: boolean
 }
 
-const { is = 'button', to, href } = defineProps<Props & (ButtonProps | AnchorProps | RLink)>()
+const {
+  is = 'button',
+  to,
+  href,
+  disabled,
+} = defineProps<Props & (ButtonProps | AnchorProps | RLink)>()
 const attrs = useAttrs()
 
 const dynamicProps = computed(() => {
-  if (to) return { to }
-  if (href) return { href }
-  return { type: (attrs.type as string) || 'button' }
+  // <a> does not support disabled, so we force <button> in that case
+  if (!disabled) {
+    if (to) return { to }
+    if (href) return { href }
+  }
+
+  return { type: (attrs.type as string) || 'button', disabled }
 })
 </script>
 
 <template>
   <component
-    :is="is === 'router-link' ? RouterLink : is"
+    :is="disabled ? 'button' : is === 'router-link' ? RouterLink : is"
     v-bind="dynamicProps"
     class="h-6 w-6 rounded align-top text-naturals-n11 transition-all duration-100 hover:bg-naturals-n7 hover:text-naturals-n13 disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-naturals-n7"
     :class="{ 'text-red-r1': danger }"
