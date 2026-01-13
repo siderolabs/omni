@@ -159,11 +159,8 @@ func machineDeprovisionHook(t *testing.T, client *client.Client, machineRequestS
 // infraMachinesAcceptHook asserts that there are a certain number of machines that are not accepted, provisioned by the static infra provider with the given ID.
 //
 // It then accepts them all and asserts that the states of various resources are updated as expected.
-func infraMachinesAcceptHook(t *testing.T, omniState state.State, infraProviderID string, expectedCount int, disableKexec bool) {
+func infraMachinesAcceptHook(t *testing.T, omniState state.State, infraProviderID string, expectedCount int) {
 	const disableKexecConfigPatch = `machine:
-  install:
-    extraKernelArgs:
-      - kexec_load_disabled=1
   sysctls:
     kernel.kexec_load_disabled: "1"`
 
@@ -225,20 +222,16 @@ func infraMachinesAcceptHook(t *testing.T, omniState state.State, infraProviderI
 
 		infraMachineConfig.TypedSpec().Value.AcceptanceStatus = specs.InfraMachineConfigSpec_ACCEPTED
 
-		if disableKexec {
-			infraMachineConfig.TypedSpec().Value.ExtraKernelArgs = "kexec_load_disabled=1"
-		}
+		infraMachineConfig.TypedSpec().Value.ExtraKernelArgs = "sysctl.kernel.kexec_load_disabled=1"
 
 		require.NoError(t, omniState.Create(ctx, infraMachineConfig))
 
-		if disableKexec {
-			disableKexecConfigPatchRes := omni.NewConfigPatch(fmt.Sprintf("500-%s-disable-kexec", id))
+		disableKexecConfigPatchRes := omni.NewConfigPatch(fmt.Sprintf("500-%s-disable-kexec", id))
 
-			disableKexecConfigPatchRes.Metadata().Labels().Set(omni.LabelMachine, id)
+		disableKexecConfigPatchRes.Metadata().Labels().Set(omni.LabelMachine, id)
 
-			require.NoError(t, disableKexecConfigPatchRes.TypedSpec().Value.SetUncompressedData([]byte(disableKexecConfigPatch)))
-			require.NoError(t, omniState.Create(ctx, disableKexecConfigPatchRes))
-		}
+		require.NoError(t, disableKexecConfigPatchRes.TypedSpec().Value.SetUncompressedData([]byte(disableKexecConfigPatch)))
+		require.NoError(t, omniState.Create(ctx, disableKexecConfigPatchRes))
 	}
 
 	logger.Info("accepted machines", zap.Reflect("infra_provider_id", infraProviderID), zap.Strings("machine_ids", ids))

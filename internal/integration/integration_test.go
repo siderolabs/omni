@@ -333,7 +333,7 @@ func preRunHooks(t *testing.T, options *TestOptions) {
 
 	for i, cfg := range options.ProvisionConfigs {
 		if cfg.Provider.Static {
-			infraMachinesAcceptHook(t, options.omniClient.Omni().State(), cfg.Provider.ID, cfg.MachineCount, true)
+			infraMachinesAcceptHook(t, options.omniClient.Omni().State(), cfg.Provider.ID, cfg.MachineCount)
 
 			continue
 		}
