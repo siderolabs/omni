@@ -15,7 +15,7 @@ const clusterName = 'talos-test-cluster'
 const machineName = 'deadbeef'
 
 test('create cluster', async ({ page }) => {
-  test.setTimeout(milliseconds({ minutes: 15 }))
+  test.setTimeout(milliseconds({ minutes: 16 }))
 
   await page.goto('/')
 
@@ -199,5 +199,29 @@ test('cluster template export and sync', async ({ omnictl }, testInfo) => {
     const ymlObjAfter = yaml.parse(configPatchAfter.spec.data)
 
     expect(ymlObjBefore).toStrictEqual(ymlObjAfter)
+  })
+})
+
+test('destroy cluster', async ({ page }) => {
+  test.setTimeout(milliseconds({ minutes: 3 }))
+
+  await test.step('Visit clusters page', async () => {
+    await page.goto('/')
+    await page.getByRole('link', { name: 'Clusters' }).click()
+  })
+
+  const row = page.getByRole('button', { name: clusterName })
+
+  await test.step('Destroy cluster', async () => {
+    await row.getByRole('button', { name: 'cluster actions' }).click()
+
+    await page.getByRole('menuitem', { name: 'Destroy Cluster' }).click()
+    await page.getByRole('button', { name: 'Destroy', exact: true }).click()
+  })
+
+  await test.step('Wait for cluster to be destroyed', async () => {
+    await expect(page.getByText(`The Cluster ${clusterName} is tearing down`)).toBeVisible()
+    await expect(row.getByText('Destroying')).toBeVisible()
+    await expect(row).toBeHidden({ timeout: milliseconds({ minutes: 2 }) })
   })
 })

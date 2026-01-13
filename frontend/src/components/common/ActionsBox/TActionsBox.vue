@@ -20,7 +20,7 @@ const toggleState = ref(false)
 
 <template>
   <DropdownMenuRoot v-model:open="toggleState">
-    <DropdownMenuTrigger as-child @click.stop>
+    <DropdownMenuTrigger v-bind="$attrs" as-child @click.stop>
       <IconButton icon="action-horizontal" />
     </DropdownMenuTrigger>
 
