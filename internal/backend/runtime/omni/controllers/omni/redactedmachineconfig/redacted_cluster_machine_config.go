@@ -3,11 +3,12 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package omni
+package redactedmachineconfig
 
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -17,8 +18,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
-	"github.com/jonboulle/clockwork"
 	"github.com/siderolabs/crypto/x509"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"go.uber.org/zap"
@@ -28,24 +29,27 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
-// RedactedClusterMachineConfigController manages machine configurations for each ClusterMachine.
+// ControllerName is the name of Controller.
+const ControllerName = "RedactedClusterMachineConfigController"
+
+// Controller manages machine configurations for each ClusterMachine.
 //
-// RedactedClusterMachineConfigController generates machine configuration for each created machine.
-type RedactedClusterMachineConfigController struct {
+// Controller generates machine configuration for each created machine.
+type Controller struct {
 	modifiedAtAnnotationKey string
-	options                 RedactedClusterMachineConfigControllerOptions
+	options                 ControllerOptions
 }
 
-// RedactedClusterMachineConfigControllerOptions contains options for RedactedClusterMachineConfigController.
-type RedactedClusterMachineConfigControllerOptions struct {
-	Clock               clockwork.Clock
+// ControllerOptions contains options for Controller.
+type ControllerOptions struct {
+	CleanupCh           <-chan struct{}
 	DiffCleanupInterval time.Duration
 	DiffMaxAge          time.Duration
 	DiffMaxCount        int
 }
 
-// NewRedactedClusterMachineConfigController creates a new instance of RedactedClusterMachineConfigController with the provided options.
-func NewRedactedClusterMachineConfigController(options RedactedClusterMachineConfigControllerOptions) *RedactedClusterMachineConfigController {
+// NewController creates a new instance of Controller with the provided options.
+func NewController(options ControllerOptions) *Controller {
 	if options.DiffCleanupInterval == 0 {
 		options.DiffCleanupInterval = 24 * time.Hour
 	}
@@ -58,36 +62,35 @@ func NewRedactedClusterMachineConfigController(options RedactedClusterMachineCon
 		options.DiffMaxCount = 1000
 	}
 
-	if options.Clock == nil {
-		options.Clock = clockwork.NewRealClock()
-	}
-
-	return &RedactedClusterMachineConfigController{
+	return &Controller{
 		options:                 options,
 		modifiedAtAnnotationKey: omni.SystemLabelPrefix + "modified-at",
 	}
 }
 
 // Name implements controller.QController interface.
-func (ctrl *RedactedClusterMachineConfigController) Name() string {
-	return "RedactedClusterMachineConfigController"
+func (ctrl *Controller) Name() string {
+	return ControllerName
 }
 
 // Settings implements controller.QController interface.
-func (ctrl *RedactedClusterMachineConfigController) Settings() controller.QSettings {
+func (ctrl *Controller) Settings() controller.QSettings {
 	return controller.QSettings{
 		RunHook: func(ctx context.Context, logger *zap.Logger, r controller.QRuntime) error {
-			ticker := ctrl.options.Clock.NewTicker(ctrl.options.DiffCleanupInterval)
+			ticker := time.NewTicker(ctrl.options.DiffCleanupInterval)
 			defer ticker.Stop()
 
 			for {
 				select {
 				case <-ctx.Done():
 					return nil
-				case <-ticker.Chan():
-					if err := ctrl.cleanup(ctx, r, logger); err != nil {
-						return err
-					}
+				case <-ctrl.options.CleanupCh:
+					logger.Debug("machine config diff cleanup triggered via channel")
+				case <-ticker.C:
+				}
+
+				if err := ctrl.cleanup(ctx, r, logger); err != nil {
+					return err
 				}
 			}
 		},
@@ -112,7 +115,7 @@ func (ctrl *RedactedClusterMachineConfigController) Settings() controller.QSetti
 }
 
 // Reconcile implements controller.QController interface.
-func (ctrl *RedactedClusterMachineConfigController) Reconcile(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer) error {
+func (ctrl *Controller) Reconcile(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer) error {
 	cmc, err := safe.ReaderGet[*omni.ClusterMachineConfig](ctx, r, ptr)
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -130,7 +133,7 @@ func (ctrl *RedactedClusterMachineConfigController) Reconcile(ctx context.Contex
 }
 
 // MapInput implements controller.QController interface.
-func (ctrl *RedactedClusterMachineConfigController) MapInput(_ context.Context, _ *zap.Logger, _ controller.QRuntime, pointer controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+func (ctrl *Controller) MapInput(_ context.Context, _ *zap.Logger, _ controller.QRuntime, pointer controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 	switch pointer.Type() {
 	case omni.ClusterMachineConfigType:
 		return []resource.Pointer{
@@ -141,7 +144,7 @@ func (ctrl *RedactedClusterMachineConfigController) MapInput(_ context.Context, 
 	}
 }
 
-func (ctrl *RedactedClusterMachineConfigController) reconcileRunning(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cmc *omni.ClusterMachineConfig) error {
+func (ctrl *Controller) reconcileRunning(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cmc *omni.ClusterMachineConfig) error {
 	if !cmc.Metadata().Finalizers().Has(ctrl.Name()) {
 		if err := r.AddFinalizer(ctx, cmc.Metadata(), ctrl.Name()); err != nil {
 			return err
@@ -206,13 +209,26 @@ func (ctrl *RedactedClusterMachineConfigController) reconcileRunning(ctx context
 	return err
 }
 
-func (ctrl *RedactedClusterMachineConfigController) reconcileTearingDown(ctx context.Context, r controller.ReaderWriter, cmc *omni.ClusterMachineConfig) error {
-	list, err := safe.ReaderListAll[*omni.MachineConfigDiff](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachine, cmc.Metadata().ID())))
+func (ctrl *Controller) reconcileTearingDown(ctx context.Context, r controller.ReaderWriter, cmc *omni.ClusterMachineConfig) error {
+	var listFunc func(context.Context, resource.Kind, ...state.ListOption) (resource.List, error)
+
+	uncachedReader, ok := r.(controller.UncachedReader)
+	if ok {
+		listFunc = uncachedReader.ListUncached
+	} else {
+		listFunc = r.List
+	}
+
+	list, err := listFunc(ctx, omni.NewMachineConfigDiff("").Metadata(), state.WithLabelQuery(resource.LabelEqual(omni.LabelMachine, cmc.Metadata().ID())))
 	if err != nil {
 		return fmt.Errorf("failed to list diffs for machine config %q: %w", cmc.Metadata().ID(), err)
 	}
 
-	if _, err = helpers.TeardownAndDestroyAll(ctx, r, list.Pointers()); err != nil {
+	pointers := xslices.Map(list.Items, func(res resource.Resource) resource.Pointer {
+		return res.Metadata()
+	})
+
+	if _, err = helpers.TeardownAndDestroyAll(ctx, r, slices.Values(pointers)); err != nil {
 		return fmt.Errorf("failed to destroy diff for machine config %q: %w", cmc.Metadata().ID(), err)
 	}
 
@@ -231,7 +247,12 @@ func (ctrl *RedactedClusterMachineConfigController) reconcileTearingDown(ctx con
 	return err
 }
 
-func (ctrl *RedactedClusterMachineConfigController) saveDiff(ctx context.Context, r controller.ReaderWriter,
+// modifiedAtFormat is similar to time.RFC3339Nano but with fixed number of nanoseconds digits - i.e., if there are trailing zeros, they are not trimmed.
+//
+// This is needed to ensure lexicographical ordering (needed by the cleanup task to remove the correct diffs) works as expected.
+const modifiedAtFormat = "2006-01-02T15:04:05.000000000Z07:00"
+
+func (ctrl *Controller) saveDiff(ctx context.Context, r controller.ReaderWriter,
 	cmcr *omni.RedactedClusterMachineConfig, previousData, newData []byte, logger *zap.Logger,
 ) error {
 	oldConfig := string(previousData)
@@ -246,13 +267,13 @@ func (ctrl *RedactedClusterMachineConfigController) saveDiff(ctx context.Context
 		return nil
 	}
 
-	const rfc3339Millis = "2006-01-02T15:04:05.000Z07:00"
+	modifiedAt := time.Now().UTC().Format(modifiedAtFormat)
 
-	diffID := cmcr.Metadata().ID() + "-" + ctrl.options.Clock.Now().UTC().Format(rfc3339Millis)
+	diffID := cmcr.Metadata().ID() + "-" + modifiedAt
 	diffRes := omni.NewMachineConfigDiff(diffID)
 
 	if err := safe.WriterModify(ctx, r, diffRes, func(res *omni.MachineConfigDiff) error {
-		res.Metadata().Annotations().Set(ctrl.modifiedAtAnnotationKey, ctrl.options.Clock.Now().UTC().Format(time.RFC3339Nano))
+		res.Metadata().Annotations().Set(ctrl.modifiedAtAnnotationKey, modifiedAt)
 		res.Metadata().Labels().Set(omni.LabelMachine, cmcr.Metadata().ID())
 
 		res.TypedSpec().Value.Diff = diffStr
@@ -266,12 +287,12 @@ func (ctrl *RedactedClusterMachineConfigController) saveDiff(ctx context.Context
 
 	diffLines := strings.Split(diffStr, "\n")
 
-	logger.Info("saved machine config diff", zap.Strings("diff", diffLines))
+	logger.Info("saved machine config diff", zap.Strings("diff", diffLines), zap.String("id", diffID))
 
 	return nil
 }
 
-func (ctrl *RedactedClusterMachineConfigController) cleanup(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger) error {
+func (ctrl *Controller) cleanup(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger) error {
 	logger.Info("run cleanup")
 
 	list, err := safe.ReaderListAll[*omni.MachineConfigDiff](ctx, r)
@@ -279,15 +300,14 @@ func (ctrl *RedactedClusterMachineConfigController) cleanup(ctx context.Context,
 		return fmt.Errorf("failed to list machine config diffs: %w", err)
 	}
 
-	now := ctrl.options.Clock.Now()
-
+	now := time.Now()
 	i := list.Len() - 1
 
 	for diff := range list.All() {
 		modified := diff.Metadata().Created()
 
 		if modifiedStr, ok := diff.Metadata().Annotations().Get(ctrl.modifiedAtAnnotationKey); ok {
-			if modified, err = time.Parse(time.RFC3339Nano, modifiedStr); err != nil {
+			if modified, err = time.Parse(modifiedAtFormat, modifiedStr); err != nil {
 				return fmt.Errorf("failed to parse modified time for diff %q: %w", diff.Metadata().ID(), err)
 			}
 		}

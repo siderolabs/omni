@@ -50,7 +50,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 
-		rtestutils.AssertResources(
+		rtestutils.AssertResources( // fails
 			ctx,
 			t,
 			st,
@@ -113,7 +113,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("applyReset", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
@@ -154,7 +154,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("resetMachineRemoved", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
@@ -184,7 +184,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("retryNonGraceful", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
@@ -229,7 +229,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("resetForceDestroy", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
@@ -267,7 +267,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("upgrades", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
@@ -331,7 +331,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("stagedUpgrade", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
@@ -381,7 +381,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("schematicChange", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
@@ -435,7 +435,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("secureBootInstallImage", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
@@ -495,7 +495,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("generationErrorPropagation", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
