@@ -7,38 +7,36 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import pluralize from 'pluralize'
-import { ref, watch } from 'vue'
+import { watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import type { JoinTokenStatusSpec } from '@/api/omni/specs/siderolink.pb'
 import { DefaultNamespace, JoinTokenStatusType } from '@/api/resources'
-import Watch from '@/api/watch'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
-const joinTokenStatus = ref<Resource<JoinTokenStatusSpec>>()
-const joinTokenStatusWatch = new Watch(joinTokenStatus)
-
-const props = defineProps<{
+const { id } = defineProps<{
   id: string
 }>()
 
-const emit = defineEmits(['ready'])
+const emit = defineEmits<{ ready: [] }>()
 
-joinTokenStatusWatch.setup({
+const {
+  data: joinTokenStatus,
+  loading,
+  running,
+} = useResourceWatch<JoinTokenStatusSpec>(() => ({
   resource: {
-    id: props.id,
+    id,
     namespace: DefaultNamespace,
     type: JoinTokenStatusType,
   },
   runtime: Runtime.Omni,
-})
+}))
 
-const loading = joinTokenStatusWatch.loading
-
-watch(joinTokenStatusWatch.running, () => {
-  if (joinTokenStatusWatch.running.value) {
+watch(running, () => {
+  if (running.value) {
     emit('ready')
   }
 })
