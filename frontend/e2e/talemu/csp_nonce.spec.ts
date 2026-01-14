@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { expect, test } from './auth_fixtures'
+import { expect, test } from '../auth_fixtures'
 
 /**
  * The nonce CSP header & tag are required by userpilot scripts

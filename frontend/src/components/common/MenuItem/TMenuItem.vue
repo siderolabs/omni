@@ -73,7 +73,7 @@ const componentAttributes = props.route
   ? props.regularLink
     ? { href: props.route, target: '_blank', rel: 'noopener noreferrer' }
     : { to: props.route, exactActiveClass: 'item-active' }
-  : { class: 'select-none cursor-pointer' }
+  : { class: 'select-none cursor-pointer', role: 'button' }
 
 componentAttributes.class = (componentAttributes.class ?? '') + ' item-container'
 </script>

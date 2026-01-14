@@ -37,10 +37,28 @@ export default defineConfig({
 
   projects: [
     {
-      name: 'chromium',
+      name: 'talemu-setup',
+      testMatch: 'talemu/talemu.setup.ts',
+      teardown: 'talemu-teardown',
+    },
+    {
+      name: 'talemu-teardown',
+      testMatch: 'talemu/talemu.teardown.ts',
+    },
+    {
+      name: 'talemu',
       use: {
         ...devices['Desktop Chrome'],
       },
+      testMatch: 'talemu/**/*.spec.ts',
+      dependencies: ['talemu-setup'],
+    },
+    {
+      name: 'qemu',
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+      testMatch: 'qemu/**/*.spec.ts',
     },
   ],
 })

@@ -6,6 +6,8 @@ import { execFile } from 'node:child_process'
 import { chmod } from 'node:fs/promises'
 import os from 'node:os'
 
+import { milliseconds } from 'date-fns'
+
 import { expect, test as base } from './auth_fixtures'
 
 interface OmnictlFixtures {
@@ -22,116 +24,119 @@ interface OmnictlFixtures {
 }
 
 const test = base.extend<OmnictlFixtures>({
-  omnictl: async ({ page }, use, testInfo) => {
-    const controller = new AbortController()
-    const { signal } = controller
+  omnictl: [
+    async ({ page }, use, testInfo) => {
+      const controller = new AbortController()
+      const { signal } = controller
 
-    await page.goto('/')
+      await page.goto('/')
 
-    await page.getByRole('button', { name: 'Download omnictl' }).click()
+      await page.getByRole('button', { name: 'Download omnictl' }).click()
 
-    await page.getByRole('combobox', { name: 'omnictl:' }).click()
-    await page.getByRole('option', { name: `omnictl-${getPlatform()}-${getArch()}` }).click()
+      await page.getByRole('combobox', { name: 'omnictl:' }).click()
+      await page.getByRole('option', { name: `omnictl-${getPlatform()}-${getArch()}` }).click()
 
-    const [downloadOmnictl] = await Promise.all([
-      page.waitForEvent('download'),
-      page.getByRole('button', { name: 'Download', exact: true }).click(),
-    ])
+      const [downloadOmnictl] = await Promise.all([
+        page.waitForEvent('download'),
+        page.getByRole('button', { name: 'Download', exact: true }).click(),
+      ])
 
-    const omnictlPath = testInfo.outputPath(downloadOmnictl.suggestedFilename())
-    await downloadOmnictl.saveAs(omnictlPath)
-    await chmod(omnictlPath, 0o755)
+      const omnictlPath = testInfo.outputPath(downloadOmnictl.suggestedFilename())
+      await downloadOmnictl.saveAs(omnictlPath)
+      await chmod(omnictlPath, 0o755)
 
-    const [downloadOmniConfig] = await Promise.all([
-      page.waitForEvent('download'),
-      page.getByRole('button', { name: 'Download omniconfig' }).click(),
-    ])
+      const [downloadOmniConfig] = await Promise.all([
+        page.waitForEvent('download'),
+        page.getByRole('button', { name: 'Download omniconfig' }).click(),
+      ])
 
-    const omniconfigPath = testInfo.outputPath(downloadOmniConfig.suggestedFilename())
-    await downloadOmniConfig.saveAs(omniconfigPath)
-    await testInfo.attach(downloadOmniConfig.suggestedFilename(), { path: omniconfigPath })
+      const omniconfigPath = testInfo.outputPath(downloadOmniConfig.suggestedFilename())
+      await downloadOmniConfig.saveAs(omniconfigPath)
+      await testInfo.attach(downloadOmniConfig.suggestedFilename(), { path: omniconfigPath })
 
-    await base.step('Authenticate omnictl', async () => {
-      await omnictl(['get', 'sysversion', '-ojsonpath={.spec.backendversion}'], {
-        async onStderr(stderr) {
-          // Go through the CLI auth flow if we get an error about requiring authentication
-          if (!stderr.includes('Please visit this page to authenticate')) return
+      await base.step('Authenticate omnictl', async () => {
+        await omnictl(['get', 'sysversion', '-ojsonpath={.spec.backendversion}'], {
+          async onStderr(stderr) {
+            // Go through the CLI auth flow if we get an error about requiring authentication
+            if (!stderr.includes('Please visit this page to authenticate')) return
 
-          const [authURL] = stderr.match(/\bhttps?:\/\/\S+/gi) ?? []
+            const [authURL] = stderr.match(/\bhttps?:\/\/\S+/gi) ?? []
 
-          if (authURL) {
-            await page.goto(authURL)
+            if (authURL) {
+              await page.goto(authURL)
 
-            await page.getByRole('button', { name: 'Grant Access' }).click()
-            await page.getByText('Successfully logged in').waitFor()
-          }
-        },
-      })
-    })
-
-    await use(omnictl)
-
-    controller.abort()
-
-    function omnictl(
-      args: string[],
-      {
-        onStdout,
-        onStderr,
-      }: {
-        onStdout?: (chunk: string) => void
-        onStderr?: (chunk: string) => void
-      } = {},
-    ) {
-      return new Promise<{
-        stdout: string
-        stderr: string
-      }>((resolve, reject) => {
-        const commandArgs = [
-          '--omniconfig',
-          omniconfigPath,
-          '--siderov1-keys-dir',
-          testInfo.outputPath('.talos', 'keys'),
-          '--insecure-skip-tls-verify',
-          ...args,
-        ]
-
-        console.log([omnictlPath, ...commandArgs].join(' '))
-
-        const child = execFile(
-          omnictlPath,
-          commandArgs,
-          // BROWSER=none to disable the automatic opening of a browser
-          // We want to do any browser actions through playwright
-          { signal, encoding: 'utf-8', env: { BROWSER: 'none' } },
-          (error, stdout, stderr) => {
-            if (error) {
-              console.error(error)
-              reject(error)
-              return
+              await page.getByRole('button', { name: 'Grant Access' }).click()
+              await page.getByText('Successfully logged in').waitFor()
             }
-
-            resolve({ stdout, stderr })
           },
-        )
-
-        child.stdout?.on('data', (chunk) => {
-          console.log(chunk)
-          onStdout?.(chunk)
-        })
-
-        child.stderr?.on('data', (chunk) => {
-          console.warn(chunk)
-          onStderr?.(chunk)
-        })
-
-        child.on('error', (err) => {
-          console.error(err)
-          reject(err)
         })
       })
-    }
-  },
+
+      await use(omnictl)
+
+      controller.abort()
+
+      function omnictl(
+        args: string[],
+        {
+          onStdout,
+          onStderr,
+        }: {
+          onStdout?: (chunk: string) => void
+          onStderr?: (chunk: string) => void
+        } = {},
+      ) {
+        return new Promise<{
+          stdout: string
+          stderr: string
+        }>((resolve, reject) => {
+          const commandArgs = [
+            '--omniconfig',
+            omniconfigPath,
+            '--siderov1-keys-dir',
+            testInfo.outputPath('.talos', 'keys'),
+            '--insecure-skip-tls-verify',
+            ...args,
+          ]
+
+          console.log([omnictlPath, ...commandArgs].join(' '))
+
+          const child = execFile(
+            omnictlPath,
+            commandArgs,
+            // BROWSER=none to disable the automatic opening of a browser
+            // We want to do any browser actions through playwright
+            { signal, encoding: 'utf-8', env: { BROWSER: 'none' } },
+            (error, stdout, stderr) => {
+              if (error) {
+                console.error(error)
+                reject(error)
+                return
+              }
+
+              resolve({ stdout, stderr })
+            },
+          )
+
+          child.stdout?.on('data', (chunk) => {
+            console.log(chunk)
+            onStdout?.(chunk)
+          })
+
+          child.stderr?.on('data', (chunk) => {
+            console.warn(chunk)
+            onStderr?.(chunk)
+          })
+
+          child.on('error', (err) => {
+            console.error(err)
+            reject(err)
+          })
+        })
+      }
+    },
+    { timeout: milliseconds({ seconds: 30 }) },
+  ],
 })
 
 function getPlatform() {

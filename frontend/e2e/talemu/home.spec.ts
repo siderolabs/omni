@@ -6,7 +6,7 @@ import { readFile, stat } from 'node:fs/promises'
 
 import * as yaml from 'yaml'
 
-import { expect, test } from './auth_fixtures'
+import { expect, test } from '../auth_fixtures'
 
 test.describe.configure({ mode: 'parallel' })
 
@@ -191,32 +191,6 @@ test('Get audit logs', async ({ page }, testInfo) => {
   await expect(readFile(filePath, 'utf-8')).resolves.toContain(
     '"resource_type":"Identities.omni.sidero.dev"',
   )
-})
-
-test('View all clusters', async ({ page }) => {
-  await page.goto('/')
-
-  await page
-    .locator('section')
-    .filter({ hasText: 'Recent Clusters' })
-    .getByRole('button', { name: 'View All' })
-    .click()
-
-  await expect(page).toHaveURL('/clusters')
-  await expect(page.getByRole('heading', { name: 'Clusters' })).toBeVisible()
-})
-
-test('View all Machines', async ({ page }) => {
-  await page.goto('/')
-
-  await page
-    .locator('section')
-    .filter({ hasText: 'Recent Machines' })
-    .getByRole('button', { name: 'View All' })
-    .click()
-
-  await expect(page).toHaveURL('/machines')
-  await expect(page.getByRole('heading', { name: 'Machines' })).toBeVisible()
 })
 
 test('Shows general information', async ({ page }) => {

@@ -7,7 +7,7 @@ import { diff as diffJSON } from 'json-diff-ts'
 import * as uuid from 'uuid'
 import * as yaml from 'yaml'
 
-import { expect, test } from './omnictl_fixtures.js'
+import { expect, test } from '../omnictl_fixtures.js'
 
 test.describe.configure({ mode: 'serial', retries: 0 })
 

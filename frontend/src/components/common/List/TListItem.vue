@@ -26,6 +26,7 @@ const isDropdownOpened = ref(isDefaultOpened)
         ? 'mt-1 rounded last-of-type:border-naturals-n6'
         : 'rounded-t-sm last-of-type:border-none'
     "
+    role="row"
   >
     <div class="flex items-center gap-1">
       <div v-if="$slots.details" class="flex flex-col items-center gap-2">

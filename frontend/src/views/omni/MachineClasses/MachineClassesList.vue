@@ -48,6 +48,7 @@ const openMachineClassDestroy = (id: string) => {
         <div class="relative pr-3 text-naturals-n12" :class="{ 'pl-7': !item.spec.description }">
           <IconButton
             icon="delete"
+            aria-label="delete"
             class="absolute top-0 right-0 bottom-0 my-auto"
             @click="() => openMachineClassDestroy(item.metadata.id!)"
           />

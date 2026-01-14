@@ -2,10 +2,6 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-// Copyright (c) 2025 Sidero Labs, Inc.
-//
-// Use of this software is governed by the Business Source License
-// included in the LICENSE file.
 import { expect, test as base } from '@playwright/test'
 
 interface AuthFixtures {
@@ -32,6 +28,10 @@ const test = base.extend<AuthFixtures>({
 
       await page.getByRole('button', { name: 'Log In' }).click()
       await page.getByRole('heading', { name: 'Home' }).waitFor()
+
+      if (await page.getByText('Cookies for a Better Experience').isVisible()) {
+        await page.getByRole('button', { name: 'Accept', exact: true }).click()
+      }
 
       await use()
     },
