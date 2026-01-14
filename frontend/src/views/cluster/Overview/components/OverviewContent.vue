@@ -81,29 +81,29 @@ const { status: backupStatus } = setupBackupStatus()
 
 const clusterId = computed(() => currentCluster.metadata.id ?? '')
 
-const { data: kubernetesUpgradeStatus } = useResourceWatch<KubernetesUpgradeStatusSpec>({
+const { data: kubernetesUpgradeStatus } = useResourceWatch<KubernetesUpgradeStatusSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: KubernetesUpgradeStatusType,
     id: clusterId.value,
   },
-})
+}))
 
-const { data: clusterStatus } = useResourceWatch<ClusterStatusSpec>({
+const { data: clusterStatus } = useResourceWatch<ClusterStatusSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: ClusterStatusType,
     id: clusterId.value,
   },
-})
+}))
 
 const showStats = computed(() => {
   return (clusterStatus.value?.spec.machines?.total ?? 0) < clusterSizeStatsThreshold
 })
 
-const { data: usage } = useResourceWatch<KubernetesUsageSpec>({
+const { data: usage } = useResourceWatch<KubernetesUsageSpec>(() => ({
   skip: !clusterStatus.value || !showStats.value,
   runtime: Runtime.Omni,
   resource: {
@@ -111,16 +111,16 @@ const { data: usage } = useResourceWatch<KubernetesUsageSpec>({
     type: KubernetesUsageType,
     id: clusterId.value,
   },
-})
+}))
 
-const { data: talosUpgradeStatus } = useResourceWatch<TalosUpgradeStatusSpec>({
+const { data: talosUpgradeStatus } = useResourceWatch<TalosUpgradeStatusSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: TalosUpgradeStatusType,
     id: clusterId.value,
   },
-})
+}))
 
 const { canManageClusterFeatures } = setupClusterPermissions(clusterId)
 
