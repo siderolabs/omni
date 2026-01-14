@@ -18,7 +18,7 @@ message TalosconfigResponse {
   bytes talosconfig = 1;
 }
 
-message OmniconfigResponse{
+message OmniconfigResponse {
   // omniconfig is the omnictl client configuration to access the omni instance.
   bytes omniconfig = 1;
 }
@@ -124,6 +124,13 @@ message KubernetesSyncManifestResponse {
   bool skipped = 5;
 }
 
+enum SchematicBootloader {
+  BOOT_AUTO = 0;
+  BOOT_DUAL = 1;
+  BOOT_SD = 2;
+  BOOT_GRUB = 3;
+}
+
 message CreateSchematicRequest {
   message Overlay {
     string image = 1;
@@ -135,13 +142,6 @@ message CreateSchematicRequest {
     AUTO = 0;
     DISABLED = 1;
     ENABLED = 2;
-  }
-
-  enum SchematicBootloader {
-    BOOT_AUTO = 0;
-    BOOT_DUAL = 1;
-    BOOT_SD = 2;
-    BOOT_GRUB = 3;
   }
 
   repeated string extensions = 1;

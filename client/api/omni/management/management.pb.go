@@ -26,6 +26,58 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type SchematicBootloader int32
+
+const (
+	SchematicBootloader_BOOT_AUTO SchematicBootloader = 0
+	SchematicBootloader_BOOT_DUAL SchematicBootloader = 1
+	SchematicBootloader_BOOT_SD   SchematicBootloader = 2
+	SchematicBootloader_BOOT_GRUB SchematicBootloader = 3
+)
+
+// Enum value maps for SchematicBootloader.
+var (
+	SchematicBootloader_name = map[int32]string{
+		0: "BOOT_AUTO",
+		1: "BOOT_DUAL",
+		2: "BOOT_SD",
+		3: "BOOT_GRUB",
+	}
+	SchematicBootloader_value = map[string]int32{
+		"BOOT_AUTO": 0,
+		"BOOT_DUAL": 1,
+		"BOOT_SD":   2,
+		"BOOT_GRUB": 3,
+	}
+)
+
+func (x SchematicBootloader) Enum() *SchematicBootloader {
+	p := new(SchematicBootloader)
+	*p = x
+	return p
+}
+
+func (x SchematicBootloader) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SchematicBootloader) Descriptor() protoreflect.EnumDescriptor {
+	return file_omni_management_management_proto_enumTypes[0].Descriptor()
+}
+
+func (SchematicBootloader) Type() protoreflect.EnumType {
+	return &file_omni_management_management_proto_enumTypes[0]
+}
+
+func (x SchematicBootloader) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SchematicBootloader.Descriptor instead.
+func (SchematicBootloader) EnumDescriptor() ([]byte, []int) {
+	return file_omni_management_management_proto_rawDescGZIP(), []int{0}
+}
+
 type KubernetesSyncManifestResponse_ResponseType int32
 
 const (
@@ -59,11 +111,11 @@ func (x KubernetesSyncManifestResponse_ResponseType) String() string {
 }
 
 func (KubernetesSyncManifestResponse_ResponseType) Descriptor() protoreflect.EnumDescriptor {
-	return file_omni_management_management_proto_enumTypes[0].Descriptor()
+	return file_omni_management_management_proto_enumTypes[1].Descriptor()
 }
 
 func (KubernetesSyncManifestResponse_ResponseType) Type() protoreflect.EnumType {
-	return &file_omni_management_management_proto_enumTypes[0]
+	return &file_omni_management_management_proto_enumTypes[1]
 }
 
 func (x KubernetesSyncManifestResponse_ResponseType) Number() protoreflect.EnumNumber {
@@ -108,11 +160,11 @@ func (x CreateSchematicRequest_SiderolinkGRPCTunnelMode) String() string {
 }
 
 func (CreateSchematicRequest_SiderolinkGRPCTunnelMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_omni_management_management_proto_enumTypes[1].Descriptor()
+	return file_omni_management_management_proto_enumTypes[2].Descriptor()
 }
 
 func (CreateSchematicRequest_SiderolinkGRPCTunnelMode) Type() protoreflect.EnumType {
-	return &file_omni_management_management_proto_enumTypes[1]
+	return &file_omni_management_management_proto_enumTypes[2]
 }
 
 func (x CreateSchematicRequest_SiderolinkGRPCTunnelMode) Number() protoreflect.EnumNumber {
@@ -122,58 +174,6 @@ func (x CreateSchematicRequest_SiderolinkGRPCTunnelMode) Number() protoreflect.E
 // Deprecated: Use CreateSchematicRequest_SiderolinkGRPCTunnelMode.Descriptor instead.
 func (CreateSchematicRequest_SiderolinkGRPCTunnelMode) EnumDescriptor() ([]byte, []int) {
 	return file_omni_management_management_proto_rawDescGZIP(), []int{17, 0}
-}
-
-type CreateSchematicRequest_SchematicBootloader int32
-
-const (
-	CreateSchematicRequest_BOOT_AUTO CreateSchematicRequest_SchematicBootloader = 0
-	CreateSchematicRequest_BOOT_DUAL CreateSchematicRequest_SchematicBootloader = 1
-	CreateSchematicRequest_BOOT_SD   CreateSchematicRequest_SchematicBootloader = 2
-	CreateSchematicRequest_BOOT_GRUB CreateSchematicRequest_SchematicBootloader = 3
-)
-
-// Enum value maps for CreateSchematicRequest_SchematicBootloader.
-var (
-	CreateSchematicRequest_SchematicBootloader_name = map[int32]string{
-		0: "BOOT_AUTO",
-		1: "BOOT_DUAL",
-		2: "BOOT_SD",
-		3: "BOOT_GRUB",
-	}
-	CreateSchematicRequest_SchematicBootloader_value = map[string]int32{
-		"BOOT_AUTO": 0,
-		"BOOT_DUAL": 1,
-		"BOOT_SD":   2,
-		"BOOT_GRUB": 3,
-	}
-)
-
-func (x CreateSchematicRequest_SchematicBootloader) Enum() *CreateSchematicRequest_SchematicBootloader {
-	p := new(CreateSchematicRequest_SchematicBootloader)
-	*p = x
-	return p
-}
-
-func (x CreateSchematicRequest_SchematicBootloader) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (CreateSchematicRequest_SchematicBootloader) Descriptor() protoreflect.EnumDescriptor {
-	return file_omni_management_management_proto_enumTypes[2].Descriptor()
-}
-
-func (CreateSchematicRequest_SchematicBootloader) Type() protoreflect.EnumType {
-	return &file_omni_management_management_proto_enumTypes[2]
-}
-
-func (x CreateSchematicRequest_SchematicBootloader) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use CreateSchematicRequest_SchematicBootloader.Descriptor instead.
-func (CreateSchematicRequest_SchematicBootloader) EnumDescriptor() ([]byte, []int) {
-	return file_omni_management_management_proto_rawDescGZIP(), []int{17, 1}
 }
 
 type KubeconfigResponse struct {
@@ -1082,7 +1082,7 @@ type CreateSchematicRequest struct {
 	SiderolinkGrpcTunnelMode CreateSchematicRequest_SiderolinkGRPCTunnelMode `protobuf:"varint,7,opt,name=siderolink_grpc_tunnel_mode,json=siderolinkGrpcTunnelMode,proto3,enum=management.CreateSchematicRequest_SiderolinkGRPCTunnelMode" json:"siderolink_grpc_tunnel_mode,omitempty"`
 	JoinToken                string                                          `protobuf:"bytes,8,opt,name=join_token,json=joinToken,proto3" json:"join_token,omitempty"`
 	Overlay                  *CreateSchematicRequest_Overlay                 `protobuf:"bytes,9,opt,name=overlay,proto3" json:"overlay,omitempty"`
-	Bootloader               CreateSchematicRequest_SchematicBootloader      `protobuf:"varint,10,opt,name=bootloader,proto3,enum=management.CreateSchematicRequest_SchematicBootloader" json:"bootloader,omitempty"`
+	Bootloader               SchematicBootloader                             `protobuf:"varint,10,opt,name=bootloader,proto3,enum=management.SchematicBootloader" json:"bootloader,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -1180,11 +1180,11 @@ func (x *CreateSchematicRequest) GetOverlay() *CreateSchematicRequest_Overlay {
 	return nil
 }
 
-func (x *CreateSchematicRequest) GetBootloader() CreateSchematicRequest_SchematicBootloader {
+func (x *CreateSchematicRequest) GetBootloader() SchematicBootloader {
 	if x != nil {
 		return x.Bootloader
 	}
-	return CreateSchematicRequest_BOOT_AUTO
+	return SchematicBootloader_BOOT_AUTO
 }
 
 type CreateSchematicResponse struct {
@@ -2280,7 +2280,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\fResponseType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\f\n" +
 	"\bMANIFEST\x10\x01\x12\v\n" +
-	"\aROLLOUT\x10\x02\"\xf3\x06\n" +
+	"\aROLLOUT\x10\x02\"\x8b\x06\n" +
 	"\x16CreateSchematicRequest\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x01 \x03(\tR\n" +
@@ -2295,10 +2295,10 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x1bsiderolink_grpc_tunnel_mode\x18\a \x01(\x0e2;.management.CreateSchematicRequest.SiderolinkGRPCTunnelModeR\x18siderolinkGrpcTunnelMode\x12\x1d\n" +
 	"\n" +
 	"join_token\x18\b \x01(\tR\tjoinToken\x12D\n" +
-	"\aoverlay\x18\t \x01(\v2*.management.CreateSchematicRequest.OverlayR\aoverlay\x12V\n" +
+	"\aoverlay\x18\t \x01(\v2*.management.CreateSchematicRequest.OverlayR\aoverlay\x12?\n" +
 	"\n" +
 	"bootloader\x18\n" +
-	" \x01(\x0e26.management.CreateSchematicRequest.SchematicBootloaderR\n" +
+	" \x01(\x0e2\x1f.management.SchematicBootloaderR\n" +
 	"bootloader\x1aM\n" +
 	"\aOverlay\x12\x14\n" +
 	"\x05image\x18\x01 \x01(\tR\x05image\x12\x12\n" +
@@ -2310,12 +2310,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x18SiderolinkGRPCTunnelMode\x12\b\n" +
 	"\x04AUTO\x10\x00\x12\f\n" +
 	"\bDISABLED\x10\x01\x12\v\n" +
-	"\aENABLED\x10\x02\"O\n" +
-	"\x13SchematicBootloader\x12\r\n" +
-	"\tBOOT_AUTO\x10\x00\x12\r\n" +
-	"\tBOOT_DUAL\x10\x01\x12\v\n" +
-	"\aBOOT_SD\x10\x02\x12\r\n" +
-	"\tBOOT_GRUB\x10\x03\"\xaa\x01\n" +
+	"\aENABLED\x10\x02\"\xaa\x01\n" +
 	"\x17CreateSchematicResponse\x12!\n" +
 	"\fschematic_id\x18\x01 \x01(\tR\vschematicId\x12\x17\n" +
 	"\apxe_url\x18\x02 \x01(\tR\x06pxeUrl\x12.\n" +
@@ -2369,7 +2364,12 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12C\n" +
 	"\x0fexpiration_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x0eexpirationTime\")\n" +
 	"\x17CreateJoinTokenResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id2\x9c\r\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id*O\n" +
+	"\x13SchematicBootloader\x12\r\n" +
+	"\tBOOT_AUTO\x10\x00\x12\r\n" +
+	"\tBOOT_DUAL\x10\x01\x12\v\n" +
+	"\aBOOT_SD\x10\x02\x12\r\n" +
+	"\tBOOT_GRUB\x10\x032\x9c\r\n" +
 	"\x11ManagementService\x12K\n" +
 	"\n" +
 	"Kubeconfig\x12\x1d.management.KubeconfigRequest\x1a\x1e.management.KubeconfigResponse\x12N\n" +
@@ -2407,9 +2407,9 @@ func file_omni_management_management_proto_rawDescGZIP() []byte {
 var file_omni_management_management_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_omni_management_management_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
 var file_omni_management_management_proto_goTypes = []any{
-	(KubernetesSyncManifestResponse_ResponseType)(0),                // 0: management.KubernetesSyncManifestResponse.ResponseType
-	(CreateSchematicRequest_SiderolinkGRPCTunnelMode)(0),            // 1: management.CreateSchematicRequest.SiderolinkGRPCTunnelMode
-	(CreateSchematicRequest_SchematicBootloader)(0),                 // 2: management.CreateSchematicRequest.SchematicBootloader
+	(SchematicBootloader)(0),                                        // 0: management.SchematicBootloader
+	(KubernetesSyncManifestResponse_ResponseType)(0),                // 1: management.KubernetesSyncManifestResponse.ResponseType
+	(CreateSchematicRequest_SiderolinkGRPCTunnelMode)(0),            // 2: management.CreateSchematicRequest.SiderolinkGRPCTunnelMode
 	(*KubeconfigResponse)(nil),                                      // 3: management.KubeconfigResponse
 	(*TalosconfigResponse)(nil),                                     // 4: management.TalosconfigResponse
 	(*OmniconfigResponse)(nil),                                      // 5: management.OmniconfigResponse
@@ -2456,11 +2456,11 @@ var file_omni_management_management_proto_goTypes = []any{
 var file_omni_management_management_proto_depIdxs = []int32{
 	35, // 0: management.ListServiceAccountsResponse.service_accounts:type_name -> management.ListServiceAccountsResponse.ServiceAccount
 	41, // 1: management.KubeconfigRequest.service_account_ttl:type_name -> google.protobuf.Duration
-	0,  // 2: management.KubernetesSyncManifestResponse.response_type:type_name -> management.KubernetesSyncManifestResponse.ResponseType
+	1,  // 2: management.KubernetesSyncManifestResponse.response_type:type_name -> management.KubernetesSyncManifestResponse.ResponseType
 	38, // 3: management.CreateSchematicRequest.meta_values:type_name -> management.CreateSchematicRequest.MetaValuesEntry
-	1,  // 4: management.CreateSchematicRequest.siderolink_grpc_tunnel_mode:type_name -> management.CreateSchematicRequest.SiderolinkGRPCTunnelMode
+	2,  // 4: management.CreateSchematicRequest.siderolink_grpc_tunnel_mode:type_name -> management.CreateSchematicRequest.SiderolinkGRPCTunnelMode
 	37, // 5: management.CreateSchematicRequest.overlay:type_name -> management.CreateSchematicRequest.Overlay
-	2,  // 6: management.CreateSchematicRequest.bootloader:type_name -> management.CreateSchematicRequest.SchematicBootloader
+	0,  // 6: management.CreateSchematicRequest.bootloader:type_name -> management.SchematicBootloader
 	39, // 7: management.GetSupportBundleResponse.progress:type_name -> management.GetSupportBundleResponse.Progress
 	40, // 8: management.ValidateJsonSchemaResponse.errors:type_name -> management.ValidateJsonSchemaResponse.Error
 	42, // 9: management.CreateJoinTokenRequest.expiration_time:type_name -> google.protobuf.Timestamp

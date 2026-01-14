@@ -6985,7 +6985,7 @@ func (m *CreateSchematicRequest) UnmarshalVT(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Bootloader |= CreateSchematicRequest_SchematicBootloader(b&0x7F) << shift
+				m.Bootloader |= SchematicBootloader(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

@@ -125,6 +125,8 @@ const schematicError = ref<string>()
 const schematic = computedAsync(async () => {
   schematicLoading.value = true
 
+  if (formState.value.hardwareType === 'sbc' && !selectedSBC.value) return
+
   const machineLabels = Object.entries(formState.value.machineUserLabels ?? {}).reduce<
     Record<string, string>
   >(

@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"slices"
 	"sync"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/panichandler"
+	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore"
 )
 
@@ -37,16 +39,16 @@ const (
 )
 
 // NewStore creates a new Store.
-func NewStore(timeout time.Duration, db *sql.DB, id string, logger *zap.Logger) (*Store, error) {
-	if timeout <= 0 {
-		timeout = 30 * time.Second
+func NewStore(config config.LogsMachineStorage, db *sql.DB, id string, logger *zap.Logger) (*Store, error) {
+	if config.SQLiteTimeout <= 0 {
+		config.SQLiteTimeout = 30 * time.Second
 	}
 
 	s := &Store{
-		id:      truncateMachineID(id),
-		timeout: timeout,
-		db:      db,
-		logger:  logger,
+		id:     truncateMachineID(id),
+		config: config,
+		db:     db,
+		logger: logger,
 	}
 
 	return s, nil
@@ -58,10 +60,9 @@ type Store struct {
 	logger      *zap.Logger
 	id          string
 	subscribers []chan struct{}
+	config      config.LogsMachineStorage
 	mu          sync.Mutex
 	closed      bool
-
-	timeout time.Duration
 }
 
 // WriteLine implements the logstore.LogStore interface.
@@ -77,11 +78,17 @@ func (s *Store) WriteLine(ctx context.Context, message []byte) error {
 
 	query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s) VALUES (?, ?, ?)`, tableName, machineIDColumn, messageColumn, createdAtColumn)
 
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	ctx, cancel := context.WithTimeout(ctx, s.config.SQLiteTimeout)
 	defer cancel()
 
 	if _, err := s.db.ExecContext(ctx, query, s.id, message, time.Now().Unix()); err != nil {
 		return fmt.Errorf("failed to write log message: %w", err)
+	}
+
+	if rand.Float64() < s.config.CleanupProbability {
+		if err := s.doCleanup(ctx); err != nil { // log the error but do not return an error, as the log message was written successfully
+			s.logger.Warn("failed to cleanup old logs after writing log message", zap.Error(err))
+		}
 	}
 
 	if len(s.subscribers) == 0 {
@@ -94,6 +101,35 @@ func (s *Store) WriteLine(ctx context.Context, message []byte) error {
 		default:
 			// channel is full, reader is already notified
 		}
+	}
+
+	return nil
+}
+
+func (s *Store) doCleanup(ctx context.Context) error {
+	// find the cutoff ID
+	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) FROM (SELECT %s FROM %s WHERE %s = ? ORDER BY %s DESC LIMIT 1 OFFSET ?)",
+		idColumn, idColumn, tableName, machineIDColumn, idColumn)
+
+	var cutoffID int64
+
+	if err := s.db.QueryRowContext(ctx, query, s.id, s.config.MaxLinesPerMachine).Scan(&cutoffID); err != nil {
+		return fmt.Errorf("failed to determine cutoff ID for cleanup: %w", err)
+	}
+
+	// delete logs older than cutoff ID
+	delQuery := fmt.Sprintf("DELETE FROM %s WHERE %s = ? AND %s <= ?", tableName, machineIDColumn, idColumn)
+
+	result, err := s.db.ExecContext(ctx, delQuery, s.id, cutoffID)
+	if err != nil {
+		return fmt.Errorf("failed to cleanup old logs: %w", err)
+	}
+
+	numRowsDeleted, err := result.RowsAffected()
+	if err != nil {
+		s.logger.Debug("failed to get number of rows affected during logs cleanup", zap.Error(err))
+	} else {
+		s.logger.Debug("deleted old logs", zap.Int64("num_rows_deleted", numRowsDeleted))
 	}
 
 	return nil
@@ -347,7 +383,7 @@ func (s *Store) readerStartID(ctx context.Context, nLines int) (int64, error) {
 	query := fmt.Sprintf("SELECT COALESCE(MIN(id), 0) FROM (SELECT %s AS id FROM %s WHERE %s = ? ORDER BY %s DESC LIMIT ?)",
 		idColumn, tableName, machineIDColumn, idColumn)
 
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	ctx, cancel := context.WithTimeout(ctx, s.config.SQLiteTimeout)
 	defer cancel()
 
 	var startID int64
@@ -364,7 +400,7 @@ func (s *Store) readerStartID(ctx context.Context, nLines int) (int64, error) {
 func (s *Store) currentMaxID(ctx context.Context) (int64, error) {
 	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) FROM %s WHERE %s = ?", idColumn, tableName, machineIDColumn)
 
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	ctx, cancel := context.WithTimeout(ctx, s.config.SQLiteTimeout)
 	defer cancel()
 
 	var id int64

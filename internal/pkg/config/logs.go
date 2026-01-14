@@ -72,6 +72,9 @@ type LogsMachineStorage struct {
 	SQLiteTimeout    time.Duration `yaml:"sqliteTimeout"`
 	CleanupInterval  time.Duration `yaml:"cleanupInterval"`
 	CleanupOlderThan time.Duration `yaml:"cleanupOlderThan"`
+
+	MaxLinesPerMachine int     `yaml:"maxLinesPerMachine"`
+	CleanupProbability float64 `yaml:"cleanupProbability"`
 }
 
 // LogsAudit configures audit logs persistence.

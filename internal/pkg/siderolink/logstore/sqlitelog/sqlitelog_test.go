@@ -432,6 +432,100 @@ func TestFollowRapidWrites(t *testing.T) {
 	require.NoError(t, eg.Wait())
 }
 
+func TestCleanupProbabilities(t *testing.T) {
+	t.Parallel()
+
+	// Helper to create a store with specific config
+	setupStore := func(t *testing.T, prob float64, limit int) (*sqlitelog.StoreManager, string) {
+		ctx := t.Context()
+		path := filepath.Join(t.TempDir(), fmt.Sprintf("prob-test-%f.db", prob))
+
+		dbConf := config.Default().Storage.SQLite
+		dbConf.Path = path
+
+		db, err := sqlite.OpenDB(dbConf)
+		require.NoError(t, err)
+
+		t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+		logConf := config.Default().Logs.Machine.Storage
+		logConf.MaxLinesPerMachine = limit
+		logConf.CleanupProbability = prob
+
+		logger := zaptest.NewLogger(t)
+		mgr, err := sqlitelog.NewStoreManager(ctx, db, logConf, logger)
+		require.NoError(t, err)
+
+		return mgr, fmt.Sprintf("machine-prob-%f", prob)
+	}
+
+	tests := []struct {
+		name        string
+		prob        float64
+		limit       int
+		writes      int
+		expectExact int  // -1 if exact match not expected
+		expectLess  bool // if true, expect actual < writes
+	}{
+		{
+			name:        "Probability 0.0 (Never Clean)",
+			prob:        0.0,
+			limit:       10,
+			writes:      50,
+			expectExact: 50,
+		},
+		{
+			name:        "Probability 1.0 (Always Clean)",
+			prob:        1.0,
+			limit:       10,
+			writes:      50,
+			expectExact: 10,
+		},
+		{
+			name:        "Probability 0.5 (Sometimes Clean)",
+			prob:        0.5,
+			limit:       10,
+			writes:      100,
+			expectExact: -1,
+			expectLess:  true, // Expect cleanup to have triggered at least once
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mgr, id := setupStore(t, tt.prob, tt.limit)
+			store, err := mgr.Create(id)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, store.Close()) })
+
+			ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+			t.Cleanup(cancel)
+
+			// Perform Writes
+			for i := range tt.writes {
+				require.NoError(t, store.WriteLine(ctx, fmt.Appendf(nil, "msg-%d", i)))
+			}
+
+			// Check Result
+			rdr, err := store.Reader(ctx, -1, false)
+			require.NoError(t, err)
+			lines := readAllLines(ctx, t, rdr)
+			count := len(lines)
+
+			if tt.expectExact != -1 {
+				assert.Equal(t, tt.expectExact, count, "Exact count mismatch for prob %f", tt.prob)
+			}
+
+			if tt.expectLess {
+				assert.Less(t, count, tt.writes, "Cleanup should have triggered at least once")
+				assert.GreaterOrEqual(t, count, tt.limit, "Count cannot be less than limit")
+			}
+		})
+	}
+}
+
 func testRead(ctx context.Context, t *testing.T, sqliteStore, circularStore logstore.LogStore, expectedLines, tailLines int) {
 	t.Helper()
 

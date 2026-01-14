@@ -27,3 +27,9 @@ kind: Workers
 name: additional-workers
 machines:
   - {{ index .W 1 }}
+---
+kind: Workers
+name: {{ .MachineClassBasedMachineSetName }}
+machineClass:
+  name: {{ .MachineClass }}
+  size: 1

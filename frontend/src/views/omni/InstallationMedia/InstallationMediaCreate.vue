@@ -5,6 +5,12 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script lang="ts">
+import { type Component } from 'vue'
+
+import type { SchematicBootloader } from '@/api/omni/management/management.pb'
+import type { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
+import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
+
 type HardwareType = 'metal' | 'cloud' | 'sbc'
 
 const flows: Record<HardwareType, Component[]> = {
@@ -35,18 +41,15 @@ export interface FormState {
   systemExtensions?: string[]
   cmdline?: string
   overlayOptions?: string
-  bootloader?: CreateSchematicRequestSchematicBootloader
+  bootloader?: SchematicBootloader
 }
 </script>
 
 <script setup lang="ts">
 import { useSessionStorage } from '@vueuse/core'
-import { type Component, computed } from 'vue'
+import { computed } from 'vue'
 
-import type { CreateSchematicRequestSchematicBootloader } from '@/api/omni/management/management.pb'
-import type { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import TButton from '@/components/common/Button/TButton.vue'
-import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
 import Stepper from '@/components/common/Stepper/Stepper.vue'
 import CloudProviderStep from '@/views/omni/InstallationMedia/Steps/CloudProvider.vue'
 import ConfirmationStep from '@/views/omni/InstallationMedia/Steps/Confirmation.vue'

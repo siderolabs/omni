@@ -32,6 +32,7 @@ import {
   InstallationMediaType,
   JoinTokenStatusType,
   LabelsMeta,
+  SecureBoot,
   TalosVersionType,
 } from '@/api/resources'
 import IconButton from '@/components/common/Button/IconButton.vue'
@@ -49,52 +50,6 @@ import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
-
-const supportsOverlay = (talosVersion?: string) =>
-  !!talosVersion && semver.gte(talosVersion, '1.7.0')
-
-const buildImageFactoryPXEURL = (
-  imageFactoryBaseURL: string,
-  schematic: string,
-  talosVersion: string,
-  profile: string,
-  architecture: string,
-  secureBoot: boolean,
-  overlay?: string,
-): string => {
-  const base = features.value?.spec.image_factory_pxe_base_url
-
-  return `${base}/pxe/${schematic}/${talosVersion}/${generateFilename(profile, architecture, secureBoot, overlay, !supportsOverlay(talosVersion))}`
-}
-
-const generateFilename = (
-  profile: string,
-  architecture: string,
-  secureBoot: boolean,
-  overlay?: string,
-  legacySBC?: boolean,
-): string => {
-  let filename = ''
-
-  // SBC handling
-  if (overlay) {
-    if (legacySBC) {
-      filename += `metal-${profile}`
-    } else {
-      filename += 'metal'
-    }
-  } else {
-    filename += profile
-  }
-
-  filename += `-${architecture}`
-
-  if (secureBoot) {
-    filename += '-secureboot'
-  }
-
-  return filename
-}
 
 enum Phase {
   Idle = 0,
@@ -172,7 +127,29 @@ const { data: joinTokens } = useResourceWatch<JoinTokenStatusSpec>({
 const schematicID = ref<string>()
 const pxeBootUrl = ref<string>()
 const secureBoot = ref(false)
-const downloadPath = computed(() => {
+
+const imageProfile = computed(() => {
+  if (!installationMedia.value) return
+
+  let profile = installationMedia.value.spec.overlay
+    ? 'metal'
+    : installationMedia.value.spec.profile
+
+  // legacy SBC support
+  if (installationMedia.value.spec.overlay && semver.lt(selectedTalosVersion.value, '1.7.0')) {
+    profile += `-${installationMedia.value.spec.profile}`
+  }
+
+  profile += `-${installationMedia.value.spec.architecture}`
+
+  if (secureBoot.value && !installationMedia.value.spec.no_secure_boot) {
+    profile += '-secureboot'
+  }
+
+  return profile
+})
+
+const omniDownloadPath = computed(() => {
   if (!schematicID.value || !installationMedia.value?.metadata.id) return
 
   const url = `/image/${schematicID.value}/v${selectedTalosVersion.value}/${installationMedia.value.metadata.id}`
@@ -181,16 +158,22 @@ const downloadPath = computed(() => {
     return url
   }
 
-  const params = new URLSearchParams({ SecureBoot: 'true' })
+  const params = new URLSearchParams({ [SecureBoot]: 'true' })
 
   return `${url}?${params}`
 })
 
-const imageDownloadUrl = computed(() => {
-  if (!downloadPath.value) return
-  if (!features.value?.spec.image_factory_base_url) return downloadPath.value
+const factoryDownloadPath = computed(() => {
+  if (!schematicID.value || !installationMedia.value || !imageProfile.value) return
 
-  return new URL(downloadPath.value, features.value.spec.image_factory_base_url)
+  return `/image/${schematicID.value}/v${selectedTalosVersion.value}/${imageProfile.value}.${installationMedia.value.spec.extension}`
+})
+
+const imageDownloadUrl = computed(() => {
+  if (!factoryDownloadPath.value) return
+  if (!features.value?.spec.image_factory_base_url) return factoryDownloadPath.value
+
+  return new URL(factoryDownloadPath.value, features.value.spec.image_factory_base_url)
 })
 
 const talosVersions = computed(() =>
@@ -336,7 +319,7 @@ const schematicReq = computed(() => {
 const createSchematic = async () => {
   if (
     creatingSchematic.value ||
-    !features.value?.spec.image_factory_base_url ||
+    !features.value?.spec.image_factory_pxe_base_url ||
     !installationMedia.value
   ) {
     return
@@ -347,15 +330,8 @@ const createSchematic = async () => {
   try {
     const resp = await ManagementService.CreateSchematic(schematicReq.value)
 
-    pxeBootUrl.value = buildImageFactoryPXEURL(
-      features.value?.spec.image_factory_base_url,
-      resp.schematic_id!,
-      selectedTalosVersion.value,
-      installationMedia.value.spec.profile!,
-      installationMedia.value.spec.architecture!,
-      secureBoot.value,
-      installationMedia.value?.spec.overlay,
-    )
+    pxeBootUrl.value = `${features.value.spec.image_factory_pxe_base_url}/pxe/${resp.schematic_id}/${selectedTalosVersion.value}/${imageProfile.value}`
+
     schematicID.value = resp.schematic_id
   } finally {
     creatingSchematic.value = false
@@ -399,11 +375,11 @@ const download = async () => {
 
   try {
     await createSchematic()
-    if (!downloadPath.value) throw new Error('Download URL not found')
+    if (!omniDownloadPath.value) throw new Error('Download URL not found')
 
     phase.value = Phase.Generating
 
-    await doRequest(downloadPath.value, {
+    await doRequest(omniDownloadPath.value, {
       signal: controller.signal,
       method: 'HEAD',
       headers: new Headers({ 'Cache-Control': 'no-store' }),
@@ -411,7 +387,7 @@ const download = async () => {
 
     phase.value = Phase.Loading
 
-    const resp = await doRequest(downloadPath.value, { signal: controller.signal })
+    const resp = await doRequest(omniDownloadPath.value, { signal: controller.signal })
 
     fileSizeLoaded.value = 0
 
@@ -446,12 +422,13 @@ const download = async () => {
     a.click()
     window.URL.revokeObjectURL(objectURL)
     a.remove()
+
+    close()
   } catch (e) {
     showError('Download Failed', e.message)
 
     throw e
   } finally {
-    close()
     phase.value = Phase.Idle
   }
 }
