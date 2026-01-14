@@ -7,7 +7,6 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type monaco from 'monaco-editor/esm/vs/editor/editor.api'
 import { MarkerSeverity, MarkerTag } from 'monaco-editor/esm/vs/editor/editor.api'
-import type { Ref } from 'vue'
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -15,13 +14,19 @@ import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-import type { WatchResponse } from '@/api/omni/resources/resources.pb'
 import { EventType } from '@/api/omni/resources/resources.pb'
-import type { ClusterSpec, ConfigPatchSpec, MachineSetSpec } from '@/api/omni/specs/omni.pb'
+import {
+  type ClusterMachineStatusSpec,
+  type ClusterSpec,
+  type ConfigPatchSpec,
+  type MachineSetSpec,
+  type MachineStatusSpec,
+} from '@/api/omni/specs/omni.pb'
 import { withRuntime } from '@/api/options'
 import {
   ClusterMachineStatusType,
   ClusterPermissionsType,
+  ClusterType,
   ConfigPatchDescription,
   ConfigPatchName,
   ConfigPatchType,
@@ -44,10 +49,9 @@ import TInput from '@/components/common/TInput/TInput.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { canManageMachineConfigPatches, canReadMachineConfigPatches } from '@/methods/auth'
 import { machineSetTitle, sortMachineSetIds } from '@/methods/machineset'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
-
-import Watch from '../../../api/watch'
 
 const CodeEditor = defineAsyncComponent(
   () => import('@/components/common/CodeEditor/CodeEditor.vue'),
@@ -62,12 +66,22 @@ defineProps<Props>()
 const route = useRoute()
 
 const bootstrapped = ref(false)
-const patch: Ref<Resource<ConfigPatchSpec> | undefined> = ref()
-const patchWatch = new Watch(patch, (e: WatchResponse) => {
-  if (e.event?.event_type === EventType.BOOTSTRAPPED) {
-    bootstrapped.value = true
-  }
-})
+
+const { data: patch, loading: patchWatchLoading } = useResourceWatch<ConfigPatchSpec>(
+  {
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: DefaultNamespace,
+      type: ConfigPatchType,
+      id: route.params.patch as string,
+    },
+  },
+  (e) => {
+    if (e.event?.event_type === EventType.BOOTSTRAPPED) {
+      bootstrapped.value = true
+    }
+  },
+)
 
 let patchListPage: string
 
@@ -104,25 +118,15 @@ const editorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
   codeEditor = editor
 }
 
-const machine = ref<Resource>()
-const machineWatch = new Watch(machine)
-
-machineWatch.setup(
-  computed(() => {
-    if (!route.params.machine) {
-      return
-    }
-
-    return {
-      resource: {
-        type: MachineStatusType,
-        id: route.params.machine as string,
-        namespace: DefaultNamespace,
-      },
-      runtime: Runtime.Omni,
-    }
-  }),
-)
+const { data: machine } = useResourceWatch<MachineStatusSpec>({
+  skip: !route.params.machine,
+  resource: {
+    type: MachineStatusType,
+    id: route.params.machine as string,
+    namespace: DefaultNamespace,
+  },
+  runtime: Runtime.Omni,
+})
 
 const nodeIDMap: Record<string, string> = {}
 const machineSetIDMap: Record<string, string> = {}
@@ -186,8 +190,16 @@ const setPatchType = (value: string) => {
   selectedPatchType = value
 }
 
-const machineSets: Ref<Resource<MachineSetSpec>[]> = ref([])
-const machineSetsWatch = new Watch(machineSets)
+const { data: machineSets } = useResourceWatch<MachineSetSpec>({
+  skip: !route.params.cluster,
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: MachineSetType,
+  },
+  selectors: [`${LabelCluster}=${route.params.cluster}`],
+})
+
 const machineSetTitles = computed(() => {
   const sorted = sortMachineSetIds(
     route.params.cluster as string,
@@ -201,7 +213,6 @@ const machineSetTitles = computed(() => {
   })
 })
 
-const clusterMachines = ref([])
 const machines = computed(() => {
   return clusterMachines.value.map((item: Resource) => {
     const name = `Node: ${(item.metadata?.labels ?? {})[LabelHostname] || item.metadata.id}`
@@ -212,11 +223,25 @@ const machines = computed(() => {
   })
 })
 
-const clusterMachinesWatch = new Watch(clusterMachines)
+const { data: clusterMachines } = useResourceWatch<ClusterMachineStatusSpec>({
+  skip: !route.params.cluster,
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterMachineStatusType,
+  },
+  selectors: [`${LabelCluster}=${route.params.cluster}`],
+})
 
-const cluster: Ref<Resource | undefined> = ref()
-
-const clusterWatch = new Watch(cluster)
+const { data: cluster } = useResourceWatch<ClusterSpec>({
+  skip: !route.params.cluster,
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterType,
+    id: route.params.cluster as string,
+  },
+})
 
 const router = useRouter()
 
@@ -263,19 +288,6 @@ const loadPatch = () => {
     config.value = patch.value.spec.data
   }
 }
-
-patchWatch.setup(
-  computed(() => {
-    return {
-      runtime: Runtime.Omni,
-      resource: {
-        namespace: DefaultNamespace,
-        type: ConfigPatchType,
-        id: route.params.patch as string,
-      },
-    }
-  }),
-)
 
 const patchWatchOptions = ref()
 
@@ -354,46 +366,8 @@ const notes = computed(() => {
   return ''
 })
 
-patchWatch.setup({
-  runtime: Runtime.Omni,
-  resource: {
-    namespace: DefaultNamespace,
-    type: ConfigPatchType,
-    id: route.params.patch as string,
-  },
-})
-
-if (route.params.cluster) {
-  machineSetsWatch.setup({
-    runtime: Runtime.Omni,
-    resource: {
-      namespace: DefaultNamespace,
-      type: MachineSetType,
-    },
-    selectors: [`${LabelCluster}=${route.params.cluster}`],
-  })
-
-  clusterMachinesWatch.setup({
-    runtime: Runtime.Omni,
-    resource: {
-      namespace: DefaultNamespace,
-      type: ClusterMachineStatusType,
-    },
-    selectors: [`${LabelCluster}=${route.params.cluster}`],
-  })
-
-  clusterWatch.setup({
-    runtime: Runtime.Omni,
-    resource: {
-      namespace: DefaultNamespace,
-      type: ClusterMachineStatusType,
-      id: route.params.cluster as string,
-    },
-  })
-}
-
 const ready = computed(() => {
-  return permissionsLoaded.value && !patchWatch.loading.value
+  return permissionsLoaded.value && !patchWatchLoading.value
 })
 
 const saving = ref(false)
