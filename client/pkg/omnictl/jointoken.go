@@ -23,6 +23,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/client/pkg/omnictl/config"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
 
@@ -305,6 +306,35 @@ var (
 		},
 	}
 
+	joinTokenOmniEndpointCmd = &cobra.Command{
+		Use:     "omni-endpoint",
+		Aliases: []string{"oe"},
+		Short:   "Get the Omni endpoint URL with the join token",
+		Args:    cobra.NoArgs,
+		RunE: func(*cobra.Command, []string) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+				tokenID, err := getJoinToken(ctx, client)
+				if err != nil {
+					return err
+				}
+
+				conf, err := config.Init(access.CmdFlags.Omniconfig, false)
+				if err != nil {
+					return err
+				}
+
+				ctxConf, err := conf.GetContext(access.CmdFlags.Context)
+				if err != nil {
+					return err
+				}
+
+				fmt.Println(constructJoinURL(ctxConf.URL, tokenID))
+
+				return nil
+			})
+		},
+	}
+
 	joinTokenDeleteCmd = &cobra.Command{
 		Use:     "delete <name>",
 		Aliases: []string{"d"},
@@ -343,6 +373,7 @@ func init() {
 	joinTokenCmd.AddCommand(joinTokenRenewCmd)
 	joinTokenCmd.AddCommand(joinTokenMachineConfigCmd)
 	joinTokenCmd.AddCommand(joinTokenKernelArgsCmd)
+	joinTokenCmd.AddCommand(joinTokenOmniEndpointCmd)
 
 	joinTokenRevokeCmd.Flags().BoolVarP(&joinTokenRevokeFlags.force, "force", "f", false, "Revoke the token even if it is going to make the machines to disconnect")
 
@@ -352,12 +383,7 @@ func init() {
 
 	joinTokenRenewCmd.Flags().DurationVarP(&joinTokenRenewFlags.ttl, "ttl", "t", 0, "TTL for the join token")
 
-	addConfigFlags := func(c *cobra.Command) {
-		c.Flags().BoolVar(
-			&joinTokenMachineJoinConfigFlags.useGRPCTunnel,
-			"use-grpc-tunnel", false, "Use gRPC tunnel in the config",
-		)
-
+	addTokenSelectionFlags := func(c *cobra.Command) {
 		c.Flags().StringVar(
 			&joinTokenMachineJoinConfigFlags.tokenID,
 			"token-id", "", "Generate using specific token ID (uses default if empty)",
@@ -371,8 +397,18 @@ func init() {
 		c.MarkFlagsMutuallyExclusive("token-id", "token-name")
 	}
 
+	addConfigFlags := func(c *cobra.Command) {
+		c.Flags().BoolVar(
+			&joinTokenMachineJoinConfigFlags.useGRPCTunnel,
+			"use-grpc-tunnel", false, "Use gRPC tunnel in the config",
+		)
+
+		addTokenSelectionFlags(c)
+	}
+
 	addConfigFlags(joinTokenMachineConfigCmd)
 	addConfigFlags(joinTokenKernelArgsCmd)
+	addTokenSelectionFlags(joinTokenOmniEndpointCmd)
 
 	joinTokenRenewCmd.MarkFlagRequired("ttl") //nolint:errcheck
 }
@@ -488,4 +524,12 @@ func getJoinToken(ctx context.Context, client *client.Client) (string, error) {
 	}
 
 	return tokenID, nil
+}
+
+func constructJoinURL(baseURL, tokenID string) string {
+	if strings.Contains(baseURL, "?") {
+		return baseURL + "&jointoken=" + tokenID
+	}
+
+	return baseURL + "?jointoken=" + tokenID
 }
