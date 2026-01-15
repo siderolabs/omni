@@ -5,20 +5,19 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { Ref } from 'vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { MachineSetNodeSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withRuntime } from '@/api/options'
 import { DefaultNamespace, MachineSetNodeType, MachineStatusType } from '@/api/resources'
-import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TBreadcrumbs from '@/components/TBreadcrumbs.vue'
 import { setupClusterPermissions } from '@/methods/auth'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const route = useRoute()
 const router = useRouter()
@@ -58,9 +57,7 @@ const rebootNode = () => {
   })
 }
 
-const machineSetNode: Ref<Resource | undefined> = ref()
-const watch = new Watch(machineSetNode)
-watch.setup({
+const { data: machineSetNode, loading } = useResourceWatch<MachineSetNodeSpec>({
   resource: {
     type: MachineSetNodeType,
     id: route.params.machine as string,
@@ -68,8 +65,6 @@ watch.setup({
   },
   runtime: Runtime.Omni,
 })
-
-const loading = watch.loading
 
 const destroyNode = async () => {
   router.push({

@@ -2,35 +2,26 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-
-import type { Ref } from 'vue'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import {
   ClusterMachineStatusLabelNodeName,
   ClusterMachineStatusType,
   DefaultNamespace,
 } from '@/api/resources'
-import Watch from '@/api/watch'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
-export const setupNodenameWatch = (id: string | string[]): Ref<string> => {
-  const res: Ref<Resource<ClusterMachineStatusSpec> | undefined> = ref()
-
-  const w = new Watch(res)
-
-  w.setup({
+export const setupNodenameWatch = (id: string) => {
+  const { data } = useResourceWatch<ClusterMachineStatusSpec>({
     resource: {
       type: ClusterMachineStatusType,
       namespace: DefaultNamespace,
-      id: id as string,
+      id,
     },
     runtime: Runtime.Omni,
   })
 
-  return computed(() => {
-    return (res.value?.metadata?.labels ?? {})[ClusterMachineStatusLabelNodeName] ?? ''
-  })
+  return computed(() => data.value?.metadata.labels?.[ClusterMachineStatusLabelNodeName] ?? '')
 }

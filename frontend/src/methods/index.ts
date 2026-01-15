@@ -6,13 +6,12 @@ import type { Node as V1Node } from 'kubernetes-types/core/v1'
 import { coerce } from 'semver'
 import { UAParser } from 'ua-parser-js'
 import { CPUArch, OSName } from 'ua-parser-js/enums'
-import type { ComputedRef, Ref } from 'vue'
+import type { Ref } from 'vue'
 import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { fetchOption } from '@/api/fetch.pb'
 import { b64Decode } from '@/api/fetch.pb'
-import type { Resource } from '@/api/grpc'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import type { EtcdBackupOverallStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withContext } from '@/api/options'
@@ -22,8 +21,8 @@ import {
   EtcdBackupOverallStatusType,
   MetricsNamespace,
 } from '@/api/resources'
-import Watch from '@/api/watch'
 import { NodesViewFilterOptions, TCommonStatuses } from '@/constants'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 
 export function getNonce() {
@@ -170,15 +169,8 @@ const capitalize = (w: string) => {
   return `${w.charAt(0).toUpperCase()}${w.slice(1)}`
 }
 
-export const setupBackupStatus = (): {
-  status: ComputedRef<BackupsStatus>
-  watch: Watch<Resource<EtcdBackupOverallStatusSpec>>
-} => {
-  const res = ref<Resource<EtcdBackupOverallStatusSpec>>()
-
-  const watch = new Watch<Resource<EtcdBackupOverallStatusSpec>>(res)
-
-  watch.setup({
+export const setupBackupStatus = () => {
+  const { data: res } = useResourceWatch<EtcdBackupOverallStatusSpec>({
     resource: {
       id: EtcdBackupOverallStatusID,
       namespace: MetricsNamespace,
@@ -186,6 +178,7 @@ export const setupBackupStatus = (): {
     },
     runtime: Runtime.Omni,
   })
+
   return {
     status: computed(() => {
       const configurable = res.value?.spec.configuration_name === 's3'
@@ -205,7 +198,6 @@ export const setupBackupStatus = (): {
         store: res.value?.spec.configuration_name,
       }
     }),
-    watch,
   }
 }
 

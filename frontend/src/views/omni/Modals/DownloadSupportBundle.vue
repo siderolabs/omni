@@ -11,12 +11,10 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { b64Decode } from '@/api/fetch.pb'
-import type { Resource } from '@/api/grpc'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import type { TalosUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withAbortController } from '@/api/options'
 import { DefaultNamespace, TalosUpgradeStatusType } from '@/api/resources'
-import Watch from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
@@ -25,6 +23,7 @@ import ProgressBar from '@/components/common/ProgressBar/ProgressBar.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { setupClusterPermissions } from '@/methods/auth'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
@@ -36,18 +35,12 @@ const selectedVersion = ref('')
 
 const clusterName = route.params.cluster as string
 
-const resource = {
-  namespace: DefaultNamespace,
-  type: TalosUpgradeStatusType,
-  id: clusterName,
-}
-
-const status: Ref<Resource<TalosUpgradeStatusSpec> | undefined> = ref()
-
-const upgradeStatusWatch = new Watch(status)
-
-upgradeStatusWatch.setup({
-  resource: resource,
+const { data: status } = useResourceWatch<TalosUpgradeStatusSpec>({
+  resource: {
+    namespace: DefaultNamespace,
+    type: TalosUpgradeStatusType,
+    id: clusterName,
+  },
   runtime: Runtime.Omni,
 })
 
