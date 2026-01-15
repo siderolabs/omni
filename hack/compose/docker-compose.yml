@@ -89,7 +89,7 @@ services:
   node-dev:
     network_mode: host
     container_name: local-node
-    image: node:24.11.0-alpine
+    image: node:24.13.0-alpine
     volumes:
       - ../../frontend:/app:rw
     working_dir: /app

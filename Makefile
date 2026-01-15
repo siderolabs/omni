@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-14T12:19:03Z by kres 8b6181b.
+# Generated on 2026-01-15T15:33:44Z by kres f7396f7.
 
 # common variables
 
@@ -83,7 +83,7 @@ COMMON_ARGS += --build-arg=DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
 COMMON_ARGS += --build-arg=GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
 COMMON_ARGS += --build-arg=GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
 COMMON_ARGS += --build-arg=TESTPKGS="$(TESTPKGS)"
-JS_TOOLCHAIN ?= docker.io/node:24.12.0-alpine
+JS_TOOLCHAIN ?= docker.io/node:24.13.0-alpine
 TOOLCHAIN ?= docker.io/golang:1.25-alpine
 
 # extra variables

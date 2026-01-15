@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "engines": {
-    "node": "^24.11.0"
+    "node": "^24.13.0"
   },
   "msw": {
     "workerDirectory": [
@@ -74,7 +74,7 @@
     "@types/jsdom": "^27.0.0",
     "@types/lodash": "^4.17.21",
     "@types/luxon": "^3.7.1",
-    "@types/node": "^24.10.4",
+    "@types/node": "^24.10.8",
     "@types/pluralize": "^0.0.33",
     "@types/semver": "^7.7.1",
     "@vitejs/plugin-vue": "^6.0.3",
