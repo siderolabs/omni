@@ -432,18 +432,16 @@ const {
             :description="`Cluster scaling is disabled when the cluster is locked.`"
           >
             <TButton
+              is="router-link"
               class="overview-item-button w-full"
               type="highlighted"
               icon="nodes"
               icon-position="left"
               :disabled="!canAddClusterMachines || locked"
-              @click="
-                () =>
-                  $router.push({
-                    name: 'ClusterScale',
-                    params: { cluster: currentCluster?.metadata?.id },
-                  })
-              "
+              :to="{
+                name: 'ClusterScale',
+                params: { cluster: currentCluster.metadata.id },
+              }"
             >
               Cluster Scaling
             </TButton>

@@ -126,7 +126,7 @@ defineProps<Props>()
         :class="'cluster-stage-box' + (connected(machine) ? '' : ' brightness-50')"
       >
         <TIcon :icon="stageIcon(machine)" class="h-4" />
-        <div id="cluster-machine-stage-name" class="flex-1 truncate">
+        <div data-testid="cluster-machine-stage-name" class="flex-1 truncate">
           {{ stageName(machine) || '' }}
         </div>
       </div>

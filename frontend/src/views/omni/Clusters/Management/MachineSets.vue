@@ -30,19 +30,21 @@ const addWorkers = () => {
 <template>
   <div>
     <TButton icon="plus" class="h-8" size="sm" @click="addWorkers">Add Worker Machine Sets</TButton>
-    <MachineSetConfig
-      v-for="(machineSet, index) in state.machineSets"
-      :key="machineSet.name"
-      :talos-version="state.cluster.talosVersion"
-      :machine-classes="machineClasses"
-      :model-value="machineSet"
-      :no-remove="index < 2"
-      :on-remove="
-        () => {
-          state.removeMachineSet(index)
-        }
-      "
-      @update:model-value="(value) => (state.machineSets[index] = value)"
-    />
+    <ul>
+      <MachineSetConfig
+        v-for="(machineSet, index) in state.machineSets"
+        :key="machineSet.name"
+        :talos-version="state.cluster.talosVersion"
+        :machine-classes="machineClasses"
+        :model-value="machineSet"
+        :no-remove="index < 2"
+        :on-remove="
+          () => {
+            state.removeMachineSet(index)
+          }
+        "
+        @update:model-value="(value) => (state.machineSets[index] = value)"
+      />
+    </ul>
   </div>
 </template>

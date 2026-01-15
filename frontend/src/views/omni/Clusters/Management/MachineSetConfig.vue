@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import pluralize from 'pluralize'
 import type { Ref } from 'vue'
-import { computed, ref, toRefs, watch } from 'vue'
+import { computed, ref, toRefs, useId, watch } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineClassSpec } from '@/api/omni/specs/omni.pb'
@@ -153,15 +153,18 @@ const openPatchConfig = () => {
     },
   })
 }
+
+const labelId = useId()
 </script>
 
 <template>
-  <div
+  <li
     class="my-1 flex items-center gap-2 rounded border border-naturals-n5 bg-naturals-n3 px-2 py-2 pr-3 text-xs text-naturals-n13"
+    :aria-labelledby="labelId"
   >
     <MachineSetLabel :color="modelValue.color" class="w-10" :machine-set-id="modelValue.id" />
     <div class="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1">
-      <div class="w-32 truncate" :title="modelValue.name">
+      <div :id="labelId" class="w-32 truncate" :title="modelValue.name">
         {{ modelValue.name }}
       </div>
       <div class="flex items-center gap-2">
@@ -216,5 +219,5 @@ const openPatchConfig = () => {
         />
       </div>
     </div>
-  </div>
+  </li>
 </template>

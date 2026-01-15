@@ -130,14 +130,16 @@ const filterOptions = [
             <div>Actions</div>
           </div>
 
-          <ClusterItem
-            v-for="(item, index) in items"
-            :key="itemID(item)"
-            :default-open="index === 0"
-            :search-query="searchQuery"
-            :item="item"
-            @filter-labels="(label) => addLabel(filterLabels, label)"
-          />
+          <ul class="col-span-full grid grid-cols-subgrid gap-3">
+            <ClusterItem
+              v-for="(item, index) in items"
+              :key="itemID(item)"
+              :default-open="index === 0"
+              :search-query="searchQuery"
+              :item="item"
+              @filter-labels="(label) => addLabel(filterLabels, label)"
+            />
+          </ul>
         </div>
       </template>
     </TList>

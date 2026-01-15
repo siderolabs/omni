@@ -53,7 +53,7 @@ const test = base.extend<ClusterFixtures>({
       await use({ name: clusterName })
 
       // Destroy
-      await omnictl(['cluster', 'delete', clusterName])
+      await omnictl(['cluster', 'template', 'delete', '-f', templatePath, '--verbose'])
     },
     { timeout: milliseconds({ minutes: 1 }) },
   ],
