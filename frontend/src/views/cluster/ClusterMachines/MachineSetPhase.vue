@@ -88,7 +88,7 @@ defineProps<Props>()
   <div class="flex gap-2">
     <div :style="'color: ' + phaseColor(item)" class="cluster-phase-box">
       <TIcon :icon="phaseIcon(item)" class="h-4" />
-      <div id="machine-set-phase-name">{{ phaseName(item) || '' }}</div>
+      <div data-testid="machine-set-phase-name">{{ phaseName(item) || '' }}</div>
     </div>
     <div v-if="item.spec.locked_updates" class="flex items-center gap-1 text-sky-400">
       <TIcon icon="time" class="h-4" />

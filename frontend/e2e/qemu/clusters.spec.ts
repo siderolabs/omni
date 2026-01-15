@@ -55,7 +55,7 @@ hostname: ${machineName}`)
   await page.getByRole('button', { name: 'Create Cluster' }).click()
 
   await test.step('Scale cluster', async () => {
-    await page.getByRole('button', { name: 'Cluster Scaling' }).click()
+    await page.getByRole('link', { name: 'Cluster Scaling' }).click()
     await page.getByRole('radio', { name: 'W0' }).first().click()
     await page.getByRole('button', { name: 'Update' }).click()
 
@@ -67,10 +67,10 @@ hostname: ${machineName}`)
   await page.getByRole('link', { name: 'Clusters' }).click()
 
   await expect(async () => {
-    await expect(page.locator('#machine-count')).toHaveText(/\d\/3/)
+    await expect(page.getByTestId('machine-count')).toHaveText(/\d\/3/)
     await expect(page.getByText(machineName)).toBeVisible()
-    await expect(page.locator('#machine-set-phase-name').getByText('Running')).toHaveCount(2)
-    await expect(page.locator('#cluster-machine-stage-name').getByText('Running')).toHaveCount(3)
+    await expect(page.getByTestId('machine-set-phase-name').getByText('Running')).toHaveCount(2)
+    await expect(page.getByTestId('cluster-machine-stage-name').getByText('Running')).toHaveCount(3)
   }, 'Wait for cluster to be running').toPass({
     intervals: [milliseconds({ seconds: 5 })],
     timeout: milliseconds({ minutes: 15 }),
