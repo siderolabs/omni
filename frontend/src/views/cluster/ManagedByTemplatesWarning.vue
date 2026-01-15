@@ -5,14 +5,15 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
+import type { ClusterSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace, ResourceManagedByClusterTemplates } from '@/api/resources'
-import Watch from '@/api/watch'
 import TAlert from '@/components/TAlert.vue'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 export type WarningStyle = 'alert' | 'popup' | 'short'
 
@@ -22,31 +23,20 @@ type Props = {
 }
 
 const { resource, warningStyle = 'alert' } = defineProps<Props>()
+const route = useRoute()
 
-const routeResource = ref<Resource>()
+const { data: routeResource } = useResourceWatch<ClusterSpec>(() => ({
+  // If the resource is not passed explicitly, default to the cluster in the route, if exists.
+  skip: !!resource || !route.params.cluster,
+  resource: {
+    type: ClusterType,
+    namespace: DefaultNamespace,
+    id: route.params.cluster as string,
+  },
+  runtime: Runtime.Omni,
+}))
+
 const activeResource = computed(() => resource || routeResource.value)
-
-// If the resource is not passed explicitly, default to the cluster in the route, if exists.
-if (!resource) {
-  const route = useRoute()
-  const clusterWatch = new Watch(routeResource)
-
-  clusterWatch.setup(
-    computed(() => {
-      if (!route.params.cluster) {
-        return undefined
-      }
-      return {
-        resource: {
-          type: ClusterType,
-          namespace: DefaultNamespace,
-          id: route.params.cluster as string,
-        },
-        runtime: Runtime.Omni,
-      }
-    }),
-  )
-}
 
 const resourceIsManagedByTemplates = computed(() => {
   return (

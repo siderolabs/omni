@@ -5,15 +5,14 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref, toRefs, watch } from 'vue'
+import { ref, toRefs, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineStatusType } from '@/api/resources'
-import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { closeModal } from '@/modal'
 import ExtensionsPicker from '@/views/omni/Extensions/ExtensionsPicker.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -38,8 +37,14 @@ if (modelValue.value) {
   }
 }
 
-const machineStatus = ref<Resource<MachineStatusSpec>>()
-const machineStatusWatch = new Watch(machineStatus)
+const { data: machineStatus } = useResourceWatch<MachineStatusSpec>(() => ({
+  resource: {
+    id: machine.value,
+    namespace: DefaultNamespace,
+    type: MachineStatusType,
+  },
+  runtime: Runtime.Omni,
+}))
 
 watch(machineStatus, () => {
   if (modelValue.value !== undefined) {
@@ -57,19 +62,6 @@ watch(machineStatus, () => {
     requestedExtensions.value[extension] = true
   }
 })
-
-machineStatusWatch.setup(
-  computed(() => {
-    return {
-      resource: {
-        id: machine.value,
-        namespace: DefaultNamespace,
-        type: MachineStatusType,
-      },
-      runtime: Runtime.Omni,
-    }
-  }),
-)
 
 const updateExtensions = (extensions?: Record<string, boolean>) => {
   if (extensions === undefined) {
