@@ -31,18 +31,19 @@ import (
 // NewStore creates a new Store.
 func NewStore(config *config.LogsMachine, id string, compressor circular.Compressor, logger *zap.Logger) (*Store, error) {
 	bufferOpts := []circular.OptionFunc{
-		circular.WithInitialCapacity(config.BufferInitialCapacity),
-		circular.WithMaxCapacity(config.BufferMaxCapacity),
-		circular.WithSafetyGap(config.BufferSafetyGap),
-		circular.WithNumCompressedChunks(config.Storage.NumCompressedChunks, compressor),
+		circular.WithInitialCapacity(config.GetBufferInitialCapacity()),
+		circular.WithMaxCapacity(config.GetBufferMaxCapacity()),
+		circular.WithSafetyGap(config.GetBufferSafetyGap()),
+		circular.WithNumCompressedChunks(config.Storage.GetNumCompressedChunks(), compressor),
 		circular.WithLogger(logger),
 	}
 
-	if config.Storage.Enabled {
+	storageEnabled := config.Storage.GetEnabled()
+	if storageEnabled {
 		bufferOpts = append(bufferOpts, circular.WithPersistence(circular.PersistenceOptions{
-			ChunkPath:     filepath.Join(config.Storage.Path, id+".log"),
-			FlushInterval: config.Storage.FlushPeriod,
-			FlushJitter:   config.Storage.FlushJitter,
+			ChunkPath:     filepath.Join(config.Storage.GetPath(), id+".log"),
+			FlushInterval: config.Storage.GetFlushPeriod(),
+			FlushJitter:   config.Storage.GetFlushJitter(),
 		}))
 	}
 
@@ -51,7 +52,7 @@ func NewStore(config *config.LogsMachine, id string, compressor circular.Compres
 		return nil, fmt.Errorf("failed to create circular buffer for machine %q: %w", id, err)
 	}
 
-	if config.Storage.Enabled {
+	if storageEnabled {
 		loadLegacyLogs(config, id, buffer, logger)
 	}
 
@@ -203,7 +204,7 @@ func trimNewlines(data []byte) []byte {
 //
 // It is a best-effort function and does not return any error.
 func loadLegacyLogs(config *config.LogsMachine, id string, writer io.Writer, logger *zap.Logger) {
-	filePath := filepath.Join(config.Storage.Path, fmt.Sprintf("%s.log", id))
+	filePath := filepath.Join(config.Storage.GetPath(), fmt.Sprintf("%s.log", id))
 	shaSumPath := filePath + ".sha256sum"
 
 	defer func() {

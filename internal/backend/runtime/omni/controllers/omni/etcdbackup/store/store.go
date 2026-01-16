@@ -45,7 +45,7 @@ var newEtcdBackupStoreFactory = sync.OnceValues(func() (FactoryWithMetrics, erro
 	case config.EtcdBackupTypeS3:
 		result = NewS3StoreFactory()
 	case config.EtcdBackupTypeFS:
-		result = NewFileStoreStoreFactory(config.Config.EtcdBackup.LocalPath)
+		result = NewFileStoreStoreFactory(config.Config.EtcdBackup.GetLocalPath())
 	case config.EtcdBackupTypeNone:
 		result = DisabledStoreFactory
 	default:

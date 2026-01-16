@@ -86,7 +86,7 @@ func TestProvision(t *testing.T) {
 		return privateKey.PublicKey().String()
 	}
 
-	setup := func(ctx context.Context, t *testing.T, mode string) (state.State, *siderolink.ProvisionHandler) {
+	setup := func(ctx context.Context, t *testing.T, mode config.SiderolinkServiceJoinTokensMode) (state.State, *siderolink.ProvisionHandler) {
 		state := state.WrapCore(namespaced.NewState(inmem.Build))
 		logger := zaptest.NewLogger(t)
 
@@ -161,7 +161,7 @@ func TestProvision(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 		defer cancel()
 
-		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
+		state, provisionHandler := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
 
 		request := &pb.ProvisionRequest{
 			NodeUuid:      "machine-1",
@@ -228,7 +228,7 @@ func TestProvision(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 			defer cancel()
 
-			state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
+			state, provisionHandler := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
 
 			request := &pb.ProvisionRequest{
 				NodeUuid:      fmt.Sprintf("machine-migration-%s", tt.name),
@@ -275,15 +275,15 @@ func TestProvision(t *testing.T) {
 
 	for _, mode := range []struct {
 		name string
-		mode string
+		mode config.SiderolinkServiceJoinTokensMode
 	}{
 		{
 			name: "legacy",
-			mode: config.JoinTokensModeLegacyAllowed,
+			mode: config.SiderolinkServiceJoinTokensModeLegacyAllowed,
 		},
 		{
 			name: "normal",
-			mode: config.JoinTokensModeStrict,
+			mode: config.SiderolinkServiceJoinTokensModeStrict,
 		},
 	} {
 		for _, tt := range []struct {
@@ -417,7 +417,7 @@ func TestProvision(t *testing.T) {
 					JoinToken:     &validToken,
 				},
 				errcheck: func(t *testing.T, err error) {
-					if mode.mode == config.JoinTokensModeStrict {
+					if mode.mode == config.SiderolinkServiceJoinTokensModeStrict {
 						require.Equal(t, codes.FailedPrecondition, status.Code(err))
 
 						return
@@ -433,7 +433,7 @@ func TestProvision(t *testing.T) {
 					TalosVersion:  pointer.To("v1.4.0"),
 				},
 				errcheck: func(t *testing.T, err error) {
-					if mode.mode == config.JoinTokensModeLegacyAllowed {
+					if mode.mode == config.SiderolinkServiceJoinTokensModeLegacyAllowed {
 						require.Equal(t, codes.PermissionDenied, status.Code(err))
 
 						return
@@ -484,7 +484,7 @@ func TestProvision(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 		defer cancel()
 
-		state, provisionHandler := setup(ctx, t, config.JoinTokensModeLegacyAllowed)
+		state, provisionHandler := setup(ctx, t, config.SiderolinkServiceJoinTokensModeLegacyAllowed)
 
 		request := &pb.ProvisionRequest{
 			NodeUuid:      "machine-legacy",
@@ -515,7 +515,7 @@ func TestProvision(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 		defer cancel()
 
-		state, provisionHandler := setup(ctx, t, config.JoinTokensModeLegacyAllowed)
+		state, provisionHandler := setup(ctx, t, config.SiderolinkServiceJoinTokensModeLegacyAllowed)
 
 		request := &pb.ProvisionRequest{
 			NodeUuid:      "machine-legacy",
@@ -543,7 +543,7 @@ func TestProvision(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 		defer cancel()
 
-		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
+		state, provisionHandler := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
 
 		uniqueToken, err := jointoken.NewNodeUniqueToken(uuid.NewString(), uuid.NewString()).Encode()
 		require.NoError(t, err)
@@ -593,7 +593,7 @@ func TestProvision(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 		defer cancel()
 
-		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
+		state, provisionHandler := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
 
 		token, err := jointoken.NewWithExtraData(validToken, jointoken.Version1, map[string]string{
 			omni.LabelMachineRequest: "hi",
@@ -639,7 +639,7 @@ func TestProvision(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 		defer cancel()
 
-		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
+		state, provisionHandler := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
 
 		require.NoError(t, state.Create(ctx, infra.NewProvider(providerID)))
 
@@ -695,7 +695,7 @@ func TestProvision(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 		defer cancel()
 
-		state, provisionHandler := setup(ctx, t, config.JoinTokensModeStrict)
+		state, provisionHandler := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
 
 		require.NoError(t, state.Create(ctx, infra.NewProvider(providerID)))
 

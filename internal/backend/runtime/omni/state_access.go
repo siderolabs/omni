@@ -506,7 +506,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		return err
 	}
 
-	if config.Config.Auth.SAML.Enabled {
+	if config.Config.Auth.Saml.GetEnabled() {
 		switch access.ResourceType {
 		case authres.UserType:
 			// If SAML is enabled only enable read, update and destroy on User resources.

@@ -15,7 +15,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/siderolabs/go-pointer"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
@@ -25,18 +24,18 @@ import (
 )
 
 func initLogger(ctx context.Context, config config.LogsAudit, db *sql.DB, logger *zap.Logger) (Logger, error) {
-	if !pointer.SafeDeref(config.Enabled) {
+	if !config.GetEnabled() {
 		logger.Info("audit logging is disabled")
 
 		return &nopLogger{}, nil
 	}
 
-	dbAuditLogger, err := auditlogsqlite.NewStore(ctx, db, config.SQLiteTimeout)
+	dbAuditLogger, err := auditlogsqlite.NewStore(ctx, db, config.GetSqliteTimeout())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sqlite audit logger: %w", err)
 	}
 
-	path := config.Path //nolint:staticcheck
+	path := config.GetPath() //nolint:staticcheck
 
 	if path == "" { // nothing to migrate, just use sqlite
 		return dbAuditLogger, nil

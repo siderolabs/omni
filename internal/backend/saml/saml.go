@@ -32,7 +32,7 @@ func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.L
 		return nil, err
 	}
 
-	rootURL, err := url.Parse(config.Config.Services.API.URL())
+	rootURL, err := url.Parse(config.Config.Services.Api.URL())
 	if err != nil {
 		return nil, err
 	}

@@ -502,7 +502,7 @@ func runOmni(t *testing.T) (string, error) {
 		return "", err
 	}
 
-	omniEndpoint = params.Services.API.URL()
+	omniEndpoint = params.Services.Api.URL()
 	t.Logf("running integration tests using embedded Omni at %q", omniEndpoint)
 
 	return sa, nil

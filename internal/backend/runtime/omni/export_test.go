@@ -30,7 +30,7 @@ func GetEmbeddedEtcdClientWithServer(params *config.EtcdParams, logger *zap.Logg
 	return getEmbeddedEtcdState(params, logger)
 }
 
-func ClusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup, embeddedDiscoveryServiceConfig *config.EmbeddedDiscoveryService) []validated.StateOption {
+func ClusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup, embeddedDiscoveryServiceConfig config.EmbeddedDiscoveryService) []validated.StateOption {
 	return clusterValidationOptions(st, etcdBackupConfig, embeddedDiscoveryServiceConfig)
 }
 

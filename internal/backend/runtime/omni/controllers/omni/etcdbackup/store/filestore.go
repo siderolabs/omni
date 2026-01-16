@@ -27,7 +27,7 @@ type fileStoreFactory struct {
 func NewFileStoreStoreFactory(path string) Factory {
 	return &fileStoreFactory{
 		store: crypt.NewStore(fstore.NewFileStore(path)),
-		path:  config.Config.EtcdBackup.LocalPath,
+		path:  config.Config.EtcdBackup.GetLocalPath(),
 	}
 }
 

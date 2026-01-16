@@ -78,19 +78,19 @@ func Run(ctx context.Context, state *omni.State, config *config.Params, logger *
 
 	dnsService := dns.NewService(state.Default(), logger)
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger.With(logging.Component("workload_proxy_reconciler")),
-		zapcore.DebugLevel, config.Services.WorkloadProxy.StopLBsAfter)
+		zapcore.DebugLevel, config.Services.WorkloadProxy.GetStopLBsAfter())
 
 	var resourceLogger *resourcelogger.Logger
 
 	if len(config.Logs.ResourceLogger.Types) > 0 {
 		resourceLogger, err = resourcelogger.New(ctx, state.Default(), logger.With(logging.Component("resourcelogger")),
-			config.Logs.ResourceLogger.LogLevel, config.Logs.ResourceLogger.Types...)
+			config.Logs.ResourceLogger.GetLogLevel(), config.Logs.ResourceLogger.Types...)
 		if err != nil {
 			return fmt.Errorf("failed to set up resource logger: %w", err)
 		}
 	}
 
-	imageFactoryClient, err := imagefactory.NewClient(state.Default(), config.Registries.ImageFactoryBaseURL)
+	imageFactoryClient, err := imagefactory.NewClient(state.Default(), config.Registries.GetImageFactoryBaseURL())
 	if err != nil {
 		return fmt.Errorf("failed to set up image factory client: %w", err)
 	}

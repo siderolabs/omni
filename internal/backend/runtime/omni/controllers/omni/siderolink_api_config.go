@@ -37,10 +37,10 @@ func NewSiderolinkAPIConfigController(services *config.Services) *SiderolinkAPIC
 				spec := params.TypedSpec().Value
 
 				spec.MachineApiAdvertisedUrl = services.MachineAPI.URL()
-				spec.WireguardAdvertisedEndpoint = services.Siderolink.WireGuard.AdvertisedEndpoint
-				spec.EnforceGrpcTunnel = services.Siderolink.UseGRPCTunnel
-				spec.LogsPort = int32(services.Siderolink.LogServerPort)
-				spec.EventsPort = int32(services.Siderolink.EventSinkPort)
+				spec.WireguardAdvertisedEndpoint = services.Siderolink.WireGuard.GetAdvertisedEndpoint()
+				spec.EnforceGrpcTunnel = services.Siderolink.GetUseGRPCTunnel()
+				spec.LogsPort = int32(services.Siderolink.GetLogServerPort())
+				spec.EventsPort = int32(services.Siderolink.GetEventSinkPort())
 
 				return nil
 			},

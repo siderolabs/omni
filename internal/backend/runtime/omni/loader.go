@@ -103,7 +103,7 @@ func makeVaultHTTPLoader(source string, logger *zap.Logger) (Loader, error) {
 
 	token, ok := os.LookupEnv("VAULT_TOKEN")
 	if !ok {
-		token = config.Config.Storage.Vault.Token
+		token = config.Config.Storage.Vault.GetToken()
 
 		if token == "" {
 			return nil, errors.New("VAULT_TOKEN is not set")
@@ -112,7 +112,7 @@ func makeVaultHTTPLoader(source string, logger *zap.Logger) (Loader, error) {
 
 	addr, ok := os.LookupEnv("VAULT_ADDR")
 	if !ok {
-		addr = config.Config.Storage.Vault.URL
+		addr = config.Config.Storage.Vault.GetUrl()
 		if addr == "" {
 			return nil, errors.New("VAULT_ADDR is not set")
 		}

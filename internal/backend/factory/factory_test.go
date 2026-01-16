@@ -92,9 +92,10 @@ func TestParseRequest(t *testing.T) {
 			request, err := http.NewRequestWithContext(ctx, http.MethodHead, "https://localhost"+tt.incomingURL, nil)
 			require.NoError(err)
 
-			params, err := factory.ParseRequest(request, state, &config.Registries{
-				ImageFactoryBaseURL: "https://factory.talos.dev",
-			})
+			cfg := &config.Registries{}
+			cfg.SetImageFactoryBaseURL("https://factory.talos.dev")
+
+			params, err := factory.ParseRequest(request, state, cfg)
 			if tt.shouldFail {
 				require.Error(err)
 

@@ -783,6 +783,7 @@ spec:
         - .pb.gw.go
         - .pb.ts
         - mockServiceWorker.js
+        - .generated.go
       skipPaths:
         - .git
         - testdata/

@@ -24,6 +24,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/xiter"
+	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -69,13 +70,13 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 	t.Cleanup(cancel)
 
 	etcdBackupConfig := config.EtcdBackup{
-		TickInterval: time.Minute,
-		MinInterval:  time.Hour,
-		MaxInterval:  24 * time.Hour,
+		TickInterval: pointer.To(time.Minute),
+		MinInterval:  pointer.To(time.Hour),
+		MaxInterval:  pointer.To(24 * time.Hour),
 	}
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, &config.EmbeddedDiscoveryService{})...)
+	st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryService{})...)
 
 	// prepare talos versions
 	for _, prep := range []struct {
@@ -459,7 +460,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	buildState := func(conf *config.EmbeddedDiscoveryService) (inner, outer state.State) {
+	buildState := func(conf config.EmbeddedDiscoveryService) (inner, outer state.State) {
 		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 		st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), config.EtcdBackup{}, conf)...)
 
@@ -469,8 +470,8 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 	t.Run("disabled instance-wide - create", func(t *testing.T) {
 		t.Parallel()
 
-		_, st := buildState(&config.EmbeddedDiscoveryService{
-			Enabled: false,
+		_, st := buildState(config.EmbeddedDiscoveryService{
+			Enabled: pointer.To(false),
 		})
 
 		cluster := omnires.NewCluster("test")
@@ -489,8 +490,8 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 		t.Parallel()
 
 		// prepare a cluster which has the feature enabled, while it is disabled instance-wide
-		innerSt, st := buildState(&config.EmbeddedDiscoveryService{
-			Enabled: false,
+		innerSt, st := buildState(config.EmbeddedDiscoveryService{
+			Enabled: pointer.To(false),
 		})
 
 		talosVersion := omnires.NewTalosVersion("1.7.4")
@@ -518,8 +519,8 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 	t.Run("enabled instance-wide", func(t *testing.T) {
 		t.Parallel()
 
-		_, st := buildState(&config.EmbeddedDiscoveryService{
-			Enabled: true,
+		_, st := buildState(config.EmbeddedDiscoveryService{
+			Enabled: pointer.To(true),
 		})
 
 		talosVersion := omnires.NewTalosVersion("1.7.4")
@@ -907,9 +908,9 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	etcdBackupStoreFactory, err := store.NewStoreFactory()
 	etcdBackupConfig := config.EtcdBackup{
-		TickInterval: time.Minute,
-		MinInterval:  time.Hour,
-		MaxInterval:  24 * time.Hour,
+		TickInterval: pointer.To(time.Minute),
+		MinInterval:  pointer.To(time.Hour),
+		MaxInterval:  pointer.To(24 * time.Hour),
 	}
 
 	require.NoError(t, err)
@@ -917,7 +918,7 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	//nolint:prealloc
 	var validationOptions []validated.StateOption
 
-	validationOptions = append(validationOptions, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, &config.EmbeddedDiscoveryService{})...)
+	validationOptions = append(validationOptions, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryService{})...)
 	validationOptions = append(validationOptions, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
 	validationOptions = append(validationOptions, omni.MachineSetValidationOptions(state.WrapCore(innerSt), etcdBackupStoreFactory)...)
 
@@ -1023,9 +1024,9 @@ func TestClusterImport(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	etcdBackupStoreFactory, err := store.NewStoreFactory()
 	etcdBackupConfig := config.EtcdBackup{
-		TickInterval: time.Minute,
-		MinInterval:  time.Hour,
-		MaxInterval:  24 * time.Hour,
+		TickInterval: pointer.To(time.Minute),
+		MinInterval:  pointer.To(time.Hour),
+		MaxInterval:  pointer.To(24 * time.Hour),
 	}
 
 	require.NoError(t, err)
@@ -1033,7 +1034,7 @@ func TestClusterImport(t *testing.T) {
 	//nolint:prealloc
 	var validationOptions []validated.StateOption
 
-	validationOptions = append(validationOptions, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, &config.EmbeddedDiscoveryService{})...)
+	validationOptions = append(validationOptions, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryService{})...)
 	validationOptions = append(validationOptions, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
 	validationOptions = append(validationOptions, omni.MachineSetValidationOptions(state.WrapCore(innerSt), etcdBackupStoreFactory)...)
 
@@ -1089,7 +1090,7 @@ func TestIdentitySAMLValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.IdentityValidationOptions(config.SAML{
-		Enabled: true,
+		Enabled: pointer.To(true),
 	})...)
 
 	user := auth.NewIdentity("aaa@example.org")

@@ -3,12 +3,16 @@ module github.com/siderolabs/omni
 go 1.25.6
 
 replace (
+	// adds the extraTags field to the JSONSchema, switch to upstream if/when https://github.com/omissis/go-jsonschema/pull/504 gets merged
+	github.com/atombender/go-jsonschema => github.com/utkuozdemir/go-jsonschema v0.0.0-20260116005549-a1810c7ef5ad
 	// forked saml library that has the fix for Fusion Auth ACS parsing
 	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe
 
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
 )
+
+tool github.com/atombender/go-jsonschema
 
 require (
 	filippo.io/age v1.3.1
@@ -39,7 +43,6 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
-	github.com/go-playground/validator/v10 v10.30.1
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.20.7
@@ -118,12 +121,14 @@ require (
 
 require (
 	cel.dev/expr v0.25.1 // indirect
+	dario.cat/mergo v1.0.2 // indirect
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
+	github.com/atombender/go-jsonschema v0.20.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.4 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.17 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.17 // indirect
@@ -167,7 +172,6 @@ require (
 	github.com/fluxcd/cli-utils v0.36.0-flux.15 // indirect
 	github.com/fluxcd/pkg/ssa v0.60.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-chi/chi/v5 v5.2.3 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
@@ -186,8 +190,7 @@ require (
 	github.com/go-openapi/swag/stringutils v0.25.4 // indirect
 	github.com/go-openapi/swag/typeutils v0.25.4 // indirect
 	github.com/go-openapi/swag/yamlutils v0.25.4 // indirect
-	github.com/go-playground/locales v0.14.1 // indirect
-	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang/mock v1.7.0-rc.1 // indirect
@@ -212,7 +215,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jsimonetti/rtnetlink/v2 v2.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -249,12 +251,14 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
+	github.com/sanity-io/litter v1.5.8 // indirect
 	github.com/sasha-s/go-deadlock v0.3.6 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/siderolabs/go-kubeconfig v0.1.1 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
 	github.com/siderolabs/protoenc v0.2.4 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
+	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spyzhov/ajson v0.9.6 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect

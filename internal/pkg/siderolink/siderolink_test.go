@@ -122,7 +122,7 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	params := sideromanager.Params{
 		WireguardEndpoint:  "127.0.0.1:0",
-		AdvertisedEndpoint: config.Config.Services.Siderolink.WireGuard.AdvertisedEndpoint + "," + TestIP,
+		AdvertisedEndpoint: config.Config.Services.Siderolink.WireGuard.GetAdvertisedEndpoint() + "," + TestIP,
 		MachineAPIEndpoint: "127.0.0.1:0",
 	}
 
@@ -331,7 +331,7 @@ func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
 		},
 	))(suite.T())
 
-	require.Equal(suite.T(), []string{config.Config.Services.Siderolink.WireGuard.AdvertisedEndpoint, TestIP}, resp.GetEndpoints())
+	require.Equal(suite.T(), []string{config.Config.Services.Siderolink.WireGuard.GetAdvertisedEndpoint(), TestIP}, resp.GetEndpoints())
 }
 
 func (suite *SiderolinkSuite) TestVirtualNodes() {
@@ -417,7 +417,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 
 	expectedResp := resp.CloneVT()
 	expectedResp.GrpcPeerAddrPort = ""
-	expectedResp.ServerEndpoint = pb.MakeEndpoints(config.Config.Services.Siderolink.WireGuard.AdvertisedEndpoint, TestIP)
+	expectedResp.ServerEndpoint = pb.MakeEndpoints(config.Config.Services.Siderolink.WireGuard.GetAdvertisedEndpoint(), TestIP)
 
 	suite.Assert().NoError(err)
 

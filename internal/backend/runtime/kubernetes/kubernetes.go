@@ -274,7 +274,7 @@ func (r *Runtime) GetOIDCKubeconfig(context *common.Context, identity string, ex
 		Identity     string
 		ExtraOptions []string
 	}{
-		InstanceName: config.Config.Account.Name,
+		InstanceName: config.Config.Account.GetName(),
 		ClusterName:  context.Name,
 
 		EndpointOIDC:            issuerEndpoint,

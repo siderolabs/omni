@@ -308,8 +308,8 @@ func setupStore(ctx context.Context, t *testing.T, _ *zap.Logger) (*auditlogsqli
 
 	path := filepath.Join(t.TempDir(), "test.db")
 
-	conf := config.Default().Storage.SQLite
-	conf.Path = path
+	conf := config.Default().Storage.Sqlite
+	conf.SetPath(path)
 
 	db, err := sqlite.OpenDB(conf)
 	require.NoError(t, err)

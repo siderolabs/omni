@@ -46,33 +46,34 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 			res.TypedSpec().Value.Oidc = &specs.AuthConfigSpec_OIDC{}
 		}
 
-		res.TypedSpec().Value.Auth0.Enabled = authParams.Auth0.Enabled
-		res.TypedSpec().Value.Auth0.Domain = authParams.Auth0.Domain
-		res.TypedSpec().Value.Auth0.ClientId = authParams.Auth0.ClientID
-		res.TypedSpec().Value.Auth0.UseFormData = authParams.Auth0.UseFormData
-		res.TypedSpec().Value.Saml.Enabled = authParams.SAML.Enabled
-		res.TypedSpec().Value.Saml.Url = authParams.SAML.MetadataURL
-		res.TypedSpec().Value.Saml.Metadata = authParams.SAML.Metadata
-		res.TypedSpec().Value.Saml.LabelRules = authParams.SAML.LabelRules
-		res.TypedSpec().Value.Saml.AttributeRules = authParams.SAML.AttributeRules
-		res.TypedSpec().Value.Saml.NameIdFormat = authParams.SAML.NameIDFormat
+		res.TypedSpec().Value.Auth0.Enabled = authParams.Auth0.GetEnabled()
+		res.TypedSpec().Value.Auth0.Domain = authParams.Auth0.GetDomain()
+		res.TypedSpec().Value.Auth0.ClientId = authParams.Auth0.GetClientID()
+		res.TypedSpec().Value.Auth0.UseFormData = authParams.Auth0.GetUseFormData()
+		res.TypedSpec().Value.Saml.Enabled = authParams.Saml.GetEnabled()
+		res.TypedSpec().Value.Saml.Url = authParams.Saml.GetUrl()
+		res.TypedSpec().Value.Saml.Metadata = authParams.Saml.GetMetadata()
+		res.TypedSpec().Value.Saml.LabelRules = authParams.Saml.LabelRules
+		res.TypedSpec().Value.Saml.AttributeRules = authParams.Saml.AttributeRules
+		res.TypedSpec().Value.Saml.NameIdFormat = authParams.Saml.GetNameIDFormat()
 
-		res.TypedSpec().Value.Oidc.Enabled = authParams.OIDC.Enabled
-		res.TypedSpec().Value.Oidc.ClientId = authParams.OIDC.ClientID
-		res.TypedSpec().Value.Oidc.ClientSecret = authParams.OIDC.ClientSecret
-		res.TypedSpec().Value.Oidc.ProviderUrl = authParams.OIDC.ProviderURL
-		res.TypedSpec().Value.Oidc.Scopes = authParams.OIDC.Scopes
+		res.TypedSpec().Value.Oidc.Enabled = authParams.Oidc.GetEnabled()
+		res.TypedSpec().Value.Oidc.ClientId = authParams.Oidc.GetClientID()
+		res.TypedSpec().Value.Oidc.ClientSecret = authParams.Oidc.GetClientSecret()
+		res.TypedSpec().Value.Oidc.ProviderUrl = authParams.Oidc.GetProviderURL()
+		res.TypedSpec().Value.Oidc.Scopes = authParams.Oidc.Scopes
 
-		if res.TypedSpec().Value.Webauthn.Enabled && !authParams.WebAuthn.Enabled {
+		webauthnEnabled := authParams.Webauthn.GetEnabled()
+		if res.TypedSpec().Value.Webauthn.Enabled && !webauthnEnabled {
 			logger.Warn("webauthn is disabled in Config, but enabled in the cluster, refusing to disable it",
 				zap.String("resource", confPtr.ID()),
 			)
 		} else {
-			res.TypedSpec().Value.Webauthn.Enabled = authParams.WebAuthn.Enabled
-			res.TypedSpec().Value.Webauthn.Required = authParams.WebAuthn.Required
+			res.TypedSpec().Value.Webauthn.Enabled = webauthnEnabled
+			res.TypedSpec().Value.Webauthn.Required = authParams.Webauthn.GetRequired()
 		}
 
-		res.TypedSpec().Value.Suspended = authParams.Suspended
+		res.TypedSpec().Value.Suspended = authParams.GetSuspended()
 	}
 
 	_, err = safe.StateGet[*auth.Config](ctx, st, confPtr)
@@ -88,9 +89,9 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 		logger.Info("created Config resource",
 			zap.String("resource", confPtr.ID()),
 			zap.Any("auth0", authParams.Auth0),
-			zap.Any("webauthn", authParams.WebAuthn),
-			zap.Any("saml", authParams.SAML),
-			zap.Any("oidc", authParams.OIDC),
+			zap.Any("webauthn", authParams.Webauthn),
+			zap.Any("saml", authParams.Saml),
+			zap.Any("oidc", authParams.Oidc),
 		)
 
 		return authConfig, nil
@@ -106,9 +107,9 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 		logger.Info("updated Config resource",
 			zap.String("resource", confPtr.ID()),
 			zap.Any("auth0", authParams.Auth0),
-			zap.Any("webauthn", authParams.WebAuthn),
-			zap.Any("saml", authParams.SAML),
-			zap.Any("oidc", authParams.OIDC),
+			zap.Any("webauthn", authParams.Webauthn),
+			zap.Any("saml", authParams.Saml),
+			zap.Any("oidc", authParams.Oidc),
 		)
 
 		return nil
@@ -121,16 +122,21 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 }
 
 func validateParams(authParams config.Auth) error {
-	if !authParams.SAML.Enabled && !authParams.Auth0.Enabled && !authParams.WebAuthn.Enabled && !authParams.OIDC.Enabled {
+	samlEnabled := authParams.Saml.GetEnabled()
+	auth0Enabled := authParams.Auth0.GetEnabled()
+	webauthnEnabled := authParams.Webauthn.GetEnabled()
+
+	oidcEnabled := authParams.Oidc.GetEnabled()
+	if !samlEnabled && !auth0Enabled && !webauthnEnabled && !oidcEnabled {
 		return errors.New("no authentication is enabled")
 	}
 
 	enabledAuths := make([]string, 0, 3)
 
 	for auth, enabled := range map[string]bool{
-		"auth0": authParams.Auth0.Enabled,
-		"SAML":  authParams.SAML.Enabled,
-		"OIDC":  authParams.OIDC.Enabled,
+		"auth0": auth0Enabled,
+		"SAML":  samlEnabled,
+		"OIDC":  oidcEnabled,
 	} {
 		if !enabled {
 			continue
@@ -143,30 +149,30 @@ func validateParams(authParams config.Auth) error {
 		return fmt.Errorf("several auth methods are enabled: %s, only one can be enabled at the same time", strings.Join(enabledAuths, ", "))
 	}
 
-	if authParams.SAML.Enabled && authParams.SAML.MetadataURL == "" && authParams.SAML.Metadata == "" {
+	if samlEnabled && authParams.Saml.GetUrl() == "" && authParams.Saml.GetMetadata() == "" {
 		return errors.New("SAML is enabled but neither URL nor metadata is set")
 	}
 
-	if authParams.Auth0.Enabled {
-		if authParams.Auth0.Domain == "" {
+	if auth0Enabled {
+		if authParams.Auth0.GetDomain() == "" {
 			return errors.New("auth0 is enabled but its domain is not set")
 		}
 
-		if authParams.Auth0.ClientID == "" {
+		if authParams.Auth0.GetClientID() == "" {
 			return errors.New("auth0 is enabled but its client id is not set")
 		}
 	}
 
-	if authParams.OIDC.Enabled {
-		if authParams.OIDC.ClientID == "" {
+	if oidcEnabled {
+		if authParams.Oidc.GetClientID() == "" {
 			return errors.New("OIDC is enabled by it's client id is not set")
 		}
 
-		if authParams.OIDC.ClientSecret == "" {
+		if authParams.Oidc.GetClientSecret() == "" {
 			return errors.New("OIDC is enabled by it's client secret is not set")
 		}
 
-		if authParams.OIDC.ProviderURL == "" {
+		if authParams.Oidc.GetProviderURL() == "" {
 			return errors.New("OIDC is enabled by it's provider URL is not set")
 		}
 	}

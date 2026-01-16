@@ -14,6 +14,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/go-api-signature/api/auth"
+	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
@@ -28,8 +29,8 @@ func TestRegisterPublicKey(t *testing.T) {
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
 	authServer, err := grpc.NewAuthServer(st, config.Services{
-		API: &config.Service{
-			AdvertisedURL: "http://localhost:8099",
+		Api: config.Service{
+			AdvertisedURL: pointer.To("http://localhost:8099"),
 		},
 	}, zaptest.NewLogger(t))
 

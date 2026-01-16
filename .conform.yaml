@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-21T14:19:01Z by kres 1ffefb6.
+# Generated on 2026-01-21T16:29:22Z by kres 1ffefb6.
 
 policies:
   - type: commit
@@ -49,6 +49,7 @@ policies:
         - .pb.gw.go
         - .pb.ts
         - mockServiceWorker.js
+        - .generated.go
       header: |
         // Copyright (c) 2026 Sidero Labs, Inc.
         //

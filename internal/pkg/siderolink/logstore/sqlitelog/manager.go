@@ -42,10 +42,11 @@ type StoreManager struct {
 func (m *StoreManager) Run(ctx context.Context) error {
 	tickerCh := make(<-chan time.Time)
 
-	if m.config.CleanupInterval <= 0 {
+	cleanupInterval := m.config.GetCleanupInterval()
+	if cleanupInterval <= 0 {
 		m.logger.Info("log cleanup is disabled")
 	} else {
-		ticker := time.NewTicker(m.config.CleanupInterval)
+		ticker := time.NewTicker(cleanupInterval)
 		defer ticker.Stop()
 
 		tickerCh = ticker.C
@@ -74,7 +75,7 @@ func (m *StoreManager) Run(ctx context.Context) error {
 
 // DoCleanup performs the actual cleanup of old and orphaned logs.
 func (m *StoreManager) DoCleanup(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, m.config.SQLiteTimeout)
+	ctx, cancel := context.WithTimeout(ctx, m.config.GetSqliteTimeout())
 	defer cancel()
 
 	// Fetch all live machines - we will keep logs for these machines only
@@ -125,7 +126,7 @@ func (m *StoreManager) DoCleanup(ctx context.Context) error {
 	//   (B) Machine ID is NOT in the active list (Orphan cleanup)
 	deleteSQL := fmt.Sprintf(`DELETE FROM %s WHERE %s < ? OR %s NOT IN (SELECT machine_id FROM machine_ids)`, tableName, createdAtColumn, machineIDColumn)
 
-	cutoff := time.Now().Add(-m.config.CleanupOlderThan)
+	cutoff := time.Now().Add(-m.config.GetCleanupOlderThan())
 
 	result, err := tx.ExecContext(ctx, deleteSQL, cutoff.Unix())
 	if err != nil {
@@ -163,7 +164,7 @@ func (m *StoreManager) DoCleanup(ctx context.Context) error {
 func (m *StoreManager) Exists(ctx context.Context, id string) (bool, error) {
 	id = truncateMachineID(id)
 
-	ctx, cancel := context.WithTimeout(ctx, m.config.SQLiteTimeout)
+	ctx, cancel := context.WithTimeout(ctx, m.config.GetSqliteTimeout())
 	defer cancel()
 
 	var dummy int
@@ -184,7 +185,7 @@ func (m *StoreManager) Exists(ctx context.Context, id string) (bool, error) {
 func (m *StoreManager) Remove(ctx context.Context, id string) error {
 	id = truncateMachineID(id)
 
-	ctx, cancel := context.WithTimeout(ctx, m.config.SQLiteTimeout)
+	ctx, cancel := context.WithTimeout(ctx, m.config.GetSqliteTimeout())
 	defer cancel()
 
 	query := fmt.Sprintf("DELETE FROM %s WHERE %s=?", tableName, machineIDColumn)

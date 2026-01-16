@@ -58,7 +58,7 @@ type authServer struct {
 }
 
 func newAuthServer(state state.State, services config.Services, logger *zap.Logger) (*authServer, error) {
-	advertisedURL, err := url.Parse(services.API.URL())
+	advertisedURL, err := url.Parse(services.Api.URL())
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func newAuthServer(state state.State, services config.Services, logger *zap.Logg
 		workloadProxyCookieDomain = "." + strings.Join(domainParts[1:], ".")
 	}
 
-	loginURL, err := url.Parse(services.API.URL())
+	loginURL, err := url.Parse(services.Api.URL())
 	if err != nil {
 		return nil, err
 	}

@@ -38,10 +38,9 @@ func TestInitSQLiteSnapshotStore_MigrateSuccess(t *testing.T) {
 	require.NoError(t, os.WriteFile(snapshotPath, expectedData, 0o644))
 
 	// 2. Trigger Init with Migration Enabled
-	conf := &config.EmbeddedDiscoveryService{
-		SnapshotsEnabled: true,
-		SnapshotsPath:    snapshotPath, //nolint:staticcheck
-	}
+	var conf config.EmbeddedDiscoveryService
+	conf.SetSnapshotsEnabled(true)
+	conf.SetSnapshotsPath(snapshotPath)
 
 	store, err := discovery.InitSQLiteSnapshotStore(ctx, conf, db, logger)
 	require.NoError(t, err)
@@ -93,10 +92,9 @@ func TestInitSQLiteSnapshotStore_SkipIfDataExists(t *testing.T) {
 	require.NoError(t, os.WriteFile(snapshotPath, fileData, 0o644))
 
 	// 3. Trigger Init
-	conf := &config.EmbeddedDiscoveryService{
-		SnapshotsEnabled: true,
-		SnapshotsPath:    snapshotPath, //nolint:staticcheck
-	}
+	var conf config.EmbeddedDiscoveryService
+	conf.SetSnapshotsEnabled(true)
+	conf.SetSnapshotsPath(snapshotPath)
 
 	store, err := discovery.InitSQLiteSnapshotStore(ctx, conf, db, logger)
 	require.NoError(t, err)
@@ -130,10 +128,9 @@ func TestInitSQLiteSnapshotStore_NoFile(t *testing.T) {
 	snapshotPath := filepath.Join(tmpDir, "does-not-exist.bin")
 
 	// 2. Trigger Init
-	conf := &config.EmbeddedDiscoveryService{
-		SnapshotsEnabled: true,
-		SnapshotsPath:    snapshotPath,
-	}
+	var conf config.EmbeddedDiscoveryService
+	conf.SetSnapshotsEnabled(true)
+	conf.SetSnapshotsPath(snapshotPath)
 
 	store, err := discovery.InitSQLiteSnapshotStore(ctx, conf, db, logger)
 	require.NoError(t, err)

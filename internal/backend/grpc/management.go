@@ -339,7 +339,7 @@ func getBreakGlass(ctx context.Context, clusterName string) ([]byte, error) {
 }
 
 func (s *managementServer) breakGlassTalosconfig(ctx context.Context, raw bool) (*management.TalosconfigResponse, error) {
-	if !constants.IsDebugBuild && !config.Config.Features.EnableBreakGlassConfigs {
+	if !constants.IsDebugBuild && !config.Config.Features.GetEnableBreakGlassConfigs() {
 		return nil, status.Error(codes.PermissionDenied, "not allowed")
 	}
 
@@ -381,7 +381,7 @@ func (s *managementServer) breakGlassKubeconfig(ctx context.Context) (*managemen
 		return nil, err
 	}
 
-	if !constants.IsDebugBuild && !config.Config.Features.EnableBreakGlassConfigs {
+	if !constants.IsDebugBuild && !config.Config.Features.GetEnableBreakGlassConfigs() {
 		return nil, status.Error(codes.PermissionDenied, "not allowed")
 	}
 

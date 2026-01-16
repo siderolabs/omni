@@ -312,7 +312,7 @@ func (ctrl *InstallationMediaController) Run(ctx context.Context, r controller.R
 			newMedia.TypedSpec().Value.Name = m.Name
 			newMedia.TypedSpec().Value.Profile = m.Profile
 			newMedia.TypedSpec().Value.ContentType = m.ContentType
-			newMedia.TypedSpec().Value.DestFilePrefix = fmt.Sprintf("%s-omni-%s", fname.srcPrefix, config.Config.Account.Name)
+			newMedia.TypedSpec().Value.DestFilePrefix = fmt.Sprintf("%s-omni-%s", fname.srcPrefix, config.Config.Account.GetName())
 			newMedia.TypedSpec().Value.Extension = fname.extension
 			newMedia.TypedSpec().Value.MinTalosVersion = m.MinTalosVersion
 			newMedia.TypedSpec().Value.Overlay = m.Overlay
@@ -332,7 +332,7 @@ func (ctrl *InstallationMediaController) Run(ctx context.Context, r controller.R
 			newMedia.TypedSpec().Value.Name = cfg.Label
 			newMedia.TypedSpec().Value.Profile = constants.PlatformMetal
 			newMedia.TypedSpec().Value.ContentType = "application/x-xz"
-			newMedia.TypedSpec().Value.DestFilePrefix = fmt.Sprintf("metal-%s-omni-%s", cfg.OverlayName, config.Config.Account.Name)
+			newMedia.TypedSpec().Value.DestFilePrefix = fmt.Sprintf("metal-%s-omni-%s", cfg.OverlayName, config.Config.Account.GetName())
 			newMedia.TypedSpec().Value.Extension = "raw.xz"
 			newMedia.TypedSpec().Value.NoSecureBoot = true
 			newMedia.TypedSpec().Value.MinTalosVersion = cfg.MinVersion.String()

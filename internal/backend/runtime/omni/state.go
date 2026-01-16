@@ -21,7 +21,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/siderolabs/go-pointer"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -125,22 +124,22 @@ func (s *State) HandleErrors(ctx context.Context) error {
 
 // NewState creates a production Omni state.
 func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, metricsRegistry prometheus.Registerer) (*State, error) {
-	logger.Info("using sqlite", zap.String("path", params.Storage.SQLite.Path))
+	logger.Info("using sqlite", zap.String("path", params.Storage.Sqlite.GetPath()))
 
-	secondaryStorageDB, err := sqlite.OpenDB(params.Storage.SQLite)
+	secondaryStorageDB, err := sqlite.OpenDB(params.Storage.Sqlite)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open sqlite database for secondary storage: %w", err)
 	}
 
 	var defaultPersistentState *PersistentState
 
-	switch params.Storage.Default.Kind {
-	case "boltdb":
-		defaultPersistentState, err = newBoltPersistentState(params.Storage.Default.Boltdb.Path, nil, false, logger)
-	case "etcd":
+	switch params.Storage.Default.GetKind() {
+	case config.StorageDefaultKindBoltdb:
+		defaultPersistentState, err = newBoltPersistentState(params.Storage.Default.Boltdb.GetPath(), nil, false, logger)
+	case config.StorageDefaultKindEtcd:
 		defaultPersistentState, err = newEtcdPersistentState(ctx, params, logger)
 	default:
-		return nil, fmt.Errorf("unknown storage kind %q", params.Storage.Default.Kind)
+		return nil, fmt.Errorf("unknown storage kind %q", params.Storage.Default.GetKind())
 	}
 
 	if err != nil {
@@ -154,12 +153,13 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		return nil, fmt.Errorf("failed to create SQLite state for secondary storage: %w", err)
 	}
 
-	if params.Storage.Secondary.Path != "" { //nolint:staticcheck // migration only
+	secondaryStoragePath := params.Storage.Secondary.GetPath()
+	if secondaryStoragePath != "" { //nolint:staticcheck // migration only
 		// perform a one-time migration from BoltDB to SQLite
 		if err = migrateBoltDBToSQLite(
 			ctx,
 			logger,
-			params.Storage.Secondary.Path, //nolint:staticcheck // migration only
+			secondaryStoragePath, //nolint:staticcheck // migration only
 			secondaryPersistentState.State,
 		); err != nil {
 			return nil, fmt.Errorf("failed to migrate secondary storage from BoltDB to SQLite: %w", err)
@@ -286,7 +286,7 @@ func initResources(ctx context.Context, resourceState state.State, logger *zap.L
 
 	sysVersion := system.NewSysVersion(system.SysVersionID)
 	sysVersion.TypedSpec().Value.BackendVersion = version.Tag
-	sysVersion.TypedSpec().Value.InstanceName = config.Config.Account.Name
+	sysVersion.TypedSpec().Value.InstanceName = config.Config.Account.GetName()
 	sysVersion.TypedSpec().Value.BackendApiVersion = version.API
 
 	if err := resourceState.Create(ctx, sysVersion); err != nil {
@@ -310,9 +310,9 @@ func stateWithMetrics(namespacedState *namespaced.State, metricsRegistry prometh
 
 // NewAuditWrap creates a new audit wrap.
 func NewAuditWrap(ctx context.Context, resState state.State, params *config.Params, auditLogDB *sql.DB, logger *zap.Logger) (*AuditWrap, error) {
-	path := params.Logs.Audit.Path //nolint:staticcheck
+	path := params.Logs.Audit.GetPath() //nolint:staticcheck
 
-	if path == "" && !pointer.SafeDeref(params.Logs.Audit.Enabled) {
+	if path == "" && !params.Logs.Audit.GetEnabled() {
 		logger.Info("audit log disabled")
 
 		return &AuditWrap{state: resState}, nil

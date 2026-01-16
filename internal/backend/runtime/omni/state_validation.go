@@ -42,7 +42,7 @@ import (
 // Validation is only syntactic - they are checked whether they are valid semver strings.
 //
 //nolint:gocognit,gocyclo,cyclop,maintidx
-func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup, embeddedDiscoveryServiceConfig *config.EmbeddedDiscoveryService) []validated.StateOption {
+func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup, embeddedDiscoveryServiceConfig config.EmbeddedDiscoveryService) []validated.StateOption {
 	validateVersions := func(ctx context.Context, existingRes *omni.Cluster, res *omni.Cluster, skipTalosVersion, skipKubernetesVersion bool) error {
 		if skipTalosVersion && skipKubernetesVersion {
 			return nil
@@ -117,13 +117,13 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 	validateBackupInterval := func(res *omni.Cluster) error {
 		if conf := res.TypedSpec().Value.GetBackupConfiguration(); conf != nil {
 			switch conf := conf.GetInterval().AsDuration(); {
-			case conf < etcdBackupConfig.MinInterval:
+			case conf < etcdBackupConfig.GetMinInterval():
 				return fmt.Errorf(
 					"backup interval must be greater than %s, actual %s",
 					etcdBackupConfig.MinInterval.String(),
 					conf.String(),
 				)
-			case conf > etcdBackupConfig.MaxInterval:
+			case conf > etcdBackupConfig.GetMaxInterval():
 				return fmt.Errorf(
 					"backup interval must be less than %s, actual %s",
 					etcdBackupConfig.MaxInterval.String(),
@@ -143,7 +143,7 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 
 		// if this is a create operation or if the setting is changed, validate that the feature is available
 		if oldRes == nil || oldRes.TypedSpec().Value.GetFeatures().GetUseEmbeddedDiscoveryService() != newValue {
-			if !embeddedDiscoveryServiceConfig.Enabled {
+			if !embeddedDiscoveryServiceConfig.GetEnabled() {
 				return errors.New("embedded discovery service is not enabled")
 			}
 		}
@@ -957,7 +957,7 @@ func identityValidationOptions(samlConfig config.SAML) []validated.StateOption {
 			}
 
 			// allow non-email identities for internal actors and for users coming from the SAML provider
-			if samlConfig.Enabled || actor.ContextIsInternalActor(ctx) {
+			if samlConfig.GetEnabled() || actor.ContextIsInternalActor(ctx) {
 				return nil
 			}
 
@@ -968,7 +968,7 @@ func identityValidationOptions(samlConfig config.SAML) []validated.StateOption {
 			return errs
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, res *authres.Identity, newRes *authres.Identity, _ ...state.UpdateOption) error {
-			if !samlConfig.Enabled || actor.ContextIsInternalActor(ctx) {
+			if !samlConfig.GetEnabled() || actor.ContextIsInternalActor(ctx) {
 				return nil
 			}
 

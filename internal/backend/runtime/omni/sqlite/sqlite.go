@@ -18,16 +18,19 @@ import (
 
 // OpenDB opens a SQLite database with the given configuration.
 func OpenDB(config config.SQLite) (*sql.DB, error) {
-	if err := os.MkdirAll(filepath.Dir(config.Path), 0o755); err != nil {
-		return nil, fmt.Errorf("failed to create directory for sqlite database %q: %w", config.Path, err)
+	configPath := config.GetPath()
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		return nil, fmt.Errorf("failed to create directory for sqlite database %q: %w", configPath, err)
 	}
 
-	allParams := config.ExperimentalBaseParams
-	if config.ExtraParams != "" {
-		allParams += "&" + config.ExtraParams
+	allParams := config.GetExperimentalBaseParams()
+
+	extraParams := config.GetExtraParams()
+	if extraParams != "" {
+		allParams += "&" + extraParams
 	}
 
-	dsn := "file:" + config.Path
+	dsn := "file:" + configPath
 	if allParams != "" {
 		dsn += "?" + allParams
 	}

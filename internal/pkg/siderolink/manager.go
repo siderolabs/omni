@@ -106,8 +106,8 @@ func NewManager(
 		provisionServer: NewProvisionHandler(
 			logger,
 			state,
-			config.Config.Services.Siderolink.JoinTokensMode,
-			config.Config.Services.Siderolink.UseGRPCTunnel,
+			config.Config.Services.Siderolink.GetJoinTokensMode(),
+			config.Config.Services.Siderolink.GetUseGRPCTunnel(),
 		),
 	}
 
@@ -582,7 +582,7 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 						spec.Connected = sinceLastHandshake < wireguard.PeerDownInterval
 					}
 
-					if config.Config.Services.Siderolink.DisableLastEndpoint {
+					if config.Config.Services.Siderolink.GetDisableLastEndpoint() {
 						spec.LastEndpoint = ""
 
 						return nil

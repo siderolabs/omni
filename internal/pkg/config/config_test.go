@@ -3,7 +3,6 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-// Package config contains the application config loading functions.
 package config_test
 
 import (
@@ -16,7 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
-	"github.com/siderolabs/go-pointer"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -47,39 +46,22 @@ var configNoTLSCerts []byte
 var enableSAML []byte
 
 func TestMergeConfig(t *testing.T) {
-	cfg, err := config.Init(zaptest.NewLogger(t),
-		&config.Params{
-			Services: config.Services{
-				API: &config.Service{
-					BindEndpoint: "0.0.0.0:80",
-					CertFile:     "crt",
-					KeyFile:      "key",
-				},
-			},
-			Storage: config.Storage{
-				Default: &config.StorageDefault{
-					Etcd: config.EtcdParams{
-						PrivateKeySource: "vault",
-					},
-				},
-				SQLite: config.SQLite{
-					Path: "/some/path", // set it, as it is required
-				},
-			},
-			Logs: config.Logs{
-				Audit: config.LogsAudit{
-					SQLiteTimeout: 5 * time.Second,
-				},
-			},
-		},
-	)
+	params := &config.Params{}
+	params.Services.Api.SetEndpoint("0.0.0.0:80")
+	params.Services.Api.SetCertFile("crt")
+	params.Services.Api.SetKeyFile("key")
+	params.Storage.Default.Etcd.SetPrivateKeySource("vault")
+	params.Storage.Sqlite.SetPath("/some/path")
+	params.Logs.Audit.SetSqliteTimeout(5 * time.Second)
+
+	cfg, err := config.Init(zaptest.NewLogger(t), params)
 
 	require.NoError(t, err)
-	assert.True(t, cfg.Services.EmbeddedDiscoveryService.Enabled)
-	assert.Equal(t, 5*time.Second, cfg.Logs.Audit.SQLiteTimeout)
+	assert.True(t, cfg.Services.EmbeddedDiscoveryService.GetEnabled())
+	assert.Equal(t, 5*time.Second, cfg.Logs.Audit.GetSqliteTimeout())
 
 	// assert that the default value of cfg.Logs.Audit.Enabled boolean value is preserved even when the config.LogsAudit struct was partially set as an override
-	assert.True(t, pointer.SafeDeref(cfg.Logs.Audit.Enabled))
+	assert.True(t, cfg.Logs.Audit.GetEnabled())
 }
 
 func TestValidateStateConfig(t *testing.T) {
@@ -125,7 +107,7 @@ func TestValidateConfig(t *testing.T) {
 		{
 			name:        "empty",
 			config:      []byte("{}"),
-			validateErr: "required",
+			validateErr: "got null, want string",
 		},
 		{
 			name:   "full",
@@ -134,17 +116,17 @@ func TestValidateConfig(t *testing.T) {
 		{
 			name:        "invalid join tokens mode",
 			config:      configInvalidJoinTokenMode,
-			validateErr: "JoinTokensMode",
+			validateErr: "at '/services/siderolink/joinTokensMode': value must be one of 'strict', 'legacyAllowed', 'legacy'",
 		},
 		{
 			name:        "conflicting auth",
 			config:      conflictingAuth,
-			validateErr: "mutually exclusive",
+			validateErr: "at '/auth/saml/enabled': 'not' failed",
 		},
 		{
 			name:        "conflicting backups",
 			config:      backups,
-			validateErr: "Field validation for 'LocalPath' failed",
+			validateErr: "at '/etcdBackup': 'not' failed",
 		},
 		{
 			name:    "unknown keys",
@@ -161,6 +143,19 @@ func TestValidateConfig(t *testing.T) {
 			name:   "SAML with initial users",
 			config: enableSAML,
 		},
+		{
+			name: "missing sqlite path",
+			config: []byte(`storage:
+  sqlite: {}`),
+			validateErr: "at '/storage/sqlite/path': got null, want string",
+		},
+		{
+			name: "empty sqlite path",
+			config: []byte(`storage:
+  sqlite:
+    path: ""`),
+			validateErr: "at '/storage/sqlite/path': minLength: got 0, want 1",
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, err := config.FromBytes(tt.config)
@@ -173,7 +168,11 @@ func TestValidateConfig(t *testing.T) {
 			require.NoError(t, err)
 
 			err = cfg.Validate()
+
 			if tt.validateErr != "" {
+				var validationErr *jsonschema.ValidationError
+
+				require.ErrorAs(t, err, &validationErr)
 				require.ErrorContains(t, err, tt.validateErr)
 
 				return

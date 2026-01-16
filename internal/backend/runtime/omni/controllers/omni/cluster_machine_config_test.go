@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
@@ -34,12 +35,12 @@ import (
 )
 
 var serviceConfig = &conf.Services{
-	Siderolink: &conf.SiderolinkService{
-		EventSinkPort: 8091,
-		LogServerPort: 8092,
+	Siderolink: conf.SiderolinkService{
+		EventSinkPort: pointer.To(8091),
+		LogServerPort: pointer.To(8092),
 	},
-	MachineAPI: &conf.MachineAPI{
-		AdvertisedURL: "http://127.0.0.1:8090",
+	MachineAPI: conf.Service{
+		AdvertisedURL: pointer.To("http://127.0.0.1:8090"),
 	},
 }
 
@@ -123,7 +124,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 		)
 	}
 
-	newImage := fmt.Sprintf("%s:v1.0.2", conf.Config.Registries.Talos)
+	newImage := fmt.Sprintf("%s:v1.0.2", conf.Config.Registries.GetTalos())
 
 	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
@@ -375,7 +376,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerateWithoutComments() {
 	oldConf, err = configloader.NewFromBytes(dataOld.Data())
 	suite.Require().NoError(err)
 
-	newImage := fmt.Sprintf("%s:v1.10.1", conf.Config.Registries.Talos)
+	newImage := fmt.Sprintf("%s:v1.10.1", conf.Config.Registries.GetTalos())
 
 	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {

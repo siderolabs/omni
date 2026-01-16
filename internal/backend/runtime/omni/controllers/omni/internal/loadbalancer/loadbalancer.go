@@ -30,12 +30,12 @@ func DefaultNew(bindAddress string, bindPort int, logger *zap.Logger) (LoadBalan
 		bindAddress,
 		bindPort,
 		logger.WithOptions(zap.IncreaseLevel(zap.ErrorLevel)), // silence the load balancer logs
-		controlplane.WithDialTimeout(config.Config.Services.LoadBalancer.DialTimeout),
-		controlplane.WithKeepAlivePeriod(config.Config.Services.LoadBalancer.KeepAlivePeriod),
-		controlplane.WithTCPUserTimeout(config.Config.Services.LoadBalancer.TCPUserTimeout),
+		controlplane.WithDialTimeout(config.Config.Services.LoadBalancer.GetDialTimeout()),
+		controlplane.WithKeepAlivePeriod(config.Config.Services.LoadBalancer.GetKeepAlivePeriod()),
+		controlplane.WithTCPUserTimeout(config.Config.Services.LoadBalancer.GetTcpUserTimeout()),
 		controlplane.WithHealthCheckOptions(
-			upstream.WithHealthcheckInterval(config.Config.Services.LoadBalancer.HealthCheckInterval),
-			upstream.WithHealthcheckTimeout(config.Config.Services.LoadBalancer.HealthCheckTimeout),
+			upstream.WithHealthcheckInterval(config.Config.Services.LoadBalancer.GetHealthCheckInterval()),
+			upstream.WithHealthcheckTimeout(config.Config.Services.LoadBalancer.GetHealthCheckTimeout()),
 		),
 	)
 }

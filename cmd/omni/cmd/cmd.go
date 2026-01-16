@@ -15,8 +15,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/gen/ensure"
-	"github.com/siderolabs/go-pointer"
-	"github.com/siderolabs/talos/pkg/machinery/config/merge"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -30,6 +28,8 @@ import (
 	"github.com/siderolabs/omni/internal/version"
 )
 
+var rootCmdFlagBinder *FlagBinder
+
 // rootCmd represents the base command when called without any subcommands.
 var rootCmd = &cobra.Command{
 	Use:          "omni",
@@ -38,6 +38,10 @@ var rootCmd = &cobra.Command{
 	SilenceUsage: true,
 	Version:      version.Tag,
 	RunE: func(*cobra.Command, []string) error {
+		if err := rootCmdFlagBinder.BindAll(); err != nil {
+			return fmt.Errorf("failed to bind flags: %w", err)
+		}
+
 		var loggerConfig zap.Config
 
 		if constants.IsDebugBuild {
@@ -76,7 +80,21 @@ var rootCmd = &cobra.Command{
 			cancel()
 		}, logger)
 
-		config, err := app.PrepareConfig(logger, cmdConfig)
+		configs := make([]*config.Params, 0, 2)
+
+		if rootCmdArgs.configPath != "" {
+			var fileConfig *config.Params
+
+			if fileConfig, err = config.LoadFromFile(rootCmdArgs.configPath); err != nil {
+				return fmt.Errorf("failed to load config from file: %w", err)
+			}
+
+			configs = append(configs, fileConfig)
+		}
+
+		configs = append(configs, flagConfig) // flags have the highest priority
+
+		config, err := app.PrepareConfig(logger, configs...)
 		if err != nil {
 			return err
 		}
@@ -113,37 +131,20 @@ var rootCmdArgs struct {
 
 // Execute the command.
 func Execute() error {
-	rootCmd.Flags().StringVar(&rootCmdArgs.configPath, "config-path", "", "load the config from the file, flags have bigger priority")
-
-	// Parsing the config path flag early to let it populate the initial configuration
-	// ignore all errors, they will be handled in the Execute
-	rootCmd.Flags().Parse(os.Args[1:]) //nolint:errcheck
-
-	if rootCmdArgs.configPath == "" {
-		return newCommand().Execute()
-	}
-
-	cfg, err := config.LoadFromFile(rootCmdArgs.configPath)
-	if err != nil {
-		return err
-	}
-
-	// override the cmdConfig with the config loaded from the file
-	if err := merge.Merge(cmdConfig, cfg); err != nil {
-		return err
-	}
-
 	return newCommand().Execute()
 }
 
-var cmdConfig = config.Default()
+var flagConfig = &config.Params{}
 
 func newCommand() *cobra.Command {
+	rootCmdFlagBinder = NewFlagBinder(rootCmd)
+
+	rootCmd.Flags().StringVar(&rootCmdArgs.configPath, "config-path", "", "load the config from the file, flags have bigger priority")
 	rootCmd.Flags().BoolVar(&rootCmdArgs.debug, "debug", constants.IsDebugBuild, "enable debug logs.")
 
-	rootCmd.Flags().StringVar(&cmdConfig.Account.ID, "account-id", cmdConfig.Account.ID, "instance account ID, should never be changed.")
-	rootCmd.Flags().StringVar(&cmdConfig.Account.Name, "name", cmdConfig.Account.Name, "instance user-facing name.")
-	rootCmd.Flags().StringVar(&cmdConfig.Account.UserPilot.AppToken, "user-pilot-app-token", cmdConfig.Account.UserPilot.AppToken, "user pilot app token.")
+	rootCmdFlagBinder.StringVar("account-id", "instance account ID, should never be changed.", &flagConfig.Account.Id)
+	rootCmdFlagBinder.StringVar("name", "instance user-facing name.", &flagConfig.Account.Name)
+	rootCmdFlagBinder.StringVar("user-pilot-app-token", "user pilot app token.", &flagConfig.Account.UserPilot.AppToken)
 
 	defineServiceFlags()
 	defineAuthFlags()
@@ -159,124 +160,40 @@ func newCommand() *cobra.Command {
 
 func defineServiceFlags() {
 	// API
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.API.BindEndpoint,
-		"bind-addr",
-		cmdConfig.Services.API.BindEndpoint,
-		"start HTTP + API server on the defined address.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.API.AdvertisedURL,
-		"advertised-api-url",
-		cmdConfig.Services.API.AdvertisedURL,
-		"advertised API frontend URL.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.API.KeyFile,
-		"key",
-		cmdConfig.Services.API.KeyFile,
-		"TLS key file",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.API.CertFile,
-		"cert",
-		cmdConfig.Services.API.CertFile,
-		"TLS cert file",
-	)
+	rootCmdFlagBinder.StringVar("bind-addr", "start HTTP + API server on the defined address.", &flagConfig.Services.Api.Endpoint)
+	rootCmdFlagBinder.StringVar("advertised-api-url", "advertised API frontend URL.", &flagConfig.Services.Api.AdvertisedURL)
+	rootCmdFlagBinder.StringVar("key", "TLS key file", &flagConfig.Services.Api.KeyFile)
+	rootCmdFlagBinder.StringVar("cert", "TLS cert file", &flagConfig.Services.Api.CertFile)
 
 	// Metrics
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.Metrics.BindEndpoint,
-		"metrics-bind-addr",
-		cmdConfig.Services.Metrics.BindEndpoint,
-		"start Prometheus HTTP server on the defined address.",
-	)
+	rootCmdFlagBinder.StringVar("metrics-bind-addr", "start Prometheus HTTP server on the defined address.", &flagConfig.Services.Metrics.Endpoint)
 
 	// KubernetesProxy
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.KubernetesProxy.BindEndpoint,
-		"k8s-proxy-bind-addr", cmdConfig.Services.KubernetesProxy.BindEndpoint,
-		"start Kubernetes proxy on the defined address.",
-	)
+	rootCmdFlagBinder.StringVar("k8s-proxy-bind-addr", "start Kubernetes proxy on the defined address.", &flagConfig.Services.KubernetesProxy.Endpoint)
 
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.KubernetesProxy.AdvertisedURL,
-		"advertised-kubernetes-proxy-url",
-		cmdConfig.Services.KubernetesProxy.AdvertisedURL,
-		"advertised Kubernetes proxy URL.",
-	)
+	rootCmdFlagBinder.StringVar("advertised-kubernetes-proxy-url", "advertised Kubernetes proxy URL.", &flagConfig.Services.KubernetesProxy.AdvertisedURL)
 
 	// Siderolink
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.Siderolink.WireGuard.BindEndpoint,
-		"siderolink-wireguard-bind-addr",
-		cmdConfig.Services.Siderolink.WireGuard.BindEndpoint,
-		"SideroLink WireGuard bind address.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.Siderolink.WireGuard.AdvertisedEndpoint,
-		"siderolink-wireguard-advertised-addr",
-		cmdConfig.Services.Siderolink.WireGuard.AdvertisedEndpoint,
-		"advertised wireguard address which is passed down to the nodes.",
-	)
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Services.Siderolink.DisableLastEndpoint,
-		"siderolink-disable-last-endpoint",
-		cmdConfig.Services.Siderolink.DisableLastEndpoint,
-		"do not populate last known peer endpoint for the WireGuard peers",
-	)
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Services.Siderolink.UseGRPCTunnel,
-		"siderolink-use-grpc-tunnel",
-		cmdConfig.Services.Siderolink.UseGRPCTunnel,
+	rootCmdFlagBinder.StringVar("siderolink-wireguard-bind-addr", "SideroLink WireGuard bind address.", &flagConfig.Services.Siderolink.WireGuard.Endpoint)
+	rootCmdFlagBinder.StringVar("siderolink-wireguard-advertised-addr",
+		"advertised wireguard address which is passed down to the nodes.", &flagConfig.Services.Siderolink.WireGuard.AdvertisedEndpoint)
+	rootCmdFlagBinder.BoolVar("siderolink-disable-last-endpoint",
+		"do not populate last known peer endpoint for the WireGuard peers", &flagConfig.Services.Siderolink.DisableLastEndpoint)
+	rootCmdFlagBinder.BoolVar("siderolink-use-grpc-tunnel",
 		"use gRPC tunnel to wrap WireGuard traffic instead of UDP. When enabled, "+
 			"the SideroLink connections from Talos machines will be configured to use the tunnel mode, regardless of their individual configuration. ",
+		&flagConfig.Services.Siderolink.UseGRPCTunnel,
 	)
-	rootCmd.Flags().IntVar(
-		&cmdConfig.Services.Siderolink.EventSinkPort,
-		"event-sink-port",
-		cmdConfig.Services.Siderolink.EventSinkPort,
-		"event sink bind port.",
-	)
-	rootCmd.Flags().IntVar(
-		&cmdConfig.Services.Siderolink.LogServerPort,
-		"log-server-port",
-		cmdConfig.Services.Siderolink.LogServerPort,
-		"port for TCP log server",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.Siderolink.JoinTokensMode,
-		"join-tokens-mode",
-		cmdConfig.Services.Siderolink.JoinTokensMode,
-		"configures Talos machine join flow to use secure node tokens",
-	)
+	rootCmdFlagBinder.IntVar("event-sink-port", "event sink bind port.", &flagConfig.Services.Siderolink.EventSinkPort)
+	rootCmdFlagBinder.IntVar("log-server-port", "port for TCP log server", &flagConfig.Services.Siderolink.LogServerPort)
+	EnumVar(rootCmdFlagBinder, "join-tokens-mode", "configures Talos machine join flow to use secure node tokens", &flagConfig.Services.Siderolink.JoinTokensMode)
 
 	// MachineAPI
 	for _, prefix := range []string{"siderolink", "machine"} {
-		rootCmd.Flags().StringVar(
-			&cmdConfig.Services.MachineAPI.BindEndpoint,
-			fmt.Sprintf("%s-api-bind-addr", prefix),
-			cmdConfig.Services.MachineAPI.BindEndpoint,
-			"machine API provision bind address.",
-		)
-		rootCmd.Flags().StringVar(
-			&cmdConfig.Services.MachineAPI.CertFile,
-			fmt.Sprintf("%s-api-cert", prefix),
-			cmdConfig.Services.MachineAPI.CertFile,
-			"machine API TLS cert file path.",
-		)
-		rootCmd.Flags().StringVar(
-			&cmdConfig.Services.MachineAPI.KeyFile,
-			fmt.Sprintf("%s-api-key", prefix),
-			cmdConfig.Services.MachineAPI.KeyFile,
-			"machine API TLS cert file path.",
-		)
-		rootCmd.Flags().StringVar(
-			&cmdConfig.Services.MachineAPI.AdvertisedURL,
-			fmt.Sprintf("%s-api-advertised-url", prefix),
-			cmdConfig.Services.MachineAPI.AdvertisedURL,
-			"machine API advertised API URL.",
-		)
+		rootCmdFlagBinder.StringVar(fmt.Sprintf("%s-api-bind-addr", prefix), "machine API provision bind address.", &flagConfig.Services.MachineAPI.Endpoint)
+		rootCmdFlagBinder.StringVar(fmt.Sprintf("%s-api-cert", prefix), "machine API TLS cert file path.", &flagConfig.Services.MachineAPI.CertFile)
+		rootCmdFlagBinder.StringVar(fmt.Sprintf("%s-api-key", prefix), "machine API TLS cert file path.", &flagConfig.Services.MachineAPI.KeyFile)
+		rootCmdFlagBinder.StringVar(fmt.Sprintf("%s-api-advertised-url", prefix), "machine API advertised API URL.", &flagConfig.Services.MachineAPI.AdvertisedURL)
 	}
 
 	rootCmd.Flags().MarkDeprecated("siderolink-api-bind-addr", "--deprecated, use --machine-api-bind-addr") //nolint:errcheck
@@ -284,261 +201,126 @@ func defineServiceFlags() {
 	rootCmd.Flags().MarkDeprecated("siderolink-api-key", "deprecated, use --machine-api-key")               //nolint:errcheck
 
 	// LoadBalancer
-	rootCmd.Flags().IntVar(
-		&cmdConfig.Services.LoadBalancer.MinPort,
-		"lb-min-port",
-		cmdConfig.Services.LoadBalancer.MinPort,
-		"cluster load balancer port range min value.",
-	)
-	rootCmd.Flags().IntVar(
-		&cmdConfig.Services.LoadBalancer.MaxPort,
-		"lb-max-port",
-		cmdConfig.Services.LoadBalancer.MaxPort,
-		"cluster load balancer port range max value.",
-	)
+	rootCmdFlagBinder.IntVar("lb-min-port", "cluster load balancer port range min value.", &flagConfig.Services.LoadBalancer.MinPort)
+	rootCmdFlagBinder.IntVar("lb-max-port", "cluster load balancer port range max value.", &flagConfig.Services.LoadBalancer.MaxPort)
 
-	rootCmd.Flags().IntVar(
-		&cmdConfig.Services.LocalResourceService.Port,
-		"local-resource-server-port",
-		cmdConfig.Services.LocalResourceService.Port,
-		"port for local read-only public resource server.",
-	)
+	rootCmdFlagBinder.IntVar("local-resource-server-port", "port for local read-only public resource server.", &flagConfig.Services.LocalResourceService.Port)
 
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Services.LocalResourceService.Enabled,
-		"local-resource-server-enabled",
-		cmdConfig.Services.LocalResourceService.Enabled,
-		"enable local read-only public resource server.",
-	)
+	rootCmdFlagBinder.BoolVar("local-resource-server-enabled", "enable local read-only public resource server.", &flagConfig.Services.LocalResourceService.Enabled)
 
 	// Embedded discovery service
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Services.EmbeddedDiscoveryService.Enabled,
-		"embedded-discovery-service-enabled",
-		cmdConfig.Services.EmbeddedDiscoveryService.Enabled,
-		"enable embedded discovery service, binds only to the SideroLink WireGuard address",
-	)
+	rootCmdFlagBinder.BoolVar("embedded-discovery-service-enabled",
+		"enable embedded discovery service, binds only to the SideroLink WireGuard address", &flagConfig.Services.EmbeddedDiscoveryService.Enabled)
 
-	rootCmd.Flags().IntVar(
-		&cmdConfig.Services.EmbeddedDiscoveryService.Port,
-		"embedded-discovery-service-endpoint",
-		cmdConfig.Services.EmbeddedDiscoveryService.Port,
-		"embedded discovery service port to listen on",
-	)
+	rootCmdFlagBinder.IntVar("embedded-discovery-service-endpoint", "embedded discovery service port to listen on", &flagConfig.Services.EmbeddedDiscoveryService.Port)
 	rootCmd.Flags().MarkDeprecated("embedded-discovery-service-endpoint", "use --embedded-discovery-service-port") //nolint:errcheck
 
-	rootCmd.Flags().IntVar(
-		&cmdConfig.Services.EmbeddedDiscoveryService.Port,
-		"embedded-discovery-service-port",
-		cmdConfig.Services.EmbeddedDiscoveryService.Port,
-		"embedded discovery service port to listen on",
-	)
+	rootCmdFlagBinder.IntVar("embedded-discovery-service-port", "embedded discovery service port to listen on", &flagConfig.Services.EmbeddedDiscoveryService.Port)
 
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Services.EmbeddedDiscoveryService.SnapshotsEnabled,
-		"embedded-discovery-service-snapshots-enabled",
-		cmdConfig.Services.EmbeddedDiscoveryService.SnapshotsEnabled,
-		"enable snapshots for the embedded discovery service",
-	)
+	rootCmdFlagBinder.BoolVar("embedded-discovery-service-snapshots-enabled",
+		"enable snapshots for the embedded discovery service", &flagConfig.Services.EmbeddedDiscoveryService.SnapshotsEnabled)
 
 	//nolint:staticcheck
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.EmbeddedDiscoveryService.SnapshotsPath,
-		"embedded-discovery-service-snapshot-path",
-		cmdConfig.Services.EmbeddedDiscoveryService.SnapshotsPath,
+	rootCmdFlagBinder.StringVar("embedded-discovery-service-snapshot-path",
 		"path to the file for storing the embedded discovery service state",
+		&flagConfig.Services.EmbeddedDiscoveryService.SnapshotsPath,
 	)
 
 	//nolint:errcheck
 	rootCmd.Flags().MarkDeprecated("embedded-discovery-service-snapshot-path", "this flag is kept for the SQLite migration, and will be removed in future versions")
 
-	rootCmd.Flags().DurationVar(
-		&cmdConfig.Services.EmbeddedDiscoveryService.SnapshotsInterval,
-		"embedded-discovery-service-snapshot-interval",
-		cmdConfig.Services.EmbeddedDiscoveryService.SnapshotsInterval,
-		"interval for saving the embedded discovery service state",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.EmbeddedDiscoveryService.LogLevel,
-		"embedded-discovery-service-log-level",
-		cmdConfig.Services.EmbeddedDiscoveryService.LogLevel,
-		"log level for the embedded discovery service - it has no effect if it is lower (more verbose) than the main log level",
-	)
-	rootCmd.Flags().DurationVar(
-		&cmdConfig.Services.EmbeddedDiscoveryService.SQLiteTimeout,
-		"embedded-discovery-service-sqlite-timeout",
-		cmdConfig.Services.EmbeddedDiscoveryService.SQLiteTimeout,
-		"SQLite timeout for the embedded discovery service",
-	)
+	rootCmdFlagBinder.DurationVar("embedded-discovery-service-snapshot-interval",
+		"interval for saving the embedded discovery service state", &flagConfig.Services.EmbeddedDiscoveryService.SnapshotsInterval)
+	rootCmdFlagBinder.StringVar("embedded-discovery-service-log-level",
+		"log level for the embedded discovery service - it has no effect if it is lower (more verbose) than the main log level", &flagConfig.Services.EmbeddedDiscoveryService.LogLevel)
+	rootCmdFlagBinder.DurationVar("embedded-discovery-service-sqlite-timeout",
+		"SQLite timeout for the embedded discovery service", &flagConfig.Services.EmbeddedDiscoveryService.SqliteTimeout)
 
 	// DevServerProxy
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.DevServerProxy.ProxyTo,
-		"frontend-dst",
-		cmdConfig.Services.DevServerProxy.ProxyTo,
-		"destination address non API requests from proxy server.")
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.DevServerProxy.BindEndpoint,
-		"frontend-bind",
-		cmdConfig.Services.DevServerProxy.BindEndpoint,
-		"proxy server which will redirect all non API requests to the defined frontend server.")
+	rootCmdFlagBinder.StringVar("frontend-dst", "destination address non API requests from proxy server.", &flagConfig.Services.DevServerProxy.ProxyTo)
+	rootCmdFlagBinder.StringVar("frontend-bind", "proxy server which will redirect all non API requests to the defined frontend server.", &flagConfig.Services.DevServerProxy.Endpoint)
 }
 
 func defineAuthFlags() {
 	// Auth0
-	rootCmd.Flags().BoolVar(&cmdConfig.Auth.Auth0.Enabled, "auth-auth0-enabled", cmdConfig.Auth.Auth0.Enabled,
-		"enable Auth0 authentication. Once set to true, it cannot be set back to false.")
-	rootCmd.Flags().StringVar(&cmdConfig.Auth.Auth0.ClientID, "auth-auth0-client-id", cmdConfig.Auth.Auth0.ClientID, "Auth0 application client ID.")
-	rootCmd.Flags().StringVar(&cmdConfig.Auth.Auth0.Domain, "auth-auth0-domain", cmdConfig.Auth.Auth0.Domain, "Auth0 application domain.")
-	rootCmd.Flags().BoolVar(&cmdConfig.Auth.Auth0.UseFormData, "auth-auth0-use-form-data", cmdConfig.Auth.Auth0.UseFormData,
-		"When true, data to the token endpoint is transmitted as x-www-form-urlencoded data instead of JSON. The default is false")
+	rootCmdFlagBinder.BoolVar("auth-auth0-enabled",
+		"enable Auth0 authentication. Once set to true, it cannot be set back to false.", &flagConfig.Auth.Auth0.Enabled)
+	rootCmdFlagBinder.StringVar("auth-auth0-client-id", "Auth0 application client ID.", &flagConfig.Auth.Auth0.ClientID)
+	rootCmdFlagBinder.StringVar("auth-auth0-domain", "Auth0 application domain.", &flagConfig.Auth.Auth0.Domain)
+	rootCmdFlagBinder.BoolVar("auth-auth0-use-form-data",
+		"When true, data to the token endpoint is transmitted as x-www-form-urlencoded data instead of JSON. The default is false", &flagConfig.Auth.Auth0.UseFormData)
 
 	// Webauthn
-	rootCmd.Flags().BoolVar(&cmdConfig.Auth.WebAuthn.Enabled, "auth-webauthn-enabled", cmdConfig.Auth.WebAuthn.Enabled,
-		"enable WebAuthn authentication. Once set to true, it cannot be set back to false.")
-	rootCmd.Flags().BoolVar(&cmdConfig.Auth.WebAuthn.Required, "auth-webauthn-required", cmdConfig.Auth.WebAuthn.Required,
-		"require WebAuthn authentication. Once set to true, it cannot be set back to false.")
+	rootCmdFlagBinder.BoolVar("auth-webauthn-enabled",
+		"enable WebAuthn authentication. Once set to true, it cannot be set back to false.", &flagConfig.Auth.Webauthn.Enabled)
+	rootCmdFlagBinder.BoolVar("auth-webauthn-required",
+		"require WebAuthn authentication. Once set to true, it cannot be set back to false.", &flagConfig.Auth.Webauthn.Required)
 
-	rootCmd.Flags().BoolVar(&cmdConfig.Auth.SAML.Enabled, "auth-saml-enabled", cmdConfig.Auth.SAML.Enabled,
-		"enabled SAML authentication.",
+	rootCmdFlagBinder.BoolVar("auth-saml-enabled",
+		"enabled SAML authentication.", &flagConfig.Auth.Saml.Enabled,
 	)
-	rootCmd.Flags().StringVar(&cmdConfig.Auth.SAML.MetadataURL, "auth-saml-url", cmdConfig.Auth.SAML.MetadataURL, "SAML identity provider metadata URL (mutually exclusive with --auth-saml-metadata")
-	rootCmd.Flags().StringVar(&cmdConfig.Auth.SAML.Metadata, "auth-saml-metadata", cmdConfig.Auth.SAML.Metadata,
-		"SAML identity provider metadata file path (mutually exclusive with --auth-saml-url).",
-	)
-	rootCmd.Flags().Var(
-		&cmdConfig.Auth.SAML.LabelRules,
-		"auth-saml-label-rules",
-		"defines mapping of SAML assertion attributes into Omni identity labels",
-	)
-	rootCmd.Flags().Var(
-		&cmdConfig.Auth.SAML.AttributeRules,
-		"auth-saml-attribute-rules",
-		"defines additional identity, fullname, firstname and lastname mappings",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Auth.SAML.NameIDFormat,
-		"auth-saml-name-id-format",
-		cmdConfig.Auth.SAML.NameIDFormat,
-		"allows setting name ID format for the account",
-	)
-	rootCmd.Flags().StringSliceVar(
-		&cmdConfig.Auth.InitialUsers,
-		"initial-users",
-		cmdConfig.Auth.InitialUsers,
-		"initial set of user emails. these users will be created on startup.",
-	)
-	rootCmd.Flags().DurationVar(
-		&cmdConfig.Auth.KeyPruner.Interval,
-		"public-key-pruning-interval",
-		cmdConfig.Auth.KeyPruner.Interval,
-		"interval between public key pruning runs.",
-	)
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Auth.Suspended,
-		"suspended",
-		cmdConfig.Auth.Suspended,
-		"start omni in suspended (read-only) mode.",
-	)
+	rootCmdFlagBinder.StringVar("auth-saml-url", "SAML identity provider metadata URL (mutually exclusive with --auth-saml-metadata", &flagConfig.Auth.Saml.Url)
+	rootCmdFlagBinder.StringVar("auth-saml-metadata", "SAML identity provider metadata file path (mutually exclusive with --auth-saml-url).", &flagConfig.Auth.Saml.Metadata)
+	rootCmd.Flags().Var(&flagConfig.Auth.Saml.LabelRules, "auth-saml-label-rules", "defines mapping of SAML assertion attributes into Omni identity labels")
+	rootCmd.Flags().Var(&flagConfig.Auth.Saml.AttributeRules, "auth-saml-attribute-rules", "defines additional identity, fullname, firstname and lastname mappings")
+	rootCmdFlagBinder.StringVar("auth-saml-name-id-format", "allows setting name ID format for the account", &flagConfig.Auth.Saml.NameIDFormat)
+	rootCmd.Flags().StringSliceVar(&flagConfig.Auth.InitialUsers, "initial-users", flagConfig.Auth.InitialUsers, "initial set of user emails. these users will be created on startup.")
+	rootCmdFlagBinder.DurationVar("public-key-pruning-interval", "interval between public key pruning runs.", &flagConfig.Auth.KeyPruner.Interval)
+	rootCmdFlagBinder.BoolVar("suspended", "start omni in suspended (read-only) mode.", &flagConfig.Auth.Suspended)
 
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Auth.InitialServiceAccount.Enabled,
-		"create-initial-service-account",
-		cmdConfig.Auth.InitialServiceAccount.Enabled,
-		"create and dump a service account credentials on the first start of Omni",
-	)
+	rootCmdFlagBinder.BoolVar("create-initial-service-account",
+		"create and dump a service account credentials on the first start of Omni", &flagConfig.Auth.InitialServiceAccount.Enabled)
 
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Auth.InitialServiceAccount.KeyPath,
-		"initial-service-account-key-path",
-		cmdConfig.Auth.InitialServiceAccount.KeyPath,
-		"dump the initial service account key into the path",
-	)
+	rootCmdFlagBinder.StringVar("initial-service-account-key-path", "dump the initial service account key into the path", &flagConfig.Auth.InitialServiceAccount.KeyPath)
 
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Auth.InitialServiceAccount.Role,
-		"initial-service-account-role",
-		cmdConfig.Auth.InitialServiceAccount.Role,
-		"the initial service account access role",
-	)
+	rootCmdFlagBinder.StringVar("initial-service-account-role", "the initial service account access role", &flagConfig.Auth.InitialServiceAccount.Role)
 
-	rootCmd.Flags().DurationVar(
-		&cmdConfig.Auth.InitialServiceAccount.Lifetime,
-		"initial-service-account-lifetime",
-		cmdConfig.Auth.InitialServiceAccount.Lifetime,
-		"the lifetime duration of the initial service account key",
-	)
+	rootCmdFlagBinder.DurationVar("initial-service-account-lifetime",
+		"the lifetime duration of the initial service account key", &flagConfig.Auth.InitialServiceAccount.Lifetime)
 
 	rootCmd.MarkFlagsMutuallyExclusive("auth-saml-url", "auth-saml-metadata")
 
 	// OIDC
-	rootCmd.Flags().BoolVar(&cmdConfig.Auth.OIDC.Enabled, "auth-oidc-enabled", cmdConfig.Auth.OIDC.Enabled,
-		"enable OIDC authentication.")
-
-	rootCmd.Flags().StringVar(&cmdConfig.Auth.OIDC.ProviderURL, "auth-oidc-provider-url", cmdConfig.Auth.OIDC.ProviderURL,
-		"OIDC authentication provider URL.")
-
-	rootCmd.Flags().StringVar(&cmdConfig.Auth.OIDC.ClientID, "auth-oidc-client-id", cmdConfig.Auth.OIDC.ClientID,
-		"OIDC authentication client ID.")
-
-	rootCmd.Flags().StringVar(&cmdConfig.Auth.OIDC.ClientSecret, "auth-oidc-client-secret", cmdConfig.Auth.OIDC.ClientSecret,
-		"OIDC authentication client secret.")
-
-	rootCmd.Flags().StringSliceVar(&cmdConfig.Auth.OIDC.Scopes, "auth-oidc-scopes", cmdConfig.Auth.OIDC.Scopes,
-		"OIDC authentication scopes.")
-
-	rootCmd.Flags().StringVar(&cmdConfig.Auth.OIDC.LogoutURL, "auth-oidc-logout-url", cmdConfig.Auth.OIDC.LogoutURL,
-		"OIDC logout URL.")
-
-	rootCmd.Flags().BoolVar(&cmdConfig.Auth.OIDC.AllowUnverifiedEmail, "auth-oidc-allow-unverified-email", cmdConfig.Auth.OIDC.AllowUnverifiedEmail,
-		"Allow OIDC tokens without email_verified claim.")
+	rootCmdFlagBinder.BoolVar("auth-oidc-enabled", "enable OIDC authentication.", &flagConfig.Auth.Oidc.Enabled)
+	rootCmdFlagBinder.StringVar("auth-oidc-provider-url", "OIDC authentication provider URL.", &flagConfig.Auth.Oidc.ProviderURL)
+	rootCmdFlagBinder.StringVar("auth-oidc-client-id", "OIDC authentication client ID.", &flagConfig.Auth.Oidc.ClientID)
+	rootCmdFlagBinder.StringVar("auth-oidc-client-secret", "OIDC authentication client secret.", &flagConfig.Auth.Oidc.ClientSecret)
+	rootCmd.Flags().StringSliceVar(&flagConfig.Auth.Oidc.Scopes, "auth-oidc-scopes", flagConfig.Auth.Oidc.Scopes, "OIDC authentication scopes.")
+	rootCmdFlagBinder.StringVar("auth-oidc-logout-url", "OIDC logout URL.", &flagConfig.Auth.Oidc.LogoutURL)
+	rootCmdFlagBinder.BoolVar("auth-oidc-allow-unverified-email", "Allow OIDC tokens without email_verified claim.", &flagConfig.Auth.Oidc.AllowUnverifiedEmail)
 }
 
 //nolint:staticcheck // defineLogsFlags uses deprecated fields for backwards-compatibility
 func defineLogsFlags() {
-	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Machine.Storage.SQLiteTimeout, "machine-log-sqlite-timeout",
-		cmdConfig.Logs.Machine.Storage.SQLiteTimeout, "sqlite timeout for machine logs")
-	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Machine.Storage.CleanupInterval, "machine-log-cleanup-interval",
-		cmdConfig.Logs.Machine.Storage.CleanupInterval, "interval between machine log cleanup runs")
-	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Machine.Storage.CleanupOlderThan, "machine-log-cleanup-older-than",
-		cmdConfig.Logs.Machine.Storage.CleanupOlderThan, "age threshold for machine log entries to be cleaned up")
-	rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.Storage.MaxLinesPerMachine, "machine-log-max-lines-per-machine",
-		cmdConfig.Logs.Machine.Storage.MaxLinesPerMachine, "maximum number of log lines to keep per machine")
-	rootCmd.Flags().Float64Var(&cmdConfig.Logs.Machine.Storage.CleanupProbability, "machine-log-cleanup-probability",
-		cmdConfig.Logs.Machine.Storage.CleanupProbability, "probability of running a size-based cleanup after each log write")
+	rootCmdFlagBinder.DurationVar("machine-log-sqlite-timeout", "sqlite timeout for machine logs", &flagConfig.Logs.Machine.Storage.SqliteTimeout)
+	rootCmdFlagBinder.DurationVar("machine-log-cleanup-interval", "interval between machine log cleanup runs", &flagConfig.Logs.Machine.Storage.CleanupInterval)
+	rootCmdFlagBinder.DurationVar("machine-log-cleanup-older-than", "age threshold for machine log entries to be cleaned up", &flagConfig.Logs.Machine.Storage.CleanupOlderThan)
+	rootCmdFlagBinder.IntVar("machine-log-max-lines-per-machine", "maximum number of log lines to keep per machine", &flagConfig.Logs.Machine.Storage.MaxLinesPerMachine)
+	rootCmdFlagBinder.Float64Var("machine-log-cleanup-probability",
+		"probability of running a size-based cleanup after each log write", &flagConfig.Logs.Machine.Storage.CleanupProbability)
 
 	rootCmd.Flags().MarkHidden("machine-log-cleanup-probability") //nolint:errcheck
 
-	rootCmd.Flags().StringSliceVar(&cmdConfig.Logs.ResourceLogger.Types, "log-resource-updates-types",
-		cmdConfig.Logs.ResourceLogger.Types, "list of resource types whose updates should be logged")
-	rootCmd.Flags().StringVar(&cmdConfig.Logs.ResourceLogger.LogLevel, "log-resource-updates-log-level", cmdConfig.Logs.ResourceLogger.LogLevel, "log level for resource updates")
-
-	rootCmd.Flags().BoolVar(cmdConfig.Logs.Audit.Enabled, "audit-log-enabled", pointer.SafeDeref(cmdConfig.Logs.Audit.Enabled), "enable audit logging")
-
-	rootCmd.Flags().DurationVar(&cmdConfig.Logs.Audit.SQLiteTimeout, "audit-log-sqlite-timeout", cmdConfig.Logs.Audit.SQLiteTimeout, "sqlite timeout for audit logs")
-
-	rootCmd.Flags().BoolVar(&cmdConfig.Logs.Stripe.Enabled, "enable-stripe-reporting", cmdConfig.Logs.Stripe.Enabled, "enable Stripe machine usage reporting")
-
-	rootCmd.Flags().Uint32Var(&cmdConfig.Logs.Stripe.MinCommit, "stripe-minimum-commit", cmdConfig.Logs.Stripe.MinCommit, "Minimum number of machines to report to Stripe for the given account")
+	rootCmd.Flags().StringSliceVar(&flagConfig.Logs.ResourceLogger.Types, "log-resource-updates-types",
+		flagConfig.Logs.ResourceLogger.Types, "list of resource types whose updates should be logged")
+	rootCmdFlagBinder.StringVar("log-resource-updates-log-level", "log level for resource updates", &flagConfig.Logs.ResourceLogger.LogLevel)
+	rootCmdFlagBinder.BoolVar("audit-log-enabled", "enable audit logging", &flagConfig.Logs.Audit.Enabled)
+	rootCmdFlagBinder.DurationVar("audit-log-sqlite-timeout", "sqlite timeout for audit logs", &flagConfig.Logs.Audit.SqliteTimeout)
+	rootCmdFlagBinder.BoolVar("enable-stripe-reporting", "enable Stripe machine usage reporting", &flagConfig.Logs.Stripe.Enabled)
+	rootCmdFlagBinder.Uint32Var("stripe-minimum-commit", "Minimum number of machines to report to Stripe for the given account", &flagConfig.Logs.Stripe.MinCommit)
 
 	// Deprecated logs flags, kept for backwards-compatibility
 	//
 	//nolint:staticcheck,errcheck
 	{
-		rootCmd.Flags().StringVar(&cmdConfig.Logs.Audit.Path, "audit-log-dir", cmdConfig.Logs.Audit.Path, "Directory for audit log storage")
-		rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.BufferInitialCapacity, "machine-log-buffer-capacity",
-			cmdConfig.Logs.Machine.BufferInitialCapacity, "initial buffer capacity for machine logs in bytes")
-		rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.BufferMaxCapacity, "machine-log-buffer-max-capacity",
-			cmdConfig.Logs.Machine.BufferMaxCapacity, "max buffer capacity for machine logs in bytes")
-		rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.BufferSafetyGap, "machine-log-buffer-safe-gap",
-			cmdConfig.Logs.Machine.BufferSafetyGap, "safety gap for machine log buffer in bytes")
-		rootCmd.Flags().IntVar(&cmdConfig.Logs.Machine.Storage.NumCompressedChunks, "machine-log-num-compressed-chunks",
-			cmdConfig.Logs.Machine.Storage.NumCompressedChunks, "number of compressed log chunks to keep")
-		rootCmd.Flags().BoolVar(&cmdConfig.Logs.Machine.Storage.Enabled, "machine-log-storage-enabled",
-			cmdConfig.Logs.Machine.Storage.Enabled, "enable machine log storage")
-		rootCmd.Flags().StringVar(&cmdConfig.Logs.Machine.Storage.Path, "machine-log-storage-path",
-			cmdConfig.Logs.Machine.Storage.Path, "path of the directory for storing machine logs")
-		rootCmd.Flags().StringVar(&cmdConfig.Logs.Machine.Storage.Path, "log-storage-path", cmdConfig.Logs.Machine.Storage.Path, "path of the directory for storing machine logs")
+		rootCmdFlagBinder.StringVar("audit-log-dir", "Directory for audit log storage", &flagConfig.Logs.Audit.Path)
+		rootCmdFlagBinder.IntVar("machine-log-buffer-capacity", "initial buffer capacity for machine logs in bytes", &flagConfig.Logs.Machine.BufferInitialCapacity)
+		rootCmdFlagBinder.IntVar("machine-log-buffer-max-capacity", "max buffer capacity for machine logs in bytes", &flagConfig.Logs.Machine.BufferMaxCapacity)
+		rootCmdFlagBinder.IntVar("machine-log-buffer-safe-gap", "safety gap for machine log buffer in bytes", &flagConfig.Logs.Machine.BufferSafetyGap)
+		rootCmdFlagBinder.IntVar("machine-log-num-compressed-chunks", "number of compressed log chunks to keep", &flagConfig.Logs.Machine.Storage.NumCompressedChunks)
+		rootCmdFlagBinder.BoolVar("machine-log-storage-enabled", "enable machine log storage", &flagConfig.Logs.Machine.Storage.Enabled)
+		rootCmdFlagBinder.StringVar("machine-log-storage-path", "path of the directory for storing machine logs", &flagConfig.Logs.Machine.Storage.Path)
+		rootCmdFlagBinder.StringVar("log-storage-path", "path of the directory for storing machine logs", &flagConfig.Logs.Machine.Storage.Path)
 
 		rootCmd.Flags().MarkDeprecated("audit-log-dir", "this flag is kept for the SQLite migration, and will be removed in future versions")
 		rootCmd.Flags().MarkDeprecated("machine-log-buffer-capacity", "this flag is kept for the SQLite migration, and will be removed in future versions")
@@ -552,277 +334,89 @@ func defineLogsFlags() {
 }
 
 func defineStorageFlags() {
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Storage.Default.Kind,
-		"storage-kind",
-		cmdConfig.Storage.Default.Kind,
-		"storage type: etcd|boltdb.",
-	)
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Storage.Default.Etcd.Embedded,
-		"etcd-embedded",
-		cmdConfig.Storage.Default.Etcd.Embedded,
-		"use embedded etcd server.",
-	)
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Storage.Default.Etcd.EmbeddedUnsafeFsync,
-		"etcd-embedded-unsafe-fsync",
-		cmdConfig.Storage.Default.Etcd.EmbeddedUnsafeFsync,
-		"disable fsync in the embedded etcd server (dangerous).",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Storage.Default.Etcd.EmbeddedDBPath,
-		"etcd-embedded-db-path",
-		cmdConfig.Storage.Default.Etcd.EmbeddedDBPath,
-		"path to the embedded etcd database.",
-	)
+	EnumVar(rootCmdFlagBinder, "storage-kind", "storage type: etcd|boltdb.", &flagConfig.Storage.Default.Kind)
+	rootCmdFlagBinder.BoolVar("etcd-embedded", "use embedded etcd server.", &flagConfig.Storage.Default.Etcd.Embedded)
+	rootCmdFlagBinder.BoolVar("etcd-embedded-unsafe-fsync", "disable fsync in the embedded etcd server (dangerous).", &flagConfig.Storage.Default.Etcd.EmbeddedUnsafeFsync)
+	rootCmdFlagBinder.StringVar("etcd-embedded-db-path", "path to the embedded etcd database.", &flagConfig.Storage.Default.Etcd.EmbeddedDBPath)
 
 	ensure.NoError(rootCmd.Flags().MarkHidden("etcd-embedded-unsafe-fsync"))
 
-	rootCmd.Flags().StringSliceVar(
-		&cmdConfig.Storage.Default.Etcd.Endpoints,
-		"etcd-endpoints",
-		cmdConfig.Storage.Default.Etcd.Endpoints,
-		"external etcd endpoints.",
-	)
-	rootCmd.Flags().DurationVar(
-		&cmdConfig.Storage.Default.Etcd.DialKeepAliveTime,
-		"etcd-dial-keepalive-time",
-		cmdConfig.Storage.Default.Etcd.DialKeepAliveTime,
-		"external etcd client keep-alive time (interval).",
-	)
-	rootCmd.Flags().DurationVar(
-		&cmdConfig.Storage.Default.Etcd.DialKeepAliveTimeout,
-		"etcd-dial-keepalive-timeout",
-		cmdConfig.Storage.Default.Etcd.DialKeepAliveTimeout,
-		"external etcd client keep-alive timeout.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Storage.Default.Etcd.CAFile,
-		"etcd-ca-path",
-		cmdConfig.Storage.Default.Etcd.CAFile,
-		"external etcd CA path.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Storage.Default.Etcd.CertFile,
-		"etcd-client-cert-path",
-		cmdConfig.Storage.Default.Etcd.CertFile,
-		"external etcd client cert path.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Storage.Default.Etcd.KeyFile,
-		"etcd-client-key-path",
-		cmdConfig.Storage.Default.Etcd.KeyFile,
-		"external etcd client key path.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Storage.Default.Etcd.PrivateKeySource,
-		"private-key-source",
-		cmdConfig.Storage.Default.Etcd.PrivateKeySource,
-		"file containing private key to use for decrypting master key slot.",
-	)
+	rootCmd.Flags().StringSliceVar(&flagConfig.Storage.Default.Etcd.Endpoints, "etcd-endpoints", flagConfig.Storage.Default.Etcd.Endpoints, "external etcd endpoints.")
+	rootCmdFlagBinder.DurationVar("etcd-dial-keepalive-time", "external etcd client keep-alive time (interval).", &flagConfig.Storage.Default.Etcd.DialKeepAliveTime)
+	rootCmdFlagBinder.DurationVar("etcd-dial-keepalive-timeout", "external etcd client keep-alive timeout.", &flagConfig.Storage.Default.Etcd.DialKeepAliveTimeout)
+	rootCmdFlagBinder.StringVar("etcd-ca-path", "external etcd CA path.", &flagConfig.Storage.Default.Etcd.CaFile)
+	rootCmdFlagBinder.StringVar("etcd-client-cert-path", "external etcd client cert path.", &flagConfig.Storage.Default.Etcd.CertFile)
+	rootCmdFlagBinder.StringVar("etcd-client-key-path", "external etcd client key path.", &flagConfig.Storage.Default.Etcd.KeyFile)
+	rootCmdFlagBinder.StringVar("private-key-source", "file containing private key to use for decrypting master key slot.", &flagConfig.Storage.Default.Etcd.PrivateKeySource)
 
-	rootCmd.Flags().StringSliceVar(
-		&cmdConfig.Storage.Default.Etcd.PublicKeyFiles,
-		"public-key-files",
-		cmdConfig.Storage.Default.Etcd.PublicKeyFiles,
-		"list of paths to files containing public keys to use for encrypting keys slots.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Storage.Secondary.Path, //nolint:staticcheck // backwards compatibility, remove when migration from boltdb to sqlite is done
+	rootCmd.Flags().StringSliceVar(&flagConfig.Storage.Default.Etcd.PublicKeyFiles, "public-key-files", flagConfig.Storage.Default.Etcd.PublicKeyFiles,
+		"list of paths to files containing public keys to use for encrypting keys slots.")
+	rootCmdFlagBinder.StringVar(
 		"secondary-storage-path",
-		cmdConfig.Storage.Secondary.Path, //nolint:staticcheck // backwards compatibility, remove when migration from boltdb to sqlite is done
 		fmt.Sprintf("path of the file for boltdb-backed secondary storage for frequently updated data (deprecated, see --%s).", config.SQLiteStoragePathFlag),
+		&flagConfig.Storage.Secondary.Path, //nolint:staticcheck // backwards compatibility, remove when migration from boltdb to sqlite is done
 	)
 
 	rootCmd.Flags().MarkDeprecated("secondary-storage-path", "this flag is kept for the SQLite migration, and will be removed in future versions") //nolint:errcheck
 
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Storage.SQLite.Path,
-		config.SQLiteStoragePathFlag,
-		cmdConfig.Storage.SQLite.Path,
-		"path of the file for sqlite-backed secondary storage for frequently updated data, machine and audit logs, it is required to be set.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Storage.SQLite.ExperimentalBaseParams,
-		"sqlite-storage-experimental-base-params",
-		cmdConfig.Storage.SQLite.ExperimentalBaseParams,
+	rootCmdFlagBinder.StringVar(config.SQLiteStoragePathFlag,
+		"path of the file for sqlite-backed secondary storage for frequently updated data, machine and audit logs, it is required to be set.", &flagConfig.Storage.Sqlite.Path)
+	rootCmdFlagBinder.StringVar("sqlite-storage-experimental-base-params",
 		"base DSN (connection string) parameters for sqlite database connection. they must not start with question mark (?). "+
-			"this flag is experimental and may be removed in future releases.",
-	)
+			"this flag is experimental and may be removed in future releases.", &flagConfig.Storage.Sqlite.ExperimentalBaseParams)
 
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Storage.SQLite.ExtraParams,
-		"sqlite-storage-extra-params",
-		cmdConfig.Storage.SQLite.ExtraParams,
+	rootCmdFlagBinder.StringVar("sqlite-storage-extra-params",
 		"extra DSN (connection string) parameters for sqlite database connection. they will be appended to the base params. they must not start with ampersand (&).",
-	)
+		&flagConfig.Storage.Sqlite.ExtraParams)
 }
 
 func defineRegistriesFlags() {
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Registries.Talos,
-		"talos-installer-registry",
-		cmdConfig.Registries.Talos,
-		"Talos installer image registry.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Registries.Kubernetes,
-		"kubernetes-registry",
-		cmdConfig.Registries.Kubernetes,
-		"Kubernetes container registry.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Registries.ImageFactoryBaseURL,
-		"image-factory-address",
-		cmdConfig.Registries.ImageFactoryBaseURL,
-		"Image factory base URL to use.",
-	)
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Registries.ImageFactoryPXEBaseURL,
-		"image-factory-pxe-address",
-		cmdConfig.Registries.ImageFactoryPXEBaseURL,
-		"Image factory pxe base URL to use.",
-	)
+	rootCmdFlagBinder.StringVar("talos-installer-registry", "Talos installer image registry.", &flagConfig.Registries.Talos)
+	rootCmdFlagBinder.StringVar("kubernetes-registry", "Kubernetes container registry.", &flagConfig.Registries.Kubernetes)
+	rootCmdFlagBinder.StringVar("image-factory-address", "Image factory base URL to use.", &flagConfig.Registries.ImageFactoryBaseURL)
+	rootCmdFlagBinder.StringVar("image-factory-pxe-address", "Image factory pxe base URL to use.", &flagConfig.Registries.ImageFactoryPXEBaseURL)
 
-	rootCmd.Flags().StringSliceVar(
-		&cmdConfig.Registries.Mirrors,
-		"registry-mirror",
-		cmdConfig.Registries.Mirrors,
-		"list of registry mirrors to use in format: <registry host>=<mirror URL>",
-	)
+	rootCmd.Flags().StringSliceVar(&flagConfig.Registries.Mirrors, "registry-mirror", flagConfig.Registries.Mirrors,
+		"list of registry mirrors to use in format: <registry host>=<mirror URL>")
 }
 
 func defineFeatureFlags() {
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Features.EnableTalosPreReleaseVersions,
-		"enable-talos-pre-release-versions",
-		cmdConfig.Features.EnableTalosPreReleaseVersions,
-		"make Omni version discovery controler include Talos pre-release versions.",
-	)
+	rootCmdFlagBinder.BoolVar("enable-talos-pre-release-versions",
+		"make Omni version discovery controler include Talos pre-release versions.", &flagConfig.Features.EnableTalosPreReleaseVersions)
 
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Features.EnableConfigDataCompression,
-		"config-data-compression-enabled",
-		cmdConfig.Features.EnableConfigDataCompression,
-		"enable config data compression.",
-	)
+	rootCmdFlagBinder.BoolVar("config-data-compression-enabled", "enable config data compression.", &flagConfig.Features.EnableConfigDataCompression)
 
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Services.WorkloadProxy.Enabled,
-		"workload-proxying-enabled",
-		cmdConfig.Services.WorkloadProxy.Enabled,
-		"enable workload proxying feature.",
-	)
+	rootCmdFlagBinder.BoolVar("workload-proxying-enabled", "enable workload proxying feature.", &flagConfig.Services.WorkloadProxy.Enabled)
 
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Services.WorkloadProxy.Subdomain,
-		"workload-proxying-subdomain",
-		cmdConfig.Services.WorkloadProxy.Subdomain,
-		"workload proxying subdomain.",
-	)
+	rootCmdFlagBinder.StringVar("workload-proxying-subdomain", "workload proxying subdomain.", &flagConfig.Services.WorkloadProxy.Subdomain)
 
-	rootCmd.Flags().DurationVar(
-		&cmdConfig.Services.WorkloadProxy.StopLBsAfter,
-		"workload-proxying-stop-lbs-after",
-		cmdConfig.Services.WorkloadProxy.StopLBsAfter,
-		"stop load balancers after this duration when workload proxying is enabled. Set to 0 to disable.",
-	)
+	rootCmdFlagBinder.DurationVar("workload-proxying-stop-lbs-after",
+		"stop load balancers after this duration when workload proxying is enabled. Set to 0 to disable.", &flagConfig.Services.WorkloadProxy.StopLBsAfter)
 
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Features.EnableBreakGlassConfigs,
-		"enable-break-glass-configs",
-		cmdConfig.Features.EnableBreakGlassConfigs,
-		"Allows downloading admin Talos and Kubernetes configs.",
-	)
+	rootCmdFlagBinder.BoolVar("enable-break-glass-configs", "Allows downloading admin Talos and Kubernetes configs.", &flagConfig.Features.EnableBreakGlassConfigs)
 
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Features.DisableControllerRuntimeCache,
-		"disable-controller-runtime-cache",
-		cmdConfig.Features.DisableControllerRuntimeCache,
-		"disable watch-based cache for controller-runtime (affects performance)",
-	)
+	rootCmdFlagBinder.BoolVar("disable-controller-runtime-cache",
+		"disable watch-based cache for controller-runtime (affects performance)", &flagConfig.Features.DisableControllerRuntimeCache)
 
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.Features.EnableClusterImport,
-		"enable-cluster-import",
-		cmdConfig.Features.EnableClusterImport,
-		"enable EXPERIMENTAL cluster import feature.",
-	)
+	rootCmdFlagBinder.BoolVar("enable-cluster-import", "enable EXPERIMENTAL cluster import feature.", &flagConfig.Features.EnableClusterImport)
 }
 
 func defineDebugFlags() {
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Debug.Pprof.Endpoint,
-		"pprof-bind-addr",
-		cmdConfig.Debug.Pprof.Endpoint,
-		"start pprof HTTP server on the defined address (\"\" if disabled).",
-	)
-
-	rootCmd.Flags().StringVar(
-		&cmdConfig.Debug.Server.Endpoint,
-		"debug-server-endpoint",
-		cmdConfig.Debug.Server.Endpoint,
-		"start debug HTTP server on the defined address (\"\" if disabled).",
-	)
+	rootCmdFlagBinder.StringVar("pprof-bind-addr", "start pprof HTTP server on the defined address (\"\" if disabled).", &flagConfig.Debug.Pprof.Endpoint)
+	rootCmdFlagBinder.StringVar("debug-server-endpoint", "start debug HTTP server on the defined address (\"\" if disabled).", &flagConfig.Debug.Server.Endpoint)
 }
 
 func defineEtcdBackupsFlags() {
-	rootCmd.Flags().BoolVar(
-		&cmdConfig.EtcdBackup.S3Enabled,
-		"etcd-backup-s3",
-		cmdConfig.EtcdBackup.S3Enabled,
-		"S3 will be used for cluster etcd backups",
-	)
-
-	rootCmd.Flags().StringVar(
-		&cmdConfig.EtcdBackup.LocalPath,
-		"etcd-backup-local-path",
-		cmdConfig.EtcdBackup.LocalPath,
-		"path to local directory for cluster etcd backups",
-	)
-
-	rootCmd.Flags().DurationVar(
-		&cmdConfig.EtcdBackup.TickInterval,
-		"etcd-backup-tick-interval",
-		cmdConfig.EtcdBackup.TickInterval,
-		"interval between etcd backups ticks (controller events to check if any cluster needs to be backed up)",
-	)
-
-	rootCmd.Flags().DurationVar(
-		&cmdConfig.EtcdBackup.Jitter,
-		"etcd-backup-jitter",
-		cmdConfig.EtcdBackup.Jitter,
-		"jitter for etcd backups, randomly added/subtracted from the interval between automatic etcd backups",
-	)
-
-	rootCmd.Flags().DurationVar(
-		&cmdConfig.EtcdBackup.MinInterval,
-		"etcd-backup-min-interval",
-		cmdConfig.EtcdBackup.MinInterval,
-		"minimal interval between etcd backups",
-	)
-
-	rootCmd.Flags().DurationVar(
-		&cmdConfig.EtcdBackup.MaxInterval,
-		"etcd-backup-max-interval",
-		cmdConfig.EtcdBackup.MaxInterval,
-		"maximal interval between etcd backups",
-	)
-
-	rootCmd.Flags().Uint64Var(
-		&cmdConfig.EtcdBackup.UploadLimitMbps,
-		"etcd-backup-upload-limit-mbps",
-		cmdConfig.EtcdBackup.UploadLimitMbps,
-		"throughput limit in Mbps for etcd backup uploads, zero means unlimited",
-	)
-
-	rootCmd.Flags().Uint64Var(
-		&cmdConfig.EtcdBackup.DownloadLimitMbps,
-		"etcd-backup-download-limit-mbps",
-		cmdConfig.EtcdBackup.DownloadLimitMbps,
-		"throughput limit in Mbps for etcd backup downloads, zero means unlimited",
-	)
+	rootCmdFlagBinder.BoolVar("etcd-backup-s3", "S3 will be used for cluster etcd backups", &flagConfig.EtcdBackup.S3Enabled)
+	rootCmdFlagBinder.StringVar("etcd-backup-local-path", "path to local directory for cluster etcd backups", &flagConfig.EtcdBackup.LocalPath)
+	rootCmdFlagBinder.DurationVar("etcd-backup-tick-interval",
+		"interval between etcd backups ticks (controller events to check if any cluster needs to be backed up)", &flagConfig.EtcdBackup.TickInterval)
+	rootCmdFlagBinder.DurationVar("etcd-backup-jitter",
+		"jitter for etcd backups, randomly added/subtracted from the interval between automatic etcd backups", &flagConfig.EtcdBackup.Jitter)
+	rootCmdFlagBinder.DurationVar("etcd-backup-min-interval", "minimal interval between etcd backups", &flagConfig.EtcdBackup.MinInterval)
+	rootCmdFlagBinder.DurationVar("etcd-backup-max-interval", "maximal interval between etcd backups", &flagConfig.EtcdBackup.MaxInterval)
+	rootCmdFlagBinder.Uint64Var("etcd-backup-upload-limit-mbps", "throughput limit in Mbps for etcd backup uploads, zero means unlimited", &flagConfig.EtcdBackup.UploadLimitMbps)
+	rootCmdFlagBinder.Uint64Var("etcd-backup-download-limit-mbps", "throughput limit in Mbps for etcd backup downloads, zero means unlimited", &flagConfig.EtcdBackup.DownloadLimitMbps)
 
 	rootCmd.MarkFlagsMutuallyExclusive("etcd-backup-s3", "etcd-backup-local-path")
 }

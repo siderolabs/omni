@@ -40,15 +40,17 @@ const (
 
 // NewStore creates a new Store.
 func NewStore(config config.LogsMachineStorage, db *sql.DB, id string, logger *zap.Logger) (*Store, error) {
-	if config.SQLiteTimeout <= 0 {
-		config.SQLiteTimeout = 30 * time.Second
+	sqliteTimeout := config.GetSqliteTimeout()
+	if sqliteTimeout <= 0 {
+		sqliteTimeout = 30 * time.Second
 	}
 
 	s := &Store{
-		id:     truncateMachineID(id),
-		config: config,
-		db:     db,
-		logger: logger,
+		id:            truncateMachineID(id),
+		config:        config,
+		db:            db,
+		logger:        logger,
+		sqliteTimeout: sqliteTimeout,
 	}
 
 	return s, nil
@@ -56,13 +58,14 @@ func NewStore(config config.LogsMachineStorage, db *sql.DB, id string, logger *z
 
 // Store implements the logstore.LogStore interface using SQLite as the backend.
 type Store struct {
-	db          *sql.DB
-	logger      *zap.Logger
-	id          string
-	subscribers []chan struct{}
-	config      config.LogsMachineStorage
-	mu          sync.Mutex
-	closed      bool
+	config        config.LogsMachineStorage
+	db            *sql.DB
+	logger        *zap.Logger
+	id            string
+	subscribers   []chan struct{}
+	mu            sync.Mutex
+	closed        bool
+	sqliteTimeout time.Duration
 }
 
 // WriteLine implements the logstore.LogStore interface.
@@ -78,14 +81,14 @@ func (s *Store) WriteLine(ctx context.Context, message []byte) error {
 
 	query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s) VALUES (?, ?, ?)`, tableName, machineIDColumn, messageColumn, createdAtColumn)
 
-	ctx, cancel := context.WithTimeout(ctx, s.config.SQLiteTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.sqliteTimeout)
 	defer cancel()
 
 	if _, err := s.db.ExecContext(ctx, query, s.id, message, time.Now().Unix()); err != nil {
 		return fmt.Errorf("failed to write log message: %w", err)
 	}
 
-	if rand.Float64() < s.config.CleanupProbability {
+	if rand.Float64() < s.config.GetCleanupProbability() {
 		if err := s.doCleanup(ctx); err != nil { // log the error but do not return an error, as the log message was written successfully
 			s.logger.Warn("failed to cleanup old logs after writing log message", zap.Error(err))
 		}
@@ -383,7 +386,7 @@ func (s *Store) readerStartID(ctx context.Context, nLines int) (int64, error) {
 	query := fmt.Sprintf("SELECT COALESCE(MIN(id), 0) FROM (SELECT %s AS id FROM %s WHERE %s = ? ORDER BY %s DESC LIMIT ?)",
 		idColumn, tableName, machineIDColumn, idColumn)
 
-	ctx, cancel := context.WithTimeout(ctx, s.config.SQLiteTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.sqliteTimeout)
 	defer cancel()
 
 	var startID int64
@@ -400,7 +403,7 @@ func (s *Store) readerStartID(ctx context.Context, nLines int) (int64, error) {
 func (s *Store) currentMaxID(ctx context.Context) (int64, error) {
 	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) FROM %s WHERE %s = ?", idColumn, tableName, machineIDColumn)
 
-	ctx, cancel := context.WithTimeout(ctx, s.config.SQLiteTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.sqliteTimeout)
 	defer cancel()
 
 	var id int64

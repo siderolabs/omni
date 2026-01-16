@@ -74,5 +74,5 @@ func Build(imageFactoryHost string, resID resource.ID, installImage *specs.Machi
 		return imageFactoryHost + "/" + installerName + "/" + schematicID + ":" + desiredTalosVersion, nil
 	}
 
-	return appconfig.Config.Registries.Talos + ":" + desiredTalosVersion, nil
+	return appconfig.Config.Registries.GetTalos() + ":" + desiredTalosVersion, nil
 }

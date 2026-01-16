@@ -177,8 +177,8 @@ func makeAuditData(agent, _, email string) auditlog.Data {
 func testDB(t *testing.T) *sql.DB {
 	t.Helper()
 
-	conf := config.Default().Storage.SQLite
-	conf.Path = filepath.Join(t.TempDir(), "test.db")
+	conf := config.Default().Storage.Sqlite
+	conf.SetPath(filepath.Join(t.TempDir(), "test.db"))
 
 	db, err := sqlite.OpenDB(conf)
 	require.NoError(t, err)

@@ -43,7 +43,7 @@ func NewIDTokenVerifier(domain string) (*IDTokenVerifier, error) {
 		provider.KeyFunc,
 		validator.RS256,
 		issuerURL.String(),
-		[]string{config.Config.Auth.Auth0.ClientID},
+		[]string{config.Config.Auth.Auth0.GetClientID()},
 		validator.WithAllowedClockSkew(tokenValidationAllowedClockSkew),
 		validator.WithCustomClaims(func() validator.CustomClaims {
 			return &CustomIDClaims{}

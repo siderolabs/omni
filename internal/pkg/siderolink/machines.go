@@ -196,7 +196,7 @@ func (m *MachineCache) init(ctx context.Context) error {
 		return fmt.Errorf("failed to create sqlite log store manager: %w", err)
 	}
 
-	if m.logsConfig.Storage.Enabled { //nolint:staticcheck
+	if m.logsConfig.Storage.GetEnabled() { //nolint:staticcheck
 		circularLogStoreManager := circularlog.NewStoreManager(m.logsConfig, m.compressor, m.logger)
 		if err = migrateLogStoreToSQLite(ctx, circularLogStoreManager, sqliteLogStoreManager, m.state, m.logger); err != nil {
 			return fmt.Errorf("failed to migrate log store from circular to sqlite: %w", err)
