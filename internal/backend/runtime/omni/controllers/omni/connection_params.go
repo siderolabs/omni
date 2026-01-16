@@ -47,9 +47,9 @@ func NewConnectionParamsController() *ConnectionParamsController {
 
 				spec.ApiEndpoint = config.Config.Services.MachineAPI.URL()
 				spec.WireguardEndpoint = siderolinkConfig.TypedSpec().Value.AdvertisedEndpoint
-				spec.UseGrpcTunnel = config.Config.Services.Siderolink.UseGRPCTunnel
-				spec.LogsPort = int32(config.Config.Services.Siderolink.LogServerPort)
-				spec.EventsPort = int32(config.Config.Services.Siderolink.EventSinkPort)
+				spec.UseGrpcTunnel = config.Config.Services.Siderolink.GetUseGRPCTunnel()
+				spec.LogsPort = int32(config.Config.Services.Siderolink.GetLogServerPort())
+				spec.EventsPort = int32(config.Config.Services.Siderolink.GetEventSinkPort())
 
 				defaultJoinToken, err := safe.ReaderGetByID[*siderolinkres.DefaultJoinToken](ctx, r, siderolinkres.DefaultJoinTokenID)
 				if err != nil {

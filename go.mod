@@ -3,11 +3,18 @@ module github.com/siderolabs/omni
 go 1.25.6
 
 replace (
+	// adds the extraTags field to the JSONSchema
+	github.com/atombender/go-jsonschema => github.com/utkuozdemir/go-jsonschema v0.0.0-20260116005549-a1810c7ef5ad
 	// forked saml library that has the fix for Fusion Auth ACS parsing
 	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe
 
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
+)
+
+tool (
+	github.com/atombender/go-jsonschema
+	github.com/utkuozdemir/go-accessor-gen
 )
 
 require (
@@ -122,6 +129,7 @@ require github.com/siderolabs/talos v1.12.1
 require (
 	cel.dev/expr v0.25.1 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
+	dario.cat/mergo v1.0.2 // indirect
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1 // indirect
@@ -135,6 +143,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
+	github.com/atombender/go-jsonschema v0.20.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.4 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.17 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.17 // indirect
@@ -200,6 +209,7 @@ require (
 	github.com/go-openapi/swag/yamlutils v0.25.4 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
@@ -263,17 +273,20 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
+	github.com/sanity-io/litter v1.5.8 // indirect
 	github.com/sasha-s/go-deadlock v0.3.6 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/siderolabs/go-kubeconfig v0.1.1 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
 	github.com/siderolabs/protoenc v0.2.4 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
+	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spyzhov/ajson v0.9.6 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
+	github.com/utkuozdemir/go-accessor-gen v0.0.0-20260117000659-c3d836f66ce6 // indirect
 	github.com/vbatts/tar-split v0.12.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510 // indirect

@@ -19,7 +19,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/go-pointer"
 	pb "github.com/siderolabs/siderolink/api/siderolink"
 	"github.com/siderolabs/siderolink/pkg/wireguard"
 	"go.uber.org/zap"
@@ -73,7 +72,7 @@ func (pc *provisionContext) isAuthorizedSecureFlow() bool {
 }
 
 // NewProvisionHandler creates a new ProvisionHandler.
-func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode string, forceWireguardOverGRPC bool) *ProvisionHandler {
+func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode config.SiderolinkServiceJoinTokensMode, forceWireguardOverGRPC bool) *ProvisionHandler {
 	return &ProvisionHandler{
 		logger:                 logger,
 		state:                  state,
@@ -88,7 +87,7 @@ type ProvisionHandler struct {
 
 	logger                 *zap.Logger
 	state                  state.State
-	joinTokenMode          string
+	joinTokenMode          config.SiderolinkServiceJoinTokensMode
 	forceWireguardOverGRPC bool
 }
 
@@ -127,11 +126,11 @@ func (h *ProvisionHandler) Provision(ctx context.Context, req *pb.ProvisionReque
 		return nil, err
 	}
 
-	if !provisionContext.supportsSecureJoinTokens && h.joinTokenMode == config.JoinTokensModeStrict {
+	if !provisionContext.supportsSecureJoinTokens && h.joinTokenMode == config.SiderolinkServiceJoinTokensModeStrict {
 		return nil, status.Errorf(
 			codes.FailedPrecondition,
 			"Talos version %s is not supported on this Omni instance as '--join-tokens-mode' is set to 'strict'",
-			pointer.SafeDeref(req.TalosVersion),
+			req.GetTalosVersion(),
 		)
 	}
 
@@ -222,7 +221,7 @@ func updateNodeUniqueToken(ctx context.Context, logger *zap.Logger, st state.Sta
 	return safe.StateModify(ctx, st, siderolinkres.NewNodeUniqueToken(provisionContext.request.NodeUuid),
 		func(res *siderolinkres.NodeUniqueToken) error {
 			defer func() {
-				res.TypedSpec().Value.Token = pointer.SafeDeref(provisionContext.request.NodeUniqueToken)
+				res.TypedSpec().Value.Token = provisionContext.request.GetNodeUniqueToken()
 			}()
 
 			if res.TypedSpec().Value.Token == "" {
@@ -433,7 +432,7 @@ func establishLink[T res](ctx context.Context, logger *zap.Logger, st state.Stat
 
 	if link.Metadata().Type() == siderolinkres.LinkType {
 		err = safe.StateModify(ctx, st, siderolinkres.NewJoinTokenUsage(link.Metadata().ID()), func(res *siderolinkres.JoinTokenUsage) error {
-			res.TypedSpec().Value.TokenId = pointer.SafeDeref(provisionContext.request.JoinToken)
+			res.TypedSpec().Value.TokenId = provisionContext.request.GetJoinToken()
 
 			return nil
 		})
@@ -572,7 +571,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		return nil, err
 	}
 
-	requestJoinToken, err = h.getJoinToken(ctx, pointer.SafeDeref(req.JoinToken))
+	requestJoinToken, err = h.getJoinToken(ctx, req.GetJoinToken())
 	if err != nil {
 		return nil, err
 	}
@@ -588,7 +587,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		return nil, err
 	}
 
-	if uniqueToken := pointer.SafeDeref(req.NodeUniqueToken); uniqueToken != "" {
+	if uniqueToken := req.GetNodeUniqueToken(); uniqueToken != "" {
 		requestNodeUniqueToken, err = jointoken.ParseNodeUniqueToken(uniqueToken)
 		if err != nil {
 			return nil, err
@@ -600,7 +599,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		return nil, err
 	}
 
-	useWireguardOverGRPC := pointer.SafeDeref(req.WireguardOverGrpc)
+	useWireguardOverGRPC := req.GetWireguardOverGrpc()
 	if grpcTunnelConfig != nil {
 		useWireguardOverGRPC = grpcTunnelConfig.TypedSpec().Value.Enabled
 	}
@@ -662,7 +661,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		tokenWasWiped:             tokenWasWiped,
 		hasValidJoinToken:         requestJoinToken != nil,
 		hasValidNodeUniqueToken:   linkNodeUniqueToken.Equal(requestNodeUniqueToken),
-		nodeUniqueTokensEnabled:   h.joinTokenMode != config.JoinTokensModeLegacyOnly,
+		nodeUniqueTokensEnabled:   h.joinTokenMode != config.SiderolinkServiceJoinTokensModeLegacy,
 		supportsSecureJoinTokens:  siderolink.SupportsSecureJoinTokens(talosVersion),
 		useWireguardOverGRPC:      useWireguardOverGRPC,
 	}, nil

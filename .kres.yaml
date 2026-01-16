@@ -761,6 +761,7 @@ spec:
         - .pb.gw.go
         - .pb.ts
         - mockServiceWorker.js
+        - .generated.go
       skipPaths:
         - .git
         - testdata/
@@ -793,3 +794,8 @@ spec:
     - e2e-upgrades
     - e2e-backups
     - e2e-forced-removal
+---
+kind: licensepolicy.LicensePolicy
+spec:
+  excludeSuffixes:
+    - tarik.go

@@ -22,17 +22,19 @@ import (
 
 // UpdateResources creates or updates the features omni.FeaturesConfig resource with the current feature flags.
 func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) error {
+	workloadProxyEnabled := config.Config.Services.WorkloadProxy.GetEnabled()
+
 	updateFeaturesConfig := func(res *omni.FeaturesConfig) error {
-		res.TypedSpec().Value.EnableWorkloadProxying = config.Config.Services.WorkloadProxy.Enabled
-		res.TypedSpec().Value.EmbeddedDiscoveryService = config.Config.Services.EmbeddedDiscoveryService.Enabled
+		res.TypedSpec().Value.EnableWorkloadProxying = workloadProxyEnabled
+		res.TypedSpec().Value.EmbeddedDiscoveryService = config.Config.Services.EmbeddedDiscoveryService.GetEnabled()
 		res.TypedSpec().Value.EtcdBackupSettings = &specs.EtcdBackupSettings{
-			TickInterval: durationpb.New(config.Config.EtcdBackup.TickInterval),
-			MinInterval:  durationpb.New(config.Config.EtcdBackup.MinInterval),
-			MaxInterval:  durationpb.New(config.Config.EtcdBackup.MaxInterval),
+			TickInterval: durationpb.New(config.Config.EtcdBackup.GetTickInterval()),
+			MinInterval:  durationpb.New(config.Config.EtcdBackup.GetMinInterval()),
+			MaxInterval:  durationpb.New(config.Config.EtcdBackup.GetMaxInterval()),
 		}
 
-		res.TypedSpec().Value.AuditLogEnabled = config.Config.Logs.Audit.Path != "" //nolint:staticcheck
-		res.TypedSpec().Value.ImageFactoryBaseUrl = config.Config.Registries.ImageFactoryBaseURL
+		res.TypedSpec().Value.AuditLogEnabled = config.Config.Logs.Audit.GetPath() != "" //nolint:staticcheck
+		res.TypedSpec().Value.ImageFactoryBaseUrl = config.Config.Registries.GetImageFactoryBaseURL()
 
 		imageFactoryPXEBaseURL, err := config.Config.GetImageFactoryPXEBaseURL()
 		if err != nil {
@@ -41,17 +43,17 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 
 		res.TypedSpec().Value.ImageFactoryPxeBaseUrl = imageFactoryPXEBaseURL.String()
 		res.TypedSpec().Value.UserPilotSettings = &specs.UserPilotSettings{
-			AppToken: config.Config.Account.UserPilot.AppToken,
+			AppToken: config.Config.Account.UserPilot.GetAppToken(),
 		}
 		res.TypedSpec().Value.StripeSettings = &specs.StripeSettings{
-			Enabled:   config.Config.Logs.Stripe.Enabled,
-			MinCommit: config.Config.Logs.Stripe.MinCommit,
+			Enabled:   config.Config.Logs.Stripe.GetEnabled(),
+			MinCommit: config.Config.Logs.Stripe.GetMinCommit(),
 		}
 		res.TypedSpec().Value.Account = &specs.Account{
-			Id:   config.Config.Account.ID,
-			Name: config.Config.Account.Name,
+			Id:   config.Config.Account.GetId(),
+			Name: config.Config.Account.GetName(),
 		}
-		res.TypedSpec().Value.TalosPreReleaseVersionsEnabled = config.Config.Features.EnableTalosPreReleaseVersions
+		res.TypedSpec().Value.TalosPreReleaseVersionsEnabled = config.Config.Features.GetEnableTalosPreReleaseVersions()
 
 		return nil
 	}
@@ -73,7 +75,7 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 			return fmt.Errorf("failed to create features config: %w", err)
 		}
 
-		logger.Info("created features config resource", zap.Bool("enable_workload_proxying", config.Config.Services.WorkloadProxy.Enabled))
+		logger.Info("created features config resource", zap.Bool("enable_workload_proxying", workloadProxyEnabled))
 
 		return nil
 	}
@@ -82,7 +84,7 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) er
 		return fmt.Errorf("failed to update features config: %w", err)
 	}
 
-	logger.Info("updated features config resource", zap.Bool("enable_workload_proxying", config.Config.Services.WorkloadProxy.Enabled))
+	logger.Info("updated features config resource", zap.Bool("enable_workload_proxying", workloadProxyEnabled))
 
 	return nil
 }

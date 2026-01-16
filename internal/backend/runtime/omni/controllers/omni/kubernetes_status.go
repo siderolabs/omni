@@ -438,7 +438,7 @@ func (ctrl *KubernetesStatusController) startWatcher(ctx context.Context, logger
 		w.podsSync(ctx, notifyCh)
 	}, logger)
 
-	if config.Config.Services.WorkloadProxy.Enabled {
+	if config.Config.Services.WorkloadProxy.GetEnabled() {
 		w.serviceFactory = informers.NewSharedInformerFactory(w.client.Clientset(), 0)
 
 		if _, err = w.serviceFactory.Core().V1().Services().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
