@@ -4,6 +4,7 @@
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
 import { milliseconds } from 'date-fns'
+import { loadAll } from 'js-yaml'
 
 import { expect, test } from './cluster_fixtures'
 
@@ -68,7 +69,7 @@ test('Create cluster using machine classes', async ({ page }) => {
   })
 })
 
-test('Scale cluster using machine classes', async ({ cluster, page }) => {
+test('Scale cluster using machine classes', async ({ omnictl, cluster, page }, testInfo) => {
   test.setTimeout(milliseconds({ minutes: 2 }))
 
   await test.step('Visit clusters page', async () => {
@@ -86,6 +87,37 @@ test('Scale cluster using machine classes', async ({ cluster, page }) => {
       .getByText('Running'),
     'Assert that cluster only has 3 machines',
   ).toHaveCount(3)
+
+  interface Resource {
+    metadata: {
+      id: string
+      created: Date
+    }
+  }
+
+  let machineCreatedMap: Map<string, Date>
+
+  // Regression test for #2065 to ensure existing machines are not destroyed during scaling
+  await test.step('Check creation times of existing machines', async () => {
+    const { stdout: yaml } = await omnictl([
+      'get',
+      'ClusterMachine',
+      '-l',
+      `omni.sidero.dev/cluster=${cluster.name}`,
+      '-oyaml',
+    ])
+
+    const resources = loadAll(yaml) as Resource[]
+    await testInfo.attach('resources-before.json', {
+      body: JSON.stringify(resources),
+      contentType: 'application/json',
+    })
+
+    machineCreatedMap = resources.reduce(
+      (prev, curr) => prev.set(curr.metadata.id, curr.metadata.created),
+      new Map<string, Date>(),
+    )
+  })
 
   await test.step('Scale cluster to 5 machines', async () => {
     await page.getByRole('link', { name: cluster.name }).click()
@@ -111,5 +143,29 @@ test('Scale cluster using machine classes', async ({ cluster, page }) => {
   }, 'Wait for scaling to complete').toPass({
     intervals: [milliseconds({ seconds: 5 })],
     timeout: milliseconds({ minutes: 1 }),
+  })
+
+  await test.step('Assert no existing machines were re-created', async () => {
+    const { stdout: yaml } = await omnictl([
+      'get',
+      'ClusterMachine',
+      '-l',
+      `omni.sidero.dev/cluster=${cluster.name}`,
+      '-oyaml',
+    ])
+
+    const resources = loadAll(yaml) as Resource[]
+    await testInfo.attach('resources-after.json', {
+      body: JSON.stringify(resources),
+      contentType: 'application/json',
+    })
+
+    const prevMachinesUntouched = resources
+      .filter((r) => machineCreatedMap.has(r.metadata.id))
+      .every(
+        (r) => machineCreatedMap.get(r.metadata.id)?.valueOf() === r.metadata.created.valueOf(),
+      )
+
+    expect(prevMachinesUntouched, 'Previous machines were not recreated').toBeTruthy()
   })
 })
