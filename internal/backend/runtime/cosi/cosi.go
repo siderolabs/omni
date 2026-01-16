@@ -212,6 +212,7 @@ func Watch(ctx context.Context, st state.State, md resource.Metadata, out chan<-
 
 	var err error
 
+	//nolint:prealloc
 	opts := []state.WatchKindOption{
 		state.WithBootstrapContents(true),
 	}

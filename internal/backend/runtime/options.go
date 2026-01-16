@@ -57,7 +57,7 @@ func WithName(name string) QueryOption {
 // WithLabelSelectors enables filtering by label.
 func WithLabelSelectors(selectors ...string) QueryOption {
 	return func(o *QueryOptions) {
-		var labelSelectors []string
+		labelSelectors := make([]string, 0, len(selectors))
 
 		for _, s := range selectors {
 			labelSelectors = append(labelSelectors, strings.Split(s, ";")...)

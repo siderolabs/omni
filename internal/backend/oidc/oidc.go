@@ -13,6 +13,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/sirupsen/logrus"
+	//nolint:staticcheck
 	oidc_logging "github.com/zitadel/logging"
 	"github.com/zitadel/oidc/v3/pkg/op"
 	"go.uber.org/zap"

@@ -914,6 +914,7 @@ func TestClusterLockedAnnotation(t *testing.T) {
 
 	require.NoError(t, err)
 
+	//nolint:prealloc
 	var validationOptions []validated.StateOption
 
 	validationOptions = append(validationOptions, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, &config.EmbeddedDiscoveryService{})...)
@@ -1029,6 +1030,7 @@ func TestClusterImport(t *testing.T) {
 
 	require.NoError(t, err)
 
+	//nolint:prealloc
 	var validationOptions []validated.StateOption
 
 	validationOptions = append(validationOptions, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, &config.EmbeddedDiscoveryService{})...)

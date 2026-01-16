@@ -73,6 +73,8 @@ type clusterContext struct {
 var sideroLabsIconSVG []byte
 
 // Test tests the exposed services functionality in Omni.
+//
+//nolint:prealloc
 func Test(ctx context.Context, t *testing.T, omniClient *client.Client, clusterIDs ...string) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
 	t.Cleanup(cancel)

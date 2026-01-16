@@ -29,6 +29,7 @@ import (
 func TestUpdateInputsVersions(t *testing.T) {
 	out := omni.NewCluster("test")
 
+	//nolint:prealloc
 	in := []resource.Resource{omni.NewMachine("test1"), omni.NewMachine("test2")}
 
 	assert.True(t, helpers.UpdateInputsVersions(out, in...))

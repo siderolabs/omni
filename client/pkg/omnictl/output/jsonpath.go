@@ -52,6 +52,7 @@ func printResult(wr io.Writer, result reflect.Value) error {
 		kind == reflect.Slice ||
 		kind == reflect.Struct
 
+	//nolint:prealloc
 	var text []byte
 
 	var err error
