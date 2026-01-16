@@ -59,6 +59,8 @@ func NewPendingMachineStatusController() *PendingMachineStatusController {
 		qtransform.WithExtraMappedInput[*omni.ClusterMachine](qtransform.MapperNone()),
 		qtransform.WithExtraMappedInput[*omni.TalosConfig](qtransform.MapperNone()),
 		qtransform.WithExtraMappedInput[*omni.MachineStatusSnapshot](qtransform.MapperNone()),
+		qtransform.WithExtraMappedInput[*omni.MachineSetNode](qtransform.MapperNone()),
+		qtransform.WithExtraMappedInput[*omni.Cluster](qtransform.MapperNone()),
 		qtransform.WithConcurrency(32),
 	)
 }
@@ -81,7 +83,7 @@ func (handler *pendingMachineStatusHandler) reconcileRunning(
 		return err
 	}
 
-	c, err := getClient(ctx, r, pendingMachine)
+	c, err := handler.getClient(ctx, r, pendingMachine)
 	if err != nil {
 		return err
 	}
@@ -189,7 +191,7 @@ func (handler *pendingMachineStatusHandler) handleUUIDConflicts(
 	return nil
 }
 
-func getClient(
+func (handler *pendingMachineStatusHandler) getClient(
 	ctx context.Context,
 	r controller.Reader,
 	pendingMachine *siderolink.PendingMachine,
@@ -215,5 +217,45 @@ func getClient(
 		return nil, err
 	}
 
-	return helpers.GetTalosClient(ctx, r, address, clusterMachine)
+	if clusterMachine != nil {
+		return helpers.GetTalosClient(ctx, r, address, clusterMachine)
+	}
+
+	return handler.handleClusterImport(ctx, r, address, machineUUID)
+}
+
+// This method handles the case when the pending machine belongs to a cluster import process, therefore, needs a secure talos client.
+func (handler *pendingMachineStatusHandler) handleClusterImport(ctx context.Context, r controller.Reader, address string, machineUUID string) (*client.Client, error) {
+	machineSetNode, err := safe.ReaderGetByID[*omni.MachineSetNode](ctx, r, machineUUID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return helpers.GetTalosClient[*omni.ClusterMachine](ctx, r, address, nil)
+		}
+
+		return nil, err
+	}
+
+	clusterName, ok := machineSetNode.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return helpers.GetTalosClient[*omni.ClusterMachine](ctx, r, address, nil)
+	}
+
+	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return helpers.GetTalosClient[*omni.ClusterMachine](ctx, r, address, nil)
+		}
+
+		return nil, err
+	}
+
+	_, importing := cluster.Metadata().Annotations().Get(omni.ClusterImportIsInProgress)
+	if !importing {
+		return helpers.GetTalosClient[*omni.ClusterMachine](ctx, r, address, nil)
+	}
+
+	importedClusterMachine := omni.NewClusterMachine(machineUUID)
+	helpers.CopyLabels(machineSetNode, importedClusterMachine, omni.LabelCluster, omni.LabelMachineSet, omni.LabelControlPlaneRole, omni.LabelWorkerRole)
+
+	return helpers.GetTalosClient(ctx, r, address, importedClusterMachine)
 }

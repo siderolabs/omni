@@ -525,12 +525,18 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 			clusterMachine.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
 			clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, cpMachineSet.Metadata().ID())
 
+			machineStatus.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
+			machineStatus.Metadata().Labels().Set(omni.LabelMachineSet, cpMachineSet.Metadata().ID())
+
 			machineStatus.TypedSpec().Value.Role = specs.MachineStatusSpec_CONTROL_PLANE
 
 			machineSetNode = omni.NewMachineSetNode(clusterMachine.Metadata().ID(), cpMachineSet)
 		} else {
 			clusterMachine.Metadata().Labels().Set(omni.LabelWorkerRole, "")
 			clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, workersMachineSet.Metadata().ID())
+
+			machineStatus.Metadata().Labels().Set(omni.LabelWorkerRole, "")
+			machineStatus.Metadata().Labels().Set(omni.LabelMachineSet, workersMachineSet.Metadata().ID())
 
 			machineStatus.TypedSpec().Value.Role = specs.MachineStatusSpec_WORKER
 

@@ -101,17 +101,20 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 		qtransform.WithExtraMappedInput[*omni.LoadBalancerStatus](
 			mappers.MapClusterResourceToLabeledResources[*omni.MachineSet](),
 		),
+		qtransform.WithExtraMappedInput[*machineStatusLabels](
+			mappers.MapByMachineSetLabel[*omni.MachineSet](),
+		),
 		qtransform.WithExtraMappedInput[*omni.Machine](
 			// machine to machine set, if the machine is allocated
 			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, machine controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
-				clusterMachine, err := r.Get(ctx, omni.NewClusterMachine(machine.ID()).Metadata())
+				machineStatus, err := safe.ReaderGetByID[*machineStatusLabels](ctx, r, machine.ID())
 				if err != nil {
 					if state.IsNotFoundError(err) {
 						return nil, nil
 					}
 				}
 
-				machineSetID, ok := clusterMachine.Metadata().Labels().Get(omni.LabelMachineSet)
+				machineSetID, ok := machineStatus.Metadata().Labels().Get(omni.LabelMachineSet)
 				if !ok {
 					return nil, nil
 				}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 )
 
@@ -26,6 +27,7 @@ func TestWorkersHandler(t *testing.T) {
 		name                         string
 		machineSet                   *specs.MachineSetSpec
 		machineSetNodes              []*omni.MachineSetNode
+		machineStatuses              []*system.ResourceLabels[*omni.MachineStatus]
 		clusterMachines              []*omni.ClusterMachine
 		clusterMachineConfigStatuses []*omni.ClusterMachineConfigStatus
 		clusterMachineConfigPatches  []*omni.ClusterMachineConfigPatches
@@ -43,6 +45,11 @@ func TestWorkersHandler(t *testing.T) {
 				omni.NewMachineSetNode("b", machineSet),
 				omni.NewMachineSetNode("c", machineSet),
 			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+				system.NewResourceLabels[*omni.MachineStatus]("b"),
+				system.NewResourceLabels[*omni.MachineStatus]("c"),
+			},
 			expectOperations: []machineset.Operation{
 				&machineset.Create{ID: "a"},
 				&machineset.Create{ID: "b"},
@@ -56,6 +63,11 @@ func TestWorkersHandler(t *testing.T) {
 				omni.NewMachineSetNode("a", machineSet),
 				omni.NewMachineSetNode("b", machineSet),
 				omni.NewMachineSetNode("c", machineSet),
+			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+				system.NewResourceLabels[*omni.MachineStatus]("b"),
+				system.NewResourceLabels[*omni.MachineStatus]("c"),
 			},
 			clusterMachines: []*omni.ClusterMachine{
 				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version)),
@@ -77,6 +89,9 @@ func TestWorkersHandler(t *testing.T) {
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", machineSet),
+			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
 			},
 			clusterMachines: []*omni.ClusterMachine{
 				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version)),
@@ -103,6 +118,11 @@ func TestWorkersHandler(t *testing.T) {
 				omni.NewMachineSetNode("a", machineSet),
 				omni.NewMachineSetNode("b", machineSet),
 				omni.NewMachineSetNode("c", machineSet),
+			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+				system.NewResourceLabels[*omni.MachineStatus]("b"),
+				system.NewResourceLabels[*omni.MachineStatus]("c"),
 			},
 			clusterMachines: []*omni.ClusterMachine{
 				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version)),
@@ -144,6 +164,9 @@ func TestWorkersHandler(t *testing.T) {
 			clusterMachines: []*omni.ClusterMachine{
 				omni.NewClusterMachine("a"),
 			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+			},
 			expectOperations: []machineset.Operation{
 				&machineset.Update{
 					ID: "a",
@@ -155,6 +178,9 @@ func TestWorkersHandler(t *testing.T) {
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", machineSet),
+			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
 			},
 			clusterMachines: []*omni.ClusterMachine{
 				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version)),
@@ -186,6 +212,7 @@ func TestWorkersHandler(t *testing.T) {
 					tt.pendingConfigPatches,
 				},
 				tt.machineSetNodes,
+				tt.machineStatuses,
 				tt.clusterMachines,
 				tt.clusterMachineConfigStatuses,
 				tt.clusterMachineConfigPatches,

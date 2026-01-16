@@ -14,6 +14,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/pkg/check"
 )
@@ -29,6 +30,7 @@ func TestControlPlanesHandler(t *testing.T) {
 		name                         string
 		machineSet                   *specs.MachineSetSpec
 		machineSetNodes              []*omni.MachineSetNode
+		machineStatuses              []*system.ResourceLabels[*omni.MachineStatus]
 		clusterMachines              []*omni.ClusterMachine
 		clusterMachineConfigStatuses []*omni.ClusterMachineConfigStatus
 		clusterMachineConfigPatches  []*omni.ClusterMachineConfigPatches
@@ -46,6 +48,11 @@ func TestControlPlanesHandler(t *testing.T) {
 				omni.NewMachineSetNode("b", machineSet),
 				omni.NewMachineSetNode("c", machineSet),
 			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+				system.NewResourceLabels[*omni.MachineStatus]("b"),
+				system.NewResourceLabels[*omni.MachineStatus]("c"),
+			},
 			expectOperations: []machineset.Operation{
 				&machineset.Create{ID: "a"},
 				&machineset.Create{ID: "b"},
@@ -59,6 +66,11 @@ func TestControlPlanesHandler(t *testing.T) {
 				omni.NewMachineSetNode("a", machineSet),
 				omni.NewMachineSetNode("b", machineSet),
 				omni.NewMachineSetNode("c", machineSet),
+			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+				system.NewResourceLabels[*omni.MachineStatus]("b"),
+				system.NewResourceLabels[*omni.MachineStatus]("c"),
 			},
 			clusterMachines: []*omni.ClusterMachine{
 				omni.NewClusterMachine("a"),
@@ -74,6 +86,9 @@ func TestControlPlanesHandler(t *testing.T) {
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", machineSet),
 			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+			},
 			clusterMachines: []*omni.ClusterMachine{
 				omni.NewClusterMachine("a"),
 				tearingDownNoFinalizers(omni.NewClusterMachine("b")),
@@ -88,6 +103,9 @@ func TestControlPlanesHandler(t *testing.T) {
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", machineSet),
+			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
 			},
 			clusterMachines: []*omni.ClusterMachine{
 				omni.NewClusterMachine("a"),
@@ -117,6 +135,9 @@ func TestControlPlanesHandler(t *testing.T) {
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", machineSet),
 			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+			},
 			clusterMachines: []*omni.ClusterMachine{
 				omni.NewClusterMachine("a"),
 				omni.NewClusterMachine("c"),
@@ -141,6 +162,9 @@ func TestControlPlanesHandler(t *testing.T) {
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", machineSet),
 			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+			},
 			clusterMachines: []*omni.ClusterMachine{
 				omni.NewClusterMachine("a"),
 			},
@@ -164,6 +188,10 @@ func TestControlPlanesHandler(t *testing.T) {
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", machineSet),
 				omni.NewMachineSetNode("b", machineSet),
+			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+				system.NewResourceLabels[*omni.MachineStatus]("b"),
 			},
 			clusterMachines: []*omni.ClusterMachine{
 				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version.Next())),
@@ -200,6 +228,9 @@ func TestControlPlanesHandler(t *testing.T) {
 			machineSet: &specs.MachineSetSpec{},
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", machineSet),
+			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
 			},
 			clusterMachines: []*omni.ClusterMachine{
 				withUpdateInputVersions[*omni.ClusterMachine, *omni.ConfigPatch](withVersion(omni.NewClusterMachine("a"), version)),
@@ -241,6 +272,7 @@ func TestControlPlanesHandler(t *testing.T) {
 				newHealthyLB(cluster.Metadata().ID()),
 				patchHelper,
 				tt.machineSetNodes,
+				tt.machineStatuses,
 				tt.clusterMachines,
 				tt.clusterMachineConfigStatuses,
 				tt.clusterMachineConfigPatches,

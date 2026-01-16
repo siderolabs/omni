@@ -22,6 +22,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 )
@@ -113,6 +114,9 @@ func TestCreate(t *testing.T) {
 		},
 		[]*omni.MachineSetNode{
 			omni.NewMachineSetNode("aa", machineSet),
+		},
+		[]*system.ResourceLabels[*omni.MachineStatus]{
+			system.NewResourceLabels[*omni.MachineStatus]("aa"),
 		},
 		nil,
 		nil,
@@ -213,6 +217,9 @@ func TestUpdate(t *testing.T) {
 			patchHelper,
 			[]*omni.MachineSetNode{
 				omni.NewMachineSetNode("aa", machineSet),
+			},
+			[]*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("aa"),
 			},
 			[]*omni.ClusterMachine{
 				clusterMachine,
@@ -333,6 +340,10 @@ func TestTeardown(t *testing.T) {
 			omni.NewMachineSetNode("aa", machineSet),
 			omni.NewMachineSetNode("bb", machineSet),
 		},
+		[]*system.ResourceLabels[*omni.MachineStatus]{
+			system.NewResourceLabels[*omni.MachineStatus]("aa"),
+			system.NewResourceLabels[*omni.MachineStatus]("bb"),
+		},
 		clusterMachines,
 		nil,
 		nil,
@@ -406,6 +417,7 @@ func TestDestroy(t *testing.T) {
 		machineSet,
 		newHealthyLB(cluster.Metadata().ID()),
 		&fakePatchHelper{},
+		nil,
 		nil,
 		clusterMachines,
 		nil,

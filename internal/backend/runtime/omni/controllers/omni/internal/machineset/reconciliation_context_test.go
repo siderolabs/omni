@@ -14,6 +14,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 )
@@ -56,6 +57,7 @@ func TestReconciliationContext(t *testing.T) {
 		machineSet                   *specs.MachineSetSpec
 		lbUnhealthy                  bool
 		machineSetNodes              []*omni.MachineSetNode
+		machineStatuses              []*system.ResourceLabels[*omni.MachineStatus]
 		clusterMachines              []*omni.ClusterMachine
 		clusterMachineConfigStatuses []*omni.ClusterMachineConfigStatus
 		clusterMachineConfigPatches  []*omni.ClusterMachineConfigPatches
@@ -93,6 +95,9 @@ func TestReconciliationContext(t *testing.T) {
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", omni.NewMachineSet("")),
 			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+			},
 			clusterMachines: []*omni.ClusterMachine{
 				withUpdateInputVersions(withVersion(omni.NewClusterMachine("a"), version), configPatches...),
 			},
@@ -119,6 +124,9 @@ func TestReconciliationContext(t *testing.T) {
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", omni.NewMachineSet("")),
 			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
 				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
 			},
@@ -139,6 +147,9 @@ func TestReconciliationContext(t *testing.T) {
 			},
 			machineSetNodes: []*omni.MachineSetNode{
 				tearingDown(omni.NewMachineSetNode("a", newMachineSet(1))),
+			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
 			},
 			clusterMachines: []*omni.ClusterMachine{
 				withUpdateInputVersions(withVersion(omni.NewClusterMachine("a"), version), configPatches...),
@@ -167,6 +178,9 @@ func TestReconciliationContext(t *testing.T) {
 			machineSetNodes: []*omni.MachineSetNode{
 				lockedMachine,
 			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus](lockedMachine.Metadata().ID()),
+			},
 			clusterMachines: []*omni.ClusterMachine{
 				withVersion(omni.NewClusterMachine("b"), version),
 			},
@@ -187,6 +201,10 @@ func TestReconciliationContext(t *testing.T) {
 			machineSetNodes: []*omni.MachineSetNode{
 				lockedMachine,
 				omni.NewMachineSetNode("c", omni.NewMachineSet("")),
+			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus](lockedMachine.Metadata().ID()),
+				system.NewResourceLabels[*omni.MachineStatus]("c"),
 			},
 			clusterMachines: []*omni.ClusterMachine{
 				withVersion(omni.NewClusterMachine("b"), version),
@@ -248,6 +266,9 @@ func TestReconciliationContext(t *testing.T) {
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", omni.NewMachineSet("")),
 			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
+			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
 				omni.NewClusterMachineConfigStatus("a"),
 			},
@@ -274,6 +295,9 @@ func TestReconciliationContext(t *testing.T) {
 			},
 			machineSetNodes: []*omni.MachineSetNode{
 				omni.NewMachineSetNode("a", omni.NewMachineSet("")),
+			},
+			machineStatuses: []*system.ResourceLabels[*omni.MachineStatus]{
+				system.NewResourceLabels[*omni.MachineStatus]("a"),
 			},
 			clusterMachineConfigStatuses: []*omni.ClusterMachineConfigStatus{
 				withClusterMachineVersionSetter(omni.NewClusterMachineConfigStatus("a"), version),
@@ -330,6 +354,7 @@ func TestReconciliationContext(t *testing.T) {
 				loadbalancerStatus,
 				&fakePatchHelper{},
 				tt.machineSetNodes,
+				tt.machineStatuses,
 				tt.clusterMachines,
 				tt.clusterMachineConfigStatuses,
 				tt.clusterMachineConfigPatches,
