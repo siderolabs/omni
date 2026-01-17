@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { gte, parse } from 'semver'
+import { gte } from 'semver'
 import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -27,7 +27,7 @@ import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import TAlert from '@/components/TAlert.vue'
-import { getDocsLink, getLegacyDocsLink } from '@/methods'
+import { getDocsLink, getLegacyDocsLink, majorMinorVersion } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
@@ -117,14 +117,6 @@ const installerImage = computed(() =>
     ? `${factoryUrl.value}/${formState.value.hardwareType}-installer${secureBootSuffix.value}/${schematicId.value}:${formState.value.talosVersion}`
     : `${factoryUrl.value}/installer/${schematicId.value}:${formState.value.talosVersion}`,
 )
-
-function shortVersion(version?: string) {
-  if (!version) return
-
-  const { major, minor } = parse(version, false, true)
-
-  return `${major}.${minor}`
-}
 </script>
 
 <template>
@@ -223,6 +215,7 @@ function shortVersion(version?: string) {
     <ul class="ml-2 flex list-inside list-disc flex-col gap-2 text-primary-p3">
       <li>
         <a
+          v-if="formState.talosVersion"
           class="link-primary"
           :href="
             getDocsLink('talos', `/getting-started/what's-new-in-talos`, {
@@ -232,11 +225,12 @@ function shortVersion(version?: string) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          What's New in Talos {{ shortVersion(formState.talosVersion) }}
+          What's New in Talos {{ majorMinorVersion(formState.talosVersion) }}
         </a>
       </li>
       <li>
         <a
+          v-if="formState.talosVersion"
           class="link-primary"
           :href="
             getDocsLink('talos', '/getting-started/support-matrix', {
@@ -246,7 +240,7 @@ function shortVersion(version?: string) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Support Matrix for {{ shortVersion(formState.talosVersion) }}
+          Support Matrix for {{ majorMinorVersion(formState.talosVersion) }}
         </a>
       </li>
       <li>

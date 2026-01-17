@@ -246,13 +246,7 @@ type DocsType = 'talos' | 'omni' | 'k8s'
 export function getLegacyDocsLink(path?: string, options?: { talosVersion?: string }) {
   const parts = ['https://talos.dev']
 
-  const talosVersion = options?.talosVersion || DefaultTalosVersion
-
-  const parsed = coerce(talosVersion)
-  if (!parsed) throw new Error(`Failed to parse talos version "${talosVersion}"`)
-
-  const { major, minor } = parsed
-  parts.push(`v${major}.${minor}`)
+  parts.push(`v${majorMinorVersion(options?.talosVersion || DefaultTalosVersion)}`)
 
   if (path) {
     parts.push(path.replace(/^\//, ''))
@@ -272,13 +266,7 @@ export function getDocsLink(type: DocsType, path?: string, options?: { talosVers
   const parts = [getDocsBasePath(type)]
 
   if (type === 'talos') {
-    const talosVersion = options?.talosVersion || DefaultTalosVersion
-
-    const parsed = coerce(talosVersion)
-    if (!parsed) throw new Error(`Failed to parse talos version "${talosVersion}"`)
-
-    const { major, minor } = parsed
-    parts.push(`v${major}.${minor}`)
+    parts.push(`v${majorMinorVersion(options?.talosVersion || DefaultTalosVersion)}`)
   }
 
   if (path) {
@@ -299,4 +287,15 @@ function getDocsBasePath(type: DocsType) {
     case 'k8s':
       return `https://${docsDomain}/kubernetes-guides`
   }
+}
+
+export function majorMinorVersion(version: string) {
+  const v = coerce(version)
+
+  if (!v) {
+    console.warn(`Invalid version "${version}" sent to majorMinVersion`)
+    return '0.0'
+  }
+
+  return `${v.major}.${v.minor}`
 }
