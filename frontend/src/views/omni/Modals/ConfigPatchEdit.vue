@@ -25,6 +25,7 @@ const CodeEditor = defineAsyncComponent(
 interface Props {
   onSave: (config: string, id?: string) => void
   tabs: { id: string; config: string }[]
+  talosVersion?: string
 }
 
 const configs: Record<string, Ref<string>> = {}
@@ -124,6 +125,7 @@ const openDocs = () => {
           <div class="font-sm flex-1 overflow-y-auto bg-naturals-n2">
             <CodeEditor
               :value="configs[tab.id].value"
+              :talos-version="talosVersion"
               @update:value="(updated) => (configs[tab.id].value = updated)"
             />
           </div>

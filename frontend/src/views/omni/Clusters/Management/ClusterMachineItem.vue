@@ -209,6 +209,7 @@ auto: off`
     hostname: "${item.metadata.id}"`
 
   showModal(ConfigPatchEdit, {
+    talosVersion: state.value.cluster.talosVersion,
     tabs: [
       {
         config:

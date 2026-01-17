@@ -528,6 +528,7 @@ onMounted(async () => {
           v-model:value="config"
           :options="{ readOnly: !canManageConfigPatches }"
           :validators="[checkEncryption]"
+          :talos-version="cluster?.spec.talos_version"
           @editor-did-mount="editorDidMount"
         />
       </div>

@@ -33,6 +33,7 @@ const addWorkers = () => {
     <MachineSetConfig
       v-for="(machineSet, index) in state.machineSets"
       :key="machineSet.name"
+      :talos-version="state.cluster.talosVersion"
       :machine-classes="machineClasses"
       :model-value="machineSet"
       :no-remove="index < 2"

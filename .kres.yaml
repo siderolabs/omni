@@ -632,8 +632,18 @@ kind: js.Protobuf
 spec:
   baseSpecPath: /client/api
   files:
+     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.7.7/pkg/machinery/config/schemas/config.schema.json
+       destination: frontend/src/schemas/config_1_7.schema.json
+     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.8.4/pkg/machinery/config/schemas/config.schema.json
+       destination: frontend/src/schemas/config_1_8.schema.json
+     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.9.6/pkg/machinery/config/schemas/config.schema.json
+       destination: frontend/src/schemas/config_1_9.schema.json
+     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.10.9/pkg/machinery/config/schemas/config.schema.json
+       destination: frontend/src/schemas/config_1_10.schema.json
+     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.6/pkg/machinery/config/schemas/config.schema.json
+       destination: frontend/src/schemas/config_1_11.schema.json
      - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.1/pkg/machinery/config/schemas/config.schema.json
-       destination: frontend/src/schemas/config.schema.json
+       destination: frontend/src/schemas/config_1_12.schema.json
   destinationRoot: src/api
   specs:
     - source: client/api/common/omni.proto

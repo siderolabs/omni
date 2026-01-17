@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-16T09:07:12Z by kres 1ffefb6.
+# Generated on 2026-01-16T17:20:06Z by kres 1ffefb6.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN=scratch
@@ -249,7 +249,12 @@ COPY --exclude=node_modules --from=lint-eslint-fmt-run /src /frontend
 
 # cleaned up specs and compiled versions
 FROM scratch AS generate-frontend
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.12.1/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config.schema.json
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.7.7/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_7.schema.json
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.8.4/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_8.schema.json
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.9.6/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_9.schema.json
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.10.9/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_10.schema.json
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.6/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_11.schema.json
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.12.1/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_12.schema.json
 COPY --from=proto-compile-frontend frontend/ frontend/
 
 # run go generate

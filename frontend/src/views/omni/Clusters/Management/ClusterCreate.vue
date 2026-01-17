@@ -300,6 +300,7 @@ const hasConfigs = computed(() => {
 
 const openPatchConfig = () => {
   showModal(ConfigPatchEdit, {
+    talosVersion: state.value.cluster.talosVersion,
     tabs: [
       {
         id: 'Cluster',

@@ -4,155 +4,50 @@ Copyright (c) 2025 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts">
-import * as monaco from 'monaco-editor'
-import { configureMonacoYaml } from 'monaco-yaml'
-import { ref, toRefs, watch } from 'vue'
+<script lang="ts">
+import configSchemas from '@/schemas'
 
-import { getDocsLink } from '@/methods'
-import configSchema from '@/schemas/config.schema.json'
+const configSchemaMap = Object.entries(configSchemas).map(
+  ([path, schema]) =>
+    [path.replace(/\.\/config_(.*)\.schema\.json/, '$1').replace('_', '.'), schema] as const,
+)
 
-type Props = {
-  value: string
-  editorDidMount?: (editor: monaco.editor.IStandaloneCodeEditor) => void
-  options?: monaco.editor.IStandaloneEditorConstructionOptions
-  validators?: ((
-    model: monaco.editor.ITextModel,
-    tokens: monaco.Token[],
-  ) => monaco.editor.IMarkerData[])[]
-}
+const schemas = configSchemaMap.map<SchemasSettings>(([version, origSchema]) => {
+  const schema: typeof origSchema = JSON.parse(JSON.stringify(origSchema))
 
-const emit = defineEmits(['update:value'])
-const props = defineProps<Props>()
+  for (const name in schema.$defs) {
+    const def = schema.$defs[name as keyof typeof schema.$defs]
 
-const { value } = toRefs(props)
-
-const editor = ref<HTMLElement>()
-
-let instance: monaco.editor.IStandaloneCodeEditor | undefined
-
-if (!window.monacoConfigured) {
-  window.monacoConfigured = true
-
-  // adjust configSchema by copying it first, and adding the $patch property with the value
-  // "delete" to all definitions which are structs with properties
-  const schemaCopy = JSON.parse(JSON.stringify(configSchema))
-
-  const adjustSchemaPatchDelete = (schema: any) => {
-    for (const name in schema.$defs) {
-      const def = schema.$defs[name]
-
-      if (def.properties) {
-        def.properties.$patch = {
-          type: 'string',
-          title: '$patch',
-          enum: ['delete'],
-          description: `Delete the configuration block with a strategic merge delete patch.\nSee ${getDocsLink('talos', '/configure-your-talos-cluster/system-configuration/patching')}`,
-        }
+    if (def.properties) {
+      def.properties.$patch = {
+        type: 'string',
+        title: '$patch',
+        enum: ['delete'],
+        description: `Delete the configuration block with a strategic merge delete patch.\nSee ${getDocsLink('talos', '/configure-your-talos-cluster/system-configuration/patching', { talosVersion: version })}`,
       }
     }
   }
 
-  adjustSchemaPatchDelete(schemaCopy)
-
-  configureMonacoYaml(monaco, {
-    hover: true,
-    completion: true,
-    validate: true,
-    format: true,
-    schemas: [
-      {
-        uri: schemaCopy.$id,
-        fileMatch: ['*'],
-        schema: schemaCopy,
-      },
-    ],
-  })
-}
-
-watch(value, (val: string) => {
-  const model = instance?.getModel()
-
-  if (!model) {
-    return
+  return {
+    uri: schema.$id!,
+    fileMatch: [`*_${version}.yaml`],
+    schema,
   }
+})
 
-  if (val === model.getValue()) {
-    return
-  }
-
-  model.setValue(val)
+configureMonacoYaml(monaco, {
+  hover: true,
+  completion: true,
+  validate: true,
+  format: true,
+  schemas,
 })
 
 // Can't use CSS variables inside monaco https://github.com/microsoft/monaco-editor/issues/2427
 const styles = getComputedStyle(document.documentElement)
+const SIDERO_THEME = 'sidero'
 
-watch(editor, () => {
-  if (!editor.value) {
-    return
-  }
-
-  instance = monaco.editor.create(editor.value, {
-    value: [value.value].join('\n'),
-    language: 'yaml',
-    theme: 'sidero',
-    fontSize: 14,
-    fontFamily: styles.getPropertyValue('--font-mono'),
-    automaticLayout: true,
-    tabSize: 2,
-    fixedOverflowWidgets: true,
-    minimap: {
-      enabled: false,
-    },
-    inlineSuggest: {
-      enabled: true,
-    },
-    quickSuggestions: {
-      strings: true,
-    },
-    ...props.options,
-  })
-
-  if (props.editorDidMount) {
-    props.editorDidMount(instance)
-  }
-})
-
-monaco.editor.onDidCreateModel(function (model) {
-  let validate: () => void
-
-  if (props.validators?.length) {
-    validate = () => {
-      const textToValidate = model.getValue()
-
-      let markers: monaco.editor.IMarkerData[] = []
-      const tokens = monaco.editor.tokenize(textToValidate, 'yaml')
-
-      for (const validator of props.validators!) {
-        markers = markers.concat(validator(model, tokens.flat()))
-      }
-
-      monaco.editor.setModelMarkers(model, 'sanityCheck', markers)
-    }
-
-    validate()
-  }
-
-  let handle: any
-
-  model.onDidChangeContent(() => {
-    // debounce
-    clearTimeout(handle)
-
-    emit('update:value', model.getValue())
-
-    if (validate) {
-      handle = window.setTimeout(() => validate(), 500)
-    }
-  })
-})
-
-monaco.editor.defineTheme('sidero', {
+monaco.editor.defineTheme(SIDERO_THEME, {
   base: 'vs-dark',
   inherit: true,
   rules: [],
@@ -174,6 +69,142 @@ monaco.editor.defineTheme('sidero', {
     'input.background': styles.getPropertyValue('--color-naturals-n1'),
     'input.border': styles.getPropertyValue('--color-naturals-n7'),
   },
+})
+</script>
+
+<script setup lang="ts">
+import * as monaco from 'monaco-editor'
+import { configureMonacoYaml, type SchemasSettings } from 'monaco-yaml'
+import { coerce, compare, gt, lt, parse } from 'semver'
+import { computed, onWatcherCleanup, useId, useTemplateRef, watch } from 'vue'
+
+import { DefaultTalosVersion } from '@/api/resources'
+import { getDocsLink, majorMinorVersion } from '@/methods'
+
+type Props = {
+  value: string
+  editorDidMount?: (editor: monaco.editor.IStandaloneCodeEditor) => void
+  options?: monaco.editor.IStandaloneEditorConstructionOptions
+  validators?: ((
+    model: monaco.editor.ITextModel,
+    tokens: monaco.Token[],
+  ) => monaco.editor.IMarkerData[])[]
+  talosVersion?: string
+}
+
+const emit = defineEmits<{
+  'update:value': [string]
+  editorDidMount: [monaco.editor.IStandaloneCodeEditor]
+}>()
+
+const { value, options, validators, talosVersion = DefaultTalosVersion } = defineProps<Props>()
+
+const editor = useTemplateRef<HTMLDivElement>('editor')
+
+let instanceRef: monaco.editor.IStandaloneCodeEditor | undefined
+
+watch(
+  () => value,
+  (val) => {
+    const model = instanceRef?.getModel()
+
+    if (!model) {
+      return
+    }
+
+    if (val === model.getValue()) {
+      return
+    }
+
+    model.setValue(val)
+  },
+)
+
+const modelId = useId()
+const schemaVersion = computed(() => {
+  const versions = configSchemaMap
+    .map(([version]) => parse(`${version}.0`, false, true))
+    .sort(compare)
+
+  const minVersion = versions.at(0)
+  const maxVersion = versions.at(-1)
+  const version = coerce(talosVersion)
+
+  if (!version) return parse(DefaultTalosVersion, false, true)
+
+  if (minVersion && lt(version, minVersion)) return minVersion
+  if (maxVersion && gt(version, maxVersion)) return maxVersion
+
+  return version
+})
+
+watch([editor, schemaVersion], () => {
+  if (!editor.value) {
+    return
+  }
+
+  const model = monaco.editor.createModel(
+    value,
+    'yaml',
+    monaco.Uri.parse(
+      `inmemory://${modelId}_${majorMinorVersion(schemaVersion.value.format())}.yaml`,
+    ),
+  )
+
+  const instance = monaco.editor.create(editor.value, {
+    model,
+    theme: SIDERO_THEME,
+    fontSize: 14,
+    fontFamily: styles.getPropertyValue('--font-mono'),
+    automaticLayout: true,
+    tabSize: 2,
+    fixedOverflowWidgets: true,
+    minimap: {
+      enabled: false,
+    },
+    inlineSuggest: {
+      enabled: true,
+    },
+    quickSuggestions: {
+      strings: true,
+    },
+    ...options,
+  })
+
+  function validate() {
+    if (!validators?.length) return
+
+    const tokens = monaco.editor.tokenize(model.getValue(), 'yaml')
+    const markers = validators.flatMap((validator) => validator(model, tokens.flat()))
+
+    monaco.editor.setModelMarkers(model, 'sanityCheck', markers)
+  }
+
+  validate()
+
+  let handle: number | undefined
+
+  const contentChangeListener = model.onDidChangeContent(() => {
+    // debounce
+    clearTimeout(handle)
+
+    emit('update:value', model.getValue())
+
+    handle = window.setTimeout(validate, 500)
+  })
+
+  emit('editorDidMount', instance)
+  instanceRef = instance
+
+  onWatcherCleanup(() => {
+    clearTimeout(handle)
+
+    contentChangeListener.dispose()
+    model.dispose()
+    instance.dispose()
+
+    instanceRef = undefined
+  })
 })
 </script>
 
