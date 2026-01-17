@@ -58,8 +58,9 @@ const { height } = useElementSize(slider)
 </script>
 
 <template>
-  <div
+  <li
     class="col-span-full grid grid-cols-subgrid overflow-hidden rounded border border-naturals-n5 text-xs"
+    :aria-labelledby="labelId"
   >
     <div
       tabindex="0"
@@ -94,7 +95,7 @@ const { height } = useElementSize(slider)
         <TIcon v-if="locked" class="size-3.5 shrink-0" icon="locked" aria-label="locked" />
       </div>
 
-      <div id="machine-count">
+      <div data-testid="machine-count">
         {{ item.spec.machines?.healthy ?? 0 }}/{{ item.spec.machines?.total ?? 0 }}
       </div>
 
@@ -182,5 +183,5 @@ const { height } = useElementSize(slider)
     >
       <ClusterMachines ref="slider" class="h-min" :cluster-i-d="item.metadata.id!" is-subgrid />
     </section>
-  </div>
+  </li>
 </template>
