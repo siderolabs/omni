@@ -16,7 +16,6 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/boards"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -275,81 +274,91 @@ var installationMedia = []installationMediaSpec{
 	{
 		Name:         "Banana Pi BPI-M64 (arm64)",
 		Architecture: arm64Arch,
-		Profile:      constants.BoardBananaPiM64,
+		Profile:      constants.PlatformMetal,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "bananapi_m64",
 		ContentType:  "application/x-xz",
 	},
 	{
 		Name:         "Jetson Nano",
 		Architecture: arm64Arch,
-		Profile:      constants.BoardJetsonNano,
+		Profile:      constants.PlatformMetal,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "jetson_nano",
 		ContentType:  "application/x-xz",
 	},
 	{
 		Name:         "Libre Computer Profile ALL-H3-CC",
 		Architecture: arm64Arch,
-		Profile:      constants.BoardLibretechAllH3CCH5,
+		Profile:      constants.PlatformMetal,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "libretech_all_h3_cc_h5",
 		ContentType:  "application/x-xz",
 	},
 	{
 		Name:         "Pine64",
 		Architecture: arm64Arch,
-		Profile:      constants.BoardPine64,
+		Profile:      constants.PlatformMetal,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "pine64",
 		ContentType:  "application/x-xz",
 	},
 	{
 		Name:         "Pine64 Rock64",
 		Architecture: arm64Arch,
-		Profile:      constants.BoardRock64,
+		Profile:      constants.PlatformMetal,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "rock64",
 		ContentType:  "application/x-xz",
 	},
 	{
 		Name:         "Radxa ROCK PI 4",
 		Architecture: arm64Arch,
-		Profile:      constants.BoardRockpi4,
+		Profile:      constants.PlatformMetal,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "rockpi4",
 		ContentType:  "application/x-xz",
 	},
 	{
 		Name:         "Radxa ROCK PI 4C",
 		Architecture: arm64Arch,
-		Profile:      constants.BoardRockpi4c,
+		Profile:      constants.PlatformMetal,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "rockpi4c",
 		ContentType:  "application/x-xz",
 	},
 	{
 		Name:         "Raspberry Pi 4 Model B",
 		Architecture: arm64Arch,
-		Profile:      constants.BoardRPiGeneric,
+		Profile:      constants.PlatformMetal,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "rpi_generic",
 		ContentType:  "application/x-xz",
 	},
 	{
 		Name:         "Nano Pi R4S",
 		Architecture: arm64Arch,
-		Profile:      constants.BoardNanoPiR4S,
+		Profile:      constants.PlatformMetal,
 		Type:         rawType,
 		SBC:          true,
+		Overlay:      "nanopi-r4s",
 		ContentType:  "application/x-xz",
 	},
 	{
 		Name:            "Turing RK1",
 		Architecture:    arm64Arch,
-		Profile:         "turingrk1",
+		Profile:         constants.PlatformMetal,
 		Type:            rawType,
 		SBC:             true,
+		Overlay:         "turingrk1",
 		ContentType:     "application/x-xz",
 		MinTalosVersion: "1.9.0",
 	},
@@ -400,12 +409,7 @@ func (ctrl *InstallationMediaController) Run(ctx context.Context, r controller.R
 			newMedia.TypedSpec().Value.Extension = fname.extension
 			newMedia.TypedSpec().Value.NoSecureBoot = m.SBC
 			newMedia.TypedSpec().Value.MinTalosVersion = m.MinTalosVersion
-
-			overlay := boards.GetOverlay(m.Profile)
-
-			if overlay != nil {
-				newMedia.TypedSpec().Value.Overlay = overlay.Name
-			}
+			newMedia.TypedSpec().Value.Overlay = m.Overlay
 
 			tracker.keep(newMedia)
 

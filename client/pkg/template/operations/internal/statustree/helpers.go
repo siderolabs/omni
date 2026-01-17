@@ -95,6 +95,7 @@ func machineSetPhaseString(phase specs.MachineSetPhase) string {
 		c = color.YellowString
 	case specs.MachineSetPhase_ScalingUp,
 		specs.MachineSetPhase_ScalingDown,
+		specs.MachineSetPhase_Upgrading,
 		specs.MachineSetPhase_Reconfiguring:
 		c = color.HiYellowString
 	case specs.MachineSetPhase_Destroying, specs.MachineSetPhase_Failed:

@@ -6,12 +6,6 @@
 package machineset
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"slices"
-
-	"github.com/siderolabs/gen/maps"
-
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -19,25 +13,12 @@ import (
 
 // ReconcileStatus builds the machine set status from the resources.
 //
-//nolint:gocyclo,cyclop
+//nolint:gocyclo,cyclop,gocognit
 func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSetStatus) {
 	spec := machineSetStatus.TypedSpec().Value
 
-	configHashHasher := sha256.New()
-
-	clusterMachineConfigStatuses := rc.GetClusterMachineConfigStatuses()
-	ids := maps.Keys(clusterMachineConfigStatuses)
-
-	slices.Sort(ids)
-
-	for _, id := range ids {
-		configStatus := clusterMachineConfigStatuses[id]
-
-		configHashHasher.Write([]byte(configStatus.TypedSpec().Value.ClusterMachineConfigSha256))
-	}
-
 	// combined hash of all cluster machine config hashes
-	spec.ConfigHash = hex.EncodeToString(configHashHasher.Sum(nil))
+	spec.ConfigHash = rc.configHash
 
 	machineSet := rc.GetMachineSet()
 	machineSetNodes := rc.GetRunningMachineSetNodes()
@@ -76,15 +57,32 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 
 	_, isControlPlane := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 
+	if isControlPlane {
+		// only allow config changes if no other operations are pending for the control planes
+		spec.ConfigUpdatesAllowed = (len(rc.GetMachinesToCreate()) + len(rc.GetMachinesToTeardown()) + len(rc.GetMachinesToDestroy())) == 0
+	} else {
+		// always allow config updates for workers
+		spec.ConfigUpdatesAllowed = true
+	}
+
+	spec.UpdateStrategy = machineSet.TypedSpec().Value.UpdateStrategy
+	spec.UpdateStrategyConfig = machineSet.TypedSpec().Value.UpdateStrategyConfig
+
 	if isControlPlane && len(machineSetNodes) == 0 && spec.Machines.Requested == 0 {
 		spec.Phase = specs.MachineSetPhase_Failed
 		spec.Error = "control plane machine set must have at least one node"
 	}
 
+	lockedCount := 0
+
 	for _, clusterMachine := range clusterMachines {
 		spec.Machines.Total++
 
 		if clusterMachineStatus := clusterMachineStatuses[clusterMachine.Metadata().ID()]; clusterMachineStatus != nil {
+			if _, updateLocked := clusterMachineStatus.Metadata().Labels().Get(omni.UpdateLocked); updateLocked {
+				lockedCount++
+			}
+
 			if clusterMachineStatus.TypedSpec().Value.Stage == specs.ClusterMachineStatusSpec_RUNNING && clusterMachineStatus.TypedSpec().Value.Ready {
 				spec.Machines.Healthy++
 			}
@@ -96,18 +94,21 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 	}
 
 	spec.Ready = spec.Phase == specs.MachineSetPhase_Running
-	spec.LockedUpdates = uint32(len(rc.GetLockedUpdates()))
+	spec.LockedUpdates = uint32(lockedCount)
 
 	if !spec.Ready {
 		return
 	}
 
-	if len(rc.GetMachinesToUpdate()) > 0 || len(rc.GetOutdatedMachines()) > 0 {
+	switch {
+	case len(rc.GetConfiguringMachines()) > 0:
 		machineSetStatus.TypedSpec().Value.Phase = specs.MachineSetPhase_Reconfiguring
 
 		spec.Ready = false
+	case len(rc.GetUpgradingMachines()) > 0:
+		machineSetStatus.TypedSpec().Value.Phase = specs.MachineSetPhase_Upgrading
 
-		return
+		spec.Ready = false
 	}
 
 	for _, machineSetNode := range machineSetNodes {

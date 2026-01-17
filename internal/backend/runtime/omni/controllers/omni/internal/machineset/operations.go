@@ -8,16 +8,12 @@ package machineset
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/gen/xiter"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
@@ -36,22 +32,12 @@ type Create struct {
 // Apply implements Operation interface.
 func (c *Create) Apply(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, rc *ReconciliationContext) error {
 	clusterMachine := omni.NewClusterMachine(c.ID)
-	clusterMachineConfigPatches := omni.NewClusterMachineConfigPatches(c.ID)
 
 	machineSet := rc.GetMachineSet()
-	configPatches := rc.GetConfigPatches(c.ID)
 
-	helpers.CopyLabels(machineSet, clusterMachineConfigPatches, omni.LabelCluster, omni.LabelWorkerRole, omni.LabelControlPlaneRole)
 	helpers.CopyLabels(machineSet, clusterMachine, omni.LabelCluster, omni.LabelWorkerRole, omni.LabelControlPlaneRole)
 
 	clusterMachine.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
-	clusterMachineConfigPatches.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
-
-	helpers.UpdateInputsVersions(clusterMachine, configPatches...)
-
-	if err := setPatches(clusterMachineConfigPatches, configPatches); err != nil {
-		return err
-	}
 
 	var err error
 
@@ -62,11 +48,7 @@ func (c *Create) Apply(ctx context.Context, r controller.ReaderWriter, logger *z
 
 	logger.Info("create cluster machine", zap.String("machine", c.ID))
 
-	if err = r.Create(ctx, clusterMachine); err != nil {
-		return err
-	}
-
-	return r.Create(ctx, clusterMachineConfigPatches)
+	return r.Create(ctx, clusterMachine)
 }
 
 // Teardown the cluster machine.
@@ -97,70 +79,6 @@ func (d *Teardown) Apply(ctx context.Context, r controller.ReaderWriter, logger 
 	return nil
 }
 
-// Update the configs of the machine by updating the ClusterMachineConfigPatches.
-type Update struct {
-	Quota *ChangeQuota
-	ID    string
-}
-
-// Apply implements Operation interface.
-func (u *Update) Apply(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, rc *ReconciliationContext) error {
-	clusterMachine, ok := rc.GetClusterMachine(u.ID)
-	if !ok {
-		return fmt.Errorf("cluster machine with id %q doesn't exist", u.ID)
-	}
-
-	configPatches := rc.GetConfigPatches(u.ID)
-
-	// nothing changed in the patch list, skip any updates
-	if !helpers.UpdateInputsVersions(clusterMachine, configPatches...) {
-		return nil
-	}
-
-	ignoreQuota := rc.GetUpdatingMachines().Contains(u.ID)
-
-	// if updating we don't care about the quota
-	if !ignoreQuota {
-		if !u.Quota.Use(opUpdate) {
-			logger.Info("update is waiting for quota", zap.String("machine", u.ID), zap.Strings("pending", set.Values(rc.GetUpdatingMachines())))
-
-			return nil
-		}
-	}
-
-	logger.Info("update cluster machine", zap.String("machine", u.ID), zap.Bool("ignore_quota", ignoreQuota))
-
-	// update ClusterMachineConfigPatches resource with the list of matching patches for the machine
-	err := safe.WriterModify(ctx, r, omni.NewClusterMachineConfigPatches(u.ID),
-		func(clusterMachineConfigPatches *omni.ClusterMachineConfigPatches) error {
-			return setPatches(clusterMachineConfigPatches, configPatches)
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	// finally update checksum for the incoming config patches in the ClusterMachine resource
-	return safe.WriterModify(ctx, r, clusterMachine, func(res *omni.ClusterMachine) error {
-		// don't update the ClusterMachine if it's still owned by another cluster
-		currentClusterName, ok := res.Metadata().Labels().Get(omni.LabelCluster)
-		if ok && currentClusterName != rc.GetClusterName() {
-			return nil
-		}
-
-		helpers.CopyAllAnnotations(clusterMachine, res)
-
-		if res.TypedSpec().Value.KubernetesVersion == "" {
-			res.TypedSpec().Value.KubernetesVersion, err = rc.GetKubernetesVersion()
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-}
-
 // Destroy cleans up the cluster machines without finalizers.
 type Destroy struct {
 	ID string
@@ -181,12 +99,6 @@ func (d *Destroy) Apply(ctx context.Context, r controller.ReaderWriter, logger *
 		return nil
 	}
 
-	configPatches := omni.NewClusterMachineConfigPatches(clusterMachine.Metadata().ID())
-
-	if err := r.Destroy(ctx, configPatches.Metadata()); err != nil && !state.IsNotFoundError(err) {
-		return err
-	}
-
 	if err := r.Destroy(ctx, clusterMachine.Metadata()); err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
@@ -205,19 +117,4 @@ func (d *Destroy) Apply(ctx context.Context, r controller.ReaderWriter, logger *
 	)
 
 	return nil
-}
-
-//nolint:staticcheck // we are ok with using the deprecated method here
-func setPatches(clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, patches []*omni.ConfigPatch) error {
-	// clear the patch fields
-	clusterMachineConfigPatches.TypedSpec().Value.Patches = nil
-	clusterMachineConfigPatches.TypedSpec().Value.CompressedPatches = nil
-
-	return clusterMachineConfigPatches.TypedSpec().Value.FromConfigPatches(
-		xiter.Map(
-			func(in *omni.ConfigPatch) *specs.ConfigPatchSpec { return in.TypedSpec().Value },
-			slices.Values(patches),
-		),
-		specs.GetCompressionConfig().Enabled,
-	)
 }

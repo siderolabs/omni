@@ -14,7 +14,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/blang/semver/v4"
@@ -31,6 +33,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -43,6 +46,9 @@ import (
 )
 
 const (
+	// ConfigUpdateFinalizer is set on the ClusterMachine when this controller acquires the config change lock.
+	// By counting the machines with the finalizer we can tell how many machines are being updated simultaneously.
+	ConfigUpdateFinalizer     = "ConfigUpdatePendingFinalizer"
 	gracefulResetAttemptCount = 4
 	etcdLeaveAttemptsLimit    = 2
 	maintenanceCheckAttempts  = 5
@@ -55,6 +61,7 @@ type ClusterMachineConfigStatusController struct {
 	*qtransform.QController[*omni.ClusterMachineConfig, *omni.ClusterMachineConfigStatus]
 	ongoingResets    *ongoingResets
 	imageFactoryHost string
+	acquireLockMu    sync.Mutex
 }
 
 // NewClusterMachineConfigStatusController initializes ClusterMachineConfigStatusController.
@@ -79,7 +86,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 			UnmapMetadataFunc: func(machineConfigStatus *omni.ClusterMachineConfigStatus) *omni.ClusterMachineConfig {
 				return omni.NewClusterMachineConfig(machineConfigStatus.Metadata().ID())
 			},
-			TransformFunc:                   ctrl.reconcileRunning,
+			TransformExtraOutputFunc:        ctrl.reconcileRunning,
 			FinalizerRemovalExtraOutputFunc: ctrl.reconcileTearingDown,
 		},
 		qtransform.WithConcurrency(8),
@@ -96,7 +103,18 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput[*omni.ClusterMachine](
-			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, md controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				machineSetName, ok := md.Labels().Get(omni.LabelMachineSet)
+				if !ok {
+					return nil, nil
+				}
+
+				clusterMachines, err := safe.ReaderListAll[*omni.ClusterMachineConfig](ctx, r, state.WithLabelQuery(
+					resource.LabelEqual(omni.LabelMachineSet, machineSetName),
+				))
+
+				return slices.Collect(clusterMachines.Pointers()), err
+			},
 		),
 		qtransform.WithExtraMappedInput[*omni.MachineStatusSnapshot](
 			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
@@ -110,26 +128,43 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 		qtransform.WithExtraMappedInput[*omni.TalosConfig](
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
 		),
-		qtransform.WithExtraMappedInput[*omni.MachineSet](
-			qtransform.MapperNone(),
+		qtransform.WithExtraMappedInput[*omni.MachineSetStatus](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, md controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				machines, err := safe.ReaderListAll[*omni.ClusterMachineConfig](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, md.ID())))
+				if err != nil {
+					return nil, err
+				}
+
+				return slices.Collect(machines.Pointers()), nil
+			},
 		),
 		qtransform.WithExtraMappedInput[*omni.Cluster](
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
 		),
+		qtransform.WithExtraMappedInput[*omni.MachineSetNode](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
+		),
 		qtransform.WithExtraMappedInput[*omni.ClusterStatus](
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
+		),
+		qtransform.WithExtraMappedDestroyReadyInput[*omni.MachinePendingUpdates](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraOutputs(controller.Output{
 			Type: omni.NodeForceDestroyRequestType,
 			Kind: controller.OutputShared,
+		}, controller.Output{
+			Type: omni.MachinePendingUpdatesType,
+			Kind: controller.OutputExclusive,
 		}),
 	)
 
 	return ctrl
 }
 
+//nolint:gocognit,gocyclo,cyclop
 func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
-	ctx context.Context, r controller.Reader, logger *zap.Logger,
+	ctx context.Context, r controller.ReaderWriter, logger *zap.Logger,
 	machineConfig *omni.ClusterMachineConfig, machineConfigStatus *omni.ClusterMachineConfigStatus,
 ) error {
 	rc, err := BuildReconciliationContext(ctx, r, machineConfig, machineConfigStatus)
@@ -139,6 +174,16 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 		}
 
 		return err
+	}
+
+	if err = ctrl.computePendingUpdates(ctx, r, rc); err != nil {
+		return err
+	}
+
+	if rc.locked {
+		logger.Info("operations locked for machine")
+
+		return nil
 	}
 
 	if rc.lastConfigError != "" {
@@ -181,8 +226,11 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 	shaSum := sha256.Sum256(buffer.Data())
 	shaSumString := hex.EncodeToString(shaSum[:])
 
+	mode := machineapi.ApplyConfigurationRequest_NO_REBOOT
+
 	if machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != shaSumString { // latest config is not yet applied, perform config apply
-		if err := ctrl.applyConfig(ctx, logger, r, rc); err != nil {
+		mode, err = ctrl.applyConfig(ctx, logger, r, rc)
+		if err != nil {
 			grpcSt := client.Status(err)
 			if grpcSt != nil && grpcSt.Code() == codes.InvalidArgument {
 				machineConfigStatus.TypedSpec().Value.LastConfigError = grpcSt.Message()
@@ -192,23 +240,58 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 
 			return fmt.Errorf("failed to apply config to machine '%s': %w", machineConfig.Metadata().ID(), err)
 		}
+
+		machineConfigStatus.TypedSpec().Value.ClusterMachineConfigVersion = machineConfig.Metadata().Version().String()
+	}
+
+	if err = machineConfigStatus.TypedSpec().Value.SetUncompressedData(rc.redactedMachineConfig); err != nil {
+		return err
+	}
+
+	if mode != machineapi.ApplyConfigurationRequest_NO_REBOOT {
+		return nil
 	}
 
 	helpers.CopyLabels(machineConfig, machineConfigStatus, omni.LabelMachineSet, omni.LabelCluster, omni.LabelControlPlaneRole, omni.LabelWorkerRole)
 
-	machineConfigStatus.TypedSpec().Value.ClusterMachineVersion = machineConfig.TypedSpec().Value.ClusterMachineVersion
-	machineConfigStatus.TypedSpec().Value.ClusterMachineConfigVersion = machineConfig.Metadata().Version().String()
 	machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 = shaSumString
 
 	machineConfigStatus.TypedSpec().Value.LastConfigError = ""
+
+	if _, err = helpers.TeardownAndDestroy(ctx, r, omni.NewMachinePendingUpdates(machineConfig.Metadata().ID()).Metadata()); err != nil {
+		return err
+	}
+
+	if err = ctrl.releaseConfigUpdateLock(ctx, r, rc.clusterMachine); err != nil {
+		return err
+	}
+
+	logger.Debug("released config update lock")
 
 	return nil
 }
 
 func (ctrl *ClusterMachineConfigStatusController) reconcileTearingDown(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, machineConfig *omni.ClusterMachineConfig) error {
-	// perform reset of the node
-	err := ctrl.reset(ctx, logger, r, machineConfig)
+	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, machineConfig.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	ready, err := helpers.TeardownAndDestroy(ctx, r, omni.NewMachinePendingUpdates(machineConfig.Metadata().ID()).Metadata())
 	if err != nil {
+		return err
+	}
+
+	if !ready {
+		return nil
+	}
+
+	if err = ctrl.releaseConfigUpdateLock(ctx, r, clusterMachine); err != nil {
+		return err
+	}
+
+	// perform reset of the node
+	if err = ctrl.reset(ctx, logger, r, machineConfig); err != nil {
 		return err
 	}
 
@@ -355,9 +438,9 @@ func (ctrl *ClusterMachineConfigStatusController) stageUpgrade(actualTalosVersio
 
 func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.Context,
 	logger *zap.Logger,
-	r controller.Reader,
+	r controller.ReaderWriter,
 	rc *ReconciliationContext,
-) error {
+) (machineapi.ApplyConfigurationRequest_Mode, error) {
 	ctx, cancel := context.WithTimeout(inputCtx, 5*time.Second)
 	defer cancel()
 
@@ -377,23 +460,23 @@ func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.C
 		machineapi.MachineStatusEvent_UNKNOWN,
 		machineapi.MachineStatusEvent_UPGRADING:
 		// no way to apply config at this stage
-		return xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' is in %s stage", rc.ID(), rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()))
+		return 0, xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' is in %s stage", rc.ID(), rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()))
 	}
 
 	if rc.machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != "" && applyMaintenance {
-		return fmt.Errorf("failed to apply machine config: the machine is expected to be running in the normal mode, but is running in maintenance")
+		return 0, fmt.Errorf("failed to apply machine config: the machine is expected to be running in the normal mode, but is running in maintenance")
 	}
 
 	c, err := ctrl.getClient(ctx, r, applyMaintenance, rc.machineStatus, rc.machineConfig)
 	if err != nil {
-		return fmt.Errorf("failed to get client: %w", err)
+		return 0, fmt.Errorf("failed to get client: %w", err)
 	}
 
 	defer logClose(c, logger, fmt.Sprintf("machine '%s'", rc.ID()))
 
 	_, err = c.Version(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	ctx, applyCancel := context.WithTimeout(inputCtx, time.Minute)
@@ -401,10 +484,16 @@ func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.C
 
 	data, err := rc.machineConfig.TypedSpec().Value.GetUncompressedData()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	defer data.Free()
+
+	if err = ctrl.acquireConfigUpdateLock(ctx, r, rc); err != nil {
+		logger.Debug("skip applying the config, failed to acquire lock", zap.Error(err))
+
+		return 0, err
+	}
 
 	resp, err := c.ApplyConfiguration(ctx, &machineapi.ApplyConfigurationRequest{
 		Data: data.Data(),
@@ -417,11 +506,11 @@ func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.C
 			zap.Stringer("config_version", rc.machineConfig.Metadata().Version()),
 		)
 
-		return fmt.Errorf("failed to apply config to machine '%s': %w", rc.ID(), err)
+		return 0, fmt.Errorf("failed to apply config to machine '%s': %w", rc.ID(), err)
 	}
 
 	if len(resp.Messages) != 1 {
-		return fmt.Errorf("unexpected number of responses: %d", len(resp.Messages))
+		return 0, fmt.Errorf("unexpected number of responses: %d", len(resp.Messages))
 	}
 
 	mode := resp.Messages[0].GetMode()
@@ -431,11 +520,7 @@ func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.C
 		zap.Stringer("mode", mode),
 	)
 
-	if mode != machineapi.ApplyConfigurationRequest_NO_REBOOT {
-		return xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("applied config to machine '%s' in %s mode", rc.ID(), mode))
-	}
-
-	return nil
+	return mode, nil
 }
 
 func logClose(c io.Closer, logger *zap.Logger, additional string) {
@@ -681,8 +766,8 @@ func (ctrl *ClusterMachineConfigStatusController) shouldResetGraceful(
 		return false, fmt.Errorf("failed to determine machine set of the cluster machine %s", clusterMachine.Metadata().ID())
 	}
 
-	machineSet, err := safe.ReaderGet[*omni.MachineSet](ctx, r, omni.NewMachineSet(machineSetName).Metadata())
-	if err != nil {
+	machineSetStatus, err := safe.ReaderGet[*omni.MachineSetStatus](ctx, r, omni.NewMachineSetStatus(machineSetName).Metadata())
+	if err != nil && !state.IsNotFoundError(err) {
 		return false, fmt.Errorf("failed to get machine set '%s': %w", machineSetName, err)
 	}
 
@@ -690,7 +775,8 @@ func (ctrl *ClusterMachineConfigStatusController) shouldResetGraceful(
 		return false, nil
 	}
 
-	return machineSet.Metadata().Phase() == resource.PhaseRunning, nil
+	return machineSetStatus != nil && machineSetStatus.Metadata().Phase() == resource.PhaseRunning &&
+		machineSetStatus.TypedSpec().Value.Phase != specs.MachineSetPhase_Destroying, nil
 }
 
 func (h *ClusterMachineConfigStatusController) gracefulEtcdLeave(ctx context.Context, c *client.Client, id string) error {
@@ -757,6 +843,123 @@ func (ctrl *ClusterMachineConfigStatusController) getClient(
 	return result, nil
 }
 
+func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx context.Context, r controller.ReaderWriter,
+	rc *ReconciliationContext,
+) error {
+	ctrl.acquireLockMu.Lock()
+	defer ctrl.acquireLockMu.Unlock()
+
+	if rc.machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 == "" {
+		return nil
+	}
+
+	if rc.clusterMachine.Metadata().Finalizers().Has(ConfigUpdateFinalizer) {
+		return nil
+	}
+
+	if !rc.configUpdatesAllowed {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine set blocks the config changes")
+	}
+
+	machineSetName, ok := rc.clusterMachine.Metadata().Labels().Get(omni.LabelMachineSet)
+	if !ok {
+		return errors.New("failed to get machine set name from the cluster machine")
+	}
+
+	machineSetStatus, err := safe.ReaderGetByID[*omni.MachineSetStatus](ctx, r, machineSetName)
+	if err != nil {
+		return err
+	}
+
+	qruntime := r.(controller.QRuntime) //nolint:forcetypeassert,errcheck
+
+	clusterMachines, err := qruntime.ListUncached(ctx,
+		omni.NewClusterMachine("").Metadata(),
+		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSetName)),
+	)
+	if err != nil {
+		return err
+	}
+
+	updateParallelism := getParallelismOrDefault(machineSetStatus.TypedSpec().Value.UpdateStrategy, machineSetStatus.TypedSpec().Value.UpdateStrategyConfig, 1)
+
+	quota := updateParallelism
+
+	pendingMachines := []string{}
+
+	for _, clusterMachine := range clusterMachines.Items {
+		if clusterMachine.Metadata().Finalizers().Has(ConfigUpdateFinalizer) {
+			pendingMachines = append(pendingMachines, clusterMachine.Metadata().ID())
+
+			quota--
+		}
+
+		if quota <= 0 {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("quota %d for updates reached, waiting for the locks to be released, pending: %#v", updateParallelism, pendingMachines)
+		}
+	}
+
+	return r.AddFinalizer(ctx, rc.clusterMachine.Metadata(), ConfigUpdateFinalizer)
+}
+
+func (ctrl *ClusterMachineConfigStatusController) releaseConfigUpdateLock(ctx context.Context, r controller.ReaderWriter, clusterMachine *omni.ClusterMachine) error {
+	if !clusterMachine.Metadata().Finalizers().Has(ConfigUpdateFinalizer) {
+		return nil
+	}
+
+	return r.RemoveFinalizer(ctx, clusterMachine.Metadata(), ConfigUpdateFinalizer)
+}
+
+func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) error {
+	pendingUpdates := omni.NewMachinePendingUpdates(rc.machineConfig.Metadata().ID())
+
+	currentRedactedMachineConfig, err := rc.machineConfigStatus.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return err
+	}
+
+	configDiff, err := computeDiff(currentRedactedMachineConfig.Data(), rc.redactedMachineConfig)
+	if err != nil {
+		return err
+	}
+
+	var shouldUpgrade bool
+
+	if rc.machineConfigStatus != nil && rc.installImage != nil {
+		shouldUpgrade = rc.machineConfigStatus.TypedSpec().Value.SchematicId != rc.installImage.SchematicId ||
+			rc.machineConfigStatus.TypedSpec().Value.TalosVersion != rc.installImage.TalosVersion
+	}
+
+	// if no pending changes, delete the pending updates resource
+	if !shouldUpgrade && configDiff == "" {
+		_, err = helpers.TeardownAndDestroy(ctx, r, pendingUpdates.Metadata())
+
+		return err
+	}
+
+	return safe.WriterModify(ctx, r, pendingUpdates, func(res *omni.MachinePendingUpdates) error {
+		helpers.CopyAllLabels(rc.machineConfig, res)
+
+		if shouldUpgrade {
+			res.TypedSpec().Value.Upgrade = &specs.MachinePendingUpdatesSpec_Upgrade{
+				FromSchematic: rc.machineConfigStatus.TypedSpec().Value.SchematicId,
+				ToSchematic:   rc.installImage.SchematicId,
+
+				FromVersion: rc.machineConfigStatus.TypedSpec().Value.TalosVersion,
+				ToVersion:   rc.installImage.TalosVersion,
+			}
+		} else {
+			res.TypedSpec().Value.Upgrade = nil
+		}
+
+		defer currentRedactedMachineConfig.Free()
+
+		res.TypedSpec().Value.ConfigDiff = configDiff
+
+		return nil
+	})
+}
+
 func (ctrl *ClusterMachineConfigStatusController) deleteUpgradeMetaKey(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -805,4 +1008,16 @@ func getVersion(ctx context.Context, c *client.Client) (string, error) {
 	}
 
 	return "", errors.New("failed to get Talos version on the machine")
+}
+
+func getParallelismOrDefault(strategyType specs.MachineSetSpec_UpdateStrategy, strategy *specs.MachineSetSpec_UpdateStrategyConfig, def int) int {
+	if strategyType == specs.MachineSetSpec_Rolling {
+		if strategy == nil {
+			return def
+		}
+
+		return int(strategy.Rolling.MaxParallelism)
+	}
+
+	return def
 }

@@ -48,6 +48,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/cosi"
 	"github.com/siderolabs/omni/internal/backend/runtime/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/clustermachine"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/image"
 	kernelargsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/kernelargs"
@@ -249,6 +250,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewConnectionParamsController(),
 		omnictrl.NewJoinTokenStatusController(),
 		omnictrl.NewNodeUniqueTokenCleanupController(time.Minute),
+		clustermachine.NewConfigPatchesController(),
 		machineupgrade.NewStatusController(imageFactoryHost, nil),
 		kernelargsctrl.NewStatusController(),
 	}

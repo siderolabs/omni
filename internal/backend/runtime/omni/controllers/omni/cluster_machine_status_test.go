@@ -20,6 +20,8 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
 )
 
 type ClusterMachineStatusSuite struct {
@@ -44,18 +46,10 @@ func (suite *ClusterMachineStatusSuite) TearDownTest() {
 }
 
 func (suite *ClusterMachineStatusSuite) TestNoMachineStatusSnapShotClusterStatusZeroValue() {
-	suite.setup()
-
-	// given
-	testID := "testID"
-	machine := omni.NewMachine(testID)
-	machineStatus := omni.NewMachineStatus(testID)
-	clusterMachine := omni.NewClusterMachine(testID)
+	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true, false)
 
 	// when
-	suite.Assert().NoError(suite.state.Create(suite.ctx, machine))
-	suite.Assert().NoError(suite.state.Create(suite.ctx, machineStatus))
-	suite.Assert().NoError(suite.state.Create(suite.ctx, clusterMachine))
+	rtestutils.Destroy[*omni.MachineStatus](suite.ctx, suite.T(), suite.state, []string{testID})
 
 	// then
 	suite.assertStage(specs.ClusterMachineStatusSpec_UNKNOWN, false, false)
@@ -134,29 +128,47 @@ func (suite *ClusterMachineStatusSuite) setupStageTest(machineStatusEvent *machi
 
 	testID := "testID"
 
+	cluster := rmock.Mock[*omni.Cluster](suite.ctx, suite.T(), suite.state)
+	rmock.Mock[*omni.ClusterSecrets](suite.ctx, suite.T(), suite.state, options.WithID(cluster.Metadata().ID()))
+
 	machine := omni.NewMachine(testID)
 	machine.TypedSpec().Value.Connected = connected
 	machineStatus := omni.NewMachineStatus(testID)
 
-	clusterMachine := omni.NewClusterMachine(testID)
+	role := omni.LabelWorkerRole
+
+	if isControlPlaneNode {
+		role = omni.LabelControlPlaneRole
+	}
+
+	rmock.Mock[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state,
+		options.WithID(testID),
+		options.LabelCluster(cluster),
+		options.EmptyLabel(role),
+	)
+
+	rmock.Mock[*omni.ClusterMachine](suite.ctx, suite.T(), suite.state,
+		options.WithID(testID),
+	)
 
 	statusSnapshot := omni.NewMachineStatusSnapshot(testID)
 	statusSnapshot.TypedSpec().Value.MachineStatus = machineStatusEvent
 
-	clusterMachineConfigStatus := omni.NewClusterMachineConfigStatus(testID)
+	rmock.Mock[*omni.MachineConfigGenOptions](suite.ctx, suite.T(), suite.state,
+		options.WithID(testID),
+	)
 
-	if isControlPlaneNode {
-		clusterMachine.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
-	}
+	rmock.Mock[*omni.ClusterMachineConfig](suite.ctx, suite.T(), suite.state,
+		options.WithID(testID),
+	)
 
-	machineSetNode := omni.NewMachineSetNode(testID, omni.NewMachineSet("ms"))
+	rmock.Mock[*omni.ClusterMachineConfigStatus](suite.ctx, suite.T(), suite.state,
+		options.WithID(testID),
+	)
 
 	suite.Assert().NoError(suite.state.Create(suite.ctx, machine))
 	suite.Assert().NoError(suite.state.Create(suite.ctx, machineStatus))
-	suite.Assert().NoError(suite.state.Create(suite.ctx, clusterMachine))
-	suite.Assert().NoError(suite.state.Create(suite.ctx, machineSetNode))
 	suite.Assert().NoError(suite.state.Create(suite.ctx, statusSnapshot))
-	suite.Assert().NoError(suite.state.Create(suite.ctx, clusterMachineConfigStatus))
 }
 
 func (suite *ClusterMachineStatusSuite) assertStage(expectedStage specs.ClusterMachineStatusSpec_Stage, expectedReadiness, expectedApidAvailable bool) {

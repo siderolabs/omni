@@ -161,8 +161,9 @@ type MachineServiceMock struct {
 	State                  state.State
 	SocketConnectionString string
 
-	OnReset  func(context.Context, *machine.ResetRequest, state.State, string) (*machine.ResetResponse, error)
-	OnUpdate func(context.Context, *machine.UpgradeRequest, state.State, string) (*machine.UpgradeResponse, error)
+	OnReset       func(context.Context, *machine.ResetRequest, state.State, string) (*machine.ResetResponse, error)
+	OnUpdate      func(context.Context, *machine.UpgradeRequest, state.State, string) (*machine.UpgradeResponse, error)
+	OnApplyConfig func(context.Context, *machine.ApplyConfigurationRequest, state.State, string) (*machine.ApplyConfigurationResponse, error)
 }
 
 func (ms *MachineServiceMock) SetEtcdLeaveHandler(callback func(context.Context, *machine.EtcdLeaveClusterRequest) (*machine.EtcdLeaveClusterResponse, error)) {
@@ -200,11 +201,15 @@ func (ms *MachineServiceMock) GetMetaKeys() map[uint32]string {
 	return maps.Clone(ms.metaKeys)
 }
 
-func (ms *MachineServiceMock) ApplyConfiguration(_ context.Context, req *machine.ApplyConfigurationRequest) (*machine.ApplyConfigurationResponse, error) {
+func (ms *MachineServiceMock) ApplyConfiguration(ctx context.Context, req *machine.ApplyConfigurationRequest) (*machine.ApplyConfigurationResponse, error) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
 	ms.applyRequests = append(ms.applyRequests, req)
+
+	if ms.OnApplyConfig != nil {
+		return ms.OnApplyConfig(ctx, req, ms.omniState, ms.id)
+	}
 
 	return &machine.ApplyConfigurationResponse{
 		Messages: []*machine.ApplyConfiguration{
