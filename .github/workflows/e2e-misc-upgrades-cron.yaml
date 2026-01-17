@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-17T11:22:16Z by kres 1ffefb6.
+# Generated on 2026-01-17T11:22:27Z by kres 1ffefb6.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -8,7 +8,7 @@ concurrency:
 "on":
   schedule:
     - cron: 30 1 * * *
-name: e2e-upgrades-cron
+name: e2e-misc-upgrades-cron
 jobs:
   default:
     runs-on:
@@ -59,7 +59,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
-          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosUpgrades|KubernetesUpgrades)$
+          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|MaintenanceUpgrade)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
           WITH_RACE: "true"

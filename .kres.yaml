@@ -379,7 +379,21 @@ spec:
           skipArtifactDownload: true
         environmentOverride:
           TEST_CLASS: integration-qemu
-          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade)$"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosUpgrades|KubernetesUpgrades)$"
+      - name: e2e-misc-upgrades
+        needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        crons:
+          - '30 1 * * *'
+        runnerGroup: large
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-upgrades
+          - integration/e2e-misc-upgrades
+        artifacts:
+          skipArtifactDownload: true
+        environmentOverride:
+          TEST_CLASS: integration-qemu
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|MaintenanceUpgrade)$"
       - name: e2e-templates
         needsOverride: [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
         crons:

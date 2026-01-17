@@ -18,17 +18,17 @@ fi
 
 ENABLE_SECUREBOOT=${ENABLE_SECUREBOOT:-false}
 
-# Machine Counts: 8 machines in total
-TOTAL_MACHINES=8
+# Machine Counts: 10 machines in total
+TOTAL_MACHINES=10
 
-PARTIAL_CONFIG_MACHINES=3 # 3 machines: siderolink via partial config, UKI, no secure boot
+PARTIAL_CONFIG_MACHINES=4 # 4 machines: siderolink via partial config, UKI, no secure boot
 NON_UKI_MACHINES=2        # 2 machines: siderolink via kernel args, non-UKI, no secure boot
 
-KERNEL_ARGS_MACHINES=3 # 3 machines: siderolink via kernel args, UKI, no secure boot
+KERNEL_ARGS_MACHINES=4 # 4 machines: siderolink via kernel args, UKI, no secure boot
 SECURE_BOOT_MACHINES=0 # 0 machines: secure boot, UKI, siderolink via kernel args
 
 if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
-  KERNEL_ARGS_MACHINES=1 # 1 machine: siderolink via kernel args, UKI, no secure boot
+  KERNEL_ARGS_MACHINES=2 # 2 machine: siderolink via kernel args, UKI, no secure boot
   SECURE_BOOT_MACHINES=2 # 2 machines: siderolink via kernel args, UKI, secure boot
 fi
 
