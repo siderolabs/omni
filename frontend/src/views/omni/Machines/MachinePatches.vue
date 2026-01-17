@@ -5,32 +5,24 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
+import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineStatusType } from '@/api/resources'
-import Watch from '@/api/watch'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import Patches from '@/views/cluster/Config/Patches.vue'
 
-const machine = ref<Resource>()
 const route = useRoute()
 
-const machineWatch = new Watch(machine)
-
-machineWatch.setup(
-  computed(() => {
-    return {
-      resource: {
-        id: route.params.machine as string,
-        type: MachineStatusType,
-        namespace: DefaultNamespace,
-      },
-      runtime: Runtime.Omni,
-    }
-  }),
-)
+const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
+  resource: {
+    id: route.params.machine as string,
+    type: MachineStatusType,
+    namespace: DefaultNamespace,
+  },
+  runtime: Runtime.Omni,
+}))
 </script>
 
 <template>

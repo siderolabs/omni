@@ -6,14 +6,13 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import pluralize from 'pluralize'
-import type { Ref } from 'vue'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
-import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
+import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withRuntime } from '@/api/options'
 import {
   DefaultNamespace,
@@ -22,10 +21,10 @@ import {
   MachineStatusType,
   SiderolinkResourceType,
 } from '@/api/resources'
-import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { ClusterCommandError, clusterDestroy } from '@/methods/cluster'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -34,8 +33,6 @@ const router = useRouter()
 const route = useRoute()
 const phase = ref('')
 let closed = false
-
-const disconnectedMachines: Ref<Resource[]> = ref([])
 
 const close = () => {
   if (closed) {
@@ -46,11 +43,7 @@ const close = () => {
 
   router.go(-1)
 }
-
-const machinesWatch = new Watch(disconnectedMachines)
-const loading = machinesWatch.loading
-
-machinesWatch.setup({
+const { data: disconnectedMachines, loading } = useResourceWatch<MachineStatusSpec>({
   resource: {
     namespace: DefaultNamespace,
     type: MachineStatusType,

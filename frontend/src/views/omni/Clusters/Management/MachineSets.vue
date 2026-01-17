@@ -5,20 +5,16 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref } from 'vue'
-
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
+import type { MachineClassSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, LabelWorkerRole, MachineClassType } from '@/api/resources'
-import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { state } from '@/states/cluster-management'
 
 import MachineSetConfig from './MachineSetConfig.vue'
 
-const machineClasses = ref<Resource[]>([])
-const machineClassesWatch = new Watch(machineClasses)
-machineClassesWatch.setup({
+const { data: machineClasses } = useResourceWatch<MachineClassSpec>({
   resource: {
     type: MachineClassType,
     namespace: DefaultNamespace,
