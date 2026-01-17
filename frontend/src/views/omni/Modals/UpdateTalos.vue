@@ -16,6 +16,7 @@ import { DefaultNamespace, TalosUpgradeStatusType } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { majorMinorVersion } from '@/methods'
 import { updateTalos } from '@/methods/cluster'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
@@ -56,10 +57,7 @@ const upgradeVersions = computed(() => {
   const result = {}
 
   for (const version of sorted) {
-    const major = semver.major(version)
-    const minor = semver.minor(version)
-
-    const majorMinor = `${major}.${minor}`
+    const majorMinor = majorMinorVersion(version)
 
     if (!result[majorMinor]) {
       result[majorMinor] = []

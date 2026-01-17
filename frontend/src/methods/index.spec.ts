@@ -8,7 +8,7 @@ import { test } from 'vitest'
 
 import { DefaultTalosVersion } from '@/api/resources'
 
-import { getDocsLink, getLegacyDocsLink } from '.'
+import { getDocsLink, getLegacyDocsLink, majorMinorVersion } from '.'
 
 const { major, minor } = parse(DefaultTalosVersion, false, true)
 const defaultVersion = `${major}.${minor}`
@@ -63,3 +63,17 @@ test.each`
     expect(getDocsLink(type, path, options)).toBe(expected)
   },
 )
+
+test.each`
+  version                    | expected
+  ${'1.13.0'}                | ${'1.13'}
+  ${'1.12.1'}                | ${'1.12'}
+  ${'1.11'}                  | ${'1.11'}
+  ${'v1.13.0'}               | ${'1.13'}
+  ${'v1.12.1'}               | ${'1.12'}
+  ${'v1.11'}                 | ${'1.11'}
+  ${'v2'}                    | ${'2.0'}
+  ${'this is not a version'} | ${'0.0'}
+`('majorMinorVersion: $version returns $expected', ({ version, expected }) => {
+  expect(majorMinorVersion(version)).toBe(expected)
+})
