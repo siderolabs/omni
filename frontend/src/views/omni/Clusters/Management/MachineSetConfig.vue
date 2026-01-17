@@ -53,6 +53,7 @@ const allocationModes = computed(() => {
 })
 
 const props = defineProps<{
+  talosVersion?: string
   noRemove?: boolean
   onRemove?: () => void
   machineClasses?: Resource<MachineClassSpec>[]
@@ -128,6 +129,7 @@ const openMachineSetConfig = () => {
 
 const openPatchConfig = () => {
   showModal(ConfigPatchEdit, {
+    talosVersion: props.talosVersion,
     tabs: [
       {
         config: patches.value[PatchID.Default]?.data ?? '',

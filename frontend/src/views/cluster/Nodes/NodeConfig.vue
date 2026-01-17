@@ -11,10 +11,11 @@ import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
-import type { RedactedClusterMachineConfigSpec } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, RedactedClusterMachineConfigType } from '@/api/resources'
+import type { ClusterSpec, RedactedClusterMachineConfigSpec } from '@/api/omni/specs/omni.pb'
+import { ClusterType, DefaultNamespace, RedactedClusterMachineConfigType } from '@/api/resources'
 import Watch from '@/api/watch'
 import { getContext } from '@/context'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const CodeEditor = defineAsyncComponent(
   () => import('@/components/common/CodeEditor/CodeEditor.vue'),
@@ -44,10 +45,23 @@ watch.setup(
     }
   }),
 )
+
+const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    type: ClusterType,
+    namespace: DefaultNamespace,
+    id: route.params.cluster as string,
+  },
+}))
 </script>
 
 <template>
-  <CodeEditor v-model:value="config" :options="{ readOnly: true }" />
+  <CodeEditor
+    v-model:value="config"
+    :options="{ readOnly: true }"
+    :talos-version="cluster?.spec.talos_version"
+  />
 </template>
 
 <style>
