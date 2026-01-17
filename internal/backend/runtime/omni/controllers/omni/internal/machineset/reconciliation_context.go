@@ -18,6 +18,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configpatch"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
@@ -150,12 +151,18 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader, machin
 		return nil, fmt.Errorf("error creating config patch helper: %w", err)
 	}
 
+	machineStatuses, err := safe.ReaderListAll[*system.ResourceLabels[*omni.MachineStatus]](ctx, r, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list machine statuses for the machine set %q: %w", machineSet.Metadata().ID(), err)
+	}
+
 	return NewReconciliationContext(
 		cluster,
 		machineSet,
 		loadBalancerStatus,
 		configPatchHelper,
 		toSlice(machineSetNodes),
+		toSlice(machineStatuses),
 		toSlice(clusterMachines),
 		toSlice(clusterMachineConfigStatuses),
 		toSlice(clusterMachineConfigPatches),
@@ -170,6 +177,7 @@ func NewReconciliationContext(
 	loadbalancerStatus *omni.LoadBalancerStatus,
 	patchHelper patchHelper,
 	machineSetNodes []*omni.MachineSetNode,
+	machineStatuses []*system.ResourceLabels[*omni.MachineStatus],
 	clusterMachines []*omni.ClusterMachine,
 	clusterMachineConfigStatuses []*omni.ClusterMachineConfigStatus,
 	clusterMachineConfigPatches []*omni.ClusterMachineConfigPatches,
@@ -210,6 +218,7 @@ func NewReconciliationContext(
 	rc.idsUpdateLocked = make(set.Set[string])
 
 	clusterMachinesSet := toSet(clusterMachines)
+	machineStatusesSet := toSet(machineStatuses)
 	lockedMachinesSet := toSet(xslices.Filter(machineSetNodes, checkLocked))
 	tearingDownMachinesSet := toSet(xslices.Filter(clusterMachines, checkTearingDown))
 	rc.idsDestroyReady = toSet(xslices.Filter(clusterMachines, func(clusterMachine *omni.ClusterMachine) bool {
@@ -240,7 +249,12 @@ func NewReconciliationContext(
 		),
 	)
 
-	rc.idsToCreate = set.Values(set.Difference(rc.runningMachineSetNodesSet, clusterMachinesSet))
+	rc.idsToCreate = set.Values(
+		set.Difference(
+			set.Intersection(rc.runningMachineSetNodesSet, machineStatusesSet),
+			clusterMachinesSet,
+		),
+	)
 
 	rc.idsTearingDown = set.Difference(tearingDownMachinesSet, rc.idsDestroyReady)
 

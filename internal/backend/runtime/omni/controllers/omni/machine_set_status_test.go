@@ -32,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
@@ -154,6 +155,8 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 		}
 
 		machineStatus := omni.NewMachineStatus(machine)
+		machineStatus.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+		machineStatus.Metadata().Labels().Set(omni.LabelMachineSet, machineSetName)
 
 		machineStatus.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
 		machineStatus.TypedSpec().Value.Connected = true
@@ -161,7 +164,15 @@ func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string,
 		machineStatus.TypedSpec().Value.Cluster = clusterName
 		machineStatus.TypedSpec().Value.Role = specs.MachineStatusSpec_CONTROL_PLANE
 
+		machineStatusLabels := system.NewResourceLabels[*omni.MachineStatus](machineStatus.Metadata().ID())
+		helpers.CopyLabels(machineStatus, machineStatusLabels, omni.LabelCluster, omni.LabelMachineSet)
+
 		err = suite.state.Create(suite.ctx, machineStatus)
+		if !state.IsConflictError(err) {
+			suite.Require().NoError(err)
+		}
+
+		err = suite.state.Create(suite.ctx, machineStatusLabels)
 		if !state.IsConflictError(err) {
 			suite.Require().NoError(err)
 		}
@@ -798,6 +809,7 @@ func (suite *MachineSetStatusSuite) TestTeardown() {
 			clusterName := "teardown"
 
 			machineSet := suite.createMachineSet(clusterName, "machine-set-teardown", machines)
+
 			suite.assertMachinesState(machines, clusterName, machineSet.Metadata().ID())
 
 			tt.setup(machineSet)
@@ -1066,6 +1078,8 @@ func (suite *MachineSetStatusSuite) TestMachineIsAddedToAnotherMachineSet() {
 	suite.Require().NoError(err)
 
 	rtestutils.DestroyAll[*omni.MachineSetNode](ctx, suite.T(), suite.state)
+	rtestutils.DestroyAll[*omni.MachineStatus](ctx, suite.T(), suite.state)
+	rtestutils.DestroyAll[*system.ResourceLabels[*omni.MachineStatus]](ctx, suite.T(), suite.state)
 
 	suite.createMachineSet(clusterName, "machine-set-2", machines)
 

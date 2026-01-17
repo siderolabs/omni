@@ -220,7 +220,7 @@ func GetTalosClient[T interface {
 		return nil, err
 	}
 
-	if machineStatusSnapshot == nil || machineStatusSnapshot.TypedSpec().Value.MachineStatus.Stage == machine.MachineStatusEvent_MAINTENANCE {
+	if machineStatusSnapshot != nil && machineStatusSnapshot.TypedSpec().Value.MachineStatus.Stage == machine.MachineStatusEvent_MAINTENANCE {
 		return createInsecureClient()
 	}
 

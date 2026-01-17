@@ -667,6 +667,7 @@ func (ctrl *MachineStatusController) setClusterRelation(in inputs, machineStatus
 		machineStatus.Metadata().Labels().Set(omni.MachineStatusLabelAvailable, "")
 
 		machineStatus.Metadata().Labels().Delete(omni.LabelCluster)
+		machineStatus.Metadata().Labels().Delete(omni.LabelMachineSet)
 		machineStatus.Metadata().Labels().Delete(omni.LabelControlPlaneRole)
 		machineStatus.Metadata().Labels().Delete(omni.LabelWorkerRole)
 
@@ -685,7 +686,13 @@ func (ctrl *MachineStatusController) setClusterRelation(in inputs, machineStatus
 	_, controlPlane := labels.Get(omni.LabelControlPlaneRole)
 	_, worker := labels.Get(omni.LabelWorkerRole)
 
+	machineSet, machineSetOk := labels.Get(omni.LabelMachineSet)
+	if !machineSetOk {
+		return fmt.Errorf("malformed ClusterMachine resource: no %q label, machine set ownership unknown", omni.LabelMachineSet)
+	}
+
 	machineStatus.Metadata().Labels().Set(omni.LabelCluster, cluster)
+	machineStatus.Metadata().Labels().Set(omni.LabelMachineSet, machineSet)
 
 	switch {
 	case controlPlane:
