@@ -17,6 +17,7 @@ import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/res
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { majorMinorVersion } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
@@ -55,11 +56,10 @@ const upgradeVersions = computed(() => {
     .filter((v) => !v.spec.deprecated)
     .sort((a, b) => semver.compare(a.metadata.id ?? '', b.metadata.id ?? ''))
     .reduce<Record<string, string[]>>((result, version) => {
-      const versionId = version.metadata.id ?? ''
-      const parsed = semver.parse(versionId)
+      const versionId = version.metadata.id
 
-      if (parsed) {
-        const majorMinor = `${parsed.major}.${parsed.minor}`
+      if (versionId) {
+        const majorMinor = majorMinorVersion(versionId)
 
         result[majorMinor] ??= []
         result[majorMinor].push(versionId)
