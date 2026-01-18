@@ -20,14 +20,15 @@ import (
 )
 
 // InitSQLiteSnapshotStore initializes a SQLite snapshot store if enabled in the config.
-func InitSQLiteSnapshotStore(ctx context.Context, config *config.EmbeddedDiscoveryService, db *sql.DB, logger *zap.Logger) (storage.SnapshotStore, error) {
-	store, err := NewSQLiteStore(ctx, db, config.SQLiteTimeout)
+func InitSQLiteSnapshotStore(ctx context.Context, config config.EmbeddedDiscoveryService, db *sql.DB, logger *zap.Logger) (storage.SnapshotStore, error) {
+	store, err := NewSQLiteStore(ctx, db, config.GetSqliteTimeout())
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize sqlite snapshot store: %w", err)
 	}
 
-	if config.SnapshotsPath != "" { //nolint:staticcheck
-		if err = migrate(ctx, config.SnapshotsPath, store, logger); err != nil { //nolint:staticcheck
+	snapshotsPath := config.GetSnapshotsPath()
+	if snapshotsPath != "" { //nolint:staticcheck
+		if err = migrate(ctx, snapshotsPath, store, logger); err != nil { //nolint:staticcheck
 			logger.Error("failed to migrate discovery service state to sqlite store", zap.Error(err))
 		}
 	}

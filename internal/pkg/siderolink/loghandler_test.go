@@ -17,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/gen/optional"
+	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -27,13 +28,13 @@ import (
 
 func TestLogHandler_HandleMessage(t *testing.T) {
 	storageConfig := config.LogsMachine{
-		BufferInitialCapacity: 16,
-		BufferMaxCapacity:     128,
-		BufferSafetyGap:       16,
+		BufferInitialCapacity: pointer.To(6),
+		BufferMaxCapacity:     pointer.To(28),
+		BufferSafetyGap:       pointer.To(6),
 		Storage: config.LogsMachineStorage{
-			NumCompressedChunks: 5,
-			FlushPeriod:         time.Second,
-			Enabled:             false,
+			NumCompressedChunks: pointer.To(5),
+			FlushPeriod:         pointer.To(time.Second),
+			Enabled:             pointer.To(false),
 		},
 	}
 
@@ -127,8 +128,8 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 func testDB(t *testing.T) *sql.DB {
 	t.Helper()
 
-	conf := config.Default().Storage.SQLite
-	conf.Path = filepath.Join(t.TempDir(), "test.db")
+	conf := config.Default().Storage.Sqlite
+	conf.SetPath(filepath.Join(t.TempDir(), "test.db"))
 
 	db, err := sqlite.OpenDB(conf)
 	require.NoError(t, err)

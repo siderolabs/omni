@@ -63,8 +63,8 @@ func TestMigrateFromFileToSQLite(t *testing.T) {
 
 	// 2. Setup Database
 	dbPath := filepath.Join(t.TempDir(), "test.db")
-	dbConf := config.Default().Storage.SQLite
-	dbConf.Path = dbPath
+	dbConf := config.Default().Storage.Sqlite
+	dbConf.SetPath(dbPath)
 
 	db, err := sqlite.OpenDB(dbConf)
 	require.NoError(t, err)
@@ -77,8 +77,8 @@ func TestMigrateFromFileToSQLite(t *testing.T) {
 	// We provide both Path and SQLite enabled, which triggers initLogger -> migrateFromFileToSQLite
 	logConf := config.LogsAudit{
 		Enabled:       pointer.To(true),
-		Path:          dir,
-		SQLiteTimeout: 5 * time.Second,
+		Path:          pointer.To(dir),
+		SqliteTimeout: pointer.To(5 * time.Second),
 	}
 
 	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)
@@ -121,8 +121,8 @@ func TestMigrateSkipIfHasData(t *testing.T) {
 
 	// 2. Setup Database with EXISTING DATA
 	dbPath := filepath.Join(t.TempDir(), "test.db")
-	dbConf := config.Default().Storage.SQLite
-	dbConf.Path = dbPath
+	dbConf := config.Default().Storage.Sqlite
+	dbConf.SetPath(dbPath)
 
 	db, err := sqlite.OpenDB(dbConf)
 	require.NoError(t, err)
@@ -141,8 +141,8 @@ func TestMigrateSkipIfHasData(t *testing.T) {
 	// 3. Trigger NewLog
 	logConf := config.LogsAudit{
 		Enabled:       pointer.To(true),
-		Path:          dir,
-		SQLiteTimeout: 5 * time.Second,
+		Path:          pointer.To(dir),
+		SqliteTimeout: pointer.To(5 * time.Second),
 	}
 
 	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)
@@ -188,8 +188,8 @@ THIS_IS_BROKEN_JSON
 
 	// 3. Setup Database
 	dbPath := filepath.Join(t.TempDir(), "test.db")
-	dbConf := config.Default().Storage.SQLite
-	dbConf.Path = dbPath
+	dbConf := config.Default().Storage.Sqlite
+	dbConf.SetPath(dbPath)
 
 	db, err := sqlite.OpenDB(dbConf)
 	require.NoError(t, err)
@@ -201,8 +201,8 @@ THIS_IS_BROKEN_JSON
 	// 4. Trigger Migration
 	logConf := config.LogsAudit{
 		Enabled:       pointer.To(true),
-		Path:          dir,
-		SQLiteTimeout: 5 * time.Second,
+		Path:          pointer.To(dir),
+		SqliteTimeout: pointer.To(5 * time.Second),
 	}
 
 	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)
@@ -290,8 +290,8 @@ func TestMigrateLineExceedingDefaultBuffer(t *testing.T) {
 
 	// Setup Destination: SQLite
 	dbPath := filepath.Join(t.TempDir(), "test.db")
-	dbConf := config.Default().Storage.SQLite
-	dbConf.Path = dbPath
+	dbConf := config.Default().Storage.Sqlite
+	dbConf.SetPath(dbPath)
 
 	db, err := sqlite.OpenDB(dbConf)
 	require.NoError(t, err)
@@ -300,8 +300,8 @@ func TestMigrateLineExceedingDefaultBuffer(t *testing.T) {
 	// Trigger Migration
 	logConf := config.LogsAudit{
 		Enabled:       pointer.To(true),
-		Path:          dir,
-		SQLiteTimeout: 5 * time.Second,
+		Path:          pointer.To(dir),
+		SqliteTimeout: pointer.To(5 * time.Second),
 	}
 
 	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)
@@ -362,8 +362,8 @@ func TestMigrateLineExceedingMaxBuffer(t *testing.T) {
 
 	// Setup Destination: SQLite
 	dbPath := filepath.Join(t.TempDir(), "test.db")
-	dbConf := config.Default().Storage.SQLite
-	dbConf.Path = dbPath
+	dbConf := config.Default().Storage.Sqlite
+	dbConf.SetPath(dbPath)
 
 	db, err := sqlite.OpenDB(dbConf)
 	require.NoError(t, err)
@@ -372,8 +372,8 @@ func TestMigrateLineExceedingMaxBuffer(t *testing.T) {
 	// Trigger Migration
 	logConf := config.LogsAudit{
 		Enabled:       pointer.To(true),
-		Path:          dir,
-		SQLiteTimeout: 5 * time.Second,
+		Path:          pointer.To(dir),
+		SqliteTimeout: pointer.To(5 * time.Second),
 	}
 
 	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)

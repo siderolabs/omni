@@ -7,35 +7,23 @@ package config
 
 import (
 	"errors"
-	"time"
 )
 
-// EtcdBackup defines etcd backup configs.
-type EtcdBackup struct {
-	LocalPath         string        `yaml:"localPath" validate:"excluded_with=S3Enabled"`
-	S3Enabled         bool          `yaml:"s3Enabled" validate:"excluded_with=LocalPath"`
-	TickInterval      time.Duration `yaml:"tickInterval"`
-	MinInterval       time.Duration `yaml:"minInterval"`
-	MaxInterval       time.Duration `yaml:"maxInterval"`
-	UploadLimitMbps   uint64        `yaml:"uploadLimitMbps"`
-	DownloadLimitMbps uint64        `yaml:"downloadLimitMbps"`
-	Jitter            time.Duration `yaml:"jitter"`
-}
-
 // GetStorageType returns the storage type.
-func (ebp EtcdBackup) GetStorageType() (EtcdBackupStorage, error) {
-	if ebp.LocalPath != "" && ebp.S3Enabled {
+func (s *EtcdBackup) GetStorageType() (EtcdBackupStorage, error) {
+	localPath := s.GetLocalPath()
+	s3Enabled := s.GetS3Enabled()
+
+	if localPath != "" && s3Enabled {
 		return "", errors.New("both localPath and s3 are set")
 	}
 
 	switch {
-	case ebp.LocalPath == "" && !ebp.S3Enabled:
+	case localPath == "" && !s3Enabled:
 		return EtcdBackupTypeS3, nil
-	case ebp.LocalPath != "":
+	case localPath != "":
 		return EtcdBackupTypeFS, nil
-	case ebp.S3Enabled:
-		return EtcdBackupTypeS3, nil
 	default:
-		return "", errors.New("unknown backup storage type")
+		return EtcdBackupTypeS3, nil
 	}
 }

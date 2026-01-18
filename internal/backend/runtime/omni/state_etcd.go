@@ -40,7 +40,8 @@ import (
 const compressionThresholdBytes = 2048
 
 func newEtcdPersistentState(ctx context.Context, params *config.Params, logger *zap.Logger) (state *PersistentState, err error) {
-	prefix := fmt.Sprintf("/omni/%s", url.PathEscape(params.Account.ID))
+	accountID := params.Account.GetId()
+	prefix := fmt.Sprintf("/omni/%s", url.PathEscape(accountID))
 
 	var etcdState EtcdState
 
@@ -59,26 +60,29 @@ func newEtcdPersistentState(ctx context.Context, params *config.Params, logger *
 		}
 	}()
 
-	if params.Storage.Default.Etcd.RunElections || !params.Storage.Default.Etcd.Embedded {
+	embedded := params.Storage.Default.Etcd.GetEmbedded()
+
+	runElections := params.Storage.Default.Etcd.GetRunElections()
+	if runElections || !embedded {
 		err = etcdState.RunElections(ctx, prefix, logger)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		logger.Info("skipped elections",
-			zap.Bool("embedded", params.Storage.Default.Etcd.Embedded),
-			zap.Bool("force_elections", params.Storage.Default.Etcd.RunElections),
+			zap.Bool("embedded", embedded),
+			zap.Bool("force_elections", runElections),
 		)
 	}
 
 	var cipher *encryption.Cipher
 
-	cipher, err = makeCipher(params.Account.ID, params.Storage.Default.Etcd, etcdState.Client(), logger) //nolint:contextcheck
+	cipher, err = makeCipher(accountID, params.Storage.Default.Etcd, etcdState.Client(), logger) //nolint:contextcheck
 	if err != nil {
 		return nil, err
 	}
 
-	salt := sha256.Sum256([]byte(params.Account.ID))
+	salt := sha256.Sum256([]byte(accountID))
 
 	coreState := etcd.NewState(
 		etcdState.Client(),
@@ -107,7 +111,7 @@ func makeCipher(name string, etcdParams config.EtcdParams, etcdClient etcd.Clien
 		return nil, err
 	}
 
-	loader, err := NewLoader(etcdParams.PrivateKeySource, logger)
+	loader, err := NewLoader(etcdParams.GetPrivateKeySource(), logger)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +158,7 @@ func loadPublicKeys(params config.EtcdParams) ([]keyprovider.PublicKeyData, erro
 func getEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdState, error) {
 	logger = logger.With(logging.Component("server"))
 
-	if params.Embedded {
+	if params.GetEmbedded() {
 		return getEmbeddedEtcdState(params, logger)
 	}
 
@@ -168,10 +172,11 @@ func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 		zap.IncreaseLevel(zap.InfoLevel),
 	).With(logging.Component("embedded_etcd"))
 
-	logger.Info("starting embedded etcd server", zap.String("data_dir", params.EmbeddedDBPath))
+	embeddedDBPath := params.GetEmbeddedDBPath()
+	logger.Info("starting embedded etcd server", zap.String("data_dir", embeddedDBPath))
 
 	cfg := embed.NewConfig()
-	cfg.Dir = params.EmbeddedDBPath
+	cfg.Dir = embeddedDBPath
 	cfg.EnableGRPCGateway = false
 	cfg.LogLevel = "info"
 	cfg.ZapLoggerBuilder = embed.NewZapLoggerBuilder(logger)
@@ -180,7 +185,7 @@ func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 	cfg.AutoCompactionRetention = "5h"
 	cfg.ExperimentalCompactHashCheckEnabled = true
 	cfg.ExperimentalInitialCorruptCheck = true
-	cfg.UnsafeNoFsync = params.EmbeddedUnsafeFsync
+	cfg.UnsafeNoFsync = params.GetEmbeddedUnsafeFsync()
 	cfg.WarningUnaryRequestDuration = embed.DefaultWarningUnaryRequestDuration
 
 	peerURL, err := url.Parse("http://localhost:0")
@@ -270,17 +275,20 @@ func getExternalEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 		return nil, errors.New("no etcd endpoints provided")
 	}
 
+	certFile := params.GetCertFile()
+	keyFile := params.GetKeyFile()
+	caFile := params.GetCaFile()
 	logger.Info("starting etcd client",
 		zap.Strings("endpoints", params.Endpoints),
-		zap.String("cert_path", params.CertFile),
-		zap.String("key_path", params.KeyFile),
-		zap.String("ca_path", params.CAFile),
+		zap.String("cert_path", certFile),
+		zap.String("key_path", keyFile),
+		zap.String("ca_path", caFile),
 	)
 
 	tlsInfo := transport.TLSInfo{
-		CertFile:      params.CertFile,
-		KeyFile:       params.KeyFile,
-		TrustedCAFile: params.CAFile,
+		CertFile:      certFile,
+		KeyFile:       keyFile,
+		TrustedCAFile: caFile,
 	}
 
 	tlsConfig, err := tlsInfo.ClientConfig()
@@ -290,8 +298,8 @@ func getExternalEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:            params.Endpoints,
-		DialKeepAliveTime:    params.DialKeepAliveTime,
-		DialKeepAliveTimeout: params.DialKeepAliveTimeout,
+		DialKeepAliveTime:    params.GetDialKeepAliveTime(),
+		DialKeepAliveTimeout: params.GetDialKeepAliveTimeout(),
 		DialTimeout:          5 * time.Second,
 		DialOptions: []grpc.DialOption{
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),

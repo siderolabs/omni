@@ -54,7 +54,7 @@ func MakeServiceServers(
 	logger *zap.Logger,
 	auditor AuditLogger,
 ) iter.Seq2[ServiceServer, error] {
-	dest, err := generateDest(config.Config.Services.API.URL())
+	dest, err := generateDest(config.Config.Services.Api.URL())
 	if err != nil {
 		return func(yield func(ServiceServer, error) bool) {
 			yield(nil, fmt.Errorf("error generating destination: %w", err))

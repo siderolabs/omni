@@ -187,7 +187,7 @@ func parseRequest(r *http.Request, st state.State, config *config.Registries) (*
 		DestinationFilename: fmt.Sprintf("%s-%s.%s", media.TypedSpec().Value.DestFilePrefix, srcFilename, media.TypedSpec().Value.Extension),
 	}
 
-	proxyURL, err := url.Parse(config.ImageFactoryBaseURL)
+	proxyURL, err := url.Parse(config.GetImageFactoryBaseURL())
 	if err != nil {
 		return nil, err
 	}

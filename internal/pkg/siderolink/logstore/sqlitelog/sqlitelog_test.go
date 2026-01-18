@@ -444,8 +444,8 @@ func TestCleanupProbabilities(t *testing.T) {
 		ctx := t.Context()
 		path := filepath.Join(t.TempDir(), fmt.Sprintf("prob-test-%f.db", prob))
 
-		dbConf := config.Default().Storage.SQLite
-		dbConf.Path = path
+		dbConf := config.Default().Storage.Sqlite
+		dbConf.SetPath(path)
 
 		db, err := sqlite.OpenDB(dbConf)
 		require.NoError(t, err)
@@ -453,8 +453,8 @@ func TestCleanupProbabilities(t *testing.T) {
 		t.Cleanup(func() { require.NoError(t, db.Close()) })
 
 		logConf := config.Default().Logs.Machine.Storage
-		logConf.MaxLinesPerMachine = limit
-		logConf.CleanupProbability = prob
+		logConf.SetMaxLinesPerMachine(limit)
+		logConf.SetCleanupProbability(prob)
 
 		state := state.WrapCore(namespaced.NewState(inmem.Build))
 
@@ -673,8 +673,8 @@ func setupDB(ctx context.Context, t *testing.T, logger *zap.Logger) (*sqlitelog.
 	t.Helper()
 
 	path := filepath.Join(t.TempDir(), "test.db")
-	conf := config.Default().Storage.SQLite
-	conf.Path = path
+	conf := config.Default().Storage.Sqlite
+	conf.SetPath(path)
 
 	db, err := sqlite.OpenDB(conf)
 	require.NoError(t, err)

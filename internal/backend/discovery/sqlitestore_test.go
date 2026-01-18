@@ -217,9 +217,9 @@ func setupStore(ctx context.Context, t *testing.T) (*discovery.SQLiteStore, *sql
 	t.Helper()
 
 	conf := config.Default()
-	conf.Storage.SQLite.Path = filepath.Join(t.TempDir(), "test.db")
+	conf.Storage.Sqlite.SetPath(filepath.Join(t.TempDir(), "test.db"))
 
-	db, err := sqlite.OpenDB(conf.Storage.SQLite)
+	db, err := sqlite.OpenDB(conf.Storage.Sqlite)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

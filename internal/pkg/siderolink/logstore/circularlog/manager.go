@@ -68,7 +68,7 @@ func (m *StoreManager) Remove(_ context.Context, id string) error {
 
 // MachineIDs returns the list of machine IDs that have persistent log stores.
 func (m *StoreManager) MachineIDs() ([]string, error) {
-	matches, err := filepath.Glob(filepath.Join(m.config.Storage.Path, "*.log*"))
+	matches, err := filepath.Glob(filepath.Join(m.config.Storage.GetPath(), "*.log*"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to list log files: %w", err)
 	}
@@ -91,7 +91,7 @@ func (m *StoreManager) MachineIDs() ([]string, error) {
 // It probes the file system to check if a log file exists for this machine.
 // Checks both for the old (/path/machine-id.log) and the new (/path/machine-id.log.NUM) format.
 func (m *StoreManager) logFiles(id string) ([]string, error) {
-	return filepath.Glob(filepath.Join(m.config.Storage.Path, id+".log*"))
+	return filepath.Glob(filepath.Join(m.config.Storage.GetPath(), id+".log*"))
 }
 
 // Create implements the LogStoreManager interface.

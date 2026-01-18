@@ -43,13 +43,14 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		},
 		{
 			name: "enable auth0",
-			initialConfig: config.Auth{
-				Auth0: config.Auth0{
-					Enabled:  true,
-					ClientID: "client-id",
-					Domain:   "domain",
-				},
-			},
+			initialConfig: func() config.Auth {
+				var c config.Auth
+				c.Auth0.SetEnabled(true)
+				c.Auth0.SetClientID("client-id")
+				c.Auth0.SetDomain("domain")
+
+				return c
+			}(),
 			expected: &specs.AuthConfigSpec{
 				Auth0: &specs.AuthConfigSpec_Auth0{
 					Enabled:  true,
@@ -63,11 +64,12 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		},
 		{
 			name: "enable webauthn",
-			initialConfig: config.Auth{
-				WebAuthn: config.WebAuthn{
-					Enabled: true,
-				},
-			},
+			initialConfig: func() config.Auth {
+				var c config.Auth
+				c.Webauthn.SetEnabled(true)
+
+				return c
+			}(),
 			expected: &specs.AuthConfigSpec{
 				Webauthn: &specs.AuthConfigSpec_Webauthn{
 					Enabled: true,
@@ -79,18 +81,20 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		},
 		{
 			name: "make webauthn not required",
-			initialConfig: config.Auth{
-				WebAuthn: config.WebAuthn{
-					Enabled:  true,
-					Required: true,
-				},
-			},
-			updatedConfig: &config.Auth{
-				WebAuthn: config.WebAuthn{
-					Enabled:  true,
-					Required: false,
-				},
-			},
+			initialConfig: func() config.Auth {
+				var c config.Auth
+				c.Webauthn.SetEnabled(true)
+				c.Webauthn.SetRequired(true)
+
+				return c
+			}(),
+			updatedConfig: func() *config.Auth {
+				var c config.Auth
+				c.Webauthn.SetEnabled(true)
+				c.Webauthn.SetRequired(false)
+
+				return &c
+			}(),
 			expected: &specs.AuthConfigSpec{
 				Webauthn: &specs.AuthConfigSpec_Webauthn{
 					Enabled: true,
@@ -102,46 +106,51 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		},
 		{
 			name: "fail to disable webauthn",
-			initialConfig: config.Auth{
-				WebAuthn: config.WebAuthn{
-					Enabled:  true,
-					Required: true,
-				},
-			},
-			updatedConfig: &config.Auth{
-				WebAuthn: config.WebAuthn{
-					Enabled: false,
-				},
-			},
+			initialConfig: func() config.Auth {
+				var c config.Auth
+				c.Webauthn.SetEnabled(true)
+				c.Webauthn.SetRequired(true)
+
+				return c
+			}(),
+			updatedConfig: func() *config.Auth {
+				var c config.Auth
+				c.Webauthn.SetEnabled(false)
+
+				return &c
+			}(),
 			expectUpdateError: true,
 		},
 		{
 			name: "fail to disable auth0",
-			initialConfig: config.Auth{
-				Auth0: config.Auth0{
-					Enabled:  true,
-					ClientID: "client-id",
-					Domain:   "domain",
-				},
-			},
+			initialConfig: func() config.Auth {
+				var c config.Auth
+				c.Auth0.SetEnabled(true)
+				c.Auth0.SetClientID("client-id")
+				c.Auth0.SetDomain("domain")
+
+				return c
+			}(),
 			updatedConfig:     &config.Auth{},
 			expectUpdateError: true,
 		},
 		{
 			name: "switch from auth0 to SAML",
-			initialConfig: config.Auth{
-				Auth0: config.Auth0{
-					Enabled:  true,
-					ClientID: "client-id",
-					Domain:   "domain",
-				},
-			},
-			updatedConfig: &config.Auth{
-				SAML: config.SAML{
-					Enabled:     true,
-					MetadataURL: "http://samltest.sp/idp",
-				},
-			},
+			initialConfig: func() config.Auth {
+				var c config.Auth
+				c.Auth0.SetEnabled(true)
+				c.Auth0.SetClientID("client-id")
+				c.Auth0.SetDomain("domain")
+
+				return c
+			}(),
+			updatedConfig: func() *config.Auth {
+				var c config.Auth
+				c.Saml.SetEnabled(true)
+				c.Saml.SetUrl("http://samltest.sp/idp")
+
+				return &c
+			}(),
 			expected: &specs.AuthConfigSpec{
 				Auth0:    &specs.AuthConfigSpec_Auth0{},
 				Webauthn: &specs.AuthConfigSpec_Webauthn{},
@@ -154,12 +163,13 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 		},
 		{
 			name: "fail to disable SAML",
-			initialConfig: config.Auth{
-				SAML: config.SAML{
-					Enabled:     true,
-					MetadataURL: "http://samltest.sp/idp",
-				},
-			},
+			initialConfig: func() config.Auth {
+				var c config.Auth
+				c.Saml.SetEnabled(true)
+				c.Saml.SetUrl("http://samltest.sp/idp")
+
+				return c
+			}(),
 			updatedConfig:     &config.Auth{},
 			expectUpdateError: true,
 		},
