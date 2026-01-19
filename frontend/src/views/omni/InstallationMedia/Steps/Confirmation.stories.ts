@@ -41,7 +41,6 @@ const meta: Meta<typeof Confirmation> = {
   component: Confirmation,
   args: {
     modelValue: {
-      currentStep: 0,
       hardwareType: 'metal',
       machineArch: PlatformConfigSpecArch.ARM64,
       talosVersion: DefaultTalosVersion,
@@ -191,13 +190,16 @@ export const Default = {
                 },
                 spec: {
                   label: 'Bare Metal',
+                  description: faker.commerce.productDescription(),
+                  documentation: '/talos-guides/install/bare-metal-platforms/',
+                  architectures: [PlatformConfigSpecArch.AMD64, PlatformConfigSpecArch.ARM64],
+                  secure_boot_supported: false,
                   boot_methods: [
                     PlatformConfigSpecBootMethod.DISK_IMAGE,
                     PlatformConfigSpecBootMethod.ISO,
                     PlatformConfigSpecBootMethod.PXE,
                   ],
                   disk_image_suffix: 'raw.zst',
-                  documentation: '/talos-guides/install/bare-metal-platforms/',
                 },
               } satisfies Resource<PlatformConfigSpec>),
             })

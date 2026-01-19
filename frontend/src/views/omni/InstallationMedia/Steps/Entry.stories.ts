@@ -9,7 +9,7 @@ import Entry from './Entry.vue'
 const meta: Meta<typeof Entry> = {
   component: Entry,
   args: {
-    modelValue: { currentStep: 0 },
+    modelValue: {},
   },
 }
 

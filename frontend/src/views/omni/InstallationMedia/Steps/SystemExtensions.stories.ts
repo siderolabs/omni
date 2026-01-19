@@ -14,7 +14,7 @@ import SystemExtensions from './SystemExtensions.vue'
 const meta: Meta<typeof SystemExtensions> = {
   component: SystemExtensions,
   args: {
-    modelValue: { currentStep: 0, talosVersion: DefaultTalosVersion },
+    modelValue: { talosVersion: DefaultTalosVersion },
   },
 }
 

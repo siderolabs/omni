@@ -246,9 +246,56 @@ export const routes: RouteRecordRaw[] = [
               {
                 path: 'create',
                 name: 'InstallationMediaCreate',
+                redirect: { name: 'InstallationMediaCreateEntry' },
                 meta: { disablePadding: true },
                 component: () =>
                   import('@/views/omni/InstallationMedia/InstallationMediaCreate.vue'),
+                children: [
+                  {
+                    path: '',
+                    name: 'InstallationMediaCreateEntry',
+                    component: () => import('@/views/omni/InstallationMedia/Steps/Entry.vue'),
+                  },
+                  {
+                    path: 'talos-version',
+                    name: 'InstallationMediaCreateTalosVersion',
+                    component: () =>
+                      import('@/views/omni/InstallationMedia/Steps/TalosVersion.vue'),
+                  },
+                  {
+                    path: 'cloud-provider',
+                    name: 'InstallationMediaCreateCloudProvider',
+                    component: () =>
+                      import('@/views/omni/InstallationMedia/Steps/CloudProvider.vue'),
+                  },
+                  {
+                    path: 'sbc-type',
+                    name: 'InstallationMediaCreateSBCType',
+                    component: () => import('@/views/omni/InstallationMedia/Steps/SBCType.vue'),
+                  },
+                  {
+                    path: 'arch',
+                    name: 'InstallationMediaCreateMachineArch',
+                    component: () => import('@/views/omni/InstallationMedia/Steps/MachineArch.vue'),
+                  },
+                  {
+                    path: 'system-extensions',
+                    name: 'InstallationMediaCreateSystemExtensions',
+                    component: () =>
+                      import('@/views/omni/InstallationMedia/Steps/SystemExtensions.vue'),
+                  },
+                  {
+                    path: 'extra-args',
+                    name: 'InstallationMediaCreateExtraArgs',
+                    component: () => import('@/views/omni/InstallationMedia/Steps/ExtraArgs.vue'),
+                  },
+                  {
+                    path: 'confirmation',
+                    name: 'InstallationMediaCreateConfirmation',
+                    component: () =>
+                      import('@/views/omni/InstallationMedia/Steps/Confirmation.vue'),
+                  },
+                ],
               },
             ],
           },

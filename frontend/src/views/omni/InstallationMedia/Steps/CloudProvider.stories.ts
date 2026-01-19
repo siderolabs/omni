@@ -16,7 +16,7 @@ import CloudProvider from './CloudProvider.vue'
 const meta: Meta<typeof CloudProvider> = {
   component: CloudProvider,
   args: {
-    modelValue: { currentStep: 0 },
+    modelValue: {},
   },
 }
 

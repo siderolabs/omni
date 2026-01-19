@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useId } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { type Resource, ResourceService } from '@/api/grpc'
@@ -70,22 +70,28 @@ async function save() {
     saving.value = false
   }
 }
+
+const titleId = useId()
 </script>
 
 <template>
   <div
+    role="dialog"
     class="fixed inset-0 z-30 flex items-center justify-center bg-naturals-n0/90"
     :class="!open && 'hidden'"
+    aria-modal="true"
+    :aria-hidden="!open"
+    :aria-labelledby="titleId"
   >
     <div class="modal-window w-auto gap-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-base text-naturals-n14">Save preset</h3>
+        <h3 :id="titleId" class="text-base text-naturals-n14">Save preset</h3>
 
         <CloseButton @click="$emit('close')" />
       </div>
 
       <div class="flex flex-col gap-1">
-        <TInput v-model.trim="name" title="Name" />
+        <TInput v-model.trim="name" title="Name" :focus="open" />
         <p v-if="name && existingPreset" class="ml-2.5 text-xs text-red-r1">Name already in use</p>
       </div>
 

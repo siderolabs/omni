@@ -31,7 +31,7 @@ const SBC: Resource<SBCConfigSpec> = {
 const meta: Meta<typeof ExtraArgs> = {
   component: ExtraArgs,
   args: {
-    modelValue: { currentStep: 0, talosVersion: DefaultTalosVersion },
+    modelValue: { talosVersion: DefaultTalosVersion },
   },
 }
 
@@ -64,7 +64,6 @@ export const Pre1_10: Story = {
   name: 'Pre-1.10',
   args: {
     modelValue: {
-      currentStep: 0,
       secureBoot: false,
       talosVersion: '1.9.0',
     },
@@ -75,7 +74,6 @@ export const WithSecureBoot: Story = {
   ...Default,
   args: {
     modelValue: {
-      currentStep: 0,
       secureBoot: true,
     },
   },
@@ -85,7 +83,6 @@ export const WithOverlayOptions: Story = {
   ...Default,
   args: {
     modelValue: {
-      currentStep: 0,
       talosVersion: DefaultTalosVersion,
       hardwareType: 'sbc',
       sbcType: SBC.metadata.id,

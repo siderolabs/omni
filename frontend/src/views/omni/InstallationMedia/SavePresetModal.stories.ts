@@ -18,7 +18,6 @@ const meta: Meta<typeof SavePresetModal> = {
   args: {
     open: true,
     formState: {
-      currentStep: 0,
       hardwareType: 'metal',
       talosVersion: '1.11.5',
       joinToken: 'w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD',

@@ -27,7 +27,7 @@ import TalosVersion from './TalosVersion.vue'
 const meta: Meta<typeof TalosVersion> = {
   component: TalosVersion,
   args: {
-    modelValue: { currentStep: 0 },
+    modelValue: {},
   },
 }
 

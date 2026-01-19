@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts" generic="T extends string | number">
-import { computed, onMounted, useTemplateRef, watch } from 'vue'
+import { computed, onMounted, useTemplateRef, watchPostEffect } from 'vue'
 
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
@@ -82,10 +82,7 @@ const blurHandler = () => {
   emit('blur')
 }
 
-watch(
-  () => focus,
-  () => focus && inputRef.value?.focus(),
-)
+watchPostEffect(() => focus && inputRef.value?.focus())
 
 onMounted(() => focus && inputRef.value?.focus())
 </script>

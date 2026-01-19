@@ -4,7 +4,8 @@
 // included in the LICENSE file.
 import userEvent from '@testing-library/user-event'
 import { render, screen } from '@testing-library/vue'
-import { afterEach, expect, test, vi } from 'vitest'
+import { beforeEach, expect, test, vi } from 'vitest'
+import { createMemoryHistory, createRouter } from 'vue-router'
 
 import { getPlatform } from '@/methods'
 
@@ -17,14 +18,30 @@ vi.mock('@/methods', () => ({
 
 const mockGetPlatform = vi.mocked(getPlatform)
 
-afterEach(() => {
+let router: ReturnType<typeof createRouter>
+
+beforeEach(() => {
   vi.clearAllMocks()
+
+  router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      {
+        path: '/',
+        component: { template: '<RouterView />' },
+      },
+    ],
+  })
 })
 
 test('sets default value based on platform', async () => {
   mockGetPlatform.mockResolvedValue(['linux', 'amd64'])
 
-  render(DownloadOmnictl)
+  render(DownloadOmnictl, {
+    global: {
+      plugins: [router],
+    },
+  })
 
   expect(await screen.findByLabelText('omnictl')).toHaveTextContent('omnictl-linux-amd64')
 })
@@ -33,7 +50,11 @@ test('allows selecting other options', async () => {
   const user = userEvent.setup()
   mockGetPlatform.mockResolvedValue(['linux', 'amd64'])
 
-  render(DownloadOmnictl)
+  render(DownloadOmnictl, {
+    global: {
+      plugins: [router],
+    },
+  })
 
   const trigger = await screen.findByLabelText('omnictl')
 

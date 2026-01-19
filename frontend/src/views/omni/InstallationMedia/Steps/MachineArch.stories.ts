@@ -8,7 +8,11 @@ import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
 import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
-import { type PlatformConfigSpec, PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
+import {
+  type PlatformConfigSpec,
+  PlatformConfigSpecArch,
+  PlatformConfigSpecBootMethod,
+} from '@/api/omni/specs/virtual.pb'
 import { CloudPlatformConfigType, MetalPlatformConfigType, VirtualNamespace } from '@/api/resources'
 
 import MachineArch from './MachineArch.vue'
@@ -37,7 +41,7 @@ const cloudProvider: Resource<PlatformConfigSpec> = {
 const meta: Meta<typeof MachineArch> = {
   component: MachineArch,
   args: {
-    modelValue: { currentStep: 0, hardwareType: 'metal' },
+    modelValue: { hardwareType: 'metal' },
   },
 }
 
@@ -63,11 +67,17 @@ export const Default = {
                   id: faker.string.uuid(),
                 },
                 spec: {
-                  label: faker.commerce.productName(),
+                  label: 'Bare Metal',
                   description: faker.commerce.productDescription(),
-                  documentation: faker.system.directoryPath(),
+                  documentation: '/talos-guides/install/bare-metal-platforms/',
                   architectures: [PlatformConfigSpecArch.AMD64, PlatformConfigSpecArch.ARM64],
                   secure_boot_supported: false,
+                  boot_methods: [
+                    PlatformConfigSpecBootMethod.DISK_IMAGE,
+                    PlatformConfigSpecBootMethod.ISO,
+                    PlatformConfigSpecBootMethod.PXE,
+                  ],
+                  disk_image_suffix: 'raw.zst',
                 },
               } satisfies Resource<PlatformConfigSpec>),
             })
@@ -95,7 +105,6 @@ export const ForCloud: Story = {
   ...Default,
   args: {
     modelValue: {
-      currentStep: 0,
       hardwareType: 'cloud',
       cloudPlatform: cloudProvider.metadata.id,
     },

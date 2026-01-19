@@ -16,7 +16,7 @@ import SBCType from './SBCType.vue'
 const meta: Meta<typeof SBCType> = {
   component: SBCType,
   args: {
-    modelValue: { currentStep: 0 },
+    modelValue: {},
   },
 }
 
