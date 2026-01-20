@@ -39,4 +39,5 @@ jobs:
         uses: chromaui/action@latest
         with:
           projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           workingDir: frontend/
