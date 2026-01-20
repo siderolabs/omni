@@ -39,6 +39,8 @@ If you would like to subscribe to the hosted version of Omni please see the [Saa
 
 If you would like to self-host Omni for non-production workloads please follow the [instructions in the documentation](https://omni.siderolabs.com/how-to-guides/self_hosted/index).
 
+To deploy Omni on Kubernetes, see the [Helm chart](deploy/helm/v2/omni/README.md).
+
 ## Development
 
 For instructions on developing Omni, see [DEVELOPMENT.md](DEVELOPMENT.md).

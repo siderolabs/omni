@@ -1,0 +1,63 @@
+{{- if .Values.ingress.grpc.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "omni.fullname" . }}-grpc
+  namespace: {{ include "omni.namespace" . }}
+  labels:
+  {{- include "omni.labels" . | nindent 4 }}
+  {{- with .Values.ingress.grpc.labels }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.ingress.grpc.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.grpc.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.grpc.tls }}
+  tls:
+    {{- toYaml .Values.ingress.grpc.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.grpc.host | quote }}
+      http:
+        paths:
+          - path: /omni.resources.ResourceService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "omni.fullname" $ }}-grpc
+                port:
+                  number: {{ .Values.service.grpc.omniPort }}
+          - path: /oidc.OIDCService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "omni.fullname" $ }}-grpc
+                port:
+                  number: {{ .Values.service.grpc.omniPort }}
+          - path: /management.ManagementService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "omni.fullname" $ }}-grpc
+                port:
+                  number: {{ .Values.service.grpc.omniPort }}
+          - path: /auth.AuthService
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "omni.fullname" $ }}-grpc
+                port:
+                  number: {{ .Values.service.grpc.omniPort }}
+          - path: /cosi.resource.State
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "omni.fullname" $ }}-grpc
+                port:
+                  number: {{ .Values.service.grpc.omniPort }}
+{{- end }}

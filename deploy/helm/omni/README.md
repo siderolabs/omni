@@ -1,5 +1,8 @@
 # Omni Helm chart
 
+> [!WARNING]
+> This Helm chart (v1) is deprecated. For all new installations, please use the v2 chart located at [../v2/omni/](./../v2/omni/). See the [v2 README](./../v2/omni/README.md) for documentation.
+
 ## Prerequisites
 
 To run Omni using this Helm chart the following additional components are required:

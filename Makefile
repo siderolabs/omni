@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-28T15:22:29Z by kres 1b0dcb3.
+# Generated on 2026-01-30T12:27:48Z by kres dc032d7.
 
 # common variables
 
@@ -215,7 +215,7 @@ frontend: $(ARTIFACTS)/frontend-js  ## Builds js release for frontend.
 
 generate:  ## Generate .proto definitions.
 	@$(MAKE) local-$@ DEST=./
-	@sed -i "s/appVersion: .*/appVersion: \"$$(cat internal/version/data/tag)\"/" deploy/helm/omni/Chart.yaml
+	@sed -i "s/appVersion: .*/appVersion: \"$$(cat internal/version/data/tag)\"/" deploy/helm/v2/omni/Chart.yaml
 
 lint-golangci-lint-client:  ## Runs golangci-lint linter.
 	@$(MAKE) target-$@
@@ -373,8 +373,8 @@ omnictl-windows-amd64.exe: $(ARTIFACTS)/omnictl-windows-amd64.exe  ## Builds exe
 omnictl: omnictl-darwin-amd64 omnictl-darwin-arm64 omnictl-linux-amd64 omnictl-linux-arm64 omnictl-windows-amd64.exe  ## Builds executables for omnictl.
 
 .PHONY: helm
-helm:  ## Package helm chart
-	@helm package deploy/helm/omni -d $(ARTIFACTS)
+helm: $(ARTIFACTS)  ## Package helm chart
+	@helm package deploy/helm/v2/omni -d $(ARTIFACTS)
 
 .PHONY: helm-release
 helm-release: helm  ## Release helm chart
@@ -383,7 +383,7 @@ helm-release: helm  ## Release helm chart
 
 .PHONY: chart-lint
 chart-lint:  ## Lint helm chart
-	@helm lint deploy/helm/omni
+	@helm lint deploy/helm/v2/omni
 
 .PHONY: helm-plugin-install
 helm-plugin-install:  ## Install helm plugins
@@ -396,15 +396,15 @@ kuttl-plugin-install:  ## Install kubectl kuttl plugin
 
 .PHONY: chart-e2e
 chart-e2e:  ## Run helm chart e2e tests
-	export KUBECONFIG=$(shell pwd)/$(ARTIFACTS)/kubeconfig && cd deploy/helm/e2e && kubectl kuttl test
+	export KUBECONFIG=$(shell pwd)/$(ARTIFACTS)/kubeconfig && cd deploy/helm/v2/e2e && kubectl kuttl test
 
 .PHONY: chart-unittest
 chart-unittest: $(ARTIFACTS)  ## Run helm chart unit tests
-	@helm unittest deploy/helm/omni --output-type junit --output-file $(ARTIFACTS)/helm-unittest-report.xml
+	@helm unittest deploy/helm/v2/omni --output-type junit --output-file $(ARTIFACTS)/helm-unittest-report.xml
 
 .PHONY: chart-gen-schema
 chart-gen-schema:  ## Generate helm chart schema
-	@helm schema --use-helm-docs --draft=7 --indent=2 --values=deploy/helm/omni/values.yaml --output=deploy/helm/omni/values.schema.json
+	@helm schema --use-helm-docs --draft=7 --indent=2 --values=deploy/helm/v2/omni/values.yaml --output=deploy/helm/v2/omni/values.schema.json
 
 .PHONY: helm-docs
 helm-docs:  ## Runs helm-docs and generates chart documentation

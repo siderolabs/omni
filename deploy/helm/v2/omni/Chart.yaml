@@ -1,0 +1,19 @@
+apiVersion: v2
+name: omni
+description: A helm chart to deploy Omni on a Kubernetes cluster
+type: application
+version: 2.0.0
+appVersion: "v1.5.0"
+home: https://www.siderolabs.com/omni/
+sources:
+  - https://github.com/siderolabs/omni
+keywords:
+  - talos
+  - sidero
+  - omni
+  - kubernetes
+  - baremetal
+maintainers:
+  - name: Sidero Labs
+    url: https://www.siderolabs.com
+    email: info@siderolabs.com

@@ -1,0 +1,24 @@
+{{- if and .Values.metrics.enabled .Values.metrics.rules.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ template "omni.fullname" . }}
+  namespace: {{ default (include  "omni.namespace" .) .Values.metrics.rules.namespace }}
+  labels:
+    {{- include "omni.labels" . | nindent 4 }}
+    {{- with .Values.metrics.rules.selector }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- if .Values.metrics.rules.labels }}
+      {{- toYaml .Values.metrics.rules.labels | nindent 4 }}
+    {{- end }}
+  {{- with .Values.metrics.rules.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  groups:
+  - name: omni
+    rules:
+      {{- toYaml .Values.metrics.rules.spec | nindent 4 }}
+{{- end }}
