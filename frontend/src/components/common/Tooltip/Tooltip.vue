@@ -17,11 +17,14 @@ import { computed } from 'vue'
 const {
   // eslint-disable-next-line vue/no-boolean-default
   open = undefined,
+  keepOpen,
   placement = 'auto-start',
   offsetDistance = 10,
   offsetSkid = 30,
 } = defineProps<{
   open?: boolean
+  keepOpen?: boolean
+  delayDuration?: number
   disabled?: boolean
   description?: string
   offsetDistance?: number
@@ -58,8 +61,13 @@ const align = computed(() => {
 </script>
 
 <template>
-  <TooltipProvider :delay-duration="0">
-    <TooltipRoot :open :disabled="disabled || (!description && !$slots.description)">
+  <TooltipProvider>
+    <TooltipRoot
+      :disable-hoverable-content="!keepOpen"
+      :delay-duration
+      :open
+      :disabled="disabled || (!description && !$slots.description)"
+    >
       <TooltipTrigger as-child>
         <slot></slot>
       </TooltipTrigger>
