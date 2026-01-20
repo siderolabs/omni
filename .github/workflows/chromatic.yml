@@ -19,6 +19,9 @@ jobs:
     name: Run chromatic
     runs-on:
       group: generic
+    environment:
+      name: Storybook preview
+      url: ${{ steps.chromatic.outputs.storybookUrl }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -35,7 +38,8 @@ jobs:
           chromaticProjectToken=$(sops decrypt --extract='["secrets"]["CHROMATIC_PROJECT_TOKEN"]' .secrets.yaml)
           echo "::add-mask::${chromaticProjectToken}"
           echo "CHROMATIC_PROJECT_TOKEN=${chromaticProjectToken}" >> $GITHUB_ENV
-      - name: Run Chromatic
+      - id: chromatic
+        name: Run Chromatic
         uses: chromaui/action@latest
         with:
           projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
