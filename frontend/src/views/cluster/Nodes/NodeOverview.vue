@@ -5,14 +5,12 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { NodeSpec as V1NodeSpec } from 'kubernetes-types/core/v1'
+import type { NodeSpec as V1NodeSpec, NodeStatus as V1NodeStatus } from 'kubernetes-types/core/v1'
 import { DateTime } from 'luxon'
-import type { Ref } from 'vue'
 import { computed, onBeforeUnmount, ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import { subscribe } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
@@ -36,8 +34,6 @@ import {
 } from '@/api/resources'
 import type { ServiceEvent } from '@/api/talos/machine/machine.pb'
 import { MachineService } from '@/api/talos/machine/machine.pb'
-import type { WatchOptions } from '@/api/watch'
-import Watch from '@/api/watch'
 import TGroupAnimation from '@/components/common/Animation/TGroupAnimation.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
@@ -48,11 +44,15 @@ import { TCommonStatuses } from '@/constants'
 import { getContext } from '@/context'
 import { formatBytes, getStatus } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachinePhase from '@/views/cluster/ClusterMachines/ClusterMachinePhase.vue'
 import NodeConditions from '@/views/cluster/Nodes/components/NodeConditions.vue'
 import NodeDiagnosticWarnings from '@/views/cluster/Nodes/NodeDiagnosticWarnings.vue'
 import NodeServiceEvents from '@/views/cluster/Nodes/NodeServiceEvents.vue'
 import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
+
+const route = useRoute()
+const context = getContext()
 
 const services = ref<
   {
@@ -65,8 +65,6 @@ const services = ref<
 
 let abortController: AbortController | undefined
 
-const ctx = getContext()
-
 const fetchServices = async () => {
   if (abortController) {
     abortController.abort()
@@ -76,7 +74,7 @@ const fetchServices = async () => {
 
   const res = await MachineService.ServiceList(
     {},
-    withContext(ctx),
+    withContext(context),
     withRuntime(Runtime.Talos),
     withAbortController(abortController),
   )
@@ -111,20 +109,12 @@ const stream = subscribe(
       fetchServices()
     }
   },
-  [withRuntime(Runtime.Talos), withContext(getContext())],
+  [withRuntime(Runtime.Talos), withContext(context)],
 )
 
 onBeforeUnmount(() => {
   stream.shutdown()
 })
-
-type Nodename = {
-  nodename: string
-}
-
-type NodeAddress = {
-  addresses: Array<string>
-}
 
 const configApplyStatusToConfigApplyStatusName = (status?: ConfigApplyStatus): string => {
   switch (status) {
@@ -140,53 +130,8 @@ const configApplyStatusToConfigApplyStatusName = (status?: ConfigApplyStatus): s
 }
 
 const alertDismissed = ref(false)
-const node: Ref<Resource<V1NodeSpec> | undefined> = ref()
-const nodename: Ref<Resource<Nodename> | undefined> = ref()
-const nodeaddress: Ref<Resource<NodeAddress> | undefined> = ref()
-const clusterMachineStatus: Ref<Resource<ClusterMachineStatusSpec> | undefined> = ref()
-const talosMachineStatus = ref<
-  Resource<{
-    stage: string
-    status: {
-      ready: boolean
-      unmetConditions: {
-        name: string
-        reason: string
-      }[]
-    }
-  }>
->()
-const machineStatus = ref<Resource<MachineStatusLinkSpec>>()
 
-const nodeWatch = new Watch(node)
-const nodenameWatch = new Watch(nodename)
-const nodeaddressWatch = new Watch(nodeaddress)
-const clusterMachineStatusesWatch = new Watch(clusterMachineStatus)
-const talosMachineStatusWatch = new Watch(talosMachineStatus)
-const machineStatusWatch = new Watch(machineStatus)
-
-const route = useRoute()
-const context = getContext()
-
-nodeWatch.setup(
-  computed(() => {
-    const id = nodename.value?.spec?.nodename
-    if (!id) {
-      return
-    }
-
-    return {
-      runtime: Runtime.Kubernetes,
-      resource: {
-        id: id,
-        type: kubernetes.node,
-      },
-      context,
-    }
-  }),
-)
-
-nodenameWatch.setup({
+const { data: nodename } = useResourceWatch<{ nodename: string }>({
   runtime: Runtime.Talos,
   resource: {
     id: TalosNodenameID,
@@ -196,7 +141,21 @@ nodenameWatch.setup({
   context,
 })
 
-nodeaddressWatch.setup({
+const { data: node } = useResourceWatch<V1NodeSpec, V1NodeStatus>(() => {
+  const id = nodename.value?.spec.nodename
+
+  return {
+    skip: !id,
+    runtime: Runtime.Kubernetes,
+    resource: {
+      id: id!,
+      type: kubernetes.node,
+    },
+    context,
+  }
+})
+
+const { data: nodeaddress } = useResourceWatch<{ addresses: string[] }>({
   runtime: Runtime.Talos,
   resource: {
     id: TalosAddressRoutedNoK8s,
@@ -206,7 +165,16 @@ nodeaddressWatch.setup({
   context,
 })
 
-talosMachineStatusWatch.setup({
+const { data: talosMachineStatus } = useResourceWatch<{
+  stage: string
+  status: {
+    ready: boolean
+    unmetConditions: {
+      name: string
+      reason: string
+    }[]
+  }
+}>({
   runtime: Runtime.Talos,
   resource: {
     id: TalosMachineStatusID,
@@ -216,7 +184,7 @@ talosMachineStatusWatch.setup({
   context,
 })
 
-machineStatusWatch.setup({
+const { data: machineStatus } = useResourceWatch<MachineStatusLinkSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     id: route.params.machine as string,
@@ -224,30 +192,22 @@ machineStatusWatch.setup({
     namespace: MetricsNamespace,
   },
   context,
-})
+}))
 
-const clusterMachineStatusWatchOpts: Ref<WatchOptions | undefined> = computed(() => {
-  return {
-    runtime: Runtime.Omni,
-    resource: {
-      type: ClusterMachineStatusType,
-      namespace: DefaultNamespace,
-      id: route.params.machine as string,
-    },
-  }
-})
+const { data: clusterMachineStatus } = useResourceWatch<ClusterMachineStatusSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    type: ClusterMachineStatusType,
+    namespace: DefaultNamespace,
+    id: route.params.machine as string,
+  },
+}))
 
-clusterMachineStatusesWatch.setup(clusterMachineStatusWatchOpts)
-
-const roles = computed(() => {
-  const roles: any = []
-  for (const label in node.value?.metadata?.labels) {
-    if (label.indexOf('node-role.kubernetes.io/') !== -1) {
-      roles.push(label.split('/')[1])
-    }
-  }
-  return roles
-})
+const roles = computed(() =>
+  Object.keys(node.value?.metadata.labels ?? {})
+    .filter((label) => label.includes('node-role.kubernetes.io/'))
+    .map((label) => label.split('/')[1]),
+)
 
 const status = computed(() => getStatus(node.value!))
 

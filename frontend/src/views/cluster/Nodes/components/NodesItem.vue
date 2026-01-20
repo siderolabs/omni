@@ -49,17 +49,11 @@ const ip = computed(() => {
   return (item.value?.spec?.addresses ?? {})[0] ?? ''
 })
 
-const roles = computed(() => {
-  const roles: any = []
-
-  for (const label in item.value?.metadata.labels) {
-    if (label.indexOf('node-role.kubernetes.io/') !== -1) {
-      roles.push(label.split('/')[1])
-    }
-  }
-
-  return roles
-})
+const roles = computed(() =>
+  Object.keys(item.value?.metadata.labels ?? {})
+    .filter((label) => label.includes('node-role.kubernetes.io/'))
+    .map((label) => label.split('/')[1]),
+)
 
 const route = useRoute()
 </script>
