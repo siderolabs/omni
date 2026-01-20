@@ -17,13 +17,6 @@ vi.mock('@/api/grpc', () => ({
   },
 }))
 
-vi.mock('@/api/resources', () => ({
-  DefaultNamespace: 'default',
-  ClusterType: 'Cluster',
-  FeaturesConfigType: 'FeaturesConfig',
-  FeaturesConfigID: 'FeaturesConfigID',
-}))
-
 vi.mock('@/api/options', () => ({
   withRuntime: vi.fn((runtime: Runtime) => ({ runtime })),
 }))

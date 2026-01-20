@@ -242,6 +242,7 @@ watch(filterValue, async (val: string, old: string) => {
           :class="selectedLabel === index ? 'border-white' : 'border-transparent'"
         >
           <ItemLabel
+            small
             :label="{
               ...label,
               removable: true,

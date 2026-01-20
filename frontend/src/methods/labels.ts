@@ -3,7 +3,30 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { InfraProviderLabelPrefix, LabelInfraProviderID, SystemLabelPrefix } from '@/api/resources'
+import {
+  InfraProviderLabelPrefix,
+  LabelCluster,
+  LabelControlPlaneRole,
+  LabelInfraProviderID,
+  LabelWorkerRole,
+  MachineStatusLabelArch,
+  MachineStatusLabelAvailable,
+  MachineStatusLabelConnected,
+  MachineStatusLabelCores,
+  MachineStatusLabelCPU,
+  MachineStatusLabelDisconnected,
+  MachineStatusLabelInstance,
+  MachineStatusLabelInvalidState,
+  MachineStatusLabelMem,
+  MachineStatusLabelNet,
+  MachineStatusLabelPlatform,
+  MachineStatusLabelRegion,
+  MachineStatusLabelStorage,
+  MachineStatusLabelTalosVersion,
+  MachineStatusLabelZone,
+  SystemLabelPrefix,
+} from '@/api/resources'
+import type { IconType } from '@/components/common/Icon/TIcon.vue'
 
 export const parseLabels = (...labels: string[]): Record<string, string> => {
   const labelsMap: Record<string, string> = {}
@@ -24,28 +47,28 @@ export type Label = {
   color: string
   removable?: boolean
   description?: string
-  icon?: string
+  icon?: IconType
 }
 
 const labelColors = {
-  cluster: 'light1',
-  available: 'yellow',
-  'invalid-state': 'red',
-  connected: 'green',
-  disconnected: 'red',
-  platform: 'blue1',
-  cores: 'cyan',
-  mem: 'blue2',
-  storage: 'violet',
-  net: 'blue3',
-  cpu: 'orange',
-  arch: 'light2',
-  region: 'light3',
-  zone: 'light4',
-  instance: 'light5',
-  'talos-version': 'light7',
-  'role-controlplane': 'yellow',
-  'role-worker': 'yellow',
+  [LabelCluster]: 'light1',
+  [MachineStatusLabelAvailable]: 'yellow',
+  [MachineStatusLabelInvalidState]: 'red',
+  [MachineStatusLabelConnected]: 'green',
+  [MachineStatusLabelDisconnected]: 'red',
+  [MachineStatusLabelPlatform]: 'blue1',
+  [MachineStatusLabelCores]: 'cyan',
+  [MachineStatusLabelMem]: 'blue2',
+  [MachineStatusLabelStorage]: 'violet',
+  [MachineStatusLabelNet]: 'blue3',
+  [MachineStatusLabelCPU]: 'orange',
+  [MachineStatusLabelArch]: 'light2',
+  [MachineStatusLabelRegion]: 'light3',
+  [MachineStatusLabelZone]: 'light4',
+  [MachineStatusLabelInstance]: 'light5',
+  [MachineStatusLabelTalosVersion]: 'light7',
+  [LabelControlPlaneRole]: 'yellow',
+  [LabelWorkerRole]: 'yellow',
 }
 
 export const getLabelColor = (labelKey: string) => {
@@ -92,35 +115,31 @@ export const sanitizeLabelValue = (value: string): string => {
 }
 
 const labelDescriptions = {
-  'invalid-state':
+  [MachineStatusLabelInvalidState]:
     'The machine is expected to be unallocated, but still has the configuration of a cluster.\nIt might be required to wipe the machine bypassing Omni.',
 }
 
 export const getLabelFromID = (key: string, value: string): Label => {
-  const isUser = key.indexOf(SystemLabelPrefix) !== 0
-
-  let strippedKey = key.replace(new RegExp(`^${SystemLabelPrefix}`), '')
-  let icon: string | undefined
-  let color = getLabelColor(strippedKey)
-  let description = labelDescriptions[strippedKey]
-
-  if (key.indexOf(InfraProviderLabelPrefix) === 0 && key !== LabelInfraProviderID) {
-    const parts = strippedKey.split('/')
-    strippedKey = parts[parts.length - 1]
-
-    icon = 'server-network'
-    color = 'green'
-
-    description = `Defined by the infra provider "${parts[1]}""`
+  const label: Label = {
+    key,
+    id: key.replace(new RegExp(`^${SystemLabelPrefix}`), ''),
+    value,
+    color: getLabelColor(key),
+    removable: !key.startsWith(SystemLabelPrefix),
+    description: labelDescriptions[key],
   }
 
-  return {
-    key: key,
-    id: strippedKey,
-    value: value,
-    color: color,
-    removable: isUser,
-    description: description,
-    icon: icon,
+  if (key.startsWith(InfraProviderLabelPrefix) && key !== LabelInfraProviderID) {
+    const parts = label.id.split('/')
+
+    return {
+      ...label,
+      id: parts.at(-1) ?? '',
+      color: 'green',
+      description: `Defined by the infra provider "${parts[1] ?? ''}""`,
+      icon: 'server-network',
+    }
   }
+
+  return label
 }

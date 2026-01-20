@@ -15,8 +15,8 @@ export interface LabelSelectItem {
 import { ref } from 'vue'
 
 import TButton from '@/components/common/Button/TButton.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
+import ItemLabel from '@/views/omni/ItemLabels/ItemLabel.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -78,26 +78,18 @@ const removeLabel = async (key: string) => {
 
 <template>
   <div class="flex flex-wrap items-center gap-1.5 text-xs">
-    <span
+    <ItemLabel
       v-for="(label, key) in modelValue"
       :key="key"
-      class="flex cursor-pointer items-center"
-      :class="`resource-label label-${label.color ?? defaultColor}`"
-    >
-      <template v-if="label.value">
-        {{ key }}:
-        <span class="font-semibold">{{ label.value }}</span>
-      </template>
-      <span v-else class="font-semibold">
-        {{ key }}
-      </span>
-      <TIcon
-        v-if="label.canRemove"
-        icon="close"
-        class="destroy-label-button"
-        @click.stop="() => removeLabel(key)"
-      />
-    </span>
+      :label="{
+        key,
+        id: key,
+        value: label.value,
+        color: label.color ?? defaultColor,
+        removable: label.canRemove,
+      }"
+      :remove-label="removeLabel"
+    />
     <TInput
       v-if="addingLabel"
       v-model="currentLabel"
@@ -111,11 +103,3 @@ const removeLabel = async (key: string) => {
     <TButton v-else-if="!readonly" icon="tag" size="sm" @click.stop="editLabels">new label</TButton>
   </div>
 </template>
-
-<style>
-@reference "../../../index.css";
-
-.destroy-label-button {
-  @apply -mr-1 ml-1 inline-block h-3 w-3 cursor-pointer rounded-full transition-all hover:bg-naturals-n14 hover:text-naturals-n1;
-}
-</style>

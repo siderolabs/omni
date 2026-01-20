@@ -19,6 +19,7 @@ const {
   open = undefined,
   keepOpen,
   placement = 'auto-start',
+  delayDuration = 0,
   offsetDistance = 10,
   offsetSkid = 30,
 } = defineProps<{
