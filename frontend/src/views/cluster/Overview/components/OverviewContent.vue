@@ -358,7 +358,7 @@ onMounted(async () => {
             <div class="flex flex-col gap-2">
               <ClusterWorkloadProxyingCheckbox
                 :model-value="enableWorkloadProxy"
-                :disabled="!canManageClusterFeatures"
+                :disabled="!canManageClusterFeatures || !features?.spec.enable_workload_proxying"
                 @update:model-value="
                   (value) => setClusterWorkloadProxy(context.cluster ?? '', value)
                 "

@@ -15,6 +15,8 @@ const oidcDocsLink = getDocsLink(
 
 <template>
   You will need to install the
-  <a class="link-primary" :href="oidcDocsLink">OIDC plugin</a>
+  <a class="link-primary" :href="oidcDocsLink" target="_blank" rel="noopener noreferrer">
+    OIDC plugin
+  </a>
   when using the downloaded kubeconfig in kubectl
 </template>
