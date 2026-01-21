@@ -7,17 +7,28 @@ import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { add, isAfter, isBefore, milliseconds, sub } from 'date-fns'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { defineComponent } from 'vue'
-import { useRouter } from 'vue-router'
+import { defineComponent, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import type { RegisterPublicKeyRequest, RegisterPublicKeyResponse } from '@/api/omni/auth/auth.pb'
 
 import { createKeys, hasValidKeys, signDetached, useKeys, useWatchKeyExpiry } from './key'
 
-vi.mock('vue-router', () => ({
-  useRoute: vi.fn().mockReturnValue({ fullPath: 'fullPath' }),
-  useRouter: vi.fn().mockReturnValue({ replace: vi.fn() }),
-}))
+vi.mock('vue-router')
+
+beforeEach(() => {
+  useKeys().clear()
+
+  vi.mocked(useRoute, { partial: true }).mockReturnValue({})
+  vi.mocked(useRouter, { partial: true }).mockReturnValue({
+    isReady: vi.fn(),
+    replace: vi.fn(),
+  })
+
+  vi.mocked(useRouter().isReady).mockImplementation(async () => {
+    vi.mocked(useRoute()).fullPath = 'fullPath'
+  })
+})
 
 // Exported mock key for testing purposes only
 const mockKey: CryptoKeyPair = {
@@ -53,10 +64,6 @@ const mockKey: CryptoKeyPair = {
 }
 
 describe('useKeys', () => {
-  afterEach(() => {
-    useKeys().clear()
-  })
-
   test('defaults to empty', () => {
     const { keyPair, keyExpirationTime, publicKeyID } = useKeys()
 
@@ -118,23 +125,23 @@ describe('useWatchKeyExpiry', () => {
   enableAutoUnmount(afterEach)
 
   afterEach(() => {
-    useKeys().clear()
-
-    vi.mocked(useRouter().replace).mockReset()
-
     vi.useRealTimers()
   })
 
-  test('does nothing if no keyPair', () => {
+  test('does nothing if no keyPair', async () => {
     mount(TestComponent)
+
+    await nextTick()
 
     expect(useRouter().replace).not.toHaveBeenCalled()
   })
 
-  test('clears keys if invalid expiry', () => {
+  test('clears keys if invalid expiry', async () => {
     useKeys().keyPair.value = mockKey
 
     mount(TestComponent)
+
+    await nextTick()
 
     expect(useKeys().keyPair.value).toBeFalsy()
     expect(useRouter().replace).toHaveBeenCalledExactlyOnceWith({
@@ -143,17 +150,23 @@ describe('useWatchKeyExpiry', () => {
     })
   })
 
-  test('clears keys on expiry', () => {
+  test('clears keys on expiry', async () => {
     useKeys().keyExpirationTime.value = add(now, { minutes: 1 })
     useKeys().keyPair.value = mockKey
 
     mount(TestComponent)
+
+    await nextTick()
 
     expect(useKeys().keyPair.value).toBeDefined()
     expect(useRouter().replace).not.toHaveBeenCalled()
 
     vi.advanceTimersByTime(milliseconds({ minutes: 2 }))
 
+    expect(useRouter().replace).not.toHaveBeenCalled()
+
+    await nextTick()
+
     expect(useKeys().keyPair.value).toBeFalsy()
     expect(useRouter().replace).toHaveBeenCalledExactlyOnceWith({
       name: 'Authenticate',
@@ -161,17 +174,45 @@ describe('useWatchKeyExpiry', () => {
     })
   })
 
-  test('cleans up on unmount', () => {
+  test('keeps existing auth flow on expiry', async () => {
+    useKeys().keyExpirationTime.value = add(now, { minutes: 1 })
+    useKeys().keyPair.value = mockKey
+
+    vi.mocked(useRouter().isReady).mockImplementation(async () => {
+      vi.mocked(useRoute()).fullPath = 'fullPath'
+      vi.mocked(useRoute()).name = 'Authenticate'
+    })
+
+    mount(TestComponent)
+
+    await nextTick()
+
+    expect(useKeys().keyPair.value).toBeDefined()
+    expect(useRouter().replace).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(milliseconds({ minutes: 2 }))
+
+    await nextTick()
+
+    expect(useKeys().keyPair.value).toBeFalsy()
+    expect(useRouter().replace).not.toHaveBeenCalled()
+  })
+
+  test('cleans up on unmount', async () => {
     useKeys().keyExpirationTime.value = add(now, { minutes: 1 })
     useKeys().keyPair.value = mockKey
 
     const wrapper = mount(TestComponent)
+
+    await nextTick()
 
     expect(useKeys().keyPair.value).toBeDefined()
     expect(useRouter().replace).not.toHaveBeenCalled()
 
     wrapper.unmount()
     vi.advanceTimersByTime(milliseconds({ minutes: 2 }))
+
+    await nextTick()
 
     expect(useKeys().keyPair.value).toBeDefined()
     expect(useRouter().replace).not.toHaveBeenCalled()
@@ -194,10 +235,6 @@ describe('signDetached', () => {
 })
 
 describe('hasValidKeys', () => {
-  afterEach(() => {
-    useKeys().clear()
-  })
-
   test('false if no keyPair or expiration time', async () => {
     await expect(hasValidKeys()).resolves.toBeFalsy()
   })
