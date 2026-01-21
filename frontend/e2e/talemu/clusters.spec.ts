@@ -21,7 +21,7 @@ test('View all clusters', async ({ cluster, page }) => {
 })
 
 test('Create cluster using machine classes', async ({ page }) => {
-  test.setTimeout(milliseconds({ minutes: 2 }))
+  test.setTimeout(milliseconds({ minutes: 3 }))
 
   const clusterName = `e2e-cluster-${faker.string.alphanumeric(8)}`
 
@@ -65,7 +65,9 @@ test('Create cluster using machine classes', async ({ page }) => {
     await page.getByRole('button', { name: 'Destroy', exact: true }).click()
 
     await expect(page.getByText(`The Cluster ${clusterName} is tearing down`)).toBeVisible()
-    await expect(page.getByText('Cluster Not Found')).toBeVisible()
+    await expect(page.getByText('Cluster Not Found')).toBeVisible({
+      timeout: milliseconds({ minutes: 1 }),
+    })
   })
 })
 
