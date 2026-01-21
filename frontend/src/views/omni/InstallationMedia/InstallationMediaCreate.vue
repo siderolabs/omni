@@ -61,8 +61,11 @@ watch(
   { deep: true },
 )
 
+const currentStepName = computed(() => route.name?.toString())
+
 watchEffect(() => {
-  if (route.name === 'InstallationMediaCreateEntry' || formState.value.hardwareType) return
+  if (currentStepName.value === 'InstallationMediaCreateEntry' || formState.value.hardwareType)
+    return
 
   // Fail-safe to return to the start of the form if we load a future step with a blank form state.
   if (window.history.length > 1) {
@@ -81,13 +84,11 @@ const currentFlowSteps = computed(() =>
 )
 
 const stepCount = computed(() => currentFlowSteps.value?.length ?? 0)
-const currentStep = computed(() => {
-  const currentStepName = route.name?.toString()
-
-  return currentStepName && currentFlowSteps.value
-    ? currentFlowSteps.value?.indexOf(currentStepName) + 1
-    : 0
-})
+const currentStep = computed(() =>
+  currentStepName.value && currentFlowSteps.value
+    ? currentFlowSteps.value.indexOf(currentStepName.value) + 1
+    : 0,
+)
 
 const isLastStep = computed(() =>
   currentFlowSteps.value ? currentStep.value === stepCount.value : false,
