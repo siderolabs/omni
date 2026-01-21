@@ -46,7 +46,7 @@ export function useWatchKeyExpiry() {
     if (!keys.keyPair.value) return
 
     if (!keys.keyExpirationTime.value || isAfter(Date.now(), keys.keyExpirationTime.value)) {
-      return clearKeysAndRedirect()
+      return await clearKeysAndRedirect()
     }
 
     const keysReloadTimeout = window.setTimeout(
@@ -56,8 +56,27 @@ export function useWatchKeyExpiry() {
 
     onCleanup(() => clearTimeout(keysReloadTimeout))
 
-    function clearKeysAndRedirect() {
+    async function clearKeysAndRedirect() {
       keys.clear()
+
+      try {
+        /**
+         * If we are here during initial page load,
+         * the current route may not yet be initialised.
+         */
+        await router.isReady()
+      } catch {
+        // isReady will throw if interrupted by auth provider redirects
+        return
+      }
+
+      /**
+       * If we are already authenticating, do not replace the flow.
+       * This can overwrite other flows like CLI / workload proxy.
+       *
+       * See: https://github.com/siderolabs/omni/issues/2121
+       */
+      if (route.name === 'Authenticate') return
 
       router.replace({
         name: 'Authenticate',
