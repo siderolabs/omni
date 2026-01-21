@@ -44,7 +44,7 @@ import {
   setClusterWorkloadProxy,
   setUseEmbeddedDiscoveryService,
 } from '@/methods/cluster'
-import { embeddedDiscoveryServiceFeatureAvailable } from '@/methods/features'
+import { embeddedDiscoveryServiceFeatureAvailable, useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
 import OverviewRightPanel from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
@@ -123,6 +123,8 @@ const { data: talosUpgradeStatus } = useResourceWatch<TalosUpgradeStatusSpec>(()
 }))
 
 const { canManageClusterFeatures } = setupClusterPermissions(clusterId)
+
+const { data: features } = useFeatures()
 
 const isEmbeddedDiscoveryServiceAvailable = ref(false)
 
@@ -327,7 +329,7 @@ onMounted(async () => {
             <div class="flex flex-col gap-2">
               <ClusterWorkloadProxyingCheckbox
                 :model-value="enableWorkloadProxy"
-                :disabled="!canManageClusterFeatures"
+                :disabled="!canManageClusterFeatures || !features?.spec.enable_workload_proxying"
                 @update:model-value="(value) => setClusterWorkloadProxy(clusterId, value)"
               />
               <EmbeddedDiscoveryServiceCheckbox

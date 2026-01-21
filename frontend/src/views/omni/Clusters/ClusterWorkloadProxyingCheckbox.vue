@@ -12,7 +12,6 @@ import {
 } from '@/api/resources'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import { useFeatures } from '@/methods/features'
 
 type Props = {
   disabled?: boolean
@@ -21,14 +20,14 @@ type Props = {
 defineProps<Props>()
 
 const checked = defineModel<boolean>({ default: false })
-const { data: features } = useFeatures()
 </script>
 
 <template>
-  <Tooltip v-if="features?.spec.enable_workload_proxying" placement="bottom">
+  <Tooltip placement="bottom">
     <template #description>
       <div class="flex flex-col gap-1 p-2">
         <p>Enable HTTP proxying to the Services in the cluster through Omni.</p>
+        <p>Available only if the feature is enabled in Omni.</p>
         <p>When enabled, the Services annotated with the following annotations</p>
         <p>will be listed and accessible from the Omni Web interface:</p>
         <div class="rounded bg-naturals-n5 px-2 py-1">
