@@ -2,8 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-
-import { isEqual } from 'lodash'
+import isEqual from 'lodash/isEqual'
 import * as semver from 'semver'
 import type { Ref } from 'vue'
 

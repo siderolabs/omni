@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { isMatch } from 'lodash'
+import isMatch from 'lodash/isMatch'
 import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
