@@ -8,7 +8,6 @@ included in the LICENSE file.
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue'
 import { DocumentIcon } from '@heroicons/vue/24/solid'
 import { v4 as uuidv4 } from 'uuid'
-import type { Ref } from 'vue'
 import { computed, onMounted, ref, toRefs, watch } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { useRoute, useRouter } from 'vue-router'
@@ -34,8 +33,6 @@ import {
   LabelSystemPatch,
   VirtualNamespace,
 } from '@/api/resources'
-import type { WatchOptions } from '@/api/watch'
-import Watch from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
@@ -49,13 +46,12 @@ import {
   machineSetTitle,
   workersTitlePrefix,
 } from '@/methods/machineset'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 
 const route = useRoute()
 const router = useRouter()
 const filter = ref('')
-const machineStatuses: Ref<Resource[]> = ref([])
-const machineStatusesWatch = new Watch(machineStatuses)
 
 type Props = {
   cluster?: Resource<ClusterSpec>
@@ -66,7 +62,7 @@ const props = defineProps<Props>()
 
 const { machine, cluster } = toRefs(props)
 
-const selectors = computed<string[] | void>(() => {
+const selectors = computed(() => {
   const res: string[] = []
 
   if (cluster.value) {
@@ -83,31 +79,26 @@ const selectors = computed<string[] | void>(() => {
   return res.map((item) => item + `,!${LabelSystemPatch}`)
 })
 
-const patches: Ref<Resource<ConfigPatchSpec>[]> = ref([])
-const patchesWatch = new Watch(patches)
-const loading = computed(() => {
-  return patchesWatch.loading.value || machineStatusesWatch.loading.value
-})
-
-patchesWatch.setup(
-  computed<WatchOptions | undefined>(() => {
-    if (!selectors.value) {
-      return
-    }
-
-    return {
-      runtime: Runtime.Omni,
-      resource: { type: ConfigPatchType, namespace: DefaultNamespace },
-      selectors: selectors.value,
-      selectUsingOR: true,
-    }
-  }),
-)
-
-machineStatusesWatch.setup({
+const { data: patches, loading: patchesLoading } = useResourceWatch<ConfigPatchSpec>(() => ({
+  skip: !selectors.value,
   runtime: Runtime.Omni,
-  resource: { type: ClusterMachineStatusType, namespace: DefaultNamespace },
+  resource: {
+    type: ConfigPatchType,
+    namespace: DefaultNamespace,
+  },
+  selectors: selectors.value,
+  selectUsingOR: true,
+}))
+
+const { data: machineStatuses, loading: machineStatusesLoading } = useResourceWatch<Resource>({
+  runtime: Runtime.Omni,
+  resource: {
+    type: ClusterMachineStatusType,
+    namespace: DefaultNamespace,
+  },
 })
+
+const loading = computed(() => patchesLoading.value || machineStatusesLoading.value)
 
 const includes = (filter: string, values: string[]) => {
   for (const value of values) {
