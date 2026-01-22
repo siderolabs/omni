@@ -44,7 +44,7 @@ import {
   setClusterWorkloadProxy,
   setUseEmbeddedDiscoveryService,
 } from '@/methods/cluster'
-import { embeddedDiscoveryServiceFeatureAvailable, useFeatures } from '@/methods/features'
+import { embeddedDiscoveryServiceFeatureAvailable } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
 import OverviewRightPanel from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
@@ -123,8 +123,6 @@ const { data: talosUpgradeStatus } = useResourceWatch<TalosUpgradeStatusSpec>(()
 }))
 
 const { canManageClusterFeatures } = setupClusterPermissions(clusterId)
-
-const { data: features } = useFeatures()
 
 const isEmbeddedDiscoveryServiceAvailable = ref(false)
 
@@ -322,10 +320,7 @@ onMounted(async () => {
           </div>
         </div>
         <div class="flex gap-5">
-          <div
-            v-if="features?.spec.enable_workload_proxying"
-            class="overview-card mb-5 flex-1 px-6"
-          >
+          <div class="overview-card mb-5 flex-1 px-6">
             <div class="mb-3">
               <span class="overview-box-title">Features</span>
             </div>
