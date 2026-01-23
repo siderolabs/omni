@@ -74,7 +74,7 @@ The E2E tests depend on environment variables to function. Create a `.env` file 
 ```sh
 AUTH_USERNAME=test-user@siderolabs.com
 AUTH_PASSWORD=123
-BASE_URL=https://omni.local/
+BASE_URL=https://my-instance.omni.localhost/
 ```
 
 - `AUTH_*` should be a username/password that already exists in your auth0 configuration

@@ -7,16 +7,16 @@
 
 set -eoux pipefail
 
-# Omni is served from "https://my-instance.localhost:8099"
-# Exposed services through workload proxying follow the pattern: "https://sngmph-my-instance.proxy-us.localhost:8099/"
+# Omni is served from "https://my-instance.omni.localhost:8099"
+# Exposed services through workload proxying follow the pattern: "https://sngmph-my-instance.proxy-us.omni.localhost:8099/"
 # The TLS key and cert, hack/certs/localhost-key.pem and hack/certs/localhost.pem contain the SANs:
 # - localhost
 # - *.localhost
-# - my-instance.localhost
-# - *.my-instance.localhost
+# - my-instance.omni.localhost
+# - *.my-instance.omni.localhost
 #
-# Write "my-instance.localhost" to /etc/hosts to avoid problems with the name resolution.
-echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
+# Write "my-instance.omni.localhost" to /etc/hosts to avoid problems with the name resolution.
+echo "127.0.0.1 my-instance.omni.localhost" | tee -a /etc/hosts
 
 # Settings.
 LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
@@ -36,7 +36,7 @@ export JOIN_TOKEN=testonly
 export TEST_OUTPUTS_DIR=${GITHUB_WORKSPACE:-/tmp}/integration-test
 export SLEEP_AFTER_FAILURE=${SLEEP_AFTER_FAILURE:-0}
 export CI="${CI}"
-export BASE_URL=https://my-instance.localhost:8099/
+export BASE_URL=https://my-instance.omni.localhost:8099/
 export VAULT_ADDR=http://127.0.0.1:8200
 export VAULT_TOKEN=dev-o-token
 export AUTH_USERNAME="${AUTH0_TEST_USERNAME}"

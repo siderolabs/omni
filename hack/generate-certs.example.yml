@@ -7,8 +7,8 @@ email: test-user@siderolabs.com
 host: localhost
 additional-hosts:
   - "*.localhost"
-  - "my-instance.localhost"
-  - "*.my-instance.localhost"
+  - "my-instance.omni.localhost"
+  - "*.my-instance.omni.localhost"
 bind_addr: 0.0.0.0:443
 pprof-bind-addr: 0.0.0.0:2135
 

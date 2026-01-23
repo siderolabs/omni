@@ -9,6 +9,7 @@ import { dump } from 'js-yaml'
 
 import { DEFAULT_MACHINE_CLASS } from '../constants'
 import { expect, test as base } from '../omnictl_fixtures'
+
 interface Cluster {
   name: string
 }

@@ -2,6 +2,10 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import fs from 'node:fs/promises'
+import os from 'node:os'
+
+import type { Page } from '@playwright/test'
 import { milliseconds } from 'date-fns'
 import { diff as diffJSON } from 'json-diff-ts'
 import * as uuid from 'uuid'
@@ -12,7 +16,7 @@ import { expect, test } from '../omnictl_fixtures.js'
 test.describe.configure({ mode: 'serial', retries: 0 })
 
 const clusterName = 'talos-test-cluster'
-const machineName = 'deadbeef'
+const cpMachineName = 'deadbeef'
 
 test('create cluster', async ({ page }) => {
   test.setTimeout(milliseconds({ minutes: 16 }))
@@ -35,13 +39,13 @@ test('create cluster', async ({ page }) => {
 
     const editor = page.getByRole('textbox', { name: 'Editor content' })
 
-    await editor.press('Control+a')
+    await editor.press(`${os.platform() === 'darwin' ? 'Meta' : 'Control'}+a`)
     await editor.press('Delete')
     await editor.pressSequentially(`---
 apiVersion: v1alpha1
 kind: HostnameConfig
 auto: off
-hostname: ${machineName}`)
+hostname: ${cpMachineName}`)
 
     await page.getByRole('button', { name: 'Save' }).click()
   })
@@ -68,7 +72,7 @@ hostname: ${machineName}`)
 
   await expect(async () => {
     await expect(page.getByTestId('machine-count')).toHaveText(/\d\/3/)
-    await expect(page.getByText(machineName)).toBeVisible()
+    await expect(page.getByText(cpMachineName)).toBeVisible()
     await expect(page.getByTestId('machine-set-phase-name').getByText('Running')).toHaveCount(2)
     await expect(page.getByTestId('cluster-machine-stage-name').getByText('Running')).toHaveCount(3)
   }, 'Wait for cluster to be running').toPass({
@@ -77,7 +81,7 @@ hostname: ${machineName}`)
   })
 
   // Check that extensions are added
-  await page.getByRole('link', { name: machineName }).click()
+  await page.getByRole('link', { name: cpMachineName }).click()
   await page.getByRole('link', { name: 'Extensions' }).click()
 
   await expect(page.getByText('siderolabs/usb-modem-drivers')).toBeVisible()
@@ -87,13 +91,13 @@ test('expand and collapse cluster', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('link', { name: 'Clusters' }).click()
 
-  await expect(page.getByText(machineName)).toBeInViewport()
+  await expect(page.getByText(cpMachineName)).toBeInViewport()
 
   await page.getByRole('button', { name: clusterName }).click()
-  await expect(page.getByText(machineName)).not.toBeInViewport()
+  await expect(page.getByText(cpMachineName)).not.toBeInViewport()
 
   await page.getByRole('button', { name: clusterName }).click()
-  await expect(page.getByText(machineName)).toBeInViewport()
+  await expect(page.getByText(cpMachineName)).toBeInViewport()
 })
 
 test('open machine', async ({ page }) => {
@@ -199,6 +203,79 @@ test('cluster template export and sync', async ({ omnictl }, testInfo) => {
     const ymlObjAfter = yaml.parse(configPatchAfter.spec.data)
 
     expect(ymlObjBefore).toStrictEqual(ymlObjAfter)
+  })
+})
+
+test('exposed services', async ({ page }, testInfo) => {
+  await test.step('Visit cluster overview', async () => {
+    await page.goto('/')
+    await page.getByRole('link', { name: 'Clusters' }).click()
+
+    await expect(page).toHaveURL('/clusters')
+    await expect(page.getByRole('heading', { name: 'Clusters' })).toBeVisible()
+
+    await page.getByRole('link', { name: clusterName, exact: true }).click()
+    await expect(page.getByRole('heading', { name: clusterName, exact: true })).toBeVisible()
+  })
+
+  await test.step('Enable workload service proxying', async () => {
+    await page.getByText('Workload Service Proxying').click()
+    await expect(page.getByRole('checkbox', { name: 'Workload Service Proxying' })).toBeChecked()
+  })
+
+  await test.step('Visit config patches for control plane', async () => {
+    await page.getByRole('link', { name: cpMachineName }).click()
+    await page.getByRole('link', { name: 'Patches', exact: true }).click()
+    await page.getByRole('button', { name: 'Create Patch' }).click()
+  })
+
+  await test.step('Add service via inlineManifests patch', async () => {
+    const cpPatch = await fs.readFile(new URL('./e2e_nginx.yaml', import.meta.url), 'utf8')
+    await testInfo.attach('inline_manifest_patch.yaml', {
+      body: cpPatch,
+      contentType: 'application/yaml',
+    })
+
+    await page.evaluate((text) => navigator.clipboard.writeText(text), cpPatch)
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(cpPatch)
+
+    await page
+      .getByRole('textbox', { name: 'Editor content' })
+      .press(`${os.platform() === 'darwin' ? 'Meta' : 'Control'}+v`)
+    await expect(page.getByText('inlineManifests:')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Save' }).click()
+  })
+
+  await test.step('Visit cluster overview', async () => {
+    await page.goto('/')
+    await page.getByRole('link', { name: 'Clusters' }).click()
+
+    await expect(page).toHaveURL('/clusters')
+    await expect(page.getByRole('heading', { name: 'Clusters' })).toBeVisible()
+
+    await page.getByRole('link', { name: clusterName, exact: true }).click()
+    await expect(page.getByRole('heading', { name: clusterName, exact: true })).toBeVisible()
+  })
+
+  await expect(async () => {
+    let servicePage: Page | undefined
+
+    try {
+      ;[servicePage] = await Promise.all([
+        page.waitForEvent('popup'),
+        page
+          .getByRole('link', { name: 'E2E Nginx' })
+          .click({ timeout: milliseconds({ minutes: 1 }) }),
+      ])
+
+      await expect(servicePage.getByRole('heading', { name: 'Welcome to nginx!' })).toBeVisible()
+    } finally {
+      await servicePage?.close()
+    }
+  }, 'Wait for service to be running').toPass({
+    intervals: [milliseconds({ seconds: 5 })],
+    timeout: milliseconds({ minutes: 1 }),
   })
 })
 
