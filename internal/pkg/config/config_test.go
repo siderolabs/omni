@@ -16,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/santhosh-tekuri/jsonschema/v6"
+	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -99,10 +100,11 @@ func TestValidateStateConfig(t *testing.T) {
 
 func TestValidateConfig(t *testing.T) {
 	for _, tt := range []struct {
-		name        string
-		validateErr string
-		loadErr     string
-		config      []byte
+		name             string
+		configModifyFunc func(cfg *config.Params)
+		validateErr      string
+		loadErr          string
+		config           []byte
 	}{
 		{
 			name:        "empty",
@@ -112,6 +114,14 @@ func TestValidateConfig(t *testing.T) {
 		{
 			name:   "full",
 			config: configFull,
+		},
+		{
+			name:   "kubernetes proxy insecure advertised url",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Services.KubernetesProxy.SetAdvertisedURL("http://1.1.1.1:1111")
+			},
+			validateErr: `- at '/services/kubernetesProxy/advertisedURL': 'http://1.1.1.1:1111' does not match pattern '^https://'`,
 		},
 		{
 			name:        "invalid join tokens mode",
@@ -165,6 +175,10 @@ func TestValidateConfig(t *testing.T) {
 				return
 			}
 
+			if tt.configModifyFunc != nil {
+				tt.configModifyFunc(cfg)
+			}
+
 			require.NoError(t, err)
 
 			err = cfg.Validate()
@@ -181,4 +195,56 @@ func TestValidateConfig(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestServiceURL(t *testing.T) {
+	t.Parallel()
+
+	t.Run("explicit advertised url", func(t *testing.T) {
+		t.Parallel()
+
+		conf := &config.DevServerProxyService{
+			Endpoint:      pointer.To("1.1.1.1:1111"),
+			AdvertisedURL: pointer.To("https://2.2.2.2:2222"),
+		}
+
+		url := conf.URL()
+		assert.Equal(t, "https://2.2.2.2:2222", url)
+	})
+
+	t.Run("secure https", func(t *testing.T) {
+		t.Parallel()
+
+		conf := &config.Service{
+			Endpoint: pointer.To("1.1.1.1:1111"),
+			CertFile: pointer.To("/path/to/cert"),
+			KeyFile:  pointer.To("/path/to/key"),
+		}
+
+		url := conf.URL()
+		assert.Equal(t, "https://1.1.1.1:1111", url)
+	})
+
+	t.Run("siderolink api - insecure as grpc", func(t *testing.T) {
+		t.Parallel()
+
+		conf := &config.MachineAPI{
+			Endpoint: pointer.To("1.1.1.1:1111"),
+		}
+
+		url := conf.URL()
+		assert.Equal(t, "grpc://1.1.1.1:1111", url, "siderolink api should use grpc schema when no tls")
+	})
+
+	t.Run("kubernetes proxy - insecure as https", func(t *testing.T) {
+		t.Parallel()
+
+		conf := &config.KubernetesProxyService{
+			Endpoint: pointer.To("1.1.1.1:1111"),
+		}
+
+		url := conf.URL()
+
+		assert.Equal(t, "https://1.1.1.1:1111", url, "kubernetes proxy should always use https schema")
+	})
 }

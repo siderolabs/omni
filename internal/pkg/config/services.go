@@ -35,8 +35,8 @@ func wrapService(bindEndpoint, advertisedURL, certFile, keyFile *string) service
 	}
 }
 
-// GetBindEndpoint implements HTTPService.
-func (s service) GetBindEndpoint() string {
+// getBindEndpoint implements HTTPService.
+func (s service) getBindEndpoint() string {
 	if s.bindEndpoint == nil {
 		return ""
 	}
@@ -44,31 +44,12 @@ func (s service) GetBindEndpoint() string {
 	return *s.bindEndpoint
 }
 
-// GetCertFile implements HTTPService.
-func (s service) GetCertFile() string {
-	if s.certFile == nil {
-		return ""
-	}
-
-	return *s.certFile
-}
-
-// GetKeyFile implements HTTPService.
-func (s service) GetKeyFile() string {
-	if s.keyFile == nil {
-		return ""
-	}
-
-	return *s.keyFile
-}
-
-// IsSecure returns true if both cert file and key file are present.
-func (s service) IsSecure() bool {
+// isSecure returns true if both cert file and key file are present.
+func (s service) isSecure() bool {
 	return s.certFile != nil && *s.certFile != "" && s.keyFile != nil && *s.keyFile != ""
 }
 
-// URL gets the URL from the endpoint.
-func (s service) URL() string {
+func (s service) url(schemeOverrides map[string]string) string {
 	var advertisedURL string
 	if s.advertisedURL != nil {
 		advertisedURL = *s.advertisedURL
@@ -79,8 +60,12 @@ func (s service) URL() string {
 	}
 
 	schema := "http"
-	if s.IsSecure() {
+	if s.isSecure() {
 		schema = "https"
+	}
+
+	if override, ok := schemeOverrides[schema]; ok {
+		schema = override
 	}
 
 	bindEndpoint := ""
@@ -93,33 +78,34 @@ func (s service) URL() string {
 
 // GetBindEndpoint implements HTTPService.
 func (s *Service) GetBindEndpoint() string {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).GetBindEndpoint()
+	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).getBindEndpoint()
 }
 
 // IsSecure returns true if both cert file and key file are present.
 func (s *Service) IsSecure() bool {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).IsSecure()
+	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).isSecure()
 }
 
 // URL gets the URL from the endpoint.
 func (s *Service) URL() string {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).URL()
+	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).url(nil)
 }
 
 // GetBindEndpoint implements HTTPService.
 func (s *KubernetesProxyService) GetBindEndpoint() string {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).GetBindEndpoint()
+	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).getBindEndpoint()
 }
 
 // IsSecure returns true if both cert file and key file are present.
 func (s *KubernetesProxyService) IsSecure() bool {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).IsSecure()
+	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).isSecure()
 }
 
 // URL returns kubernetes services URL.
+//
 // It is always HTTPS.
 func (s *KubernetesProxyService) URL() string {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).URL()
+	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).url(map[string]string{"http": "https"})
 }
 
 // MachineAPI is the public API of Omni that helps to establish WireGuard connections.
@@ -128,18 +114,22 @@ func (s *KubernetesProxyService) URL() string {
 type MachineAPI Service
 
 // URL composes URL for Talos to connect.
+//
+// If the URL schema is "http", it is replaced with "grpc" to meet the SideroLink API library's protocol requirement.
 func (m MachineAPI) URL() string {
-	return wrapService(m.Endpoint, m.AdvertisedURL, m.CertFile, m.KeyFile).URL()
+	url := wrapService(m.Endpoint, m.AdvertisedURL, m.CertFile, m.KeyFile).url(map[string]string{"http": "grpc"})
+
+	return url
 }
 
 func (s *DevServerProxyService) URL() string {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).URL()
+	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).url(nil)
 }
 
 func (s *DevServerProxyService) GetBindEndpoint() string {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).GetBindEndpoint()
+	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).getBindEndpoint()
 }
 
 func (s *DevServerProxyService) IsSecure() bool {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).IsSecure()
+	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).isSecure()
 }

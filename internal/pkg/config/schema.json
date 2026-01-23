@@ -223,7 +223,8 @@
           "type": "string"
         },
         "advertisedURL": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^https://"
         },
         "certFile": {
           "type": "string"
