@@ -71,11 +71,12 @@ const {
   formatter,
 } = toRefs(props)
 
-const series: Ref<Record<string, any>[]> = ref([])
-const seriesMap = {}
-const points = {}
-const flush = {}
-const total = ref()
+type Point = number | number[]
+const series = ref<{ name: string; data: Point[] }[]>([])
+const seriesMap: Record<string, { index: number; version: number }> = {}
+const points: Record<number, Point[]> = {}
+const flush: Record<number, number> = {}
+const total = ref<string>()
 
 const min: Ref<number | undefined> = ref(undefined)
 const max: Ref<number | undefined> = ref(undefined)
@@ -115,13 +116,13 @@ const handlePoint = (message: WatchResponse, spec: WatchEventSpec) => {
       }
     }
 
-    const version = resource?.metadata?.version || ''
+    const version = Number(resource?.metadata?.version ?? '')
     const meta = seriesMap[key]
     if (version <= meta.version) {
       continue
     }
 
-    let point: number | number[] = data[key]
+    let point: Point = data[key]
     const updated = resource?.metadata?.updated
     if (updated) {
       point = [DateTime.fromISO(updated.toString()).toMillis(), point]

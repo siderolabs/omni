@@ -50,7 +50,11 @@ export function createWatchStreamHandler<T = unknown, S = unknown>({
         : initialResources({ ...options, selectors })
 
       if (sort) {
-        resources.sort((a, b) => String(a.metadata[sort]).localeCompare(b.metadata[sort]))
+        resources.sort((a, b) =>
+          String(a.metadata[sort as keyof typeof a.metadata]).localeCompare(
+            String(b.metadata[sort as keyof typeof b.metadata]),
+          ),
+        )
       }
 
       const events = resources.map((r, i) => createCreatedEvent(r, i + 1))

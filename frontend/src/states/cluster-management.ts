@@ -512,9 +512,13 @@ export class State {
     }
 
     resources = resources.sort((a: Resource, b: Resource) => {
-      if (typesOrder[a.metadata.type!] > typesOrder[b.metadata.type!]) {
+      type TypeKey = keyof typeof typesOrder
+
+      if (typesOrder[a.metadata.type! as TypeKey] > typesOrder[b.metadata.type! as TypeKey]) {
         return -1
-      } else if (typesOrder[a.metadata.type!] < typesOrder[b.metadata.type!]) {
+      } else if (
+        typesOrder[a.metadata.type! as TypeKey] < typesOrder[b.metadata.type! as TypeKey]
+      ) {
         return 1
       }
 
@@ -558,7 +562,7 @@ export class State {
     const res: Resource<ConfigPatchSpec>[] = []
 
     for (const key in patches) {
-      const systemLabels = {}
+      const systemLabels: Record<string, string> = {}
       const patch = patches[key]
 
       if (patch.systemPatch) {
@@ -604,11 +608,10 @@ export class State {
   }
 
   private checkSchedulingEnabled(data: string) {
-    const loaded: {
-      cluster: {
-        allowSchedulingOnControlPlanes: boolean
-      }
-    } = yaml.load(data) as any
+    const loaded = yaml.load(data) as
+      | { cluster?: { allowSchedulingOnControlPlanes?: boolean } }
+      | undefined
+      | null
 
     return loaded?.cluster?.allowSchedulingOnControlPlanes
   }

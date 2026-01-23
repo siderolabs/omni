@@ -42,7 +42,7 @@ const formatLoggingContext = (logRecord: Record<string, string>, ...exceptFields
   return res.join(' ')
 }
 
-const parsers = {
+const parsers: Record<string, (line: string) => LogLine> = {
   containerd: (line: string): LogLine => {
     const parsed = JSON.parse(line)
 

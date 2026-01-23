@@ -386,7 +386,7 @@ const getPatchLabels = () => {
     throw new Error('failed to determine machine cluster')
   }
 
-  const labels = {
+  const labels: Record<string, string> = {
     [LabelCluster]: cluster as string,
   }
 

@@ -18,7 +18,7 @@ import OverviewRightPanelItem from '@/views/cluster/Overview/components/Overview
 
 const mapping: Record<ConditionType | number, string> = {}
 for (const key of Object.keys(ConditionType)) {
-  mapping[ConditionType[key]] = key
+  mapping[ConditionType[key as keyof typeof ConditionType]] = key
 }
 
 const getConditionName = (t?: ConditionType) => {

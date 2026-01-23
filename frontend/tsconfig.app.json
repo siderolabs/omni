@@ -7,9 +7,6 @@
 
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "noUncheckedIndexedAccess": false,
-
-    // Temporarily disabled
-    "noImplicitAny": false,
     "useUnknownInCatchVariables": false,
 
     "paths": {

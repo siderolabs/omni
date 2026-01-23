@@ -17,7 +17,7 @@ import { withContext, withMetadata, withRuntime } from '@/api/options'
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
 
 export interface Callback {
-  (message: WatchResponse, spec: WatchEventSpec)
+  (message: WatchResponse, spec: WatchEventSpec): void
 }
 
 export type WatchEventSpec = {

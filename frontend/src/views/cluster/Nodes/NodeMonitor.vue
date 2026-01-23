@@ -68,9 +68,9 @@ const sort = ref('cpu')
 const sortReverse = ref(true)
 
 let memTotal = 0
-let interval
+let interval: number
 
-const sum = (obj, ...args) => {
+const sum = (obj: Record<string, number>, ...args: string[]) => {
   let res = 0
   for (const k of args) {
     res += obj[k] || 0
@@ -79,7 +79,7 @@ const sum = (obj, ...args) => {
   return res
 }
 
-const getCPUTotal = (stat) => {
+const getCPUTotal = (stat: Record<string, number>) => {
   const idle = sum(stat, 'idle', 'iowait')
   const nonIdle = sum(stat, 'user', 'nice', 'system', 'irq', 'steal', 'softIrq')
 
@@ -101,7 +101,7 @@ const loadProcs = async () => {
   const r = await MachineService.SystemStat({}, ...options)
 
   const systemStat = r.messages![0]
-  const cpuTotal = getCPUTotal(systemStat.cpu_total) / systemStat.cpu!.length
+  const cpuTotal = getCPUTotal(systemStat.cpu_total ?? {}) / systemStat.cpu!.length
 
   const total = memTotal * 1024
 
@@ -144,7 +144,7 @@ onUnmounted(() => {
   clearInterval(interval)
 })
 
-const handleCPU = (oldObj, newObj) => {
+const handleCPU = (oldObj: any, newObj: any) => {
   const delta = diff(oldObj, newObj)
   const stat = delta.cpuTotal
   const total = getCPUTotal(stat)
@@ -155,13 +155,16 @@ const handleCPU = (oldObj, newObj) => {
   }
 }
 
-const handleTotalCPU = (oldObj, newObj) => {
+const handleTotalCPU = (oldObj: any, newObj: any) => {
   const point = handleCPU(oldObj, newObj)
 
   return `${(point.user + point.system).toFixed(1)} %`
 }
 
-const handleMem = (_, m: { used: number; cached: number; buffers: number; total: number }) => {
+const handleMem = (
+  _: unknown,
+  m: { used: number; cached: number; buffers: number; total: number },
+) => {
   const used = m.used - m.cached - m.buffers
 
   const memoryInitialized = memTotal === 0
@@ -179,17 +182,20 @@ const handleMem = (_, m: { used: number; cached: number; buffers: number; total:
   }
 }
 
-const handleTotalMem = (_, m) => {
+const handleTotalMem = (
+  _: unknown,
+  m: { used: number; cached: number; buffers: number; total: number },
+) => {
   const used = m.used - m.cached - m.buffers
 
   return `${formatBytes(used * 1024)} / ${formatBytes(m.total * 1024)}`
 }
 
-const handleMaxMem = (_, m): number => {
+const handleMaxMem = (_: unknown, m: { total: number }): number => {
   return m.total
 }
 
-const handleProcs = (oldObj, newObj) => {
+const handleProcs = (oldObj: any, newObj: any) => {
   const { processCreated } = diff(oldObj, newObj)
 
   return {

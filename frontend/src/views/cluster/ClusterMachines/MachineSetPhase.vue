@@ -60,7 +60,7 @@ const phaseIcon = (machineset: Resource<MachineSetStatusSpec>): IconType => {
   }
 }
 
-const phaseColor = (machineset): string => {
+const phaseColor = (machineset?: Resource<MachineSetStatusSpec>) => {
   switch (machineset?.spec.phase) {
     case MachineSetPhase.Upgrading:
     case MachineSetPhase.ScalingUp:

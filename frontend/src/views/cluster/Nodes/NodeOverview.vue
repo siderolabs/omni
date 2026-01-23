@@ -105,7 +105,10 @@ const stream = subscribe(
   MachineService.Events,
   {},
   (event) => {
-    if (event.data?.['@type']?.includes('machine.ServiceStateEvent')) {
+    // For some reason @type is not typed on Any
+    const data = event.data as (typeof event.data & { ['@type']?: string }) | undefined
+
+    if (data?.['@type']?.includes('machine.ServiceStateEvent')) {
       fetchServices()
     }
   },
@@ -229,7 +232,7 @@ const getCPUInfo = () => {
     return 'Not Detected'
   }
 
-  const cpus = {}
+  const cpus: Record<string, number> = {}
 
   for (const processor of processors) {
     const id = `${processor.frequency! / 1000} GHz ${processor.manufacturer}, ${processor.core_count} Cores`

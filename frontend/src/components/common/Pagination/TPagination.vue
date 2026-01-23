@@ -25,7 +25,7 @@ const currentPage = ref(1)
 const totalPageCount = computed(() => {
   return Math.ceil(items.value.length / perPage.value)
 })
-const range = (start, end) => {
+const range = (start: number, end: number) => {
   const length = end - start + 1
   return Array.from({ length }, (_, idx) => idx + start)
 }
@@ -71,9 +71,9 @@ const onPrevious = () => {
   if (currentPage.value === 1) return
   currentPage.value -= 1
 }
-const onPageClick = (value) => {
+const onPageClick = (value: number | string) => {
   if (value !== DOTS) {
-    currentPage.value = value
+    currentPage.value = +value
   }
 }
 watch(

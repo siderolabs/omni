@@ -50,7 +50,7 @@ export type Label = {
   icon?: IconType
 }
 
-const labelColors = {
+const labelColors: Record<string, string> = {
   [LabelCluster]: 'light1',
   [MachineStatusLabelAvailable]: 'yellow',
   [MachineStatusLabelInvalidState]: 'red',
@@ -114,7 +114,7 @@ export const sanitizeLabelValue = (value: string): string => {
   return value
 }
 
-const labelDescriptions = {
+const labelDescriptions: Record<string, string> = {
   [MachineStatusLabelInvalidState]:
     'The machine is expected to be unallocated, but still has the configuration of a cluster.\nIt might be required to wipe the machine bypassing Omni.',
 }

@@ -58,7 +58,7 @@ const labelOrder = {
 }
 
 const getLabelOrder = (l: Label) => {
-  return labelOrder[l.id] ?? 1000
+  return labelOrder[l.id as keyof typeof labelOrder] ?? 1000
 }
 
 const labels = computed((): Array<Label> => {

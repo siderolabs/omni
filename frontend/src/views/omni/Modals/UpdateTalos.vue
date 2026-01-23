@@ -54,7 +54,7 @@ const upgradeVersions = computed(() => {
     status.value.spec.last_upgrade_version ?? '',
   ].sort(semver.compare)
 
-  const result = {}
+  const result: Record<string, string[]> = {}
 
   for (const version of sorted) {
     const majorMinor = majorMinorVersion(version)

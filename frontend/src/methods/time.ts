@@ -40,8 +40,8 @@ export const parseDuration = (input: string): Duration => {
   const duration: DurationLikeObject = {}
 
   for (const s of input) {
-    if (units[s]) {
-      if (duration[units[s]] !== undefined) {
+    if (units[s as keyof typeof units]) {
+      if (duration[units[s as keyof typeof units]] !== undefined) {
         throw new Error(`failed to parse duration ${input}`)
       }
 
@@ -53,7 +53,7 @@ export const parseDuration = (input: string): Duration => {
 
       buffer = ''
 
-      duration[units[s]] = value
+      duration[units[s as keyof typeof units]] = value
 
       continue
     }

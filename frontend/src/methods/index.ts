@@ -71,16 +71,16 @@ export const getStatus = (item: V1Node) => {
   return NodesViewFilterOptions.NOT_READY
 }
 
-export const formatBytes = (bytes, decimals = 2) => {
+export const formatBytes = (bytes?: number | string, decimals = 2) => {
   if (!bytes) return '0 Bytes'
 
   const k = 1024
   const dm = decimals < 0 ? 0 : decimals
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  const i = Math.floor(Math.log(+bytes) / Math.log(k))
 
-  return (bytes / Math.pow(k, i)).toFixed(dm) + ' ' + sizes[i]
+  return (+bytes / Math.pow(k, i)).toFixed(dm) + ' ' + sizes[i]
 }
 
 export const downloadKubeconfig = async (cluster: string) => {
