@@ -21,7 +21,7 @@ const CodeEditor = defineAsyncComponent(
 const route = useRoute()
 const context = getContext(route)
 
-const { data: configs } = useResourceWatch<RedactedClusterMachineConfigSpec>(() => ({
+const { data: configResource } = useResourceWatch<RedactedClusterMachineConfigSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     type: RedactedClusterMachineConfigType,
@@ -40,9 +40,7 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
   },
 }))
 
-const config = computed(() => {
-  return configs.value?.[0]?.spec?.data || ''
-})
+const config = computed(() => configResource.value?.spec.data ?? '')
 </script>
 
 <template>
