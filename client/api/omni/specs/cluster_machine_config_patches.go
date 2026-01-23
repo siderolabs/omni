@@ -12,8 +12,6 @@ import (
 
 	"github.com/siderolabs/gen/xslices"
 	"go.yaml.in/yaml/v4"
-
-	"github.com/siderolabs/omni/client/pkg/constants"
 )
 
 // MarshalJSON implements json.Marshaler interface.
@@ -161,25 +159,26 @@ func (x *ClusterMachineConfigPatchesSpec) SetUncompressedPatches(patches []strin
 }
 
 // FromConfigPatches converts a list of ConfigPatchSpec to ClusterMachineConfigPatchesSpec.
-func (x *ClusterMachineConfigPatchesSpec) FromConfigPatches(
-	patches iter.Seq[*ConfigPatchSpec],
-	compressionEnabled bool,
-) error {
-	aboveThreshold, err := anyAboveThreshold(patches)
+func (x *ClusterMachineConfigPatchesSpec) FromConfigPatches(patches iter.Seq[*ConfigPatchSpec], compressionConfig CompressionConfig) error {
+	if !compressionConfig.Enabled {
+		return x.fromConfigPatchesNoCompress(patches)
+	}
+
+	aboveThreshold, err := anyAboveThreshold(patches, compressionConfig.MinThreshold)
 	if err != nil {
 		return fmt.Errorf("failed to check if one patch is above threshold: %w", err)
 	}
 
-	if compressionEnabled || aboveThreshold {
-		return x.fromConfigPatchesCompress(patches)
+	if aboveThreshold {
+		return x.fromConfigPatchesCompress(patches, compressionConfig)
 	}
 
 	return x.fromConfigPatchesNoCompress(patches)
 }
 
-func (x *ClusterMachineConfigPatchesSpec) fromConfigPatchesCompress(patches iter.Seq[*ConfigPatchSpec]) error {
+func (x *ClusterMachineConfigPatchesSpec) fromConfigPatchesCompress(patches iter.Seq[*ConfigPatchSpec], compressionConfig CompressionConfig) error {
 	for patch := range patches {
-		compr, err := getCompressed(patch)
+		compr, err := getCompressed(patch, compressionConfig)
 		if err != nil {
 			return err
 		} else if len(compr) == 0 {
@@ -199,7 +198,7 @@ func (x *ClusterMachineConfigPatchesSpec) fromConfigPatchesCompress(patches iter
 	return nil
 }
 
-func getCompressed(patch *ConfigPatchSpec) ([]byte, error) {
+func getCompressed(patch *ConfigPatchSpec, compressionConfig CompressionConfig) ([]byte, error) {
 	if isEmptyPatch(patch) {
 		return nil, nil
 	}
@@ -215,7 +214,13 @@ func getCompressed(patch *ConfigPatchSpec) ([]byte, error) {
 
 	defer buffer.Free()
 
-	if err = patch.SetUncompressedData(buffer.Data(), WithCompressionMinThreshold(0)); err != nil {
+	// Since the CompressedPatches list cannot store uncompressed string data, we must force
+	// every patch—even small ones—to be compressed.
+	// We set the MinThreshold to 0 so that even tiny patches are compressed rather than skipped.
+	compressionConfig.Enabled = true
+	compressionConfig.MinThreshold = 0
+
+	if err = patch.SetUncompressedData(buffer.Data(), WithConfigCompressionOption(compressionConfig)); err != nil {
 		return nil, err
 	}
 
@@ -267,7 +272,7 @@ func isEmptyPatch(patch *ConfigPatchSpec) bool {
 	return len(bytes.TrimSpace(buffer.Data())) == 0
 }
 
-func anyAboveThreshold(patches iter.Seq[*ConfigPatchSpec]) (bool, error) {
+func anyAboveThreshold(patches iter.Seq[*ConfigPatchSpec], minThresholdBytes int) (bool, error) {
 	for p := range patches {
 		data, err := p.GetUncompressedData()
 		if err != nil {
@@ -278,7 +283,7 @@ func anyAboveThreshold(patches iter.Seq[*ConfigPatchSpec]) (bool, error) {
 
 		data.Free()
 
-		if total >= constants.CompressionThresholdBytes {
+		if total >= minThresholdBytes {
 			return true, nil
 		}
 	}

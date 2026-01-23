@@ -68,14 +68,12 @@ func getCompressionConfig(opts []CompressionOption) CompressionConfig {
 	}
 
 	config := options.Config.ValueOr(GetCompressionConfig())
-	config.MinThreshold = options.minThreshold.ValueOr(config.MinThreshold)
 
 	return config
 }
 
 type compressionOptions struct {
-	Config       optional.Optional[CompressionConfig]
-	minThreshold optional.Optional[int]
+	Config optional.Optional[CompressionConfig]
 }
 
 // CompressionOption is a functional option for configuring compression.
@@ -85,13 +83,6 @@ type CompressionOption func(*compressionOptions)
 func WithConfigCompressionOption(config CompressionConfig) CompressionOption {
 	return func(opts *compressionOptions) {
 		opts.Config = optional.Some(config)
-	}
-}
-
-// WithCompressionMinThreshold returns a CompressionOption that sets the min threshold for compression.
-func WithCompressionMinThreshold(threshold int) CompressionOption {
-	return func(opts *compressionOptions) {
-		opts.minThreshold = optional.Some(threshold)
 	}
 }
 

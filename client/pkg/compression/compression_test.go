@@ -14,7 +14,6 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -22,9 +21,10 @@ func TestClusterMachineConfigPatchesYAML(t *testing.T) {
 	res := omni.NewClusterMachineConfigPatches("test")
 
 	// set some patches
+	compressionConfig := specs.GetCompressionConfig()
 
-	aString := strings.Repeat("a", constants.CompressionThresholdBytes)
-	bString := strings.Repeat("b", constants.CompressionThresholdBytes)
+	aString := strings.Repeat("a", compressionConfig.MinThreshold)
+	bString := strings.Repeat("b", compressionConfig.MinThreshold)
 
 	err := res.TypedSpec().Value.SetUncompressedPatches([]string{aString, bString})
 	require.NoError(t, err)
@@ -65,8 +65,10 @@ func TestClusterMachineConfigPatchesYAML(t *testing.T) {
 func TestClusterMachineConfigPatchesJSON(t *testing.T) {
 	res := omni.NewClusterMachineConfigPatches("test")
 
-	aString := strings.Repeat("a", constants.CompressionThresholdBytes)
-	bString := strings.Repeat("b", constants.CompressionThresholdBytes)
+	compressionConfig := specs.GetCompressionConfig()
+
+	aString := strings.Repeat("a", compressionConfig.MinThreshold)
+	bString := strings.Repeat("b", compressionConfig.MinThreshold)
 
 	// set some patches
 

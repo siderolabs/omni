@@ -140,6 +140,6 @@ func setPatches(clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, p
 			func(in *omni.ConfigPatch) *specs.ConfigPatchSpec { return in.TypedSpec().Value },
 			slices.Values(patches),
 		),
-		specs.GetCompressionConfig().Enabled,
+		specs.GetCompressionConfig(),
 	)
 }

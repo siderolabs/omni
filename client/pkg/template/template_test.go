@@ -292,17 +292,15 @@ machine:
 }
 
 func TestTranslate(t *testing.T) {
-	previousCompressionConfig := specs.GetCompressionConfig()
+	// DO NOT ADD t.Parallel() HERE, as this test modifies global compression config.
+	// Replace the global compression config temporarily to disable compression.
+	originalCompressionConfig := specs.GetCompressionConfig()
 
-	// disable resource compression for the test
 	compressionConfig, err := compression.BuildConfig(false, false, false)
 	require.NoError(t, err)
 
-	t.Cleanup(func() {
-		specs.SetCompressionConfig(previousCompressionConfig)
-	})
-
 	specs.SetCompressionConfig(compressionConfig)
+	defer specs.SetCompressionConfig(originalCompressionConfig)
 
 	t.Chdir("testdata")
 
