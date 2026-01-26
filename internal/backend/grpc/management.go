@@ -296,6 +296,7 @@ func (s *managementServer) markClusterAsTainted(ctx context.Context, name string
 		omnires.NewClusterStatus(name).Metadata(),
 		func(res *omnires.ClusterStatus) error {
 			res.Metadata().Labels().Set(omnires.LabelClusterTaintedByBreakGlass, "")
+			res.Metadata().Annotations().Set(omnires.TaintedByBreakGlassTimestamp, strconv.FormatInt(time.Now().Unix(), 10))
 
 			return nil
 		},

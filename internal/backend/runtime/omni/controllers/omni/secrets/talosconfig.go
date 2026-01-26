@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package omni
+package secrets
 
 import (
 	"context"
@@ -25,9 +25,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/certs"
 )
 
-// TalosConfigController creates omni.ClusterSecrets for each input omni.Cluster.
-//
-// TalosConfigController generates and stores cluster wide secrets.
+// TalosConfigController generates and stores cluster wide omni.TalosConfig.
 type TalosConfigController = qtransform.QController[*omni.ClusterSecrets, *omni.TalosConfig]
 
 // NewTalosConfigController instantiates the talosconfig controller.

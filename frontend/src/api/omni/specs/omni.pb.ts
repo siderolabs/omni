@@ -176,6 +176,23 @@ export enum InfraMachineConfigSpecMachinePowerState {
   POWER_STATE_ON = 2,
 }
 
+export enum SecretRotationSpecStatus {
+  IDLE = 0,
+  IN_PROGRESS = 1,
+}
+
+export enum SecretRotationSpecPhase {
+  OK = 0,
+  PRE_ROTATE = 1,
+  ROTATE = 2,
+  POST_ROTATE = 3,
+}
+
+export enum SecretRotationSpecComponent {
+  NONE = 0,
+  TALOS_CA = 1,
+}
+
 export type MachineSpec = {
   management_address?: string
   connected?: boolean
@@ -487,9 +504,19 @@ export type ClusterBootstrapStatusSpec = {
   bootstrapped?: boolean
 }
 
+export type ClusterSecretsSpecCertsCA = {
+  crt?: Uint8Array
+  key?: Uint8Array
+}
+
+export type ClusterSecretsSpecCerts = {
+  os?: ClusterSecretsSpecCertsCA
+}
+
 export type ClusterSecretsSpec = {
   data?: Uint8Array
   imported?: boolean
+  extra_certs?: ClusterSecretsSpecCerts
 }
 
 export type ImportedClusterSecretsSpec = {
@@ -667,7 +694,7 @@ type BaseOngoingTaskSpec = {
 }
 
 export type OngoingTaskSpec = BaseOngoingTaskSpec
-  & OneOf<{ talos_upgrade: TalosUpgradeStatusSpec; kubernetes_upgrade: KubernetesUpgradeStatusSpec; destroy: DestroyStatusSpec; machine_upgrade: MachineUpgradeStatusSpec }>
+  & OneOf<{ talos_upgrade: TalosUpgradeStatusSpec; kubernetes_upgrade: KubernetesUpgradeStatusSpec; destroy: DestroyStatusSpec; machine_upgrade: MachineUpgradeStatusSpec; secrets_rotation: ClusterSecretsRotationStatusSpec }>
 
 export type ClusterMachineEncryptionKeySpec = {
   data?: Uint8Array
@@ -988,4 +1015,37 @@ export type InstallationMediaConfigSpec = {
   grpc_tunnel?: GrpcTunnelMode
   machine_labels?: {[key: string]: string}
   bootloader?: ManagementManagement.SchematicBootloader
+}
+
+export type RotateTalosCASpec = {
+}
+
+export type SecretRotationSpec = {
+  status?: SecretRotationSpecStatus
+  phase?: SecretRotationSpecPhase
+  component?: SecretRotationSpecComponent
+  certs?: ClusterSecretsSpecCerts
+  extra_certs?: ClusterSecretsSpecCerts
+  backup_certs_os?: ClusterSecretsSpecCertsCA[]
+}
+
+export type ClusterSecretsRotationStatusSpec = {
+  phase?: SecretRotationSpecPhase
+  component?: SecretRotationSpecComponent
+  error?: string
+  step?: string
+  status?: string
+}
+
+export type ClusterMachineSecretsSpecRotation = {
+  status?: SecretRotationSpecStatus
+  phase?: SecretRotationSpecPhase
+  component?: SecretRotationSpecComponent
+  extra_certs?: ClusterSecretsSpecCerts
+  secret_rotation_version?: string
+}
+
+export type ClusterMachineSecretsSpec = {
+  data?: Uint8Array
+  rotation?: ClusterMachineSecretsSpecRotation
 }

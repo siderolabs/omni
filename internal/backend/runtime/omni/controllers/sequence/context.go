@@ -18,29 +18,29 @@ import (
 const sequencedStageIndex = omni.SystemLabelPrefix + "sequenced-stage-index"
 
 // Context stores the runtime, input and output resources of a sequence.
-type Context[I generic.ResourceWithRD, O generic.ResourceWithRD] struct {
+type Context[Input generic.ResourceWithRD, Output generic.ResourceWithRD] struct {
 	Runtime controller.ReaderWriter
-	Input   I
-	Output  O
-	stages  []Stage[I, O]
+	Input   Input
+	Output  Output
+	stages  []Stage[Input, Output]
 }
 
 // NewContext creates a new Context.
-func NewContext[I, O generic.ResourceWithRD](runtime controller.ReaderWriter, input I, output O, stages []Stage[I, O]) Context[I, O] {
-	return Context[I, O]{Runtime: runtime, Input: input, Output: output, stages: stages}
+func NewContext[Input, Output generic.ResourceWithRD](runtime controller.ReaderWriter, input Input, output Output, stages []Stage[Input, Output]) Context[Input, Output] {
+	return Context[Input, Output]{Runtime: runtime, Input: input, Output: output, stages: stages}
 }
 
-// StageToRun returns the stage that should be run next.
-func (c Context[I, O]) StageToRun() (*Stage[I, O], error) {
+// RemainingStages returns the stages that are yet to be processed in the sequence.
+func (c Context[Input, Output]) RemainingStages() ([]Stage[Input, Output], error) {
 	idx, err := c.getStageIndex()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stage index: %w", err)
 	}
 
-	return &c.stages[idx], nil
+	return c.stages[idx:], nil
 }
 
-func (c Context[I, O]) getStageIndex() (int, error) {
+func (c Context[Input, Output]) getStageIndex() (int, error) {
 	stageIdx, ok := c.Output.Metadata().Annotations().Get(sequencedStageIndex)
 	if ok {
 		stageIndex, err := strconv.Atoi(stageIdx)
@@ -59,7 +59,7 @@ func (c Context[I, O]) getStageIndex() (int, error) {
 	return 0, nil
 }
 
-func (c Context[I, O]) incrementStageIndex() error {
+func (c Context[Input, Output]) incrementStageIndex() error {
 	idx, err := c.getStageIndex()
 	if err != nil {
 		return fmt.Errorf("failed to get stage index: %w", err)

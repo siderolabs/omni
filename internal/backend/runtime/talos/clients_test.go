@@ -25,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/logging"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
@@ -65,7 +66,7 @@ func (suite *ClientsSuite) TestGetClient() {
 
 	clientFactory := talos.NewClientFactory(suite.state, logger)
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
+	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewTalosConfigController(constants.CertificateValidityTime)))
 
 	_, err := clientFactory.Get(suite.ctx, clusterName)
 	suite.Require().True(talos.IsClientNotReadyError(err))

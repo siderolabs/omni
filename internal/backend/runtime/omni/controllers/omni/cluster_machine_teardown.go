@@ -208,9 +208,9 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 		return fmt.Errorf("failed to get cluster %q secrets: %w", clusterName, err)
 	}
 
-	bundle, err := omni.ToSecretsBundle(secrets)
+	bundle, err := omni.ToSecretsBundle(secrets.TypedSpec().Value.Data)
 	if err != nil {
-		return fmt.Errorf("failed to convert cluster %q secrets to bundle: %w", clusterName, err)
+		return fmt.Errorf("failed to convert cluster %q secrets bundle to secrets bundle: %w", clusterName, err)
 	}
 
 	if clusterMachineIdentity == nil {

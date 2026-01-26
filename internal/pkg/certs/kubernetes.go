@@ -63,7 +63,7 @@ const allowedTimeSkew = 10 * time.Second
 
 // GenerateKubeconfig a kubeconfig for the cluster from the given input resources.
 func GenerateKubeconfig(secrets *omni.ClusterSecrets, lbConfig *omni.LoadBalancerConfig, certificateValidity time.Duration) ([]byte, error) {
-	secretBundle, err := omni.ToSecretsBundle(secrets)
+	secretBundle, err := omni.ToSecretsBundle(secrets.TypedSpec().Value.Data)
 	if err != nil {
 		return nil, err
 	}

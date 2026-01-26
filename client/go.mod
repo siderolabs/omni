@@ -28,6 +28,7 @@ require (
 	github.com/siderolabs/image-factory v0.9.1-0.20260115180810-b5ba6630ed93
 	github.com/siderolabs/proto-codec v0.1.3
 	github.com/siderolabs/siderolink v0.3.15
+	github.com/siderolabs/talos v1.13.0-alpha.0.0.20260115162111-7033275a7a22
 	github.com/siderolabs/talos/pkg/machinery v1.13.0-alpha.0.0.20260126095012-b9e27ebe72c4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
@@ -86,7 +87,6 @@ require (
 	github.com/siderolabs/protoenc v0.2.4 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stoewer/go-strcase v1.3.1 // indirect
-	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect

@@ -65,9 +65,6 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 		qtransform.WithExtraMappedInput[*omni.MachinePendingUpdates](
 			mappers.MapByMachineSetLabel[*omni.MachineSet](),
 		),
-		qtransform.WithExtraMappedInput[*omni.ClusterSecrets](
-			mappers.MapClusterResourceToLabeledResources[*omni.MachineSet](),
-		),
 		qtransform.WithExtraMappedInput[*omni.Cluster](
 			mappers.MapClusterResourceToLabeledResources[*omni.MachineSet](),
 		),

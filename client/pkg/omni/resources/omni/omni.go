@@ -93,4 +93,8 @@ func init() {
 	registry.MustRegisterResource(MachineUpgradeStatusType, &MachineUpgradeStatus{})
 	registry.MustRegisterResource(KernelArgsType, &KernelArgs{})
 	registry.MustRegisterResource(KernelArgsStatusType, &KernelArgsStatus{})
+	registry.MustRegisterResource(ClusterSecretsRotationStatusType, &ClusterSecretsRotationStatus{})
+	registry.MustRegisterResource(ClusterMachineSecretsType, &ClusterMachineSecrets{})
+	registry.MustRegisterResource(SecretRotationType, &SecretRotation{})
+	registry.MustRegisterResource(RotateTalosCAType, &RotateTalosCA{})
 }

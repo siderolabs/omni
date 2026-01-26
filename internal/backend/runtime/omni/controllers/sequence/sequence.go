@@ -38,25 +38,28 @@ func NewController[Input, Output generic.ResourceWithRD](name string, sequencer 
 				stages := sequencer.Stages()
 				sequenceContext := NewContext(r, input, output, stages)
 
-				if len(stages) == 0 {
+				if len(sequenceContext.stages) == 0 {
 					logger.Error("no stages defined")
 
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("no stages defined")
 				}
 
-				stage, err := sequenceContext.StageToRun()
+				remainingStages, err := sequenceContext.RemainingStages()
 				if err != nil {
 					return fmt.Errorf("failed to get stage to run: %w", err)
 				}
 
-				logger.Info("processing stage", zap.String("stage", stage.Name()))
+				for idx, stage := range remainingStages {
+					logger.Info("processing stage", zap.String("stage", stage.Name()), zap.Int("remaining", len(remainingStages)-idx))
 
-				if err = stage.Run(ctx, logger, sequenceContext); err != nil {
-					if xerrors.TypeIs[*controller.RequeueError](err) {
-						return err
+					processNextStage, stageErr := stage.Run(ctx, logger, sequenceContext)
+					if stageErr != nil {
+						return fmt.Errorf("failed to process stage %s: %w", stage.Name(), stageErr)
 					}
 
-					return fmt.Errorf("failed to process stage %s: %w", stage.Name(), err)
+					if !processNextStage {
+						break
+					}
 				}
 
 				return nil

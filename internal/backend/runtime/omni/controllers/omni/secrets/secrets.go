@@ -3,12 +3,13 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package omni
+package secrets
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -16,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
@@ -31,14 +33,18 @@ import (
 
 // SecretsController creates omni.ClusterSecrets for each inputed omni.Cluster.
 //
-// SecretsController generates and stores cluster wide secrets.
-type SecretsController = qtransform.QController[*omni.Cluster, *omni.ClusterSecrets]
+// SecretsController generates and stores initial cluster-wide secrets.
+type SecretsController struct {
+	*qtransform.QController[*omni.Cluster, *omni.ClusterSecrets]
+}
 
-// NewSecretsController instantiates the secrets controller.
+// NewSecretsController instantiates the secrets' controller.
 //
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop,maintidx
 func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsController {
-	return qtransform.NewQController(
+	ctrl := &SecretsController{}
+
+	ctrl.QController = qtransform.NewQController(
 		qtransform.Settings[*omni.Cluster, *omni.ClusterSecrets]{
 			Name: "SecretsController",
 			MapMetadataFunc: func(cluster *omni.Cluster) *omni.ClusterSecrets {
@@ -47,9 +53,21 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 			UnmapMetadataFunc: func(secrets *omni.ClusterSecrets) *omni.Cluster {
 				return omni.NewCluster(secrets.Metadata().ID())
 			},
-			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, cluster *omni.Cluster, secrets *omni.ClusterSecrets) error {
+			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, cluster *omni.Cluster, secrets *omni.ClusterSecrets) error {
 				if len(secrets.TypedSpec().Value.GetData()) != 0 {
-					// cluster already has secrets, skipping
+					// the cluster already has secrets, skipping if secret rotation is not required
+					secretRotation, err := safe.ReaderGetByID[*omni.SecretRotation](ctx, r, cluster.Metadata().ID())
+					if err != nil && !state.IsNotFoundError(err) {
+						return err
+					}
+
+					if secretRotationVersion, _ := secrets.Metadata().Annotations().Get(omni.SecretRotationVersion); secretRotation != nil &&
+						secretRotationVersion != secretRotation.Metadata().Version().String() {
+						if err = ctrl.handleSecretRotation(secrets, secretRotation); err != nil {
+							return err
+						}
+					}
+
 					return nil
 				}
 
@@ -60,7 +78,7 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 
 				cpMachineSet, err := safe.ReaderGetByID[*omni.MachineSet](ctx, r, omni.ControlPlanesResourceID(cluster.Metadata().ID()))
 				if err != nil {
-					if state.IsNotFoundError(err) { // need to wait for control plane to be created, so we can decide if we need to get secrets from an etcd backup or not
+					if state.IsNotFoundError(err) { // need to wait for the control plane to be created, so we can decide if we need to get secrets from an etcd backup or not
 						return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
 					}
 
@@ -124,7 +142,7 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 				if bootstrapSpec != nil {
 					var backupData etcdbackup.BackupData
 
-					backupData, err = getBackupDataFromBootstrapSpec(ctx, r, etcdBackupStoreFactory, bootstrapSpec)
+					backupData, err = ctrl.getBackupDataFromBootstrapSpec(ctx, r, etcdBackupStoreFactory, bootstrapSpec)
 					if err != nil {
 						return err
 					}
@@ -180,10 +198,20 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 		qtransform.WithExtraMappedInput[*omni.ImportedClusterSecrets](
 			qtransform.MapperSameID[*omni.Cluster](),
 		),
+		qtransform.WithExtraMappedInput[*omni.SecretRotation](
+			qtransform.MapperSameID[*omni.Cluster](),
+		),
 	)
+
+	return ctrl
 }
 
-func getBackupDataFromBootstrapSpec(ctx context.Context, r controller.Reader, etcdBackupStoreFactory store.Factory, spec *specs.MachineSetSpec_BootstrapSpec) (etcdbackup.BackupData, error) {
+func (s *SecretsController) getBackupDataFromBootstrapSpec(
+	ctx context.Context,
+	r controller.Reader,
+	etcdBackupStoreFactory store.Factory,
+	spec *specs.MachineSetSpec_BootstrapSpec,
+) (etcdbackup.BackupData, error) {
 	backupStore, err := etcdBackupStoreFactory.GetStore()
 	if err != nil {
 		return etcdbackup.BackupData{}, fmt.Errorf("failed to get backup store: %w", err)
@@ -216,4 +244,49 @@ func getBackupDataFromBootstrapSpec(ctx context.Context, r controller.Reader, et
 	defer readCloser.Close() //nolint:errcheck
 
 	return downloadedBackupData, nil
+}
+
+func (s *SecretsController) handleSecretRotation(
+	secrets *omni.ClusterSecrets,
+	secretRotation *omni.SecretRotation,
+) error {
+	bundle, err := omni.ToSecretsBundle(secrets.TypedSpec().Value.GetData())
+	if err != nil {
+		return fmt.Errorf("failed to decode secrets: %w", err)
+	}
+
+	switch secretRotation.TypedSpec().Value.Phase {
+	case specs.SecretRotationSpec_OK:
+		secrets.TypedSpec().Value.ExtraCerts = nil
+	case specs.SecretRotationSpec_PRE_ROTATE:
+		secrets.TypedSpec().Value.ExtraCerts = &specs.ClusterSecretsSpec_Certs{
+			Os: &specs.ClusterSecretsSpec_Certs_CA{
+				Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt,
+				Key: secretRotation.TypedSpec().Value.ExtraCerts.Os.Key,
+			},
+		}
+	case specs.SecretRotationSpec_ROTATE:
+		bundle.Certs.OS = &x509.PEMEncodedCertificateAndKey{
+			Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt,
+			Key: secretRotation.TypedSpec().Value.ExtraCerts.Os.Key,
+		}
+		secrets.TypedSpec().Value.ExtraCerts = &specs.ClusterSecretsSpec_Certs{
+			Os: &specs.ClusterSecretsSpec_Certs_CA{
+				Crt: secretRotation.TypedSpec().Value.Certs.Os.Crt,
+				Key: secretRotation.TypedSpec().Value.Certs.Os.Key,
+			},
+		}
+	case specs.SecretRotationSpec_POST_ROTATE:
+		secrets.Metadata().Annotations().Set(omni.RotateTalosCATimestamp, strconv.Itoa(int(time.Now().Unix())))
+	}
+
+	data, err := json.Marshal(bundle)
+	if err != nil {
+		return fmt.Errorf("error marshaling secrets: %w", err)
+	}
+
+	secrets.TypedSpec().Value.Data = data
+	secrets.Metadata().Annotations().Set(omni.SecretRotationVersion, secretRotation.Metadata().Version().String())
+
+	return nil
 }

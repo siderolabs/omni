@@ -490,6 +490,21 @@ spec:
           TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosUpgradesMinor)$"
           WITH_QEMU_TALOS_VERSION_OVERRIDE: true
+      - name: e2e-rotate-ca
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+        crons:
+          - '30 1 * * *'
+        runnerGroup: large
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-rotate-ca
+        artifacts:
+          skipArtifactDownload: true
+        environmentOverride:
+          INTEGRATION_RUN_E2E_TEST: "false"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|RotateCA)$"
+          RUN_TALEMU_TESTS: false
 ---
 kind: common.Build
 spec:

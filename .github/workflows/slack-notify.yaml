@@ -18,6 +18,7 @@
       - e2e-omni-upgrade-cron
       - e2e-cluster-import-cron
       - e2e-minor-talos-upgrade-cron
+      - e2e-rotate-ca-cron
     types:
       - completed
 name: slack-notify
