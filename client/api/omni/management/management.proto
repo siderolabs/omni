@@ -124,6 +124,57 @@ message KubernetesSyncManifestResponse {
   bool skipped = 5;
 }
 
+message KubernetesSSAOptions {
+  enum InventoryPolicy {
+    MUST_MATCH = 0;
+    ADOPT_IF_NO_INVENTORY = 1;
+    ADOPT_ALL = 2;
+  };
+  
+  InventoryPolicy inventory_policy = 1;
+  google.protobuf.Duration reconcile_timeout = 2;
+  google.protobuf.Duration prune_timeout = 3;
+  bool force_conflicts = 4;
+  bool dry_run = 5;
+  bool no_prune = 6;
+}
+
+message KubernetesBootstrapManifestSyncResponse {
+  enum ResponseType {
+    APPLY = 0;
+    PRUNE = 1;
+    ROLLOUT = 2;
+    WAIT = 3;
+  };
+
+  message ObjectMetadata {
+    string namespace = 1;
+    string name = 2;
+    string group_kind = 3;
+    string group_name = 4;
+  }
+
+  ResponseType type = 1;
+  ObjectMetadata object_id = 2;
+  string error = 3;
+}
+
+message KubernetesBootstrapManifestDiffResponse {
+  enum Action {
+    CREATE = 0;
+    PRUNE = 1;
+    MODIFY = 2;
+  };
+
+  bytes object = 1;
+  Action action = 2;
+  string diff = 3;
+}
+
+message KubernetesBootstrapManifestDiffResponseList {
+  repeated KubernetesBootstrapManifestDiffResponse diffs = 1;
+}
+
 enum SchematicBootloader {
   BOOT_AUTO = 0;
   BOOT_DUAL = 1;
@@ -251,6 +302,8 @@ service ManagementService {
   rpc DestroyServiceAccount(DestroyServiceAccountRequest) returns (google.protobuf.Empty);
   rpc KubernetesUpgradePreChecks(KubernetesUpgradePreChecksRequest) returns (KubernetesUpgradePreChecksResponse);
   rpc KubernetesSyncManifests(KubernetesSyncManifestRequest) returns (stream KubernetesSyncManifestResponse);
+  rpc KubernetesSyncManifestsSSA(KubernetesSSAOptions) returns (stream KubernetesBootstrapManifestSyncResponse);
+  rpc KubernetesDiffManifests(KubernetesSSAOptions) returns (KubernetesBootstrapManifestDiffResponseList);
   rpc CreateSchematic(CreateSchematicRequest) returns (CreateSchematicResponse);
   rpc GetSupportBundle(GetSupportBundleRequest) returns (stream GetSupportBundleResponse);
   rpc ReadAuditLog(ReadAuditLogRequest) returns (stream ReadAuditLogResponse);

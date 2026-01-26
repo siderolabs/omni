@@ -23,9 +23,11 @@ import (
 	gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/siderolabs/gen/optional"
 	"github.com/siderolabs/go-kubernetes/kubernetes/manifests"
+	"github.com/siderolabs/go-kubernetes/kubernetes/manifests/event"
 	"github.com/siderolabs/go-kubernetes/kubernetes/upgrade"
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	"github.com/siderolabs/talos/pkg/machinery/client"
+	talosconsts "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/zitadel/oidc/v3/pkg/op"
 	"go.uber.org/zap"
 	"go.yaml.in/yaml/v4"
@@ -34,10 +36,12 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/cli-utils/pkg/inventory"
 
 	commonOmni "github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/client/helpers"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -517,44 +521,113 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 	}, nil
 }
 
+func (s *managementServer) KubernetesDiffManifests(ctx context.Context, req *management.KubernetesSSAOptions) (*management.KubernetesBootstrapManifestDiffResponseList, error) {
+	ctx, _, kubeconfig, bootstrapManifests, err := s.prepareKubernetesSyncHelpers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ssaOps := getBootstrapManifestsProtoSSAOptions(req)
+
+	result, err := manifests.DiffSSA(ctx, bootstrapManifests, kubeconfig, ssaOps)
+	if err != nil {
+		return nil, err
+	}
+
+	diffResultList := management.KubernetesBootstrapManifestDiffResponseList{}
+
+	for _, r := range result {
+		diffItem, err := helpers.ConvertDiffResultToProto(r)
+		if err != nil {
+			return nil, err
+		}
+
+		diffResultList.Diffs = append(diffResultList.Diffs, diffItem)
+	}
+
+	return &diffResultList, nil
+}
+
+func getBootstrapManifestsProtoSSAOptions(req *management.KubernetesSSAOptions) manifests.SSAOptions {
+	ssaOps := getProtoSSAOptions(req, constants.KubernetesFieldManagerName, talosconsts.KubernetesInventoryNamespace, talosconsts.KubernetesBootstrapManifestsInventoryName)
+
+	return ssaOps
+}
+
+func (s *managementServer) KubernetesSyncManifestsSSA(
+	req *management.KubernetesSSAOptions,
+	srv grpc.ServerStreamingServer[management.KubernetesBootstrapManifestSyncResponse],
+) error {
+	ctx, _, kubeconfig, bootstrapManifests, err := s.prepareKubernetesSyncHelpers(srv.Context())
+	if err != nil {
+		return err
+	}
+
+	ssaOps := getBootstrapManifestsProtoSSAOptions(req)
+
+	syncCh := make(chan event.Event)
+	errCh := make(chan error, 1)
+
+	go func() {
+		errCh <- manifests.SyncSSA(ctx, bootstrapManifests, kubeconfig, syncCh, ssaOps)
+	}()
+
+syncLoop:
+	for {
+		select {
+		case e := <-syncCh:
+			resp, err1 := helpers.ConvertSyncEventToProto(e)
+			if err1 != nil {
+				return err1
+			}
+
+			if err := srv.Send(resp); err != nil {
+				return err
+			}
+
+		case err := <-errCh:
+			if err == nil {
+				break syncLoop
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func getProtoSSAOptions(req *management.KubernetesSSAOptions, fieldManagerName, inventoryNS, inventoryName string) manifests.SSAOptions {
+	ssaOps := manifests.SSAOptions{
+		FieldManagerName:   fieldManagerName,
+		InventoryNamespace: inventoryNS,
+		InventoryName:      inventoryName,
+		SSApplyBehaviorOptions: manifests.SSApplyBehaviorOptions{
+			ReconcileTimeout: req.ReconcileTimeout.AsDuration(),
+			PruneTimeout:     req.PruneTimeout.AsDuration(),
+			ForceConflicts:   req.ForceConflicts,
+			DryRun:           req.DryRun,
+			NoPrune:          req.NoPrune,
+		},
+	}
+
+	switch req.InventoryPolicy {
+	case management.KubernetesSSAOptions_ADOPT_ALL:
+		ssaOps.InventoryPolicy = inventory.PolicyAdoptAll
+	case management.KubernetesSSAOptions_ADOPT_IF_NO_INVENTORY:
+		ssaOps.InventoryPolicy = inventory.PolicyAdoptIfNoInventory
+	case management.KubernetesSSAOptions_MUST_MATCH:
+		ssaOps.InventoryPolicy = inventory.PolicyMustMatch
+	}
+
+	return ssaOps
+}
+
 //nolint:gocognit,gocyclo,cyclop
 func (s *managementServer) KubernetesSyncManifests(req *management.KubernetesSyncManifestRequest, srv grpc.ServerStreamingServer[management.KubernetesSyncManifestResponse]) error {
-	ctx := srv.Context()
-
-	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Operator)); err != nil {
-		return err
-	}
-
-	ctx = actor.MarkContextAsInternalActor(ctx)
-
-	requestContext := router.ExtractContext(ctx)
-	if requestContext == nil {
-		return status.Error(codes.InvalidArgument, "unable to extract request context")
-	}
-
-	k8sRuntime, err := runtime.LookupInterface[kubernetesRuntime](kubernetes.Name)
+	ctx, requestContext, cfg, bootstrapManifests, err := s.prepareKubernetesSyncHelpers(srv.Context())
 	if err != nil {
 		return err
-	}
-
-	cfg, err := k8sRuntime.GetKubeconfig(ctx, requestContext)
-	if err != nil {
-		return fmt.Errorf("failed to get kubeconfig: %w", err)
-	}
-
-	talosRt, err := runtime.LookupInterface[talosRuntime](talos.Name)
-	if err != nil {
-		return err
-	}
-
-	talosClient, err := talosRt.GetClient(ctx, requestContext.Name)
-	if err != nil {
-		return fmt.Errorf("failed to get talos client: %w", err)
-	}
-
-	bootstrapManifests, err := manifests.GetBootstrapManifests(ctx, talosClient.COSI, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get manifests: %w", err)
 	}
 
 	errCh := make(chan error, 1)
@@ -634,6 +707,54 @@ rolloutLoop:
 	}
 
 	return s.triggerManifestResync(ctx, requestContext)
+}
+
+func (s *managementServer) prepareKubernetesSyncHelpers(serverStreamingServerCtx context.Context) (
+	context.Context,
+	*commonOmni.Context,
+	*rest.Config,
+	[]manifests.Manifest,
+	error,
+) {
+	ctx := serverStreamingServerCtx
+
+	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Operator)); err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	requestContext := router.ExtractContext(ctx)
+	if requestContext == nil {
+		return nil, nil, nil, nil, status.Error(codes.InvalidArgument, "unable to extract request context")
+	}
+
+	k8sRuntime, err := runtime.LookupInterface[kubernetesRuntime](kubernetes.Name)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	cfg, err := k8sRuntime.GetKubeconfig(ctx, requestContext)
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to get kubeconfig: %w", err)
+	}
+
+	talosRt, err := runtime.LookupInterface[talosRuntime](talos.Name)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	talosClient, err := talosRt.GetClient(ctx, requestContext.Name)
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to get talos client: %w", err)
+	}
+
+	bootstrapManifests, err := manifests.GetBootstrapManifests(ctx, talosClient.COSI, nil)
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to get manifests: %w", err)
+	}
+
+	return ctx, requestContext, cfg, bootstrapManifests, nil
 }
 
 // ReadAuditLog reads the audit log from the backend.

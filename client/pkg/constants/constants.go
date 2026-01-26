@@ -86,3 +86,14 @@ const CompressionThresholdBytes = 2048
 
 // InfraProviderHealthCheckInterval is the default interval of the infra provider health checks.
 const InfraProviderHealthCheckInterval = 30 * time.Second
+
+const (
+	// KubernetesBootstrapManifestsInventoryName is the name of the Omni bootstrap manifests inventory object.
+	KubernetesBootstrapManifestsInventoryName = "omni-bootstrap-manifests-inventory"
+
+	// KubernetesFieldManagerName is the field manager name used by Omni when applying manifests.
+	KubernetesFieldManagerName = "omni"
+
+	// KubernetesInventoryNamespace is the namespace where Omni inventory objects are stored.
+	KubernetesInventoryNamespace = "kube-system"
+)
