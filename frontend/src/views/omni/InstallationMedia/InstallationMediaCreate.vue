@@ -106,6 +106,12 @@ const nextStep = computed(() =>
   !isLastStep.value ? currentFlowSteps.value?.[currentStep.value] : undefined,
 )
 
+const prevStep = computed(() =>
+  currentStep.value > 1
+    ? currentFlowSteps.value?.[currentStep.value - 2]
+    : 'InstallationMediaCreateEntry',
+)
+
 function onStepperChange(stepperValue?: number) {
   if (!currentFlowSteps.value || !stepperValue) return
 
@@ -145,6 +151,7 @@ function onSaved(name: string) {
         </Tooltip>
 
         <Stepper
+          :linear="false"
           :model-value="currentStep"
           :step-count="stepCount"
           class="mx-auto grow"
@@ -154,9 +161,10 @@ function onSaved(name: string) {
 
       <div class="flex items-center gap-2 max-md:self-end">
         <TButton
+          is="router-link"
           v-if="currentFlowSteps && currentStep > 0"
           :disabled="formState.isSaved"
-          @click="$router.back()"
+          :to="{ name: prevStep }"
         >
           Back
         </TButton>

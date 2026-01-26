@@ -13,27 +13,20 @@ import {
   StepperSeparator,
   StepperTrigger,
 } from 'reka-ui'
-import { computed } from 'vue'
 
-interface Props extends StepperRootProps {
+interface Props extends Omit<StepperRootProps, 'modelValue'> {
   stepCount: number
 }
 
-const { stepCount } = defineProps<Props>()
+const { stepCount, ...attrs } = defineProps<Props>()
 const model = defineModel<number>()
-
-const steps = computed(() =>
-  Array(stepCount)
-    .fill(null)
-    .map((_, i) => i + 1),
-)
 </script>
 
 <template>
-  <StepperRoot v-model="model" class="flex max-w-lg items-center">
-    <StepperItem v-for="step in steps" :key="step" :step class="group contents">
+  <StepperRoot v-model="model" v-bind="attrs" class="flex max-w-lg items-center">
+    <StepperItem v-for="step in stepCount" :key="step" :step class="group contents">
       <StepperSeparator
-        v-if="step !== steps[0]"
+        v-if="step !== 1"
         class="mx-4 h-0.5 shrink grow rounded-full bg-primary-p4 group-data-[state=inactive]:bg-naturals-n6"
       />
 
