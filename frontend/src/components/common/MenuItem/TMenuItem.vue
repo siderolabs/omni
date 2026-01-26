@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useSessionStorage } from '@vueuse/core'
-import { computed, toRefs } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import type { IconType } from '@/components/common/Icon/TIcon.vue'
@@ -27,13 +27,10 @@ type Props = {
   subItems?: Props[]
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  level: 0,
-})
+const { name, level = 0, subItems, route, regularLink } = defineProps<Props>()
 
-const expanded = useSessionStorage(`sidebar-expanded-${props.level}-${props.name}`, false)
+const expanded = useSessionStorage(() => `sidebar-expanded-${level}-${name}`, false)
 const vueroute = useRoute()
-const { subItems, level } = toRefs(props)
 
 /**
  * The force logic here is to cater for routes with children.
@@ -44,42 +41,59 @@ const { subItems, level } = toRefs(props)
  * is enough.
  */
 const toggleSubmenu = (force = false) => {
-  if (!force && props.route) return
+  if (!force && route) return
 
-  if (subItems.value?.length) {
+  if (subItems?.length) {
     expanded.value = !expanded.value
   }
 }
 
 const selectedIndex = computed(() => {
-  return subItems.value?.findIndex((item) => item.route === vueroute.path) ?? -1
+  return subItems?.findIndex((item) => item.route === vueroute.path) ?? -1
 })
 
 const linePadding = computed(() => {
-  if (level.value === 0) {
+  if (level === 0) {
     return {
       left: '14px',
     }
   }
 
   return {
-    left: `${24 * level.value + 11}px`,
+    left: `${24 * level + 11}px`,
   }
 })
 
-const componentType = props.route ? (props.regularLink ? 'a' : 'router-link') : 'div'
+const componentType = computed(() => {
+  if (!route) return 'div'
 
-const componentAttributes = props.route
-  ? props.regularLink
-    ? { href: props.route, target: '_blank', rel: 'noopener noreferrer' }
-    : { to: props.route, exactActiveClass: 'item-active' }
-  : { class: 'select-none cursor-pointer', role: 'button' }
+  return regularLink ? 'a' : 'router-link'
+})
 
-componentAttributes.class = (componentAttributes.class ?? '') + ' item-container'
+const componentAttributes = computed(() => {
+  if (!route) {
+    return {
+      role: 'button',
+    }
+  }
+
+  if (regularLink) {
+    return {
+      href: route,
+      target: '_blank',
+      rel: 'noopener noreferrer',
+    }
+  }
+
+  return {
+    to: route,
+    exactActiveClass: 'item-active',
+  }
+})
 </script>
 
 <template>
-  <component :is="componentType" v-bind="componentAttributes">
+  <component :is="componentType" class="item-container select-none" v-bind="componentAttributes">
     <Tooltip placement="right" :description="tooltip" :offset-distance="10" :offset-skid="0">
       <div class="flex w-full flex-col">
         <div
