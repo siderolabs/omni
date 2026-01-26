@@ -28,9 +28,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/certs"
 )
 
-// KubeconfigController creates omni.ClusterSecrets for each input omni.Cluster.
-//
-// KubeconfigController generates and stores cluster wide secrets.
+// KubeconfigController generates and stores cluster wide omni.Kubeconfig.
 type KubeconfigController = qtransform.QController[*omni.ClusterSecrets, *omni.Kubeconfig]
 
 // NewKubeconfigController instantiates the Kubeconfig controller.

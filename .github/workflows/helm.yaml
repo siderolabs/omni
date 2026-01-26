@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-28T15:22:29Z by kres 1b0dcb3.
+# Generated on 2026-01-28T19:55:08Z by kres 1b0dcb3.
 
 concurrency:
   group: helm-${{ github.head_ref || github.run_id }}

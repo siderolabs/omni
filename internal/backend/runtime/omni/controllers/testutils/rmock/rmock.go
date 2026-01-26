@@ -18,7 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config"
-	"github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
+	gensecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/role"
 
@@ -28,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 	"github.com/siderolabs/omni/internal/pkg/certs"
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
@@ -173,7 +174,7 @@ func init() {
 			return err
 		}
 
-		bundle, err := secrets.NewBundle(secrets.NewFixedClock(time.Now()), vc)
+		bundle, err := gensecrets.NewBundle(gensecrets.NewFixedClock(time.Now()), vc)
 		if err != nil {
 			return err
 		}
@@ -185,9 +186,10 @@ func init() {
 
 	addDefaults(func(ctx context.Context, st state.State, res *omni.ClusterMachineConfigPatches) error {
 		return res.TypedSpec().Value.SetUncompressedPatches([]string{
-			`machine:
-				install:
-					disk: "/dev/vda`,
+			`---
+machine:
+  install:
+    disk: "/dev/vda"`,
 		})
 	})
 
@@ -277,12 +279,12 @@ func init() {
 			return err
 		}
 
-		secrets, err := safe.ReaderGetByID[*omni.ClusterSecrets](ctx, st, clusterName)
+		clusterSecrets, err := safe.ReaderGetByID[*omni.ClusterSecrets](ctx, st, clusterName)
 		if err != nil {
 			return err
 		}
 
-		secretsBundle, err := omni.ToSecretsBundle(secrets)
+		secretsBundle, err := omni.ToSecretsBundle(clusterSecrets.TypedSpec().Value.GetData())
 		if err != nil {
 			return err
 		}
@@ -336,10 +338,10 @@ func init() {
 	setOwner[*omni.ClusterStatus](omnictrl.NewClusterStatusController(false).ControllerName)
 	setOwner[*omni.ClusterMachine](omnictrl.NewMachineSetStatusController().ControllerName)
 	setOwner[*omni.ClusterMachineStatus](omnictrl.NewClusterMachineStatusController().ControllerName)
-	setOwner[*omni.ClusterSecrets](omnictrl.NewSecretsController(nil).ControllerName)
+	setOwner[*omni.ClusterSecrets](secrets.NewSecretsController(nil).ControllerName)
 	setOwner[*omni.ClusterMachineConfig](omnictrl.NewClusterMachineController().ControllerName)
 	setOwner[*omni.MachineConfigGenOptions](omnictrl.NewMachineConfigGenOptionsController().ControllerName)
-	setOwner[*omni.TalosConfig](omnictrl.NewTalosConfigController(omnictrl.DefaultDebounceDuration).ControllerName)
+	setOwner[*omni.TalosConfig](secrets.NewTalosConfigController(omnictrl.DefaultDebounceDuration).ControllerName)
 	setOwner[*omni.Machine](omnictrl.NewMachineController().ControllerName)
 	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController().ControllerName)
 }

@@ -624,7 +624,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 				machineServices := testutils.NewMachineServices(t, testContext.State)
 
-				_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 3, 3)
+				_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 3, 0)
 
 				var mu sync.Mutex
 
@@ -679,7 +679,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 					),
 				)
 
-				// as we have 3 machines do the routine 3 times
+				// as we have 3 machines, do the routine 3 times
 				for range 3 {
 					getUpdatedID := func() string {
 						var updatedID string
@@ -720,7 +720,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 					delete(mockReboot, updatedID)
 					mu.Unlock()
 
-					// poke machine set node to trigger update after we switch the updatedID to NO_REBOOT mode
+					// poke the machine set node to trigger update after we switch the updatedID to NO_REBOOT mode
 					rmock.Mock[*omni.MachineSetNode](ctx, t, testContext.State,
 						options.WithID(updatedID),
 						options.EmptyLabel("poke"),
@@ -788,11 +788,11 @@ func createCluster(
 		options.EmptyLabel(omni.LabelWorkerRole),
 	)
 
-	getIDs := func(count int) []string {
+	getIDs := func(machineType string, count int) []string {
 		res := make([]string, 0, count)
 
 		for i := range count {
-			res = append(res, fmt.Sprintf("node-%d", i))
+			res = append(res, fmt.Sprintf("node-%s-%d", machineType, i))
 		}
 
 		return res
@@ -807,7 +807,7 @@ func createCluster(
 
 	// create control planes
 	rmock.MockList[*omni.MachineSetNode](ctx, t, st,
-		options.IDs(getIDs(controlPlanes)),
+		options.IDs(getIDs("cp", controlPlanes)),
 		options.ItemOptions(
 			options.LabelCluster(cluster),
 			options.LabelMachineSet(cpMachineSet),
@@ -818,7 +818,7 @@ func createCluster(
 	if workers > 0 {
 		// create workers
 		rmock.MockList[*omni.MachineSetNode](ctx, t, st,
-			options.IDs(getIDs(workers)),
+			options.IDs(getIDs("w", workers)),
 			options.ItemOptions(
 				options.LabelCluster(cluster),
 				options.LabelMachineSet(workersMachineSet),

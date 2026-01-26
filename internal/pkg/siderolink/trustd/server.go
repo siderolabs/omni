@@ -6,6 +6,7 @@
 package trustd
 
 import (
+	"bytes"
 	"context"
 	stdx509 "crypto/x509"
 	"encoding/pem"
@@ -16,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/siderolabs/crypto/x509"
+	"github.com/siderolabs/gen/xslices"
 	securityapi "github.com/siderolabs/talos/pkg/machinery/api/security"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"go.uber.org/zap"
@@ -24,6 +26,7 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
@@ -36,7 +39,7 @@ type handler struct {
 	logger *zap.Logger
 }
 
-func getSecretsBundle(ctx context.Context, st state.State, peerAddress string) (*secrets.Bundle, error) {
+func getSecrets(ctx context.Context, st state.State, peerAddress string) (*omni.ClusterSecrets, error) {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
 	machines, err := safe.StateListAll[*omni.Machine](
@@ -71,7 +74,7 @@ func getSecretsBundle(ctx context.Context, st state.State, peerAddress string) (
 		return nil, status.Errorf(codes.PermissionDenied, "failed to get cluster secrets: %s", err)
 	}
 
-	return omni.ToSecretsBundle(clusterSecrets)
+	return clusterSecrets, nil
 }
 
 // Certificate implements the securityapi.SecurityServer interface.
@@ -89,7 +92,17 @@ func (h *handler) Certificate(ctx context.Context, in *securityapi.CertificateRe
 		return nil, status.Error(codes.PermissionDenied, "peer address is not TCP")
 	}
 
-	secretsBundle, err := getSecretsBundle(ctx, h.state, tcpAddr.IP.String())
+	clusterSecrets, err := getSecrets(ctx, h.state, tcpAddr.IP.String())
+	if err != nil {
+		return nil, err
+	}
+
+	secretsBundle, err := omni.ToSecretsBundle(clusterSecrets.TypedSpec().Value.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	issuingCA, acceptedCAs, err := GetIssuingAndAcceptedCAs(ctx, h.state, secretsBundle, clusterSecrets.Metadata().ID())
 	if err != nil {
 		return nil, err
 	}
@@ -130,8 +143,8 @@ func (h *handler) Certificate(ctx context.Context, in *securityapi.CertificateRe
 	}
 
 	signed, err := x509.NewCertificateFromCSRBytes(
-		secretsBundle.Certs.OS.Crt,
-		secretsBundle.Certs.OS.Key,
+		issuingCA.Crt,
+		issuingCA.Key,
 		in.Csr,
 		x509Opts...,
 	)
@@ -140,9 +153,52 @@ func (h *handler) Certificate(ctx context.Context, in *securityapi.CertificateRe
 	}
 
 	resp = &securityapi.CertificateResponse{
-		Ca:  secretsBundle.Certs.OS.Crt,
+		Ca: bytes.Join(
+			xslices.Map(
+				acceptedCAs,
+				func(cert *x509.PEMEncodedCertificate) []byte {
+					return cert.Crt
+				},
+			),
+			nil,
+		),
 		Crt: signed.X509CertificatePEM,
 	}
 
 	return resp, nil
+}
+
+func GetIssuingAndAcceptedCAs(ctx context.Context, st state.State, secretsBundle *secrets.Bundle, clusterID resource.ID) (*x509.PEMEncodedCertificateAndKey, []*x509.PEMEncodedCertificate, error) {
+	secretRotation, err := safe.ReaderGetByID[*omni.SecretRotation](ctx, st, clusterID)
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, nil, err
+	}
+
+	acceptedCAs := []*x509.PEMEncodedCertificate{{Crt: secretsBundle.Certs.OS.Crt}}
+	issuingCA := secretsBundle.Certs.OS
+
+	// If there is an active secret rotation, then we need to use SecretRotation resource to construct issuingCA and acceptedCAs for trustd to use. ClusterSecrets will receive updates
+	// after a phase is completed, but trustd needs to be immediately aware of the rotation to issue certificates correctly.
+	if secretRotation != nil && secretRotation.TypedSpec().Value.Component == specs.SecretRotationSpec_TALOS_CA {
+		acceptedCAs = []*x509.PEMEncodedCertificate{{Crt: secretRotation.TypedSpec().Value.Certs.Os.Crt}}
+		if secretRotation.TypedSpec().Value.ExtraCerts.GetOs() != nil {
+			acceptedCAs = append(acceptedCAs, &x509.PEMEncodedCertificate{Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt})
+		}
+
+		switch secretRotation.TypedSpec().Value.Phase {
+		case specs.SecretRotationSpec_OK, specs.SecretRotationSpec_POST_ROTATE:
+			issuingCA = &x509.PEMEncodedCertificateAndKey{
+				Crt: secretRotation.TypedSpec().Value.Certs.Os.Crt,
+				Key: secretRotation.TypedSpec().Value.Certs.Os.Key,
+			}
+
+		case specs.SecretRotationSpec_PRE_ROTATE, specs.SecretRotationSpec_ROTATE:
+			issuingCA = &x509.PEMEncodedCertificateAndKey{
+				Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt,
+				Key: secretRotation.TypedSpec().Value.ExtraCerts.Os.Key,
+			}
+		}
+	}
+
+	return issuingCA, acceptedCAs, nil
 }

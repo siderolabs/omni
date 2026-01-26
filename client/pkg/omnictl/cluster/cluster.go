@@ -17,6 +17,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omnictl/cluster/kubernetes"
+	"github.com/siderolabs/omni/client/pkg/omnictl/cluster/secret"
 	"github.com/siderolabs/omni/client/pkg/omnictl/cluster/template"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -89,4 +90,5 @@ func init() {
 	clusterCmd.AddCommand(kubernetes.RootCmd())
 	clusterCmd.AddCommand(lockClusterCmd)
 	clusterCmd.AddCommand(unlockClusterCmd)
+	clusterCmd.AddCommand(secret.RootCmd())
 }
