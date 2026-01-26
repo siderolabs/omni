@@ -177,7 +177,21 @@ const getError = async (result: Response) => {
     throw new Error(e.message);
   }
 
-  throw resp;
+  const message = resp?.message;
+  const code = resp?.code;
+
+  throw new RequestError(message || code || JSON.stringify(resp), { code });
+}
+
+export class RequestError extends Error {
+  public code?: number;
+
+  constructor(message?: string, options?: ErrorOptions & { code?: number }) {
+    super(message, options);
+
+    this.name = 'RequestError';
+    this.code = options?.code;
+  }
 }
 
 /**

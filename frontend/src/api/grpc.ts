@@ -8,7 +8,7 @@ import { ref } from 'vue'
 
 import type { Metadata as TalosMetadata } from '@/api/common/common.pb'
 import type { fetchOption, NotifyStreamEntityArrival } from '@/api/fetch.pb'
-import { setCommonFetchOptions } from '@/api/fetch.pb'
+import { RequestError, setCommonFetchOptions } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import type {
   CreateRequest,
@@ -263,19 +263,9 @@ export class ResourceService {
   }
 }
 
-export class RequestError extends Error {
-  public code: number = Code.UNKNOWN
-
-  constructor(response: any) {
-    super(response.message || response.code)
-
-    this.code = response.code
-  }
-}
-
-export const checkError = <T>(response: { code?: Code } & T): T => {
+export const checkError = <T>(response: { message?: string; code?: Code } & T): T => {
   if (response.code) {
-    throw new RequestError(response)
+    throw new RequestError(response.message || String(response.code), { code: response.code })
   }
 
   return response
