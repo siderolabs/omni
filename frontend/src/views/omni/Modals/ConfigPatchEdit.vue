@@ -5,17 +5,14 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { Tab, TabGroup, TabPanel, TabPanels } from '@headlessui/vue'
-import type { Ref } from 'vue'
-import { defineAsyncComponent, ref, toRefs } from 'vue'
+import { defineAsyncComponent, ref, watchEffect } from 'vue'
 
+import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import TButton from '@/components/common/Button/TButton.vue'
-import TabButton from '@/components/common/Tabs/TabButton.vue'
-import TabList from '@/components/common/Tabs/TabList.vue'
-import TabsHeader from '@/components/common/Tabs/TabsHeader.vue'
 import TAlert from '@/components/TAlert.vue'
+import { getDocsLink } from '@/methods'
 import { closeModal } from '@/modal'
 
 const CodeEditor = defineAsyncComponent(
@@ -24,18 +21,18 @@ const CodeEditor = defineAsyncComponent(
 
 interface Props {
   onSave: (config: string, id?: string) => void
-  tabs: { id: string; config: string }[]
+  id: string
+  config: string
   talosVersion?: string
 }
 
-const configs: Record<string, Ref<string>> = {}
-const props = defineProps<Props>()
+const { id, config, onSave } = defineProps<Props>()
 
-const { tabs } = toRefs(props)
+const configChanges = ref('')
 
-for (const tab of tabs.value) {
-  configs[tab.id] = ref(tab.config)
-}
+watchEffect(() => {
+  configChanges.value = config
+})
 
 const err = ref<null | { message: string; title: string }>(null)
 
@@ -43,95 +40,67 @@ const close = () => {
   closeModal()
 }
 
-const save = async (): Promise<any> => {
-  const promises: Promise<any>[] = []
+const saveAndClose = async () => {
+  err.value = null
 
-  for (const id in configs) {
-    err.value = null
+  try {
+    await ManagementService.ValidateConfig({ config: configChanges.value })
+    onSave?.(configChanges.value, id)
 
-    if (!configs[id].value) continue
-
-    promises.push(
-      ManagementService.ValidateConfig({
-        config: configs[id].value,
-      }).catch((e: { code?: Code; message?: string }) => {
-        if (e.code === Code.INVALID_ARGUMENT) {
-          err.value = {
-            title: 'The Config is Invalid',
-            message: e.message!,
-          }
-        } else {
-          err.value = {
-            title: 'Failed to Validate the Config',
-            message: e.message!,
-          }
-        }
-        throw e
-      }),
-    )
-  }
-
-  for (const id in configs) {
-    if (props.onSave) {
-      props.onSave(configs[id].value, id)
+    close()
+  } catch (e) {
+    err.value = {
+      title:
+        e instanceof RequestError && e.code === Code.INVALID_ARGUMENT
+          ? 'The Config is Invalid'
+          : 'Failed to Validate the Config',
+      message: e instanceof Error ? e.message : String(e),
     }
   }
-
-  return Promise.all(promises)
-}
-
-const saveAndClose = async () => {
-  await save()
-  close()
-}
-
-const openDocs = () => {
-  window.open('https://docs.siderolabs.com', '_blank')
 }
 </script>
 
 <template>
   <div class="modal-window" style="min-height: 350px">
-    <div class="my-7 flex items-center px-8">
-      <div class="heading">Edit Config Patch</div>
+    <div class="mt-7 mb-4 flex items-center px-8">
+      <h1 class="heading">Edit Config Patch</h1>
       <div class="flex flex-1 justify-end">
-        <TButton icon="question" type="subtle" size="xs" icon-position="left" @click="openDocs">
+        <TButton
+          is="a"
+          :href="getDocsLink('talos', '/reference/configuration/overview', { talosVersion })"
+          rel="noopener noreferrer"
+          target="_blank"
+          icon="question"
+          type="subtle"
+          size="xs"
+          icon-position="left"
+        >
           Config Reference
         </TButton>
       </div>
     </div>
-    <div v-if="err" class="relative px-8">
+
+    <h2 class="mb-3 px-8 text-sm text-naturals-n14">
+      {{ id }}
+    </h2>
+
+    <div class="font-sm relative flex-1 overflow-y-auto bg-naturals-n2">
       <TAlert
-        class="absolute top-16 right-8 left-8 z-50"
+        v-if="err"
+        class="absolute inset-x-8 top-16 z-50"
         type="error"
         :title="err.title"
         :dismiss="{ action: () => (err = null), name: 'Close' }"
       >
         {{ err.message }}
       </TAlert>
+
+      <CodeEditor
+        :value="configChanges"
+        :talos-version="talosVersion"
+        @update:value="(updated) => (configChanges = updated)"
+      />
     </div>
-    <TabGroup as="div" class="flex flex-1 flex-col overflow-hidden">
-      <TabList>
-        <TabsHeader class="px-6">
-          <Tab v-for="tab in tabs" v-slot="{ selected }" :key="tab.id">
-            <TabButton :selected="selected">
-              {{ tab.id }}
-            </TabButton>
-          </Tab>
-        </TabsHeader>
-      </TabList>
-      <TabPanels as="template">
-        <TabPanel v-for="tab in tabs" :key="tab.id" as="template">
-          <div class="font-sm flex-1 overflow-y-auto bg-naturals-n2">
-            <CodeEditor
-              :value="configs[tab.id].value"
-              :talos-version="talosVersion"
-              @update:value="(updated) => (configs[tab.id].value = updated)"
-            />
-          </div>
-        </TabPanel>
-      </TabPanels>
-    </TabGroup>
     <div class="flex justify-between gap-4 rounded-b bg-naturals-n3 p-4">
       <TButton type="secondary" @click="close">Cancel</TButton>
       <TButton @click="saveAndClose">Save</TButton>

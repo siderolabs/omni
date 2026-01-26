@@ -130,12 +130,8 @@ const openMachineSetConfig = () => {
 const openPatchConfig = () => {
   showModal(ConfigPatchEdit, {
     talosVersion: props.talosVersion,
-    tabs: [
-      {
-        config: patches.value[PatchID.Default]?.data ?? '',
-        id: `Machine Set ${modelValue.value.name}`,
-      },
-    ],
+    config: patches.value[PatchID.Default]?.data ?? '',
+    id: `Machine Set ${modelValue.value.name}`,
     onSave(config: string) {
       if (!config) {
         delete patches.value[PatchID.Default]

@@ -301,12 +301,8 @@ const hasConfigs = computed(() => {
 const openPatchConfig = () => {
   showModal(ConfigPatchEdit, {
     talosVersion: state.value.cluster.talosVersion,
-    tabs: [
-      {
-        id: 'Cluster',
-        config: state.value.cluster.patches[PatchID.Default]?.data ?? '',
-      },
-    ],
+    id: 'Cluster',
+    config: state.value.cluster.patches[PatchID.Default]?.data ?? '',
     onSave: async (config: string) => {
       if (config === '') {
         delete state.value.cluster.patches[PatchID.Default]
