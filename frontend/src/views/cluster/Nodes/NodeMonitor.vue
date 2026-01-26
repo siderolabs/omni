@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { ArrowDownIcon } from '@heroicons/vue/24/solid'
-import type { Ref } from 'vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -18,7 +17,7 @@ import {
   TalosMemoryType,
   TalosPerfNamespace,
 } from '@/api/resources'
-import { MachineService } from '@/api/talos/machine/machine.pb'
+import { MachineService, type ProcessInfo } from '@/api/talos/machine/machine.pb'
 import { getContext } from '@/context'
 import { formatBytes } from '@/methods'
 import NodesMonitorChart from '@/views/cluster/Nodes/components/NodesMonitorChart.vue'
@@ -51,7 +50,7 @@ function diff<T extends Diffable>(a: T, b: T): T {
   return result as T
 }
 
-const processes: Ref<Record<string, any>[]> = ref([])
+const processes = ref<Proc[]>([])
 const context = getContext()
 const headers = [
   { id: 'pid' },
@@ -63,8 +62,9 @@ const headers = [
   { id: 'residentMemory', header: 'Res Memory' },
   { id: 'cpuTime', header: 'Time+' },
   { id: 'command' },
-]
-const sort = ref('cpu')
+] satisfies { id: keyof Proc; header?: string }[]
+
+const sort = ref<keyof Proc>('cpu')
 const sortReverse = ref(true)
 
 let memTotal = 0
@@ -86,34 +86,33 @@ const getCPUTotal = (stat: Record<string, number>) => {
   return idle + nonIdle
 }
 
-const prevProcs: Record<string, any> = {}
+const prevProcs: Record<number, ProcessInfo> = {}
 let prevCPU = 0
 
-const loadProcs = async () => {
+type Proc = NonNullable<Awaited<ReturnType<typeof getProcs>>>[number]
+const getProcs = async () => {
   if (memTotal === 0) return
 
   const options = [withRuntime(Runtime.Talos), withContext(context)]
 
-  const resp = await MachineService.Processes({}, ...options)
+  const { messages: procMessages = [] } = await MachineService.Processes({}, ...options)
+  const { messages: [systemStat] = [] } = await MachineService.SystemStat({}, ...options)
 
-  const procs: Record<string, any>[] = []
-
-  const r = await MachineService.SystemStat({}, ...options)
-
-  const systemStat = r.messages![0]
   const cpuTotal = getCPUTotal(systemStat.cpu_total ?? {}) / systemStat.cpu!.length
 
   const total = memTotal * 1024
 
-  for (const message of resp.messages!) {
-    for (const proc of message.processes!) {
+  const procs = procMessages.flatMap(({ processes = [] }) =>
+    processes.map((proc) => {
       let cpuDiff = 0
 
-      if (prevProcs[proc.pid!] && proc.cpu_time) {
-        cpuDiff = proc.cpu_time! - prevProcs[proc.pid!].cpu_time
+      if (prevProcs[proc.pid!]?.cpu_time && proc.cpu_time) {
+        cpuDiff = proc.cpu_time - prevProcs[proc.pid!].cpu_time!
       }
 
-      procs.push({
+      prevProcs[proc.pid!] = proc
+
+      return {
         mem: (parseInt(proc.resident_memory || '0') / total) * 100,
         cpu: (cpuDiff / (cpuTotal - prevCPU)) * 100,
         threads: proc.threads!,
@@ -124,15 +123,18 @@ const loadProcs = async () => {
         command: proc.command!,
         cpuTime: proc.cpu_time || 0,
         args: proc.args!,
-      })
-
-      prevProcs[proc.pid!] = proc
-    }
-  }
+      }
+    }),
+  )
 
   prevCPU = cpuTotal
 
-  processes.value = procs
+  return procs
+}
+
+async function loadProcs() {
+  const procs = await getProcs()
+  if (procs) processes.value = procs
 }
 
 onMounted(() => {
@@ -144,9 +146,9 @@ onUnmounted(() => {
   clearInterval(interval)
 })
 
-const handleCPU = (oldObj: any, newObj: any) => {
+const handleCPU = (oldObj: Diffable, newObj: Diffable) => {
   const delta = diff(oldObj, newObj)
-  const stat = delta.cpuTotal
+  const stat = delta.cpuTotal as Record<string, number>
   const total = getCPUTotal(stat)
 
   return {
@@ -155,7 +157,7 @@ const handleCPU = (oldObj: any, newObj: any) => {
   }
 }
 
-const handleTotalCPU = (oldObj: any, newObj: any) => {
+const handleTotalCPU = (oldObj: Diffable, newObj: Diffable) => {
   const point = handleCPU(oldObj, newObj)
 
   return `${(point.user + point.system).toFixed(1)} %`
@@ -195,19 +197,19 @@ const handleMaxMem = (_: unknown, m: { total: number }): number => {
   return m.total
 }
 
-const handleProcs = (oldObj: any, newObj: any) => {
+const handleProcs = (oldObj: Diffable, newObj: Diffable) => {
   const { processCreated } = diff(oldObj, newObj)
 
   return {
     // The diff algorithm should never return only numbers Record<string, number> for this case
     // But due to how its typed, adding a fallback just incase
     created: typeof processCreated === 'number' ? processCreated : Number(processCreated),
-    running: newObj.processRunning,
-    blocked: newObj.processBlocked,
+    running: newObj.processRunning as number,
+    blocked: newObj.processBlocked as number,
   }
 }
 
-const sortedProcesses = computed<Record<string, any>[]>(() => {
+const sortedProcesses = computed(() => {
   return [...processes.value].sort((a, b) => {
     let res = 0
     if (a[sort.value] > b[sort.value]) {
@@ -220,7 +222,7 @@ const sortedProcesses = computed<Record<string, any>[]>(() => {
   })
 })
 
-const sortBy = (id: string) => {
+const sortBy = (id: keyof Proc) => {
   if (id === sort.value) sortReverse.value = !sortReverse.value
   else sortReverse.value = true
 

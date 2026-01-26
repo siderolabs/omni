@@ -3,7 +3,6 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import type { Ref } from 'vue'
 import { ref } from 'vue'
 
 import type { Metadata as TalosMetadata } from '@/api/common/common.pb'
@@ -61,7 +60,7 @@ export class Stream<R, T> {
   private stopped: boolean = false
   private controller?: AbortController
 
-  public err: Ref<any> = ref(null)
+  public err = ref<Error | null>(null)
 
   constructor(
     method: StreamingRequest<R, T>,
@@ -100,11 +99,15 @@ export class Stream<R, T> {
           const err = resp as { metadata?: TalosMetadata; error?: { code: Code; message?: string } }
 
           if (err.metadata?.error || err.error) {
-            if (err.error?.code !== Code.CANCELLED && err.error?.code !== Code.INTERNAL) {
+            const message = err.metadata?.error ?? err.error?.message
+            const code = err.error?.code
+
+            if (!code || ![Code.CANCELLED, Code.INTERNAL].includes(code)) {
               this.stopped = true
             }
 
-            const e = new Error(err.metadata?.error ?? err.error?.message)
+            const e = new RequestError(message, { code })
+            this.err.value = e
 
             if (onError) {
               onError(e)
@@ -124,12 +127,14 @@ export class Stream<R, T> {
           return
         }
 
-        if (onError) {
-          onError(e.error ?? e)
-        }
-
         console.error('watch failed', e)
-        throw e.error ? e.error : new Error(e.toString())
+
+        const err = e instanceof Error ? e : new Error(String(e))
+
+        onError?.(err)
+        this.err.value = err
+
+        throw err
       }
     }
 
@@ -170,6 +175,7 @@ export class Stream<R, T> {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Resource<T = any, S = any> = {
   metadata: Metadata & { name?: string }
   spec: T

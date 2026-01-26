@@ -402,7 +402,7 @@ describe('cluster-management-state', () => {
 
         expect(resources.length).toBeGreaterThan(0)
 
-        const empty: Record<string, any> = {}
+        const empty: Record<string, Record<string, never>> = {}
 
         for (const key in tt.expectedResources) {
           empty[key] = {}

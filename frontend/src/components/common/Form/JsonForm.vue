@@ -42,7 +42,7 @@ const errors = ref<ErrorObject[]>([])
 
 const emit = defineEmits(['update:model-value'])
 
-const onChange = async (event: { data: any; errors: any }) => {
+const onChange = async (event: { data: unknown; errors: unknown }) => {
   emit('update:model-value', event.data)
 }
 
@@ -92,7 +92,7 @@ const renderers = [
 
 const props = defineProps<{
   jsonSchema: string
-  modelValue: any
+  modelValue: unknown
 }>()
 
 const { jsonSchema, modelValue } = toRefs(props)
@@ -113,7 +113,7 @@ watch(modelValue, (val) => {
   updateErrors(val)
 })
 
-const updateErrors = async (data: any) => {
+const updateErrors = async (data: unknown) => {
   if (!jsonSchema.value) {
     return
   }

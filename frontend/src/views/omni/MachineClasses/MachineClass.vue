@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import yaml from 'js-yaml'
 import type { ComputedRef, Ref } from 'vue'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -53,12 +53,7 @@ const conditions = ref([''])
 const machineClassName = ref('')
 const machineClassMode = ref(MachineClassMode.Manual)
 
-const machineClassModeOptions: {
-  label: string
-  value: any
-  tooltip: string
-  disabled?: boolean
-}[] = [
+const machineClassModeOptions = [
   {
     label: MachineClassMode.Manual,
     value: MachineClassMode.Manual,
@@ -96,7 +91,7 @@ const kernelArguments = ref<string>('')
 const initialLabels = ref<Record<string, LabelSelectItem>>({})
 const grpcTunnelMode = ref<GrpcTunnelMode>(GrpcTunnelMode.UNSET)
 
-const providerConfigs: Ref<Record<string, Record<string, any>>> = ref({})
+const providerConfigs: Ref<Record<string, Record<string, unknown>>> = ref({})
 
 if (!props.edit) {
   notFound = ref(false)
@@ -263,7 +258,7 @@ if (props.edit) {
     ) {
       providerConfigs.value[machineClass.value.spec.auto_provision.provider_id] = yaml.load(
         machineClass.value?.spec.auto_provision?.provider_data,
-      ) as Record<string, any>
+      ) as Record<string, unknown>
     }
 
     const matchLabels = machineClass.value?.spec?.match_labels
@@ -275,7 +270,7 @@ if (props.edit) {
   })
 }
 
-const placeCaretAtEnd = (el: any) => {
+const placeCaretAtEnd = (el: HTMLElement) => {
   const range = document.createRange()
   range.selectNodeContents(el)
   range.collapse(false)
@@ -296,8 +291,7 @@ const watchOpts = computed(() => {
   }
 })
 
-const conditionElements: Ref<(Node & { focus: () => void; textContent: string }[]) | null> =
-  ref(null)
+const conditionElements = useTemplateRef('conditionElements')
 
 const updateFocus = () => {
   nextTick(() => {

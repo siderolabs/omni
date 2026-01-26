@@ -44,7 +44,7 @@ const reboot = async () => {
     }
 
     if (errors.length > 0) throw new Error(errors.join(', '))
-  } catch (e: any) {
+  } catch (e) {
     close()
 
     showError('Failed to Issue Reboot', e.toString())

@@ -28,7 +28,7 @@ const props = defineProps<{
   infraProvider: string
   initialLabels: Record<string, LabelSelectItem>
   kernelArguments: string
-  providerConfig: Record<string, any>
+  providerConfig: Record<string, unknown>
   grpcTunnel: GrpcTunnelMode
 }>()
 

@@ -58,8 +58,8 @@ const opts = [
       namespace: TalosClusterNamespace,
     },
     context,
-    idFunc: (item: any): string => {
-      return item.metadata.id
+    idFunc: (item: Resource): string => {
+      return item.metadata.id!
     },
   },
 ]

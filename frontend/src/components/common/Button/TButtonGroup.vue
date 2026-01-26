@@ -10,11 +10,10 @@ import { RadioGroup, RadioGroupOption } from '@headlessui/vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 
 type Props = {
-  modelValue: any
   deselectEnabled?: boolean
   options: {
     label: string
-    value: any
+    value: string | number
     disabled?: boolean
     tooltip?: string
   }[]
@@ -22,14 +21,14 @@ type Props = {
 
 defineProps<Props>()
 
-const emit = defineEmits(['update:modelValue'])
+const modelValue = defineModel<string | number>()
 </script>
 
 <template>
   <RadioGroup
     :model-value="modelValue"
     class="t-button-group flex gap-0.5 rounded bg-naturals-n3 p-1"
-    @update:model-value="(value) => emit('update:modelValue', value)"
+    @update:model-value="(value) => (modelValue = value)"
   >
     <RadioGroupOption
       v-for="(option, index) in options"
@@ -39,7 +38,7 @@ const emit = defineEmits(['update:modelValue'])
       as="template"
       :disabled="option.disabled"
     >
-      <div @click="() => (checked && deselectEnabled ? emit('update:modelValue', null) : null)">
+      <div @click="() => (checked && deselectEnabled ? (modelValue = undefined) : null)">
         <Tooltip :description="option.tooltip" placement="top">
           <button type="button" :class="{ checked }" :disabled="option?.disabled">
             <span>

@@ -75,9 +75,6 @@ export default defineConfigWithVueTs(
       // Extra rules that we want to progressively fix
       'vue/no-ref-object-reactivity-loss': 'warn',
       'vue/no-setup-props-reactivity-loss': 'warn',
-
-      // Temporarily disabled rules
-      '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
 )
