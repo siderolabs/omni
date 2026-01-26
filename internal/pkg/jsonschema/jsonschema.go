@@ -10,14 +10,18 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"go.yaml.in/yaml/v4"
 )
 
+type Schema struct {
+	Schema    *jsonschema.Schema
+	nanRegexp *regexp.Regexp
+}
+
 // Parse parses and compiles the JSON schema file.
-func Parse(name string, data string) (*jsonschema.Schema, error) {
+func Parse(name string, data string) (*Schema, error) {
 	filename := fmt.Sprintf("%s-schema.json", name)
 
 	schema, err := jsonschema.UnmarshalJSON(strings.NewReader(data))
@@ -30,15 +34,20 @@ func Parse(name string, data string) (*jsonschema.Schema, error) {
 		return nil, err
 	}
 
-	return compiler.Compile(filename)
+	sch, err := compiler.Compile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Schema{
+		Schema:    sch,
+		nanRegexp: regexp.MustCompile(`(?i)\.nan`),
+	}, nil
 }
 
-var nanRegexp = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`(?i)\.nan`) })
-
-// Validate validates the YAML file against the JSON schema.
-func Validate(data string, schema *jsonschema.Schema) error {
+func (schema *Schema) Validate(data string) error {
 	// NaN type causes jsonschema validator to crash with nil reference error
-	data = nanRegexp().ReplaceAllString(data, "null")
+	data = schema.nanRegexp.ReplaceAllString(data, "null")
 
 	var v any
 	if err := yaml.Unmarshal([]byte(data), &v); err != nil {
@@ -49,5 +58,25 @@ func Validate(data string, schema *jsonschema.Schema) error {
 		v = map[string]any{}
 	}
 
-	return schema.Validate(v)
+	return schema.Schema.Validate(v)
+}
+
+func (schema *Schema) Description(fieldPath string) string {
+	fields := strings.Split(fieldPath, ".")
+
+	s := schema.Schema
+	for _, field := range fields {
+		for s.Ref != nil { // expand the refs
+			s = s.Ref
+		}
+
+		prop, ok := s.Properties[field]
+		if !ok {
+			return ""
+		}
+
+		s = prop
+	}
+
+	return s.Description
 }

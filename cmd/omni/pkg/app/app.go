@@ -37,14 +37,15 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/features"
+	"github.com/siderolabs/omni/internal/pkg/jsonschema"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
 // PrepareConfig prepare the Omni configuration.
-func PrepareConfig(logger *zap.Logger, params ...*config.Params) (*config.Params, error) {
+func PrepareConfig(logger *zap.Logger, schema *jsonschema.Schema, params ...*config.Params) (*config.Params, error) {
 	var err error
 
-	config.Config, err = config.Init(logger, params...)
+	config.Config, err = config.Init(logger, schema, params...)
 	if err != nil {
 		return nil, err
 	}

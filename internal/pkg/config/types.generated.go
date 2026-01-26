@@ -5,537 +5,645 @@ package config
 import "time"
 
 type Account struct {
-	// Stable identifier of the instance.
+	// Id is the unique UUID identifier of the account. It is used to uniquely
+	// identify the account in etcd, therefore it should never be changed after
+	// initial setup.
 	Id *string `json:"id" yaml:"id"`
 
-	// User-facing name of the instance.
+	// Name is the human-readable name of the account.
 	Name *string `json:"name" yaml:"name"`
 
-	// UserPilot corresponds to the JSON schema field "userPilot".
+	// UserPilot contains UserPilot-related configuration.
 	UserPilot UserPilot `json:"userPilot" yaml:"userPilot"`
 }
 
 type Auth struct {
-	// Auth0 corresponds to the JSON schema field "auth0".
+	// Auth0 contains Auth0 authentication provider configuration.
 	Auth0 Auth0 `json:"auth0" yaml:"auth0"`
 
-	// InitialServiceAccount corresponds to the JSON schema field
-	// "initialServiceAccount".
+	// InitialServiceAccount contains configuration for the initial service account
+	// created when Omni is run for the first time.
 	InitialServiceAccount InitialServiceAccount `json:"initialServiceAccount" yaml:"initialServiceAccount"`
 
-	// InitialUsers corresponds to the JSON schema field "initialUsers".
+	// InitialUsers is a list of emails which should be created as admins when Omni is
+	// run for the first time.
 	InitialUsers []string `json:"initialUsers,omitempty" yaml:"initialUsers,omitempty"`
 
-	// KeyPruner corresponds to the JSON schema field "keyPruner".
+	// KeyPruner contains configuration for the public keys pruner (cleanup of
+	// old/expired keys).
 	KeyPruner KeyPrunerConfig `json:"keyPruner" yaml:"keyPruner"`
 
-	// Oidc corresponds to the JSON schema field "oidc".
+	// Oidc contains OIDC authentication provider configuration.
 	Oidc OIDC `json:"oidc" yaml:"oidc"`
 
-	// Saml corresponds to the JSON schema field "saml".
+	// Saml contains SAML authentication provider configuration.
 	Saml SAML `json:"saml" yaml:"saml"`
 
-	// Suspended corresponds to the JSON schema field "suspended".
+	// Suspended is whether the Omni account is suspended. If true, Omni will run on
+	// read-only mode with a warning banner displayed in the UI.
 	Suspended *bool `json:"suspended,omitempty" yaml:"suspended,omitempty"`
 
-	// Webauthn corresponds to the JSON schema field "webauthn".
+	// Webauthn contains WebAuthn authentication configuration. It is NOT SUPPORTED as
+	// it is currently unimplemented.
 	Webauthn WebAuthn `json:"webauthn" yaml:"webauthn"`
 }
 
 type Auth0 struct {
-	// ClientID corresponds to the JSON schema field "clientID".
+	// ClientID is the Auth0 client ID.
 	ClientID *string `json:"clientID,omitempty" yaml:"clientID,omitempty"`
 
-	// Domain corresponds to the JSON schema field "domain".
+	// Domain is the Auth0 domain.
 	Domain *string `json:"domain,omitempty" yaml:"domain,omitempty"`
 
-	// Enabled corresponds to the JSON schema field "enabled".
+	// Enabled controls whether the Auth0 authentication provider is enabled. Once set
+	// to true, it cannot be set back to false.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// InitialUsers corresponds to the JSON schema field "initialUsers".
+	// InitialUsers is a list of emails which should be created as admins when Omni is
+	// run for the first time. DEPRECATED: use params.auth.initialUsers instead, this
+	// will be removed.
 	InitialUsers []string `json:"initialUsers,omitempty" yaml:"initialUsers,omitempty"`
 
-	// UseFormData corresponds to the JSON schema field "useFormData".
+	// UseFormData controls whether the Auth0 provider should use form data for
+	// authentication requests. When true, data to the token endpoint is transmitted
+	// as x-www-form-urlencoded data instead of JSON.
 	UseFormData *bool `json:"useFormData,omitempty" yaml:"useFormData,omitempty"`
 }
 
 type BoltDB struct {
-	// Path corresponds to the JSON schema field "path".
+	// Path is the path where the BoltDB database file is stored.
 	Path *string `json:"path,omitempty" yaml:"path,omitempty"`
 }
 
 type Debug struct {
-	// Pprof corresponds to the JSON schema field "pprof".
+	// Pprof contains pprof profiling configuration.
 	Pprof DebugPprof `json:"pprof" yaml:"pprof"`
 
-	// Server corresponds to the JSON schema field "server".
+	// Server contains debug server configuration.
 	Server DebugServer `json:"server" yaml:"server"`
 }
 
 type DebugPprof struct {
-	// Endpoint corresponds to the JSON schema field "endpoint".
+	// Endpoint is the network endpoint the pprof server listens on. It is in the form
+	// "[host]:port".
 	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 }
 
 type DebugServer struct {
-	// Endpoint corresponds to the JSON schema field "endpoint".
+	// Endpoint is the network endpoint the debug server listens on. It is in the form
+	// "[host]:port".
 	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 }
 
-// Embeds Service
+// DevServerProxyService contains development server proxy service configuration.
 type DevServerProxyService struct {
-	// AdvertisedURL corresponds to the JSON schema field "advertisedURL".
+	// AdvertisedURL is the URL that the dev server proxy service advertises to
+	// clients. It is in the form "http(s)://host:port". When not set, it is generated
+	// by the system based on the endpoint and TLS cert/key configuration.
 	AdvertisedURL *string `json:"advertisedURL,omitempty" yaml:"advertisedURL,omitempty"`
 
-	// CertFile corresponds to the JSON schema field "certFile".
+	// CertFile is the path to the TLS certificate file for the dev server proxy
+	// service.
 	CertFile *string `json:"certFile,omitempty" yaml:"certFile,omitempty"`
 
-	// Endpoint corresponds to the JSON schema field "endpoint".
+	// Endpoint is the network endpoint the dev server proxy service listens on. It is
+	// in the form "host:port".
 	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 
-	// KeyFile corresponds to the JSON schema field "keyFile".
+	// KeyFile is the path to the TLS key file for the dev server proxy service.
 	KeyFile *string `json:"keyFile,omitempty" yaml:"keyFile,omitempty"`
 
-	// ProxyTo corresponds to the JSON schema field "proxyTo".
+	// ProxyTo is the address to which the dev server proxy service forwards incoming
+	// requests. It is in the form "http(s)://host:port".
 	ProxyTo *string `json:"proxyTo,omitempty" yaml:"proxyTo,omitempty"`
 }
 
 type EmbeddedDiscoveryService struct {
-	// Enabled corresponds to the JSON schema field "enabled".
+	// Enabled controls whether the embedded discovery service is enabled. It binds
+	// only to the SideroLink WireGuard address.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// LogLevel corresponds to the JSON schema field "logLevel".
+	// LogLevel is the logging level used by the embedded discovery service.
 	LogLevel *string `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
 
-	// Port corresponds to the JSON schema field "port".
+	// Port is the network port the embedded discovery service listens on.
 	Port *int `json:"port,omitempty" yaml:"port,omitempty"`
 
-	// SnapshotsEnabled corresponds to the JSON schema field "snapshotsEnabled".
+	// SnapshotsEnabled controls whether the embedded discovery service periodically
+	// persists snapshots of its state to disk.
 	SnapshotsEnabled *bool `json:"snapshotsEnabled,omitempty" yaml:"snapshotsEnabled,omitempty"`
 
-	// SnapshotsInterval corresponds to the JSON schema field "snapshotsInterval".
+	// SnapshotsInterval is the interval at which the embedded discovery service
+	// persists snapshots of its state.
 	SnapshotsInterval *time.Duration `json:"snapshotsInterval,omitempty" yaml:"snapshotsInterval,omitempty"`
 
-	// SnapshotsPath corresponds to the JSON schema field "snapshotsPath".
+	// SnapshotsPath is the path where the embedded discovery service persists its
+	// snapshots. DEPRECATED: they are now stored in SQLite, and this parameter exists
+	// for the migration purposes only, and will be removed.
 	SnapshotsPath *string `json:"snapshotsPath,omitempty" yaml:"snapshotsPath,omitempty"`
 
-	// SqliteTimeout corresponds to the JSON schema field "sqliteTimeout".
+	// SqliteTimeout is the timeout for SQLite operations used by the embedded
+	// discovery service.
 	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty" yaml:"sqliteTimeout,omitempty"`
 }
 
 type EtcdBackup struct {
-	// DownloadLimitMbps corresponds to the JSON schema field "downloadLimitMbps".
+	// DownloadLimitMbps is the optional download bandwidth limit for etcd backups
+	// from remote storage in megabits per second. If not specified or is set to 0, it
+	// is unlimited.
 	DownloadLimitMbps *uint64 `json:"downloadLimitMbps,omitempty" yaml:"downloadLimitMbps,omitempty"`
 
-	// Jitter corresponds to the JSON schema field "jitter".
+	// Jitter is the jitter for etcd backups, randomly added/subtracted from the
+	// interval between automatic etcd backups.
 	Jitter *time.Duration `json:"jitter,omitempty" yaml:"jitter,omitempty"`
 
-	// LocalPath corresponds to the JSON schema field "localPath".
+	// LocalPath is the local path where etcd backups are stored before being uploaded
+	// to remote storage. Mutually exclusive with s3Enabled (.s3Enabled).
 	LocalPath *string `json:"localPath,omitempty" yaml:"localPath,omitempty"`
 
-	// MaxInterval corresponds to the JSON schema field "maxInterval".
+	// MaxInterval is the maximum interval between two etcd backups for a cluster.
 	MaxInterval *time.Duration `json:"maxInterval,omitempty" yaml:"maxInterval,omitempty"`
 
-	// MinInterval corresponds to the JSON schema field "minInterval".
+	// MinInterval is the minimum interval between two etcd backups for a cluster.
 	MinInterval *time.Duration `json:"minInterval,omitempty" yaml:"minInterval,omitempty"`
 
-	// S3Enabled corresponds to the JSON schema field "s3Enabled".
+	// S3Enabled controls whether an S3-compatible storage is used for etcd backups.
+	// Mutually exclusive with localPath (.localPath).
 	S3Enabled *bool `json:"s3Enabled,omitempty" yaml:"s3Enabled,omitempty"`
 
-	// TickInterval corresponds to the JSON schema field "tickInterval".
+	// TickInterval is the interval between etcd backups ticks (controller events to
+	// check if any cluster needs to be backed up)
 	TickInterval *time.Duration `json:"tickInterval,omitempty" yaml:"tickInterval,omitempty"`
 
-	// UploadLimitMbps corresponds to the JSON schema field "uploadLimitMbps".
+	// UploadLimitMbps is the optional upload bandwidth limit for etcd backups to
+	// remote storage in megabits per second. If not specified or is set to 0, it is
+	// unlimited.
 	UploadLimitMbps *uint64 `json:"uploadLimitMbps,omitempty" yaml:"uploadLimitMbps,omitempty"`
 }
 
 type EtcdParams struct {
-	// CaFile corresponds to the JSON schema field "caFile".
+	// CaFile is the path to the CA certificate file for etcd client connections.
 	CaFile *string `json:"caFile,omitempty" yaml:"caFile,omitempty"`
 
-	// CertFile corresponds to the JSON schema field "certFile".
+	// CertFile is the path to the TLS certificate file for etcd client connections.
 	CertFile *string `json:"certFile,omitempty" yaml:"certFile,omitempty"`
 
-	// DialKeepAliveTime corresponds to the JSON schema field "dialKeepAliveTime".
+	// DialKeepAliveTime is the keep-alive time for etcd client connections.
 	DialKeepAliveTime *time.Duration `json:"dialKeepAliveTime,omitempty" yaml:"dialKeepAliveTime,omitempty"`
 
-	// DialKeepAliveTimeout corresponds to the JSON schema field
-	// "dialKeepAliveTimeout".
+	// DialKeepAliveTimeout is the keep-alive timeout for etcd client connections.
 	DialKeepAliveTimeout *time.Duration `json:"dialKeepAliveTimeout,omitempty" yaml:"dialKeepAliveTimeout,omitempty"`
 
-	// Embedded corresponds to the JSON schema field "embedded".
+	// Embedded controls whether to use embedded etcd server as the storage backend.
 	Embedded *bool `json:"embedded,omitempty" yaml:"embedded,omitempty"`
 
-	// EmbeddedDBPath corresponds to the JSON schema field "embeddedDBPath".
+	// EmbeddedDBPath is the path where the embedded etcd database files are stored.
 	EmbeddedDBPath *string `json:"embeddedDBPath,omitempty" yaml:"embeddedDBPath,omitempty"`
 
-	// EmbeddedUnsafeFsync corresponds to the JSON schema field "embeddedUnsafeFsync".
+	// EmbeddedUnsafeFsync controls whether the embedded etcd server should skip fsync
+	// calls for improved performance at the cost of durability.
 	EmbeddedUnsafeFsync *bool `json:"embeddedUnsafeFsync,omitempty" yaml:"embeddedUnsafeFsync,omitempty"`
 
-	// Endpoints corresponds to the JSON schema field "endpoints".
+	// Endpoints is the list of etcd endpoints. Only used when external etcd is used
+	// (i.e., embedded is false).
 	Endpoints []string `json:"endpoints,omitempty" yaml:"endpoints,omitempty" merge:"replace"`
 
-	// KeyFile corresponds to the JSON schema field "keyFile".
+	// KeyFile is the path to the TLS key file for etcd client connections.
 	KeyFile *string `json:"keyFile,omitempty" yaml:"keyFile,omitempty"`
 
-	// PrivateKeySource corresponds to the JSON schema field "privateKeySource".
+	// PrivateKeySource is the source of the private key for the embedded etcd server.
+	// It is used for decrypting master key slot.
 	PrivateKeySource *string `json:"privateKeySource" yaml:"privateKeySource"`
 
-	// PublicKeyFiles corresponds to the JSON schema field "publicKeyFiles".
+	// PublicKeyFiles is the list of public key files for the embedded etcd server.
+	// They are used for encrypting keys slots.
 	PublicKeyFiles []string `json:"publicKeyFiles,omitempty" yaml:"publicKeyFiles,omitempty" merge:"replace"`
 
-	// RunElections corresponds to the JSON schema field "runElections".
+	// RunElections controls whether the embedded etcd server should run leader
+	// elections. Should be false for single-node Omni installations.
 	RunElections *bool `json:"runElections,omitempty" yaml:"runElections,omitempty"`
 }
 
 type Features struct {
-	// DisableControllerRuntimeCache corresponds to the JSON schema field
-	// "disableControllerRuntimeCache".
+	// DisableControllerRuntimeCache controls whether the controller-runtime cache is
+	// disabled. When disabled, etcd is accessed for all reads. Recommended to be
+	// enabled, unless debugging specific issues.
 	DisableControllerRuntimeCache *bool `json:"disableControllerRuntimeCache,omitempty" yaml:"disableControllerRuntimeCache,omitempty"`
 
-	// EnableBreakGlassConfigs corresponds to the JSON schema field
-	// "enableBreakGlassConfigs".
+	// EnableBreakGlassConfigs controls whether break-glass machine configurations are
+	// enabled. Break-glass configs allow direct access to the machines without going
+	// through Omni. Recommended to be disabled.
 	EnableBreakGlassConfigs *bool `json:"enableBreakGlassConfigs,omitempty" yaml:"enableBreakGlassConfigs,omitempty"`
 
-	// EnableClusterImport corresponds to the JSON schema field "enableClusterImport".
+	// EnableClusterImport controls whether the cluster import feature is enabled.
+	// When enabled, users can import existing Talos clusters into Omni.
 	EnableClusterImport *bool `json:"enableClusterImport,omitempty" yaml:"enableClusterImport,omitempty"`
 
-	// EnableConfigDataCompression corresponds to the JSON schema field
-	// "enableConfigDataCompression".
+	// EnableConfigDataCompression controls whether machine configuration data stored
+	// in etcd is compressed to save space.
 	EnableConfigDataCompression *bool `json:"enableConfigDataCompression,omitempty" yaml:"enableConfigDataCompression,omitempty"`
 
-	// EnableTalosPreReleaseVersions corresponds to the JSON schema field
-	// "enableTalosPreReleaseVersions".
+	// EnableTalosPreReleaseVersions controls whether pre-release Talos versions
+	// (e.g., release candidates, betas) are available for selection when
+	// creating/upgrading clusters.
 	EnableTalosPreReleaseVersions *bool `json:"enableTalosPreReleaseVersions,omitempty" yaml:"enableTalosPreReleaseVersions,omitempty"`
 }
 
 type InitialServiceAccount struct {
-	// Enabled corresponds to the JSON schema field "enabled".
+	// Enabled controls whether the initial service account is created. This happens
+	// only on the first start of Omni.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// KeyPath corresponds to the JSON schema field "keyPath".
+	// KeyPath is the path where the initial service account key is stored.
 	KeyPath *string `json:"keyPath,omitempty" yaml:"keyPath,omitempty"`
 
-	// Lifetime corresponds to the JSON schema field "lifetime".
+	// Lifetime is the lifetime of the initial service account key.
 	Lifetime *time.Duration `json:"lifetime,omitempty" yaml:"lifetime,omitempty"`
 
-	// Name corresponds to the JSON schema field "name".
+	// Name is the name of the initial service account.
 	Name *string `json:"name,omitempty" yaml:"name,omitempty"`
 
-	// Role corresponds to the JSON schema field "role".
+	// Role is the role assigned to the initial service account.
 	Role *string `json:"role,omitempty" yaml:"role,omitempty"`
 }
 
 type KeyPrunerConfig struct {
-	// Interval corresponds to the JSON schema field "interval".
+	// Interval is the interval at which the key pruner runs.
 	Interval *time.Duration `json:"interval,omitempty" yaml:"interval,omitempty"`
 }
 
 type KubernetesProxyService struct {
-	// AdvertisedURL corresponds to the JSON schema field "advertisedURL".
+	// AdvertisedURL is the URL that the Kubernetes proxy service advertises to
+	// clients. It is in the form "https://host:port". When not set, it is generated
+	// by the system based on the endpoint and TLS cert/key configuration.
 	AdvertisedURL *string `json:"advertisedURL,omitempty" yaml:"advertisedURL,omitempty"`
 
-	// CertFile corresponds to the JSON schema field "certFile".
+	// CertFile is the path to the TLS certificate file for the Kubernetes proxy
+	// service.
 	CertFile *string `json:"certFile,omitempty" yaml:"certFile,omitempty"`
 
-	// Endpoint corresponds to the JSON schema field "endpoint".
+	// Endpoint is the network endpoint the Kubernetes proxy service listens on. It is
+	// in the form "host:port".
 	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 
-	// KeyFile corresponds to the JSON schema field "keyFile".
+	// KeyFile is the path to the TLS key file for the Kubernetes proxy service.
 	KeyFile *string `json:"keyFile,omitempty" yaml:"keyFile,omitempty"`
 }
 
 type LoadBalancerService struct {
-	// DialTimeout corresponds to the JSON schema field "dialTimeout".
+	// DialTimeout is the timeout used by the load balancer service when dialing
+	// backend control plane nodes.
 	DialTimeout *time.Duration `json:"dialTimeout,omitempty" yaml:"dialTimeout,omitempty"`
 
-	// HealthCheckInterval corresponds to the JSON schema field "healthCheckInterval".
+	// HealthCheckInterval is the interval between health checks performed by the load
+	// balancer service on backend control plane nodes.
 	HealthCheckInterval *time.Duration `json:"healthCheckInterval,omitempty" yaml:"healthCheckInterval,omitempty"`
 
-	// HealthCheckTimeout corresponds to the JSON schema field "healthCheckTimeout".
+	// HealthCheckTimeout is the timeout for health checks performed by the load
+	// balancer service on backend control plane nodes.
 	HealthCheckTimeout *time.Duration `json:"healthCheckTimeout,omitempty" yaml:"healthCheckTimeout,omitempty"`
 
-	// KeepAlivePeriod corresponds to the JSON schema field "keepAlivePeriod".
+	// KeepAlivePeriod is the period used by the load balancer service for keep-alive
+	// pings to backend control plane nodes.
 	KeepAlivePeriod *time.Duration `json:"keepAlivePeriod,omitempty" yaml:"keepAlivePeriod,omitempty"`
 
-	// MaxPort corresponds to the JSON schema field "maxPort".
+	// MaxPort is the maximum port number that can be picked by the load balancer
+	// service when allocating a new LB port to a cluster.
 	MaxPort *int `json:"maxPort,omitempty" yaml:"maxPort,omitempty"`
 
-	// MinPort corresponds to the JSON schema field "minPort".
+	// MinPort is the minimum port number that can be picked by the load balancer
+	// service when allocating a new LB port to a cluster.
 	MinPort *int `json:"minPort,omitempty" yaml:"minPort,omitempty"`
 
-	// TcpUserTimeout corresponds to the JSON schema field "tcpUserTimeout".
+	// TCPUserTimeout is the TCP user timeout value set on connections between the
+	// load balancer and backend control plane nodes.
 	TcpUserTimeout *time.Duration `json:"tcpUserTimeout,omitempty" yaml:"tcpUserTimeout,omitempty"`
 }
 
 type LocalResourceService struct {
-	// Enabled corresponds to the JSON schema field "enabled".
+	// Enabled controls whether the local resource service is enabled.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// Port corresponds to the JSON schema field "port".
+	// Port is the network port the local resource service listens on.
 	Port *int `json:"port,omitempty" yaml:"port,omitempty"`
 }
 
 type Logs struct {
-	// Audit corresponds to the JSON schema field "audit".
+	// Audit contains audit logs configuration.
 	Audit LogsAudit `json:"audit" yaml:"audit"`
 
-	// Machine corresponds to the JSON schema field "machine".
+	// Machine contains machine logs configuration.
 	Machine LogsMachine `json:"machine" yaml:"machine"`
 
-	// ResourceLogger corresponds to the JSON schema field "resourceLogger".
+	// ResourceLogger contains resource logger configuration. It logs the diffs for
+	// the watched resources when they are updated.
 	ResourceLogger ResourceLoggerConfig `json:"resourceLogger" yaml:"resourceLogger"`
 
-	// Stripe corresponds to the JSON schema field "stripe".
+	// Stripe contains Stripe logs configuration.
 	Stripe LogsStripe `json:"stripe" yaml:"stripe"`
 }
 
 type LogsAudit struct {
-	// Enabled corresponds to the JSON schema field "enabled".
+	// Enabled controls whether audit logging is enabled.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// Path corresponds to the JSON schema field "path".
+	// Path is the path where audit logs are stored. DEPRECATED: they are now stored
+	// in SQLite, and this parameter exists for the migration purposes only, and will
+	// be removed.
 	Path *string `json:"path,omitempty" yaml:"path,omitempty"`
 
-	// SqliteTimeout corresponds to the JSON schema field "sqliteTimeout".
+	// SqliteTimeout is the timeout for SQLite operations used for audit logs storage.
 	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty" yaml:"sqliteTimeout,omitempty"`
 }
 
 type LogsMachine struct {
-	// BufferInitialCapacity corresponds to the JSON schema field
-	// "bufferInitialCapacity".
+	// BufferInitialCapacity is the initial capacity of the in-memory circular buffer
+	// for machine logs. DEPRECATED: they are now stored in SQLite, and this parameter
+	// exists for the migration purposes only, and will be removed.
 	BufferInitialCapacity *int `json:"bufferInitialCapacity,omitempty" yaml:"bufferInitialCapacity,omitempty"`
 
-	// BufferMaxCapacity corresponds to the JSON schema field "bufferMaxCapacity".
+	// BufferMaxCapacity is the maximum capacity of the in-memory circular buffer for
+	// machine logs. DEPRECATED: they are now stored in SQLite, and this parameter
+	// exists for the migration purposes only, and will be removed.
 	BufferMaxCapacity *int `json:"bufferMaxCapacity,omitempty" yaml:"bufferMaxCapacity,omitempty"`
 
-	// BufferSafetyGap corresponds to the JSON schema field "bufferSafetyGap".
+	// BufferSafetyGap is the safety gap to avoid overwriting logs that are being read
+	// while writing new logs into the circular buffer. DEPRECATED: they are now
+	// stored in SQLite, and this parameter exists for the migration purposes only,
+	// and will be removed.
 	BufferSafetyGap *int `json:"bufferSafetyGap,omitempty" yaml:"bufferSafetyGap,omitempty"`
 
-	// Storage corresponds to the JSON schema field "storage".
+	// Storage contains configuration for machine logs storage.
 	Storage LogsMachineStorage `json:"storage" yaml:"storage"`
 }
 
 type LogsMachineStorage struct {
-	// CleanupInterval corresponds to the JSON schema field "cleanupInterval".
+	// CleanupInterval is the interval at which old machine logs are cleaned up.
 	CleanupInterval *time.Duration `json:"cleanupInterval,omitempty" yaml:"cleanupInterval,omitempty"`
 
-	// CleanupOlderThan corresponds to the JSON schema field "cleanupOlderThan".
+	// CleanupOlderThan is the duration after which machine logs are considered old
+	// and eligible for cleanup.
 	CleanupOlderThan *time.Duration `json:"cleanupOlderThan,omitempty" yaml:"cleanupOlderThan,omitempty"`
 
-	// CleanupProbability corresponds to the JSON schema field "cleanupProbability".
+	// CleanupProbability is the probability of triggering the cleanup on each log
+	// write for that machine.
 	CleanupProbability *float64 `json:"cleanupProbability,omitempty" yaml:"cleanupProbability,omitempty"`
 
-	// Enabled corresponds to the JSON schema field "enabled".
+	// Enabled controls whether machine logs storage is enabled. DEPRECATED: they are
+	// now stored in SQLite, and this parameter exists for the migration purposes
+	// only, and will be removed.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// FlushJitter corresponds to the JSON schema field "flushJitter".
+	// FlushJitter is the jitter added to the flush period to avoid thundering herd
+	// problem. DEPRECATED: they are now stored in SQLite, and this parameter exists
+	// for the migration purposes only, and will be removed.
 	FlushJitter *float64 `json:"flushJitter,omitempty" yaml:"flushJitter,omitempty"`
 
-	// FlushPeriod corresponds to the JSON schema field "flushPeriod".
+	// FlushPeriod is the period at which machine logs are flushed to storage.
+	// DEPRECATED: they are now stored in SQLite, and this parameter exists for the
+	// migration purposes only, and will be removed.
 	FlushPeriod *time.Duration `json:"flushPeriod,omitempty" yaml:"flushPeriod,omitempty"`
 
-	// MaxLinesPerMachine corresponds to the JSON schema field "maxLinesPerMachine".
+	// MaxLinesPerMachine is the maximum number of log lines to keep per machine.
 	MaxLinesPerMachine *int `json:"maxLinesPerMachine,omitempty" yaml:"maxLinesPerMachine,omitempty"`
 
-	// NumCompressedChunks corresponds to the JSON schema field "numCompressedChunks".
+	// NumCompressedChunks is the number of compressed chunks to keep in memory before
+	// flushing to storage. DEPRECATED: they are now stored in SQLite, and this
+	// parameter exists for the migration purposes only, and will be removed.
 	NumCompressedChunks *int `json:"numCompressedChunks,omitempty" yaml:"numCompressedChunks,omitempty"`
 
-	// Path corresponds to the JSON schema field "path".
+	// Path is the path where machine logs are stored. DEPRECATED: they are now stored
+	// in SQLite, and this parameter exists for the migration purposes only, and will
+	// be removed.
 	Path *string `json:"path,omitempty" yaml:"path,omitempty"`
 
-	// SqliteTimeout corresponds to the JSON schema field "sqliteTimeout".
+	// SqliteTimeout is the timeout for SQLite operations used for machine logs
+	// storage.
 	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty" yaml:"sqliteTimeout,omitempty"`
 }
 
 type LogsStripe struct {
-	// Enabled corresponds to the JSON schema field "enabled".
+	// Enabled controls whether Stripe logging is enabled.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// MinCommit corresponds to the JSON schema field "minCommit".
+	// MinCommit is the minimum number of machines committed for billing purposes,
+	// reported to Stripe for the given account.
 	MinCommit *uint32 `json:"minCommit,omitempty" yaml:"minCommit,omitempty"`
 }
 
 type OIDC struct {
-	// AllowUnverifiedEmail corresponds to the JSON schema field
-	// "allowUnverifiedEmail".
+	// AllowUnverifiedEmail controls whether users with unverified emails (without
+	// email_verified claim) are allowed to authenticate.
 	AllowUnverifiedEmail *bool `json:"allowUnverifiedEmail,omitempty" yaml:"allowUnverifiedEmail,omitempty"`
 
-	// ClientID corresponds to the JSON schema field "clientID".
+	// ClientID is the OIDC client ID.
 	ClientID *string `json:"clientID,omitempty" yaml:"clientID,omitempty"`
 
-	// ClientSecret corresponds to the JSON schema field "clientSecret".
+	// ClientSecret is the OIDC client secret.
 	ClientSecret *string `json:"clientSecret,omitempty" yaml:"clientSecret,omitempty"`
 
-	// Enabled corresponds to the JSON schema field "enabled".
+	// Enabled controls whether the OIDC authentication provider is enabled.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// LogoutURL corresponds to the JSON schema field "logoutURL".
+	// LogoutURL is the OIDC logout URL.
 	LogoutURL *string `json:"logoutURL,omitempty" yaml:"logoutURL,omitempty"`
 
-	// ProviderURL corresponds to the JSON schema field "providerURL".
+	// ProviderURL is the OIDC provider URL.
 	ProviderURL *string `json:"providerURL,omitempty" yaml:"providerURL,omitempty"`
 
-	// Scopes corresponds to the JSON schema field "scopes".
+	// Scopes is the list of OIDC scopes to request during authentication.
 	Scopes []string `json:"scopes,omitempty" yaml:"scopes,omitempty"`
 }
 
+// Params is the Omni configuration root object.
 type Params struct {
-	// Account corresponds to the JSON schema field "account".
+	// Account contains account-related configuration.
 	Account Account `json:"account" yaml:"account"`
 
-	// Auth corresponds to the JSON schema field "auth".
+	// Auth contains authentication-related configuration.
 	Auth Auth `json:"auth" yaml:"auth"`
 
-	// Debug corresponds to the JSON schema field "debug".
+	// Debug contains debug-related configuration.
 	Debug Debug `json:"debug" yaml:"debug"`
 
-	// EtcdBackup corresponds to the JSON schema field "etcdBackup".
+	// EtcdBackup contains etcd backup configuration for the clusters on Omni.
 	EtcdBackup EtcdBackup `json:"etcdBackup" yaml:"etcdBackup"`
 
-	// Features corresponds to the JSON schema field "features".
+	// Features contains feature flags to enable/disable various Omni features.
 	Features Features `json:"features" yaml:"features"`
 
-	// Logs corresponds to the JSON schema field "logs".
+	// Logs contains logging-related configuration.
 	Logs Logs `json:"logs" yaml:"logs"`
 
-	// Registries corresponds to the JSON schema field "registries".
+	// Registries contains container image registries configuration.
 	Registries Registries `json:"registries" yaml:"registries"`
 
-	// Services corresponds to the JSON schema field "services".
+	// Services contains configuration for various services run by Omni.
 	Services Services `json:"services" yaml:"services"`
 
-	// Storage corresponds to the JSON schema field "storage".
+	// Storage contains persistent storage related configuration.
 	Storage Storage `json:"storage" yaml:"storage"`
 }
 
 type Registries struct {
-	// ImageFactoryBaseURL corresponds to the JSON schema field "imageFactoryBaseURL".
+	// ImageFactoryBaseURL is the base URL of the Image Factory service used to build
+	// custom machine images.
 	ImageFactoryBaseURL *string `json:"imageFactoryBaseURL" yaml:"imageFactoryBaseURL"`
 
-	// ImageFactoryPXEBaseURL corresponds to the JSON schema field
-	// "imageFactoryPXEBaseURL".
+	// ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used
+	// to build custom PXE boot images.
 	ImageFactoryPXEBaseURL *string `json:"imageFactoryPXEBaseURL,omitempty" yaml:"imageFactoryPXEBaseURL,omitempty"`
 
-	// Kubernetes corresponds to the JSON schema field "kubernetes".
+	// Kubernetes is the Kubernetes container registry configuration.
 	Kubernetes *string `json:"kubernetes" yaml:"kubernetes"`
 
-	// Mirrors corresponds to the JSON schema field "mirrors".
+	// Mirrors is the list of container image registry mirrors. Used mainly for the
+	// development purposes. It must be in the format: <registry host>=<mirror URL>
 	Mirrors []string `json:"mirrors,omitempty" yaml:"mirrors,omitempty" merge:"replace"`
 
-	// Talos corresponds to the JSON schema field "talos".
+	// Talos is the Talos installer registry configuration.
 	Talos *string `json:"talos" yaml:"talos"`
 }
 
 type ResourceLoggerConfig struct {
-	// LogLevel corresponds to the JSON schema field "logLevel".
+	// LogLevel is the logging level used by the resource logger.
 	LogLevel *string `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
 
-	// Types corresponds to the JSON schema field "types".
+	// Types is the list of resource types to be logged by the resource logger.
 	Types []string `json:"types,omitempty" yaml:"types,omitempty" merge:"replace"`
 }
 
 type SAML struct {
-	// AttributeRules corresponds to the JSON schema field "attributeRules".
+	// AttributeRules defines additional identity, fullname, firstname and lastname
+	// mappings.
 	AttributeRules SAMLAttributeRules `json:"attributeRules" yaml:"attributeRules"`
 
-	// Enabled corresponds to the JSON schema field "enabled".
+	// Enabled controls whether the SAML authentication provider is enabled.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// LabelRules corresponds to the JSON schema field "labelRules".
+	// LabelRules defines mapping of SAML assertion attributes into Omni identity
+	// labels.
 	LabelRules SAMLLabelRules `json:"labelRules" yaml:"labelRules"`
 
-	// Metadata corresponds to the JSON schema field "metadata".
+	// Metadata is the SAML provider metadata URL. Mutually exclusive with URL (.url).
 	Metadata *string `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
-	// NameIDFormat corresponds to the JSON schema field "nameIDFormat".
+	// NameIDFormat is the SAML NameID format to be used.
 	NameIDFormat *string `json:"nameIDFormat,omitempty" yaml:"nameIDFormat,omitempty"`
 
-	// Url corresponds to the JSON schema field "url".
+	// URL is the SAML provider URL. Mutually exclusive with metadata URL (.metadata).
 	Url *string `json:"url,omitempty" yaml:"url,omitempty"`
 }
 
+// AttributeRules defines additional identity, fullname, firstname and lastname
+// mappings.
 type SAMLAttributeRules map[string]string
 
+// LabelRules defines mapping of SAML assertion attributes into Omni identity
+// labels.
 type SAMLLabelRules map[string]string
 
 type SQLite struct {
-	// ExperimentalBaseParams corresponds to the JSON schema field
-	// "experimentalBaseParams".
+	// ExperimentalBaseParams contains the base parameters to be used when opening the
+	// SQLite database connection. This can cause data corruption if set incorrectly,
+	// modify at your own risk. This flag is experimental and may be removed in future
+	// versions. It must not start with a question mark (?).
 	ExperimentalBaseParams *string `json:"experimentalBaseParams,omitempty" yaml:"experimentalBaseParams,omitempty"`
 
-	// ExtraParams corresponds to the JSON schema field "extraParams".
+	// ExtraParams contains the extra parameters to be used when opening the SQLite
+	// database connection. This can cause data corruption if set incorrectly, modify
+	// at your own risk. It must not start with an ampersand (&).
 	ExtraParams *string `json:"extraParams,omitempty" yaml:"extraParams,omitempty"`
 
-	// Path corresponds to the JSON schema field "path".
+	// Path is the path where the SQLite database file is stored.
 	Path *string `json:"path" yaml:"path"`
 }
 
 type Service struct {
-	// AdvertisedURL corresponds to the JSON schema field "advertisedURL".
+	// AdvertisedURL is the URL that the service advertises to clients. It is in the
+	// form "http(s)://host:port". When not set, it is generated by the system based
+	// on the endpoint and TLS cert/key configuration.
 	AdvertisedURL *string `json:"advertisedURL,omitempty" yaml:"advertisedURL,omitempty"`
 
-	// CertFile corresponds to the JSON schema field "certFile".
+	// CertFile is the path to the TLS certificate file for the service.
 	CertFile *string `json:"certFile,omitempty" yaml:"certFile,omitempty"`
 
-	// Endpoint corresponds to the JSON schema field "endpoint".
+	// Endpoint is the network endpoint the service listens on. It is in the form
+	// "host:port".
 	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 
-	// KeyFile corresponds to the JSON schema field "keyFile".
+	// KeyFile is the path to the TLS key file for the service.
 	KeyFile *string `json:"keyFile,omitempty" yaml:"keyFile,omitempty"`
 }
 
 type Services struct {
-	// Api corresponds to the JSON schema field "api".
+	// Api contains API/UI service configuration.
 	Api Service `json:"api" yaml:"api"`
 
-	// DevServerProxy corresponds to the JSON schema field "devServerProxy".
+	// DevServerProxy is the node dev server proxy service configuration. It exists
+	// for the development purposes only.
 	DevServerProxy DevServerProxyService `json:"devServerProxy" yaml:"devServerProxy"`
 
-	// EmbeddedDiscoveryService corresponds to the JSON schema field
-	// "embeddedDiscoveryService".
+	// EmbeddedDiscoveryService contains embedded discovery service configuration.
+	// Omni can run an embedded discovery service to allow nodes to discover each
+	// other, instead of them resorting to discovery.talos.dev.
 	EmbeddedDiscoveryService EmbeddedDiscoveryService `json:"embeddedDiscoveryService" yaml:"embeddedDiscoveryService"`
 
-	// KubernetesProxy corresponds to the JSON schema field "kubernetesProxy".
+	// KubernetesProxy contains Kubernetes proxy service configuration. It is the
+	// service responsible for proxying Kubernetes API requests to the clusters.
 	KubernetesProxy KubernetesProxyService `json:"kubernetesProxy" yaml:"kubernetesProxy"`
 
-	// LoadBalancer corresponds to the JSON schema field "loadBalancer".
+	// LoadBalancer contains load balancer service configuration. It is responsible
+	// for creating and managing load balancers of the clusters' control planes.
 	LoadBalancer LoadBalancerService `json:"loadBalancer" yaml:"loadBalancer"`
 
-	// LocalResourceService corresponds to the JSON schema field
-	// "localResourceService".
+	// LocalResourceService contains local resource service configuration. Omni runs a
+	// local service to allow access to its resources without authorization checks. It
+	// is primarily used by infra providers (e.g., sidecars).
 	LocalResourceService LocalResourceService `json:"localResourceService" yaml:"localResourceService"`
 
-	// Config for MachineAPI
+	// MachineAPI contains SideroLink API service configuration. It is responsible for
+	// provisioning SideroLink connections by validating node join requests and
+	// issuing machine join tokens.
 	MachineAPI Service `json:"machineAPI" yaml:"machineAPI"`
 
-	// Metrics corresponds to the JSON schema field "metrics".
+	// Metrics contains metrics service configuration.
 	Metrics Service `json:"metrics" yaml:"metrics"`
 
-	// Siderolink corresponds to the JSON schema field "siderolink".
+	// Siderolink contains SideroLink service configuration. It is the service
+	// responsible for node<>Omni connectivity via WireGuard.
 	Siderolink SiderolinkService `json:"siderolink" yaml:"siderolink"`
 
-	// WorkloadProxy corresponds to the JSON schema field "workloadProxy".
+	// WorkloadProxy contains workload proxy service configuration. It is responsible
+	// for exposing workloads run on the clusters via Omni to the outside world.
 	WorkloadProxy WorkloadProxy `json:"workloadProxy" yaml:"workloadProxy"`
 }
 
 type SiderolinkService struct {
-	// DisableLastEndpoint corresponds to the JSON schema field "disableLastEndpoint".
+	// DisableLastEndpoint controls whether the SideroLink service should stop using
+	// the last known endpoint of a node when it becomes unreachable via WireGuard.
 	DisableLastEndpoint *bool `json:"disableLastEndpoint,omitempty" yaml:"disableLastEndpoint,omitempty"`
 
-	// EventSinkPort corresponds to the JSON schema field "eventSinkPort".
+	// EventSinkPort is the port to be used by the nodes to publish their events over
+	// SideroLink to Omni.
 	EventSinkPort *int `json:"eventSinkPort,omitempty" yaml:"eventSinkPort,omitempty"`
 
-	// JoinTokensMode corresponds to the JSON schema field "joinTokensMode".
+	// JoinTokensMode configures how machine join tokens are generated and used. Set
+	// to strict to use the secure join tokens mode.
 	JoinTokensMode *SiderolinkServiceJoinTokensMode `json:"joinTokensMode,omitempty" yaml:"joinTokensMode,omitempty"`
 
-	// LogServerPort corresponds to the JSON schema field "logServerPort".
+	// LogServerPort is the port to be used by the nodes to send their logs over
+	// SideroLink to Omni.
 	LogServerPort *int `json:"logServerPort,omitempty" yaml:"logServerPort,omitempty"`
 
-	// UseGRPCTunnel corresponds to the JSON schema field "useGRPCTunnel".
+	// UseGRPCTunnel controls whether the SideroLink service should tunnel WireGuard
+	// traffic over gRPC, in setups where direct Wireguard connectivity is not
+	// possible (e.g., due to firewall restrictions). When enabled, the SideroLink
+	// connections from Talos machines will be configured to use the tunnel mode,
+	// regardless of their individual configuration.
 	UseGRPCTunnel *bool `json:"useGRPCTunnel,omitempty" yaml:"useGRPCTunnel,omitempty"`
 
-	// WireGuard corresponds to the JSON schema field "wireGuard".
+	// WireGuard contains WireGuard-specific configuration for the SideroLink service.
 	WireGuard SiderolinkWireGuard `json:"wireGuard" yaml:"wireGuard"`
 }
 
@@ -546,35 +654,46 @@ const SiderolinkServiceJoinTokensModeLegacyAllowed SiderolinkServiceJoinTokensMo
 const SiderolinkServiceJoinTokensModeStrict SiderolinkServiceJoinTokensMode = "strict"
 
 type SiderolinkWireGuard struct {
-	// AdvertisedEndpoint corresponds to the JSON schema field "advertisedEndpoint".
+	// AdvertisedEndpoint is the endpoint that the SideroLink service advertises to
+	// nodes for WireGuard connectivity. It is in the form "ip:port" (IP address is
+	// required, not hostname). When not set, it is generated by the system based on
+	// the WireGuard endpoint.
 	AdvertisedEndpoint *string `json:"advertisedEndpoint,omitempty" yaml:"advertisedEndpoint,omitempty"`
 
-	// Endpoint corresponds to the JSON schema field "endpoint".
+	// Endpoint is the network endpoint the WireGuard interface listens on. It is in
+	// the form "ip:port" (IP address is required, not hostname).
 	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 }
 
 type Storage struct {
-	// Default corresponds to the JSON schema field "default".
+	// Default contains the default storage backend configuration.
 	Default StorageDefault `json:"default" yaml:"default"`
 
-	// Secondary corresponds to the JSON schema field "secondary".
+	// Secondary contains the secondary storage backend configuration. It is used to
+	// store frequently updated and less critical data. DEPRECATED: they are now
+	// stored in SQLite, and this parameter exists for the migration purposes only,
+	// and will be removed.
 	Secondary BoltDB `json:"secondary" yaml:"secondary"`
 
-	// Sqlite corresponds to the JSON schema field "sqlite".
+	// Sqlite contains SQLite storage backend configuration. It is used to store
+	// machine logs, audit logs, discovery service state, and as the secondary storage
+	// for the frequently updated and less critical data.
 	Sqlite SQLite `json:"sqlite" yaml:"sqlite"`
 
-	// Vault corresponds to the JSON schema field "vault".
+	// Vault contains HashiCorp Vault storage backend configuration. It is used to
+	// store the storage encryption key, used to encrypt sensitive data at rest in
+	// etcd.
 	Vault Vault `json:"vault" yaml:"vault"`
 }
 
 type StorageDefault struct {
-	// Boltdb corresponds to the JSON schema field "boltdb".
+	// Boltdb contains BoltDB storage backend configuration.
 	Boltdb BoltDB `json:"boltdb" yaml:"boltdb"`
 
-	// Etcd corresponds to the JSON schema field "etcd".
+	// Etcd contains etcd storage backend configuration.
 	Etcd EtcdParams `json:"etcd" yaml:"etcd"`
 
-	// Kind corresponds to the JSON schema field "kind".
+	// Kind is the kind of the default storage backend.
 	Kind *StorageDefaultKind `json:"kind,omitempty" yaml:"kind,omitempty"`
 }
 
@@ -584,33 +703,41 @@ const StorageDefaultKindBoltdb StorageDefaultKind = "boltdb"
 const StorageDefaultKindEtcd StorageDefaultKind = "etcd"
 
 type UserPilot struct {
-	// AppToken corresponds to the JSON schema field "appToken".
+	// AppToken is the UserPilot application token.
 	AppToken *string `json:"appToken,omitempty" yaml:"appToken,omitempty"`
 }
 
 type Vault struct {
-	// Token corresponds to the JSON schema field "token".
+	// Token is the authentication token for the Vault server. It is read from
+	// VAULT_TOKEN env var when not set. It is recommended to be passed as env var
+	// instead of being stored in the config file.
 	Token *string `json:"token,omitempty" yaml:"token,omitempty"`
 
-	// Url corresponds to the JSON schema field "url".
+	// Url is the URL of the Vault server.
 	Url *string `json:"url,omitempty" yaml:"url,omitempty"`
 }
 
 type WebAuthn struct {
-	// Enabled corresponds to the JSON schema field "enabled".
+	// Enabled controls whether WebAuthn authentication is enabled. It is NOT
+	// SUPPORTED as it is currently unimplemented.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// Required corresponds to the JSON schema field "required".
+	// Required controls whether WebAuthn authentication is required. It is NOT
+	// SUPPORTED as it is currently unimplemented.
 	Required *bool `json:"required,omitempty" yaml:"required,omitempty"`
 }
 
 type WorkloadProxy struct {
-	// Enabled corresponds to the JSON schema field "enabled".
+	// Enabled controls whether the workload proxy service is enabled.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 
-	// StopLBsAfter corresponds to the JSON schema field "stopLBsAfter".
+	// StopLBsAfter is the duration after which the workload proxy service stops load
+	// balancers for workloads that have not received any traffic.
 	StopLBsAfter *time.Duration `json:"stopLBsAfter,omitempty" yaml:"stopLBsAfter,omitempty"`
 
-	// Subdomain corresponds to the JSON schema field "subdomain".
+	// Subdomain is the subdomain used by the workload proxy service to expose
+	// workloads. This subdomain lives at the same level as Omni, for example, if Omni
+	// is accessible at "omni.example.com", and the subdomain is "omni-apps",
+	// workloads will be exposed at "<service-prefix>.omni-apps.example.com".
 	Subdomain *string `json:"subdomain,omitempty" yaml:"subdomain,omitempty"`
 }

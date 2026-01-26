@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Params",
+  "description": "Params is the Omni configuration root object.",
   "type": "object",
   "required": [
     "account",
@@ -20,30 +21,39 @@
   },
   "properties": {
     "account": {
+      "description": "Account contains account-related configuration.",
       "$ref": "#/definitions/Account"
     },
     "services": {
+      "description": "Services contains configuration for various services run by Omni.",
       "$ref": "#/definitions/Services"
     },
     "auth": {
+      "description": "Auth contains authentication-related configuration.",
       "$ref": "#/definitions/Auth"
     },
     "logs": {
+      "description": "Logs contains logging-related configuration.",
       "$ref": "#/definitions/Logs"
     },
     "storage": {
+      "description": "Storage contains persistent storage related configuration.",
       "$ref": "#/definitions/Storage"
     },
     "etcdBackup": {
+      "description": "EtcdBackup contains etcd backup configuration for the clusters on Omni.",
       "$ref": "#/definitions/EtcdBackup"
     },
     "registries": {
+      "description": "Registries contains container image registries configuration.",
       "$ref": "#/definitions/Registries"
     },
     "debug": {
+      "description": "Debug contains debug-related configuration.",
       "$ref": "#/definitions/Debug"
     },
     "features": {
+      "description": "Features contains feature flags to enable/disable various Omni features.",
       "$ref": "#/definitions/Features"
     }
   },
@@ -59,7 +69,7 @@
         "id": {
           "type": "string",
           "minLength": 1,
-          "description": "Stable identifier of the instance.",
+          "description": "Id is the unique UUID identifier of the account. It is used to uniquely identify the account in etcd, therefore it should never be changed after initial setup.",
           "goJSONSchema": {
             "type": "*string"
           }
@@ -67,12 +77,13 @@
         "name": {
           "type": "string",
           "minLength": 1,
-          "description": "User-facing name of the instance.",
+          "description": "Name is the human-readable name of the account.",
           "goJSONSchema": {
             "type": "*string"
           }
         },
         "userPilot": {
+          "description": "UserPilot contains UserPilot-related configuration.",
           "$ref": "#/definitions/UserPilot"
         }
       }
@@ -81,6 +92,7 @@
       "type": "object",
       "properties": {
         "appToken": {
+          "description": "AppToken is the UserPilot application token.",
           "type": "string"
         }
       }
@@ -95,6 +107,7 @@
       "properties": {
         "talos": {
           "type": "string",
+          "description": "Talos is the Talos installer registry configuration.",
           "minLength": 1,
           "goJSONSchema": {
             "type": "*string"
@@ -102,6 +115,7 @@
         },
         "kubernetes": {
           "type": "string",
+          "description": "Kubernetes is the Kubernetes container registry configuration.",
           "minLength": 1,
           "goJSONSchema": {
             "type": "*string"
@@ -109,15 +123,18 @@
         },
         "imageFactoryBaseURL": {
           "type": "string",
+          "description": "ImageFactoryBaseURL is the base URL of the Image Factory service used to build custom machine images.",
           "minLength": 1,
           "goJSONSchema": {
             "type": "*string"
           }
         },
         "imageFactoryPXEBaseURL": {
+          "description": "ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.",
           "type": "string"
         },
         "mirrors": {
+          "description": "Mirrors is the list of container image registry mirrors. Used mainly for the development purposes. It must be in the format: <registry host>=<mirror URL>",
           "type": "array",
           "goJSONSchema": {
             "extraTags": {
@@ -146,34 +163,43 @@
       ],
       "properties": {
         "api": {
+          "description": "Api contains API/UI service configuration.",
           "$ref": "#/definitions/Service"
         },
         "devServerProxy": {
+          "description": "DevServerProxy is the node dev server proxy service configuration. It exists for the development purposes only.",
           "$ref": "#/definitions/DevServerProxyService"
         },
         "metrics": {
+          "description": "Metrics contains metrics service configuration.",
           "$ref": "#/definitions/Service"
         },
         "kubernetesProxy": {
+          "description": "KubernetesProxy contains Kubernetes proxy service configuration. It is the service responsible for proxying Kubernetes API requests to the clusters.",
           "$ref": "#/definitions/KubernetesProxyService"
         },
         "siderolink": {
+          "description": "Siderolink contains SideroLink service configuration. It is the service responsible for node<>Omni connectivity via WireGuard.",
           "$ref": "#/definitions/SiderolinkService"
         },
         "machineAPI": {
-          "$ref": "#/definitions/Service",
-          "description": "Config for MachineAPI"
+          "description": "MachineAPI contains SideroLink API service configuration. It is responsible for provisioning SideroLink connections by validating node join requests and issuing machine join tokens.",
+          "$ref": "#/definitions/Service"
         },
         "localResourceService": {
+          "description": "LocalResourceService contains local resource service configuration. Omni runs a local service to allow access to its resources without authorization checks. It is primarily used by infra providers (e.g., sidecars).",
           "$ref": "#/definitions/LocalResourceService"
         },
         "embeddedDiscoveryService": {
+          "description": "EmbeddedDiscoveryService contains embedded discovery service configuration. Omni can run an embedded discovery service to allow nodes to discover each other, instead of them resorting to discovery.talos.dev.",
           "$ref": "#/definitions/EmbeddedDiscoveryService"
         },
         "loadBalancer": {
+          "description": "LoadBalancer contains load balancer service configuration. It is responsible for creating and managing load balancers of the clusters' control planes.",
           "$ref": "#/definitions/LoadBalancerService"
         },
         "workloadProxy": {
+          "description": "WorkloadProxy contains workload proxy service configuration. It is responsible for exposing workloads run on the clusters via Omni to the outside world.",
           "$ref": "#/definitions/WorkloadProxy"
         }
       }
@@ -182,36 +208,45 @@
       "type": "object",
       "properties": {
         "endpoint": {
+          "description": "Endpoint is the network endpoint the service listens on. It is in the form \"host:port\".",
           "type": "string"
         },
         "advertisedURL": {
+          "description": "AdvertisedURL is the URL that the service advertises to clients. It is in the form \"http(s)://host:port\". When not set, it is generated by the system based on the endpoint and TLS cert/key configuration.",
           "type": "string"
         },
         "certFile": {
+          "description": "CertFile is the path to the TLS certificate file for the service.",
           "type": "string"
         },
         "keyFile": {
+          "description": "KeyFile is the path to the TLS key file for the service.",
           "type": "string"
         }
       }
     },
     "DevServerProxyService": {
       "type": "object",
-      "description": "Embeds Service",
+      "description": "DevServerProxyService contains development server proxy service configuration.",
       "properties": {
         "endpoint": {
+          "description": "Endpoint is the network endpoint the dev server proxy service listens on. It is in the form \"host:port\".",
           "type": "string"
         },
         "advertisedURL": {
+          "description": "AdvertisedURL is the URL that the dev server proxy service advertises to clients. It is in the form \"http(s)://host:port\". When not set, it is generated by the system based on the endpoint and TLS cert/key configuration.",
           "type": "string"
         },
         "certFile": {
+          "description": "CertFile is the path to the TLS certificate file for the dev server proxy service.",
           "type": "string"
         },
         "keyFile": {
+          "description": "KeyFile is the path to the TLS key file for the dev server proxy service.",
           "type": "string"
         },
         "proxyTo": {
+          "description": "ProxyTo is the address to which the dev server proxy service forwards incoming requests. It is in the form \"http(s)://host:port\".",
           "type": "string"
         }
       }
@@ -220,16 +255,20 @@
       "type": "object",
       "properties": {
         "endpoint": {
+          "description": "Endpoint is the network endpoint the Kubernetes proxy service listens on. It is in the form \"host:port\".",
           "type": "string"
         },
         "advertisedURL": {
+          "description": "AdvertisedURL is the URL that the Kubernetes proxy service advertises to clients. It is in the form \"https://host:port\". When not set, it is generated by the system based on the endpoint and TLS cert/key configuration.",
           "type": "string",
           "pattern": "^https://"
         },
         "certFile": {
+          "description": "CertFile is the path to the TLS certificate file for the Kubernetes proxy service.",
           "type": "string"
         },
         "keyFile": {
+          "description": "KeyFile is the path to the TLS key file for the Kubernetes proxy service.",
           "type": "string"
         }
       }
@@ -241,9 +280,11 @@
       ],
       "properties": {
         "wireGuard": {
+          "description": "WireGuard contains WireGuard-specific configuration for the SideroLink service.",
           "$ref": "#/definitions/SiderolinkWireGuard"
         },
         "joinTokensMode": {
+          "description": "JoinTokensMode configures how machine join tokens are generated and used. Set to strict to use the secure join tokens mode.",
           "type": "string",
           "enum": [
             "strict",
@@ -252,15 +293,19 @@
           ]
         },
         "disableLastEndpoint": {
+          "description": "DisableLastEndpoint controls whether the SideroLink service should stop using the last known endpoint of a node when it becomes unreachable via WireGuard.",
           "type": "boolean"
         },
         "useGRPCTunnel": {
+          "description": "UseGRPCTunnel controls whether the SideroLink service should tunnel WireGuard traffic over gRPC, in setups where direct Wireguard connectivity is not possible (e.g., due to firewall restrictions). When enabled, the SideroLink connections from Talos machines will be configured to use the tunnel mode, regardless of their individual configuration.",
           "type": "boolean"
         },
         "eventSinkPort": {
+          "description": "EventSinkPort is the port to be used by the nodes to publish their events over SideroLink to Omni.",
           "type": "integer"
         },
         "logServerPort": {
+          "description": "LogServerPort is the port to be used by the nodes to send their logs over SideroLink to Omni.",
           "type": "integer"
         }
       }
@@ -269,9 +314,11 @@
       "type": "object",
       "properties": {
         "endpoint": {
+          "description": "Endpoint is the network endpoint the WireGuard interface listens on. It is in the form \"ip:port\" (IP address is required, not hostname).",
           "type": "string"
         },
         "advertisedEndpoint": {
+          "description": "AdvertisedEndpoint is the endpoint that the SideroLink service advertises to nodes for WireGuard connectivity. It is in the form \"ip:port\" (IP address is required, not hostname). When not set, it is generated by the system based on the WireGuard endpoint.",
           "type": "string"
         }
       }
@@ -280,9 +327,11 @@
       "type": "object",
       "properties": {
         "enabled": {
+          "description": "Enabled controls whether the local resource service is enabled.",
           "type": "boolean"
         },
         "port": {
+          "description": "Port is the network port the local resource service listens on.",
           "type": "integer"
         }
       }
@@ -291,19 +340,24 @@
       "type": "object",
       "properties": {
         "enabled": {
+          "description": "Enabled controls whether the embedded discovery service is enabled. It binds only to the SideroLink WireGuard address.",
           "type": "boolean"
         },
         "port": {
+          "description": "Port is the network port the embedded discovery service listens on.",
           "type": "integer"
         },
         "snapshotsEnabled": {
+          "description": "SnapshotsEnabled controls whether the embedded discovery service periodically persists snapshots of its state to disk.",
           "type": "boolean"
         },
         "snapshotsPath": {
+          "description": "SnapshotsPath is the path where the embedded discovery service persists its snapshots. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
           "type": "string",
           "deprecated": true
         },
         "snapshotsInterval": {
+          "description": "SnapshotsInterval is the interval at which the embedded discovery service persists snapshots of its state.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -311,9 +365,11 @@
           }
         },
         "logLevel": {
+          "description": "LogLevel is the logging level used by the embedded discovery service.",
           "type": "string"
         },
         "sqliteTimeout": {
+          "description": "SqliteTimeout is the timeout for SQLite operations used by the embedded discovery service.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -326,12 +382,15 @@
       "type": "object",
       "properties": {
         "minPort": {
+          "description": "MinPort is the minimum port number that can be picked by the load balancer service when allocating a new LB port to a cluster.",
           "type": "integer"
         },
         "maxPort": {
+          "description": "MaxPort is the maximum port number that can be picked by the load balancer service when allocating a new LB port to a cluster.",
           "type": "integer"
         },
         "dialTimeout": {
+          "description": "DialTimeout is the timeout used by the load balancer service when dialing backend control plane nodes.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -339,6 +398,7 @@
           }
         },
         "keepAlivePeriod": {
+          "description": "KeepAlivePeriod is the period used by the load balancer service for keep-alive pings to backend control plane nodes.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -346,6 +406,7 @@
           }
         },
         "tcpUserTimeout": {
+          "description": "TCPUserTimeout is the TCP user timeout value set on connections between the load balancer and backend control plane nodes.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -353,6 +414,7 @@
           }
         },
         "healthCheckInterval": {
+          "description": "HealthCheckInterval is the interval between health checks performed by the load balancer service on backend control plane nodes.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -360,6 +422,7 @@
           }
         },
         "healthCheckTimeout": {
+          "description": "HealthCheckTimeout is the timeout for health checks performed by the load balancer service on backend control plane nodes.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -372,12 +435,15 @@
       "type": "object",
       "properties": {
         "subdomain": {
+          "description": "Subdomain is the subdomain used by the workload proxy service to expose workloads. This subdomain lives at the same level as Omni, for example, if Omni is accessible at \"omni.example.com\", and the subdomain is \"omni-apps\", workloads will be exposed at \"<service-prefix>.omni-apps.example.com\".",
           "type": "string"
         },
         "enabled": {
+          "description": "Enabled controls whether the workload proxy service is enabled.",
           "type": "boolean"
         },
         "stopLBsAfter": {
+          "description": "StopLBsAfter is the duration after which the workload proxy service stops load balancers for workloads that have not received any traffic.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -513,30 +579,38 @@
       },
       "properties": {
         "auth0": {
+          "description": "Auth0 contains Auth0 authentication provider configuration.",
           "$ref": "#/definitions/Auth0"
         },
         "webauthn": {
+          "description": "Webauthn contains WebAuthn authentication configuration. It is NOT SUPPORTED as it is currently unimplemented.",
           "$ref": "#/definitions/WebAuthn"
         },
         "saml": {
+          "description": "Saml contains SAML authentication provider configuration.",
           "$ref": "#/definitions/SAML"
         },
         "oidc": {
+          "description": "Oidc contains OIDC authentication provider configuration.",
           "$ref": "#/definitions/OIDC"
         },
         "initialUsers": {
+          "description": "InitialUsers is a list of emails which should be created as admins when Omni is run for the first time.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "keyPruner": {
+          "description": "KeyPruner contains configuration for the public keys pruner (cleanup of old/expired keys).",
           "$ref": "#/definitions/KeyPrunerConfig"
         },
         "suspended": {
+          "description": "Suspended is whether the Omni account is suspended. If true, Omni will run on read-only mode with a warning banner displayed in the UI.",
           "type": "boolean"
         },
         "initialServiceAccount": {
+          "description": "InitialServiceAccount contains configuration for the initial service account created when Omni is run for the first time.",
           "$ref": "#/definitions/InitialServiceAccount"
         }
       }
@@ -545,6 +619,7 @@
       "type": "object",
       "properties": {
         "initialUsers": {
+          "description": "InitialUsers is a list of emails which should be created as admins when Omni is run for the first time. DEPRECATED: use params.auth.initialUsers instead, this will be removed.",
           "type": "array",
           "items": {
             "type": "string"
@@ -552,15 +627,19 @@
           "deprecated": true
         },
         "domain": {
+          "description": "Domain is the Auth0 domain.",
           "type": "string"
         },
         "clientID": {
+          "description": "ClientID is the Auth0 client ID.",
           "type": "string"
         },
         "useFormData": {
+          "description": "UseFormData controls whether the Auth0 provider should use form data for authentication requests. When true, data to the token endpoint is transmitted as x-www-form-urlencoded data instead of JSON.",
           "type": "boolean"
         },
         "enabled": {
+          "description": "Enabled controls whether the Auth0 authentication provider is enabled. Once set to true, it cannot be set back to false.",
           "type": "boolean"
         }
       }
@@ -569,10 +648,14 @@
       "type": "object",
       "properties": {
         "enabled": {
-          "type": "boolean"
+          "description": "Enabled controls whether WebAuthn authentication is enabled. It is NOT SUPPORTED as it is currently unimplemented.",
+          "type": "boolean",
+          "const": false
         },
         "required": {
-          "type": "boolean"
+          "description": "Required controls whether WebAuthn authentication is required. It is NOT SUPPORTED as it is currently unimplemented.",
+          "type": "boolean",
+          "const": false
         }
       }
     },
@@ -580,27 +663,34 @@
       "type": "object",
       "properties": {
         "providerURL": {
+          "description": "ProviderURL is the OIDC provider URL.",
           "type": "string"
         },
         "clientID": {
+          "description": "ClientID is the OIDC client ID.",
           "type": "string"
         },
         "clientSecret": {
+          "description": "ClientSecret is the OIDC client secret.",
           "type": "string"
         },
         "logoutURL": {
+          "description": "LogoutURL is the OIDC logout URL.",
           "type": "string"
         },
         "scopes": {
+          "description": "Scopes is the list of OIDC scopes to request during authentication.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "enabled": {
+          "description": "Enabled controls whether the OIDC authentication provider is enabled.",
           "type": "boolean"
         },
         "allowUnverifiedEmail": {
+          "description": "AllowUnverifiedEmail controls whether users with unverified emails (without email_verified claim) are allowed to authenticate.",
           "type": "boolean"
         }
       }
@@ -619,27 +709,33 @@
       },
       "properties": {
         "labelRules": {
+          "description": "LabelRules defines mapping of SAML assertion attributes into Omni identity labels.",
           "type": "object",
           "additionalProperties": {
             "type": "string"
           }
         },
         "attributeRules": {
+          "description": "AttributeRules defines additional identity, fullname, firstname and lastname mappings.",
           "type": "object",
           "additionalProperties": {
             "type": "string"
           }
         },
         "url": {
+          "description": "URL is the SAML provider URL. Mutually exclusive with metadata URL (.metadata).",
           "type": "string"
         },
         "metadata": {
+          "description": "Metadata is the SAML provider metadata URL. Mutually exclusive with URL (.url).",
           "type": "string"
         },
         "nameIDFormat": {
+          "description": "NameIDFormat is the SAML NameID format to be used.",
           "type": "string"
         },
         "enabled": {
+          "description": "Enabled controls whether the SAML authentication provider is enabled.",
           "type": "boolean"
         }
       }
@@ -648,6 +744,7 @@
       "type": "object",
       "properties": {
         "interval": {
+          "description": "Interval is the interval at which the key pruner runs.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -660,15 +757,19 @@
       "type": "object",
       "properties": {
         "role": {
+          "description": "Role is the role assigned to the initial service account.",
           "type": "string"
         },
         "keyPath": {
+          "description": "KeyPath is the path where the initial service account key is stored.",
           "type": "string"
         },
         "name": {
+          "description": "Name is the name of the initial service account.",
           "type": "string"
         },
         "lifetime": {
+          "description": "Lifetime is the lifetime of the initial service account key.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -676,6 +777,7 @@
           }
         },
         "enabled": {
+          "description": "Enabled controls whether the initial service account is created. This happens only on the first start of Omni.",
           "type": "boolean"
         }
       }
@@ -690,15 +792,19 @@
       ],
       "properties": {
         "machine": {
+          "description": "Machine contains machine logs configuration.",
           "$ref": "#/definitions/LogsMachine"
         },
         "audit": {
+          "description": "Audit contains audit logs configuration.",
           "$ref": "#/definitions/LogsAudit"
         },
         "resourceLogger": {
+          "description": "ResourceLogger contains resource logger configuration. It logs the diffs for the watched resources when they are updated.",
           "$ref": "#/definitions/ResourceLoggerConfig"
         },
         "stripe": {
+          "description": "Stripe contains Stripe logs configuration.",
           "$ref": "#/definitions/LogsStripe"
         }
       }
@@ -710,17 +816,21 @@
       ],
       "properties": {
         "storage": {
+          "description": "Storage contains configuration for machine logs storage.",
           "$ref": "#/definitions/LogsMachineStorage"
         },
         "bufferInitialCapacity": {
+          "description": "BufferInitialCapacity is the initial capacity of the in-memory circular buffer for machine logs. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
           "type": "integer",
           "deprecated": true
         },
         "bufferMaxCapacity": {
+          "description": "BufferMaxCapacity is the maximum capacity of the in-memory circular buffer for machine logs. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
           "type": "integer",
           "deprecated": true
         },
         "bufferSafetyGap": {
+          "description": "BufferSafetyGap is the safety gap to avoid overwriting logs that are being read while writing new logs into the circular buffer. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
           "type": "integer",
           "deprecated": true
         }
@@ -730,14 +840,17 @@
       "type": "object",
       "properties": {
         "enabled": {
+          "description": "Enabled controls whether machine logs storage is enabled. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
           "type": "boolean",
           "deprecated": true
         },
         "path": {
+          "description": "Path is the path where machine logs are stored. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
           "type": "string",
           "deprecated": true
         },
         "flushPeriod": {
+          "description": "FlushPeriod is the period at which machine logs are flushed to storage. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -746,14 +859,17 @@
           "deprecated": true
         },
         "flushJitter": {
+          "description": "FlushJitter is the jitter added to the flush period to avoid thundering herd problem. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
           "type": "number",
           "deprecated": true
         },
         "numCompressedChunks": {
+          "description": "NumCompressedChunks is the number of compressed chunks to keep in memory before flushing to storage. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
           "type": "integer",
           "deprecated": true
         },
         "sqliteTimeout": {
+          "description": "SqliteTimeout is the timeout for SQLite operations used for machine logs storage.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -761,6 +877,7 @@
           }
         },
         "cleanupInterval": {
+          "description": "CleanupInterval is the interval at which old machine logs are cleaned up.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -768,6 +885,7 @@
           }
         },
         "cleanupOlderThan": {
+          "description": "CleanupOlderThan is the duration after which machine logs are considered old and eligible for cleanup.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -775,9 +893,11 @@
           }
         },
         "maxLinesPerMachine": {
+          "description": "MaxLinesPerMachine is the maximum number of log lines to keep per machine.",
           "type": "integer"
         },
         "cleanupProbability": {
+          "description": "CleanupProbability is the probability of triggering the cleanup on each log write for that machine.",
           "type": "number"
         }
       }
@@ -786,13 +906,16 @@
       "type": "object",
       "properties": {
         "enabled": {
+          "description": "Enabled controls whether audit logging is enabled.",
           "type": "boolean"
         },
         "path": {
+          "description": "Path is the path where audit logs are stored. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
           "type": "string",
           "deprecated": true
         },
         "sqliteTimeout": {
+          "description": "SqliteTimeout is the timeout for SQLite operations used for audit logs storage.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -805,9 +928,11 @@
       "type": "object",
       "properties": {
         "logLevel": {
+          "description": "LogLevel is the logging level used by the resource logger.",
           "type": "string"
         },
         "types": {
+          "description": "Types is the list of resource types to be logged by the resource logger.",
           "type": "array",
           "goJSONSchema": {
             "extraTags": {
@@ -824,9 +949,11 @@
       "type": "object",
       "properties": {
         "enabled": {
+          "description": "Enabled controls whether Stripe logging is enabled.",
           "type": "boolean"
         },
         "minCommit": {
+          "description": "MinCommit is the minimum number of machines committed for billing purposes, reported to Stripe for the given account.",
           "type": "integer",
           "minimum": 0,
           "goJSONSchema": {
@@ -845,16 +972,20 @@
       ],
       "properties": {
         "default": {
+          "description": "Default contains the default storage backend configuration.",
           "$ref": "#/definitions/StorageDefault"
         },
         "vault": {
+          "description": "Vault contains HashiCorp Vault storage backend configuration. It is used to store the storage encryption key, used to encrypt sensitive data at rest in etcd.",
           "$ref": "#/definitions/Vault"
         },
         "secondary": {
+          "description": "Secondary contains the secondary storage backend configuration. It is used to store frequently updated and less critical data. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
           "$ref": "#/definitions/BoltDB",
           "deprecated": true
         },
         "sqlite": {
+          "description": "Sqlite contains SQLite storage backend configuration. It is used to store machine logs, audit logs, discovery service state, and as the secondary storage for the frequently updated and less critical data.",
           "$ref": "#/definitions/SQLite"
         }
       }
@@ -863,9 +994,11 @@
       "type": "object",
       "properties": {
         "url": {
+          "description": "Url is the URL of the Vault server.",
           "type": "string"
         },
         "token": {
+          "description": "Token is the authentication token for the Vault server. It is read from VAULT_TOKEN env var when not set. It is recommended to be passed as env var instead of being stored in the config file.",
           "type": "string"
         }
       }
@@ -878,6 +1011,7 @@
       ],
       "properties": {
         "kind": {
+          "description": "Kind is the kind of the default storage backend.",
           "type": "string",
           "enum": [
             "etcd",
@@ -885,9 +1019,11 @@
           ]
         },
         "boltdb": {
+          "description": "Boltdb contains BoltDB storage backend configuration.",
           "$ref": "#/definitions/BoltDB"
         },
         "etcd": {
+          "description": "Etcd contains etcd storage backend configuration.",
           "$ref": "#/definitions/EtcdParams"
         }
       }
@@ -896,6 +1032,7 @@
       "type": "object",
       "properties": {
         "path": {
+          "description": "Path is the path where the BoltDB database file is stored.",
           "type": "string"
         }
       }
@@ -907,6 +1044,7 @@
       ],
       "properties": {
         "path": {
+          "description": "Path is the path where the SQLite database file is stored.",
           "type": "string",
           "minLength": 1,
           "goJSONSchema": {
@@ -914,10 +1052,14 @@
           }
         },
         "experimentalBaseParams": {
-          "type": "string"
+          "description": "ExperimentalBaseParams contains the base parameters to be used when opening the SQLite database connection. This can cause data corruption if set incorrectly, modify at your own risk. This flag is experimental and may be removed in future versions. It must not start with a question mark (?).",
+          "type": "string",
+          "pattern": "^(?:$|[^?].*)"
         },
         "extraParams": {
-          "type": "string"
+          "description": "ExtraParams contains the extra parameters to be used when opening the SQLite database connection. This can cause data corruption if set incorrectly, modify at your own risk. It must not start with an ampersand (&).",
+          "type": "string",
+          "pattern": "^(?:$|[^&].*)"
         }
       }
     },
@@ -928,6 +1070,7 @@
       ],
       "properties": {
         "endpoints": {
+          "description": "Endpoints is the list of etcd endpoints. Only used when external etcd is used (i.e., embedded is false).",
           "type": "array",
           "goJSONSchema": {
             "extraTags": {
@@ -939,6 +1082,7 @@
           }
         },
         "dialKeepAliveTime": {
+          "description": "DialKeepAliveTime is the keep-alive time for etcd client connections.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -946,6 +1090,7 @@
           }
         },
         "dialKeepAliveTimeout": {
+          "description": "DialKeepAliveTimeout is the keep-alive timeout for etcd client connections.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -953,27 +1098,35 @@
           }
         },
         "caFile": {
+          "description": "CaFile is the path to the CA certificate file for etcd client connections.",
           "type": "string"
         },
         "certFile": {
+          "description": "CertFile is the path to the TLS certificate file for etcd client connections.",
           "type": "string"
         },
         "keyFile": {
+          "description": "KeyFile is the path to the TLS key file for etcd client connections.",
           "type": "string"
         },
         "embedded": {
+          "description": "Embedded controls whether to use embedded etcd server as the storage backend.",
           "type": "boolean"
         },
         "embeddedDBPath": {
+          "description": "EmbeddedDBPath is the path where the embedded etcd database files are stored.",
           "type": "string"
         },
         "embeddedUnsafeFsync": {
+          "description": "EmbeddedUnsafeFsync controls whether the embedded etcd server should skip fsync calls for improved performance at the cost of durability.",
           "type": "boolean"
         },
         "runElections": {
+          "description": "RunElections controls whether the embedded etcd server should run leader elections. Should be false for single-node Omni installations.",
           "type": "boolean"
         },
         "privateKeySource": {
+          "description": "PrivateKeySource is the source of the private key for the embedded etcd server. It is used for decrypting master key slot.",
           "type": "string",
           "minLength": 1,
           "goJSONSchema": {
@@ -981,6 +1134,7 @@
           }
         },
         "publicKeyFiles": {
+          "description": "PublicKeyFiles is the list of public key files for the embedded etcd server. They are used for encrypting keys slots.",
           "type": "array",
           "goJSONSchema": {
             "extraTags": {
@@ -1014,12 +1168,15 @@
       },
       "properties": {
         "localPath": {
+          "description": "LocalPath is the local path where etcd backups are stored before being uploaded to remote storage. Mutually exclusive with s3Enabled (.s3Enabled).",
           "type": "string"
         },
         "s3Enabled": {
+          "description": "S3Enabled controls whether an S3-compatible storage is used for etcd backups. Mutually exclusive with localPath (.localPath).",
           "type": "boolean"
         },
         "tickInterval": {
+          "description": "TickInterval is the interval between etcd backups ticks (controller events to check if any cluster needs to be backed up)",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -1027,6 +1184,7 @@
           }
         },
         "minInterval": {
+          "description": "MinInterval is the minimum interval between two etcd backups for a cluster.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -1034,6 +1192,7 @@
           }
         },
         "maxInterval": {
+          "description": "MaxInterval is the maximum interval between two etcd backups for a cluster.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -1041,6 +1200,7 @@
           }
         },
         "uploadLimitMbps": {
+          "description": "UploadLimitMbps is the optional upload bandwidth limit for etcd backups to remote storage in megabits per second. If not specified or is set to 0, it is unlimited.",
           "type": "integer",
           "minimum": 0,
           "goJSONSchema": {
@@ -1048,6 +1208,7 @@
           }
         },
         "downloadLimitMbps": {
+          "description": "DownloadLimitMbps is the optional download bandwidth limit for etcd backups from remote storage in megabits per second. If not specified or is set to 0, it is unlimited.",
           "type": "integer",
           "minimum": 0,
           "goJSONSchema": {
@@ -1055,6 +1216,7 @@
           }
         },
         "jitter": {
+          "description": "Jitter is the jitter for etcd backups, randomly added/subtracted from the interval between automatic etcd backups.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
           "goJSONSchema": {
@@ -1071,9 +1233,11 @@
       ],
       "properties": {
         "server": {
+          "description": "Server contains debug server configuration.",
           "$ref": "#/definitions/DebugServer"
         },
         "pprof": {
+          "description": "Pprof contains pprof profiling configuration.",
           "$ref": "#/definitions/DebugPprof"
         }
       }
@@ -1082,6 +1246,7 @@
       "type": "object",
       "properties": {
         "endpoint": {
+          "description": "Endpoint is the network endpoint the debug server listens on. It is in the form \"[host]:port\".",
           "type": "string"
         }
       }
@@ -1090,6 +1255,7 @@
       "type": "object",
       "properties": {
         "endpoint": {
+          "description": "Endpoint is the network endpoint the pprof server listens on. It is in the form \"[host]:port\".",
           "type": "string"
         }
       }
@@ -1098,18 +1264,23 @@
       "type": "object",
       "properties": {
         "enableTalosPreReleaseVersions": {
+          "description": "EnableTalosPreReleaseVersions controls whether pre-release Talos versions (e.g., release candidates, betas) are available for selection when creating/upgrading clusters.",
           "type": "boolean"
         },
         "enableBreakGlassConfigs": {
+          "description": "EnableBreakGlassConfigs controls whether break-glass machine configurations are enabled. Break-glass configs allow direct access to the machines without going through Omni. Recommended to be disabled.",
           "type": "boolean"
         },
         "enableConfigDataCompression": {
+          "description": "EnableConfigDataCompression controls whether machine configuration data stored in etcd is compressed to save space.",
           "type": "boolean"
         },
         "enableClusterImport": {
+          "description": "EnableClusterImport controls whether the cluster import feature is enabled. When enabled, users can import existing Talos clusters into Omni.",
           "type": "boolean"
         },
         "disableControllerRuntimeCache": {
+          "description": "DisableControllerRuntimeCache controls whether the controller-runtime cache is disabled. When disabled, etcd is accessed for all reads. Recommended to be enabled, unless debugging specific issues.",
           "type": "boolean"
         }
       }

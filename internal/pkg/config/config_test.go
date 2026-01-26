@@ -55,7 +55,10 @@ func TestMergeConfig(t *testing.T) {
 	params.Storage.Sqlite.SetPath("/some/path")
 	params.Logs.Audit.SetSqliteTimeout(5 * time.Second)
 
-	cfg, err := config.Init(zaptest.NewLogger(t), params)
+	configSchema, parseErr := config.ParseSchema()
+	require.NoError(t, parseErr)
+
+	cfg, err := config.Init(zaptest.NewLogger(t), configSchema, params)
 
 	require.NoError(t, err)
 	assert.True(t, cfg.Services.EmbeddedDiscoveryService.GetEnabled())
@@ -99,6 +102,9 @@ func TestValidateStateConfig(t *testing.T) {
 }
 
 func TestValidateConfig(t *testing.T) {
+	schema, parseErr := config.ParseSchema()
+	require.NoError(t, parseErr)
+
 	for _, tt := range []struct {
 		name             string
 		configModifyFunc func(cfg *config.Params)
@@ -122,6 +128,14 @@ func TestValidateConfig(t *testing.T) {
 				cfg.Services.KubernetesProxy.SetAdvertisedURL("http://1.1.1.1:1111")
 			},
 			validateErr: `- at '/services/kubernetesProxy/advertisedURL': 'http://1.1.1.1:1111' does not match pattern '^https://'`,
+		},
+		{
+			name:   "prevent enabling unsupported webauthn",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Auth.Webauthn.SetEnabled(true)
+			},
+			validateErr: "- at '/auth/webauthn/enabled': value must be false",
 		},
 		{
 			name:        "invalid join tokens mode",
@@ -181,7 +195,7 @@ func TestValidateConfig(t *testing.T) {
 
 			require.NoError(t, err)
 
-			err = cfg.Validate()
+			err = cfg.Validate(schema)
 
 			if tt.validateErr != "" {
 				var validationErr *jsonschema.ValidationError

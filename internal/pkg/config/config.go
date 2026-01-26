@@ -42,6 +42,11 @@ const (
 //go:embed schema.json
 var schemaData string
 
+// ParseSchema parses the embedded JSON schema for the Omni config.
+func ParseSchema() (*jsonschema.Schema, error) {
+	return jsonschema.Parse("omni", schemaData)
+}
+
 // ParseOption describes an additional optional arg to the parseConfig function.
 type ParseOption func(*ParseOptions)
 
@@ -184,7 +189,7 @@ func Default() *Params {
 }
 
 // Init the config using defaults, merge with overrides, populate fallbacks and validate.
-func Init(logger *zap.Logger, params ...*Params) (*Params, error) {
+func Init(logger *zap.Logger, schema *jsonschema.Schema, params ...*Params) (*Params, error) {
 	config := Default()
 
 	for _, override := range params {
@@ -195,7 +200,7 @@ func Init(logger *zap.Logger, params ...*Params) (*Params, error) {
 
 	config.PopulateFallbacks()
 
-	if err := config.Validate(); err != nil {
+	if err := config.Validate(schema); err != nil {
 		return nil, err
 	}
 
@@ -249,7 +254,11 @@ func (p *Params) ValidateState(ctx context.Context, st state.State) error {
 }
 
 // Validate Omni params.
-func (p *Params) Validate() error {
+func (p *Params) Validate(schema *jsonschema.Schema) error {
+	if schema == nil {
+		return errors.New("schema is nil")
+	}
+
 	var sb strings.Builder
 
 	encoder := yaml.NewEncoder(&sb)
@@ -261,12 +270,7 @@ func (p *Params) Validate() error {
 
 	configYAML := sb.String()
 
-	schema, err := jsonschema.Parse("omni", schemaData)
-	if err != nil {
-		return fmt.Errorf("failed to parse JSON schema: %w", err)
-	}
-
-	if err = jsonschema.Validate(configYAML, schema); err != nil {
+	if err := schema.Validate(configYAML); err != nil {
 		return fmt.Errorf("failed to validate config against JSON schema: %w", err)
 	}
 

@@ -1312,7 +1312,7 @@ func validateProviderData(ctx context.Context, st state.State, providerID, provi
 			return fmt.Errorf("failed to load json schema for provider %q: %w", providerID, err)
 		}
 
-		return omnijsonschema.Validate(providerData, schema)
+		return schema.Validate(providerData)
 	}
 
 	providerStatus, err := safe.ReaderGetByID[*infra.ProviderStatus](ctx, st, providerID)

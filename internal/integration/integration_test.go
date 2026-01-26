@@ -471,7 +471,12 @@ func runOmni(t *testing.T) (string, error) {
 		logger = zap.New(core)
 	}
 
-	config, err := app.PrepareConfig(logger, params)
+	configSchema, err := config.ParseSchema()
+	if err != nil {
+		return "", fmt.Errorf("failed to parse config schema: %w", err)
+	}
+
+	config, err := app.PrepareConfig(logger, configSchema, params)
 	if err != nil {
 		return "", err
 	}
