@@ -413,6 +413,7 @@ func (data *testData) generateMachineConfig(t *testing.T, machineType machinetyp
 	machineConfig, ok := conf.Machine().(*v1alpha1.MachineConfig)
 	require.True(t, ok)
 
+	//nolint:staticcheck
 	machineConfig.MachineEnv = data.env
 
 	return config.NewMachineConfig(conf)

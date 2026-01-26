@@ -66,7 +66,7 @@ machine:
 cluster:
   name: default
 `),
-			expectedError: "unknown keys found during decoding:\ncluster:\n    name: default\n",
+			expectedError: "error decoding document /v1alpha1/ (line 1): unknown keys found during decoding:\ncluster:\n    name: default\n",
 		},
 		{
 			name: "os admin talos API access",

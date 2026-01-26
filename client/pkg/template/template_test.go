@@ -177,11 +177,11 @@ func TestValidate(t *testing.T) {
 	* updateStrategy is not allowed in the controlplane
 	* deleteStrategy is not allowed in the controlplane
 	* patch "patches/invalid.yaml" is invalid: 1 error occurred:
-	* failed to validate patch "patches/invalid.yaml": missing kind
+	* failed to validate patch "patches/invalid.yaml": error decoding document /v1alpha1/ (line 1): missing kind
 
 
 	* patch "kubespan-enabled" is invalid: 1 error occurred:
-	* failed to validate inline patch "kubespan-enabled": unknown keys found during decoding:
+	* failed to validate inline patch "kubespan-enabled": error decoding document /v1alpha1/ (line 1): unknown keys found during decoding:
 machine:
     network:
         kubespan:
