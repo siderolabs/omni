@@ -18,7 +18,7 @@ import TextArea from '@/components/common/TextArea/TextArea.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceGet } from '@/methods/useResourceGet'
-import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
+import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
 
 const formState = defineModel<FormState>({ required: true })
 

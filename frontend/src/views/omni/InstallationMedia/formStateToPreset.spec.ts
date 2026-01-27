@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { SchematicBootloader } from '@/api/omni/management/management.pb'
 import { GrpcTunnelMode, type InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
-import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
+import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
 
 import { formStateToPreset, presetToFormState } from './formStateToPreset'
 

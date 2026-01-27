@@ -4,13 +4,20 @@
 // included in the LICENSE file.
 import { render, screen, waitFor } from '@testing-library/vue'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { ref } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
+
+import { type HardwareType, useFormState } from '@/views/omni/InstallationMedia/useFormState'
+
+import InstallationMediaCreate from './InstallationMediaCreate.vue'
+
+vi.mock('@/views/omni/InstallationMedia/useFormState', () => ({
+  useFormState: vi.fn().mockReturnValue({ formState: ref({}) }),
+}))
 
 vi.mock('@/notification', () => ({
   showSuccess: vi.fn(),
 }))
-
-import InstallationMediaCreate from './InstallationMediaCreate.vue'
 
 const mockSavePresetModal = {
   name: 'SavePresetModal',
@@ -143,57 +150,19 @@ describe('InstallationMediaCreate', () => {
     expect(screen.getByText('Talos Version')).toBeDefined()
   })
 
-  test('different hardware types have different flow steps', async () => {
-    const testHardwareTypes = [
-      { type: 'metal' as const, expectedSteps: 5 },
-      { type: 'cloud' as const, expectedSteps: 6 },
-      { type: 'sbc' as const, expectedSteps: 5 },
-    ]
-
-    for (const { type, expectedSteps } of testHardwareTypes) {
-      sessionStorage.clear()
-      sessionStorage.setItem(
-        '_installation_media_form',
-        JSON.stringify({
-          hardwareType: type,
-        }),
-      )
-
-      await router.push({ name: 'InstallationMediaCreateTalosVersion' })
-      await router.isReady()
-
-      const { unmount } = render(InstallationMediaCreate, {
-        global: {
-          plugins: [router],
-          components: {
-            SavePresetModal: mockSavePresetModal,
-          },
-          stubs: {
-            TIcon: true,
-            TButton: true,
-            Stepper: {
-              template:
-                '<div data-testid="stepper" :data-steps="stepCount">Stepper {{ stepCount }}</div>',
-              props: ['modelValue', 'stepCount'],
-              emits: ['update:modelValue'],
-            },
-            Tooltip: true,
-          },
-        },
-      })
-
-      // Find stepper and check step count
-      expect(screen.getByTestId('stepper').getAttribute('data-steps')).toBe(String(expectedSteps))
-
-      unmount()
+  test.each<{ type: HardwareType; expectedSteps: number }>([
+    { type: 'metal', expectedSteps: 5 },
+    { type: 'cloud', expectedSteps: 6 },
+    { type: 'sbc', expectedSteps: 5 },
+  ])('hardware type $type should have $expectedSteps steps', async ({ type, expectedSteps }) => {
+    useFormState().formState.value = {
+      hardwareType: type,
     }
-  })
 
-  test('session storage persists form state', async () => {
-    await router.push({ name: 'InstallationMediaCreateEntry' })
+    await router.push({ name: 'InstallationMediaCreateTalosVersion' })
     await router.isReady()
 
-    render(InstallationMediaCreate, {
+    const { unmount } = render(InstallationMediaCreate, {
       global: {
         plugins: [router],
         components: {
@@ -202,31 +171,29 @@ describe('InstallationMediaCreate', () => {
         stubs: {
           TIcon: true,
           TButton: true,
-          Stepper: true,
+          Stepper: {
+            template:
+              '<div data-testid="stepper" :data-steps="stepCount">Stepper {{ stepCount }}</div>',
+            props: ['modelValue', 'stepCount'],
+            emits: ['update:modelValue'],
+          },
           Tooltip: true,
         },
       },
     })
 
-    // Simulate setting form state
-    const state = { hardwareType: 'metal', talosVersion: '1.8.0' }
-    sessionStorage.setItem('_installation_media_form', JSON.stringify(state))
+    // Find stepper and check step count
+    expect(screen.getByTestId('stepper').getAttribute('data-steps')).toBe(String(expectedSteps))
 
-    // Verify it's stored
-    const stored = JSON.parse(sessionStorage.getItem('_installation_media_form') || '{}')
-    expect(stored.hardwareType).toBe('metal')
-    expect(stored.talosVersion).toBe('1.8.0')
+    unmount()
   })
 
-  test('clears session storage when visiting entry page', async () => {
+  test('Resets form state when visiting entry page', async () => {
     // Set initial state
-    sessionStorage.setItem(
-      '_installation_media_form',
-      JSON.stringify({
-        hardwareType: 'metal',
-        talosVersion: '1.8.0',
-      }),
-    )
+    useFormState().formState.value = {
+      hardwareType: 'metal',
+      talosVersion: '1.8.0',
+    }
 
     await router.push({ name: 'InstallationMediaCreateEntry' })
     await router.isReady()
@@ -246,10 +213,9 @@ describe('InstallationMediaCreate', () => {
       },
     })
 
-    // Session storage should be cleared
+    // Form state should be cleared
     await waitFor(() => {
-      const stored = JSON.parse(sessionStorage.getItem('_installation_media_form') || '{}')
-      expect(Object.keys(stored).length).toBe(0)
+      expect(Object.keys(useFormState().formState.value).length).toBe(0)
     })
   })
 
@@ -259,7 +225,7 @@ describe('InstallationMediaCreate', () => {
       talosVersion: '1.8.0',
     }
 
-    sessionStorage.setItem('_installation_media_form', JSON.stringify(testState))
+    useFormState().formState.value = testState
 
     await router.push({ name: 'InstallationMediaCreateTalosVersion' })
     await router.isReady()
@@ -280,8 +246,7 @@ describe('InstallationMediaCreate', () => {
     })
 
     // Verify state is preserved
-    const stored = JSON.parse(sessionStorage.getItem('_installation_media_form') || '{}')
-    expect(stored).toEqual(testState)
+    expect(useFormState().formState.value).toEqual(testState)
   })
 
   test('does not render stepper on entry page', async () => {
@@ -308,12 +273,9 @@ describe('InstallationMediaCreate', () => {
   })
 
   test('renders stepper when not on entry page', async () => {
-    sessionStorage.setItem(
-      '_installation_media_form',
-      JSON.stringify({
-        hardwareType: 'metal',
-      }),
-    )
+    useFormState().formState.value = {
+      hardwareType: 'metal',
+    }
 
     await router.push({ name: 'InstallationMediaCreateTalosVersion' })
     await router.isReady()
@@ -361,12 +323,9 @@ describe('InstallationMediaCreate', () => {
   })
 
   test('reset button resets the form', async () => {
-    sessionStorage.setItem(
-      '_installation_media_form',
-      JSON.stringify({
-        hardwareType: 'metal',
-      }),
-    )
+    useFormState().formState.value = {
+      hardwareType: 'metal',
+    }
 
     await router.push({ name: 'InstallationMediaCreateTalosVersion' })
     await router.isReady()
@@ -388,16 +347,18 @@ describe('InstallationMediaCreate', () => {
 
     screen.getByRole('link', { name: 'reset wizard' }).click()
 
-    // Session storage should be cleared
+    // Form state should be cleared
     await waitFor(() => {
-      const stored = JSON.parse(sessionStorage.getItem('_installation_media_form') || '{}')
-      expect(Object.keys(stored).length).toBe(0)
+      expect(Object.keys(useFormState().formState.value).length).toBe(0)
     })
   })
 
   test('renders finished button when on last step and form is saved', async () => {
     // Pre-populate form state
-    sessionStorage.setItem('_installation_media_form', JSON.stringify({ hardwareType: 'metal' }))
+    useFormState().formState.value = {
+      hardwareType: 'metal',
+    }
+
     sessionStorage.setItem('_installation_media_form_saved', JSON.stringify(true))
 
     await router.push({ name: 'InstallationMediaCreateConfirmation' })
@@ -423,13 +384,9 @@ describe('InstallationMediaCreate', () => {
   })
 
   test('renders save button when on last step and form is not saved', async () => {
-    sessionStorage.setItem(
-      '_installation_media_form',
-      JSON.stringify({
-        hardwareType: 'metal',
-        isSaved: false,
-      }),
-    )
+    useFormState().formState.value = {
+      hardwareType: 'metal',
+    }
 
     await router.push({ name: 'InstallationMediaCreateConfirmation' })
     await router.isReady()

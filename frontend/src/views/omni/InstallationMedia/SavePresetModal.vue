@@ -18,7 +18,7 @@ import TInput from '@/components/common/TInput/TInput.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 import { formStateToPreset } from '@/views/omni/InstallationMedia/formStateToPreset'
-import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
+import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const { open, formState } = defineProps<{

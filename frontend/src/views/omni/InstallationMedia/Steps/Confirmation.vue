@@ -32,7 +32,7 @@ import { useFeatures } from '@/methods/features'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
 import { formStateToPreset } from '@/views/omni/InstallationMedia/formStateToPreset'
-import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
+import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
 import { usePresetDownloadLinks } from '@/views/omni/InstallationMedia/usePresetDownloadLinks'
 import { usePresetSchematic } from '@/views/omni/InstallationMedia/usePresetSchematic'
 

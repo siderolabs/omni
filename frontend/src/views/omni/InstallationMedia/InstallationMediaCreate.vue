@@ -5,13 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script lang="ts">
-import type { SchematicBootloader } from '@/api/omni/management/management.pb'
-import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import TIcon from '@/components/common/Icon/TIcon.vue'
-import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-
-type HardwareType = 'metal' | 'cloud' | 'sbc'
+import type { HardwareType } from '@/views/omni/InstallationMedia/useFormState'
 
 const flows: Record<HardwareType, string[]> = {
   metal: [
@@ -37,22 +33,6 @@ const flows: Record<HardwareType, string[]> = {
     'InstallationMediaCreateConfirmation',
   ],
 }
-
-export interface FormState {
-  hardwareType?: HardwareType
-  talosVersion?: string
-  useGrpcTunnel?: boolean
-  joinToken?: string
-  machineUserLabels?: Record<string, LabelSelectItem>
-  machineArch?: PlatformConfigSpecArch
-  secureBoot?: boolean
-  cloudPlatform?: string
-  sbcType?: string
-  systemExtensions?: string[]
-  cmdline?: string
-  overlayOptions?: string
-  bootloader?: SchematicBootloader
-}
 </script>
 
 <script setup lang="ts">
@@ -64,11 +44,12 @@ import TButton from '@/components/common/Button/TButton.vue'
 import Stepper from '@/components/common/Stepper/Stepper.vue'
 import { showSuccess } from '@/notification'
 import SavePresetModal from '@/views/omni/InstallationMedia/SavePresetModal.vue'
+import { useFormState } from '@/views/omni/InstallationMedia/useFormState'
 
 const router = useRouter()
 const route = useRoute()
 
-const formState = useSessionStorage<FormState>('_installation_media_form', {})
+const { formState } = useFormState()
 const isSaved = useSessionStorage('_installation_media_form_saved', false)
 
 watchEffect(() => {

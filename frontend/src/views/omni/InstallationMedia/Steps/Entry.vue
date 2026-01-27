@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
-import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
+import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
 
 const formState = defineModel<FormState>({ required: true })
 </script>

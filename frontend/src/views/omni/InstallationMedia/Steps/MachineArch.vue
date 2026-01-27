@@ -20,7 +20,7 @@ import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceGet } from '@/methods/useResourceGet'
-import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
+import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
 
 const formState = defineModel<FormState>({ required: true })
 
