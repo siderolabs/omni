@@ -12,7 +12,7 @@ import { type HardwareType, useFormState } from '@/views/omni/InstallationMedia/
 import InstallationMediaCreate from './InstallationMediaCreate.vue'
 
 vi.mock('@/views/omni/InstallationMedia/useFormState', () => ({
-  useFormState: vi.fn().mockReturnValue({ formState: ref({}) }),
+  useFormState: vi.fn(),
 }))
 
 vi.mock('@/notification', () => ({
@@ -76,6 +76,8 @@ describe('InstallationMediaCreate', () => {
     // Clear session storage before each test
     sessionStorage.clear()
     vi.clearAllMocks()
+
+    vi.mocked(useFormState).mockReturnValue({ formState: ref({}) })
 
     // Create a fresh router for each test
     router = createRouter({
@@ -186,37 +188,6 @@ describe('InstallationMediaCreate', () => {
     expect(screen.getByTestId('stepper').getAttribute('data-steps')).toBe(String(expectedSteps))
 
     unmount()
-  })
-
-  test('Resets form state when visiting entry page', async () => {
-    // Set initial state
-    useFormState().formState.value = {
-      hardwareType: 'metal',
-      talosVersion: '1.8.0',
-    }
-
-    await router.push({ name: 'InstallationMediaCreateEntry' })
-    await router.isReady()
-
-    render(InstallationMediaCreate, {
-      global: {
-        plugins: [router],
-        components: {
-          SavePresetModal: mockSavePresetModal,
-        },
-        stubs: {
-          TIcon: true,
-          TButton: true,
-          Stepper: true,
-          Tooltip: true,
-        },
-      },
-    })
-
-    // Form state should be cleared
-    await waitFor(() => {
-      expect(Object.keys(useFormState().formState.value).length).toBe(0)
-    })
   })
 
   test('maintains form state during navigation', async () => {
@@ -345,7 +316,7 @@ describe('InstallationMediaCreate', () => {
       },
     })
 
-    screen.getByRole('link', { name: 'reset wizard' }).click()
+    screen.getByRole('button', { name: 'reset wizard' }).click()
 
     // Form state should be cleared
     await waitFor(() => {

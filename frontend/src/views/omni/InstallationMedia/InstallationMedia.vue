@@ -27,8 +27,11 @@ import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showSuccess } from '@/notification'
 import ConfirmModal from '@/views/common/ConfirmModal.vue'
 import DownloadPresetModal from '@/views/omni/InstallationMedia/DownloadPresetModal.vue'
+import { presetToFormState } from '@/views/omni/InstallationMedia/formStateToPreset'
+import { useFormState } from '@/views/omni/InstallationMedia/useFormState'
 
 const router = useRouter()
+const { formState } = useFormState()
 
 const { data: presets, loading: presetsLoading } = useResourceWatch<InstallationMediaConfigSpec>({
   runtime: Runtime.Omni,
@@ -74,6 +77,12 @@ async function deleteItem(id: string) {
   showSuccess(`Deleted preset ${id}`)
   confirmDeleteModalOpen.value = false
 }
+
+function editPreset(preset: (typeof presets.value)[number]) {
+  formState.value = presetToFormState(preset.spec)
+
+  router.push({ name: 'InstallationMediaCreate' })
+}
 </script>
 
 <template>
@@ -82,7 +91,12 @@ async function deleteItem(id: string) {
 
     <div class="flex items-start justify-between gap-1">
       <PageHeader title="Installation Media" />
-      <TButton is="router-link" type="highlighted" :to="{ name: 'InstallationMediaCreate' }">
+      <TButton
+        is="router-link"
+        type="highlighted"
+        :to="{ name: 'InstallationMediaCreate' }"
+        @click="formState = {}"
+      >
         Create New
       </TButton>
     </div>
@@ -123,7 +137,7 @@ async function deleteItem(id: string) {
               </Tooltip>
 
               <Tooltip description="Edit">
-                <IconButton aria-label="edit" icon="edit" />
+                <IconButton aria-label="edit" icon="edit" @click="() => editPreset(preset)" />
               </Tooltip>
 
               <Tooltip description="Download">

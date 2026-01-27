@@ -37,7 +37,7 @@ const flows: Record<HardwareType, string[]> = {
 
 <script setup lang="ts">
 import { useSessionStorage } from '@vueuse/core'
-import { computed, ref, watchEffect } from 'vue'
+import { computed, ref, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
@@ -52,15 +52,28 @@ const route = useRoute()
 const { formState } = useFormState()
 const isSaved = useSessionStorage('_installation_media_form_saved', false)
 
-watchEffect(() => {
-  if (route.name === 'InstallationMediaCreateEntry') {
-    // Reset form when on entry page
-    formState.value = {}
+watch(
+  formState,
+  () => {
+    // Clear saved state if we modify the form in any way
     isSaved.value = false
-  } else if (!formState.value.hardwareType) {
-    // Fail-safe to return to the start of the form if we load a future step with a blank form state
-    router.replace({ name: 'InstallationMediaCreateEntry' })
+  },
+  { deep: true },
+)
+
+watchEffect(() => {
+  if (route.name === 'InstallationMediaCreateEntry' || formState.value.hardwareType) return
+
+  // Fail-safe to return to the start of the form if we load a future step with a blank form state.
+  if (window.history.length > 1) {
+    // Using go(-1) to programmatically reverse backwards from history till we are out of this state.
+    // This prevents having to use browser back multiple times and getting stuck in a history trap.
+    router.go(-1)
+    return
   }
+
+  // In case of no history (e.g. opening a direct link), replace current route.
+  router.replace({ name: 'InstallationMediaCreateEntry' })
 })
 
 const currentFlowSteps = computed(() =>
@@ -120,12 +133,13 @@ function onSaved(name: string) {
     >
       <div v-if="currentFlowSteps && currentStep > 0" class="flex grow gap-4">
         <Tooltip description="Reset wizard">
-          <RouterLink
+          <button
+            type="button"
             class="group isolate size-6 shrink-0 overflow-hidden rounded-sm border border-red-r1 p-0.5 text-red-r1 transition hover:bg-red-r1 hover:text-naturals-n1 active:brightness-75"
-            :to="{ name: 'InstallationMediaCreateEntry' }"
+            @click="formState = {}"
           >
             <TIcon icon="close" class="size-full" aria-label="reset wizard" />
-          </RouterLink>
+          </button>
         </Tooltip>
 
         <Stepper
