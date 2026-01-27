@@ -397,13 +397,8 @@ describe('InstallationMediaCreate', () => {
 
   test('renders finished button when on last step and form is saved', async () => {
     // Pre-populate form state
-    sessionStorage.setItem(
-      '_installation_media_form',
-      JSON.stringify({
-        hardwareType: 'metal',
-        isSaved: true,
-      }),
-    )
+    sessionStorage.setItem('_installation_media_form', JSON.stringify({ hardwareType: 'metal' }))
+    sessionStorage.setItem('_installation_media_form_saved', JSON.stringify(true))
 
     await router.push({ name: 'InstallationMediaCreateConfirmation' })
     await router.isReady()

@@ -111,7 +111,15 @@ async function deleteItem(id: string) {
           <TableCell class="w-0">
             <div class="flex gap-1">
               <Tooltip description="Review">
-                <IconButton aria-label="review" icon="info" />
+                <IconButton
+                  is="router-link"
+                  aria-label="review"
+                  icon="info"
+                  :to="{
+                    name: 'InstallationMediaReview',
+                    params: { presetId: preset.metadata.id! },
+                  }"
+                />
               </Tooltip>
 
               <Tooltip description="Edit">

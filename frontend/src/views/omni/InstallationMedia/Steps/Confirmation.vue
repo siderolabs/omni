@@ -36,6 +36,10 @@ import type { FormState } from '@/views/omni/InstallationMedia/InstallationMedia
 import { usePresetDownloadLinks } from '@/views/omni/InstallationMedia/usePresetDownloadLinks'
 import { usePresetSchematic } from '@/views/omni/InstallationMedia/usePresetSchematic'
 
+defineProps<{
+  isReviewPage?: boolean
+}>()
+
 const formState = defineModel<FormState>({ required: true })
 
 const supportsUnifiedInstaller = computed(
@@ -121,7 +125,7 @@ const installerImage = computed(() =>
 
 <template>
   <div v-if="schematic" class="flex flex-col gap-4 text-xs">
-    <h2 class="text-sm text-naturals-n14">Schematic Ready</h2>
+    <h2 v-if="!isReviewPage" class="text-sm text-naturals-n14">Schematic Ready</h2>
 
     <p class="flex items-center gap-1">
       Your image schematic ID is:

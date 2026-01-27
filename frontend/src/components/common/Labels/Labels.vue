@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script lang="ts">
 export interface LabelSelectItem {
   value: string
-  canRemove: boolean
+  canRemove?: boolean
   color?: string
 }
 </script>

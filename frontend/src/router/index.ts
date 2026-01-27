@@ -244,6 +244,12 @@ export const routes: RouteRecordRaw[] = [
                 component: () => import('@/views/omni/InstallationMedia/InstallationMedia.vue'),
               },
               {
+                path: ':presetId',
+                name: 'InstallationMediaReview',
+                component: () =>
+                  import('@/views/omni/InstallationMedia/InstallationMediaReview.vue'),
+              },
+              {
                 path: 'create',
                 name: 'InstallationMediaCreate',
                 redirect: { name: 'InstallationMediaCreateEntry' },

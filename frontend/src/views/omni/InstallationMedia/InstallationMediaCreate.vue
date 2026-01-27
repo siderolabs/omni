@@ -39,7 +39,6 @@ const flows: Record<HardwareType, string[]> = {
 }
 
 export interface FormState {
-  isSaved?: boolean
   hardwareType?: HardwareType
   talosVersion?: string
   useGrpcTunnel?: boolean
@@ -69,16 +68,14 @@ import SavePresetModal from '@/views/omni/InstallationMedia/SavePresetModal.vue'
 const router = useRouter()
 const route = useRoute()
 
-const formState = useSessionStorage<FormState>(
-  '_installation_media_form',
-  {},
-  { writeDefaults: false },
-)
+const formState = useSessionStorage<FormState>('_installation_media_form', {})
+const isSaved = useSessionStorage('_installation_media_form_saved', false)
 
 watchEffect(() => {
   if (route.name === 'InstallationMediaCreateEntry') {
     // Reset form when on entry page
     formState.value = {}
+    isSaved.value = false
   } else if (!formState.value.hardwareType) {
     // Fail-safe to return to the start of the form if we load a future step with a blank form state
     router.replace({ name: 'InstallationMediaCreateEntry' })
@@ -124,7 +121,7 @@ const savePresetModalOpen = ref(false)
 function onSaved(name: string) {
   showSuccess(`Preset saved as ${name}`)
 
-  formState.value.isSaved = true
+  isSaved.value = true
   savePresetModalOpen.value = false
 }
 </script>
@@ -163,7 +160,7 @@ function onSaved(name: string) {
         <TButton
           is="router-link"
           v-if="currentFlowSteps && currentStep > 0"
-          :disabled="formState.isSaved"
+          :disabled="isSaved"
           :to="{ name: prevStep }"
         >
           Back
@@ -181,7 +178,7 @@ function onSaved(name: string) {
 
         <TButton
           is="router-link"
-          v-else-if="formState.isSaved"
+          v-else-if="isSaved"
           type="highlighted"
           :to="{ name: 'InstallationMedia' }"
         >

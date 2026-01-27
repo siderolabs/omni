@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { GrpcTunnelMode, type InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
+import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
 import type { FormState } from '@/views/omni/InstallationMedia/InstallationMediaCreate.vue'
 
 export function formStateToPreset(formState: FormState): InstallationMediaConfigSpec {
@@ -34,5 +35,28 @@ export function formStateToPreset(formState: FormState): InstallationMediaConfig
         )
       : undefined,
     secure_boot: formState.secureBoot,
+  }
+}
+
+export function presetToFormState(preset: InstallationMediaConfigSpec): FormState {
+  return {
+    hardwareType: preset.cloud ? 'cloud' : preset.sbc ? 'sbc' : 'metal',
+    machineArch: preset.architecture,
+    bootloader: preset.bootloader,
+    cloudPlatform: preset.cloud?.platform,
+    sbcType: preset.sbc?.overlay,
+    overlayOptions: preset.sbc?.overlay_options,
+    useGrpcTunnel: preset.grpc_tunnel === GrpcTunnelMode.ENABLED,
+    talosVersion: preset.talos_version,
+    systemExtensions: preset.install_extensions,
+    joinToken: preset.join_token,
+    cmdline: preset.kernel_args,
+    machineUserLabels: preset.machine_labels
+      ? Object.entries(preset.machine_labels).reduce<Record<string, LabelSelectItem>>(
+          (prev, [key, value]) => ({ ...prev, [key]: { value, canRemove: true } }),
+          {},
+        )
+      : undefined,
+    secureBoot: preset.secure_boot,
   }
 }
