@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/netip"
 	"os"
+	"runtime"
 	"strconv"
 	"syscall"
 	"time"
@@ -405,13 +406,33 @@ func (manager *Manager) wgConfig() *specs.SiderolinkConfigSpec {
 	return manager.config.TypedSpec().Value
 }
 
+// newBind creates a WireGuard bind. If host is a specific IP address, it creates
+// a bound bind that listens only on that address instead of all interfaces.
+func (manager *Manager) newBind(host string) conn.Bind {
+	if host == "" || host == "0.0.0.0" || host == "::" {
+		manager.logger.Info("binding wireguard to all interfaces", zap.String("host", host))
+
+		if runtime.GOOS == "darwin" {
+			manager.logger.Warn("MACOS DETECTED: binding to all interfaces may cause connectivity issues " +
+				"if multiple network interfaces share the same subnet. " +
+				"Consider setting a specific IP address in wireguard endpoint.")
+		}
+
+		return conn.NewDefaultBind()
+	}
+
+	manager.logger.Info("binding wireguard to specific address", zap.String("addr", host))
+
+	return NewBoundBind(host)
+}
+
 func (manager *Manager) startWireguard(ctx context.Context, eg *errgroup.Group, serverAddr netip.Prefix) error {
 	key, err := wgtypes.ParseKey(manager.wgConfig().PrivateKey)
 	if err != nil {
 		return fmt.Errorf("invalid private key: %w", err)
 	}
 
-	_, strPort, err := net.SplitHostPort(manager.wgConfig().WireguardEndpoint)
+	host, strPort, err := net.SplitHostPort(manager.wgConfig().WireguardEndpoint)
 	if err != nil {
 		return fmt.Errorf("invalid Wireguard endpoint: %w", err)
 	}
@@ -426,7 +447,7 @@ func (manager *Manager) startWireguard(ctx context.Context, eg *errgroup.Group, 
 	}
 
 	if err = manager.wgHandler.SetupDevice(wireguard.DeviceConfig{
-		Bind:               wgbind.NewServerBind(conn.NewDefaultBind(), manager.virtualPrefix, manager.peerTraffic, manager.logger),
+		Bind:               wgbind.NewServerBind(manager.newBind(host), manager.virtualPrefix, manager.peerTraffic, manager.logger),
 		PeerHandler:        peerHandler,
 		Logger:             manager.logger,
 		ServerPrefix:       serverAddr,
