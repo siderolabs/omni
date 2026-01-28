@@ -23,6 +23,25 @@ export enum KubernetesSyncManifestResponseResponseType {
   ROLLOUT = 2,
 }
 
+export enum KubernetesSSAOptionsInventoryPolicy {
+  MUST_MATCH = 0,
+  ADOPT_IF_NO_INVENTORY = 1,
+  ADOPT_ALL = 2,
+}
+
+export enum KubernetesBootstrapManifestSyncResponseResponseType {
+  APPLY = 0,
+  PRUNE = 1,
+  ROLLOUT = 2,
+  WAIT = 3,
+}
+
+export enum KubernetesBootstrapManifestDiffResponseAction {
+  CREATE = 0,
+  PRUNE = 1,
+  MODIFY = 2,
+}
+
 export enum CreateSchematicRequestSiderolinkGRPCTunnelMode {
   AUTO = 0,
   DISABLED = 1,
@@ -124,6 +143,38 @@ export type KubernetesSyncManifestResponse = {
   object?: Uint8Array
   diff?: string
   skipped?: boolean
+}
+
+export type KubernetesSSAOptions = {
+  inventory_policy?: KubernetesSSAOptionsInventoryPolicy
+  reconcile_timeout?: GoogleProtobufDuration.Duration
+  prune_timeout?: GoogleProtobufDuration.Duration
+  force_conflicts?: boolean
+  dry_run?: boolean
+  no_prune?: boolean
+}
+
+export type KubernetesBootstrapManifestSyncResponseObjectMetadata = {
+  namespace?: string
+  name?: string
+  group_kind?: string
+  group_name?: string
+}
+
+export type KubernetesBootstrapManifestSyncResponse = {
+  type?: KubernetesBootstrapManifestSyncResponseResponseType
+  object_id?: KubernetesBootstrapManifestSyncResponseObjectMetadata
+  error?: string
+}
+
+export type KubernetesBootstrapManifestDiffResponse = {
+  object?: Uint8Array
+  action?: KubernetesBootstrapManifestDiffResponseAction
+  diff?: string
+}
+
+export type KubernetesBootstrapManifestDiffResponseList = {
+  diffs?: KubernetesBootstrapManifestDiffResponse[]
 }
 
 export type CreateSchematicRequestOverlay = {
@@ -261,6 +312,12 @@ export class ManagementService {
   }
   static KubernetesSyncManifests(req: KubernetesSyncManifestRequest, entityNotifier?: fm.NotifyStreamEntityArrival<KubernetesSyncManifestResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<KubernetesSyncManifestRequest, KubernetesSyncManifestResponse>("POST", `/management.ManagementService/KubernetesSyncManifests`, req, entityNotifier, ...options)
+  }
+  static KubernetesSyncManifestsSSA(req: KubernetesSSAOptions, entityNotifier?: fm.NotifyStreamEntityArrival<KubernetesBootstrapManifestSyncResponse>, ...options: fm.fetchOption[]): Promise<void> {
+    return fm.fetchStreamingRequest<KubernetesSSAOptions, KubernetesBootstrapManifestSyncResponse>("POST", `/management.ManagementService/KubernetesSyncManifestsSSA`, req, entityNotifier, ...options)
+  }
+  static KubernetesDiffManifests(req: KubernetesSSAOptions, ...options: fm.fetchOption[]): Promise<KubernetesBootstrapManifestDiffResponseList> {
+    return fm.fetchReq<KubernetesSSAOptions, KubernetesBootstrapManifestDiffResponseList>("POST", `/management.ManagementService/KubernetesDiffManifests`, req, ...options)
   }
   static CreateSchematic(req: CreateSchematicRequest, ...options: fm.fetchOption[]): Promise<CreateSchematicResponse> {
     return fm.fetchReq<CreateSchematicRequest, CreateSchematicResponse>("POST", `/management.ManagementService/CreateSchematic`, req, ...options)

@@ -25,8 +25,8 @@ import (
 
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -205,35 +205,27 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 					return fmt.Errorf("failed to get kubeconfig: %w", err)
 				}
 
-				errCh := make(chan error, 1)
-				resultCh := make(chan manifests.SyncResult)
-
-				panichandler.Go(func() {
-					errCh <- manifests.Sync(ctx, bootstrapManifests, cfg, true, resultCh)
-				}, logger)
-
-				for {
-					select {
-					case err := <-errCh:
-						if err != nil {
-							if apierrors.IsInvalid(err) || apierrors.IsBadRequest(err) || apierrors.IsForbidden(err) || apierrors.IsRequestEntityTooLargeError(err) || webhookError(err) {
-								// bootstrap manifests are invalid, log, but don't fail the controller
-								logger.Error("failed to sync bootstrap manifests", zap.String("cluster", clusterID), zap.Error(err))
-								manifestStatus.TypedSpec().Value.LastFatalError = err.Error()
-
-								return nil
-							}
-
-							return fmt.Errorf("failed to dry run sync manifests: %w", err)
-						}
+				diffResult, err := manifests.DiffSSA(ctx, bootstrapManifests, cfg, manifests.SSAOptions{
+					FieldManagerName:       constants.KubernetesFieldManagerName,
+					InventoryNamespace:     constants.KubernetesInventoryNamespace,
+					InventoryName:          constants.KubernetesBootstrapManifestsInventoryName,
+					SSApplyBehaviorOptions: manifests.DefaultSSApplyBehaviorOptions(),
+				})
+				if err != nil {
+					if apierrors.IsInvalid(err) || apierrors.IsBadRequest(err) || apierrors.IsForbidden(err) || apierrors.IsRequestEntityTooLargeError(err) || webhookError(err) {
+						// bootstrap manifests are invalid, log, but don't fail the controller
+						logger.Error("failed to diff bootstrap manifests", zap.String("cluster", clusterID), zap.Error(err))
+						manifestStatus.TypedSpec().Value.LastFatalError = err.Error()
 
 						return nil
-					case result := <-resultCh:
-						if !result.Skipped {
-							manifestStatus.TypedSpec().Value.OutOfSync++
-						}
 					}
+
+					return fmt.Errorf("failed perform bootstrap manifests diff: %w", err)
 				}
+
+				manifestStatus.TypedSpec().Value.OutOfSync = int32(len(diffResult))
+
+				return nil
 			},
 		},
 		qtransform.WithExtraMappedInput[*omni.LoadBalancerStatus](

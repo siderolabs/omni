@@ -368,6 +368,42 @@ func (client *ClusterClient) KubernetesUpgradePreChecks(ctx context.Context, new
 	return fmt.Errorf("%s", resp.GetReason())
 }
 
+func (client *ClusterClient) KubernetesDiffManifests(ctx context.Context, req *management.KubernetesSSAOptions) (*management.KubernetesBootstrapManifestDiffResponseList, error) {
+	ctx = metadata.AppendToOutgoingContext(ctx, "context", client.clusterName)
+
+	return client.client.conn.KubernetesDiffManifests(ctx, req)
+}
+
+// KubernetesSyncManifestsSSA syncs manifests via SSA pushing the individual sync events.
+func (client *ClusterClient) KubernetesSyncManifestsSSA(
+	ctx context.Context,
+	req *management.KubernetesSSAOptions,
+	eventCh chan<- *management.KubernetesBootstrapManifestSyncResponse,
+) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	ctx = metadata.AppendToOutgoingContext(ctx, "context", client.clusterName)
+
+	cli, err := client.client.conn.KubernetesSyncManifestsSSA(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	for {
+		msg, err := cli.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) || status.Code(err) == codes.Canceled {
+				return nil
+			}
+
+			return err
+		}
+
+		eventCh <- msg
+	}
+}
+
 // KubernetesSyncManifestHandler is called for each sync event.
 type KubernetesSyncManifestHandler func(*management.KubernetesSyncManifestResponse) error
 

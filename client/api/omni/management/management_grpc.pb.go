@@ -34,6 +34,8 @@ const (
 	ManagementService_DestroyServiceAccount_FullMethodName      = "/management.ManagementService/DestroyServiceAccount"
 	ManagementService_KubernetesUpgradePreChecks_FullMethodName = "/management.ManagementService/KubernetesUpgradePreChecks"
 	ManagementService_KubernetesSyncManifests_FullMethodName    = "/management.ManagementService/KubernetesSyncManifests"
+	ManagementService_KubernetesSyncManifestsSSA_FullMethodName = "/management.ManagementService/KubernetesSyncManifestsSSA"
+	ManagementService_KubernetesDiffManifests_FullMethodName    = "/management.ManagementService/KubernetesDiffManifests"
 	ManagementService_CreateSchematic_FullMethodName            = "/management.ManagementService/CreateSchematic"
 	ManagementService_GetSupportBundle_FullMethodName           = "/management.ManagementService/GetSupportBundle"
 	ManagementService_ReadAuditLog_FullMethodName               = "/management.ManagementService/ReadAuditLog"
@@ -58,6 +60,8 @@ type ManagementServiceClient interface {
 	DestroyServiceAccount(ctx context.Context, in *DestroyServiceAccountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	KubernetesUpgradePreChecks(ctx context.Context, in *KubernetesUpgradePreChecksRequest, opts ...grpc.CallOption) (*KubernetesUpgradePreChecksResponse, error)
 	KubernetesSyncManifests(ctx context.Context, in *KubernetesSyncManifestRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[KubernetesSyncManifestResponse], error)
+	KubernetesSyncManifestsSSA(ctx context.Context, in *KubernetesSSAOptions, opts ...grpc.CallOption) (grpc.ServerStreamingClient[KubernetesBootstrapManifestSyncResponse], error)
+	KubernetesDiffManifests(ctx context.Context, in *KubernetesSSAOptions, opts ...grpc.CallOption) (*KubernetesBootstrapManifestDiffResponseList, error)
 	CreateSchematic(ctx context.Context, in *CreateSchematicRequest, opts ...grpc.CallOption) (*CreateSchematicResponse, error)
 	GetSupportBundle(ctx context.Context, in *GetSupportBundleRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetSupportBundleResponse], error)
 	ReadAuditLog(ctx context.Context, in *ReadAuditLogRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadAuditLogResponse], error)
@@ -212,6 +216,35 @@ func (c *managementServiceClient) KubernetesSyncManifests(ctx context.Context, i
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ManagementService_KubernetesSyncManifestsClient = grpc.ServerStreamingClient[KubernetesSyncManifestResponse]
 
+func (c *managementServiceClient) KubernetesSyncManifestsSSA(ctx context.Context, in *KubernetesSSAOptions, opts ...grpc.CallOption) (grpc.ServerStreamingClient[KubernetesBootstrapManifestSyncResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ManagementService_ServiceDesc.Streams[2], ManagementService_KubernetesSyncManifestsSSA_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[KubernetesSSAOptions, KubernetesBootstrapManifestSyncResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ManagementService_KubernetesSyncManifestsSSAClient = grpc.ServerStreamingClient[KubernetesBootstrapManifestSyncResponse]
+
+func (c *managementServiceClient) KubernetesDiffManifests(ctx context.Context, in *KubernetesSSAOptions, opts ...grpc.CallOption) (*KubernetesBootstrapManifestDiffResponseList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(KubernetesBootstrapManifestDiffResponseList)
+	err := c.cc.Invoke(ctx, ManagementService_KubernetesDiffManifests_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *managementServiceClient) CreateSchematic(ctx context.Context, in *CreateSchematicRequest, opts ...grpc.CallOption) (*CreateSchematicResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateSchematicResponse)
@@ -224,7 +257,7 @@ func (c *managementServiceClient) CreateSchematic(ctx context.Context, in *Creat
 
 func (c *managementServiceClient) GetSupportBundle(ctx context.Context, in *GetSupportBundleRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetSupportBundleResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &ManagementService_ServiceDesc.Streams[2], ManagementService_GetSupportBundle_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &ManagementService_ServiceDesc.Streams[3], ManagementService_GetSupportBundle_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +276,7 @@ type ManagementService_GetSupportBundleClient = grpc.ServerStreamingClient[GetSu
 
 func (c *managementServiceClient) ReadAuditLog(ctx context.Context, in *ReadAuditLogRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadAuditLogResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &ManagementService_ServiceDesc.Streams[3], ManagementService_ReadAuditLog_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &ManagementService_ServiceDesc.Streams[4], ManagementService_ReadAuditLog_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -306,6 +339,8 @@ type ManagementServiceServer interface {
 	DestroyServiceAccount(context.Context, *DestroyServiceAccountRequest) (*emptypb.Empty, error)
 	KubernetesUpgradePreChecks(context.Context, *KubernetesUpgradePreChecksRequest) (*KubernetesUpgradePreChecksResponse, error)
 	KubernetesSyncManifests(*KubernetesSyncManifestRequest, grpc.ServerStreamingServer[KubernetesSyncManifestResponse]) error
+	KubernetesSyncManifestsSSA(*KubernetesSSAOptions, grpc.ServerStreamingServer[KubernetesBootstrapManifestSyncResponse]) error
+	KubernetesDiffManifests(context.Context, *KubernetesSSAOptions) (*KubernetesBootstrapManifestDiffResponseList, error)
 	CreateSchematic(context.Context, *CreateSchematicRequest) (*CreateSchematicResponse, error)
 	GetSupportBundle(*GetSupportBundleRequest, grpc.ServerStreamingServer[GetSupportBundleResponse]) error
 	ReadAuditLog(*ReadAuditLogRequest, grpc.ServerStreamingServer[ReadAuditLogResponse]) error
@@ -357,6 +392,12 @@ func (UnimplementedManagementServiceServer) KubernetesUpgradePreChecks(context.C
 }
 func (UnimplementedManagementServiceServer) KubernetesSyncManifests(*KubernetesSyncManifestRequest, grpc.ServerStreamingServer[KubernetesSyncManifestResponse]) error {
 	return status.Error(codes.Unimplemented, "method KubernetesSyncManifests not implemented")
+}
+func (UnimplementedManagementServiceServer) KubernetesSyncManifestsSSA(*KubernetesSSAOptions, grpc.ServerStreamingServer[KubernetesBootstrapManifestSyncResponse]) error {
+	return status.Error(codes.Unimplemented, "method KubernetesSyncManifestsSSA not implemented")
+}
+func (UnimplementedManagementServiceServer) KubernetesDiffManifests(context.Context, *KubernetesSSAOptions) (*KubernetesBootstrapManifestDiffResponseList, error) {
+	return nil, status.Error(codes.Unimplemented, "method KubernetesDiffManifests not implemented")
 }
 func (UnimplementedManagementServiceServer) CreateSchematic(context.Context, *CreateSchematicRequest) (*CreateSchematicResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateSchematic not implemented")
@@ -599,6 +640,35 @@ func _ManagementService_KubernetesSyncManifests_Handler(srv interface{}, stream 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ManagementService_KubernetesSyncManifestsServer = grpc.ServerStreamingServer[KubernetesSyncManifestResponse]
 
+func _ManagementService_KubernetesSyncManifestsSSA_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(KubernetesSSAOptions)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ManagementServiceServer).KubernetesSyncManifestsSSA(m, &grpc.GenericServerStream[KubernetesSSAOptions, KubernetesBootstrapManifestSyncResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ManagementService_KubernetesSyncManifestsSSAServer = grpc.ServerStreamingServer[KubernetesBootstrapManifestSyncResponse]
+
+func _ManagementService_KubernetesDiffManifests_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KubernetesSSAOptions)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagementServiceServer).KubernetesDiffManifests(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ManagementService_KubernetesDiffManifests_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagementServiceServer).KubernetesDiffManifests(ctx, req.(*KubernetesSSAOptions))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ManagementService_CreateSchematic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateSchematicRequest)
 	if err := dec(in); err != nil {
@@ -741,6 +811,10 @@ var ManagementService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ManagementService_KubernetesUpgradePreChecks_Handler,
 		},
 		{
+			MethodName: "KubernetesDiffManifests",
+			Handler:    _ManagementService_KubernetesDiffManifests_Handler,
+		},
+		{
 			MethodName: "CreateSchematic",
 			Handler:    _ManagementService_CreateSchematic_Handler,
 		},
@@ -766,6 +840,11 @@ var ManagementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "KubernetesSyncManifests",
 			Handler:       _ManagementService_KubernetesSyncManifests_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "KubernetesSyncManifestsSSA",
+			Handler:       _ManagementService_KubernetesSyncManifestsSSA_Handler,
 			ServerStreams: true,
 		},
 		{
