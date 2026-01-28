@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-26T10:17:43Z by kres b1ab497.
+# Generated on 2026-01-28T15:22:29Z by kres 1b0dcb3.
 
 # common variables
 
@@ -18,7 +18,7 @@ WITH_RACE ?= false
 REGISTRY ?= ghcr.io
 USERNAME ?= siderolabs
 REGISTRY_AND_USERNAME ?= $(REGISTRY)/$(USERNAME)
-PROTOBUF_GRPC_GATEWAY_TS_VERSION ?= 1.3.0
+PROTOBUF_GRPC_GATEWAY_TS_VERSION ?= 1.3.1
 TESTPKGS ?= ./...
 JS_BUILD_ARGS ?=
 PROTOBUF_GO_VERSION ?= 1.36.11
@@ -40,6 +40,7 @@ GOEXPERIMENT ?=
 GO_BUILDFLAGS += -tags $(GO_BUILDTAGS)
 HELMREPO ?= $(REGISTRY)/$(USERNAME)/charts
 COSIGN_ARGS ?=
+HELMDOCS_VERSION ?= v1.14.2
 KRES_IMAGE ?= ghcr.io/siderolabs/kres:latest
 CONFORMANCE_IMAGE ?= ghcr.io/siderolabs/conform:latest
 
@@ -83,6 +84,7 @@ COMMON_ARGS += --build-arg=DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
 COMMON_ARGS += --build-arg=GOLANGCILINT_VERSION="$(GOLANGCILINT_VERSION)"
 COMMON_ARGS += --build-arg=GOFUMPT_VERSION="$(GOFUMPT_VERSION)"
 COMMON_ARGS += --build-arg=TESTPKGS="$(TESTPKGS)"
+COMMON_ARGS += --build-arg=HELMDOCS_VERSION="$(HELMDOCS_VERSION)"
 JS_TOOLCHAIN ?= docker.io/node:24.13.0-alpine
 TOOLCHAIN ?= docker.io/golang:1.25-alpine
 
@@ -182,6 +184,10 @@ local-%:  ## Builds the specified target defined in the Dockerfile using the loc
 	      rmdir "$$DEST/$$directory/"; \
 	    fi; \
 	  done'
+
+.PHONY: check-dirty
+check-dirty:
+	@if test -n "`git status --porcelain`"; then echo "Source tree is dirty"; git status; git diff; exit 1 ; fi
 
 generate-frontend:  ## Generate .proto definitions.
 	@$(MAKE) local-$@ DEST=./
@@ -373,7 +379,36 @@ helm:  ## Package helm chart
 .PHONY: helm-release
 helm-release: helm  ## Release helm chart
 	@helm push $(ARTIFACTS)/omni-*.tgz oci://$(HELMREPO) 2>&1 | tee $(ARTIFACTS)/.digest
-	@cosign sign --yes $(COSING_ARGS) $(HELMREPO)/omni@$$(cat $(ARTIFACTS)/.digest | awk -F "[, ]+" '/Digest/{print $$NF}')
+	@cosign sign --yes $(COSIGN_ARGS) $(HELMREPO)/omni@$$(cat $(ARTIFACTS)/.digest | awk -F "[, ]+" '/Digest/{print $$NF}')
+
+.PHONY: chart-lint
+chart-lint:  ## Lint helm chart
+	@helm lint deploy/helm/omni
+
+.PHONY: helm-plugin-install
+helm-plugin-install:  ## Install helm plugins
+	-helm plugin install https://github.com/helm-unittest/helm-unittest.git --verify=false --version=v1.0.3
+	-helm plugin install https://github.com/losisin/helm-values-schema-json.git --verify=false --version=v2.3.1
+
+.PHONY: kuttl-plugin-install
+kuttl-plugin-install:  ## Install kubectl kuttl plugin
+	kubectl krew install kuttl
+
+.PHONY: chart-e2e
+chart-e2e:  ## Run helm chart e2e tests
+	export KUBECONFIG=$(shell pwd)/$(ARTIFACTS)/kubeconfig && cd deploy/helm/e2e && kubectl kuttl test
+
+.PHONY: chart-unittest
+chart-unittest: $(ARTIFACTS)  ## Run helm chart unit tests
+	@helm unittest deploy/helm/omni --output-type junit --output-file $(ARTIFACTS)/helm-unittest-report.xml
+
+.PHONY: chart-gen-schema
+chart-gen-schema:  ## Generate helm chart schema
+	@helm schema --use-helm-docs --draft=7 --indent=2 --values=deploy/helm/omni/values.yaml --output=deploy/helm/omni/values.schema.json
+
+.PHONY: helm-docs
+helm-docs:  ## Runs helm-docs and generates chart documentation
+	@$(MAKE) local-$@ DEST=.
 
 .PHONY: $(ARTIFACTS)/integration-test-darwin-amd64
 $(ARTIFACTS)/integration-test-darwin-amd64:

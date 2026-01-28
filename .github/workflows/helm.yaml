@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2025-12-09T15:32:15Z by kres 4b09af7.
+# Generated on 2026-01-28T15:22:29Z by kres 1b0dcb3.
 
 concurrency:
   group: helm-${{ github.head_ref || github.run_id }}
@@ -77,7 +77,27 @@ jobs:
       - name: Template chart
         if: github.event_name == 'pull_request'
         run: |
-          helm template -f deploy/helm/omni/values.yaml omni deploy/helm/omni
+          helm template -f deploy/helm/omni/values.yaml  omni deploy/helm/omni
+      - name: Install unit test plugin
+        if: github.event_name == 'pull_request'
+        run: |
+          make helm-plugin-install
+      - name: Unit test chart
+        if: github.event_name == 'pull_request'
+        run: |
+          make chart-unittest
+      - name: Generate schema
+        if: github.event_name == 'pull_request'
+        run: |
+          make chart-gen-schema
+      - name: Generate docs
+        if: github.event_name == 'pull_request'
+        run: |
+          make helm-docs
+      - name: Check dirty
+        if: github.event_name == 'pull_request'
+        run: |
+          make check-dirty
       - name: helm login
         if: startsWith(github.ref, 'refs/tags/')
         env:

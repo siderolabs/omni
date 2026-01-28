@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-16T12:04:05Z by kres 1ffefb6.
+# Generated on 2026-01-28T13:53:13Z by kres b510eb4.
 
 *
 !frontend/src
@@ -38,3 +38,4 @@
 !.license-header.go.txt
 !hack/govulncheck.sh
 !hack/govulncheck.sh
+!deploy/helm/omni

@@ -177,8 +177,8 @@ const getError = async (result: Response) => {
     throw new Error(e.message);
   }
 
-  const message = resp?.message;
-  const code = resp?.code;
+  const message = resp?.error?.message ?? resp?.message;
+  const code = resp?.error?.code ?? resp?.code;
 
   throw new RequestError(message || code || JSON.stringify(resp), { code });
 }

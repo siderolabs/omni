@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-19T13:29:17Z by kres 1ffefb6.
+# Generated on 2026-01-28T13:53:13Z by kres b510eb4.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN=scratch
@@ -264,6 +264,12 @@ COPY .license-header.go.txt hack/.license-header.go.txt
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go generate ./internal/...
 RUN goimports -w -local github.com/siderolabs/omni/client,github.com/siderolabs/omni ./internal
 
+# helm toolchain
+FROM base AS helm-toolchain
+ARG HELMDOCS_VERSION
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go install github.com/norwoodj/helm-docs/cmd/helm-docs@${HELMDOCS_VERSION} \
+	&& mv /go/bin/helm-docs /bin/helm-docs
+
 # runs gofumpt
 FROM base AS lint-gofumpt
 RUN FILES="$(gofumpt -l .)" && test -z "${FILES}" || (echo -e "Source code is not formatted with 'gofumpt -w .':\n${FILES}"; exit 1)
@@ -344,6 +350,11 @@ ARG ABBREV_TAG
 RUN echo -n 'undefined' > internal/version/data/sha && \
     echo -n ${ABBREV_TAG} > internal/version/data/tag
 
+# runs helm-docs
+FROM helm-toolchain AS helm-docs-run
+COPY deploy/helm/omni /src/deploy/helm/omni
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/root/.cache/helm-docs,id=omni/root/.cache/helm-docs,sharing=locked helm-docs --badge-style=flat --template-files=README.md.gotpl
+
 # clean golangci-lint fmt output
 FROM scratch AS lint-golangci-lint-client-fmt
 COPY --from=lint-golangci-lint-client-fmt-run /src/client client
@@ -364,6 +375,10 @@ COPY --from=proto-compile /client/api/ /client/api/
 COPY --from=go-generate-0 /src/frontend frontend
 COPY --from=go-generate-0 /src/internal/backend/runtime/omni/controllers/omni internal/backend/runtime/omni/controllers/omni
 COPY --from=embed-abbrev-generate /src/internal/version internal/version
+
+# clean helm-docs output
+FROM scratch AS helm-docs
+COPY --from=helm-docs-run /src/deploy/helm/omni deploy/helm/omni
 
 # builds acompat-linux-amd64
 FROM base AS acompat-linux-amd64-build
