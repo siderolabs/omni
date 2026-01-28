@@ -52,9 +52,10 @@ export function usePresetSchematic(presetRef: MaybeRefOrGetter<InstallationMedia
       const { schematic_id, schematic_yml } = await ManagementService.CreateSchematic({
         extensions: preset.install_extensions,
         extra_kernel_args: preset.kernel_args?.split(' ').filter((item) => item.trim()),
-        meta_values: {
-          [LabelsMeta]: dump({ machineLabels: preset.machine_labels ?? {} }),
-        },
+        meta_values:
+          preset.machine_labels && Object.keys(preset.machine_labels).length > 0
+            ? { [LabelsMeta]: dump({ machineLabels: preset.machine_labels }) }
+            : undefined,
         overlay,
         talos_version: preset.talos_version,
         secure_boot: preset.secure_boot,
