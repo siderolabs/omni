@@ -17,6 +17,7 @@ set -eoux pipefail
 #
 # Write "my-instance.omni.localhost" to /etc/hosts to avoid problems with the name resolution.
 echo "127.0.0.1 my-instance.omni.localhost" | tee -a /etc/hosts
+echo "127.0.0.1 omni.localhost" | tee -a /etc/hosts
 
 # Settings.
 LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
