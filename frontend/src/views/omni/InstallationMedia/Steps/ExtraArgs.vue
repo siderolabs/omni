@@ -122,27 +122,36 @@ const { data: selectedSBC } = useResourceGet<SBCConfigSpec>(() => ({
       label="Bootloader"
     >
       <RadioGroupOption :value="SchematicBootloader.BOOT_AUTO">
-        auto
+        Auto
 
-        <template #description>Automatic bootloader selection.</template>
+        <template #description>
+          Automatically select bootloader support based on image type and architecture
+          (recommended).
+        </template>
       </RadioGroupOption>
 
       <RadioGroupOption :value="SchematicBootloader.BOOT_SD">
-        sd-boot
+        UEFI only
 
-        <template #description>Use systemd-boot as bootloader if supported.</template>
+        <template #description>
+          Supports modern hardware with UEFI firmware (uses systemd-boot).
+        </template>
       </RadioGroupOption>
 
       <RadioGroupOption v-if="!formState.secureBoot" :value="SchematicBootloader.BOOT_GRUB">
-        grub
+        BIOS only
 
-        <template #description>Use GRUB as a bootloader (not supported with SecureBoot).</template>
+        <template #description>
+          Legacy hardware support, some virtual machines (uses GRUB).
+        </template>
       </RadioGroupOption>
 
       <RadioGroupOption :value="SchematicBootloader.BOOT_DUAL">
-        dual-boot
+        Dual Boot
 
-        <template #description>Use GRUB for BIOS and systemd-boot for UEFI systems.</template>
+        <template #description>
+          Universal image, includes support for BIOS and UEFI systems.
+        </template>
       </RadioGroupOption>
     </RadioGroup>
   </div>
