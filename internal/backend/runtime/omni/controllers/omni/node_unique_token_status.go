@@ -7,28 +7,19 @@ package omni
 
 import (
 	"context"
-	"strings"
-	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/google/uuid"
 	"github.com/siderolabs/gen/xerrors"
-	"github.com/siderolabs/talos/pkg/machinery/client"
-	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/jointoken"
-	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
 // NodeUniqueTokenStatusController is a controller that writes the unique token to the meta partition the connected machines.
@@ -48,13 +39,17 @@ func NewNodeUniqueTokenStatusController() *NodeUniqueTokenStatusController {
 			UnmapMetadataFunc: func(nodeUniqueTokenStatus *siderolinkres.NodeUniqueTokenStatus) *machineStatusLabels {
 				return system.NewResourceLabels[*omni.MachineStatus](nodeUniqueTokenStatus.Metadata().ID())
 			},
-			TransformFunc: handler.reconcileRunning,
+			TransformExtraOutputFunc: handler.reconcileRunning,
 		},
+		qtransform.WithExtraMappedInput[*siderolinkres.Link](qtransform.MapperSameID[*machineStatusLabels]()),
 		qtransform.WithExtraMappedInput[*siderolinkres.NodeUniqueToken](qtransform.MapperSameID[*machineStatusLabels]()),
 		qtransform.WithExtraMappedInput[*omni.ClusterMachine](qtransform.MapperSameID[*machineStatusLabels]()),
 		qtransform.WithExtraMappedInput[*omni.MachineStatusSnapshot](qtransform.MapperSameID[*machineStatusLabels]()),
 		qtransform.WithExtraMappedInput[*omni.Machine](qtransform.MapperSameID[*machineStatusLabels]()),
-		qtransform.WithExtraMappedInput[*omni.TalosConfig](mappers.MapClusterResourceToLabeledResources[*machineStatusLabels]()),
+		qtransform.WithExtraOutputs(controller.Output{
+			Type: siderolinkres.PendingMachineType,
+			Kind: controller.OutputShared,
+		}),
 		qtransform.WithConcurrency(32),
 	)
 }
@@ -63,7 +58,7 @@ type nodeUniqueTokenStatusHandler struct{}
 
 func (handler *nodeUniqueTokenStatusHandler) reconcileRunning(
 	ctx context.Context,
-	r controller.Reader,
+	r controller.ReaderWriter,
 	logger *zap.Logger,
 	machineStatus *machineStatusLabels,
 	nodeUniqueTokenStatus *siderolinkres.NodeUniqueTokenStatus,
@@ -124,69 +119,20 @@ func (handler *nodeUniqueTokenStatusHandler) reconcileRunning(
 		return nil
 	}
 
-	c, err := handler.getClient(ctx, r, machine)
+	link, err := safe.ReaderGetByID[*siderolinkres.Link](ctx, r, machineStatus.Metadata().ID())
 	if err != nil {
 		return err
 	}
 
-	defer c.Close() //nolint:errcheck
+	// create a pending machine status to force generating the node unique token
+	return safe.WriterModify(ctx, r, siderolinkres.NewPendingMachine(link.TypedSpec().Value.NodePublicKey, link.TypedSpec().Value),
+		func(pendingMachine *siderolinkres.PendingMachine) error {
+			pendingMachine.Metadata().Labels().Set(omni.MachineUUID, link.Metadata().ID())
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-	defer cancel()
+			pendingMachine.TypedSpec().Value = link.TypedSpec().Value
 
-	logger.Info("proactively generating node unique token")
-
-	return handler.generateUniqueNodeToken(ctx, c, logger)
-}
-
-func (handler *nodeUniqueTokenStatusHandler) generateUniqueNodeToken(
-	ctx context.Context,
-	c *client.Client,
-	logger *zap.Logger,
-) error {
-	uniqueToken, err := safe.ReaderGetByID[*runtime.MetaKey](ctx, c.COSI, runtime.MetaKeyTagToID(meta.UniqueMachineToken))
-	if err != nil && !state.IsNotFoundError(err) {
-		return err
-	}
-
-	if uniqueToken != nil {
-		logger.Debug("meta key already exists")
-
-		return nil
-	}
-
-	fingerprint, err := jointoken.GetMachineFingerprint(ctx, c)
-	if err != nil {
-		return err
-	}
-
-	token, err := jointoken.NewNodeUniqueToken(fingerprint, uuid.NewString()).Encode()
-	if err != nil {
-		return err
-	}
-
-	if err := c.MetaWrite(ctx, meta.UniqueMachineToken, []byte(token)); err != nil {
-		return err
-	}
-
-	logger.Info("generated node unique secret token")
-
-	return nil
-}
-
-func (handler *nodeUniqueTokenStatusHandler) getClient(
-	ctx context.Context,
-	r controller.Reader,
-	machine *omni.Machine,
-) (*client.Client, error) {
-	if strings.HasPrefix(machine.TypedSpec().Value.ManagementAddress, "unix://") {
-		return helpers.GetTalosClient[*omni.ClusterMachine](ctx, r, machine.TypedSpec().Value.ManagementAddress, nil)
-	}
-
-	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, machine.Metadata().ID())
-	if err != nil && !state.IsNotFoundError(err) {
-		return nil, err
-	}
-
-	return helpers.GetTalosClient(ctx, r, machine.TypedSpec().Value.ManagementAddress, clusterMachine)
+			return nil
+		},
+		controller.WithModifyNoOwner(),
+	)
 }

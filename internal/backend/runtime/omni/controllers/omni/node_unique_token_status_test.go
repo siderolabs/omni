@@ -23,6 +23,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
+	rmockoptions "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
 )
 
 type NodeUniqueTokenStatusControllerSuite struct {
@@ -72,6 +74,15 @@ func (suite *MachineStatusSnapshotControllerSuite) TestNodeUniqueTokenStatus() {
 		suite.Require().NoError(suite.state.Create(ctx, machine))
 		suite.Require().NoError(suite.state.Create(ctx, machineStatus))
 
+		rmock.Mock[*siderolink.Link](ctx, suite.T(), suite.state,
+			rmockoptions.WithID(machine.Metadata().ID()),
+			rmockoptions.Modify(func(res *siderolink.Link) error {
+				res.TypedSpec().Value.NodePublicKey = machine.Metadata().ID()
+
+				return nil
+			}),
+		)
+
 		return machineStatus.Metadata().ID()
 	}
 
@@ -116,6 +127,13 @@ func (suite *MachineStatusSnapshotControllerSuite) TestNodeUniqueTokenStatus() {
 	)
 
 	suite.Require().NoError(err)
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{id}, func(res *siderolink.PendingMachine, assert *assert.Assertions) {
+		assert.Equal(res.Metadata().ID(), res.TypedSpec().Value.NodePublicKey)
+		uuid, ok := res.Metadata().Labels().Get(omnires.MachineUUID)
+		assert.True(ok)
+		assert.Equal(id, uuid)
+	})
 
 	token := siderolink.NewNodeUniqueToken(id)
 
