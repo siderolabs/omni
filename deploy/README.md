@@ -1,20 +1,11 @@
-## Omni On-Prem Compose File
+# Omni Deployment
 
-Follow the full documentation in the [Omni docs](https://omni.siderolabs.com/how-to-guides/self_hosted/index).
+This directory contains deployment options for Omni.
 
-The template requires the following environment variables to be set (change these for your environment):
+## Deployment Options
 
-```bash
-OMNI_VERSION=v0.42.0
-OMNI_ACCOUNT_UUID=$(uuidgen)
-OMNI_DOMAIN_NAME=omni.siderolabs.com
-OMNI_WG_IP=10.10.1.100
-OMNI_ADMIN_EMAIL=omni@siderolabs.com
-AUTH0_CLIENT_ID=xxxyyyzzz
-AUTH0_DOMAIN=dev-aaabbbccc.us.auth0.com
-```
+- **Docker Compose**: See [compose/README.md](compose/README.md)
+- **Helm Chart (v2)**: See [helm/v2/omni/README.md](helm/v2/omni/README.md)
 
-You may also want to update certificate paths, etcd storage, and other settings.
-
-- Copy `env.template` and edit all fields necessary
-- Run docker compose, supplying the environment file edited above: `docker compose --env-file <path-to-env> up -d`
+> [!NOTE]
+> We recommend using the Helm chart v2 for all new deployments. The Docker Compose setup and the deprecated v1 Helm chart (in `helm/omni/`) are not recommended for new installations.
