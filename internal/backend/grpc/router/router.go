@@ -214,7 +214,7 @@ func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) ([]proxy.B
 
 		r.metricActiveClients.Inc()
 
-		backend := NewTalosBackend(id, clusterName, r.nodeResolver, conn, r.authEnabled, r.verifier)
+		backend := NewTalosBackend(id, clusterName, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState)
 		r.talosBackends.Add(id, backend)
 
 		runtime.AddCleanup(backend, func(m prometheus.Gauge) { m.Dec() }, r.metricActiveClients)

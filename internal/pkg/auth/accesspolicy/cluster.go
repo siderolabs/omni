@@ -68,3 +68,30 @@ func RoleForCluster(ctx context.Context, id resource.ID, st state.State) (role.R
 
 	return maxRole, checkResult.MatchesAllClusters, nil
 }
+
+// ApplyClusterAccessPolicy checks the ACLs for the user in the context against the given cluster ID.
+// If there is a match and the matched role is higher than the user's role,
+// a child context containing the given role will be returned.
+func ApplyClusterAccessPolicy(ctx context.Context, clusterName string, st state.State) (context.Context, error) {
+	clusterRole, _, err := RoleForCluster(ctx, clusterName, st)
+	if err != nil {
+		return nil, err
+	}
+
+	userRole := role.None
+
+	if val, ok := ctxstore.Value[auth.RoleContextKey](ctx); ok {
+		userRole = val.Role
+	}
+
+	newRole, err := role.Max(userRole, clusterRole)
+	if err != nil {
+		return nil, err
+	}
+
+	if newRole == userRole {
+		return ctx, nil
+	}
+
+	return ctxstore.WithValue(ctx, auth.RoleContextKey{Role: newRole}), nil
+}
