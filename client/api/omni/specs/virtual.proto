@@ -53,15 +53,16 @@ message AdvertisedEndpointsSpec {
 
 message PlatformConfigSpec {
   enum BootMethod {
-    UNKNOWN = 0;
+    UNKNOWN_BOOT = 0;
     DISK_IMAGE = 1;
     ISO = 2;
     PXE = 3;
   }
 
   enum Arch {
-    AMD64 = 0;
-    ARM64 = 1;
+    UNKNOWN_ARCH = 0;
+    AMD64 = 1;
+    ARM64 = 2;
   }
 
   string label = 1;

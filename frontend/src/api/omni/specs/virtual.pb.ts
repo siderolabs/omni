@@ -5,15 +5,16 @@
 */
 
 export enum PlatformConfigSpecBootMethod {
-  UNKNOWN = 0,
+  UNKNOWN_BOOT = 0,
   DISK_IMAGE = 1,
   ISO = 2,
   PXE = 3,
 }
 
 export enum PlatformConfigSpecArch {
-  AMD64 = 0,
-  ARM64 = 1,
+  UNKNOWN_ARCH = 0,
+  AMD64 = 1,
+  ARM64 = 2,
 }
 
 export type CurrentUserSpec = {

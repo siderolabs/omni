@@ -25,25 +25,25 @@ const (
 type PlatformConfigSpec_BootMethod int32
 
 const (
-	PlatformConfigSpec_UNKNOWN    PlatformConfigSpec_BootMethod = 0
-	PlatformConfigSpec_DISK_IMAGE PlatformConfigSpec_BootMethod = 1
-	PlatformConfigSpec_ISO        PlatformConfigSpec_BootMethod = 2
-	PlatformConfigSpec_PXE        PlatformConfigSpec_BootMethod = 3
+	PlatformConfigSpec_UNKNOWN_BOOT PlatformConfigSpec_BootMethod = 0
+	PlatformConfigSpec_DISK_IMAGE   PlatformConfigSpec_BootMethod = 1
+	PlatformConfigSpec_ISO          PlatformConfigSpec_BootMethod = 2
+	PlatformConfigSpec_PXE          PlatformConfigSpec_BootMethod = 3
 )
 
 // Enum value maps for PlatformConfigSpec_BootMethod.
 var (
 	PlatformConfigSpec_BootMethod_name = map[int32]string{
-		0: "UNKNOWN",
+		0: "UNKNOWN_BOOT",
 		1: "DISK_IMAGE",
 		2: "ISO",
 		3: "PXE",
 	}
 	PlatformConfigSpec_BootMethod_value = map[string]int32{
-		"UNKNOWN":    0,
-		"DISK_IMAGE": 1,
-		"ISO":        2,
-		"PXE":        3,
+		"UNKNOWN_BOOT": 0,
+		"DISK_IMAGE":   1,
+		"ISO":          2,
+		"PXE":          3,
 	}
 )
 
@@ -77,19 +77,22 @@ func (PlatformConfigSpec_BootMethod) EnumDescriptor() ([]byte, []int) {
 type PlatformConfigSpec_Arch int32
 
 const (
-	PlatformConfigSpec_AMD64 PlatformConfigSpec_Arch = 0
-	PlatformConfigSpec_ARM64 PlatformConfigSpec_Arch = 1
+	PlatformConfigSpec_UNKNOWN_ARCH PlatformConfigSpec_Arch = 0
+	PlatformConfigSpec_AMD64        PlatformConfigSpec_Arch = 1
+	PlatformConfigSpec_ARM64        PlatformConfigSpec_Arch = 2
 )
 
 // Enum value maps for PlatformConfigSpec_Arch.
 var (
 	PlatformConfigSpec_Arch_name = map[int32]string{
-		0: "AMD64",
-		1: "ARM64",
+		0: "UNKNOWN_ARCH",
+		1: "AMD64",
+		2: "ARM64",
 	}
 	PlatformConfigSpec_Arch_value = map[string]int32{
-		"AMD64": 0,
-		"ARM64": 1,
+		"UNKNOWN_ARCH": 0,
+		"AMD64":        1,
+		"ARM64":        2,
 	}
 )
 
@@ -790,7 +793,7 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\".specs.LabelsCompletionSpec.ValuesR\x05value:\x028\x01\";\n" +
 	"\x17AdvertisedEndpointsSpec\x12 \n" +
 	"\fgrpc_api_url\x18\x01 \x01(\tR\n" +
-	"grpcApiUrl\"\xdd\x03\n" +
+	"grpcApiUrl\"\xf4\x03\n" +
 	"\x12PlatformConfigSpec\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12D\n" +
@@ -800,17 +803,18 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\fboot_methods\x18\x06 \x03(\x0e2$.specs.PlatformConfigSpec.BootMethodR\vbootMethods\x12\x1f\n" +
 	"\vmin_version\x18\a \x01(\tR\n" +
 	"minVersion\x122\n" +
-	"\x15secure_boot_supported\x18\b \x01(\bR\x13secureBootSupported\";\n" +
+	"\x15secure_boot_supported\x18\b \x01(\bR\x13secureBootSupported\"@\n" +
 	"\n" +
-	"BootMethod\x12\v\n" +
-	"\aUNKNOWN\x10\x00\x12\x0e\n" +
+	"BootMethod\x12\x10\n" +
+	"\fUNKNOWN_BOOT\x10\x00\x12\x0e\n" +
 	"\n" +
 	"DISK_IMAGE\x10\x01\x12\a\n" +
 	"\x03ISO\x10\x02\x12\a\n" +
-	"\x03PXE\x10\x03\"\x1c\n" +
-	"\x04Arch\x12\t\n" +
-	"\x05AMD64\x10\x00\x12\t\n" +
-	"\x05ARM64\x10\x01\"\xb4\x01\n" +
+	"\x03PXE\x10\x03\".\n" +
+	"\x04Arch\x12\x10\n" +
+	"\fUNKNOWN_ARCH\x10\x00\x12\t\n" +
+	"\x05AMD64\x10\x01\x12\t\n" +
+	"\x05ARM64\x10\x02\"\xb4\x01\n" +
 	"\rSBCConfigSpec\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12!\n" +
 	"\foverlay_name\x18\x02 \x01(\tR\voverlayName\x12#\n" +

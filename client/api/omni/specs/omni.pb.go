@@ -7236,7 +7236,7 @@ func (x *InstallationMediaConfigSpec) GetArchitecture() PlatformConfigSpec_Arch 
 	if x != nil {
 		return x.Architecture
 	}
-	return PlatformConfigSpec_AMD64
+	return PlatformConfigSpec_UNKNOWN_ARCH
 }
 
 func (x *InstallationMediaConfigSpec) GetInstallExtensions() []string {
