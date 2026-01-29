@@ -7,6 +7,7 @@
 package certs
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	talosx509 "github.com/siderolabs/crypto/x509"
+	"github.com/siderolabs/gen/xslices"
 	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/siderolabs/talos/pkg/machinery/role"
 
@@ -62,15 +64,29 @@ func IsPEMEncodedCertificateStale(certPEM []byte, expectedValidity time.Duration
 
 // TalosAPIClientCertificateFromSecrets generates a Talos API client certificate from the given secrets.
 func TalosAPIClientCertificateFromSecrets(secrets *omni.ClusterSecrets, certificateValidity time.Duration, roles role.Set) (*talosx509.PEMEncodedCertificateAndKey, []byte, error) {
-	secretBundle, err := omni.ToSecretsBundle(secrets)
+	secretsBundle, err := omni.ToSecretsBundle(secrets.TypedSpec().Value.Data)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	clientCert, err := talossecrets.NewAdminCertificateAndKey(time.Now(), secretBundle.Certs.OS, roles, certificateValidity)
+	clientCert, err := talossecrets.NewAdminCertificateAndKey(time.Now(), secretsBundle.Certs.OS, roles, certificateValidity)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error generating Talos API certificate: %w", err)
 	}
 
-	return clientCert, secretBundle.Certs.OS.Crt, nil
+	acceptedCAs := []*talosx509.PEMEncodedCertificate{{Crt: secretsBundle.Certs.OS.Crt}}
+
+	if secrets.TypedSpec().Value.ExtraCerts.GetOs() != nil {
+		acceptedCAs = append(acceptedCAs, &talosx509.PEMEncodedCertificate{Crt: secrets.TypedSpec().Value.GetExtraCerts().GetOs().Crt})
+	}
+
+	return clientCert, bytes.Join(
+		xslices.Map(
+			acceptedCAs,
+			func(cert *talosx509.PEMEncodedCertificate) []byte {
+				return cert.Crt
+			},
+		),
+		nil,
+	), nil
 }

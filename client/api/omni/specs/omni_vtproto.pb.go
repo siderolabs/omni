@@ -1031,12 +1031,56 @@ func (m *ClusterBootstrapStatusSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
+func (m *ClusterSecretsSpec_Certs_CA) CloneVT() *ClusterSecretsSpec_Certs_CA {
+	if m == nil {
+		return (*ClusterSecretsSpec_Certs_CA)(nil)
+	}
+	r := new(ClusterSecretsSpec_Certs_CA)
+	if rhs := m.Crt; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Crt = tmpBytes
+	}
+	if rhs := m.Key; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Key = tmpBytes
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClusterSecretsSpec_Certs_CA) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ClusterSecretsSpec_Certs) CloneVT() *ClusterSecretsSpec_Certs {
+	if m == nil {
+		return (*ClusterSecretsSpec_Certs)(nil)
+	}
+	r := new(ClusterSecretsSpec_Certs)
+	r.Os = m.Os.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClusterSecretsSpec_Certs) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *ClusterSecretsSpec) CloneVT() *ClusterSecretsSpec {
 	if m == nil {
 		return (*ClusterSecretsSpec)(nil)
 	}
 	r := new(ClusterSecretsSpec)
 	r.Imported = m.Imported
+	r.ExtraCerts = m.ExtraCerts.CloneVT()
 	if rhs := m.Data; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -1697,6 +1741,15 @@ func (m *OngoingTaskSpec_MachineUpgrade) CloneVT() isOngoingTaskSpec_Details {
 	}
 	r := new(OngoingTaskSpec_MachineUpgrade)
 	r.MachineUpgrade = m.MachineUpgrade.CloneVT()
+	return r
+}
+
+func (m *OngoingTaskSpec_SecretsRotation) CloneVT() isOngoingTaskSpec_Details {
+	if m == nil {
+		return (*OngoingTaskSpec_SecretsRotation)(nil)
+	}
+	r := new(OngoingTaskSpec_SecretsRotation)
+	r.SecretsRotation = m.SecretsRotation.CloneVT()
 	return r
 }
 
@@ -2877,6 +2930,114 @@ func (m *InstallationMediaConfigSpec) CloneVT() *InstallationMediaConfigSpec {
 }
 
 func (m *InstallationMediaConfigSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *RotateTalosCASpec) CloneVT() *RotateTalosCASpec {
+	if m == nil {
+		return (*RotateTalosCASpec)(nil)
+	}
+	r := new(RotateTalosCASpec)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *RotateTalosCASpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *SecretRotationSpec) CloneVT() *SecretRotationSpec {
+	if m == nil {
+		return (*SecretRotationSpec)(nil)
+	}
+	r := new(SecretRotationSpec)
+	r.Status = m.Status
+	r.Phase = m.Phase
+	r.Component = m.Component
+	r.Certs = m.Certs.CloneVT()
+	r.ExtraCerts = m.ExtraCerts.CloneVT()
+	if rhs := m.BackupCertsOs; rhs != nil {
+		tmpContainer := make([]*ClusterSecretsSpec_Certs_CA, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.BackupCertsOs = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *SecretRotationSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ClusterSecretsRotationStatusSpec) CloneVT() *ClusterSecretsRotationStatusSpec {
+	if m == nil {
+		return (*ClusterSecretsRotationStatusSpec)(nil)
+	}
+	r := new(ClusterSecretsRotationStatusSpec)
+	r.Phase = m.Phase
+	r.Component = m.Component
+	r.Error = m.Error
+	r.Step = m.Step
+	r.Status = m.Status
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClusterSecretsRotationStatusSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ClusterMachineSecretsSpec_Rotation) CloneVT() *ClusterMachineSecretsSpec_Rotation {
+	if m == nil {
+		return (*ClusterMachineSecretsSpec_Rotation)(nil)
+	}
+	r := new(ClusterMachineSecretsSpec_Rotation)
+	r.Status = m.Status
+	r.Phase = m.Phase
+	r.Component = m.Component
+	r.ExtraCerts = m.ExtraCerts.CloneVT()
+	r.SecretRotationVersion = m.SecretRotationVersion
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClusterMachineSecretsSpec_Rotation) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ClusterMachineSecretsSpec) CloneVT() *ClusterMachineSecretsSpec {
+	if m == nil {
+		return (*ClusterMachineSecretsSpec)(nil)
+	}
+	r := new(ClusterMachineSecretsSpec)
+	r.Rotation = m.Rotation.CloneVT()
+	if rhs := m.Data; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Data = tmpBytes
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClusterMachineSecretsSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -4275,6 +4436,47 @@ func (this *ClusterBootstrapStatusSpec) EqualMessageVT(thatMsg proto.Message) bo
 	}
 	return this.EqualVT(that)
 }
+func (this *ClusterSecretsSpec_Certs_CA) EqualVT(that *ClusterSecretsSpec_Certs_CA) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if string(this.Crt) != string(that.Crt) {
+		return false
+	}
+	if string(this.Key) != string(that.Key) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClusterSecretsSpec_Certs_CA) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ClusterSecretsSpec_Certs_CA)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ClusterSecretsSpec_Certs) EqualVT(that *ClusterSecretsSpec_Certs) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !this.Os.EqualVT(that.Os) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClusterSecretsSpec_Certs) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ClusterSecretsSpec_Certs)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 func (this *ClusterSecretsSpec) EqualVT(that *ClusterSecretsSpec) bool {
 	if this == that {
 		return true
@@ -4285,6 +4487,9 @@ func (this *ClusterSecretsSpec) EqualVT(that *ClusterSecretsSpec) bool {
 		return false
 	}
 	if this.Imported != that.Imported {
+		return false
+	}
+	if !this.ExtraCerts.EqualVT(that.ExtraCerts) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -5215,6 +5420,31 @@ func (this *OngoingTaskSpec_MachineUpgrade) EqualVT(thatIface isOngoingTaskSpec_
 		}
 		if q == nil {
 			q = &MachineUpgradeStatusSpec{}
+		}
+		if !p.EqualVT(q) {
+			return false
+		}
+	}
+	return true
+}
+
+func (this *OngoingTaskSpec_SecretsRotation) EqualVT(thatIface isOngoingTaskSpec_Details) bool {
+	that, ok := thatIface.(*OngoingTaskSpec_SecretsRotation)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if p, q := this.SecretsRotation, that.SecretsRotation; p != q {
+		if p == nil {
+			p = &ClusterSecretsRotationStatusSpec{}
+		}
+		if q == nil {
+			q = &ClusterSecretsRotationStatusSpec{}
 		}
 		if !p.EqualVT(q) {
 			return false
@@ -6800,6 +7030,154 @@ func (this *InstallationMediaConfigSpec) EqualVT(that *InstallationMediaConfigSp
 
 func (this *InstallationMediaConfigSpec) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*InstallationMediaConfigSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *RotateTalosCASpec) EqualVT(that *RotateTalosCASpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RotateTalosCASpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*RotateTalosCASpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *SecretRotationSpec) EqualVT(that *SecretRotationSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if this.Phase != that.Phase {
+		return false
+	}
+	if this.Component != that.Component {
+		return false
+	}
+	if !this.Certs.EqualVT(that.Certs) {
+		return false
+	}
+	if !this.ExtraCerts.EqualVT(that.ExtraCerts) {
+		return false
+	}
+	if len(this.BackupCertsOs) != len(that.BackupCertsOs) {
+		return false
+	}
+	for i, vx := range this.BackupCertsOs {
+		vy := that.BackupCertsOs[i]
+		if p, q := vx, vy; p != q {
+			if p == nil {
+				p = &ClusterSecretsSpec_Certs_CA{}
+			}
+			if q == nil {
+				q = &ClusterSecretsSpec_Certs_CA{}
+			}
+			if !p.EqualVT(q) {
+				return false
+			}
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SecretRotationSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*SecretRotationSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ClusterSecretsRotationStatusSpec) EqualVT(that *ClusterSecretsRotationStatusSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Phase != that.Phase {
+		return false
+	}
+	if this.Component != that.Component {
+		return false
+	}
+	if this.Error != that.Error {
+		return false
+	}
+	if this.Step != that.Step {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClusterSecretsRotationStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ClusterSecretsRotationStatusSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ClusterMachineSecretsSpec_Rotation) EqualVT(that *ClusterMachineSecretsSpec_Rotation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if this.Phase != that.Phase {
+		return false
+	}
+	if this.Component != that.Component {
+		return false
+	}
+	if !this.ExtraCerts.EqualVT(that.ExtraCerts) {
+		return false
+	}
+	if this.SecretRotationVersion != that.SecretRotationVersion {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClusterMachineSecretsSpec_Rotation) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ClusterMachineSecretsSpec_Rotation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *ClusterMachineSecretsSpec) EqualVT(that *ClusterMachineSecretsSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if string(this.Data) != string(that.Data) {
+		return false
+	}
+	if !this.Rotation.EqualVT(that.Rotation) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ClusterMachineSecretsSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*ClusterMachineSecretsSpec)
 	if !ok {
 		return false
 	}
@@ -9696,6 +10074,96 @@ func (m *ClusterBootstrapStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *ClusterSecretsSpec_Certs_CA) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterSecretsSpec_Certs_CA) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClusterSecretsSpec_Certs_CA) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Key) > 0 {
+		i -= len(m.Key)
+		copy(dAtA[i:], m.Key)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Key)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Crt) > 0 {
+		i -= len(m.Crt)
+		copy(dAtA[i:], m.Crt)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Crt)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ClusterSecretsSpec_Certs) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterSecretsSpec_Certs) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClusterSecretsSpec_Certs) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Os != nil {
+		size, err := m.Os.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ClusterSecretsSpec) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -9725,6 +10193,16 @@ func (m *ClusterSecretsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ExtraCerts != nil {
+		size, err := m.ExtraCerts.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if m.Imported {
 		i--
@@ -11449,6 +11927,25 @@ func (m *OngoingTaskSpec_MachineUpgrade) MarshalToSizedBufferVT(dAtA []byte) (in
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0x2a
+	}
+	return len(dAtA) - i, nil
+}
+func (m *OngoingTaskSpec_SecretsRotation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *OngoingTaskSpec_SecretsRotation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.SecretsRotation != nil {
+		size, err := m.SecretsRotation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
 	}
 	return len(dAtA) - i, nil
 }
@@ -14536,6 +15033,298 @@ func (m *InstallationMediaConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
+func (m *RotateTalosCASpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RotateTalosCASpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RotateTalosCASpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SecretRotationSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SecretRotationSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SecretRotationSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.BackupCertsOs) > 0 {
+		for iNdEx := len(m.BackupCertsOs) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.BackupCertsOs[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if m.ExtraCerts != nil {
+		size, err := m.ExtraCerts.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Certs != nil {
+		size, err := m.Certs.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Component != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Component))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Phase != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Phase))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Status != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ClusterSecretsRotationStatusSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterSecretsRotationStatusSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClusterSecretsRotationStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Status) > 0 {
+		i -= len(m.Status)
+		copy(dAtA[i:], m.Status)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Status)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Step) > 0 {
+		i -= len(m.Step)
+		copy(dAtA[i:], m.Step)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Step)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Error) > 0 {
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Error)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Component != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Component))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Phase != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Phase))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ClusterMachineSecretsSpec_Rotation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterMachineSecretsSpec_Rotation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClusterMachineSecretsSpec_Rotation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.SecretRotationVersion) > 0 {
+		i -= len(m.SecretRotationVersion)
+		copy(dAtA[i:], m.SecretRotationVersion)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.SecretRotationVersion)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.ExtraCerts != nil {
+		size, err := m.ExtraCerts.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Component != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Component))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Phase != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Phase))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Status != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ClusterMachineSecretsSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ClusterMachineSecretsSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ClusterMachineSecretsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Rotation != nil {
+		size, err := m.Rotation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Data) > 0 {
+		i -= len(m.Data)
+		copy(dAtA[i:], m.Data)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Data)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MachineSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -15675,6 +16464,38 @@ func (m *ClusterBootstrapStatusSpec) SizeVT() (n int) {
 	return n
 }
 
+func (m *ClusterSecretsSpec_Certs_CA) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Crt)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Key)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClusterSecretsSpec_Certs) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Os != nil {
+		l = m.Os.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ClusterSecretsSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -15687,6 +16508,10 @@ func (m *ClusterSecretsSpec) SizeVT() (n int) {
 	}
 	if m.Imported {
 		n += 2
+	}
+	if m.ExtraCerts != nil {
+		l = m.ExtraCerts.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -16372,6 +17197,18 @@ func (m *OngoingTaskSpec_MachineUpgrade) SizeVT() (n int) {
 	_ = l
 	if m.MachineUpgrade != nil {
 		l = m.MachineUpgrade.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	return n
+}
+func (m *OngoingTaskSpec_SecretsRotation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.SecretsRotation != nil {
+		l = m.SecretsRotation.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	return n
@@ -17571,6 +18408,122 @@ func (m *InstallationMediaConfigSpec) SizeVT() (n int) {
 	}
 	if m.Bootloader != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.Bootloader))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RotateTalosCASpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SecretRotationSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Status))
+	}
+	if m.Phase != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Phase))
+	}
+	if m.Component != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Component))
+	}
+	if m.Certs != nil {
+		l = m.Certs.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.ExtraCerts != nil {
+		l = m.ExtraCerts.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.BackupCertsOs) > 0 {
+		for _, e := range m.BackupCertsOs {
+			l = e.SizeVT()
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClusterSecretsRotationStatusSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Phase != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Phase))
+	}
+	if m.Component != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Component))
+	}
+	l = len(m.Error)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Step)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Status)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClusterMachineSecretsSpec_Rotation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Status != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Status))
+	}
+	if m.Phase != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Phase))
+	}
+	if m.Component != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Component))
+	}
+	if m.ExtraCerts != nil {
+		l = m.ExtraCerts.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SecretRotationVersion)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ClusterMachineSecretsSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Rotation != nil {
+		l = m.Rotation.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -25090,6 +26043,212 @@ func (m *ClusterBootstrapStatusSpec) UnmarshalVT(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *ClusterSecretsSpec_Certs_CA) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterSecretsSpec_Certs_CA: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterSecretsSpec_Certs_CA: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Crt", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Crt = append(m.Crt[:0], dAtA[iNdEx:postIndex]...)
+			if m.Crt == nil {
+				m.Crt = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Key = append(m.Key[:0], dAtA[iNdEx:postIndex]...)
+			if m.Key == nil {
+				m.Key = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ClusterSecretsSpec_Certs) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterSecretsSpec_Certs: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterSecretsSpec_Certs: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Os", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Os == nil {
+				m.Os = &ClusterSecretsSpec_Certs_CA{}
+			}
+			if err := m.Os.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *ClusterSecretsSpec) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -25173,6 +26332,42 @@ func (m *ClusterSecretsSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Imported = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExtraCerts", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ExtraCerts == nil {
+				m.ExtraCerts = &ClusterSecretsSpec_Certs{}
+			}
+			if err := m.ExtraCerts.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -29308,6 +30503,47 @@ func (m *OngoingTaskSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ResourceId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SecretsRotation", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if oneof, ok := m.Details.(*OngoingTaskSpec_SecretsRotation); ok {
+				if err := oneof.SecretsRotation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ClusterSecretsRotationStatusSpec{}
+				if err := v.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				}
+				m.Details = &OngoingTaskSpec_SecretsRotation{SecretsRotation: v}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -37159,6 +38395,753 @@ func (m *InstallationMediaConfigSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RotateTalosCASpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RotateTalosCASpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RotateTalosCASpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *SecretRotationSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SecretRotationSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SecretRotationSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Status |= SecretRotationSpec_Status(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Phase", wireType)
+			}
+			m.Phase = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Phase |= SecretRotationSpec_Phase(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Component", wireType)
+			}
+			m.Component = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Component |= SecretRotationSpec_Component(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Certs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Certs == nil {
+				m.Certs = &ClusterSecretsSpec_Certs{}
+			}
+			if err := m.Certs.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExtraCerts", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ExtraCerts == nil {
+				m.ExtraCerts = &ClusterSecretsSpec_Certs{}
+			}
+			if err := m.ExtraCerts.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BackupCertsOs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BackupCertsOs = append(m.BackupCertsOs, &ClusterSecretsSpec_Certs_CA{})
+			if err := m.BackupCertsOs[len(m.BackupCertsOs)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ClusterSecretsRotationStatusSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterSecretsRotationStatusSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterSecretsRotationStatusSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Phase", wireType)
+			}
+			m.Phase = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Phase |= SecretRotationSpec_Phase(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Component", wireType)
+			}
+			m.Component = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Component |= SecretRotationSpec_Component(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Error = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Step", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Step = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Status = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ClusterMachineSecretsSpec_Rotation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterMachineSecretsSpec_Rotation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterMachineSecretsSpec_Rotation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Status |= SecretRotationSpec_Status(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Phase", wireType)
+			}
+			m.Phase = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Phase |= SecretRotationSpec_Phase(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Component", wireType)
+			}
+			m.Component = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Component |= SecretRotationSpec_Component(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExtraCerts", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ExtraCerts == nil {
+				m.ExtraCerts = &ClusterSecretsSpec_Certs{}
+			}
+			if err := m.ExtraCerts.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SecretRotationVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SecretRotationVersion = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ClusterMachineSecretsSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ClusterMachineSecretsSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ClusterMachineSecretsSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
+			if m.Data == nil {
+				m.Data = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rotation", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Rotation == nil {
+				m.Rotation = &ClusterMachineSecretsSpec_Rotation{}
+			}
+			if err := m.Rotation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

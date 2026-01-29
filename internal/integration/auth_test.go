@@ -803,6 +803,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       grpcTunnelConfig,
 				allowedVerbSet: allVerbsSet,
 			},
+			{
+				resource:       omni.NewRotateTalosCA(cluster.Metadata().ID()),
+				allowedVerbSet: allVerbsSet,
+			},
 		}
 
 		// read-only resources
@@ -1138,6 +1142,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       siderolink.NewNodeUniqueTokenStatus(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
+			{
+				resource:       omni.NewClusterSecretsRotationStatus(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
 		}...)
 
 		// no access resources
@@ -1195,6 +1203,12 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource: siderolink.NewNodeUniqueToken(uuid.NewString()),
+			},
+			{
+				resource: omni.NewClusterMachineSecrets(uuid.NewString()),
+			},
+			{
+				resource: omni.NewSecretRotation(uuid.NewString()),
 			},
 		}...)
 

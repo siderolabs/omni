@@ -18,7 +18,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 )
 
-// NewClusterSecrets creates new ClusterSecrets state.
+// NewClusterSecrets creates a new ClusterSecrets resource.
 func NewClusterSecrets(id resource.ID) *ClusterSecrets {
 	return typed.NewResource[ClusterSecretsSpec, ClusterSecretsExtension](
 		resource.NewMetadata(resources.DefaultNamespace, ClusterSecretsType, id, resource.VersionUndefined),
@@ -53,10 +53,10 @@ func (ClusterSecretsExtension) ResourceDefinition() meta.ResourceDefinitionSpec 
 }
 
 // ToSecretsBundle decodes the resource into generate.SecretsBundle resource.
-func ToSecretsBundle(clusterSecrets *ClusterSecrets) (*secrets.Bundle, error) {
+func ToSecretsBundle(secretsBytes []byte) (*secrets.Bundle, error) {
 	secretBundle := &secrets.Bundle{}
 
-	err := json.Unmarshal(clusterSecrets.TypedSpec().Value.Data, secretBundle)
+	err := json.Unmarshal(secretsBytes, secretBundle)
 	if err != nil {
 		return nil, err
 	}

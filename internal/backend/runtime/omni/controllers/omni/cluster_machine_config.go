@@ -18,6 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	documentconfig "github.com/siderolabs/talos/pkg/machinery/config/config"
@@ -76,8 +77,8 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 		qtransform.WithExtraMappedInput[*omni.Cluster](
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
 		),
-		qtransform.WithExtraMappedInput[*omni.ClusterSecrets](
-			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineSecrets](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput[*omni.ClusterConfigVersion](
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
@@ -134,7 +135,7 @@ func reconcileClusterMachineConfig(
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("cluster label on %s doesn't match", machineSetNode.Metadata().ID())
 	}
 
-	secrets, err := safe.ReaderGet[*omni.ClusterSecrets](ctx, r, omni.NewClusterSecrets(clusterName).Metadata())
+	clusterMachineSecrets, err := safe.ReaderGet[*omni.ClusterMachineSecrets](ctx, r, omni.NewClusterMachineSecrets(clusterMachine.Metadata().ID()).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
@@ -197,7 +198,7 @@ func reconcileClusterMachineConfig(
 	}
 
 	inputs := []resource.Resource{
-		secrets,
+		clusterMachineSecrets,
 		loadBalancerConfig,
 		cluster,
 		clusterMachineConfigPatches,
@@ -246,7 +247,7 @@ func reconcileClusterMachineConfig(
 		configGenOptions = append(configGenOptions, generate.WithRegistryMirror(hostname, endpoint))
 	}
 
-	conf, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, secrets, loadBalancerConfig,
+	conf, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, clusterMachineSecrets, loadBalancerConfig,
 		cluster, clusterConfigVersion, machineConfigGenOptions, configGenOptions, machineJoinConfig)
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
@@ -315,9 +316,9 @@ func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.Cluste
 	return bytes.Equal(oldBytes, data), nil
 }
 
-func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches, secrets *omni.ClusterSecrets,
-	loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion, configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option,
-	machineJoinConfig *siderolink.MachineJoinConfig,
+func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches,
+	clusterMachineSecrets *omni.ClusterMachineSecrets, loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion,
+	configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option, machineJoinConfig *siderolink.MachineJoinConfig,
 ) (config.Provider, error) {
 	clusterName := cluster.Metadata().ID()
 
@@ -346,7 +347,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, err
 	}
 
-	secretBundle, err := omni.ToSecretsBundle(secrets)
+	secretsBundle, err := omni.ToSecretsBundle(clusterMachineSecrets.TypedSpec().Value.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -367,13 +368,29 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		SiderolinkEndpoint:       loadbalancer.TypedSpec().Value.SiderolinkEndpoint,
 		InstallDisk:              configGenOptions.TypedSpec().Value.InstallDisk,
 		InstallImage:             installImage,
-		Secrets:                  secretBundle,
+		Secrets:                  secretsBundle,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	cfg := genOutput.Config
+
+	if clusterMachineSecrets.TypedSpec().Value.GetRotation() != nil {
+		cfg, err = cfg.PatchV1Alpha1(func(config *v1alpha1.Config) error {
+			machineAcceptedCAs := []*x509.PEMEncodedCertificate{{Crt: secretsBundle.Certs.OS.Crt}}
+			if clusterMachineSecrets.TypedSpec().Value.Rotation.ExtraCerts.GetOs() != nil {
+				machineAcceptedCAs = append(machineAcceptedCAs, &x509.PEMEncodedCertificate{Crt: clusterMachineSecrets.TypedSpec().Value.Rotation.ExtraCerts.GetOs().Crt})
+			}
+
+			config.MachineConfig.MachineAcceptedCAs = machineAcceptedCAs
+
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to patch machine config: %w", err)
+		}
+	}
 
 	patchList, err := clusterMachineConfigPatches.TypedSpec().Value.GetUncompressedPatches()
 	if err != nil {

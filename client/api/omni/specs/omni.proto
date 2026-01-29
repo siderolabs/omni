@@ -639,10 +639,23 @@ message ClusterBootstrapStatusSpec {
 
 // ClusterSecretsSpec describes cluster secrets.
 message ClusterSecretsSpec {
-  // Bytes holding serialized cluster secrets.
+  // Data holds serialized cluster secrets.
   bytes data = 1;
-  // imported holds origin of the cluster secrets.
+  // Imported holds origin of the cluster secrets.
   bool imported = 2;
+
+  message Certs {
+    message CA {
+      bytes crt = 1;
+      bytes key = 2;
+    }
+
+    // Os holds the cluster OS CA.
+    CA os = 1;
+  }
+
+  // Extra_certs holds extra cluster CAs to be used during CA rotation.
+  Certs extra_certs = 3;
 }
 
 // ImportedClusterSecretsSpec describes imported cluster secrets.
@@ -1012,6 +1025,7 @@ message OngoingTaskSpec {
     KubernetesUpgradeStatusSpec kubernetes_upgrade = 3;
     DestroyStatusSpec destroy = 4;
     MachineUpgradeStatusSpec machine_upgrade = 5;
+    ClusterSecretsRotationStatusSpec secrets_rotation = 7;
   }
 
   // ResourceId is the ID of the resource the task is being performed on.
@@ -1494,4 +1508,75 @@ message InstallationMediaConfigSpec {
   GrpcTunnelMode grpc_tunnel = 9;
   map<string, string> machine_labels = 10;
   management.SchematicBootloader bootloader = 11;
+}
+
+// RotateTalosCASpec is used to initiate Talos CA rotation.
+message RotateTalosCASpec {}
+
+message SecretRotationSpec {
+  enum Status {
+    IDLE = 0;
+    IN_PROGRESS = 1;
+  }
+
+  enum Phase {
+    OK = 0;
+    PRE_ROTATE = 1;
+    ROTATE = 2;
+    POST_ROTATE = 3;
+  }
+
+  enum Component {
+    NONE = 0;
+    TALOS_CA = 1;
+  }
+
+  // Status holds the status of the secrets rotation.
+  Status status = 1;
+  // Phase of the ongoing secrets rotation.
+  Phase phase = 2;
+  // Component currently being rotated.
+  Component component = 3;
+  // Certs holds cluster CAs used during CA rotation.
+  ClusterSecretsSpec.Certs certs = 4;
+  // Extra_certs holds extra cluster CAs to be used during CA rotation.
+  ClusterSecretsSpec.Certs extra_certs = 5;
+  // Backup_certs_os holds backup of the original OS CA certs before rotation started.
+  repeated ClusterSecretsSpec.Certs.CA backup_certs_os = 6;
+}
+
+// ClusterSecretsRotationStatusSpec contains the status of the cluster secrets rotation process.
+message ClusterSecretsRotationStatusSpec {
+  // Phase of the ongoing secrets rotation.
+  SecretRotationSpec.Phase phase = 1;
+  // Component currently being rotated.
+  SecretRotationSpec.Component component = 2;
+  // If phase is Failed, this contains the error message.
+  string error = 3;
+  // Contains the current rotation step.
+  string step = 4;
+  // Contains the current rotation step progress.
+  string status = 5;
+}
+
+// ClusterMachineSecretsSpec describes cluster machine secrets.
+message ClusterMachineSecretsSpec {
+  // Data holds serialized cluster machine secrets.
+  bytes data = 1;
+
+  message Rotation {
+    // Status holds the status of the secrets rotation.
+    SecretRotationSpec.Status status = 1;
+    // Phase holds the current phase of the ongoing secrets rotation.
+    SecretRotationSpec.Phase phase = 2;
+    // Component holds the component currently being rotated.
+    SecretRotationSpec.Component component = 3;
+    // Extra_certs holds extra cluster CAs to be used during CA rotation.
+    ClusterSecretsSpec.Certs extra_certs = 4;
+    // Secret_rotation_version holds the version of the SecretsRotation used to build Rotation.
+    string secret_rotation_version = 5;
+  }
+
+  // Rotation holds the status of the ongoing secrets rotation.
+  Rotation rotation = 2;
 }

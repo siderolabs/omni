@@ -10,7 +10,11 @@ import { ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { type Resource } from '@/api/grpc'
-import { KubernetesUpgradeStatusSpecPhase, type OngoingTaskSpec } from '@/api/omni/specs/omni.pb'
+import {
+  KubernetesUpgradeStatusSpecPhase,
+  type OngoingTaskSpec,
+  SecretRotationSpecComponent,
+} from '@/api/omni/specs/omni.pb'
 import { EphemeralNamespace, OngoingTaskType } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TIcon from '@/components/common/Icon/TIcon.vue'
@@ -49,7 +53,19 @@ const getCurrentVersion = (item: Resource<OngoingTaskSpec>) => {
     return item.spec.talos_upgrade.current_upgrade_version
   }
 
-  return item.spec.machine_upgrade?.schematic_id
+  return item.spec.machine_upgrade?.current_schematic_id
+}
+
+const getCurrentComponent = (item: Resource<OngoingTaskSpec>) => {
+  if (item.spec.secrets_rotation) {
+    switch (item.spec.secrets_rotation.component) {
+      case SecretRotationSpecComponent.TALOS_CA:
+        return 'Talos CA'
+      default:
+        return
+    }
+  }
+  return
 }
 </script>
 
@@ -98,6 +114,10 @@ const getCurrentVersion = (item: Resource<OngoingTaskSpec>) => {
           <div class="text-xs text-naturals-n9">
             <span v-if="item.spec.destroy" class="truncate">
               {{ item.spec.destroy.phase }}
+            </span>
+
+            <span v-else-if="item.spec.secrets_rotation" class="whitespace-nowrap">
+              Rotating {{ getCurrentComponent(item) }}
             </span>
 
             <div v-else class="flex items-center gap-2 text-xs">

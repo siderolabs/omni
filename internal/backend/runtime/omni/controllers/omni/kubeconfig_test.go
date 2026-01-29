@@ -19,6 +19,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 )
 
 type KubeconfigSuite struct {
@@ -30,7 +31,7 @@ func (suite *KubeconfigSuite) TestReconcile() {
 
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(nil)))
+	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterLoadBalancerController(1000, 2000)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewKubeconfigController(2 * time.Second)))
 

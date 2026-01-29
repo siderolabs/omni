@@ -240,9 +240,11 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 
 			return fmt.Errorf("failed to apply config to machine '%s': %w", machineConfig.Metadata().ID(), err)
 		}
-
-		machineConfigStatus.TypedSpec().Value.ClusterMachineConfigVersion = machineConfig.Metadata().Version().String()
 	}
+
+	// ClusterMachineConfig might receive an update that causes its version to change while not affecting the final MachineConfig therefore calculated hashsum.
+	// Update ClusterMachineConfigVersion to reflect the actual version of the ClusterMachineConfig regardless of hash comparison.
+	machineConfigStatus.TypedSpec().Value.ClusterMachineConfigVersion = machineConfig.Metadata().Version().String()
 
 	if err = machineConfigStatus.TypedSpec().Value.SetUncompressedData(rc.redactedMachineConfig); err != nil {
 		return err

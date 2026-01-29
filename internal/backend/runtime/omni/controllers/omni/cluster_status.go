@@ -196,10 +196,12 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 
 				helpers.CopyUserLabels(clusterStatus, cluster.Metadata().Labels().Raw())
 
-				if clusterSecrets != nil && clusterSecrets.TypedSpec().Value.Imported {
-					clusterStatus.Metadata().Labels().Set(omni.LabelClusterTaintedByImporting, "")
-				} else {
-					clusterStatus.Metadata().Labels().Delete(omni.LabelClusterTaintedByImporting)
+				if clusterSecrets != nil {
+					if clusterSecrets.TypedSpec().Value.Imported {
+						clusterStatus.Metadata().Labels().Set(omni.LabelClusterTaintedByImporting, "")
+					} else {
+						clusterStatus.Metadata().Labels().Delete(omni.LabelClusterTaintedByImporting)
+					}
 				}
 
 				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {

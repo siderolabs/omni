@@ -30,6 +30,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 )
 
 type mockStoreFactory struct {
@@ -179,8 +180,8 @@ func (suite *ClusterBootstrapStatusSuite) TestReconcile() {
 	store := &mockEtcdBackupStore{}
 	storeFactory := &mockStoreFactory{store: store}
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSecretsController(storeFactory)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosConfigController(constants.CertificateValidityTime)))
+	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewSecretsController(storeFactory)))
+	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewTalosConfigController(constants.CertificateValidityTime)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterEndpointController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterBootstrapStatusController(storeFactory)))
 
