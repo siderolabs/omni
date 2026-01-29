@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-28T15:22:29Z by kres 1b0dcb3.
+# Generated on 2026-01-29T22:37:46Z by kres b12955e.
 
 concurrency:
   group: helm-${{ github.head_ref || github.run_id }}
@@ -90,10 +90,6 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           make chart-gen-schema
-      - name: Generate docs
-        if: github.event_name == 'pull_request'
-        run: |
-          make helm-docs
       - name: Check dirty
         if: github.event_name == 'pull_request'
         run: |

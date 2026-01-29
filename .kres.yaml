@@ -18,6 +18,7 @@ kind: auto.Helm
 spec:
   enabled: true
   chartDir: deploy/helm/omni
+  docsDisabled: true
 ---
 kind: auto.IntegrationTests
 spec:
