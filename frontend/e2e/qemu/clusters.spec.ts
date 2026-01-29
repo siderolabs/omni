@@ -39,7 +39,7 @@ test('create cluster', async ({ page }) => {
 
     const editor = page.getByRole('textbox', { name: 'Editor content' })
 
-    await editor.press(`${os.platform() === 'darwin' ? 'Meta' : 'Control'}+a`)
+    await editor.press('Control+a')
     await editor.press('Delete')
     await editor.pressSequentially(`---
 apiVersion: v1alpha1
@@ -98,24 +98,6 @@ test('expand and collapse cluster', async ({ page }) => {
 
   await page.getByRole('button', { name: clusterName }).click()
   await expect(page.getByText(cpMachineName)).toBeInViewport()
-})
-
-test('open machine', async ({ page }) => {
-  await page.goto('/')
-  await page.getByRole('link', { name: 'Clusters' }).click()
-
-  const servicesList = page.getByRole('region', { name: 'Services' })
-
-  // Open control plane machine
-  await page.getByRole('region', { name: 'Control Planes' }).getByRole('link').last().click()
-  await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeVisible()
-
-  await page.getByRole('link', { name: 'Clusters' }).click()
-
-  // Open worker machine
-  await page.getByRole('region', { name: 'Workers' }).getByRole('link').last().click()
-  await expect(servicesList.getByRole('link', { name: 'machined' })).toBeVisible()
-  await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeHidden()
 })
 
 test('cluster template export and sync', async ({ omnictl }, testInfo) => {
@@ -277,6 +259,61 @@ test('exposed services', async ({ page }, testInfo) => {
     intervals: [milliseconds({ seconds: 5 })],
     timeout: milliseconds({ minutes: 1 }),
   })
+})
+
+test('open machine', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Clusters' }).click()
+
+  const servicesList = page.getByRole('region', { name: 'Services' })
+
+  // Open control plane machine
+  await page.getByRole('region', { name: 'Control Planes' }).getByRole('link').last().click()
+  await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeVisible()
+
+  await test.step('Validate monitor tab', async () => {
+    await page.getByRole('link', { name: 'Monitor', exact: true }).click()
+    await expect(page.getByText('CPU usage')).toBeVisible()
+    await expect(page.getByText('Memory', { exact: true })).toBeVisible()
+    await expect(page.getByText('Processes')).toBeVisible()
+    await expect(page.getByText('init /sbin/init')).toBeVisible()
+  })
+
+  await test.step('Validate console logs tab', async () => {
+    await page.getByRole('link', { name: 'Console Logs', exact: true }).click()
+    await expect(page.getByText('[talos]').first()).toBeVisible()
+  })
+
+  await test.step('Validate config tab', async () => {
+    await page.getByRole('link', { name: 'Config', exact: true }).click()
+    await expect(page.getByText('version: v1alpha1').first()).toBeVisible()
+  })
+
+  await test.step('Validate patches tab', async () => {
+    await page.getByRole('link', { name: 'Patches', exact: true }).click()
+    await expect(page.getByText('This cluster is managed using cluster templates.')).toBeVisible()
+    await expect(page.getByText(`Cluster Machine: ${cpMachineName}`)).toBeVisible()
+    await expect(page.getByText(/400-cm-\w+/).first()).toBeVisible()
+    await expect(page.getByText('User defined patch')).toBeVisible()
+  })
+
+  await test.step('Validate mounts tab', async () => {
+    await page.getByRole('link', { name: 'Mounts', exact: true }).click()
+    await expect(page.getByText('EPHEMERAL')).toBeVisible()
+  })
+
+  await test.step('Validate extensions tab', async () => {
+    await page.getByRole('link', { name: 'Extensions', exact: true }).click()
+    await expect(page.getByText('siderolabs/hello-world-service')).toBeVisible()
+    await expect(page.getByText('siderolabs/usb-modem-drivers')).toBeVisible()
+  })
+
+  await page.getByRole('link', { name: 'Clusters' }).click()
+
+  // Open worker machine
+  await page.getByRole('region', { name: 'Workers' }).getByRole('link').last().click()
+  await expect(servicesList.getByRole('link', { name: 'machined' })).toBeVisible()
+  await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeHidden()
 })
 
 test('destroy cluster', async ({ page }) => {
