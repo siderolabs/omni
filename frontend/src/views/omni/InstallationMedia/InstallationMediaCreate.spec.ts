@@ -77,7 +77,10 @@ describe('InstallationMediaCreate', () => {
     sessionStorage.clear()
     vi.clearAllMocks()
 
-    vi.mocked(useFormState).mockReturnValue({ formState: ref({}) })
+    vi.mocked(useFormState).mockReturnValue({
+      formState: ref({}),
+      isStepValid: vi.fn().mockReturnValue(true),
+    })
 
     // Create a fresh router for each test
     router = createRouter({

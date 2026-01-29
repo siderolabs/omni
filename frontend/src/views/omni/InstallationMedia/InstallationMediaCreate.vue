@@ -5,8 +5,6 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script lang="ts">
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import type { HardwareType } from '@/views/omni/InstallationMedia/useFormState'
 
 const flows: Record<HardwareType, string[]> = {
@@ -41,7 +39,9 @@ import { computed, ref, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
+import TIcon from '@/components/common/Icon/TIcon.vue'
 import Stepper from '@/components/common/Stepper/Stepper.vue'
+import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { showSuccess } from '@/notification'
 import SavePresetModal from '@/views/omni/InstallationMedia/SavePresetModal.vue'
 import { useFormState } from '@/views/omni/InstallationMedia/useFormState'
@@ -49,7 +49,7 @@ import { useFormState } from '@/views/omni/InstallationMedia/useFormState'
 const router = useRouter()
 const route = useRoute()
 
-const { formState } = useFormState()
+const { formState, isStepValid: isStepValidFn } = useFormState()
 const isSaved = useSessionStorage('_installation_media_form_saved', false)
 
 watch(
@@ -62,6 +62,9 @@ watch(
 )
 
 const currentStepName = computed(() => route.name?.toString())
+const isStepValid = computed(() =>
+  currentStepName.value ? isStepValidFn(currentStepName.value) : true,
+)
 
 watchEffect(() => {
   if (currentStepName.value === 'InstallationMediaCreateEntry' || formState.value.hardwareType)
@@ -90,6 +93,8 @@ const currentStep = computed(() =>
     : 0,
 )
 
+const isFirstStep = computed(() => currentStep.value === 0)
+
 const isLastStep = computed(() =>
   currentFlowSteps.value ? currentStep.value === stepCount.value : false,
 )
@@ -108,7 +113,14 @@ function onStepperChange(stepperValue?: number) {
   if (!currentFlowSteps.value || !stepperValue) return
 
   // Stepper is not 0 indexed
-  router.push({ name: currentFlowSteps.value[stepperValue - 1] })
+  const requestedStepIndex = stepperValue - 1
+
+  // All steps leading up to the requested step must be valid
+  if (!currentFlowSteps.value.slice(0, requestedStepIndex).every(isStepValidFn)) {
+    return
+  }
+
+  router.push({ name: currentFlowSteps.value[requestedStepIndex] })
 }
 
 const savePresetModalOpen = ref(false)
@@ -131,7 +143,7 @@ function onSaved(name: string) {
     <div
       class="flex w-full shrink-0 items-center gap-4 border-t border-naturals-n4 bg-naturals-n1 px-4 max-md:flex-col max-md:p-4 md:h-16 md:justify-end"
     >
-      <div v-if="currentFlowSteps && currentStep > 0" class="flex grow gap-4">
+      <div v-if="currentFlowSteps && !isFirstStep" class="flex grow gap-4">
         <Tooltip description="Reset wizard">
           <button
             type="button"
@@ -154,7 +166,7 @@ function onSaved(name: string) {
       <div class="flex items-center gap-2 max-md:self-end">
         <TButton
           is="router-link"
-          v-if="currentFlowSteps && currentStep > 0"
+          v-if="currentFlowSteps && !isFirstStep"
           :disabled="isSaved"
           :to="{ name: prevStep }"
         >
@@ -165,7 +177,7 @@ function onSaved(name: string) {
           is="router-link"
           v-if="!isLastStep"
           type="highlighted"
-          :disabled="!nextStep"
+          :disabled="!nextStep || !isStepValid"
           :to="{ name: nextStep }"
         >
           Next

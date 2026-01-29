@@ -30,10 +30,29 @@ export interface FormState {
 export function useFormState() {
   const formState = useSessionStorage<FormState>('_installation_media_form', {})
 
-  // Reset cloud/sbc if we change hardware type
+  function isStepValid(step: string) {
+    switch (step) {
+      case 'InstallationMediaCreateEntry':
+        return !!formState.value.hardwareType
+      case 'InstallationMediaCreateTalosVersion':
+        return !!formState.value.talosVersion && !!formState.value.joinToken
+      case 'InstallationMediaCreateCloudProvider':
+        return !!formState.value.cloudPlatform
+      case 'InstallationMediaCreateSBCType':
+        return !!formState.value.sbcType
+      case 'InstallationMediaCreateMachineArch':
+        return !!formState.value.machineArch
+      case 'InstallationMediaCreateExtraArgs':
+        return typeof formState.value.bootloader !== 'undefined'
+      default:
+        return true
+    }
+  }
+
+  // Reset cloud/sbc if we change hardware type or talos version (talos versions change sbc/cloud list)
   watch(
-    () => formState.value.hardwareType,
-    (hardwareType) => {
+    () => [formState.value.hardwareType, formState.value.talosVersion],
+    ([hardwareType]) => {
       switch (hardwareType) {
         case 'metal':
           formState.value.cloudPlatform = undefined
@@ -59,5 +78,5 @@ export function useFormState() {
     },
   )
 
-  return { formState }
+  return { formState, isStepValid }
 }
