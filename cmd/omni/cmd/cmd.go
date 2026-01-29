@@ -48,7 +48,7 @@ func buildRootCommand() (*cobra.Command, error) {
 
 	var (
 		rootCmdFlagBinder *FlagBinder
-		configPath        string
+		configPaths       []string
 		debug             bool
 		flagConfig        = &config.Params{}
 	)
@@ -102,13 +102,13 @@ func buildRootCommand() (*cobra.Command, error) {
 				cancel()
 			}, logger)
 
-			configs := make([]*config.Params, 0, 2)
+			configs := make([]*config.Params, 0, len(configPaths)+1)
 
-			if configPath != "" {
+			for _, configPath := range configPaths {
 				var fileConfig *config.Params
 
 				if fileConfig, err = config.LoadFromFile(configPath); err != nil {
-					return fmt.Errorf("failed to load config from file: %w", err)
+					return fmt.Errorf("failed to load config from file %q: %w", configPath, err)
 				}
 
 				configs = append(configs, fileConfig)
@@ -148,7 +148,7 @@ func buildRootCommand() (*cobra.Command, error) {
 
 	rootCmdFlagBinder = NewFlagBinder(rootCmd)
 
-	rootCmd.Flags().StringVar(&configPath, "config-path", "", "load the config from the file, flags have bigger priority")
+	rootCmd.Flags().StringArrayVar(&configPaths, "config-path", nil, "config file(s) to load, can be specified multiple times, merged in order (flags have highest priority)")
 	rootCmd.Flags().BoolVar(&debug, "debug", constants.IsDebugBuild, "enable debug logs.")
 
 	rootCmdFlagBinder.StringVar("account-id", flagDescription("account.id", configSchema), &flagConfig.Account.Id)
