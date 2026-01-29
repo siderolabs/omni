@@ -36,6 +36,9 @@ export const icons = {
   'arrow-right-square': defineAsyncComponent(() => import('../../icons/IconArrowRightSquare.vue')),
   'arrow-right': defineAsyncComponent(() => import('../../icons/IconArrowRight.vue')),
   'arrow-up-circle': ArrowUpCircleIcon,
+  'arrow-up-on-square-stack': defineAsyncComponent(
+    () => import('../../icons/IconArrowUpOnSquareStack.vue'),
+  ),
   'arrow-up-tray': ArrowUpTrayIcon,
   'arrow-up': defineAsyncComponent(() => import('../../icons/IconArrowUp.vue')),
   attention: defineAsyncComponent(() => import('../../icons/IconAttention.vue')),

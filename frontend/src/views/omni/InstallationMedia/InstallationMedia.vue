@@ -78,7 +78,7 @@ async function deleteItem(id: string) {
   confirmDeleteModalOpen.value = false
 }
 
-function editPreset(preset: (typeof presets.value)[number]) {
+function clonePreset(preset: (typeof presets.value)[number]) {
   formState.value = presetToFormState(preset.spec)
 
   router.push({ name: 'InstallationMediaCreate' })
@@ -136,8 +136,12 @@ function editPreset(preset: (typeof presets.value)[number]) {
                 />
               </Tooltip>
 
-              <Tooltip description="Edit">
-                <IconButton aria-label="edit" icon="edit" @click="() => editPreset(preset)" />
+              <Tooltip description="Clone">
+                <IconButton
+                  aria-label="clone"
+                  icon="arrow-up-on-square-stack"
+                  @click="() => clonePreset(preset)"
+                />
               </Tooltip>
 
               <Tooltip description="Download">
