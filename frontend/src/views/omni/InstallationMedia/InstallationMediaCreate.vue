@@ -125,7 +125,6 @@ function onSaved(name: string) {
   <div class="flex h-full flex-col">
     <div class="flex grow flex-col gap-6 overflow-auto p-6">
       <h1 class="shrink-0 text-xl font-medium text-naturals-n14">Create New Media</h1>
-
       <RouterView v-model="formState" />
     </div>
 

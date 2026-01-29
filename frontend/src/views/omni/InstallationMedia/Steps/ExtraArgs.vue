@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { gte } from 'semver'
-import { computed } from 'vue'
+import { computed, onBeforeMount } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { SchematicBootloader } from '@/api/omni/management/management.pb'
@@ -39,6 +39,9 @@ const { data: selectedSBC } = useResourceGet<SBCConfigSpec>(() => ({
     id: formState.value.sbcType,
   },
 }))
+
+// Form defaults
+onBeforeMount(() => (formState.value.bootloader ??= SchematicBootloader.BOOT_AUTO))
 </script>
 
 <template>

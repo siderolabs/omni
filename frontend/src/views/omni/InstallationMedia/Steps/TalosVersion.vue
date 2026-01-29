@@ -5,9 +5,8 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { watchOnce } from '@vueuse/core'
 import { compare } from 'semver'
-import { computed, onBeforeMount } from 'vue'
+import { computed, onBeforeMount, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
@@ -63,7 +62,7 @@ const joinTokens = computed(() =>
 
 // Form defaults
 onBeforeMount(() => (formState.value.talosVersion ??= DefaultTalosVersion))
-watchOnce(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
+watch(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
 </script>
 
 <template>

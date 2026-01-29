@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { type PlatformConfigSpec, PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
@@ -62,6 +62,9 @@ const supportedArchitectures = computed(() => {
       return selectedPlatform.value?.spec.architectures ?? []
   }
 })
+
+// Form defaults
+watch(supportedArchitectures, (v) => (formState.value.machineArch ??= v?.[0]))
 </script>
 
 <template>

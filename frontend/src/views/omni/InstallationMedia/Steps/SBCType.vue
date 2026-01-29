@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { gte } from 'semver'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
@@ -43,6 +43,9 @@ const SBCs = computed(() =>
       },
     })),
 )
+
+// Form defaults
+watch(SBCs, (v) => (formState.value.sbcType ??= v?.[0]?.metadata.id))
 </script>
 
 <template>

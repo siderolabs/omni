@@ -5,11 +5,16 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { onBeforeMount } from 'vue'
+
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
 import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
 
 const formState = defineModel<FormState>({ required: true })
+
+// Form defaults
+onBeforeMount(() => (formState.value.hardwareType ??= 'metal'))
 </script>
 
 <template>
