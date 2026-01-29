@@ -48,7 +48,7 @@ func NewPendingMachineStatusController() *PendingMachineStatusController {
 			TransformFunc: handler.reconcileRunning,
 		},
 		qtransform.WithExtraMappedInput[*siderolink.LinkStatus](
-			qtransform.MapperFuncFromTyped[*siderolink.LinkStatus](
+			qtransform.MapperFuncFromTyped(
 				func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, res *siderolink.LinkStatus) ([]resource.Pointer, error) {
 					return []resource.Pointer{
 						siderolink.NewPendingMachine(res.TypedSpec().Value.LinkId, nil).Metadata(),
