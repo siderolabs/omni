@@ -60,7 +60,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
-	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	siderolinkinternal "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -127,7 +126,7 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 		clusterName = commonContext.Name
 	}
 
-	ctx, err := s.applyClusterAccessPolicy(ctx, clusterName)
+	ctx, err := accesspolicy.ApplyClusterAccessPolicy(ctx, clusterName, s.omniState)
 	if err != nil {
 		return nil, err
 	}
@@ -876,33 +875,6 @@ func (s *managementServer) authCheckGRPC(ctx context.Context, opts ...auth.Check
 	}
 
 	return authCheckResult, nil
-}
-
-// applyClusterAccessPolicy checks the ACLs for the user in the context against the given cluster ID.
-// If there is a match and the matched role is higher than the user's role,
-// a child context containing the given role will be returned.
-func (s *managementServer) applyClusterAccessPolicy(ctx context.Context, clusterID resource.ID) (context.Context, error) {
-	clusterRole, _, err := accesspolicy.RoleForCluster(ctx, clusterID, s.omniState)
-	if err != nil {
-		return nil, err
-	}
-
-	userRole := role.None
-
-	if val, ok := ctxstore.Value[auth.RoleContextKey](ctx); ok {
-		userRole = val.Role
-	}
-
-	newRole, err := role.Max(userRole, clusterRole)
-	if err != nil {
-		return nil, err
-	}
-
-	if newRole == userRole {
-		return ctx, nil
-	}
-
-	return ctxstore.WithValue(ctx, auth.RoleContextKey{Role: newRole}), nil
 }
 
 func handleError(err error) error {

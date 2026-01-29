@@ -13,11 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/siderolabs/grpc-proxy/proxy"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/role"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
@@ -27,6 +29,7 @@ import (
 
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
+	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 )
 
 type testNodeResolver struct{}
@@ -51,7 +54,10 @@ func TestTalosBackendRoles(t *testing.T) {
 
 	g, ctx := errgroup.WithContext(ctx)
 
-	grpcProxy, err := makeGRPCProxy(ctx, proxyEndpoint, serverEndpoint)
+	logger := zaptest.NewLogger(t)
+	st := omniruntime.NewTestState(logger)
+
+	grpcProxy, err := makeGRPCProxy(ctx, proxyEndpoint, serverEndpoint, st.Default())
 	require.NoError(t, err)
 
 	g.Go(grpcProxy)
@@ -76,10 +82,13 @@ func TestNodeResolution(t *testing.T) {
 		},
 	}
 
+	logger := zaptest.NewLogger(t)
+	st := omniruntime.NewTestState(logger)
+
 	noOpVerifier := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		return handler(ctx, req)
 	}
-	talosBackend := router.NewTalosBackend("test-backend", "test-backend", resolver, nil, false, noOpVerifier)
+	talosBackend := router.NewTalosBackend("test-backend", "test-backend", resolver, nil, false, noOpVerifier, st.Default())
 
 	testCtx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
@@ -142,8 +151,8 @@ func TestNodeResolution(t *testing.T) {
 	})
 }
 
-func makeGRPCProxy(ctx context.Context, endpoint, serverEndpoint string) (func() error, error) {
-	grpcProxyServer := router.NewServer(&testDirector{serverEndpoint: serverEndpoint})
+func makeGRPCProxy(ctx context.Context, endpoint, serverEndpoint string, st state.State) (func() error, error) {
+	grpcProxyServer := router.NewServer(&testDirector{serverEndpoint: serverEndpoint, omniState: st})
 
 	lis, err := (&net.ListenConfig{}).Listen(ctx, "tcp", endpoint)
 	if err != nil {
@@ -170,6 +179,7 @@ func makeGRPCProxy(ctx context.Context, endpoint, serverEndpoint string) (func()
 }
 
 type testDirector struct {
+	omniState      state.State
 	serverEndpoint string
 }
 
@@ -188,6 +198,7 @@ func (t *testDirector) Director(context.Context, string) (proxy.Mode, []proxy.Ba
 		func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 			return handler(ctx, req)
 		},
+		t.omniState,
 	)
 
 	return proxy.One2One, []proxy.Backend{backend}, nil

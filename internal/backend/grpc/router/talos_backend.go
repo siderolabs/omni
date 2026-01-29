@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/blang/semver/v4"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
@@ -56,8 +58,9 @@ var adminMethodSet = xslices.ToSet([]string{
 
 // TalosBackend implements a backend (proxying one2one to a Talos node).
 type TalosBackend struct {
-	conn         *grpc.ClientConn
 	nodeResolver NodeResolver
+	omniState    state.State
+	conn         *grpc.ClientConn
 	verifier     grpc.UnaryServerInterceptor
 	name         string
 	clusterName  string
@@ -65,7 +68,7 @@ type TalosBackend struct {
 }
 
 // NewTalosBackend builds new Talos API backend.
-func NewTalosBackend(name, clusterName string, nodeResolver NodeResolver, conn *grpc.ClientConn, authEnabled bool, verifier grpc.UnaryServerInterceptor) *TalosBackend {
+func NewTalosBackend(name, clusterName string, nodeResolver NodeResolver, conn *grpc.ClientConn, authEnabled bool, verifier grpc.UnaryServerInterceptor, st state.State) *TalosBackend {
 	backend := &TalosBackend{
 		name:         name,
 		clusterName:  clusterName,
@@ -73,6 +76,7 @@ func NewTalosBackend(name, clusterName string, nodeResolver NodeResolver, conn *
 		conn:         conn,
 		authEnabled:  authEnabled,
 		verifier:     verifier,
+		omniState:    st,
 	}
 
 	return backend
@@ -113,6 +117,11 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 	)
 	if err != nil {
 		// authentication failed
+		return ctx, nil, err
+	}
+
+	ctx, err = accesspolicy.ApplyClusterAccessPolicy(ctx, backend.clusterName, backend.omniState)
+	if err != nil {
 		return ctx, nil, err
 	}
 
