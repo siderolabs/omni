@@ -144,6 +144,7 @@ func init() {
 
 		res.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
 			Id:           defaultSchematic,
+			FullId:       defaultSchematic,
 			InitialState: &specs.MachineStatusSpec_Schematic_InitialState{},
 		}
 
