@@ -69,15 +69,11 @@ func checkClusterReady(ctx context.Context, r controller.Reader, machineConfig *
 
 func checkMachineStatus(ctx context.Context, r controller.Reader, machineStatus *omni.MachineStatus) error {
 	if !machineStatus.TypedSpec().Value.Connected {
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine is not connected", machineStatus.Metadata().ID())
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine %q is not connected", machineStatus.Metadata().ID())
 	}
 
-	if machineStatus.TypedSpec().Value.Schematic == nil {
-		return xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine status '%s' does not have schematic information", machineStatus.Metadata().ID()))
-	}
-
-	if machineStatus.TypedSpec().Value.Schematic.InAgentMode {
-		return xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine status '%s' schematic is in agent mode", machineStatus.Metadata().ID()))
+	if !machineStatus.TypedSpec().Value.SchematicReady() {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine %q schematic is not ready", machineStatus.Metadata().ID())
 	}
 
 	// if the machine is managed by a static infra provider, we need to ensure that the infra machine is ready to use
@@ -90,7 +86,7 @@ func checkMachineStatus(ctx context.Context, r controller.Reader, machineStatus 
 				return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is managed by a static infra provider but the infra machine status is not found: %w", err)
 			}
 
-			return fmt.Errorf("failed to get infra machine status '%s': %w", machineStatus.Metadata().ID(), err)
+			return fmt.Errorf("failed to get infra machine status %q: %w", machineStatus.Metadata().ID(), err)
 		}
 
 		if !infraMachineStatus.TypedSpec().Value.ReadyToUse {
@@ -130,7 +126,7 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	machineSetNode, err := safe.ReaderGetByID[*omni.MachineSetNode](ctx, r, machineConfig.Metadata().ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine set node not found: %w", machineConfig.Metadata().ID(), err)
+			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q machine set node not found: %w", machineConfig.Metadata().ID(), err)
 		}
 
 		return nil, err
@@ -172,19 +168,19 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	)
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine status snapshot not found: %w", machineConfig.Metadata().ID(), err)
+			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q machine status snapshot not found: %w", machineConfig.Metadata().ID(), err)
 		}
 
-		return nil, fmt.Errorf("failed to get machine status snapshot '%s': %w", machineConfig.Metadata().ID(), err)
+		return nil, fmt.Errorf("failed to get machine status snapshot %q: %w", machineConfig.Metadata().ID(), err)
 	}
 
 	rc.machineStatus, err = safe.ReaderGetByID[*omni.MachineStatus](ctx, r, machineConfig.Metadata().ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine status not found: %w", machineConfig.Metadata().ID(), err)
+			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q machine status not found: %w", machineConfig.Metadata().ID(), err)
 		}
 
-		return nil, fmt.Errorf("failed to get machine status '%s': %w", machineConfig.Metadata().ID(), err)
+		return nil, fmt.Errorf("failed to get machine status %q: %w", machineConfig.Metadata().ID(), err)
 	}
 
 	if err = checkMachineStatus(ctx, r, rc.machineStatus); err != nil {
@@ -194,10 +190,10 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	genOptions, err := safe.ReaderGetByID[*omni.MachineConfigGenOptions](ctx, r, machineConfig.Metadata().ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' machine config gen options not found: %w", machineConfig.Metadata().ID(), err)
+			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q machine config gen options not found: %w", machineConfig.Metadata().ID(), err)
 		}
 
-		return nil, fmt.Errorf("failed to get install image '%s': %w", machineConfig.Metadata().ID(), err)
+		return nil, fmt.Errorf("failed to get install image %q: %w", machineConfig.Metadata().ID(), err)
 	}
 
 	rc.installImage = genOptions.TypedSpec().Value.InstallImage

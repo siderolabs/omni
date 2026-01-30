@@ -771,7 +771,7 @@ func (ctrl *ClusterMachineConfigStatusController) shouldResetGraceful(
 		machineSetStatus.TypedSpec().Value.Phase != specs.MachineSetPhase_Destroying, nil
 }
 
-func (h *ClusterMachineConfigStatusController) gracefulEtcdLeave(ctx context.Context, c *client.Client, id string) error {
+func (ctrl *ClusterMachineConfigStatusController) gracefulEtcdLeave(ctx context.Context, c *client.Client, id string) error {
 	_, err := c.EtcdForfeitLeadership(ctx, &machineapi.EtcdForfeitLeadershipRequest{})
 	if err != nil {
 		return fmt.Errorf("failed to forfeit leadership, node %q: %w", id, err)

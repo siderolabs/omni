@@ -708,9 +708,8 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 		return nil, status.Error(codes.FailedPrecondition, "machine is not in maintenance mode")
 	}
 
-	schematic := machineStatus.TypedSpec().Value.Schematic
-	if schematic == nil || schematic.FullId == "" {
-		return nil, status.Error(codes.FailedPrecondition, "machine schematic is not known yet")
+	if !machineStatus.TypedSpec().Value.SchematicReady() {
+		return nil, status.Error(codes.FailedPrecondition, "machine schematic is not ready yet")
 	}
 
 	platform := machineStatus.TypedSpec().Value.GetPlatformMetadata().GetPlatform()
@@ -725,7 +724,7 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 
 	installImage := &specs.MachineConfigGenOptionsSpec_InstallImage{
 		TalosVersion:         req.Version,
-		SchematicId:          schematic.FullId,
+		SchematicId:          machineStatus.TypedSpec().Value.Schematic.FullId,
 		SchematicInitialized: true,
 		Platform:             platform,
 		SecurityState:        securityState,
