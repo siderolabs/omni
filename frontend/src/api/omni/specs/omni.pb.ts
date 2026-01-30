@@ -193,6 +193,18 @@ export enum SecretRotationSpecComponent {
   TALOS_CA = 1,
 }
 
+export enum KubernetesManifestSpecMode {
+  UNKNOWN = 0,
+  FULL = 1,
+  ONE_TIME = 2,
+}
+
+export enum ClusterKubernetesManifestsStatusSpecManifestStatusPhase {
+  UNKNOWN = 0,
+  APPLIED = 1,
+  FAILED = 2,
+}
+
 export type MachineSpec = {
   management_address?: string
   connected?: boolean
@@ -1048,4 +1060,22 @@ export type ClusterMachineSecretsSpecRotation = {
 export type ClusterMachineSecretsSpec = {
   data?: Uint8Array
   rotation?: ClusterMachineSecretsSpecRotation
+}
+
+export type KubernetesManifestSpec = {
+  compressed_data?: Uint8Array
+  data?: string
+  namespace?: string
+  mode?: KubernetesManifestSpecMode
+}
+
+export type ClusterKubernetesManifestsStatusSpecManifestStatus = {
+  phase?: ClusterKubernetesManifestsStatusSpecManifestStatusPhase
+  last_error?: string
+  mode?: KubernetesManifestSpecMode
+}
+
+export type ClusterKubernetesManifestsStatusSpec = {
+  manifests?: {[key: string]: ClusterKubernetesManifestsStatusSpecManifestStatus}
+  errors?: {[key: string]: string}
 }

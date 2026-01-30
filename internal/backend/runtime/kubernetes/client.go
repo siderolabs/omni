@@ -32,6 +32,7 @@ type Client struct {
 	clientset *kubernetes.Clientset
 	Mapper    meta.RESTMapper
 	dialer    *connrotation.Dialer
+	Config    *rest.Config
 }
 
 // Resource ...
@@ -235,5 +236,5 @@ func NewClient(config *rest.Config) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{c, clientset, mapper, dialer}, nil
+	return &Client{c, clientset, mapper, dialer, config}, nil
 }
