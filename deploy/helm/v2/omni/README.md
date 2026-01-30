@@ -4,6 +4,10 @@
 
 A Helm chart to deploy [Omni](https://omni.siderolabs.com) on a Kubernetes cluster.
 
+> [!WARNING]
+> **This chart is for new installations only.** Upgrading or migrating from the deprecated v1 chart is not supported.
+> All new Omni installations should use this chart. Only Omni **1.5.0** and above is supported.
+
 For all available configuration options, see the [`values.yaml`](values.yaml) file and the [Values](#values) section below.
 
 **Homepage:** <https://www.siderolabs.com/omni/>

@@ -1,0 +1,53 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: install-omni
+commands:
+  - command: >-
+      helm upgrade --install omni ../../../omni/ --debug
+        --wait --timeout=300s
+        --set-file etcdEncryptionKey.omniAsc=../../testdata/omni.asc
+        --values=../../testdata/image-override.yaml
+        --set persistence.enabled=false
+        --set skipVersionCheck=true
+        --set config.account.id=8a881dfd-6c03-45db-b0d0-20975e935854
+        --set config.auth.auth0.clientID=dummy-client-id
+        --set config.auth.auth0.domain=dummy-domain.auth0.com
+        --set config.auth.initialServiceAccount.enabled=true
+        --set config.auth.initialServiceAccount.role=Admin
+        --set config.auth.initialServiceAccount.keyPath=/tmp/initial-service-account-key
+        --set config.auth.initialServiceAccount.name=automation
+        --set config.auth.initialUsers[0]=user@example.org
+        --set config.services.siderolink.wireGuard.advertisedEndpoint=10.5.0.2:50180
+        --set config.services.api.advertisedURL=https://omni.example.org
+        --set config.services.kubernetesProxy.advertisedURL=https://kubernetes.omni.example.org
+        --set config.services.machineAPI.advertisedURL=https://siderolink.omni.example.org
+        --set ingress.main.enabled=true
+        --set ingress.main.className=nginx
+        --set ingress.main.host=omni.example.org
+        --set ingress.main.tls[0].hosts[0]=omni.example.org
+        --set ingress.main.tls[0].secretName=omni-tls-secret
+        --set ingress.grpc.enabled=true
+        --set ingress.grpc.className=nginx
+        --set ingress.grpc.host=omni.example.org
+        --set ingress.grpc.tls[0].hosts[0]=omni.example.org
+        --set ingress.grpc.tls[0].secretName=omni-tls-secret
+        --set-json ingress.grpc.annotations='{
+          "nginx.ingress.kubernetes.io/backend-protocol": "GRPC",
+          "nginx.ingress.kubernetes.io/proxy-body-size": "32m",
+          "nginx.ingress.kubernetes.io/service-upstream": "true"
+        }'
+        --set ingress.kubernetesProxy.enabled=true
+        --set ingress.kubernetesProxy.className=nginx
+        --set ingress.kubernetesProxy.host=kubernetes.omni.example.org
+        --set ingress.kubernetesProxy.tls[0].hosts[0]=kubernetes.omni.example.org
+        --set ingress.kubernetesProxy.tls[0].secretName=omni-tls-secret
+        --set ingress.siderolinkApi.enabled=true
+        --set ingress.siderolinkApi.className=nginx
+        --set ingress.siderolinkApi.host=siderolink.omni.example.org
+        --set ingress.siderolinkApi.tls[0].hosts[0]=siderolink.omni.example.org
+        --set ingress.siderolinkApi.tls[0].secretName=omni-tls-secret
+        --set-json ingress.siderolinkApi.annotations='{
+          "nginx.ingress.kubernetes.io/backend-protocol": "GRPC"
+        }'
+    namespaced: true
