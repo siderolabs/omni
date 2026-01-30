@@ -6,41 +6,93 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { gte } from 'semver'
-import { computed } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { type Resource, ResourceService } from '@/api/grpc'
+import type { InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import {
   type PlatformConfigSpec,
   PlatformConfigSpecBootMethod,
   type SBCConfigSpec,
 } from '@/api/omni/specs/virtual.pb'
+import { withRuntime } from '@/api/options'
 import {
   CloudPlatformConfigType,
+  DefaultNamespace,
+  InstallationMediaConfigType,
   MetalPlatformConfigType,
   PlatformMetalID,
   SBCConfigType,
   VirtualNamespace,
 } from '@/api/resources'
+import TButton from '@/components/common/Button/TButton.vue'
 import CodeBlock from '@/components/common/CodeBlock/CodeBlock.vue'
 import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TInput from '@/components/common/TInput/TInput.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink, getLegacyDocsLink, majorMinorVersion } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
+import { showError } from '@/notification'
 import { formStateToPreset } from '@/views/omni/InstallationMedia/formStateToPreset'
 import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
 import { usePresetDownloadLinks } from '@/views/omni/InstallationMedia/usePresetDownloadLinks'
 import { usePresetSchematic } from '@/views/omni/InstallationMedia/usePresetSchematic'
 
-defineProps<{
+const { savedPreset } = defineProps<{
+  savedPreset?: Resource<InstallationMediaConfigSpec>
   isReviewPage?: boolean
 }>()
 
 const formState = defineModel<FormState>({ required: true })
+const presetName = ref('')
+const router = useRouter()
+
+watchEffect(() => {
+  presetName.value = savedPreset?.metadata.id ?? ''
+})
+
+async function savePresetName() {
+  if (!savedPreset) return
+
+  try {
+    await ResourceService.Create<Resource<InstallationMediaConfigSpec>>(
+      {
+        metadata: {
+          namespace: DefaultNamespace,
+          type: InstallationMediaConfigType,
+          id: presetName.value,
+        },
+        spec: savedPreset.spec,
+      },
+      withRuntime(Runtime.Omni),
+    )
+
+    router.replace({
+      name: 'InstallationMediaReview',
+      params: {
+        presetId: presetName.value,
+      },
+    })
+
+    await ResourceService.Delete(
+      {
+        namespace: DefaultNamespace,
+        type: InstallationMediaConfigType,
+        id: savedPreset.metadata.id,
+      },
+      withRuntime(Runtime.Omni),
+    )
+  } catch (error) {
+    showError('Error', error.message)
+  }
+}
 
 const supportsUnifiedInstaller = computed(
   () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.10.0'),
@@ -126,6 +178,12 @@ const installerImage = computed(() =>
 <template>
   <div v-if="schematic" class="flex flex-col gap-4 text-xs">
     <h2 v-if="!isReviewPage" class="text-sm text-naturals-n14">Schematic Ready</h2>
+    <div v-else class="flex gap-2">
+      <TInput v-model="presetName" title="Name" />
+      <TButton type="highlighted" :disabled="!presetName.trim()" @click="savePresetName">
+        Save
+      </TButton>
+    </div>
 
     <p class="flex items-center gap-1">
       Your image schematic ID is:

@@ -36,10 +36,15 @@ const {
 
 <template>
   <div>
-    <PageHeader :title="`Previously saved preset &quot;${route.params.presetId}&quot;`" />
+    <PageHeader title="Previously Created Media" />
     <TSpinner v-if="presetLoading" class="mx-auto size-8" />
 
-    <Confirmation v-else-if="preset" is-review-page :model-value="presetToFormState(preset.spec)" />
+    <Confirmation
+      v-else-if="preset"
+      is-review-page
+      :saved-preset="preset"
+      :model-value="presetToFormState(preset.spec)"
+    />
 
     <TAlert v-else-if="err" title="Error" type="error">
       {{ err }}
