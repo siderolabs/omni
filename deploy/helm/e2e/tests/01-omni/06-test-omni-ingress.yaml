@@ -1,0 +1,98 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-omni-ingress
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      hostAliases:
+        - ip: "10.96.0.100"
+          hostnames:
+            - "omni.example.org"
+            - "siderolink.omni.example.org"
+            - "kubernetes.omni.example.org"
+      containers:
+        - name: omnictl-tester
+          image: alpine:latest
+          env:
+            - name: OMNI_SERVICE_ACCOUNT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: omni-sa-key
+                  key: sakey
+            - name: OMNI_ENDPOINT
+              value: "https://omni.example.org"
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+
+              apk add --no-cache curl ca-certificates > /dev/null
+
+              echo "Installing Omnictl..."
+              curl -sL -o /tmp/omnictl https://github.com/siderolabs/omni/releases/latest/download/omnictl-linux-amd64
+              chmod +x /tmp/omnictl
+            
+              echo "Omnictl installed."
+              /tmp/omnictl --version
+
+              echo ""
+              echo "Getting Service Accounts"
+              /tmp/omnictl serviceaccount list
+
+              echo ""
+              echo "Create MachineClass"
+              cat <<EOF > /tmp/mc.yaml
+              metadata:
+                namespace: default
+                type: MachineClasses.omni.sidero.dev
+                id: test-mc
+              spec:
+                matchlabels:
+                  # matches machines with amd64 architecture and more than 2 CPUs
+                  - omni.sidero.dev/arch = amd64, omni.sidero.dev/cpus > 2
+              EOF
+              /tmp/omnictl apply -f /tmp/mc.yaml
+
+              echo "Getting MachineClasses"
+              /tmp/omnictl get machineclasses
+
+              echo ""
+              echo "Create Cluster"
+              cat <<EOF > /tmp/cluster-template.yaml
+              kind: Cluster
+              name: test-cluster
+              kubernetes:
+                version: v1.35.0
+              talos:
+                version: v1.12.2
+              ---
+              kind: ControlPlane
+              machineClass:
+                name: test-mc
+                size: 1
+              ---
+              kind: Workers
+              name: workers
+              machineClass:
+                name: test-mc
+                size: 2
+              EOF
+              /tmp/omnictl cluster template sync -f /tmp/cluster-template.yaml
+
+              echo ""
+              echo "Getting Clusters"
+              /tmp/omnictl get clusters
+          volumeMounts:
+          - mountPath: /etc/ssl/certs/omni-selfsigned-ca.crt
+            subPath: omni-selfsigned-ca.crt
+            name: certificates
+      volumes:
+      - name: certificates
+        secret:
+          secretName: omni-tls-secret
+          items:
+            - key: ca.crt
+              path: omni-selfsigned-ca.crt

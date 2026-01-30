@@ -1,0 +1,14 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: download-initial-sa-key
+commands:
+  - command: >
+      bash -c '
+        kubectl wait --for=condition=Ready pod/$(kubectl get pod -n omni-e2e -l app.kubernetes.io/name=omni -o name | cut -d '/' -f 2) -n omni-e2e
+        kubectl debug -n=omni-e2e $(kubectl get pod -n omni-e2e -l app.kubernetes.io/name=omni -o name | cut -d '/' -f 2) --image=busybox:1.36 --target=omni --profile=sysadmin --share-processes -- sleep 600
+        sleep 15
+        kubectl cp omni-e2e/$(kubectl get pod -n omni-e2e -l app.kubernetes.io/name=omni -o name | cut -d '/' -f 2):/proc/1/root/tmp/initial-service-account-key ../../testdata/sakey -c=$(kubectl get pod $(kubectl get pod -n omni-e2e -l app.kubernetes.io/name=omni -o name | cut -d '/' -f 2) -n omni-e2e -o jsonpath='{.spec.ephemeralContainers[*].name}')
+        kubectl create secret generic omni-sa-key --from-file=sakey=../../testdata/sakey -n omni-e2e
+      '
+    namespaced: true

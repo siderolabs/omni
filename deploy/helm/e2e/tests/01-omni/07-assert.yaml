@@ -1,0 +1,6 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-omni-ingress
+status:
+  succeeded: 1

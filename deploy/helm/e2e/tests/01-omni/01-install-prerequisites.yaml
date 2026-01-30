@@ -1,0 +1,20 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: install-prerequisites
+commands:
+  - command: >-
+      helm upgrade --install cert-manager cert-manager
+        --repo https://charts.jetstack.io
+        --namespace cert-manager --create-namespace
+        --wait --timeout=180s
+        --set crds.enabled=true
+  - command: >-
+      helm upgrade --install ingress-nginx ingress-nginx
+        --repo https://kubernetes.github.io/ingress-nginx
+        --namespace ingress-nginx --create-namespace
+        --wait --timeout=180s
+        --set controller.service.type=NodePort
+        --set controller.service.nodePorts.http=32080
+        --set controller.service.nodePorts.https=32443
+        --set controller.service.clusterIP="10.96.0.100"
