@@ -1641,3 +1641,31 @@ func validateRotateSecretDestroy(ctx context.Context, st state.State, res resour
 
 	return nil
 }
+
+func kubernetesManifestsValidationOptions() []validated.StateOption {
+	return []validated.StateOption{
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.KubernetesManifest, _ ...state.CreateOption) error {
+			return validateKubernetesManifests(res)
+		})),
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(ctx context.Context, _, res *omni.KubernetesManifest, _ ...state.UpdateOption) error {
+			return validateKubernetesManifests(res)
+		})),
+	}
+}
+
+func validateKubernetesManifests(res *omni.KubernetesManifest) error {
+	if _, ok := res.Metadata().Labels().Get(omni.LabelCluster); !ok {
+		return fmt.Errorf("the resource must have %s label set", omni.LabelCluster)
+	}
+
+	if _, ok := res.Metadata().Labels().Get(omni.LabelSystemManifest); ok {
+		return fmt.Errorf("system manifests can't be created by the user")
+	}
+
+	_, err := res.TypedSpec().Value.GetManifests()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
