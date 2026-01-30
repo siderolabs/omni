@@ -38,7 +38,7 @@ func TestReconcile(t *testing.T) {
 
 		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.KernelArgsStatus, assertion *assert.Assertions) {
 			assertion.Equal([]string{
-				"Schematic information is not yet known",
+				"Schematic information is not yet ready",
 				"Talos is not installed, kernel args cannot be updated yet",
 				"Cannot determine if kernel args update is supported: SecurityState and TalosVersion are not yet set",
 			}, res.TypedSpec().Value.UnmetConditions)
@@ -59,6 +59,8 @@ func TestReconcile(t *testing.T) {
 			}
 
 			res.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+				Id:         "test-id",
+				FullId:     "test-full-id",
 				KernelArgs: []string{"arg-1", "arg-2"},
 			}
 

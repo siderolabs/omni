@@ -72,6 +72,8 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	machineStatus.TypedSpec().Value.TalosVersion = talosVersion
 	machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+		Id:               "test-id",
+		FullId:           "test-full-id",
 		Extensions:       []string{"siderolabs/hello-world-service"},
 		InitialSchematic: expectedSchematic,
 		InitialState: &specs.MachineStatusSpec_Schematic_InitialState{

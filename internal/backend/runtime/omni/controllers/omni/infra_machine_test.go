@@ -89,12 +89,11 @@ func (suite *InfraMachineControllerSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachine))
 
-	// create schematic configuration
-	schematicConfig := omni.NewSchematicConfiguration("machine-1")
+	// create cluster with talos version
+	cluster := omni.NewCluster("test-cluster")
+	cluster.TypedSpec().Value.TalosVersion = "v42.0.0"
 
-	schematicConfig.TypedSpec().Value.TalosVersion = "v42.0.0"
-
-	suite.Require().NoError(suite.state.Create(suite.ctx, schematicConfig))
+	suite.Require().NoError(suite.state.Create(suite.ctx, cluster))
 
 	// assert that the cluster machine has the correct talos version
 	assertResource[*infra.Machine](&suite.OmniSuite, clusterMachine.Metadata(), func(r *infra.Machine, assertion *assert.Assertions) {

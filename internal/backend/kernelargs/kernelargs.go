@@ -103,8 +103,7 @@ func UpdateSupported(machineStatus *omni.MachineStatus, getClusterMachineConfig 
 }
 
 func Calculate(machineStatus *omni.MachineStatus, kernelArgs *omni.KernelArgs) (args []string, initialized bool, err error) {
-	schematicConfig := machineStatus.TypedSpec().Value.Schematic
-	if schematicConfig == nil {
+	if !machineStatus.TypedSpec().Value.SchematicReady() {
 		return nil, false, nil
 	}
 
@@ -118,7 +117,7 @@ func Calculate(machineStatus *omni.MachineStatus, kernelArgs *omni.KernelArgs) (
 		extraArgs = kernelArgs.TypedSpec().Value.Args
 	}
 
-	baseArgs := xslices.Filter(schematicConfig.KernelArgs, isProtected)
+	baseArgs := xslices.Filter(machineStatus.TypedSpec().Value.Schematic.KernelArgs, isProtected)
 
 	return slices.Concat(baseArgs, extraArgs), true, nil
 }

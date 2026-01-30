@@ -69,14 +69,15 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 
 	status.TypedSpec().Value.IsMaintenance = ms.TypedSpec().Value.Maintenance
 
-	schematicSpec := ms.TypedSpec().Value.Schematic
-	if schematicSpec == nil {
+	if !ms.TypedSpec().Value.SchematicReady() {
 		status.TypedSpec().Value.Phase = specs.MachineUpgradeStatusSpec_Unknown
 		status.TypedSpec().Value.Status = "schematic info is not available"
 		status.TypedSpec().Value.Error = ""
 
 		return nil
 	}
+
+	schematicSpec := ms.TypedSpec().Value.Schematic
 
 	status.TypedSpec().Value.CurrentSchematicId = schematicSpec.FullId
 
