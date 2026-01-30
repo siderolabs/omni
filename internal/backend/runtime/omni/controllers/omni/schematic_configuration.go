@@ -143,8 +143,8 @@ func (helper *schematicConfigurationHelper) reconcile(
 	ms *omni.MachineStatus,
 	schematicConfiguration *omni.SchematicConfiguration,
 ) (*omni.MachineExtensionsStatus, error) {
-	if ms.TypedSpec().Value.Schematic == nil {
-		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("schematic information is not yet available")
+	if !ms.TypedSpec().Value.SchematicReady() {
+		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("schematic is not yet ready")
 	}
 
 	securityState := ms.TypedSpec().Value.SecurityState
@@ -368,8 +368,8 @@ func determineKernelArgs(ctx context.Context, machineStatus *omni.MachineStatus,
 	}
 
 	if !updateSupported {
-		if machineStatus.TypedSpec().Value.Schematic == nil {
-			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine schematic is not yet initialized")
+		if !machineStatus.TypedSpec().Value.SchematicReady() {
+			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine schematic is not yet ready")
 		}
 
 		// keep them unchanged - take the current args as-is
@@ -437,7 +437,7 @@ func computeMachineExtensionsStatus(ms *omni.MachineStatus, customization *machi
 		requestedExtensions set.Set[string]
 	)
 
-	if ms.TypedSpec().Value.Schematic != nil {
+	if ms.TypedSpec().Value.SchematicReady() {
 		installedExtensions = xslices.ToSet(ms.TypedSpec().Value.Schematic.Extensions)
 	}
 

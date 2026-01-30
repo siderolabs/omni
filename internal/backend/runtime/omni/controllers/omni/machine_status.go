@@ -482,57 +482,8 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 		}
 
 		if event.Schematic != nil {
-			if spec.Schematic == nil {
-				spec.Schematic = &specs.MachineStatusSpec_Schematic{}
-			}
-
-			spec.Schematic.Raw = event.Schematic.Raw
-			spec.Schematic.Id = event.Schematic.ID
-			spec.Schematic.FullId = event.Schematic.FullID
-			spec.Schematic.Extensions = event.Schematic.Extensions
-			spec.Schematic.Invalid = event.Schematic.Invalid
-			spec.Schematic.KernelArgs = event.Schematic.KernelArgs
-
-			spec.Schematic.MetaValues = xslices.Map(event.Schematic.MetaValues, func(value schematic.MetaValue) *specs.MetaValue {
-				return &specs.MetaValue{
-					Key:   uint32(value.Key),
-					Value: value.Value,
-				}
-			})
-
-			if event.Schematic.Overlay.Name != "" {
-				spec.Schematic.Overlay = &specs.Overlay{
-					Name:  event.Schematic.Overlay.Name,
-					Image: event.Schematic.Overlay.Image,
-				}
-			}
-
-			if spec.Schematic.InitialSchematic == "" {
-				spec.Schematic.InitialSchematic = spec.Schematic.FullId
-			}
-
-			spec.Schematic.InAgentMode = event.Schematic.InAgentMode
-
-			// We populate the initial state on a best-effort basis: we might have missed the moment to capture it, but it is acceptable.
-			if spec.Schematic.InitialState == nil {
-				spec.Schematic.InitialState = &specs.MachineStatusSpec_Schematic_InitialState{
-					Extensions: event.Schematic.Extensions,
-				}
-			}
-
-			// if the schematic is invalid or the machine is in agent mode, we reset the initial schematic information
-			if spec.Schematic.Invalid || spec.Schematic.InAgentMode {
-				spec.Schematic.InitialSchematic = ""
-				spec.Schematic.InitialState = &specs.MachineStatusSpec_Schematic_InitialState{} // reset to be empty but leave it initialized
-			}
-
-			_, kernelArgsInitialized := m.Metadata().Annotations().Get(omni.KernelArgsInitialized)
-			if !kernelArgsInitialized {
-				if err := ctrl.kernelArgsInitializer.Init(ctx, m.Metadata().ID(), event.Schematic.KernelArgs); err != nil {
-					return fmt.Errorf("failed to initialize extra kernel args: %w", err)
-				}
-
-				m.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+			if err := ctrl.handleEventSchematic(ctx, m, event); err != nil {
+				return fmt.Errorf("failed to handle schematic event: %w", err)
 			}
 		}
 
@@ -560,6 +511,74 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 		if _, err := ctrl.ImageFactoryClient.EnsureSchematic(ctx, machineSchematic); err != nil {
 			return fmt.Errorf("error ensuring schematic: %w", err)
 		}
+	}
+
+	return nil
+}
+
+func (ctrl *MachineStatusController) handleEventSchematic(ctx context.Context, ms *omni.MachineStatus, event machinetask.Info) error {
+	spec := ms.TypedSpec().Value
+
+	// If the machine is in agent mode, reset the schematic information as it were never observed.
+	// At that stage, anything on it (extensions, kernel args, etc.) is irrelevant and even wrong for Omni to process.
+	if event.Schematic.InAgentMode {
+		spec.Schematic = &specs.MachineStatusSpec_Schematic{
+			InAgentMode: true,
+		}
+
+		return nil
+	}
+
+	if spec.Schematic == nil {
+		spec.Schematic = &specs.MachineStatusSpec_Schematic{}
+	}
+
+	spec.Schematic.Raw = event.Schematic.Raw
+	spec.Schematic.Id = event.Schematic.ID
+	spec.Schematic.FullId = event.Schematic.FullID
+	spec.Schematic.Extensions = event.Schematic.Extensions
+	spec.Schematic.Invalid = event.Schematic.Invalid
+	spec.Schematic.KernelArgs = event.Schematic.KernelArgs
+	spec.Schematic.InAgentMode = event.Schematic.InAgentMode
+
+	spec.Schematic.MetaValues = xslices.Map(event.Schematic.MetaValues, func(value schematic.MetaValue) *specs.MetaValue {
+		return &specs.MetaValue{
+			Key:   uint32(value.Key),
+			Value: value.Value,
+		}
+	})
+
+	if event.Schematic.Overlay.Name != "" {
+		spec.Schematic.Overlay = &specs.Overlay{
+			Name:  event.Schematic.Overlay.Name,
+			Image: event.Schematic.Overlay.Image,
+		}
+	}
+
+	if spec.Schematic.InitialSchematic == "" {
+		spec.Schematic.InitialSchematic = spec.Schematic.FullId
+	}
+
+	// We populate the initial state on a best-effort basis: we might have missed the moment to capture it, but it is acceptable.
+	if spec.Schematic.InitialState == nil {
+		spec.Schematic.InitialState = &specs.MachineStatusSpec_Schematic_InitialState{
+			Extensions: event.Schematic.Extensions,
+		}
+	}
+
+	// If the schematic is invalid, reset the initial schematic information.
+	if spec.Schematic.Invalid {
+		spec.Schematic.InitialSchematic = ""
+		spec.Schematic.InitialState = &specs.MachineStatusSpec_Schematic_InitialState{} // reset to be empty but leave it initialized
+	}
+
+	_, kernelArgsInitialized := ms.Metadata().Annotations().Get(omni.KernelArgsInitialized)
+	if !kernelArgsInitialized {
+		if err := ctrl.kernelArgsInitializer.Init(ctx, ms.Metadata().ID(), event.Schematic.KernelArgs); err != nil {
+			return fmt.Errorf("failed to initialize extra kernel args: %w", err)
+		}
+
+		ms.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
 	}
 
 	return nil

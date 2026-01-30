@@ -513,6 +513,7 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 		machineStatus.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
 		machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
 			Id:           defaultSchematic,
+			FullId:       defaultSchematic,
 			InitialState: &specs.MachineStatusSpec_Schematic_InitialState{},
 		}
 		machineStatus.TypedSpec().Value.InitialTalosVersion = cluster.TypedSpec().Value.TalosVersion

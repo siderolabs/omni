@@ -76,11 +76,6 @@ func (ctrl *InfraMachineController) Settings() controller.QSettings {
 			},
 			{
 				Namespace: resources.DefaultNamespace,
-				Type:      omni.SchematicConfigurationType,
-				Kind:      controller.InputQMapped,
-			},
-			{
-				Namespace: resources.DefaultNamespace,
 				Type:      omni.MachineExtensionsType,
 				Kind:      controller.InputQMapped,
 			},
@@ -102,6 +97,11 @@ func (ctrl *InfraMachineController) Settings() controller.QSettings {
 			{
 				Namespace: resources.InfraProviderNamespace,
 				Type:      infra.ProviderType,
+				Kind:      controller.InputQMapped,
+			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.ClusterType,
 				Kind:      controller.InputQMapped,
 			},
 		},
@@ -127,7 +127,7 @@ func (ctrl *InfraMachineController) Settings() controller.QSettings {
 }
 
 // Reconcile implements the controller.QController interface.
-func (ctrl *InfraMachineController) Reconcile(ctx context.Context, _ *zap.Logger, r controller.QRuntime, ptr resource.Pointer) error {
+func (ctrl *InfraMachineController) Reconcile(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer) error {
 	link, err := safe.ReaderGet[*siderolink.Link](ctx, r, ptr)
 	if err != nil {
 		if !state.IsNotFoundError(err) {
@@ -143,7 +143,7 @@ func (ctrl *InfraMachineController) Reconcile(ctx context.Context, _ *zap.Logger
 		return ctrl.reconcileTearingDown(ctx, r, link)
 	}
 
-	return ctrl.reconcileRunning(ctx, r, link)
+	return ctrl.reconcileRunning(ctx, r, link, logger)
 }
 
 func (ctrl *InfraMachineController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, link *siderolink.Link) error {
@@ -214,7 +214,7 @@ func (ctrl *InfraMachineController) handleInfraProviderDeletion(ctx context.Cont
 	}, controller.WithExpectedPhaseAny())
 }
 
-func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r controller.QRuntime, link *siderolink.Link) error {
+func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r controller.QRuntime, link *siderolink.Link, logger *zap.Logger) error {
 	config, err := safe.ReaderGetByID[*omni.InfraMachineConfig](ctx, r, link.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return err
@@ -260,6 +260,7 @@ func (ctrl *InfraMachineController) reconcileRunning(ctx context.Context, r cont
 		machineInfoCollected: machineInfoCollected,
 		providerID:           providerID,
 		controllerName:       ctrl.Name(),
+		logger:               logger,
 	}
 
 	return safe.WriterModify[*infra.Machine](ctx, r, infra.NewMachine(link.Metadata().ID()), func(res *infra.Machine) error {
@@ -273,6 +274,7 @@ type infraMachineControllerHelper struct {
 	machineExts          *omni.MachineExtensions
 	link                 *siderolink.Link
 	nodeUniqueToken      *siderolink.NodeUniqueToken
+	logger               *zap.Logger
 	providerID           string
 	controllerName       string
 	machineInfoCollected bool
@@ -333,16 +335,6 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 		return err
 	}
 
-	schematicConfig, err := safe.ReaderGetByID[*omni.SchematicConfiguration](ctx, helper.runtime, helper.link.Metadata().ID())
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			// the schema configuration is not created yet, skip the cluster information collection
-			return nil
-		}
-
-		return err
-	}
-
 	var extensions []string
 
 	if helper.machineExts != nil {
@@ -351,10 +343,35 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 
 	// set the cluster allocation information
 
-	infraMachine.TypedSpec().Value.ClusterTalosVersion = schematicConfig.TypedSpec().Value.TalosVersion
+	clusterTalosVersion, err := helper.getClusterTalosVersion(ctx, helper.runtime, clusterMachine)
+	if err != nil {
+		return err
+	}
+
+	infraMachine.TypedSpec().Value.ClusterTalosVersion = clusterTalosVersion
 	infraMachine.TypedSpec().Value.Extensions = extensions
 
 	return nil
+}
+
+func (helper *infraMachineControllerHelper) getClusterTalosVersion(ctx context.Context, r controller.Reader, clusterMachine *omni.ClusterMachine) (string, error) {
+	clusterID, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return "", fmt.Errorf("cluster machine %q is missing cluster label", clusterMachine.Metadata().ID())
+	}
+
+	cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			helper.logger.Info("cluster not yet found for cluster machine", zap.String("cluster_machine_id", clusterMachine.Metadata().ID()), zap.String("cluster_id", clusterID))
+
+			return "", nil
+		}
+
+		return "", fmt.Errorf("failed to get cluster %q: %w", clusterID, err)
+	}
+
+	return cluster.TypedSpec().Value.TalosVersion, nil
 }
 
 // MapInput implements the controller.QController interface.
@@ -369,6 +386,18 @@ func (ctrl *InfraMachineController) MapInput(ctx context.Context, _ *zap.Logger,
 		omni.ClusterMachineType,
 		omni.MachineStatusType:
 		return []resource.Pointer{siderolink.NewLink(ptr.ID(), nil).Metadata()}, nil
+	case omni.ClusterType:
+		clusterMachineList, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, runtime, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, ptr.ID())))
+		if err != nil {
+			return nil, err
+		}
+
+		linkPtrs := make([]resource.Pointer, 0, clusterMachineList.Len())
+		for clusterMachine := range clusterMachineList.All() {
+			linkPtrs = append(linkPtrs, siderolink.NewLink(clusterMachine.Metadata().ID(), nil).Metadata())
+		}
+
+		return linkPtrs, nil
 	case infra.InfraProviderStatusType, infra.ProviderType:
 		linkList, err := safe.ReaderListAll[*siderolink.Link](ctx, runtime, state.WithLabelQuery(resource.LabelEqual(omni.LabelInfraProviderID, ptr.ID())))
 		if err != nil {

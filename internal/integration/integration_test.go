@@ -357,7 +357,7 @@ func preRunHooks(t *testing.T, options *TestOptions) {
 
 func postRunHooks(t *testing.T, options *TestOptions) {
 	if t.Failed() {
-		t.Logf("there are failed tests, save support bundle for all cluster")
+		t.Logf("there are failed tests, save support bundle for all clusters")
 
 		saveAllSupportBundles(t, options.omniClient, options.OutputDir)
 

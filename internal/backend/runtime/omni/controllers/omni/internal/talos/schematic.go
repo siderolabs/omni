@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/safe"
-	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/image-factory/pkg/constants"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/client"
@@ -54,15 +53,12 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 		fullID       string
 		rawSchematic = &schematic.Schematic{}
 		manifest     string
-		inAgentMode  bool
 	)
 
-	err = items.ForEachErr(func(status *runtime.ExtensionStatus) error {
+	for status := range items.All() {
 		name := status.TypedSpec().Metadata.Name
 		if name == extensions.MetalAgentExtensionName {
-			inAgentMode = true
-
-			return nil
+			return SchematicInfo{InAgentMode: true}, nil
 		}
 
 		if name == constants.SchematicIDExtensionName { // skip the meta extension
@@ -71,14 +67,16 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 			if status.TypedSpec().Metadata.ExtraInfo != "" {
 				manifest = status.TypedSpec().Metadata.ExtraInfo
 
-				return yaml.Unmarshal([]byte(manifest), rawSchematic)
+				if err = yaml.Unmarshal([]byte(manifest), rawSchematic); err != nil {
+					return SchematicInfo{}, fmt.Errorf("failed to unmarshal schematic manifest: %w", err)
+				}
 			}
 
-			return nil
+			continue
 		}
 
 		if name == "modules.dep" { // ignore the virtual extension used for kernel modules dependencies
-			return nil
+			continue
 		}
 
 		if !strings.HasPrefix(name, extensions.OfficialPrefix) {
@@ -86,24 +84,6 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 		}
 
 		exts = append(exts, name)
-
-		return nil
-	})
-	if err != nil {
-		return SchematicInfo{}, err
-	}
-
-	if inAgentMode {
-		id, idErr := pointer.To(schematic.Schematic{}).ID()
-		if idErr != nil {
-			return SchematicInfo{}, fmt.Errorf("failed to calculate extensions schematic ID: %w", idErr)
-		}
-
-		return SchematicInfo{
-			ID:          id,
-			FullID:      id,
-			InAgentMode: true,
-		}, nil
 	}
 
 	exts = extensions.MapNames(exts)

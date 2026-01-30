@@ -555,8 +555,7 @@ func populateEmptySchematics(ctx context.Context, r controller.ReaderWriter, clu
 			return err
 		}
 
-		schematic := machineStatus.TypedSpec().Value.Schematic
-		if schematic == nil {
+		if !machineStatus.TypedSpec().Value.SchematicReady() {
 			return nil
 		}
 
@@ -566,7 +565,7 @@ func populateEmptySchematics(ctx context.Context, r controller.ReaderWriter, clu
 		}
 
 		return safe.WriterModify(ctx, r, clusterMachineTalosVersion, func(res *omni.ClusterMachineTalosVersion) error {
-			res.TypedSpec().Value.SchematicId = schematic.InitialSchematic
+			res.TypedSpec().Value.SchematicId = machineStatus.TypedSpec().Value.Schematic.InitialSchematic
 
 			return nil
 		})

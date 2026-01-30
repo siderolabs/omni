@@ -150,6 +150,7 @@ func TestReconcile(t *testing.T) {
 					{Key: 1, Value: "value1"},
 					{Key: 2, Value: "value2"},
 				},
+				Id:     "test-id",
 				FullId: currentSchematicID,
 				Raw:    string(currentSchematicRaw),
 				InitialState: &specs.MachineStatusSpec_Schematic_InitialState{

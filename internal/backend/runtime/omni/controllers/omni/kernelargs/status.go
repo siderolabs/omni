@@ -40,8 +40,8 @@ func NewStatusController() *StatusController {
 				status.TypedSpec().Value.UnmetConditions = nil
 				status.TypedSpec().Value.CurrentCmdline = ms.TypedSpec().Value.KernelCmdline
 
-				if ms.TypedSpec().Value.Schematic == nil {
-					status.TypedSpec().Value.UnmetConditions = append(status.TypedSpec().Value.UnmetConditions, "Schematic information is not yet known")
+				if !ms.TypedSpec().Value.SchematicReady() {
+					status.TypedSpec().Value.UnmetConditions = append(status.TypedSpec().Value.UnmetConditions, "Schematic information is not yet ready")
 				} else {
 					status.TypedSpec().Value.CurrentArgs = kernelargs.FilterExtras(ms.TypedSpec().Value.Schematic.KernelArgs)
 				}
