@@ -5,8 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useEventListener } from '@vueuse/core'
 import { gte } from 'semver'
-import { computed } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import {
@@ -29,12 +30,15 @@ import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink, getLegacyDocsLink, majorMinorVersion } from '@/methods'
 import { useFeatures } from '@/methods/features'
+import { useDownloadImage } from '@/methods/useDownloadImage'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
+import { showError } from '@/notification'
 import { formStateToPreset } from '@/views/omni/InstallationMedia/formStateToPreset'
 import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
 import { usePresetDownloadLinks } from '@/views/omni/InstallationMedia/usePresetDownloadLinks'
 import { usePresetSchematic } from '@/views/omni/InstallationMedia/usePresetSchematic'
+import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 defineProps<{
   isReviewPage?: boolean
@@ -50,6 +54,25 @@ const talosctlAvailable = computed(
 )
 
 const { data: features } = useFeatures()
+const imageDownloadDialog = useTemplateRef<HTMLDialogElement>('downloadImageDialog')
+const {
+  isGenerating: imageIsGenerating,
+  abort: abortImageDownload,
+  download: _downloadImage,
+} = useDownloadImage()
+
+async function downloadImage(url: string) {
+  try {
+    imageDownloadDialog.value?.showModal()
+    await _downloadImage(url)
+  } catch (error) {
+    showError('Image download failed', error instanceof Error ? error.message : String(error))
+  } finally {
+    imageDownloadDialog.value?.close()
+  }
+}
+
+useEventListener(imageDownloadDialog, 'close', abortImageDownload)
 
 const { downloads } = useTalosctlDownloads()
 
@@ -170,7 +193,13 @@ const installerImage = computed(() =>
         </dd>
 
         <dd v-else>
-          <a class="link-primary" :href="link" target="_blank" rel="noopener noreferrer">
+          <a
+            class="link-primary"
+            :href="link"
+            target="_blank"
+            rel="noopener noreferrer"
+            @click.prevent="downloadImage(link)"
+          >
             {{ link }}
           </a>
         </dd>
@@ -368,6 +397,24 @@ const installerImage = computed(() =>
         </dd>
       </dl>
     </template>
+
+    <dialog
+      ref="downloadImageDialog"
+      closedby="any"
+      class="modal-window fixed inset-0 m-auto gap-2 not-open:hidden open:backdrop:bg-naturals-n0/90"
+    >
+      <div class="mb-5 flex items-center justify-between text-xl text-naturals-n14">
+        <h3 class="text-base text-naturals-n14">Image download</h3>
+
+        <CloseButton @click="abortImageDownload" />
+      </div>
+
+      <p class="flex items-center gap-1.5">
+        <TSpinner class="size-3" />
+
+        <span v-if="imageIsGenerating">Generating ...</span>
+      </p>
+    </dialog>
   </div>
   <div v-else class="flex flex-col gap-4">
     <p v-if="schematicLoading" class="flex items-center gap-2 text-sm">

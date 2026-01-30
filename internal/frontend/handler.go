@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"github.com/jxskiss/base62"
+
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 const index = "/index.html"
@@ -133,7 +135,7 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 					fmt.Sprintf(";script-src 'self' 'nonce-%s' https://*.userpilot.io", nonce)+
 					";media-src 'self' https://js.userpilot.io"+
 					";img-src * data:"+
-					";connect-src 'self' https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io"+
+					fmt.Sprintf(";connect-src 'self' %s https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io", config.Config.Registries.GetImageFactoryBaseURL())+
 					";font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.userpilot.io"+
 					// We are forced to use unsafe-inline for style-src due to monaco-editor https://github.com/microsoft/monaco-editor/issues/271
 					";style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com"+
