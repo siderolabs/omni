@@ -4,9 +4,9 @@ go 1.25.6
 
 replace (
 	// adds the extraTags field to the JSONSchema, switch to upstream if/when https://github.com/omissis/go-jsonschema/pull/504 gets merged
-	github.com/atombender/go-jsonschema => github.com/utkuozdemir/go-jsonschema v0.0.0-20260116005549-a1810c7ef5ad
+	github.com/atombender/go-jsonschema => github.com/utkuozdemir/go-jsonschema v0.0.0-20251204023326-3722397393d6
 	// forked saml library that has the fix for Fusion Auth ACS parsing
-	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe
+	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20230420111643-34930b26d33b
 
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
@@ -16,10 +16,10 @@ tool github.com/atombender/go-jsonschema
 
 require (
 	filippo.io/age v1.3.1
-	github.com/ProtonMail/gopenpgp/v2 v2.9.0
+	github.com/ProtonMail/gopenpgp/v3 v3.3.0
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/akutz/memconn v0.1.1-0.20211110233653-dae351d188b3
-	github.com/auth0/go-jwt-middleware/v2 v2.3.1
+	github.com/auth0/go-jwt-middleware/v3 v3.0.0
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/config v1.32.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
@@ -43,11 +43,11 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
-	github.com/golang-jwt/jwt/v4 v4.5.2
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.20.7
 	github.com/google/uuid v1.6.0
-	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.7
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -100,7 +100,7 @@ require (
 	go.etcd.io/etcd/server/v3 v3.6.7
 	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.27.1
-	go.yaml.in/yaml/v4 v4.0.0-rc.3
+	go.yaml.in/yaml/v4 v4.0.0-rc.4
 	golang.org/x/crypto v0.47.0
 	golang.org/x/net v0.49.0
 	golang.org/x/oauth2 v0.34.0
@@ -118,6 +118,13 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	modernc.org/sqlite v1.44.3
 	sigs.k8s.io/controller-runtime v0.23.1
+)
+
+require (
+	github.com/ProtonMail/gopenpgp/v2 v2.9.0
+	github.com/auth0/go-jwt-middleware/v2 v2.3.1
+	github.com/golang-jwt/jwt/v4 v4.4.3
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 )
 
 require (
@@ -160,6 +167,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/creack/pty v1.1.21 // indirect
+	github.com/crewjam/httperr v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/cli v29.2.1+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
@@ -193,7 +201,6 @@ require (
 	github.com/go-openapi/swag/yamlutils v0.25.4 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.27.0 // indirect
@@ -204,7 +211,6 @@ require (
 	github.com/gosuri/uiprogress v0.0.1 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0 // indirect
-	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
