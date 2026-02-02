@@ -177,7 +177,7 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 	}
 
 	if err = ctrl.computePendingUpdates(ctx, r, rc); err != nil {
-		return err
+		return fmt.Errorf("failed to compute pending updates: %w", err)
 	}
 
 	if rc.locked {
@@ -218,7 +218,7 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 
 	buffer, err := machineConfig.TypedSpec().Value.GetUncompressedData()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get uncompressed config: %w", err)
 	}
 
 	defer buffer.Free()

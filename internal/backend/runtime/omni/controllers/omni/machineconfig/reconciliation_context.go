@@ -126,25 +126,10 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 ) (*ReconciliationContext, error) {
 	desiredConfig, err := machineConfig.TypedSpec().Value.GetUncompressedData()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read desired config: %w", err)
 	}
 
 	defer desiredConfig.Free()
-
-	rc := &ReconciliationContext{
-		machineConfig:       machineConfig,
-		machineConfigStatus: machineConfigStatus,
-	}
-
-	config, err := configloader.NewFromBytes(desiredConfig.Data())
-	if err != nil {
-		return nil, err
-	}
-
-	rc.redactedMachineConfig, err = config.RedactSecrets(x509.Redacted).EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
-	if err != nil {
-		return nil, err
-	}
 
 	machineSetNode, err := safe.ReaderGetByID[*omni.MachineSetNode](ctx, r, machineConfig.Metadata().ID())
 	if err != nil {
@@ -155,6 +140,11 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, err
 	}
 
+	rc := &ReconciliationContext{
+		machineConfig:       machineConfig,
+		machineConfigStatus: machineConfigStatus,
+	}
+
 	_, locked := machineSetNode.Metadata().Annotations().Get(omni.MachineLocked)
 	// we also check config SHA not being empty here as we don't want to block the initial config creation
 	rc.locked = locked && machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != ""
@@ -163,6 +153,16 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 
 	if rc.lastConfigError != "" {
 		return rc, nil
+	}
+
+	config, err := configloader.NewFromBytes(desiredConfig.Data())
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode desired config: %w", err)
+	}
+
+	rc.redactedMachineConfig, err = config.RedactSecrets(x509.Redacted).EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
+	if err != nil {
+		return nil, fmt.Errorf("failed to redact secrets: %w", err)
 	}
 
 	if !rc.locked {
