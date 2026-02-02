@@ -500,7 +500,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("generationErrorPropagation", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
@@ -513,7 +513,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 				options.Modify(func(res *omni.ClusterMachineConfig) error {
 					res.TypedSpec().Value.GenerationError = "TestGenerationErrorPropagation error"
 
-					return nil
+					return res.TypedSpec().Value.SetUncompressedData(nil)
 				}),
 			)
 
