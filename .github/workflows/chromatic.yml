@@ -24,7 +24,7 @@ jobs:
       url: ${{ steps.chromatic.outputs.storybookUrl }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v6
@@ -40,7 +40,7 @@ jobs:
           echo "CHROMATIC_PROJECT_TOKEN=${chromaticProjectToken}" >> $GITHUB_ENV
       - id: chromatic
         name: Run Chromatic
-        uses: chromaui/action@latest
+        uses: chromaui/action@v15
         with:
           projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
           workingDir: frontend/
