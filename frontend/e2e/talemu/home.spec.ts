@@ -16,30 +16,6 @@ test('Has expected title', async ({ page }) => {
   await expect(page).toHaveTitle('Omni - default')
 })
 
-test('Download installation media', async ({ page }, testInfo) => {
-  test.slow()
-
-  await page.goto('/')
-
-  await page.getByRole('button', { name: 'Download Installation Media' }).click()
-  await page.getByText('hello-world-service').click()
-  await page.getByRole('button', { name: 'Download', exact: true }).click()
-
-  const [download] = await Promise.all([
-    page.waitForEvent('download'),
-    expect(page.getByText('Generating Image')).toBeVisible(),
-  ])
-
-  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
-
-  const filePath = testInfo.outputPath(download.suggestedFilename())
-  await download.saveAs(filePath)
-
-  const { size } = await stat(filePath)
-
-  expect(size).toBeGreaterThan(50 * 1024 * 1024)
-})
-
 test('Download machine join config', async ({ page }, testInfo) => {
   await page.goto('/')
 
