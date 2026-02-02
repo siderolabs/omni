@@ -33,13 +33,12 @@ import {
   getKernelArgs,
 } from '@/methods'
 import { canReadAuditLog } from '@/methods/auth'
-import { auditLogEnabled, useInstallationMediaEnabled } from '@/methods/features'
+import { auditLogEnabled } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import HomeGeneralInformationCopyable from '@/views/omni/Home/HomeGeneralInformationCopyable.vue'
 
 const auditLogAvailable = ref(false)
 const { copy, copied } = useClipboard()
-const { value: installationMediaEnabled } = useInstallationMediaEnabled()
 
 onBeforeMount(async () => {
   auditLogAvailable.value = await auditLogEnabled()
@@ -119,15 +118,10 @@ const {
       <h3 class="text-sm font-medium">Add Machines</h3>
 
       <TButton
+        is="router-link"
         icon="long-arrow-down"
         icon-position="left"
-        @click="
-          $router.push(
-            installationMediaEnabled
-              ? { name: 'InstallationMedia' }
-              : { query: { modal: 'downloadInstallationMedia' } },
-          )
-        "
+        :to="{ name: 'InstallationMedia' }"
       >
         Download Installation Media
       </TButton>

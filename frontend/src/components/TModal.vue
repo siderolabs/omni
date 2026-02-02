@@ -24,9 +24,6 @@ const modals: Record<string, Component> = {
   maintenanceUpdate: defineAsyncComponent(
     () => import('@/views/omni/Modals/MaintenanceUpdate.vue'),
   ),
-  downloadInstallationMedia: defineAsyncComponent(
-    () => import('@/views/omni/Modals/DownloadInstallationMedia.vue'),
-  ),
   downloadOmnictlBinaries: defineAsyncComponent(
     () => import('@/views/omni/Modals/DownloadOmnictl.vue'),
   ),

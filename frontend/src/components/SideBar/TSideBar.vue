@@ -43,7 +43,7 @@ import {
   canReadMachines,
   setupClusterPermissions,
 } from '@/methods/auth'
-import { useFeatures, useInstallationMediaEnabled } from '@/methods/features'
+import { useFeatures } from '@/methods/features'
 import { useIdentity } from '@/methods/identity'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ExposedServiceSideBar from '@/views/cluster/ExposedService/ExposedServiceSideBar.vue'
@@ -53,7 +53,6 @@ const context = getContext()
 const { avatar, fullname, identity } = useIdentity()
 
 const { data: featuresConfig } = useFeatures()
-const { value: installationMediaEnabled } = useInstallationMediaEnabled()
 
 const { status: backupStatus } = setupBackupStatus()
 const { canSyncKubernetesManifests, canManageClusterFeatures } = setupClusterPermissions(
@@ -265,16 +264,13 @@ const rootItems = computed(() => {
           route: getRoute('JoinTokens', '/machines/jointokens'),
           icon: 'key',
         },
+        {
+          name: 'Installation Media',
+          route: getRoute('InstallationMedia', '/machines/installation-media'),
+          icon: 'kube-config',
+        },
       ] as SideBarItem[],
     } satisfies SideBarItem
-
-    if (installationMediaEnabled) {
-      item.subItems.push({
-        name: 'Installation Media',
-        route: getRoute('InstallationMedia', '/machines/installation-media'),
-        icon: 'kube-config',
-      })
-    }
 
     result.push(item)
   }

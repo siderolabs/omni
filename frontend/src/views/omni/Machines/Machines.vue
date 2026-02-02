@@ -182,11 +182,7 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
       >
         <div class="flex gap-1">
           Download and boot the
-          <TButton
-            type="subtle"
-            size="xs"
-            @click="$router.push({ name: 'Home', query: { modal: 'downloadInstallationMedia' } })"
-          >
+          <TButton is="router-link" :to="{ name: 'InstallationMedia' }" type="subtle" size="xs">
             installation media
           </TButton>
           to connect machines to your Omni instance.

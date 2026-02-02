@@ -102,12 +102,6 @@ const getMachineJoinConfig = (token: string) => {
   downloadMachineJoinConfig(token)
 }
 
-const openDownloadInstallationMedia = (token: string) => {
-  router.push({
-    query: { modal: 'downloadInstallationMedia', joinToken: token },
-  })
-}
-
 const openRevokeToken = (token: string) => {
   router.push({
     query: { modal: 'joinTokenRevoke', token: token },
@@ -188,12 +182,6 @@ const openDeleteToken = (token: string) => {
                   @select="() => getMachineJoinConfig(item.metadata.id!)"
                 >
                   Download Machine Join Config
-                </TActionsBoxItem>
-                <TActionsBoxItem
-                  icon="long-arrow-down"
-                  @select="() => openDownloadInstallationMedia(item.metadata.id!)"
-                >
-                  Download Installation Media
                 </TActionsBoxItem>
                 <div class="my-0.5 w-full border-b border-naturals-n5" />
                 <TActionsBoxItem

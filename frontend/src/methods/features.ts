@@ -3,8 +3,6 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import { useLocalStorage } from '@vueuse/core'
-
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
@@ -46,8 +44,4 @@ const getFeaturesConfig = async (): Promise<Resource<FeaturesConfigSpec>> => {
   }
 
   return cachedFeaturesConfig
-}
-
-export function useInstallationMediaEnabled() {
-  return useLocalStorage('_installation_media_enabled', false)
 }
