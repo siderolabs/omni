@@ -13,11 +13,14 @@ import type { InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, InstallationMediaConfigType } from '@/api/resources'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TableCell from '@/components/common/Table/TableCell.vue'
 import TableRoot from '@/components/common/Table/TableRoot.vue'
 import TableRow from '@/components/common/Table/TableRow.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import { useDownloadImage } from '@/methods/useDownloadImage'
 import { useResourceGet } from '@/methods/useResourceGet'
+import { showError } from '@/notification'
 import { usePresetDownloadLinks } from '@/views/omni/InstallationMedia/usePresetDownloadLinks'
 import { usePresetSchematic } from '@/views/omni/InstallationMedia/usePresetSchematic'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -27,7 +30,7 @@ const { open, id } = defineProps<{
   id: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   close: []
 }>()
 
@@ -47,6 +50,25 @@ const schematicId = computed(() => schematic.value?.id ?? '')
 
 const { schematic } = usePresetSchematic(preset)
 const { links } = usePresetDownloadLinks(schematicId, preset)
+
+const {
+  isGenerating: imageIsGenerating,
+  abort: abortImageDownload,
+  download: _downloadImage,
+} = useDownloadImage()
+
+async function downloadImage(url: string) {
+  try {
+    await _downloadImage(url)
+  } catch (error) {
+    showError('Image download failed', error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function close() {
+  abortImageDownload()
+  emit('close')
+}
 </script>
 
 <template>
@@ -61,7 +83,7 @@ const { links } = usePresetDownloadLinks(schematicId, preset)
           <p class="text-sm">Files for {{ id }}</p>
         </div>
 
-        <CloseButton @click="$emit('close')" />
+        <CloseButton class="shrink-0" @click="close" />
       </div>
 
       <TableRoot class="w-full">
@@ -79,7 +101,16 @@ const { links } = usePresetDownloadLinks(schematicId, preset)
             <TableCell class="w-0">
               <div class="flex gap-1">
                 <Tooltip description="Download">
-                  <IconButton is="a" :href="link" aria-label="download" icon="arrow-down-tray" />
+                  <IconButton
+                    is="a"
+                    :href="link"
+                    :disabled="imageIsGenerating"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="download"
+                    icon="arrow-down-tray"
+                    @click.prevent="downloadImage(link)"
+                  />
                 </Tooltip>
 
                 <Tooltip description="Copy link">
@@ -91,7 +122,16 @@ const { links } = usePresetDownloadLinks(schematicId, preset)
         </template>
       </TableRoot>
 
-      <TButton class="self-end" @click="$emit('close')">Close</TButton>
+      <div class="flex gap-1">
+        <p class="flex items-center gap-1.5 text-xs" v-if="imageIsGenerating">
+          <TSpinner class="size-3" />
+          <span>Generating image...</span>
+        </p>
+
+        <div class="grow"></div>
+
+        <TButton @click="close">Close</TButton>
+      </div>
     </div>
   </div>
 </template>
