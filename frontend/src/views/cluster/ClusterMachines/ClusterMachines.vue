@@ -13,11 +13,8 @@ import {
   ClusterDiagnosticsType,
   DefaultNamespace,
   LabelCluster,
-  MachineSetStatusType,
   MachineSetType,
 } from '@/api/resources'
-import { itemID } from '@/api/watch'
-import Watch from '@/components/common/Watch/Watch.vue'
 import { sortMachineSetIds } from '@/methods/machineset'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
@@ -54,7 +51,7 @@ const nodesWithDiagnostics = computed(() => {
   return new Set(nodes)
 })
 
-const watches = computed(() =>
+const machineSetIds = computed(() =>
   sortMachineSetIds(
     clusterID,
     machineSets.value.map((machineSet) => machineSet.metadata.id ?? ''),
@@ -64,27 +61,12 @@ const watches = computed(() =>
 
 <template>
   <div :class="isSubgrid && 'col-span-full grid grid-cols-subgrid'">
-    <Watch
-      v-for="id in watches"
+    <MachineSet
+      v-for="id in machineSetIds"
       :key="id"
-      :opts="{
-        resource: {
-          namespace: DefaultNamespace,
-          type: MachineSetStatusType,
-          id,
-        },
-        runtime: Runtime.Omni,
-      }"
-    >
-      <template #default="{ data }">
-        <MachineSet
-          v-if="data"
-          :key="itemID(data)"
-          :machine-set="data"
-          :nodes-with-diagnostics="nodesWithDiagnostics"
-          :is-subgrid
-        />
-      </template>
-    </Watch>
+      :machine-set-id="id"
+      :nodes-with-diagnostics="nodesWithDiagnostics"
+      :is-subgrid
+    />
   </div>
 </template>

@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import pluralize from 'pluralize'
-import { computed, ref, toRefs, useId, watch } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -29,6 +29,7 @@ import {
   LabelMachineRequestInUse,
   LabelMachineSet,
   MachineClassType,
+  MachineSetStatusType,
 } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
@@ -54,22 +55,29 @@ import MachineSetPhase from './MachineSetPhase.vue'
 
 const showMachinesCount = ref<number | undefined>(25)
 
-const props = defineProps<{
-  machineSet: Resource<MachineSetStatusSpec>
+const { machineSetId } = defineProps<{
+  machineSetId: string
   nodesWithDiagnostics: Set<string>
   isSubgrid?: boolean
 }>()
 
-const { machineSet } = toRefs(props)
+const { data: machineSet } = useResourceWatch<MachineSetStatusSpec>(() => ({
+  resource: {
+    namespace: DefaultNamespace,
+    type: MachineSetStatusType,
+    id: machineSetId,
+  },
+  runtime: Runtime.Omni,
+}))
 
-const clusterID = computed(() => machineSet.value.metadata.labels?.[LabelCluster] ?? '')
+const clusterID = computed(() => machineSet.value?.metadata.labels?.[LabelCluster] ?? '')
 const editingMachinesCount = ref(false)
-const machineCount = ref(machineSet.value.spec.machine_allocation?.machine_count ?? 1)
+const machineCount = ref(machineSet.value?.spec.machine_allocation?.machine_count ?? 1)
 const scaling = ref(false)
 const canUseAll = ref<boolean | undefined>()
 
 watch(editingMachinesCount, async (enabled: boolean, wasEnabled: boolean) => {
-  if (!machineSet.value.spec.machine_allocation?.name) {
+  if (!machineSet.value?.spec.machine_allocation?.name) {
     return
   }
 
@@ -92,31 +100,29 @@ const hiddenMachinesCount = computed(() => {
     return 0
   }
 
-  return Math.max(0, (machineSet.value.spec.machines?.total || 0) - showMachinesCount.value)
+  return Math.max(0, (machineSet.value?.spec.machines?.total || 0) - showMachinesCount.value)
 })
 
 const { data: machines } = useResourceWatch<ClusterMachineStatusSpec>(() => ({
+  skip: !clusterID.value,
   resource: {
     namespace: DefaultNamespace,
     type: ClusterMachineStatusType,
   },
   runtime: Runtime.Omni,
-  selectors: [
-    `${LabelCluster}=${clusterID.value}`,
-    `${LabelMachineSet}=${machineSet.value.metadata.id}`,
-  ],
+  selectors: [`${LabelCluster}=${clusterID.value}`, `${LabelMachineSet}=${machineSetId}`],
   limit: showMachinesCount.value,
 }))
 
 const { data: requests } = useResourceWatch<ClusterMachineRequestStatusSpec>(() => ({
-  skip: !machineSet.value.spec.machine_allocation,
+  skip: !clusterID.value || !machineSet.value?.spec.machine_allocation,
   resource: {
     namespace: DefaultNamespace,
     type: ClusterMachineRequestStatusType,
   },
   selectors: [
     `${LabelCluster}=${clusterID.value}`,
-    `${LabelMachineSet}=${machineSet.value.metadata.id}`,
+    `${LabelMachineSet}=${machineSetId}`,
     `!${LabelMachineRequestInUse}`,
   ],
   runtime: Runtime.Omni,
@@ -125,9 +131,9 @@ const { data: requests } = useResourceWatch<ClusterMachineRequestStatusSpec>(() 
 
 const router = useRouter()
 
-const openMachineSetDestroy = (machineSet: Resource) => {
+const openMachineSetDestroy = () => {
   router.push({
-    query: { modal: 'machineSetDestroy', machineSet: machineSet.metadata.id },
+    query: { modal: 'machineSetDestroy', machineSet: machineSetId },
   })
 }
 
@@ -138,7 +144,7 @@ const canRemoveMachine = computed(() => {
     return false
   }
 
-  if (machineSet.value.metadata.labels?.[LabelControlPlaneRole] === undefined) {
+  if (machineSet.value?.metadata.labels?.[LabelControlPlaneRole] === undefined) {
     return true
   }
 
@@ -155,7 +161,7 @@ const canRemoveMachineSet = computed(() => {
     defaultWorkersMachineSetId(clusterID.value),
   ])
 
-  return !deleteProtected.has(machineSet.value.metadata.id!)
+  return !deleteProtected.has(machineSetId)
 })
 
 const updateMachineCount = async (
@@ -164,9 +170,9 @@ const updateMachineCount = async (
   scaling.value = true
 
   try {
-    await scaleMachineSet(machineSet.value.metadata.id!, machineCount.value, allocationType)
+    await scaleMachineSet(machineSetId, machineCount.value, allocationType)
   } catch (e) {
-    showError(`Failed to Scale Machine Set ${machineSet.value.metadata.id}`, `Error: ${e.message}`)
+    showError(`Failed to Scale Machine Set ${machineSetId}`, `Error: ${e.message}`)
   }
 
   scaling.value = false
@@ -176,24 +182,24 @@ const updateMachineCount = async (
 
 const requestedMachines = computed(() => {
   if (
-    machineSet.value.spec.machine_allocation?.allocation_type ===
+    machineSet.value?.spec.machine_allocation?.allocation_type ===
     MachineSetSpecMachineAllocationType.Unlimited
   ) {
     return '∞'
   }
 
-  return machineSet?.value?.spec?.machines?.requested || 0
+  return machineSet.value?.spec?.machines?.requested || 0
 })
 
 const machineClassMachineCount = computed(() => {
   if (
-    machineSet.value.spec?.machine_allocation?.allocation_type ===
+    machineSet.value?.spec?.machine_allocation?.allocation_type ===
     MachineSetSpecMachineAllocationType.Unlimited
   ) {
     return 'All Machines'
   }
 
-  return pluralize('Machine', machineSet.value.spec?.machine_allocation?.machine_count ?? 0, true)
+  return pluralize('Machine', machineSet.value?.spec?.machine_allocation?.machine_count ?? 0, true)
 })
 
 const sectionHeadingId = useId()
@@ -212,7 +218,7 @@ const sectionHeadingId = useId()
       <header class="flex max-w-40 items-center gap-2 truncate rounded bg-naturals-n4 px-3 py-2">
         <TIcon icon="server-stack" class="size-4 shrink-0" aria-hidden="true" />
         <h3 :id="sectionHeadingId" class="flex-1 truncate">
-          {{ machineSetTitle(clusterID, machineSet?.metadata?.id) }}
+          {{ machineSetTitle(clusterID, machineSetId) }}
         </h3>
       </header>
 
@@ -225,7 +231,7 @@ const sectionHeadingId = useId()
           </div>
         </div>
         <IconButton
-          v-if="machineSet.spec.machine_allocation?.name"
+          v-if="machineSet?.spec.machine_allocation?.name"
           icon="edit"
           @click="editingMachinesCount = !editingMachinesCount"
         />
@@ -253,12 +259,13 @@ const sectionHeadingId = useId()
       </div>
 
       <MachineSetPhase
+        v-if="machineSet"
         :item="machineSet"
         :class="{ 'col-span-2': !machineSet.spec.machine_allocation?.name }"
       />
 
       <div
-        v-if="machineSet.spec.machine_allocation?.name"
+        v-if="machineSet?.spec.machine_allocation?.name"
         class="max-w-min rounded bg-naturals-n4 px-3 py-2 whitespace-nowrap"
       >
         Machine Class: {{ machineSet.spec.machine_allocation?.name }} ({{
@@ -267,8 +274,8 @@ const sectionHeadingId = useId()
       </div>
 
       <div class="flex items-center justify-end">
-        <TActionsBox v-if="canRemoveMachineSet">
-          <TActionsBoxItem icon="delete" danger @select="() => openMachineSetDestroy(machineSet)">
+        <TActionsBox v-if="canRemoveMachineSet && machineSet">
+          <TActionsBoxItem icon="delete" danger @select="() => openMachineSetDestroy()">
             Destroy Machine Set
           </TActionsBoxItem>
         </TActionsBox>
