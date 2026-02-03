@@ -23,12 +23,14 @@ import { useResourceWatch } from '@/methods/useResourceWatch'
 
 import MachineSet from './MachineSet.vue'
 
-const { clusterID } = defineProps<{
+const { clusterID, pauseWatches } = defineProps<{
   clusterID: string
+  pauseWatches?: boolean
   isSubgrid?: boolean
 }>()
 
 const { data: machineSets } = useResourceWatch<MachineSetSpec>(() => ({
+  skip: pauseWatches,
   resource: {
     type: MachineSetType,
     namespace: DefaultNamespace,
@@ -38,6 +40,7 @@ const { data: machineSets } = useResourceWatch<MachineSetSpec>(() => ({
 }))
 
 const { data: clusterDiagnostics } = useResourceWatch<ClusterDiagnosticsSpec>(() => ({
+  skip: pauseWatches,
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
