@@ -181,7 +181,13 @@ const { height } = useElementSize(slider)
       class="col-span-full grid grid-cols-subgrid transition-all duration-300"
       :style="{ height: expanded ? `${height}px` : '0' }"
     >
-      <ClusterMachines ref="slider" class="h-min" :cluster-i-d="item.metadata.id!" is-subgrid />
+      <ClusterMachines
+        :pause-watches="!expanded"
+        ref="slider"
+        class="h-min"
+        :cluster-i-d="item.metadata.id!"
+        is-subgrid
+      />
     </section>
   </li>
 </template>
