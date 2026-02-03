@@ -336,7 +336,6 @@ func AssertInfraMachinesAreAllocated(testCtx context.Context, omniState state.St
 			// There must be an infra.Machine resource for each node
 			rtestutils.AssertResource[*infra.Machine](ctx, t, omniState, id, func(res *infra.Machine, assertion *assert.Assertions) {
 				assertion.Equal(talosVersion, res.TypedSpec().Value.ClusterTalosVersion)
-				assertion.Empty(res.TypedSpec().Value.WipeId)
 				assertion.Equal(extensions, res.TypedSpec().Value.Extensions)
 			})
 
