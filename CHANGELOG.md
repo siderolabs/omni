@@ -1,3 +1,74 @@
+## [Omni 1.4.8](https://github.com/siderolabs/omni/releases/tag/v1.4.8) (2026-02-04)
+
+Welcome to the v1.4.8 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+This release consolidates **Discovery service state**, **Audit logs**, **Machine logs**, and **Secondary resources** into a single SQLite storage backend.
+
+**1. New Required Flag**
+You **must** set the new `--sqlite-storage-path` (or `.storage.sqlite.path`) flag. There is no default value, and Omni will not start without it.
+It **must** be a path to the SQLite file (will be created by Omni), **not** a directory, e.g., `--sqlite-storage-path=/path/to/omni-sqlite.db`.
+
+**2. Audit Logging Changes**
+A new flag `--audit-log-enabled` (or `.logs.audit.enabled`) has been introduced to explicitly enable or disable audit logging.
+* **Default:** `true`.
+* **Change:** Previously, audit logging was implicitly enabled only when the path was set. Now, it is enabled by default.
+
+**3. Automatic Migration**
+Omni will automatically migrate your existing data (BoltDB, file-based logs) to the new SQLite database on the first startup. To ensure this happens correctly, simply add the new SQLite flag and **leave your existing storage flags in place** for the first run.
+
+Once the migration is complete, you are free to remove the deprecated flags listed below. If they remain, they will be ignored and eventually dropped in future versions.
+
+**4. Deprecated Flags (Kept for Migration)**
+The following flags (and config keys) are deprecated and kept solely to facilitate the automatic migration:
+* `--audit-log-dir` (`.logs.audit.path`)
+* `--secondary-storage-path` (`.storage.secondary.path`)
+* `--machine-log-storage-path` (`.logs.machine.storage.path`)
+* `--machine-log-storage-enabled` (`.logs.machine.storage.enabled`)
+* `--embedded-discovery-service-snapshot-path` (`.services.embeddedDiscoveryService.snapshotsPath`)
+* `--machine-log-buffer-capacity` (`.logs.machine.bufferInitialCapacity`)
+* `--machine-log-buffer-max-capacity` (`.logs.machine.bufferMaxCapacity`)
+* `--machine-log-buffer-safe-gap` (`.logs.machine.bufferSafetyGap`)
+* `--machine-log-num-compressed-chunks` (`.logs.machine.storage.numCompressedChunks`)
+
+**5. Removed Flags**
+The following flags have been removed and are no longer supported:
+* `--machine-log-storage-flush-period` (`.logs.machine.storage.flushPeriod`)
+* `--machine-log-storage-flush-jitter` (`.logs.machine.storage.flushJitter`)
+
+
+### Contributors
+
+* Edward Sammut Alessi
+* Artem Chernyshev
+* Oguz Kilcan
+* Utku Ozdemir
+
+### Changes
+<details><summary>6 commits</summary>
+<p>
+
+* [`df8b9462`](https://github.com/siderolabs/omni/commit/df8b94628073d1afb70eb0aa2e545392fc95c8a4) fix: open OIDC plugin link in a new tab
+* [`26e6d991`](https://github.com/siderolabs/omni/commit/26e6d99110c2804d9d1abbfecd8fce3109970381) fix(frontend): keep correct auth flow for cli/workload
+* [`3959a0f1`](https://github.com/siderolabs/omni/commit/3959a0f12ee48392662ee01208b57777d548b945) fix: apply AccessPolicy rules on gRPC proxy for Talos backend
+* [`1a11c1d0`](https://github.com/siderolabs/omni/commit/1a11c1d0d0b1ef28d8a97353b7a4c5b2320717ad) feat: clean up orphaned machine logs from sqlite
+* [`dd635009`](https://github.com/siderolabs/omni/commit/dd63500995db6df236149962877ff8af108cea3f) fix: pause cluster machine watches until expanded
+* [`450a7fe5`](https://github.com/siderolabs/omni/commit/450a7fe52532f60ebc3e10b1d724070c626681c8) fix: stop generating node unique token in `NodeUniqueTokenStatus`
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.4.7](https://github.com/siderolabs/omni/releases/tag/v1.4.7)
+
 ## [Omni 1.4.7](https://github.com/siderolabs/omni/releases/tag/v1.4.7) (2026-01-06)
 
 Welcome to the v1.4.7 release of Omni!
