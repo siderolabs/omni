@@ -109,3 +109,7 @@ func InfraProviderValidationOptions(st state.State) []validated.StateOption {
 func RotateSecretsValidationOptions(st state.State) []validated.StateOption {
 	return rotateSecretsValidationOptions(st)
 }
+
+func InstallationMediaConfigValidationOptions() []validated.StateOption {
+	return installationMediaConfigValidationOptions()
+}

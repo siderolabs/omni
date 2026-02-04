@@ -351,7 +351,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		defaultJoinTokenValidationOptions(defaultState),
 		importedClusterSecretValidationOptions(defaultState, config.Config.Features.GetEnableClusterImport()),
 		infraProviderValidationOptions(defaultState),
-		installationMediaConfigOptions(),
+		installationMediaConfigValidationOptions(),
 		rotateSecretsValidationOptions(defaultState),
 	)
 

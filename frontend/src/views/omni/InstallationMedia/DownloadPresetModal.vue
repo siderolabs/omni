@@ -123,7 +123,7 @@ async function close() {
       </TableRoot>
 
       <div class="flex gap-1">
-        <p class="flex items-center gap-1.5 text-xs" v-if="imageIsGenerating">
+        <p v-if="imageIsGenerating" class="flex items-center gap-1.5 text-xs">
           <TSpinner class="size-3" />
           <span>Generating image...</span>
         </p>

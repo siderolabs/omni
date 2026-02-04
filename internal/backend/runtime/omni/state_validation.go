@@ -1554,8 +1554,12 @@ func infraProviderValidationOptions(st state.State) []validated.StateOption {
 	}
 }
 
-func installationMediaConfigOptions() []validated.StateOption {
+func installationMediaConfigValidationOptions() []validated.StateOption {
 	validateInstallationMedia := func(res *omni.InstallationMediaConfig) error {
+		if res.Metadata().Phase() == resource.PhaseTearingDown {
+			return nil
+		}
+
 		if res.TypedSpec().Value.TalosVersion == "" {
 			return errors.New("invalid installation media config: talos version is required")
 		}

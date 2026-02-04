@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
@@ -32,6 +33,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -1973,6 +1975,81 @@ func TestRotateSecretsValidation(t *testing.T) {
 	require.NoError(t, st.Update(ctx, rotationStatus))
 
 	require.NoError(t, st.Destroy(ctx, rotateTalosCA.Metadata()))
+}
+
+func TestInstallationMediaConfigValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	t.Cleanup(cancel)
+
+	st := validated.NewState(state.WrapCore(namespaced.NewState(inmem.Build)), omni.InstallationMediaConfigValidationOptions()...)
+
+	installationMediaConfig := omnires.NewInstallationMediaConfig("test")
+
+	err := st.Create(ctx, installationMediaConfig)
+	require.Contains(t, err.Error(), "invalid installation media config: talos version is required")
+
+	installationMediaConfig.TypedSpec().Value.TalosVersion = constants.DefaultTalosVersion
+	err = st.Create(ctx, installationMediaConfig)
+	require.Contains(t, err.Error(), "invalid installation media config: architecture is required")
+
+	installationMediaConfig.TypedSpec().Value.Architecture = specs.PlatformConfigSpec_AMD64
+	err = st.Create(ctx, installationMediaConfig)
+	require.Contains(t, err.Error(), "invalid installation media config: join token is required")
+
+	installationMediaConfig.TypedSpec().Value.JoinToken = "test-token"
+	installationMediaConfig.TypedSpec().Value.Cloud = &specs.InstallationMediaConfigSpec_Cloud{}
+	installationMediaConfig.TypedSpec().Value.Sbc = &specs.InstallationMediaConfigSpec_SBC{}
+
+	err = st.Create(ctx, installationMediaConfig)
+	require.Contains(t, err.Error(), "invalid installation media config: both sbc and cloud fields are set")
+
+	installationMediaConfig.TypedSpec().Value.Sbc = nil
+	err = st.Create(ctx, installationMediaConfig)
+	require.NoError(t, err)
+
+	modifiedInstallationMediaConfig, ok := installationMediaConfig.DeepCopy().(*omnires.InstallationMediaConfig)
+	require.True(t, ok)
+
+	modifiedInstallationMediaConfig.TypedSpec().Value.TalosVersion = ""
+	err = st.Update(ctx, modifiedInstallationMediaConfig)
+	require.Contains(t, err.Error(), "invalid installation media config: talos version is required")
+
+	modifiedInstallationMediaConfig, ok = installationMediaConfig.DeepCopy().(*omnires.InstallationMediaConfig)
+	require.True(t, ok)
+
+	modifiedInstallationMediaConfig.TypedSpec().Value.Architecture = specs.PlatformConfigSpec_UNKNOWN_ARCH
+	err = st.Update(ctx, modifiedInstallationMediaConfig)
+	require.Contains(t, err.Error(), "invalid installation media config: architecture is required")
+
+	modifiedInstallationMediaConfig, ok = installationMediaConfig.DeepCopy().(*omnires.InstallationMediaConfig)
+	require.True(t, ok)
+
+	modifiedInstallationMediaConfig.TypedSpec().Value.JoinToken = ""
+	err = st.Update(ctx, modifiedInstallationMediaConfig)
+	require.Contains(t, err.Error(), "invalid installation media config: join token is required")
+
+	modifiedInstallationMediaConfig, ok = installationMediaConfig.DeepCopy().(*omnires.InstallationMediaConfig)
+	require.True(t, ok)
+
+	modifiedInstallationMediaConfig.TypedSpec().Value.Sbc = &specs.InstallationMediaConfigSpec_SBC{}
+	err = st.Update(ctx, modifiedInstallationMediaConfig)
+	require.Contains(t, err.Error(), "invalid installation media config: both sbc and cloud fields are set")
+
+	installationMediaConfig.TypedSpec().Value.Cloud.Platform = "AWS"
+	require.NoError(t, st.Update(ctx, installationMediaConfig))
+
+	installationMediaConfig.Metadata().SetPhase(resource.PhaseTearingDown)
+	installationMediaConfig.TypedSpec().Value.TalosVersion = ""
+	installationMediaConfig.TypedSpec().Value.Architecture = specs.PlatformConfigSpec_UNKNOWN_ARCH
+	installationMediaConfig.TypedSpec().Value.JoinToken = ""
+	installationMediaConfig.TypedSpec().Value.Cloud = &specs.InstallationMediaConfigSpec_Cloud{}
+	installationMediaConfig.TypedSpec().Value.Sbc = &specs.InstallationMediaConfigSpec_SBC{}
+	require.NoError(t, st.Update(ctx, installationMediaConfig))
+
+	err = st.Destroy(ctx, installationMediaConfig.Metadata())
+	require.NoError(t, err)
 }
 
 type mockEtcdBackupStoreFactory struct {
