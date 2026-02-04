@@ -65,7 +65,7 @@ export default defineConfig(({ command }) => {
       "connect-src 'self' https://factory.staging.talos.dev https://factory.talos.dev https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io",
       "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.userpilot.io",
       "style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com",
-      'frame-src https://*.auth0.com',
+      'frame-src https://www.youtube.com/embed/ https://*.auth0.com',
       "worker-src 'self' blob:", // "worker-src blob:" only required for vite dev server
     ].join(';')
 
