@@ -49,6 +49,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	authctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/auth"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/cluster"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/clustermachine"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/image"
@@ -140,6 +141,11 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		return nil, err
 	}
 
+	clusterWorkloadProxyController, err := cluster.NewClusterWorkloadProxyController()
+	if err != nil {
+		return nil, err
+	}
+
 	controllers := []controller.Controller{
 		&metricsctrl.UserMetricsController{},
 		omnictrl.NewCertRefreshTickController(constants.CertificateValidityTime / 10), // issue ticks at 10% of the validity, as we refresh certificates at 50% of the validity
@@ -151,7 +157,6 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		&omnictrl.ClusterMachineEncryptionController{},
 		&omnictrl.ClusterMetricsController{},
 		&omnictrl.ClusterStatusMetricsController{},
-		&omnictrl.ClusterWorkloadProxyController{},
 		&omnictrl.ConfigPatchCleanupController{},
 		&omnictrl.ConfigPatchMetricsController{},
 		omnictrl.NewEtcdBackupOverallStatusController(),
@@ -272,6 +277,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		infraprovider.NewCombinedStatusController(constants.InfraProviderHealthCheckInterval),
 		machine.NewStatusLinkController(linkCounterDeltaCh),
 		kubernetes.NewClusterManifestsStatusController(kubernetesRuntime),
+		clusterWorkloadProxyController,
 	}
 
 	if cfg.Auth.Saml.GetEnabled() {

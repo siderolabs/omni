@@ -20,6 +20,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/cluster"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/clustermachine"
 )
 
@@ -295,4 +296,40 @@ func dropRedactedClusterMachineConfigFinalizers(ctx context.Context, st state.St
 	logger.Info("dropping RedactedClusterMachineConfigController finalizers from ClusterMachineConfig resources")
 
 	return dropFinalizers[*omni.ClusterMachineConfig](ctx, st, "RedactedClusterMachineConfigController")
+}
+
+func dropWorkloadProxyConfigPatches(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
+	configPatches, err := safe.ReaderListAll[*omni.ConfigPatch](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	ctrl, err := cluster.NewClusterWorkloadProxyController()
+	if err != nil {
+		return err
+	}
+
+	controllerName := ctrl.ControllerName
+
+	for patch := range configPatches.All() {
+		if patch.Metadata().Owner() != controllerName {
+			continue
+		}
+
+		if _, err = safe.StateUpdateWithConflicts(ctx, st, patch.Metadata(), func(r *omni.ConfigPatch) error {
+			for _, f := range *r.Metadata().Finalizers() {
+				r.Metadata().Finalizers().Remove(f)
+			}
+
+			return nil
+		}, state.WithUpdateOwner(controllerName)); err != nil {
+			return err
+		}
+
+		if err = st.Destroy(ctx, patch.Metadata(), state.WithDestroyOwner(controllerName)); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

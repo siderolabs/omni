@@ -289,6 +289,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: dropRedactedClusterMachineConfigFinalizers,
 				name:     "dropRedactedClusterMachineConfigFinalizers",
 			},
+			{
+				callback: dropWorkloadProxyConfigPatches,
+				name:     "dropWorkloadProxyConfigPatches",
+			},
 		},
 	}
 }

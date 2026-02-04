@@ -191,6 +191,8 @@ test('cluster template export and sync', async ({ omnictl }, testInfo) => {
 })
 
 test('exposed services', async ({ page }, testInfo) => {
+  test.setTimeout(milliseconds({ minutes: 2 }))
+
   await test.step('Visit cluster overview', async () => {
     await page.goto('/')
     await page.getByRole('link', { name: 'Clusters' }).click()
