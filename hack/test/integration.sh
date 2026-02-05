@@ -19,7 +19,8 @@ set -eoux pipefail
 echo "127.0.0.1 my-instance.localhost" | tee -a /etc/hosts
 
 # Settings.
-LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+# Hardcoding as latest is currently 1.5.0 which cannot be upgraded from
+LATEST_STABLE_OMNI=v1.4.8
 
 TALOS_VERSION=1.11.5
 QEMU_TALOS_VERSION=${TALOS_VERSION}
