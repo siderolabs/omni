@@ -25,6 +25,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
+import { getDocsLink } from '@/methods'
 import { canManageBackupStore } from '@/methods/auth'
 import { showError, showSuccess } from '@/notification'
 
@@ -145,7 +146,35 @@ const updateConfig = async () => {
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <div class="flex flex-col gap-5">
+    <!-- prettier-ignore -->
+    <p class="text-sm">
+      Automatically back up your Kubernetes etcd databases to the configured endpoint and bucket. To
+      restore a cluster backup please follow the
+      <a
+        class="link-primary"
+        :href="
+          getDocsLink(
+            'omni',
+            '/cluster-management/restore-etcd-of-a-cluster-managed-by-cluster-templates#finding-the-snapshot-to-restore',
+          )
+        "
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        etcd restore documentation
+      </a>.
+      To back up a self-hosted Omni database please see
+      <a
+        class="link-primary"
+        :href="getDocsLink('omni', '/self-hosted/back-up-omni-db')"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        how to back up your Omni database
+      </a>.
+    </p>
+
     <TAlert v-if="error" title="Failed to Fetch Current Storage State" type="error">
       {{ error }}
     </TAlert>
