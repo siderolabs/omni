@@ -7,17 +7,20 @@ package sqlitelog
 
 import (
 	"context"
-	"database/sql"
 	_ "embed"
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"math/rand/v2"
 	"slices"
 	"sync"
 	"time"
 
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"go.uber.org/zap"
+	zombiesqlite "zombiezen.com/go/sqlite"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -39,7 +42,7 @@ const (
 )
 
 // NewStore creates a new Store.
-func NewStore(config config.LogsMachineStorage, db *sql.DB, id string, logger *zap.Logger) (*Store, error) {
+func NewStore(config config.LogsMachineStorage, db *sqlitex.Pool, id string, logger *zap.Logger) (*Store, error) {
 	sqliteTimeout := config.GetSqliteTimeout()
 	if sqliteTimeout <= 0 {
 		sqliteTimeout = 30 * time.Second
@@ -59,7 +62,7 @@ func NewStore(config config.LogsMachineStorage, db *sql.DB, id string, logger *z
 // Store implements the logstore.LogStore interface using SQLite as the backend.
 type Store struct {
 	config        config.LogsMachineStorage
-	db            *sql.DB
+	db            *sqlitex.Pool
 	logger        *zap.Logger
 	id            string
 	subscribers   []chan struct{}
@@ -79,13 +82,37 @@ func (s *Store) WriteLine(ctx context.Context, message []byte) error {
 		return errors.New("store is closed")
 	}
 
-	query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s) VALUES (?, ?, ?)`, tableName, machineIDColumn, messageColumn, createdAtColumn)
-
 	ctx, cancel := context.WithTimeout(ctx, s.sqliteTimeout)
 	defer cancel()
 
-	if _, err := s.db.ExecContext(ctx, query, s.id, message, time.Now().Unix()); err != nil {
-		return fmt.Errorf("failed to write log message: %w", err)
+	err := func() error {
+		conn, err := s.db.Take(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to take connection from pool: %w", err)
+		}
+
+		defer s.db.Put(conn)
+
+		query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s) VALUES ($machine_id, $message, $created_at)`, tableName, machineIDColumn, messageColumn, createdAtColumn)
+
+		q, err := sqlitexx.NewQuery(conn, query)
+		if err != nil {
+			return fmt.Errorf("failed to prepare sqlite statement: %w", err)
+		}
+
+		err = q.
+			BindString("$machine_id", s.id).
+			BindBytes("$message", message).
+			BindInt64("$created_at", time.Now().Unix()).
+			Exec()
+		if err != nil {
+			return fmt.Errorf("failed to write log message: %w", err)
+		}
+
+		return nil
+	}()
+	if err != nil {
+		return err
 	}
 
 	if rand.Float64() < s.config.GetCleanupProbability() {
@@ -110,30 +137,54 @@ func (s *Store) WriteLine(ctx context.Context, message []byte) error {
 }
 
 func (s *Store) doCleanup(ctx context.Context) error {
+	conn, err := s.db.Take(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer s.db.Put(conn)
+
 	// find the cutoff ID
-	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) FROM (SELECT %s FROM %s WHERE %s = ? ORDER BY %s DESC LIMIT 1 OFFSET ?)",
+	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) FROM (SELECT %s FROM %s WHERE %s = $machine_id ORDER BY %s DESC LIMIT 1 OFFSET $max_lines)",
 		idColumn, idColumn, tableName, machineIDColumn, idColumn)
 
 	var cutoffID int64
 
-	if err := s.db.QueryRowContext(ctx, query, s.id, s.config.MaxLinesPerMachine).Scan(&cutoffID); err != nil {
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	err = q.
+		BindString("$machine_id", s.id).
+		BindInt("$max_lines", s.config.GetMaxLinesPerMachine()).
+		QueryRow(func(stmt *zombiesqlite.Stmt) error {
+			cutoffID = stmt.ColumnInt64(0)
+
+			return nil
+		})
+	if err != nil {
 		return fmt.Errorf("failed to determine cutoff ID for cleanup: %w", err)
 	}
 
 	// delete logs older than cutoff ID
-	delQuery := fmt.Sprintf("DELETE FROM %s WHERE %s = ? AND %s <= ?", tableName, machineIDColumn, idColumn)
+	delQuery := fmt.Sprintf("DELETE FROM %s WHERE %s = $machine_id AND %s <= $cutoff_id", tableName, machineIDColumn, idColumn)
 
-	result, err := s.db.ExecContext(ctx, delQuery, s.id, cutoffID)
+	q, err = sqlitexx.NewQuery(conn, delQuery)
+	if err != nil {
+		return fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	err = q.
+		BindString("$machine_id", s.id).
+		BindInt64("$cutoff_id", cutoffID).
+		Exec()
 	if err != nil {
 		return fmt.Errorf("failed to cleanup old logs: %w", err)
 	}
 
-	numRowsDeleted, err := result.RowsAffected()
-	if err != nil {
-		s.logger.Debug("failed to get number of rows affected during logs cleanup", zap.Error(err))
-	} else {
-		s.logger.Debug("deleted old logs", zap.Int64("num_rows_deleted", numRowsDeleted))
-	}
+	numRowsDeleted := conn.Changes()
+	s.logger.Debug("deleted old logs", zap.Int("num_rows_deleted", numRowsDeleted))
 
 	return nil
 }
@@ -215,7 +266,7 @@ func (s *Store) Reader(ctx context.Context, nLines int, follow bool) (logstore.L
 		}
 	}
 
-	rows, err := s.readerRows(ctx, nLines) //nolint:rowserrcheck // false positive, we do not iterate the logs here
+	conn, next, stop, err := s.readerRows(ctx, nLines) //nolint:rowserrcheck // false positive, we do not iterate the logs here
 	if err != nil {
 		s.unsubscribe(followCh)
 		close(closeCh)
@@ -225,7 +276,9 @@ func (s *Store) Reader(ctx context.Context, nLines int, follow bool) (logstore.L
 
 	return &lineReader{
 		store:     s,
-		rows:      rows,
+		conn:      conn,
+		next:      next,
+		stop:      stop,
 		followCh:  followCh,
 		closeCh:   closeCh,
 		lastLogID: lastLogID,
@@ -234,7 +287,9 @@ func (s *Store) Reader(ctx context.Context, nLines int, follow bool) (logstore.L
 
 type lineReader struct {
 	store     *Store
-	rows      *sql.Rows
+	conn      *zombiesqlite.Conn
+	next      func() (*zombiesqlite.Stmt, error, bool)
+	stop      func()
 	followCh  chan struct{}
 	closeCh   chan struct{}
 	lastLogID int64
@@ -245,16 +300,20 @@ type lineReader struct {
 func (r *lineReader) ReadLine(ctx context.Context) ([]byte, error) {
 	for {
 		// If there is a row available in the result set, return that
-		if r.rows.Next() {
-			var message []byte
-
-			if err := r.rows.Scan(&r.lastLogID, &message); err != nil {
-				if errors.Is(err, context.Canceled) {
-					return nil, io.EOF
-				}
-
-				return nil, fmt.Errorf("failed to scan log message: %w", err)
+		result, err, ok := r.next()
+		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return nil, io.EOF
 			}
+
+			return nil, fmt.Errorf("failed to read next log message: %w", err)
+		}
+
+		if ok {
+			r.lastLogID = result.GetInt64(idColumn)
+
+			message := make([]byte, result.GetLen(messageColumn))
+			result.GetBytes(messageColumn, message)
 
 			return message, nil
 		}
@@ -270,22 +329,8 @@ func (r *lineReader) ReadLine(ctx context.Context) ([]byte, error) {
 // and the next batch of logs. It closes the current rows, waits for a notification,
 // and queries the database for new logs.
 func (r *lineReader) fetchNextBatch(ctx context.Context) error {
-	// Check for errors in the exhausted result set
-	if err := r.rows.Err(); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return io.EOF
-		}
-
-		return fmt.Errorf("failed to read log message: %w", err)
-	}
-
-	if err := r.rows.Close(); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return io.EOF
-		}
-
-		return fmt.Errorf("failed to close rows: %w", err)
-	}
+	r.stop()
+	r.stop = nil
 
 	if r.followCh == nil {
 		return io.EOF
@@ -305,7 +350,9 @@ func (r *lineReader) fetchNextBatch(ctx context.Context) error {
 		}
 	}
 
-	newRows, err := r.store.readerRowsAfter(ctx, r.lastLogID) //nolint:rowserrcheck // false positive, we do not iterate the logs here
+	var err error
+
+	r.next, r.stop, err = r.store.readerRowsAfter(r.conn, r.lastLogID) //nolint:rowserrcheck // false positive, we do not iterate the logs here
 	if err != nil {
 		// If the context was canceled during the query, return EOF
 		// to allow graceful shutdown of the reader loop.
@@ -316,84 +363,109 @@ func (r *lineReader) fetchNextBatch(ctx context.Context) error {
 		return fmt.Errorf("failed to query new logs: %w", err)
 	}
 
-	r.rows = newRows
-
 	return nil
 }
 
 // Close implements the logstore.LineReader interface.
 func (r *lineReader) Close() error {
-	var closeErr, rowsErr error
-
-	if r.rows != nil {
-		if err := r.rows.Close(); err != nil {
-			closeErr = fmt.Errorf("failed to close rows: %w", err)
-		}
-
-		if err := r.rows.Err(); err != nil {
-			rowsErr = fmt.Errorf("rows error: %w", err)
-		}
+	if r.stop != nil {
+		r.stop()
 	}
 
 	r.closeOnce.Do(func() {
+		r.store.db.Put(r.conn)
 		r.store.unsubscribe(r.followCh)
 		close(r.closeCh)
 	})
 
-	return errors.Join(closeErr, rowsErr)
+	return nil
 }
 
-func (s *Store) readerRows(ctx context.Context, nLines int) (*sql.Rows, error) {
+func (s *Store) readerRows(ctx context.Context, nLines int) (*zombiesqlite.Conn, func() (*zombiesqlite.Stmt, error, bool), func(), error) {
+	conn, err := s.db.Take(ctx)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
 	if nLines == 0 { // No lines are requested, return an empty result set
-		query := fmt.Sprintf("SELECT %s, %s FROM %s WHERE 1=0", idColumn, messageColumn, tableName)
-
-		return s.db.QueryContext(ctx, query)
+		return conn,
+			func() (*zombiesqlite.Stmt, error, bool) {
+				return nil, nil, false
+			},
+			func() {},
+			nil
 	}
 
-	startID, err := s.readerStartID(ctx, nLines)
+	startID, err := s.readerStartID(conn, nLines)
 	if err != nil {
-		return nil, fmt.Errorf("failed to determine start ID: %w", err)
+		s.db.Put(conn)
+
+		return nil, nil, nil, fmt.Errorf("failed to determine start ID: %w", err)
 	}
 
-	query := fmt.Sprintf("SELECT %s, %s FROM %s WHERE %s = ? AND %s >= ? ORDER BY %s ASC", idColumn, messageColumn, tableName, machineIDColumn, idColumn, idColumn)
+	query := fmt.Sprintf("SELECT %s, %s FROM %s WHERE %s = $machine_id AND %s >= $start_id ORDER BY %s ASC", idColumn, messageColumn, tableName, machineIDColumn, idColumn, idColumn)
 
-	rows, err := s.db.QueryContext(ctx, query, s.id, startID)
+	q, err := sqlitexx.NewQuery(conn, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize rows: %w", err)
+		s.db.Put(conn)
+
+		return nil, nil, nil, fmt.Errorf("failed to prepare sqlite statement: %w", err)
 	}
 
-	return rows, nil
+	it := q.
+		BindString("$machine_id", s.id).
+		BindInt64("$start_id", startID).
+		QueryIter()
+
+	next, stop := iter.Pull2(it)
+
+	return conn, next, stop, err
 }
 
-func (s *Store) readerRowsAfter(ctx context.Context, lastLogID int64) (*sql.Rows, error) {
-	query := fmt.Sprintf("SELECT %s, %s FROM %s WHERE %s = ? AND %s > ? ORDER BY %s ASC",
+func (s *Store) readerRowsAfter(conn *zombiesqlite.Conn, lastLogID int64) (func() (*zombiesqlite.Stmt, error, bool), func(), error) {
+	query := fmt.Sprintf("SELECT %s, %s FROM %s WHERE %s = $machine_id AND %s > $last_log_id ORDER BY %s ASC",
 		idColumn, messageColumn, tableName, machineIDColumn, idColumn, idColumn)
 
-	rows, err := s.db.QueryContext(ctx, query, s.id, lastLogID)
+	q, err := sqlitexx.NewQuery(conn, query)
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("failed to prepare sqlite statement: %w", err)
 	}
 
-	return rows, nil
+	it := q.
+		BindString("$machine_id", s.id).
+		BindInt64("$last_log_id", lastLogID).
+		QueryIter()
+
+	next, stop := iter.Pull2(it)
+
+	return next, stop, nil
 }
 
-func (s *Store) readerStartID(ctx context.Context, nLines int) (int64, error) {
+func (s *Store) readerStartID(conn *zombiesqlite.Conn, nLines int) (int64, error) {
 	if nLines < 0 {
 		return 0, nil
 	}
 
 	// Do COALESCE to return 0 if there are no logs for the machine
-	query := fmt.Sprintf("SELECT COALESCE(MIN(id), 0) FROM (SELECT %s AS id FROM %s WHERE %s = ? ORDER BY %s DESC LIMIT ?)",
+	query := fmt.Sprintf("SELECT COALESCE(MIN(id), 0) FROM (SELECT %s AS id FROM %s WHERE %s = $machine_id ORDER BY %s DESC LIMIT $limit)",
 		idColumn, tableName, machineIDColumn, idColumn)
-
-	ctx, cancel := context.WithTimeout(ctx, s.sqliteTimeout)
-	defer cancel()
 
 	var startID int64
 
-	err := s.db.QueryRowContext(ctx, query, s.id, nLines).Scan(&startID)
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
 
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	err = q.
+		BindString("$machine_id", s.id).
+		BindInt("$limit", nLines).
+		QueryRow(func(stmt *zombiesqlite.Stmt) error {
+			startID = stmt.ColumnInt64(0)
+
+			return nil
+		})
+	if err != nil {
 		return 0, fmt.Errorf("failed to query start log id: %w", err)
 	}
 
@@ -401,13 +473,33 @@ func (s *Store) readerStartID(ctx context.Context, nLines int) (int64, error) {
 }
 
 func (s *Store) currentMaxID(ctx context.Context) (int64, error) {
-	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) FROM %s WHERE %s = ?", idColumn, tableName, machineIDColumn)
+	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) FROM %s WHERE %s = $machine_id", idColumn, tableName, machineIDColumn)
 
 	ctx, cancel := context.WithTimeout(ctx, s.sqliteTimeout)
 	defer cancel()
 
+	conn, err := s.db.Take(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer s.db.Put(conn)
+
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
 	var id int64
-	if err := s.db.QueryRowContext(ctx, query, s.id).Scan(&id); err != nil {
+
+	err = q.
+		BindString("$machine_id", s.id).
+		QueryRow(func(stmt *zombiesqlite.Stmt) error {
+			id = stmt.ColumnInt64(0)
+
+			return nil
+		})
+	if err != nil {
 		return 0, err
 	}
 

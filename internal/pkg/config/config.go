@@ -162,6 +162,7 @@ func Default() *Params {
 	p.Storage.Secondary.SetPath("_out/secondary-storage/bolt.db")
 
 	p.Storage.Sqlite.SetExperimentalBaseParams("_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)")
+	p.Storage.Sqlite.SetPoolSize(64)
 
 	p.Storage.Default.SetKind(StorageDefaultKindEtcd)
 	p.Storage.Default.Boltdb.SetPath("_out/omni.db")

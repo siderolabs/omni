@@ -7,7 +7,6 @@ package omni
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"time"
@@ -18,12 +17,13 @@ import (
 	"github.com/cosi-project/state-sqlite/pkg/state/impl/sqlite"
 	"go.etcd.io/bbolt"
 	"go.uber.org/zap"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
-func newSQLitePersistentState(ctx context.Context, db *sql.DB, logger *zap.Logger) (*PersistentState, error) {
+func newSQLitePersistentState(ctx context.Context, db *sqlitex.Pool, logger *zap.Logger) (*PersistentState, error) {
 	st, err := sqlite.NewState(ctx, db, store.ProtobufMarshaler{},
 		sqlite.WithLogger(logger),
 		sqlite.WithTablePrefix("metrics_"),

@@ -1106,6 +1106,17 @@ func (s *SQLite) SetPath(v string) {
 	s.Path = &v
 }
 
+func (s *SQLite) GetPoolSize() int {
+	if s == nil || s.PoolSize == nil {
+		return *new(int)
+	}
+	return *s.PoolSize
+}
+
+func (s *SQLite) SetPoolSize(v int) {
+	s.PoolSize = &v
+}
+
 func (s *Service) GetAdvertisedURL() string {
 	if s == nil || s.AdvertisedURL == nil {
 		return *new(string)

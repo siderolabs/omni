@@ -17,7 +17,6 @@ tool github.com/atombender/go-jsonschema
 require (
 	filippo.io/age v1.3.1
 	github.com/ProtonMail/gopenpgp/v2 v2.9.0
-	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/akutz/memconn v0.1.1-0.20211110233653-dae351d188b3
 	github.com/auth0/go-jwt-middleware/v2 v2.3.1
 	github.com/aws/aws-sdk-go-v2 v1.41.1
@@ -33,7 +32,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/cosi-project/runtime v1.13.1-0.20251208192740-2b3357ea6788
 	github.com/cosi-project/state-etcd v0.5.3
-	github.com/cosi-project/state-sqlite v0.1.1
+	github.com/cosi-project/state-sqlite v0.2.0
 	github.com/crewjam/saml v0.5.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emicklei/dot v1.10.0
@@ -116,8 +115,8 @@ require (
 	k8s.io/apimachinery v0.35.0
 	k8s.io/client-go v0.35.0
 	k8s.io/klog/v2 v2.130.1
-	modernc.org/sqlite v1.44.3
 	sigs.k8s.io/controller-runtime v0.23.1
+	zombiezen.com/go/sqlite v1.4.2
 )
 
 require (
@@ -128,6 +127,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
+	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/atombender/go-jsonschema v0.21.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.4 // indirect
@@ -306,6 +306,7 @@ require (
 	modernc.org/libc v1.67.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
+	modernc.org/sqlite v1.44.3 // indirect
 	sigs.k8s.io/cli-utils v0.37.3-0.20250918194211-77c836a69463 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kustomize/api v0.21.0 // indirect

@@ -8,11 +8,14 @@ package discovery
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io"
 	"time"
+
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
+	"zombiezen.com/go/sqlite"
+	"zombiezen.com/go/sqlite/sqlitex"
 )
 
 const (
@@ -24,7 +27,7 @@ const (
 )
 
 type SQLiteStore struct {
-	db      *sql.DB
+	db      *sqlitex.Pool
 	timeout time.Duration
 }
 
@@ -44,7 +47,7 @@ func (s *SQLiteStore) Writer(ctx context.Context) (io.WriteCloser, error) {
 	}, nil
 }
 
-func NewSQLiteStore(ctx context.Context, db *sql.DB, timeout time.Duration) (*SQLiteStore, error) {
+func NewSQLiteStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration) (*SQLiteStore, error) {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
@@ -57,7 +60,14 @@ func NewSQLiteStore(ctx context.Context, db *sql.DB, timeout time.Duration) (*SQ
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	if _, err := db.ExecContext(ctx, schema); err != nil {
+	conn, err := db.Take(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer db.Put(conn)
+
+	if err = sqlitex.ExecScript(conn, schema); err != nil {
 		return nil, fmt.Errorf("failed to create discovery service state table: %w", err)
 	}
 
@@ -65,7 +75,7 @@ func NewSQLiteStore(ctx context.Context, db *sql.DB, timeout time.Duration) (*SQ
 }
 
 type writer struct {
-	db *sql.DB
+	db *sqlitex.Pool
 
 	ctx context.Context //nolint:containedctx
 
@@ -88,12 +98,28 @@ func (w *writer) Close() error {
 		return nil
 	}
 
-	query := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES (?, ?) ON CONFLICT(%s) DO UPDATE SET %s=excluded.%s", tableName, idColumn, dataColumn, idColumn, dataColumn, dataColumn)
+	query := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES ($id, $data) ON CONFLICT(%s) DO UPDATE SET %s=excluded.%s", tableName, idColumn, dataColumn, idColumn, dataColumn, dataColumn)
 
 	ctx, cancel := context.WithTimeout(w.ctx, w.timeout)
 	defer cancel()
 
-	if _, err := w.db.ExecContext(ctx, query, id, w.buf.Bytes()); err != nil {
+	conn, err := w.db.Take(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer w.db.Put(conn)
+
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	err = q.
+		BindString("$id", id).
+		BindBytes("$data", w.buf.Bytes()).
+		Exec()
+	if err != nil {
 		return fmt.Errorf("failed to write snapshot to sqlite: %w", err)
 	}
 
@@ -103,7 +129,7 @@ func (w *writer) Close() error {
 }
 
 type reader struct {
-	db  *sql.DB
+	db  *sqlitex.Pool
 	ctx context.Context //nolint:containedctx
 
 	reader *bytes.Reader
@@ -118,23 +144,41 @@ func (r *reader) Read(p []byte) (n int, err error) {
 	}
 
 	if r.reader == nil {
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = ?", dataColumn, tableName, idColumn)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = $id", dataColumn, tableName, idColumn)
 
 		ctx, cancel := context.WithTimeout(r.ctx, r.timeout)
 		defer cancel()
 
-		row := r.db.QueryRowContext(ctx, query, id)
+		conn, err := r.db.Take(ctx)
+		if err != nil {
+			return 0, fmt.Errorf("failed to take connection from pool: %w", err)
+		}
+
+		defer r.db.Put(conn)
+
+		q, err := sqlitexx.NewQuery(conn, query)
+		if err != nil {
+			return 0, fmt.Errorf("failed to prepare sqlite statement: %w", err)
+		}
 
 		var data []byte
 
-		if err = row.Scan(&data); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
+		err = q.
+			BindString("$id", id).
+			QueryRow(func(stmt *sqlite.Stmt) error {
+				data = make([]byte, stmt.GetLen(dataColumn))
+				stmt.GetBytes(dataColumn, data)
+
+				return nil
+			})
+		if err != nil {
+			if errors.Is(err, sqlitexx.ErrNoRows) {
 				r.reader = bytes.NewReader(nil)
 
 				return 0, io.EOF
 			}
 
-			return 0, fmt.Errorf("failed to read snapshot from sqlite: %w", err)
+			return 0, fmt.Errorf("failed to execute query: %w", err)
 		}
 
 		r.reader = bytes.NewReader(data)

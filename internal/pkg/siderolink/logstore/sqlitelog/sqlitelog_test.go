@@ -331,6 +331,10 @@ func TestFollowNoHistory(t *testing.T) {
 	rdr, err := store.Reader(ctx, 0, true)
 	require.NoError(t, err)
 
+	t.Cleanup(func() {
+		require.NoError(t, rdr.Close())
+	})
+
 	// 3. Write new data.
 	expected := "new 1"
 	require.NoError(t, store.WriteLine(ctx, []byte(expected)))
@@ -410,6 +414,10 @@ func TestFollowRapidWrites(t *testing.T) {
 	// 1. Start reader (following)
 	rdr, err := store.Reader(ctx, 0, true)
 	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, rdr.Close())
+	})
 
 	count := 5000
 
@@ -620,6 +628,10 @@ func testRead(ctx context.Context, t *testing.T, sqliteStore, circularStore logs
 func readAllLines(ctx context.Context, t *testing.T, rdr logstore.LineReader) []string {
 	t.Helper()
 
+	t.Cleanup(func() {
+		require.NoError(t, rdr.Close())
+	})
+
 	var lines []string
 
 	for {
@@ -638,6 +650,10 @@ func readAllLines(ctx context.Context, t *testing.T, rdr logstore.LineReader) []
 
 func readLines(ctx context.Context, t *testing.T, rdr logstore.LineReader, ch chan<- string) {
 	t.Helper()
+
+	t.Cleanup(func() {
+		require.NoError(t, rdr.Close())
+	})
 
 	for {
 		line, err := rdr.ReadLine(ctx)

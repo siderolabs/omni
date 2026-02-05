@@ -7,7 +7,6 @@ package audit_test
 
 import (
 	"context"
-	"database/sql"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -24,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -174,7 +174,7 @@ func makeAuditData(agent, _, email string) auditlog.Data {
 	}
 }
 
-func testDB(t *testing.T) *sql.DB {
+func testDB(t *testing.T) *sqlitex.Pool {
 	t.Helper()
 
 	conf := config.Default().Storage.Sqlite

@@ -9,7 +9,6 @@ package backend
 import (
 	"compress/gzip"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -56,6 +55,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/access"
@@ -1132,7 +1132,7 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 }
 
 // runEmbeddedDiscoveryService runs an embedded discovery service over Siderolink.
-func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sql.DB, logger *zap.Logger) error {
+func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sqlitex.Pool, logger *zap.Logger) error {
 	logLevel, err := zapcore.ParseLevel(config.Config.Services.EmbeddedDiscoveryService.GetLogLevel())
 	if err != nil {
 		logLevel = zapcore.WarnLevel

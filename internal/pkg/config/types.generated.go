@@ -557,6 +557,11 @@ type SQLite struct {
 
 	// Path is the path where the SQLite database file is stored.
 	Path *string `json:"path" yaml:"path"`
+
+	// PoolSize controls the maximum number of connections in the SQLite connection
+	// pool. Raising this value may improve performance under high load, at the cost
+	// of increased resource usage.
+	PoolSize *int `json:"poolSize,omitempty" yaml:"poolSize,omitempty"`
 }
 
 type Service struct {

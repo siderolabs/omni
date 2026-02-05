@@ -7,15 +7,17 @@ package discovery_test
 
 import (
 	"context"
-	"database/sql"
 	"io"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
+	zombiesqlite "zombiezen.com/go/sqlite"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
@@ -119,7 +121,19 @@ func TestChunkedWrites(t *testing.T) {
 	// We query directly to verify the buffering behavior
 	var count int
 
-	err = db.QueryRowContext(ctx, "SELECT COUNT(*) FROM discovery_service_state").Scan(&count)
+	conn, err := db.Take(ctx)
+	require.NoError(t, err)
+
+	t.Cleanup(func() { db.Put(conn) })
+
+	q, err := sqlitexx.NewQuery(conn, "SELECT COUNT(*) FROM discovery_service_state")
+	require.NoError(t, err)
+
+	err = q.QueryRow(func(stmt *zombiesqlite.Stmt) error {
+		count = stmt.ColumnInt(0)
+
+		return nil
+	})
 	require.NoError(t, err)
 	assert.Equal(t, 0, count, "Database should be empty before Writer.Close() is called")
 
@@ -190,8 +204,11 @@ func TestReaderCaching(t *testing.T) {
 	assert.Equal(t, "cached", string(buf))
 
 	// 4. Manually corrupt DB
-	_, err = db.ExecContext(ctx, "DELETE FROM discovery_service_state")
+	conn, err := db.Take(ctx)
 	require.NoError(t, err)
+	t.Cleanup(func() { db.Put(conn) })
+
+	require.NoError(t, sqlitex.ExecScript(conn, "DELETE FROM discovery_service_state"))
 
 	// 5. Finish Reading
 	remaining, err := io.ReadAll(rdr)
@@ -213,7 +230,7 @@ func TestWriteAfterClose(t *testing.T) {
 	assert.Error(t, err, "writing to a closed writer should error")
 }
 
-func setupStore(ctx context.Context, t *testing.T) (*discovery.SQLiteStore, *sql.DB) {
+func setupStore(ctx context.Context, t *testing.T) (*discovery.SQLiteStore, *sqlitex.Pool) {
 	t.Helper()
 
 	conf := config.Default()

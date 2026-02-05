@@ -7,7 +7,6 @@ package sqlitelog
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -15,7 +14,10 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"go.uber.org/zap"
+	"zombiezen.com/go/sqlite"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -33,7 +35,7 @@ const (
 // StoreManager manages log stores for machines.
 type StoreManager struct {
 	state  state.State
-	db     *sql.DB
+	db     *sqlitex.Pool
 	logger *zap.Logger
 	config config.LogsMachineStorage
 }
@@ -89,67 +91,86 @@ func (m *StoreManager) DoCleanup(ctx context.Context) error {
 		machineIDs = append(machineIDs, truncateMachineID(machine.Metadata().ID()))
 	}
 
-	// Temporary table lives in a single transaction, so we need to do everything in one transaction
-	tx, err := m.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-
-	defer tx.Rollback() //nolint:errcheck
-
-	// Create a temporary table to store active machine IDs - it is used in the join query to delete orphaned logs
-	if _, err = tx.ExecContext(ctx, `CREATE TEMPORARY TABLE machine_ids (machine_id TEXT PRIMARY KEY) STRICT`); err != nil {
-		return fmt.Errorf("failed to create temporary table: %w", err)
-	}
-
-	// Populate the temporary table with active machine IDs
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO machine_ids (machine_id) VALUES (?)")
-	if err != nil {
-		return fmt.Errorf("failed to prepare statement: %w", err)
-	}
-
-	defer stmt.Close() //nolint:errcheck
-
-	for _, id := range machineIDs {
-		if _, err = stmt.ExecContext(ctx, id); err != nil {
-			return fmt.Errorf("failed to insert machine ID %q: %w", id, err)
-		}
-	}
-
-	if err = stmt.Close(); err != nil {
-		return fmt.Errorf("failed to close statement: %w", err)
-	}
-
-	// Delete if:
-	//   (A) Log is older than cutoff (Time-based cleanup)
-	//   OR
-	//   (B) Machine ID is NOT in the active list (Orphan cleanup)
-	deleteSQL := fmt.Sprintf(`DELETE FROM %s WHERE %s < ? OR %s NOT IN (SELECT machine_id FROM machine_ids)`, tableName, createdAtColumn, machineIDColumn)
+	var rowsDeleted int
 
 	cutoff := time.Now().Add(-m.config.GetCleanupOlderThan())
 
-	result, err := tx.ExecContext(ctx, deleteSQL, cutoff.Unix())
+	// Temporary table lives in a single transaction, so we need to do everything in one transaction
+	err = func() (err error) {
+		var conn *sqlite.Conn
+
+		conn, err = m.db.Take(ctx)
+		if err != nil {
+			return fmt.Errorf("error taking connection for cleanup: %w", err)
+		}
+
+		defer m.db.Put(conn)
+
+		doneFn, transErr := sqlitex.ImmediateTransaction(conn)
+		if transErr != nil {
+			return fmt.Errorf("starting transaction for cleanup: %w", transErr)
+		}
+		defer doneFn(&err)
+
+		// Create a temporary table to store active machine IDs - it is used in the join query to delete orphaned logs
+		err = sqlitex.ExecScript(conn, `CREATE TEMPORARY TABLE machine_ids (machine_id TEXT PRIMARY KEY) STRICT`)
+		if err != nil {
+			return fmt.Errorf("failed to create temporary table: %w", err)
+		}
+
+		// Populate the temporary table with active machine IDs
+		for _, id := range machineIDs {
+			var q *sqlitexx.Query
+
+			q, err = sqlitexx.NewQuery(conn, "INSERT INTO machine_ids (machine_id) VALUES ($machine_id)")
+			if err != nil {
+				return fmt.Errorf("failed to prepare statement: %w", err)
+			}
+
+			err = q.
+				BindString("$machine_id", id).
+				Exec()
+			if err != nil {
+				return fmt.Errorf("failed to insert machine ID %q: %w", id, err)
+			}
+		}
+
+		// Delete if:
+		//   (A) Log is older than cutoff (Time-based cleanup)
+		//   OR
+		//   (B) Machine ID is NOT in the active list (Orphan cleanup)
+		deleteSQL := fmt.Sprintf(`DELETE FROM %s WHERE %s < $cutoff OR %s NOT IN (SELECT machine_id FROM machine_ids)`, tableName, createdAtColumn, machineIDColumn)
+
+		var q *sqlitexx.Query
+
+		q, err = sqlitexx.NewQuery(conn, deleteSQL)
+		if err != nil {
+			return fmt.Errorf("failed to prepare cleanup statement: %w", err)
+		}
+
+		err = q.
+			BindInt64("$cutoff", cutoff.Unix()).
+			Exec()
+		if err != nil {
+			return fmt.Errorf("failed to execute unified cleanup: %w", err)
+		}
+
+		rowsDeleted = conn.Changes()
+
+		err = sqlitex.ExecScript(conn, `DROP TABLE IF EXISTS machine_ids`)
+		if err != nil {
+			return fmt.Errorf("failed to drop temporary table: %w", err)
+		}
+
+		return nil
+	}()
 	if err != nil {
-		return fmt.Errorf("failed to execute unified cleanup: %w", err)
-	}
-
-	rowsDeleted, err := result.RowsAffected()
-	if err != nil {
-		m.logger.Debug("failed to get rows affected", zap.Error(err))
-	}
-
-	// Drop the temp table
-	if _, err = tx.ExecContext(ctx, `DROP TABLE IF EXISTS machine_ids`); err != nil {
-		return fmt.Errorf("failed to drop temporary table: %w", err)
-	}
-
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return err
 	}
 
 	if rowsDeleted > 0 {
 		m.logger.Info("completed logs cleanup",
-			zap.Int64("rows_deleted", rowsDeleted),
+			zap.Int("rows_deleted", rowsDeleted),
 			zap.Int("active_machines", len(machineIDs)),
 			zap.Time("cutoff_time", cutoff),
 		)
@@ -167,11 +188,27 @@ func (m *StoreManager) Exists(ctx context.Context, id string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, m.config.GetSqliteTimeout())
 	defer cancel()
 
-	var dummy int
+	conn, err := m.db.Take(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to take connection from pool: %w", err)
+	}
 
-	query := fmt.Sprintf("SELECT 1 FROM %s WHERE %s=? LIMIT 1", tableName, machineIDColumn)
-	if err := m.db.QueryRowContext(ctx, query, id).Scan(&dummy); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+	defer m.db.Put(conn)
+
+	query := fmt.Sprintf("SELECT 1 FROM %s WHERE %s=$machine_id LIMIT 1", tableName, machineIDColumn)
+
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		return false, fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	err = q.
+		BindString("$machine_id", id).
+		QueryRow(func(stmt *sqlite.Stmt) error {
+			return nil
+		})
+	if err != nil {
+		if errors.Is(err, sqlitexx.ErrNoRows) {
 			return false, nil
 		}
 
@@ -188,19 +225,29 @@ func (m *StoreManager) Remove(ctx context.Context, id string) error {
 	ctx, cancel := context.WithTimeout(ctx, m.config.GetSqliteTimeout())
 	defer cancel()
 
-	query := fmt.Sprintf("DELETE FROM %s WHERE %s=?", tableName, machineIDColumn)
+	query := fmt.Sprintf("DELETE FROM %s WHERE %s=$machine_id", tableName, machineIDColumn)
 
-	result, err := m.db.ExecContext(ctx, query, id)
+	conn, err := m.db.Take(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer m.db.Put(conn)
+
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	err = q.
+		BindString("$machine_id", id).
+		Exec()
 	if err != nil {
 		return fmt.Errorf("failed to delete logs for machine %q: %w", id, err)
 	}
 
-	numRowsDeleted, err := result.RowsAffected()
-	if err != nil {
-		m.logger.Debug("failed to get number of rows affected when removing logs for machine", zap.String("machine_id", id), zap.Error(err))
-	} else {
-		m.logger.Info("removed logs for machine", zap.String("machine_id", id), zap.Int64("rows_affected", numRowsDeleted))
-	}
+	numRowsDeleted := conn.Changes()
+	m.logger.Info("removed logs for machine", zap.String("machine_id", id), zap.Int("rows_affected", numRowsDeleted))
 
 	return nil
 }
@@ -226,7 +273,7 @@ type schemaParams struct {
 }
 
 // NewStoreManager creates a new StoreManager.
-func NewStoreManager(ctx context.Context, db *sql.DB, config config.LogsMachineStorage, omniState state.State, logger *zap.Logger) (*StoreManager, error) {
+func NewStoreManager(ctx context.Context, db *sqlitex.Pool, config config.LogsMachineStorage, omniState state.State, logger *zap.Logger) (*StoreManager, error) {
 	templateParams := schemaParams{
 		TableName:       tableName,
 		IDColumn:        idColumn,
@@ -248,7 +295,14 @@ func NewStoreManager(ctx context.Context, db *sql.DB, config config.LogsMachineS
 
 	schemaSQL := sb.String()
 
-	if _, err = db.ExecContext(ctx, schemaSQL); err != nil {
+	conn, err := db.Take(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer db.Put(conn)
+
+	if err = sqlitex.ExecScript(conn, schemaSQL); err != nil {
 		return nil, fmt.Errorf("failed to create sqlite log table schema: %w", err)
 	}
 

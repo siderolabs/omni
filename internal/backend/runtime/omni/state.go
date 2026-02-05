@@ -7,7 +7,6 @@ package omni
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -22,6 +21,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	resourceregistry "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
@@ -57,7 +57,7 @@ type State struct {
 
 	defaultPersistentState   *PersistentState
 	secondaryPersistentState *PersistentState
-	secondaryStorageDB       *sql.DB
+	secondaryStorageDB       *sqlitex.Pool
 }
 
 // Default returns the default state.
@@ -66,7 +66,7 @@ func (s *State) Default() state.State {
 }
 
 // SecondaryStorageDB returns the secondary storage database.
-func (s *State) SecondaryStorageDB() *sql.DB {
+func (s *State) SecondaryStorageDB() *sqlitex.Pool {
 	return s.secondaryStorageDB
 }
 
@@ -102,7 +102,7 @@ func (s *State) Close() error {
 		defaultPersistentStateErr = fmt.Errorf("failed to close default persistent state: %w", err)
 	}
 
-	if err := s.secondaryStorageDB.Close(); err != nil {
+	if err := sqlite.CloseDB(s.secondaryStorageDB, 5*time.Second); err != nil {
 		secondaryStorageDBErr = fmt.Errorf("failed to close secondary storage database: %w", err)
 	}
 
@@ -309,7 +309,7 @@ func stateWithMetrics(namespacedState *namespaced.State, metricsRegistry prometh
 }
 
 // NewAuditWrap creates a new audit wrap.
-func NewAuditWrap(ctx context.Context, resState state.State, params *config.Params, auditLogDB *sql.DB, logger *zap.Logger) (*AuditWrap, error) {
+func NewAuditWrap(ctx context.Context, resState state.State, params *config.Params, auditLogDB *sqlitex.Pool, logger *zap.Logger) (*AuditWrap, error) {
 	path := params.Logs.Audit.GetPath() //nolint:staticcheck
 
 	if path == "" && !params.Logs.Audit.GetEnabled() {

@@ -7,7 +7,6 @@ package siderolink_test
 
 import (
 	"context"
-	"database/sql"
 	"net/netip"
 	"path/filepath"
 	"testing"
@@ -20,6 +19,7 @@ import (
 	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -125,7 +125,7 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 	})
 }
 
-func testDB(t *testing.T) *sql.DB {
+func testDB(t *testing.T) *sqlitex.Pool {
 	t.Helper()
 
 	conf := config.Default().Storage.Sqlite

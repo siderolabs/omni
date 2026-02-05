@@ -7,7 +7,6 @@ package audit
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog/auditlogfile"
@@ -23,7 +23,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func initLogger(ctx context.Context, config config.LogsAudit, db *sql.DB, logger *zap.Logger) (Logger, error) {
+func initLogger(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, logger *zap.Logger) (Logger, error) {
 	if !config.GetEnabled() {
 		logger.Info("audit logging is disabled")
 

@@ -7,7 +7,6 @@ package siderolink
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"sync"
@@ -19,6 +18,7 @@ import (
 	"github.com/siderolabs/gen/containers"
 	"github.com/siderolabs/go-circular/zstd"
 	"go.uber.org/zap"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
@@ -38,14 +38,14 @@ type MachineCache struct {
 	logger                 *zap.Logger
 	logsConfig             *config.LogsMachine
 	compressor             *zstd.Compressor
-	secondaryStorageDB     *sql.DB
+	secondaryStorageDB     *sqlitex.Pool
 	state                  state.State
 	mx                     sync.Mutex
 	inited                 bool
 }
 
 // NewMachineCache returns a new MachineCache.
-func NewMachineCache(secondaryStorageDB *sql.DB, logStorageConfig *config.LogsMachine, omniState state.State, logger *zap.Logger) (*MachineCache, error) {
+func NewMachineCache(secondaryStorageDB *sqlitex.Pool, logStorageConfig *config.LogsMachine, omniState state.State, logger *zap.Logger) (*MachineCache, error) {
 	compressor, err := zstd.NewCompressor()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log compressor: %w", err)

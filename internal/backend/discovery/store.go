@@ -7,7 +7,6 @@ package discovery
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -15,12 +14,13 @@ import (
 
 	"github.com/siderolabs/discovery-service/pkg/storage"
 	"go.uber.org/zap"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // InitSQLiteSnapshotStore initializes a SQLite snapshot store if enabled in the config.
-func InitSQLiteSnapshotStore(ctx context.Context, config config.EmbeddedDiscoveryService, db *sql.DB, logger *zap.Logger) (storage.SnapshotStore, error) {
+func InitSQLiteSnapshotStore(ctx context.Context, config config.EmbeddedDiscoveryService, db *sqlitex.Pool, logger *zap.Logger) (storage.SnapshotStore, error) {
 	store, err := NewSQLiteStore(ctx, db, config.GetSqliteTimeout())
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize sqlite snapshot store: %w", err)

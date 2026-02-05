@@ -7,7 +7,6 @@ package auditlogsqlite_test
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -15,11 +14,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog/auditlogsqlite"
@@ -261,49 +262,47 @@ func TestExtractedColumns(t *testing.T) {
 
 	// 5. Verify Raw Columns in DB
 	// We query the DB directly because these columns are not exposed via the Reader.
-	rows, err := db.QueryContext(ctx, "SELECT actor_email, resource_id, cluster_id FROM audit_logs ORDER BY event_ts_ms ASC") //nolint:rowserrcheck
+	conn, err := db.Take(ctx)
 	require.NoError(t, err)
 
-	t.Cleanup(func() {
-		require.NoError(t, rows.Close())
-	})
+	t.Cleanup(func() { db.Put(conn) })
 
-	var actorEmail, resID, clusterID sql.NullString
+	q, err := sqlitexx.NewQuery(conn, "SELECT actor_email, resource_id, cluster_id FROM audit_logs ORDER BY event_ts_ms ASC")
+	require.NoError(t, err)
 
-	// Row 1: Check Actor & Resource ID & Cluster ID from Labels
-	require.True(t, rows.Next())
-	require.NoError(t, rows.Scan(&actorEmail, &resID, &clusterID))
+	idx := 0
 
-	assert.Equal(t, "user@example.com", actorEmail.String)
-	assert.Equal(t, "machine-123", resID.String)
-	assert.Equal(t, "cluster-id", clusterID.String, "cluster_id should be extracted from machine labels")
+	for result, err := range q.QueryIter() {
+		require.NoError(t, err)
 
-	// Row 2: Check Cluster ID (from Cluster struct)
-	require.True(t, rows.Next())
-	require.NoError(t, rows.Scan(&actorEmail, &resID, &clusterID))
+		switch idx {
+		case 0:
+			// Row 1: Check Actor & Resource ID & Cluster ID from Labels
+			assert.Equal(t, "user@example.com", result.GetText("actor_email"))
+			assert.Equal(t, "machine-123", result.GetText("resource_id"))
+			assert.Equal(t, "cluster-id", result.GetText("cluster_id"), "cluster_id should be extracted from machine labels")
+		case 1:
+			// Row 2: Check Cluster ID (from Cluster struct)
+			assert.Equal(t, "cluster-xyz", result.GetText("resource_id"), "cluster.ID is considered the Resource ID")
+			assert.Equal(t, "cluster-xyz", result.GetText("cluster_id"), "cluster.ID is also extracted as Cluster ID")
+		case 2:
+			// Row 3: Check Cluster ID (from K8SAccess)
+			assert.True(t, result.IsNull("resource_id"))
+			assert.Equal(t, "cluster-k8s", result.GetText("cluster_id"))
+		case 3:
+			// Row 4: Nil Data Check
+			assert.True(t, result.IsNull("actor_email"))
+			assert.True(t, result.IsNull("resource_id"))
+			assert.True(t, result.IsNull("cluster_id"))
+		default:
+			require.Failf(t, "unexpected row", " index %d", idx)
+		}
 
-	assert.Equal(t, "cluster-xyz", resID.String, "cluster.ID is considered the Resource ID")
-	assert.Equal(t, "cluster-xyz", clusterID.String, "cluster.ID is also extracted as Cluster ID")
-
-	// Row 3: Check Cluster ID (from K8SAccess)
-	require.True(t, rows.Next())
-	require.NoError(t, rows.Scan(&actorEmail, &resID, &clusterID))
-
-	assert.False(t, resID.Valid)
-	assert.Equal(t, "cluster-k8s", clusterID.String)
-
-	// Row 4: Nil Data Check
-	require.True(t, rows.Next())
-	require.NoError(t, rows.Scan(&actorEmail, &resID, &clusterID))
-
-	assert.False(t, actorEmail.Valid)
-	assert.False(t, resID.Valid)
-	assert.False(t, clusterID.Valid)
-
-	require.False(t, rows.Next())
+		idx++
+	}
 }
 
-func setupStore(ctx context.Context, t *testing.T, _ *zap.Logger) (*auditlogsqlite.Store, *sql.DB) {
+func setupStore(ctx context.Context, t *testing.T, _ *zap.Logger) (*auditlogsqlite.Store, *sqlitex.Pool) {
 	t.Helper()
 
 	path := filepath.Join(t.TempDir(), "test.db")

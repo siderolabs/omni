@@ -123,8 +123,8 @@ github.com/cosi-project/runtime v1.13.1-0.20251208192740-2b3357ea6788 h1:h39IpNU
 github.com/cosi-project/runtime v1.13.1-0.20251208192740-2b3357ea6788/go.mod h1:/9fspODJfZrO5dQatMRgN440K8DjWP1jFSgiLX+FmQc=
 github.com/cosi-project/state-etcd v0.5.3 h1:jkXX1zFDMH6qsRjt4Ku9EqDtluhI3ghx1GuQpIwg88Q=
 github.com/cosi-project/state-etcd v0.5.3/go.mod h1:htNLQUC/dIx0twbudZ/wIr7aKLV0El7xHoGKvnuKzfk=
-github.com/cosi-project/state-sqlite v0.1.1 h1:2qBZ0sjiaP+TXLZzQU6Cr8kzkFW99+EYQZEsTZAK20s=
-github.com/cosi-project/state-sqlite v0.1.1/go.mod h1:JGRhoTWrhumg4Pc1SnBYZosEtBt2HtLs+CUbpBtZXfQ=
+github.com/cosi-project/state-sqlite v0.2.0 h1:MTgqB/ig5NNK/4VoRyrAsJVIaQhxf1veNxhOkTehYCI=
+github.com/cosi-project/state-sqlite v0.2.0/go.mod h1:V20oy2Sfxla0zZ+SJSgjV20feg2xGARlvVPL4Z4KfRo=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/cpuguy83/go-md2man/v2 v2.0.7 h1:zbFlGlXEAKlwXpmvle3d8Oe3YnkKIK4xSRTd3sHPnBo=
 github.com/cpuguy83/go-md2man/v2 v2.0.7/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
@@ -836,3 +836,5 @@ sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482 h1:2WO
 sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482/go.mod h1:M3W8sfWvn2HhQDIbGWj3S099YozAsymCo/wrT5ohRUE=
 sigs.k8s.io/yaml v1.6.0 h1:G8fkbMSAFqgEFgh4b1wmtzDnioxFCUgTZhlbj5P9QYs=
 sigs.k8s.io/yaml v1.6.0/go.mod h1:796bPqUfzR/0jLAl6XjHl3Ck7MiyVv8dbTdyT3/pMf4=
+zombiezen.com/go/sqlite v1.4.2 h1:KZXLrBuJ7tKNEm+VJcApLMeQbhmAUOKA5VWS93DfFRo=
+zombiezen.com/go/sqlite v1.4.2/go.mod h1:5Kd4taTAD4MkBzT25mQ9uaAlLjyR0rFhsR6iINO70jc=

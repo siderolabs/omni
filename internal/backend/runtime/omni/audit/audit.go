@@ -8,7 +8,6 @@ package audit
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"maps"
@@ -21,6 +20,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -34,7 +34,7 @@ type Logger interface {
 }
 
 // NewLog creates a new audit logger.
-func NewLog(ctx context.Context, config config.LogsAudit, db *sql.DB, logger *zap.Logger) (*Log, error) {
+func NewLog(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, logger *zap.Logger) (*Log, error) {
 	auditLogger, err := initLogger(ctx, config, db, logger)
 	if err != nil {
 		return nil, err

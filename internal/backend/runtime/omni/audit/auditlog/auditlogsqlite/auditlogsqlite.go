@@ -7,16 +7,20 @@ package auditlogsqlite
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"strings"
 	"text/template"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
+	"github.com/siderolabs/go-pointer"
+	zombiesqlite "zombiezen.com/go/sqlite"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 )
@@ -66,11 +70,11 @@ type schemaParams struct {
 }
 
 type Store struct {
-	db      *sql.DB
+	db      *sqlitex.Pool
 	timeout time.Duration
 }
 
-func NewStore(ctx context.Context, db *sql.DB, timeout time.Duration) (*Store, error) {
+func NewStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration) (*Store, error) {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
@@ -103,7 +107,14 @@ func NewStore(ctx context.Context, db *sql.DB, timeout time.Duration) (*Store, e
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	if _, err = db.ExecContext(ctx, schemaSQL); err != nil {
+	conn, err := db.Take(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer db.Put(conn)
+
+	if err = sqlitex.ExecScript(conn, schemaSQL); err != nil {
 		return nil, fmt.Errorf("failed to create sqlite log table schema: %w", err)
 	}
 
@@ -111,7 +122,8 @@ func NewStore(ctx context.Context, db *sql.DB, timeout time.Duration) (*Store, e
 }
 
 func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
-	query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+	query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) VALUES 
+	($event_type, $resource_type, $event_ts_ms, $event_data, $actor_email, $resource_id, $cluster_id)`,
 		tableName, eventTypeColumn, resourceTypeColumn, eventTSMillisColumn, eventDataColumn,
 		actorEmailColumn, resourceIDColumn, clusterIDColumn)
 
@@ -137,8 +149,28 @@ func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
 		clusterID = extractClusterID(event.Data)
 	}
 
-	if _, err := s.db.ExecContext(ctx, query, strPtr(event.Type), strPtr(event.ResourceType), event.TimeMillis, dataJSON,
-		strPtr(actorEmail), strPtr(event.ResourceID), strPtr(clusterID)); err != nil {
+	conn, err := s.db.Take(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer s.db.Put(conn)
+
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	err = q.
+		BindStringIfSet("$event_type", event.Type).
+		BindStringIfSet("$resource_type", event.ResourceType).
+		BindInt64("$event_ts_ms", event.TimeMillis).
+		BindBytes("$event_data", dataJSON).
+		BindStringIfSet("$actor_email", actorEmail).
+		BindStringIfSet("$resource_id", event.ResourceID).
+		BindStringIfSet("$cluster_id", clusterID).
+		Exec()
+	if err != nil {
 		return fmt.Errorf("failed to write audit log event: %w", err)
 	}
 
@@ -146,12 +178,28 @@ func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
 }
 
 func (s *Store) Remove(ctx context.Context, start, end time.Time) error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE %s >= ? AND %s <= ?`, tableName, eventTSMillisColumn, eventTSMillisColumn)
+	query := fmt.Sprintf(`DELETE FROM %s WHERE %s >= $start AND %s <= $end`, tableName, eventTSMillisColumn, eventTSMillisColumn)
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := s.db.ExecContext(ctx, query, start.UnixMilli(), end.UnixMilli()); err != nil {
+	conn, err := s.db.Take(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer s.db.Put(conn)
+
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	err = q.
+		BindInt64("$start", start.UnixMilli()).
+		BindInt64("$end", end.UnixMilli()).
+		Exec()
+	if err != nil {
 		return fmt.Errorf("failed to remove audit log events: %w", err)
 	}
 
@@ -159,15 +207,35 @@ func (s *Store) Remove(ctx context.Context, start, end time.Time) error {
 }
 
 func (s *Store) Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error) {
-	query := fmt.Sprintf(`SELECT %s, %s, %s, %s, %s FROM %s WHERE %s >= ? AND %s <= ? ORDER BY %s ASC, %s ASC`, eventTypeColumn,
-		resourceTypeColumn, resourceIDColumn, eventTSMillisColumn, eventDataColumn, tableName, eventTSMillisColumn, eventTSMillisColumn, eventTSMillisColumn, idColumn)
-
-	rows, err := s.db.QueryContext(ctx, query, start.UnixMilli(), end.UnixMilli()) //nolint:rowserrcheck // false positive, we check for .Err() in Read() and Close().
+	// we take the connection here, but it will be released in logReader.Close()
+	conn, err := s.db.Take(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read audit log events: %w", err)
+		return nil, fmt.Errorf("failed to take connection from pool: %w", err)
 	}
 
-	return &logReader{rows: rows}, nil
+	query := fmt.Sprintf(`SELECT %s, %s, %s, %s, %s FROM %s WHERE %s >= $start AND %s <= $end ORDER BY %s ASC, %s ASC`, eventTypeColumn,
+		resourceTypeColumn, resourceIDColumn, eventTSMillisColumn, eventDataColumn, tableName, eventTSMillisColumn, eventTSMillisColumn, eventTSMillisColumn, idColumn)
+
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		s.db.Put(conn)
+
+		return nil, fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	it := q.
+		BindInt64("$start", start.UnixMilli()).
+		BindInt64("$end", end.UnixMilli()).
+		QueryIter()
+
+	next, stop := iter.Pull2(it)
+
+	return &logReader{
+		conn: conn,
+		db:   s.db,
+		next: next,
+		stop: stop,
+	}, nil
 }
 
 func (s *Store) HasData(ctx context.Context) (bool, error) {
@@ -176,9 +244,21 @@ func (s *Store) HasData(ctx context.Context) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	var n int
-	if err := s.db.QueryRowContext(ctx, query).Scan(&n); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+	conn, err := s.db.Take(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer s.db.Put(conn)
+
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		return false, fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	err = q.QueryRow(func(*zombiesqlite.Stmt) error { return nil })
+	if err != nil {
+		if errors.Is(err, sqlitexx.ErrNoRows) {
 			return false, nil
 		}
 
@@ -189,21 +269,18 @@ func (s *Store) HasData(ctx context.Context) (bool, error) {
 }
 
 type logReader struct {
-	rows *sql.Rows
+	conn *zombiesqlite.Conn
+	db   *sqlitex.Pool
+	next func() (*zombiesqlite.Stmt, error, bool)
+	stop func()
 }
 
 func (l *logReader) Close() error {
-	var closeErr, rowsErr error
+	l.stop()
 
-	if err := l.rows.Close(); err != nil {
-		closeErr = fmt.Errorf("failed to close rows: %w", err)
-	}
+	l.db.Put(l.conn)
 
-	if err := l.rows.Err(); err != nil {
-		rowsErr = fmt.Errorf("rows error: %w", err)
-	}
-
-	return errors.Join(closeErr, rowsErr)
+	return nil
 }
 
 // rawEvent is like auditlog.Event but with Data as json.RawMessage for efficiency, to avoid unnecessary unmarshal/marshal.
@@ -216,11 +293,12 @@ type rawEvent struct {
 }
 
 func (l *logReader) Read() ([]byte, error) {
-	if !l.rows.Next() {
-		if err := l.rows.Err(); err != nil {
-			return nil, fmt.Errorf("failed to read audit log event: %w", err)
-		}
+	result, err, ok := l.next()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read audit log event: %w", err)
+	}
 
+	if !ok {
 		return nil, io.EOF
 	}
 
@@ -228,11 +306,26 @@ func (l *logReader) Read() ([]byte, error) {
 
 	var event rawEvent
 
-	if err := l.rows.Scan(&event.Type, &event.ResourceType, &event.ResourceID, &event.TimeMillis, &dataJSON); err != nil {
-		return nil, fmt.Errorf("failed to scan audit log event: %w", err)
+	if !result.IsNull(eventTypeColumn) {
+		event.Type = pointer.To(result.GetText(eventTypeColumn))
 	}
 
-	event.Data = dataJSON
+	if !result.IsNull(resourceTypeColumn) {
+		event.ResourceType = pointer.To(result.GetText(resourceTypeColumn))
+	}
+
+	if !result.IsNull(resourceIDColumn) {
+		event.ResourceID = pointer.To(result.GetText(resourceIDColumn))
+	}
+
+	if !result.IsNull(eventDataColumn) {
+		dataJSON = make([]byte, result.GetLen(eventDataColumn))
+		result.GetBytes(eventDataColumn, dataJSON)
+
+		event.Data = dataJSON
+	}
+
+	event.TimeMillis = result.GetInt64(eventTSMillisColumn)
 
 	marshaled, err := json.Marshal(event)
 	if err != nil {
@@ -261,12 +354,4 @@ func extractClusterID(d *auditlog.Data) string {
 	default:
 		return ""
 	}
-}
-
-func strPtr(s string) *string {
-	if s == "" {
-		return nil
-	}
-
-	return &s
 }

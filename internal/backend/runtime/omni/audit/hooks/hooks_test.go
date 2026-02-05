@@ -7,7 +7,6 @@ package hooks_test
 
 import (
 	"context"
-	"database/sql"
 	"path/filepath"
 	"testing"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
@@ -47,7 +47,7 @@ func TestUserManagedResourceTypes(t *testing.T) {
 	assert.Subset(t, destroyHooksResourceTypes, userManagedResourceTypes, "all user managed resource types should have destroy hooks")
 }
 
-func testDB(t *testing.T) *sql.DB {
+func testDB(t *testing.T) *sqlitex.Pool {
 	t.Helper()
 
 	conf := config.Default().Storage.Sqlite

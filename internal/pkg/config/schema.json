@@ -1060,6 +1060,11 @@
           "description": "ExtraParams contains the extra parameters to be used when opening the SQLite database connection. This can cause data corruption if set incorrectly, modify at your own risk. It must not start with an ampersand (&).",
           "type": "string",
           "pattern": "^(?:$|[^&].*)"
+        },
+        "poolSize" : {
+          "description": "PoolSize controls the maximum number of connections in the SQLite connection pool. Raising this value may improve performance under high load, at the cost of increased resource usage.",
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
