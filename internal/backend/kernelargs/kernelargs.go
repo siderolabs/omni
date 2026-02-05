@@ -123,6 +123,11 @@ func Calculate(machineStatus *omni.MachineStatus, kernelArgs *omni.KernelArgs) (
 	return slices.Concat(baseArgs, extraArgs), true, nil
 }
 
+// FilterProtected filters out the "extra args" from the provided kernel args, leaving only the protected kernel arguments that cannot be modified.
+func FilterProtected(args []string) []string {
+	return xslices.Filter(args, isProtected)
+}
+
 // FilterExtras filters out the protected kernel arguments from the provided kernel args, leaving only the "extra args" that can be modified.
 func FilterExtras(args []string) []string {
 	return xslices.Filter(args, func(value string) bool {

@@ -37,8 +37,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/installimage"
+	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	talosutils "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
@@ -97,9 +97,6 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput[*infra.MachineStatus](
-			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
-		),
-		qtransform.WithExtraMappedInput[*siderolink.MachineJoinConfig](
 			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput[*omni.ClusterMachine](
@@ -354,16 +351,10 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 		return false, err
 	}
 
-	params, err := safe.ReaderGetByID[*siderolink.MachineJoinConfig](ctx, r, rc.machineConfig.Metadata().ID())
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return false, xerrors.NewTagged[qtransform.SkipReconcileTag](err)
-		}
+	// Use the existing protected args (e.g., the siderolink args) as the fallback args if we cannot determine the actual expected args
+	fallbackKernelArgs := kernelargs.FilterProtected(rc.machineStatus.TypedSpec().Value.Schematic.KernelArgs)
 
-		return false, err
-	}
-
-	schematicInfo, err := talosutils.GetSchematicInfo(ctx, c, params.TypedSpec().Value.Config.KernelArgs)
+	schematicInfo, err := talosutils.GetSchematicInfo(ctx, c, fallbackKernelArgs)
 	if err != nil {
 		if !errors.Is(err, talosutils.ErrInvalidSchematic) {
 			return false, err
@@ -374,7 +365,7 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 		expectedSchematic = ""
 	}
 
-	if actualVersion == expectedVersion && rc.SchematicEqual(schematicInfo, expectedSchematic) {
+	if actualVersion == expectedVersion && rc.SchematicEqual(schematicInfo.ID, schematicInfo.FullID, expectedSchematic) {
 		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = actualVersion
 		rc.machineConfigStatus.TypedSpec().Value.SchematicId = expectedSchematic
 

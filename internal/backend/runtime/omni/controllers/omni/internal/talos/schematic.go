@@ -36,14 +36,12 @@ type SchematicInfo struct {
 	InAgentMode bool
 }
 
-// Equal compares schematic id with both extensions ID and Full ID.
-func (si SchematicInfo) Equal(id string) bool {
-	return si.ID == id || si.FullID == id
-}
-
 // GetSchematicInfo uses Talos API to list all the schematics, and computes the plain schematic ID,
 // taking only the extensions into account - ignoring everything else, e.g., the kernel command line args or meta values.
-func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs []string) (SchematicInfo, error) {
+//
+// The argument fallbackKernelArgs is only used if the machine doesn't have the schematic meta extension, i.e., its installation media was created bypassing image factory -
+// in that case, we synthesize the schematic ID in a best-effort way (only if it doesn't have any extensions), and use the provided fallback kernel args as the current args of the machine.
+func GetSchematicInfo(ctx context.Context, c *client.Client, fallbackKernelArgs []string) (SchematicInfo, error) {
 	items, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, c.COSI)
 	if err != nil {
 		return SchematicInfo{}, fmt.Errorf("failed to list extensions: %w", err)
@@ -138,8 +136,8 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, defaultKernelArgs [
 	}
 
 	if fullID == "" { // we could not find the full ID, so we fall back to synthesizing it using the default args
-		kernelArgs = defaultKernelArgs
-		extensionsSchematic.Customization.ExtraKernelArgs = defaultKernelArgs
+		kernelArgs = fallbackKernelArgs
+		extensionsSchematic.Customization.ExtraKernelArgs = fallbackKernelArgs
 
 		fullID, err = extensionsSchematic.ID()
 		if err != nil {
