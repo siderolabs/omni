@@ -22,7 +22,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 )
 
 // ReconciliationContext describes all related data for one reconciliation call of the machine config status controller.
@@ -99,12 +98,12 @@ func (rc *ReconciliationContext) ID() string {
 }
 
 // SchematicEqual compares the schematic using the complex condition.
-func (rc *ReconciliationContext) SchematicEqual(schematicInfo talos.SchematicInfo, expectedSchematic string) bool {
+func (rc *ReconciliationContext) SchematicEqual(extensionsOnlyID, fullID, expectedSchematic string) bool {
 	if rc.compareFullSchematicID {
-		return schematicInfo.FullID == expectedSchematic
+		return fullID == expectedSchematic
 	}
 
-	return schematicInfo.Equal(expectedSchematic)
+	return extensionsOnlyID == expectedSchematic || fullID == expectedSchematic
 }
 
 // BuildReconciliationContext is the COSI reader dependent method to build the reconciliation context.
@@ -168,22 +167,21 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, fmt.Errorf("failed to determine if kernel args update is supported for machine %q: %w", machineConfig.Metadata().ID(), err)
 	}
 
-	if compareFullSchematicID {
-		schematicMismatch = schematicMismatch || machineStatus.TypedSpec().Value.Schematic.FullId != installImage.SchematicId
-	} else {
-		schematicMismatch = schematicMismatch || machineStatus.TypedSpec().Value.Schematic.Id != installImage.SchematicId
-	}
-
-	talosVersionMismatch := strings.TrimLeft(machineStatus.TypedSpec().Value.TalosVersion, "v") != machineConfigStatus.TypedSpec().Value.TalosVersion ||
-		machineConfigStatus.TypedSpec().Value.TalosVersion != installImage.TalosVersion
-
-	return &ReconciliationContext{
+	rc := &ReconciliationContext{
 		machineStatus:          machineStatus,
-		machineStatusSnapshot:  statusSnapshot,
 		machineConfig:          machineConfig,
 		machineConfigStatus:    machineConfigStatus,
-		shouldUpgrade:          schematicMismatch || talosVersionMismatch,
-		compareFullSchematicID: compareFullSchematicID,
+		machineStatusSnapshot:  statusSnapshot,
 		installImage:           installImage,
-	}, nil
+		compareFullSchematicID: compareFullSchematicID,
+	}
+
+	schematicMismatch = schematicMismatch || !rc.SchematicEqual(rc.machineStatus.TypedSpec().Value.Schematic.Id, rc.machineStatus.TypedSpec().Value.Schematic.FullId, rc.installImage.SchematicId)
+
+	talosVersionMismatch := strings.TrimLeft(rc.machineStatus.TypedSpec().Value.TalosVersion, "v") != machineConfigStatus.TypedSpec().Value.TalosVersion ||
+		machineConfigStatus.TypedSpec().Value.TalosVersion != rc.installImage.TalosVersion
+
+	rc.shouldUpgrade = schematicMismatch || talosVersionMismatch
+
+	return rc, nil
 }
