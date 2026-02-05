@@ -20,9 +20,14 @@ export type WarningStyle = 'alert' | 'popup' | 'short'
 type Props = {
   resource?: Resource
   warningStyle?: WarningStyle
+  warningText?: string
 }
 
-const { resource, warningStyle = 'alert' } = defineProps<Props>()
+const {
+  resource,
+  warningText = 'It is recommended to manage it using its template and not through this UI.',
+  warningStyle = 'alert',
+} = defineProps<Props>()
 const route = useRoute()
 
 const { data: routeResource } = useResourceWatch<ClusterSpec>(() => ({
@@ -53,7 +58,7 @@ const resourceWord = computed(() => {
   <template v-if="resourceIsManagedByTemplates">
     <div v-if="warningStyle === 'alert'" class="pb-5">
       <TAlert type="warn" :title="`This ${resourceWord} is managed using cluster templates.`">
-        It is recommended to manage it using its template and not through this UI.
+        {{ warningText }}
       </TAlert>
     </div>
     <div v-else-if="warningStyle === 'popup'" class="pb-5 text-xs">
@@ -61,7 +66,7 @@ const resourceWord = computed(() => {
         This {{ resourceWord }} is managed using cluster templates.
       </p>
       <p class="py-2 font-bold text-primary-p3">
-        It is recommended to manage it using its template and not through this UI.
+        {{ warningText }}
       </p>
     </div>
     <div v-else class="text-xs">

@@ -36,6 +36,9 @@ const modals: Record<string, Component> = {
   downloadTalosctlBinaries: defineAsyncComponent(
     () => import('@/views/omni/Modals/DownloadTalosctl.vue'),
   ),
+  exportClusterTemplate: defineAsyncComponent(
+    () => import('@/views/omni/Modals/ExportClusterTemplate.vue'),
+  ),
   nodeDestroy: defineAsyncComponent(() => import('@/views/omni/Modals/NodeDestroy.vue')),
   nodeDestroyCancel: defineAsyncComponent(
     () => import('@/views/omni/Modals/NodeDestroyCancel.vue'),

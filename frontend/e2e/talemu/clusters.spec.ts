@@ -61,7 +61,7 @@ test('Create cluster using machine classes', async ({ page }) => {
   })
 
   await test.step('Destroy cluster', async () => {
-    await page.getByRole('button', { name: 'Destroy Cluster' }).click()
+    await page.getByRole('link', { name: 'Destroy Cluster' }).click()
     await page.getByRole('button', { name: 'Destroy', exact: true }).click()
 
     await expect(page.getByText(`The Cluster ${clusterName} is tearing down`)).toBeVisible()

@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -64,19 +64,14 @@ type Props = {
 
 const { currentCluster } = defineProps<Props>()
 
-const enableWorkloadProxy = ref(currentCluster.spec.features?.enable_workload_proxy || false)
-const useEmbeddedDiscoveryService = ref(
-  currentCluster.spec.features?.use_embedded_discovery_service || false,
-)
+const enableWorkloadProxy = ref(false)
+const useEmbeddedDiscoveryService = ref(false)
 
-watch(
-  () => currentCluster,
-  (cluster) => {
-    enableWorkloadProxy.value = cluster.spec.features?.enable_workload_proxy || false
-    useEmbeddedDiscoveryService.value =
-      cluster.spec.features?.use_embedded_discovery_service || false
-  },
-)
+watchEffect(() => {
+  enableWorkloadProxy.value = currentCluster.spec.features?.enable_workload_proxy || false
+  useEmbeddedDiscoveryService.value =
+    currentCluster.spec.features?.use_embedded_discovery_service || false
+})
 
 const { status: backupStatus } = setupBackupStatus()
 
@@ -174,13 +169,13 @@ onMounted(async () => {
 
 <template>
   <div>
-    <div class="overview">
-      <div class="overview-container margin">
+    <div class="flex w-full items-start justify-start">
+      <div class="mr-6 w-full max-w-[80%] max-lg:mr-2 max-lg:w-full">
         <TAlert v-if="clusterLocked" title="Cluster is Locked" type="warn" class="mb-4">
           All operations on this cluster are currently disabled. Config patches can be created,
           updated or deleted but these changes will not be applied while the cluster is locked.
         </TAlert>
-        <div class="overview-charts-box relative">
+        <div class="relative mb-6 min-h-25 bg-naturals-n2 p-5">
           <div
             class="flex w-full flex-wrap gap-2 transition-opacity duration-500 *:flex-1"
             :class="{ 'opacity-25': !showStats }"
@@ -235,22 +230,22 @@ onMounted(async () => {
         </div>
         <div
           v-if="kubernetesUpgradeStatus && kubernetesUpgradeStatus.spec.step"
-          class="overview-upgrade-progress"
+          class="mb-5 rounded bg-naturals-n2 pt-5"
         >
-          <div class="overview-box-header flex items-center gap-1">
-            <span class="overview-box-title flex-1">Kubernetes Update</span>
+          <div class="flex items-center gap-1 px-6 pb-4">
+            <span class="flex-1 text-sm text-naturals-n13">Kubernetes Update</span>
             <template v-if="kubernetesUpgradeStatus.spec.current_upgrade_version">
-              <span class="overview-upgrade-version">
+              <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
                 {{ kubernetesUpgradeStatus.spec.last_upgrade_version }}
               </span>
               <span>⇾</span>
-              <span class="overview-upgrade-version">
+              <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
                 {{ kubernetesUpgradeStatus.spec.current_upgrade_version }}
               </span>
             </template>
             <template v-else>
-              <span class="overview-box-title">Reverting back to</span>
-              <span class="overview-upgrade-version">
+              <span class="text-sm text-naturals-n13">Reverting back to</span>
+              <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
                 {{ kubernetesUpgradeStatus.spec.last_upgrade_version }}
               </span>
             </template>
@@ -285,24 +280,24 @@ onMounted(async () => {
         </div>
         <div
           v-if="talosUpgradeStatus && talosUpgradeStatus.spec.status"
-          class="overview-upgrade-progress"
+          class="mb-5 rounded bg-naturals-n2 pt-5"
         >
-          <div class="overview-box-header flex items-center gap-1">
-            <span class="overview-box-title flex-1">Talos Update</span>
+          <div class="flex items-center gap-1 px-6 pb-4">
+            <span class="flex-1 text-sm text-naturals-n13">Talos Update</span>
             <template v-if="talosUpgradeStatus.spec.current_upgrade_version">
-              <span class="overview-upgrade-version">
+              <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
                 {{ talosUpgradeStatus.spec.last_upgrade_version }}
               </span>
               <span>⇾</span>
-              <span class="overview-upgrade-version">
+              <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
                 {{ talosUpgradeStatus.spec.current_upgrade_version }}
               </span>
             </template>
             <template
               v-else-if="talosUpgradeStatus.spec.phase === TalosUpgradeStatusSpecPhase.Reverting"
             >
-              <span class="overview-box-title">Reverting back to</span>
-              <span class="overview-upgrade-version">
+              <span class="text-sm text-naturals-n13">Reverting back to</span>
+              <span class="rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13">
                 {{ talosUpgradeStatus.spec.last_upgrade_version }}
               </span>
             </template>
@@ -312,7 +307,7 @@ onMounted(async () => {
                 TalosUpgradeStatusSpecPhase.UpdatingMachineSchematics
               "
             >
-              <span class="overview-box-title">Updating Machine Schematics</span>
+              <span class="text-sm text-naturals-n13">Updating Machine Schematics</span>
             </template>
           </div>
           <div class="flex min-h-20 items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
@@ -346,11 +341,11 @@ onMounted(async () => {
         </div>
         <div
           v-if="secretRotationStatus && secretRotationStatus.spec.status"
-          class="overview-upgrade-progress"
+          class="mb-5 rounded bg-naturals-n2 pt-5"
         >
-          <div class="overview-box-header flex items-center gap-1">
-            <span class="overview-box-title flex-1">Secret Rotation</span>
-            <span class="overview-box-title">{{ getComponentInRotation }}</span>
+          <div class="flex items-center gap-1 px-6 pb-4">
+            <span class="flex-1 text-sm text-naturals-n13">Secret Rotation</span>
+            <span class="text-sm text-naturals-n13">{{ getComponentInRotation }}</span>
           </div>
           <div class="flex min-h-20 items-center gap-2 border-t-8 border-naturals-n4 p-4 text-xs">
             <TIcon
@@ -369,9 +364,9 @@ onMounted(async () => {
           </div>
         </div>
         <div class="flex gap-5">
-          <div class="overview-card mb-5 flex-1 px-6">
+          <div class="mb-5 flex-1 rounded bg-naturals-n2 px-6 py-5">
             <div class="mb-3">
-              <span class="overview-box-title">Features</span>
+              <span class="text-sm text-naturals-n13">Features</span>
             </div>
             <div class="flex flex-col gap-2">
               <ClusterWorkloadProxyingCheckbox
@@ -391,9 +386,9 @@ onMounted(async () => {
               />
             </div>
           </div>
-          <div class="overview-card mb-5 flex-1 px-6">
+          <div class="mb-5 flex-1 rounded bg-naturals-n2 px-6 py-5">
             <div class="mb-3">
-              <span class="overview-box-title">Labels</span>
+              <span class="text-sm text-naturals-n13">Labels</span>
             </div>
             <ItemLabels
               :resource="currentCluster"
@@ -402,9 +397,9 @@ onMounted(async () => {
             />
           </div>
         </div>
-        <div class="overview-card overview-machines-list">
-          <div class="overview-box-header">
-            <span class="overview-box-title">Machines</span>
+        <div class="flex-col rounded bg-naturals-n2 pt-5">
+          <div class="flex px-6 pb-4">
+            <span class="text-sm text-naturals-n13">Machines</span>
           </div>
           <div class="grid grid-cols-[repeat(4,1fr)_--spacing(18)]">
             <ClusterMachines is-subgrid :cluster-i-d="clusterId" />
@@ -419,66 +414,3 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../../index.css";
-
-.overview-card {
-  @apply rounded bg-naturals-n2 py-5;
-}
-.divider {
-  @apply w-full bg-naturals-n4;
-  height: 1px;
-}
-.overview {
-  @apply flex w-full items-start justify-start;
-}
-.overview-container {
-  @apply mr-6 w-full;
-  max-width: 80%;
-}
-@media screen and (max-width: 1050px) {
-  .overview-container {
-    @apply mr-2 w-full;
-  }
-}
-.overview-title-box {
-  @apply flex items-center;
-  margin-bottom: 35px;
-}
-.overview-title {
-  @apply mr-2 text-xl text-naturals-n14;
-}
-.overview-icon {
-  @apply h-5 w-5 cursor-pointer fill-current text-naturals-n14;
-}
-.overview-machines-list {
-  @apply flex-col;
-  padding-bottom: 0;
-}
-.overview-kubernetes-upgrade {
-  @apply mb-5 rounded bg-naturals-n2 py-5 pb-0;
-}
-.overview-upgrade-progress {
-  @apply mb-5 rounded bg-naturals-n2 py-5 pb-0;
-}
-.overview-box-header {
-  @apply flex px-6 pb-4;
-}
-.overview-box-title {
-  @apply text-sm text-naturals-n13;
-}
-.overview-usage-subtitle {
-  @apply text-xs text-naturals-n10;
-}
-.overview-status-box {
-  @apply w-full flex-col rounded bg-naturals-n2 py-5 pb-0;
-}
-.overview-charts-box {
-  @apply mb-6 bg-naturals-n2 p-5;
-  min-height: 100px;
-}
-.overview-upgrade-version {
-  @apply rounded bg-naturals-n4 px-2 text-sm font-bold text-naturals-n13;
-}
-</style>
