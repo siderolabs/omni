@@ -5,5 +5,21 @@
 package specs
 
 func (spec *MachineStatusSpec) SchematicReady() bool {
-	return spec.Schematic != nil && !spec.Schematic.InAgentMode && spec.Schematic.Id != "" && spec.Schematic.FullId != ""
+	if spec.Schematic == nil {
+		return false
+	}
+
+	if spec.Schematic.InAgentMode {
+		return false
+	}
+
+	if spec.Schematic.Invalid {
+		// If the schematic is invalid, we consider it "ready" to allow it to be allocated to a cluster.
+		// This is the case for the machines which were built bypassing image factory and with extensions in them:
+		// we mark those as invalid, as we do not know if those extensions were official (available also in image factory),
+		// but those machines still need to be usable - users should be able to create clusters with those machines.
+		return true
+	}
+
+	return spec.Schematic.Id != "" && spec.Schematic.FullId != ""
 }
