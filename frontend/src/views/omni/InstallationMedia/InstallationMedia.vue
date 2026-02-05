@@ -113,7 +113,17 @@ function clonePreset(preset: (typeof presets.value)[number]) {
 
       <template #body>
         <TableRow v-for="preset in presets" :key="itemID(preset)">
-          <TableCell>{{ preset.metadata.id }}</TableCell>
+          <TableCell>
+            <RouterLink
+              class="list-item-link"
+              :to="{
+                name: 'InstallationMediaReview',
+                params: { presetId: preset.metadata.id! },
+              }"
+            >
+              {{ preset.metadata.id }}
+            </RouterLink>
+          </TableCell>
           <TableCell>{{ preset.spec.talos_version }}</TableCell>
           <TableCell>
             {{
