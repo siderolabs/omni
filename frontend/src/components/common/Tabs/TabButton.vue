@@ -5,40 +5,17 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { toRefs } from 'vue'
+import { TabsTrigger, type TabsTriggerProps, useForwardPropsEmits } from 'reka-ui'
 
-type Props = {
-  selected: boolean
-  is?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  is: 'div',
-})
-const { selected } = toRefs(props)
+const props = defineProps<TabsTriggerProps>()
+const forwarded = useForwardPropsEmits(props)
 </script>
 
 <template>
-  <component :is="is" class="tab" :class="{ active: selected }">
-    <slot />
-  </component>
+  <TabsTrigger
+    v-bind="forwarded"
+    class="text-sm transition-colors hover:text-naturals-n13 data-[state=active]:text-naturals-n13"
+  >
+    <slot></slot>
+  </TabsTrigger>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.tab {
-  @apply text-sm outline-hidden transition-colors hover:text-naturals-n13 focus:outline-hidden;
-}
-
-.active {
-  @apply relative text-naturals-n13 outline-hidden focus:outline-hidden;
-}
-
-.active::before {
-  @apply absolute block w-full animate-in bg-primary-p3 duration-300 ease-linear fade-in;
-  content: '';
-  height: 2px;
-  bottom: -15px;
-}
-</style>

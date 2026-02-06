@@ -82,7 +82,7 @@ hostname: ${cpMachineName}`)
 
   // Check that extensions are added
   await page.getByRole('link', { name: cpMachineName }).click()
-  await page.getByRole('link', { name: 'Extensions' }).click()
+  await page.getByRole('tab', { name: 'Extensions' }).click()
 
   await expect(page.getByText('siderolabs/usb-modem-drivers')).toBeVisible()
 })
@@ -207,7 +207,7 @@ test('exposed services', async ({ page }, testInfo) => {
 
   await test.step('Visit config patches for control plane', async () => {
     await page.getByRole('link', { name: cpMachineName }).click()
-    await page.getByRole('link', { name: 'Patches', exact: true }).click()
+    await page.getByRole('tab', { name: 'Patches', exact: true }).click()
     await page.getByRole('button', { name: 'Create Patch' }).click()
   })
 
@@ -272,7 +272,7 @@ test('open machine', async ({ page }) => {
   await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeVisible()
 
   await test.step('Validate monitor tab', async () => {
-    await page.getByRole('link', { name: 'Monitor', exact: true }).click()
+    await page.getByRole('tab', { name: 'Monitor', exact: true }).click()
     await expect(page.getByText('CPU usage')).toBeVisible()
     await expect(page.getByText('Memory', { exact: true })).toBeVisible()
     await expect(page.getByText('Processes')).toBeVisible()
@@ -280,17 +280,17 @@ test('open machine', async ({ page }) => {
   })
 
   await test.step('Validate console logs tab', async () => {
-    await page.getByRole('link', { name: 'Console Logs', exact: true }).click()
+    await page.getByRole('tab', { name: 'Console Logs', exact: true }).click()
     await expect(page.getByText('[talos]').first()).toBeVisible()
   })
 
   await test.step('Validate config tab', async () => {
-    await page.getByRole('link', { name: 'Config', exact: true }).click()
+    await page.getByRole('tab', { name: 'Config', exact: true }).click()
     await expect(page.getByText('version: v1alpha1').first()).toBeVisible()
   })
 
   await test.step('Validate patches tab', async () => {
-    await page.getByRole('link', { name: 'Patches', exact: true }).click()
+    await page.getByRole('tab', { name: 'Patches', exact: true }).click()
     await expect(page.getByText('This cluster is managed using cluster templates.')).toBeVisible()
     await expect(page.getByText(`Cluster Machine: ${cpMachineName}`)).toBeVisible()
     await expect(page.getByText(/400-cm-\w+/).first()).toBeVisible()
@@ -298,12 +298,12 @@ test('open machine', async ({ page }) => {
   })
 
   await test.step('Validate mounts tab', async () => {
-    await page.getByRole('link', { name: 'Mounts', exact: true }).click()
+    await page.getByRole('tab', { name: 'Mounts', exact: true }).click()
     await expect(page.getByText('EPHEMERAL')).toBeVisible()
   })
 
   await test.step('Validate extensions tab', async () => {
-    await page.getByRole('link', { name: 'Extensions', exact: true }).click()
+    await page.getByRole('tab', { name: 'Extensions', exact: true }).click()
     await expect(page.getByText('siderolabs/hello-world-service')).toBeVisible()
     await expect(page.getByText('siderolabs/usb-modem-drivers')).toBeVisible()
   })

@@ -5,18 +5,17 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, onBeforeMount, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+import { RouterLink, type RouterView, useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
-import { withRuntime } from '@/api/options'
 import { DefaultNamespace, MachineStatusType } from '@/api/resources'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TabButton from '@/components/common/Tabs/TabButton.vue'
-import TabsHeader from '@/components/common/Tabs/TabsHeader.vue'
+import TabContent from '@/components/common/Tabs/TabContent.vue'
+import Tabs from '@/components/common/Tabs/Tabs.vue'
+import { useResourceGet } from '@/methods/useResourceGet'
 
 const routes = computed(() => {
   return [
@@ -33,41 +32,50 @@ const routes = computed(() => {
 
 const route = useRoute()
 
-const getMachineName = async () => {
-  const res: Resource<MachineStatusSpec> = await ResourceService.Get(
-    {
-      namespace: DefaultNamespace,
-      type: MachineStatusType,
-      id: route.params.machine! as string,
-    },
-    withRuntime(Runtime.Omni),
-  )
+const { data: machine } = useResourceGet<MachineStatusSpec>(() => ({
+  resource: {
+    namespace: DefaultNamespace,
+    type: MachineStatusType,
+    id: route.params.machine as string,
+  },
+  runtime: Runtime.Omni,
+}))
 
-  machine.value = res.spec.network?.hostname || res.metadata.id!
-}
+const machineName = computed(
+  () =>
+    machine.value?.spec.network?.hostname ||
+    machine.value?.metadata.id ||
+    (route.params.machine as string),
+)
 
-const machine = ref(route.params.machine)
-
-onBeforeMount(getMachineName)
-watch(() => route.params, getMachineName)
+/**
+ * Some child routes do not match any tab, e.g. MachinePatchEdit
+ */
+const hasMatchingTab = computed(() =>
+  routes.value.some((r) => r.to.name === route.name?.toString()),
+)
 </script>
 
 <template>
   <div class="flex h-full flex-col gap-4">
     <div class="flex h-9 justify-between">
-      <PageHeader :title="`${machine}`" />
+      <PageHeader :title="machineName" />
     </div>
-    <TabsHeader class="border-b border-naturals-n4 pb-3.5">
-      <TabButton
-        is="router-link"
-        v-for="route in routes"
-        :key="route.name"
-        :to="route.to"
-        :selected="$route.name === route.to.name"
-      >
-        {{ route.name }}
-      </TabButton>
-    </TabsHeader>
-    <RouterView class="grow" />
+
+    <Tabs :model-value="$route.name?.toString()" :class="{ grow: hasMatchingTab }">
+      <template #triggers>
+        <TabButton v-for="{ name, to } in routes" :key="name" :as="RouterLink" :value="to.name" :to>
+          {{ name }}
+        </TabButton>
+      </template>
+
+      <template #contents>
+        <TabContent v-for="{ name, to } in routes" :key="name" class="mt-4 grow" :value="to.name">
+          <RouterView class="h-full" />
+        </TabContent>
+      </template>
+    </Tabs>
+
+    <RouterView v-if="!hasMatchingTab" class="grow" />
   </div>
 </template>
