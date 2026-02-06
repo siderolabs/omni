@@ -17,7 +17,7 @@ const DefaultTalosVersion = "1.12.1"
 
 // MinTalosVersion allowed to be used when creating the cluster.
 // tsgen:MinTalosVersion
-const MinTalosVersion = "1.7.0"
+const MinTalosVersion = "1.8.0"
 
 const (
 	// TalosRegistry is the default Talos repository URL.
