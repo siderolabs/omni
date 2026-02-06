@@ -39,6 +39,7 @@ var UserManagedResourceTypes = []resource.Type{
 	omni.InfraMachineConfigType,
 	omni.InstallationMediaConfigType,
 	omni.NodeForceDestroyRequestType,
+	omni.KubernetesManifestType,
 	infra.ProviderType,
 	omni.RotateTalosCAType,
 }
