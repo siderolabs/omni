@@ -33,8 +33,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
-	"github.com/siderolabs/omni/internal/backend/runtime"
-	kubernetesruntime "github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -451,16 +449,7 @@ func (s *managementServer) getTalosClient(ctx context.Context, clusterName strin
 }
 
 func (s *managementServer) getKubernetesClient(ctx context.Context, clusterName string) (*kubernetes.Clientset, error) {
-	type kubeRuntime interface {
-		GetClient(ctx context.Context, cluster string) (*kubernetesruntime.Client, error)
-	}
-
-	k8s, err := runtime.LookupInterface[kubeRuntime](kubernetesruntime.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := k8s.GetClient(ctx, clusterName)
+	client, err := s.kubernetesRuntime.GetClient(ctx, clusterName)
 	if err != nil {
 		return nil, err
 	}

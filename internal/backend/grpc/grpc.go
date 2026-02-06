@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
+	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/memconn"
 	"github.com/siderolabs/omni/internal/pkg/compress"
@@ -58,6 +59,9 @@ func MakeServiceServers(
 	accountName string,
 	k8sProxyURL string,
 	enableBreakGlassConfigs bool,
+	kubernetesRuntime KubernetesRuntime,
+	talosRuntime TalosRuntime,
+	runtimes map[string]runtime.Runtime,
 ) iter.Seq2[ServiceServer, error] {
 	dest, err := generateDest(services.Api.URL())
 	if err != nil {
@@ -80,6 +84,7 @@ func MakeServiceServers(
 	servers := []ServiceServer{
 		newResourceServer(
 			state,
+			runtimes,
 			omniRuntime.GetCOSIRuntime(),
 		),
 		&oidcServer{
@@ -98,6 +103,9 @@ func MakeServiceServers(
 			accountName,
 			k8sProxyURL,
 			enableBreakGlassConfigs,
+			kubernetesRuntime,
+			talosRuntime,
+			omniRuntime,
 		),
 		auth,
 		&COSIResourceServer{

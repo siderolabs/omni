@@ -25,7 +25,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/pkg/check"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -108,10 +107,6 @@ func (suite *MachineSetEtcdAuditSuite) SetupTest() {
 	logger := zaptest.NewLogger(suite.T())
 
 	suite.clientFactory = talos.NewClientFactory(suite.state, logger)
-
-	if _, err := runtime.Get(talos.Name); err != nil {
-		runtime.Install(talos.Name, talos.New(suite.clientFactory, logger, "", ""))
-	}
 
 	suite.startRuntime()
 

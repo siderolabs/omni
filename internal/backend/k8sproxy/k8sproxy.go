@@ -7,12 +7,14 @@
 package k8sproxy
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
+	"k8s.io/client-go/rest"
 
-	"github.com/siderolabs/omni/internal/backend/runtime"
+	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 )
 
@@ -35,9 +37,15 @@ type MiddlewareWrapper interface {
 	Wrap(http.Handler) http.Handler
 }
 
+// KubernetesRuntime provides kubernetes proxy capabilities.
+type KubernetesRuntime interface {
+	RegisterCleanuper(kubernetes.ClusterCleanuper)
+	GetKubeconfig(ctx context.Context, cluster *common.Context) (*rest.Config, error)
+}
+
 // NewHandler creates a new Handler.
-func NewHandler(keyFunc KeyProvider, clusterUUIDResolver ClusterUUIDResolver, wrapper MiddlewareWrapper, logger *zap.Logger) (*Handler, error) {
-	multiplexer := newMultiplexer()
+func NewHandler(keyFunc KeyProvider, clusterUUIDResolver ClusterUUIDResolver, wrapper MiddlewareWrapper, logger *zap.Logger, k8sRuntime KubernetesRuntime) (*Handler, error) {
+	multiplexer := newMultiplexer(k8sRuntime)
 	proxy := wrapper.Wrap(newProxyHandler(multiplexer, logger))
 
 	handler := &Handler{
@@ -45,17 +53,7 @@ func NewHandler(keyFunc KeyProvider, clusterUUIDResolver ClusterUUIDResolver, wr
 		chain:       AuthorizeRequest(proxy, keyFunc, clusterUUIDResolver),
 	}
 
-	type kubeRuntime interface {
-		RegisterCleanuper(kubernetes.ClusterCleanuper)
-	}
-
-	r, err := runtime.LookupInterface[kubeRuntime](kubernetes.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	// register self as  cluster cleanuper
-	r.RegisterCleanuper(handler)
+	k8sRuntime.RegisterCleanuper(handler)
 
 	return handler, nil
 }

@@ -8,21 +8,14 @@ package runtime
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/typed"
 	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/go-api-signature/pkg/message"
-	"google.golang.org/grpc/metadata"
-	"k8s.io/client-go/rest"
 
-	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/runtime"
 )
@@ -91,101 +84,9 @@ func (l *ListResult) Filter(match func(m runtime.ListItem) bool) ListResult {
 	}
 }
 
-// KubeconfigSource is implemented by runtimes that allow getting kubeconfigs.
-type KubeconfigSource interface {
-	GetKubeconfig(context.Context, *common.Context) (*rest.Config, error)
-}
-
-var (
-	runtimeMu sync.RWMutex
-	runtimes  = map[string]Runtime{}
-)
-
-// Install a runtime singleton for a type.
-func Install(name string, runtime Runtime) {
-	runtimeMu.Lock()
-	defer runtimeMu.Unlock()
-
-	runtimes[name] = &proxyRuntime{runtime}
-}
-
-// Get returns runtime for a type.
-func Get(name string) (Runtime, error) { //nolint:ireturn
-	runtimeMu.RLock()
-	defer runtimeMu.RUnlock()
-
-	if runtime, ok := runtimes[name]; ok {
-		return runtime, nil
-	}
-
-	return nil, fmt.Errorf("failed to find the runtime %v", name)
-}
-
-// LookupFromContext looks up the runtime based on the context metadata.
-func LookupFromContext(ctx context.Context) (Runtime, error) { //nolint:ireturn
-	runtime := common.Runtime(-1)
-
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		source := md.Get(message.RuntimeHeaderKey)
-		if len(source) > 0 {
-			if res, ok := common.Runtime_value[source[0]]; ok {
-				runtime = common.Runtime(res)
-			}
-		}
-	}
-
-	if runtime == -1 {
-		return nil, errors.New("missing runtime metadata")
-	}
-
-	return Get(runtime.String())
-}
-
-// LookupInterface looks for a specific implementation in runtimes.
-func LookupInterface[T any](name string) (T, error) {
-	var zero T
-
-	typ := reflect.TypeFor[T]()
-	if typ.Kind() != reflect.Interface {
-		return zero, errors.New("can only be used with interface types")
-	}
-
-	if typ.NumMethod() != 1 {
-		return zero, errors.New("can only be used with interfaces with a single method")
-	}
-
-	runtimeMu.RLock()
-	defer runtimeMu.RUnlock()
-
-	if runtime, ok := runtimes[name]; ok {
-		res, ok := unwrap(runtime).(T)
-		if !ok {
-			return zero, fmt.Errorf("runtime with id %s is not %s", name, typeName(typ))
-		}
-
-		return res, nil
-	}
-
-	return zero, fmt.Errorf("failed to find the runtime %v", name)
-}
-
-func typeName(typ reflect.Type) string {
-	if name := typ.Name(); name != "" {
-		return name
-	}
-
-	return typ.String()
-}
-
-func unwrap(runtime Runtime) Runtime {
-	for {
-		wrapped, ok := runtime.(interface{ Unwrap() Runtime })
-		if !ok {
-			return runtime
-		}
-
-		runtime = wrapped.Unwrap()
-	}
+// NewProxyRuntime wraps a Runtime with sorting, filtering, and pagination support.
+func NewProxyRuntime(r Runtime) Runtime { //nolint:ireturn
+	return &proxyRuntime{r}
 }
 
 // NewBasicResponse creates a new basic response.

@@ -75,8 +75,10 @@ import (
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
 	"github.com/siderolabs/omni/internal/backend/oidc"
-	"github.com/siderolabs/omni/internal/backend/runtime"
+	backendruntime "github.com/siderolabs/omni/internal/backend/runtime"
+	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
+	talosruntime "github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/saml"
 	"github.com/siderolabs/omni/internal/backend/services"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
@@ -105,6 +107,8 @@ import (
 type Server struct {
 	cfg                     *config.Params
 	omniRuntime             *omni.Runtime
+	kubernetesRuntime       *kubernetes.Runtime
+	talosRuntime            *talosruntime.Runtime
 	logHandler              *siderolink.LogHandler
 	logger                  *zap.Logger
 	state                   *omni.State
@@ -138,11 +142,15 @@ func NewServer(
 	logHandler *siderolink.LogHandler,
 	authConfig *authres.Config,
 	logger *zap.Logger,
+	kubernetesRuntime *kubernetes.Runtime,
+	talosRuntime *talosruntime.Runtime,
 ) (*Server, error) {
 	s := &Server{
 		cfg:                     cfg,
 		state:                   state,
 		omniRuntime:             omniRuntime,
+		kubernetesRuntime:       kubernetesRuntime,
+		talosRuntime:            talosRuntime,
 		logger:                  logger.With(logging.Component("server")),
 		logHandler:              logHandler,
 		authConfig:              authConfig,
@@ -167,11 +175,6 @@ func NewServer(
 	}
 
 	return s, nil
-}
-
-// RegisterRuntime adds a runtime.
-func (s *Server) RegisterRuntime(name string, r runtime.Runtime) {
-	runtime.Install(name, r)
 }
 
 // Run runs everything.
@@ -212,6 +215,12 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
+	runtimes := map[string]backendruntime.Runtime{
+		kubernetes.Name:   backendruntime.NewProxyRuntime(s.kubernetesRuntime),
+		talosruntime.Name: backendruntime.NewProxyRuntime(s.talosRuntime),
+		omni.Name:         backendruntime.NewProxyRuntime(s.omniRuntime),
+	}
+
 	servicesServer := grpcomni.MakeServiceServers(
 		s.state.Default(),
 		s.omniRuntime,
@@ -227,6 +236,9 @@ func (s *Server) Run(ctx context.Context) error {
 		s.cfg.Account.GetName(),
 		s.cfg.Services.KubernetesProxy.URL(),
 		s.cfg.Features.GetEnableBreakGlassConfigs(),
+		s.kubernetesRuntime,
+		s.talosRuntime,
+		runtimes,
 	)
 
 	actualSrv, gtwyDialsTo, err := s.serverAndGateway(ctx, servicesServer, mux, serverOptions...)
@@ -995,7 +1007,7 @@ func (s *Server) runK8sProxyServer(
 		return uuid.TypedSpec().Value.Uuid, nil
 	}
 
-	k8sProxyHandler, err := k8sproxy.NewHandler(keyFunc, clusterUUIDResolver, s.state.Auditor(), s.logger)
+	k8sProxyHandler, err := k8sproxy.NewHandler(keyFunc, clusterUUIDResolver, s.state.Auditor(), s.logger, s.kubernetesRuntime)
 	if err != nil {
 		return err
 	}

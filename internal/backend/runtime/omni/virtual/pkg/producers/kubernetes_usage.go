@@ -25,7 +25,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/logging"
-	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	resourcehelper "github.com/siderolabs/omni/internal/pkg/kubernetes/resource"
 )
@@ -69,37 +68,35 @@ type KubernetesUsage struct {
 	wg      sync.WaitGroup
 }
 
-// NewKubernetesUsage starts virtual watch on the KubernetesUsage resource.
+// KubernetesClientGetter gets Kubernetes clients for clusters.
+type KubernetesClientGetter interface {
+	GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
+}
+
+// NewKubernetesUsageFactory returns a ProducerFactory that starts virtual watch on the KubernetesUsage resource.
 // The resource is computed from the multiple Kubernetes watches.
-func NewKubernetesUsage(ctx context.Context, state state.State, ptr resource.Pointer, logger *zap.Logger) (Producer, error) {
-	type kubernetesClient interface {
-		GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
+func NewKubernetesUsageFactory(kr KubernetesClientGetter) func(ctx context.Context, state state.State, ptr resource.Pointer, logger *zap.Logger) (Producer, error) {
+	return func(ctx context.Context, state state.State, ptr resource.Pointer, logger *zap.Logger) (Producer, error) {
+		p, ok := ptr.(*kubernetesUsagePointer)
+		if !ok {
+			return nil, errors.New("failed to get kubernetes client: cluster name can not be resolved")
+		}
+
+		client, err := kr.GetClient(ctx, p.ClusterName())
+		if err != nil {
+			return nil, err
+		}
+
+		factory := informers.NewSharedInformerFactory(client.Clientset(), 0)
+
+		return &KubernetesUsage{
+			ptr:     ptr,
+			factory: factory,
+			stopCh:  make(chan struct{}),
+			logger:  logger.With(logging.Component("compute_kubernetes_usage")),
+			state:   state,
+		}, nil
 	}
-
-	r, err := runtime.LookupInterface[kubernetesClient](kubernetes.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	p, ok := ptr.(*kubernetesUsagePointer)
-	if !ok {
-		return nil, errors.New("failed to get kubernetes client: cluster name can not be resolved")
-	}
-
-	client, err := r.GetClient(ctx, p.ClusterName())
-	if err != nil {
-		return nil, err
-	}
-
-	factory := informers.NewSharedInformerFactory(client.Clientset(), 0)
-
-	return &KubernetesUsage{
-		ptr:     ptr,
-		factory: factory,
-		stopCh:  make(chan struct{}),
-		logger:  logger.With(logging.Component("compute_kubernetes_usage")),
-		state:   state,
-	}, nil
 }
 
 // Start implements Producer interface.

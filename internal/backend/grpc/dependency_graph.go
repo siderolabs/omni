@@ -36,7 +36,7 @@ func (s *ResourceServer) Controllers(ctx context.Context, _ *resources.Controlle
 		return nil, err
 	}
 
-	graph, err := s.runtime.GetDependencyGraph()
+	graph, err := s.depGrapher.GetDependencyGraph()
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (s *ResourceServer) DependencyGraph(ctx context.Context, req *resources.Dep
 		return nil, err
 	}
 
-	graph, err := s.runtime.GetDependencyGraph()
+	graph, err := s.depGrapher.GetDependencyGraph()
 	if err != nil {
 		return nil, err
 	}

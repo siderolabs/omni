@@ -31,15 +31,17 @@ const ClusterMachineTeardownControllerName = "ClusterMachineTeardownController"
 
 // ClusterMachineTeardownController processes additional teardown steps for a machine leaving a machine set.
 type ClusterMachineTeardownController struct {
+	getKubernetesClient GetKubernetesClientFunc
 	generic.NamedController
 }
 
 // NewClusterMachineTeardownController initializes ClusterMachineTeardownController.
-func NewClusterMachineTeardownController() *ClusterMachineTeardownController {
+func NewClusterMachineTeardownController(getKubernetesClient GetKubernetesClientFunc) *ClusterMachineTeardownController {
 	return &ClusterMachineTeardownController{
 		NamedController: generic.NamedController{
 			ControllerName: ClusterMachineTeardownControllerName,
 		},
+		getKubernetesClient: getKubernetesClient,
 	}
 }
 
@@ -256,7 +258,7 @@ func (ctrl *ClusterMachineTeardownController) deleteNodeFromKubernetes(ctx conte
 		return fmt.Errorf("cluster machine %q doesn't have cluster label set", clusterMachine.Metadata().ID())
 	}
 
-	kubeClient, err := getKubernetesClient(ctx, clusterName)
+	kubeClient, err := ctrl.getKubernetesClient(ctx, clusterName)
 	if err != nil {
 		return fmt.Errorf("error getting kubernetes client: %w", err)
 	}

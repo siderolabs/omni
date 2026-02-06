@@ -47,7 +47,6 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
-	rt "github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
@@ -381,8 +380,6 @@ func (suite *OmniSuite) SetupTest() {
 
 	suite.kubernetesRuntime, err = kubernetes.NewWithTTL(suite.state, 0, "", "", "")
 	suite.Require().NoError(err)
-
-	rt.Install(kubernetes.Name, suite.kubernetesRuntime)
 
 	if suite.disableConnections {
 		return

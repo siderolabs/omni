@@ -24,7 +24,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 )
 
@@ -45,10 +44,6 @@ func NewKubernetesNodeAuditController(getKubernetesClientFunc GetKubernetesClien
 	auditor := &nodeAuditor{
 		deleteOlderThan: deleteOlderThan,
 		requeueAfter:    requeueAfter,
-	}
-
-	if getKubernetesClientFunc == nil {
-		getKubernetesClientFunc = getKubernetesClient
 	}
 
 	return qtransform.NewQController(
@@ -283,20 +278,16 @@ func (auditor *nodeAuditor) unmarkNodesAsInvalid(cluster string, nodes []string)
 	}
 }
 
-func getKubernetesClient(ctx context.Context, cluster string) (KubernetesClient, error) {
-	k8s, err := runtime.LookupInterface[kubernetesRuntime](kubernetes.Name)
-	if err != nil {
-		return nil, err
-	}
+// NewGetKubernetesClientFunc creates a GetKubernetesClientFunc from a KubernetesRuntime.
+func NewGetKubernetesClientFunc(kr KubernetesRuntime) GetKubernetesClientFunc {
+	return func(ctx context.Context, cluster string) (KubernetesClient, error) {
+		k8sClient, err := kr.GetClient(ctx, cluster)
+		if err != nil {
+			return nil, fmt.Errorf("error getting kubernetes client for cluster %q: %w", cluster, err)
+		}
 
-	k8sClient, err := k8s.GetClient(ctx, cluster)
-	if err != nil {
-		return nil, fmt.Errorf("error getting kubernetes client for cluster %q: %w", cluster, err)
+		return &kubernetesClient{client: k8sClient}, nil
 	}
-
-	return &kubernetesClient{
-		client: k8sClient,
-	}, nil
 }
 
 type kubernetesClient struct {

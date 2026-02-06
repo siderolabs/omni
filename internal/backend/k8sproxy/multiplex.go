@@ -22,15 +22,18 @@ import (
 	"k8s.io/client-go/util/connrotation"
 
 	"github.com/siderolabs/omni/client/api/common"
-	"github.com/siderolabs/omni/internal/backend/runtime"
-	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
+type kubeconfigGetter interface {
+	GetKubeconfig(ctx context.Context, cluster *common.Context) (*rest.Config, error)
+}
+
 // multiplexer provides an http.RoundTripper which selects the cluster based on the request context.
 type multiplexer struct {
-	connectors *expirable.LRU[string, *clusterConnector]
-	sf         singleflight.Group
+	kubeconfigGetter kubeconfigGetter
+	connectors       *expirable.LRU[string, *clusterConnector]
+	sf               singleflight.Group
 
 	metricCacheSize                    prometheus.Gauge
 	metricCacheHits, metricCacheMisses prometheus.Counter
@@ -48,8 +51,9 @@ type clusterConnector struct {
 	apiHost   string
 }
 
-func newMultiplexer() *multiplexer {
+func newMultiplexer(kubeconfigGetter kubeconfigGetter) *multiplexer {
 	return &multiplexer{
+		kubeconfigGetter: kubeconfigGetter,
 		connectors: expirable.NewLRU[string, *clusterConnector](
 			k8sConnectorLRUSize,
 			func(_ string, connector *clusterConnector) {
@@ -113,16 +117,7 @@ func (m *multiplexer) getClusterConnector(ctx context.Context, clusterName strin
 	}
 
 	ch := m.sf.DoChan(clusterName, func() (any, error) {
-		type kubeRuntime interface {
-			GetKubeconfig(ctx context.Context, cluster *common.Context) (*rest.Config, error)
-		}
-
-		k8s, err := runtime.LookupInterface[kubeRuntime](kubernetes.Name)
-		if err != nil {
-			return nil, err
-		}
-
-		restConfig, err := k8s.GetKubeconfig(ctx, &common.Context{Name: clusterName})
+		restConfig, err := m.kubeconfigGetter.GetKubeconfig(ctx, &common.Context{Name: clusterName})
 		if err != nil {
 			return nil, fmt.Errorf("error getting kubeconfig: %w", err)
 		}

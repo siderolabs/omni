@@ -11,7 +11,7 @@ import (
 	"errors"
 	"time"
 
-	cosiruntime "github.com/cosi-project/runtime/pkg/controller/runtime"
+	"github.com/cosi-project/runtime/pkg/controller"
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -30,18 +30,49 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime"
 )
 
-func newResourceServer(state state.State, runtime *cosiruntime.Runtime) *ResourceServer {
+// DependencyGrapher provides access to the controller dependency graph.
+type DependencyGrapher interface {
+	GetDependencyGraph() (*controller.DependencyGraph, error)
+}
+
+func newResourceServer(state state.State, runtimes map[string]runtime.Runtime, depGrapher DependencyGrapher) *ResourceServer {
 	return &ResourceServer{
-		runtime: runtime,
-		state:   state,
+		runtimes:   runtimes,
+		state:      state,
+		depGrapher: depGrapher,
 	}
 }
 
 // ResourceServer implements resources CRUD API.
 type ResourceServer struct {
 	resources.UnimplementedResourceServiceServer
-	runtime *cosiruntime.Runtime
-	state   state.State
+	runtimes   map[string]runtime.Runtime
+	depGrapher DependencyGrapher
+	state      state.State
+}
+
+func (s *ResourceServer) lookupFromContext(ctx context.Context) (runtime.Runtime, error) { //nolint:ireturn
+	rt := common.Runtime(-1)
+
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		source := md.Get(message.RuntimeHeaderKey)
+		if len(source) > 0 {
+			if res, ok := common.Runtime_value[source[0]]; ok {
+				rt = common.Runtime(res)
+			}
+		}
+	}
+
+	if rt == -1 {
+		return nil, status.Error(codes.InvalidArgument, "missing runtime metadata")
+	}
+
+	r, ok := s.runtimes[rt.String()]
+	if !ok {
+		return nil, status.Errorf(codes.InvalidArgument, "unknown runtime %q", rt.String())
+	}
+
+	return r, nil
 }
 
 func (s *ResourceServer) register(server grpc.ServiceRegistrar) {
@@ -54,7 +85,7 @@ func (s *ResourceServer) gateway(ctx context.Context, mux *gateway.ServeMux, add
 
 // Get returns resource from cluster using Talos or Kubernetes.
 func (s *ResourceServer) Get(ctx context.Context, in *resources.GetRequest) (*resources.GetResponse, error) {
-	r, err := runtime.LookupFromContext(ctx)
+	r, err := s.lookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +121,7 @@ func (s *ResourceServer) Get(ctx context.Context, in *resources.GetRequest) (*re
 
 // List returns resources from cluster using Talos or Kubernetes.
 func (s *ResourceServer) List(ctx context.Context, in *resources.ListRequest) (*resources.ListResponse, error) {
-	r, err := runtime.LookupFromContext(ctx)
+	r, err := s.lookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +185,7 @@ func (s *ResourceServer) Watch(in *resources.WatchRequest, serv grpc.ServerStrea
 	ctx, cancel := context.WithCancel(serv.Context())
 	defer cancel()
 
-	r, err := runtime.LookupFromContext(ctx)
+	r, err := s.lookupFromContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -226,7 +257,7 @@ func (s *ResourceServer) Watch(in *resources.WatchRequest, serv grpc.ServerStrea
 
 // Create a new resource in Omni runtime or Kubernetes.
 func (s *ResourceServer) Create(ctx context.Context, in *resources.CreateRequest) (*resources.CreateResponse, error) {
-	r, err := runtime.LookupFromContext(ctx)
+	r, err := s.lookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +278,7 @@ func (s *ResourceServer) Create(ctx context.Context, in *resources.CreateRequest
 
 // Update a resource in Omni runtime or Kubernetes.
 func (s *ResourceServer) Update(ctx context.Context, in *resources.UpdateRequest) (*resources.UpdateResponse, error) {
-	r, err := runtime.LookupFromContext(ctx)
+	r, err := s.lookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +303,7 @@ func (s *ResourceServer) Update(ctx context.Context, in *resources.UpdateRequest
 
 // Delete a resource in Omni runtime or Kubernetes.
 func (s *ResourceServer) Delete(ctx context.Context, in *resources.DeleteRequest) (*resources.DeleteResponse, error) {
-	r, err := runtime.LookupFromContext(ctx)
+	r, err := s.lookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +325,7 @@ func (s *ResourceServer) Delete(ctx context.Context, in *resources.DeleteRequest
 
 // Teardown a resource in Omni runtime.
 func (s *ResourceServer) Teardown(ctx context.Context, in *resources.DeleteRequest) (*resources.DeleteResponse, error) {
-	r, err := runtime.LookupFromContext(ctx)
+	r, err := s.lookupFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -26,7 +26,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
-	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
@@ -58,9 +57,6 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	prometheus.MustRegister(talosClientFactory)
 	prometheus.MustRegister(kubernetesRuntime)
-
-	runtime.Install(kubernetes.Name, kubernetesRuntime)
-	runtime.Install(talos.Name, talosRuntime)
 
 	grpc_prometheus.EnableHandlingTimeHistogram(grpc_prometheus.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 1, 10, 30, 60, 120, 300, 600}))
 
@@ -100,13 +96,11 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	omniRuntime, err := omni.NewRuntime(cfg, talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
 		imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
-		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime, logger.With(logging.Component("omni_runtime")),
+		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime, talosRuntime, logger.With(logging.Component("omni_runtime")),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to set up the controller runtime: %w", err)
 	}
-
-	runtime.Install(omni.Name, omniRuntime)
 
 	err = user.EnsureInitialResources(ctx, state.Default(), logger, cfg.Auth.InitialUsers)
 	if err != nil {
@@ -171,6 +165,8 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		logHandler,
 		authConfig,
 		logger,
+		kubernetesRuntime,
+		talosRuntime,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)
