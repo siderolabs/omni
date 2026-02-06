@@ -8211,7 +8211,6 @@ type KubernetesManifestGroupSpec struct {
 	CompressedData []byte `protobuf:"bytes,1,opt,name=compressed_data,json=compressedData,proto3" json:"compressed_data,omitempty"`
 	// Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
 	Data          string                           `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	Namespace     string                           `protobuf:"bytes,3,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	Mode          KubernetesManifestGroupSpec_Mode `protobuf:"varint,4,opt,name=mode,proto3,enum=specs.KubernetesManifestGroupSpec_Mode" json:"mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -8257,13 +8256,6 @@ func (x *KubernetesManifestGroupSpec) GetCompressedData() []byte {
 func (x *KubernetesManifestGroupSpec) GetData() string {
 	if x != nil {
 		return x.Data
-	}
-	return ""
-}
-
-func (x *KubernetesManifestGroupSpec) GetNamespace() string {
-	if x != nil {
-		return x.Namespace
 	}
 	return ""
 }
@@ -11871,16 +11863,15 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x04Type\x12\b\n" +
 	"\x04INFO\x10\x00\x12\v\n" +
 	"\aWARNING\x10\x01\x12\t\n" +
-	"\x05ERROR\x10\x02\"\xe2\x01\n" +
+	"\x05ERROR\x10\x02\"\xca\x01\n" +
 	"\x1bKubernetesManifestGroupSpec\x12'\n" +
 	"\x0fcompressed_data\x18\x01 \x01(\fR\x0ecompressedData\x12\x12\n" +
-	"\x04data\x18\x02 \x01(\tR\x04data\x12\x1c\n" +
-	"\tnamespace\x18\x03 \x01(\tR\tnamespace\x12;\n" +
+	"\x04data\x18\x02 \x01(\tR\x04data\x12;\n" +
 	"\x04mode\x18\x04 \x01(\x0e2'.specs.KubernetesManifestGroupSpec.ModeR\x04mode\"+\n" +
 	"\x04Mode\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\b\n" +
 	"\x04FULL\x10\x01\x12\f\n" +
-	"\bONE_TIME\x10\x02\"\x96\b\n" +
+	"\bONE_TIME\x10\x02J\x04\b\x03\x10\x04\"\x96\b\n" +
 	"$ClusterKubernetesManifestsStatusSpec\x12O\n" +
 	"\x06groups\x18\x01 \x03(\v27.specs.ClusterKubernetesManifestsStatusSpec.GroupsEntryR\x06groups\x12\x1e\n" +
 	"\vout_of_sync\x18\x02 \x01(\x05R\toutOfSync\x12\x14\n" +

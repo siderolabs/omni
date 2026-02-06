@@ -46,6 +46,7 @@ type resources struct {
 	machineSets     map[string]*omni.MachineSet
 	machineSetNodes map[string]*omni.MachineSetNode
 	configPatches   map[string]*omni.ConfigPatch
+	manifests       map[string]*omni.KubernetesManifestGroup
 }
 
 func TestExport(t *testing.T) {
@@ -98,8 +99,9 @@ func assertSync(ctx context.Context, t *testing.T, st state.State, exportedTempl
 	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.machineSets), maps.Keys(resourcesAfterSync.machineSets))
 	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.machineSetNodes), maps.Keys(resourcesAfterSync.machineSetNodes))
 	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.configPatches), maps.Keys(resourcesAfterSync.configPatches))
+	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.manifests), maps.Keys(resourcesAfterSync.manifests))
 
-	// we expect everything other than config patches to be completely unchanged
+	// we expect everything other than config patches and manifests to be completely unchanged
 	assertVersionsUnchanged(t, resourcesBeforeSync.clusters, resourcesAfterSync.clusters)
 	assertVersionsUnchanged(t, resourcesBeforeSync.machineSets, resourcesAfterSync.machineSets)
 	assertVersionsUnchanged(t, resourcesBeforeSync.machineSetNodes, resourcesAfterSync.machineSetNodes)
@@ -158,11 +160,15 @@ func readResources(ctx context.Context, t *testing.T, st state.State) resources 
 	configPatchList, err := safe.StateListAll[*omni.ConfigPatch](ctx, st)
 	require.NoError(t, err)
 
+	manifestList, err := safe.StateListAll[*omni.KubernetesManifestGroup](ctx, st)
+	require.NoError(t, err)
+
 	return resources{
 		clusters:        listToMap(clusterList),
 		machineSets:     listToMap(machineSetList),
 		machineSetNodes: listToMap(machineSetNodeList),
 		configPatches:   listToMap(configPatchList),
+		manifests:       listToMap(manifestList),
 	}
 }
 

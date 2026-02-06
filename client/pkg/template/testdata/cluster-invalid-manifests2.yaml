@@ -1,0 +1,23 @@
+kind: Cluster
+name: bad-manifest-cluster
+kubernetes:
+  version: v1.30.0
+  manifests:
+    - name: both-file-and-inline
+      mode: full
+      file: manifests/nginx-deployment.yaml
+      inline:
+        - apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: test
+talos:
+  version: v1.7.0
+---
+kind: ControlPlane
+machines:
+  - aaaaaaaa-1111-2222-3333-444444444444
+---
+kind: Workers
+machines:
+  - bbbbbbbb-1111-2222-3333-444444444444

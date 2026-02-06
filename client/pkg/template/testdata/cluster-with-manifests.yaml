@@ -1,0 +1,28 @@
+kind: Cluster
+name: manifest-test-cluster
+kubernetes:
+  version: v1.30.0
+  manifests:
+    - name: my-inline-manifest
+      mode: full
+      inline:
+        - apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: my-config
+            namespace: kube-system
+          data:
+            key: value
+    - name: my-file-manifest
+      mode: one-time
+      file: manifests/nginx-deployment.yaml
+talos:
+  version: v1.7.0
+---
+kind: ControlPlane
+machines:
+  - aaaaaaaa-1111-2222-3333-444444444444
+---
+kind: Workers
+machines:
+  - bbbbbbbb-1111-2222-3333-444444444444

@@ -42,6 +42,18 @@ var cluster3 []byte
 //go:embed testdata/cluster-with-kernel-args.yaml
 var clusterWithKernelArgs []byte
 
+//go:embed testdata/cluster-with-manifests.yaml
+var clusterWithManifests []byte
+
+//go:embed testdata/cluster-invalid-manifests1.yaml
+var clusterInvalidManifests1 []byte
+
+//go:embed testdata/cluster-invalid-manifests2.yaml
+var clusterInvalidManifests2 []byte
+
+//go:embed testdata/cluster-invalid-manifests3.yaml
+var clusterInvalidManifests3 []byte
+
 //go:embed testdata/cluster-valid-bootstrapspec.yaml
 var clusterValidBootstrapSpec []byte
 
@@ -84,6 +96,9 @@ var clusterValidBootstrapSpecResources []byte
 //go:embed testdata/cluster-with-kernel-args-resources.yaml
 var clusterWithKernelArgsResources []byte
 
+//go:embed testdata/cluster-with-manifests-resources.yaml
+var clusterWithManifestsResources []byte
+
 func TestLoad(t *testing.T) {
 	for _, tt := range []struct { //nolint:govet
 		name          string
@@ -97,6 +112,10 @@ func TestLoad(t *testing.T) {
 		{
 			name: "cluster2",
 			data: cluster2,
+		},
+		{
+			name: "clusterWithManifests",
+			data: clusterWithManifests,
 		},
 		{
 			name:          "clusterBadYAML1",
@@ -148,6 +167,31 @@ func TestValidate(t *testing.T) {
 		{
 			name: "clusterWithKernelArgs",
 			data: clusterWithKernelArgs,
+		},
+		{
+			name: "clusterWithManifests",
+			data: clusterWithManifests,
+		},
+		{
+			name: "clusterInvalidManifests1",
+			data: clusterInvalidManifests1,
+			expectedError: `1 error occurred:
+	* error validating cluster "bad-manifest-cluster": 1 error occurred:
+	* kubernetes manifest "missing-mode" mode is not set`,
+		},
+		{
+			name: "clusterInvalidManifests2",
+			data: clusterInvalidManifests2,
+			expectedError: `1 error occurred:
+	* error validating cluster "bad-manifest-cluster": 1 error occurred:
+	* path and inline are mutually exclusive`,
+		},
+		{
+			name: "clusterInvalidManifests3",
+			data: clusterInvalidManifests3,
+			expectedError: `1 error occurred:
+	* error validating cluster "bad-manifest-cluster": 1 error occurred:
+	* kubernetes manifest name is empty`,
 		},
 		{
 			name: "clusterInvalid1",
@@ -334,6 +378,11 @@ func TestTranslate(t *testing.T) {
 			template: clusterWithKernelArgs,
 			expected: clusterWithKernelArgsResources,
 		},
+		{
+			name:     "clusterWithManifests",
+			template: clusterWithManifests,
+			expected: clusterWithManifestsResources,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			templ, err := template.Load(bytes.NewReader(tt.template))
@@ -417,6 +466,49 @@ func TestSync(t *testing.T) {
 	assert.Equal(t, []string{
 		"ConfigPatches.omni.sidero.dev(default/400-my-first-cluster-control-planes-kubespan-enabled)",
 	}, xslices.Map(sync2.Create, resource.String))
+}
+
+func TestSync_KubernetesManifests(t *testing.T) {
+	t.Chdir("testdata")
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	ctx := t.Context()
+
+	templ, err := template.Load(bytes.NewReader(clusterWithManifests))
+	require.NoError(t, err)
+
+	syncRes, err := templ.Sync(ctx, st)
+	require.NoError(t, err)
+
+	assert.Empty(t, syncRes.Update)
+	assert.Equal(t, [][]resource.Resource{nil, nil}, syncRes.Destroy)
+
+	// Expect: 1 cluster + 2 manifests + 2 machine sets + 2 machine set nodes = 7
+	assert.Len(t, syncRes.Create, 7)
+
+	// Verify KubernetesManifestGroup resources are in the create list
+	manifestCount := 0
+
+	for _, r := range syncRes.Create {
+		if r.Metadata().Type() == omni.KubernetesManifestGroupType {
+			manifestCount++
+		}
+	}
+
+	assert.Equal(t, 2, manifestCount, "expected 2 KubernetesManifestGroup resources")
+
+	// Apply all creates
+	for _, r := range syncRes.Create {
+		require.NoError(t, st.Create(ctx, r))
+	}
+
+	// Re-sync should be a no-op
+	syncRes2, err := templ.Sync(ctx, st)
+	require.NoError(t, err)
+
+	assert.Empty(t, syncRes2.Create)
+	assert.Empty(t, syncRes2.Update)
+	assert.Equal(t, [][]resource.Resource{nil, nil}, syncRes2.Destroy)
 }
 
 func TestDelete(t *testing.T) {

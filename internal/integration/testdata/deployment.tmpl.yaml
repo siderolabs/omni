@@ -1,15 +1,19 @@
-{{ if .Namespace }}
+{{- if and .Namespace (ne .Namespace "default") }}
 apiVersion: v1
 kind: Namespace
 metadata:
   name: {{ .Namespace }}
-{{ end }}
 ---
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Name }}
+{{- if .Namespace }}
+  namespace: {{ .Namespace }}
+{{- else }}
   namespace: default
+{{- end }}
   labels:
     app.kubernetes.io/name: {{ .Name }}
 spec:

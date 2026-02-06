@@ -639,7 +639,6 @@ func AssertKubernetesManifestsSync(testCtx context.Context, rootClient *client.C
 		nginxFull := omni.NewKubernetesManifestGroup("full-nginx")
 		nginxFull.Metadata().Labels().Set(omni.LabelCluster, clusterName)
 		nginxFull.TypedSpec().Value.Mode = specs.KubernetesManifestGroupSpec_FULL
-		nginxFull.TypedSpec().Value.Namespace = "nginx"
 
 		nginx := renderDeployment(params{Name: "nginx-full", Image: "nginx:latest", Namespace: "nginx"})
 
@@ -678,6 +677,7 @@ func AssertKubernetesManifestsSync(testCtx context.Context, rootClient *client.C
 kind: Service
 metadata:
   name: nginx-full
+  namespace: nginx
 spec:
   selector:
     app.kubernetes.io/name: nginx-full

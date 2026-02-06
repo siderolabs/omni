@@ -7,6 +7,36 @@ labels:
   cluster-label-2: val2
 kubernetes:
   version: v1.28.2
+  manifests:
+    - name: monitoring-config
+      inline:
+        - apiVersion: v1
+          data:
+            prometheus.yaml: |
+              global:
+                scrape_interval: 15s
+          kind: ConfigMap
+          metadata:
+            name: monitoring-config
+            namespace: monitoring
+      mode: full
+    - name: bootstrap-job
+      inline:
+        - apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: bootstrap
+          spec:
+            template:
+              spec:
+                containers:
+                  - command:
+                      - echo
+                      - done
+                    image: busybox
+                    name: bootstrap
+                restartPolicy: Never
+      mode: one-time
 talos:
   version: v1.5.5
 features:

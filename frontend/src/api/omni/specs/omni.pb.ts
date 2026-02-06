@@ -1107,7 +1107,6 @@ export type NotificationSpec = {
 export type KubernetesManifestGroupSpec = {
   compressed_data?: Uint8Array
   data?: string
-  namespace?: string
   mode?: KubernetesManifestGroupSpecMode
 }
 

@@ -5,6 +5,7 @@
 package operations
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -33,6 +34,7 @@ type clusterResources struct {
 	machineSetNodes            map[string][]*omni.MachineSetNode
 	kernelArgs                 map[string]*omni.KernelArgs
 	clusterMachineInstallDisks map[string]string
+	manifests                  []*omni.KubernetesManifestGroup
 
 	cluster *omni.Cluster
 
@@ -52,6 +54,11 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, inclu
 	}
 
 	clusterModel.SystemExtensions = transformExtensions(resources.extensions.cluster)
+
+	clusterModel.Kubernetes.Manifests, err = transformManifestsToModels(resources.manifests)
+	if err != nil {
+		return nil, err
+	}
 
 	var controlPlaneMachineSetModel models.ControlPlane
 
@@ -496,6 +503,22 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 		return clusterResources{}, err
 	}
 
+	manifestList, err := safe.StateListAll[*omni.KubernetesManifestGroup](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterID)))
+	if err != nil {
+		return clusterResources{}, fmt.Errorf("error listing kubernetes manifests of cluster %q: %w", clusterID, err)
+	}
+
+	manifests := make([]*omni.KubernetesManifestGroup, 0, manifestList.Len())
+
+	for manifest := range manifestList.All() {
+		// skip manifests with an owner, as they are not user-defined
+		if manifest.Metadata().Owner() != "" {
+			continue
+		}
+
+		manifests = append(manifests, manifest)
+	}
+
 	return clusterResources{
 		cluster:                    cluster,
 		machineSets:                slices.AppendSeq(make([]*omni.MachineSet, 0, machineSetList.Len()), machineSetList.All()),
@@ -504,6 +527,76 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 		patches:                    patches,
 		extensions:                 extensions,
 		clusterMachineInstallDisks: clusterMachineInstallDisks,
+		manifests:                  manifests,
+	}, nil
+}
+
+func transformManifestsToModels(manifests []*omni.KubernetesManifestGroup) (models.KubernetesManifestsList, error) {
+	if len(manifests) == 0 {
+		return nil, nil
+	}
+
+	// sort by resource ID to preserve the original weight ordering
+	slices.SortFunc(manifests, func(a, b *omni.KubernetesManifestGroup) int {
+		return strings.Compare(a.Metadata().ID(), b.Metadata().ID())
+	})
+
+	result := make(models.KubernetesManifestsList, 0, len(manifests))
+
+	for _, manifest := range manifests {
+		m, err := transformManifestToModel(manifest)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, m)
+	}
+
+	return result, nil
+}
+
+func transformManifestToModel(manifest *omni.KubernetesManifestGroup) (models.KubernetesManifest, error) {
+	buffer, err := manifest.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return models.KubernetesManifest{}, err
+	}
+
+	defer buffer.Free()
+
+	var inline []map[string]any
+
+	dec := yaml.NewDecoder(bytes.NewReader(buffer.Data()))
+
+	for {
+		var doc map[string]any
+
+		if err := dec.Decode(&doc); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return models.KubernetesManifest{}, fmt.Errorf("error decoding manifest %q: %w", manifest.Metadata().ID(), err)
+		}
+
+		inline = append(inline, doc)
+	}
+
+	name, ok := manifest.Metadata().Annotations().Get(omni.KubernetesManifestName)
+	if !ok {
+		return models.KubernetesManifest{}, fmt.Errorf("manifest %q has no name annotation", manifest.Metadata().ID())
+	}
+
+	descriptors := getUserDescriptors(manifest)
+
+	// the "name" annotation is set internally by the manifest translator,
+	// remove it as it's already extracted into the Name field.
+	delete(descriptors.Annotations, omni.KubernetesManifestName)
+
+	return models.KubernetesManifest{
+		Name:        name,
+		Mode:        models.KubernetesManifestMode(manifest.TypedSpec().Value.Mode),
+		Inline:      inline,
+		Descriptors: descriptors,
 	}, nil
 }
 

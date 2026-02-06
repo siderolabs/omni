@@ -78,6 +78,7 @@ export const UpdateLocked = "omni.sidero.dev/locked-update";
 export const ResourceManagedByClusterTemplates = "omni.sidero.dev/managed-by-cluster-templates";
 export const ConfigPatchName = "name";
 export const ConfigPatchDescription = "description";
+export const KubernetesManifestName = "name";
 export const ClusterLocked = "omni.sidero.dev/cluster-locked";
 export const ClusterImportIsInProgress = "omni.sidero.dev/cluster-import-is-in-progress";
 export const KernelArgsInitialized = "omni.sidero.dev/kernel-args-initialized";

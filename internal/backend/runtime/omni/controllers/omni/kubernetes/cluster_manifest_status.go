@@ -242,7 +242,7 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 
 		var manifests []*unstructured.Unstructured
 
-		manifests, err = ctrl.readManifests(res, client)
+		manifests, err = ctrl.readManifests(res)
 		if err != nil {
 			return err
 		}
@@ -463,26 +463,13 @@ func (ctrl *ClusterManifestsStatusController) reconcileTearingDown(ctx context.C
 	return r.RemoveFinalizer(ctx, cluster.Metadata(), ctrl.Name())
 }
 
-func (ctrl *ClusterManifestsStatusController) readManifests(res *omni.KubernetesManifestGroup, client *kubernetes.Client) ([]*unstructured.Unstructured, error) {
+func (ctrl *ClusterManifestsStatusController) readManifests(res *omni.KubernetesManifestGroup) ([]*unstructured.Unstructured, error) {
 	manifests, err := res.TypedSpec().Value.GetManifests()
 	if err != nil {
 		return nil, err
 	}
 
 	for _, obj := range manifests {
-		if res.TypedSpec().Value.Namespace != "" {
-			gvk := obj.GroupVersionKind()
-
-			mapping, err := client.Mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-			if err != nil {
-				return nil, err
-			}
-
-			if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
-				obj.SetNamespace(res.TypedSpec().Value.Namespace)
-			}
-		}
-
 		annotations := obj.GetAnnotations()
 
 		if annotations == nil {

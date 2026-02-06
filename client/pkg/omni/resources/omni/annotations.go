@@ -25,6 +25,10 @@ const (
 	// tsgen:ConfigPatchDescription
 	ConfigPatchDescription = "description"
 
+	// KubernetesManifestName is the human readable manifest name.
+	// tsgen:KubernetesManifestName
+	KubernetesManifestName = "name"
+
 	// PreserveDiskQuotaSupport marks the cluster machine to alter the config generation for it.
 	// It forces the config patch that enables diskQuotaSupport feature.
 	PreserveDiskQuotaSupport = SystemLabelPrefix + "preserve-disk-quota-support"

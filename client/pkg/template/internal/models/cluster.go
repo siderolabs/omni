@@ -71,6 +71,8 @@ type BackupConfiguration struct {
 type KubernetesCluster struct {
 	// Version is the Kubernetes version.
 	Version string `yaml:"version"`
+	// Manifests allow defining Kubernetes manifests to be applied to the deployed Omni cluster.
+	Manifests KubernetesManifestsList `yaml:"manifests,omitempty"`
 }
 
 // TalosCluster is a Talos cluster settings.
@@ -103,6 +105,10 @@ func (cluster *Cluster) Validate() error {
 		multiErr = multierror.Append(multiErr, err)
 	}
 
+	if err := cluster.Kubernetes.Manifests.Validate(); err != nil {
+		multiErr = multierror.Append(multiErr, err)
+	}
+
 	if multiErr != nil {
 		return fmt.Errorf("error validating cluster %q: %w", cluster.Name, multiErr)
 	}
@@ -131,6 +137,13 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 		return nil, err
 	}
 
+	manifests, err := cluster.Kubernetes.Manifests.Translate(fmt.Sprintf("cluster-%s", cluster.Name), constants.PatchBaseWeightCluster,
+		pair.MakePair(omni.LabelCluster, cluster.Name),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	if clusterResource.TypedSpec().Value.Features == nil {
 		clusterResource.TypedSpec().Value.Features = &specs.ClusterSpec_Features{}
 	}
@@ -142,6 +155,7 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 	}
 
 	resourceList := append([]resource.Resource{clusterResource}, patches...)
+	resourceList = append(resourceList, manifests...)
 
 	schematicConfigurations := cluster.translate(
 		ctx,

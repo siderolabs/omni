@@ -1,0 +1,156 @@
+metadata:
+    namespace: default
+    type: Clusters.omni.sidero.dev
+    id: manifest-test-cluster
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    annotations:
+        omni.sidero.dev/managed-by-cluster-templates:
+spec:
+    kubernetesversion: 1.30.0
+    talosversion: 1.7.0
+    features:
+        enableworkloadproxy: false
+        diskencryption: false
+        useembeddeddiscoveryservice: false
+    backupconfiguration: null
+---
+metadata:
+    namespace: default
+    type: KubernetesManifestGroups.omni.sidero.dev
+    id: 200-cluster-manifest-test-cluster-my-inline-manifest
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: manifest-test-cluster
+    annotations:
+        name: my-inline-manifest
+spec:
+    compresseddata: []
+    data: |
+        apiVersion: v1
+        data:
+            key: value
+        kind: ConfigMap
+        metadata:
+            name: my-config
+            namespace: kube-system
+    mode: 1
+---
+metadata:
+    namespace: default
+    type: KubernetesManifestGroups.omni.sidero.dev
+    id: 201-cluster-manifest-test-cluster-my-file-manifest
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: manifest-test-cluster
+    annotations:
+        name: my-file-manifest
+spec:
+    compresseddata: []
+    data: |
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: nginx-deployment
+          namespace: default
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: nginx
+          template:
+            metadata:
+              labels:
+                app: nginx
+            spec:
+              containers:
+                - name: nginx
+                  image: nginx:latest
+    mode: 2
+---
+metadata:
+    namespace: default
+    type: MachineSets.omni.sidero.dev
+    id: manifest-test-cluster-control-planes
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: manifest-test-cluster
+        omni.sidero.dev/role-controlplane:
+spec:
+    updatestrategy: 1
+    machineclass: null
+    bootstrapspec: null
+    deletestrategy: 0
+    updatestrategyconfig: null
+    deletestrategyconfig: null
+    machineallocation: null
+    upgradestrategy: 0
+    upgradestrategyconfig: null
+---
+metadata:
+    namespace: default
+    type: MachineSetNodes.omni.sidero.dev
+    id: aaaaaaaa-1111-2222-3333-444444444444
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: manifest-test-cluster
+        omni.sidero.dev/machine-set: manifest-test-cluster-control-planes
+        omni.sidero.dev/role-controlplane:
+spec: {}
+---
+metadata:
+    namespace: default
+    type: MachineSets.omni.sidero.dev
+    id: manifest-test-cluster-workers
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: manifest-test-cluster
+        omni.sidero.dev/role-worker:
+spec:
+    updatestrategy: 1
+    machineclass: null
+    bootstrapspec: null
+    deletestrategy: 0
+    updatestrategyconfig: null
+    deletestrategyconfig: null
+    machineallocation: null
+    upgradestrategy: 0
+    upgradestrategyconfig: null
+---
+metadata:
+    namespace: default
+    type: MachineSetNodes.omni.sidero.dev
+    id: bbbbbbbb-1111-2222-3333-444444444444
+    version: undefined
+    owner:
+    phase: running
+    created: 0001-01-01T00:00:00Z
+    updated: 0001-01-01T00:00:00Z
+    labels:
+        omni.sidero.dev/cluster: manifest-test-cluster
+        omni.sidero.dev/machine-set: manifest-test-cluster-workers
+        omni.sidero.dev/role-worker:
+spec: {}

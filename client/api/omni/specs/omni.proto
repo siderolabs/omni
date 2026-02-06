@@ -1648,7 +1648,7 @@ message KubernetesManifestGroupSpec {
   bytes compressed_data = 1;
   // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   string data = 2;
-  string namespace = 3;
+  reserved 3;
   Mode mode = 4;
 }
 

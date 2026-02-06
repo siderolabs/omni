@@ -3137,7 +3137,6 @@ func (m *KubernetesManifestGroupSpec) CloneVT() *KubernetesManifestGroupSpec {
 	}
 	r := new(KubernetesManifestGroupSpec)
 	r.Data = m.Data
-	r.Namespace = m.Namespace
 	r.Mode = m.Mode
 	if rhs := m.CompressedData; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
@@ -7508,9 +7507,6 @@ func (this *KubernetesManifestGroupSpec) EqualVT(that *KubernetesManifestGroupSp
 		return false
 	}
 	if this.Data != that.Data {
-		return false
-	}
-	if this.Namespace != that.Namespace {
 		return false
 	}
 	if this.Mode != that.Mode {
@@ -16070,13 +16066,6 @@ func (m *KubernetesManifestGroupSpec) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i--
 		dAtA[i] = 0x20
 	}
-	if len(m.Namespace) > 0 {
-		i -= len(m.Namespace)
-		copy(dAtA[i:], m.Namespace)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Namespace)))
-		i--
-		dAtA[i] = 0x1a
-	}
 	if len(m.Data) > 0 {
 		i -= len(m.Data)
 		copy(dAtA[i:], m.Data)
@@ -19608,10 +19597,6 @@ func (m *KubernetesManifestGroupSpec) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.Data)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	l = len(m.Namespace)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -41109,38 +41094,6 @@ func (m *KubernetesManifestGroupSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Data = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Namespace", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Namespace = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 4:
 			if wireType != 0 {

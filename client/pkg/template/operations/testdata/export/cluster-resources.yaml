@@ -640,3 +640,64 @@ metadata:
 spec:
   extensions:
     - something-custom
+---
+
+
+
+################################ Kubernetes Manifests
+metadata:
+  namespace: default
+  type: KubernetesManifestGroups.omni.sidero.dev
+  id: 200-cluster-export-test-monitoring-config
+  version: 1
+  owner:
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 2023-12-07T13:39:44Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+  annotations:
+    name: monitoring-config
+spec:
+  data: |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: monitoring-config
+      namespace: monitoring
+    data:
+      prometheus.yaml: |
+        global:
+          scrape_interval: 15s
+  compresseddata: []
+  mode: 1
+---
+metadata:
+  namespace: default
+  type: KubernetesManifestGroups.omni.sidero.dev
+  id: 201-cluster-export-test-bootstrap-job
+  version: 1
+  owner:
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 2023-12-07T13:39:44Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+  annotations:
+    name: bootstrap-job
+spec:
+  data: |
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: bootstrap
+    spec:
+      template:
+        spec:
+          containers:
+            - name: bootstrap
+              image: busybox
+              command: ["echo", "done"]
+          restartPolicy: Never
+  compresseddata: []
+  mode: 2

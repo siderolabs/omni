@@ -164,6 +164,7 @@ func (t *Template) actualResources(ctx context.Context, st state.State, expected
 		omni.MachineSetNodeType,
 		omni.ConfigPatchType,
 		omni.ExtensionsConfigurationType,
+		omni.KubernetesManifestGroupType,
 	} {
 		items, err := st.List(
 			ctx,
