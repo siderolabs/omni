@@ -273,6 +273,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: changeClusterMachineConfigPatchesOwner,
 				name:     "changeClusterMachineConfigPatchesOwner",
 			},
+			{
+				callback: moveSchematicCacheToEphemeral,
+				name:     "moveSchematicCacheToEphemeral",
+			},
 		},
 	}
 }

@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/protobuf"
+	"github.com/cosi-project/runtime/pkg/resource/typed"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
@@ -22,6 +24,7 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -344,6 +347,31 @@ func (suite *MigrationSuite) TestChangeClusterMachineConfigPatchesOwner() {
 
 	suite.Assert().Equal(owner, cmcpTearingDown.Metadata().Owner())
 	suite.Assert().Equal(resource.PhaseTearingDown, cmcpTearingDown.Metadata().Phase())
+}
+
+func (suite *MigrationSuite) TestMoveSchematicCacheToEphemeral() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	// Create Schematic resources in DefaultNamespace to simulate pre-migration state.
+	// omni.NewSchematic() now creates in EphemeralNamespace, so we construct them manually.
+	newSchematic := func(id string) *omni.Schematic {
+		return typed.NewResource[omni.SchematicSpec, omni.SchematicExtension](
+			resource.NewMetadata(resources.DefaultNamespace, omni.SchematicType, id, resource.VersionUndefined),
+			protobuf.NewResourceSpec(&specs.SchematicSpec{}),
+		)
+	}
+
+	suite.Require().NoError(suite.state.Create(ctx, newSchematic("schematic1")))
+	suite.Require().NoError(suite.state.Create(ctx, newSchematic("schematic2")))
+
+	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("moveSchematicCacheToEphemeral")))
+	suite.Require().NoError(err)
+
+	// Verify all schematics are removed from the default namespace.
+	list, err := suite.state.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.SchematicType, "", resource.VersionUndefined))
+	suite.Require().NoError(err)
+	suite.Assert().Empty(list.Items, "expected no schematics in default namespace after migration")
 }
 
 func TestMigrationSuite(t *testing.T) {

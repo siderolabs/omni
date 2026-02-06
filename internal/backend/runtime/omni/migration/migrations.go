@@ -231,3 +231,28 @@ func changeClusterMachineConfigPatchesOwner(ctx context.Context, st state.State,
 
 	return nil
 }
+
+func moveSchematicCacheToEphemeral(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	kind := resource.NewMetadata(
+		resources.DefaultNamespace,
+		omni.SchematicType,
+		"",
+		resource.VersionUndefined,
+	)
+
+	list, err := st.List(ctx, kind)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("cleaning up schematics from default namespace", zap.Int("count", len(list.Items)))
+
+	for _, item := range list.Items {
+		err = st.Destroy(ctx, item.Metadata(), state.WithDestroyOwner(item.Metadata().Owner()))
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+	}
+
+	return nil
+}

@@ -17,7 +17,7 @@ import (
 // NewSchematic creates new schematic resource.
 func NewSchematic(id resource.ID) *Schematic {
 	return typed.NewResource[SchematicSpec, SchematicExtension](
-		resource.NewMetadata(resources.DefaultNamespace, SchematicType, id, resource.VersionUndefined),
+		resource.NewMetadata(resources.EphemeralNamespace, SchematicType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.SchematicSpec{}),
 	)
 }
@@ -46,7 +46,7 @@ func (SchematicExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 	return meta.ResourceDefinitionSpec{
 		Type:             SchematicType,
 		Aliases:          []resource.Type{},
-		DefaultNamespace: resources.DefaultNamespace,
+		DefaultNamespace: resources.EphemeralNamespace,
 		PrintColumns:     []meta.PrintColumn{},
 	}
 }
