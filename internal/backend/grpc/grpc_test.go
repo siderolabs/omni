@@ -101,10 +101,9 @@ func (suite *GrpcSuite) SetupTest() {
 	suite.runtime, err = omniruntime.NewRuntime(
 		clientFactory, dnsService, workloadProxyReconciler, nil,
 		imageFactoryClient, nil, nil, nil, st,
-		prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)),
+		prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, nil, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)),
 	)
 	suite.Require().NoError(err)
-	runtime.Install(omniruntime.Name, suite.runtime)
 
 	suite.startRuntime()
 
@@ -318,11 +317,16 @@ func (suite *GrpcSuite) newServer(imageFactoryClient *imagefactory.Client, logge
 
 	suite.server = grpc.NewServer(opts...)
 
-	resapi.RegisterResourceServiceServer(suite.server, &grpcomni.ResourceServer{})
+	runtimes := map[string]runtime.Runtime{
+		omniruntime.Name: runtime.NewProxyRuntime(suite.runtime),
+	}
+	resapi.RegisterResourceServiceServer(suite.server, grpcomni.NewResourceServer(suite.state, runtimes, nil))
 	management.RegisterManagementServiceServer(suite.server, grpcomni.NewManagementServer(
 		suite.state,
 		imageFactoryClient,
 		logger,
+		nil,
+		nil,
 	))
 
 	go func() {

@@ -27,8 +27,6 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
-	"github.com/siderolabs/omni/internal/backend/runtime"
-	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -43,10 +41,20 @@ const KubernetesUpgradeManifestStatusControllerName = "KubernetesUpgradeManifest
 // ManifestDryRunSyncTimeout is the timeout for dry run syncing manifests.
 const ManifestDryRunSyncTimeout = 5 * time.Minute
 
+// TalosClientGetter gets talos clients for clusters.
+type TalosClientGetter interface {
+	GetClient(ctx context.Context, clusterName string) (*talos.Client, error)
+}
+
+// KubeconfigGetter gets kubeconfigs for clusters.
+type KubeconfigGetter interface {
+	GetKubeconfig(ctx context.Context, context *common.Context) (*rest.Config, error)
+}
+
 // NewKubernetesUpgradeManifestStatusController initializes KubernetesUpgradeManifestStatusController.
 //
 //nolint:gocognit,cyclop,gocyclo,maintidx
-func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestStatusController {
+func NewKubernetesUpgradeManifestStatusController(talosClientGetter TalosClientGetter, kubeconfigGetter KubeconfigGetter) *KubernetesUpgradeManifestStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterSecrets, *omni.KubernetesUpgradeManifestStatus]{
 			Name: KubernetesUpgradeManifestStatusControllerName,
@@ -152,16 +160,7 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 				logger.Info("performing bootstrap manifests check", zap.String("cluster", clusterID))
 
 				// now we are ready to perform manifest checks
-				type talosClientProvider interface {
-					GetClient(ctx context.Context, clusterName string) (*talos.Client, error)
-				}
-
-				talosRuntime, err := runtime.LookupInterface[talosClientProvider](talos.Name)
-				if err != nil {
-					return err
-				}
-
-				talosClient, err := talosRuntime.GetClient(ctx, clusterID)
+				talosClient, err := talosClientGetter.GetClient(ctx, clusterID)
 				if err != nil {
 					return fmt.Errorf("failed to get talos client: %w", err)
 				}
@@ -191,16 +190,7 @@ func NewKubernetesUpgradeManifestStatusController() *KubernetesUpgradeManifestSt
 					return fmt.Errorf("failed to get manifests: %w", err)
 				}
 
-				type kubernetesConfigurator interface {
-					GetKubeconfig(ctx context.Context, context *common.Context) (*rest.Config, error)
-				}
-
-				kubernetesRuntime, err := runtime.LookupInterface[kubernetesConfigurator](kubernetes.Name)
-				if err != nil {
-					return err
-				}
-
-				cfg, err := kubernetesRuntime.GetKubeconfig(ctx, &common.Context{Name: clusterID})
+				cfg, err := kubeconfigGetter.GetKubeconfig(ctx, &common.Context{Name: clusterID})
 				if err != nil {
 					return fmt.Errorf("failed to get kubeconfig: %w", err)
 				}

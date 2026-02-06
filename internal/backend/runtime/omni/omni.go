@@ -74,6 +74,7 @@ var Name = common.Runtime_Omni.String()
 type Runtime struct {
 	controllerRuntime  *cosiruntime.Runtime
 	talosClientFactory *talos.ClientFactory
+	kubernetesRuntime  omnictrl.KubernetesRuntime
 	storeFactory       store.Factory
 
 	dnsService              *dns.Service
@@ -95,7 +96,7 @@ type Runtime struct {
 func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
 	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, st *State, metricsRegistry prometheus.Registerer,
-	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime, logger *zap.Logger,
+	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime, talosRuntime omnictrl.TalosClientGetter, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
 
@@ -155,7 +156,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			TalosClientFactory: talosClientFactory,
 			NodeResolver:       dnsService,
 		}),
-		omnictrl.NewKubernetesStatusController(config.Config.Services.Api.URL(), config.Config.Services.WorkloadProxy.GetSubdomain()),
+		omnictrl.NewKubernetesStatusController(kubernetesRuntime, config.Config.Services.Api.URL(), config.Config.Services.WorkloadProxy.GetSubdomain()),
 		&omnictrl.LoadBalancerController{},
 		omnictrl.NewMachineCleanupController(),
 		omnictrl.NewMachineStatusLinkController(linkCounterDeltaCh),
@@ -199,7 +200,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			imageFactoryHost,
 			config.Config.Registries.Mirrors,
 		),
-		omnictrl.NewClusterMachineTeardownController(),
+		omnictrl.NewClusterMachineTeardownController(omnictrl.NewGetKubernetesClientFunc(kubernetesRuntime)),
 		omnictrl.NewMachineConfigGenOptionsController(),
 		omnictrl.NewMachineStatusController(imageFactoryClient, exraKernelArgsInitializer),
 		machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost),
@@ -210,11 +211,11 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewClusterUUIDController(),
 		omnictrl.NewControlPlaneStatusController(),
 		omnictrl.NewDiscoveryServiceConfigPatchController(config.Config.Services.EmbeddedDiscoveryService.GetPort()),
-		omnictrl.NewKubernetesNodeAuditController(nil, time.Minute),
+		omnictrl.NewKubernetesNodeAuditController(omnictrl.NewGetKubernetesClientFunc(kubernetesRuntime), time.Minute),
 		omnictrl.NewEtcdBackupEncryptionController(),
 		omnictrl.NewClusterWorkloadProxyStatusController(workloadProxyReconciler),
 		omnictrl.NewKubeconfigController(constants.CertificateValidityTime),
-		omnictrl.NewKubernetesUpgradeManifestStatusController(),
+		omnictrl.NewKubernetesUpgradeManifestStatusController(talosRuntime, kubernetesRuntime),
 		omnictrl.NewKubernetesUpgradeStatusController(),
 		omnictrl.NewMachineController(),
 		omnictrl.NewMachineExtensionsController(),
@@ -358,6 +359,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 	return &Runtime{
 		controllerRuntime:       controllerRuntime,
 		talosClientFactory:      talosClientFactory,
+		kubernetesRuntime:       kubernetesRuntime,
 		storeFactory:            storeFactory,
 		dnsService:              dnsService,
 		workloadProxyReconciler: workloadProxyReconciler,
@@ -491,7 +493,7 @@ func (r *Runtime) Run(ctx context.Context, eg newgroup.EGroup) {
 	}
 
 	newgroup.GoWithContext(ctx, eg, func() error {
-		r.virtual.RunComputed(ctx, virtualres.KubernetesUsageType, producers.NewKubernetesUsage, producers.KubernetesUsageResourceTransformer(r.state), r.logger)
+		r.virtual.RunComputed(ctx, virtualres.KubernetesUsageType, producers.NewKubernetesUsageFactory(r.kubernetesRuntime), producers.KubernetesUsageResourceTransformer(r.state), r.logger)
 
 		return nil
 	})

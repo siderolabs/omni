@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
+	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/memconn"
 	"github.com/siderolabs/omni/internal/pkg/compress"
@@ -53,6 +54,9 @@ func MakeServiceServers(
 	imageFactoryClient *imagefactory.Client,
 	logger *zap.Logger,
 	auditor AuditLogger,
+	kubernetesRuntime KubernetesRuntime,
+	talosRuntime TalosRuntime,
+	runtimes map[string]runtime.Runtime,
 ) iter.Seq2[ServiceServer, error] {
 	dest, err := generateDest(config.Config.Services.Api.URL())
 	if err != nil {
@@ -75,6 +79,7 @@ func MakeServiceServers(
 	servers := []ServiceServer{
 		newResourceServer(
 			state,
+			runtimes,
 			omniRuntime.GetCOSIRuntime(),
 		),
 		&oidcServer{
@@ -89,6 +94,9 @@ func MakeServiceServers(
 			imageFactoryClient,
 			auditor,
 			dest,
+			kubernetesRuntime,
+			talosRuntime,
+			omniRuntime,
 		),
 		auth,
 		&COSIResourceServer{

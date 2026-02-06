@@ -19,7 +19,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
-	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 )
 
 // ImageFactoryClient ensures that the given schematic exists in the image factory.
@@ -177,8 +176,4 @@ func (c cleanupChecker[Input]) Inputs() []controller.Input {
 // Outputs implements [cleanup.Handler].
 func (c cleanupChecker[Input]) Outputs() []controller.Output {
 	return c.next.Outputs()
-}
-
-type kubernetesRuntime interface {
-	GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
 }

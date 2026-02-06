@@ -34,7 +34,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
-	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/exposedservice"
@@ -45,15 +44,17 @@ import (
 //
 // KubernetesStatusController plays the role of machine discovery.
 type KubernetesStatusController struct {
-	watchers map[string]*kubernetesWatcher
+	kubernetesRuntime KubernetesRuntime
+	watchers          map[string]*kubernetesWatcher
 
 	advertisedAPIURL       string
 	workloadProxySubdomain string
 }
 
 // NewKubernetesStatusController creates a new KubernetesStatusController.
-func NewKubernetesStatusController(advertisedAPIURL, workloadProxySubdomain string) *KubernetesStatusController {
+func NewKubernetesStatusController(kubernetesRuntime KubernetesRuntime, advertisedAPIURL, workloadProxySubdomain string) *KubernetesStatusController {
 	return &KubernetesStatusController{
+		kubernetesRuntime:      kubernetesRuntime,
 		advertisedAPIURL:       advertisedAPIURL,
 		workloadProxySubdomain: workloadProxySubdomain,
 	}
@@ -378,12 +379,7 @@ var controlplanePodSelector = func() labels.Selector {
 }()
 
 func (ctrl *KubernetesStatusController) startWatcher(ctx context.Context, logger *zap.Logger, cluster string, notifyCh chan<- kubernetesWatcherNotify) error {
-	r, err := runtime.LookupInterface[kubernetesRuntime](kubernetes.Name)
-	if err != nil {
-		return err
-	}
-
-	client, err := r.GetClient(ctx, cluster)
+	client, err := ctrl.kubernetesRuntime.GetClient(ctx, cluster)
 	if err != nil {
 		return err
 	}
