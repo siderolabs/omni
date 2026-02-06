@@ -19,6 +19,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/clientcmd"
@@ -63,8 +64,8 @@ var oidcKubeconfig3 []byte
 var adminKubeconfig []byte
 
 func TestOIDCKubeconfig(t *testing.T) {
-	r, err := kubernetes.New(nil, "http://localhost:8080/oidc", "default", "https://localhost:8095")
-	require.NoError(t, err)
+	logger := zaptest.NewLogger(t)
+	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095")
 
 	kubeconfig, err := r.GetOIDCKubeconfig(&common.Context{
 		Name: "cluster1",
@@ -82,8 +83,8 @@ func TestOIDCKubeconfig(t *testing.T) {
 }
 
 func TestOIDCKubeconfigWithExtraOptions(t *testing.T) {
-	r, err := kubernetes.New(nil, "http://localhost:8080/oidc", "default", "https://localhost:8095")
-	require.NoError(t, err)
+	logger := zaptest.NewLogger(t)
+	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095")
 
 	kubeconfig, err := r.GetOIDCKubeconfig(&common.Context{
 		Name: "cluster1",
@@ -103,13 +104,13 @@ func TestOIDCKubeconfigWithExtraOptions(t *testing.T) {
 func TestBreakGlassKubeconfig(t *testing.T) {
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	r, err := kubernetes.New(st, "", "", "")
-	require.NoError(t, err)
+	logger := zaptest.NewLogger(t)
+	r := kubernetes.New(st, logger, "", "", "")
 
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
 
-	_, err = r.BreakGlassKubeconfig(ctx, "cluster1")
+	_, err := r.BreakGlassKubeconfig(ctx, "cluster1")
 	require.Error(t, err)
 	require.True(t, state.IsNotFoundError(err))
 

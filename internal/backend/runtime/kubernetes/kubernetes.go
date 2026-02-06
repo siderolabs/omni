@@ -25,11 +25,12 @@ import (
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/gen/channel"
+	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -44,6 +45,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
+	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/helpers"
@@ -67,16 +69,17 @@ const (
 )
 
 // New creates new Runtime.
-func New(omniState state.State, oidcIssuerEndpoint string, accountName string, k8sProxyURL string) (*Runtime, error) {
-	return NewWithTTL(omniState, kubernetesClientTTL, oidcIssuerEndpoint, accountName, k8sProxyURL)
+func New(omniState state.State, logger *zap.Logger, oidcIssuerEndpoint string, accountName string, k8sProxyURL string) *Runtime {
+	return NewWithTTL(omniState, kubernetesClientTTL, logger, oidcIssuerEndpoint, accountName, k8sProxyURL)
 }
 
 // NewWithTTL creates new Runtime with custom TTL.
-func NewWithTTL(omniState state.State, ttl time.Duration, oidcIssuerEndpoint string, accountName string, k8sProxyURL string) (*Runtime, error) {
+func NewWithTTL(omniState state.State, ttl time.Duration, logger *zap.Logger, oidcIssuerEndpoint string, accountName string, k8sProxyURL string) *Runtime {
 	return &Runtime{
 		clientsCache: expirable.NewLRU[string, *Client](kubernetesClientLRUSize, nil, ttl),
 
-		state: omniState,
+		state:  omniState,
+		logger: logger.With(logging.Component("kubernetes_runtime")),
 
 		oidcIssuerEndpoint: oidcIssuerEndpoint,
 		accountName:        accountName,
@@ -98,7 +101,7 @@ func NewWithTTL(omniState state.State, ttl time.Duration, oidcIssuerEndpoint str
 			Name: "omni_k8s_clientfactory_cache_misses_total",
 			Help: "Number of Kubernetes client factory cache misses.",
 		}),
-	}, nil
+	}
 }
 
 // Runtime implements runtime.Runtime.
@@ -108,7 +111,8 @@ type Runtime struct { //nolint:govet // there is just a single instance
 	clientsCache *expirable.LRU[string, *Client]
 	sf           singleflight.Group
 
-	state state.State
+	state  state.State
+	logger *zap.Logger
 
 	oidcIssuerEndpoint string
 	accountName        string
@@ -217,10 +221,52 @@ func (r *Runtime) Delete(ctx context.Context, setters ...runtime.QueryOption) er
 
 // DestroyClient closes Kubernetes client and deletes it from the client cache.
 func (r *Runtime) DestroyClient(id string) {
+	r.logger.Debug("deleting Kubernetes client from cache", zap.String("cluster", id), zap.Stack("stack"))
+
+	client, ok := r.clientsCache.Get(id)
+	if ok {
+		client.Close()
+	}
+
 	r.clientsCache.Remove(id)
 	r.sf.Forget(id)
 
 	r.triggerCleanupers(id)
+}
+
+// StartCacheManager starts watching the relevant resources to do the client cache invalidation.
+func (r *Runtime) StartCacheManager(ctx context.Context) error {
+	eventCh := make(chan state.Event)
+
+	err := r.state.WatchKind(ctx, omni.NewKubeconfig("").Metadata(), eventCh)
+	if err != nil {
+		return fmt.Errorf("failed to watch Kubeconfigs: %w", err)
+	}
+
+	r.logger.Debug("started Kubernetes client cache manager")
+
+	for {
+		select {
+		case <-ctx.Done():
+			if stderrors.Is(ctx.Err(), context.Canceled) {
+				r.logger.Debug("stopping Kubernetes client cache manager")
+
+				return nil
+			}
+
+			return fmt.Errorf("kubernetes client cache manager context error: %w", ctx.Err())
+		case ev := <-eventCh:
+			if ev.Error != nil {
+				return fmt.Errorf("kubernetes client cache manager received an error event: %w", ev.Error)
+			}
+
+			if ev.Resource == nil {
+				continue
+			}
+
+			r.DestroyClient(ev.Resource.Metadata().ID())
+		}
+	}
 }
 
 var oidcKubeConfigTemplate = strings.TrimSpace(`
@@ -360,6 +406,7 @@ func (r *Runtime) getOrCreateClient(ctx context.Context, opts *runtime.QueryOpti
 	id := opts.Context
 
 	if client, ok := r.clientsCache.Get(id); ok {
+		r.logger.Debug("cache hit, returning cached Kubernetes client", zap.String("cluster", id))
 		r.metricCacheHits.Inc()
 
 		return client, nil
@@ -376,11 +423,16 @@ func (r *Runtime) getOrCreateClient(ctx context.Context, opts *runtime.QueryOpti
 			return nil, err
 		}
 
+		r.logger.Debug("cache miss, creating new Kubernetes client", zap.String("cluster", id))
+
 		r.metricActiveClients.Inc()
 		r.metricCacheMisses.Inc()
 
 		goruntime.AddCleanup(client, func(m prometheus.Gauge) { m.Dec() }, r.metricActiveClients)
-		goruntime.AddCleanup(client, func(dialer *connrotation.Dialer) { dialer.CloseAll() }, client.dialer)
+		goruntime.AddCleanup(client, func(dialer *connrotation.Dialer) {
+			r.logger.Debug("finalizing Kubernetes client", zap.String("cluster", id))
+			dialer.CloseAll()
+		}, client.dialer)
 
 		r.clientsCache.Add(id, client)
 
@@ -532,11 +584,11 @@ func wrapError(err error, opts *runtime.QueryOptions) error {
 	md := cosiresource.NewMetadata(opts.Namespace, opts.Resource, opts.Name, cosiresource.VersionUndefined)
 
 	switch {
-	case errors.IsConflict(err):
+	case apierrors.IsConflict(err):
 		fallthrough
-	case errors.IsAlreadyExists(err):
+	case apierrors.IsAlreadyExists(err):
 		return inmem.ErrAlreadyExists(md)
-	case errors.IsNotFound(err):
+	case apierrors.IsNotFound(err):
 		return inmem.ErrNotFound(md)
 	}
 

@@ -26,6 +26,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
+	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	resourcehelper "github.com/siderolabs/omni/internal/pkg/kubernetes/resource"
 )
 
@@ -60,12 +61,21 @@ func KubernetesUsageResourceTransformer(state state.State) func(context.Context,
 
 // KubernetesUsage producer.
 type KubernetesUsage struct {
-	logger  *zap.Logger
-	ptr     resource.Pointer
-	state   state.State
-	factory informers.SharedInformerFactory
-	stopCh  chan struct{}
-	wg      sync.WaitGroup
+	ptr               resource.Pointer
+	state             state.State
+	kubeRuntime       KubernetesClientGetter
+	factory           informers.SharedInformerFactory
+	ctx               context.Context // nolint:containedctx
+	stopCh            chan struct{}
+	logger            *zap.Logger
+	ctxCancel         context.CancelFunc
+	factoryStopCh     chan struct{}
+	kubeClientCloseCh <-chan struct{}
+	clusterName       string
+	wg                sync.WaitGroup
+	factoryWg         sync.WaitGroup
+	mu                sync.Mutex
+	synced            atomic.Bool
 }
 
 // KubernetesClientGetter gets Kubernetes clients for clusters.
@@ -82,118 +92,218 @@ func NewKubernetesUsageFactory(kr KubernetesClientGetter) func(ctx context.Conte
 			return nil, errors.New("failed to get kubernetes client: cluster name can not be resolved")
 		}
 
-		client, err := kr.GetClient(ctx, p.ClusterName())
-		if err != nil {
+		kuberuntimeCtx, cancel := context.WithCancel(context.Background())
+		kuberuntimeCtx = actor.MarkContextAsInternalActor(kuberuntimeCtx)
+
+		ku := &KubernetesUsage{
+			ctx:         kuberuntimeCtx,
+			ctxCancel:   cancel,
+			ptr:         ptr,
+			clusterName: p.ClusterName(),
+			kubeRuntime: kr,
+			stopCh:      make(chan struct{}),
+			logger:      logger.With(logging.Component("compute_kubernetes_usage")),
+			state:       state,
+		}
+
+		if err := ku.createFactory(); err != nil {
 			return nil, err
 		}
 
-		factory := informers.NewSharedInformerFactory(client.Clientset(), 0)
-
-		return &KubernetesUsage{
-			ptr:     ptr,
-			factory: factory,
-			stopCh:  make(chan struct{}),
-			logger:  logger.With(logging.Component("compute_kubernetes_usage")),
-			state:   state,
-		}, nil
+		return ku, nil
 	}
+}
+
+// createFactory creates a new kubernetes client and informer factory.
+func (ku *KubernetesUsage) createFactory() error {
+	client, err := ku.kubeRuntime.GetClient(ku.ctx, ku.clusterName)
+	if err != nil {
+		ku.mu.Lock()
+		defer ku.mu.Unlock()
+
+		ku.logger.Error("failed to get kubernetes client", zap.Error(err))
+		ku.kubeClientCloseCh = make(chan struct{})
+		ku.factoryStopCh = make(chan struct{})
+
+		return err
+	}
+
+	ku.mu.Lock()
+	defer ku.mu.Unlock()
+
+	ku.factory = informers.NewSharedInformerFactory(client.Clientset(), 0)
+	ku.kubeClientCloseCh = client.Wait()
+	ku.factoryStopCh = make(chan struct{})
+
+	return nil
+}
+
+func (ku *KubernetesUsage) getFactory() informers.SharedInformerFactory {
+	ku.mu.Lock()
+	defer ku.mu.Unlock()
+
+	return ku.factory
+}
+
+func (ku *KubernetesUsage) stopFactory() {
+	ku.mu.Lock()
+	defer ku.mu.Unlock()
+
+	close(ku.factoryStopCh)
 }
 
 // Start implements Producer interface.
 func (ku *KubernetesUsage) Start() error {
-	var synced atomic.Bool
-
-	sync := func() {
-		if !synced.Load() {
-			return
-		}
-
-		var (
-			nodes []*corev1.Node
-			pods  []*corev1.Pod
-			err   error
-		)
-
-		nodes, err = ku.factory.Core().V1().Nodes().Lister().List(labels.Everything())
-		if err != nil {
-			ku.logger.Error("failed to list nodes", zap.Error(err))
-
-			return
-		}
-
-		pods, err = ku.factory.Core().V1().Pods().Lister().List(labels.Everything())
-		if err != nil {
-			ku.logger.Error("failed to list pods", zap.Error(err))
-
-			return
-		}
-
-		usage := virtual.NewKubernetesUsage(ku.ptr.ID())
-
-		calculateUsage(pods, nodes, usage)
-
-		_, err = safe.StateUpdateWithConflicts[*virtual.KubernetesUsage](context.Background(), ku.state, usage.Metadata(), func(res *virtual.KubernetesUsage) error {
-			res.TypedSpec().Value = usage.TypedSpec().Value
-
-			return nil
-		})
-		if state.IsNotFoundError(err) {
-			err = ku.state.Create(context.Background(), usage)
-		}
-
-		if err != nil {
-			ku.logger.Error("failed to update usage", zap.Error(err))
-		}
+	if err := ku.startFactory(); err != nil {
+		return err
 	}
 
+	ku.wg.Add(1)
+
+	panichandler.Go(func() {
+		defer ku.wg.Done()
+
+		for {
+			select {
+			case <-ku.stopCh:
+				ku.ctxCancel()
+				ku.stopFactoryAndWait()
+
+				return
+			case <-ku.kubeClientCloseCh:
+				ku.logger.Info("kubernetes client closed, refreshing kubernetes client")
+				ku.refresh()
+			}
+		}
+	}, ku.logger)
+
+	return nil
+}
+
+func (ku *KubernetesUsage) sync() {
+	if !ku.synced.Load() {
+		return
+	}
+
+	factory := ku.getFactory()
+
+	var (
+		nodes []*corev1.Node
+		pods  []*corev1.Pod
+		err   error
+	)
+
+	nodes, err = factory.Core().V1().Nodes().Lister().List(labels.Everything())
+	if err != nil {
+		ku.logger.Error("failed to list nodes", zap.Error(err))
+
+		return
+	}
+
+	pods, err = factory.Core().V1().Pods().Lister().List(labels.Everything())
+	if err != nil {
+		ku.logger.Error("failed to list pods", zap.Error(err))
+
+		return
+	}
+
+	usage := virtual.NewKubernetesUsage(ku.ptr.ID())
+
+	calculateUsage(pods, nodes, usage)
+
+	_, err = safe.StateUpdateWithConflicts[*virtual.KubernetesUsage](ku.ctx, ku.state, usage.Metadata(), func(res *virtual.KubernetesUsage) error {
+		res.TypedSpec().Value = usage.TypedSpec().Value
+
+		return nil
+	})
+	if state.IsNotFoundError(err) {
+		err = ku.state.Create(ku.ctx, usage)
+	}
+
+	if err != nil {
+		ku.logger.Error("failed to update usage", zap.Error(err))
+	}
+}
+
+// startFactory sets up informer handlers and starts the factory.
+// Must be called with factory already created.
+func (ku *KubernetesUsage) startFactory() error {
+	ku.mu.Lock()
+	defer ku.mu.Unlock()
+
 	if _, err := ku.factory.Core().V1().Nodes().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(_ any) { sync() },
-		UpdateFunc: func(_ any, _ any) { sync() },
-		DeleteFunc: func(_ any) { sync() },
+		AddFunc:    func(_ any) { ku.sync() },
+		UpdateFunc: func(_ any, _ any) { ku.sync() },
+		DeleteFunc: func(_ any) { ku.sync() },
 	}); err != nil {
 		return err
 	}
 
 	if _, err := ku.factory.Core().V1().Pods().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(_ any) { sync() },
-		UpdateFunc: func(_ any, _ any) { sync() },
-		DeleteFunc: func(_ any) { sync() },
+		AddFunc:    func(_ any) { ku.sync() },
+		UpdateFunc: func(_ any, _ any) { ku.sync() },
+		DeleteFunc: func(_ any) { ku.sync() },
 	}); err != nil {
 		return err
 	}
 
-	ku.factory.Start(ku.stopCh)
+	ku.factory.Start(ku.factoryStopCh)
 
-	ku.wg.Add(2)
+	ku.factoryWg.Add(2)
+
+	factoryStopCh := ku.factoryStopCh
+	factory := ku.factory
 
 	panichandler.Go(func() {
-		defer ku.wg.Done()
+		defer ku.factoryWg.Done()
 
-		ku.factory.WaitForCacheSync(ku.stopCh)
+		factory.WaitForCacheSync(factoryStopCh)
 
 		select {
-		case <-ku.stopCh:
-			// stopped
+		case <-factoryStopCh:
 			return
 		default:
 		}
 
-		synced.Store(true)
+		ku.synced.Store(true)
 
-		sync()
+		ku.sync()
 	}, ku.logger)
 
 	panichandler.Go(func() {
-		defer ku.wg.Done()
+		defer ku.factoryWg.Done()
 
-		<-ku.stopCh
+		<-factoryStopCh
 
-		synced.Store(false)
+		ku.synced.Store(false)
 
-		ku.factory.Shutdown()
+		factory.Shutdown()
 	}, ku.logger)
 
 	return nil
+}
+
+// stopFactoryAndWait stops the current factory and waits for its goroutines.
+func (ku *KubernetesUsage) stopFactoryAndWait() {
+	ku.stopFactory()
+	ku.factoryWg.Wait()
+}
+
+// refresh stops the current factory, creates a new client and factory, and starts it.
+func (ku *KubernetesUsage) refresh() {
+	ku.logger.Info("refreshing kubernetes client")
+
+	ku.stopFactoryAndWait()
+
+	if err := ku.createFactory(); err != nil {
+		ku.logger.Error("failed to create factory during refresh", zap.Error(err))
+
+		return
+	}
+
+	if err := ku.startFactory(); err != nil {
+		ku.logger.Error("failed to start factory during refresh", zap.Error(err))
+	}
 }
 
 // Stop implements Producer interface.

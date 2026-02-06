@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -45,7 +46,7 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 			UnmapMetadataFunc: func(clusterStatus *omni.ClusterStatus) *omni.Cluster {
 				return omni.NewCluster(clusterStatus.Metadata().ID())
 			},
-			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, cluster *omni.Cluster, clusterStatus *omni.ClusterStatus) error {
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cluster *omni.Cluster, clusterStatus *omni.ClusterStatus) error {
 				shouldUseEmbeddedDiscoveryService := func() (bool, error) {
 					if !embeddedDiscoveryServiceEnabled {
 						return false, nil
@@ -198,11 +199,7 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 				helpers.CopyUserLabels(clusterStatus, cluster.Metadata().Labels().Raw())
 
 				if clusterSecrets != nil {
-					if clusterSecrets.TypedSpec().Value.Imported {
-						clusterStatus.Metadata().Labels().Set(omni.LabelClusterTaintedByImporting, "")
-					} else {
-						clusterStatus.Metadata().Labels().Delete(omni.LabelClusterTaintedByImporting)
-					}
+					handleClusterSecretsTaint(clusterSecrets, clusterStatus, logger)
 				}
 
 				if _, locked := cluster.Metadata().Annotations().Get(omni.ClusterLocked); locked {
@@ -228,4 +225,63 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 		),
 		qtransform.WithIgnoreTeardownUntil(), // keep ClusterStatus alive until every other controller is done with Cluster
 	)
+}
+
+func handleClusterSecretsTaint(clusterSecrets *omni.ClusterSecrets, clusterStatus *omni.ClusterStatus, logger *zap.Logger) {
+	talosCARotatedTimestamp, talosCARotated := clusterSecrets.Metadata().Annotations().Get(omni.RotateTalosCATimestamp)
+	k8sCARotatedTimestamp, k8sCARotated := clusterSecrets.Metadata().Annotations().Get(omni.RotateKubernetesCATimestamp)
+
+	if _, breakGlass := clusterStatus.Metadata().Annotations().Get(omni.TaintedByBreakGlassTimestamp); breakGlass {
+		handleBreakGlassTaint(clusterStatus, talosCARotatedTimestamp, talosCARotated, k8sCARotatedTimestamp, k8sCARotated, logger)
+	}
+
+	if clusterSecrets.TypedSpec().Value.Imported {
+		if talosCARotated && k8sCARotated {
+			clusterStatus.Metadata().Labels().Delete(omni.LabelClusterTaintedByImporting)
+		} else {
+			clusterStatus.Metadata().Labels().Set(omni.LabelClusterTaintedByImporting, "")
+		}
+	}
+}
+
+func handleBreakGlassTaint(
+	clusterStatus *omni.ClusterStatus,
+	talosCARotatedTimestamp string, talosCARotated bool,
+	k8sCARotatedTimestamp string, k8sCARotated bool,
+	logger *zap.Logger,
+) {
+	if !talosCARotated || !k8sCARotated {
+		return
+	}
+
+	breakGlassTimestamp, _ := clusterStatus.Metadata().Annotations().Get(omni.TaintedByBreakGlassTimestamp)
+	if breakGlassTimestamp == "" {
+		breakGlassTimestamp = "0"
+	}
+
+	breakGlassTimestampInt, err := strconv.Atoi(breakGlassTimestamp)
+	if err != nil {
+		logger.Warn("failed to parse break glass timestamp", zap.Error(err))
+
+		return
+	}
+
+	talosCARotatedTimestampInt, err := strconv.Atoi(talosCARotatedTimestamp)
+	if err != nil {
+		logger.Warn("failed to parse Talos CA rotation timestamp", zap.Error(err))
+
+		return
+	}
+
+	k8sCARotatedTimestampInt, err := strconv.Atoi(k8sCARotatedTimestamp)
+	if err != nil {
+		logger.Warn("failed to parse Kubernetes CA rotation timestamp", zap.Error(err))
+
+		return
+	}
+
+	if talosCARotatedTimestampInt > breakGlassTimestampInt && k8sCARotatedTimestampInt > breakGlassTimestampInt {
+		clusterStatus.Metadata().Labels().Delete(omni.LabelClusterTaintedByBreakGlass)
+		clusterStatus.Metadata().Annotations().Delete(omni.TaintedByBreakGlassTimestamp)
+	}
 }

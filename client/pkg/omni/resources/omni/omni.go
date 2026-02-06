@@ -97,4 +97,5 @@ func init() {
 	registry.MustRegisterResource(ClusterMachineSecretsType, &ClusterMachineSecrets{})
 	registry.MustRegisterResource(SecretRotationType, &SecretRotation{})
 	registry.MustRegisterResource(RotateTalosCAType, &RotateTalosCA{})
+	registry.MustRegisterResource(RotateKubernetesCAType, &RotateKubernetesCA{})
 }

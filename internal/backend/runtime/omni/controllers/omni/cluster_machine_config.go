@@ -382,11 +382,18 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 	if clusterMachineSecrets.TypedSpec().Value.GetRotation() != nil {
 		cfg, err = cfg.PatchV1Alpha1(func(config *v1alpha1.Config) error {
 			machineAcceptedCAs := []*x509.PEMEncodedCertificate{{Crt: secretsBundle.Certs.OS.Crt}}
-			if clusterMachineSecrets.TypedSpec().Value.Rotation.ExtraCerts.GetOs() != nil {
-				machineAcceptedCAs = append(machineAcceptedCAs, &x509.PEMEncodedCertificate{Crt: clusterMachineSecrets.TypedSpec().Value.Rotation.ExtraCerts.GetOs().Crt})
+			if clusterMachineSecrets.TypedSpec().Value.GetRotation().GetExtraCerts().GetOs() != nil {
+				machineAcceptedCAs = append(machineAcceptedCAs, &x509.PEMEncodedCertificate{Crt: clusterMachineSecrets.TypedSpec().Value.Rotation.ExtraCerts.Os.Crt})
 			}
 
 			config.MachineConfig.MachineAcceptedCAs = machineAcceptedCAs
+
+			clusterAcceptedCAs := []*x509.PEMEncodedCertificate{{Crt: secretsBundle.Certs.K8s.Crt}}
+			if clusterMachineSecrets.TypedSpec().Value.GetRotation().GetExtraCerts().GetK8S() != nil {
+				clusterAcceptedCAs = append(clusterAcceptedCAs, &x509.PEMEncodedCertificate{Crt: clusterMachineSecrets.TypedSpec().Value.Rotation.ExtraCerts.K8S.Crt})
+			}
+
+			config.ClusterConfig.ClusterAcceptedCAs = clusterAcceptedCAs
 
 			return nil
 		})

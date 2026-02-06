@@ -22,11 +22,14 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/grpc/gen"
+	"github.com/siderolabs/talos/pkg/machinery/config"
 	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"go.uber.org/zap"
+	"k8s.io/client-go/rest"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/secretrotation"
@@ -54,13 +57,31 @@ func (f *TalosRemoteGeneratorFactory) NewRemoteGenerator(token string, endpoints
 	return remoteGenerator, err
 }
 
+type KubernetesClientFactory struct{}
+
+func (f *KubernetesClientFactory) NewClient(config *rest.Config) (secretrotation.KubernetesClient, error) {
+	result, err := kubernetes.NewClient(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+	}
+
+	return result, nil
+}
+
 // NewSecretRotationStatusController instantiates the secret rotation status controller.
-func NewSecretRotationStatusController(remoteGenFactory secretrotation.RemoteGeneratorFactory) *sequence.Controller[*omni.ClusterSecrets, *omni.ClusterSecretsRotationStatus] {
-	return sequence.NewController[*omni.ClusterSecrets, *omni.ClusterSecretsRotationStatus](RotationStatusControllerName, &Rotator{RemoteGeneratorFactory: remoteGenFactory})
+func NewSecretRotationStatusController(
+	remoteGenFactory secretrotation.RemoteGeneratorFactory,
+	kubernetesClientFactory secretrotation.KubernetesClientFactory,
+) *sequence.Controller[*omni.ClusterSecrets, *omni.ClusterSecretsRotationStatus] {
+	return sequence.NewController[*omni.ClusterSecrets, *omni.ClusterSecretsRotationStatus](
+		RotationStatusControllerName,
+		&Rotator{RemoteGeneratorFactory: remoteGenFactory, KubernetesClientFactory: kubernetesClientFactory},
+	)
 }
 
 type Rotator struct {
-	RemoteGeneratorFactory secretrotation.RemoteGeneratorFactory
+	RemoteGeneratorFactory  secretrotation.RemoteGeneratorFactory
+	KubernetesClientFactory secretrotation.KubernetesClientFactory
 }
 
 // Stages return the stages of the secret rotation status controller.
@@ -86,13 +107,22 @@ func (s *Rotator) Options() []qtransform.ControllerOption {
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineStatus](
 			mappers.MapByClusterLabel[*omni.ClusterSecrets](),
 		),
+		qtransform.WithExtraMappedInput[*omni.LoadBalancerConfig](
+			qtransform.MapperNone(),
+		),
 		qtransform.WithExtraMappedInput[*omni.ClusterStatus](
 			qtransform.MapperSameID[*omni.ClusterSecrets](),
 		),
 		qtransform.WithExtraMappedDestroyReadyInput[*omni.MachinePendingUpdates](
 			mappers.MapByClusterLabel[*omni.ClusterSecrets](),
 		),
+		qtransform.WithExtraMappedInput[*omni.ClusterConfigVersion](
+			qtransform.MapperSameID[*omni.ClusterSecrets](),
+		),
 		qtransform.WithExtraMappedInput[*omni.RotateTalosCA](
+			qtransform.MapperSameID[*omni.ClusterSecrets](),
+		),
+		qtransform.WithExtraMappedInput[*omni.RotateKubernetesCA](
 			qtransform.MapperSameID[*omni.ClusterSecrets](),
 		),
 		qtransform.WithExtraMappedDestroyReadyInput[*omni.SecretRotation](
@@ -141,6 +171,7 @@ func (s *Rotator) FinalizerRemoval(ctx context.Context, r controller.ReaderWrite
 	return nil
 }
 
+//nolint:gocognit
 func (s *Rotator) createInitialStage(currentPhase specs.SecretRotationSpec_Phase) func(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -191,6 +222,10 @@ func (s *Rotator) createInitialStage(currentPhase specs.SecretRotationSpec_Phase
 						Crt: secretsBundle.Certs.OS.Crt,
 						Key: secretsBundle.Certs.OS.Key,
 					},
+					K8S: &specs.ClusterSecretsSpec_Certs_CA{
+						Crt: secretsBundle.Certs.K8s.Crt,
+						Key: secretsBundle.Certs.K8s.Key,
+					},
 				}
 				res.TypedSpec().Value.ExtraCerts = &specs.ClusterSecretsSpec_Certs{}
 
@@ -207,13 +242,70 @@ func (s *Rotator) createInitialStage(currentPhase specs.SecretRotationSpec_Phase
 
 		// This is a trigger condition to move to the next stage
 		if version, _ := rotationStatus.Metadata().Annotations().Get(omni.RotateTalosCAVersion); rotateTalosCA != nil && version != rotateTalosCA.Metadata().Version().String() {
-			return s.startTalosCARotation(ctx, r, logger, rotationStatus, secretRotation, rotateTalosCA, cmSecretsMap)
+			logger.Info("starting rotation", zap.String("cluster", secretRotation.Metadata().ID()), zap.String("component", specs.SecretRotationSpec_TALOS_CA.String()))
+
+			return s.startCARotation(rotationStatus, cmSecretsMap, specs.SecretRotationSpec_TALOS_CA, rotateTalosCA.Metadata().Version().String(),
+				func() (ca *x509.CertificateAuthority, err error) {
+					return talossecrets.NewTalosCA(talossecrets.NewFixedClock(time.Now()).Now())
+				},
+				func(rotatingComponent specs.SecretRotationSpec_Component, ca *x509.CertificateAuthority) error {
+					return safe.WriterModify[*omni.SecretRotation](ctx, r, secretRotation,
+						func(res *omni.SecretRotation) error {
+							res.TypedSpec().Value.Status = specs.SecretRotationSpec_IN_PROGRESS
+							res.TypedSpec().Value.Component = rotatingComponent
+							res.TypedSpec().Value.ExtraCerts.Os = &specs.ClusterSecretsSpec_Certs_CA{
+								Crt: ca.CrtPEM,
+								Key: ca.KeyPEM,
+							}
+
+							return nil
+						})
+				})
+		}
+
+		rotateKubernetesCA, err := safe.ReaderGetByID[*omni.RotateKubernetesCA](ctx, r, clusterSecrets.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		// This is a trigger condition to move to the next stage
+		if version, _ := rotationStatus.Metadata().Annotations().Get(omni.RotateKubernetesCAVersion); rotateKubernetesCA != nil && version != rotateKubernetesCA.Metadata().Version().String() {
+			logger.Info("starting rotation", zap.String("cluster", secretRotation.Metadata().ID()), zap.String("component", specs.SecretRotationSpec_KUBERNETES_CA.String()))
+
+			return s.startCARotation(rotationStatus, cmSecretsMap, specs.SecretRotationSpec_KUBERNETES_CA, rotateKubernetesCA.Metadata().Version().String(),
+				func() (ca *x509.CertificateAuthority, err error) {
+					clusterConfigVersion, err := safe.ReaderGetByID[*omni.ClusterConfigVersion](ctx, r, secretRotation.Metadata().ID())
+					if err != nil {
+						return nil, err
+					}
+
+					versionContract, err := config.ParseContractFromVersion(clusterConfigVersion.TypedSpec().Value.Version)
+					if err != nil {
+						return nil, err
+					}
+
+					return talossecrets.NewKubernetesCA(talossecrets.NewFixedClock(time.Now()).Now(), versionContract)
+				},
+				func(rotatingComponent specs.SecretRotationSpec_Component, ca *x509.CertificateAuthority) error {
+					return safe.WriterModify[*omni.SecretRotation](ctx, r, secretRotation,
+						func(res *omni.SecretRotation) error {
+							res.TypedSpec().Value.Status = specs.SecretRotationSpec_IN_PROGRESS
+							res.TypedSpec().Value.Component = rotatingComponent
+							res.TypedSpec().Value.ExtraCerts.K8S = &specs.ClusterSecretsSpec_Certs_CA{
+								Crt: ca.CrtPEM,
+								Key: ca.KeyPEM,
+							}
+
+							return nil
+						})
+				})
 		}
 
 		return sequence.ErrWait // Continue processing the current stage
 	}
 }
 
+//nolint:gocognit
 func (s *Rotator) addRotationStage(previousPhase, currentPhase specs.SecretRotationSpec_Phase) func(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -224,11 +316,6 @@ func (s *Rotator) addRotationStage(previousPhase, currentPhase specs.SecretRotat
 		clusterSecrets := sequenceContext.Input
 		rotationStatus := sequenceContext.Output
 		rotationStatus.TypedSpec().Value.Phase = currentPhase
-
-		clusterStatus, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, r, clusterSecrets.Metadata().ID())
-		if err != nil {
-			return err
-		}
 
 		secretRotation, err := s.getSecretRotation(ctx, r, clusterSecrets.Metadata().ID())
 		if err != nil {
@@ -255,7 +342,7 @@ func (s *Rotator) addRotationStage(previousPhase, currentPhase specs.SecretRotat
 			return err
 		}
 
-		if err = s.handleClusterMachineSecretRotation(ctx, r, logger, clusterStatus, rotationStatus, secretRotation, cmSecretsMap, cmStatusesMap, currentPhase); err != nil {
+		if err = s.handleClusterMachineSecretRotation(ctx, r, logger, rotationStatus, secretRotation, cmSecretsMap, cmStatusesMap, currentPhase); err != nil {
 			return err
 		}
 
@@ -266,18 +353,32 @@ func (s *Rotator) addRotationStage(previousPhase, currentPhase specs.SecretRotat
 			func(res *omni.SecretRotation) error {
 				res.TypedSpec().Value.Phase = currentPhase
 
-				if currentPhase == specs.SecretRotationSpec_POST_ROTATE {
-					if !slices.Contains(xslices.Map(res.TypedSpec().Value.BackupCertsOs, func(t *specs.ClusterSecretsSpec_Certs_CA) string {
+				updateBackups := func(backupCerts []*specs.ClusterSecretsSpec_Certs_CA, cert *specs.ClusterSecretsSpec_Certs_CA) []*specs.ClusterSecretsSpec_Certs_CA {
+					if !slices.Contains(xslices.Map(backupCerts, func(t *specs.ClusterSecretsSpec_Certs_CA) string {
 						return t.String()
-					}), res.TypedSpec().Value.Certs.Os.String()) {
-						res.TypedSpec().Value.BackupCertsOs = append(res.TypedSpec().Value.BackupCertsOs, res.TypedSpec().Value.Certs.Os)
-						if len(res.TypedSpec().Value.BackupCertsOs) > BackedUpRotatedSecretsLimit {
-							res.TypedSpec().Value.BackupCertsOs = res.TypedSpec().Value.BackupCertsOs[1:]
+					}), cert.String()) {
+						backupCerts = append(backupCerts, cert)
+						if len(backupCerts) > BackedUpRotatedSecretsLimit {
+							backupCerts = backupCerts[1:]
 						}
 					}
 
-					res.TypedSpec().Value.Certs.Os = res.TypedSpec().Value.ExtraCerts.Os
-					res.TypedSpec().Value.ExtraCerts.Os = nil
+					return backupCerts
+				}
+
+				if currentPhase == specs.SecretRotationSpec_POST_ROTATE {
+					switch res.TypedSpec().Value.Component {
+					case specs.SecretRotationSpec_TALOS_CA:
+						res.TypedSpec().Value.BackupCertsOs = updateBackups(res.TypedSpec().Value.BackupCertsOs, res.TypedSpec().Value.Certs.Os)
+						res.TypedSpec().Value.Certs.Os = res.TypedSpec().Value.ExtraCerts.Os
+						res.TypedSpec().Value.ExtraCerts.Os = nil
+					case specs.SecretRotationSpec_KUBERNETES_CA:
+						res.TypedSpec().Value.BackupCertsK8S = updateBackups(res.TypedSpec().Value.BackupCertsK8S, res.TypedSpec().Value.Certs.K8S)
+						res.TypedSpec().Value.Certs.K8S = res.TypedSpec().Value.ExtraCerts.K8S
+						res.TypedSpec().Value.ExtraCerts.K8S = nil
+					case specs.SecretRotationSpec_NONE:
+						// nothing to do
+					}
 				}
 
 				return nil
@@ -289,41 +390,35 @@ func (s *Rotator) addRotationStage(previousPhase, currentPhase specs.SecretRotat
 	}
 }
 
-func (s *Rotator) startTalosCARotation(
-	ctx context.Context,
-	r controller.ReaderWriter,
-	logger *zap.Logger,
+func (s *Rotator) startCARotation(
 	rotationStatus *omni.ClusterSecretsRotationStatus,
-	secretRotation *omni.SecretRotation,
-	rotateTalosCA *omni.RotateTalosCA,
 	cmSecretsMap map[resource.ID]*omni.ClusterMachineSecrets,
+	rotatingComponent specs.SecretRotationSpec_Component,
+	rotateRequestVersion string,
+	generateCA func() (ca *x509.CertificateAuthority, err error),
+	saveResult func(rotatingComponent specs.SecretRotationSpec_Component, ca *x509.CertificateAuthority) error,
 ) error {
 	nextPhase := specs.SecretRotationSpec_PRE_ROTATE
-
-	rotationStatus.Metadata().Annotations().Set(omni.RotateTalosCAVersion, rotateTalosCA.Metadata().Version().String())
-	rotationStatus.TypedSpec().Value.Component = specs.SecretRotationSpec_TALOS_CA
+	rotationStatus.TypedSpec().Value.Component = rotatingComponent
 	rotationStatus.TypedSpec().Value.Phase = nextPhase
 	rotationStatus.TypedSpec().Value.Status = fmt.Sprintf("rotation phase %s %d/%d", nextPhase.String(), 0, len(cmSecretsMap))
 	rotationStatus.TypedSpec().Value.Step = "starting secret rotation"
 
-	logger.Info("starting rotation of Talos CA", zap.String("cluster", secretRotation.Metadata().ID()))
+	switch rotatingComponent {
+	case specs.SecretRotationSpec_TALOS_CA:
+		rotationStatus.Metadata().Annotations().Set(omni.RotateTalosCAVersion, rotateRequestVersion)
+	case specs.SecretRotationSpec_KUBERNETES_CA:
+		rotationStatus.Metadata().Annotations().Set(omni.RotateKubernetesCAVersion, rotateRequestVersion)
+	case specs.SecretRotationSpec_NONE:
+		// nothing to do
+	}
 
-	if err := safe.WriterModify[*omni.SecretRotation](ctx, r, secretRotation,
-		func(res *omni.SecretRotation) error {
-			talosCA, talosCAErr := talossecrets.NewTalosCA(talossecrets.NewFixedClock(time.Now()).Now())
-			if talosCAErr != nil {
-				return fmt.Errorf("failed to generate new Talos CA: %w", talosCAErr)
-			}
+	newCA, err := generateCA()
+	if err != nil {
+		return fmt.Errorf("failed to generate new %s: %w", rotatingComponent.String(), err)
+	}
 
-			res.TypedSpec().Value.Status = specs.SecretRotationSpec_IN_PROGRESS
-			res.TypedSpec().Value.Component = specs.SecretRotationSpec_TALOS_CA
-			res.TypedSpec().Value.ExtraCerts.Os = &specs.ClusterSecretsSpec_Certs_CA{
-				Crt: talosCA.CrtPEM,
-				Key: talosCA.KeyPEM,
-			}
-
-			return nil
-		}); err != nil {
+	if err = saveResult(rotatingComponent, newCA); err != nil {
 		return err
 	}
 
@@ -359,7 +454,7 @@ func (s *Rotator) handleClusterMachineScaling(
 			// Marking the control plane node as in progress because we want to immediately start processing it
 			rotation.Status = specs.SecretRotationSpec_IN_PROGRESS
 			rotation.SecretRotationVersion = secretRotation.Metadata().Version().String()
-			s.prepareCMSecretsForTalosCARotation(secretRotation, secretsBundle, rotation, currentPhase)
+			s.prepareCMSecretsForSecretRotation(secretRotation, secretsBundle, rotation, currentPhase)
 		}
 
 		if err = s.modifyClusterMachineSecret(ctx, r, logger, secretsBundle, cmStatus, rotation); err != nil {
@@ -386,7 +481,6 @@ func (s *Rotator) handleClusterMachineSecretRotation(
 	ctx context.Context,
 	r controller.ReaderWriter,
 	logger *zap.Logger,
-	clusterStatus *omni.ClusterStatus,
 	rotationStatus *omni.ClusterSecretsRotationStatus,
 	secretRotation *omni.SecretRotation,
 	cmSecretsMap map[resource.ID]*omni.ClusterMachineSecrets,
@@ -396,14 +490,25 @@ func (s *Rotator) handleClusterMachineSecretRotation(
 	ongoingRotations := secretrotation.Candidates{}
 	pendingRotations := secretrotation.Candidates{}
 
+	clusterStatus, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, r, secretRotation.Metadata().ID())
+	if err != nil {
+		return err
+	}
+
+	lbConfig, err := safe.ReaderGetByID[*omni.LoadBalancerConfig](ctx, r, secretRotation.Metadata().ID())
+	if err != nil {
+		return err
+	}
+
 	for machineID, cmSecrets := range cmSecretsMap {
-		if err := s.processMachine(ctx, r, logger, cmStatusesMap[machineID], cmSecrets, &pendingRotations, &ongoingRotations, currentPhase, secretRotation.Metadata().Version().String()); err != nil {
+		if err = s.processMachine(ctx, r, logger, lbConfig, cmStatusesMap[machineID], cmSecrets, &pendingRotations, &ongoingRotations, currentPhase,
+			secretRotation.Metadata().Version().String()); err != nil {
 			return err
 		}
 	}
 
 	if _, clusterLocked := clusterStatus.Metadata().Annotations().Get(omni.ClusterLocked); clusterLocked {
-		rotationStatus.TypedSpec().Value.Status = RotationPaused
+		rotationStatus.TypedSpec().Value.Status = fmt.Sprintf("%s at phase %s", RotationPaused, rotationStatus.TypedSpec().Value.Phase.String())
 		rotationStatus.TypedSpec().Value.Step = "waiting for the cluster to be unlocked"
 		rotationStatus.TypedSpec().Value.Error = ""
 
@@ -442,7 +547,7 @@ func (s *Rotator) handleClusterMachineSecretRotation(
 	}
 
 	if !clusterStatus.TypedSpec().Value.Ready || clusterStatus.TypedSpec().Value.Phase != specs.ClusterStatusSpec_RUNNING {
-		rotationStatus.TypedSpec().Value.Status = RotationPaused
+		rotationStatus.TypedSpec().Value.Status = fmt.Sprintf("%s at phase %s", RotationPaused, rotationStatus.TypedSpec().Value.Phase.String())
 		rotationStatus.TypedSpec().Value.Step = "waiting for the cluster to become ready"
 		rotationStatus.TypedSpec().Value.Error = ""
 
@@ -464,7 +569,7 @@ func (s *Rotator) handleClusterMachineSecretRotation(
 			})))
 			rotationStatus.TypedSpec().Value.Error = ""
 		} else {
-			rotationStatus.TypedSpec().Value.Status = RotationPaused
+			rotationStatus.TypedSpec().Value.Status = fmt.Sprintf("%s at phase %s", RotationPaused, rotationStatus.TypedSpec().Value.Phase.String())
 			rotationStatus.TypedSpec().Value.Step = fmt.Sprintf("waiting for machines: [%v]", s.hostnamesToString(xslices.Map(blockedCandidates, func(res secretrotation.Candidate) string {
 				return res.Hostname
 			})))
@@ -537,7 +642,7 @@ func (s *Rotator) rotateClusterMachineSecrets(
 		return fmt.Errorf("failed to unmarshal secrets bundle: %w", err)
 	}
 
-	s.prepareCMSecretsForTalosCARotation(secretRotation, secretsBundle, rotation, currentPhase)
+	s.prepareCMSecretsForSecretRotation(secretRotation, secretsBundle, rotation, currentPhase)
 
 	logger.Info("rotating machine secret", zap.String("machine", cmStatus.Metadata().ID()),
 		zap.String("phase", rotation.Phase.String()), zap.String("component", rotation.Component.String()))
@@ -549,36 +654,91 @@ func (s *Rotator) rotateClusterMachineSecrets(
 	return nil
 }
 
-func (s *Rotator) prepareCMSecretsForTalosCARotation(
+func (s *Rotator) prepareCMSecretsForSecretRotation(
 	secretRotation *omni.SecretRotation,
 	secretsBundle *talossecrets.Bundle,
 	rotation *specs.ClusterMachineSecretsSpec_Rotation,
 	currentPhase specs.SecretRotationSpec_Phase,
 ) {
-	if secretRotation.TypedSpec().Value.Component == specs.SecretRotationSpec_TALOS_CA && secretRotation.TypedSpec().Value.ExtraCerts.GetOs() != nil {
-		rotation.Component = specs.SecretRotationSpec_TALOS_CA
-		rotation.Phase = currentPhase
+	switch secretRotation.TypedSpec().Value.Component {
+	case specs.SecretRotationSpec_TALOS_CA:
+		s.prepareTalosCARotation(secretRotation, secretsBundle, rotation, currentPhase)
+	case specs.SecretRotationSpec_KUBERNETES_CA:
+		s.prepareKubernetesCARotation(secretRotation, secretsBundle, rotation, currentPhase)
+	case specs.SecretRotationSpec_NONE:
+		// nothing to do
+	}
+}
 
-		switch currentPhase {
-		case specs.SecretRotationSpec_OK:
-			// nothing to do
-		case specs.SecretRotationSpec_PRE_ROTATE:
-			rotation.ExtraCerts.Os = &specs.ClusterSecretsSpec_Certs_CA{
-				Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt,
-				Key: secretRotation.TypedSpec().Value.ExtraCerts.Os.Key,
-			}
-		case specs.SecretRotationSpec_ROTATE:
-			secretsBundle.Certs.OS = &x509.PEMEncodedCertificateAndKey{
-				Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt,
-				Key: secretRotation.TypedSpec().Value.ExtraCerts.Os.Key,
-			}
-			rotation.ExtraCerts.Os = &specs.ClusterSecretsSpec_Certs_CA{
-				Crt: secretRotation.TypedSpec().Value.Certs.Os.Crt,
-				Key: secretRotation.TypedSpec().Value.Certs.Os.Key,
-			}
-		case specs.SecretRotationSpec_POST_ROTATE:
-			rotation.ExtraCerts = nil
+//nolint:dupl
+func (s *Rotator) prepareTalosCARotation(
+	secretRotation *omni.SecretRotation,
+	secretsBundle *talossecrets.Bundle,
+	rotation *specs.ClusterMachineSecretsSpec_Rotation,
+	currentPhase specs.SecretRotationSpec_Phase,
+) {
+	if secretRotation.TypedSpec().Value.ExtraCerts.GetOs() == nil {
+		return
+	}
+
+	rotation.Component = specs.SecretRotationSpec_TALOS_CA
+	rotation.Phase = currentPhase
+
+	switch currentPhase {
+	case specs.SecretRotationSpec_OK:
+		// nothing to do
+	case specs.SecretRotationSpec_PRE_ROTATE:
+		rotation.ExtraCerts.Os = &specs.ClusterSecretsSpec_Certs_CA{
+			Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt,
+			Key: secretRotation.TypedSpec().Value.ExtraCerts.Os.Key,
 		}
+	case specs.SecretRotationSpec_ROTATE:
+		secretsBundle.Certs.OS = &x509.PEMEncodedCertificateAndKey{
+			Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt,
+			Key: secretRotation.TypedSpec().Value.ExtraCerts.Os.Key,
+		}
+		rotation.ExtraCerts.Os = &specs.ClusterSecretsSpec_Certs_CA{
+			Crt: secretRotation.TypedSpec().Value.Certs.Os.Crt,
+			Key: secretRotation.TypedSpec().Value.Certs.Os.Key,
+		}
+	case specs.SecretRotationSpec_POST_ROTATE:
+		rotation.ExtraCerts = nil
+	}
+}
+
+//nolint:dupl
+func (s *Rotator) prepareKubernetesCARotation(
+	secretRotation *omni.SecretRotation,
+	secretsBundle *talossecrets.Bundle,
+	rotation *specs.ClusterMachineSecretsSpec_Rotation,
+	currentPhase specs.SecretRotationSpec_Phase,
+) {
+	if secretRotation.TypedSpec().Value.ExtraCerts.GetK8S() == nil {
+		return
+	}
+
+	rotation.Component = specs.SecretRotationSpec_KUBERNETES_CA
+	rotation.Phase = currentPhase
+
+	switch currentPhase {
+	case specs.SecretRotationSpec_OK:
+		// nothing to do
+	case specs.SecretRotationSpec_PRE_ROTATE:
+		rotation.ExtraCerts.K8S = &specs.ClusterSecretsSpec_Certs_CA{
+			Crt: secretRotation.TypedSpec().Value.ExtraCerts.K8S.Crt,
+			Key: secretRotation.TypedSpec().Value.ExtraCerts.K8S.Key,
+		}
+	case specs.SecretRotationSpec_ROTATE:
+		secretsBundle.Certs.K8s = &x509.PEMEncodedCertificateAndKey{
+			Crt: secretRotation.TypedSpec().Value.ExtraCerts.K8S.Crt,
+			Key: secretRotation.TypedSpec().Value.ExtraCerts.K8S.Key,
+		}
+		rotation.ExtraCerts.K8S = &specs.ClusterSecretsSpec_Certs_CA{
+			Crt: secretRotation.TypedSpec().Value.Certs.K8S.Crt,
+			Key: secretRotation.TypedSpec().Value.Certs.K8S.Key,
+		}
+	case specs.SecretRotationSpec_POST_ROTATE:
+		rotation.ExtraCerts = nil
 	}
 }
 
@@ -586,6 +746,7 @@ func (s *Rotator) processMachine(
 	ctx context.Context,
 	r controller.ReaderWriter,
 	logger *zap.Logger,
+	lbConfig *omni.LoadBalancerConfig,
 	cmStatus *omni.ClusterMachineStatus,
 	cmSecret *omni.ClusterMachineSecrets,
 	pendingRotations *secretrotation.Candidates,
@@ -598,12 +759,13 @@ func (s *Rotator) processMachine(
 	hostname, _ := cmStatus.Metadata().Labels().Get(omni.LabelHostname)
 
 	candidate := secretrotation.Candidate{
-		MachineID:              cmStatus.Metadata().ID(),
-		Hostname:               hostname,
-		ControlPlane:           isControlPlane,
-		Locked:                 locked,
-		Ready:                  cmStatus.TypedSpec().Value.Ready,
-		RemoteGeneratorFactory: s.RemoteGeneratorFactory,
+		MachineID:               cmStatus.Metadata().ID(),
+		Hostname:                hostname,
+		ControlPlane:            isControlPlane,
+		Locked:                  locked,
+		Ready:                   cmStatus.TypedSpec().Value.Ready,
+		RemoteGeneratorFactory:  s.RemoteGeneratorFactory,
+		KubernetesClientFactory: s.KubernetesClientFactory,
 	}
 
 	// ClusterMachineSecrets hasn't been updated yet to match the current rotation phase, update it
@@ -626,7 +788,7 @@ func (s *Rotator) processMachine(
 
 		logger.Info("validating secret rotation", zap.String("machine", candidate.MachineID), zap.String("phase", currentPhase.String()))
 
-		valid, err := candidate.Validate(ctx, cmStatus, cmSecret)
+		valid, err := candidate.Validate(ctx, lbConfig, cmStatus, cmSecret)
 		if err != nil {
 			logger.Error("failed to validate secret rotation", zap.String("machine", candidate.MachineID), zap.Error(err))
 		}
@@ -698,6 +860,8 @@ func (s *Rotator) toDestroy(cmStatusesMap map[resource.ID]*omni.ClusterMachineSt
 }
 
 func (s *Rotator) hostnamesToString(hostnames []string) string {
+	slices.Sort(hostnames)
+
 	if len(hostnames) > 2 {
 		return fmt.Sprintf("%s, %d more", strings.Join(hostnames[:2], ", "), len(hostnames)-2)
 	}

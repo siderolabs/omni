@@ -230,7 +230,7 @@ func (ctrl *KubernetesStatusController) updateExposedServices(ctx context.Contex
 	return tracker.cleanup(ctx)
 }
 
-//nolint:gocyclo,cyclop
+//nolint:gocyclo,cyclop,gocognit
 func (ctrl *KubernetesStatusController) reconcileRunners(ctx context.Context, r controller.Runtime, logger *zap.Logger, notifyCh chan<- kubernetesWatcherNotify) error {
 	secrets, err := safe.ReaderListAll[*omni.ClusterSecrets](ctx, r)
 	if err != nil {
@@ -243,9 +243,13 @@ func (ctrl *KubernetesStatusController) reconcileRunners(ctx context.Context, r 
 	}
 
 	secretsPresent := map[string]struct{}{}
+	secretsInRotation := map[string]struct{}{}
 
 	for secret := range secrets.All() {
 		secretsPresent[secret.Metadata().ID()] = struct{}{}
+		if secret.TypedSpec().Value.GetExtraCerts().GetK8S() != nil {
+			secretsInRotation[secret.Metadata().ID()] = struct{}{}
+		}
 	}
 
 	lbHealthy := map[string]struct{}{}
@@ -265,13 +269,18 @@ func (ctrl *KubernetesStatusController) reconcileRunners(ctx context.Context, r 
 	for cluster, w := range ctrl.watchers {
 		_, hasSecrets := secretsPresent[cluster]
 		_, isStopped := lbStopped[cluster]
+		_, inRotation := secretsInRotation[cluster]
 
 		reason := "cluster deleted"
 		if isStopped {
 			reason = "cluster is offline"
 		}
 
-		if !hasSecrets || isStopped {
+		if inRotation {
+			reason = "cluster secrets are being rotated"
+		}
+
+		if !hasSecrets || isStopped || inRotation {
 			w.stop()
 
 			delete(ctrl.watchers, cluster)

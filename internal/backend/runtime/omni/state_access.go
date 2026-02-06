@@ -54,6 +54,7 @@ var (
 		omni.ClusterSecretsRotationStatusType,
 		omni.RotateTalosCAType,
 		omni.SecretRotationType,
+		omni.RotateKubernetesCAType,
 	})
 
 	// clusterLabelTypeSet is the set of resource types which have the related cluster's ID as a label.
@@ -448,6 +449,7 @@ func filterAccess(ctx context.Context, access state.Access, samlEnabled bool) er
 		omni.KernelArgsStatusType,
 		omni.ClusterSecretsRotationStatusType,
 		omni.RotateTalosCAType,
+		omni.RotateKubernetesCAType,
 		system.ResourceLabelsType[*omni.MachineStatus](),
 		virtual.LabelsCompletionType,
 		virtual.SBCConfigType,

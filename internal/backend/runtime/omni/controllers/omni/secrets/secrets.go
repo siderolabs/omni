@@ -260,25 +260,11 @@ func (s *Controller) handleSecretRotation(
 	case specs.SecretRotationSpec_OK:
 		secrets.TypedSpec().Value.ExtraCerts = nil
 	case specs.SecretRotationSpec_PRE_ROTATE:
-		secrets.TypedSpec().Value.ExtraCerts = &specs.ClusterSecretsSpec_Certs{
-			Os: &specs.ClusterSecretsSpec_Certs_CA{
-				Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt,
-				Key: secretRotation.TypedSpec().Value.ExtraCerts.Os.Key,
-			},
-		}
+		s.handlePreRotate(secrets, secretRotation)
 	case specs.SecretRotationSpec_ROTATE:
-		bundle.Certs.OS = &x509.PEMEncodedCertificateAndKey{
-			Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt,
-			Key: secretRotation.TypedSpec().Value.ExtraCerts.Os.Key,
-		}
-		secrets.TypedSpec().Value.ExtraCerts = &specs.ClusterSecretsSpec_Certs{
-			Os: &specs.ClusterSecretsSpec_Certs_CA{
-				Crt: secretRotation.TypedSpec().Value.Certs.Os.Crt,
-				Key: secretRotation.TypedSpec().Value.Certs.Os.Key,
-			},
-		}
+		s.handleRotate(secrets, secretRotation, bundle)
 	case specs.SecretRotationSpec_POST_ROTATE:
-		secrets.Metadata().Annotations().Set(omni.RotateTalosCATimestamp, strconv.Itoa(int(time.Now().Unix())))
+		s.handlePostRotate(secrets, secretRotation)
 	}
 
 	data, err := json.Marshal(bundle)
@@ -290,4 +276,65 @@ func (s *Controller) handleSecretRotation(
 	secrets.Metadata().Annotations().Set(omni.SecretRotationVersion, secretRotation.Metadata().Version().String())
 
 	return nil
+}
+
+func (s *Controller) handlePreRotate(secrets *omni.ClusterSecrets, secretRotation *omni.SecretRotation) {
+	switch secretRotation.TypedSpec().Value.Component {
+	case specs.SecretRotationSpec_TALOS_CA:
+		secrets.TypedSpec().Value.ExtraCerts = &specs.ClusterSecretsSpec_Certs{
+			Os: &specs.ClusterSecretsSpec_Certs_CA{
+				Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt,
+				Key: secretRotation.TypedSpec().Value.ExtraCerts.Os.Key,
+			},
+		}
+	case specs.SecretRotationSpec_KUBERNETES_CA:
+		secrets.TypedSpec().Value.ExtraCerts = &specs.ClusterSecretsSpec_Certs{
+			K8S: &specs.ClusterSecretsSpec_Certs_CA{
+				Crt: secretRotation.TypedSpec().Value.ExtraCerts.K8S.Crt,
+				Key: secretRotation.TypedSpec().Value.ExtraCerts.K8S.Key,
+			},
+		}
+	case specs.SecretRotationSpec_NONE:
+		// nothing to do
+	}
+}
+
+func (s *Controller) handleRotate(secrets *omni.ClusterSecrets, secretRotation *omni.SecretRotation, bundle *talossecrets.Bundle) {
+	switch secretRotation.TypedSpec().Value.Component {
+	case specs.SecretRotationSpec_TALOS_CA:
+		bundle.Certs.OS = &x509.PEMEncodedCertificateAndKey{
+			Crt: secretRotation.TypedSpec().Value.ExtraCerts.Os.Crt,
+			Key: secretRotation.TypedSpec().Value.ExtraCerts.Os.Key,
+		}
+		secrets.TypedSpec().Value.ExtraCerts = &specs.ClusterSecretsSpec_Certs{
+			Os: &specs.ClusterSecretsSpec_Certs_CA{
+				Crt: secretRotation.TypedSpec().Value.Certs.Os.Crt,
+				Key: secretRotation.TypedSpec().Value.Certs.Os.Key,
+			},
+		}
+	case specs.SecretRotationSpec_KUBERNETES_CA:
+		bundle.Certs.K8s = &x509.PEMEncodedCertificateAndKey{
+			Crt: secretRotation.TypedSpec().Value.ExtraCerts.K8S.Crt,
+			Key: secretRotation.TypedSpec().Value.ExtraCerts.K8S.Key,
+		}
+		secrets.TypedSpec().Value.ExtraCerts = &specs.ClusterSecretsSpec_Certs{
+			K8S: &specs.ClusterSecretsSpec_Certs_CA{
+				Crt: secretRotation.TypedSpec().Value.Certs.K8S.Crt,
+				Key: secretRotation.TypedSpec().Value.Certs.K8S.Key,
+			},
+		}
+	case specs.SecretRotationSpec_NONE:
+		// nothing to do
+	}
+}
+
+func (s *Controller) handlePostRotate(secrets *omni.ClusterSecrets, secretRotation *omni.SecretRotation) {
+	switch secretRotation.TypedSpec().Value.Component {
+	case specs.SecretRotationSpec_TALOS_CA:
+		secrets.Metadata().Annotations().Set(omni.RotateTalosCATimestamp, strconv.Itoa(int(time.Now().Unix())))
+	case specs.SecretRotationSpec_KUBERNETES_CA:
+		secrets.Metadata().Annotations().Set(omni.RotateKubernetesCATimestamp, strconv.Itoa(int(time.Now().Unix())))
+	case specs.SecretRotationSpec_NONE:
+		// nothing to do
+	}
 }

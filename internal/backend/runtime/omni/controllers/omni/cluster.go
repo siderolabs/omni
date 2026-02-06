@@ -58,6 +58,7 @@ type KubernetesRuntime interface {
 	DestroyClient(string)
 	GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
 	GetKubeconfig(ctx context.Context, context *common.Context) (*rest.Config, error)
+	StartCacheManager(ctx context.Context) error
 }
 
 // NewClusterController creates new ClusterController.
@@ -98,6 +99,7 @@ func NewClusterController(kubernetesRuntime KubernetesRuntime) *ClusterControlle
 					}),
 					&customcleanup.SameIDHandler[*omni.Cluster, *omni.ImportedClusterSecrets]{},
 					&customcleanup.SameIDHandler[*omni.Cluster, *omni.RotateTalosCA]{},
+					&customcleanup.SameIDHandler[*omni.Cluster, *omni.RotateKubernetesCA]{},
 				),
 			},
 		},

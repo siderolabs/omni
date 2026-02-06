@@ -1596,9 +1596,17 @@ func rotateSecretsValidationOptions(st state.State) []validated.StateOption {
 			func(ctx context.Context, _ *omni.RotateTalosCA, newRes *omni.RotateTalosCA, _ ...state.UpdateOption) error {
 				return validateRotateSecretModify(ctx, st, newRes)
 			})),
+		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
+			func(ctx context.Context, _ *omni.RotateKubernetesCA, newRes *omni.RotateKubernetesCA, _ ...state.UpdateOption) error {
+				return validateRotateSecretModify(ctx, st, newRes)
+			})),
 
 		validated.WithDestroyValidations(validated.NewDestroyValidationForType(
 			func(ctx context.Context, ptr resource.Pointer, existingRes *omni.RotateTalosCA, _ ...state.DestroyOption) error {
+				return validateRotateSecretDestroy(ctx, st, existingRes)
+			})),
+		validated.WithDestroyValidations(validated.NewDestroyValidationForType(
+			func(ctx context.Context, ptr resource.Pointer, existingRes *omni.RotateKubernetesCA, _ ...state.DestroyOption) error {
 				return validateRotateSecretDestroy(ctx, st, existingRes)
 			})),
 	}

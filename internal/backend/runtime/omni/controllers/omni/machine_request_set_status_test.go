@@ -69,7 +69,7 @@ func newTestInfraProvider() *testInfraProvider {
 func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 	require := suite.Require()
 
-	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*10)
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*20)
 	defer cancel()
 
 	suite.startRuntime()

@@ -255,7 +255,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewJoinTokenStatusController(),
 		omnictrl.NewNodeUniqueTokenCleanupController(time.Minute),
 		clustermachine.NewConfigPatchesController(),
-		secrets.NewSecretRotationStatusController(&secrets.TalosRemoteGeneratorFactory{}),
+		secrets.NewSecretRotationStatusController(&secrets.TalosRemoteGeneratorFactory{}, &secrets.KubernetesClientFactory{}),
 		machineupgrade.NewStatusController(imageFactoryHost, cfg.Registries.GetTalos(), nil),
 		kernelargsctrl.NewStatusController(),
 	}
@@ -434,6 +434,7 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*omni.MachineStatusSnapshot](),
 		safe.WithResourceCache[*omni.NodeForceDestroyRequest](),
 		safe.WithResourceCache[*omni.RedactedClusterMachineConfig](),
+		safe.WithResourceCache[*omni.RotateKubernetesCA](),
 		safe.WithResourceCache[*omni.RotateTalosCA](),
 		safe.WithResourceCache[*omni.Schematic](),
 		safe.WithResourceCache[*omni.SchematicConfiguration](),
@@ -485,6 +486,7 @@ func (r *Runtime) Run(ctx context.Context, eg newgroup.EGroup) {
 	newgroup.GoWithContext(ctx, eg, makeWrap(r.dnsService.Start, "dns service failed"))
 	newgroup.GoWithContext(ctx, eg, makeWrap(r.controllerRuntime.Run, "controller runtime failed"))
 	newgroup.GoWithContext(ctx, eg, makeWrap(r.workloadProxyReconciler.Run, "workload proxy reconciler failed"))
+	newgroup.GoWithContext(ctx, eg, makeWrap(r.kubernetesRuntime.StartCacheManager, "kubernetes client factory failed"))
 
 	newgroup.GoWithContext(ctx, eg, func() error { return r.storeFactory.Start(ctx, r.state, r.logger) })
 

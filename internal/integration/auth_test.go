@@ -902,6 +902,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       omni.NewRotateTalosCA(cluster.Metadata().ID()),
 				allowedVerbSet: allVerbsSet,
 			},
+			{
+				resource:       omni.NewRotateKubernetesCA(cluster.Metadata().ID()),
+				allowedVerbSet: allVerbsSet,
+			},
 		}
 
 		// read-only resources

@@ -94,5 +94,50 @@ func testRotateCA(t *testing.T, options *TestOptions) {
 
 	runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), options, clusterName, options.MachineOptions.TalosVersion, options.MachineOptions.KubernetesVersion))
 
+	t.Run("KubernetesCAShouldBeRotated", func(t *testing.T) {
+		rotateKubernetesCA := omni.NewRotateKubernetesCA(clusterName)
+		require.NoError(t, omniState.Create(ctx, rotateKubernetesCA))
+
+		// assert rotation started
+		_, err := safe.StateWatchFor[*omni.ClusterSecretsRotationStatus](ctx, omniState, omni.NewClusterSecretsRotationStatus(clusterName).Metadata(), func(cond *state.WatchForCondition) error {
+			cond.Condition = func(res resource.Resource) (bool, error) {
+				resTyped, ok := res.(*omni.ClusterSecretsRotationStatus)
+				if !ok {
+					return false, fmt.Errorf("unexpected resource type: %T", res)
+				}
+
+				if resTyped.TypedSpec().Value.Phase != specs.SecretRotationSpec_OK {
+					return true, nil
+				}
+
+				return false, nil
+			}
+
+			return nil
+		})
+		require.NoError(t, err)
+
+		// assert rotation completed
+		_, err = safe.StateWatchFor[*omni.ClusterSecretsRotationStatus](ctx, omniState, omni.NewClusterSecretsRotationStatus(clusterName).Metadata(), func(cond *state.WatchForCondition) error {
+			cond.Condition = func(res resource.Resource) (bool, error) {
+				resTyped, ok := res.(*omni.ClusterSecretsRotationStatus)
+				if !ok {
+					return false, fmt.Errorf("unexpected resource type: %T", res)
+				}
+
+				if resTyped.TypedSpec().Value.Phase == specs.SecretRotationSpec_OK {
+					return true, nil
+				}
+
+				return false, nil
+			}
+
+			return nil
+		})
+		require.NoError(t, err)
+	})
+
+	runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), options, clusterName, options.MachineOptions.TalosVersion, options.MachineOptions.KubernetesVersion))
+
 	t.Run("ClusterShouldBeDestroyed", AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false))
 }
