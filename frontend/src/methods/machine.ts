@@ -175,6 +175,12 @@ export const rejectMachine = async (machine: string) => {
   })
 }
 
+export const unrejectMachine = async (machine: string) => {
+  await updateInfraMachineConfig(machine, (r: Resource<InfraMachineConfigSpec>) => {
+    r.spec.acceptance_status = InfraMachineConfigSpecAcceptanceStatus.PENDING
+  })
+}
+
 export const acceptMachine = async (machine: string) => {
   await updateInfraMachineConfig(machine, (r: Resource<InfraMachineConfigSpec>) => {
     r.spec.acceptance_status = InfraMachineConfigSpecAcceptanceStatus.ACCEPTED

@@ -10,12 +10,7 @@ import { useRouter } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
-import {
-  InfraMachineType,
-  InfraProviderNamespace,
-  LabelInfraProviderID,
-  LabelMachinePendingAccept,
-} from '@/api/resources'
+import { InfraMachineType, InfraProviderNamespace, LabelInfraProviderID } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
@@ -37,6 +32,10 @@ function acceptMachines(...ids: string[]) {
 function rejectMachines(...ids: string[]) {
   router.push({ query: { modal: 'machineReject', machine: ids } })
 }
+
+function unrejectMachines(...ids: string[]) {
+  router.push({ query: { modal: 'machineUnreject', machine: ids } })
+}
 </script>
 
 <template>
@@ -48,8 +47,11 @@ function rejectMachines(...ids: string[]) {
           type: InfraMachineType,
           namespace: InfraProviderNamespace,
         },
-        selectors: [LabelMachinePendingAccept],
       }"
+      :filter-options="[
+        { desc: 'Pending', query: 'pending' },
+        { desc: 'Rejected', query: 'rejected' },
+      ]"
       search
       pagination
     >
@@ -59,22 +61,32 @@ function rejectMachines(...ids: string[]) {
         </PageHeader>
       </template>
 
-      <template #extra-controls>
-        <TButton
-          icon="check"
-          type="highlighted"
-          :disabled="!selectedMachines.size"
-          @click="acceptMachines(...selectedMachines)"
-        >
-          Accept
-        </TButton>
+      <template #extra-controls="{ selectedFilterOption }">
+        <template v-if="selectedFilterOption === 'Pending'">
+          <TButton
+            icon="check"
+            type="highlighted"
+            :disabled="!selectedMachines.size"
+            @click="acceptMachines(...selectedMachines)"
+          >
+            Accept
+          </TButton>
 
+          <TButton
+            icon="close"
+            :disabled="!selectedMachines.size"
+            @click="rejectMachines(...selectedMachines)"
+          >
+            Reject
+          </TButton>
+        </template>
         <TButton
+          v-else
           icon="close"
           :disabled="!selectedMachines.size"
-          @click="rejectMachines(...selectedMachines)"
+          @click="unrejectMachines(...selectedMachines)"
         >
-          Reject
+          Unreject
         </TButton>
       </template>
 
