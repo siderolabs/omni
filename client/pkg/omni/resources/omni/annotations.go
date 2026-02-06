@@ -58,7 +58,7 @@ const (
 	TaintedByBreakGlassTimestamp = SystemLabelPrefix + "tainted-by-break-glass-timestamp"
 
 	// RotateTalosCAVersion is the version of RotateTalosCA resource.
-	// This annotation is set on the SecretRotation resource when CA rotation is initiated.
+	// This annotation is set on the ClusterSecretsRotationStatus resource when CA rotation is initiated.
 	RotateTalosCAVersion = SystemLabelPrefix + "rotate-talos-ca-version"
 
 	// RotateTalosCATimestamp indicates the time when CA rotation was completed.
@@ -68,4 +68,12 @@ const (
 	// SecretRotationVersion is the version of a SecretRotation resource. It's used to determine whether ClusterSecrets need to be updated for rotation.
 	// This annotation is set on the ClusterSecrets resource.
 	SecretRotationVersion = SystemLabelPrefix + "secret-rotation-version"
+
+	// RotateKubernetesCAVersion is the version of RotateKubernetesCA resource.
+	// This annotation is set on the ClusterSecretsRotationStatus resource when Kubernetes CA rotation is initiated.
+	RotateKubernetesCAVersion = SystemLabelPrefix + "rotate-kubernetes-ca-version"
+
+	// RotateKubernetesCATimestamp indicates the time when CA rotation was completed.
+	// This annotation is set on the ClusterSecrets resource.
+	RotateKubernetesCATimestamp = SystemLabelPrefix + "rotate-kubernetes-ca-timestamp"
 )

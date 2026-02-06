@@ -40,8 +40,7 @@ func TestOperatorTalosconfig(t *testing.T) {
 	discoveryClientCache := &discoveryClientCacheMock{}
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel, 30*time.Second)
 
-	kubernetesRuntime, err := kubernetes.New(st.Default())
-	require.NoError(t, err)
+	kubernetesRuntime := kubernetes.New(st.Default(), logger)
 
 	r, err := omniruntime.NewRuntime(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
 		st, prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))

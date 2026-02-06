@@ -77,7 +77,12 @@ func NewKubeconfigController(certificateValidity time.Duration) *KubeconfigContr
 					logger.Info("Kubernetes API certificate for cluster is stale, refreshing", zap.String("cluster", secrets.Metadata().ID()))
 				}
 
-				kubeconfig.TypedSpec().Value.Data, err = certs.GenerateKubeconfig(secrets, lbConfig, certificateValidity)
+				clientCert, ca, err := certs.KubernetesAPIClientCertificateFromSecrets(secrets, certificateValidity)
+				if err != nil {
+					return fmt.Errorf("error generating Kubernetes client certificate: %w", err)
+				}
+
+				kubeconfig.TypedSpec().Value.Data, err = certs.GenerateKubeconfig(clientCert, ca, lbConfig)
 				if err != nil {
 					return fmt.Errorf("error generating Kubernetes API config: %w", err)
 				}

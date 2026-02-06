@@ -23,6 +23,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/protobuf/server"
+	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
@@ -153,6 +154,7 @@ type MachineServiceMock struct {
 	serviceList             *machine.ServiceListResponse
 	etcdLeaveClusterHandler func(context.Context, *machine.EtcdLeaveClusterRequest) (*machine.EtcdLeaveClusterResponse, error)
 	versionHandler          func(ctx context.Context, _ *emptypb.Empty) (*machine.VersionResponse, error)
+	readHandler             func(*machine.ReadRequest, grpc.ServerStreamingServer[common.Data]) error
 
 	metaDeleteKeyToCount map[uint32]int
 	metaKeys             map[uint32]string
@@ -179,6 +181,13 @@ func (ms *MachineServiceMock) SetVersionHandler(callback func(ctx context.Contex
 	defer ms.lock.Unlock()
 
 	ms.versionHandler = callback
+}
+
+func (ms *MachineServiceMock) SetReadHandler(callback func(*machine.ReadRequest, grpc.ServerStreamingServer[common.Data]) error) {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	ms.readHandler = callback
 }
 
 func (ms *MachineServiceMock) GetUpgradeRequests() []*machine.UpgradeRequest {
@@ -457,4 +466,12 @@ func (ms *MachineServiceMock) MetaDelete(_ context.Context, req *machine.MetaDel
 	delete(ms.metaKeys, req.Key)
 
 	return &machine.MetaDeleteResponse{}, nil
+}
+
+func (ms *MachineServiceMock) Read(request *machine.ReadRequest, grpc grpc.ServerStreamingServer[common.Data]) error {
+	if ms.readHandler != nil {
+		return ms.readHandler(request, grpc)
+	}
+
+	return nil
 }

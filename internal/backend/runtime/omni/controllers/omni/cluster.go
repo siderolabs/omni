@@ -92,6 +92,7 @@ func NewClusterController(kubernetesRuntime KubernetesRuntime) *ClusterControlle
 					}),
 					&customcleanup.SameIDHandler[*omni.Cluster, *omni.ImportedClusterSecrets]{},
 					&customcleanup.SameIDHandler[*omni.Cluster, *omni.RotateTalosCA]{},
+					&customcleanup.SameIDHandler[*omni.Cluster, *omni.RotateKubernetesCA]{},
 				),
 			},
 		},

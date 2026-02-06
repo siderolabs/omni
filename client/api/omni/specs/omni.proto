@@ -652,6 +652,9 @@ message ClusterSecretsSpec {
 
     // Os holds the cluster OS CA.
     CA os = 1;
+
+    // K8s holds the cluster Kubernetes CA.
+    CA k8s = 2;
   }
 
   // Extra_certs holds extra cluster CAs to be used during CA rotation.
@@ -1529,6 +1532,7 @@ message SecretRotationSpec {
   enum Component {
     NONE = 0;
     TALOS_CA = 1;
+    KUBERNETES_CA = 2;
   }
 
   // Status holds the status of the secrets rotation.
@@ -1543,6 +1547,8 @@ message SecretRotationSpec {
   ClusterSecretsSpec.Certs extra_certs = 5;
   // Backup_certs_os holds backup of the original OS CA certs before rotation started.
   repeated ClusterSecretsSpec.Certs.CA backup_certs_os = 6;
+  // Backup_certs_k8s holds backup of the original Kubernetes CA certs before rotation started.
+  repeated ClusterSecretsSpec.Certs.CA backup_certs_k8s = 7;
 }
 
 // ClusterSecretsRotationStatusSpec contains the status of the cluster secrets rotation process.
@@ -1580,3 +1586,6 @@ message ClusterMachineSecretsSpec {
   // Rotation holds the status of the ongoing secrets rotation.
   Rotation rotation = 2;
 }
+
+// RotateKubernetesCASpec is used to initiate Kubernetes CA rotation.
+message RotateKubernetesCASpec {}

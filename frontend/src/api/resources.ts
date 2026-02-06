@@ -203,6 +203,7 @@ export const MaintenanceConfigStatusType = "MaintenanceConfigStatuses.omni.sider
 export const NodeForceDestroyRequestType = "NodeForceDestroyRequests.omni.sidero.dev";
 export const OngoingTaskType = "OngoingTasks.omni.sidero.dev";
 export const RedactedClusterMachineConfigType = "RedactedClusterMachineConfigs.omni.sidero.dev";
+export const RotateKubernetesCAType = "RotateKubernetesCAs.omni.sidero.dev";
 export const RotateTalosCAType = "RotateTalosCAs.omni.sidero.dev";
 export const SchematicType = "Schematics.omni.sidero.dev";
 export const SchematicConfigurationType = "SchematicConfigurations.omni.sidero.dev";

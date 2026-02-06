@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
@@ -18,8 +19,8 @@ import (
 
 //nolint:iface
 func TestInstall_LookupInterface(t *testing.T) {
-	k8s, err := kubernetes.New(nil)
-	require.NoError(t, err)
+	logger := zaptest.NewLogger(t)
+	k8s := kubernetes.New(nil, logger)
 
 	runtime.Install(kubernetes.Name, k8s)
 
@@ -27,7 +28,7 @@ func TestInstall_LookupInterface(t *testing.T) {
 		GetClient(ctx context.Context, cluster string) (kubernetes.Client, error)
 	}
 
-	_, err = runtime.LookupInterface[incorrectIface](kubernetes.Name)
+	_, err := runtime.LookupInterface[incorrectIface](kubernetes.Name)
 	require.EqualError(t, err, fmt.Sprintf("runtime with id %s is not incorrectIface", kubernetes.Name))
 
 	type incorrectUnnamedIface = interface {

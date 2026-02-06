@@ -60,8 +60,7 @@ func TestGenerateConfigs(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	st := omniruntime.NewTestState(logger)
 
-	kubernetesRuntime, err := kubernetes.New(st.Default())
-	require.NoError(t, err)
+	kubernetesRuntime := kubernetes.New(st.Default(), logger)
 
 	rt, err := omniruntime.NewRuntime(nil, nil, nil, nil,
 		nil, nil, nil, nil, st, prometheus.NewRegistry(),
@@ -70,10 +69,7 @@ func TestGenerateConfigs(t *testing.T) {
 
 	runtime.Install(omniruntime.Name, rt)
 
-	k8s, err := kubernetes.New(st.Default())
-	require.NoError(t, err)
-
-	runtime.Install(kubernetes.Name, k8s)
+	runtime.Install(kubernetes.Name, kubernetesRuntime)
 
 	clusterName := "cluster1"
 	saName := "serviceaccount1"

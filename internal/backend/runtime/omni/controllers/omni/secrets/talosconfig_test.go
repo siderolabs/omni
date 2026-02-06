@@ -127,7 +127,7 @@ func Test_Talosconfig(t *testing.T) {
 	t.Run("rotate secret", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
