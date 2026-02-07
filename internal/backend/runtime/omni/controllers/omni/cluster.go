@@ -13,8 +13,11 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
+	"k8s.io/client-go/rest"
 
+	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	customcleanup "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/cleanup"
 )
 
@@ -50,8 +53,11 @@ func (c handler) Outputs() []controller.Output {
 	return c.handler.Outputs()
 }
 
+// KubernetesRuntime defines the interface for interacting with the Kubernetes runtime.
 type KubernetesRuntime interface {
 	DestroyClient(string)
+	GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
+	GetKubeconfig(ctx context.Context, context *common.Context) (*rest.Config, error)
 }
 
 // NewClusterController creates new ClusterController.

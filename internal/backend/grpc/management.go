@@ -49,7 +49,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/installimage"
-	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
@@ -63,12 +62,24 @@ import (
 	siderolinkinternal "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
-type talosRuntime interface {
+// KubernetesRuntime provides kubernetes cluster access capabilities.
+type KubernetesRuntime interface {
+	GetKubeconfig(ctx context.Context, cluster *commonOmni.Context) (*rest.Config, error)
+	GetOIDCKubeconfig(context *commonOmni.Context, identity string, extraOptions ...string) ([]byte, error)
+	BreakGlassKubeconfig(ctx context.Context, id string) ([]byte, error)
+	GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
+}
+
+// TalosRuntime provides Talos cluster access capabilities.
+type TalosRuntime interface {
+	GetTalosconfigRaw(context *commonOmni.Context, identity string) ([]byte, error)
 	GetClient(ctx context.Context, clusterName string) (*talos.Client, error)
 }
 
-type kubernetesRuntime interface {
-	GetKubeconfig(ctx context.Context, cluster *commonOmni.Context) (*rest.Config, error)
+// TalosconfigProvider provides raw and operator Talos configurations.
+type TalosconfigProvider interface {
+	RawTalosconfig(ctx context.Context, clusterName string) ([]byte, error)
+	OperatorTalosconfig(ctx context.Context, clusterName string) ([]byte, error)
 }
 
 // JWTSigningKeyProvider is an interface for a JWT signing key provider.
@@ -78,6 +89,7 @@ type JWTSigningKeyProvider interface {
 
 func newManagementServer(omniState state.State, jwtSigningKeyProvider JWTSigningKeyProvider, logHandler *siderolinkinternal.LogHandler, logger *zap.Logger,
 	dnsService *dns.Service, imageFactoryClient *imagefactory.Client, auditor AuditLogger, omniconfigDest string,
+	kubernetesRuntime KubernetesRuntime, talosRuntime TalosRuntime, talosconfigProvider TalosconfigProvider,
 ) *managementServer {
 	return &managementServer{
 		omniState:             omniState,
@@ -88,6 +100,9 @@ func newManagementServer(omniState state.State, jwtSigningKeyProvider JWTSigning
 		imageFactoryClient:    imageFactoryClient,
 		auditor:               auditor,
 		omniconfigDest:        omniconfigDest,
+		kubernetesRuntime:     kubernetesRuntime,
+		talosRuntime:          talosRuntime,
+		talosconfigProvider:   talosconfigProvider,
 	}
 }
 
@@ -98,12 +113,15 @@ type managementServer struct {
 	omniState             state.State
 	jwtSigningKeyProvider JWTSigningKeyProvider
 
-	logHandler         *siderolinkinternal.LogHandler
-	logger             *zap.Logger
-	dnsService         *dns.Service
-	imageFactoryClient *imagefactory.Client
-	auditor            AuditLogger
-	omniconfigDest     string
+	logHandler          *siderolinkinternal.LogHandler
+	logger              *zap.Logger
+	dnsService          *dns.Service
+	imageFactoryClient  *imagefactory.Client
+	auditor             AuditLogger
+	kubernetesRuntime   KubernetesRuntime
+	talosRuntime        TalosRuntime
+	talosconfigProvider TalosconfigProvider
+	omniconfigDest      string
 }
 
 func (s *managementServer) register(server grpc.ServiceRegistrar) {
@@ -142,15 +160,6 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 		return nil, err
 	}
 
-	type oidcRuntime interface {
-		GetOIDCKubeconfig(context *commonOmni.Context, identity string, extraOptions ...string) ([]byte, error)
-	}
-
-	rt, err := runtime.LookupInterface[oidcRuntime](kubernetes.Name)
-	if err != nil {
-		return nil, err
-	}
-
 	var extraOptions []string
 
 	if req.GrantType != "" {
@@ -168,7 +177,7 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 		}
 	}
 
-	kubeconfig, err := rt.GetOIDCKubeconfig(commonContext, authResult.Identity, extraOptions...)
+	kubeconfig, err := s.kubernetesRuntime.GetOIDCKubeconfig(commonContext, authResult.Identity, extraOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -199,16 +208,7 @@ func (s *managementServer) Talosconfig(ctx context.Context, request *management.
 		return s.breakGlassTalosconfig(ctx, false)
 	}
 
-	type talosRuntime interface {
-		GetTalosconfigRaw(context *commonOmni.Context, identity string) ([]byte, error)
-	}
-
-	t, err := runtime.LookupInterface[talosRuntime](talos.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	talosconfig, err := t.GetTalosconfigRaw(router.ExtractContext(ctx), authResult.Identity)
+	talosconfig, err := s.talosRuntime.GetTalosconfigRaw(router.ExtractContext(ctx), authResult.Identity)
 	if err != nil {
 		return nil, err
 	}
@@ -308,34 +308,16 @@ func (s *managementServer) markClusterAsTainted(ctx context.Context, name string
 	return nil
 }
 
-func getRaw(ctx context.Context, clusterName string) ([]byte, error) {
+func (s *managementServer) getRaw(ctx context.Context, clusterName string) ([]byte, error) {
 	if !constants.IsDebugBuild {
 		return nil, status.Error(codes.PermissionDenied, "not allowed")
 	}
 
-	type raw interface {
-		RawTalosconfig(ctx context.Context, clusterName string) ([]byte, error)
-	}
-
-	omniRuntime, err := runtime.LookupInterface[raw](omni.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	return omniRuntime.RawTalosconfig(ctx, clusterName)
+	return s.talosconfigProvider.RawTalosconfig(ctx, clusterName)
 }
 
-func getBreakGlass(ctx context.Context, clusterName string) ([]byte, error) {
-	type operator interface {
-		OperatorTalosconfig(ctx context.Context, clusterName string) ([]byte, error)
-	}
-
-	omniRuntime, err := runtime.LookupInterface[operator](omni.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	return omniRuntime.OperatorTalosconfig(ctx, clusterName)
+func (s *managementServer) getBreakGlass(ctx context.Context, clusterName string) ([]byte, error) {
+	return s.talosconfigProvider.OperatorTalosconfig(ctx, clusterName)
 }
 
 func (s *managementServer) breakGlassTalosconfig(ctx context.Context, raw bool) (*management.TalosconfigResponse, error) {
@@ -357,9 +339,9 @@ func (s *managementServer) breakGlassTalosconfig(ctx context.Context, raw bool) 
 	)
 
 	if raw {
-		data, err = getRaw(ctx, clusterName)
+		data, err = s.getRaw(ctx, clusterName)
 	} else {
-		data, err = getBreakGlass(ctx, clusterName)
+		data, err = s.getBreakGlass(ctx, clusterName)
 	}
 
 	if err != nil {
@@ -393,16 +375,7 @@ func (s *managementServer) breakGlassKubeconfig(ctx context.Context) (*managemen
 
 	clusterName := routerContext.Name
 
-	type kubernetesAdmin interface {
-		BreakGlassKubeconfig(ctx context.Context, id string) ([]byte, error)
-	}
-
-	kubernetesRuntime, err := runtime.LookupInterface[kubernetesAdmin](kubernetes.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := kubernetesRuntime.BreakGlassKubeconfig(ctx, clusterName)
+	data, err := s.kubernetesRuntime.BreakGlassKubeconfig(ctx, clusterName)
 	if err != nil {
 		return nil, err
 	}
@@ -447,22 +420,12 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported upgrade path: %s", path)
 	}
 
-	k8sRuntime, err := runtime.LookupInterface[kubernetesRuntime](kubernetes.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	restConfig, err := k8sRuntime.GetKubeconfig(ctx, requestContext)
+	restConfig, err := s.kubernetesRuntime.GetKubeconfig(ctx, requestContext)
 	if err != nil {
 		return nil, fmt.Errorf("error getting kubeconfig: %w", err)
 	}
 
-	talosRt, err := runtime.LookupInterface[talosRuntime](talos.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	talosClient, err := talosRt.GetClient(ctx, requestContext.Name)
+	talosClient, err := s.talosRuntime.GetClient(ctx, requestContext.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error getting talos client: %w", err)
 	}
@@ -532,22 +495,12 @@ func (s *managementServer) KubernetesSyncManifests(req *management.KubernetesSyn
 		return status.Error(codes.InvalidArgument, "unable to extract request context")
 	}
 
-	k8sRuntime, err := runtime.LookupInterface[kubernetesRuntime](kubernetes.Name)
-	if err != nil {
-		return err
-	}
-
-	cfg, err := k8sRuntime.GetKubeconfig(ctx, requestContext)
+	cfg, err := s.kubernetesRuntime.GetKubeconfig(ctx, requestContext)
 	if err != nil {
 		return fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 
-	talosRt, err := runtime.LookupInterface[talosRuntime](talos.Name)
-	if err != nil {
-		return err
-	}
-
-	talosClient, err := talosRt.GetClient(ctx, requestContext.Name)
+	talosClient, err := s.talosRuntime.GetClient(ctx, requestContext.Name)
 	if err != nil {
 		return fmt.Errorf("failed to get talos client: %w", err)
 	}

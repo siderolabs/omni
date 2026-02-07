@@ -40,7 +40,6 @@ import (
 	managementclient "github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
-	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -65,15 +64,8 @@ func TestGenerateConfigs(t *testing.T) {
 
 	rt, err := omniruntime.NewRuntime(nil, nil, nil, nil,
 		nil, nil, nil, nil, st, prometheus.NewRegistry(),
-		nil, kubernetesRuntime, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
+		nil, kubernetesRuntime, nil, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 	require.NoError(t, err)
-
-	runtime.Install(omniruntime.Name, rt)
-
-	k8s, err := kubernetes.New(st.Default())
-	require.NoError(t, err)
-
-	runtime.Install(kubernetes.Name, k8s)
 
 	clusterName := "cluster1"
 	saName := "serviceaccount1"
@@ -85,7 +77,7 @@ func TestGenerateConfigs(t *testing.T) {
 	encodedKey, err := serviceaccount.Encode(saName, key)
 	require.NoError(t, err)
 
-	address := runServer(t, st.Default())
+	address := runServer(t, st.Default(), kubernetesRuntime, rt)
 
 	c, err := client.New(address, client.WithServiceAccount(encodedKey))
 	require.NoError(t, err)
@@ -206,7 +198,7 @@ func TestGenerateConfigs(t *testing.T) {
 	})
 }
 
-func runServer(t *testing.T, st state.State, opts ...grpc.ServerOption) string {
+func runServer(t *testing.T, st state.State, kubernetesRuntime grpcomni.KubernetesRuntime, talosconfigProvider grpcomni.TalosconfigProvider, opts ...grpc.ServerOption) string {
 	var err error
 
 	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "localhost:0")
@@ -250,6 +242,8 @@ func runServer(t *testing.T, st state.State, opts ...grpc.ServerOption) string {
 		st,
 		nil,
 		logger,
+		kubernetesRuntime,
+		talosconfigProvider,
 	))
 
 	var eg errgroup.Group

@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
+	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -18,16 +19,22 @@ type ManagementServer = managementServer
 type AuthServer = authServer
 
 //nolint:revive
-func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client, logger *zap.Logger) *ManagementServer {
+func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client, logger *zap.Logger, kubernetesRuntime KubernetesRuntime, talosconfigProvider TalosconfigProvider) *ManagementServer {
 	return &ManagementServer{
-		omniState:          st,
-		imageFactoryClient: imageFactoryClient,
-		logger:             logger,
+		omniState:           st,
+		imageFactoryClient:  imageFactoryClient,
+		logger:              logger,
+		kubernetesRuntime:   kubernetesRuntime,
+		talosconfigProvider: talosconfigProvider,
 	}
 }
 
 func NewAuthServer(st state.State, services config.Services, logger *zap.Logger) (*AuthServer, error) {
 	return newAuthServer(st, services, logger)
+}
+
+func NewResourceServer(st state.State, runtimes map[string]runtime.Runtime, depGrapher DependencyGrapher) *ResourceServer {
+	return newResourceServer(st, runtimes, depGrapher)
 }
 
 func GenerateDest(apiurl string) (string, error) {
