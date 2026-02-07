@@ -20,6 +20,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xiter"
+	"github.com/siderolabs/talos/pkg/machinery/config"
 	gensecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -243,6 +244,7 @@ func TestImportedSecrets(t *testing.T) {
 	)
 }
 
+//nolint:maintidx
 func TestSecretRotation(t *testing.T) {
 	t.Parallel()
 
@@ -250,7 +252,7 @@ func TestSecretRotation(t *testing.T) {
 		require.NoError(t, testContext.Runtime.RegisterQController(secrets.NewSecretsController(nil)))
 	}
 
-	t.Run("trigger rotation", func(t *testing.T) {
+	t.Run("trigger Talos CA rotation", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
@@ -361,6 +363,128 @@ func TestSecretRotation(t *testing.T) {
 					func(res *omni.ClusterSecrets, assertions *assert.Assertions) {
 						assertions.Nil(res.TypedSpec().Value.ExtraCerts)
 						timestamp, timestampOK := res.Metadata().Annotations().Get(omni.RotateTalosCATimestamp)
+						assertions.True(timestampOK)
+						assertions.NotEmpty(timestamp)
+					},
+				)
+			},
+		)
+	})
+
+	t.Run("trigger Kubernetes CA rotation", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+			func(ctx context.Context, testContext testutils.TestContext) {
+				st := testContext.State
+
+				machineServices := testutils.NewMachineServices(t, testContext.State)
+				cluster, _ := createCluster(ctx, t, testContext.State, machineServices, "rotate-k8s-ca", 1, 1)
+
+				clusterSecrets, err := safe.ReaderGetByID[*omni.ClusterSecrets](ctx, st, cluster.Metadata().ID())
+				require.NoError(t, err)
+
+				secretsBundle, err := omni.ToSecretsBundle(clusterSecrets.TypedSpec().Value.Data)
+				require.NoError(t, err)
+
+				rmock.Mock[*omni.SecretRotation](ctx, t, testContext.State, options.SameID(cluster), options.Modify(func(res *omni.SecretRotation) error {
+					res.TypedSpec().Value.Component = specs.SecretRotationSpec_NONE
+					res.TypedSpec().Value.Phase = specs.SecretRotationSpec_OK
+					res.TypedSpec().Value.Certs = &specs.ClusterSecretsSpec_Certs{
+						K8S: &specs.ClusterSecretsSpec_Certs_CA{
+							Crt: secretsBundle.Certs.K8s.Crt,
+							Key: secretsBundle.Certs.K8s.Key,
+						},
+					}
+					res.TypedSpec().Value.ExtraCerts = nil
+
+					return nil
+				}))
+
+				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+					func(res *omni.ClusterSecrets, assertions *assert.Assertions) {
+						assertions.Nil(res.TypedSpec().Value.ExtraCerts)
+
+						version, versionOK := res.Metadata().Annotations().Get(omni.RotateKubernetesCAVersion)
+						assertions.Empty(version)
+						assertions.False(versionOK)
+					})
+
+				versionContract, err := config.ParseContractFromVersion(cluster.TypedSpec().Value.TalosVersion)
+				require.NoError(t, err)
+
+				kubernetesCA, err := gensecrets.NewKubernetesCA(gensecrets.NewFixedClock(time.Now()).Now(), versionContract)
+				require.NoError(t, err)
+
+				// SecretRotation resource is updated to indicate that secret rotation is in progress
+				rmock.Mock[*omni.SecretRotation](ctx, t, testContext.State, options.SameID(cluster), options.Modify(func(res *omni.SecretRotation) error {
+					res.TypedSpec().Value.Component = specs.SecretRotationSpec_KUBERNETES_CA
+					res.TypedSpec().Value.Phase = specs.SecretRotationSpec_PRE_ROTATE
+					res.TypedSpec().Value.ExtraCerts = &specs.ClusterSecretsSpec_Certs{
+						K8S: &specs.ClusterSecretsSpec_Certs_CA{
+							Crt: kubernetesCA.CrtPEM,
+							Key: kubernetesCA.KeyPEM,
+						},
+					}
+
+					return nil
+				}))
+
+				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+					func(res *omni.ClusterSecrets, assertions *assert.Assertions) {
+						assertions.NotNil(res.TypedSpec().Value.GetExtraCerts())
+						assertions.NotNil(res.TypedSpec().Value.ExtraCerts.GetK8S())
+					},
+				)
+
+				rmock.Mock[*omni.SecretRotation](ctx, t, testContext.State, options.SameID(cluster), options.Modify(func(res *omni.SecretRotation) error {
+					res.TypedSpec().Value.Phase = specs.SecretRotationSpec_ROTATE
+
+					return nil
+				}))
+
+				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+					func(res *omni.ClusterSecrets, assert *assert.Assertions) {
+						bundle, innerErr := omni.ToSecretsBundle(res.TypedSpec().Value.Data)
+						assert.NoError(innerErr)
+
+						assert.Equal(kubernetesCA.CrtPEM, bundle.Certs.K8s.Crt)
+						assert.Equal(kubernetesCA.KeyPEM, bundle.Certs.K8s.Key)
+
+						assert.Equal(secretsBundle.Certs.K8s.Crt, res.TypedSpec().Value.ExtraCerts.K8S.Crt)
+						assert.Equal(secretsBundle.Certs.K8s.Key, res.TypedSpec().Value.ExtraCerts.K8S.Key)
+					},
+				)
+
+				rmock.Mock[*omni.SecretRotation](ctx, t, testContext.State, options.SameID(cluster), options.Modify(func(res *omni.SecretRotation) error {
+					res.TypedSpec().Value.Phase = specs.SecretRotationSpec_POST_ROTATE
+
+					return nil
+				}))
+
+				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+					func(res *omni.ClusterSecrets, assertions *assert.Assertions) {
+						timestamp, timestampOK := res.Metadata().Annotations().Get(omni.RotateKubernetesCATimestamp)
+						assertions.True(timestampOK)
+						assertions.NotEmpty(timestamp)
+					},
+				)
+
+				rmock.Mock[*omni.SecretRotation](ctx, t, testContext.State, options.SameID(cluster), options.Modify(func(res *omni.SecretRotation) error {
+					res.TypedSpec().Value.Phase = specs.SecretRotationSpec_OK
+					res.TypedSpec().Value.Component = specs.SecretRotationSpec_KUBERNETES_CA
+
+					return nil
+				}))
+
+				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+					func(res *omni.ClusterSecrets, assertions *assert.Assertions) {
+						assertions.Nil(res.TypedSpec().Value.ExtraCerts)
+						timestamp, timestampOK := res.Metadata().Annotations().Get(omni.RotateKubernetesCATimestamp)
 						assertions.True(timestampOK)
 						assertions.NotEmpty(timestamp)
 					},

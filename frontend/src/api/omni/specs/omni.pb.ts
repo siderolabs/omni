@@ -191,6 +191,7 @@ export enum SecretRotationSpecPhase {
 export enum SecretRotationSpecComponent {
   NONE = 0,
   TALOS_CA = 1,
+  KUBERNETES_CA = 2,
 }
 
 export type MachineSpec = {
@@ -511,6 +512,7 @@ export type ClusterSecretsSpecCertsCA = {
 
 export type ClusterSecretsSpecCerts = {
   os?: ClusterSecretsSpecCertsCA
+  k8s?: ClusterSecretsSpecCertsCA
 }
 
 export type ClusterSecretsSpec = {
@@ -1027,6 +1029,7 @@ export type SecretRotationSpec = {
   certs?: ClusterSecretsSpecCerts
   extra_certs?: ClusterSecretsSpecCerts
   backup_certs_os?: ClusterSecretsSpecCertsCA[]
+  backup_certs_k8s?: ClusterSecretsSpecCertsCA[]
 }
 
 export type ClusterSecretsRotationStatusSpec = {
@@ -1048,4 +1051,7 @@ export type ClusterMachineSecretsSpecRotation = {
 export type ClusterMachineSecretsSpec = {
   data?: Uint8Array
   rotation?: ClusterMachineSecretsSpecRotation
+}
+
+export type RotateKubernetesCASpec = {
 }

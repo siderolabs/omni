@@ -87,8 +87,7 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	discoveryClientCache := &discoveryClientCacheMock{}
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel, 30*time.Second)
 
-	kubernetesRuntime, err := kubernetes.New(resourceState)
-	suite.Require().NoError(err)
+	kubernetesRuntime := kubernetes.New(resourceState, logger)
 
 	suite.runtime, err = omniruntime.NewRuntime(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
 		omniruntime.NewMockState(resourceState), prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))

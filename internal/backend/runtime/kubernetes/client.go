@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -32,6 +33,8 @@ type Client struct {
 	clientset *kubernetes.Clientset
 	Mapper    meta.RESTMapper
 	dialer    *connrotation.Dialer
+	closeCh   chan struct{}
+	closeOnce sync.Once
 }
 
 // Resource ...
@@ -122,6 +125,12 @@ func (c *Client) Clientset() *kubernetes.Clientset {
 // Close closes all clients.
 func (c *Client) Close() {
 	c.dialer.CloseAll()
+	c.closeOnce.Do(func() { close(c.closeCh) })
+}
+
+// Wait returns a channel that will be closed when the client is closed.
+func (c *Client) Wait() <-chan struct{} {
+	return c.closeCh
 }
 
 func (c *Client) kindFor(gvr schema.GroupVersionResource) (schema.GroupVersionKind, error) {
@@ -235,5 +244,5 @@ func NewClient(config *rest.Config) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{c, clientset, mapper, dialer}, nil
+	return &Client{c, clientset, mapper, dialer, make(chan struct{}), sync.Once{}}, nil
 }

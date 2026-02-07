@@ -46,7 +46,23 @@ var talosCACmd = &cobra.Command{
 	Example: "",
 	Args:    cobra.NoArgs,
 	RunE: func(*cobra.Command, []string) error {
-		return access.WithClient(talosCA)
+		return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return rotateCA(ctx, client, omni.NewRotateTalosCA(secretCmdFlags.clusterName), specs.SecretRotationSpec_TALOS_CA, "Talos CA")
+		})
+	},
+}
+
+// kubernetesCACmd represents the secret rotate kubernetes-ca command.
+var kubernetesCACmd = &cobra.Command{
+	Use:     "kubernetes-ca",
+	Short:   "Rotate Kubernetes CA certificate.",
+	Long:    `Rotate Kubernetes CA certificate for all nodes in the cluster. Kubernetes CA is used by the Kubernetes API server and kubelet for authenticating clients.`,
+	Example: "",
+	Args:    cobra.NoArgs,
+	RunE: func(*cobra.Command, []string) error {
+		return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return rotateCA(ctx, client, omni.NewRotateKubernetesCA(secretCmdFlags.clusterName), specs.SecretRotationSpec_KUBERNETES_CA, "Kubernetes CA")
+		})
 	},
 }
 
@@ -61,7 +77,7 @@ var statusCmd = &cobra.Command{
 	},
 }
 
-func talosCA(ctx context.Context, client *client.Client) error {
+func rotateCA[T resource.Resource](ctx context.Context, client *client.Client, r T, component specs.SecretRotationSpec_Component, componentName string) error {
 	ctx, cancel := context.WithTimeout(ctx, rotateCmdFlags.waitTimeout)
 	defer cancel()
 
@@ -78,24 +94,21 @@ func talosCA(ctx context.Context, client *client.Client) error {
 	}
 
 	if talosVersion.LT(semver.MustParse("1.7.0")) {
-		return fmt.Errorf("rotating Talos CA is only supported for clusters running Talos v1.7.0 or newer, current version: %q", talosVersion.String())
+		return fmt.Errorf("rotating %s is only supported for clusters running Talos v1.7.0 or newer, current version: %q", componentName, talosVersion.String())
 	}
 
 	if rotationStatus.TypedSpec().Value.Phase != specs.SecretRotationSpec_OK {
-		if rotationStatus.TypedSpec().Value.Component != specs.SecretRotationSpec_TALOS_CA {
+		if rotationStatus.TypedSpec().Value.Component != component {
 			return fmt.Errorf("another rotation is already in progress for %s", rotationStatus.TypedSpec().Value.Component.String())
 		}
 
 		return printSecretRotationStatus(ctx, st, cluster.Metadata().ID(), rotationStatus)
 	}
 
-	fmt.Printf("starting to rotate Talos CA for the cluster %q\n", cluster.Metadata().ID())
+	fmt.Printf("starting to rotate %s for the cluster %q\n", componentName, cluster.Metadata().ID())
 
-	if err = safe.StateModify[*omni.RotateTalosCA](
-		ctx,
-		st,
-		omni.NewRotateTalosCA(cluster.Metadata().ID()),
-		func(res *omni.RotateTalosCA) error {
+	if err = safe.StateModify[T](ctx, st, r,
+		func(res T) error {
 			res.Metadata().Annotations().Set("timestamp", strconv.FormatInt(time.Now().Unix(), 10))
 
 			return nil
@@ -217,6 +230,7 @@ func init() {
 	rotateCmd.PersistentFlags().BoolVarP(&rotateCmdFlags.wait, "wait", "w", true, "wait for the secret rotation to complete")
 	rotateCmd.PersistentFlags().DurationVarP(&rotateCmdFlags.waitTimeout, "wait-timeout", "t", 5*time.Minute, "wait timeout for secret rotation, if zero, wait indefinitely")
 	rotateCmd.AddCommand(talosCACmd)
+	rotateCmd.AddCommand(kubernetesCACmd)
 	rotateCmd.AddCommand(statusCmd)
 	secretCmd.AddCommand(rotateCmd)
 }

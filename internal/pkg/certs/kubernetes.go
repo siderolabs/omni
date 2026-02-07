@@ -6,12 +6,14 @@
 package certs
 
 import (
+	"bytes"
 	stdlibx509 "crypto/x509"
 	"encoding/base64"
 	"fmt"
 	"time"
 
-	"github.com/siderolabs/crypto/x509"
+	talosx509 "github.com/siderolabs/crypto/x509"
+	"github.com/siderolabs/gen/xslices"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"go.yaml.in/yaml/v4"
 
@@ -62,43 +64,18 @@ type kubeconfigContextContext struct {
 const allowedTimeSkew = 10 * time.Second
 
 // GenerateKubeconfig a kubeconfig for the cluster from the given input resources.
-func GenerateKubeconfig(secrets *omni.ClusterSecrets, lbConfig *omni.LoadBalancerConfig, certificateValidity time.Duration) ([]byte, error) {
-	secretBundle, err := omni.ToSecretsBundle(secrets.TypedSpec().Value.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	k8sCA, err := x509.NewCertificateAuthorityFromCertificateAndKey(secretBundle.Certs.K8s)
-	if err != nil {
-		return nil, fmt.Errorf("error getting Kubernetes CA: %w", err)
-	}
-
-	clientCert, err := x509.NewKeyPair(k8sCA,
-		x509.CommonName(constants.KubernetesAdminCertCommonName),
-		x509.Organization(talosconstants.KubernetesAdminCertOrganization),
-		x509.NotBefore(time.Now().Add(-allowedTimeSkew)),
-		x509.NotAfter(time.Now().Add(certificateValidity)),
-		x509.KeyUsage(stdlibx509.KeyUsageDigitalSignature|stdlibx509.KeyUsageKeyEncipherment),
-		x509.ExtKeyUsage([]stdlibx509.ExtKeyUsage{
-			stdlibx509.ExtKeyUsageClientAuth,
-		}),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("error generating Kubernetes client certificate: %w", err)
-	}
-
-	clientCertPEM := x509.NewCertificateAndKeyFromKeyPair(clientCert)
-	contextName := fmt.Sprintf("%s@%s", "admin", secrets.Metadata().ID())
+func GenerateKubeconfig(clientCert *talosx509.PEMEncodedCertificateAndKey, ca []byte, lbConfig *omni.LoadBalancerConfig) ([]byte, error) {
+	contextName := fmt.Sprintf("%s@%s", "admin", lbConfig.Metadata().ID())
 
 	kubeconfig := kubeconfigTemplate{
 		APIVersion: "v1",
 		Kind:       "Config",
 		Clusters: []kubeconfigCluster{
 			{
-				Name: secrets.Metadata().ID(),
+				Name: lbConfig.Metadata().ID(),
 				Cluster: kubeconfigClusterCluster{
 					Server:                   lbConfig.TypedSpec().Value.SiderolinkEndpoint,
-					CertificateAuthorityData: base64.StdEncoding.EncodeToString(secretBundle.Certs.K8s.Crt),
+					CertificateAuthorityData: base64.StdEncoding.EncodeToString(ca),
 				},
 			},
 		},
@@ -106,8 +83,8 @@ func GenerateKubeconfig(secrets *omni.ClusterSecrets, lbConfig *omni.LoadBalance
 			{
 				Name: contextName,
 				User: kubeconfigUserUser{
-					ClientCertificateData: base64.StdEncoding.EncodeToString(clientCertPEM.Crt),
-					ClientKeyData:         base64.StdEncoding.EncodeToString(clientCertPEM.Key),
+					ClientCertificateData: base64.StdEncoding.EncodeToString(clientCert.Crt),
+					ClientKeyData:         base64.StdEncoding.EncodeToString(clientCert.Key),
 				},
 			},
 		},
@@ -115,7 +92,7 @@ func GenerateKubeconfig(secrets *omni.ClusterSecrets, lbConfig *omni.LoadBalance
 			{
 				Name: contextName,
 				Context: kubeconfigContextContext{
-					Cluster:   secrets.Metadata().ID(),
+					Cluster:   lbConfig.Metadata().ID(),
 					Namespace: "default",
 					User:      contextName,
 				},
@@ -124,5 +101,63 @@ func GenerateKubeconfig(secrets *omni.ClusterSecrets, lbConfig *omni.LoadBalance
 		CurrentContext: contextName,
 	}
 
-	return yaml.Marshal(kubeconfig)
+	out, err := yaml.Marshal(kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+// KubernetesAPIClientCertificateFromSecrets generates a Kubernetes API client certificate from the given secrets.
+func KubernetesAPIClientCertificateFromSecrets(secrets *omni.ClusterSecrets, certificateValidity time.Duration) (*talosx509.PEMEncodedCertificateAndKey, []byte, error) {
+	secretsBundle, err := omni.ToSecretsBundle(secrets.TypedSpec().Value.GetData())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	clientCert, err := NewKubernetesCertificateAndKey(secretsBundle.Certs.K8s, certificateValidity)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error generating Kubernetes API certificate: %w", err)
+	}
+
+	acceptedCAs := []*talosx509.PEMEncodedCertificate{{Crt: secretsBundle.Certs.K8s.Crt}}
+
+	if secrets.TypedSpec().Value.GetExtraCerts().GetK8S() != nil {
+		acceptedCAs = append(acceptedCAs, &talosx509.PEMEncodedCertificate{Crt: secrets.TypedSpec().Value.ExtraCerts.K8S.Crt})
+	}
+
+	return clientCert, bytes.Join(
+		xslices.Map(
+			acceptedCAs,
+			func(cert *talosx509.PEMEncodedCertificate) []byte {
+				return cert.Crt
+			},
+		),
+		nil,
+	), nil
+}
+
+// NewKubernetesCertificateAndKey generates a Kubernetes client certificate and key signed by the given CA.
+func NewKubernetesCertificateAndKey(ca *talosx509.PEMEncodedCertificateAndKey, certificateValidity time.Duration) (*talosx509.PEMEncodedCertificateAndKey, error) {
+	k8sCA, err := talosx509.NewCertificateAuthorityFromCertificateAndKey(ca)
+	if err != nil {
+		return nil, fmt.Errorf("error getting Kubernetes CA: %w", err)
+	}
+
+	clientCert, err := talosx509.NewKeyPair(k8sCA,
+		talosx509.CommonName(constants.KubernetesAdminCertCommonName),
+		talosx509.Organization(talosconstants.KubernetesAdminCertOrganization),
+		talosx509.NotBefore(time.Now().Add(-allowedTimeSkew)),
+		talosx509.NotAfter(time.Now().Add(certificateValidity)),
+		talosx509.KeyUsage(stdlibx509.KeyUsageDigitalSignature|stdlibx509.KeyUsageKeyEncipherment),
+		talosx509.ExtKeyUsage([]stdlibx509.ExtKeyUsage{
+			stdlibx509.ExtKeyUsageClientAuth,
+		}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error generating Kubernetes client certificate: %w", err)
+	}
+
+	return talosx509.NewCertificateAndKeyFromKeyPair(clientCert), nil
 }

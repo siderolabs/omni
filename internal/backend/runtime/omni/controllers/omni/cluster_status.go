@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -45,7 +46,7 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 			UnmapMetadataFunc: func(clusterStatus *omni.ClusterStatus) *omni.Cluster {
 				return omni.NewCluster(clusterStatus.Metadata().ID())
 			},
-			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, cluster *omni.Cluster, clusterStatus *omni.ClusterStatus) error {
+			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cluster *omni.Cluster, clusterStatus *omni.ClusterStatus) error {
 				shouldUseEmbeddedDiscoveryService := func() (bool, error) {
 					if !embeddedDiscoveryServiceEnabled {
 						return false, nil
@@ -197,10 +198,42 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 				helpers.CopyUserLabels(clusterStatus, cluster.Metadata().Labels().Raw())
 
 				if clusterSecrets != nil {
+					talosCARotatedTimestamp, talosCARotated := clusterSecrets.Metadata().Annotations().Get(omni.RotateTalosCATimestamp)
+					k8sCARotatedTimestamp, k8sCARotated := clusterSecrets.Metadata().Annotations().Get(omni.RotateKubernetesCATimestamp)
+
+					breakGlassTimestamp, breakGlass := clusterStatus.Metadata().Annotations().Get(omni.TaintedByBreakGlassTimestamp)
+					if breakGlass {
+						talosCARotatedTimestampInt, breakGlassErr := strconv.Atoi(talosCARotatedTimestamp)
+						if breakGlassErr != nil {
+							logger.Warn("failed to parse Talos CA rotation timestamp", zap.Error(breakGlassErr))
+						}
+
+						k8sCARotatedTimestampInt, breakGlassErr := strconv.Atoi(k8sCARotatedTimestamp)
+						if breakGlassErr != nil {
+							logger.Warn("failed to parse Kubernetes CA rotation timestamp", zap.Error(breakGlassErr))
+						}
+
+						if breakGlassTimestamp == "" {
+							breakGlassTimestamp = "0"
+						}
+
+						breakGlassTimestampInt, breakGlassErr := strconv.Atoi(breakGlassTimestamp)
+						if breakGlassErr != nil {
+							logger.Warn("failed to parse break glass timestamp", zap.Error(breakGlassErr))
+						}
+
+						if talosCARotatedTimestampInt > breakGlassTimestampInt && k8sCARotatedTimestampInt > breakGlassTimestampInt {
+							clusterStatus.Metadata().Labels().Delete(omni.LabelClusterTaintedByBreakGlass)
+							clusterStatus.Metadata().Annotations().Delete(omni.TaintedByBreakGlassTimestamp)
+						}
+					}
+
 					if clusterSecrets.TypedSpec().Value.Imported {
-						clusterStatus.Metadata().Labels().Set(omni.LabelClusterTaintedByImporting, "")
-					} else {
-						clusterStatus.Metadata().Labels().Delete(omni.LabelClusterTaintedByImporting)
+						if talosCARotated && k8sCARotated {
+							clusterStatus.Metadata().Labels().Delete(omni.LabelClusterTaintedByImporting)
+						} else {
+							clusterStatus.Metadata().Labels().Set(omni.LabelClusterTaintedByImporting, "")
+						}
 					}
 				}
 
