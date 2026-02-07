@@ -1,0 +1,7 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: download-initial-sa-key
+commands:
+  - command: bash ./05-download-sa-key.sh
+    namespaced: true

@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-omni-ingress
+status:
+  succeeded: 1
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - command: >-
+      bash -c 'RESTARTS=$(kubectl get pod -n omni-e2e -l app.kubernetes.io/name=omni
+      -o jsonpath="{.items[0].status.containerStatuses[0].restartCount}") &&
+      echo "Omni pod restart count: $${RESTARTS}" &&
+      [ "$${RESTARTS}" -eq 0 ]'

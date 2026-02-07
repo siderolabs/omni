@@ -1,0 +1,17 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestSuite
+metadata:
+  name: omni-helm-chart
+startKIND: false
+namespace: omni-e2e
+crdDir: ./_crds
+manifestDirs:
+    - ./_manifests
+testDirs:
+    - ./tests
+timeout: 300
+parallel: 1
+skipDelete: true
+commands:
+  - command: kubectl kuttl version
+  - command: helm version
