@@ -2052,6 +2052,69 @@ func TestInstallationMediaConfigValidation(t *testing.T) {
 	require.NoError(t, err)
 }
 
+var manifest = `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: default
+  labels:
+    app.kubernetes.io/name: proxy
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 4
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.28.0
+        ports:
+        - containerPort: 80`
+
+func TestKubernetesManifestValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, omni.KubernetesManifestsValidationOptions()...)
+
+	m := omnires.NewKubernetesManifest("1")
+	m.TypedSpec().Value.Mode = specs.KubernetesManifestSpec_ONE_TIME
+
+	require.NoError(t, m.TypedSpec().Value.SetUncompressedData([]byte(manifest)))
+
+	err := st.Create(ctx, m)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "the resource must have omni.sidero.dev/cluster label set")
+
+	m.Metadata().Labels().Set(omnires.LabelSystemManifest, "")
+	m.Metadata().Labels().Set(omnires.LabelCluster, "a")
+	m.TypedSpec().Value.Mode = specs.KubernetesManifestSpec_ONE_TIME
+
+	err = st.Create(ctx, m)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "system manifests can't be created by the user")
+
+	m.Metadata().Labels().Delete(omnires.LabelSystemManifest)
+
+	require.NoError(t, st.Create(ctx, m))
+
+	_, err = safe.StateUpdateWithConflicts(ctx, state.WrapCore(st), m.Metadata(), func(res *omnires.KubernetesManifest) error {
+		return res.TypedSpec().Value.SetUncompressedData([]byte("aaa: bbb"))
+	})
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "error loading JSON manifest into unstructured")
+}
+
 type mockEtcdBackupStoreFactory struct {
 	store etcdbackup.Store
 }
