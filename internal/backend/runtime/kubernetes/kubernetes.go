@@ -240,6 +240,7 @@ users:
         - get-token
         - --oidc-issuer-url={{ .EndpointOIDC }}
         - --oidc-client-id={{ .ClientID }}
+        - --cache-dir=~/.kube/cache/oidc-login/{{ .InstanceName }}-{{ .ClusterName }}{{- if .Identity }}-{{ .Identity }}{{ end }}
         - --oidc-extra-scope=cluster:{{ .ClusterName }}
         {{- range $option := .ExtraOptions }}
         - --{{ $option }}
