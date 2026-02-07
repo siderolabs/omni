@@ -317,7 +317,7 @@ const openPage = (page: number | string) => {
           </slot>
 
           <div class="flex items-center gap-2">
-            <slot name="extra-controls" />
+            <slot name="extra-controls" :selected-filter-option />
 
             <div class="grow" />
 

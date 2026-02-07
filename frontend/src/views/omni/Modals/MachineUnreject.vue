@@ -10,7 +10,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
-import { rejectMachine } from '@/methods/machine'
+import { unrejectMachine } from '@/methods/machine'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
@@ -36,14 +36,14 @@ const close = () => {
   router.go(-1)
 }
 
-const reject = async () => {
+const unreject = async () => {
   await Promise.all(
     machines.value.map(async (machine) => {
       try {
-        await rejectMachine(machine)
-        showSuccess(`The Machine ${machine} was Rejected`)
+        await unrejectMachine(machine)
+        showSuccess(`The Machine ${machine} was Unrejected`)
       } catch (e) {
-        showError(`Failed to Reject the Machine ${machine}`, e)
+        showError(`Failed to Unreject the Machine ${machine}`, e)
       }
     }),
   )
@@ -56,7 +56,7 @@ const reject = async () => {
   <div class="modal-window">
     <div class="mb-5 flex items-center justify-between text-xl text-naturals-n14">
       <h3 class="text-base text-naturals-n14">
-        Reject {{ pluralize('Machine', machines.length, true) }}
+        Unreject {{ pluralize('Machine', machines.length, true) }}
       </h3>
       <CloseButton @click="close" />
     </div>
@@ -69,12 +69,14 @@ const reject = async () => {
 
     <p class="py-2 text-xs">Please confirm the action.</p>
     <p class="py-2 text-xs text-primary-p2">
-      Rejected machines will be removed from the pending machines list. You can use the rejected
-      machines list or omnictl to accept them again.
+      Unrejecting machines will place them back in the pending machines list. You can accept or
+      reject them again later.
     </p>
 
     <div class="mt-8 flex justify-end gap-4">
-      <TButton class="h-9 w-32" icon="close" icon-position="left" @click="reject">Reject</TButton>
+      <TButton class="h-9 w-32" icon="close" icon-position="left" @click="unreject">
+        Unreject
+      </TButton>
     </div>
   </div>
 </template>
