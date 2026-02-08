@@ -20,7 +20,6 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/internal/backend/oidc/internal/storage"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 func init() {
@@ -40,16 +39,11 @@ type Provider struct {
 }
 
 // NewProvider creates new OIDC provider.
-func NewProvider(store Storage) (*Provider, error) {
-	issuerEndpoint, err := config.Config.GetOIDCIssuerEndpoint()
-	if err != nil {
-		return nil, err
-	}
-
+func NewProvider(store Storage, issuerEndpoint string) (*Provider, error) {
 	// generate fresh crypto key time, as all auth requests are ephemeral in the storage
 	var cryptoKey [32]byte
 
-	_, err = rand.Read(cryptoKey[:])
+	_, err := rand.Read(cryptoKey[:])
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate crypto key: %w", err)
 	}

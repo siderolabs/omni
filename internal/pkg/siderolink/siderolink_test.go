@@ -120,9 +120,11 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	suite.state = state.WrapCore(namespaced.NewState(inmem.Build))
 
+	defaultCfg := config.Default()
+
 	params := sideromanager.Params{
 		WireguardEndpoint:  "127.0.0.1:0",
-		AdvertisedEndpoint: config.Config.Services.Siderolink.WireGuard.GetAdvertisedEndpoint() + "," + TestIP,
+		AdvertisedEndpoint: defaultCfg.Services.Siderolink.WireGuard.GetAdvertisedEndpoint() + "," + TestIP,
 		MachineAPIEndpoint: "127.0.0.1:0",
 	}
 
@@ -154,8 +156,8 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolink.PendingMachine](peers)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLinkStatusController[*siderolink.Link](peers)))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewConnectionParamsController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(&config.Config.Services)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewConnectionParamsController(defaultCfg.Services.MachineAPI.URL(), defaultCfg.Services.Siderolink)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(defaultCfg.Services.MachineAPI.URL(), defaultCfg.Services.Siderolink)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewJoinTokenStatusController()))
 
 	go func() {
@@ -331,7 +333,7 @@ func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
 		},
 	))(suite.T())
 
-	require.Equal(suite.T(), []string{config.Config.Services.Siderolink.WireGuard.GetAdvertisedEndpoint(), TestIP}, resp.GetEndpoints())
+	require.Equal(suite.T(), []string{config.Default().Services.Siderolink.WireGuard.GetAdvertisedEndpoint(), TestIP}, resp.GetEndpoints())
 }
 
 func (suite *SiderolinkSuite) TestVirtualNodes() {
@@ -417,7 +419,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 
 	expectedResp := resp.CloneVT()
 	expectedResp.GrpcPeerAddrPort = ""
-	expectedResp.ServerEndpoint = pb.MakeEndpoints(config.Config.Services.Siderolink.WireGuard.GetAdvertisedEndpoint(), TestIP)
+	expectedResp.ServerEndpoint = pb.MakeEndpoints(config.Default().Services.Siderolink.WireGuard.GetAdvertisedEndpoint(), TestIP)
 
 	suite.Assert().NoError(err)
 

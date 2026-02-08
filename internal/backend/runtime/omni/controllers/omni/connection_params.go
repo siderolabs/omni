@@ -28,10 +28,10 @@ type ConnectionParamsController = qtransform.QController[*siderolinkres.Config, 
 // ConnectionParamsControllerName is the name of the connection params controller.
 const ConnectionParamsControllerName = "ConnectionParamsController"
 
-// NewConnectionParamsController instanciates the connection params controller.
+// NewConnectionParamsController instantiates the connection params controller.
 //
 //nolint:staticcheck
-func NewConnectionParamsController() *ConnectionParamsController {
+func NewConnectionParamsController(machineAPIURL string, siderolinkCfg config.SiderolinkService) *ConnectionParamsController {
 	return qtransform.NewQController(
 		qtransform.Settings[*siderolinkres.Config, *siderolinkres.ConnectionParams]{ //nolint:staticcheck
 			Name: ConnectionParamsControllerName,
@@ -45,11 +45,11 @@ func NewConnectionParamsController() *ConnectionParamsController {
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, siderolinkConfig *siderolinkres.Config, params *siderolinkres.ConnectionParams) error {
 				spec := params.TypedSpec().Value
 
-				spec.ApiEndpoint = config.Config.Services.MachineAPI.URL()
+				spec.ApiEndpoint = machineAPIURL
 				spec.WireguardEndpoint = siderolinkConfig.TypedSpec().Value.AdvertisedEndpoint
-				spec.UseGrpcTunnel = config.Config.Services.Siderolink.GetUseGRPCTunnel()
-				spec.LogsPort = int32(config.Config.Services.Siderolink.GetLogServerPort())
-				spec.EventsPort = int32(config.Config.Services.Siderolink.GetEventSinkPort())
+				spec.UseGrpcTunnel = siderolinkCfg.GetUseGRPCTunnel()
+				spec.LogsPort = int32(siderolinkCfg.GetLogServerPort())
+				spec.EventsPort = int32(siderolinkCfg.GetEventSinkPort())
 
 				defaultJoinToken, err := safe.ReaderGetByID[*siderolinkres.DefaultJoinToken](ctx, r, siderolinkres.DefaultJoinTokenID)
 				if err != nil {

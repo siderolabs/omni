@@ -127,7 +127,12 @@ func TestHandler(t *testing.T) {
 
 		require.NoError(t, err)
 
-		require.Equal(t, fmt.Sprintf("https://%s-instanceid.proxy-us.example.com:%s/example", testServiceAlias, redirectedURL.Port()), redirectBackURL)
+		expectedHost := fmt.Sprintf("%s-instanceid.proxy-us.example.com", testServiceAlias)
+		if port := redirectedURL.Port(); port != "" {
+			expectedHost = fmt.Sprintf("%s:%s", expectedHost, port)
+		}
+
+		require.Equal(t, fmt.Sprintf("https://%s/example", expectedHost), redirectBackURL)
 	})
 
 	t.Run("subdomain request with cookies", func(t *testing.T) {

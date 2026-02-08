@@ -100,15 +100,16 @@ func NewManager(
 				64 * 60, // more than hour... wth?
 			},
 		}),
-		deltaCh:       deltaCh,
-		allowedPeers:  wggrpc.NewAllowedPeers(),
-		peerTraffic:   wgbind.NewPeerTraffic(maxPendingClientMessages),
-		virtualPrefix: wireguard.VirtualNetworkPrefix(),
+		deltaCh:             deltaCh,
+		allowedPeers:        wggrpc.NewAllowedPeers(),
+		peerTraffic:         wgbind.NewPeerTraffic(maxPendingClientMessages),
+		virtualPrefix:       wireguard.VirtualNetworkPrefix(),
+		disableLastEndpoint: params.DisableLastEndpoint,
 		provisionServer: NewProvisionHandler(
 			logger,
 			state,
-			config.Config.Services.Siderolink.GetJoinTokensMode(),
-			config.Config.Services.Siderolink.GetUseGRPCTunnel(),
+			params.JoinTokensMode,
+			params.UseGRPCTunnel,
 		),
 	}
 
@@ -143,6 +144,7 @@ type Manager struct {
 	allowedPeers        *wggrpc.AllowedPeers
 	peerTraffic         *wgbind.PeerTraffic
 	virtualPrefix       netip.Prefix
+	disableLastEndpoint bool
 }
 
 // JoinTokenLen number of random bytes to be encoded in the join token.
@@ -172,12 +174,15 @@ func getJoinToken(logger *zap.Logger) (string, error) {
 
 // Params are the parameters for the Manager.
 type Params struct {
-	WireguardEndpoint  string
-	AdvertisedEndpoint string
-	MachineAPIEndpoint string
-	MachineAPITLSCert  string
-	MachineAPITLSKey   string
-	EventSinkPort      string
+	WireguardEndpoint   string
+	AdvertisedEndpoint  string
+	MachineAPIEndpoint  string
+	MachineAPITLSCert   string
+	MachineAPITLSKey    string
+	EventSinkPort       string
+	JoinTokensMode      config.SiderolinkServiceJoinTokensMode
+	UseGRPCTunnel       bool
+	DisableLastEndpoint bool
 }
 
 // NewListener creates a new listener.
@@ -603,7 +608,7 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 						spec.Connected = sinceLastHandshake < wireguard.PeerDownInterval
 					}
 
-					if config.Config.Services.Siderolink.GetDisableLastEndpoint() {
+					if manager.disableLastEndpoint {
 						spec.LastEndpoint = ""
 
 						return nil

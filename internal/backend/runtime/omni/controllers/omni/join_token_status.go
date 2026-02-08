@@ -26,7 +26,7 @@ type JoinTokenStatusController = qtransform.QController[*siderolink.JoinToken, *
 
 const joinTokenStatusControllerName = "JoinTokenStatusController"
 
-// NewJoinTokenStatusController instanciates the join token status controller.
+// NewJoinTokenStatusController instantiates the join token status controller.
 //
 //nolint:gocognit,gocyclo,cyclop
 func NewJoinTokenStatusController() *JoinTokenStatusController {

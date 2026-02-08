@@ -47,7 +47,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Parallel()
 
 	addControllers := func(_ context.Context, testContext testutils.TestContext) {
-		require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost)))
+		require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer")))
 	}
 
 	awaitAllMachinesConfigured := func(ctx context.Context, t *testing.T, st state.State, clusterName string) {

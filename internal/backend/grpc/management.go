@@ -59,7 +59,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
-	"github.com/siderolabs/omni/internal/pkg/config"
 	siderolinkinternal "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -77,17 +76,22 @@ type JWTSigningKeyProvider interface {
 }
 
 func newManagementServer(omniState state.State, jwtSigningKeyProvider JWTSigningKeyProvider, logHandler *siderolinkinternal.LogHandler, logger *zap.Logger,
-	dnsService *dns.Service, imageFactoryClient *imagefactory.Client, auditor AuditLogger, omniconfigDest string,
+	dnsService *dns.Service, imageFactoryClient *imagefactory.Client, auditor AuditLogger, omniconfigDest string, talosRegistry string,
+	accountName string, k8sProxyURL string, enableBreakGlassConfigs bool,
 ) *managementServer {
 	return &managementServer{
-		omniState:             omniState,
-		jwtSigningKeyProvider: jwtSigningKeyProvider,
-		logHandler:            logHandler,
-		logger:                logger,
-		dnsService:            dnsService,
-		imageFactoryClient:    imageFactoryClient,
-		auditor:               auditor,
-		omniconfigDest:        omniconfigDest,
+		omniState:               omniState,
+		jwtSigningKeyProvider:   jwtSigningKeyProvider,
+		logHandler:              logHandler,
+		logger:                  logger,
+		dnsService:              dnsService,
+		imageFactoryClient:      imageFactoryClient,
+		auditor:                 auditor,
+		omniconfigDest:          omniconfigDest,
+		talosRegistry:           talosRegistry,
+		accountName:             accountName,
+		k8sProxyURL:             k8sProxyURL,
+		enableBreakGlassConfigs: enableBreakGlassConfigs,
 	}
 }
 
@@ -98,12 +102,16 @@ type managementServer struct {
 	omniState             state.State
 	jwtSigningKeyProvider JWTSigningKeyProvider
 
-	logHandler         *siderolinkinternal.LogHandler
-	logger             *zap.Logger
-	dnsService         *dns.Service
-	imageFactoryClient *imagefactory.Client
-	auditor            AuditLogger
-	omniconfigDest     string
+	logHandler              *siderolinkinternal.LogHandler
+	logger                  *zap.Logger
+	dnsService              *dns.Service
+	imageFactoryClient      *imagefactory.Client
+	auditor                 AuditLogger
+	omniconfigDest          string
+	talosRegistry           string
+	accountName             string
+	k8sProxyURL             string
+	enableBreakGlassConfigs bool
 }
 
 func (s *managementServer) register(server grpc.ServiceRegistrar) {
@@ -339,7 +347,7 @@ func getBreakGlass(ctx context.Context, clusterName string) ([]byte, error) {
 }
 
 func (s *managementServer) breakGlassTalosconfig(ctx context.Context, raw bool) (*management.TalosconfigResponse, error) {
-	if !constants.IsDebugBuild && !config.Config.Features.GetEnableBreakGlassConfigs() {
+	if !constants.IsDebugBuild && !s.enableBreakGlassConfigs {
 		return nil, status.Error(codes.PermissionDenied, "not allowed")
 	}
 
@@ -381,7 +389,7 @@ func (s *managementServer) breakGlassKubeconfig(ctx context.Context) (*managemen
 		return nil, err
 	}
 
-	if !constants.IsDebugBuild && !config.Config.Features.GetEnableBreakGlassConfigs() {
+	if !constants.IsDebugBuild && !s.enableBreakGlassConfigs {
 		return nil, status.Error(codes.PermissionDenied, "not allowed")
 	}
 
@@ -731,7 +739,7 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 		SecurityState:        securityState,
 	}
 
-	installImageStr, err := installimage.Build(s.imageFactoryClient.Host(), req.MachineId, installImage)
+	installImageStr, err := installimage.Build(s.imageFactoryClient.Host(), req.MachineId, installImage, s.talosRegistry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build install image: %w", err)
 	}

@@ -28,7 +28,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/cosi"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // Name talos runtime string id.
@@ -38,13 +37,17 @@ var Name = common.Runtime_Talos.String()
 type Runtime struct {
 	clientFactory *ClientFactory
 	logger        *zap.Logger
+	accountName   string
+	apiURL        string
 }
 
 // New creates a new Talos runtime.
-func New(clientFactory *ClientFactory, logger *zap.Logger) *Runtime {
+func New(clientFactory *ClientFactory, logger *zap.Logger, accountName string, apiURL string) *Runtime {
 	return &Runtime{
 		clientFactory: clientFactory,
 		logger:        logger.With(logging.Component("talos_runtime")),
+		accountName:   accountName,
+		apiURL:        apiURL,
 	}
 }
 
@@ -210,8 +213,8 @@ func (r *Runtime) GetTalosconfigRaw(context *common.Context, identity string) ([
 		Identity: identity,
 	}
 
-	contextName := config.Config.Account.GetName()
-	apiURL := config.Config.Services.Api.URL()
+	contextName := r.accountName
+	apiURL := r.apiURL
 
 	cluster := ""
 

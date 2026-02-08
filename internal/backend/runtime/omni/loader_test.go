@@ -147,7 +147,7 @@ func TestNewLoader(t *testing.T) {
 				tt.pre(t)
 			}
 
-			got, err := omni.NewLoader(tt.args.source, zaptest.NewLogger(t))
+			got, err := omni.NewLoader(tt.args.source, zaptest.NewLogger(t), "", "")
 			tt.want(t, got, err)
 		})
 	}

@@ -60,17 +60,17 @@ func TestGenerateConfigs(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	st := omniruntime.NewTestState(logger)
 
-	kubernetesRuntime, err := kubernetes.New(st.Default())
+	kubernetesRuntime, err := kubernetes.New(st.Default(), "", "", "")
 	require.NoError(t, err)
 
-	rt, err := omniruntime.NewRuntime(nil, nil, nil, nil,
-		nil, nil, nil, nil, st, prometheus.NewRegistry(),
+	rt, err := omniruntime.NewRuntime(config.Default(), nil, nil, nil,
+		nil, nil, nil, nil, nil, st, prometheus.NewRegistry(),
 		nil, kubernetesRuntime, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 	require.NoError(t, err)
 
 	runtime.Install(omniruntime.Name, rt)
 
-	k8s, err := kubernetes.New(st.Default())
+	k8s, err := kubernetes.New(st.Default(), "", "", "")
 	require.NoError(t, err)
 
 	runtime.Install(kubernetes.Name, k8s)
@@ -85,35 +85,38 @@ func TestGenerateConfigs(t *testing.T) {
 	encodedKey, err := serviceaccount.Encode(saName, key)
 	require.NoError(t, err)
 
-	address := runServer(t, st.Default())
+	addressDisabled := runServer(t, st.Default(), false)
+	addressEnabled := runServer(t, st.Default(), true)
 
-	c, err := client.New(address, client.WithServiceAccount(encodedKey))
+	cDisabled, err := client.New(addressDisabled, client.WithServiceAccount(encodedKey))
 	require.NoError(t, err)
 
-	client := c.Management().WithCluster(clusterName)
+	defer func() {
+		require.NoError(t, cDisabled.Close())
+	}()
+
+	cEnabled, err := client.New(addressEnabled, client.WithServiceAccount(encodedKey))
+	require.NoError(t, err)
 
 	defer func() {
-		require.NoError(t, c.Close())
+		require.NoError(t, cEnabled.Close())
 	}()
+
+	clientDisabled := cDisabled.Management().WithCluster(clusterName)
+	clientEnabled := cEnabled.Management().WithCluster(clusterName)
 
 	adminCtx := metadata.AppendToOutgoingContext(ctx, "role", string(role.Admin))
 	readerCtx := metadata.AppendToOutgoingContext(ctx, "role", string(role.Reader))
 
 	t.Run("kubeconfig not enabled", func(t *testing.T) {
-		_, err = client.Kubeconfig(adminCtx, managementclient.WithBreakGlassKubeconfig(true))
+		_, err = clientDisabled.Kubeconfig(adminCtx, managementclient.WithBreakGlassKubeconfig(true))
 
 		require.Error(t, err)
 		require.Equal(t, codes.PermissionDenied, status.Code(err), err)
 	})
 
-	config.Config.Features.SetEnableBreakGlassConfigs(true)
-
-	defer func() {
-		config.Config.Features.SetEnableBreakGlassConfigs(false)
-	}()
-
 	t.Run("kubeconfig enabled no cluster", func(t *testing.T) {
-		_, err = client.Kubeconfig(adminCtx, managementclient.WithBreakGlassKubeconfig(true))
+		_, err = clientEnabled.Kubeconfig(adminCtx, managementclient.WithBreakGlassKubeconfig(true))
 
 		require.Error(t, err)
 	})
@@ -132,7 +135,7 @@ func TestGenerateConfigs(t *testing.T) {
 
 		var kubeconfig []byte
 
-		kubeconfig, err = client.Kubeconfig(adminCtx, managementclient.WithBreakGlassKubeconfig(true))
+		kubeconfig, err = clientEnabled.Kubeconfig(adminCtx, managementclient.WithBreakGlassKubeconfig(true))
 		require.NoError(t, err)
 
 		_, err = clientcmd.Load(kubeconfig)
@@ -149,14 +152,14 @@ func TestGenerateConfigs(t *testing.T) {
 	})
 
 	t.Run("kubeconfig enabled no auth", func(t *testing.T) {
-		_, err = client.Kubeconfig(readerCtx, managementclient.WithBreakGlassKubeconfig(true))
+		_, err = clientEnabled.Kubeconfig(readerCtx, managementclient.WithBreakGlassKubeconfig(true))
 
 		require.Error(t, err)
 		require.Equal(t, codes.PermissionDenied, status.Code(err))
 	})
 
 	t.Run("talosconfig enabled no auth", func(t *testing.T) {
-		_, err = client.Talosconfig(readerCtx, managementclient.WithBreakGlassTalosconfig(true))
+		_, err = clientEnabled.Talosconfig(readerCtx, managementclient.WithBreakGlassTalosconfig(true))
 
 		require.Error(t, err)
 		require.Equal(t, codes.PermissionDenied, status.Code(err))
@@ -185,15 +188,15 @@ func TestGenerateConfigs(t *testing.T) {
 
 		var cfg []byte
 
-		cfg, err = client.Talosconfig(adminCtx, managementclient.WithBreakGlassTalosconfig(true))
+		cfg, err = clientEnabled.Talosconfig(adminCtx, managementclient.WithBreakGlassTalosconfig(true))
 		require.NoError(t, err)
 
-		var config *clientconfig.Config
+		var talosConfig *clientconfig.Config
 
-		config, err = clientconfig.FromBytes(cfg)
+		talosConfig, err = clientconfig.FromBytes(cfg)
 		require.NoError(t, err)
 
-		require.NotEmpty(t, config.Contexts)
+		require.NotEmpty(t, talosConfig.Contexts)
 
 		updatedClusterStatus, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, st.Default(), clusterName)
 		require.NoError(t, err)
@@ -206,7 +209,7 @@ func TestGenerateConfigs(t *testing.T) {
 	})
 }
 
-func runServer(t *testing.T, st state.State, opts ...grpc.ServerOption) string {
+func runServer(t *testing.T, st state.State, enableBreakGlassConfigs bool, opts ...grpc.ServerOption) string {
 	var err error
 
 	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "localhost:0")
@@ -250,6 +253,7 @@ func runServer(t *testing.T, st state.State, opts ...grpc.ServerOption) string {
 		st,
 		nil,
 		logger,
+		enableBreakGlassConfigs,
 	))
 
 	var eg errgroup.Group

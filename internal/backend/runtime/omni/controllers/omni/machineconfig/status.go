@@ -61,19 +61,21 @@ type ClusterMachineConfigStatusController struct {
 	*qtransform.QController[*omni.ClusterMachineConfig, *omni.ClusterMachineConfigStatus]
 	ongoingResets    *ongoingResets
 	imageFactoryHost string
+	talosRegistry    string
 	acquireLockMu    sync.Mutex
 }
 
 // NewClusterMachineConfigStatusController initializes ClusterMachineConfigStatusController.
 //
 //nolint:gocognit,gocyclo,cyclop,maintidx
-func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMachineConfigStatusController {
+func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry string) *ClusterMachineConfigStatusController {
 	ongoingResets := &ongoingResets{
 		statuses: map[string]*resetStatus{},
 	}
 
 	ctrl := &ClusterMachineConfigStatusController{
 		imageFactoryHost: imageFactoryHost,
+		talosRegistry:    talosRegistry,
 		ongoingResets:    ongoingResets,
 	}
 
@@ -374,7 +376,7 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 		return true, nil
 	}
 
-	image, err := installimage.Build(ctrl.imageFactoryHost, rc.ID(), rc.installImage)
+	image, err := installimage.Build(ctrl.imageFactoryHost, rc.ID(), rc.installImage, ctrl.talosRegistry)
 	if err != nil {
 		return false, err
 	}

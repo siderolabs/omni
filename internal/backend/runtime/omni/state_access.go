@@ -29,7 +29,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
-	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -97,7 +96,7 @@ var (
 // authorizationValidationOptions returns the validation options responsible for all authorization checks.
 //
 // These include the regular checks on the user's Omni-wide role, as well as the ACLs that can authorize the user to perform additional actions on specific clusters.
-func authorizationValidationOptions(st state.State) []validated.StateOption {
+func authorizationValidationOptions(st state.State, samlEnabled bool) []validated.StateOption {
 	return []validated.StateOption{
 		validated.WithListValidations(
 			func(ctx context.Context, kind resource.Kind, opt ...state.ListOption) error {
@@ -108,11 +107,11 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 				}
 
 				if len(opts.LabelQueries) == 0 {
-					return checkForKindAccess(ctx, st, state.List, kind, nil)
+					return checkForKindAccess(ctx, st, state.List, kind, nil, samlEnabled)
 				}
 
 				for _, query := range opts.LabelQueries {
-					if err := checkForKindAccess(ctx, st, state.List, kind, query.Terms); err != nil {
+					if err := checkForKindAccess(ctx, st, state.List, kind, query.Terms, samlEnabled); err != nil {
 						return err
 					}
 				}
@@ -129,11 +128,11 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 				}
 
 				if len(opts.LabelQueries) == 0 {
-					return checkForKindAccess(ctx, st, state.Watch, kind, nil)
+					return checkForKindAccess(ctx, st, state.Watch, kind, nil, samlEnabled)
 				}
 
 				for _, query := range opts.LabelQueries {
-					if err := checkForKindAccess(ctx, st, state.Watch, kind, query.Terms); err != nil {
+					if err := checkForKindAccess(ctx, st, state.Watch, kind, query.Terms, samlEnabled); err != nil {
 						return err
 					}
 				}
@@ -152,7 +151,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 						ResourceType:      ptr.Type(),
 						ResourceID:        ptr.ID(),
 						Verb:              state.Get,
-					}, clusterID, false)
+					}, clusterID, false, samlEnabled)
 				}
 
 				clusterID := clusterIDFromMetadata(res.Metadata())
@@ -162,7 +161,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      res.Metadata().Type(),
 					ResourceID:        res.Metadata().ID(),
 					Verb:              state.Get,
-				}, clusterID, false)
+				}, clusterID, false, samlEnabled)
 			},
 		),
 		validated.WithWatchValidations(
@@ -177,7 +176,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      ptr.Type(),
 					ResourceID:        ptr.ID(),
 					Verb:              state.Watch,
-				}, clusterID, false)
+				}, clusterID, false, samlEnabled)
 			},
 		),
 		validated.WithCreateValidations(
@@ -189,7 +188,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      res.Metadata().Type(),
 					ResourceID:        res.Metadata().ID(),
 					Verb:              state.Create,
-				}, clusterID, false)
+				}, clusterID, false, samlEnabled)
 			},
 		),
 		validated.WithUpdateValidations(
@@ -203,7 +202,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 						ResourceType:      newRes.Metadata().Type(),
 						ResourceID:        newRes.Metadata().ID(),
 						Verb:              state.Update,
-					}, newClusterID, false)
+					}, newClusterID, false, samlEnabled)
 				}
 
 				existingClusterID := clusterIDFromMetadata(existingRes.Metadata())
@@ -213,7 +212,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      existingRes.Metadata().Type(),
 					ResourceID:        existingRes.Metadata().ID(),
 					Verb:              state.Update,
-				}, existingClusterID, false); err != nil {
+				}, existingClusterID, false, samlEnabled); err != nil {
 					return err
 				}
 
@@ -229,7 +228,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      newRes.Metadata().Type(),
 					ResourceID:        newRes.Metadata().ID(),
 					Verb:              state.Update,
-				}, newClusterID, false)
+				}, newClusterID, false, samlEnabled)
 			},
 		),
 		validated.WithDestroyValidations(
@@ -243,7 +242,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 						ResourceType:      ptr.Type(),
 						ResourceID:        ptr.ID(),
 						Verb:              state.Destroy,
-					}, clusterID, false)
+					}, clusterID, false, samlEnabled)
 				}
 
 				clusterID := clusterIDFromMetadata(res.Metadata())
@@ -253,13 +252,13 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      res.Metadata().Type(),
 					ResourceID:        res.Metadata().ID(),
 					Verb:              state.Destroy,
-				}, clusterID, false)
+				}, clusterID, false, samlEnabled)
 			},
 		),
 	}
 }
 
-func checkForRole(ctx context.Context, st state.State, access state.Access, clusterID resource.ID, requireAll bool) error {
+func checkForRole(ctx context.Context, st state.State, access state.Access, clusterID resource.ID, requireAll, samlEnabled bool) error {
 	if actor.ContextIsInternalActor(ctx) {
 		return nil
 	}
@@ -280,10 +279,10 @@ func checkForRole(ctx context.Context, st state.State, access state.Access, clus
 		}
 	}
 
-	return filterAccess(ctx, access)
+	return filterAccess(ctx, access, samlEnabled)
 }
 
-func checkForKindAccess(ctx context.Context, st state.State, verb state.Verb, kind resource.Kind, labelTerms []resource.LabelTerm) error {
+func checkForKindAccess(ctx context.Context, st state.State, verb state.Verb, kind resource.Kind, labelTerms []resource.LabelTerm, samlEnabled bool) error {
 	clusterID := ""
 	requireAll := false
 
@@ -297,7 +296,7 @@ func checkForKindAccess(ctx context.Context, st state.State, verb state.Verb, ki
 		ResourceNamespace: kind.Namespace(),
 		ResourceType:      kind.Type(),
 		Verb:              verb,
-	}, clusterID, requireAll)
+	}, clusterID, requireAll, samlEnabled)
 }
 
 func isClusterRelatedType(typ resource.Type) bool {
@@ -357,7 +356,7 @@ func verbToRole(verb state.Verb) role.Role {
 // filterAccess provides a filter to exclude some resources and operations from external sources.
 //
 //nolint:cyclop,gocyclo
-func filterAccess(ctx context.Context, access state.Access) error {
+func filterAccess(ctx context.Context, access state.Access, samlEnabled bool) error {
 	if actor.ContextIsInternalActor(ctx) {
 		return nil
 	}
@@ -512,7 +511,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		return err
 	}
 
-	if config.Config.Auth.Saml.GetEnabled() {
+	if samlEnabled {
 		switch access.ResourceType {
 		case authres.UserType:
 			// If SAML is enabled only enable read, update and destroy on User resources.

@@ -298,6 +298,7 @@ machine:
 			imageFactoryHost,
 			machineConfigGenOptions.Metadata().ID(),
 			machineConfigGenOptions.TypedSpec().Value.InstallImage,
+			"ghcr.io/siderolabs/installer",
 		)
 		if err != nil {
 			return err

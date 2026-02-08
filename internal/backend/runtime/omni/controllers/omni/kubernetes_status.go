@@ -38,7 +38,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/exposedservice"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // KubernetesStatusController manages KubernetesStatus resource lifecycle.
@@ -49,13 +48,15 @@ type KubernetesStatusController struct {
 
 	advertisedAPIURL       string
 	workloadProxySubdomain string
+	workloadProxyEnabled   bool
 }
 
 // NewKubernetesStatusController creates a new KubernetesStatusController.
-func NewKubernetesStatusController(advertisedAPIURL, workloadProxySubdomain string) *KubernetesStatusController {
+func NewKubernetesStatusController(advertisedAPIURL, workloadProxySubdomain string, workloadProxyEnabled bool) *KubernetesStatusController {
 	return &KubernetesStatusController{
 		advertisedAPIURL:       advertisedAPIURL,
 		workloadProxySubdomain: workloadProxySubdomain,
+		workloadProxyEnabled:   workloadProxyEnabled,
 	}
 }
 
@@ -438,7 +439,7 @@ func (ctrl *KubernetesStatusController) startWatcher(ctx context.Context, logger
 		w.podsSync(ctx, notifyCh)
 	}, logger)
 
-	if config.Config.Services.WorkloadProxy.GetEnabled() {
+	if ctrl.workloadProxyEnabled {
 		w.serviceFactory = informers.NewSharedInformerFactory(w.client.Clientset(), 0)
 
 		if _, err = w.serviceFactory.Core().V1().Services().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{

@@ -37,28 +37,20 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/features"
-	"github.com/siderolabs/omni/internal/pkg/jsonschema"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
-// PrepareConfig prepare the Omni configuration.
-func PrepareConfig(logger *zap.Logger, schema *jsonschema.Schema, params ...*config.Params) (*config.Params, error) {
-	var err error
+// Run the Omni service.
+func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap.Logger) error {
+	talosClientFactory := talos.NewClientFactory(state.Default(), logger)
+	talosRuntime := talos.New(talosClientFactory, logger, cfg.Account.GetName(), cfg.Services.Api.URL())
 
-	config.Config, err = config.Init(logger, schema, params...)
+	oidcIssuerEndpoint, err := cfg.GetOIDCIssuerEndpoint()
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to get OIDC issuer endpoint: %w", err)
 	}
 
-	return config.Config, nil
-}
-
-// Run the Omni service.
-func Run(ctx context.Context, state *omni.State, config *config.Params, logger *zap.Logger) error {
-	talosClientFactory := talos.NewClientFactory(state.Default(), logger)
-	talosRuntime := talos.New(talosClientFactory, logger)
-
-	kubernetesRuntime, err := kubernetes.New(state.Default())
+	kubernetesRuntime, err := kubernetes.New(state.Default(), oidcIssuerEndpoint, cfg.Account.GetName(), cfg.Services.KubernetesProxy.URL())
 	if err != nil {
 		return err
 	}
@@ -71,7 +63,7 @@ func Run(ctx context.Context, state *omni.State, config *config.Params, logger *
 
 	grpc_prometheus.EnableHandlingTimeHistogram(grpc_prometheus.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 1, 10, 30, 60, 120, 300, 600}))
 
-	logger.Debug("using config", zap.Any("config", config))
+	logger.Debug("using config", zap.Any("config", cfg))
 
 	klog.SetLogger(zapr.NewLogger(logger.WithOptions(zap.IncreaseLevel(zapcore.WarnLevel)).With(logging.Component("kubernetes"))))
 
@@ -79,19 +71,19 @@ func Run(ctx context.Context, state *omni.State, config *config.Params, logger *
 
 	dnsService := dns.NewService(state.Default(), logger)
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger.With(logging.Component("workload_proxy_reconciler")),
-		zapcore.DebugLevel, config.Services.WorkloadProxy.GetStopLBsAfter())
+		zapcore.DebugLevel, cfg.Services.WorkloadProxy.GetStopLBsAfter())
 
 	var resourceLogger *resourcelogger.Logger
 
-	if len(config.Logs.ResourceLogger.Types) > 0 {
+	if len(cfg.Logs.ResourceLogger.Types) > 0 {
 		resourceLogger, err = resourcelogger.New(ctx, state.Default(), logger.With(logging.Component("resourcelogger")),
-			config.Logs.ResourceLogger.GetLogLevel(), config.Logs.ResourceLogger.Types...)
+			cfg.Logs.ResourceLogger.GetLogLevel(), cfg.Logs.ResourceLogger.Types...)
 		if err != nil {
 			return fmt.Errorf("failed to set up resource logger: %w", err)
 		}
 	}
 
-	imageFactoryClient, err := imagefactory.NewClient(state.Default(), config.Registries.GetImageFactoryBaseURL())
+	imageFactoryClient, err := imagefactory.NewClient(state.Default(), cfg.Registries.GetImageFactoryBaseURL())
 	if err != nil {
 		return fmt.Errorf("failed to set up image factory client: %w", err)
 	}
@@ -105,7 +97,7 @@ func Run(ctx context.Context, state *omni.State, config *config.Params, logger *
 
 	prometheus.MustRegister(discoveryClientCache)
 
-	omniRuntime, err := omni.NewRuntime(talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
+	omniRuntime, err := omni.NewRuntime(cfg, talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
 		imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
 		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime, logger.With(logging.Component("omni_runtime")),
 	)
@@ -115,7 +107,7 @@ func Run(ctx context.Context, state *omni.State, config *config.Params, logger *
 
 	runtime.Install(omni.Name, omniRuntime)
 
-	err = user.EnsureInitialResources(ctx, state.Default(), logger, config.Auth.InitialUsers)
+	err = user.EnsureInitialResources(ctx, state.Default(), logger, cfg.Auth.InitialUsers)
 	if err != nil {
 		return fmt.Errorf("failed to write initial user resources to state: %w", err)
 	}
@@ -126,25 +118,46 @@ func Run(ctx context.Context, state *omni.State, config *config.Params, logger *
 		state.SecondaryStorageDB(),
 		machineMap,
 		state.Default(),
-		&config.Logs.Machine,
+		&cfg.Logs.Machine,
 		logger.With(logging.Component("siderolink_log_handler")),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to set up log handler: %w", err)
 	}
 
-	authConfig, err := auth.EnsureAuthConfigResource(ctx, state.Default(), logger, config.Auth)
+	authConfig, err := auth.EnsureAuthConfigResource(ctx, state.Default(), logger, cfg.Auth)
 	if err != nil {
 		return fmt.Errorf("failed to write auth parameters to state: %w", err)
 	}
 
-	if err = features.UpdateResources(ctx, state.Default(), logger); err != nil {
+	imageFactoryPXEBaseURL, err := cfg.GetImageFactoryPXEBaseURL()
+	if err != nil {
+		return fmt.Errorf("failed to get image factory PXE base URL: %w", err)
+	}
+
+	if err = features.UpdateResources(ctx, state.Default(), logger, features.Params{
+		WorkloadProxyEnabled:            cfg.Services.WorkloadProxy.GetEnabled(),
+		EmbeddedDiscoveryServiceEnabled: cfg.Services.EmbeddedDiscoveryService.GetEnabled(),
+		EtcdBackupTickInterval:          cfg.EtcdBackup.GetTickInterval(),
+		EtcdBackupMinInterval:           cfg.EtcdBackup.GetMinInterval(),
+		EtcdBackupMaxInterval:           cfg.EtcdBackup.GetMaxInterval(),
+		AuditLogPath:                    cfg.Logs.Audit.GetPath(),
+		ImageFactoryBaseURL:             cfg.Registries.GetImageFactoryBaseURL(),
+		ImageFactoryPXEBaseURL:          imageFactoryPXEBaseURL,
+		UserPilotAppToken:               cfg.Account.UserPilot.GetAppToken(),
+		StripeEnabled:                   cfg.Logs.Stripe.GetEnabled(),
+		StripeMinCommit:                 cfg.Logs.Stripe.GetMinCommit(),
+		AccountID:                       cfg.Account.GetId(),
+		AccountName:                     cfg.Account.GetName(),
+		TalosPreReleaseVersionsEnabled:  cfg.Features.GetEnableTalosPreReleaseVersions(),
+	}); err != nil {
 		return fmt.Errorf("failed to update features config resources: %w", err)
 	}
 
 	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: authres.Enabled(authConfig)})
 
 	server, err := backend.NewServer(
+		cfg,
 		state,
 		dnsService,
 		workloadProxyReconciler,

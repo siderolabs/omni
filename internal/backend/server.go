@@ -103,6 +103,7 @@ import (
 
 // Server is main backend entrypoint that starts REST API, WebSocket and Serves static contents.
 type Server struct {
+	cfg                     *config.Params
 	omniRuntime             *omni.Runtime
 	logHandler              *siderolink.LogHandler
 	logger                  *zap.Logger
@@ -125,6 +126,7 @@ type Server struct {
 
 // NewServer creates new HTTP server.
 func NewServer(
+	cfg *config.Params,
 	state *omni.State,
 	dnsService *dns.Service,
 	workloadProxyReconciler *workloadproxy.Reconciler,
@@ -138,6 +140,7 @@ func NewServer(
 	logger *zap.Logger,
 ) (*Server, error) {
 	s := &Server{
+		cfg:                     cfg,
 		state:                   state,
 		omniRuntime:             omniRuntime,
 		logger:                  logger.With(logging.Component("server")),
@@ -149,11 +152,11 @@ func NewServer(
 		linkCounterDeltaCh:      linkCounterDeltaCh,
 		siderolinkEventsCh:      siderolinkEventsCh,
 		installEventCh:          installEventCh,
-		devServerProxy:          config.Config.Services.DevServerProxy,
-		apiService:              config.Config.Services.Api,
-		metricsService:          config.Config.Services.Metrics,
-		pprofBindAddress:        config.Config.Debug.Pprof.GetEndpoint(),
-		k8sProxyService:         config.Config.Services.KubernetesProxy,
+		devServerProxy:          cfg.Services.DevServerProxy,
+		apiService:              cfg.Services.Api,
+		metricsService:          cfg.Services.Metrics,
+		pprofBindAddress:        cfg.Debug.Pprof.GetEndpoint(),
+		k8sProxyService:         cfg.Services.KubernetesProxy,
 	}
 
 	var err error
@@ -182,13 +185,18 @@ func (s *Server) Run(ctx context.Context) error {
 
 	eg.Go(func() error { return oidcStorage.Run(ctx) })
 
-	oidcProvider, err := oidc.NewProvider(oidcStorage)
+	oidcIssuerEndpoint, err := s.cfg.GetOIDCIssuerEndpoint()
 	if err != nil {
 		return err
 	}
 
-	if config.Config.Auth.Oidc.GetEnabled() {
-		s.oidcProvider, err = coidc.NewProvider(ctx, config.Config.Auth.Oidc.GetProviderURL())
+	oidcProvider, err := oidc.NewProvider(oidcStorage, oidcIssuerEndpoint)
+	if err != nil {
+		return err
+	}
+
+	if s.cfg.Auth.Oidc.GetEnabled() {
+		s.oidcProvider, err = coidc.NewProvider(ctx, s.cfg.Auth.Oidc.GetProviderURL())
 		if err != nil {
 			return err
 		}
@@ -214,6 +222,11 @@ func (s *Server) Run(ctx context.Context) error {
 		s.imageFactoryClient,
 		s.logger,
 		s.state.Auditor(),
+		s.cfg.Services,
+		s.cfg.Registries.GetTalos(),
+		s.cfg.Account.GetName(),
+		s.cfg.Services.KubernetesProxy.URL(),
+		s.cfg.Features.GetEnableBreakGlassConfigs(),
 	)
 
 	actualSrv, gtwyDialsTo, err := s.serverAndGateway(ctx, servicesServer, mux, serverOptions...)
@@ -268,7 +281,7 @@ func (s *Server) Run(ctx context.Context) error {
 		subsystems = append(subsystems, newSubsystem("pprof server", func() error { return runPprofServer(ctx, s.pprofBindAddress, s.logger) }))
 	}
 
-	debugServerEndpoint := config.Config.Debug.Server.GetEndpoint()
+	debugServerEndpoint := s.cfg.Debug.Server.GetEndpoint()
 	if debugServerEndpoint != "" && constants.IsDebugBuild {
 		subsystems = append(subsystems, newSubsystem("debug server", func() error {
 			return services.RunDebugServer(ctx, s.logger, debugServerEndpoint)
@@ -279,15 +292,15 @@ func (s *Server) Run(ctx context.Context) error {
 		eg.Go(subsystem.run)
 	}
 
-	if config.Config.Services.LocalResourceService.GetEnabled() {
-		if err = runLocalResourceServer(ctx, runtimeState, serverOptions, eg, s.logger); err != nil {
+	if s.cfg.Services.LocalResourceService.GetEnabled() {
+		if err = runLocalResourceServer(ctx, runtimeState, serverOptions, eg, s.logger, s.cfg.Services.LocalResourceService.GetPort()); err != nil {
 			return fmt.Errorf("failed to run local resource server: %w", err)
 		}
 	}
 
-	if config.Config.Services.EmbeddedDiscoveryService.GetEnabled() {
+	if s.cfg.Services.EmbeddedDiscoveryService.GetEnabled() {
 		eg.Go(func() error {
-			if err = runEmbeddedDiscoveryService(ctx, s.state.SecondaryStorageDB(), s.logger); err != nil {
+			if err = runEmbeddedDiscoveryService(ctx, s.state.SecondaryStorageDB(), s.logger, s.cfg.Services.EmbeddedDiscoveryService); err != nil {
 				return fmt.Errorf("failed to run discovery server over Siderolink: %w", err)
 			}
 
@@ -295,7 +308,7 @@ func (s *Server) Run(ctx context.Context) error {
 		})
 	}
 
-	if config.Config.Auth.InitialServiceAccount.GetEnabled() {
+	if s.cfg.Auth.InitialServiceAccount.GetEnabled() {
 		if err = s.createInitialServiceAccount(ctx); err != nil {
 			return err
 		}
@@ -310,7 +323,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 			factory.NewHandler(
 				s.state.Default(),
 				s.logger.With(logging.Component("factory_proxy")),
-				&config.Config.Registries,
+				&s.cfg.Registries,
 			),
 			s.authenticatorFunc(),
 			s.logger,
@@ -324,7 +337,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 			return nil, nil //nolint:nilnil
 		}
 
-		return saml.NewHandler(s.state.Default(), s.authConfig.TypedSpec().Value.Saml, s.logger)
+		return saml.NewHandler(s.state.Default(), s.authConfig.TypedSpec().Value.Saml, s.logger, s.cfg.Services.Api.URL())
 	}()
 	if err != nil {
 		return nil, err
@@ -335,7 +348,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 		return nil, err
 	}
 
-	mux, err := makeMux(imageFactoryHandler, oidcProvider, workloadProxyRedirect, s.oidcProvider, samlHandler, s.state, s.omniRuntime, s.logger)
+	mux, err := makeMux(imageFactoryHandler, oidcProvider, workloadProxyRedirect, s.oidcProvider, samlHandler, s.state, s.omniRuntime, s.logger, s.cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mux: %w", err)
 	}
@@ -493,7 +506,7 @@ func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator,
 
 	switch {
 	case s.authConfig.TypedSpec().Value.Auth0.Enabled:
-		verifier, err := auth0.NewIDTokenVerifier(s.authConfig.TypedSpec().Value.GetAuth0().Domain)
+		verifier, err := auth0.NewIDTokenVerifier(s.authConfig.TypedSpec().Value.GetAuth0().Domain, s.cfg.Auth.Auth0.GetClientID())
 		if err != nil {
 			return nil, err
 		}
@@ -503,8 +516,8 @@ func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator,
 		verifier, err := oidcauth.NewIDTokenVerifier(
 			ctx,
 			s.oidcProvider,
-			config.Config.Auth.Oidc.GetClientID(),
-			config.Config.Auth.Oidc.GetAllowUnverifiedEmail(),
+			s.cfg.Auth.Oidc.GetClientID(),
+			s.cfg.Auth.Oidc.GetAllowUnverifiedEmail(),
 		)
 		if err != nil {
 			return nil, err
@@ -557,7 +570,7 @@ func (s *Server) authenticatorFunc() auth.AuthenticatorFunc {
 			return nil, err
 		}
 
-		if config.Config.Auth.GetSuspended() {
+		if s.cfg.Auth.GetSuspended() {
 			finalRole = role.Reader
 		}
 
@@ -571,15 +584,18 @@ func (s *Server) authenticatorFunc() auth.AuthenticatorFunc {
 }
 
 func (s *Server) runMachineAPI(ctx context.Context) error {
-	wgAddress := config.Config.Services.Siderolink.WireGuard.GetEndpoint()
+	wgAddress := s.cfg.Services.Siderolink.WireGuard.GetEndpoint()
 
 	params := siderolink.Params{
-		WireguardEndpoint:  wgAddress,
-		AdvertisedEndpoint: config.Config.Services.Siderolink.WireGuard.GetAdvertisedEndpoint(),
-		MachineAPIEndpoint: config.Config.Services.MachineAPI.GetEndpoint(),
-		MachineAPITLSCert:  config.Config.Services.MachineAPI.GetCertFile(),
-		MachineAPITLSKey:   config.Config.Services.MachineAPI.GetKeyFile(),
-		EventSinkPort:      strconv.Itoa(config.Config.Services.Siderolink.GetEventSinkPort()),
+		WireguardEndpoint:   wgAddress,
+		AdvertisedEndpoint:  s.cfg.Services.Siderolink.WireGuard.GetAdvertisedEndpoint(),
+		MachineAPIEndpoint:  s.cfg.Services.MachineAPI.GetEndpoint(),
+		MachineAPITLSCert:   s.cfg.Services.MachineAPI.GetCertFile(),
+		MachineAPITLSKey:    s.cfg.Services.MachineAPI.GetKeyFile(),
+		EventSinkPort:       strconv.Itoa(s.cfg.Services.Siderolink.GetEventSinkPort()),
+		JoinTokensMode:      s.cfg.Services.Siderolink.GetJoinTokensMode(),
+		UseGRPCTunnel:       s.cfg.Services.Siderolink.GetUseGRPCTunnel(),
+		DisableLastEndpoint: s.cfg.Services.Siderolink.GetDisableLastEndpoint(),
 	}
 
 	omniState := s.state.Default()
@@ -628,9 +644,9 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 	eg.Go(func() error {
 		return slink.Run(groupCtx,
 			siderolink.ListenHost,
-			strconv.Itoa(config.Config.Services.Siderolink.GetEventSinkPort()),
+			strconv.Itoa(s.cfg.Services.Siderolink.GetEventSinkPort()),
 			strconv.Itoa(talosconstants.TrustdPort),
-			strconv.Itoa(config.Config.Services.Siderolink.GetLogServerPort()),
+			strconv.Itoa(s.cfg.Services.Siderolink.GetLogServerPort()),
 		)
 	})
 
@@ -651,7 +667,7 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 		return nil, fmt.Errorf("failed to create pgp signature validator: %w", err)
 	}
 
-	mainURL, err := url.Parse(config.Config.Services.Api.URL())
+	mainURL, err := url.Parse(s.cfg.Services.Api.URL())
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse API URL: %w", err)
 	}
@@ -661,7 +677,7 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 		s.workloadProxyReconciler,
 		pgpSignatureValidator,
 		mainURL,
-		config.Config.Services.WorkloadProxy.GetSubdomain(),
+		s.cfg.Services.WorkloadProxy.GetSubdomain(),
 		s.logger.With(logging.Component("workload_proxy_handler")),
 		s.workloadProxyKey,
 	)
@@ -808,6 +824,7 @@ func makeMux(
 	state *omni.State,
 	omniRuntime *omni.Runtime,
 	logger *zap.Logger,
+	cfg *config.Params,
 ) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 
@@ -821,7 +838,7 @@ func makeMux(
 	muxHandle(
 		"/",
 		compress.Handler(
-			frontend.NewStaticHandler(7200),
+			frontend.NewStaticHandler(7200, cfg.Registries.GetImageFactoryBaseURL()),
 			gzip.BestCompression,
 		),
 		"static",
@@ -832,6 +849,7 @@ func makeMux(
 		samlHandler,
 		oidcProvider,
 		logger,
+		cfg,
 	); err != nil {
 		return nil, err
 	}
@@ -873,7 +891,7 @@ func makeMux(
 	return mux, nil
 }
 
-func registerAuthHandlers(mux *http.ServeMux, samlHandler *samlsp.Middleware, oidcProvider *coidc.Provider, logger *zap.Logger) error {
+func registerAuthHandlers(mux *http.ServeMux, samlHandler *samlsp.Middleware, oidcProvider *coidc.Provider, logger *zap.Logger, cfg *config.Params) error {
 	var (
 		loginHandler  http.HandlerFunc
 		logoutHandler http.HandlerFunc
@@ -885,10 +903,10 @@ func registerAuthHandlers(mux *http.ServeMux, samlHandler *samlsp.Middleware, oi
 
 		loginHandler = samlHandler.HandleStartAuthFlow
 		logoutHandler = func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, config.Config.Services.Api.GetAdvertisedURL(), http.StatusSeeOther)
+			http.Redirect(w, r, cfg.Services.Api.GetAdvertisedURL(), http.StatusSeeOther)
 		}
 	case oidcProvider != nil:
-		handler, err := oidc.NewOIDCHandler(config.Config.Services.Api.GetAdvertisedURL(), config.Config.Auth.Oidc, oidcProvider)
+		handler, err := oidc.NewOIDCHandler(cfg.Services.Api.GetAdvertisedURL(), cfg.Auth.Oidc, oidcProvider)
 		if err != nil {
 			return err
 		}
@@ -1016,8 +1034,8 @@ func setRealIPRequest(req *http.Request) *http.Request {
 	return newReq
 }
 
-func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptions []grpc.ServerOption, eg *errgroup.Group, logger *zap.Logger) error {
-	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp", fmt.Sprintf("127.0.0.1:%d", config.Config.Services.LocalResourceService.GetPort()))
+func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptions []grpc.ServerOption, eg *errgroup.Group, logger *zap.Logger, port int) error {
+	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
@@ -1080,7 +1098,7 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 }
 
 func (s *Server) createInitialServiceAccount(ctx context.Context) error {
-	initialServiceAccountName := config.Config.Auth.InitialServiceAccount.GetName()
+	initialServiceAccountName := s.cfg.Auth.InitialServiceAccount.GetName()
 	serviceAccountEmail := initialServiceAccountName + access.ServiceAccountNameSuffix
 
 	identity, err := safe.ReaderGetByID[*authres.Identity](ctx, s.state.Default(), serviceAccountEmail)
@@ -1093,7 +1111,7 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 		return nil
 	}
 
-	key, err := pgp.GenerateKey(initialServiceAccountName, "automation initial", serviceAccountEmail, config.Config.Auth.InitialServiceAccount.GetLifetime())
+	key, err := pgp.GenerateKey(initialServiceAccountName, "automation initial", serviceAccountEmail, s.cfg.Auth.InitialServiceAccount.GetLifetime())
 	if err != nil {
 		return fmt.Errorf("failed to create initial service account key, generate failed: %w", err)
 	}
@@ -1107,7 +1125,7 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 		ctx,
 		s.state.Default(),
 		initialServiceAccountName,
-		config.Config.Auth.InitialServiceAccount.GetRole(),
+		s.cfg.Auth.InitialServiceAccount.GetRole(),
 		false,
 		[]byte(k),
 	)
@@ -1120,10 +1138,10 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 		return fmt.Errorf("failed to create initial service account key, failed to encode: %w", err)
 	}
 
-	if err = os.WriteFile(config.Config.Auth.InitialServiceAccount.GetKeyPath(), []byte(data), 0o640); err != nil {
+	if err = os.WriteFile(s.cfg.Auth.InitialServiceAccount.GetKeyPath(), []byte(data), 0o640); err != nil {
 		return fmt.Errorf(
 			"failed to create initial service account key, failed to write key to path %q: %w",
-			config.Config.Auth.InitialServiceAccount.GetKeyPath(),
+			s.cfg.Auth.InitialServiceAccount.GetKeyPath(),
 			err,
 		)
 	}
@@ -1132,8 +1150,8 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 }
 
 // runEmbeddedDiscoveryService runs an embedded discovery service over Siderolink.
-func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sqlitex.Pool, logger *zap.Logger) error {
-	logLevel, err := zapcore.ParseLevel(config.Config.Services.EmbeddedDiscoveryService.GetLogLevel())
+func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sqlitex.Pool, logger *zap.Logger, discoveryCfg config.EmbeddedDiscoveryService) error {
+	logLevel, err := zapcore.ParseLevel(discoveryCfg.GetLogLevel())
 	if err != nil {
 		logLevel = zapcore.WarnLevel
 
@@ -1144,22 +1162,22 @@ func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sqlite
 
 	var snapshotStore storage.SnapshotStore
 
-	snapshotsEnabled := config.Config.Services.EmbeddedDiscoveryService.GetSnapshotsEnabled()
+	snapshotsEnabled := discoveryCfg.GetSnapshotsEnabled()
 	if snapshotsEnabled {
-		if snapshotStore, err = discovery.InitSQLiteSnapshotStore(ctx, config.Config.Services.EmbeddedDiscoveryService, secondaryStorageDB, logger); err != nil {
+		if snapshotStore, err = discovery.InitSQLiteSnapshotStore(ctx, discoveryCfg, secondaryStorageDB, logger); err != nil {
 			return fmt.Errorf("failed to initialize snapshot store: %w", err)
 		}
 	}
 
 	if err = retry.Constant(30*time.Second, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(context.Context) error {
 		err = service.Run(ctx, service.Options{
-			ListenAddr:        net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(config.Config.Services.EmbeddedDiscoveryService.GetPort())),
+			ListenAddr:        net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(discoveryCfg.GetPort())),
 			GCInterval:        time.Minute,
 			MetricsRegisterer: registerer,
 
 			SnapshotsEnabled: snapshotsEnabled,
-			SnapshotInterval: config.Config.Services.EmbeddedDiscoveryService.GetSnapshotsInterval(),
-			SnapshotPath:     config.Config.Services.EmbeddedDiscoveryService.GetSnapshotsPath(), //nolint:staticcheck
+			SnapshotInterval: discoveryCfg.GetSnapshotsInterval(),
+			SnapshotPath:     discoveryCfg.GetSnapshotsPath(), //nolint:staticcheck
 			SnapshotStore:    snapshotStore,
 		}, logger.WithOptions(zap.IncreaseLevel(logLevel)).With(logging.Component("discovery_service")))
 

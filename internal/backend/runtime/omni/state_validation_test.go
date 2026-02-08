@@ -636,7 +636,7 @@ func TestMachineSetValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	etcdBackupStoreFactory, err := store.NewStoreFactory()
+	etcdBackupStoreFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	require.NoError(t, err)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -909,7 +909,7 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	etcdBackupStoreFactory, err := store.NewStoreFactory()
+	etcdBackupStoreFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	etcdBackupConfig := config.EtcdBackup{
 		TickInterval: pointer.To(time.Minute),
 		MinInterval:  pointer.To(time.Hour),
@@ -1025,7 +1025,7 @@ func TestClusterImport(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	etcdBackupStoreFactory, err := store.NewStoreFactory()
+	etcdBackupStoreFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	etcdBackupConfig := config.EtcdBackup{
 		TickInterval: pointer.To(time.Minute),
 		MinInterval:  pointer.To(time.Hour),
@@ -1324,7 +1324,7 @@ func TestMachineSetClassesValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	etcdBackupStoreFactory, err := store.NewStoreFactory()
+	etcdBackupStoreFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	require.NoError(t, err)
 
 	st := validated.NewState(innerSt,

@@ -65,7 +65,7 @@ func TestReconcile(t *testing.T) {
 	}
 
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
-		ctrl := machineupgrade.NewStatusController("mock-host", talosClientFactory)
+		ctrl := machineupgrade.NewStatusController("mock-host", "ghcr.io/siderolabs/installer", talosClientFactory)
 
 		require.NoError(t, testContext.Runtime.RegisterQController(ctrl))
 	}, func(ctx context.Context, testContext testutils.TestContext) {

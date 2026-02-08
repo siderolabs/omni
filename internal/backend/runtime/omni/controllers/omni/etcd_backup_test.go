@@ -58,7 +58,7 @@ import (
 var secretsJSON []byte
 
 func beforeStart(st state.State, t *testing.T, rt *runtime.Runtime) {
-	kubernetesRuntime, err := kubernetes.NewWithTTL(st, 0)
+	kubernetesRuntime, err := kubernetes.NewWithTTL(st, 0, "", "", "")
 	require.NoError(t, err)
 
 	require.NoError(t, rt.RegisterController(omnictrl.NewClusterController(kubernetesRuntime)))

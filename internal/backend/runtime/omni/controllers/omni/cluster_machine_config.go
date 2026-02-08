@@ -51,7 +51,7 @@ const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
 type ClusterMachineConfigController = qtransform.QController[*omni.ClusterMachine, *omni.ClusterMachineConfig]
 
 // NewClusterMachineConfigController initializes ClusterMachineConfigController.
-func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors []string) *ClusterMachineConfigController {
+func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors []string, talosRegistry string) *ClusterMachineConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
 			Name: ClusterMachineConfigControllerName,
@@ -62,7 +62,7 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 				return omni.NewClusterMachine(machineConfig.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, clusterMachine *omni.ClusterMachine, machineConfig *omni.ClusterMachineConfig) error {
-				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, imageFactoryHost)
+				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, imageFactoryHost, talosRegistry)
 			},
 		},
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigPatches](
@@ -102,6 +102,7 @@ func reconcileClusterMachineConfig(
 	machineConfig *omni.ClusterMachineConfig,
 	registryMirrors []string,
 	imageFactoryHost string,
+	talosRegistry string,
 ) error {
 	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
@@ -234,6 +235,7 @@ func reconcileClusterMachineConfig(
 
 	helper := clusterMachineConfigControllerHelper{
 		imageFactoryHost: imageFactoryHost,
+		talosRegistry:    talosRegistry,
 	}
 
 	configGenOptions := make([]generate.Option, 0, len(registryMirrors))
@@ -288,6 +290,7 @@ func reconcileClusterMachineConfig(
 
 type clusterMachineConfigControllerHelper struct {
 	imageFactoryHost string
+	talosRegistry    string
 }
 
 func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.ClusterMachineConfig, data []byte) (bool, error) {
@@ -342,7 +345,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, fmt.Errorf("talos version is not set on the resource %s", clusterConfigVersion.Metadata())
 	}
 
-	installImage, err := installimage.Build(helper.imageFactoryHost, configGenOptions.Metadata().ID(), configGenOptions.TypedSpec().Value.InstallImage)
+	installImage, err := installimage.Build(helper.imageFactoryHost, configGenOptions.Metadata().ID(), configGenOptions.TypedSpec().Value.InstallImage, helper.talosRegistry)
 	if err != nil {
 		return nil, err
 	}

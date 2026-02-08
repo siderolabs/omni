@@ -15,7 +15,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/etcdbackup/crypt"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/etcdbackup/fstore"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 type fileStoreFactory struct {
@@ -27,7 +26,7 @@ type fileStoreFactory struct {
 func NewFileStoreStoreFactory(path string) Factory {
 	return &fileStoreFactory{
 		store: crypt.NewStore(fstore.NewFileStore(path)),
-		path:  config.Config.EtcdBackup.GetLocalPath(),
+		path:  path,
 	}
 }
 

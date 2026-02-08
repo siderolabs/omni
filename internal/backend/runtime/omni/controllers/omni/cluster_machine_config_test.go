@@ -35,15 +35,12 @@ import (
 	conf "github.com/siderolabs/omni/internal/pkg/config"
 )
 
-var serviceConfig = &conf.Services{
-	Siderolink: conf.SiderolinkService{
-		EventSinkPort: pointer.To(8091),
-		LogServerPort: pointer.To(8092),
-	},
-	MachineAPI: conf.Service{
-		AdvertisedURL: pointer.To("http://127.0.0.1:8090"),
-	},
+var testSiderolinkCfg = conf.SiderolinkService{
+	EventSinkPort: pointer.To(8091),
+	LogServerPort: pointer.To(8092),
 }
+
+var testMachineAPIURL = "http://127.0.0.1:8090"
 
 type ClusterMachineConfigSuite struct {
 	OmniSuite
@@ -53,7 +50,7 @@ func (suite *ClusterMachineConfigSuite) registerControllers() {
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController(suite.kubernetesRuntime)))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, "ghcr.io/siderolabs/installer")))
 	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewSecretRotationStatusController(nil)))
@@ -62,7 +59,7 @@ func (suite *ClusterMachineConfigSuite) registerControllers() {
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(serviceConfig)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(testMachineAPIURL, testSiderolinkCfg)))
 	suite.Require().NoError(suite.runtime.RegisterQController(newMockJoinTokenUsageController[*siderolink.Link]()))
 }
 
@@ -127,7 +124,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 		)
 	}
 
-	newImage := fmt.Sprintf("%s:v1.0.2", conf.Config.Registries.GetTalos())
+	newImage := fmt.Sprintf("%s:v1.0.2", conf.Default().Registries.GetTalos())
 
 	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
@@ -379,7 +376,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerateWithoutComments() {
 	oldConf, err = configloader.NewFromBytes(dataOld.Data())
 	suite.Require().NoError(err)
 
-	newImage := fmt.Sprintf("%s:v1.10.1", conf.Config.Registries.GetTalos())
+	newImage := fmt.Sprintf("%s:v1.10.1", conf.Default().Registries.GetTalos())
 
 	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {

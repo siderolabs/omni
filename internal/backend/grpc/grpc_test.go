@@ -50,6 +50,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 type GrpcSuite struct {
@@ -95,11 +96,11 @@ func (suite *GrpcSuite) SetupTest() {
 
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel, 30*time.Second)
 
-	kubernetesRuntime, err := kubernetes.New(st.Default())
+	kubernetesRuntime, err := kubernetes.New(st.Default(), "", "", "")
 	suite.Require().NoError(err)
 
 	suite.runtime, err = omniruntime.NewRuntime(
-		clientFactory, dnsService, workloadProxyReconciler, nil,
+		config.Default(), clientFactory, dnsService, workloadProxyReconciler, nil,
 		imageFactoryClient, nil, nil, nil, st,
 		prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)),
 	)
@@ -323,6 +324,7 @@ func (suite *GrpcSuite) newServer(imageFactoryClient *imagefactory.Client, logge
 		suite.state,
 		imageFactoryClient,
 		logger,
+		false,
 	))
 
 	go func() {

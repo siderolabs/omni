@@ -27,6 +27,7 @@ import (
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
+	omniconfig "github.com/siderolabs/omni/internal/pkg/config"
 )
 
 func TestOperatorTalosconfig(t *testing.T) {
@@ -40,10 +41,10 @@ func TestOperatorTalosconfig(t *testing.T) {
 	discoveryClientCache := &discoveryClientCacheMock{}
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zapcore.InfoLevel, 30*time.Second)
 
-	kubernetesRuntime, err := kubernetes.New(st.Default())
+	kubernetesRuntime, err := kubernetes.New(st.Default(), "", "", "")
 	require.NoError(t, err)
 
-	r, err := omniruntime.NewRuntime(clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
+	r, err := omniruntime.NewRuntime(omniconfig.Default(), clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
 		st, prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 
 	require.NoError(t, err)

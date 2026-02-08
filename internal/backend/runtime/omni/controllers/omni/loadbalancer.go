@@ -19,11 +19,13 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/loadbalancer"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // LoadBalancerController starts, stops and updates the statuses of load balancers.
 type LoadBalancerController struct {
 	NewLoadBalancer loadbalancer.NewFunc
+	LBConfig        config.LoadBalancerService
 
 	loadBalancers *loadbalancer.Manager
 }
@@ -65,7 +67,7 @@ func (ctrl *LoadBalancerController) Run(ctx context.Context, r controller.Runtim
 		ctrl.NewLoadBalancer = loadbalancer.DefaultNew
 	}
 
-	ctrl.loadBalancers = loadbalancer.NewManager(logger, ctrl.NewLoadBalancer)
+	ctrl.loadBalancers = loadbalancer.NewManager(logger, ctrl.NewLoadBalancer, ctrl.LBConfig)
 
 	defer func() {
 		if err := ctrl.loadBalancers.Stop(); err != nil {

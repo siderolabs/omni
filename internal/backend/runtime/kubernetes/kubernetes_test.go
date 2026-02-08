@@ -63,7 +63,7 @@ var oidcKubeconfig3 []byte
 var adminKubeconfig []byte
 
 func TestOIDCKubeconfig(t *testing.T) {
-	r, err := kubernetes.New(nil)
+	r, err := kubernetes.New(nil, "http://localhost:8080/oidc", "default", "https://localhost:8095")
 	require.NoError(t, err)
 
 	kubeconfig, err := r.GetOIDCKubeconfig(&common.Context{
@@ -82,7 +82,7 @@ func TestOIDCKubeconfig(t *testing.T) {
 }
 
 func TestOIDCKubeconfigWithExtraOptions(t *testing.T) {
-	r, err := kubernetes.New(nil)
+	r, err := kubernetes.New(nil, "http://localhost:8080/oidc", "default", "https://localhost:8095")
 	require.NoError(t, err)
 
 	kubeconfig, err := r.GetOIDCKubeconfig(&common.Context{
@@ -103,7 +103,7 @@ func TestOIDCKubeconfigWithExtraOptions(t *testing.T) {
 func TestBreakGlassKubeconfig(t *testing.T) {
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	r, err := kubernetes.New(st)
+	r, err := kubernetes.New(st, "", "", "")
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)

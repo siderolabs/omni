@@ -9,6 +9,8 @@ package features
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -17,43 +19,55 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
+// Params holds the values needed to update the features config resource.
+type Params struct {
+	ImageFactoryPXEBaseURL          *url.URL
+	ImageFactoryBaseURL             string
+	AccountName                     string
+	AccountID                       string
+	UserPilotAppToken               string
+	AuditLogPath                    string
+	EtcdBackupMinInterval           time.Duration
+	EtcdBackupMaxInterval           time.Duration
+	EtcdBackupTickInterval          time.Duration
+	StripeMinCommit                 uint32
+	WorkloadProxyEnabled            bool
+	StripeEnabled                   bool
+	EmbeddedDiscoveryServiceEnabled bool
+	TalosPreReleaseVersionsEnabled  bool
+}
+
 // UpdateResources creates or updates the features omni.FeaturesConfig resource with the current feature flags.
-func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger) error {
-	workloadProxyEnabled := config.Config.Services.WorkloadProxy.GetEnabled()
+func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger, params Params) error {
+	workloadProxyEnabled := params.WorkloadProxyEnabled
 
 	updateFeaturesConfig := func(res *omni.FeaturesConfig) error {
 		res.TypedSpec().Value.EnableWorkloadProxying = workloadProxyEnabled
-		res.TypedSpec().Value.EmbeddedDiscoveryService = config.Config.Services.EmbeddedDiscoveryService.GetEnabled()
+		res.TypedSpec().Value.EmbeddedDiscoveryService = params.EmbeddedDiscoveryServiceEnabled
 		res.TypedSpec().Value.EtcdBackupSettings = &specs.EtcdBackupSettings{
-			TickInterval: durationpb.New(config.Config.EtcdBackup.GetTickInterval()),
-			MinInterval:  durationpb.New(config.Config.EtcdBackup.GetMinInterval()),
-			MaxInterval:  durationpb.New(config.Config.EtcdBackup.GetMaxInterval()),
+			TickInterval: durationpb.New(params.EtcdBackupTickInterval),
+			MinInterval:  durationpb.New(params.EtcdBackupMinInterval),
+			MaxInterval:  durationpb.New(params.EtcdBackupMaxInterval),
 		}
 
-		res.TypedSpec().Value.AuditLogEnabled = config.Config.Logs.Audit.GetPath() != "" //nolint:staticcheck
-		res.TypedSpec().Value.ImageFactoryBaseUrl = config.Config.Registries.GetImageFactoryBaseURL()
+		res.TypedSpec().Value.AuditLogEnabled = params.AuditLogPath != ""
+		res.TypedSpec().Value.ImageFactoryBaseUrl = params.ImageFactoryBaseURL
+		res.TypedSpec().Value.ImageFactoryPxeBaseUrl = params.ImageFactoryPXEBaseURL.String()
 
-		imageFactoryPXEBaseURL, err := config.Config.GetImageFactoryPXEBaseURL()
-		if err != nil {
-			return err
-		}
-
-		res.TypedSpec().Value.ImageFactoryPxeBaseUrl = imageFactoryPXEBaseURL.String()
 		res.TypedSpec().Value.UserPilotSettings = &specs.UserPilotSettings{
-			AppToken: config.Config.Account.UserPilot.GetAppToken(),
+			AppToken: params.UserPilotAppToken,
 		}
 		res.TypedSpec().Value.StripeSettings = &specs.StripeSettings{
-			Enabled:   config.Config.Logs.Stripe.GetEnabled(),
-			MinCommit: config.Config.Logs.Stripe.GetMinCommit(),
+			Enabled:   params.StripeEnabled,
+			MinCommit: params.StripeMinCommit,
 		}
 		res.TypedSpec().Value.Account = &specs.Account{
-			Id:   config.Config.Account.GetId(),
-			Name: config.Config.Account.GetName(),
+			Id:   params.AccountID,
+			Name: params.AccountName,
 		}
-		res.TypedSpec().Value.TalosPreReleaseVersionsEnabled = config.Config.Features.GetEnableTalosPreReleaseVersions()
+		res.TypedSpec().Value.TalosPreReleaseVersionsEnabled = params.TalosPreReleaseVersionsEnabled
 
 		return nil
 	}

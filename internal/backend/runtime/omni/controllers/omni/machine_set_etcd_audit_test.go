@@ -110,7 +110,7 @@ func (suite *MachineSetEtcdAuditSuite) SetupTest() {
 	suite.clientFactory = talos.NewClientFactory(suite.state, logger)
 
 	if _, err := runtime.Get(talos.Name); err != nil {
-		runtime.Install(talos.Name, talos.New(suite.clientFactory, logger))
+		runtime.Install(talos.Name, talos.New(suite.clientFactory, logger, "", ""))
 	}
 
 	suite.startRuntime()

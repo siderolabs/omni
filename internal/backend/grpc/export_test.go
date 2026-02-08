@@ -18,11 +18,12 @@ type ManagementServer = managementServer
 type AuthServer = authServer
 
 //nolint:revive
-func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client, logger *zap.Logger) *ManagementServer {
+func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client, logger *zap.Logger, enableBreakGlassConfigs bool) *ManagementServer {
 	return &ManagementServer{
-		omniState:          st,
-		imageFactoryClient: imageFactoryClient,
-		logger:             logger,
+		omniState:               st,
+		imageFactoryClient:      imageFactoryClient,
+		logger:                  logger,
+		enableBreakGlassConfigs: enableBreakGlassConfigs,
 	}
 }
 
