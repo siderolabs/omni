@@ -278,12 +278,7 @@ func (p *Params) Validate(schema *jsonschema.Schema) error {
 	return nil
 }
 
-var (
-	localIP = getLocalIPOrEmpty()
-
-	// Config holds the application config and provides the default values for it.
-	Config = Default()
-)
+var localIP = getLocalIPOrEmpty()
 
 // GetImageFactoryPXEBaseURL reads image factory PXE address from the args.
 func (p *Params) GetImageFactoryPXEBaseURL() (*url.URL, error) {

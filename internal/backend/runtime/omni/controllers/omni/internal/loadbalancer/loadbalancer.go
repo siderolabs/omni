@@ -22,20 +22,20 @@ type LoadBalancer interface {
 }
 
 // NewFunc is a function type whose implementation should create a new load balancer.
-type NewFunc func(bindAddress string, bindPort int, logger *zap.Logger) (LoadBalancer, error)
+type NewFunc func(bindAddress string, bindPort int, logger *zap.Logger, lbConfig config.LoadBalancerService) (LoadBalancer, error)
 
 // DefaultNew returns a new load balancer with default settings.
-func DefaultNew(bindAddress string, bindPort int, logger *zap.Logger) (LoadBalancer, error) { //nolint:ireturn
+func DefaultNew(bindAddress string, bindPort int, logger *zap.Logger, lbConfig config.LoadBalancerService) (LoadBalancer, error) { //nolint:ireturn
 	return controlplane.NewLoadBalancer(
 		bindAddress,
 		bindPort,
 		logger.WithOptions(zap.IncreaseLevel(zap.ErrorLevel)), // silence the load balancer logs
-		controlplane.WithDialTimeout(config.Config.Services.LoadBalancer.GetDialTimeout()),
-		controlplane.WithKeepAlivePeriod(config.Config.Services.LoadBalancer.GetKeepAlivePeriod()),
-		controlplane.WithTCPUserTimeout(config.Config.Services.LoadBalancer.GetTcpUserTimeout()),
+		controlplane.WithDialTimeout(lbConfig.GetDialTimeout()),
+		controlplane.WithKeepAlivePeriod(lbConfig.GetKeepAlivePeriod()),
+		controlplane.WithTCPUserTimeout(lbConfig.GetTcpUserTimeout()),
 		controlplane.WithHealthCheckOptions(
-			upstream.WithHealthcheckInterval(config.Config.Services.LoadBalancer.GetHealthCheckInterval()),
-			upstream.WithHealthcheckTimeout(config.Config.Services.LoadBalancer.GetHealthCheckTimeout()),
+			upstream.WithHealthcheckInterval(lbConfig.GetHealthCheckInterval()),
+			upstream.WithHealthcheckTimeout(lbConfig.GetHealthCheckTimeout()),
 		),
 	)
 }

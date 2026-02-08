@@ -33,7 +33,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 func (s *managementServer) CreateServiceAccount(ctx context.Context, req *management.CreateServiceAccountRequest) (*management.CreateServiceAccountResponse, error) {
@@ -231,7 +230,7 @@ func (s *managementServer) generateServiceAccountJWT(ctx context.Context, req *m
 	now := time.Now()
 	token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
 		"iat":          now.Unix(),
-		"iss":          fmt.Sprintf("omni-%s-service-account-issuer", config.Config.Account.GetName()),
+		"iss":          fmt.Sprintf("omni-%s-service-account-issuer", s.accountName),
 		"exp":          now.Add(req.GetServiceAccountTtl().AsDuration()).Unix(),
 		"sub":          req.GetServiceAccountUser(),
 		"groups":       req.GetServiceAccountGroups(),
@@ -245,7 +244,7 @@ func (s *managementServer) generateServiceAccountJWT(ctx context.Context, req *m
 }
 
 func (s *managementServer) buildServiceAccountKubeconfig(cluster, user, token string) ([]byte, error) {
-	clusterName := config.Config.Account.GetName() + "-" + cluster + "-" + user
+	clusterName := s.accountName + "-" + cluster + "-" + user
 	contextName := clusterName
 
 	conf := clientcmdapi.Config{
@@ -254,7 +253,7 @@ func (s *managementServer) buildServiceAccountKubeconfig(cluster, user, token st
 		CurrentContext: contextName,
 		Clusters: map[string]*clientcmdapi.Cluster{
 			clusterName: {
-				Server: config.Config.Services.KubernetesProxy.URL(),
+				Server: s.k8sProxyURL,
 			},
 		},
 		Contexts: map[string]*clientcmdapi.Context{

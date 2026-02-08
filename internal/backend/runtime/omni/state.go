@@ -146,7 +146,7 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		return nil, err
 	}
 
-	virtualState := virtual.NewState(state.WrapCore(defaultPersistentState.State))
+	virtualState := virtual.NewState(state.WrapCore(defaultPersistentState.State), params.Services.Api.URL())
 
 	secondaryPersistentState, err := newSQLitePersistentState(ctx, secondaryStorageDB, logger)
 	if err != nil {
@@ -171,6 +171,7 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		secondaryPersistentState.State,
 		virtualState,
 		logger,
+		params.EtcdBackup,
 	)
 	if err != nil {
 		return nil, err
@@ -179,11 +180,11 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 	measuredState := stateWithMetrics(namespacedState, metricsRegistry)
 	defaultState := state.WrapCore(measuredState)
 
-	if err = initResources(ctx, defaultState, logger); err != nil {
+	if err = initResources(ctx, defaultState, logger, params.Account.GetName()); err != nil {
 		return nil, err
 	}
 
-	auditWrap, err := NewAuditWrap(ctx, defaultState, config.Config, secondaryStorageDB, logger)
+	auditWrap, err := NewAuditWrap(ctx, defaultState, params, secondaryStorageDB, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -206,8 +207,9 @@ func newNamespacedState(
 	secondaryCoreState state.CoreState,
 	virtualState *virtual.State,
 	logger *zap.Logger,
+	etcdBackupCfg config.EtcdBackup,
 ) (*namespaced.State, error) {
-	storeFactory, err := store.NewStoreFactory()
+	storeFactory, err := store.NewStoreFactory(etcdBackupCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create etcd backup store: %w", err)
 	}
@@ -247,7 +249,7 @@ func newNamespacedState(
 	return namespacedState, nil
 }
 
-func initResources(ctx context.Context, resourceState state.State, logger *zap.Logger) error {
+func initResources(ctx context.Context, resourceState state.State, logger *zap.Logger, accountName string) error {
 	namespaceRegistry := registry.NewNamespaceRegistry(resourceState)
 	resourceRegistry := registry.NewResourceRegistry(resourceState)
 
@@ -286,7 +288,7 @@ func initResources(ctx context.Context, resourceState state.State, logger *zap.L
 
 	sysVersion := system.NewSysVersion(system.SysVersionID)
 	sysVersion.TypedSpec().Value.BackendVersion = version.Tag
-	sysVersion.TypedSpec().Value.InstanceName = config.Config.Account.GetName()
+	sysVersion.TypedSpec().Value.InstanceName = accountName
 	sysVersion.TypedSpec().Value.BackendApiVersion = version.API
 
 	if err := resourceState.Create(ctx, sysVersion); err != nil {

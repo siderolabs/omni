@@ -25,7 +25,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/pkg/config"
 	consts "github.com/siderolabs/omni/internal/pkg/constants"
 	"github.com/siderolabs/omni/internal/pkg/registry"
 )
@@ -43,7 +42,20 @@ var (
 const VersionRefreshInterval = 15 * time.Minute
 
 // VersionsController creates omni.KubernetesVersions and omni.TalosVersions by scanning container registry.
-type VersionsController struct{}
+type VersionsController struct {
+	imageFactoryBaseURL           string
+	kubernetesRegistry            string
+	enableTalosPreReleaseVersions bool
+}
+
+// NewVersionsController creates a new VersionsController.
+func NewVersionsController(imageFactoryBaseURL string, enableTalosPreReleaseVersions bool, kubernetesRegistry string) *VersionsController {
+	return &VersionsController{
+		imageFactoryBaseURL:           imageFactoryBaseURL,
+		enableTalosPreReleaseVersions: enableTalosPreReleaseVersions,
+		kubernetesRegistry:            kubernetesRegistry,
+	}
+}
 
 // Name implements controller.Controller interface.
 func (ctrl *VersionsController) Name() string {
@@ -241,12 +253,12 @@ func forAllCompatibleVersions(
 func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r controller.Runtime, k8sVersions []*compatibility.KubernetesVersion, logger *zap.Logger) error {
 	tracker := trackResource(r, resources.DefaultNamespace, omni.TalosVersionType)
 
-	allVersions, err := ctrl.fetchTalosVersions(ctx, config.Config.Registries.GetImageFactoryBaseURL())
+	allVersions, err := ctrl.fetchTalosVersions(ctx, ctrl.imageFactoryBaseURL)
 	if err != nil {
 		return err
 	}
 
-	talosVersions := ctrl.getVersionsAfter(allVersions, minDiscoveredTalosVersion, config.Config.Features.GetEnableTalosPreReleaseVersions())
+	talosVersions := ctrl.getVersionsAfter(allVersions, minDiscoveredTalosVersion, ctrl.enableTalosPreReleaseVersions)
 
 	talosVersions = xslices.FilterInPlace(talosVersions, func(v string) bool {
 		return consts.DenylistedTalosVersions.IsAllowed(v)
@@ -288,7 +300,7 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 func (ctrl *VersionsController) reconcileKubernetesVersions(ctx context.Context, r controller.Runtime, logger *zap.Logger) ([]string, error) {
 	tracker := trackResource(r, resources.DefaultNamespace, omni.KubernetesVersionType)
 
-	allVersions, err := ctrl.fetchVersionsFromRegistry(ctx, config.Config.Registries.GetKubernetes())
+	allVersions, err := ctrl.fetchVersionsFromRegistry(ctx, ctrl.kubernetesRegistry)
 	if err != nil {
 		return nil, err
 	}

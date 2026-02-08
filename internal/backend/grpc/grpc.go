@@ -53,8 +53,13 @@ func MakeServiceServers(
 	imageFactoryClient *imagefactory.Client,
 	logger *zap.Logger,
 	auditor AuditLogger,
+	services config.Services,
+	talosRegistry string,
+	accountName string,
+	k8sProxyURL string,
+	enableBreakGlassConfigs bool,
 ) iter.Seq2[ServiceServer, error] {
-	dest, err := generateDest(config.Config.Services.Api.URL())
+	dest, err := generateDest(services.Api.URL())
 	if err != nil {
 		return func(yield func(ServiceServer, error) bool) {
 			yield(nil, fmt.Errorf("error generating destination: %w", err))
@@ -63,7 +68,7 @@ func MakeServiceServers(
 
 	auth, err := newAuthServer(
 		state,
-		config.Config.Services,
+		services,
 		logger.With(logging.Component("auth_server")),
 	)
 	if err != nil {
@@ -89,6 +94,10 @@ func MakeServiceServers(
 			imageFactoryClient,
 			auditor,
 			dest,
+			talosRegistry,
+			accountName,
+			k8sProxyURL,
+			enableBreakGlassConfigs,
 		),
 		auth,
 		&COSIResourceServer{

@@ -14,11 +14,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	appconfig "github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // Build builds the install image for the provided properties.
-func Build(imageFactoryHost string, resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) (string, error) {
+func Build(imageFactoryHost string, resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, talosRegistry string) (string, error) {
 	if imageFactoryHost == "" {
 		return "", fmt.Errorf("image factory host is not set")
 	}
@@ -74,5 +73,5 @@ func Build(imageFactoryHost string, resID resource.ID, installImage *specs.Machi
 		return imageFactoryHost + "/" + installerName + "/" + schematicID + ":" + desiredTalosVersion, nil
 	}
 
-	return appconfig.Config.Registries.GetTalos() + ":" + desiredTalosVersion, nil
+	return talosRegistry + ":" + desiredTalosVersion, nil
 }

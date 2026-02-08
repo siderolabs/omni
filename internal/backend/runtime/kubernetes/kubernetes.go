@@ -50,7 +50,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // Name kubernetes runtime string id.
@@ -68,16 +67,20 @@ const (
 )
 
 // New creates new Runtime.
-func New(omniState state.State) (*Runtime, error) {
-	return NewWithTTL(omniState, kubernetesClientTTL)
+func New(omniState state.State, oidcIssuerEndpoint string, accountName string, k8sProxyURL string) (*Runtime, error) {
+	return NewWithTTL(omniState, kubernetesClientTTL, oidcIssuerEndpoint, accountName, k8sProxyURL)
 }
 
 // NewWithTTL creates new Runtime with custom TTL.
-func NewWithTTL(omniState state.State, ttl time.Duration) (*Runtime, error) {
+func NewWithTTL(omniState state.State, ttl time.Duration, oidcIssuerEndpoint string, accountName string, k8sProxyURL string) (*Runtime, error) {
 	return &Runtime{
 		clientsCache: expirable.NewLRU[string, *Client](kubernetesClientLRUSize, nil, ttl),
 
 		state: omniState,
+
+		oidcIssuerEndpoint: oidcIssuerEndpoint,
+		accountName:        accountName,
+		k8sProxyURL:        k8sProxyURL,
 
 		metricCacheSize: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "omni_k8s_clientfactory_cache_size",
@@ -106,6 +109,10 @@ type Runtime struct { //nolint:govet // there is just a single instance
 	sf           singleflight.Group
 
 	state state.State
+
+	oidcIssuerEndpoint string
+	accountName        string
+	k8sProxyURL        string
 
 	metricCacheSize, metricActiveClients prometheus.Gauge
 	metricCacheHits, metricCacheMisses   prometheus.Counter
@@ -258,11 +265,6 @@ func (r *Runtime) GetOIDCKubeconfig(context *common.Context, identity string, ex
 
 	var buf bytes.Buffer
 
-	issuerEndpoint, err := config.Config.GetOIDCIssuerEndpoint()
-	if err != nil {
-		return nil, err
-	}
-
 	if err = tmpl.Execute(&buf, struct {
 		InstanceName string
 		ClusterName  string
@@ -274,11 +276,11 @@ func (r *Runtime) GetOIDCKubeconfig(context *common.Context, identity string, ex
 		Identity     string
 		ExtraOptions []string
 	}{
-		InstanceName: config.Config.Account.GetName(),
+		InstanceName: r.accountName,
 		ClusterName:  context.Name,
 
-		EndpointOIDC:            issuerEndpoint,
-		KubernetesProxyEndpoint: config.Config.Services.KubernetesProxy.URL(),
+		EndpointOIDC:            r.oidcIssuerEndpoint,
+		KubernetesProxyEndpoint: r.k8sProxyURL,
 
 		ClientID:     external.DefaultClientID,
 		Identity:     identity,

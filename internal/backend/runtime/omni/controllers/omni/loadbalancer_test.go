@@ -20,6 +20,7 @@ import (
 	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/loadbalancer"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 type mockLoadBalancer struct {
@@ -118,7 +119,7 @@ func (suite *LoadBalancerSuite) setupMock() (<-chan *mockLoadBalancer, <-chan ne
 	mockCh := make(chan *mockLoadBalancer)
 	newLoadBalancerMethodCalled := make(chan newLoadBalancerSignature)
 
-	newMockFunc := func(bindAddress string, bindPort int, _ *zap.Logger) (loadbalancer.LoadBalancer, error) {
+	newMockFunc := func(bindAddress string, bindPort int, _ *zap.Logger, _ config.LoadBalancerService) (loadbalancer.LoadBalancer, error) {
 		mock := &mockLoadBalancer{
 			startMethodCalled:    make(chan struct{}),
 			shutdownMethodCalled: make(chan struct{}),

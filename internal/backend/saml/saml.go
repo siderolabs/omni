@@ -22,17 +22,16 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // NewHandler creates new SAML handler.
-func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.Logger) (*samlsp.Middleware, error) {
+func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.Logger, apiURL string) (*samlsp.Middleware, error) {
 	idpMetadata, err := readMetadata(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	rootURL, err := url.Parse(config.Config.Services.Api.URL())
+	rootURL, err := url.Parse(apiURL)
 	if err != nil {
 		return nil, err
 	}

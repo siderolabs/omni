@@ -9,7 +9,6 @@ package store
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -29,12 +28,8 @@ type Factory interface {
 }
 
 // NewStoreFactory returns a new store factory.
-func NewStoreFactory() (FactoryWithMetrics, error) {
-	return newEtcdBackupStoreFactory()
-}
-
-var newEtcdBackupStoreFactory = sync.OnceValues(func() (FactoryWithMetrics, error) {
-	storageType, err := config.Config.EtcdBackup.GetStorageType()
+func NewStoreFactory(etcdBackupCfg config.EtcdBackup) (FactoryWithMetrics, error) {
+	storageType, err := etcdBackupCfg.GetStorageType()
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +40,7 @@ var newEtcdBackupStoreFactory = sync.OnceValues(func() (FactoryWithMetrics, erro
 	case config.EtcdBackupTypeS3:
 		result = NewS3StoreFactory()
 	case config.EtcdBackupTypeFS:
-		result = NewFileStoreStoreFactory(config.Config.EtcdBackup.GetLocalPath())
+		result = NewFileStoreStoreFactory(etcdBackupCfg.GetLocalPath())
 	case config.EtcdBackupTypeNone:
 		result = DisabledStoreFactory
 	default:
@@ -53,7 +48,7 @@ var newEtcdBackupStoreFactory = sync.OnceValues(func() (FactoryWithMetrics, erro
 	}
 
 	return newFactoryWithMetrics(result), nil
-})
+}
 
 func setStatus(ctx context.Context, st state.State, confName, errString string) error {
 	status := omni.NewEtcdBackupStoreStatus()

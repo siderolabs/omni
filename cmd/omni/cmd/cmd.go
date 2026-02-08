@@ -116,7 +116,7 @@ func buildRootCommand() (*cobra.Command, error) {
 
 			configs = append(configs, flagConfig) // flags have the highest priority
 
-			config, err := app.PrepareConfig(logger, configSchema, configs...)
+			config, err := config.Init(logger, configSchema, configs...)
 			if err != nil {
 				return err
 			}

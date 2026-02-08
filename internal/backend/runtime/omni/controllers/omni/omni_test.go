@@ -379,7 +379,7 @@ func (suite *OmniSuite) SetupTest() {
 
 	suite.cachedState = state.WrapCore(suite.runtime.CachedState())
 
-	suite.kubernetesRuntime, err = kubernetes.NewWithTTL(suite.state, 0)
+	suite.kubernetesRuntime, err = kubernetes.NewWithTTL(suite.state, 0, "", "", "")
 	suite.Require().NoError(err)
 
 	rt.Install(kubernetes.Name, suite.kubernetesRuntime)
