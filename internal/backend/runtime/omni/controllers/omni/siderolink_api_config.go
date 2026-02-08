@@ -23,7 +23,7 @@ type SiderolinkAPIConfigController = qtransform.QController[*siderolink.Config, 
 const SiderolinkAPIConfigControllerName = "SiderolinkAPIConfigController"
 
 // NewSiderolinkAPIConfigController instanciates the connection params controller.
-func NewSiderolinkAPIConfigController(services *config.Services) *SiderolinkAPIConfigController {
+func NewSiderolinkAPIConfigController(machineAPIURL string, siderolinkCfg config.SiderolinkService) *SiderolinkAPIConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*siderolink.Config, *siderolink.APIConfig]{
 			Name: SiderolinkAPIConfigControllerName,
@@ -36,11 +36,11 @@ func NewSiderolinkAPIConfigController(services *config.Services) *SiderolinkAPIC
 			TransformFunc: func(_ context.Context, _ controller.Reader, _ *zap.Logger, _ *siderolink.Config, params *siderolink.APIConfig) error {
 				spec := params.TypedSpec().Value
 
-				spec.MachineApiAdvertisedUrl = services.MachineAPI.URL()
-				spec.WireguardAdvertisedEndpoint = services.Siderolink.WireGuard.GetAdvertisedEndpoint()
-				spec.EnforceGrpcTunnel = services.Siderolink.GetUseGRPCTunnel()
-				spec.LogsPort = int32(services.Siderolink.GetLogServerPort())
-				spec.EventsPort = int32(services.Siderolink.GetEventSinkPort())
+				spec.MachineApiAdvertisedUrl = machineAPIURL
+				spec.WireguardAdvertisedEndpoint = siderolinkCfg.WireGuard.GetAdvertisedEndpoint()
+				spec.EnforceGrpcTunnel = siderolinkCfg.GetUseGRPCTunnel()
+				spec.LogsPort = int32(siderolinkCfg.GetLogServerPort())
+				spec.EventsPort = int32(siderolinkCfg.GetEventSinkPort())
 
 				return nil
 			},

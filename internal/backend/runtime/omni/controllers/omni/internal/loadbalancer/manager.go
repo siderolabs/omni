@@ -13,6 +13,8 @@ import (
 	"github.com/siderolabs/gen/optional"
 	"github.com/siderolabs/gen/xslices"
 	"go.uber.org/zap"
+
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // ID is a loadbalancer ID.
@@ -20,9 +22,10 @@ type ID = string
 
 // Manager manages running loadbalancers.
 type Manager struct {
-	running map[ID]wrapper
-	logger  *zap.Logger
-	newFunc NewFunc
+	running  map[ID]wrapper
+	logger   *zap.Logger
+	newFunc  NewFunc
+	lbConfig config.LoadBalancerService
 }
 
 // Spec configures a loadbalancer.
@@ -40,11 +43,12 @@ type wrapper struct {
 }
 
 // NewManager returns a new loadbalancer manager.
-func NewManager(logger *zap.Logger, newFunc NewFunc) *Manager {
+func NewManager(logger *zap.Logger, newFunc NewFunc, lbConfig config.LoadBalancerService) *Manager {
 	return &Manager{
-		running: make(map[ID]wrapper),
-		logger:  logger,
-		newFunc: newFunc,
+		running:  make(map[ID]wrapper),
+		logger:   logger,
+		newFunc:  newFunc,
+		lbConfig: lbConfig,
 	}
 }
 
@@ -86,7 +90,7 @@ func (m *Manager) Reconcile(specs map[ID]Spec) error {
 				upstreamCh: make(chan []string),
 			}
 
-			lb, err := m.newFunc(spec.BindAddress, spec.BindPort, m.logger)
+			lb, err := m.newFunc(spec.BindAddress, spec.BindPort, m.logger, m.lbConfig)
 			if err != nil {
 				allErrors = append(allErrors, fmt.Errorf("error creating loadbalancer %s: %w", id, err))
 

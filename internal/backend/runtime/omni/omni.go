@@ -92,14 +92,14 @@ type Runtime struct {
 // NewRuntime creates a new Omni runtime.
 //
 //nolint:maintidx
-func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
+func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
 	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, st *State, metricsRegistry prometheus.Registerer,
 	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
 
-	if !config.Config.Features.GetDisableControllerRuntimeCache() {
+	if !cfg.Features.GetDisableControllerRuntimeCache() {
 		opts = append(opts, RuntimeCacheOptions()...)
 	}
 
@@ -110,7 +110,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		return nil, err
 	}
 
-	storeFactory, err := store.NewStoreFactory()
+	storeFactory, err := store.NewStoreFactory(cfg.EtcdBackup)
 	if err != nil {
 		return nil, err
 	}
@@ -118,8 +118,8 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 	powerStageEventsCh := make(chan *omni.MachineStatusSnapshot)
 	powerStageWatcher := powerstage.NewWatcher(defaultState, powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")), powerstage.WatcherOptions{})
 
-	uploadLimitPerSecondBytes := config.Config.EtcdBackup.GetUploadLimitMbps() * 125000     // Mbit in bytes
-	downloadLimitPerSecondBytes := config.Config.EtcdBackup.GetDownloadLimitMbps() * 125000 // Mbit in bytes
+	uploadLimitPerSecondBytes := cfg.EtcdBackup.GetUploadLimitMbps() * 125000     // Mbit in bytes
+	downloadLimitPerSecondBytes := cfg.EtcdBackup.GetDownloadLimitMbps() * 125000 // Mbit in bytes
 
 	storeFactory.SetThroughputs(uploadLimitPerSecondBytes, downloadLimitPerSecondBytes)
 	metricsRegistry.MustRegister(storeFactory)
@@ -129,8 +129,8 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			return talosClientFactory.Get(ctx, clusterName)
 		},
 		StoreFactory: storeFactory,
-		TickInterval: config.Config.EtcdBackup.GetTickInterval(),
-		Jitter:       config.Config.EtcdBackup.GetJitter(),
+		TickInterval: cfg.EtcdBackup.GetTickInterval(),
+		Jitter:       cfg.EtcdBackup.GetJitter(),
 	})
 	if err != nil {
 		return nil, err
@@ -155,19 +155,21 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 			TalosClientFactory: talosClientFactory,
 			NodeResolver:       dnsService,
 		}),
-		omnictrl.NewKubernetesStatusController(config.Config.Services.Api.URL(), config.Config.Services.WorkloadProxy.GetSubdomain()),
-		&omnictrl.LoadBalancerController{},
+		omnictrl.NewKubernetesStatusController(cfg.Services.Api.URL(), cfg.Services.WorkloadProxy.GetSubdomain(), cfg.Services.WorkloadProxy.GetEnabled()),
+		&omnictrl.LoadBalancerController{
+			LBConfig: cfg.Services.LoadBalancer,
+		},
 		omnictrl.NewMachineCleanupController(),
 		omnictrl.NewMachineStatusLinkController(linkCounterDeltaCh),
 		&omnictrl.MachineStatusMetricsController{},
-		&omnictrl.VersionsController{},
+		omnictrl.NewVersionsController(cfg.Registries.GetImageFactoryBaseURL(), cfg.Features.GetEnableTalosPreReleaseVersions(), cfg.Registries.GetKubernetes()),
 		omnictrl.NewClusterLoadBalancerController(
-			config.Config.Services.LoadBalancer.GetMinPort(),
-			config.Config.Services.LoadBalancer.GetMaxPort(),
+			cfg.Services.LoadBalancer.GetMinPort(),
+			cfg.Services.LoadBalancer.GetMaxPort(),
 		),
-		&omnictrl.InstallationMediaController{},
+		omnictrl.NewInstallationMediaController(cfg.Account.GetName()),
 		omnictrl.NewKeyPrunerController(
-			config.Config.Auth.KeyPruner.GetInterval(),
+			cfg.Auth.KeyPruner.GetInterval(),
 		),
 		&omnictrl.OngoingTaskController{},
 		omnictrl.NewMachineRequestStatusCleanupController(),
@@ -197,19 +199,20 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewClusterKubernetesNodesController(),
 		omnictrl.NewClusterMachineConfigController(
 			imageFactoryHost,
-			config.Config.Registries.Mirrors,
+			cfg.Registries.Mirrors,
+			cfg.Registries.GetTalos(),
 		),
 		omnictrl.NewClusterMachineTeardownController(),
 		omnictrl.NewMachineConfigGenOptionsController(),
 		omnictrl.NewMachineStatusController(imageFactoryClient, exraKernelArgsInitializer),
-		machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost),
+		machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, cfg.Registries.GetTalos()),
 		omnictrl.NewClusterMachineEncryptionKeyController(),
 		omnictrl.NewClusterMachineStatusController(),
-		omnictrl.NewClusterStatusController(config.Config.Services.EmbeddedDiscoveryService.GetEnabled()),
+		omnictrl.NewClusterStatusController(cfg.Services.EmbeddedDiscoveryService.GetEnabled()),
 		omnictrl.NewClusterDiagnosticsController(),
 		omnictrl.NewClusterUUIDController(),
 		omnictrl.NewControlPlaneStatusController(),
-		omnictrl.NewDiscoveryServiceConfigPatchController(config.Config.Services.EmbeddedDiscoveryService.GetPort()),
+		omnictrl.NewDiscoveryServiceConfigPatchController(cfg.Services.EmbeddedDiscoveryService.GetPort()),
 		omnictrl.NewKubernetesNodeAuditController(nil, time.Minute),
 		omnictrl.NewEtcdBackupEncryptionController(),
 		omnictrl.NewClusterWorkloadProxyStatusController(workloadProxyReconciler),
@@ -241,37 +244,37 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		omnictrl.NewLinkStatusController[*siderolinkres.PendingMachine](peers),
 		omnictrl.NewPendingMachineStatusController(),
 		omnictrl.NewMaintenanceConfigStatusController(nil,
-			config.Config.Services.Siderolink.GetEventSinkPort(),
-			config.Config.Services.Siderolink.GetLogServerPort()),
+			cfg.Services.Siderolink.GetEventSinkPort(),
+			cfg.Services.Siderolink.GetLogServerPort()),
 		omnictrl.NewDiscoveryAffiliateDeleteTaskController(clockwork.NewRealClock(), discoveryClientCache),
 		omnictrl.NewInfraProviderCombinedStatusController(),
 		omnictrl.NewServiceAccountStatusController(),
 		omnictrl.NewInfraMachineRegistrationController(),
-		omnictrl.NewSiderolinkAPIConfigController(&config.Config.Services),
+		omnictrl.NewSiderolinkAPIConfigController(cfg.Services.MachineAPI.URL(), cfg.Services.Siderolink),
 		omnictrl.NewProviderJoinConfigController(),
 		omnictrl.NewMachineJoinConfigController(),
-		omnictrl.NewConnectionParamsController(),
+		omnictrl.NewConnectionParamsController(cfg.Services.MachineAPI.URL(), cfg.Services.Siderolink),
 		omnictrl.NewJoinTokenStatusController(),
 		omnictrl.NewNodeUniqueTokenCleanupController(time.Minute),
 		clustermachine.NewConfigPatchesController(),
 		secrets.NewSecretRotationStatusController(&secrets.TalosRemoteGeneratorFactory{}),
-		machineupgrade.NewStatusController(imageFactoryHost, nil),
+		machineupgrade.NewStatusController(imageFactoryHost, cfg.Registries.GetTalos(), nil),
 		kernelargsctrl.NewStatusController(),
 	}
 
-	if config.Config.Auth.Saml.GetEnabled() {
+	if cfg.Auth.Saml.GetEnabled() {
 		controllers = append(controllers,
 			&omnictrl.SAMLAssertionController{},
 		)
 	}
 
-	if config.Config.Services.Siderolink.GetJoinTokensMode() != config.SiderolinkServiceJoinTokensModeLegacy {
+	if cfg.Services.Siderolink.GetJoinTokensMode() != config.SiderolinkServiceJoinTokensModeLegacy {
 		qcontrollers = append(qcontrollers,
 			omnictrl.NewNodeUniqueTokenStatusController(),
 		)
 	}
 
-	if config.Config.Logs.Stripe.GetEnabled() {
+	if cfg.Logs.Stripe.GetEnabled() {
 		stripeAPIKey, ok := os.LookupEnv("STRIPE_API_KEY")
 		if !ok {
 			return nil, fmt.Errorf("environment variable STRIPE_API_KEY is not set")
@@ -283,7 +286,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		}
 
 		controllers = append(controllers,
-			omnictrl.NewStripeMetricsReporterController(stripeAPIKey, subscriptionItemID, config.Config.Logs.Stripe.GetMinCommit()),
+			omnictrl.NewStripeMetricsReporterController(stripeAPIKey, subscriptionItemID, cfg.Logs.Stripe.GetMinCommit()),
 		)
 	}
 
@@ -330,15 +333,15 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 	metricsRegistry.MustRegister(expvarCollector)
 
 	validationOptions := slices.Concat(
-		clusterValidationOptions(defaultState, config.Config.EtcdBackup, config.Config.Services.EmbeddedDiscoveryService),
+		clusterValidationOptions(defaultState, cfg.EtcdBackup, cfg.Services.EmbeddedDiscoveryService),
 		relationLabelsValidationOptions(),
 		accessPolicyValidationOptions(),
-		authorizationValidationOptions(defaultState),
+		authorizationValidationOptions(defaultState, cfg.Auth.Saml.GetEnabled()),
 		roleValidationOptions(),
 		machineSetNodeValidationOptions(defaultState),
 		machineSetValidationOptions(defaultState, storeFactory),
 		machineClassValidationOptions(defaultState),
-		identityValidationOptions(config.Config.Auth.Saml),
+		identityValidationOptions(cfg.Auth.Saml),
 		exposedServiceValidationOptions(),
 		configPatchValidationOptions(defaultState),
 		etcdManualBackupValidationOptions(),
@@ -349,7 +352,7 @@ func NewRuntime(talosClientFactory *talos.ClientFactory, dnsService *dns.Service
 		nodeForceDestroyRequestValidationOptions(defaultState),
 		joinTokenValidationOptions(defaultState),
 		defaultJoinTokenValidationOptions(defaultState),
-		importedClusterSecretValidationOptions(defaultState, config.Config.Features.GetEnableClusterImport()),
+		importedClusterSecretValidationOptions(defaultState, cfg.Features.GetEnableClusterImport()),
 		infraProviderValidationOptions(defaultState),
 		installationMediaConfigValidationOptions(),
 		rotateSecretsValidationOptions(defaultState),

@@ -16,8 +16,6 @@ import (
 	"github.com/auth0/go-jwt-middleware/v2/jwks"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/siderolabs/go-api-signature/pkg/jwt"
-
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 const (
@@ -31,7 +29,7 @@ type IDTokenVerifier struct {
 }
 
 // NewIDTokenVerifier creates a new ID token verifier.
-func NewIDTokenVerifier(domain string) (*IDTokenVerifier, error) {
+func NewIDTokenVerifier(domain, clientID string) (*IDTokenVerifier, error) {
 	issuerURL, err := url.Parse("https://" + domain + "/")
 	if err != nil {
 		return nil, err
@@ -43,7 +41,7 @@ func NewIDTokenVerifier(domain string) (*IDTokenVerifier, error) {
 		provider.KeyFunc,
 		validator.RS256,
 		issuerURL.String(),
-		[]string{config.Config.Auth.Auth0.GetClientID()},
+		[]string{clientID},
 		validator.WithAllowedClockSkew(tokenValidationAllowedClockSkew),
 		validator.WithCustomClaims(func() validator.CustomClaims {
 			return &CustomIDClaims{}

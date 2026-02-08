@@ -18,7 +18,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // ProxyProvider is a provider of HTTP proxies for the exposed services.
@@ -220,7 +219,7 @@ func (h *HTTPHandler) getSignatureCookies(request *http.Request) (publicKeyID st
 }
 
 func (h *HTTPHandler) redirectToLogin(writer http.ResponseWriter, request *http.Request) {
-	loginURL, err := url.Parse(config.Config.Services.Api.URL())
+	loginURL, err := url.Parse(h.mainURL.String())
 	if err != nil {
 		h.logger.Warn("failed to redirect to login", zap.Error(err))
 

@@ -27,7 +27,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
-	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
@@ -38,13 +37,15 @@ type State struct {
 	PrimaryState state.State
 
 	computed map[resource.Type]*Computed
+	apiURL   string
 }
 
 // NewState creates new virtual state instance.
-func NewState(state state.State) *State {
+func NewState(state state.State, apiURL string) *State {
 	return &State{
 		PrimaryState: state,
 		computed:     map[resource.Type]*Computed{},
+		apiURL:       apiURL,
 	}
 }
 
@@ -357,7 +358,7 @@ func (v *State) advertisedEndpoints(_ context.Context, ptr resource.Pointer) (*v
 
 	res := virtual.NewAdvertisedEndpoints()
 
-	res.TypedSpec().Value.GrpcApiUrl = config.Config.Services.Api.URL()
+	res.TypedSpec().Value.GrpcApiUrl = v.apiURL
 
 	return res, nil
 }

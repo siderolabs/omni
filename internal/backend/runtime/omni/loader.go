@@ -18,7 +18,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/keyprovider"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // Loader is an interface that returns a private key.
@@ -44,7 +43,7 @@ type Loader interface {
 //	 file:///path/to/file
 //
 //			path to a private key file
-func NewLoader(source string, logger *zap.Logger) (Loader, error) {
+func NewLoader(source string, logger *zap.Logger, vaultToken, vaultURL string) (Loader, error) {
 	if source == "" {
 		return nil, errors.New("private key source is not set")
 	}
@@ -53,7 +52,7 @@ func NewLoader(source string, logger *zap.Logger) (Loader, error) {
 	case os.Getenv("VAULT_K8S_ROLE") != "" && (vaultMatcher.MatchString(source) || vaultTokenMatcher.MatchString(source)):
 		return makeVaultK8sLoader(source, os.Getenv("VAULT_K8S_ROLE"), logger)
 	case vaultMatcher.MatchString(source):
-		return makeVaultHTTPLoader(source, logger)
+		return makeVaultHTTPLoader(source, logger, vaultToken, vaultURL)
 	case strings.HasPrefix(source, "file://"):
 		return makeFileLoader(source, logger)
 	}
@@ -92,7 +91,7 @@ func (f *FileLoader) PrivateKey() (keyprovider.PrivateKeyData, error) {
 	return data, nil
 }
 
-func makeVaultHTTPLoader(source string, logger *zap.Logger) (Loader, error) {
+func makeVaultHTTPLoader(source string, logger *zap.Logger, vaultToken, vaultURL string) (Loader, error) {
 	matched := vaultMatcher.FindStringSubmatch(source)
 	if len(matched) != 3 {
 		return nil, errors.New("failed to parse vault-url source")
@@ -103,7 +102,7 @@ func makeVaultHTTPLoader(source string, logger *zap.Logger) (Loader, error) {
 
 	token, ok := os.LookupEnv("VAULT_TOKEN")
 	if !ok {
-		token = config.Config.Storage.Vault.GetToken()
+		token = vaultToken
 
 		if token == "" {
 			return nil, errors.New("VAULT_TOKEN is not set")
@@ -112,7 +111,7 @@ func makeVaultHTTPLoader(source string, logger *zap.Logger) (Loader, error) {
 
 	addr, ok := os.LookupEnv("VAULT_ADDR")
 	if !ok {
-		addr = config.Config.Storage.Vault.GetUrl()
+		addr = vaultURL
 		if addr == "" {
 			return nil, errors.New("VAULT_ADDR is not set")
 		}

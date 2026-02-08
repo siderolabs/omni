@@ -33,15 +33,17 @@ type StatusController struct {
 	*qtransform.QController[*omni.MachineStatus, *omni.MachineUpgradeStatus]
 	talosClientFactory TalosClientFactory
 	imageFactoryHost   string
+	talosRegistry      string
 }
 
-func NewStatusController(imageFactoryHost string, talosClientFactory TalosClientFactory) *StatusController {
+func NewStatusController(imageFactoryHost, talosRegistry string, talosClientFactory TalosClientFactory) *StatusController {
 	if talosClientFactory == nil {
 		talosClientFactory = &talosCliFactory{}
 	}
 
 	ctrl := &StatusController{
 		imageFactoryHost:   imageFactoryHost,
+		talosRegistry:      talosRegistry,
 		talosClientFactory: talosClientFactory,
 	}
 
@@ -227,7 +229,7 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		SecurityState:        securityState,
 	}
 
-	installImageStr, err := installimage.Build(ctrl.imageFactoryHost, ms.Metadata().ID(), installImage)
+	installImageStr, err := installimage.Build(ctrl.imageFactoryHost, ms.Metadata().ID(), installImage, ctrl.talosRegistry)
 	if err != nil {
 		return fmt.Errorf("failed to build install image: %w", err)
 	}

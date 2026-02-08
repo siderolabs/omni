@@ -18,7 +18,7 @@ import (
 
 //nolint:iface
 func TestInstall_LookupInterface(t *testing.T) {
-	k8s, err := kubernetes.New(nil)
+	k8s, err := kubernetes.New(nil, "", "", "")
 	require.NoError(t, err)
 
 	runtime.Install(kubernetes.Name, k8s)
