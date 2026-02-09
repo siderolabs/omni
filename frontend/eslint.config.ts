@@ -69,6 +69,10 @@ export default defineConfigWithVueTs(
       'vue/next-tick-style': 'error',
       'vue/no-boolean-default': 'error',
       'vue/no-template-target-blank': 'error',
+      'vue/no-undef-components': [
+        'error',
+        { ignorePatterns: ['RouterView', 'RouterLink', 'router-link'] },
+      ],
       'vue/no-useless-mustaches': 'error',
       'vue/require-default-prop': 'off',
 
