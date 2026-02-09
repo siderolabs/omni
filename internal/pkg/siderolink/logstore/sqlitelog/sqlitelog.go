@@ -302,7 +302,8 @@ func (r *lineReader) ReadLine(ctx context.Context) ([]byte, error) {
 		// If there is a row available in the result set, return that
 		result, err, ok := r.next()
 		if err != nil {
-			if errors.Is(err, context.Canceled) {
+			// this error is returned when the context is canceled (via pool.Take(ctx))
+			if zombiesqlite.ErrCode(err) == zombiesqlite.ResultInterrupt {
 				return nil, io.EOF
 			}
 
@@ -356,7 +357,9 @@ func (r *lineReader) fetchNextBatch(ctx context.Context) error {
 	if err != nil {
 		// If the context was canceled during the query, return EOF
 		// to allow graceful shutdown of the reader loop.
-		if errors.Is(err, context.Canceled) {
+		//
+		// this error is returned when the context is canceled (via pool.Take(ctx))
+		if zombiesqlite.ErrCode(err) == zombiesqlite.ResultInterrupt {
 			return io.EOF
 		}
 
