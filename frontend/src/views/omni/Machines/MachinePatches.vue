@@ -17,7 +17,7 @@ const route = useRoute()
 
 const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
   resource: {
-    id: route.params.machine as string,
+    id: route.params.machine.toString(),
     type: MachineStatusType,
     namespace: DefaultNamespace,
   },
@@ -26,5 +26,5 @@ const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
 </script>
 
 <template>
-  <Patches v-if="machine" :machine="machine" />
+  <Patches v-if="machine" :machine />
 </template>

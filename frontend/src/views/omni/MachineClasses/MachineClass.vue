@@ -15,7 +15,7 @@ import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
 import type { MachineClassSpec } from '@/api/omni/specs/omni.pb'
-import { GrpcTunnelMode } from '@/api/omni/specs/omni.pb'
+import { GrpcTunnelMode, type MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withRuntime } from '@/api/options'
 import {
   DefaultNamespace,
@@ -35,9 +35,9 @@ import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import Watch from '@/components/common/Watch/Watch.vue'
 import TAlert from '@/components/TAlert.vue'
 import { sanitizeLabelValue } from '@/methods/labels'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 
 import MachineMatchItem from './MachineMatchItem.vue'
@@ -279,18 +279,6 @@ const placeCaretAtEnd = (el: HTMLElement) => {
   sel?.addRange(range)
 }
 
-const watchOpts = computed(() => {
-  return {
-    resource: {
-      namespace: DefaultNamespace,
-      type: MachineStatusType,
-    },
-    selectors: nonEmptyConditions.value.map((c) => c + `,!${LabelNoManualAllocation}`),
-    selectUsingOR: true,
-    runtime: Runtime.Omni,
-  }
-})
-
 const conditionElements = useTemplateRef('conditionElements')
 
 const updateFocus = () => {
@@ -350,6 +338,21 @@ const copyLabel = (label: { key: string; value: string }) => {
 const nonEmptyConditions = computed(() => {
   return conditions.value.filter((value) => value.trim())
 })
+
+const {
+  data: machines,
+  loading: machinesLoading,
+  err: machinesErr,
+} = useResourceWatch<MachineStatusSpec>(() => ({
+  skip: machineClassMode.value !== MachineClassMode.Manual,
+  resource: {
+    namespace: DefaultNamespace,
+    type: MachineStatusType,
+  },
+  selectors: nonEmptyConditions.value.map((c) => c + `,!${LabelNoManualAllocation}`),
+  selectUsingOR: true,
+  runtime: Runtime.Omni,
+}))
 
 const canSubmit = computed(() => {
   if (machineClassName.value === '') {
@@ -546,16 +549,25 @@ const submit = async () => {
       <div class="mb-6 flex flex-1 flex-col gap-2">
         <div v-if="machineClassMode === MachineClassMode.Manual">
           <div class="text-naturals-n13">Matches</div>
-          <Watch :opts="watchOpts" spinner no-records-alert errors-alert>
-            <template #default="{ data }">
-              <MachineMatchItem
-                v-for="item in data"
-                :key="itemID(item)"
-                :machine="item"
-                @filter-labels="copyLabel"
-              />
-            </template>
-          </Watch>
+
+          <div v-if="machinesLoading" class="flex size-full items-center justify-center">
+            <TSpinner class="size-6" />
+          </div>
+
+          <TAlert v-else-if="machinesErr" title="Failed to Fetch Data" type="error">
+            {{ machinesErr }}
+          </TAlert>
+
+          <TAlert v-else-if="!machines.length" type="info" title="No Records">
+            No entries of the requested resource type are found on the server.
+          </TAlert>
+
+          <MachineMatchItem
+            v-for="item in machines"
+            :key="itemID(item)"
+            :machine="item"
+            @filter-labels="copyLabel"
+          />
         </div>
         <template v-else>
           <MachineTemplate

@@ -8,16 +8,15 @@ included in the LICENSE file.
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue'
 import { DocumentIcon } from '@heroicons/vue/24/solid'
 import { v4 as uuidv4 } from 'uuid'
-import { computed, onMounted, ref, toRefs, watch } from 'vue'
+import { computed, ref } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 import { useRoute, useRouter } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
-import type { ClusterSpec, ConfigPatchSpec } from '@/api/omni/specs/omni.pb'
-import { withRuntime } from '@/api/options'
+import type { ClusterSpec, ConfigPatchSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { ClusterPermissionsSpec } from '@/api/omni/specs/virtual.pb'
 import {
   ClusterMachineStatusType,
   ClusterPermissionsType,
@@ -39,13 +38,14 @@ import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
-import { canManageMachineConfigPatches, canReadMachineConfigPatches } from '@/methods/auth'
+import { canManageMachineConfigPatches } from '@/methods/auth'
 import {
   controlPlaneTitle,
   defaultWorkersTitle,
   machineSetTitle,
   workersTitlePrefix,
 } from '@/methods/machineset'
+import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 
@@ -55,22 +55,20 @@ const filter = ref('')
 
 type Props = {
   cluster?: Resource<ClusterSpec>
-  machine?: Resource
+  machine?: Resource<MachineStatusSpec>
 }
 
-const props = defineProps<Props>()
-
-const { machine, cluster } = toRefs(props)
+const { machine, cluster } = defineProps<Props>()
 
 const selectors = computed(() => {
   const res: string[] = []
 
-  if (cluster.value) {
-    res.push(`${LabelCluster}=${cluster.value.metadata.id}`)
-  } else if (machine.value) {
+  if (cluster) {
+    res.push(`${LabelCluster}=${cluster.metadata.id}`)
+  } else if (machine) {
     res.push(
-      `${LabelMachine}=${machine.value.metadata.id}`,
-      `${LabelClusterMachine}=${machine.value.metadata.id}`,
+      `${LabelMachine}=${machine.metadata.id}`,
+      `${LabelClusterMachine}=${machine.metadata.id}`,
     )
   } else {
     return
@@ -148,7 +146,7 @@ const routes = computed(() => {
       name: (item.metadata.annotations || {})[ConfigPatchName] || item.metadata.id!,
       icon: 'document',
       route: {
-        name: machine?.value ? patchEditPage : 'ClusterPatchEdit',
+        name: machine ? patchEditPage : 'ClusterPatchEdit',
         params: { patch: item.metadata.id! },
       },
       id: item.metadata.id!,
@@ -214,48 +212,35 @@ const routes = computed(() => {
   return result
 })
 
-const canReadConfigPatches = ref(false)
-const canManageConfigPatches = ref(false)
+const { data: clusterPermissions } = useResourceGet<ClusterPermissionsSpec>(() => ({
+  skip: !cluster,
+  resource: {
+    namespace: VirtualNamespace,
+    type: ClusterPermissionsType,
+    id: cluster?.metadata.id,
+  },
+  runtime: Runtime.Omni,
+}))
 
-const updatePermissions = async () => {
-  if (cluster?.value) {
-    const clusterPermissions = await ResourceService.Get(
-      {
-        namespace: VirtualNamespace,
-        type: ClusterPermissionsType,
-        id: cluster?.value.metadata.id,
-      },
-      withRuntime(Runtime.Omni),
-    )
+const canManageConfigPatches = computed(() => {
+  if (cluster) return clusterPermissions.value?.spec.can_manage_config_patches ?? false
+  if (machine) return canManageMachineConfigPatches.value
 
-    canReadConfigPatches.value = clusterPermissions?.spec?.can_read_config_patches || false
-    canManageConfigPatches.value = clusterPermissions?.spec?.can_manage_config_patches || false
-  } else if (machine?.value) {
-    canReadConfigPatches.value = canReadMachineConfigPatches.value
-    canManageConfigPatches.value = canManageMachineConfigPatches.value
-  }
-}
+  return false
+})
 
 const openPatchCreate = () => {
-  if (!cluster.value && !machine.value) {
+  if (!cluster && !machine) {
     return
   }
 
   router.push({
-    name: cluster.value ? 'ClusterPatchEdit' : 'MachinePatchEdit',
+    name: cluster ? 'ClusterPatchEdit' : 'MachinePatchEdit',
     params: {
       patch: `500-${uuidv4()}`,
     },
   })
 }
-
-watch([() => machine.value, () => cluster.value], async () => {
-  await updatePermissions()
-})
-
-onMounted(async () => {
-  await updatePermissions()
-})
 </script>
 
 <template>

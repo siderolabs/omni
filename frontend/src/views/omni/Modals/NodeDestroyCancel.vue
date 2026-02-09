@@ -12,14 +12,25 @@ import type { Resource } from '@/api/grpc'
 import type { ClusterMachineSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineType, DefaultNamespace } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
-import Watch from '@/components/common/Watch/Watch.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { ClusterCommandError, restoreNode } from '@/methods/cluster'
 import { setupNodenameWatch } from '@/methods/node'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 const route = useRoute()
+
+const { data, loading } = useResourceWatch<ClusterMachineSpec>({
+  skip: !route.query.machine,
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterMachineType,
+    id: route.query.machine?.toString() ?? '',
+  },
+  runtime: Runtime.Omni,
+})
 
 let closed = false
 
@@ -82,36 +93,28 @@ const restore = async (clusterMachine: Resource<ClusterMachineSpec>) => {
       </h3>
       <CloseButton @click="close(true)" />
     </div>
-    <Watch
-      :opts="{
-        resource: {
-          namespace: DefaultNamespace,
-          id: $route.query.machine as string,
-          type: ClusterMachineType,
-        },
-        runtime: Runtime.Omni,
-      }"
-      spinner
-    >
-      <template #default="{ data }">
-        <template v-if="data && data.metadata.phase !== 'Running'">
-          <p class="mb-2 text-xs">Please confirm the action.</p>
 
-          <div class="mt-2 flex items-end gap-4">
-            <div class="flex-1" />
-            <TButton class="h-9" @click="() => restore(data)">Restore Machine</TButton>
-          </div>
-        </template>
-        <template v-else>
-          <p class="mb-2 text-xs">Restoring the machine is not possible at this stage.</p>
+    <div v-if="loading" class="flex size-full items-center justify-center">
+      <TSpinner class="size-6" />
+    </div>
 
-          <div class="mt-2 flex items-end gap-4">
-            <div class="flex-1" />
-            <TButton class="h-9" @click="close(true)">Close</TButton>
-          </div>
-        </template>
-      </template>
-    </Watch>
+    <template v-else-if="data && data.metadata.phase !== 'Running'">
+      <p class="mb-2 text-xs">Please confirm the action.</p>
+
+      <div class="mt-2 flex items-end gap-4">
+        <div class="flex-1" />
+        <TButton class="h-9" @click="restore(data)">Restore Machine</TButton>
+      </div>
+    </template>
+
+    <template v-else>
+      <p class="mb-2 text-xs">Restoring the machine is not possible at this stage.</p>
+
+      <div class="mt-2 flex items-end gap-4">
+        <div class="flex-1" />
+        <TButton class="h-9" @click="close(true)">Close</TButton>
+      </div>
+    </template>
   </div>
 </template>
 
