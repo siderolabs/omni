@@ -6,16 +6,10 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
-import {
-  InfraMachineType,
-  InfraProviderNamespace,
-  LabelInfraProviderID,
-  LabelMachinePendingAccept,
-} from '@/api/resources'
+import { InfraMachineType, InfraProviderNamespace, LabelInfraProviderID } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
@@ -25,18 +19,15 @@ import StatsItem from '@/components/common/Stats/StatsItem.vue'
 import TableCell from '@/components/common/Table/TableCell.vue'
 import TableRoot from '@/components/common/Table/TableRoot.vue'
 import TableRow from '@/components/common/Table/TableRow.vue'
-
-const router = useRouter()
+import MachineAccept from '@/views/omni/Modals/MachineAccept.vue'
+import MachineReject from '@/views/omni/Modals/MachineReject.vue'
+import MachineUnreject from '@/views/omni/Modals/MachineUnreject.vue'
 
 const selectedMachines = ref(new Set<string>())
 
-function acceptMachines(...ids: string[]) {
-  router.push({ query: { modal: 'machineAccept', machine: ids } })
-}
-
-function rejectMachines(...ids: string[]) {
-  router.push({ query: { modal: 'machineReject', machine: ids } })
-}
+const acceptModalOpen = ref(false)
+const rejectModalOpen = ref(false)
+const unrejectModalOpen = ref(false)
 </script>
 
 <template>
@@ -48,8 +39,12 @@ function rejectMachines(...ids: string[]) {
           type: InfraMachineType,
           namespace: InfraProviderNamespace,
         },
-        selectors: [LabelMachinePendingAccept],
       }"
+      filter-caption="Acceptance status"
+      :filter-options="[
+        { desc: 'Pending', query: 'pending' },
+        { desc: 'Rejected', query: 'rejected' },
+      ]"
       search
       pagination
     >
@@ -59,22 +54,30 @@ function rejectMachines(...ids: string[]) {
         </PageHeader>
       </template>
 
-      <template #extra-controls>
-        <TButton
-          icon="check"
-          variant="highlighted"
-          :disabled="!selectedMachines.size"
-          @click="acceptMachines(...selectedMachines)"
-        >
-          Accept
-        </TButton>
+      <template #extra-controls="{ selectedFilterOption }">
+        <template v-if="selectedFilterOption === 'Pending'">
+          <TButton
+            icon="check"
+            variant="highlighted"
+            :disabled="!selectedMachines.size"
+            @click="acceptModalOpen = true"
+          >
+            Accept
+          </TButton>
+
+          <TButton icon="close" :disabled="!selectedMachines.size" @click="rejectModalOpen = true">
+            Reject
+          </TButton>
+        </template>
 
         <TButton
+          v-else
           icon="close"
+          variant="highlighted"
           :disabled="!selectedMachines.size"
-          @click="rejectMachines(...selectedMachines)"
+          @click="unrejectModalOpen = true"
         >
-          Reject
+          Unreject
         </TButton>
       </template>
 
@@ -121,5 +124,23 @@ function rejectMachines(...ids: string[]) {
         </TableRoot>
       </template>
     </TList>
+
+    <MachineAccept
+      v-model:open="acceptModalOpen"
+      :machines="Array.from(selectedMachines)"
+      @confirmed="selectedMachines.clear()"
+    />
+
+    <MachineReject
+      v-model:open="rejectModalOpen"
+      :machines="Array.from(selectedMachines)"
+      @confirmed="selectedMachines.clear()"
+    />
+
+    <MachineUnreject
+      v-model:open="unrejectModalOpen"
+      :machines="Array.from(selectedMachines)"
+      @confirmed="selectedMachines.clear()"
+    />
   </div>
 </template>

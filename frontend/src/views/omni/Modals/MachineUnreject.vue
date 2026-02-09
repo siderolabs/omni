@@ -27,13 +27,13 @@ const confirm = async () => {
       machines.map(async (machine) => {
         try {
           await updateInfraMachineConfig(machine, (r) => {
-            r.spec.acceptance_status = InfraMachineConfigSpecAcceptanceStatus.REJECTED
+            r.spec.acceptance_status = InfraMachineConfigSpecAcceptanceStatus.PENDING
           })
 
-          showSuccess(`The Machine ${machine} was Rejected`)
+          showSuccess(`The Machine ${machine} was Unrejected`)
         } catch (e) {
           showError(
-            `Failed to Reject the Machine ${machine}`,
+            `Failed to Unreject the Machine ${machine}`,
             e instanceof Error ? e.message : String(e),
           )
         }
@@ -51,8 +51,8 @@ const confirm = async () => {
 <template>
   <ConfirmModal
     v-model:open="open"
-    :title="`Reject ${pluralize('Machine', machines.length, true)}`"
-    action-label="Reject"
+    :title="`Unreject ${pluralize('Machine', machines.length, true)}`"
+    action-label="Unreject"
     :loading="loading"
     @confirm="confirm"
   >
@@ -64,8 +64,8 @@ const confirm = async () => {
 
     <p class="py-2 text-xs">Please confirm the action.</p>
     <p class="py-2 text-xs text-primary-p2">
-      Rejected machines will be removed from the pending machines list. You can use the rejected
-      machines list or omnictl to accept them again.
+      Unrejecting machines will place them back in the pending machines list. You can accept or
+      reject them again later.
     </p>
   </ConfirmModal>
 </template>

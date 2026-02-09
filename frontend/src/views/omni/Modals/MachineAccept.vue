@@ -6,61 +6,54 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import pluralize from 'pluralize'
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref } from 'vue'
 
-import TButton from '@/components/common/Button/TButton.vue'
-import { acceptMachine } from '@/methods/machine'
+import { InfraMachineConfigSpecAcceptanceStatus } from '@/api/omni/specs/omni.pb'
+import { updateInfraMachineConfig } from '@/methods/machine'
 import { showError, showSuccess } from '@/notification'
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import ConfirmModal from '@/views/omni/Modals/ConfirmModal.vue'
 
-const router = useRouter()
-const route = useRoute()
+const { machines } = defineProps<{ machines: string[] }>()
+const open = defineModel<boolean>('open', { default: false })
+const emit = defineEmits<{ confirmed: [] }>()
 
-const machines = computed(() => {
-  const { machine } = route.query
+const loading = ref(false)
 
-  const arr = Array.isArray(machine) ? machine : [machine]
-  return arr.filter((m) => typeof m === 'string')
-})
+const confirm = async () => {
+  try {
+    await Promise.all(
+      machines.map(async (machine) => {
+        try {
+          await updateInfraMachineConfig(machine, (r) => {
+            r.spec.acceptance_status = InfraMachineConfigSpecAcceptanceStatus.ACCEPTED
+          })
 
-let closed = false
-
-const close = () => {
-  if (closed) {
-    return
+          showSuccess(`The Machine ${machine} was Accepted`)
+        } catch (e) {
+          showError(
+            `Failed to Accept the Machine ${machine}`,
+            e instanceof Error ? e.message : String(e),
+          )
+        }
+      }),
+    )
+  } finally {
+    loading.value = false
+    emit('confirmed')
   }
 
-  closed = true
-
-  router.go(-1)
-}
-
-const accept = async () => {
-  await Promise.all(
-    machines.value.map(async (machine) => {
-      try {
-        await acceptMachine(machine)
-        showSuccess(`The Machine ${machine} was Accepted`)
-      } catch (e) {
-        showError(`Failed to Accept the Machine ${machine}`, e)
-      }
-    }),
-  )
-
-  close()
+  open.value = false
 }
 </script>
 
 <template>
-  <div class="modal-window">
-    <div class="mb-5 flex items-center justify-between text-xl text-naturals-n14">
-      <h3 class="text-base text-naturals-n14">
-        Accept {{ pluralize('Machine', machines.length, true) }}
-      </h3>
-      <CloseButton @click="close" />
-    </div>
-
+  <ConfirmModal
+    v-model:open="open"
+    :title="`Accept ${pluralize('Machine', machines.length, true)}`"
+    action-label="Accept"
+    :loading="loading"
+    @confirm="confirm"
+  >
     <ul class="list-inside list-disc">
       <li v-for="machine in machines" :key="machine">
         <code>{{ machine }}</code>
@@ -68,15 +61,8 @@ const accept = async () => {
     </ul>
 
     <p class="py-2 text-xs">Please confirm the action.</p>
-
-    <div class="text-xs">
-      <p class="py-2 font-bold text-primary-p3">
-        Accepting the machine will wipe ALL of its disks.
-      </p>
-    </div>
-
-    <div class="mt-8 flex justify-end gap-4">
-      <TButton class="h-9 w-32" icon="check" icon-position="left" @click="accept">Accept</TButton>
-    </div>
-  </div>
+    <p class="py-2 text-xs font-bold text-primary-p3">
+      Accepting the machine will wipe ALL of its disks.
+    </p>
+  </ConfirmModal>
 </template>

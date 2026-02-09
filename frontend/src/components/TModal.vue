@@ -57,8 +57,6 @@ const modals: Record<string, Component> = {
     () => import('@/views/omni/Modals/ServiceAccountRenew.vue'),
   ),
   roleEdit: defineAsyncComponent(() => import('@/views/omni/Modals/RoleEdit.vue')),
-  machineAccept: defineAsyncComponent(() => import('@/views/omni/Modals/MachineAccept.vue')),
-  machineReject: defineAsyncComponent(() => import('@/views/omni/Modals/MachineReject.vue')),
   updateExtensions: defineAsyncComponent(() => import('@/views/omni/Modals/UpdateExtensions.vue')),
   infraProviderSetup: defineAsyncComponent(
     () => import('@/views/omni/Modals/InfraProviderSetup.vue'),

@@ -6,8 +6,14 @@ import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
+import type { Resource } from '@/api/grpc'
 import { type InfraMachineSpec } from '@/api/omni/specs/infra.pb'
-import { InfraMachineType, InfraProviderNamespace, LabelInfraProviderID } from '@/api/resources'
+import {
+  InfraMachineType,
+  InfraProviderNamespace,
+  LabelInfraProviderID,
+  LabelMachinePendingAccept,
+} from '@/api/resources'
 
 import MachinesPending from './MachinesPending.vue'
 
@@ -23,17 +29,49 @@ export const Data: Story = {
     msw: {
       handlers: [
         createWatchStreamHandler<InfraMachineSpec>({
-          expectedOptions: { type: InfraMachineType, namespace: InfraProviderNamespace },
+          expectedOptions: {
+            type: InfraMachineType,
+            namespace: InfraProviderNamespace,
+            search_for: ['pending'],
+          },
           totalResults: 100,
           initialResources: ({ limit = 10, offset = 0 }) => {
             faker.seed(offset)
 
-            return faker.helpers.multiple(
+            return faker.helpers.multiple<Resource<InfraMachineSpec>>(
               () => ({
                 spec: {},
                 metadata: {
                   id: faker.string.uuid(),
-                  labels: { [LabelInfraProviderID]: 'bare-metal' },
+                  labels: {
+                    [LabelInfraProviderID]: 'bare-metal',
+                    [LabelMachinePendingAccept]: '',
+                  },
+                },
+              }),
+              { count: limit },
+            )
+          },
+        }).handler,
+
+        createWatchStreamHandler<InfraMachineSpec>({
+          expectedOptions: {
+            type: InfraMachineType,
+            namespace: InfraProviderNamespace,
+            search_for: ['rejected'],
+          },
+          totalResults: 100,
+          initialResources: ({ limit = 10, offset = 0 }) => {
+            faker.seed(offset + 1)
+
+            return faker.helpers.multiple<Resource<InfraMachineSpec>>(
+              () => ({
+                spec: {},
+                metadata: {
+                  id: faker.string.uuid(),
+                  labels: {
+                    [LabelInfraProviderID]: 'bare-metal',
+                  },
                 },
               }),
               { count: limit },

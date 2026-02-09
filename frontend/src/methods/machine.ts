@@ -4,11 +4,11 @@
 // included in the LICENSE file.
 
 import { Runtime } from '@/api/common/omni.pb'
+import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import type { InfraMachineConfigSpec, MachineLabelsSpec } from '@/api/omni/specs/omni.pb'
-import { InfraMachineConfigSpecAcceptanceStatus } from '@/api/omni/specs/omni.pb'
 import { withRuntime } from '@/api/options'
 import {
   DefaultNamespace,
@@ -169,18 +169,6 @@ const copyUserLabels = (src: Resource, dst: Resource) => {
   }
 }
 
-export const rejectMachine = async (machine: string) => {
-  await updateInfraMachineConfig(machine, (r: Resource<InfraMachineConfigSpec>) => {
-    r.spec.acceptance_status = InfraMachineConfigSpecAcceptanceStatus.REJECTED
-  })
-}
-
-export const acceptMachine = async (machine: string) => {
-  await updateInfraMachineConfig(machine, (r: Resource<InfraMachineConfigSpec>) => {
-    r.spec.acceptance_status = InfraMachineConfigSpecAcceptanceStatus.ACCEPTED
-  })
-}
-
 export const updateInfraMachineConfig = async (
   machine: string,
   modify: (r: Resource<InfraMachineConfigSpec>) => void,
@@ -199,9 +187,9 @@ export const updateInfraMachineConfig = async (
 
     modify(resource)
 
-    ResourceService.Update(resource, resource.metadata.version, withRuntime(Runtime.Omni))
+    await ResourceService.Update(resource, resource.metadata.version, withRuntime(Runtime.Omni))
   } catch (e) {
-    if (e.code === Code.NOT_FOUND) {
+    if (e instanceof RequestError && e.code === Code.NOT_FOUND) {
       const resource: Resource<InfraMachineConfigSpec> = {
         metadata,
         spec: {},
@@ -213,7 +201,11 @@ export const updateInfraMachineConfig = async (
         resource,
         withRuntime(Runtime.Omni),
       )
+
+      return
     }
+
+    throw e
   }
 }
 

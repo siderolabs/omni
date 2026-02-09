@@ -84,3 +84,28 @@ func (MachineExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 		},
 	}
 }
+
+// Make implements [typed.Maker] interface.
+func (MachineExtension) Make(_ *resource.Metadata, spec *MachineSpec) any {
+	return (*machineAux)(spec)
+}
+
+type machineAux MachineSpec
+
+func (m *machineAux) Match(searchFor string) bool {
+	val := m.Value
+
+	if searchFor == "pending" {
+		return val.GetAcceptanceStatus() == specs.InfraMachineConfigSpec_PENDING
+	}
+
+	if searchFor == "accepted" {
+		return val.GetAcceptanceStatus() == specs.InfraMachineConfigSpec_ACCEPTED
+	}
+
+	if searchFor == "rejected" {
+		return val.GetAcceptanceStatus() == specs.InfraMachineConfigSpec_REJECTED
+	}
+
+	return false
+}
