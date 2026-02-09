@@ -176,7 +176,7 @@ setupSyncStream()
   <div class="flex flex-col gap-2">
     <div class="flex items-start">
       <PageHeader class="flex-1" :title="title" />
-      <TButton type="highlighted" :disabled="applyChangesDisabled" @click="applyChanges">
+      <TButton variant="highlighted" :disabled="applyChangesDisabled" @click="applyChanges">
         Apply Changes ({{ numChanges }})
       </TButton>
     </div>

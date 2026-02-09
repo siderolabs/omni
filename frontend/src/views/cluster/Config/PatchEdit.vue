@@ -538,7 +538,11 @@ onMounted(async () => {
     >
       <TButton class="secondary" @click="() => $router.push({ name: patchListPage })">Back</TButton>
       <div class="flex-1" />
-      <TButton type="highlighted" :disabled="!canManageConfigPatches || saving" @click="saveConfig">
+      <TButton
+        variant="highlighted"
+        :disabled="!canManageConfigPatches || saving"
+        @click="saveConfig"
+      >
         <TSpinner v-if="saving" class="h-5 w-5" />
         <span v-else>Save</span>
       </TButton>

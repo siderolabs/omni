@@ -138,13 +138,18 @@ const {
     <section class="flex flex-col gap-2">
       <h3 class="text-sm font-medium">CLI</h3>
 
-      <TButton type="primary" icon="document" icon-position="left" @click="downloadTalosconfig()">
+      <TButton
+        variant="primary"
+        icon="document"
+        icon-position="left"
+        @click="downloadTalosconfig()"
+      >
         Download
         <code>talosconfig</code>
       </TButton>
 
       <TButton
-        type="primary"
+        variant="primary"
         icon="talos-config"
         icon-position="left"
         @click="$router.push({ query: { modal: 'downloadTalosctlBinaries' } })"
@@ -152,13 +157,13 @@ const {
         Download talosctl
       </TButton>
 
-      <TButton type="primary" icon="document" icon-position="left" @click="downloadOmniconfig">
+      <TButton variant="primary" icon="document" icon-position="left" @click="downloadOmniconfig">
         Download
         <code>omniconfig</code>
       </TButton>
 
       <TButton
-        type="primary"
+        variant="primary"
         icon="talos-config"
         icon-position="left"
         @click="$router.push({ query: { modal: 'downloadOmnictlBinaries' } })"
@@ -170,7 +175,7 @@ const {
     <section v-if="canReadAuditLog && auditLogAvailable" class="flex flex-col gap-2">
       <h3 class="text-sm font-medium">Tools</h3>
 
-      <TButton type="primary" icon="document" icon-position="left" @click="downloadAuditLog">
+      <TButton variant="primary" icon="document" icon-position="left" @click="downloadAuditLog">
         Get audit logs
       </TButton>
     </section>

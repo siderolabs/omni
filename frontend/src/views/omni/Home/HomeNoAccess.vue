@@ -28,13 +28,18 @@ import { downloadOmniconfig } from '@/methods'
     <p class="text-xs text-naturals-n10">At least Reader role is required</p>
 
     <div class="mt-3 flex gap-3">
-      <TButton type="primary" icon="talos-config" icon-position="left" @click="downloadOmniconfig">
+      <TButton
+        variant="primary"
+        icon="talos-config"
+        icon-position="left"
+        @click="downloadOmniconfig"
+      >
         Download
         <code>omniconfig</code>
       </TButton>
 
       <TButton
-        type="primary"
+        variant="primary"
         icon="talos-config"
         icon-position="left"
         @click="$router.push({ query: { modal: 'downloadOmnictlBinaries' } })"

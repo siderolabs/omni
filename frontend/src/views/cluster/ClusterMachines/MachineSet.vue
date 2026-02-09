@@ -250,7 +250,7 @@ const sectionHeadingId = useId()
         <IconButton icon="check" @click="() => updateMachineCount()" />
         <TButton
           v-if="canUseAll"
-          type="subtle"
+          variant="subtle"
           size="xs"
           @click="() => updateMachineCount(MachineSetSpecMachineAllocationType.Unlimited)"
         >
@@ -304,7 +304,7 @@ const sectionHeadingId = useId()
       class="col-span-full flex items-center gap-1 border-t border-naturals-n4 p-4 pl-9 text-xs"
     >
       {{ pluralize('machine', hiddenMachinesCount, true) }} are hidden
-      <TButton type="subtle" size="xs" @click="showMachinesCount = undefined">
+      <TButton variant="subtle" size="xs" @click="showMachinesCount = undefined">
         <span class="text-xs">Show all...</span>
       </TButton>
     </div>

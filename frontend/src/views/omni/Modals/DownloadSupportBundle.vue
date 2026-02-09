@@ -248,7 +248,7 @@ const { canDownloadSupportBundle } = setupClusterPermissions(
         <TButton
           class="h-9 w-32"
           :disabled="!canDownloadSupportBundle || started"
-          type="highlighted"
+          variant="highlighted"
           @click="download"
         >
           <TSpinner v-if="!status" class="h-5 w-5" />

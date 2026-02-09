@@ -59,7 +59,7 @@ const openUserCreate = () => {
       <TButton
         icon="user-add"
         icon-position="left"
-        type="highlighted"
+        variant="highlighted"
         :disabled="!canManageUsers || authType === AuthType.SAML"
         @click="openUserCreate"
       >

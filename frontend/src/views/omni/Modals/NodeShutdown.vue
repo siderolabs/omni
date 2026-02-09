@@ -73,7 +73,7 @@ const shutdown = async () => {
       <p class="text-xs">Please confirm the action.</p>
 
       <div class="modal-buttons-box">
-        <TButton class="modal-button" type="secondary" @click="close">Cancel</TButton>
+        <TButton class="modal-button" variant="secondary" @click="close">Cancel</TButton>
         <TButton
           :disabled="!canRebootMachines || state === 'Shutdown in progress'"
           class="modal-button"

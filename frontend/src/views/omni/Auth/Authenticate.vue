@@ -283,12 +283,12 @@ const Auth = {
               :fullname="name"
             />
             <div class="flex w-full flex-col gap-3">
-              <TButton type="secondary" class="w-full" @click="logout">Switch User</TButton>
+              <TButton variant="secondary" class="w-full" @click="logout">Switch User</TButton>
               <TButton
                 v-if="$route.query[AuthFlowQueryParam] === Auth.CLI"
                 id="confirm"
                 class="w-full"
-                type="highlighted"
+                variant="highlighted"
                 @click="() => confirmPublicKey()"
               >
                 Grant Access
@@ -297,7 +297,7 @@ const Auth = {
                 v-else
                 id="login"
                 class="w-full"
-                type="highlighted"
+                variant="highlighted"
                 @click="generatePublicKey"
               >
                 Log In

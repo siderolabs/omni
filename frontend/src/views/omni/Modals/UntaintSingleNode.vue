@@ -29,7 +29,7 @@ const onContinue = (untaint: boolean) => {
 
     <div class="mt-8 flex justify-end gap-2">
       <TButton class="secondary h-9 w-15" @click="onContinue(false)">No</TButton>
-      <TButton type="highlighted" class="h-9 w-15" @click="onContinue(true)">Yes</TButton>
+      <TButton variant="highlighted" class="h-9 w-15" @click="onContinue(true)">Yes</TButton>
     </div>
   </div>
 </template>

@@ -19,7 +19,7 @@ import type { ComponentProps } from 'vue-component-type-helpers'
 import TButton from '@/components/common/Button/TButton.vue'
 
 interface Props {
-  variant?: ComponentProps<typeof TButton>['type']
+  variant?: ComponentProps<typeof TButton>['variant']
   size?: ComponentProps<typeof TButton>['size']
   actions: [string, string, ...string[]]
   disabled?: boolean
@@ -39,7 +39,7 @@ const { width } = useElementSize(triggerRef)
   <DropdownMenuRoot>
     <div v-bind="$attrs" ref="trigger" class="inline-flex -space-x-px">
       <TButton
-        :type="variant"
+        :variant="variant"
         :size
         :disabled
         class="rounded-tr-none rounded-br-none"
@@ -50,7 +50,7 @@ const { width } = useElementSize(triggerRef)
 
       <DropdownMenuTrigger aria-label="extra actions" as-child>
         <TButton
-          :type="variant"
+          :variant="variant"
           :size
           :disabled
           class="rounded-tl-none rounded-bl-none"

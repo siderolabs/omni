@@ -269,7 +269,7 @@ onMounted(async () => {
                 kubernetesUpgradeStatus.spec.phase === KubernetesUpgradeStatusSpecPhase.Upgrading &&
                 !clusterLocked
               "
-              type="secondary"
+              variant="secondary"
               class="place-self-end"
               icon="close"
               @click="revertKubernetesUpgrade(clusterId)"
@@ -330,7 +330,7 @@ onMounted(async () => {
                 talosUpgradeStatus.spec.current_upgrade_version &&
                 !clusterLocked
               "
-              type="secondary"
+              variant="secondary"
               class="place-self-end"
               icon="close"
               @click="revertTalosUpgrade(clusterId)"

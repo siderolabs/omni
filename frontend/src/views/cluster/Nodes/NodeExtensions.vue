@@ -228,7 +228,7 @@ const openExtensionsUpdate = () => {
     <div
       class="sticky -bottom-6 -mx-6 -my-6 flex h-16 items-center justify-end gap-2 border-t border-naturals-n5 bg-naturals-n1 px-12 py-6 text-xs"
     >
-      <TButton type="highlighted" :disabled="!canUpdateTalos" @click="openExtensionsUpdate">
+      <TButton variant="highlighted" :disabled="!canUpdateTalos" @click="openExtensionsUpdate">
         Update Extensions
       </TButton>
     </div>

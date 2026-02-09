@@ -358,7 +358,7 @@ const filterByLabel = (e: { key: string; value?: string }) => {
           @checked-value="(value) => (state.cluster.kubernetesVersion = value)"
         />
         <TButton
-          type="primary"
+          variant="primary"
           :icon="hasConfigs ? 'settings-toggle' : 'settings'"
           @click="openPatchConfig"
         >

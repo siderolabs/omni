@@ -354,7 +354,7 @@ const {
       <div class="flex flex-col gap-4 px-2 lg:px-6">
         <TButton
           :disabled="!canDownloadKubeconfig"
-          type="primary"
+          variant="primary"
           icon="kube-config"
           icon-position="left"
           @click="
@@ -370,7 +370,7 @@ const {
 
         <TButton
           :disabled="!canDownloadTalosconfig"
-          type="primary"
+          variant="primary"
           icon="talos-config"
           icon-position="left"
           @click="() => downloadTalosconfig(clusterStatus!.metadata.id!)"
@@ -382,7 +382,7 @@ const {
         <TButton
           is="router-link"
           :disabled="!canDownloadSupportBundle"
-          type="primary"
+          variant="primary"
           icon="lifebuoy"
           icon-position="left"
           :to="{
@@ -394,7 +394,7 @@ const {
 
         <TButton
           is="router-link"
-          type="primary"
+          variant="primary"
           icon="kube-config"
           icon-position="left"
           :to="{
@@ -413,7 +413,7 @@ const {
         >
           <TButton
             is="router-link"
-            type="highlighted"
+            variant="highlighted"
             icon="nodes"
             icon-position="left"
             :disabled="!canAddClusterMachines || locked"
@@ -432,7 +432,7 @@ const {
           :description="`Kubernetes updates are disabled when the cluster is locked.`"
         >
           <TButton
-            type="primary"
+            variant="primary"
             icon="kubernetes"
             icon-position="left"
             :disabled="!canUpdateKubernetes || !kubernetesUpgradeAvailable() || locked"
@@ -448,7 +448,7 @@ const {
           :description="`Talos updates are disabled when the cluster is locked.`"
         >
           <TButton
-            type="primary"
+            variant="primary"
             icon="sidero-monochrome"
             icon-position="left"
             :disabled="!canUpdateTalos || !talosUpdateAvailable() || locked"
@@ -460,7 +460,7 @@ const {
 
         <TButton
           is="router-link"
-          type="primary"
+          variant="primary"
           icon="settings"
           icon-position="left"
           :to="{
@@ -472,7 +472,7 @@ const {
         </TButton>
 
         <TButton
-          type="primary"
+          variant="primary"
           :icon="locked ? 'locked' : 'unlocked'"
           icon-position="left"
           @click="updateLock"
@@ -488,7 +488,7 @@ const {
           <TButton
             is="router-link"
             class="text-red-r1"
-            type="secondary"
+            variant="secondary"
             icon="delete"
             icon-position="left"
             :disabled="!canRemoveClusterMachines || locked"

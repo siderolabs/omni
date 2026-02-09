@@ -100,7 +100,7 @@ const titleId = useId()
 
         <TButton
           :disabled="saving || !name || existingPresetLoading || !!existingPreset"
-          type="highlighted"
+          variant="highlighted"
           @click="save"
         >
           Save

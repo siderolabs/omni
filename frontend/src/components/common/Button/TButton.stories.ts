@@ -7,7 +7,7 @@ import type { ComponentProps } from 'vue-component-type-helpers'
 
 import TButton from './TButton.vue'
 
-const types: ComponentProps<typeof TButton>['type'][] = [
+const variants: ComponentProps<typeof TButton>['variant'][] = [
   'primary',
   'secondary',
   'highlighted',
@@ -21,9 +21,9 @@ const iconPositions: ComponentProps<typeof TButton>['iconPosition'][] = ['left',
 const meta: Meta<typeof TButton> = {
   component: TButton,
   argTypes: {
-    type: {
+    variant: {
       control: 'select',
-      options: types,
+      options: variants,
     },
     size: {
       control: 'inline-radio',
@@ -70,9 +70,9 @@ export const AllButtons: Story = {
     template: iconPositions
       .flatMap((iconPosition) =>
         sizes.flatMap((size) =>
-          types.map(
-            (type) =>
-              `<TButton type="${type}" size="${size}" icon-position="${iconPosition}" v-bind="args">${type}-${size}</TButton>`,
+          variants.map(
+            (variant) =>
+              `<TButton variant="${variant}" size="${size}" icon-position="${iconPosition}" v-bind="args">${variant}-${size}</TButton>`,
           ),
         ),
       )

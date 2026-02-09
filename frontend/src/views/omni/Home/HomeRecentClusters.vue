@@ -36,7 +36,7 @@ const { data } = useResourceWatch<ClusterStatusSpec>({
       <TButton
         icon-position="left"
         icon="clusters"
-        type="subtle"
+        variant="subtle"
         size="xs"
         @click="$router.push({ name: 'Clusters' })"
       >

@@ -99,7 +99,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClu
         class="header-button"
         icon="power"
         icon-position="left"
-        type="secondary"
+        variant="secondary"
         :disabled="!canRebootMachines"
         @click="shutdownNode"
       >
@@ -109,7 +109,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClu
         class="header-button"
         icon="reboot"
         icon-position="left"
-        type="secondary"
+        variant="secondary"
         :disabled="!canRebootMachines"
         @click="rebootNode"
       >
@@ -120,7 +120,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClu
         class="header-button delete-button"
         icon="delete"
         icon-position="left"
-        type="secondary"
+        variant="secondary"
         :disabled="!canRemoveMachines"
         @click="destroyNode"
       >
@@ -131,7 +131,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClu
         class="header-button"
         icon="rollback"
         icon-position="left"
-        type="secondary"
+        variant="secondary"
         :disabled="!canAddClusterMachines"
         @click="restoreNode"
       >

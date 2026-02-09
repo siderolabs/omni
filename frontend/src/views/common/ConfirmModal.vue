@@ -35,7 +35,7 @@ defineEmits<{
 
       <div class="flex items-center justify-end gap-2">
         <TButton @click="$emit('close')">Close</TButton>
-        <TButton type="highlighted" @click="$emit('confirm')">Confirm</TButton>
+        <TButton variant="highlighted" @click="$emit('confirm')">Confirm</TButton>
       </div>
     </div>
   </div>

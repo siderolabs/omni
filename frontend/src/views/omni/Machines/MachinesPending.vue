@@ -62,7 +62,7 @@ function rejectMachines(...ids: string[]) {
       <template #extra-controls>
         <TButton
           icon="check"
-          type="highlighted"
+          variant="highlighted"
           :disabled="!selectedMachines.size"
           @click="acceptMachines(...selectedMachines)"
         >

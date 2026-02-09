@@ -101,7 +101,7 @@ const filterOptions = [
               icon="warning"
             />
           </PageHeader>
-          <TButton :disabled="!canCreateClusters" type="highlighted" @click="openClusterCreate">
+          <TButton :disabled="!canCreateClusters" variant="highlighted" @click="openClusterCreate">
             Create Cluster
           </TButton>
         </div>

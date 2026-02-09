@@ -33,7 +33,7 @@ defineEmits<{
         </p>
         <div class="flex gap-2">
           <TButton @click="$emit('decline')">Decline</TButton>
-          <TButton type="highlighted" @click="$emit('accept')">Accept</TButton>
+          <TButton variant="highlighted" @click="$emit('accept')">Accept</TButton>
         </div>
       </div>
     </div>

@@ -151,7 +151,7 @@ const upgradeClick = async () => {
       <TButton
         class="h-9 w-32"
         :disabled="!status || selectedVersion === status?.spec?.last_upgrade_version"
-        type="highlighted"
+        variant="highlighted"
         @click="upgradeClick"
       >
         <TSpinner v-if="!status" class="h-5 w-5" />

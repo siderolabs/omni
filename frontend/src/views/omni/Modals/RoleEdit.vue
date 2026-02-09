@@ -122,7 +122,7 @@ const close = () => {
         @checked-value="(value) => (role = value)"
       />
       <TButton
-        type="highlighted"
+        variant="highlighted"
         :disabled="!canManageUsers"
         class="h-9"
         @click="

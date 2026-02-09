@@ -115,7 +115,7 @@ const openRotateSecretKey = async (name: string) => {
     <div class="flex justify-end">
       <TButton
         icon-position="left"
-        type="highlighted"
+        variant="highlighted"
         :disabled="!canManageUsers"
         @click="openInfraProviderSetup"
       >

@@ -65,7 +65,7 @@ const runEtcdBackup = async () => {
         <div>{{ clusterUUID }}</div>
         <IconButton icon="copy" @click="() => copy(clusterUUID)" />
         <TButton
-          type="highlighted"
+          variant="highlighted"
           class="ml-2"
           :disabled="startingEtcdBackup || !backupStatus.enabled"
           @click="runEtcdBackup"

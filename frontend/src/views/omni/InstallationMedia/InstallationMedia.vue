@@ -93,7 +93,7 @@ function clonePreset(preset: (typeof presets.value)[number]) {
       <PageHeader title="Installation Media" />
       <TButton
         is="router-link"
-        type="highlighted"
+        variant="highlighted"
         :to="{ name: 'InstallationMediaCreate' }"
         @click="formState = {}"
       >

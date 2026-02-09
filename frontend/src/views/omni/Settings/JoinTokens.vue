@@ -124,7 +124,7 @@ const openDeleteToken = (token: string) => {
       <TButton
         icon="plus"
         icon-position="left"
-        type="highlighted"
+        variant="highlighted"
         :disabled="!canManageUsers"
         @click="openUserCreate"
       >

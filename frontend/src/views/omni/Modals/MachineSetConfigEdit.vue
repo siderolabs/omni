@@ -114,7 +114,7 @@ const saveAndClose = async () => {
       </div>
     </div>
     <div class="flex justify-between gap-4 rounded-b bg-naturals-n3 p-4">
-      <TButton type="secondary" @click="close">Cancel</TButton>
+      <TButton variant="secondary" @click="close">Cancel</TButton>
       <TButton @click="saveAndClose">Save</TButton>
     </div>
   </div>

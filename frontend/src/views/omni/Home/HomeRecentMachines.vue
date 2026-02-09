@@ -34,7 +34,7 @@ const { data } = useResourceWatch<MachineStatusSpec>({
       <TButton
         icon-position="left"
         icon="nodes"
-        type="subtle"
+        variant="subtle"
         size="xs"
         @click="$router.push({ name: 'Machines' })"
       >

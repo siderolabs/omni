@@ -66,7 +66,7 @@ const close = () => {
           placeholder="examples: kubevirt, bare-metal"
         />
       </div>
-      <TButton type="highlighted" class="h-9" @click="handleCreate">Next</TButton>
+      <TButton variant="highlighted" class="h-9" @click="handleCreate">Next</TButton>
     </template>
 
     <ServiceAccountKey v-if="key" :secret-key="key" />

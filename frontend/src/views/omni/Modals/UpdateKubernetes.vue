@@ -302,7 +302,7 @@ const upgradeClick = async () => {
         :disabled="
           !status || runningPrechecks || selectedVersion === status?.spec?.last_upgrade_version
         "
-        type="highlighted"
+        variant="highlighted"
         @click="upgradeClick"
       >
         <TSpinner v-if="runningPrechecks || !status" class="h-5 w-5" />

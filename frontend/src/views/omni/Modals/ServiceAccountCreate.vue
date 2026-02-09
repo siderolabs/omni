@@ -96,7 +96,7 @@ const close = () => {
         />
       </div>
       <TButton
-        type="highlighted"
+        variant="highlighted"
         :disabled="!canManageUsers && authType !== AuthType.SAML"
         class="h-9"
         @click="handleCreate"

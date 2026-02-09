@@ -51,8 +51,8 @@ const workersCount = computed(() => {
       </div>
       <div v-if="warning" class="text-xs text-yellow-y1">{{ warning }}</div>
     </div>
-    <TButton v-if="onReset" type="secondary" @click="onReset">Cancel</TButton>
-    <TButton icon-position="left" type="highlighted" :disabled="disabled" @click="onSubmit">
+    <TButton v-if="onReset" variant="secondary" @click="onReset">Cancel</TButton>
+    <TButton icon-position="left" variant="highlighted" :disabled="disabled" @click="onSubmit">
       {{ action }}
     </TButton>
   </div>

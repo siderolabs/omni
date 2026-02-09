@@ -18,7 +18,7 @@ import MachineClassesList from '@/views/omni/MachineClasses/MachineClassesList.v
       <TButton
         is="router-link"
         :disabled="!canRemoveMachines"
-        type="highlighted"
+        variant="highlighted"
         :to="{ name: 'MachineClassCreate' }"
       >
         Create Machine Class

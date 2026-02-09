@@ -187,7 +187,7 @@ const close = () => {
       <div class="flex flex-wrap items-center gap-2">
         <TInput v-model="args" class="h-full flex-1 font-mono" placeholder="none" />
         <TButton v-if="editArgs" class="h-9 w-32" @click="() => (editArgs = false)">Cancel</TButton>
-        <TButton type="highlighted" class="h-9 w-32" @click="handleUpdateKernelArgs">
+        <TButton variant="highlighted" class="h-9 w-32" @click="handleUpdateKernelArgs">
           Update
         </TButton>
       </div>

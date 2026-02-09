@@ -76,7 +76,7 @@ const close = () => {
         @checked-value="(value) => (role = value)"
       />
       <TButton
-        type="highlighted"
+        variant="highlighted"
         :disabled="!canManageUsers && authType !== AuthType.SAML"
         class="h-9 w-32"
         @click="handleUserCreate"

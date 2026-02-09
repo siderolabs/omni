@@ -176,7 +176,7 @@ function onSaved(name: string) {
         <TButton
           is="router-link"
           v-if="!isLastStep"
-          type="highlighted"
+          variant="highlighted"
           :disabled="!nextStep || !isStepValid"
           :to="{ name: nextStep }"
         >
@@ -186,13 +186,13 @@ function onSaved(name: string) {
         <TButton
           is="router-link"
           v-else-if="isSaved"
-          type="highlighted"
+          variant="highlighted"
           :to="{ name: 'InstallationMedia' }"
         >
           Finished
         </TButton>
 
-        <TButton v-else type="highlighted" @click="savePresetModalOpen = true">Save</TButton>
+        <TButton v-else variant="highlighted" @click="savePresetModalOpen = true">Save</TButton>
       </div>
     </div>
 

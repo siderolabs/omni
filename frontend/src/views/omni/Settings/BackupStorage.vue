@@ -221,7 +221,7 @@ const updateConfig = async () => {
         />
         <div class="flex gap-2 place-self-end">
           <TButton :disabled="!canManageBackupStore" @click="resetConfig">Reset</TButton>
-          <TButton :disabled="!canManageBackupStore" type="highlighted" @click="updateConfig">
+          <TButton :disabled="!canManageBackupStore" variant="highlighted" @click="updateConfig">
             Save
           </TButton>
         </div>

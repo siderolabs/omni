@@ -93,7 +93,7 @@ const moveDownClicked = (index: string | number) => {
         {{ control.label }}
       </div>
       <TButton
-        type="subtle"
+        variant="subtle"
         size="xxs"
         class="mx-4 mb-3 text-xs"
         icon="plus"

@@ -100,7 +100,7 @@ const updateExtensions = (extensions?: Record<string, boolean>) => {
       />
 
       <div class="flex justify-between gap-4">
-        <TButton type="secondary" @click="close">Cancel</TButton>
+        <TButton variant="secondary" @click="close">Cancel</TButton>
         <div class="flex gap-4">
           <TButton
             icon="reset"
@@ -109,7 +109,7 @@ const updateExtensions = (extensions?: Record<string, boolean>) => {
           >
             Revert
           </TButton>
-          <TButton type="highlighted" @click="() => updateExtensions(requestedExtensions)">
+          <TButton variant="highlighted" @click="() => updateExtensions(requestedExtensions)">
             Save
           </TButton>
         </div>

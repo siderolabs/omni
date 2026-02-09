@@ -170,7 +170,7 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
       >
         <div class="flex gap-1">
           Check the
-          <TButton type="subtle" size="xs" @click="openDocs">documentation</TButton>
+          <TButton variant="subtle" size="xs" @click="openDocs">documentation</TButton>
           on how to configure and use infrastructure providers.
         </div>
       </TAlert>
@@ -182,7 +182,7 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
       >
         <div class="flex gap-1">
           Download and boot the
-          <TButton is="router-link" :to="{ name: 'InstallationMedia' }" type="subtle" size="xs">
+          <TButton is="router-link" :to="{ name: 'InstallationMedia' }" variant="subtle" size="xs">
             installation media
           </TButton>
           to connect machines to your Omni instance.
@@ -244,7 +244,12 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
     </template>
 
     <template #extra-controls>
-      <TButton type="primary" icon="delete" :disabled="!selectedMachines.size" @click="deleteItems">
+      <TButton
+        variant="primary"
+        icon="delete"
+        :disabled="!selectedMachines.size"
+        @click="deleteItems"
+      >
         <span class="contents max-md:hidden">Delete selected</span>
       </TButton>
     </template>
