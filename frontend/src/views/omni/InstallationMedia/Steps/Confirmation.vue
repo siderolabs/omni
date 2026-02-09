@@ -153,10 +153,10 @@ const installerImage = computed(() =>
     <p class="flex items-center gap-1">
       Your image schematic ID is:
       <code class="rounded bg-naturals-n4 px-2 py-1 wrap-anywhere">{{ schematic.id }}</code>
-      <CopyButton :text="schematic.id" />
+      <CopyButton aria-label="Copy schematic ID" :text="schematic.id" />
     </p>
 
-    <CodeBlock :code="schematic.yml" />
+    <CodeBlock :button-attrs="{ 'aria-label': 'Copy schematic YAML' }" :code="schematic.yml" />
 
     <h3 class="text-sm text-naturals-n14">First Boot</h3>
     <p v-if="formState.hardwareType === 'metal'">
@@ -189,7 +189,7 @@ const installerImage = computed(() =>
           <code class="whitespace-wrap rounded bg-naturals-n4 px-2 py-1 wrap-anywhere">
             {{ link }}
           </code>
-          <CopyButton :text="link" />
+          <CopyButton :aria-label="`Copy ${label} link`" :text="link" />
         </dd>
 
         <dd v-else>
@@ -213,7 +213,10 @@ const installerImage = computed(() =>
         following installer image to the machine configuration:
       </p>
 
-      <CodeBlock :code="installerImage" />
+      <CodeBlock
+        :button-attrs="{ 'aria-label': 'Copy create Talos test cluster command' }"
+        :code="installerImage"
+      />
     </template>
 
     <template v-if="formState.talosVersion && gte(formState.talosVersion, '1.12.0-alpha.2')">
@@ -223,6 +226,7 @@ const installerImage = computed(() =>
         Linux, run:
       </p>
       <CodeBlock
+        :button-attrs="{ 'aria-label': 'Copy create Talos test cluster command' }"
         :code="`talosctl cluster create qemu --schematic-id=${schematic.id} --talos-version=v${formState.talosVersion}`"
       />
     </template>
@@ -241,6 +245,7 @@ const installerImage = computed(() =>
       with this schematic, run the following command on a host in the same subnet:
     </p>
     <CodeBlock
+      :button-attrs="{ 'aria-label': 'Copy PXE booter docker run command' }"
       :code="`docker run --rm --network host ghcr.io/siderolabs/booter:v0.3.0 --talos-version=v${formState.talosVersion} --schematic-id=${schematic.id}`"
     />
 

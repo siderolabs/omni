@@ -6,10 +6,15 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
+import type { ButtonHTMLAttributes } from 'vue'
 
 import TIcon from '@/components/common/Icon/TIcon.vue'
 
-const { text = '' } = defineProps<{ text?: string }>()
+interface Props extends /* @vue-ignore */ ButtonHTMLAttributes {
+  text?: string
+}
+
+const { text = '' } = defineProps<Props>()
 const { copy, copied } = useClipboard({ copiedDuring: 1000 })
 </script>
 
