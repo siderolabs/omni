@@ -921,6 +921,26 @@
           "goJSONSchema": {
             "type": "time.Duration"
           }
+        },
+        "retentionPeriod": {
+          "description": "RetentionPeriod is the duration after which audit logs are considered old and eligible for cleanup.",
+          "type": "string",
+          "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "goJSONSchema": {
+            "type": "time.Duration"
+          }
+        },
+        "maxSize": {
+          "description": "MaxSize is the maximum allowed size (in bytes) of the audit logs. When exceeded, the oldest entries are removed. 0 means unlimited.",
+          "type": "integer",
+          "minimum": 0,
+          "goJSONSchema": {
+            "type": "uint64"
+          }
+        },
+        "cleanupProbability": {
+          "description": "CleanupProbability is the probability of triggering size-based cleanup on each audit log write. When triggered, a best-effort cleanup removes a bounded batch of the oldest rows to reduce the table size toward maxSize; multiple cleanups may be required for the table to fall below maxSize. 0 disables size-based cleanup.",
+          "type": "number"
         }
       }
     },

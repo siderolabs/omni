@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-30T12:27:48Z by kres dc032d7.
+# Generated on 2026-02-10T13:20:54Z by kres f3ab59e.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN=scratch
@@ -379,6 +379,7 @@ FROM scratch AS generate
 COPY --from=proto-compile /client/api/ /client/api/
 COPY --from=go-generate-0 /src/frontend frontend
 COPY --from=go-generate-0 /src/internal/backend/runtime/omni/controllers/omni internal/backend/runtime/omni/controllers/omni
+COPY --from=go-generate-0 /src/internal/pkg/config internal/pkg/config
 COPY --from=embed-abbrev-generate /src/internal/version internal/version
 
 # builds acompat-linux-amd64

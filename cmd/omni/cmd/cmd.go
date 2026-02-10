@@ -340,6 +340,9 @@ func defineLogsFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flag
 	rootCmdFlagBinder.StringVar("log-resource-updates-log-level", flagDescription("logs.resourceLogger.logLevel", schema), &flagConfig.Logs.ResourceLogger.LogLevel)
 	rootCmdFlagBinder.BoolVar("audit-log-enabled", flagDescription("logs.audit.enabled", schema), &flagConfig.Logs.Audit.Enabled)
 	rootCmdFlagBinder.DurationVar("audit-log-sqlite-timeout", flagDescription("logs.audit.sqliteTimeout", schema), &flagConfig.Logs.Audit.SqliteTimeout)
+	rootCmdFlagBinder.DurationVar("audit-log-retention-period", flagDescription("logs.audit.retentionPeriod", schema), &flagConfig.Logs.Audit.RetentionPeriod)
+	rootCmdFlagBinder.Uint64Var("audit-log-max-size", flagDescription("logs.audit.maxSize", schema), &flagConfig.Logs.Audit.MaxSize)
+	rootCmdFlagBinder.Float64Var("audit-log-cleanup-probability", flagDescription("logs.audit.cleanupProbability", schema), &flagConfig.Logs.Audit.CleanupProbability)
 	rootCmdFlagBinder.BoolVar("enable-stripe-reporting", flagDescription("logs.stripe.enabled", schema), &flagConfig.Logs.Stripe.Enabled)
 	rootCmdFlagBinder.Uint32Var("stripe-minimum-commit", flagDescription("logs.stripe.minCommit", schema), &flagConfig.Logs.Stripe.MinCommit)
 

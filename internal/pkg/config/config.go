@@ -140,6 +140,9 @@ func Default() *Params {
 	p.Logs.Audit.SetEnabled(true)
 	p.Logs.Audit.SetPath("_out/audit")
 	p.Logs.Audit.SetSqliteTimeout(30 * time.Second)
+	p.Logs.Audit.SetRetentionPeriod(24 * 30 * time.Hour)
+	p.Logs.Audit.SetMaxSize(0)
+	p.Logs.Audit.SetCleanupProbability(0.01)
 
 	p.Logs.ResourceLogger.SetLogLevel(zapcore.InfoLevel.String())
 	p.Logs.ResourceLogger.Types = common.UserManagedResourceTypes

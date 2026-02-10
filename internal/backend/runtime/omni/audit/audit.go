@@ -42,6 +42,7 @@ func NewLog(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, logg
 
 	return &Log{
 		auditLogger:              auditLogger,
+		retentionPeriod:          config.GetRetentionPeriod(),
 		logger:                   logger,
 		mu:                       sync.RWMutex{},
 		createHooks:              map[resource.Type]CreateHook{},
@@ -55,8 +56,9 @@ func NewLog(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, logg
 //
 //nolint:govet
 type Log struct {
-	auditLogger Logger
-	logger      *zap.Logger
+	auditLogger     Logger
+	retentionPeriod time.Duration
+	logger          *zap.Logger
 
 	mu                       sync.RWMutex
 	createHooks              map[resource.Type]CreateHook
@@ -180,15 +182,12 @@ func (l *Log) Wrap(next http.Handler) http.Handler {
 	})
 }
 
-// RunCleanup runs [LogFile.Remove] once a minute, deleting all log files older than 30 days including
-// current day.
+// RunCleanup runs [Logger.Remove] once a minute, deleting all log entries older than the configured
+// retention period.
 func (l *Log) RunCleanup(ctx context.Context) error {
 	for {
-		if err := l.auditLogger.Remove(ctx,
-			time.Unix(0, 0),
-			time.Now().AddDate(0, 0, -30),
-		); err != nil {
-			l.logger.Warn("failed to cleanup old audit log files", zap.Error(err))
+		if err := l.auditLogger.Remove(ctx, time.Unix(0, 0), time.Now().Add(-l.retentionPeriod)); err != nil {
+			l.logger.Warn("failed to cleanup old audit log entries", zap.Error(err))
 		}
 
 		select {

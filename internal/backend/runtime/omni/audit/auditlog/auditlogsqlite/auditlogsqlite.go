@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"math/rand/v2"
 	"strings"
 	"text/template"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/siderolabs/go-pointer"
+	"go.uber.org/zap"
 	zombiesqlite "zombiezen.com/go/sqlite"
 	"zombiezen.com/go/sqlite/sqlitex"
 
@@ -26,6 +28,10 @@ import (
 )
 
 const (
+	// removeBySizeBatchCap is the maximum number of rows deleted per removeBySize invocation.
+	// The probabilistic trigger ensures convergence over multiple writes.
+	removeBySizeBatchCap = 1000
+
 	tableName           = "audit_logs"
 	idColumn            = "id"
 	eventTypeColumn     = "event_type"
@@ -70,13 +76,20 @@ type schemaParams struct {
 }
 
 type Store struct {
-	db      *sqlitex.Pool
-	timeout time.Duration
+	db                 *sqlitex.Pool
+	logger             *zap.Logger
+	timeout            time.Duration
+	maxSize            uint64
+	cleanupProbability float64
 }
 
-func NewStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration) (*Store, error) {
+func NewStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration, maxSize uint64, cleanupProbability float64, logger *zap.Logger) (*Store, error) {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
+	}
+
+	if logger == nil {
+		logger = zap.NewNop()
 	}
 
 	templateParams := schemaParams{
@@ -118,7 +131,13 @@ func NewStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration) (*St
 		return nil, fmt.Errorf("failed to create sqlite log table schema: %w", err)
 	}
 
-	return &Store{db: db, timeout: timeout}, nil
+	return &Store{
+		db:                 db,
+		logger:             logger,
+		timeout:            timeout,
+		maxSize:            maxSize,
+		cleanupProbability: cleanupProbability,
+	}, nil
 }
 
 func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
@@ -174,6 +193,12 @@ func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
 		return fmt.Errorf("failed to write audit log event: %w", err)
 	}
 
+	if s.maxSize > 0 && rand.Float64() < s.cleanupProbability {
+		if err := s.removeBySize(conn); err != nil {
+			s.logger.Warn("failed to cleanup audit logs by size", zap.Error(err))
+		}
+	}
+
 	return nil
 }
 
@@ -201,6 +226,90 @@ func (s *Store) Remove(ctx context.Context, start, end time.Time) error {
 		Exec()
 	if err != nil {
 		return fmt.Errorf("failed to remove audit log events: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Store) removeBySize(conn *zombiesqlite.Conn) error {
+	sizeQuery := fmt.Sprintf(`SELECT SUM(pgsize) FROM dbstat WHERE name = '%s'`, tableName)
+
+	q, err := sqlitexx.NewQuery(conn, sizeQuery)
+	if err != nil {
+		return fmt.Errorf("failed to prepare dbstat query: %w", err)
+	}
+
+	var tableSize int64
+
+	if err = q.QueryRow(func(stmt *zombiesqlite.Stmt) error {
+		tableSize = stmt.ColumnInt64(0)
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to query table size: %w", err)
+	}
+
+	if tableSize <= int64(s.maxSize) {
+		return nil
+	}
+
+	// Use min/max ID to estimate row count and compute the cutoff ID for deletion. This is much faster than COUNT(*) on large tables, and good enough for our probabilistic cleanup.
+	rangeQuery := fmt.Sprintf(`SELECT COALESCE(MIN(%s), 0), COALESCE(MAX(%s), 0) FROM %s`,
+		idColumn, idColumn, tableName)
+
+	q, err = sqlitexx.NewQuery(conn, rangeQuery)
+	if err != nil {
+		return fmt.Errorf("failed to prepare ID range query: %w", err)
+	}
+
+	var minID, maxID int64
+
+	if err = q.QueryRow(func(stmt *zombiesqlite.Stmt) error {
+		minID = stmt.ColumnInt64(0)
+		maxID = stmt.ColumnInt64(1)
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to query ID range: %w", err)
+	}
+
+	rowCount := maxID - minID + 1
+	if rowCount <= 0 {
+		return nil
+	}
+
+	avgRowSize := tableSize / rowCount
+	if avgRowSize <= 0 {
+		avgRowSize = 1
+	}
+
+	// Ceiling division ensures at least 1 row is deleted when slightly over maxSize.
+	excess := tableSize - int64(s.maxSize)
+	rowsToDelete := (excess + avgRowSize - 1) / avgRowSize
+
+	if rowsToDelete <= 0 {
+		return nil
+	}
+
+	// Cap per invocation to keep each cleanup fast. The probabilistic trigger
+	// on each Write ensures we converge to the target size over time.
+	if rowsToDelete > removeBySizeBatchCap {
+		rowsToDelete = removeBySizeBatchCap
+	}
+
+	// Compute cutoff ID from the min ID, then range-delete everything at or
+	// below it. This lets SQLite use the primary key index directly.
+	cutoffID := minID + rowsToDelete - 1
+
+	deleteQuery := fmt.Sprintf(`DELETE FROM %s WHERE %s <= $cutoff_id`, tableName, idColumn)
+
+	q, err = sqlitexx.NewQuery(conn, deleteQuery)
+	if err != nil {
+		return fmt.Errorf("failed to prepare size-based delete query: %w", err)
+	}
+
+	if err = q.BindInt64("$cutoff_id", cutoffID).Exec(); err != nil {
+		return fmt.Errorf("failed to delete oldest audit log events by size: %w", err)
 	}
 
 	return nil

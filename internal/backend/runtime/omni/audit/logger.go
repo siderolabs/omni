@@ -30,7 +30,7 @@ func initLogger(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, 
 		return &nopLogger{}, nil
 	}
 
-	dbAuditLogger, err := auditlogsqlite.NewStore(ctx, db, config.GetSqliteTimeout())
+	dbAuditLogger, err := auditlogsqlite.NewStore(ctx, db, config.GetSqliteTimeout(), config.GetMaxSize(), config.GetCleanupProbability(), logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sqlite audit logger: %w", err)
 	}

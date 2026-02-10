@@ -710,6 +710,17 @@ func (s *LocalResourceService) SetPort(v int) {
 	s.Port = &v
 }
 
+func (s *LogsAudit) GetCleanupProbability() float64 {
+	if s == nil || s.CleanupProbability == nil {
+		return *new(float64)
+	}
+	return *s.CleanupProbability
+}
+
+func (s *LogsAudit) SetCleanupProbability(v float64) {
+	s.CleanupProbability = &v
+}
+
 func (s *LogsAudit) GetEnabled() bool {
 	if s == nil || s.Enabled == nil {
 		return *new(bool)
@@ -721,6 +732,17 @@ func (s *LogsAudit) SetEnabled(v bool) {
 	s.Enabled = &v
 }
 
+func (s *LogsAudit) GetMaxSize() uint64 {
+	if s == nil || s.MaxSize == nil {
+		return *new(uint64)
+	}
+	return *s.MaxSize
+}
+
+func (s *LogsAudit) SetMaxSize(v uint64) {
+	s.MaxSize = &v
+}
+
 func (s *LogsAudit) GetPath() string {
 	if s == nil || s.Path == nil {
 		return *new(string)
@@ -730,6 +752,17 @@ func (s *LogsAudit) GetPath() string {
 
 func (s *LogsAudit) SetPath(v string) {
 	s.Path = &v
+}
+
+func (s *LogsAudit) GetRetentionPeriod() time.Duration {
+	if s == nil || s.RetentionPeriod == nil {
+		return *new(time.Duration)
+	}
+	return *s.RetentionPeriod
+}
+
+func (s *LogsAudit) SetRetentionPeriod(v time.Duration) {
+	s.RetentionPeriod = &v
 }
 
 func (s *LogsAudit) GetSqliteTimeout() time.Duration {

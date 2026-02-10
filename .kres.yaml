@@ -585,6 +585,7 @@ spec:
       copy:
         - frontend/
         - internal/backend/runtime/omni/controllers/omni/
+        - internal/pkg/config/
   vtProtobufEnabled: true
   specs:
     - source: client/api/common/omni.proto

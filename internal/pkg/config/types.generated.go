@@ -344,13 +344,28 @@ type Logs struct {
 }
 
 type LogsAudit struct {
+	// CleanupProbability is the probability of triggering size-based cleanup on each
+	// audit log write. When triggered, a best-effort cleanup removes a bounded batch
+	// of the oldest rows to reduce the table size toward maxSize; multiple cleanups
+	// may be required for the table to fall below maxSize. 0 disables size-based
+	// cleanup.
+	CleanupProbability *float64 `json:"cleanupProbability,omitempty" yaml:"cleanupProbability,omitempty"`
+
 	// Enabled controls whether audit logging is enabled.
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+
+	// MaxSize is the maximum allowed size (in bytes) of the audit logs. When
+	// exceeded, the oldest entries are removed. 0 means unlimited.
+	MaxSize *uint64 `json:"maxSize,omitempty" yaml:"maxSize,omitempty"`
 
 	// Path is the path where audit logs are stored. DEPRECATED: they are now stored
 	// in SQLite, and this parameter exists for the migration purposes only, and will
 	// be removed.
 	Path *string `json:"path,omitempty" yaml:"path,omitempty"`
+
+	// RetentionPeriod is the duration after which audit logs are considered old and
+	// eligible for cleanup.
+	RetentionPeriod *time.Duration `json:"retentionPeriod,omitempty" yaml:"retentionPeriod,omitempty"`
 
 	// SqliteTimeout is the timeout for SQLite operations used for audit logs storage.
 	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty" yaml:"sqliteTimeout,omitempty"`

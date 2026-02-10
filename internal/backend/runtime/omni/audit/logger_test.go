@@ -132,7 +132,7 @@ func TestMigrateSkipIfHasData(t *testing.T) {
 	})
 
 	// Pre-populate DB using internal store to simulate existing state
-	sqliteStore, err := auditlogsqlite.NewStore(ctx, db, 5*time.Second)
+	sqliteStore, err := auditlogsqlite.NewStore(ctx, db, 5*time.Second, 0, 0, logger)
 	require.NoError(t, err)
 
 	dbEvt := auditlog.MakeEvent("create", "db.resource", "test-id", &auditlog.Data{Session: auditlog.Session{UserID: "db-user"}})
