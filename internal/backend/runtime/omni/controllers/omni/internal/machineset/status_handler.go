@@ -101,12 +101,12 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 	}
 
 	switch {
-	case len(rc.GetConfiguringMachines()) > 0:
-		machineSetStatus.TypedSpec().Value.Phase = specs.MachineSetPhase_Reconfiguring
-
-		spec.Ready = false
 	case len(rc.GetUpgradingMachines()) > 0:
 		machineSetStatus.TypedSpec().Value.Phase = specs.MachineSetPhase_Upgrading
+
+		spec.Ready = false
+	case len(rc.GetConfiguringMachines()) > 0:
+		machineSetStatus.TypedSpec().Value.Phase = specs.MachineSetPhase_Reconfiguring
 
 		spec.Ready = false
 	}

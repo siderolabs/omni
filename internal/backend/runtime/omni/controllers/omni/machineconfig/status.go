@@ -909,7 +909,9 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 		return err
 	}
 
-	configDiff, err := computeDiff(currentRedactedMachineConfig.Data(), rc.redactedMachineConfig)
+	defer currentRedactedMachineConfig.Free()
+
+	configDiff, err := ComputeDiff(currentRedactedMachineConfig.Data(), rc.redactedMachineConfig)
 	if err != nil {
 		return err
 	}
@@ -942,8 +944,6 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 		} else {
 			res.TypedSpec().Value.Upgrade = nil
 		}
-
-		defer currentRedactedMachineConfig.Free()
 
 		res.TypedSpec().Value.ConfigDiff = configDiff
 

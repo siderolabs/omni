@@ -16,13 +16,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/hexops/gotextdiff"
-	"github.com/hexops/gotextdiff/myers"
 	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
-	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
@@ -246,53 +243,4 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	rc.shouldUpgrade = schematicMismatch || talosVersionMismatch
 
 	return rc, nil
-}
-
-func computeDiff(previousData, newData []byte) (string, error) {
-	if len(previousData) != 0 && len(newData) != 0 {
-		previousConfig, err := configloader.NewFromBytes(previousData)
-		if err != nil {
-			return "", err
-		}
-
-		newConfig, err := configloader.NewFromBytes(newData)
-		if err != nil {
-			return "", err
-		}
-
-		// exclude the install section from the diff, as this part is handled by the upgrades
-		if previousConfig.RawV1Alpha1() != nil {
-			if previousConfig, err = previousConfig.PatchV1Alpha1(func(c *v1alpha1.Config) error {
-				cfg := newConfig.RawV1Alpha1()
-				if cfg == nil {
-					return nil
-				}
-
-				c.MachineConfig.MachineInstall = newConfig.RawV1Alpha1().MachineConfig.MachineInstall
-
-				return nil
-			}); err != nil {
-				return "", err
-			}
-		}
-
-		previousData, err = previousConfig.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
-		if err != nil {
-			return "", err
-		}
-	}
-
-	oldConfigString := string(previousData)
-	newConfigString := string(newData)
-
-	edits := myers.ComputeEdits("", oldConfigString, newConfigString)
-	diff := gotextdiff.ToUnified("", "", oldConfigString, edits)
-	diffStr := strings.TrimSpace(fmt.Sprint(diff))
-	diffStr = strings.Replace(diffStr, "--- \n+++ \n", "", 1) // trim the URIs, as they do not make sense in this context
-
-	if strings.TrimSpace(diffStr) == "" {
-		return "", nil
-	}
-
-	return diffStr, nil
 }
