@@ -8,29 +8,10 @@ import { test } from 'vitest'
 
 import { DefaultTalosVersion } from '@/api/resources'
 
-import { getDocsLink, getLegacyDocsLink, majorMinorVersion } from '.'
+import { getDocsLink, majorMinorVersion } from '.'
 
 const { major, minor } = parse(DefaultTalosVersion, false, true)
 const defaultVersion = `${major}.${minor}`
-
-test.each`
-  path            | options                       | expected
-  ${undefined}    | ${undefined}                  | ${`https://talos.dev/v${defaultVersion}`}
-  ${'/hello/123'} | ${undefined}                  | ${`https://talos.dev/v${defaultVersion}/hello/123`}
-  ${'hello/123'}  | ${undefined}                  | ${`https://talos.dev/v${defaultVersion}/hello/123`}
-  ${'/hello'}     | ${undefined}                  | ${`https://talos.dev/v${defaultVersion}/hello`}
-  ${'123'}        | ${undefined}                  | ${`https://talos.dev/v${defaultVersion}/123`}
-  ${'/hello/123'} | ${{}}                         | ${`https://talos.dev/v${defaultVersion}/hello/123`}
-  ${'hello/123'}  | ${{}}                         | ${`https://talos.dev/v${defaultVersion}/hello/123`}
-  ${'/hello'}     | ${{}}                         | ${`https://talos.dev/v${defaultVersion}/hello`}
-  ${'123'}        | ${{}}                         | ${`https://talos.dev/v${defaultVersion}/123`}
-  ${'/hello/123'} | ${{ talosVersion: '1.11.3' }} | ${'https://talos.dev/v1.11/hello/123'}
-  ${'hello/123'}  | ${{ talosVersion: '1.10.0' }} | ${'https://talos.dev/v1.10/hello/123'}
-  ${'/hello'}     | ${{ talosVersion: '1.9' }}    | ${'https://talos.dev/v1.9/hello'}
-  ${'123'}        | ${{ talosVersion: '1' }}      | ${'https://talos.dev/v1.0/123'}
-`('getDocsLink: $type - $path - $options returns $expected', ({ path, options, expected }) => {
-  expect(getLegacyDocsLink(path, options)).toBe(expected)
-})
 
 test.each`
   type       | path            | options                       | expected

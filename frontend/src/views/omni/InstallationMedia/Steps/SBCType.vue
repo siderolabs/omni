@@ -14,7 +14,7 @@ import { SBCConfigType, VirtualNamespace } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
-import { getLegacyDocsLink } from '@/methods'
+import { getDocsLink } from '@/methods'
 import { useResourceList } from '@/methods/useResourceList'
 import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
 
@@ -39,7 +39,11 @@ const SBCs = computed(() =>
       ...sbc,
       spec: {
         ...sbc.spec,
-        documentation: sbc.spec.documentation && getLegacyDocsLink(sbc.spec.documentation),
+        documentation:
+          sbc.spec.documentation &&
+          getDocsLink('talos', sbc.spec.documentation, {
+            talosVersion: formState.value.talosVersion,
+          }),
       },
     })),
 )

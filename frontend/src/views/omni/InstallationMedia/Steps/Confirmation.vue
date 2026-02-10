@@ -28,7 +28,7 @@ import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import TAlert from '@/components/TAlert.vue'
-import { getDocsLink, getLegacyDocsLink, majorMinorVersion } from '@/methods'
+import { getDocsLink, majorMinorVersion } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import { useDownloadImage } from '@/methods/useDownloadImage'
 import { useResourceGet } from '@/methods/useResourceGet'
@@ -257,7 +257,7 @@ const installerImage = computed(() =>
           class="link-primary"
           :href="
             getDocsLink('talos', `/getting-started/what's-new-in-talos`, {
-              talosVersion: formState.talosVersion!,
+              talosVersion: formState.talosVersion,
             })
           "
           target="_blank"
@@ -272,7 +272,7 @@ const installerImage = computed(() =>
           class="link-primary"
           :href="
             getDocsLink('talos', '/getting-started/support-matrix', {
-              talosVersion: formState.talosVersion!,
+              talosVersion: formState.talosVersion,
             })
           "
           target="_blank"
@@ -286,7 +286,7 @@ const installerImage = computed(() =>
           class="link-primary"
           :href="
             getDocsLink('talos', '/getting-started/getting-started', {
-              talosVersion: formState.talosVersion!,
+              talosVersion: formState.talosVersion,
             })
           "
           target="_blank"
@@ -303,7 +303,7 @@ const installerImage = computed(() =>
             getDocsLink(
               'talos',
               '/platform-specific-installations/bare-metal-platforms/network-config',
-              { talosVersion: formState.talosVersion! },
+              { talosVersion: formState.talosVersion },
             )
           "
           target="_blank"
@@ -316,8 +316,8 @@ const installerImage = computed(() =>
         <a
           class="link-primary"
           :href="
-            getLegacyDocsLink(selectedPlatform.spec.documentation, {
-              talosVersion: formState.talosVersion!,
+            getDocsLink('talos', selectedPlatform.spec.documentation, {
+              talosVersion: formState.talosVersion,
             })
           "
           target="_blank"
@@ -330,8 +330,8 @@ const installerImage = computed(() =>
         <a
           class="link-primary"
           :href="
-            getLegacyDocsLink(selectedSBC.spec.documentation, {
-              talosVersion: formState.talosVersion!,
+            getDocsLink('talos', selectedSBC.spec.documentation, {
+              talosVersion: formState.talosVersion,
             })
           "
           target="_blank"
@@ -348,7 +348,7 @@ const installerImage = computed(() =>
             getDocsLink(
               'talos',
               '/platform-specific-installations/bare-metal-platforms/secureboot',
-              { talosVersion: formState.talosVersion! },
+              { talosVersion: formState.talosVersion },
             )
           "
           target="_blank"
@@ -363,7 +363,7 @@ const installerImage = computed(() =>
           class="link-primary"
           :href="
             getDocsLink('talos', '/getting-started/prodnotes', {
-              talosVersion: formState.talosVersion!,
+              talosVersion: formState.talosVersion,
             })
           "
           target="_blank"
@@ -378,7 +378,7 @@ const installerImage = computed(() =>
           class="link-primary"
           :href="
             getDocsLink('talos', '/troubleshooting/troubleshooting', {
-              talosVersion: formState.talosVersion!,
+              talosVersion: formState.talosVersion,
             })
           "
           target="_blank"
