@@ -13,7 +13,6 @@ import { modal } from '@/modal'
 const modals: Record<string, Component> = {
   reboot: defineAsyncComponent(() => import('@/views/omni/Modals/NodeReboot.vue')),
   shutdown: defineAsyncComponent(() => import('@/views/omni/Modals/NodeShutdown.vue')),
-  clusterDestroy: defineAsyncComponent(() => import('@/views/omni/Modals/ClusterDestroy.vue')),
   machineRemove: defineAsyncComponent(() => import('@/views/omni/Modals/MachineRemove.vue')),
   machineClassDestroy: defineAsyncComponent(
     () => import('@/views/omni/Modals/MachineClassDestroy.vue'),

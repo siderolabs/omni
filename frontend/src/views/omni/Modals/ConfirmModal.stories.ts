@@ -11,7 +11,7 @@ const meta: Meta<typeof ConfirmModal> = {
   component: ConfirmModal,
   args: {
     open: true,
-    onClose: fn(),
+    'onUpdate:open': fn(),
     onConfirm: fn(),
   },
 }
@@ -19,4 +19,14 @@ const meta: Meta<typeof ConfirmModal> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {}
+export const Default: Story = {
+  render: (args) => ({
+    components: { ConfirmModal },
+    setup: () => ({ args }),
+    template: `
+      <ConfirmModal v-bind="args">
+        Are you sure?
+      </ConfirmModal>
+    `,
+  }),
+}

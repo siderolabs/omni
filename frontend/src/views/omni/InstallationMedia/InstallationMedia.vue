@@ -25,10 +25,10 @@ import TableRow from '@/components/common/Table/TableRow.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showSuccess } from '@/notification'
-import ConfirmModal from '@/views/common/ConfirmModal.vue'
 import DownloadPresetModal from '@/views/omni/InstallationMedia/DownloadPresetModal.vue'
 import { presetToFormState } from '@/views/omni/InstallationMedia/formStateToPreset'
 import { useFormState } from '@/views/omni/InstallationMedia/useFormState'
+import ConfirmModal from '@/views/omni/Modals/ConfirmModal.vue'
 
 const router = useRouter()
 const { formState } = useFormState()
@@ -165,6 +165,7 @@ function clonePreset(preset: (typeof presets.value)[number]) {
               <Tooltip description="Delete">
                 <IconButton
                   aria-label="delete"
+                  aria-haspopup="dialog"
                   icon="delete"
                   class="ml-4 text-red-r1"
                   @click="() => openConfirmDeleteModal(preset.metadata.id!)"
@@ -178,8 +179,7 @@ function clonePreset(preset: (typeof presets.value)[number]) {
 
     <ConfirmModal
       v-if="presetIdToDelete"
-      :open="confirmDeleteModalOpen"
-      @close="confirmDeleteModalOpen = false"
+      v-model:open="confirmDeleteModalOpen"
       @confirm="deleteItem(presetIdToDelete)"
     >
       Are you sure you want to delete preset "{{ presetIdToDelete }}"?

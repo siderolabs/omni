@@ -7,7 +7,6 @@ included in the LICENSE file.
 <script setup lang="ts">
 import pluralize from 'pluralize'
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
@@ -21,36 +20,30 @@ import {
   MachineStatusType,
   SiderolinkResourceType,
 } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { ClusterCommandError, clusterDestroy } from '@/methods/cluster'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
-import CloseButton from '@/views/omni/Modals/CloseButton.vue'
+import ConfirmModal from '@/views/omni/Modals/ConfirmModal.vue'
 
-const router = useRouter()
-const route = useRoute()
+const { clusterId } = defineProps<{ clusterId: string }>()
+const open = defineModel<boolean>('open', { default: false })
+
 const phase = ref('')
-let closed = false
 
 const close = () => {
-  if (closed) {
-    return
-  }
-
-  closed = true
-
-  router.go(-1)
+  open.value = false
 }
-const { data: disconnectedMachines, loading } = useResourceWatch<MachineStatusSpec>({
+
+const { data: disconnectedMachines, loading } = useResourceWatch<MachineStatusSpec>(() => ({
+  skip: !open.value,
   resource: {
     namespace: DefaultNamespace,
     type: MachineStatusType,
   },
-  selectors: [MachineStatusLabelDisconnected, `${LabelCluster}=${route.query.cluster as string}`],
+  selectors: [MachineStatusLabelDisconnected, `${LabelCluster}=${clusterId}`],
   runtime: Runtime.Omni,
-})
+}))
 
 const destroyCluster = async () => {
   destroying.value = true
@@ -82,7 +75,7 @@ const destroyCluster = async () => {
   }
 
   try {
-    await clusterDestroy(route.query.cluster as string)
+    await clusterDestroy(clusterId)
   } catch (e) {
     close()
 
@@ -124,25 +117,27 @@ const destroyCluster = async () => {
 
   close()
 
-  showSuccess(`The Cluster ${route.query.cluster} is Tearing Down`)
+  showSuccess(`The Cluster ${clusterId} is Tearing Down`)
 }
 
 const destroying = ref(false)
 </script>
 
 <template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-n14">Destroy the Cluster {{ $route.query.cluster }} ?</h3>
-      <CloseButton @click="close" />
-    </div>
+  <ConfirmModal
+    v-model:open="open"
+    :title="`Destroy the Cluster ${clusterId} ?`"
+    action-label="Destroy"
+    :loading="destroying || loading"
+    @confirm="destroyCluster"
+  >
     <ManagedByTemplatesWarning warning-style="popup" />
     <p v-if="destroying" class="text-xs">{{ phase }}...</p>
     <p v-else-if="loading" class="text-xs">Checking the cluster status...</p>
     <div v-else-if="disconnectedMachines.length > 0" class="text-xs">
       <p class="py-2 text-primary-p3">
         Cluster
-        <code>{{ $route.query.cluster }}</code>
+        <code>{{ clusterId }}</code>
         has {{ disconnectedMachines.length }} disconnected
         {{ pluralize('machine', disconnectedMachines.length, false) }}. Destroying the cluster now
         will also destroy disconnected machines.
@@ -154,24 +149,5 @@ const destroying = ref(false)
       </p>
     </div>
     <p v-else class="text-xs">Please confirm the action.</p>
-
-    <div class="mt-8 flex justify-end gap-4">
-      <TButton :disabled="destroying || loading" class="h-9 w-32" @click="destroyCluster">
-        <TSpinner v-if="destroying" class="h-5 w-5" />
-        <span v-else>Destroy</span>
-      </TButton>
-    </div>
-  </div>
+  </ConfirmModal>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.window {
-  @apply z-30 flex w-1/3 flex-col rounded bg-naturals-n2 p-8;
-}
-
-.heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
-}
-</style>

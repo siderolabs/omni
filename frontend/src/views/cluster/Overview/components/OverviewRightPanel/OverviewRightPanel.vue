@@ -48,6 +48,7 @@ import OverviewOIDCToast from '@/views/cluster/Overview/components/OverviewRight
 import OverviewRightPanelCondition from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelCondition.vue'
 import OverviewRightPanelItem from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue'
 import TClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
+import ClusterDestroy from '@/views/omni/Modals/ClusterDestroy.vue'
 
 const { kubernetesUpgradeStatus, talosUpgradeStatus } = defineProps<{
   kubernetesUpgradeStatus?: Resource<KubernetesUpgradeStatusSpec>
@@ -234,6 +235,8 @@ const {
   canAddClusterMachines,
   canRemoveClusterMachines,
 } = setupClusterPermissions(computed(() => route.params.cluster as string))
+
+const clusterDestroyDialogOpen = ref(false)
 </script>
 
 <template>
@@ -486,19 +489,22 @@ const {
           :description="`Cluster deletion is disabled when the cluster is locked.`"
         >
           <TButton
-            is="router-link"
             class="text-red-r1"
             variant="secondary"
             icon="delete"
             icon-position="left"
             :disabled="!canRemoveClusterMachines || locked"
-            :to="{
-              query: { modal: 'clusterDestroy', cluster: clusterStatus.metadata.id },
-            }"
+            aria-haspopup="dialog"
+            @click="clusterDestroyDialogOpen = true"
           >
             Destroy Cluster
           </TButton>
         </Tooltip>
+
+        <ClusterDestroy
+          v-model:open="clusterDestroyDialogOpen"
+          :cluster-id="clusterStatus.metadata.id!"
+        />
       </div>
     </template>
     <div v-else class="flex items-center justify-center p-4">

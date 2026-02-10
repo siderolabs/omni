@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useElementSize, useSessionStorage } from '@vueuse/core'
-import { computed, useId, useTemplateRef } from 'vue'
+import { computed, ref, useId, useTemplateRef } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
@@ -24,6 +24,7 @@ import type { Label } from '@/methods/labels'
 import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
 import ClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
 import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
+import ClusterDestroy from '@/views/omni/Modals/ClusterDestroy.vue'
 
 const {
   item,
@@ -39,7 +40,10 @@ defineEmits<{
   filterLabels: [Label]
 }>()
 
-const expanded = useSessionStorage(() => `cluster-expanded-${item.metadata.id}`, defaultOpen)
+const expanded = useSessionStorage(
+  () => `cluster-expanded-${item.metadata.id}`,
+  () => defaultOpen,
+)
 
 const {
   canDownloadKubeconfig,
@@ -55,6 +59,8 @@ const labelId = useId()
 
 const slider = useTemplateRef('slider')
 const { height } = useElementSize(slider)
+
+const clusterDestroyDialogOpen = ref(false)
 </script>
 
 <template>
@@ -165,9 +171,8 @@ const { height } = useElementSize(slider)
             v-if="canRemoveClusterMachines"
             icon="delete"
             danger
-            @select="
-              $router.push({ query: { modal: 'clusterDestroy', cluster: item.metadata.id } })
-            "
+            aria-haspopup="dialog"
+            @select="clusterDestroyDialogOpen = true"
           >
             Destroy Cluster
           </TActionsBoxItem>
@@ -189,5 +194,7 @@ const { height } = useElementSize(slider)
         is-subgrid
       />
     </section>
+
+    <ClusterDestroy v-model:open="clusterDestroyDialogOpen" :cluster-id="item.metadata.id!" />
   </li>
 </template>
