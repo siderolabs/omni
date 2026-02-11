@@ -1,3 +1,31 @@
+## [Omni 1.5.1](https://github.com/siderolabs/omni/releases/tag/v1.5.1) (2026-02-11)
+
+Welcome to the v1.5.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`908d738c`](https://github.com/siderolabs/omni/commit/908d738cf3e67e36078848e7aa4fb6b90e5b825e) fix: properly generate upgrade diffs for the imported cluster
+* [`86f33f83`](https://github.com/siderolabs/omni/commit/86f33f83d75b86904263b18c9656a8a765e29769) fix: fix memory leak in the config diff compute code
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.5.0](https://github.com/siderolabs/omni/releases/tag/v1.5.0)
+
 ## [Omni 1.5.0](https://github.com/siderolabs/omni/releases/tag/v1.5.0) (2026-02-05)
 
 Welcome to the v1.5.0 release of Omni!
