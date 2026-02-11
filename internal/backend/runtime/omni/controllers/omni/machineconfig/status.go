@@ -920,11 +920,25 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 		return err
 	}
 
-	var shouldUpgrade bool
+	var (
+		shouldUpgrade       bool
+		currentSchematicID  string
+		currentTalosVersion string
+	)
 
 	if rc.machineConfigStatus != nil && rc.installImage != nil {
-		shouldUpgrade = rc.machineConfigStatus.TypedSpec().Value.SchematicId != rc.installImage.SchematicId ||
-			rc.machineConfigStatus.TypedSpec().Value.TalosVersion != rc.installImage.TalosVersion
+		currentSchematicID = rc.machineConfigStatus.TypedSpec().Value.SchematicId
+		if currentSchematicID == "" {
+			currentSchematicID = rc.machineStatus.TypedSpec().Value.Schematic.FullId
+		}
+
+		currentTalosVersion = rc.machineConfigStatus.TypedSpec().Value.TalosVersion
+		if currentTalosVersion == "" {
+			currentTalosVersion = rc.machineStatus.TypedSpec().Value.TalosVersion
+		}
+
+		shouldUpgrade = currentSchematicID != rc.installImage.SchematicId ||
+			currentTalosVersion != rc.installImage.TalosVersion
 	}
 
 	// if no pending changes, delete the pending updates resource
@@ -939,10 +953,10 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 
 		if shouldUpgrade {
 			res.TypedSpec().Value.Upgrade = &specs.MachinePendingUpdatesSpec_Upgrade{
-				FromSchematic: rc.machineConfigStatus.TypedSpec().Value.SchematicId,
+				FromSchematic: currentSchematicID,
 				ToSchematic:   rc.installImage.SchematicId,
 
-				FromVersion: rc.machineConfigStatus.TypedSpec().Value.TalosVersion,
+				FromVersion: currentTalosVersion,
 				ToVersion:   rc.installImage.TalosVersion,
 			}
 		} else {
