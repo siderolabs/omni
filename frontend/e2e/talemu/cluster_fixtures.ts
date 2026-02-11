@@ -28,7 +28,7 @@ const test = base.extend<ClusterFixtures>({
           kind: 'Cluster',
           name: clusterName,
           kubernetes: { version: 'v1.35.0' },
-          talos: { version: 'v1.12.1' },
+          talos: { version: 'v1.12.3' },
         },
         {
           kind: 'ControlPlane',

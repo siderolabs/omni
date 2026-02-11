@@ -40,7 +40,6 @@ var machineCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return access.WithClient(func(ctx context.Context, client *client.Client) error {
 			for _, id := range args {
-
 				if machineCmdFlags.siderolinkConnection == "" {
 					fmt.Println("nothing to do: no flags specified")
 

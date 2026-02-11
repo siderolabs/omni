@@ -14,7 +14,7 @@ import (
 )
 
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
-const AnotherTalosVersion = "1.12.0"
+const AnotherTalosVersion = "1.12.2"
 
 // StableTalosVersion is used in the integration tests for Talos upgrade between minor versions.
 const StableTalosVersion = "1.11.6"
@@ -25,7 +25,7 @@ const MinDiscoveredTalosVersion = "1.3.0"
 // DefaultKubernetesVersion is pre-selected in the UI and used in the integration tests.
 //
 // tsgen:DefaultKubernetesVersion
-const DefaultKubernetesVersion = "1.35.0"
+const DefaultKubernetesVersion = "1.35.1"
 
 // DefaultTalosVersion to be used in the tests.
 const DefaultTalosVersion = constants.DefaultTalosVersion

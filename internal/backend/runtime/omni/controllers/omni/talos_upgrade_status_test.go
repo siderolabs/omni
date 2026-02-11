@@ -210,7 +210,7 @@ func TestTalosUpgradeStatus(t *testing.T) {
 				st := testContext.State
 				machineServices := testutils.NewMachineServices(t, st)
 				clusterName := "talos-upgrade-cluster"
-				talosVersion := "1.12.1"
+				talosVersion := "1.12.3"
 				anotherTalosVersion := "1.12.0"
 				stableTalosVersion := "1.11.6"
 

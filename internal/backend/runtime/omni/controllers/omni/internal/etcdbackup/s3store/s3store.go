@@ -53,6 +53,8 @@ func NewStore(client *s3.Client, bucket string, upRate, downRate uint64) *Store 
 }
 
 // Upload stores the data from [io.Reader] in a file. Implements [Store].
+//
+//nolint:staticcheck
 func (s *Store) Upload(ctx context.Context, descr etcdbackup.Description, r io.Reader) error {
 	uploader := manager.NewUploader(s.client, func(u *manager.Uploader) {
 		u.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired

@@ -457,6 +457,7 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
 				setServiceListResponse(etcdRunning, machines...)
 
 				services["n4"] = suite.createClusterMachineStatus("n4", clusterName, machineSet)
+
 				setConnected("n4")
 				initIdentities("n4")
 				setServiceListResponse(etcdRunning, "n4")

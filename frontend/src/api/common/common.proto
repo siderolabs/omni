@@ -95,6 +95,13 @@ enum ContainerdNamespace {
   NS_CRI = 2;
 }
 
+message ContainerdInstance {
+  // Containerd instance to use.
+  ContainerDriver driver = 1;
+  // Containerd namespace to use.
+  ContainerdNamespace namespace = 2;
+}
+
 message URL {
   string full_path = 1;
 }

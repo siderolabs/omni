@@ -36,7 +36,7 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 
 // Register manager to handle gRPC requests for seal and unseal.
 func (m *Manager) Register(srv *grpc.Server) {
-	grpcServer := server.NewServer(func(ctx context.Context, nodeUUID string) ([]byte, error) {
+	grpcServer := server.NewServer(m.logger, func(ctx context.Context, nodeUUID string) ([]byte, error) {
 		ctx = actor.MarkContextAsInternalActor(ctx)
 
 		res, err := safe.StateGet[*omni.ClusterMachineEncryptionKey](ctx, m.state, omni.NewClusterMachineEncryptionKey(nodeUUID).Metadata())

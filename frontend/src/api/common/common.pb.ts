@@ -53,6 +53,11 @@ export type EmptyResponse = {
   messages?: Empty[]
 }
 
+export type ContainerdInstance = {
+  driver?: ContainerDriver
+  namespace?: ContainerdNamespace
+}
+
 export type URL = {
   full_path?: string
 }
