@@ -33,9 +33,28 @@ type Logger interface {
 	Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error)
 }
 
+// LogOption configures optional Log behavior.
+type LogOption func(*logConfig)
+
+type logConfig struct {
+	onCleanup func(int)
+}
+
+// WithCleanupCallback sets a callback that is called after cleanup with the number of deleted rows.
+func WithCleanupCallback(cb func(int)) LogOption {
+	return func(c *logConfig) {
+		c.onCleanup = cb
+	}
+}
+
 // NewLog creates a new audit logger.
-func NewLog(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, logger *zap.Logger) (*Log, error) {
-	auditLogger, err := initLogger(ctx, config, db, logger)
+func NewLog(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, logger *zap.Logger, opts ...LogOption) (*Log, error) {
+	var cfg logConfig
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	auditLogger, err := initLogger(ctx, config, db, logger, cfg.onCleanup)
 	if err != nil {
 		return nil, err
 	}

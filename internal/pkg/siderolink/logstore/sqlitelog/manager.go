@@ -25,19 +25,31 @@ import (
 )
 
 const (
-	tableName       = "machine_logs"
+	// TableName is the SQLite table name used by the machine log store.
+	TableName       = "machine_logs"
 	idColumn        = "id"
 	machineIDColumn = "machine_id"
 	createdAtColumn = "created_at"
 	messageColumn   = "message"
 )
 
+// StoreManagerOption configures optional StoreManager behavior.
+type StoreManagerOption func(*StoreManager)
+
+// WithCleanupCallback sets a callback that is called after cleanup with the number of deleted rows.
+func WithCleanupCallback(cb func(int)) StoreManagerOption {
+	return func(m *StoreManager) {
+		m.onCleanup = cb
+	}
+}
+
 // StoreManager manages log stores for machines.
 type StoreManager struct {
-	state  state.State
-	db     *sqlitex.Pool
-	logger *zap.Logger
-	config config.LogsMachineStorage
+	state     state.State
+	db        *sqlitex.Pool
+	logger    *zap.Logger
+	onCleanup func(int)
+	config    config.LogsMachineStorage
 }
 
 // Run implements the LogStoreManager interface.
@@ -139,7 +151,7 @@ func (m *StoreManager) DoCleanup(ctx context.Context) error {
 		//   (A) Log is older than cutoff (Time-based cleanup)
 		//   OR
 		//   (B) Machine ID is NOT in the active list (Orphan cleanup)
-		deleteSQL := fmt.Sprintf(`DELETE FROM %s WHERE %s < $cutoff OR %s NOT IN (SELECT machine_id FROM machine_ids)`, tableName, createdAtColumn, machineIDColumn)
+		deleteSQL := fmt.Sprintf(`DELETE FROM %s WHERE %s < $cutoff OR %s NOT IN (SELECT machine_id FROM machine_ids)`, TableName, createdAtColumn, machineIDColumn)
 
 		var q *sqlitexx.Query
 
@@ -156,6 +168,10 @@ func (m *StoreManager) DoCleanup(ctx context.Context) error {
 		}
 
 		rowsDeleted = conn.Changes()
+
+		if m.onCleanup != nil {
+			m.onCleanup(rowsDeleted)
+		}
 
 		err = sqlitex.ExecScript(conn, `DROP TABLE IF EXISTS machine_ids`)
 		if err != nil {
@@ -195,7 +211,7 @@ func (m *StoreManager) Exists(ctx context.Context, id string) (bool, error) {
 
 	defer m.db.Put(conn)
 
-	query := fmt.Sprintf("SELECT 1 FROM %s WHERE %s=$machine_id LIMIT 1", tableName, machineIDColumn)
+	query := fmt.Sprintf("SELECT 1 FROM %s WHERE %s=$machine_id LIMIT 1", TableName, machineIDColumn)
 
 	q, err := sqlitexx.NewQuery(conn, query)
 	if err != nil {
@@ -225,7 +241,7 @@ func (m *StoreManager) Remove(ctx context.Context, id string) error {
 	ctx, cancel := context.WithTimeout(ctx, m.config.GetSqliteTimeout())
 	defer cancel()
 
-	query := fmt.Sprintf("DELETE FROM %s WHERE %s=$machine_id", tableName, machineIDColumn)
+	query := fmt.Sprintf("DELETE FROM %s WHERE %s=$machine_id", TableName, machineIDColumn)
 
 	conn, err := m.db.Take(ctx)
 	if err != nil {
@@ -247,6 +263,11 @@ func (m *StoreManager) Remove(ctx context.Context, id string) error {
 	}
 
 	numRowsDeleted := conn.Changes()
+
+	if m.onCleanup != nil {
+		m.onCleanup(numRowsDeleted)
+	}
+
 	m.logger.Info("removed logs for machine", zap.String("machine_id", id), zap.Int("rows_affected", numRowsDeleted))
 
 	return nil
@@ -273,9 +294,9 @@ type schemaParams struct {
 }
 
 // NewStoreManager creates a new StoreManager.
-func NewStoreManager(ctx context.Context, db *sqlitex.Pool, config config.LogsMachineStorage, omniState state.State, logger *zap.Logger) (*StoreManager, error) {
+func NewStoreManager(ctx context.Context, db *sqlitex.Pool, config config.LogsMachineStorage, omniState state.State, logger *zap.Logger, opts ...StoreManagerOption) (*StoreManager, error) {
 	templateParams := schemaParams{
-		TableName:       tableName,
+		TableName:       TableName,
 		IDColumn:        idColumn,
 		MachineIDColumn: machineIDColumn,
 		MessageColumn:   messageColumn,
@@ -306,15 +327,26 @@ func NewStoreManager(ctx context.Context, db *sqlitex.Pool, config config.LogsMa
 		return nil, fmt.Errorf("failed to create sqlite log table schema: %w", err)
 	}
 
-	return &StoreManager{
+	mgr := &StoreManager{
 		config: config,
 		db:     db,
 		state:  omniState,
 		logger: logger,
-	}, nil
+	}
+
+	for _, opt := range opts {
+		opt(mgr)
+	}
+
+	return mgr, nil
 }
 
 // Create implements the LogStoreManager interface.
 func (m *StoreManager) Create(id string) (logstore.LogStore, error) {
-	return NewStore(m.config, m.db, id, m.logger)
+	var opts []StoreOption
+	if m.onCleanup != nil {
+		opts = append(opts, WithStoreCleanupCallback(m.onCleanup))
+	}
+
+	return NewStore(m.config, m.db, id, m.logger, opts...)
 }

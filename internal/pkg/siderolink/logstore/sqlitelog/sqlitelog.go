@@ -41,8 +41,18 @@ const (
 	messageMaxLength = 16 * 1024 // 16 KB
 )
 
+// StoreOption configures optional Store behavior.
+type StoreOption func(*Store)
+
+// WithStoreCleanupCallback sets a callback that is called after cleanup with the number of deleted rows.
+func WithStoreCleanupCallback(cb func(int)) StoreOption {
+	return func(s *Store) {
+		s.onCleanup = cb
+	}
+}
+
 // NewStore creates a new Store.
-func NewStore(config config.LogsMachineStorage, db *sqlitex.Pool, id string, logger *zap.Logger) (*Store, error) {
+func NewStore(config config.LogsMachineStorage, db *sqlitex.Pool, id string, logger *zap.Logger, opts ...StoreOption) (*Store, error) {
 	sqliteTimeout := config.GetSqliteTimeout()
 	if sqliteTimeout <= 0 {
 		sqliteTimeout = 30 * time.Second
@@ -56,6 +66,10 @@ func NewStore(config config.LogsMachineStorage, db *sqlitex.Pool, id string, log
 		sqliteTimeout: sqliteTimeout,
 	}
 
+	for _, opt := range opts {
+		opt(s)
+	}
+
 	return s, nil
 }
 
@@ -64,6 +78,7 @@ type Store struct {
 	config        config.LogsMachineStorage
 	db            *sqlitex.Pool
 	logger        *zap.Logger
+	onCleanup     func(int)
 	id            string
 	subscribers   []chan struct{}
 	mu            sync.Mutex
@@ -93,7 +108,7 @@ func (s *Store) WriteLine(ctx context.Context, message []byte) error {
 
 		defer s.db.Put(conn)
 
-		query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s) VALUES ($machine_id, $message, $created_at)`, tableName, machineIDColumn, messageColumn, createdAtColumn)
+		query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s) VALUES ($machine_id, $message, $created_at)`, TableName, machineIDColumn, messageColumn, createdAtColumn)
 
 		q, err := sqlitexx.NewQuery(conn, query)
 		if err != nil {
@@ -146,7 +161,7 @@ func (s *Store) doCleanup(ctx context.Context) error {
 
 	// find the cutoff ID
 	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) FROM (SELECT %s FROM %s WHERE %s = $machine_id ORDER BY %s DESC LIMIT 1 OFFSET $max_lines)",
-		idColumn, idColumn, tableName, machineIDColumn, idColumn)
+		idColumn, idColumn, TableName, machineIDColumn, idColumn)
 
 	var cutoffID int64
 
@@ -168,7 +183,7 @@ func (s *Store) doCleanup(ctx context.Context) error {
 	}
 
 	// delete logs older than cutoff ID
-	delQuery := fmt.Sprintf("DELETE FROM %s WHERE %s = $machine_id AND %s <= $cutoff_id", tableName, machineIDColumn, idColumn)
+	delQuery := fmt.Sprintf("DELETE FROM %s WHERE %s = $machine_id AND %s <= $cutoff_id", TableName, machineIDColumn, idColumn)
 
 	q, err = sqlitexx.NewQuery(conn, delQuery)
 	if err != nil {
@@ -184,6 +199,11 @@ func (s *Store) doCleanup(ctx context.Context) error {
 	}
 
 	numRowsDeleted := conn.Changes()
+
+	if s.onCleanup != nil {
+		s.onCleanup(numRowsDeleted)
+	}
+
 	s.logger.Debug("deleted old logs", zap.Int("num_rows_deleted", numRowsDeleted))
 
 	return nil
@@ -406,7 +426,7 @@ func (s *Store) readerRows(ctx context.Context, nLines int) (*zombiesqlite.Conn,
 		return nil, nil, nil, fmt.Errorf("failed to determine start ID: %w", err)
 	}
 
-	query := fmt.Sprintf("SELECT %s, %s FROM %s WHERE %s = $machine_id AND %s >= $start_id ORDER BY %s ASC", idColumn, messageColumn, tableName, machineIDColumn, idColumn, idColumn)
+	query := fmt.Sprintf("SELECT %s, %s FROM %s WHERE %s = $machine_id AND %s >= $start_id ORDER BY %s ASC", idColumn, messageColumn, TableName, machineIDColumn, idColumn, idColumn)
 
 	q, err := sqlitexx.NewQuery(conn, query)
 	if err != nil {
@@ -427,7 +447,7 @@ func (s *Store) readerRows(ctx context.Context, nLines int) (*zombiesqlite.Conn,
 
 func (s *Store) readerRowsAfter(conn *zombiesqlite.Conn, lastLogID int64) (func() (*zombiesqlite.Stmt, error, bool), func(), error) {
 	query := fmt.Sprintf("SELECT %s, %s FROM %s WHERE %s = $machine_id AND %s > $last_log_id ORDER BY %s ASC",
-		idColumn, messageColumn, tableName, machineIDColumn, idColumn, idColumn)
+		idColumn, messageColumn, TableName, machineIDColumn, idColumn, idColumn)
 
 	q, err := sqlitexx.NewQuery(conn, query)
 	if err != nil {
@@ -451,7 +471,7 @@ func (s *Store) readerStartID(conn *zombiesqlite.Conn, nLines int) (int64, error
 
 	// Do COALESCE to return 0 if there are no logs for the machine
 	query := fmt.Sprintf("SELECT COALESCE(MIN(id), 0) FROM (SELECT %s AS id FROM %s WHERE %s = $machine_id ORDER BY %s DESC LIMIT $limit)",
-		idColumn, tableName, machineIDColumn, idColumn)
+		idColumn, TableName, machineIDColumn, idColumn)
 
 	var startID int64
 
@@ -476,7 +496,7 @@ func (s *Store) readerStartID(conn *zombiesqlite.Conn, nLines int) (int64, error
 }
 
 func (s *Store) currentMaxID(ctx context.Context) (int64, error) {
-	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) FROM %s WHERE %s = $machine_id", idColumn, tableName, machineIDColumn)
+	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) FROM %s WHERE %s = $machine_id", idColumn, TableName, machineIDColumn)
 
 	ctx, cancel := context.WithTimeout(ctx, s.sqliteTimeout)
 	defer cancel()

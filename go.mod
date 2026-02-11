@@ -32,7 +32,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/cosi-project/runtime v1.13.1-0.20251208192740-2b3357ea6788
 	github.com/cosi-project/state-etcd v0.5.3
-	github.com/cosi-project/state-sqlite v0.2.0
+	github.com/cosi-project/state-sqlite v0.3.0
 	github.com/crewjam/saml v0.5.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emicklei/dot v1.11.0
@@ -214,6 +214,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jsimonetti/rtnetlink/v2 v2.2.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect

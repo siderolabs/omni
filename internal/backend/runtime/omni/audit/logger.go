@@ -23,14 +23,19 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func initLogger(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, logger *zap.Logger) (Logger, error) {
+func initLogger(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, logger *zap.Logger, onCleanup func(int)) (Logger, error) {
 	if !config.GetEnabled() {
 		logger.Info("audit logging is disabled")
 
 		return &nopLogger{}, nil
 	}
 
-	dbAuditLogger, err := auditlogsqlite.NewStore(ctx, db, config.GetSqliteTimeout(), config.GetMaxSize(), config.GetCleanupProbability(), logger)
+	var storeOpts []auditlogsqlite.Option
+	if onCleanup != nil {
+		storeOpts = append(storeOpts, auditlogsqlite.WithCleanupCallback(onCleanup))
+	}
+
+	dbAuditLogger, err := auditlogsqlite.NewStore(ctx, db, config.GetSqliteTimeout(), config.GetMaxSize(), config.GetCleanupProbability(), logger, storeOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sqlite audit logger: %w", err)
 	}

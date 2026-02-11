@@ -32,7 +32,8 @@ const (
 	// The probabilistic trigger ensures convergence over multiple writes.
 	removeBySizeBatchCap = 1000
 
-	tableName           = "audit_logs"
+	// TableName is the SQLite table name used by the audit log store.
+	TableName           = "audit_logs"
 	idColumn            = "id"
 	eventTypeColumn     = "event_type"
 	resourceTypeColumn  = "resource_type"
@@ -75,15 +76,28 @@ type schemaParams struct {
 	ClusterIDColumn     string
 }
 
+// Option configures optional Store behavior.
+type Option func(*Store)
+
+// WithCleanupCallback sets a callback that is called after cleanup with the number of deleted rows.
+func WithCleanupCallback(cb func(int)) Option {
+	return func(s *Store) {
+		s.onCleanup = cb
+	}
+}
+
+// Store is the SQLite-backed audit log store.
 type Store struct {
 	db                 *sqlitex.Pool
 	logger             *zap.Logger
+	onCleanup          func(int)
 	timeout            time.Duration
 	maxSize            uint64
 	cleanupProbability float64
 }
 
-func NewStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration, maxSize uint64, cleanupProbability float64, logger *zap.Logger) (*Store, error) {
+// NewStore creates a new audit log SQLite store.
+func NewStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration, maxSize uint64, cleanupProbability float64, logger *zap.Logger, opts ...Option) (*Store, error) {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
@@ -93,7 +107,7 @@ func NewStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration, maxS
 	}
 
 	templateParams := schemaParams{
-		TableName:           tableName,
+		TableName:           TableName,
 		IDColumn:            idColumn,
 		EventTypeColumn:     eventTypeColumn,
 		ResourceTypeColumn:  resourceTypeColumn,
@@ -131,19 +145,25 @@ func NewStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration, maxS
 		return nil, fmt.Errorf("failed to create sqlite log table schema: %w", err)
 	}
 
-	return &Store{
+	store := &Store{
 		db:                 db,
 		logger:             logger,
 		timeout:            timeout,
 		maxSize:            maxSize,
 		cleanupProbability: cleanupProbability,
-	}, nil
+	}
+
+	for _, opt := range opts {
+		opt(store)
+	}
+
+	return store, nil
 }
 
 func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
 	query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) VALUES 
 	($event_type, $resource_type, $event_ts_ms, $event_data, $actor_email, $resource_id, $cluster_id)`,
-		tableName, eventTypeColumn, resourceTypeColumn, eventTSMillisColumn, eventDataColumn,
+		TableName, eventTypeColumn, resourceTypeColumn, eventTSMillisColumn, eventDataColumn,
 		actorEmailColumn, resourceIDColumn, clusterIDColumn)
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
@@ -203,7 +223,7 @@ func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
 }
 
 func (s *Store) Remove(ctx context.Context, start, end time.Time) error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE %s >= $start AND %s <= $end`, tableName, eventTSMillisColumn, eventTSMillisColumn)
+	query := fmt.Sprintf(`DELETE FROM %s WHERE %s >= $start AND %s <= $end`, TableName, eventTSMillisColumn, eventTSMillisColumn)
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -228,11 +248,15 @@ func (s *Store) Remove(ctx context.Context, start, end time.Time) error {
 		return fmt.Errorf("failed to remove audit log events: %w", err)
 	}
 
+	if s.onCleanup != nil {
+		s.onCleanup(conn.Changes())
+	}
+
 	return nil
 }
 
 func (s *Store) removeBySize(conn *zombiesqlite.Conn) error {
-	sizeQuery := fmt.Sprintf(`SELECT SUM(pgsize) FROM dbstat WHERE name = '%s'`, tableName)
+	sizeQuery := fmt.Sprintf(`SELECT SUM(pgsize) FROM dbstat WHERE name = '%s'`, TableName)
 
 	q, err := sqlitexx.NewQuery(conn, sizeQuery)
 	if err != nil {
@@ -255,7 +279,7 @@ func (s *Store) removeBySize(conn *zombiesqlite.Conn) error {
 
 	// Use min/max ID to estimate row count and compute the cutoff ID for deletion. This is much faster than COUNT(*) on large tables, and good enough for our probabilistic cleanup.
 	rangeQuery := fmt.Sprintf(`SELECT COALESCE(MIN(%s), 0), COALESCE(MAX(%s), 0) FROM %s`,
-		idColumn, idColumn, tableName)
+		idColumn, idColumn, TableName)
 
 	q, err = sqlitexx.NewQuery(conn, rangeQuery)
 	if err != nil {
@@ -301,7 +325,7 @@ func (s *Store) removeBySize(conn *zombiesqlite.Conn) error {
 	// below it. This lets SQLite use the primary key index directly.
 	cutoffID := minID + rowsToDelete - 1
 
-	deleteQuery := fmt.Sprintf(`DELETE FROM %s WHERE %s <= $cutoff_id`, tableName, idColumn)
+	deleteQuery := fmt.Sprintf(`DELETE FROM %s WHERE %s <= $cutoff_id`, TableName, idColumn)
 
 	q, err = sqlitexx.NewQuery(conn, deleteQuery)
 	if err != nil {
@@ -310,6 +334,10 @@ func (s *Store) removeBySize(conn *zombiesqlite.Conn) error {
 
 	if err = q.BindInt64("$cutoff_id", cutoffID).Exec(); err != nil {
 		return fmt.Errorf("failed to delete oldest audit log events by size: %w", err)
+	}
+
+	if s.onCleanup != nil {
+		s.onCleanup(conn.Changes())
 	}
 
 	return nil
@@ -323,7 +351,7 @@ func (s *Store) Reader(ctx context.Context, start, end time.Time) (auditlog.Read
 	}
 
 	query := fmt.Sprintf(`SELECT %s, %s, %s, %s, %s FROM %s WHERE %s >= $start AND %s <= $end ORDER BY %s ASC, %s ASC`, eventTypeColumn,
-		resourceTypeColumn, resourceIDColumn, eventTSMillisColumn, eventDataColumn, tableName, eventTSMillisColumn, eventTSMillisColumn, eventTSMillisColumn, idColumn)
+		resourceTypeColumn, resourceIDColumn, eventTSMillisColumn, eventDataColumn, TableName, eventTSMillisColumn, eventTSMillisColumn, eventTSMillisColumn, idColumn)
 
 	q, err := sqlitexx.NewQuery(conn, query)
 	if err != nil {
@@ -348,7 +376,7 @@ func (s *Store) Reader(ctx context.Context, start, end time.Time) (auditlog.Read
 }
 
 func (s *Store) HasData(ctx context.Context) (bool, error) {
-	query := fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", tableName)
+	query := fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", TableName)
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()

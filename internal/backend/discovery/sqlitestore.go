@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	tableName  = "discovery_service_state"
+	// TableName is the SQLite table name used by the discovery state store.
+	TableName  = "discovery_service_state"
 	idColumn   = "id"
 	dataColumn = "data"
 
@@ -55,7 +56,7 @@ func NewSQLiteStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration
 	schema := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
       %s TEXT PRIMARY KEY,
       %s BLOB
-    ) STRICT;`, tableName, idColumn, dataColumn)
+    ) STRICT;`, TableName, idColumn, dataColumn)
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -98,7 +99,7 @@ func (w *writer) Close() error {
 		return nil
 	}
 
-	query := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES ($id, $data) ON CONFLICT(%s) DO UPDATE SET %s=excluded.%s", tableName, idColumn, dataColumn, idColumn, dataColumn, dataColumn)
+	query := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES ($id, $data) ON CONFLICT(%s) DO UPDATE SET %s=excluded.%s", TableName, idColumn, dataColumn, idColumn, dataColumn, dataColumn)
 
 	ctx, cancel := context.WithTimeout(w.ctx, w.timeout)
 	defer cancel()
@@ -144,7 +145,7 @@ func (r *reader) Read(p []byte) (n int, err error) {
 	}
 
 	if r.reader == nil {
-		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = $id", dataColumn, tableName, idColumn)
+		query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = $id", dataColumn, TableName, idColumn)
 
 		ctx, cancel := context.WithTimeout(r.ctx, r.timeout)
 		defer cancel()

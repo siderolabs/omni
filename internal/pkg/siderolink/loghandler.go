@@ -28,9 +28,35 @@ type LogStoreManager interface {
 	Remove(ctx context.Context, id string) error
 }
 
+// LogHandlerOption configures optional LogHandler behavior.
+type LogHandlerOption func(*logHandlerOptions)
+
+type logHandlerOptions struct {
+	onCleanup func(int)
+}
+
+// WithLogHandlerCleanupCallback sets a callback that is called after cleanup with the number of deleted rows.
+func WithLogHandlerCleanupCallback(cb func(int)) LogHandlerOption {
+	return func(o *logHandlerOptions) {
+		o.onCleanup = cb
+	}
+}
+
 // NewLogHandler returns a new LogHandler.
-func NewLogHandler(secondaryStorageDB *sqlitex.Pool, machineMap *MachineMap, omniState state.State, storageConfig *config.LogsMachine, logger *zap.Logger) (*LogHandler, error) {
-	cache, err := NewMachineCache(secondaryStorageDB, storageConfig, omniState, logger)
+func NewLogHandler(secondaryStorageDB *sqlitex.Pool, machineMap *MachineMap, omniState state.State, storageConfig *config.LogsMachine, logger *zap.Logger,
+	opts ...LogHandlerOption,
+) (*LogHandler, error) {
+	var options logHandlerOptions
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	var cacheOpts []MachineCacheOption
+	if options.onCleanup != nil {
+		cacheOpts = append(cacheOpts, WithMachineCacheCleanupCallback(options.onCleanup))
+	}
+
+	cache, err := NewMachineCache(secondaryStorageDB, storageConfig, omniState, logger, cacheOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create machine cache: %w", err)
 	}

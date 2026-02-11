@@ -31,11 +31,22 @@ import (
 // ErrLogStoreNotFound is returned when the log store for a machine is not found.
 var ErrLogStoreNotFound = errors.New("log store not found")
 
+// MachineCacheOption configures optional MachineCache behavior.
+type MachineCacheOption func(*MachineCache)
+
+// WithMachineCacheCleanupCallback sets a callback that is called after cleanup with the number of deleted rows.
+func WithMachineCacheCleanupCallback(cb func(int)) MachineCacheOption {
+	return func(m *MachineCache) {
+		m.onCleanup = cb
+	}
+}
+
 // MachineCache stores a map of machines to their circular log stores. It also allows to access the log stores using the machine IP.
 type MachineCache struct {
 	machineLogStoreManager LogStoreManager
 	machineLogStores       map[MachineID]logstore.LogStore
 	logger                 *zap.Logger
+	onCleanup              func(int)
 	logsConfig             *config.LogsMachine
 	compressor             *zstd.Compressor
 	secondaryStorageDB     *sqlitex.Pool
@@ -45,19 +56,25 @@ type MachineCache struct {
 }
 
 // NewMachineCache returns a new MachineCache.
-func NewMachineCache(secondaryStorageDB *sqlitex.Pool, logStorageConfig *config.LogsMachine, omniState state.State, logger *zap.Logger) (*MachineCache, error) {
+func NewMachineCache(secondaryStorageDB *sqlitex.Pool, logStorageConfig *config.LogsMachine, omniState state.State, logger *zap.Logger, opts ...MachineCacheOption) (*MachineCache, error) {
 	compressor, err := zstd.NewCompressor()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log compressor: %w", err)
 	}
 
-	return &MachineCache{
+	cache := &MachineCache{
 		logsConfig:         logStorageConfig,
 		compressor:         compressor,
 		secondaryStorageDB: secondaryStorageDB,
 		state:              omniState,
 		logger:             logger,
-	}, nil
+	}
+
+	for _, opt := range opts {
+		opt(cache)
+	}
+
+	return cache, nil
 }
 
 // Run starts the side tasks required by the MachineCache.
@@ -191,7 +208,12 @@ func (m *MachineCache) init(ctx context.Context) error {
 		return nil
 	}
 
-	sqliteLogStoreManager, err := sqlitelog.NewStoreManager(ctx, m.secondaryStorageDB, m.logsConfig.Storage, m.state, m.logger)
+	var storeManagerOpts []sqlitelog.StoreManagerOption
+	if m.onCleanup != nil {
+		storeManagerOpts = append(storeManagerOpts, sqlitelog.WithCleanupCallback(m.onCleanup))
+	}
+
+	sqliteLogStoreManager, err := sqlitelog.NewStoreManager(ctx, m.secondaryStorageDB, m.logsConfig.Storage, m.state, m.logger, storeManagerOpts...)
 	if err != nil {
 		return fmt.Errorf("failed to create sqlite log store manager: %w", err)
 	}

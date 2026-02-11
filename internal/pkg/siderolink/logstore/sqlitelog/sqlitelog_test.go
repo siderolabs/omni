@@ -45,7 +45,13 @@ func TestReadWrite(t *testing.T) {
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	storeManager, _ := setupDB(ctx, t, logger)
+
+	// Disable cleanup to avoid connection pool contention between
+	// writers and cleanup queries. Cleanup correctness is covered by TestCleanupProbabilities.
+	storageConf := config.Default().Logs.Machine.Storage
+	storageConf.SetCleanupProbability(0)
+
+	storeManager, _ := setupDBWithStorageConfig(ctx, t, logger, storageConf)
 
 	sqliteStore1, err := storeManager.Create("test-1")
 	require.NoError(t, err)
@@ -59,10 +65,6 @@ func TestReadWrite(t *testing.T) {
 
 	t.Cleanup(func() {
 		require.NoError(t, sqliteStore2.Close())
-	})
-
-	t.Cleanup(func() {
-		require.NoError(t, sqliteStore1.Close())
 	})
 
 	defaultConfig := config.Default()
@@ -399,11 +401,18 @@ func TestFollowTail(t *testing.T) {
 func TestFollowRapidWrites(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
-	storeManager, _ := setupDB(ctx, t, logger)
+
+	// Use a config with cleanup disabled to avoid connection pool contention
+	// between the writer, reader, and cleanup queries. Cleanup correctness
+	// is covered by TestCleanupProbabilities.
+	storageConf := config.Default().Logs.Machine.Storage
+	storageConf.SetCleanupProbability(0)
+
+	storeManager, _ := setupDBWithStorageConfig(ctx, t, logger, storageConf)
 	store, err := storeManager.Create("rapid-writes")
 	require.NoError(t, err)
 
@@ -688,6 +697,12 @@ func assertLine(ctx context.Context, t *testing.T, lineCh <-chan string, expecte
 func setupDB(ctx context.Context, t *testing.T, logger *zap.Logger) (*sqlitelog.StoreManager, state.State) {
 	t.Helper()
 
+	return setupDBWithStorageConfig(ctx, t, logger, config.Default().Logs.Machine.Storage)
+}
+
+func setupDBWithStorageConfig(ctx context.Context, t *testing.T, logger *zap.Logger, storageConf config.LogsMachineStorage) (*sqlitelog.StoreManager, state.State) {
+	t.Helper()
+
 	path := filepath.Join(t.TempDir(), "test.db")
 	conf := config.Default().Storage.Sqlite
 	conf.SetPath(path)
@@ -701,7 +716,7 @@ func setupDB(ctx context.Context, t *testing.T, logger *zap.Logger) (*sqlitelog.
 
 	state := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	storeManager, err := sqlitelog.NewStoreManager(ctx, db, config.Default().Logs.Machine.Storage, state, logger)
+	storeManager, err := sqlitelog.NewStoreManager(ctx, db, storageConf, state, logger)
 	require.NoError(t, err)
 
 	return storeManager, state

@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/pkg/auth"
@@ -120,6 +121,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		state.Default(),
 		&cfg.Logs.Machine,
 		logger.With(logging.Component("siderolink_log_handler")),
+		siderolink.WithLogHandlerCleanupCallback(state.SQLiteMetrics().CleanupCallback(sqlite.SubsystemMachineLogs)),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to set up log handler: %w", err)

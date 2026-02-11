@@ -49,10 +49,11 @@ type PersistentState struct {
 
 // State wraps virtual and default cosi states.
 type State struct {
-	virtualState *virtual.State
-	defaultState state.State
-	auditWrap    *AuditWrap
-	storeFactory store.FactoryWithMetrics
+	virtualState  *virtual.State
+	defaultState  state.State
+	auditWrap     *AuditWrap
+	storeFactory  store.FactoryWithMetrics
+	sqliteMetrics *sqlite.Metrics
 
 	logger *zap.Logger
 
@@ -69,6 +70,16 @@ func (s *State) Default() state.State {
 // SecondaryStorageDB returns the secondary storage database.
 func (s *State) SecondaryStorageDB() *sqlitex.Pool {
 	return s.secondaryStorageDB
+}
+
+// SecondaryPersistentState returns the secondary persistent state.
+func (s *State) SecondaryPersistentState() *PersistentState {
+	return s.secondaryPersistentState
+}
+
+// SQLiteMetrics returns the SQLite metrics collector.
+func (s *State) SQLiteMetrics() *sqlite.Metrics {
+	return s.sqliteMetrics
 }
 
 // Virtual returns the virtual state.
@@ -192,7 +203,10 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		return nil, err
 	}
 
-	auditWrap, err := NewAuditWrap(ctx, defaultState, params, secondaryStorageDB, logger)
+	sqliteMetrics := sqlite.NewMetrics(secondaryStorageDB, secondaryPersistentState.State, logger)
+	metricsRegistry.MustRegister(sqliteMetrics)
+
+	auditWrap, err := NewAuditWrap(ctx, defaultState, params, secondaryStorageDB, logger, sqliteMetrics.CleanupCallback(sqlite.SubsystemAuditLogs))
 	if err != nil {
 		return nil, err
 	}
@@ -200,10 +214,11 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 	defaultState = auditWrap.WrapState(defaultState)
 
 	return &State{
-		defaultState: defaultState,
-		virtualState: virtualState,
-		auditWrap:    auditWrap,
-		storeFactory: storeFactory,
+		defaultState:  defaultState,
+		virtualState:  virtualState,
+		auditWrap:     auditWrap,
+		storeFactory:  storeFactory,
+		sqliteMetrics: sqliteMetrics,
 
 		defaultPersistentState:   defaultPersistentState,
 		secondaryPersistentState: secondaryPersistentState,
@@ -313,7 +328,7 @@ func stateWithMetrics(namespacedState *namespaced.State, metricsRegistry prometh
 }
 
 // NewAuditWrap creates a new audit wrap.
-func NewAuditWrap(ctx context.Context, resState state.State, params *config.Params, auditLogDB *sqlitex.Pool, logger *zap.Logger) (*AuditWrap, error) {
+func NewAuditWrap(ctx context.Context, resState state.State, params *config.Params, auditLogDB *sqlitex.Pool, logger *zap.Logger, onCleanup func(int)) (*AuditWrap, error) {
 	path := params.Logs.Audit.GetPath() //nolint:staticcheck
 
 	if path == "" && !params.Logs.Audit.GetEnabled() {
@@ -324,7 +339,12 @@ func NewAuditWrap(ctx context.Context, resState state.State, params *config.Para
 
 	logger.Info("audit log enabled")
 
-	a, err := audit.NewLog(ctx, params.Logs.Audit, auditLogDB, logger)
+	var logOpts []audit.LogOption
+	if onCleanup != nil {
+		logOpts = append(logOpts, audit.WithCleanupCallback(onCleanup))
+	}
+
+	a, err := audit.NewLog(ctx, params.Logs.Audit, auditLogDB, logger, logOpts...)
 	if err != nil {
 		return nil, err
 	}
