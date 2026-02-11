@@ -201,18 +201,15 @@ func TestIntegration(t *testing.T) {
 		}
 	}
 
-	// Talos API calls try to use user auth if the service account var is not set
-	os.Setenv(serviceaccount.OmniServiceAccountKeyEnvVar, serviceAccount)
-
-	rootClient, err := client.New(omniEndpoint, client.WithServiceAccount(serviceAccount))
+	omniClient, err := client.New(omniEndpoint, client.WithServiceAccount(serviceAccount))
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		require.NoError(t, rootClient.Close())
+		require.NoError(t, omniClient.Close())
 	})
 
 	testOptions := &TestOptions{
-		omniClient:        rootClient,
+		omniClient:        omniClient,
 		Options:           options,
 		machineSemaphore:  semaphore.NewWeighted(int64(options.ExpectedMachines)),
 		serviceAccountKey: serviceAccount,

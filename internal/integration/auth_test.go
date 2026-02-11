@@ -1872,10 +1872,10 @@ func assertCurrentUserRole(ctx context.Context, t *testing.T, st state.State, ex
 	assert.Equal(t, string(expected), currentUser.TypedSpec().Value.GetRole(), "invalid role on current user virtual resource: %v", currentUser.TypedSpec().Value.GetRole())
 }
 
-func destroy(ctx context.Context, t *testing.T, rootClient *client.Client, md *resource.Metadata) {
+func destroy(ctx context.Context, t *testing.T, omniClient *client.Client, md *resource.Metadata) {
 	t.Logf("destroying created resource %s", md.String())
 
-	_, err := rootClient.Omni().State().Teardown(ctx, md)
+	_, err := omniClient.Omni().State().Teardown(ctx, md)
 	if state.IsNotFoundError(err) {
 		return
 	}
@@ -1883,7 +1883,7 @@ func destroy(ctx context.Context, t *testing.T, rootClient *client.Client, md *r
 	require.NoError(t, err)
 
 	err = retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(ctx, func(ctx context.Context) error {
-		err = rootClient.Omni().State().Destroy(ctx, md)
+		err = omniClient.Omni().State().Destroy(ctx, md)
 		if err != nil {
 			if state.IsNotFoundError(err) {
 				return nil

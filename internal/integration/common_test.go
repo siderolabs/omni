@@ -9,8 +9,6 @@ package integration_test
 
 import (
 	"context"
-	"crypto/tls"
-	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -23,11 +21,11 @@ import (
 	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
 	talosclientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
 func resourceDetails(res resource.Resource) string {
@@ -58,15 +56,12 @@ type node struct {
 	talosIP              string
 }
 
-func nodes(ctx context.Context, cli *client.Client, clusterName string, labels ...resource.LabelQueryOption) ([]node, error) {
-	talosCli, err := talosClientForCluster(ctx, cli, clusterName)
-	if err != nil {
-		return nil, err
-	}
+func nodes(ctx context.Context, t *testing.T, options *TestOptions, clusterName string, labels ...resource.LabelQueryOption) ([]node, error) {
+	talosClient := getTalosClientForCluster(ctx, t, options, clusterName)
 
-	st := cli.Omni().State()
+	st := options.omniClient.Omni().State()
 
-	nodeIPs, err := talosNodeIPs(ctx, talosCli.COSI)
+	nodeIPs, err := talosNodeIPs(ctx, talosClient.COSI)
 	if err != nil {
 		return nil, err
 	}
@@ -131,74 +126,31 @@ func nodes(ctx context.Context, cli *client.Client, clusterName string, labels .
 	return nodeList, nil
 }
 
-func talosClientForMachine(ctx context.Context, cli *client.Client, machineID resource.ID) (*talosclient.Client, error) {
-	machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, cli.Omni().State(), omni.NewMachineStatus(machineID).Metadata())
-	if err != nil {
-		return nil, err
-	}
-
-	if machineStatus.TypedSpec().Value.GetMaintenance() {
-		return talosClientMaintenance(ctx, machineStatus.TypedSpec().Value.GetManagementAddress())
-	}
-
-	cluster, ok := machineStatus.Metadata().Labels().Get(omni.LabelCluster)
-	if !ok {
-		return nil, fmt.Errorf("machine status %q is not in maintenance and has no cluster label", machineID)
-	}
-
-	data, err := cli.Management().Talosconfig(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(data) == 0 {
-		return nil, errors.New("empty talosconfig")
-	}
-
-	config, err := talosclientconfig.FromBytes(data)
-	if err != nil {
-		return nil, err
-	}
-
-	config.Contexts[config.Context].Nodes = []string{machineID}
-
-	return talosclient.New(
-		ctx,
-		talosclient.WithConfig(config),
-		talosclient.WithCluster(cluster),
-	)
+func getTalosClient(ctx context.Context, t *testing.T, options *TestOptions) *talosclient.Client {
+	return getTalosClientForCluster(ctx, t, options, "")
 }
 
-func talosClientForCluster(ctx context.Context, cli *client.Client, clusterName string) (*talosclient.Client, error) {
-	data, err := cli.Management().Talosconfig(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(data) == 0 {
-		return nil, errors.New("empty talosconfig")
-	}
+func getTalosClientForCluster(ctx context.Context, t *testing.T, options *TestOptions, clusterName string) *talosclient.Client {
+	data, err := options.omniClient.Management().Talosconfig(ctx)
+	require.NoError(t, err)
+	require.NotEmpty(t, data, "talosconfig for cluster %q is empty", clusterName)
 
 	config, err := talosclientconfig.FromBytes(data)
-	if err != nil {
-		return nil, err
+	require.NoError(t, err)
+
+	opts := []talosclient.OptionFunc{
+		talosclient.WithConfig(config),
+		talosclient.WithServiceAccount(options.serviceAccountKey),
 	}
 
-	return talosclient.New(
-		ctx,
-		talosclient.WithConfig(config),
-		talosclient.WithCluster(clusterName),
-	)
-}
+	if clusterName != "" {
+		opts = append(opts, talosclient.WithCluster(clusterName))
+	}
 
-func talosClientMaintenance(ctx context.Context, endpoint string) (*talosclient.Client, error) {
-	opts := talos.GetSocketOptions(endpoint)
+	client, err := talosclient.New(ctx, opts...)
+	require.NoError(t, err)
 
-	opts = append(opts, talosclient.WithTLSConfig(&tls.Config{
-		InsecureSkipVerify: true,
-	}), talosclient.WithEndpoints(endpoint))
-
-	return talosclient.New(ctx, opts...)
+	return client
 }
 
 func talosNodeIPs(ctx context.Context, talosState state.State) ([]string, error) {

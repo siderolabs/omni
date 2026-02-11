@@ -18,12 +18,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
-	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -45,12 +43,13 @@ func (vs clusterSnapshot) getShaSum(res resource.Resource) (string, bool) {
 }
 
 // SaveClusterSnapshot saves resources versions as the annotations for the given cluster.
-func SaveClusterSnapshot(testCtx context.Context, client *client.Client, clusterName string) TestFunc {
+func SaveClusterSnapshot(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, time.Minute)
 		defer cancel()
 
-		st := client.Omni().State()
+		omniClient := options.omniClient
+		st := omniClient.Omni().State()
 
 		snapshot := clusterSnapshot{
 			BootTimes: map[string]time.Time{},
@@ -66,23 +65,13 @@ func SaveClusterSnapshot(testCtx context.Context, client *client.Client, cluster
 		})
 
 		require := require.New(t)
-		assert := assert.New(t)
-
-		data, err := client.Management().Talosconfig(ctx)
-		require.NoError(err)
-		assert.NotEmpty(data)
-
-		config, err := clientconfig.FromBytes(data)
-		require.NoError(err)
-
-		c, err := talosclient.New(ctx, talosclient.WithConfig(config), talosclient.WithCluster(clusterName))
-		require.NoError(err)
+		c := getTalosClientForCluster(ctx, t, options, clusterName)
 
 		t.Cleanup(func() {
 			require.NoError(c.Close())
 		})
 
-		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, client.Omni().State(),
+		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, omniClient.Omni().State(),
 			state.WithLabelQuery(
 				resource.LabelEqual(omni.LabelCluster, clusterName),
 				resource.LabelExists(omni.LabelControlPlaneRole),
@@ -92,8 +81,7 @@ func SaveClusterSnapshot(testCtx context.Context, client *client.Client, cluster
 		for _, machineID := range machineIDs {
 			var ms *runtime.MachineStatus
 
-			ms, err = safe.ReaderGetByID[*runtime.MachineStatus](talosclient.WithNode(ctx, machineID), c.COSI, runtime.MachineStatusID)
-
+			ms, err := safe.ReaderGetByID[*runtime.MachineStatus](talosclient.WithNode(ctx, machineID), c.COSI, runtime.MachineStatusID)
 			require.NoError(err)
 
 			snapshot.BootTimes[machineID] = ms.Metadata().Created()
@@ -104,7 +92,7 @@ func SaveClusterSnapshot(testCtx context.Context, client *client.Client, cluster
 		require.NoError(err)
 
 		_, err = safe.StateUpdateWithConflicts(ctx,
-			client.Omni().State(),
+			omniClient.Omni().State(),
 			omni.NewCluster(clusterName).Metadata(),
 			func(res *omni.Cluster) error {
 				res.Metadata().Annotations().Set(annotationSnapshot, string(snapshotData))
@@ -119,18 +107,19 @@ func SaveClusterSnapshot(testCtx context.Context, client *client.Client, cluster
 
 // AssertClusterSnapshot reads the snapshot from the cluster resource and asserts that versions did not change
 // and the last events still can be found in the node events.
-func AssertClusterSnapshot(testCtx context.Context, client *client.Client, clusterName string) TestFunc {
+func AssertClusterSnapshot(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, time.Minute)
 		defer cancel()
 
-		st := client.Omni().State()
+		omniClient := options.omniClient
+		omniState := omniClient.Omni().State()
 
 		require := require.New(t)
 
 		var snapshot clusterSnapshot
 
-		cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, st, clusterName)
+		cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, omniState, clusterName)
 		require.NoError(err)
 
 		snapshotData, ok := cluster.Metadata().Annotations().Get(annotationSnapshot)
@@ -139,26 +128,18 @@ func AssertClusterSnapshot(testCtx context.Context, client *client.Client, clust
 
 		require.NoError(json.Unmarshal([]byte(snapshotData), &snapshot))
 
-		ids := rtestutils.ResourceIDs[*omni.ClusterMachineConfigStatus](ctx, t, st,
+		ids := rtestutils.ResourceIDs[*omni.ClusterMachineConfigStatus](ctx, t, omniState,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 
-		rtestutils.AssertResources(ctx, t, st, ids, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+		rtestutils.AssertResources(ctx, t, omniState, ids, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
 			shaSum, ok := snapshot.getShaSum(res)
 
 			assert.True(ok)
 			require.Equal(shaSum, res.TypedSpec().Value.ClusterMachineConfigSha256, "ClusterMachineConfigStatus sha sums do not match")
 		})
 
-		data, err := client.Management().Talosconfig(ctx)
-		require.NoError(err)
-		assert.NotEmpty(t, data)
-
-		config, err := clientconfig.FromBytes(data)
-		require.NoError(err)
-
-		c, err := talosclient.New(ctx, talosclient.WithConfig(config), talosclient.WithCluster(clusterName))
-		require.NoError(err)
+		c := getTalosClientForCluster(ctx, t, options, clusterName)
 
 		t.Cleanup(func() {
 			require.NoError(c.Close())

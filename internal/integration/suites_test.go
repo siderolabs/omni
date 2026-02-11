@@ -50,7 +50,7 @@ func assertClusterAndAPIReady(t *testing.T, clusterName string, options *TestOpt
 
 	runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 		t.Context(),
-		options.omniClient,
+		options,
 		clusterName,
 		optionsStruct.talosVersion,
 		optionsStruct.kubernetesVersion,
@@ -93,7 +93,7 @@ Wait for all expected machines to join and be in maintenance mode.`)
 
 		t.Run(
 			"MachinesShouldBeReachableInMaintenanceMode",
-			AssertTalosMaintenanceAPIAccessViaOmni(ctx, options.omniClient),
+			AssertTalosMaintenanceAPIAccessViaOmni(ctx, options),
 		)
 
 		t.Run(
@@ -157,7 +157,7 @@ Test the auditing of the Kubernetes nodes, i.e. when a node is gone from the Omn
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 1,
 				Workers:       1,
@@ -173,7 +173,7 @@ Test the auditing of the Kubernetes nodes, i.e. when a node is gone from the Omn
 			t,
 			AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 				t.Context(),
-				options.omniClient,
+				options,
 				clusterName,
 				options.MachineOptions.TalosVersion,
 				options.MachineOptions.KubernetesVersion,
@@ -218,7 +218,7 @@ In the tests, we wipe and reboot the VMs to bring them back as available for the
 		assertClusterReady := func() {
 			runTests(t, AssertBlockClusterShouldBeReady(
 				t.Context(),
-				options.omniClient,
+				options,
 				clusterName,
 				options.MachineOptions.TalosVersion,
 			))
@@ -231,7 +231,7 @@ In the tests, we wipe and reboot the VMs to bring them back as available for the
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 3,
 				Workers:       1,
@@ -284,7 +284,7 @@ Regression test: create a cluster and destroy it without waiting for the cluster
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 1,
 				Workers:       2,
@@ -321,7 +321,7 @@ Don't do any changes to the cluster.`)
 
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, clusterOptions))
+		runTests(t, AssertClusterCreateAndReady(t.Context(), options, clusterOptions))
 	}
 }
 
@@ -346,7 +346,7 @@ Don't do any changes to the cluster.`)
 
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, clusterOptions))
+		runTests(t, AssertClusterCreateAndReady(t.Context(), options, clusterOptions))
 	}
 }
 
@@ -368,7 +368,7 @@ Don't do any changes to the cluster.`)
 
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-		runTests(t, AssertClusterCreateAndReady(t.Context(), options.omniClient, clusterOptions))
+		runTests(t, AssertClusterCreateAndReady(t.Context(), options, clusterOptions))
 	}
 }
 
@@ -393,7 +393,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 1,
 				Workers:       0,
@@ -680,7 +680,7 @@ Tests rolling update & scale down strategies for concurrency control for worker 
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 1,
 				Workers:       3,
@@ -728,7 +728,7 @@ In between the scaling operations, assert that the cluster is ready and accessib
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 1,
 				Workers:       0,
@@ -773,7 +773,7 @@ Tests applying various config patching, including "broken" config patches which 
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 3,
 				Workers:       1,
@@ -789,7 +789,7 @@ Tests applying various config patching, including "broken" config patches which 
 
 		t.Run(
 			"LargeImmediateConfigPatchShouldBeAppliedAndRemoved",
-			AssertLargeImmediateConfigApplied(t.Context(), options.omniClient, clusterName),
+			AssertLargeImmediateConfigApplied(t.Context(), options, clusterName),
 		)
 
 		assertClusterAndAPIReady(t, clusterName, options)
@@ -808,7 +808,7 @@ Tests applying various config patching, including "broken" config patches which 
 
 		t.Run(
 			"ConfigPatchWithRebootShouldBeApplied",
-			AssertConfigPatchWithReboot(t.Context(), options.omniClient, clusterName),
+			AssertConfigPatchWithReboot(t.Context(), options, clusterName),
 		)
 
 		assertClusterAndAPIReady(t, clusterName, options)
@@ -845,7 +845,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 3,
 				Workers:       1,
@@ -862,7 +862,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 		if !options.SkipExtensionsCheckOnCreate {
 			t.Run(
 				"HelloWorldServiceExtensionShouldBePresent",
-				AssertExtensionsArePresent(t.Context(), options.omniClient, clusterName, []string{HelloWorldServiceExtensionName}),
+				AssertExtensionsArePresent(t.Context(), options, clusterName, []string{HelloWorldServiceExtensionName}),
 			)
 		}
 
@@ -875,7 +875,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 
 		t.Run(
 			"UpdatedExtensionsShouldBePresent",
-			AssertExtensionsArePresent(t.Context(), options.omniClient, clusterName, extensions),
+			AssertExtensionsArePresent(t.Context(), options, clusterName, extensions),
 		)
 
 		t.Run(
@@ -896,7 +896,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 		if !options.SkipExtensionsCheckOnCreate {
 			t.Run(
 				"HelloWorldServiceExtensionShouldBePresent",
-				AssertExtensionsArePresent(t.Context(), options.omniClient, clusterName, []string{HelloWorldServiceExtensionName}),
+				AssertExtensionsArePresent(t.Context(), options, clusterName, []string{HelloWorldServiceExtensionName}),
 			)
 		}
 
@@ -939,7 +939,7 @@ Tests upgrading Kubernetes version, including reverting a failed upgrade.`)
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 3,
 				Workers:       2,
@@ -999,7 +999,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 3,
 				Workers:       1,
@@ -1045,7 +1045,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 
 		runTests(
 			t,
-			AssertBlockCreateClusterFromEtcdBackup(t.Context(), options.omniClient, options.Options,
+			AssertBlockCreateClusterFromEtcdBackup(t.Context(), options, options.Options,
 				clusterName,
 				secondClusterName,
 				"default",
@@ -1065,7 +1065,7 @@ Finally, a completely new cluster is created using the same backup to test the "
 
 		runTests(
 			t,
-			AssertBlockRestoreEtcdFromLatestBackup(t.Context(), options.omniClient, options.Options,
+			AssertBlockRestoreEtcdFromLatestBackup(t.Context(), options, options.Options,
 				3,
 				clusterName,
 				"default",
@@ -1095,7 +1095,7 @@ Create a cluster out of the same machine on version2, Omni should upgrade the ma
 		t.Run(
 			"MachineShouldBeUpgradedInMaintenanceMode",
 			AssertMachineShouldBeUpgradedInMaintenanceMode(
-				t.Context(), options.omniClient,
+				t.Context(), options,
 				"integration-maintenance-upgrade",
 				options.AnotherKubernetesVersion,
 				options.MachineOptions.TalosVersion,
@@ -1173,7 +1173,7 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 1,
 				Workers:       0,
@@ -1237,7 +1237,7 @@ Test workload service proxying feature`)
 		cluster1 := "integration-workload-proxy-1"
 		cluster2 := "integration-workload-proxy-2"
 
-		t.Run("ClusterShouldBeCreated-"+cluster1, CreateCluster(t.Context(), omniClient, ClusterOptions{
+		t.Run("ClusterShouldBeCreated-"+cluster1, CreateCluster(t.Context(), options, ClusterOptions{
 			Name:          cluster1,
 			ControlPlanes: 1,
 			Workers:       1,
@@ -1253,7 +1253,7 @@ Test workload service proxying feature`)
 
 			AllowSchedulingOnControlPlanes: true,
 		}))
-		t.Run("ClusterShouldBeCreated-"+cluster2, CreateCluster(t.Context(), omniClient, ClusterOptions{
+		t.Run("ClusterShouldBeCreated-"+cluster2, CreateCluster(t.Context(), options, ClusterOptions{
 			Name:          cluster2,
 			ControlPlanes: 1,
 			Workers:       2,
@@ -1270,9 +1270,9 @@ Test workload service proxying feature`)
 			AllowSchedulingOnControlPlanes: true,
 		}))
 
-		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, cluster1, options.MachineOptions.TalosVersion,
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), options, cluster1, options.MachineOptions.TalosVersion,
 			options.MachineOptions.KubernetesVersion))
-		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, cluster2, options.MachineOptions.TalosVersion,
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), options, cluster2, options.MachineOptions.TalosVersion,
 			options.MachineOptions.KubernetesVersion))
 
 		parentCtx := t.Context()
@@ -1309,7 +1309,7 @@ Note: this test expects all machines to be provisioned by the bare-metal infra p
 
 		t.Run(
 			"ClusterShouldBeCreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 1,
 				Workers:       0,
@@ -1367,7 +1367,7 @@ Note: this test expects all machines to be provisioned by the bare-metal infra p
 
 		t.Run(
 			"ClusterShouldBeRecreated",
-			CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+			CreateCluster(t.Context(), options, ClusterOptions{
 				Name:          clusterName,
 				ControlPlanes: 3,
 				Workers:       1,
@@ -1409,7 +1409,7 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 			KubernetesVersion: options.AnotherKubernetesVersion,
 		}
 
-		t.Run("ClusterShouldBeCreated", CreateCluster(t.Context(), omniClient, ClusterOptions{
+		t.Run("ClusterShouldBeCreated", CreateCluster(t.Context(), options, ClusterOptions{
 			Name:          clusterName,
 			ControlPlanes: 3,
 			Workers:       1,
@@ -1451,7 +1451,7 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 			},
 		}))
 
-		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, machineOptions.TalosVersion,
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), options, clusterName, machineOptions.TalosVersion,
 			machineOptions.KubernetesVersion))
 
 		parentCtx := t.Context()
@@ -1460,7 +1460,7 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, clusterName)
 		})
 
-		t.Run("SaveClusterSnapshot", SaveClusterSnapshot(t.Context(), omniClient, clusterName))
+		t.Run("SaveClusterSnapshot", SaveClusterSnapshot(t.Context(), options, clusterName))
 	}
 }
 
@@ -1486,12 +1486,12 @@ Test Omni upgrades, the second half that runs on the current Omni version
 			KubernetesVersion: options.AnotherKubernetesVersion,
 		}
 
-		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, machineOptions.TalosVersion,
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), options, clusterName, machineOptions.TalosVersion,
 			machineOptions.KubernetesVersion))
 
 		parentCtx := t.Context()
 
-		t.Run("AssertMachinesNotRebootedConfigUnchanged", AssertClusterSnapshot(t.Context(), omniClient, clusterName))
+		t.Run("AssertMachinesNotRebootedConfigUnchanged", AssertClusterSnapshot(t.Context(), options, clusterName))
 
 		t.Run("WorkloadProxyShouldBeTested", func(t *testing.T) {
 			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, clusterName)
@@ -1508,7 +1508,7 @@ Test Omni upgrades, the second half that runs on the current Omni version
 			}),
 		)
 
-		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, machineOptions.TalosVersion,
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), options, clusterName, machineOptions.TalosVersion,
 			machineOptions.KubernetesVersion))
 
 		t.Run(

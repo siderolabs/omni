@@ -40,7 +40,7 @@ func testKernelArgsUpdate(t *testing.T, options *TestOptions) {
 	// Create a cluster to make sure that we have Talos installed on a machine
 	t.Run(
 		"ClusterShouldBeCreated",
-		CreateCluster(t.Context(), options.omniClient, ClusterOptions{
+		CreateCluster(t.Context(), options, ClusterOptions{
 			Name:          clusterName,
 			ControlPlanes: 1,
 			Workers:       1,

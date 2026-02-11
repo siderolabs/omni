@@ -27,14 +27,13 @@ func testRotateCA(t *testing.T, options *TestOptions) {
 	defer cancel()
 
 	options.claimMachines(t, 5)
-	omniClient := options.omniClient
 
 	clusterName := "integration-rotate-ca"
 
 	// Create a cluster to make sure that we have Talos installed on a machine
 	t.Run(
 		"ClusterShouldBeCreated",
-		CreateCluster(t.Context(), omniClient, ClusterOptions{
+		CreateCluster(t.Context(), options, ClusterOptions{
 			Name:          clusterName,
 			ControlPlanes: 3,
 			Workers:       2,
@@ -93,7 +92,7 @@ func testRotateCA(t *testing.T, options *TestOptions) {
 		require.NoError(t, err)
 	})
 
-	runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), omniClient, clusterName, options.MachineOptions.TalosVersion, options.MachineOptions.KubernetesVersion))
+	runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), options, clusterName, options.MachineOptions.TalosVersion, options.MachineOptions.KubernetesVersion))
 
 	t.Run("ClusterShouldBeDestroyed", AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false))
 }

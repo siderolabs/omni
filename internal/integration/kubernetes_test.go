@@ -40,13 +40,13 @@ import (
 // AssertKubernetesAPIAccessViaOmni verifies that cluster kubeconfig works.
 //
 //nolint:gocognit
-func AssertKubernetesAPIAccessViaOmni(testCtx context.Context, rootClient *client.Client, clusterName string, assertAllNodesReady bool, timeout time.Duration) TestFunc {
+func AssertKubernetesAPIAccessViaOmni(testCtx context.Context, omniClient *client.Client, clusterName string, assertAllNodesReady bool, timeout time.Duration) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, timeout)
 		defer cancel()
 
 		ctx = kubernetes.WrapContext(ctx, t)
-		k8sClient := kubernetes.GetClient(ctx, t, rootClient.Management(), clusterName)
+		k8sClient := kubernetes.GetClient(ctx, t, omniClient.Management(), clusterName)
 
 		var (
 			k8sNodes *corev1.NodeList
@@ -69,7 +69,7 @@ func AssertKubernetesAPIAccessViaOmni(testCtx context.Context, rootClient *clien
 
 			var identityList safe.List[*omni.ClusterMachineIdentity]
 
-			identityList, err = safe.StateListAll[*omni.ClusterMachineIdentity](ctx, rootClient.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+			identityList, err = safe.StateListAll[*omni.ClusterMachineIdentity](ctx, omniClient.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
 			require.NoError(collect, err)
 
 			nodeNamesInIdentities := make([]string, 0, identityList.Len())
@@ -470,11 +470,11 @@ func AssertKubernetesSecretHasValue(testCtx context.Context, managementClient *m
 // 2. All the extra (stale) Kubernetes nodes are in NotReady state
 //
 // This assertion is useful to assert the expected nodes state when a cluster is created from an etcd backup.
-func AssertKubernetesNodesState(testCtx context.Context, rootClient *client.Client, newClusterName string) func(t *testing.T) {
+func AssertKubernetesNodesState(testCtx context.Context, omniClient *client.Client, newClusterName string) func(t *testing.T) {
 	return func(t *testing.T) {
 		ctx := kubernetes.WrapContext(testCtx, t)
 
-		identityList, err := safe.StateListAll[*omni.ClusterMachineIdentity](ctx, rootClient.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, newClusterName)))
+		identityList, err := safe.StateListAll[*omni.ClusterMachineIdentity](ctx, omniClient.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, newClusterName)))
 		require.NoError(t, err)
 
 		expectedReadyNodeNames, err := safe.Map(identityList, func(cm *omni.ClusterMachineIdentity) (string, error) {
@@ -494,7 +494,7 @@ func AssertKubernetesNodesState(testCtx context.Context, rootClient *client.Clie
 			return false
 		}
 
-		kubeClient := kubernetes.GetClient(ctx, t, rootClient.Management(), newClusterName)
+		kubeClient := kubernetes.GetClient(ctx, t, omniClient.Management(), newClusterName)
 
 		require.EventuallyWithT(t, func(collect *assert.CollectT) {
 			kubernetesNodes, listErr := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})

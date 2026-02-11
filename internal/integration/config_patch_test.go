@@ -48,18 +48,17 @@ const (
 //
 // Config patch is generated to be large to test the edge case.
 // The patch is removed on finalize.
-func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
+func AssertLargeImmediateConfigApplied(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 3*time.Minute)
 		defer cancel()
 
-		talosCli, err := talosClientForCluster(ctx, cli, clusterName)
+		talosClient := getTalosClientForCluster(ctx, t, options, clusterName)
+
+		nodeIPs, err := talosNodeIPs(ctx, talosClient.COSI)
 		require.NoError(t, err)
 
-		nodeIPs, err := talosNodeIPs(ctx, talosCli.COSI)
-		require.NoError(t, err)
-
-		st := cli.Omni().State()
+		st := options.omniClient.Omni().State()
 
 		epochSeconds := time.Now().Unix()
 		id := fmt.Sprintf("000-config-patch-test-dummy-iface-%d", epochSeconds)
@@ -100,7 +99,7 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Clie
 		linkStatus := network.NewLinkStatus(network.NamespaceName, "")
 
 		containsDummyIface := func(node string) (bool, error) {
-			links, linksErr := talosCli.COSI.List(talosclient.WithNode(ctx, node), linkStatus.Metadata())
+			links, linksErr := talosClient.COSI.List(talosclient.WithNode(ctx, node), linkStatus.Metadata())
 			if linksErr != nil {
 				return false, linksErr
 			}
@@ -145,18 +144,19 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, cli *client.Clie
 // AssertConfigPatchWithReboot tests that config patch that requires reboot gets applied to a single node, the node reboots and gets back.
 //
 // The patch is NOT removed.
-func AssertConfigPatchWithReboot(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
+func AssertConfigPatchWithReboot(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {
 	return func(t *testing.T) {
+		omniClient := options.omniClient
+
 		// just a single machine with a reboot, so it should take no more than 3 minutes
 		ctx, cancel := context.WithTimeout(testCtx, 3*time.Minute)
 		defer cancel()
 
-		talosCli, err := talosClientForCluster(ctx, cli, clusterName)
-		require.NoError(t, err)
+		talosClient := getTalosClientForCluster(ctx, t, options, clusterName)
 
-		st := cli.Omni().State()
+		st := omniClient.Omni().State()
 
-		nodeList, err := nodes(ctx, cli, clusterName, resource.LabelExists(omni.LabelWorkerRole))
+		nodeList, err := nodes(ctx, t, options, clusterName, resource.LabelExists(omni.LabelWorkerRole))
 		require.NoError(t, err)
 		require.Greater(t, len(nodeList), 0)
 
@@ -198,7 +198,7 @@ func AssertConfigPatchWithReboot(testCtx context.Context, cli *client.Client, cl
 
 		// assert that the file is created on the node
 		err = retry.Constant(3*time.Minute, retry.WithUnits(1*time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
-			exists, existsErr := talosFileExists(ctx, talosCli, node.talosIP, file)
+			exists, existsErr := talosFileExists(ctx, talosClient, node.talosIP, file)
 			if existsErr != nil {
 				if strings.Contains(existsErr.Error(), "not reachable") || status.Code(existsErr) == codes.Unavailable {
 					return retry.ExpectedError(existsErr)

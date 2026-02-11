@@ -28,7 +28,6 @@ import (
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
-	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
@@ -107,20 +106,13 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 }
 
 // AssertTalosMaintenanceAPIAccessViaOmni verifies that cluster-wide `talosconfig` gives access to Talos nodes running in maintenance mode.
-func AssertTalosMaintenanceAPIAccessViaOmni(testCtx context.Context, omniClient *client.Client) TestFunc {
+func AssertTalosMaintenanceAPIAccessViaOmni(testCtx context.Context, options *TestOptions) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, backoff.DefaultConfig.MaxDelay+10*time.Second)
 		t.Cleanup(cancel)
 
-		data, err := omniClient.Management().Talosconfig(ctx)
-		require.NoError(t, err)
-		assert.NotEmpty(t, data)
-
-		config, err := clientconfig.FromBytes(data)
-		require.NoError(t, err)
-
-		maintenanceClient, err := talosclient.New(ctx, talosclient.WithConfig(config))
-		require.NoError(t, err)
+		omniClient := options.omniClient
+		maintenanceClient := getTalosClient(ctx, t, options)
 
 		t.Cleanup(func() {
 			require.NoError(t, maintenanceClient.Close())
@@ -138,8 +130,10 @@ func AssertTalosMaintenanceAPIAccessViaOmni(testCtx context.Context, omniClient 
 }
 
 // AssertTalosAPIAccessViaOmni verifies that both instance-wide and cluster-wide `talosconfig`s work with Omni Talos API proxy.
-func AssertTalosAPIAccessViaOmni(testCtx context.Context, omniClient *client.Client, cluster string) TestFunc {
+func AssertTalosAPIAccessViaOmni(testCtx context.Context, options *TestOptions, cluster string) TestFunc {
 	return func(t *testing.T) {
+		omniClient := options.omniClient
+
 		ms, err := safe.ReaderListAll[*omni.MachineStatus](
 			testCtx,
 			omniClient.Omni().State(),
@@ -226,11 +220,7 @@ func AssertTalosAPIAccessViaOmni(testCtx context.Context, omniClient *client.Cli
 			require.NoError(t, err)
 			assert.NotEmpty(t, data)
 
-			config, err := clientconfig.FromBytes(data)
-			require.NoError(t, err)
-
-			c, err := talosclient.New(ctx, talosclient.WithConfig(config), talosclient.WithCluster(cluster))
-			require.NoError(t, err)
+			c := getTalosClientForCluster(ctx, t, options, cluster)
 
 			t.Cleanup(func() {
 				require.NoError(t, c.Close())
@@ -247,75 +237,56 @@ func AssertTalosAPIAccessViaOmni(testCtx context.Context, omniClient *client.Cli
 			require.NoError(t, err)
 			assert.NotEmpty(t, data)
 
-			config, err := clientconfig.FromBytes(data)
-			require.NoError(t, err)
-
-			c, err := talosclient.New(ctx, talosclient.WithConfig(config))
-			require.NoError(t, err)
+			talosClient := getTalosClient(ctx, t, options)
 
 			t.Cleanup(func() {
-				require.NoError(t, c.Close())
+				require.NoError(t, talosClient.Close())
 			})
 
-			assertTalosAPI(ctx, t, c)
+			assertTalosAPI(ctx, t, talosClient)
 		})
 
 		t.Run("ClusterWideTalosconfig", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(testCtx, backoff.DefaultConfig.MaxDelay+10*time.Second)
 			t.Cleanup(cancel)
 
-			data, err := omniClient.Management().WithCluster(cluster).Talosconfig(ctx)
-			require.NoError(t, err)
-			assert.NotEmpty(t, data)
-
-			config, err := clientconfig.FromBytes(data)
-			require.NoError(t, err)
-
-			c, err := talosclient.New(ctx, talosclient.WithConfig(config))
-			require.NoError(t, err)
+			talosClient := getTalosClient(ctx, t, options)
 
 			t.Cleanup(func() {
-				require.NoError(t, c.Close())
+				require.NoError(t, talosClient.Close())
 			})
 
-			assertTalosAPI(ctx, t, c)
+			assertTalosAPI(ctx, t, talosClient)
 		})
 	}
 }
 
 // AssertEtcdMembershipMatchesOmniResources checks that etcd members are in sync with the Omni MachineStatus information.
-func AssertEtcdMembershipMatchesOmniResources(testCtx context.Context, client *client.Client, cluster string) TestFunc {
+func AssertEtcdMembershipMatchesOmniResources(testCtx context.Context, options *TestOptions, cluster string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 5*time.Minute)
 		defer cancel()
 
-		data, err := client.Management().Talosconfig(ctx)
-		require.NoError(t, err)
-		assert.NotEmpty(t, data)
-
-		config, err := clientconfig.FromBytes(data)
-		require.NoError(t, err)
-
-		c, err := talosclient.New(ctx, talosclient.WithConfig(config), talosclient.WithCluster(cluster))
-		require.NoError(t, err)
+		omniClient := options.omniClient
+		talosClient := getTalosClientForCluster(ctx, t, options, cluster)
 
 		t.Cleanup(func() {
-			require.NoError(t, c.Close())
+			require.NoError(t, talosClient.Close())
 		})
 
-		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, client.Omni().State(),
+		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, omniClient.Omni().State(),
 			state.WithLabelQuery(
 				resource.LabelEqual(omni.LabelCluster, cluster),
 				resource.LabelExists(omni.LabelControlPlaneRole),
 			),
 		)
 
-		clearConnectionRefused(ctx, t, c, len(machineIDs), machineIDs...)
+		clearConnectionRefused(ctx, t, talosClient, len(machineIDs), machineIDs...)
 
 		require.EventuallyWithT(t, func(collect *assert.CollectT) {
 			require.NoError(t, ctx.Err())
 
-			resp, err := c.EtcdMemberList(ctx, &machine.EtcdMemberListRequest{})
+			resp, err := talosClient.EtcdMemberList(ctx, &machine.EtcdMemberListRequest{})
 			require.NoError(collect, err)
 
 			clusterMachines := map[string]any{}
@@ -323,7 +294,7 @@ func AssertEtcdMembershipMatchesOmniResources(testCtx context.Context, client *c
 			for _, machineID := range machineIDs {
 				var machineStatus *omni.MachineStatus
 
-				machineStatus, err = safe.StateGet[*omni.MachineStatus](ctx, client.Omni().State(), omni.NewMachineStatus(machineID).Metadata())
+				machineStatus, err = safe.StateGet[*omni.MachineStatus](ctx, omniClient.Omni().State(), omni.NewMachineStatus(machineID).Metadata())
 				require.NoError(collect, err)
 
 				clusterMachines[machineStatus.TypedSpec().Value.Network.Hostname] = struct{}{}
@@ -351,27 +322,21 @@ func AssertEtcdMembershipMatchesOmniResources(testCtx context.Context, client *c
 }
 
 // AssertTalosMembersMatchOmni checks that Talos discovery service members are in sync with the machines attached to the cluster.
-func AssertTalosMembersMatchOmni(testCtx context.Context, client *client.Client, clusterName string) TestFunc {
+func AssertTalosMembersMatchOmni(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		require := require.New(t)
 
 		ctx, cancel := context.WithTimeout(testCtx, backoff.DefaultConfig.BaseDelay+120*time.Second)
 		defer cancel()
 
-		data, err := client.Management().Talosconfig(ctx)
-		require.NoError(err)
-
-		config, err := clientconfig.FromBytes(data)
-		require.NoError(err)
-
-		c, err := talosclient.New(ctx, talosclient.WithConfig(config), talosclient.WithCluster(clusterName))
-		require.NoError(err)
+		omniClient := options.omniClient
+		talosClient := getTalosClientForCluster(ctx, t, options, clusterName)
 
 		t.Cleanup(func() {
-			require.NoError(c.Close())
+			require.NoError(talosClient.Close())
 		})
 
-		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, client.Omni().State(),
+		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, omniClient.Omni().State(),
 			state.WithLabelQuery(
 				resource.LabelEqual(omni.LabelCluster, clusterName),
 			),
@@ -383,7 +348,7 @@ func AssertTalosMembersMatchOmni(testCtx context.Context, client *client.Client,
 		for _, machineID := range machineIDs {
 			var clusterMachineIdentity *omni.ClusterMachineIdentity
 
-			clusterMachineIdentity, err = safe.StateGet[*omni.ClusterMachineIdentity](ctx, client.Omni().State(),
+			clusterMachineIdentity, err := safe.StateGet[*omni.ClusterMachineIdentity](ctx, omniClient.Omni().State(),
 				omni.NewClusterMachineIdentity(machineID).Metadata(),
 			)
 
@@ -395,28 +360,29 @@ func AssertTalosMembersMatchOmni(testCtx context.Context, client *client.Client,
 		}
 
 		// check that every Omni machine is in Talos as a member
-		rtestutils.AssertResources(ctx, t, c.COSI, maps.Keys(clusterMachines), func(member *cluster.Member, asrt *assert.Assertions) {
+		rtestutils.AssertResources(ctx, t, talosClient.COSI, maps.Keys(clusterMachines), func(member *cluster.Member, asrt *assert.Assertions) {
 			asrt.Equal(clusterMachines[member.Metadata().ID()], member.TypedSpec().NodeID, resourceDetails(member))
 		})
 
 		// check that length of resources matches expectations (i.e. there are no extra members)
-		rtestutils.AssertLength[*cluster.Member](ctx, t, c.COSI, len(clusterMachines))
+		rtestutils.AssertLength[*cluster.Member](ctx, t, talosClient.COSI, len(clusterMachines))
 	}
 }
 
 // AssertTalosVersion verifies Talos version on the nodes.
-func AssertTalosVersion(testCtx context.Context, client *client.Client, clusterName, expectedVersion string) TestFunc {
+func AssertTalosVersion(testCtx context.Context, options *TestOptions, clusterName, expectedVersion string) TestFunc {
 	return func(t *testing.T) {
 		require := require.New(t)
+		omniClient := options.omniClient
 
 		ctx, cancel := context.WithTimeout(testCtx, backoff.DefaultConfig.BaseDelay+90*time.Second)
 		defer cancel()
 
-		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, client.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, omniClient.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
 
 		cms, err := safe.StateListAll[*omni.ClusterMachineIdentity](
 			testCtx,
-			client.Omni().State(),
+			omniClient.Omni().State(),
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 		require.NoError(err)
@@ -431,23 +397,15 @@ func AssertTalosVersion(testCtx context.Context, client *client.Client, clusterN
 		require.NoError(err)
 
 		// assert using Omni MachineStatus resource
-		rtestutils.AssertResources(ctx, t, client.Omni().State(), machineIDs, func(r *omni.MachineStatus, asrt *assert.Assertions) {
+		rtestutils.AssertResources(ctx, t, omniClient.Omni().State(), machineIDs, func(r *omni.MachineStatus, asrt *assert.Assertions) {
 			asrt.Equal(expectedVersion, strings.TrimLeft(r.TypedSpec().Value.TalosVersion, "v"), resourceDetails(r))
 		})
 
-		data, err := client.Management().Talosconfig(ctx)
+		data, err := omniClient.Management().Talosconfig(ctx)
 		require.NoError(err)
 		require.NotEmpty(data)
 
-		data, err = client.Management().WithCluster(clusterName).Talosconfig(ctx)
-		require.NoError(err)
-		require.NotEmpty(data)
-
-		config, err := clientconfig.FromBytes(data)
-		require.NoError(err)
-
-		c, err := talosclient.New(ctx, talosclient.WithConfig(config), talosclient.WithCluster(clusterName))
-		require.NoError(err)
+		c := getTalosClientForCluster(ctx, t, options, clusterName)
 
 		t.Cleanup(func() {
 			require.NoError(c.Close())
@@ -473,7 +431,7 @@ func AssertTalosVersion(testCtx context.Context, client *client.Client, clusterN
 		}))
 
 		// assert using Talos upgrade controller status
-		rtestutils.AssertResources(ctx, t, client.Omni().State(), []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, asrt *assert.Assertions) {
+		rtestutils.AssertResources(ctx, t, omniClient.Omni().State(), []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, asrt *assert.Assertions) {
 			asrt.Equal(specs.TalosUpgradeStatusSpec_Done, r.TypedSpec().Value.Phase, resourceDetails(r))
 			asrt.Equal(expectedVersion, r.TypedSpec().Value.LastUpgradeVersion, resourceDetails(r))
 		})
@@ -766,7 +724,7 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 // AssertMachineShouldBeUpgradedInMaintenanceMode verifies machine upgrade in maintenance mode.
 func AssertMachineShouldBeUpgradedInMaintenanceMode(
 	testCtx context.Context,
-	rootClient *client.Client,
+	options *TestOptions,
 	clusterName, kubernetesVersion, talosVersion1, talosVersion2 string,
 ) TestFunc {
 	return func(t *testing.T) {
@@ -779,23 +737,24 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 
 		t.Logf("test maintenance upgrade flow from version %q to %q", talosVersion1, talosVersion2)
 
-		st := rootClient.Omni().State()
+		omniClient := options.omniClient
+		omniState := omniClient.Omni().State()
 
 		var allocatedMachineIDs []resource.ID
 
 		t.Logf("creating a cluster on version %q", talosVersion1)
 
-		pickUnallocatedMachines(ctx, t, st, 1, nil, func(machineIDs []resource.ID) {
+		pickUnallocatedMachines(ctx, t, omniState, 1, nil, func(machineIDs []resource.ID) {
 			allocatedMachineIDs = machineIDs
 
 			cluster := omni.NewCluster(clusterName)
 			cluster.TypedSpec().Value.TalosVersion = talosVersion1
 			cluster.TypedSpec().Value.KubernetesVersion = kubernetesVersion
 
-			require.NoError(st.Create(ctx, cluster))
+			require.NoError(omniState.Create(ctx, cluster))
 
 			t.Logf("Adding machine %q to control plane (cluster %q, version %q)", machineIDs[0], clusterName, talosVersion1)
-			bindMachine(ctx, t, st, bindMachineOptions{
+			bindMachine(ctx, t, omniState, bindMachineOptions{
 				clusterName:  clusterName,
 				role:         omni.LabelControlPlaneRole,
 				machineID:    machineIDs[0],
@@ -803,7 +762,7 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 			})
 
 			// assert that machines got allocated (label available is removed)
-			rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
+			rtestutils.AssertResources(ctx, t, omniState, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
 				assert.True(machineStatus.Metadata().Labels().Matches(
 					resource.LabelTerm{
 						Key:    omni.MachineStatusLabelAvailable,
@@ -815,17 +774,17 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 		})
 
 		assertClusterReady := func(expectedVersion string) {
-			AssertClusterMachinesStage(ctx, rootClient.Omni().State(), clusterName, specs.ClusterMachineStatusSpec_RUNNING)(t)
-			AssertClusterMachinesReady(ctx, rootClient.Omni().State(), clusterName)(t)
-			AssertClusterStatusReady(ctx, st, clusterName)(t)
-			AssertTalosVersion(ctx, rootClient, clusterName, expectedVersion)
+			AssertClusterMachinesStage(ctx, omniClient.Omni().State(), clusterName, specs.ClusterMachineStatusSpec_RUNNING)(t)
+			AssertClusterMachinesReady(ctx, omniClient.Omni().State(), clusterName)(t)
+			AssertClusterStatusReady(ctx, omniState, clusterName)(t)
+			AssertTalosVersion(ctx, options, clusterName, expectedVersion)
 		}
 
 		// wait for the initial cluster on talosVersion1 to be ready
 		assertClusterReady(talosVersion1)
 
 		// destroy the cluster
-		AssertDestroyCluster(ctx, rootClient.Omni().State(), clusterName, false, false)(t)
+		AssertDestroyCluster(ctx, omniClient.Omni().State(), clusterName, false, false)(t)
 
 		t.Logf("creating a cluster on version %q using same machines", talosVersion2)
 
@@ -834,10 +793,10 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 		cluster.TypedSpec().Value.TalosVersion = talosVersion2
 		cluster.TypedSpec().Value.KubernetesVersion = kubernetesVersion
 
-		require.NoError(st.Create(ctx, cluster))
+		require.NoError(omniState.Create(ctx, cluster))
 
 		t.Logf("Adding machine %q to control plane (cluster %q, version %q)", allocatedMachineIDs[0], clusterName, talosVersion2)
-		bindMachine(ctx, t, st, bindMachineOptions{
+		bindMachine(ctx, t, omniState, bindMachineOptions{
 			clusterName:  clusterName,
 			role:         omni.LabelControlPlaneRole,
 			machineID:    allocatedMachineIDs[0],
@@ -847,24 +806,24 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 		// wait for cluster on talosVersion2 to be ready
 		assertClusterReady(talosVersion2)
 
-		AssertDestroyCluster(ctx, rootClient.Omni().State(), clusterName, false, false)(t)
+		AssertDestroyCluster(ctx, omniClient.Omni().State(), clusterName, false, false)(t)
 	}
 }
 
 // AssertTalosServiceIsRestarted verifies that Talos service is restarted on the nodes that match given cluster machine label query options.
-func AssertTalosServiceIsRestarted(testCtx context.Context, cli *client.Client, clusterName string,
+func AssertTalosServiceIsRestarted(testCtx context.Context, options *TestOptions, clusterName string,
 	service string, labelQueryOpts ...resource.LabelQueryOption,
 ) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 1*time.Minute)
 		defer cancel()
 
-		talosCli, err := talosClientForCluster(ctx, cli, clusterName)
-		require.NoError(t, err)
+		omniClient := options.omniClient
+		talosClient := getTalosClientForCluster(ctx, t, options, clusterName)
 
 		labelQueryOpts = append(labelQueryOpts, resource.LabelEqual(omni.LabelCluster, clusterName))
 
-		clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](ctx, cli.Omni().State(), state.WithLabelQuery(labelQueryOpts...))
+		clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](ctx, omniClient.Omni().State(), state.WithLabelQuery(labelQueryOpts...))
 		require.NoError(t, err)
 
 		for clusterMachine := range clusterMachineList.All() {
@@ -872,7 +831,7 @@ func AssertTalosServiceIsRestarted(testCtx context.Context, cli *client.Client, 
 
 			t.Logf("Restarting service %q on node %q", service, nodeID)
 
-			_, err = talosCli.MachineClient.ServiceRestart(talosclient.WithNode(ctx, nodeID), &machine.ServiceRestartRequest{
+			_, err = talosClient.MachineClient.ServiceRestart(talosclient.WithNode(ctx, nodeID), &machine.ServiceRestartRequest{
 				Id: service,
 			})
 			require.NoError(t, err)

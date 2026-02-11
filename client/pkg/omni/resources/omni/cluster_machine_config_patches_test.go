@@ -35,10 +35,23 @@ func TestClusterMachineConfigPatchesSpecW_marshal(t *testing.T) {
 
 	out := must.Value(yaml.Marshal(must.Value(resource.MarshalYAML(original))(t)))(t)
 
+	// TODO(workaround): yaml/v4 rc.4 passes DocumentNode to UnmarshalYAML, but COSI runtime
+	//                   doesn't handle it yet. Replace this block with:
+	//                   var dest protobuf.YAMLResource; err = yaml.Unmarshal(out, &dest)
+	//                   require.NoError(t, err)`
+	// START workaround
+	var node yaml.Node
+
+	err = yaml.Unmarshal(out, &node)
+	require.NoError(t, err)
+	require.Equal(t, yaml.DocumentNode, node.Kind)
+	require.NotEmpty(t, node.Content)
+
 	var dest protobuf.YAMLResource
 
-	err = yaml.Unmarshal(out, &dest)
+	err = dest.UnmarshalYAML(node.Content[0])
 	require.NoError(t, err)
+	// END workaround
 
 	fmt.Println(string(out))
 

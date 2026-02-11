@@ -251,7 +251,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 		&suite.OmniSuite,
 		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
 		func(cfg *omni.ClusterMachineConfig, assert *assert.Assertions) {
-			expectedError := "yaml: unmarshal errors"
+			expectedError := "yaml: construct errors"
 
 			buffer, bufferErr := cfg.TypedSpec().Value.GetUncompressedData()
 			suite.Require().NoError(bufferErr)

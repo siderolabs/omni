@@ -19,6 +19,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/image-factory/pkg/constants"
+	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/require"
 
@@ -31,9 +32,9 @@ import (
 const HelloWorldServiceExtensionName = extensions.OfficialPrefix + "hello-world-service"
 
 // AssertExtensionsArePresent asserts that the given extensions are all present on all machines of the given cluster.
-func AssertExtensionsArePresent(ctx context.Context, cli *client.Client, cluster string, extensions []string) TestFunc {
+func AssertExtensionsArePresent(ctx context.Context, options *TestOptions, cluster string, extensions []string) TestFunc {
 	return func(t *testing.T) {
-		clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](ctx, cli.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)))
+		clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](ctx, options.omniClient.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster)))
 		require.NoError(t, err)
 
 		machineIDs := make([]resource.ID, 0, clusterMachineList.Len())
@@ -42,16 +43,19 @@ func AssertExtensionsArePresent(ctx context.Context, cli *client.Client, cluster
 			machineIDs = append(machineIDs, clusterMachine.Metadata().ID())
 		})
 
-		checkExtensionsWithRetries(ctx, t, cli, extensions, machineIDs)
+		checkExtensionsWithRetries(ctx, t, options, extensions, machineIDs)
 	}
 }
 
-func checkExtensionsWithRetries(ctx context.Context, t *testing.T, cli *client.Client, extensions []string, machineIDs []resource.ID) {
+func checkExtensionsWithRetries(ctx context.Context, t *testing.T, options *TestOptions, extensions []string, machineIDs []resource.ID) {
 	for _, machineID := range machineIDs {
 		numErrs := 0
 
+		nodeCtx := talosclient.WithNode(ctx, machineID)
+		talosClient := getTalosClient(nodeCtx, t, options)
+
 		err := retry.Constant(3*time.Minute, retry.WithUnits(time.Second), retry.WithAttemptTimeout(3*time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
-			if err := checkExtensions(ctx, cli, machineID, extensions); err != nil {
+			if err := checkExtensions(nodeCtx, talosClient, extensions); err != nil {
 				numErrs++
 
 				if numErrs%10 == 0 {
@@ -74,8 +78,8 @@ func checkExtensionsWithRetries(ctx context.Context, t *testing.T, cli *client.C
 // The order of the extensions is also checked.
 //
 // It is assumed that neither of the input slices will contain duplicates.
-func checkExtensions(ctx context.Context, cli *client.Client, machineID string, extensions []string) error {
-	collectedExtensions, err := fetchExtensions(ctx, cli, machineID)
+func checkExtensions(ctx context.Context, talosClient *talosclient.Client, extensions []string) error {
+	collectedExtensions, err := fetchExtensions(ctx, talosClient)
 	if err != nil {
 		return err
 	}
@@ -84,7 +88,7 @@ func checkExtensions(ctx context.Context, cli *client.Client, machineID string, 
 	for _, ext := range extensions {
 		i := slices.Index(collectedExtensions[pos:], ext)
 		if i < 0 {
-			return fmt.Errorf("extensions/order mismatch on %q: expected %q to be a subsequence of %q", machineID, extensions, collectedExtensions)
+			return fmt.Errorf("extensions/order mismatch: expected %q to be a subsequence of %q", extensions, collectedExtensions)
 		}
 		pos += i + 1
 	}
@@ -92,13 +96,8 @@ func checkExtensions(ctx context.Context, cli *client.Client, machineID string, 
 	return nil
 }
 
-func fetchExtensions(ctx context.Context, cli *client.Client, machineID resource.ID) ([]string, error) {
-	talosCli, err := talosClientForMachine(ctx, cli, machineID)
-	if err != nil {
-		return nil, err
-	}
-
-	list, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, talosCli.COSI)
+func fetchExtensions(ctx context.Context, talosClient *talosclient.Client) ([]string, error) {
+	list, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, talosClient.COSI)
 	if err != nil {
 		return nil, err
 	}

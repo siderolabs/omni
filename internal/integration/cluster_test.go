@@ -77,7 +77,7 @@ type ClusterOptions struct {
 }
 
 // CreateCluster verifies cluster creation.
-func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterOptions) TestFunc {
+func CreateCluster(testCtx context.Context, testOptions *TestOptions, options ClusterOptions) TestFunc {
 	return func(t *testing.T) {
 		if options.ScalingTimeout == 0 {
 			options.ScalingTimeout = time.Second * 150
@@ -86,16 +86,16 @@ func CreateCluster(testCtx context.Context, cli *client.Client, options ClusterO
 		ctx, cancel := context.WithTimeout(testCtx, options.ScalingTimeout)
 		defer cancel()
 
-		st := cli.Omni().State()
+		st := testOptions.omniClient.Omni().State()
 		require := require.New(t)
 
 		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, options.PickFilterFunc, func(machineIDs []resource.ID) {
 			if !options.SkipExtensionCheckOnCreate {
-				checkExtensionsWithRetries(ctx, t, cli, []string{HelloWorldServiceExtensionName}, machineIDs)
+				checkExtensionsWithRetries(ctx, t, testOptions, []string{HelloWorldServiceExtensionName}, machineIDs)
 			}
 
 			if options.BeforeClusterCreateFunc != nil {
-				options.BeforeClusterCreateFunc(ctx, t, cli, machineIDs)
+				options.BeforeClusterCreateFunc(ctx, t, testOptions.omniClient, machineIDs)
 			}
 
 			cluster := omni.NewCluster(options.Name)
