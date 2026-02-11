@@ -55,7 +55,8 @@ func TestTalosBackendRoles(t *testing.T) {
 	g, ctx := errgroup.WithContext(ctx)
 
 	logger := zaptest.NewLogger(t)
-	st := omniruntime.NewTestState(logger)
+	st, err := omniruntime.NewTestState(logger)
+	require.NoError(t, err)
 
 	grpcProxy, err := makeGRPCProxy(ctx, proxyEndpoint, serverEndpoint, st.Default())
 	require.NoError(t, err)
@@ -83,7 +84,8 @@ func TestNodeResolution(t *testing.T) {
 	}
 
 	logger := zaptest.NewLogger(t)
-	st := omniruntime.NewTestState(logger)
+	st, err := omniruntime.NewTestState(logger)
+	require.NoError(t, err)
 
 	noOpVerifier := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		return handler(ctx, req)

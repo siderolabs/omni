@@ -35,7 +35,9 @@ func TestOperatorTalosconfig(t *testing.T) {
 	defer cancel()
 
 	logger := zaptest.NewLogger(t)
-	st := omniruntime.NewTestState(logger)
+	st, err := omniruntime.NewTestState(logger)
+	require.NoError(t, err)
+
 	clientFactory := talos.NewClientFactory(st.Default(), logger)
 	dnsService := dns.NewService(st.Default(), logger)
 	discoveryClientCache := &discoveryClientCacheMock{}

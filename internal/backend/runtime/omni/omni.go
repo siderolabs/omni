@@ -110,10 +110,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		return nil, err
 	}
 
-	storeFactory, err := store.NewStoreFactory(cfg.EtcdBackup)
-	if err != nil {
-		return nil, err
-	}
+	storeFactory := st.StoreFactory()
 
 	powerStageEventsCh := make(chan *omni.MachineStatusSnapshot)
 	powerStageWatcher := powerstage.NewWatcher(defaultState, powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")), powerstage.WatcherOptions{})

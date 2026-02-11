@@ -91,8 +91,11 @@ func (suite *OmniRuntimeSuite) SetupTest() {
 	kubernetesRuntime, err := kubernetes.New(resourceState, "", "", "")
 	suite.Require().NoError(err)
 
+	mockState, err := omniruntime.NewMockState(resourceState)
+	suite.Require().NoError(err)
+
 	suite.runtime, err = omniruntime.NewRuntime(config.Default(), clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
-		omniruntime.NewMockState(resourceState), prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
+		mockState, prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, logger.WithOptions(zap.IncreaseLevel(zap.InfoLevel)))
 
 	suite.Require().NoError(err)
 

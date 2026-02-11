@@ -75,7 +75,9 @@ func (suite *GrpcSuite) SetupTest() {
 
 	logger := zaptest.NewLogger(suite.T())
 
-	st := omniruntime.NewTestState(logger)
+	st, err := omniruntime.NewTestState(logger)
+	suite.Require().NoError(err)
+
 	suite.state = st.Default()
 
 	clientFactory := talos.NewClientFactory(suite.state, logger)

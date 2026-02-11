@@ -58,7 +58,8 @@ func TestGenerateConfigs(t *testing.T) {
 	defer cancel()
 
 	logger := zaptest.NewLogger(t)
-	st := omniruntime.NewTestState(logger)
+	st, err := omniruntime.NewTestState(logger)
+	require.NoError(t, err)
 
 	kubernetesRuntime, err := kubernetes.New(st.Default(), "", "", "")
 	require.NoError(t, err)

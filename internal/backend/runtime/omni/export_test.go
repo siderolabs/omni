@@ -16,10 +16,16 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func NewMockState(st state.State) *State {
+func NewMockState(st state.State) (*State, error) {
+	storeFactory, err := store.NewStoreFactory(config.EtcdBackup{})
+	if err != nil {
+		return nil, err
+	}
+
 	return &State{
 		defaultState: st,
-	}
+		storeFactory: storeFactory,
+	}, nil
 }
 
 func NewEtcdPersistentState(ctx context.Context, params *config.Params, logger *zap.Logger) (*PersistentState, error) {

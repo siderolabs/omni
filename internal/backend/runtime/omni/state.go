@@ -52,6 +52,7 @@ type State struct {
 	virtualState *virtual.State
 	defaultState state.State
 	auditWrap    *AuditWrap
+	storeFactory store.FactoryWithMetrics
 
 	logger *zap.Logger
 
@@ -78,6 +79,11 @@ func (s *State) Virtual() *virtual.State {
 // Auditor returns the state auditor.
 func (s *State) Auditor() *AuditWrap {
 	return s.auditWrap
+}
+
+// StoreFactory returns the etcd backup store factory.
+func (s *State) StoreFactory() store.FactoryWithMetrics {
+	return s.storeFactory
 }
 
 // RunAuditCleanup runs the audit cleanup.
@@ -166,16 +172,18 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		}
 	}
 
-	namespacedState, err := newNamespacedState(
+	storeFactory, err := store.NewStoreFactory(params.EtcdBackup)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create etcd backup store factory: %w", err)
+	}
+
+	namespacedState := newNamespacedState(
 		defaultPersistentState.State,
 		secondaryPersistentState.State,
 		virtualState,
 		logger,
-		params.EtcdBackup,
+		storeFactory,
 	)
-	if err != nil {
-		return nil, err
-	}
 
 	measuredState := stateWithMetrics(namespacedState, metricsRegistry)
 	defaultState := state.WrapCore(measuredState)
@@ -195,6 +203,7 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		defaultState: defaultState,
 		virtualState: virtualState,
 		auditWrap:    auditWrap,
+		storeFactory: storeFactory,
 
 		defaultPersistentState:   defaultPersistentState,
 		secondaryPersistentState: secondaryPersistentState,
@@ -207,19 +216,14 @@ func newNamespacedState(
 	secondaryCoreState state.CoreState,
 	virtualState *virtual.State,
 	logger *zap.Logger,
-	etcdBackupCfg config.EtcdBackup,
-) (*namespaced.State, error) {
-	storeFactory, err := store.NewStoreFactory(etcdBackupCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create etcd backup store: %w", err)
-	}
-
+	storeFactory store.Factory,
+) *namespaced.State {
 	buildEphemeralState := inmem.NewStateWithOptions(inmem.WithHistoryGap(20), inmem.WithHistoryMaxCapacity(10000))
 	ephemeralState := buildEphemeralState(resources.EphemeralNamespace)
 	metaEphemeralState := buildEphemeralState(meta.NamespaceName)
 	infraProviderState := infraprovider.NewState(defaultCoreState, ephemeralState, logger.With(logging.Component("infraprovider_state")))
 
-	namespacedState := namespaced.NewState(func(ns resource.Namespace) state.CoreState {
+	return namespaced.NewState(func(ns resource.Namespace) state.CoreState {
 		switch ns {
 		case resources.VirtualNamespace:
 			return virtualState
@@ -245,8 +249,6 @@ func newNamespacedState(
 			return defaultCoreState
 		}
 	})
-
-	return namespacedState, nil
 }
 
 func initResources(ctx context.Context, resourceState state.State, logger *zap.Logger, accountName string) error {
@@ -388,14 +390,20 @@ func (w *AuditWrap) WrapState(resourceState state.State) state.State {
 }
 
 // NewTestState creates a new test state using the in-memory storage and no virtual one.
-func NewTestState(logger *zap.Logger) *State {
+func NewTestState(logger *zap.Logger) (*State, error) {
 	defaultPersistentState := &PersistentState{
 		State: namespaced.NewState(inmem.Build),
+	}
+
+	storeFactory, err := store.NewStoreFactory(config.EtcdBackup{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create etcd backup store factory: %w", err)
 	}
 
 	return &State{
 		defaultState:           state.WrapCore(defaultPersistentState.State),
 		defaultPersistentState: defaultPersistentState,
+		storeFactory:           storeFactory,
 		logger:                 logger,
-	}
+	}, nil
 }
