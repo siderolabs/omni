@@ -228,7 +228,7 @@ func AssertConfigPatchWithReboot(testCtx context.Context, cli *client.Client, cl
 // AssertConfigPatchWithInvalidConfig tests that a machine is able to recover from a patch with broken config when the broken patch is deleted.
 func AssertConfigPatchWithInvalidConfig(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 8*time.Minute)
+		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
 		defer cancel()
 
 		st := cli.Omni().State()

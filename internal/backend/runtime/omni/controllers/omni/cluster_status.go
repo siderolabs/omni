@@ -173,7 +173,8 @@ func NewClusterStatusController(embeddedDiscoveryServiceEnabled bool) *ClusterSt
 				case phases[specs.MachineSetPhase_ScalingDown] > 0 || phases[specs.MachineSetPhase_Destroying] > 0:
 					// at least one scaling down
 					phase = specs.ClusterStatusSpec_SCALING_DOWN
-				case phases[specs.MachineSetPhase_Running] > 0 || phases[specs.MachineSetPhase_Reconfiguring] > 0:
+				case phases[specs.MachineSetPhase_Running] > 0 || phases[specs.MachineSetPhase_Reconfiguring] > 0 ||
+					phases[specs.MachineSetPhase_Upgrading] > 0:
 					// some running/reconfiguration
 					phase = specs.ClusterStatusSpec_RUNNING
 				}
