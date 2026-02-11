@@ -8,8 +8,6 @@
 package integration_test
 
 import (
-	"context"
-	"net/http"
 	"testing"
 	"time"
 
@@ -19,7 +17,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/integration/workloadproxy"
-	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 )
 
 type assertClusterReadyOptions struct {
@@ -128,9 +125,7 @@ Generate various Talos images with Omni and try to download them.`)
 
 		t.Run(
 			"TalosImagesShouldBeDownloadable",
-			AssertSomeImagesAreDownloadable(t.Context(), options.omniClient, func(ctx context.Context, req *http.Request) error {
-				return clientconfig.SignHTTPRequest(ctx, options.omniClient, req)
-			}, options.HTTPEndpoint),
+			AssertSomeImagesAreDownloadable(t.Context(), options),
 		)
 	}
 }
@@ -1159,9 +1154,14 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 			AssertServiceAccountAPIFlow(t.Context(), options.omniClient),
 		)
 
+		clientFactory := newTestClientFactory(omniEndpoint, options.omniClient)
+		t.Cleanup(func() {
+			clientFactory.close() //nolint:errcheck
+		})
+
 		t.Run(
 			"ResourceAuthzShouldWork",
-			AssertResourceAuthz(t.Context(), options.omniClient, options.clientConfig),
+			AssertResourceAuthz(t.Context(), options.omniClient, clientFactory),
 		)
 
 		t.Run(
@@ -1193,12 +1193,12 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 
 		t.Run(
 			"APIAuthorizationShouldBeTested",
-			AssertAPIAuthz(t.Context(), options.omniClient, options.clientConfig, clusterName),
+			AssertAPIAuthz(t.Context(), options.omniClient, clientFactory, clusterName),
 		)
 
 		t.Run(
 			"FrontendAPIShouldBeTested",
-			AssertFrontendResourceAPI(t.Context(), options.omniClient, options.clientConfig, options.HTTPEndpoint, clusterName),
+			AssertFrontendResourceAPI(t.Context(), options.omniClient, options.serviceAccountKey, options.HTTPEndpoint, clusterName),
 		)
 
 		t.Run(
@@ -1278,7 +1278,7 @@ Test workload service proxying feature`)
 		parentCtx := t.Context()
 
 		t.Run("WorkloadProxyShouldBeTested", func(t *testing.T) {
-			workloadproxy.Test(parentCtx, t, omniClient, cluster1, cluster2)
+			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, cluster1, cluster2)
 		})
 
 		t.Run("ClusterShouldBeDestroyed-"+cluster1, AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), cluster1, false, false))
@@ -1457,7 +1457,7 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 		parentCtx := t.Context()
 
 		t.Run("WorkloadProxyShouldBeTested", func(t *testing.T) {
-			workloadproxy.Test(parentCtx, t, omniClient, clusterName)
+			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, clusterName)
 		})
 
 		t.Run("SaveClusterSnapshot", SaveClusterSnapshot(t.Context(), omniClient, clusterName))
@@ -1494,7 +1494,7 @@ Test Omni upgrades, the second half that runs on the current Omni version
 		t.Run("AssertMachinesNotRebootedConfigUnchanged", AssertClusterSnapshot(t.Context(), omniClient, clusterName))
 
 		t.Run("WorkloadProxyShouldBeTested", func(t *testing.T) {
-			workloadproxy.Test(parentCtx, t, omniClient, clusterName)
+			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, clusterName)
 		})
 
 		t.Run(

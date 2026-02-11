@@ -16,20 +16,25 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/siderolabs/go-api-signature/pkg/message"
+	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
-	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/access"
 	clientconsts "github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
 // AssertSomeImagesAreDownloadable verifies generated image download.
-func AssertSomeImagesAreDownloadable(testCtx context.Context, client *client.Client, signer HTTPRequestSignerFunc, httpEndpoint string) TestFunc {
-	st := client.Omni().State()
+func AssertSomeImagesAreDownloadable(testCtx context.Context, options *TestOptions) TestFunc {
+	st := options.omniClient.Omni().State()
 
 	return func(t *testing.T) {
 		t.Parallel()
+
+		sa, err := serviceaccount.Decode(options.serviceAccountKey)
+		require.NoError(t, err)
 
 		media, err := safe.StateListAll[*omni.InstallationMedia](testCtx, st)
 		require.NoError(t, err)
@@ -60,10 +65,10 @@ func AssertSomeImagesAreDownloadable(testCtx context.Context, client *client.Cli
 				ctx, cancel := context.WithTimeout(testCtx, time.Minute*5)
 				defer cancel()
 
-				u, err := url.Parse(httpEndpoint)
+				u, err := url.Parse(options.HTTPEndpoint)
 				require.NoError(t, err)
 
-				schematic, err := client.Management().CreateSchematic(ctx, &management.CreateSchematicRequest{
+				schematic, err := options.omniClient.Management().CreateSchematic(ctx, &management.CreateSchematicRequest{
 					MediaId:      image.Metadata().ID(),
 					TalosVersion: clientconsts.DefaultTalosVersion,
 				})
@@ -75,7 +80,10 @@ func AssertSomeImagesAreDownloadable(testCtx context.Context, client *client.Cli
 				req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 				require.NoError(t, err)
 
-				require.NoError(t, signer(ctx, req))
+				msg, err := message.NewHTTP(req)
+				require.NoError(t, err)
+
+				require.NoError(t, msg.Sign(sa.Name+access.ServiceAccountNameSuffix, sa.Key))
 
 				resp, err := http.DefaultClient.Do(req)
 				require.NoError(t, err)

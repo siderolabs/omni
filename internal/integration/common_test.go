@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -29,7 +28,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
-	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 )
 
 func resourceDetails(res resource.Resource) string {
@@ -266,9 +264,6 @@ type WipeAMachineFunc func(ctx context.Context, uuid string) error
 // FreezeAMachineFunc is a function to freeze a machine by UUID.
 type FreezeAMachineFunc func(ctx context.Context, uuid string) error
 
-// HTTPRequestSignerFunc is function to sign the HTTP request.
-type HTTPRequestSignerFunc func(ctx context.Context, req *http.Request) error
-
 // Options for the test runner.
 //
 //nolint:govet
@@ -340,8 +335,8 @@ type MachineProviderConfig struct {
 // TestOptions constains all common data that might be required to run the tests.
 type TestOptions struct {
 	Options
-	omniClient   *client.Client
-	clientConfig *clientconfig.ClientConfig
+	omniClient        *client.Client
+	serviceAccountKey string
 
 	machineSemaphore *semaphore.Weighted
 }

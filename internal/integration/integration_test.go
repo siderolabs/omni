@@ -16,14 +16,16 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime"
 	"testing"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
-	"github.com/cosi-project/runtime/pkg/state"
+	cosistate "github.com/cosi-project/runtime/pkg/state"
 	"github.com/mattn/go-shellwords"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,14 +36,19 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 
+	"github.com/siderolabs/omni/client/pkg/access"
+	"github.com/siderolabs/omni/client/pkg/client"
 	clientconsts "github.com/siderolabs/omni/client/pkg/constants"
+	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	_ "github.com/siderolabs/omni/cmd/acompat" // this package should always be imported first for init->set env to work
 	"github.com/siderolabs/omni/cmd/omni/pkg/app"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
-	"github.com/siderolabs/omni/internal/pkg/clientconfig"
+	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	omnisa "github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
@@ -197,13 +204,7 @@ func TestIntegration(t *testing.T) {
 	// Talos API calls try to use user auth if the service account var is not set
 	os.Setenv(serviceaccount.OmniServiceAccountKeyEnvVar, serviceAccount)
 
-	clientConfig := clientconfig.New(omniEndpoint, serviceAccount)
-
-	t.Cleanup(func() {
-		clientConfig.Close() //nolint:errcheck
-	})
-
-	rootClient, err := clientConfig.GetClient(t.Context())
+	rootClient, err := client.New(omniEndpoint, client.WithServiceAccount(serviceAccount))
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -211,10 +212,10 @@ func TestIntegration(t *testing.T) {
 	})
 
 	testOptions := &TestOptions{
-		omniClient:       rootClient,
-		Options:          options,
-		machineSemaphore: semaphore.NewWeighted(int64(options.ExpectedMachines)),
-		clientConfig:     clientConfig,
+		omniClient:        rootClient,
+		Options:           options,
+		machineSemaphore:  semaphore.NewWeighted(int64(options.ExpectedMachines)),
+		serviceAccountKey: serviceAccount,
 	}
 
 	preRunHooks(t, testOptions)
@@ -390,7 +391,7 @@ func postRunHooks(t *testing.T, options *TestOptions) {
 	}
 }
 
-func cleanupLinksFunc(ctx context.Context, st state.State) error {
+func cleanupLinksFunc(ctx context.Context, st cosistate.State) error {
 	links, err := safe.ReaderListAll[*siderolink.Link](ctx, st)
 	if err != nil {
 		return err
@@ -403,7 +404,7 @@ func cleanupLinksFunc(ctx context.Context, st state.State) error {
 
 	return links.ForEachErr(func(r *siderolink.Link) error {
 		err := st.TeardownAndDestroy(ctx, r.Metadata())
-		if err != nil && !state.IsNotFoundError(err) {
+		if err != nil && !cosistate.IsNotFoundError(err) {
 			return err
 		}
 
@@ -503,7 +504,7 @@ func runOmni(t *testing.T) (string, error) {
 
 	rtestutils.AssertResources(ctx, t, state.Default(), []string{talosVersion}, func(*omnires.TalosVersion, *assert.Assertions) {})
 
-	sa, err := clientconfig.CreateServiceAccount(omniCtx, "root", state.Default())
+	sa, err := createBootstrapServiceAccount(omniCtx, "root", state.Default())
 	if err != nil {
 		return "", err
 	}
@@ -512,4 +513,39 @@ func runOmni(t *testing.T) (string, error) {
 	t.Logf("running integration tests using embedded Omni at %q", omniEndpoint)
 
 	return sa, nil
+}
+
+func createBootstrapServiceAccount(ctx context.Context, name string, st cosistate.State) (string, error) {
+	comment := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
+
+	serviceAccountEmail := name + access.ServiceAccountNameSuffix
+
+	key, err := pgp.GenerateKey(name, comment, serviceAccountEmail, auth.ServiceAccountMaxAllowedLifetime)
+	if err != nil {
+		return "", err
+	}
+
+	armoredPublicKey, err := key.ArmorPublic()
+	if err != nil {
+		return "", err
+	}
+
+	identity, err := safe.ReaderGetByID[*authres.Identity](ctx, st, serviceAccountEmail)
+	if err != nil && !cosistate.IsNotFoundError(err) {
+		return "", err
+	}
+
+	if identity != nil {
+		err = omnisa.Destroy(ctx, st, name)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	_, err = omnisa.Create(ctx, st, name, string(role.Admin), false, []byte(armoredPublicKey))
+	if err != nil {
+		return "", err
+	}
+
+	return serviceaccount.Encode(name, key)
 }

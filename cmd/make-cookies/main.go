@@ -7,49 +7,43 @@
 package main
 
 import (
-	"context"
+	"encoding/base64"
 	"fmt"
+	"log"
 	"net/http"
-	"os"
+
+	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
-	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 )
 
 func main() {
 	if err := app(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		log.Fatalf("failed to create cookies: %v", err)
 	}
 }
 
 func app() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// don't forget to build this with the -tags=sidero.debug
-	if len(os.Args) != 2 {
-		return fmt.Errorf("usage: %s <endpoint>", os.Args[0])
+	_, saKey := serviceaccount.GetFromEnv()
+	if saKey == "" {
+		return fmt.Errorf("no service account key found in environment variables")
 	}
 
-	cfg := clientconfig.New(os.Args[1], os.Getenv("OMNI_SERVICE_ACCOUNT_KEY"))
-	defer cfg.Close() //nolint:errcheck
-
-	client, err := cfg.GetClient(ctx)
+	sa, err := serviceaccount.Decode(saKey)
 	if err != nil {
-		return fmt.Errorf("error getting client: %w", err)
+		return fmt.Errorf("error decoding service account key: %w", err)
 	}
 
-	defer client.Close() //nolint:errcheck
+	keyID := sa.Key.Fingerprint()
 
-	keyID, keyIDSignatureBase64, err := clientconfig.RegisterKeyGetIDSignatureBase64(ctx, client)
+	signedIDBytes, err := sa.Key.Sign([]byte(keyID))
 	if err != nil {
-		return fmt.Errorf("error registering key: %w", err)
+		return fmt.Errorf("error signing key ID: %w", err)
 	}
 
 	cookies := []*http.Cookie{
 		{Name: workloadproxy.PublicKeyIDCookie, Value: keyID},
-		{Name: workloadproxy.PublicKeyIDSignatureBase64Cookie, Value: keyIDSignatureBase64},
+		{Name: workloadproxy.PublicKeyIDSignatureBase64Cookie, Value: base64.StdEncoding.EncodeToString(signedIDBytes)},
 	}
 
 	for _, cookie := range cookies {

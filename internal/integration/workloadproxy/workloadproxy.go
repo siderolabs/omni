@@ -31,6 +31,8 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/go-api-signature/pkg/pgp"
+	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,7 +50,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	"github.com/siderolabs/omni/internal/integration/kubernetes"
-	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 )
 
 type serviceContext struct {
@@ -75,13 +76,16 @@ var sideroLabsIconSVG []byte
 // Test tests the exposed services functionality in Omni.
 //
 //nolint:prealloc
-func Test(ctx context.Context, t *testing.T, omniClient *client.Client, clusterIDs ...string) {
+func Test(ctx context.Context, t *testing.T, omniClient *client.Client, serviceAccountKey string, clusterIDs ...string) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
 	t.Cleanup(cancel)
 
 	if len(clusterIDs) == 0 {
 		require.Fail(t, "no cluster IDs provided for the test, please provide at least one cluster ID")
 	}
+
+	sa, err := serviceaccount.Decode(serviceAccountKey)
+	require.NoError(t, err)
 
 	ctx = kubernetes.WrapContext(ctx, t)
 	logger := zaptest.NewLogger(t)
@@ -118,7 +122,7 @@ func Test(ctx context.Context, t *testing.T, omniClient *client.Client, clusterI
 		allExposedServices[i], allExposedServices[j] = allExposedServices[j], allExposedServices[i]
 	})
 
-	testAccess(ctx, t, logger, omniClient, allExposedServices, http.StatusOK)
+	testAccess(ctx, t, logger, sa.Key, allExposedServices, http.StatusOK)
 
 	inaccessibleExposedServices := make([]*omni.ExposedService, 0, len(allExposedServices))
 
@@ -132,7 +136,7 @@ func Test(ctx context.Context, t *testing.T, omniClient *client.Client, clusterI
 		}
 	}
 
-	testAccess(ctx, t, logger, omniClient, inaccessibleExposedServices, http.StatusBadGateway)
+	testAccess(ctx, t, logger, sa.Key, inaccessibleExposedServices, http.StatusBadGateway)
 
 	for _, deployment := range deploymentsToScaleDown {
 		logger.Info("scale deployment back up", zap.String("deployment", deployment.deployment.Name), zap.String("clusterID", deployment.cluster.clusterID))
@@ -140,13 +144,13 @@ func Test(ctx context.Context, t *testing.T, omniClient *client.Client, clusterI
 		kubernetes.ScaleDeployment(ctx, t, deployment.cluster.kubeClient, deployment.deployment.Namespace, deployment.deployment.Name, 1)
 	}
 
-	testAccess(ctx, t, logger, omniClient, allExposedServices, http.StatusOK)
-	testToggleFeature(ctx, t, logger, omniClient, clusters[0])
-	testToggleKubernetesServiceAnnotation(ctx, t, logger, omniClient, allServices[:len(allServices)/2])
+	testAccess(ctx, t, logger, sa.Key, allExposedServices, http.StatusOK)
+	testToggleFeature(ctx, t, logger, omniClient, sa.Key, clusters[0])
+	testToggleKubernetesServiceAnnotation(ctx, t, logger, omniClient, sa.Key, allServices[:len(allServices)/2])
 }
 
 // testToggleFeature tests toggling off/on the workload proxy feature for a cluster.
-func testToggleFeature(ctx context.Context, t *testing.T, logger *zap.Logger, omniClient *client.Client, cluster clusterContext) {
+func testToggleFeature(ctx context.Context, t *testing.T, logger *zap.Logger, omniClient *client.Client, saKey *pgp.Key, cluster clusterContext) {
 	logger.Info("test turning off and on the feature for the cluster", zap.String("clusterID", cluster.clusterID))
 
 	setFeatureToggle := func(enabled bool) {
@@ -172,14 +176,14 @@ func testToggleFeature(ctx context.Context, t *testing.T, logger *zap.Logger, om
 		services = services[:4]
 	}
 
-	testAccess(ctx, t, logger, omniClient, services[:4], http.StatusNotFound)
+	testAccess(ctx, t, logger, saKey, services[:4], http.StatusNotFound)
 
 	setFeatureToggle(true)
 
-	testAccess(ctx, t, logger, omniClient, services[:4], http.StatusOK)
+	testAccess(ctx, t, logger, saKey, services[:4], http.StatusOK)
 }
 
-func testToggleKubernetesServiceAnnotation(ctx context.Context, t *testing.T, logger *zap.Logger, omniClient *client.Client, services []serviceContext) {
+func testToggleKubernetesServiceAnnotation(ctx context.Context, t *testing.T, logger *zap.Logger, omniClient *client.Client, saKey *pgp.Key, services []serviceContext) {
 	logger.Info("test toggling Kubernetes service annotation for exposed services", zap.Int("numServices", len(services)))
 
 	for _, service := range services {
@@ -195,7 +199,7 @@ func testToggleKubernetesServiceAnnotation(ctx context.Context, t *testing.T, lo
 
 	exposedServices := xslices.Map(services, func(svc serviceContext) *omni.ExposedService { return svc.res })
 
-	testAccess(ctx, t, logger, omniClient, exposedServices, http.StatusNotFound)
+	testAccess(ctx, t, logger, saKey, exposedServices, http.StatusNotFound)
 
 	for _, service := range services {
 		kubernetes.UpdateService(ctx, t, service.deployment.cluster.kubeClient, service.svc.Namespace, service.svc.Name, func(svc *corev1.Service) {
@@ -223,7 +227,7 @@ func testToggleKubernetesServiceAnnotation(ctx context.Context, t *testing.T, lo
 
 	updatedServices := maps.Values(updatedServicesMap)
 
-	testAccess(ctx, t, logger, omniClient, updatedServices, http.StatusOK)
+	testAccess(ctx, t, logger, saKey, updatedServices, http.StatusOK)
 }
 
 func prepareServices(ctx context.Context, t *testing.T, logger *zap.Logger, omniClient *client.Client, clusterID string) clusterContext {
@@ -299,11 +303,15 @@ func prepareServices(ctx context.Context, t *testing.T, logger *zap.Logger, omni
 	return cluster
 }
 
-func testAccess(ctx context.Context, t *testing.T, logger *zap.Logger, omniClient *client.Client, exposedServices []*omni.ExposedService, expectedStatusCode int) {
-	keyID, keyIDSignatureBase64, err := clientconfig.RegisterKeyGetIDSignatureBase64(ctx, omniClient)
+func testAccess(ctx context.Context, t *testing.T, logger *zap.Logger, saKey *pgp.Key, exposedServices []*omni.ExposedService, expectedStatusCode int) {
+	keyID := saKey.Fingerprint()
+
+	signedIDBytes, err := saKey.Sign([]byte(keyID))
 	require.NoError(t, err)
 
-	logger.Debug("registered public key for workload proxy", zap.String("keyID", keyID), zap.String("keyIDSignatureBase64", keyIDSignatureBase64))
+	keyIDSignatureBase64 := base64.StdEncoding.EncodeToString(signedIDBytes)
+
+	logger.Debug("using SA key for workload proxy", zap.String("keyID", keyID), zap.String("keyIDSignatureBase64", keyIDSignatureBase64))
 
 	cookies := []*http.Cookie{
 		{Name: workloadproxy.PublicKeyIDCookie, Value: keyID},

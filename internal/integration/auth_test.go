@@ -10,6 +10,7 @@ package integration_test
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
@@ -23,6 +24,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -36,7 +38,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/gen/xslices"
-	authcli "github.com/siderolabs/go-api-signature/pkg/client/auth"
 	"github.com/siderolabs/go-api-signature/pkg/client/interceptor"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
@@ -73,9 +74,113 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
-	"github.com/siderolabs/omni/internal/pkg/clientconfig"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 )
+
+// testClientFactory creates test clients with specific roles for authorization testing.
+// It uses the root client (automation SA) to create new service accounts with the specified role,
+// then returns a client authenticated as that SA. Clients are cached by role.
+type testClientFactory struct {
+	endpoint          string
+	serviceAccountKey string
+	rootCli           *client.Client
+
+	mu      sync.Mutex
+	clients map[role.Role]*client.Client
+}
+
+func newTestClientFactory(endpoint string, rootCli *client.Client) *testClientFactory {
+	return &testClientFactory{
+		endpoint: endpoint,
+		rootCli:  rootCli,
+		clients:  make(map[role.Role]*client.Client),
+	}
+}
+
+func (f *testClientFactory) getClient(ctx context.Context, r role.Role) (*client.Client, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if cli, ok := f.clients[r]; ok {
+		return cli, nil
+	}
+
+	cli, err := f.createClientForRole(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	f.clients[r] = cli
+
+	return cli, nil
+}
+
+func (f *testClientFactory) createClientForRole(ctx context.Context, r role.Role) (*client.Client, error) {
+	name := fmt.Sprintf("%x", md5.Sum([]byte(string(r))))
+
+	comment := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
+
+	suffix := access.ServiceAccountNameSuffix
+	if r == role.InfraProvider {
+		suffix = access.InfraProviderServiceAccountNameSuffix
+	}
+
+	serviceAccountEmail := name + suffix
+
+	key, err := pgp.GenerateKey(name, comment, serviceAccountEmail, auth.ServiceAccountMaxAllowedLifetime)
+	if err != nil {
+		return nil, err
+	}
+
+	if r == role.InfraProvider {
+		name = access.InfraProviderServiceAccountPrefix + name
+	}
+
+	armoredPublicKey, err := key.ArmorPublic()
+	if err != nil {
+		return nil, err
+	}
+
+	serviceAccounts, err := f.rootCli.Management().ListServiceAccounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if slices.IndexFunc(serviceAccounts, func(account *management.ListServiceAccountsResponse_ServiceAccount) bool {
+		return account.Name == name
+	}) != -1 {
+		if err = f.rootCli.Management().DestroyServiceAccount(ctx, name); err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = f.rootCli.Management().CreateServiceAccount(ctx, name, armoredPublicKey, string(r), false)
+	if err != nil {
+		return nil, err
+	}
+
+	encodedKey, err := serviceaccount.Encode(name, key)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.New(f.endpoint, client.WithServiceAccount(encodedKey))
+}
+
+func (f *testClientFactory) close() error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	var errs []error
+
+	for _, cli := range f.clients {
+		if err := cli.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
+}
 
 // AssertAnonymousAuthentication tests the authentication without any credentials.
 func AssertAnonymousAuthentication(testCtx context.Context, client *client.Client) TestFunc {
@@ -336,7 +441,7 @@ type apiAuthzTestCase struct {
 // AssertAPIAuthz tests the authorization checks of the API endpoints.
 //
 //nolint:gocognit,gocyclo,cyclop,maintidx
-func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfig *clientconfig.ClientConfig, clusterName string) TestFunc {
+func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFactory *testClientFactory, clusterName string) TestFunc {
 	rootCtx = metadata.NewOutgoingContext(rootCtx, metadata.Pairs(grpcutil.LogLevelOverrideMetadataKey, zapcore.PanicLevel.String()))
 
 	assertSuccess := func(t *testing.T, err error) {
@@ -555,13 +660,10 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 		for _, tc := range testCases {
 			// test each test case without signature
 			t.Run(fmt.Sprintf("%s-no-signature", tc.namePrefix), func(t *testing.T) {
-				scopedClient, testErr := clientConfig.GetClient(rootCtx)
-				require.NoError(t, testErr)
-
 				// skip signing the request
 				ctx := context.WithValue(rootCtx, interceptor.SkipInterceptorContextKey{}, struct{}{})
 
-				testErr = tc.fn(ctx, scopedClient)
+				testErr := tc.fn(ctx, rootCli)
 
 				// public resources will either succeed or fail with a permission denied if they are read-only resources
 				if tc.isPublic {
@@ -586,11 +688,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 
 			// test with the role which should succeed
 			t.Run(fmt.Sprintf("%s-success", tc.namePrefix), func(t *testing.T) {
-				scopedClient, testErr := clientConfig.GetClient(
-					rootCtx,
-					authcli.WithRole(string(tc.requiredRole)),
-					authcli.WithSkipUserRole(true),
-				)
+				scopedClient, testErr := clientFactory.getClient(rootCtx, tc.requiredRole)
 				require.NoError(t, testErr)
 
 				assertCurrentUserRole(rootCtx, t, scopedClient.Omni().State(), tc.requiredRole)
@@ -613,10 +711,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientConfi
 			require.NoError(t, err)
 
 			t.Run(fmt.Sprintf("%s-failure", tc.namePrefix), func(t *testing.T) {
-				scopedClient, testErr := clientConfig.GetClient(
-					rootCtx,
-					authcli.WithRole(string(failureRole)),
-					authcli.WithSkipUserRole(true))
+				scopedClient, testErr := clientFactory.getClient(rootCtx, failureRole)
 				require.NoError(t, testErr)
 
 				assertCurrentUserRole(rootCtx, t, scopedClient.Omni().State(), failureRole)
@@ -641,7 +736,7 @@ type resourceAuthzTestCase struct {
 // AssertResourceAuthz tests the authorization checks of the resources (state).
 //
 //nolint:gocognit,gocyclo,cyclop,maintidx
-func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, clientConfig *clientconfig.ClientConfig) TestFunc {
+func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, clientFactory *testClientFactory) TestFunc {
 	rootCtx = metadata.NewOutgoingContext(rootCtx, metadata.Pairs(grpcutil.LogLevelOverrideMetadataKey, zapcore.PanicLevel.String()))
 
 	return func(t *testing.T) {
@@ -1247,11 +1342,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 					delete(untestedResourceTypes, tc.resource.Metadata().Type())
 
 					t.Run(name, func(t *testing.T) {
-						scopedCli, testErr := clientConfig.GetClient(
-							rootCtx,
-							authcli.WithRole(string(testRole)),
-							authcli.WithSkipUserRole(true),
-						)
+						scopedCli, testErr := clientFactory.getClient(rootCtx, testRole)
 						require.NoError(t, testErr)
 
 						// ensure that scopedCli is operating with the correct role
@@ -1377,12 +1468,13 @@ var (
 
 const grpcMetadataPrefix = "Grpc-Metadata-"
 
-func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, clientConfig *clientconfig.ClientConfig, httpEndpoint, clusterName string) TestFunc {
+func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, serviceAccountKey, httpEndpoint, clusterName string) TestFunc {
 	return func(t *testing.T) {
-		key, err := clientConfig.GetKey(ctx)
+		sa, err := serviceaccount.Decode(serviceAccountKey)
 		require.NoError(t, err)
 
-		email := clientconfig.DefaultServiceAccount
+		key := sa.Key
+		email := sa.Name + access.ServiceAccountNameSuffix
 
 		// do the same flow for the signature as in the JS code
 		signRequest := func(request *http.Request) error {
