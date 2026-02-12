@@ -15,13 +15,12 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/hexops/gotextdiff"
-	"github.com/hexops/gotextdiff/myers"
-	"github.com/hexops/gotextdiff/span"
 	"github.com/siderolabs/gen/maps"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.yaml.in/yaml/v4"
+
+	"github.com/siderolabs/omni/client/pkg/diff"
 )
 
 type eventHandler func(event state.Event) error
@@ -82,11 +81,17 @@ func loggingEventHandler(logger *zap.Logger, lvl zapcore.Level, types map[resour
 				return fmt.Errorf("failed to convert new resource to YAML: %w", err)
 			}
 
-			resStr := resource.String(event.Old)
+			diffStr, err := diff.Compute([]byte(oldYAML), []byte(newYAML))
+			if err != nil {
+				return fmt.Errorf("failed to compute diff: %w", err)
+			}
 
-			edits := myers.ComputeEdits(span.URIFromPath(resStr), oldYAML, newYAML)
-			diff := gotextdiff.ToUnified(resStr, resStr, oldYAML, edits)
-			diffLines := strings.Split(fmt.Sprint(diff), "\n")
+			if diffStr != "" {
+				resStr := resource.String(event.Old)
+				diffStr = fmt.Sprintf("--- %s\n+++ %s\n%s", resStr, resStr, diffStr)
+			}
+
+			diffLines := strings.Split(diffStr, "\n")
 
 			fields = append(fields, zap.Strings("diff", diffLines))
 		}

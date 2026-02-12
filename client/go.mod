@@ -15,10 +15,10 @@ require (
 	github.com/gosuri/uiprogress v0.0.1
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.7
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hexops/gotextdiff v1.0.3
 	github.com/jxskiss/base62 v1.1.0
 	github.com/klauspost/compress v1.18.3
 	github.com/mattn/go-isatty v0.0.20
+	github.com/neticdk/go-stdlib v1.0.0
 	github.com/planetscale/vtprotobuf v0.6.1-0.20250313105119-ba97887b0a25
 	github.com/sergi/go-diff v1.4.0
 	github.com/siderolabs/gen v0.8.6
@@ -62,6 +62,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/gosuri/uilive v0.0.4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jsimonetti/rtnetlink/v2 v2.2.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

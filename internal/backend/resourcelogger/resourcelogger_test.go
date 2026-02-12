@@ -177,12 +177,12 @@ func TestResourceLogger(t *testing.T) {
      hardware: null
      network:
          hostname: aaa
--        domainname: bbb
 +        domainname: ccc
+-        domainname: bbb
          addresses:
              - 1.2.3.4
              - 5.6.7.8
-@@ -25,10 +17,10 @@
+@@ -25,10 +25,10 @@
                linkup: true
                description: hello
      lasterror: ""
