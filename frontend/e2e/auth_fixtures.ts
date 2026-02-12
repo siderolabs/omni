@@ -26,7 +26,6 @@ const test = base.extend<AuthFixtures>({
       await page.getByRole('textbox', { name: 'Password' }).fill(process.env.AUTH_PASSWORD)
       await page.getByRole('button', { name: 'Continue', exact: true }).click()
 
-      await page.getByRole('button', { name: 'Log In' }).click()
       await page.getByRole('heading', { name: 'Home' }).waitFor()
 
       if (await page.getByText('Cookies for a Better Experience').isVisible()) {
