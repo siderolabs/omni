@@ -18,6 +18,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/keyprovider"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // Loader is an interface that returns a private key.
@@ -43,16 +44,16 @@ type Loader interface {
 //	 file:///path/to/file
 //
 //			path to a private key file
-func NewLoader(source string, logger *zap.Logger, vaultToken, vaultURL string) (Loader, error) {
+func NewLoader(source string, logger *zap.Logger, vaultConfig config.Vault) (Loader, error) {
 	if source == "" {
 		return nil, errors.New("private key source is not set")
 	}
 
 	switch {
 	case os.Getenv("VAULT_K8S_ROLE") != "" && (vaultMatcher.MatchString(source) || vaultTokenMatcher.MatchString(source)):
-		return makeVaultK8sLoader(source, os.Getenv("VAULT_K8S_ROLE"), logger)
+		return makeVaultK8sLoader(source, os.Getenv("VAULT_K8S_ROLE"), vaultConfig.K8SAuthMountPath, logger)
 	case vaultMatcher.MatchString(source):
-		return makeVaultHTTPLoader(source, logger, vaultToken, vaultURL)
+		return makeVaultHTTPLoader(source, logger, vaultConfig)
 	case strings.HasPrefix(source, "file://"):
 		return makeFileLoader(source, logger)
 	}
@@ -91,7 +92,7 @@ func (f *FileLoader) PrivateKey() (keyprovider.PrivateKeyData, error) {
 	return data, nil
 }
 
-func makeVaultHTTPLoader(source string, logger *zap.Logger, vaultToken, vaultURL string) (Loader, error) {
+func makeVaultHTTPLoader(source string, logger *zap.Logger, vaultConfig config.Vault) (Loader, error) {
 	matched := vaultMatcher.FindStringSubmatch(source)
 	if len(matched) != 3 {
 		return nil, errors.New("failed to parse vault-url source")
@@ -102,7 +103,7 @@ func makeVaultHTTPLoader(source string, logger *zap.Logger, vaultToken, vaultURL
 
 	token, ok := os.LookupEnv("VAULT_TOKEN")
 	if !ok {
-		token = vaultToken
+		token = vaultConfig.GetToken()
 
 		if token == "" {
 			return nil, errors.New("VAULT_TOKEN is not set")
@@ -111,7 +112,7 @@ func makeVaultHTTPLoader(source string, logger *zap.Logger, vaultToken, vaultURL
 
 	addr, ok := os.LookupEnv("VAULT_ADDR")
 	if !ok {
-		addr = vaultURL
+		addr = vaultConfig.GetUrl()
 		if addr == "" {
 			return nil, errors.New("VAULT_ADDR is not set")
 		}
@@ -158,7 +159,7 @@ func (v *VaultHTTPLoader) PrivateKey() (keyprovider.PrivateKeyData, error) {
 	return loadKeyData(client, v.Mount, v.SecretPath)
 }
 
-func makeVaultK8sLoader(source string, role string, logger *zap.Logger) (Loader, error) {
+func makeVaultK8sLoader(source string, role string, k8sAuthMountPath *string, logger *zap.Logger) (Loader, error) {
 	var (
 		tokenPath  string
 		mount      string
@@ -177,11 +178,12 @@ func makeVaultK8sLoader(source string, role string, logger *zap.Logger) (Loader,
 	}
 
 	return &VaultK8sLoader{
-		Role:       role,
-		TokenPath:  tokenPath,
-		Mount:      mount,
-		SecretPath: secretPath,
-		logger:     logger,
+		Role:             role,
+		TokenPath:        tokenPath,
+		K8sAuthMountPath: k8sAuthMountPath,
+		Mount:            mount,
+		SecretPath:       secretPath,
+		logger:           logger,
 	}, nil
 }
 
@@ -189,10 +191,11 @@ func makeVaultK8sLoader(source string, role string, logger *zap.Logger) (Loader,
 type VaultK8sLoader struct {
 	logger *zap.Logger
 
-	Role       string
-	TokenPath  string
-	Mount      string
-	SecretPath string
+	Role             string
+	TokenPath        string
+	K8sAuthMountPath *string
+	Mount            string
+	SecretPath       string
 }
 
 // PrivateKey loads a private key from a Vault instance using Kubernetes authentication.
@@ -205,6 +208,10 @@ func (v *VaultK8sLoader) PrivateKey() (keyprovider.PrivateKeyData, error) {
 	var opts []auth.LoginOption
 	if v.TokenPath != "" {
 		opts = append(opts, auth.WithServiceAccountTokenPath(v.TokenPath))
+	}
+
+	if v.K8sAuthMountPath != nil {
+		opts = append(opts, auth.WithMountPath(*v.K8sAuthMountPath))
 	}
 
 	k8sAuth, err := auth.NewKubernetesAuth(

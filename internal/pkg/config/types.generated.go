@@ -728,6 +728,11 @@ type UserPilot struct {
 }
 
 type Vault struct {
+	// K8sAuthMountPath is the mount path of the Kubernetes auth method in Vault. When
+	// not set, it defaults to "kubernetes". This is useful when Vault is running on a
+	// different cluster and has multiple Kubernetes auth mounts.
+	K8SAuthMountPath *string `json:"k8sAuthMountPath,omitempty" yaml:"k8sAuthMountPath,omitempty"`
+
 	// Token is the authentication token for the Vault server. It is read from
 	// VAULT_TOKEN env var when not set. It is recommended to be passed as env var
 	// instead of being stored in the config file.

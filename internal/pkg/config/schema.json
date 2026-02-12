@@ -1020,6 +1020,10 @@
         "token": {
           "description": "Token is the authentication token for the Vault server. It is read from VAULT_TOKEN env var when not set. It is recommended to be passed as env var instead of being stored in the config file.",
           "type": "string"
+        },
+        "k8sAuthMountPath": {
+          "description": "K8sAuthMountPath is the mount path of the Kubernetes auth method in Vault. When not set, it defaults to \"kubernetes\". This is useful when Vault is running on a different cluster and has multiple Kubernetes auth mounts.",
+          "type": "string"
         }
       }
     },

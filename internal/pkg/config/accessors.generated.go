@@ -1293,6 +1293,17 @@ func (s *UserPilot) SetAppToken(v string) {
 	s.AppToken = &v
 }
 
+func (s *Vault) GetK8SAuthMountPath() string {
+	if s == nil || s.K8SAuthMountPath == nil {
+		return *new(string)
+	}
+	return *s.K8SAuthMountPath
+}
+
+func (s *Vault) SetK8SAuthMountPath(v string) {
+	s.K8SAuthMountPath = &v
+}
+
 func (s *Vault) GetToken() string {
 	if s == nil || s.Token == nil {
 		return *new(string)

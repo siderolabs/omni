@@ -421,6 +421,10 @@ config:
       # Tip: Use additionalConfigSources to load this from an existing Secret,
       # or set the VAULT_TOKEN environment variable via env/envFrom.
       token: ""
+      # K8sAuthMountPath is the mount path of the Kubernetes auth method in Vault.
+      # When not set, it defaults to "kubernetes".
+      # This is useful when Vault is running on a different cluster and has multiple Kubernetes auth mounts.
+      #k8sAuthMountPath: ""
 
 # -- Environment variables to pass to Omni.
 env: []

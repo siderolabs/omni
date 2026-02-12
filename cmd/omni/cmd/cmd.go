@@ -425,12 +425,16 @@ func defineStorageFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, f
 
 	rootCmdFlagBinder.StringVar(config.SQLiteStoragePathFlag,
 		flagDescription("storage.sqlite.path", schema), &flagConfig.Storage.Sqlite.Path)
+
 	rootCmdFlagBinder.StringVar("sqlite-storage-experimental-base-params",
 		flagDescription("storage.sqlite.experimentalBaseParams", schema), &flagConfig.Storage.Sqlite.ExperimentalBaseParams)
 
 	rootCmdFlagBinder.StringVar("sqlite-storage-extra-params",
 		flagDescription("storage.sqlite.extraParams", schema),
 		&flagConfig.Storage.Sqlite.ExtraParams)
+
+	rootCmdFlagBinder.StringVar("vault-k8s-auth-mount-path",
+		flagDescription("storage.vault.k8sAuthMountPath", schema), &flagConfig.Storage.Vault.K8SAuthMountPath)
 
 	return nil
 }

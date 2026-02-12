@@ -16,11 +16,13 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 func TestNewLoader(t *testing.T) {
 	type args struct {
-		source string
+		k8sAuthMountPath *string
+		source           string
 	}
 
 	tests := map[string]struct {
@@ -133,6 +135,21 @@ func TestNewLoader(t *testing.T) {
 				SecretPath: "omni/account/etcdEnc",
 			}),
 		},
+		"k8s vault with custom auth mount path": {
+			pre: func(t *testing.T) {
+				t.Setenv("VAULT_K8S_ROLE", "k8s-role")
+			},
+			args: args{
+				source:           "vault://secret/omni/account/etcdEnc",
+				k8sAuthMountPath: new("auth/remote-cluster"),
+			},
+			want: equalTo(&omni.VaultK8sLoader{
+				Role:             "k8s-role",
+				K8sAuthMountPath: new("auth/remote-cluster"),
+				Mount:            "secret",
+				SecretPath:       "omni/account/etcdEnc",
+			}),
+		},
 		"unknown source": {
 			args: args{
 				source: "vault-k9s://my-role:/path/to/token",
@@ -147,7 +164,7 @@ func TestNewLoader(t *testing.T) {
 				tt.pre(t)
 			}
 
-			got, err := omni.NewLoader(tt.args.source, zaptest.NewLogger(t), "", "")
+			got, err := omni.NewLoader(tt.args.source, zaptest.NewLogger(t), config.Vault{K8SAuthMountPath: tt.args.k8sAuthMountPath})
 			tt.want(t, got, err)
 		})
 	}

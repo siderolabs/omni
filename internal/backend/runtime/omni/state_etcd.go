@@ -77,7 +77,7 @@ func newEtcdPersistentState(ctx context.Context, params *config.Params, logger *
 
 	var cipher *encryption.Cipher
 
-	cipher, err = makeCipher(accountID, params.Storage.Default.Etcd, etcdState.Client(), logger, params.Storage.Vault.GetToken(), params.Storage.Vault.GetUrl()) //nolint:contextcheck
+	cipher, err = makeCipher(accountID, params.Storage.Default.Etcd, etcdState.Client(), logger, params.Storage.Vault) //nolint:contextcheck
 	if err != nil {
 		return nil, err
 	}
@@ -105,13 +105,13 @@ func newEtcdPersistentState(ctx context.Context, params *config.Params, logger *
 	}, nil
 }
 
-func makeCipher(name string, etcdParams config.EtcdParams, etcdClient etcd.Client, logger *zap.Logger, vaultToken, vaultURL string) (*encryption.Cipher, error) {
+func makeCipher(name string, etcdParams config.EtcdParams, etcdClient etcd.Client, logger *zap.Logger, vaultConfig config.Vault) (*encryption.Cipher, error) {
 	publicKeys, err := loadPublicKeys(etcdParams)
 	if err != nil {
 		return nil, err
 	}
 
-	loader, err := NewLoader(etcdParams.GetPrivateKeySource(), logger, vaultToken, vaultURL)
+	loader, err := NewLoader(etcdParams.GetPrivateKeySource(), logger, vaultConfig)
 	if err != nil {
 		return nil, err
 	}
