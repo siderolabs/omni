@@ -49,6 +49,10 @@ const (
 	// tsgen:LabelSystemPatch
 	LabelSystemPatch = SystemLabelPrefix + "system-patch"
 
+	// LabelSystemManifest marks the manifest as the system manifest, so it shouldn't be editable by the user.
+	// tsgen:LabelSystemManifest
+	LabelSystemManifest = SystemLabelPrefix + "system-manifest"
+
 	// LabelExposedServiceAlias is the alias of the exposed service.
 	// tsgen:LabelExposedServiceAlias
 	LabelExposedServiceAlias = SystemLabelPrefix + "exposed-service-alias"

@@ -763,6 +763,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		infraMachineConfig := omni.NewInfraMachineConfig(uuid.New().String())
 		grpcTunnelConfig := siderolink.NewGRPCTunnelConfig(uuid.New().String())
 		installationMediaConfig := omni.NewInstallationMediaConfig(uuid.NewString())
+		kubernetesManifest := omni.NewKubernetesManifest(uuid.NewString())
 
 		extensionsConfiguration := omni.NewExtensionsConfiguration(uuid.New().String())
 		extensionsConfiguration.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
@@ -900,6 +901,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       omni.NewRotateTalosCA(cluster.Metadata().ID()),
+				allowedVerbSet: allVerbsSet,
+			},
+			{
+				resource:       kubernetesManifest,
 				allowedVerbSet: allVerbsSet,
 			},
 		}
@@ -1239,6 +1244,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       omni.NewClusterSecretsRotationStatus(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       omni.NewClusterKubernetesManifestsStatus(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 		}...)

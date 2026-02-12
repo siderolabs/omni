@@ -119,3 +119,7 @@ func RotateSecretsValidationOptions(st state.State) []validated.StateOption {
 func InstallationMediaConfigValidationOptions() []validated.StateOption {
 	return installationMediaConfigValidationOptions()
 }
+
+func KubernetesManifestsValidationOptions() []validated.StateOption {
+	return kubernetesManifestsValidationOptions()
+}

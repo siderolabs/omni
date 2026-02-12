@@ -1580,3 +1580,43 @@ message ClusterMachineSecretsSpec {
   // Rotation holds the status of the ongoing secrets rotation.
   Rotation rotation = 2;
 }
+
+message KubernetesManifestSpec {
+  enum Mode {
+    UNKNOWN = 0;
+    FULL = 1;
+    ONE_TIME = 2;
+  }
+
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+  bytes compressed_data = 1;
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+  string data = 2;
+  string namespace = 3;
+  Mode mode = 4;
+}
+
+message ClusterKubernetesManifestsStatusSpec {
+  message ManifestStatus {
+    enum Phase {
+      UNKNOWN = 0;
+      PENDING = 1;
+      PROGRESSING = 2;
+      APPLIED = 3;
+      DELETING = 4;
+      FAILED = 5;
+    }
+
+    Phase phase = 1;
+    string last_error = 2;
+    KubernetesManifestSpec.Mode mode = 3;
+    string kind = 4;
+    string name = 5;
+    string namespace = 6;
+  }
+
+  map<string, ManifestStatus> manifests = 1;
+  map<string, string> errors = 2;
+  int32 out_of_sync = 3;
+  int32 total = 4;
+}

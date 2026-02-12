@@ -54,6 +54,7 @@ var (
 		omni.ClusterSecretsRotationStatusType,
 		omni.RotateTalosCAType,
 		omni.SecretRotationType,
+		omni.ClusterKubernetesManifestsStatusType,
 	})
 
 	// clusterLabelTypeSet is the set of resource types which have the related cluster's ID as a label.
@@ -85,6 +86,7 @@ var (
 		omni.MachineConfigDiffType,
 		omni.MachinePendingUpdatesType,
 		omni.ClusterMachineSecretsType,
+		omni.KubernetesManifestType,
 		infra.InfraMachineType,
 		infra.InfraMachineStatusType,
 	})
@@ -393,6 +395,7 @@ func filterAccess(ctx context.Context, access state.Access, samlEnabled bool) er
 		omni.ClusterUUIDType,
 		omni.ClusterWorkloadProxyStatusType,
 		omni.ClusterTaintType,
+		omni.ClusterKubernetesManifestsStatusType,
 		omni.ConfigPatchType,
 		omni.ControlPlaneStatusType,
 		omni.DiscoveryAffiliateDeleteTaskType,
@@ -410,6 +413,7 @@ func filterAccess(ctx context.Context, access state.Access, samlEnabled bool) er
 		omni.KubernetesStatusType,
 		omni.KubernetesUpgradeManifestStatusType,
 		omni.KubernetesUpgradeStatusType,
+		omni.KubernetesManifestType,
 		omni.LoadBalancerConfigType,
 		omni.LoadBalancerStatusType,
 		omni.MachineLabelsType,
@@ -573,6 +577,7 @@ func filterAccessByType(access state.Access) error {
 		omni.ClusterUUIDType,
 		omni.ClusterWorkloadProxyStatusType,
 		omni.ControlPlaneStatusType,
+		omni.ClusterKubernetesManifestsStatusType,
 		omni.DiscoveryAffiliateDeleteTaskType,
 		omni.KubernetesNodeAuditResultType,
 		omni.ExposedServiceType,
