@@ -35,6 +35,14 @@ const routes = computed(() => {
       to: { name: 'NodeConfig', params: { machine: machine.value } },
     },
     {
+      name: 'Pending Updates',
+      to: { name: 'NodePendingUpdates', params: { machine: machine.value } },
+    },
+    {
+      name: 'Config History',
+      to: { name: 'NodeConfigDiffs', params: { machine: machine.value } },
+    },
+    {
       name: 'Patches',
       to: { name: 'NodePatches', params: { machine: machine.value } },
     },
@@ -51,10 +59,14 @@ const routes = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col">
-    <NodesHeader />
+  <div class="flex h-full flex-col pt-6">
+    <NodesHeader class="px-4 md:px-6" />
 
-    <Tabs :model-value="$route.name?.toString()" class="grow">
+    <Tabs
+      :model-value="$route.name?.toString()"
+      class="grow overflow-y-hidden"
+      tabs-list-class="px-4 md:px-6"
+    >
       <template #triggers>
         <TabButton v-for="{ name, to } in routes" :key="name" :as="RouterLink" :value="to.name" :to>
           {{ name }}
@@ -62,7 +74,13 @@ const routes = computed(() => {
       </template>
 
       <template #contents>
-        <TabContent v-for="{ name, to } in routes" :key="name" class="mt-4 grow" :value="to.name">
+        <TabContent
+          v-for="{ name, to } in routes"
+          :key="name"
+          class="mt-4 grow overflow-y-auto"
+          :class="{ 'px-4 md:px-6': to.name !== 'NodeExtensions' }"
+          :value="to.name"
+        >
           <RouterView class="h-full" />
         </TabContent>
       </template>

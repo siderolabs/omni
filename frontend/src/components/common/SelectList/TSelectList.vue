@@ -195,7 +195,7 @@ function labelFromValue(value?: T) {
                 <WordHighligher
                   :query="searchTerm"
                   :text-to-highlight="itemLabel(item)"
-                  highlight-class="text-naturals-n14 font-medium bg-transparent truncate"
+                  highlight-class="truncate bg-transparent font-medium text-naturals-n14"
                 />
               </SelectItemText>
 

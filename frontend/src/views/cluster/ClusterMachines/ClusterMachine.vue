@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, toRefs } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 import type { Resource } from '@/api/grpc'
@@ -28,62 +28,57 @@ import NodeContextMenu from '@/views/common/NodeContextMenu.vue'
 
 import ClusterMachinePhase from './ClusterMachinePhase.vue'
 
-const props = defineProps<{
+const { machine } = defineProps<{
   machine: Resource<ClusterMachineStatusSpec>
   deleteDisabled?: boolean
   hasDiagnosticInfo?: boolean
 }>()
 
-const { machine } = toRefs(props)
-
 const icon = computed(() => {
-  if (machine.value.metadata.labels?.[LabelIsManagedByStaticInfraProvider] !== undefined) {
+  if (machine.metadata.labels?.[LabelIsManagedByStaticInfraProvider] !== undefined) {
     return 'server-network'
   }
 
-  return Object.keys(machine.value.spec.provision_status ?? {}).length
-    ? 'cloud-connection'
-    : 'server'
+  return Object.keys(machine.spec.provision_status ?? {}).length ? 'cloud-connection' : 'server'
 })
 
 const locked = computed(() => {
-  return machine.value?.metadata?.annotations?.[MachineLocked] !== undefined
+  return machine.metadata.annotations?.[MachineLocked] !== undefined
 })
 
 const lockable = computed(() => {
-  return machine?.value.metadata?.labels?.[LabelWorkerRole] !== undefined
+  return machine.metadata.labels?.[LabelWorkerRole] !== undefined
 })
 
 const router = useRouter()
 
 const hostname = computed(() => {
-  const labelHostname = props.machine?.metadata?.labels?.[LabelHostname]
-  return labelHostname && labelHostname !== '' ? labelHostname : props.machine?.metadata.id
+  const labelHostname = machine.metadata.labels?.[LabelHostname]
+  return labelHostname && labelHostname !== '' ? labelHostname : machine.metadata.id
 })
 const nodeName = computed(
-  () =>
-    (props.machine?.metadata?.labels || {})[ClusterMachineStatusLabelNodeName] || hostname.value,
+  () => machine.metadata.labels?.[ClusterMachineStatusLabelNodeName] || hostname.value,
 )
-const clusterName = computed(() => (props.machine?.metadata?.labels || {})[LabelCluster])
+const clusterName = computed(() => (machine.metadata?.labels || {})[LabelCluster])
 
 const openNodeInfo = async () => {
   router.push({
     name: 'NodeOverview',
-    params: { cluster: clusterName.value, machine: props.machine.metadata.id },
+    params: { cluster: clusterName.value, machine: machine.metadata.id },
   })
 }
 
 const lockedUpdate = computed(() => {
-  return machine.value.metadata.labels?.[UpdateLocked] !== undefined
+  return machine.metadata.labels?.[UpdateLocked] !== undefined
 })
 
 const updateLock = async () => {
-  if (!props.machine.metadata.id) {
+  if (!machine.metadata.id) {
     return
   }
 
   try {
-    await updateMachineLock(props.machine.metadata.id, !locked.value)
+    await updateMachineLock(machine.metadata.id, !locked.value)
   } catch (e) {
     showError('Failed To Update Machine Lock', e.message)
   }
@@ -110,10 +105,18 @@ const updateLock = async () => {
 
     <div class="col-span-2 flex items-center gap-2">
       <ClusterMachinePhase :machine="machine" />
-      <div v-if="lockedUpdate" class="flex items-center gap-1 truncate text-sky-400">
+      <RouterLink
+        v-if="lockedUpdate"
+        :to="{
+          name: 'NodePendingUpdates',
+          params: { cluster: clusterName, machine: machine.metadata.id },
+        }"
+        class="flex items-center gap-1 truncate text-sky-400"
+        @click.stop
+      >
         <TIcon icon="time" class="h-4 w-4 min-w-max" />
         <div class="flex-1 truncate">Pending Config Update</div>
-      </div>
+      </RouterLink>
     </div>
 
     <div class="flex items-center justify-end">

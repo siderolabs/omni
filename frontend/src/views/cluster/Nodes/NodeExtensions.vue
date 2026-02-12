@@ -168,19 +168,21 @@ const openExtensionsUpdate = () => {
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col">
-    <div class="flex flex-1 flex-col gap-4 pb-10">
+  <div class="flex flex-col">
+    <div class="flex grow flex-col gap-4 px-4 md:px-6">
       <TInput v-model="searchString" icon="search" />
       <div class="flex flex-1 flex-col">
         <template v-if="ready && extensionsState.length > 0">
-          <div class="header list-grid">
+          <div
+            class="mb-1 grid grid-cols-3 items-center justify-center bg-naturals-n2 px-6 py-2 text-xs"
+          >
             <div>Name</div>
             <div>State</div>
             <div>Level</div>
           </div>
           <TListItem v-for="item in extensionsState" :key="item.name">
             <div class="flex gap-2 px-3">
-              <div class="list-grid flex-1 text-naturals-n12">
+              <div class="grid flex-1 grid-cols-3 items-center justify-center text-naturals-n12">
                 <WordHighlighter
                   :query="searchString"
                   :text-to-highlight="item.name"
@@ -225,8 +227,9 @@ const openExtensionsUpdate = () => {
         </div>
       </div>
     </div>
+
     <div
-      class="sticky -bottom-6 -mx-6 -my-6 flex h-16 items-center justify-end gap-2 border-t border-naturals-n5 bg-naturals-n1 px-12 py-6 text-xs"
+      class="flex h-16 items-center justify-end border-t border-naturals-n5 bg-naturals-n1 px-12"
     >
       <TButton variant="highlighted" :disabled="!canUpdateTalos" @click="openExtensionsUpdate">
         Update Extensions
@@ -234,15 +237,3 @@ const openExtensionsUpdate = () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.list-grid {
-  @apply grid grid-cols-3 items-center justify-center;
-}
-
-.header {
-  @apply mb-1 bg-naturals-n2 px-6 py-2 text-xs;
-}
-</style>

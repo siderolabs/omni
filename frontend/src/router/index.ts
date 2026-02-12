@@ -151,6 +151,7 @@ export const routes: RouteRecordRaw[] = [
                   {
                     path: '',
                     name: 'NodeDetails',
+                    meta: { disablePadding: true },
                     component: () => import('@/views/cluster/Nodes/NodeDetails.vue'),
                     children: [
                       {
@@ -172,6 +173,16 @@ export const routes: RouteRecordRaw[] = [
                         path: 'config',
                         name: 'NodeConfig',
                         component: () => import('@/views/cluster/Nodes/NodeConfig.vue'),
+                      },
+                      {
+                        path: 'pending-updates',
+                        name: 'NodePendingUpdates',
+                        component: () => import('@/views/cluster/Nodes/NodePendingUpdates.vue'),
+                      },
+                      {
+                        path: 'config-diffs',
+                        name: 'NodeConfigDiffs',
+                        component: () => import('@/views/cluster/Nodes/NodeConfigDiffs.vue'),
                       },
                       {
                         path: 'patches',

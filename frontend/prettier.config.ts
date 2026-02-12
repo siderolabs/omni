@@ -11,7 +11,7 @@ const config: Config & PluginOptions = {
   printWidth: 100,
   plugins: ['prettier-plugin-tailwindcss'],
   htmlWhitespaceSensitivity: 'ignore',
-  tailwindAttributes: ['toast-options'],
+  tailwindAttributes: ['toast-options', '/.*-class/'],
   tailwindStylesheet: './src/index.css',
 }
 

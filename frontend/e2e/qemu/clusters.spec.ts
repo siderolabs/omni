@@ -71,7 +71,9 @@ hostname: ${cpMachineName}`)
   await page.getByRole('link', { name: 'Clusters' }).click()
 
   await expect(async () => {
-    await expect(page.getByTestId('machine-count')).toHaveText(/\d\/3/)
+    await expect(
+      page.getByRole('button', { name: clusterName }).getByTestId('machine-count'),
+    ).toHaveText(/\d\/3/)
     await expect(page.getByText(cpMachineName)).toBeVisible()
     await expect(page.getByTestId('machine-set-phase-name').getByText('Running')).toHaveCount(2)
     await expect(page.getByTestId('cluster-machine-stage-name').getByText('Running')).toHaveCount(3)
@@ -261,7 +263,7 @@ test('exposed services', async ({ page }, testInfo) => {
   })
 })
 
-test('open machine', async ({ page }) => {
+test('node overview tabs', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('link', { name: 'Clusters' }).click()
 
@@ -287,6 +289,21 @@ test('open machine', async ({ page }) => {
   await test.step('Validate config tab', async () => {
     await page.getByRole('tab', { name: 'Config', exact: true }).click()
     await expect(page.getByText('version: v1alpha1').first()).toBeVisible()
+  })
+
+  await test.step('Validate pending updates tab', async () => {
+    await page.getByRole('tab', { name: 'Pending Updates', exact: true }).click()
+    await expect(page.getByText('No pending config updates found for this machine')).toBeVisible()
+  })
+
+  await test.step('Validate config history tab', async () => {
+    await page.getByRole('tab', { name: 'Config History', exact: true }).click()
+    await expect(page.getByText('inlineManifests:')).toBeVisible()
+
+    // This asserts that the virtualisation is working
+    await expect(page.getByText('targetPort: 80')).toBeHidden()
+    await page.getByRole('textbox', { name: 'Search:' }).fill('targetPort:')
+    await expect(page.getByText('targetPort: 80')).toBeVisible()
   })
 
   await test.step('Validate patches tab', async () => {

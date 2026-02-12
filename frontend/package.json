@@ -30,6 +30,7 @@
     "@heroicons/vue": "^2.2.0",
     "@jsonforms/vue": "^3.7.0",
     "@jsonforms/vue-vanilla": "^3.7.0",
+    "@tanstack/vue-virtual": "^3.13.18",
     "@vueuse/components": "^14.2.0",
     "@vueuse/core": "^14.2.0",
     "@vueuse/integrations": "^14.2.0",
