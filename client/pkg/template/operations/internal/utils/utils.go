@@ -13,10 +13,9 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/fatih/color"
-	"github.com/hexops/gotextdiff"
-	"github.com/hexops/gotextdiff/myers"
-	"github.com/hexops/gotextdiff/span"
 	"go.yaml.in/yaml/v4"
+
+	"github.com/siderolabs/omni/client/pkg/diff"
 )
 
 // MarshalResource to YAML format (bytes).
@@ -70,71 +69,44 @@ func RenderDiff(w io.Writer, oldR, newR resource.Resource) error {
 		newPath = "/dev/null"
 	}
 
-	edits := myers.ComputeEdits(span.URIFromPath(oldPath), string(oldYaml), string(newYaml))
-	diff := gotextdiff.ToUnified(oldPath, newPath, string(oldYaml), edits)
+	diffStr, err := diff.Compute(oldYaml, newYaml)
+	if err != nil {
+		return err
+	}
 
-	outputDiff(w, diff)
+	outputDiff(w, diffStr, oldPath, newPath)
 
 	return nil
 }
 
-func outputDiff(w io.Writer, u gotextdiff.Unified) {
-	if len(u.Hunks) == 0 {
+func outputDiff(w io.Writer, diffStr, fromPath, toPath string) {
+	// Strip the library's generic header; we print our own with resource paths.
+	diffStr, _ = strings.CutPrefix(diffStr, "--- a\n+++ b\n")
+
+	if diffStr == "" {
 		return
 	}
 
 	bold := color.New(color.Bold)
-	bold.Fprintf(w, "--- %s\n", u.From) //nolint:errcheck
-	bold.Fprintf(w, "+++ %s\n", u.To)   //nolint:errcheck
+	bold.Fprintf(w, "--- %s\n", fromPath) //nolint:errcheck
+	bold.Fprintf(w, "+++ %s\n", toPath)   //nolint:errcheck
 
 	cyan := color.New(color.FgCyan)
 	red := color.New(color.FgRed)
 	green := color.New(color.FgGreen)
 
-	for _, hunk := range u.Hunks {
-		fromCount, toCount := 0, 0
-
-		for _, l := range hunk.Lines {
-			switch l.Kind { //nolint:exhaustive
-			case gotextdiff.Delete:
-				fromCount++
-			case gotextdiff.Insert:
-				toCount++
-			default:
-				fromCount++
-				toCount++
-			}
-		}
-
-		cyan.Fprintf(w, "@@") //nolint:errcheck
-
-		if fromCount > 1 {
-			cyan.Fprintf(w, " -%d,%d", hunk.FromLine, fromCount) //nolint:errcheck
-		} else {
-			cyan.Fprintf(w, " -%d", hunk.FromLine) //nolint:errcheck
-		}
-
-		if toCount > 1 {
-			cyan.Fprintf(w, " +%d,%d", hunk.ToLine, toCount) //nolint:errcheck
-		} else {
-			cyan.Fprintf(w, " +%d", hunk.ToLine) //nolint:errcheck
-		}
-
-		cyan.Printf(" @@\n") //nolint:errcheck
-
-		for _, l := range hunk.Lines {
-			switch l.Kind { //nolint:exhaustive
-			case gotextdiff.Delete:
-				red.Fprintf(w, "-%s", l.Content) //nolint:errcheck
-			case gotextdiff.Insert:
-				green.Fprintf(w, "+%s", l.Content) //nolint:errcheck
-			default:
-				fmt.Fprintf(w, " %s", l.Content) //nolint:errcheck
-			}
-
-			if !strings.HasSuffix(l.Content, "\n") {
-				red.Fprintf(w, "\n\\ No newline at end of file\n") //nolint:errcheck
-			}
+	for line := range strings.SplitSeq(diffStr, "\n") {
+		switch {
+		case strings.HasPrefix(line, "@@"):
+			cyan.Fprintln(w, line) //nolint:errcheck
+		case strings.HasPrefix(line, "-"):
+			red.Fprintln(w, line) //nolint:errcheck
+		case strings.HasPrefix(line, "+"):
+			green.Fprintln(w, line) //nolint:errcheck
+		case line == "":
+			// skip trailing empty line
+		default:
+			fmt.Fprintln(w, line) //nolint:errcheck
 		}
 	}
 }

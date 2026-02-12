@@ -34,6 +34,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/diff"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -911,7 +912,7 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 
 	defer currentRedactedMachineConfig.Free()
 
-	configDiff, err := ComputeDiff(currentRedactedMachineConfig.Data(), rc.redactedMachineConfig)
+	configDiff, err := diff.Compute(currentRedactedMachineConfig.Data(), rc.redactedMachineConfig)
 	if err != nil {
 		return err
 	}

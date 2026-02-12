@@ -16,14 +16,13 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/hexops/gotextdiff"
-	"github.com/hexops/gotextdiff/myers"
 	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/pkg/diff"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -255,15 +254,12 @@ const modifiedAtFormat = "2006-01-02T15:04:05.000000000Z07:00"
 func (ctrl *Controller) saveDiff(ctx context.Context, r controller.ReaderWriter,
 	cmcr *omni.RedactedClusterMachineConfig, previousData, newData []byte, logger *zap.Logger,
 ) error {
-	oldConfig := string(previousData)
-	newConfig := string(newData)
+	diffStr, err := diff.Compute(previousData, newData)
+	if err != nil {
+		return fmt.Errorf("failed to compute diff: %w", err)
+	}
 
-	edits := myers.ComputeEdits("", oldConfig, newConfig)
-	diff := gotextdiff.ToUnified("", "", oldConfig, edits)
-	diffStr := strings.TrimSpace(fmt.Sprint(diff))
-	diffStr = strings.Replace(diffStr, "--- \n+++ \n", "", 1) // trim the URIs, as they do not make sense in this context
-
-	if strings.TrimSpace(diffStr) == "" {
+	if diffStr == "" {
 		return nil
 	}
 
@@ -272,7 +268,7 @@ func (ctrl *Controller) saveDiff(ctx context.Context, r controller.ReaderWriter,
 	diffID := cmcr.Metadata().ID() + "-" + modifiedAt
 	diffRes := omni.NewMachineConfigDiff(diffID)
 
-	if err := safe.WriterModify(ctx, r, diffRes, func(res *omni.MachineConfigDiff) error {
+	if err = safe.WriterModify(ctx, r, diffRes, func(res *omni.MachineConfigDiff) error {
 		res.Metadata().Annotations().Set(ctrl.modifiedAtAnnotationKey, modifiedAt)
 		res.Metadata().Labels().Set(omni.LabelMachine, cmcr.Metadata().ID())
 

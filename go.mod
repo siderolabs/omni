@@ -55,13 +55,14 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/hashicorp/vault/api v1.22.0
 	github.com/hashicorp/vault/api/auth/kubernetes v0.10.0
-	github.com/hexops/gotextdiff v1.0.3
+	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/johannesboyne/gofakes3 v0.0.0-20250916175020-ebf3e50324d3
 	github.com/jonboulle/clockwork v0.5.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/jxskiss/base62 v1.1.0
 	github.com/klauspost/compress v1.18.3 // indirect
 	github.com/mattn/go-shellwords v1.0.12
+	github.com/neticdk/go-stdlib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/common v0.67.5
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
