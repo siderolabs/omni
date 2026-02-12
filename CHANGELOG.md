@@ -1,3 +1,30 @@
+## [Omni 1.5.2](https://github.com/siderolabs/omni/releases/tag/v1.5.2) (2026-02-12)
+
+Welcome to the v1.5.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`309b3501`](https://github.com/siderolabs/omni/commit/309b35016dc1cb1cbb3c770333bbd936a23f8d0e) fix: replace gotextdiff with linear-space Myers diff to prevent OOM
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.5.1](https://github.com/siderolabs/omni/releases/tag/v1.5.1)
+
 ## [Omni 1.5.1](https://github.com/siderolabs/omni/releases/tag/v1.5.1) (2026-02-11)
 
 Welcome to the v1.5.1 release of Omni!
