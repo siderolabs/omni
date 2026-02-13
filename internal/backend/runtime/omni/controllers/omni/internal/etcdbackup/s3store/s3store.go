@@ -61,8 +61,8 @@ func (s *Store) Upload(ctx context.Context, descr etcdbackup.Description, r io.R
 	})
 
 	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
-		Bucket: pointer.To(s.bucket),
-		Key:    pointer.To(path.Join(descr.ClusterUUID, etcdbackup.CreateSnapshotName(descr.Timestamp))),
+		Bucket: new(s.bucket),
+		Key:    new(path.Join(descr.ClusterUUID, etcdbackup.CreateSnapshotName(descr.Timestamp))),
 		Body:   newReaderLimiter(io.NopCloser(r), s.uploadRate),
 	})
 	if err != nil {
@@ -75,8 +75,8 @@ func (s *Store) Upload(ctx context.Context, descr etcdbackup.Description, r io.R
 // Download downloads the backup with the specified name. Implements [Store].
 func (s *Store) Download(ctx context.Context, _ []byte, clusterUUID, snapshotName string) (etcdbackup.BackupData, io.ReadCloser, error) {
 	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: pointer.To(s.bucket),
-		Key:    pointer.To(path.Join(clusterUUID, snapshotName)),
+		Bucket: new(s.bucket),
+		Key:    new(path.Join(clusterUUID, snapshotName)),
 	})
 	if err != nil {
 		return etcdbackup.BackupData{}, nil, fmt.Errorf("failed to get object: %w", err)
@@ -88,8 +88,8 @@ func (s *Store) Download(ctx context.Context, _ []byte, clusterUUID, snapshotNam
 // ListBackups returns a list of backups. Implements [EtcdBackupStore].
 func (s *Store) ListBackups(ctx context.Context, clusterUUID string) (iter.Seq2[etcdbackup.Info, error], error) {
 	result, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-		Bucket: pointer.To(s.bucket),
-		Prefix: pointer.To(fmt.Sprintf("%s/", clusterUUID)),
+		Bucket: new(s.bucket),
+		Prefix: new(fmt.Sprintf("%s/", clusterUUID)),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list backups: %w", err)
@@ -125,8 +125,8 @@ func (s *Store) ListBackups(ctx context.Context, clusterUUID string) (iter.Seq2[
 				Timestamp: timestamp,
 				Reader: func() (io.ReadCloser, error) {
 					result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
-						Bucket: pointer.To(s.bucket),
-						Key:    pointer.To(key),
+						Bucket: new(s.bucket),
+						Key:    new(key),
 					})
 					if err != nil {
 						return nil, fmt.Errorf("failed to get object: %w", err)

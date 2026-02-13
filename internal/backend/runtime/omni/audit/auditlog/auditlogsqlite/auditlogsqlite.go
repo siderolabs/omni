@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package auditlogsqlite implements an SQLite-backed audit log store.
 package auditlogsqlite
 
 import (
@@ -19,7 +20,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
-	"github.com/siderolabs/go-pointer"
 	"go.uber.org/zap"
 	zombiesqlite "zombiezen.com/go/sqlite"
 	"zombiezen.com/go/sqlite/sqlitex"
@@ -444,15 +444,15 @@ func (l *logReader) Read() ([]byte, error) {
 	var event rawEvent
 
 	if !result.IsNull(eventTypeColumn) {
-		event.Type = pointer.To(result.GetText(eventTypeColumn))
+		event.Type = new(result.GetText(eventTypeColumn))
 	}
 
 	if !result.IsNull(resourceTypeColumn) {
-		event.ResourceType = pointer.To(result.GetText(resourceTypeColumn))
+		event.ResourceType = new(result.GetText(resourceTypeColumn))
 	}
 
 	if !result.IsNull(resourceIDColumn) {
-		event.ResourceID = pointer.To(result.GetText(resourceIDColumn))
+		event.ResourceID = new(result.GetText(resourceIDColumn))
 	}
 
 	if !result.IsNull(eventDataColumn) {

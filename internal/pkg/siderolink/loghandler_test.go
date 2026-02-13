@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/gen/optional"
-	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"zombiezen.com/go/sqlite/sqlitex"
@@ -28,13 +27,13 @@ import (
 
 func TestLogHandler_HandleMessage(t *testing.T) {
 	storageConfig := config.LogsMachine{
-		BufferInitialCapacity: pointer.To(6),
-		BufferMaxCapacity:     pointer.To(28),
-		BufferSafetyGap:       pointer.To(6),
+		BufferInitialCapacity: new(6),
+		BufferMaxCapacity:     new(28),
+		BufferSafetyGap:       new(6),
 		Storage: config.LogsMachineStorage{
-			NumCompressedChunks: pointer.To(5),
-			FlushPeriod:         pointer.To(time.Second),
-			Enabled:             pointer.To(false),
+			NumCompressedChunks: new(5),
+			FlushPeriod:         new(time.Second),
+			Enabled:             new(false),
 		},
 	}
 

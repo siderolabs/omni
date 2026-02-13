@@ -26,7 +26,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/xiter"
-	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -73,9 +72,9 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 	t.Cleanup(cancel)
 
 	etcdBackupConfig := config.EtcdBackup{
-		TickInterval: pointer.To(time.Minute),
-		MinInterval:  pointer.To(time.Hour),
-		MaxInterval:  pointer.To(24 * time.Hour),
+		TickInterval: new(time.Minute),
+		MinInterval:  new(time.Hour),
+		MaxInterval:  new(24 * time.Hour),
 	}
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
@@ -474,7 +473,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 		t.Parallel()
 
 		_, st := buildState(config.EmbeddedDiscoveryService{
-			Enabled: pointer.To(false),
+			Enabled: new(false),
 		})
 
 		cluster := omnires.NewCluster("test")
@@ -494,7 +493,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 
 		// prepare a cluster which has the feature enabled, while it is disabled instance-wide
 		innerSt, st := buildState(config.EmbeddedDiscoveryService{
-			Enabled: pointer.To(false),
+			Enabled: new(false),
 		})
 
 		talosVersion := omnires.NewTalosVersion("1.7.4")
@@ -523,7 +522,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 		t.Parallel()
 
 		_, st := buildState(config.EmbeddedDiscoveryService{
-			Enabled: pointer.To(true),
+			Enabled: new(true),
 		})
 
 		talosVersion := omnires.NewTalosVersion("1.7.4")
@@ -558,7 +557,7 @@ func TestRelationLabelsValidation(t *testing.T) {
 	differentClusterID := "different-cluster"
 	machineSetID := "test-machine-set"
 	differentMachineSetID := "different-machine-set"
-	machineSetNodeId := "test-machine-set-node"
+	machineSetNodeID := "test-machine-set-node"
 
 	// MachineSet
 
@@ -592,7 +591,7 @@ func TestRelationLabelsValidation(t *testing.T) {
 
 	machineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
 
-	machineSetNode := omnires.NewMachineSetNode(machineSetNodeId, machineSet)
+	machineSetNode := omnires.NewMachineSetNode(machineSetNodeID, machineSet)
 
 	machineSetNode.Metadata().Labels().Delete(omnires.LabelCluster)
 	machineSetNode.Metadata().Labels().Delete(omnires.LabelMachineSet)
@@ -911,9 +910,9 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	etcdBackupStoreFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	etcdBackupConfig := config.EtcdBackup{
-		TickInterval: pointer.To(time.Minute),
-		MinInterval:  pointer.To(time.Hour),
-		MaxInterval:  pointer.To(24 * time.Hour),
+		TickInterval: new(time.Minute),
+		MinInterval:  new(time.Hour),
+		MaxInterval:  new(24 * time.Hour),
 	}
 
 	require.NoError(t, err)
@@ -1027,9 +1026,9 @@ func TestClusterImport(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	etcdBackupStoreFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	etcdBackupConfig := config.EtcdBackup{
-		TickInterval: pointer.To(time.Minute),
-		MinInterval:  pointer.To(time.Hour),
-		MaxInterval:  pointer.To(24 * time.Hour),
+		TickInterval: new(time.Minute),
+		MinInterval:  new(time.Hour),
+		MaxInterval:  new(24 * time.Hour),
 	}
 
 	require.NoError(t, err)
@@ -1093,7 +1092,7 @@ func TestIdentitySAMLValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.IdentityValidationOptions(config.SAML{
-		Enabled: pointer.To(true),
+		Enabled: new(true),
 	})...)
 
 	user := auth.NewIdentity("aaa@example.org")

@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni/client
 
-go 1.25.6
+go 1.26.0
 
 require (
 	github.com/ProtonMail/gopenpgp/v2 v2.9.0

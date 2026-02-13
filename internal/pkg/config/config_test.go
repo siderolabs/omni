@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/santhosh-tekuri/jsonschema/v6"
-	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -218,8 +217,8 @@ func TestServiceURL(t *testing.T) {
 		t.Parallel()
 
 		conf := &config.DevServerProxyService{
-			Endpoint:      pointer.To("1.1.1.1:1111"),
-			AdvertisedURL: pointer.To("https://2.2.2.2:2222"),
+			Endpoint:      new("1.1.1.1:1111"),
+			AdvertisedURL: new("https://2.2.2.2:2222"),
 		}
 
 		url := conf.URL()
@@ -230,9 +229,9 @@ func TestServiceURL(t *testing.T) {
 		t.Parallel()
 
 		conf := &config.Service{
-			Endpoint: pointer.To("1.1.1.1:1111"),
-			CertFile: pointer.To("/path/to/cert"),
-			KeyFile:  pointer.To("/path/to/key"),
+			Endpoint: new("1.1.1.1:1111"),
+			CertFile: new("/path/to/cert"),
+			KeyFile:  new("/path/to/key"),
 		}
 
 		url := conf.URL()
@@ -243,7 +242,7 @@ func TestServiceURL(t *testing.T) {
 		t.Parallel()
 
 		conf := &config.MachineAPI{
-			Endpoint: pointer.To("1.1.1.1:1111"),
+			Endpoint: new("1.1.1.1:1111"),
 		}
 
 		url := conf.URL()
@@ -254,7 +253,7 @@ func TestServiceURL(t *testing.T) {
 		t.Parallel()
 
 		conf := &config.KubernetesProxyService{
-			Endpoint: pointer.To("1.1.1.1:1111"),
+			Endpoint: new("1.1.1.1:1111"),
 		}
 
 		url := conf.URL()

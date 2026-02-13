@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package secrets contains the Controller.
 package secrets
 
 import (
@@ -31,18 +32,18 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 )
 
-// SecretsController creates omni.ClusterSecrets for each inputed omni.Cluster.
+// Controller creates omni.ClusterSecrets for each inputed omni.Cluster.
 //
-// SecretsController generates and stores initial cluster-wide secrets.
-type SecretsController struct {
+// Controller generates and stores initial cluster-wide secrets.
+type Controller struct {
 	*qtransform.QController[*omni.Cluster, *omni.ClusterSecrets]
 }
 
 // NewSecretsController instantiates the secrets' controller.
 //
 //nolint:gocognit,gocyclo,cyclop,maintidx
-func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsController {
-	ctrl := &SecretsController{}
+func NewSecretsController(etcdBackupStoreFactory store.Factory) *Controller {
+	ctrl := &Controller{}
 
 	ctrl.QController = qtransform.NewQController(
 		qtransform.Settings[*omni.Cluster, *omni.ClusterSecrets]{
@@ -206,7 +207,7 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *SecretsControll
 	return ctrl
 }
 
-func (s *SecretsController) getBackupDataFromBootstrapSpec(
+func (s *Controller) getBackupDataFromBootstrapSpec(
 	ctx context.Context,
 	r controller.Reader,
 	etcdBackupStoreFactory store.Factory,
@@ -246,7 +247,7 @@ func (s *SecretsController) getBackupDataFromBootstrapSpec(
 	return downloadedBackupData, nil
 }
 
-func (s *SecretsController) handleSecretRotation(
+func (s *Controller) handleSecretRotation(
 	secrets *omni.ClusterSecrets,
 	secretRotation *omni.SecretRotation,
 ) error {

@@ -19,7 +19,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -383,7 +382,7 @@ func AssertKubernetesDeploymentIsCreated(testCtx context.Context, managementClie
 				Name: name,
 			},
 			Spec: appsv1.DeploymentSpec{
-				Replicas: pointer.To(int32(1)),
+				Replicas: new(int32(1)),
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"app": name,
@@ -396,7 +395,7 @@ func AssertKubernetesDeploymentIsCreated(testCtx context.Context, managementClie
 						},
 					},
 					Spec: corev1.PodSpec{
-						TerminationGracePeriodSeconds: pointer.To(int64(0)),
+						TerminationGracePeriodSeconds: new(int64(0)),
 						Containers: []corev1.Container{{
 							Name:  name,
 							Image: "busybox:1",

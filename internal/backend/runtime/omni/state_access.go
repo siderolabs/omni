@@ -349,7 +349,7 @@ func verbToRole(verb state.Verb) role.Role {
 	case state.Get, state.List, state.Watch:
 		return role.Reader
 	default:
-		panic(fmt.Sprintf("unknown verb %q", verb))
+		panic(fmt.Sprintf("unknown verb: %v", verb))
 	}
 }
 

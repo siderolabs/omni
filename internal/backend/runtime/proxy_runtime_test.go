@@ -15,7 +15,6 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/siderolabs/gen/ensure"
-	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -129,7 +128,7 @@ func TestProxyRuntime_Watch(t *testing.T) {
 }
 
 func makeResponse(i int) runtime.WatchResponse {
-	return pointer.To(runtime.NewBasicResponse(
+	return new(runtime.NewBasicResponse(
 		fmt.Sprintf("id-%d", i),
 		fmt.Sprintf("msg-%d", i),
 		&resources.WatchResponse{Event: &resources.Event{}},
@@ -210,7 +209,7 @@ func appendBootstrapped(msgs []runtime.WatchResponse) []runtime.WatchResponse {
 	if !slices.ContainsFunc(msgs, func(response runtime.WatchResponse) bool {
 		return runtime.EventType(response) == resources.EventType_BOOTSTRAPPED
 	}) {
-		msgs = append(msgs, pointer.To(runtime.NewBasicResponse(
+		msgs = append(msgs, new(runtime.NewBasicResponse(
 			"",
 			"",
 			&resources.WatchResponse{Event: &resources.Event{EventType: resources.EventType_BOOTSTRAPPED}},

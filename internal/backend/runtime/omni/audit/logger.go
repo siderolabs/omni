@@ -89,7 +89,7 @@ func migrateFromFileToSQLite(ctx context.Context, fileAuditLogger Logger, dbAudi
 	var (
 		readFailed            bool
 		migrated, writeFailed int
-		lastTs                int64 // track the last valid timestamp to keep ordering for corrupt events
+		lastTS                int64 // track the last valid timestamp to keep ordering for corrupt events
 	)
 
 	for {
@@ -115,7 +115,7 @@ func migrateFromFileToSQLite(ctx context.Context, fileAuditLogger Logger, dbAudi
 				Type: "migration_parse_error",
 				// Use the last seen timestamp. This ensures the corrupt line appears
 				// immediately after the previous valid line when sorted by (time, id).
-				TimeMillis: lastTs,
+				TimeMillis: lastTS,
 				Data: &auditlog.Data{
 					MigrationError: &auditlog.MigrationError{
 						RawData: string(eventData), // save the raw bytes
@@ -124,7 +124,7 @@ func migrateFromFileToSQLite(ctx context.Context, fileAuditLogger Logger, dbAudi
 				},
 			}
 		} else {
-			lastTs = event.TimeMillis
+			lastTS = event.TimeMillis
 		}
 
 		if err = dbAuditLogger.Write(ctx, event); err != nil {

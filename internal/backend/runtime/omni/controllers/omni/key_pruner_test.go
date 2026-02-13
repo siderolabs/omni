@@ -11,7 +11,6 @@ import (
 
 	"github.com/benbjohnson/clock"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -58,8 +57,8 @@ func (suite *KeyPrunerSuite) TestRemoveExpiredKey() {
 	publicKey2.TypedSpec().Value.Confirmed = true
 	publicKey2.TypedSpec().Value.Expiration = timestamppb.New(fakeClock.Now().Add(defaultExpirationTime))
 
-	suite.Assert().NoError(suite.state.Create(suite.ctx, publicKey, state.WithCreateOwner(pointer.To(omnictrl.KeyPrunerController{}).Name())))
-	suite.Assert().NoError(suite.state.Create(suite.ctx, publicKey2, state.WithCreateOwner(pointer.To(omnictrl.KeyPrunerController{}).Name())))
+	suite.Assert().NoError(suite.state.Create(suite.ctx, publicKey, state.WithCreateOwner(new(omnictrl.KeyPrunerController{}).Name())))
+	suite.Assert().NoError(suite.state.Create(suite.ctx, publicKey2, state.WithCreateOwner(new(omnictrl.KeyPrunerController{}).Name())))
 
 	assertResource(&suite.OmniSuite, publicKey.Metadata(), func(*authres.PublicKey, *assert.Assertions) {})
 

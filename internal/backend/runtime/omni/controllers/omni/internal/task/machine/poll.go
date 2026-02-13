@@ -17,7 +17,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/value"
-	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/nethelpers"
@@ -89,16 +88,16 @@ func pollVersion(ctx context.Context, c *client.Client, info *Info) error {
 	}
 
 	for _, msg := range versionResp.GetMessages() {
-		info.TalosVersion = pointer.To(msg.GetVersion().GetTag())
-		info.Arch = pointer.To(msg.GetVersion().GetArch())
+		info.TalosVersion = new(msg.GetVersion().GetTag())
+		info.Arch = new(msg.GetVersion().GetArch())
 	}
 
 	return nil
 }
 
 func pollHostname(ctx context.Context, c *client.Client, info *Info) error {
-	info.Hostname = pointer.To("")
-	info.Domainname = pointer.To("")
+	info.Hostname = new("")
+	info.Domainname = new("")
 
 	return forEachResource(
 		ctx,
@@ -106,8 +105,8 @@ func pollHostname(ctx context.Context, c *client.Client, info *Info) error {
 		network.NamespaceName,
 		network.HostnameStatusType,
 		func(r *network.HostnameStatus) error {
-			info.Hostname = pointer.To(r.TypedSpec().Hostname)
-			info.Domainname = pointer.To(r.TypedSpec().Domainname)
+			info.Hostname = new(r.TypedSpec().Hostname)
+			info.Domainname = new(r.TypedSpec().Domainname)
 
 			return nil
 		})

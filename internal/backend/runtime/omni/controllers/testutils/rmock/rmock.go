@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package rmock provides utilities for creating resources with default values in tests.
 package rmock
 
 import (

@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package logstore provides an interface for writing logs and getting readers to read them.
 package logstore
 
 import (

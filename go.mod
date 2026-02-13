@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni
 
-go 1.25.6
+go 1.26.0
 
 replace (
 	// adds the extraTags field to the JSONSchema, switch to upstream if/when https://github.com/omissis/go-jsonschema/pull/504 gets merged

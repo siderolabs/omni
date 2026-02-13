@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package sqlite provides helper functions for working with SQLite databases in the Omni runtime.
 package sqlite
 
 import (

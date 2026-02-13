@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package auditlogfile implements an audit log backend which stores logs in files.
 package auditlogfile
 
 import (

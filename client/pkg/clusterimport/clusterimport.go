@@ -373,18 +373,18 @@ func newContext(input Input, talosCli talosClientWrapper, imageFactoryClient Ima
 				return nil, fmt.Errorf("failed to sanitize config patch for node %q: %w", node, patchErr)
 			}
 
-			configPatchId := fmt.Sprintf("%d-%s", (i+1)*10, info.machineID)
-			configPatch := omni.NewConfigPatch(configPatchId)
+			configPatchID := fmt.Sprintf("%d-%s", (i+1)*10, info.machineID)
+			configPatch := omni.NewConfigPatch(configPatchID)
 			configPatch.Metadata().Labels().Set(omni.LabelCluster, clusterID)
 			configPatch.Metadata().Labels().Set(omni.LabelClusterMachine, info.machineID)
 			configPatch.Metadata().Annotations().Set(omni.ConfigPatchName, "User defined patch")
 			configPatch.Metadata().Annotations().Set(omni.ConfigPatchDescription, "Config patch imported from existing Talos node")
 
 			if patchErr = configPatch.TypedSpec().Value.SetUncompressedData(sanitizedDiffBytes); patchErr != nil {
-				return nil, fmt.Errorf("failed to set data for config patch %q: %w", configPatchId, patchErr)
+				return nil, fmt.Errorf("failed to set data for config patch %q: %w", configPatchID, patchErr)
 			}
 
-			configPatchesMap[configPatchId] = configPatch
+			configPatchesMap[configPatchID] = configPatch
 		}
 	}
 

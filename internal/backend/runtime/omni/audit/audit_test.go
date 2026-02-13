@@ -19,7 +19,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/siderolabs/gen/xtesting/must"
-	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -40,7 +39,7 @@ var logData string
 
 func TestAudit(t *testing.T) {
 	config := config.LogsAudit{
-		Enabled: pointer.To(true),
+		Enabled: new(true),
 	}
 
 	db := testDB(t)

@@ -21,7 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/go-pointer"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -205,7 +204,7 @@ func S3ClientFromResource(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf) (*
 		o.DisableLogOutputChecksumValidationSkipped = true
 	})
 
-	_, err = client.ListObjects(ctx, &s3.ListObjectsInput{Bucket: pointer.To(bucket)})
+	_, err = client.ListObjects(ctx, &s3.ListObjectsInput{Bucket: new(bucket)})
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to list objects in bucket %q: %w", bucket, err)
 	}

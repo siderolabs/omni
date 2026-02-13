@@ -12,7 +12,6 @@ import (
 	"io"
 
 	"github.com/siderolabs/gen/ensure"
-	"github.com/siderolabs/go-pointer"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
@@ -29,7 +28,7 @@ func Encrypt(dst io.Writer, descr etcdbackup.EncryptionData, r io.Reader) error 
 	defer wrt.Close() //nolint:errcheck
 
 	for _, data := range [...][]byte{
-		ensure.Value(pointer.To(specs.EtcdBackupHeader{Version: 1}).MarshalVT()),
+		ensure.Value(new(specs.EtcdBackupHeader{Version: 1}).MarshalVT()),
 		[]byte(descr.AESCBCEncryptionSecret),
 		[]byte(descr.SecretboxEncryptionSecret),
 	} {

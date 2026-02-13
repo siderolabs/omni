@@ -15,7 +15,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
@@ -36,8 +35,8 @@ import (
 )
 
 var testSiderolinkCfg = conf.SiderolinkService{
-	EventSinkPort: pointer.To(8091),
-	LogServerPort: pointer.To(8092),
+	EventSinkPort: new(8091),
+	LogServerPort: new(8092),
 }
 
 var testMachineAPIURL = "http://127.0.0.1:8090"

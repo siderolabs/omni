@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
@@ -76,9 +75,9 @@ func TestMigrateFromFileToSQLite(t *testing.T) {
 	// 3. Trigger Migration via NewLog
 	// We provide both Path and SQLite enabled, which triggers initLogger -> migrateFromFileToSQLite
 	logConf := config.LogsAudit{
-		Enabled:       pointer.To(true),
-		Path:          pointer.To(dir),
-		SqliteTimeout: pointer.To(5 * time.Second),
+		Enabled:       new(true),
+		Path:          new(dir),
+		SqliteTimeout: new(5 * time.Second),
 	}
 
 	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)
@@ -140,9 +139,9 @@ func TestMigrateSkipIfHasData(t *testing.T) {
 
 	// 3. Trigger NewLog
 	logConf := config.LogsAudit{
-		Enabled:       pointer.To(true),
-		Path:          pointer.To(dir),
-		SqliteTimeout: pointer.To(5 * time.Second),
+		Enabled:       new(true),
+		Path:          new(dir),
+		SqliteTimeout: new(5 * time.Second),
 	}
 
 	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)
@@ -200,9 +199,9 @@ THIS_IS_BROKEN_JSON
 
 	// 4. Trigger Migration
 	logConf := config.LogsAudit{
-		Enabled:       pointer.To(true),
-		Path:          pointer.To(dir),
-		SqliteTimeout: pointer.To(5 * time.Second),
+		Enabled:       new(true),
+		Path:          new(dir),
+		SqliteTimeout: new(5 * time.Second),
 	}
 
 	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)
@@ -299,9 +298,9 @@ func TestMigrateLineExceedingDefaultBuffer(t *testing.T) {
 
 	// Trigger Migration
 	logConf := config.LogsAudit{
-		Enabled:       pointer.To(true),
-		Path:          pointer.To(dir),
-		SqliteTimeout: pointer.To(5 * time.Second),
+		Enabled:       new(true),
+		Path:          new(dir),
+		SqliteTimeout: new(5 * time.Second),
 	}
 
 	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)
@@ -371,9 +370,9 @@ func TestMigrateLineExceedingMaxBuffer(t *testing.T) {
 
 	// Trigger Migration
 	logConf := config.LogsAudit{
-		Enabled:       pointer.To(true),
-		Path:          pointer.To(dir),
-		SqliteTimeout: pointer.To(5 * time.Second),
+		Enabled:       new(true),
+		Path:          new(dir),
+		SqliteTimeout: new(5 * time.Second),
 	}
 
 	auditLogger, err := audit.NewLog(ctx, logConf, db, logger)

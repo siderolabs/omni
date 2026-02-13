@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package grpcutil provides utility functions for gRPC servers and clients.
 package grpcutil
 
 import (

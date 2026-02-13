@@ -14,7 +14,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
-	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -63,7 +62,7 @@ func ScaleDeployment(ctx context.Context, t *testing.T, kubeClient kubernetes.In
 	require.NoError(t, err, "failed to get deployment %q/%q", namespace, name)
 
 	// scale down the deployment to 0 replicas
-	deployment.Spec.Replicas = pointer.To(int32(numReplicas))
+	deployment.Spec.Replicas = new(int32(numReplicas))
 
 	if _, err := kubeClient.AppsV1().Deployments(deployment.Namespace).Update(ctx, deployment, metav1.UpdateOptions{}); !apierrors.IsNotFound(err) {
 		require.NoError(t, err)

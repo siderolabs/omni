@@ -11,7 +11,6 @@ import (
 	"net/netip"
 
 	"github.com/siderolabs/gen/channel"
-	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/siderolink/pkg/wireguard"
 	"go.uber.org/zap"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -63,7 +62,7 @@ func (handler *PhysicalWireguardHandler) PeerEvent(ctx context.Context, spec *sp
 		Remove:                      deleted,
 		Endpoint:                    spec.LastEndpoint,
 		Address:                     address.Addr(),
-		PersistentKeepAliveInterval: pointer.To(wireguard.RecommendedPersistentKeepAliveInterval),
+		PersistentKeepAliveInterval: new(wireguard.RecommendedPersistentKeepAliveInterval),
 		VirtualAddr:                 virtualAddrPort.Addr(),
 	})
 

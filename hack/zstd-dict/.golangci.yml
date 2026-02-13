@@ -152,8 +152,8 @@ issues:
   exclude-rules: [ ]
   exclude-use-default: false
   exclude-case-sensitive: false
-  max-issues-per-linter: 10
-  max-same-issues: 3
+  max-issues-per-linter: 100
+  max-same-issues: 100
   new: false
 
 severity:

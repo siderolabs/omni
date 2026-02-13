@@ -8,7 +8,6 @@ package models
 import (
 	"time"
 
-	"github.com/siderolabs/go-pointer"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
@@ -138,7 +137,7 @@ func maxAgeToInternal(maxAge *uint) *time.Duration {
 		return nil
 	}
 
-	return pointer.To(time.Duration(*maxAge) * time.Second)
+	return new(time.Duration(*maxAge) * time.Second)
 }
 
 // AuthRequestToInternal converts an oidc.AuthRequest to an internal AuthRequest.

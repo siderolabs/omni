@@ -36,12 +36,12 @@ func execSQL(t *testing.T, db *sqlitex.Pool, sql string) {
 	require.NoError(t, sqlitex.ExecScript(conn, sql))
 }
 
-type fakeSqlState struct {
+type fakeSQLState struct {
 	state.CoreState
 	size int64
 }
 
-func (f *fakeSqlState) DBSize(context.Context) (int64, error) {
+func (f *fakeSQLState) DBSize(context.Context) (int64, error) {
 	return f.size, nil
 }
 
@@ -74,7 +74,7 @@ func TestMetricsCollect(t *testing.T) {
 		INSERT INTO discovery_service_state (id, data) VALUES ('state', x'00');
 	`)
 
-	registry := setupMetrics(t, db, &fakeSqlState{CoreState: st, size: 8192})
+	registry := setupMetrics(t, db, &fakeSQLState{CoreState: st, size: 8192})
 
 	// Verify subsystem row counts (state has no row count since it uses sqlState).
 	expected := `
@@ -120,7 +120,7 @@ func TestMetricsCaching(t *testing.T) {
 		INSERT INTO audit_logs (data) VALUES ('row1');
 	`)
 
-	registry := setupMetrics(t, db, &fakeSqlState{CoreState: st})
+	registry := setupMetrics(t, db, &fakeSQLState{CoreState: st})
 
 	// First gather triggers refresh — audit_logs has 1 row.
 	expected := `
@@ -139,7 +139,7 @@ func TestMetricsCaching(t *testing.T) {
 	assert.NoError(t, testutil.GatherAndCompare(registry, strings.NewReader(expected), "omni_sqlite_subsystem_row_count"))
 
 	// A new metrics instance with zero interval should see the new row.
-	registry2 := setupMetrics(t, db, &fakeSqlState{CoreState: st}, sqlite.WithRefreshInterval(0))
+	registry2 := setupMetrics(t, db, &fakeSQLState{CoreState: st}, sqlite.WithRefreshInterval(0))
 
 	expected2 := `
 		# HELP omni_sqlite_subsystem_row_count Total number of rows across a subsystem's tables.
@@ -156,7 +156,7 @@ func TestMetricsStateSubsystemUsesDBSizer(t *testing.T) {
 
 	db, st := setupTestDB(t)
 
-	registry := setupMetrics(t, db, &fakeSqlState{CoreState: st, size: 42000})
+	registry := setupMetrics(t, db, &fakeSQLState{CoreState: st, size: 42000})
 
 	expected := `
 		# HELP omni_sqlite_subsystem_size_bytes Size of a subsystem's tables in the SQLite database in bytes.
@@ -174,7 +174,7 @@ func TestMetricsEmptyDB(t *testing.T) {
 
 	db, st := setupTestDB(t)
 
-	registry := setupMetrics(t, db, &fakeSqlState{CoreState: st})
+	registry := setupMetrics(t, db, &fakeSQLState{CoreState: st})
 
 	// All Omni subsystems should report 0 rows since no tables exist.
 	expected := `
@@ -193,7 +193,7 @@ func TestCleanupCallback(t *testing.T) {
 	db, st := setupTestDB(t)
 	logger := zaptest.NewLogger(t)
 
-	m := sqlite.NewMetrics(db, &fakeSqlState{CoreState: st}, logger)
+	m := sqlite.NewMetrics(db, &fakeSQLState{CoreState: st}, logger)
 
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(m)
