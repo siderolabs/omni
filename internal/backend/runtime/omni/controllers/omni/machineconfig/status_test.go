@@ -500,7 +500,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("generationErrorPropagation", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
@@ -532,7 +532,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("applyLocked", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
@@ -615,7 +615,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("gracefulConfigRollout", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,

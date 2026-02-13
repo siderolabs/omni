@@ -402,15 +402,9 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
 
-				rmock.Mock[*omni.ClusterSecrets](ctx, t, st,
-					options.SameID(cluster),
-					options.Modify(func(res *omni.ClusterSecrets) error {
-						res.Metadata().Annotations().Set(omni.RotateTalosCATimestamp, strconv.Itoa(int(rotationTime.Unix())))
-						res.Metadata().Annotations().Set(omni.RotateKubernetesCATimestamp, strconv.Itoa(int(rotationTime.Unix())))
-
-						return nil
-					}),
-				)
+				// Create ClusterSecrets without rotation timestamps initially, so the
+				// break glass taint can be set before the rotation timestamps are recorded.
+				rmock.Mock[*omni.ClusterSecrets](ctx, t, st, options.SameID(cluster))
 
 				// Wait for ClusterStatus to be created first
 				rtestutils.AssertResources(ctx, t, st, []resource.ID{clusterName},
@@ -422,6 +416,18 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.Metadata().Labels().Set(omni.LabelClusterTaintedByBreakGlass, "")
 						res.Metadata().Annotations().Set(omni.TaintedByBreakGlassTimestamp, strconv.Itoa(int(breakGlassTime.Unix())))
+
+						return nil
+					}),
+				)
+
+				// Now add rotation timestamps to ClusterSecrets. ClusterSecrets is a declared
+				// input to the controller, so updating it naturally triggers a reconcile.
+				rmock.Mock[*omni.ClusterSecrets](ctx, t, st,
+					options.SameID(cluster),
+					options.Modify(func(res *omni.ClusterSecrets) error {
+						res.Metadata().Annotations().Set(omni.RotateTalosCATimestamp, strconv.Itoa(int(rotationTime.Unix())))
+						res.Metadata().Annotations().Set(omni.RotateKubernetesCATimestamp, strconv.Itoa(int(rotationTime.Unix())))
 
 						return nil
 					}),

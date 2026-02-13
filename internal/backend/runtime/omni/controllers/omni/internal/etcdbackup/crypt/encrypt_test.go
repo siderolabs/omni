@@ -331,6 +331,8 @@ type backupBlocker struct {
 func (e *backupBlocker) Upload(ctx context.Context, _ etcdbackup.Description, r io.Reader) error {
 	if e.block {
 		<-ctx.Done()
+
+		return ctx.Err()
 	}
 
 	_, err := io.Copy(io.Discard, r)

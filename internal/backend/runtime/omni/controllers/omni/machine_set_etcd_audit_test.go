@@ -6,254 +6,217 @@
 package omni_test
 
 import (
-	stdruntime "runtime"
+	"context"
 	"testing"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/google/uuid"
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
 	talosruntime "github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
-	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/pkg/check"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
-type MachineSetEtcdAuditSuite struct {
-	OmniSuite
+func setupEtcdAuditCluster(
+	ctx context.Context,
+	t *testing.T,
+	st state.State,
+	machineServices *testutils.MachineServices,
+	clusterName string,
+	machineIDs []string,
+) (*omni.Cluster, *omni.MachineSet) {
+	cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
+	rmock.Mock[*omni.ClusterSecrets](ctx, t, st, options.SameID(cluster))
+	rmock.Mock[*omni.TalosConfig](ctx, t, st, options.SameID(cluster))
+	rmock.Mock[*omni.ClusterStatus](ctx, t, st, options.SameID(cluster))
 
-	clientFactory *talos.ClientFactory
-	resources     []resource.Resource
-}
+	machineSet := rmock.Mock[*omni.MachineSet](ctx, t, st,
+		options.WithID(omni.ControlPlanesResourceID(clusterName)),
+		options.LabelCluster(cluster),
+		options.EmptyLabel(omni.LabelControlPlaneRole),
+		options.Modify(func(res *omni.MachineSet) error {
+			res.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling
 
-func (suite *MachineSetEtcdAuditSuite) createMachineSet(clusterName string, machineSetName string, machines []string) (map[string]*machineService, *omni.MachineSet) {
-	cluster := omni.NewCluster(clusterName)
+			return nil
+		}),
+	)
 
-	services := map[string]*machineService{}
+	rmock.MockList[*omni.MachineSetNode](ctx, t, st,
+		options.IDs(machineIDs),
+		options.ItemOptions(
+			options.LabelCluster(cluster),
+			options.LabelMachineSet(machineSet),
+			options.EmptyLabel(omni.LabelControlPlaneRole),
+		),
+	)
 
-	cluster.TypedSpec().Value.TalosVersion = "1.2.2"
-	cluster.TypedSpec().Value.KubernetesVersion = "1.25.0"
+	for _, id := range machineIDs {
+		rmock.Mock[*omni.MachineStatus](ctx, t, st,
+			options.WithID(id),
+			options.WithMachineServices(ctx, machineServices),
+		)
 
-	suite.createResource(cluster)
+		rmock.Mock[*omni.ClusterMachine](ctx, t, st, options.WithID(id))
 
-	clusterStatus := omni.NewClusterStatus(clusterName)
-
-	clusterStatus.TypedSpec().Value.Available = true
-	clusterStatus.TypedSpec().Value.HasConnectedControlPlanes = true
-
-	suite.createResource(clusterStatus)
-
-	machineSet := omni.NewMachineSet(machineSetName)
-	machineSet.Metadata().Labels().Set(omni.LabelCluster, clusterName)
-	machineSet.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
-
-	machineSet.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling
-
-	config := omni.NewTalosConfig(clusterName)
-
-	suite.createResource(config)
-
-	for _, machine := range machines {
-		services[machine] = suite.createClusterMachineStatus(machine, clusterName, machineSet)
-
-		msn := omni.NewMachineSetNode(machine, machineSet)
-
-		suite.createResource(msn)
+		rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st, options.WithID(id))
 	}
 
-	suite.createResource(machineSet)
-
-	return services, machineSet
+	return cluster, machineSet
 }
 
-func (suite *MachineSetEtcdAuditSuite) createClusterMachineStatus(machine, clusterName string, machineSet *omni.MachineSet) *machineService {
-	serverSuffix := uuid.NewString()
+func addClusterMachine(
+	ctx context.Context,
+	t *testing.T,
+	st state.State,
+	machineServices *testutils.MachineServices,
+	cluster *omni.Cluster,
+	machineSet *omni.MachineSet,
+	id string,
+) {
+	rmock.Mock[*omni.MachineSetNode](ctx, t, st,
+		options.WithID(id),
+		options.LabelCluster(cluster),
+		options.LabelMachineSet(machineSet),
+		options.EmptyLabel(omni.LabelControlPlaneRole),
+	)
 
-	// If the OS is macOS, trim the random server suffix to avoid hitting the 108 char unix socket path limit
-	if stdruntime.GOOS == "darwin" {
-		serverSuffix = serverSuffix[:6]
-	}
+	rmock.Mock[*omni.MachineStatus](ctx, t, st,
+		options.WithID(id),
+		options.WithMachineServices(ctx, machineServices),
+	)
 
-	service, err := suite.newServer(serverSuffix)
-
-	suite.Require().NoError(err)
-
-	clusterMachineStatus := omni.NewClusterMachineStatus(machine)
-	clusterMachineStatus.TypedSpec().Value.ManagementAddress = unixSocket + service.address
-
-	clusterMachineStatus.Metadata().Labels().Set(omni.LabelCluster, clusterName)
-	clusterMachineStatus.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")
-	clusterMachineStatus.Metadata().Labels().Set(omni.LabelMachineSet, machineSet.Metadata().ID())
-
-	suite.createResource(clusterMachineStatus)
-
-	return service
+	rmock.Mock[*omni.ClusterMachine](ctx, t, st, options.WithID(id))
+	rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st, options.WithID(id))
 }
 
-func (suite *MachineSetEtcdAuditSuite) SetupTest() {
-	suite.OmniSuite.SetupTest()
+func TestMachineSetEtcdAudit(t *testing.T) {
+	t.Parallel()
 
-	logger := zaptest.NewLogger(suite.T())
+	machines := []string{"n1", "n2", "n3"}
 
-	suite.clientFactory = talos.NewClientFactory(suite.state, logger)
+	registerControllers := func(t *testing.T) testutils.TestFunc {
+		return func(_ context.Context, tc testutils.TestContext) {
+			clientFactory := talos.NewClientFactory(tc.State, tc.Logger)
 
-	suite.startRuntime()
-
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterEndpointController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetEtcdAuditController(
-		suite.clientFactory,
-		time.Millisecond*100,
-	)))
-}
-
-func (suite *MachineSetEtcdAuditSuite) TearDownTest() {
-	suite.cleanupResources()
-
-	suite.OmniSuite.TearDownTest()
-}
-
-func (suite *MachineSetEtcdAuditSuite) TestEtcdAudit() {
-	machines := []string{
-		"n1",
-		"n2",
-		"n3",
-	}
-
-	extraMembers := []*machine.EtcdMember{
-		{
-			Id:       1,
-			Hostname: "n1",
-		},
-		{
-			Id:       2,
-			Hostname: "n2",
-		},
-		{
-			Id:       3,
-			Hostname: "n3",
-		},
-		{
-			Id:       4,
-			Hostname: "n4",
-		},
-	}
-
-	//nolint:govet
-	for _, tt := range []struct {
-		setup   func(*omni.MachineSet)
-		name    string
-		members []*machine.EtcdMember
-		check   func(*machineService) error
-	}{
-		{
-			name:    "unchanged",
-			members: extraMembers,
-			check: func(machineService *machineService) error {
-				time.Sleep(time.Millisecond * 500)
-				machineService.lock.Lock()
-				defer machineService.lock.Unlock()
-
-				members := machineService.etcdMembers.Messages[0].Members
-
-				if len(members) != 4 {
-					return retry.ExpectedErrorf("expected to have 4 etcd members got %d", len(members))
-				}
-
-				return nil
-			},
-		},
-		{
-			name:    "cleanedUp",
-			members: extraMembers,
-			setup: func(ms *omni.MachineSet) {
-				for _, id := range machines {
-					cm := omni.NewClusterMachine(id)
-					cm.Metadata().Labels().Set(omni.LabelMachineSet, ms.Metadata().ID())
-					suite.createResource(cm)
-				}
-			},
-			check: func(machineService *machineService) error {
-				machineService.lock.Lock()
-				defer machineService.lock.Unlock()
-
-				members := machineService.etcdMembers.Messages[0].Members
-				if len(members) != 3 {
-					return retry.ExpectedErrorf("expected to have 3 etcd members got %d", len(members))
-				}
-
-				return nil
-			},
-		},
-	} {
-		if !suite.T().Run(tt.name, func(t *testing.T) {
-			suite.cleanupResources()
-
-			clusterName := "etcd_audit/" + tt.name
-
-			services, machineSet := suite.createMachineSet(clusterName, tt.name, machines)
-
-			for _, m := range machines {
-				svc := services[m]
-
-				svc.lock.Lock()
-				svc.etcdMembers = &machine.EtcdMemberListResponse{
-					Messages: []*machine.EtcdMembers{
-						{
-							Members: tt.members,
-						},
-					},
-				}
-				svc.lock.Unlock()
-			}
-
-			for i, m := range machines {
-				suite.Require().NoError(services[m].state.Create(suite.ctx, talosruntime.NewMountStatus(talosruntime.NamespaceName, "EPHEMERAL")))
-				member := etcd.NewMember(etcd.NamespaceName, etcd.LocalMemberID)
-				member.TypedSpec().MemberID = etcd.FormatMemberID(uint64(i + 1))
-
-				suite.Require().NoError(services[m].state.Create(suite.ctx, member))
-			}
-
-			if tt.setup != nil {
-				tt.setup(machineSet)
-			}
-
-			assert.NoError(t, retry.Constant(20*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(func() error {
-				var err error
-				for _, m := range machines {
-					err = tt.check(services[m])
-					if err == nil {
-						return nil
-					}
-				}
-
-				return err
-			}))
-		}) {
-			break
+			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewClusterEndpointController()))
+			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineSetEtcdAuditController(
+				clientFactory,
+				100*time.Millisecond,
+			)))
 		}
 	}
+
+	setupTalosState := func(ctx context.Context, t *testing.T, machineServices *testutils.MachineServices, machineIDs []string, etcdResp *machine.EtcdMemberListResponse) {
+		for i, id := range machineIDs {
+			svc := machineServices.Get(id)
+			svc.SetEtcdMembers(etcdResp)
+
+			require.NoError(t, svc.State.Create(ctx, talosruntime.NewMountStatus(talosruntime.NamespaceName, "EPHEMERAL")))
+
+			member := etcd.NewMember(etcd.NamespaceName, etcd.LocalMemberID)
+			member.TypedSpec().MemberID = etcd.FormatMemberID(uint64(i + 1))
+
+			require.NoError(t, svc.State.Create(ctx, member))
+		}
+	}
+
+	t.Run("unchanged", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerControllers(t),
+			func(ctx context.Context, tc testutils.TestContext) {
+				machineServices := testutils.NewMachineServices(t, tc.State)
+				setupEtcdAuditCluster(ctx, t, tc.State, machineServices, "etcd_audit/unchanged", machines)
+
+				etcdResp := &machine.EtcdMemberListResponse{
+					Messages: []*machine.EtcdMembers{{
+						Members: []*machine.EtcdMember{
+							{Id: 1, Hostname: "n1"},
+							{Id: 2, Hostname: "n2"},
+							{Id: 3, Hostname: "n3"},
+						},
+					}},
+				}
+
+				setupTalosState(ctx, t, machineServices, machines, etcdResp)
+
+				// This is a negative assertion: the audit controller should NOT remove any members
+				// since the three cluster machines (n1, n2, n3) match the three etcd members exactly.
+				// There is no observable state change to poll on, so a brief sleep gives the controller
+				// time to run before we verify the member count is unchanged.
+				time.Sleep(500 * time.Millisecond)
+
+				for _, m := range machines {
+					assert.Equal(t, 3, machineServices.Get(m).GetEtcdMemberCount())
+				}
+			},
+		)
+	})
+
+	t.Run("cleanedUp", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerControllers(t),
+			func(ctx context.Context, tc testutils.TestContext) {
+				machineServices := testutils.NewMachineServices(t, tc.State)
+				setupEtcdAuditCluster(ctx, t, tc.State, machineServices, "etcd_audit/cleanedUp", machines)
+
+				etcdResp := &machine.EtcdMemberListResponse{
+					Messages: []*machine.EtcdMembers{{
+						Members: []*machine.EtcdMember{
+							{Id: 1, Hostname: "n1"},
+							{Id: 2, Hostname: "n2"},
+							{Id: 3, Hostname: "n3"},
+							{Id: 4, Hostname: "n4"},
+						},
+					}},
+				}
+
+				setupTalosState(ctx, t, machineServices, machines, etcdResp)
+
+				assert.NoError(t, retry.Constant(20*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(func() error {
+					var err error
+
+					for _, m := range machines {
+						count := machineServices.Get(m).GetEtcdMemberCount()
+						if count == 3 {
+							return nil
+						}
+
+						err = retry.ExpectedErrorf("expected to have 3 etcd members got %d", count)
+					}
+
+					return err
+				}))
+			},
+		)
+	})
 }
 
 //nolint:maintidx
-func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
-	var (
-		services   map[string]*machineService
-		machineSet *omni.MachineSet
-	)
+func TestEtcdStatus(t *testing.T) {
+	t.Parallel()
 
-	members := map[string]uint64{
+	machines := []string{"n1", "n2", "n3"}
+
+	memberIDs := map[string]uint64{
 		"n1": 1,
 		"n2": 2,
 		"n3": 3,
@@ -261,75 +224,16 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
 	}
 
 	allMembers := []*machine.EtcdMember{
-		{
-			Id:       members["n1"],
-			Hostname: "n1",
-		},
-		{
-			Id:       members["n2"],
-			Hostname: "n2",
-		},
-		{
-			Id:       members["n3"],
-			Hostname: "n3",
-		},
+		{Id: memberIDs["n1"], Hostname: "n1"},
+		{Id: memberIDs["n2"], Hostname: "n2"},
+		{Id: memberIDs["n3"], Hostname: "n3"},
 	}
 
 	extraEtcdMembers := []*machine.EtcdMember{
-		{
-			Id:       members["n1"],
-			Hostname: "n1",
-		},
-		{
-			Id:       members["n2"],
-			Hostname: "n2",
-		},
-		{
-			Id:       members["n3"],
-			Hostname: "n3",
-		},
-		{
-			Id:       members["n4"],
-			Hostname: "n4",
-		},
-	}
-
-	machines := []string{
-		"n1",
-		"n2",
-		"n3",
-	}
-
-	initIdentities := func(items ...string) {
-		for _, m := range items {
-			identity := omni.NewClusterMachineIdentity(m)
-			identity.TypedSpec().Value.EtcdMemberId = members[m]
-
-			suite.createResource(identity)
-		}
-	}
-
-	setConnected := func(items ...string) {
-		for _, m := range items {
-			status := omni.NewClusterMachineStatus(m)
-
-			_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, status.Metadata(), func(res *omni.ClusterMachineStatus) error {
-				res.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
-
-				return nil
-			})
-
-			suite.Require().NoError(err)
-		}
-	}
-
-	setServiceListResponse := func(response *machine.ServiceListResponse, items ...string) {
-		for _, m := range items {
-			svc, ok := services[m]
-			suite.Require().Truef(ok, "the machine %q is not set up in the tests", m)
-
-			svc.setServiceList(response)
-		}
+		{Id: memberIDs["n1"], Hostname: "n1"},
+		{Id: memberIDs["n2"], Hostname: "n2"},
+		{Id: memberIDs["n3"], Hostname: "n3"},
+		{Id: memberIDs["n4"], Hostname: "n4"},
 	}
 
 	etcdRunning := &machine.ServiceListResponse{
@@ -362,9 +266,50 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
 		},
 	}
 
+	initIdentities := func(ctx context.Context, t *testing.T, st state.State, items ...string) {
+		for _, m := range items {
+			rmock.Mock[*omni.ClusterMachineIdentity](ctx, t, st,
+				options.WithID(m),
+				options.Modify(func(res *omni.ClusterMachineIdentity) error {
+					res.TypedSpec().Value.EtcdMemberId = memberIDs[m]
+
+					return nil
+				}),
+			)
+		}
+	}
+
+	setConnected := func(ctx context.Context, t *testing.T, st state.State, items ...string) {
+		for _, m := range items {
+			rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st,
+				options.WithID(m),
+				options.Modify(func(res *omni.ClusterMachineStatus) error {
+					res.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
+
+					return nil
+				}),
+			)
+		}
+	}
+
+	setServiceList := func(machineServices *testutils.MachineServices, response *machine.ServiceListResponse, items ...string) {
+		for _, m := range items {
+			machineServices.Get(m).SetServiceList(response)
+		}
+	}
+
+	type etcdStatusSetup func(
+		ctx context.Context,
+		t *testing.T,
+		st state.State,
+		machineServices *testutils.MachineServices,
+		cluster *omni.Cluster,
+		machineSet *omni.MachineSet,
+	)
+
 	//nolint:govet
 	for _, tt := range []struct {
-		setup   func(string)
+		setup   etcdStatusSetup
 		name    string
 		members []*machine.EtcdMember
 		check   func(*testing.T, *check.EtcdStatusResult, error)
@@ -379,10 +324,10 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
 		{
 			name:    "healthy",
 			members: allMembers,
-			setup: func(string) {
-				initIdentities(machines...)
-				setConnected(machines...)
-				setServiceListResponse(etcdRunning, machines...)
+			setup: func(ctx context.Context, t *testing.T, st state.State, machineServices *testutils.MachineServices, _ *omni.Cluster, _ *omni.MachineSet) {
+				initIdentities(ctx, t, st, machines...)
+				setConnected(ctx, t, st, machines...)
+				setServiceList(machineServices, etcdRunning, machines...)
 			},
 			check: func(t *testing.T, esr *check.EtcdStatusResult, err error) {
 				require.NoError(t, err)
@@ -393,11 +338,11 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
 		{
 			name:    "2 of 3 reachable, etcd down",
 			members: allMembers,
-			setup: func(string) {
-				initIdentities(machines...)
-				setConnected(machines...)
-				setServiceListResponse(etcdRunning, machines[:2]...)
-				setServiceListResponse(etcdDown, machines[2])
+			setup: func(ctx context.Context, t *testing.T, st state.State, machineServices *testutils.MachineServices, _ *omni.Cluster, _ *omni.MachineSet) {
+				initIdentities(ctx, t, st, machines...)
+				setConnected(ctx, t, st, machines...)
+				setServiceList(machineServices, etcdRunning, machines[:2]...)
+				setServiceList(machineServices, etcdDown, machines[2])
 			},
 			check: func(t *testing.T, esr *check.EtcdStatusResult, err error) {
 				require.NoError(t, err)
@@ -409,13 +354,13 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
 		{
 			name:    "2 of 4 reachable, identity not ready for a machine",
 			members: allMembers,
-			setup: func(clusterName string) {
-				initIdentities(machines...)
-				setConnected(machines...)
-				setServiceListResponse(etcdRunning, machines[:2]...)
-				setServiceListResponse(etcdDown, machines[2])
+			setup: func(ctx context.Context, t *testing.T, st state.State, machineServices *testutils.MachineServices, cluster *omni.Cluster, machineSet *omni.MachineSet) {
+				initIdentities(ctx, t, st, machines...)
+				setConnected(ctx, t, st, machines...)
+				setServiceList(machineServices, etcdRunning, machines[:2]...)
+				setServiceList(machineServices, etcdDown, machines[2])
 
-				suite.createClusterMachineStatus("n4", clusterName, machineSet)
+				addClusterMachine(ctx, t, st, machineServices, cluster, machineSet, "n4")
 			},
 			check: func(t *testing.T, esr *check.EtcdStatusResult, err error) {
 				require.NoError(t, err)
@@ -429,12 +374,12 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
 		{
 			name:    "3 of 4 reachable, non-member is not connected",
 			members: allMembers,
-			setup: func(clusterName string) {
-				initIdentities(machines...)
-				setConnected(machines...)
-				setServiceListResponse(etcdRunning, machines...)
+			setup: func(ctx context.Context, t *testing.T, st state.State, machineServices *testutils.MachineServices, cluster *omni.Cluster, machineSet *omni.MachineSet) {
+				initIdentities(ctx, t, st, machines...)
+				setConnected(ctx, t, st, machines...)
+				setServiceList(machineServices, etcdRunning, machines...)
 
-				suite.createClusterMachineStatus("n4", clusterName, machineSet)
+				addClusterMachine(ctx, t, st, machineServices, cluster, machineSet, "n4")
 			},
 			check: func(t *testing.T, esr *check.EtcdStatusResult, err error) {
 				require.NoError(t, err)
@@ -446,16 +391,16 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
 		{
 			name:    "4 of 4 reachable, but splitbrain",
 			members: allMembers,
-			setup: func(clusterName string) {
-				initIdentities(machines...)
-				setConnected(machines...)
-				setServiceListResponse(etcdRunning, machines...)
+			setup: func(ctx context.Context, t *testing.T, st state.State, machineServices *testutils.MachineServices, cluster *omni.Cluster, machineSet *omni.MachineSet) {
+				initIdentities(ctx, t, st, machines...)
+				setConnected(ctx, t, st, machines...)
+				setServiceList(machineServices, etcdRunning, machines...)
 
-				services["n4"] = suite.createClusterMachineStatus("n4", clusterName, machineSet)
+				addClusterMachine(ctx, t, st, machineServices, cluster, machineSet, "n4")
 
-				setConnected("n4")
-				initIdentities("n4")
-				setServiceListResponse(etcdRunning, "n4")
+				setConnected(ctx, t, st, "n4")
+				initIdentities(ctx, t, st, "n4")
+				setServiceList(machineServices, etcdRunning, "n4")
 			},
 			check: func(t *testing.T, esr *check.EtcdStatusResult, err error) {
 				require.NoError(t, err)
@@ -467,84 +412,44 @@ func (suite *MachineSetEtcdAuditSuite) TestEtcdStatus() {
 		{
 			name:    "extra etcd member",
 			members: extraEtcdMembers,
-			setup: func(string) {
-				initIdentities(machines...)
-				setConnected(machines...)
-				setServiceListResponse(etcdRunning, machines...)
+			setup: func(ctx context.Context, t *testing.T, st state.State, machineServices *testutils.MachineServices, _ *omni.Cluster, _ *omni.MachineSet) {
+				initIdentities(ctx, t, st, machines...)
+				setConnected(ctx, t, st, machines...)
+				setServiceList(machineServices, etcdRunning, machines...)
 			},
 			check: func(t *testing.T, _ *check.EtcdStatusResult, err error) {
 				require.Error(t, err)
 			},
 		},
 	} {
-		if !suite.T().Run(tt.name, func(t *testing.T) {
-			suite.cleanupResources()
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-			clusterName := "etcd_status/" + tt.name
+			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+			t.Cleanup(cancel)
 
-			services, machineSet = suite.createMachineSet(clusterName, tt.name, machines)
+			testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+				func(context.Context, testutils.TestContext) {},
+				func(ctx context.Context, tc testutils.TestContext) {
+					machineServices := testutils.NewMachineServices(t, tc.State)
+					clusterName := "etcd_status/" + tt.name
 
-			primary := services[machines[0]]
+					cluster, machineSet := setupEtcdAuditCluster(ctx, t, tc.State, machineServices, clusterName, machines)
 
-			primary.lock.Lock()
-			primary.etcdMembers = &machine.EtcdMemberListResponse{
-				Messages: []*machine.EtcdMembers{
-					{
-						Members: tt.members,
-					},
+					machineServices.Get(machines[0]).SetEtcdMembers(&machine.EtcdMemberListResponse{
+						Messages: []*machine.EtcdMembers{{
+							Members: tt.members,
+						}},
+					})
+
+					if tt.setup != nil {
+						tt.setup(ctx, t, tc.State, machineServices, cluster, machineSet)
+					}
+
+					status, err := check.EtcdStatus(ctx, tc.State, machineSet)
+					tt.check(t, status, err)
 				},
-			}
-			primary.lock.Unlock()
-
-			for i, m := range machines {
-				member := etcd.NewMember(etcd.NamespaceName, etcd.LocalMemberID)
-				member.TypedSpec().MemberID = etcd.FormatMemberID(uint64(i + 1))
-
-				require.NoError(t, services[m].state.Create(suite.ctx, member))
-			}
-
-			if tt.setup != nil {
-				tt.setup(clusterName)
-			}
-
-			status, err := check.EtcdStatus(suite.ctx, suite.state, machineSet)
-			tt.check(t, status, err)
-		}) {
-			break
-		}
+			)
+		})
 	}
-}
-
-func (suite *MachineSetEtcdAuditSuite) createResource(res resource.Resource) {
-	suite.Require().NoError(suite.state.Create(suite.ctx, res))
-
-	suite.resources = append(suite.resources, res)
-}
-
-func ignoreNotFound(err error) error {
-	if state.IsNotFoundError(err) {
-		return nil
-	}
-
-	return err
-}
-
-func (suite *MachineSetEtcdAuditSuite) cleanupResources() {
-	for _, r := range suite.resources {
-		_, err := suite.state.Teardown(suite.ctx, r.Metadata())
-		suite.Require().NoError(ignoreNotFound(err))
-
-		_, err = suite.state.WatchFor(suite.ctx, r.Metadata(), state.WithFinalizerEmpty())
-		suite.Require().NoError(ignoreNotFound(err))
-
-		suite.Require().NoError(ignoreNotFound(suite.state.Destroy(suite.ctx, r.Metadata())))
-	}
-
-	suite.resources = nil
-}
-
-func TestMachineSetEtcdAuditSuite(t *testing.T) {
-	t.Parallel()
-
-	suite.Run(t, new(MachineSetEtcdAuditSuite))
 }

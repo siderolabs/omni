@@ -205,8 +205,10 @@ func (suite *ClusterBootstrapStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterUUIDRes))
 
+	backupTimestamp := time.Now()
+
 	err := store.Upload(suite.ctx, etcdbackup.Description{
-		Timestamp:   time.Now(),
+		Timestamp:   backupTimestamp,
 		ClusterUUID: clusterUUID,
 		ClusterName: cluster.Metadata().ID(),
 		EncryptionData: etcdbackup.EncryptionData{
@@ -247,7 +249,7 @@ func (suite *ClusterBootstrapStatusSuite) TestReconcile() {
 
 	suite.Require().Len(suite.machineService.getBootstrapRequests(), 1)
 
-	suite.testRecoverControlPlaneFromEtcdBackup(cluster.Metadata().ID(), clusterUUID, etcdBackupDataMock)
+	suite.testRecoverControlPlaneFromEtcdBackup(cluster.Metadata().ID(), clusterUUID, etcdBackupDataMock, backupTimestamp)
 
 	suite.destroyCluster(cluster)
 	rtestutils.Destroy[*omni.ClusterStatus](suite.ctx, suite.T(), suite.state, []resource.ID{clusterStatus.Metadata().ID()})
@@ -257,7 +259,7 @@ func (suite *ClusterBootstrapStatusSuite) TestReconcile() {
 	))
 }
 
-func (suite *ClusterBootstrapStatusSuite) testRecoverControlPlaneFromEtcdBackup(clusterID resource.ID, clusterUUID string, backupDataMock etcdbackup.BackupData) {
+func (suite *ClusterBootstrapStatusSuite) testRecoverControlPlaneFromEtcdBackup(clusterID resource.ID, clusterUUID string, backupDataMock etcdbackup.BackupData, backupTimestamp time.Time) {
 	cpMachineSetMd := omni.NewMachineSet(omni.ControlPlanesResourceID(clusterID)).Metadata()
 
 	cpMachineSet, err := safe.StateGet[*omni.MachineSet](suite.ctx, suite.state, cpMachineSetMd)
@@ -283,7 +285,7 @@ func (suite *ClusterBootstrapStatusSuite) testRecoverControlPlaneFromEtcdBackup(
 	// re-create the control plane machine set but now with a bootstrap spec
 	cpMachineSet.TypedSpec().Value.BootstrapSpec = &specs.MachineSetSpec_BootstrapSpec{
 		ClusterUuid: clusterUUID,
-		Snapshot:    etcdbackup.CreateSnapshotName(time.Now()),
+		Snapshot:    etcdbackup.CreateSnapshotName(backupTimestamp),
 	}
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, cpMachineSet))

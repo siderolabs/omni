@@ -393,10 +393,23 @@ func (w *AuditWrap) WrapState(resourceState state.State) state.State {
 	return audit.WrapState(resourceState, w.log)
 }
 
+// TestStateBuilder returns an inmem state builder with history options suitable for testing.
+// The history buffer prevents watch event loss when controller goroutines are slow under parallel test load.
+func TestStateBuilder() namespaced.StateBuilder {
+	build := inmem.NewStateWithOptions(
+		inmem.WithHistoryMaxCapacity(1024),
+		inmem.WithHistoryGap(20),
+	)
+
+	return func(ns resource.Namespace) state.CoreState {
+		return build(ns)
+	}
+}
+
 // NewTestState creates a new test state using the in-memory storage and no virtual one.
 func NewTestState(logger *zap.Logger) (*State, error) {
 	defaultPersistentState := &PersistentState{
-		State: namespaced.NewState(inmem.Build),
+		State: namespaced.NewState(TestStateBuilder()),
 	}
 
 	storeFactory, err := store.NewStoreFactory(config.EtcdBackup{})

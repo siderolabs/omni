@@ -61,7 +61,7 @@ func (c infraProviderCleanupTestHelper) assertProviderTeardown(t *testing.T, ctx
 	rtestutils.AssertNoResource[*infra.ProviderHealthStatus](ctx, t, st, providerID)
 	rtestutils.AssertNoResource[*auth.PublicKey](ctx, t, st, "test-public-key")
 	rtestutils.AssertNoResource[*auth.User](ctx, t, st, userID)
-	rtestutils.AssertNoResource[*auth.Identity](ctx, t, st, access.InfraProviderServiceAccountPrefix+providerID)
+	rtestutils.AssertNoResource[*auth.Identity](ctx, t, st, providerID+access.InfraProviderServiceAccountNameSuffix)
 }
 
 func TestStaticProviderCleanup(t *testing.T) {
@@ -75,24 +75,28 @@ func TestStaticProviderCleanup(t *testing.T) {
 	providerID := "static-infra-provider"
 	userID := uuid.New().String()
 
+	link := siderolink.NewLink("test-machine", nil)
+	link.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+	infraMachineStatus := infra.NewMachineStatus(link.Metadata().ID())
+	infraMachineStatus.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
 		st := testContext.State
 
 		controller := omnictrl.NewInfraProviderCleanupController()
 		helper.prepareProvider(t, ctx, st, providerID, userID, controller.Name())
 
+		// Create resources watched by the cleanup controller before the runtime starts,
+		// so they are in the controller's cache when it bootstraps. This avoids a race
+		// where the Provider teardown event is processed before these resources' watch
+		// events reach the controller's cache.
+		require.NoError(t, st.Create(ctx, link))
+		require.NoError(t, st.Create(ctx, infraMachineStatus))
+
 		require.NoError(t, testContext.Runtime.RegisterController(controller))
 	}, func(ctx context.Context, testContext testutils.TestContext) {
 		st := testContext.State
 		providerMD := infra.NewProvider(providerID).Metadata()
-
-		link := siderolink.NewLink("test-machine", nil)
-		link.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
-		infraMachineStatus := infra.NewMachineStatus(link.Metadata().ID())
-		infraMachineStatus.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
-
-		require.NoError(t, st.Create(ctx, link))
-		require.NoError(t, st.Create(ctx, infraMachineStatus))
 
 		helper.assertProviderTeardown(t, ctx, st, userID, providerID)
 

@@ -422,7 +422,25 @@ func (ms *MachineServiceMock) Version(ctx context.Context, _ *emptypb.Empty) (*m
 	}, nil
 }
 
-func (ms *MachineServiceMock) GetServiceList(value *machine.ServiceListResponse) {
+func (ms *MachineServiceMock) SetEtcdMembers(value *machine.EtcdMemberListResponse) {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	ms.etcdMembers = value
+}
+
+func (ms *MachineServiceMock) GetEtcdMemberCount() int {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	if ms.etcdMembers == nil || len(ms.etcdMembers.Messages) == 0 {
+		return 0
+	}
+
+	return len(ms.etcdMembers.Messages[0].Members)
+}
+
+func (ms *MachineServiceMock) SetServiceList(value *machine.ServiceListResponse) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 

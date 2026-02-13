@@ -199,7 +199,7 @@ func TestTalosUpgradeStatus(t *testing.T) {
 	t.Run("reconcile", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(ctx, t, testutils.TestOptions{},

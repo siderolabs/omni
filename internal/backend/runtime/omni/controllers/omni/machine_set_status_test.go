@@ -7,8 +7,6 @@ package omni_test
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -17,667 +15,551 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/go-retry/retry"
-	"github.com/siderolabs/talos/pkg/machinery/config"
-	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
 )
 
-type MachineSetStatusSuite struct {
-	OmniSuite
+func registerMachineSetStatusController(t *testing.T) testutils.TestFunc {
+	return func(_ context.Context, tc testutils.TestContext) {
+		require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
+	}
 }
 
-func (suite *MachineSetStatusSuite) createMachineSet(clusterName string, machineSetName string, machines []string) *omni.MachineSet {
-	return suite.createMachineSetWithOpts(clusterName, machineSetName, machines)
-}
+// setupMachineSetCluster creates a cluster with a machine set and the given machines using rmock.
+// lbHealthy controls whether the LoadBalancerStatus is initially healthy.
+// msModify can be used to apply extra modifications to the MachineSet (e.g., rolling strategy config).
+func setupMachineSetCluster(
+	ctx context.Context, t *testing.T, st state.State,
+	clusterName, machineSetName string, machineIDs []string,
+	lbHealthy bool, msModify ...options.MockOption,
+) *omni.MachineSet {
+	cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
 
-func (suite *MachineSetStatusSuite) createMachineSetWithOpts(clusterName string, machineSetName string, machines []string, o ...option) *omni.MachineSet {
-	options := initOptions(&opts{healthy: true}, o...)
-	cluster := omni.NewCluster(clusterName)
+	lbOpts := []options.MockOption{options.SameID(cluster)}
+	if !lbHealthy {
+		lbOpts = append(lbOpts, options.Modify(func(r *omni.LoadBalancerStatus) error {
+			r.TypedSpec().Value.Healthy = false
 
-	cluster.TypedSpec().Value.TalosVersion = "1.2.1"
-	cluster.TypedSpec().Value.KubernetesVersion = "1.25.0"
-
-	err := suite.state.Create(suite.ctx, cluster)
-	if !state.IsConflictError(err) {
-		suite.Require().NoError(err)
+			return nil
+		}))
 	}
 
-	clusterStatus := omni.NewClusterStatus(clusterName)
+	rmock.Mock[*omni.LoadBalancerStatus](ctx, t, st, lbOpts...)
 
-	clusterStatus.TypedSpec().Value.Available = true
+	msOpts := make([]options.MockOption, 0, 3+len(msModify))
+	msOpts = append(msOpts,
+		options.WithID(machineSetName),
+		options.LabelCluster(cluster),
+		options.Modify(func(r *omni.MachineSet) error {
+			r.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling
 
-	err = suite.state.Create(suite.ctx, clusterStatus)
-	if !state.IsConflictError(err) {
-		suite.Require().NoError(err)
-	}
+			return nil
+		}),
+	)
+	msOpts = append(msOpts, msModify...)
 
-	secrets := omni.NewClusterSecrets(clusterName)
+	machineSet := rmock.Mock[*omni.MachineSet](ctx, t, st, msOpts...)
 
-	bundle, err := talossecrets.NewBundle(talossecrets.NewClock(), config.TalosVersionCurrent)
-	suite.Require().NoError(err)
+	rmock.MockList[*omni.MachineSetNode](ctx, t, st,
+		options.IDs(machineIDs),
+		options.ItemOptions(
+			options.LabelCluster(cluster),
+			options.LabelMachineSet(machineSet),
+		),
+	)
 
-	data, err := json.Marshal(bundle)
-	suite.Require().NoError(err)
-
-	secrets.TypedSpec().Value.Data = data
-
-	err = suite.state.Create(suite.ctx, secrets)
-	if !state.IsConflictError(err) {
-		suite.Require().NoError(err)
-	}
-
-	machineSet := omni.NewMachineSet(machineSetName)
-	machineSet.Metadata().Labels().Set(omni.LabelCluster, clusterName)
-	spec := machineSet.TypedSpec().Value
-
-	loadbalancer := omni.NewLoadBalancerStatus(clusterName)
-	loadbalancer.TypedSpec().Value.Healthy = options.healthy
-
-	err = suite.state.Create(suite.ctx, loadbalancer)
-	if !state.IsConflictError(err) {
-		suite.Require().NoError(err)
-	}
-
-	patchName := fmt.Sprintf("%s-patch-default", machineSetName)
-
-	spec.UpdateStrategy = specs.MachineSetSpec_Rolling
-	if options.maxUpdateParallelism > 0 {
-		spec.UpdateStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
-			Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{
-				MaxParallelism: options.maxUpdateParallelism,
-			},
-		}
-	}
-
-	if options.maxDeleteParallelism > 0 {
-		spec.DeleteStrategy = specs.MachineSetSpec_Rolling
-		spec.DeleteStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
-			Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{
-				MaxParallelism: options.maxDeleteParallelism,
-			},
-		}
-	}
-
-	suite.Require().NoError(suite.state.Create(suite.ctx, machineSet))
-
-	patch1 := omni.NewConfigPatch(patchName, pair.MakePair(omni.LabelCluster, clusterName))
-
-	err = patch1.TypedSpec().Value.SetUncompressedData([]byte(`machine:
-  network:
-    kubespan:
-      enabled: true`))
-	suite.Require().NoError(err)
-
-	err = suite.state.Create(suite.ctx, patch1)
-	if !state.IsConflictError(err) {
-		suite.Require().NoError(err)
-	}
-
-	for _, machine := range machines {
-		mchn := omni.NewMachine(machine)
-		mchn.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
-
-		err = suite.state.Create(suite.ctx, mchn)
-		if !state.IsConflictError(err) {
-			suite.Require().NoError(err)
-		}
-
-		machineStatus := omni.NewMachineStatus(machine)
-		machineStatus.Metadata().Labels().Set(omni.LabelCluster, clusterName)
-		machineStatus.Metadata().Labels().Set(omni.LabelMachineSet, machineSetName)
-
-		machineStatus.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
-		machineStatus.TypedSpec().Value.Connected = true
-
-		machineStatus.TypedSpec().Value.Cluster = clusterName
-		machineStatus.TypedSpec().Value.Role = specs.MachineStatusSpec_CONTROL_PLANE
-
-		machineStatusLabels := system.NewResourceLabels[*omni.MachineStatus](machineStatus.Metadata().ID())
-		helpers.CopyLabels(machineStatus, machineStatusLabels, omni.LabelCluster, omni.LabelMachineSet)
-
-		err = suite.state.Create(suite.ctx, machineStatus)
-		if !state.IsConflictError(err) {
-			suite.Require().NoError(err)
-		}
-
-		err = suite.state.Create(suite.ctx, machineStatusLabels)
-		if !state.IsConflictError(err) {
-			suite.Require().NoError(err)
-		}
-
-		msn := omni.NewMachineSetNode(machine, machineSet)
-
-		suite.Require().NoError(suite.state.Create(suite.ctx, msn))
-
-		clusterMachineIdentity := omni.NewClusterMachineIdentity(machine)
-
-		err = suite.state.Create(suite.ctx, clusterMachineIdentity)
-		if !state.IsConflictError(err) {
-			suite.Require().NoError(err)
-		}
+	for _, id := range machineIDs {
+		rmock.Mock[*omni.MachineStatus](ctx, t, st, options.WithID(id))
+		rmock.Mock[*system.ResourceLabels[*omni.MachineStatus]](ctx, t, st, options.WithID(id))
 	}
 
 	return machineSet
 }
 
-//nolint:unparam
-func (suite *MachineSetStatusSuite) updateStage(nodes []string, stage specs.ClusterMachineStatusSpec_Stage, ready bool) {
-	for _, node := range nodes {
-		cms := omni.NewClusterMachineStatus(node)
-		cms.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
-		spec := cms.TypedSpec().Value
+// mssUpdateStage creates or updates ClusterMachineStatus for each machine as RUNNING and ready.
+func mssUpdateStage(ctx context.Context, t *testing.T, st state.State, machineIDs []string) {
+	for _, id := range machineIDs {
+		rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st,
+			options.WithID(id),
+			options.Modify(func(res *omni.ClusterMachineStatus) error {
+				res.TypedSpec().Value.Stage = specs.ClusterMachineStatusSpec_RUNNING
+				res.TypedSpec().Value.Ready = true
+				res.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
 
-		spec.Ready = ready
-		spec.Stage = stage
+				return nil
+			}),
+		)
+	}
+}
 
-		machine, err := suite.state.Get(suite.ctx, resource.NewMetadata(
-			resources.DefaultNamespace,
-			omni.ClusterMachineType,
-			cms.Metadata().ID(),
-			resource.VersionUndefined,
-		))
-		suite.Require().NoError(err)
+// mssAssertMachinesState waits until all given machines have ClusterMachine resources with the correct labels.
+func mssAssertMachinesState(ctx context.Context, t *testing.T, st state.State, machineIDs []string, clusterName, machineSetName string) {
+	rtestutils.AssertResources(ctx, t, st, machineIDs, func(cm *omni.ClusterMachine, a *assert.Assertions) {
+		clusterVal, ok := cm.Metadata().Labels().Get(omni.LabelCluster)
+		a.True(ok, "LabelCluster missing")
+		a.Equal(clusterName, clusterVal)
 
-		helpers.CopyLabels(machine, cms, omni.LabelControlPlaneRole, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole)
+		msVal, ok := cm.Metadata().Labels().Get(omni.LabelMachineSet)
+		a.True(ok, "LabelMachineSet missing")
+		a.Equal(machineSetName, msVal)
+	})
+}
 
-		err = suite.state.Create(suite.ctx, cms)
-		if state.IsConflictError(err) {
-			_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, cms.Metadata(), func(res *omni.ClusterMachineStatus) error {
-				res.TypedSpec().Value = cms.TypedSpec().Value
+// mssAssertMachineSetPhase waits until the MachineSetStatus has the expected phase.
+func mssAssertMachineSetPhase(ctx context.Context, t *testing.T, st state.State, machineSetID string, expectedPhase specs.MachineSetPhase) {
+	phaseCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 
-				helpers.CopyLabels(machine, res, omni.LabelControlPlaneRole, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole)
+	rtestutils.AssertResources(phaseCtx, t, st, []resource.ID{machineSetID}, func(mss *omni.MachineSetStatus, a *assert.Assertions) {
+		a.Equal(expectedPhase, mss.TypedSpec().Value.Phase)
+	})
+}
+
+// TestMachineSetStatus_ScaleUp verifies that scaling the machine set up is never blocked.
+func TestMachineSetStatus_ScaleUp(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	clusterName := "scale-up"
+	machineSetName := "machine-set-scale-up"
+	machines := []string{"node1", "node2", "node3"}
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+		func(ctx context.Context, tc testutils.TestContext) {
+			machineSet := setupMachineSetCluster(ctx, t, tc.State, clusterName, machineSetName, machines, true)
+
+			mssAssertMachinesState(ctx, t, tc.State, machines, clusterName, machineSet.Metadata().ID())
+
+			mssUpdateStage(ctx, t, tc.State, machines)
+
+			mssAssertMachineSetPhase(ctx, t, tc.State, machineSet.Metadata().ID(), specs.MachineSetPhase_Running)
+		},
+	)
+}
+
+// TestMachineSetStatus_EmptyTeardown should destroy the machine sets without cluster machines.
+func TestMachineSetStatus_EmptyTeardown(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+		func(ctx context.Context, tc testutils.TestContext) {
+			cluster := rmock.Mock[*omni.Cluster](ctx, t, tc.State, options.WithID("empty-teardown"))
+
+			ms := omni.NewMachineSet("empty-teardown-ms")
+			ms.Metadata().SetPhase(resource.PhaseTearingDown)
+			ms.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+
+			msn := omni.NewMachineSetNode("1", ms)
+			msn.Metadata().Finalizers().Add(machineset.ControllerName)
+
+			require.NoError(t, tc.State.Create(ctx, msn))
+			require.NoError(t, tc.State.Create(ctx, ms))
+
+			rtestutils.DestroyAll[*omni.MachineSetNode](ctx, t, tc.State)
+			rtestutils.DestroyAll[*omni.MachineSet](ctx, t, tc.State)
+		},
+	)
+}
+
+// TestMachineSetStatus_ScaleDown creates a machine set with 3 unhealthy machines, scales down one,
+// then makes the rest healthy and verifies the deleted machine is gone.
+func TestMachineSetStatus_ScaleDown(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	clusterName := "scale-down"
+	machineSetName := "machine-set-scale-down"
+	machines := []string{"scaledown-1", "scaledown-2", "scaledown-3"}
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+		func(ctx context.Context, tc testutils.TestContext) {
+			// Create cluster with LoadBalancer initially unhealthy so the deleted machine can linger
+			machineSet := setupMachineSetCluster(ctx, t, tc.State, clusterName, machineSetName, machines, false)
+
+			mssAssertMachinesState(ctx, t, tc.State, machines, clusterName, machineSet.Metadata().ID())
+
+			rtestutils.Destroy[*omni.MachineSetNode](ctx, t, tc.State, []string{machines[0]})
+
+			mssAssertMachineSetPhase(ctx, t, tc.State, machineSet.Metadata().ID(), specs.MachineSetPhase_ScalingUp)
+
+			expectedMachines := []string{"scaledown-2", "scaledown-3"}
+
+			mssAssertMachinesState(ctx, t, tc.State, expectedMachines, clusterName, machineSet.Metadata().ID())
+
+			mssUpdateStage(ctx, t, tc.State, expectedMachines)
+
+			_, err := safe.StateUpdateWithConflicts(ctx, tc.State, omni.NewLoadBalancerStatus(clusterName).Metadata(), func(r *omni.LoadBalancerStatus) error {
+				r.TypedSpec().Value.Healthy = true
 
 				return nil
 			})
+			require.NoError(t, err)
 
-			suite.Assert().NoError(err)
-		}
-	}
-}
+			require.NoError(t, retry.Constant(10*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(func() error {
+				_, err := tc.State.Get(ctx, omni.NewClusterMachine(machines[0]).Metadata())
+				if err == nil {
+					return retry.ExpectedErrorf("ClusterMachine %s still exists", machines[0])
+				}
 
-func (suite *MachineSetStatusSuite) SetupTest() {
-	suite.OmniSuite.SetupTest()
+				if state.IsNotFoundError(err) {
+					return nil
+				}
 
-	suite.startRuntime()
+				return err
+			}))
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
-
-	// create siderolink config as it's endpoint is used while generating kubernetes endpoint
-	siderolink := siderolink.NewConfig()
-	siderolink.TypedSpec().Value.WireguardEndpoint = "0.0.0.0"
-
-	if err := suite.state.Create(suite.ctx, siderolink); err != nil && !state.IsConflictError(err) {
-		suite.Assert().NoError(err)
-	}
-}
-
-// TestScaleUp verifies that scaling the machine set up is never blocked.
-// Checks the state of created ClusterMachines.
-func (suite *MachineSetStatusSuite) TestScaleUp() {
-	clusterName := "scale-up"
-
-	machines := []string{
-		"node1",
-		"node2",
-		"node3",
-	}
-
-	machineSet := suite.createMachineSet(clusterName, "machine-set-scale-up", machines)
-
-	suite.assertMachinesState(machines, clusterName, machineSet.Metadata().ID())
-
-	suite.updateStage(machines, specs.ClusterMachineStatusSpec_RUNNING, true)
-
-	suite.assertMachineSetPhase(machineSet, *specs.MachineSetPhase_Running.Enum())
-}
-
-// TestEmptyTeardown should destroy the machine sets without cluster machines.
-func (suite *MachineSetStatusSuite) TestEmptyTeardown() {
-	cluster := omni.NewCluster("test")
-
-	ms := omni.NewMachineSet("tearingdown")
-	ms.Metadata().SetPhase(resource.PhaseTearingDown)
-	ms.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
-
-	msn := omni.NewMachineSetNode("1", ms)
-	msn.Metadata().Finalizers().Add(machineset.ControllerName)
-
-	suite.Require().NoError(suite.state.Create(suite.ctx, cluster))
-	suite.Require().NoError(suite.state.Create(suite.ctx, msn))
-	suite.Require().NoError(suite.state.Create(suite.ctx, ms))
-
-	rtestutils.DestroyAll[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state)
-	rtestutils.DestroyAll[*omni.MachineSet](suite.ctx, suite.T(), suite.state)
-}
-
-// TestScaleDown create a machine set with 3 machines
-// which are not running. Immediately try to scale down.
-// Scale down should remove the first machine.
-// Make all machines ready, check that machines count went to 2 and the machine set is ready.
-func (suite *MachineSetStatusSuite) TestScaleDown() {
-	clusterName := "scale-down"
-
-	machines := []string{
-		"scaledown-1",
-		"scaledown-2",
-		"scaledown-3",
-	}
-
-	// We create machine with "Healthy=false" status, so that rtestutils.Destroy will not work.
-	machineSet := suite.createMachineSetWithOpts(clusterName, "machine-set-scale-down", machines, withHealthy(false))
-
-	suite.assertMachinesState(machines, clusterName, machineSet.Metadata().ID())
-
-	rtestutils.Destroy[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state, []string{machines[0]})
-
-	suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_ScalingUp)
-
-	expectedMachines := []string{"scaledown-2", "scaledown-3"}
-
-	suite.assertMachinesState(expectedMachines, clusterName, machineSet.Metadata().ID())
-
-	suite.updateStage(expectedMachines, specs.ClusterMachineStatusSpec_RUNNING, true)
-
-	loadbalancer := omni.NewLoadBalancerStatus(clusterName)
-	_, err := safe.StateUpdateWithConflicts(
-		suite.ctx,
-		suite.state,
-		loadbalancer.Metadata(),
-		func(r *omni.LoadBalancerStatus) error {
-			r.TypedSpec().Value.Healthy = true
-
-			return nil
+			mssAssertMachineSetPhase(ctx, t, tc.State, machineSet.Metadata().ID(), specs.MachineSetPhase_Running)
 		},
 	)
-	suite.Require().NoError(err)
-
-	suite.Assert().NoError(retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(
-		suite.assertNoResource(*omni.NewClusterMachine(machines[0]).Metadata()),
-	))
-
-	suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_Running)
 }
 
-// TestScaleDownWithMaxParallelism tests scale down behaves correctly when max parallelism is set in a worker machine set.
-func (suite *MachineSetStatusSuite) TestScaleDownWithMaxParallelism() {
+// TestMachineSetStatus_ScaleDownWithMaxParallelism tests scale down respects max delete parallelism.
+func TestMachineSetStatus_ScaleDownWithMaxParallelism(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	t.Cleanup(cancel)
+
 	clusterName := "cluster-test-scale-down-max-parallelism"
+	machineSetName := "machine-set-test-scale-down-max-parallelism"
 	numMachines := 8
-	machines := make([]string, 0, numMachines)
+	machines := make([]string, numMachines)
 
 	for i := range numMachines {
-		machines = append(machines, fmt.Sprintf("node-test-scale-down-max-parallelism-%02d", i))
+		machines[i] = fmt.Sprintf("node-test-scale-down-max-parallelism-%02d", i)
 	}
 
-	machineSet := suite.createMachineSetWithOpts(clusterName, "machine-set-test-scale-down-max-parallelism", machines, withMaxDeleteParallelism(3))
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+		func(ctx context.Context, tc testutils.TestContext) {
+			machineSet := setupMachineSetCluster(ctx, t, tc.State, clusterName, machineSetName, machines, true,
+				options.Modify(func(r *omni.MachineSet) error {
+					r.TypedSpec().Value.DeleteStrategy = specs.MachineSetSpec_Rolling
+					r.TypedSpec().Value.DeleteStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
+						Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{
+							MaxParallelism: 3,
+						},
+					}
 
-	// initially, each machine must have a single config patch
-	for _, m := range machines {
-		assertResource(
-			&suite.OmniSuite,
-			*omni.NewClusterMachine(m).Metadata(),
-			func(machine *omni.ClusterMachine, assertions *assert.Assertions) {
-				assertions.NoError(suite.assertLabels(machine, omni.LabelCluster, clusterName, omni.LabelMachineSet, machineSet.Metadata().ID()))
-			},
-		)
-	}
+					return nil
+				}),
+			)
 
-	clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](suite.ctx, suite.state, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())))
-	suite.Require().NoError(err)
+			// wait for all cluster machines to be created
+			mssAssertMachinesState(ctx, t, tc.State, machines, clusterName, machineSet.Metadata().ID())
 
-	clusterMachineList.ForEach(func(clusterMachine *omni.ClusterMachine) {
-		_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, clusterMachine.Metadata(), func(r *omni.ClusterMachine) error {
-			r.Metadata().Finalizers().Add("test-finalizer")
+			// add a test finalizer to each cluster machine to prevent actual deletion
+			clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](ctx, tc.State,
+				state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())),
+			)
+			require.NoError(t, err)
 
-			return nil
-		}, state.WithUpdateOwner(clusterMachine.Metadata().Owner()))
-		suite.Require().NoError(err)
-	})
+			clusterMachineList.ForEach(func(cm *omni.ClusterMachine) {
+				_, err = safe.StateUpdateWithConflicts(ctx, tc.State, cm.Metadata(), func(r *omni.ClusterMachine) error {
+					r.Metadata().Finalizers().Add("test-finalizer")
 
-	watchCh := make(chan safe.WrappedStateEvent[*omni.ClusterMachine])
+					return nil
+				}, state.WithUpdateOwner(cm.Metadata().Owner()))
+				require.NoError(t, err)
+			})
 
-	err = safe.StateWatchKind(suite.ctx, suite.state, omni.NewClusterMachine("").Metadata(), watchCh)
-	suite.Require().NoError(err)
-
-	for _, machine := range machines[1:] {
-		rtestutils.Destroy[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state, []string{machine})
-	}
-
-	getTearingDownClusterMachines := func() []*omni.ClusterMachine {
-		list, err := safe.StateListAll[*omni.ClusterMachine](suite.ctx, suite.state, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())))
-		suite.Require().NoError(err)
-
-		tearingDown := make([]*omni.ClusterMachine, 0, list.Len())
-
-		list.ForEach(func(clusterMachine *omni.ClusterMachine) {
-			if clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {
-				tearingDown = append(tearingDown, clusterMachine)
+			// destroy all MachineSetNodes except machines[0]
+			for _, machine := range machines[1:] {
+				rtestutils.Destroy[*omni.MachineSetNode](ctx, t, tc.State, []string{machine})
 			}
-		})
 
-		return tearingDown
-	}
+			getTearingDownClusterMachines := func() []*omni.ClusterMachine {
+				list, err := safe.StateListAll[*omni.ClusterMachine](ctx, tc.State,
+					state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())),
+				)
+				require.NoError(t, err)
 
-	expectTearingDownMachines := func(num int) {
-		suite.EventuallyWithT(func(collect *assert.CollectT) {
-			assert.Equal(collect, num, len(getTearingDownClusterMachines()))
-		}, 2*time.Second, 100*time.Millisecond)
+				var tearingDown []*omni.ClusterMachine
 
-		// wait for a second, then ensure that the number has not changed, i.e., we didn't go over the max parallelism and deleted too many at once
-		timer := time.NewTimer(1 * time.Second)
-		defer timer.Stop()
+				list.ForEach(func(cm *omni.ClusterMachine) {
+					if cm.Metadata().Phase() == resource.PhaseTearingDown {
+						tearingDown = append(tearingDown, cm)
+					}
+				})
 
-		select {
-		case <-suite.ctx.Done():
-			suite.Require().NoError(suite.ctx.Err())
-		case <-timer.C:
-		}
+				return tearingDown
+			}
 
-		suite.Require().Equal(num, len(getTearingDownClusterMachines()))
-	}
+			expectTearingDownMachines := func(num int) {
+				assert.EventuallyWithT(t, func(collect *assert.CollectT) {
+					assert.Equal(collect, num, len(getTearingDownClusterMachines()))
+				}, 10*time.Second, 100*time.Millisecond)
 
-	unblockAndDestroyTearingDownMachines := func() {
-		for _, clusterMachine := range getTearingDownClusterMachines() {
-			_, err := safe.StateUpdateWithConflicts[*omni.ClusterMachine](suite.ctx, suite.state, clusterMachine.Metadata(), func(res *omni.ClusterMachine) error {
-				res.Metadata().Finalizers().Remove("test-finalizer")
+				// wait a second then verify count hasn't grown beyond the limit
+				timer := time.NewTimer(1 * time.Second)
+				defer timer.Stop()
 
-				return nil
-			}, state.WithUpdateOwner(clusterMachine.Metadata().Owner()), state.WithExpectedPhaseAny())
-			suite.Require().NoError(err)
+				select {
+				case <-ctx.Done():
+					require.NoError(t, ctx.Err())
+				case <-timer.C:
+				}
 
-			rtestutils.AssertNoResource[*omni.ClusterMachine](suite.ctx, suite.T(), suite.state, clusterMachine.Metadata().ID())
-		}
-	}
+				require.Equal(t, num, len(getTearingDownClusterMachines()))
+			}
 
-	// 1st batch: three machines should be tearing down at once, as max delete parallelism is set to 3
-	expectTearingDownMachines(3)
+			unblockAndDestroyTearingDownMachines := func() {
+				for _, cm := range getTearingDownClusterMachines() {
+					_, err := safe.StateUpdateWithConflicts[*omni.ClusterMachine](ctx, tc.State, cm.Metadata(), func(res *omni.ClusterMachine) error {
+						res.Metadata().Finalizers().Remove("test-finalizer")
 
-	// unblock the machines by clearing their test finalizer and wait for them to be destroyed
-	unblockAndDestroyTearingDownMachines()
+						return nil
+					}, state.WithUpdateOwner(cm.Metadata().Owner()), state.WithExpectedPhaseAny())
+					require.NoError(t, err)
 
-	// 2nd batch: three machines should be tearing down at once, as max delete parallelism is set to 3
-	expectTearingDownMachines(3)
+					rtestutils.AssertNoResource[*omni.ClusterMachine](ctx, t, tc.State, cm.Metadata().ID())
+				}
+			}
 
-	// unblock the machines by clearing their test finalizer and wait for them to be destroyed
-	unblockAndDestroyTearingDownMachines()
+			// 1st batch: 3 machines should be tearing down at once
+			expectTearingDownMachines(3)
+			unblockAndDestroyTearingDownMachines()
 
-	// 3rd batch: only a single machine should be tearing down, as max delete parallelism is set to 3 and there is only one machine left
-	expectTearingDownMachines(1)
+			// 2nd batch: 3 machines
+			expectTearingDownMachines(3)
+			unblockAndDestroyTearingDownMachines()
 
-	// unblock the machines by clearing their test finalizer and wait for them to be destroyed
-	unblockAndDestroyTearingDownMachines()
+			// 3rd batch: 1 machine remaining
+			expectTearingDownMachines(1)
+			unblockAndDestroyTearingDownMachines()
+		},
+	)
 }
 
-func (suite *MachineSetStatusSuite) TestTeardown() {
-	machines := []string{
-		"n1",
-		"n2",
-		"n3",
-	}
+// TestMachineSetStatus_Teardown verifies that a machine set can be torn down from various states.
+func TestMachineSetStatus_Teardown(t *testing.T) {
+	t.Parallel()
+
+	machines := []string{"n1", "n2", "n3"}
 
 	for _, tt := range []struct {
-		setup func(*omni.MachineSet)
+		setup func(ctx context.Context, t *testing.T, st state.State, machineSet *omni.MachineSet)
 		name  string
 	}{
 		{
 			name: "scalingUp",
-			setup: func(machineSet *omni.MachineSet) {
-				suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_ScalingUp)
+			setup: func(ctx context.Context, t *testing.T, st state.State, machineSet *omni.MachineSet) {
+				mssAssertMachineSetPhase(ctx, t, st, machineSet.Metadata().ID(), specs.MachineSetPhase_ScalingUp)
 			},
 		},
 		{
 			name: "scalingDown",
-			setup: func(machineSet *omni.MachineSet) {
-				suite.updateStage(machines, specs.ClusterMachineStatusSpec_RUNNING, true)
-				suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_Running)
+			setup: func(ctx context.Context, t *testing.T, st state.State, machineSet *omni.MachineSet) {
+				mssUpdateStage(ctx, t, st, machines)
+				mssAssertMachineSetPhase(ctx, t, st, machineSet.Metadata().ID(), specs.MachineSetPhase_Running)
 
-				// add a finalizer to ClusterMachine to simulate that machines is being deleted
-				suite.Require().NoError(suite.state.AddFinalizer(
-					suite.ctx,
-					resource.NewMetadata(resources.DefaultNamespace, omni.ClusterMachineType, machines[0], resource.VersionUndefined),
+				// add a finalizer to ClusterMachine to simulate a machine being deleted
+				require.NoError(t, st.AddFinalizer(
+					ctx,
+					resource.NewMetadata(omni.NewClusterMachine("").ResourceDefinition().DefaultNamespace, omni.ClusterMachineType, machines[0], resource.VersionUndefined),
 					"test",
 				))
 
-				rtestutils.Destroy[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state, []string{machines[0]})
+				rtestutils.Destroy[*omni.MachineSetNode](ctx, t, st, []string{machines[0]})
 
-				suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_ScalingDown)
+				mssAssertMachineSetPhase(ctx, t, st, machineSet.Metadata().ID(), specs.MachineSetPhase_ScalingDown)
 
-				suite.Require().NoError(suite.state.RemoveFinalizer(
-					suite.ctx,
-					resource.NewMetadata(resources.DefaultNamespace, omni.ClusterMachineType, machines[0], resource.VersionUndefined),
+				require.NoError(t, st.RemoveFinalizer(
+					ctx,
+					resource.NewMetadata(omni.NewClusterMachine("").ResourceDefinition().DefaultNamespace, omni.ClusterMachineType, machines[0], resource.VersionUndefined),
 					"test",
 				))
 			},
 		},
 		{
 			name: "ready",
-			setup: func(machineSet *omni.MachineSet) {
-				suite.updateStage(machines, specs.ClusterMachineStatusSpec_RUNNING, true)
-				suite.assertMachineSetPhase(machineSet, specs.MachineSetPhase_Running)
+			setup: func(ctx context.Context, t *testing.T, st state.State, machineSet *omni.MachineSet) {
+				mssUpdateStage(ctx, t, st, machines)
+				mssAssertMachineSetPhase(ctx, t, st, machineSet.Metadata().ID(), specs.MachineSetPhase_Running)
 			},
 		},
 	} {
-		if !suite.Run(tt.name, func() {
-			clusterName := "teardown"
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-			machineSet := suite.createMachineSet(clusterName, "machine-set-teardown", machines)
+			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+			t.Cleanup(cancel)
 
-			suite.assertMachinesState(machines, clusterName, machineSet.Metadata().ID())
+			testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+				func(ctx context.Context, tc testutils.TestContext) {
+					machineSet := setupMachineSetCluster(ctx, t, tc.State, "teardown", "machine-set-teardown", machines, true)
 
-			tt.setup(machineSet)
+					mssAssertMachinesState(ctx, t, tc.State, machines, "teardown", machineSet.Metadata().ID())
 
-			suite.Assert().NoError(retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(
-				func() error {
-					ready, err := suite.state.Teardown(suite.ctx, machineSet.Metadata())
-					if err != nil {
-						return err
-					}
+					tt.setup(ctx, t, tc.State, machineSet)
 
-					if !ready {
-						return retry.ExpectedErrorf("the machine set is not ready to be destroyed yet")
-					}
+					require.NoError(t, retry.Constant(10*time.Second, retry.WithUnits(100*time.Millisecond)).Retry(func() error {
+						ready, err := tc.State.Teardown(ctx, machineSet.Metadata())
+						if err != nil {
+							return err
+						}
 
-					return nil
+						if !ready {
+							return retry.ExpectedErrorf("machine set is not ready to be destroyed yet")
+						}
+
+						return nil
+					}))
+
+					require.NoError(t, tc.State.Destroy(ctx, machineSet.Metadata()))
+					rtestutils.Destroy[*omni.MachineSetNode](ctx, t, tc.State, machines)
 				},
-			))
-
-			suite.Assert().NoError(suite.state.Destroy(suite.ctx, machineSet.Metadata()))
-			rtestutils.Destroy[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state, machines)
-		}) {
-			break
-		}
+			)
+		})
 	}
 }
 
-func (suite *MachineSetStatusSuite) TestClusterLocks() {
+// TestMachineSetStatus_ClusterLocks verifies that a locked cluster prevents ClusterMachine deletion.
+func TestMachineSetStatus_ClusterLocks(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
 	clusterName := "cluster-locks"
+	machineSetName := "machine-set-locks"
+	machines := []string{"node01", "node02", "node03"}
 
-	machines := []string{
-		"node01",
-		"node02",
-		"node03",
-	}
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+		func(ctx context.Context, tc testutils.TestContext) {
+			machineSet := setupMachineSetCluster(ctx, t, tc.State, clusterName, machineSetName, machines, true)
 
-	machineSet := suite.createMachineSet(clusterName, "machine-set-locks", machines)
+			mssAssertMachinesState(ctx, t, tc.State, machines, clusterName, machineSet.Metadata().ID())
 
-	suite.assertMachinesState(machines, clusterName, machineSet.Metadata().ID())
+			mssUpdateStage(ctx, t, tc.State, machines)
 
-	suite.updateStage(machines, specs.ClusterMachineStatusSpec_RUNNING, true)
-
-	rtestutils.AssertResource(suite.ctx, suite.T(), suite.state, machineSet.Metadata().ID(), func(r *omni.MachineSetStatus, assertion *assert.Assertions) {
-		assertion.True(
-			r.TypedSpec().Value.Machines.EqualVT(
-				&specs.Machines{
+			rtestutils.AssertResource(ctx, t, tc.State, machineSet.Metadata().ID(), func(r *omni.MachineSetStatus, a *assert.Assertions) {
+				a.True(r.TypedSpec().Value.Machines.EqualVT(&specs.Machines{
 					Total:     3,
 					Healthy:   3,
 					Connected: 3,
 					Requested: 3,
-				},
-			),
-			"status %#v", r.TypedSpec().Value.Machines,
-		)
-	})
+				}), "status %#v", r.TypedSpec().Value.Machines)
+			})
 
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewCluster(clusterName).Metadata(), func(res *omni.Cluster) error {
-		res.Metadata().Annotations().Set(omni.ClusterLocked, "")
+			_, err := safe.StateUpdateWithConflicts(ctx, tc.State, omni.NewCluster(clusterName).Metadata(), func(res *omni.Cluster) error {
+				res.Metadata().Annotations().Set(omni.ClusterLocked, "")
 
-		return nil
-	})
+				return nil
+			})
+			require.NoError(t, err)
 
-	suite.Require().NoError(err)
+			// The controller reads cluster state from its cache. After setting the lock annotation the
+			// cache may not reflect the change yet, so the controller could reconcile a MachineSetNode
+			// teardown with a stale (unlocked) view of the cluster and delete the ClusterMachine.
+			// Since SkipReconcileTag produces no observable state change, a sleep is the only practical
+			// way to ensure the controller has processed a full reconcile cycle with the locked cluster
+			// before we issue the MachineSetNode deletion.
+			time.Sleep(500 * time.Millisecond)
 
-	// remove a machine from the machine set
-	rtestutils.Destroy[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state, []string{machines[0]})
+			rtestutils.Destroy[*omni.MachineSetNode](ctx, t, tc.State, []string{machines[0]})
 
-	// we have no reliable way of checking that the controller reconciled the update
-	time.Sleep(time.Second * 2)
+			// Verify the lock prevented deletion. When locked, the controller returns SkipReconcileTag
+			// producing no observable state change, so AssertResources is the best signal available.
+			rtestutils.AssertResources(ctx, t, tc.State, []string{machines[0]}, func(*omni.ClusterMachine, *assert.Assertions) {})
 
-	rtestutils.AssertResources(suite.ctx, suite.T(), suite.state, []string{machines[0]}, func(*omni.ClusterMachine, *assert.Assertions) {})
+			_, err = safe.StateUpdateWithConflicts(ctx, tc.State, omni.NewCluster(clusterName).Metadata(), func(res *omni.Cluster) error {
+				res.Metadata().Annotations().Delete(omni.ClusterLocked)
 
-	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewCluster(clusterName).Metadata(), func(res *omni.Cluster) error {
-		res.Metadata().Annotations().Delete(omni.ClusterLocked)
+				return nil
+			})
+			require.NoError(t, err)
 
-		return nil
-	})
-
-	suite.Require().NoError(err)
-
-	rtestutils.AssertNoResource[*omni.ClusterMachine](suite.ctx, suite.T(), suite.state, machines[0])
+			rtestutils.AssertNoResource[*omni.ClusterMachine](ctx, t, tc.State, machines[0])
+		},
+	)
 }
 
-func (suite *MachineSetStatusSuite) TestMachineIsAddedToAnotherMachineSet() {
-	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*20)
-	defer cancel()
-
-	clusterName := "cluster-locks"
-
-	machines := []string{
-		"node01",
-	}
-
-	suite.createMachineSet(clusterName, "machine-set-1", machines)
-
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, machines, func(*omni.ClusterMachine, *assert.Assertions) {})
-
-	_, err := safe.StateUpdateWithConflicts(ctx, suite.state, omni.NewClusterMachine("node01").Metadata(), func(
-		res *omni.ClusterMachine,
-	) error {
-		res.Metadata().Finalizers().Add("locked")
-
-		return nil
-	}, state.WithUpdateOwner(machineset.ControllerName))
-
-	suite.Require().NoError(err)
-
-	rtestutils.DestroyAll[*omni.MachineSetNode](ctx, suite.T(), suite.state)
-	rtestutils.DestroyAll[*omni.MachineStatus](ctx, suite.T(), suite.state)
-	rtestutils.DestroyAll[*system.ResourceLabels[*omni.MachineStatus]](ctx, suite.T(), suite.state)
-
-	suite.createMachineSet(clusterName, "machine-set-2", machines)
-
-	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, omni.NewClusterMachine("node01").Metadata(), func(
-		res *omni.ClusterMachine,
-	) error {
-		res.Metadata().Finalizers().Remove("locked")
-
-		return nil
-	}, state.WithUpdateOwner(machineset.ControllerName), state.WithExpectedPhaseAny())
-
-	suite.Require().NoError(err)
-
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, machines, func(cm *omni.ClusterMachine, assert *assert.Assertions) {
-		machineSetName, ok := cm.Metadata().Labels().Get(omni.LabelMachineSet)
-
-		assert.True(ok)
-		assert.Equal("machine-set-2", machineSetName)
-	})
-}
-
-func (suite *MachineSetStatusSuite) assertLabels(res resource.Resource, labels ...string) error {
-	if len(labels)%2 != 0 {
-		return errors.New("the number of label params must be even")
-	}
-
-	for i := 0; i < len(labels); i += 2 {
-		value, ok := res.Metadata().Labels().Get(labels[i])
-		if !ok {
-			return fmt.Errorf("the label %s doesn't exist in the resource %s", labels[i], res.Metadata())
-		}
-
-		if labels[i+1] != value {
-			return fmt.Errorf("the label %s expected to be %s, got %s", labels[i], labels[i+1], value)
-		}
-	}
-
-	return nil
-}
-
-func (suite *MachineSetStatusSuite) assertMachinesState(machines []string, clusterName, machineSetName string) {
-	suite.assertMachines(machines, func(machine *omni.ClusterMachine, assertions *assert.Assertions) {
-		assertions.NoError(suite.assertLabels(machine, omni.LabelCluster, clusterName, omni.LabelMachineSet, machineSetName))
-	})
-}
-
-func (suite *MachineSetStatusSuite) assertMachines(machines []string, check func(machine *omni.ClusterMachine, assertions *assert.Assertions)) {
-	for _, m := range machines {
-		assertResource(
-			&suite.OmniSuite,
-			*omni.NewClusterMachine(m).Metadata(),
-			check,
-		)
-	}
-}
-
-func (suite *MachineSetStatusSuite) assertMachineSetPhase(machineSet *omni.MachineSet, expectedPhase specs.MachineSetPhase) {
-	ctx, cancel := context.WithTimeout(suite.ctx, 10*time.Second)
-	defer cancel()
-
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []resource.ID{machineSet.Metadata().ID()}, func(machineSet *omni.MachineSetStatus, assert *assert.Assertions) {
-		assert.Equal(expectedPhase, machineSet.TypedSpec().Value.Phase)
-	})
-}
-
-func TestMachineSetStatusSuite(t *testing.T) {
+// TestMachineSetStatus_MachineIsAddedToAnotherMachineSet verifies that a machine moved between
+// machine sets correctly picks up the new machine set label.
+func TestMachineSetStatus_MachineIsAddedToAnotherMachineSet(t *testing.T) {
 	t.Parallel()
 
-	suite.Run(t, new(MachineSetStatusSuite))
-}
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
 
-type opts struct {
-	healthy              bool
-	maxUpdateParallelism uint32
-	maxDeleteParallelism uint32
-}
+	clusterName := "cluster-machine-move"
+	machines := []string{"node01"}
 
-type option func(*opts)
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+		func(ctx context.Context, tc testutils.TestContext) {
+			setupMachineSetCluster(ctx, t, tc.State, clusterName, "machine-set-1", machines, true)
 
-func withHealthy(healthy bool) option {
-	return func(o *opts) {
-		o.healthy = healthy
-	}
-}
+			rtestutils.AssertResources(ctx, t, tc.State, machines, func(*omni.ClusterMachine, *assert.Assertions) {})
 
-func withMaxDeleteParallelism(maxDeleteParallelism uint32) option {
-	return func(o *opts) {
-		o.maxDeleteParallelism = maxDeleteParallelism
-	}
-}
+			// add a finalizer to ClusterMachine so the controller cannot immediately destroy it
+			_, err := safe.StateUpdateWithConflicts(ctx, tc.State, omni.NewClusterMachine("node01").Metadata(), func(
+				res *omni.ClusterMachine,
+			) error {
+				res.Metadata().Finalizers().Add("locked")
 
-func initOptions[T any, Fn ~func(*T)](t *T, fns ...Fn) *T {
-	for _, fn := range fns {
-		fn(t)
-	}
+				return nil
+			}, state.WithUpdateOwner(machineset.ControllerName))
+			require.NoError(t, err)
 
-	return t
+			rtestutils.DestroyAll[*omni.MachineSetNode](ctx, t, tc.State)
+			rtestutils.DestroyAll[*omni.MachineStatus](ctx, t, tc.State)
+			rtestutils.DestroyAll[*system.ResourceLabels[*omni.MachineStatus]](ctx, t, tc.State)
+
+			// create a second machine set with the same machine
+			cluster2 := rmock.Mock[*omni.Cluster](ctx, t, tc.State, options.WithID(clusterName))
+
+			rmock.Mock[*omni.LoadBalancerStatus](ctx, t, tc.State, options.WithID(clusterName))
+
+			machineSet2 := rmock.Mock[*omni.MachineSet](ctx, t, tc.State,
+				options.WithID("machine-set-2"),
+				options.LabelCluster(cluster2),
+				options.Modify(func(r *omni.MachineSet) error {
+					r.TypedSpec().Value.UpdateStrategy = specs.MachineSetSpec_Rolling
+
+					return nil
+				}),
+			)
+
+			rmock.Mock[*omni.MachineSetNode](ctx, t, tc.State,
+				options.WithID("node01"),
+				options.LabelCluster(cluster2),
+				options.LabelMachineSet(machineSet2),
+			)
+			rmock.Mock[*omni.MachineStatus](ctx, t, tc.State, options.WithID("node01"))
+			rmock.Mock[*system.ResourceLabels[*omni.MachineStatus]](ctx, t, tc.State, options.WithID("node01"))
+
+			// remove the finalizer so the controller can reconcile
+			_, err = safe.StateUpdateWithConflicts(ctx, tc.State, omni.NewClusterMachine("node01").Metadata(), func(
+				res *omni.ClusterMachine,
+			) error {
+				res.Metadata().Finalizers().Remove("locked")
+
+				return nil
+			}, state.WithUpdateOwner(machineset.ControllerName), state.WithExpectedPhaseAny())
+			require.NoError(t, err)
+
+			rtestutils.AssertResources(ctx, t, tc.State, machines, func(cm *omni.ClusterMachine, a *assert.Assertions) {
+				machineSetName, ok := cm.Metadata().Labels().Get(omni.LabelMachineSet)
+				a.True(ok)
+				a.Equal("machine-set-2", machineSetName)
+			})
+		},
+	)
 }

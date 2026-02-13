@@ -26,6 +26,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/machineconfig"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -116,6 +117,25 @@ func init() {
 		return nil
 	})
 
+	addDefaults(func(_ context.Context, _ state.State, res *omni.LoadBalancerStatus) error {
+		res.TypedSpec().Value.Healthy = true
+
+		return nil
+	})
+
+	addDefaults(func(ctx context.Context, st state.State, res *system.ResourceLabels[*omni.MachineStatus]) error {
+		machineStatus, err := safe.ReaderGetByID[*omni.MachineStatus](ctx, st, res.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if machineStatus != nil {
+			helpers.CopyLabels(machineStatus, res, omni.LabelCluster, omni.LabelMachineSet)
+		}
+
+		return nil
+	})
+
 	addDefaults(func(ctx context.Context, st state.State, res *omni.MachineStatus) error {
 		machineSetNode, err := safe.ReaderGetByID[*omni.MachineSetNode](ctx, st, res.Metadata().ID())
 		if err != nil && !state.IsNotFoundError(err) {
@@ -123,7 +143,7 @@ func init() {
 		}
 
 		if machineSetNode != nil {
-			helpers.CopyLabels(machineSetNode, res, omni.LabelCluster, omni.LabelWorkerRole, omni.LabelControlPlaneRole)
+			helpers.CopyLabels(machineSetNode, res, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole, omni.LabelControlPlaneRole)
 		}
 
 		talosVersion := constants.DefaultTalosVersion

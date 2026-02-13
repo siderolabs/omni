@@ -232,13 +232,6 @@ func (ms *machineService) Version(context.Context, *emptypb.Empty) (*machine.Ver
 	}, nil
 }
 
-func (ms *machineService) setServiceList(value *machine.ServiceListResponse) {
-	ms.lock.Lock()
-	defer ms.lock.Unlock()
-
-	ms.serviceList = value
-}
-
 func (ms *machineService) ServiceList(context.Context, *emptypb.Empty) (*machine.ServiceListResponse, error) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()

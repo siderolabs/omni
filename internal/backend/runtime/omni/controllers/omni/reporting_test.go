@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/stripe/stripe-go/v76"
 
@@ -114,52 +115,61 @@ func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 	metrics.TypedSpec().Value.RegisteredMachinesCount = 1
 	suite.Require().NoError(suite.state.Create(suite.ctx, metrics))
 
-	// Allow time for the controller to reconcile
-	time.Sleep(3 * time.Second)
+	// Wait for the controller to reconcile and verify the mock server returns the minimum machine count.
+	suite.Require().EventuallyWithT(func(collect *assert.CollectT) {
+		req, err := http.NewRequestWithContext(suite.ctx, http.MethodGet, mockServer.URL+"/v1/subscription_items/sub_item_id", nil)
+		if !assert.NoError(collect, err) {
+			return
+		}
 
-	var result map[string]any
+		resp, err := http.DefaultClient.Do(req)
+		if !assert.NoError(collect, err) {
+			return
+		}
 
-	// Verify the mock server returns the minimum machine count instead of the 1 we've registered.
-	req, err := http.NewRequestWithContext(suite.ctx, http.MethodGet, mockServer.URL+"/v1/subscription_items/sub_item_id", nil)
-	suite.Require().NoError(err)
+		defer resp.Body.Close() //nolint:errcheck
 
-	resp, err := http.DefaultClient.Do(req)
-	suite.Require().NoError(err)
+		var result map[string]any
 
-	//nolint: errcheck
-	defer resp.Body.Close()
+		if !assert.NoError(collect, json.NewDecoder(resp.Body).Decode(&result)) {
+			return
+		}
 
-	suite.Require().NoError(json.NewDecoder(resp.Body).Decode(&result))
-
-	//nolint: errcheck,forcetypeassert
-	suite.Assert().Equal(int64(4), int64(result["quantity"].(float64)))
+		//nolint:errcheck,forcetypeassert
+		assert.Equal(collect, int64(4), int64(result["quantity"].(float64)))
+	}, 10*time.Second, 100*time.Millisecond)
 
 	// Update to count > min and ensure that is reflected
-	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, metrics.Metadata(), func(r *omni.MachineStatusMetrics) error {
+	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, metrics.Metadata(), func(r *omni.MachineStatusMetrics) error {
 		r.TypedSpec().Value.RegisteredMachinesCount = 6
 
 		return nil
 	})
 	suite.Require().NoError(err)
 
-	// Allow time for the controller to reconcile
-	time.Sleep(3 * time.Second)
+	// Wait for the controller to reconcile and verify the mock server reflects the updated machine count.
+	suite.Require().EventuallyWithT(func(collect *assert.CollectT) {
+		req, err := http.NewRequestWithContext(suite.ctx, http.MethodGet, mockServer.URL+"/v1/subscription_items/sub_item_id", nil)
+		if !assert.NoError(collect, err) {
+			return
+		}
 
-	// Verify the mock server reflects the updated machine count
-	req, err = http.NewRequestWithContext(suite.ctx, http.MethodGet, mockServer.URL+"/v1/subscription_items/sub_item_id", nil)
-	suite.Require().NoError(err)
+		resp, err := http.DefaultClient.Do(req)
+		if !assert.NoError(collect, err) {
+			return
+		}
 
-	resp, err = http.DefaultClient.Do(req)
-	suite.Require().NoError(err)
+		defer resp.Body.Close() //nolint:errcheck
 
-	//nolint: errcheck
-	defer resp.Body.Close()
+		var result map[string]any
 
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	suite.Require().NoError(err)
+		if !assert.NoError(collect, json.NewDecoder(resp.Body).Decode(&result)) {
+			return
+		}
 
-	//nolint: errcheck,forcetypeassert
-	suite.Assert().Equal(int64(6), int64(result["quantity"].(float64)))
+		//nolint:errcheck,forcetypeassert
+		assert.Equal(collect, int64(6), int64(result["quantity"].(float64)))
+	}, 10*time.Second, 100*time.Millisecond)
 }
 
 func TestStripeMetricsReporterControllerSuite(t *testing.T) {

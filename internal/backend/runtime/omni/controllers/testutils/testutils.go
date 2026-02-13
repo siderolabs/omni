@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/runtime/options"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -26,6 +25,10 @@ import (
 
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
 )
+
+// defaultStateBuilder is an inmem state builder with history options to prevent
+// watch event loss when watchers are slow during test execution.
+var defaultStateBuilder = omniruntime.TestStateBuilder()
 
 type DynamicStateBuilder struct { //nolint:govet
 	mx sync.Mutex
@@ -40,7 +43,7 @@ func (b *DynamicStateBuilder) Builder(ns resource.Namespace) state.CoreState {
 		return s
 	}
 
-	s := inmem.Build(ns)
+	s := defaultStateBuilder(ns)
 
 	b.M[ns] = s
 
@@ -85,7 +88,7 @@ func WithRuntime(ctx context.Context, t *testing.T, testOptions TestOptions, bef
 	t.Cleanup(cancel)
 
 	if testOptions.StateBuilder == nil {
-		testOptions.StateBuilder = inmem.Build
+		testOptions.StateBuilder = defaultStateBuilder
 	}
 
 	var loggerOpts []zaptest.LoggerOption

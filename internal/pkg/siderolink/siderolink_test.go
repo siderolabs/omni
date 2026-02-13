@@ -202,7 +202,7 @@ func (suite *SiderolinkSuite) startManager(params sideromanager.Params) {
 }
 
 func (suite *SiderolinkSuite) TestNodes() {
-	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 	defer cancel()
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
@@ -229,6 +229,14 @@ func (suite *SiderolinkSuite) TestNodes() {
 
 		joinToken = r.TypedSpec().Value.TokenId
 	})
+
+	// Wait for JoinTokenStatusController to reconcile the token into an ACTIVE JoinTokenStatus,
+	// otherwise the provision handler will reject the request as the token status doesn't exist yet.
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{joinToken},
+		func(r *siderolink.JoinTokenStatus, assertion *assert.Assertions) {
+			assertion.Equal(specs.JoinTokenStatusSpec_ACTIVE, r.TypedSpec().Value.State)
+		},
+	)
 
 	conn, err := grpc.NewClient(suite.address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	suite.Require().NoError(err)
@@ -336,7 +344,7 @@ func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
 }
 
 func (suite *SiderolinkSuite) TestVirtualNodes() {
-	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*2)
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 	defer cancel()
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{
@@ -363,6 +371,14 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 
 		joinToken = r.TypedSpec().Value.TokenId
 	})
+
+	// Wait for JoinTokenStatusController to reconcile the token into an ACTIVE JoinTokenStatus,
+	// otherwise the provision handler will reject the request as the token status doesn't exist yet.
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{joinToken},
+		func(r *siderolink.JoinTokenStatus, assertion *assert.Assertions) {
+			assertion.Equal(specs.JoinTokenStatusSpec_ACTIVE, r.TypedSpec().Value.State)
+		},
+	)
 
 	conn, err := grpc.NewClient(suite.address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	suite.Require().NoError(err)

@@ -7,6 +7,8 @@ package omni_test
 
 import (
 	"context"
+	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -74,11 +76,11 @@ func (suite *KubernetesNodeAuditSuite) TestReconcile() {
 			assertion.Equal([]string{"cluster1-node4"}, res.TypedSpec().Value.DeletedNodes)
 		})
 
+	// cluster2 has no mismatch so the controller returns SkipReconcileTag — no result resource is created
 	assertNoResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult("cluster2"))
 
-	// assert the Kubernetes state
-
-	require.ElementsMatch(suite.T(), []string{"cluster1-node4"}, kubernetesClient.deleted)
+	// assert the Kubernetes state - only cluster1-node4 should be deleted, no cluster2 nodes
+	require.ElementsMatch(suite.T(), []string{"cluster1-node4"}, kubernetesClient.getDeleted())
 
 	// mark cluster1-node5 as not ready - auditor must delete it after this
 	_, err := safe.StateUpdateWithConflicts[*omni.KubernetesStatus](suite.ctx, suite.state, cluster1KubernetesStatus.Metadata(), func(res *omni.KubernetesStatus) error {
@@ -116,17 +118,30 @@ func (suite *KubernetesNodeAuditSuite) TestReconcile() {
 
 	// assert the Kubernetes state
 
-	require.ElementsMatch(suite.T(), []string{"cluster1-node4", "cluster1-node5", "cluster2-node2", "cluster2-node3"}, kubernetesClient.deleted)
+	require.ElementsMatch(suite.T(), []string{"cluster1-node4", "cluster1-node5", "cluster2-node2", "cluster2-node3"}, kubernetesClient.getDeleted())
 }
 
 type kubernetesClientMock struct {
 	deleted []string
+	mu      sync.Mutex
 }
 
 func (k *kubernetesClientMock) DeleteNode(_ context.Context, node string) error {
-	k.deleted = append(k.deleted, node)
+	k.mu.Lock()
+	defer k.mu.Unlock()
+
+	if !slices.Contains(k.deleted, node) {
+		k.deleted = append(k.deleted, node)
+	}
 
 	return nil
+}
+
+func (k *kubernetesClientMock) getDeleted() []string {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+
+	return slices.Clone(k.deleted)
 }
 
 func TestKubernetesNodeAuditSuite(t *testing.T) {

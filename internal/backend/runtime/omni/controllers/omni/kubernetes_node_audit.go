@@ -59,7 +59,7 @@ func NewKubernetesNodeAuditController(getKubernetesClientFunc GetKubernetesClien
 				status, err := safe.ReaderGetByID[*omni.KubernetesStatus](ctx, r, nodes.Metadata().ID())
 				if err != nil {
 					if state.IsNotFoundError(err) {
-						return nil
+						return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("kubernetes status not found, skipping")
 					}
 
 					return fmt.Errorf("failed to get kubernetes status: %w", err)
