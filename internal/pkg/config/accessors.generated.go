@@ -226,17 +226,6 @@ func (s *EmbeddedDiscoveryService) SetSnapshotsInterval(v time.Duration) {
 	s.SnapshotsInterval = &v
 }
 
-func (s *EmbeddedDiscoveryService) GetSnapshotsPath() string {
-	if s == nil || s.SnapshotsPath == nil {
-		return *new(string)
-	}
-	return *s.SnapshotsPath
-}
-
-func (s *EmbeddedDiscoveryService) SetSnapshotsPath(v string) {
-	s.SnapshotsPath = &v
-}
-
 func (s *EmbeddedDiscoveryService) GetSqliteTimeout() time.Duration {
 	if s == nil || s.SqliteTimeout == nil {
 		return *new(time.Duration)
@@ -743,17 +732,6 @@ func (s *LogsAudit) SetMaxSize(v uint64) {
 	s.MaxSize = &v
 }
 
-func (s *LogsAudit) GetPath() string {
-	if s == nil || s.Path == nil {
-		return *new(string)
-	}
-	return *s.Path
-}
-
-func (s *LogsAudit) SetPath(v string) {
-	s.Path = &v
-}
-
 func (s *LogsAudit) GetRetentionPeriod() time.Duration {
 	if s == nil || s.RetentionPeriod == nil {
 		return *new(time.Duration)
@@ -774,39 +752,6 @@ func (s *LogsAudit) GetSqliteTimeout() time.Duration {
 
 func (s *LogsAudit) SetSqliteTimeout(v time.Duration) {
 	s.SqliteTimeout = &v
-}
-
-func (s *LogsMachine) GetBufferInitialCapacity() int {
-	if s == nil || s.BufferInitialCapacity == nil {
-		return *new(int)
-	}
-	return *s.BufferInitialCapacity
-}
-
-func (s *LogsMachine) SetBufferInitialCapacity(v int) {
-	s.BufferInitialCapacity = &v
-}
-
-func (s *LogsMachine) GetBufferMaxCapacity() int {
-	if s == nil || s.BufferMaxCapacity == nil {
-		return *new(int)
-	}
-	return *s.BufferMaxCapacity
-}
-
-func (s *LogsMachine) SetBufferMaxCapacity(v int) {
-	s.BufferMaxCapacity = &v
-}
-
-func (s *LogsMachine) GetBufferSafetyGap() int {
-	if s == nil || s.BufferSafetyGap == nil {
-		return *new(int)
-	}
-	return *s.BufferSafetyGap
-}
-
-func (s *LogsMachine) SetBufferSafetyGap(v int) {
-	s.BufferSafetyGap = &v
 }
 
 func (s *LogsMachineStorage) GetCleanupInterval() time.Duration {
@@ -842,39 +787,6 @@ func (s *LogsMachineStorage) SetCleanupProbability(v float64) {
 	s.CleanupProbability = &v
 }
 
-func (s *LogsMachineStorage) GetEnabled() bool {
-	if s == nil || s.Enabled == nil {
-		return *new(bool)
-	}
-	return *s.Enabled
-}
-
-func (s *LogsMachineStorage) SetEnabled(v bool) {
-	s.Enabled = &v
-}
-
-func (s *LogsMachineStorage) GetFlushJitter() float64 {
-	if s == nil || s.FlushJitter == nil {
-		return *new(float64)
-	}
-	return *s.FlushJitter
-}
-
-func (s *LogsMachineStorage) SetFlushJitter(v float64) {
-	s.FlushJitter = &v
-}
-
-func (s *LogsMachineStorage) GetFlushPeriod() time.Duration {
-	if s == nil || s.FlushPeriod == nil {
-		return *new(time.Duration)
-	}
-	return *s.FlushPeriod
-}
-
-func (s *LogsMachineStorage) SetFlushPeriod(v time.Duration) {
-	s.FlushPeriod = &v
-}
-
 func (s *LogsMachineStorage) GetMaxLinesPerMachine() int {
 	if s == nil || s.MaxLinesPerMachine == nil {
 		return *new(int)
@@ -884,28 +796,6 @@ func (s *LogsMachineStorage) GetMaxLinesPerMachine() int {
 
 func (s *LogsMachineStorage) SetMaxLinesPerMachine(v int) {
 	s.MaxLinesPerMachine = &v
-}
-
-func (s *LogsMachineStorage) GetNumCompressedChunks() int {
-	if s == nil || s.NumCompressedChunks == nil {
-		return *new(int)
-	}
-	return *s.NumCompressedChunks
-}
-
-func (s *LogsMachineStorage) SetNumCompressedChunks(v int) {
-	s.NumCompressedChunks = &v
-}
-
-func (s *LogsMachineStorage) GetPath() string {
-	if s == nil || s.Path == nil {
-		return *new(string)
-	}
-	return *s.Path
-}
-
-func (s *LogsMachineStorage) SetPath(v string) {
-	s.Path = &v
 }
 
 func (s *LogsMachineStorage) GetSqliteTimeout() time.Duration {

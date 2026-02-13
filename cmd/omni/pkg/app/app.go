@@ -134,7 +134,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		EtcdBackupTickInterval:          cfg.EtcdBackup.GetTickInterval(),
 		EtcdBackupMinInterval:           cfg.EtcdBackup.GetMinInterval(),
 		EtcdBackupMaxInterval:           cfg.EtcdBackup.GetMaxInterval(),
-		AuditLogPath:                    cfg.Logs.Audit.GetPath(),
+		AuditLogEnabled:                 cfg.Logs.Audit.GetEnabled(),
 		ImageFactoryBaseURL:             cfg.Registries.GetImageFactoryBaseURL(),
 		ImageFactoryPXEBaseURL:          imageFactoryPXEBaseURL,
 		UserPilotAppToken:               cfg.Account.UserPilot.GetAppToken(),

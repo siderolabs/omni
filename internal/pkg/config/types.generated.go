@@ -137,11 +137,6 @@ type EmbeddedDiscoveryService struct {
 	// persists snapshots of its state.
 	SnapshotsInterval *time.Duration `json:"snapshotsInterval,omitempty" yaml:"snapshotsInterval,omitempty"`
 
-	// SnapshotsPath is the path where the embedded discovery service persists its
-	// snapshots. DEPRECATED: they are now stored in SQLite, and this parameter exists
-	// for the migration purposes only, and will be removed.
-	SnapshotsPath *string `json:"snapshotsPath,omitempty" yaml:"snapshotsPath,omitempty"`
-
 	// SqliteTimeout is the timeout for SQLite operations used by the embedded
 	// discovery service.
 	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty" yaml:"sqliteTimeout,omitempty"`
@@ -358,11 +353,6 @@ type LogsAudit struct {
 	// exceeded, the oldest entries are removed. 0 means unlimited.
 	MaxSize *uint64 `json:"maxSize,omitempty" yaml:"maxSize,omitempty"`
 
-	// Path is the path where audit logs are stored. DEPRECATED: they are now stored
-	// in SQLite, and this parameter exists for the migration purposes only, and will
-	// be removed.
-	Path *string `json:"path,omitempty" yaml:"path,omitempty"`
-
 	// RetentionPeriod is the duration after which audit logs are considered old and
 	// eligible for cleanup.
 	RetentionPeriod *time.Duration `json:"retentionPeriod,omitempty" yaml:"retentionPeriod,omitempty"`
@@ -372,22 +362,6 @@ type LogsAudit struct {
 }
 
 type LogsMachine struct {
-	// BufferInitialCapacity is the initial capacity of the in-memory circular buffer
-	// for machine logs. DEPRECATED: they are now stored in SQLite, and this parameter
-	// exists for the migration purposes only, and will be removed.
-	BufferInitialCapacity *int `json:"bufferInitialCapacity,omitempty" yaml:"bufferInitialCapacity,omitempty"`
-
-	// BufferMaxCapacity is the maximum capacity of the in-memory circular buffer for
-	// machine logs. DEPRECATED: they are now stored in SQLite, and this parameter
-	// exists for the migration purposes only, and will be removed.
-	BufferMaxCapacity *int `json:"bufferMaxCapacity,omitempty" yaml:"bufferMaxCapacity,omitempty"`
-
-	// BufferSafetyGap is the safety gap to avoid overwriting logs that are being read
-	// while writing new logs into the circular buffer. DEPRECATED: they are now
-	// stored in SQLite, and this parameter exists for the migration purposes only,
-	// and will be removed.
-	BufferSafetyGap *int `json:"bufferSafetyGap,omitempty" yaml:"bufferSafetyGap,omitempty"`
-
 	// Storage contains configuration for machine logs storage.
 	Storage LogsMachineStorage `json:"storage" yaml:"storage"`
 }
@@ -404,33 +378,8 @@ type LogsMachineStorage struct {
 	// write for that machine.
 	CleanupProbability *float64 `json:"cleanupProbability,omitempty" yaml:"cleanupProbability,omitempty"`
 
-	// Enabled controls whether machine logs storage is enabled. DEPRECATED: they are
-	// now stored in SQLite, and this parameter exists for the migration purposes
-	// only, and will be removed.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-
-	// FlushJitter is the jitter added to the flush period to avoid thundering herd
-	// problem. DEPRECATED: they are now stored in SQLite, and this parameter exists
-	// for the migration purposes only, and will be removed.
-	FlushJitter *float64 `json:"flushJitter,omitempty" yaml:"flushJitter,omitempty"`
-
-	// FlushPeriod is the period at which machine logs are flushed to storage.
-	// DEPRECATED: they are now stored in SQLite, and this parameter exists for the
-	// migration purposes only, and will be removed.
-	FlushPeriod *time.Duration `json:"flushPeriod,omitempty" yaml:"flushPeriod,omitempty"`
-
 	// MaxLinesPerMachine is the maximum number of log lines to keep per machine.
 	MaxLinesPerMachine *int `json:"maxLinesPerMachine,omitempty" yaml:"maxLinesPerMachine,omitempty"`
-
-	// NumCompressedChunks is the number of compressed chunks to keep in memory before
-	// flushing to storage. DEPRECATED: they are now stored in SQLite, and this
-	// parameter exists for the migration purposes only, and will be removed.
-	NumCompressedChunks *int `json:"numCompressedChunks,omitempty" yaml:"numCompressedChunks,omitempty"`
-
-	// Path is the path where machine logs are stored. DEPRECATED: they are now stored
-	// in SQLite, and this parameter exists for the migration purposes only, and will
-	// be removed.
-	Path *string `json:"path,omitempty" yaml:"path,omitempty"`
 
 	// SqliteTimeout is the timeout for SQLite operations used for machine logs
 	// storage.
@@ -688,12 +637,6 @@ type SiderolinkWireGuard struct {
 type Storage struct {
 	// Default contains the default storage backend configuration.
 	Default StorageDefault `json:"default" yaml:"default"`
-
-	// Secondary contains the secondary storage backend configuration. It is used to
-	// store frequently updated and less critical data. DEPRECATED: they are now
-	// stored in SQLite, and this parameter exists for the migration purposes only,
-	// and will be removed.
-	Secondary BoltDB `json:"secondary" yaml:"secondary"`
 
 	// Sqlite contains SQLite storage backend configuration. It is used to store
 	// machine logs, audit logs, discovery service state, and as the secondary storage

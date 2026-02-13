@@ -7,18 +7,13 @@ package audit
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"os"
 	"time"
 
 	"go.uber.org/zap"
 	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog/auditlogfile"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog/auditlogsqlite"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -40,126 +35,7 @@ func initLogger(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, 
 		return nil, fmt.Errorf("failed to create sqlite audit logger: %w", err)
 	}
 
-	path := config.GetPath() //nolint:staticcheck
-
-	if path == "" { // nothing to migrate, just use sqlite
-		return dbAuditLogger, nil
-	}
-
-	if _, err = os.Stat(path); err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			logger.Error("failed to read audit log path, skip migration", zap.Error(err))
-		}
-
-		return dbAuditLogger, nil
-	}
-
-	// migrate from file to sqlite
-
-	fileAuditLogger := auditlogfile.New(path)
-
-	if err = migrateFromFileToSQLite(ctx, fileAuditLogger, dbAuditLogger, logger); err != nil {
-		logger.Error("failed to migrate from audit log to sqlite", zap.Error(err))
-	} else {
-		logger.Info("audit logs migrated from file to sqlite, using sqlite logger going forward")
-	}
-
 	return dbAuditLogger, nil
-}
-
-func migrateFromFileToSQLite(ctx context.Context, fileAuditLogger Logger, dbAuditLogger *auditlogsqlite.Store, logger *zap.Logger) error {
-	hasData, err := dbAuditLogger.HasData(ctx)
-	if err != nil {
-		return err
-	}
-
-	if hasData {
-		logger.Info("sqlite audit log already contains data, skipping migration")
-
-		return nil
-	}
-
-	reader, err := fileAuditLogger.Reader(ctx, time.Time{}, time.Now().Add(time.Hour))
-	if err != nil {
-		return err
-	}
-
-	defer reader.Close() //nolint:errcheck
-
-	var (
-		readFailed            bool
-		migrated, writeFailed int
-		lastTS                int64 // track the last valid timestamp to keep ordering for corrupt events
-	)
-
-	for {
-		var eventData []byte
-
-		if eventData, err = reader.Read(); err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-
-			logger.Warn("failed to read audit log while doing migration", zap.Error(err))
-
-			readFailed = true
-
-			break
-		}
-
-		var event auditlog.Event
-
-		if err = json.Unmarshal(eventData, &event); err != nil {
-			// unmarshal failed: The source file has a corrupt line - use a fallback to preserve the raw data
-			event = auditlog.Event{
-				Type: "migration_parse_error",
-				// Use the last seen timestamp. This ensures the corrupt line appears
-				// immediately after the previous valid line when sorted by (time, id).
-				TimeMillis: lastTS,
-				Data: &auditlog.Data{
-					MigrationError: &auditlog.MigrationError{
-						RawData: string(eventData), // save the raw bytes
-						Error:   err.Error(),
-					},
-				},
-			}
-		} else {
-			lastTS = event.TimeMillis
-		}
-
-		if err = dbAuditLogger.Write(ctx, event); err != nil {
-			logger.Warn("failed to write audit log while doing migration", zap.Error(err))
-
-			writeFailed++
-
-			continue
-		}
-
-		migrated++
-	}
-
-	if migrated > 0 || readFailed || writeFailed > 0 {
-		logger.Info("audit log migration summary",
-			zap.Int("migrated", migrated),
-			zap.Bool("read_failed", readFailed),
-			zap.Int("write_failed", writeFailed),
-		)
-	}
-
-	if readFailed || writeFailed > 0 {
-		logger.Warn("skipping deletion of old audit log files due to migration errors - manual cleanup may be required")
-
-		return nil
-	}
-
-	// remove the old logs
-	if err = fileAuditLogger.Remove(ctx, time.Time{}, time.Now().Add(time.Hour)); err != nil {
-		return err
-	}
-
-	logger.Info("old audit log files removed successfully")
-
-	return nil
 }
 
 type nopLogger struct{}

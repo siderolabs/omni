@@ -472,8 +472,6 @@ github.com/siderolabs/gen v0.8.6 h1:pE6shuqov3L+5rEcAUJ/kY6iJofimljQw5G95P8a5c4=
 github.com/siderolabs/gen v0.8.6/go.mod h1:J9IbusbES2W6QWjtSHpDV9iPGZHc978h1+KJ4oQRspQ=
 github.com/siderolabs/go-api-signature v0.3.12 h1:i1X+kPh9fzo+lEjtEplZSbtq1p21vKv4FCWJcB/ozvk=
 github.com/siderolabs/go-api-signature v0.3.12/go.mod h1:dPLiXohup4qHX7KUgF/wwOE3lRU5uAr3ssEomNxiyxY=
-github.com/siderolabs/go-circular v0.2.3 h1:GKkA1Tw79kEFGtWdl7WTxEUTbwtklITeiRT0V1McHrA=
-github.com/siderolabs/go-circular v0.2.3/go.mod h1:YBN/q9YpQphUYnBtBgPsngauSHj1TEZfgQZWZVjk1WE=
 github.com/siderolabs/go-debug v0.6.1 h1:LAkM2ADz+naL3PA6Mv0SzyXYx7aCxYlKdO2dSiZmhRc=
 github.com/siderolabs/go-debug v0.6.1/go.mod h1:qKGKnrkHXdgj+gPaGujFs3L/hc87FXYTp1/l6kN/1s0=
 github.com/siderolabs/go-debug v0.6.2 h1:zWWMTcrYDVyiNTotSxEVg++hj9mb2ctuTNVnOeCWtO8=
@@ -488,8 +486,6 @@ github.com/siderolabs/go-pointer v1.0.1 h1:f7Yi4IK1jptS8yrT9GEbwhmGcVxvPQgBUG/we
 github.com/siderolabs/go-pointer v1.0.1/go.mod h1:C8Q/3pNHT4RE9e4rYR9PHeS6KPMlStRBgYrJQJNy/vA=
 github.com/siderolabs/go-retry v0.3.3 h1:zKV+S1vumtO72E6sYsLlmIdV/G/GcYSBLiEx/c9oCEg=
 github.com/siderolabs/go-retry v0.3.3/go.mod h1:Ff/VGc7v7un4uQg3DybgrmOWHEmJ8BzZds/XNn/BqMI=
-github.com/siderolabs/go-tail v0.1.1 h1:3XeJgd97OHyFAIE7nQEMcRhOfnv7DvXbu0BRKbtT6u8=
-github.com/siderolabs/go-tail v0.1.1/go.mod h1:IihAL39acadXHfb5fEAOKK2DaDFIrG2+VD3b2H/ziZ0=
 github.com/siderolabs/go-talos-support v0.1.4 h1:vFYI7tcuyH4PoSkSOZtFMX8OKjvrkktzXWztbsCDh6Q=
 github.com/siderolabs/go-talos-support v0.1.4/go.mod h1:1DX20fTINVjMaW2zBmmqDBmQ4Be/6a6HwyqI1DR1ijM=
 github.com/siderolabs/grpc-proxy v0.5.1 h1:WTZYLMPTZPt43BzEJ02LT9kYA9qAfquWwCezc6NPPYE=

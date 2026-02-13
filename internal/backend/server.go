@@ -1176,7 +1176,7 @@ func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sqlite
 
 	snapshotsEnabled := discoveryCfg.GetSnapshotsEnabled()
 	if snapshotsEnabled {
-		if snapshotStore, err = discovery.InitSQLiteSnapshotStore(ctx, discoveryCfg, secondaryStorageDB, logger); err != nil {
+		if snapshotStore, err = discovery.InitSQLiteSnapshotStore(ctx, discoveryCfg, secondaryStorageDB); err != nil {
 			return fmt.Errorf("failed to initialize snapshot store: %w", err)
 		}
 	}
@@ -1189,7 +1189,6 @@ func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sqlite
 
 			SnapshotsEnabled: snapshotsEnabled,
 			SnapshotInterval: discoveryCfg.GetSnapshotsInterval(),
-			SnapshotPath:     discoveryCfg.GetSnapshotsPath(), //nolint:staticcheck
 			SnapshotStore:    snapshotStore,
 		}, logger.WithOptions(zap.IncreaseLevel(logLevel)).With(logging.Component("discovery_service")))
 

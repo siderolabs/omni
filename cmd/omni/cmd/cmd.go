@@ -165,10 +165,7 @@ func buildRootCommand() (*cobra.Command, error) {
 		return nil, fmt.Errorf("failed to define logs flags: %w", err)
 	}
 
-	if err := defineStorageFlags(rootCmd, rootCmdFlagBinder, flagConfig, configSchema); err != nil {
-		return nil, fmt.Errorf("failed to define storage flags: %w", err)
-	}
-
+	defineStorageFlags(rootCmd, rootCmdFlagBinder, flagConfig, configSchema)
 	defineRegistriesFlags(rootCmd, rootCmdFlagBinder, flagConfig, configSchema)
 	defineFeatureFlags(rootCmdFlagBinder, flagConfig, configSchema)
 	defineDebugFlags(rootCmdFlagBinder, flagConfig, configSchema)
@@ -249,16 +246,6 @@ func defineServiceFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, f
 	rootCmdFlagBinder.BoolVar("embedded-discovery-service-snapshots-enabled",
 		flagDescription("services.embeddedDiscoveryService.snapshotsEnabled", schema), &flagConfig.Services.EmbeddedDiscoveryService.SnapshotsEnabled)
 
-	//nolint:staticcheck
-	rootCmdFlagBinder.StringVar("embedded-discovery-service-snapshot-path",
-		flagDescription("services.embeddedDiscoveryService.snapshotsPath", schema),
-		&flagConfig.Services.EmbeddedDiscoveryService.SnapshotsPath,
-	)
-
-	if err := rootCmd.Flags().MarkDeprecated("embedded-discovery-service-snapshot-path", "this flag is kept for the SQLite migration, and will be removed in future versions"); err != nil {
-		return err
-	}
-
 	rootCmdFlagBinder.DurationVar("embedded-discovery-service-snapshot-interval",
 		flagDescription("services.embeddedDiscoveryService.snapshotsInterval", schema), &flagConfig.Services.EmbeddedDiscoveryService.SnapshotsInterval)
 	rootCmdFlagBinder.StringVar("embedded-discovery-service-log-level",
@@ -322,7 +309,6 @@ func defineAuthFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flag
 	rootCmdFlagBinder.BoolVar("auth-oidc-allow-unverified-email", flagDescription("auth.oidc.allowUnverifiedEmail", schema), &flagConfig.Auth.Oidc.AllowUnverifiedEmail)
 }
 
-//nolint:staticcheck // defineLogsFlags uses deprecated fields for backwards-compatibility
 func defineLogsFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) error {
 	rootCmdFlagBinder.DurationVar("machine-log-sqlite-timeout", flagDescription("logs.machine.storage.sqliteTimeout", schema), &flagConfig.Logs.Machine.Storage.SqliteTimeout)
 	rootCmdFlagBinder.DurationVar("machine-log-cleanup-interval", flagDescription("logs.machine.storage.cleanupInterval", schema), &flagConfig.Logs.Machine.Storage.CleanupInterval)
@@ -346,56 +332,14 @@ func defineLogsFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flag
 	rootCmdFlagBinder.BoolVar("enable-stripe-reporting", flagDescription("logs.stripe.enabled", schema), &flagConfig.Logs.Stripe.Enabled)
 	rootCmdFlagBinder.Uint32Var("stripe-minimum-commit", flagDescription("logs.stripe.minCommit", schema), &flagConfig.Logs.Stripe.MinCommit)
 
-	// Deprecated logs flags, kept for backwards-compatibility
-	//
-	//nolint:staticcheck,errcheck
-	{
-		rootCmdFlagBinder.StringVar("audit-log-dir", flagDescription("logs.audit.path", schema), &flagConfig.Logs.Audit.Path)
-		rootCmdFlagBinder.IntVar("machine-log-buffer-capacity", flagDescription("logs.machine.bufferInitialCapacity", schema), &flagConfig.Logs.Machine.BufferInitialCapacity)
-		rootCmdFlagBinder.IntVar("machine-log-buffer-max-capacity", flagDescription("logs.machine.bufferMaxCapacity", schema), &flagConfig.Logs.Machine.BufferMaxCapacity)
-		rootCmdFlagBinder.IntVar("machine-log-buffer-safe-gap", flagDescription("logs.machine.bufferSafetyGap", schema), &flagConfig.Logs.Machine.BufferSafetyGap)
-		rootCmdFlagBinder.IntVar("machine-log-num-compressed-chunks", flagDescription("logs.machine.storage.numCompressedChunks", schema), &flagConfig.Logs.Machine.Storage.NumCompressedChunks)
-		rootCmdFlagBinder.BoolVar("machine-log-storage-enabled", flagDescription("logs.machine.storage.enabled", schema), &flagConfig.Logs.Machine.Storage.Enabled)
-		rootCmdFlagBinder.StringVar("machine-log-storage-path", flagDescription("logs.machine.storage.path", schema), &flagConfig.Logs.Machine.Storage.Path)
-		rootCmdFlagBinder.StringVar("log-storage-path", flagDescription("logs.machine.storage.path", schema), &flagConfig.Logs.Machine.Storage.Path)
-
-		if err := rootCmd.Flags().MarkDeprecated("audit-log-dir", "this flag is kept for the SQLite migration, and will be removed in future versions"); err != nil {
-			return err
-		}
-
-		if err := rootCmd.Flags().MarkDeprecated("machine-log-buffer-capacity", "this flag is kept for the SQLite migration, and will be removed in future versions"); err != nil {
-			return err
-		}
-
-		if err := rootCmd.Flags().MarkDeprecated("machine-log-buffer-max-capacity", "this flag is kept for the SQLite migration, and will be removed in future versions"); err != nil {
-			return err
-		}
-
-		if err := rootCmd.Flags().MarkDeprecated("machine-log-buffer-safe-gap", "this flag is kept for the SQLite migration, and will be removed in future versions"); err != nil {
-			return err
-		}
-
-		if err := rootCmd.Flags().MarkDeprecated("machine-log-num-compressed-chunks", "this flag is kept for the SQLite migration, and will be removed in future versions"); err != nil {
-			return err
-		}
-
-		if err := rootCmd.Flags().MarkDeprecated("machine-log-storage-enabled", "this flag is kept for the SQLite migration, and will be removed in future versions"); err != nil {
-			return err
-		}
-
-		if err := rootCmd.Flags().MarkDeprecated("machine-log-storage-path", "this flag is kept for the SQLite migration, and will be removed in future versions"); err != nil {
-			return err
-		}
-
-		if err := rootCmd.Flags().MarkDeprecated("log-storage-path", "use --machine-log-storage-path"); err != nil {
-			return err
-		}
+	if err := rootCmd.Flags().MarkHidden("audit-log-cleanup-probability"); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func defineStorageFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) error {
+func defineStorageFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) {
 	EnumVar(rootCmdFlagBinder, "storage-kind", flagDescription("storage.default.kind", schema), &flagConfig.Storage.Default.Kind)
 	rootCmdFlagBinder.BoolVar("etcd-embedded", flagDescription("storage.default.etcd.embedded", schema), &flagConfig.Storage.Default.Etcd.Embedded)
 	rootCmdFlagBinder.BoolVar("etcd-embedded-unsafe-fsync", flagDescription("storage.default.etcd.embeddedUnsafeFsync", schema), &flagConfig.Storage.Default.Etcd.EmbeddedUnsafeFsync)
@@ -413,16 +357,6 @@ func defineStorageFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, f
 
 	rootCmd.Flags().StringSliceVar(&flagConfig.Storage.Default.Etcd.PublicKeyFiles, "public-key-files", flagConfig.Storage.Default.Etcd.PublicKeyFiles,
 		flagDescription("storage.default.etcd.publicKeyFiles", schema))
-	rootCmdFlagBinder.StringVar(
-		"secondary-storage-path",
-		flagDescription("storage.secondary.path", schema),
-		&flagConfig.Storage.Secondary.Path, //nolint:staticcheck // backwards compatibility, remove when migration from boltdb to sqlite is done
-	)
-
-	if err := rootCmd.Flags().MarkDeprecated("secondary-storage-path", "this flag is kept for the SQLite migration, and will be removed in future versions"); err != nil {
-		return err
-	}
-
 	rootCmdFlagBinder.StringVar(config.SQLiteStoragePathFlag,
 		flagDescription("storage.sqlite.path", schema), &flagConfig.Storage.Sqlite.Path)
 
@@ -435,8 +369,6 @@ func defineStorageFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, f
 
 	rootCmdFlagBinder.StringVar("vault-k8s-auth-mount-path",
 		flagDescription("storage.vault.k8sAuthMountPath", schema), &flagConfig.Storage.Vault.K8SAuthMountPath)
-
-	return nil
 }
 
 func defineRegistriesFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) {

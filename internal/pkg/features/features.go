@@ -28,7 +28,7 @@ type Params struct {
 	AccountName                     string
 	AccountID                       string
 	UserPilotAppToken               string
-	AuditLogPath                    string
+	AuditLogEnabled                 bool
 	EtcdBackupMinInterval           time.Duration
 	EtcdBackupMaxInterval           time.Duration
 	EtcdBackupTickInterval          time.Duration
@@ -52,7 +52,7 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger, pa
 			MaxInterval:  durationpb.New(params.EtcdBackupMaxInterval),
 		}
 
-		res.TypedSpec().Value.AuditLogEnabled = params.AuditLogPath != ""
+		res.TypedSpec().Value.AuditLogEnabled = params.AuditLogEnabled
 		res.TypedSpec().Value.ImageFactoryBaseUrl = params.ImageFactoryBaseURL
 		res.TypedSpec().Value.ImageFactoryPxeBaseUrl = params.ImageFactoryPXEBaseURL.String()
 

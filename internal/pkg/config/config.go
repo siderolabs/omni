@@ -116,7 +116,6 @@ func Default() *Params {
 	p.Services.EmbeddedDiscoveryService.SetEnabled(true)
 	p.Services.EmbeddedDiscoveryService.SetPort(8093)
 	p.Services.EmbeddedDiscoveryService.SetSnapshotsEnabled(true)
-	p.Services.EmbeddedDiscoveryService.SetSnapshotsPath("_out/secondary-storage/discovery-service-state.binpb") // todo: Keeping this enabled to get it migrated to SQLite.
 	p.Services.EmbeddedDiscoveryService.SetSnapshotsInterval(10 * time.Minute)
 	p.Services.EmbeddedDiscoveryService.SetLogLevel(zapcore.WarnLevel.String())
 	p.Services.EmbeddedDiscoveryService.SetSqliteTimeout(30 * time.Second)
@@ -138,7 +137,6 @@ func Default() *Params {
 	p.Registries.SetImageFactoryBaseURL(consts.ImageFactoryBaseURL)
 
 	p.Logs.Audit.SetEnabled(true)
-	p.Logs.Audit.SetPath("_out/audit")
 	p.Logs.Audit.SetSqliteTimeout(30 * time.Second)
 	p.Logs.Audit.SetRetentionPeriod(24 * 30 * time.Hour)
 	p.Logs.Audit.SetMaxSize(0)
@@ -147,22 +145,11 @@ func Default() *Params {
 	p.Logs.ResourceLogger.SetLogLevel(zapcore.InfoLevel.String())
 	p.Logs.ResourceLogger.Types = common.UserManagedResourceTypes
 
-	p.Logs.Machine.SetBufferInitialCapacity(16384)
-	p.Logs.Machine.SetBufferMaxCapacity(131072)
-	p.Logs.Machine.SetBufferSafetyGap(256)
-
-	p.Logs.Machine.Storage.SetEnabled(true)
-	p.Logs.Machine.Storage.SetPath("_out/logs")
-	p.Logs.Machine.Storage.SetFlushPeriod(10 * time.Minute)
-	p.Logs.Machine.Storage.SetFlushJitter(0.1)
-	p.Logs.Machine.Storage.SetNumCompressedChunks(5)
 	p.Logs.Machine.Storage.SetSqliteTimeout(30 * time.Second)
 	p.Logs.Machine.Storage.SetCleanupInterval(30 * time.Minute)
 	p.Logs.Machine.Storage.SetCleanupOlderThan(24 * 30 * time.Hour)
 	p.Logs.Machine.Storage.SetMaxLinesPerMachine(5000)
 	p.Logs.Machine.Storage.SetCleanupProbability(0.01)
-
-	p.Storage.Secondary.SetPath("_out/secondary-storage/bolt.db")
 
 	p.Storage.Sqlite.SetExperimentalBaseParams("_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)")
 	p.Storage.Sqlite.SetPoolSize(64)

@@ -351,11 +351,6 @@
           "description": "SnapshotsEnabled controls whether the embedded discovery service periodically persists snapshots of its state to disk.",
           "type": "boolean"
         },
-        "snapshotsPath": {
-          "description": "SnapshotsPath is the path where the embedded discovery service persists its snapshots. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
-          "type": "string",
-          "deprecated": true
-        },
         "snapshotsInterval": {
           "description": "SnapshotsInterval is the interval at which the embedded discovery service persists snapshots of its state.",
           "type": "string",
@@ -818,56 +813,12 @@
         "storage": {
           "description": "Storage contains configuration for machine logs storage.",
           "$ref": "#/definitions/LogsMachineStorage"
-        },
-        "bufferInitialCapacity": {
-          "description": "BufferInitialCapacity is the initial capacity of the in-memory circular buffer for machine logs. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
-          "type": "integer",
-          "deprecated": true
-        },
-        "bufferMaxCapacity": {
-          "description": "BufferMaxCapacity is the maximum capacity of the in-memory circular buffer for machine logs. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
-          "type": "integer",
-          "deprecated": true
-        },
-        "bufferSafetyGap": {
-          "description": "BufferSafetyGap is the safety gap to avoid overwriting logs that are being read while writing new logs into the circular buffer. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
-          "type": "integer",
-          "deprecated": true
         }
       }
     },
     "LogsMachineStorage": {
       "type": "object",
       "properties": {
-        "enabled": {
-          "description": "Enabled controls whether machine logs storage is enabled. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
-          "type": "boolean",
-          "deprecated": true
-        },
-        "path": {
-          "description": "Path is the path where machine logs are stored. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
-          "type": "string",
-          "deprecated": true
-        },
-        "flushPeriod": {
-          "description": "FlushPeriod is the period at which machine logs are flushed to storage. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
-          "type": "string",
-          "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
-          "goJSONSchema": {
-            "type": "time.Duration"
-          },
-          "deprecated": true
-        },
-        "flushJitter": {
-          "description": "FlushJitter is the jitter added to the flush period to avoid thundering herd problem. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
-          "type": "number",
-          "deprecated": true
-        },
-        "numCompressedChunks": {
-          "description": "NumCompressedChunks is the number of compressed chunks to keep in memory before flushing to storage. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
-          "type": "integer",
-          "deprecated": true
-        },
         "sqliteTimeout": {
           "description": "SqliteTimeout is the timeout for SQLite operations used for machine logs storage.",
           "type": "string",
@@ -908,11 +859,6 @@
         "enabled": {
           "description": "Enabled controls whether audit logging is enabled.",
           "type": "boolean"
-        },
-        "path": {
-          "description": "Path is the path where audit logs are stored. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
-          "type": "string",
-          "deprecated": true
         },
         "sqliteTimeout": {
           "description": "SqliteTimeout is the timeout for SQLite operations used for audit logs storage.",
@@ -987,7 +933,6 @@
       "required": [
         "default",
         "vault",
-        "secondary",
         "sqlite"
       ],
       "properties": {
@@ -998,11 +943,6 @@
         "vault": {
           "description": "Vault contains HashiCorp Vault storage backend configuration. It is used to store the storage encryption key, used to encrypt sensitive data at rest in etcd.",
           "$ref": "#/definitions/Vault"
-        },
-        "secondary": {
-          "description": "Secondary contains the secondary storage backend configuration. It is used to store frequently updated and less critical data. DEPRECATED: they are now stored in SQLite, and this parameter exists for the migration purposes only, and will be removed.",
-          "$ref": "#/definitions/BoltDB",
-          "deprecated": true
         },
         "sqlite": {
           "description": "Sqlite contains SQLite storage backend configuration. It is used to store machine logs, audit logs, discovery service state, and as the secondary storage for the frequently updated and less critical data.",

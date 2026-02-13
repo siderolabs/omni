@@ -33,7 +33,6 @@ services:
     enabled: true
     port: 8093
     snapshotsEnabled: true
-    snapshotsPath: "_out/secondary-storage/discovery-service-state.binpb"
     logLevel: Warn
   loadBalancer:
     minPort: 10000
@@ -80,8 +79,6 @@ storage:
     token: dev-o-token
   sqlite:
     path: "_out/secondary-storage/sqlite.db"
-  secondary:
-    path: "_out/secondary-storage/bolt.db"
   default:
     kind: etcd
     boltdb:
@@ -103,13 +100,9 @@ storage:
 
 logs:
   machine:
-    storage:
-      enabled: true
-      path: "_out/logs"
-      flushPeriod: 10m
-      flushJitter: 0.1
+    storage: {}
   audit:
-    path: _out/audit
+    enabled: true
   resourceLogger:
     types:
       - Links.omni.siderolabs.dev

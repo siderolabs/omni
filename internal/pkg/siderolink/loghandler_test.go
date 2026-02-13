@@ -26,16 +26,7 @@ import (
 )
 
 func TestLogHandler_HandleMessage(t *testing.T) {
-	storageConfig := config.LogsMachine{
-		BufferInitialCapacity: new(6),
-		BufferMaxCapacity:     new(28),
-		BufferSafetyGap:       new(6),
-		Storage: config.LogsMachineStorage{
-			NumCompressedChunks: new(5),
-			FlushPeriod:         new(time.Second),
-			Enabled:             new(false),
-		},
-	}
+	storageConfig := config.LogsMachine{}
 
 	t.Run("empty log message", func(t *testing.T) {
 		machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{})

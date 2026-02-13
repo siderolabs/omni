@@ -16,7 +16,7 @@ auth:
 
 logs:
   audit:
-    path:  _out/audit
+    enabled: true
 
 storage:
   sqlite:

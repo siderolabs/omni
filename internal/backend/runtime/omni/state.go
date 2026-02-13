@@ -170,19 +170,6 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		return nil, fmt.Errorf("failed to create SQLite state for secondary storage: %w", err)
 	}
 
-	secondaryStoragePath := params.Storage.Secondary.GetPath()
-	if secondaryStoragePath != "" { //nolint:staticcheck // migration only
-		// perform a one-time migration from BoltDB to SQLite
-		if err = migrateBoltDBToSQLite(
-			ctx,
-			logger,
-			secondaryStoragePath, //nolint:staticcheck // migration only
-			secondaryPersistentState.State,
-		); err != nil {
-			return nil, fmt.Errorf("failed to migrate secondary storage from BoltDB to SQLite: %w", err)
-		}
-	}
-
 	storeFactory, err := store.NewStoreFactory(params.EtcdBackup)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create etcd backup store factory: %w", err)
@@ -329,9 +316,7 @@ func stateWithMetrics(namespacedState *namespaced.State, metricsRegistry prometh
 
 // NewAuditWrap creates a new audit wrap.
 func NewAuditWrap(ctx context.Context, resState state.State, params *config.Params, auditLogDB *sqlitex.Pool, logger *zap.Logger, onCleanup func(int)) (*AuditWrap, error) {
-	path := params.Logs.Audit.GetPath() //nolint:staticcheck
-
-	if path == "" && !params.Logs.Audit.GetEnabled() {
+	if !params.Logs.Audit.GetEnabled() {
 		logger.Info("audit log disabled")
 
 		return &AuditWrap{state: resState}, nil
@@ -351,14 +336,13 @@ func NewAuditWrap(ctx context.Context, resState state.State, params *config.Para
 
 	hooks.Init(a)
 
-	return &AuditWrap{state: resState, log: a, dir: path}, nil
+	return &AuditWrap{state: resState, log: a}, nil
 }
 
 // AuditWrap is builder/wrapper for creating logged access to Omni and Talos nodes.
 type AuditWrap struct {
 	state state.State
 	log   *audit.Log
-	dir   string
 }
 
 // Reader reads the audit log file by file, oldest to newest.

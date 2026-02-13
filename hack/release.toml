@@ -8,64 +8,25 @@ match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 pre_release = true
 previous = "v1.4.0"
 
-[notes.omnictl-directory-support]
-title = "`omnictl` Directory Support"
+[notes.aaa-removed-deprecated-migration-flags]
+title = ""Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**""
 description = """\
-The `omnictl sync/apply` can now process directories, simplifying bulk resource applications.
+The deprecated flags and config fields that were kept for the SQLite migration period (introduced in v1.4.0) have been removed.
+
+If you still have any of the following flags or config keys set, **you must remove them before upgrading**, as they will cause startup errors:
+* `--audit-log-dir` (`.logs.audit.path`)
+* `--secondary-storage-path` (`.storage.secondary.path`)
+* `--machine-log-storage-path` (`.logs.machine.storage.path`)
+* `--machine-log-storage-enabled` (`.logs.machine.storage.enabled`)
+* `--log-storage-path` (`.logs.machine.storage.path`)
+* `--embedded-discovery-service-snapshot-path` (`.services.embeddedDiscoveryService.snapshotsPath`)
+* `--machine-log-buffer-capacity` (`.logs.machine.bufferInitialCapacity`)
+* `--machine-log-buffer-max-capacity` (`.logs.machine.bufferMaxCapacity`)
+* `--machine-log-buffer-safe-gap` (`.logs.machine.bufferSafetyGap`)
+* `--machine-log-num-compressed-chunks` (`.logs.machine.storage.numCompressedChunks`)
+
+The automatic migration code for BoltDB secondary storage, file-based audit logs, file-based discovery service snapshots, \
+and circular buffer machine logs has also been removed. \
+If you are upgrading from a version older than v1.4.0, you must first upgrade to v1.4.x to complete the migrations, then upgrade to this version.
 """
 
-[notes.join-token-management]
-title = "Join Token Management"
-description = """\
-Added a dedicated `omnictl jointoken omni-endpoint` to streamline node registration.
-"""
-
-[notes.multiples-schema-support]
-title = "Schema-Aware Code Editor"
-description = """\
-The built-in code editor for the machine configs now supports different configuration schemas for each Talos version.
-So the config will be always validated against the currently running Talos version schema.
-"""
-
-[notes.kernel-args]
-title = "Kernel Args CLI Tools"
-description = """\
-Added support for managing kernel arguments directly within cluster templates.
-"""
-
-[notes.config-generation]
-title = "Config Generation"
-description = """\
-Omni can now generate its own configuration directly from the defined schema.
-The config merge algorithms were also improved: now the config preserves the default values properly when some sections are
-overwritten by the user provided config.
-"""
-
-[notes.audit-logging]
-title = "Better Audit Logging"
-description = """\
-Omni now collects audit logs for operations performed on *all* user-managed resources, improving security and traceability.
-"""
-
-[notes.etcd-maintenance]
-title = "Etcd Maintenance"
-description = """\
-The following etcd commands are now usable with Omni managed clusters:
-`talosctl etcd downgrade validate`
-`talosctl etcd downgrade enable`
-`talosctl etcd downgrade cancel`
-`talosctl etcd forfeit leadership`
-"""
-
-[notes.grpc-tunnel-management]
-title = "gRPC Tunnel Management"
-description = """\
-Added the ability to switch gRPC tunnel modes for connected machines.
-"""
-
-[notes.wireguard-bind-address]
-title = "WireGuard Bind Address"
-description = """\
-The WireGuard endpoint (`services.siderolink.wireGuard.endpoint` / `--siderolink-wireguard-bind-addr`) is now respected. \
-Previously, Omni always bound to all interfaces regardless of this setting. Default remains `0.0.0.0:50180`.
-"""

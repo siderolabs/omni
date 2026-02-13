@@ -228,8 +228,6 @@ storage:
   vault:
     url: ${VAULT_ADDR}
     token: ${VAULT_TOKEN}
-  secondary:
-    path: ${ARTIFACTS}/secondary-storage/bolt.db
   sqlite:
     path: ${TEST_OUTPUTS_DIR}/sqlite.db
   default:
@@ -249,14 +247,8 @@ storage:
       embeddedUnsafeFsync: true
       embeddedDBPath: ${ARTIFACTS}/etcd/
 logs:
-  machine:
-    storage:
-      enabled: true
-      path: /tmp/omni-data/machine-log
-      flushPeriod: 10m
-      flushJitter: 0.1
   audit:
-    path: ${TEST_OUTPUTS_DIR}/audit-log
+    enabled: true
 features:
   enableTalosPreReleaseVersions: ${ENABLE_TALOS_PRERELEASE_VERSIONS}
   enableConfigDataCompression: true

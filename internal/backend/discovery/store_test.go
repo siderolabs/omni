@@ -7,135 +7,31 @@ package discovery_test
 import (
 	"context"
 	"io"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func TestInitSQLiteSnapshotStore_MigrateSuccess(t *testing.T) {
+func TestInitSQLiteSnapshotStore(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	t.Cleanup(cancel)
 
-	logger := zaptest.NewLogger(t)
 	_, db := setupStore(ctx, t)
 
-	// 1. Setup Legacy File State
-	// Create a temporary directory for the snapshot file
-	tmpDir := t.TempDir()
-	snapshotPath := filepath.Join(tmpDir, "snapshot.bin")
-	expectedData := []byte("legacy-snapshot-data")
-
-	require.NoError(t, os.WriteFile(snapshotPath, expectedData, 0o644))
-
-	// 2. Trigger Init with Migration Enabled
 	var conf config.EmbeddedDiscoveryService
 	conf.SetSnapshotsEnabled(true)
-	conf.SetSnapshotsPath(snapshotPath)
 
-	store, err := discovery.InitSQLiteSnapshotStore(ctx, conf, db, logger)
+	store, err := discovery.InitSQLiteSnapshotStore(ctx, conf, db)
 	require.NoError(t, err)
 
-	// 3. Verify Data moved to SQLite
-	rdr, err := store.Reader(ctx)
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		require.NoError(t, rdr.Close())
-	})
-
-	data, err := io.ReadAll(rdr)
-	require.NoError(t, err)
-	assert.Equal(t, expectedData, data, "sqlite store should contain data from legacy file")
-
-	// 4. Verify File is Removed
-	_, err = os.Stat(snapshotPath)
-	require.Error(t, err)
-	assert.True(t, os.IsNotExist(err), "legacy file should be removed after successful migration")
-}
-
-func TestInitSQLiteSnapshotStore_SkipIfDataExists(t *testing.T) {
-	t.Parallel()
-
-	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
-	t.Cleanup(cancel)
-
-	logger := zaptest.NewLogger(t)
-	_, db := setupStore(ctx, t)
-
-	// 1. Setup Pre-existing SQLite Data
-	// We manually initialize a store to write data before testing Init
-	preStore, err := discovery.NewSQLiteStore(ctx, db, 0)
-	require.NoError(t, err)
-
-	dbData := []byte("existing-db-data")
-	wd, err := preStore.Writer(ctx)
-	require.NoError(t, err)
-	_, err = wd.Write(dbData)
-	require.NoError(t, err)
-	require.NoError(t, wd.Close())
-
-	// 2. Setup Legacy File (Simulate a stale file)
-	tmpDir := t.TempDir()
-	snapshotPath := filepath.Join(tmpDir, "snapshot.bin")
-	fileData := []byte("stale-file-data")
-
-	require.NoError(t, os.WriteFile(snapshotPath, fileData, 0o644))
-
-	// 3. Trigger Init
-	var conf config.EmbeddedDiscoveryService
-	conf.SetSnapshotsEnabled(true)
-	conf.SetSnapshotsPath(snapshotPath)
-
-	store, err := discovery.InitSQLiteSnapshotStore(ctx, conf, db, logger)
-	require.NoError(t, err)
-
-	// 4. Verify SQLite Data Preserved (Migration Skipped)
-	rdr, err := store.Reader(ctx)
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, rdr.Close()) })
-
-	actualData, err := io.ReadAll(rdr)
-	require.NoError(t, err)
-	assert.Equal(t, dbData, actualData, "should preserve existing sqlite data")
-	assert.NotEqual(t, fileData, actualData, "should not overwrite with file data")
-
-	// 5. Verify File Still Exists
-	_, err = os.Stat(snapshotPath)
-	require.NoError(t, err, "legacy file should NOT be removed if migration was skipped")
-}
-
-func TestInitSQLiteSnapshotStore_NoFile(t *testing.T) {
-	t.Parallel()
-
-	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
-	t.Cleanup(cancel)
-
-	logger := zaptest.NewLogger(t)
-	_, db := setupStore(ctx, t)
-
-	// 1. Setup Path to non-existent file
-	tmpDir := t.TempDir()
-	snapshotPath := filepath.Join(tmpDir, "does-not-exist.bin")
-
-	// 2. Trigger Init
-	var conf config.EmbeddedDiscoveryService
-	conf.SetSnapshotsEnabled(true)
-	conf.SetSnapshotsPath(snapshotPath)
-
-	store, err := discovery.InitSQLiteSnapshotStore(ctx, conf, db, logger)
-	require.NoError(t, err)
-
-	// 3. Verify SQLite is empty (no error)
+	// Verify SQLite store is empty initially
 	rdr, err := store.Reader(ctx)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, rdr.Close()) })

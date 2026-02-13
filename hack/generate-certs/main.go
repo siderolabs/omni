@@ -273,7 +273,6 @@ services:
       --debug
       --etcd-embedded-unsafe-fsync=true
       --etcd-backup-s3
-      --audit-log-dir /tmp/omni-data/audit-logs
       {{- range $key, $value := .RegistryMirrors }}
       --registry-mirror {{ $key }}={{ $value }}
       {{- end }}

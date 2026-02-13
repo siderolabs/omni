@@ -55,13 +55,9 @@ storage:
 
 logs:
   machine:
-    storage:
-      enabled: true
-      path: "_out/logs"
-      flushPeriod: 10m
-      flushJitter: 0.1
+    storage: {}
   audit:
-    path: _out/audit
+    enabled: true
   resourceLogger:
     types:
       - Links.omni.siderolabs.dev

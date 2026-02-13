@@ -34,7 +34,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
-//go:embed auditlog/auditlogfile/testdata/log/2012-01-01.jsonlog
+//go:embed testdata/expected_events.jsonlog
 var logData string
 
 func TestAudit(t *testing.T) {
@@ -58,7 +58,11 @@ func TestAudit(t *testing.T) {
 	res.TypedSpec().Value.Expiration = timestamppb.New(time.Unix(1325587579, 0))
 
 	createCtx := func() context.Context {
-		ad := makeAuditData("Mozilla/5.0", "10.10.0.1", "")
+		ad := auditlog.Data{
+			Session: auditlog.Session{
+				UserAgent: "Mozilla/5.0",
+			},
+		}
 
 		return ctxstore.WithValue(t.Context(), &ad)
 	}
@@ -162,15 +166,6 @@ func loadEvents(t *testing.T, events string) []any {
 	}
 
 	return result
-}
-
-func makeAuditData(agent, _, email string) auditlog.Data {
-	return auditlog.Data{
-		Session: auditlog.Session{
-			UserAgent: agent,
-			Email:     email,
-		},
-	}
 }
 
 func testDB(t *testing.T) *sqlitex.Pool {

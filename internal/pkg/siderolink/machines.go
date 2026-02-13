@@ -16,7 +16,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/containers"
-	"github.com/siderolabs/go-circular/zstd"
 	"go.uber.org/zap"
 	"zombiezen.com/go/sqlite/sqlitex"
 
@@ -24,7 +23,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore"
-	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore/circularlog"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore/sqlitelog"
 )
 
@@ -48,7 +46,6 @@ type MachineCache struct {
 	logger                 *zap.Logger
 	onCleanup              func(int)
 	logsConfig             *config.LogsMachine
-	compressor             *zstd.Compressor
 	secondaryStorageDB     *sqlitex.Pool
 	state                  state.State
 	mx                     sync.Mutex
@@ -57,14 +54,8 @@ type MachineCache struct {
 
 // NewMachineCache returns a new MachineCache.
 func NewMachineCache(secondaryStorageDB *sqlitex.Pool, logStorageConfig *config.LogsMachine, omniState state.State, logger *zap.Logger, opts ...MachineCacheOption) (*MachineCache, error) {
-	compressor, err := zstd.NewCompressor()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create log compressor: %w", err)
-	}
-
 	cache := &MachineCache{
 		logsConfig:         logStorageConfig,
-		compressor:         compressor,
 		secondaryStorageDB: secondaryStorageDB,
 		state:              omniState,
 		logger:             logger,
@@ -201,8 +192,6 @@ func (m *MachineCache) Close() error {
 }
 
 // init initializes the MachineCache.
-//
-// TODO: remove the migration logic and the circular log storage after a few releases, when all machines' logs should have been migrated.
 func (m *MachineCache) init(ctx context.Context) error {
 	if m.inited {
 		return nil
@@ -216,13 +205,6 @@ func (m *MachineCache) init(ctx context.Context) error {
 	sqliteLogStoreManager, err := sqlitelog.NewStoreManager(ctx, m.secondaryStorageDB, m.logsConfig.Storage, m.state, m.logger, storeManagerOpts...)
 	if err != nil {
 		return fmt.Errorf("failed to create sqlite log store manager: %w", err)
-	}
-
-	if m.logsConfig.Storage.GetEnabled() { //nolint:staticcheck
-		circularLogStoreManager := circularlog.NewStoreManager(m.logsConfig, m.compressor, m.logger)
-		if err = migrateLogStoreToSQLite(ctx, circularLogStoreManager, sqliteLogStoreManager, m.state, m.logger); err != nil {
-			return fmt.Errorf("failed to migrate log store from circular to sqlite: %w", err)
-		}
 	}
 
 	m.machineLogStoreManager = sqliteLogStoreManager

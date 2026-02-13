@@ -18,7 +18,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
-	"github.com/siderolabs/go-circular/zstd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
@@ -30,7 +29,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore"
-	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore/circularlog"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/logstore/sqlitelog"
 )
 
@@ -67,36 +65,23 @@ func TestReadWrite(t *testing.T) {
 		require.NoError(t, sqliteStore2.Close())
 	})
 
-	defaultConfig := config.Default()
-
-	compressor, err := zstd.NewCompressor()
-	require.NoError(t, err)
-
-	circularStore, err := circularlog.NewStore(&defaultConfig.Logs.Machine, "test-1", compressor, zaptest.NewLogger(t))
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		require.NoError(t, circularStore.Close())
-	})
-
 	numLines := 1000
 
 	for i := range numLines {
 		require.NoError(t, sqliteStore1.WriteLine(ctx, fmt.Appendf(nil, "Hello, World %d!", i)))
 		require.NoError(t, sqliteStore2.WriteLine(ctx, fmt.Appendf(nil, "Hello, World %d!", i)))
-		require.NoError(t, circularStore.WriteLine(ctx, fmt.Appendf(nil, "Hello, World %d!", i)))
 	}
 
 	t.Run("read all", func(t *testing.T) {
 		t.Parallel()
 
-		testRead(ctx, t, sqliteStore1, circularStore, numLines, -1)
+		testRead(ctx, t, sqliteStore1, numLines, -1)
 	})
 
 	t.Run("tail", func(t *testing.T) {
 		t.Parallel()
 
-		testRead(ctx, t, sqliteStore1, circularStore, 100, 100)
+		testRead(ctx, t, sqliteStore1, 100, 100)
 	})
 }
 
@@ -617,7 +602,7 @@ func TestOrphanLogsCleanup(t *testing.T) {
 	checkExistence("gone", numNonExistent, false)
 }
 
-func testRead(ctx context.Context, t *testing.T, sqliteStore, circularStore logstore.LogStore, expectedLines, tailLines int) {
+func testRead(ctx context.Context, t *testing.T, sqliteStore logstore.LogStore, expectedLines, tailLines int) {
 	t.Helper()
 
 	sqliteReader, err := sqliteStore.Reader(ctx, tailLines, false)
@@ -625,13 +610,7 @@ func testRead(ctx context.Context, t *testing.T, sqliteStore, circularStore logs
 
 	sqliteLines := readAllLines(ctx, t, sqliteReader)
 
-	circularReader, err := circularStore.Reader(ctx, tailLines, false)
-	require.NoError(t, err)
-
-	circularLines := readAllLines(ctx, t, circularReader)
-
 	assert.Len(t, sqliteLines, expectedLines)
-	assert.Equal(t, circularLines, sqliteLines)
 }
 
 func readAllLines(ctx context.Context, t *testing.T, rdr logstore.LineReader) []string {
