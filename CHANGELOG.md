@@ -1,3 +1,33 @@
+## [Omni 1.5.3](https://github.com/siderolabs/omni/releases/tag/v1.5.3) (2026-02-17)
+
+Welcome to the v1.5.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+* Artem Chernyshev
+
+### Changes
+<details><summary>3 commits</summary>
+<p>
+
+* [`7efba2f6`](https://github.com/siderolabs/omni/commit/7efba2f6132345cc834a03c22d4e4a8974c6747e) release(v1.5.3): prepare release
+* [`ee1fc5f3`](https://github.com/siderolabs/omni/commit/ee1fc5f3b0a379788e913b13c1c569801ff25fe6) fix: break the dep loop in the cluster machine config status controller
+* [`329926cd`](https://github.com/siderolabs/omni/commit/329926cd8ab198aa025e2dca47bce2bdc3c419c1) fix: fix schematic generation for machines in agent mode
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.5.2](https://github.com/siderolabs/omni/releases/tag/v1.5.2)
+
 ## [Omni 1.5.2](https://github.com/siderolabs/omni/releases/tag/v1.5.2) (2026-02-12)
 
 Welcome to the v1.5.2 release of Omni!
