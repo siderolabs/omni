@@ -126,6 +126,11 @@ func (context *Context[T]) GetTalosVersion() string {
 	return context.machineRequest.TypedSpec().Value.TalosVersion
 }
 
+// GetMachineRequestSetID returns the machine request set ID.
+func (context *Context[T]) GetMachineRequestSetID() (string, bool) {
+	return context.machineRequest.Metadata().Labels().Get(omni.LabelMachineRequestSet)
+}
+
 // SetMachineUUID in the machine request status.
 func (context *Context[T]) SetMachineUUID(value string) {
 	context.MachineRequestStatus.TypedSpec().Value.Id = value
