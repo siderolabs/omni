@@ -296,11 +296,11 @@ function create_machines() {
     cluster_create_args+=("--iso-path=https://factory.talos.dev/image/${schematic_id}/v${talos_version}/metal-amd64.iso")
   fi
 
-  "${ARTIFACTS}/talosctl" cluster create \
+  "${ARTIFACTS}/talosctl" cluster create dev \
     "${cluster_create_args[@]}"
 }
 
-function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_version
+function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_version, skip_kubeconfig (true/false), allow_scheduling_on_control_planes (true/false)
   declare -A args
   for arg in "$@"; do
     key="${arg%%=*}"
@@ -313,6 +313,8 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
   local wk_count="${args[wk_count]:-0}"
   local cidr="${args[cidr]}"
   local talos_version="${args[talos_version]}"
+  local skip_kubeconfig="${args[skip_kubeconfig]:-false}"
+  local allow_scheduling_on_control_planes="${args[allow_scheduling_on_control_planes]:-false}"
 
   local non_masquerade_cidrs
   non_masquerade_cidrs=$(generate_non_masquerade_cidrs "${cidr}")
@@ -334,7 +336,7 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
     "--cidr=${cidr}"
     "--no-masquerade-cidrs=${non_masquerade_cidrs}"
     "--talosconfig=${TEST_OUTPUTS_DIR}/${name}/talosconfig"
-    "--skip-kubeconfig"
+    "--skip-kubeconfig=${skip_kubeconfig}"
     "--skip-injecting-extra-cmdline"
     "--with-apply-config"
     "--with-bootloader"
@@ -344,7 +346,11 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
     "--iso-path=https://factory.talos.dev/image/${schematic_id}/v${talos_version}/metal-amd64.iso"
   )
 
-  "${ARTIFACTS}/talosctl" cluster create \
+  if [[ "${allow_scheduling_on_control_planes}" == "true" ]]; then
+    cluster_create_args+=("--config-patch-control-plane={\"cluster\":{\"allowSchedulingOnControlPlanes\":true}}")
+  fi
+
+  "${ARTIFACTS}/talosctl" cluster create dev \
     "${cluster_create_args[@]}" \
     "${REGISTRY_MIRROR_FLAGS[@]}"
 

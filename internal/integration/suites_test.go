@@ -350,7 +350,7 @@ Don't do any changes to the cluster.`)
 	}
 }
 
-func testSinglenodeCluster(options *TestOptions) TestFunc {
+func testSingleNodeCluster(options *TestOptions) TestFunc {
 	return func(t *testing.T) {
 		t.Log(`
 Create a single node cluster.
@@ -369,6 +369,48 @@ Don't do any changes to the cluster.`)
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
 		runTests(t, AssertClusterCreateAndReady(t.Context(), options, clusterOptions))
+	}
+}
+
+func testSingleNodeWorkloadProxy(options *TestOptions) TestFunc {
+	return func(t *testing.T) {
+		t.Log(`
+Create a single node cluster with workload proxy enabled.
+Test basic workload proxy functionality on a single-node cluster.`)
+
+		t.Parallel()
+
+		clusterName := "integration-singlenode-wp"
+
+		options.claimMachines(t, 1)
+
+		t.Run("ClusterShouldBeCreated", CreateCluster(t.Context(), options, ClusterOptions{
+			Name:          clusterName,
+			ControlPlanes: 1,
+			Workers:       0,
+
+			Features: &specs.ClusterSpec_Features{
+				EnableWorkloadProxy: true,
+			},
+
+			MachineOptions:                 options.MachineOptions,
+			AllowSchedulingOnControlPlanes: true,
+		}))
+
+		runTests(t, AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(t.Context(), options, clusterName,
+			options.MachineOptions.TalosVersion, options.MachineOptions.KubernetesVersion))
+
+		parentCtx := t.Context()
+
+		t.Run("WorkloadProxyShouldBeTested", func(t *testing.T) {
+			workloadproxy.Test(parentCtx, t, options.omniClient, options.serviceAccountKey, workloadproxy.TestOptions{
+				NumWorkloads:           2,
+				NumReplicasPerWorkload: 1,
+				NumServicesPerWorkload: 2,
+			}, clusterName)
+		})
+
+		t.Run("ClusterShouldBeDestroyed", AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), clusterName, false, false))
 	}
 }
 
@@ -1278,7 +1320,11 @@ Test workload service proxying feature`)
 		parentCtx := t.Context()
 
 		t.Run("WorkloadProxyShouldBeTested", func(t *testing.T) {
-			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, cluster1, cluster2)
+			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, workloadproxy.TestOptions{
+				NumWorkloads:           5,
+				NumReplicasPerWorkload: 4,
+				NumServicesPerWorkload: 10,
+			}, cluster1, cluster2)
 		})
 
 		t.Run("ClusterShouldBeDestroyed-"+cluster1, AssertDestroyCluster(t.Context(), options.omniClient.Omni().State(), cluster1, false, false))
@@ -1457,7 +1503,11 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 		parentCtx := t.Context()
 
 		t.Run("WorkloadProxyShouldBeTested", func(t *testing.T) {
-			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, clusterName)
+			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, workloadproxy.TestOptions{
+				NumWorkloads:           5,
+				NumReplicasPerWorkload: 4,
+				NumServicesPerWorkload: 10,
+			}, clusterName)
 		})
 
 		t.Run("SaveClusterSnapshot", SaveClusterSnapshot(t.Context(), options, clusterName))
@@ -1494,7 +1544,11 @@ Test Omni upgrades, the second half that runs on the current Omni version
 		t.Run("AssertMachinesNotRebootedConfigUnchanged", AssertClusterSnapshot(t.Context(), options, clusterName))
 
 		t.Run("WorkloadProxyShouldBeTested", func(t *testing.T) {
-			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, clusterName)
+			workloadproxy.Test(parentCtx, t, omniClient, options.serviceAccountKey, workloadproxy.TestOptions{
+				NumWorkloads:           5,
+				NumReplicasPerWorkload: 4,
+				NumServicesPerWorkload: 10,
+			}, clusterName)
 		})
 
 		t.Run(

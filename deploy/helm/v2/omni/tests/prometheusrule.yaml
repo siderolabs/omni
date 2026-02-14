@@ -1,0 +1,195 @@
+suite: PrometheusRule Logic
+templates:
+  - prometheusrule.yaml
+
+tests:
+  # ========================================
+  # PrometheusRule Creation Tests
+  # ========================================
+  - it: Should not create PrometheusRule by default
+    template: prometheusrule.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should not create PrometheusRule when only metrics enabled
+    template: prometheusrule.yaml
+    set:
+      metrics:
+        enabled: true
+        rules:
+          enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should create PrometheusRule when both metrics and rules enabled
+    template: prometheusrule.yaml
+    set:
+      metrics:
+        enabled: true
+        rules:
+          enabled: true
+          spec:
+            - alert: ImageFactoryDown
+              expr: up{job="image-factory"} == 0
+              for: 5m
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: PrometheusRule
+      - equal:
+          path: apiVersion
+          value: monitoring.coreos.com/v1
+
+  - it: Should configure PrometheusRule metadata
+    template: prometheusrule.yaml
+    set:
+      metrics:
+        enabled: true
+        rules:
+          enabled: true
+          spec:
+            - alert: TestAlert
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-omni
+
+  - it: Should configure PrometheusRule in custom namespace
+    template: prometheusrule.yaml
+    set:
+      metrics:
+        enabled: true
+        rules:
+          enabled: true
+          namespace: monitoring
+          spec:
+            - alert: TestAlert
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: monitoring
+
+  - it: Should use default namespace when rules namespace not set
+    template: prometheusrule.yaml
+    release:
+      namespace: custom-namespace
+    set:
+      metrics:
+        enabled: true
+        rules:
+          enabled: true
+          spec:
+            - alert: TestAlert
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: custom-namespace
+
+  - it: Should add PrometheusRule custom labels
+    template: prometheusrule.yaml
+    set:
+      metrics:
+        enabled: true
+        rules:
+          enabled: true
+          labels:
+            prometheus: kube-prometheus
+            team: platform
+          spec:
+            - alert: TestAlert
+    asserts:
+      - equal:
+          path: metadata.labels.prometheus
+          value: kube-prometheus
+      - equal:
+          path: metadata.labels.team
+          value: platform
+
+  - it: Should add PrometheusRule selector labels
+    template: prometheusrule.yaml
+    set:
+      metrics:
+        enabled: true
+        rules:
+          enabled: true
+          selector:
+            prometheus: kube-prometheus
+          spec:
+            - alert: TestAlert
+    asserts:
+      - equal:
+          path: metadata.labels.prometheus
+          value: kube-prometheus
+
+  - it: Should add PrometheusRule custom annotations
+    template: prometheusrule.yaml
+    set:
+      metrics:
+        enabled: true
+        rules:
+          enabled: true
+          annotations:
+            custom-annotation: custom-value
+          spec:
+            - alert: TestAlert
+    asserts:
+      - equal:
+          path: metadata.annotations["custom-annotation"]
+          value: custom-value
+
+  - it: Should include standard Helm labels
+    template: prometheusrule.yaml
+    set:
+      metrics:
+        enabled: true
+        rules:
+          enabled: true
+          spec:
+            - alert: TestAlert
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: omni
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: RELEASE-NAME
+      - isNotNull:
+          path: metadata.labels["helm.sh/chart"]
+
+  # ========================================
+  # PrometheusRule Spec Tests
+  # ========================================
+  - it: Should configure rule spec with alerts
+    template: prometheusrule.yaml
+    set:
+      metrics:
+        enabled: true
+        rules:
+          enabled: true
+          spec:
+            - alert: OmniDown
+              expr: up{job="omni"} == 0
+              for: 5m
+              labels:
+                severity: critical
+              annotations:
+                summary: "Omni is down"
+            - alert: HighMemoryUsage
+              expr: container_memory_usage_bytes > 1000000000
+              for: 10m
+    asserts:
+      - equal:
+          path: spec.groups[0].name
+          value: omni
+      - lengthEqual:
+          path: spec.groups[0].rules
+          count: 2
+      - equal:
+          path: spec.groups[0].rules[0].alert
+          value: OmniDown
+      - equal:
+          path: spec.groups[0].rules[1].alert
+          value: HighMemoryUsage

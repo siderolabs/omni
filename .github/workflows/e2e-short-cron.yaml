@@ -59,7 +59,7 @@ jobs:
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
       - name: run-integration-qemu
         env:
-          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$
+          INTEGRATION_TEST_ARGS: --test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SingleNodeCluster|Auth)$
           TEST_CLASS: integration-qemu
           WITH_DEBUG: "true"
           WITH_RACE: "true"

@@ -1,0 +1,126 @@
+etcdEncryptionKey:
+  omniAsc: |
+    -----BEGIN PGP PRIVATE KEY BLOCK-----
+
+    lFgEaYuxQBYJKwYBBAHaRw8BAQdAAMi6yVdAf7NEbBqkRX6edyEWuz8N3ckhesO4
+    /lLaiyoAAP9T/UbSKzRDkwTRJ2jiHnKj3jxUMORrYrnmm5hUd3+fKBBHtBJvbW5p
+    LWhlbG0tZTJlLXRlc3SImQQTFgoAQRYhBNJXmET3RBNatzNvWNhcK4t7Y4vxBQJp
+    i7FAAhsDBQkFo5qABQsJCAcCAiICBhUKCQgLAgQWAgMBAh4HAheAAAoJENhcK4t7
+    Y4vxMxABAJ5wdIUqkwd/STN6Yw9bC4iqb0Gdm/7wGHZpgYl2FBJbAP9pBUo8uHIo
+    bQqVCE2HVJ9JyaYOa9HEdoiUXt+Mkb6mBpxdBGmLsUASCisGAQQBl1UBBQEBB0Bw
+    bhVTZXEaDL3cdF8a51/gOmvsTXGoMM7QaP1Qk0nBUAMBCAcAAP94/sQ3Rtd8Qcbp
+    +vCFDVvi/bqs1W13FiW4bBgZDYJjCBFYiHgEGBYKACAWIQTSV5hE90QTWrczb1jY
+    XCuLe2OL8QUCaYuxQAIbDAAKCRDYXCuLe2OL8R+jAQDcBCoEx5SyCr15pxHgAkym
+    u5PXUlLlIRlzj4kMW3cRNwEAgzAst26kGApMkp97/rg6zZ8rjsNwV9ETS7hgeY1u
+    Agg=
+    =Zu3F
+    -----END PGP PRIVATE KEY BLOCK-----
+
+image:
+  repository: ${OMNI_IMAGE_REPO}
+  tag: ${OMNI_IMAGE_TAG}
+  pullPolicy: Always
+
+persistence:
+  enabled: false
+
+skipVersionCheck: true
+
+config:
+  account:
+    id: 8a881dfd-6c03-45db-b0d0-20975e935854
+  auth:
+    auth0:
+      clientID: ${AUTH0_CLIENT_ID}
+      domain: ${AUTH0_DOMAIN}
+    initialServiceAccount:
+      enabled: true
+      role: Admin
+      keyPath: /tmp/initial-service-account-key
+      name: automation
+      lifetime: 720h
+    initialUsers:
+      - ${AUTH0_TEST_USERNAME}
+  registries:
+    mirrors: ${REGISTRY_MIRRORS_JSON}
+  storage:
+    default:
+      etcd:
+        embedded: false
+        endpoints:
+          - https://etcd.etcd.svc.cluster.local:2379
+        caFile: /etcd-client-certs/ca.crt
+        certFile: /etcd-client-certs/client.crt
+        keyFile: /etcd-client-certs/client.key
+  services:
+    api:
+      advertisedURL: https://omni.example.org
+    kubernetesProxy:
+      advertisedURL: https://omni-k8s.example.org
+    machineAPI:
+      advertisedURL: grpc://${NODE_IP}:30090
+    workloadProxy:
+      enabled: true
+    siderolink:
+      wireGuard:
+        advertisedEndpoint: ${NODE_IP}:30180
+
+env:
+  - name: SIDEROLINK_DEV_JOIN_TOKEN
+    value: ${JOIN_TOKEN}
+
+service:
+  main:
+    type: NodePort
+    siderolinkApiNodePort: 30090
+
+ingress:
+  main:
+    enabled: true
+    className: traefik
+    host: omni.example.org
+    tls:
+      - hosts:
+          - omni.example.org
+  kubernetesProxy:
+    enabled: true
+    className: traefik
+    host: omni-k8s.example.org
+    tls:
+      - hosts:
+          - omni-k8s.example.org
+  # SideroLink API is exposed via NodePort (service.main.siderolinkApiNodePort) instead of ingress,
+  # because connecting machines use the node IP directly and cannot resolve domain names.
+  siderolinkApi:
+    enabled: false
+
+extraVolumes:
+  - name: etcd-client-certs
+    secret:
+      secretName: etcd-client-certs
+
+extraVolumeMounts:
+  - name: etcd-client-certs
+    mountPath: /etcd-client-certs
+    readOnly: true
+
+# Traefik IngressRoute for workload proxy wildcard domain.
+# Uses the default TLS store (which has the wildcard cert covering *.omni-workload.example.org).
+extraObjects:
+  - apiVersion: traefik.io/v1alpha1
+    kind: IngressRoute
+    metadata:
+      name: omni-workload-proxy
+    spec:
+      entryPoints:
+        - websecure
+      routes:
+        - kind: Rule
+          match: "HostRegexp(`.+\\.omni-workload\\.example\\.org`)"
+          services:
+            - kind: Service
+              name: omni
+              port: 8080
+              passHostHeader: true
+              scheme: h2c
+      tls: {}

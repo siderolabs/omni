@@ -1,0 +1,78 @@
+# Single-node etcd for Helm e2e tests.
+# Expects a secret "etcd-certs" in the etcd namespace with ca.crt, server.crt, server.key.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: etcd
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: etcd
+  namespace: etcd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etcd
+  template:
+    metadata:
+      labels:
+        app: etcd
+    spec:
+      containers:
+        - name: etcd
+          image: gcr.io/etcd-development/etcd:v3.6.7
+          command:
+            - etcd
+          args:
+            - --data-dir=/var/etcd/data
+            - --listen-client-urls=https://0.0.0.0:2379
+            - --advertise-client-urls=https://etcd.etcd.svc.cluster.local:2379
+            - --listen-peer-urls=http://127.0.0.1:2380
+            - --initial-advertise-peer-urls=http://127.0.0.1:2380
+            - --initial-cluster=default=http://127.0.0.1:2380
+            - --client-cert-auth
+            - --trusted-ca-file=/certs/ca.crt
+            - --cert-file=/certs/server.crt
+            - --key-file=/certs/server.key
+          ports:
+            - containerPort: 2379
+              name: client
+          readinessProbe:
+            exec:
+              command:
+                - etcdctl
+                - endpoint
+                - health
+                - --endpoints=https://127.0.0.1:2379
+                - --cacert=/certs/ca.crt
+                - --cert=/certs/server.crt
+                - --key=/certs/server.key
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/etcd/data
+            - name: certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: certs
+          secret:
+            secretName: etcd-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd
+  namespace: etcd
+spec:
+  selector:
+    app: etcd
+  ports:
+    - port: 2379
+      targetPort: client
+      name: client

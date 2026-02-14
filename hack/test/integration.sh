@@ -32,9 +32,14 @@ case "$TEST_CLASS" in
   ./hack/test/e2e-talemu.sh
   ;;
 
+"e2e-helm")
+  echo "Starting End-to-End Tests for Helm chart..."
+  ./hack/test/e2e-helm.sh
+  ;;
+
 *)
   # The catch-all (default) case if nothing matches
-  echo "Error: Unknown TEST_CLASS '$TEST_CLASS'. Please use integration-talemu, integration-qemu, e2e-qemu or e2e-talemu."
+  echo "Error: Unknown TEST_CLASS '$TEST_CLASS'. Please use integration-talemu, integration-qemu, e2e-qemu, e2e-talemu or e2e-helm."
   exit 1
   ;;
 esac

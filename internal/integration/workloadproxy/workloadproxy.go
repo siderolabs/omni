@@ -72,10 +72,17 @@ type clusterContext struct {
 //go:embed testdata/sidero-labs-icon.svg
 var sideroLabsIconSVG []byte
 
+// TestOptions configures the scale of the workload proxy test.
+type TestOptions struct {
+	NumWorkloads           int
+	NumReplicasPerWorkload int
+	NumServicesPerWorkload int
+}
+
 // Test tests the exposed services functionality in Omni.
 //
 //nolint:prealloc
-func Test(ctx context.Context, t *testing.T, omniClient *client.Client, serviceAccountKey string, clusterIDs ...string) {
+func Test(ctx context.Context, t *testing.T, omniClient *client.Client, serviceAccountKey string, opts TestOptions, clusterIDs ...string) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
 	t.Cleanup(cancel)
 
@@ -92,7 +99,7 @@ func Test(ctx context.Context, t *testing.T, omniClient *client.Client, serviceA
 	clusters := make([]clusterContext, 0, len(clusterIDs))
 
 	for _, clusterID := range clusterIDs {
-		cluster := prepareServices(ctx, t, logger, omniClient, clusterID)
+		cluster := prepareServices(ctx, t, logger, omniClient, clusterID, opts)
 
 		clusters = append(clusters, cluster)
 	}
@@ -175,7 +182,7 @@ func testToggleFeature(ctx context.Context, t *testing.T, logger *zap.Logger, om
 		services = services[:4]
 	}
 
-	testAccess(ctx, t, logger, saKey, services[:4], http.StatusNotFound)
+	testAccess(ctx, t, logger, saKey, services, http.StatusNotFound)
 
 	setFeatureToggle(true)
 
@@ -229,7 +236,7 @@ func testToggleKubernetesServiceAnnotation(ctx context.Context, t *testing.T, lo
 	testAccess(ctx, t, logger, saKey, updatedServices, http.StatusOK)
 }
 
-func prepareServices(ctx context.Context, t *testing.T, logger *zap.Logger, omniClient *client.Client, clusterID string) clusterContext {
+func prepareServices(ctx context.Context, t *testing.T, logger *zap.Logger, omniClient *client.Client, clusterID string, opts TestOptions) clusterContext {
 	ctx, cancel := context.WithTimeout(ctx, 150*time.Second)
 	t.Cleanup(cancel)
 
@@ -239,9 +246,9 @@ func prepareServices(ctx context.Context, t *testing.T, logger *zap.Logger, omni
 	iconBase64 := base64.StdEncoding.EncodeToString(doGzip(t, sideroLabsIconSVG)) // base64(gzip(Sidero Labs icon SVG))
 	expectedIconBase64 := base64.StdEncoding.EncodeToString(sideroLabsIconSVG)
 
-	numWorkloads := 5
-	numReplicasPerWorkload := 4
-	numServicePerWorkload := 10
+	numWorkloads := opts.NumWorkloads
+	numReplicasPerWorkload := opts.NumReplicasPerWorkload
+	numServicePerWorkload := opts.NumServicesPerWorkload
 	startPort := 12345
 
 	cluster := clusterContext{

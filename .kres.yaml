@@ -18,9 +18,10 @@ kind: auto.Helm
 spec:
   enabled: true
   chartDir: deploy/helm/v2/omni
+  schemaDisabled: true
   template:
     valuesFiles:
-      - hack/test/helm-values.yaml
+      - hack/test/helm/template-values.yaml
 ---
 kind: auto.IntegrationTests
 spec:
@@ -71,6 +72,8 @@ spec:
       dependants:
         - coverage
     - name: run-e2e-qemu
+      toplevel: true
+    - name: run-e2e-helm
       toplevel: true
     - name: run-e2e-talemu
       toplevel: true
@@ -228,6 +231,33 @@ spec:
       WITH_RACE: true
 ---
 kind: custom.Step
+name: run-e2e-helm
+spec:
+  sudoInCI: true
+  makeTarget: run-integration-test
+  ghaction:
+    condition: on-pull-request
+    enabled: true
+    sops: true
+    parallelJob:
+      name: e2e-helm
+      runnerGroup: large
+      needsOverride: [default, lint, unit-tests]
+    artifacts:
+      enabled: true
+      skipDefaultArtifacts: true
+      additional:
+        - name: e2e-helm
+          always: true
+          continueOnError: true
+          paths:
+            - ${{ github.workspace }}/integration-test
+    environment:
+      TEST_CLASS: e2e-helm
+      TEMP_REGISTRY: registry.dev.siderolabs.io
+      WITH_DEBUG: true
+---
+kind: custom.Step
 name: run-e2e-talemu
 spec:
   sudoInCI: true
@@ -285,7 +315,7 @@ spec:
             - ${{ github.workspace }}/integration-test
     environment:
       TEST_CLASS: integration-talemu
-      TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SinglenodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
+      TALEMU_TEST_ARGS: --test.run TestIntegration/Suites/(ImmediateClusterDestruction|EncryptedCluster|SingleNodeCluster|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|TalosUpgrades|KubernetesUpgrades|MaintenanceUpgrade|ClusterTemplate|ScaleUpAndDownAutoProvisionMachineSets)$
       WITH_DEBUG: true
       WITH_RACE: true
 ---
@@ -324,7 +354,7 @@ spec:
     jobs:
       - name: e2e-short-secureboot
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -333,11 +363,11 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SingleNodeCluster|Auth)$"
           ENABLE_SECUREBOOT: true
       - name: e2e-short
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -347,10 +377,10 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SinglenodeCluster|Auth)$"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|ImmediateClusterDestruction|DefaultCluster|EncryptedCluster|SingleNodeCluster|Auth)$"
       - name: e2e-scaling
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -363,7 +393,7 @@ spec:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ScaleUpAndDown|ScaleUpAndDownMachineClassBasedMachineSets|RollingUpdateParallelism)$"
       - name: e2e-forced-removal
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -376,7 +406,7 @@ spec:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ForcedMachineRemoval|ReplaceControlPlanes|ConfigPatching|KubernetesNodeAudit)$"
       - name: e2e-upgrades
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -390,7 +420,7 @@ spec:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosUpgrades|KubernetesUpgrades)$"
       - name: e2e-misc-upgrades
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -405,7 +435,7 @@ spec:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|MaintenanceUpgrade)$"
       - name: e2e-templates
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -419,7 +449,7 @@ spec:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ClusterTemplate)$"
       - name: e2e-backups
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -433,7 +463,7 @@ spec:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|EtcdBackupAndRestore)$"
       - name: e2e-workload-proxy
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -447,7 +477,7 @@ spec:
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|WorkloadProxy)$"
       - name: e2e-omni-upgrade
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -463,7 +493,7 @@ spec:
           WITH_QEMU_TALOS_VERSION_OVERRIDE: true
       - name: e2e-cluster-import
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -479,7 +509,7 @@ spec:
           CREATE_TALOS_CLUSTER: true
       - name: e2e-minor-talos-upgrade
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - "30 1 * * *"
         runnerGroup: large
@@ -494,7 +524,7 @@ spec:
           WITH_QEMU_TALOS_VERSION_OVERRIDE: true
       - name: e2e-rotate-ca
         needsOverride:
-          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu]
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
           - '30 1 * * *'
         runnerGroup: large

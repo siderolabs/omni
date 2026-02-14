@@ -1,0 +1,33 @@
+deployment:
+  kind: DaemonSet
+
+# maxUnavailable: 1 ensures the old pod is killed before the new one is created,
+# avoiding hostPort conflicts on single-node clusters during rolling updates.
+updateStrategy:
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 0
+
+service:
+  type: ClusterIP
+
+ports:
+  web:
+    port: 8000
+    hostPort: 80
+    expose:
+      default: true
+    exposedPort: 80
+    protocol: TCP
+  websecure:
+    port: 8443
+    hostPort: 443
+    expose:
+      default: true
+    exposedPort: 443
+    protocol: TCP
+
+tlsStore:
+  default:
+    defaultCertificate:
+      secretName: example-org-wildcard-tls
