@@ -1,0 +1,64 @@
+services:
+  api:
+    endpoint: 0.0.0.0:8099
+    advertisedURL: ${BASE_URL}
+    certFile: hack/certs/localhost.pem
+    keyFile: hack/certs/localhost-key.pem
+  metrics:
+    endpoint: 0.0.0.0:2122
+  kubernetesProxy:
+    endpoint: localhost:8095
+  siderolink:
+    wireGuard:
+      endpoint: ${LOCAL_IP}:50180
+      advertisedEndpoint: ${LOCAL_IP}:50180
+    joinTokensMode: strict
+    eventSinkPort: 8091
+  machineAPI:
+    endpoint: 0.0.0.0:8090
+    advertisedURL: grpc://${LOCAL_IP}:8090
+  workloadProxy:
+    enabled: true
+    subdomain: proxy-us
+    stopLBsAfter: 15s # use a short duration to test turning lazy LBs on/off
+auth:
+  auth0:
+    enabled: true
+    clientID: ${AUTH0_CLIENT_ID}
+    domain: ${AUTH0_DOMAIN}
+    initialUsers:
+      - ${AUTH_USERNAME}
+etcdBackup:
+  s3Enabled: true
+${REGISTRY_MIRROR_CONFIG}
+storage:
+  vault:
+    url: ${VAULT_ADDR}
+    token: ${VAULT_TOKEN}
+  sqlite:
+    path: ${TEST_OUTPUTS_DIR}/sqlite.db
+  default:
+    kind: etcd
+    etcd:
+      endpoints:
+        - http://localhost:2379
+      dialKeepAliveTime: 30s
+      dialKeepAliveTimeout: 5s
+      caFile: etcd/ca.crt
+      certFile: etcd/client.crt
+      keyFile: etcd/client.key
+      embedded: true
+      privateKeySource: "vault://secret/omni-private-key"
+      publicKeyFiles:
+        - internal/backend/runtime/omni/testdata/pgp/new_key.public
+      embeddedUnsafeFsync: true
+      embeddedDBPath: ${ARTIFACTS}/etcd/
+logs:
+  audit:
+    enabled: true
+features:
+  enableTalosPreReleaseVersions: ${ENABLE_TALOS_PRERELEASE_VERSIONS}
+  enableConfigDataCompression: true
+  enableBreakGlassConfigs: true
+  enableClusterImport: true
+  disableControllerRuntimeCache: false

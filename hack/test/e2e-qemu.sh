@@ -55,14 +55,14 @@ PARTIAL_CONFIG_SCHEMATIC_ID=$(prepare_partial_config)
 KERNEL_ARGS_SCHEMATIC_ID=$(prepare_kernel_args_schematic)
 
 # Create machines.
-if [ "${CREATE_QEMU_MACHINES:-true}" == "true" ]; then
-  create_machines name=test-partial-config count=${PARTIAL_CONFIG_MACHINES} cidr=172.20.0.0/24 secure_boot=false uki=true use_partial_config=true talos_version="${TALOS_VERSION}" \
+if [[ "${CREATE_QEMU_MACHINES:-true}" == "true" ]]; then
+  create_machines name=test-partial-config count="${PARTIAL_CONFIG_MACHINES}" cidr=172.20.0.0/24 secure_boot=false uki=true use_partial_config=true talos_version="${TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
-  create_machines name=test-kernel-args count=${KERNEL_ARGS_MACHINES} cidr=172.21.0.0/24 secure_boot=false uki=true use_partial_config=false talos_version="${TALOS_VERSION}" \
+  create_machines name=test-kernel-args count="${KERNEL_ARGS_MACHINES}" cidr=172.21.0.0/24 secure_boot=false uki=true use_partial_config=false talos_version="${TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
-  create_machines name=test-secure-boot count=${SECURE_BOOT_MACHINES} cidr=172.22.0.0/24 secure_boot=true uki=true use_partial_config=false talos_version="${TALOS_VERSION}" \
+  create_machines name=test-secure-boot count="${SECURE_BOOT_MACHINES}" cidr=172.22.0.0/24 secure_boot=true uki=true use_partial_config=false talos_version="${TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
-  create_machines name=test-non-uki count=${NON_UKI_MACHINES} cidr=172.23.0.0/24 secure_boot=false uki=false use_partial_config=false talos_version="${TALOS_VERSION}" \
+  create_machines name=test-non-uki count="${NON_UKI_MACHINES}" cidr=172.23.0.0/24 secure_boot=false uki=false use_partial_config=false talos_version="${TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
 fi
 

@@ -10,13 +10,13 @@ set -eoux pipefail
 # Load common functions and variables.
 source ./hack/test/common.sh
 
-QEMU_TALOS_VERSION=${TALOS_VERSION}
-WITH_QEMU_TALOS_VERSION_OVERRIDE=${WITH_QEMU_TALOS_VERSION_OVERRIDE:-false}
-if [[ $WITH_QEMU_TALOS_VERSION_OVERRIDE == "true" ]]; then
-  QEMU_TALOS_VERSION=$STABLE_TALOS_VERSION
+QEMU_TALOS_VERSION="${TALOS_VERSION}"
+WITH_QEMU_TALOS_VERSION_OVERRIDE="${WITH_QEMU_TALOS_VERSION_OVERRIDE:-false}"
+if [[ "${WITH_QEMU_TALOS_VERSION_OVERRIDE}" == "true" ]]; then
+  QEMU_TALOS_VERSION="${STABLE_TALOS_VERSION}"
 fi
 
-ENABLE_SECUREBOOT=${ENABLE_SECUREBOOT:-false}
+ENABLE_SECUREBOOT="${ENABLE_SECUREBOOT:-false}"
 
 # Machine Counts: 10 machines in total
 TOTAL_MACHINES=10
@@ -68,23 +68,23 @@ PARTIAL_CONFIG_SCHEMATIC_ID=$(prepare_partial_config)
 KERNEL_ARGS_SCHEMATIC_ID=$(prepare_kernel_args_schematic)
 
 # Create machines.
-if [ "${CREATE_QEMU_MACHINES:-true}" == "true" ]; then
-  create_machines name=test-partial-config count=${PARTIAL_CONFIG_MACHINES} cidr=172.20.0.0/24 secure_boot=false uki=true use_partial_config=true talos_version="${QEMU_TALOS_VERSION}" \
+if [[ "${CREATE_QEMU_MACHINES:-true}" == "true" ]]; then
+  create_machines name=test-partial-config count="${PARTIAL_CONFIG_MACHINES}" cidr=172.20.0.0/24 secure_boot=false uki=true use_partial_config=true talos_version="${QEMU_TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
-  create_machines name=test-kernel-args count=${KERNEL_ARGS_MACHINES} cidr=172.21.0.0/24 secure_boot=false uki=true use_partial_config=false talos_version="${QEMU_TALOS_VERSION}" \
+  create_machines name=test-kernel-args count="${KERNEL_ARGS_MACHINES}" cidr=172.21.0.0/24 secure_boot=false uki=true use_partial_config=false talos_version="${QEMU_TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
-  create_machines name=test-secure-boot count=${SECURE_BOOT_MACHINES} cidr=172.22.0.0/24 secure_boot=true uki=true use_partial_config=false talos_version="${QEMU_TALOS_VERSION}" \
+  create_machines name=test-secure-boot count="${SECURE_BOOT_MACHINES}" cidr=172.22.0.0/24 secure_boot=true uki=true use_partial_config=false talos_version="${QEMU_TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
-  create_machines name=test-non-uki count=${NON_UKI_MACHINES} cidr=172.23.0.0/24 secure_boot=false uki=false use_partial_config=false talos_version="${QEMU_TALOS_VERSION}" \
+  create_machines name=test-non-uki count="${NON_UKI_MACHINES}" cidr=172.23.0.0/24 secure_boot=false uki=false use_partial_config=false talos_version="${QEMU_TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
 fi
 
 # Create a Talos cluster to be imported.
-if [ "${CREATE_TALOS_CLUSTER:-false}" == "true" ]; then
+if [[ "${CREATE_TALOS_CLUSTER:-false}" == "true" ]]; then
   create_talos_cluster name=test-cluster-import cp_count=3 wk_count=3 cidr=172.28.0.0/24 talos_version="${QEMU_TALOS_VERSION}"
 fi
 
-if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; then
+if [[ -n "$ANOTHER_OMNI_VERSION" && -n "$INTEGRATION_PREPARE_TEST_ARGS" ]]; then
   docker run \
     --cap-add=NET_ADMIN \
     --device=/dev/net/tun \
@@ -103,7 +103,7 @@ if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; th
     --omni.kubernetes-version="${KUBERNETES_VERSION}" \
     --omni.another-kubernetes-version="${ANOTHER_KUBERNETES_VERSION}" \
     --omni.omnictl-path=/_out/omnictl-linux-amd64 \
-    --omni.expected-machines=${TOTAL_MACHINES} \
+    --omni.expected-machines="${TOTAL_MACHINES}" \
     --omni.embedded \
     --omni.config-path=/config.yaml \
     --omni.output-dir=/outputs \
@@ -115,26 +115,25 @@ if [ -n "$ANOTHER_OMNI_VERSION" ] && [ -n "$INTEGRATION_PREPARE_TEST_ARGS" ]; th
     ${INTEGRATION_PREPARE_TEST_ARGS:-}
 fi
 
-# shellcheck disable=SC2068
 # Run the integration test.
-SIDEROLINK_DEV_JOIN_TOKEN=${JOIN_TOKEN} \
+SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
   SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
-  "${ARTIFACTS}"/integration-test-linux-amd64 \
+  "${ARTIFACTS}/integration-test-linux-amd64" \
   --omni.talos-version="${TALOS_VERSION}" \
   --omni.stable-talos-version="${STABLE_TALOS_VERSION}" \
   --omni.kubernetes-version="${KUBERNETES_VERSION}" \
   --omni.another-kubernetes-version="${ANOTHER_KUBERNETES_VERSION}" \
-  --omni.omnictl-path="${ARTIFACTS}"/omnictl-linux-amd64 \
-  --omni.expected-machines=${TOTAL_MACHINES} \
+  --omni.omnictl-path="${ARTIFACTS}/omnictl-linux-amd64" \
+  --omni.expected-machines="${TOTAL_MACHINES}" \
   --omni.embedded \
   --omni.config-path="${OMNI_CONFIG}" \
   --omni.output-dir="${TEST_OUTPUTS_DIR}" \
   --omni.log-output="${TEST_OUTPUTS_DIR}/omni-integration.log" \
   --omni.sleep-after-failure="${SLEEP_AFTER_FAILURE}" \
   --test.failfast \
-  --test.coverprofile="${ARTIFACTS}"/coverage-integration.txt \
+  --test.coverprofile="${ARTIFACTS}/coverage-integration.txt" \
   --test.v \
-  ${IMPORTED_CLUSTER_ARGS[@]:-} \
+  "${IMPORTED_CLUSTER_ARGS[@]}" \
   ${INTEGRATION_TEST_ARGS:-}
 
 # No cleanup here, as it runs in the CI as a container in a pod.

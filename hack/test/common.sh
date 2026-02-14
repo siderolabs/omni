@@ -58,10 +58,10 @@ export LOCAL_IP
 
 mkdir -p "$TEST_OUTPUTS_DIR"
 
-ENABLE_TALOS_PRERELEASE_VERSIONS=true
+export ENABLE_TALOS_PRERELEASE_VERSIONS=true
 VAULT_DOCKER_IMAGE=hashicorp/vault:1.18
 MINIO_DOCKER_IMAGE=minio/minio
-WIREGUARD_IP=$LOCAL_IP
+export WIREGUARD_IP=$LOCAL_IP
 
 if [[ "${CI:-false}" == "true" ]]; then
   WIREGUARD_IP=172.20.0.1
@@ -69,21 +69,7 @@ fi
 
 # Prepare schematic with kernel args
 function prepare_kernel_args_schematic() {
-  KERNEL_ARGS_SCHEMATIC=$(
-    cat <<EOF
-customization:
-  meta: [{ key: 42, value: test-1 }, { key: 41, value: test-2 }]
-  extraKernelArgs:
-    - siderolink.api=grpc://${WIREGUARD_IP}:8090?jointoken=${JOIN_TOKEN}
-    - talos.events.sink=[fdae:41e4:649b:9303::1]:8091
-    - talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092
-    - console=tty0
-    - console=ttyS0
-  systemExtensions:
-    officialExtensions:
-      - siderolabs/hello-world-service
-EOF
-  )
+  KERNEL_ARGS_SCHEMATIC=$(envsubst <hack/test/templates/kernel-args-schematic.yaml)
 
   curl -X POST --data-binary "${KERNEL_ARGS_SCHEMATIC}" https://factory.talos.dev/schematics | jq -r '.id'
 }
@@ -114,10 +100,10 @@ registries:
 
 function common_cleanup() {
   cd "${RUN_DIR}"
-  rm -rf ${ARTIFACTS}/omni.db ${ARTIFACTS}/etcd/
+  rm -rf "${ARTIFACTS}/omni.db" "${ARTIFACTS}/etcd/"
 
-  if [ $PARTIAL_CONFIG_SERVER_PID -ne 0 ]; then
-    kill -9 $PARTIAL_CONFIG_SERVER_PID || true
+  if [[ $PARTIAL_CONFIG_SERVER_PID -ne 0 ]]; then
+    kill -9 "$PARTIAL_CONFIG_SERVER_PID" || true
   fi
 
   # In CI, SUDO_USER is set to be "worker", and these output directories are used in the subsequent job steps.
@@ -126,12 +112,12 @@ function common_cleanup() {
 }
 
 function prepare_artifacts() {
-  [ -f "${ARTIFACTS}"/talosctl ] || (crane export ghcr.io/siderolabs/talosctl:latest | tar x -C "${ARTIFACTS}")
-  [ -f "${ARTIFACTS}"/mc ] || curl -Lo "${ARTIFACTS}"/mc https://dl.min.io/client/mc/release/linux-amd64/mc
-  chmod +x "${ARTIFACTS}"/mc
+  [[ -f "${ARTIFACTS}/talosctl" ]] || (crane export ghcr.io/siderolabs/talosctl:latest | tar x -C "${ARTIFACTS}")
+  [[ -f "${ARTIFACTS}/mc" ]] || curl -Lo "${ARTIFACTS}/mc" https://dl.min.io/client/mc/release/linux-amd64/mc
+  chmod +x "${ARTIFACTS}/mc"
 
   echo "talosctl version:"
-  "${ARTIFACTS}"/talosctl version --client
+  "${ARTIFACTS}/talosctl" version --client
 
   # Create omnictl downloads directory (required by the server) and copy the omnictl binaries in it.
   mkdir -p omnictl
@@ -171,156 +157,48 @@ function prepare_minio() {
   local access_key="${args[access_key]}"
   local secret_key="${args[secret_key]}"
 
-  mkdir -p "${TEST_OUTPUTS_DIR}"/minio/data
+  mkdir -p "${TEST_OUTPUTS_DIR}/minio/data"
 
   docker run --rm -d -p 9000:9000 \
-    -v "${TEST_OUTPUTS_DIR}"/minio/data:/data -e MINIO_ACCESS_KEY="$access_key" -e MINIO_SECRET_KEY="$secret_key" \
+    -v "${TEST_OUTPUTS_DIR}/minio/data:/data" -e MINIO_ACCESS_KEY="$access_key" -e MINIO_SECRET_KEY="$secret_key" \
     --name "${MINIO_CONTAINER_NAME}" "${MINIO_DOCKER_IMAGE}" \
     server /data
 
   sleep 2
 
-  "${ARTIFACTS}"/mc alias set myminio http://127.0.0.1:9000 "$access_key" "$secret_key"
-  "${ARTIFACTS}"/mc mb myminio/mybucket || true
+  "${ARTIFACTS}/mc" alias set myminio http://127.0.0.1:9000 "$access_key" "$secret_key"
+  "${ARTIFACTS}/mc" mb myminio/mybucket || true
 }
 
 function minio_cleanup() {
-  docker rm -f $MINIO_CONTAINER_NAME || true
+  docker rm -f "${MINIO_CONTAINER_NAME}" || true
 }
 
 function prepare_omni_config() {
-  echo "---
-services:
-  api:
-    endpoint: 0.0.0.0:8099
-    advertisedURL: ${BASE_URL}
-    certFile: hack/certs/localhost.pem
-    keyFile: hack/certs/localhost-key.pem
-  metrics:
-    endpoint: 0.0.0.0:2122
-  kubernetesProxy:
-    endpoint: localhost:8095
-  siderolink:
-    wireGuard:
-      endpoint: ${LOCAL_IP}:50180
-      advertisedEndpoint: ${LOCAL_IP}:50180
-    joinTokensMode: strict
-    eventSinkPort: 8091
-  machineAPI:
-    endpoint: 0.0.0.0:8090
-    advertisedURL: grpc://${LOCAL_IP}:8090
-  workloadProxy:
-    enabled: true
-    subdomain: proxy-us
-    stopLBsAfter: 15s # use a short duration to test turning lazy LBs on/off
-auth:
-  auth0:
-    enabled: true
-    clientID: ${AUTH0_CLIENT_ID}
-    domain: ${AUTH0_DOMAIN}
-    initialUsers:
-      - ${AUTH_USERNAME}
-etcdBackup:
-  s3Enabled: true
-${REGISTRY_MIRROR_CONFIG}
-
-storage:
-  vault:
-    url: ${VAULT_ADDR}
-    token: ${VAULT_TOKEN}
-  sqlite:
-    path: ${TEST_OUTPUTS_DIR}/sqlite.db
-  default:
-    kind: etcd
-    etcd:
-      endpoints:
-        - http://localhost:2379
-      dialKeepAliveTime: 30s
-      dialKeepAliveTimeout: 5s
-      caFile: etcd/ca.crt
-      certFile: etcd/client.crt
-      keyFile: etcd/client.key
-      embedded: true
-      privateKeySource: \"vault://secret/omni-private-key\"
-      publicKeyFiles:
-        - internal/backend/runtime/omni/testdata/pgp/new_key.public
-      embeddedUnsafeFsync: true
-      embeddedDBPath: ${ARTIFACTS}/etcd/
-logs:
-  audit:
-    enabled: true
-features:
-  enableTalosPreReleaseVersions: ${ENABLE_TALOS_PRERELEASE_VERSIONS}
-  enableConfigDataCompression: true
-  enableBreakGlassConfigs: true
-  enableClusterImport: true
-  disableControllerRuntimeCache: false
-" >"${OMNI_CONFIG}"
+  envsubst <hack/test/templates/omni-config.yaml >"${OMNI_CONFIG}"
 }
 
 PARTIAL_CONFIG_SERVER_PID=0
 function prepare_partial_config() {
-  # Prepare partial machine config
-  local port=12345
-
-  local partial_config
-  partial_config=$(
-    cat <<EOF
-apiVersion: v1alpha1
-kind: SideroLinkConfig
-apiUrl: grpc://${LOCAL_IP}:8090?jointoken=${JOIN_TOKEN}
----
-apiVersion: v1alpha1
-kind: EventSinkConfig
-endpoint: '[fdae:41e4:649b:9303::1]:8091'
----
-apiVersion: v1alpha1
-kind: KmsgLogConfig
-name: omni-kmsg
-url: 'tcp://[fdae:41e4:649b:9303::1]:8092'
-EOF
-  )
+  export PARTIAL_CONFIG_PORT=12345
 
   local partial_config_dir="${ARTIFACTS}/partial-config"
   mkdir -p "${partial_config_dir}"
-  echo "${partial_config}" >"${partial_config_dir}/config.yaml"
+  envsubst <hack/test/templates/partial-machine-config.yaml >"${partial_config_dir}/config.yaml"
 
   # Start a simple HTTP server to serve the partial config
-  python3 -m http.server $port --bind "0.0.0.0" --directory "$partial_config_dir" >/dev/null 2>&1 &
+  python3 -m http.server "$PARTIAL_CONFIG_PORT" --bind "0.0.0.0" --directory "$partial_config_dir" >/dev/null 2>&1 &
   PARTIAL_CONFIG_SERVER_PID=$! # capture the PID to kill it in cleanup
 
   local schematic
-  schematic=$(
-    cat <<EOF
-customization:
-  meta: [{ key: 42, value: test-1 }, { key: 41, value: test-2 }]
-  extraKernelArgs:
-    - talos.config=http://${WIREGUARD_IP}:$port/config.yaml
-    - console=tty0
-    - console=ttyS0
-  systemExtensions:
-    officialExtensions:
-      - siderolabs/hello-world-service
-EOF
-  )
+  schematic=$(envsubst <hack/test/templates/partial-config-schematic.yaml)
 
   curl -X POST --data-binary "${schematic}" https://factory.talos.dev/schematics | jq -r '.id'
 }
 
 function prepare_talos_image() {
   local schematic
-  schematic=$(
-    cat <<EOF
-customization:
-  meta: [{ key: 42, value: test-1 }, { key: 41, value: test-2 }]
-  extraKernelArgs:
-    - console=tty0
-    - console=ttyS0
-  systemExtensions:
-    officialExtensions:
-      - siderolabs/hello-world-service
-EOF
-  )
+  schematic=$(cat hack/test/templates/talos-image-schematic.yaml)
 
   curl -X POST --data-binary "${schematic}" https://factory.talos.dev/schematics | jq -r '.id'
 }
@@ -418,8 +296,8 @@ function create_machines() {
     cluster_create_args+=("--iso-path=https://factory.talos.dev/image/${schematic_id}/v${talos_version}/metal-amd64.iso")
   fi
 
-  ${ARTIFACTS}/talosctl cluster create \
-    "${cluster_create_args[@]:-}"
+  "${ARTIFACTS}/talosctl" cluster create \
+    "${cluster_create_args[@]}"
 }
 
 function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_version
@@ -466,13 +344,12 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
     "--iso-path=https://factory.talos.dev/image/${schematic_id}/v${talos_version}/metal-amd64.iso"
   )
 
-  # shellcheck disable=SC2068
-  ${ARTIFACTS}/talosctl cluster create \
-    ${cluster_create_args[@]:-} \
-    ${REGISTRY_MIRROR_FLAGS[@]:-}
+  "${ARTIFACTS}/talosctl" cluster create \
+    "${cluster_create_args[@]}" \
+    "${REGISTRY_MIRROR_FLAGS[@]}"
 
-  IMPORTED_CLUSTER_ARGS+=("--talos.config-path=$TEST_OUTPUTS_DIR/$name/talosconfig")
-  IMPORTED_CLUSTER_ARGS+=("--talos.cluster-state-path=$HOME/.talos/clusters/$name/state.yaml")
+  IMPORTED_CLUSTER_ARGS+=("--talos.config-path=${TEST_OUTPUTS_DIR}/${name}/talosconfig")
+  IMPORTED_CLUSTER_ARGS+=("--talos.cluster-state-path=${HOME}/.talos/clusters/${name}/state.yaml")
 }
 
 # No cleanup here, as it runs in the CI as a container in a pod.

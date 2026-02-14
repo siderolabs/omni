@@ -14,9 +14,9 @@ TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/siderolabs/talemu-infra-provider:latest
 TALEMU_CONTAINER_NAME=talemu
 
 function cleanup() {
-  docker stop ${TALEMU_CONTAINER_NAME} || true
-  docker logs ${TALEMU_CONTAINER_NAME} &>"$TEST_OUTPUTS_DIR/${TALEMU_CONTAINER_NAME}.log" || true
-  docker rm -f ${TALEMU_CONTAINER_NAME} || true
+  docker stop "${TALEMU_CONTAINER_NAME}" || true
+  docker logs "${TALEMU_CONTAINER_NAME}" &>"${TEST_OUTPUTS_DIR}/${TALEMU_CONTAINER_NAME}.log" || true
+  docker rm -f "${TALEMU_CONTAINER_NAME}" || true
 
   common_cleanup
   vault_cleanup
@@ -45,7 +45,7 @@ docker run --name "${TALEMU_CONTAINER_NAME}" \
   -it -d \
   "${TALEMU_INFRA_PROVIDER_IMAGE}" \
   --create-service-account \
-  --omni-api-endpoint="https://$LOCAL_IP:8099"
+  --omni-api-endpoint="https://${LOCAL_IP}:8099"
 
 SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
   nice -n 10 "${ARTIFACTS}"/omni-linux-amd64 --config-path "${OMNI_CONFIG}" \
