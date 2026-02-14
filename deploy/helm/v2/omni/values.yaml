@@ -58,7 +58,7 @@ config:
   account:
     # -- Unique identifier and name for this Omni instance.
     # Must be a UUID and not changed during the lifetime of the installation.
-    id: ""
+    #id: ""
     # -- Name is the human-readable name of the account.
     name: app
     # UserPilot contains UserPilot-related configuration.
@@ -317,7 +317,7 @@ config:
         # In most setups, this is either:
         # - NodePort: Use the externally accessible IP of a node and service.wireguard.nodePort (e.g., "203.0.113.10:30180")
         # - LoadBalancer: Use the LoadBalancer's external IP and service.wireguard.port (e.g., "203.0.113.50:50180")
-        advertisedEndpoint: ""
+        #advertisedEndpoint: ""
         # Endpoint is the network endpoint the WireGuard interface listens on. It is in the form "ip:port" (IP address is required, not hostname).
         #endpoint: "0.0.0.0:50180"
     # -- LoadBalancer contains load balancer service configuration.
@@ -452,46 +452,28 @@ etcdEncryptionKey:
 # This section configures standard Kubernetes Ingress resources.
 # Use this if you are using an Ingress Controller like NGINX, Traefik, or HAProxy.
 ingress:
-  # Ingress for the Web UI
+  # Ingress for the Web UI and gRPC API
   main:
-    # -- Enable ingress for Web UI.
+    # -- Enable ingress for Web UI and gRPC API.
     enabled: false
     # -- Set to true to skip validation between this Ingress and config.services.api.advertisedURL
     skipConfigCheck: false
-    # -- Additional Annotations
-    annotations: {}
+    # -- Additional Annotations.
+    # The default annotations ensure compatibility with NGINX Ingress Controller.
+    # They are ignored by other ingress controllers.
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: GRPC
+      nginx.ingress.kubernetes.io/proxy-body-size: 32m
+      nginx.ingress.kubernetes.io/service-upstream: "true"
     # -- Additional Labels
     labels: {}
     # -- Ingress Class Name
     className: ""
-    # -- Omni UI hostname
+    # -- Omni hostname
     host: omni.example.com
     # -- TLS configuration
     tls: []
-    #- secretName: omni-ui-tls
-    #  hosts:
-    #    - omni.example.com
-  # Ingress for the gRPC API
-  grpc:
-    # -- Enable ingress for gRPC API.
-    enabled: false
-    # -- Set to true to skip validation between this Ingress and config.services.api.advertisedURL
-    skipConfigCheck: false
-    # -- Additional Annotations
-    # Example annotations for NGINX Ingress:
-    # nginx.ingress.kubernetes.io/backend-protocol: GRPC
-    # nginx.ingress.kubernetes.io/proxy-body-size: 32m
-    # nginx.ingress.kubernetes.io/service-upstream: "true"
-    annotations: {}
-    # -- Additional Labels
-    labels: {}
-    # -- Ingress Class Name
-    className: ""
-    # -- Omni GRPC hostname
-    host: omni.example.com
-    # -- TLS configuration
-    tls: []
-    #- secretName: omni-grpc-tls
+    #- secretName: omni-tls
     #  hosts:
     #    - omni.example.com
   # Ingress for the Kubernetes Proxy
@@ -519,11 +501,12 @@ ingress:
     enabled: false
     # -- Set to true to skip validation between this Ingress and config.services.machineAPI.advertisedURL
     skipConfigCheck: false
-    # -- Additional Annotations
-    # Example annotations for NGINX Ingress:
-    # nginx.ingress.kubernetes.io/backend-protocol: GRPC
-    # nginx.ingress.kubernetes.io/proxy-body-size: 100m
-    annotations: {}
+    # -- Additional Annotations.
+    # The default annotations ensure compatibility with NGINX Ingress Controller.
+    # They are ignored by other ingress controllers.
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: GRPC
+      nginx.ingress.kubernetes.io/proxy-body-size: 100m
     # -- Additional Labels
     labels: {}
     # -- Ingress Class Name
@@ -555,23 +538,6 @@ gatewayApi:
     #  namespace: my-gateway-namespace
     #  sectionName: https-listener
     # -- Omni UI hostname
-    hostnames:
-      - omni.example.com
-  # Route for the main gRPC API
-  grpc:
-    # -- Enable GRPCRoute for gRPC API.
-    enabled: false
-    # -- Additional Annotations
-    annotations: {}
-    # -- Additional Labels
-    labels: {}
-    # -- The Gateway(s) to attach this route to.
-    # You MUST define at least one parentRef for the route to be active.
-    parentRefs: []
-    #- name: my-gateway
-    #  namespace: my-gateway-namespace
-    #  sectionName: https-listener
-    # -- Omni GRPC hostname
     hostnames:
       - omni.example.com
   # Route for the Kubernetes Proxy
@@ -673,31 +639,40 @@ securityContext:
 
 # Service Configuration
 # Configures the Kubernetes Services to expose Omni's network endpoints.
-# - 'main': Exposes the HTTP API, UI and Kubernetes proxy services (ClusterIP by default).
-# - 'grpc': Exposes the gRPC API of Omni and SideroLink (ClusterIP by default).
+# - 'main': Exposes the HTTP/gRPC API, UI and SideroLink API (ClusterIP by default). Uses h2c (HTTP/2 cleartext).
+# - 'k8sProxy': Exposes the Kubernetes API proxy (ClusterIP by default). Separate service because it does not support h2c.
 # - 'wireguard': Exposes the UDP wireGuard interface for SideroLink (NodePort/LoadBalancer required for external access).
 service:
   main:
     # -- Annotations for the main service.
-    annotations: {}
+    # Traefik does not yet support appProtocol (https://github.com/traefik/traefik/issues/11089),
+    # so this annotation is needed to tell Traefik to use h2c when communicating with the backend.
+    # It is ignored by other ingress controllers.
+    annotations:
+      traefik.ingress.kubernetes.io/service.serversscheme: h2c
     # -- Service type for the main service.
     type: ClusterIP
-    # -- Port for the Omni HTTP API and UI.
+    # -- Port for the Omni HTTP/gRPC API and UI.
     omniPort: 8080
-    # -- Port for the Kubernetes proxy.
-    k8sProxyPort: 8095
-    # -- ClusterIP for the main service.
-    clusterIP: ""
-  grpc:
-    # -- Annotations for the gRPC service.
-    annotations: {}
-    # -- Service type for the gRPC service.
-    type: ClusterIP
-    # -- Port for the Omni gRPC API.
-    omniPort: 8080
+    # -- NodePort for the Omni HTTP/gRPC API (only used when type is NodePort).
+    omniNodePort: ""
     # -- Port for the SideroLink API.
     siderolinkApiPort: 8090
-    # -- ClusterIP for the gRPC service.
+    # -- NodePort for the SideroLink API (only used when type is NodePort).
+    siderolinkApiNodePort: ""
+    # -- ClusterIP for the main service.
+    clusterIP: ""
+  # Kubernetes proxy service configuration.
+  # This is a separate service because the Kubernetes proxy does not support h2c,
+  # and the h2c annotation on the main service would break it.
+  k8sProxy:
+    # -- Annotations for the Kubernetes proxy service.
+    annotations: {}
+    # -- Service type for the Kubernetes proxy service.
+    type: ClusterIP
+    # -- Port for the Kubernetes proxy.
+    port: 8095
+    # -- ClusterIP for the Kubernetes proxy service.
     clusterIP: ""
   wireguard:
     # -- Annotations for the WireGuard service.
@@ -795,6 +770,12 @@ podAnnotations: {}
 
 # -- Additional labels to add to the Omni pod
 podLabels: {}
+
+# -- Use host networking for the Omni pod.
+# This may be required in some environments (e.g., GKE with Container-Optimized OS)
+# where the NET_ADMIN capability alone is not sufficient for creating the WireGuard interface.
+# When enabled, dnsPolicy is automatically set to ClusterFirstWithHostNet.
+hostNetwork: false
 
 # -- Pod-level security context
 podSecurityContext: {}

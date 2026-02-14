@@ -4,6 +4,10 @@
 
 A Helm chart to deploy [Omni](https://omni.siderolabs.com) on a Kubernetes cluster.
 
+> [!WARNING]
+> **This chart is for new installations only.** Upgrading or migrating from the deprecated v1 chart is not supported.
+> All new Omni installations should use this chart. Only Omni **1.5.0** and above is supported.
+
 For all available configuration options, see the [`values.yaml`](values.yaml) file and the [Values](#values) section below.
 
 {{ template "chart.homepageLine" . }}
@@ -59,11 +63,15 @@ This example uses the [Traefik](https://traefik.io/traefik/) ingress controller 
 
 The example assumes three DNS entries pointing to your ingress controller:
 
-| Hostname                       | Purpose                |
-| ------------------------------ | ---------------------- |
-| `omni.example.com`             | UI and API             |
-| `omni-k8s.example.com`         | Kubernetes proxy       |
-| `omni-siderolink.example.com`  | SideroLink Machine API |
+| Hostname                       | Purpose                          |
+| ------------------------------ | -------------------------------- |
+| `omni.example.com`             | UI, gRPC API, and Talos API proxy |
+| `omni-k8s.example.com`         | Kubernetes API proxy             |
+| `omni-siderolink.example.com`  | SideroLink Machine API           |
+
+> [!NOTE]
+> The main service serves both the web UI and all gRPC APIs (Omni API and Talos API proxy) from the same port using h2c (HTTP/2 cleartext).
+> The backend demuxes traffic by `Content-Type` header, so no separate gRPC ingress is needed.
 
 ```yaml
 # Paste the contents of your omni.asc file here
@@ -73,21 +81,8 @@ etcdEncryptionKey:
     <your-gpg-private-key-here>
     -----END PGP PRIVATE KEY BLOCK-----
 
-# Required annotation for Traefik to handle gRPC traffic
-service:
-  grpc:
-    annotations:
-      traefik.ingress.kubernetes.io/service.serversscheme: h2c
-
 ingress:
   main:
-    enabled: true
-    className: traefik
-    host: omni.example.com
-    tls:
-      - hosts:
-          - omni.example.com
-  grpc:
     enabled: true
     className: traefik
     host: omni.example.com
@@ -225,7 +220,7 @@ extraObjects:
               name: omni
               port: omni
               passHostHeader: true
-              scheme: http
+              scheme: h2c
       tls:
         secretName: omni-workload-proxy-wildcard-tls
 ```

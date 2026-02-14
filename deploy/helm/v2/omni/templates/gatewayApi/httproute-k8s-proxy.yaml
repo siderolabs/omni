@@ -24,6 +24,6 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: {{ include "omni.fullname" $ }}
-          port: {{ .Values.service.main.k8sProxyPort }}
+        - name: {{ include "omni.fullname" $ }}-k8s-proxy
+          port: {{ .Values.service.k8sProxy.port }}
 {{- end }}

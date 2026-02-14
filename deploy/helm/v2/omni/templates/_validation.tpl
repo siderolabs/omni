@@ -26,8 +26,9 @@ Compile all validation checks here
       {{- fail "You must provide a unique UUID value for config.account.id (or provide it via additionalConfigSources)!" -}}
     {{- end -}}
 
-    {{- if empty .Values.config.services.siderolink.wireGuard.advertisedEndpoint -}}
-      {{- fail "WireGuard advertised endpoint must be provided in the IP:PORT format (or via additionalConfigSources)" -}}
+    {{- $wg := .Values.config.services.siderolink.wireGuard | default dict -}}
+    {{- if empty $wg.advertisedEndpoint -}}
+      {{- fail "WireGuard advertised endpoint must be provided in config.services.siderolink.wireGuard.advertisedEndpoint in the IP:PORT format (or via additionalConfigSources)" -}}
     {{- end -}}
 
     {{- if empty .Values.config.auth.initialUsers -}}
@@ -60,13 +61,10 @@ Compile all validation checks here
     {{/* 1. Validate Main Ingress -> API URL */}}
     {{- include "omni.validateIngress" (dict "Ingress" .Values.ingress.main "Url" .Values.config.services.api.advertisedURL "Name" "main" "TargetCfg" "config.services.api.advertisedURL") -}}
 
-    {{/* 2. Validate GRPC Ingress -> API URL */}}
-    {{- include "omni.validateIngress" (dict "Ingress" .Values.ingress.grpc "Url" .Values.config.services.api.advertisedURL "Name" "grpc" "TargetCfg" "config.services.api.advertisedURL") -}}
-
-    {{/* 3. Validate K8s Proxy Ingress -> K8s Proxy URL */}}
+    {{/* 2. Validate K8s Proxy Ingress -> K8s Proxy URL */}}
     {{- include "omni.validateIngress" (dict "Ingress" .Values.ingress.kubernetesProxy "Url" .Values.config.services.kubernetesProxy.advertisedURL "Name" "kubernetesProxy" "TargetCfg" "config.services.kubernetesProxy.advertisedURL") -}}
 
-    {{/* 4. Validate SideroLink Ingress -> Machine API URL */}}
+    {{/* 3. Validate SideroLink Ingress -> Machine API URL */}}
     {{- include "omni.validateIngress" (dict "Ingress" .Values.ingress.siderolinkApi "Url" .Values.config.services.machineAPI.advertisedURL "Name" "siderolinkApi" "TargetCfg" "config.services.machineAPI.advertisedURL") -}}
   {{- end -}}
 

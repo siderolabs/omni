@@ -20,6 +20,6 @@ spec:
     {{- toYaml .Values.gatewayApi.siderolinkApi.hostnames | nindent 4 }}
   rules:
     - backendRefs:
-        - name: {{ include "omni.fullname" $ }}-grpc
-          port: {{ .Values.service.grpc.siderolinkApiPort }}
+        - name: {{ include "omni.fullname" $ }}
+          port: {{ .Values.service.main.siderolinkApiPort }}
 {{- end }}

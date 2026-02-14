@@ -29,7 +29,7 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: {{ include "omni.fullname" $ }}-grpc
+                name: {{ include "omni.fullname" $ }}
                 port:
-                  number: {{ .Values.service.grpc.siderolinkApiPort }}
+                  number: {{ .Values.service.main.siderolinkApiPort }}
 {{- end }}

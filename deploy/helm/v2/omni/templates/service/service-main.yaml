@@ -19,9 +19,17 @@ spec:
       port: {{ .Values.service.main.omniPort }}
       targetPort: omni
       protocol: TCP
-    - name: k8s-proxy
-      port: {{ .Values.service.main.k8sProxyPort }}
-      targetPort: k8s-proxy
+      appProtocol: kubernetes.io/h2c
+      {{- with .Values.service.main.omniNodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+    - name: siderolink
+      port: {{ .Values.service.main.siderolinkApiPort }}
+      targetPort: siderolink-api
       protocol: TCP
+      appProtocol: kubernetes.io/h2c
+      {{- with .Values.service.main.siderolinkApiNodePort }}
+      nodePort: {{ . }}
+      {{- end }}
   selector:
     {{- include "omni.selectorLabels" . | nindent 4 }}

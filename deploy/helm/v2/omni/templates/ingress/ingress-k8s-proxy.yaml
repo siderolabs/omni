@@ -29,7 +29,7 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: {{ include "omni.fullname" $ }}
+                name: {{ include "omni.fullname" $ }}-k8s-proxy
                 port:
-                  number: {{ .Values.service.main.k8sProxyPort }}
+                  number: {{ .Values.service.k8sProxy.port }}
 {{- end }}
