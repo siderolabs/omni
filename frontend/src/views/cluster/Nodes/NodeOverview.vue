@@ -194,7 +194,6 @@ const { data: machineStatus } = useResourceWatch<MachineStatusLinkSpec>(() => ({
     type: MachineStatusLinkType,
     namespace: MetricsNamespace,
   },
-  context,
 }))
 
 const { data: clusterMachineStatus } = useResourceWatch<ClusterMachineStatusSpec>(() => ({

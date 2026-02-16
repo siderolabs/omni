@@ -47,7 +47,7 @@ const watchStatusOpts = computed(() => {
       id: route.params.cluster as string,
     },
     runtime: Runtime.Omni,
-  }
+  } as const
 })
 
 const watchOverallStatusOpts = computed(() => {
@@ -58,7 +58,7 @@ const watchOverallStatusOpts = computed(() => {
       id: EtcdBackupOverallStatusID,
     },
     runtime: Runtime.Omni,
-  }
+  } as const
 })
 
 const watchOpts = computed(() => {
@@ -69,7 +69,7 @@ const watchOpts = computed(() => {
     },
     runtime: Runtime.Omni,
     selectors: [`${LabelCluster}=${route.params.cluster}`],
-  }
+  } as const
 })
 
 const docsLink = getDocsLink('omni', '/how-to-guides/etcd-backups#s3-configuration')

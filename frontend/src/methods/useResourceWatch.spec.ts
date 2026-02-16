@@ -86,7 +86,7 @@ describe('useResourceWatch', () => {
     const { pushEvents } = createWatchStreamMock({ skipBootstrap: true })
 
     const options = ref({
-      runtime: Runtime.Omni,
+      runtime: Runtime.Omni as const,
       resource: { namespace: 'default', type: 'custom.sidero.dev/Resource' },
       skip: true,
     })

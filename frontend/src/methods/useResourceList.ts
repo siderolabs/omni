@@ -11,13 +11,17 @@ import type { ListRequest } from '@/api/omni/resources/resources.pb'
 import { withAbortController, withContext, withRuntime, withSelectors } from '@/api/options'
 import type { WatchContext } from '@/api/watch'
 
-export interface ListOptions {
+interface ListOptionsCommon {
   resource: ListRequest
-  runtime: Runtime
-  context?: WatchContext
   selectors?: string[]
   skip?: boolean
 }
+
+export type ListOptions = ListOptionsCommon &
+  (
+    | { runtime: Runtime.Omni; context?: never }
+    | { runtime: Exclude<Runtime, Runtime.Omni>; context: WatchContext }
+  )
 
 export function useResourceList<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<ListOptions>,

@@ -11,7 +11,6 @@ import { useRoute } from 'vue-router'
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterSpec, RedactedClusterMachineConfigSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace, RedactedClusterMachineConfigType } from '@/api/resources'
-import { getContext } from '@/context'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const CodeEditor = defineAsyncComponent(
@@ -19,7 +18,6 @@ const CodeEditor = defineAsyncComponent(
 )
 
 const route = useRoute()
-const context = getContext(route)
 
 const { data: configResource } = useResourceWatch<RedactedClusterMachineConfigSpec>(() => ({
   runtime: Runtime.Omni,
@@ -28,7 +26,6 @@ const { data: configResource } = useResourceWatch<RedactedClusterMachineConfigSp
     namespace: DefaultNamespace,
     id: route.params.machine as string,
   },
-  context,
 }))
 
 const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({

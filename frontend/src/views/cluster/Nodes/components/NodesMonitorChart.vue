@@ -12,7 +12,7 @@ import type { Ref } from 'vue'
 import { computed, defineAsyncComponent, ref, toRefs } from 'vue'
 import type { VueApexChartsComponentProps } from 'vue3-apexcharts'
 
-import type { Runtime } from '@/api/common/omni.pb'
+import { Runtime } from '@/api/common/omni.pb'
 import type { WatchResponse } from '@/api/omni/resources/resources.pb'
 import { EventType } from '@/api/omni/resources/resources.pb'
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
@@ -152,12 +152,22 @@ const handlePoint = (message: WatchResponse, spec: WatchEventSpec) => {
 
 const w = new WatchFunc(handlePoint)
 
-w.setup({
-  resource: resource.value,
-  runtime: runtime.value,
-  tailEvents: tailEvents.value,
-  context: context?.value,
-})
+w.setup(
+  runtime.value === Runtime.Omni
+    ? {
+        resource: resource.value,
+        runtime: runtime.value,
+        tailEvents: tailEvents.value,
+      }
+    : context.value
+      ? {
+          resource: resource.value,
+          runtime: runtime.value,
+          tailEvents: tailEvents.value,
+          context: context.value,
+        }
+      : undefined,
+)
 
 const options = computed(() => {
   return {

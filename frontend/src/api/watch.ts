@@ -176,9 +176,7 @@ export type WatchContext = {
 
 export type WatchOptions = WatchOptionsSingle | WatchOptionsMulti
 
-interface WatchOptionsBase {
-  runtime: Runtime
-  context?: WatchContext
+interface WatchOptionsCommon {
   selectors?: string[]
   selectUsingOR?: boolean
   tailEvents?: number
@@ -193,11 +191,17 @@ interface WatchOptionsBase {
   skip?: boolean
 }
 
-export interface WatchOptionsSingle extends WatchOptionsBase {
+type WatchOptionsBase = WatchOptionsCommon &
+  (
+    | { runtime: Runtime.Omni; context?: never }
+    | { runtime: Exclude<Runtime, Runtime.Omni>; context: WatchContext }
+  )
+
+export type WatchOptionsSingle = WatchOptionsBase & {
   resource: Metadata & { id: string }
 }
 
-export interface WatchOptionsMulti extends WatchOptionsBase {
+export type WatchOptionsMulti = WatchOptionsBase & {
   resource: Omit<Metadata, 'id'>
 }
 

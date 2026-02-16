@@ -13,13 +13,11 @@ import { EventType } from '@/api/omni/resources/resources.pb'
 import type { ClusterSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace } from '@/api/resources'
 import TAlert from '@/components/TAlert.vue'
-import { getContext } from '@/context'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const bootstrapped = ref(false)
 
 const route = useRoute()
-const context = getContext(route)
 
 const { data: cluster } = useResourceWatch<ClusterSpec>(
   () => ({
@@ -29,7 +27,6 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(
       namespace: DefaultNamespace,
       id: route.params.cluster as string,
     },
-    context,
   }),
   (message) => {
     if (message.event?.event_type === EventType.BOOTSTRAPPED) {
