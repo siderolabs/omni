@@ -2023,10 +2023,10 @@ index cc8c3bfd..e2a59f92 100644
  	)
  	if err != nil {
  		return fmt.Errorf("failed to set up log handler: %w", err)
-diff --git a/deploy/helm/v2/omni/values.yaml b/deploy/helm/v2/omni/values.yaml
+diff --git a/deploy/helm/omni/values.yaml b/deploy/helm/omni/values.yaml
 index a195221e..58079414 100644
---- a/deploy/helm/v2/omni/values.yaml
-+++ b/deploy/helm/v2/omni/values.yaml
+--- a/deploy/helm/omni/values.yaml
++++ b/deploy/helm/omni/values.yaml
 @@ -421,6 +421,10 @@ config:
        # Tip: Use additionalConfigSources to load this from an existing Secret,
        # or set the VAULT_TOKEN environment variable via env/envFrom.

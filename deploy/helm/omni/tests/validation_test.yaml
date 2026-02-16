@@ -5,6 +5,25 @@ templates:
 
 tests:
   # ========================================
+  # Legacy Chart Upgrade Check
+  # ========================================
+  # Note: The lookup function always returns empty in helm-unittest,
+  # so we can only test that upgrades pass when no old chart is detected.
+  # The actual blocking behavior requires integration testing against a real cluster.
+  - it: Should pass upgrade when no legacy chart deployment is found
+    template: deployment.yaml
+    release:
+      isUpgrade: true
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      additionalConfigSources:
+        - existingSecret: extra
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # ========================================
   # Etcd Encryption Key Validation
   # ========================================
   - it: Should fail when no etcd encryption key is provided

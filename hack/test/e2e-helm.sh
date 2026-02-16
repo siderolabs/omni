@@ -152,7 +152,7 @@ export OMNI_IMAGE_REPO OMNI_IMAGE_TAG AUTH0_CLIENT_ID AUTH0_DOMAIN AUTH0_TEST_US
 RENDERED_VALUES=$(mktemp)
 envsubst < hack/test/helm/omni-values.yaml.envsubst > "${RENDERED_VALUES}"
 
-helm upgrade --install omni deploy/helm/v2/omni/ \
+helm upgrade --install omni deploy/helm/omni/ \
   --namespace "${OMNI_NAMESPACE}" \
   --values "${RENDERED_VALUES}" \
   --wait --timeout 300s

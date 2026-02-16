@@ -1,125 +1,179 @@
----
+{{- include "omni.validateValues" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "omni.name" . }}
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "omni.fullname" . }}
+  namespace: {{ include "omni.namespace" . }}
   labels:
     {{- include "omni.labels" . | nindent 4 }}
-    app.kubernetes.io/component: omni
-    {{- with .Values.deployment.labels }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
-  annotations:
-    {{- toYaml .Values.deployment.annotations | nindent 4 }}
 spec:
+  {{- with .Values.strategy }}
   strategy:
-    type: Recreate
-  replicas: {{ .Values.deployment.replicaCount }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  replicas: {{ .Values.replicaCount }}
   selector:
-    matchLabels: {{- include "omni.selectorLabels" . | nindent 6 }}
+    matchLabels:
+      {{- include "omni.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-    {{- if .Values.deployment.podAnnotations }}
       annotations:
-      {{- toYaml .Values.deployment.annotations | nindent 6 }}
-    {{- end }}
-      labels: 
-      {{- include "omni.labels" . | nindent 8 }}
-        app.kubernetes.io/component: omni
-      {{- with .Values.deployment.labels }}
-      {{- toYaml . | nindent 8 }}
+        # https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+        checksum/config: {{ include (print $.Template.BasePath "/secret-config.yaml") . | sha256sum }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
-    spec:
-      containers:
-      - name: omni
-        image: {{ .Values.deployment.image }}:{{ .Values.deployment.tag | default .Chart.AppVersion }}
-        imagePullPolicy: {{ .Values.deployment.imagePullPolicy }}
-        resources:
-          {{- with .Values.resources }}
-          {{- toYaml . | nindent 12 }}
-          {{- end }}
-        ports:
-          - name: omni
-            containerPort: 8080
-            protocol: TCP
-          - name: siderolink
-            containerPort: 8090
-            protocol: TCP
-          - name: k8s-proxy
-            containerPort: 8095
-            protocol: TCP
-          - name: wireguard
-            containerPort: 50180
-            protocol: UDP
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-              - ALL
-            add:
-              - NET_ADMIN
-        volumeMounts:
-          {{- if .Values.volumeMounts.tls.mountPath }}
-          - name: tls
-            mountPath: {{ .Values.volumeMounts.tls.mountPath }}
-            readOnly: {{ .Values.volumeMounts.tls.readOnly }}
-          {{- end }}
-          - name: omni-asc
-            mountPath: {{ .Values.volumeMounts.omniAsc.mountPath }}
-            subPath: {{ .Values.volumeMounts.omniAsc.subPath }}
-            readOnly: {{ .Values.volumeMounts.omniAsc.readOnly }}
-          - name: etcd
-            mountPath: /_out
-          {{- if .Values.customVolumeMounts }}
-          {{- with .Values.customVolumeMounts }}
-          {{- toYaml . | nindent 10 }}
-          {{- end }}
-          {{- end }}
-        args:
-          - --account-id="{{ .Values.accountUuid }}"
-          - --advertised-api-url={{ printf "https://%s/" .Values.domainName }} 
-          - --advertised-kubernetes-proxy-url={{ printf "https://%s/" .Values.service.k8sProxy.domainName }}
-        {{- if .Values.auth.auth0.enabled }}
-          - --auth-auth0-enabled=true
-          - --auth-auth0-client-id={{ .Values.auth.auth0.clientId | toString}}
-          - --auth-auth0-domain={{ .Values.auth.auth0.domain }}
-        {{- end }}
-        {{- if .Values.auth.saml.enabled }}
-          - --auth-saml-enabled=true
-        {{- if .Values.auth.saml.url }}
-          - --auth-saml-url={{ .Values.auth.saml.url }}
-        {{- end }}
-        {{- end }}
-        {{- if .Values.volumes.tls.secretName }}
-          - --cert=/etc/omni/tls/tls.crt
-          - --key=/etc/omni/tls/tls.key
-        {{- end }}
-          - --etcd-embedded=true
-        {{- if and .Values.initialUsers (gt (len .Values.initialUsers) 0) }}
-          - --initial-users={{ join "," .Values.initialUsers }}
-        {{- end }}
-          - --name={{ .Values.name}}
-          - --private-key-source={{ .Values.privateKeySource }}
-          - --siderolink-api-advertised-url={{ printf "https://%s" .Values.service.siderolink.domainName }}
-          - --siderolink-wireguard-advertised-addr={{ .Values.service.siderolink.wireguard.address }}:{{ .Values.service.siderolink.wireguard.port }}
-        {{- range $value := .Values.extraArgs }}
-          - {{ $value }}
-        {{- end }}
-      volumes:
-        {{- if .Values.volumes.tls.secretName }}
-        - name: tls
-          secret:
-            secretName: {{ .Values.volumes.tls.secretName }}
-        {{- end }}
-        - name: omni-asc
-          secret:
-            secretName: {{ .Values.volumes.gpg.secretName }}
-        - name: etcd
-          persistentVolumeClaim:
-            claimName: {{ .Values.volumes.etcd.persistentVolumeClaimName }}
-        {{- if .Values.customVolumes }}
-        {{- with .Values.customVolumes }}
+      labels:
+        {{- include "omni.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "omni.serviceAccountName" . }}
+      {{- if .Values.hostNetwork }}
+      hostNetwork: true
+      {{- end }}
+      {{- if .Values.dnsPolicy }}
+      dnsPolicy: {{ .Values.dnsPolicy }}
+      {{- else if .Values.hostNetwork }}
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+      {{- with .Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ include "omni.name" . }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ include "omni.imageTag" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          args:
+            - --config-path=/config/config.yaml
+            {{- range $index, $source := .Values.additionalConfigSources }}
+            - --config-path=/config/additional-{{ $index }}/{{ $source.key | default "config.yaml" }}
+            {{- end }}
+            {{- range .Values.args }}
+            - {{ . | quote }}
+            {{- end }}
+          ports:
+            - name: omni
+              containerPort: 8080
+              protocol: TCP
+            - name: siderolink-api
+              containerPort: 8090
+              protocol: TCP
+            - name: k8s-proxy
+              containerPort: 8095
+              protocol: TCP
+            - name: metrics
+              containerPort: 2122
+              protocol: TCP
+            - name: wireguard
+              containerPort: 50180
+              protocol: UDP
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            {{- range $index, $source := .Values.additionalConfigSources }}
+            - name: additional-config-{{ $index }}
+              mountPath: /config/additional-{{ $index }}
+              readOnly: true
+            {{- end }}
+            {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: /data
+            {{- end }}
+            - name: etcd-key
+              mountPath: /omni.asc
+              subPath: omni.asc
+              readOnly: true
+            - name: dev-tun
+              mountPath: /dev/net/tun
+          {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.extraContainers }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: config
+          secret:
+            secretName: {{ include "omni.fullname" . }}-config
+        {{- range $index, $source := .Values.additionalConfigSources }}
+        - name: additional-config-{{ $index }}
+          {{- if $source.existingSecret }}
+          secret:
+            secretName: {{ $source.existingSecret }}
+          {{- else if $source.existingConfigMap }}
+          configMap:
+            name: {{ $source.existingConfigMap }}
+          {{- end }}
         {{- end }}
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "omni.fullname" .) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: etcd-key
+          secret:
+            secretName: {{ include "omni.etcdSecretName" . }}
+        - name: dev-tun
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice
+      {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

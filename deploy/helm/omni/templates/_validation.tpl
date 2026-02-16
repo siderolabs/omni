@@ -3,6 +3,20 @@ Compile all validation checks here
 */}}
 {{- define "omni.validateValues" -}}
 
+{{/* Legacy Chart Upgrade Check */}}
+{{/* Detect upgrade attempts from the old Omni Helm chart (ghcr.io/siderolabs/charts/omni, version 0.0.x) */}}
+  {{- if .Release.IsUpgrade -}}
+    {{- $ns := include "omni.namespace" . -}}
+    {{- $deployments := (lookup "apps/v1" "Deployment" $ns "").items | default list -}}
+    {{- range $deployments -}}
+      {{- $labels := .metadata.labels | default dict -}}
+      {{- $chartLabel := get $labels "helm.sh/chart" -}}
+      {{- if and $chartLabel (hasPrefix "omni-0." $chartLabel) -}}
+        {{- fail "Upgrading from the legacy Omni Helm chart (ghcr.io/siderolabs/charts/omni) is not supported. The chart has been rewritten from scratch with a completely different values schema. Please uninstall the old release first and perform a fresh install with the new chart." -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+
 {{/* Etcd Encryption Key Check */}}
   {{- if not .Values.etcdEncryptionKey.existingSecret -}}
     {{- if empty .Values.etcdEncryptionKey.omniAsc -}}

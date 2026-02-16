@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-02-12T19:13:29Z by kres 84d286e.
+# Generated on 2026-02-17T11:25:24Z by kres 6458cfd.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN=scratch
@@ -88,7 +88,7 @@ RUN apk --update --no-cache add bash build-base curl jq protoc protobuf-dev
 # runs helm-docs
 FROM helm-toolchain AS helm-docs-run
 WORKDIR /src
-COPY deploy/helm/v2/omni /src/deploy/helm/v2/omni
+COPY deploy/helm/omni /src/deploy/helm/omni
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/root/.cache/helm-docs,id=omni/root/.cache/helm-docs,sharing=locked helm-docs --badge-style=flat
 
 # tools and sources
@@ -154,7 +154,7 @@ RUN go install mvdan.cc/gofumpt@${GOFUMPT_VERSION} \
 
 # clean helm-docs output
 FROM scratch AS helm-docs
-COPY --from=helm-docs-run /src/deploy/helm/v2/omni deploy/helm/v2/omni
+COPY --from=helm-docs-run /src/deploy/helm/omni deploy/helm/omni
 
 # builds frontend
 FROM --platform=${BUILDPLATFORM} js AS frontend
