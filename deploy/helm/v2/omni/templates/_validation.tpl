@@ -54,17 +54,10 @@ Compile all validation checks here
       {{- fail "config.services.machineAPI.advertisedURL contains 'example.com'. Please set your actual domain (or use additionalConfigSources)." -}}
     {{- end -}}
 
-    {{/* URL Consistency Checks
-       We use a helper template 'omni.validateIngress' defined below to keep this clean.
-    */}}
-
-    {{/* 1. Validate Main Ingress -> API URL */}}
     {{- include "omni.validateIngress" (dict "Ingress" .Values.ingress.main "Url" .Values.config.services.api.advertisedURL "Name" "main" "TargetCfg" "config.services.api.advertisedURL") -}}
 
-    {{/* 2. Validate K8s Proxy Ingress -> K8s Proxy URL */}}
     {{- include "omni.validateIngress" (dict "Ingress" .Values.ingress.kubernetesProxy "Url" .Values.config.services.kubernetesProxy.advertisedURL "Name" "kubernetesProxy" "TargetCfg" "config.services.kubernetesProxy.advertisedURL") -}}
 
-    {{/* 3. Validate SideroLink Ingress -> Machine API URL */}}
     {{- include "omni.validateIngress" (dict "Ingress" .Values.ingress.siderolinkApi "Url" .Values.config.services.machineAPI.advertisedURL "Name" "siderolinkApi" "TargetCfg" "config.services.machineAPI.advertisedURL") -}}
   {{- end -}}
 

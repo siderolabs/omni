@@ -650,6 +650,8 @@ service:
     # It is ignored by other ingress controllers.
     annotations:
       traefik.ingress.kubernetes.io/service.serversscheme: h2c
+    # -- Additional labels for the main service.
+    labels: {}
     # -- Service type for the main service.
     type: ClusterIP
     # -- Port for the Omni HTTP/gRPC API and UI.
@@ -662,12 +664,16 @@ service:
     siderolinkApiNodePort: ""
     # -- ClusterIP for the main service.
     clusterIP: ""
+    # -- LoadBalancer IP for the main service (only used when type is LoadBalancer).
+    loadBalancerIP: ""
   # Kubernetes proxy service configuration.
   # This is a separate service because the Kubernetes proxy does not support h2c,
   # and the h2c annotation on the main service would break it.
   k8sProxy:
     # -- Annotations for the Kubernetes proxy service.
     annotations: {}
+    # -- Additional labels for the Kubernetes proxy service.
+    labels: {}
     # -- Service type for the Kubernetes proxy service.
     type: ClusterIP
     # -- Port for the Kubernetes proxy.
@@ -677,6 +683,8 @@ service:
   wireguard:
     # -- Annotations for the WireGuard service.
     annotations: {}
+    # -- Additional labels for the WireGuard service.
+    labels: {}
     # -- Service type for WireGuard (NodePort or LoadBalancer recommended).
     type: NodePort
     # -- Port for the WireGuard service.
@@ -774,8 +782,34 @@ podLabels: {}
 # -- Use host networking for the Omni pod.
 # This may be required in some environments (e.g., GKE with Container-Optimized OS)
 # where the NET_ADMIN capability alone is not sufficient for creating the WireGuard interface.
-# When enabled, dnsPolicy is automatically set to ClusterFirstWithHostNet.
+# When enabled, dnsPolicy is automatically set to ClusterFirstWithHostNet (unless dnsPolicy is explicitly set).
 hostNetwork: false
+
+# -- DNS policy for the Omni pod.
+# When not set and hostNetwork is enabled, defaults to ClusterFirstWithHostNet.
+dnsPolicy: ""
+
+# -- DNS configuration for the Omni pod.
+dnsConfig: {}
+#  nameservers:
+#    - 1.1.1.1
+#  searches:
+#    - my-domain.local
+
+# -- Priority class name for the Omni pod.
+priorityClassName: ""
+
+# -- Termination grace period in seconds for the Omni pod.
+terminationGracePeriodSeconds: 30
+
+# -- Init containers to add to the Omni pod.
+initContainers: []
+#  - name: wait-for-etcd
+#    image: busybox:latest
+#    command: ['sh', '-c', 'until nc -z etcd.etcd.svc.cluster.local 2379; do sleep 1; done']
+
+# -- Extra containers (sidecars) to add to the Omni pod.
+extraContainers: []
 
 # -- Pod-level security context
 podSecurityContext: {}

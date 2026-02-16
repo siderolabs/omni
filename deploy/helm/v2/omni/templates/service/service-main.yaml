@@ -5,6 +5,9 @@ metadata:
   namespace: {{ include "omni.namespace" . }}
   labels:
     {{- include "omni.labels" . | nindent 4 }}
+    {{- with .Values.service.main.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.service.main.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -13,6 +16,9 @@ spec:
   type: {{ .Values.service.main.type }}
   {{- with .Values.service.main.clusterIP }}
   clusterIP: {{ . | quote}}
+  {{- end }}
+  {{- if and .Values.service.main.loadBalancerIP (or (eq .Values.service.main.type "LoadBalancer")) }}
+  loadBalancerIP: {{ .Values.service.main.loadBalancerIP | quote }}
   {{- end }}
   ports:
     - name: omni

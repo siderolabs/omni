@@ -81,7 +81,7 @@ fi
 
 # Create a Talos cluster to be imported.
 if [[ "${CREATE_TALOS_CLUSTER:-false}" == "true" ]]; then
-  create_talos_cluster name=test-cluster-import cp_count=3 wk_count=3 cidr=172.28.0.0/24 talos_version="${QEMU_TALOS_VERSION}" true false
+  create_talos_cluster name=test-cluster-import cp_count=3 wk_count=3 cidr=172.28.0.0/24 talos_version="${QEMU_TALOS_VERSION}" skip_kubeconfig=true allow_scheduling_on_control_planes=false
 fi
 
 if [[ -n "$ANOTHER_OMNI_VERSION" && -n "$INTEGRATION_PREPARE_TEST_ARGS" ]]; then

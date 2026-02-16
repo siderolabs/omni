@@ -5,6 +5,9 @@ metadata:
   namespace: {{ include "omni.namespace" . }}
   labels:
     {{- include "omni.labels" . | nindent 4 }}
+    {{- with .Values.service.wireguard.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.service.wireguard.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}

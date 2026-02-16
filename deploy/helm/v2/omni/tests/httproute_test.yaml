@@ -2,6 +2,7 @@ suite: HTTPRoute Logic (Gateway API)
 templates:
   - gatewayApi/httproute-ui.yaml
   - gatewayApi/httproute-k8s-proxy.yaml
+  - gatewayApi/grpcroute-siderolink.yaml
 
 tests:
   # ========================================
@@ -226,3 +227,122 @@ tests:
       - equal:
           path: spec.rules[0].backendRefs[0].port
           value: 8095
+
+  # ========================================
+  # SideroLink GRPCRoute Tests
+  # ========================================
+  - it: Should not create SideroLink GRPCRoute by default
+    template: gatewayApi/grpcroute-siderolink.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should create SideroLink GRPCRoute when enabled
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+              namespace: gateway-system
+          hostnames:
+            - siderolink.example.com
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: GRPCRoute
+      - equal:
+          path: apiVersion
+          value: gateway.networking.k8s.io/v1
+
+  - it: Should configure SideroLink GRPCRoute parentRefs
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+              namespace: gateway-system
+              sectionName: grpc-listener
+          hostnames:
+            - siderolink.example.com
+    asserts:
+      - contains:
+          path: spec.parentRefs
+          content:
+            name: my-gateway
+            namespace: gateway-system
+            sectionName: grpc-listener
+
+  - it: Should configure SideroLink GRPCRoute hostnames
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - siderolink.example.com
+    asserts:
+      - contains:
+          path: spec.hostnames
+          content: siderolink.example.com
+
+  - it: Should configure SideroLink GRPCRoute backend service
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - siderolink.example.com
+      service:
+        main:
+          siderolinkApiPort: 8090
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: RELEASE-NAME-omni
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 8090
+
+  - it: Should add SideroLink GRPCRoute custom annotations
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - siderolink.example.com
+          annotations:
+            custom-annotation: custom-value
+    asserts:
+      - equal:
+          path: metadata.annotations["custom-annotation"]
+          value: custom-value
+
+  - it: Should add SideroLink GRPCRoute custom labels
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - siderolink.example.com
+          labels:
+            environment: production
+    asserts:
+      - equal:
+          path: metadata.labels.environment
+          value: production

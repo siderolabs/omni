@@ -280,10 +280,13 @@ Here are the configurable parameters of the Omni chart and their default values.
 | config.storage.sqlite.path | string | `"/data/secondary-storage/sqlite.db"` | Path to the SQLite database (secondary storage). This path is mounted from the persistent volume by default. |
 | config.storage.vault.token | string | `""` | Token is the authentication token for the Vault server. Tip: Use additionalConfigSources to load this from an existing Secret, or set the VAULT_TOKEN environment variable via env/envFrom. |
 | config.storage.vault.url | string | `""` | Url is the URL of the Vault server. |
+| dnsConfig | object | `{}` | DNS configuration for the Omni pod. |
+| dnsPolicy | string | `""` | DNS policy for the Omni pod. When not set and hostNetwork is enabled, defaults to ClusterFirstWithHostNet. |
 | env | list | `[]` | Environment variables to pass to Omni. |
 | envFrom | list | `[]` | envFrom to pass to Omni. |
 | etcdEncryptionKey.existingSecret | string | `""` | Name of an existing Secret containing the GPG private key. |
 | etcdEncryptionKey.omniAsc | string | `""` | GPG private key content (multiline string). |
+| extraContainers | list | `[]` | Extra containers (sidecars) to add to the Omni pod. |
 | extraObjects | list | `[]` | Extra Kubernetes objects to deploy with the helm chart |
 | extraVolumeMounts | list | `[]` | List of additional mounts to add (normally used with extraVolumes) |
 | extraVolumes | list | `[]` | List of extra volumes to add |
@@ -303,7 +306,7 @@ Here are the configurable parameters of the Omni chart and their default values.
 | gatewayApi.ui.hostnames | list | `["omni.example.com"]` | Omni UI hostname |
 | gatewayApi.ui.labels | object | `{}` | Additional Labels |
 | gatewayApi.ui.parentRefs | list | `[]` | The Gateway(s) to attach this route to. You MUST define at least one parentRef for the route to be active. |
-| hostNetwork | bool | `false` | Use host networking for the Omni pod. This may be required in some environments (e.g., GKE with Container-Optimized OS) where the NET_ADMIN capability alone is not sufficient for creating the WireGuard interface. When enabled, dnsPolicy is automatically set to ClusterFirstWithHostNet. |
+| hostNetwork | bool | `false` | Use host networking for the Omni pod. This may be required in some environments (e.g., GKE with Container-Optimized OS) where the NET_ADMIN capability alone is not sufficient for creating the WireGuard interface. When enabled, dnsPolicy is automatically set to ClusterFirstWithHostNet (unless dnsPolicy is explicitly set). |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy for Omni. |
 | image.repository | string | `"ghcr.io/siderolabs/omni"` | Repository to use for Omni. |
 | image.tag | string | `""` | Tag to use for Omni. |
@@ -329,6 +332,7 @@ Here are the configurable parameters of the Omni chart and their default values.
 | ingress.siderolinkApi.labels | object | `{}` | Additional Labels |
 | ingress.siderolinkApi.skipConfigCheck | bool | `false` | Set to true to skip validation between this Ingress and config.services.machineAPI.advertisedURL |
 | ingress.siderolinkApi.tls | list | `[]` | TLS configuration |
+| initContainers | list | `[]` | Init containers to add to the Omni pod. |
 | livenessProbe | object | `{}` | Liveness probe configuration. |
 | metrics.enabled | bool | `false` | Deploy metrics service |
 | metrics.rules.annotations | object | `{}` | PrometheusRule annotations |
@@ -366,16 +370,20 @@ Here are the configurable parameters of the Omni chart and their default values.
 | podAnnotations | object | `{}` | Additional annotations to add to the Omni pod |
 | podLabels | object | `{}` | Additional labels to add to the Omni pod |
 | podSecurityContext | object | `{}` | Pod-level security context |
+| priorityClassName | string | `""` | Priority class name for the Omni pod. |
 | readinessProbe | object | `{"failureThreshold":3,"httpGet":{"path":"/healthz","port":"omni","scheme":"HTTP"},"periodSeconds":5,"successThreshold":1,"timeoutSeconds":3}` | Readiness probe configuration. |
 | replicaCount | int | `1` | Number of replicas to run. Omni currently only supports a single replica. If embedded etcd is used, this value should remain at 1. If an external etcd cluster is used, multiple replicas can be used, but they will run an etcd election and only one instance will be active at a time, others will be standby. |
 | resources | object | `{}` | CPU and Memory resource requests and limits. |
 | securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"add":["NET_ADMIN"],"drop":["ALL"]}}` | Pod Security Context Omni container-level security context |
 | service.k8sProxy.annotations | object | `{}` | Annotations for the Kubernetes proxy service. |
 | service.k8sProxy.clusterIP | string | `""` | ClusterIP for the Kubernetes proxy service. |
+| service.k8sProxy.labels | object | `{}` | Additional labels for the Kubernetes proxy service. |
 | service.k8sProxy.port | int | `8095` | Port for the Kubernetes proxy. |
 | service.k8sProxy.type | string | `"ClusterIP"` | Service type for the Kubernetes proxy service. |
 | service.main.annotations | object | `{"traefik.ingress.kubernetes.io/service.serversscheme":"h2c"}` | Annotations for the main service. Traefik does not yet support appProtocol (https://github.com/traefik/traefik/issues/11089), so this annotation is needed to tell Traefik to use h2c when communicating with the backend. It is ignored by other ingress controllers. |
 | service.main.clusterIP | string | `""` | ClusterIP for the main service. |
+| service.main.labels | object | `{}` | Additional labels for the main service. |
+| service.main.loadBalancerIP | string | `""` | LoadBalancer IP for the main service (only used when type is LoadBalancer). |
 | service.main.omniNodePort | string | `""` | NodePort for the Omni HTTP/gRPC API (only used when type is NodePort). |
 | service.main.omniPort | int | `8080` | Port for the Omni HTTP/gRPC API and UI. |
 | service.main.siderolinkApiNodePort | string | `""` | NodePort for the SideroLink API (only used when type is NodePort). |
@@ -383,6 +391,7 @@ Here are the configurable parameters of the Omni chart and their default values.
 | service.main.type | string | `"ClusterIP"` | Service type for the main service. |
 | service.wireguard.annotations | object | `{}` | Annotations for the WireGuard service. |
 | service.wireguard.clusterIP | string | `""` | ClusterIP for the WireGuard service. |
+| service.wireguard.labels | object | `{}` | Additional labels for the WireGuard service. |
 | service.wireguard.nodePort | int | `30180` | NodePort for the WireGuard service. |
 | service.wireguard.port | int | `50180` | Port for the WireGuard service. |
 | service.wireguard.type | string | `"NodePort"` | Service type for WireGuard (NodePort or LoadBalancer recommended). |
@@ -392,4 +401,5 @@ Here are the configurable parameters of the Omni chart and their default values.
 | serviceAccount.name | string | `""` | Name of the ServiceAccount to use. If not set and create is true, a name is generated using the fullname template. |
 | skipVersionCheck | bool | `false` | Set to true to bypass the SemVer check (e.g. if using a custom build or nightly tag). |
 | strategy.type | string | `"Recreate"` | Deployment strategy type. |
+| terminationGracePeriodSeconds | int | `30` | Termination grace period in seconds for the Omni pod. |
 | tolerations | list | `[]` | Tolerations for the Omni pod |
