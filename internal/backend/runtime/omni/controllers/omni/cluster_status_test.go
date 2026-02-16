@@ -163,8 +163,11 @@ func TestClusterStatusReconcile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			defer cancel()
+
 			testutils.WithRuntime(
-				t.Context(),
+				ctx,
 				t,
 				testutils.TestOptions{},
 				func(_ context.Context, testContext testutils.TestContext) {

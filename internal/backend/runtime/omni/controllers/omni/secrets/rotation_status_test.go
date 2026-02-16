@@ -1397,6 +1397,7 @@ func createCluster(
 		options.EmptyLabel(omni.LabelControlPlaneRole),
 	)
 	rmock.Mock[*omni.MachineSetStatus](ctx, t, st, options.SameID(cpMachineSet))
+	rmock.Mock[*omni.MachineSetConfigStatus](ctx, t, st, options.SameID(cpMachineSet))
 
 	workersMachineSet := rmock.Mock[*omni.MachineSet](ctx, t, st,
 		options.WithID(omni.WorkersResourceID(clusterName)),
@@ -1404,6 +1405,7 @@ func createCluster(
 		options.EmptyLabel(omni.LabelWorkerRole),
 	)
 	rmock.Mock[*omni.MachineSetStatus](ctx, t, st, options.SameID(workersMachineSet))
+	rmock.Mock[*omni.MachineSetConfigStatus](ctx, t, st, options.SameID(workersMachineSet))
 
 	getIDs := func(machineType string, count int) []string {
 		res := make([]string, 0, count)

@@ -15,9 +15,11 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
@@ -106,6 +108,12 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 				Kind: controller.OutputExclusive,
 			},
 		),
+		qtransform.WithExtraOutputs(
+			controller.Output{
+				Type: omni.MachineSetConfigStatusType,
+				Kind: controller.OutputExclusive,
+			},
+		),
 		qtransform.WithConcurrency(8),
 	)
 }
@@ -127,8 +135,16 @@ func (handler *machineSetStatusHandler) reconcileRunning(ctx context.Context, r 
 		return err
 	}
 
-	// should run always
-	machineset.ReconcileStatus(rc, machineSetStatus)
+	if err = safe.WriterModify(ctx, r, omni.NewMachineSetConfigStatus(machineSet.Metadata().ID()),
+		func(machineSetConfigStatus *omni.MachineSetConfigStatus) error {
+			// should run always
+			machineset.ReconcileStatus(rc, machineSetStatus, machineSetConfigStatus)
+
+			return nil
+		},
+	); err != nil {
+		return err
+	}
 
 	requeue, err := handler.reconcileMachines(ctx, r, logger, rc)
 	if err != nil {
@@ -170,6 +186,18 @@ func (handler *machineSetStatusHandler) reconcileTearingDown(ctx context.Context
 			return modifyErr
 		}
 
+		modifyErr = safe.WriterModify(ctx, r, omni.NewMachineSetConfigStatus(machineSet.Metadata().ID()),
+			func(status *omni.MachineSetConfigStatus) error {
+				status.TypedSpec().Value.ShouldResetGraceful = false
+
+				return nil
+			},
+			controller.WithExpectedPhaseAny(),
+		)
+		if modifyErr != nil && !errors.Is(modifyErr, notFoundErr) {
+			return modifyErr
+		}
+
 		return nil
 	}
 
@@ -200,6 +228,15 @@ func (handler *machineSetStatusHandler) reconcileTearingDown(ctx context.Context
 		}
 
 		return nil
+	}
+
+	ready, err := helpers.TeardownAndDestroy(ctx, r, omni.NewMachineSetConfigStatus(machineSet.Metadata().ID()).Metadata())
+	if err != nil {
+		return err
+	}
+
+	if !ready {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine set config status is not destroyed yet")
 	}
 
 	return controller.NewRequeueErrorf(requeueInterval, "the machine set still has cluster machines")

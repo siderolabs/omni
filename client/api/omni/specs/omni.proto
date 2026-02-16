@@ -880,15 +880,27 @@ message MachineSetStatusSpec {
   MachineSetSpec.MachineAllocation machine_allocation = 6;
   // LockedUpdates is the number of machines which have pending config update but are locked.
   uint32 locked_updates = 7;
+  reserved 8;
+  reserved 9;
+  reserved 10;
+}
+
+// MachineSetConfigStatusSpec is the settings used by the MachineConfigStatus controller:
+// - update strategy is copied from the MachineSet
+// - config updates allow flag is controller by the MachineSetStatus controller phase.
+message MachineSetConfigStatusSpec {
   // ConfigUpdatesAllowed controls graceful rollout of the machine config.
   // If false, no new config updates should happen.
-  bool config_updates_allowed = 8;
+  bool config_updates_allowed = 1;
+
+  // ShouldResetGraceful controls graceful reset of the machine config.
+  bool should_reset_graceful = 2;
 
   // UpdateStrategy is the update strategy of the machine set.
-  MachineSetSpec.UpdateStrategy update_strategy = 9;
+  MachineSetSpec.UpdateStrategy update_strategy = 3;
 
   // UpdateStrategyConfig defines the update strategy configuration.
-  MachineSetSpec.UpdateStrategyConfig update_strategy_config = 10;
+  MachineSetSpec.UpdateStrategyConfig update_strategy_config = 4;
 }
 
 // MachineSetNodeSpec is a binding between ClusterMachine and MachineSet.

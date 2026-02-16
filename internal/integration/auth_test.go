@@ -1309,6 +1309,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			{
 				resource: omni.NewSecretRotation(uuid.NewString()),
 			},
+			{
+				resource: omni.NewMachineSetConfigStatus(uuid.NewString()),
+			},
 		}...)
 
 		// custom resources

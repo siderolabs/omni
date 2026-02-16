@@ -74,6 +74,7 @@ func init() {
 	registry.MustRegisterResource(MachineSetDestroyStatusType, &MachineSetDestroyStatus{})
 	registry.MustRegisterResource(MachineSetNodeType, &MachineSetNode{})
 	registry.MustRegisterResource(MachineSetStatusType, &MachineSetStatus{})
+	registry.MustRegisterResource(MachineSetConfigStatusType, &MachineSetConfigStatus{})
 	registry.MustRegisterResource(MachineStatusType, &MachineStatus{})
 	registry.MustRegisterResource(MachineStatusSnapshotType, &MachineStatusSnapshot{})
 	registry.MustRegisterResource(MachineStatusLinkType, &MachineStatusLink{})

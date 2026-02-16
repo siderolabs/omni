@@ -14,7 +14,7 @@ import (
 // ReconcileStatus builds the machine set status from the resources.
 //
 //nolint:gocyclo,cyclop,gocognit
-func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSetStatus) {
+func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSetStatus, machineSetConfigStatus *omni.MachineSetConfigStatus) {
 	spec := machineSetStatus.TypedSpec().Value
 
 	// combined hash of all cluster machine config hashes
@@ -59,14 +59,15 @@ func ReconcileStatus(rc *ReconciliationContext, machineSetStatus *omni.MachineSe
 
 	if isControlPlane {
 		// only allow config changes if no other operations are pending for the control planes
-		spec.ConfigUpdatesAllowed = (len(rc.GetMachinesToCreate()) + len(rc.GetMachinesToTeardown()) + len(rc.GetMachinesToDestroy())) == 0
+		machineSetConfigStatus.TypedSpec().Value.ConfigUpdatesAllowed = (len(rc.GetMachinesToCreate()) + len(rc.GetMachinesToTeardown()) + len(rc.GetMachinesToDestroy())) == 0
 	} else {
 		// always allow config updates for workers
-		spec.ConfigUpdatesAllowed = true
+		machineSetConfigStatus.TypedSpec().Value.ConfigUpdatesAllowed = true
 	}
 
-	spec.UpdateStrategy = machineSet.TypedSpec().Value.UpdateStrategy
-	spec.UpdateStrategyConfig = machineSet.TypedSpec().Value.UpdateStrategyConfig
+	machineSetConfigStatus.TypedSpec().Value.ShouldResetGraceful = true
+	machineSetConfigStatus.TypedSpec().Value.UpdateStrategy = machineSet.TypedSpec().Value.UpdateStrategy
+	machineSetConfigStatus.TypedSpec().Value.UpdateStrategyConfig = machineSet.TypedSpec().Value.UpdateStrategyConfig
 
 	if isControlPlane && len(machineSetNodes) == 0 && spec.Machines.Requested == 0 {
 		spec.Phase = specs.MachineSetPhase_Failed

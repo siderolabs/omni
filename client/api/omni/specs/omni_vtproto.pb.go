@@ -1396,7 +1396,24 @@ func (m *MachineSetStatusSpec) CloneVT() *MachineSetStatusSpec {
 	r.ConfigHash = m.ConfigHash
 	r.MachineAllocation = m.MachineAllocation.CloneVT()
 	r.LockedUpdates = m.LockedUpdates
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *MachineSetStatusSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *MachineSetConfigStatusSpec) CloneVT() *MachineSetConfigStatusSpec {
+	if m == nil {
+		return (*MachineSetConfigStatusSpec)(nil)
+	}
+	r := new(MachineSetConfigStatusSpec)
 	r.ConfigUpdatesAllowed = m.ConfigUpdatesAllowed
+	r.ShouldResetGraceful = m.ShouldResetGraceful
 	r.UpdateStrategy = m.UpdateStrategy
 	r.UpdateStrategyConfig = m.UpdateStrategyConfig.CloneVT()
 	if len(m.unknownFields) > 0 {
@@ -1406,7 +1423,7 @@ func (m *MachineSetStatusSpec) CloneVT() *MachineSetStatusSpec {
 	return r
 }
 
-func (m *MachineSetStatusSpec) CloneMessageVT() proto.Message {
+func (m *MachineSetConfigStatusSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -4936,7 +4953,26 @@ func (this *MachineSetStatusSpec) EqualVT(that *MachineSetStatusSpec) bool {
 	if this.LockedUpdates != that.LockedUpdates {
 		return false
 	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MachineSetStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*MachineSetStatusSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *MachineSetConfigStatusSpec) EqualVT(that *MachineSetConfigStatusSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
 	if this.ConfigUpdatesAllowed != that.ConfigUpdatesAllowed {
+		return false
+	}
+	if this.ShouldResetGraceful != that.ShouldResetGraceful {
 		return false
 	}
 	if this.UpdateStrategy != that.UpdateStrategy {
@@ -4948,8 +4984,8 @@ func (this *MachineSetStatusSpec) EqualVT(that *MachineSetStatusSpec) bool {
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
-func (this *MachineSetStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
-	that, ok := thatMsg.(*MachineSetStatusSpec)
+func (this *MachineSetConfigStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*MachineSetConfigStatusSpec)
 	if !ok {
 		return false
 	}
@@ -11128,31 +11164,6 @@ func (m *MachineSetStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if m.UpdateStrategyConfig != nil {
-		size, err := m.UpdateStrategyConfig.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x52
-	}
-	if m.UpdateStrategy != 0 {
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.UpdateStrategy))
-		i--
-		dAtA[i] = 0x48
-	}
-	if m.ConfigUpdatesAllowed {
-		i--
-		if m.ConfigUpdatesAllowed {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x40
-	}
 	if m.LockedUpdates != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.LockedUpdates))
 		i--
@@ -11204,6 +11215,74 @@ func (m *MachineSetStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	}
 	if m.Phase != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Phase))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MachineSetConfigStatusSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MachineSetConfigStatusSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MachineSetConfigStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.UpdateStrategyConfig != nil {
+		size, err := m.UpdateStrategyConfig.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.UpdateStrategy != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.UpdateStrategy))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.ShouldResetGraceful {
+		i--
+		if m.ShouldResetGraceful {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.ConfigUpdatesAllowed {
+		i--
+		if m.ConfigUpdatesAllowed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
 		i--
 		dAtA[i] = 0x8
 	}
@@ -16985,7 +17064,20 @@ func (m *MachineSetStatusSpec) SizeVT() (n int) {
 	if m.LockedUpdates != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.LockedUpdates))
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MachineSetConfigStatusSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	if m.ConfigUpdatesAllowed {
+		n += 2
+	}
+	if m.ShouldResetGraceful {
 		n += 2
 	}
 	if m.UpdateStrategy != 0 {
@@ -28844,7 +28936,58 @@ func (m *MachineSetStatusSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 8:
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MachineSetConfigStatusSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MachineSetConfigStatusSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MachineSetConfigStatusSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigUpdatesAllowed", wireType)
 			}
@@ -28864,7 +29007,27 @@ func (m *MachineSetStatusSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.ConfigUpdatesAllowed = bool(v != 0)
-		case 9:
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ShouldResetGraceful", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.ShouldResetGraceful = bool(v != 0)
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UpdateStrategy", wireType)
 			}
@@ -28883,7 +29046,7 @@ func (m *MachineSetStatusSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 10:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UpdateStrategyConfig", wireType)
 			}

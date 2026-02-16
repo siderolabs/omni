@@ -798,7 +798,7 @@ func createCluster(
 		return res
 	}
 
-	rmock.MockList[*omni.MachineSetStatus](ctx, t, st,
+	rmock.MockList[*omni.MachineSetConfigStatus](ctx, t, st,
 		options.IDs([]string{
 			cpMachineSet.Metadata().ID(),
 			workersMachineSet.Metadata().ID(),

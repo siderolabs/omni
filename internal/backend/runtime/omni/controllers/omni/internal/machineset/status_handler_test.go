@@ -64,11 +64,10 @@ func TestStatusHandler(t *testing.T) {
 		{
 			name: "running no machines",
 			expectedStatus: &specs.MachineSetStatusSpec{
-				Phase:                specs.MachineSetPhase_Running,
-				Ready:                true,
-				Machines:             &specs.Machines{},
-				ConfigHash:           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-				ConfigUpdatesAllowed: true,
+				Phase:      specs.MachineSetPhase_Running,
+				Ready:      true,
+				Machines:   &specs.Machines{},
+				ConfigHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 			},
 		},
 		{
@@ -98,8 +97,7 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 2,
 				},
-				ConfigHash:           "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
-				ConfigUpdatesAllowed: true,
+				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
 			},
 		},
 		{
@@ -141,8 +139,7 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 2,
 				},
-				ConfigHash:           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-				ConfigUpdatesAllowed: true,
+				ConfigHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 			},
 		},
 		{
@@ -170,8 +167,7 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 1,
 				},
-				ConfigHash:           "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
-				ConfigUpdatesAllowed: true,
+				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
 			},
 		},
 		{
@@ -199,8 +195,7 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 1,
 					Requested: 2,
 				},
-				ConfigHash:           "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
-				ConfigUpdatesAllowed: true,
+				ConfigHash: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
 			},
 		},
 		{
@@ -230,8 +225,7 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 2,
 				},
-				ConfigHash:           "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
-				ConfigUpdatesAllowed: true,
+				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
 			},
 		},
 		{
@@ -261,8 +255,7 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 1,
 					Requested: 2,
 				},
-				ConfigHash:           "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
-				ConfigUpdatesAllowed: true,
+				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
 			},
 		},
 		{
@@ -288,8 +281,7 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 1,
 					Requested: 1,
 				},
-				ConfigHash:           "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
-				ConfigUpdatesAllowed: true,
+				ConfigHash: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
 			},
 		},
 		{
@@ -319,8 +311,7 @@ func TestStatusHandler(t *testing.T) {
 				MachineAllocation: &specs.MachineSetSpec_MachineAllocation{
 					MachineCount: 4,
 				},
-				ConfigHash:           "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
-				ConfigUpdatesAllowed: true,
+				ConfigHash: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
 			},
 		},
 		{
@@ -350,8 +341,7 @@ func TestStatusHandler(t *testing.T) {
 				MachineAllocation: &specs.MachineSetSpec_MachineAllocation{
 					MachineCount: 0,
 				},
-				ConfigHash:           "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
-				ConfigUpdatesAllowed: true,
+				ConfigHash: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
 			},
 		},
 		{
@@ -381,8 +371,7 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 2,
 				},
-				ConfigHash:           "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
-				ConfigUpdatesAllowed: true,
+				ConfigHash: "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
 			},
 		},
 		{
@@ -424,8 +413,7 @@ func TestStatusHandler(t *testing.T) {
 					Connected: 2,
 					Requested: 2,
 				},
-				ConfigHash:           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-				ConfigUpdatesAllowed: true,
+				ConfigHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 			},
 		},
 	} {
@@ -473,13 +461,25 @@ func TestStatusHandler(t *testing.T) {
 			require.NoError(err)
 
 			machineSetStatus := omni.NewMachineSetStatus("doesn't matter")
+			machineSetConfigStatus := omni.NewMachineSetConfigStatus("doesn't matter")
 
-			machineset.ReconcileStatus(rc, machineSetStatus)
+			machineset.ReconcileStatus(rc, machineSetStatus, machineSetConfigStatus)
 
 			require.True(tt.expectedStatus.EqualVT(machineSetStatus.TypedSpec().Value), "machine set status doesn't match %s", cmp.Diff(
 				tt.expectedStatus,
 				machineSetStatus.TypedSpec().Value,
 				IgnoreUnexported(tt.expectedStatus, &specs.Machines{}, &specs.MachineSetSpec_MachineAllocation{}),
+			))
+
+			expectedConfigStatus := &specs.MachineSetConfigStatusSpec{
+				ConfigUpdatesAllowed: true,
+				ShouldResetGraceful:  true,
+			}
+
+			require.True(expectedConfigStatus.EqualVT(machineSetConfigStatus.TypedSpec().Value), "machine set config status doesn't match %s", cmp.Diff(
+				expectedConfigStatus,
+				machineSetConfigStatus.TypedSpec().Value,
+				IgnoreUnexported(expectedConfigStatus, &specs.Machines{}, &specs.MachineSetSpec_MachineAllocation{}),
 			))
 		})
 	}
