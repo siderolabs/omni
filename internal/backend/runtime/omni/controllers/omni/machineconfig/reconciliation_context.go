@@ -220,15 +220,15 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, errors.New("failed to get machine set name from the machine config resource")
 	}
 
-	machineSetStatus, err := safe.ReaderGetByID[*omni.MachineSetStatus](ctx, r, machineSetName)
+	machineSetConfigStatus, err := safe.ReaderGetByID[*omni.MachineSetConfigStatus](ctx, r, machineSetName)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}
 
 	rc.configUpdatesAllowed = true
 
-	if machineSetStatus != nil {
-		rc.configUpdatesAllowed = machineSetStatus.TypedSpec().Value.ConfigUpdatesAllowed
+	if machineSetConfigStatus != nil {
+		rc.configUpdatesAllowed = machineSetConfigStatus.TypedSpec().Value.ConfigUpdatesAllowed
 	}
 
 	rc.clusterMachine, err = safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, machineConfig.Metadata().ID())

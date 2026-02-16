@@ -422,6 +422,7 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*omni.MachineSet](),
 		safe.WithResourceCache[*omni.MachineSetDestroyStatus](),
 		safe.WithResourceCache[*omni.MachineSetStatus](),
+		safe.WithResourceCache[*omni.MachineSetConfigStatus](),
 		safe.WithResourceCache[*omni.MachineSetNode](),
 		safe.WithResourceCache[*omni.MachineStatus](),
 		safe.WithResourceCache[*omni.MachineStatusSnapshot](),

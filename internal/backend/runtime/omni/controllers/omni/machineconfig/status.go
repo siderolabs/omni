@@ -126,7 +126,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost string) *ClusterMa
 		qtransform.WithExtraMappedInput[*omni.TalosConfig](
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
 		),
-		qtransform.WithExtraMappedInput[*omni.MachineSetStatus](
+		qtransform.WithExtraMappedInput[*omni.MachineSetConfigStatus](
 			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, md controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				machines, err := safe.ReaderListAll[*omni.ClusterMachineConfig](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, md.ID())))
 				if err != nil {
@@ -229,6 +229,12 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 	if machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != shaSumString { // latest config is not yet applied, perform config apply
 		mode, err = ctrl.applyConfig(ctx, logger, r, rc)
 		if err != nil {
+			if !xerrors.TagIs[qtransform.SkipReconcileTag](err) {
+				if err = ctrl.releaseConfigUpdateLock(ctx, r, rc.clusterMachine); err != nil {
+					return err
+				}
+			}
+
 			grpcSt := client.Status(err)
 			if grpcSt != nil && grpcSt.Code() == codes.InvalidArgument {
 				machineConfigStatus.TypedSpec().Value.LastConfigError = grpcSt.Message()
@@ -326,7 +332,7 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 	case machineapi.MachineStatusEvent_BOOTING:
 	case machineapi.MachineStatusEvent_RUNNING:
 	default:
-		return rc.machineConfigStatus.TypedSpec().Value.TalosVersion != "", nil
+		return false, nil
 	}
 
 	if rc.installImage.TalosVersion == "" {
@@ -758,7 +764,7 @@ func (ctrl *ClusterMachineConfigStatusController) shouldResetGraceful(
 		return false, fmt.Errorf("failed to determine machine set of the cluster machine %s", clusterMachine.Metadata().ID())
 	}
 
-	machineSetStatus, err := safe.ReaderGet[*omni.MachineSetStatus](ctx, r, omni.NewMachineSetStatus(machineSetName).Metadata())
+	machineSetConfigStatus, err := safe.ReaderGetByID[*omni.MachineSetConfigStatus](ctx, r, machineSetName)
 	if err != nil && !state.IsNotFoundError(err) {
 		return false, fmt.Errorf("failed to get machine set '%s': %w", machineSetName, err)
 	}
@@ -767,8 +773,7 @@ func (ctrl *ClusterMachineConfigStatusController) shouldResetGraceful(
 		return false, nil
 	}
 
-	return machineSetStatus != nil && machineSetStatus.Metadata().Phase() == resource.PhaseRunning &&
-		machineSetStatus.TypedSpec().Value.Phase != specs.MachineSetPhase_Destroying, nil
+	return machineSetConfigStatus != nil && machineSetConfigStatus.TypedSpec().Value.ShouldResetGraceful, nil
 }
 
 func (ctrl *ClusterMachineConfigStatusController) gracefulEtcdLeave(ctx context.Context, c *client.Client, id string) error {
@@ -858,7 +863,7 @@ func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx co
 		return errors.New("failed to get machine set name from the cluster machine")
 	}
 
-	machineSetStatus, err := safe.ReaderGetByID[*omni.MachineSetStatus](ctx, r, machineSetName)
+	machineSetConfigStatus, err := safe.ReaderGetByID[*omni.MachineSetConfigStatus](ctx, r, machineSetName)
 	if err != nil {
 		return err
 	}
@@ -873,7 +878,7 @@ func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx co
 		return err
 	}
 
-	updateParallelism := getParallelismOrDefault(machineSetStatus.TypedSpec().Value.UpdateStrategy, machineSetStatus.TypedSpec().Value.UpdateStrategyConfig, 1)
+	updateParallelism := getParallelismOrDefault(machineSetConfigStatus.TypedSpec().Value.UpdateStrategy, machineSetConfigStatus.TypedSpec().Value.UpdateStrategyConfig, 1)
 
 	quota := updateParallelism
 

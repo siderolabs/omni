@@ -1196,6 +1196,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			{
 				resource: siderolink.NewNodeUniqueToken(uuid.NewString()),
 			},
+			{
+				resource: omni.NewMachineSetConfigStatus(uuid.NewString()),
+			},
 		}...)
 
 		// custom resources

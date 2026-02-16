@@ -588,7 +588,11 @@ export type MachineSetStatusSpec = {
   config_hash?: string
   machine_allocation?: MachineSetSpecMachineAllocation
   locked_updates?: number
+}
+
+export type MachineSetConfigStatusSpec = {
   config_updates_allowed?: boolean
+  should_reset_graceful?: boolean
   update_strategy?: MachineSetSpecUpdateStrategy
   update_strategy_config?: MachineSetSpecUpdateStrategyConfig
 }

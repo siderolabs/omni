@@ -189,6 +189,7 @@ export const MachineRequestSetStatusType = "MachineRequestSetStatuses.omni.sider
 export const ControlPlanesIDSuffix = "control-planes";
 export const DefaultWorkersIDSuffix = "workers";
 export const MachineSetType = "MachineSets.omni.sidero.dev";
+export const MachineSetConfigStatusType = "MachineSetConfigStatuses.omni.sidero.dev";
 export const MachineSetDestroyStatusType = "MachineSetDestroyStatuses.omni.sidero.dev";
 export const MachineSetNodeType = "MachineSetNodes.omni.sidero.dev";
 export const MachineSetStatusType = "MachineSetStatuses.omni.sidero.dev";

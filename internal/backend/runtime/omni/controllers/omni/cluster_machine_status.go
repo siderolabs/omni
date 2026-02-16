@@ -290,7 +290,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
 		),
 		qtransform.WithExtraMappedInput[*infra.MachineRequestStatus](
-			qtransform.MapperFuncFromTyped[*infra.MachineRequestStatus](
+			qtransform.MapperFuncFromTyped(
 				func(_ context.Context, _ *zap.Logger, _ controller.QRuntime, request *infra.MachineRequestStatus) ([]resource.Pointer, error) {
 					if request.TypedSpec().Value.Id == "" {
 						return nil, nil

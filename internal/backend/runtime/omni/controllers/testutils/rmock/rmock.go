@@ -252,7 +252,19 @@ func init() {
 
 		helpers.CopyAllLabels(machineSet, res)
 
+		return nil
+	})
+
+	addDefaults(func(ctx context.Context, st state.State, res *omni.MachineSetConfigStatus) error {
+		machineSet, err := safe.ReaderGetByID[*omni.MachineSet](ctx, st, res.Metadata().ID())
+		if err != nil {
+			return err
+		}
+
+		helpers.CopyAllLabels(machineSet, res)
+
 		res.TypedSpec().Value.ConfigUpdatesAllowed = true
+		res.TypedSpec().Value.ShouldResetGraceful = true
 
 		return nil
 	})
