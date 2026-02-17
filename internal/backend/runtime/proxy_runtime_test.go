@@ -467,6 +467,42 @@ func TestProxyRuntime_WatchBootstrappedFirst(t *testing.T) {
 	)
 }
 
+func TestProxyRuntime_WatchSearchForTransition(t *testing.T) {
+	t.Parallel()
+
+	bootstrapped := cosi.NewResponse("", "", &resources.WatchResponse{
+		Event: &resources.Event{EventType: resources.EventType_BOOTSTRAPPED},
+	}, nil)
+
+	msgs := []runtime.WatchResponse{
+		// Bootstrap: two machines, both match "cluster1"
+		watchResponse(1, "cluster1", "", 0),
+		watchResponse(2, "cluster1", "", 0),
+		bootstrapped,
+		// Post-bootstrap: id1 updated to cluster2 (no longer matches "cluster1")
+		watchResponseUpdate(1, "cluster2", "", 0),
+		// id1 updated back to cluster1 (matches again)
+		watchResponseUpdate(1, "cluster1", "", 0),
+		// id2 updated to cluster2 (no longer matches)
+		watchResponseUpdate(2, "cluster2", "", 0),
+	}
+
+	expected := []runtime.WatchResponse{
+		// Bootstrap
+		watchResponse(1, "cluster1", "", 1),
+		watchResponse(2, "cluster1", "", 2),
+		bootstrapped,
+		// id1 no longer matches → synthesized DESTROYED
+		watchResponseDestroy(1, "cluster2", "", 1),
+		// id1 matches again → synthesized CREATED
+		watchResponse(1, "cluster1", "", 2),
+		// id2 no longer matches → synthesized DESTROYED
+		watchResponseDestroy(2, "cluster2", "", 1),
+	}
+
+	testWatch(t, msgs, expected, true, runtime.WithSearchFor([]string{"cluster1"}))
+}
+
 //nolint:unparam
 func watchResponse(id int, cluster, sortByField string, count int) runtime.WatchResponse {
 	return cosi.NewResponse(
@@ -475,6 +511,21 @@ func watchResponse(id int, cluster, sortByField string, count int) runtime.Watch
 		&resources.WatchResponse{
 			Event: &resources.Event{
 				EventType: resources.EventType_CREATED,
+			},
+			Total:         int32(count),
+			SortFieldData: sortByField,
+		},
+		newMachine(id, &specs.MachineStatusSpec{Cluster: cluster}),
+	)
+}
+
+func watchResponseUpdate(id int, cluster, sortByField string, count int) runtime.WatchResponse {
+	return cosi.NewResponse(
+		fmt.Sprintf("id%d", id),
+		"default",
+		&resources.WatchResponse{
+			Event: &resources.Event{
+				EventType: resources.EventType_UPDATED,
 			},
 			Total:         int32(count),
 			SortFieldData: sortByField,

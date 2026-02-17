@@ -77,8 +77,17 @@ func watchResponseProducer(
 	offsetLimiter := MakeStreamOffsetLimiter(opts.Offset, opts.Limit, safeCmp(cmp, cmpNamespaceID[WatchResponse]))
 	total := int32(0)
 
+	var sent map[string]struct{} // tracks resources sent to the client for searchFor filtering
+	if len(opts.SearchFor) > 0 {
+		sent = map[string]struct{}{}
+	}
+
 	return func(ctx context.Context, wr WatchResponse) (bool, error) {
-		if !match(wr, opts.SearchFor) {
+		if len(opts.SearchFor) > 0 && wr.ID() != "" {
+			if !reconcileSearchEvent(wr, opts.SearchFor, sent) {
+				return true, nil
+			}
+		} else if !match(wr, opts.SearchFor) {
 			return true, nil
 		}
 
@@ -106,6 +115,47 @@ func watchResponseProducer(
 func match(ev runtime.Matcher, searchFor []string) bool {
 	return len(searchFor) == 0 ||
 		slices.IndexFunc(searchFor, func(searchFor string) bool { return ev.Match(searchFor) }) != -1
+}
+
+// reconcileSearchEvent adjusts watch event types to properly handle resources
+// transitioning in and out of search filter criteria, similar to how COSI natively
+// handles label selector transitions. It tracks which resources have been sent to
+// the client, and synthesizes CREATED/DESTROYED events when a resource starts or
+// stops matching the search filter.
+//
+// Returns true if the event should be forwarded to the client.
+func reconcileSearchEvent(wr WatchResponse, searchFor []string, sent map[string]struct{}) bool {
+	matches := match(wr, searchFor)
+	_, wasSent := sent[wr.ID()]
+
+	if EventType(wr) == resources.EventType_DESTROYED {
+		if !wasSent {
+			return false
+		}
+
+		delete(sent, wr.ID())
+
+		return true
+	}
+
+	switch {
+	case matches && !wasSent:
+		sent[wr.ID()] = struct{}{}
+		wr.Unwrap().Event.EventType = resources.EventType_CREATED
+		wr.Unwrap().Event.Old = ""
+
+		return true
+	case matches:
+		return true
+	case wasSent:
+		delete(sent, wr.ID())
+		wr.Unwrap().Event.EventType = resources.EventType_DESTROYED
+		wr.Unwrap().Event.Old = ""
+
+		return true
+	default:
+		return false
+	}
 }
 
 func fill(r WatchResponse, field string, desc bool) error {
