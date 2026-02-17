@@ -43,15 +43,6 @@ config:
       - ${AUTH0_TEST_USERNAME}
   registries:
     mirrors: ${REGISTRY_MIRRORS_JSON}
-  storage:
-    default:
-      etcd:
-        embedded: false
-        endpoints:
-          - https://etcd.etcd.svc.cluster.local:2379
-        caFile: /etcd-client-certs/ca.crt
-        certFile: /etcd-client-certs/client.crt
-        keyFile: /etcd-client-certs/client.key
   services:
     api:
       advertisedURL: https://omni.example.org
@@ -93,16 +84,6 @@ ingress:
   # because connecting machines use the node IP directly and cannot resolve domain names.
   siderolinkApi:
     enabled: false
-
-extraVolumes:
-  - name: etcd-client-certs
-    secret:
-      secretName: etcd-client-certs
-
-extraVolumeMounts:
-  - name: etcd-client-certs
-    mountPath: /etcd-client-certs
-    readOnly: true
 
 # Traefik IngressRoute for workload proxy wildcard domain.
 # Uses the default TLS store (which has the wildcard cert covering *.omni-workload.example.org).

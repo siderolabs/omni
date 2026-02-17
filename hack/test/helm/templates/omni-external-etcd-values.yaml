@@ -1,0 +1,20 @@
+config:
+  storage:
+    default:
+      etcd:
+        embedded: false
+        endpoints:
+          - https://etcd.etcd.svc.cluster.local:2379
+        caFile: /etcd-client-certs/ca.crt
+        certFile: /etcd-client-certs/client.crt
+        keyFile: /etcd-client-certs/client.key
+
+extraVolumes:
+  - name: etcd-client-certs
+    secret:
+      secretName: etcd-client-certs
+
+extraVolumeMounts:
+  - name: etcd-client-certs
+    mountPath: /etcd-client-certs
+    readOnly: true

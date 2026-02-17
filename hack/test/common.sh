@@ -91,10 +91,6 @@ registries:
       REGISTRY_MIRROR_CONFIG+="    - ${registry}=http://${addr}:5000"
       REGISTRY_MIRROR_CONFIG+=$'\n'
     done
-  else
-    # use the value from the environment, if present
-    REGISTRY_MIRROR_FLAGS=("${REGISTRY_MIRROR_FLAGS:-}")
-    REGISTRY_MIRROR_CONFIG="${REGISTRY_MIRROR_CONFIG:-}"
   fi
 }
 

@@ -44,6 +44,40 @@ function gather_cluster_diagnostics() {
 HOST_CLUSTER_NAME="test-e2e-helm"
 TEST_MACHINES_CLUSTER_NAME="test-helm-machines"
 
+# Extract the initial service account key from the Omni pod via an ephemeral debug container.
+function extract_sa_key() {
+  local namespace=$1
+  local output_path=$2
+
+  local pod
+  pod=$(kubectl get pod -n "${namespace}" -l app.kubernetes.io/name=omni -o jsonpath="{.items[0].metadata.name}")
+
+  kubectl debug -n "${namespace}" "${pod}" \
+    --image=busybox:1.36 --target=omni --profile=sysadmin --share-processes -- sleep 600
+
+  echo "Waiting for ephemeral container to be running..."
+  for i in $(seq 1 30); do
+    local status
+    status=$(kubectl get pod "${pod}" -n "${namespace}" -o jsonpath="{.status.ephemeralContainerStatuses[-1:].state.running}" 2>/dev/null || true)
+    if [ -n "${status}" ]; then
+      echo "Ephemeral container is running."
+      break
+    fi
+    if [ "${i}" -eq 30 ]; then
+      echo "Timed out waiting for ephemeral container to start."
+      exit 1
+    fi
+    sleep 2
+  done
+
+  local ephemeral_container
+  ephemeral_container=$(kubectl get pod "${pod}" -n "${namespace}" -o jsonpath="{.spec.ephemeralContainers[-1:].name}")
+  kubectl cp "${namespace}/${pod}:/proc/1/root/tmp/initial-service-account-key" "${output_path}" -c="${ephemeral_container}"
+
+  echo "Service account key extracted to ${output_path}"
+  cat "${output_path}"
+}
+
 function cleanup() {
   gather_cluster_diagnostics || true
   common_cleanup || true
@@ -143,51 +177,65 @@ for flag in ${REGISTRY_MIRROR_FLAGS[@]+"${REGISTRY_MIRROR_FLAGS[@]}"}; do
   mirrors_items+=("\"${mirror}\"")
 done
 if [ ${#mirrors_items[@]} -gt 0 ]; then
-  REGISTRY_MIRRORS_JSON="[$(IFS=,; echo "${mirrors_items[*]}")]"
+  REGISTRY_MIRRORS_JSON="[$(
+    IFS=,
+    echo "${mirrors_items[*]}"
+  )]"
 fi
 export REGISTRY_MIRRORS_JSON
 
 # Render the Helm values template with envsubst.
 export OMNI_IMAGE_REPO OMNI_IMAGE_TAG AUTH0_CLIENT_ID AUTH0_DOMAIN AUTH0_TEST_USERNAME NODE_IP JOIN_TOKEN
-RENDERED_VALUES=$(mktemp)
-envsubst < hack/test/helm/omni-values.yaml.envsubst > "${RENDERED_VALUES}"
 
+# ============================================================
+# Phase 1: Smoke test with embedded etcd
+# ============================================================
+RENDERED_BASE_VALUES=$(mktemp)
+envsubst <hack/test/helm/templates/omni-values.yaml >"${RENDERED_BASE_VALUES}"
+
+echo "Installing Omni with embedded etcd..."
 helm upgrade --install omni deploy/helm/omni/ \
   --namespace "${OMNI_NAMESPACE}" \
-  --values "${RENDERED_VALUES}" \
+  --values "${RENDERED_BASE_VALUES}" \
+  --wait --timeout 300s
+
+kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=omni -n "${OMNI_NAMESPACE}" --timeout=120s
+
+extract_sa_key "${OMNI_NAMESPACE}" "${ARTIFACTS}/omni-sa-key"
+
+echo "Running embedded etcd smoke test..."
+OMNICTL_OUTPUT=$(OMNI_ENDPOINT=https://omni.example.org \
+  OMNI_SERVICE_ACCOUNT_KEY=$(cat "${ARTIFACTS}/omni-sa-key") \
+  SSL_CERT_DIR=hack/test/helm/certs:/etc/ssl/certs \
+  "${ARTIFACTS}"/omnictl-linux-amd64 get defaultjointoken -oyaml)
+
+echo "${OMNICTL_OUTPUT}"
+
+if ! echo "${OMNICTL_OUTPUT}" | grep -q "tokenid: ${JOIN_TOKEN}"; then
+  echo "ERROR: expected 'tokenid: ${JOIN_TOKEN}' in omnictl output"
+  exit 1
+fi
+
+echo "Embedded etcd smoke test passed."
+
+echo "Uninstalling Omni (embedded etcd)..."
+helm uninstall omni --namespace "${OMNI_NAMESPACE}" --wait --timeout 120s
+kubectl wait --for=delete pod -l app.kubernetes.io/name=omni -n "${OMNI_NAMESPACE}" --timeout=120s
+
+# ============================================================
+# Phase 2: Install with external etcd (main test)
+# ============================================================
+echo "Installing Omni with external etcd..."
+helm upgrade --install omni deploy/helm/omni/ \
+  --namespace "${OMNI_NAMESPACE}" \
+  --values "${RENDERED_BASE_VALUES}" \
+  --values hack/test/helm/templates/omni-external-etcd-values.yaml \
   --wait --timeout 300s
 
 # Wait for Omni pod to be ready.
 kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=omni -n "${OMNI_NAMESPACE}" --timeout=120s
 
-# Extract the initial service account key from the Omni pod.
-OMNI_POD=$(kubectl get pod -n "${OMNI_NAMESPACE}" -l app.kubernetes.io/name=omni -o jsonpath="{.items[0].metadata.name}")
-
-# Launch an ephemeral debug container to access the pod filesystem.
-kubectl debug -n "${OMNI_NAMESPACE}" "${OMNI_POD}" \
-  --image=busybox:1.36 --target=omni --profile=sysadmin --share-processes -- sleep 600
-
-# Wait for the ephemeral container to be running.
-echo "Waiting for ephemeral container to be running..."
-for i in $(seq 1 30); do
-  STATUS=$(kubectl get pod "${OMNI_POD}" -n "${OMNI_NAMESPACE}" -o jsonpath="{.status.ephemeralContainerStatuses[-1:].state.running}" 2>/dev/null || true)
-  if [ -n "${STATUS}" ]; then
-    echo "Ephemeral container is running."
-    break
-  fi
-  if [ "${i}" -eq 30 ]; then
-    echo "Timed out waiting for ephemeral container to start."
-    exit 1
-  fi
-  sleep 2
-done
-
-# Copy the service account key from the pod.
-EPHEMERAL_CONTAINER=$(kubectl get pod "${OMNI_POD}" -n "${OMNI_NAMESPACE}" -o jsonpath="{.spec.ephemeralContainers[-1:].name}")
-kubectl cp "${OMNI_NAMESPACE}/${OMNI_POD}:/proc/1/root/tmp/initial-service-account-key" "${ARTIFACTS}/omni-sa-key" -c="${EPHEMERAL_CONTAINER}"
-
-echo "Service account key extracted to ${ARTIFACTS}/omni-sa-key"
-cat "${ARTIFACTS}/omni-sa-key"
+extract_sa_key "${OMNI_NAMESPACE}" "${ARTIFACTS}/omni-sa-key"
 
 # Build a schematic with SideroLink kernel args pointing to the Helm-deployed Omni.
 HELM_SCHEMATIC=$(
