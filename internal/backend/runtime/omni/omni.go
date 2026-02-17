@@ -124,7 +124,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 
 	backupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(ctx context.Context, clusterName string) (omnictrl.TalosClient, error) {
-			return talosClientFactory.Get(ctx, clusterName)
+			return talosClientFactory.GetForCluster(ctx, clusterName)
 		},
 		StoreFactory: storeFactory,
 		TickInterval: cfg.EtcdBackup.GetTickInterval(),

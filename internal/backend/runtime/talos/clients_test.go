@@ -59,7 +59,7 @@ func (suite *ClientsSuite) SetupTest() {
 	})
 }
 
-func (suite *ClientsSuite) TestGetClient() {
+func (suite *ClientsSuite) TestGetClientForCluster() {
 	clusterName := "omni"
 
 	logger := zaptest.NewLogger(suite.T())
@@ -68,7 +68,7 @@ func (suite *ClientsSuite) TestGetClient() {
 
 	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewTalosConfigController(constants.CertificateValidityTime)))
 
-	_, err := clientFactory.Get(suite.ctx, clusterName)
+	_, err := clientFactory.GetForCluster(suite.ctx, clusterName)
 	suite.Require().True(talos.IsClientNotReadyError(err))
 
 	configBundle, err := bundle.NewBundle(bundle.WithInputOptions(
@@ -98,13 +98,32 @@ func (suite *ClientsSuite) TestGetClient() {
 	clusterEndpoint.TypedSpec().Value.ManagementAddresses = []string{"localhost"}
 	suite.Require().NoError(suite.state.Create(suite.ctx, clusterEndpoint))
 
-	c1, err := clientFactory.Get(suite.ctx, clusterName)
+	c1, err := clientFactory.GetForCluster(suite.ctx, clusterName)
 	suite.Require().NoError(err)
 
-	c2, err := clientFactory.Get(suite.ctx, clusterName)
+	c2, err := clientFactory.GetForCluster(suite.ctx, clusterName)
 	suite.Require().NoError(err)
 
 	suite.Assert().Same(c1, c2)
+}
+
+func (suite *ClientsSuite) TestGetForMachine() {
+	logger := zaptest.NewLogger(suite.T())
+
+	clientFactory := talos.NewClientFactory(suite.state, logger)
+
+	c1, err := clientFactory.GetForMachine(suite.ctx, "127.0.0.1")
+	suite.Require().NoError(err)
+
+	c2, err := clientFactory.GetForMachine(suite.ctx, "127.0.0.1")
+	suite.Require().NoError(err)
+
+	suite.Assert().Same(c1, c2, "same address should return cached client")
+
+	c3, err := clientFactory.GetForMachine(suite.ctx, "127.0.0.2")
+	suite.Require().NoError(err)
+
+	suite.Assert().NotSame(c1, c3, "different address should return different client")
 }
 
 func (suite *ClientsSuite) TearDownTest() {

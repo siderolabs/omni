@@ -2,9 +2,6 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-
-import { clusterName } from '@/context'
-
 import { Runtime } from './common/omni.pb'
 import type { RequestOptions } from './fetch.pb'
 import type { WatchContext } from './watch'
@@ -56,11 +53,6 @@ export const withContext = (context: WatchContext) => {
 
     if (context.cluster) {
       md.cluster = context.cluster
-    } else {
-      const currentContext = clusterName()
-      if (currentContext) {
-        md.cluster = md.cluster || currentContext
-      }
     }
 
     if (context.nodes) {

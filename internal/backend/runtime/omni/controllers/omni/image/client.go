@@ -33,7 +33,7 @@ type TalosImageClient struct {
 
 // ListImagesOnNode lists images on a node.
 func (c *TalosImageClient) ListImagesOnNode(ctx context.Context, cluster, node string) ([]string, error) {
-	talosCli, err := c.TalosClientFactory.Get(ctx, cluster)
+	talosCli, err := c.TalosClientFactory.GetForCluster(ctx, cluster)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get talos client: %w", err)
 	}
@@ -68,7 +68,7 @@ func (c *TalosImageClient) readImagesFromStream(stream machine.MachineService_Im
 
 // PullImageToNode pulls the given image to the given node.
 func (c *TalosImageClient) PullImageToNode(ctx context.Context, cluster, node, image string) error {
-	talosCli, err := c.TalosClientFactory.Get(ctx, cluster)
+	talosCli, err := c.TalosClientFactory.GetForCluster(ctx, cluster)
 	if err != nil {
 		return fmt.Errorf("failed to get talos client: %w", err)
 	}

@@ -76,7 +76,7 @@ func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse
 		return errors.New("multiple nodes are not supported for Watch")
 	}
 
-	c, err := r.GetClient(ctx, opts.Context)
+	c, err := r.getClientForQuery(ctx, opts)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 		return nil, errors.New("multiple nodes are not supported for Get")
 	}
 
-	c, err := r.GetClient(ctx, opts.Context)
+	c, err := r.getClientForQuery(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 		opts.Nodes = []string{""}
 	}
 
-	c, err := r.GetClient(ctx, opts.Context)
+	c, err := r.getClientForQuery(ctx, opts)
 	if err != nil {
 		return runtime.ListResult{}, err
 	}
@@ -244,7 +244,7 @@ func (r *Runtime) GetTalosconfigRaw(context *common.Context, identity string) ([
 
 // GetClient returns talos client for the cluster name.
 func (r *Runtime) GetClient(ctx context.Context, clusterName string) (*Client, error) {
-	c, err := r.clientFactory.Get(ctx, clusterName)
+	c, err := r.clientFactory.GetForCluster(ctx, clusterName)
 	if err != nil {
 		return nil, err
 	}
@@ -259,6 +259,18 @@ func (r *Runtime) GetClient(ctx context.Context, clusterName string) (*Client, e
 	}
 
 	return c, nil
+}
+
+// getClientForQuery returns a Talos client based on the query options.
+func (r *Runtime) getClientForQuery(ctx context.Context, opts *runtime.QueryOptions) (*Client, error) {
+	// If no cluster is provided but nodes are available, it creates a direct insecure
+	// connection to the node (for unclustered/maintenance machines).
+	if opts.Context == "" && len(opts.Nodes) > 0 && opts.Nodes[0] != "" {
+		return r.clientFactory.GetForMachine(ctx, opts.Nodes[0])
+	}
+
+	// Otherwise use the standard cluster-based client.
+	return r.GetClient(ctx, opts.Context)
 }
 
 type item struct {

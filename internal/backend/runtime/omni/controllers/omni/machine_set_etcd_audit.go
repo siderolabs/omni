@@ -469,7 +469,7 @@ func (auditor *etcdAuditor) getNodeClient(ctx context.Context, r controller.Read
 }
 
 func (auditor *etcdAuditor) getClient(ctx context.Context, r controller.Reader, cluster string) (*talos.Client, error) {
-	c, err := auditor.talosClientFactory.Get(ctx, cluster)
+	c, err := auditor.talosClientFactory.GetForCluster(ctx, cluster)
 	if err != nil {
 		if talos.IsClientNotReadyError(err) {
 			return nil, xerrors.NewTagged[qtransform.SkipReconcileTag](err)

@@ -2,14 +2,12 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-
 import { authGuard } from '@auth0/auth0-vue'
 import { Userpilot } from 'userpilot'
 import type { RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory, RouterView } from 'vue-router'
 
 import { AuthFlowQueryParam, FrontendAuthFlow, RedirectQueryParam } from '@/api/resources'
-import { current } from '@/context'
 import { AuthType, authType } from '@/methods'
 import { loadCurrentUser } from '@/methods/auth'
 import { hasValidKeys } from '@/methods/key'
@@ -425,16 +423,6 @@ export const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-})
-
-router.beforeEach((to) => {
-  if (!to.params.cluster) {
-    return true
-  }
-
-  current.value = to.params.cluster as string
-
-  return true
 })
 
 router.afterEach(() => {

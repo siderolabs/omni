@@ -7,9 +7,12 @@ package talos
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
+	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc"
@@ -210,23 +214,22 @@ func (factory *ClientFactory) connectionOptions(ctx context.Context, id string, 
 	}, nil
 }
 
-// Get constructs a client from resource configuration.
-// Returned client is cached and must not be closed by the consumer.
-func (factory *ClientFactory) Get(ctx context.Context, clusterName string) (*Client, error) {
-	if cli, ok := factory.cache.Get(clusterName); ok {
-		factory.logger.Debug("cache hit, returning cached Talos client", zap.String("cluster", clusterName))
+// get is the shared implementation for constructing and caching Talos clients.
+func (factory *ClientFactory) get(ctx context.Context, logger *zap.Logger, id string, build func(ctx context.Context, id string) (*Client, error)) (*Client, error) {
+	if cli, ok := factory.cache.Get(id); ok {
+		logger.Debug("cache hit, returning cached Talos client")
 
 		factory.metricCacheHits.Inc()
 
 		return cli, nil
 	}
 
-	ch := factory.sf.DoChan(clusterName, func() (any, error) {
-		factory.logger.Debug("cache miss, creating new Talos client", zap.String("cluster", clusterName))
+	ch := factory.sf.DoChan(id, func() (any, error) {
+		logger.Debug("cache miss, creating new Talos client")
 
 		factory.metricCacheMisses.Inc()
 
-		cli, err := factory.build(ctx, clusterName)
+		cli, err := build(ctx, id)
 		if err != nil {
 			return nil, err
 		}
@@ -234,14 +237,14 @@ func (factory *ClientFactory) Get(ctx context.Context, clusterName string) (*Cli
 		factory.metricActiveClients.Inc()
 
 		runtime.AddCleanup(cli, func(c *client.Client) {
-			factory.logger.Debug("finalizing Talos client", zap.String("cluster", clusterName))
+			logger.Debug("finalizing Talos client")
 
 			factory.metricActiveClients.Dec()
 
 			c.Close() //nolint:errcheck
 		}, cli.Client)
 
-		factory.cache.Add(clusterName, cli)
+		factory.cache.Add(id, cli)
 
 		return cli, nil
 	})
@@ -260,6 +263,22 @@ func (factory *ClientFactory) Get(ctx context.Context, clusterName string) (*Cli
 	}
 }
 
+// GetForCluster constructs a client from resource configuration.
+// Returned client is cached and must not be closed by the consumer.
+func (factory *ClientFactory) GetForCluster(ctx context.Context, clusterName string) (*Client, error) {
+	logger := factory.logger.With(zap.String("cluster", clusterName))
+
+	return factory.get(ctx, logger, clusterName, factory.buildForCluster)
+}
+
+// GetForMachine creates an insecure Talos client connected directly to a node address.
+// This is used for unclustered/maintenance machines that are not part of any cluster.
+func (factory *ClientFactory) GetForMachine(ctx context.Context, nodeAddress string) (*Client, error) {
+	logger := factory.logger.With(zap.String("node", nodeAddress))
+
+	return factory.get(ctx, logger, nodeAddress, factory.buildForMachine)
+}
+
 // release releases the Talos cluster client from the client cache.
 // The client will only be closed when it is garbage collected.
 func (factory *ClientFactory) release(clusterName string) {
@@ -268,7 +287,7 @@ func (factory *ClientFactory) release(clusterName string) {
 	factory.cache.Remove(clusterName)
 }
 
-func (factory *ClientFactory) build(ctx context.Context, clusterName string) (*Client, error) {
+func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterName string) (*Client, error) {
 	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](ctx, factory.omniState,
 		omni.NewClusterEndpoint(clusterName).Metadata(),
 	)
@@ -296,6 +315,28 @@ func (factory *ClientFactory) build(ctx context.Context, clusterName string) (*C
 	}
 
 	return NewClient(c, clusterName), nil
+}
+
+func (factory *ClientFactory) buildForMachine(ctx context.Context, nodeAddress string) (*Client, error) {
+	endpoint := net.JoinHostPort(nodeAddress, strconv.FormatInt(talosconstants.ApidPort, 10))
+
+	c, err := client.New(ctx,
+		client.WithTLSConfig(&tls.Config{
+			InsecureSkipVerify: true,
+		}),
+		client.WithEndpoints(endpoint),
+		client.WithGRPCDialOptions(
+			grpc.WithDefaultCallOptions(
+				grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize),
+			),
+			grpc.WithSharedWriteBuffer(true),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClient(c, ""), nil
 }
 
 // StartCacheManager starts watching the relevant resources to do the client cache invalidation.
