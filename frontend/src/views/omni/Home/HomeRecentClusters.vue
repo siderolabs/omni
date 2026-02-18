@@ -14,10 +14,12 @@ import { itemID } from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import Card from '@/components/common/Card/Card.vue'
 import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import { getDocsLink } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
 
-const { data } = useResourceWatch<ClusterStatusSpec>({
+const { data, loading } = useResourceWatch<ClusterStatusSpec>({
   resource: {
     namespace: DefaultNamespace,
     type: ClusterStatusType,
@@ -43,6 +45,26 @@ const { data } = useResourceWatch<ClusterStatusSpec>({
         View All
       </TButton>
     </header>
+
+    <div v-if="!data.length" class="flex items-center justify-center py-4">
+      <TSpinner v-if="loading" class="size-4" />
+      <span v-else class="text-center">
+        To create your first cluster, visit the
+        <RouterLink class="link-primary" :to="{ name: 'Clusters' }">clusters</RouterLink>
+        page.
+        <br />
+        You can also check out our
+        <a
+          target="_blank"
+          rel="noreferrer noopener"
+          :href="getDocsLink('omni', '/getting-started/create-a-cluster')"
+          class="link-primary"
+        >
+          documentation
+        </a>
+        for how to create a cluster.
+      </span>
+    </div>
 
     <div
       v-for="item in data.slice(0, 5)"

@@ -13,9 +13,10 @@ import TButton from '@/components/common/Button/TButton.vue'
 import Card from '@/components/common/Card/Card.vue'
 import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
+import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
-const { data } = useResourceWatch<MachineStatusSpec>({
+const { data, loading } = useResourceWatch<MachineStatusSpec>({
   resource: {
     namespace: DefaultNamespace,
     type: MachineStatusType,
@@ -41,6 +42,11 @@ const { data } = useResourceWatch<MachineStatusSpec>({
         View All
       </TButton>
     </header>
+
+    <div v-if="!data.length" class="flex items-center justify-center py-4">
+      <TSpinner v-if="loading" class="size-4" />
+      <span v-else class="text-center">No machines found</span>
+    </div>
 
     <div
       v-for="item in data.slice(0, 5)"
