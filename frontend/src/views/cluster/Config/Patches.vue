@@ -112,7 +112,12 @@ const includes = (filter: string, values: string[]) => {
   return false
 }
 
-type item = { name: string; route: RouteLocationRaw; id: string; description?: string }
+interface RouteItem {
+  name: string
+  route: RouteLocationRaw
+  id: string
+  description?: string
+}
 
 const patchTypeCluster = 'Cluster'
 
@@ -123,9 +128,9 @@ const routes = computed(() => {
     hostnames[item.metadata.id!] = item.metadata.labels![LabelHostname]
   })
 
-  const groups: Record<string, item[]> = {}
+  const groups: Record<string, RouteItem[]> = {}
 
-  const addToGroup = (name: string, r: item) => {
+  const addToGroup = (name: string, r: RouteItem) => {
     groups[name] = (groups[name] ?? []).concat([r])
   }
 
@@ -171,7 +176,7 @@ const routes = computed(() => {
     }
   })
 
-  const result: { name: string; items: item[] }[] = []
+  const result: { name: string; items: RouteItem[] }[] = []
   for (const key in groups) {
     result.push({ name: key, items: groups[key] })
   }

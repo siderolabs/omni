@@ -28,7 +28,7 @@ const route = useRoute()
 
 const selectedVersion = ref('')
 
-const { data: versions, loading } = useResourceWatch<TalosVersionSpec>({
+const { data: talosVersions, loading } = useResourceWatch<TalosVersionSpec>({
   resource: {
     type: TalosVersionType,
     namespace: DefaultNamespace,
@@ -52,7 +52,7 @@ watch(machine, () => {
 const updating = ref(false)
 
 const upgradeVersions = computed(() => {
-  return versions.value
+  return talosVersions.value
     .filter((v) => !v.spec.deprecated)
     .sort((a, b) => semver.compare(a.metadata.id ?? '', b.metadata.id ?? ''))
     .reduce<Record<string, string[]>>((result, version) => {
@@ -152,11 +152,11 @@ const upgradeClick = async () => {
     <div class="flex justify-end gap-4">
       <TButton
         class="h-9 w-32"
-        :disabled="!versions || updating"
+        :disabled="!talosVersions || updating"
         variant="highlighted"
         @click="upgradeClick"
       >
-        <TSpinner v-if="!versions || updating" class="h-5 w-5" />
+        <TSpinner v-if="!talosVersions || updating" class="h-5 w-5" />
         <span v-else>Update</span>
       </TButton>
     </div>

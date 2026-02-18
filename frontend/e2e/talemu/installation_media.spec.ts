@@ -27,6 +27,7 @@ test('Download installation media', async ({ page }, testInfo) => {
       .catch(() => false)
 
     // Only click "Create New" if we don't auto redirect (redirects directly to wizard if no configs exist)
+    // eslint-disable-next-line playwright/no-conditional-in-test
     if (!isVisible) {
       await page.getByRole('link', { name: 'Create New' }).click()
     }
