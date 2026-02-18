@@ -120,7 +120,33 @@ func Calculate(machineStatus *omni.MachineStatus, kernelArgs *omni.KernelArgs) (
 
 	baseArgs := xslices.Filter(schematicConfig.KernelArgs, isProtected)
 
-	return slices.Concat(baseArgs, extraArgs), true, nil
+	currentArgs := machineStatus.TypedSpec().Value.Schematic.KernelArgs
+	calculatedArgs := slices.Concat(baseArgs, extraArgs)
+
+	if equal(currentArgs, calculatedArgs) {
+		return currentArgs, true, nil
+	}
+
+	return calculatedArgs, true, nil
+}
+
+// equal checks whether the given kernel args are logically equal.
+//
+// It does the comparison in a defensive way to prevent unwanted upgrades:
+//   - protected args (siderolink, events sink, etc.) are compared as an unordered set (as their order doesn't matter in Talos)
+//   - user (extra) args are compared as an ordered list (kernel args order actually matters)
+func equal(a, b []string) bool {
+	aProtected := FilterProtected(a)
+	bProtected := FilterProtected(b)
+
+	slices.Sort(aProtected)
+	slices.Sort(bProtected)
+
+	if !slices.Equal(aProtected, bProtected) {
+		return false
+	}
+
+	return slices.Equal(FilterExtras(a), FilterExtras(b))
 }
 
 // FilterProtected filters out the "extra args" from the provided kernel args, leaving only the protected kernel arguments that cannot be modified.
