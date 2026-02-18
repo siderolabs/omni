@@ -45,7 +45,7 @@ defineProps<Props>()
 </template>
 
 <style scoped>
-@reference "../../../index.css";
+@reference "../../../../index.css";
 
 .diagnostic-item {
   @apply flex flex-row transition-colors hover:brightness-125;

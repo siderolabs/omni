@@ -11,7 +11,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import TabButton from '@/components/common/Tabs/TabButton.vue'
 import TabContent from '@/components/common/Tabs/TabContent.vue'
 import Tabs from '@/components/common/Tabs/Tabs.vue'
-import NodesHeader from '@/views/cluster/Nodes/NodesHeader.vue'
+import NodesHeader from '@/views/cluster/Nodes/components/NodesHeader.vue'
 
 const route = useRoute()
 const machine = computed(() => route.params.machine as string)
@@ -47,8 +47,8 @@ const routes = computed(() => {
       to: { name: 'NodePatches', params: { machine: machine.value } },
     },
     {
-      name: 'Mounts',
-      to: { name: 'NodeMounts', params: { machine: machine.value } },
+      name: 'Disks',
+      to: { name: 'NodeDisks', params: { machine: machine.value } },
     },
     {
       name: 'PCI Devices',

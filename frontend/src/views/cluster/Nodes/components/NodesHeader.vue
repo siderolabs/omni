@@ -142,7 +142,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClu
 </template>
 
 <style scoped>
-@reference "../../../index.css";
+@reference "../../../../index.css";
 
 .header-button:first-child {
   border-radius: 4px 0 0 4px;

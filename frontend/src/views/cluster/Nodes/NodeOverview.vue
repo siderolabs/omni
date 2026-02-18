@@ -47,8 +47,8 @@ import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachinePhase from '@/views/cluster/ClusterMachines/ClusterMachinePhase.vue'
 import NodeConditions from '@/views/cluster/Nodes/components/NodeConditions.vue'
-import NodeDiagnosticWarnings from '@/views/cluster/Nodes/NodeDiagnosticWarnings.vue'
-import NodeServiceEvents from '@/views/cluster/Nodes/NodeServiceEvents.vue'
+import NodeDiagnosticWarnings from '@/views/cluster/Nodes/components/NodeDiagnosticWarnings.vue'
+import NodeServiceEvents from '@/views/cluster/Nodes/components/NodeServiceEvents.vue'
 import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
 
 const route = useRoute()

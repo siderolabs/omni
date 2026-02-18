@@ -6,6 +6,7 @@ package constants
 
 import (
 	"github.com/siderolabs/talos/pkg/machinery/constants"
+	"github.com/siderolabs/talos/pkg/machinery/resources/block"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
 	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
 	"github.com/siderolabs/talos/pkg/machinery/resources/k8s"
@@ -25,6 +26,10 @@ const (
 	_ = v1alpha1.ServiceType
 	// tsgen:TalosCPUType
 	_ = perf.CPUType
+	// tsgen:TalosDiscoveredVolumeType
+	_ = block.DiscoveredVolumeType
+	// tsgen:TalosDiskType
+	_ = block.DiskType
 	// tsgen:TalosMemoryType
 	_ = perf.MemoryType
 	// tsgen:TalosNodenameType
