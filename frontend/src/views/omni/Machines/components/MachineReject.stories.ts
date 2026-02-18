@@ -4,24 +4,18 @@
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { vueRouter } from 'storybook-vue3-router'
 
 import MachineReject from './MachineReject.vue'
 
 const meta: Meta<typeof MachineReject> = {
   component: MachineReject,
+  args: {
+    open: true,
+    machines: faker.helpers.multiple(faker.string.uuid),
+  },
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-const machines = faker.helpers.multiple(() => faker.string.uuid(), { count: 10 })
-const query = new URLSearchParams(machines.map((m) => ['machine', m]))
-
-export const Default: Story = {
-  decorators: [
-    vueRouter(undefined, {
-      initialRoute: `/fake?${query}`,
-    }),
-  ],
-}
+export const Default: Story = {}

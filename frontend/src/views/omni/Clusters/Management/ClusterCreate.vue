@@ -318,14 +318,7 @@ const openPatchConfig = () => {
   })
 }
 
-const list: Ref<{ addFilterLabel: (label: { key: string; value?: string }) => void } | null> =
-  ref(null)
-
-const filterByLabel = (e: { key: string; value?: string }) => {
-  if (list.value) {
-    list.value.addFilterLabel(e)
-  }
-}
+const list = useTemplateRef('list')
 </script>
 
 <template>
@@ -448,7 +441,7 @@ const filterByLabel = (e: { key: string; value?: string }) => {
             :reset="reset"
             :item="item"
             :search-query="searchQuery"
-            @filter-label="filterByLabel"
+            @filter-label="list?.addFilterLabel"
           />
         </template>
       </TList>

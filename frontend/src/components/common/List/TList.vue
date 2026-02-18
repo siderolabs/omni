@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
 import type { Ref } from 'vue'
-import { computed, ref, toRefs, watch as vueWatch } from 'vue'
+import { computed, ref, toRefs, watch } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type { WatchJoinOptions, WatchOptions } from '@/api/watch'
@@ -28,6 +28,10 @@ defineExpose({
     filterValueInternal.value += (filterValueInternal.value ? ' ' : '') + selector
   },
 })
+
+const emit = defineEmits<{
+  filterChanged: [string | undefined]
+}>()
 
 const dots = '...'
 
@@ -77,6 +81,10 @@ const selectedFilterOption = ref<string | undefined>(filterOptionsVariants.value
 const sidePanelOpen = ref(false)
 const sidePanelSelectedItemId = ref<string>()
 
+watch(selectedFilterOption, () => {
+  emit('filterChanged', selectedFilterOption.value)
+})
+
 const filterValueComputed = computed(() => {
   return filterValue.value !== undefined ? filterValue.value : filterValueInternal.value
 })
@@ -121,7 +129,7 @@ const paginationState = computed(() => {
 })
 
 // reset the pagination when the search query changes
-vueWatch(filterValue, () => {
+watch(filterValue, () => {
   currentPage.value = 1
 })
 
@@ -270,13 +278,10 @@ const paginationRange = computed(() => {
   return res
 })
 
-const watch = optsList?.length ? setupJoinWatch() : setupWatch()
-const err = watch.err
-const loading = watch.loading
-const itemsCount = watch.total
+const { err, loading, total } = optsList?.length ? setupJoinWatch() : setupWatch()
 
 const totalPageCount = computed(() => {
-  return Math.ceil(watch.total.value / selectedItemsPerPage.value)
+  return Math.ceil(total.value / selectedItemsPerPage.value)
 })
 
 const showPageSelector = computed(() => {
@@ -306,7 +311,7 @@ const openPage = (page: number | string) => {
     <div class="flex grow flex-col gap-2">
       <slot
         name="header"
-        :items-count="itemsCount"
+        :items-count="total"
         :filtered="searchState.searchFor?.length || searchState.selectors?.length"
       />
 
@@ -326,11 +331,7 @@ const openPage = (page: number | string) => {
               :title="filterCaption ?? 'Filter'"
               :default-value="selectedFilterOption || ''"
               :values="filterOptionsVariants"
-              @checked-value="
-                (value: string) => {
-                  selectedFilterOption = value
-                }
-              "
+              @checked-value="(value) => (selectedFilterOption = value)"
             />
 
             <TSelectList
@@ -379,7 +380,6 @@ const openPage = (page: number | string) => {
           <div v-show="!loading && !err && items.length > 0" class="size-full">
             <slot
               :items="items"
-              :watch="watch"
               :search-query="searchQuery"
               :side-panel-open
               :side-panel-selected-item-id

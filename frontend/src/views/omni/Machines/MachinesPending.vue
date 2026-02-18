@@ -19,13 +19,15 @@ import StatsItem from '@/components/common/Stats/StatsItem.vue'
 import TableCell from '@/components/common/Table/TableCell.vue'
 import TableRoot from '@/components/common/Table/TableRoot.vue'
 import TableRow from '@/components/common/Table/TableRow.vue'
-import MachineAccept from '@/views/omni/Modals/MachineAccept.vue'
-import MachineReject from '@/views/omni/Modals/MachineReject.vue'
-import MachineUnreject from '@/views/omni/Modals/MachineUnreject.vue'
+import MachineAccept from '@/views/omni/Machines/components/MachineAccept.vue'
+import MachineDelete from '@/views/omni/Machines/components/MachineDelete.vue'
+import MachineReject from '@/views/omni/Machines/components/MachineReject.vue'
+import MachineUnreject from '@/views/omni/Machines/components/MachineUnreject.vue'
 
 const selectedMachines = ref(new Set<string>())
 
 const acceptModalOpen = ref(false)
+const deleteModalOpen = ref(false)
 const rejectModalOpen = ref(false)
 const unrejectModalOpen = ref(false)
 </script>
@@ -47,6 +49,7 @@ const unrejectModalOpen = ref(false)
       ]"
       search
       pagination
+      @filter-changed="selectedMachines.clear()"
     >
       <template #header="{ itemsCount }">
         <PageHeader title="Pending Machines">
@@ -55,30 +58,45 @@ const unrejectModalOpen = ref(false)
       </template>
 
       <template #extra-controls="{ selectedFilterOption }">
-        <template v-if="selectedFilterOption === 'Pending'">
+        <div class="flex gap-2">
+          <template v-if="selectedFilterOption === 'Pending'">
+            <TButton
+              icon="check"
+              variant="highlighted"
+              :disabled="!selectedMachines.size"
+              @click="acceptModalOpen = true"
+            >
+              Accept
+            </TButton>
+
+            <TButton
+              icon="close"
+              :disabled="!selectedMachines.size"
+              @click="rejectModalOpen = true"
+            >
+              Reject
+            </TButton>
+          </template>
+
           <TButton
-            icon="check"
+            v-else
+            icon="close"
             variant="highlighted"
             :disabled="!selectedMachines.size"
-            @click="acceptModalOpen = true"
+            @click="unrejectModalOpen = true"
           >
-            Accept
+            Unreject
           </TButton>
 
-          <TButton icon="close" :disabled="!selectedMachines.size" @click="rejectModalOpen = true">
-            Reject
+          <TButton
+            variant="primary"
+            icon="delete"
+            :disabled="!selectedMachines.size"
+            @click="deleteModalOpen = true"
+          >
+            Delete selected
           </TButton>
-        </template>
-
-        <TButton
-          v-else
-          icon="close"
-          variant="highlighted"
-          :disabled="!selectedMachines.size"
-          @click="unrejectModalOpen = true"
-        >
-          Unreject
-        </TButton>
+        </div>
       </template>
 
       <template #default="{ items, searchQuery }">
@@ -127,6 +145,12 @@ const unrejectModalOpen = ref(false)
 
     <MachineAccept
       v-model:open="acceptModalOpen"
+      :machines="Array.from(selectedMachines)"
+      @confirmed="selectedMachines.clear()"
+    />
+
+    <MachineDelete
+      v-model:open="deleteModalOpen"
       :machines="Array.from(selectedMachines)"
       @confirmed="selectedMachines.clear()"
     />
