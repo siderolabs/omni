@@ -381,6 +381,11 @@ type LogsMachineStorage struct {
 	// MaxLinesPerMachine is the maximum number of log lines to keep per machine.
 	MaxLinesPerMachine *int `json:"maxLinesPerMachine,omitempty" yaml:"maxLinesPerMachine,omitempty"`
 
+	// MaxSize is the maximum allowed size (in bytes) of the machine logs table. When
+	// exceeded, the oldest entries are removed globally across all machines. 0 means
+	// unlimited.
+	MaxSize *uint64 `json:"maxSize,omitempty" yaml:"maxSize,omitempty"`
+
 	// SqliteTimeout is the timeout for SQLite operations used for machine logs
 	// storage.
 	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty" yaml:"sqliteTimeout,omitempty"`

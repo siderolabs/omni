@@ -149,6 +149,7 @@ func Default() *Params {
 	p.Logs.Machine.Storage.SetCleanupInterval(30 * time.Minute)
 	p.Logs.Machine.Storage.SetCleanupOlderThan(24 * 30 * time.Hour)
 	p.Logs.Machine.Storage.SetMaxLinesPerMachine(5000)
+	p.Logs.Machine.Storage.SetMaxSize(0) // 0 means unlimited
 	p.Logs.Machine.Storage.SetCleanupProbability(0.01)
 
 	p.Storage.Sqlite.SetExperimentalBaseParams("_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)")

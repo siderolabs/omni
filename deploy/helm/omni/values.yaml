@@ -181,6 +181,13 @@ config:
       #enabled: true
       # SqliteTimeout is the timeout for SQLite operations used for audit logs storage.
       #sqliteTimeout: 30s
+      # RetentionPeriod is the duration after which audit logs are considered old and eligible for cleanup.
+      #retentionPeriod: 720h
+      # MaxSize is the maximum allowed size (in bytes) of the audit logs.
+      # When exceeded, the oldest entries are removed. 0 means unlimited.
+      #maxSize: 0
+      # CleanupProbability is the probability of triggering size-based cleanup on each audit log write.
+      #cleanupProbability: 0.01
     # Machine contains machine logs configuration.
     machine:
       # -- Storage contains configuration for machine logs storage.
@@ -195,6 +202,9 @@ config:
         #maxLinesPerMachine: 5000
         # CleanupProbability is the probability of triggering the cleanup on each log write.
         #cleanupProbability: 0.01
+        # MaxSize is the maximum allowed size (in bytes) of the machine logs.
+        # When exceeded, the oldest entries are removed globally across all machines. 0 means unlimited.
+        #maxSize: 0
     # -- ResourceLogger contains resource logger configuration.
     resourceLogger:
       # LogLevel is the logging level used by the resource logger.

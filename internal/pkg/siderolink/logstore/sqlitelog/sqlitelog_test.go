@@ -534,6 +534,139 @@ func TestCleanupProbabilities(t *testing.T) {
 	}
 }
 
+func TestGlobalSizeCleanup(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+
+	// Configure with maxSize=1 (bytes) to force size-based cleanup on every DoCleanup call.
+	// cleanupProbability=0 disables per-write cleanup so we isolate the size-based path.
+	storageConf := config.Default().Logs.Machine.Storage
+	storageConf.SetCleanupProbability(0)
+	storageConf.SetMaxSize(1)
+
+	storeManager, omniState := setupDBWithStorageConfig(ctx, t, logger, storageConf)
+
+	machineIDs := []string{"size-m1", "size-m2", "size-m3"}
+	linesPerMachine := 1000
+	totalRows := len(machineIDs) * linesPerMachine
+	msg := []byte("this is a log line used to fill up the database for size-based cleanup testing")
+
+	// Register machines in state so they are not deleted as orphans during DoCleanup.
+	for _, id := range machineIDs {
+		require.NoError(t, omniState.Create(ctx, omni.NewMachine(id)))
+	}
+
+	for _, id := range machineIDs {
+		store, err := storeManager.Create(id)
+		require.NoError(t, err)
+
+		for range linesPerMachine {
+			require.NoError(t, store.WriteLine(ctx, msg))
+		}
+
+		require.NoError(t, store.Close())
+	}
+
+	// Verify all rows exist before cleanup.
+	totalBefore := countTotalRows(ctx, t, storeManager, machineIDs)
+	require.Equal(t, totalRows, totalBefore)
+
+	// DoCleanup triggers size-based cleanup since the table is well above maxSize=1.
+	// With looping, a single DoCleanup call should delete all rows (3000 total across 3 batches).
+	require.NoError(t, storeManager.DoCleanup(ctx))
+
+	totalAfter := countTotalRows(ctx, t, storeManager, machineIDs)
+
+	// The loop should have converged: all 3000 rows deleted, not just a single batch of 1000.
+	assert.Equal(t, 0, totalAfter, "size-based cleanup should delete all rows when maxSize=1")
+}
+
+// TestGlobalSizeCleanupWithGaps verifies that size-based cleanup converges even when
+// the ID space has gaps from per-machine removals.
+func TestGlobalSizeCleanupWithGaps(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+
+	storageConf := config.Default().Logs.Machine.Storage
+	storageConf.SetCleanupProbability(0)
+	storageConf.SetMaxSize(1)
+
+	storeManager, omniState := setupDBWithStorageConfig(ctx, t, logger, storageConf)
+
+	msg := []byte("log line for gap test")
+
+	// Write interleaved logs for 3 machines: IDs will be 1,2,3,4,5,6,...
+	// Machine assignment: m1 gets IDs 1,4,7,...  m2 gets 2,5,8,...  m3 gets 3,6,9,...
+	machineIDs := []string{"gap-m1", "gap-m2", "gap-m3"}
+	linesPerMachine := 500
+
+	for _, id := range machineIDs {
+		require.NoError(t, omniState.Create(ctx, omni.NewMachine(id)))
+	}
+
+	stores := make(map[string]logstore.LogStore, len(machineIDs))
+	for _, id := range machineIDs {
+		store, err := storeManager.Create(id)
+		require.NoError(t, err)
+
+		stores[id] = store
+	}
+
+	for range linesPerMachine {
+		for _, id := range machineIDs {
+			require.NoError(t, stores[id].WriteLine(ctx, msg))
+		}
+	}
+
+	for _, store := range stores {
+		require.NoError(t, store.Close())
+	}
+
+	// Remove m2's logs — creates gaps scattered throughout the ID range.
+	require.NoError(t, storeManager.Remove(ctx, "gap-m2"))
+
+	// Verify: m1 and m3 each have linesPerMachine, m2 has 0.
+	remainingIDs := []string{"gap-m1", "gap-m3"}
+	totalBefore := countTotalRows(ctx, t, storeManager, remainingIDs)
+	require.Equal(t, 2*linesPerMachine, totalBefore)
+
+	// DoCleanup should delete all remaining rows despite the gaps.
+	require.NoError(t, storeManager.DoCleanup(ctx))
+
+	totalAfter := countTotalRows(ctx, t, storeManager, remainingIDs)
+	assert.Equal(t, 0, totalAfter, "size-based cleanup should converge even with ID gaps")
+}
+
+// countTotalRows returns the total row count across all given machine IDs.
+func countTotalRows(ctx context.Context, t *testing.T, mgr *sqlitelog.StoreManager, ids []string) int {
+	t.Helper()
+
+	total := 0
+
+	for _, id := range ids {
+		store, err := mgr.Create(id)
+		require.NoError(t, err)
+
+		rdr, err := store.Reader(ctx, -1, false)
+		require.NoError(t, err)
+
+		lines := readAllLines(ctx, t, rdr)
+		total += len(lines)
+
+		require.NoError(t, store.Close())
+	}
+
+	return total
+}
+
 func TestOrphanLogsCleanup(t *testing.T) {
 	t.Parallel()
 

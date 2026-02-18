@@ -314,6 +314,7 @@ func defineLogsFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flag
 	rootCmdFlagBinder.DurationVar("machine-log-cleanup-interval", flagDescription("logs.machine.storage.cleanupInterval", schema), &flagConfig.Logs.Machine.Storage.CleanupInterval)
 	rootCmdFlagBinder.DurationVar("machine-log-cleanup-older-than", flagDescription("logs.machine.storage.cleanupOlderThan", schema), &flagConfig.Logs.Machine.Storage.CleanupOlderThan)
 	rootCmdFlagBinder.IntVar("machine-log-max-lines-per-machine", flagDescription("logs.machine.storage.maxLinesPerMachine", schema), &flagConfig.Logs.Machine.Storage.MaxLinesPerMachine)
+	rootCmdFlagBinder.Uint64Var("machine-log-max-size", flagDescription("logs.machine.storage.maxSize", schema), &flagConfig.Logs.Machine.Storage.MaxSize)
 	rootCmdFlagBinder.Float64Var("machine-log-cleanup-probability",
 		flagDescription("logs.machine.storage.cleanupProbability", schema), &flagConfig.Logs.Machine.Storage.CleanupProbability)
 

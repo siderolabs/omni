@@ -847,6 +847,14 @@
           "description": "MaxLinesPerMachine is the maximum number of log lines to keep per machine.",
           "type": "integer"
         },
+        "maxSize": {
+          "description": "MaxSize is the maximum allowed size (in bytes) of the machine logs table. When exceeded, the oldest entries are removed globally across all machines. 0 means unlimited.",
+          "type": "integer",
+          "minimum": 0,
+          "goJSONSchema": {
+            "type": "uint64"
+          }
+        },
         "cleanupProbability": {
           "description": "CleanupProbability is the probability of triggering the cleanup on each log write for that machine.",
           "type": "number"

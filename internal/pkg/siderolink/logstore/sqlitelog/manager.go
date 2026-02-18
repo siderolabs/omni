@@ -31,6 +31,10 @@ const (
 	machineIDColumn = "machine_id"
 	createdAtColumn = "created_at"
 	messageColumn   = "message"
+
+	// removeBySizeBatchSize is the maximum number of rows deleted per batch in removeBySize.
+	// The method loops until the table is under maxSize, deleting up to this many rows each iteration.
+	removeBySizeBatchSize = 1000
 )
 
 // StoreManagerOption configures optional StoreManager behavior.
@@ -88,6 +92,8 @@ func (m *StoreManager) Run(ctx context.Context) error {
 }
 
 // DoCleanup performs the actual cleanup of old and orphaned logs.
+//
+//nolint:gocognit
 func (m *StoreManager) DoCleanup(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, m.config.GetSqliteTimeout())
 	defer cancel()
@@ -194,7 +200,147 @@ func (m *StoreManager) DoCleanup(ctx context.Context) error {
 		m.logger.Debug("completed logs cleanup", zap.Int64("rows_deleted", 0))
 	}
 
+	if m.config.GetMaxSize() > 0 {
+		sizeRowsDeleted, sizeErr := m.removeBySize(ctx)
+		if sizeErr != nil {
+			m.logger.Warn("failed to cleanup machine logs by size",
+				zap.Int("rows_deleted_before_error", sizeRowsDeleted), zap.Error(sizeErr))
+		} else if sizeRowsDeleted > 0 {
+			m.logger.Info("completed size-based logs cleanup", zap.Int("rows_deleted", sizeRowsDeleted))
+		}
+	}
+
 	return nil
+}
+
+// removeBySize deletes the oldest log rows globally across all machines to bring the table under maxSize bytes.
+// It estimates the number of rows to delete based on average row size, then deletes in batches of
+// removeBySizeBatchSize. The estimate may slightly overshoot; any remaining excess is handled on the next cycle.
+func (m *StoreManager) removeBySize(ctx context.Context) (int, error) {
+	conn, err := m.db.Take(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("error taking connection for size cleanup: %w", err)
+	}
+
+	defer m.db.Put(conn)
+
+	rowsToDelete, err := m.computeSizeExcess(conn)
+	if err != nil {
+		return 0, err
+	}
+
+	if rowsToDelete <= 0 {
+		return 0, nil
+	}
+
+	var totalDeleted int
+
+	for rowsToDelete > 0 {
+		batchSize := min(rowsToDelete, removeBySizeBatchSize)
+
+		deleted, batchErr := m.deleteOldestBatch(conn, batchSize)
+		if batchErr != nil {
+			return totalDeleted, batchErr
+		}
+
+		if deleted == 0 {
+			break
+		}
+
+		totalDeleted += deleted
+		rowsToDelete -= int64(deleted)
+
+		if ctx.Err() != nil {
+			break
+		}
+	}
+
+	if m.onCleanup != nil && totalDeleted > 0 {
+		m.onCleanup(totalDeleted)
+	}
+
+	return totalDeleted, nil
+}
+
+// computeSizeExcess estimates how many rows need to be deleted based on the table size and average row size.
+// Returns 0 when the table is within limits or empty.
+func (m *StoreManager) computeSizeExcess(conn *sqlite.Conn) (int64, error) {
+	sizeQuery := fmt.Sprintf(`SELECT COALESCE(SUM(pgsize), 0) FROM dbstat WHERE name = '%s'`, TableName)
+
+	q, err := sqlitexx.NewQuery(conn, sizeQuery)
+	if err != nil {
+		return 0, fmt.Errorf("failed to prepare dbstat query: %w", err)
+	}
+
+	var tableSize int64
+
+	if err = q.QueryRow(func(stmt *sqlite.Stmt) error {
+		tableSize = stmt.ColumnInt64(0)
+
+		return nil
+	}); err != nil {
+		return 0, fmt.Errorf("failed to query table size: %w", err)
+	}
+
+	if tableSize <= int64(m.config.GetMaxSize()) {
+		return 0, nil
+	}
+
+	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %s`, TableName)
+
+	q, err = sqlitexx.NewQuery(conn, countQuery)
+	if err != nil {
+		return 0, fmt.Errorf("failed to prepare row count query: %w", err)
+	}
+
+	var rowCount int64
+
+	if err = q.QueryRow(func(stmt *sqlite.Stmt) error {
+		rowCount = stmt.ColumnInt64(0)
+
+		return nil
+	}); err != nil {
+		return 0, fmt.Errorf("failed to query row count: %w", err)
+	}
+
+	if rowCount <= 0 {
+		return 0, nil
+	}
+
+	avgRowSize := tableSize / rowCount
+	if avgRowSize <= 0 {
+		avgRowSize = 1
+	}
+
+	// Ceiling division ensures at least 1 row is deleted when slightly over maxSize.
+	excess := tableSize - int64(m.config.GetMaxSize())
+	rowsToDelete := (excess + avgRowSize - 1) / avgRowSize
+
+	if rowsToDelete <= 0 {
+		return 0, nil
+	}
+
+	return rowsToDelete, nil
+}
+
+// deleteOldestBatch deletes up to limit oldest rows by selecting them via a subquery.
+// This correctly handles non-contiguous IDs (gaps from per-machine deletions).
+func (m *StoreManager) deleteOldestBatch(conn *sqlite.Conn, limit int64) (int, error) {
+	deleteQuery := fmt.Sprintf(
+		`DELETE FROM %s WHERE %s IN (SELECT %s FROM %s ORDER BY %s ASC LIMIT $limit)`,
+		TableName, idColumn, idColumn, TableName, idColumn,
+	)
+
+	q, err := sqlitexx.NewQuery(conn, deleteQuery)
+	if err != nil {
+		return 0, fmt.Errorf("failed to prepare size-based delete query: %w", err)
+	}
+
+	if err = q.BindInt64("$limit", limit).Exec(); err != nil {
+		return 0, fmt.Errorf("failed to delete oldest machine log rows by size: %w", err)
+	}
+
+	return conn.Changes(), nil
 }
 
 // Exists implements the LogStoreManager interface.

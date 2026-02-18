@@ -798,6 +798,17 @@ func (s *LogsMachineStorage) SetMaxLinesPerMachine(v int) {
 	s.MaxLinesPerMachine = &v
 }
 
+func (s *LogsMachineStorage) GetMaxSize() uint64 {
+	if s == nil || s.MaxSize == nil {
+		return *new(uint64)
+	}
+	return *s.MaxSize
+}
+
+func (s *LogsMachineStorage) SetMaxSize(v uint64) {
+	s.MaxSize = &v
+}
+
 func (s *LogsMachineStorage) GetSqliteTimeout() time.Duration {
 	if s == nil || s.SqliteTimeout == nil {
 		return *new(time.Duration)
