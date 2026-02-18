@@ -7,6 +7,7 @@ services:
       - /dev/net/tun
     volumes:
       - ${ETCD_VOLUME_PATH}:/_out/etcd
+      - ${SQLITE_STORAGE_PATH}:/_out/secondary-storage
       - ${ETCD_ENCRYPTION_KEY}:/omni.asc
       - ${TLS_CERT}:/tls.crt
       - ${TLS_KEY}:/tls.key
@@ -16,6 +17,7 @@ services:
     command: >
       --account-id=${OMNI_ACCOUNT_UUID} 
       --name=${NAME} 
+      --sqlite-storage-path=/_out/secondary-storage/sqlite.db
       --cert=/tls.crt
       --key=/tls.key
       --machine-api-cert=/tls.crt

@@ -255,6 +255,7 @@ const composeTemplate = `version: '3.8'
 services:
   omni:
     command: >-
+      --sqlite-storage-path=/_out/secondary-storage/sqlite.db
       --siderolink-wireguard-advertised-addr 172.20.0.1:50180
       --siderolink-wireguard-bind-addr='0.0.0.0:50180'
       --private-key-source vault://secret/omni-private-key
