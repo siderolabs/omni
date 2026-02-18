@@ -192,7 +192,7 @@ const { data: machineClass, loading } = useResourceWatch<MachineClassSpec>(() =>
   runtime: Runtime.Omni,
 }))
 
-const notFound = computed(() => machineClassEditId.value && !machineClass.value)
+const notFound = computed(() => !!machineClassEditId.value && !machineClass.value)
 
 watchEffect(() => {
   if (!machineClassEditId.value) return
@@ -326,7 +326,7 @@ const {
 }))
 
 const canSubmit = computed(() => {
-  if (machineClassName.value === '') {
+  if (!machineClassName.value) {
     return false
   }
 
@@ -424,7 +424,11 @@ const submit = async () => {
     </TAlert>
     <template v-else>
       <div class="flex flex-col gap-2">
-        <TInput v-if="!machineClassEditId" v-model="machineClassName" title="Machine Class Name" />
+        <TInput
+          v-if="!machineClassEditId"
+          v-model.trim="machineClassName"
+          title="Machine Class Name"
+        />
         <div v-if="infraProviders.length > 0" class="flex items-center gap-2 text-xs">
           <span>Machine Class Type:</span>
           <TButtonGroup v-model="machineClassMode" :options="machineClassModeOptions" />
@@ -463,22 +467,12 @@ const submit = async () => {
           </div>
           <div class="flex flex-col gap-1 text-xs">
             <p>
-              Using
+              Click or type a node label to match nodes with those labels. Multiple labels in the
+              same condition, joined by
               <code>,</code>
-              in a single condition will match them using
+              will only match nodes that match all labels. i.e. Logical
               <code>AND</code>
               operator.
-            </p>
-            <p>
-              Values containing
-              <code>,</code>
-              needs to be surrounded by
-              <code>"</code>
-              . If they value also contain
-              <code>"</code>
-              , they need to be escaped using
-              <code>\</code>
-              .
             </p>
             <p>
               Separate conditions are matched using
@@ -486,7 +480,7 @@ const submit = async () => {
               .
             </p>
             <p>
-              Allowed binary operators are
+              Allowed operators are
               <code>&gt;</code>
               ,
               <code>&gt;=</code>
@@ -504,7 +498,8 @@ const submit = async () => {
               <code>in</code>
               ,
               <code>notin</code>
-              .
+              . e.g.
+              <code>omni.sidero.dev/cluster in (talos,talos-default)</code>
             </p>
             <p>
               Excluding a label can be done by prepending
