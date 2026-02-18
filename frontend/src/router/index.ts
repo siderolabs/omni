@@ -370,9 +370,6 @@ export const routes: RouteRecordRaw[] = [
             path: ':classname',
             name: 'MachineClassEdit',
             component: () => import('@/views/omni/MachineClasses/MachineClass.vue'),
-            props: {
-              edit: true,
-            },
           },
         ],
       },

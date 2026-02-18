@@ -6,8 +6,8 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { dump, load } from 'js-yaml'
-import type { ComputedRef, Ref } from 'vue'
-import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
+import type { Ref } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -26,7 +26,7 @@ import {
   MachineClassType,
   MachineStatusType,
 } from '@/api/resources'
-import { default as ItemWatch, default as WatchResource, itemID } from '@/api/watch'
+import { itemID } from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
@@ -50,7 +50,7 @@ enum MachineClassMode {
 }
 
 const conditions = ref([''])
-const machineClassName = ref('')
+const machineClassName = ref<string>()
 const machineClassMode = ref(MachineClassMode.Manual)
 
 const machineClassModeOptions = [
@@ -66,11 +66,7 @@ const machineClassModeOptions = [
   },
 ]
 
-const infraProviders = ref<Resource<InfraProviderStatusSpec>[]>([])
-
-const infraProvidersWatch = new WatchResource(infraProviders)
-
-infraProvidersWatch.setup({
+const { data: infraProviders } = useResourceWatch<InfraProviderStatusSpec>({
   resource: {
     type: InfraProviderStatusType,
     namespace: InfraProviderNamespace,
@@ -78,13 +74,9 @@ infraProvidersWatch.setup({
   runtime: Runtime.Omni,
 })
 
-const props = defineProps<{ edit?: boolean }>()
 const router = useRouter()
 const route = useRoute()
 const lastFocused = ref(0)
-
-let loading: Ref<boolean> | ComputedRef<boolean>
-let notFound: Ref<boolean> | ComputedRef<boolean>
 
 const infraProvider = ref<string>()
 const kernelArguments = ref<string>('')
@@ -92,11 +84,6 @@ const initialLabels = ref<Record<string, LabelSelectItem>>({})
 const grpcTunnelMode = ref<GrpcTunnelMode>(GrpcTunnelMode.UNSET)
 
 const providerConfigs: Ref<Record<string, Record<string, unknown>>> = ref({})
-
-if (!props.edit) {
-  notFound = ref(false)
-  loading = ref(false)
-}
 
 let resourceVersion: string | undefined
 
@@ -193,81 +180,66 @@ const updateContent = (i: number, event: KeyboardEvent) => {
 
 let labels: Record<string, string> | undefined
 
-if (props.edit) {
-  const machineClass: Ref<Resource<MachineClassSpec> | undefined> = ref()
-  const machineClassWatch = new ItemWatch(machineClass)
-  const route = useRoute()
+const machineClassEditId = computed(() => route.params.classname?.toString())
 
-  loading = machineClassWatch.loading
+const { data: machineClass, loading } = useResourceWatch<MachineClassSpec>(() => ({
+  skip: !machineClassEditId.value,
+  resource: {
+    namespace: DefaultNamespace,
+    type: MachineClassType,
+    id: machineClassEditId.value!,
+  },
+  runtime: Runtime.Omni,
+}))
 
-  notFound = computed(() => {
-    return machineClass.value === undefined
-  })
+const notFound = computed(() => machineClassEditId.value && !machineClass.value)
 
-  machineClassName.value = route.params.classname as string
-  watch(
-    () => route.params.classname,
-    () => {
-      machineClassName.value = route.params.classname as string
-    },
+watchEffect(() => {
+  if (!machineClassEditId.value) return
+
+  machineClassName.value ||= machineClassEditId.value
+
+  machineClassMode.value = machineClass.value?.spec?.auto_provision
+    ? MachineClassMode.AutoProvision
+    : MachineClassMode.Manual
+  infraProvider.value = machineClass.value?.spec?.auto_provision?.provider_id
+  resourceVersion = machineClass.value?.metadata.version
+  labels = machineClass.value?.metadata.labels
+
+  kernelArguments.value = machineClass.value?.spec.auto_provision?.kernel_args?.join(' ') ?? ''
+
+  const labelsMeta = machineClass.value?.spec.auto_provision?.meta_values?.find(
+    (item) => item.key === LabelsMeta,
   )
+  if (labelsMeta) {
+    initialLabels.value = {}
 
-  machineClassWatch.setup(
-    computed(() => {
-      return {
-        resource: {
-          id: route.params.classname as string,
-          namespace: DefaultNamespace,
-          type: MachineClassType,
-        },
-        runtime: Runtime.Omni,
-      }
-    }),
-  )
+    const l = (load(labelsMeta.value!) as { machineLabels: Record<string, string> }).machineLabels
 
-  watch(machineClass, () => {
-    machineClassMode.value = machineClass.value?.spec?.auto_provision
-      ? MachineClassMode.AutoProvision
-      : MachineClassMode.Manual
-    infraProvider.value = machineClass.value?.spec?.auto_provision?.provider_id
-    resourceVersion = machineClass.value?.metadata.version
-    labels = machineClass.value?.metadata.labels
-
-    kernelArguments.value = machineClass.value?.spec.auto_provision?.kernel_args?.join(' ') ?? ''
-
-    const labelsMeta = machineClass.value?.spec.auto_provision?.meta_values?.find(
-      (item) => item.key === LabelsMeta,
-    )
-    if (labelsMeta) {
-      initialLabels.value = {}
-
-      const l = (load(labelsMeta.value!) as { machineLabels: Record<string, string> }).machineLabels
-
-      for (const key in l) {
-        initialLabels.value[key] = {
-          value: l[key],
-          canRemove: true,
-        }
+    for (const key in l) {
+      initialLabels.value[key] = {
+        value: l[key],
+        canRemove: true,
       }
     }
+  }
 
-    if (
-      machineClass.value?.spec.auto_provision?.provider_id &&
-      machineClass.value?.spec.auto_provision?.provider_data
-    ) {
-      providerConfigs.value[machineClass.value.spec.auto_provision.provider_id] = load(
-        machineClass.value?.spec.auto_provision?.provider_data,
-      ) as Record<string, unknown>
-    }
+  if (
+    machineClass.value?.spec.auto_provision?.provider_id &&
+    machineClass.value?.spec.auto_provision?.provider_data
+  ) {
+    providerConfigs.value[machineClass.value.spec.auto_provision.provider_id] = load(
+      machineClass.value?.spec.auto_provision?.provider_data,
+    ) as Record<string, unknown>
+  }
 
-    const matchLabels = machineClass.value?.spec?.match_labels
-    if (!matchLabels) {
-      return
-    }
+  const matchLabels = machineClass.value?.spec?.match_labels
+  if (!matchLabels) {
+    return
+  }
 
-    conditions.value = matchLabels
-  })
-}
+  conditions.value = matchLabels
+})
 
 const placeCaretAtEnd = (el: HTMLElement) => {
   const range = document.createRange()
@@ -416,7 +388,7 @@ const submit = async () => {
   }
 
   try {
-    if (props.edit) {
+    if (machineClassEditId.value) {
       await ResourceService.Update(machineClass, resourceVersion, withRuntime(Runtime.Omni))
     } else {
       await ResourceService.Create(machineClass, withRuntime(Runtime.Omni))
@@ -437,9 +409,9 @@ const submit = async () => {
   <div class="flex h-full flex-col gap-4">
     <div class="flex items-start gap-1">
       <PageHeader
-        :title="`${edit ? 'Edit Machine Class' : 'Create Machine Class'}`"
+        :title="`${machineClassEditId ? 'Edit Machine Class' : 'Create Machine Class'}`"
         class="flex-1"
-        :subtitle="edit ? (('name: ' + route.params.classname) as string) : ''"
+        :subtitle="machineClassEditId ? `name: ${machineClassEditId}` : ''"
       />
     </div>
     <div v-if="loading" class="flex flex-1 items-center justify-center">
@@ -448,11 +420,11 @@ const submit = async () => {
     <TAlert v-else-if="notFound" title="Not Found" type="error">
       The
       <code>MachineClass</code>
-      {{ route.params.classname }} does not exist
+      {{ machineClassEditId }} does not exist
     </TAlert>
     <template v-else>
       <div class="flex flex-col gap-2">
-        <TInput v-if="!edit" v-model="machineClassName" title="Machine Class Name" />
+        <TInput v-if="!machineClassEditId" v-model="machineClassName" title="Machine Class Name" />
         <div v-if="infraProviders.length > 0" class="flex items-center gap-2 text-xs">
           <span>Machine Class Type:</span>
           <TButtonGroup v-model="machineClassMode" :options="machineClassModeOptions" />
@@ -461,7 +433,9 @@ const submit = async () => {
           <div class="text-naturals-n13">Conditions</div>
           <div class="flex flex-wrap items-center gap-2">
             <template v-for="(_, i) in conditions" :key="i">
-              <div class="condition flex gap-0.5">
+              <div
+                class="flex gap-0.5 rounded-md border border-transparent transition-colors focus-within:border-naturals-n8"
+              >
                 <div
                   class="flex cursor-pointer items-center rounded-l-md bg-naturals-n3 px-2 transition-colors hover:bg-naturals-n7 hover:text-naturals-n14"
                   @click="deleteCondition(i)"
@@ -589,7 +563,7 @@ const submit = async () => {
         class="sticky -bottom-6 -mx-6 -my-6 flex h-16 items-center justify-end gap-2 border-t border-naturals-n5 bg-naturals-n1 px-12 py-6 text-xs"
       >
         <TButton variant="highlighted" :disabled="!canSubmit" @click="submit">
-          {{ edit ? 'Update Machine Class' : 'Create Machine Class' }}
+          {{ machineClassEditId ? 'Update Machine Class' : 'Create Machine Class' }}
         </TButton>
       </div>
     </template>
@@ -599,23 +573,7 @@ const submit = async () => {
 <style scoped>
 @reference "../../../index.css";
 
-.condition {
-  @apply rounded-md border border-transparent transition-colors;
-}
-
-.condition:focus-within {
-  @apply border-naturals-n8;
-}
-
 code {
   @apply rounded bg-naturals-n6 px-1 py-0.5 font-mono text-naturals-n13;
-}
-
-.machine-template > * {
-  @apply flex items-center gap-2 px-4 py-2;
-}
-
-.machine-template > * > *:first-child {
-  @apply flex-1 whitespace-nowrap;
 }
 </style>
