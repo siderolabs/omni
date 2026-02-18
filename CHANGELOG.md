@@ -1,3 +1,30 @@
+## [Omni 1.5.4](https://github.com/siderolabs/omni/releases/tag/v1.5.4) (2026-02-18)
+
+Welcome to the v1.5.4 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`b38d89b3`](https://github.com/siderolabs/omni/commit/b38d89b3be5b4f89e0c358e051252ab631ed4115) fix: compare current and new kernel args more defensively
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.5.3](https://github.com/siderolabs/omni/releases/tag/v1.5.3)
+
 ## [Omni 1.5.3](https://github.com/siderolabs/omni/releases/tag/v1.5.3) (2026-02-17)
 
 Welcome to the v1.5.3 release of Omni!
