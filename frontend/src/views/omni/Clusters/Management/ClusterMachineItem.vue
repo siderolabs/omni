@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import yaml from 'js-yaml'
+import { dump } from 'js-yaml'
 import pluralize from 'pluralize'
 import semver from 'semver'
 import { computed, ref, watch } from 'vue'
@@ -167,7 +167,7 @@ const setInstallDisk = (value: string) => {
   }
 
   machineSetNode.value.patches[installDiskPatchID.value] = {
-    data: yaml.dump({
+    data: dump({
       machine: {
         install: {
           disk: value,

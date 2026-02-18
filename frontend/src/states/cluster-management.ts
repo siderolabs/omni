@@ -5,7 +5,7 @@
 
 // MachineSet is the state used in cluster creation flow.
 
-import yaml from 'js-yaml'
+import { loadAll } from 'js-yaml'
 import { ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -608,12 +608,12 @@ export class State {
   }
 
   private checkSchedulingEnabled(data: string) {
-    const loaded = yaml.load(data) as
-      | { cluster?: { allowSchedulingOnControlPlanes?: boolean } }
+    const loaded = loadAll(data) as
+      | { cluster?: { allowSchedulingOnControlPlanes?: boolean } }[]
       | undefined
       | null
 
-    return loaded?.cluster?.allowSchedulingOnControlPlanes
+    return loaded?.some((y) => y.cluster?.allowSchedulingOnControlPlanes)
   }
 
   private machinesOfKind(kind: string): number | string {

@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import yaml from 'js-yaml'
+import { dump } from 'js-yaml'
 import * as semver from 'semver'
 import type { Ref } from 'vue'
 import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
@@ -233,7 +233,7 @@ const createCluster_ = async (untaint: boolean) => {
 
   if (untaint) {
     state.value.controlPlanes().patches[PatchID.Untaint] = {
-      data: yaml.dump({
+      data: dump({
         cluster: {
           allowSchedulingOnControlPlanes: true,
         },

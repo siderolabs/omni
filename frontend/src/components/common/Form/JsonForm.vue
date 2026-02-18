@@ -22,7 +22,7 @@ import {
 import { JsonForms } from '@jsonforms/vue'
 import { vanillaRenderers } from '@jsonforms/vue-vanilla'
 import { type ErrorObject } from 'ajv'
-import yaml from 'js-yaml'
+import { dump } from 'js-yaml'
 import { computed, ref, toRefs, watch } from 'vue'
 
 import { ManagementService } from '@/api/omni/management/management.pb'
@@ -120,7 +120,7 @@ const updateErrors = async (data: unknown) => {
 
   const response = await ManagementService.ValidateJSONSchema({
     schema: jsonSchema.value,
-    data: yaml.dump(data),
+    data: dump(data),
   })
 
   errors.value =

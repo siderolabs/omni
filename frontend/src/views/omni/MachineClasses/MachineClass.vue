@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import yaml from 'js-yaml'
+import { dump, load } from 'js-yaml'
 import type { ComputedRef, Ref } from 'vue'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -241,8 +241,7 @@ if (props.edit) {
     if (labelsMeta) {
       initialLabels.value = {}
 
-      const l = (yaml.load(labelsMeta.value!) as { machineLabels: Record<string, string> })
-        .machineLabels
+      const l = (load(labelsMeta.value!) as { machineLabels: Record<string, string> }).machineLabels
 
       for (const key in l) {
         initialLabels.value[key] = {
@@ -256,7 +255,7 @@ if (props.edit) {
       machineClass.value?.spec.auto_provision?.provider_id &&
       machineClass.value?.spec.auto_provision?.provider_data
     ) {
-      providerConfigs.value[machineClass.value.spec.auto_provision.provider_id] = yaml.load(
+      providerConfigs.value[machineClass.value.spec.auto_provision.provider_id] = load(
         machineClass.value?.spec.auto_provision?.provider_data,
       ) as Record<string, unknown>
     }
@@ -402,7 +401,7 @@ const submit = async () => {
       machineClass.spec.auto_provision.meta_values = [
         {
           key: LabelsMeta,
-          value: yaml.dump({
+          value: dump({
             machineLabels: l,
           }),
         },
@@ -412,7 +411,7 @@ const submit = async () => {
     const providerConfig = providerConfigs.value[infraProvider.value]
 
     if (providerConfig) {
-      machineClass.spec.auto_provision.provider_data = yaml.dump(providerConfig)
+      machineClass.spec.auto_provision.provider_data = dump(providerConfig)
     }
   }
 
