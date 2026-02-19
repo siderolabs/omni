@@ -44,6 +44,7 @@ import { formatISO } from '@/methods/time'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showWarning } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
+import DownloadSupportBundleModal from '@/views/cluster/Overview/components/OverviewRightPanel/DownloadSupportBundleModal.vue'
 import OverviewOIDCToast from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewOIDCToast.vue'
 import OverviewRightPanelCondition from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelCondition.vue'
 import OverviewRightPanelItem from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue'
@@ -236,7 +237,8 @@ const {
   canRemoveClusterMachines,
 } = setupClusterPermissions(computed(() => route.params.cluster as string))
 
-const clusterDestroyDialogOpen = ref(false)
+const clusterDestroyModalOpen = ref(false)
+const downloadSupportBundleModalOpen = ref(false)
 </script>
 
 <template>
@@ -383,14 +385,12 @@ const clusterDestroyDialogOpen = ref(false)
         </TButton>
 
         <TButton
-          is="router-link"
           :disabled="!canDownloadSupportBundle"
           variant="primary"
           icon="lifebuoy"
           icon-position="left"
-          :to="{
-            query: { modal: 'downloadSupportBundle', cluster: clusterStatus.metadata.id },
-          }"
+          aria-haspopup="dialog"
+          @click="downloadSupportBundleModalOpen = true"
         >
           Download Support Bundle
         </TButton>
@@ -495,14 +495,19 @@ const clusterDestroyDialogOpen = ref(false)
             icon-position="left"
             :disabled="!canRemoveClusterMachines || locked"
             aria-haspopup="dialog"
-            @click="clusterDestroyDialogOpen = true"
+            @click="clusterDestroyModalOpen = true"
           >
             Destroy Cluster
           </TButton>
         </Tooltip>
 
         <ClusterDestroy
-          v-model:open="clusterDestroyDialogOpen"
+          v-model:open="clusterDestroyModalOpen"
+          :cluster-id="clusterStatus.metadata.id!"
+        />
+
+        <DownloadSupportBundleModal
+          v-model:open="downloadSupportBundleModalOpen"
           :cluster-id="clusterStatus.metadata.id!"
         />
       </div>

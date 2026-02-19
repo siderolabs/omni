@@ -26,9 +26,6 @@ const modals: Record<string, Component> = {
   downloadOmnictlBinaries: defineAsyncComponent(
     () => import('@/views/omni/Modals/DownloadOmnictl.vue'),
   ),
-  downloadSupportBundle: defineAsyncComponent(
-    () => import('@/views/omni/Modals/DownloadSupportBundle.vue'),
-  ),
   downloadTalosctlBinaries: defineAsyncComponent(
     () => import('@/views/omni/Modals/DownloadTalosctl.vue'),
   ),

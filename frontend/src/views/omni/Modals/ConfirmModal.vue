@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { reactiveOmit } from '@vueuse/core'
 import {
   AlertDialogCancel,
   AlertDialogContent,
@@ -36,7 +37,9 @@ const props = withDefaults(
 )
 
 const emits = defineEmits<AlertDialogEmits & { confirm: [] }>()
-const forwarded = useForwardPropsEmits(props, emits)
+
+const alertDialogRootProps = reactiveOmit(props, 'title', 'actionLabel', 'loading')
+const forwarded = useForwardPropsEmits(alertDialogRootProps, emits)
 </script>
 
 <template>
@@ -47,15 +50,16 @@ const forwarded = useForwardPropsEmits(props, emits)
       />
 
       <AlertDialogContent
-        class="fixed top-1/2 left-1/2 z-100 flex -translate-1/2 flex-col rounded-sm bg-naturals-n3 p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
+        class="fixed top-1/2 left-1/2 z-100 flex max-h-screen max-w-screen -translate-1/2 flex-col rounded-sm bg-naturals-n3 p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
       >
-        <AlertDialogTitle class="mb-5 text-naturals-n14">
-          {{ title }}
-        </AlertDialogTitle>
+        <div class="mb-5 flex flex-col">
+          <AlertDialogTitle class="font-medium text-naturals-n14">{{ title }}</AlertDialogTitle>
+          <AlertDialogDescription v-if="$slots.description" class="text-sm">
+            <slot name="description"></slot>
+          </AlertDialogDescription>
+        </div>
 
-        <AlertDialogDescription class="text-xs">
-          <slot></slot>
-        </AlertDialogDescription>
+        <slot></slot>
 
         <div class="mt-8 flex items-center justify-end gap-2">
           <AlertDialogCancel as-child>

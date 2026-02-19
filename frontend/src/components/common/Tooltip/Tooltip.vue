@@ -75,7 +75,7 @@ const align = computed(() => {
 
       <TooltipPortal>
         <TooltipContent
-          class="z-50 rounded border border-naturals-n4 bg-naturals-n3 p-4 text-xs text-naturals-n12"
+          class="z-110 rounded border border-naturals-n4 bg-naturals-n3 p-4 text-xs text-naturals-n12"
           :side-offset="offsetDistance"
           :align-offset="offsetSkid"
           :align
