@@ -63,8 +63,8 @@ export const withContext = (context: WatchContext) => {
       }
     }
 
-    if (context.nodes) {
-      md.nodes = context.nodes
+    if (context.node) {
+      md.node = context.node
     }
 
     addMetadata(req, md)

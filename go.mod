@@ -70,11 +70,11 @@ require (
 	github.com/siderolabs/gen v0.8.6
 	github.com/siderolabs/go-api-signature v0.3.12
 	github.com/siderolabs/go-debug v0.6.2
-	github.com/siderolabs/go-kubernetes v0.2.34-0.20260302133439-8364adde8878
+	github.com/siderolabs/go-kubernetes v0.2.34
 	github.com/siderolabs/go-loadbalancer v0.5.0
 	github.com/siderolabs/go-pointer v1.0.1
 	github.com/siderolabs/go-retry v0.3.3
-	github.com/siderolabs/go-talos-support v0.1.4
+	github.com/siderolabs/go-talos-support v0.2.0
 	github.com/siderolabs/grpc-proxy v0.5.1
 	github.com/siderolabs/image-factory v1.0.3
 	github.com/siderolabs/kms-client v0.2.0

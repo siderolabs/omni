@@ -34,8 +34,8 @@ import (
 
 type testNodeResolver struct{}
 
-func (t *testNodeResolver) Resolve(_, node string) dns.Info {
-	return dns.NewInfo("", "", "", node)
+func (t *testNodeResolver) Resolve(_, _ string) (dns.Info, error) {
+	return dns.Info{}, nil
 }
 
 func TestTalosBackendRoles(t *testing.T) {
@@ -73,83 +73,74 @@ func TestTalosBackendRoles(t *testing.T) {
 	require.Equal(t, "talos-machine", hostnameResult.Messages[0].Hostname)
 }
 
-func TestNodeResolution(t *testing.T) {
-	resolver := &mockResolver{
-		db: map[string]map[string]dns.Info{
-			"cluster-1": {
-				"node-1": dns.NewInfo("", "", "", "1.1.1.1"),
-				"node-2": dns.NewInfo("", "", "", "2.2.2.2"),
-			},
-		},
-	}
+func TestTalosBackendHeaderDeletion(t *testing.T) {
+	t.Parallel()
 
 	logger := zaptest.NewLogger(t)
 	st, err := omniruntime.NewTestState(logger)
 	require.NoError(t, err)
 
-	noOpVerifier := func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-		return handler(ctx, req)
+	// grpc.NewClient is lazy — no actual connection is made here.
+	conn, err := dial("127.0.0.1:10501")
+	require.NoError(t, err)
+
+	newBackend := func() *router.TalosBackend {
+		return router.NewTalosBackend(
+			"test-backend",
+			"test-cluster",
+			&testNodeResolver{},
+			conn,
+			false,
+			func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+				return handler(ctx, req)
+			},
+			st.Default(),
+		)
 	}
-	talosBackend := router.NewTalosBackend("test-backend", "test-backend", resolver, nil, false, noOpVerifier, st.Default())
 
-	testCtx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
-	t.Cleanup(cancel)
+	t.Run("single node — both headers stripped", func(t *testing.T) {
+		t.Parallel()
 
-	t.Run(`resolvable "node"`, func(t *testing.T) {
-		ctx := metadata.NewIncomingContext(testCtx, metadata.Pairs("cluster", "cluster-1", "node", "node-1"))
+		incomingMD := metadata.Pairs("node", "some-node", "cluster", "test-cluster")
+		ctx := metadata.NewIncomingContext(t.Context(), incomingMD)
 
-		newCtx, _, err := talosBackend.GetConnection(ctx, "some-method")
+		outCtx, _, err := newBackend().GetConnection(ctx, machine.MachineService_Hostname_FullMethodName)
 		require.NoError(t, err)
 
-		incomingContext, ok := metadata.FromOutgoingContext(newCtx)
-		require.True(t, ok, "metadata not found")
-
-		require.Len(t, incomingContext["node"], 1)
-		require.Equal(t, "1.1.1.1", incomingContext["node"][0])
+		outMD, ok := metadata.FromOutgoingContext(outCtx)
+		require.True(t, ok)
+		require.Empty(t, outMD.Get("node"), "node header must be stripped for direct connection")
+		require.Empty(t, outMD.Get("nodes"), "nodes header must be stripped for single-node call")
 	})
 
-	t.Run(`resolvable "nodes"`, func(t *testing.T) {
-		ctx := metadata.NewIncomingContext(testCtx, metadata.Pairs("cluster", "cluster-1", "nodes", "node-1,node-2"))
+	t.Run("single nodes header — node stripped, nodes preserved for apid loopback", func(t *testing.T) {
+		t.Parallel()
 
-		newCtx, _, err := talosBackend.GetConnection(ctx, "some-method")
+		incomingMD := metadata.Pairs("nodes", "node-a", "cluster", "test-cluster")
+		ctx := metadata.NewIncomingContext(t.Context(), incomingMD)
+
+		outCtx, _, err := newBackend().GetConnection(ctx, machine.MachineService_Hostname_FullMethodName)
 		require.NoError(t, err)
 
-		incomingContext, ok := metadata.FromOutgoingContext(newCtx)
-		require.True(t, ok, "metadata not found")
-
-		require.Equal(t, []string{"1.1.1.1", "2.2.2.2"}, incomingContext["nodes"])
+		outMD, ok := metadata.FromOutgoingContext(outCtx)
+		require.True(t, ok)
+		require.Empty(t, outMD.Get("node"), "node header must always be stripped")
+		require.NotEmpty(t, outMD.Get("nodes"), "nodes header must be preserved even for single entry so apid sets Metadata.Hostname")
 	})
 
-	t.Run(`both "node" and "nodes" set`, func(t *testing.T) {
-		ctx := metadata.NewIncomingContext(testCtx, metadata.Pairs("cluster", "cluster-1", "node", "node-1", "nodes", "node-1,node-2"))
+	t.Run("multiple nodes — node stripped, nodes preserved for apid fan-out", func(t *testing.T) {
+		t.Parallel()
 
-		newCtx, _, err := talosBackend.GetConnection(ctx, "some-method")
+		incomingMD := metadata.Pairs("nodes", "node-a,node-b", "cluster", "test-cluster")
+		ctx := metadata.NewIncomingContext(t.Context(), incomingMD)
+
+		outCtx, _, err := newBackend().GetConnection(ctx, machine.MachineService_Hostname_FullMethodName)
 		require.NoError(t, err)
 
-		incomingContext, ok := metadata.FromOutgoingContext(newCtx)
-		require.True(t, ok, "metadata not found")
-
-		require.Len(t, incomingContext["node"], 1)
-		require.Equal(t, "1.1.1.1", incomingContext["node"][0])
-		require.Equal(t, []string{"1.1.1.1", "2.2.2.2"}, incomingContext["nodes"])
-	})
-
-	t.Run(`fallback when unresolved`, func(t *testing.T) {
-		ctx := metadata.NewIncomingContext(testCtx, metadata.Pairs("cluster", "cluster-1", "node", "node-3", "nodes", "node-0,node-1,node-2,node-3"))
-
-		newCtx, _, err := talosBackend.GetConnection(ctx, "some-method")
-		require.NoError(t, err)
-
-		incomingContext, ok := metadata.FromOutgoingContext(newCtx)
-		require.True(t, ok, "metadata not found")
-
-		require.Len(t, incomingContext["node"], 1)
-
-		// "node" is unresolved, so it should be kept as-is
-		require.Equal(t, "node-3", incomingContext["node"][0])
-
-		// some of the "nodes" are unresolved, so only they should be kept as-is
-		require.Equal(t, []string{"node-0", "1.1.1.1", "2.2.2.2", "node-3"}, incomingContext["nodes"])
+		outMD, ok := metadata.FromOutgoingContext(outCtx)
+		require.True(t, ok)
+		require.Empty(t, outMD.Get("node"), "node header must always be stripped")
+		require.NotEmpty(t, outMD.Get("nodes"), "nodes header must be preserved so Talos apid can handle One2Many fan-out")
 	})
 }
 
@@ -298,12 +289,4 @@ func recvContext[T any](ctx context.Context, ch <-chan T) (T, bool) {
 	case v := <-ch:
 		return v, true
 	}
-}
-
-type mockResolver struct {
-	db map[string]map[string]dns.Info
-}
-
-func (m *mockResolver) Resolve(cluster, node string) dns.Info {
-	return m.db[cluster][node]
 }

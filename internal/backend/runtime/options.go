@@ -17,7 +17,7 @@ type QueryOptions struct {
 	CurrentVersion string
 	SortField      string
 	SearchFor      []string
-	Nodes          []string
+	Machines       []string
 	LabelSelectors []string
 	SortDescending bool
 	TeardownOnly   bool
@@ -88,10 +88,10 @@ func WithResource(resource string) QueryOption {
 	}
 }
 
-// WithNodes explicitly defines nodes list to use for the request (Talos only).
-func WithNodes(nodes ...string) QueryOption {
+// WithMachines explicitly defines machines list to use for the request (Talos only).
+func WithMachines(machines ...string) QueryOption {
 	return func(o *QueryOptions) {
-		o.Nodes = nodes
+		o.Machines = machines
 	}
 }
 

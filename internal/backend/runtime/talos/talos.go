@@ -13,7 +13,6 @@ import (
 
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
 	taloscommon "github.com/siderolabs/talos/pkg/machinery/api/common"
-	"github.com/siderolabs/talos/pkg/machinery/client"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
@@ -67,16 +66,20 @@ func (r *Runtime) Watch(ctx context.Context, events chan<- runtime.WatchResponse
 func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse, setters ...runtime.QueryOption) error {
 	opts := runtime.NewQueryOptions(setters...)
 
-	switch len(opts.Nodes) {
+	var (
+		c   *Client
+		err error
+	)
+
+	switch len(opts.Machines) {
 	case 0:
-		// nothing
+		c, err = r.GetClientForCluster(ctx, opts.Context)
 	case 1:
-		ctx = client.WithNode(ctx, opts.Nodes[0])
+		c, err = r.GetClientForMachine(ctx, opts.Machines[0])
 	default:
-		return errors.New("multiple nodes are not supported for Watch")
+		return errors.New("multiple machines are not supported for Watch")
 	}
 
-	c, err := r.GetClient(ctx, opts.Context)
 	if err != nil {
 		return err
 	}
@@ -111,21 +114,22 @@ func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse
 func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any, error) {
 	opts := runtime.NewQueryOptions(setters...)
 
-	var responseMetadata *taloscommon.Metadata
+	var (
+		c                *Client
+		err              error
+		responseMetadata *taloscommon.Metadata
+	)
 
-	switch len(opts.Nodes) {
+	switch len(opts.Machines) {
 	case 0:
-		// nothing
+		c, err = r.GetClientForCluster(ctx, opts.Context)
 	case 1:
-		ctx = client.WithNode(ctx, opts.Nodes[0])
-		responseMetadata = &taloscommon.Metadata{
-			Hostname: opts.Nodes[0],
-		}
+		c, err = r.GetClientForMachine(ctx, opts.Machines[0])
+		responseMetadata = &taloscommon.Metadata{Hostname: opts.Machines[0]}
 	default:
-		return nil, errors.New("multiple nodes are not supported for Get")
+		return nil, errors.New("multiple machines are not supported for Get")
 	}
 
-	c, err := r.GetClient(ctx, opts.Context)
 	if err != nil {
 		return nil, err
 	}
@@ -144,32 +148,33 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (runtime.ListResult, error) {
 	opts := runtime.NewQueryOptions(setters...)
 
-	if len(opts.Nodes) == 0 {
-		opts.Nodes = []string{""}
-	}
-
-	c, err := r.GetClient(ctx, opts.Context)
-	if err != nil {
-		return runtime.ListResult{}, err
+	if len(opts.Machines) == 0 {
+		opts.Machines = []string{""}
 	}
 
 	var res []pkgruntime.ListItem
 
-	for _, node := range opts.Nodes {
-		var responseMetadata *taloscommon.Metadata
+	for _, machine := range opts.Machines {
+		var (
+			c                *Client
+			err              error
+			responseMetadata *taloscommon.Metadata
+		)
 
-		nodeCtx := ctx
-
-		if node != "" {
-			nodeCtx = client.WithNode(ctx, node)
-			responseMetadata = &taloscommon.Metadata{
-				Hostname: node,
-			}
+		if machine == "" {
+			c, err = r.GetClientForCluster(ctx, opts.Context)
+		} else {
+			c, err = r.GetClientForMachine(ctx, machine)
+			responseMetadata = &taloscommon.Metadata{Hostname: machine}
 		}
 
-		nodeCtx = metadata.AppendToOutgoingContext(nodeCtx, constants.APIAuthzRoleMetadataKey, string(talosrole.Reader))
+		if err != nil {
+			return runtime.ListResult{}, err
+		}
 
-		items, err := c.COSI.List(nodeCtx, cosiresource.NewMetadata(opts.Namespace, opts.Resource, "", cosiresource.VersionUndefined))
+		machineCtx := metadata.AppendToOutgoingContext(ctx, constants.APIAuthzRoleMetadataKey, string(talosrole.Reader))
+
+		items, err := c.COSI.List(machineCtx, cosiresource.NewMetadata(opts.Namespace, opts.Resource, "", cosiresource.VersionUndefined))
 		if err != nil {
 			return runtime.ListResult{}, err
 		}
@@ -242,9 +247,9 @@ func (r *Runtime) GetTalosconfigRaw(context *common.Context, identity string) ([
 	return talosconfig.Bytes()
 }
 
-// GetClient returns talos client for the cluster name.
-func (r *Runtime) GetClient(ctx context.Context, clusterName string) (*Client, error) {
-	c, err := r.clientFactory.Get(ctx, clusterName)
+// GetClientForCluster returns talos client for the cluster name.
+func (r *Runtime) GetClientForCluster(ctx context.Context, clusterName string) (*Client, error) {
+	c, err := r.clientFactory.GetForCluster(ctx, clusterName)
 	if err != nil {
 		return nil, err
 	}
@@ -256,6 +261,27 @@ func (r *Runtime) GetClient(ctx context.Context, clusterName string) (*Client, e
 
 	if !connected {
 		return nil, fmt.Errorf("the cluster %s is not reachable", clusterName)
+	}
+
+	return c, nil
+}
+
+// GetClientForMachine returns a Talos client connected directly to the given machine's SideroLink endpoint.
+//
+// Cluster membership is determined automatically from the machine's state.
+func (r *Runtime) GetClientForMachine(ctx context.Context, machineID string) (*Client, error) {
+	c, err := r.clientFactory.GetForMachine(ctx, machineID)
+	if err != nil {
+		return nil, err
+	}
+
+	connected, err := c.Connected(ctx, r.clientFactory.omniState)
+	if err != nil {
+		return nil, err
+	}
+
+	if !connected {
+		return nil, fmt.Errorf("the cluster %s is not reachable", c.clusterID)
 	}
 
 	return c, nil

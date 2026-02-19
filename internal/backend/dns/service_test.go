@@ -73,7 +73,7 @@ func (suite *ServiceSuite) TearDownTest() {
 }
 
 func (suite *ServiceSuite) TestResolve() {
-	suite.assertResolveAddress("test-bootstrap-cluster-1", "test-bootstrap-1-node", "10.0.0.84")
+	suite.assertResolve("test-bootstrap-cluster-1", "test-bootstrap-1-node", dns.Info{Cluster: "test-bootstrap-cluster-1", ID: "test-bootstrap-1", Name: "test-bootstrap-1-node", Address: "10.0.0.84"})
 
 	identity := omni.NewClusterMachineIdentity("test-1")
 	identity.Metadata().Labels().Set(omni.LabelCluster, "test-cluster-1")
@@ -84,24 +84,22 @@ func (suite *ServiceSuite) TestResolve() {
 	// create and assert that it resolves by machine ID, address and node name
 	suite.Require().NoError(suite.state.Create(suite.ctx, identity))
 
-	expected := dns.NewInfo(cluster, "test-1", "test-1-node", "10.0.0.42")
-	suite.assertResolve("test-1", expected)
-	suite.assertResolve("test-1-node", expected)
-	suite.assertResolve("10.0.0.42", expected)
+	expected := dns.Info{Cluster: cluster, ID: "test-1", Name: "test-1-node", Address: "10.0.0.42"}
+	suite.assertResolve(cluster, "test-1", expected)
+	suite.assertResolve(cluster, "test-1-node", expected)
+	suite.assertResolve(cluster, "10.0.0.42", expected)
 
 	// update address, assert that it resolves with new address and old address doesn't resolve anymore
 	identity.TypedSpec().Value.NodeIps = []string{"10.0.0.43"}
 
 	suite.Require().NoError(suite.state.Update(suite.ctx, identity))
 
-	expected = dns.NewInfo(cluster, "test-1", "test-1-node", "10.0.0.43")
-	suite.assertResolve("test-1", expected)
-	suite.assertResolve("test-1-node", expected)
-	suite.assertResolve("10.0.0.43", expected)
+	expected = dns.Info{Cluster: cluster, ID: "test-1", Name: "test-1-node", Address: "10.0.0.43"}
+	suite.assertResolve(cluster, "test-1", expected)
+	suite.assertResolve(cluster, "test-1-node", expected)
+	suite.assertResolve(cluster, "10.0.0.43", expected)
 
-	var zeroInfo dns.Info
-
-	suite.assertResolve("10.0.0.42", zeroInfo)
+	suite.assertNotFound("10.0.0.42")
 
 	// update Talos version, assert that it resolves
 	machineStatus := omni.NewMachineStatus("test-1")
@@ -111,27 +109,27 @@ func (suite *ServiceSuite) TestResolve() {
 
 	expected.TalosVersion = "1.4.1"
 
-	suite.assertResolve("test-1", expected)
+	suite.assertResolve(cluster, "test-1", expected)
 
 	// destroy the identity, assert that it doesn't resolve anymore
 	suite.Require().NoError(suite.state.Destroy(suite.ctx, identity.Metadata()))
 
-	expected = dns.NewInfo("", "test-1", "", "")
+	expected = dns.Info{ID: "test-1"}
 	expected.TalosVersion = machineStatus.TypedSpec().Value.TalosVersion
 
 	// still resolves by the node id, but has an empty address
-	suite.assertResolve("test-1", expected)
-	suite.assertResolve("test-1-node", zeroInfo)
-	suite.assertResolve("10.0.0.43", zeroInfo)
+	suite.assertResolve(cluster, "test-1", expected)
+	suite.assertNotFound("test-1-node")
+	suite.assertNotFound("10.0.0.43")
 
 	// destroy the machine status, assert that it doesn't resolve by the node id anymore
 	suite.Require().NoError(suite.state.Destroy(suite.ctx, machineStatus.Metadata()))
 
-	suite.assertResolve("test-1", zeroInfo)
+	suite.assertNotFound("test-1")
 }
 
 func (suite *ServiceSuite) TestResolveAllocateAndDeallocate() {
-	expected := dns.NewInfo("", "test-1", "", "")
+	expected := dns.Info{ID: "test-1"}
 
 	expected.TalosVersion = "3.2.1"
 
@@ -143,7 +141,7 @@ func (suite *ServiceSuite) TestResolveAllocateAndDeallocate() {
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
 
-	suite.assertResolve("test-1", expected)
+	suite.assertResolve(cluster, "test-1", expected)
 
 	// allocate the machine to a cluster by creating a ClusterMachineIdentity
 
@@ -159,7 +157,7 @@ func (suite *ServiceSuite) TestResolveAllocateAndDeallocate() {
 	expected.Cluster = "test-cluster-1"
 	expected.Name = "test-1-node"
 
-	suite.assertResolve("test-1", expected)
+	suite.assertResolve(cluster, "test-1", expected)
 
 	// deallocate the machine by destroying the ClusterMachineIdentity
 
@@ -170,15 +168,18 @@ func (suite *ServiceSuite) TestResolveAllocateAndDeallocate() {
 	expected.Cluster = ""
 	expected.Name = ""
 
-	suite.assertResolve("test-1", expected)
+	suite.assertResolve(cluster, "test-1", expected)
 }
 
-func (suite *ServiceSuite) assertResolveAddress(cluster, node, expected string) {
+func (suite *ServiceSuite) assertResolve(clusterName, node string, expected dns.Info) {
 	err := retry.Constant(3*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(suite.ctx, func(context.Context) error {
-		resolved := suite.dnsService.Resolve(cluster, node)
+		resolved, resolveErr := suite.dnsService.Resolve(clusterName, node)
+		if resolveErr != nil {
+			return retry.ExpectedErrorf("resolve error: %v", resolveErr)
+		}
 
-		if resolved.GetAddress() != expected {
-			return retry.ExpectedErrorf("expected %s, got %s", expected, resolved.GetAddress())
+		if !reflect.DeepEqual(resolved, expected) {
+			return retry.ExpectedErrorf("expected %#v, got %#v", expected, resolved)
 		}
 
 		return nil
@@ -186,12 +187,11 @@ func (suite *ServiceSuite) assertResolveAddress(cluster, node, expected string) 
 	suite.Assert().NoError(err)
 }
 
-func (suite *ServiceSuite) assertResolve(node string, expected dns.Info) {
+func (suite *ServiceSuite) assertNotFound(node string) {
 	err := retry.Constant(3*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(suite.ctx, func(context.Context) error {
-		resolved := suite.dnsService.Resolve(cluster, node)
-
-		if !reflect.DeepEqual(resolved, expected) {
-			return retry.ExpectedErrorf("expected %#v, got %#v", expected, resolved)
+		_, resolveErr := suite.dnsService.Resolve(cluster, node)
+		if resolveErr == nil {
+			return retry.ExpectedErrorf("expected node %q to not be found, but it resolved successfully", node)
 		}
 
 		return nil

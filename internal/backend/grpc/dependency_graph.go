@@ -151,7 +151,7 @@ func (s *ResourceServer) DependencyGraph(ctx context.Context, req *resources.Dep
 				return err
 			}
 
-			if reflect.ValueOf(res.Spec()).Kind() == reflect.Ptr {
+			if reflect.ValueOf(res.Spec()).Kind() == reflect.Pointer {
 				err = json.Unmarshal([]byte("{}"), res.Spec())
 				if err != nil {
 					return err

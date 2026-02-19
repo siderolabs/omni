@@ -102,8 +102,8 @@ func (s *ResourceServer) Get(ctx context.Context, in *resources.GetRequest) (*re
 
 	md, _ := metadata.FromIncomingContext(ctx)
 
-	if nodes := md.Get(router.ResolvedNodesHeaderKey); nodes != nil {
-		opts = append(opts, runtime.WithNodes(nodes...))
+	if machines := md.Get(router.ResolvedMachinesHeaderKey); machines != nil {
+		opts = append(opts, runtime.WithMachines(machines...))
 	}
 
 	result, err := r.Get(ctx, opts...)
@@ -140,8 +140,8 @@ func (s *ResourceServer) List(ctx context.Context, in *resources.ListRequest) (*
 		opts = append(opts, runtime.WithFieldSelector(s[0]))
 	}
 
-	if nodes := md.Get(router.ResolvedNodesHeaderKey); nodes != nil {
-		opts = append(opts, runtime.WithNodes(nodes...))
+	if machines := md.Get(router.ResolvedMachinesHeaderKey); machines != nil {
+		opts = append(opts, runtime.WithMachines(machines...))
 	}
 
 	if in.Offset > 0 {
@@ -204,8 +204,8 @@ func (s *ResourceServer) Watch(in *resources.WatchRequest, serv grpc.ServerStrea
 		opts = append(opts, runtime.WithFieldSelector(s[0]))
 	}
 
-	if nodes := md.Get(router.ResolvedNodesHeaderKey); len(nodes) > 0 {
-		opts = append(opts, runtime.WithNodes(nodes...))
+	if machines := md.Get(router.ResolvedMachinesHeaderKey); len(machines) > 0 {
+		opts = append(opts, runtime.WithMachines(machines...))
 	}
 
 	if in.Id != "" {

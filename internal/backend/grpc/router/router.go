@@ -20,12 +20,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"github.com/siderolabs/grpc-proxy/proxy"
 	"github.com/siderolabs/talos/pkg/machinery/client/resolver"
@@ -43,7 +41,6 @@ import (
 
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/pkg/constants"
-	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/memconn"
@@ -52,8 +49,12 @@ import (
 )
 
 const (
-	talosBackendLRUSize = 32
-	talosBackendTTL     = time.Hour
+	// Talos backend cache holds per-node gRPC proxy connections (one per cluster-node pair).
+	// TTL is kept short to avoid holding many idle per-node connections.
+	// Active invalidation via ResourceWatcher handles state-change evictions.
+
+	talosBackendLRUSize = 1024
+	talosBackendTTL     = 10 * time.Minute
 )
 
 // TalosAuditor is an interface for auditing Talos access.
@@ -63,10 +64,13 @@ type TalosAuditor interface {
 
 // Router wraps grpc-proxy StreamDirector.
 type Router struct {
-	talosBackends                        *expirable.LRU[string, proxy.Backend]
-	sf                                   singleflight.Group
-	metricCacheSize, metricActiveClients prometheus.Gauge
-	metricCacheHits, metricCacheMisses   prometheus.Counter
+	talosBackends *expirable.LRU[string, proxy.Backend]
+	sf            singleflight.Group
+
+	metricCacheSize     *prometheus.GaugeVec
+	metricActiveClients *prometheus.GaugeVec
+	metricCacheHits     *prometheus.CounterVec
+	metricCacheMisses   *prometheus.CounterVec
 
 	omniBackend  proxy.Backend
 	nodeResolver NodeResolver
@@ -100,24 +104,27 @@ func NewRouter(
 		return nil, fmt.Errorf("failed to dial omni backend: %w", err)
 	}
 
+	typeLabel := []string{"type"}
+
+	cacheSize := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "omni_grpc_proxy_talos_backend_cache_size",
+		Help: "Number of Talos backends in the cache of gRPC Proxy.",
+	}, typeLabel)
+
 	r := &Router{
-		talosBackends: expirable.NewLRU[string, proxy.Backend](talosBackendLRUSize, nil, talosBackendTTL),
-		metricCacheSize: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: "omni_grpc_proxy_talos_backend_cache_size",
-			Help: "Number of Talos clients in the cache of gRPC Proxy.",
-		}),
-		metricActiveClients: prometheus.NewGauge(prometheus.GaugeOpts{
+		metricCacheSize: cacheSize,
+		metricActiveClients: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "omni_grpc_proxy_talos_backend_active_clients",
-			Help: "Number of active Talos clients created by gRPC Proxy.",
-		}),
-		metricCacheHits: prometheus.NewCounter(prometheus.CounterOpts{
+			Help: "Number of active Talos backends created by gRPC Proxy.",
+		}, typeLabel),
+		metricCacheHits: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "omni_grpc_proxy_talos_backend_cache_hits_total",
-			Help: "Number of gRPC Proxy Talos client cache hits.",
-		}),
-		metricCacheMisses: prometheus.NewCounter(prometheus.CounterOpts{
+			Help: "Number of gRPC Proxy Talos backend cache hits.",
+		}, typeLabel),
+		metricCacheMisses: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "omni_grpc_proxy_talos_backend_cache_misses_total",
-			Help: "Number of gRPC Proxy Talos client cache misses.",
-		}),
+			Help: "Number of gRPC Proxy Talos backend cache misses.",
+		}, typeLabel),
 		omniBackend:  NewOmniBackend("omni", nodeResolver, omniConn),
 		nodeResolver: nodeResolver,
 		verifier:     verifier,
@@ -126,12 +133,27 @@ func NewRouter(
 		authEnabled:  authEnabled,
 	}
 
+	r.talosBackends = expirable.NewLRU[string, proxy.Backend](talosBackendLRUSize, func(key string, _ proxy.Backend) {
+		cacheSize.WithLabelValues(cacheKeyType(key)).Dec()
+	}, talosBackendTTL)
+
 	return r, nil
 }
 
-// removeBackend clears cached client for a cluster.
-func (r *Router) removeBackend(id string) {
-	r.talosBackends.Remove(id)
+// releaseForCluster evicts all cached backends for the given cluster (both cluster-scoped and per-node).
+func (r *Router) releaseForCluster(clusterID string) {
+	prefix := clusterID + "/"
+
+	for _, key := range r.talosBackends.Keys() {
+		if strings.HasPrefix(key, prefix) {
+			r.talosBackends.Remove(key)
+		}
+	}
+}
+
+// releaseForMachine evicts a single cached backend by cluster and machine ID.
+func (r *Router) releaseForMachine(clusterID, machineID string) {
+	r.talosBackends.Remove(buildCacheKey(clusterID, machineID))
 }
 
 // Director implements proxy.StreamDirector function.
@@ -155,7 +177,7 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 	}
 
 	if runtime := md.Get(message.RuntimeHeaderKey); runtime != nil && runtime[0] == common.Runtime_Talos.String() {
-		backends, err := r.getTalosBackend(ctx, md)
+		backend, err := r.getTalosBackend(ctx, md)
 		if err != nil {
 			return proxy.One2One, nil, err
 		}
@@ -164,60 +186,82 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 			return proxy.One2One, nil, err
 		}
 
-		return proxy.One2One, backends, nil
+		return proxy.One2One, []proxy.Backend{backend}, nil
 	}
 
 	return proxy.One2One, []proxy.Backend{r.omniBackend}, nil
 }
 
-func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) ([]proxy.Backend, error) {
-	clusterName := getClusterName(md)
+func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) (proxy.Backend, error) {
+	clusterID := getClusterName(md)
 
-	id := "cluster-" + clusterName
-
-	if clusterName == "" {
-		resolved := resolveNodes(r.nodeResolver, md)
-
-		node, err := resolved.getNode()
-		if err != nil {
-			return nil, err
+	nodes, err := resolveNodes(r.nodeResolver, md)
+	if err != nil {
+		code := codes.InvalidArgument
+		if errors.Is(err, dns.ErrNotFound) {
+			code = codes.NotFound
 		}
 
-		if node.Ambiguous {
-			return nil, fmt.Errorf("name or address %q is ambiguous, please specify the cluster name explicitly", node.Name)
-		}
-
-		clusterName = node.Cluster
-
-		if node.Cluster != "" {
-			id = "cluster-" + clusterName
-		} else {
-			id = "machine-" + node.ID
-		}
+		return nil, status.Errorf(code, "resolve nodes: %v", err)
 	}
 
-	if backend, ok := r.talosBackends.Get(id); ok {
-		r.metricCacheHits.Inc()
+	// No specific nodes targeted: return a cluster-scoped backend with round-robin across CP nodes.
+	if len(nodes) == 0 {
+		if clusterID == "" {
+			return nil, status.Error(codes.InvalidArgument, "at least one of cluster, node, or nodes must be specified")
+		}
 
-		return []proxy.Backend{backend}, nil
+		return r.getForCluster(ctx, clusterID)
 	}
 
-	ch := r.sf.DoChan(id, func() (any, error) {
+	// If cluster name was not provided via gRPC metadata, infer it from the resolved nodes.
+	// They are checked earlier for being in the same cluster, so we can simply pick it from the first one.
+	if clusterID == "" {
+		clusterID = nodes[0].Cluster
+	}
+
+	// Multiple nodes: route through a CP node and preserve the "nodes" header
+	// so that Talos apid handles the One2Many fan-out.
+	// Omni cannot do this itself — One2Many merges multiple responses (including per-node errors)
+	// into a single gRPC response, and some APIs explicitly reject One2Many calls.
+	if len(nodes) > 1 {
+		return r.getForCluster(ctx, clusterID)
+	}
+
+	// Single node: connect directly via SideroLink, strip all routing headers.
+	return r.getForMachine(ctx, clusterID, nodes[0])
+}
+
+// getForCluster returns a backend that load-balances across all healthy CP nodes of the cluster.
+func (r *Router) getForCluster(ctx context.Context, clusterID string) (proxy.Backend, error) {
+	cacheKey := buildCacheKey(clusterID, "")
+	typ := cacheKeyType(cacheKey)
+
+	if backend, ok := r.talosBackends.Get(cacheKey); ok {
+		r.metricCacheHits.WithLabelValues(typ).Inc()
+
+		return backend, nil
+	}
+
+	ch := r.sf.DoChan(cacheKey, func() (any, error) {
 		innerCtx := actor.MarkContextAsInternalActor(ctx)
 
-		r.metricCacheMisses.Inc()
+		r.metricCacheMisses.WithLabelValues(typ).Inc()
 
-		conn, err := r.getConn(innerCtx, clusterName)
+		conn, err := r.getClusterConn(innerCtx, clusterID)
 		if err != nil {
 			return nil, err
 		}
 
-		r.metricActiveClients.Inc()
+		activeGauge := r.metricActiveClients.WithLabelValues(typ)
+		activeGauge.Inc()
 
-		backend := NewTalosBackend(id, clusterName, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState)
-		r.talosBackends.Add(id, backend)
+		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState)
+		r.talosBackends.Add(cacheKey, backend)
 
-		runtime.AddCleanup(backend, func(m prometheus.Gauge) { m.Dec() }, r.metricActiveClients)
+		r.metricCacheSize.WithLabelValues(typ).Inc()
+
+		runtime.AddCleanup(backend, func(m prometheus.Gauge) { m.Dec() }, activeGauge)
 		runtime.AddCleanup(backend, func(conn *grpc.ClientConn) { conn.Close() }, backend.conn) //nolint:errcheck
 
 		return backend, nil
@@ -231,76 +275,156 @@ func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) ([]proxy.B
 			return nil, res.Err
 		}
 
-		backend := res.Val.(proxy.Backend) //nolint:errcheck,forcetypeassert
-
-		return []proxy.Backend{backend}, nil
+		return res.Val.(proxy.Backend), nil //nolint:errcheck,forcetypeassert
 	}
 }
 
-func (r *Router) getTransportCredentials(ctx context.Context, contextName string) (credentials.TransportCredentials, []string, error) {
-	if contextName == "" {
-		md, ok := metadata.FromIncomingContext(ctx)
-		if !ok {
-			return nil, nil, fmt.Errorf("failed to get node ip from the request")
+// getForMachine returns a backend connected directly to a specific node's SideroLink address.
+func (r *Router) getForMachine(ctx context.Context, clusterID string, node dns.Info) (proxy.Backend, error) {
+	if node.ManagementEndpoint == "" {
+		return nil, status.Errorf(codes.Unavailable, "node %q has no management endpoint", node.Name)
+	}
+
+	cacheKey := buildCacheKey(clusterID, node.ID)
+	typ := cacheKeyType(cacheKey)
+
+	if backend, ok := r.talosBackends.Get(cacheKey); ok {
+		r.metricCacheHits.WithLabelValues(typ).Inc()
+
+		return backend, nil
+	}
+
+	ch := r.sf.DoChan(cacheKey, func() (any, error) {
+		innerCtx := actor.MarkContextAsInternalActor(ctx)
+
+		r.metricCacheMisses.WithLabelValues(typ).Inc()
+
+		conn, err := r.getMachineConn(innerCtx, clusterID, node.ManagementEndpoint)
+		if err != nil {
+			return nil, err
 		}
 
-		var endpoints []dns.Info
+		activeGauge := r.metricActiveClients.WithLabelValues(typ)
+		activeGauge.Inc()
 
-		info := resolveNodes(r.nodeResolver, md)
+		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState)
+		r.talosBackends.Add(cacheKey, backend)
 
-		endpoints = info.nodes
+		r.metricCacheSize.WithLabelValues(typ).Inc()
 
-		if info.nodeOk {
-			endpoints = []dns.Info{info.node}
+		runtime.AddCleanup(backend, func(m prometheus.Gauge) { m.Dec() }, activeGauge)
+		runtime.AddCleanup(backend, func(conn *grpc.ClientConn) { conn.Close() }, backend.conn) //nolint:errcheck
+
+		return backend, nil
+	})
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case res := <-ch:
+		if res.Err != nil {
+			return nil, res.Err
 		}
 
-		return credentials.NewTLS(&tls.Config{
-				InsecureSkipVerify: true,
-			}), xslices.Map(endpoints, func(info dns.Info) string {
-				return net.JoinHostPort(info.GetAddress(), strconv.FormatInt(talosconstants.ApidPort, 10))
-			}), nil
+		return res.Val.(proxy.Backend), nil //nolint:errcheck,forcetypeassert
 	}
-
-	clusterCredentials, err := r.getClusterCredentials(ctx, contextName)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	tlsConfig := &tls.Config{}
-
-	tlsConfig.RootCAs = x509.NewCertPool()
-
-	if ok := tlsConfig.RootCAs.AppendCertsFromPEM(clusterCredentials.CAPEM); !ok {
-		return nil, nil, errors.New("failed to append CA certificate to RootCAs pool")
-	}
-
-	clientCert, err := tls.X509KeyPair(clusterCredentials.CertPEM, clusterCredentials.KeyPEM)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create TLS client certificate: %w", err)
-	}
-
-	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-	tlsConfig.Certificates = append(tlsConfig.Certificates, clientCert)
-
-	return credentials.NewTLS(tlsConfig), xslices.Map(clusterCredentials.Endpoints, func(endpoint string) string {
-		return net.JoinHostPort(endpoint, strconv.FormatInt(talosconstants.ApidPort, 10))
-	}), nil
 }
 
-func (r *Router) getConn(ctx context.Context, contextName string) (*grpc.ClientConn, error) {
-	creds, endpoints, err := r.getTransportCredentials(ctx, contextName)
+func buildCacheKey(clusterID, machineID string) string {
+	if clusterID == "" {
+		return "machine-" + machineID
+	}
+
+	return clusterID + "/" + machineID
+}
+
+// getClusterConn builds a gRPC connection that load-balances across all healthy CP nodes of a cluster.
+// It reads the ClusterEndpoint resource to get the management addresses and uses gRPC round-robin.
+func (r *Router) getClusterConn(ctx context.Context, clusterID string) (*grpc.ClientConn, error) {
+	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](ctx, r.cosiState,
+		omni.NewClusterEndpoint(clusterID).Metadata(),
+	)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Errorf(codes.Unavailable, "cluster %q endpoint not found", clusterID)
+		}
+
+		return nil, err
+	}
+
+	mgmtAddresses := clusterEndpoint.TypedSpec().Value.ManagementAddresses
+	if len(mgmtAddresses) == 0 {
+		return nil, status.Errorf(codes.Unavailable, "cluster %q has no management addresses", clusterID)
+	}
+
+	endpoints := make([]string, 0, len(mgmtAddresses))
+
+	for _, addr := range mgmtAddresses {
+		endpoints = append(endpoints, net.JoinHostPort(addr, strconv.FormatInt(talosconstants.ApidPort, 10)))
+	}
+
+	return r.dialTalos(ctx, clusterID, endpoints)
+}
+
+// getMachineConn builds a gRPC connection directly to a single machine's SideroLink management endpoint.
+// For maintenance nodes (clusterID="") it uses insecure TLS (no cert verification).
+// For nodes that belong to a cluster it uses the cluster's mTLS credentials.
+func (r *Router) getMachineConn(ctx context.Context, clusterID, mgmtEndpoint string) (*grpc.ClientConn, error) {
+	endpoint := net.JoinHostPort(mgmtEndpoint, strconv.FormatInt(talosconstants.ApidPort, 10))
+
+	if clusterID == "" {
+		return r.dialTalosMaintenance(endpoint)
+	}
+
+	return r.dialTalos(ctx, clusterID, []string{endpoint})
+}
+
+// dialTalos creates a gRPC connection to one or more Talos endpoints using cluster mTLS credentials.
+// When multiple endpoints are provided, gRPC round-robin load balancing distributes calls across them.
+func (r *Router) dialTalos(ctx context.Context, clusterID string, endpoints []string) (*grpc.ClientConn, error) {
+	clusterCreds, err := r.getClusterCredentials(ctx, clusterID)
 	if err != nil {
 		return nil, err
 	}
 
+	tlsConfig := &tls.Config{
+		RootCAs: x509.NewCertPool(),
+	}
+
+	if ok := tlsConfig.RootCAs.AppendCertsFromPEM(clusterCreds.CAPEM); !ok {
+		return nil, errors.New("failed to append CA certificate to RootCAs pool")
+	}
+
+	clientCert, err := tls.X509KeyPair(clusterCreds.CertPEM, clusterCreds.KeyPEM)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create TLS client certificate: %w", err)
+	}
+
+	tlsConfig.Certificates = append(tlsConfig.Certificates, clientCert)
+
+	return r.dialTalosWithCreds(credentials.NewTLS(tlsConfig), endpoints)
+}
+
+// dialTalosMaintenance creates a gRPC connection with insecure TLS (no cert verification) for maintenance-mode nodes.
+func (r *Router) dialTalosMaintenance(endpoint string) (*grpc.ClientConn, error) {
+	creds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: true}) //nolint:gosec
+
+	return r.dialTalosWithCreds(creds, []string{endpoint})
+}
+
+func (r *Router) dialTalosWithCreds(creds credentials.TransportCredentials, endpoints []string) (*grpc.ClientConn, error) {
+	target := fmt.Sprintf("%s:///%s",
+		resolver.RoundRobinResolverScheme,
+		strings.Join(endpoints, ","),
+	)
+
 	backoffConfig := backoff.DefaultConfig
 	backoffConfig.MaxDelay = 15 * time.Second
 
-	endpoint := fmt.Sprintf("%s:///%s", resolver.RoundRobinResolverScheme, strings.Join(endpoints, ","))
-
-	opts := []grpc.DialOption{
-		grpc.WithInitialWindowSize(65535 * 32),
-		grpc.WithInitialConnWindowSize(65535 * 16),
+	return grpc.NewClient(
+		target,
+		grpc.WithInitialWindowSize(65535*32),
+		grpc.WithInitialConnWindowSize(65535*16),
 		grpc.WithConnectParams(grpc.ConnectParams{
 			Backoff:           backoffConfig,
 			MinConnectTimeout: 20 * time.Second,
@@ -308,30 +432,24 @@ func (r *Router) getConn(ctx context.Context, contextName string) (*grpc.ClientC
 		grpc.WithTransportCredentials(creds),
 		grpc.WithDefaultCallOptions(grpc.ForceCodecV2(proxy.Codec())),
 		grpc.WithSharedWriteBuffer(true),
-	}
-
-	return grpc.NewClient(
-		endpoint,
-		opts...,
 	)
 }
 
 type talosClusterCredentials struct {
-	CAPEM     []byte
-	CertPEM   []byte
-	KeyPEM    []byte
-	Endpoints []string
+	CAPEM   []byte
+	CertPEM []byte
+	KeyPEM  []byte
 }
 
-func (r *Router) getClusterCredentials(ctx context.Context, clusterName string) (*talosClusterCredentials, error) {
-	if clusterName == "" {
+func (r *Router) getClusterCredentials(ctx context.Context, clusterID string) (*talosClusterCredentials, error) {
+	if clusterID == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "cluster name is not set")
 	}
 
-	secrets, err := safe.StateGet[*omni.ClusterSecrets](ctx, r.cosiState, omni.NewClusterSecrets(clusterName).Metadata())
+	secrets, err := safe.StateGet[*omni.ClusterSecrets](ctx, r.cosiState, omni.NewClusterSecrets(clusterID).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
-			return nil, status.Errorf(codes.NotFound, "cluster %q is not registered", clusterName)
+			return nil, status.Errorf(codes.NotFound, "cluster %q is not registered", clusterID)
 		}
 
 		return nil, err
@@ -343,18 +461,10 @@ func (r *Router) getClusterCredentials(ctx context.Context, clusterName string) 
 		return nil, err
 	}
 
-	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](ctx, r.cosiState, omni.NewClusterEndpoint(clusterName).Metadata())
-	if err != nil {
-		return nil, err
-	}
-
-	endpoints := clusterEndpoint.TypedSpec().Value.ManagementAddresses
-
 	return &talosClusterCredentials{
-		Endpoints: endpoints,
-		CAPEM:     CA,
-		CertPEM:   clientCert.Crt,
-		KeyPEM:    clientCert.Key,
+		CAPEM:   CA,
+		CertPEM: clientCert.Crt,
+		KeyPEM:  clientCert.Key,
 	}, nil
 }
 
@@ -362,52 +472,81 @@ func (r *Router) getClusterCredentials(ctx context.Context, clusterName string) 
 func (r *Router) ResourceWatcher(ctx context.Context, s state.State, logger *zap.Logger) error {
 	events := make(chan state.Event)
 
-	if err := s.WatchKind(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterType, "", resource.VersionUndefined), events); err != nil {
-		return err
+	if err := s.WatchKind(ctx, omni.NewCluster("").Metadata(), events); err != nil {
+		return fmt.Errorf("failed to watch Clusters: %w", err)
 	}
 
-	if err := s.WatchKind(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterSecretsType, "", resource.VersionUndefined), events); err != nil {
-		return err
+	if err := s.WatchKind(ctx, omni.NewClusterSecrets("").Metadata(), events); err != nil {
+		return fmt.Errorf("failed to watch ClusterSecrets: %w", err)
 	}
 
-	if err := s.WatchKind(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ClusterEndpointType, "", resource.VersionUndefined), events); err != nil {
-		return err
+	if err := s.WatchKind(ctx, omni.NewClusterEndpoint("").Metadata(), events); err != nil {
+		return fmt.Errorf("failed to watch ClusterEndpoints: %w", err)
 	}
 
-	if err := s.WatchKind(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineType, "", resource.VersionUndefined), events); err != nil {
-		return err
+	if err := s.WatchKind(ctx, omni.NewMachine("").Metadata(), events); err != nil {
+		return fmt.Errorf("failed to watch Machines: %w", err)
+	}
+
+	if err := s.WatchKind(ctx, omni.NewClusterMachine("").Metadata(), events); err != nil {
+		return fmt.Errorf("failed to watch ClusterMachines: %w", err)
 	}
 
 	for {
+		var event state.Event
+
 		select {
 		case <-ctx.Done():
 			return nil
-		case e := <-events:
-			switch e.Type {
-			case state.Errored:
-				return fmt.Errorf("talos backend cluster watch failed: %w", e.Error)
-			case state.Bootstrapped, state.Noop:
-				// ignore
-			case state.Created, state.Updated, state.Destroyed:
-				if e.Resource.Metadata().Type() == omni.MachineType {
-					if e.Type == state.Destroyed {
-						id := fmt.Sprintf("machine-%s", e.Resource.Metadata().ID())
-						r.removeBackend(id)
-
-						logger.Info("remove machine talos backend", zap.String("id", id))
-					}
-
-					continue
-				}
-
-				id := fmt.Sprintf("cluster-%s", e.Resource.Metadata().ID())
-
-				// all resources have cluster name as the ID, drop the backend to make sure we have new connection established
-				r.removeBackend(id)
-
-				logger.Info("remove cluster talos backend", zap.String("id", id))
-			}
+		case event = <-events:
 		}
+
+		switch event.Type {
+		case state.Bootstrapped, state.Noop:
+			continue
+		case state.Errored:
+			return fmt.Errorf("talos backend resource watch failed: %w", event.Error)
+		case state.Created, state.Updated, state.Destroyed: // handle below
+		}
+
+		switch event.Resource.Metadata().Type() {
+		case omni.MachineType:
+			if event.Type == state.Destroyed {
+				machineID := event.Resource.Metadata().ID()
+				r.releaseForMachine("", machineID)
+
+				logger.Info("remove machine talos backend", zap.String("machine", machineID))
+			}
+		case omni.ClusterMachineType:
+			r.handleClusterMachineEvent(logger, event)
+		default: // Cluster, ClusterSecrets, or ClusterEndpoint changed: remove all backends for the cluster
+			clusterID := event.Resource.Metadata().ID()
+			r.releaseForCluster(clusterID)
+
+			logger.Info("remove cluster talos backends", zap.String("cluster", clusterID))
+		}
+	}
+}
+
+func (r *Router) handleClusterMachineEvent(logger *zap.Logger, event state.Event) {
+	machineID := event.Resource.Metadata().ID()
+
+	switch event.Type { //nolint:exhaustive // event type is already filtered at call site
+	case state.Created: // machine joined cluster: evict stale maintenance backend
+		r.releaseForMachine("", machineID)
+
+		logger.Info("remove maintenance talos backend", zap.String("machine", machineID))
+	case state.Destroyed: // machine left cluster: evict its cluster backend
+		clusterID, ok := event.Resource.Metadata().Labels().Get(omni.LabelCluster)
+		if !ok {
+			logger.Warn("ClusterMachine has no cluster label, skipping backend cleanup", zap.String("machine", machineID))
+
+			return
+		}
+
+		r.releaseForMachine(clusterID, machineID)
+
+		logger.Info("remove node talos backend", zap.String("cluster", clusterID), zap.String("machine", machineID))
 	}
 }
 
@@ -455,13 +594,23 @@ func (r *Router) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements prom.Collector interface.
 func (r *Router) Collect(ch chan<- prometheus.Metric) {
-	r.metricActiveClients.Collect(ch)
-
-	r.metricCacheSize.Set(float64(r.talosBackends.Len()))
 	r.metricCacheSize.Collect(ch)
-
+	r.metricActiveClients.Collect(ch)
 	r.metricCacheHits.Collect(ch)
 	r.metricCacheMisses.Collect(ch)
 }
 
 var _ prometheus.Collector = &Router{}
+
+// cacheKeyType returns the client type label for a cache key.
+func cacheKeyType(key string) string {
+	if strings.HasPrefix(key, "machine-") {
+		return "maintenance"
+	}
+
+	if strings.HasSuffix(key, "/") {
+		return "cluster"
+	}
+
+	return "machine"
+}

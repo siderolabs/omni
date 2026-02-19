@@ -56,30 +56,28 @@ var adminMethodSet = xslices.ToSet([]string{
 	machine.MachineService_MetaDelete_FullMethodName,
 })
 
-// TalosBackend implements a backend (proxying one2one to a Talos node).
+// TalosBackend implements a backend (proxying directly to a single Talos node over SideroLink).
 type TalosBackend struct {
 	nodeResolver NodeResolver
 	omniState    state.State
 	conn         *grpc.ClientConn
 	verifier     grpc.UnaryServerInterceptor
 	name         string
-	clusterName  string
+	clusterID    string
 	authEnabled  bool
 }
 
 // NewTalosBackend builds new Talos API backend.
-func NewTalosBackend(name, clusterName string, nodeResolver NodeResolver, conn *grpc.ClientConn, authEnabled bool, verifier grpc.UnaryServerInterceptor, st state.State) *TalosBackend {
-	backend := &TalosBackend{
+func NewTalosBackend(name, clusterID string, nodeResolver NodeResolver, conn *grpc.ClientConn, authEnabled bool, verifier grpc.UnaryServerInterceptor, st state.State) *TalosBackend {
+	return &TalosBackend{
 		name:         name,
-		clusterName:  clusterName,
+		clusterID:    clusterID,
 		nodeResolver: nodeResolver,
 		conn:         conn,
 		authEnabled:  authEnabled,
 		verifier:     verifier,
 		omniState:    st,
 	}
-
-	return backend
 }
 
 func (backend *TalosBackend) String() string {
@@ -101,8 +99,8 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 
 	grpcutil.SetShouldLog(ctx, "talos-backend")
 
-	if backend.clusterName != "" {
-		grpcutil.AddLogPair(ctx, "cluster", backend.clusterName)
+	if backend.clusterID != "" {
+		grpcutil.AddLogPair(ctx, "cluster", backend.clusterID)
 	}
 
 	// perform authentication, result of the authentication should be written to ctx
@@ -120,7 +118,7 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 		return ctx, nil, err
 	}
 
-	ctx, err = accesspolicy.ApplyClusterAccessPolicy(ctx, backend.clusterName, backend.omniState)
+	ctx, err = accesspolicy.ApplyClusterAccessPolicy(ctx, backend.clusterID, backend.omniState)
 	if err != nil {
 		return ctx, nil, err
 	}
@@ -129,7 +127,7 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 
 	_, authErr := auth.Check(ctx, auth.WithRole(role.Operator))
 	// insecure access mode should only be possible for the operator role users
-	if authErr != nil && backend.clusterName == "" {
+	if authErr != nil && backend.clusterID == "" {
 		return ctx, nil, status.Error(codes.PermissionDenied, "permission denied")
 	}
 
@@ -139,45 +137,48 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 
 	if !hasModifyAccess {
 		// at least read access is required
-		if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
+		if _, err = auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
 			return ctx, nil, err
 		}
 	}
 
-	// overwrite the node headers with the resolved ones
-	resolved := resolveNodes(backend.nodeResolver, md)
-
-	if resolved.nodeOk {
-		md = md.Copy()
-
-		setHeaderData(ctx, md, nodeHeaderKey, resolved.node.GetAddress())
+	nodes, err := resolveNodes(backend.nodeResolver, md)
+	if err != nil {
+		return ctx, nil, err
 	}
 
-	if len(resolved.nodes) > 0 {
-		md = md.Copy()
+	md = md.Copy()
 
-		addresses := xslices.Map(resolved.nodes, func(info dns.Info) string {
-			return info.GetAddress()
+	// Always strip the "node" header — Omni has already resolved and routed directly.
+	md.Delete(nodeHeaderKey)
+
+	// Preserve the "nodes" header (rewritten with resolved cluster-internal IPs) when
+	// the original request had "nodes". Talos apid uses it for One2Many fan-out (2+ nodes)
+	// or loopback (1 node pointing to self), which sets Metadata.Hostname in the response.
+	// This preserves the response shape that talosctl and other API consumers expect.
+	if len(md.Get(nodesHeaderKey)) > 0 {
+		addresses := xslices.Map(nodes, func(info dns.Info) string {
+			return info.Address
 		})
 
 		setHeaderData(ctx, md, nodesHeaderKey, addresses...)
 	}
 
-	backend.setRoleHeaders(ctx, md, fullMethodName, resolved, hasModifyAccess)
+	backend.setRoleHeaders(ctx, md, fullMethodName, nodes, hasModifyAccess)
 
 	outCtx := metadata.NewOutgoingContext(ctx, md)
 
 	return outCtx, backend.conn, nil
 }
 
-func (backend *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD, fullMethodName string, info resolvedNodeInfo, hasModifyAccess bool) {
+func (backend *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD, fullMethodName string, nodes []dns.Info, hasModifyAccess bool) {
 	if !hasModifyAccess {
 		setHeaderData(ctx, md, constants.APIAuthzRoleMetadataKey, talosrole.MakeSet(talosrole.Reader).Strings()...)
 
 		return
 	}
 
-	minTalosVersion := backend.minTalosVersion(info)
+	minTalosVersion := backend.minTalosVersion(nodes)
 
 	// methods that should have admin access
 	if _, ok := adminMethodSet[fullMethodName]; ok {
@@ -201,14 +202,10 @@ func (backend *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD,
 	}
 }
 
-func (backend *TalosBackend) minTalosVersion(info resolvedNodeInfo) *semver.Version {
+func (backend *TalosBackend) minTalosVersion(nodes []dns.Info) *semver.Version {
 	var ver *semver.Version
 
-	if info.nodeOk {
-		ver = takePtr(semver.ParseTolerant(info.node.TalosVersion))
-	}
-
-	for _, node := range info.nodes {
+	for _, node := range nodes {
 		nodeVer := takePtr(semver.ParseTolerant(node.TalosVersion))
 		if nodeVer != nil && (ver == nil || nodeVer.LT(*ver)) {
 			ver = nodeVer
@@ -236,6 +233,7 @@ func (backend *TalosBackend) BuildError(bool, error) ([]byte, error) {
 	return nil, nil
 }
 
+//nolint:unparam
 func setHeaderData(ctx context.Context, md metadata.MD, k string, v ...string) {
 	if len(v) == 0 {
 		return

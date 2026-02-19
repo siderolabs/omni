@@ -59,16 +59,13 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 
 	cols := make([]*collectors.Collector, 0, len(resources))
 
-	var nodes []string
+	var machineIDs []string
 
 	for _, res := range resources {
 		if res.Metadata().Type() == siderolink.LinkType {
 			cols = append(cols, s.collectLogs(res.Metadata().ID()))
 
-			info := s.dnsService.Resolve(req.Cluster, res.Metadata().ID())
-			if info.GetAddress() != "" {
-				nodes = append(nodes, info.GetAddress())
-			}
+			machineIDs = append(machineIDs, res.Metadata().ID())
 		}
 
 		cols = append(cols, s.writeResource(res))
@@ -77,22 +74,6 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 	}
 
 	ctx = actor.MarkContextAsInternalActor(ctx)
-
-	talosClient, err := s.getTalosClient(ctx, req.Cluster)
-	if err != nil {
-		if err = serv.Send(&management.GetSupportBundleResponse{
-			Progress: &management.GetSupportBundleResponse_Progress{
-				Source: collectors.Cluster,
-				Error:  fmt.Sprintf("failed to get talos client %s", err.Error()),
-			},
-		}); err != nil {
-			return err
-		}
-	}
-
-	if talosClient != nil {
-		defer talosClient.Close() //nolint:errcheck
-	}
 
 	kubernetesClient, err := s.getKubernetesClient(ctx, req.Cluster)
 	if err != nil {
@@ -109,8 +90,15 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 	options := bundle.NewOptions(
 		bundle.WithArchiveOutput(f),
 		bundle.WithKubernetesClient(kubernetesClient),
-		bundle.WithTalosClient(talosClient),
-		bundle.WithNodes(nodes...),
+		bundle.WithTalosClientProvider(func(ctx context.Context, machineID string) (*client.Client, error) {
+			c, clientErr := s.talosRuntime.GetClientForMachine(ctx, machineID)
+			if clientErr != nil {
+				return nil, clientErr
+			}
+
+			return c.Client, nil
+		}),
+		bundle.WithNodes(machineIDs...),
 		bundle.WithNumWorkers(4),
 		bundle.WithProgressChan(progress),
 		bundle.WithLogOutput(io.Discard),
@@ -429,23 +417,6 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 	}
 
 	return resources, nil
-}
-
-func (s *managementServer) getTalosClient(ctx context.Context, clusterName string) (*client.Client, error) {
-	talosConfig, err := safe.ReaderGetByID[*omni.TalosConfig](ctx, s.omniState, clusterName)
-	if err != nil {
-		return nil, err
-	}
-
-	endpoints, err := safe.ReaderGetByID[*omni.ClusterEndpoint](ctx, s.omniState, clusterName)
-	if err != nil {
-		return nil, err
-	}
-
-	return client.New(ctx,
-		client.WithCluster(clusterName),
-		client.WithConfig(omni.NewTalosClientConfig(talosConfig, endpoints.TypedSpec().Value.ManagementAddresses...)),
-	)
 }
 
 func (s *managementServer) getKubernetesClient(ctx context.Context, clusterName string) (*kubernetes.Clientset, error) {

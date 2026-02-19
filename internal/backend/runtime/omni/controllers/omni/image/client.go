@@ -13,7 +13,6 @@ import (
 
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
-	"github.com/siderolabs/talos/pkg/machinery/client"
 
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -33,15 +32,18 @@ type TalosImageClient struct {
 
 // ListImagesOnNode lists images on a node.
 func (c *TalosImageClient) ListImagesOnNode(ctx context.Context, cluster, node string) ([]string, error) {
-	talosCli, err := c.TalosClientFactory.Get(ctx, cluster)
+	info, err := c.NodeResolver.Resolve(cluster, node)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get talos client: %w", err)
+		return nil, fmt.Errorf("failed to resolve node %q: %w", node, err)
 	}
 
-	nodeAddress := c.NodeResolver.Resolve(cluster, node).GetAddress()
+	talosCli, err := c.TalosClientFactory.GetForMachine(ctx, info.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get talos client for node %q: %w", node, err)
+	}
 
 	//nolint:staticcheck
-	imageListStream, err := talosCli.ImageList(client.WithNode(ctx, nodeAddress), common.ContainerdNamespace_NS_CRI)
+	imageListStream, err := talosCli.ImageList(ctx, common.ContainerdNamespace_NS_CRI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list images: %w", err)
 	}
@@ -68,18 +70,18 @@ func (c *TalosImageClient) readImagesFromStream(stream machine.MachineService_Im
 
 // PullImageToNode pulls the given image to the given node.
 func (c *TalosImageClient) PullImageToNode(ctx context.Context, cluster, node, image string) error {
-	talosCli, err := c.TalosClientFactory.Get(ctx, cluster)
+	info, err := c.NodeResolver.Resolve(cluster, node)
 	if err != nil {
-		return fmt.Errorf("failed to get talos client: %w", err)
+		return fmt.Errorf("failed to resolve node %q: %w", node, err)
 	}
 
-	nodeAddress := c.NodeResolver.Resolve(cluster, node).GetAddress()
-	if nodeAddress == "" {
-		return fmt.Errorf("failed to resolve node %q", node)
+	talosCli, err := c.TalosClientFactory.GetForMachine(ctx, info.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get talos client for node %q: %w", node, err)
 	}
 
 	//nolint:staticcheck
-	if err = talosCli.ImagePull(client.WithNode(ctx, nodeAddress), common.ContainerdNamespace_NS_CRI, image); err != nil {
+	if err = talosCli.ImagePull(ctx, common.ContainerdNamespace_NS_CRI, image); err != nil {
 		return fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
 

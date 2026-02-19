@@ -189,7 +189,7 @@ func errString(expectedErr string) func(*testing.T, omni.Loader, error) {
 func IgnoreUnexported(vals ...any) cmp.Option {
 	return cmpopts.IgnoreUnexported(xslices.Map(vals, func(v any) any {
 		val := reflect.ValueOf(v)
-		if val.Kind() == reflect.Ptr {
+		if val.Kind() == reflect.Pointer {
 			val = val.Elem()
 		}
 

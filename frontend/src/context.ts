@@ -21,7 +21,7 @@ export function getContext(route?: RouteLocationNormalizedLoadedGeneric): WatchC
 
   const machine = (route.params.machine ?? route.query.machine) as string
   if (machine) {
-    res.nodes = [machine]
+    res.node = machine
   }
 
   return res

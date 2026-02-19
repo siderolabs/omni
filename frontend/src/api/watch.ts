@@ -175,7 +175,7 @@ class WatchFunc {
 
 export type WatchContext = {
   cluster?: string
-  nodes?: string[]
+  node?: string
 }
 
 export type WatchOptions = WatchOptionsSingle | WatchOptionsMulti

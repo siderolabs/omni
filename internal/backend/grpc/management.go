@@ -72,7 +72,8 @@ type KubernetesRuntime interface {
 // TalosRuntime provides Talos cluster access capabilities.
 type TalosRuntime interface {
 	GetTalosconfigRaw(context *commonOmni.Context, identity string) ([]byte, error)
-	GetClient(ctx context.Context, clusterName string) (*talos.Client, error)
+	GetClientForCluster(ctx context.Context, clusterName string) (*talos.Client, error)
+	GetClientForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 }
 
 // TalosconfigProvider provides raw and operator Talos configurations.
@@ -447,14 +448,9 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 		return nil, fmt.Errorf("error getting kubeconfig: %w", err)
 	}
 
-	talosClient, err := s.talosRuntime.GetClient(ctx, requestContext.Name)
-	if err != nil {
-		return nil, fmt.Errorf("error getting talos client: %w", err)
-	}
+	var controlplaneMachines []string
 
-	var controlplaneNodes []string
-
-	cmis, err := safe.StateListAll[*omnires.ClusterMachineIdentity](
+	cms, err := safe.StateListAll[*omnires.ClusterMachine](
 		ctx,
 		s.omniState,
 		state.WithLabelQuery(
@@ -466,17 +462,22 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 		return nil, err
 	}
 
-	for cmi := range cmis.All() {
-		if len(cmi.TypedSpec().Value.NodeIps) > 0 {
-			controlplaneNodes = append(controlplaneNodes, cmi.TypedSpec().Value.NodeIps[0])
-		}
+	for cm := range cms.All() {
+		controlplaneMachines = append(controlplaneMachines, cm.Metadata().ID())
 	}
 
-	s.logger.Debug("running k8s upgrade pre-checks", zap.Strings("controlplane_nodes", controlplaneNodes), zap.String("cluster", requestContext.Name))
+	s.logger.Debug("running k8s upgrade pre-checks", zap.Strings("controlplane_machines", controlplaneMachines), zap.String("cluster", requestContext.Name))
 
 	var logBuffer strings.Builder
 
-	preCheck, err := upgrade.NewChecks(path, talosClient.COSI, restConfig, controlplaneNodes, nil, func(format string, args ...any) {
+	preCheck, err := upgrade.NewChecksWithStateProvider(path, func(ctx context.Context, machineID string) (state.State, error) {
+		c, clientErr := s.talosRuntime.GetClientForMachine(ctx, machineID)
+		if clientErr != nil {
+			return nil, clientErr
+		}
+
+		return c.COSI, nil
+	}, restConfig, controlplaneMachines, nil, func(format string, args ...any) {
 		fmt.Fprintf(&logBuffer, format, args...)
 		fmt.Fprintln(&logBuffer)
 	})

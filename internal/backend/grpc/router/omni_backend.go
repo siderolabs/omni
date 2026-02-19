@@ -8,15 +8,12 @@ package router
 import (
 	"context"
 
-	"github.com/siderolabs/gen/xslices"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-
-	"github.com/siderolabs/omni/internal/backend/dns"
 )
 
-// ResolvedNodesHeaderKey is used to propagate the node IP information from the node/nodes headers to the backend.
-const ResolvedNodesHeaderKey = "resolved-nodes"
+// ResolvedMachinesHeaderKey is used to propagate machine IDs from the node/nodes headers to the backend.
+const ResolvedMachinesHeaderKey = "resolved-nodes"
 
 // OmniBackend implements a backend (proxying one2one to a Talos node).
 type OmniBackend struct {
@@ -46,20 +43,19 @@ func (l *OmniBackend) GetConnection(ctx context.Context, _ string) (context.Cont
 
 	// Set resolved nodes as a header to be used by the ResourceServer.
 	// Use a new header to avoid signature mismatch.
-	resolved := resolveNodes(l.nodeResolver, md)
-
-	var allNodes []dns.Info
-
-	if resolved.nodeOk {
-		allNodes = append(allNodes, resolved.node)
+	nodes, err := resolveNodes(l.nodeResolver, md)
+	if err != nil {
+		return ctx, nil, err
 	}
 
-	allNodes = append(allNodes, resolved.nodes...)
+	if len(nodes) > 0 {
+		machineIDs := make([]string, 0, len(nodes))
 
-	if len(allNodes) > 0 {
-		md.Set(ResolvedNodesHeaderKey, xslices.Map(allNodes, func(info dns.Info) string {
-			return info.GetAddress()
-		})...)
+		for _, info := range nodes {
+			machineIDs = append(machineIDs, info.ID)
+		}
+
+		md.Set(ResolvedMachinesHeaderKey, machineIDs...)
 	}
 
 	outCtx := metadata.NewOutgoingContext(ctx, md)
