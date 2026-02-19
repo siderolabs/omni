@@ -848,6 +848,48 @@ func TestMachineSetBootstrapSpecValidation(t *testing.T) {
 	assert.ErrorContains(t, err, "bootstrap spec is immutable after creation")
 }
 
+func TestMachineSetNodeValidations(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(validated.NewState(innerSt, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...))
+
+	cluster := omnires.NewCluster("test-cluster")
+	machineSet := omnires.NewMachineSet("test-machine-set")
+	machineSet.Metadata().Labels().Set(omnires.LabelCluster, "test-cluster")
+	machineSetNode := omnires.NewMachineSetNode("test-machine-set", machineSet)
+	machineStatus := omnires.NewMachineStatus(machineSetNode.Metadata().ID())
+
+	machineStatus.TypedSpec().Value.TalosVersion = "1.12.1"
+	cluster.TypedSpec().Value.TalosVersion = machineStatus.TypedSpec().Value.TalosVersion
+
+	require.NoError(t, st.Create(ctx, cluster))
+	require.NoError(t, st.Create(ctx, machineSet))
+	require.NoError(t, st.Create(ctx, machineSetNode))
+	require.NoError(t, st.Create(ctx, machineStatus))
+
+	assert.NoError(t, safe.StateModify(ctx, st, machineSetNode, func(res *omnires.MachineSetNode) error {
+		res.Metadata().Annotations().Set(omnires.MachineLocked, "")
+
+		return nil
+	}))
+
+	require.NoError(t, safe.StateModify(ctx, st, cluster, func(res *omnires.Cluster) error {
+		res.TypedSpec().Value.TalosVersion = "1.11.0"
+
+		return nil
+	}))
+
+	assert.NoError(t, safe.StateModify(ctx, st, machineSetNode, func(res *omnires.MachineSetNode) error {
+		res.Metadata().Annotations().Delete(omnires.MachineLocked)
+
+		return nil
+	}))
+}
+
 func TestMachineSetLockedAnnotation(t *testing.T) {
 	t.Parallel()
 

@@ -882,8 +882,15 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 				return fmt.Errorf("updating machine set node on the machine set %q is not allowed: the cluster %q is tearing down", machineSet.Metadata().ID(), cluster.Metadata().ID())
 			}
 
-			if err = validateTalosVersion(ctx, res, cluster); err != nil {
-				return err
+			newMachineSet, ok := newRes.Metadata().Labels().Get(omni.LabelMachineSet)
+			if !ok {
+				return fmt.Errorf("missing machine set label")
+			}
+
+			if newMachineSet != machineSetName {
+				if err = validateTalosVersion(ctx, res, cluster); err != nil {
+					return err
+				}
 			}
 
 			return validateNotControlplane(machineSet, newRes)
