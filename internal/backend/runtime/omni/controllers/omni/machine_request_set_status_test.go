@@ -20,7 +20,6 @@ import (
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 
@@ -31,11 +30,9 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
 )
-
-type MachineRequestSetStatusSuite struct {
-	OmniSuite
-}
 
 type testInfraProvider = qtransform.QController[*infra.MachineRequest, *infra.MachineRequestStatus]
 
@@ -66,14 +63,24 @@ func newTestInfraProvider() *testInfraProvider {
 	)
 }
 
-func (suite *MachineRequestSetStatusSuite) TestReconcile() {
-	require := suite.Require()
+func TestMachineRequestSetStatusReconcile(t *testing.T) {
+	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*20)
-	defer cancel()
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	t.Cleanup(cancel)
 
-	suite.startRuntime()
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineRequestSetStatusController()))
+			require.NoError(t, tc.Runtime.RegisterQController(newTestInfraProvider()))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			testMachineRequestSetStatusReconcile(ctx, t, tc.State)
+		},
+	)
+}
 
+func testMachineRequestSetStatusReconcile(ctx context.Context, t *testing.T, st state.State) {
 	var eg errgroup.Group
 
 	reconcilerCtx, reconcilerCancel := context.WithCancel(ctx)
@@ -81,44 +88,59 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 	defer func() {
 		reconcilerCancel()
 
-		suite.Require().NoError(eg.Wait())
+		require.NoError(t, eg.Wait())
 	}()
 
-	eg.Go(func() error {
-		if err := suite.reconcileLabels(reconcilerCtx); err != nil {
-			suite.T().Logf("machine status labels reconciler crashed with error %s", err)
+	watchReady := make(chan struct{})
+	errCh := make(chan error, 1)
 
-			return err
+	eg.Go(func() error {
+		err := reconcileLabels(reconcilerCtx, st, watchReady)
+		if err != nil {
+			t.Logf("machine status labels reconciler crashed with error %s", err)
+
+			select {
+			case errCh <- err:
+			default:
+			}
 		}
 
-		return nil
+		return err
 	})
 
-	require.NoError(suite.runtime.RegisterQController(omnictrl.NewMachineRequestSetStatusController()))
-	require.NoError(suite.runtime.RegisterQController(newTestInfraProvider()))
+	select {
+	case <-watchReady:
+	case err := <-errCh:
+		require.FailNow(t, "reconcileLabels failed before watch was established", err)
+	case <-ctx.Done():
+		require.FailNow(t, "context canceled waiting for reconcileLabels watch to be established")
+	}
 
-	machineRequestSet := omni.NewMachineRequestSet("test")
+	machineRequestSet := rmock.Mock[*omni.MachineRequestSet](ctx, t, st,
+		options.WithID("test"),
+		options.Modify(func(r *omni.MachineRequestSet) error {
+			r.TypedSpec().Value.ProviderId = "test"
+			r.TypedSpec().Value.TalosVersion = "v1.7.5"
 
-	machineRequestSet.TypedSpec().Value.ProviderId = "test"
-	machineRequestSet.TypedSpec().Value.TalosVersion = "v1.7.5"
-
-	suite.Require().NoError(suite.state.Create(ctx, machineRequestSet))
+			return nil
+		}),
+	)
 
 	var err error
 
 	// scale up
-	machineRequestSet, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineRequestSet.Metadata(), func(r *omni.MachineRequestSet) error {
+	machineRequestSet, err = safe.StateUpdateWithConflicts(ctx, st, machineRequestSet.Metadata(), func(r *omni.MachineRequestSet) error {
 		r.TypedSpec().Value.MachineCount = 4
 
 		return nil
 	})
 
-	suite.Require().NoError(err)
+	require.NoError(t, err)
 
 	var ids []resource.ID
 
 	err = retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
-		ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, suite.T(), suite.state, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+		ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
 
 		if len(ids) != int(machineRequestSet.TypedSpec().Value.MachineCount) {
 			return retry.ExpectedErrorf("expected %d requests got %d", machineRequestSet.TypedSpec().Value.MachineCount, len(ids))
@@ -127,9 +149,9 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 		return nil
 	})
 
-	suite.Require().NoError(err)
+	require.NoError(t, err)
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, ids, func(r *infra.MachineRequest, assert *assert.Assertions) {
+	rtestutils.AssertResources(ctx, t, st, ids, func(r *infra.MachineRequest, assert *assert.Assertions) {
 		l, ok := r.Metadata().Labels().Get(omni.LabelMachineRequestSet)
 
 		assert.True(ok)
@@ -143,27 +165,27 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 		assert.Equal(machineRequestSet.TypedSpec().Value.TalosVersion, r.TypedSpec().Value.TalosVersion)
 	})
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, ids, func(*infra.MachineRequestStatus, *assert.Assertions) {})
+	rtestutils.AssertResources(ctx, t, st, ids, func(*infra.MachineRequestStatus, *assert.Assertions) {})
 
-	requestStatuses, err := safe.ReaderListAll[*infra.MachineRequestStatus](ctx, suite.state,
+	requestStatuses, err := safe.ReaderListAll[*infra.MachineRequestStatus](ctx, st,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())),
 	)
 
-	suite.Require().NoError(err)
+	require.NoError(t, err)
 
 	machineIDs := []string{requestStatuses.Get(0).TypedSpec().Value.Id}
 
 	// remove the first request link
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, machineIDs, func(r *system.ResourceLabels[*omni.MachineStatus], assertion *assert.Assertions) {
+	rtestutils.AssertResources(ctx, t, st, machineIDs, func(r *system.ResourceLabels[*omni.MachineStatus], assertion *assert.Assertions) {
 		assertion.True(r.Metadata().Finalizers().Has(omnictrl.MachineRequestSetStatusControllerName), r.Metadata().ID())
 	})
 
-	rtestutils.Destroy[*system.ResourceLabels[*omni.MachineStatus]](ctx, suite.T(), suite.state, machineIDs)
+	rtestutils.Destroy[*system.ResourceLabels[*omni.MachineStatus]](ctx, t, st, machineIDs)
 
-	rtestutils.AssertNoResource[*infra.MachineRequest](ctx, suite.T(), suite.state, ids[0])
+	rtestutils.AssertNoResource[*infra.MachineRequest](ctx, t, st, ids[0])
 
 	err = retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
-		ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, suite.T(), suite.state, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+		ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
 
 		if len(ids) != int(machineRequestSet.TypedSpec().Value.MachineCount) {
 			return retry.ExpectedErrorf("expected %d requests got %d", machineRequestSet.TypedSpec().Value.MachineCount, len(ids))
@@ -172,9 +194,9 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 		return nil
 	})
 
-	suite.Require().NoError(err)
+	require.NoError(t, err)
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, ids, func(r *infra.MachineRequest, assert *assert.Assertions) {
+	rtestutils.AssertResources(ctx, t, st, ids, func(r *infra.MachineRequest, assert *assert.Assertions) {
 		l, ok := r.Metadata().Labels().Get(omni.LabelMachineRequestSet)
 
 		assert.True(ok)
@@ -189,16 +211,16 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 	})
 
 	// scale down
-	machineRequestSet, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineRequestSet.Metadata(), func(r *omni.MachineRequestSet) error {
+	machineRequestSet, err = safe.StateUpdateWithConflicts(ctx, st, machineRequestSet.Metadata(), func(r *omni.MachineRequestSet) error {
 		r.TypedSpec().Value.MachineCount = 2
 
 		return nil
 	})
 
-	suite.Require().NoError(err)
+	require.NoError(t, err)
 
 	err = retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
-		ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, suite.T(), suite.state, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+		ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
 
 		if len(ids) != int(machineRequestSet.TypedSpec().Value.MachineCount) {
 			return retry.ExpectedErrorf("expected %d requests got %d", machineRequestSet.TypedSpec().Value.MachineCount, len(ids))
@@ -207,25 +229,27 @@ func (suite *MachineRequestSetStatusSuite) TestReconcile() {
 		return nil
 	})
 
-	suite.Require().NoError(err)
+	require.NoError(t, err)
 
 	// remove the machine request set
-	rtestutils.DestroyAll[*omni.MachineRequestSet](ctx, suite.T(), suite.state)
+	rtestutils.DestroyAll[*omni.MachineRequestSet](ctx, t, st)
 
-	requests, err := safe.ReaderListAll[*infra.MachineRequest](ctx, suite.state)
-	suite.Require().NoError(err)
+	requests, err := safe.ReaderListAll[*infra.MachineRequest](ctx, st)
+	require.NoError(t, err)
 
-	suite.Require().True(requests.Len() == 0)
+	require.True(t, requests.Len() == 0)
 }
 
 //nolint:gocognit
-func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) error {
-	ch := make(chan state.Event)
+func reconcileLabels(ctx context.Context, st state.State, ready chan<- struct{}) error {
+	ch := make(chan state.Event, 64)
 
-	err := suite.state.WatchKind(ctx, infra.NewMachineRequestStatus("").Metadata(), ch)
+	err := st.WatchKind(ctx, infra.NewMachineRequestStatus("").Metadata(), ch)
 	if err != nil {
 		return err
 	}
+
+	close(ready)
 
 	deleteLabels := func(id string) error {
 		res := system.NewResourceLabels[*omni.MachineStatus](id)
@@ -233,7 +257,7 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 		deleteCtx, cancel := context.WithTimeout(ctx, time.Second*10)
 		defer cancel()
 
-		err = suite.state.TeardownAndDestroy(deleteCtx, res.Metadata())
+		err = st.TeardownAndDestroy(deleteCtx, res.Metadata())
 		if err != nil && !state.IsNotFoundError(err) {
 			return err
 		}
@@ -259,7 +283,7 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 			case state.Created, state.Updated:
 				status := event.Resource.(*infra.MachineRequestStatus) //nolint:errcheck,forcetypeassert
 
-				err = safe.StateModify(ctx, suite.state, system.NewResourceLabels[*omni.MachineStatus](status.TypedSpec().Value.Id), func(r *system.ResourceLabels[*omni.MachineStatus]) error {
+				err = safe.StateModify(ctx, st, system.NewResourceLabels[*omni.MachineStatus](status.TypedSpec().Value.Id), func(r *system.ResourceLabels[*omni.MachineStatus]) error {
 					if r.Metadata().Phase() == resource.PhaseTearingDown {
 						return nil
 					}
@@ -278,17 +302,11 @@ func (suite *MachineRequestSetStatusSuite) reconcileLabels(ctx context.Context) 
 	}
 }
 
-func TestMachineRequestSetStatusSuite(t *testing.T) {
-	t.Parallel()
-
-	suite.Run(t, new(MachineRequestSetStatusSuite))
-}
-
 func TestInfraProviderDeletion(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+	t.Cleanup(cancel)
 
 	providerID := "infra-provider"
 
