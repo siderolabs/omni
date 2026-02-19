@@ -231,7 +231,7 @@ const sortBy = (id: keyof Proc) => {
 </script>
 
 <template>
-  <div class="monitor">
+  <div class="monitor py-4">
     <div class="monitor-charts-box">
       <div class="monitor-charts-wrapper">
         <div class="monitor-chart">

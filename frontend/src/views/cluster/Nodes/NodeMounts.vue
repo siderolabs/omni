@@ -55,7 +55,7 @@ const encryptionColor = (item: Resource) => {
 </script>
 
 <template>
-  <TList :opts="watchOpts">
+  <TList :opts="watchOpts" class="py-4">
     <template #default="{ items }">
       <div
         class="mb-1 grid grid-cols-5 items-center justify-center bg-naturals-n2 px-6 py-2 text-xs"

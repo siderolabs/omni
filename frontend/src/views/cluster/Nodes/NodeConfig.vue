@@ -45,6 +45,7 @@ const config = computed(() => configResource.value?.spec.data ?? '')
     v-model:value="config"
     :options="{ readOnly: true }"
     :talos-version="cluster?.spec.talos_version"
+    class="py-4"
   />
 </template>
 

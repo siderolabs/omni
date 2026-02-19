@@ -195,6 +195,11 @@ export const routes: RouteRecordRaw[] = [
                         component: () => import('@/views/cluster/Nodes/NodeMounts.vue'),
                       },
                       {
+                        path: 'pci-devices',
+                        name: 'NodePCIDevices',
+                        component: () => import('@/views/cluster/Nodes/NodePCIDevices.vue'),
+                      },
+                      {
                         path: 'extensions',
                         name: 'NodeExtensions',
                         component: () => import('@/views/cluster/Nodes/NodeExtensions.vue'),
