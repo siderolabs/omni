@@ -22,13 +22,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
 	testoptions "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
+	"github.com/siderolabs/omni/internal/pkg/constants"
 )
 
 //nolint:gocognit,maintidx
@@ -210,9 +210,9 @@ func TestTalosUpgradeStatus(t *testing.T) {
 				st := testContext.State
 				machineServices := testutils.NewMachineServices(t, st)
 				clusterName := "talos-upgrade-cluster"
-				talosVersion := "1.12.3"
-				anotherTalosVersion := "1.12.0"
-				stableTalosVersion := "1.11.6"
+				talosVersion := constants.DefaultTalosVersion
+				anotherTalosVersion := constants.AnotherTalosVersion
+				stableTalosVersion := constants.StableTalosVersion
 
 				cluster, machines := createCluster(ctx, t, st, machineServices, clusterName, 3, 1, testoptions.WithTalosVersion(talosVersion))
 

@@ -14,7 +14,7 @@ import (
 )
 
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
-const AnotherTalosVersion = "1.12.2"
+const AnotherTalosVersion = "1.12.3"
 
 // StableTalosVersion is used in the integration tests for Talos upgrade between minor versions.
 const StableTalosVersion = "1.11.6"
