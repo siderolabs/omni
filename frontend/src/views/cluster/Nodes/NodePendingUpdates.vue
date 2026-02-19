@@ -31,7 +31,7 @@ const { data, loading } = useResourceWatch<MachinePendingUpdatesSpec>(() => ({
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-4 py-4">
     <template v-if="!loading">
       <TAlert v-if="!data?.spec.config_diff" type="info" title="No Records">
         No pending config updates found for this machine
