@@ -8,6 +8,7 @@
     "*.css": "tailwindcss"
   },
   "javascript.preferences.importModuleSpecifier": "non-relative",
+  "tailwindCSS.classFunctions": ["cn", "clsx", "twMerge"],
   "tailwindCSS.classAttributes": ["class", "toast-options", ".*-class"],
   "typescript.preferences.preferTypeOnlyAutoImports": true,
   "typescript.tsdk": "node_modules/typescript/lib"

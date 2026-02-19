@@ -5,17 +5,16 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
-import { computed } from 'vue'
-
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { TalosMountStatusType, TalosRuntimeNamespace } from '@/api/resources'
-import type { WatchOptions } from '@/api/watch'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TList from '@/components/common/List/TList.vue'
-import TListItem from '@/components/common/List/TListItem.vue'
+import { itemID } from '@/api/watch'
+import TIcon, { type IconType } from '@/components/common/Icon/TIcon.vue'
+import TableCell from '@/components/common/Table/TableCell.vue'
+import TableRoot from '@/components/common/Table/TableRoot.vue'
+import TableRow from '@/components/common/Table/TableRow.vue'
 import { getContext } from '@/context'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 enum Encryption {
   Unknown = 'unknown',
@@ -23,18 +22,23 @@ enum Encryption {
   Disabled = 'disabled',
 }
 
-const watchOpts = computed((): WatchOptions => {
-  return {
-    resource: {
-      namespace: TalosRuntimeNamespace,
-      type: TalosMountStatusType,
-    },
-    runtime: Runtime.Talos,
-    context: getContext(),
-  }
+interface TalosMountStatusSpec {
+  encrypted?: boolean
+  filesystemType?: string
+  source?: string
+  target?: string
+}
+
+const { data: items } = useResourceWatch<TalosMountStatusSpec>({
+  resource: {
+    namespace: TalosRuntimeNamespace,
+    type: TalosMountStatusType,
+  },
+  runtime: Runtime.Talos,
+  context: getContext(),
 })
 
-const isEncrypted = (item: Resource<{ encrypted?: boolean }>) => {
+const isEncrypted = (item: Resource<TalosMountStatusSpec>) => {
   if (item.spec.encrypted === undefined) {
     return Encryption.Unknown
   }
@@ -42,60 +46,58 @@ const isEncrypted = (item: Resource<{ encrypted?: boolean }>) => {
   return item.spec.encrypted ? Encryption.Enabled : Encryption.Disabled
 }
 
-const encryptionColor = (item: Resource) => {
+const encryptionClass = (item: Resource<TalosMountStatusSpec>) => {
   switch (isEncrypted(item)) {
     case Encryption.Disabled:
-      return 'var(--color-red-r1)'
+      return 'text-red-r1'
     case Encryption.Enabled:
-      return 'var(--color-green-g1)'
+      return 'text-green-g1'
     case Encryption.Unknown:
-      return 'var(--color-yellow-y1)'
+      return 'text-yellow-y1'
+  }
+}
+
+const encryptionIcon = (item: Resource<TalosMountStatusSpec>): IconType => {
+  switch (isEncrypted(item)) {
+    case Encryption.Disabled:
+      return 'unlocked'
+    case Encryption.Enabled:
+      return 'locked'
+    case Encryption.Unknown:
+      return 'question-mark-circle'
   }
 }
 </script>
 
 <template>
-  <TList :opts="watchOpts" class="py-4">
-    <template #default="{ items }">
-      <div
-        class="mb-1 grid grid-cols-5 items-center justify-center bg-naturals-n2 px-6 py-2 text-xs"
-      >
-        <div>Partition</div>
-        <div>Filesystem</div>
-        <div>Src</div>
-        <div>Target</div>
-        <div>Encryption</div>
-      </div>
-      <TListItem v-for="item in items" :key="item.metadata.id!">
-        <div class="grid grid-cols-5 items-center justify-center px-3 text-naturals-n12">
-          <div class="text-naturals-n14">{{ item.metadata.id }}</div>
-          <div>{{ item.spec.filesystemType }}</div>
-          <div>{{ item.spec.source }}</div>
-          <div>{{ item.spec.target }}</div>
-          <div class="flex">
-            <div
-              class="flex items-center gap-1 rounded bg-naturals-n4 px-2 py-1"
-              :style="{ color: encryptionColor(item) }"
-            >
-              <TIcon
-                v-if="isEncrypted(item) === Encryption.Enabled"
-                icon="locked"
-                class="h-3 w-3"
-              />
-              <TIcon
-                v-else-if="isEncrypted(item) === Encryption.Disabled"
-                icon="unlocked"
-                class="h-3 w-3"
-              />
-              <QuestionMarkCircleIcon
-                v-else-if="isEncrypted(item) === Encryption.Unknown"
-                class="h-4 w-4"
-              />
-              {{ isEncrypted(item) }}
-            </div>
-          </div>
-        </div>
-      </TListItem>
+  <TableRoot class="my-4 w-full">
+    <template #head>
+      <TableRow>
+        <TableCell th>Partition</TableCell>
+        <TableCell th>Filesystem</TableCell>
+        <TableCell th>Src</TableCell>
+        <TableCell th>Target</TableCell>
+        <TableCell th>Encryption</TableCell>
+      </TableRow>
     </template>
-  </TList>
+
+    <template #body>
+      <TableRow v-for="item in items" :key="itemID(item)">
+        <TableCell class="text-naturals-n14">{{ item.metadata.id }}</TableCell>
+        <TableCell>{{ item.spec.filesystemType }}</TableCell>
+        <TableCell>{{ item.spec.source }}</TableCell>
+        <TableCell>{{ item.spec.target }}</TableCell>
+        <TableCell :class="encryptionClass(item)">
+          <span class="inline-flex items-center gap-1 rounded bg-naturals-n4 px-2 py-1">
+            <TIcon
+              :icon="encryptionIcon(item)"
+              :class="isEncrypted(item) === Encryption.Unknown ? 'size-4' : 'size-3'"
+            />
+
+            {{ isEncrypted(item) }}
+          </span>
+        </TableCell>
+      </TableRow>
+    </template>
+  </TableRoot>
 </template>
