@@ -120,6 +120,7 @@ func Test_TalosCARotation(t *testing.T) {
 						&fakeRemoteGeneratorFactory{testContext.State},
 						&fakeKubernetesClientFactory{},
 					)))
+				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil)))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer")))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -774,6 +775,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 						&fakeRemoteGeneratorFactory{testContext.State},
 						&fakeKubernetesClientFactory{},
 					)))
+				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil)))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer")))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
