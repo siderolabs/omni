@@ -136,7 +136,7 @@ const err = computed(() => {
 </script>
 
 <template>
-  <div class="logs">
+  <div class="logs py-4">
     <MachineLogsContainer
       v-if="$route.params.service === 'machine'"
       :machine-id="route.params.machine as string"
