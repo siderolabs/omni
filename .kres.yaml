@@ -218,7 +218,7 @@ spec:
       - name: e2e-short-secureboot
         needsOverride: [default, lint, unit-tests]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e-short-secureboot
@@ -232,7 +232,7 @@ spec:
       - name: e2e-short
         needsOverride: [default, lint, unit-tests]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -246,7 +246,7 @@ spec:
       - name: e2e-scaling
         needsOverride: [default, lint, unit-tests]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -260,7 +260,7 @@ spec:
       - name: e2e-forced-removal
         needsOverride: [default, lint, unit-tests]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -274,7 +274,7 @@ spec:
       - name: e2e-upgrades
         needsOverride: [default, lint, unit-tests]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -288,7 +288,7 @@ spec:
       - name: e2e-templates
         needsOverride: [default, lint, unit-tests]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -302,7 +302,7 @@ spec:
       - name: e2e-backups
         needsOverride: [default, lint, unit-tests]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -316,7 +316,7 @@ spec:
       - name: e2e-workload-proxy
         needsOverride: [default, lint, unit-tests]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -330,7 +330,7 @@ spec:
       - name: e2e-omni-upgrade
         needsOverride: [default, lint, unit-tests]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -348,7 +348,7 @@ spec:
       - name: e2e-cluster-import
         needsOverride: [default, lint, unit-tests]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -363,7 +363,7 @@ spec:
       - name: e2e-minor-talos-upgrade
         needsOverride: [default, lint, unit-tests]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -530,8 +530,8 @@ kind: js.Protobuf
 spec:
   baseSpecPath: /client/api
   files:
-     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.0-beta.1/pkg/machinery/config/schemas/config.schema.json
-       destination: frontend/src/schemas/config.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.4/pkg/machinery/config/schemas/config.schema.json
+      destination: frontend/src/schemas/config.schema.json
   destinationRoot: src/api
   specs:
     - source: client/api/common/omni.proto
