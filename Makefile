@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-01-28T15:22:29Z by kres 1b0dcb3.
+# Generated on 2026-02-20T18:04:59Z by kres dc032d7.
 
 # common variables
 
@@ -373,7 +373,7 @@ omnictl-windows-amd64.exe: $(ARTIFACTS)/omnictl-windows-amd64.exe  ## Builds exe
 omnictl: omnictl-darwin-amd64 omnictl-darwin-arm64 omnictl-linux-amd64 omnictl-linux-arm64 omnictl-windows-amd64.exe  ## Builds executables for omnictl.
 
 .PHONY: helm
-helm:  ## Package helm chart
+helm: $(ARTIFACTS)  ## Package helm chart
 	@helm package deploy/helm/omni -d $(ARTIFACTS)
 
 .PHONY: helm-release

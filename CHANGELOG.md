@@ -1,3 +1,35 @@
+## [Omni 1.5.5](https://github.com/siderolabs/omni/releases/tag/v1.5.5) (2026-02-20)
+
+Welcome to the v1.5.5 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`f005f848`](https://github.com/siderolabs/omni/commit/f005f8485b61db4adf069bf1add65bb677b664b5) chore: bump Talos machinery to the latest main and use 1.12.4 schema
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/emicklei/dot**                    v1.10.0 -> v1.11.0
+* **github.com/siderolabs/talos/pkg/machinery**  b9e27ebe72c4 -> e00aed0f6694
+* **go.yaml.in/yaml/v4**                         v4.0.0-rc.3 -> v4.0.0-rc.4
+* **golang.org/x/crypto**                        v0.47.0 -> v0.48.0
+* **golang.org/x/net**                           v0.49.0 -> v0.50.0
+* **golang.org/x/text**                          v0.33.0 -> v0.34.0
+
+Previous release can be found at [v1.5.4](https://github.com/siderolabs/omni/releases/tag/v1.5.4)
+
 ## [Omni 1.5.4](https://github.com/siderolabs/omni/releases/tag/v1.5.4) (2026-02-18)
 
 Welcome to the v1.5.4 release of Omni!

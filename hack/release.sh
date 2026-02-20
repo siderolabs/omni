@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2024-08-30T15:41:41Z by kres b5ca957.
+# Generated on 2026-02-20T18:04:59Z by kres dc032d7.
 
 set -e
 

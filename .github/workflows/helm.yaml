@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-02-20T15:13:04Z by kres b510eb4.
+# Generated on 2026-02-20T18:04:59Z by kres dc032d7.
 
 concurrency:
   group: helm-${{ github.head_ref || github.run_id }}
@@ -58,6 +58,13 @@ jobs:
       - name: Unshallow
         run: |
           git fetch --prune --unshallow
+      - name: Set up Docker Buildx
+        id: setup-buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        with:
+          driver: remote
+          endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
+        timeout-minutes: 10
       - name: Install Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # version: v4.3.1
       - name: Install cosign
@@ -75,28 +82,17 @@ jobs:
         run: |
           helm lint deploy/helm/omni
       - name: Template chart
-        if: github.event_name == 'pull_request' && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         run: |
-          helm template -f deploy/helm/omni/values.yaml  omni deploy/helm/omni
+          helm template  omni deploy/helm/omni
       - name: Install unit test plugin
         if: github.event_name == 'pull_request'
         run: |
           make helm-plugin-install
       - name: Unit test chart
+        if: github.event_name == 'pull_request'
         run: |
           make chart-unittest
-      - name: Generate schema
-        if: github.event_name == 'pull_request'
-        run: |
-          make chart-gen-schema
-      - name: Generate docs
-        if: github.event_name == 'pull_request'
-        run: |
-          make helm-docs
-      - name: Check dirty
-        if: github.event_name == 'pull_request'
-        run: |
-          make check-dirty
       - name: helm login
         if: startsWith(github.ref, 'refs/tags/')
         env:
