@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterStatusMetricsSpec } from '@/api/omni/specs/omni.pb'
@@ -25,6 +24,8 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatsItem from '@/components/common/Stats/StatsItem.vue'
+import TAlert from '@/components/TAlert.vue'
+import { getDocsLink } from '@/methods'
 import { canCreateClusters } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { addLabel, selectors } from '@/methods/labels'
@@ -32,8 +33,6 @@ import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterItem from '@/views/omni/Clusters/ClusterItem.vue'
 
 import LabelsInput from '../ItemLabels/LabelsInput.vue'
-
-const router = useRouter()
 
 const watchOpts = computed<WatchOptions>(() => {
   return {
@@ -58,10 +57,6 @@ const { data } = useResourceWatch<ClusterStatusMetricsSpec>({
 
 const filterValue = ref('')
 const filterLabels = ref<Label[]>([])
-
-const openClusterCreate = () => {
-  router.push({ name: 'ClusterCreate' })
-}
 
 const sortOptions = [
   { id: 'id', desc: 'ID ⬆' },
@@ -90,6 +85,23 @@ const filterOptions = [
       :filter-options="filterOptions"
       :filter-value="filterValue"
     >
+      <template #norecords>
+        <TAlert type="info" title="No clusters found">
+          To create your first cluster, click "Create Cluster" above or
+          <RouterLink class="link-primary" :to="{ name: 'ClusterCreate' }">here</RouterLink>
+          to get started. You can check out our
+          <a
+            target="_blank"
+            rel="noreferrer noopener"
+            :href="getDocsLink('omni', '/getting-started/create-a-cluster')"
+            class="link-primary"
+          >
+            documentation
+          </a>
+          for more information.
+        </TAlert>
+      </template>
+
       <template #header="{ itemsCount }">
         <div class="flex items-start gap-1">
           <PageHeader title="Clusters" class="flex-1">
@@ -101,7 +113,12 @@ const filterOptions = [
               icon="warning"
             />
           </PageHeader>
-          <TButton :disabled="!canCreateClusters" variant="highlighted" @click="openClusterCreate">
+          <TButton
+            is="router-link"
+            :disabled="!canCreateClusters"
+            variant="highlighted"
+            :to="{ name: 'ClusterCreate' }"
+          >
             Create Cluster
           </TButton>
         </div>

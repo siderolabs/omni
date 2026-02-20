@@ -24,7 +24,7 @@ test('create cluster', async ({ page }) => {
   await page.goto('/')
 
   await page.getByRole('link', { name: 'Clusters' }).click()
-  await page.getByRole('button', { name: 'Create Cluster' }).click()
+  await page.getByRole('link', { name: 'Create Cluster' }).click()
 
   // There is some code to put a default value in the input which we must wait for to prevent being overridden
   await expect(page.getByRole('textbox', { name: 'Cluster Name:' })).toHaveValue(/^talos-default/)
