@@ -40,6 +40,7 @@ func (c *TalosImageClient) ListImagesOnNode(ctx context.Context, cluster, node s
 
 	nodeAddress := c.NodeResolver.Resolve(cluster, node).GetAddress()
 
+	//nolint:staticcheck
 	imageListStream, err := talosCli.ImageList(client.WithNode(ctx, nodeAddress), common.ContainerdNamespace_NS_CRI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list images: %w", err)
@@ -77,6 +78,7 @@ func (c *TalosImageClient) PullImageToNode(ctx context.Context, cluster, node, i
 		return fmt.Errorf("failed to resolve node %q", node)
 	}
 
+	//nolint:staticcheck
 	if err = talosCli.ImagePull(client.WithNode(ctx, nodeAddress), common.ContainerdNamespace_NS_CRI, image); err != nil {
 		return fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
