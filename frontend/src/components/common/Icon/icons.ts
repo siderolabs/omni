@@ -114,6 +114,9 @@ export const icons = {
   power: PowerIcon,
   'power-off': defineAsyncComponent(() => import('../../icons/IconPowerOff.vue')),
   question: defineAsyncComponent(() => import('../../icons/IconQuestion.vue')),
+  'question-mark-circle': defineAsyncComponent(
+    () => import('../../icons/IconQuestionMarkCircle.vue'),
+  ),
   reboot: defineAsyncComponent(() => import('../../icons/IconReboot.vue')),
   refresh: defineAsyncComponent(() => import('../../icons/IconRefresh.vue')),
   reset: defineAsyncComponent(() => import('../../icons/IconReset.vue')),

@@ -6,7 +6,9 @@ package constants
 
 import (
 	"github.com/siderolabs/talos/pkg/machinery/constants"
+	"github.com/siderolabs/talos/pkg/machinery/resources/block"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
+	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
 	"github.com/siderolabs/talos/pkg/machinery/resources/k8s"
 	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"github.com/siderolabs/talos/pkg/machinery/resources/perf"
@@ -24,12 +26,18 @@ const (
 	_ = v1alpha1.ServiceType
 	// tsgen:TalosCPUType
 	_ = perf.CPUType
+	// tsgen:TalosDiscoveredVolumeType
+	_ = block.DiscoveredVolumeType
+	// tsgen:TalosDiskType
+	_ = block.DiskType
 	// tsgen:TalosMemoryType
 	_ = perf.MemoryType
 	// tsgen:TalosNodenameType
 	_ = k8s.NodenameType
 	// tsgen:TalosMemberType
 	_ = cluster.MemberType
+	// tsgen:TalosPCIDeviceType
+	_ = hardware.PCIDeviceType
 	// tsgen:TalosNodeAddressType
 	_ = network.NodeAddressType
 	// tsgen:TalosMountStatusType
@@ -54,6 +62,8 @@ const (
 	_ = perf.NamespaceName
 	// tsgen:TalosClusterNamespace
 	_ = cluster.NamespaceName
+	// tsgen:TalosHardwareNamespace
+	_ = hardware.NamespaceName
 	// tsgen:TalosRuntimeNamespace
 	_ = v1alpha1.NamespaceName
 	// tsgen:TalosK8sNamespace

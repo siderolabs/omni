@@ -168,10 +168,10 @@ const openExtensionsUpdate = () => {
 </script>
 
 <template>
-  <div class="flex flex-col">
-    <div class="flex grow flex-col gap-4 px-4 md:px-6">
+  <div class="flex h-full flex-col">
+    <div class="flex grow flex-col gap-4 overflow-y-auto px-4 py-4 md:px-6">
       <TInput v-model="searchString" icon="search" />
-      <div class="flex flex-1 flex-col">
+      <div class="flex flex-1 flex-col overflow-y-auto">
         <template v-if="ready && extensionsState.length > 0">
           <div
             class="mb-1 grid grid-cols-3 items-center justify-center bg-naturals-n2 px-6 py-2 text-xs"
@@ -229,7 +229,7 @@ const openExtensionsUpdate = () => {
     </div>
 
     <div
-      class="flex h-16 items-center justify-end border-t border-naturals-n5 bg-naturals-n1 px-12"
+      class="flex h-16 shrink-0 items-center justify-end border-t border-naturals-n5 bg-naturals-n1 px-12"
     >
       <TButton variant="highlighted" :disabled="!canUpdateTalos" @click="openExtensionsUpdate">
         Update Extensions

@@ -26,5 +26,5 @@ const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
 </script>
 
 <template>
-  <Patches v-if="machine" :machine />
+  <Patches v-if="machine" :machine class="py-4" />
 </template>

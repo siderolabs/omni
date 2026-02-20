@@ -40,13 +40,13 @@ const combinedDiff = computed(() =>
 </script>
 
 <template>
-  <div>
+  <div class="h-full py-4">
     <template v-if="!diffsLoading">
       <TAlert v-if="!combinedDiff" type="info" title="No Records">
         No previously applied config diffs found for this machine
       </TAlert>
 
-      <DiffRenderer class="h-full" :diff="combinedDiff" with-search />
+      <DiffRenderer v-else class="h-full" :diff="combinedDiff" with-search />
     </template>
 
     <TSpinner v-else class="mx-auto my-8 size-6" />

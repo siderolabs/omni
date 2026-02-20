@@ -280,7 +280,7 @@ const servicesSectionHeadingId = useId()
 </script>
 
 <template>
-  <div class="overview">
+  <div class="overview py-4">
     <TAlert
       v-if="clusterMachineStatus?.spec?.last_config_error && !alertDismissed"
       :dismiss="{ name: 'Dismiss', action: () => (alertDismissed = true) }"
