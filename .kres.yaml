@@ -526,7 +526,7 @@ spec:
         needsOverride:
           [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
         crons:
-          - '30 1 * * *'
+          - "30 1 * * *"
         runnerGroup: large
         triggerLabels:
           - integration/e2e
@@ -703,7 +703,7 @@ spec:
       destination: frontend/src/schemas/config_1_10.schema.json
     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.11.6/pkg/machinery/config/schemas/config.schema.json
       destination: frontend/src/schemas/config_1_11.schema.json
-    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.1/pkg/machinery/config/schemas/config.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.4/pkg/machinery/config/schemas/config.schema.json
       destination: frontend/src/schemas/config_1_12.schema.json
   destinationRoot: src/api
   specs:

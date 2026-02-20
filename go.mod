@@ -84,7 +84,7 @@ require (
 	github.com/siderolabs/proto-codec v0.1.3
 	github.com/siderolabs/siderolink v0.3.15
 	github.com/siderolabs/talos v1.13.0-alpha.1.0.20260210134859-406b8c83c9b3
-	github.com/siderolabs/talos/pkg/machinery v1.13.0-alpha.1.0.20260210235840-a16392559a48
+	github.com/siderolabs/talos/pkg/machinery v1.13.0-alpha.1.0.20260219211519-9758bd4fe0e2
 	github.com/siderolabs/tcpproxy v0.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
@@ -109,7 +109,7 @@ require (
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
 	google.golang.org/grpc v1.79.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/api v0.35.1
 	k8s.io/apimachinery v0.35.1
 	k8s.io/client-go v0.35.1
