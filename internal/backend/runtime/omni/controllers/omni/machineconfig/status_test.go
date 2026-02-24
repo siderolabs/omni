@@ -416,7 +416,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			)
 
 			rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.MachineStatus, assert *assert.Assertions) {
-				assert.Equal(res.TypedSpec().Value.Schematic.Id, "bbbb")
+				assert.Equal("bbbb", res.TypedSpec().Value.Schematic.Id)
 			})
 
 			rmock.Mock[*omni.MachineStatus](ctx, t, testContext.State,
@@ -876,6 +876,8 @@ func createCluster(
 		rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.SameID(machine))
 		rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.SameID(machine))
 	}
+
+	rmock.Mock[*omni.UpgradeRollout](ctx, t, st, options.SameID(cluster))
 
 	return cluster, machines
 }

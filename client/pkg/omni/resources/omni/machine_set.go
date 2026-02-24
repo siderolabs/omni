@@ -86,3 +86,16 @@ func GetMachineAllocation(res *MachineSet) *specs.MachineSetSpec_MachineAllocati
 
 	return nil
 }
+
+// GetParallelism returns the parallelism for the machine set based on the update strategy.
+func GetParallelism(strategyType specs.MachineSetSpec_UpdateStrategy, strategy *specs.MachineSetSpec_UpdateStrategyConfig, def int) int {
+	if strategyType == specs.MachineSetSpec_Rolling {
+		if strategy == nil || strategy.Rolling == nil {
+			return def
+		}
+
+		return int(strategy.Rolling.MaxParallelism)
+	}
+
+	return def
+}

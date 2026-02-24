@@ -50,6 +50,7 @@ const (
 	// ConfigUpdateFinalizer is set on the ClusterMachine when this controller acquires the config change lock.
 	// By counting the machines with the finalizer we can tell how many machines are being updated simultaneously.
 	ConfigUpdateFinalizer     = "ConfigUpdatePendingFinalizer"
+	UpgradeFinalizer          = "UpgradePendingFinalizer"
 	gracefulResetAttemptCount = 4
 	etcdLeaveAttemptsLimit    = 2
 	maintenanceCheckAttempts  = 5
@@ -104,13 +105,13 @@ func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry str
 		),
 		qtransform.WithExtraMappedInput[*omni.ClusterMachine](
 			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, md controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
-				machineSetName, ok := md.Labels().Get(omni.LabelMachineSet)
+				clusterName, ok := md.Labels().Get(omni.LabelCluster)
 				if !ok {
 					return nil, nil
 				}
 
 				clusterMachines, err := safe.ReaderListAll[*omni.ClusterMachineConfig](ctx, r, state.WithLabelQuery(
-					resource.LabelEqual(omni.LabelMachineSet, machineSetName),
+					resource.LabelEqual(omni.LabelCluster, clusterName),
 				))
 
 				return slices.Collect(clusterMachines.Pointers()), err
@@ -149,6 +150,9 @@ func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry str
 		),
 		qtransform.WithExtraMappedDestroyReadyInput[*omni.MachinePendingUpdates](
 			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
+		),
+		qtransform.WithExtraMappedInput[*omni.UpgradeRollout](
+			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraOutputs(controller.Output{
 			Type: omni.NodeForceDestroyRequestType,
@@ -206,6 +210,10 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 			)
 
 			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' the machine talos version is out of sync: %w", machineConfig.Metadata().ID(), err)
+		}
+	} else {
+		if err = ctrl.releaseUpgradeLock(ctx, r, rc.clusterMachine); err != nil {
+			return fmt.Errorf("failed to release upgrade lock: %w", err)
 		}
 	}
 
@@ -298,6 +306,10 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileTearingDown(ctx conte
 		return err
 	}
 
+	if err = ctrl.releaseUpgradeLock(ctx, r, clusterMachine); err != nil {
+		return err
+	}
+
 	// perform reset of the node
 	if err = ctrl.reset(ctx, logger, r, machineConfig); err != nil {
 		return err
@@ -320,7 +332,7 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileTearingDown(ctx conte
 func (ctrl *ClusterMachineConfigStatusController) upgrade(
 	inputCtx context.Context,
 	logger *zap.Logger,
-	r controller.Reader,
+	r controller.ReaderWriter,
 	rc *ReconciliationContext,
 ) (bool, error) {
 	// use short timeout for the all API calls but upgrade to quickly skip "dead" nodes
@@ -386,6 +398,10 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 	image, err := installimage.Build(ctrl.imageFactoryHost, rc.ID(), rc.installImage, ctrl.talosRegistry)
 	if err != nil {
 		return false, err
+	}
+
+	if err = ctrl.acquireUpgradeLock(ctx, r, rc); err != nil {
+		return false, fmt.Errorf("failed to acquire upgrade lock: %w", err)
 	}
 
 	logger.Info("upgrading the machine",
@@ -844,6 +860,69 @@ func (ctrl *ClusterMachineConfigStatusController) getClient(
 	return result, nil
 }
 
+func (ctrl *ClusterMachineConfigStatusController) acquireUpgradeLock(ctx context.Context, r controller.ReaderWriter,
+	rc *ReconciliationContext,
+) error {
+	ctrl.acquireLockMu.Lock()
+	defer ctrl.acquireLockMu.Unlock()
+
+	if rc.machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 == "" {
+		return nil
+	}
+
+	if rc.clusterMachine.Metadata().Finalizers().Has(UpgradeFinalizer) {
+		return nil
+	}
+
+	clusterName, ok := rc.clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return errors.New("failed to get cluster name from the cluster machine")
+	}
+
+	machineSetName, ok := rc.clusterMachine.Metadata().Labels().Get(omni.LabelMachineSet)
+	if !ok {
+		return fmt.Errorf("failed to determine machine set of the cluster machine %s", rc.clusterMachine.Metadata().ID())
+	}
+
+	rollout, err := safe.ReaderGetByID[*omni.UpgradeRollout](ctx, r, clusterName)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for upgrade rollout rules to propagate")
+		}
+
+		return fmt.Errorf("failed to get upgrade rollout: %w", err)
+	}
+
+	quota := rollout.TypedSpec().Value.MachineSetsUpgradeQuota[machineSetName]
+	if quota == 0 {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for free quota for upgrade")
+	}
+
+	qruntime := r.(controller.QRuntime) //nolint:forcetypeassert,errcheck
+
+	clusterMachines, err := qruntime.ListUncached(ctx,
+		omni.NewClusterMachine("").Metadata(),
+		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
+	)
+	if err != nil {
+		return err
+	}
+
+	maxQuota := quota
+
+	for _, clusterMachine := range clusterMachines.Items {
+		if clusterMachine.Metadata().Finalizers().Has(UpgradeFinalizer) {
+			quota--
+		}
+
+		if quota <= 0 {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("quota %d for upgrades reached, waiting for the locks to be released", maxQuota)
+		}
+	}
+
+	return r.AddFinalizer(ctx, rc.clusterMachine.Metadata(), UpgradeFinalizer)
+}
+
 func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx context.Context, r controller.ReaderWriter,
 	rc *ReconciliationContext,
 ) error {
@@ -882,7 +961,7 @@ func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx co
 		return err
 	}
 
-	updateParallelism := getParallelismOrDefault(machineSetConfigStatus.TypedSpec().Value.UpdateStrategy, machineSetConfigStatus.TypedSpec().Value.UpdateStrategyConfig, 1)
+	updateParallelism := omni.GetParallelism(machineSetConfigStatus.TypedSpec().Value.UpdateStrategy, machineSetConfigStatus.TypedSpec().Value.UpdateStrategyConfig, 1)
 
 	quota := updateParallelism
 
@@ -911,6 +990,14 @@ func (ctrl *ClusterMachineConfigStatusController) releaseConfigUpdateLock(ctx co
 	return r.RemoveFinalizer(ctx, clusterMachine.Metadata(), ConfigUpdateFinalizer)
 }
 
+func (ctrl *ClusterMachineConfigStatusController) releaseUpgradeLock(ctx context.Context, r controller.ReaderWriter, clusterMachine *omni.ClusterMachine) error {
+	if !clusterMachine.Metadata().Finalizers().Has(UpgradeFinalizer) {
+		return nil
+	}
+
+	return r.RemoveFinalizer(ctx, clusterMachine.Metadata(), UpgradeFinalizer)
+}
+
 func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) error {
 	pendingUpdates := omni.NewMachinePendingUpdates(rc.machineConfig.Metadata().ID())
 
@@ -927,28 +1014,22 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 	}
 
 	var (
-		shouldUpgrade       bool
+		upgradeDiff         bool
 		currentSchematicID  string
 		currentTalosVersion string
 	)
 
-	if rc.machineConfigStatus != nil && rc.installImage != nil {
+	if rc.machineConfigStatus != nil && rc.installImage != nil &&
+		rc.machineConfigStatus.TypedSpec().Value.TalosVersion != "" && rc.machineConfigStatus.TypedSpec().Value.SchematicId != "" {
 		currentSchematicID = rc.machineConfigStatus.TypedSpec().Value.SchematicId
-		if currentSchematicID == "" {
-			currentSchematicID = rc.machineStatus.TypedSpec().Value.Schematic.FullId
-		}
-
 		currentTalosVersion = rc.machineConfigStatus.TypedSpec().Value.TalosVersion
-		if currentTalosVersion == "" {
-			currentTalosVersion = rc.machineStatus.TypedSpec().Value.TalosVersion
-		}
 
-		shouldUpgrade = currentSchematicID != rc.installImage.SchematicId ||
+		upgradeDiff = currentSchematicID != rc.installImage.SchematicId ||
 			currentTalosVersion != rc.installImage.TalosVersion
 	}
 
 	// if no pending changes, delete the pending updates resource
-	if !shouldUpgrade && configDiff == "" {
+	if !upgradeDiff && configDiff == "" {
 		_, err = helpers.TeardownAndDestroy(ctx, r, pendingUpdates.Metadata())
 
 		return err
@@ -957,7 +1038,7 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 	return safe.WriterModify(ctx, r, pendingUpdates, func(res *omni.MachinePendingUpdates) error {
 		helpers.CopyAllLabels(rc.machineConfig, res)
 
-		if shouldUpgrade {
+		if upgradeDiff {
 			res.TypedSpec().Value.Upgrade = &specs.MachinePendingUpdatesSpec_Upgrade{
 				FromSchematic: currentSchematicID,
 				ToSchematic:   rc.installImage.SchematicId,
@@ -1023,16 +1104,4 @@ func getVersion(ctx context.Context, c *client.Client) (string, error) {
 	}
 
 	return "", errors.New("failed to get Talos version on the machine")
-}
-
-func getParallelismOrDefault(strategyType specs.MachineSetSpec_UpdateStrategy, strategy *specs.MachineSetSpec_UpdateStrategyConfig, def int) int {
-	if strategyType == specs.MachineSetSpec_Rolling {
-		if strategy == nil {
-			return def
-		}
-
-		return int(strategy.Rolling.MaxParallelism)
-	}
-
-	return def
 }

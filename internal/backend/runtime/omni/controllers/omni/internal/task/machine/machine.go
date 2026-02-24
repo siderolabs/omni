@@ -26,7 +26,9 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -170,6 +172,10 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 	)
 
 	opts := talos.GetSocketOptions(spec.Endpoint)
+	opts = append(opts, client.WithGRPCDialOptions(grpc.WithKeepaliveParams(keepalive.ClientParameters{
+		Time:    320 * time.Second,
+		Timeout: 6 * time.Minute,
+	})))
 
 	if spec.MaintenanceMode {
 		opts = append(opts, client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), client.WithEndpoints(spec.Endpoint))

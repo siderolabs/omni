@@ -181,9 +181,9 @@ func dropTalosUpgradeStatusFinalizersFromSchematicConfigs(ctx context.Context, s
 	}
 
 	for sc := range list.All() {
-		if sc.Metadata().Finalizers().Has(omnictrl.TalosUpgradeStatusControllerName) {
+		if sc.Metadata().Finalizers().Has("TalosUpgradeStatusController") {
 			if _, err = safe.StateUpdateWithConflicts(ctx, s, sc.Metadata(), func(res *omni.SchematicConfiguration) error {
-				res.Metadata().Finalizers().Remove(omnictrl.TalosUpgradeStatusControllerName)
+				res.Metadata().Finalizers().Remove("TalosUpgradeStatusController")
 
 				return nil
 			}, state.WithUpdateOwner(sc.Metadata().Owner()), state.WithExpectedPhaseAny()); err != nil {
@@ -283,4 +283,10 @@ func moveSchematicCacheToEphemeral(ctx context.Context, st state.State, logger *
 	}
 
 	return nil
+}
+
+func dropTalosUpgradeStatusFinalizers(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	logger.Info("dropping TalosUpgradeStatusController finalizers from ClusterMachine resources")
+
+	return dropFinalizers[*omni.ClusterMachine](ctx, st, "TalosUpgradeStatusController")
 }

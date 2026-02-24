@@ -58,6 +58,7 @@ import (
 	metricsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/metrics"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/redactedmachineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/talosupgrade"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/producers"
@@ -230,7 +231,6 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		secrets.NewSecretsController(storeFactory),
 		secrets.NewTalosConfigController(constants.CertificateValidityTime),
 		omnictrl.NewTalosExtensionsController(imageFactoryClient),
-		omnictrl.NewTalosUpgradeStatusController(),
 		omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh, powerStageEventsCh),
 		omnictrl.NewMachineProvisionController(),
 		omnictrl.NewMachineRequestLinkController(defaultState),
@@ -262,6 +262,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		secrets.NewSecretRotationStatusController(&secrets.KubernetesClientFactory{}),
 		machineupgrade.NewStatusController(imageFactoryHost, cfg.Registries.GetTalos(), nil),
 		kernelargsctrl.NewStatusController(),
+		talosupgrade.NewStatusController(),
 	}
 
 	if cfg.Auth.Saml.GetEnabled() {

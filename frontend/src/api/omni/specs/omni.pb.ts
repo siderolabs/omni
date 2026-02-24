@@ -599,6 +599,8 @@ export type MachineSetSpec = {
   update_strategy_config?: MachineSetSpecUpdateStrategyConfig
   delete_strategy_config?: MachineSetSpecUpdateStrategyConfig
   machine_allocation?: MachineSetSpecMachineAllocation
+  upgrade_strategy?: MachineSetSpecUpdateStrategy
+  upgrade_strategy_config?: MachineSetSpecUpdateStrategyConfig
 }
 
 export type TalosUpgradeStatusSpec = {
@@ -1060,4 +1062,8 @@ export type ClusterMachineSecretsSpec = {
 }
 
 export type RotateKubernetesCASpec = {
+}
+
+export type UpgradeRolloutSpec = {
+  machine_sets_upgrade_quota?: {[key: string]: number}
 }

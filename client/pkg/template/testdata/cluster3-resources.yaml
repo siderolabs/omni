@@ -53,6 +53,8 @@ spec:
     updatestrategyconfig: null
     deletestrategyconfig: null
     machineallocation: null
+    upgradestrategy: 0
+    upgradestrategyconfig: null
 ---
 metadata:
     namespace: default
@@ -89,6 +91,8 @@ spec:
     updatestrategyconfig: null
     deletestrategyconfig: null
     machineallocation: null
+    upgradestrategy: 0
+    upgradestrategyconfig: null
 ---
 metadata:
     namespace: default
@@ -161,6 +165,8 @@ spec:
         rolling:
             maxparallelism: 5
     machineallocation: null
+    upgradestrategy: 0
+    upgradestrategyconfig: null
 ---
 metadata:
     namespace: default
@@ -238,6 +244,8 @@ spec:
     updatestrategyconfig: null
     deletestrategyconfig: null
     machineallocation: null
+    upgradestrategy: 0
+    upgradestrategyconfig: null
 ---
 metadata:
     namespace: default
@@ -277,6 +285,8 @@ spec:
         name: test
         machinecount: 1
         allocationtype: 0
+    upgradestrategy: 0
+    upgradestrategyconfig: null
 ---
 metadata:
     namespace: default
@@ -301,3 +311,5 @@ spec:
         name: test
         machinecount: 0
         allocationtype: 1
+    upgradestrategy: 0
+    upgradestrategyconfig: null

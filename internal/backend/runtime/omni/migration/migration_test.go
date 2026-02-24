@@ -212,13 +212,15 @@ func (suite *MigrationSuite) TestDropTalosUpgradeStatusFinalizersFromSchematicCo
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
+	ctrlName := "TalosUpgradeStatusController"
+
 	sc1 := omni.NewSchematicConfiguration("sc1")
-	sc1.Metadata().Finalizers().Add(omnictrl.TalosUpgradeStatusControllerName)
+	sc1.Metadata().Finalizers().Add(ctrlName)
 	sc1.Metadata().SetPhase(resource.PhaseTearingDown)
 	suite.Require().NoError(suite.state.Create(ctx, sc1))
 
 	sc2 := omni.NewSchematicConfiguration("sc2")
-	sc2.Metadata().Finalizers().Add(omnictrl.TalosUpgradeStatusControllerName)
+	sc2.Metadata().Finalizers().Add(ctrlName)
 	suite.Require().NoError(sc2.Metadata().SetOwner("some-owner"))
 	suite.Require().NoError(suite.state.Create(ctx, sc2, state.WithCreateOwner("some-owner")))
 
@@ -239,8 +241,8 @@ func (suite *MigrationSuite) TestDropTalosUpgradeStatusFinalizersFromSchematicCo
 	sc3Migrated, err := suite.state.Get(ctx, sc3.Metadata())
 	suite.Require().NoError(err)
 
-	suite.False(sc1Migrated.Metadata().Finalizers().Has(omnictrl.TalosUpgradeStatusControllerName))
-	suite.False(sc2Migrated.Metadata().Finalizers().Has(omnictrl.TalosUpgradeStatusControllerName))
+	suite.False(sc1Migrated.Metadata().Finalizers().Has(ctrlName))
+	suite.False(sc2Migrated.Metadata().Finalizers().Has(ctrlName))
 	suite.True(sc3VersionBefore.Equal(sc3Migrated.Metadata().Version()), "expected sc3 to be left untouched")
 }
 

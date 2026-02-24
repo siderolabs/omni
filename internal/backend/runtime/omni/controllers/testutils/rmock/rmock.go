@@ -370,6 +370,27 @@ machine:
 		return nil
 	})
 
+	addDefaults(func(ctx context.Context, st state.State, res *omni.UpgradeRollout) error {
+		machineSets, err := safe.ReaderListAll[*omni.MachineSet](ctx, st, state.WithLabelQuery(
+			resource.LabelEqual(omni.LabelCluster, res.Metadata().ID()),
+		))
+		if err != nil {
+			return err
+		}
+
+		res.TypedSpec().Value.MachineSetsUpgradeQuota = make(map[string]int32, machineSets.Len())
+
+		for machineSet := range machineSets.All() {
+			res.TypedSpec().Value.MachineSetsUpgradeQuota[machineSet.Metadata().ID()] = int32(omni.GetParallelism(
+				machineSet.TypedSpec().Value.UpdateStrategy,
+				machineSet.TypedSpec().Value.UpdateStrategyConfig,
+				1,
+			))
+		}
+
+		return nil
+	})
+
 	setOwner[*omni.ClusterStatus](omnictrl.NewClusterStatusController(false).ControllerName)
 	setOwner[*omni.ClusterMachine](omnictrl.NewMachineSetStatusController().ControllerName)
 	setOwner[*omni.ClusterMachineStatus](omnictrl.NewClusterMachineStatusController().ControllerName)

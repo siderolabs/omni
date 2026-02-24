@@ -18,7 +18,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
 
-	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -386,7 +385,7 @@ func (rc *ReconciliationContext) CalculateQuota() ChangeQuota {
 		machineSetSpec = rc.machineSet.TypedSpec().Value
 	)
 
-	quota.Teardown = getParallelismOrDefault(machineSetSpec.DeleteStrategy, machineSetSpec.DeleteStrategyConfig, -1)
+	quota.Teardown = omni.GetParallelism(machineSetSpec.DeleteStrategy, machineSetSpec.DeleteStrategyConfig, -1)
 
 	// final delete quota is MaxParallelism minus machines in tearing down phase
 	if quota.Teardown > 0 {
@@ -398,18 +397,6 @@ func (rc *ReconciliationContext) CalculateQuota() ChangeQuota {
 	}
 
 	return quota
-}
-
-func getParallelismOrDefault(strategyType specs.MachineSetSpec_UpdateStrategy, strategy *specs.MachineSetSpec_UpdateStrategyConfig, def int) int {
-	if strategyType == specs.MachineSetSpec_Rolling {
-		if strategy == nil {
-			return def
-		}
-
-		return int(strategy.Rolling.MaxParallelism)
-	}
-
-	return def
 }
 
 func toSet[T resource.Resource](resources []T) set.Set[resource.ID] {

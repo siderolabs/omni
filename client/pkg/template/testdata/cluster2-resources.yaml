@@ -83,6 +83,8 @@ spec:
     updatestrategyconfig: null
     deletestrategyconfig: null
     machineallocation: null
+    upgradestrategy: 0
+    upgradestrategyconfig: null
 ---
 metadata:
     namespace: default
@@ -141,6 +143,8 @@ spec:
     updatestrategyconfig: null
     deletestrategyconfig: null
     machineallocation: null
+    upgradestrategy: 0
+    upgradestrategyconfig: null
 ---
 metadata:
     namespace: default

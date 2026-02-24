@@ -1348,6 +1348,8 @@ func (m *MachineSetSpec) CloneVT() *MachineSetSpec {
 	r.UpdateStrategyConfig = m.UpdateStrategyConfig.CloneVT()
 	r.DeleteStrategyConfig = m.DeleteStrategyConfig.CloneVT()
 	r.MachineAllocation = m.MachineAllocation.CloneVT()
+	r.UpgradeStrategy = m.UpgradeStrategy
+	r.UpgradeStrategyConfig = m.UpgradeStrategyConfig.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -3081,6 +3083,29 @@ func (m *RotateKubernetesCASpec) CloneVT() *RotateKubernetesCASpec {
 }
 
 func (m *RotateKubernetesCASpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *UpgradeRolloutSpec) CloneVT() *UpgradeRolloutSpec {
+	if m == nil {
+		return (*UpgradeRolloutSpec)(nil)
+	}
+	r := new(UpgradeRolloutSpec)
+	if rhs := m.MachineSetsUpgradeQuota; rhs != nil {
+		tmpContainer := make(map[string]int32, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v
+		}
+		r.MachineSetsUpgradeQuota = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *UpgradeRolloutSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
@@ -4879,6 +4904,12 @@ func (this *MachineSetSpec) EqualVT(that *MachineSetSpec) bool {
 		return false
 	}
 	if !this.MachineAllocation.EqualVT(that.MachineAllocation) {
+		return false
+	}
+	if this.UpgradeStrategy != that.UpgradeStrategy {
+		return false
+	}
+	if !this.UpgradeStrategyConfig.EqualVT(that.UpgradeStrategyConfig) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7282,6 +7313,34 @@ func (this *RotateKubernetesCASpec) EqualVT(that *RotateKubernetesCASpec) bool {
 
 func (this *RotateKubernetesCASpec) EqualMessageVT(thatMsg proto.Message) bool {
 	that, ok := thatMsg.(*RotateKubernetesCASpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *UpgradeRolloutSpec) EqualVT(that *UpgradeRolloutSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if len(this.MachineSetsUpgradeQuota) != len(that.MachineSetsUpgradeQuota) {
+		return false
+	}
+	for i, vx := range this.MachineSetsUpgradeQuota {
+		vy, ok := that.MachineSetsUpgradeQuota[i]
+		if !ok {
+			return false
+		}
+		if vx != vy {
+			return false
+		}
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *UpgradeRolloutSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*UpgradeRolloutSpec)
 	if !ok {
 		return false
 	}
@@ -11010,6 +11069,21 @@ func (m *MachineSetSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.UpgradeStrategyConfig != nil {
+		size, err := m.UpgradeStrategyConfig.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.UpgradeStrategy != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.UpgradeStrategy))
+		i--
+		dAtA[i] = 0x40
 	}
 	if m.MachineAllocation != nil {
 		size, err := m.MachineAllocation.MarshalToSizedBufferVT(dAtA[:i])
@@ -15541,6 +15615,56 @@ func (m *RotateKubernetesCASpec) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
+func (m *UpgradeRolloutSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UpgradeRolloutSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *UpgradeRolloutSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.MachineSetsUpgradeQuota) > 0 {
+		for k := range m.MachineSetsUpgradeQuota {
+			v := m.MachineSetsUpgradeQuota[k]
+			baseI := i
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(v))
+			i--
+			dAtA[i] = 0x10
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MachineSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -17018,6 +17142,13 @@ func (m *MachineSetSpec) SizeVT() (n int) {
 	}
 	if m.MachineAllocation != nil {
 		l = m.MachineAllocation.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.UpgradeStrategy != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.UpgradeStrategy))
+	}
+	if m.UpgradeStrategyConfig != nil {
+		l = m.UpgradeStrategyConfig.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -18782,6 +18913,24 @@ func (m *RotateKubernetesCASpec) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *UpgradeRolloutSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.MachineSetsUpgradeQuota) > 0 {
+		for k, v := range m.MachineSetsUpgradeQuota {
+			_ = k
+			_ = v
+			mapEntrySize := 1 + len(k) + protohelpers.SizeOfVarint(uint64(len(k))) + 1 + protohelpers.SizeOfVarint(uint64(v))
+			n += mapEntrySize + 1 + protohelpers.SizeOfVarint(uint64(mapEntrySize))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -28520,6 +28669,61 @@ func (m *MachineSetSpec) UnmarshalVT(dAtA []byte) error {
 				m.MachineAllocation = &MachineSetSpec_MachineAllocation{}
 			}
 			if err := m.MachineAllocation.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpgradeStrategy", wireType)
+			}
+			m.UpgradeStrategy = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.UpgradeStrategy |= MachineSetSpec_UpdateStrategy(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpgradeStrategyConfig", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.UpgradeStrategyConfig == nil {
+				m.UpgradeStrategyConfig = &MachineSetSpec_UpdateStrategyConfig{}
+			}
+			if err := m.UpgradeStrategyConfig.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -39655,6 +39859,170 @@ func (m *RotateKubernetesCASpec) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: RotateKubernetesCASpec: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *UpgradeRolloutSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UpgradeRolloutSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UpgradeRolloutSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MachineSetsUpgradeQuota", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.MachineSetsUpgradeQuota == nil {
+				m.MachineSetsUpgradeQuota = make(map[string]int32)
+			}
+			var mapkey string
+			var mapvalue int32
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protohelpers.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return protohelpers.ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return protohelpers.ErrInvalidLength
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return protohelpers.ErrInvalidLength
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return protohelpers.ErrIntOverflow
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapvalue |= int32(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return protohelpers.ErrInvalidLength
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.MachineSetsUpgradeQuota[mapkey] = mapvalue
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
