@@ -1,3 +1,30 @@
+## [Omni 1.5.6](https://github.com/siderolabs/omni/releases/tag/v1.5.6) (2026-02-24)
+
+Welcome to the v1.5.6 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Edward Sammut Alessi
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`9ab50e4b`](https://github.com/siderolabs/omni/commit/9ab50e4ba4208f7367d1a51859a6ca7e26c4fe5f) feat(frontend): allow embedding youtube videos
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.5.5](https://github.com/siderolabs/omni/releases/tag/v1.5.5)
+
 ## [Omni 1.5.5](https://github.com/siderolabs/omni/releases/tag/v1.5.5) (2026-02-20)
 
 Welcome to the v1.5.5 release of Omni!
