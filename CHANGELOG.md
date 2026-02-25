@@ -1,3 +1,30 @@
+## [Omni 1.5.7](https://github.com/siderolabs/omni/releases/tag/v1.5.7) (2026-02-25)
+
+Welcome to the v1.5.7 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`1959a4e8`](https://github.com/siderolabs/omni/commit/1959a4e88f3161b6fb97521ad9cc5dabab1ce6fc) feat: allow resetting node unique tokens
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.5.6](https://github.com/siderolabs/omni/releases/tag/v1.5.6)
+
 ## [Omni 1.5.6](https://github.com/siderolabs/omni/releases/tag/v1.5.6) (2026-02-24)
 
 Welcome to the v1.5.6 release of Omni!
