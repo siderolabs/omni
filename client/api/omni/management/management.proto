@@ -238,6 +238,12 @@ message CreateJoinTokenResponse {
   string id = 1;
 }
 
+message ResetNodeUniqueTokenRequest {
+  string id = 1;
+}
+
+message ResetNodeUniqueTokenResponse {}
+
 service ManagementService {
   rpc Kubeconfig(KubeconfigRequest) returns (KubeconfigResponse);
   rpc Talosconfig(TalosconfigRequest) returns (TalosconfigResponse);
@@ -257,4 +263,5 @@ service ManagementService {
   rpc MaintenanceUpgrade(MaintenanceUpgradeRequest) returns (MaintenanceUpgradeResponse);
   rpc GetMachineJoinConfig(GetMachineJoinConfigRequest) returns (GetMachineJoinConfigResponse);
   rpc CreateJoinToken(CreateJoinTokenRequest) returns (CreateJoinTokenResponse);
+  rpc ResetNodeUniqueToken(ResetNodeUniqueTokenRequest) returns (ResetNodeUniqueTokenResponse);
 }

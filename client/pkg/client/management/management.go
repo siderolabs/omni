@@ -249,6 +249,15 @@ func (client *Client) ReadAuditLog(ctx context.Context, start, end string) iter.
 	}
 }
 
+// ResetNodeUniqueToken resets the node unique token for the machine, which forces the machine to get a new one on next startup.
+func (client *Client) ResetNodeUniqueToken(ctx context.Context, machineID string) error {
+	_, err := client.conn.ResetNodeUniqueToken(ctx, &management.ResetNodeUniqueTokenRequest{
+		Id: machineID,
+	})
+
+	return err
+}
+
 // LogReader is a log client reader which implements io.Reader.
 type LogReader struct {
 	ctx    context.Context //nolint:containedctx

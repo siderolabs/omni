@@ -40,6 +40,7 @@ const (
 	ManagementService_MaintenanceUpgrade_FullMethodName         = "/management.ManagementService/MaintenanceUpgrade"
 	ManagementService_GetMachineJoinConfig_FullMethodName       = "/management.ManagementService/GetMachineJoinConfig"
 	ManagementService_CreateJoinToken_FullMethodName            = "/management.ManagementService/CreateJoinToken"
+	ManagementService_ResetNodeUniqueToken_FullMethodName       = "/management.ManagementService/ResetNodeUniqueToken"
 )
 
 // ManagementServiceClient is the client API for ManagementService service.
@@ -64,6 +65,7 @@ type ManagementServiceClient interface {
 	MaintenanceUpgrade(ctx context.Context, in *MaintenanceUpgradeRequest, opts ...grpc.CallOption) (*MaintenanceUpgradeResponse, error)
 	GetMachineJoinConfig(ctx context.Context, in *GetMachineJoinConfigRequest, opts ...grpc.CallOption) (*GetMachineJoinConfigResponse, error)
 	CreateJoinToken(ctx context.Context, in *CreateJoinTokenRequest, opts ...grpc.CallOption) (*CreateJoinTokenResponse, error)
+	ResetNodeUniqueToken(ctx context.Context, in *ResetNodeUniqueTokenRequest, opts ...grpc.CallOption) (*ResetNodeUniqueTokenResponse, error)
 }
 
 type managementServiceClient struct {
@@ -290,6 +292,16 @@ func (c *managementServiceClient) CreateJoinToken(ctx context.Context, in *Creat
 	return out, nil
 }
 
+func (c *managementServiceClient) ResetNodeUniqueToken(ctx context.Context, in *ResetNodeUniqueTokenRequest, opts ...grpc.CallOption) (*ResetNodeUniqueTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResetNodeUniqueTokenResponse)
+	err := c.cc.Invoke(ctx, ManagementService_ResetNodeUniqueToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ManagementServiceServer is the server API for ManagementService service.
 // All implementations must embed UnimplementedManagementServiceServer
 // for forward compatibility.
@@ -312,6 +324,7 @@ type ManagementServiceServer interface {
 	MaintenanceUpgrade(context.Context, *MaintenanceUpgradeRequest) (*MaintenanceUpgradeResponse, error)
 	GetMachineJoinConfig(context.Context, *GetMachineJoinConfigRequest) (*GetMachineJoinConfigResponse, error)
 	CreateJoinToken(context.Context, *CreateJoinTokenRequest) (*CreateJoinTokenResponse, error)
+	ResetNodeUniqueToken(context.Context, *ResetNodeUniqueTokenRequest) (*ResetNodeUniqueTokenResponse, error)
 	mustEmbedUnimplementedManagementServiceServer()
 }
 
@@ -375,6 +388,9 @@ func (UnimplementedManagementServiceServer) GetMachineJoinConfig(context.Context
 }
 func (UnimplementedManagementServiceServer) CreateJoinToken(context.Context, *CreateJoinTokenRequest) (*CreateJoinTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateJoinToken not implemented")
+}
+func (UnimplementedManagementServiceServer) ResetNodeUniqueToken(context.Context, *ResetNodeUniqueTokenRequest) (*ResetNodeUniqueTokenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetNodeUniqueToken not implemented")
 }
 func (UnimplementedManagementServiceServer) mustEmbedUnimplementedManagementServiceServer() {}
 func (UnimplementedManagementServiceServer) testEmbeddedByValue()                           {}
@@ -693,6 +709,24 @@ func _ManagementService_CreateJoinToken_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ManagementService_ResetNodeUniqueToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetNodeUniqueTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagementServiceServer).ResetNodeUniqueToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ManagementService_ResetNodeUniqueToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagementServiceServer).ResetNodeUniqueToken(ctx, req.(*ResetNodeUniqueTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ManagementService_ServiceDesc is the grpc.ServiceDesc for ManagementService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -755,6 +789,10 @@ var ManagementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateJoinToken",
 			Handler:    _ManagementService_CreateJoinToken_Handler,
+		},
+		{
+			MethodName: "ResetNodeUniqueToken",
+			Handler:    _ManagementService_ResetNodeUniqueToken_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -824,6 +824,28 @@ func (s *managementServer) CreateJoinToken(ctx context.Context, request *managem
 	}, nil
 }
 
+func (s *managementServer) ResetNodeUniqueToken(ctx context.Context, request *management.ResetNodeUniqueTokenRequest) (*management.ResetNodeUniqueTokenResponse, error) {
+	_, err := auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = safe.StateGetByID[*omnires.MachineStatus](ctx, s.omniState, request.Id)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Error(codes.NotFound, "machine not found")
+		}
+
+		return nil, fmt.Errorf("failed to get machine status: %w", err)
+	}
+
+	if err = s.omniState.TeardownAndDestroy(actor.MarkContextAsInternalActor(ctx), siderolinkres.NewNodeUniqueToken(request.Id).Metadata()); err != nil {
+		return nil, fmt.Errorf("failed to teardown and destroy node unique token: %w", err)
+	}
+
+	return &management.ResetNodeUniqueTokenResponse{}, nil
+}
+
 func parseTime(date string, fallback time.Time) (time.Time, error) {
 	if date == "" {
 		return fallback, nil

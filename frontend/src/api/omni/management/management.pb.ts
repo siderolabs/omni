@@ -225,6 +225,13 @@ export type CreateJoinTokenResponse = {
   id?: string
 }
 
+export type ResetNodeUniqueTokenRequest = {
+  id?: string
+}
+
+export type ResetNodeUniqueTokenResponse = {
+}
+
 export class ManagementService {
   static Kubeconfig(req: KubeconfigRequest, ...options: fm.fetchOption[]): Promise<KubeconfigResponse> {
     return fm.fetchReq<KubeconfigRequest, KubeconfigResponse>("POST", `/management.ManagementService/Kubeconfig`, req, ...options)
@@ -279,5 +286,8 @@ export class ManagementService {
   }
   static CreateJoinToken(req: CreateJoinTokenRequest, ...options: fm.fetchOption[]): Promise<CreateJoinTokenResponse> {
     return fm.fetchReq<CreateJoinTokenRequest, CreateJoinTokenResponse>("POST", `/management.ManagementService/CreateJoinToken`, req, ...options)
+  }
+  static ResetNodeUniqueToken(req: ResetNodeUniqueTokenRequest, ...options: fm.fetchOption[]): Promise<ResetNodeUniqueTokenResponse> {
+    return fm.fetchReq<ResetNodeUniqueTokenRequest, ResetNodeUniqueTokenResponse>("POST", `/management.ManagementService/ResetNodeUniqueToken`, req, ...options)
   }
 }

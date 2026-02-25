@@ -28,6 +28,7 @@ const (
 
 var machineCmdFlags struct {
 	siderolinkConnection siderolinkConnection
+	resetNodeUniqueToken bool
 }
 
 var delayNotice = fmt.Sprintf("It will take around %s for the machine to reconnect back in the new mode.\n", wireguard.PeerDownInterval)
@@ -40,66 +41,78 @@ var machineCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return access.WithClient(func(ctx context.Context, client *client.Client) error {
 			for _, id := range args {
-
-				if machineCmdFlags.siderolinkConnection == "" {
-					fmt.Println("nothing to do: no flags specified")
-
-					return nil
+				if machineCmdFlags.siderolinkConnection != "" {
+					if err := updateSideroLinkConnectionMode(ctx, client, id); err != nil {
+						return fmt.Errorf("failed to update SideroLink connection mode for machine %s: %w", id, err)
+					}
 				}
 
-				_, err := safe.ReaderGetByID[*omni.Machine](ctx, client.Omni().State(), id)
-				if err != nil {
-					if state.IsNotFoundError(err) {
-						return fmt.Errorf("machine with id %s doesn't exist", id)
+				if machineCmdFlags.resetNodeUniqueToken {
+					err := client.Management().ResetNodeUniqueToken(ctx, id)
+					if err != nil {
+						return fmt.Errorf("failed to reset node unique token for machine %s: %w", id, err)
 					}
 
-					return err
+					fmt.Printf("reset node unique token for machine %s\n", id)
 				}
-
-				config := siderolink.NewGRPCTunnelConfig(id)
-
-				switch string(machineCmdFlags.siderolinkConnection) {
-				case siderolinkConnectionModeUDP:
-					return safe.StateModify(ctx, client.Omni().State(), config, func(res *siderolink.GRPCTunnelConfig) error {
-						if !res.TypedSpec().Value.Enabled {
-							return nil
-						}
-
-						res.TypedSpec().Value.Enabled = false
-
-						fmt.Printf("disabled gRPC tunnel mode for machine %s\n%s", id, delayNotice)
-
-						return nil
-					})
-				case siderolinkConnectionModeTunnel:
-					return safe.StateModify(ctx, client.Omni().State(), config, func(res *siderolink.GRPCTunnelConfig) error {
-						if res.TypedSpec().Value.Enabled {
-							return nil
-						}
-
-						res.TypedSpec().Value.Enabled = true
-
-						fmt.Printf("enabled gRPC tunnel mode for machine %s\n%s", id, delayNotice)
-
-						return nil
-					})
-
-				case siderolinkConnectionModeAuto:
-					err = client.Omni().State().TeardownAndDestroy(ctx, config.Metadata())
-					if err != nil && !state.IsNotFoundError(err) {
-						return err
-					}
-
-					fmt.Printf("deleted grpc tunnel config for the machine %s\n%s", id, delayNotice)
-				}
-
-				fmt.Println("WARNING: the changes won't be applied until the machine is restarted")
 			}
 
 			return nil
 		})
 	},
 	Args: cobra.MinimumNArgs(1),
+}
+
+func updateSideroLinkConnectionMode(ctx context.Context, client *client.Client, id string) error {
+	_, err := safe.ReaderGetByID[*omni.Machine](ctx, client.Omni().State(), id)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return fmt.Errorf("machine with id %s doesn't exist", id)
+		}
+
+		return err
+	}
+
+	config := siderolink.NewGRPCTunnelConfig(id)
+
+	switch string(machineCmdFlags.siderolinkConnection) {
+	case siderolinkConnectionModeUDP:
+		return safe.StateModify(ctx, client.Omni().State(), config, func(res *siderolink.GRPCTunnelConfig) error {
+			if !res.TypedSpec().Value.Enabled {
+				return nil
+			}
+
+			res.TypedSpec().Value.Enabled = false
+
+			fmt.Printf("disabled gRPC tunnel mode for machine %s\n%s", id, delayNotice)
+
+			return nil
+		})
+	case siderolinkConnectionModeTunnel:
+		return safe.StateModify(ctx, client.Omni().State(), config, func(res *siderolink.GRPCTunnelConfig) error {
+			if res.TypedSpec().Value.Enabled {
+				return nil
+			}
+
+			res.TypedSpec().Value.Enabled = true
+
+			fmt.Printf("enabled gRPC tunnel mode for machine %s\n%s", id, delayNotice)
+
+			return nil
+		})
+
+	case siderolinkConnectionModeAuto:
+		err = client.Omni().State().TeardownAndDestroy(ctx, config.Metadata())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		fmt.Printf("deleted grpc tunnel config for the machine %s\n%s", id, delayNotice)
+	}
+
+	fmt.Println("WARNING: the changes won't be applied until the machine is restarted")
+
+	return nil
 }
 
 type siderolinkConnection string
@@ -129,6 +142,7 @@ func (s *siderolinkConnection) String() string {
 
 func init() {
 	machineCmd.Flags().Var(&machineCmdFlags.siderolinkConnection, "siderolink-connection", "configure SideroLink connection mode")
+	machineCmd.Flags().BoolVar(&machineCmdFlags.resetNodeUniqueToken, "reset-node-unique-token", false, "reset the node unique token for the machine")
 
 	configureCmd.AddCommand(machineCmd)
 }
