@@ -182,8 +182,8 @@ const { height } = useElementSize(slider)
       :style="{ height: expanded ? `${height}px` : '0' }"
     >
       <ClusterMachines
-        :pause-watches="!expanded"
         ref="slider"
+        :pause-watches="!expanded"
         class="h-min"
         :cluster-i-d="item.metadata.id!"
         is-subgrid

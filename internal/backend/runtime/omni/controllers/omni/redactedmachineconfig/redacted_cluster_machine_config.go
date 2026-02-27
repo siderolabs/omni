@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package redactedmachineconfig contains Controller which manages redacted machine configurations for each cluster machine.
 package redactedmachineconfig
 
 import (

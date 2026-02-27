@@ -36,8 +36,7 @@ func getFeatures() []string {
 
 	var names []string
 
-	for i := range t.NumField() {
-		field := t.Field(i)
+	for field := range t.Fields() {
 		if field.IsExported() {
 			names = append(names, field.Name)
 		}

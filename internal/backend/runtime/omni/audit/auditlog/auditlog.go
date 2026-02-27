@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package auditlog provides an interface for writing audit logs and getting readers to read them.
 package auditlog
 
 import (

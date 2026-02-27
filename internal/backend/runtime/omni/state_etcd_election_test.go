@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -44,10 +43,10 @@ func TestEtcdElectionsLost(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 
 	state, err := omni.GetEmbeddedEtcdClientWithServer(&config.EtcdParams{
-		Embedded:       pointer.To(true),
-		EmbeddedDBPath: pointer.To(t.TempDir()),
+		Embedded:       new(true),
+		EmbeddedDBPath: new(t.TempDir()),
 		Endpoints:      []string{"http://localhost:0"},
-		RunElections:   pointer.To(true),
+		RunElections:   new(true),
 	}, logger)
 
 	require.NoError(t, err)
@@ -94,10 +93,10 @@ func TestEtcdElections(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 
 	state, err := omni.GetEmbeddedEtcdClientWithServer(&config.EtcdParams{
-		Embedded:       pointer.To(true),
-		EmbeddedDBPath: pointer.To(t.TempDir()),
+		Embedded:       new(true),
+		EmbeddedDBPath: new(t.TempDir()),
 		Endpoints:      []string{"http://localhost:0"},
-		RunElections:   pointer.To(true),
+		RunElections:   new(true),
 	}, logger)
 
 	require.NoError(t, err)

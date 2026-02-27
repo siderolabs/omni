@@ -19,7 +19,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/google/uuid"
-	"github.com/siderolabs/go-pointer"
 	pb "github.com/siderolabs/siderolink/api/siderolink"
 	"github.com/siderolabs/siderolink/pkg/wireguard"
 	"github.com/stretchr/testify/assert"
@@ -166,8 +165,8 @@ func TestProvision(t *testing.T) {
 		request := &pb.ProvisionRequest{
 			NodeUuid:      "machine-1",
 			NodePublicKey: genKey(),
-			TalosVersion:  pointer.To("v1.9.0"),
-			JoinToken:     pointer.To(validToken),
+			TalosVersion:  new("v1.9.0"),
+			JoinToken:     new(validToken),
 		}
 
 		response, err := provisionHandler.Provision(ctx, request)
@@ -184,7 +183,7 @@ func TestProvision(t *testing.T) {
 		require.NotEmpty(t, response.ServerPublicKey)
 		require.NotEmpty(t, response.NodeAddressPrefix)
 
-		request.NodeUniqueToken = pointer.To(validToken)
+		request.NodeUniqueToken = new(validToken)
 
 		response, err = provisionHandler.Provision(ctx, request)
 		require.NoError(t, err)
@@ -233,8 +232,8 @@ func TestProvision(t *testing.T) {
 			request := &pb.ProvisionRequest{
 				NodeUuid:      fmt.Sprintf("machine-migration-%s", tt.name),
 				NodePublicKey: genKey(),
-				TalosVersion:  pointer.To("v1.9.0"),
-				JoinToken:     pointer.To(tt.token),
+				TalosVersion:  new("v1.9.0"),
+				JoinToken:     new(tt.token),
 			}
 
 			link := siderolinkres.NewLink(request.NodeUuid, &specs.SiderolinkSpec{
@@ -298,9 +297,9 @@ func TestProvision(t *testing.T) {
 				name: "same fingerprint, valid join token, talos installed",
 				request: &pb.ProvisionRequest{
 					NodePublicKey:   genKey(),
-					NodeUniqueToken: pointer.To(validFingerprintOnly),
-					TalosVersion:    pointer.To("v1.6.0"),
-					JoinToken:       pointer.To(validToken),
+					NodeUniqueToken: new(validFingerprintOnly),
+					TalosVersion:    new("v1.6.0"),
+					JoinToken:       new(validToken),
 				},
 				linkSpec:        &specs.SiderolinkSpec{},
 				nodeUniqueToken: validToken,
@@ -313,9 +312,9 @@ func TestProvision(t *testing.T) {
 				name: "same fingerprint, valid join token, talos not installed",
 				request: &pb.ProvisionRequest{
 					NodePublicKey:   genKey(),
-					NodeUniqueToken: pointer.To(validFingerprintOnly),
-					TalosVersion:    pointer.To("v1.6.0"),
-					JoinToken:       pointer.To(validToken),
+					NodeUniqueToken: new(validFingerprintOnly),
+					TalosVersion:    new("v1.6.0"),
+					JoinToken:       new(validToken),
 				},
 				talosNotInstalled: true,
 				linkSpec:          &specs.SiderolinkSpec{},
@@ -328,8 +327,8 @@ func TestProvision(t *testing.T) {
 				name: "sa %#vme fingerprint, in, provisionContext.requestNodeUniqueTokenvalid join token, talos not installed",
 				request: &pb.ProvisionRequest{
 					NodePublicKey:   genKey(),
-					NodeUniqueToken: pointer.To(validFingerprintOnly),
-					TalosVersion:    pointer.To("v1.6.0"),
+					NodeUniqueToken: new(validFingerprintOnly),
+					TalosVersion:    new("v1.6.0"),
 				},
 				talosNotInstalled: true,
 				nodeUniqueToken:   validToken,
@@ -342,8 +341,8 @@ func TestProvision(t *testing.T) {
 				name: "no join token, valid node token, has link",
 				request: &pb.ProvisionRequest{
 					NodePublicKey:   genKey(),
-					NodeUniqueToken: pointer.To(validToken),
-					TalosVersion:    pointer.To("v1.6.0"),
+					NodeUniqueToken: new(validToken),
+					TalosVersion:    new("v1.6.0"),
 				},
 				nodeUniqueToken: validToken,
 				linkSpec:        &specs.SiderolinkSpec{},
@@ -355,8 +354,8 @@ func TestProvision(t *testing.T) {
 				name: "no join token, valid node token, no link",
 				request: &pb.ProvisionRequest{
 					NodePublicKey:   genKey(),
-					NodeUniqueToken: pointer.To(validToken),
-					TalosVersion:    pointer.To("v1.6.0"),
+					NodeUniqueToken: new(validToken),
+					TalosVersion:    new("v1.6.0"),
 				},
 				nodeUniqueToken: validToken,
 				errcheck: func(t *testing.T, err error) {
@@ -367,9 +366,9 @@ func TestProvision(t *testing.T) {
 				name: "valid join token, invalid node token",
 				request: &pb.ProvisionRequest{
 					NodePublicKey:   genKey(),
-					NodeUniqueToken: pointer.To(invalidToken),
-					TalosVersion:    pointer.To("v1.9.0"),
-					JoinToken:       pointer.To(validToken),
+					NodeUniqueToken: new(invalidToken),
+					TalosVersion:    new("v1.9.0"),
+					JoinToken:       new(validToken),
 				},
 				nodeUniqueToken: validToken,
 				errcheck: func(t *testing.T, err error) {
@@ -380,8 +379,8 @@ func TestProvision(t *testing.T) {
 				name: "migration",
 				request: &pb.ProvisionRequest{
 					NodePublicKey: genKey(),
-					TalosVersion:  pointer.To("v1.9.0"),
-					JoinToken:     pointer.To(validToken),
+					TalosVersion:  new("v1.9.0"),
+					JoinToken:     new(validToken),
 				},
 				linkSpec: &specs.SiderolinkSpec{},
 				errcheck: func(t *testing.T, err error) {
@@ -392,8 +391,8 @@ func TestProvision(t *testing.T) {
 				name: "initial join",
 				request: &pb.ProvisionRequest{
 					NodePublicKey: genKey(),
-					TalosVersion:  pointer.To("v1.9.0"),
-					JoinToken:     pointer.To(validToken),
+					TalosVersion:  new("v1.9.0"),
+					JoinToken:     new(validToken),
 				},
 				errcheck: func(t *testing.T, err error) {
 					require.NoError(t, err)
@@ -403,7 +402,7 @@ func TestProvision(t *testing.T) {
 				name: "initial join, no valid token",
 				request: &pb.ProvisionRequest{
 					NodePublicKey: genKey(),
-					TalosVersion:  pointer.To("v1.9.0"),
+					TalosVersion:  new("v1.9.0"),
 				},
 				errcheck: func(t *testing.T, err error) {
 					require.Equal(t, codes.PermissionDenied, status.Code(err))
@@ -413,7 +412,7 @@ func TestProvision(t *testing.T) {
 				name: "below 1.6",
 				request: &pb.ProvisionRequest{
 					NodePublicKey: genKey(),
-					TalosVersion:  pointer.To("v1.4.0"),
+					TalosVersion:  new("v1.4.0"),
 					JoinToken:     &validToken,
 				},
 				errcheck: func(t *testing.T, err error) {
@@ -430,7 +429,7 @@ func TestProvision(t *testing.T) {
 				name: "below 1.6, no token",
 				request: &pb.ProvisionRequest{
 					NodePublicKey: genKey(),
-					TalosVersion:  pointer.To("v1.4.0"),
+					TalosVersion:  new("v1.4.0"),
 				},
 				errcheck: func(t *testing.T, err error) {
 					if mode.mode == config.SiderolinkServiceJoinTokensModeLegacyAllowed {
@@ -489,8 +488,8 @@ func TestProvision(t *testing.T) {
 		request := &pb.ProvisionRequest{
 			NodeUuid:      "machine-legacy",
 			NodePublicKey: genKey(),
-			TalosVersion:  pointer.To("v1.5.0"),
-			JoinToken:     pointer.To(validToken),
+			TalosVersion:  new("v1.5.0"),
+			JoinToken:     new(validToken),
 		}
 
 		link := siderolinkres.NewLink(request.NodeUuid, &specs.SiderolinkSpec{})
@@ -520,8 +519,8 @@ func TestProvision(t *testing.T) {
 		request := &pb.ProvisionRequest{
 			NodeUuid:      "machine-legacy",
 			NodePublicKey: genKey(),
-			TalosVersion:  pointer.To("v1.5.0"),
-			JoinToken:     pointer.To(validToken),
+			TalosVersion:  new("v1.5.0"),
+			JoinToken:     new(validToken),
 		}
 
 		link := siderolinkres.NewLink(request.NodeUuid, &specs.SiderolinkSpec{})
@@ -551,9 +550,9 @@ func TestProvision(t *testing.T) {
 		request := &pb.ProvisionRequest{
 			NodeUuid:        "so-duplicate",
 			NodePublicKey:   genKey(),
-			TalosVersion:    pointer.To("v1.9.4"),
-			JoinToken:       pointer.To(validToken),
-			NodeUniqueToken: pointer.To(uniqueToken),
+			TalosVersion:    new("v1.9.4"),
+			JoinToken:       new(validToken),
+			NodeUniqueToken: new(uniqueToken),
 		}
 
 		_, err = provisionHandler.Provision(ctx, request)
@@ -565,9 +564,9 @@ func TestProvision(t *testing.T) {
 		request2 := &pb.ProvisionRequest{
 			NodeUuid:        "so-duplicate",
 			NodePublicKey:   genKey(),
-			TalosVersion:    pointer.To("v1.9.4"),
-			JoinToken:       pointer.To(validToken),
-			NodeUniqueToken: pointer.To(uniqueToken),
+			TalosVersion:    new("v1.9.4"),
+			JoinToken:       new(validToken),
+			NodeUniqueToken: new(uniqueToken),
 		}
 
 		_, err = provisionHandler.Provision(ctx, request2)
@@ -610,9 +609,9 @@ func TestProvision(t *testing.T) {
 		request := &pb.ProvisionRequest{
 			NodeUuid:        "machine-from-provider",
 			NodePublicKey:   genKey(),
-			TalosVersion:    pointer.To("v1.9.4"),
+			TalosVersion:    new("v1.9.4"),
 			JoinToken:       &encoded,
-			NodeUniqueToken: pointer.To(uniqueToken),
+			NodeUniqueToken: new(uniqueToken),
 		}
 
 		_, err = provisionHandler.Provision(ctx, request)
@@ -666,9 +665,9 @@ func TestProvision(t *testing.T) {
 		request := &pb.ProvisionRequest{
 			NodeUuid:        "machine-from-provider",
 			NodePublicKey:   genKey(),
-			TalosVersion:    pointer.To("v1.9.4"),
+			TalosVersion:    new("v1.9.4"),
 			JoinToken:       &encoded,
-			NodeUniqueToken: pointer.To(uniqueToken),
+			NodeUniqueToken: new(uniqueToken),
 		}
 
 		_, err = provisionHandler.Provision(ctx, request)
@@ -718,9 +717,9 @@ func TestProvision(t *testing.T) {
 		request := &pb.ProvisionRequest{
 			NodeUuid:        "machine-from-provider",
 			NodePublicKey:   genKey(),
-			TalosVersion:    pointer.To("v1.9.4"),
+			TalosVersion:    new("v1.9.4"),
 			JoinToken:       &encoded,
-			NodeUniqueToken: pointer.To(uniqueToken),
+			NodeUniqueToken: new(uniqueToken),
 		}
 
 		_, err = provisionHandler.Provision(ctx, request)
@@ -738,9 +737,9 @@ func TestProvision(t *testing.T) {
 		request = &pb.ProvisionRequest{
 			NodeUuid:        "machine-from-provider",
 			NodePublicKey:   genKey(),
-			TalosVersion:    pointer.To("v1.9.4"),
+			TalosVersion:    new("v1.9.4"),
 			JoinToken:       &encoded,
-			NodeUniqueToken: pointer.To(uniqueToken),
+			NodeUniqueToken: new(uniqueToken),
 		}
 
 		_, err = provisionHandler.Provision(ctx, request)

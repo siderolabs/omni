@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package options defines the options for the rmock.
 package options
 
 import (

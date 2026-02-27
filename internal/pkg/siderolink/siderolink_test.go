@@ -23,7 +23,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	xmaps "github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/gen/xtesting/must"
-	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/go-retry/retry"
 	pb "github.com/siderolabs/siderolink/api/siderolink"
 	"github.com/siderolabs/siderolink/pkg/wireguard"
@@ -130,7 +129,7 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	suite.Require().NoError(err)
 
-	suite.nodeUniqueToken = pointer.To(nodeUniqueToken)
+	suite.nodeUniqueToken = new(nodeUniqueToken)
 
 	wgHandler := &fakeWireguardHandler{
 		peers: map[string]wgtypes.Peer{},
@@ -241,7 +240,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 		NodeUuid:        "testnode",
 		NodePublicKey:   privateKey.PublicKey().String(),
 		JoinToken:       &joinToken,
-		TalosVersion:    pointer.To("v1.9.0"),
+		TalosVersion:    new("v1.9.0"),
 		NodeUniqueToken: suite.nodeUniqueToken,
 	})
 
@@ -272,7 +271,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 		NodeUuid:        "testnode",
 		NodePublicKey:   privateKey.PublicKey().String(),
 		JoinToken:       &joinToken,
-		TalosVersion:    pointer.To("v1.9.0"),
+		TalosVersion:    new("v1.9.0"),
 		NodeUniqueToken: suite.nodeUniqueToken,
 	})
 
@@ -286,7 +285,7 @@ func (suite *SiderolinkSuite) TestNodes() {
 		NodeUuid:        "testnode",
 		NodePublicKey:   privateKey.PublicKey().String(),
 		JoinToken:       &joinToken,
-		TalosVersion:    pointer.To("v1.9.0"),
+		TalosVersion:    new("v1.9.0"),
 		NodeUniqueToken: suite.nodeUniqueToken,
 	})
 
@@ -326,7 +325,7 @@ func (suite *SiderolinkSuite) TestNodeWithSeveralAdvertisedIPs() {
 			NodeUuid:        "testnode",
 			NodePublicKey:   privateKey.PublicKey().String(),
 			JoinToken:       &spec.TokenId,
-			TalosVersion:    pointer.To("v1.9.0"),
+			TalosVersion:    new("v1.9.0"),
 			NodeUniqueToken: suite.nodeUniqueToken,
 		},
 	))(suite.T())
@@ -375,8 +374,8 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		NodeUuid:          "testnode",
 		NodePublicKey:     privateKey.PublicKey().String(),
 		JoinToken:         &joinToken,
-		WireguardOverGrpc: pointer.To(true),
-		TalosVersion:      pointer.To("v1.9.0"),
+		WireguardOverGrpc: new(true),
+		TalosVersion:      new("v1.9.0"),
 		NodeUniqueToken:   suite.nodeUniqueToken,
 	})
 
@@ -411,7 +410,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		NodeUuid:        "testnode",
 		NodePublicKey:   privateKey.PublicKey().String(),
 		JoinToken:       &joinToken,
-		TalosVersion:    pointer.To("v1.9.0"),
+		TalosVersion:    new("v1.9.0"),
 		NodeUniqueToken: suite.nodeUniqueToken,
 	})
 
@@ -430,7 +429,7 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		NodeUuid:        "testnode",
 		NodePublicKey:   privateKey.PublicKey().String(),
 		JoinToken:       &joinToken,
-		TalosVersion:    pointer.To("v1.9.0"),
+		TalosVersion:    new("v1.9.0"),
 		NodeUniqueToken: suite.nodeUniqueToken,
 	})
 
@@ -446,8 +445,8 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 		NodeUuid:          "testnode",
 		NodePublicKey:     privateKey.PublicKey().String(),
 		JoinToken:         &joinToken,
-		WireguardOverGrpc: pointer.To(true),
-		TalosVersion:      pointer.To("v1.9.0"),
+		WireguardOverGrpc: new(true),
+		TalosVersion:      new("v1.9.0"),
 		NodeUniqueToken:   suite.nodeUniqueToken,
 	})
 

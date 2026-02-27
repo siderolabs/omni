@@ -471,7 +471,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 		t.Parallel()
 
 		_, st := buildState(config.EmbeddedDiscoveryService{
-			Enabled: pointer.To(false),
+			Enabled: new(false),
 		})
 
 		cluster := omnires.NewCluster("test")
@@ -491,7 +491,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 
 		// prepare a cluster which has the feature enabled, while it is disabled instance-wide
 		innerSt, st := buildState(config.EmbeddedDiscoveryService{
-			Enabled: pointer.To(false),
+			Enabled: new(false),
 		})
 
 		talosVersion := omnires.NewTalosVersion("1.7.4")
@@ -520,7 +520,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 		t.Parallel()
 
 		_, st := buildState(config.EmbeddedDiscoveryService{
-			Enabled: pointer.To(true),
+			Enabled: new(true),
 		})
 
 		talosVersion := omnires.NewTalosVersion("1.7.4")
@@ -555,7 +555,7 @@ func TestRelationLabelsValidation(t *testing.T) {
 	differentClusterID := "different-cluster"
 	machineSetID := "test-machine-set"
 	differentMachineSetID := "different-machine-set"
-	machineSetNodeId := "test-machine-set-node"
+	machineSetNodeID := "test-machine-set-node"
 
 	// MachineSet
 
@@ -589,7 +589,7 @@ func TestRelationLabelsValidation(t *testing.T) {
 
 	machineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
 
-	machineSetNode := omnires.NewMachineSetNode(machineSetNodeId, machineSet)
+	machineSetNode := omnires.NewMachineSetNode(machineSetNodeID, machineSet)
 
 	machineSetNode.Metadata().Labels().Delete(omnires.LabelCluster)
 	machineSetNode.Metadata().Labels().Delete(omnires.LabelMachineSet)
@@ -1090,7 +1090,7 @@ func TestIdentitySAMLValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := validated.NewState(innerSt, omni.IdentityValidationOptions(config.SAML{
-		Enabled: pointer.To(true),
+		Enabled: new(true),
 	})...)
 
 	user := auth.NewIdentity("aaa@example.org")

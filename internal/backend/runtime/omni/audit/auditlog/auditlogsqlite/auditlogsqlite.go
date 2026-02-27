@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package auditlogsqlite implements an SQLite-backed audit log store.
 package auditlogsqlite
 
 import (

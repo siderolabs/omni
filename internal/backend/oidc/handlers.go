@@ -90,14 +90,14 @@ func newAuthState(query, token string) (authState, error) {
 }
 
 func parseAuthState(data string) (authState, error) {
-	rawJson, err := base64.RawURLEncoding.DecodeString(data)
+	rawJSON, err := base64.RawURLEncoding.DecodeString(data)
 	if err != nil {
 		return authState{}, err
 	}
 
 	var state authState
 
-	if err = json.Unmarshal(rawJson, &state); err != nil {
+	if err = json.Unmarshal(rawJSON, &state); err != nil {
 		return state, err
 	}
 

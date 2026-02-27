@@ -266,6 +266,7 @@ var configInfoCmd = &cobra.Command{
 		}
 
 		var buf bytes.Buffer
+
 		err = configInfoCmdTemplate.Execute(&buf, map[string]string{
 			"Context":  conf.Context,
 			"APIURL":   context.URL,

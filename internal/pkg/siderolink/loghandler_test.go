@@ -28,13 +28,13 @@ import (
 
 func TestLogHandler_HandleMessage(t *testing.T) {
 	storageConfig := config.LogsMachine{
-		BufferInitialCapacity: pointer.To(6),
-		BufferMaxCapacity:     pointer.To(28),
-		BufferSafetyGap:       pointer.To(6),
+		BufferInitialCapacity: new(6),
+		BufferMaxCapacity:     new(28),
+		BufferSafetyGap:       new(6),
 		Storage: config.LogsMachineStorage{
-			NumCompressedChunks: pointer.To(5),
+			NumCompressedChunks: new(5),
 			FlushPeriod:         pointer.To(time.Second),
-			Enabled:             pointer.To(false),
+			Enabled:             new(false),
 		},
 	}
 

@@ -101,7 +101,7 @@ func TestLoad(t *testing.T) {
 		{
 			name:          "clusterBadYAML1",
 			data:          clusterBadYAML1,
-			expectedError: "error decoding document at line 1:1: yaml: unmarshal errors:\n  line 7: field containerd not found in type models.Cluster",
+			expectedError: "error decoding document at line 1:1: yaml: construct errors:\n  line 7: field containerd not found in type models.Cluster",
 		},
 		{
 			name:          "clusterBadYAML2",

@@ -46,7 +46,7 @@ func Load(input io.Reader) (*Template, error) {
 		}
 
 		if docNode.Kind != yaml.DocumentNode {
-			return nil, fmt.Errorf("unexpected node kind %q", docNode.Kind)
+			return nil, fmt.Errorf("unexpected node kind %v", docNode.Kind)
 		}
 
 		if len(docNode.Content) != 1 {
@@ -83,7 +83,7 @@ func Load(input io.Reader) (*Template, error) {
 
 func findKind(node *yaml.Node) (string, error) {
 	if node.Kind != yaml.MappingNode {
-		return "", fmt.Errorf("unexpected node kind %q, expecting mapping", node.Kind)
+		return "", fmt.Errorf("unexpected node kind %v, expecting mapping", node.Kind)
 	}
 
 	for i := 0; i < len(node.Content); i += 2 {
@@ -91,7 +91,7 @@ func findKind(node *yaml.Node) (string, error) {
 		value := node.Content[i+1]
 
 		if key.Kind != yaml.ScalarNode {
-			return "", fmt.Errorf("unexpected node kind %q", key.Kind)
+			return "", fmt.Errorf("unexpected node kind %v", key.Kind)
 		}
 
 		if key.Value != "kind" {
@@ -99,7 +99,7 @@ func findKind(node *yaml.Node) (string, error) {
 		}
 
 		if value.Kind != yaml.ScalarNode {
-			return "", fmt.Errorf("unexpected value type for kind field %q", value.Kind)
+			return "", fmt.Errorf("unexpected value type for kind field %v", value.Kind)
 		}
 
 		return value.Value, nil

@@ -13,7 +13,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
-	"github.com/siderolabs/go-pointer"
 	"github.com/siderolabs/image-factory/pkg/constants"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -339,7 +338,7 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 		"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
 	}
 
-	vanillaID, err := pointer.To(schematic.Schematic{
+	vanillaID, err := new(schematic.Schematic{
 		Customization: schematic.Customization{
 			ExtraKernelArgs: kernelArgs,
 		},

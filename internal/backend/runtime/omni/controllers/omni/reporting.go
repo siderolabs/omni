@@ -159,7 +159,7 @@ func updateStripeSubscriptionItemQuantity(ctx context.Context, subscriptionItemI
 		log.Info("Updating subscription item quantity", zap.String("subscription_item_id", subscriptionItemID), zap.Uint32("new_quantity", newQuantity))
 
 		updateParams := &stripe.SubscriptionItemParams{
-			Quantity: stripe.Int64(int64(newQuantity)),
+			Quantity: new(int64(newQuantity)),
 		}
 
 		_, err := subscriptionitem.Update(subscriptionItemID, updateParams)

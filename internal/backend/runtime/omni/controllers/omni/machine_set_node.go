@@ -609,6 +609,7 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 		}
 
 		machinesToDestroyCount--
+
 		if machineSetNode.Metadata().Finalizers().Empty() {
 			return r.Destroy(ctx, machineSetNode.Metadata(), controller.WithOwner(""))
 		}

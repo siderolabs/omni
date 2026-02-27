@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package testutils contains helper functions for testing the controllers.
 package testutils
 
 import (

@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+// Package sqlitelog implements a logstore.LogStore using SQLite as the backend.
 package sqlitelog
 
 import (

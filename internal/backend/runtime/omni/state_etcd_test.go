@@ -18,7 +18,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xtesting/check"
-	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -129,14 +128,14 @@ func TestEtcdInitialization(t *testing.T) {
 			state, err := omni.NewEtcdPersistentState(ctx,
 				&config.Params{
 					Account: config.Account{
-						Name: pointer.To("instance-name"),
+						Name: new("instance-name"),
 					},
 					Storage: config.Storage{
 						Default: config.StorageDefault{
 							Etcd: config.EtcdParams{
-								Embedded:         pointer.To(true),
-								EmbeddedDBPath:   pointer.To(etcdDir),
-								PrivateKeySource: pointer.To(step.args.privateKeySource),
+								Embedded:         new(true),
+								EmbeddedDBPath:   new(etcdDir),
+								PrivateKeySource: new(step.args.privateKeySource),
 								PublicKeyFiles:   step.args.publicKeyFiles,
 								Endpoints:        []string{"http://localhost:0"},
 							},
@@ -208,14 +207,14 @@ func TestEncryptDecrypt(t *testing.T) {
 			state, err := omni.NewEtcdPersistentState(ctx,
 				&config.Params{
 					Account: config.Account{
-						Name: pointer.To("instance-name"),
+						Name: new("instance-name"),
 					},
 					Storage: config.Storage{
 						Default: config.StorageDefault{
 							Etcd: config.EtcdParams{
-								Embedded:         pointer.To(true),
-								EmbeddedDBPath:   pointer.To(etcdDir),
-								PrivateKeySource: pointer.To(step.args.privateKeySource),
+								Embedded:         new(true),
+								EmbeddedDBPath:   new(etcdDir),
+								PrivateKeySource: new(step.args.privateKeySource),
 								PublicKeyFiles:   step.args.publicKeyFiles,
 								Endpoints:        []string{"http://localhost:0"},
 							},

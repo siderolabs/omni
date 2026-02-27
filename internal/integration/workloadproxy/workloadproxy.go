@@ -31,7 +31,6 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/go-pointer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -519,7 +518,7 @@ func createKubernetesResources(ctx context.Context, t *testing.T, logger *zap.Lo
 			Namespace: namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.To(int32(numReplicas)),
+			Replicas: new(int32(numReplicas)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": identifier,

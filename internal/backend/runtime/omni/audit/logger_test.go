@@ -76,8 +76,8 @@ func TestMigrateFromFileToSQLite(t *testing.T) {
 	// 3. Trigger Migration via NewLog
 	// We provide both Path and SQLite enabled, which triggers initLogger -> migrateFromFileToSQLite
 	logConf := config.LogsAudit{
-		Enabled:       pointer.To(true),
-		Path:          pointer.To(dir),
+		Enabled:       new(true),
+		Path:          new(dir),
 		SqliteTimeout: pointer.To(5 * time.Second),
 	}
 
@@ -140,8 +140,8 @@ func TestMigrateSkipIfHasData(t *testing.T) {
 
 	// 3. Trigger NewLog
 	logConf := config.LogsAudit{
-		Enabled:       pointer.To(true),
-		Path:          pointer.To(dir),
+		Enabled:       new(true),
+		Path:          new(dir),
 		SqliteTimeout: pointer.To(5 * time.Second),
 	}
 
@@ -200,8 +200,8 @@ THIS_IS_BROKEN_JSON
 
 	// 4. Trigger Migration
 	logConf := config.LogsAudit{
-		Enabled:       pointer.To(true),
-		Path:          pointer.To(dir),
+		Enabled:       new(true),
+		Path:          new(dir),
 		SqliteTimeout: pointer.To(5 * time.Second),
 	}
 
@@ -299,8 +299,8 @@ func TestMigrateLineExceedingDefaultBuffer(t *testing.T) {
 
 	// Trigger Migration
 	logConf := config.LogsAudit{
-		Enabled:       pointer.To(true),
-		Path:          pointer.To(dir),
+		Enabled:       new(true),
+		Path:          new(dir),
 		SqliteTimeout: pointer.To(5 * time.Second),
 	}
 
@@ -371,8 +371,8 @@ func TestMigrateLineExceedingMaxBuffer(t *testing.T) {
 
 	// Trigger Migration
 	logConf := config.LogsAudit{
-		Enabled:       pointer.To(true),
-		Path:          pointer.To(dir),
+		Enabled:       new(true),
+		Path:          new(dir),
 		SqliteTimeout: pointer.To(5 * time.Second),
 	}
 

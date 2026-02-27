@@ -204,7 +204,7 @@ func checkEtcdStatus(ctx context.Context, talosClient *client.Client) error {
 	for _, message := range status.Messages {
 		memberErrors := message.GetMemberStatus().GetErrors()
 		if len(memberErrors) > 0 {
-			return fmt.Errorf("etcd member %q has errors: %s", message.GetMemberStatus().GetMemberId(), strings.Join(memberErrors, ", "))
+			return fmt.Errorf("etcd member %v has errors: %s", message.GetMemberStatus().GetMemberId(), strings.Join(memberErrors, ", "))
 		}
 	}
 

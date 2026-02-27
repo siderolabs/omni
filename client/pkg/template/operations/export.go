@@ -18,7 +18,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/go-pointer"
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -279,7 +278,7 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 		updateStrategyConfig = &models.UpdateStrategyConfig{}
 
 		if spec.GetUpdateStrategy() != specs.MachineSetSpec_Rolling { // Rolling is the default for update, so set the strategy type only when it is not Rolling.
-			updateStrategyConfig.Type = pointer.To(models.UpdateStrategyType(spec.GetUpdateStrategy()))
+			updateStrategyConfig.Type = new(models.UpdateStrategyType(spec.GetUpdateStrategy()))
 		}
 
 		if spec.GetUpdateStrategyConfig().GetRolling() != nil {
@@ -295,7 +294,7 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 		deleteStrategyConfig = &models.UpdateStrategyConfig{}
 
 		if spec.GetDeleteStrategy() != specs.MachineSetSpec_Unset { // Unset is the default for delete, so set the strategy type only when it is not Unset.
-			deleteStrategyConfig.Type = pointer.To(models.UpdateStrategyType(spec.GetDeleteStrategy()))
+			deleteStrategyConfig.Type = new(models.UpdateStrategyType(spec.GetDeleteStrategy()))
 		}
 
 		if spec.GetDeleteStrategyConfig().GetRolling() != nil {

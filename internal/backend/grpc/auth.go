@@ -19,7 +19,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	authpb "github.com/siderolabs/go-api-signature/api/auth"
-	"github.com/siderolabs/go-pointer"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -176,7 +175,7 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 	if state.IsNotFoundError(err) {
 		setPubKeyAttributes(newPubKey)
 
-		err = s.state.Create(ctx, newPubKey, state.WithCreateOwner(pointer.To(omni.KeyPrunerController{}).Name()))
+		err = s.state.Create(ctx, newPubKey, state.WithCreateOwner(new(omni.KeyPrunerController{}).Name()))
 		if err != nil {
 			return nil, err
 		}
@@ -330,7 +329,7 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		pk.TypedSpec().Value.Confirmed = true
 
 		return nil
-	}, state.WithUpdateOwner(pointer.To(omni.KeyPrunerController{}).Name()))
+	}, state.WithUpdateOwner(new(omni.KeyPrunerController{}).Name()))
 	if err != nil {
 		return nil, err
 	}
