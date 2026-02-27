@@ -1,3 +1,174 @@
+## [Omni 1.5.8](https://github.com/siderolabs/omni/releases/tag/v1.5.8) (2026-02-27)
+
+Welcome to the v1.5.8 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Andrey Smirnov
+* Kevin Tijssen
+* Noel Georgi
+* Artem Chernyshev
+* Mateusz Urbanek
+* Orzelius
+* Tim Jones
+* Daddie0
+* Dmitrii Sharshakov
+* Oguz Kilcan
+* greenpsi
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`865e60daa`](https://github.com/siderolabs/omni/commit/865e60daab2218d0548ddfec881eb6bfec4a208a) chore: bump deps, rekres and fix linters
+</p>
+</details>
+
+### Changes from siderolabs/discovery-api
+<details><summary>2 commits</summary>
+<p>
+
+* [`9c06846`](https://github.com/siderolabs/discovery-api/commit/9c06846e6f9f4f5765d5e431f8e25dc44a7ff337) feat: change the way excluded addresses are specified
+* [`f71a14a`](https://github.com/siderolabs/discovery-api/commit/f71a14a251c1e267d7a3701342563965947cc76f) feat: add advertised filters to discovery data
+</p>
+</details>
+
+### Changes from siderolabs/discovery-client
+<details><summary>2 commits</summary>
+<p>
+
+* [`854400f`](https://github.com/siderolabs/discovery-client/commit/854400f23398f74660606d138383e7d9cfbe3b8b) feat: bump discovery API to v0.1.8
+* [`0a4c6fd`](https://github.com/siderolabs/discovery-client/commit/0a4c6fd36e01eb2395d8fd15cfe5f5cc8d5ae328) chore: update dependencies and rekres
+</p>
+</details>
+
+### Changes from siderolabs/discovery-service
+<details><summary>2 commits</summary>
+<p>
+
+* [`8863fd8`](https://github.com/siderolabs/discovery-service/commit/8863fd8d6e626cef699cd14d178c9fa8073f277e) release(v1.0.14): prepare release
+* [`e0c8062`](https://github.com/siderolabs/discovery-service/commit/e0c8062eeadfceffd11575c88989b9fd65f0cafb) chore: rekres and update dependencies
+</p>
+</details>
+
+### Changes from siderolabs/go-debug
+<details><summary>1 commit</summary>
+<p>
+
+* [`47fce68`](https://github.com/siderolabs/go-debug/commit/47fce68bb9d064757e11a7a3a81ed1a0b9d7124d) feat: support Go 1.26, rekres
+</p>
+</details>
+
+### Changes from siderolabs/go-kubernetes
+<details><summary>9 commits</summary>
+<p>
+
+* [`a95f3bf`](https://github.com/siderolabs/go-kubernetes/commit/a95f3bfbf574cd58f7d62a3e4f70def7431e686e) chore: add helper functions for CLI applications
+* [`f2c063b`](https://github.com/siderolabs/go-kubernetes/commit/f2c063b901463b9e306a2cb521c70f2940a18d27) test: add integration tests for ssa logic
+* [`9de92cf`](https://github.com/siderolabs/go-kubernetes/commit/9de92cf34056909e8f27adfc7ae7abfb2387739b) refactor: drop k8s.io/utils
+* [`8e6f068`](https://github.com/siderolabs/go-kubernetes/commit/8e6f06812ff7b3404822bbd670e397769e8d698a) fix: bring back legacy sync
+* [`de675a0`](https://github.com/siderolabs/go-kubernetes/commit/de675a0027700d5a455ca7e3b1caa9679f47a0e7) fix: stop using custom dialer for Kubernetes client
+* [`e7a89c3`](https://github.com/siderolabs/go-kubernetes/commit/e7a89c34ab93052f84a8d387adbb69782bdb28bc) refactor: use fluxcd/ssa instead of kubernetes cli-utils for ssa
+* [`0a235c0`](https://github.com/siderolabs/go-kubernetes/commit/0a235c069d7d1cbf18a83cf73e23fed3e861a60b) feat: add early support for Kubernetes 1.36
+* [`3bea212`](https://github.com/siderolabs/go-kubernetes/commit/3bea21294056bf7cd894c9fe257eae423e8e2a28) fix: use new Myers diff algorithm
+* [`604c56b`](https://github.com/siderolabs/go-kubernetes/commit/604c56b7251e8ec03b644b47c69ee08d6f25780b) chore: extract common code to the go-kubernetes package
+</p>
+</details>
+
+### Changes from siderolabs/image-factory
+<details><summary>37 commits</summary>
+<p>
+
+* [`f0c7a7b`](https://github.com/siderolabs/image-factory/commit/f0c7a7b53ce86c49c1531e1f1fd15c5bf3f00a70) release(v1.0.3): prepare release
+* [`dd92631`](https://github.com/siderolabs/image-factory/commit/dd926314f61e4bbd8797c0302e4a8a14b9d693fb) docs: correct path to hack/copy-artifacts.sh
+* [`ddc1a83`](https://github.com/siderolabs/image-factory/commit/ddc1a8389189e77e3f3679927ce550e9549a3e48) fix: update Talos to fix rpi_5 build
+* [`b3d07e5`](https://github.com/siderolabs/image-factory/commit/b3d07e5e38da475018493adb5106eca9348de517) docs: remove redundant Kubernetes version prerequisite
+* [`9666795`](https://github.com/siderolabs/image-factory/commit/96667959f60f6c4b6b670affdedc6ea898f6cfb2) fix: values.schema.json
+* [`8a8da46`](https://github.com/siderolabs/image-factory/commit/8a8da46331b9dcd6353e93879f63c6a422d8d035) feat: adjust security context for user namespace mode
+* [`bc631dc`](https://github.com/siderolabs/image-factory/commit/bc631dc3f9515bdbeabcb903190291805625ed9c) fix: values.schema.json
+* [`8ea6fe9`](https://github.com/siderolabs/image-factory/commit/8ea6fe9eccba498f761061a4842616f58566e68e) feat: add user namespace support with Kubernetes version validation
+* [`324c464`](https://github.com/siderolabs/image-factory/commit/324c464e22fff6ae13f4a199d7664229f628f07a) fix: skip initializing TUF if keyless signing is disabled
+* [`a42b9d9`](https://github.com/siderolabs/image-factory/commit/a42b9d91c35d28817e43c8abc794f4cb3e7ae429) release(v1.0.2): prepare release
+* [`80d1ba3`](https://github.com/siderolabs/image-factory/commit/80d1ba3e0e2a94f86cd37f80786743d928eb2b24) fix: pass nameoptions to verify bundle too
+* [`eec01d1`](https://github.com/siderolabs/image-factory/commit/eec01d1d0351b31faa7357389933589d16d3dc04) release(v1.0.1): prepare release
+* [`ec1c0a7`](https://github.com/siderolabs/image-factory/commit/ec1c0a790c99c55fcc3c315429f96e266bee7343) fix: pass insecure to the cosign new bundle verifier
+* [`14d0f2a`](https://github.com/siderolabs/image-factory/commit/14d0f2a1fa2d40448c28c51a8d3c57caa44d5bbf) release(v1.0.0): prepare release
+* [`a90529c`](https://github.com/siderolabs/image-factory/commit/a90529cc0066cd4c401b6e97bb69becfdcffc4f7) feat: add more security contexts
+* [`ec69fe2`](https://github.com/siderolabs/image-factory/commit/ec69fe25da648422ef6a414bcddacab36e275579) fix: extra kernel args for overlays
+* [`aa325ee`](https://github.com/siderolabs/image-factory/commit/aa325ee4ffe3f5cc8ed818027e0b31e055d7fcdf) feat: add Helm docs and schema
+* [`3c18e05`](https://github.com/siderolabs/image-factory/commit/3c18e053c118131006b86affa7d0bb2af754cf95) feat: add Sidero google service account email also to verfiers
+* [`151feb5`](https://github.com/siderolabs/image-factory/commit/151feb5589624ad2a8365a9a056e08c4d6780b2c) fix: docs url
+* [`42a1c45`](https://github.com/siderolabs/image-factory/commit/42a1c45849be02ca572ee6f66b875135d49b4805) feat: add helm to kres
+* [`ac4718a`](https://github.com/siderolabs/image-factory/commit/ac4718a617f88bfcfbe28edb2ee03a997fd19f7a) feat: update Talos and pkgs
+* [`1d6468e`](https://github.com/siderolabs/image-factory/commit/1d6468ee6daac0eddd0ae01cdd47d83190f6b9d0) feat: add helm e2e to CI
+* [`2f0499c`](https://github.com/siderolabs/image-factory/commit/2f0499cc73b5c20ad806a26bc5392eafbf03a87c) feat: added e2e tests
+* [`2eccf98`](https://github.com/siderolabs/image-factory/commit/2eccf98ad5eb3fc79f13bfc4a712743d09fc65ca) fix: made changes on the recommendation of copilot
+* [`e27ea36`](https://github.com/siderolabs/image-factory/commit/e27ea3647da994a34394635de869dfbaf7070f3a) feat: Added E2E with KUTTL
+* [`9f6b9e7`](https://github.com/siderolabs/image-factory/commit/9f6b9e79665192daaa54efab4bdbfe09424569db) feat: Added additional tests
+* [`4939747`](https://github.com/siderolabs/image-factory/commit/49397476eac0f33a6fc489355d05b80004953c1f) feat: Added helm unittests
+* [`dcaa1db`](https://github.com/siderolabs/image-factory/commit/dcaa1db583160b605f89cfbf2f1a8ef36c59618b) feat: added helmchart
+* [`1f85622`](https://github.com/siderolabs/image-factory/commit/1f85622c69e8a5a6401b16a5e41d9f04fc6a8267) feat: add cloudflare credentials helper
+* [`852856d`](https://github.com/siderolabs/image-factory/commit/852856dc9d8e3db6a7b167626b8144e890e75f20) fix: installer internal config
+* [`c8c6576`](https://github.com/siderolabs/image-factory/commit/c8c657680b2b55a630352ac5a1764342d608fd9c) release(v1.0.0-beta.0): prepare release
+* [`56bd21b`](https://github.com/siderolabs/image-factory/commit/56bd21baa70dfadac318d409bc8ecf74a2b1a3c6) fix: allow `Cache-Control` header in CORS
+* [`83f4d91`](https://github.com/siderolabs/image-factory/commit/83f4d91a063c56dd5d45c8674d5c67d51f14388e) fix: clarify bootloader selection
+* [`c8c5faa`](https://github.com/siderolabs/image-factory/commit/c8c5faa6153dded74bb6734ae0812b7cee5ed201) feat: allow using image GET/HEAD API by the JS code on any domains
+* [`e732d90`](https://github.com/siderolabs/image-factory/commit/e732d90618033f734fc5a5f9571537b7a0779e92) feat: support acm for secureboot
+* [`5f103c1`](https://github.com/siderolabs/image-factory/commit/5f103c16c4854b0fbb89b60eb8fd1c1e6418197c) feat: support copying to clipboard
+* [`c3532c4`](https://github.com/siderolabs/image-factory/commit/c3532c48692d2ab61b1b6af9b396dd95c312ea20) feat: update Talos with GRUB and other fixes
+</p>
+</details>
+
+### Changes from siderolabs/kms-client
+<details><summary>3 commits</summary>
+<p>
+
+* [`296bf9a`](https://github.com/siderolabs/kms-client/commit/296bf9a1085bd1a8dd06ba81b6969dddf196133c) feat: add logging to the KMS server
+* [`2d6b082`](https://github.com/siderolabs/kms-client/commit/2d6b08285a1506bcc3c866227790f2435c3f0f9c) feat: add TLS support for KMS server
+* [`4233ecd`](https://github.com/siderolabs/kms-client/commit/4233ecd1e8062da6c1131501fa6f2c80a3be686e) chore: bump deps, rekres
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/aws/aws-sdk-go-v2**                     v1.41.1 -> v1.41.2
+* **github.com/aws/aws-sdk-go-v2/config**              v1.32.7 -> v1.32.10
+* **github.com/aws/aws-sdk-go-v2/credentials**         v1.19.7 -> v1.19.10
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.20.19 -> v1.22.4
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.95.1 -> v1.96.2
+* **github.com/aws/smithy-go**                         v1.24.0 -> v1.24.1
+* **github.com/cosi-project/runtime**                  2b3357ea6788 -> v1.14.0
+* **github.com/google/go-containerregistry**           v0.20.7 -> v0.21.1
+* **github.com/grpc-ecosystem/grpc-gateway/v2**        v2.27.4 -> v2.28.0
+* **github.com/johannesboyne/gofakes3**                ebf3e50324d3 -> 4c385a1f6a73
+* **github.com/siderolabs/discovery-api**              v0.1.6 -> v0.1.8
+* **github.com/siderolabs/discovery-client**           v0.1.13 -> v0.1.15
+* **github.com/siderolabs/discovery-service**          v1.0.13 -> v1.0.14
+* **github.com/siderolabs/go-debug**                   v0.6.1 -> v0.6.2
+* **github.com/siderolabs/go-kubernetes**              v0.2.30 -> v0.2.33
+* **github.com/siderolabs/image-factory**              b5ba6630ed93 -> v1.0.3
+* **github.com/siderolabs/kms-client**                 v0.1.0 -> v0.2.0
+* **github.com/siderolabs/omni/client**                v1.4.7 -> v1.5.7
+* **github.com/siderolabs/talos/pkg/machinery**        e00aed0f6694 -> cc636f1dd1f1
+* **go.etcd.io/etcd/client/pkg/v3**                    v3.6.7 -> v3.6.8
+* **go.etcd.io/etcd/client/v3**                        v3.6.7 -> v3.6.8
+* **go.etcd.io/etcd/server/v3**                        v3.6.7 -> v3.6.8
+* **golang.org/x/net**                                 v0.50.0 -> v0.51.0
+* **golang.org/x/oauth2**                              v0.34.0 -> v0.35.0
+* **golang.org/x/tools**                               v0.41.0 -> v0.42.0
+* **google.golang.org/grpc**                           v1.78.0 -> v1.79.1
+* **google.golang.org/protobuf**                       v1.36.11 -> f2248ac996af
+* **k8s.io/api**                                       v0.35.0 -> v0.35.2
+* **k8s.io/client-go**                                 v0.35.0 -> v0.35.2
+* **modernc.org/sqlite**                               v1.44.1 -> v1.46.1
+
+Previous release can be found at [v1.5.7](https://github.com/siderolabs/omni/releases/tag/v1.5.7)
+
 ## [Omni 1.5.7](https://github.com/siderolabs/omni/releases/tag/v1.5.7) (2026-02-25)
 
 Welcome to the v1.5.7 release of Omni!
