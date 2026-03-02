@@ -256,6 +256,7 @@ func (m *ListServiceAccountsResponse_ServiceAccount) CloneVT() *ListServiceAccou
 	r := new(ListServiceAccountsResponse_ServiceAccount)
 	r.Name = m.Name
 	r.Role = m.Role
+	r.LastActive = m.LastActive
 	if rhs := m.PgpPublicKeys; rhs != nil {
 		tmpContainer := make([]*ListServiceAccountsResponse_ServiceAccount_PgpPublicKey, len(rhs))
 		for k, v := range rhs {
@@ -882,6 +883,7 @@ func (m *ListUsersResponse_User) CloneVT() *ListUsersResponse_User {
 	r.Id = m.Id
 	r.Email = m.Email
 	r.Role = m.Role
+	r.LastActive = m.LastActive
 	if rhs := m.SamlLabels; rhs != nil {
 		tmpContainer := make(map[string]string, len(rhs))
 		for k, v := range rhs {
@@ -1205,6 +1207,9 @@ func (this *ListServiceAccountsResponse_ServiceAccount) EqualVT(that *ListServic
 		}
 	}
 	if this.Role != that.Role {
+		return false
+	}
+	if this.LastActive != that.LastActive {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2003,6 +2008,9 @@ func (this *ListUsersResponse_User) EqualVT(that *ListUsersResponse_User) bool {
 			return false
 		}
 	}
+	if this.LastActive != that.LastActive {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -2631,6 +2639,13 @@ func (m *ListServiceAccountsResponse_ServiceAccount) MarshalToSizedBufferVT(dAtA
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.LastActive) > 0 {
+		i -= len(m.LastActive)
+		copy(dAtA[i:], m.LastActive)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.LastActive)))
+		i--
+		dAtA[i] = 0x2a
 	}
 	if len(m.Role) > 0 {
 		i -= len(m.Role)
@@ -4216,6 +4231,13 @@ func (m *ListUsersResponse_User) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.LastActive) > 0 {
+		i -= len(m.LastActive)
+		copy(dAtA[i:], m.LastActive)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.LastActive)))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if len(m.SamlLabels) > 0 {
 		for k := range m.SamlLabels {
 			v := m.SamlLabels[k]
@@ -4520,6 +4542,10 @@ func (m *ListServiceAccountsResponse_ServiceAccount) SizeVT() (n int) {
 		}
 	}
 	l = len(m.Role)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.LastActive)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -5129,6 +5155,10 @@ func (m *ListUsersResponse_User) SizeVT() (n int) {
 			mapEntrySize := 1 + len(k) + protohelpers.SizeOfVarint(uint64(len(k))) + 1 + len(v) + protohelpers.SizeOfVarint(uint64(len(v)))
 			n += mapEntrySize + 1 + protohelpers.SizeOfVarint(uint64(mapEntrySize))
 		}
+	}
+	l = len(m.LastActive)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -6509,6 +6539,38 @@ func (m *ListServiceAccountsResponse_ServiceAccount) UnmarshalVT(dAtA []byte) er
 				return io.ErrUnexpectedEOF
 			}
 			m.Role = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastActive", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastActive = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -10437,6 +10499,38 @@ func (m *ListUsersResponse_User) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.SamlLabels[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastActive", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastActive = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

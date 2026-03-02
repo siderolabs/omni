@@ -83,6 +83,7 @@ message ListServiceAccountsResponse {
     repeated PgpPublicKey pgp_public_keys = 2;
     reserved 3;
     string role = 4;
+    string last_active = 5;
   }
 
   repeated ServiceAccount service_accounts = 1;
@@ -268,6 +269,7 @@ message ListUsersResponse {
     string email = 2;
     string role = 3;
     map<string, string> saml_labels = 4;
+    string last_active = 5;
   }
 
   repeated User users = 1;

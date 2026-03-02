@@ -478,6 +478,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		_, err = auth.CheckGRPC(ctx, auth.WithValidSignature(true))
 	case // admin-only resources
 		authres.IdentityType,
+		authres.IdentityLastActiveType,
+		authres.IdentityStatusType,
 		authres.UserType,
 		authres.ServiceAccountStatusType,
 		authres.SAMLLabelRuleType,
@@ -593,6 +595,8 @@ func filterAccessByType(access state.Access) error {
 		omni.MachineExtensionsType,
 		omni.MachineStatusMetricsType,
 		authres.AuthConfigType,
+		authres.IdentityLastActiveType,
+		authres.IdentityStatusType,
 		authres.ServiceAccountStatusType,
 		siderolink.JoinTokenStatusType,
 		siderolink.NodeUniqueTokenStatusType,

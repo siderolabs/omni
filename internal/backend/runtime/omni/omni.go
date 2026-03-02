@@ -48,12 +48,14 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/cosi"
 	"github.com/siderolabs/omni/internal/backend/runtime/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	authctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/auth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/clustermachine"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/image"
 	kernelargsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
+	metricsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/metrics"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/redactedmachineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
@@ -135,6 +137,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 	}
 
 	controllers := []controller.Controller{
+		&metricsctrl.UserMetricsController{},
 		omnictrl.NewCertRefreshTickController(constants.CertificateValidityTime / 10), // issue ticks at 10% of the validity, as we refresh certificates at 50% of the validity
 		omnictrl.NewClusterController(kubernetesRuntime),
 		omnictrl.NewMachineSetController(),
@@ -247,6 +250,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewDiscoveryAffiliateDeleteTaskController(clockwork.NewRealClock(), discoveryClientCache),
 		omnictrl.NewInfraProviderCombinedStatusController(),
 		omnictrl.NewServiceAccountStatusController(),
+		authctrl.NewIdentityStatusController(),
 		omnictrl.NewInfraMachineRegistrationController(),
 		omnictrl.NewSiderolinkAPIConfigController(cfg.Services.MachineAPI.URL(), cfg.Services.Siderolink),
 		omnictrl.NewProviderJoinConfigController(),
@@ -455,6 +459,7 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*siderolinkres.NodeUniqueTokenStatus](),
 		safe.WithResourceCache[*system.ResourceLabels[*omni.MachineStatus]](),
 		safe.WithResourceCache[*infra.ConfigPatchRequest](),
+		safe.WithResourceCache[*auth.IdentityLastActive](),
 		safe.WithResourceCache[*auth.ServiceAccountStatus](),
 		safe.WithResourceCache[*siderolinkres.MachineJoinConfig](),
 		safe.WithResourceCache[*siderolinkres.ProviderJoinConfig](),

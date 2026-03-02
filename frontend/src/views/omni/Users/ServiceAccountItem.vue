@@ -9,7 +9,7 @@ import { toRefs } from 'vue'
 import { useRouter } from 'vue-router'
 
 import type { Resource } from '@/api/grpc'
-import type { IdentitySpec, UserSpec } from '@/api/omni/specs/auth.pb'
+import type { IdentityStatusSpec, ServiceAccountStatusSpec } from '@/api/omni/specs/auth.pb'
 import { RoleInfraProvider } from '@/api/resources'
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
@@ -18,7 +18,8 @@ import { canManageUsers } from '@/methods/auth'
 
 const props = defineProps<{
   expiration?: string
-  item: Resource<UserSpec & IdentitySpec>
+  lastActive: string
+  item: Resource<ServiceAccountStatusSpec & IdentityStatusSpec>
 }>()
 
 const { item } = toRefs(props)
@@ -67,6 +68,7 @@ const renewKey = () => {
           <div class="max-w-min rounded bg-naturals-n3 px-2 py-1 text-naturals-n10">
             {{ props.item.spec.role ?? 'None' }}
           </div>
+          <div class="text-naturals-n10">{{ props.lastActive }}</div>
           <div>{{ expiration }}</div>
         </div>
         <div class="flex justify-between">
@@ -93,7 +95,7 @@ const renewKey = () => {
 @reference "../../../index.css";
 
 .users-grid {
-  @apply grid grid-cols-3 items-center pr-2;
+  @apply grid grid-cols-4 items-center pr-2;
 }
 
 .users-grid > * {

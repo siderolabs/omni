@@ -39,14 +39,19 @@ func listUsers(ctx context.Context, client *client.Client) error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 	defer w.Flush() //nolint:errcheck
 
-	if _, err = fmt.Fprintln(w, "ID\tEMAIL\tROLE\tLABELS"); err != nil {
+	if _, err = fmt.Fprintln(w, "ID\tEMAIL\tROLE\tLAST ACTIVE\tLABELS"); err != nil {
 		return err
 	}
 
 	for _, user := range users {
 		labels := formatSAMLLabels(user.SamlLabels)
 
-		if _, err = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", user.Id, user.Email, user.Role, labels); err != nil {
+		lastActive := user.LastActive
+		if lastActive == "" {
+			lastActive = "Never"
+		}
+
+		if _, err = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", user.Id, user.Email, user.Role, lastActive, labels); err != nil {
 			return err
 		}
 	}

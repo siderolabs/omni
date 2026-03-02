@@ -277,6 +277,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: moveSchematicCacheToEphemeral,
 				name:     "moveSchematicCacheToEphemeral",
 			},
+			{
+				callback: createIdentityLastActiveForExistingIdentities,
+				name:     "createIdentityLastActiveForExistingIdentities",
+			},
 		},
 	}
 }

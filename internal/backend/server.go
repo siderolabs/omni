@@ -491,6 +491,10 @@ func (s *Server) buildServerOptions(ctx context.Context) ([]grpc.ServerOption, e
 		streamInterceptors = append(streamInterceptors, authInterceptor.Stream())
 	}
 
+	activityTracker := interceptor.NewActivity(s.state.Default(), s.logger)
+	unaryInterceptors = append(unaryInterceptors, activityTracker.Unary())
+	streamInterceptors = append(streamInterceptors, activityTracker.Stream()) //nolint:contextcheck
+
 	return []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(constants.GRPCMaxMessageSize),
 		grpc.ChainUnaryInterceptor(unaryInterceptors...),

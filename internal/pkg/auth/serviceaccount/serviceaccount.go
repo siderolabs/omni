@@ -131,6 +131,10 @@ func Create(ctx context.Context, st state.State, name, userRole string, useUserR
 		return "", err
 	}
 
+	if err = st.Create(ctx, authres.NewIdentityLastActive(id)); err != nil {
+		return "", err
+	}
+
 	return key.ID, nil
 }
 
@@ -173,6 +177,11 @@ func Destroy(ctx context.Context, st state.State, name string) error {
 	}
 
 	err = st.TeardownAndDestroy(ctx, authres.NewUser(identity.TypedSpec().Value.UserId).Metadata())
+	if err != nil && !state.IsNotFoundError(err) {
+		destroyErr = multierror.Append(destroyErr, err)
+	}
+
+	err = st.TeardownAndDestroy(ctx, authres.NewIdentityLastActive(id).Metadata())
 	if err != nil && !state.IsNotFoundError(err) {
 		destroyErr = multierror.Append(destroyErr, err)
 	}

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/golang-jwt/jwt/v4"
@@ -114,6 +115,18 @@ func (s *managementServer) ListServiceAccounts(ctx context.Context, _ *emptypb.E
 		return nil, err
 	}
 
+	identityStatuses, err := safe.StateListAll[*authres.IdentityStatus](ctx, s.omniState, state.WithLabelQuery(
+		resource.LabelExists(authres.LabelIdentityTypeServiceAccount),
+	))
+	if err != nil {
+		return nil, err
+	}
+
+	identityStatusByID := make(map[string]*authres.IdentityStatus, identityStatuses.Len())
+	for is := range identityStatuses.All() {
+		identityStatusByID[is.Metadata().ID()] = is
+	}
+
 	serviceAccounts := make([]*management.ListServiceAccountsResponse_ServiceAccount, 0, serviceAccountStatus.Len())
 
 	for status := range serviceAccountStatus.All() {
@@ -124,7 +137,7 @@ func (s *managementServer) ListServiceAccounts(ctx context.Context, _ *emptypb.E
 
 		name := sa.NameWithPrefix()
 
-		serviceAccounts = append(serviceAccounts, &management.ListServiceAccountsResponse_ServiceAccount{
+		account := &management.ListServiceAccountsResponse_ServiceAccount{
 			Name: name,
 			PgpPublicKeys: xslices.Map(
 				status.TypedSpec().Value.PublicKeys,
@@ -137,7 +150,13 @@ func (s *managementServer) ListServiceAccounts(ctx context.Context, _ *emptypb.E
 				},
 			),
 			Role: status.TypedSpec().Value.Role,
-		})
+		}
+
+		if is, ok := identityStatusByID[status.Metadata().ID()]; ok {
+			account.LastActive = is.TypedSpec().Value.LastActive
+		}
+
+		serviceAccounts = append(serviceAccounts, account)
 	}
 
 	return &management.ListServiceAccountsResponse{

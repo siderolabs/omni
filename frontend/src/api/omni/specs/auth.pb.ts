@@ -155,6 +155,16 @@ export type SAMLLabelRuleSpec = {
   update_on_each_login?: boolean
 }
 
+export type IdentityLastActiveSpec = {
+  last_active?: GoogleProtobufTimestamp.Timestamp
+}
+
+export type IdentityStatusSpec = {
+  user_id?: string
+  role?: string
+  last_active?: string
+}
+
 export type ServiceAccountStatusSpecPgpPublicKey = {
   id?: string
   armored?: string

@@ -2197,6 +2197,7 @@ type ListServiceAccountsResponse_ServiceAccount struct {
 	Name          string                                                     `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	PgpPublicKeys []*ListServiceAccountsResponse_ServiceAccount_PgpPublicKey `protobuf:"bytes,2,rep,name=pgp_public_keys,json=pgpPublicKeys,proto3" json:"pgp_public_keys,omitempty"`
 	Role          string                                                     `protobuf:"bytes,4,opt,name=role,proto3" json:"role,omitempty"`
+	LastActive    string                                                     `protobuf:"bytes,5,opt,name=last_active,json=lastActive,proto3" json:"last_active,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2248,6 +2249,13 @@ func (x *ListServiceAccountsResponse_ServiceAccount) GetPgpPublicKeys() []*ListS
 func (x *ListServiceAccountsResponse_ServiceAccount) GetRole() string {
 	if x != nil {
 		return x.Role
+	}
+	return ""
+}
+
+func (x *ListServiceAccountsResponse_ServiceAccount) GetLastActive() string {
+	if x != nil {
+		return x.LastActive
 	}
 	return ""
 }
@@ -2522,6 +2530,7 @@ type ListUsersResponse_User struct {
 	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	Role          string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
 	SamlLabels    map[string]string      `protobuf:"bytes,4,rep,name=saml_labels,json=samlLabels,proto3" json:"saml_labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	LastActive    string                 `protobuf:"bytes,5,opt,name=last_active,json=lastActive,proto3" json:"last_active,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2584,6 +2593,13 @@ func (x *ListUsersResponse_User) GetSamlLabels() map[string]string {
 	return nil
 }
 
+func (x *ListUsersResponse_User) GetLastActive() string {
+	if x != nil {
+		return x.LastActive
+	}
+	return ""
+}
+
 var File_omni_management_management_proto protoreflect.FileDescriptor
 
 const file_omni_management_management_proto_rawDesc = "" +
@@ -2625,13 +2641,15 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x1bRenewServiceAccountResponse\x12\"\n" +
 	"\rpublic_key_id\x18\x01 \x01(\tR\vpublicKeyId\"2\n" +
 	"\x1cDestroyServiceAccountRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"\xa4\x03\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\xc5\x03\n" +
 	"\x1bListServiceAccountsResponse\x12a\n" +
-	"\x10service_accounts\x18\x01 \x03(\v26.management.ListServiceAccountsResponse.ServiceAccountR\x0fserviceAccounts\x1a\xa1\x02\n" +
+	"\x10service_accounts\x18\x01 \x03(\v26.management.ListServiceAccountsResponse.ServiceAccountR\x0fserviceAccounts\x1a\xc2\x02\n" +
 	"\x0eServiceAccount\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12k\n" +
 	"\x0fpgp_public_keys\x18\x02 \x03(\v2C.management.ListServiceAccountsResponse.ServiceAccount.PgpPublicKeyR\rpgpPublicKeys\x12\x12\n" +
-	"\x04role\x18\x04 \x01(\tR\x04role\x1at\n" +
+	"\x04role\x18\x04 \x01(\tR\x04role\x12\x1f\n" +
+	"\vlast_active\x18\x05 \x01(\tR\n" +
+	"lastActive\x1at\n" +
 	"\fPgpPublicKey\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\aarmored\x18\x02 \x01(\tR\aarmored\x12:\n" +
@@ -2761,15 +2779,17 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x12\n" +
 	"\x04role\x18\x02 \x01(\tR\x04role\"*\n" +
 	"\x12DestroyUserRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\"\xa4\x02\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\"\xc5\x02\n" +
 	"\x11ListUsersResponse\x128\n" +
-	"\x05users\x18\x01 \x03(\v2\".management.ListUsersResponse.UserR\x05users\x1a\xd4\x01\n" +
+	"\x05users\x18\x01 \x03(\v2\".management.ListUsersResponse.UserR\x05users\x1a\xf5\x01\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
 	"\x04role\x18\x03 \x01(\tR\x04role\x12S\n" +
 	"\vsaml_labels\x18\x04 \x03(\v22.management.ListUsersResponse.User.SamlLabelsEntryR\n" +
-	"samlLabels\x1a=\n" +
+	"samlLabels\x12\x1f\n" +
+	"\vlast_active\x18\x05 \x01(\tR\n" +
+	"lastActive\x1a=\n" +
 	"\x0fSamlLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*O\n" +

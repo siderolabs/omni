@@ -146,6 +146,10 @@ func Destroy(ctx context.Context, st state.State, email string) error {
 		destroyErr = multierror.Append(destroyErr, err)
 	}
 
+	if err = st.TeardownAndDestroy(ctx, auth.NewIdentityLastActive(email).Metadata()); err != nil && !state.IsNotFoundError(err) {
+		destroyErr = multierror.Append(destroyErr, err)
+	}
+
 	return destroyErr
 }
 
@@ -197,6 +201,10 @@ func createIdentityAndUser(ctx context.Context, st state.State, email string, r 
 	if err := st.Create(ctx, user); err != nil {
 		_ = st.Destroy(ctx, identity.Metadata()) //nolint:errcheck // best-effort cleanup
 
+		return "", err
+	}
+
+	if err := st.Create(ctx, auth.NewIdentityLastActive(email)); err != nil {
 		return "", err
 	}
 

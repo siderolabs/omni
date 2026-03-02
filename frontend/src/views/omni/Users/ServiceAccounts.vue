@@ -9,8 +9,13 @@ import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
-import type { ServiceAccountStatusSpec } from '@/api/omni/specs/auth.pb'
-import { EphemeralNamespace, ServiceAccountStatusType } from '@/api/resources'
+import type { IdentityStatusSpec, ServiceAccountStatusSpec } from '@/api/omni/specs/auth.pb'
+import {
+  EphemeralNamespace,
+  IdentityStatusType,
+  LabelIdentityTypeServiceAccount,
+  ServiceAccountStatusType,
+} from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
@@ -27,8 +32,24 @@ const watchOpts = [
       type: ServiceAccountStatusType,
       namespace: EphemeralNamespace,
     },
+    idFunc: (res: Resource) => res.metadata.id!,
+  },
+  {
+    runtime: Runtime.Omni,
+    resource: {
+      type: IdentityStatusType,
+      namespace: EphemeralNamespace,
+    },
+    selectors: [LabelIdentityTypeServiceAccount],
+    idFunc: (res: Resource) => res.metadata.id!,
   },
 ]
+
+const getLastActive = (item: Resource<IdentityStatusSpec>) => {
+  if (!item.spec.last_active) return 'Never'
+
+  return relativeISO(item.spec.last_active)
+}
 
 const getExpiration = (item: Resource<ServiceAccountStatusSpec>) => {
   return relativeISO(
@@ -62,6 +83,7 @@ const openUserCreate = () => {
           <div class="users-grid">
             <div>ID</div>
             <div>Role</div>
+            <div>Last Active</div>
             <div>Expiration</div>
           </div>
         </div>
@@ -69,6 +91,7 @@ const openUserCreate = () => {
           v-for="item in items"
           :key="itemID(item)"
           :item="item"
+          :last-active="getLastActive(item)"
           :expiration="getExpiration(item)"
         />
       </template>
@@ -80,7 +103,7 @@ const openUserCreate = () => {
 @reference "../../../index.css";
 
 .users-grid {
-  @apply grid grid-cols-3 pr-10;
+  @apply grid grid-cols-4 pr-10;
 }
 
 .users-header {

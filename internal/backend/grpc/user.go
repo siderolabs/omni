@@ -71,6 +71,23 @@ func (s *managementServer) ListUsers(ctx context.Context, _ *emptypb.Empty) (*ma
 		return nil, err
 	}
 
+	identityStatuses, err := safe.StateListAll[*authres.IdentityStatus](ctx, s.omniState, state.WithLabelQuery(
+		resource.LabelExists(authres.LabelIdentityTypeServiceAccount, resource.NotMatches),
+	))
+	if err != nil {
+		return nil, err
+	}
+
+	userByID := make(map[string]*authres.User, users.Len())
+	for usr := range users.All() {
+		userByID[usr.Metadata().ID()] = usr
+	}
+
+	identityStatusByID := make(map[string]*authres.IdentityStatus, identityStatuses.Len())
+	for is := range identityStatuses.All() {
+		identityStatusByID[is.Metadata().ID()] = is
+	}
+
 	result := make([]*management.ListUsersResponse_User, 0, identities.Len())
 
 	for identity := range identities.All() {
@@ -79,11 +96,12 @@ func (s *managementServer) ListUsers(ctx context.Context, _ *emptypb.Empty) (*ma
 			Email: identity.Metadata().ID(),
 		}
 
-		foundUser, found := users.Find(func(usr *authres.User) bool {
-			return usr.Metadata().ID() == identity.TypedSpec().Value.UserId
-		})
-		if found {
+		if foundUser, ok := userByID[identity.TypedSpec().Value.UserId]; ok {
 			u.Role = foundUser.TypedSpec().Value.Role
+		}
+
+		if is, ok := identityStatusByID[identity.Metadata().ID()]; ok {
+			u.LastActive = is.TypedSpec().Value.LastActive
 		}
 
 		samlLabels := map[string]string{}

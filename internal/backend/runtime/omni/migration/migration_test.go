@@ -25,6 +25,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -372,6 +373,35 @@ func (suite *MigrationSuite) TestMoveSchematicCacheToEphemeral() {
 	list, err := suite.state.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.SchematicType, "", resource.VersionUndefined))
 	suite.Require().NoError(err)
 	suite.Assert().Empty(list.Items, "expected no schematics in default namespace after migration")
+}
+
+func (suite *MigrationSuite) TestCreateIdentityLastActiveForExistingIdentities() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	user := authres.NewIdentity("user@example.com")
+	user.TypedSpec().Value.UserId = "user-1"
+	user.Metadata().Labels().Set(authres.LabelIdentityUserID, "user-1")
+	suite.Require().NoError(suite.state.Create(ctx, user))
+
+	sa := authres.NewIdentity("sa@serviceaccount.omni.sidero.dev")
+	sa.TypedSpec().Value.UserId = "sa-1"
+	sa.Metadata().Labels().Set(authres.LabelIdentityUserID, "sa-1")
+	sa.Metadata().Labels().Set(authres.LabelIdentityTypeServiceAccount, "")
+	suite.Require().NoError(suite.state.Create(ctx, sa))
+
+	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("createIdentityLastActiveForExistingIdentities")))
+	suite.Require().NoError(err)
+
+	userLastActive, err := safe.ReaderGetByID[*authres.IdentityLastActive](ctx, suite.state, "user@example.com")
+	suite.Require().NoError(err)
+	suite.Require().NotNil(userLastActive)
+	suite.Assert().Nil(userLastActive.TypedSpec().Value.LastActive, "new IdentityLastActive should have no timestamp")
+
+	saLastActive, err := safe.ReaderGetByID[*authres.IdentityLastActive](ctx, suite.state, "sa@serviceaccount.omni.sidero.dev")
+	suite.Require().NoError(err)
+	suite.Require().NotNil(saLastActive)
+	suite.Assert().Nil(saLastActive.TypedSpec().Value.LastActive, "new IdentityLastActive should have no timestamp")
 }
 
 func TestMigrationSuite(t *testing.T) {

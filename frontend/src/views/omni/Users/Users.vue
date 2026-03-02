@@ -9,19 +9,18 @@ import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
-import type { IdentitySpec } from '@/api/omni/specs/auth.pb'
+import type { IdentityStatusSpec } from '@/api/omni/specs/auth.pb'
 import {
-  DefaultNamespace,
-  IdentityType,
+  EphemeralNamespace,
+  IdentityStatusType,
   LabelIdentityTypeServiceAccount,
-  LabelIdentityUserID,
-  UserType,
 } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
 import { AuthType, authType } from '@/methods'
 import { canManageUsers } from '@/methods/auth'
+import { relativeISO } from '@/methods/time'
 import UserItem from '@/views/omni/Users/UserItem.vue'
 
 const router = useRouter()
@@ -30,21 +29,18 @@ const watchOpts = [
   {
     runtime: Runtime.Omni,
     resource: {
-      type: IdentityType,
-      namespace: DefaultNamespace,
+      type: IdentityStatusType,
+      namespace: EphemeralNamespace,
     },
-    idFunc: (res: Resource<IdentitySpec>) =>
-      `default.${(res?.metadata?.labels || {})[LabelIdentityUserID] ?? ''}`,
     selectors: [`!${LabelIdentityTypeServiceAccount}`],
   },
-  {
-    runtime: Runtime.Omni,
-    resource: {
-      type: UserType,
-      namespace: DefaultNamespace,
-    },
-  },
 ]
+
+const getLastActive = (item: Resource<IdentityStatusSpec>) => {
+  if (!item.spec.last_active) return 'Never'
+
+  return relativeISO(item.spec.last_active)
+}
 
 const openUserCreate = () => {
   router.push({
@@ -72,10 +68,16 @@ const openUserCreate = () => {
           <div class="users-grid">
             <div>Email</div>
             <div>Role</div>
+            <div>Last Active</div>
             <div class="col-span-3">Labels</div>
           </div>
         </div>
-        <UserItem v-for="item in items" :key="itemID(item)" :item="item" />
+        <UserItem
+          v-for="item in items"
+          :key="itemID(item)"
+          :item="item"
+          :last-active="getLastActive(item)"
+        />
       </template>
     </TList>
   </div>
@@ -85,7 +87,7 @@ const openUserCreate = () => {
 @reference "../../../index.css";
 
 .users-grid {
-  @apply grid grid-cols-5 pr-2;
+  @apply grid grid-cols-6 pr-2;
 }
 
 .users-header {

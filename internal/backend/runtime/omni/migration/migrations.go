@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -228,6 +229,33 @@ func changeClusterMachineConfigPatchesOwner(ctx context.Context, st state.State,
 			return err
 		}
 	}
+
+	return nil
+}
+
+func createIdentityLastActiveForExistingIdentities(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	identities, err := safe.ReaderListAll[*authres.Identity](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	var created int
+
+	for identity := range identities.All() {
+		identityLastActive := authres.NewIdentityLastActive(identity.Metadata().ID())
+
+		if err = st.Create(ctx, identityLastActive); err != nil {
+			if state.IsConflictError(err) {
+				continue
+			}
+
+			return fmt.Errorf("failed to create IdentityLastActive for %q: %w", identity.Metadata().ID(), err)
+		}
+
+		created++
+	}
+
+	logger.Info("created IdentityLastActive resources for existing identities", zap.Int("created", created))
 
 	return nil
 }

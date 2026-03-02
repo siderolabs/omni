@@ -193,6 +193,18 @@ message SAMLLabelRuleSpec {
   bool update_on_each_login = 4;
 }
 
+// IdentityLastActiveSpec tracks the last time a user or service account was active.
+message IdentityLastActiveSpec {
+  google.protobuf.Timestamp last_active = 1;
+}
+
+// IdentityStatusSpec aggregates identity, user, and activity data into a single resource.
+message IdentityStatusSpec {
+  string user_id = 1;
+  string role = 2;
+  string last_active = 3;
+}
+
 message ServiceAccountStatusSpec {
   message PgpPublicKey {
     string id = 1;

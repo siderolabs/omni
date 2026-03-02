@@ -986,6 +986,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isAdminOnly:    true,
 			},
 			{
+				resource:       authres.NewIdentityLastActive(uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+				isAdminOnly:    true,
+			},
+			{
 				resource:       authres.NewUser(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 				isAdminOnly:    true,
@@ -1286,6 +1291,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       authres.NewServiceAccountStatus(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+				isAdminOnly:    true,
+			},
+			{
+				resource:       authres.NewIdentityStatus(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 				isAdminOnly:    true,
 			},
