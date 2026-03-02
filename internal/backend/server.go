@@ -352,7 +352,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 		return saml.NewHandler(s.omniRuntime.ValidatedState(), s.authConfig.TypedSpec().Value.Saml, s.logger, s.cfg.Services.Api.URL())
 	}()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create SAML handler: %w", err)
 	}
 
 	workloadProxyRedirect, err := workloadproxy.NewRedirectHandler(s.workloadProxyKey, s.logger)
