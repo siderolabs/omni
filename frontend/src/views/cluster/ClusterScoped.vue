@@ -38,7 +38,14 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(
 
 <template>
   <RouterView v-if="cluster" :current-cluster="cluster" />
-  <div v-else-if="bootstrapped" class="font-sm flex-1">
+  <div
+    v-else-if="bootstrapped"
+    class="font-sm flex-1"
+    :class="{
+      // Need to re-enable padding for this case, if a child disabled it
+      'p-6': $route.meta.disablePadding,
+    }"
+  >
     <TAlert title="Cluster Not Found" type="error">
       Cluster {{ route.params.cluster as string }} does not exist.
     </TAlert>
