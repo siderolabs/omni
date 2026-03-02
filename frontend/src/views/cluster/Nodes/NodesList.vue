@@ -22,6 +22,7 @@ import {
 } from '@/api/resources'
 import TGroupAnimation from '@/components/common/Animation/TGroupAnimation.vue'
 import TList from '@/components/common/List/TList.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { getContext } from '@/context'
 import NodesItem from '@/views/cluster/Nodes/components/NodesItem.vue'
@@ -66,7 +67,7 @@ const opts = [
 </script>
 
 <template>
-  <div class="flex w-full flex-col gap-4">
+  <PageContainer class="flex w-full flex-col gap-4">
     <PageHeader title="All Nodes" />
     <TList :opts="opts" search pagination>
       <template #default="{ items, searchQuery }">
@@ -89,7 +90,7 @@ const opts = [
         </div>
       </template>
     </TList>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>

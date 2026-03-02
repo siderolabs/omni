@@ -17,6 +17,7 @@ import { DefaultNamespace, InstallationMediaConfigType } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TableCell from '@/components/common/Table/TableCell.vue'
@@ -86,7 +87,7 @@ function clonePreset(preset: (typeof presets.value)[number]) {
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-6">
+  <PageContainer class="flex h-full flex-col gap-6">
     <TSpinner v-if="presetsLoading" class="size-8 self-center" />
 
     <div class="flex items-start justify-between gap-1">
@@ -191,5 +192,5 @@ function clonePreset(preset: (typeof presets.value)[number]) {
       :open="downloadPresetModalOpen"
       @close="downloadPresetModalOpen = false"
     />
-  </div>
+  </PageContainer>
 </template>

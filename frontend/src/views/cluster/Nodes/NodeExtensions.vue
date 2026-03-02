@@ -32,6 +32,7 @@ import Watch from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -169,7 +170,7 @@ const openExtensionsUpdate = () => {
 
 <template>
   <div class="flex h-full flex-col">
-    <div class="flex grow flex-col gap-4 overflow-y-auto px-4 py-4 md:px-6">
+    <PageContainer class="flex grow flex-col gap-4 overflow-y-auto">
       <TInput v-model="searchString" icon="search" />
       <div class="flex flex-1 flex-col overflow-y-auto">
         <template v-if="ready && extensionsState.length > 0">
@@ -226,7 +227,7 @@ const openExtensionsUpdate = () => {
           <TAlert title="No Extensions Found" type="info" />
         </div>
       </div>
-    </div>
+    </PageContainer>
 
     <div
       class="flex h-16 shrink-0 items-center justify-end border-t border-naturals-n5 bg-naturals-n1 px-12"

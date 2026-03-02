@@ -82,7 +82,6 @@ const routes = computed(() => {
           v-for="{ name, to } in routes"
           :key="name"
           class="grow overflow-y-auto"
-          :class="{ 'px-4 md:px-6': to.name !== 'NodeExtensions' }"
           :value="to.name"
         >
           <RouterView />

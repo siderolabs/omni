@@ -15,6 +15,7 @@ import { withContext, withRuntime } from '@/api/options'
 import type { LogsRequest } from '@/api/talos/machine/machine.pb'
 import { MachineService } from '@/api/talos/machine/machine.pb'
 import LogViewer from '@/components/common/LogViewer/LogViewer.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getContext } from '@/context'
@@ -136,7 +137,7 @@ const err = computed(() => {
 </script>
 
 <template>
-  <div class="logs py-4">
+  <PageContainer class="logs">
     <MachineLogsContainer
       v-if="$route.params.service === 'machine'"
       :machine-id="route.params.machine as string"
@@ -161,7 +162,7 @@ const err = computed(() => {
         :without-date="!parsers[$route.params.service as string]"
       />
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>

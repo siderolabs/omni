@@ -57,12 +57,14 @@ const hasMatchingTab = computed(() =>
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-4">
-    <div class="flex h-9 justify-between">
-      <PageHeader :title="machineName" />
-    </div>
+  <div class="flex h-full flex-col pt-6">
+    <PageHeader :title="machineName" class="px-4 md:px-6" />
 
-    <Tabs :model-value="$route.name?.toString()" :class="{ grow: hasMatchingTab }">
+    <Tabs
+      :model-value="$route.name?.toString()"
+      :class="{ grow: hasMatchingTab }"
+      tabs-list-class="px-4 md:px-6"
+    >
       <template #triggers>
         <TabButton v-for="{ name, to } in routes" :key="name" :as="RouterLink" :value="to.name" :to>
           {{ name }}
@@ -70,7 +72,7 @@ const hasMatchingTab = computed(() =>
       </template>
 
       <template #contents>
-        <TabContent v-for="{ name, to } in routes" :key="name" class="mt-4 grow" :value="to.name">
+        <TabContent v-for="{ name, to } in routes" :key="name" class="grow" :value="to.name">
           <RouterView class="h-full" />
         </TabContent>
       </template>

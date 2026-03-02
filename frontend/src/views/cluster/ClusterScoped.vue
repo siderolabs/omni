@@ -12,6 +12,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import { EventType } from '@/api/omni/resources/resources.pb'
 import type { ClusterSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace } from '@/api/resources'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import TAlert from '@/components/TAlert.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
@@ -38,16 +39,9 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(
 
 <template>
   <RouterView v-if="cluster" :current-cluster="cluster" />
-  <div
-    v-else-if="bootstrapped"
-    class="font-sm flex-1"
-    :class="{
-      // Need to re-enable padding for this case, if a child disabled it
-      'p-6': $route.meta.disablePadding,
-    }"
-  >
+  <PageContainer v-else-if="bootstrapped" class="font-sm flex-1">
     <TAlert title="Cluster Not Found" type="error">
       Cluster {{ route.params.cluster as string }} does not exist.
     </TAlert>
-  </div>
+  </PageContainer>
 </template>

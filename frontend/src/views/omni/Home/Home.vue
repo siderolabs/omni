@@ -8,6 +8,7 @@ included in the LICENSE file.
 import { computed } from 'vue'
 
 import { RoleNone } from '@/api/resources'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import { currentUser } from '@/methods/auth'
 import HomeContent from '@/views/omni/Home/HomeContent.vue'
 import HomeNoAccess from '@/views/omni/Home/HomeNoAccess.vue'
@@ -20,6 +21,8 @@ const hasRoleNone = computed(() => {
 </script>
 
 <template>
-  <HomeNoAccess v-if="hasRoleNone" />
-  <HomeContent v-else />
+  <PageContainer>
+    <HomeNoAccess v-if="hasRoleNone" />
+    <HomeContent v-else />
+  </PageContainer>
 </template>

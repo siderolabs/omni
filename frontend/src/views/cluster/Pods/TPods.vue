@@ -10,6 +10,7 @@ import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { kubernetes } from '@/api/resources'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TPagination from '@/components/common/Pagination/TPagination.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
@@ -53,7 +54,7 @@ const filteredItems = computed(() =>
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <PageContainer class="flex flex-col">
     <PageHeader title="All Pods" />
 
     <TSpinner v-if="loading" class="size-6 self-center" />
@@ -93,5 +94,5 @@ const filteredItems = computed(() =>
         </template>
       </TPagination>
     </div>
-  </div>
+  </PageContainer>
 </template>

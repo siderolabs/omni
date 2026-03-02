@@ -94,7 +94,6 @@ export const routes: RouteRecordRaw[] = [
           {
             path: 'create',
             name: 'ClusterCreate',
-            meta: { disablePadding: true },
             component: () => import('@/views/omni/Clusters/Management/ClusterCreate.vue'),
           },
           {
@@ -114,7 +113,6 @@ export const routes: RouteRecordRaw[] = [
               {
                 path: 'scale',
                 name: 'ClusterScale',
-                meta: { disablePadding: true },
                 component: () => import('@/views/omni/Clusters/Management/ClusterScale.vue'),
               },
               {
@@ -153,7 +151,6 @@ export const routes: RouteRecordRaw[] = [
                   {
                     path: '',
                     name: 'NodeDetails',
-                    meta: { disablePadding: true },
                     component: () => import('@/views/cluster/Nodes/NodeDetails.vue'),
                     children: [
                       {
@@ -271,7 +268,6 @@ export const routes: RouteRecordRaw[] = [
                 path: 'create',
                 name: 'InstallationMediaCreate',
                 redirect: { name: 'InstallationMediaCreateEntry' },
-                meta: { disablePadding: true },
                 component: () =>
                   import('@/views/omni/InstallationMedia/InstallationMediaCreate.vue'),
                 children: [

@@ -21,6 +21,7 @@ import {
 import { itemID, type WatchOptions } from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatsItem from '@/components/common/Stats/StatsItem.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -72,7 +73,7 @@ const filterOptions = [
 </script>
 
 <template>
-  <div>
+  <PageContainer>
     <TList
       :opts="watchOpts"
       search
@@ -159,5 +160,5 @@ const filterOptions = [
         </div>
       </template>
     </TList>
-  </div>
+  </PageContainer>
 </template>

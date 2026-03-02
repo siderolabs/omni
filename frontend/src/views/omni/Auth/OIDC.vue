@@ -12,6 +12,7 @@ import { useRoute } from 'vue-router'
 import { OIDCService } from '@/api/omni/oidc/oidc.pb'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
 import { useIdentity } from '@/methods/identity'
 import { showError } from '@/notification'
@@ -50,7 +51,7 @@ const copyCode = () => {
 </script>
 
 <template>
-  <div class="flex h-full items-center justify-center">
+  <PageContainer class="flex h-full items-center justify-center">
     <div class="flex flex-col gap-2 rounded-md bg-naturals-n3 px-8 py-8 drop-shadow-md">
       <div class="flex items-center gap-4">
         <TIcon icon="kubernetes" class="fill-color h-6 w-6" />
@@ -97,7 +98,7 @@ const copyCode = () => {
         </div>
       </template>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>

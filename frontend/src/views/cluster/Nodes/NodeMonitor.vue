@@ -18,6 +18,7 @@ import {
   TalosPerfNamespace,
 } from '@/api/resources'
 import { MachineService, type ProcessInfo } from '@/api/talos/machine/machine.pb'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import { getContext } from '@/context'
 import { formatBytes } from '@/methods'
 import NodesMonitorChart from '@/views/cluster/Nodes/components/NodesMonitorChart.vue'
@@ -231,7 +232,7 @@ const sortBy = (id: keyof Proc) => {
 </script>
 
 <template>
-  <div class="monitor py-4">
+  <PageContainer class="monitor">
     <div class="monitor-charts-box">
       <div class="monitor-charts-wrapper">
         <div class="monitor-chart">
@@ -357,7 +358,7 @@ const sortBy = (id: keyof Proc) => {
         </div>
       </div>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>

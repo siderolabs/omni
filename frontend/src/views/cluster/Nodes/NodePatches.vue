@@ -10,6 +10,7 @@ import { useRoute } from 'vue-router'
 import { Runtime } from '@/api/common/omni.pb'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineStatusType } from '@/api/resources'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import Patches from '@/views/cluster/Config/Patches.vue'
 
@@ -26,5 +27,7 @@ const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
 </script>
 
 <template>
-  <Patches v-if="machine" :machine class="py-4" />
+  <PageContainer>
+    <Patches v-if="machine" :machine />
+  </PageContainer>
 </template>

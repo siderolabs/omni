@@ -17,6 +17,7 @@ import { withRuntime } from '@/api/options'
 import { ClusterUUIDType, DefaultNamespace } from '@/api/resources'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { setupBackupStatus } from '@/methods'
 import { triggerEtcdBackup } from '@/methods/cluster'
@@ -57,7 +58,7 @@ const runEtcdBackup = async () => {
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <PageContainer class="flex flex-col">
     <div class="flex items-start gap-1">
       <PageHeader title="Control Plane Backups" class="flex-1" />
       <div class="flex items-center gap-1 text-xs">
@@ -75,5 +76,5 @@ const runEtcdBackup = async () => {
       </div>
     </div>
     <BackupsList class="mb-6" />
-  </div>
+  </PageContainer>
 </template>

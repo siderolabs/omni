@@ -25,6 +25,7 @@ import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TStatus from '@/components/common/Status/TStatus.vue'
 import { TCommonStatuses } from '@/constants'
@@ -116,7 +117,7 @@ const openDeleteToken = (token: string) => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
+  <PageContainer class="flex flex-col gap-2">
     <div class="flex items-start gap-1">
       <PageHeader title="Machine Join Tokens" class="flex-1" />
     </div>
@@ -217,7 +218,7 @@ const openDeleteToken = (token: string) => {
         </TListItem>
       </template>
     </TList>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>

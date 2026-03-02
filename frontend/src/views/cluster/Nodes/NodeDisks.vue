@@ -64,6 +64,7 @@ import {
 } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TIcon from '@/components/common/Icon/TIcon.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getContext } from '@/context'
@@ -123,7 +124,7 @@ const organizedDisks = computed(() =>
 </script>
 
 <template>
-  <div class="space-y-4 py-4">
+  <PageContainer class="space-y-4">
     <TSpinner v-if="loading" class="mx-auto size-6" />
 
     <TAlert v-else-if="!organizedDisks.length" type="info" title="No Records">
@@ -177,5 +178,5 @@ const organizedDisks = computed(() =>
         <DiskPartitionTable v-if="diskInfo.partitions.length" :partitions="diskInfo.partitions" />
       </div>
     </section>
-  </div>
+  </PageContainer>
 </template>

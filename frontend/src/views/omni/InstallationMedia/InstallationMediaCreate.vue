@@ -40,6 +40,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import Stepper from '@/components/common/Stepper/Stepper.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { showSuccess } from '@/notification'
@@ -134,7 +135,7 @@ function onSaved(name: string) {
 </script>
 
 <template>
-  <div class="flex h-full flex-col">
+  <PageContainer disable-padding class="flex h-full flex-col">
     <div class="flex grow flex-col gap-6 overflow-auto p-6">
       <h1 class="shrink-0 text-xl font-medium text-naturals-n14">Create New Media</h1>
       <RouterView v-model="formState" />
@@ -202,5 +203,5 @@ function onSaved(name: string) {
       @close="savePresetModalOpen = false"
       @saved="onSaved"
     />
-  </div>
+  </PageContainer>
 </template>

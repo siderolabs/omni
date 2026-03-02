@@ -33,6 +33,7 @@ import WatchResource, { itemID } from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TList from '@/components/common/List/TList.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
@@ -323,7 +324,7 @@ const list = useTemplateRef('list')
 </script>
 
 <template>
-  <div class="flex h-full flex-col pt-6">
+  <PageContainer disable-padding class="flex h-full flex-col pt-6">
     <PageHeader title="Create Cluster" class="px-6" />
 
     <div class="flex grow flex-col items-stretch gap-4 overflow-y-auto px-6 pb-6">
@@ -460,5 +461,5 @@ const list = useTemplateRef('list')
         action="Create Cluster"
       />
     </div>
-  </div>
+  </PageContainer>
 </template>

@@ -37,6 +37,7 @@ import { MachineService } from '@/api/talos/machine/machine.pb'
 import TGroupAnimation from '@/components/common/Animation/TGroupAnimation.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import TStatus from '@/components/common/Status/TStatus.vue'
 import Tag from '@/components/common/Tag/Tag.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -280,7 +281,7 @@ const servicesSectionHeadingId = useId()
 </script>
 
 <template>
-  <div class="overview py-4">
+  <PageContainer class="overview">
     <TAlert
       v-if="clusterMachineStatus?.spec?.last_config_error && !alertDismissed"
       :dismiss="{ name: 'Dismiss', action: () => (alertDismissed = true) }"
@@ -476,7 +477,7 @@ const servicesSectionHeadingId = useId()
         </TListItem>
       </TGroupAnimation>
     </section>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>

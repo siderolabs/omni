@@ -16,6 +16,7 @@ import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import Tag from '@/components/common/Tag/Tag.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -39,7 +40,7 @@ const openMachineClassDestroy = (id: string) => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col">
+  <PageContainer class="flex h-full flex-col">
     <div class="flex items-start gap-1">
       <PageHeader title="Machine Classes" class="flex-1" />
       <TButton
@@ -102,7 +103,7 @@ const openMachineClassDestroy = (id: string) => {
         </TListItem>
       </template>
     </TList>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>

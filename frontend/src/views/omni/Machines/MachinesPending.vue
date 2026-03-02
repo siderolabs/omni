@@ -14,6 +14,7 @@ import { itemID } from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TList from '@/components/common/List/TList.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatsItem from '@/components/common/Stats/StatsItem.vue'
 import TableCell from '@/components/common/Table/TableCell.vue'
@@ -33,7 +34,7 @@ const unrejectModalOpen = ref(false)
 </script>
 
 <template>
-  <div>
+  <PageContainer>
     <TList
       :opts="{
         runtime: Runtime.Omni,
@@ -166,5 +167,5 @@ const unrejectModalOpen = ref(false)
       :machines="Array.from(selectedMachines)"
       @confirmed="selectedMachines.clear()"
     />
-  </div>
+  </PageContainer>
 </template>

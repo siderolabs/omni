@@ -74,6 +74,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { TalosHardwareNamespace, TalosPCIDeviceType } from '@/api/resources'
 import TIcon, { type IconType } from '@/components/common/Icon/TIcon.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getContext } from '@/context'
@@ -138,7 +139,7 @@ function isLastChild(item?: DeviceTreeItem) {
 </script>
 
 <template>
-  <div class="h-full py-4">
+  <PageContainer class="h-full">
     <TSpinner v-if="loading" class="size-4" />
     <TAlert v-else-if="err" type="error" title="Error">{{ err }}</TAlert>
     <TAlert v-else-if="!devices.length" type="info" title="No Records">
@@ -212,5 +213,5 @@ function isLastChild(item?: DeviceTreeItem) {
         </TreeItem>
       </TreeVirtualizer>
     </TreeRoot>
-  </div>
+  </PageContainer>
 </template>

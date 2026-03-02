@@ -42,6 +42,7 @@ import {
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
@@ -494,8 +495,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="relative -mx-6 -mb-6 flex flex-1 flex-col overflow-hidden" :style="{ width: 'auto' }">
-    <div class="flex flex-1 flex-col overflow-hidden px-6 pb-16">
+  <div class="flex h-full flex-col">
+    <PageContainer class="flex grow flex-col overflow-hidden">
       <PageHeader :title="title" :subtitle="subtitle" :notes="notes" />
       <ManagedByTemplatesWarning :resource="currentCluster" />
       <div v-if="state === State.NotExists" class="mb-4 flex items-center gap-3">
@@ -518,7 +519,7 @@ onMounted(async () => {
           </template>
         </Tooltip>
       </div>
-      <div class="font-sm mb-7 flex-1 overflow-y-hidden rounded bg-naturals-n1 px-2 py-3">
+      <div class="font-sm flex-1 overflow-y-hidden rounded bg-naturals-n1 px-2 py-3">
         <div v-if="!ready" class="flex h-full w-full items-center justify-center">
           <TSpinner class="h-6 w-6" />
         </div>
@@ -532,9 +533,9 @@ onMounted(async () => {
           @editor-did-mount="editorDidMount"
         />
       </div>
-    </div>
+    </PageContainer>
     <div
-      class="absolute right-0 bottom-0 left-0 flex h-16 items-center gap-4 border-t border-naturals-n4 bg-naturals-n1 px-5 py-3"
+      class="flex h-16 shrink-0 items-center gap-4 border-t border-naturals-n4 bg-naturals-n1 px-5 py-3"
     >
       <TButton class="secondary" @click="() => $router.push({ name: patchListPage })">Back</TButton>
       <div class="flex-1" />

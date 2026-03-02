@@ -32,6 +32,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
@@ -406,163 +407,165 @@ const submit = async () => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-4">
-    <div class="flex items-start gap-1">
+  <PageContainer disable-padding class="flex h-full flex-col overflow-hidden">
+    <div class="grow overflow-auto p-6">
       <PageHeader
-        :title="`${machineClassEditId ? 'Edit Machine Class' : 'Create Machine Class'}`"
-        class="flex-1"
+        :title="`${machineClassEditId ? 'Edit' : 'Create'} Machine Class`"
         :subtitle="machineClassEditId ? `name: ${machineClassEditId}` : ''"
       />
-    </div>
-    <div v-if="loading" class="flex flex-1 items-center justify-center">
-      <TSpinner class="h-6 w-6" />
-    </div>
-    <TAlert v-else-if="notFound" title="Not Found" type="error">
-      The
-      <code>MachineClass</code>
-      {{ machineClassEditId }} does not exist
-    </TAlert>
-    <template v-else>
-      <div class="flex flex-col gap-2">
-        <TInput
-          v-if="!machineClassEditId"
-          v-model.trim="machineClassName"
-          title="Machine Class Name"
-        />
-        <div v-if="infraProviders.length > 0" class="flex items-center gap-2 text-xs">
-          <span>Machine Class Type:</span>
-          <TButtonGroup v-model="machineClassMode" :options="machineClassModeOptions" />
-        </div>
-        <template v-if="machineClassMode === MachineClassMode.Manual">
-          <div class="text-naturals-n13">Conditions</div>
-          <div class="flex flex-wrap items-center gap-2">
-            <template v-for="(_, i) in conditions" :key="i">
-              <div
-                class="flex gap-0.5 rounded-md border border-transparent transition-colors focus-within:border-naturals-n8"
-              >
+
+      <TSpinner v-if="loading" class="mx-auto size-6" />
+
+      <TAlert v-else-if="notFound" title="Not Found" type="error">
+        The
+        <code>MachineClass</code>
+        {{ machineClassEditId }} does not exist
+      </TAlert>
+
+      <template v-else>
+        <div class="flex flex-col gap-2">
+          <TInput
+            v-if="!machineClassEditId"
+            v-model.trim="machineClassName"
+            title="Machine Class Name"
+          />
+          <div v-if="infraProviders.length > 0" class="flex items-center gap-2 text-xs">
+            <span>Machine Class Type:</span>
+            <TButtonGroup v-model="machineClassMode" :options="machineClassModeOptions" />
+          </div>
+          <template v-if="machineClassMode === MachineClassMode.Manual">
+            <div class="text-naturals-n13">Conditions</div>
+            <div class="flex flex-wrap items-center gap-2">
+              <template v-for="(_, i) in conditions" :key="i">
                 <div
-                  class="flex cursor-pointer items-center rounded-l-md bg-naturals-n3 px-2 transition-colors hover:bg-naturals-n7 hover:text-naturals-n14"
-                  @click="deleteCondition(i)"
+                  class="flex gap-0.5 rounded-md border border-transparent transition-colors focus-within:border-naturals-n8"
                 >
-                  <TIcon icon="delete" class="h-4 w-4" />
+                  <div
+                    class="flex cursor-pointer items-center rounded-l-md bg-naturals-n3 px-2 transition-colors hover:bg-naturals-n7 hover:text-naturals-n14"
+                    @click="deleteCondition(i)"
+                  >
+                    <TIcon icon="delete" class="h-4 w-4" />
+                  </div>
+                  <span
+                    ref="conditionElements"
+                    role="textbox"
+                    style="min-width: 28px"
+                    spellcheck="false"
+                    class="rounded-r-md bg-naturals-n3 px-2 py-1 font-mono text-sm whitespace-pre text-naturals-n14"
+                    contenteditable
+                    @focus="lastFocused = i"
+                    @keyup="(event) => updateContent(i, event)"
+                    @keydown.enter.prevent="addCondition"
+                    @keydown.backspace="(event) => handleBackspace(event, i)"
+                  >
+                    {{ conditions[i] }}
+                  </span>
                 </div>
-                <span
-                  ref="conditionElements"
-                  role="textbox"
-                  style="min-width: 28px"
-                  spellcheck="false"
-                  class="rounded-r-md bg-naturals-n3 px-2 py-1 font-mono text-sm whitespace-pre text-naturals-n14"
-                  contenteditable
-                  @focus="lastFocused = i"
-                  @keyup="(event) => updateContent(i, event)"
-                  @keydown.enter.prevent="addCondition"
-                  @keydown.backspace="(event) => handleBackspace(event, i)"
-                >
-                  {{ conditions[i] }}
-                </span>
-              </div>
-              <div v-if="i !== conditions.length - 1">OR</div>
-            </template>
-            <IconButton icon="plus" @click="addCondition" />
-          </div>
-          <div class="flex flex-col gap-1 text-xs">
-            <p>
-              Click or type a node label to match nodes with those labels. Multiple labels in the
-              same condition, joined by
-              <code>,</code>
-              will only match nodes that match all labels. i.e. Logical
-              <code>AND</code>
-              operator.
-            </p>
-            <p>
-              Separate conditions are matched using
-              <code>OR</code>
-              .
-            </p>
-            <p>
-              Allowed operators are
-              <code>&gt;</code>
-              ,
-              <code>&gt;=</code>
-              ,
-              <code>&lt;</code>
-              ,
-              <code>&lt;=</code>
-              ,
-              <code>=</code>
-              ,
-              <code>==</code>
-              ,
-              <code>!=</code>
-              ,
-              <code>in</code>
-              ,
-              <code>notin</code>
-              . e.g.
-              <code>omni.sidero.dev/cluster in (talos,talos-default)</code>
-            </p>
-            <p>
-              Excluding a label can be done by prepending
-              <code>!</code>
-              to the label key, example:
-              <code>!omni.sidero.dev/available</code>
-              .
-            </p>
-          </div>
-        </template>
-        <template v-else>
-          <ProviderConfig v-model:infra-provider="infraProvider" />
-        </template>
-      </div>
-      <div class="mb-6 flex flex-1 flex-col gap-2">
-        <div v-if="machineClassMode === MachineClassMode.Manual">
-          <div class="text-naturals-n13">Matches</div>
-
-          <div v-if="machinesLoading" class="flex size-full items-center justify-center">
-            <TSpinner class="size-6" />
-          </div>
-
-          <TAlert v-else-if="machinesErr" title="Failed to Fetch Data" type="error">
-            {{ machinesErr }}
-          </TAlert>
-
-          <TAlert v-else-if="!machines.length" type="info" title="No Records">
-            No entries of the requested resource type are found on the server.
-          </TAlert>
-
-          <MachineMatchItem
-            v-for="item in machines"
-            :key="itemID(item)"
-            :machine="item"
-            @filter-labels="copyLabel"
-          />
+                <div v-if="i !== conditions.length - 1">OR</div>
+              </template>
+              <IconButton icon="plus" @click="addCondition" />
+            </div>
+            <div class="flex flex-col gap-1 text-xs">
+              <p>
+                Click or type a node label to match nodes with those labels. Multiple labels in the
+                same condition, joined by
+                <code>,</code>
+                will only match nodes that match all labels. i.e. Logical
+                <code>AND</code>
+                operator.
+              </p>
+              <p>
+                Separate conditions are matched using
+                <code>OR</code>
+                .
+              </p>
+              <p>
+                Allowed operators are
+                <code>&gt;</code>
+                ,
+                <code>&gt;=</code>
+                ,
+                <code>&lt;</code>
+                ,
+                <code>&lt;=</code>
+                ,
+                <code>=</code>
+                ,
+                <code>==</code>
+                ,
+                <code>!=</code>
+                ,
+                <code>in</code>
+                ,
+                <code>notin</code>
+                . e.g.
+                <code>omni.sidero.dev/cluster in (talos,talos-default)</code>
+              </p>
+              <p>
+                Excluding a label can be done by prepending
+                <code>!</code>
+                to the label key, example:
+                <code>!omni.sidero.dev/available</code>
+                .
+              </p>
+            </div>
+          </template>
+          <template v-else>
+            <ProviderConfig v-model:infra-provider="infraProvider" />
+          </template>
         </div>
-        <template v-else>
-          <MachineTemplate
-            v-if="infraProvider"
-            :key="infraProvider"
-            v-model:kernel-arguments="kernelArguments"
-            v-model:grpc-tunnel="grpcTunnelMode"
-            v-model:initial-labels="initialLabels"
-            :infra-provider="infraProvider"
-            :provider-config="providerConfigs[infraProvider] || {}"
-            @update:provider-config="
-              (value) => {
-                providerConfigs[infraProvider!] = value
-              }
-            "
-          />
-        </template>
-      </div>
-      <div
-        class="sticky -bottom-6 -mx-6 -my-6 flex h-16 items-center justify-end gap-2 border-t border-naturals-n5 bg-naturals-n1 px-12 py-6 text-xs"
-      >
-        <TButton variant="highlighted" :disabled="!canSubmit" @click="submit">
-          {{ machineClassEditId ? 'Update Machine Class' : 'Create Machine Class' }}
-        </TButton>
-      </div>
-    </template>
-  </div>
+
+        <div class="flex flex-1 flex-col gap-2">
+          <div v-if="machineClassMode === MachineClassMode.Manual">
+            <div class="text-naturals-n13">Matches</div>
+
+            <div v-if="machinesLoading" class="flex size-full items-center justify-center">
+              <TSpinner class="size-6" />
+            </div>
+
+            <TAlert v-else-if="machinesErr" title="Failed to Fetch Data" type="error">
+              {{ machinesErr }}
+            </TAlert>
+
+            <TAlert v-else-if="!machines.length" type="info" title="No Records">
+              No entries of the requested resource type are found on the server.
+            </TAlert>
+
+            <MachineMatchItem
+              v-for="item in machines"
+              :key="itemID(item)"
+              :machine="item"
+              @filter-labels="copyLabel"
+            />
+          </div>
+          <template v-else>
+            <MachineTemplate
+              v-if="infraProvider"
+              :key="infraProvider"
+              v-model:kernel-arguments="kernelArguments"
+              v-model:grpc-tunnel="grpcTunnelMode"
+              v-model:initial-labels="initialLabels"
+              :infra-provider="infraProvider"
+              :provider-config="providerConfigs[infraProvider] || {}"
+              @update:provider-config="
+                (value) => {
+                  providerConfigs[infraProvider!] = value
+                }
+              "
+            />
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <div
+      class="flex h-16 items-center justify-end gap-2 border-t border-naturals-n5 bg-naturals-n1 px-12 py-6 text-xs"
+    >
+      <TButton variant="highlighted" :disabled="!canSubmit" @click="submit">
+        {{ machineClassEditId ? 'Update Machine Class' : 'Create Machine Class' }}
+      </TButton>
+    </div>
+  </PageContainer>
 </template>
 
 <style scoped>

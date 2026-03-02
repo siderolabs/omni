@@ -4,15 +4,17 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
+</script>
 
 <template>
-  <div class="flex h-full items-center justify-center">
+  <PageContainer class="flex h-full items-center justify-center">
     <div class="flex flex-col items-center">
       <div class="code">403</div>
       <div class="text-center text-xl">Access Denied</div>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>

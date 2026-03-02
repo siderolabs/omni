@@ -25,6 +25,7 @@ import {
   MachineStatusType,
 } from '@/api/resources'
 import { itemID } from '@/api/watch'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import Watch from '@/components/common/Watch/Watch.vue'
@@ -129,7 +130,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-3 pt-6">
+  <PageContainer disable-padding class="flex h-full flex-col gap-3 pt-6">
     <PageHeader :title="`Add Machines to Cluster ${$route.params.cluster}`" class="px-6" />
 
     <div v-if="existingResources.length > 0" class="grow overflow-y-auto px-6 pb-6">
@@ -197,5 +198,5 @@ onMounted(async () => {
         :warning="quorumWarning"
       />
     </div>
-  </div>
+  </PageContainer>
 </template>

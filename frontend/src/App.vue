@@ -42,7 +42,7 @@ const darkThemeEnabled = computed(() => {
 </script>
 
 <template>
-  <main class="flex h-screen flex-col" :class="{ dark: darkThemeEnabled }">
+  <div class="flex h-screen flex-col" :class="{ dark: darkThemeEnabled }">
     <UserConsent
       v-if="trackingFeatureEnabled && trackingPending"
       @decline="disableTracking"
@@ -79,14 +79,13 @@ const darkThemeEnabled = computed(() => {
         class="relative flex grow flex-col gap-4 overflow-auto"
         :class="{
           'max-md:pointer-events-none max-md:select-none': isSidebarOpen,
-          'p-6': !$route.meta.disablePadding,
         }"
       >
         <TSuspended v-if="suspended" />
         <RouterView />
       </div>
     </div>
-  </main>
+  </div>
 
   <TModal />
 </template>

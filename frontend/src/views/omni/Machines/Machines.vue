@@ -30,6 +30,7 @@ import {
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatsItem from '@/components/common/Stats/StatsItem.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -148,136 +149,149 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
 </script>
 
 <template>
-  <TList
-    :opts="{
-      runtime: Runtime.Omni,
-      resource: {
-        type: MachineStatusLinkType,
-        namespace: MetricsNamespace,
-      },
-      selectors,
-      selectUsingOR: true,
-    }"
-    search
-    pagination
-    :sort-options="sortOptions"
-    :filter-value="filterValue"
-  >
-    <template #norecords>
-      <TAlert
-        v-if="filter === MachineFilterOption.Managed && infraProviderStatuses.length === 0"
-        type="info"
-        title="No Infrastructure Providers Connected"
-      >
-        <div class="flex gap-1">
-          Check the
-          <TButton variant="subtle" size="xs" @click="openDocs">documentation</TButton>
-          on how to configure and use infrastructure providers.
+  <PageContainer class="h-full">
+    <TList
+      :opts="{
+        runtime: Runtime.Omni,
+        resource: {
+          type: MachineStatusLinkType,
+          namespace: MetricsNamespace,
+        },
+        selectors,
+        selectUsingOR: true,
+      }"
+      search
+      pagination
+      :sort-options="sortOptions"
+      :filter-value="filterValue"
+    >
+      <template #norecords>
+        <TAlert
+          v-if="filter === MachineFilterOption.Managed && infraProviderStatuses.length === 0"
+          type="info"
+          title="No Infrastructure Providers Connected"
+        >
+          <div class="flex gap-1">
+            Check the
+            <TButton variant="subtle" size="xs" @click="openDocs">documentation</TButton>
+            on how to configure and use infrastructure providers.
+          </div>
+        </TAlert>
+
+        <TAlert
+          v-else-if="filter === MachineFilterOption.Manual"
+          type="info"
+          title="No Machines Found"
+        >
+          <div class="flex gap-1">
+            Download and boot the
+            <TButton
+              is="router-link"
+              :to="{ name: 'InstallationMedia' }"
+              variant="subtle"
+              size="xs"
+            >
+              installation media
+            </TButton>
+            to connect machines to your Omni instance.
+          </div>
+        </TAlert>
+
+        <TAlert v-else type="info" title="No Machines Found">
+          <div class="flex gap-1">
+            No entries of the requested resource type are found on the server.
+          </div>
+        </TAlert>
+
+        <AddingMachinesTutorial class="mt-4" />
+      </template>
+
+      <template #header="{ itemsCount, filtered }">
+        <div v-if="!filter" class="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <h1 class="text-xl font-medium text-naturals-n14 max-md:basis-full">Machines</h1>
+
+          <StatsItem title="Total" :value="itemsCount" icon="nodes" />
+
+          <template v-if="!filtered">
+            <StatsItem
+              title="Allocated"
+              :value="machineStatusMetrics?.spec.allocated_machines_count ?? 0"
+              icon="arrow-right-square"
+            />
+
+            <StatsItem
+              title="Capacity"
+              :value="`${getCapacity(machineStatusMetrics)}%`"
+              icon="box"
+            />
+          </template>
         </div>
-      </TAlert>
 
-      <TAlert
-        v-else-if="filter === MachineFilterOption.Manual"
-        type="info"
-        title="No Machines Found"
+        <PageHeader
+          v-else-if="filter === MachineFilterOption.Manual"
+          title="Manually Joined Machines"
+        />
+
+        <PageHeader
+          v-else-if="filter === MachineFilterOption.Managed"
+          title="Machines Managed by the Infrastructure Providers"
+        />
+
+        <PageHeader
+          v-else-if="$route.params.provider"
+          :title="`Machines Managed by the Infrastructure Provider ${$route.params.provider}`"
+        />
+      </template>
+
+      <template #input>
+        <LabelsInput
+          v-model:filter-labels="filterLabels"
+          v-model:filter-value="filterValue"
+          :completions-resource="{
+            id: MachineStatusType,
+            type: LabelsCompletionType,
+            namespace: VirtualNamespace,
+          }"
+          class="w-full"
+          placeholder="Search ..."
+        />
+      </template>
+
+      <template #extra-controls>
+        <TButton
+          variant="primary"
+          icon="delete"
+          :disabled="!selectedMachines.size"
+          @click="deleteItems"
+        >
+          <span class="contents max-md:hidden">Delete selected</span>
+        </TButton>
+      </template>
+
+      <template
+        #default="{ items, searchQuery, sidePanelOpen, sidePanelSelectedItemId, openPanel }"
       >
-        <div class="flex gap-1">
-          Download and boot the
-          <TButton is="router-link" :to="{ name: 'InstallationMedia' }" variant="subtle" size="xs">
-            installation media
-          </TButton>
-          to connect machines to your Omni instance.
-        </div>
-      </TAlert>
+        <MachineItem
+          v-for="item in items"
+          :key="item.metadata.id"
+          :machine="item"
+          :search-query="searchQuery"
+          :panel-open="sidePanelOpen && item.metadata.id === sidePanelSelectedItemId"
+          :selected="selectedMachines.has(item.metadata.id ?? '')"
+          @update:selected="(v) => updateSelected(item, v)"
+          @open-panel="openPanel(item.metadata.id ?? '')"
+          @filter-labels="(label) => addLabel(filterLabels, label)"
+        />
+      </template>
 
-      <TAlert v-else type="info" title="No Machines Found">
-        <div class="flex gap-1">
-          No entries of the requested resource type are found on the server.
-        </div>
-      </TAlert>
-
-      <AddingMachinesTutorial class="mt-4" />
-    </template>
-
-    <template #header="{ itemsCount, filtered }">
-      <div v-if="!filter" class="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <h1 class="text-xl font-medium text-naturals-n14 max-md:basis-full">Machines</h1>
-
-        <StatsItem title="Total" :value="itemsCount" icon="nodes" />
-
-        <template v-if="!filtered">
-          <StatsItem
-            title="Allocated"
-            :value="machineStatusMetrics?.spec.allocated_machines_count ?? 0"
-            icon="arrow-right-square"
-          />
-
-          <StatsItem title="Capacity" :value="`${getCapacity(machineStatusMetrics)}%`" icon="box" />
-        </template>
-      </div>
-
-      <PageHeader
-        v-else-if="filter === MachineFilterOption.Manual"
-        title="Manually Joined Machines"
-      />
-
-      <PageHeader
-        v-else-if="filter === MachineFilterOption.Managed"
-        title="Machines Managed by the Infrastructure Providers"
-      />
-
-      <PageHeader
-        v-else-if="$route.params.provider"
-        :title="`Machines Managed by the Infrastructure Provider ${$route.params.provider}`"
-      />
-    </template>
-
-    <template #input>
-      <LabelsInput
-        v-model:filter-labels="filterLabels"
-        v-model:filter-value="filterValue"
-        :completions-resource="{
-          id: MachineStatusType,
-          type: LabelsCompletionType,
-          namespace: VirtualNamespace,
-        }"
-        class="w-full"
-        placeholder="Search ..."
-      />
-    </template>
-
-    <template #extra-controls>
-      <TButton
-        variant="primary"
-        icon="delete"
-        :disabled="!selectedMachines.size"
-        @click="deleteItems"
-      >
-        <span class="contents max-md:hidden">Delete selected</span>
-      </TButton>
-    </template>
-
-    <template #default="{ items, searchQuery, sidePanelOpen, sidePanelSelectedItemId, openPanel }">
-      <MachineItem
-        v-for="item in items"
-        :key="item.metadata.id"
-        :machine="item"
-        :search-query="searchQuery"
-        :panel-open="sidePanelOpen && item.metadata.id === sidePanelSelectedItemId"
-        :selected="selectedMachines.has(item.metadata.id ?? '')"
-        @update:selected="(v) => updateSelected(item, v)"
-        @open-panel="openPanel(item.metadata.id ?? '')"
-        @filter-labels="(label) => addLabel(filterLabels, label)"
-      />
-    </template>
-
-    <template #sidePanel="{ items, searchQuery, sidePanelSelectedItemId, closePanel }">
-      <MachineDetailsPanel
-        :machine="items.find((i) => i.metadata.id === sidePanelSelectedItemId)"
-        :search-query="searchQuery"
-        class="h-full"
-        @close="closePanel"
-      />
-    </template>
-  </TList>
+      <template #sidePanel="{ items, searchQuery, sidePanelSelectedItemId, closePanel }">
+        <MachineDetailsPanel
+          :machine="items.find((i) => i.metadata.id === sidePanelSelectedItemId)"
+          :search-query="searchQuery"
+          class="h-full"
+          @close="closePanel"
+        />
+      </template>
+    </TList>
+  </PageContainer>
 </template>

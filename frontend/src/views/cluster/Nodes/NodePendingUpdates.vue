@@ -12,6 +12,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { MachinePendingUpdatesSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachinePendingUpdatesType } from '@/api/resources'
 import DiffRenderer from '@/components/common/DiffRenderer/DiffRenderer.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -31,7 +32,7 @@ const { data, loading } = useResourceWatch<MachinePendingUpdatesSpec>(() => ({
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 py-4">
+  <PageContainer class="flex flex-col gap-4">
     <template v-if="!loading">
       <TAlert v-if="!data?.spec.config_diff" type="info" title="No Records">
         No pending config updates found for this machine
@@ -41,5 +42,5 @@ const { data, loading } = useResourceWatch<MachinePendingUpdatesSpec>(() => ({
     </template>
 
     <TSpinner v-else class="mx-auto my-8 size-6" />
-  </div>
+  </PageContainer>
 </template>

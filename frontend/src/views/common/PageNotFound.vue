@@ -6,16 +6,17 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import TButton from '@/components/common/Button/TButton.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 </script>
 
 <template>
-  <div class="flex h-full items-center justify-center">
+  <PageContainer class="flex h-full items-center justify-center">
     <div class="flex flex-col items-center">
       <div class="code">404</div>
       <div class="text-center text-xl">Page not found</div>
       <TButton class="mt-4" @click="() => $router.push({ path: '/' })">Go Back</TButton>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>

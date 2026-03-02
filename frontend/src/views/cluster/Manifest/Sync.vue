@@ -23,6 +23,7 @@ import {
 import { withContext } from '@/api/options'
 import TButton from '@/components/common/Button/TButton.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -173,7 +174,7 @@ setupSyncStream()
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
+  <PageContainer class="flex flex-col gap-2">
     <div class="flex items-start">
       <PageHeader class="flex-1" :title="title" />
       <TButton variant="highlighted" :disabled="applyChangesDisabled" @click="applyChanges">
@@ -236,7 +237,7 @@ setupSyncStream()
         </template>
       </TListItem>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <style scoped>

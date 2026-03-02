@@ -11,6 +11,7 @@ import { useRoute } from 'vue-router'
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterSpec, RedactedClusterMachineConfigSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace, RedactedClusterMachineConfigType } from '@/api/resources'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const CodeEditor = defineAsyncComponent(
@@ -41,10 +42,11 @@ const config = computed(() => configResource.value?.spec.data ?? '')
 </script>
 
 <template>
-  <CodeEditor
-    v-model:value="config"
-    :options="{ readOnly: true }"
-    :talos-version="cluster?.spec.talos_version"
-    class="py-4"
-  />
+  <PageContainer class="h-full">
+    <CodeEditor
+      v-model:value="config"
+      :options="{ readOnly: true }"
+      :talos-version="cluster?.spec.talos_version"
+    />
+  </PageContainer>
 </template>

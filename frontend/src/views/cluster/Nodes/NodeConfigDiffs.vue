@@ -12,6 +12,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { MachineConfigDiffSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, LabelMachine, MachineConfigDiffType } from '@/api/resources'
 import DiffRenderer from '@/components/common/DiffRenderer/DiffRenderer.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { formatISO } from '@/methods/time'
@@ -40,7 +41,7 @@ const combinedDiff = computed(() =>
 </script>
 
 <template>
-  <div class="h-full py-4">
+  <PageContainer class="h-full">
     <template v-if="!diffsLoading">
       <TAlert v-if="!combinedDiff" type="info" title="No Records">
         No previously applied config diffs found for this machine
@@ -50,5 +51,5 @@ const combinedDiff = computed(() =>
     </template>
 
     <TSpinner v-else class="mx-auto my-8 size-6" />
-  </div>
+  </PageContainer>
 </template>

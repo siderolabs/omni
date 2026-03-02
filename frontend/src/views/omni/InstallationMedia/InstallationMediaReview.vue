@@ -10,6 +10,7 @@ import { useRoute } from 'vue-router'
 import { Runtime } from '@/api/common/omni.pb'
 import type { InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, InstallationMediaConfigType } from '@/api/resources'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -35,7 +36,7 @@ const {
 </script>
 
 <template>
-  <div>
+  <PageContainer>
     <PageHeader :title="`Previously saved preset &quot;${route.params.presetId}&quot;`" />
     <TSpinner v-if="presetLoading" class="mx-auto size-8" />
 
@@ -49,5 +50,5 @@ const {
       <code>InstallationMediaConfigType</code>
       {{ route.params.presetId }} does not exist
     </TAlert>
-  </div>
+  </PageContainer>
 </template>

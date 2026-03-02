@@ -7,6 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type { Resource } from '@/api/grpc'
 import type { ClusterSpec } from '@/api/omni/specs/omni.pb'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 
 import Patches from './Patches.vue'
@@ -17,10 +18,10 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex flex-col gap-2 overflow-y-auto">
+  <PageContainer class="flex flex-col gap-2 overflow-y-auto">
     <div class="flex items-start">
       <PageHeader class="flex-1" :title="`Cluster ${$route.params.cluster} Config Patches`" />
     </div>
     <Patches :cluster="currentCluster" />
-  </div>
+  </PageContainer>
 </template>
