@@ -195,7 +195,11 @@ const iconData = computed((): { iconClass?: string; iconTypeValue?: IconType } =
 
 <template>
   <div class="flex items-center gap-1">
-    <TIcon class="size-4" :class="iconData.iconClass" :icon="iconData.iconTypeValue" />
+    <TIcon
+      class="size-4"
+      :class="iconData.iconClass"
+      :icon="iconData.iconTypeValue ?? 'action-horizontal'"
+    />
     <span v-if="title" class="text-xs" :class="iconData.iconClass">
       {{ title }}
     </span>

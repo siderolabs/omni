@@ -17,7 +17,7 @@ import MachineSetLabel from './MachineSetLabel.vue'
 
 export type PickerOption = {
   id: string
-  labelClass: string
+  labelClass?: string
   tooltip?: string
   name?: string
   disabled?: boolean
@@ -123,7 +123,7 @@ const onSelect = (index: number) => {
                 as="template"
                 :disabled="option.disabled"
               >
-                <div @click="() => onSelect(checked)">
+                <div @click="() => onSelect(index)">
                   <Tooltip :description="option.tooltip" placement="left">
                     <div class="relative">
                       <MachineSetLabel

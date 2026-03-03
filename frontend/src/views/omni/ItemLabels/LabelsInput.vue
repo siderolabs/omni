@@ -21,7 +21,7 @@ type Label = {
   id: string
   value: string
   key: string
-  labelClass: string
+  labelClass?: string
 }
 
 const { completionsResource, filterValue, filterLabels } = defineProps<{

@@ -33,17 +33,13 @@ const description = computed(() => {
 <template>
   <Tooltip :description="description" :delay-duration="500" placement="bottom-start">
     <button
-      class="inline-flex items-center gap-1 transition-all"
+      class="inline-flex items-center gap-1"
       :class="['resource-label', label.labelClass, small ? 'max-w-50' : 'max-w-75']"
       @click.stop="$emit('filterLabel', label)"
     >
       <TIcon v-if="label.icon" :icon="label.icon" class="-ml-1 size-3.5 shrink-0" />
-      <!-- prettier-ignore -->
-      <span v-if="label.value" class="truncate">
-        {{ label.id }}:<span class="font-semibold">{{ label.value }}</span>
-      </span>
-      <span v-else class="truncate font-semibold">
-        {{ label.id }}
+      <span class="truncate">
+        {{ label.value ? `${label.id}:${label.value}` : label.id }}
       </span>
       <TIcon
         v-if="label.removable && removeLabel"

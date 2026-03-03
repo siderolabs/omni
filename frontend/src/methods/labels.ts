@@ -44,36 +44,43 @@ export type Label = {
   key: string
   id: string
   value: string
-  labelClass: string
+  labelClass?: string
   removable?: boolean
   description?: string
   icon?: IconType
 }
 
 const labelClasses: Record<string, string> = {
-  [LabelCluster]: 'label-light1',
-  [MachineStatusLabelAvailable]: 'label-yellow',
-  [MachineStatusLabelInvalidState]: 'label-red',
+  // Cluster related
+  [LabelCluster]: 'label-blue',
+  [MachineStatusLabelAvailable]: 'label-blue',
+  [LabelControlPlaneRole]: 'label-blue',
+  [LabelWorkerRole]: 'label-blue',
+
+  // Talos
+  [MachineStatusLabelTalosVersion]: 'label-red',
+
+  // Connection state
   [MachineStatusLabelConnected]: 'label-green',
   [MachineStatusLabelDisconnected]: 'label-red',
-  [MachineStatusLabelPlatform]: 'label-blue1',
-  [MachineStatusLabelCores]: 'label-cyan',
-  [MachineStatusLabelMem]: 'label-blue2',
-  [MachineStatusLabelStorage]: 'label-violet',
-  [MachineStatusLabelNet]: 'label-blue3',
+
+  // Hardware
+  [MachineStatusLabelPlatform]: 'label-orange',
+  [MachineStatusLabelCores]: 'label-orange',
+  [MachineStatusLabelMem]: 'label-orange',
+  [MachineStatusLabelStorage]: 'label-orange',
+  [MachineStatusLabelNet]: 'label-orange',
   [MachineStatusLabelCPU]: 'label-orange',
-  [MachineStatusLabelArch]: 'label-light2',
-  [MachineStatusLabelRegion]: 'label-light3',
-  [MachineStatusLabelZone]: 'label-light4',
-  [MachineStatusLabelInstance]: 'label-light5',
-  [MachineStatusLabelTalosVersion]: 'label-light7',
-  [LabelControlPlaneRole]: 'label-yellow',
-  [LabelWorkerRole]: 'label-yellow',
+  [MachineStatusLabelArch]: 'label-orange',
+  [MachineStatusLabelRegion]: 'label-orange',
+  [MachineStatusLabelZone]: 'label-orange',
+  [MachineStatusLabelInstance]: 'label-orange',
+
+  // Other
+  [MachineStatusLabelInvalidState]: 'label-red',
 }
 
-export const getLabelClass = (labelKey: string) => {
-  return labelClasses[labelKey] ?? 'label-light6'
-}
+export const getLabelClass = (labelKey: string) => labelClasses[labelKey]
 
 export const addLabel = (dest: Label[], label: Label) => {
   if (dest.find((l) => l.value === label.value && l.key === label.key)) {
@@ -136,7 +143,7 @@ export const getLabelFromID = (key: string, value: string): Label => {
       ...label,
       id: parts.at(-1) ?? '',
       labelClass: 'label-green',
-      description: `Defined by the infra provider "${parts[1] ?? ''}""`,
+      description: `Defined by the infra provider "${parts[1] ?? ''}"`,
       icon: 'server-network',
     }
   }

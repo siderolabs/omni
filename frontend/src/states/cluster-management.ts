@@ -76,23 +76,7 @@ export enum PatchID {
   InstallDisk = 'install-disk',
 }
 
-const labelClasses = [
-  'label-red',
-  'label-orange',
-  'label-violet',
-  'label-yellow',
-  'label-cyan',
-  'label-blue1',
-  'label-blue2',
-  'label-blue3',
-  'label-light1',
-  'label-light2',
-  'label-light3',
-  'label-light4',
-  'label-light5',
-  'label-light6',
-  'label-light7',
-]
+const labelClasses = ['label-red', 'label-orange', 'label-blue']
 
 // Keeps the configuration for the machine set.
 export interface MachineSet {

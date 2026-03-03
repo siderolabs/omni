@@ -67,7 +67,7 @@ const editUser = () => {
           </div>
           <div class="text-naturals-n10">{{ props.lastActive }}</div>
           <div class="col-span-3 flex flex-wrap gap-1">
-            <div v-for="label in labels" :key="label" class="label-light6 resource-label text-xs">
+            <div v-for="label in labels" :key="label" class="resource-label">
               {{ label }}
             </div>
           </div>

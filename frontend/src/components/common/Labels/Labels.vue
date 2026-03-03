@@ -70,7 +70,7 @@ const removeLabel = async (key: string) => {
         key,
         id: key,
         value: label.value,
-        labelClass: label.labelClass ?? 'label-light6',
+        labelClass: label.labelClass,
         removable: label.canRemove,
       }"
       :remove-label="removeLabel"

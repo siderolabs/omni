@@ -58,9 +58,8 @@ defineProps<{
       </div>
 
       <div class="flex min-w-0 justify-center">
-        <span v-if="item.spec.cluster" class="resource-label label-light1 truncate">
-          cluster:
-          <span class="font-semibold">{{ item.spec.cluster }}</span>
+        <span v-if="item.spec.cluster" class="resource-label label-blue truncate">
+          cluster:{{ item.spec.cluster }}
         </span>
       </div>
 
