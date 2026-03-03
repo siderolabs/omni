@@ -34,7 +34,7 @@ const description = computed(() => {
   <Tooltip :description="description" :delay-duration="500" placement="bottom-start">
     <button
       class="inline-flex items-center gap-1 transition-all"
-      :class="[`resource-label label-${label.color}`, small ? 'max-w-50' : 'max-w-75']"
+      :class="['resource-label', label.labelClass, small ? 'max-w-50' : 'max-w-75']"
       @click.stop="$emit('filterLabel', label)"
     >
       <TIcon v-if="label.icon" :icon="label.icon" class="-ml-1 size-3.5 shrink-0" />

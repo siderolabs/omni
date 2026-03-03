@@ -8,7 +8,7 @@ included in the LICENSE file.
 export interface LabelSelectItem {
   value: string
   canRemove?: boolean
-  color?: string
+  labelClass?: string
 }
 </script>
 
@@ -18,18 +18,6 @@ import { ref } from 'vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import ItemLabel from '@/views/omni/ItemLabels/ItemLabel.vue'
-
-const props = withDefaults(
-  defineProps<{
-    onAdd?: (value: string) => Promise<void>
-    onRemove?: (value: string) => Promise<void>
-    readonly?: boolean
-    defaultColor?: string
-  }>(),
-  {
-    defaultColor: 'light6',
-  },
-)
 
 const modelValue = defineModel<Record<string, LabelSelectItem>>()
 
@@ -61,10 +49,6 @@ const addLabel = async () => {
 }
 
 const removeLabel = async (key: string) => {
-  if (props.onRemove) {
-    props.onRemove(key)
-  }
-
   addingLabel.value = false
 
   currentLabel.value = ''
@@ -86,7 +70,7 @@ const removeLabel = async (key: string) => {
         key,
         id: key,
         value: label.value,
-        color: label.color ?? defaultColor,
+        labelClass: label.labelClass ?? 'label-light6',
         removable: label.canRemove,
       }"
       :remove-label="removeLabel"
@@ -101,6 +85,6 @@ const removeLabel = async (key: string) => {
       @click.stop
       @blur="addLabel"
     />
-    <TButton v-else-if="!readonly" icon="tag" size="sm" @click.stop="editLabels">new label</TButton>
+    <TButton icon="tag" size="sm" @click.stop="editLabels">new label</TButton>
   </div>
 </template>

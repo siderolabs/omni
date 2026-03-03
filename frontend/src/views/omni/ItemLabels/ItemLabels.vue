@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref, toRefs } from 'vue'
+import { computed, ref } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import { SystemLabelPrefix } from '@/api/resources'
@@ -17,13 +17,11 @@ import { showError } from '@/notification'
 
 import ItemLabel from './ItemLabel.vue'
 
-const props = defineProps<{
+const { resource, addLabelFunc, removeLabelFunc } = defineProps<{
   resource: Resource
   addLabelFunc?: (resourceID: string, ...labels: string[]) => Promise<void> | void
   removeLabelFunc?: (resourceID: string, ...labels: string[]) => Promise<void> | void
 }>()
-
-const { resource } = toRefs(props)
 
 defineEmits<{
   filterLabel: [Label]
@@ -61,34 +59,13 @@ const getLabelOrder = (l: Label) => {
   return labelOrder[l.id as keyof typeof labelOrder] ?? 1000
 }
 
-const labels = computed((): Array<Label> => {
-  const labels = resource.value.metadata?.labels || {}
+const labels = computed(() => {
+  const labels = resource.metadata.labels || {}
 
-  const labelsArray: Array<Label> = []
-
-  for (const key in labels) {
-    const label = getLabelFromID(key, labels[key])
-
-    if (getLabelOrder(label) === -1) {
-      continue
-    }
-
-    labelsArray.push(label)
-  }
-
-  labelsArray.sort((a, b) => {
-    if (getLabelOrder(a) === getLabelOrder(b)) {
-      return 0
-    }
-
-    if (getLabelOrder(a) > getLabelOrder(b)) {
-      return 1
-    }
-
-    return -1
-  })
-
-  return labelsArray
+  return Object.keys(labels)
+    .map((key) => getLabelFromID(key, labels[key]))
+    .filter((label) => getLabelOrder(label) !== -1)
+    .sort((a, b) => getLabelOrder(a) - getLabelOrder(b))
 })
 
 const addingLabel = ref(false)
@@ -103,16 +80,16 @@ const addUserLabel = async () => {
   if (
     !addingLabel.value ||
     !currentLabel.value.trim() ||
-    !resource.value.metadata.id ||
+    !resource.metadata.id ||
     addPending ||
-    !props.addLabelFunc
+    !addLabelFunc
   ) {
     return
   }
 
   try {
     addPending = true
-    await props.addLabelFunc(resource.value.metadata.id, currentLabel.value)
+    await addLabelFunc(resource.metadata.id, currentLabel.value)
   } catch (e) {
     showError(`Failed to Add Label ${currentLabel.value}`, e.message)
   }
@@ -124,7 +101,7 @@ const addUserLabel = async () => {
 }
 
 const destroyUserLabel = async (key: string) => {
-  if (!resource.value.metadata.id || !props.removeLabelFunc) {
+  if (!resource.metadata.id || !removeLabelFunc) {
     return
   }
 
@@ -138,7 +115,7 @@ const destroyUserLabel = async (key: string) => {
   }
 
   try {
-    await props.removeLabelFunc(resource.value.metadata.id, key)
+    await removeLabelFunc(resource.metadata.id, key)
   } catch (e) {
     showError(`Failed to Remove Label ${key}`, e.message)
   }

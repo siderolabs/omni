@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { RadioGroup, RadioGroupOption } from '@headlessui/vue'
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
-import { computed, ref, toRefs, useTemplateRef, watch } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
@@ -17,7 +17,7 @@ import MachineSetLabel from './MachineSetLabel.vue'
 
 export type PickerOption = {
   id: string
-  color: string
+  labelClass: string
   tooltip?: string
   name?: string
   disabled?: boolean
@@ -29,25 +29,26 @@ const emit = defineEmits<{
 const showPicker = ref(false)
 const optionsView = useTemplateRef('optionsView')
 
-const props = defineProps<{
+const { options, machineSetIndex } = defineProps<{
   machineSetIndex?: number
   options: PickerOption[]
 }>()
 
-const { options, machineSetIndex } = toRefs(props)
-
-watch(options, () => {
-  if (options.value.length < 8) {
-    showPicker.value = false
-  }
-})
+watch(
+  () => options,
+  () => {
+    if (options.length < 8) {
+      showPicker.value = false
+    }
+  },
+)
 
 const pickedOption = computed(() => {
-  return machineSetIndex?.value !== undefined ? options.value[machineSetIndex.value] : undefined
+  return machineSetIndex !== undefined ? options[machineSetIndex] : undefined
 })
 
 const onSelect = (index: number) => {
-  if (machineSetIndex.value === index) {
+  if (machineSetIndex === index) {
     emit('update:machineSetIndex', undefined)
   } else {
     emit('update:machineSetIndex', index)
@@ -78,7 +79,7 @@ const onSelect = (index: number) => {
               <MachineSetLabel
                 :id="option.id"
                 class="machine-set-label opacity-75 transition-opacity hover:opacity-100"
-                :color="option.color"
+                :label-class="option.labelClass"
                 :class="{
                   'opacity-100': machineSetIndex === index && !option.disabled,
                   disabled: option?.disabled,
@@ -110,7 +111,7 @@ const onSelect = (index: number) => {
             <RadioGroup
               ref="optionsView"
               :model-value="machineSetIndex"
-              class="no-scrollbar scroll flex h-[7.5rem] flex-col items-center gap-0.5 overflow-y-auto"
+              class="no-scrollbar scroll flex h-30 flex-col items-center gap-0.5 overflow-y-auto"
               @update:model-value="(value) => emit('update:machineSetIndex', value)"
               @scroll.stop
             >
@@ -127,7 +128,7 @@ const onSelect = (index: number) => {
                     <div class="relative">
                       <MachineSetLabel
                         class="machine-set-label opacity-75 transition-opacity hover:opacity-100"
-                        :color="option.color"
+                        :label-class="option.labelClass"
                         :class="{
                           'opacity-100': checked && !option.disabled,
                           disabled: option?.disabled,
@@ -157,7 +158,10 @@ const onSelect = (index: number) => {
             class="mx-1 h-3 w-3 text-naturals-n7 transition-all group-hover:scale-125 group-hover:text-naturals-n14"
           />
           <template v-if="pickedOption">
-            <MachineSetLabel :machine-set-id="pickedOption?.id" :color="pickedOption?.color" />
+            <MachineSetLabel
+              :machine-set-id="pickedOption?.id"
+              :label-class="pickedOption?.labelClass"
+            />
             <IconButton
               icon="close"
               @click.stop="() => emit('update:machineSetIndex', undefined)"

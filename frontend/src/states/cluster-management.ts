@@ -76,22 +76,22 @@ export enum PatchID {
   InstallDisk = 'install-disk',
 }
 
-const colors = [
-  'red',
-  'orange',
-  'violet',
-  'yellow',
-  'cyan',
-  'blue1',
-  'blue2',
-  'blue3',
-  'light1',
-  'light2',
-  'light3',
-  'light4',
-  'light5',
-  'light6',
-  'light7',
+const labelClasses = [
+  'label-red',
+  'label-orange',
+  'label-violet',
+  'label-yellow',
+  'label-cyan',
+  'label-blue1',
+  'label-blue2',
+  'label-blue3',
+  'label-light1',
+  'label-light2',
+  'label-light3',
+  'label-light4',
+  'label-light5',
+  'label-light6',
+  'label-light7',
 ]
 
 // Keeps the configuration for the machine set.
@@ -99,7 +99,7 @@ export interface MachineSet {
   id: string
   name: string
   role: string
-  color: string
+  labelClass: string
   machineAllocation?: {
     name: string
     size: number | 'unlimited'
@@ -166,7 +166,7 @@ export class State {
         id: 'CP',
         name: 'control planes',
         role: LabelControlPlaneRole,
-        color: 'green',
+        labelClass: 'label-green',
         machines: {},
         idFunc: controlPlaneMachineSetId,
         patches: {},
@@ -175,7 +175,7 @@ export class State {
         id: 'W0',
         name: 'main worker pool',
         role: LabelWorkerRole,
-        color: 'red',
+        labelClass: 'label-red',
         machines: {},
         idFunc: defaultWorkersMachineSetId,
         patches: {},
@@ -219,7 +219,7 @@ export class State {
       id: `W${this.index}`,
       name: `workers-${id}`,
       role: role,
-      color: colors[this.index % colors.length],
+      labelClass: labelClasses[this.index % labelClasses.length],
       machines: {},
       patches: {},
       idFunc: (cluster: string) => `${cluster}-w${id}`,
@@ -770,7 +770,7 @@ export const populateExisting = async (clusterName: string) => {
     const isCP = ms.metadata.labels?.[LabelControlPlaneRole] !== undefined
 
     const machineSet: MachineSet = {
-      color: isCP ? 'green' : colors[state.value.index % colors.length],
+      labelClass: isCP ? 'label-green' : labelClasses[state.value.index % labelClasses.length],
       id: isCP ? 'CP' : `W${state.value.index}`,
       name: ms.metadata.id!,
       idFunc: () => ms.metadata.id!,

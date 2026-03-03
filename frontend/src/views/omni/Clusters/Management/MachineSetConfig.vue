@@ -160,7 +160,11 @@ const labelId = useId()
     class="my-1 flex items-center gap-2 rounded border border-naturals-n5 bg-naturals-n3 px-2 py-2 pr-3 text-xs text-naturals-n13"
     :aria-labelledby="labelId"
   >
-    <MachineSetLabel :color="modelValue.color" class="w-10" :machine-set-id="modelValue.id" />
+    <MachineSetLabel
+      :label-class="modelValue.labelClass"
+      class="w-10"
+      :machine-set-id="modelValue.id"
+    />
     <div class="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1">
       <div :id="labelId" class="w-32 truncate" :title="modelValue.name">
         {{ modelValue.name }}

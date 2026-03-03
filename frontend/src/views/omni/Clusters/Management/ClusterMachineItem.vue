@@ -26,7 +26,7 @@ import { formatBytes } from '@/methods'
 import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { showModal } from '@/modal'
-import type { MachineSet, MachineSetNode } from '@/states/cluster-management'
+import type { MachineSetNode } from '@/states/cluster-management'
 import { PatchID, state } from '@/states/cluster-management'
 import MachineItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
 import ConfigPatchEdit from '@/views/omni/Modals/ConfigPatchEdit.vue'
@@ -114,7 +114,7 @@ const memoryModules = computed(() =>
   (item.spec.hardware?.memory_modules || []).filter((mem) => mem.size_mb),
 )
 
-const options = computed<PickerOption[]>(() => {
+const options = computed(() => {
   let memoryCapacity = 0
   for (const mem of memoryModules.value) {
     memoryCapacity += mem.size_mb ?? 0
@@ -126,7 +126,7 @@ const options = computed<PickerOption[]>(() => {
   const canUseAsControlPlane = memoryCapacity === 0 || memoryCapacity >= cpMemoryThreshold
   const canUseAsWorker = memoryCapacity === 0 || memoryCapacity >= workerMemoryTheshold
 
-  return state.value.machineSets.map((ms: MachineSet) => {
+  return state.value.machineSets.map<PickerOption>((ms) => {
     let disabled = ms.role === LabelControlPlaneRole ? !canUseAsControlPlane : !canUseAsWorker
     let tooltip: string | undefined
 
@@ -152,7 +152,7 @@ const options = computed<PickerOption[]>(() => {
       id: ms.id,
       disabled: disabled,
       tooltip: tooltip,
-      color: ms.color,
+      labelClass: ms.labelClass,
     }
   })
 })

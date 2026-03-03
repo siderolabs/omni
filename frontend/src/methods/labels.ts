@@ -44,35 +44,35 @@ export type Label = {
   key: string
   id: string
   value: string
-  color: string
+  labelClass: string
   removable?: boolean
   description?: string
   icon?: IconType
 }
 
-const labelColors: Record<string, string> = {
-  [LabelCluster]: 'light1',
-  [MachineStatusLabelAvailable]: 'yellow',
-  [MachineStatusLabelInvalidState]: 'red',
-  [MachineStatusLabelConnected]: 'green',
-  [MachineStatusLabelDisconnected]: 'red',
-  [MachineStatusLabelPlatform]: 'blue1',
-  [MachineStatusLabelCores]: 'cyan',
-  [MachineStatusLabelMem]: 'blue2',
-  [MachineStatusLabelStorage]: 'violet',
-  [MachineStatusLabelNet]: 'blue3',
-  [MachineStatusLabelCPU]: 'orange',
-  [MachineStatusLabelArch]: 'light2',
-  [MachineStatusLabelRegion]: 'light3',
-  [MachineStatusLabelZone]: 'light4',
-  [MachineStatusLabelInstance]: 'light5',
-  [MachineStatusLabelTalosVersion]: 'light7',
-  [LabelControlPlaneRole]: 'yellow',
-  [LabelWorkerRole]: 'yellow',
+const labelClasses: Record<string, string> = {
+  [LabelCluster]: 'label-light1',
+  [MachineStatusLabelAvailable]: 'label-yellow',
+  [MachineStatusLabelInvalidState]: 'label-red',
+  [MachineStatusLabelConnected]: 'label-green',
+  [MachineStatusLabelDisconnected]: 'label-red',
+  [MachineStatusLabelPlatform]: 'label-blue1',
+  [MachineStatusLabelCores]: 'label-cyan',
+  [MachineStatusLabelMem]: 'label-blue2',
+  [MachineStatusLabelStorage]: 'label-violet',
+  [MachineStatusLabelNet]: 'label-blue3',
+  [MachineStatusLabelCPU]: 'label-orange',
+  [MachineStatusLabelArch]: 'label-light2',
+  [MachineStatusLabelRegion]: 'label-light3',
+  [MachineStatusLabelZone]: 'label-light4',
+  [MachineStatusLabelInstance]: 'label-light5',
+  [MachineStatusLabelTalosVersion]: 'label-light7',
+  [LabelControlPlaneRole]: 'label-yellow',
+  [LabelWorkerRole]: 'label-yellow',
 }
 
-export const getLabelColor = (labelKey: string) => {
-  return labelColors[labelKey] ?? 'light6'
+export const getLabelClass = (labelKey: string) => {
+  return labelClasses[labelKey] ?? 'label-light6'
 }
 
 export const addLabel = (dest: Label[], label: Label) => {
@@ -124,7 +124,7 @@ export const getLabelFromID = (key: string, value: string): Label => {
     key,
     id: key.replace(new RegExp(`^${SystemLabelPrefix}`), ''),
     value,
-    color: getLabelColor(key),
+    labelClass: getLabelClass(key),
     removable: !key.startsWith(SystemLabelPrefix),
     description: labelDescriptions[key],
   }
@@ -135,7 +135,7 @@ export const getLabelFromID = (key: string, value: string): Label => {
     return {
       ...label,
       id: parts.at(-1) ?? '',
-      color: 'green',
+      labelClass: 'label-green',
       description: `Defined by the infra provider "${parts[1] ?? ''}""`,
       icon: 'server-network',
     }

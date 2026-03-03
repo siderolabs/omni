@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { vOnClickOutside } from '@vueuse/components'
-import { ref, toRefs, useTemplateRef, watch } from 'vue'
+import { ref, useTemplateRef, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -21,10 +21,10 @@ type Label = {
   id: string
   value: string
   key: string
-  color: string
+  labelClass: string
 }
 
-const props = defineProps<{
+const { completionsResource, filterValue, filterLabels } = defineProps<{
   completionsResource: {
     id: string
     namespace: string
@@ -42,8 +42,6 @@ const emit = defineEmits<{
   'update:filter-labels': [Label[]]
 }>()
 
-const { filterValue, filterLabels } = toRefs(props)
-
 const input = useTemplateRef('input')
 const selectedSuggestion = ref(0)
 const selectedLabel = ref<number>()
@@ -60,21 +58,21 @@ const autoComplete = (index: number) => {
     return
   }
 
-  emit('update:filter-value', filterValue.value.replace(new RegExp(`${matchValue}$`), ''))
+  emit('update:filter-value', filterValue.replace(new RegExp(`${matchValue}$`), ''))
 
   addLabel(label)
 }
 
 const addLabel = (label: Label) => {
-  if (filterLabels.value.find((l) => l.value === label.value && l.key === label.key)) {
+  if (filterLabels.find((l) => l.value === label.value && l.key === label.key)) {
     return
   }
 
-  emit('update:filter-labels', filterLabels.value.concat([label]))
+  emit('update:filter-labels', filterLabels.concat([label]))
 }
 
 const removeLabel = (index: number) => {
-  const copyArray = [...filterLabels.value]
+  const copyArray = [...filterLabels]
 
   copyArray.splice(index, 1)
 
@@ -83,103 +81,106 @@ const removeLabel = (index: number) => {
 
 let abortController: AbortController | null
 
-watch(filterValue, async (val: string, old: string) => {
-  selectedSuggestion.value = 0
-  selectedLabel.value = undefined
+watch(
+  () => filterValue,
+  async (val, old) => {
+    selectedSuggestion.value = 0
+    selectedLabel.value = undefined
 
-  if (abortController) {
-    abortController.abort({ reason: 'input changed' })
-  }
-
-  if (old === '' || abortController) {
-    abortController = new AbortController()
-
-    try {
-      const completion: Resource<{
-        items: Record<
-          string,
-          {
-            items: string[]
-          }
-        >
-      }> = await ResourceService.Get(
-        props.completionsResource,
-        withRuntime(Runtime.Omni),
-        withAbortController(abortController),
-      )
-
-      abortController = null
-
-      labelsCompletions = []
-
-      const addLabel = (l: { key: string; value: string }) => {
-        if (labelsCompletions.find((item) => item.key === l.key && item.value === l.value)) {
-          return
-        }
-
-        labelsCompletions.push(l)
-      }
-
-      for (const key in completion.spec.items) {
-        let hasEmptyValue = false
-
-        for (const value of completion.spec.items[key].items!) {
-          addLabel({
-            key: key,
-            value: value,
-          })
-
-          if (!value) {
-            hasEmptyValue = true
-          }
-        }
-
-        if (!hasEmptyValue) {
-          addLabel({
-            key: key,
-            value: '',
-          })
-        }
-      }
-    } catch (e) {
-      if (e.reason !== 'input changed') {
-        throw e
-      }
-    }
-  }
-
-  // we always do completion for the last space separated word
-  const parts = val.split(' ')
-
-  matchValue = parts[parts.length - 1]
-
-  const keyAndValue = matchValue.split(':')
-
-  if (matchValue === '') {
-    matchedLabelsCompletion.value = []
-
-    return
-  }
-
-  const matcher = (item: { key: string; value: string }) => {
-    const key = keyAndValue[0]
-    const value = keyAndValue[1]
-
-    if (value === undefined) {
-      return item.key.includes(key) || item.value.includes(key)
+    if (abortController) {
+      abortController.abort({ reason: 'input changed' })
     }
 
-    return item.key.includes(key) && item.value.includes(value)
-  }
+    if (old === '' || abortController) {
+      abortController = new AbortController()
 
-  matchedLabelsCompletion.value = labelsCompletions.filter(matcher).map((item) => {
-    const label = createLabel(item.key, item.value)
+      try {
+        const completion: Resource<{
+          items: Record<
+            string,
+            {
+              items: string[]
+            }
+          >
+        }> = await ResourceService.Get(
+          completionsResource,
+          withRuntime(Runtime.Omni),
+          withAbortController(abortController),
+        )
 
-    label.id = item.value === '' ? `has label: ${label.id}` : label.id
+        abortController = null
 
-    return label
-  })
-})
+        labelsCompletions = []
+
+        const addLabel = (l: { key: string; value: string }) => {
+          if (labelsCompletions.find((item) => item.key === l.key && item.value === l.value)) {
+            return
+          }
+
+          labelsCompletions.push(l)
+        }
+
+        for (const key in completion.spec.items) {
+          let hasEmptyValue = false
+
+          for (const value of completion.spec.items[key].items!) {
+            addLabel({
+              key: key,
+              value: value,
+            })
+
+            if (!value) {
+              hasEmptyValue = true
+            }
+          }
+
+          if (!hasEmptyValue) {
+            addLabel({
+              key: key,
+              value: '',
+            })
+          }
+        }
+      } catch (e) {
+        if (e.reason !== 'input changed') {
+          throw e
+        }
+      }
+    }
+
+    // we always do completion for the last space separated word
+    const parts = val.split(' ')
+
+    matchValue = parts[parts.length - 1]
+
+    const keyAndValue = matchValue.split(':')
+
+    if (matchValue === '') {
+      matchedLabelsCompletion.value = []
+
+      return
+    }
+
+    const matcher = (item: { key: string; value: string }) => {
+      const key = keyAndValue[0]
+      const value = keyAndValue[1]
+
+      if (value === undefined) {
+        return item.key.includes(key) || item.value.includes(key)
+      }
+
+      return item.key.includes(key) && item.value.includes(value)
+    }
+
+    matchedLabelsCompletion.value = labelsCompletions.filter(matcher).map((item) => {
+      const label = createLabel(item.key, item.value)
+
+      label.id = item.value === '' ? `has label: ${label.id}` : label.id
+
+      return label
+    })
+  },
+)
 </script>
 
 <template>
