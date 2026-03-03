@@ -113,9 +113,9 @@ go run ./hack/generate-certs uninstall
 ## Start Talos VMs
 
 ```shell
-sudo -E _out/talosctl-linux-amd64 cluster create \
-    --provisioner=qemu --cidr=172.20.0.0/24 --install-image=ghcr.io/siderolabs/installer:v1.3.2 --memory 2048 --memory-workers 2048 --disk 6144 --cpus 2 --controlplanes 1 --workers 3 \
-    --extra-boot-kernel-args ''siderolink.api=grpc://<OMNI_IP>:8090?jointoken=w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD talos.events.sink=[fdae:41e4:649b:9303::1]:8091 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092''
+sudo -E _out/talosctl-linux-amd64 cluster create dev \
+    --cidr=172.20.0.0/24 --install-image=ghcr.io/siderolabs/installer:v1.3.2 --memory 2048 --memory-workers 2048 --disk 6144 --cpus 2 --controlplanes 1 --workers 3 \
+    --extra-boot-kernel-args 'siderolink.api=grpc://<OMNI_IP>:8090?jointoken=w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD talos.events.sink=[fdae:41e4:649b:9303::1]:8091 talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092' \
     --skip-injecting-config --wait=false --with-init-node
 ```
 
