@@ -16,7 +16,7 @@ export type SideBarItem = {
   route?: string | RouteLocationRaw
   icon?: IconType
   label?: string | number
-  labelColor?: string
+  labelDanger?: boolean
   tooltip?: string
   iconSvgBase64?: string
   subItems?: SideBarItem[]
@@ -42,7 +42,7 @@ defineProps<Props>()
         :icon="item.icon"
         :icon-svg-base64="item.iconSvgBase64"
         :label="item.label"
-        :label-color="item.labelColor"
+        :label-danger="item.labelDanger"
         :tooltip="item.tooltip"
         :sub-items="item.subItems"
       />

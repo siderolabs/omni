@@ -350,7 +350,7 @@ const clusterItems = computed(() => {
       route: getRoute('/manifests'),
       icon: 'bootstrap-manifests',
       label: pendingManifests.value,
-      labelColor: pendingManifests.value === '!' ? 'red-r1' : undefined,
+      labelDanger: pendingManifests.value === '!',
     })
   }
 
