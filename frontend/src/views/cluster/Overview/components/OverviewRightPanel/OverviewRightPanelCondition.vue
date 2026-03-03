@@ -41,15 +41,15 @@ const props = defineProps<Props>()
 
 const { condition } = toRefs(props)
 
-const color = computed(() => {
+const textClass = computed(() => {
   switch (condition.value.severity) {
     case ControlPlaneStatusSpecConditionSeverity.Warning:
-      return 'var(--color-yellow-y1)'
+      return 'text-yellow-y1'
     case ControlPlaneStatusSpecConditionSeverity.Error:
-      return 'var(--color-red-r1)'
+      return 'text-red-r1'
   }
 
-  return 'var(--color-naturals-n12)'
+  return 'text-naturals-n12'
 })
 
 const text = computed(() => {
@@ -71,7 +71,7 @@ const text = computed(() => {
 <template>
   <OverviewRightPanelItem :name="getConditionName(condition?.type)">
     <Tooltip :description="condition.reason" placement="left">
-      <span :style="{ color: color }">
+      <span :class="textClass">
         {{ text }}
       </span>
     </Tooltip>

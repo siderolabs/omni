@@ -60,24 +60,24 @@ const phaseIcon = (machineset: Resource<MachineSetStatusSpec>): IconType => {
   }
 }
 
-const phaseColor = (machineset?: Resource<MachineSetStatusSpec>) => {
+const phaseClass = (machineset?: Resource<MachineSetStatusSpec>) => {
   switch (machineset?.spec.phase) {
     case MachineSetPhase.Upgrading:
     case MachineSetPhase.ScalingUp:
     case MachineSetPhase.ScalingDown:
     case MachineSetPhase.Reconfiguring:
-      return 'var(--color-yellow-y1)'
+      return 'text-yellow-y1'
     case MachineSetPhase.Running:
       if (machineset?.spec.ready) {
-        return 'var(--color-green-g1)'
+        return 'text-green-g1'
       } else {
-        return 'var(--color-red-r1)'
+        return 'text-red-r1'
       }
     case MachineSetPhase.Failed:
     case MachineSetPhase.Destroying:
-      return 'var(--color-red-r1)'
+      return 'text-red-r1'
     default:
-      return 'var(--color-yellow-y1)'
+      return 'text-yellow-y1'
   }
 }
 
@@ -90,7 +90,7 @@ defineProps<Props>()
 
 <template>
   <div class="flex gap-2">
-    <div :style="'color: ' + phaseColor(item)" class="flex items-center gap-1">
+    <div :class="phaseClass(item)" class="flex items-center gap-1">
       <TIcon :icon="phaseIcon(item)" class="h-4" />
       <div data-testid="machine-set-phase-name">{{ phaseName(item) || '' }}</div>
     </div>

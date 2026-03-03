@@ -82,7 +82,7 @@ const stageIcon = (machine: Resource<ClusterMachineStatusSpec>): IconType => {
   }
 }
 
-const stageColor = (machine: Resource<ClusterMachineStatusSpec>): string => {
+const stageClass = (machine: Resource<ClusterMachineStatusSpec>): string => {
   switch (machine?.spec.stage) {
     case ClusterMachineStatusSpecStage.BOOTING:
     case ClusterMachineStatusSpecStage.INSTALLING:
@@ -90,19 +90,19 @@ const stageColor = (machine: Resource<ClusterMachineStatusSpec>): string => {
     case ClusterMachineStatusSpecStage.CONFIGURING:
     case ClusterMachineStatusSpecStage.REBOOTING:
     case ClusterMachineStatusSpecStage.POWERING_ON:
-      return 'var(--color-yellow-y1)'
+      return 'text-yellow-y1'
     case ClusterMachineStatusSpecStage.RUNNING:
       if (machine?.spec.ready || !connected(machine)) {
-        return 'var(--color-green-g1)'
+        return 'text-green-g1'
       } else {
-        return 'var(--color-red-r1)'
+        return 'text-red-r1'
       }
     case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
     case ClusterMachineStatusSpecStage.BEFORE_DESTROY:
     case ClusterMachineStatusSpecStage.DESTROYING:
-      return 'var(--color-red-r1)'
+      return 'text-red-r1'
     default:
-      return 'var(--color-yellow-y1)'
+      return 'text-yellow-y1'
   }
 }
 
@@ -114,7 +114,7 @@ defineProps<Props>()
 </script>
 
 <template>
-  <div :style="'color: ' + stageColor(machine)">
+  <div :class="stageClass(machine)">
     <Tooltip
       placement="bottom"
       :description="

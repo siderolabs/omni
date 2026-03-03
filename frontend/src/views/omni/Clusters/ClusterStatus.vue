@@ -54,27 +54,27 @@ const phaseIcon = (cluster?: Resource<ClusterStatusSpec>): IconType => {
   }
 }
 
-const phaseColor = (cluster?: Resource<ClusterStatusSpec>): string => {
+const phaseClass = (cluster?: Resource<ClusterStatusSpec>): string => {
   switch (cluster?.spec.phase) {
     case ClusterStatusSpecPhase.SCALING_UP:
     case ClusterStatusSpecPhase.SCALING_DOWN:
-      return 'var(--color-yellow-y1)'
+      return 'text-yellow-y1'
     case ClusterStatusSpecPhase.RUNNING:
       if (cluster?.spec.ready) {
-        return 'var(--color-green-g1)'
+        return 'text-green-g1'
       } else {
-        return 'var(--color-red-r1)'
+        return 'text-red-r1'
       }
     case ClusterStatusSpecPhase.DESTROYING:
-      return 'var(--color-red-r1)'
+      return 'text-red-r1'
     default:
-      return 'var(--color-yellow-y1)'
+      return 'text-yellow-y1'
   }
 }
 </script>
 
 <template>
-  <div :style="'color: ' + phaseColor(cluster)" class="flex items-center gap-1">
+  <div :class="phaseClass(cluster)" class="flex items-center gap-1">
     <TIcon :icon="phaseIcon(cluster)" class="h-4" aria-hidden="true" />
     <span class="contents max-sm:sr-only">{{ phaseName(cluster) }}</span>
   </div>

@@ -395,7 +395,7 @@ const servicesSectionHeadingId = useId()
           <div class="overview-data-row">
             <p class="overview-data-name">Secure Boot</p>
             <p class="overview-data">
-              <TStatus class="overview-status" :title="getSecureBootStatus()" />
+              <TStatus :title="getSecureBootStatus()" />
             </p>
           </div>
           <div class="overview-data-row">
@@ -467,8 +467,8 @@ const servicesSectionHeadingId = useId()
               >
                 {{ service.name }}
               </RouterLink>
-              <TStatus class="overview-status" :title="service.state" />
-              <TStatus class="overview-status" :title="service.status" />
+              <TStatus :title="service.state" />
+              <TStatus :title="service.status" />
             </div>
           </template>
           <template #details>
