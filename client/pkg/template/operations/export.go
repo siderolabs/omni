@@ -117,7 +117,7 @@ func buildModelList(clusterModel models.Cluster, controlPlaneMachineSetModel mod
 	})
 
 	for _, workerMachineSetModel := range workerMachineSetModels {
-		modelList = append(modelList, &workerMachineSetModel) //nolint:exportloopref
+		modelList = append(modelList, &workerMachineSetModel)
 	}
 
 	slices.SortFunc(machineModels, func(a, b models.Machine) int {
@@ -125,7 +125,7 @@ func buildModelList(clusterModel models.Cluster, controlPlaneMachineSetModel mod
 	})
 
 	for _, machineModel := range machineModels {
-		modelList = append(modelList, &machineModel) //nolint:exportloopref
+		modelList = append(modelList, &machineModel)
 	}
 
 	return modelList
@@ -304,6 +304,22 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 		}
 	}
 
+	var upgradeStrategyConfig *models.UpdateStrategyConfig
+
+	if spec.GetUpgradeStrategyConfig() != nil {
+		upgradeStrategyConfig = &models.UpdateStrategyConfig{}
+
+		if spec.GetUpgradeStrategy() != specs.MachineSetSpec_Unset { // Unset is the default for upgrade, so set the strategy type only when it is not Unset.
+			upgradeStrategyConfig.Type = new(models.UpdateStrategyType(spec.GetUpgradeStrategy()))
+		}
+
+		if spec.GetUpgradeStrategyConfig().GetRolling() != nil {
+			upgradeStrategyConfig.Rolling = &models.RollingUpdateStrategyConfig{
+				MaxParallelism: spec.GetUpgradeStrategyConfig().GetRolling().GetMaxParallelism(),
+			}
+		}
+	}
+
 	kind := models.KindControlPlane
 	if isWorker {
 		kind = models.KindWorkers
@@ -323,14 +339,15 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 		Meta: models.Meta{
 			Kind: kind,
 		},
-		Name:           name,
-		Descriptors:    getUserDescriptors(machineSet),
-		BootstrapSpec:  bootstrapSpec,
-		Machines:       machineIDs,
-		MachineClass:   machineAllocation,
-		Patches:        patchModels,
-		UpdateStrategy: updateStrategyConfig,
-		DeleteStrategy: deleteStrategyConfig,
+		Name:            name,
+		Descriptors:     getUserDescriptors(machineSet),
+		BootstrapSpec:   bootstrapSpec,
+		Machines:        machineIDs,
+		MachineClass:    machineAllocation,
+		Patches:         patchModels,
+		UpdateStrategy:  updateStrategyConfig,
+		DeleteStrategy:  deleteStrategyConfig,
+		UpgradeStrategy: upgradeStrategyConfig,
 	}, nil
 }
 

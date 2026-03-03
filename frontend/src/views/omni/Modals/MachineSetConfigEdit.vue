@@ -8,6 +8,7 @@ included in the LICENSE file.
 import { ref, toRefs } from 'vue'
 
 import { MachineSetSpecUpdateStrategy } from '@/api/omni/specs/omni.pb'
+import { LabelWorkerRole } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
@@ -18,6 +19,17 @@ import { state } from '@/states/cluster-management'
 const options = [
   {
     label: 'Unrestricted',
+    value: MachineSetSpecUpdateStrategy.Unset,
+  },
+  {
+    label: 'Rolling',
+    value: MachineSetSpecUpdateStrategy.Rolling,
+  },
+]
+
+const optionsUpgrade = [
+  {
+    label: 'Default',
     value: MachineSetSpecUpdateStrategy.Unset,
   },
   {
@@ -40,12 +52,18 @@ const updateParallelism = ref(
 const deleteParallelism = ref(
   machineSet.value.deleteStrategy?.config?.rolling?.max_parallelism ?? 1,
 )
+const upgradeParallelism = ref(
+  machineSet.value.upgradeStrategy?.config?.rolling?.max_parallelism ?? 1,
+)
 
 const updateStrategy = ref<MachineSetSpecUpdateStrategy>(
   machineSet.value.updateStrategy?.type ?? MachineSetSpecUpdateStrategy.Rolling,
 )
 const deleteStrategy = ref<MachineSetSpecUpdateStrategy>(
   machineSet.value.deleteStrategy?.type ?? MachineSetSpecUpdateStrategy.Unset,
+)
+const upgradeStrategy = ref<MachineSetSpecUpdateStrategy>(
+  machineSet.value.upgradeStrategy?.type ?? MachineSetSpecUpdateStrategy.Unset,
 )
 
 const close = () => {
@@ -54,7 +72,11 @@ const close = () => {
 
 const saveAndClose = async () => {
   const ms = state.value.machineSets.find((item) => item.id === machineSet.value.id)
-  if (ms) {
+  if (!ms) {
+    return
+  }
+
+  if (ms?.role === LabelWorkerRole) {
     if (updateStrategy.value !== undefined) {
       ms.updateStrategy = {
         type: updateStrategy.value,
@@ -78,6 +100,20 @@ const saveAndClose = async () => {
     }
   }
 
+  if (upgradeStrategy.value !== undefined) {
+    ms.upgradeStrategy = {
+      type: upgradeStrategy.value,
+    }
+
+    if (upgradeStrategy.value === MachineSetSpecUpdateStrategy.Rolling) {
+      ms.upgradeStrategy.config = {
+        rolling: {
+          max_parallelism: upgradeParallelism.value,
+        },
+      }
+    }
+  }
+
   close()
 }
 </script>
@@ -88,28 +124,47 @@ const saveAndClose = async () => {
       <div class="heading">Machine Set Scaling Configuration</div>
     </div>
     <div class="flex flex-1 flex-col">
-      <div class="flex flex-wrap items-center gap-2 border-b border-naturals-n4 px-8 py-2 text-sm">
-        <div class="w-32">Update Strategy</div>
-        <TButtonGroup v-model="updateStrategy" :options="options" class="flex-1" />
-        <template v-if="updateStrategy !== MachineSetSpecUpdateStrategy.Unset">
-          <div>Max Parallelism</div>
-          <div>
-            <TInput v-model="updateParallelism" type="number" class="h-7 w-12" />
+      <template v-if="machineSet.role === LabelWorkerRole">
+        <div
+          class="flex flex-wrap items-center gap-2 border-b border-naturals-n4 px-8 py-2 text-sm"
+        >
+          <div class="w-32">Update Strategy</div>
+          <TButtonGroup v-model="updateStrategy" :options="options" class="flex-1" />
+          <template v-if="updateStrategy !== MachineSetSpecUpdateStrategy.Unset">
+            <div>Max Parallelism</div>
+            <div>
+              <TInput v-model="updateParallelism" type="number" class="h-7 w-12" />
+            </div>
+          </template>
+          <div v-else class="flex h-7 items-center">Update All Simultaneously</div>
+        </div>
+        <div
+          class="flex flex-wrap items-center gap-2 border-b border-naturals-n4 px-8 py-2 text-sm"
+        >
+          <div class="w-32">Delete Strategy</div>
+          <TButtonGroup v-model="deleteStrategy" :options="options" class="flex-1" />
+          <template v-if="deleteStrategy !== MachineSetSpecUpdateStrategy.Unset">
+            <div>Max Parallelism</div>
+            <div>
+              <TInput v-model="deleteParallelism" type="number" class="h-7 w-12" />
+            </div>
+          </template>
+          <div v-else class="flex h-7 items-center">
+            <span>Delete All Simultaneously</span>
           </div>
-        </template>
-        <div v-else class="flex h-7 items-center">Update All Simultaneously</div>
-      </div>
+        </div>
+      </template>
       <div class="flex flex-wrap items-center gap-2 border-b border-naturals-n4 px-8 py-2 text-sm">
-        <div class="w-32">Delete Strategy</div>
-        <TButtonGroup v-model="deleteStrategy" :options="options" class="flex-1" />
-        <template v-if="deleteStrategy !== MachineSetSpecUpdateStrategy.Unset">
+        <div class="w-32">Upgrade Strategy</div>
+        <TButtonGroup v-model="upgradeStrategy" :options="optionsUpgrade" class="flex-1" />
+        <template v-if="upgradeStrategy !== MachineSetSpecUpdateStrategy.Unset">
           <div>Max Parallelism</div>
           <div>
-            <TInput v-model="deleteParallelism" type="number" class="h-7 w-12" />
+            <TInput v-model="upgradeParallelism" type="number" class="h-7 w-12" />
           </div>
         </template>
         <div v-else class="flex h-7 items-center">
-          <span>Delete All Simultaneously</span>
+          <span>Upgrade One at a Time</span>
         </div>
       </div>
     </div>

@@ -11,7 +11,7 @@ import { computed, ref, toRefs, useId, watch } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineClassSpec } from '@/api/omni/specs/omni.pb'
-import { LabelWorkerRole, PatchBaseWeightMachineSet } from '@/api/resources'
+import { PatchBaseWeightMachineSet } from '@/api/resources'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
@@ -210,11 +210,7 @@ const labelId = useId()
     <div class="flex w-24 items-center justify-end gap-2">
       <TButton v-if="!noRemove" class="h-6" size="sm" @click="onRemove">Remove</TButton>
       <div class="flex justify-center gap-1">
-        <IconButton
-          v-if="modelValue.role === LabelWorkerRole"
-          icon="chart-bar"
-          @click="openMachineSetConfig"
-        />
+        <IconButton icon="chart-bar" @click="openMachineSetConfig" />
         <IconButton
           :icon="patches[PatchID.Default] ? 'settings-toggle' : 'settings'"
           @click="openPatchConfig"

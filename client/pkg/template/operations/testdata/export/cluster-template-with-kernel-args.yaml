@@ -53,6 +53,10 @@ bootstrapSpec:
   snapshot: FFFFFFFF9AA169F0.snapshot
 machines:
   - 3f8b33d2-52b1-42ed-8505-4025ddbc31f1
+upgradeStrategy:
+  type: Rolling
+  rolling:
+    maxParallelism: 2
 patches:
   - idOverride: 500-2e2a2a64-5085-407a-a205-f75f4c64a060
     annotations:
@@ -77,6 +81,10 @@ deleteStrategy:
   type: Rolling
   rolling:
     maxParallelism: 5
+upgradeStrategy:
+  type: Rolling
+  rolling:
+    maxParallelism: 7
 patches:
   - idOverride: 500-3792b0d9-0fc2-46fb-becf-4d5439bbe5ba
     annotations:

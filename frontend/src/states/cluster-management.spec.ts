@@ -370,6 +370,74 @@ describe('cluster-management-state', () => {
         },
       },
     },
+    {
+      name: 'upgrade strategy set',
+      cluster: {
+        name: 'talos-default',
+        patches: {},
+        features: {},
+      },
+      machineSets: [
+        {
+          upgradeStrategy: {
+            type: MachineSetSpecUpdateStrategy.Rolling,
+            config: { rolling: { max_parallelism: 2 } },
+          },
+        },
+        {
+          upgradeStrategy: {
+            type: MachineSetSpecUpdateStrategy.Rolling,
+            config: { rolling: { max_parallelism: 3 } },
+          },
+        },
+      ],
+      expectedResources: {
+        [ClusterType]: {
+          'talos-default': {
+            spec: {
+              talos_version: undefined,
+              kubernetes_version: undefined,
+              features: {},
+              backup_configuration: undefined,
+            },
+          },
+        },
+        [MachineSetType]: {
+          'talos-default-control-planes': {
+            metadata: {
+              labels: {
+                [LabelCluster]: 'talos-default',
+                [LabelControlPlaneRole]: '',
+              },
+            },
+            spec: {
+              update_strategy: MachineSetSpecUpdateStrategy.Rolling,
+              bootstrap_spec: undefined,
+              machine_class: undefined,
+              machine_allocation: undefined,
+              upgrade_strategy: MachineSetSpecUpdateStrategy.Rolling,
+              upgrade_strategy_config: { rolling: { max_parallelism: 2 } },
+            },
+          },
+          'talos-default-workers': {
+            metadata: {
+              labels: {
+                [LabelCluster]: 'talos-default',
+                [LabelWorkerRole]: '',
+              },
+            },
+            spec: {
+              update_strategy: MachineSetSpecUpdateStrategy.Rolling,
+              bootstrap_spec: undefined,
+              machine_class: undefined,
+              machine_allocation: undefined,
+              upgrade_strategy: MachineSetSpecUpdateStrategy.Rolling,
+              upgrade_strategy_config: { rolling: { max_parallelism: 3 } },
+            },
+          },
+        },
+      },
+    },
   ]
 
   for (const tt of tests) {
@@ -393,6 +461,10 @@ describe('cluster-management-state', () => {
 
             if (machineSet.bootstrapSpec) {
               state.value.machineSets[i].bootstrapSpec = machineSet.bootstrapSpec
+            }
+
+            if (machineSet.upgradeStrategy) {
+              state.value.machineSets[i].upgradeStrategy = machineSet.upgradeStrategy
             }
           }
         }

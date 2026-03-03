@@ -15,6 +15,10 @@ name: 4b9797ae-55d7-4717-a19e-b322a2d83d39
 kind: ControlPlane
 machines:
   - 4b9797ae-55d7-4717-a19e-b322a2d83d39
+upgradeStrategy:
+  type: Rolling
+  rolling:
+    maxParallelism: 2
 
 # default workers
 ---
@@ -48,6 +52,10 @@ deleteStrategy:
   type: Rolling
   rolling:
     maxParallelism: 5
+upgradeStrategy:
+  type: Rolling
+  rolling:
+    maxParallelism: 4
 patches: # ClusterMachine ConfigPatch
   - name: my-address
     inline:

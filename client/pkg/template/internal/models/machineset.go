@@ -41,6 +41,9 @@ type MachineSet struct { //nolint:govet
 	// DeleteStrategy defines the delete strategy for the machine set.
 	DeleteStrategy *UpdateStrategyConfig `yaml:"deleteStrategy,omitempty"`
 
+	// UpgradeStrategy defines the upgrade strategy for the machine set.
+	UpgradeStrategy *UpdateStrategyConfig `yaml:"upgradeStrategy,omitempty"`
+
 	// MachineSet patches.
 	Patches PatchList `yaml:"patches,omitempty"`
 
@@ -206,6 +209,20 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 			machineSet.TypedSpec().Value.DeleteStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
 				Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{
 					MaxParallelism: machineset.DeleteStrategy.Rolling.MaxParallelism,
+				},
+			}
+		}
+	}
+
+	if machineset.UpgradeStrategy != nil {
+		if machineset.UpgradeStrategy.Type != nil {
+			machineSet.TypedSpec().Value.UpgradeStrategy = specs.MachineSetSpec_UpdateStrategy(*machineset.UpgradeStrategy.Type)
+		}
+
+		if machineset.UpgradeStrategy.Rolling != nil {
+			machineSet.TypedSpec().Value.UpgradeStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
+				Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{
+					MaxParallelism: machineset.UpgradeStrategy.Rolling.MaxParallelism,
 				},
 			}
 		}

@@ -99,6 +99,10 @@ export interface MachineSet {
     type?: MachineSetSpecUpdateStrategy
     config?: MachineSetSpecUpdateStrategyConfig
   }
+  upgradeStrategy?: {
+    type?: MachineSetSpecUpdateStrategy
+    config?: MachineSetSpecUpdateStrategyConfig
+  }
   idFunc: (cluster: string) => string
 }
 
@@ -414,6 +418,14 @@ export class State {
         if (machineSet.deleteStrategy?.config) {
           ms.spec.delete_strategy_config = machineSet.deleteStrategy?.config
         }
+      }
+
+      if (machineSet.upgradeStrategy?.type !== undefined) {
+        ms.spec.upgrade_strategy = machineSet.upgradeStrategy?.type
+      }
+
+      if (machineSet.upgradeStrategy?.config) {
+        ms.spec.upgrade_strategy_config = machineSet.upgradeStrategy?.config
       }
 
       ms.spec.machine_class = undefined
@@ -787,6 +799,13 @@ export const populateExisting = async (clusterName: string) => {
       machineSet.updateStrategy = {
         type: ms.spec.update_strategy ?? MachineSetSpecUpdateStrategy.Unset,
         config: ms.spec.update_strategy_config,
+      }
+    }
+
+    if (ms.spec.upgrade_strategy || ms.spec.upgrade_strategy_config) {
+      machineSet.upgradeStrategy = {
+        type: ms.spec.upgrade_strategy ?? MachineSetSpecUpdateStrategy.Unset,
+        config: ms.spec.upgrade_strategy_config,
       }
     }
 

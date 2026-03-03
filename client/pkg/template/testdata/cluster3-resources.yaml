@@ -53,8 +53,10 @@ spec:
     updatestrategyconfig: null
     deletestrategyconfig: null
     machineallocation: null
-    upgradestrategy: 0
-    upgradestrategyconfig: null
+    upgradestrategy: 1
+    upgradestrategyconfig:
+        rolling:
+            maxparallelism: 2
 ---
 metadata:
     namespace: default
@@ -165,8 +167,10 @@ spec:
         rolling:
             maxparallelism: 5
     machineallocation: null
-    upgradestrategy: 0
-    upgradestrategyconfig: null
+    upgradestrategy: 1
+    upgradestrategyconfig:
+        rolling:
+            maxparallelism: 4
 ---
 metadata:
     namespace: default

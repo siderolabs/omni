@@ -56,6 +56,10 @@ spec:
   bootstrapspec:
     clusteruuid: 98d00c6b-fae1-4bf2-afa3-0282ef443f84
     snapshot: FFFFFFFF9AA169F0.snapshot
+  upgradestrategy: 1
+  upgradestrategyconfig:
+    rolling:
+      maxparallelism: 2
 ---
 
 
@@ -88,6 +92,10 @@ spec:
     type: Rolling
     rolling:
       maxparallelism: 5
+  upgradestrategy: 1
+  upgradestrategyconfig:
+    rolling:
+      maxparallelism: 7
 ---
 
 
