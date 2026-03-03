@@ -183,7 +183,7 @@ function isMachineSetScalable(
     <AccordionHeader class="col-span-full grid grid-cols-subgrid items-center p-2 pr-4 text-xs">
       <AccordionTrigger
         :id="sectionHeadingId"
-        class="group/accordion flex items-stretch gap-0.5 truncate text-left"
+        class="group/accordion flex shrink-0 items-stretch gap-0.5 truncate text-left"
       >
         <div class="flex shrink-0 items-center rounded-l bg-naturals-n4 px-0.5">
           <TIcon
@@ -193,9 +193,9 @@ function isMachineSetScalable(
           />
         </div>
 
-        <div class="flex items-center gap-1 rounded-r bg-naturals-n4 px-2 py-1.5">
+        <div class="flex min-w-0 items-center gap-1 rounded-r bg-naturals-n4 px-2 py-1.5">
           <TIcon icon="server-stack" class="size-4 shrink-0" aria-hidden="true" />
-          <span class="flex-1 truncate">
+          <span class="grow truncate">
             {{ machineSetTitle(clusterID, machineSetId) }}
           </span>
         </div>
@@ -217,7 +217,7 @@ function isMachineSetScalable(
       <TButton
         v-if="isMachineSetScalable(machineSet)"
         size="sm"
-        class="justify-self-start text-xs"
+        class="max-w-full justify-self-start overflow-hidden text-xs"
         variant="primary"
         icon="edit"
         @click="scaleMachinesModalOpen = true"

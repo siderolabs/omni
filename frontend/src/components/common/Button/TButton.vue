@@ -98,12 +98,13 @@ const dynamicProps = computed(() => {
       )
     "
   >
-    <span v-if="$slots.default" class="whitespace-nowrap">
+    <span v-if="$slots.default" class="truncate">
       <slot />
     </span>
     <TIcon
       v-if="icon"
       :icon="icon"
+      class="shrink-0"
       :class="[
         size === 'xxs' ? 'size-3' : 'size-4',
         {

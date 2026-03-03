@@ -91,7 +91,7 @@ const updateLock = async () => {
     @click="openNodeInfo"
   >
     <div class="col-span-2 ml-6 flex items-center gap-2">
-      <TIcon :icon="icon" class="h-4 w-4" />
+      <TIcon :icon="icon" class="size-4 shrink-0" />
       <RouterLink
         :to="{
           name: 'NodeOverview',

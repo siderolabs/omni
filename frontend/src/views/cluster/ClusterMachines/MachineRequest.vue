@@ -47,9 +47,9 @@ const stage = computed(() => {
       <IconHeaderDropdownLoading
         v-if="stage !== TCommonStatuses.PROVISIONED"
         active
-        class="size-4"
+        class="size-4 shrink-0"
       />
-      <TIcon v-else icon="cloud-connection" class="size-4" />
+      <TIcon v-else icon="cloud-connection" class="size-4 shrink-0" />
       {{ requestStatus.metadata.id }}
     </div>
 
