@@ -22,6 +22,8 @@ import {
   MetricsNamespace,
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -146,9 +148,14 @@ const updateConfig = async () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-5">
-    <!-- prettier-ignore -->
-    <p class="text-sm">
+  <PageContainer class="flex h-full flex-col gap-4">
+    <div class="flex items-start gap-1">
+      <PageHeader title="Settings" class="flex-1" subtitle="Backup Storage" />
+    </div>
+
+    <div class="flex grow flex-col gap-5">
+      <!-- prettier-ignore -->
+      <p class="text-sm">
       Automatically back up your Kubernetes etcd databases to the configured endpoint and bucket. To
       restore a cluster backup please follow the
       <a
@@ -175,60 +182,61 @@ const updateConfig = async () => {
       </a>.
     </p>
 
-    <TAlert v-if="error" title="Failed to Fetch Current Storage State" type="error">
-      {{ error }}
-    </TAlert>
-    <div v-else-if="ready && !saving" class="flex flex-col gap-5" @keydown.enter="updateConfig">
-      <div class="font-bold text-naturals-n14">
-        Storage Type {{ `${store.charAt(0).toUpperCase()}${store.slice(1)}` }}
+      <TAlert v-if="error" title="Failed to Fetch Current Storage State" type="error">
+        {{ error }}
+      </TAlert>
+      <div v-else-if="ready && !saving" class="flex flex-col gap-5" @keydown.enter="updateConfig">
+        <div class="font-bold text-naturals-n14">
+          Storage Type {{ `${store.charAt(0).toUpperCase()}${store.slice(1)}` }}
+        </div>
+        <template v-if="s3Spec">
+          <TInput
+            title="Endpoint"
+            :model-value="s3Spec.endpoint || ''"
+            @update:model-value="(value) => (s3Spec.endpoint = value)"
+          />
+          <TInput
+            title="Bucket"
+            :model-value="s3Spec.bucket || ''"
+            @update:model-value="(value) => (s3Spec.bucket = value)"
+          />
+          <TInput
+            title="Region"
+            :model-value="s3Spec.region || ''"
+            @update:model-value="(value) => (s3Spec.region = value)"
+          />
+          <div class="flex gap-5">
+            <TInput
+              title="Access Key ID"
+              type="password"
+              class="flex-shrinl flex-1"
+              :model-value="s3Spec.access_key_id || ''"
+              @update:model-value="(value) => (s3Spec.access_key_id = value)"
+            />
+            <TInput
+              title="Secret Access Key"
+              type="password"
+              class="flex-1"
+              :model-value="s3Spec.secret_access_key || ''"
+              @update:model-value="(value) => (s3Spec.secret_access_key = value)"
+            />
+          </div>
+          <TInput
+            title="Session Token"
+            :model-value="s3Spec.session_token || ''"
+            @update:model-value="(value) => (s3Spec.session_token = value)"
+          />
+          <div class="flex gap-2 place-self-end">
+            <TButton :disabled="!canManageBackupStore" @click="resetConfig">Reset</TButton>
+            <TButton :disabled="!canManageBackupStore" variant="highlighted" @click="updateConfig">
+              Save
+            </TButton>
+          </div>
+        </template>
       </div>
-      <template v-if="s3Spec">
-        <TInput
-          title="Endpoint"
-          :model-value="s3Spec.endpoint || ''"
-          @update:model-value="(value) => (s3Spec.endpoint = value)"
-        />
-        <TInput
-          title="Bucket"
-          :model-value="s3Spec.bucket || ''"
-          @update:model-value="(value) => (s3Spec.bucket = value)"
-        />
-        <TInput
-          title="Region"
-          :model-value="s3Spec.region || ''"
-          @update:model-value="(value) => (s3Spec.region = value)"
-        />
-        <div class="flex gap-5">
-          <TInput
-            title="Access Key ID"
-            type="password"
-            class="flex-shrinl flex-1"
-            :model-value="s3Spec.access_key_id || ''"
-            @update:model-value="(value) => (s3Spec.access_key_id = value)"
-          />
-          <TInput
-            title="Secret Access Key"
-            type="password"
-            class="flex-1"
-            :model-value="s3Spec.secret_access_key || ''"
-            @update:model-value="(value) => (s3Spec.secret_access_key = value)"
-          />
-        </div>
-        <TInput
-          title="Session Token"
-          :model-value="s3Spec.session_token || ''"
-          @update:model-value="(value) => (s3Spec.session_token = value)"
-        />
-        <div class="flex gap-2 place-self-end">
-          <TButton :disabled="!canManageBackupStore" @click="resetConfig">Reset</TButton>
-          <TButton :disabled="!canManageBackupStore" variant="highlighted" @click="updateConfig">
-            Save
-          </TButton>
-        </div>
-      </template>
+      <div v-else class="flex flex-1 items-center justify-center">
+        <TSpinner class="h-6 w-6" />
+      </div>
     </div>
-    <div v-else class="flex flex-1 items-center justify-center">
-      <TSpinner class="h-6 w-6" />
-    </div>
-  </div>
+  </PageContainer>
 </template>

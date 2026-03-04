@@ -7,13 +7,14 @@ import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import type { Resource } from '@/api/grpc'
-import type { IdentitySpec, UserSpec } from '@/api/omni/specs/auth.pb'
+import type { IdentitySpec } from '@/api/omni/specs/auth.pb'
 import {
   DefaultNamespace,
+  EphemeralNamespace,
+  IdentityStatusType,
   IdentityType,
   LabelIdentityUserID,
   SAMLLabelPrefix,
-  UserType,
 } from '@/api/resources'
 
 import Users from './Users.vue'
@@ -33,8 +34,8 @@ export const Default: Story = {
       handlers: [
         createWatchStreamHandler<IdentitySpec>({
           expectedOptions: {
-            type: IdentityType,
-            namespace: DefaultNamespace,
+            type: IdentityStatusType,
+            namespace: EphemeralNamespace,
           },
           totalResults: userIds.length,
           initialResources: ({ limit = 5, offset = 0 }) => {
@@ -62,26 +63,6 @@ export const Default: Story = {
               { count: limit },
             )
           },
-        }).handler,
-
-        createWatchStreamHandler<UserSpec>({
-          expectedOptions: {
-            type: UserType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: faker.helpers.multiple<Resource<UserSpec>>(
-            (_, i) => ({
-              spec: {
-                role: faker.person.jobType(),
-              },
-              metadata: {
-                type: UserType,
-                namespace: DefaultNamespace,
-                id: userIds[i],
-              },
-            }),
-            { count: userIds.length },
-          ),
         }).handler,
       ],
     },
