@@ -6,10 +6,10 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v1.4.0"
+previous = "v1.5.0"
 
 [notes.aaa-removed-deprecated-migration-flags]
-title = ""Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**""
+title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
 description = """\
 The deprecated flags and config fields that were kept for the SQLite migration period (introduced in v1.4.0) have been removed.
 
@@ -30,3 +30,156 @@ and circular buffer machine logs has also been removed. \
 If you are upgrading from a version older than v1.4.0, you must first upgrade to v1.4.x to complete the migrations, then upgrade to this version.
 """
 
+[notes.minimum-talos-version]
+title = "Minimum Talos Version Bump"
+description = """\
+The minimum supported Talos version for new clusters has been bumped to **1.8**.
+"""
+
+[notes.helm-chart-v2]
+title = "Helm Chart v2"
+description = """\
+A new Helm chart v2 has been implemented with improved structure and more configurable options.
+More configuration values are now exposed in the Helm chart, giving operators greater flexibility when deploying Omni.
+"""
+
+[notes.ca-rotation]
+title = "Talos and Kubernetes CA Rotation"
+description = """\
+Omni now supports rotating the Talos and Kubernetes Certificate Authorities for managed clusters.
+"""
+
+[notes.upgrade-parallelism]
+title = "Upgrade Parallelism"
+description = """\
+The upgrade parallelism for machine sets can now be configured via cluster templates and the UI, \
+allowing operators to control how many machines are upgraded concurrently.
+"""
+
+[notes.oidc-kubeconfig-isolation]
+title = "OIDC Token Cache Isolation for Kubeconfigs"
+description = """\
+Generated kubeconfigs now use isolated OIDC token caches, preventing token collisions between different kubeconfig users.
+"""
+
+[notes.saml-logout]
+title = "SAML Logout Flow"
+description = """\
+Omni now implements the SAML logout flow, properly terminating sessions with the SAML identity provider on sign-out.
+"""
+
+[notes.user-service-account-limits]
+title = "Configurable User and Service Account Limits"
+description = """\
+Operators can now enforce configurable limits on the number of users and service accounts that can be created in Omni.
+"""
+
+[notes.user-management-grpc]
+title = "User Management gRPC Endpoints"
+description = """\
+New `ManagementService` gRPC endpoints have been added for user operations, enabling programmatic user management.
+"""
+
+[notes.force-destroy]
+title = "Force Machine Destroy"
+description = """\
+A `--force` flag has been added to the machine destroy command (and a corresponding UI option) to forcibly remove \
+machines that are stuck or unresponsive.
+"""
+
+[notes.pending-machines]
+title = "Pending Machines"
+description = """\
+Machines that were previously rejected can now be unrejected from the UI, allowing them to be accepted into Omni.
+
+Rejected machines can also now be deleted directly from the UI.
+"""
+
+[notes.node-unique-token-reset]
+title = "Reset Node Unique Tokens"
+description = """\
+It is now possible to reset the unique token for a node, which can be useful for re-enrolling machines.
+"""
+
+[notes.machine-log-cleanup]
+title = "Machine Log Storage Cleanup"
+description = """\
+Global size-based cleanup has been added for machine log storage, preventing unbounded disk usage.
+Configurable options for audit log cleanup have also been added.
+"""
+
+[notes.user-activity-tracking]
+title = "User and Service Account Activity Tracking"
+description = """\
+Omni now tracks the last activity time for users and service accounts, providing better visibility into account usage.
+"""
+
+[notes.vault-custom-mount-path]
+title = "Custom Vault Kubernetes Auth Mount Path"
+description = """\
+The Vault Kubernetes authentication mount path is now configurable, supporting non-default Vault configurations.
+"""
+
+[notes.sqlite-metrics]
+title = "SQLite Metrics and Cleanup Counters"
+description = """\
+Metrics for the SQLite state backend have been exposed, along with cleanup counters for better observability.
+"""
+
+[notes.cluster-status-versions]
+title = "Talos and Kubernetes Versions in ClusterStatus"
+description = """\
+The `ClusterStatus` resource now includes `talos_version` and `kubernetes_version` fields, \
+making cluster version information available programmatically. They are now also shown \
+in the cluster list in the UI.
+"""
+
+[notes.installation-media-wizard]
+title = "Installation Media Wizard"
+description = """\
+The installation media flow now uses a wizard-based UI by default, replacing the previous modal dialog. \
+Presets may now also be saved, allowing for future reuse.
+
+<img width="1635" height="863" alt="wizard" src="https://github.com/user-attachments/assets/7f34350a-60f1-4cf2-93cb-e459563cbe72" />
+"""
+
+[notes.config-diffs-ui]
+title = "Pending and Historical Config Diffs in UI"
+description = """\
+The UI now shows pending and historical configuration diffs, making it easy to review what changed and when.
+
+<img width="1140" height="549" alt="diffs" src="https://github.com/user-attachments/assets/2b04cb8e-7f32-4f3a-9488-db4142ed38e7" />
+"""
+
+[notes.node-disk-info]
+title = "Detailed Node Disk Information"
+description = """\
+The node details page now shows detailed disk information, including disk model, size, and type.
+
+<img width="1145" height="602" alt="disks" src="https://github.com/user-attachments/assets/11199bfc-9359-43b7-8f3f-d7aa225e02c7" />
+"""
+
+[notes.node-pci-devices]
+title = "PCI Devices on Node Details"
+description = """\
+The node details page now includes a dedicated section listing all PCI devices present on the node.
+
+<img width="1159" height="649" alt="devices" src="https://github.com/user-attachments/assets/73e5b90d-131d-4eaf-91c0-c0b81c1a9b1b" />
+"""
+
+[notes.minor-ui-improvements]
+title = "Minor UI Improvements"
+description = """\
+Other minor UI improvements part of this release:
+
+* Talos and Kubernetes versions are now shown in the cluster list.
+* Node name and UUID are shown in the support bundle modal.
+* Machine set pools now have a collapse/expand toggle.
+* Cluster scaling has been moved to a modal dialog.
+* Getting started guidance and empty-state pages have been added for clusters, machines, and machine classes.
+* Instructions for adding machines and exporting cluster templates are now shown in the UI.
+* Clarification text has been added to backup settings.
+* YouTube video embedding is now supported in documentation/onboarding flows.
+* The frontend authentication flow no longer requires an explicit login click.
+* Resource labels use new colors for improved visual clarity.
+"""
