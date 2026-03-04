@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
 import type { Ref } from 'vue'
-import { computed, ref, toRefs, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type { WatchJoinOptions, WatchOptions } from '@/api/watch'
@@ -35,43 +35,42 @@ const emit = defineEmits<{
 
 const dots = '...'
 
-const props = defineProps<{
-  pagination?: boolean
-  search?: boolean
-  opts?: WatchOptions | WatchJoinOptions[] | object
-  sortOptions?: { id: string; desc: string; descending?: boolean }[]
-  filterOptions?: { query?: string; desc: string }[]
-  filterValue?: string
-  filterCaption?: string
-}>()
+const { pagination, search, opts, sortOptions, filterOptions, filterValue, filterCaption } =
+  defineProps<{
+    pagination?: boolean
+    search?: boolean
+    opts?: WatchOptions | WatchJoinOptions[] | object
+    sortOptions?: { id: string; desc: string; descending?: boolean }[]
+    filterOptions?: { query?: string; desc: string }[]
+    filterValue?: string
+    filterCaption?: string
+  }>()
 
 const itemsPerPage = [5, 10, 25, 50, 100]
 
 const sortOptionsVariants = computed(() => {
-  if (!props.sortOptions) {
+  if (!sortOptions) {
     return []
   }
 
-  return props.sortOptions.map((opt) => {
+  return sortOptions.map((opt) => {
     return opt.desc
   })
 })
 
 const filterOptionsVariants = computed(() => {
-  if (!props.filterOptions) {
+  if (!filterOptions) {
     return []
   }
 
-  return props.filterOptions.map((opt) => {
+  return filterOptions.map((opt) => {
     return opt.desc
   })
 })
 
-const { opts, filterValue } = toRefs(props)
-
 const items: Ref<Resource[]> = ref([])
 
-const optsList = props.opts as WatchJoinOptions[]
+const optsList = opts as WatchJoinOptions[]
 
 const filterValueInternal = ref('')
 const currentPage = ref(1)
@@ -86,7 +85,7 @@ watch(selectedFilterOption, () => {
 })
 
 const filterValueComputed = computed(() => {
-  return filterValue.value !== undefined ? filterValue.value : filterValueInternal.value
+  return filterValue !== undefined ? filterValue : filterValueInternal.value
 })
 
 const offset = computed(() => {
@@ -94,11 +93,11 @@ const offset = computed(() => {
 })
 
 const sortByState = computed(() => {
-  if (!props.sortOptions) {
+  if (!sortOptions) {
     return {}
   }
 
-  for (const opt of props.sortOptions) {
+  for (const opt of sortOptions) {
     if (opt.desc === selectedSortOption?.value) {
       return {
         sortByField: opt.id,
@@ -111,14 +110,14 @@ const sortByState = computed(() => {
 })
 
 const watchOptions = computed<WatchOptions>(() => {
-  const watchSingle = opts?.value
-  const watchJoin = opts?.value as WatchJoinOptions[]
+  const watchSingle = opts
+  const watchJoin = opts as WatchJoinOptions[]
 
   return (watchJoin?.length ? watchJoin[0] : watchSingle) as WatchOptions
 })
 
 const paginationState = computed(() => {
-  if (!props.pagination) {
+  if (!pagination) {
     return {}
   }
 
@@ -128,13 +127,8 @@ const paginationState = computed(() => {
   }
 })
 
-// reset the pagination when the search query changes
-watch(filterValue, () => {
-  currentPage.value = 1
-})
-
-const searchState = computed(() => {
-  if (!props.search) {
+const searchState = computed<Pick<WatchOptions, 'searchFor' | 'selectors'>>(() => {
+  if (!search) {
     return {}
   }
 
@@ -144,17 +138,12 @@ const searchState = computed(() => {
     return {}
   }
 
-  // do not proceed if the pagination is not reset yet - when the currentPage is reset, this will get triggered again
-  if (currentPage.value !== 1) {
-    return {}
-  }
-
   const parts = filterValueComputed.value.split(' ')
   const selectors: string[] = []
   const searchFor: string[] = []
 
   if (selectedFilterOption.value) {
-    const selectedOptionQuery = props.filterOptions?.find(
+    const selectedOptionQuery = filterOptions?.find(
       (item) => item.desc === selectedFilterOption.value,
     )?.query
 
@@ -186,6 +175,11 @@ const searchState = computed(() => {
   return res
 })
 
+// reset the pagination when the search query changes
+watch([() => opts, searchState], (curr, prev) => {
+  if (JSON.stringify(curr) !== JSON.stringify(prev)) currentPage.value = 1
+})
+
 const searchQuery = computed(() => {
   if (!searchState.value.searchFor) {
     return undefined
@@ -199,13 +193,13 @@ const setupWatch = () => {
 
   w.setup(
     computed(() => {
-      if (!opts?.value) {
+      if (!opts) {
         return
       }
 
       return {
         ...paginationState.value,
-        ...(opts.value as WatchOptions),
+        ...(opts as WatchOptions),
         ...searchState.value,
         ...sortByState.value,
       }
@@ -220,23 +214,23 @@ const setupJoinWatch = () => {
 
   w.setup(
     computed(() => {
-      if (!opts?.value) {
+      if (!opts) {
         return
       }
 
       return {
         ...paginationState.value,
-        ...(opts.value as WatchJoinOptions[])[0],
+        ...(opts as WatchJoinOptions[])[0],
         ...searchState.value,
         ...sortByState.value,
       }
     }),
     computed(() => {
-      if (!opts?.value) {
+      if (!opts) {
         return
       }
 
-      const o = opts.value as WatchJoinOptions[]
+      const o = opts as WatchJoinOptions[]
 
       return o.slice(1, o.length)
     }),
@@ -285,7 +279,7 @@ const totalPageCount = computed(() => {
 })
 
 const showPageSelector = computed(() => {
-  return props.pagination && totalPageCount.value > 1
+  return pagination && totalPageCount.value > 1
 })
 
 const prevPage = () => {
