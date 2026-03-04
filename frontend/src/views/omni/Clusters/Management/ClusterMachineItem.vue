@@ -275,13 +275,9 @@ ${isTalos112 ? talos112 : preTalos112}
               />
             </div>
           </template>
-          <div>
-            <MachineSetPicker
-              :options="options"
-              :machine-set-index="machineSetIndex"
-              @update:machine-set-index="(value) => (machineSetIndex = value)"
-            />
-          </div>
+
+          <MachineSetPicker v-model="machineSetIndex" :options="options" />
+
           <div class="flex items-center gap-1">
             <IconButton
               :id="

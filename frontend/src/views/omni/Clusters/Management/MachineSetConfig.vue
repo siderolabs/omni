@@ -22,7 +22,6 @@ import TInput from '@/components/common/TInput/TInput.vue'
 import { showModal } from '@/modal'
 import type { ConfigPatch, MachineSet } from '@/states/cluster-management'
 import { PatchID } from '@/states/cluster-management'
-import MachineSetLabel from '@/views/omni/Clusters/Management/MachineSetLabel.vue'
 import ConfigPatchEdit from '@/views/omni/Modals/ConfigPatchEdit.vue'
 
 import MachineSetConfigEdit from '../../Modals/MachineSetConfigEdit.vue'
@@ -160,11 +159,10 @@ const labelId = useId()
     class="my-1 flex items-center gap-2 rounded border border-naturals-n5 bg-naturals-n3 px-2 py-2 pr-3 text-xs text-naturals-n13"
     :aria-labelledby="labelId"
   >
-    <MachineSetLabel
-      :label-class="modelValue.labelClass"
-      class="w-10"
-      :machine-set-id="modelValue.id"
-    />
+    <div class="w-10">
+      <span class="resource-label" :class="modelValue.labelClass">{{ modelValue.id }}</span>
+    </div>
+
     <div class="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1">
       <div :id="labelId" class="w-32 truncate" :title="modelValue.name">
         {{ modelValue.name }}

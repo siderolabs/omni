@@ -12,8 +12,7 @@ import { computed, ref, useTemplateRef, watch } from 'vue'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-
-import MachineSetLabel from './MachineSetLabel.vue'
+import MachineSetLabel from '@/views/omni/Clusters/Management/MachineSetLabel.vue'
 
 export type PickerOption = {
   id: string
@@ -22,15 +21,11 @@ export type PickerOption = {
   name?: string
   disabled?: boolean
 }
-
-const emit = defineEmits<{
-  'update:machineSetIndex': [number | undefined]
-}>()
 const showPicker = ref(false)
 const optionsView = useTemplateRef('optionsView')
+const machineSetIndex = defineModel<number>()
 
-const { options, machineSetIndex } = defineProps<{
-  machineSetIndex?: number
+const { options } = defineProps<{
   options: PickerOption[]
 }>()
 
@@ -44,133 +39,103 @@ watch(
 )
 
 const pickedOption = computed(() => {
-  return machineSetIndex !== undefined ? options[machineSetIndex] : undefined
+  return machineSetIndex.value !== undefined ? options[machineSetIndex.value] : undefined
 })
 
-const onSelect = (index: number) => {
-  if (machineSetIndex === index) {
-    emit('update:machineSetIndex', undefined)
-  } else {
-    emit('update:machineSetIndex', index)
+/**
+ * Required to support toggling off currently selected item
+ */
+function toggleOption(option: PickerOption, index: number, checked: boolean) {
+  if (!option.disabled) {
+    machineSetIndex.value = checked ? undefined : index
   }
-
-  showPicker.value = false
 }
 </script>
 
 <template>
-  <div>
-    <RadioGroup
-      v-if="options.length < 8"
-      :model-value="machineSetIndex"
-      class="flex gap-0.5 rounded bg-naturals-n3 p-1"
-      @update:model-value="(value) => emit('update:machineSetIndex', value)"
+  <RadioGroup
+    v-if="options.length < 8"
+    v-model="machineSetIndex"
+    class="flex gap-0.5 rounded bg-naturals-n3 p-1"
+  >
+    <RadioGroupOption
+      v-for="(option, index) in options"
+      :key="index"
+      v-slot="{ checked }"
+      :value="index"
+      :disabled="option.disabled"
     >
-      <RadioGroupOption
-        v-for="(option, index) in options"
-        :key="index"
-        :value="index"
-        as="template"
-        :disabled="option.disabled"
-      >
-        <div @click="() => onSelect(index)">
-          <Tooltip placement="left" :description="option.tooltip">
-            <div class="relative">
-              <MachineSetLabel
-                :id="option.id"
-                class="machine-set-label opacity-75 transition-opacity hover:opacity-100"
-                :label-class="option.labelClass"
-                :class="{
-                  'opacity-100': machineSetIndex === index && !option.disabled,
-                  disabled: option?.disabled,
-                }"
-                :machine-set-id="option.id"
-                :disabled="option?.disabled"
-              />
-              <div
-                v-if="machineSetIndex === index"
-                class="pointer-events-none absolute top-0 right-0 bottom-0 left-0 rounded border border-white bg-naturals-n12 mix-blend-overlay"
-              />
-            </div>
-          </Tooltip>
-        </div>
-      </RadioGroupOption>
-    </RadioGroup>
+      <Tooltip placement="left" :description="option.tooltip">
+        <MachineSetLabel
+          :label-class="option.labelClass"
+          :disabled="option.disabled"
+          :checked="checked"
+          @click.stop="toggleOption(option, index, checked)"
+        >
+          {{ option.id }}
+        </MachineSetLabel>
+      </Tooltip>
+    </RadioGroupOption>
+  </RadioGroup>
 
-    <div v-else class="relative flex h-8 items-center justify-center rounded bg-naturals-n3">
-      <PopoverRoot v-model:open="showPicker">
-        <PopoverPortal>
-          <PopoverContent
-            side="left"
-            class="flex origin-(--reka-popover-content-transform-origin) flex-col items-center gap-1 rounded bg-naturals-n3 p-1 text-xs slide-in-from-right-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
-          >
-            <IconButton
-              icon="arrow-up"
-              @click="optionsView?.$el.scrollBy({ top: -24, behavior: 'smooth' })"
-            />
-            <RadioGroup
-              ref="optionsView"
-              :model-value="machineSetIndex"
-              class="no-scrollbar scroll flex h-30 flex-col items-center gap-0.5 overflow-y-auto"
-              @update:model-value="(value) => emit('update:machineSetIndex', value)"
-              @scroll.stop
-            >
-              <RadioGroupOption
-                v-for="(option, index) in options"
-                :key="index"
-                v-slot="{ checked }"
-                :value="index"
-                as="template"
-                :disabled="option.disabled"
-              >
-                <div @click="() => onSelect(index)">
-                  <Tooltip :description="option.tooltip" placement="left">
-                    <div class="relative">
-                      <MachineSetLabel
-                        class="machine-set-label opacity-75 transition-opacity hover:opacity-100"
-                        :label-class="option.labelClass"
-                        :class="{
-                          'opacity-100': checked && !option.disabled,
-                          disabled: option?.disabled,
-                        }"
-                        :machine-set-id="option.id"
-                        :disabled="option?.disabled"
-                      />
-                      <div
-                        v-if="checked"
-                        class="pointer-events-none absolute top-0 right-0 bottom-0 left-0 rounded border border-white bg-naturals-n12 mix-blend-overlay"
-                      />
-                    </div>
-                  </Tooltip>
-                </div>
-              </RadioGroupOption>
-            </RadioGroup>
-            <IconButton
-              icon="arrow-down"
-              @click="optionsView?.$el.scrollBy({ top: 24, behavior: 'smooth' })"
-            />
-          </PopoverContent>
-        </PopoverPortal>
-
-        <PopoverTrigger class="group flex h-6 items-center gap-1 px-1">
-          <TIcon
-            icon="arrow-left"
-            class="mx-1 h-3 w-3 text-naturals-n7 transition-all group-hover:scale-125 group-hover:text-naturals-n14"
+  <div v-else class="relative flex h-8 items-center justify-center rounded bg-naturals-n3">
+    <PopoverRoot v-model:open="showPicker">
+      <PopoverPortal>
+        <PopoverContent
+          side="left"
+          class="flex origin-(--reka-popover-content-transform-origin) flex-col items-center gap-1 rounded bg-naturals-n3 p-1 text-xs slide-in-from-right-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+        >
+          <IconButton
+            icon="arrow-up"
+            @click="optionsView?.$el.scrollBy({ top: -24, behavior: 'smooth' })"
           />
-          <template v-if="pickedOption">
-            <MachineSetLabel
-              :machine-set-id="pickedOption?.id"
-              :label-class="pickedOption?.labelClass"
-            />
-            <IconButton
-              icon="close"
-              @click.stop="() => emit('update:machineSetIndex', undefined)"
-            />
-          </template>
-          <IconButton v-else icon="action-horizontal" />
-        </PopoverTrigger>
-      </PopoverRoot>
-    </div>
+          <RadioGroup
+            ref="optionsView"
+            v-model="machineSetIndex"
+            class="no-scrollbar scroll flex h-30 flex-col items-center gap-0.5 overflow-y-auto"
+            @scroll.stop
+          >
+            <RadioGroupOption
+              v-for="(option, index) in options"
+              :key="index"
+              v-slot="{ checked }"
+              :value="index"
+              :disabled="option.disabled"
+            >
+              <Tooltip :description="option.tooltip" placement="left">
+                <MachineSetLabel
+                  :label-class="option.labelClass"
+                  :disabled="option.disabled"
+                  :checked="checked"
+                  @click="showPicker = false"
+                >
+                  {{ option.id }}
+                </MachineSetLabel>
+              </Tooltip>
+            </RadioGroupOption>
+          </RadioGroup>
+          <IconButton
+            icon="arrow-down"
+            @click="optionsView?.$el.scrollBy({ top: 24, behavior: 'smooth' })"
+          />
+        </PopoverContent>
+      </PopoverPortal>
+
+      <PopoverTrigger class="group flex h-6 items-center gap-1 px-1">
+        <TIcon
+          icon="arrow-left"
+          class="mx-1 h-3 w-3 text-naturals-n7 transition-all group-hover:scale-125 group-hover:text-naturals-n14"
+        />
+        <template v-if="pickedOption">
+          <span class="resource-label" :class="pickedOption.labelClass">
+            {{ pickedOption.id }}
+          </span>
+
+          <IconButton icon="close" @click.stop="machineSetIndex = undefined" />
+        </template>
+        <IconButton v-else icon="action-horizontal" />
+      </PopoverTrigger>
+    </PopoverRoot>
   </div>
 </template>
 
