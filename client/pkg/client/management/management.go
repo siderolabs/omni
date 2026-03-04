@@ -69,6 +69,21 @@ func WithBreakGlassKubeconfig(value bool) KubeconfigOption {
 	}
 }
 
+// WithOIDCCacheBaseDir sets the base cache directory for kubelogin in generated kubeconfigs.
+func WithOIDCCacheBaseDir(dir string) KubeconfigOption {
+	return func(request *management.KubeconfigRequest) {
+		request.OidcCacheBaseDir = dir
+	}
+}
+
+// WithOIDCCacheIsolation sets whether to append a per-context subdirectory to the cache directory,
+// isolating OIDC token caches across clusters.
+func WithOIDCCacheIsolation(value bool) KubeconfigOption {
+	return func(request *management.KubeconfigRequest) {
+		request.OidcCacheIsolation = value
+	}
+}
+
 // Client for Management API .
 type Client struct {
 	conn management.ManagementServiceClient

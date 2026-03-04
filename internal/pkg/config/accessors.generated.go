@@ -622,6 +622,28 @@ func (s *KubernetesProxyService) SetKeyFile(v string) {
 	s.KeyFile = &v
 }
 
+func (s *KubernetesProxyService) GetOidcCacheBaseDir() string {
+	if s == nil || s.OidcCacheBaseDir == nil {
+		return *new(string)
+	}
+	return *s.OidcCacheBaseDir
+}
+
+func (s *KubernetesProxyService) SetOidcCacheBaseDir(v string) {
+	s.OidcCacheBaseDir = &v
+}
+
+func (s *KubernetesProxyService) GetOidcCacheIsolation() bool {
+	if s == nil || s.OidcCacheIsolation == nil {
+		return *new(bool)
+	}
+	return *s.OidcCacheIsolation
+}
+
+func (s *KubernetesProxyService) SetOidcCacheIsolation(v bool) {
+	s.OidcCacheIsolation = &v
+}
+
 func (s *LoadBalancerService) GetDialTimeout() time.Duration {
 	if s == nil || s.DialTimeout == nil {
 		return *new(time.Duration)

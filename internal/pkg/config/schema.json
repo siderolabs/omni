@@ -270,6 +270,14 @@
         "keyFile": {
           "description": "KeyFile is the path to the TLS key file for the Kubernetes proxy service.",
           "type": "string"
+        },
+        "oidcCacheBaseDir": {
+          "description": "OidcCacheBaseDir overrides the base cache directory for kubelogin in generated kubeconfigs. When empty, kubelogin uses its default (~/.kube/cache/oidc-login).",
+          "type": "string"
+        },
+        "oidcCacheIsolation": {
+          "description": "OidcCacheIsolation isolates OIDC token caches across clusters by appending a per-context subdirectory to the cache directory in generated kubeconfigs.",
+          "type": "boolean"
         }
       }
     },

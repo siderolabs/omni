@@ -189,6 +189,11 @@ func defineServiceFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, f
 
 	rootCmdFlagBinder.StringVar("advertised-kubernetes-proxy-url", flagDescription("services.kubernetesProxy.advertisedURL", schema), &flagConfig.Services.KubernetesProxy.AdvertisedURL)
 
+	rootCmdFlagBinder.StringVar("kubeconfig-oidc-cache-base-dir",
+		flagDescription("services.kubernetesProxy.oidcCacheBaseDir", schema), &flagConfig.Services.KubernetesProxy.OidcCacheBaseDir)
+	rootCmdFlagBinder.BoolVar("kubeconfig-oidc-cache-isolation",
+		flagDescription("services.kubernetesProxy.oidcCacheIsolation", schema), &flagConfig.Services.KubernetesProxy.OidcCacheIsolation)
+
 	// Siderolink
 	rootCmdFlagBinder.StringVar("siderolink-wireguard-bind-addr", flagDescription("services.siderolink.wireGuard.endpoint", schema), &flagConfig.Services.Siderolink.WireGuard.Endpoint)
 	rootCmdFlagBinder.StringVar("siderolink-wireguard-advertised-addr",

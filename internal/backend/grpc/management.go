@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -58,6 +59,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/config"
 	siderolinkinternal "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -86,48 +88,41 @@ type JWTSigningKeyProvider interface {
 	SigningKey(ctx context.Context) (op.SigningKey, error)
 }
 
-func newManagementServer(omniState state.State, jwtSigningKeyProvider JWTSigningKeyProvider, logHandler *siderolinkinternal.LogHandler, logger *zap.Logger,
-	dnsService *dns.Service, imageFactoryClient *imagefactory.Client, auditor AuditLogger, omniconfigDest string, talosRegistry string,
-	accountName string, k8sProxyURL string, enableBreakGlassConfigs bool,
+func newManagementServer(cfg *config.Params, omniState state.State, jwtSigningKeyProvider JWTSigningKeyProvider, logHandler *siderolinkinternal.LogHandler, logger *zap.Logger,
+	dnsService *dns.Service, imageFactoryClient *imagefactory.Client, auditor AuditLogger, omniconfigDest string,
 	kubernetesRuntime KubernetesRuntime, talosRuntime TalosRuntime, talosconfigProvider TalosconfigProvider,
 ) *managementServer {
 	return &managementServer{
-		omniState:               omniState,
-		jwtSigningKeyProvider:   jwtSigningKeyProvider,
-		logHandler:              logHandler,
-		logger:                  logger,
-		dnsService:              dnsService,
-		imageFactoryClient:      imageFactoryClient,
-		auditor:                 auditor,
-		omniconfigDest:          omniconfigDest,
-		talosRegistry:           talosRegistry,
-		accountName:             accountName,
-		k8sProxyURL:             k8sProxyURL,
-		enableBreakGlassConfigs: enableBreakGlassConfigs,
-		kubernetesRuntime:       kubernetesRuntime,
-		talosRuntime:            talosRuntime,
-		talosconfigProvider:     talosconfigProvider,
+		cfg:                   cfg,
+		omniState:             omniState,
+		jwtSigningKeyProvider: jwtSigningKeyProvider,
+		logHandler:            logHandler,
+		logger:                logger,
+		dnsService:            dnsService,
+		imageFactoryClient:    imageFactoryClient,
+		auditor:               auditor,
+		omniconfigDest:        omniconfigDest,
+		kubernetesRuntime:     kubernetesRuntime,
+		talosRuntime:          talosRuntime,
+		talosconfigProvider:   talosconfigProvider,
 	}
 }
 
 // managementServer implements omni management service.
 type managementServer struct {
 	management.UnimplementedManagementServiceServer
-	kubernetesRuntime       KubernetesRuntime
-	omniState               state.State
-	jwtSigningKeyProvider   JWTSigningKeyProvider
-	auditor                 AuditLogger
-	talosconfigProvider     TalosconfigProvider
-	talosRuntime            TalosRuntime
-	logHandler              *siderolinkinternal.LogHandler
-	logger                  *zap.Logger
-	dnsService              *dns.Service
-	imageFactoryClient      *imagefactory.Client
-	omniconfigDest          string
-	k8sProxyURL             string
-	accountName             string
-	talosRegistry           string
-	enableBreakGlassConfigs bool
+	cfg                   *config.Params
+	kubernetesRuntime     KubernetesRuntime
+	omniState             state.State
+	jwtSigningKeyProvider JWTSigningKeyProvider
+	auditor               AuditLogger
+	talosconfigProvider   TalosconfigProvider
+	talosRuntime          TalosRuntime
+	logHandler            *siderolinkinternal.LogHandler
+	logger                *zap.Logger
+	dnsService            *dns.Service
+	imageFactoryClient    *imagefactory.Client
+	omniconfigDest        string
 }
 
 func (s *managementServer) register(server grpc.ServiceRegistrar) {
@@ -181,6 +176,29 @@ func (s *managementServer) Kubeconfig(ctx context.Context, req *management.Kubec
 			"grant-type=" + req.GrantType,
 			"oidc-redirect-url=urn:ietf:wg:oauth:2.0:oob",
 		}
+	}
+
+	// Resolve OIDC cache directory: request fields (from omnictl) take priority over server config.
+	cacheDir := req.OidcCacheBaseDir
+	if cacheDir == "" {
+		cacheDir = s.cfg.Services.KubernetesProxy.GetOidcCacheBaseDir()
+	}
+
+	cacheIsolation := req.OidcCacheIsolation
+	if !cacheIsolation {
+		cacheIsolation = s.cfg.Services.KubernetesProxy.GetOidcCacheIsolation()
+	}
+
+	if cacheIsolation {
+		if cacheDir == "" {
+			cacheDir = filepath.Join("~", ".kube", "cache", "oidc-login")
+		}
+
+		cacheDir = filepath.Join(cacheDir, s.cfg.Account.GetName()+"-"+commonContext.Name+"-"+authResult.Identity)
+	}
+
+	if cacheDir != "" {
+		extraOptions = append(extraOptions, "token-cache-dir="+cacheDir)
 	}
 
 	kubeconfig, err := s.kubernetesRuntime.GetOIDCKubeconfig(commonContext, authResult.Identity, extraOptions...)
@@ -327,7 +345,7 @@ func (s *managementServer) getBreakGlass(ctx context.Context, clusterName string
 }
 
 func (s *managementServer) breakGlassTalosconfig(ctx context.Context, raw bool) (*management.TalosconfigResponse, error) {
-	if !constants.IsDebugBuild && !s.enableBreakGlassConfigs {
+	if !constants.IsDebugBuild && !s.cfg.Features.GetEnableBreakGlassConfigs() {
 		return nil, status.Error(codes.PermissionDenied, "not allowed")
 	}
 
@@ -369,7 +387,7 @@ func (s *managementServer) breakGlassKubeconfig(ctx context.Context) (*managemen
 		return nil, err
 	}
 
-	if !constants.IsDebugBuild && !s.enableBreakGlassConfigs {
+	if !constants.IsDebugBuild && !s.cfg.Features.GetEnableBreakGlassConfigs() {
 		return nil, status.Error(codes.PermissionDenied, "not allowed")
 	}
 
@@ -690,7 +708,7 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 		SecurityState:        securityState,
 	}
 
-	installImageStr, err := installimage.Build(s.imageFactoryClient.Host(), req.MachineId, installImage, s.talosRegistry)
+	installImageStr, err := installimage.Build(s.imageFactoryClient.Host(), req.MachineId, installImage, s.cfg.Registries.GetTalos())
 	if err != nil {
 		return nil, fmt.Errorf("failed to build install image: %w", err)
 	}

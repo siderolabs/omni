@@ -779,6 +779,8 @@ type KubeconfigRequest struct {
 	ServiceAccountGroups []string               `protobuf:"bytes,4,rep,name=service_account_groups,json=serviceAccountGroups,proto3" json:"service_account_groups,omitempty"`
 	GrantType            string                 `protobuf:"bytes,5,opt,name=grant_type,json=grantType,proto3" json:"grant_type,omitempty"`
 	BreakGlass           bool                   `protobuf:"varint,6,opt,name=break_glass,json=breakGlass,proto3" json:"break_glass,omitempty"`
+	OidcCacheBaseDir     string                 `protobuf:"bytes,7,opt,name=oidc_cache_base_dir,json=oidcCacheBaseDir,proto3" json:"oidc_cache_base_dir,omitempty"`
+	OidcCacheIsolation   bool                   `protobuf:"varint,8,opt,name=oidc_cache_isolation,json=oidcCacheIsolation,proto3" json:"oidc_cache_isolation,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -851,6 +853,20 @@ func (x *KubeconfigRequest) GetGrantType() string {
 func (x *KubeconfigRequest) GetBreakGlass() bool {
 	if x != nil {
 		return x.BreakGlass
+	}
+	return false
+}
+
+func (x *KubeconfigRequest) GetOidcCacheBaseDir() string {
+	if x != nil {
+		return x.OidcCacheBaseDir
+	}
+	return ""
+}
+
+func (x *KubeconfigRequest) GetOidcCacheIsolation() bool {
+	if x != nil {
+		return x.OidcCacheIsolation
 	}
 	return false
 }
@@ -2655,7 +2671,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\aarmored\x18\x02 \x01(\tR\aarmored\x12:\n" +
 	"\n" +
 	"expiration\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"expirationJ\x04\b\x03\x10\x04\"\xaf\x02\n" +
+	"expirationJ\x04\b\x03\x10\x04\"\x90\x03\n" +
 	"\x11KubeconfigRequest\x12'\n" +
 	"\x0fservice_account\x18\x01 \x01(\bR\x0eserviceAccount\x12I\n" +
 	"\x13service_account_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x11serviceAccountTtl\x120\n" +
@@ -2664,7 +2680,9 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\n" +
 	"grant_type\x18\x05 \x01(\tR\tgrantType\x12\x1f\n" +
 	"\vbreak_glass\x18\x06 \x01(\bR\n" +
-	"breakGlass\"D\n" +
+	"breakGlass\x12-\n" +
+	"\x13oidc_cache_base_dir\x18\a \x01(\tR\x10oidcCacheBaseDir\x120\n" +
+	"\x14oidc_cache_isolation\x18\b \x01(\bR\x12oidcCacheIsolation\"D\n" +
 	"!KubernetesUpgradePreChecksRequest\x12\x1f\n" +
 	"\vnew_version\x18\x01 \x01(\tR\n" +
 	"newVersion\"L\n" +

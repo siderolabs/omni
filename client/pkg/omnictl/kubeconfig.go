@@ -39,12 +39,14 @@ var kubeconfigCmdFlags struct {
 	forceContextName     string
 	serviceAccountUser   string
 	grantType            string
+	oidcCacheBaseDir     string
 	serviceAccountGroups []string
 	serviceAccountTTL    time.Duration
 	force                bool
 	merge                bool
 	serviceAccount       bool
 	breakGlass           bool
+	oidcCacheIsolation   bool
 }
 
 var allGrantTypes = strings.Join([]string{
@@ -140,6 +142,8 @@ func getKubeconfig(args []string) func(ctx context.Context, client *client.Clien
 		opts = append(opts,
 			management.WithGrantType(kubeconfigCmdFlags.grantType),
 			management.WithBreakGlassKubeconfig(kubeconfigCmdFlags.breakGlass),
+			management.WithOIDCCacheBaseDir(kubeconfigCmdFlags.oidcCacheBaseDir),
+			management.WithOIDCCacheIsolation(kubeconfigCmdFlags.oidcCacheIsolation),
 		)
 
 		data, err := client.Management().WithCluster(kubeconfigCmdFlags.cluster).Kubeconfig(ctx, opts...)
@@ -247,6 +251,10 @@ func init() {
 		fmt.Sprintf("group to be used in the service account token (groups). only used when --%s is set to true", serviceAccountFlag))
 	kubeconfigCmd.Flags().StringVar(&kubeconfigCmdFlags.grantType, "grant-type", "", fmt.Sprintf("Authorization grant type to use. One of (%s)", allGrantTypes))
 	kubeconfigCmd.Flags().BoolVar(&kubeconfigCmdFlags.breakGlass, "break-glass", false, "get kubeconfig that allows accessing nodes bypasing Omni (if enabled for the account)")
+	kubeconfigCmd.Flags().StringVar(&kubeconfigCmdFlags.oidcCacheBaseDir, "oidc-cache-base-dir", "",
+		"override the base cache directory for kubelogin in the generated kubeconfig")
+	kubeconfigCmd.Flags().BoolVar(&kubeconfigCmdFlags.oidcCacheIsolation, "oidc-cache-isolation", false,
+		"isolate OIDC token caches across clusters by appending a per-context subdirectory to the cache directory")
 
 	kubeconfigCmd.MarkFlagRequired("cluster") //nolint:errcheck
 

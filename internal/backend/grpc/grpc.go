@@ -54,16 +54,12 @@ func MakeServiceServers(
 	imageFactoryClient *imagefactory.Client,
 	logger *zap.Logger,
 	auditor AuditLogger,
-	services config.Services,
-	talosRegistry string,
-	accountName string,
-	k8sProxyURL string,
-	enableBreakGlassConfigs bool,
+	cfg *config.Params,
 	kubernetesRuntime KubernetesRuntime,
 	talosRuntime TalosRuntime,
 	runtimes map[string]runtime.Runtime,
 ) iter.Seq2[ServiceServer, error] {
-	dest, err := generateDest(services.Api.URL())
+	dest, err := generateDest(cfg.Services.Api.URL())
 	if err != nil {
 		return func(yield func(ServiceServer, error) bool) {
 			yield(nil, fmt.Errorf("error generating destination: %w", err))
@@ -72,7 +68,7 @@ func MakeServiceServers(
 
 	auth, err := newAuthServer(
 		state,
-		services,
+		cfg.Services,
 		logger.With(logging.Component("auth_server")),
 	)
 	if err != nil {
@@ -91,6 +87,7 @@ func MakeServiceServers(
 			provider: oidcProvider,
 		},
 		newManagementServer(
+			cfg,
 			omniRuntime.ValidatedState(),
 			jwtSigningKeyProvider,
 			logHandler,
@@ -99,10 +96,6 @@ func MakeServiceServers(
 			imageFactoryClient,
 			auditor,
 			dest,
-			talosRegistry,
-			accountName,
-			k8sProxyURL,
-			enableBreakGlassConfigs,
 			kubernetesRuntime,
 			talosRuntime,
 			omniRuntime,

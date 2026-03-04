@@ -295,6 +295,14 @@ type KubernetesProxyService struct {
 
 	// KeyFile is the path to the TLS key file for the Kubernetes proxy service.
 	KeyFile *string `json:"keyFile,omitempty" yaml:"keyFile,omitempty"`
+
+	// OidcCacheBaseDir overrides the base cache directory for kubelogin in generated
+	// kubeconfigs. When empty, kubelogin uses its default (~/.kube/cache/oidc-login).
+	OidcCacheBaseDir *string `json:"oidcCacheBaseDir,omitempty" yaml:"oidcCacheBaseDir,omitempty"`
+
+	// OidcCacheIsolation isolates OIDC token caches across clusters by appending a
+	// per-context subdirectory to the cache directory in generated kubeconfigs.
+	OidcCacheIsolation *bool `json:"oidcCacheIsolation,omitempty" yaml:"oidcCacheIsolation,omitempty"`
 }
 
 type LoadBalancerService struct {

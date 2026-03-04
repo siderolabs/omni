@@ -253,7 +253,7 @@ func (s *managementServer) generateServiceAccountJWT(ctx context.Context, req *m
 	now := time.Now()
 	token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
 		"iat":          now.Unix(),
-		"iss":          fmt.Sprintf("omni-%s-service-account-issuer", s.accountName),
+		"iss":          fmt.Sprintf("omni-%s-service-account-issuer", s.cfg.Account.GetName()),
 		"exp":          now.Add(req.GetServiceAccountTtl().AsDuration()).Unix(),
 		"sub":          req.GetServiceAccountUser(),
 		"groups":       req.GetServiceAccountGroups(),
@@ -267,7 +267,7 @@ func (s *managementServer) generateServiceAccountJWT(ctx context.Context, req *m
 }
 
 func (s *managementServer) buildServiceAccountKubeconfig(cluster, user, token string) ([]byte, error) {
-	clusterName := s.accountName + "-" + cluster + "-" + user
+	clusterName := s.cfg.Account.GetName() + "-" + cluster + "-" + user
 	contextName := clusterName
 
 	conf := clientcmdapi.Config{
@@ -276,7 +276,7 @@ func (s *managementServer) buildServiceAccountKubeconfig(cluster, user, token st
 		CurrentContext: contextName,
 		Clusters: map[string]*clientcmdapi.Cluster{
 			clusterName: {
-				Server: s.k8sProxyURL,
+				Server: s.cfg.Services.KubernetesProxy.URL(),
 			},
 		},
 		Contexts: map[string]*clientcmdapi.Context{

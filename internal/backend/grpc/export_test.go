@@ -23,12 +23,12 @@ func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client
 	enableBreakGlassConfigs bool, kubernetesRuntime KubernetesRuntime, talosconfigProvider TalosconfigProvider,
 ) *ManagementServer {
 	return &ManagementServer{
-		omniState:               st,
-		imageFactoryClient:      imageFactoryClient,
-		logger:                  logger,
-		enableBreakGlassConfigs: enableBreakGlassConfigs,
-		kubernetesRuntime:       kubernetesRuntime,
-		talosconfigProvider:     talosconfigProvider,
+		omniState:           st,
+		imageFactoryClient:  imageFactoryClient,
+		logger:              logger,
+		cfg:                 &config.Params{Features: config.Features{EnableBreakGlassConfigs: new(enableBreakGlassConfigs)}},
+		kubernetesRuntime:   kubernetesRuntime,
+		talosconfigProvider: talosconfigProvider,
 	}
 }
 

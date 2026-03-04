@@ -96,6 +96,8 @@ message KubeconfigRequest {
   repeated string service_account_groups = 4;
   string grant_type = 5;
   bool break_glass = 6;
+  string oidc_cache_base_dir = 7;
+  bool oidc_cache_isolation = 8;
 }
 
 message KubernetesUpgradePreChecksRequest {

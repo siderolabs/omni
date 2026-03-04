@@ -287,7 +287,7 @@ users:
 - name: {{ .InstanceName }}-{{ .ClusterName }}{{- if .Identity }}-{{ .Identity }}{{ end }}
   user:
     exec:
-      apiVersion: client.authentication.k8s.io/v1beta1
+      apiVersion: client.authentication.k8s.io/v1
       args:
         - oidc-login
         - get-token
@@ -299,6 +299,7 @@ users:
         {{- end }}
       command: kubectl
       env: null
+      interactiveMode: IfAvailable
       provideClusterInfo: false
 `) + "\n"
 

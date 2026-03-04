@@ -60,6 +60,12 @@ var oidcKubeconfig2 []byte
 //go:embed testdata/oidc-kubeconfig3.yaml
 var oidcKubeconfig3 []byte
 
+//go:embed testdata/oidc-kubeconfig4.yaml
+var oidcKubeconfig4 []byte
+
+//go:embed testdata/oidc-kubeconfig5.yaml
+var oidcKubeconfig5 []byte
+
 //go:embed testdata/admin-kubeconfig.yaml
 var adminKubeconfig []byte
 
@@ -99,6 +105,30 @@ func TestOIDCKubeconfigWithExtraOptions(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, string(oidcKubeconfig3), string(kubeconfig))
+}
+
+func TestOIDCKubeconfigWithCacheDir(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095")
+
+	kubeconfig, err := r.GetOIDCKubeconfig(&common.Context{
+		Name: "cluster1",
+	}, "test@example.com", "token-cache-dir=/tmp/oidc-cache")
+	require.NoError(t, err)
+
+	assert.Equal(t, string(oidcKubeconfig4), string(kubeconfig))
+}
+
+func TestOIDCKubeconfigWithCacheIsolation(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	r := kubernetes.New(nil, logger, "http://localhost:8080/oidc", "default", "https://localhost:8095")
+
+	kubeconfig, err := r.GetOIDCKubeconfig(&common.Context{
+		Name: "cluster1",
+	}, "test@example.com", "token-cache-dir=~/.kube/cache/oidc-login/default-cluster1-test@example.com")
+	require.NoError(t, err)
+
+	assert.Equal(t, string(oidcKubeconfig5), string(kubeconfig))
 }
 
 func TestBreakGlassKubeconfig(t *testing.T) {
