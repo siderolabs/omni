@@ -30,6 +30,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 )
 
 // Controller creates omni.ClusterSecrets for each inputed omni.Cluster.
@@ -98,22 +99,12 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *Controller {
 				// - the controller proceeds to create a new bundle
 				// t3: ImportedClusterSecrets notification wakes up the controller, but the bundle is already there, the controller does not do anything
 
-				uncachedReader, ok := r.(controller.UncachedReader)
-				if !ok {
-					return fmt.Errorf("reader does not support uncached reads")
-				}
-
-				icsRes, err := uncachedReader.GetUncached(ctx, omni.NewImportedClusterSecrets(cluster.Metadata().ID()).Metadata())
+				ics, err := safe.ReaderGetByID[*omni.ImportedClusterSecrets](ctx, uncached.Reader(r), cluster.Metadata().ID())
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
 				}
 
-				if icsRes != nil {
-					ics, icsOk := icsRes.(*omni.ImportedClusterSecrets)
-					if !icsOk {
-						return fmt.Errorf("unexpected resource type: %T", icsRes)
-					}
-
+				if ics != nil {
 					var bundle *talossecrets.Bundle
 
 					bundle, err = omni.FromImportedSecretsToSecretsBundle(ics)

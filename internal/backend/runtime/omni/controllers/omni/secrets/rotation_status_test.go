@@ -1055,6 +1055,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 					)))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer")))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
+				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil)))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				machineServices := testutils.NewMachineServices(t, testContext.State)

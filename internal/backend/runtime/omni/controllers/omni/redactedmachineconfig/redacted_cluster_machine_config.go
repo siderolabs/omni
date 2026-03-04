@@ -27,6 +27,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 )
 
 // ControllerName is the name of Controller.
@@ -210,16 +211,7 @@ func (ctrl *Controller) reconcileRunning(ctx context.Context, r controller.Reade
 }
 
 func (ctrl *Controller) reconcileTearingDown(ctx context.Context, r controller.ReaderWriter, cmc *omni.ClusterMachineConfig) error {
-	var listFunc func(context.Context, resource.Kind, ...state.ListOption) (resource.List, error)
-
-	uncachedReader, ok := r.(controller.UncachedReader)
-	if ok {
-		listFunc = uncachedReader.ListUncached
-	} else {
-		listFunc = r.List
-	}
-
-	list, err := listFunc(ctx, omni.NewMachineConfigDiff("").Metadata(), state.WithLabelQuery(resource.LabelEqual(omni.LabelMachine, cmc.Metadata().ID())))
+	list, err := uncached.ReaderWriter(r).List(ctx, omni.NewMachineConfigDiff("").Metadata(), state.WithLabelQuery(resource.LabelEqual(omni.LabelMachine, cmc.Metadata().ID())))
 	if err != nil {
 		return fmt.Errorf("failed to list diffs for machine config %q: %w", cmc.Metadata().ID(), err)
 	}

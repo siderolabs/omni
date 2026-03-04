@@ -35,8 +35,7 @@ func TestUserMetrics(t *testing.T) {
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
 		func(_ context.Context, testContext testutils.TestContext) {
 			require.NoError(t, testContext.Runtime.RegisterController(ctrl))
-		},
-		func(ctx context.Context, testContext testutils.TestContext) {
+
 			st := testContext.State
 
 			// User active 1 day ago (within both 7d and 30d windows).
@@ -96,7 +95,8 @@ func TestUserMetrics(t *testing.T) {
 				options.WithID("mysa@serviceaccount.omni.sidero.dev"),
 				options.EmptyLabel(authres.LabelIdentityTypeServiceAccount),
 			)
-
+		},
+		func(ctx context.Context, testContext testutils.TestContext) {
 			registry := prometheus.NewRegistry()
 			registry.MustRegister(ctrl)
 

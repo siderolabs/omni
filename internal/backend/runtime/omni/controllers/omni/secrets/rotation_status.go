@@ -33,6 +33,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/secretrotation"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/sequence"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 )
 
 // RotationStatusControllerName is the name of the SecretRotationStatusController.
@@ -167,6 +168,29 @@ func (s *Rotator) createInitialStage(currentPhase specs.SecretRotationSpec_Phase
 		clusterSecrets := sequenceContext.Input
 		rotationStatus := sequenceContext.Output
 
+		rotateTalosCA, err := safe.ReaderGetByID[*omni.RotateTalosCA](ctx, r, clusterSecrets.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		version, _ := rotationStatus.Metadata().Annotations().Get(omni.RotateTalosCAVersion)
+		shouldRotateTalosCA := rotateTalosCA != nil && version != rotateTalosCA.Metadata().Version().String()
+
+		rotateKubernetesCA, err := safe.ReaderGetByID[*omni.RotateKubernetesCA](ctx, r, clusterSecrets.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		version, _ = rotationStatus.Metadata().Annotations().Get(omni.RotateKubernetesCAVersion)
+		shouldRotateKubernetesCA := rotateKubernetesCA != nil && version != rotateKubernetesCA.Metadata().Version().String()
+
+		// We should use an uncached reader if we need to do a rotation. This is because a rotation is a one-time operation, therefore
+		// we cannot tolerate stale reads during it - eventual consistency doesn't work for us here.
+		// We have observed a flake in the unit tests, caused by a stale read of ClusterMachineStatus resources.
+		if shouldRotateTalosCA || shouldRotateKubernetesCA {
+			r = uncached.ReaderWriter(r)
+		}
+
 		rotationStatus.TypedSpec().Value.Component = specs.SecretRotationSpec_NONE
 		rotationStatus.TypedSpec().Value.Phase = currentPhase
 		rotationStatus.TypedSpec().Value.Status = ""
@@ -220,13 +244,8 @@ func (s *Rotator) createInitialStage(currentPhase specs.SecretRotationSpec_Phase
 			return err
 		}
 
-		rotateTalosCA, err := safe.ReaderGetByID[*omni.RotateTalosCA](ctx, r, clusterSecrets.Metadata().ID())
-		if err != nil && !state.IsNotFoundError(err) {
-			return err
-		}
-
 		// This is a trigger condition to move to the next stage
-		if version, _ := rotationStatus.Metadata().Annotations().Get(omni.RotateTalosCAVersion); rotateTalosCA != nil && version != rotateTalosCA.Metadata().Version().String() {
+		if shouldRotateTalosCA {
 			logger.Info("starting rotation", zap.String("cluster", secretRotation.Metadata().ID()), zap.String("component", specs.SecretRotationSpec_TALOS_CA.String()))
 
 			return s.startCARotation(rotationStatus, cmSecretsMap, specs.SecretRotationSpec_TALOS_CA, rotateTalosCA.Metadata().Version().String(),
@@ -248,13 +267,8 @@ func (s *Rotator) createInitialStage(currentPhase specs.SecretRotationSpec_Phase
 				})
 		}
 
-		rotateKubernetesCA, err := safe.ReaderGetByID[*omni.RotateKubernetesCA](ctx, r, clusterSecrets.Metadata().ID())
-		if err != nil && !state.IsNotFoundError(err) {
-			return err
-		}
-
 		// This is a trigger condition to move to the next stage
-		if version, _ := rotationStatus.Metadata().Annotations().Get(omni.RotateKubernetesCAVersion); rotateKubernetesCA != nil && version != rotateKubernetesCA.Metadata().Version().String() {
+		if shouldRotateKubernetesCA {
 			logger.Info("starting rotation", zap.String("cluster", secretRotation.Metadata().ID()), zap.String("component", specs.SecretRotationSpec_KUBERNETES_CA.String()))
 
 			return s.startCARotation(rotationStatus, cmSecretsMap, specs.SecretRotationSpec_KUBERNETES_CA, rotateKubernetesCA.Metadata().Version().String(),
@@ -297,7 +311,7 @@ func (s *Rotator) addRotationStage(previousPhase, currentPhase specs.SecretRotat
 	sequenceContext sequence.Context[*omni.ClusterSecrets, *omni.ClusterSecretsRotationStatus],
 ) error {
 	return func(ctx context.Context, logger *zap.Logger, sequenceContext sequence.Context[*omni.ClusterSecrets, *omni.ClusterSecretsRotationStatus]) error {
-		r := sequenceContext.Runtime
+		r := uncached.ReaderWriter(sequenceContext.Runtime)
 		clusterSecrets := sequenceContext.Input
 		rotationStatus := sequenceContext.Output
 		rotationStatus.TypedSpec().Value.Phase = currentPhase
@@ -854,20 +868,5 @@ func (s *Rotator) hostnamesToString(hostnames []string) string {
 }
 
 func (s *Rotator) getSecretRotation(ctx context.Context, r controller.ReaderWriter, id resource.ID) (*omni.SecretRotation, error) {
-	uncachedReader, ok := r.(controller.UncachedReader)
-	if !ok {
-		return nil, fmt.Errorf("reader does not support uncached reads")
-	}
-
-	res, err := uncachedReader.GetUncached(ctx, omni.NewSecretRotation(id).Metadata())
-	if err != nil {
-		return nil, fmt.Errorf("error getting secret rotation: %w", err)
-	}
-
-	resTyped, ok := res.(*omni.SecretRotation)
-	if !ok {
-		return nil, fmt.Errorf("unexpected resource type: %T", res)
-	}
-
-	return resTyped, nil
+	return safe.ReaderGetByID[*omni.SecretRotation](ctx, r, id)
 }
