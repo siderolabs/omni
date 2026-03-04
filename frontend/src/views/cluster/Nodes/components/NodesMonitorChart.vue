@@ -5,12 +5,14 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts" generic="T = unknown">
+import 'apexcharts/area'
+
 import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import type { ApexOptions } from 'apexcharts'
 import { DateTime } from 'luxon'
 import type { Ref } from 'vue'
-import { computed, defineAsyncComponent, ref, toRefs } from 'vue'
-import type { VueApexChartsComponentProps } from 'vue3-apexcharts'
+import { computed, ref, toRefs } from 'vue'
+import VueApexCharts from 'vue3-apexcharts/core'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { WatchResponse } from '@/api/omni/resources/resources.pb'
@@ -21,11 +23,8 @@ import { WatchFunc } from '@/api/watch'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { getNonce } from '@/methods'
 
-const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
-
 type Props<T> = {
   name: string
-  type: ApexChart['type'] & VueApexChartsComponentProps['type']
   title: string
   resource: Metadata
   runtime: Runtime
@@ -34,7 +33,7 @@ type Props<T> = {
   legend?: boolean
   dataLabels?: boolean
   stacked?: boolean
-  stroke?: ApexStroke
+  stroke?: ApexOptions['stroke']
   colors?: string[]
   tailEvents?: number
   context?: WatchContext
@@ -173,7 +172,6 @@ const options = computed(() => {
   return {
     chart: {
       nonce: getNonce(),
-      type: props.type,
       background: 'transparent',
       id: name.value,
       zoom: {
@@ -299,10 +297,10 @@ const loading = w.loading
         <TSpinner v-else class="h-5 w-5" />
       </div>
       <VueApexCharts
-        v-else
+        v-show="!err && !loading"
         width="100%"
         height="100%"
-        :type="type"
+        type="area"
         :options="options"
         :series="series ?? []"
       />

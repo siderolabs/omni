@@ -240,7 +240,6 @@ const sortBy = (id: keyof Proc) => {
             class="h-full"
             name="cpu"
             title="CPU usage"
-            type="area"
             :runtime="Runtime.Talos"
             :resource="{
               type: TalosCPUType,
@@ -259,7 +258,6 @@ const sortBy = (id: keyof Proc) => {
             class="h-full"
             name="mem"
             title="Memory"
-            type="area"
             :stroke="{ curve: 'smooth', width: [2, 0.5, 0.5], dashArray: [0, 2, 2] }"
             :colors="[
               'var(--color-primary-p3)',
@@ -293,7 +291,6 @@ const sortBy = (id: keyof Proc) => {
             class="h-full"
             name="procs"
             title="Processes"
-            type="area"
             :colors="['var(--color-blue-b1)', 'var(--color-green-g1)', 'var(--color-yellow-y1)']"
             :runtime="Runtime.Talos"
             :resource="{

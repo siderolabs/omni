@@ -5,12 +5,13 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import 'apexcharts/radialBar'
+
 import type { ApexOptions } from 'apexcharts'
-import { computed, defineAsyncComponent } from 'vue'
+import { computed } from 'vue'
+import ApexChart from 'vue3-apexcharts/core'
 
 import { getNonce } from '@/methods'
-
-const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
 
 interface Props {
   title: string
@@ -24,30 +25,30 @@ interface Props {
   legendFormatter?: (value: number) => string
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  total: undefined,
-  legendFormatter: (value: number) => value.toString(),
-})
+const {
+  showHollowTotal,
+  total: propsTotal,
+  items,
+  legendFormatter = (value) => value.toString(),
+} = defineProps<Props>()
 
-const total = computed(
-  () => props.total ?? props.items.reduce((prev, curr) => prev + curr.value, 0),
-)
+const total = computed(() => propsTotal ?? items.reduce((prev, curr) => prev + curr.value, 0))
 
 const series = computed(() =>
-  props.total === 0
-    ? Array<number>(props.items.length).fill(0)
-    : props.items.map((i) => Math.round((i.value / total.value) * 100)),
+  total.value === 0
+    ? Array<number>(items.length).fill(0)
+    : items.map((i) => Math.round((i.value / total.value) * 100)),
 )
 
 const legendItems = computed(() => [
   {
     label: 'Total',
-    value: props.legendFormatter(total.value),
+    value: legendFormatter(total.value),
     color: 'var(--color-naturals-n8)',
   },
-  ...props.items.map((item, i) => ({
+  ...items.map((item, i) => ({
     label: item.label,
-    value: props.legendFormatter(item.value),
+    value: legendFormatter(item.value),
     color: colors[i],
   })),
 ])
@@ -67,29 +68,28 @@ const options = computed<ApexOptions>(() => ({
   plotOptions: {
     radialBar: {
       hollow: {
-        size: `${80 - props.items.length * 10}`,
+        size: `${80 - items.length * 10}`,
       },
       track: {
         margin: 2,
         background: [
           'var(--color-naturals-n8)',
-          ...Array<string>(props.items.length - 1).fill('transparent'),
+          ...Array<string>(items.length - 1).fill('transparent'),
         ],
       },
       dataLabels: {
         name: { show: false },
         total: {
-          show: props.showHollowTotal,
-          formatter: () =>
-            props.legendFormatter(total.value) /* To prevent library's calculation */,
+          show: showHollowTotal,
+          formatter: () => legendFormatter(total.value) /* To prevent library's calculation */,
         },
         value: {
-          show: props.showHollowTotal,
+          show: showHollowTotal,
           offsetY: 5,
           color: 'var(--color-naturals-n14)',
           fontSize: 'var(--text-base)',
           fontWeight: 'var(--font-weight-medium)',
-          formatter: () => props.legendFormatter(total.value), // To always show total instead of individual values
+          formatter: () => legendFormatter(total.value), // To always show total instead of individual values
         },
       },
     },
