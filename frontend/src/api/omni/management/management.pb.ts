@@ -17,6 +17,12 @@ export enum SchematicBootloader {
   BOOT_GRUB = 3,
 }
 
+export enum KubernetesSSAOptionsInventoryPolicy {
+  MUST_MATCH = 0,
+  ADOPT_IF_NO_INVENTORY = 1,
+  ADOPT_ALL = 2,
+}
+
 export enum KubernetesSyncManifestResponseResponseType {
   UNKNOWN = 0,
   MANIFEST = 1,
@@ -90,6 +96,7 @@ export type ListServiceAccountsResponseServiceAccount = {
   name?: string
   pgp_public_keys?: ListServiceAccountsResponseServiceAccountPgpPublicKey[]
   role?: string
+  last_active?: string
 }
 
 export type ListServiceAccountsResponse = {
@@ -103,6 +110,8 @@ export type KubeconfigRequest = {
   service_account_groups?: string[]
   grant_type?: string
   break_glass?: boolean
+  oidc_cache_base_dir?: string
+  oidc_cache_isolation?: boolean
 }
 
 export type KubernetesUpgradePreChecksRequest = {
@@ -114,8 +123,16 @@ export type KubernetesUpgradePreChecksResponse = {
   reason?: string
 }
 
+export type KubernetesSSAOptions = {
+  inventory_policy?: KubernetesSSAOptionsInventoryPolicy
+  reconcile_timeout?: GoogleProtobufDuration.Duration
+  force_conflicts?: boolean
+  no_prune?: boolean
+}
+
 export type KubernetesSyncManifestRequest = {
   dry_run?: boolean
+  ssa?: KubernetesSSAOptions
 }
 
 export type KubernetesSyncManifestResponse = {
@@ -255,6 +272,7 @@ export type ListUsersResponseUser = {
   email?: string
   role?: string
   saml_labels?: {[key: string]: string}
+  last_active?: string
 }
 
 export type ListUsersResponse = {

@@ -23,7 +23,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/siderolabs/gen/optional"
-	"github.com/siderolabs/go-kubernetes/kubernetes/manifests"
 	"github.com/siderolabs/go-kubernetes/kubernetes/upgrade"
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	"github.com/siderolabs/talos/pkg/machinery/client"
@@ -44,7 +43,6 @@ import (
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	ctlcfg "github.com/siderolabs/omni/client/pkg/omnictl/config"
-	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
@@ -502,115 +500,6 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 	return &management.KubernetesUpgradePreChecksResponse{
 		Ok: true,
 	}, nil
-}
-
-//nolint:gocognit,gocyclo,cyclop
-func (s *managementServer) KubernetesSyncManifests(req *management.KubernetesSyncManifestRequest, srv grpc.ServerStreamingServer[management.KubernetesSyncManifestResponse]) error {
-	ctx := srv.Context()
-
-	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Operator)); err != nil {
-		return err
-	}
-
-	ctx = actor.MarkContextAsInternalActor(ctx)
-
-	requestContext := router.ExtractContext(ctx)
-	if requestContext == nil {
-		return status.Error(codes.InvalidArgument, "unable to extract request context")
-	}
-
-	cfg, err := s.kubernetesRuntime.GetKubeconfig(ctx, requestContext)
-	if err != nil {
-		return fmt.Errorf("failed to get kubeconfig: %w", err)
-	}
-
-	talosClient, err := s.talosRuntime.GetClient(ctx, requestContext.Name)
-	if err != nil {
-		return fmt.Errorf("failed to get talos client: %w", err)
-	}
-
-	bootstrapManifests, err := manifests.GetBootstrapManifests(ctx, talosClient.COSI, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get manifests: %w", err)
-	}
-
-	errCh := make(chan error, 1)
-	synCh := make(chan manifests.SyncResult)
-
-	panichandler.Go(func() {
-		errCh <- manifests.Sync(ctx, bootstrapManifests, cfg, req.DryRun, synCh)
-	}, s.logger)
-
-	var updatedManifests []manifests.Manifest
-
-syncLoop:
-	for {
-		select {
-		case err := <-errCh:
-			if err != nil {
-				return fmt.Errorf("failed to sync manifests: %w", err)
-			}
-
-			break syncLoop
-		case result := <-synCh:
-			obj, err := yaml.Marshal(result.Object.Object)
-			if err != nil {
-				return fmt.Errorf("failed to marshal object: %w", err)
-			}
-
-			if err := srv.Send(&management.KubernetesSyncManifestResponse{
-				ResponseType: management.KubernetesSyncManifestResponse_MANIFEST,
-				Path:         result.Path,
-				Object:       obj,
-				Diff:         result.Diff,
-				Skipped:      result.Skipped,
-			}); err != nil {
-				return err
-			}
-
-			if !result.Skipped {
-				updatedManifests = append(updatedManifests, result.Object)
-			}
-		}
-	}
-
-	if req.DryRun {
-		// no rollout if dry run
-		return s.triggerManifestResync(ctx, requestContext)
-	}
-
-	rolloutCh := make(chan manifests.RolloutProgress)
-
-	panichandler.Go(func() {
-		errCh <- manifests.WaitForRollout(ctx, cfg, updatedManifests, rolloutCh)
-	}, s.logger)
-
-rolloutLoop:
-	for {
-		select {
-		case err := <-errCh:
-			if err != nil {
-				return fmt.Errorf("failed to wait fo rollout: %w", err)
-			}
-
-			break rolloutLoop
-		case result := <-rolloutCh:
-			obj, err := yaml.Marshal(result.Object.Object)
-			if err != nil {
-				return fmt.Errorf("failed to marshal object: %w", err)
-			}
-
-			if err := srv.Send(&management.KubernetesSyncManifestResponse{
-				ResponseType: management.KubernetesSyncManifestResponse_ROLLOUT,
-				Path:         result.Path,
-				Object:       obj,
-			}); err != nil {
-				return err
-			}
-		}
-	}
-
-	return s.triggerManifestResync(ctx, requestContext)
 }
 
 // ReadAuditLog reads the audit log from the backend.

@@ -17,7 +17,11 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/go-kubernetes/kubernetes/manifests"
+	"github.com/siderolabs/go-kubernetes/kubernetes/ssa"
+	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
+	"github.com/siderolabs/talos/pkg/machinery/compatibility"
+	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -190,40 +194,30 @@ func NewKubernetesUpgradeManifestStatusController(talosClientGetter TalosClientG
 					return fmt.Errorf("failed to get manifests: %w", err)
 				}
 
-				cfg, err := kubeconfigGetter.GetKubeconfig(ctx, &common.Context{Name: clusterID})
+				talosVersion, err := compatibility.ParseTalosVersion(&machine.VersionInfo{
+					Tag: clusterStatus.TypedSpec().Value.TalosVersion,
+				})
 				if err != nil {
-					return fmt.Errorf("failed to get kubeconfig: %w", err)
+					return fmt.Errorf("failed to parse talos version: %w", err)
 				}
 
-				errCh := make(chan error, 1)
-				resultCh := make(chan manifests.SyncResult)
+				if talosVersion.SupportsSSAManifestSync() {
+					err = reconcileSSA(ctx, logger, bootstrapManifests, kubeconfigGetter, clusterID, manifestStatus)
+				} else {
+					err = reconcileLegacy(ctx, logger, bootstrapManifests, kubeconfigGetter, clusterID, manifestStatus)
+				}
 
-				panichandler.Go(func() {
-					errCh <- manifests.Sync(ctx, bootstrapManifests, cfg, true, resultCh)
-				}, logger)
-
-				for {
-					select {
-					case err := <-errCh:
-						if err != nil {
-							if apierrors.IsInvalid(err) || apierrors.IsBadRequest(err) || apierrors.IsForbidden(err) || apierrors.IsRequestEntityTooLargeError(err) || webhookError(err) {
-								// bootstrap manifests are invalid, log, but don't fail the controller
-								logger.Error("failed to sync bootstrap manifests", zap.String("cluster", clusterID), zap.Error(err))
-								manifestStatus.TypedSpec().Value.LastFatalError = err.Error()
-
-								return nil
-							}
-
-							return fmt.Errorf("failed to dry run sync manifests: %w", err)
-						}
+				if err != nil {
+					if apierrors.IsInvalid(err) || apierrors.IsBadRequest(err) || apierrors.IsForbidden(err) || apierrors.IsRequestEntityTooLargeError(err) || webhookError(err) {
+						// bootstrap manifests are invalid, log, but don't fail the controller
+						logger.Error("failed to sync bootstrap manifests", zap.String("cluster", clusterID), zap.Error(err))
+						manifestStatus.TypedSpec().Value.LastFatalError = err.Error()
 
 						return nil
-					case result := <-resultCh:
-						if !result.Skipped {
-							manifestStatus.TypedSpec().Value.OutOfSync++
-						}
 					}
 				}
+
+				return err
 			},
 		},
 		qtransform.WithExtraMappedInput[*omni.LoadBalancerStatus](
@@ -252,4 +246,83 @@ func webhookError(err error) bool {
 	msg := err.Error()
 
 	return strings.Contains(msg, "failed calling webhook") || strings.Contains(msg, "failed to call webhook")
+}
+
+func reconcileSSA(
+	ctx context.Context,
+	logger *zap.Logger,
+	bootstrapManifests []manifests.Manifest,
+	kubeconfigGetter KubeconfigGetter,
+	clusterID string,
+	manifestStatus *omni.KubernetesUpgradeManifestStatus,
+) error {
+	logger.Debug("reconcile SSA")
+
+	cfg, err := kubeconfigGetter.GetKubeconfig(ctx, &common.Context{Name: clusterID})
+	if err != nil {
+		return fmt.Errorf("failed to get kubeconfig: %w", err)
+	}
+
+	manager, err := ssa.NewManager(ctx, cfg,
+		constants.KubernetesFieldManagerName,
+		constants.KubernetesInventoryNamespace,
+		constants.KubernetesBootstrapManifestsInventoryName,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create SSA manager: %w", err)
+	}
+
+	changes, err := manager.Diff(ctx, bootstrapManifests, ssa.DiffOptions{
+		InventoryPolicy: ssa.InventoryPolicyAdoptIfNoInventory,
+		NoPrune:         true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to diff manifests: %w", err)
+	}
+
+	for _, change := range changes {
+		if change.Action != ssa.DiffUnchangedAction {
+			manifestStatus.TypedSpec().Value.OutOfSync++
+		}
+	}
+
+	return nil
+}
+
+func reconcileLegacy(
+	ctx context.Context,
+	logger *zap.Logger,
+	bootstrapManifests []manifests.Manifest,
+	kubeconfigGetter KubeconfigGetter,
+	clusterID string,
+	manifestStatus *omni.KubernetesUpgradeManifestStatus,
+) error {
+	logger.Debug("reconcile legacy")
+
+	cfg, err := kubeconfigGetter.GetKubeconfig(ctx, &common.Context{Name: clusterID})
+	if err != nil {
+		return fmt.Errorf("failed to get kubeconfig: %w", err)
+	}
+
+	errCh := make(chan error, 1)
+	resultCh := make(chan manifests.SyncResult)
+
+	panichandler.Go(func() {
+		errCh <- manifests.Sync(ctx, bootstrapManifests, cfg, true, resultCh)
+	}, logger)
+
+	for {
+		select {
+		case err := <-errCh:
+			if err != nil {
+				return fmt.Errorf("failed to dry run sync manifests: %w", err)
+			}
+
+			return nil
+		case result := <-resultCh:
+			if !result.Skipped {
+				manifestStatus.TypedSpec().Value.OutOfSync++
+			}
+		}
+	}
 }

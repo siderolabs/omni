@@ -109,8 +109,22 @@ message KubernetesUpgradePreChecksResponse {
   string reason = 2;
 }
 
+message KubernetesSSAOptions {
+   enum InventoryPolicy {
+    MUST_MATCH = 0;
+    ADOPT_IF_NO_INVENTORY = 1;
+    ADOPT_ALL = 2;
+  };
+
+  InventoryPolicy inventory_policy = 1;
+  google.protobuf.Duration reconcile_timeout = 2;
+  bool force_conflicts = 3;
+  bool no_prune = 4;
+}
+
 message KubernetesSyncManifestRequest {
   bool dry_run = 1;
+  KubernetesSSAOptions ssa = 2;
 }
 
 message KubernetesSyncManifestResponse {
