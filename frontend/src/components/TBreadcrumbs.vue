@@ -5,38 +5,52 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, toRefs } from 'vue'
-import { type LocationQuery, useRoute } from 'vue-router'
+import { computed } from 'vue'
+import { type RouteLocationRaw, useRoute } from 'vue-router'
 
 type Props = {
   nodeName?: string
   last?: string
 }
-const props = defineProps<Props>()
 
-const { last } = toRefs(props)
+const { last } = defineProps<Props>()
 
 const route = useRoute()
 
 const breadcrumbs = computed(() => {
-  const res: { text: string; to?: { name: string; query: LocationQuery } }[] = []
+  const res: {
+    text: string
+    to?: RouteLocationRaw
+  }[] = []
 
-  if (route.params.cluster) {
-    res.push(
-      {
-        text: `${route.params.cluster}`,
-        to: { name: 'ClusterOverview', query: route.query },
+  if ('cluster' in route.params) {
+    res.push({
+      text: route.params.cluster,
+      to: {
+        name: 'ClusterOverview',
+        params: {
+          cluster: route.params.cluster,
+        },
       },
-      {
-        text: `${route.params.machine}`,
-        to: { name: 'NodeOverview', query: route.query },
-      },
-    )
+    })
+
+    if ('machine' in route.params) {
+      res.push({
+        text: route.params.machine,
+        to: {
+          name: 'NodeOverview',
+          params: {
+            cluster: route.params.cluster,
+            machine: route.params.machine,
+          },
+        },
+      })
+    }
   }
 
-  if (last?.value) {
+  if (last) {
     res.push({
-      text: last.value,
+      text: last,
     })
   }
 
@@ -53,13 +67,21 @@ const breadcrumbs = computed(() => {
           class="text-xl font-medium transition hover:opacity-50"
           :to="crumb.to!"
         >
-          {{ crumb.text === $route.params.machine && !!nodeName ? nodeName : crumb.text }}
+          {{
+            'machine' in $route.params && crumb.text === $route.params.machine && !!nodeName
+              ? nodeName
+              : crumb.text
+          }}
         </RouterLink>
         <p
           v-if="idx === breadcrumbs.length - 1"
           class="cursor-default text-xl font-medium break-all text-naturals-n14"
         >
-          {{ crumb.text === $route.params.machine && !!nodeName ? nodeName : crumb.text }}
+          {{
+            'machine' in $route.params && crumb.text === $route.params.machine && !!nodeName
+              ? nodeName
+              : crumb.text
+          }}
         </p>
         <svg
           v-if="idx < breadcrumbs.length - 1"

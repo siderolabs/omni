@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
-import { useRoute } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -31,8 +30,11 @@ import { canManageBackupStore } from '@/methods/auth'
 import { formatISO } from '@/methods/time'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
+const { clusterId } = defineProps<{
+  clusterId: string
+}>()
+
 const dateFormat = 'HH:mm MMM d y'
-const route = useRoute()
 const { copy } = useClipboard()
 
 const {
@@ -57,7 +59,7 @@ const {
   resource: {
     namespace: MetricsNamespace,
     type: EtcdBackupStatusType,
-    id: route.params.cluster.toString(),
+    id: clusterId,
   },
   runtime: Runtime.Omni,
 }))
@@ -132,7 +134,7 @@ const {
           type: EtcdBackupType,
         },
         runtime: Runtime.Omni,
-        selectors: [`${LabelCluster}=${route.params.cluster}`],
+        selectors: [`${LabelCluster}=${clusterId}`],
       }"
       search
       :sort-options="[

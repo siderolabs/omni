@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import * as semver from 'semver'
 import { computed, markRaw, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -51,13 +51,13 @@ import OverviewRightPanelItem from '@/views/cluster/Overview/components/Overview
 import TClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
 import ClusterDestroy from '@/views/omni/Modals/ClusterDestroy.vue'
 
-const { kubernetesUpgradeStatus, talosUpgradeStatus } = defineProps<{
+const { clusterId, kubernetesUpgradeStatus, talosUpgradeStatus } = defineProps<{
+  clusterId: string
   kubernetesUpgradeStatus?: Resource<KubernetesUpgradeStatusSpec>
   talosUpgradeStatus?: Resource<TalosUpgradeStatusSpec>
   etcdBackups?: BackupsStatus
 }>()
 
-const route = useRoute()
 const router = useRouter()
 
 const { data: clusterStatus } = useResourceWatch<ClusterStatusSpec>(() => ({
@@ -65,7 +65,7 @@ const { data: clusterStatus } = useResourceWatch<ClusterStatusSpec>(() => ({
   resource: {
     namespace: DefaultNamespace,
     type: ClusterStatusType,
-    id: route.params.cluster as string,
+    id: clusterId,
   },
 }))
 
@@ -74,7 +74,7 @@ const { data: backupStatus } = useResourceWatch<EtcdBackupStatusSpec>(() => ({
   resource: {
     namespace: MetricsNamespace,
     type: EtcdBackupStatusType,
-    id: route.params.cluster as string,
+    id: clusterId,
   },
 }))
 
@@ -83,7 +83,7 @@ const { data: controlPlaneStatus } = useResourceWatch<ControlPlaneStatusSpec>(()
   resource: {
     namespace: DefaultNamespace,
     type: ControlPlaneStatusType,
-    id: controlPlaneMachineSetId(route.params.cluster as string),
+    id: controlPlaneMachineSetId(clusterId),
   },
 }))
 
@@ -92,7 +92,7 @@ const { data: kubernetesStatus } = useResourceWatch<KubernetesStatusSpec>(() => 
   resource: {
     namespace: DefaultNamespace,
     type: KubernetesStatusType,
-    id: route.params.cluster as string,
+    id: clusterId,
   },
 }))
 
@@ -101,7 +101,7 @@ const { data: clusterDiagnostics } = useResourceWatch<ClusterDiagnosticsSpec>(()
   resource: {
     namespace: DefaultNamespace,
     type: ClusterDiagnosticsType,
-    id: route.params.cluster as string,
+    id: clusterId,
   },
 }))
 
@@ -139,7 +139,7 @@ const runEtcdBackup = async () => {
   startingEtcdBackup.value = true
 
   try {
-    await triggerEtcdBackup(route.params.cluster as string)
+    await triggerEtcdBackup(clusterId)
   } catch (e) {
     showError('Failed to Trigger Manual Etcd Backup', e.message)
   }
@@ -235,7 +235,7 @@ const {
   canDownloadSupportBundle,
   canAddClusterMachines,
   canRemoveClusterMachines,
-} = setupClusterPermissions(computed(() => route.params.cluster as string))
+} = setupClusterPermissions(computed(() => clusterId))
 
 const clusterDestroyModalOpen = ref(false)
 const downloadSupportBundleModalOpen = ref(false)
@@ -422,7 +422,7 @@ const downloadSupportBundleModalOpen = ref(false)
             :disabled="!canAddClusterMachines || locked"
             :to="{
               name: 'ClusterScale',
-              params: { cluster: clusterStatus.metadata.id },
+              params: { cluster: clusterId },
             }"
           >
             Cluster Scaling
@@ -468,7 +468,7 @@ const downloadSupportBundleModalOpen = ref(false)
           icon-position="left"
           :to="{
             name: 'ClusterConfigPatches',
-            params: { cluster: clusterStatus.metadata.id },
+            params: { cluster: clusterId },
           }"
         >
           Config Patches

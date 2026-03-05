@@ -10,7 +10,10 @@ import { computed } from 'vue'
 import type { Resource } from '@/api/grpc'
 import { itemID } from '@/api/watch'
 import { formatBytes } from '@/methods'
-import type { TalosDiscoveredVolumeSpec, TalosDiskSpec } from '@/views/cluster/Nodes/NodeDisks.vue'
+import type {
+  TalosDiscoveredVolumeSpec,
+  TalosDiskSpec,
+} from '@/pages/(authenticated)/clusters/[cluster]/machine/[machine]/disks.vue'
 
 const { disk, volumes } = defineProps<{
   disk: Resource<TalosDiskSpec>

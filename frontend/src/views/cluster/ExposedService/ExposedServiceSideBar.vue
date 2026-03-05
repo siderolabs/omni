@@ -8,7 +8,6 @@ included in the LICENSE file.
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue'
 import pluralize from 'pluralize'
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { ExposedServiceSpec } from '@/api/omni/specs/omni.pb'
@@ -19,7 +18,9 @@ import TMenuItem from '@/components/common/MenuItem/TMenuItem.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
-const route = useRoute()
+const { clusterId } = defineProps<{
+  clusterId: string
+}>()
 
 const { data: exposedServices } = useResourceWatch<ExposedServiceSpec>(() => ({
   runtime: Runtime.Omni,
@@ -27,7 +28,7 @@ const { data: exposedServices } = useResourceWatch<ExposedServiceSpec>(() => ({
     namespace: DefaultNamespace,
     type: ExposedServiceType,
   },
-  selectors: [`${LabelCluster}=${route.params.cluster}`],
+  selectors: [`${LabelCluster}=${clusterId}`],
 }))
 
 const filteredExposedServices = computed(() => {

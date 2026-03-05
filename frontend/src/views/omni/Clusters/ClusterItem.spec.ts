@@ -7,12 +7,19 @@ import userEvent from '@testing-library/user-event'
 import { render, screen, waitFor } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { expect, test } from 'vitest'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw, RouterView } from 'vue-router'
 
 import { ClusterDiagnosticsType, ClusterLocked, MachineSetType } from '@/api/resources'
-import { routes } from '@/router'
 
 import ClusterItem from './ClusterItem.vue'
+
+const routes: RouteRecordRaw[] = [
+  {
+    name: 'ClusterOverview',
+    path: '/clusters/:cluster',
+    component: RouterView,
+  },
+]
 
 test('no lock if unlocked', async () => {
   createWatchStreamMock()

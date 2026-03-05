@@ -10,7 +10,7 @@ import { DocumentIcon } from '@heroicons/vue/24/solid'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -49,7 +49,6 @@ import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 
-const route = useRoute()
 const router = useRouter()
 const filter = ref('')
 
@@ -145,15 +144,32 @@ const routes = computed(() => {
       return
     }
 
-    const patchEditPage = route.params.cluster ? 'ClusterMachinePatchEdit' : 'MachinePatchEdit'
-
-    const r = {
-      name: (item.metadata.annotations || {})[ConfigPatchName] || item.metadata.id!,
-      icon: 'document',
-      route: {
-        name: machine ? patchEditPage : 'ClusterPatchEdit',
-        params: { patch: item.metadata.id! },
-      },
+    const r: RouteItem = {
+      name: item.metadata.annotations?.[ConfigPatchName] || item.metadata.id!,
+      route: machine
+        ? cluster
+          ? {
+              name: 'ClusterMachinePatchEdit',
+              params: {
+                cluster: cluster.metadata.id!,
+                machine: machine.metadata.id!,
+                patch: item.metadata.id!,
+              },
+            }
+          : {
+              name: 'MachinePatchEdit',
+              params: {
+                machine: machine.metadata.id!,
+                patch: item.metadata.id!,
+              },
+            }
+        : {
+            name: 'ClusterPatchEdit',
+            params: {
+              cluster: cluster!.metadata.id!,
+              patch: item.metadata.id!,
+            },
+          },
       id: item.metadata.id!,
       description: item.metadata.annotations?.[ConfigPatchDescription],
     }
@@ -168,7 +184,7 @@ const routes = computed(() => {
     } else if (labels[LabelMachineSet]) {
       const id = labels[LabelMachineSet]
 
-      const title = machineSetTitle(route.params.cluster as string, id)
+      const title = machineSetTitle(cluster?.metadata.id, id)
 
       addToGroup(`${title}`, r)
     } else if (labels[LabelCluster]) {
@@ -235,16 +251,27 @@ const canManageConfigPatches = computed(() => {
 })
 
 const openPatchCreate = () => {
-  if (!cluster && !machine) {
-    return
+  const patch = `500-${uuidv4()}`
+
+  if (cluster) {
+    return router.push({
+      name: 'ClusterPatchEdit',
+      params: {
+        cluster: cluster.metadata.id!,
+        patch,
+      },
+    })
   }
 
-  router.push({
-    name: cluster ? 'ClusterPatchEdit' : 'MachinePatchEdit',
-    params: {
-      patch: `500-${uuidv4()}`,
-    },
-  })
+  if (machine) {
+    router.push({
+      name: 'MachinePatchEdit',
+      params: {
+        machine: machine.metadata.id!,
+        patch,
+      },
+    })
+  }
 }
 </script>
 

@@ -35,7 +35,7 @@ export const Default: Story = {
   render: (args) => ({
     components: { TAlert },
     setup: () => ({ args }),
-    template: `<TAlert v-bind="args">{{'${faker.hacker.phrase()}'}}</TAlert>`,
+    template: `<TAlert v-bind="args">{{"${faker.hacker.phrase()}"}}</TAlert>`,
   }),
 }
 
@@ -49,7 +49,7 @@ export const WithDismiss: Story = {
   render: (args) => ({
     components: { TAlert },
     setup: () => ({ args }),
-    template: `<TAlert v-bind="args">{{'${faker.hacker.phrase()}'}}</TAlert>`,
+    template: `<TAlert v-bind="args">{{"${faker.hacker.phrase()}"}}</TAlert>`,
   }),
 }
 
@@ -61,7 +61,7 @@ export const AllAlerts: Story = {
     template: types
       .map(
         (type) =>
-          `<TAlert v-bind="args" title="${type[0].toUpperCase() + type.slice(1)}" type="${type}">{{'${faker.hacker.phrase()}'}}</TAlert>`,
+          `<TAlert v-bind="args" title="${type[0].toUpperCase() + type.slice(1)}" type="${type}">{{"${faker.hacker.phrase()}"}}</TAlert>`,
       )
       .join(''),
   }),

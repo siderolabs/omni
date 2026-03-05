@@ -6,12 +6,13 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { faker } from '@faker-js/faker'
 import tailwindcss from '@tailwindcss/vite'
-import vue from '@vitejs/plugin-vue'
+import Vue from '@vitejs/plugin-vue'
 import dotenv from 'dotenv'
 import { defineConfig, type UserConfig } from 'vite'
 import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import { configDefaults } from 'vitest/config'
+import VueRouter from 'vue-router/vite'
 
 dotenv.config({ quiet: true })
 
@@ -20,7 +21,7 @@ export default defineConfig(({ command }) => {
   const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST
 
   const config: UserConfig = {
-    plugins: [vue(), tailwindcss()],
+    plugins: [VueRouter(), Vue(), tailwindcss()],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

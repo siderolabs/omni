@@ -42,25 +42,25 @@ const runningPrechecks = ref(false)
 const preCheckError = ref('')
 const selectedVersion = ref('')
 
-const clusterName = route.params.cluster as string
+const clusterName = computed(() => ('cluster' in route.params ? route.params.cluster : ''))
 
-const { data: cluster } = useResourceWatch<ClusterSpec>({
+const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
   resource: {
     type: ClusterType,
     namespace: DefaultNamespace,
-    id: clusterName,
+    id: clusterName.value,
   },
   runtime: Runtime.Omni,
-})
+}))
 
-const { data: status } = useResourceWatch<KubernetesUpgradeStatusSpec>({
+const { data: status } = useResourceWatch<KubernetesUpgradeStatusSpec>(() => ({
   resource: {
     namespace: DefaultNamespace,
     type: KubernetesUpgradeStatusType,
-    id: clusterName,
+    id: clusterName.value,
   },
   runtime: Runtime.Omni,
-})
+}))
 
 const { data: allK8sVersions } = useResourceWatch<KubernetesVersionSpec>({
   resource: {
@@ -194,11 +194,11 @@ const upgradeClick = async () => {
       {
         new_version: selectedVersion.value,
       },
-      withContext({ cluster: clusterName }),
+      withContext({ cluster: clusterName.value }),
     )
 
     if (response.ok) {
-      upgradeKubernetes(clusterName, selectedVersion.value)
+      upgradeKubernetes(clusterName.value, selectedVersion.value)
 
       close()
     } else {

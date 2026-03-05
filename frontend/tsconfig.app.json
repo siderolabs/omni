@@ -1,9 +1,11 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
+  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "typed-router.d.ts"],
   "exclude": ["src/**/*.spec.*", "src/**/*.stories.*"],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "moduleResolution": "Bundler",
+    "rootDir": ".",
 
     "noUncheckedIndexedAccess": false,
     "useUnknownInCatchVariables": false,
@@ -11,5 +13,8 @@
     "paths": {
       "@/*": ["./src/*"]
     }
+  },
+  "vueCompilerOptions": {
+    "plugins": ["vue-router/volar/sfc-typed-router"]
   }
 }

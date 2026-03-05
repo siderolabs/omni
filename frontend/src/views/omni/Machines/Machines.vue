@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -44,11 +44,11 @@ import AddingMachinesTutorial from '@/views/omni/Machines/components/AddingMachi
 import MachineDetailsPanel from '@/views/omni/Machines/MachineDetailsPanel.vue'
 import MachineItem from '@/views/omni/Machines/MachineItem.vue'
 
-const { filter = undefined } = defineProps<{
+const { filter, provider } = defineProps<{
   filter?: MachineFilterOption
+  provider?: string
 }>()
 
-const route = useRoute()
 const router = useRouter()
 
 const { data: infraProviderStatuses } = useResourceWatch<InfraProviderStatusSpec>({
@@ -71,8 +71,8 @@ const selectors = computed(() => {
       break
   }
 
-  if (route.params.provider) {
-    selectors.push(`${LabelInfraProviderID}=${route.params.provider}`)
+  if (provider) {
+    selectors.push(`${LabelInfraProviderID}=${provider}`)
   }
 
   const q = labelsToSelectors(filterLabels.value)?.join(',')
@@ -238,8 +238,8 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
         />
 
         <PageHeader
-          v-else-if="$route.params.provider"
-          :title="`Machines Managed by the Infrastructure Provider ${$route.params.provider}`"
+          v-else-if="provider"
+          :title="`Machines Managed by the Infrastructure Provider ${provider}`"
         />
       </template>
 

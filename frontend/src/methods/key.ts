@@ -96,7 +96,8 @@ export async function signDetached(data: string, keyPair: CryptoKeyPair) {
 
 export async function hasValidKeys() {
   // IndexedDB is async storage, and might not yet have been initialised
-  if (!keyPairLoaded.value) return new Promise((r) => setTimeout(() => r(hasValidKeys()), 20))
+  if (!keyPairLoaded.value)
+    return new Promise<boolean>((r) => setTimeout(() => r(hasValidKeys()), 20))
 
   if (!keyPair.value || !keyExpirationTime.value) return false
 

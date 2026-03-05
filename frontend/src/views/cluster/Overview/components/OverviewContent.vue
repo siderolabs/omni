@@ -410,6 +410,7 @@ onMounted(async () => {
         :kubernetes-upgrade-status="kubernetesUpgradeStatus"
         :talos-upgrade-status="talosUpgradeStatus"
         :etcd-backups="backupStatus"
+        :cluster-id="currentCluster.metadata.id!"
       />
     </div>
   </div>

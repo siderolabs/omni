@@ -50,7 +50,7 @@ defineProps<{
     >
       <div class="flex min-w-0 items-center gap-2">
         <RouterLink
-          :to="{ name: 'ClusterOverview', params: { cluster: item.metadata.id } }"
+          :to="{ name: 'ClusterOverview', params: { cluster: item.metadata.id! } }"
           class="list-item-link truncate"
         >
           {{ item.metadata.id }}
