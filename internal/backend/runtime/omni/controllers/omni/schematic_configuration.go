@@ -144,6 +144,17 @@ func (helper *schematicConfigurationHelper) reconcile(
 	ms *omni.MachineStatus,
 	schematicConfiguration *omni.SchematicConfiguration,
 ) (*omni.MachineExtensionsStatus, error) {
+	machineExtensions, err := safe.ReaderGetByID[*omni.MachineExtensions](ctx, r, ms.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	if machineExtensions != nil {
+		if err = updateFinalizers(ctx, r, machineExtensions); err != nil {
+			return nil, err
+		}
+	}
+
 	if !ms.TypedSpec().Value.SchematicReady() {
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("schematic is not yet ready")
 	}
@@ -155,17 +166,6 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	if ms.TypedSpec().Value.TalosVersion == "" {
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine Talos version is not yet available")
-	}
-
-	machineExtensions, err := safe.ReaderGetByID[*omni.MachineExtensions](ctx, r, ms.Metadata().ID())
-	if err != nil && !state.IsNotFoundError(err) {
-		return nil, err
-	}
-
-	if machineExtensions != nil {
-		if err = updateFinalizers(ctx, r, machineExtensions); err != nil {
-			return nil, err
-		}
 	}
 
 	cm, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, ms.Metadata().ID())
@@ -210,7 +210,7 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return nil, err
 	}
 
-	customization, err := newMachineCustomization(ms, cluster, machineExtensions)
+	customization, err := newMachineCustomization(ctx, r, ms, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -275,10 +275,12 @@ func updateFinalizers(ctx context.Context, r controller.ReaderWriter, extensions
 	return r.AddFinalizer(ctx, extensions.Metadata(), SchematicConfigurationControllerName)
 }
 
-// newMachineCustomization creates a new machineCustomization based on the given machine status, cluster, and extensions.
+// newMachineCustomization creates a new machineCustomization based on the given machine status and cluster.
 //
-// MachineStatus is required. All other parameters are optional.
-func newMachineCustomization(ms *omni.MachineStatus, cluster *omni.Cluster, exts *omni.MachineExtensions) (machineCustomization, error) {
+// MachineStatus is required. Cluster is optional — when nil, the machine's existing extensions are preserved.
+// When cluster is non-nil, MachineExtensions is read bypassing the resource cache to avoid stale reads
+// that could produce a wrong schematic ID, triggering an unwanted Talos upgrade on the node.
+func newMachineCustomization(ctx context.Context, r controller.Reader, ms *omni.MachineStatus, cluster *omni.Cluster) (machineCustomization, error) {
 	mc := machineCustomization{
 		machineStatus: ms,
 		cluster:       cluster,
@@ -301,9 +303,14 @@ func newMachineCustomization(ms *omni.MachineStatus, cluster *omni.Cluster, exts
 		return mc, nil
 	}
 
-	extensionsExplicitlyDefined := exts != nil && exts.Metadata().Phase() == resource.PhaseRunning
+	machineExtensions, err := safe.ReaderGetByID[*omni.MachineExtensions](ctx, uncached.Reader(r), ms.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return mc, err
+	}
+
+	extensionsExplicitlyDefined := machineExtensions != nil && machineExtensions.Metadata().Phase() == resource.PhaseRunning
 	if extensionsExplicitlyDefined {
-		mc.machineExtensions = exts
+		mc.machineExtensions = machineExtensions
 	}
 
 	detected, err := getDetectedExtensions(cluster, ms)
