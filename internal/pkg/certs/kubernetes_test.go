@@ -42,6 +42,9 @@ func TestIsKubernetesCertificateStale(t *testing.T) {
 	cfg, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
 	require.NoError(t, err)
 
+	// server should be rewritten to localhost
+	require.Equal(t, "https://localhost:6443", cfg.Host)
+
 	// cert should be fresh with default validity time
 	stale, err := certs.IsPEMEncodedCertificateStale(cfg.CertData, constants.CertificateValidityTime)
 	require.NoError(t, err)

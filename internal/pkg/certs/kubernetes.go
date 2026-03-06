@@ -10,6 +10,8 @@ import (
 	stdlibx509 "crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"net"
+	"net/url"
 	"time"
 
 	talosx509 "github.com/siderolabs/crypto/x509"
@@ -65,6 +67,18 @@ const allowedTimeSkew = 10 * time.Second
 
 // GenerateKubeconfig a kubeconfig for the cluster from the given input resources.
 func GenerateKubeconfig(clientCert *talosx509.PEMEncodedCertificateAndKey, ca []byte, lbConfig *omni.LoadBalancerConfig) ([]byte, error) {
+	// The SiderolinkEndpoint points to the SideroLink WireGuard address of this Omni instance,
+	// as it is meant for Talos nodes reaching the load balancer over the WireGuard tunnel.
+	// Since this kubeconfig is used internally and the load balancer runs in the same process,
+	// rewrite the server to localhost instead.
+	//
+	// The primary reason for doing this is that leaving the host as-is does not work consistently across platforms.
+	// macOS does not route traffic to a local WireGuard interface address back to the host itself, causing Kubernetes proxy connections to hang.
+	server, err := localhostEndpoint(lbConfig.TypedSpec().Value.SiderolinkEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("error rewriting kubeconfig server to localhost: %w", err)
+	}
+
 	contextName := fmt.Sprintf("%s@%s", "admin", lbConfig.Metadata().ID())
 
 	kubeconfig := kubeconfigTemplate{
@@ -74,7 +88,7 @@ func GenerateKubeconfig(clientCert *talosx509.PEMEncodedCertificateAndKey, ca []
 			{
 				Name: lbConfig.Metadata().ID(),
 				Cluster: kubeconfigClusterCluster{
-					Server:                   lbConfig.TypedSpec().Value.SiderolinkEndpoint,
+					Server:                   server,
 					CertificateAuthorityData: base64.StdEncoding.EncodeToString(ca),
 				},
 			},
@@ -160,4 +174,21 @@ func NewKubernetesCertificateAndKey(ca *talosx509.PEMEncodedCertificateAndKey, c
 	}
 
 	return talosx509.NewCertificateAndKeyFromKeyPair(clientCert), nil
+}
+
+// localhostEndpoint rewrites a URL to use localhost while preserving the port.
+func localhostEndpoint(endpoint string) (string, error) {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse endpoint %q: %w", endpoint, err)
+	}
+
+	_, port, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return "", fmt.Errorf("failed to split host:port %q: %w", u.Host, err)
+	}
+
+	u.Host = net.JoinHostPort("localhost", port)
+
+	return u.String(), nil
 }
