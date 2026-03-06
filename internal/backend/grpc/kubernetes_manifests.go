@@ -118,6 +118,8 @@ func (s *managementServer) syncSSA(
 		return fmt.Errorf("failed to create SSA manager: %w", err)
 	}
 
+	defer manager.Close()
+
 	var rollouts []*management.KubernetesSyncManifestResponse
 
 	applyOpts := ssa.ApplyOptions{
@@ -213,6 +215,8 @@ func (s *managementServer) diffSSA(
 	if err != nil {
 		return fmt.Errorf("failed to create SSA manager: %w", err)
 	}
+
+	defer manager.Close()
 
 	diffOpts := ssa.DiffOptions{
 		InventoryPolicy: getInventoryPolicy(req.Ssa.InventoryPolicy),

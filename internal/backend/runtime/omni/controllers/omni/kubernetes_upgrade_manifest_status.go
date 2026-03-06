@@ -272,6 +272,8 @@ func reconcileSSA(
 		return fmt.Errorf("failed to create SSA manager: %w", err)
 	}
 
+	defer manager.Close()
+
 	changes, err := manager.Diff(ctx, bootstrapManifests, ssa.DiffOptions{
 		InventoryPolicy: ssa.InventoryPolicyAdoptIfNoInventory,
 		NoPrune:         true,
