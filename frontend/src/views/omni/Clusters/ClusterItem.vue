@@ -81,7 +81,7 @@ const clusterDestroyDialogOpen = ref(false)
 
         <RouterLink
           :id="labelId"
-          :to="{ name: 'ClusterOverview', params: { cluster: item.metadata.id } }"
+          :to="{ name: 'ClusterOverview', params: { cluster: item.metadata.id! } }"
           class="list-item-link truncate"
         >
           <WordHighlighter
@@ -130,7 +130,7 @@ const clusterDestroyDialogOpen = ref(false)
           <TActionsBoxItem
             v-if="canAddClusterMachines"
             icon="nodes"
-            @select="$router.push({ name: 'ClusterScale', params: { cluster: item.metadata.id } })"
+            @select="$router.push({ name: 'ClusterScale', params: { cluster: item.metadata.id! } })"
           >
             Cluster Scaling
           </TActionsBoxItem>
@@ -139,7 +139,7 @@ const clusterDestroyDialogOpen = ref(false)
             @select="
               $router.push({
                 name: 'ClusterConfigPatches',
-                params: { cluster: item.metadata.id },
+                params: { cluster: item.metadata.id! },
               })
             "
           >
@@ -148,7 +148,7 @@ const clusterDestroyDialogOpen = ref(false)
           <TActionsBoxItem
             icon="dashboard"
             @select="
-              $router.push({ name: 'ClusterOverview', params: { cluster: item.metadata.id } })
+              $router.push({ name: 'ClusterOverview', params: { cluster: item.metadata.id! } })
             "
           >
             Open Dashboard

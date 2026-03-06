@@ -55,7 +55,7 @@ const reboot = async () => {
 
   if (route.query.goback) {
     close()
-  } else {
+  } else if ('cluster' in route.params) {
     await router.push({ name: 'ClusterOverview', params: { cluster: route.params.cluster } })
   }
 

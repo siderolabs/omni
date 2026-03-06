@@ -9,8 +9,7 @@ import { type Preview } from '@storybook/vue3-vite'
 import { initialize, mswLoader } from 'msw-storybook-addon'
 import { vueRouter } from 'storybook-vue3-router'
 import { createMemoryHistory } from 'vue-router'
-
-import { routes } from '../src/router/index.ts'
+import { routes } from 'vue-router/auto-routes'
 
 // Initialize MSW
 initialize({ onUnhandledRequest: 'bypass' })

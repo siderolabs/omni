@@ -30,8 +30,8 @@ export function getContext(route?: RouteLocationNormalizedLoadedGeneric): WatchC
 export function clusterName() {
   const route = useRoute()
 
-  if (route?.params.cluster) {
-    return route.params.cluster as string
+  if ('cluster' in route?.params) {
+    return route.params.cluster
   }
 
   if (route?.query.cluster) {

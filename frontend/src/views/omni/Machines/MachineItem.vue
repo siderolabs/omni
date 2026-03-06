@@ -85,7 +85,7 @@ const maintenanceUpdateDescription = computed(() => {
         :class="{ 'opacity-50': machine.spec.tearing_down }"
       >
         <h2 class="list-item-link truncate">
-          <RouterLink :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id } }">
+          <RouterLink :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id! } }">
             <WordHighlighter :query="searchQuery" split-by-space highlight-class="bg-naturals-n14">
               {{ machineName }}
             </WordHighlighter>
@@ -130,7 +130,7 @@ const maintenanceUpdateDescription = computed(() => {
 
           <RouterLink
             v-if="canReadMachineLogs"
-            :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id } }"
+            :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id! } }"
             class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-naturals-n11 hover:bg-naturals-n4 hover:text-naturals-n14"
           >
             <span class="max-md:hidden">Logs</span>
@@ -162,7 +162,7 @@ const maintenanceUpdateDescription = computed(() => {
               @select="
                 $router.push({
                   name: 'MachineConfigPatches',
-                  params: { machine: machine.metadata.id },
+                  params: { machine: machine.metadata.id! },
                 })
               "
             >

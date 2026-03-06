@@ -14,7 +14,7 @@ import TableRow from '@/components/common/Table/TableRow.vue'
 import type {
   TalosDiscoveredVolumeSpec,
   TalosMountStatusSpec,
-} from '@/views/cluster/Nodes/NodeDisks.vue'
+} from '@/pages/(authenticated)/clusters/[cluster]/machine/[machine]/disks.vue'
 
 defineProps<{
   partitions: {

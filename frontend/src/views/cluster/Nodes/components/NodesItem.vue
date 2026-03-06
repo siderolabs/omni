@@ -6,8 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { NodeSpec as V1NodeSpec, NodeStatus as V1NodeStatus } from 'kubernetes-types/core/v1'
-import { computed, toRefs } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
@@ -24,44 +23,43 @@ type MemberSpec = {
   nodeId?: string
 }
 
-const props = defineProps<{
+const { item } = defineProps<{
+  clusterId: string
   item: Resource<ClusterMachineStatusSpec & V1NodeSpec & MemberSpec, V1NodeStatus>
   searchOption?: string
 }>()
 
-const { item } = toRefs(props)
-
 const os = computed(() => {
-  return item.value.spec.operatingSystem || 'unknown'
+  return item.spec.operatingSystem || 'unknown'
 })
 
 const nodeName = computed(() => {
   return (
-    (item.value.metadata.labels || {})[ClusterMachineStatusLabelNodeName] ??
-    item.value.spec.nodeId ??
-    item.value.metadata.id
+    item.metadata.labels?.[ClusterMachineStatusLabelNodeName] ??
+    item.spec.nodeId ??
+    item.metadata.id
   )
 })
 
-const status = computed(() => getStatus(item.value))
+const status = computed(() => getStatus(item))
 
 const ip = computed(() => {
-  return (item.value?.spec?.addresses ?? {})[0] ?? ''
+  return item.spec.addresses[0] ?? ''
 })
 
 const roles = computed(() =>
-  Object.keys(item.value?.metadata.labels ?? {})
+  Object.keys(item.metadata.labels ?? {})
     .filter((label) => label.includes('node-role.kubernetes.io/'))
     .map((label) => label.split('/')[1]),
 )
-
-const route = useRoute()
 </script>
 
 <template>
   <div class="nodes-list-item">
     <p class="node-name">
-      <RouterLink :to="{ name: 'NodeOverview', params: { machine: item.metadata.id } }">
+      <RouterLink
+        :to="{ name: 'NodeOverview', params: { cluster: clusterId, machine: item.metadata.id! } }"
+      >
         <WordHighlighter
           :query="searchOption"
           :text-to-highlight="nodeName"
@@ -93,10 +91,7 @@ const route = useRoute()
       <TStatus :title="status" />
     </p>
     <div class="nodes-list-item-menu -ml-6">
-      <NodeContextMenu
-        :cluster-machine-status="item"
-        :cluster-name="route.params.cluster as string"
-      />
+      <NodeContextMenu :cluster-machine-status="item" :cluster-name="clusterId" />
     </div>
   </div>
 </template>

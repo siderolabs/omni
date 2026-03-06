@@ -57,7 +57,7 @@ const shutdown = async () => {
   if (route.query.goback) {
     close()
   } else {
-    await router.push({ name: 'ClusterOverview', params: { cluster: context.cluster } })
+    await router.push({ name: 'ClusterOverview', params: { cluster: context.cluster! } })
   }
 
   showSuccess('Machine Shutdown', `Machine ${nodeName} is shutting down now.`)

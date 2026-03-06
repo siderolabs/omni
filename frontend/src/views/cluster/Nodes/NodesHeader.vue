@@ -5,43 +5,42 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
 import type { MachineSetNodeSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
-import { withRuntime } from '@/api/options'
 import { DefaultNamespace, MachineSetNodeType, MachineStatusType } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TBreadcrumbs from '@/components/TBreadcrumbs.vue'
 import { setupClusterPermissions } from '@/methods/auth'
+import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+
+const { clusterId, machineId } = defineProps<{
+  clusterId: string
+  machineId: string
+}>()
 
 const route = useRoute()
 const router = useRouter()
 
-const nodeName = ref(route.params.machine as string)
+const { data: machineStatus } = useResourceGet<MachineStatusSpec>(() => ({
+  resource: {
+    namespace: DefaultNamespace,
+    type: MachineStatusType,
+    id: machineId,
+  },
+  runtime: Runtime.Omni,
+}))
 
-onMounted(async () => {
-  const res: Resource<MachineStatusSpec> = await ResourceService.Get(
-    {
-      namespace: DefaultNamespace,
-      type: MachineStatusType,
-      id: route.params.machine! as string,
-    },
-    withRuntime(Runtime.Omni),
-  )
-
-  nodeName.value = res.spec.network?.hostname || res.metadata.id!
-})
+const nodeName = computed(() => machineStatus.value?.spec.network?.hostname || machineId)
 
 const shutdownNode = () => {
   router.push({
     query: {
       modal: 'shutdown',
-      machine: route.params.machine,
+      machine: machineId,
       ...route.query,
     },
   })
@@ -51,27 +50,27 @@ const rebootNode = () => {
   router.push({
     query: {
       modal: 'reboot',
-      machine: route.params.machine,
+      machine: machineId,
       ...route.query,
     },
   })
 }
 
-const { data: machineSetNode, loading } = useResourceWatch<MachineSetNodeSpec>({
+const { data: machineSetNode, loading } = useResourceWatch<MachineSetNodeSpec>(() => ({
   resource: {
     type: MachineSetNodeType,
-    id: route.params.machine as string,
+    id: machineId,
     namespace: DefaultNamespace,
   },
   runtime: Runtime.Omni,
-})
+}))
 
 const destroyNode = async () => {
   router.push({
     query: {
       modal: 'nodeDestroy',
-      machine: route.params.machine,
-      cluster: route.params.cluster,
+      machine: machineId,
+      cluster: clusterId,
     },
   })
 }
@@ -80,14 +79,14 @@ const restoreNode = async () => {
   router.push({
     query: {
       modal: 'nodeDestroyCancel',
-      machine: route.params.machine,
-      cluster: route.params.cluster,
+      machine: machineId,
+      cluster: clusterId,
     },
   })
 }
 
 const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClusterPermissions(
-  computed(() => route.params.cluster as string),
+  computed(() => clusterId),
 )
 </script>
 

@@ -33,7 +33,7 @@ const close = () => {
   router.go(-1)
 }
 
-const clusterId = computed(() => route.params.cluster as string)
+const clusterId = computed(() => ('cluster' in route.params ? route.params.cluster : ''))
 
 const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
   runtime: Runtime.Omni,

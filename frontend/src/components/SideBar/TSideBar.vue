@@ -54,10 +54,16 @@ const { avatar, fullname, identity } = useIdentity()
 
 const { data: featuresConfig } = useFeatures()
 
-const { status: backupStatus } = setupBackupStatus()
-const { canSyncKubernetesManifests, canManageClusterFeatures } = setupClusterPermissions(
-  computed(() => route.params.cluster as string),
+const currentCluster = computed(() =>
+  'cluster' in route.params ? route.params.cluster : undefined,
 )
+const currentMachine = computed(() =>
+  'machine' in route.params ? route.params.machine : undefined,
+)
+
+const { status: backupStatus } = setupBackupStatus()
+const { canSyncKubernetesManifests, canManageClusterFeatures } =
+  setupClusterPermissions(currentCluster)
 
 const { data: machineMetrics } = useResourceWatch<MachineStatusMetricsSpec>({
   resource: {
@@ -79,27 +85,27 @@ const { data: infraProviderStatuses } = useResourceWatch<InfraProviderStatusSpec
 
 const { data: kubernetesUpgradeManifestStatus } =
   useResourceWatch<KubernetesUpgradeManifestStatusSpec>(() => ({
-    skip: !route.params.cluster,
+    skip: !currentCluster.value,
     runtime: Runtime.Omni,
     resource: {
       namespace: DefaultNamespace,
       type: KubernetesUpgradeManifestStatusType,
-      id: route.params.cluster as string,
+      id: currentCluster.value!,
     },
   }))
 
 const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
-  skip: !route.params.cluster,
+  skip: !currentCluster.value,
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: ClusterType,
-    id: route.params.cluster as string,
+    id: currentCluster.value!,
   },
 }))
 
 const { data: services } = useResourceWatch(() => ({
-  skip: !route.params.machine,
+  skip: !currentMachine.value,
   resource: {
     type: TalosServiceType,
     namespace: TalosRuntimeNamespace,
@@ -111,7 +117,7 @@ const { data: services } = useResourceWatch(() => ({
 const node = ref<string>()
 
 watch(
-  () => route.params.machine as string,
+  currentMachine,
   async (machineId) => {
     if (!machineId) {
       node.value = undefined
@@ -148,7 +154,7 @@ const pendingManifests = computed(() => {
 })
 
 const rootItems = computed(() => {
-  const getRoute = (name: string, path: string) =>
+  const getRoute = <T,>(name: T, path: string) =>
     route.query.cluster
       ? {
           name: name,
@@ -319,7 +325,7 @@ const rootItems = computed(() => {
 })
 
 const clusterItems = computed(() => {
-  const getRoute = (path: string) => `/clusters/${route.params.cluster}${path}`
+  const getRoute = (path: string) => `/clusters/${currentCluster.value}${path}`
 
   const result: SideBarItem[] = [
     {
@@ -365,20 +371,22 @@ const clusterItems = computed(() => {
   return result
 })
 
-const nodeItems = computed(() =>
-  ['controller-runtime', ...services.value.map((item) => item.metadata.id!)].map<SideBarItem>(
-    (service) => ({
-      name: service,
-      route: {
-        name: 'NodeLogs',
-        params: {
-          machine: route.params.machine as string,
-          service: service,
-        },
+function getNodeItems(cluster: string, machine: string) {
+  return [
+    'controller-runtime',
+    ...services.value.map((item) => item.metadata.id!),
+  ].map<SideBarItem>((service) => ({
+    name: service,
+    route: {
+      name: 'NodeLogs',
+      params: {
+        cluster,
+        machine,
+        service,
       },
-    }),
-  ),
-)
+    },
+  }))
+}
 </script>
 
 <template>
@@ -386,10 +394,10 @@ const nodeItems = computed(() =>
     <div class="grow overflow-auto">
       <TSidebarList :items="rootItems" />
 
-      <div v-if="$route.params.cluster" class="border-t border-naturals-n4">
+      <div v-if="currentCluster" class="border-t border-naturals-n4">
         <p class="mt-5 mb-2 px-6 text-xs text-naturals-n8">Cluster</p>
         <p class="truncate px-6 text-xs text-naturals-n13">
-          {{ $route.params.cluster }}
+          {{ currentCluster }}
         </p>
 
         <TSidebarList :items="clusterItems" />
@@ -399,12 +407,13 @@ const nodeItems = computed(() =>
             featuresConfig?.spec.enable_workload_proxying &&
             cluster?.spec.features?.enable_workload_proxy
           "
+          :cluster-id="currentCluster"
         />
 
-        <div v-if="$route.params.machine" class="border-t border-naturals-n4">
+        <div v-if="currentMachine" class="border-t border-naturals-n4">
           <p class="mt-5 mb-2 px-6 text-xs text-naturals-n8">Node</p>
           <p class="truncate px-6 text-xs text-naturals-n13">{{ node }}</p>
-          <TSidebarList :items="nodeItems" />
+          <TSidebarList :items="getNodeItems(currentCluster, currentMachine)" />
         </div>
       </div>
     </div>

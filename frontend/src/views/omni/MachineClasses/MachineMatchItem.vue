@@ -26,7 +26,7 @@ defineEmits<{
 const { machine } = toRefs(props)
 
 const machineName = computed(() => {
-  return machine?.value?.spec?.network?.hostname ?? machine?.value?.metadata?.id
+  return machine.value.spec.network?.hostname ?? machine.value.metadata.id
 })
 </script>
 
@@ -36,7 +36,7 @@ const machineName = computed(() => {
       <div class="flex items-center text-xs text-naturals-n13">
         <div class="flex flex-1 items-center gap-2">
           <RouterLink
-            :to="{ name: 'MachineLogs', params: { machine: machine?.metadata?.id } }"
+            :to="{ name: 'MachineLogs', params: { machine: machine.metadata.id! } }"
             class="list-item-link pr-2"
           >
             <WordHighlighter

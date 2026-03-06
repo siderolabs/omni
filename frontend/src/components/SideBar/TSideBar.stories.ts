@@ -7,6 +7,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 import { vueRouter } from 'storybook-vue3-router'
 import { RouterView } from 'vue-router'
+import { routes } from 'vue-router/auto-routes'
 
 import type { Resource } from '@/api/grpc'
 import type { GetRequest } from '@/api/omni/resources/resources.pb'
@@ -38,7 +39,6 @@ import {
   TalosServiceType,
   VirtualNamespace,
 } from '@/api/resources'
-import { routes } from '@/router'
 
 import TSideBar from './TSideBar.vue'
 

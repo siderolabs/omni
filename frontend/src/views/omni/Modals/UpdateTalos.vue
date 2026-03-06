@@ -27,16 +27,16 @@ const router = useRouter()
 
 const selectedVersion = ref('')
 
-const clusterName = route.params.cluster as string
+const clusterName = computed(() => ('cluster' in route.params ? route.params.cluster : ''))
 
-const { data: status } = useResourceWatch<TalosUpgradeStatusSpec>({
+const { data: status } = useResourceWatch<TalosUpgradeStatusSpec>(() => ({
   resource: {
     namespace: DefaultNamespace,
     type: TalosUpgradeStatusType,
-    id: clusterName,
+    id: clusterName.value,
   },
   runtime: Runtime.Omni,
-})
+}))
 
 watch(status, () => {
   if (selectedVersion.value === '') {
@@ -97,7 +97,7 @@ const close = () => {
 }
 
 const upgradeClick = async () => {
-  updateTalos(clusterName, selectedVersion.value)
+  updateTalos(clusterName.value, selectedVersion.value)
 
   close()
 }
