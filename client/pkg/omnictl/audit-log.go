@@ -16,8 +16,9 @@ import (
 
 // auditLog represents audit-log command.
 var auditLog = &cobra.Command{
-	Use:   "audit-log",
+	Use:   "audit-log [start] [end]",
 	Short: "Read audit log from Omni",
+	Long:  "Read audit log from Omni. Optionally filter by date range using start and end arguments in YYYY-MM-DD format (date-only, interpreted in the server's local time, e.g. 2024-01-01).",
 	Args:  cobra.MaximumNArgs(2),
 	RunE: func(_ *cobra.Command, arg []string) error {
 		start := safeGet(arg, 0)
