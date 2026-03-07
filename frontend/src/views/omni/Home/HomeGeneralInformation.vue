@@ -26,7 +26,6 @@ import Card from '@/components/common/Card/Card.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import {
-  downloadAuditLog,
   downloadMachineJoinConfig,
   downloadOmniconfig,
   downloadTalosconfig,
@@ -175,7 +174,13 @@ const {
     <section v-if="canReadAuditLog && auditLogAvailable" class="flex flex-col gap-2">
       <h3 class="text-sm font-medium">Tools</h3>
 
-      <TButton variant="primary" icon="document" icon-position="left" @click="downloadAuditLog">
+      <TButton
+        is="router-link"
+        variant="primary"
+        icon="document"
+        icon-position="left"
+        :to="{ name: 'AuditLogs' }"
+      >
         Get audit logs
       </TButton>
     </section>

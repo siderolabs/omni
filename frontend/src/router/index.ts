@@ -379,7 +379,6 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'settings',
         name: 'Settings',
-        component: () => import('@/views/omni/Settings/Settings.vue'),
         redirect: {
           name: 'Users',
         },
@@ -388,33 +387,26 @@ export const routes: RouteRecordRaw[] = [
             path: 'users',
             name: 'Users',
             component: () => import('@/views/omni/Users/Users.vue'),
-            meta: {
-              title: 'Users',
-            },
           },
           {
             path: 'serviceaccounts',
             name: 'ServiceAccounts',
             component: () => import('@/views/omni/Users/ServiceAccounts.vue'),
-            meta: {
-              title: 'Service Accounts',
-            },
           },
           {
             path: 'infraproviders',
             name: 'InfraProviders',
             component: () => import('@/views/omni/Settings/InfraProviders.vue'),
-            meta: {
-              title: 'Infra Providers',
-            },
           },
           {
             path: 'backups',
             name: 'BackupStorage',
             component: () => import('@/views/omni/Settings/BackupStorage.vue'),
-            meta: {
-              title: 'Backup Storage',
-            },
+          },
+          {
+            path: 'audit-logs',
+            name: 'AuditLogs',
+            component: () => import('@/views/omni/Settings/AuditLogs.vue'),
           },
         ],
       },

@@ -297,6 +297,11 @@ const rootItems = computed(() => {
         route: getRoute('Backups', '/settings/backups'),
         icon: 'rollback',
       },
+      {
+        name: 'Audit Logs',
+        route: getRoute('AuditLogs', '/settings/audit-logs'),
+        icon: 'document',
+      },
     ]
 
     if (featuresConfig.value?.spec.stripe_settings?.enabled) {

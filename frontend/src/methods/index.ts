@@ -11,7 +11,6 @@ import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { fetchOption } from '@/api/fetch.pb'
-import { b64Decode } from '@/api/fetch.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import type { EtcdBackupOverallStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withContext } from '@/api/options'
@@ -125,25 +124,6 @@ export const downloadOmniconfig = async () => {
     link.click()
   } catch (e) {
     showError('Failed to download omniconfig', e.message || e.toString())
-  }
-}
-
-export const downloadAuditLog = async () => {
-  try {
-    const result: Uint8Array<ArrayBuffer>[] = []
-
-    await ManagementService.ReadAuditLog({}, (resp) => {
-      const data = resp.audit_log as unknown as string // audit_log is actually not a Uint8Array, but a base64 string
-
-      result.push(b64Decode(data) as Uint8Array<ArrayBuffer>)
-    })
-
-    const link = document.createElement('a')
-    link.href = window.URL.createObjectURL(new Blob(result, { type: 'application/json' }))
-    link.download = 'auditlog.jsonlog'
-    link.click()
-  } catch (e) {
-    showError('Failed to download audit log', e.error?.message ?? e.message ?? e.toString())
   }
 }
 

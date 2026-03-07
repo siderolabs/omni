@@ -18,6 +18,8 @@ import {
 import { itemID } from '@/api/watch'
 import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import { AuthType, authType } from '@/methods'
 import { canManageUsers } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
@@ -25,16 +27,14 @@ import UserItem from '@/views/omni/Users/UserItem.vue'
 
 const router = useRouter()
 
-const watchOpts = [
-  {
-    runtime: Runtime.Omni,
-    resource: {
-      type: IdentityStatusType,
-      namespace: EphemeralNamespace,
-    },
-    selectors: [`!${LabelIdentityTypeServiceAccount}`],
+const watchOpts = {
+  runtime: Runtime.Omni,
+  resource: {
+    type: IdentityStatusType,
+    namespace: EphemeralNamespace,
   },
-]
+  selectors: [`!${LabelIdentityTypeServiceAccount}`],
+}
 
 const getLastActive = (item: Resource<IdentityStatusSpec>) => {
   if (!item.spec.last_active) return 'Never'
@@ -50,37 +50,43 @@ const openUserCreate = () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
-    <div class="flex justify-end">
-      <TButton
-        icon="user-add"
-        icon-position="left"
-        variant="highlighted"
-        :disabled="!canManageUsers || authType === AuthType.SAML"
-        @click="openUserCreate"
-      >
-        Add User
-      </TButton>
+  <PageContainer class="flex h-full flex-col gap-4">
+    <div class="flex items-start gap-1">
+      <PageHeader title="Settings" class="flex-1" subtitle="Users" />
     </div>
-    <TList :opts="watchOpts" pagination class="flex-1" search>
-      <template #default="{ items }">
-        <div class="users-header">
-          <div class="users-grid">
-            <div>Email</div>
-            <div>Role</div>
-            <div>Last Active</div>
-            <div class="col-span-3">Labels</div>
+
+    <div class="flex grow flex-col gap-2">
+      <div class="flex justify-end">
+        <TButton
+          icon="user-add"
+          icon-position="left"
+          variant="highlighted"
+          :disabled="!canManageUsers || authType === AuthType.SAML"
+          @click="openUserCreate"
+        >
+          Add User
+        </TButton>
+      </div>
+      <TList :opts="watchOpts" pagination class="flex-1" search>
+        <template #default="{ items }">
+          <div class="users-header">
+            <div class="users-grid">
+              <div>Email</div>
+              <div>Role</div>
+              <div>Last Active</div>
+              <div class="col-span-3">Labels</div>
+            </div>
           </div>
-        </div>
-        <UserItem
-          v-for="item in items"
-          :key="itemID(item)"
-          :item="item"
-          :last-active="getLastActive(item)"
-        />
-      </template>
-    </TList>
-  </div>
+          <UserItem
+            v-for="item in items"
+            :key="itemID(item)"
+            :item="item"
+            :last-active="getLastActive(item)"
+          />
+        </template>
+      </TList>
+    </div>
+  </PageContainer>
 </template>
 
 <style scoped>
