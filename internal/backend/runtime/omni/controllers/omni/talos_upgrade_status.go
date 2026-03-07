@@ -345,7 +345,7 @@ func reconcileTalosUpdateStatus(ctx context.Context, r controller.ReaderWriter,
 		}
 
 		if resourceNeedsUpdate || configStatus.TypedSpec().Value.TalosVersion != talosVersion ||
-			configStatus.TypedSpec().Value.SchematicId != schematicID {
+			(configStatus.TypedSpec().Value.SchematicId != "" && configStatus.TypedSpec().Value.SchematicId != schematicID) {
 			machinesToUpdate = append(machinesToUpdate, clusterMachineTalosVersion)
 		}
 	}

@@ -939,7 +939,15 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 			currentTalosVersion = rc.machineStatus.TypedSpec().Value.TalosVersion
 		}
 
-		shouldUpgrade = currentSchematicID != rc.installImage.SchematicId ||
+		// For invalid schematics, upgrade() treats the expected schematic as "" (empty).
+		// Match that here to prevent a feedback loop where computePendingUpdates creates
+		// MachinePendingUpdates that upgrade() then destroys in the same reconcile.
+		installSchematicID := rc.installImage.SchematicId
+		if rc.machineStatus.TypedSpec().Value.Schematic.Invalid {
+			installSchematicID = ""
+		}
+
+		shouldUpgrade = currentSchematicID != installSchematicID ||
 			currentTalosVersion != rc.installImage.TalosVersion
 	}
 

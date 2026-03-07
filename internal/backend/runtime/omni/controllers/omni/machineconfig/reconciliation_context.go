@@ -201,16 +201,26 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install image not found", machineConfig.Metadata().ID())
 	}
 
-	schematicMismatch := machineConfigStatus.TypedSpec().Value.SchematicId != rc.installImage.SchematicId
+	// If the machine has an invalid schematic (not provisioned via image factory),
+	// compare against "" instead of installImage.SchematicId, matching what upgrade() does
+	// when it encounters ErrInvalidSchematic. This prevents a feedback loop where
+	// computePendingUpdates sees a mismatch but upgrade() finds no actual upgrade needed.
+	var schematicMismatch bool
 
-	rc.compareFullSchematicID, err = kernelargs.UpdateSupported(rc.machineStatus, func() (*omni.ClusterMachineConfig, error) {
-		return machineConfig, nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to determine if kernel args update is supported for machine %q: %w", machineConfig.Metadata().ID(), err)
+	if rc.machineStatus.TypedSpec().Value.Schematic.Invalid {
+		schematicMismatch = machineConfigStatus.TypedSpec().Value.SchematicId != ""
+	} else {
+		schematicMismatch = machineConfigStatus.TypedSpec().Value.SchematicId != rc.installImage.SchematicId
+
+		rc.compareFullSchematicID, err = kernelargs.UpdateSupported(rc.machineStatus, func() (*omni.ClusterMachineConfig, error) {
+			return machineConfig, nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to determine if kernel args update is supported for machine %q: %w", machineConfig.Metadata().ID(), err)
+		}
+
+		schematicMismatch = schematicMismatch || !rc.SchematicEqual(rc.machineStatus.TypedSpec().Value.Schematic.Id, rc.machineStatus.TypedSpec().Value.Schematic.FullId, rc.installImage.SchematicId)
 	}
-
-	schematicMismatch = schematicMismatch || !rc.SchematicEqual(rc.machineStatus.TypedSpec().Value.Schematic.Id, rc.machineStatus.TypedSpec().Value.Schematic.FullId, rc.installImage.SchematicId)
 
 	talosVersionMismatch := strings.TrimLeft(rc.machineStatus.TypedSpec().Value.TalosVersion, "v") != machineConfigStatus.TypedSpec().Value.TalosVersion ||
 		machineConfigStatus.TypedSpec().Value.TalosVersion != rc.installImage.TalosVersion
