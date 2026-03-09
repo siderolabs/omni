@@ -201,16 +201,22 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install image not found", machineConfig.Metadata().ID())
 	}
 
-	schematicMismatch := machineConfigStatus.TypedSpec().Value.SchematicId != rc.installImage.SchematicId
+	schematicMismatch := false
 
-	rc.compareFullSchematicID, err = kernelargs.UpdateSupported(rc.machineStatus, func() (*omni.ClusterMachineConfig, error) {
-		return machineConfig, nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to determine if kernel args update is supported for machine %q: %w", machineConfig.Metadata().ID(), err)
+	// Invalid schematic means the machine was not provisioned via image factory.
+	// Skip schematic comparison — schematic plays no role in upgrade decisions for these machines.
+	if !rc.machineStatus.TypedSpec().Value.Schematic.Invalid {
+		schematicMismatch = machineConfigStatus.TypedSpec().Value.SchematicId != rc.installImage.SchematicId
+
+		rc.compareFullSchematicID, err = kernelargs.UpdateSupported(rc.machineStatus, func() (*omni.ClusterMachineConfig, error) {
+			return machineConfig, nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to determine if kernel args update is supported for machine %q: %w", machineConfig.Metadata().ID(), err)
+		}
+
+		schematicMismatch = schematicMismatch || !rc.SchematicEqual(rc.machineStatus.TypedSpec().Value.Schematic.Id, rc.machineStatus.TypedSpec().Value.Schematic.FullId, rc.installImage.SchematicId)
 	}
-
-	schematicMismatch = schematicMismatch || !rc.SchematicEqual(rc.machineStatus.TypedSpec().Value.Schematic.Id, rc.machineStatus.TypedSpec().Value.Schematic.FullId, rc.installImage.SchematicId)
 
 	talosVersionMismatch := strings.TrimLeft(rc.machineStatus.TypedSpec().Value.TalosVersion, "v") != machineConfigStatus.TypedSpec().Value.TalosVersion ||
 		machineConfigStatus.TypedSpec().Value.TalosVersion != rc.installImage.TalosVersion

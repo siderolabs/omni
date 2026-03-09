@@ -198,6 +198,12 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 		return nil
 	}
 
+	// For invalid schematic machines, clear any stale schematic ID directly
+	// instead of going through upgrade() which would make unnecessary Talos API calls.
+	if rc.machineStatus.TypedSpec().Value.Schematic.Invalid && machineConfigStatus.TypedSpec().Value.SchematicId != "" {
+		machineConfigStatus.TypedSpec().Value.SchematicId = ""
+	}
+
 	if rc.shouldUpgrade {
 		inSync, syncErr := ctrl.upgrade(ctx, logger, r, rc)
 		if syncErr != nil {

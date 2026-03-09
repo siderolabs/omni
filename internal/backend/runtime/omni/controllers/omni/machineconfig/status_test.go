@@ -394,7 +394,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 			machineServices := testutils.NewMachineServices(t, testContext.State)
 
-			cluster, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0, options.WithTalosVersion("1.10.0"))
+			_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0, options.WithTalosVersion("1.10.0"))
 
 			ids := xslices.Map(machines, func(m *omni.ClusterMachine) string {
 				return m.Metadata().ID()
@@ -428,9 +428,74 @@ func TestMachineConfigStatusController(t *testing.T) {
 				}),
 			)
 
-			rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.MachineStatus, assert *assert.Assertions) {
-				assert.Empty(res.TypedSpec().Value.Schematic.Id)
-				assert.Equal(cluster.TypedSpec().Value.TalosVersion, res.TypedSpec().Value.TalosVersion)
+			// With invalid schematic, upgrade() is no longer called — instead, the controller
+			// clears configStatus.SchematicId directly. Verify that.
+			rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+				assert.Empty(res.TypedSpec().Value.SchematicId)
+			})
+		})
+	})
+
+	// Creates a cluster with a single node, marks it as having an invalid schematic (not provisioned via image factory),
+	// verifies that configStatus.SchematicId is cleared and config changes are still applied normally.
+	t.Run("invalidSchematic", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
+			clusterName := "test-invalid-schematic"
+			machineServices := testutils.NewMachineServices(t, testContext.State)
+			_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0)
+			require.Len(t, machines, 1)
+
+			id := machines[0].Metadata().ID()
+
+			awaitAllMachinesConfigured(ctx, t, testContext.State, clusterName)
+
+			// Schematic ID should be set after initial config apply
+			rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+				assert.NotEmpty(res.TypedSpec().Value.SchematicId)
+			})
+
+			// Mark the machine as having an invalid schematic
+			rmock.Mock[*omni.MachineStatus](ctx, t, testContext.State,
+				options.WithID(id),
+				options.Modify(func(res *omni.MachineStatus) error {
+					res.TypedSpec().Value.Schematic.Invalid = true
+					res.TypedSpec().Value.Schematic.Id = ""
+					res.TypedSpec().Value.Schematic.FullId = ""
+
+					return nil
+				}),
+			)
+
+			// configStatus.SchematicId should be cleared, machine should remain configured
+			var sha256BeforePatch string
+
+			rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+				assert.Empty(res.TypedSpec().Value.SchematicId)
+				assert.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+
+				sha256BeforePatch = res.TypedSpec().Value.ClusterMachineConfigSha256
+			})
+
+			// Apply a config change to verify the controller still processes it
+			rmock.Mock[*omni.ClusterMachineConfig](ctx, t, testContext.State,
+				options.WithID(id),
+				options.Modify(func(r *omni.ClusterMachineConfig) error {
+					return r.TypedSpec().Value.SetUncompressedData([]byte(`machine:
+  network:
+    kubespan:
+      enabled: true`))
+				}),
+			)
+
+			// Config change should be applied, schematic should stay empty
+			rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+				assert.NotEqual(sha256BeforePatch, res.TypedSpec().Value.ClusterMachineConfigSha256)
+				assert.Empty(res.TypedSpec().Value.SchematicId)
 			})
 		})
 	})
