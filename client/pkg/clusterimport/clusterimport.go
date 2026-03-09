@@ -565,7 +565,7 @@ func (c *Context) validate(ctx context.Context) error {
 		multiErr.ErrorFormat = func(errors []error) string {
 			var sb strings.Builder
 			for _, e := range errors {
-				sb.WriteString(fmt.Sprintf("\n - %v", e))
+				fmt.Fprintf(&sb, "\n - %v", e)
 			}
 
 			return sb.String()

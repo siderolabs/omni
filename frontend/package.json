@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "engines": {
-    "node": "^24.13.0"
+    "node": "^24.14.0"
   },
   "msw": {
     "workerDirectory": [
@@ -28,6 +28,7 @@
     "@auth0/auth0-vue": "^2.5.0",
     "@headlessui/vue": "^1.7.23",
     "@heroicons/vue": "^2.2.0",
+    "@internationalized/date": "^3.12.0",
     "@jsonforms/vue": "^3.7.0",
     "@jsonforms/vue-vanilla": "^3.7.0",
     "@tanstack/vue-virtual": "^3.13.19",

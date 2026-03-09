@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
-import { onBeforeMount, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { DefaultJoinTokenSpec, SiderolinkAPIConfigSpec } from '@/api/omni/specs/siderolink.pb'
@@ -26,23 +26,22 @@ import Card from '@/components/common/Card/Card.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import {
-  downloadAuditLog,
   downloadMachineJoinConfig,
   downloadOmniconfig,
   downloadTalosconfig,
   getKernelArgs,
 } from '@/methods'
 import { canReadAuditLog } from '@/methods/auth'
-import { auditLogEnabled } from '@/methods/features'
+import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import DownloadAuditLogsModal from '@/views/omni/Home/DownloadAuditLogsModal.vue'
 import HomeGeneralInformationCopyable from '@/views/omni/Home/HomeGeneralInformationCopyable.vue'
 
-const auditLogAvailable = ref(false)
-const { copy, copied } = useClipboard()
+const features = useFeatures()
+const auditLogAvailable = computed(() => !!features.data.value?.spec.audit_log_enabled)
+const downloadAuditLogModalOpen = ref(false)
 
-onBeforeMount(async () => {
-  auditLogAvailable.value = await auditLogEnabled()
-})
+const { copy, copied } = useClipboard()
 
 async function copyKernelArgs() {
   copy(await getKernelArgs())
@@ -175,9 +174,17 @@ const {
     <section v-if="canReadAuditLog && auditLogAvailable" class="flex flex-col gap-2">
       <h3 class="text-sm font-medium">Tools</h3>
 
-      <TButton variant="primary" icon="document" icon-position="left" @click="downloadAuditLog">
-        Get audit logs
+      <TButton
+        variant="primary"
+        icon="document"
+        icon-position="left"
+        aria-haspopup="true"
+        @click="downloadAuditLogModalOpen = true"
+      >
+        Download audit logs
       </TButton>
     </section>
+
+    <DownloadAuditLogsModal v-model:open="downloadAuditLogModalOpen" />
   </Card>
 </template>

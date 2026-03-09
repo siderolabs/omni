@@ -126,8 +126,6 @@ export const Default: Story = {
               },
             })
 
-            // GetSupportBundleResponse
-
             return new HttpResponse(stream, {
               headers: {
                 'content-type': 'application/json',
