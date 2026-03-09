@@ -1,3 +1,31 @@
+## [Omni 1.5.9](https://github.com/siderolabs/omni/releases/tag/v1.5.9) (2026-03-09)
+
+Welcome to the v1.5.9 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`74dc90dd`](https://github.com/siderolabs/omni/commit/74dc90dd40cc7b1aec89d492934596eaa26bb2c7) fix: prevent controller feedback loop for invalid schematic machines
+* [`52d15d3d`](https://github.com/siderolabs/omni/commit/52d15d3d39c8948a409ca0fc11761d7bd82e8865) fix: prevent unwanted upgrades of non-image-factory machines
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.5.8](https://github.com/siderolabs/omni/releases/tag/v1.5.8)
+
 ## [Omni 1.5.8](https://github.com/siderolabs/omni/releases/tag/v1.5.8) (2026-02-27)
 
 Welcome to the v1.5.8 release of Omni!
