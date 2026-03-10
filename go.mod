@@ -3,8 +3,6 @@ module github.com/siderolabs/omni
 go 1.26.1
 
 replace (
-	// adds the extraTags field to the JSONSchema, switch to upstream if/when https://github.com/omissis/go-jsonschema/pull/504 gets merged
-	github.com/atombender/go-jsonschema => github.com/utkuozdemir/go-jsonschema v0.0.0-20260116005549-a1810c7ef5ad
 	// forked saml library that has the fix for Fusion Auth ACS parsing
 	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe
 

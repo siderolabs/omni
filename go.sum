@@ -29,6 +29,8 @@ github.com/akutz/memconn v0.1.1-0.20211110233653-dae351d188b3/go.mod h1:XOEusVuS
 github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYWrPrQ=
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
 github.com/armon/go-proxyproto v0.0.0-20210323213023-7e956b284f0a/go.mod h1:QmP9hvJ91BbJmGVGSbutW19IC0Q9phDCLGaomwTJbgU=
+github.com/atombender/go-jsonschema v0.22.0 h1:7H48X5fUccsfsacar5UfP6nnOXuQzmnr6lQmH/Fj2pQ=
+github.com/atombender/go-jsonschema v0.22.0/go.mod h1:8Q281v0ozTIfvdnbwDoWQDIk0syH6F0Fpoq+Z1cs+rM=
 github.com/auth0/go-jwt-middleware/v2 v2.3.1 h1:lbDyWE9aLydb3zrank+Gufb9qGJN9u//7EbJK07pRrw=
 github.com/auth0/go-jwt-middleware/v2 v2.3.1/go.mod h1:mqVr0gdB5zuaFyQFWMJH/c/2hehNjbYUD4i8Dpyf+Hc=
 github.com/aws/aws-sdk-go-v2 v1.41.3 h1:4kQ/fa22KjDt13QCy1+bYADvdgcxpfH18f0zP542kZA=
@@ -527,8 +529,6 @@ github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 h1:6fotK7
 github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75/go.mod h1:KO6IkyS8Y3j8OdNO85qEYBsRPuteD+YciPomcXdrMnk=
 github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe h1:yEOKa5C22XlVd77FvZON16ORl6gXJ9F5mPSizYwix50=
 github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe/go.mod h1:6WchMcmyjQveGycr2BnOKa05UlR9v5z7jU2l//YKhJk=
-github.com/utkuozdemir/go-jsonschema v0.0.0-20260116005549-a1810c7ef5ad h1:6ztWoULjs9obBzlQJEMhIj+4AwGxQnYYQavUMSFVgPs=
-github.com/utkuozdemir/go-jsonschema v0.0.0-20260116005549-a1810c7ef5ad/go.mod h1:+aVbjKsB1pc2kGQy0kOLs7MRckoAJ77fjk1jSVh5PWg=
 github.com/vbatts/tar-split v0.12.2 h1:w/Y6tjxpeiFMR47yzZPlPj/FcPLpXbTUi/9H7d3CPa4=
 github.com/vbatts/tar-split v0.12.2/go.mod h1:eF6B6i6ftWQcDqEn3/iGFRFRo8cBIMSJVOpnNdfTMFA=
 github.com/vishvananda/netns v0.0.5 h1:DfiHV+j8bA32MFM7bfEunvT8IAqQ/NzSJHtcmW5zdEY=
