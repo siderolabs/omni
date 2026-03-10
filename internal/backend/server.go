@@ -100,6 +100,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/kms"
 	"github.com/siderolabs/omni/internal/pkg/machineevent"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
+	"github.com/siderolabs/omni/internal/pkg/siderolink/ratelimit"
 	"github.com/siderolabs/omni/internal/pkg/xcontext"
 )
 
@@ -613,6 +614,25 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 	omniState := s.state.Default()
 	machineEventHandler := machineevent.NewHandler(omniState, s.logger, s.siderolinkEventsCh, s.installEventCh)
 
+	var rateLimiter *ratelimit.Limiter
+
+	if s.cfg.Services.Siderolink.GetBandwidthLimitMbps() > 0 {
+		rateLimiter = ratelimit.NewLimiter(
+			s.cfg.Services.Siderolink.GetBandwidthLimitMbps(),
+			s.cfg.Services.Siderolink.GetBandwidthLimitBurstBytes(),
+			s.logger,
+		)
+	}
+
+	if rateLimiter != nil {
+		prometheus.MustRegister(rateLimiter)
+
+		s.logger.Info("bandwidth rate limiting enabled",
+			zap.Uint64("mbps", s.cfg.Services.Siderolink.GetBandwidthLimitMbps()),
+			zap.Uint64("burst_bytes", s.cfg.Services.Siderolink.GetBandwidthLimitBurstBytes()),
+		)
+	}
+
 	slink, err := siderolink.NewManager(
 		ctx,
 		omniState,
@@ -624,6 +644,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 		s.logHandler,
 		machineEventHandler,
 		s.linkCounterDeltaCh,
+		rateLimiter,
 	)
 	if err != nil {
 		return err

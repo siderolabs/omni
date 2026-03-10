@@ -302,6 +302,12 @@ config:
       #certFile: ""
       # KeyFile is the path to the TLS key file for the Kubernetes proxy service.
       #keyFile: ""
+      # OidcCacheBaseDir overrides the base cache directory for kubelogin in generated kubeconfigs.
+      # When empty, kubelogin uses its default (~/.kube/cache/oidc-login).
+      #oidcCacheBaseDir: ""
+      # OidcCacheIsolation isolates OIDC token caches across clusters by appending a per-context subdirectory
+      # to the cache directory in generated kubeconfigs.
+      #oidcCacheIsolation: false
     # MachineAPI contains SideroLink API service configuration.
     machineAPI:
       # -- The advertised URL for the SideroLink (Machine) API.
@@ -326,6 +332,12 @@ config:
       eventSinkPort: 8091
       # LogServerPort is the port to be used by the nodes to send their logs over SideroLink to Omni.
       #logServerPort: 8092
+      # BandwidthLimitMbps is the maximum total bandwidth in megabits per second through the SideroLink tunnel.
+      # Uses a token bucket algorithm: the rate controls sustained throughput while burst allows temporary spikes. Zero means unlimited.
+      #bandwidthLimitMbps: 0
+      # BandwidthLimitBurstBytes is the maximum number of bytes that can pass through the SideroLink tunnel in a single burst (token bucket capacity).
+      # When zero and bandwidthLimitMbps is set, defaults to one second worth of the rate.
+      #bandwidthLimitBurstBytes: 0
       # WireGuard contains WireGuard-specific configuration for the SideroLink service.
       wireGuard:
         # -- The advertised address for WireGuard connections.
@@ -429,6 +441,9 @@ config:
       #experimentalBaseParams: "_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
       # ExtraParams contains the extra parameters to be used when opening the SQLite database connection. This can cause data corruption if set incorrectly, modify at your own risk. It must not start with an ampersand (&).
       #extraParams: ""
+      # PoolSize controls the maximum number of connections in the SQLite connection pool.
+      # Raising this value may improve performance under high load, at the cost of increased resource usage.
+      #poolSize: 0
     # Vault contains HashiCorp Vault storage backend configuration.
     vault:
       # -- Url is the URL of the Vault server.

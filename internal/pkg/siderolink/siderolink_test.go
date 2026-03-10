@@ -139,7 +139,7 @@ func (suite *SiderolinkSuite) SetupTest() {
 
 	eventHandler := machineevent.NewHandler(suite.state, zaptest.NewLogger(suite.T()), make(chan *omni.MachineStatusSnapshot), nil)
 
-	suite.manager, err = sideromanager.NewManager(suite.ctx, suite.state, wgHandler, params, zaptest.NewLogger(suite.T()), nil, eventHandler, nil)
+	suite.manager, err = sideromanager.NewManager(suite.ctx, suite.state, wgHandler, params, zaptest.NewLogger(suite.T()), nil, eventHandler, nil, nil)
 	suite.Require().NoError(err)
 
 	suite.startManager(params)

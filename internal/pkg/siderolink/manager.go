@@ -47,6 +47,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 	"github.com/siderolabs/omni/internal/pkg/logreceiver"
 	"github.com/siderolabs/omni/internal/pkg/machineevent"
+	"github.com/siderolabs/omni/internal/pkg/siderolink/ratelimit"
 	"github.com/siderolabs/omni/internal/pkg/siderolink/trustd"
 )
 
@@ -73,6 +74,7 @@ func NewManager(
 	handler *LogHandler,
 	machineEventHandler *machineevent.Handler,
 	deltaCh chan<- LinkCounterDeltas,
+	rateLimiter *ratelimit.Limiter,
 ) (*Manager, error) {
 	manager := &Manager{
 		logger:              logger,
@@ -80,6 +82,7 @@ func NewManager(
 		wgHandler:           wgHandler,
 		logHandler:          handler,
 		machineEventHandler: machineEventHandler,
+		rateLimiter:         rateLimiter,
 		metricBytesReceived: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "omni_siderolink_received_bytes_total",
 			Help: "Number of bytes received from the SideroLink interface.",
@@ -135,6 +138,8 @@ type Manager struct {
 	logHandler          *LogHandler
 	machineEventHandler *machineevent.Handler
 	provisionServer     *ProvisionHandler
+
+	rateLimiter *ratelimit.Limiter
 
 	metricBytesReceived prometheus.Counter
 	metricBytesSent     prometheus.Counter
@@ -451,14 +456,23 @@ func (manager *Manager) startWireguard(ctx context.Context, eg *errgroup.Group, 
 		allowedPeers: manager.allowedPeers,
 	}
 
+	var bind conn.Bind = wgbind.NewServerBind(manager.newBind(host), manager.virtualPrefix, manager.peerTraffic, manager.logger)
+
+	inputPacketFilters := []tun.InputPacketFilter{tun.FilterAllExceptIP(serverAddr.Addr())}
+
+	if manager.rateLimiter != nil {
+		bind = manager.rateLimiter.WrapBind(bind)
+		inputPacketFilters = append(inputPacketFilters, manager.rateLimiter.InputPacketFilter())
+	}
+
 	if err = manager.wgHandler.SetupDevice(wireguard.DeviceConfig{
-		Bind:               wgbind.NewServerBind(manager.newBind(host), manager.virtualPrefix, manager.peerTraffic, manager.logger),
+		Bind:               bind,
 		PeerHandler:        peerHandler,
 		Logger:             manager.logger,
 		ServerPrefix:       serverAddr,
 		PrivateKey:         key,
 		ListenPort:         uint16(port),
-		InputPacketFilters: []tun.InputPacketFilter{tun.FilterAllExceptIP(serverAddr.Addr())},
+		InputPacketFilters: inputPacketFilters,
 	}); err != nil {
 		return err
 	}

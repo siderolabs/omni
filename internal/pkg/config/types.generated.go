@@ -614,6 +614,19 @@ type Services struct {
 }
 
 type SiderolinkService struct {
+	// BandwidthLimitBurstBytes is the maximum number of bytes that can pass through
+	// the SideroLink tunnel in a single burst (token bucket capacity). The bucket
+	// refills continuously at the rate set by bandwidthLimitMbps. When zero and
+	// bandwidthLimitMbps is set, defaults to one second worth of the rate. For
+	// example, with bandwidthLimitMbps=10 (1.25 MB/s) and burstBytes=5000000 (5 MB),
+	// up to 5 MB can transfer instantly, then throughput settles to 1.25 MB/s.
+	BandwidthLimitBurstBytes *uint64 `json:"bandwidthLimitBurstBytes,omitempty" yaml:"bandwidthLimitBurstBytes,omitempty"`
+
+	// BandwidthLimitMbps is the maximum total bandwidth in megabits per second
+	// through the SideroLink tunnel. Uses a token bucket algorithm: the rate controls
+	// sustained throughput while burst allows temporary spikes. Zero means unlimited.
+	BandwidthLimitMbps *uint64 `json:"bandwidthLimitMbps,omitempty" yaml:"bandwidthLimitMbps,omitempty"`
+
 	// DisableLastEndpoint controls whether the SideroLink service should stop using
 	// the last known endpoint of a node when it becomes unreachable via WireGuard.
 	DisableLastEndpoint *bool `json:"disableLastEndpoint,omitempty" yaml:"disableLastEndpoint,omitempty"`

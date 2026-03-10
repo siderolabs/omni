@@ -136,6 +136,18 @@ services:
     command: >-
       --omni-debug=${WITH_DEBUG:-false}
 
+  grafana:
+    network_mode: host
+    image: grafana/grafana:latest
+    restart: on-failure
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+
 volumes:
   etcd:
   logs:
@@ -143,3 +155,4 @@ volumes:
   secondary-storage:
   etcd-backup:
   audit-logs:
+  grafana_data:

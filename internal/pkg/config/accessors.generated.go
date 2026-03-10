@@ -1139,6 +1139,28 @@ func (s *Service) SetKeyFile(v string) {
 	s.KeyFile = &v
 }
 
+func (s *SiderolinkService) GetBandwidthLimitBurstBytes() uint64 {
+	if s == nil || s.BandwidthLimitBurstBytes == nil {
+		return *new(uint64)
+	}
+	return *s.BandwidthLimitBurstBytes
+}
+
+func (s *SiderolinkService) SetBandwidthLimitBurstBytes(v uint64) {
+	s.BandwidthLimitBurstBytes = &v
+}
+
+func (s *SiderolinkService) GetBandwidthLimitMbps() uint64 {
+	if s == nil || s.BandwidthLimitMbps == nil {
+		return *new(uint64)
+	}
+	return *s.BandwidthLimitMbps
+}
+
+func (s *SiderolinkService) SetBandwidthLimitMbps(v uint64) {
+	s.BandwidthLimitMbps = &v
+}
+
 func (s *SiderolinkService) GetDisableLastEndpoint() bool {
 	if s == nil || s.DisableLastEndpoint == nil {
 		return *new(bool)

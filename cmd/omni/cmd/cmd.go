@@ -207,6 +207,12 @@ func defineServiceFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, f
 	rootCmdFlagBinder.IntVar("event-sink-port", flagDescription("services.siderolink.eventSinkPort", schema), &flagConfig.Services.Siderolink.EventSinkPort)
 	rootCmdFlagBinder.IntVar("log-server-port", flagDescription("services.siderolink.logServerPort", schema), &flagConfig.Services.Siderolink.LogServerPort)
 	EnumVar(rootCmdFlagBinder, "join-tokens-mode", flagDescription("services.siderolink.joinTokensMode", schema), &flagConfig.Services.Siderolink.JoinTokensMode)
+	rootCmdFlagBinder.Uint64Var("siderolink-bandwidth-limit-mbps",
+		flagDescription("services.siderolink.bandwidthLimitMbps", schema),
+		&flagConfig.Services.Siderolink.BandwidthLimitMbps)
+	rootCmdFlagBinder.Uint64Var("siderolink-bandwidth-limit-burst-bytes",
+		flagDescription("services.siderolink.bandwidthLimitBurstBytes", schema),
+		&flagConfig.Services.Siderolink.BandwidthLimitBurstBytes)
 
 	// MachineAPI
 	for _, prefix := range []string{"siderolink", "machine"} {
