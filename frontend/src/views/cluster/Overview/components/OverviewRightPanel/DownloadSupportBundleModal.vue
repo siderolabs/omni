@@ -67,19 +67,23 @@ const closeText = computed(() => {
   return done.value ? 'Close' : 'Cancel'
 })
 
-watchEffect(() => {
-  // Reset the modal when opening
-  if (open.value) {
-    sourceToProgress.value = {}
-    expanded.value = {}
-    done.value = false
-  }
-})
-
 let abortController: AbortController
 
 onUnmounted(() => {
   abortController?.abort()
+})
+
+watchEffect(() => {
+  if (!open.value) {
+    abortController?.abort()
+    return
+  }
+
+  // Reset the modal when opening
+  sourceToProgress.value = {}
+  expanded.value = {}
+  downloading.value = false
+  done.value = false
 })
 
 const download = async () => {
