@@ -300,6 +300,14 @@ const rootItems = computed(() => {
       },
     ]
 
+    if (featuresConfig.value?.spec.audit_log_enabled) {
+      subItems.push({
+        name: 'Audit Logs',
+        route: getRoute('AuditLogs', '/settings/audit-logs'),
+        icon: 'document',
+      })
+    }
+
     if (featuresConfig.value?.spec.stripe_settings?.enabled) {
       subItems.push({
         name: 'Billing',

@@ -33,6 +33,7 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       Record<never, never>,
       | '/(authenticated)/clusters/[cluster]'
+      | 'AuditLogs'
       | 'BackupStorage'
       | 'Backups'
       | 'ClusterConfigPatches'
@@ -464,10 +465,18 @@ declare module 'vue-router/auto-routes' {
       '/settings',
       Record<never, never>,
       Record<never, never>,
+      | 'AuditLogs'
       | 'BackupStorage'
       | 'InfraProviders'
       | 'ServiceAccounts'
       | 'Users'
+    >,
+    'AuditLogs': RouteRecordInfo<
+      'AuditLogs',
+      '/settings/audit-logs',
+      Record<never, never>,
+      Record<never, never>,
+      | never
     >,
     'BackupStorage': RouteRecordInfo<
       'BackupStorage',
@@ -549,6 +558,7 @@ declare module 'vue-router/auto-routes' {
       routes:
         | '/(authenticated)'
         | '/(authenticated)/clusters/[cluster]'
+        | 'AuditLogs'
         | 'BackupStorage'
         | 'Backups'
         | 'ClusterConfigPatches'
@@ -608,6 +618,7 @@ declare module 'vue-router/auto-routes' {
       routes:
         | '/(authenticated)'
         | '/(authenticated)/clusters/[cluster]'
+        | 'AuditLogs'
         | 'BackupStorage'
         | 'Backups'
         | 'ClusterConfigPatches'
@@ -994,6 +1005,7 @@ declare module 'vue-router/auto-routes' {
     }
     'src/pages/(authenticated)/settings.vue': {
       routes:
+        | 'AuditLogs'
         | 'BackupStorage'
         | 'InfraProviders'
         | 'ServiceAccounts'
@@ -1001,6 +1013,12 @@ declare module 'vue-router/auto-routes' {
         | 'Users'
       views:
         | 'default'
+    }
+    'src/pages/(authenticated)/settings/audit-logs.vue': {
+      routes:
+        | 'AuditLogs'
+      views:
+        | never
     }
     'src/pages/(authenticated)/settings/backups.vue': {
       routes:

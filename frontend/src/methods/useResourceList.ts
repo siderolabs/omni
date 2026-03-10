@@ -39,10 +39,9 @@ export function useResourceList<TSpec = unknown, TStatus = unknown>(
     }
 
     const abortController = new AbortController()
+    onCleanup(() => abortController.abort())
 
     await loadData(abortController)
-
-    onCleanup(() => abortController.abort())
   })
 
   return { data, loading, error, loadData }

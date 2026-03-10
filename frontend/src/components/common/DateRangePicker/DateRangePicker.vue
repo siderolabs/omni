@@ -36,13 +36,14 @@ import TIcon from '@/components/common/Icon/TIcon.vue'
 
 interface Props extends DateRangePickerRootProps {
   title: string
+  hiddenTitle?: boolean
 }
 
 // eslint-disable-next-line vue/define-props-destructuring
 const props = defineProps<Props>()
 const emit = defineEmits<DateRangePickerRootEmits>()
 
-const forwardedProps = reactiveOmit(props, 'title')
+const forwardedProps = reactiveOmit(props, 'title', 'hiddenTitle')
 const forwarded = useForwardPropsEmits(forwardedProps, emit)
 
 const id = useId()
@@ -50,7 +51,9 @@ const id = useId()
 
 <template>
   <div class="inline-flex flex-col gap-2">
-    <Label class="text-sm text-naturals-n14" :for="id">{{ title }}</Label>
+    <Label class="text-sm text-naturals-n14" :class="{ 'sr-only': hiddenTitle }" :for="id">
+      {{ title }}
+    </Label>
 
     <DateRangePickerRoot v-bind="forwarded" :id>
       <DateRangePickerField

@@ -146,6 +146,7 @@ const download = async () => {
 
           const url = window.URL.createObjectURL(blob)
           downloadURL(url, 'support.zip')
+          window.URL.revokeObjectURL(url)
 
           done.value = true
 

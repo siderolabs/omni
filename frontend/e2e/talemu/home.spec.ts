@@ -152,25 +152,6 @@ test('Download omnictl', async ({ page }, testInfo) => {
   expect(size).toBeGreaterThan(5 * 1024 * 1024)
 })
 
-test('Download audit logs', async ({ page }, testInfo) => {
-  await page.goto('/')
-
-  await page.getByRole('button', { name: 'Download audit logs' }).click()
-
-  const [download] = await Promise.all([
-    page.waitForEvent('download'),
-    page.getByRole('button', { name: 'Download' }).click(),
-  ])
-
-  const filePath = testInfo.outputPath(download.suggestedFilename())
-  await download.saveAs(filePath)
-  await testInfo.attach(download.suggestedFilename(), { path: filePath })
-
-  await expect(readFile(filePath, 'utf-8')).resolves.toContain(
-    '"resource_type":"Identities.omni.sidero.dev"',
-  )
-})
-
 test('View all clusters', async ({ page }) => {
   await page.goto('/')
 

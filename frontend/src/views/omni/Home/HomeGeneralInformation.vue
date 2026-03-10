@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { DefaultJoinTokenSpec, SiderolinkAPIConfigSpec } from '@/api/omni/specs/siderolink.pb'
@@ -34,13 +34,11 @@ import {
 import { usePermissions } from '@/methods/auth'
 import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import DownloadAuditLogsModal from '@/views/omni/Home/DownloadAuditLogsModal.vue'
 import HomeGeneralInformationCopyable from '@/views/omni/Home/HomeGeneralInformationCopyable.vue'
 
 const features = useFeatures()
 const { canReadAuditLog } = usePermissions()
 const auditLogAvailable = computed(() => !!features.data.value?.spec.audit_log_enabled)
-const downloadAuditLogModalOpen = ref(false)
 
 const { copy, copied } = useClipboard()
 
@@ -176,16 +174,14 @@ const {
       <h3 class="text-sm font-medium">Tools</h3>
 
       <TButton
+        is="router-link"
         variant="primary"
         icon="document"
         icon-position="left"
-        aria-haspopup="true"
-        @click="downloadAuditLogModalOpen = true"
+        :to="{ name: 'AuditLogs' }"
       >
-        Download audit logs
+        Audit logs
       </TButton>
     </section>
-
-    <DownloadAuditLogsModal v-model:open="downloadAuditLogModalOpen" />
   </Card>
 </template>
