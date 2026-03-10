@@ -44,6 +44,8 @@ const (
 	_ = runtime.MountStatusType
 	// tsgen:TalosMachineStatusType
 	_ = runtime.MachineStatusType
+	// tsgen:TalosVolumeStatusType
+	_ = block.VolumeStatusType
 
 	// Resource ids.
 	// tsgen:TalosNodenameID

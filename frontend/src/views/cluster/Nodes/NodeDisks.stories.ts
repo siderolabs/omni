@@ -8,14 +8,14 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import {
   TalosDiscoveredVolumeType,
   TalosDiskType,
-  TalosMountStatusType,
   TalosRuntimeNamespace,
+  TalosVolumeStatusType,
 } from '@/api/resources'
 
 import NodeDisks, {
   type TalosDiscoveredVolumeSpec,
   type TalosDiskSpec,
-  type TalosMountStatusSpec,
+  type TalosVolumeStatusSpec,
 } from './NodeDisks.vue'
 
 const meta: Meta<typeof NodeDisks> = {
@@ -142,23 +142,61 @@ export const WithData = {
           ],
         }).handler,
 
-        createWatchStreamHandler<TalosMountStatusSpec>({
+        createWatchStreamHandler<TalosVolumeStatusSpec>({
           expectedOptions: {
             namespace: TalosRuntimeNamespace,
-            type: TalosMountStatusType,
+            type: TalosVolumeStatusType,
           },
           initialResources: [
             {
               metadata: {
-                id: '/dev/vda4',
+                id: 'EPHEMERAL',
                 namespace: TalosRuntimeNamespace,
-                type: TalosMountStatusType,
+                type: TalosVolumeStatusType,
               },
               spec: {
-                encrypted: true,
-                filesystemType: 'xfs',
-                source: '/dev/vda4',
-                target: '/var',
+                filesystem: 'xfs',
+                location: '/dev/vda4',
+                mountLocation: '/dev/vda4',
+                mountSpec: {
+                  fileMode: 493,
+                  projectQuotaSupport: true,
+                  selinuxLabel: 'system_u:object_r:ephemeral_t:s0',
+                  targetPath: '/var',
+                },
+                parentLocation: '/dev/vda',
+                partitionIndex: 4,
+                phase: 'ready',
+                prettySize: '4.1 GB',
+                size: 4131389440,
+                type: 'partition',
+              },
+            },
+            {
+              metadata: {
+                id: 'u-mydata2',
+                namespace: TalosRuntimeNamespace,
+                type: TalosVolumeStatusType,
+              },
+              spec: {
+                configuredEncryptionKeys: ['static'],
+                encryptionProvider: 'luks2',
+                encryptionSlot: 0,
+                filesystem: 'xfs',
+                location: '/dev/vda3',
+                mountLocation: '/dev/dm-0',
+                mountSpec: {
+                  fileMode: 493,
+                  projectQuotaSupport: false,
+                  selinuxLabel: 'system_u:object_r:ephemeral_t:s0',
+                  targetPath: 'mydata2',
+                },
+                parentLocation: '/dev/vda',
+                partitionIndex: 3,
+                phase: 'ready',
+                prettySize: '104 MB',
+                size: 104857600,
+                type: 'partition',
               },
             },
           ],

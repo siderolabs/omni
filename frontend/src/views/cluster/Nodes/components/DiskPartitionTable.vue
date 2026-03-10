@@ -13,13 +13,13 @@ import TableRoot from '@/components/common/Table/TableRoot.vue'
 import TableRow from '@/components/common/Table/TableRow.vue'
 import type {
   TalosDiscoveredVolumeSpec,
-  TalosMountStatusSpec,
+  TalosVolumeStatusSpec,
 } from '@/views/cluster/Nodes/NodeDisks.vue'
 
 defineProps<{
   partitions: {
     volume: Resource<TalosDiscoveredVolumeSpec>
-    mount?: Resource<TalosMountStatusSpec>
+    volumeStatus?: Resource<TalosVolumeStatusSpec>
   }[]
 }>()
 
@@ -37,15 +37,15 @@ const getFilesystemIcon = (fsType?: string): IconType => {
   return 'document'
 }
 
-const isEncrypted = (item?: Resource<TalosMountStatusSpec>) => {
-  if (item?.spec.encrypted === undefined) {
+const isEncrypted = (item?: Resource<TalosVolumeStatusSpec>) => {
+  if (!item) {
     return Encryption.Unknown
   }
 
-  return item.spec.encrypted ? Encryption.Enabled : Encryption.Disabled
+  return item.spec.encryptionProvider ? Encryption.Enabled : Encryption.Disabled
 }
 
-const getEncryptionClass = (item?: Resource<TalosMountStatusSpec>) => {
+const getEncryptionClass = (item?: Resource<TalosVolumeStatusSpec>) => {
   switch (isEncrypted(item)) {
     case Encryption.Disabled:
       return 'text-red-r1'
@@ -56,7 +56,7 @@ const getEncryptionClass = (item?: Resource<TalosMountStatusSpec>) => {
   }
 }
 
-const getEncryptionIcon = (item?: Resource<TalosMountStatusSpec>): IconType => {
+const getEncryptionIcon = (item?: Resource<TalosVolumeStatusSpec>): IconType => {
   switch (isEncrypted(item)) {
     case Encryption.Disabled:
       return 'unlocked'
@@ -83,7 +83,7 @@ const getEncryptionIcon = (item?: Resource<TalosMountStatusSpec>): IconType => {
 
       <template #body>
         <TableRow
-          v-for="{ mount, volume } in partitions"
+          v-for="{ volume, volumeStatus } in partitions"
           :key="itemID(volume)"
           :aria-labelledby="`volume-${volume.metadata.id}-title`"
           class="whitespace-nowrap"
@@ -91,7 +91,7 @@ const getEncryptionIcon = (item?: Resource<TalosMountStatusSpec>): IconType => {
           <TableCell>
             <div class="flex items-center gap-2">
               <TIcon
-                :icon="getFilesystemIcon(volume.spec.name)"
+                :icon="getFilesystemIcon(volume.spec.name || volumeStatus?.spec.filesystem)"
                 class="size-4 shrink-0 text-naturals-n14"
               />
 
@@ -110,15 +110,17 @@ const getEncryptionIcon = (item?: Resource<TalosMountStatusSpec>): IconType => {
             </div>
           </TableCell>
 
-          <TableCell class="font-medium">{{ volume.spec.name || 'N/A' }}</TableCell>
+          <TableCell class="font-medium">
+            {{ volume.spec.name || volumeStatus?.spec.filesystem || 'N/A' }}
+          </TableCell>
 
           <TableCell>
             <span
               class="inline-flex items-center gap-1 rounded bg-naturals-n4 px-1.5 py-0.75"
-              :class="getEncryptionClass(mount)"
+              :class="getEncryptionClass(volumeStatus)"
             >
-              <TIcon :icon="getEncryptionIcon(mount)" class="size-3" aria-hidden />
-              <span class="text-xs/none">{{ isEncrypted(mount) }}</span>
+              <TIcon :icon="getEncryptionIcon(volumeStatus)" class="size-3" aria-hidden />
+              <span class="text-xs/none">{{ isEncrypted(volumeStatus) }}</span>
             </span>
           </TableCell>
 

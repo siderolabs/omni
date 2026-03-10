@@ -44,11 +44,38 @@ export interface TalosDiscoveredVolumeSpec {
   uuid?: string
 }
 
-export interface TalosMountStatusSpec {
-  encrypted?: boolean
-  filesystemType?: string
-  source?: string
-  target?: string
+export interface TalosVolumeStatusMountSpec {
+  fileMode?: number
+  gid?: number
+  parentId?: string
+  projectQuotaSupport?: boolean
+  recursiveRelabel?: boolean
+  selinuxLabel?: string
+  targetPath?: string
+  uid?: number
+}
+
+export interface TalosVolumeStatusSpec {
+  mountSpec?: TalosVolumeStatusMountSpec
+  phase?: string
+  type?: string
+  parentID?: string
+  symlink?: {
+    force?: boolean
+    symlinkTargetPath?: string
+  }
+  configuredEncryptionKeys?: string[]
+  encryptionProvider?: string
+  encryptionSlot?: number
+  filesystem?: string
+  location?: string
+  mountLocation?: string
+  parentLocation?: string
+  partitionIndex?: number
+  partitionUUID?: string
+  prettySize?: string
+  size?: number
+  uuid?: string
 }
 </script>
 
@@ -59,8 +86,8 @@ import { Runtime } from '@/api/common/omni.pb'
 import {
   TalosDiscoveredVolumeType,
   TalosDiskType,
-  TalosMountStatusType,
   TalosRuntimeNamespace,
+  TalosVolumeStatusType,
 } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TIcon from '@/components/common/Icon/TIcon.vue'
@@ -94,16 +121,19 @@ const { data: volumes, loading: volumesLoading } = useResourceWatch<TalosDiscove
   }),
 )
 
-const { data: mounts, loading: mountsLoading } = useResourceWatch<TalosMountStatusSpec>(() => ({
-  resource: {
-    namespace: TalosRuntimeNamespace,
-    type: TalosMountStatusType,
-  },
-  runtime: Runtime.Talos,
-  context,
-}))
+const { data: volumeStatuses, loading: volumeStatusesLoading } =
+  useResourceWatch<TalosVolumeStatusSpec>(() => ({
+    resource: {
+      namespace: TalosRuntimeNamespace,
+      type: TalosVolumeStatusType,
+    },
+    runtime: Runtime.Talos,
+    context,
+  }))
 
-const loading = computed(() => disksLoading.value || volumesLoading.value || mountsLoading.value)
+const loading = computed(
+  () => disksLoading.value || volumesLoading.value || volumeStatusesLoading.value,
+)
 
 const organizedDisks = computed(() =>
   disks.value
@@ -114,7 +144,7 @@ const organizedDisks = computed(() =>
         .filter((v) => v.spec.parent === disk.metadata.id)
         .map((v) => ({
           volume: v,
-          mount: mounts.value.find((m) => m.spec.source === v.spec.dev_path),
+          volumeStatus: volumeStatuses.value.find((m) => m.spec.location === v.spec.dev_path),
         }))
         .sort(
           (a, b) => (a.volume.spec.partition_index || 0) - (b.volume.spec.partition_index || 0),

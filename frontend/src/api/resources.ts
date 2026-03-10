@@ -52,6 +52,7 @@ export const TalosPCIDeviceType = "PCIDevices.hardware.talos.dev";
 export const TalosNodeAddressType = "NodeAddresses.net.talos.dev";
 export const TalosMountStatusType = "MountStatuses.runtime.talos.dev";
 export const TalosMachineStatusType = "MachineStatuses.runtime.talos.dev";
+export const TalosVolumeStatusType = "VolumeStatuses.block.talos.dev";
 export const TalosNodenameID = "nodename";
 export const TalosAddressRoutedNoK8s = "routed-no-k8s";
 export const TalosCPUID = "latest";
