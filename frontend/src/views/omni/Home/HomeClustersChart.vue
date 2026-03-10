@@ -37,7 +37,7 @@ const counts = computed(() => {
   const scalingUpCount = spec?.phases?.[ClusterStatusSpecPhase.SCALING_UP] ?? 0
 
   return {
-    healthyCount: runningCount - notReadyCount,
+    healthyCount: Math.max(runningCount - notReadyCount, 0),
     unhealthyCount: notReadyCount,
     scalingUpCount,
     scalingDownCount,

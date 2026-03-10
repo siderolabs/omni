@@ -39,9 +39,9 @@ const counts = computed(() => {
     totalCount: registeredCount + pendingCount,
     connectedCount,
     pendingCount,
-    notConnectedCount: registeredCount - connectedCount,
+    notConnectedCount: Math.max(registeredCount - connectedCount, 0),
     inClusterCount: allocatedCount,
-    freeMachineCount: registeredCount - allocatedCount,
+    freeMachineCount: Math.max(registeredCount - allocatedCount, 0),
   }
 })
 </script>
