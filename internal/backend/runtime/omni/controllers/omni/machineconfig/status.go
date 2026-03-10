@@ -245,12 +245,6 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 	if machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != shaSumString { // latest config is not yet applied, perform config apply
 		mode, err = ctrl.applyConfig(ctx, logger, r, rc)
 		if err != nil {
-			if !xerrors.TagIs[qtransform.SkipReconcileTag](err) {
-				if err = ctrl.releaseConfigUpdateLock(ctx, r, rc.clusterMachine); err != nil {
-					return err
-				}
-			}
-
 			grpcSt := client.Status(err)
 			if grpcSt != nil && grpcSt.Code() == codes.InvalidArgument {
 				machineConfigStatus.TypedSpec().Value.LastConfigError = grpcSt.Message()

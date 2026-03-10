@@ -873,6 +873,13 @@ Tests applying various config patching, including "broken" config patches which 
 		assertClusterAndAPIReady(t, clusterName, options)
 
 		t.Run(
+			"InvalidConfigPatchShouldBeReverted",
+			AssertRevertBrokenConfigPatch(t.Context(), options.omniClient, clusterName),
+		)
+
+		assertClusterAndAPIReady(t, clusterName, options)
+
+		t.Run(
 			"InvalidConfigPatchShouldNotBeApplied",
 			AssertConfigPatchWithInvalidConfig(t.Context(), options.omniClient, clusterName),
 		)

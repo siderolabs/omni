@@ -225,8 +225,8 @@ func AssertConfigPatchWithReboot(testCtx context.Context, options *TestOptions, 
 	}
 }
 
-// AssertConfigPatchWithInvalidConfig tests that a machine is able to recover from a patch with broken config when the broken patch is deleted.
-func AssertConfigPatchWithInvalidConfig(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
+// AssertRevertBrokenConfigPatch tests that a machine is able to recover from a patch with broken config when the broken patch is deleted.
+func AssertRevertBrokenConfigPatch(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 8*time.Minute)
 		defer cancel()
@@ -268,9 +268,64 @@ func AssertConfigPatchWithInvalidConfig(testCtx context.Context, cli *client.Cli
 			assertion.False(cms.TypedSpec().Value.GetReady())
 		})
 
+		rtestutils.AssertResources(ctx, t, st, []resource.ID{cmID}, func(cmcs *omni.ClusterMachineConfigStatus, assertion *assert.Assertions) {
+			assertion.Contains(cmcs.TypedSpec().Value.GetLastConfigError(), file)
+		})
+
 		// TODO: wait for a Talos error about invalid config in the logs
 
 		t.Logf("destroyed config patch with file: %q", file)
+
+		// remove broken config patch
+		rtestutils.Destroy[*omni.ConfigPatch](ctx, t, st, []string{configPatch.Metadata().ID()})
+
+		// wait until k8s nodes come back
+		rtestutils.AssertResources(ctx, t, st, []resource.ID{cmID}, func(cms *omni.ClusterMachineStatus, assertion *assert.Assertions) {
+			assertion.Equal(specs.ClusterMachineStatusSpec_RUNNING, cms.TypedSpec().Value.GetStage())
+			assertion.True(cms.TypedSpec().Value.GetReady())
+		})
+	}
+}
+
+// AssertConfigPatchWithInvalidConfig tests that invalid config patch is not applied and the error is reported in the status.
+func AssertConfigPatchWithInvalidConfig(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, 8*time.Minute)
+		defer cancel()
+
+		st := cli.Omni().State()
+
+		cmIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st,
+			state.WithLabelQuery(
+				resource.LabelEqual(omni.LabelCluster, clusterName),
+				resource.LabelExists(omni.LabelControlPlaneRole),
+			),
+		)
+		require.NotEmpty(t, cmIDs)
+
+		cmID := cmIDs[0]
+
+		epochSeconds := time.Now().Unix()
+		id := fmt.Sprintf("000-config-patch-test-broken-%d", epochSeconds)
+		configPatchYAML := `apiVersion: v1alpha1
+kind: SwapVolumeConfig
+name: swap
+provisioning:
+  maxSize: 5GB
+  minSize: 5GB`
+
+		configPatch := omni.NewConfigPatch(id,
+			pair.MakePair(omni.LabelCluster, clusterName),
+			pair.MakePair(omni.LabelClusterMachine, cmID))
+
+		// apply the broken config patch
+		createOrUpdate(ctx, t, st, configPatch, func(p *omni.ConfigPatch) error {
+			return p.TypedSpec().Value.SetUncompressedData([]byte(configPatchYAML))
+		})
+
+		rtestutils.AssertResources(ctx, t, st, []resource.ID{cmID}, func(cmcs *omni.ClusterMachineConfigStatus, assertion *assert.Assertions) {
+			assertion.Contains(cmcs.TypedSpec().Value.GetLastConfigError(), "disk selector is required")
+		})
 
 		// remove broken config patch
 		rtestutils.Destroy[*omni.ConfigPatch](ctx, t, st, []string{configPatch.Metadata().ID()})
