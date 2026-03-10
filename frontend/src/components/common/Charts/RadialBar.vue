@@ -5,12 +5,13 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import 'apexcharts/radialBar'
+
 import type { ApexOptions } from 'apexcharts'
-import { computed, defineAsyncComponent } from 'vue'
+import { computed } from 'vue'
+import ApexChart from 'vue3-apexcharts/core'
 
 import { getNonce } from '@/methods'
-
-const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
 
 interface Props {
   title: string
