@@ -91,7 +91,7 @@ func newMiddleware(t *testing.T, sloEndpoint string) *samlsp.Middleware {
 func TestCreateLogoutHandler_NoCookie(t *testing.T) {
 	handler := omnisaml.CreateLogoutHandler(newMiddleware(t, testIDPSLOURL), testAdvertisedURL, zaptest.NewLogger(t))
 
-	req := httptest.NewRequest(http.MethodGet, "/logout", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/logout", nil)
 	rec := httptest.NewRecorder()
 
 	handler(rec, req)
@@ -108,7 +108,7 @@ func TestCreateLogoutHandler_NoCookie(t *testing.T) {
 func TestCreateLogoutHandler_NoSLOEndpoint(t *testing.T) {
 	handler := omnisaml.CreateLogoutHandler(newMiddleware(t, ""), testAdvertisedURL, zaptest.NewLogger(t))
 
-	req := httptest.NewRequest(http.MethodGet, "/logout", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/logout", nil)
 	req.AddCookie(makeSLOCookie(t, "user@example.com", "", ""))
 
 	rec := httptest.NewRecorder()
@@ -127,7 +127,7 @@ func TestCreateLogoutHandler_NoSLOEndpoint(t *testing.T) {
 func TestCreateLogoutHandler_RedirectsToSLO(t *testing.T) {
 	handler := omnisaml.CreateLogoutHandler(newMiddleware(t, testIDPSLOURL), testAdvertisedURL, zaptest.NewLogger(t))
 
-	req := httptest.NewRequest(http.MethodGet, "/logout", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/logout", nil)
 	req.AddCookie(makeSLOCookie(t, "user@example.com", "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", "_session123"))
 
 	rec := httptest.NewRecorder()
@@ -164,7 +164,7 @@ func TestCreateLogoutHandler_InvalidCookieValue(t *testing.T) {
 		{name: "missing name_id", cookieValue: base64.URLEncoding.EncodeToString([]byte(`{"f":"fmt"}`))},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/logout", nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/logout", nil)
 			req.AddCookie(&http.Cookie{Name: omnisaml.NameIDCookieName, Value: tt.cookieValue})
 
 			rec := httptest.NewRecorder()
@@ -193,7 +193,7 @@ func TestSLOHandler_InvalidResponse_ClearsCookieAndRedirects(t *testing.T) {
 	// and proceeds to clear the cookie and redirect.
 	samlResponse := base64.StdEncoding.EncodeToString([]byte(`<samlp:LogoutResponse xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_fake" Version="2.0"/>`))
 
-	req := httptest.NewRequest(http.MethodPost, "/saml/slo", strings.NewReader("SAMLResponse="+url.QueryEscape(samlResponse)))
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/saml/slo", strings.NewReader("SAMLResponse="+url.QueryEscape(samlResponse)))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(makeSLOCookie(t, "user@example.com", "", ""))
 
@@ -218,7 +218,7 @@ func TestSLOHandler_NoCookie(t *testing.T) {
 
 	samlResponse := base64.StdEncoding.EncodeToString([]byte(`<samlp:LogoutResponse xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_fake" Version="2.0"/>`))
 
-	req := httptest.NewRequest(http.MethodPost, "/saml/slo", strings.NewReader("SAMLResponse="+url.QueryEscape(samlResponse)))
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/saml/slo", strings.NewReader("SAMLResponse="+url.QueryEscape(samlResponse)))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	rec := httptest.NewRecorder()

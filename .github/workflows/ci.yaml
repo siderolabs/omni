@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-02-25T11:37:51Z by kres 6458cfd.
+# Generated on 2026-03-10T14:06:17Z by kres 3328d87.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -63,7 +63,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -109,7 +109,7 @@ jobs:
           make omni
       - name: Login to registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # version: v3.7.0
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # version: v4.0.0
         with:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
@@ -139,7 +139,7 @@ jobs:
           make integration-test
       - name: Login to registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # version: v3.7.0
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # version: v4.0.0
         with:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
@@ -222,7 +222,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -243,7 +243,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-backups
           path: ${{ github.workspace }}/integration-test
@@ -292,7 +292,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -315,7 +315,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-cluster-import
           path: ${{ github.workspace }}/integration-test
@@ -364,7 +364,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -385,7 +385,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-forced-removal
           path: ${{ github.workspace }}/integration-test
@@ -432,7 +432,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -453,7 +453,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-e2e-helm-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: e2e-helm
           path: ${{ github.workspace }}/integration-test
@@ -501,7 +501,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -523,7 +523,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-minor-talos-upgrade
           path: ${{ github.workspace }}/integration-test
@@ -572,7 +572,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -593,7 +593,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-misc-upgrades
           path: ${{ github.workspace }}/integration-test
@@ -642,7 +642,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -665,7 +665,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-omni-upgrade
           path: ${{ github.workspace }}/integration-test
@@ -712,7 +712,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -733,7 +733,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-e2e-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: e2e-qemu
           path: ${{ github.workspace }}/integration-test
@@ -781,7 +781,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -804,7 +804,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-rotate-ca
           path: ${{ github.workspace }}/integration-test
@@ -853,7 +853,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -874,7 +874,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-scaling
           path: ${{ github.workspace }}/integration-test
@@ -923,7 +923,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -944,7 +944,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-short
           path: ${{ github.workspace }}/integration-test
@@ -993,7 +993,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -1015,7 +1015,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-short-secureboot
           path: ${{ github.workspace }}/integration-test
@@ -1062,7 +1062,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -1083,7 +1083,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-e2e-talemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: e2e-talemu
           path: ${{ github.workspace }}/integration-test
@@ -1138,7 +1138,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -1159,7 +1159,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-templates
           path: ${{ github.workspace }}/integration-test
@@ -1208,7 +1208,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -1229,7 +1229,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-upgrades
           path: ${{ github.workspace }}/integration-test
@@ -1278,7 +1278,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -1299,7 +1299,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu-e2e-workload-proxy
           path: ${{ github.workspace }}/integration-test
@@ -1346,7 +1346,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -1370,7 +1370,7 @@ jobs:
         run: |
           find _out -type f -executable > _out/executable-artifacts
       - name: save-artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: artifacts
           path: |-
@@ -1380,7 +1380,7 @@ jobs:
           retention-days: "5"
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-qemu
           path: ${{ github.workspace }}/integration-test
@@ -1433,7 +1433,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -1455,7 +1455,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-talemu-artifacts
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # version: v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
         with:
           name: integration-talemu
           path: ${{ github.workspace }}/integration-test
@@ -1506,7 +1506,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -1559,7 +1559,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
