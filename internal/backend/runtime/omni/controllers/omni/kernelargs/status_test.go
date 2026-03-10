@@ -124,5 +124,19 @@ func TestReconcile(t *testing.T) {
 			assertion.Equal(initialKernelArgs, res.TypedSpec().Value.CurrentArgs)
 			assertion.Equal([]string{"updated-arg-1", "updated-arg-2"}, res.TypedSpec().Value.Args)
 		})
+
+		// Mark the machine as having an invalid schematic — kernel args should no longer be manageable.
+		_, err = safe.StateUpdateWithConflicts(ctx, testContext.State, ms.Metadata(), func(res *omni.MachineStatus) error {
+			res.TypedSpec().Value.Schematic.Invalid = true
+
+			return nil
+		})
+		require.NoError(t, err)
+
+		rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.KernelArgsStatus, assertion *assert.Assertions) {
+			assertion.Equal([]string{
+				"Machine was not provisioned using an image factory image, kernel args cannot be managed",
+			}, res.TypedSpec().Value.UnmetConditions)
+		})
 	})
 }

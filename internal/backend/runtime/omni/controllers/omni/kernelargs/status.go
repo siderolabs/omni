@@ -46,6 +46,13 @@ func NewStatusController() *StatusController {
 					status.TypedSpec().Value.CurrentArgs = kernelargs.FilterExtras(ms.TypedSpec().Value.Schematic.KernelArgs)
 				}
 
+				if ms.TypedSpec().Value.Schematic.GetInvalid() {
+					status.TypedSpec().Value.UnmetConditions = append(status.TypedSpec().Value.UnmetConditions,
+						"Machine was not provisioned using an image factory image, kernel args cannot be managed")
+
+					return nil
+				}
+
 				if omni.GetMachineStatusSystemDisk(ms) == "" {
 					status.TypedSpec().Value.UnmetConditions = append(status.TypedSpec().Value.UnmetConditions, "Talos is not installed, kernel args cannot be updated yet")
 				}

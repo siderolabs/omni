@@ -15,6 +15,7 @@ import type {
   ExtensionsConfigurationSpec,
   MachineExtensionsSpec,
   MachineExtensionsStatusSpec,
+  MachineStatusSpec,
 } from '@/api/omni/specs/omni.pb'
 import { MachineExtensionsStatusSpecItemPhase } from '@/api/omni/specs/omni.pb'
 import {
@@ -26,6 +27,7 @@ import {
   LabelMachineSet,
   MachineExtensionsStatusType,
   MachineExtensionsType,
+  MachineStatusType,
 } from '@/api/resources'
 import type { WatchOptions } from '@/api/watch'
 import Watch from '@/api/watch'
@@ -37,6 +39,7 @@ import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
 import { setupClusterPermissions } from '@/methods/auth'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const machineExtensionsStatus = ref<Resource<MachineExtensionsStatusSpec>>()
 const machineExtensionsStatusWatch = new Watch(machineExtensionsStatus)
@@ -51,6 +54,17 @@ const ready = computed(() => {
 })
 
 const { canUpdateTalos } = setupClusterPermissions(computed(() => route.params.cluster as string))
+
+const { data: machineStatus } = useResourceWatch<MachineStatusSpec>(() => ({
+  resource: {
+    id: route.params.machine as string,
+    namespace: DefaultNamespace,
+    type: MachineStatusType,
+  },
+  runtime: Runtime.Omni,
+}))
+
+const invalidSchematic = computed(() => machineStatus.value?.spec.schematic?.invalid === true)
 
 machineExtensionsStatusWatch.setup(
   computed((): WatchOptions | undefined => {
@@ -224,7 +238,11 @@ const openExtensionsUpdate = () => {
           <TSpinner class="h-6 w-6" />
         </div>
         <div v-else class="flex-1">
-          <TAlert title="No Extensions Found" type="info" />
+          <TAlert v-if="invalidSchematic" title="Non-factory Machine" type="warn">
+            This machine was not provisioned using an image factory image. Extensions cannot be
+            managed by Omni for this machine.
+          </TAlert>
+          <TAlert v-else title="No Extensions Found" type="info" />
         </div>
       </div>
     </PageContainer>
@@ -232,7 +250,11 @@ const openExtensionsUpdate = () => {
     <div
       class="flex h-16 shrink-0 items-center justify-end border-t border-naturals-n5 bg-naturals-n1 px-12"
     >
-      <TButton variant="highlighted" :disabled="!canUpdateTalos" @click="openExtensionsUpdate">
+      <TButton
+        variant="highlighted"
+        :disabled="!canUpdateTalos || invalidSchematic"
+        @click="openExtensionsUpdate"
+      >
         Update Extensions
       </TButton>
     </div>
