@@ -4,6 +4,7 @@
 // included in the LICENSE file.
 import { type MaybeRefOrGetter, type Ref, ref, toValue } from 'vue'
 
+import type { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import type {
   Callback,
@@ -16,6 +17,7 @@ import Watch, { WatchJoin } from '@/api/watch'
 
 interface WatchBase {
   err: Ref<string | null>
+  errCode: Ref<Code | null>
   loading: Ref<boolean>
 }
 
@@ -78,6 +80,7 @@ function useWatchSingle<TSpec = unknown, TStatus = unknown>(
   return {
     data,
     err: watch.err,
+    errCode: watch.errCode,
     loading: watch.loading,
     running: watch.running,
   }
@@ -95,6 +98,7 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
   return {
     data,
     err: watch.err,
+    errCode: watch.errCode,
     loading: watch.loading,
     total: watch.total,
     running: watch.running,
@@ -118,6 +122,7 @@ function useWatchJoin<TSpec = unknown, TStatus = unknown>(
   return {
     data,
     err: watch.err,
+    errCode: watch.errCode,
     loading: watch.loading,
     total: watch.total,
   }

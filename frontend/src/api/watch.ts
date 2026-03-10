@@ -2,12 +2,12 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-
 import type { MaybeRefOrGetter, Ref } from 'vue'
 import { onBeforeUnmount, onMounted, ref, toRef, toValue, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { fetchOption } from '@/api/fetch.pb'
+import { type fetchOption, RequestError } from '@/api/fetch.pb'
+import type { Code } from '@/api/google/rpc/code.pb'
 import type { Resource, Stream } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import type { WatchRequest, WatchResponse } from '@/api/omni/resources/resources.pb'
@@ -33,6 +33,7 @@ export class WatchFunc {
   public readonly loading: Ref<boolean> = ref(false)
   public readonly running: Ref<boolean> = ref(false)
   public readonly err: Ref<string | null> = ref(null)
+  public readonly errCode: Ref<Code | null> = ref(null)
 
   constructor(callback: Callback) {
     this.callback = (message: WatchResponse) => {
@@ -103,7 +104,8 @@ export class WatchFunc {
     onError?: (err: Error) => void,
   ): Promise<void> {
     this.loading.value = true
-    this.err.value = ''
+    this.err.value = null
+    this.errCode.value = null
 
     this.runtime = opts.runtime
 
@@ -160,11 +162,13 @@ export class WatchFunc {
 
   protected onStart() {
     this.err.value = null
+    this.errCode.value = null
     this.loading.value = true
   }
 
   protected onError(error: Error) {
     this.err.value = error.message ?? error.toString()
+    this.errCode.value = error instanceof RequestError ? ((error.code as Code) ?? null) : null
     this.loading.value = false
   }
 }
@@ -518,6 +522,7 @@ export class WatchJoin<T extends Resource> {
 
   public readonly loading = ref(false)
   public readonly err: Ref<string | null> = ref(null)
+  public readonly errCode: Ref<Code | null> = ref(null)
   public readonly total: Ref<number> = ref(0)
 
   constructor(items: Ref<T[]>) {
@@ -582,6 +587,7 @@ export class WatchJoin<T extends Resource> {
     this.watchItems.setDescending(primary.sortDescending ?? false)
     this.loading.value = true
     this.err.value = null
+    this.errCode.value = null
     this.primaryResourceType = primary.resource.type
 
     const handler = (resourceType: string, opts: WatchJoinOptions) => {
@@ -664,6 +670,7 @@ export class WatchJoin<T extends Resource> {
         if (opts.resource.type === this.primaryResourceType) {
           onStart = () => {
             this.err.value = null
+            this.errCode.value = null
             this.watchItems?.reset()
           }
 
@@ -671,6 +678,7 @@ export class WatchJoin<T extends Resource> {
             this.watchItems?.reset()
             this.loading.value = false
             this.err.value = err.message
+            this.errCode.value = err instanceof RequestError ? ((err.code as Code) ?? null) : null
           }
         }
 
@@ -682,6 +690,7 @@ export class WatchJoin<T extends Resource> {
       this.stop()
 
       this.err.value = err.message
+      this.errCode.value = err instanceof RequestError ? ((err.code as Code) ?? null) : null
 
       throw err
     }
