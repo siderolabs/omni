@@ -285,6 +285,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: dropTalosUpgradeStatusFinalizers,
 				name:     "dropTalosUpgradeStatusFinalizers",
 			},
+			{
+				callback: dropRedactedClusterMachineConfigFinalizers,
+				name:     "dropRedactedClusterMachineConfigFinalizers",
+			},
 		},
 	}
 }

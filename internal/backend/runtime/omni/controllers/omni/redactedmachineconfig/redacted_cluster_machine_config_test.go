@@ -28,34 +28,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
-//nolint:lll
-const machineConfig = `version: v1alpha1
-machine:
-  type: controlplane
-  token: '******'
-  ca:
-    crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJQakNCOGFBREFnRUNBaEEydVNNVDNETWhhc3VreUd1d3pZVXhNQVVHQXl0bGNEQVFNUTR3REFZRFZRUUsKRXdWMFlXeHZjekFlRncweU5UQTNNRGd4TWpFNE5EaGFGdzB6TlRBM01EWXhNakU0TkRoYU1CQXhEakFNQmdOVgpCQW9UQlhSaGJHOXpNQ293QlFZREsyVndBeUVBNU15S3FTY2RSUjJLRzBXS0dUTllrUjFmM0dBRkNtbVFvMTk5CmVsM0YwdUtqWVRCZk1BNEdBMVVkRHdFQi93UUVBd0lDaERBZEJnTlZIU1VFRmpBVUJnZ3JCZ0VGQlFjREFRWUkKS3dZQkJRVUhBd0l3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFkQmdOVkhRNEVGZ1FVRC9JQ0M4Mnl4QkFTOThRZQpaQzhneFVScUpVTXdCUVlESzJWd0EwRUFhSHM2S3Z1L0JDKzZzM2ZWQ1Y1NHRlQWpIZW5WTVdlcXFyb0V0bHBGCitDZXZQMlM3eHhXVU8zOTYzTjRxMFF1QzQvU2ZwVmFySzhmb1dKK0FBZ3pDQ3c9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-    key: '******'
-  certSANs: []
-cluster:
-  id: 1vUXXJzS9ahM3TE70vm29k6weYtYgGDxxY-edDjvf_k=
-  secret: '******'
-  controlPlane:
-    endpoint: https://doesntmatter:6443
-  token: '******'
-  secretboxEncryptionSecret: '******'
-  ca:
-    crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJpVENDQVMrZ0F3SUJBZ0lRSDV6TUR3SjhDdlpicEMwV2RZN2ZuakFLQmdncWhrak9QUVFEQWpBVk1STXcKRVFZRFZRUUtFd3ByZFdKbGNtNWxkR1Z6TUI0WERUSTFNRGN3T0RFeU1UZzBPRm9YRFRNMU1EY3dOakV5TVRnMApPRm93RlRFVE1CRUdBMVVFQ2hNS2EzVmlaWEp1WlhSbGN6QlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VICkEwSUFCUFg2bE5CMXBNdFAzMzdRb3orZUVnaWgwMDIzTkEzRWczNVZmQldYdnJ6aG5SNkU0SXIyaHJkRDhzOFcKK1hMMWllUDdKUlFmWklORVBVVzZjeExNakR5allUQmZNQTRHQTFVZER3RUIvd1FFQXdJQ2hEQWRCZ05WSFNVRQpGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFCkZnUVVrYmQvN1pFYWVrb0tIYVptdUVJMXVnN3d6QTR3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUloQU56ZTFiNjEKdS9UV0tVU09mZ3JjVC9URTZYLytETGdDbXNDQU01OEg5Q3JtQWlCZlJXYktjVVpzWm9hOEZ6R1liNkNDL1V6bwozb3YwVDlSb2c3ZlJwM2tnaFE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-    key: '******'
-  aggregatorCA:
-    crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJZRENDQVFXZ0F3SUJBZ0lRTGRBcWdlUHQyUjg5dzZacTR5YUpmREFLQmdncWhrak9QUVFEQWpBQU1CNFgKRFRJMU1EY3dPREV5TVRnME9Gb1hEVE0xTURjd05qRXlNVGcwT0Zvd0FEQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxRwpTTTQ5QXdFSEEwSUFCQktnK3BadnVGd1NBZUpEYXA0K29FeEdEY05tWFR6d3hPSmtjVXZLSHVXTnQxNnY3b3EvCmtSb2JXYTlnSVZHVTlVYTNXYXg5ekc1SnFKL1duZGpEblIrallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQ2hEQWQKQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZApCZ05WSFE0RUZnUVVxVy9kdW4wWGhETVgwaXUrTk5RbW50UHdvTEV3Q2dZSUtvWkl6ajBFQXdJRFNRQXdSZ0loCkFQWDNWM1R1TEdwZmc4Y21JWnFSMUZ2OFBWWE44cDgvaFR3Vk94clNMNlpkQWlFQTlCd0VzVGZDRWlUYm1vSFIKTmxPT3FmcndYQUtkZUxKeTJOZUdDdjZjV3JzPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-    key: '******'
-  serviceAccount:
-    key: '******'
-  etcd:
-    ca:
-      crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJmVENDQVNPZ0F3SUJBZ0lRRVEyU3FYYkhUc1cyQWVLejlZMlA2akFLQmdncWhrak9QUVFEQWpBUE1RMHcKQ3dZRFZRUUtFd1JsZEdOa01CNFhEVEkxTURjd09ERXlNVGcwT0ZvWERUTTFNRGN3TmpFeU1UZzBPRm93RHpFTgpNQXNHQTFVRUNoTUVaWFJqWkRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBQkV6YkwyWjI2QlFzCmU2MHB6c3l4Wm1kK01FeFRrOUFLSUtGdVRBbmN4TWI5RE9CUHFwOE02ZFVyUnB5UUw2TTdVR1RxWkJGSlZYeUcKRGkyTXBGRVNWR3FqWVRCZk1BNEdBMVVkRHdFQi93UUVBd0lDaERBZEJnTlZIU1VFRmpBVUJnZ3JCZ0VGQlFjRApBUVlJS3dZQkJRVUhBd0l3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFkQmdOVkhRNEVGZ1FVM01nQ3c4RWFjbGY4CnFjZ1dJTHR5VWxMTGVYY3dDZ1lJS29aSXpqMEVBd0lEU0FBd1JRSWdVN3llYU90enIrTUZrU0dHR2NlbWNNUCsKd1dUSVFOSzk5M3FnZWJlZHVlQUNJUURDODhnSlIwU1kxOWhDNkhmNlhZeHdQMlNiL2pMUTRpc3IrdGxFTG5odwpXQT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
-      key: '******'`
+//go:embed testdata/config.yaml
+var machineConfig string
 
 func TestReconcile(t *testing.T) {
 	t.Parallel()
@@ -85,7 +59,7 @@ func testReconcile(ctx context.Context, t *testing.T, st state.State, cleanupCh 
 	require.NoError(t, st.WatchKind(ctx, omni.NewMachineConfigDiff("").Metadata(), diffEventCh))
 
 	id := "test-reconcile"
-	cmc := omni.NewClusterMachineConfig(id)
+	cmc := omni.NewClusterMachineConfigStatus(id)
 
 	require.NoError(t, cmc.TypedSpec().Value.SetUncompressedData([]byte(machineConfig)))
 	require.NoError(t, st.Create(ctx, cmc))
@@ -100,38 +74,11 @@ func testReconcile(ctx context.Context, t *testing.T, st state.State, cleanupCh 
 			data := string(buffer.Data())
 
 			//nolint:lll
-			assert.Equal(`version: v1alpha1
-machine:
-    type: controlplane
-    token: '******'
-    ca:
-        crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJQakNCOGFBREFnRUNBaEEydVNNVDNETWhhc3VreUd1d3pZVXhNQVVHQXl0bGNEQVFNUTR3REFZRFZRUUsKRXdWMFlXeHZjekFlRncweU5UQTNNRGd4TWpFNE5EaGFGdzB6TlRBM01EWXhNakU0TkRoYU1CQXhEakFNQmdOVgpCQW9UQlhSaGJHOXpNQ293QlFZREsyVndBeUVBNU15S3FTY2RSUjJLRzBXS0dUTllrUjFmM0dBRkNtbVFvMTk5CmVsM0YwdUtqWVRCZk1BNEdBMVVkRHdFQi93UUVBd0lDaERBZEJnTlZIU1VFRmpBVUJnZ3JCZ0VGQlFjREFRWUkKS3dZQkJRVUhBd0l3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFkQmdOVkhRNEVGZ1FVRC9JQ0M4Mnl4QkFTOThRZQpaQzhneFVScUpVTXdCUVlESzJWd0EwRUFhSHM2S3Z1L0JDKzZzM2ZWQ1Y1NHRlQWpIZW5WTVdlcXFyb0V0bHBGCitDZXZQMlM3eHhXVU8zOTYzTjRxMFF1QzQvU2ZwVmFySzhmb1dKK0FBZ3pDQ3c9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-        key: '******'
-    certSANs: []
-cluster:
-    id: 1vUXXJzS9ahM3TE70vm29k6weYtYgGDxxY-edDjvf_k=
-    secret: '******'
-    controlPlane:
-        endpoint: https://doesntmatter:6443
-    token: '******'
-    secretboxEncryptionSecret: '******'
-    ca:
-        crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJpVENDQVMrZ0F3SUJBZ0lRSDV6TUR3SjhDdlpicEMwV2RZN2ZuakFLQmdncWhrak9QUVFEQWpBVk1STXcKRVFZRFZRUUtFd3ByZFdKbGNtNWxkR1Z6TUI0WERUSTFNRGN3T0RFeU1UZzBPRm9YRFRNMU1EY3dOakV5TVRnMApPRm93RlRFVE1CRUdBMVVFQ2hNS2EzVmlaWEp1WlhSbGN6QlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VICkEwSUFCUFg2bE5CMXBNdFAzMzdRb3orZUVnaWgwMDIzTkEzRWczNVZmQldYdnJ6aG5SNkU0SXIyaHJkRDhzOFcKK1hMMWllUDdKUlFmWklORVBVVzZjeExNakR5allUQmZNQTRHQTFVZER3RUIvd1FFQXdJQ2hEQWRCZ05WSFNVRQpGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFCkZnUVVrYmQvN1pFYWVrb0tIYVptdUVJMXVnN3d6QTR3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUloQU56ZTFiNjEKdS9UV0tVU09mZ3JjVC9URTZYLytETGdDbXNDQU01OEg5Q3JtQWlCZlJXYktjVVpzWm9hOEZ6R1liNkNDL1V6bwozb3YwVDlSb2c3ZlJwM2tnaFE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-        key: '******'
-    aggregatorCA:
-        crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJZRENDQVFXZ0F3SUJBZ0lRTGRBcWdlUHQyUjg5dzZacTR5YUpmREFLQmdncWhrak9QUVFEQWpBQU1CNFgKRFRJMU1EY3dPREV5TVRnME9Gb1hEVE0xTURjd05qRXlNVGcwT0Zvd0FEQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxRwpTTTQ5QXdFSEEwSUFCQktnK3BadnVGd1NBZUpEYXA0K29FeEdEY05tWFR6d3hPSmtjVXZLSHVXTnQxNnY3b3EvCmtSb2JXYTlnSVZHVTlVYTNXYXg5ekc1SnFKL1duZGpEblIrallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQ2hEQWQKQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZApCZ05WSFE0RUZnUVVxVy9kdW4wWGhETVgwaXUrTk5RbW50UHdvTEV3Q2dZSUtvWkl6ajBFQXdJRFNRQXdSZ0loCkFQWDNWM1R1TEdwZmc4Y21JWnFSMUZ2OFBWWE44cDgvaFR3Vk94clNMNlpkQWlFQTlCd0VzVGZDRWlUYm1vSFIKTmxPT3FmcndYQUtkZUxKeTJOZUdDdjZjV3JzPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
-        key: '******'
-    serviceAccount:
-        key: '******'
-    etcd:
-        ca:
-            crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJmVENDQVNPZ0F3SUJBZ0lRRVEyU3FYYkhUc1cyQWVLejlZMlA2akFLQmdncWhrak9QUVFEQWpBUE1RMHcKQ3dZRFZRUUtFd1JsZEdOa01CNFhEVEkxTURjd09ERXlNVGcwT0ZvWERUTTFNRGN3TmpFeU1UZzBPRm93RHpFTgpNQXNHQTFVRUNoTUVaWFJqWkRCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBQkV6YkwyWjI2QlFzCmU2MHB6c3l4Wm1kK01FeFRrOUFLSUtGdVRBbmN4TWI5RE9CUHFwOE02ZFVyUnB5UUw2TTdVR1RxWkJGSlZYeUcKRGkyTXBGRVNWR3FqWVRCZk1BNEdBMVVkRHdFQi93UUVBd0lDaERBZEJnTlZIU1VFRmpBVUJnZ3JCZ0VGQlFjRApBUVlJS3dZQkJRVUhBd0l3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFkQmdOVkhRNEVGZ1FVM01nQ3c4RWFjbGY4CnFjZ1dJTHR5VWxMTGVYY3dDZ1lJS29aSXpqMEVBd0lEU0FBd1JRSWdVN3llYU90enIrTUZrU0dHR2NlbWNNUCsKd1dUSVFOSzk5M3FnZWJlZHVlQUNJUURDODhnSlIwU1kxOWhDNkhmNlhZeHdQMlNiL2pMUTRpc3IrdGxFTG5odwpXQT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
-            key: '******'
-`, data)
+			assert.Equal(machineConfig, data)
 		},
 	)
 
-	rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfig, assert *assert.Assertions) {
+	rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
 		assert.True(res.Metadata().Finalizers().Has(redactedmachineconfig.ControllerName), "expected controller name finalizer to be set")
 	})
 
@@ -178,13 +125,13 @@ func testTeardown(ctx context.Context, t *testing.T, st state.State) {
 	require.NoError(t, st.WatchKind(ctx, omni.NewMachineConfigDiff("").Metadata(), diffEventCh))
 
 	id := "test-teardown"
-	cmc := omni.NewClusterMachineConfig(id)
+	cmc := omni.NewClusterMachineConfigStatus(id)
 
 	require.NoError(t, cmc.TypedSpec().Value.SetUncompressedData([]byte(machineConfig)))
 	require.NoError(t, st.Create(ctx, cmc))
 	rtestutils.AssertResource(ctx, t, st, id, func(*omni.RedactedClusterMachineConfig, *assert.Assertions) {})
 
-	rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfig, assert *assert.Assertions) {
+	rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
 		assert.True(res.Metadata().Finalizers().Has(redactedmachineconfig.ControllerName), "expected controller name finalizer to be set")
 	})
 
@@ -193,7 +140,7 @@ func testTeardown(ctx context.Context, t *testing.T, st state.State) {
 	diffID2 := updateConfigAssertDiff(ctx, t, st, cmc, "ccc", "ddd", diffEventCh)
 
 	// delete the config, assert that the redacted config is deleted
-	rtestutils.Destroy[*omni.ClusterMachineConfig](ctx, t, st, []string{id})
+	rtestutils.Destroy[*omni.ClusterMachineConfigStatus](ctx, t, st, []string{id})
 
 	rtestutils.AssertNoResource[*omni.RedactedClusterMachineConfig](ctx, t, st, id)
 
@@ -228,13 +175,13 @@ func testMaxDiffCount(ctx context.Context, t *testing.T, st state.State) {
 	require.NoError(t, st.WatchKind(ctx, omni.NewMachineConfigDiff("").Metadata(), diffEventCh))
 
 	id := "test-max-diff"
-	cmc := omni.NewClusterMachineConfig(id)
+	cmc := omni.NewClusterMachineConfigStatus(id)
 
 	require.NoError(t, cmc.TypedSpec().Value.SetUncompressedData([]byte(machineConfig)))
 	require.NoError(t, st.Create(ctx, cmc))
 	rtestutils.AssertResource(ctx, t, st, id, func(*omni.RedactedClusterMachineConfig, *assert.Assertions) {})
 
-	rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfig, assert *assert.Assertions) {
+	rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
 		assert.True(res.Metadata().Finalizers().Has(redactedmachineconfig.ControllerName), "expected controller name finalizer to be set")
 	})
 
@@ -252,8 +199,8 @@ func testMaxDiffCount(ctx context.Context, t *testing.T, st state.State) {
 	rtestutils.AssertResources(ctx, t, st, []resource.ID{diffID4, diffID5}, func(res *omni.MachineConfigDiff, assert *assert.Assertions) {})
 }
 
-func updateConfigAssertDiff(ctx context.Context, t *testing.T, st state.State, cmc *omni.ClusterMachineConfig, testKey, testVal string, diffEventCh chan state.Event) resource.ID {
-	_, err := safe.StateUpdateWithConflicts(ctx, st, cmc.Metadata(), func(res *omni.ClusterMachineConfig) error {
+func updateConfigAssertDiff(ctx context.Context, t *testing.T, st state.State, cmc *omni.ClusterMachineConfigStatus, testKey, testVal string, diffEventCh chan state.Event) resource.ID {
+	_, err := safe.StateUpdateWithConflicts(ctx, st, cmc.Metadata(), func(res *omni.ClusterMachineConfigStatus) error {
 		data, err := res.TypedSpec().Value.GetUncompressedData()
 		if err != nil {
 			return err

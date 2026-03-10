@@ -406,6 +406,42 @@ func (suite *MigrationSuite) TestCreateIdentityLastActiveForExistingIdentities()
 	suite.Assert().Nil(saLastActive.TypedSpec().Value.LastActive, "new IdentityLastActive should have no timestamp")
 }
 
+func (suite *MigrationSuite) TestDropRedactedMachineConfigFinalizersFromClusterMachineConfigs() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	cm1 := omni.NewClusterMachineConfig("cm1")
+	cm1.Metadata().Finalizers().Add("RedactedClusterMachineConfigController")
+	cm1.Metadata().SetPhase(resource.PhaseTearingDown)
+	suite.Require().NoError(suite.state.Create(ctx, cm1))
+
+	cm2 := omni.NewClusterMachineConfig("cm2")
+	cm2.Metadata().Finalizers().Add("RedactedClusterMachineConfigController")
+	suite.Require().NoError(cm2.Metadata().SetOwner("some-owner"))
+	suite.Require().NoError(suite.state.Create(ctx, cm2, state.WithCreateOwner("some-owner")))
+
+	cm3 := omni.NewClusterMachineConfig("cm3")
+	suite.Require().NoError(suite.state.Create(ctx, cm3))
+
+	cm3VersionBefore := cm3.Metadata().Version()
+
+	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("dropRedactedClusterMachineConfigFinalizers")))
+	suite.Require().NoError(err)
+
+	cm1Migrated, err := suite.state.Get(ctx, cm1.Metadata())
+	suite.Require().NoError(err)
+
+	cm2Migrated, err := suite.state.Get(ctx, cm2.Metadata())
+	suite.Require().NoError(err)
+
+	cm3Migrated, err := suite.state.Get(ctx, cm3.Metadata())
+	suite.Require().NoError(err)
+
+	suite.False(cm1Migrated.Metadata().Finalizers().Has("RedactedClusterMachineConfigController"))
+	suite.False(cm2Migrated.Metadata().Finalizers().Has("RedactedClusterMachineConfigController"))
+	suite.True(cm3VersionBefore.Equal(cm3Migrated.Metadata().Version()), "expected cm3 to be left untouched")
+}
+
 func TestMigrationSuite(t *testing.T) {
 	t.Parallel()
 

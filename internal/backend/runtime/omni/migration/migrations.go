@@ -290,3 +290,9 @@ func dropTalosUpgradeStatusFinalizers(ctx context.Context, st state.State, logge
 
 	return dropFinalizers[*omni.ClusterMachine](ctx, st, "TalosUpgradeStatusController")
 }
+
+func dropRedactedClusterMachineConfigFinalizers(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	logger.Info("dropping RedactedClusterMachineConfigController finalizers from ClusterMachineConfig resources")
+
+	return dropFinalizers[*omni.ClusterMachineConfig](ctx, st, "RedactedClusterMachineConfigController")
+}

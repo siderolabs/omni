@@ -17,10 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
-	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/diff"
@@ -98,7 +95,7 @@ func (ctrl *Controller) Settings() controller.QSettings {
 		Inputs: []controller.Input{
 			{
 				Namespace: resources.DefaultNamespace,
-				Type:      omni.ClusterMachineConfigType,
+				Type:      omni.ClusterMachineConfigStatusType,
 				Kind:      controller.InputQPrimary,
 			},
 		},
@@ -117,7 +114,7 @@ func (ctrl *Controller) Settings() controller.QSettings {
 
 // Reconcile implements controller.QController interface.
 func (ctrl *Controller) Reconcile(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr resource.Pointer) error {
-	cmc, err := safe.ReaderGet[*omni.ClusterMachineConfig](ctx, r, ptr)
+	cmc, err := safe.ReaderGet[*omni.ClusterMachineConfigStatus](ctx, r, ptr)
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -136,7 +133,7 @@ func (ctrl *Controller) Reconcile(ctx context.Context, logger *zap.Logger, r con
 // MapInput implements controller.QController interface.
 func (ctrl *Controller) MapInput(_ context.Context, _ *zap.Logger, _ controller.QRuntime, pointer controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 	switch pointer.Type() {
-	case omni.ClusterMachineConfigType:
+	case omni.ClusterMachineConfigStatusType:
 		return []resource.Pointer{
 			omni.NewRedactedClusterMachineConfig(pointer.ID()).Metadata(),
 		}, nil
@@ -145,7 +142,7 @@ func (ctrl *Controller) MapInput(_ context.Context, _ *zap.Logger, _ controller.
 	}
 }
 
-func (ctrl *Controller) reconcileRunning(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cmc *omni.ClusterMachineConfig) error {
+func (ctrl *Controller) reconcileRunning(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cmc *omni.ClusterMachineConfigStatus) error {
 	if !cmc.Metadata().Finalizers().Has(ctrl.Name()) {
 		if err := r.AddFinalizer(ctx, cmc.Metadata(), ctrl.Name()); err != nil {
 			return err
@@ -164,19 +161,14 @@ func (ctrl *Controller) reconcileRunning(ctx context.Context, r controller.Reade
 
 		defer buffer.Free()
 
-		data := buffer.Data()
+		redactedData := buffer.Data()
 
-		if data == nil {
+		if redactedData == nil {
 			if err = res.TypedSpec().Value.SetUncompressedData(nil); err != nil {
 				return err
 			}
 
 			return nil
-		}
-
-		config, err := configloader.NewFromBytes(data)
-		if err != nil {
-			return err
 		}
 
 		previousConfig, err := res.TypedSpec().Value.GetUncompressedData()
@@ -185,11 +177,6 @@ func (ctrl *Controller) reconcileRunning(ctx context.Context, r controller.Reade
 		}
 
 		defer previousConfig.Free()
-
-		redactedData, err := config.RedactSecrets(x509.Redacted).EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
-		if err != nil {
-			return err
-		}
 
 		if err = res.TypedSpec().Value.SetUncompressedData(redactedData); err != nil {
 			return err
@@ -210,7 +197,7 @@ func (ctrl *Controller) reconcileRunning(ctx context.Context, r controller.Reade
 	return err
 }
 
-func (ctrl *Controller) reconcileTearingDown(ctx context.Context, r controller.ReaderWriter, cmc *omni.ClusterMachineConfig) error {
+func (ctrl *Controller) reconcileTearingDown(ctx context.Context, r controller.ReaderWriter, cmc *omni.ClusterMachineConfigStatus) error {
 	list, err := uncached.ReaderWriter(r).List(ctx, omni.NewMachineConfigDiff("").Metadata(), state.WithLabelQuery(resource.LabelEqual(omni.LabelMachine, cmc.Metadata().ID())))
 	if err != nil {
 		return fmt.Errorf("failed to list diffs for machine config %q: %w", cmc.Metadata().ID(), err)
