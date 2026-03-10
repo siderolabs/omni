@@ -22,14 +22,14 @@ echo "127.0.0.1 omni.localhost" | tee -a /etc/hosts
 # Settings.
 LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
 
-export TALOS_VERSION=1.12.4
-export KUBERNETES_VERSION=1.35.1
+export TALOS_VERSION=1.12.5
+export KUBERNETES_VERSION=1.35.2
 # To use in:
 # - Omni upgrade tests, to prevent Talos changes interfering with Omni changes
 # - Talos minor upgrade tests
 export STABLE_TALOS_VERSION=1.11.6
 export ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-$LATEST_STABLE_OMNI}"
-export ANOTHER_KUBERNETES_VERSION=1.34.4
+export ANOTHER_KUBERNETES_VERSION=1.34.5
 
 export INTEGRATION_PREPARE_TEST_ARGS="${INTEGRATION_PREPARE_TEST_ARGS:-}"
 export ARTIFACTS=_out
