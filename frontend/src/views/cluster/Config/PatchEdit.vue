@@ -315,7 +315,7 @@ const patchTypes = computed(() => {
   }
 
   if (machine.value?.metadata.labels?.[LabelCluster] ?? route.params.machine) {
-    return [PatchType.Machine, PatchType.ClusterMachine]
+    return [PatchType.ClusterMachine, PatchType.Machine]
   }
 
   return undefined

@@ -119,6 +119,20 @@ interface RouteItem {
   description?: string
 }
 
+type PatchEditRouteName = 'ClusterPatchEdit' | 'ClusterMachinePatchEdit' | 'MachinePatchEdit'
+
+const patchEditRouteName = computed<PatchEditRouteName>(() => {
+  if (cluster) {
+    return 'ClusterPatchEdit'
+  }
+
+  if (route.params.cluster) {
+    return 'ClusterMachinePatchEdit'
+  }
+
+  return 'MachinePatchEdit'
+})
+
 const patchTypeCluster = 'Cluster'
 
 const routes = computed(() => {
@@ -145,13 +159,11 @@ const routes = computed(() => {
       return
     }
 
-    const patchEditPage = route.params.cluster ? 'ClusterMachinePatchEdit' : 'MachinePatchEdit'
-
     const r = {
       name: (item.metadata.annotations || {})[ConfigPatchName] || item.metadata.id!,
       icon: 'document',
       route: {
-        name: machine ? patchEditPage : 'ClusterPatchEdit',
+        name: patchEditRouteName.value,
         params: { patch: item.metadata.id! },
       },
       id: item.metadata.id!,
@@ -240,7 +252,7 @@ const openPatchCreate = () => {
   }
 
   router.push({
-    name: cluster ? 'ClusterPatchEdit' : 'MachinePatchEdit',
+    name: patchEditRouteName.value,
     params: {
       patch: `500-${uuidv4()}`,
     },
