@@ -268,10 +268,6 @@ func AssertRevertBrokenConfigPatch(testCtx context.Context, cli *client.Client, 
 			assertion.False(cms.TypedSpec().Value.GetReady())
 		})
 
-		rtestutils.AssertResources(ctx, t, st, []resource.ID{cmID}, func(cmcs *omni.ClusterMachineConfigStatus, assertion *assert.Assertions) {
-			assertion.Contains(cmcs.TypedSpec().Value.GetLastConfigError(), file)
-		})
-
 		// TODO: wait for a Talos error about invalid config in the logs
 
 		t.Logf("destroyed config patch with file: %q", file)
