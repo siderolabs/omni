@@ -242,8 +242,8 @@ const downloadSupportBundleModalOpen = ref(false)
 </script>
 
 <template>
-  <div class="mb-4 h-auto max-w-[20%] min-w-67 rounded bg-naturals-n2 py-5">
-    <div class="flex flex-col gap-4 px-2 lg:px-6">
+  <div class="min-w-67 rounded bg-naturals-n2 py-5">
+    <div class="flex flex-col gap-4 px-4 lg:px-6">
       <h3 class="text-sm text-naturals-n13">Cluster Details</h3>
       <ManagedByTemplatesWarning warning-style="short" />
       <OverviewRightPanelItem
@@ -307,7 +307,7 @@ const downloadSupportBundleModalOpen = ref(false)
     </div>
     <template v-if="clusterStatus?.spec">
       <div class="my-3 h-px bg-naturals-n4" />
-      <div class="flex flex-col gap-4 px-2 lg:px-6">
+      <div class="flex flex-col gap-4 px-4 lg:px-6">
         <h3 class="text-sm text-naturals-n13">Control Plane</h3>
         <OverviewRightPanelItem name="Ready">
           <span :class="clusterStatus.spec.controlplaneReady ? '' : 'text-red-r1'">
@@ -343,7 +343,7 @@ const downloadSupportBundleModalOpen = ref(false)
         />
       </div>
       <div class="my-3 h-px bg-naturals-n4" />
-      <div class="flex flex-col gap-4 px-2 lg:px-6">
+      <div class="flex flex-col gap-4 px-4 lg:px-6">
         <h3 class="text-sm text-naturals-n13">Kubernetes</h3>
         <OverviewRightPanelItem
           name="API Available"
@@ -356,7 +356,7 @@ const downloadSupportBundleModalOpen = ref(false)
         />
       </div>
       <div class="my-3 h-px bg-naturals-n4" />
-      <div class="flex flex-col gap-4 px-2 lg:px-6">
+      <div class="flex flex-col gap-4 px-4 lg:px-6">
         <TButton
           :disabled="!canDownloadKubeconfig"
           variant="primary"
@@ -408,7 +408,7 @@ const downloadSupportBundleModalOpen = ref(false)
         </TButton>
       </div>
       <div class="my-3 h-px bg-naturals-n4" />
-      <div class="flex flex-col gap-4 px-2 lg:px-6">
+      <div class="flex flex-col gap-4 px-4 lg:px-6">
         <Tooltip
           class="grow"
           :disabled="!locked"
