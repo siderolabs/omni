@@ -11,23 +11,21 @@ import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import type { ApexOptions } from 'apexcharts'
 import { DateTime } from 'luxon'
 import type { Ref } from 'vue'
-import { computed, ref, toRefs } from 'vue'
+import { computed, ref } from 'vue'
 import VueApexCharts from 'vue3-apexcharts/core'
 
-import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import type { WatchResponse } from '@/api/omni/resources/resources.pb'
 import { EventType } from '@/api/omni/resources/resources.pb'
-import type { Metadata } from '@/api/v1alpha1/resource.pb'
-import type { WatchContext, WatchEventSpec } from '@/api/watch'
-import { WatchFunc } from '@/api/watch'
+import type { WatchEventSpec, WatchOptions } from '@/api/watch'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import { getNonce } from '@/methods'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 type Props<T> = {
+  watchOpts: WatchOptions
   name: string
   title: string
-  resource: Metadata
-  runtime: Runtime
   pointFn: (spec: T, old: T) => Record<string, number>
   animations?: boolean
   legend?: boolean
@@ -35,40 +33,27 @@ type Props<T> = {
   stacked?: boolean
   stroke?: ApexOptions['stroke']
   colors?: string[]
-  tailEvents?: number
-  context?: WatchContext
   totalFn?: (spec: T, old: T) => string
   minFn?: (spec: T, old: T) => number
   maxFn?: (spec: T, old: T) => number
   formatter?: (value: string | number) => string
 }
 
-const props = withDefaults(defineProps<Props<T>>(), {
-  stroke: () => {
-    return { curve: 'smooth', width: 2, dashArray: 0 }
-  },
-  colors: () => ['var(--color-yellow-y1)', 'var(--color-primary-p3)'],
-  tailEvents: () => 25,
-})
-
 const {
+  watchOpts,
   name,
-  resource,
-  runtime,
-  context,
   animations,
   legend,
   dataLabels,
-  stroke,
+  stroke = { curve: 'smooth', width: 2, dashArray: 0 },
   pointFn,
-  colors,
+  colors = ['var(--color-yellow-y1)', 'var(--color-primary-p3)'],
   totalFn,
-  tailEvents,
   minFn,
   maxFn,
   stacked,
   formatter,
-} = toRefs(props)
+} = defineProps<Props<T>>()
 
 type Point = number | number[]
 const series = ref<{ name: string; data: Point[] }[]>([])
@@ -80,6 +65,8 @@ const total = ref<string>()
 const min: Ref<number | undefined> = ref(undefined)
 const max: Ref<number | undefined> = ref(undefined)
 
+const tailEvents = computed(() => watchOpts.tailEvents ?? 25)
+
 const handlePoint = (message: WatchResponse, spec: WatchEventSpec) => {
   if (message.event?.event_type !== EventType.UPDATED) {
     return
@@ -88,18 +75,18 @@ const handlePoint = (message: WatchResponse, spec: WatchEventSpec) => {
   const resource = spec.res
   const old = spec.old
 
-  const data = pointFn.value(resource?.spec, old?.spec)
+  const data = pointFn(resource?.spec, old?.spec)
 
-  if (totalFn?.value) {
-    total.value = totalFn.value(resource?.spec, old?.spec)
+  if (totalFn) {
+    total.value = totalFn(resource?.spec, old?.spec)
   }
 
-  if (minFn?.value) {
-    min.value = minFn.value(resource?.spec, old?.spec)
+  if (minFn) {
+    min.value = minFn(resource?.spec, old?.spec)
   }
 
-  if (maxFn?.value) {
-    max.value = maxFn.value(resource?.spec, old?.spec)
+  if (maxFn) {
+    max.value = maxFn(resource?.spec, old?.spec)
   }
 
   for (const key in data) {
@@ -149,23 +136,12 @@ const handlePoint = (message: WatchResponse, spec: WatchEventSpec) => {
   }
 }
 
-const w = new WatchFunc(handlePoint)
-
-w.setup(
-  runtime.value === Runtime.Omni
-    ? {
-        resource: resource.value,
-        runtime: runtime.value,
-        tailEvents: tailEvents.value,
-      }
-    : context.value
-      ? {
-          resource: resource.value,
-          runtime: runtime.value,
-          tailEvents: tailEvents.value,
-          context: context.value,
-        }
-      : undefined,
+const { err, errCode, loading } = useResourceWatch(
+  () => ({
+    ...watchOpts,
+    tailEvents: tailEvents.value,
+  }),
+  handlePoint,
 )
 
 const options = computed(() => {
@@ -173,26 +149,26 @@ const options = computed(() => {
     chart: {
       nonce: getNonce(),
       background: 'transparent',
-      id: name.value,
+      id: name,
       zoom: {
         enabled: false,
       },
       animations: {
-        enabled: animations.value,
+        enabled: animations,
       },
       toolbar: {
         show: false,
       },
-      stacked: stacked.value,
+      stacked: stacked,
     },
     legend: {
-      show: legend.value,
-      formatter: formatter.value,
+      show: legend,
+      formatter: formatter,
     },
     dataLabels: {
-      enabled: dataLabels.value,
+      enabled: dataLabels,
     },
-    stroke: stroke.value,
+    stroke: stroke,
     tooltip: {
       theme: 'dark',
       x: {
@@ -203,7 +179,7 @@ const options = computed(() => {
         fontFamily: 'var(--font-sans)',
       },
     },
-    colors: colors.value,
+    colors: colors,
     fill: {
       type: 'gradient',
       gradient: {
@@ -257,7 +233,7 @@ const options = computed(() => {
       min: min.value,
       max: max.value,
       labels: {
-        formatter: formatter?.value,
+        formatter: formatter,
         style: {
           colors: 'var(--color-naturals-n8)',
           fontSize: '0.625rem',
@@ -268,9 +244,6 @@ const options = computed(() => {
     },
   } satisfies ApexOptions
 })
-
-const err = w.err
-const loading = w.loading
 </script>
 
 <template>
@@ -292,7 +265,8 @@ const loading = w.loading
           <div class="flex-0">
             <ExclamationCircleIcon class="h-6 w-6" />
           </div>
-          <div>{{ err }}</div>
+          <div v-if="errCode === Code.UNAVAILABLE">Talos API is not ready yet</div>
+          <div v-else>{{ err }}</div>
         </div>
         <TSpinner v-else class="h-5 w-5" />
       </div>

@@ -83,6 +83,7 @@ export interface TalosVolumeStatusSpec {
 import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import {
   TalosDiscoveredVolumeType,
   TalosDiskType,
@@ -101,7 +102,12 @@ import DiskUsageBar from '@/views/cluster/Nodes/components/DiskUsageBar.vue'
 
 const context = getContext()
 
-const { data: disks, loading: disksLoading } = useResourceWatch<TalosDiskSpec>(() => ({
+const {
+  data: disks,
+  loading: disksLoading,
+  err: disksErr,
+  errCode: disksErrCode,
+} = useResourceWatch<TalosDiskSpec>(() => ({
   resource: {
     namespace: TalosRuntimeNamespace,
     type: TalosDiskType,
@@ -110,29 +116,41 @@ const { data: disks, loading: disksLoading } = useResourceWatch<TalosDiskSpec>((
   context,
 }))
 
-const { data: volumes, loading: volumesLoading } = useResourceWatch<TalosDiscoveredVolumeSpec>(
-  () => ({
-    resource: {
-      namespace: TalosRuntimeNamespace,
-      type: TalosDiscoveredVolumeType,
-    },
-    runtime: Runtime.Talos,
-    context,
-  }),
-)
+const {
+  data: volumes,
+  loading: volumesLoading,
+  err: volumesErr,
+  errCode: volumesErrCode,
+} = useResourceWatch<TalosDiscoveredVolumeSpec>(() => ({
+  resource: {
+    namespace: TalosRuntimeNamespace,
+    type: TalosDiscoveredVolumeType,
+  },
+  runtime: Runtime.Talos,
+  context,
+}))
 
-const { data: volumeStatuses, loading: volumeStatusesLoading } =
-  useResourceWatch<TalosVolumeStatusSpec>(() => ({
-    resource: {
-      namespace: TalosRuntimeNamespace,
-      type: TalosVolumeStatusType,
-    },
-    runtime: Runtime.Talos,
-    context,
-  }))
+const {
+  data: volumeStatuses,
+  loading: volumeStatusesLoading,
+  err: volumeStatusesErr,
+  errCode: volumeStatusesErrCode,
+} = useResourceWatch<TalosVolumeStatusSpec>(() => ({
+  resource: {
+    namespace: TalosRuntimeNamespace,
+    type: TalosVolumeStatusType,
+  },
+  runtime: Runtime.Talos,
+  context,
+}))
 
 const loading = computed(
   () => disksLoading.value || volumesLoading.value || volumeStatusesLoading.value,
+)
+
+const err = computed(() => disksErr.value || volumesErr.value || volumeStatusesErr.value)
+const errCode = computed(
+  () => disksErrCode.value || volumesErrCode.value || volumeStatusesErrCode.value,
 )
 
 const organizedDisks = computed(() =>
@@ -155,8 +173,11 @@ const organizedDisks = computed(() =>
 
 <template>
   <PageContainer class="space-y-4">
-    <TSpinner v-if="loading" class="mx-auto size-6" />
-
+    <TAlert v-if="errCode === Code.UNAVAILABLE" type="warn" title="Machine not ready">
+      Talos API is not ready yet
+    </TAlert>
+    <TSpinner v-else-if="loading" class="mx-auto size-6" />
+    <TAlert v-else-if="err" type="error" title="Error">{{ err }}</TAlert>
     <TAlert v-else-if="!organizedDisks.length" type="info" title="No Records">
       No disks found.
     </TAlert>

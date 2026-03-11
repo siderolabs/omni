@@ -240,13 +240,15 @@ const sortBy = (id: keyof Proc) => {
             class="h-full"
             name="cpu"
             title="CPU usage"
-            :runtime="Runtime.Talos"
-            :resource="{
-              type: TalosCPUType,
-              namespace: TalosPerfNamespace,
-              id: TalosCPUID,
+            :watch-opts="{
+              runtime: Runtime.Talos,
+              resource: {
+                type: TalosCPUType,
+                namespace: TalosPerfNamespace,
+                id: TalosCPUID,
+              },
+              context,
             }"
-            :context="context"
             :point-fn="handleCPU"
             :total-fn="handleTotalCPU"
             :min-fn="() => 0"
@@ -264,14 +266,16 @@ const sortBy = (id: keyof Proc) => {
               'var(--color-naturals-n11)',
               'var(--color-naturals-n11)',
             ]"
-            :runtime="Runtime.Talos"
-            :resource="{
-              type: TalosMemoryType,
-              namespace: TalosPerfNamespace,
-              id: TalosMemoryID,
+            :watch-opts="{
+              runtime: Runtime.Talos,
+              resource: {
+                type: TalosMemoryType,
+                namespace: TalosPerfNamespace,
+                id: TalosMemoryID,
+              },
+              context,
             }"
             stacked
-            :context="context"
             :point-fn="handleMem"
             :total-fn="handleTotalMem"
             :min-fn="() => 0"
@@ -292,13 +296,15 @@ const sortBy = (id: keyof Proc) => {
             name="procs"
             title="Processes"
             :colors="['var(--color-blue-b1)', 'var(--color-green-g1)', 'var(--color-yellow-y1)']"
-            :runtime="Runtime.Talos"
-            :resource="{
-              type: TalosCPUType,
-              namespace: TalosPerfNamespace,
-              id: TalosCPUID,
+            :watch-opts="{
+              runtime: Runtime.Talos,
+              resource: {
+                type: TalosCPUType,
+                namespace: TalosPerfNamespace,
+                id: TalosCPUID,
+              },
+              context,
             }"
-            :context="context"
             :point-fn="handleProcs"
           />
         </div>

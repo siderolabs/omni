@@ -25,7 +25,7 @@ export type WatchEventSpec = {
   old?: Resource
 }
 
-export class WatchFunc {
+class WatchFunc {
   protected runtime: Runtime = Runtime.Kubernetes
   protected callback: (resp: WatchResponse) => void
   protected stream?: Stream<WatchRequest, WatchResponse>

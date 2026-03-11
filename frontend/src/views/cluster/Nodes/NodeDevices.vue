@@ -71,6 +71,7 @@ import { TreeItem, TreeRoot, TreeVirtualizer } from 'reka-ui'
 import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { TalosHardwareNamespace, TalosPCIDeviceType } from '@/api/resources'
 import TIcon, { type IconType } from '@/components/common/Icon/TIcon.vue'
@@ -84,6 +85,7 @@ const {
   data: devices,
   loading,
   err,
+  errCode,
 } = useResourceWatch<TalosPCIDeviceSpec>({
   resource: {
     namespace: TalosHardwareNamespace,
@@ -140,11 +142,12 @@ function isLastChild(item?: DeviceTreeItem) {
 
 <template>
   <PageContainer class="h-full">
-    <TSpinner v-if="loading" class="size-4" />
-    <TAlert v-else-if="err" type="error" title="Error">{{ err }}</TAlert>
-    <TAlert v-else-if="!devices.length" type="info" title="No Records">
-      No entries of the requested resource type are found on the server.
+    <TAlert v-if="errCode === Code.UNAVAILABLE" type="warn" title="Machine not ready">
+      Talos API is not ready yet
     </TAlert>
+    <TSpinner v-else-if="loading" class="mx-auto size-6" />
+    <TAlert v-else-if="err" type="error" title="Error">{{ err }}</TAlert>
+    <TAlert v-else-if="!devices.length" type="info" title="No Records">No devices found.</TAlert>
 
     <TreeRoot
       v-else

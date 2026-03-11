@@ -8,9 +8,13 @@ included in the LICENSE file.
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
+import { Runtime } from '@/api/common/omni.pb'
+import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import { DefaultNamespace, MachineStatusType } from '@/api/resources'
 import TabButton from '@/components/common/Tabs/TabButton.vue'
 import TabContent from '@/components/common/Tabs/TabContent.vue'
 import Tabs from '@/components/common/Tabs/Tabs.vue'
+import { useResourceGet } from '@/methods/useResourceGet'
 import NodesHeader from '@/views/cluster/Nodes/NodesHeader.vue'
 
 const route = useRoute()
@@ -60,11 +64,24 @@ const routes = computed(() => {
     },
   ]
 })
+
+const { data } = useResourceGet<MachineStatusSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: MachineStatusType,
+    id: machine.value,
+  },
+}))
+
+const nodeName = computed(
+  () => data.value?.spec.network?.hostname || data.value?.metadata.id || machine.value,
+)
 </script>
 
 <template>
   <div class="flex h-full flex-col pt-6">
-    <NodesHeader class="px-4 md:px-6" />
+    <NodesHeader class="px-4 md:px-6" :node-name />
 
     <Tabs
       :model-value="$route.name?.toString()"
