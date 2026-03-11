@@ -193,6 +193,7 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *Controller {
 		qtransform.WithExtraMappedInput[*omni.SecretRotation](
 			qtransform.MapperSameID[*omni.Cluster](),
 		),
+		qtransform.WithConcurrency(8),
 	)
 
 	return ctrl
@@ -204,6 +205,9 @@ func (s *Controller) getBackupDataFromBootstrapSpec(
 	etcdBackupStoreFactory store.Factory,
 	spec *specs.MachineSetSpec_BootstrapSpec,
 ) (etcdbackup.BackupData, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Minute*5)
+	defer cancel()
+
 	backupStore, err := etcdBackupStoreFactory.GetStore()
 	if err != nil {
 		return etcdbackup.BackupData{}, fmt.Errorf("failed to get backup store: %w", err)
