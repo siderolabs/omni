@@ -1,3 +1,33 @@
+## [Omni 1.5.10](https://github.com/siderolabs/omni/releases/tag/v1.5.10) (2026-03-11)
+
+Welcome to the v1.5.10 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+* Utku Ozdemir
+
+### Changes
+<details><summary>3 commits</summary>
+<p>
+
+* [`6c1edda5`](https://github.com/siderolabs/omni/commit/6c1edda549dd817578f77b140787ee58f140c3a2) release(v1.5.10): prepare release
+* [`293836a6`](https://github.com/siderolabs/omni/commit/293836a6ee392da4c4102075da536618c1aeb312) test: fix `ConfigPatching` test
+* [`941bba6b`](https://github.com/siderolabs/omni/commit/941bba6b1296f82fde8766b9ccc28f67ac4c1a3a) fix: do not release lock on apply config fails
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.5.9](https://github.com/siderolabs/omni/releases/tag/v1.5.9)
+
 ## [Omni 1.5.9](https://github.com/siderolabs/omni/releases/tag/v1.5.9) (2026-03-09)
 
 Welcome to the v1.5.9 release of Omni!

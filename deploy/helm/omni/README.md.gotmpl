@@ -1,0 +1,237 @@
+# Omni Helm Chart (v2)
+
+{{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
+
+A Helm chart to deploy [Omni](https://omni.siderolabs.com) on a Kubernetes cluster.
+
+> [!WARNING]
+> **This chart is for new installations only.** Upgrading or migrating from the deprecated v1 chart is not supported.
+> All new Omni installations should use this chart. Only Omni **1.5.0** and above is supported.
+
+For all available configuration options, see the [`values.yaml`](values.yaml) file and the [Values](#values) section below.
+
+{{ template "chart.homepageLine" . }}
+
+{{ template "chart.maintainersSection" . }}
+
+## Installation
+
+This chart is not yet published to a Helm repository. To install it, clone the repository and install from the local path.
+
+### 1. Generate an etcd Encryption Key
+
+Omni requires a GPG private key to encrypt its database. If you don't have one, generate one with:
+
+```bash
+export GNUPGHOME=$(mktemp -d)
+gpg --batch --passphrase '' --quick-gen-key "Omni" default default never
+gpg --batch --passphrase '' --armor --export-secret-keys "Omni" > omni.asc
+rm -rf "$GNUPGHOME"
+```
+
+### 2. Create a values.yaml file
+
+Create a `values.yaml` file with your configuration. See the example below.
+
+### 3. Install the Chart
+
+```bash
+helm install omni ./deploy/helm/omni -n omni --create-namespace -f values.yaml
+```
+
+To upgrade an existing installation:
+
+```bash
+helm upgrade omni ./deploy/helm/omni -n omni -f values.yaml
+```
+
+## Authentication
+
+One of the following authentication providers must be enabled and configured under `config.auth`:
+
+- `auth0` - Auth0 authentication
+- `saml` - SAML authentication
+- `oidc` - OpenID Connect authentication
+
+Additionally, at least one initial admin user must be specified in `config.auth.initialUsers`.
+
+## Example
+
+For Omni configuration reference, see the [Omni config schema](https://github.com/siderolabs/omni/blob/main/internal/pkg/config/schema.json).
+
+This example uses the [Traefik](https://traefik.io/traefik/) ingress controller and [cert-manager](https://cert-manager.io/) for TLS certificates (with a wildcard certificate for `*.example.com`).
+
+The example assumes three DNS entries pointing to your ingress controller:
+
+| Hostname                       | Purpose                          |
+| ------------------------------ | -------------------------------- |
+| `omni.example.com`             | UI, gRPC API, and Talos API proxy |
+| `omni-k8s.example.com`         | Kubernetes API proxy             |
+| `omni-siderolink.example.com`  | SideroLink Machine API           |
+
+> [!NOTE]
+> The main service serves both the web UI and all gRPC APIs (Omni API and Talos API proxy) from the same port using h2c (HTTP/2 cleartext).
+> The backend demuxes traffic by `Content-Type` header, so no separate gRPC ingress is needed.
+
+```yaml
+# Paste the contents of your omni.asc file here
+etcdEncryptionKey:
+  omniAsc: |
+    -----BEGIN PGP PRIVATE KEY BLOCK-----
+    <your-gpg-private-key-here>
+    -----END PGP PRIVATE KEY BLOCK-----
+
+ingress:
+  main:
+    enabled: true
+    className: traefik
+    host: omni.example.com
+    tls:
+      - hosts:
+          - omni.example.com
+  kubernetesProxy:
+    enabled: true
+    className: traefik
+    host: omni-k8s.example.com
+    tls:
+      - hosts:
+          - omni-k8s.example.com
+  siderolinkApi:
+    enabled: true
+    className: traefik
+    host: omni-siderolink.example.com
+    tls:
+      - hosts:
+          - omni-siderolink.example.com
+
+config:
+  account:
+    # Generate a unique UUID for your installation (e.g., using `uuidgen`)
+    id: 123e4567-e89b-12d3-a456-426614174000
+  auth:
+    auth0:
+      enabled: true
+      clientID: <your-auth0-client-id>
+      domain: <your-auth0-domain>
+    initialUsers:
+      - admin@example.com
+  services:
+    api:
+      advertisedURL: https://omni.example.com
+    kubernetesProxy:
+      advertisedURL: https://omni-k8s.example.com
+    machineAPI:
+      advertisedURL: https://omni-siderolink.example.com
+    siderolink:
+      wireGuard:
+        # The externally accessible IP:port for WireGuard connections.
+        # If using an externally accessible node IP, the port should match
+        # service.wireguard.nodePort (default: 30180).
+        advertisedEndpoint: <node-ip>:30180
+```
+
+## Workload Proxy (Optional)
+
+Workload Proxy allows you to expose HTTP services running in your managed clusters through Omni. Once configured, you can annotate Kubernetes Services to make them accessible, protected by Omni's authentication.
+
+For details on exposing services, see [Expose an HTTP Service from a Cluster](https://omni.siderolabs.com/docs/how-to-guides/self-hosted/how-to-expose-http-service-from-a-cluster/).
+
+### Domain Structure
+
+The workload proxy domain is **not** a subdomain of Omni—it exists alongside it. For example:
+
+- Omni: `omni.example.com`
+- Workload Proxy: `*.omni-workload.example.com`
+
+Exposed services have URLs in the format:
+
+```
+https://<prefix>-<account-name>.<subdomain>.<parent-domain>/
+```
+
+For example: `https://grafana-app.omni-workload.example.com/`
+
+Where:
+- `<prefix>` is randomly generated, or user-specified via a Service annotation
+- `<account-name>` is the value of `config.account.name`
+- `<subdomain>` is the value of `config.services.workloadProxy.subdomain` (default: `omni-workload`)
+- `<parent-domain>` is the parent domain of your Omni installation
+
+### Requirements
+
+To set up workload proxy, you need:
+
+1. **Enable workload proxy** in values:
+   ```yaml
+   config:
+     services:
+       workloadProxy:
+         enabled: true
+         subdomain: omni-workload  # default
+   ```
+
+2. **Wildcard TLS certificate** for `*.<subdomain>.<parent-domain>` (e.g., `*.omni-workload.example.com`). You can use cert-manager to create one.
+
+3. **Wildcard DNS record** pointing `*.<subdomain>.<parent-domain>` to your ingress controller IP address.
+
+4. **Ingress/routing rule** to route traffic matching `*-<account-name>.<subdomain>.<parent-domain>` to the Omni service. Standard Kubernetes Ingress does not support wildcard hostnames well, so you may need to use ingress controller-specific resources.
+
+### Traefik Example
+
+With Traefik, you can use an `IngressRoute` custom resource via `extraObjects`:
+
+```yaml
+config:
+  account:
+    name: app  # This will be part of the workload proxy URL
+  services:
+    workloadProxy:
+      enabled: true
+      subdomain: omni-workload
+
+extraObjects:
+  # Wildcard certificate for workload proxy (using cert-manager)
+  - apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: omni-workload-proxy-wildcard
+    spec:
+      secretName: omni-workload-proxy-wildcard-tls
+      issuerRef:
+        name: your-cluster-issuer
+        kind: ClusterIssuer
+      dnsNames:
+        - "*.omni-workload.example.com"
+
+  # Traefik IngressRoute for wildcard routing
+  - apiVersion: traefik.io/v1alpha1
+    kind: IngressRoute
+    metadata:
+      name: omni-workload-proxy
+    spec:
+      entryPoints:
+        - websecure
+      routes:
+        - kind: Rule
+          # Match any subdomain of omni-workload.example.com
+          match: HostRegexp(`.+\.omni-workload\.example\.com`)
+          services:
+            - kind: Service
+              name: omni
+              port: omni
+              passHostHeader: true
+              scheme: h2c
+      tls:
+        secretName: omni-workload-proxy-wildcard-tls
+```
+
+{{ template "chart.valuesHeader" . }}
+
+Here are the configurable parameters of the Omni chart and their default values.
+
+> [!NOTE]
+> Some configuration options are not listed here, as they are commented out in `values.yaml`.
+>
+> For the full list, refer to the [`values.yaml`](values.yaml) file and the [Omni config schema](https://github.com/siderolabs/omni/blob/main/internal/pkg/config/schema.json).
+
+{{ template "chart.valuesTable" . }}
