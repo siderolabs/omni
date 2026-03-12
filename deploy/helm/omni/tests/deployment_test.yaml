@@ -1,0 +1,507 @@
+suite: Deployment Logic
+templates:
+  - deployment.yaml
+  - secret-config.yaml
+set:
+  etcdEncryptionKey:
+    existingSecret: test-secret
+  additionalConfigSources:
+    - existingSecret: omni-extra-config
+      key: configYAML
+
+tests:
+  # ========================================
+  # Basic Deployment Tests
+  # ========================================
+  - it: Should create a Deployment
+    template: deployment.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-omni
+
+  - it: Should use Recreate strategy by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: Recreate
+
+  - it: Should have 1 replica by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: Should have correct selector labels
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app.kubernetes.io/name: omni
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  - it: Should include config checksum annotation
+    template: deployment.yaml
+    asserts:
+      - isNotNull:
+          path: spec.template.metadata.annotations["checksum/config"]
+
+  # ========================================
+  # Image Tests
+  # ========================================
+  - it: Should use default image
+    template: deployment.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: "ghcr.io/siderolabs/omni:"
+
+  - it: Should use custom image
+    template: deployment.yaml
+    set:
+      image:
+        repository: my-registry/omni
+        tag: v2.0.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "my-registry/omni:v2.0.0"
+
+  # ========================================
+  # Pod Scheduling Tests
+  # ========================================
+  - it: Should not set hostNetwork by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.hostNetwork
+
+  - it: Should enable hostNetwork when set
+    template: deployment.yaml
+    set:
+      hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+
+  - it: Should auto-set dnsPolicy to ClusterFirstWithHostNet when hostNetwork is true
+    template: deployment.yaml
+    set:
+      hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet
+
+  - it: Should not set dnsPolicy by default (no hostNetwork)
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.dnsPolicy
+
+  - it: Should use explicit dnsPolicy over hostNetwork auto-default
+    template: deployment.yaml
+    set:
+      hostNetwork: true
+      dnsPolicy: None
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: None
+
+  - it: Should set dnsConfig
+    template: deployment.yaml
+    set:
+      dnsConfig:
+        nameservers:
+          - 1.1.1.1
+        searches:
+          - my-domain.local
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.nameservers[0]
+          value: "1.1.1.1"
+      - equal:
+          path: spec.template.spec.dnsConfig.searches[0]
+          value: my-domain.local
+
+  - it: Should not set dnsConfig by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.dnsConfig
+
+  - it: Should set priorityClassName
+    template: deployment.yaml
+    set:
+      priorityClassName: system-cluster-critical
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: "system-cluster-critical"
+
+  - it: Should not set priorityClassName by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.priorityClassName
+
+  - it: Should set terminationGracePeriodSeconds to 30 by default
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 30
+
+  - it: Should allow terminationGracePeriodSeconds to be set to 0
+    template: deployment.yaml
+    set:
+      terminationGracePeriodSeconds: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 0
+
+  - it: Should set custom terminationGracePeriodSeconds
+    template: deployment.yaml
+    set:
+      terminationGracePeriodSeconds: 120
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 120
+
+  - it: Should set nodeSelector
+    template: deployment.yaml
+    set:
+      nodeSelector:
+        kubernetes.io/os: linux
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+
+  - it: Should set tolerations
+    template: deployment.yaml
+    set:
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: node-role.kubernetes.io/control-plane
+            effect: NoSchedule
+
+  - it: Should set affinity
+    template: deployment.yaml
+    set:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - us-east-1a
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  # ========================================
+  # Container Tests
+  # ========================================
+  - it: Should set initContainers
+    template: deployment.yaml
+    set:
+      initContainers:
+        - name: wait-for-etcd
+          image: busybox:latest
+          command: ['sh', '-c', 'echo hello']
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: wait-for-etcd
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: busybox:latest
+
+  - it: Should not set initContainers by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.initContainers
+
+  - it: Should set extraContainers
+    template: deployment.yaml
+    set:
+      extraContainers:
+        - name: log-collector
+          image: fluentbit:latest
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[1].name
+          value: log-collector
+
+  - it: Should set env vars
+    template: deployment.yaml
+    set:
+      env:
+        - name: FOO
+          value: bar
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: FOO
+            value: bar
+
+  - it: Should not set env by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].env
+
+  - it: Should set envFrom
+    template: deployment.yaml
+    set:
+      envFrom:
+        - secretRef:
+            name: my-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            secretRef:
+              name: my-secret
+
+  - it: Should set extra args
+    template: deployment.yaml
+    set:
+      args:
+        - --debug
+        - --verbose
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--debug"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--verbose"
+
+  - it: Should always include --config-path arg
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--config-path=/config/config.yaml"
+
+  - it: Should set resources
+    template: deployment.yaml
+    set:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 100m
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 1Gi
+
+  # ========================================
+  # Security Context Tests
+  # ========================================
+  - it: Should set default container securityContext
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - contains:
+          path: spec.template.spec.containers[0].securityContext.capabilities.add
+          content: NET_ADMIN
+      - contains:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          content: ALL
+
+  - it: Should set podSecurityContext
+    template: deployment.yaml
+    set:
+      podSecurityContext:
+        runAsNonRoot: true
+        fsGroup: 1000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.fsGroup
+          value: 1000
+
+  # ========================================
+  # Probes Tests
+  # ========================================
+  - it: Should set default readinessProbe
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /healthz
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.port
+          value: omni
+
+  - it: Should not set livenessProbe by default
+    template: deployment.yaml
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].livenessProbe
+
+  # ========================================
+  # Volume Tests
+  # ========================================
+  - it: Should mount persistent volume when persistence enabled
+    template: deployment.yaml
+    set:
+      persistence:
+        enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: data
+            mountPath: /data
+
+  - it: Should use emptyDir when persistence disabled
+    template: deployment.yaml
+    set:
+      persistence:
+        enabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            emptyDir: {}
+
+  - it: Should mount dev-tun
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: dev-tun
+            mountPath: /dev/net/tun
+
+  - it: Should add extraVolumes and extraVolumeMounts
+    template: deployment.yaml
+    set:
+      extraVolumes:
+        - name: custom-certs
+          secret:
+            secretName: my-certs
+      extraVolumeMounts:
+        - name: custom-certs
+          mountPath: /certs
+          readOnly: true
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: custom-certs
+            secret:
+              secretName: my-certs
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: custom-certs
+            mountPath: /certs
+            readOnly: true
+
+  # ========================================
+  # Port Tests
+  # ========================================
+  - it: Should expose all required container ports
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: omni
+            containerPort: 8080
+            protocol: TCP
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: siderolink-api
+            containerPort: 8090
+            protocol: TCP
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: k8s-proxy
+            containerPort: 8095
+            protocol: TCP
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: metrics
+            containerPort: 2122
+            protocol: TCP
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: wireguard
+            containerPort: 50180
+            protocol: UDP
+
+  # ========================================
+  # Pod Metadata Tests
+  # ========================================
+  - it: Should add custom pod annotations
+    template: deployment.yaml
+    set:
+      podAnnotations:
+        prometheus.io/scrape: "true"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["prometheus.io/scrape"]
+          value: "true"
+
+  - it: Should add custom pod labels
+    template: deployment.yaml
+    set:
+      podLabels:
+        custom-label: custom-value
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["custom-label"]
+          value: custom-value
+
+  - it: Should set imagePullSecrets
+    template: deployment.yaml
+    set:
+      imagePullSecrets:
+        - name: my-registry-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.imagePullSecrets
+          content:
+            name: my-registry-secret

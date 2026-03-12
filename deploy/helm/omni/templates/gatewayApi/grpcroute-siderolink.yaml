@@ -1,0 +1,25 @@
+{{- if .Values.gatewayApi.siderolinkApi.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: GRPCRoute
+metadata:
+  name: {{ include "omni.fullname" . }}-siderolink
+  namespace: {{ include "omni.namespace" . }}
+  labels:
+  {{- include "omni.labels" . | nindent 4 }}
+  {{- with .Values.gatewayApi.siderolinkApi.labels }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.gatewayApi.siderolinkApi.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- toYaml .Values.gatewayApi.siderolinkApi.parentRefs | nindent 4 }}
+  hostnames:
+    {{- toYaml .Values.gatewayApi.siderolinkApi.hostnames | nindent 4 }}
+  rules:
+    - backendRefs:
+        - name: {{ include "omni.fullname" $ }}
+          port: {{ .Values.service.main.siderolinkApiPort }}
+{{- end }}

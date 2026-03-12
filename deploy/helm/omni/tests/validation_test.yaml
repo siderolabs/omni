@@ -1,0 +1,367 @@
+suite: Validation Logic
+templates:
+  - deployment.yaml
+  - secret-config.yaml
+
+tests:
+  # ========================================
+  # Legacy Chart Upgrade Check
+  # ========================================
+  # Note: The lookup function always returns empty in helm-unittest,
+  # so we can only test that upgrades pass when no old chart is detected.
+  # The actual blocking behavior requires integration testing against a real cluster.
+  - it: Should pass upgrade when no legacy chart deployment is found
+    template: deployment.yaml
+    release:
+      isUpgrade: true
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      additionalConfigSources:
+        - existingSecret: extra
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # ========================================
+  # Etcd Encryption Key Validation
+  # ========================================
+  - it: Should fail when no etcd encryption key is provided
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: ""
+        omniAsc: ""
+      additionalConfigSources:
+        - existingSecret: extra
+    asserts:
+      - failedTemplate:
+          errorPattern: "You must provide an etcd encryption key"
+
+  - it: Should pass when etcd encryption key is provided via omniAsc
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: ""
+        omniAsc: "test-key-content"
+      additionalConfigSources:
+        - existingSecret: extra
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: Should pass when etcd encryption key is provided via existingSecret
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: my-secret
+      additionalConfigSources:
+        - existingSecret: extra
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # ========================================
+  # Version Check Validation
+  # ========================================
+  - it: Should fail for unsupported Omni version
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      additionalConfigSources:
+        - existingSecret: extra
+      image:
+        tag: v1.4.0
+    asserts:
+      - failedTemplate:
+          errorPattern: "is not supported by this chart"
+
+  - it: Should pass for supported Omni version
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      additionalConfigSources:
+        - existingSecret: extra
+      image:
+        tag: v1.5.0
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: Should skip version check when skipVersionCheck is true
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      additionalConfigSources:
+        - existingSecret: extra
+      skipVersionCheck: true
+      image:
+        tag: custom-build
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # ========================================
+  # Required Fields Validation (no additionalConfigSources)
+  # ========================================
+  - it: Should fail when account.id is missing
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      skipVersionCheck: true
+      config:
+        account:
+          id: ""
+    asserts:
+      - failedTemplate:
+          errorPattern: "config.account.id"
+
+  - it: Should fail when wireGuard advertisedEndpoint is missing
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      skipVersionCheck: true
+      config:
+        account:
+          id: "test-id"
+    asserts:
+      - failedTemplate:
+          errorPattern: "WireGuard advertised endpoint"
+
+  - it: Should fail when initialUsers is empty
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      skipVersionCheck: true
+      config:
+        account:
+          id: "test-id"
+        services:
+          siderolink:
+            wireGuard:
+              advertisedEndpoint: "1.2.3.4:30180"
+        auth:
+          initialUsers: []
+    asserts:
+      - failedTemplate:
+          errorPattern: "initial user"
+
+  - it: Should fail when no auth provider is enabled
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      skipVersionCheck: true
+      config:
+        account:
+          id: "test-id"
+        services:
+          siderolink:
+            wireGuard:
+              advertisedEndpoint: "1.2.3.4:30180"
+        auth:
+          auth0:
+            enabled: false
+          initialUsers:
+            - admin@test.com
+    asserts:
+      - failedTemplate:
+          errorPattern: "authentication provider must be enabled"
+
+  - it: Should fail when advertisedURL contains example.com
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      skipVersionCheck: true
+      config:
+        account:
+          id: "test-id"
+        services:
+          api:
+            advertisedURL: https://omni.example.com
+          siderolink:
+            wireGuard:
+              advertisedEndpoint: "1.2.3.4:30180"
+        auth:
+          auth0:
+            enabled: true
+            clientID: test
+            domain: test.auth0.com
+          initialUsers:
+            - admin@test.com
+    asserts:
+      - failedTemplate:
+          errorPattern: "example.com"
+
+  # ========================================
+  # Validation is skipped with additionalConfigSources
+  # ========================================
+  - it: Should skip required field checks when additionalConfigSources is set
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      additionalConfigSources:
+        - existingSecret: extra
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # ========================================
+  # Ingress URL Consistency Validation
+  # ========================================
+  - it: Should fail when ingress TLS is enabled but URL is http
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      skipVersionCheck: true
+      config:
+        account:
+          id: "test-id"
+        services:
+          api:
+            advertisedURL: http://omni.mycompany.com
+          kubernetesProxy:
+            advertisedURL: https://k8s.mycompany.com
+          machineAPI:
+            advertisedURL: https://sl.mycompany.com
+          siderolink:
+            wireGuard:
+              advertisedEndpoint: "1.2.3.4:30180"
+        auth:
+          auth0:
+            enabled: true
+            clientID: test
+            domain: test.auth0.com
+          initialUsers:
+            - admin@test.com
+      ingress:
+        main:
+          enabled: true
+          host: omni.mycompany.com
+          tls:
+            - secretName: tls
+              hosts:
+                - omni.mycompany.com
+    asserts:
+      - failedTemplate:
+          errorPattern: "has TLS enabled"
+
+  - it: Should fail when ingress host does not match URL host
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      skipVersionCheck: true
+      config:
+        account:
+          id: "test-id"
+        services:
+          api:
+            advertisedURL: https://omni.mycompany.com
+          kubernetesProxy:
+            advertisedURL: https://k8s.mycompany.com
+          machineAPI:
+            advertisedURL: https://sl.mycompany.com
+          siderolink:
+            wireGuard:
+              advertisedEndpoint: "1.2.3.4:30180"
+        auth:
+          auth0:
+            enabled: true
+            clientID: test
+            domain: test.auth0.com
+          initialUsers:
+            - admin@test.com
+      ingress:
+        main:
+          enabled: true
+          host: wrong-host.mycompany.com
+          tls:
+            - secretName: tls
+              hosts:
+                - wrong-host.mycompany.com
+    asserts:
+      - failedTemplate:
+          errorPattern: "does not match host"
+
+  - it: Should pass when ingress host matches URL host
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      skipVersionCheck: true
+      config:
+        account:
+          id: "test-id"
+        services:
+          api:
+            advertisedURL: https://omni.mycompany.com
+          kubernetesProxy:
+            advertisedURL: https://k8s.mycompany.com
+          machineAPI:
+            advertisedURL: https://sl.mycompany.com
+          siderolink:
+            wireGuard:
+              advertisedEndpoint: "1.2.3.4:30180"
+        auth:
+          auth0:
+            enabled: true
+            clientID: test
+            domain: test.auth0.com
+          initialUsers:
+            - admin@test.com
+      ingress:
+        main:
+          enabled: true
+          host: omni.mycompany.com
+          tls:
+            - secretName: tls
+              hosts:
+                - omni.mycompany.com
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: Should skip ingress validation when skipConfigCheck is true
+    template: deployment.yaml
+    set:
+      etcdEncryptionKey:
+        existingSecret: test
+      skipVersionCheck: true
+      config:
+        account:
+          id: "test-id"
+        services:
+          api:
+            advertisedURL: http://omni.mycompany.com
+          kubernetesProxy:
+            advertisedURL: https://k8s.mycompany.com
+          machineAPI:
+            advertisedURL: https://sl.mycompany.com
+          siderolink:
+            wireGuard:
+              advertisedEndpoint: "1.2.3.4:30180"
+        auth:
+          auth0:
+            enabled: true
+            clientID: test
+            domain: test.auth0.com
+          initialUsers:
+            - admin@test.com
+      ingress:
+        main:
+          enabled: true
+          skipConfigCheck: true
+          host: wrong-host.example.com
+          tls:
+            - secretName: tls
+    asserts:
+      - notFailedTemplate: {}

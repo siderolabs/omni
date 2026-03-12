@@ -1,0 +1,493 @@
+suite: Service Logic
+templates:
+  - service/service-main.yaml
+  - service/service-k8s-proxy.yaml
+  - service/service-metrics.yaml
+  - service/service-wireguard.yaml
+  - servicemonitor.yaml
+
+tests:
+  # ========================================
+  # Main Service Tests
+  # ========================================
+  - it: Should create main service
+    template: service/service-main.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Service
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-omni
+
+  - it: Should use ClusterIP by default
+    template: service/service-main.yaml
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: Should configure main service ports
+    template: service/service-main.yaml
+    set:
+      service:
+        main:
+          omniPort: 8080
+          siderolinkApiPort: 8090
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 8080
+      - equal:
+          path: spec.ports[0].name
+          value: omni
+      - equal:
+          path: spec.ports[0].targetPort
+          value: omni
+      - equal:
+          path: spec.ports[0].protocol
+          value: TCP
+      - equal:
+          path: spec.ports[0].appProtocol
+          value: kubernetes.io/h2c
+      - equal:
+          path: spec.ports[1].port
+          value: 8090
+      - equal:
+          path: spec.ports[1].name
+          value: siderolink
+      - equal:
+          path: spec.ports[1].targetPort
+          value: siderolink-api
+      - equal:
+          path: spec.ports[1].protocol
+          value: TCP
+      - equal:
+          path: spec.ports[1].appProtocol
+          value: kubernetes.io/h2c
+
+  - it: Should configure LoadBalancer service type
+    template: service/service-main.yaml
+    set:
+      service:
+        main:
+          type: LoadBalancer
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+
+  - it: Should add loadBalancerIP when type is LoadBalancer
+    template: service/service-main.yaml
+    set:
+      service:
+        main:
+          type: LoadBalancer
+          loadBalancerIP: "1.2.3.4"
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+      - equal:
+          path: spec.loadBalancerIP
+          value: "1.2.3.4"
+
+  - it: Should not add loadBalancerIP when type is ClusterIP
+    template: service/service-main.yaml
+    set:
+      service:
+        main:
+          type: ClusterIP
+          loadBalancerIP: "1.2.3.4"
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - isNull:
+          path: spec.loadBalancerIP
+
+  - it: Should configure NodePort service type
+    template: service/service-main.yaml
+    set:
+      service:
+        main:
+          type: NodePort
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+
+  - it: Should add custom service annotations
+    template: service/service-main.yaml
+    set:
+      service:
+        main:
+          annotations:
+            cloud.google.com/load-balancer-type: Internal
+            service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    asserts:
+      - equal:
+          path: metadata.annotations["cloud.google.com/load-balancer-type"]
+          value: Internal
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-internal"]
+          value: "true"
+
+  - it: Should add custom service labels
+    template: service/service-main.yaml
+    set:
+      service:
+        main:
+          labels:
+            environment: production
+            team: platform
+    asserts:
+      - equal:
+          path: metadata.labels.environment
+          value: production
+      - equal:
+          path: metadata.labels.team
+          value: platform
+
+  - it: Should have correct selector labels
+    template: service/service-main.yaml
+    asserts:
+      - equal:
+          path: spec.selector
+          value:
+            app.kubernetes.io/name: omni
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  # ========================================
+  # K8s Proxy Service Tests
+  # ========================================
+  - it: Should create k8s-proxy service
+    template: service/service-k8s-proxy.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Service
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-omni-k8s-proxy
+
+  - it: Should configure k8s-proxy service port
+    template: service/service-k8s-proxy.yaml
+    set:
+      service:
+        k8sProxy:
+          port: 8095
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 8095
+      - equal:
+          path: spec.ports[0].name
+          value: k8s-proxy
+      - equal:
+          path: spec.ports[0].targetPort
+          value: k8s-proxy
+      - equal:
+          path: spec.ports[0].protocol
+          value: TCP
+
+  - it: Should not have h2c appProtocol on k8s-proxy service
+    template: service/service-k8s-proxy.yaml
+    asserts:
+      - isNull:
+          path: spec.ports[0].appProtocol
+
+  # ========================================
+  # WireGuard Service Tests
+  # ========================================
+  - it: Should create wireguard service
+    template: service/service-wireguard.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Service
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-omni-wireguard
+
+  - it: Should use NodePort type by default
+    template: service/service-wireguard.yaml
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+
+  - it: Should configure wireguard port and nodePort
+    template: service/service-wireguard.yaml
+    set:
+      service:
+        wireguard:
+          port: 50180
+          nodePort: 30180
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 50180
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 30180
+      - equal:
+          path: spec.ports[0].name
+          value: wireguard
+      - equal:
+          path: spec.ports[0].targetPort
+          value: wireguard
+      - equal:
+          path: spec.ports[0].protocol
+          value: UDP
+
+  - it: Should not render nodePort when type is ClusterIP
+    template: service/service-wireguard.yaml
+    set:
+      service:
+        wireguard:
+          type: ClusterIP
+          nodePort: 30180
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - isNull:
+          path: spec.ports[0].nodePort
+
+  - it: Should render nodePort when type is LoadBalancer
+    template: service/service-wireguard.yaml
+    set:
+      service:
+        wireguard:
+          type: LoadBalancer
+          nodePort: 30180
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+      - equal:
+          path: spec.ports[0].nodePort
+          value: 30180
+
+  - it: Should add custom wireguard service annotations
+    template: service/service-wireguard.yaml
+    set:
+      service:
+        wireguard:
+          annotations:
+            service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    asserts:
+      - equal:
+          path: metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-type"]
+          value: nlb
+
+  - it: Should add custom wireguard service labels
+    template: service/service-wireguard.yaml
+    set:
+      service:
+        wireguard:
+          labels:
+            network: wireguard
+    asserts:
+      - equal:
+          path: metadata.labels.network
+          value: wireguard
+
+  - it: Should have correct selector labels for wireguard service
+    template: service/service-wireguard.yaml
+    asserts:
+      - equal:
+          path: spec.selector
+          value:
+            app.kubernetes.io/name: omni
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  # ========================================
+  # Metrics Service Tests
+  # ========================================
+  - it: Should not create metrics service by default
+    template: service/service-metrics.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should create metrics service when enabled
+    template: service/service-metrics.yaml
+    set:
+      metrics:
+        enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Service
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-omni-metrics
+
+  - it: Should configure metrics service port
+    template: service/service-metrics.yaml
+    set:
+      metrics:
+        enabled: true
+        service:
+          servicePort: 2122
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 2122
+      - equal:
+          path: spec.ports[0].name
+          value: metrics
+      - equal:
+          path: spec.ports[0].targetPort
+          value: metrics
+      - equal:
+          path: spec.ports[0].protocol
+          value: TCP
+
+  - it: Should configure metrics service type
+    template: service/service-metrics.yaml
+    set:
+      metrics:
+        enabled: true
+        service:
+          type: NodePort
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+
+  - it: Should configure metrics service clusterIP
+    template: service/service-metrics.yaml
+    set:
+      metrics:
+        enabled: true
+        service:
+          type: ClusterIP
+          clusterIP: None
+    asserts:
+      - equal:
+          path: spec.clusterIP
+          value: None
+
+  - it: Should not set clusterIP for LoadBalancer service
+    template: service/service-metrics.yaml
+    set:
+      metrics:
+        enabled: true
+        service:
+          type: LoadBalancer
+          clusterIP: None
+    asserts:
+      - isNull:
+          path: spec.clusterIP
+
+  - it: Should add custom metrics service annotations
+    template: service/service-metrics.yaml
+    set:
+      metrics:
+        enabled: true
+        service:
+          annotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "2122"
+    asserts:
+      - equal:
+          path: metadata.annotations["prometheus.io/scrape"]
+          value: "true"
+      - equal:
+          path: metadata.annotations["prometheus.io/port"]
+          value: "2122"
+
+  - it: Should add custom metrics service labels
+    template: service/service-metrics.yaml
+    set:
+      metrics:
+        enabled: true
+        service:
+          labels:
+            monitoring: enabled
+    asserts:
+      - equal:
+          path: metadata.labels.monitoring
+          value: enabled
+
+  - it: Should have correct selector labels for metrics service
+    template: service/service-metrics.yaml
+    set:
+      metrics:
+        enabled: true
+    asserts:
+      - equal:
+          path: spec.selector
+          value:
+            app.kubernetes.io/name: omni
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  # ========================================
+  # ServiceMonitor Tests
+  # ========================================
+  - it: Should not create ServiceMonitor by default
+    template: servicemonitor.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should create ServiceMonitor when enabled
+    template: servicemonitor.yaml
+    set:
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ServiceMonitor
+
+  - it: Should configure ServiceMonitor to scrape metrics port
+    template: servicemonitor.yaml
+    set:
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+    asserts:
+      - equal:
+          path: spec.endpoints[0].port
+          value: metrics
+      - equal:
+          path: spec.endpoints[0].path
+          value: /metrics
+
+  - it: Should configure ServiceMonitor interval
+    template: servicemonitor.yaml
+    set:
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+          interval: 60s
+    asserts:
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 60s
+
+  - it: Should configure ServiceMonitor scrapeTimeout
+    template: servicemonitor.yaml
+    set:
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+          scrapeTimeout: 30s
+    asserts:
+      - equal:
+          path: spec.endpoints[0].scrapeTimeout
+          value: 30s

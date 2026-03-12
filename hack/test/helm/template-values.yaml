@@ -1,0 +1,6 @@
+etcdEncryptionKey:
+  existingSecret: test-secret
+
+additionalConfigSources:
+  - existingSecret: omni-extra-config
+    key: configYAML

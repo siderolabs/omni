@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "omni.fullname" . }}-wireguard
+  namespace: {{ include "omni.namespace" . }}
+  labels:
+    {{- include "omni.labels" . | nindent 4 }}
+    {{- with .Values.service.wireguard.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.service.wireguard.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.wireguard.type }}
+  {{- with .Values.service.wireguard.clusterIP }}
+  clusterIP: {{ . | quote}}
+  {{- end }}
+  ports:
+    - name: wireguard
+      {{- if and .Values.service.wireguard.nodePort (or (eq .Values.service.wireguard.type "NodePort") (eq .Values.service.wireguard.type "LoadBalancer")) }}
+      nodePort: {{ .Values.service.wireguard.nodePort }}
+      {{- end }}
+      port: {{ .Values.service.wireguard.port }}
+      targetPort: wireguard
+      protocol: UDP
+  selector:
+    {{- include "omni.selectorLabels" . | nindent 4 }}

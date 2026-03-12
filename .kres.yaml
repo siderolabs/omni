@@ -18,7 +18,11 @@ kind: auto.Helm
 spec:
   enabled: true
   chartDir: deploy/helm/omni
-  docsDisabled: true
+  schemaDisabled: true
+  chartVersionMajor: 2
+  template:
+    valuesFiles:
+      - hack/test/helm/template-values.yaml
 ---
 kind: auto.IntegrationTests
 spec:

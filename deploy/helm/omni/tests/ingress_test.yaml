@@ -1,0 +1,248 @@
+suite: Ingress Logic
+templates:
+  - ingress/ingress-main.yaml
+  - ingress/ingress-k8s-proxy.yaml
+  - ingress/ingress-siderolink-api.yaml
+
+tests:
+  # ========================================
+  # UI Ingress Tests
+  # ========================================
+  - it: Should not create UI ingress by default
+    template: ingress/ingress-main.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should not create UI ingress when explicitly disabled
+    template: ingress/ingress-main.yaml
+    set:
+      ingress:
+        main:
+          enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should create UI ingress when enabled
+    template: ingress/ingress-main.yaml
+    set:
+      ingress:
+        main:
+          enabled: true
+          host: omni.example.com
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-omni
+
+  - it: Should render UI Ingress with default settings for Kubernetes >=1.19
+    template: ingress/ingress-main.yaml
+    set:
+      ingress:
+        main:
+          enabled: true
+          host: omni.example.com
+    asserts:
+      - equal:
+          path: apiVersion
+          value: networking.k8s.io/v1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.rules[0].host
+          value: omni.example.com
+
+  - it: Should configure UI ingress hostname
+    template: ingress/ingress-main.yaml
+    set:
+      ingress:
+        main:
+          enabled: true
+          host: omni.example.com
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: omni.example.com
+
+  - it: Should configure UI ingress className
+    template: ingress/ingress-main.yaml
+    set:
+      ingress:
+        main:
+          enabled: true
+          host: omni.example.com
+          className: nginx
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: Should configure UI ingress TLS
+    template: ingress/ingress-main.yaml
+    set:
+      ingress:
+        main:
+          enabled: true
+          host: omni.example.com
+          tls:
+            - secretName: omni-ui-tls
+              hosts:
+                - omni.example.com
+    asserts:
+      - equal:
+          path: spec.tls[0].secretName
+          value: omni-ui-tls
+      - contains:
+          path: spec.tls[0].hosts
+          content: omni.example.com
+
+  - it: Should add UI ingress custom annotations
+    template: ingress/ingress-main.yaml
+    set:
+      ingress:
+        main:
+          enabled: true
+          host: omni.example.com
+          annotations:
+            cert-manager.io/cluster-issuer: letsencrypt-prod
+            nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    asserts:
+      - equal:
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
+          value: letsencrypt-prod
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/ssl-redirect"]
+          value: "true"
+
+  - it: Should add UI ingress custom labels
+    template: ingress/ingress-main.yaml
+    set:
+      ingress:
+        main:
+          enabled: true
+          host: omni.example.com
+          labels:
+            environment: production
+            team: platform
+    asserts:
+      - equal:
+          path: metadata.labels.environment
+          value: production
+      - equal:
+          path: metadata.labels.team
+          value: platform
+
+  - it: Should configure UI ingress backend service
+    template: ingress/ingress-main.yaml
+    set:
+      ingress:
+        main:
+          enabled: true
+          host: omni.example.com
+      service:
+        main:
+          omniPort: 9090
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: RELEASE-NAME-omni
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 9090
+
+  # ========================================
+  # K8s Proxy Ingress Tests
+  # ========================================
+  - it: Should not create K8s Proxy ingress by default
+    template: ingress/ingress-k8s-proxy.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should create K8s Proxy ingress when enabled
+    template: ingress/ingress-k8s-proxy.yaml
+    set:
+      ingress:
+        kubernetesProxy:
+          enabled: true
+          host: k8s-omni.example.com
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-omni-k8s-proxy
+
+  - it: Should configure K8s Proxy ingress hostname
+    template: ingress/ingress-k8s-proxy.yaml
+    set:
+      ingress:
+        kubernetesProxy:
+          enabled: true
+          host: k8s-omni.example.com
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: k8s-omni.example.com
+
+  - it: Should configure K8s Proxy ingress backend service
+    template: ingress/ingress-k8s-proxy.yaml
+    set:
+      ingress:
+        kubernetesProxy:
+          enabled: true
+          host: k8s-omni.example.com
+      service:
+        k8sProxy:
+          port: 8095
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: RELEASE-NAME-omni-k8s-proxy
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 8095
+
+  # ========================================
+  # SideroLink API Ingress Tests
+  # ========================================
+  - it: Should not create SideroLink API ingress by default
+    template: ingress/ingress-siderolink-api.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should create SideroLink API ingress when enabled
+    template: ingress/ingress-siderolink-api.yaml
+    set:
+      ingress:
+        siderolinkApi:
+          enabled: true
+          host: siderolink-omni.example.com
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-omni-siderolink
+
+  - it: Should configure SideroLink API ingress hostname
+    template: ingress/ingress-siderolink-api.yaml
+    set:
+      ingress:
+        siderolinkApi:
+          enabled: true
+          host: siderolink-omni.example.com
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: siderolink-omni.example.com

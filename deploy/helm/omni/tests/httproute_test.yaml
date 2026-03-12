@@ -1,0 +1,348 @@
+suite: HTTPRoute Logic (Gateway API)
+templates:
+  - gatewayApi/httproute-ui.yaml
+  - gatewayApi/httproute-k8s-proxy.yaml
+  - gatewayApi/grpcroute-siderolink.yaml
+
+tests:
+  # ========================================
+  # UI HTTPRoute Tests
+  # ========================================
+  - it: Should not create UI HTTPRoute by default
+    template: gatewayApi/httproute-ui.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should not create UI HTTPRoute when explicitly disabled
+    template: gatewayApi/httproute-ui.yaml
+    set:
+      gatewayApi:
+        ui:
+          enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should create UI HTTPRoute when enabled
+    template: gatewayApi/httproute-ui.yaml
+    set:
+      gatewayApi:
+        ui:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+              namespace: gateway-system
+          hostnames:
+            - omni.example.com
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: apiVersion
+          value: gateway.networking.k8s.io/v1
+
+  - it: Should configure UI HTTPRoute parentRefs
+    template: gatewayApi/httproute-ui.yaml
+    set:
+      gatewayApi:
+        ui:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+              namespace: gateway-system
+              sectionName: https-listener
+          hostnames:
+            - omni.example.com
+    asserts:
+      - contains:
+          path: spec.parentRefs
+          content:
+            name: my-gateway
+            namespace: gateway-system
+            sectionName: https-listener
+
+  - it: Should configure UI HTTPRoute hostnames
+    template: gatewayApi/httproute-ui.yaml
+    set:
+      gatewayApi:
+        ui:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - omni.example.com
+            - omni-alt.example.com
+    asserts:
+      - contains:
+          path: spec.hostnames
+          content: omni.example.com
+      - contains:
+          path: spec.hostnames
+          content: omni-alt.example.com
+
+  - it: Should configure UI HTTPRoute backend service
+    template: gatewayApi/httproute-ui.yaml
+    set:
+      gatewayApi:
+        ui:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - omni.example.com
+      service:
+        main:
+          omniPort: 9090
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: RELEASE-NAME-omni
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 9090
+
+  - it: Should add UI HTTPRoute custom annotations
+    template: gatewayApi/httproute-ui.yaml
+    set:
+      gatewayApi:
+        ui:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - omni.example.com
+          annotations:
+            custom-annotation: custom-value
+    asserts:
+      - equal:
+          path: metadata.annotations["custom-annotation"]
+          value: custom-value
+
+  - it: Should add UI HTTPRoute custom labels
+    template: gatewayApi/httproute-ui.yaml
+    set:
+      gatewayApi:
+        ui:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - omni.example.com
+          labels:
+            environment: production
+    asserts:
+      - equal:
+          path: metadata.labels.environment
+          value: production
+
+  # ========================================
+  # K8s Proxy HTTPRoute Tests
+  # ========================================
+  - it: Should not create K8s Proxy HTTPRoute by default
+    template: gatewayApi/httproute-k8s-proxy.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should not create K8s Proxy HTTPRoute when explicitly disabled
+    template: gatewayApi/httproute-k8s-proxy.yaml
+    set:
+      gatewayApi:
+        kubernetesProxy:
+          enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should create K8s Proxy HTTPRoute when enabled
+    template: gatewayApi/httproute-k8s-proxy.yaml
+    set:
+      gatewayApi:
+        kubernetesProxy:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+              namespace: gateway-system
+          hostnames:
+            - k8s.omni.example.com
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HTTPRoute
+
+  - it: Should configure K8s Proxy HTTPRoute parentRefs
+    template: gatewayApi/httproute-k8s-proxy.yaml
+    set:
+      gatewayApi:
+        kubernetesProxy:
+          enabled: true
+          parentRefs:
+            - name: k8s-gateway
+              namespace: gateway-system
+          hostnames:
+            - k8s.omni.example.com
+    asserts:
+      - contains:
+          path: spec.parentRefs
+          content:
+            name: k8s-gateway
+            namespace: gateway-system
+
+  - it: Should configure K8s Proxy HTTPRoute hostnames
+    template: gatewayApi/httproute-k8s-proxy.yaml
+    set:
+      gatewayApi:
+        kubernetesProxy:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - k8s.omni.example.com
+    asserts:
+      - contains:
+          path: spec.hostnames
+          content: k8s.omni.example.com
+
+  - it: Should configure K8s Proxy HTTPRoute backend service
+    template: gatewayApi/httproute-k8s-proxy.yaml
+    set:
+      gatewayApi:
+        kubernetesProxy:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - k8s.omni.example.com
+      service:
+        k8sProxy:
+          port: 8095
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: RELEASE-NAME-omni-k8s-proxy
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 8095
+
+  # ========================================
+  # SideroLink GRPCRoute Tests
+  # ========================================
+  - it: Should not create SideroLink GRPCRoute by default
+    template: gatewayApi/grpcroute-siderolink.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: Should create SideroLink GRPCRoute when enabled
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+              namespace: gateway-system
+          hostnames:
+            - siderolink.example.com
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: GRPCRoute
+      - equal:
+          path: apiVersion
+          value: gateway.networking.k8s.io/v1
+
+  - it: Should configure SideroLink GRPCRoute parentRefs
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+              namespace: gateway-system
+              sectionName: grpc-listener
+          hostnames:
+            - siderolink.example.com
+    asserts:
+      - contains:
+          path: spec.parentRefs
+          content:
+            name: my-gateway
+            namespace: gateway-system
+            sectionName: grpc-listener
+
+  - it: Should configure SideroLink GRPCRoute hostnames
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - siderolink.example.com
+    asserts:
+      - contains:
+          path: spec.hostnames
+          content: siderolink.example.com
+
+  - it: Should configure SideroLink GRPCRoute backend service
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - siderolink.example.com
+      service:
+        main:
+          siderolinkApiPort: 8090
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: RELEASE-NAME-omni
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 8090
+
+  - it: Should add SideroLink GRPCRoute custom annotations
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - siderolink.example.com
+          annotations:
+            custom-annotation: custom-value
+    asserts:
+      - equal:
+          path: metadata.annotations["custom-annotation"]
+          value: custom-value
+
+  - it: Should add SideroLink GRPCRoute custom labels
+    template: gatewayApi/grpcroute-siderolink.yaml
+    set:
+      gatewayApi:
+        siderolinkApi:
+          enabled: true
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - siderolink.example.com
+          labels:
+            environment: production
+    asserts:
+      - equal:
+          path: metadata.labels.environment
+          value: production
