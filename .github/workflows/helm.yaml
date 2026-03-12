@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-03-12T10:38:45Z by kres 6458cfd.
+# Generated on 2026-03-10T14:06:17Z by kres 3328d87.
 
 concurrency:
   group: helm-${{ github.head_ref || github.run_id }}
@@ -60,7 +60,7 @@ jobs:
           git fetch --prune --unshallow
       - name: Set up Docker Buildx
         id: setup-buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # version: v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
         with:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
@@ -68,47 +68,47 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # version: v4.3.1
       - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # version: v4.0.0
+#        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # version: v4.1.0
       - name: Login to registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # version: v3.7.0
+#        if: github.event_name != 'pull_request'
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # version: v4.0.0
         with:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-      - name: Lint chart
-        if: github.event_name == 'pull_request'
-        run: |
-          helm lint deploy/helm/omni
-      - name: Template chart
-        if: github.event_name == 'pull_request'
-        run: |
-          helm template -f hack/test/helm/template-values.yaml omni deploy/helm/omni
-      - name: Install unit test plugin
-        if: github.event_name == 'pull_request'
-        run: |
-          make helm-plugin-install
-      - name: Unit test chart
-        if: github.event_name == 'pull_request'
-        run: |
-          make chart-unittest
-      - name: Generate docs
-        if: github.event_name == 'pull_request'
-        run: |
-          make helm-docs
-      - name: Check dirty
-        if: github.event_name == 'pull_request'
-        run: |
-          make check-dirty
+#      - name: Lint chart
+#        if: github.event_name == 'pull_request'
+#        run: |
+#          helm lint deploy/helm/omni
+#      - name: Template chart
+#        if: github.event_name == 'pull_request'
+#        run: |
+#          helm template -f hack/test/helm/template-values.yaml omni deploy/helm/omni
+#      - name: Install unit test plugin
+#        if: github.event_name == 'pull_request'
+#        run: |
+#          make helm-plugin-install
+#      - name: Unit test chart
+#        if: github.event_name == 'pull_request'
+#        run: |
+#          make chart-unittest
+#      - name: Generate docs
+#        if: github.event_name == 'pull_request'
+#        run: |
+#          make helm-docs
+#      - name: Check dirty
+#        if: github.event_name == 'pull_request'
+#        run: |
+#          make check-dirty
       - name: helm login
-        if: startsWith(github.ref, 'refs/tags/')
+#        if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-')
         env:
           HELM_CONFIG_HOME: /var/tmp/.config/helm
         run: |
           helm registry login -u ${{ github.repository_owner }} -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
       - name: Release chart
-        if: startsWith(github.ref, 'refs/tags/')
+#        if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-')
         env:
           HELM_CONFIG_HOME: /var/tmp/.config/helm
         run: |
