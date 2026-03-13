@@ -52,6 +52,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/clustermachine"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/image"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/infraprovider"
 	kernelargsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
@@ -248,7 +249,6 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			cfg.Services.Siderolink.GetEventSinkPort(),
 			cfg.Services.Siderolink.GetLogServerPort()),
 		omnictrl.NewDiscoveryAffiliateDeleteTaskController(clockwork.NewRealClock(), discoveryClientCache),
-		omnictrl.NewInfraProviderCombinedStatusController(),
 		omnictrl.NewServiceAccountStatusController(),
 		authctrl.NewIdentityStatusController(),
 		omnictrl.NewInfraMachineRegistrationController(),
@@ -263,6 +263,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		machineupgrade.NewStatusController(imageFactoryHost, cfg.Registries.GetTalos(), nil),
 		kernelargsctrl.NewStatusController(),
 		talosupgrade.NewStatusController(),
+		infraprovider.NewCombinedStatusController(constants.InfraProviderHealthCheckInterval),
 	}
 
 	if cfg.Auth.Saml.GetEnabled() {

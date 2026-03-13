@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package omni
+package infraprovider
 
 import (
 	"context"
@@ -16,16 +16,15 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
-// InfraProviderCombinedStatusController merges infra.Provider and infra.ProviderHealthStatus into a single status resource.
-type InfraProviderCombinedStatusController = qtransform.QController[*infra.Provider, *omni.InfraProviderCombinedStatus]
+// CombinedStatusController merges infra.Provider and infra.ProviderHealthStatus into a single status resource.
+type CombinedStatusController = qtransform.QController[*infra.Provider, *omni.InfraProviderCombinedStatus]
 
-// NewInfraProviderCombinedStatusController initializes InfraProviderCombinedStatusController.
-func NewInfraProviderCombinedStatusController() *InfraProviderCombinedStatusController {
+// NewCombinedStatusController initializes InfraProviderCombinedStatusController.
+func NewCombinedStatusController(healthCheckInterval time.Duration) *CombinedStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*infra.Provider, *omni.InfraProviderCombinedStatus]{
 			Name: "InfraProviderStatusController",
@@ -48,10 +47,16 @@ func NewInfraProviderCombinedStatusController() *InfraProviderCombinedStatusCont
 
 				infraProviderStatus.TypedSpec().Value.Health = &specs.InfraProviderCombinedStatusSpec_Health{}
 
+				var requeueInterval time.Duration
+
 				if providerHealthStatus != nil {
 					lastHeartbeatTime := providerHealthStatus.TypedSpec().Value.LastHeartbeatTimestamp.AsTime()
 
-					infraProviderStatus.TypedSpec().Value.Health.Connected = time.Since(lastHeartbeatTime) < constants.InfraProviderHealthCheckInterval+time.Second
+					infraProviderStatus.TypedSpec().Value.Health.Connected = time.Since(lastHeartbeatTime) < healthCheckInterval+time.Second
+
+					if infraProviderStatus.TypedSpec().Value.Health.Connected {
+						requeueInterval = healthCheckInterval - time.Since(lastHeartbeatTime) + time.Second*2
+					}
 
 					infraProviderStatus.TypedSpec().Value.Health.Error = providerHealthStatus.TypedSpec().Value.Error
 				}
@@ -62,6 +67,10 @@ func NewInfraProviderCombinedStatusController() *InfraProviderCombinedStatusCont
 					infraProviderStatus.TypedSpec().Value.Name = providerStatus.TypedSpec().Value.Name
 
 					infraProviderStatus.TypedSpec().Value.Health.Initialized = true
+				}
+
+				if requeueInterval > 0 {
+					return controller.NewRequeueInterval(requeueInterval)
 				}
 
 				return nil
