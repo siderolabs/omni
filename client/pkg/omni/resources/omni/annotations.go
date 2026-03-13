@@ -76,4 +76,7 @@ const (
 	// RotateKubernetesCATimestamp indicates the time when CA rotation was completed.
 	// This annotation is set on the ClusterSecrets resource.
 	RotateKubernetesCATimestamp = SystemLabelPrefix + "rotate-kubernetes-ca-timestamp"
+
+	// KubernetesManifestOwner is added to the kubernetes resources which are created by a KubernetesManifest resource.
+	KubernetesManifestOwner = SystemLabelPrefix + "owned-by-kubernetes-manifest"
 )

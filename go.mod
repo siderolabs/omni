@@ -38,6 +38,7 @@ require (
 	github.com/emicklei/dot v1.11.0
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/fluxcd/cli-utils v0.37.2-flux.1
+	github.com/fluxcd/pkg/ssa v0.70.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/go-jose/go-jose/v4 v4.1.3
@@ -45,7 +46,7 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-containerregistry v0.21.2
+	github.com/google/go-containerregistry v0.21.3
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
@@ -70,7 +71,7 @@ require (
 	github.com/siderolabs/gen v0.8.6
 	github.com/siderolabs/go-api-signature v0.3.12
 	github.com/siderolabs/go-debug v0.6.2
-	github.com/siderolabs/go-kubernetes v0.2.34
+	github.com/siderolabs/go-kubernetes v0.2.36-0.20260323101750-6a00c4f881af
 	github.com/siderolabs/go-loadbalancer v0.5.0
 	github.com/siderolabs/go-pointer v1.0.1
 	github.com/siderolabs/go-retry v0.3.3
@@ -81,7 +82,7 @@ require (
 	github.com/siderolabs/omni/client v1.5.9
 	github.com/siderolabs/proto-codec v0.1.3
 	github.com/siderolabs/siderolink v0.3.15
-	github.com/siderolabs/talos/pkg/machinery v1.13.0-alpha.2.0.20260226180725-cc636f1dd1f1
+	github.com/siderolabs/talos/pkg/machinery v1.13.0-beta.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
@@ -96,21 +97,22 @@ require (
 	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.27.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
-	golang.org/x/crypto v0.48.0
-	golang.org/x/net v0.51.0
+	golang.org/x/crypto v0.49.0
+	golang.org/x/net v0.52.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.20.0
-	golang.org/x/text v0.34.0
+	golang.org/x/text v0.35.0
 	golang.org/x/time v0.15.0
-	golang.org/x/tools v0.42.0
+	golang.org/x/tools v0.43.0
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
 	google.golang.org/grpc v1.79.2
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
-	k8s.io/api v0.35.2
-	k8s.io/apimachinery v0.35.2
-	k8s.io/client-go v0.35.2
+	k8s.io/api v0.35.3
+	k8s.io/apimachinery v0.35.3
+	k8s.io/client-go v0.35.3
 	k8s.io/klog/v2 v2.140.0
+	sigs.k8s.io/cli-utils v0.37.2
 	sigs.k8s.io/controller-runtime v0.23.3
 	zombiezen.com/go/sqlite v1.4.2
 )
@@ -165,7 +167,6 @@ require (
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/fatih/color v1.18.0 // indirect
-	github.com/fluxcd/pkg/ssa v0.69.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-chi/chi/v5 v5.2.5 // indirect
@@ -282,19 +283,18 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
-	golang.org/x/mod v0.33.0 // indirect
+	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/term v0.40.0 // indirect
+	golang.org/x/term v0.41.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260226221140-a57be14db171 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260311181403-84a4fc48630c // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260311181403-84a4fc48630c // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.35.2 // indirect
 	k8s.io/cli-runtime v0.35.2 // indirect
 	k8s.io/component-base v0.35.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20260304202019-5b3e3fdb0acf // indirect

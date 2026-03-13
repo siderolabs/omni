@@ -237,7 +237,7 @@ func AssertBlockKubernetesDeploymentCreateAndRunning(ctx context.Context, manage
 }
 
 // AssertClusterCreateAndReady is a reusable group of tests that can be used to verify that a cluster is created and ready.
-func AssertClusterCreateAndReady(ctx context.Context, testOptions *TestOptions, options ClusterOptions) []subTest { //nolint:nolintlint,revive
+func AssertClusterCreateAndReady(ctx context.Context, testOptions *TestOptions, options ClusterOptions, extraTests ...subTest) []subTest { //nolint:nolintlint,revive
 	omniClient := testOptions.omniClient
 
 	return subTests(
@@ -252,6 +252,8 @@ func AssertClusterCreateAndReady(ctx context.Context, testOptions *TestOptions, 
 			"AssertSupportBundleContents",
 			AssertSupportBundleContents(ctx, omniClient, options.Name),
 		},
+	).Append(
+		extraTests...,
 	).Append(
 		subTest{
 			"ClusterShouldBeDestroyed",

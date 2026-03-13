@@ -8,10 +8,13 @@
 package integration_test
 
 import (
+	"bytes"
 	"context"
+	_ "embed"
 	"encoding/base64"
 	"errors"
 	"testing"
+	"text/template"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -35,6 +38,9 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/integration/kubernetes"
 )
+
+//go:embed testdata/deployment.tmpl.yaml
+var deploymentTmpl string
 
 // AssertKubernetesAPIAccessViaOmni verifies that cluster kubeconfig works.
 //
@@ -572,5 +578,239 @@ func AssertKubernetesDeploymentHasRunningPods(testCtx context.Context, managemen
 				t.Logf("deployment %q/%q has no ready replicas", ns, name)
 			}
 		}, 2*time.Minute, 1*time.Second)
+	}
+}
+
+func AssertKubernetesManifestsSync(testCtx context.Context, rootClient *client.Client, clusterName string) TestFunc {
+	type params struct {
+		Name      string
+		Image     string
+		Namespace string
+	}
+
+	return func(t *testing.T) {
+		renderDeployment := func(opts params) []byte {
+			var b bytes.Buffer
+
+			require.NoError(t, template.Must(template.New("cluster").Parse(deploymentTmpl)).Execute(&b, opts))
+
+			return b.Bytes()
+		}
+
+		ctx, cancel := context.WithTimeout(testCtx, time.Minute*15)
+		defer cancel()
+
+		st := rootClient.Omni().State()
+
+		nginxOneTime := omni.NewKubernetesManifestGroup("one-time-nginx")
+		nginxOneTime.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+		nginxOneTime.TypedSpec().Value.Mode = specs.KubernetesManifestGroupSpec_ONE_TIME
+
+		require.NoError(t, nginxOneTime.TypedSpec().Value.SetUncompressedData(
+			renderDeployment(params{Name: "nginx", Image: "nginx:latest"}),
+		))
+
+		require.NoError(t, st.Create(ctx, nginxOneTime))
+
+		ctx = kubernetes.WrapContext(ctx, t)
+		kubeClient := kubernetes.GetClient(ctx, t, rootClient.Management(), clusterName)
+
+		rtestutils.AssertResources(ctx, t, st, []string{clusterName}, func(r *omni.ClusterKubernetesManifestsStatus, assert *assert.Assertions) {
+			group, ok := r.TypedSpec().Value.Groups["one-time-nginx"]
+			assert.True(ok)
+
+			if !ok {
+				return
+			}
+
+			assert.Equal(specs.KubernetesManifestGroupSpec_ONE_TIME, group.Mode)
+
+			status, ok := group.Manifests["Deployment/default/nginx"]
+			assert.True(ok)
+
+			if ok {
+				assert.Equal(specs.ClusterKubernetesManifestsStatusSpec_ManifestStatus_APPLIED, status.Phase)
+			}
+		})
+
+		_, err := kubeClient.AppsV1().Deployments(corev1.NamespaceDefault).Get(ctx, "nginx", metav1.GetOptions{})
+		require.NoError(t, err)
+
+		nginxFull := omni.NewKubernetesManifestGroup("full-nginx")
+		nginxFull.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+		nginxFull.TypedSpec().Value.Mode = specs.KubernetesManifestGroupSpec_FULL
+		nginxFull.TypedSpec().Value.Namespace = "nginx"
+
+		nginx := renderDeployment(params{Name: "nginx-full", Image: "nginx:latest", Namespace: "nginx"})
+
+		require.NoError(t, nginxFull.TypedSpec().Value.SetUncompressedData(
+			nginx,
+		))
+
+		require.NoError(t, st.Create(ctx, nginxFull))
+
+		rtestutils.AssertResources(ctx, t, st, []string{clusterName}, func(r *omni.ClusterKubernetesManifestsStatus, assert *assert.Assertions) {
+			group, ok := r.TypedSpec().Value.Groups["full-nginx"]
+			assert.True(ok, "groups should contain full-nginx, got: %v", r.TypedSpec().Value.Groups)
+
+			if !ok {
+				return
+			}
+
+			assert.Equal(specs.KubernetesManifestGroupSpec_FULL, group.Mode)
+
+			status, ok := group.Manifests["Deployment/nginx/nginx-full"]
+			assert.True(ok, "manifests should contain Deployment/nginx/nginx-full, got: %v", group.Manifests)
+
+			if ok {
+				assert.Equal(specs.ClusterKubernetesManifestsStatusSpec_ManifestStatus_APPLIED, status.Phase)
+			}
+
+			assert.Len(group.Manifests, 2)
+			assert.Len(r.TypedSpec().Value.Groups, 2)
+		})
+
+		_, err = safe.StateUpdateWithConflicts(ctx, st, nginxFull.Metadata(), func(r *omni.KubernetesManifestGroup) error {
+			data := bytes.Join(
+				[][]byte{
+					nginx,
+					[]byte(`apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-full
+spec:
+  selector:
+    app.kubernetes.io/name: nginx-full
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80`),
+				},
+				[]byte("---\n"),
+			)
+
+			return r.TypedSpec().Value.SetUncompressedData(data)
+		})
+
+		require.NoError(t, err)
+
+		rtestutils.AssertResources(ctx, t, st, []string{clusterName}, func(r *omni.ClusterKubernetesManifestsStatus, assert *assert.Assertions) {
+			group, ok := r.TypedSpec().Value.Groups["full-nginx"]
+			assert.True(ok)
+
+			if !ok {
+				return
+			}
+
+			status, ok := group.Manifests["Service/nginx/nginx-full"]
+			assert.True(ok)
+
+			if ok {
+				assert.Equal(specs.ClusterKubernetesManifestsStatusSpec_ManifestStatus_APPLIED, status.Phase)
+			}
+
+			assert.Len(group.Manifests, 3)
+		})
+
+		rtestutils.Destroy[*omni.KubernetesManifestGroup](ctx, t, st, rtestutils.ResourceIDs[*omni.KubernetesManifestGroup](ctx, t, st,
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))),
+		)
+
+		rtestutils.AssertResources(ctx, t, st, []string{clusterName}, func(r *omni.ClusterKubernetesManifestsStatus, assert *assert.Assertions) {
+			assert.Empty(r.TypedSpec().Value.Groups)
+		})
+
+		// one time nginx deployment still exists
+		_, err = kubeClient.AppsV1().Deployments(corev1.NamespaceDefault).Get(ctx, "nginx", metav1.GetOptions{})
+		require.NoError(t, err)
+
+		// apply the same manifest again with some modifications, the one-time manifest should be updated but not recreated
+		require.NoError(t, nginxOneTime.TypedSpec().Value.SetUncompressedData(
+			renderDeployment(params{Name: "nginx", Image: "nginx:alpine"}),
+		))
+
+		require.NoError(t, st.Create(ctx, nginxOneTime))
+
+		rtestutils.AssertResources(ctx, t, st, []string{clusterName}, func(r *omni.ClusterKubernetesManifestsStatus, assert *assert.Assertions) {
+			group, ok := r.TypedSpec().Value.Groups["one-time-nginx"]
+			assert.True(ok)
+
+			if !ok {
+				return
+			}
+
+			assert.Equal(specs.KubernetesManifestGroupSpec_ONE_TIME, group.Mode)
+
+			status, ok := group.Manifests["Deployment/default/nginx"]
+			assert.True(ok)
+
+			if ok {
+				assert.Equal(specs.ClusterKubernetesManifestsStatusSpec_ManifestStatus_APPLIED, status.Phase)
+			}
+		})
+
+		require.NoError(t, retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
+			deployment, err := kubeClient.AppsV1().Deployments(corev1.NamespaceDefault).Get(ctx, "nginx", metav1.GetOptions{})
+			if err != nil {
+				return retry.ExpectedErrorf("failed to get deployment: %q", err)
+			}
+
+			if len(deployment.Spec.Template.Spec.Containers) != 1 {
+				return errors.New("unexpected 1 container in the deployment")
+			}
+
+			if deployment.Spec.Template.Spec.Containers[0].Image != "nginx:alpine" {
+				return retry.ExpectedErrorf("deployment has not been updated with the new image, expected %q but got %q",
+					"nginx:alpine", deployment.Spec.Template.Spec.Containers[0].Image,
+				)
+			}
+
+			return nil
+		}))
+
+		_, err = safe.StateUpdateWithConflicts(ctx, st, nginxOneTime.Metadata(), func(r *omni.KubernetesManifestGroup) error {
+			data := bytes.Join(
+				[][]byte{
+					renderDeployment(params{Name: "nginx", Image: "nginx:latest"}),
+					[]byte(`apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: default
+spec:
+  selector:
+    app.kubernetes.io/name: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80`),
+				},
+				[]byte("---\n"),
+			)
+
+			return r.TypedSpec().Value.SetUncompressedData(data)
+		})
+
+		require.NoError(t, err)
+
+		// wait a bit to ensure that the manifest group controller processes the update of the manifest group
+		// we don't have a reliable signal of the config being processed unfortunately
+		time.Sleep(5 * time.Second)
+
+		// the service should not be created because group mode is one time
+		_, err = kubeClient.CoreV1().Services("default").Get(ctx, "nginx", metav1.GetOptions{})
+		require.Error(t, err)
+		require.True(t, kubeerrors.IsNotFound(err))
+
+		// nginx deployment should still have the old image because the manifest group is in one-time mode
+		deployment, err := kubeClient.AppsV1().Deployments(corev1.NamespaceDefault).Get(ctx, "nginx", metav1.GetOptions{})
+		require.NoError(t, err)
+
+		require.Len(t, deployment.Spec.Template.Spec.Containers, 1)
+		assert.Equal(t, "nginx:alpine", deployment.Spec.Template.Spec.Containers[0].Image)
+
+		rtestutils.Destroy[*omni.KubernetesManifestGroup](ctx, t, st, rtestutils.ResourceIDs[*omni.KubernetesManifestGroup](ctx, t, st,
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))),
+		)
 	}
 }

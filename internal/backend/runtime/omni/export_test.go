@@ -123,3 +123,7 @@ func InstallationMediaConfigValidationOptions() []validated.StateOption {
 func AccountLimitsValidationOptions(st state.State, limits config.AuthLimits) []validated.StateOption {
 	return accountLimitsValidationOptions(st, limits)
 }
+
+func KubernetesManifestsValidationOptions() []validated.StateOption {
+	return kubernetesManifestsValidationOptions()
+}

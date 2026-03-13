@@ -54,6 +54,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/image"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/infraprovider"
 	kernelargsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/kernelargs"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machine"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
@@ -270,6 +271,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		talosupgrade.NewStatusController(),
 		infraprovider.NewCombinedStatusController(constants.InfraProviderHealthCheckInterval),
 		machine.NewStatusLinkController(linkCounterDeltaCh),
+		kubernetes.NewClusterManifestsStatusController(kubernetesRuntime),
 	}
 
 	if cfg.Auth.Saml.GetEnabled() {
@@ -369,6 +371,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		infraProviderValidationOptions(defaultState),
 		installationMediaConfigValidationOptions(),
 		rotateSecretsValidationOptions(defaultState),
+		kubernetesManifestsValidationOptions(),
 	)
 
 	return &Runtime{
@@ -408,6 +411,7 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*omni.ClusterMachineStatus](),
 		safe.WithResourceCache[*omni.ClusterMachineRequestStatus](),
 		safe.WithResourceCache[*omni.ClusterMachineTalosVersion](),
+		safe.WithResourceCache[*omni.ClusterKubernetesManifestsStatus](),
 		safe.WithResourceCache[*omni.ClusterStatus](),
 		safe.WithResourceCache[*omni.ClusterSecrets](),
 		safe.WithResourceCache[*omni.ClusterSecretsRotationStatus](),
@@ -433,6 +437,7 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*omni.KubernetesUpgradeManifestStatus](),
 		safe.WithResourceCache[*omni.KubernetesUpgradeStatus](),
 		safe.WithResourceCache[*omni.KubernetesVersion](),
+		safe.WithResourceCache[*omni.KubernetesManifestGroup](),
 		safe.WithResourceCache[*omni.LoadBalancerConfig](),
 		safe.WithResourceCache[*omni.LoadBalancerStatus](),
 		safe.WithResourceCache[*omni.Machine](),

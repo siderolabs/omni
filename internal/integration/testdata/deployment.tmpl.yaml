@@ -1,0 +1,27 @@
+{{ if .Namespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Namespace }}
+{{ end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Name }}
+  namespace: default
+  labels:
+    app.kubernetes.io/name: {{ .Name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Name }}
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{ .Name }}
+    spec:
+      containers:
+      - name: {{ .Name }}
+        image: {{ .Image }}

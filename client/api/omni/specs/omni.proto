@@ -1635,3 +1635,55 @@ message NotificationSpec {
   string body = 2;
   Type type = 3;
 }
+
+// KubernetesManifestGroup is the collection (or a single) kubernetes manifests to be applied on the cluster.
+message KubernetesManifestGroupSpec {
+  enum Mode {
+    UNKNOWN = 0;
+    FULL = 1;
+    ONE_TIME = 2;
+  }
+
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+  bytes compressed_data = 1;
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+  string data = 2;
+  string namespace = 3;
+  Mode mode = 4;
+}
+
+message ClusterKubernetesManifestsStatusSpec {
+  message ManifestStatus {
+    enum Phase {
+      UNKNOWN = 0;
+      PENDING = 1;
+      APPLIED = 2;
+      DELETING = 3;
+    }
+
+    Phase phase = 1;
+    string kind = 2;
+    string name = 3;
+    string namespace = 4;
+    string group = 5;
+  }
+
+  message GroupStatus {
+    enum Phase {
+      UNKNOWN = 0;
+      PENDING = 1;
+      PROGRESSING = 2;
+      APPLIED = 3;
+      DELETING = 4;
+    }
+
+    Phase phase = 1;
+    KubernetesManifestGroupSpec.Mode mode = 2;
+    map<string, ManifestStatus> manifests = 3;
+  }
+
+  map<string, GroupStatus> groups = 1;
+  int32 out_of_sync = 2;
+  int32 total = 3;
+  string last_error = 4;
+}

@@ -324,7 +324,7 @@ func testDefaultCluster(options *TestOptions) TestFunc {
 	return func(t *testing.T) {
 		t.Log(`
 Create a regular 3 + 2 cluster with HA controlplane, assert that the cluster is ready and accessible.
-Don't do any changes to the cluster.`)
+Set up Kubernetes manifests in the cluster.`)
 
 		t.Parallel()
 
@@ -338,7 +338,12 @@ Don't do any changes to the cluster.`)
 
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-		runTests(t, AssertClusterCreateAndReady(t.Context(), options, clusterOptions))
+		runTests(t, AssertClusterCreateAndReady(t.Context(), options, clusterOptions,
+			subTest{
+				"KubernetesManifestsShouldBeCreated",
+				AssertKubernetesManifestsSync(t.Context(), options.omniClient, clusterOptions.Name),
+			},
+		))
 	}
 }
 

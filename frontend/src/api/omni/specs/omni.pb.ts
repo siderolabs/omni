@@ -200,6 +200,27 @@ export enum NotificationSpecType {
   ERROR = 2,
 }
 
+export enum KubernetesManifestGroupSpecMode {
+  UNKNOWN = 0,
+  FULL = 1,
+  ONE_TIME = 2,
+}
+
+export enum ClusterKubernetesManifestsStatusSpecManifestStatusPhase {
+  UNKNOWN = 0,
+  PENDING = 1,
+  APPLIED = 2,
+  DELETING = 3,
+}
+
+export enum ClusterKubernetesManifestsStatusSpecGroupStatusPhase {
+  UNKNOWN = 0,
+  PENDING = 1,
+  PROGRESSING = 2,
+  APPLIED = 3,
+  DELETING = 4,
+}
+
 export type MachineSpec = {
   management_address?: string
   connected?: boolean
@@ -1081,4 +1102,32 @@ export type NotificationSpec = {
   title?: string
   body?: string
   type?: NotificationSpecType
+}
+
+export type KubernetesManifestGroupSpec = {
+  compressed_data?: Uint8Array
+  data?: string
+  namespace?: string
+  mode?: KubernetesManifestGroupSpecMode
+}
+
+export type ClusterKubernetesManifestsStatusSpecManifestStatus = {
+  phase?: ClusterKubernetesManifestsStatusSpecManifestStatusPhase
+  kind?: string
+  name?: string
+  namespace?: string
+  group?: string
+}
+
+export type ClusterKubernetesManifestsStatusSpecGroupStatus = {
+  phase?: ClusterKubernetesManifestsStatusSpecGroupStatusPhase
+  mode?: KubernetesManifestGroupSpecMode
+  manifests?: {[key: string]: ClusterKubernetesManifestsStatusSpecManifestStatus}
+}
+
+export type ClusterKubernetesManifestsStatusSpec = {
+  groups?: {[key: string]: ClusterKubernetesManifestsStatusSpecGroupStatus}
+  out_of_sync?: number
+  total?: number
+  last_error?: string
 }

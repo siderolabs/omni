@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -44,6 +45,9 @@ import (
 func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap.Logger) error {
 	talosClientFactory := talos.NewClientFactory(state.Default(), logger)
 	talosRuntime := talos.New(talosClientFactory, logger, cfg.Account.GetName(), cfg.Services.Api.URL())
+
+	// Wire controller-runtime logging to the global zap logger instead of discarding it.
+	log.SetLogger(zapr.NewLogger(logger))
 
 	oidcIssuerEndpoint, err := cfg.GetOIDCIssuerEndpoint()
 	if err != nil {

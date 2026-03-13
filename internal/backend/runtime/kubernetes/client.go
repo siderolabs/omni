@@ -30,10 +30,11 @@ import (
 // Client wrapper.
 type Client struct {
 	client    dynamic.Interface
-	clientset *kubernetes.Clientset
 	Mapper    meta.RESTMapper
+	clientset *kubernetes.Clientset
 	dialer    *connrotation.Dialer
 	closeCh   chan struct{}
+	Config    *rest.Config
 	closeOnce sync.Once
 }
 
@@ -244,5 +245,26 @@ func NewClient(config *rest.Config) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{c, clientset, mapper, dialer, make(chan struct{}), sync.Once{}}, nil
+	res := NewClientWrapper(c, mapper, clientset, config)
+
+	res.dialer = dialer
+	res.closeCh = make(chan struct{})
+	res.closeOnce = sync.Once{}
+
+	return res, nil
+}
+
+// NewClientWrapper creates a new Client wrapper with the provided parameters.
+func NewClientWrapper(
+	client dynamic.Interface,
+	mapper meta.RESTMapper,
+	clientset *kubernetes.Clientset,
+	config *rest.Config,
+) *Client {
+	return &Client{
+		client:    client,
+		Mapper:    mapper,
+		clientset: clientset,
+		Config:    config,
+	}
 }
