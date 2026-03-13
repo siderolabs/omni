@@ -1,3 +1,34 @@
+## [Omni 1.5.11](https://github.com/siderolabs/omni/releases/tag/v1.5.11) (2026-03-13)
+
+Welcome to the v1.5.11 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Artem Chernyshev
+* Edward Sammut Alessi
+* Utku Ozdemir
+
+### Changes
+<details><summary>3 commits</summary>
+<p>
+
+* [`b2cecc32`](https://github.com/siderolabs/omni/commit/b2cecc32f823efb062eab759bf066229a58fe6cc) feat: add hsts header for omni frontend
+* [`4de2c801`](https://github.com/siderolabs/omni/commit/4de2c801c9937777bce52802a88580cafa396789) fix: add missing timeout to the backup download calls in secrets ctrl
+* [`c762a8fe`](https://github.com/siderolabs/omni/commit/c762a8fef16ffdc911760b30967055ef656d7a39) fix: bring in the new chart correctly to release-1.5
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.5.10](https://github.com/siderolabs/omni/releases/tag/v1.5.10)
+
 ## [Omni 1.5.10](https://github.com/siderolabs/omni/releases/tag/v1.5.10) (2026-03-11)
 
 Welcome to the v1.5.10 release of Omni!

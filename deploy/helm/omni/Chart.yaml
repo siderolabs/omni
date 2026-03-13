@@ -2,8 +2,8 @@ apiVersion: v2
 name: omni
 description: A helm chart to deploy Omni on a Kubernetes cluster
 type: application
-version: 2.5.10
-appVersion: "v1.5.10"
+version: 2.5.11
+appVersion: "v1.5.11"
 home: https://www.siderolabs.com/omni/
 sources:
   - https://github.com/siderolabs/omni

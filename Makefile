@@ -213,9 +213,16 @@ $(ARTIFACTS)/frontend-js:
 .PHONY: frontend
 frontend: $(ARTIFACTS)/frontend-js  ## Builds js release for frontend.
 
+# MANUALLY COPIED from newer kres to get chart appVersion set correctly in make generate, DO NOT REVERT
 generate:  ## Generate .proto definitions.
 	@$(MAKE) local-$@ DEST=./
-	@sed -i "s/appVersion: .*/appVersion: \"$$(cat internal/version/data/tag)\"/" deploy/helm/omni/Chart.yaml
+	@TAG=$$(cat internal/version/data/tag); \
+	if echo "$$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$$'; then \
+	  sed -i "s/^appVersion: .*/appVersion: \"$$TAG\"/" deploy/helm/omni/Chart.yaml; \
+	  MINOR_PATCH=$$(echo "$$TAG" | sed 's/^v[0-9]*\.//'); \
+	  sed -i "s/^version: .*/version: 2.$$MINOR_PATCH/" deploy/helm/omni/Chart.yaml; \
+	fi
+	@$(MAKE) helm-docs
 
 lint-golangci-lint-client:  ## Runs golangci-lint linter.
 	@$(MAKE) target-$@
