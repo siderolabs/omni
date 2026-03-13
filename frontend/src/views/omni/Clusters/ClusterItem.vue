@@ -83,6 +83,7 @@ const clusterDestroyDialogOpen = ref(false)
           :id="labelId"
           :to="{ name: 'ClusterOverview', params: { cluster: item.metadata.id } }"
           class="list-item-link truncate"
+          @click.stop
         >
           <WordHighlighter
             :query="searchQuery"

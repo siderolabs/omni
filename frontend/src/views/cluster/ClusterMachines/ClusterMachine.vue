@@ -98,6 +98,7 @@ const updateLock = async () => {
           params: { cluster: clusterName, machine: machine.metadata.id },
         }"
         class="list-item-link truncate"
+        @click.stop
       >
         {{ nodeName }}
       </RouterLink>
