@@ -108,6 +108,9 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 
 		defer file.Close() //nolint:errcheck
 
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+
 		if path != index {
 			w.Header().Set("Vary", "Accept-Encoding, User-Agent")
 			w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, immutable", handler.maxAgeSec))
@@ -141,7 +144,6 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 			)
 
 			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-			w.Header().Set("X-Content-Type-Options", "nosniff")
 			w.Header().Set("Permissions-Policy", "accelerometer=(), ambient-light-sensor=(), "+
 				"autoplay=(self), battery=(), camera=(), cross-origin-isolated=(self), display-capture=(), "+
 				"document-domain=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), "+
