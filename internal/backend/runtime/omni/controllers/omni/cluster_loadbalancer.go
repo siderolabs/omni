@@ -36,8 +36,10 @@ func NewClusterLoadBalancerController(minPort, maxPort int) *ClusterLoadBalancer
 //
 // ClusterLoadBalancerController applies the generated machine config  on each corresponding machine.
 type ClusterLoadBalancerController struct {
-	minPort int
-	maxPort int
+	// portsByCluster tracks port assignments in-memory to avoid depending on the COSI reader cache, which may lag behind writes and cause duplicate port allocations.
+	portsByCluster map[string]string
+	minPort        int
+	maxPort        int
 }
 
 // Name implements controller.Controller interface.
@@ -102,29 +104,44 @@ func (ctrl *ClusterLoadBalancerController) Run(ctx context.Context, r controller
 			return err
 		}
 
-		configs, err := safe.ReaderListAll[*omni.LoadBalancerConfig](ctx, r)
-		if err != nil {
-			return err
+		if ctrl.portsByCluster == nil {
+			ctrl.portsByCluster = map[string]string{}
+
+			// Seed from existing configs on first run.
+			configs, configErr := safe.ReaderListAll[*omni.LoadBalancerConfig](ctx, r)
+			if configErr != nil {
+				return configErr
+			}
+
+			for val := range configs.All() {
+				if port := val.TypedSpec().Value.BindPort; port != "" {
+					ctrl.portsByCluster[val.Metadata().ID()] = port
+				}
+			}
 		}
 
 		allocatedPorts := map[string]struct{}{}
-		for val := range configs.All() {
-			allocatedPorts[val.TypedSpec().Value.BindPort] = struct{}{}
+		for _, port := range ctrl.portsByCluster {
+			allocatedPorts[port] = struct{}{}
 		}
 
 		tracker := trackResource(r, resources.DefaultNamespace, omni.LoadBalancerConfigType)
+		activeClusters := map[string]struct{}{}
 
 		for cluster := range list.All() {
+			clusterID := cluster.Metadata().ID()
 			tracker.keep(cluster)
+
+			activeClusters[clusterID] = struct{}{}
 
 			var endpoints []string
 
-			endpoints, err = ctrl.getEndpoints(ctx, r, cluster.Metadata().ID())
+			endpoints, err = ctrl.getEndpoints(ctx, r, clusterID)
 			if err != nil {
 				return err
 			}
 
-			err = safe.WriterModify(ctx, r, omni.NewLoadBalancerConfig(cluster.Metadata().ID()), func(config *omni.LoadBalancerConfig) error {
+			err = safe.WriterModify(ctx, r, omni.NewLoadBalancerConfig(clusterID), func(config *omni.LoadBalancerConfig) error {
 				spec := config.TypedSpec().Value
 
 				spec.Endpoints = endpoints
@@ -135,6 +152,8 @@ func (ctrl *ClusterLoadBalancerController) Run(ctx context.Context, r controller
 						return err
 					}
 				}
+
+				ctrl.portsByCluster[clusterID] = spec.BindPort
 
 				lbEndpoint := url.URL{
 					Scheme: "https",
@@ -152,6 +171,13 @@ func (ctrl *ClusterLoadBalancerController) Run(ctx context.Context, r controller
 
 		if err = tracker.cleanup(ctx); err != nil {
 			return err
+		}
+
+		// Remove port assignments for clusters that no longer exist so ports can be reused.
+		for id := range ctrl.portsByCluster {
+			if _, ok := activeClusters[id]; !ok {
+				delete(ctrl.portsByCluster, id)
+			}
 		}
 
 		r.ResetRestartBackoff()
