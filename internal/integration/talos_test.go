@@ -55,12 +55,6 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 	defer cancel()
 
 	doRequest := func() error {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("nodes didn't become available after delay: %s", backoff.DefaultConfig.MaxDelay)
-		default:
-		}
-
 		innerCtx, innerCancel := context.WithTimeout(ctx, time.Second)
 		defer innerCancel()
 
@@ -69,7 +63,7 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 		return err
 	}
 
-	require.NoError(t, retry.Constant(backoff.DefaultConfig.MaxDelay, retry.WithUnits(time.Second)).Retry(func() error {
+	require.NoError(t, retry.Constant(backoff.DefaultConfig.MaxDelay, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
 		for range numControlplanes {
 			err := doRequest()
 			if err == nil {
@@ -378,26 +372,34 @@ func AssertTalosVersion(testCtx context.Context, options *TestOptions, clusterNa
 		ctx, cancel := context.WithTimeout(testCtx, backoff.DefaultConfig.BaseDelay+90*time.Second)
 		defer cancel()
 
-		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, omniClient.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		st := omniClient.Omni().State()
 
-		cms, err := safe.StateListAll[*omni.ClusterMachineIdentity](
-			testCtx,
-			omniClient.Omni().State(),
-			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
-		)
-		require.NoError(err)
-
-		machineIPs, err := safe.Map(cms, func(m *omni.ClusterMachineIdentity) (string, error) {
-			if len(m.TypedSpec().Value.GetNodeIps()) == 0 {
-				return "", fmt.Errorf("no ips discovered")
+		clusterMachineIPs := func() ([]string, error) {
+			cms, err := safe.StateListAll[*omni.ClusterMachineIdentity](
+				ctx,
+				st,
+				state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
+			)
+			if err != nil {
+				return nil, err
 			}
 
-			return m.TypedSpec().Value.GetNodeIps()[0], nil
-		})
+			return safe.Map(cms, func(m *omni.ClusterMachineIdentity) (string, error) {
+				if len(m.TypedSpec().Value.GetNodeIps()) == 0 {
+					return "", fmt.Errorf("no ips discovered")
+				}
+
+				return m.TypedSpec().Value.GetNodeIps()[0], nil
+			})
+		}
+
+		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+
+		machineIPs, err := clusterMachineIPs()
 		require.NoError(err)
 
 		// assert using Omni MachineStatus resource
-		rtestutils.AssertResources(ctx, t, omniClient.Omni().State(), machineIDs, func(r *omni.MachineStatus, asrt *assert.Assertions) {
+		rtestutils.AssertResources(ctx, t, st, machineIDs, func(r *omni.MachineStatus, asrt *assert.Assertions) {
 			asrt.Equal(expectedVersion, strings.TrimLeft(r.TypedSpec().Value.TalosVersion, "v"), resourceDetails(r))
 		})
 
@@ -414,7 +416,13 @@ func AssertTalosVersion(testCtx context.Context, options *TestOptions, clusterNa
 		clearConnectionRefused(ctx, t, c, len(machineIPs), machineIPs...)
 
 		require.NoError(retry.Constant(time.Minute, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
-			resp, err := c.Version(talosclient.WithNodes(ctx, machineIPs...))
+			// Re-fetch machine IPs to exclude machines removed during scale-down.
+			currentIPs, ipErr := clusterMachineIPs()
+			if ipErr != nil {
+				return retry.ExpectedError(ipErr)
+			}
+
+			resp, err := c.Version(talosclient.WithNodes(ctx, currentIPs...))
 			if err != nil {
 				return retry.ExpectedError(err)
 			}
@@ -431,7 +439,7 @@ func AssertTalosVersion(testCtx context.Context, options *TestOptions, clusterNa
 		}))
 
 		// assert using Talos upgrade controller status
-		rtestutils.AssertResources(ctx, t, omniClient.Omni().State(), []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, asrt *assert.Assertions) {
+		rtestutils.AssertResources(ctx, t, st, []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, asrt *assert.Assertions) {
 			asrt.Equal(specs.TalosUpgradeStatusSpec_Done, r.TypedSpec().Value.Phase, resourceDetails(r))
 			asrt.Equal(expectedVersion, r.TypedSpec().Value.LastUpgradeVersion, resourceDetails(r))
 		})
