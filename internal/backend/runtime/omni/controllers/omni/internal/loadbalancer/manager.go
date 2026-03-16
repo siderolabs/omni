@@ -129,6 +129,7 @@ func (m *Manager) GetHealthStatus() map[ID]bool {
 		}
 
 		w.lastHealthy = optional.Some(healthy)
+		m.running[id] = w
 	}
 
 	return status

@@ -159,7 +159,21 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 
 	ctrl.loadBalancers.UpdateUpstreams(endpoints)
 
-	// Clean up statuses of load balancers that have been deleted or stopped.
+	// Set stopped status directly from the stopped map, without depending on listing output resources from the COSI reader cache (which may lag behind writes).
+	for id := range stopped {
+		if writeErr := safe.WriterModify(ctx, r, omni.NewLoadBalancerStatus(id), func(status *omni.LoadBalancerStatus) error {
+			status.Metadata().Labels().Set(omni.LabelCluster, id)
+
+			status.TypedSpec().Value.Stopped = true
+			status.TypedSpec().Value.Healthy = false
+
+			return nil
+		}); writeErr != nil {
+			return fmt.Errorf("error modifying load balancer resource: %w", writeErr)
+		}
+	}
+
+	// Clean up statuses of load balancers that have been deleted.
 	statuses, err := safe.ReaderListAll[*omni.LoadBalancerStatus](ctx, r)
 	if err != nil {
 		return fmt.Errorf("error listing resources: %w", err)
@@ -169,18 +183,6 @@ func (ctrl *LoadBalancerController) reconcileLoadBalancers(ctx context.Context, 
 		id := cfg.Metadata().ID()
 
 		if _, ok := stopped[id]; ok {
-			if err := safe.WriterModify(ctx, r, omni.NewLoadBalancerStatus(id), func(status *omni.LoadBalancerStatus) error {
-				status.Metadata().Labels().Set(omni.LabelCluster, id)
-
-				status.TypedSpec().Value.Stopped = true
-				status.TypedSpec().Value.Healthy = false
-
-				return nil
-			}); err != nil {
-				return fmt.Errorf("error modifying load balancer resource: %w", err)
-			}
-
-			// keep the status
 			continue
 		}
 
