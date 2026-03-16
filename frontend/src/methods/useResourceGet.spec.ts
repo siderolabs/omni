@@ -61,7 +61,7 @@ describe('useResourceGet', () => {
     await nextTick()
     expect(handler).not.toHaveBeenCalled()
 
-    const response = await loadData()
+    const response = await loadData(new AbortController())
 
     expect(handler).toHaveBeenCalledTimes(1)
     expect(response).toEqual(resource)

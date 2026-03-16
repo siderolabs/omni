@@ -30,7 +30,7 @@ export function useResourceGet<TSpec = unknown, TStatus = unknown>(
   const loading = ref(true)
   const error = ref<Error>()
 
-  watchEffect(async () => {
+  watchEffect(async (onCleanup) => {
     const options = toValue(opts)
 
     if (options.skip) {
@@ -38,12 +38,16 @@ export function useResourceGet<TSpec = unknown, TStatus = unknown>(
       return
     }
 
-    await loadData()
+    const abortController = new AbortController()
+
+    await loadData(abortController)
+
+    onCleanup(() => abortController.abort())
   })
 
   return { data, loading, error, loadData }
 
-  async function loadData(abortController?: AbortController) {
+  async function loadData(abortController: AbortController) {
     const options = toValue(opts)
 
     loading.value = true
@@ -63,21 +67,22 @@ export function useResourceGet<TSpec = unknown, TStatus = unknown>(
       fetchOptions.push(withContext(options.context))
     }
 
-    if (abortController) {
-      fetchOptions.push(withAbortController(abortController))
-    }
-
     try {
-      data.value = await ResourceService.Get<Resource<TSpec, TStatus>>(
+      const newData = await ResourceService.Get<Resource<TSpec, TStatus>>(
         options.resource,
+        withAbortController(abortController),
         ...fetchOptions,
       )
+
+      data.value = newData
+
+      return newData
     } catch (e) {
+      if (abortController.signal.aborted) return
+
       error.value = e instanceof Error ? e : new Error(JSON.stringify(e))
     } finally {
       loading.value = false
     }
-
-    return data.value
   }
 }
