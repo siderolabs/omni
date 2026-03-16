@@ -61,6 +61,9 @@ prepare_vault
 # Start MinIO server.
 prepare_minio access_key="access" secret_key="secret123"
 
+# Set the registration limit to the total number of machines so that the registration limit is actively enforced during the test.
+export MAX_REGISTERED_MACHINES="${TOTAL_MACHINES}"
+
 # Prepare omni config.
 prepare_omni_config
 

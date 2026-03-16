@@ -16,9 +16,11 @@ import (
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/client/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/omnictl/config"
 	"github.com/siderolabs/omni/client/pkg/version"
@@ -147,6 +149,10 @@ func WithClient(f func(ctx context.Context, client *client.Client) error, client
 			return err
 		}
 
+		if err = checkNotifications(ctx, client.Omni().State()); err != nil {
+			return err
+		}
+
 		return f(ctx, client)
 	})
 }
@@ -175,6 +181,34 @@ If you want to enable the version validation and disable this warning, set githu
 	// compare the API versions
 	if sysVersion.TypedSpec().Value.BackendApiVersion != version.API {
 		return fmt.Errorf("client API version mismatch: backend API version %v, client API version %v", sysVersion.TypedSpec().Value.BackendApiVersion, version.API)
+	}
+
+	return nil
+}
+
+func checkNotifications(ctx context.Context, st state.State) error {
+	notifications, err := safe.StateListAll[*omnires.Notification](ctx, st)
+	if err != nil {
+		return fmt.Errorf("failed to list notifications: %w", err)
+	}
+
+	for n := range notifications.All() {
+		spec := n.TypedSpec().Value
+
+		var prefix string
+
+		switch spec.Type {
+		case specs.NotificationSpec_ERROR:
+			prefix = "[ERROR]"
+		case specs.NotificationSpec_WARNING:
+			prefix = "[WARN]"
+		case specs.NotificationSpec_INFO:
+			prefix = "[INFO]"
+		default:
+			prefix = "[UNKNOWN]"
+		}
+
+		fmt.Fprintf(os.Stderr, "%s %s: %s\n", prefix, spec.Title, spec.Body) //nolint:errcheck
 	}
 
 	return nil

@@ -194,6 +194,12 @@ export enum SecretRotationSpecComponent {
   KUBERNETES_CA = 2,
 }
 
+export enum NotificationSpecType {
+  INFO = 0,
+  WARNING = 1,
+  ERROR = 2,
+}
+
 export type MachineSpec = {
   management_address?: string
   connected?: boolean
@@ -898,6 +904,8 @@ export type MachineStatusMetricsSpec = {
   platforms?: {[key: string]: number}
   secure_boot_status?: {[key: string]: number}
   uki_status?: {[key: string]: number}
+  registered_machines_limit?: number
+  registration_limit_reached?: boolean
 }
 
 export type ClusterMetricsSpec = {
@@ -1066,4 +1074,10 @@ export type RotateKubernetesCASpec = {
 
 export type UpgradeRolloutSpec = {
   machine_sets_upgrade_quota?: {[key: string]: number}
+}
+
+export type NotificationSpec = {
+  title?: string
+  body?: string
+  type?: NotificationSpecType
 }

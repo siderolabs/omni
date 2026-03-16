@@ -164,7 +164,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		},
 		omnictrl.NewMachineCleanupController(),
 		omnictrl.NewMachineStatusLinkController(linkCounterDeltaCh),
-		&omnictrl.MachineStatusMetricsController{},
+		omnictrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines()),
 		omnictrl.NewVersionsController(cfg.Registries.GetImageFactoryBaseURL(), cfg.Features.GetEnableTalosPreReleaseVersions(), cfg.Registries.GetKubernetes()),
 		omnictrl.NewClusterLoadBalancerController(
 			cfg.Services.LoadBalancer.GetMinPort(),

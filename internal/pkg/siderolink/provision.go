@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/netip"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -72,12 +73,13 @@ func (pc *provisionContext) isAuthorizedSecureFlow() bool {
 }
 
 // NewProvisionHandler creates a new ProvisionHandler.
-func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode config.SiderolinkServiceJoinTokensMode, forceWireguardOverGRPC bool) *ProvisionHandler {
+func NewProvisionHandler(logger *zap.Logger, state state.State, joinTokenMode config.SiderolinkServiceJoinTokensMode, forceWireguardOverGRPC bool, maxRegisteredMachines uint32) *ProvisionHandler {
 	return &ProvisionHandler{
 		logger:                 logger,
 		state:                  state,
 		joinTokenMode:          joinTokenMode,
 		forceWireguardOverGRPC: forceWireguardOverGRPC,
+		maxRegisteredMachines:  maxRegisteredMachines,
 	}
 }
 
@@ -88,6 +90,8 @@ type ProvisionHandler struct {
 	logger                 *zap.Logger
 	state                  state.State
 	joinTokenMode          config.SiderolinkServiceJoinTokensMode
+	registrationMu         sync.Mutex
+	maxRegisteredMachines  uint32
 	forceWireguardOverGRPC bool
 }
 
@@ -303,7 +307,7 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 			return nil, status.Error(codes.PermissionDenied, "unauthorized")
 		}
 
-		return establishLink[*siderolinkres.Link](ctx, h.logger, h.state, provisionContext, nil, nil)
+		return establishLink[*siderolinkres.Link](ctx, h, provisionContext, nil, nil)
 	}
 
 	if !provisionContext.isAuthorizedSecureFlow() {
@@ -316,7 +320,7 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 	// put the machine into the limbo state by creating the pending machine resource
 	// the controller will then pick it up and create a wireguard peer for it
 	if provisionContext.requestNodeUniqueToken == nil {
-		return establishLink[*siderolinkres.PendingMachine](ctx, h.logger, h.state, provisionContext, nil, nil)
+		return establishLink[*siderolinkres.PendingMachine](ctx, h, provisionContext, nil, nil)
 	}
 
 	annotationsToAdd := []string{}
@@ -332,7 +336,7 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 		annotationsToAdd = append(annotationsToAdd, siderolinkres.ForceValidNodeUniqueToken)
 	}
 
-	response, err := establishLink[*siderolinkres.Link](ctx, h.logger, h.state, provisionContext, annotationsToAdd, annotationsToRemove)
+	response, err := establishLink[*siderolinkres.Link](ctx, h, provisionContext, annotationsToAdd, annotationsToRemove)
 	if err != nil {
 		if errors.Is(err, errUUIDConflict) {
 			logger.Info("detected UUID conflict", zap.String("peer", provisionContext.request.NodePublicKey))
@@ -340,13 +344,34 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 			// link is there, but the token doesn't match and the fingerprint differs, keep the machine in the limbo state
 			// mark pending machine as having the UUID conflict, PendingMachineStatus controller should inject the new UUID
 			// and the machine will re-join
-			return establishLink[*siderolinkres.PendingMachine](ctx, h.logger, h.state, provisionContext, []string{siderolinkres.PendingMachineUUIDConflict}, nil)
+			return establishLink[*siderolinkres.PendingMachine](ctx, h, provisionContext, []string{siderolinkres.PendingMachineUUIDConflict}, nil)
 		}
 
 		return nil, err
 	}
 
 	return response, nil
+}
+
+// createWithRegistrationLimit creates the resource, checking the registration limit for new Link resources under the registration mutex to prevent concurrent provisions from exceeding the limit.
+func (h *ProvisionHandler) createWithRegistrationLimit(ctx context.Context, r resource.Resource, provisionContext *provisionContext) error {
+	isNewLink := provisionContext.link == nil && r.Metadata().Type() == siderolinkres.LinkType
+
+	if isNewLink && h.maxRegisteredMachines > 0 {
+		h.registrationMu.Lock()
+		defer h.registrationMu.Unlock()
+
+		links, err := safe.ReaderListAll[*siderolinkres.Link](ctx, h.state)
+		if err != nil {
+			return err
+		}
+
+		if uint32(links.Len()) >= h.maxRegisteredMachines {
+			return status.Errorf(codes.ResourceExhausted, "machine registration limit reached: %d/%d machines registered", links.Len(), h.maxRegisteredMachines)
+		}
+	}
+
+	return h.state.Create(ctx, r)
 }
 
 func (h *ProvisionHandler) removePendingMachine(ctx context.Context, pendingMachine *siderolinkres.PendingMachine) error {
@@ -380,9 +405,11 @@ func (h *ProvisionHandler) removePendingMachine(ctx context.Context, pendingMach
 	return nil
 }
 
-func establishLink[T res](ctx context.Context, logger *zap.Logger, st state.State, provisionContext *provisionContext,
-	annotationsToAdd []string, annotationsToRemove []string,
+func establishLink[T res](ctx context.Context, h *ProvisionHandler, provisionContext *provisionContext, annotationsToAdd []string, annotationsToRemove []string,
 ) (*pb.ProvisionResponse, error) {
+	logger := h.logger
+	st := h.state
+
 	link, err := newLink[T](provisionContext, annotationsToAdd, annotationsToRemove)
 	if err != nil {
 		return nil, err
@@ -415,7 +442,7 @@ func establishLink[T res](ctx context.Context, logger *zap.Logger, st state.Stat
 		}
 	}
 
-	if err = st.Create(ctx, link); err != nil {
+	if err = h.createWithRegistrationLimit(ctx, link, provisionContext); err != nil {
 		if !state.IsConflictError(err) {
 			return nil, err
 		}

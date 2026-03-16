@@ -122,7 +122,7 @@ func TestProvision(t *testing.T) {
 			require.NoError(t, eg.Wait())
 		})
 
-		provisionHandler := siderolink.NewProvisionHandler(logger, state, mode, false)
+		provisionHandler := siderolink.NewProvisionHandler(logger, state, mode, false, 0)
 
 		config := siderolinkres.NewConfig()
 		config.TypedSpec().Value.ServerAddress = "127.0.0.1"
@@ -744,5 +744,88 @@ func TestProvision(t *testing.T) {
 
 		_, err = provisionHandler.Provision(ctx, request)
 		require.Equal(t, codes.PermissionDenied, status.Code(err))
+	})
+
+	t.Run("registration limit blocks new machines", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		t.Cleanup(cancel)
+
+		st, _ := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
+
+		// Override the handler with one that has a limit of 2.
+		provisionHandler := siderolink.NewProvisionHandler(zaptest.NewLogger(t), st, config.SiderolinkServiceJoinTokensModeStrict, false, 2)
+
+		// Create 2 links to reach the limit.
+		for _, id := range []string{"m1", "m2"} {
+			require.NoError(t, st.Create(ctx, siderolinkres.NewLink(id, &specs.SiderolinkSpec{})))
+		}
+
+		uniqueToken, tokenErr := jointoken.NewNodeUniqueToken(uuid.NewString(), uuid.NewString()).Encode()
+		require.NoError(t, tokenErr)
+
+		_, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+			NodeUuid:        "m3",
+			NodePublicKey:   genKey(),
+			TalosVersion:    new("v1.9.0"),
+			JoinToken:       new(validToken),
+			NodeUniqueToken: new(uniqueToken),
+		})
+		require.Error(t, err)
+		require.Equal(t, codes.ResourceExhausted, status.Code(err))
+		require.Contains(t, err.Error(), "2/2 machines registered")
+	})
+
+	t.Run("registration limit allows when under", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		t.Cleanup(cancel)
+
+		st, _ := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
+
+		provisionHandler := siderolink.NewProvisionHandler(zaptest.NewLogger(t), st, config.SiderolinkServiceJoinTokensModeStrict, false, 5)
+
+		require.NoError(t, st.Create(ctx, siderolinkres.NewLink("m1", &specs.SiderolinkSpec{})))
+
+		uniqueToken, tokenErr := jointoken.NewNodeUniqueToken(uuid.NewString(), uuid.NewString()).Encode()
+		require.NoError(t, tokenErr)
+
+		_, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+			NodeUuid:        "m2",
+			NodePublicKey:   genKey(),
+			TalosVersion:    new("v1.9.0"),
+			JoinToken:       new(validToken),
+			NodeUniqueToken: new(uniqueToken),
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("registration limit unlimited when zero", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		t.Cleanup(cancel)
+
+		st, _ := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
+
+		provisionHandler := siderolink.NewProvisionHandler(zaptest.NewLogger(t), st, config.SiderolinkServiceJoinTokensModeStrict, false, 0)
+
+		for _, id := range []string{"m1", "m2", "m3"} {
+			require.NoError(t, st.Create(ctx, siderolinkres.NewLink(id, &specs.SiderolinkSpec{})))
+		}
+
+		uniqueToken, tokenErr := jointoken.NewNodeUniqueToken(uuid.NewString(), uuid.NewString()).Encode()
+		require.NoError(t, tokenErr)
+
+		_, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+			NodeUuid:        "m4",
+			NodePublicKey:   genKey(),
+			TalosVersion:    new("v1.9.0"),
+			JoinToken:       new(validToken),
+			NodeUniqueToken: new(uniqueToken),
+		})
+		require.NoError(t, err)
 	})
 }

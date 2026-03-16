@@ -1,3 +1,5 @@
+account:
+  maxRegisteredMachines: ${MAX_REGISTERED_MACHINES}
 services:
   api:
     endpoint: 0.0.0.0:8099

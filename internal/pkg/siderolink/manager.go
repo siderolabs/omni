@@ -113,6 +113,7 @@ func NewManager(
 			state,
 			params.JoinTokensMode,
 			params.UseGRPCTunnel,
+			params.MaxRegisteredMachines,
 		),
 	}
 
@@ -179,15 +180,16 @@ func getJoinToken(logger *zap.Logger) (string, error) {
 
 // Params are the parameters for the Manager.
 type Params struct {
-	WireguardEndpoint   string
-	AdvertisedEndpoint  string
-	MachineAPIEndpoint  string
-	MachineAPITLSCert   string
-	MachineAPITLSKey    string
-	EventSinkPort       string
-	JoinTokensMode      config.SiderolinkServiceJoinTokensMode
-	UseGRPCTunnel       bool
-	DisableLastEndpoint bool
+	WireguardEndpoint     string
+	AdvertisedEndpoint    string
+	MachineAPIEndpoint    string
+	MachineAPITLSCert     string
+	MachineAPITLSKey      string
+	EventSinkPort         string
+	JoinTokensMode        config.SiderolinkServiceJoinTokensMode
+	MaxRegisteredMachines uint32
+	UseGRPCTunnel         bool
+	DisableLastEndpoint   bool
 }
 
 // NewListener creates a new listener.

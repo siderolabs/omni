@@ -1353,6 +1353,8 @@ message MachineStatusMetricsSpec {
   map<string, uint32> platforms = 6;
   map<string, uint32> secure_boot_status = 7;
   map<string, uint32> uki_status = 8;
+  uint32 registered_machines_limit = 9;
+  bool registration_limit_reached = 10;
 }
 
 // ClusterMetricsSpec contains metrics about the clusters in the Omni instance.
@@ -1617,4 +1619,18 @@ message RotateKubernetesCASpec {}
 // UpgradeRolloutSpec describes the rollout for the cluster upgrade process.
 message UpgradeRolloutSpec {
   map<string, int32> machine_sets_upgrade_quota = 1;
+}
+
+// NotificationSpec describes a generic notification emitted by a controller.
+message NotificationSpec {
+  // Type describes the severity of a notification.
+  enum Type {
+    INFO = 0;
+    WARNING = 1;
+    ERROR = 2;
+  }
+
+  string title = 1;
+  string body = 2;
+  Type type = 3;
 }

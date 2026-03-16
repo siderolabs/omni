@@ -7,6 +7,7 @@ package omni
 
 import (
 	"context"
+	"fmt"
 	"iter"
 	"strconv"
 	"sync"
@@ -24,12 +25,20 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 type nodeInfo struct {
 	talosVersion string
 	cluster      string
 	connected    bool
+}
+
+// NewMachineStatusMetricsController creates a new MachineStatusMetricsController.
+func NewMachineStatusMetricsController(maxRegisteredMachines uint32) *MachineStatusMetricsController {
+	return &MachineStatusMetricsController{
+		maxRegisteredMachines: maxRegisteredMachines,
+	}
 }
 
 // MachineStatusMetricsController provides metrics based on ClusterStatus.
@@ -40,6 +49,8 @@ type MachineStatusMetricsController struct {
 	versionsMap map[nodeInfo]int32
 
 	metricsOnce sync.Once
+
+	maxRegisteredMachines uint32
 
 	platformNames []string
 
@@ -78,6 +89,10 @@ func (ctrl *MachineStatusMetricsController) Outputs() []controller.Output {
 		{
 			Type: omni.MachineStatusMetricsType,
 			Kind: controller.OutputExclusive,
+		},
+		{
+			Type: omni.NotificationType,
+			Kind: controller.OutputShared,
 		},
 	}
 }
@@ -161,12 +176,38 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 			return err
 		}
 
+		if ctrl.maxRegisteredMachines > 0 {
+			if err = ctrl.reconcileRegistrationLimitNotification(ctx, r, metricsSpec); err != nil {
+				return err
+			}
+		}
+
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-time.After(10 * time.Second): // don't reconcile too often, as metrics are not scraped that often
 		}
 	}
+}
+
+func (ctrl *MachineStatusMetricsController) reconcileRegistrationLimitNotification(ctx context.Context, r controller.Runtime, metricsSpec *specs.MachineStatusMetricsSpec) error {
+	if metricsSpec.RegistrationLimitReached {
+		return safe.WriterModify(ctx, r, omni.NewNotification(omni.NotificationMachineRegistrationLimitID),
+			func(res *omni.Notification) error {
+				res.TypedSpec().Value.Title = "Machine Registration Limit Reached"
+				res.TypedSpec().Value.Body = fmt.Sprintf(
+					"%d/%d machines registered. New machines will be rejected.",
+					metricsSpec.RegisteredMachinesCount, metricsSpec.RegisteredMachinesLimit)
+				res.TypedSpec().Value.Type = specs.NotificationSpec_WARNING
+
+				return nil
+			},
+		)
+	}
+
+	_, err := helpers.TeardownAndDestroy(ctx, r, omni.NewNotification(omni.NotificationMachineRegistrationLimitID).Metadata())
+
+	return err
 }
 
 func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omni.MachineStatus], numPendingMachines int) *specs.MachineStatusMetricsSpec {
@@ -245,13 +286,15 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 	}
 
 	return &specs.MachineStatusMetricsSpec{
-		ConnectedMachinesCount:  uint32(connectedMachines),
-		RegisteredMachinesCount: uint32(machines),
-		AllocatedMachinesCount:  uint32(allocatedMachines),
-		PendingMachinesCount:    uint32(numPendingMachines),
-		Platforms:               platformMetrics,
-		SecureBootStatus:        secureBootStatusMetrics,
-		UkiStatus:               ukiMetrics,
+		ConnectedMachinesCount:   uint32(connectedMachines),
+		RegisteredMachinesCount:  uint32(machines),
+		AllocatedMachinesCount:   uint32(allocatedMachines),
+		PendingMachinesCount:     uint32(numPendingMachines),
+		Platforms:                platformMetrics,
+		SecureBootStatus:         secureBootStatusMetrics,
+		UkiStatus:                ukiMetrics,
+		RegisteredMachinesLimit:  ctrl.maxRegisteredMachines,
+		RegistrationLimitReached: ctrl.maxRegisteredMachines > 0 && uint32(machines) >= ctrl.maxRegisteredMachines,
 	}
 }
 

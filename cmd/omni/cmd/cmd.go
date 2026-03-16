@@ -154,6 +154,7 @@ func buildRootCommand() (*cobra.Command, error) {
 	rootCmdFlagBinder.StringVar("account-id", flagDescription("account.id", configSchema), &flagConfig.Account.Id)
 	rootCmdFlagBinder.StringVar("name", flagDescription("account.name", configSchema), &flagConfig.Account.Name)
 	rootCmdFlagBinder.StringVar("user-pilot-app-token", flagDescription("account.userPilot.appToken", configSchema), &flagConfig.Account.UserPilot.AppToken)
+	rootCmdFlagBinder.Uint32Var("account-max-registered-machines", flagDescription("account.maxRegisteredMachines", configSchema), &flagConfig.Account.MaxRegisteredMachines)
 
 	if err := defineServiceFlags(rootCmd, rootCmdFlagBinder, flagConfig, configSchema); err != nil {
 		return nil, fmt.Errorf("failed to define service flags: %w", err)

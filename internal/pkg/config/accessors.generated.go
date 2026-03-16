@@ -17,6 +17,17 @@ func (s *Account) SetId(v string) {
 	s.Id = &v
 }
 
+func (s *Account) GetMaxRegisteredMachines() uint32 {
+	if s == nil || s.MaxRegisteredMachines == nil {
+		return *new(uint32)
+	}
+	return *s.MaxRegisteredMachines
+}
+
+func (s *Account) SetMaxRegisteredMachines(v uint32) {
+	s.MaxRegisteredMachines = &v
+}
+
 func (s *Account) GetName() string {
 	if s == nil || s.Name == nil {
 		return *new(string)

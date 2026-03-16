@@ -600,15 +600,16 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 	wgAddress := s.cfg.Services.Siderolink.WireGuard.GetEndpoint()
 
 	params := siderolink.Params{
-		WireguardEndpoint:   wgAddress,
-		AdvertisedEndpoint:  s.cfg.Services.Siderolink.WireGuard.GetAdvertisedEndpoint(),
-		MachineAPIEndpoint:  s.cfg.Services.MachineAPI.GetEndpoint(),
-		MachineAPITLSCert:   s.cfg.Services.MachineAPI.GetCertFile(),
-		MachineAPITLSKey:    s.cfg.Services.MachineAPI.GetKeyFile(),
-		EventSinkPort:       strconv.Itoa(s.cfg.Services.Siderolink.GetEventSinkPort()),
-		JoinTokensMode:      s.cfg.Services.Siderolink.GetJoinTokensMode(),
-		UseGRPCTunnel:       s.cfg.Services.Siderolink.GetUseGRPCTunnel(),
-		DisableLastEndpoint: s.cfg.Services.Siderolink.GetDisableLastEndpoint(),
+		WireguardEndpoint:     wgAddress,
+		AdvertisedEndpoint:    s.cfg.Services.Siderolink.WireGuard.GetAdvertisedEndpoint(),
+		MachineAPIEndpoint:    s.cfg.Services.MachineAPI.GetEndpoint(),
+		MachineAPITLSCert:     s.cfg.Services.MachineAPI.GetCertFile(),
+		MachineAPITLSKey:      s.cfg.Services.MachineAPI.GetKeyFile(),
+		EventSinkPort:         strconv.Itoa(s.cfg.Services.Siderolink.GetEventSinkPort()),
+		JoinTokensMode:        s.cfg.Services.Siderolink.GetJoinTokensMode(),
+		UseGRPCTunnel:         s.cfg.Services.Siderolink.GetUseGRPCTunnel(),
+		DisableLastEndpoint:   s.cfg.Services.Siderolink.GetDisableLastEndpoint(),
+		MaxRegisteredMachines: s.cfg.Account.GetMaxRegisteredMachines(),
 	}
 
 	omniState := s.state.Default()

@@ -10,6 +10,10 @@ type Account struct {
 	// initial setup.
 	Id *string `json:"id" yaml:"id"`
 
+	// MaxRegisteredMachines is the maximum number of registered machines allowed. 0
+	// means unlimited.
+	MaxRegisteredMachines *uint32 `json:"maxRegisteredMachines,omitempty" yaml:"maxRegisteredMachines,omitempty"`
+
 	// Name is the human-readable name of the account.
 	Name *string `json:"name" yaml:"name"`
 

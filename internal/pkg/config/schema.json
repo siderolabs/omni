@@ -85,6 +85,14 @@
         "userPilot": {
           "description": "UserPilot contains UserPilot-related configuration.",
           "$ref": "#/definitions/UserPilot"
+        },
+        "maxRegisteredMachines": {
+          "description": "MaxRegisteredMachines is the maximum number of registered machines allowed. 0 means unlimited.",
+          "type": "integer",
+          "minimum": 0,
+          "goJSONSchema": {
+            "type": "uint32"
+          }
         }
       }
     },

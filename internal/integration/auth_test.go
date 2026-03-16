@@ -1252,6 +1252,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isSignatureSufficient: true,
 			},
 			{
+				resource:              omni.NewNotification(uuid.New().String()),
+				allowedVerbSet:        readOnlyVerbSet,
+				isSignatureSufficient: true,
+			},
+			{
 				resource:              omni.NewClusterMetrics(uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
