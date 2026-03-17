@@ -19,8 +19,8 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"go.uber.org/zap"
-	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -48,7 +48,7 @@ func WithCleanupCallback(cb func(int)) LogOption {
 }
 
 // NewLog creates a new audit logger.
-func NewLog(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, logger *zap.Logger, opts ...LogOption) (*Log, error) {
+func NewLog(ctx context.Context, config config.LogsAudit, db *sqlitexx.Pool, logger *zap.Logger, opts ...LogOption) (*Log, error) {
 	var cfg logConfig
 	for _, opt := range opts {
 		opt(&cfg)

@@ -9,14 +9,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/siderolabs/discovery-service/pkg/storage"
-	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // InitSQLiteSnapshotStore initializes a SQLite snapshot store if enabled in the config.
-func InitSQLiteSnapshotStore(ctx context.Context, config config.EmbeddedDiscoveryService, db *sqlitex.Pool) (storage.SnapshotStore, error) {
+func InitSQLiteSnapshotStore(ctx context.Context, config config.EmbeddedDiscoveryService, db *sqlitexx.Pool) (storage.SnapshotStore, error) {
 	store, err := NewSQLiteStore(ctx, db, config.GetSqliteTimeout())
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize sqlite snapshot store: %w", err)

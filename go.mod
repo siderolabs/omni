@@ -29,7 +29,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/cosi-project/runtime v1.14.0
 	github.com/cosi-project/state-etcd v0.5.3
-	github.com/cosi-project/state-sqlite v0.3.0
+	github.com/cosi-project/state-sqlite v0.4.0
 	github.com/crewjam/saml v0.5.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/emicklei/dot v1.11.0

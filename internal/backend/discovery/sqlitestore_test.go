@@ -230,7 +230,7 @@ func TestWriteAfterClose(t *testing.T) {
 	assert.Error(t, err, "writing to a closed writer should error")
 }
 
-func setupStore(ctx context.Context, t *testing.T) (*discovery.SQLiteStore, *sqlitex.Pool) {
+func setupStore(ctx context.Context, t *testing.T) (*discovery.SQLiteStore, *sqlitexx.Pool) {
 	t.Helper()
 
 	conf := config.Default()

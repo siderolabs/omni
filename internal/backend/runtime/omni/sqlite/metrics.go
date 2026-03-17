@@ -16,7 +16,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	zombiesqlite "zombiezen.com/go/sqlite"
-	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog/auditlogsqlite"
@@ -56,7 +55,7 @@ type Metrics struct {
 	dbSizeDesc               *prometheus.Desc
 	subsystemSizeDesc        *prometheus.Desc
 	cleanupRowsDeleted       *prometheus.CounterVec
-	db                       *sqlitex.Pool
+	db                       *sqlitexx.Pool
 	logger                   *zap.Logger
 	cachedSubsystemSizes     map[string]float64
 	cachedSubsystemRowCounts map[string]float64
@@ -79,7 +78,7 @@ func WithRefreshInterval(d time.Duration) MetricsOption {
 
 // NewMetrics creates a *Metrics that exposes SQLite database metrics.
 // If cosiState implements sqlState, the state subsystem size is reported via its DBSize method.
-func NewMetrics(db *sqlitex.Pool, cosiState state.CoreState, logger *zap.Logger, opts ...MetricsOption) *Metrics {
+func NewMetrics(db *sqlitexx.Pool, cosiState state.CoreState, logger *zap.Logger, opts ...MetricsOption) *Metrics {
 	dbSizer, ok := cosiState.(sqlState)
 	if !ok {
 		logger.Warn("COSI state does not implement sqlState, state subsystem size will not be reported")

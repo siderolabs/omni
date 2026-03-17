@@ -534,11 +534,11 @@ func TestExtractedColumns(t *testing.T) {
 	}
 }
 
-func setupStore(ctx context.Context, t *testing.T, logger *zap.Logger) (*auditlogsqlite.Store, *sqlitex.Pool) {
+func setupStore(ctx context.Context, t *testing.T, logger *zap.Logger) (*auditlogsqlite.Store, *sqlitexx.Pool) {
 	return setupStoreWithOpts(ctx, t, logger, 0, 0)
 }
 
-func setupStoreWithOpts(ctx context.Context, t *testing.T, logger *zap.Logger, maxSize uint64, cleanupProbability float64) (*auditlogsqlite.Store, *sqlitex.Pool) {
+func setupStoreWithOpts(ctx context.Context, t *testing.T, logger *zap.Logger, maxSize uint64, cleanupProbability float64) (*auditlogsqlite.Store, *sqlitexx.Pool) {
 	t.Helper()
 
 	path := filepath.Join(t.TempDir(), "test.db")

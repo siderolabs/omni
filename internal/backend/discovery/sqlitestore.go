@@ -28,7 +28,7 @@ const (
 )
 
 type SQLiteStore struct {
-	db      *sqlitex.Pool
+	db      *sqlitexx.Pool
 	timeout time.Duration
 }
 
@@ -48,7 +48,7 @@ func (s *SQLiteStore) Writer(ctx context.Context) (io.WriteCloser, error) {
 	}, nil
 }
 
-func NewSQLiteStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration) (*SQLiteStore, error) {
+func NewSQLiteStore(ctx context.Context, db *sqlitexx.Pool, timeout time.Duration) (*SQLiteStore, error) {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
@@ -76,7 +76,7 @@ func NewSQLiteStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration
 }
 
 type writer struct {
-	db *sqlitex.Pool
+	db *sqlitexx.Pool
 
 	ctx context.Context //nolint:containedctx
 
@@ -130,7 +130,7 @@ func (w *writer) Close() error {
 }
 
 type reader struct {
-	db  *sqlitex.Pool
+	db  *sqlitexx.Pool
 	ctx context.Context //nolint:containedctx
 
 	reader *bytes.Reader

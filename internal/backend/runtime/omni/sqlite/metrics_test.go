@@ -14,6 +14,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func execSQL(t *testing.T, db *sqlitex.Pool, sql string) {
+func execSQL(t *testing.T, db *sqlitexx.Pool, sql string) {
 	t.Helper()
 
 	conn, err := db.Take(t.Context())
@@ -45,7 +46,7 @@ func (f *fakeSQLState) DBSize(context.Context) (int64, error) {
 	return f.size, nil
 }
 
-func setupMetrics(t *testing.T, db *sqlitex.Pool, cosiState state.CoreState, opts ...sqlite.MetricsOption) *prometheus.Registry {
+func setupMetrics(t *testing.T, db *sqlitexx.Pool, cosiState state.CoreState, opts ...sqlite.MetricsOption) *prometheus.Registry {
 	t.Helper()
 
 	logger := zaptest.NewLogger(t)
@@ -243,7 +244,7 @@ func TestCleanupCallback(t *testing.T) {
 }
 
 // setupTestDB helper handles the standard SQLite test setup.
-func setupTestDB(t *testing.T) (*sqlitex.Pool, state.State) {
+func setupTestDB(t *testing.T) (*sqlitexx.Pool, state.State) {
 	t.Helper()
 
 	path := filepath.Join(t.TempDir(), "test.db")

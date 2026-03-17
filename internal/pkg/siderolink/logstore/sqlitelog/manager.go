@@ -50,7 +50,7 @@ func WithCleanupCallback(cb func(int)) StoreManagerOption {
 // StoreManager manages log stores for machines.
 type StoreManager struct {
 	state     state.State
-	db        *sqlitex.Pool
+	db        *sqlitexx.Pool
 	logger    *zap.Logger
 	onCleanup func(int)
 	config    config.LogsMachineStorage
@@ -440,7 +440,7 @@ type schemaParams struct {
 }
 
 // NewStoreManager creates a new StoreManager.
-func NewStoreManager(ctx context.Context, db *sqlitex.Pool, config config.LogsMachineStorage, omniState state.State, logger *zap.Logger, opts ...StoreManagerOption) (*StoreManager, error) {
+func NewStoreManager(ctx context.Context, db *sqlitexx.Pool, config config.LogsMachineStorage, omniState state.State, logger *zap.Logger, opts ...StoreManagerOption) (*StoreManager, error) {
 	templateParams := schemaParams{
 		TableName:       TableName,
 		IDColumn:        idColumn,

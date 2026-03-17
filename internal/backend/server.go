@@ -33,6 +33,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	protobufserver "github.com/cosi-project/runtime/pkg/state/protobuf/server"
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/crewjam/saml/samlsp"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
@@ -55,7 +56,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"zombiezen.com/go/sqlite/sqlitex"
 
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/access"
@@ -1184,7 +1184,7 @@ func (s *Server) createInitialServiceAccount(ctx context.Context) error {
 }
 
 // runEmbeddedDiscoveryService runs an embedded discovery service over Siderolink.
-func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sqlitex.Pool, logger *zap.Logger, discoveryCfg config.EmbeddedDiscoveryService) error {
+func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sqlitexx.Pool, logger *zap.Logger, discoveryCfg config.EmbeddedDiscoveryService) error {
 	logLevel, err := zapcore.ParseLevel(discoveryCfg.GetLogLevel())
 	if err != nil {
 		logLevel = zapcore.WarnLevel

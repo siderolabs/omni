@@ -88,7 +88,7 @@ func WithCleanupCallback(cb func(int)) Option {
 
 // Store is the SQLite-backed audit log store.
 type Store struct {
-	db                 *sqlitex.Pool
+	db                 *sqlitexx.Pool
 	logger             *zap.Logger
 	onCleanup          func(int)
 	timeout            time.Duration
@@ -97,7 +97,7 @@ type Store struct {
 }
 
 // NewStore creates a new audit log SQLite store.
-func NewStore(ctx context.Context, db *sqlitex.Pool, timeout time.Duration, maxSize uint64, cleanupProbability float64, logger *zap.Logger, opts ...Option) (*Store, error) {
+func NewStore(ctx context.Context, db *sqlitexx.Pool, timeout time.Duration, maxSize uint64, cleanupProbability float64, logger *zap.Logger, opts ...Option) (*Store, error) {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
@@ -407,7 +407,7 @@ func (s *Store) HasData(ctx context.Context) (bool, error) {
 
 type logReader struct {
 	conn *zombiesqlite.Conn
-	db   *sqlitex.Pool
+	db   *sqlitexx.Pool
 	next func() (*zombiesqlite.Stmt, error, bool)
 	stop func()
 }
