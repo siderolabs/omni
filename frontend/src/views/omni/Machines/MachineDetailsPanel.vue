@@ -152,7 +152,7 @@ const secureBoot = computed(() => {
                 h(
                   RouterLink,
                   {
-                    to: { name: 'ClusterOverview', params: { cluster: clusterName } },
+                    to: { name: 'ClusterOverview', params: { cluster: clusterName! } },
                     class: 'resource-label label-blue',
                   },
                   clusterName,

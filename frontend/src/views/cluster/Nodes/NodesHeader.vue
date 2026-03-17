@@ -16,8 +16,10 @@ import TBreadcrumbs from '@/components/TBreadcrumbs.vue'
 import { setupClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
-const { nodeName } = defineProps<{
+const { nodeName, clusterId, machineId } = defineProps<{
   nodeName: string
+  clusterId: string
+  machineId: string
 }>()
 
 const route = useRoute()
@@ -27,7 +29,7 @@ const shutdownNode = () => {
   router.push({
     query: {
       modal: 'shutdown',
-      machine: route.params.machine,
+      machine: machineId,
       ...route.query,
     },
   })
@@ -37,27 +39,27 @@ const rebootNode = () => {
   router.push({
     query: {
       modal: 'reboot',
-      machine: route.params.machine,
+      machine: machineId,
       ...route.query,
     },
   })
 }
 
-const { data: machineSetNode, loading } = useResourceWatch<MachineSetNodeSpec>({
+const { data: machineSetNode, loading } = useResourceWatch<MachineSetNodeSpec>(() => ({
   resource: {
     type: MachineSetNodeType,
-    id: route.params.machine as string,
+    id: machineId,
     namespace: DefaultNamespace,
   },
   runtime: Runtime.Omni,
-})
+}))
 
 const destroyNode = async () => {
   router.push({
     query: {
       modal: 'nodeDestroy',
-      machine: route.params.machine,
-      cluster: route.params.cluster,
+      machine: machineId,
+      cluster: clusterId,
     },
   })
 }
@@ -66,14 +68,14 @@ const restoreNode = async () => {
   router.push({
     query: {
       modal: 'nodeDestroyCancel',
-      machine: route.params.machine,
-      cluster: route.params.cluster,
+      machine: machineId,
+      cluster: clusterId,
     },
   })
 }
 
 const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClusterPermissions(
-  computed(() => route.params.cluster as string),
+  computed(() => clusterId),
 )
 </script>
 

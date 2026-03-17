@@ -127,7 +127,7 @@ onMounted(async () => {
       },
       withRuntime(Runtime.Omni),
       withSelectors([
-        `${LabelMachineSet}=${controlPlaneMachineSetId(route.params.cluster as string)}`,
+        `${LabelMachineSet}=${controlPlaneMachineSetId('cluster' in route.params ? route.params.cluster : '')}`,
       ]),
     )
 

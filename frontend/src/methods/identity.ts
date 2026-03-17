@@ -5,9 +5,9 @@
 import { useLocalStorage } from '@vueuse/core'
 
 export function useIdentity() {
-  const identityRef = useLocalStorage<string>('identity', null)
-  const fullnameRef = useLocalStorage<string>('fullname', null)
-  const avatarRef = useLocalStorage<string>('avatar', null)
+  const identityRef = useLocalStorage<string>('identity', null, { flush: 'sync' })
+  const fullnameRef = useLocalStorage<string>('fullname', null, { flush: 'sync' })
+  const avatarRef = useLocalStorage<string>('avatar', null, { flush: 'sync' })
 
   return {
     identity: identityRef,

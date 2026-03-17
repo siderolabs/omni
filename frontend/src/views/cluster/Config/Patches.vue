@@ -10,12 +10,11 @@ import { DocumentIcon } from '@heroicons/vue/24/solid'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { useRoute, useRouter } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
-import type { ClusterSpec, ConfigPatchSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { ConfigPatchSpec } from '@/api/omni/specs/omni.pb'
 import type { ClusterPermissionsSpec } from '@/api/omni/specs/virtual.pb'
 import {
   ClusterMachineStatusType,
@@ -49,13 +48,11 @@ import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 
-const route = useRoute()
-const router = useRouter()
 const filter = ref('')
 
 type Props = {
-  cluster?: Resource<ClusterSpec>
-  machine?: Resource<MachineStatusSpec>
+  cluster?: string
+  machine?: string
 }
 
 const { machine, cluster } = defineProps<Props>()
@@ -64,12 +61,9 @@ const selectors = computed(() => {
   const res: string[] = []
 
   if (cluster) {
-    res.push(`${LabelCluster}=${cluster.metadata.id}`)
+    res.push(`${LabelCluster}=${cluster}`)
   } else if (machine) {
-    res.push(
-      `${LabelMachine}=${machine.metadata.id}`,
-      `${LabelClusterMachine}=${machine.metadata.id}`,
-    )
+    res.push(`${LabelMachine}=${machine}`, `${LabelClusterMachine}=${machine}`)
   } else {
     return
   }
@@ -119,21 +113,42 @@ interface RouteItem {
   description?: string
 }
 
-type PatchEditRouteName = 'ClusterPatchEdit' | 'ClusterMachinePatchEdit' | 'MachinePatchEdit'
-
-const patchEditRouteName = computed<PatchEditRouteName>(() => {
-  if (cluster) {
-    return 'ClusterPatchEdit'
-  }
-
-  if (route.params.cluster) {
-    return 'ClusterMachinePatchEdit'
-  }
-
-  return 'MachinePatchEdit'
-})
-
 const patchTypeCluster = 'Cluster'
+
+function getRouteForPatch(patch = `500-${uuidv4()}`): RouteLocationRaw {
+  if (cluster && machine) {
+    return {
+      name: 'ClusterMachinePatchEdit',
+      params: {
+        cluster,
+        machine,
+        patch,
+      },
+    }
+  }
+
+  if (cluster) {
+    return {
+      name: 'ClusterPatchEdit',
+      params: {
+        cluster,
+        patch,
+      },
+    }
+  }
+
+  if (machine) {
+    return {
+      name: 'MachinePatchEdit',
+      params: {
+        machine,
+        patch,
+      },
+    }
+  }
+
+  throw new Error('Unable to determine patch path')
+}
 
 const routes = computed(() => {
   const hostnames: Record<string, string> = {}
@@ -159,13 +174,9 @@ const routes = computed(() => {
       return
     }
 
-    const r = {
-      name: (item.metadata.annotations || {})[ConfigPatchName] || item.metadata.id!,
-      icon: 'document',
-      route: {
-        name: patchEditRouteName.value,
-        params: { patch: item.metadata.id! },
-      },
+    const r: RouteItem = {
+      name: item.metadata.annotations?.[ConfigPatchName] || item.metadata.id!,
+      route: getRouteForPatch(item.metadata.id),
       id: item.metadata.id!,
       description: item.metadata.annotations?.[ConfigPatchDescription],
     }
@@ -180,7 +191,7 @@ const routes = computed(() => {
     } else if (labels[LabelMachineSet]) {
       const id = labels[LabelMachineSet]
 
-      const title = machineSetTitle(route.params.cluster as string, id)
+      const title = machineSetTitle(cluster, id)
 
       addToGroup(`${title}`, r)
     } else if (labels[LabelCluster]) {
@@ -234,7 +245,7 @@ const { data: clusterPermissions } = useResourceGet<ClusterPermissionsSpec>(() =
   resource: {
     namespace: VirtualNamespace,
     type: ClusterPermissionsType,
-    id: cluster?.metadata.id,
+    id: cluster,
   },
   runtime: Runtime.Omni,
 }))
@@ -245,27 +256,20 @@ const canManageConfigPatches = computed(() => {
 
   return false
 })
-
-const openPatchCreate = () => {
-  if (!cluster && !machine) {
-    return
-  }
-
-  router.push({
-    name: patchEditRouteName.value,
-    params: {
-      patch: `500-${uuidv4()}`,
-    },
-  })
-}
 </script>
 
 <template>
   <div class="flex flex-col gap-4 overflow-y-auto">
-    <ManagedByTemplatesWarning :resource="cluster" />
+    <ManagedByTemplatesWarning />
+
     <div class="flex gap-4">
       <TInput v-model="filter" class="flex-1" placeholder="Search..." icon="search" />
-      <TButton variant="highlighted" :disabled="!canManageConfigPatches" @click="openPatchCreate">
+      <TButton
+        is="router-link"
+        variant="highlighted"
+        :disabled="!canManageConfigPatches"
+        :to="getRouteForPatch()"
+      >
         Create Patch
       </TButton>
     </div>
@@ -276,10 +280,10 @@ const openPatchCreate = () => {
       <TAlert v-else-if="patches.length === 0" title="No Config Patches" type="info">
         There are no config patches
         {{
-          machine?.metadata.id
-            ? `associated with machine ${machine.metadata.id}`
-            : cluster?.metadata.id
-              ? `associated with cluster ${cluster.metadata.id}`
+          machine
+            ? `associated with machine ${machine}`
+            : cluster
+              ? `associated with cluster ${cluster}`
               : `on the account`
         }}
       </TAlert>

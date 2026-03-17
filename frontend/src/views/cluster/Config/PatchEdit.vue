@@ -7,8 +7,8 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type monaco from 'monaco-editor/esm/vs/editor/editor.api'
 import { MarkerSeverity, MarkerTag } from 'monaco-editor/esm/vs/editor/editor.api'
-import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, defineAsyncComponent, ref, watch, watchEffect } from 'vue'
+import { type RouteLocationRaw, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
@@ -59,47 +59,31 @@ const CodeEditor = defineAsyncComponent(
 )
 
 type Props = {
-  currentCluster?: Resource<ClusterSpec>
+  patchId: string
+  back: RouteLocationRaw
+  machineId?: string
+  clusterId?: string
 }
 
-defineProps<Props>()
-
-const route = useRoute()
+const { patchId, machineId, clusterId, back } = defineProps<Props>()
 
 const bootstrapped = ref(false)
 
-const { data: patch, loading: patchWatchLoading } = useResourceWatch<ConfigPatchSpec>(
-  {
+const { data: configPatch, loading: patchWatchLoading } = useResourceWatch<ConfigPatchSpec>(
+  () => ({
     runtime: Runtime.Omni,
     resource: {
       namespace: DefaultNamespace,
       type: ConfigPatchType,
-      id: route.params.patch as string,
+      id: patchId,
     },
-  },
+  }),
   (e) => {
     if (e.event?.event_type === EventType.BOOTSTRAPPED) {
       bootstrapped.value = true
     }
   },
 )
-
-let patchListPage: string
-
-switch (route.name) {
-  case 'ClusterMachinePatchEdit':
-    patchListPage = 'NodePatches'
-    break
-
-  case 'ClusterPatchEdit':
-    patchListPage = 'ClusterConfigPatches'
-
-    break
-  default:
-    patchListPage = 'MachineConfigPatches'
-
-    break
-}
 
 const config = ref('')
 
@@ -119,15 +103,15 @@ const editorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
   codeEditor = editor
 }
 
-const { data: machine } = useResourceWatch<MachineStatusSpec>({
-  skip: !route.params.machine,
+const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
+  skip: !machineId,
   resource: {
     type: MachineStatusType,
-    id: route.params.machine as string,
+    id: machineId!,
     namespace: DefaultNamespace,
   },
   runtime: Runtime.Omni,
-})
+}))
 
 const nodeIDMap: Record<string, string> = {}
 const machineSetIDMap: Record<string, string> = {}
@@ -191,24 +175,24 @@ const setPatchType = (value: string) => {
   selectedPatchType = value
 }
 
-const { data: machineSets } = useResourceWatch<MachineSetSpec>({
-  skip: !route.params.cluster,
+const { data: machineSets } = useResourceWatch<MachineSetSpec>(() => ({
+  skip: !clusterId,
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: MachineSetType,
   },
-  selectors: [`${LabelCluster}=${route.params.cluster}`],
-})
+  selectors: [`${LabelCluster}=${clusterId}`],
+}))
 
 const machineSetTitles = computed(() => {
   const sorted = sortMachineSetIds(
-    route.params.cluster as string,
+    clusterId,
     machineSets.value.map((value) => value.metadata.id!),
   )
 
   return sorted.map((machineSetId) => {
-    const title = machineSetTitle(route.params.cluster as string, machineSetId)
+    const title = machineSetTitle(clusterId, machineSetId)
     machineSetIDMap[title] = machineSetId ?? ''
     return title
   })
@@ -224,25 +208,25 @@ const machines = computed(() => {
   })
 })
 
-const { data: clusterMachines } = useResourceWatch<ClusterMachineStatusSpec>({
-  skip: !route.params.cluster,
+const { data: clusterMachines } = useResourceWatch<ClusterMachineStatusSpec>(() => ({
+  skip: !clusterId,
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: ClusterMachineStatusType,
   },
-  selectors: [`${LabelCluster}=${route.params.cluster}`],
-})
+  selectors: [`${LabelCluster}=${clusterId}`],
+}))
 
-const { data: cluster } = useResourceWatch<ClusterSpec>({
-  skip: !route.params.cluster,
+const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
+  skip: !clusterId,
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
     type: ClusterType,
-    id: route.params.cluster as string,
+    id: clusterId!,
   },
-})
+}))
 
 const router = useRouter()
 
@@ -251,7 +235,7 @@ watch(weight, (value: number) => {
     return
   }
 
-  let id = route.params.patch as string
+  let id = patchId
   const match = /^\d+-(.+)/.exec(id)
   if (match) {
     id = match[1]
@@ -277,7 +261,7 @@ watch(patchDescription, () => {
 })
 
 const loadPatch = () => {
-  const match = /^(\d+)-.+/.exec(route.params.patch as string)
+  const match = /^(\d+)-.+/.exec(patchId)
 
   if (match) {
     weight.value = Math.min(999, Math.max(0, parseInt(match[1])))
@@ -285,8 +269,8 @@ const loadPatch = () => {
     weight.value = 500
   }
 
-  if (patch.value?.spec?.data) {
-    config.value = patch.value.spec.data
+  if (configPatch.value?.spec?.data) {
+    config.value = configPatch.value.spec.data
   }
 }
 
@@ -298,23 +282,23 @@ const updatePatchWatchOptions = () => {
     resource: {
       namespace: DefaultNamespace,
       type: ConfigPatchType,
-      id: route.params.patch as string,
+      id: patchId,
     },
   }
 }
 
 updatePatchWatchOptions()
-watch(() => route.params.patch, updatePatchWatchOptions)
+watch(() => patchId, updatePatchWatchOptions)
 
 loadPatch()
-watch(patch, loadPatch)
+watch(configPatch, loadPatch)
 
 const patchTypes = computed(() => {
-  if (route.params.cluster && route.name !== 'ClusterMachinePatchEdit') {
+  if (clusterId && !machineId) {
     return [PatchType.Cluster as string].concat(machineSetTitles.value).concat(machines.value)
   }
 
-  if (machine.value?.metadata.labels?.[LabelCluster] ?? route.params.machine) {
+  if (machine.value?.metadata.labels?.[LabelCluster] ?? machineId) {
     return [PatchType.ClusterMachine, PatchType.Machine]
   }
 
@@ -332,7 +316,7 @@ const state = computed(() => {
     return State.Unknown
   }
 
-  return patch.value ? State.Exists : State.NotExists
+  return configPatch.value ? State.Exists : State.NotExists
 })
 
 const title = computed(() => {
@@ -356,7 +340,7 @@ const subtitle = computed(() => {
     return ''
   }
 
-  return ('Patch ID: ' + route.params.patch) as string
+  return `Patch ID: ${patchId}`
 })
 
 const notes = computed(() => {
@@ -378,17 +362,17 @@ const getPatchLabels = () => {
 
   if (!patchType || patchType === PatchType.Machine) {
     return {
-      [LabelMachine]: route.params.machine as string,
+      [LabelMachine]: machineId!,
     }
   }
 
-  const cluster = route.params.cluster ?? machine.value?.metadata.labels?.[LabelCluster]
+  const cluster = clusterId ?? machine.value?.metadata.labels?.[LabelCluster]
   if (!cluster) {
     throw new Error('failed to determine machine cluster')
   }
 
   const labels: Record<string, string> = {
-    [LabelCluster]: cluster as string,
+    [LabelCluster]: cluster,
   }
 
   const machineID = nodeIDMap[patchType]
@@ -413,10 +397,10 @@ const saveConfig = async () => {
     config.value = codeEditor.getValue()
   }
 
-  let currentPatch: Resource<ConfigPatchSpec> | undefined = patch.value
+  let currentPatch: Resource<ConfigPatchSpec> | undefined = configPatch.value
 
   if (create) {
-    patchToCreate.metadata.id = route.params.patch as string
+    patchToCreate.metadata.id = patchId
     patchToCreate.spec.data = config.value
 
     currentPatch = patchToCreate
@@ -442,8 +426,8 @@ const saveConfig = async () => {
       await ResourceService.Create(currentPatch, withRuntime(Runtime.Omni))
     }
 
-    patch.value = currentPatch
-    router.push({ name: patchListPage })
+    configPatch.value = currentPatch
+    router.push(back)
   } catch (e) {
     if (e.code === Code.INVALID_ARGUMENT) {
       showError('The Config is Invalid', e.message?.replace('failed to validate: ', ''))
@@ -459,20 +443,20 @@ const permissionsLoaded = ref(false)
 const canReadConfigPatches = ref(false)
 const canManageConfigPatches = ref(false)
 
-const updatePermissions = async () => {
-  if (route.params.cluster) {
+watchEffect(async () => {
+  if (clusterId) {
     const clusterPermissions = await ResourceService.Get(
       {
         namespace: VirtualNamespace,
         type: ClusterPermissionsType,
-        id: route.params.cluster as string,
+        id: clusterId,
       },
       withRuntime(Runtime.Omni),
     )
 
     canReadConfigPatches.value = clusterPermissions?.spec?.can_read_config_patches || false
     canManageConfigPatches.value = clusterPermissions?.spec?.can_manage_config_patches || false
-  } else if (route.params.machine) {
+  } else if (machineId) {
     canReadConfigPatches.value = canReadMachineConfigPatches.value
     canManageConfigPatches.value = canManageMachineConfigPatches.value
   } else {
@@ -480,17 +464,6 @@ const updatePermissions = async () => {
   }
 
   permissionsLoaded.value = true
-}
-
-watch(
-  () => route.params,
-  async () => {
-    await updatePermissions()
-  },
-)
-
-onMounted(async () => {
-  await updatePermissions()
 })
 </script>
 
@@ -498,7 +471,7 @@ onMounted(async () => {
   <div class="flex h-full flex-col">
     <PageContainer class="flex grow flex-col overflow-hidden">
       <PageHeader :title="title" :subtitle="subtitle" :notes="notes" />
-      <ManagedByTemplatesWarning :resource="currentCluster" />
+      <ManagedByTemplatesWarning />
       <div v-if="state === State.NotExists" class="mb-4 flex items-center gap-3">
         <TInput v-model="patchName" title="Name" />
         <TInput v-model="patchDescription" class="flex-1" title="Description" />
@@ -537,7 +510,7 @@ onMounted(async () => {
     <div
       class="flex h-16 shrink-0 items-center gap-4 border-t border-naturals-n4 bg-naturals-n1 px-5 py-3"
     >
-      <TButton class="secondary" @click="() => $router.push({ name: patchListPage })">Back</TButton>
+      <TButton class="secondary" @click="() => $router.push(back)">Back</TButton>
       <div class="flex-1" />
       <TButton
         variant="highlighted"

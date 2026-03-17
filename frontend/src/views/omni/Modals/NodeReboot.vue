@@ -29,7 +29,7 @@ const close = () => {
 const node = setupNodenameWatch(route.query.machine as string)
 const context = getContext()
 
-const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster ?? ''))
+const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster))
 
 const reboot = async () => {
   state.value = 'Rebooting'
@@ -55,7 +55,7 @@ const reboot = async () => {
 
   if (route.query.goback) {
     close()
-  } else {
+  } else if ('cluster' in route.params) {
     await router.push({ name: 'ClusterOverview', params: { cluster: route.params.cluster } })
   }
 

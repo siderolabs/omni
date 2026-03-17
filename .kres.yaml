@@ -834,6 +834,7 @@ spec:
         - .pb.gw.go
         - .pb.ts
         - mockServiceWorker.js
+        - typed-router.d.ts
         - .generated.go
       skipPaths:
         - .git

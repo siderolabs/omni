@@ -63,7 +63,7 @@ const { data: machineSet } = useResourceWatch<MachineSetStatusSpec>(() => ({
   runtime: Runtime.Omni,
 }))
 
-const clusterID = computed(() => machineSet.value?.metadata.labels?.[LabelCluster] ?? '')
+const clusterID = computed(() => machineSet.value?.metadata.labels?.[LabelCluster])
 const scaleMachinesModalOpen = ref(false)
 
 const hiddenMachinesCount = computed(() => {
@@ -128,8 +128,8 @@ const canRemoveMachineSet = computed(() => {
   }
 
   const deleteProtected = new Set<string>([
-    controlPlaneMachineSetId(clusterID.value),
-    defaultWorkersMachineSetId(clusterID.value),
+    controlPlaneMachineSetId(clusterID.value ?? ''),
+    defaultWorkersMachineSetId(clusterID.value ?? ''),
   ])
 
   return !deleteProtected.has(machineSetId)

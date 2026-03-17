@@ -30,7 +30,7 @@ const close = () => {
 
 const context = getContext()
 
-const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster ?? ''))
+const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster))
 
 const shutdown = async () => {
   state.value = 'Shutdown in progress'
@@ -57,7 +57,7 @@ const shutdown = async () => {
   if (route.query.goback) {
     close()
   } else {
-    await router.push({ name: 'ClusterOverview', params: { cluster: context.cluster } })
+    await router.push({ name: 'ClusterOverview', params: { cluster: context.cluster! } })
   }
 
   showSuccess('Machine Shutdown', `Machine ${nodeName} is shutting down now.`)

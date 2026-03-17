@@ -1,0 +1,120 @@
+<!--
+Copyright (c) 2026 Sidero Labs, Inc.
+
+Use of this software is governed by the Business Source License
+included in the LICENSE file.
+-->
+<script setup lang="ts">
+import { computed, watch } from 'vue'
+
+import { Runtime } from '@/api/common/omni.pb'
+import { type PlatformConfigSpec, PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
+import {
+  CloudPlatformConfigType,
+  MetalPlatformConfigType,
+  PlatformMetalID,
+  VirtualNamespace,
+} from '@/api/resources'
+import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
+import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
+import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
+import { getDocsLink } from '@/methods'
+import { useResourceGet } from '@/methods/useResourceGet'
+import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
+
+definePage({ name: 'InstallationMediaCreateMachineArch' })
+
+const formState = defineModel<FormState>({ required: true })
+
+const secureBootDocsLink = computed(() =>
+  getDocsLink('talos', '/platform-specific-installations/bare-metal-platforms', {
+    talosVersion: formState.value.talosVersion,
+  }),
+)
+
+const { data: metalProvider } = useResourceGet<PlatformConfigSpec>(() => ({
+  skip: formState.value.hardwareType !== 'metal',
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: VirtualNamespace,
+    type: MetalPlatformConfigType,
+    id: PlatformMetalID,
+  },
+}))
+
+const { data: selectedCloudProvider } = useResourceGet<PlatformConfigSpec>(() => ({
+  skip: formState.value.hardwareType !== 'cloud',
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: VirtualNamespace,
+    type: CloudPlatformConfigType,
+    id: formState.value.cloudPlatform,
+  },
+}))
+
+const selectedPlatform = computed(() =>
+  formState.value.hardwareType === 'metal' ? metalProvider.value : selectedCloudProvider.value,
+)
+
+const supportedArchitectures = computed(() => {
+  switch (formState.value.hardwareType) {
+    case 'sbc':
+      return [PlatformConfigSpecArch.ARM64]
+    default:
+      return selectedPlatform.value?.spec.architectures ?? []
+  }
+})
+
+// Form defaults
+watch(supportedArchitectures, (v) => (formState.value.machineArch ??= v?.[0]))
+</script>
+
+<template>
+  <div class="flex flex-col gap-4">
+    <RadioGroup v-model="formState.machineArch" label="Machine Architecture">
+      <RadioGroupOption
+        v-if="supportedArchitectures.includes(PlatformConfigSpecArch.AMD64)"
+        :value="PlatformConfigSpecArch.AMD64"
+      >
+        amd64
+
+        <template #description>
+          Compatible with Intel and AMD CPUs, also referred to as x86_64. If unsure, select this
+          option.
+        </template>
+      </RadioGroupOption>
+
+      <RadioGroupOption
+        v-if="supportedArchitectures.includes(PlatformConfigSpecArch.ARM64)"
+        :value="PlatformConfigSpecArch.ARM64"
+      >
+        arm64
+
+        <template #description>
+          Suitable for Ampere Computing and other arm64 CPUs. For Single Board Computers, choose the
+          'SBC' option on the first screen. For AWS and GCP arm64 VMs, use Cloud images.
+        </template>
+      </RadioGroupOption>
+    </RadioGroup>
+
+    <TCheckbox v-if="selectedPlatform?.spec.secure_boot_supported" v-model="formState.secureBoot">
+      <div class="flex flex-col">
+        <span class="font-medium text-naturals-n14">SecureBoot</span>
+        <span>
+          Create a
+          <a
+            :href="secureBootDocsLink"
+            rel="noopener noreferrer"
+            target="_blank"
+            class="link-primary"
+            @click.stop
+          >
+            SecureBoot
+          </a>
+          image signed with the official Sidero Labs signing key. This requires UEFI boot and
+          pre-configured hardware.
+        </span>
+      </div>
+    </TCheckbox>
+  </div>
+</template>

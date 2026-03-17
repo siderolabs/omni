@@ -1,0 +1,74 @@
+<!--
+Copyright (c) 2026 Sidero Labs, Inc.
+
+Use of this software is governed by the Business Source License
+included in the LICENSE file.
+-->
+<script setup lang="ts">
+import { gte } from 'semver'
+import { computed, watch } from 'vue'
+
+import { Runtime } from '@/api/common/omni.pb'
+import type { SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
+import { SBCConfigType, VirtualNamespace } from '@/api/resources'
+import { itemID } from '@/api/watch'
+import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
+import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
+import { getDocsLink } from '@/methods'
+import { useResourceList } from '@/methods/useResourceList'
+import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
+
+definePage({ name: 'InstallationMediaCreateSBCType' })
+
+const formState = defineModel<FormState>({ required: true })
+
+const { data } = useResourceList<SBCConfigSpec>({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: VirtualNamespace,
+    type: SBCConfigType,
+  },
+})
+
+const SBCs = computed(() =>
+  data.value
+    ?.filter(
+      (sbc) =>
+        !sbc.spec.min_version ||
+        (formState.value.talosVersion && gte(formState.value.talosVersion, sbc.spec.min_version)),
+    )
+    .map((sbc) => ({
+      ...sbc,
+      spec: {
+        ...sbc.spec,
+        documentation:
+          sbc.spec.documentation &&
+          getDocsLink('talos', sbc.spec.documentation, {
+            talosVersion: formState.value.talosVersion,
+          }),
+      },
+    })),
+)
+
+// Form defaults
+watch(SBCs, (v) => (formState.value.sbcType ??= v?.[0]?.metadata.id))
+</script>
+
+<template>
+  <RadioGroup v-model="formState.sbcType" label="Single Board Computer">
+    <RadioGroupOption v-for="sbc in SBCs" :key="itemID(sbc)" :value="sbc.metadata.id!">
+      {{ sbc.spec.label }}
+
+      <template #description>
+        <span :class="!sbc.spec.documentation && 'after:content-[\'.\']'">
+          Runs on {{ sbc.spec.label }}
+        </span>
+
+        <!-- prettier-ignore -->
+        <template v-if="sbc.spec.documentation">
+          (<a class="link-primary" :href="sbc.spec.documentation" @click.stop>documentation</a>).
+        </template>
+      </template>
+    </RadioGroupOption>
+  </RadioGroup>
+</template>

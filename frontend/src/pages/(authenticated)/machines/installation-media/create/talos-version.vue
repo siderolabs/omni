@@ -1,0 +1,147 @@
+<!--
+Copyright (c) 2026 Sidero Labs, Inc.
+
+Use of this software is governed by the Business Source License
+included in the LICENSE file.
+-->
+<script setup lang="ts">
+import { compare } from 'semver'
+import { computed, onBeforeMount, watch } from 'vue'
+
+import { Runtime } from '@/api/common/omni.pb'
+import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import type { JoinTokenStatusSpec } from '@/api/omni/specs/siderolink.pb'
+import {
+  DefaultNamespace,
+  DefaultTalosVersion,
+  JoinTokenStatusType,
+  TalosVersionType,
+} from '@/api/resources'
+import GrpcTunnelCheckbox from '@/components/common/GrpcTunnelCheckbox/GrpcTunnelCheckbox.vue'
+import Labels from '@/components/common/Labels/Labels.vue'
+import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import { getDocsLink } from '@/methods'
+import { useFeatures } from '@/methods/features'
+import { useResourceWatch } from '@/methods/useResourceWatch'
+import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
+
+definePage({ name: 'InstallationMediaCreateTalosVersion' })
+
+const formState = defineModel<FormState>({ required: true })
+
+const { data: features } = useFeatures()
+
+const { data: talosVersionList, loading: talosVersionsLoading } =
+  useResourceWatch<TalosVersionSpec>({
+    runtime: Runtime.Omni,
+    resource: {
+      type: TalosVersionType,
+      namespace: DefaultNamespace,
+    },
+  })
+
+const { data: joinTokenList, loading: joinTokensLoading } = useResourceWatch<JoinTokenStatusSpec>({
+  runtime: Runtime.Omni,
+  resource: {
+    type: JoinTokenStatusType,
+    namespace: DefaultNamespace,
+  },
+})
+
+const talosVersions = computed(() =>
+  talosVersionList.value
+    .filter((v) => !v.spec.deprecated)
+    .map((v) => v.spec.version!)
+    .sort(compare),
+)
+
+const joinTokens = computed(() =>
+  joinTokenList.value.map((t) => ({
+    label: t.spec.name || t.metadata.id || '',
+    value: t.metadata.id || '',
+  })),
+)
+
+// Form defaults
+onBeforeMount(() => (formState.value.talosVersion ??= DefaultTalosVersion))
+watch(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
+</script>
+
+<template>
+  <div class="flex flex-col items-start gap-4">
+    <TSelectList
+      v-model="formState.talosVersion"
+      :disabled="talosVersionsLoading"
+      :values="talosVersions"
+      title="Choose Talos Linux Version"
+      overhead-title
+    />
+
+    <p class="text-xs">
+      We strongly recommend using the latest stable version of Talos Linux ({{
+        DefaultTalosVersion
+      }}).
+      <template v-if="features?.spec.talos_pre_release_versions_enabled">
+        <br />
+        Pre-release versions are suitable for testing purposes but are not advised for production
+        environments.
+      </template>
+    </p>
+
+    <div class="space-y-2">
+      <h2 id="docs-label-id" class="text-xs font-medium text-naturals-n14 after:content-[':']">
+        Documentation for Talos Linux {{ formState.talosVersion }}
+      </h2>
+      <ul
+        class="list-inside list-disc space-y-2 text-xs text-primary-p3"
+        aria-labelledby="docs-label-id"
+      >
+        <li>
+          <a
+            :href="
+              getDocsLink('talos', `/getting-started/what's-new-in-talos`, {
+                talosVersion: formState.talosVersion,
+              })
+            "
+            rel="noopener noreferrer"
+            target="_blank"
+            class="link-primary"
+          >
+            What's New
+          </a>
+        </li>
+
+        <li>
+          <a
+            :href="
+              getDocsLink('talos', '/getting-started/support-matrix', {
+                talosVersion: formState.talosVersion,
+              })
+            "
+            rel="noopener noreferrer"
+            target="_blank"
+            class="link-primary"
+          >
+            Support Matrix
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <h2 class="text-base font-medium text-naturals-n14">Omni settings</h2>
+
+    <GrpcTunnelCheckbox v-model="formState.useGrpcTunnel" />
+
+    <TSelectList
+      v-model="formState.joinToken"
+      :disabled="joinTokensLoading"
+      :values="joinTokens"
+      title="Join Token"
+      overhead-title
+    />
+
+    <h3 class="text-sm font-medium text-naturals-n14">Machine User Labels</h3>
+
+    <Labels v-model="formState.machineUserLabels" />
+  </div>
+</template>

@@ -64,7 +64,7 @@ const clusterName = computed(() => (machine.metadata?.labels || {})[LabelCluster
 const openNodeInfo = async () => {
   router.push({
     name: 'NodeOverview',
-    params: { cluster: clusterName.value, machine: machine.metadata.id },
+    params: { cluster: clusterName.value, machine: machine.metadata.id! },
   })
 }
 
@@ -95,7 +95,7 @@ const updateLock = async () => {
       <RouterLink
         :to="{
           name: 'NodeOverview',
-          params: { cluster: clusterName, machine: machine.metadata.id },
+          params: { cluster: clusterName, machine: machine.metadata.id! },
         }"
         class="list-item-link truncate"
         @click.stop
@@ -110,7 +110,7 @@ const updateLock = async () => {
         v-if="lockedUpdate"
         :to="{
           name: 'NodePendingUpdates',
-          params: { cluster: clusterName, machine: machine.metadata.id },
+          params: { cluster: clusterName, machine: machine.metadata.id! },
         }"
         class="flex items-center gap-1 truncate text-sky-400"
         @click.stop

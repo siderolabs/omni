@@ -75,7 +75,7 @@ watchEffect(() => {
 
 const { status: backupStatus } = setupBackupStatus()
 
-const clusterId = computed(() => currentCluster.metadata.id ?? '')
+const clusterId = computed(() => currentCluster.metadata.id!)
 
 const { data: kubernetesUpgradeStatus } = useResourceWatch<KubernetesUpgradeStatusSpec>(() => ({
   runtime: Runtime.Omni,
@@ -410,6 +410,7 @@ onMounted(async () => {
       :kubernetes-upgrade-status="kubernetesUpgradeStatus"
       :talos-upgrade-status="talosUpgradeStatus"
       :etcd-backups="backupStatus"
+      :cluster-id="currentCluster.metadata.id!"
     />
   </div>
 </template>

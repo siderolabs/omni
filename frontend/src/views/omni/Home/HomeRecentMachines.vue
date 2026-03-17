@@ -48,7 +48,7 @@ defineProps<{
     >
       <div class="flex min-w-0 items-center gap-2">
         <RouterLink
-          :to="{ name: 'Machine', params: { machine: item.metadata.id } }"
+          :to="{ name: 'Machine', params: { machine: item.metadata.id! } }"
           class="list-item-link truncate"
         >
           {{ item.metadata.id }}

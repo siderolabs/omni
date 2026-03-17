@@ -8,7 +8,7 @@ included in the LICENSE file.
 import { dump, load } from 'js-yaml'
 import type { Ref } from 'vue'
 import { computed, nextTick, ref, useTemplateRef, watchEffect } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -45,6 +45,10 @@ import MachineMatchItem from './MachineMatchItem.vue'
 import MachineTemplate from './MachineTemplate.vue'
 import ProviderConfig from './ProviderConfig.vue'
 
+const { machineClassEditId } = defineProps<{
+  machineClassEditId?: string
+}>()
+
 enum MachineClassMode {
   Manual = 'Manual',
   AutoProvision = 'Auto Provision',
@@ -76,7 +80,6 @@ const { data: infraProviders } = useResourceWatch<InfraProviderStatusSpec>({
 })
 
 const router = useRouter()
-const route = useRoute()
 const lastFocused = ref(0)
 
 const infraProvider = ref<string>()
@@ -181,24 +184,22 @@ const updateContent = (i: number, event: KeyboardEvent) => {
 
 let labels: Record<string, string> | undefined
 
-const machineClassEditId = computed(() => route.params.classname?.toString())
-
 const { data: machineClass, loading } = useResourceWatch<MachineClassSpec>(() => ({
-  skip: !machineClassEditId.value,
+  skip: !machineClassEditId,
   resource: {
     namespace: DefaultNamespace,
     type: MachineClassType,
-    id: machineClassEditId.value!,
+    id: machineClassEditId!,
   },
   runtime: Runtime.Omni,
 }))
 
-const notFound = computed(() => !!machineClassEditId.value && !machineClass.value)
+const notFound = computed(() => !!machineClassEditId && !machineClass.value)
 
 watchEffect(() => {
-  if (!machineClassEditId.value) return
+  if (!machineClassEditId) return
 
-  machineClassName.value ||= machineClassEditId.value
+  machineClassName.value ||= machineClassEditId
 
   machineClassMode.value = machineClass.value?.spec?.auto_provision
     ? MachineClassMode.AutoProvision
@@ -389,7 +390,7 @@ const submit = async () => {
   }
 
   try {
-    if (machineClassEditId.value) {
+    if (machineClassEditId) {
       await ResourceService.Update(machineClass, resourceVersion, withRuntime(Runtime.Omni))
     } else {
       await ResourceService.Create(machineClass, withRuntime(Runtime.Omni))

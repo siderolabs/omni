@@ -28,15 +28,17 @@ const {
   warningText = 'It is recommended to manage it using its template and not through this UI.',
   warningStyle = 'alert',
 } = defineProps<Props>()
+
 const route = useRoute()
+const routeCluster = computed(() => ('cluster' in route.params ? route.params.cluster : undefined))
 
 const { data: routeResource } = useResourceWatch<ClusterSpec>(() => ({
   // If the resource is not passed explicitly, default to the cluster in the route, if exists.
-  skip: !!resource || !route.params.cluster,
+  skip: !!resource || !routeCluster.value,
   resource: {
     type: ClusterType,
     namespace: DefaultNamespace,
-    id: route.params.cluster as string,
+    id: routeCluster.value!,
   },
   runtime: Runtime.Omni,
 }))

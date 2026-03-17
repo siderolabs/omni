@@ -4,8 +4,8 @@
 // included in the LICENSE file.
 
 import { useAuth0 } from '@auth0/auth0-vue'
-import type { ComputedRef, Ref } from 'vue'
-import { computed, onBeforeMount, ref, watch } from 'vue'
+import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue'
+import { computed, ref, toValue, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
@@ -40,7 +40,7 @@ export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref()
 
 const clusterPermissionsCache: Record<string, Resource<ClusterPermissionsSpec>> = {}
 
-export const setupClusterPermissions = (cluster: Ref<string>) => {
+export const setupClusterPermissions = (cluster: MaybeRefOrGetter<string | undefined>) => {
   const result = {
     canUpdateKubernetes: ref(false),
     canUpdateTalos: ref(false),
@@ -57,27 +57,21 @@ export const setupClusterPermissions = (cluster: Ref<string>) => {
     canManageClusterFeatures: ref(false),
   }
 
-  const getPermissions = async (clusterName: string) => {
-    if (clusterPermissionsCache[clusterName]) {
-      return clusterPermissionsCache[clusterName]
-    }
-
-    const clusterPermissions: Resource<ClusterPermissionsSpec> = await ResourceService.Get(
+  const getPermissions = async (clusterName?: string) => {
+    return (clusterPermissionsCache[clusterName ?? '__NO_CLUSTER'] ??= await ResourceService.Get<
+      Resource<ClusterPermissionsSpec>
+    >(
       {
         namespace: VirtualNamespace,
         type: ClusterPermissionsType,
         id: clusterName,
       },
       withRuntime(Runtime.Omni),
-    )
-
-    clusterPermissionsCache[clusterName] = clusterPermissions
-
-    return clusterPermissions
+    ))
   }
 
-  const updatePermissions = async () => {
-    const clusterPermissions = await getPermissions(cluster.value)
+  watchEffect(async () => {
+    const clusterPermissions = await getPermissions(toValue(cluster))
 
     result.canUpdateKubernetes.value = clusterPermissions?.spec?.can_update_kubernetes || false
     result.canUpdateTalos.value = clusterPermissions?.spec?.can_update_talos || false
@@ -97,10 +91,7 @@ export const setupClusterPermissions = (cluster: Ref<string>) => {
     result.canRemoveMachines.value = clusterPermissions?.spec?.can_remove_machines || false
     result.canManageClusterFeatures.value =
       clusterPermissions?.spec?.can_manage_cluster_features || false
-  }
-
-  onBeforeMount(updatePermissions)
-  watch(cluster, updatePermissions)
+  })
 
   return result
 }

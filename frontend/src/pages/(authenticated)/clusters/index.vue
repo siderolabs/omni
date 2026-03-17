@@ -1,0 +1,165 @@
+<!--
+Copyright (c) 2026 Sidero Labs, Inc.
+
+Use of this software is governed by the Business Source License
+included in the LICENSE file.
+-->
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+
+import { Runtime } from '@/api/common/omni.pb'
+import type { ClusterStatusMetricsSpec } from '@/api/omni/specs/omni.pb'
+import {
+  ClusterStatusMetricsID,
+  ClusterStatusMetricsType,
+  ClusterStatusType,
+  DefaultNamespace,
+  EphemeralNamespace,
+  LabelsCompletionType,
+  VirtualNamespace,
+} from '@/api/resources'
+import { itemID, type WatchOptions } from '@/api/watch'
+import TButton from '@/components/common/Button/TButton.vue'
+import TList from '@/components/common/List/TList.vue'
+import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import StatsItem from '@/components/common/Stats/StatsItem.vue'
+import TAlert from '@/components/TAlert.vue'
+import { getDocsLink } from '@/methods'
+import { canCreateClusters } from '@/methods/auth'
+import type { Label } from '@/methods/labels'
+import { addLabel, selectors } from '@/methods/labels'
+import { useResourceWatch } from '@/methods/useResourceWatch'
+import ClusterItem from '@/views/omni/Clusters/ClusterItem.vue'
+import LabelsInput from '@/views/omni/ItemLabels/LabelsInput.vue'
+
+definePage({ name: 'Clusters' })
+
+const watchOpts = computed<WatchOptions>(() => {
+  return {
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: DefaultNamespace,
+      type: ClusterStatusType,
+    },
+    selectors: selectors(filterLabels.value),
+    sortByField: 'created',
+  }
+})
+
+const { data } = useResourceWatch<ClusterStatusMetricsSpec>({
+  resource: {
+    type: ClusterStatusMetricsType,
+    id: ClusterStatusMetricsID,
+    namespace: EphemeralNamespace,
+  },
+  runtime: Runtime.Omni,
+})
+
+const filterValue = ref('')
+const filterLabels = ref<Label[]>([])
+
+const sortOptions = [
+  { id: 'id', desc: 'ID ⬆' },
+  { id: 'id', desc: 'ID ⬇', descending: true },
+  { id: 'created', desc: 'Creation Time ⬆', descending: true },
+  { id: 'created', desc: 'Creation Time ⬇' },
+]
+
+const filterOptions = [
+  { desc: 'All' },
+  { desc: 'Ready', query: 'ready' },
+  { desc: 'Not Ready', query: '!ready' },
+]
+</script>
+
+<template>
+  <PageContainer>
+    <TList
+      :opts="watchOpts"
+      search
+      no-records-alert
+      pagination
+      errors-alert
+      filter-caption="Status"
+      :sort-options="sortOptions"
+      :filter-options="filterOptions"
+      :filter-value="filterValue"
+    >
+      <template #norecords>
+        <TAlert type="info" title="No clusters found">
+          To create your first cluster, click "Create Cluster" above or
+          <RouterLink class="link-primary" :to="{ name: 'ClusterCreate' }">here</RouterLink>
+          to get started. You can check out our
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            :href="getDocsLink('omni', '/getting-started/create-a-cluster')"
+            class="link-primary"
+          >
+            documentation
+          </a>
+          for more information.
+        </TAlert>
+      </template>
+
+      <template #header="{ itemsCount }">
+        <div class="flex items-start gap-1">
+          <PageHeader title="Clusters" class="flex-1">
+            <StatsItem title="Clusters" :value="itemsCount" icon="clusters" />
+            <StatsItem
+              v-if="data?.spec.not_ready_count"
+              title="Not Ready"
+              :value="data.spec.not_ready_count"
+              icon="warning"
+            />
+          </PageHeader>
+          <TButton
+            is="router-link"
+            :disabled="!canCreateClusters"
+            variant="highlighted"
+            :to="{ name: 'ClusterCreate' }"
+          >
+            Create Cluster
+          </TButton>
+        </div>
+      </template>
+      <template #input>
+        <LabelsInput
+          v-model:filter-labels="filterLabels"
+          v-model:filter-value="filterValue"
+          :completions-resource="{
+            id: ClusterStatusType,
+            type: LabelsCompletionType,
+            namespace: VirtualNamespace,
+          }"
+          class="w-full"
+        />
+      </template>
+      <template #default="{ items, searchQuery }">
+        <div class="grid grid-cols-[repeat(4,1fr)_--spacing(18)] gap-3">
+          <div
+            class="col-span-full grid grid-cols-subgrid bg-naturals-n2 px-3 py-2.5 text-xs max-lg:hidden"
+          >
+            <div class="pl-6">Name</div>
+            <div>Machines Healthy</div>
+            <div>Phase</div>
+            <div>Versions</div>
+            <div>Actions</div>
+          </div>
+
+          <ul class="col-span-full grid grid-cols-subgrid gap-3">
+            <ClusterItem
+              v-for="(item, index) in items"
+              :key="itemID(item)"
+              :default-open="index === 0"
+              :search-query="searchQuery"
+              :item="item"
+              @filter-labels="(label) => addLabel(filterLabels, label)"
+            />
+          </ul>
+        </div>
+      </template>
+    </TList>
+  </PageContainer>
+</template>

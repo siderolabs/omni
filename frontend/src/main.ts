@@ -10,6 +10,7 @@ import { milliseconds, millisecondsToSeconds } from 'date-fns'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import yamlWorker from 'monaco-yaml/yaml.worker?worker'
 import { createApp } from 'vue'
+import { handleHotUpdate } from 'vue-router/auto-routes'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -33,6 +34,11 @@ if (import.meta.env.PROD) {
       return new editorWorker()
     },
   }
+}
+
+// This will update routes at runtime without reloading the page
+if (import.meta.hot) {
+  handleHotUpdate(router)
 }
 
 const setupApp = async () => {

@@ -210,7 +210,7 @@ test('exposed services', async ({ page }, testInfo) => {
   await test.step('Visit config patches for control plane', async () => {
     await page.getByRole('link', { name: cpMachineName }).click()
     await page.getByRole('tab', { name: 'Patches', exact: true }).click()
-    await page.getByRole('button', { name: 'Create Patch' }).click()
+    await page.getByRole('link', { name: 'Create Patch' }).click()
   })
 
   await test.step('Add service via inlineManifests patch', async () => {
