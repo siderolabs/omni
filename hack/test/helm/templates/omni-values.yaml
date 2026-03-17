@@ -63,6 +63,7 @@ env:
 service:
   main:
     type: NodePort
+    omniNodePort: 30080 # set explicitly to avoid port collisions
     siderolinkApiNodePort: 30090
 
 ingress:

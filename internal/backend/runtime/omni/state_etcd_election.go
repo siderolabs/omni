@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"path"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -63,7 +62,7 @@ func (ee *etcdElections) run(ctx context.Context, client *clientv3.Client, elect
 	// create a random key for this campaign, so there will be no way to "resume" the elections, as there is no stable ID
 	campaignKey := uuid.NewString()
 
-	campaignErrCh := make(chan error)
+	campaignErrCh := make(chan error, 1)
 
 	panichandler.Go(func() {
 		ee.mu.Lock()
@@ -134,15 +133,11 @@ func (ee *etcdElections) stop() error {
 	ee.mu.Lock()
 	defer ee.mu.Unlock()
 
-	if ee.election != nil {
-		// use a new context to resign, as `ctx` might be canceled
-		resignCtx, resignCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer resignCancel()
-
-		resignErr := ee.election.Resign(resignCtx)
-		ee.logger.Info("resigned from the etcd election campaign", zap.Error(resignErr))
-	}
-
+	// Close the session to stop the elections. This revokes the lease, which
+	// deletes all keys attached to it (including the election key), achieving
+	// the same effect as Resign(). We intentionally don't call Resign() because
+	// Campaign() may still be running concurrently, writing to the Election's
+	// internal fields that Resign() would read, causing a data race.
 	if ee.session != nil {
 		if err := ee.session.Close(); err != nil {
 			return err
