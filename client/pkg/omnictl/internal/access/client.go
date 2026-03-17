@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -45,10 +46,21 @@ func WithSkipAuth(skipAuth bool) ClientOption {
 	}
 }
 
+// ServerInfo contains information about the server.
+type ServerInfo struct {
+	Version semver.Version
+}
+
+// ServerSupports returns true if the server version is at least major.minor.
+// Only major and minor are compared; patch and pre-release are ignored so that e.g. 1.6.0-beta.0 is considered as 1.6.
+func (s ServerInfo) ServerSupports(major, minor uint64) bool {
+	return s.Version.Major > major || (s.Version.Major == major && s.Version.Minor >= minor)
+}
+
 // WithClient initializes the Omni API client.
 //
 //nolint:gocognit
-func WithClient(f func(ctx context.Context, client *client.Client) error, clientOpts ...ClientOption) error {
+func WithClient(f func(ctx context.Context, client *client.Client, info ServerInfo) error, clientOpts ...ClientOption) error {
 	_, err := config.Init(CmdFlags.Omniconfig, true)
 	if err != nil {
 		return err
@@ -145,48 +157,62 @@ func WithClient(f func(ctx context.Context, client *client.Client) error, client
 			}
 		}
 
-		if err = checkVersion(ctx, client.Omni().State()); err != nil {
+		serverVersion, err := checkVersion(ctx, client.Omni().State())
+		if err != nil {
 			return err
 		}
 
-		if err = checkNotifications(ctx, client.Omni().State()); err != nil {
+		serverInfo := ServerInfo{
+			Version: serverVersion,
+		}
+
+		if err = checkNotifications(ctx, client.Omni().State(), serverInfo); err != nil {
 			return err
 		}
 
-		return f(ctx, client)
+		return f(ctx, client, serverInfo)
 	})
 }
 
-func checkVersion(ctx context.Context, state state.State) error {
+func checkVersion(ctx context.Context, state state.State) (semver.Version, error) {
+	sysVersion, err := safe.StateGet[*system.SysVersion](ctx, state, system.NewSysVersion(system.SysVersionID).Metadata())
+	if err != nil {
+		return semver.Version{}, fmt.Errorf("failed to get system version: %w", err)
+	}
+
+	parsedVersion, err := parseVersion(sysVersion.TypedSpec().Value.BackendVersion)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[WARN] failed to parse backend version %q: %v\n", sysVersion.TypedSpec().Value.BackendVersion, err)
+	}
+
 	if version.API == 0 && !version.SuppressVersionWarning {
 		fmt.Fprintln(os.Stderr, `[WARN] github.com/siderolabs/omni/client/pkg/version.API is not set, client-server version validation is disabled.
 If you want to enable the version validation and disable this warning, set github.com/siderolabs/omni/client/pkg/version.SuppressVersionWarning to true.`)
 
-		return nil
-	}
-
-	sysVersion, err := safe.StateGet[*system.SysVersion](ctx, state, system.NewSysVersion(system.SysVersionID).Metadata())
-	if err != nil {
-		return err
+		return parsedVersion, nil
 	}
 
 	checkVersionWarning(sysVersion)
 
 	if sysVersion.TypedSpec().Value.BackendApiVersion == 0 { // API versions are not supported (yet) on backend, i.e., the client is newer than the backend
-		return fmt.Errorf("server API does not support API versions, i.e., the server is older than the client, "+
+		return semver.Version{}, fmt.Errorf("server API does not support API versions, i.e., the server is older than the client, "+
 			"please upgrade the server to have the same API version as the client: client API version %v, "+
 			"client version %v, server version %v", version.API, version.Tag, sysVersion.TypedSpec().Value.BackendVersion)
 	}
 
 	// compare the API versions
 	if sysVersion.TypedSpec().Value.BackendApiVersion != version.API {
-		return fmt.Errorf("client API version mismatch: backend API version %v, client API version %v", sysVersion.TypedSpec().Value.BackendApiVersion, version.API)
+		return semver.Version{}, fmt.Errorf("client API version mismatch: backend API version %v, client API version %v", sysVersion.TypedSpec().Value.BackendApiVersion, version.API)
 	}
 
-	return nil
+	return parsedVersion, nil
 }
 
-func checkNotifications(ctx context.Context, st state.State) error {
+func checkNotifications(ctx context.Context, st state.State, info ServerInfo) error {
+	if !info.ServerSupports(1, 6) {
+		return nil // Notification resource doesn't exist on older servers
+	}
+
 	notifications, err := safe.StateListAll[*omnires.Notification](ctx, st)
 	if err != nil {
 		return fmt.Errorf("failed to list notifications: %w", err)
@@ -228,4 +254,20 @@ func checkVersionWarning(sysVersion *system.SysVersion) {
 	if clientVersion.Major != backendVersion.Major || clientVersion.Minor != backendVersion.Minor {
 		fmt.Fprintf(os.Stderr, "[WARN] omnictl version differs from the backend version: %q vs %q.\n", clientVersion.String(), backendVersion.String())
 	}
+}
+
+// parseVersion parses a version string tolerantly. If semver.ParseTolerant fails, it strips pre-release/build metadata and retries with just the numeric portion.
+func parseVersion(s string) (semver.Version, error) {
+	v, err := semver.ParseTolerant(s)
+	if err == nil {
+		return v, nil
+	}
+
+	s = strings.TrimPrefix(s, "v")
+
+	if idx := strings.IndexAny(s, "-+"); idx != -1 {
+		s = s[:idx]
+	}
+
+	return semver.ParseTolerant(s)
 }

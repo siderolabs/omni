@@ -8,9 +8,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
 
@@ -26,8 +30,12 @@ var deleteCmd = &cobra.Command{
 	},
 }
 
-func deleteUsers(emails ...string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func deleteUsers(emails ...string) func(ctx context.Context, client *client.Client, info access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, info access.ServerInfo) error {
+		if !info.ServerSupports(1, 6) {
+			return deleteUsersLegacy(ctx, client, emails...)
+		}
+
 		for _, email := range emails {
 			if err := client.Management().DestroyUser(ctx, email); err != nil {
 				return err
@@ -38,6 +46,46 @@ func deleteUsers(emails ...string) func(ctx context.Context, client *client.Clie
 
 		return nil
 	}
+}
+
+// deleteUsersLegacy deletes users by directly manipulating COSI resources (for servers older than v1.6).
+func deleteUsersLegacy(ctx context.Context, client *client.Client, emails ...string) error {
+	toDelete := make([]resource.Pointer, 0, len(emails)*2)
+
+	for _, email := range emails {
+		identity := auth.NewIdentity(email)
+
+		existing, err := safe.ReaderGetByID[*auth.Identity](ctx, client.Omni().State(), email)
+		if err != nil {
+			return err
+		}
+
+		toDelete = append(toDelete, identity.Metadata(), auth.NewUser(existing.TypedSpec().Value.UserId).Metadata())
+	}
+
+	for _, md := range toDelete {
+		fmt.Printf("tearing down %s %s\n", md.Type(), md.ID())
+
+		if _, err := client.Omni().State().Teardown(ctx, md); err != nil {
+			return err
+		}
+	}
+
+	for _, md := range toDelete {
+		_, err := client.Omni().State().WatchFor(ctx, md, state.WithFinalizerEmpty())
+		if err != nil {
+			return err
+		}
+
+		err = client.Omni().State().Destroy(ctx, md)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("destroy %s %s\n", md.Type(), md.ID())
+	}
+
+	return nil
 }
 
 func init() {

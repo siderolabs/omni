@@ -33,8 +33,8 @@ Talos never updates or deletes Kubernetes manifests, so this command fills the g
 	},
 }
 
-func manifestSync(clusterName string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func manifestSync(clusterName string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		handler := func(resp *management.KubernetesSyncManifestResponse) error {
 			switch resp.ResponseType {
 			case management.KubernetesSyncManifestResponse_UNKNOWN:

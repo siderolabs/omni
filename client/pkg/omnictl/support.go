@@ -92,8 +92,8 @@ func (sbe *supportBundleErrors) print() error {
 	return w.Flush()
 }
 
-func createSupportBundle() func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func createSupportBundle() func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		progress := make(chan *management.GetSupportBundleResponse_Progress)
 
 		eg, ctx := errgroup.WithContext(ctx)

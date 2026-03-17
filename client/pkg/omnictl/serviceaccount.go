@@ -48,7 +48,7 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			name := args[0]
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				key, err := generateServiceAccountPGPKey(name)
 				if err != nil {
 					return err
@@ -90,7 +90,7 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			name := args[0]
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				key, err := generateServiceAccountPGPKey(name)
 				if err != nil {
 					return err
@@ -130,7 +130,7 @@ var (
 		Short:   "List service accounts",
 		Args:    cobra.NoArgs,
 		RunE: func(*cobra.Command, []string) error {
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				serviceAccounts, err := client.Management().ListServiceAccounts(ctx)
 				if err != nil {
 					return err
@@ -168,7 +168,7 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			name := args[0]
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				err := client.Management().DestroyServiceAccount(ctx, name)
 				if err != nil {
 					return fmt.Errorf("failed to destroy service account: %w", err)

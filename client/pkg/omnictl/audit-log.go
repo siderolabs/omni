@@ -24,7 +24,7 @@ var auditLog = &cobra.Command{
 		start := safeGet(arg, 0)
 		end := safeGet(arg, 1)
 
-		return access.WithClient(func(ctx context.Context, client *client.Client) error {
+		return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 			for resp, err := range client.Management().ReadAuditLog(ctx, start, end) {
 				if err != nil {
 					return err

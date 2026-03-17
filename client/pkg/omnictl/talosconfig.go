@@ -46,8 +46,8 @@ Otherwise talosconfig will be written to PWD or [local-path] if specified.`,
 }
 
 //nolint:gocognit
-func getTalosconfig(args []string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func getTalosconfig(args []string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		localPath, err := getLocalTalosconfigPath(args)
 		if err != nil {
 			return err

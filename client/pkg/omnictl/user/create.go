@@ -6,10 +6,15 @@ package user
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
 
@@ -29,12 +34,44 @@ var createCmd = &cobra.Command{
 	},
 }
 
-func createUser(email string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func createUser(email string) func(ctx context.Context, client *client.Client, info access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, info access.ServerInfo) error {
+		if !info.ServerSupports(1, 6) {
+			return createUserLegacy(ctx, client, email)
+		}
+
 		_, err := client.Management().CreateUser(ctx, email, createCmdFlags.role)
 
 		return err
 	}
+}
+
+// createUserLegacy creates a user by directly manipulating COSI resources (for servers older than v1.6).
+func createUserLegacy(ctx context.Context, client *client.Client, email string) error {
+	user := auth.NewUser(uuid.NewString())
+
+	user.TypedSpec().Value.Role = createCmdFlags.role
+
+	identity := auth.NewIdentity(email)
+
+	identity.Metadata().Labels().Set(auth.LabelIdentityUserID, user.Metadata().ID())
+
+	identity.TypedSpec().Value.UserId = user.Metadata().ID()
+
+	existing, err := safe.ReaderGetByID[*auth.Identity](ctx, client.Omni().State(), email)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	if existing != nil {
+		return fmt.Errorf("identity with email %q already exists", email)
+	}
+
+	if err := client.Omni().State().Create(ctx, user); err != nil {
+		return err
+	}
+
+	return client.Omni().State().Create(ctx, identity)
 }
 
 func init() {

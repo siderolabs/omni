@@ -7,9 +7,11 @@ package user
 import (
 	"context"
 
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
 
@@ -29,10 +31,36 @@ var setRoleCmd = &cobra.Command{
 	},
 }
 
-func setUserRole(email string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func setUserRole(email string) func(ctx context.Context, client *client.Client, info access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, info access.ServerInfo) error {
+		if !info.ServerSupports(1, 6) {
+			return setUserRoleLegacy(ctx, client, email)
+		}
+
 		return client.Management().UpdateUser(ctx, email, setRoleCmdFlags.role)
 	}
+}
+
+// setUserRoleLegacy updates user role by directly manipulating COSI resources (for servers older than v1.6).
+func setUserRoleLegacy(ctx context.Context, client *client.Client, email string) error {
+	identity, err := safe.ReaderGetByID[*auth.Identity](ctx, client.Omni().State(), email)
+	if err != nil {
+		return err
+	}
+
+	_, err = safe.StateUpdateWithConflicts(ctx, client.Omni().State(),
+		auth.NewUser(identity.TypedSpec().Value.UserId).Metadata(),
+		func(user *auth.User) error {
+			user.TypedSpec().Value.Role = setRoleCmdFlags.role
+
+			return nil
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func init() {

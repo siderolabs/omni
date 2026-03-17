@@ -39,7 +39,7 @@ var machineCmd = &cobra.Command{
 	Aliases: []string{"m"},
 	Short:   "Machine configuration command.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return access.WithClient(func(ctx context.Context, client *client.Client) error {
+		return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 			for _, id := range args {
 				if machineCmdFlags.siderolinkConnection != "" {
 					if err := updateSideroLinkConnectionMode(ctx, client, id); err != nil {

@@ -45,7 +45,7 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			name := args[0]
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				infraProvider := infra.NewProvider(name)
 
 				err := client.Omni().State().Create(ctx, infraProvider)
@@ -98,7 +98,7 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			name := args[0]
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				serviceAccountName := fmt.Sprintf("infra-provider:%s", name)
 
 				key, err := generateServiceAccountPGPKey(serviceAccountName)
@@ -140,7 +140,7 @@ var (
 		Short:   "List infra providers",
 		Args:    cobra.NoArgs,
 		RunE: func(*cobra.Command, []string) error {
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				infraProviders, err := safe.StateListAll[*omni.InfraProviderCombinedStatus](ctx, client.Omni().State())
 				if err != nil {
 					return err
@@ -174,7 +174,7 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			name := args[0]
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				err := client.Omni().State().TeardownAndDestroy(ctx, infra.NewProvider(name).Metadata())
 				if err != nil {
 					return fmt.Errorf("failed to delete infra provider: %w", err)

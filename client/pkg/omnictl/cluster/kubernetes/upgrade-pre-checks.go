@@ -30,8 +30,8 @@ var upgradePreChecksCmd = &cobra.Command{
 	},
 }
 
-func upgradePreChecks(clusterName string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func upgradePreChecks(clusterName string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		return client.Management().WithCluster(clusterName).KubernetesUpgradePreChecks(ctx, upgradePreChecksCmdFlags.toVersion)
 	}
 }
