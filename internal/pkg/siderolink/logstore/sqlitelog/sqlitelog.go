@@ -21,7 +21,6 @@ import (
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"go.uber.org/zap"
 	zombiesqlite "zombiezen.com/go/sqlite"
-	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -53,7 +52,7 @@ func WithStoreCleanupCallback(cb func(int)) StoreOption {
 }
 
 // NewStore creates a new Store.
-func NewStore(config config.LogsMachineStorage, db *sqlitex.Pool, id string, logger *zap.Logger, opts ...StoreOption) (*Store, error) {
+func NewStore(config config.LogsMachineStorage, db *sqlitexx.Pool, id string, logger *zap.Logger, opts ...StoreOption) (*Store, error) {
 	sqliteTimeout := config.GetSqliteTimeout()
 	if sqliteTimeout <= 0 {
 		sqliteTimeout = 30 * time.Second
@@ -77,7 +76,7 @@ func NewStore(config config.LogsMachineStorage, db *sqlitex.Pool, id string, log
 // Store implements the logstore.LogStore interface using SQLite as the backend.
 type Store struct {
 	config        config.LogsMachineStorage
-	db            *sqlitex.Pool
+	db            *sqlitexx.Pool
 	logger        *zap.Logger
 	onCleanup     func(int)
 	id            string

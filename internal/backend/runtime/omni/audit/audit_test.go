@@ -16,13 +16,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/siderolabs/gen/xtesting/must"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -168,7 +168,7 @@ func loadEvents(t *testing.T, events string) []any {
 	return result
 }
 
-func testDB(t *testing.T) *sqlitex.Pool {
+func testDB(t *testing.T) *sqlitexx.Pool {
 	t.Helper()
 
 	conf := config.Default().Storage.Sqlite

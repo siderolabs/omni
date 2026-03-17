@@ -537,6 +537,11 @@ type SAMLAttributeRules map[string]string
 type SAMLLabelRules map[string]string
 
 type SQLite struct {
+	// CachedPoolSize controls the number of cached connections in the SQLite
+	// connection pool. The overall number of connections is limited by poolSize.
+	// CachedPoolSize should be less or equal to poolSize.
+	CachedPoolSize *int `json:"cachedPoolSize,omitempty" yaml:"cachedPoolSize,omitempty"`
+
 	// ExperimentalBaseParams contains the base parameters to be used when opening the
 	// SQLite database connection. This can cause data corruption if set incorrectly,
 	// modify at your own risk. This flag is experimental and may be removed in future

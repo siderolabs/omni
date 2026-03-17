@@ -14,10 +14,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/containers"
 	"go.uber.org/zap"
-	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
@@ -46,14 +46,14 @@ type MachineCache struct {
 	logger                 *zap.Logger
 	onCleanup              func(int)
 	logsConfig             *config.LogsMachine
-	secondaryStorageDB     *sqlitex.Pool
+	secondaryStorageDB     *sqlitexx.Pool
 	state                  state.State
 	mx                     sync.Mutex
 	inited                 bool
 }
 
 // NewMachineCache returns a new MachineCache.
-func NewMachineCache(secondaryStorageDB *sqlitex.Pool, logStorageConfig *config.LogsMachine, omniState state.State, logger *zap.Logger, opts ...MachineCacheOption) (*MachineCache, error) {
+func NewMachineCache(secondaryStorageDB *sqlitexx.Pool, logStorageConfig *config.LogsMachine, omniState state.State, logger *zap.Logger, opts ...MachineCacheOption) (*MachineCache, error) {
 	cache := &MachineCache{
 		logsConfig:         logStorageConfig,
 		secondaryStorageDB: secondaryStorageDB,

@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/state/impl/store"
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/cosi-project/state-sqlite/pkg/state/impl/sqlite"
 	"go.uber.org/zap"
-	"zombiezen.com/go/sqlite/sqlitex"
 )
 
-func newSQLitePersistentState(ctx context.Context, db *sqlitex.Pool, logger *zap.Logger) (*PersistentState, error) {
+func newSQLitePersistentState(ctx context.Context, db *sqlitexx.Pool, logger *zap.Logger) (*PersistentState, error) {
 	st, err := sqlite.NewState(ctx, db, store.ProtobufMarshaler{},
 		sqlite.WithLogger(logger),
 		sqlite.WithTablePrefix("metrics_"),

@@ -1092,6 +1092,11 @@
           "type": "string",
           "pattern": "^(?:$|[^&].*)"
         },
+        "cachedPoolSize" : {
+          "description": "CachedPoolSize controls the number of cached connections in the SQLite connection pool. The overall number of connections is limited by poolSize. CachedPoolSize should be less or equal to poolSize.",
+          "type": "integer",
+          "minimum": 1
+        },
         "poolSize" : {
           "description": "PoolSize controls the maximum number of connections in the SQLite connection pool. Raising this value may improve performance under high load, at the cost of increased resource usage.",
           "type": "integer",

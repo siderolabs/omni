@@ -11,9 +11,9 @@ import (
 	"net/netip"
 
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
-	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
@@ -43,7 +43,7 @@ func WithLogHandlerCleanupCallback(cb func(int)) LogHandlerOption {
 }
 
 // NewLogHandler returns a new LogHandler.
-func NewLogHandler(secondaryStorageDB *sqlitex.Pool, machineMap *MachineMap, omniState state.State, storageConfig *config.LogsMachine, logger *zap.Logger,
+func NewLogHandler(secondaryStorageDB *sqlitexx.Pool, machineMap *MachineMap, omniState state.State, storageConfig *config.LogsMachine, logger *zap.Logger,
 	opts ...LogHandlerOption,
 ) (*LogHandler, error) {
 	var options logHandlerOptions

@@ -15,10 +15,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/siderolabs/gen/optional"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
-	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -115,7 +115,7 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 	})
 }
 
-func testDB(t *testing.T) *sqlitex.Pool {
+func testDB(t *testing.T) *sqlitexx.Pool {
 	t.Helper()
 
 	conf := config.Default().Storage.Sqlite

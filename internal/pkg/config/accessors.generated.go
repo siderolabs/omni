@@ -1062,6 +1062,17 @@ func (s *SAML) SetUrl(v string) {
 	s.Url = &v
 }
 
+func (s *SQLite) GetCachedPoolSize() int {
+	if s == nil || s.CachedPoolSize == nil {
+		return *new(int)
+	}
+	return *s.CachedPoolSize
+}
+
+func (s *SQLite) SetCachedPoolSize(v int) {
+	s.CachedPoolSize = &v
+}
+
 func (s *SQLite) GetExperimentalBaseParams() string {
 	if s == nil || s.ExperimentalBaseParams == nil {
 		return *new(string)

@@ -334,6 +334,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		"qcontroller_reconcile_busy": prometheus.NewDesc("omni_runtime_qcontroller_reconcile_busy_seconds", "Number of seconds queue controller reconcile is busy by controller name.", []string{"controller"}, nil),
 		"cached_resources":           prometheus.NewDesc("omni_runtime_cached_resources", "Number of cached resources by resource type.", []string{"resource_type"}, nil),
 		"memory.allocator":           prometheus.NewDesc("omni_sqlite_memory_allocator_stats", "SQLite memory allocator statistics.", []string{"kind"}, nil),
+		"sqlitexx_pool_connections":  prometheus.NewDesc("omni_sqlite_pool_connections", "Number of connections in the sqlite pool.", nil, nil),
 	})
 
 	metricsRegistry.MustRegister(expvarCollector)

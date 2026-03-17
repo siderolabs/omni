@@ -19,9 +19,9 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/registry"
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
-	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	resourceregistry "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
@@ -59,7 +59,7 @@ type State struct {
 
 	defaultPersistentState   *PersistentState
 	secondaryPersistentState *PersistentState
-	secondaryStorageDB       *sqlitex.Pool
+	secondaryStorageDB       *sqlitexx.Pool
 }
 
 // Default returns the default state.
@@ -68,7 +68,7 @@ func (s *State) Default() state.State {
 }
 
 // SecondaryStorageDB returns the secondary storage database.
-func (s *State) SecondaryStorageDB() *sqlitex.Pool {
+func (s *State) SecondaryStorageDB() *sqlitexx.Pool {
 	return s.secondaryStorageDB
 }
 
@@ -315,7 +315,7 @@ func stateWithMetrics(namespacedState *namespaced.State, metricsRegistry prometh
 }
 
 // NewAuditWrap creates a new audit wrap.
-func NewAuditWrap(ctx context.Context, resState state.State, params *config.Params, auditLogDB *sqlitex.Pool, logger *zap.Logger, onCleanup func(int)) (*AuditWrap, error) {
+func NewAuditWrap(ctx context.Context, resState state.State, params *config.Params, auditLogDB *sqlitexx.Pool, logger *zap.Logger, onCleanup func(int)) (*AuditWrap, error) {
 	if !params.Logs.Audit.GetEnabled() {
 		logger.Info("audit log disabled")
 

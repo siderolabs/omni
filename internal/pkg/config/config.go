@@ -153,6 +153,7 @@ func Default() *Params {
 	p.Logs.Machine.Storage.SetCleanupProbability(0.01)
 
 	p.Storage.Sqlite.SetExperimentalBaseParams("_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)")
+	p.Storage.Sqlite.SetCachedPoolSize(4)
 	p.Storage.Sqlite.SetPoolSize(64)
 
 	p.Storage.Default.SetKind(StorageDefaultKindEtcd)

@@ -10,15 +10,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"go.uber.org/zap"
-	"zombiezen.com/go/sqlite/sqlitex"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog/auditlogsqlite"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func initLogger(ctx context.Context, config config.LogsAudit, db *sqlitex.Pool, logger *zap.Logger, onCleanup func(int)) (Logger, error) {
+func initLogger(ctx context.Context, config config.LogsAudit, db *sqlitexx.Pool, logger *zap.Logger, onCleanup func(int)) (Logger, error) {
 	if !config.GetEnabled() {
 		logger.Info("audit logging is disabled")
 
