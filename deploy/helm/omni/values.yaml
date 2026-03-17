@@ -391,6 +391,12 @@ config:
       enabled: false
       # -- Subdomain is the subdomain used by the workload proxy service to expose workloads.
       subdomain: omni-workload
+      # -- UseOmniSubdomain controls whether the workload proxy subdomain is placed
+      # under Omni's own domain (as a subdomain) rather than as a sibling.
+      # When true, the proxy domain becomes '<subdomain>.<omni-domain>' instead of
+      # '<subdomain>.<parent-of-omni-domain>'. Service URLs become '<alias>.<proxy-domain>'
+      # without the instance name suffix, and dashes are allowed in service aliases.
+      # useOmniSubdomain: false
       # StopLBsAfter is the duration after which load balancers are stopped for idle workloads.
       #stopLBsAfter: 5m
   # Storage contains persistent storage related configuration.

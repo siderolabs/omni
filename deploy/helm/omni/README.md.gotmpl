@@ -138,24 +138,26 @@ For details on exposing services, see [Expose an HTTP Service from a Cluster](ht
 
 ### Domain Structure
 
-The workload proxy domain is **not** a subdomain of Omni—it exists alongside it. For example:
+The workload proxy domain is a **subdomain of Omni**. For example:
 
 - Omni: `omni.example.com`
-- Workload Proxy: `*.omni-workload.example.com`
+- Workload Proxy: `*.proxy.omni.example.com`
 
 Exposed services have URLs in the format:
 
 ```
-https://<prefix>-<account-name>.<subdomain>.<parent-domain>/
+https://<prefix>.<subdomain>.<omni-domain>/
 ```
 
-For example: `https://grafana-app.omni-workload.example.com/`
+For example: `https://grafana.proxy.omni.example.com/`
 
 Where:
-- `<prefix>` is randomly generated, or user-specified via a Service annotation
-- `<account-name>` is the value of `config.account.name`
-- `<subdomain>` is the value of `config.services.workloadProxy.subdomain` (default: `omni-workload`)
-- `<parent-domain>` is the parent domain of your Omni installation
+- `<prefix>` is randomly generated, or user-specified via a Service annotation (dashes are allowed, e.g., `my-grafana`)
+- `<subdomain>` is the value of `config.services.workloadProxy.subdomain`
+- `<omni-domain>` is the full domain of your Omni installation
+
+> [!NOTE]
+> Without `useOmniSubdomain: true`, the proxy domain is placed as a sibling of Omni (e.g., `*.omni-workload.example.com`) with a different URL format. This is not recommended for new installations.
 
 ### Requirements
 
@@ -167,14 +169,15 @@ To set up workload proxy, you need:
      services:
        workloadProxy:
          enabled: true
-         subdomain: omni-workload  # default
+         subdomain: proxy
+         useOmniSubdomain: true
    ```
 
-2. **Wildcard TLS certificate** for `*.<subdomain>.<parent-domain>` (e.g., `*.omni-workload.example.com`). You can use cert-manager to create one.
+2. **Wildcard TLS certificate** for `*.<subdomain>.<omni-domain>` (e.g., `*.proxy.omni.example.com`). You can use cert-manager to create one.
 
-3. **Wildcard DNS record** pointing `*.<subdomain>.<parent-domain>` to your ingress controller IP address.
+3. **Wildcard DNS record** pointing `*.<subdomain>.<omni-domain>` to your ingress controller IP address.
 
-4. **Ingress/routing rule** to route traffic matching `*-<account-name>.<subdomain>.<parent-domain>` to the Omni service. Standard Kubernetes Ingress does not support wildcard hostnames well, so you may need to use ingress controller-specific resources.
+4. **Ingress/routing rule** to route traffic matching `*.<subdomain>.<omni-domain>` to the Omni service. Standard Kubernetes Ingress does not support wildcard hostnames well, so you may need to use ingress controller-specific resources.
 
 ### Traefik Example
 
@@ -182,12 +185,11 @@ With Traefik, you can use an `IngressRoute` custom resource via `extraObjects`:
 
 ```yaml
 config:
-  account:
-    name: app  # This will be part of the workload proxy URL
   services:
     workloadProxy:
       enabled: true
-      subdomain: omni-workload
+      subdomain: proxy
+      useOmniSubdomain: true
 
 extraObjects:
   # Wildcard certificate for workload proxy (using cert-manager)
@@ -201,7 +203,7 @@ extraObjects:
         name: your-cluster-issuer
         kind: ClusterIssuer
       dnsNames:
-        - "*.omni-workload.example.com"
+        - "*.proxy.omni.example.com"
 
   # Traefik IngressRoute for wildcard routing
   - apiVersion: traefik.io/v1alpha1
@@ -213,8 +215,8 @@ extraObjects:
         - websecure
       routes:
         - kind: Rule
-          # Match any subdomain of omni-workload.example.com
-          match: HostRegexp(`.+\.omni-workload\.example\.com`)
+          # Match any subdomain of proxy.omni.example.com
+          match: HostRegexp(`.+\.proxy\.omni\.example\.com`)
           services:
             - kind: Service
               name: omni

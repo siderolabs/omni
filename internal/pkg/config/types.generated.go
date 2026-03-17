@@ -746,8 +746,17 @@ type WorkloadProxy struct {
 	StopLBsAfter *time.Duration `json:"stopLBsAfter,omitempty" yaml:"stopLBsAfter,omitempty"`
 
 	// Subdomain is the subdomain used by the workload proxy service to expose
-	// workloads. This subdomain lives at the same level as Omni, for example, if Omni
-	// is accessible at "omni.example.com", and the subdomain is "omni-apps",
-	// workloads will be exposed at "<service-prefix>.omni-apps.example.com".
+	// workloads. By default, it lives at the same level as Omni (e.g.,
+	// "omni-apps.example.com" for Omni at "omni.example.com"). When useOmniSubdomain
+	// is true, it is placed under Omni's domain instead (e.g.,
+	// "proxy.omni.example.com").
 	Subdomain *string `json:"subdomain,omitempty" yaml:"subdomain,omitempty"`
+
+	// UseOmniSubdomain controls whether the workload proxy subdomain is placed under
+	// Omni's own domain (as a subdomain) rather than as a sibling. When true, the
+	// proxy domain becomes '<subdomain>.<omni-domain>' instead of
+	// '<subdomain>.<parent-of-omni-domain>'. This also simplifies exposed service
+	// URLs to '<alias>.<proxy-domain>' (without the instance name) and allows dashes
+	// in service aliases.
+	UseOmniSubdomain *bool `json:"useOmniSubdomain,omitempty" yaml:"useOmniSubdomain,omitempty"`
 }

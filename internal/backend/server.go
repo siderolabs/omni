@@ -712,6 +712,7 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 		pgpSignatureValidator,
 		mainURL,
 		s.cfg.Services.WorkloadProxy.GetSubdomain(),
+		s.cfg.Services.WorkloadProxy.GetUseOmniSubdomain(),
 		s.logger.With(logging.Component("workload_proxy_handler")),
 		s.workloadProxyKey,
 	)

@@ -410,6 +410,9 @@ func defineFeatureFlags(rootCmdFlagBinder *FlagBinder, flagConfig *config.Params
 
 	rootCmdFlagBinder.StringVar("workload-proxying-subdomain", flagDescription("services.workloadProxy.subdomain", schema), &flagConfig.Services.WorkloadProxy.Subdomain)
 
+	rootCmdFlagBinder.BoolVar("workload-proxying-use-omni-subdomain",
+		flagDescription("services.workloadProxy.useOmniSubdomain", schema), &flagConfig.Services.WorkloadProxy.UseOmniSubdomain)
+
 	rootCmdFlagBinder.DurationVar("workload-proxying-stop-lbs-after",
 		flagDescription("services.workloadProxy.stopLBsAfter", schema), &flagConfig.Services.WorkloadProxy.StopLBsAfter)
 

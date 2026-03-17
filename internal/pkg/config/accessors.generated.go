@@ -1358,3 +1358,14 @@ func (s *WorkloadProxy) GetSubdomain() string {
 func (s *WorkloadProxy) SetSubdomain(v string) {
 	s.Subdomain = &v
 }
+
+func (s *WorkloadProxy) GetUseOmniSubdomain() bool {
+	if s == nil || s.UseOmniSubdomain == nil {
+		return *new(bool)
+	}
+	return *s.UseOmniSubdomain
+}
+
+func (s *WorkloadProxy) SetUseOmniSubdomain(v bool) {
+	s.UseOmniSubdomain = &v
+}

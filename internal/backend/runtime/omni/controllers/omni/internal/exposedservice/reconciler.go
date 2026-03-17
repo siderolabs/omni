@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -27,24 +28,25 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
+// dnsLabelRegexp validates an RFC 1123 DNS label: lowercase alphanumeric with optional dashes, no leading/trailing dash, max 63 chars.
+var dnsLabelRegexp = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
+
 // Reconciler is the reconciler for ExposedService resources.
 type Reconciler struct {
-	logger *zap.Logger
-
-	exposedServices map[resource.ID]*omni.ExposedService
-	usedAliases     map[string]resource.ID
-
+	logger                 *zap.Logger
+	exposedServices        map[resource.ID]*omni.ExposedService
+	usedAliases            map[string]resource.ID
 	cluster                string
 	workloadProxySubdomain string
 	advertisedAPIURL       string
-
-	services []*corev1.Service
+	services               []*corev1.Service
+	useOmniSubdomain       bool
 }
 
 // NewReconciler creates a new ExposedService reconciler.
 //
 // The Reconciler is supposed to be used only once.
-func NewReconciler(cluster, workloadProxySubdomain, advertisedAPIURL string,
+func NewReconciler(cluster, workloadProxySubdomain, advertisedAPIURL string, useOmniSubdomain bool,
 	exposedServices []*omni.ExposedService, kubernetesServices []*corev1.Service, logger *zap.Logger,
 ) (*Reconciler, error) {
 	exposedServicesMap := make(map[resource.ID]*omni.ExposedService, len(exposedServices))
@@ -63,6 +65,7 @@ func NewReconciler(cluster, workloadProxySubdomain, advertisedAPIURL string,
 		cluster:                cluster,
 		workloadProxySubdomain: workloadProxySubdomain,
 		advertisedAPIURL:       advertisedAPIURL,
+		useOmniSubdomain:       useOmniSubdomain,
 		services:               kubernetesServices,
 	}, nil
 }
@@ -183,6 +186,7 @@ func (reconciler *Reconciler) updateExposedService(res *omni.ExposedService, exp
 	if serviceURL, err = reconciler.buildExposedServiceURL(alias); err != nil {
 		// this error might be caused by an invalid prefix set by the user: save it on the resource, do not crash the controller
 		res.TypedSpec().Value.Error = fmt.Sprintf("error building exposed service URL for alias %q: %s", alias, err)
+		res.TypedSpec().Value.Url = "" // clear the stale URL
 
 		logger.Warn(res.TypedSpec().Value.Error)
 
@@ -209,12 +213,30 @@ func (reconciler *Reconciler) buildExposedServiceURL(alias string) (string, erro
 		return "", errors.New("empty alias")
 	}
 
-	// - dot ('.') is not allowed in the alias for the URL to not be treated as subdomain
-	// - dash ('-') is not allowed, as it is used to separate the alias from the instance name
-	const notAllowedChars = ".-"
+	// Validate alias as an RFC 1123 DNS label: lowercase alphanumeric with optional dashes,
+	// no leading/trailing dash, max 63 chars.
+	if !dnsLabelRegexp.MatchString(alias) {
+		return "", fmt.Errorf("alias %q is not a valid DNS label (must be lowercase alphanumeric with optional dashes, no leading/trailing dash, max 63 chars)", alias)
+	}
 
-	if strings.ContainsAny(alias, notAllowedChars) {
-		return "", fmt.Errorf("alias contains a not allowed character - one of: %q", notAllowedChars)
+	if reconciler.useOmniSubdomain {
+		apiURL, err := url.Parse(reconciler.advertisedAPIURL)
+		if err != nil {
+			return "", fmt.Errorf("invalid advertised API URL: %w", err)
+		}
+
+		// Build: <scheme>://<alias>.<subdomain>.<omni-host>
+		serviceURL := &url.URL{
+			Scheme: apiURL.Scheme,
+			Host:   alias + "." + reconciler.workloadProxySubdomain + "." + apiURL.Host,
+		}
+
+		return serviceURL.String(), nil
+	}
+
+	// When useOmniSubdomain is false, dashes are additionally forbidden, as they are used to separate the alias from the instance name.
+	if strings.Contains(alias, "-") {
+		return "", fmt.Errorf("alias %q contains a dash, which is not allowed when useOmniSubdomain is not enabled", alias)
 	}
 
 	apiURLParts := strings.SplitN(reconciler.advertisedAPIURL, "//", 2)

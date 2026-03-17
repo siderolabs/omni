@@ -49,15 +49,19 @@ type KubernetesStatusController struct {
 	advertisedAPIURL       string
 	workloadProxySubdomain string
 	workloadProxyEnabled   bool
+	useOmniSubdomain       bool
 }
 
 // NewKubernetesStatusController creates a new KubernetesStatusController.
-func NewKubernetesStatusController(kubernetesRuntime KubernetesRuntime, advertisedAPIURL, workloadProxySubdomain string, workloadProxyEnabled bool) *KubernetesStatusController {
+func NewKubernetesStatusController(kubernetesRuntime KubernetesRuntime, advertisedAPIURL, workloadProxySubdomain string,
+	workloadProxyEnabled, useOmniSubdomain bool,
+) *KubernetesStatusController {
 	return &KubernetesStatusController{
 		kubernetesRuntime:      kubernetesRuntime,
 		advertisedAPIURL:       advertisedAPIURL,
 		workloadProxySubdomain: workloadProxySubdomain,
 		workloadProxyEnabled:   workloadProxyEnabled,
+		useOmniSubdomain:       useOmniSubdomain,
 	}
 }
 
@@ -185,7 +189,7 @@ func (ctrl *KubernetesStatusController) updateExposedServices(ctx context.Contex
 
 	exposedServices := slices.Collect(exposedServiceList.All())
 
-	reconciler, err := exposedservice.NewReconciler(cluster, ctrl.workloadProxySubdomain, ctrl.advertisedAPIURL, exposedServices, services, logger)
+	reconciler, err := exposedservice.NewReconciler(cluster, ctrl.workloadProxySubdomain, ctrl.advertisedAPIURL, ctrl.useOmniSubdomain, exposedServices, services, logger)
 	if err != nil {
 		return fmt.Errorf("error creating exposed service reconciler: %w", err)
 	}

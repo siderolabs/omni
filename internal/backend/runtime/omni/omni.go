@@ -158,7 +158,8 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			TalosClientFactory: talosClientFactory,
 			NodeResolver:       dnsService,
 		}),
-		omnictrl.NewKubernetesStatusController(kubernetesRuntime, cfg.Services.Api.URL(), cfg.Services.WorkloadProxy.GetSubdomain(), cfg.Services.WorkloadProxy.GetEnabled()),
+		omnictrl.NewKubernetesStatusController(kubernetesRuntime, cfg.Services.Api.URL(), cfg.Services.WorkloadProxy.GetSubdomain(),
+			cfg.Services.WorkloadProxy.GetEnabled(), cfg.Services.WorkloadProxy.GetUseOmniSubdomain()),
 		&omnictrl.LoadBalancerController{
 			LBConfig: cfg.Services.LoadBalancer,
 		},

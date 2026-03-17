@@ -42,6 +42,7 @@ type HTTPHandler struct {
 	mainDomain          string
 	workloadProxyDomain string
 	redirectKey         []byte
+	useOmniSubdomain    bool
 }
 
 // NewHTTPHandler creates a new HTTP handler that will proxy requests to the workload proxy.
@@ -51,6 +52,7 @@ func NewHTTPHandler(
 	accessValidator AccessValidator,
 	mainURL *url.URL,
 	workloadProxySubdomain string,
+	useOmniSubdomain bool,
 	logger *zap.Logger,
 	redirectKey []byte,
 ) (*HTTPHandler, error) {
@@ -71,7 +73,13 @@ func NewHTTPHandler(
 	}
 
 	mainDomain := getMainDomain(mainURL)
-	workloadProxyDomain := getWorkloadProxyDomain(workloadProxySubdomain, mainDomain)
+
+	var workloadProxyDomain string
+	if useOmniSubdomain {
+		workloadProxyDomain = workloadProxySubdomain + "." + mainDomain
+	} else {
+		workloadProxyDomain = getWorkloadProxyDomain(workloadProxySubdomain, mainDomain)
+	}
 
 	return &HTTPHandler{
 		next:                next,
@@ -82,6 +90,7 @@ func NewHTTPHandler(
 		workloadProxyDomain: workloadProxyDomain,
 		logger:              logger,
 		redirectKey:         redirectKey,
+		useOmniSubdomain:    useOmniSubdomain,
 	}, nil
 }
 
@@ -171,18 +180,46 @@ func (h *HTTPHandler) checkCookies(writer http.ResponseWriter, request *http.Req
 
 // parseServiceAliasFromHost parses the service alias from the request host.
 //
-// The host will have the pattern: p-<alias>-<instance-name>.<main domain>.
+// When useOmniSubdomain is true, the alias is the entire first DNS label (e.g., "my-service" from "my-service.proxy.omni.example.com").
+// Otherwise, the host will have the pattern: <alias>-<instance-name>.<workload-proxy-domain> or legacy p-<alias>-<instance-name>.<main domain>.
 func (h *HTTPHandler) parseServiceAliasFromHost(request *http.Request) string {
-	hostParts := strings.SplitN(request.Host, ".", 2)
+	host := request.Host
+
+	// strip port if present
+	if hostOnly, _, err := net.SplitHostPort(host); err == nil {
+		host = hostOnly
+	}
+
+	if h.useOmniSubdomain {
+		// In useOmniSubdomain mode, the alias is the entire first DNS label.
+		// Host format: <alias>.<workloadProxyDomain>
+		suffix := "." + h.workloadProxyDomain
+		if !strings.HasSuffix(host, suffix) {
+			h.logger.Debug("host does not match workload proxy domain", zap.String("host", host))
+
+			return ""
+		}
+
+		alias := strings.TrimSuffix(host, suffix)
+		if alias == "" || strings.Contains(alias, ".") {
+			h.logger.Debug("invalid alias in host", zap.String("host", host), zap.String("alias", alias))
+
+			return ""
+		}
+
+		return alias
+	}
+
+	hostParts := strings.SplitN(host, ".", 2)
 	if len(hostParts) == 0 {
-		h.logger.Debug("empty proxy service host", zap.String("host", request.Host))
+		h.logger.Debug("empty proxy service host", zap.String("host", host))
 
 		return ""
 	}
 
 	proxyServiceHostPrefixParts := strings.SplitN(hostParts[0], "-", 3)
 	if len(proxyServiceHostPrefixParts) < 2 {
-		h.logger.Debug("invalid proxy service host prefix: wrong number of parts", zap.String("host", request.Host), zap.Strings("parts", proxyServiceHostPrefixParts))
+		h.logger.Debug("invalid proxy service host prefix: wrong number of parts", zap.String("host", host), zap.Strings("parts", proxyServiceHostPrefixParts))
 
 		return ""
 	}
@@ -193,7 +230,7 @@ func (h *HTTPHandler) parseServiceAliasFromHost(request *http.Request) string {
 
 	// handle legacy format
 	if proxyServiceHostPrefixParts[0] != LegacyHostPrefix {
-		h.logger.Debug("invalid proxy service host prefix: doesn't start with the prefix", zap.String("host", request.Host), zap.Strings("parts", proxyServiceHostPrefixParts))
+		h.logger.Debug("invalid proxy service host prefix: doesn't start with the prefix", zap.String("host", host), zap.Strings("parts", proxyServiceHostPrefixParts))
 
 		return ""
 	}
