@@ -152,7 +152,7 @@ export class ResourceService {
   static Teardown(req: DeleteRequest, ...options: fm.fetchOption[]): Promise<DeleteResponse> {
     return fm.fetchReq<DeleteRequest, DeleteResponse>("POST", `/omni.resources.ResourceService/Teardown`, req, ...options)
   }
-  static Watch(req: WatchRequest, entityNotifier?: fm.NotifyStreamEntityArrival<WatchResponse>, ...options: fm.fetchOption[]): Promise<void> {
+  static Watch(req: WatchRequest, entityNotifier: fm.NotifyStreamEntityArrival<WatchResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<WatchRequest, WatchResponse>("POST", `/omni.resources.ResourceService/Watch`, req, entityNotifier, ...options)
   }
   static Controllers(req: ControllersRequest, ...options: fm.fetchOption[]): Promise<ControllersResponse> {

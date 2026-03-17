@@ -289,7 +289,7 @@ export class ManagementService {
   static Omniconfig(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<OmniconfigResponse> {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, OmniconfigResponse>("POST", `/management.ManagementService/Omniconfig`, req, ...options)
   }
-  static MachineLogs(req: MachineLogsRequest, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
+  static MachineLogs(req: MachineLogsRequest, entityNotifier: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<MachineLogsRequest, CommonCommon.Data>("POST", `/management.ManagementService/MachineLogs`, req, entityNotifier, ...options)
   }
   static ValidateConfig(req: ValidateConfigRequest, ...options: fm.fetchOption[]): Promise<GoogleProtobufEmpty.Empty> {
@@ -313,16 +313,16 @@ export class ManagementService {
   static KubernetesUpgradePreChecks(req: KubernetesUpgradePreChecksRequest, ...options: fm.fetchOption[]): Promise<KubernetesUpgradePreChecksResponse> {
     return fm.fetchReq<KubernetesUpgradePreChecksRequest, KubernetesUpgradePreChecksResponse>("POST", `/management.ManagementService/KubernetesUpgradePreChecks`, req, ...options)
   }
-  static KubernetesSyncManifests(req: KubernetesSyncManifestRequest, entityNotifier?: fm.NotifyStreamEntityArrival<KubernetesSyncManifestResponse>, ...options: fm.fetchOption[]): Promise<void> {
+  static KubernetesSyncManifests(req: KubernetesSyncManifestRequest, entityNotifier: fm.NotifyStreamEntityArrival<KubernetesSyncManifestResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<KubernetesSyncManifestRequest, KubernetesSyncManifestResponse>("POST", `/management.ManagementService/KubernetesSyncManifests`, req, entityNotifier, ...options)
   }
   static CreateSchematic(req: CreateSchematicRequest, ...options: fm.fetchOption[]): Promise<CreateSchematicResponse> {
     return fm.fetchReq<CreateSchematicRequest, CreateSchematicResponse>("POST", `/management.ManagementService/CreateSchematic`, req, ...options)
   }
-  static GetSupportBundle(req: GetSupportBundleRequest, entityNotifier?: fm.NotifyStreamEntityArrival<GetSupportBundleResponse>, ...options: fm.fetchOption[]): Promise<void> {
+  static GetSupportBundle(req: GetSupportBundleRequest, entityNotifier: fm.NotifyStreamEntityArrival<GetSupportBundleResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<GetSupportBundleRequest, GetSupportBundleResponse>("POST", `/management.ManagementService/GetSupportBundle`, req, entityNotifier, ...options)
   }
-  static ReadAuditLog(req: ReadAuditLogRequest, entityNotifier?: fm.NotifyStreamEntityArrival<ReadAuditLogResponse>, ...options: fm.fetchOption[]): Promise<void> {
+  static ReadAuditLog(req: ReadAuditLogRequest, entityNotifier: fm.NotifyStreamEntityArrival<ReadAuditLogResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<ReadAuditLogRequest, ReadAuditLogResponse>("POST", `/management.ManagementService/ReadAuditLog`, req, entityNotifier, ...options)
   }
   static MaintenanceUpgrade(req: MaintenanceUpgradeRequest, ...options: fm.fetchOption[]): Promise<MaintenanceUpgradeResponse> {

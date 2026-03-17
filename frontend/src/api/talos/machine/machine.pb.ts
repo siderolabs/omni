@@ -1201,7 +1201,7 @@ export class MachineService {
   static Containers(req: ContainersRequest, ...options: fm.fetchOption[]): Promise<ContainersResponse> {
     return fm.fetchReq<ContainersRequest, ContainersResponse>("POST", `/machine.MachineService/Containers`, req, ...options)
   }
-  static Copy(req: CopyRequest, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
+  static Copy(req: CopyRequest, entityNotifier: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<CopyRequest, CommonCommon.Data>("POST", `/machine.MachineService/Copy`, req, entityNotifier, ...options)
   }
   static CPUFreqStats(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<CPUFreqStatsResponse> {
@@ -1213,10 +1213,10 @@ export class MachineService {
   static DiskStats(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<DiskStatsResponse> {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, DiskStatsResponse>("POST", `/machine.MachineService/DiskStats`, req, ...options)
   }
-  static Dmesg(req: DmesgRequest, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
+  static Dmesg(req: DmesgRequest, entityNotifier: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<DmesgRequest, CommonCommon.Data>("POST", `/machine.MachineService/Dmesg`, req, entityNotifier, ...options)
   }
-  static Events(req: EventsRequest, entityNotifier?: fm.NotifyStreamEntityArrival<Event>, ...options: fm.fetchOption[]): Promise<void> {
+  static Events(req: EventsRequest, entityNotifier: fm.NotifyStreamEntityArrival<Event>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<EventsRequest, Event>("POST", `/machine.MachineService/Events`, req, entityNotifier, ...options)
   }
   static EtcdMemberList(req: EtcdMemberListRequest, ...options: fm.fetchOption[]): Promise<EtcdMemberListResponse> {
@@ -1231,7 +1231,7 @@ export class MachineService {
   static EtcdForfeitLeadership(req: EtcdForfeitLeadershipRequest, ...options: fm.fetchOption[]): Promise<EtcdForfeitLeadershipResponse> {
     return fm.fetchReq<EtcdForfeitLeadershipRequest, EtcdForfeitLeadershipResponse>("POST", `/machine.MachineService/EtcdForfeitLeadership`, req, ...options)
   }
-  static EtcdSnapshot(req: EtcdSnapshotRequest, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
+  static EtcdSnapshot(req: EtcdSnapshotRequest, entityNotifier: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<EtcdSnapshotRequest, CommonCommon.Data>("POST", `/machine.MachineService/EtcdSnapshot`, req, entityNotifier, ...options)
   }
   static EtcdAlarmList(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<EtcdAlarmListResponse> {
@@ -1258,19 +1258,19 @@ export class MachineService {
   static Hostname(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<HostnameResponse> {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, HostnameResponse>("POST", `/machine.MachineService/Hostname`, req, ...options)
   }
-  static Kubeconfig(req: GoogleProtobufEmpty.Empty, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
+  static Kubeconfig(req: GoogleProtobufEmpty.Empty, entityNotifier: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<GoogleProtobufEmpty.Empty, CommonCommon.Data>("POST", `/machine.MachineService/Kubeconfig`, req, entityNotifier, ...options)
   }
-  static List(req: ListRequest, entityNotifier?: fm.NotifyStreamEntityArrival<FileInfo>, ...options: fm.fetchOption[]): Promise<void> {
+  static List(req: ListRequest, entityNotifier: fm.NotifyStreamEntityArrival<FileInfo>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<ListRequest, FileInfo>("POST", `/machine.MachineService/List`, req, entityNotifier, ...options)
   }
-  static DiskUsage(req: DiskUsageRequest, entityNotifier?: fm.NotifyStreamEntityArrival<DiskUsageInfo>, ...options: fm.fetchOption[]): Promise<void> {
+  static DiskUsage(req: DiskUsageRequest, entityNotifier: fm.NotifyStreamEntityArrival<DiskUsageInfo>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<DiskUsageRequest, DiskUsageInfo>("POST", `/machine.MachineService/DiskUsage`, req, entityNotifier, ...options)
   }
   static LoadAvg(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<LoadAvgResponse> {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, LoadAvgResponse>("POST", `/machine.MachineService/LoadAvg`, req, ...options)
   }
-  static Logs(req: LogsRequest, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
+  static Logs(req: LogsRequest, entityNotifier: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<LogsRequest, CommonCommon.Data>("POST", `/machine.MachineService/Logs`, req, entityNotifier, ...options)
   }
   static LogsContainers(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<LogsContainersResponse> {
@@ -1288,7 +1288,7 @@ export class MachineService {
   static Processes(req: GoogleProtobufEmpty.Empty, ...options: fm.fetchOption[]): Promise<ProcessesResponse> {
     return fm.fetchReq<GoogleProtobufEmpty.Empty, ProcessesResponse>("POST", `/machine.MachineService/Processes`, req, ...options)
   }
-  static Read(req: ReadRequest, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
+  static Read(req: ReadRequest, entityNotifier: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<ReadRequest, CommonCommon.Data>("POST", `/machine.MachineService/Read`, req, entityNotifier, ...options)
   }
   static Reboot(req: RebootRequest, ...options: fm.fetchOption[]): Promise<RebootResponse> {
@@ -1333,7 +1333,7 @@ export class MachineService {
   static GenerateClientConfiguration(req: GenerateClientConfigurationRequest, ...options: fm.fetchOption[]): Promise<GenerateClientConfigurationResponse> {
     return fm.fetchReq<GenerateClientConfigurationRequest, GenerateClientConfigurationResponse>("POST", `/machine.MachineService/GenerateClientConfiguration`, req, ...options)
   }
-  static PacketCapture(req: PacketCaptureRequest, entityNotifier?: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
+  static PacketCapture(req: PacketCaptureRequest, entityNotifier: fm.NotifyStreamEntityArrival<CommonCommon.Data>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<PacketCaptureRequest, CommonCommon.Data>("POST", `/machine.MachineService/PacketCapture`, req, entityNotifier, ...options)
   }
   static Netstat(req: NetstatRequest, ...options: fm.fetchOption[]): Promise<NetstatResponse> {
@@ -1345,7 +1345,7 @@ export class MachineService {
   static MetaDelete(req: MetaDeleteRequest, ...options: fm.fetchOption[]): Promise<MetaDeleteResponse> {
     return fm.fetchReq<MetaDeleteRequest, MetaDeleteResponse>("POST", `/machine.MachineService/MetaDelete`, req, ...options)
   }
-  static ImageList(req: ImageListRequest, entityNotifier?: fm.NotifyStreamEntityArrival<ImageListResponse>, ...options: fm.fetchOption[]): Promise<void> {
+  static ImageList(req: ImageListRequest, entityNotifier: fm.NotifyStreamEntityArrival<ImageListResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<ImageListRequest, ImageListResponse>("POST", `/machine.MachineService/ImageList`, req, entityNotifier, ...options)
   }
   static ImagePull(req: ImagePullRequest, ...options: fm.fetchOption[]): Promise<ImagePullResponse> {

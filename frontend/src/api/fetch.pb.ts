@@ -199,7 +199,7 @@ export class RequestError extends Error {
  * it takes NotifyStreamEntityArrival that lets users respond to entity arrival during the call
  * all entities will be returned as an array after the call finishes.
  **/
-export async function fetchStreamingRequest<T, R>(method: string, path: string, body?: T, callback: NotifyStreamEntityArrival<R>, ...options: fetchOption[]): Promise<void> {
+export async function fetchStreamingRequest<T, R>(method: string, path: string, body: T, callback: NotifyStreamEntityArrival<R>, ...options: fetchOption[]): Promise<void> {
   const req = createRequest(method, path, body, ...options);
   const result = await fetch(req.url, req);
 

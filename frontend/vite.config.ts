@@ -21,6 +21,18 @@ export default defineConfig(({ command }) => {
 
   const config: UserConfig = {
     plugins: [vue(), tailwindcss()],
+    build: {
+      rolldownOptions: {
+        output: {
+          // Go's //go:embed skips files starting with '_'.
+          // Rolldown chunks may begin with '_'.
+          // Prefix those names to avoid the embed exclusion.
+          chunkFileNames: 'o[name]-[hash].js',
+          assetFileNames: 'assets/o[name]-[hash][extname]',
+          entryFileNames: 'o[name].js',
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -40,6 +52,7 @@ export default defineConfig(({ command }) => {
     server: {
       port: 8121,
       host: '127.0.0.1',
+      forwardConsole: true,
       // See customizing the dev server in the readme for allowedHosts
     },
   }
