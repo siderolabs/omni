@@ -59,14 +59,14 @@ var machineDeleteCmd = &cobra.Command{
 	Aliases: []string{"rm", "destroy"},
 	Args:    cobra.ExactArgs(1),
 	RunE: func(_ *cobra.Command, args []string) error {
-		return access.WithClient(func(ctx context.Context, client *client.Client) error {
+		return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 			return deleteMachine(ctx, client.Omni().State(), args[0])
 		})
 	},
 }
 
-func setLocked(machineID resource.ID, lock bool) func(context.Context, *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func setLocked(machineID resource.ID, lock bool) func(context.Context, *client.Client, access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		st := client.Omni().State()
 
 		machineSetNode, err := safe.StateGet[*omni.MachineSetNode](ctx, st, resource.NewMetadata(omniresources.DefaultNamespace, omni.MachineSetNodeType, machineID, resource.VersionUndefined))

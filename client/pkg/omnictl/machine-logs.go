@@ -34,8 +34,8 @@ var logsCmd = &cobra.Command{
 	},
 }
 
-func getLogs(_ *cobra.Command, args []string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func getLogs(_ *cobra.Command, args []string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		machineID := args[0]
 
 		logReader, err := client.Management().LogsReader(ctx, machineID, logsCmdFlags.follow, logsCmdFlags.tailLines)

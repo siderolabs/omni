@@ -69,8 +69,8 @@ Otherwise kubeconfig will be written to PWD or [local-path] if specified.`,
 }
 
 //nolint:gocognit,gocyclo,cyclop
-func getKubeconfig(args []string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func getKubeconfig(args []string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		var localPath string
 
 		if len(args) == 0 {

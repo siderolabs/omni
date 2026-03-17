@@ -32,7 +32,7 @@ var abortImportCmd = &cobra.Command{
 will only work if the cluster is locked and tainted as "importing"`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return access.WithClient(func(ctx context.Context, client *client.Client) error {
+		return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 			clusterID := args[0]
 			if clusterID == "" {
 				return fmt.Errorf("cluster name is required")
@@ -53,7 +53,7 @@ will only work if the cluster is locked and tainted as "importing"`,
 
 var input clusterimport.Input
 
-func importCluster(ctx context.Context, client *client.Client) error {
+func importCluster(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 	ctx, cancel := context.WithTimeout(ctx, importCmdFlags.waitTimeout)
 	defer cancel()
 

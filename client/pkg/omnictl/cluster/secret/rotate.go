@@ -46,8 +46,8 @@ var talosCACmd = &cobra.Command{
 	Example: "",
 	Args:    cobra.NoArgs,
 	RunE: func(*cobra.Command, []string) error {
-		return access.WithClient(func(ctx context.Context, client *client.Client) error {
-			return rotateCA(ctx, client, omni.NewRotateTalosCA(secretCmdFlags.clusterName), specs.SecretRotationSpec_TALOS_CA, "Talos CA")
+		return access.WithClient(func(ctx context.Context, client *client.Client, info access.ServerInfo) error {
+			return rotateCA(ctx, client, info, omni.NewRotateTalosCA(secretCmdFlags.clusterName), specs.SecretRotationSpec_TALOS_CA, "Talos CA")
 		})
 	},
 }
@@ -60,8 +60,8 @@ var kubernetesCACmd = &cobra.Command{
 	Example: "",
 	Args:    cobra.NoArgs,
 	RunE: func(*cobra.Command, []string) error {
-		return access.WithClient(func(ctx context.Context, client *client.Client) error {
-			return rotateCA(ctx, client, omni.NewRotateKubernetesCA(secretCmdFlags.clusterName), specs.SecretRotationSpec_KUBERNETES_CA, "Kubernetes CA")
+		return access.WithClient(func(ctx context.Context, client *client.Client, info access.ServerInfo) error {
+			return rotateCA(ctx, client, info, omni.NewRotateKubernetesCA(secretCmdFlags.clusterName), specs.SecretRotationSpec_KUBERNETES_CA, "Kubernetes CA")
 		})
 	},
 }
@@ -77,7 +77,11 @@ var statusCmd = &cobra.Command{
 	},
 }
 
-func rotateCA[T resource.Resource](ctx context.Context, client *client.Client, r T, component specs.SecretRotationSpec_Component, componentName string) error {
+func rotateCA[T resource.Resource](ctx context.Context, client *client.Client, info access.ServerInfo, r T, component specs.SecretRotationSpec_Component, componentName string) error {
+	if !info.ServerSupports(1, 6) {
+		return fmt.Errorf("cluster secret rotation requires Omni v1.6.0 or newer (server is %s)", info.Version)
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, rotateCmdFlags.waitTimeout)
 	defer cancel()
 
@@ -198,7 +202,11 @@ func printSecretRotationStatus(ctx context.Context, st state.State, clusterName 
 	}
 }
 
-func status(ctx context.Context, client *client.Client) error {
+func status(ctx context.Context, client *client.Client, info access.ServerInfo) error {
+	if !info.ServerSupports(1, 6) {
+		return fmt.Errorf("cluster secret rotation status requires Omni v1.6.0 or newer (server is %s)", info.Version)
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, rotateCmdFlags.waitTimeout)
 	defer cancel()
 

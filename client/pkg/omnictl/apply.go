@@ -91,7 +91,7 @@ func discoverFiles(path string) ([]string, error) {
 	return files, nil
 }
 
-func applyConfigFiles(ctx context.Context, client *client.Client) error {
+func applyConfigFiles(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 	files, err := discoverFiles(applyCmdFlags.resFile)
 	if err != nil {
 		return fmt.Errorf("failed to discover yaml files from %q: %w", applyCmdFlags.resFile, err)

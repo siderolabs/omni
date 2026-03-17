@@ -27,7 +27,7 @@ var diffCmd = &cobra.Command{
 	},
 }
 
-func diff(ctx context.Context, client *client.Client) error {
+func diff(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 	f, err := os.Open(cmdFlags.TemplatePath)
 	if err != nil {
 		return err

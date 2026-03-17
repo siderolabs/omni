@@ -68,7 +68,7 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			name := args[0]
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				token, err := client.Management().CreateJoinToken(ctx, name, joinTokenCreateFlags.ttl)
 				if err != nil {
 					return err
@@ -89,7 +89,7 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			id := args[0]
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				if err := checkTokenWarnings(ctx, client, id, "revoke"); err != nil {
 					return err
 				}
@@ -123,7 +123,7 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			id := args[0]
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				_, err := safe.StateUpdateWithConflicts(
 					ctx,
 					client.Omni().State(),
@@ -153,7 +153,7 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			id := args[0]
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				_, err := safe.StateUpdateWithConflicts(
 					ctx,
 					client.Omni().State(),
@@ -187,7 +187,7 @@ var (
 				return fmt.Errorf("ttl should be greater than 0")
 			}
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				_, err := safe.StateUpdateWithConflicts(
 					ctx,
 					client.Omni().State(),
@@ -215,7 +215,7 @@ var (
 		Short:   "Get partial machine config to make a machine join Omni",
 		Args:    cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				tokenID, err := getJoinToken(ctx, client)
 				if err != nil {
 					return err
@@ -239,7 +239,7 @@ var (
 		Short:   "Get Talos kernel args to make a machine join Omni",
 		Args:    cobra.NoArgs,
 		RunE: func(*cobra.Command, []string) error {
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				tokenID, err := getJoinToken(ctx, client)
 				if err != nil {
 					return err
@@ -263,7 +263,7 @@ var (
 		Short:   "List join tokens",
 		Args:    cobra.NoArgs,
 		RunE: func(*cobra.Command, []string) error {
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				joinTokens, err := safe.ReaderListAll[*siderolink.JoinTokenStatus](ctx, client.Omni().State())
 				if err != nil {
 					return err
@@ -311,7 +311,7 @@ var (
 		Short:   "Get the Omni endpoint URL with the join token",
 		Args:    cobra.NoArgs,
 		RunE: func(*cobra.Command, []string) error {
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				tokenID, err := getJoinToken(ctx, client)
 				if err != nil {
 					return err
@@ -337,7 +337,7 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			id := args[0]
 
-			return access.WithClient(func(ctx context.Context, client *client.Client) error {
+			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 				if err := checkTokenWarnings(ctx, client, id, "delete"); err != nil {
 					return err
 				}

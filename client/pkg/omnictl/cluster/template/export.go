@@ -36,7 +36,7 @@ var exportCmd = &cobra.Command{
 	},
 }
 
-func export(ctx context.Context, client *client.Client) (err error) {
+func export(ctx context.Context, client *client.Client, _ access.ServerInfo) (err error) {
 	output := os.Stdout
 
 	if exportCmdFlags.output != "" {

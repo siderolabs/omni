@@ -36,8 +36,8 @@ var deleteCmd = &cobra.Command{
 	},
 }
 
-func deleteResources(cmd *cobra.Command, args []string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func deleteResources(cmd *cobra.Command, args []string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		ns := ""
 
 		if cmd.Flags().Lookup("namespace").Changed {

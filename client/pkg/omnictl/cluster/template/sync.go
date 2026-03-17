@@ -79,7 +79,7 @@ func discoverTemplateFiles(path string) ([]string, error) {
 	return files, nil
 }
 
-func syncTemplateFiles(ctx context.Context, client *client.Client) error {
+func syncTemplateFiles(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 	files, err := discoverTemplateFiles(cmdFlags.TemplatePath)
 	if err != nil {
 		return fmt.Errorf("failed to discover template files from %q: %w", cmdFlags.TemplatePath, err)

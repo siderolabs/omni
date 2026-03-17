@@ -44,8 +44,8 @@ To get a list of all available resource definitions, issue 'omnictl get rd'`,
 }
 
 //nolint:gocognit,gocyclo,cyclop,maintidx
-func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		st := client.Omni().State()
 
 		var (

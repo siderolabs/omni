@@ -33,8 +33,8 @@ var statusCmd = &cobra.Command{
 	},
 }
 
-func status(clusterName string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func status(clusterName string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		if statusCmdFlags.wait > 0 {
 			var cancel context.CancelFunc
 

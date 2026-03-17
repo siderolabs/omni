@@ -108,7 +108,7 @@ To download the latest Radxa ROCK PI 4 image, run:
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return access.WithClient(func(ctx context.Context, client *client.Client) error {
+		return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 			if args[0] == "" {
 				return fmt.Errorf("image name is required")
 			}
@@ -567,7 +567,7 @@ func downloadCompletion(_ *cobra.Command, _ []string, toComplete string) ([]stri
 	var results []string
 
 	err := access.WithClient(
-		func(ctx context.Context, client *client.Client) error {
+		func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 			res, err := filterMedia(ctx, client, func(value *omni.InstallationMedia) (string, bool) {
 				spec := value.TypedSpec().Value
 				if downloadCmdFlags.architecture != spec.Architecture {

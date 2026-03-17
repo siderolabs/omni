@@ -252,7 +252,7 @@ func (ctrl *TalosUpgradeStatusController) reconcileStatus(ctx context.Context, r
 		fallthrough
 	case versionMismatch || schematicUpdates:
 		if pendingMachines == 0 {
-			upgradeStatus.TypedSpec().Value.Status = "starting"
+			upgradeStatus.TypedSpec().Value.Status = "updating"
 		} else {
 			upgradeStatus.TypedSpec().Value.Status = fmt.Sprintf("updating machines %d/%d", currentMachine, totalMachines)
 		}

@@ -31,8 +31,8 @@ var deleteCmd = &cobra.Command{
 	},
 }
 
-func deleteImpl(clusterName string) func(ctx context.Context, client *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func deleteImpl(clusterName string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		return operations.DeleteCluster(ctx, clusterName, os.Stdout, client.Omni().State(), deleteCmdFlags.options)
 	}
 }

@@ -42,8 +42,8 @@ var unlockClusterCmd = &cobra.Command{
 	},
 }
 
-func setClusterLocked(clusterID resource.ID, lock bool) func(context.Context, *client.Client) error {
-	return func(ctx context.Context, client *client.Client) error {
+func setClusterLocked(clusterID resource.ID, lock bool) func(context.Context, *client.Client, access.ServerInfo) error {
+	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		st := client.Omni().State()
 
 		cluster, err := safe.StateGet[*omni.Cluster](ctx, st, omni.NewCluster(clusterID).Metadata())
