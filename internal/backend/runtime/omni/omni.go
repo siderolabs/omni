@@ -54,6 +54,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/image"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/infraprovider"
 	kernelargsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/kernelargs"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machine"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
 	metricsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/metrics"
@@ -164,7 +165,6 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			LBConfig: cfg.Services.LoadBalancer,
 		},
 		omnictrl.NewMachineCleanupController(),
-		omnictrl.NewMachineStatusLinkController(linkCounterDeltaCh),
 		omnictrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines()),
 		omnictrl.NewVersionsController(cfg.Registries.GetImageFactoryBaseURL(), cfg.Features.GetEnableTalosPreReleaseVersions(), cfg.Registries.GetKubernetes()),
 		omnictrl.NewClusterLoadBalancerController(
@@ -265,6 +265,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		kernelargsctrl.NewStatusController(),
 		talosupgrade.NewStatusController(),
 		infraprovider.NewCombinedStatusController(constants.InfraProviderHealthCheckInterval),
+		machine.NewStatusLinkController(linkCounterDeltaCh),
 	}
 
 	if cfg.Auth.Saml.GetEnabled() {

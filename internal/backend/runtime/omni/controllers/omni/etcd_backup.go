@@ -14,12 +14,14 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
+	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/dustin/go-humanize"
 	"github.com/siderolabs/gen/channel"
 	"github.com/siderolabs/gen/containers"
+	"github.com/siderolabs/gen/xiter"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -28,6 +30,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 )
@@ -477,4 +480,37 @@ func (r *countingReader) Read(p []byte) (int, error) {
 	}
 
 	return n, err
+}
+
+// Almost exact copy from transform.Controller, only as a standalone function.
+func cleanupOutputs[T generic.ResourceWithRD](
+	ctx context.Context,
+	r controller.Runtime,
+	hasActiveInput func(T) bool,
+) error {
+	outputList, err := safe.ReaderListAll[T](ctx, r)
+	if err != nil {
+		return fmt.Errorf("error listing output resources: %w", err)
+	}
+
+	toDelete := xiter.Map(func(r T) resource.Pointer {
+		return r.Metadata()
+	}, xiter.Filter(func(r T) bool {
+		// always attempt clean up of tearing down outputs, even if there is a matching input
+		// in the case that output phase is tearing down, while touched is true, actually
+		// output belongs to a previous generation of the input resource with the same ID, so the output
+		// should be torn down first before the new output is created
+		if r.Metadata().Phase() != resource.PhaseTearingDown {
+			// this output was touched (has active input), skip it
+			if hasActiveInput(r) {
+				return false
+			}
+		}
+
+		return true
+	}, outputList.All()))
+
+	_, err = helpers.TeardownAndDestroyAll(ctx, r, toDelete)
+
+	return err
 }

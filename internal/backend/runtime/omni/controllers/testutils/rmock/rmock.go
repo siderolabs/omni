@@ -148,15 +148,17 @@ func init() {
 
 		talosVersion := constants.DefaultTalosVersion
 
-		clusterName, ok := machineSetNode.Metadata().Labels().Get(omni.LabelCluster)
-		if ok {
-			cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, st, clusterName)
-			if err != nil && !state.IsNotFoundError(err) {
-				return err
-			}
+		if machineSetNode != nil {
+			clusterName, ok := machineSetNode.Metadata().Labels().Get(omni.LabelCluster)
+			if ok {
+				cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, st, clusterName)
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
 
-			if cluster != nil {
-				talosVersion = cluster.TypedSpec().Value.TalosVersion
+				if cluster != nil {
+					talosVersion = cluster.TypedSpec().Value.TalosVersion
+				}
 			}
 		}
 

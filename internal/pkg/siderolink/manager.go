@@ -533,13 +533,14 @@ func (manager *Manager) startLogServer(ctx context.Context, eg *errgroup.Group, 
 	return nil
 }
 
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop
 func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 	ticker := time.NewTicker(time.Second * 30)
 
 	defer ticker.Stop()
 
 	previous := map[string]struct {
+		lastHandshake time.Time
 		receiveBytes  int64
 		transmitBytes int64
 	}{}
@@ -600,18 +601,22 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 					manager.metricBytesSent.Add(float64(deltaSent))
 				}
 
-				counterDeltas[link.Metadata().ID()] = LinkCounterDelta{
-					BytesSent:     deltaSent,
-					BytesReceived: deltaReceived,
-					LastAlive:     peer.LastHandshakeTime,
+				if deltaReceived != 0 || deltaSent != 0 || !peer.LastHandshakeTime.Equal(previous[spec.NodePublicKey].lastHandshake) {
+					counterDeltas[link.Metadata().ID()] = LinkCounterDelta{
+						BytesSent:     deltaSent,
+						BytesReceived: deltaReceived,
+						LastAlive:     peer.LastHandshakeTime,
+					}
 				}
 
 				previous[spec.NodePublicKey] = struct {
+					lastHandshake time.Time
 					receiveBytes  int64
 					transmitBytes int64
 				}{
 					receiveBytes:  peer.ReceiveBytes,
 					transmitBytes: peer.TransmitBytes,
+					lastHandshake: peer.LastHandshakeTime,
 				}
 
 				sinceLastHandshake := time.Since(peer.LastHandshakeTime)
@@ -640,7 +645,7 @@ func (manager *Manager) pollWireguardPeers(ctx context.Context) error {
 				}
 			}
 
-			if manager.deltaCh != nil {
+			if manager.deltaCh != nil && len(counterDeltas) > 0 {
 				channel.SendWithContext(ctx, manager.deltaCh, counterDeltas)
 			}
 		}
