@@ -13,7 +13,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TButtonGroup from '@/components/common/Button/TButtonGroup.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { AuthType, authType } from '@/methods'
-import { canManageUsers } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import { createJoinToken } from '@/methods/user'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -25,6 +25,7 @@ enum Lifetime {
 
 const expiration = ref(365)
 const router = useRouter()
+const { canManageUsers } = usePermissions()
 
 const lifetime: Ref<string> = ref(Lifetime.NeverExpire)
 

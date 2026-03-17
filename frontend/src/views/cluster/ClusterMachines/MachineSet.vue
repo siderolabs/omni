@@ -33,7 +33,7 @@ import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
-import { setupClusterPermissions } from '@/methods/auth'
+import { useClusterPermissions } from '@/methods/auth'
 import {
   controlPlaneMachineSetId,
   defaultWorkersMachineSetId,
@@ -108,7 +108,7 @@ const openMachineSetDestroy = () => {
   })
 }
 
-const { canRemoveClusterMachines } = setupClusterPermissions(clusterID)
+const { canRemoveClusterMachines } = useClusterPermissions(clusterID)
 
 const canRemoveMachine = computed(() => {
   if (!canRemoveClusterMachines.value) {

@@ -13,7 +13,7 @@ import type { MachineSetNodeSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineSetNodeType } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TBreadcrumbs from '@/components/TBreadcrumbs.vue'
-import { setupClusterPermissions } from '@/methods/auth'
+import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const { nodeName, clusterId, machineId } = defineProps<{
@@ -74,7 +74,7 @@ const restoreNode = async () => {
   })
 }
 
-const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = setupClusterPermissions(
+const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClusterPermissions(
   computed(() => clusterId),
 )
 </script>

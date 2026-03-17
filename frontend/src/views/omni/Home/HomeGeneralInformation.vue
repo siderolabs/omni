@@ -31,13 +31,14 @@ import {
   downloadTalosconfig,
   getKernelArgs,
 } from '@/methods'
-import { canReadAuditLog } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import DownloadAuditLogsModal from '@/views/omni/Home/DownloadAuditLogsModal.vue'
 import HomeGeneralInformationCopyable from '@/views/omni/Home/HomeGeneralInformationCopyable.vue'
 
 const features = useFeatures()
+const { canReadAuditLog } = usePermissions()
 const auditLogAvailable = computed(() => !!features.data.value?.spec.audit_log_enabled)
 const downloadAuditLogModalOpen = ref(false)
 

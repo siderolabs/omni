@@ -7,12 +7,13 @@ import { Userpilot } from 'userpilot'
 import { computed, ref, toValue, watchEffect } from 'vue'
 
 import { getNonce } from '@/methods'
-import { currentUser } from '@/methods/auth'
+import { useCurrentUser } from '@/methods/auth'
 
 import { useFeatures } from './features'
 
 export function useUserpilot() {
   const { data: features } = useFeatures()
+  const currentUser = useCurrentUser()
   const trackingState = useLocalStorage<boolean | null>('tracking', null)
   const userpilotInitialised = ref(false)
 

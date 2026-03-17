@@ -2,10 +2,9 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-
 import { useAuth0 } from '@auth0/auth0-vue'
-import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue'
-import { computed, ref, toValue, watchEffect } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
+import { computed, effectScope, toValue } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
@@ -34,162 +33,100 @@ import {
 import { AuthType, authType } from '@/methods'
 import { useIdentity } from '@/methods/identity'
 import { useKeys } from '@/methods/key'
+import { useResourceGet } from '@/methods/useResourceGet'
 
-export const currentUser: Ref<Resource<CurrentUserSpec> | undefined> = ref()
-export const permissions: Ref<Resource<PermissionsSpec> | undefined> = ref()
+const authScope = effectScope(true)
 
-const clusterPermissionsCache: Record<string, Resource<ClusterPermissionsSpec>> = {}
+const currentUser = authScope.run(() => {
+  const { data } = useResourceGet<CurrentUserSpec>(() => ({
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: VirtualNamespace,
+      type: CurrentUserType,
+      id: CurrentUserID,
+    },
+  }))
 
-export const setupClusterPermissions = (cluster: MaybeRefOrGetter<string | undefined>) => {
-  const result = {
-    canUpdateKubernetes: ref(false),
-    canUpdateTalos: ref(false),
-    canDownloadTalosconfig: ref(false),
-    canDownloadKubeconfig: ref(false),
-    canDownloadSupportBundle: ref(false),
-    canAddClusterMachines: ref(false),
-    canRemoveClusterMachines: ref(false),
-    canSyncKubernetesManifests: ref(false),
-    canReadConfigPatches: ref(false),
-    canManageConfigPatches: ref(false),
-    canRebootMachines: ref(false),
-    canRemoveMachines: ref(false),
-    canManageClusterFeatures: ref(false),
+  return data
+})!
+
+const permissions = authScope.run(() => {
+  const { data } = useResourceGet<PermissionsSpec>(() => ({
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: VirtualNamespace,
+      type: PermissionsType,
+      id: PermissionsID,
+    },
+  }))
+
+  const spec = computed(() => data.value?.spec)
+
+  return {
+    canAccessMaintenanceNodes: computed(() => spec.value?.can_access_maintenance_nodes ?? false),
+    canCreateClusters: computed(() => spec.value?.can_create_clusters ?? false),
+    canManageBackupStore: computed(() => spec.value?.can_manage_backup_store ?? false),
+    canManageMachineConfigPatches: computed(
+      () => spec.value?.can_manage_machine_config_patches ?? false,
+    ),
+    canManageUsers: computed(() => spec.value?.can_manage_users ?? false),
+    canReadAuditLog: computed(() => spec.value?.can_read_audit_log ?? false),
+    canReadClusters: computed(() => spec.value?.can_read_clusters ?? false),
+    canReadMachineConfigPatches: computed(
+      () => spec.value?.can_read_machine_config_patches ?? false,
+    ),
+    canReadMachineLogs: computed(() => spec.value?.can_read_machine_logs ?? false),
+    canReadMachines: computed(() => spec.value?.can_read_machines ?? false),
+    canRemoveMachines: computed(() => spec.value?.can_remove_machines ?? false),
   }
+})!
 
-  const getPermissions = async (clusterName?: string) => {
-    return (clusterPermissionsCache[clusterName ?? '__NO_CLUSTER'] ??= await ResourceService.Get<
-      Resource<ClusterPermissionsSpec>
-    >(
-      {
+export function useCurrentUser() {
+  return currentUser
+}
+
+export function usePermissions() {
+  return permissions
+}
+
+const clusterPermissionScopes: Record<string, ReturnType<typeof createClusterPermissions>> = {}
+
+function createClusterPermissions(clusterName?: string) {
+  return effectScope(true).run(() => {
+    const { data } = useResourceGet<ClusterPermissionsSpec>({
+      runtime: Runtime.Omni,
+      resource: {
         namespace: VirtualNamespace,
         type: ClusterPermissionsType,
         id: clusterName,
       },
-      withRuntime(Runtime.Omni),
-    ))
-  }
+    })
 
-  watchEffect(async () => {
-    const clusterPermissions = await getPermissions(toValue(cluster))
+    const spec = computed(() => data.value?.spec)
 
-    result.canUpdateKubernetes.value = clusterPermissions?.spec?.can_update_kubernetes || false
-    result.canUpdateTalos.value = clusterPermissions?.spec?.can_update_talos || false
-    result.canDownloadKubeconfig.value = clusterPermissions?.spec?.can_download_kubeconfig || false
-    result.canDownloadTalosconfig.value =
-      clusterPermissions?.spec?.can_download_talosconfig || false
-    result.canDownloadSupportBundle.value =
-      clusterPermissions?.spec?.can_download_support_bundle || false
-    result.canAddClusterMachines.value = clusterPermissions?.spec?.can_add_machines || false
-    result.canRemoveClusterMachines.value = clusterPermissions?.spec?.can_remove_machines || false
-    result.canSyncKubernetesManifests.value =
-      clusterPermissions?.spec?.can_sync_kubernetes_manifests || false
-    result.canReadConfigPatches.value = clusterPermissions?.spec?.can_read_config_patches || false
-    result.canManageConfigPatches.value =
-      clusterPermissions?.spec?.can_manage_config_patches || false
-    result.canRebootMachines.value = clusterPermissions?.spec?.can_reboot_machines || false
-    result.canRemoveMachines.value = clusterPermissions?.spec?.can_remove_machines || false
-    result.canManageClusterFeatures.value =
-      clusterPermissions?.spec?.can_manage_cluster_features || false
-  })
-
-  return result
+    return {
+      canUpdateKubernetes: computed(() => spec.value?.can_update_kubernetes ?? false),
+      canUpdateTalos: computed(() => spec.value?.can_update_talos ?? false),
+      canDownloadKubeconfig: computed(() => spec.value?.can_download_kubeconfig ?? false),
+      canDownloadTalosconfig: computed(() => spec.value?.can_download_talosconfig ?? false),
+      canDownloadSupportBundle: computed(() => spec.value?.can_download_support_bundle ?? false),
+      canAddClusterMachines: computed(() => spec.value?.can_add_machines ?? false),
+      canRemoveClusterMachines: computed(() => spec.value?.can_remove_machines ?? false),
+      canSyncKubernetesManifests: computed(
+        () => spec.value?.can_sync_kubernetes_manifests ?? false,
+      ),
+      canReadConfigPatches: computed(() => spec.value?.can_read_config_patches ?? false),
+      canManageConfigPatches: computed(() => spec.value?.can_manage_config_patches ?? false),
+      canRebootMachines: computed(() => spec.value?.can_reboot_machines ?? false),
+      canRemoveMachines: computed(() => spec.value?.can_remove_machines ?? false),
+      canManageClusterFeatures: computed(() => spec.value?.can_manage_cluster_features ?? false),
+    }
+  })!
 }
 
-export const canManageUsers: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_manage_users ?? false
-})
-
-export const canReadClusters: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_read_clusters ?? false
-})
-
-export const canReadMachines: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_read_machines ?? false
-})
-
-export const canCreateClusters: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_create_clusters ?? false
-})
-
-export const canRemoveMachines: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_remove_machines ?? false
-})
-
-export const canReadMachineLogs: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_read_machine_logs ?? false
-})
-
-export const canReadMachineConfigPatches: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_read_machine_config_patches ?? false
-})
-
-export const canManageMachineConfigPatches: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_manage_machine_config_patches ?? false
-})
-
-export const canManageBackupStore: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_manage_backup_store ?? false
-})
-
-export const canAccessMaintenanceNodes: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_access_maintenance_nodes ?? false
-})
-
-export const canReadAuditLog: ComputedRef<boolean> = computed(() => {
-  return permissions?.value?.spec?.can_read_audit_log ?? false
-})
-
-export const loadCurrentUser = async () => {
-  if (!currentUser.value) {
-    await refreshCurrentUser()
-  }
-
-  if (!permissions.value) {
-    await refreshPermissions()
-  }
-}
-
-const refreshCurrentUser = async () => {
-  const { identity } = useIdentity()
-
-  if (!identity.value) {
-    currentUser.value = undefined
-    return
-  }
-
-  try {
-    currentUser.value = await ResourceService.Get<Resource<CurrentUserSpec>>(
-      {
-        namespace: VirtualNamespace,
-        type: CurrentUserType,
-        id: CurrentUserID,
-      },
-      withRuntime(Runtime.Omni),
-    )
-  } catch {
-    currentUser.value = undefined
-  }
-}
-
-const refreshPermissions = async () => {
-  if (!currentUser.value) {
-    permissions.value = undefined
-    return
-  }
-
-  try {
-    permissions.value = await ResourceService.Get(
-      {
-        namespace: VirtualNamespace,
-        type: PermissionsType,
-        id: PermissionsID,
-      },
-      withRuntime(Runtime.Omni),
-    )
-  } catch {
-    permissions.value = undefined
-  }
+export function useClusterPermissions(cluster: MaybeRefOrGetter<string | undefined>) {
+  const key = toValue(cluster) ?? '__NO_CLUSTER'
+  return (clusterPermissionScopes[key] ??= createClusterPermissions(toValue(cluster)))
 }
 
 export const revokeJoinToken = async (tokenID: string) => {
@@ -261,8 +198,6 @@ export function useLogout() {
 
     keys.clear()
     identity.clear()
-
-    currentUser.value = undefined
 
     if (authType.value !== AuthType.Auth0) {
       redirectToURL(`/logout?${AuthFlowQueryParam}=${FrontendAuthFlow}`)

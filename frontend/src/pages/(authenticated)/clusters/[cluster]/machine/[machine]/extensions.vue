@@ -38,7 +38,7 @@ import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
-import { setupClusterPermissions } from '@/methods/auth'
+import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 definePage({ name: 'NodeExtensions' })
@@ -55,7 +55,7 @@ const ready = computed(() => {
   return !machineExtensionsStatusWatchLoading.value
 })
 
-const { canUpdateTalos } = setupClusterPermissions(computed(() => route.params.cluster))
+const { canUpdateTalos } = useClusterPermissions(computed(() => route.params.cluster))
 
 const { data: machineStatus } = useResourceWatch<MachineStatusSpec>(() => ({
   resource: {

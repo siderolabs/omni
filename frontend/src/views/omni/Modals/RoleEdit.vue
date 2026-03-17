@@ -25,13 +25,14 @@ import {
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import { canManageUsers } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
 
 const router = useRouter()
 const route = useRoute()
+const { canManageUsers } = usePermissions()
 
 const roles = [RoleNone, RoleReader, RoleOperator, RoleAdmin]
 

@@ -33,7 +33,7 @@ import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TStatus from '@/components/common/Status/TStatus.vue'
 import { TCommonStatuses } from '@/constants'
-import { canManageUsers } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { selectors } from '@/methods/labels'
 
@@ -42,6 +42,7 @@ definePage({
 })
 
 const router = useRouter()
+const { canManageUsers } = usePermissions()
 
 const watchOpts = computed<WatchOptions>(() => {
   return {

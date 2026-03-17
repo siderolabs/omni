@@ -36,13 +36,7 @@ import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
 import TSidebarList from '@/components/SideBar/TSideBarList.vue'
 import { getContext } from '@/context'
 import { setupBackupStatus } from '@/methods'
-import {
-  canManageBackupStore,
-  canManageUsers,
-  canReadClusters,
-  canReadMachines,
-  setupClusterPermissions,
-} from '@/methods/auth'
+import { useClusterPermissions, usePermissions } from '@/methods/auth'
 import { useFeatures } from '@/methods/features'
 import { useIdentity } from '@/methods/identity'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -53,6 +47,7 @@ const context = getContext()
 const { avatar, fullname, identity } = useIdentity()
 
 const { data: featuresConfig } = useFeatures()
+const { canManageBackupStore, canManageUsers, canReadClusters, canReadMachines } = usePermissions()
 
 const currentCluster = computed(() =>
   'cluster' in route.params ? route.params.cluster : undefined,
@@ -63,7 +58,7 @@ const currentMachine = computed(() =>
 
 const { status: backupStatus } = setupBackupStatus()
 const { canSyncKubernetesManifests, canManageClusterFeatures } =
-  setupClusterPermissions(currentCluster)
+  useClusterPermissions(currentCluster)
 
 const { data: machineMetrics } = useResourceWatch<MachineStatusMetricsSpec>({
   resource: {

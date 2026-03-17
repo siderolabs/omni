@@ -8,7 +8,7 @@ included in the LICENSE file.
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterStatusSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterStatusType, DefaultNamespace, MachineStatusType } from '@/api/resources'
-import { canReadClusters, canReadMachines } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import HomeClustersChart from '@/views/omni/Home/HomeClustersChart.vue'
 import HomeClustersTutorialCard from '@/views/omni/Home/HomeClustersTutorialCard.vue'
@@ -17,6 +17,8 @@ import HomeMachinesChart from '@/views/omni/Home/HomeMachinesChart.vue'
 import HomeMachinesTutorialCard from '@/views/omni/Home/HomeMachinesTutorialCard.vue'
 import HomeRecentClusters from '@/views/omni/Home/HomeRecentClusters.vue'
 import HomeRecentMachines from '@/views/omni/Home/HomeRecentMachines.vue'
+
+const { canReadClusters, canReadMachines } = usePermissions()
 
 const { data: clusters, loading: clustersLoading } = useResourceWatch<ClusterStatusSpec>(() => ({
   skip: !canReadClusters.value,

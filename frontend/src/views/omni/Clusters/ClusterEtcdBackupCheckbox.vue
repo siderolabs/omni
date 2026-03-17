@@ -16,7 +16,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import type { BackupsStatus } from '@/methods'
-import { canManageBackupStore } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import { formatDuration, parseDuration } from '@/methods/time'
 
 const editingBackupConfig = ref(false)
@@ -27,6 +27,7 @@ const props = defineProps<{
 }>()
 
 const { cluster } = toRefs(props)
+const { canManageBackupStore } = usePermissions()
 
 const emit = defineEmits<{
   'update:cluster': [(typeof props)['cluster']]

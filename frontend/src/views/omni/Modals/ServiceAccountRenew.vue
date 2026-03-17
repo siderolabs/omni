@@ -11,7 +11,7 @@ import { useRoute, useRouter } from 'vue-router'
 import TButton from '@/components/common/Button/TButton.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { AuthType, authType } from '@/methods'
-import { canManageUsers } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import { renewServiceAccount } from '@/methods/user'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -20,6 +20,7 @@ import ServiceAccountKey from './components/ServiceAccountKey.vue'
 
 const router = useRouter()
 const route = useRoute()
+const { canManageUsers } = usePermissions()
 
 const key = ref<string>()
 

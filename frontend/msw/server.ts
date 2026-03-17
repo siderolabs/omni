@@ -5,7 +5,8 @@
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 
-import type { GetRequest } from '@/api/omni/resources/resources.pb'
+import type { Resource } from '@/api/grpc'
+import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
 
 import { createWatchStreamHandler, type WatchStreamHandlerOptions } from './helpers'
 
@@ -23,9 +24,9 @@ export function createWatchStreamMock<T = unknown, S = unknown>(
 
 export function createGetMock() {
   server.use(
-    http.post<never, GetRequest>('/omni.resources.ResourceService/Get', () => {
+    http.post<never, GetRequest, GetResponse>('/omni.resources.ResourceService/Get', () => {
       return HttpResponse.json(
-        {},
+        { body: JSON.stringify({ spec: {}, metadata: {} } satisfies Resource) },
         {
           headers: {
             'content-type': 'application/json',

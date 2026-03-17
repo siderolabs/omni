@@ -30,7 +30,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import TStatus from '@/components/common/Status/TStatus.vue'
 import { TCommonStatuses } from '@/constants'
 import { downloadMachineJoinConfig, getKernelArgs } from '@/methods'
-import { canManageUsers, unrevokeJoinToken } from '@/methods/auth'
+import { unrevokeJoinToken, usePermissions } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
 import { showError } from '@/notification'
 
@@ -38,6 +38,7 @@ definePage({ name: 'JoinTokens' })
 
 const router = useRouter()
 const { copy } = useClipboard()
+const { canManageUsers } = usePermissions()
 
 const showTokens = ref(false)
 

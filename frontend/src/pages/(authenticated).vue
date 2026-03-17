@@ -9,18 +9,23 @@ import { onBeforeMount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { AuthFlowQueryParam, FrontendAuthFlow, RedirectQueryParam } from '@/api/resources'
-import { loadCurrentUser } from '@/methods/auth'
+import UserConsent from '@/components/common/UserConsent/UserConsent.vue'
 import { hasValidKeys } from '@/methods/key'
-import { refreshTitle } from '@/methods/title'
+import { useDocumentTitle } from '@/methods/title'
+import { useUserpilot } from '@/methods/userpilot'
 
-const authReady = ref(false)
+useDocumentTitle()
+
+const authorized = ref(false)
 const router = useRouter()
 const route = useRoute()
 
-onBeforeMount(async () => {
-  const authorized = await hasValidKeys()
+const { trackingFeatureEnabled, trackingPending, enableTracking, disableTracking } = useUserpilot()
 
-  if (!authorized) {
+onBeforeMount(async () => {
+  authorized.value = await hasValidKeys()
+
+  if (!authorized.value) {
     return router.replace({
       name: 'Authenticate',
       query: {
@@ -29,14 +34,15 @@ onBeforeMount(async () => {
       },
     })
   }
-
-  await loadCurrentUser()
-  await refreshTitle()
-
-  authReady.value = true
 })
 </script>
 
 <template>
-  <RouterView v-if="authReady" />
+  <RouterView v-if="authorized" />
+
+  <UserConsent
+    v-if="trackingFeatureEnabled && trackingPending"
+    @decline="disableTracking"
+    @accept="enableTracking"
+  />
 </template>

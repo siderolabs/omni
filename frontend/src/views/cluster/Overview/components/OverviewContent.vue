@@ -35,7 +35,7 @@ import RadialBar from '@/components/common/Charts/RadialBar.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import TAlert from '@/components/TAlert.vue'
 import { formatBytes, setupBackupStatus } from '@/methods'
-import { setupClusterPermissions } from '@/methods/auth'
+import { useClusterPermissions } from '@/methods/auth'
 import {
   addClusterLabels,
   removeClusterLabels,
@@ -118,7 +118,7 @@ const { data: talosUpgradeStatus } = useResourceWatch<TalosUpgradeStatusSpec>(()
   },
 }))
 
-const { canManageClusterFeatures } = setupClusterPermissions(clusterId)
+const { canManageClusterFeatures } = useClusterPermissions(clusterId)
 
 const { data: features } = useFeatures()
 

@@ -20,9 +20,11 @@ import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import Tag from '@/components/common/Tag/Tag.vue'
 import TAlert from '@/components/TAlert.vue'
-import { canRemoveMachines } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 
 definePage({ name: 'MachineClasses' })
+
+const { canRemoveMachines } = usePermissions()
 
 const watchOpts = computed((): WatchOptions => {
   return {

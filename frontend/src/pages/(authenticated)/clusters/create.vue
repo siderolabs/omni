@@ -40,7 +40,7 @@ import TInput from '@/components/common/TInput/TInput.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import TAlert from '@/components/TAlert.vue'
 import { setupBackupStatus } from '@/methods'
-import { canCreateClusters } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import {
   ClusterCommandError,
   clusterSync,
@@ -74,6 +74,7 @@ const labelContainer: Ref<Resource> = computed(() => {
 })
 
 const { status: backupStatus } = setupBackupStatus()
+const { canCreateClusters } = usePermissions()
 
 const state = initState()
 

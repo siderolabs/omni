@@ -20,7 +20,7 @@ import type { IconType } from '@/components/common/Icon/TIcon.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import ProgressBar from '@/components/common/ProgressBar/ProgressBar.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import { setupClusterPermissions } from '@/methods/auth'
+import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 import Modal from '@/views/omni/Modals/Modal.vue'
@@ -173,7 +173,7 @@ const downloadURL = (data: string, fileName: string) => {
   a.remove()
 }
 
-const { canDownloadSupportBundle } = setupClusterPermissions(computed(() => clusterId))
+const { canDownloadSupportBundle } = useClusterPermissions(computed(() => clusterId))
 </script>
 
 <template>

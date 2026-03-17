@@ -21,7 +21,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TList from '@/components/common/List/TList.vue'
 import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import { canManageUsers } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
 import ServiceAccountItem from '@/views/omni/Users/ServiceAccountItem.vue'
 
@@ -30,6 +30,7 @@ definePage({
 })
 
 const router = useRouter()
+const { canManageUsers } = usePermissions()
 
 const watchOpts = [
   {

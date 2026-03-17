@@ -19,7 +19,7 @@ import IconButton from '@/components/common/Button/IconButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
-import { setupClusterPermissions } from '@/methods/auth'
+import { useClusterPermissions } from '@/methods/auth'
 import { addClusterLabels, removeClusterLabels } from '@/methods/cluster'
 import type { Label } from '@/methods/labels'
 import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
@@ -51,7 +51,7 @@ const {
   canDownloadTalosconfig,
   canAddClusterMachines,
   canRemoveClusterMachines,
-} = setupClusterPermissions(computed(() => item.metadata.id))
+} = useClusterPermissions(computed(() => item.metadata.id))
 
 const locked = computed(() => item.metadata.annotations?.[ClusterLocked] !== undefined)
 

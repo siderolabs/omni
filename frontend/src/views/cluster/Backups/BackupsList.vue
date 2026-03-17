@@ -26,7 +26,7 @@ import TListItem from '@/components/common/List/TListItem.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { formatBytes, getDocsLink } from '@/methods'
-import { canManageBackupStore } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import { formatISO } from '@/methods/time'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
@@ -36,6 +36,7 @@ const { clusterId } = defineProps<{
 
 const dateFormat = 'HH:mm MMM d y'
 const { copy } = useClipboard()
+const { canManageBackupStore } = usePermissions()
 
 const {
   data: etcdBackupOverallStatus,

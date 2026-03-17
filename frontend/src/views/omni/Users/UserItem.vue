@@ -14,7 +14,7 @@ import { SAMLLabelPrefix } from '@/api/resources'
 import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
 import TListItem from '@/components/common/List/TListItem.vue'
-import { canManageUsers } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 
 const props = defineProps<{
   item: Resource<IdentityStatusSpec>
@@ -22,6 +22,7 @@ const props = defineProps<{
 }>()
 
 const { item } = toRefs(props)
+const { canManageUsers } = usePermissions()
 
 const router = useRouter()
 

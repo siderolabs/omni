@@ -14,7 +14,7 @@ import { MachineService } from '@/api/talos/machine/machine.pb'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import { getContext } from '@/context'
-import { setupClusterPermissions } from '@/methods/auth'
+import { useClusterPermissions } from '@/methods/auth'
 import { setupNodenameWatch } from '@/methods/node'
 import { showError, showSuccess } from '@/notification'
 
@@ -30,7 +30,7 @@ const close = () => {
 
 const context = getContext()
 
-const { canRebootMachines } = setupClusterPermissions(computed(() => context.cluster))
+const { canRebootMachines } = useClusterPermissions(computed(() => context.cluster))
 
 const shutdown = async () => {
   state.value = 'Shutdown in progress'

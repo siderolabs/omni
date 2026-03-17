@@ -4,11 +4,11 @@
 // included in the LICENSE file.
 import { useLocalStorage } from '@vueuse/core'
 
-export function useIdentity() {
-  const identityRef = useLocalStorage<string>('identity', null, { flush: 'sync' })
-  const fullnameRef = useLocalStorage<string>('fullname', null, { flush: 'sync' })
-  const avatarRef = useLocalStorage<string>('avatar', null, { flush: 'sync' })
+const identityRef = useLocalStorage<string>('identity', null, { flush: 'sync' })
+const fullnameRef = useLocalStorage<string>('fullname', null, { flush: 'sync' })
+const avatarRef = useLocalStorage<string>('avatar', null, { flush: 'sync' })
 
+export function useIdentity() {
   return {
     identity: identityRef,
     fullname: fullnameRef,

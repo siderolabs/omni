@@ -11,18 +11,14 @@ import { useRouter } from 'vue-router'
 
 import AppToast from '@/components/common/AppToast/AppToast.vue'
 import TSuspended from '@/components/common/Suspended/TSuspended.vue'
-import UserConsent from '@/components/common/UserConsent/UserConsent.vue'
 import THeader from '@/components/THeader/THeader.vue'
 import TModal from '@/components/TModal.vue'
 import { suspended } from '@/methods'
 import { useRegisterAPIInterceptor } from '@/methods/interceptor'
 import { useWatchKeyExpiry } from '@/methods/key'
-import { useUserpilot } from '@/methods/userpilot'
 
 useRegisterAPIInterceptor()
 useWatchKeyExpiry()
-
-const { trackingFeatureEnabled, trackingPending, enableTracking, disableTracking } = useUserpilot()
 
 const isSidebarOpen = ref(false)
 const router = useRouter()
@@ -43,12 +39,6 @@ const darkThemeEnabled = computed(() => {
 
 <template>
   <div class="flex h-screen flex-col" :class="{ dark: darkThemeEnabled }">
-    <UserConsent
-      v-if="trackingFeatureEnabled && trackingPending"
-      @decline="disableTracking"
-      @accept="enableTracking"
-    />
-
     <AppToast />
 
     <THeader

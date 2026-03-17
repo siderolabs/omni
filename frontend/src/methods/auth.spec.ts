@@ -9,7 +9,7 @@ import { ref } from 'vue'
 import { Code } from '@/api/google/rpc/code.pb'
 import { AuthService } from '@/api/omni/auth/auth.pb'
 import { AuthType, authType } from '@/methods'
-import { currentUser, useLogout } from '@/methods/auth'
+import { useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
 import { useKeys } from '@/methods/key'
 
@@ -60,8 +60,6 @@ describe('useLogout', () => {
     }
     vi.mocked(useAuth0).mockReturnValue(mockAuth0 as unknown as ReturnType<typeof useAuth0>)
 
-    currentUser.value = { metadata: { id: 'test-user' } } as typeof currentUser.value
-
     originalLocation = window.location
     mockLocation = {
       ...originalLocation,
@@ -91,7 +89,7 @@ describe('useLogout', () => {
     vi.clearAllMocks()
   })
 
-  test('should revoke public key, clear keys and identity, and set currentUser to undefined when publicKeyID exists', async () => {
+  test('should revoke public key and clear keys and identity when publicKeyID exists', async () => {
     vi.mocked(AuthService.RevokePublicKey).mockResolvedValue(
       {} as Awaited<ReturnType<typeof AuthService.RevokePublicKey>>,
     )
@@ -104,7 +102,6 @@ describe('useLogout', () => {
     })
     expect(mockKeys.clear).toHaveBeenCalled()
     expect(mockIdentity.clear).toHaveBeenCalled()
-    expect(currentUser.value).toBeUndefined()
   })
 
   test('should not revoke public key when publicKeyID is falsy', async () => {
@@ -127,7 +124,6 @@ describe('useLogout', () => {
     expect(AuthService.RevokePublicKey).toHaveBeenCalled()
     expect(mockKeys.clear).toHaveBeenCalled()
     expect(mockIdentity.clear).toHaveBeenCalled()
-    expect(currentUser.value).toBeUndefined()
   })
 
   test('should throw when RevokePublicKey fails with non-UNAUTHENTICATED error', async () => {
@@ -141,7 +137,6 @@ describe('useLogout', () => {
     expect(AuthService.RevokePublicKey).toHaveBeenCalled()
     expect(mockKeys.clear).not.toHaveBeenCalled()
     expect(mockIdentity.clear).not.toHaveBeenCalled()
-    expect(currentUser.value).not.toBeUndefined()
   })
 
   test('should call auth0.logout when authType is Auth0', async () => {
@@ -160,7 +155,6 @@ describe('useLogout', () => {
     })
     expect(mockKeys.clear).toHaveBeenCalled()
     expect(mockIdentity.clear).toHaveBeenCalled()
-    expect(currentUser.value).toBeUndefined()
   })
 
   test.each([AuthType.SAML, AuthType.OIDC, AuthType.None])(
@@ -178,7 +172,6 @@ describe('useLogout', () => {
       expect(window.location.href).toBe('/logout?flow=frontend')
       expect(mockKeys.clear).toHaveBeenCalled()
       expect(mockIdentity.clear).toHaveBeenCalled()
-      expect(currentUser.value).toBeUndefined()
     },
   )
 })

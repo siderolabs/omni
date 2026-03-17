@@ -14,7 +14,7 @@ import TButton from '@/components/common/Button/TButton.vue'
 import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { AuthType, authType } from '@/methods'
-import { canManageUsers } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import { createServiceAccount } from '@/methods/user'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/omni/Modals/CloseButton.vue'
@@ -25,6 +25,7 @@ const expiration = ref(365)
 const router = useRouter()
 const route = useRoute()
 const name = ref((route.query.name as string) ?? '')
+const { canManageUsers } = usePermissions()
 
 const roles = [RoleNone, RoleReader, RoleOperator, RoleAdmin]
 

@@ -20,12 +20,7 @@ import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import {
-  canAccessMaintenanceNodes,
-  canReadClusters,
-  canReadMachineLogs,
-  canRemoveMachines,
-} from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
@@ -44,6 +39,9 @@ defineEmits<{
 const selected = defineModel<boolean>('selected')
 
 const { copy } = useClipboard()
+
+const { canAccessMaintenanceNodes, canReadClusters, canReadMachineLogs, canRemoveMachines } =
+  usePermissions()
 
 const machineName = computed(() => {
   return machine.spec.message_status?.network?.hostname ?? machine.metadata.id

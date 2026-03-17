@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type monaco from 'monaco-editor/esm/vs/editor/editor.api'
 import { MarkerSeverity, MarkerTag } from 'monaco-editor/esm/vs/editor/editor.api'
-import { computed, defineAsyncComponent, ref, watch, watchEffect } from 'vue'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { type RouteLocationRaw, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -25,7 +25,6 @@ import {
 import { withRuntime } from '@/api/options'
 import {
   ClusterMachineStatusType,
-  ClusterPermissionsType,
   ClusterType,
   ConfigPatchDescription,
   ConfigPatchName,
@@ -38,7 +37,6 @@ import {
   LabelMachineSet,
   MachineSetType,
   MachineStatusType,
-  VirtualNamespace,
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
@@ -48,7 +46,7 @@ import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
-import { canManageMachineConfigPatches, canReadMachineConfigPatches } from '@/methods/auth'
+import { useClusterPermissions, usePermissions } from '@/methods/auth'
 import { machineSetTitle, sortMachineSetIds } from '@/methods/machineset'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
@@ -68,6 +66,11 @@ type Props = {
 const { patchId, machineId, clusterId, back } = defineProps<Props>()
 
 const bootstrapped = ref(false)
+const { canManageMachineConfigPatches, canReadMachineConfigPatches } = usePermissions()
+const {
+  canReadConfigPatches: canReadClusterConfigPatches,
+  canManageConfigPatches: canManageClusterMachineConfigPatches,
+} = useClusterPermissions(() => clusterId)
 
 const { data: configPatch, loading: patchWatchLoading } = useResourceWatch<ConfigPatchSpec>(
   () => ({
@@ -351,10 +354,6 @@ const notes = computed(() => {
   return ''
 })
 
-const ready = computed(() => {
-  return permissionsLoaded.value && !patchWatchLoading.value
-})
-
 const saving = ref(false)
 
 const getPatchLabels = () => {
@@ -439,32 +438,13 @@ const saveConfig = async () => {
   }
 }
 
-const permissionsLoaded = ref(false)
-const canReadConfigPatches = ref(false)
-const canManageConfigPatches = ref(false)
+const canReadConfigPatches = computed(() =>
+  clusterId ? canReadClusterConfigPatches.value : canReadMachineConfigPatches.value,
+)
 
-watchEffect(async () => {
-  if (clusterId) {
-    const clusterPermissions = await ResourceService.Get(
-      {
-        namespace: VirtualNamespace,
-        type: ClusterPermissionsType,
-        id: clusterId,
-      },
-      withRuntime(Runtime.Omni),
-    )
-
-    canReadConfigPatches.value = clusterPermissions?.spec?.can_read_config_patches || false
-    canManageConfigPatches.value = clusterPermissions?.spec?.can_manage_config_patches || false
-  } else if (machineId) {
-    canReadConfigPatches.value = canReadMachineConfigPatches.value
-    canManageConfigPatches.value = canManageMachineConfigPatches.value
-  } else {
-    throw new Error('failed to determine the owner of the patch from the URI')
-  }
-
-  permissionsLoaded.value = true
-})
+const canManageConfigPatches = computed(() =>
+  clusterId ? canManageClusterMachineConfigPatches.value : canManageMachineConfigPatches.value,
+)
 </script>
 
 <template>
@@ -493,7 +473,7 @@ watchEffect(async () => {
         </Tooltip>
       </div>
       <div class="font-sm flex-1 overflow-y-hidden rounded bg-naturals-n1 px-2 py-3">
-        <div v-if="!ready" class="flex h-full w-full items-center justify-center">
+        <div v-if="patchWatchLoading" class="flex h-full w-full items-center justify-center">
           <TSpinner class="h-6 w-6" />
         </div>
 

@@ -15,10 +15,8 @@ import WordHighlighter from 'vue-word-highlighter'
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type { ConfigPatchSpec } from '@/api/omni/specs/omni.pb'
-import type { ClusterPermissionsSpec } from '@/api/omni/specs/virtual.pb'
 import {
   ClusterMachineStatusType,
-  ClusterPermissionsType,
   ConfigPatchDescription,
   ConfigPatchName,
   ConfigPatchType,
@@ -29,7 +27,6 @@ import {
   LabelMachine,
   LabelMachineSet,
   LabelSystemPatch,
-  VirtualNamespace,
 } from '@/api/resources'
 import IconButton from '@/components/common/Button/IconButton.vue'
 import TButton from '@/components/common/Button/TButton.vue'
@@ -37,14 +34,13 @@ import TIcon from '@/components/common/Icon/TIcon.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
-import { canManageMachineConfigPatches } from '@/methods/auth'
+import { useClusterPermissions, usePermissions } from '@/methods/auth'
 import {
   controlPlaneTitle,
   defaultWorkersTitle,
   machineSetTitle,
   workersTitlePrefix,
 } from '@/methods/machineset'
-import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 
@@ -56,6 +52,10 @@ type Props = {
 }
 
 const { machine, cluster } = defineProps<Props>()
+const { canManageMachineConfigPatches } = usePermissions()
+const { canManageConfigPatches: canManageClusterMachineConfigPatches } = useClusterPermissions(
+  () => cluster,
+)
 
 const selectors = computed(() => {
   const res: string[] = []
@@ -240,18 +240,8 @@ const routes = computed(() => {
   return result
 })
 
-const { data: clusterPermissions } = useResourceGet<ClusterPermissionsSpec>(() => ({
-  skip: !cluster,
-  resource: {
-    namespace: VirtualNamespace,
-    type: ClusterPermissionsType,
-    id: cluster,
-  },
-  runtime: Runtime.Omni,
-}))
-
 const canManageConfigPatches = computed(() => {
-  if (cluster) return clusterPermissions.value?.spec.can_manage_config_patches ?? false
+  if (cluster) return canManageClusterMachineConfigPatches.value
   if (machine) return canManageMachineConfigPatches.value
 
   return false

@@ -5,7 +5,7 @@
 import { createGetMock, createWatchStreamMock } from '@msw/server'
 import userEvent from '@testing-library/user-event'
 import { render, screen, waitFor } from '@testing-library/vue'
-import { expect, test } from 'vitest'
+import { beforeEach, expect, test } from 'vitest'
 import { createRouter, createWebHistory, RouterView } from 'vue-router'
 
 import { ClusterLocked } from '@/api/resources'
@@ -20,10 +20,12 @@ const router = createRouter({
   ],
 })
 
-test('no lock if unlocked', async () => {
+beforeEach(() => {
   createWatchStreamMock()
   createGetMock()
+})
 
+test('no lock if unlocked', async () => {
   render(ClusterItem, {
     global: {
       stubs: ['Tooltip', 'TActionsBox'],
@@ -41,9 +43,6 @@ test('no lock if unlocked', async () => {
 })
 
 test('lock if locked', async () => {
-  createWatchStreamMock()
-  createGetMock()
-
   render(ClusterItem, {
     global: {
       stubs: ['Tooltip', 'TActionsBox'],
@@ -64,9 +63,6 @@ test('lock if locked', async () => {
 
 test('collapsing stops ClusterMachines resource watches', async () => {
   const user = userEvent.setup()
-
-  createWatchStreamMock()
-  createGetMock()
 
   render(ClusterItem, {
     global: {

@@ -19,7 +19,7 @@ import type {
   KubernetesUpgradeManifestStatusSpec,
   MachineStatusMetricsSpec,
 } from '@/api/omni/specs/omni.pb'
-import type { ClusterPermissionsSpec } from '@/api/omni/specs/virtual.pb'
+import type { ClusterPermissionsSpec, PermissionsSpec } from '@/api/omni/specs/virtual.pb'
 import {
   ClusterMachineIdentityType,
   ClusterPermissionsType,
@@ -35,6 +35,8 @@ import {
   MachineStatusMetricsID,
   MachineStatusMetricsType,
   MetricsNamespace,
+  PermissionsID,
+  PermissionsType,
   TalosRuntimeNamespace,
   TalosServiceType,
   VirtualNamespace,
@@ -392,6 +394,35 @@ export const Default: Story = {
             },
           ],
         }).handler,
+
+        http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
+          const { type, namespace } = await request.clone().json()
+
+          if (type !== PermissionsType || namespace !== VirtualNamespace) return
+
+          return HttpResponse.json({
+            body: JSON.stringify({
+              spec: {
+                can_access_maintenance_nodes: true,
+                can_create_clusters: true,
+                can_manage_backup_store: true,
+                can_manage_machine_config_patches: true,
+                can_manage_users: true,
+                can_read_audit_log: true,
+                can_read_clusters: true,
+                can_read_machine_config_patches: true,
+                can_read_machine_logs: true,
+                can_read_machines: true,
+                can_remove_machines: true,
+              },
+              metadata: {
+                namespace: VirtualNamespace,
+                type: PermissionsType,
+                id: PermissionsID,
+              },
+            } as Resource<PermissionsSpec>),
+          })
+        }),
 
         http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
           const { type, namespace } = await request.clone().json()

@@ -26,7 +26,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import StatsItem from '@/components/common/Stats/StatsItem.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
-import { canCreateClusters } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { addLabel, selectors } from '@/methods/labels'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -34,6 +34,8 @@ import ClusterItem from '@/views/omni/Clusters/ClusterItem.vue'
 import LabelsInput from '@/views/omni/ItemLabels/LabelsInput.vue'
 
 definePage({ name: 'Clusters' })
+
+const { canCreateClusters } = usePermissions()
 
 const watchOpts = computed<WatchOptions>(() => {
   return {

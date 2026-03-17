@@ -37,7 +37,7 @@ import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import type { BackupsStatus } from '@/methods'
 import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
-import { setupClusterPermissions } from '@/methods/auth'
+import { useClusterPermissions } from '@/methods/auth'
 import { triggerEtcdBackup, updateClusterLock } from '@/methods/cluster'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
 import { formatISO } from '@/methods/time'
@@ -235,7 +235,7 @@ const {
   canDownloadSupportBundle,
   canAddClusterMachines,
   canRemoveClusterMachines,
-} = setupClusterPermissions(computed(() => clusterId))
+} = useClusterPermissions(computed(() => clusterId))
 
 const clusterDestroyModalOpen = ref(false)
 const downloadSupportBundleModalOpen = ref(false)

@@ -14,7 +14,7 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="absolute top-0 left-0 z-50 flex h-screen w-screen flex-col justify-stretch">
+  <div class="fixed inset-0 z-100 flex flex-col justify-stretch">
     <div class="flex-1 bg-black opacity-25" />
     <div class="border-t border-primary-p3 bg-naturals-n6 p-4">
       <p class="text-lg text-naturals-n13">Cookies for a Better Experience</p>

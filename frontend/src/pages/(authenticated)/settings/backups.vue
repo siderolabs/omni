@@ -28,12 +28,14 @@ import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
-import { canManageBackupStore } from '@/methods/auth'
+import { usePermissions } from '@/methods/auth'
 import { showError, showSuccess } from '@/notification'
 
 definePage({
   name: 'BackupStorage',
 })
+
+const { canManageBackupStore } = usePermissions()
 
 const ready = ref(false)
 const s3Spec = ref<EtcdBackupS3ConfSpec>({})
