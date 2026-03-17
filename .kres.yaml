@@ -867,3 +867,9 @@ spec:
     - e2e-upgrades
     - e2e-backups
     - e2e-forced-removal
+---
+kind: golang.Toolchain
+spec:
+  defaultBuildTags:
+    - memory.counters # enable memory counters in modernc.org/memory
+    - libc.memexpvar # enable memexpvar in modernc.org/libc to export the counters
