@@ -32,7 +32,7 @@ GOLANGCILINT_VERSION ?= v2.11.3
 GOFUMPT_VERSION ?= v0.9.2
 GO_VERSION ?= 1.26.1
 GO_BUILDFLAGS ?=
-GO_BUILDTAGS ?= ,
+GO_BUILDTAGS ?= memory.counters,libc.memexpvar,
 GO_LDFLAGS ?=
 CGO_ENABLED ?= 0
 GOTOOLCHAIN ?= local
@@ -492,4 +492,3 @@ release-notes: $(ARTIFACTS)
 conformance:
 	@docker pull $(CONFORMANCE_IMAGE)
 	@docker run --rm -it -v $(PWD):/src -w /src $(CONFORMANCE_IMAGE) enforce
-
