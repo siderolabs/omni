@@ -2,6 +2,9 @@ module github.com/siderolabs/omni/client
 
 go 1.26.1
 
+// fix for multiple panics, see https://github.com/neticdk/go-stdlib/pull/44
+replace github.com/neticdk/go-stdlib => github.com/smira/go-stdlib v0.0.0-20260318082201-9d387eb2130d
+
 require (
 	github.com/ProtonMail/gopenpgp/v2 v2.9.0
 	github.com/adrg/xdg v0.5.3
