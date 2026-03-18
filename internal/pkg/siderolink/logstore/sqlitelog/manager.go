@@ -265,7 +265,7 @@ func (m *StoreManager) removeBySize(ctx context.Context) (int, error) {
 // computeSizeExcess estimates how many rows need to be deleted based on the table size and average row size.
 // Returns 0 when the table is within limits or empty.
 func (m *StoreManager) computeSizeExcess(conn *sqlite.Conn) (int64, error) {
-	sizeQuery := fmt.Sprintf(`SELECT COALESCE(SUM(pgsize), 0) FROM dbstat WHERE name = '%s'`, TableName)
+	sizeQuery := fmt.Sprintf(`SELECT COALESCE(SUM(d.pgsize), 0) FROM dbstat d JOIN sqlite_master m ON d.name = m.name WHERE m.tbl_name = '%s'`, TableName)
 
 	q, err := sqlitexx.NewQuery(conn, sizeQuery)
 	if err != nil {

@@ -223,7 +223,7 @@ func TestRemoveByMaxSize(t *testing.T) {
 
 	var tableSize int64
 
-	err = sqlitex.ExecuteTransient(conn, "SELECT SUM(pgsize) FROM dbstat WHERE name = 'audit_logs'", &sqlitex.ExecOptions{
+	err = sqlitex.ExecuteTransient(conn, "SELECT COALESCE(SUM(d.pgsize), 0) FROM dbstat d JOIN sqlite_master m ON d.name = m.name WHERE m.tbl_name = 'audit_logs'", &sqlitex.ExecOptions{
 		ResultFunc: func(stmt *zombiesqlite.Stmt) error {
 			tableSize = stmt.ColumnInt64(0)
 

@@ -53,6 +53,7 @@ type Metrics struct {
 	sqlState                 sqlState
 	subsystemRowCountDesc    *prometheus.Desc
 	dbSizeDesc               *prometheus.Desc
+	dbFreelistSizeDesc       *prometheus.Desc
 	subsystemSizeDesc        *prometheus.Desc
 	cleanupRowsDeleted       *prometheus.CounterVec
 	db                       *sqlitexx.Pool
@@ -61,6 +62,7 @@ type Metrics struct {
 	cachedSubsystemRowCounts map[string]float64
 	refreshInterval          time.Duration
 	cachedDBSize             float64
+	cachedFreelistSize       float64
 	mu                       sync.Mutex
 }
 
@@ -93,6 +95,11 @@ func NewMetrics(db *sqlitexx.Pool, cosiState state.CoreState, logger *zap.Logger
 		dbSizeDesc: prometheus.NewDesc(
 			"omni_sqlite_db_size_bytes",
 			"Total size of the SQLite database in bytes.",
+			nil, nil,
+		),
+		dbFreelistSizeDesc: prometheus.NewDesc(
+			"omni_sqlite_db_freelist_size_bytes",
+			"Size of free pages in the SQLite database in bytes.",
 			nil, nil,
 		),
 		subsystemSizeDesc: prometheus.NewDesc(
@@ -143,6 +150,8 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 
 	ch <- prometheus.MustNewConstMetric(m.dbSizeDesc, prometheus.GaugeValue, m.cachedDBSize)
 
+	ch <- prometheus.MustNewConstMetric(m.dbFreelistSizeDesc, prometheus.GaugeValue, m.cachedFreelistSize)
+
 	for subsystem, size := range m.cachedSubsystemSizes {
 		ch <- prometheus.MustNewConstMetric(m.subsystemSizeDesc, prometheus.GaugeValue, size, subsystem)
 	}
@@ -182,6 +191,13 @@ func (m *Metrics) refresh() {
 	dbSize, err := m.queryDBSize(conn)
 	if err != nil {
 		m.logger.Warn("failed to query db size for metrics", zap.Error(err))
+
+		return
+	}
+
+	freelistSize, err := m.queryFreelistSize(conn)
+	if err != nil {
+		m.logger.Warn("failed to query freelist pages for metrics", zap.Error(err))
 
 		return
 	}
@@ -229,6 +245,7 @@ func (m *Metrics) refresh() {
 	}
 
 	m.cachedDBSize = dbSize
+	m.cachedFreelistSize = freelistSize
 	m.cachedSubsystemSizes = subsystemSizes
 	m.cachedSubsystemRowCounts = subsystemRowCounts
 }
@@ -253,7 +270,7 @@ func (m *Metrics) discoverTables(conn *zombiesqlite.Conn) (map[string]struct{}, 
 }
 
 func (m *Metrics) queryDBSize(conn *zombiesqlite.Conn) (float64, error) {
-	q, err := sqlitexx.NewQuery(conn, `SELECT COALESCE(SUM(pgsize), 0) FROM dbstat`)
+	q, err := sqlitexx.NewQuery(conn, `SELECT page_count * page_size FROM pragma_page_count, pragma_page_size`)
 	if err != nil {
 		return 0, fmt.Errorf("failed to prepare db size query: %w", err)
 	}
@@ -271,8 +288,27 @@ func (m *Metrics) queryDBSize(conn *zombiesqlite.Conn) (float64, error) {
 	return size, nil
 }
 
+func (m *Metrics) queryFreelistSize(conn *zombiesqlite.Conn) (float64, error) {
+	q, err := sqlitexx.NewQuery(conn, `SELECT freelist_count * page_size FROM pragma_freelist_count, pragma_page_size`)
+	if err != nil {
+		return 0, fmt.Errorf("failed to prepare freelist query: %w", err)
+	}
+
+	var sizeBytes float64
+
+	if err = q.QueryRow(func(stmt *zombiesqlite.Stmt) error {
+		sizeBytes = stmt.ColumnFloat(0)
+
+		return nil
+	}); err != nil {
+		return 0, fmt.Errorf("failed to query freelist size: %w", err)
+	}
+
+	return sizeBytes, nil
+}
+
 func (m *Metrics) queryTableSizes(conn *zombiesqlite.Conn) (map[string]float64, error) {
-	q, err := sqlitexx.NewQuery(conn, `SELECT name, SUM(pgsize) FROM dbstat GROUP BY name`)
+	q, err := sqlitexx.NewQuery(conn, `SELECT m.tbl_name, SUM(d.pgsize) FROM dbstat d JOIN sqlite_master m ON d.name = m.name GROUP BY m.tbl_name`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare table sizes query: %w", err)
 	}
