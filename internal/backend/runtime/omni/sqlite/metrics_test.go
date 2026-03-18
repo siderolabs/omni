@@ -26,6 +26,11 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
+const (
+	metricSubsystemSizeBytes = "omni_sqlite_subsystem_size_bytes"
+	labelSubsystem           = "subsystem"
+)
+
 func execSQL(t *testing.T, db *sqlitexx.Pool, sql string) {
 	t.Helper()
 
@@ -92,12 +97,12 @@ func TestMetricsCollect(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, f := range families {
-		if f.GetName() == "omni_sqlite_subsystem_size_bytes" {
+		if f.GetName() == metricSubsystemSizeBytes {
 			assert.Len(t, f.GetMetric(), 4)
 
 			for _, m := range f.GetMetric() {
 				for _, lp := range m.GetLabel() {
-					if lp.GetName() == "subsystem" && lp.GetValue() == "state" {
+					if lp.GetName() == labelSubsystem && lp.GetValue() == "state" {
 						assert.Equal(t, float64(8192), m.GetGauge().GetValue())
 					}
 				}
@@ -167,7 +172,7 @@ func TestMetricsStateSubsystemUsesDBSizer(t *testing.T) {
 		omni_sqlite_subsystem_size_bytes{subsystem="machine_logs"} 0
 		omni_sqlite_subsystem_size_bytes{subsystem="state"} 42000
 	`
-	assert.NoError(t, testutil.GatherAndCompare(registry, strings.NewReader(expected), "omni_sqlite_subsystem_size_bytes"))
+	assert.NoError(t, testutil.GatherAndCompare(registry, strings.NewReader(expected), metricSubsystemSizeBytes))
 }
 
 func TestMetricsEmptyDB(t *testing.T) {
@@ -241,6 +246,67 @@ func TestCleanupCallback(t *testing.T) {
 		omni_sqlite_cleanup_rows_deleted_total{subsystem="machine_logs"} 10
 	`
 	assert.NoError(t, testutil.GatherAndCompare(registry, strings.NewReader(expected2), "omni_sqlite_cleanup_rows_deleted_total"))
+}
+
+func TestMetricsSubsystemSizeIncludesIndexes(t *testing.T) {
+	t.Parallel()
+
+	db, st := setupTestDB(t)
+
+	// Create the machine_logs table without an index and measure its size.
+	execSQL(t, db, `
+		CREATE TABLE machine_logs (id INTEGER PRIMARY KEY, machine_id TEXT, message TEXT);
+		INSERT INTO machine_logs (machine_id, message) VALUES ('m1', 'log1');
+	`)
+
+	registry := setupMetrics(t, db, &fakeSQLState{CoreState: st}, sqlite.WithRefreshInterval(0))
+
+	families, err := registry.Gather()
+	require.NoError(t, err)
+
+	var sizeWithoutIndex float64
+
+	for _, f := range families {
+		if f.GetName() != metricSubsystemSizeBytes {
+			continue
+		}
+
+		for _, m := range f.GetMetric() {
+			for _, lp := range m.GetLabel() {
+				if lp.GetName() == labelSubsystem && lp.GetValue() == sqlite.SubsystemMachineLogs {
+					sizeWithoutIndex = m.GetGauge().GetValue()
+				}
+			}
+		}
+	}
+
+	require.Greater(t, sizeWithoutIndex, float64(0), "table size should be > 0")
+
+	// Add an index — the subsystem size should grow.
+	execSQL(t, db, `CREATE INDEX idx_machine_logs_machine_id ON machine_logs (machine_id)`)
+
+	registry2 := setupMetrics(t, db, &fakeSQLState{CoreState: st}, sqlite.WithRefreshInterval(0))
+
+	families, err = registry2.Gather()
+	require.NoError(t, err)
+
+	var sizeWithIndex float64
+
+	for _, f := range families {
+		if f.GetName() != metricSubsystemSizeBytes {
+			continue
+		}
+
+		for _, m := range f.GetMetric() {
+			for _, lp := range m.GetLabel() {
+				if lp.GetName() == labelSubsystem && lp.GetValue() == sqlite.SubsystemMachineLogs {
+					sizeWithIndex = m.GetGauge().GetValue()
+				}
+			}
+		}
+	}
+
+	assert.Greater(t, sizeWithIndex, sizeWithoutIndex, "subsystem size should include index size")
 }
 
 // setupTestDB helper handles the standard SQLite test setup.

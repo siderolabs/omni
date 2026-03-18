@@ -256,7 +256,7 @@ func (s *Store) Remove(ctx context.Context, start, end time.Time) error {
 }
 
 func (s *Store) removeBySize(conn *zombiesqlite.Conn) error {
-	sizeQuery := fmt.Sprintf(`SELECT SUM(pgsize) FROM dbstat WHERE name = '%s'`, TableName)
+	sizeQuery := fmt.Sprintf(`SELECT COALESCE(SUM(d.pgsize), 0) FROM dbstat d JOIN sqlite_master m ON d.name = m.name WHERE m.tbl_name = '%s'`, TableName)
 
 	q, err := sqlitexx.NewQuery(conn, sizeQuery)
 	if err != nil {
