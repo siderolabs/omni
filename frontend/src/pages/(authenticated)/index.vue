@@ -17,16 +17,12 @@ definePage({ name: 'Home' })
 
 const currentUser = useCurrentUser()
 
-const hasRoleNone = computed(() => {
-  const role = currentUser.value?.spec.role
-
-  return !role || role === RoleNone
-})
+const role = computed(() => currentUser.value?.spec.role ?? RoleNone)
 </script>
 
 <template>
-  <PageContainer>
-    <HomeNoAccess v-if="hasRoleNone" />
+  <PageContainer v-if="currentUser" class="h-full">
+    <HomeNoAccess v-if="role === RoleNone" />
     <HomeContent v-else />
   </PageContainer>
 </template>

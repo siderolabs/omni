@@ -38,11 +38,13 @@ onBeforeMount(async () => {
 </script>
 
 <template>
-  <RouterView v-if="authorized" />
+  <template v-if="authorized">
+    <RouterView />
 
-  <UserConsent
-    v-if="trackingFeatureEnabled && trackingPending"
-    @decline="disableTracking"
-    @accept="enableTracking"
-  />
+    <UserConsent
+      v-if="trackingFeatureEnabled && trackingPending"
+      @decline="disableTracking"
+      @accept="enableTracking"
+    />
+  </template>
 </template>
