@@ -1,3 +1,57 @@
+## [Omni 1.6.1](https://github.com/siderolabs/omni/releases/tag/v1.6.1) (2026-03-18)
+
+Welcome to the v1.6.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+The deprecated flags and config fields that were kept for the SQLite migration period (introduced in v1.4.0) have been removed.
+
+If you still have any of the following flags or config keys set, **you must remove them before upgrading**, as they will cause startup errors:
+* `--audit-log-dir` (`.logs.audit.path`)
+* `--secondary-storage-path` (`.storage.secondary.path`)
+* `--machine-log-storage-path` (`.logs.machine.storage.path`)
+* `--machine-log-storage-enabled` (`.logs.machine.storage.enabled`)
+* `--log-storage-path` (`.logs.machine.storage.path`)
+* `--embedded-discovery-service-snapshot-path` (`.services.embeddedDiscoveryService.snapshotsPath`)
+* `--machine-log-buffer-capacity` (`.logs.machine.bufferInitialCapacity`)
+* `--machine-log-buffer-max-capacity` (`.logs.machine.bufferMaxCapacity`)
+* `--machine-log-buffer-safe-gap` (`.logs.machine.bufferSafetyGap`)
+* `--machine-log-num-compressed-chunks` (`.logs.machine.storage.numCompressedChunks`)
+
+The automatic migration code for BoltDB secondary storage, file-based audit logs, file-based discovery service snapshots, and circular buffer machine logs has also been removed. If you are upgrading from a version older than v1.4.0, you must first upgrade to v1.4.x to complete the migrations, then upgrade to this version.
+
+
+### Contributors
+
+* Oguz Kilcan
+* Andrey Smirnov
+* Utku Ozdemir
+
+### Changes
+<details><summary>7 commits</summary>
+<p>
+
+* [`1b7fa208`](https://github.com/siderolabs/omni/commit/1b7fa208d48a3a07c00a6690b38a306dc55cb7e0) fix: correct SQLite size metrics to include indexes and freelist
+* [`0b1e9ea0`](https://github.com/siderolabs/omni/commit/0b1e9ea0df0e033fbdb6966e6159862db331c6e5) fix: fix panics in diff algorithms
+* [`d7ec007b`](https://github.com/siderolabs/omni/commit/d7ec007b46d6e13c1f0cad53a55701d16d27e09f) fix: use dynamic SQLite pool
+* [`3c6dd0ee`](https://github.com/siderolabs/omni/commit/3c6dd0eea63aac46cb3b26ae38739be629689184) fix: track load balancer port allocations in-memory
+* [`e2248065`](https://github.com/siderolabs/omni/commit/e22480659269a9f6e4f3d1ddd3b8ada1a3481350) fix: load balancer health status diff and stopped status race
+* [`079e28c7`](https://github.com/siderolabs/omni/commit/079e28c76cde529a4e2521eb16671fb0df7f9e10) chore: export the SQLite memory allocator stats
+* [`e7dfbc9c`](https://github.com/siderolabs/omni/commit/e7dfbc9c49c39cae7a1eb5feeec5d0231715593d) fix: add omnictl backward compatibility with older Omni servers
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/cosi-project/state-sqlite**  v0.3.0 -> v0.4.0
+
+Previous release can be found at [v1.6.0](https://github.com/siderolabs/omni/releases/tag/v1.6.0)
+
 ## [Omni 1.6.0](https://github.com/siderolabs/omni/releases/tag/v1.6.0) (2026-03-16)
 
 Welcome to the v1.6.0 release of Omni!  

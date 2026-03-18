@@ -1,6 +1,6 @@
 # Omni Helm Chart (v2)
 
-![Version: 2.6.0](https://img.shields.io/badge/Version-2.6.0-informational?style=flat) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat) ![AppVersion: v1.6.0](https://img.shields.io/badge/AppVersion-v1.6.0-informational?style=flat)
+![Version: 2.6.1](https://img.shields.io/badge/Version-2.6.1-informational?style=flat) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat) ![AppVersion: v1.6.1](https://img.shields.io/badge/AppVersion-v1.6.1-informational?style=flat)
 
 A Helm chart to deploy [Omni](https://omni.siderolabs.com) on a Kubernetes cluster.
 
