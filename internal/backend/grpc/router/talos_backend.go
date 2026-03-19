@@ -56,6 +56,13 @@ var adminMethodSet = xslices.ToSet([]string{
 	machine.MachineService_MetaDelete_FullMethodName,
 })
 
+// adminMethodSet1_12 is the set of methods that are allowed to be called by the minimum role of os:admin for Talos versions >= 1.12.0.
+var adminMethodSet1_12 = xslices.ToSet([]string{
+	// read/copy APIs were not considered safe for older Talos versions, as the STATE partition has always been mounted
+	machine.MachineService_Copy_FullMethodName,
+	machine.MachineService_Read_FullMethodName,
+})
+
 // TalosBackend implements a backend (proxying directly to a single Talos node over SideroLink).
 type TalosBackend struct {
 	nodeResolver NodeResolver
@@ -185,6 +192,15 @@ func (backend *TalosBackend) setRoleHeaders(ctx context.Context, md metadata.MD,
 		setHeaderData(ctx, md, constants.APIAuthzRoleMetadataKey, talosrole.MakeSet(talosrole.Admin).Strings()...)
 
 		return
+	}
+
+	// methods that should have admin access for Talos >= 1.12.0
+	if _, ok := adminMethodSet1_12[fullMethodName]; ok {
+		if minTalosVersion != nil && minTalosVersion.GTE(semver.MustParse("1.12.0")) {
+			setHeaderData(ctx, md, constants.APIAuthzRoleMetadataKey, talosrole.MakeSet(talosrole.Admin).Strings()...)
+
+			return
+		}
 	}
 
 	// min Talos version is >= 1.4.0, we can use Operator role
