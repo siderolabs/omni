@@ -9,18 +9,16 @@ import { onBeforeMount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { AuthFlowQueryParam, FrontendAuthFlow, RedirectQueryParam } from '@/api/resources'
-import UserConsent from '@/components/common/UserConsent/UserConsent.vue'
 import { hasValidKeys } from '@/methods/key'
 import { useDocumentTitle } from '@/methods/title'
 import { useUserpilot } from '@/methods/userpilot'
 
 useDocumentTitle()
+useUserpilot()
 
 const authorized = ref(false)
 const router = useRouter()
 const route = useRoute()
-
-const { trackingFeatureEnabled, trackingPending, enableTracking, disableTracking } = useUserpilot()
 
 onBeforeMount(async () => {
   authorized.value = await hasValidKeys()
@@ -38,13 +36,5 @@ onBeforeMount(async () => {
 </script>
 
 <template>
-  <template v-if="authorized">
-    <RouterView />
-
-    <UserConsent
-      v-if="trackingFeatureEnabled && trackingPending"
-      @decline="disableTracking"
-      @accept="enableTracking"
-    />
-  </template>
+  <RouterView v-if="authorized" />
 </template>
