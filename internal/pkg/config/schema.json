@@ -70,6 +70,7 @@
           "type": "string",
           "minLength": 1,
           "description": "Id is the unique UUID identifier of the account. It is used to uniquely identify the account in etcd, therefore it should never be changed after initial setup.",
+          "x-cli-flag": "account-id",
           "goJSONSchema": {
             "type": "*string"
           }
@@ -78,6 +79,7 @@
           "type": "string",
           "minLength": 1,
           "description": "Name is the human-readable name of the account.",
+          "x-cli-flag": "name",
           "goJSONSchema": {
             "type": "*string"
           }
@@ -90,6 +92,7 @@
           "description": "MaxRegisteredMachines is the maximum number of registered machines allowed. 0 means unlimited.",
           "type": "integer",
           "minimum": 0,
+          "x-cli-flag": "account-max-registered-machines",
           "goJSONSchema": {
             "type": "uint32"
           }
@@ -101,6 +104,7 @@
       "properties": {
         "appToken": {
           "description": "AppToken is the UserPilot application token.",
+          "x-cli-flag": "user-pilot-app-token",
           "type": "string"
         }
       }
@@ -116,6 +120,7 @@
         "talos": {
           "type": "string",
           "description": "Talos is the Talos installer registry configuration.",
+          "x-cli-flag": "talos-installer-registry",
           "minLength": 1,
           "goJSONSchema": {
             "type": "*string"
@@ -124,6 +129,7 @@
         "kubernetes": {
           "type": "string",
           "description": "Kubernetes is the Kubernetes container registry configuration.",
+          "x-cli-flag": "kubernetes-registry",
           "minLength": 1,
           "goJSONSchema": {
             "type": "*string"
@@ -132,6 +138,7 @@
         "imageFactoryBaseURL": {
           "type": "string",
           "description": "ImageFactoryBaseURL is the base URL of the Image Factory service used to build custom machine images.",
+          "x-cli-flag": "image-factory-address",
           "minLength": 1,
           "goJSONSchema": {
             "type": "*string"
@@ -139,10 +146,12 @@
         },
         "imageFactoryPXEBaseURL": {
           "description": "ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.",
+          "x-cli-flag": "image-factory-pxe-address",
           "type": "string"
         },
         "mirrors": {
           "description": "Mirrors is the list of container image registry mirrors. Used mainly for the development purposes. It must be in the format: <registry host>=<mirror URL>",
+          "x-cli-flag": "registry-mirror",
           "type": "array",
           "goJSONSchema": {
             "extraTags": {
@@ -172,7 +181,13 @@
       "properties": {
         "api": {
           "description": "Api contains API/UI service configuration.",
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Service",
+          "properties": {
+            "endpoint": { "x-cli-flag": "bind-addr" },
+            "advertisedURL": { "x-cli-flag": "advertised-api-url" },
+            "certFile": { "x-cli-flag": "cert" },
+            "keyFile": { "x-cli-flag": "key" }
+          }
         },
         "devServerProxy": {
           "description": "DevServerProxy is the node dev server proxy service configuration. It exists for the development purposes only.",
@@ -180,7 +195,10 @@
         },
         "metrics": {
           "description": "Metrics contains metrics service configuration.",
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Service",
+          "properties": {
+            "endpoint": { "x-cli-flag": "metrics-bind-addr" }
+          }
         },
         "kubernetesProxy": {
           "description": "KubernetesProxy contains Kubernetes proxy service configuration. It is the service responsible for proxying Kubernetes API requests to the clusters.",
@@ -192,7 +210,13 @@
         },
         "machineAPI": {
           "description": "MachineAPI contains SideroLink API service configuration. It is responsible for provisioning SideroLink connections by validating node join requests and issuing machine join tokens.",
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/Service",
+          "properties": {
+            "endpoint": { "x-cli-flag": "machine-api-bind-addr" },
+            "advertisedURL": { "x-cli-flag": "machine-api-advertised-url" },
+            "certFile": { "x-cli-flag": "machine-api-cert" },
+            "keyFile": { "x-cli-flag": "machine-api-key" }
+          }
         },
         "localResourceService": {
           "description": "LocalResourceService contains local resource service configuration. Omni runs a local service to allow access to its resources without authorization checks. It is primarily used by infra providers (e.g., sidecars).",
@@ -239,6 +263,7 @@
       "properties": {
         "endpoint": {
           "description": "Endpoint is the network endpoint the dev server proxy service listens on. It is in the form \"host:port\".",
+          "x-cli-flag": "frontend-bind",
           "type": "string"
         },
         "advertisedURL": {
@@ -255,6 +280,7 @@
         },
         "proxyTo": {
           "description": "ProxyTo is the address to which the dev server proxy service forwards incoming requests. It is in the form \"http(s)://host:port\".",
+          "x-cli-flag": "frontend-dst",
           "type": "string"
         }
       }
@@ -264,12 +290,15 @@
       "properties": {
         "endpoint": {
           "description": "Endpoint is the network endpoint the Kubernetes proxy service listens on. It is in the form \"host:port\".",
+          "x-cli-flag": "k8s-proxy-bind-addr",
           "type": "string"
         },
         "advertisedURL": {
           "description": "AdvertisedURL is the URL that the Kubernetes proxy service advertises to clients. It is in the form \"https://host:port\". When not set, it is generated by the system based on the endpoint and TLS cert/key configuration.",
+          "x-cli-flag": "advertised-kubernetes-proxy-url",
           "type": "string",
-          "pattern": "^https://"
+          "pattern": "^https://",
+          "x-pattern-message": "must start with 'https://'"
         },
         "certFile": {
           "description": "CertFile is the path to the TLS certificate file for the Kubernetes proxy service.",
@@ -281,10 +310,12 @@
         },
         "oidcCacheBaseDir": {
           "description": "OidcCacheBaseDir overrides the base cache directory for kubelogin in generated kubeconfigs. When empty, kubelogin uses its default (~/.kube/cache/oidc-login).",
+          "x-cli-flag": "kubeconfig-oidc-cache-base-dir",
           "type": "string"
         },
         "oidcCacheIsolation": {
           "description": "OidcCacheIsolation isolates OIDC token caches across clusters by appending a per-context subdirectory to the cache directory in generated kubeconfigs.",
+          "x-cli-flag": "kubeconfig-oidc-cache-isolation",
           "type": "boolean"
         }
       }
@@ -301,6 +332,7 @@
         },
         "joinTokensMode": {
           "description": "JoinTokensMode configures how machine join tokens are generated and used. Set to strict to use the secure join tokens mode.",
+          "x-cli-flag": "join-tokens-mode",
           "type": "string",
           "enum": [
             "strict",
@@ -310,28 +342,34 @@
         },
         "disableLastEndpoint": {
           "description": "DisableLastEndpoint controls whether the SideroLink service should stop using the last known endpoint of a node when it becomes unreachable via WireGuard.",
+          "x-cli-flag": "siderolink-disable-last-endpoint",
           "type": "boolean"
         },
         "useGRPCTunnel": {
           "description": "UseGRPCTunnel controls whether the SideroLink service should tunnel WireGuard traffic over gRPC, in setups where direct Wireguard connectivity is not possible (e.g., due to firewall restrictions). When enabled, the SideroLink connections from Talos machines will be configured to use the tunnel mode, regardless of their individual configuration.",
+          "x-cli-flag": "siderolink-use-grpc-tunnel",
           "type": "boolean"
         },
         "eventSinkPort": {
           "description": "EventSinkPort is the port to be used by the nodes to publish their events over SideroLink to Omni.",
+          "x-cli-flag": "event-sink-port",
           "type": "integer"
         },
         "logServerPort": {
           "description": "LogServerPort is the port to be used by the nodes to send their logs over SideroLink to Omni.",
+          "x-cli-flag": "log-server-port",
           "type": "integer"
         },
         "bandwidthLimitMbps": {
           "description": "BandwidthLimitMbps is the maximum total bandwidth in megabits per second through the SideroLink tunnel. Uses a token bucket algorithm: the rate controls sustained throughput while burst allows temporary spikes. Zero means unlimited.",
+          "x-cli-flag": "siderolink-bandwidth-limit-mbps",
           "type": "integer",
           "goJSONSchema": { "type": "uint64" },
           "minimum": 0
         },
         "bandwidthLimitBurstBytes": {
           "description": "BandwidthLimitBurstBytes is the maximum number of bytes that can pass through the SideroLink tunnel in a single burst (token bucket capacity). The bucket refills continuously at the rate set by bandwidthLimitMbps. When zero and bandwidthLimitMbps is set, defaults to one second worth of the rate. For example, with bandwidthLimitMbps=10 (1.25 MB/s) and burstBytes=5000000 (5 MB), up to 5 MB can transfer instantly, then throughput settles to 1.25 MB/s.",
+          "x-cli-flag": "siderolink-bandwidth-limit-burst-bytes",
           "type": "integer",
           "goJSONSchema": { "type": "uint64" },
           "minimum": 0
@@ -343,10 +381,12 @@
       "properties": {
         "endpoint": {
           "description": "Endpoint is the network endpoint the WireGuard interface listens on. It is in the form \"ip:port\" (IP address is required, not hostname).",
+          "x-cli-flag": "siderolink-wireguard-bind-addr",
           "type": "string"
         },
         "advertisedEndpoint": {
           "description": "AdvertisedEndpoint is the endpoint that the SideroLink service advertises to nodes for WireGuard connectivity. It is in the form \"ip:port\" (IP address is required, not hostname). When not set, it is generated by the system based on the WireGuard endpoint.",
+          "x-cli-flag": "siderolink-wireguard-advertised-addr",
           "type": "string"
         }
       }
@@ -356,10 +396,12 @@
       "properties": {
         "enabled": {
           "description": "Enabled controls whether the local resource service is enabled.",
+          "x-cli-flag": "local-resource-server-enabled",
           "type": "boolean"
         },
         "port": {
           "description": "Port is the network port the local resource service listens on.",
+          "x-cli-flag": "local-resource-server-port",
           "type": "integer"
         }
       }
@@ -369,32 +411,40 @@
       "properties": {
         "enabled": {
           "description": "Enabled controls whether the embedded discovery service is enabled. It binds only to the SideroLink WireGuard address.",
+          "x-cli-flag": "embedded-discovery-service-enabled",
           "type": "boolean"
         },
         "port": {
           "description": "Port is the network port the embedded discovery service listens on.",
+          "x-cli-flag": "embedded-discovery-service-port",
           "type": "integer"
         },
         "snapshotsEnabled": {
           "description": "SnapshotsEnabled controls whether the embedded discovery service periodically persists snapshots of its state to disk.",
+          "x-cli-flag": "embedded-discovery-service-snapshots-enabled",
           "type": "boolean"
         },
         "snapshotsInterval": {
           "description": "SnapshotsInterval is the interval at which the embedded discovery service persists snapshots of its state.",
+          "x-cli-flag": "embedded-discovery-service-snapshot-interval",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "logLevel": {
           "description": "LogLevel is the logging level used by the embedded discovery service.",
+          "x-cli-flag": "embedded-discovery-service-log-level",
           "type": "string"
         },
         "sqliteTimeout": {
           "description": "SqliteTimeout is the timeout for SQLite operations used by the embedded discovery service.",
+          "x-cli-flag": "embedded-discovery-service-sqlite-timeout",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
@@ -406,16 +456,19 @@
       "properties": {
         "minPort": {
           "description": "MinPort is the minimum port number that can be picked by the load balancer service when allocating a new LB port to a cluster.",
+          "x-cli-flag": "lb-min-port",
           "type": "integer"
         },
         "maxPort": {
           "description": "MaxPort is the maximum port number that can be picked by the load balancer service when allocating a new LB port to a cluster.",
+          "x-cli-flag": "lb-max-port",
           "type": "integer"
         },
         "dialTimeout": {
           "description": "DialTimeout is the timeout used by the load balancer service when dialing backend control plane nodes.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
@@ -424,6 +477,7 @@
           "description": "KeepAlivePeriod is the period used by the load balancer service for keep-alive pings to backend control plane nodes.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
@@ -432,6 +486,7 @@
           "description": "TCPUserTimeout is the TCP user timeout value set on connections between the load balancer and backend control plane nodes.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
@@ -440,6 +495,7 @@
           "description": "HealthCheckInterval is the interval between health checks performed by the load balancer service on backend control plane nodes.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
@@ -448,6 +504,7 @@
           "description": "HealthCheckTimeout is the timeout for health checks performed by the load balancer service on backend control plane nodes.",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
@@ -459,23 +516,29 @@
       "properties": {
         "subdomain": {
           "description": "Subdomain is the subdomain used by the workload proxy service to expose workloads. By default, it lives at the same level as Omni (e.g., \"omni-apps.example.com\" for Omni at \"omni.example.com\"). When useOmniSubdomain is true, it is placed under Omni's domain instead (e.g., \"proxy.omni.example.com\"). When useOmniSubdomain is true and subdomain is empty, services are exposed directly as subdomains of Omni (e.g., \"grafana.omni.example.com\").",
+          "x-cli-flag": "workload-proxying-subdomain",
           "type": "string",
-          "pattern": "^([a-z0-9]([a-z0-9.-]*[a-z0-9])?)?$"
+          "pattern": "^([a-z0-9]([a-z0-9.-]*[a-z0-9])?)?$",
+          "x-pattern-message": "must be a valid DNS subdomain (lowercase alphanumeric, dots, hyphens)"
         },
         "enabled": {
           "description": "Enabled controls whether the workload proxy service is enabled.",
+          "x-cli-flag": "workload-proxying-enabled",
           "type": "boolean"
         },
         "stopLBsAfter": {
           "description": "StopLBsAfter is the duration after which the workload proxy service stops load balancers for workloads that have not received any traffic.",
+          "x-cli-flag": "workload-proxying-stop-lbs-after",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "useOmniSubdomain": {
           "description": "UseOmniSubdomain controls whether the workload proxy subdomain is placed under Omni's own domain (as a subdomain) rather than as a sibling. When true, the proxy domain becomes '<subdomain>.<omni-domain>' instead of '<subdomain>.<parent-of-omni-domain>'. This also simplifies exposed service URLs to '<alias>.<proxy-domain>' (without the instance name) and allows dashes in service aliases. When true and subdomain is empty, services are exposed directly as subdomains of Omni (e.g., '<alias>.<omni-domain>').",
+          "x-cli-flag": "workload-proxying-use-omni-subdomain",
           "type": "boolean"
         }
       }
@@ -625,6 +688,7 @@
         },
         "initialUsers": {
           "description": "InitialUsers is a list of emails which should be created as admins when Omni is run for the first time.",
+          "x-cli-flag": "initial-users",
           "type": "array",
           "items": {
             "type": "string"
@@ -636,6 +700,7 @@
         },
         "suspended": {
           "description": "Suspended is whether the Omni account is suspended. If true, Omni will run on read-only mode with a warning banner displayed in the UI.",
+          "x-cli-flag": "suspended",
           "type": "boolean"
         },
         "initialServiceAccount": {
@@ -653,6 +718,7 @@
       "properties": {
         "maxUsers": {
           "description": "MaxUsers is the maximum number of users allowed. 0 means unlimited.",
+          "x-cli-flag": "auth-max-users",
           "type": "integer",
           "minimum": 0,
           "goJSONSchema": {
@@ -661,6 +727,7 @@
         },
         "maxServiceAccounts": {
           "description": "MaxServiceAccounts is the maximum number of service accounts allowed. 0 means unlimited.",
+          "x-cli-flag": "auth-max-service-accounts",
           "type": "integer",
           "minimum": 0,
           "goJSONSchema": {
@@ -682,18 +749,22 @@
         },
         "domain": {
           "description": "Domain is the Auth0 domain.",
+          "x-cli-flag": "auth-auth0-domain",
           "type": "string"
         },
         "clientID": {
           "description": "ClientID is the Auth0 client ID.",
+          "x-cli-flag": "auth-auth0-client-id",
           "type": "string"
         },
         "useFormData": {
           "description": "UseFormData controls whether the Auth0 provider should use form data for authentication requests. When true, data to the token endpoint is transmitted as x-www-form-urlencoded data instead of JSON.",
+          "x-cli-flag": "auth-auth0-use-form-data",
           "type": "boolean"
         },
         "enabled": {
           "description": "Enabled controls whether the Auth0 authentication provider is enabled. Once set to true, it cannot be set back to false.",
+          "x-cli-flag": "auth-auth0-enabled",
           "type": "boolean"
         }
       }
@@ -703,11 +774,13 @@
       "properties": {
         "enabled": {
           "description": "Enabled controls whether WebAuthn authentication is enabled. It is NOT SUPPORTED as it is currently unimplemented.",
+          "x-cli-flag": "auth-webauthn-enabled",
           "type": "boolean",
           "const": false
         },
         "required": {
           "description": "Required controls whether WebAuthn authentication is required. It is NOT SUPPORTED as it is currently unimplemented.",
+          "x-cli-flag": "auth-webauthn-required",
           "type": "boolean",
           "const": false
         }
@@ -718,22 +791,27 @@
       "properties": {
         "providerURL": {
           "description": "ProviderURL is the OIDC provider URL.",
+          "x-cli-flag": "auth-oidc-provider-url",
           "type": "string"
         },
         "clientID": {
           "description": "ClientID is the OIDC client ID.",
+          "x-cli-flag": "auth-oidc-client-id",
           "type": "string"
         },
         "clientSecret": {
           "description": "ClientSecret is the OIDC client secret.",
+          "x-cli-flag": "auth-oidc-client-secret",
           "type": "string"
         },
         "logoutURL": {
           "description": "LogoutURL is the OIDC logout URL.",
+          "x-cli-flag": "auth-oidc-logout-url",
           "type": "string"
         },
         "scopes": {
           "description": "Scopes is the list of OIDC scopes to request during authentication.",
+          "x-cli-flag": "auth-oidc-scopes",
           "type": "array",
           "items": {
             "type": "string"
@@ -741,10 +819,12 @@
         },
         "enabled": {
           "description": "Enabled controls whether the OIDC authentication provider is enabled.",
+          "x-cli-flag": "auth-oidc-enabled",
           "type": "boolean"
         },
         "allowUnverifiedEmail": {
           "description": "AllowUnverifiedEmail controls whether users with unverified emails (without email_verified claim) are allowed to authenticate.",
+          "x-cli-flag": "auth-oidc-allow-unverified-email",
           "type": "boolean"
         }
       }
@@ -764,6 +844,7 @@
       "properties": {
         "labelRules": {
           "description": "LabelRules defines mapping of SAML assertion attributes into Omni identity labels.",
+          "x-cli-flag": "auth-saml-label-rules",
           "type": "object",
           "additionalProperties": {
             "type": "string"
@@ -771,6 +852,7 @@
         },
         "attributeRules": {
           "description": "AttributeRules defines additional identity, fullname, firstname and lastname mappings.",
+          "x-cli-flag": "auth-saml-attribute-rules",
           "type": "object",
           "additionalProperties": {
             "type": "string"
@@ -778,18 +860,22 @@
         },
         "url": {
           "description": "URL is the SAML provider URL. Mutually exclusive with metadata URL (.metadata).",
+          "x-cli-flag": "auth-saml-url",
           "type": "string"
         },
         "metadata": {
           "description": "Metadata is the SAML provider metadata URL. Mutually exclusive with URL (.url).",
+          "x-cli-flag": "auth-saml-metadata",
           "type": "string"
         },
         "nameIDFormat": {
           "description": "NameIDFormat is the SAML NameID format to be used.",
+          "x-cli-flag": "auth-saml-name-id-format",
           "type": "string"
         },
         "enabled": {
           "description": "Enabled controls whether the SAML authentication provider is enabled.",
+          "x-cli-flag": "auth-saml-enabled",
           "type": "boolean"
         }
       }
@@ -799,8 +885,10 @@
       "properties": {
         "interval": {
           "description": "Interval is the interval at which the key pruner runs.",
+          "x-cli-flag": "public-key-pruning-interval",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
@@ -812,10 +900,12 @@
       "properties": {
         "role": {
           "description": "Role is the role assigned to the initial service account.",
+          "x-cli-flag": "initial-service-account-role",
           "type": "string"
         },
         "keyPath": {
           "description": "KeyPath is the path where the initial service account key is stored.",
+          "x-cli-flag": "initial-service-account-key-path",
           "type": "string"
         },
         "name": {
@@ -824,14 +914,17 @@
         },
         "lifetime": {
           "description": "Lifetime is the lifetime of the initial service account key.",
+          "x-cli-flag": "initial-service-account-lifetime",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "enabled": {
           "description": "Enabled controls whether the initial service account is created. This happens only on the first start of Omni.",
+          "x-cli-flag": "create-initial-service-account",
           "type": "boolean"
         }
       }
@@ -880,34 +973,42 @@
       "properties": {
         "sqliteTimeout": {
           "description": "SqliteTimeout is the timeout for SQLite operations used for machine logs storage.",
+          "x-cli-flag": "machine-log-sqlite-timeout",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "cleanupInterval": {
           "description": "CleanupInterval is the interval at which old machine logs are cleaned up.",
+          "x-cli-flag": "machine-log-cleanup-interval",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "cleanupOlderThan": {
           "description": "CleanupOlderThan is the duration after which machine logs are considered old and eligible for cleanup.",
+          "x-cli-flag": "machine-log-cleanup-older-than",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "maxLinesPerMachine": {
           "description": "MaxLinesPerMachine is the maximum number of log lines to keep per machine.",
+          "x-cli-flag": "machine-log-max-lines-per-machine",
           "type": "integer"
         },
         "maxSize": {
           "description": "MaxSize is the maximum allowed size (in bytes) of the machine logs table. When exceeded, the oldest entries are removed globally across all machines. 0 means unlimited.",
+          "x-cli-flag": "machine-log-max-size",
           "type": "integer",
           "minimum": 0,
           "goJSONSchema": {
@@ -916,6 +1017,7 @@
         },
         "cleanupProbability": {
           "description": "CleanupProbability is the probability of triggering the cleanup on each log write for that machine.",
+          "x-cli-flag": "machine-log-cleanup-probability",
           "type": "number"
         }
       }
@@ -925,26 +1027,32 @@
       "properties": {
         "enabled": {
           "description": "Enabled controls whether audit logging is enabled.",
+          "x-cli-flag": "audit-log-enabled",
           "type": "boolean"
         },
         "sqliteTimeout": {
           "description": "SqliteTimeout is the timeout for SQLite operations used for audit logs storage.",
+          "x-cli-flag": "audit-log-sqlite-timeout",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "retentionPeriod": {
           "description": "RetentionPeriod is the duration after which audit logs are considered old and eligible for cleanup.",
+          "x-cli-flag": "audit-log-retention-period",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "maxSize": {
           "description": "MaxSize is the maximum allowed size (in bytes) of the audit logs. When exceeded, the oldest entries are removed. 0 means unlimited.",
+          "x-cli-flag": "audit-log-max-size",
           "type": "integer",
           "minimum": 0,
           "goJSONSchema": {
@@ -953,6 +1061,7 @@
         },
         "cleanupProbability": {
           "description": "CleanupProbability is the probability of triggering size-based cleanup on each audit log write. When triggered, a best-effort cleanup removes a bounded batch of the oldest rows to reduce the table size toward maxSize; multiple cleanups may be required for the table to fall below maxSize. 0 disables size-based cleanup.",
+          "x-cli-flag": "audit-log-cleanup-probability",
           "type": "number"
         }
       }
@@ -962,10 +1071,12 @@
       "properties": {
         "logLevel": {
           "description": "LogLevel is the logging level used by the resource logger.",
+          "x-cli-flag": "log-resource-updates-log-level",
           "type": "string"
         },
         "types": {
           "description": "Types is the list of resource types to be logged by the resource logger.",
+          "x-cli-flag": "log-resource-updates-types",
           "type": "array",
           "goJSONSchema": {
             "extraTags": {
@@ -983,10 +1094,12 @@
       "properties": {
         "enabled": {
           "description": "Enabled controls whether Stripe logging is enabled.",
+          "x-cli-flag": "enable-stripe-reporting",
           "type": "boolean"
         },
         "minCommit": {
           "description": "MinCommit is the minimum number of machines committed for billing purposes, reported to Stripe for the given account.",
+          "x-cli-flag": "stripe-minimum-commit",
           "type": "integer",
           "minimum": 0,
           "goJSONSchema": {
@@ -1030,6 +1143,7 @@
         },
         "k8sAuthMountPath": {
           "description": "K8sAuthMountPath is the mount path of the Kubernetes auth method in Vault. When not set, it defaults to \"kubernetes\". This is useful when Vault is running on a different cluster and has multiple Kubernetes auth mounts.",
+          "x-cli-flag": "vault-k8s-auth-mount-path",
           "type": "string"
         }
       }
@@ -1043,6 +1157,7 @@
       "properties": {
         "kind": {
           "description": "Kind is the kind of the default storage backend.",
+          "x-cli-flag": "storage-kind",
           "type": "string",
           "enum": [
             "etcd",
@@ -1078,19 +1193,24 @@
           "description": "Path is the path where the SQLite database file is stored.",
           "type": "string",
           "minLength": 1,
+          "x-cli-flag": "sqlite-storage-path",
           "goJSONSchema": {
             "type": "*string"
           }
         },
         "experimentalBaseParams": {
           "description": "ExperimentalBaseParams contains the base parameters to be used when opening the SQLite database connection. This can cause data corruption if set incorrectly, modify at your own risk. This flag is experimental and may be removed in future versions. It must not start with a question mark (?).",
+          "x-cli-flag": "sqlite-storage-experimental-base-params",
           "type": "string",
-          "pattern": "^(?:$|[^?].*)"
+          "pattern": "^(?:$|[^?].*)",
+          "x-pattern-message": "must not start with '?'"
         },
         "extraParams": {
           "description": "ExtraParams contains the extra parameters to be used when opening the SQLite database connection. This can cause data corruption if set incorrectly, modify at your own risk. It must not start with an ampersand (&).",
+          "x-cli-flag": "sqlite-storage-extra-params",
           "type": "string",
-          "pattern": "^(?:$|[^&].*)"
+          "pattern": "^(?:$|[^&].*)",
+          "x-pattern-message": "must not start with '&'"
         },
         "cachedPoolSize" : {
           "description": "CachedPoolSize controls the number of cached connections in the SQLite connection pool. The overall number of connections is limited by poolSize. CachedPoolSize should be less or equal to poolSize.",
@@ -1112,6 +1232,7 @@
       "properties": {
         "endpoints": {
           "description": "Endpoints is the list of etcd endpoints. Only used when external etcd is used (i.e., embedded is false).",
+          "x-cli-flag": "etcd-endpoints",
           "type": "array",
           "goJSONSchema": {
             "extraTags": {
@@ -1124,42 +1245,52 @@
         },
         "dialKeepAliveTime": {
           "description": "DialKeepAliveTime is the keep-alive time for etcd client connections.",
+          "x-cli-flag": "etcd-dial-keepalive-time",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "dialKeepAliveTimeout": {
           "description": "DialKeepAliveTimeout is the keep-alive timeout for etcd client connections.",
+          "x-cli-flag": "etcd-dial-keepalive-timeout",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "caFile": {
           "description": "CaFile is the path to the CA certificate file for etcd client connections.",
+          "x-cli-flag": "etcd-ca-path",
           "type": "string"
         },
         "certFile": {
           "description": "CertFile is the path to the TLS certificate file for etcd client connections.",
+          "x-cli-flag": "etcd-client-cert-path",
           "type": "string"
         },
         "keyFile": {
           "description": "KeyFile is the path to the TLS key file for etcd client connections.",
+          "x-cli-flag": "etcd-client-key-path",
           "type": "string"
         },
         "embedded": {
           "description": "Embedded controls whether to use embedded etcd server as the storage backend.",
+          "x-cli-flag": "etcd-embedded",
           "type": "boolean"
         },
         "embeddedDBPath": {
           "description": "EmbeddedDBPath is the path where the embedded etcd database files are stored.",
+          "x-cli-flag": "etcd-embedded-db-path",
           "type": "string"
         },
         "embeddedUnsafeFsync": {
           "description": "EmbeddedUnsafeFsync controls whether the embedded etcd server should skip fsync calls for improved performance at the cost of durability.",
+          "x-cli-flag": "etcd-embedded-unsafe-fsync",
           "type": "boolean"
         },
         "runElections": {
@@ -1168,6 +1299,7 @@
         },
         "privateKeySource": {
           "description": "PrivateKeySource is the source of the private key for the embedded etcd server. It is used for decrypting master key slot.",
+          "x-cli-flag": "private-key-source",
           "type": "string",
           "minLength": 1,
           "goJSONSchema": {
@@ -1176,6 +1308,7 @@
         },
         "publicKeyFiles": {
           "description": "PublicKeyFiles is the list of public key files for the embedded etcd server. They are used for encrypting keys slots.",
+          "x-cli-flag": "public-key-files",
           "type": "array",
           "goJSONSchema": {
             "extraTags": {
@@ -1210,38 +1343,47 @@
       "properties": {
         "localPath": {
           "description": "LocalPath is the local path where etcd backups are stored before being uploaded to remote storage. Mutually exclusive with s3Enabled (.s3Enabled).",
+          "x-cli-flag": "etcd-backup-local-path",
           "type": "string"
         },
         "s3Enabled": {
           "description": "S3Enabled controls whether an S3-compatible storage is used for etcd backups. Mutually exclusive with localPath (.localPath).",
+          "x-cli-flag": "etcd-backup-s3",
           "type": "boolean"
         },
         "tickInterval": {
           "description": "TickInterval is the interval between etcd backups ticks (controller events to check if any cluster needs to be backed up)",
+          "x-cli-flag": "etcd-backup-tick-interval",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "minInterval": {
           "description": "MinInterval is the minimum interval between two etcd backups for a cluster.",
+          "x-cli-flag": "etcd-backup-min-interval",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "maxInterval": {
           "description": "MaxInterval is the maximum interval between two etcd backups for a cluster.",
+          "x-cli-flag": "etcd-backup-max-interval",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
         },
         "uploadLimitMbps": {
           "description": "UploadLimitMbps is the optional upload bandwidth limit for etcd backups to remote storage in megabits per second. If not specified or is set to 0, it is unlimited.",
+          "x-cli-flag": "etcd-backup-upload-limit-mbps",
           "type": "integer",
           "minimum": 0,
           "goJSONSchema": {
@@ -1250,6 +1392,7 @@
         },
         "downloadLimitMbps": {
           "description": "DownloadLimitMbps is the optional download bandwidth limit for etcd backups from remote storage in megabits per second. If not specified or is set to 0, it is unlimited.",
+          "x-cli-flag": "etcd-backup-download-limit-mbps",
           "type": "integer",
           "minimum": 0,
           "goJSONSchema": {
@@ -1258,8 +1401,10 @@
         },
         "jitter": {
           "description": "Jitter is the jitter for etcd backups, randomly added/subtracted from the interval between automatic etcd backups.",
+          "x-cli-flag": "etcd-backup-jitter",
           "type": "string",
           "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
           "goJSONSchema": {
             "type": "time.Duration"
           }
@@ -1288,6 +1433,7 @@
       "properties": {
         "endpoint": {
           "description": "Endpoint is the network endpoint the debug server listens on. It is in the form \"[host]:port\".",
+          "x-cli-flag": "debug-server-endpoint",
           "type": "string"
         }
       }
@@ -1297,6 +1443,7 @@
       "properties": {
         "endpoint": {
           "description": "Endpoint is the network endpoint the pprof server listens on. It is in the form \"[host]:port\".",
+          "x-cli-flag": "pprof-bind-addr",
           "type": "string"
         }
       }
@@ -1306,22 +1453,27 @@
       "properties": {
         "enableTalosPreReleaseVersions": {
           "description": "EnableTalosPreReleaseVersions controls whether pre-release Talos versions (e.g., release candidates, betas) are available for selection when creating/upgrading clusters.",
+          "x-cli-flag": "enable-talos-pre-release-versions",
           "type": "boolean"
         },
         "enableBreakGlassConfigs": {
           "description": "EnableBreakGlassConfigs controls whether break-glass machine configurations are enabled. Break-glass configs allow direct access to the machines without going through Omni. Recommended to be disabled.",
+          "x-cli-flag": "enable-break-glass-configs",
           "type": "boolean"
         },
         "enableConfigDataCompression": {
           "description": "EnableConfigDataCompression controls whether machine configuration data stored in etcd is compressed to save space.",
+          "x-cli-flag": "config-data-compression-enabled",
           "type": "boolean"
         },
         "enableClusterImport": {
           "description": "EnableClusterImport controls whether the cluster import feature is enabled. When enabled, users can import existing Talos clusters into Omni.",
+          "x-cli-flag": "enable-cluster-import",
           "type": "boolean"
         },
         "disableControllerRuntimeCache": {
           "description": "DisableControllerRuntimeCache controls whether the controller-runtime cache is disabled. When disabled, etcd is accessed for all reads. Recommended to be enabled, unless debugging specific issues.",
+          "x-cli-flag": "disable-controller-runtime-cache",
           "type": "boolean"
         }
       }

@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -26,7 +25,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
-	"github.com/siderolabs/omni/internal/pkg/jsonschema"
 	"github.com/siderolabs/omni/internal/version"
 )
 
@@ -146,315 +144,225 @@ func buildRootCommand() (*cobra.Command, error) {
 		},
 	}
 
-	rootCmdFlagBinder = NewFlagBinder(rootCmd)
+	rootCmdFlagBinder = NewFlagBinder(rootCmd, configSchema)
 
 	rootCmd.Flags().StringArrayVar(&configPaths, "config-path", nil, "config file(s) to load, can be specified multiple times, merged in order (flags have highest priority)")
 	rootCmd.Flags().BoolVar(&debug, "debug", constants.IsDebugBuild, "enable debug logs.")
 
-	rootCmdFlagBinder.StringVar("account-id", flagDescription("account.id", configSchema), &flagConfig.Account.Id)
-	rootCmdFlagBinder.StringVar("name", flagDescription("account.name", configSchema), &flagConfig.Account.Name)
-	rootCmdFlagBinder.StringVar("user-pilot-app-token", flagDescription("account.userPilot.appToken", configSchema), &flagConfig.Account.UserPilot.AppToken)
-	rootCmdFlagBinder.Uint32Var("account-max-registered-machines", flagDescription("account.maxRegisteredMachines", configSchema), &flagConfig.Account.MaxRegisteredMachines)
+	rootCmdFlagBinder.StringVar("account.id", &flagConfig.Account.Id)
+	rootCmdFlagBinder.StringVar("account.name", &flagConfig.Account.Name)
+	rootCmdFlagBinder.StringVar("account.userPilot.appToken", &flagConfig.Account.UserPilot.AppToken)
+	rootCmdFlagBinder.Uint32Var("account.maxRegisteredMachines", &flagConfig.Account.MaxRegisteredMachines)
 
-	if err := defineServiceFlags(rootCmd, rootCmdFlagBinder, flagConfig, configSchema); err != nil {
-		return nil, fmt.Errorf("failed to define service flags: %w", err)
-	}
+	defineServiceFlags(rootCmdFlagBinder, flagConfig)
+	defineAuthFlags(rootCmd, rootCmdFlagBinder, flagConfig)
 
-	defineAuthFlags(rootCmd, rootCmdFlagBinder, flagConfig, configSchema)
-
-	if err := defineLogsFlags(rootCmd, rootCmdFlagBinder, flagConfig, configSchema); err != nil {
+	if err := defineLogsFlags(rootCmd, rootCmdFlagBinder, flagConfig); err != nil {
 		return nil, fmt.Errorf("failed to define logs flags: %w", err)
 	}
 
-	defineStorageFlags(rootCmd, rootCmdFlagBinder, flagConfig, configSchema)
-	defineRegistriesFlags(rootCmd, rootCmdFlagBinder, flagConfig, configSchema)
-	defineFeatureFlags(rootCmdFlagBinder, flagConfig, configSchema)
-	defineDebugFlags(rootCmdFlagBinder, flagConfig, configSchema)
-	defineEtcdBackupsFlags(rootCmd, rootCmdFlagBinder, flagConfig, configSchema)
+	defineStorageFlags(rootCmd, rootCmdFlagBinder, flagConfig)
+	defineRegistriesFlags(rootCmdFlagBinder, flagConfig)
+	defineFeatureFlags(rootCmdFlagBinder, flagConfig)
+	defineDebugFlags(rootCmdFlagBinder, flagConfig)
+	defineEtcdBackupsFlags(rootCmd, rootCmdFlagBinder, flagConfig)
 
 	return rootCmd, nil
 }
 
-func defineServiceFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) error {
+func defineServiceFlags(b *FlagBinder, flagConfig *config.Params) {
 	// API
-	rootCmdFlagBinder.StringVar("bind-addr", flagDescription("services.api.endpoint", schema), &flagConfig.Services.Api.Endpoint)
-	rootCmdFlagBinder.StringVar("advertised-api-url", flagDescription("services.api.advertisedURL", schema), &flagConfig.Services.Api.AdvertisedURL)
-	rootCmdFlagBinder.StringVar("key", flagDescription("services.api.keyFile", schema), &flagConfig.Services.Api.KeyFile)
-	rootCmdFlagBinder.StringVar("cert", flagDescription("services.api.certFile", schema), &flagConfig.Services.Api.CertFile)
+	b.StringVar("services.api.endpoint", &flagConfig.Services.Api.Endpoint)
+	b.StringVar("services.api.advertisedURL", &flagConfig.Services.Api.AdvertisedURL)
+	b.StringVar("services.api.keyFile", &flagConfig.Services.Api.KeyFile)
+	b.StringVar("services.api.certFile", &flagConfig.Services.Api.CertFile)
 
 	// Metrics
-	rootCmdFlagBinder.StringVar("metrics-bind-addr", flagDescription("services.metrics.endpoint", schema), &flagConfig.Services.Metrics.Endpoint)
+	b.StringVar("services.metrics.endpoint", &flagConfig.Services.Metrics.Endpoint)
 
 	// KubernetesProxy
-	rootCmdFlagBinder.StringVar("k8s-proxy-bind-addr", flagDescription("services.kubernetesProxy.endpoint", schema), &flagConfig.Services.KubernetesProxy.Endpoint)
-
-	rootCmdFlagBinder.StringVar("advertised-kubernetes-proxy-url", flagDescription("services.kubernetesProxy.advertisedURL", schema), &flagConfig.Services.KubernetesProxy.AdvertisedURL)
-
-	rootCmdFlagBinder.StringVar("kubeconfig-oidc-cache-base-dir",
-		flagDescription("services.kubernetesProxy.oidcCacheBaseDir", schema), &flagConfig.Services.KubernetesProxy.OidcCacheBaseDir)
-	rootCmdFlagBinder.BoolVar("kubeconfig-oidc-cache-isolation",
-		flagDescription("services.kubernetesProxy.oidcCacheIsolation", schema), &flagConfig.Services.KubernetesProxy.OidcCacheIsolation)
+	b.StringVar("services.kubernetesProxy.endpoint", &flagConfig.Services.KubernetesProxy.Endpoint)
+	b.StringVar("services.kubernetesProxy.advertisedURL", &flagConfig.Services.KubernetesProxy.AdvertisedURL)
+	b.StringVar("services.kubernetesProxy.oidcCacheBaseDir", &flagConfig.Services.KubernetesProxy.OidcCacheBaseDir)
+	b.BoolVar("services.kubernetesProxy.oidcCacheIsolation", &flagConfig.Services.KubernetesProxy.OidcCacheIsolation)
 
 	// Siderolink
-	rootCmdFlagBinder.StringVar("siderolink-wireguard-bind-addr", flagDescription("services.siderolink.wireGuard.endpoint", schema), &flagConfig.Services.Siderolink.WireGuard.Endpoint)
-	rootCmdFlagBinder.StringVar("siderolink-wireguard-advertised-addr",
-		flagDescription("services.siderolink.wireGuard.advertisedEndpoint", schema), &flagConfig.Services.Siderolink.WireGuard.AdvertisedEndpoint)
-	rootCmdFlagBinder.BoolVar("siderolink-disable-last-endpoint",
-		flagDescription("services.siderolink.disableLastEndpoint", schema), &flagConfig.Services.Siderolink.DisableLastEndpoint)
-	rootCmdFlagBinder.BoolVar("siderolink-use-grpc-tunnel",
-		flagDescription("services.siderolink.useGRPCTunnel", schema),
-		&flagConfig.Services.Siderolink.UseGRPCTunnel,
-	)
-	rootCmdFlagBinder.IntVar("event-sink-port", flagDescription("services.siderolink.eventSinkPort", schema), &flagConfig.Services.Siderolink.EventSinkPort)
-	rootCmdFlagBinder.IntVar("log-server-port", flagDescription("services.siderolink.logServerPort", schema), &flagConfig.Services.Siderolink.LogServerPort)
-	EnumVar(rootCmdFlagBinder, "join-tokens-mode", flagDescription("services.siderolink.joinTokensMode", schema), &flagConfig.Services.Siderolink.JoinTokensMode)
-	rootCmdFlagBinder.Uint64Var("siderolink-bandwidth-limit-mbps",
-		flagDescription("services.siderolink.bandwidthLimitMbps", schema),
-		&flagConfig.Services.Siderolink.BandwidthLimitMbps)
-	rootCmdFlagBinder.Uint64Var("siderolink-bandwidth-limit-burst-bytes",
-		flagDescription("services.siderolink.bandwidthLimitBurstBytes", schema),
-		&flagConfig.Services.Siderolink.BandwidthLimitBurstBytes)
+	b.StringVar("services.siderolink.wireGuard.endpoint", &flagConfig.Services.Siderolink.WireGuard.Endpoint)
+	b.StringVar("services.siderolink.wireGuard.advertisedEndpoint", &flagConfig.Services.Siderolink.WireGuard.AdvertisedEndpoint)
+	b.BoolVar("services.siderolink.disableLastEndpoint", &flagConfig.Services.Siderolink.DisableLastEndpoint)
+	b.BoolVar("services.siderolink.useGRPCTunnel", &flagConfig.Services.Siderolink.UseGRPCTunnel)
+	b.IntVar("services.siderolink.eventSinkPort", &flagConfig.Services.Siderolink.EventSinkPort)
+	b.IntVar("services.siderolink.logServerPort", &flagConfig.Services.Siderolink.LogServerPort)
+	EnumVar(b, "services.siderolink.joinTokensMode", &flagConfig.Services.Siderolink.JoinTokensMode)
+	b.Uint64Var("services.siderolink.bandwidthLimitMbps", &flagConfig.Services.Siderolink.BandwidthLimitMbps)
+	b.Uint64Var("services.siderolink.bandwidthLimitBurstBytes", &flagConfig.Services.Siderolink.BandwidthLimitBurstBytes)
 
-	// MachineAPI
-	for _, prefix := range []string{"siderolink", "machine"} {
-		rootCmdFlagBinder.StringVar(fmt.Sprintf("%s-api-bind-addr", prefix), flagDescription("services.machineAPI.endpoint", schema), &flagConfig.Services.MachineAPI.Endpoint)
-		rootCmdFlagBinder.StringVar(fmt.Sprintf("%s-api-cert", prefix), flagDescription("services.machineAPI.certFile", schema), &flagConfig.Services.MachineAPI.CertFile)
-		rootCmdFlagBinder.StringVar(fmt.Sprintf("%s-api-key", prefix), flagDescription("services.machineAPI.keyFile", schema), &flagConfig.Services.MachineAPI.KeyFile)
-		rootCmdFlagBinder.StringVar(fmt.Sprintf("%s-api-advertised-url", prefix), flagDescription("services.machineAPI.advertisedURL", schema), &flagConfig.Services.MachineAPI.AdvertisedURL)
-	}
+	// MachineAPI — deprecated aliases registered first so canonical flags take precedence in BindAll()
+	b.deprecatedStringAlias("siderolink-api-bind-addr", "use --machine-api-bind-addr", &flagConfig.Services.MachineAPI.Endpoint)
+	b.deprecatedStringAlias("siderolink-api-cert", "use --machine-api-cert", &flagConfig.Services.MachineAPI.CertFile)
+	b.deprecatedStringAlias("siderolink-api-key", "use --machine-api-key", &flagConfig.Services.MachineAPI.KeyFile)
+	b.deprecatedStringAlias("siderolink-api-advertised-url", "use --machine-api-advertised-url", &flagConfig.Services.MachineAPI.AdvertisedURL)
 
-	if err := rootCmd.Flags().MarkDeprecated("siderolink-api-bind-addr", "--deprecated, use --machine-api-bind-addr"); err != nil {
-		return err
-	}
-
-	if err := rootCmd.Flags().MarkDeprecated("siderolink-api-cert", "deprecated, use --machine-api-cert"); err != nil {
-		return err
-	}
-
-	if err := rootCmd.Flags().MarkDeprecated("siderolink-api-key", "deprecated, use --machine-api-key"); err != nil {
-		return err
-	}
+	b.StringVar("services.machineAPI.endpoint", &flagConfig.Services.MachineAPI.Endpoint)
+	b.StringVar("services.machineAPI.certFile", &flagConfig.Services.MachineAPI.CertFile)
+	b.StringVar("services.machineAPI.keyFile", &flagConfig.Services.MachineAPI.KeyFile)
+	b.StringVar("services.machineAPI.advertisedURL", &flagConfig.Services.MachineAPI.AdvertisedURL)
 
 	// LoadBalancer
-	rootCmdFlagBinder.IntVar("lb-min-port", flagDescription("services.loadBalancer.minPort", schema), &flagConfig.Services.LoadBalancer.MinPort)
-	rootCmdFlagBinder.IntVar("lb-max-port", flagDescription("services.loadBalancer.maxPort", schema), &flagConfig.Services.LoadBalancer.MaxPort)
+	b.IntVar("services.loadBalancer.minPort", &flagConfig.Services.LoadBalancer.MinPort)
+	b.IntVar("services.loadBalancer.maxPort", &flagConfig.Services.LoadBalancer.MaxPort)
 
-	rootCmdFlagBinder.IntVar("local-resource-server-port", flagDescription("services.localResourceService.port", schema), &flagConfig.Services.LocalResourceService.Port)
-
-	rootCmdFlagBinder.BoolVar("local-resource-server-enabled", flagDescription("services.localResourceService.enabled", schema), &flagConfig.Services.LocalResourceService.Enabled)
+	// LocalResourceService
+	b.IntVar("services.localResourceService.port", &flagConfig.Services.LocalResourceService.Port)
+	b.BoolVar("services.localResourceService.enabled", &flagConfig.Services.LocalResourceService.Enabled)
 
 	// Embedded discovery service
-	rootCmdFlagBinder.BoolVar("embedded-discovery-service-enabled",
-		flagDescription("services.embeddedDiscoveryService.enabled", schema), &flagConfig.Services.EmbeddedDiscoveryService.Enabled)
-
-	rootCmdFlagBinder.IntVar("embedded-discovery-service-endpoint", flagDescription("services.embeddedDiscoveryService.port", schema), &flagConfig.Services.EmbeddedDiscoveryService.Port)
-
-	if err := rootCmd.Flags().MarkDeprecated("embedded-discovery-service-endpoint", "use --embedded-discovery-service-port"); err != nil {
-		return err
-	}
-
-	rootCmdFlagBinder.IntVar("embedded-discovery-service-port", flagDescription("services.embeddedDiscoveryService.port", schema), &flagConfig.Services.EmbeddedDiscoveryService.Port)
-
-	rootCmdFlagBinder.BoolVar("embedded-discovery-service-snapshots-enabled",
-		flagDescription("services.embeddedDiscoveryService.snapshotsEnabled", schema), &flagConfig.Services.EmbeddedDiscoveryService.SnapshotsEnabled)
-
-	rootCmdFlagBinder.DurationVar("embedded-discovery-service-snapshot-interval",
-		flagDescription("services.embeddedDiscoveryService.snapshotsInterval", schema), &flagConfig.Services.EmbeddedDiscoveryService.SnapshotsInterval)
-	rootCmdFlagBinder.StringVar("embedded-discovery-service-log-level",
-		flagDescription("services.embeddedDiscoveryService.logLevel", schema), &flagConfig.Services.EmbeddedDiscoveryService.LogLevel)
-	rootCmdFlagBinder.DurationVar("embedded-discovery-service-sqlite-timeout",
-		flagDescription("services.embeddedDiscoveryService.sqliteTimeout", schema), &flagConfig.Services.EmbeddedDiscoveryService.SqliteTimeout)
+	b.BoolVar("services.embeddedDiscoveryService.enabled", &flagConfig.Services.EmbeddedDiscoveryService.Enabled)
+	b.deprecatedIntAlias("embedded-discovery-service-endpoint", "use --embedded-discovery-service-port", &flagConfig.Services.EmbeddedDiscoveryService.Port)
+	b.IntVar("services.embeddedDiscoveryService.port", &flagConfig.Services.EmbeddedDiscoveryService.Port)
+	b.BoolVar("services.embeddedDiscoveryService.snapshotsEnabled", &flagConfig.Services.EmbeddedDiscoveryService.SnapshotsEnabled)
+	b.DurationVar("services.embeddedDiscoveryService.snapshotsInterval", &flagConfig.Services.EmbeddedDiscoveryService.SnapshotsInterval)
+	b.StringVar("services.embeddedDiscoveryService.logLevel", &flagConfig.Services.EmbeddedDiscoveryService.LogLevel)
+	b.DurationVar("services.embeddedDiscoveryService.sqliteTimeout", &flagConfig.Services.EmbeddedDiscoveryService.SqliteTimeout)
 
 	// DevServerProxy
-	rootCmdFlagBinder.StringVar("frontend-dst", flagDescription("services.devServerProxy.proxyTo", schema), &flagConfig.Services.DevServerProxy.ProxyTo)
-	rootCmdFlagBinder.StringVar("frontend-bind", flagDescription("services.devServerProxy.endpoint", schema), &flagConfig.Services.DevServerProxy.Endpoint)
-
-	return nil
+	b.StringVar("services.devServerProxy.proxyTo", &flagConfig.Services.DevServerProxy.ProxyTo)
+	b.StringVar("services.devServerProxy.endpoint", &flagConfig.Services.DevServerProxy.Endpoint)
 }
 
-func defineAuthFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) {
+func defineAuthFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.Params) {
 	// Auth0
-	rootCmdFlagBinder.BoolVar("auth-auth0-enabled",
-		flagDescription("auth.auth0.enabled", schema), &flagConfig.Auth.Auth0.Enabled)
-	rootCmdFlagBinder.StringVar("auth-auth0-client-id", flagDescription("auth.auth0.clientID", schema), &flagConfig.Auth.Auth0.ClientID)
-	rootCmdFlagBinder.StringVar("auth-auth0-domain", flagDescription("auth.auth0.domain", schema), &flagConfig.Auth.Auth0.Domain)
-	rootCmdFlagBinder.BoolVar("auth-auth0-use-form-data",
-		flagDescription("auth.auth0.useFormData", schema), &flagConfig.Auth.Auth0.UseFormData)
+	b.BoolVar("auth.auth0.enabled", &flagConfig.Auth.Auth0.Enabled)
+	b.StringVar("auth.auth0.clientID", &flagConfig.Auth.Auth0.ClientID)
+	b.StringVar("auth.auth0.domain", &flagConfig.Auth.Auth0.Domain)
+	b.BoolVar("auth.auth0.useFormData", &flagConfig.Auth.Auth0.UseFormData)
 
 	// Webauthn
-	rootCmdFlagBinder.BoolVar("auth-webauthn-enabled",
-		flagDescription("auth.webauthn.enabled", schema), &flagConfig.Auth.Webauthn.Enabled)
-	rootCmdFlagBinder.BoolVar("auth-webauthn-required",
-		flagDescription("auth.webauthn.required", schema), &flagConfig.Auth.Webauthn.Required)
+	b.BoolVar("auth.webauthn.enabled", &flagConfig.Auth.Webauthn.Enabled)
+	b.BoolVar("auth.webauthn.required", &flagConfig.Auth.Webauthn.Required)
 
-	rootCmdFlagBinder.BoolVar("auth-saml-enabled",
-		flagDescription("auth.saml.enabled", schema), &flagConfig.Auth.Saml.Enabled,
-	)
-	rootCmdFlagBinder.StringVar("auth-saml-url", flagDescription("auth.saml.url", schema), &flagConfig.Auth.Saml.Url)
-	rootCmdFlagBinder.StringVar("auth-saml-metadata", flagDescription("auth.saml.metadata", schema), &flagConfig.Auth.Saml.Metadata)
-	rootCmd.Flags().Var(&flagConfig.Auth.Saml.LabelRules, "auth-saml-label-rules", flagDescription("auth.saml.labelRules", schema))
-	rootCmd.Flags().Var(&flagConfig.Auth.Saml.AttributeRules, "auth-saml-attribute-rules", flagDescription("auth.saml.attributeRules", schema))
-	rootCmdFlagBinder.StringVar("auth-saml-name-id-format", flagDescription("auth.saml.nameIDFormat", schema), &flagConfig.Auth.Saml.NameIDFormat)
-	rootCmd.Flags().StringSliceVar(&flagConfig.Auth.InitialUsers, "initial-users", flagConfig.Auth.InitialUsers, flagDescription("auth.initialUsers", schema))
-	rootCmdFlagBinder.DurationVar("public-key-pruning-interval", flagDescription("auth.keyPruner.interval", schema), &flagConfig.Auth.KeyPruner.Interval)
-	rootCmdFlagBinder.BoolVar("suspended", flagDescription("auth.suspended", schema), &flagConfig.Auth.Suspended)
+	// SAML
+	b.BoolVar("auth.saml.enabled", &flagConfig.Auth.Saml.Enabled)
+	b.StringVar("auth.saml.url", &flagConfig.Auth.Saml.Url)
+	b.StringVar("auth.saml.metadata", &flagConfig.Auth.Saml.Metadata)
+	b.ValueVar("auth.saml.labelRules", &flagConfig.Auth.Saml.LabelRules)
+	b.ValueVar("auth.saml.attributeRules", &flagConfig.Auth.Saml.AttributeRules)
+	b.StringVar("auth.saml.nameIDFormat", &flagConfig.Auth.Saml.NameIDFormat)
 
-	rootCmdFlagBinder.BoolVar("create-initial-service-account",
-		flagDescription("auth.initialServiceAccount.enabled", schema), &flagConfig.Auth.InitialServiceAccount.Enabled)
+	b.StringSliceVar("auth.initialUsers", &flagConfig.Auth.InitialUsers, flagConfig.Auth.InitialUsers)
 
-	rootCmdFlagBinder.StringVar("initial-service-account-key-path", flagDescription("auth.initialServiceAccount.keyPath", schema), &flagConfig.Auth.InitialServiceAccount.KeyPath)
+	b.DurationVar("auth.keyPruner.interval", &flagConfig.Auth.KeyPruner.Interval)
+	b.BoolVar("auth.suspended", &flagConfig.Auth.Suspended)
 
-	rootCmdFlagBinder.StringVar("initial-service-account-role", flagDescription("auth.initialServiceAccount.role", schema), &flagConfig.Auth.InitialServiceAccount.Role)
+	// Initial service account
+	b.BoolVar("auth.initialServiceAccount.enabled", &flagConfig.Auth.InitialServiceAccount.Enabled)
+	b.StringVar("auth.initialServiceAccount.keyPath", &flagConfig.Auth.InitialServiceAccount.KeyPath)
+	b.StringVar("auth.initialServiceAccount.role", &flagConfig.Auth.InitialServiceAccount.Role)
+	b.DurationVar("auth.initialServiceAccount.lifetime", &flagConfig.Auth.InitialServiceAccount.Lifetime)
 
-	rootCmdFlagBinder.DurationVar("initial-service-account-lifetime",
-		flagDescription("auth.initialServiceAccount.lifetime", schema), &flagConfig.Auth.InitialServiceAccount.Lifetime)
-
-	rootCmd.MarkFlagsMutuallyExclusive("auth-saml-url", "auth-saml-metadata")
+	rootCmd.MarkFlagsMutuallyExclusive(b.mustFlagName("auth.saml.url"), b.mustFlagName("auth.saml.metadata"))
 
 	// Limits
-	rootCmdFlagBinder.Uint32Var("auth-max-users",
-		flagDescription("auth.limits.maxUsers", schema), &flagConfig.Auth.Limits.MaxUsers)
-	rootCmdFlagBinder.Uint32Var("auth-max-service-accounts",
-		flagDescription("auth.limits.maxServiceAccounts", schema), &flagConfig.Auth.Limits.MaxServiceAccounts)
+	b.Uint32Var("auth.limits.maxUsers", &flagConfig.Auth.Limits.MaxUsers)
+	b.Uint32Var("auth.limits.maxServiceAccounts", &flagConfig.Auth.Limits.MaxServiceAccounts)
 
 	// OIDC
-	rootCmdFlagBinder.BoolVar("auth-oidc-enabled", flagDescription("auth.oidc.enabled", schema), &flagConfig.Auth.Oidc.Enabled)
-	rootCmdFlagBinder.StringVar("auth-oidc-provider-url", flagDescription("auth.oidc.providerURL", schema), &flagConfig.Auth.Oidc.ProviderURL)
-	rootCmdFlagBinder.StringVar("auth-oidc-client-id", flagDescription("auth.oidc.clientID", schema), &flagConfig.Auth.Oidc.ClientID)
-	rootCmdFlagBinder.StringVar("auth-oidc-client-secret", flagDescription("auth.oidc.clientSecret", schema), &flagConfig.Auth.Oidc.ClientSecret)
-	rootCmd.Flags().StringSliceVar(&flagConfig.Auth.Oidc.Scopes, "auth-oidc-scopes", flagConfig.Auth.Oidc.Scopes, flagDescription("auth.oidc.scopes", schema))
-	rootCmdFlagBinder.StringVar("auth-oidc-logout-url", flagDescription("auth.oidc.logoutURL", schema), &flagConfig.Auth.Oidc.LogoutURL)
-	rootCmdFlagBinder.BoolVar("auth-oidc-allow-unverified-email", flagDescription("auth.oidc.allowUnverifiedEmail", schema), &flagConfig.Auth.Oidc.AllowUnverifiedEmail)
+	b.BoolVar("auth.oidc.enabled", &flagConfig.Auth.Oidc.Enabled)
+	b.StringVar("auth.oidc.providerURL", &flagConfig.Auth.Oidc.ProviderURL)
+	b.StringVar("auth.oidc.clientID", &flagConfig.Auth.Oidc.ClientID)
+	b.StringVar("auth.oidc.clientSecret", &flagConfig.Auth.Oidc.ClientSecret)
+	b.StringSliceVar("auth.oidc.scopes", &flagConfig.Auth.Oidc.Scopes, flagConfig.Auth.Oidc.Scopes)
+	b.StringVar("auth.oidc.logoutURL", &flagConfig.Auth.Oidc.LogoutURL)
+	b.BoolVar("auth.oidc.allowUnverifiedEmail", &flagConfig.Auth.Oidc.AllowUnverifiedEmail)
 }
 
-func defineLogsFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) error {
-	rootCmdFlagBinder.DurationVar("machine-log-sqlite-timeout", flagDescription("logs.machine.storage.sqliteTimeout", schema), &flagConfig.Logs.Machine.Storage.SqliteTimeout)
-	rootCmdFlagBinder.DurationVar("machine-log-cleanup-interval", flagDescription("logs.machine.storage.cleanupInterval", schema), &flagConfig.Logs.Machine.Storage.CleanupInterval)
-	rootCmdFlagBinder.DurationVar("machine-log-cleanup-older-than", flagDescription("logs.machine.storage.cleanupOlderThan", schema), &flagConfig.Logs.Machine.Storage.CleanupOlderThan)
-	rootCmdFlagBinder.IntVar("machine-log-max-lines-per-machine", flagDescription("logs.machine.storage.maxLinesPerMachine", schema), &flagConfig.Logs.Machine.Storage.MaxLinesPerMachine)
-	rootCmdFlagBinder.Uint64Var("machine-log-max-size", flagDescription("logs.machine.storage.maxSize", schema), &flagConfig.Logs.Machine.Storage.MaxSize)
-	rootCmdFlagBinder.Float64Var("machine-log-cleanup-probability",
-		flagDescription("logs.machine.storage.cleanupProbability", schema), &flagConfig.Logs.Machine.Storage.CleanupProbability)
+func defineLogsFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.Params) error {
+	b.DurationVar("logs.machine.storage.sqliteTimeout", &flagConfig.Logs.Machine.Storage.SqliteTimeout)
+	b.DurationVar("logs.machine.storage.cleanupInterval", &flagConfig.Logs.Machine.Storage.CleanupInterval)
+	b.DurationVar("logs.machine.storage.cleanupOlderThan", &flagConfig.Logs.Machine.Storage.CleanupOlderThan)
+	b.IntVar("logs.machine.storage.maxLinesPerMachine", &flagConfig.Logs.Machine.Storage.MaxLinesPerMachine)
+	b.Uint64Var("logs.machine.storage.maxSize", &flagConfig.Logs.Machine.Storage.MaxSize)
+	b.Float64Var("logs.machine.storage.cleanupProbability", &flagConfig.Logs.Machine.Storage.CleanupProbability)
 
-	if err := rootCmd.Flags().MarkHidden("machine-log-cleanup-probability"); err != nil {
+	if err := rootCmd.Flags().MarkHidden(b.mustFlagName("logs.machine.storage.cleanupProbability")); err != nil {
 		return err
 	}
 
-	rootCmd.Flags().StringSliceVar(&flagConfig.Logs.ResourceLogger.Types, "log-resource-updates-types",
-		flagConfig.Logs.ResourceLogger.Types, flagDescription("logs.resourceLogger.types", schema))
-	rootCmdFlagBinder.StringVar("log-resource-updates-log-level", flagDescription("logs.resourceLogger.logLevel", schema), &flagConfig.Logs.ResourceLogger.LogLevel)
-	rootCmdFlagBinder.BoolVar("audit-log-enabled", flagDescription("logs.audit.enabled", schema), &flagConfig.Logs.Audit.Enabled)
-	rootCmdFlagBinder.DurationVar("audit-log-sqlite-timeout", flagDescription("logs.audit.sqliteTimeout", schema), &flagConfig.Logs.Audit.SqliteTimeout)
-	rootCmdFlagBinder.DurationVar("audit-log-retention-period", flagDescription("logs.audit.retentionPeriod", schema), &flagConfig.Logs.Audit.RetentionPeriod)
-	rootCmdFlagBinder.Uint64Var("audit-log-max-size", flagDescription("logs.audit.maxSize", schema), &flagConfig.Logs.Audit.MaxSize)
-	rootCmdFlagBinder.Float64Var("audit-log-cleanup-probability", flagDescription("logs.audit.cleanupProbability", schema), &flagConfig.Logs.Audit.CleanupProbability)
-	rootCmdFlagBinder.BoolVar("enable-stripe-reporting", flagDescription("logs.stripe.enabled", schema), &flagConfig.Logs.Stripe.Enabled)
-	rootCmdFlagBinder.Uint32Var("stripe-minimum-commit", flagDescription("logs.stripe.minCommit", schema), &flagConfig.Logs.Stripe.MinCommit)
+	b.StringSliceVar("logs.resourceLogger.types", &flagConfig.Logs.ResourceLogger.Types, flagConfig.Logs.ResourceLogger.Types)
+	b.StringVar("logs.resourceLogger.logLevel", &flagConfig.Logs.ResourceLogger.LogLevel)
+	b.BoolVar("logs.audit.enabled", &flagConfig.Logs.Audit.Enabled)
+	b.DurationVar("logs.audit.sqliteTimeout", &flagConfig.Logs.Audit.SqliteTimeout)
+	b.DurationVar("logs.audit.retentionPeriod", &flagConfig.Logs.Audit.RetentionPeriod)
+	b.Uint64Var("logs.audit.maxSize", &flagConfig.Logs.Audit.MaxSize)
+	b.Float64Var("logs.audit.cleanupProbability", &flagConfig.Logs.Audit.CleanupProbability)
+	b.BoolVar("logs.stripe.enabled", &flagConfig.Logs.Stripe.Enabled)
+	b.Uint32Var("logs.stripe.minCommit", &flagConfig.Logs.Stripe.MinCommit)
 
-	if err := rootCmd.Flags().MarkHidden("audit-log-cleanup-probability"); err != nil {
+	if err := rootCmd.Flags().MarkHidden(b.mustFlagName("logs.audit.cleanupProbability")); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func defineStorageFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) {
-	EnumVar(rootCmdFlagBinder, "storage-kind", flagDescription("storage.default.kind", schema), &flagConfig.Storage.Default.Kind)
-	rootCmdFlagBinder.BoolVar("etcd-embedded", flagDescription("storage.default.etcd.embedded", schema), &flagConfig.Storage.Default.Etcd.Embedded)
-	rootCmdFlagBinder.BoolVar("etcd-embedded-unsafe-fsync", flagDescription("storage.default.etcd.embeddedUnsafeFsync", schema), &flagConfig.Storage.Default.Etcd.EmbeddedUnsafeFsync)
-	rootCmdFlagBinder.StringVar("etcd-embedded-db-path", flagDescription("storage.default.etcd.embeddedDBPath", schema), &flagConfig.Storage.Default.Etcd.EmbeddedDBPath)
+func defineStorageFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.Params) {
+	EnumVar(b, "storage.default.kind", &flagConfig.Storage.Default.Kind)
+	b.BoolVar("storage.default.etcd.embedded", &flagConfig.Storage.Default.Etcd.Embedded)
+	b.BoolVar("storage.default.etcd.embeddedUnsafeFsync", &flagConfig.Storage.Default.Etcd.EmbeddedUnsafeFsync)
+	b.StringVar("storage.default.etcd.embeddedDBPath", &flagConfig.Storage.Default.Etcd.EmbeddedDBPath)
 
-	ensure.NoError(rootCmd.Flags().MarkHidden("etcd-embedded-unsafe-fsync"))
+	ensure.NoError(rootCmd.Flags().MarkHidden(b.mustFlagName("storage.default.etcd.embeddedUnsafeFsync")))
 
-	rootCmd.Flags().StringSliceVar(&flagConfig.Storage.Default.Etcd.Endpoints, "etcd-endpoints", flagConfig.Storage.Default.Etcd.Endpoints, flagDescription("storage.default.etcd.endpoints", schema))
-	rootCmdFlagBinder.DurationVar("etcd-dial-keepalive-time", flagDescription("storage.default.etcd.dialKeepAliveTime", schema), &flagConfig.Storage.Default.Etcd.DialKeepAliveTime)
-	rootCmdFlagBinder.DurationVar("etcd-dial-keepalive-timeout", flagDescription("storage.default.etcd.dialKeepAliveTimeout", schema), &flagConfig.Storage.Default.Etcd.DialKeepAliveTimeout)
-	rootCmdFlagBinder.StringVar("etcd-ca-path", flagDescription("storage.default.etcd.caFile", schema), &flagConfig.Storage.Default.Etcd.CaFile)
-	rootCmdFlagBinder.StringVar("etcd-client-cert-path", flagDescription("storage.default.etcd.certFile", schema), &flagConfig.Storage.Default.Etcd.CertFile)
-	rootCmdFlagBinder.StringVar("etcd-client-key-path", flagDescription("storage.default.etcd.keyFile", schema), &flagConfig.Storage.Default.Etcd.KeyFile)
-	rootCmdFlagBinder.StringVar("private-key-source", flagDescription("storage.default.etcd.privateKeySource", schema), &flagConfig.Storage.Default.Etcd.PrivateKeySource)
+	b.StringSliceVar("storage.default.etcd.endpoints", &flagConfig.Storage.Default.Etcd.Endpoints, flagConfig.Storage.Default.Etcd.Endpoints)
+	b.DurationVar("storage.default.etcd.dialKeepAliveTime", &flagConfig.Storage.Default.Etcd.DialKeepAliveTime)
+	b.DurationVar("storage.default.etcd.dialKeepAliveTimeout", &flagConfig.Storage.Default.Etcd.DialKeepAliveTimeout)
+	b.StringVar("storage.default.etcd.caFile", &flagConfig.Storage.Default.Etcd.CaFile)
+	b.StringVar("storage.default.etcd.certFile", &flagConfig.Storage.Default.Etcd.CertFile)
+	b.StringVar("storage.default.etcd.keyFile", &flagConfig.Storage.Default.Etcd.KeyFile)
+	b.StringVar("storage.default.etcd.privateKeySource", &flagConfig.Storage.Default.Etcd.PrivateKeySource)
 
-	rootCmd.Flags().StringSliceVar(&flagConfig.Storage.Default.Etcd.PublicKeyFiles, "public-key-files", flagConfig.Storage.Default.Etcd.PublicKeyFiles,
-		flagDescription("storage.default.etcd.publicKeyFiles", schema))
-	rootCmdFlagBinder.StringVar(config.SQLiteStoragePathFlag,
-		flagDescription("storage.sqlite.path", schema), &flagConfig.Storage.Sqlite.Path)
-
-	rootCmdFlagBinder.StringVar("sqlite-storage-experimental-base-params",
-		flagDescription("storage.sqlite.experimentalBaseParams", schema), &flagConfig.Storage.Sqlite.ExperimentalBaseParams)
-
-	rootCmdFlagBinder.StringVar("sqlite-storage-extra-params",
-		flagDescription("storage.sqlite.extraParams", schema),
-		&flagConfig.Storage.Sqlite.ExtraParams)
-
-	rootCmdFlagBinder.StringVar("vault-k8s-auth-mount-path",
-		flagDescription("storage.vault.k8sAuthMountPath", schema), &flagConfig.Storage.Vault.K8SAuthMountPath)
+	b.StringSliceVar("storage.default.etcd.publicKeyFiles", &flagConfig.Storage.Default.Etcd.PublicKeyFiles, flagConfig.Storage.Default.Etcd.PublicKeyFiles)
+	b.StringVar("storage.sqlite.path", &flagConfig.Storage.Sqlite.Path)
+	b.StringVar("storage.sqlite.experimentalBaseParams", &flagConfig.Storage.Sqlite.ExperimentalBaseParams)
+	b.StringVar("storage.sqlite.extraParams", &flagConfig.Storage.Sqlite.ExtraParams)
+	b.StringVar("storage.vault.k8sAuthMountPath", &flagConfig.Storage.Vault.K8SAuthMountPath)
 }
 
-func defineRegistriesFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) {
-	rootCmdFlagBinder.StringVar("talos-installer-registry", flagDescription("registries.talos", schema), &flagConfig.Registries.Talos)
-	rootCmdFlagBinder.StringVar("kubernetes-registry", flagDescription("registries.kubernetes", schema), &flagConfig.Registries.Kubernetes)
-	rootCmdFlagBinder.StringVar("image-factory-address", flagDescription("registries.imageFactoryBaseURL", schema), &flagConfig.Registries.ImageFactoryBaseURL)
-	rootCmdFlagBinder.StringVar("image-factory-pxe-address", flagDescription("registries.imageFactoryPXEBaseURL", schema), &flagConfig.Registries.ImageFactoryPXEBaseURL)
+func defineRegistriesFlags(b *FlagBinder, flagConfig *config.Params) {
+	b.StringVar("registries.talos", &flagConfig.Registries.Talos)
+	b.StringVar("registries.kubernetes", &flagConfig.Registries.Kubernetes)
+	b.StringVar("registries.imageFactoryBaseURL", &flagConfig.Registries.ImageFactoryBaseURL)
+	b.StringVar("registries.imageFactoryPXEBaseURL", &flagConfig.Registries.ImageFactoryPXEBaseURL)
 
-	rootCmd.Flags().StringSliceVar(&flagConfig.Registries.Mirrors, "registry-mirror", flagConfig.Registries.Mirrors,
-		flagDescription("registries.mirrors", schema))
+	b.StringSliceVar("registries.mirrors", &flagConfig.Registries.Mirrors, flagConfig.Registries.Mirrors)
 }
 
-func defineFeatureFlags(rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) {
-	rootCmdFlagBinder.BoolVar("enable-talos-pre-release-versions",
-		flagDescription("features.enableTalosPreReleaseVersions", schema), &flagConfig.Features.EnableTalosPreReleaseVersions)
-
-	rootCmdFlagBinder.BoolVar("config-data-compression-enabled", flagDescription("features.enableConfigDataCompression", schema), &flagConfig.Features.EnableConfigDataCompression)
-
-	rootCmdFlagBinder.BoolVar("workload-proxying-enabled", flagDescription("services.workloadProxy.enabled", schema), &flagConfig.Services.WorkloadProxy.Enabled)
-
-	rootCmdFlagBinder.StringVar("workload-proxying-subdomain", flagDescription("services.workloadProxy.subdomain", schema), &flagConfig.Services.WorkloadProxy.Subdomain)
-
-	rootCmdFlagBinder.BoolVar("workload-proxying-use-omni-subdomain",
-		flagDescription("services.workloadProxy.useOmniSubdomain", schema), &flagConfig.Services.WorkloadProxy.UseOmniSubdomain)
-
-	rootCmdFlagBinder.DurationVar("workload-proxying-stop-lbs-after",
-		flagDescription("services.workloadProxy.stopLBsAfter", schema), &flagConfig.Services.WorkloadProxy.StopLBsAfter)
-
-	rootCmdFlagBinder.BoolVar("enable-break-glass-configs", flagDescription("features.enableBreakGlassConfigs", schema), &flagConfig.Features.EnableBreakGlassConfigs)
-
-	rootCmdFlagBinder.BoolVar("disable-controller-runtime-cache",
-		flagDescription("features.disableControllerRuntimeCache", schema), &flagConfig.Features.DisableControllerRuntimeCache)
-
-	rootCmdFlagBinder.BoolVar("enable-cluster-import", flagDescription("features.enableClusterImport", schema), &flagConfig.Features.EnableClusterImport)
+func defineFeatureFlags(b *FlagBinder, flagConfig *config.Params) {
+	b.BoolVar("features.enableTalosPreReleaseVersions", &flagConfig.Features.EnableTalosPreReleaseVersions)
+	b.BoolVar("features.enableConfigDataCompression", &flagConfig.Features.EnableConfigDataCompression)
+	b.BoolVar("services.workloadProxy.enabled", &flagConfig.Services.WorkloadProxy.Enabled)
+	b.StringVar("services.workloadProxy.subdomain", &flagConfig.Services.WorkloadProxy.Subdomain)
+	b.BoolVar("services.workloadProxy.useOmniSubdomain", &flagConfig.Services.WorkloadProxy.UseOmniSubdomain)
+	b.DurationVar("services.workloadProxy.stopLBsAfter", &flagConfig.Services.WorkloadProxy.StopLBsAfter)
+	b.BoolVar("features.enableBreakGlassConfigs", &flagConfig.Features.EnableBreakGlassConfigs)
+	b.BoolVar("features.disableControllerRuntimeCache", &flagConfig.Features.DisableControllerRuntimeCache)
+	b.BoolVar("features.enableClusterImport", &flagConfig.Features.EnableClusterImport)
 }
 
-func defineDebugFlags(rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) {
-	rootCmdFlagBinder.StringVar("pprof-bind-addr", flagDescription("debug.pprof.endpoint", schema), &flagConfig.Debug.Pprof.Endpoint)
-	rootCmdFlagBinder.StringVar("debug-server-endpoint", flagDescription("debug.server.endpoint", schema), &flagConfig.Debug.Server.Endpoint)
+func defineDebugFlags(b *FlagBinder, flagConfig *config.Params) {
+	b.StringVar("debug.pprof.endpoint", &flagConfig.Debug.Pprof.Endpoint)
+	b.StringVar("debug.server.endpoint", &flagConfig.Debug.Server.Endpoint)
 }
 
-func defineEtcdBackupsFlags(rootCmd *cobra.Command, rootCmdFlagBinder *FlagBinder, flagConfig *config.Params, schema *jsonschema.Schema) {
-	rootCmdFlagBinder.BoolVar("etcd-backup-s3", flagDescription("etcdBackup.s3Enabled", schema), &flagConfig.EtcdBackup.S3Enabled)
-	rootCmdFlagBinder.StringVar("etcd-backup-local-path", flagDescription("etcdBackup.localPath", schema), &flagConfig.EtcdBackup.LocalPath)
-	rootCmdFlagBinder.DurationVar("etcd-backup-tick-interval",
-		flagDescription("etcdBackup.tickInterval", schema), &flagConfig.EtcdBackup.TickInterval)
-	rootCmdFlagBinder.DurationVar("etcd-backup-jitter",
-		flagDescription("etcdBackup.jitter", schema), &flagConfig.EtcdBackup.Jitter)
-	rootCmdFlagBinder.DurationVar("etcd-backup-min-interval", flagDescription("etcdBackup.minInterval", schema), &flagConfig.EtcdBackup.MinInterval)
-	rootCmdFlagBinder.DurationVar("etcd-backup-max-interval", flagDescription("etcdBackup.maxInterval", schema), &flagConfig.EtcdBackup.MaxInterval)
-	rootCmdFlagBinder.Uint64Var("etcd-backup-upload-limit-mbps", flagDescription("etcdBackup.uploadLimitMbps", schema), &flagConfig.EtcdBackup.UploadLimitMbps)
-	rootCmdFlagBinder.Uint64Var("etcd-backup-download-limit-mbps", flagDescription("etcdBackup.downloadLimitMbps", schema), &flagConfig.EtcdBackup.DownloadLimitMbps)
+func defineEtcdBackupsFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.Params) {
+	b.BoolVar("etcdBackup.s3Enabled", &flagConfig.EtcdBackup.S3Enabled)
+	b.StringVar("etcdBackup.localPath", &flagConfig.EtcdBackup.LocalPath)
+	b.DurationVar("etcdBackup.tickInterval", &flagConfig.EtcdBackup.TickInterval)
+	b.DurationVar("etcdBackup.jitter", &flagConfig.EtcdBackup.Jitter)
+	b.DurationVar("etcdBackup.minInterval", &flagConfig.EtcdBackup.MinInterval)
+	b.DurationVar("etcdBackup.maxInterval", &flagConfig.EtcdBackup.MaxInterval)
+	b.Uint64Var("etcdBackup.uploadLimitMbps", &flagConfig.EtcdBackup.UploadLimitMbps)
+	b.Uint64Var("etcdBackup.downloadLimitMbps", &flagConfig.EtcdBackup.DownloadLimitMbps)
 
-	rootCmd.MarkFlagsMutuallyExclusive("etcd-backup-s3", "etcd-backup-local-path")
-}
-
-func flagDescription(fieldPath string, schema *jsonschema.Schema) string {
-	description := schema.Description(fieldPath)
-	if description == "" {
-		panic("no description for " + fieldPath)
-	}
-
-	// remove the first two words like "XYZ is" from the description
-	parts := strings.SplitN(description, " ", 3)
-	if len(parts) < 3 {
-		return description
-	}
-
-	return strings.TrimSpace(parts[2])
+	rootCmd.MarkFlagsMutuallyExclusive(b.mustFlagName("etcdBackup.s3Enabled"), b.mustFlagName("etcdBackup.localPath"))
 }

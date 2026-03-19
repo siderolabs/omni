@@ -34,10 +34,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/jsonschema"
 )
 
-const (
-	wireguardDefaultPort  = "50180"
-	SQLiteStoragePathFlag = "sqlite-storage-path"
-)
+const wireguardDefaultPort = "50180"
 
 //go:embed schema.json
 var schemaData string

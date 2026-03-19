@@ -111,50 +111,11 @@ func TestValidateConfig(t *testing.T) {
 		loadErr          string
 		config           []byte
 	}{
-		{
-			name:        "empty",
-			config:      []byte("{}"),
-			validateErr: "got null, want string",
-		},
+		// --- Valid configs ---
+
 		{
 			name:   "full",
 			config: configFull,
-		},
-		{
-			name:   "kubernetes proxy insecure advertised url",
-			config: configFull,
-			configModifyFunc: func(cfg *config.Params) {
-				cfg.Services.KubernetesProxy.SetAdvertisedURL("http://1.1.1.1:1111")
-			},
-			validateErr: `- at '/services/kubernetesProxy/advertisedURL': 'http://1.1.1.1:1111' does not match pattern '^https://'`,
-		},
-		{
-			name:   "prevent enabling unsupported webauthn",
-			config: configFull,
-			configModifyFunc: func(cfg *config.Params) {
-				cfg.Auth.Webauthn.SetEnabled(true)
-			},
-			validateErr: "- at '/auth/webauthn/enabled': value must be false",
-		},
-		{
-			name:        "invalid join tokens mode",
-			config:      configInvalidJoinTokenMode,
-			validateErr: "at '/services/siderolink/joinTokensMode': value must be one of 'strict', 'legacyAllowed', 'legacy'",
-		},
-		{
-			name:        "conflicting auth",
-			config:      conflictingAuth,
-			validateErr: "at '/auth/saml/enabled': 'not' failed",
-		},
-		{
-			name:        "conflicting backups",
-			config:      backups,
-			validateErr: "at '/etcdBackup': 'not' failed",
-		},
-		{
-			name:    "unknown keys",
-			config:  unknownKeys,
-			loadErr: "unknown keys found",
 		},
 		{
 			// Having no TLS cert/key neither for the API nor for Kubernetes Proxy Server is NOT an error,
@@ -166,18 +127,153 @@ func TestValidateConfig(t *testing.T) {
 			name:   "SAML with initial users",
 			config: enableSAML,
 		},
+
+		// --- Load errors ---
+
 		{
-			name: "missing sqlite path",
-			config: []byte(`storage:
-  sqlite: {}`),
-			validateErr: "at '/storage/sqlite/path': got null, want string",
+			name:    "unknown keys",
+			config:  unknownKeys,
+			loadErr: "unknown keys found",
+		},
+
+		// --- type: got null, want string (required field not set) ---
+
+		{
+			name:        "type null: empty config",
+			config:      []byte("{}"),
+			validateErr: `or flag "--sqlite-storage-path": is required but was not set`,
 		},
 		{
-			name: "empty sqlite path",
+			name: "type null: missing sqlite path",
+			config: []byte(`storage:
+  sqlite: {}`),
+			validateErr: `config value ".storage.sqlite.path" or flag "--sqlite-storage-path": is required but was not set`,
+		},
+
+		// --- minLength ---
+
+		{
+			name: "minLength: empty sqlite path",
 			config: []byte(`storage:
   sqlite:
     path: ""`),
-			validateErr: "at '/storage/sqlite/path': minLength: got 0, want 1",
+			validateErr: `config value ".storage.sqlite.path" or flag "--sqlite-storage-path": must not be empty`,
+		},
+		{
+			name: "minLength: empty account id",
+			config: []byte(`account:
+  id: ""`),
+			validateErr: `config value ".account.id" or flag "--account-id": must not be empty`,
+		},
+		{
+			name: "minLength: empty account name",
+			config: []byte(`account:
+  name: ""`),
+			validateErr: `config value ".account.name" or flag "--name": must not be empty`,
+		},
+		{
+			name: "minLength: empty etcd private key source",
+			config: []byte(`storage:
+  default:
+    etcd:
+      privateKeySource: ""`),
+			validateErr: `config value ".storage.default.etcd.privateKeySource" or flag "--private-key-source": must not be empty`,
+		},
+
+		// --- minimum ---
+
+		{
+			name: "minimum: sqlite cached pool size below 1",
+			config: []byte(`storage:
+  sqlite:
+    cachedPoolSize: 0`),
+			validateErr: `config value ".storage.sqlite.cachedPoolSize": must be at least 1`,
+		},
+		{
+			name: "minimum: sqlite pool size below 1",
+			config: []byte(`storage:
+  sqlite:
+    poolSize: 0`),
+			validateErr: `config value ".storage.sqlite.poolSize": must be at least 1`,
+		},
+
+		// --- enum ---
+
+		{
+			name:        "enum: invalid join tokens mode",
+			config:      configInvalidJoinTokenMode,
+			validateErr: `config value ".services.siderolink.joinTokensMode" or flag "--join-tokens-mode": must be one of 'strict', 'legacyAllowed', 'legacy'`,
+		},
+		{
+			name: "enum: invalid storage kind",
+			config: []byte(`storage:
+  default:
+    kind: invalid`),
+			validateErr: `config value ".storage.default.kind" or flag "--storage-kind": must be one of 'etcd', 'boltdb'`,
+		},
+
+		// --- const ---
+
+		{
+			name:   "const: webauthn enabled must be false",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Auth.Webauthn.SetEnabled(true)
+			},
+			validateErr: `config value ".auth.webauthn.enabled" or flag "--auth-webauthn-enabled": must be false`,
+		},
+		{
+			name:   "const: webauthn required must be false",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Auth.Webauthn.SetRequired(true)
+			},
+			validateErr: `config value ".auth.webauthn.required" or flag "--auth-webauthn-required": must be false`,
+		},
+
+		// --- pattern ---
+
+		{
+			name:   "pattern: kubernetes proxy advertised URL must be https",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Services.KubernetesProxy.SetAdvertisedURL("http://1.1.1.1:1111")
+			},
+			validateErr: `config value ".services.kubernetesProxy.advertisedURL" or flag "--advertised-kubernetes-proxy-url": must start with 'https://'`,
+		},
+		{
+			name: "pattern: workload proxy subdomain invalid",
+			config: []byte(`services:
+  workloadProxy:
+    subdomain: "INVALID!!"`),
+			validateErr: `config value ".services.workloadProxy.subdomain" or flag "--workload-proxying-subdomain": must be a valid DNS subdomain (lowercase alphanumeric, dots, hyphens)`,
+		},
+		{
+			name: "pattern: sqlite experimental base params starts with ?",
+			config: []byte(`storage:
+  sqlite:
+    experimentalBaseParams: "?bad"`),
+			validateErr: `config value ".storage.sqlite.experimentalBaseParams" or flag "--sqlite-storage-experimental-base-params": must not start with '?'`,
+		},
+		{
+			name: "pattern: sqlite extra params starts with &",
+			config: []byte(`storage:
+  sqlite:
+    extraParams: "&bad"`),
+			validateErr: `config value ".storage.sqlite.extraParams" or flag "--sqlite-storage-extra-params": must not start with '&'`,
+		},
+
+		// --- if/then/else + not (kept as-is for now, TODO: move to Go validation) ---
+
+		{
+			name:        "if/then: conflicting auth providers",
+			config:      conflictingAuth,
+			validateErr: "'not' failed",
+		},
+		{
+			name:        "if/then: conflicting backup storage",
+			config:      backups,
+			validateErr: "'not' failed",
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

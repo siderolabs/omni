@@ -84,6 +84,7 @@ require (
 	github.com/siderolabs/talos/pkg/machinery v1.13.0-alpha.2.0.20260226180725-cc636f1dd1f1
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
+	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
 	github.com/stripe/stripe-go/v76 v76.25.0
 	github.com/zitadel/logging v0.7.0
@@ -257,7 +258,6 @@ require (
 	github.com/siderolabs/tcpproxy v0.1.0 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
 	github.com/sosodev/duration v1.4.0 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
 	github.com/vbatts/tar-split v0.12.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
