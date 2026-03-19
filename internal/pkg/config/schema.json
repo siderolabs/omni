@@ -458,9 +458,9 @@
       "type": "object",
       "properties": {
         "subdomain": {
-          "description": "Subdomain is the subdomain used by the workload proxy service to expose workloads. By default, it lives at the same level as Omni (e.g., \"omni-apps.example.com\" for Omni at \"omni.example.com\"). When useOmniSubdomain is true, it is placed under Omni's domain instead (e.g., \"proxy.omni.example.com\").",
+          "description": "Subdomain is the subdomain used by the workload proxy service to expose workloads. By default, it lives at the same level as Omni (e.g., \"omni-apps.example.com\" for Omni at \"omni.example.com\"). When useOmniSubdomain is true, it is placed under Omni's domain instead (e.g., \"proxy.omni.example.com\"). When useOmniSubdomain is true and subdomain is empty, services are exposed directly as subdomains of Omni (e.g., \"grafana.omni.example.com\").",
           "type": "string",
-          "pattern": "^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$"
+          "pattern": "^([a-z0-9]([a-z0-9.-]*[a-z0-9])?)?$"
         },
         "enabled": {
           "description": "Enabled controls whether the workload proxy service is enabled.",
@@ -475,7 +475,7 @@
           }
         },
         "useOmniSubdomain": {
-          "description": "UseOmniSubdomain controls whether the workload proxy subdomain is placed under Omni's own domain (as a subdomain) rather than as a sibling. When true, the proxy domain becomes '<subdomain>.<omni-domain>' instead of '<subdomain>.<parent-of-omni-domain>'. This also simplifies exposed service URLs to '<alias>.<proxy-domain>' (without the instance name) and allows dashes in service aliases.",
+          "description": "UseOmniSubdomain controls whether the workload proxy subdomain is placed under Omni's own domain (as a subdomain) rather than as a sibling. When true, the proxy domain becomes '<subdomain>.<omni-domain>' instead of '<subdomain>.<parent-of-omni-domain>'. This also simplifies exposed service URLs to '<alias>.<proxy-domain>' (without the instance name) and allows dashes in service aliases. When true and subdomain is empty, services are exposed directly as subdomains of Omni (e.g., '<alias>.<omni-domain>').",
           "type": "boolean"
         }
       }

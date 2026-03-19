@@ -74,9 +74,18 @@ func NewHTTPHandler(
 
 	mainDomain := getMainDomain(mainURL)
 
+	if !useOmniSubdomain && workloadProxySubdomain == "" {
+		return nil, errors.New("workload proxy subdomain must not be empty when useOmniSubdomain is false")
+	}
+
 	var workloadProxyDomain string
+
 	if useOmniSubdomain {
-		workloadProxyDomain = workloadProxySubdomain + "." + mainDomain
+		if workloadProxySubdomain == "" {
+			workloadProxyDomain = mainDomain
+		} else {
+			workloadProxyDomain = workloadProxySubdomain + "." + mainDomain
+		}
 	} else {
 		workloadProxyDomain = getWorkloadProxyDomain(workloadProxySubdomain, mainDomain)
 	}

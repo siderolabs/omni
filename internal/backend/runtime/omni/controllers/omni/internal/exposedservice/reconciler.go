@@ -225,10 +225,15 @@ func (reconciler *Reconciler) buildExposedServiceURL(alias string) (string, erro
 			return "", fmt.Errorf("invalid advertised API URL: %w", err)
 		}
 
-		// Build: <scheme>://<alias>.<subdomain>.<omni-host>
+		// Build: <scheme>://<alias>.[<subdomain>.]<omni-host>
+		host := apiURL.Host
+		if reconciler.workloadProxySubdomain != "" {
+			host = reconciler.workloadProxySubdomain + "." + host
+		}
+
 		serviceURL := &url.URL{
 			Scheme: apiURL.Scheme,
-			Host:   alias + "." + reconciler.workloadProxySubdomain + "." + apiURL.Host,
+			Host:   alias + "." + host,
 		}
 
 		return serviceURL.String(), nil

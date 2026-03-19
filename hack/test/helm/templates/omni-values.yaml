@@ -52,6 +52,8 @@ config:
       advertisedURL: grpc://${NODE_IP}:30090
     workloadProxy:
       enabled: true
+      subdomain: ""
+      useOmniSubdomain: true
     siderolink:
       wireGuard:
         advertisedEndpoint: ${NODE_IP}:30180
@@ -87,7 +89,8 @@ ingress:
     enabled: false
 
 # Traefik IngressRoute for workload proxy wildcard domain.
-# Uses the default TLS store (which has the wildcard cert covering *.omni-workload.example.org).
+# With useOmniSubdomain: true and empty subdomain, services are direct subdomains of Omni (*.omni.example.org).
+# Uses the default TLS store (which has the wildcard cert covering *.omni.example.org).
 extraObjects:
   - apiVersion: traefik.io/v1alpha1
     kind: IngressRoute
@@ -98,7 +101,7 @@ extraObjects:
         - websecure
       routes:
         - kind: Rule
-          match: "HostRegexp(`.+\\.omni-workload\\.example\\.org`)"
+          match: "HostRegexp(`.+\\.omni\\.example\\.org`)"
           services:
             - kind: Service
               name: omni

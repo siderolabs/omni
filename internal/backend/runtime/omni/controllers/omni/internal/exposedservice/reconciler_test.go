@@ -168,6 +168,50 @@ func TestReconcilerUseOmniSubdomainWithPort(t *testing.T) {
 	assert.Equal(t, "https://grafana."+testProxySubdomain+".omni.example.com:8099", exposedServices[0].TypedSpec().Value.Url)
 }
 
+func TestReconcilerUseOmniSubdomainEmptySubdomain(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	var exposedServices []*omni.ExposedService
+
+	kubernetesServices := makeKubernetesServices(
+		kubernetesService{"default", "test-service-1", "11111", "grafana", "Grafana"},
+		kubernetesService{"default", "test-service-2", "22222", "my-dashboard", "Dashboard"},
+	)
+
+	reconciler, err := exposedservice.NewReconciler(testClusterName, "", "https://omni.example.com", true, exposedServices, kubernetesServices, logger)
+	require.NoError(t, err)
+
+	exposedServices, err = reconciler.ReconcileServices()
+	require.NoError(t, err)
+
+	require.Len(t, exposedServices, 2)
+	assert.Empty(t, exposedServices[0].TypedSpec().Value.Error)
+	assert.Equal(t, "https://grafana.omni.example.com", exposedServices[0].TypedSpec().Value.Url)
+
+	assert.Empty(t, exposedServices[1].TypedSpec().Value.Error)
+	assert.Equal(t, "https://my-dashboard.omni.example.com", exposedServices[1].TypedSpec().Value.Url)
+}
+
+func TestReconcilerUseOmniSubdomainEmptySubdomainWithPort(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	var exposedServices []*omni.ExposedService
+
+	kubernetesServices := makeKubernetesServices(
+		kubernetesService{"default", "test-service-1", "11111", "grafana", "Grafana"},
+	)
+
+	reconciler, err := exposedservice.NewReconciler(testClusterName, "", "https://omni.example.com:8099", true, exposedServices, kubernetesServices, logger)
+	require.NoError(t, err)
+
+	exposedServices, err = reconciler.ReconcileServices()
+	require.NoError(t, err)
+
+	require.Len(t, exposedServices, 1)
+	assert.Empty(t, exposedServices[0].TypedSpec().Value.Error)
+	assert.Equal(t, "https://grafana.omni.example.com:8099", exposedServices[0].TypedSpec().Value.Url)
+}
+
 func TestReconcilerInvalidAliases(t *testing.T) {
 	t.Parallel()
 

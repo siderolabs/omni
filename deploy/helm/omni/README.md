@@ -145,19 +145,22 @@ For details on exposing services, see [Expose an HTTP Service from a Cluster](ht
 The workload proxy domain is a **subdomain of Omni**. For example:
 
 - Omni: `omni.example.com`
-- Workload Proxy: `*.proxy.omni.example.com`
+- Workload Proxy (with subdomain `proxy`): `*.proxy.omni.example.com`
+- Workload Proxy (with empty subdomain): `*.omni.example.com`
 
 Exposed services have URLs in the format:
 
 ```
-https://<prefix>.<subdomain>.<omni-domain>/
+https://<prefix>.[<subdomain>.]<omni-domain>/
 ```
 
-For example: `https://grafana.proxy.omni.example.com/`
+For example:
+- With `subdomain: proxy`: `https://grafana.proxy.omni.example.com/`
+- With empty subdomain: `https://grafana.omni.example.com/`
 
 Where:
 - `<prefix>` is randomly generated, or user-specified via a Service annotation (dashes are allowed, e.g., `my-grafana`)
-- `<subdomain>` is the value of `config.services.workloadProxy.subdomain`
+- `<subdomain>` is the value of `config.services.workloadProxy.subdomain` (can be empty for the simplest setup)
 - `<omni-domain>` is the full domain of your Omni installation
 
 > [!NOTE]

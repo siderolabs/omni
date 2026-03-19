@@ -396,6 +396,7 @@ config:
       # When true, the proxy domain becomes '<subdomain>.<omni-domain>' instead of
       # '<subdomain>.<parent-of-omni-domain>'. Service URLs become '<alias>.<proxy-domain>'
       # without the instance name suffix, and dashes are allowed in service aliases.
+      # When true and subdomain is empty, services are exposed directly as subdomains of Omni.
       # useOmniSubdomain: false
       # StopLBsAfter is the duration after which load balancers are stopped for idle workloads.
       #stopLBsAfter: 5m

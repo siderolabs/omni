@@ -290,7 +290,7 @@ func prepareServices(ctx context.Context, t *testing.T, logger *zap.Logger, omni
 				assertion.Equal(hasExplicitAlias, r.TypedSpec().Value.HasExplicitAlias)
 
 				if hasExplicitAlias {
-					assertion.Contains(r.TypedSpec().Value.Url, explicitAlias+"-")
+					assertion.Contains(r.TypedSpec().Value.Url, explicitAlias)
 				}
 
 				res = r
@@ -480,7 +480,7 @@ func testAccessSingle(ctx context.Context, httpClient *http.Client, svcURL strin
 // prepareRequest prepares a request to the workload proxy.
 // It uses the Omni base URL to access Omni with proper name resolution, but set the Host header to the original URL to test the workload proxy logic
 //
-// sample svcURL: https://j2s7hf-local.proxy-us.localhost:8099/
+// sample svcURL: https://j2s7hf-local.proxy-us.localhost:8099/ or https://grafana.omni.example.org/
 func prepareRequest(ctx context.Context, svcURL string) (*http.Request, error) {
 	parsedURL, err := url.Parse(svcURL)
 	if err != nil {

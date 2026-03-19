@@ -219,56 +219,13 @@ func TestHandlerUseOmniSubdomain(t *testing.T) {
 	t.Run("proxy request with cookies", func(t *testing.T) {
 		t.Parallel()
 
-		next := &mockHandler{}
-		proxyProvider := &mockProxyProvider{}
-		accessValidator := &mockAccessValidator{}
-		logger := zaptest.NewLogger(t)
-
-		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy", true, logger, redirectSignature)
-		require.NoError(t, err)
-
-		rr := httptest.NewRecorder()
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://my-service.proxy.omni.example.com/example", nil)
-		require.NoError(t, err)
-
-		testPublicKeyIDSignatureBase64 := base64.StdEncoding.EncodeToString([]byte("test-signed-public-key-id"))
-
-		req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDCookie, Value: testPublicKeyID})
-		req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDSignatureBase64Cookie, Value: testPublicKeyIDSignatureBase64})
-
-		handler.ServeHTTP(rr, req)
-
-		require.Equal(t, []string{"my-service"}, proxyProvider.aliases)
-		require.Equal(t, http.StatusOK, rr.Code)
-		require.Equal(t, []string{testPublicKeyID}, accessValidator.publicKeyIDs)
+		testUseOmniSubdomainWithCookies(ctx, t, mainURL, "proxy", "https://my-service.proxy.omni.example.com/example", "my-service")
 	})
 
 	t.Run("proxy request with dashes in alias", func(t *testing.T) {
 		t.Parallel()
 
-		next := &mockHandler{}
-		proxyProvider := &mockProxyProvider{}
-		accessValidator := &mockAccessValidator{}
-		logger := zaptest.NewLogger(t)
-
-		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy", true, logger, redirectSignature)
-		require.NoError(t, err)
-
-		rr := httptest.NewRecorder()
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://my-cool-service.proxy.omni.example.com/path", nil)
-		require.NoError(t, err)
-
-		testPublicKeyIDSignatureBase64 := base64.StdEncoding.EncodeToString([]byte("test-signed-public-key-id"))
-
-		req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDCookie, Value: testPublicKeyID})
-		req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDSignatureBase64Cookie, Value: testPublicKeyIDSignatureBase64})
-
-		handler.ServeHTTP(rr, req)
-
-		require.Equal(t, []string{"my-cool-service"}, proxyProvider.aliases)
-		require.Equal(t, http.StatusOK, rr.Code)
+		testUseOmniSubdomainWithCookies(ctx, t, mainURL, "proxy", "https://my-cool-service.proxy.omni.example.com/path", "my-cool-service")
 	})
 
 	t.Run("proxy request without cookies redirects to login", func(t *testing.T) {
@@ -298,6 +255,72 @@ func TestHandlerUseOmniSubdomain(t *testing.T) {
 		require.Equal(t, "omni.example.com", redirectedURL.Host)
 		require.Equal(t, "/authenticate", redirectedURL.Path)
 	})
+}
+
+func TestHandlerUseOmniSubdomainEmptySubdomain(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	mainURL, err := url.Parse("https://omni.example.com")
+	require.NoError(t, err)
+
+	t.Run("proxy request with cookies", func(t *testing.T) {
+		t.Parallel()
+
+		testUseOmniSubdomainWithCookies(ctx, t, mainURL, "", "https://grafana.omni.example.com/dashboard", "grafana")
+	})
+
+	t.Run("omni itself is not a proxy request", func(t *testing.T) {
+		t.Parallel()
+
+		next := &mockHandler{}
+		proxyProvider := &mockProxyProvider{}
+		accessValidator := &mockAccessValidator{}
+		logger := zaptest.NewLogger(t)
+
+		handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "", true, logger, redirectSignature)
+		require.NoError(t, err)
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://omni.example.com/", nil)
+		require.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+
+		handler.ServeHTTP(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		require.Len(t, next.requests, 1)
+		require.Empty(t, proxyProvider.aliases)
+	})
+}
+
+func testUseOmniSubdomainWithCookies(ctx context.Context, t *testing.T, mainURL *url.URL, subdomain, requestURL, expectedAlias string) {
+	t.Helper()
+
+	next := &mockHandler{}
+	proxyProvider := &mockProxyProvider{}
+	accessValidator := &mockAccessValidator{}
+	logger := zaptest.NewLogger(t)
+
+	handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, subdomain, true, logger, redirectSignature)
+	require.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+	require.NoError(t, err)
+
+	testPublicKeyIDSignatureBase64 := base64.StdEncoding.EncodeToString([]byte("test-signed-public-key-id"))
+
+	req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDCookie, Value: testPublicKeyID})
+	req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDSignatureBase64Cookie, Value: testPublicKeyIDSignatureBase64})
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, []string{expectedAlias}, proxyProvider.aliases)
+	require.Equal(t, http.StatusOK, rr.Code)
 }
 
 func testSubdomainRequestWithCookies(ctx context.Context, t *testing.T, mainURL *url.URL, instanceID string) {
