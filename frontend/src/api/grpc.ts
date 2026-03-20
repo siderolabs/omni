@@ -258,13 +258,13 @@ export class ResourceService {
     return checkError(await WrappedResourceService.Teardown(request, ...options))
   }
 
-  static async Watch(
+  static Watch(
     request: WatchRequest,
     callback: NotifyStreamEntityArrival<WatchResponse>,
     options?: fetchOption[],
     onStart?: () => void,
     onError?: (e: Error) => void,
-  ): Promise<Stream<WatchRequest, WatchResponse>> {
+  ): Stream<WatchRequest, WatchResponse> {
     return subscribe(WrappedResourceService.Watch, request, callback, options, onStart, onError)
   }
 }

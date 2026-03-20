@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import type { MaybeRefOrGetter, Ref } from 'vue'
-import { onBeforeUnmount, onMounted, ref, toRef, toValue, watch } from 'vue'
+import { effectScope, onScopeDispose, ref, toRef, toValue, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { type fetchOption, RequestError } from '@/api/fetch.pb'
@@ -55,54 +55,49 @@ class WatchFunc {
     }
   }
 
-  // setup is meant to be called from the component setup method
   public setup(opts: MaybeRefOrGetter<WatchOptions | undefined>) {
-    let unmounted = false
+    const scope = effectScope()
 
-    const startWatch = async () => {
-      stopWatch()
+    scope.run(() => {
+      let unmounted = false
 
-      const watchOptions = toValue(opts)
+      const startWatch = () => {
+        this.stop()
 
-      if (!watchOptions || watchOptions.skip) return
+        const watchOptions = toValue(opts)
 
-      await this.start(watchOptions)
+        if (!watchOptions || watchOptions.skip) return
 
-      if (unmounted) {
-        stopWatch()
+        this.start(watchOptions)
+
+        if (unmounted) {
+          this.stop()
+        }
       }
-    }
 
-    watch(toRef(opts), (newval, oldval) => {
-      if (JSON.stringify(newval) !== JSON.stringify(oldval)) {
-        startWatch()
-      }
+      watch(toRef(opts), (newval, oldval) => {
+        if (JSON.stringify(newval) !== JSON.stringify(oldval)) {
+          startWatch()
+        }
+      })
+
+      startWatch()
+
+      onScopeDispose(() => {
+        unmounted = true
+
+        this.stop()
+      })
     })
 
-    const stopWatch = async () => {
-      this.stop()
-    }
-
-    onMounted(async () => {
-      await startWatch()
-    })
-
-    onBeforeUnmount(async () => {
-      unmounted = true
-
-      stopWatch()
-    })
+    return scope
   }
 
-  public start(opts: WatchOptions): Promise<void> {
+  public start(opts: WatchOptions) {
     return this.createStream(opts)
   }
 
-  public async createStream(
-    opts: WatchOptions,
-    onStart?: () => void,
-    onError?: (err: Error) => void,
-  ): Promise<void> {
+  public createStream(opts: WatchOptions, onStart?: () => void, onError?: (err: Error) => void) {
     this.loading.value = true
     this.err.value = null
     this.errCode.value = null
@@ -121,7 +116,7 @@ class WatchFunc {
       fetchOptions.push(withContext(opts.context))
     }
 
-    this.stream = await ResourceService.Watch(
+    this.stream = ResourceService.Watch(
       {
         id: 'id' in opts.resource ? opts.resource.id : undefined,
         namespace: opts.resource.namespace,
@@ -253,7 +248,7 @@ export default class Watch<T extends Resource> extends WatchFunc {
     return Array.isArray(target.value)
   }
 
-  public async start(opts: WatchOptions) {
+  public start(opts: WatchOptions) {
     if (this.items) {
       this.watchItems = new WatchItems(this.items.value)
 
@@ -262,7 +257,7 @@ export default class Watch<T extends Resource> extends WatchFunc {
 
     this.watchItems?.setDescending(opts.sortDescending ?? false)
 
-    await this.createStream(opts)
+    this.createStream(opts)
 
     if (!this.stream) {
       return
@@ -533,54 +528,54 @@ export class WatchJoin<T extends Resource> {
     primary: MaybeRefOrGetter<WatchJoinOptions | undefined>,
     resources: MaybeRefOrGetter<WatchJoinOptions[] | undefined>,
   ) {
-    let unmounted = false
+    const scope = effectScope()
 
-    const restartIfDiff = (
-      newval: WatchJoinOptions | WatchJoinOptions[] | undefined,
-      oldval: WatchJoinOptions | WatchJoinOptions[] | undefined,
-    ) => {
-      if (JSON.stringify(newval) === JSON.stringify(oldval)) {
-        return
+    scope.run(() => {
+      let unmounted = false
+
+      const restartIfDiff = (
+        newval: WatchJoinOptions | WatchJoinOptions[] | undefined,
+        oldval: WatchJoinOptions | WatchJoinOptions[] | undefined,
+      ) => {
+        if (JSON.stringify(newval) === JSON.stringify(oldval)) {
+          return
+        }
+
+        startWatch()
       }
+
+      const startWatch = () => {
+        this.stop()
+
+        const primaryOpts = toValue(primary)
+        const resourcesOpts = toValue(resources)
+
+        if (!primaryOpts || !resourcesOpts) return
+
+        this.start(primaryOpts, ...resourcesOpts)
+
+        if (unmounted) {
+          this.stop()
+        }
+      }
+      watch(toRef(primary), restartIfDiff)
+      watch(toRef(resources), restartIfDiff)
 
       startWatch()
-    }
 
-    const startWatch = async () => {
-      stopWatch()
+      onScopeDispose(() => {
+        unmounted = true
 
-      const primaryOpts = toValue(primary)
-      const resourcesOpts = toValue(resources)
-
-      if (!primaryOpts || !resourcesOpts) return
-
-      await this.start(primaryOpts, ...resourcesOpts)
-
-      if (unmounted) {
-        stopWatch()
-      }
-    }
-    watch(toRef(primary), restartIfDiff)
-    watch(toRef(resources), restartIfDiff)
-
-    const stopWatch = async () => {
-      this.stop()
-    }
-
-    onMounted(async () => {
-      await startWatch()
+        this.stop()
+      })
     })
 
-    onBeforeUnmount(async () => {
-      unmounted = true
-
-      stopWatch()
-    })
+    return scope
   }
 
   // start initializes the list of watches.
   // the first resource metadata is primary, then it's extended by the specs of the resources defined after.
-  public async start(primary: WatchOptions, ...resources: WatchJoinOptions[]): Promise<void> {
+  public start(primary: WatchOptions, ...resources: WatchJoinOptions[]) {
     this.stop()
 
     this.watchItems = new WatchItems(this.items.value)
@@ -682,7 +677,7 @@ export class WatchJoin<T extends Resource> {
           }
         }
 
-        await watch.createStream(opts, onStart, onError)
+        watch.createStream(opts, onStart, onError)
 
         this.watches.push(watch)
       }
