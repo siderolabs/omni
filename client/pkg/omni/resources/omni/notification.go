@@ -30,6 +30,10 @@ const (
 	// NotificationMachineRegistrationLimitID is the ID for the machine registration limit notification.
 	// tsgen:NotificationMachineRegistrationLimitID
 	NotificationMachineRegistrationLimitID = "machine-registration-limit"
+
+	// NotificationNonImageFactoryMachinesID is the ID for the non-ImageFactory machines deprecation notification.
+	// tsgen:NotificationNonImageFactoryMachinesID
+	NotificationNonImageFactoryMachinesID = "non-image-factory-machines"
 )
 
 // Notification describes a generic notification emitted by a controller.

@@ -168,6 +168,11 @@ func Default() *Params {
 	p.Features.SetEnableConfigDataCompression(true)
 	p.Features.SetEnableClusterImport(true)
 
+	p.Notifications.NonImageFactoryDeprecation.SetEnabled(false)
+	p.Notifications.NonImageFactoryDeprecation.SetTitle("Non-ImageFactory Machines Detected")
+	p.Notifications.NonImageFactoryDeprecation.SetBody("%d machine(s) were provisioned without ImageFactory. Support for these machines will end after a future release. Please re-provision them " +
+		"using ImageFactory.")
+
 	p.EtcdBackup.SetTickInterval(time.Minute)
 	p.EtcdBackup.SetMinInterval(time.Hour)
 	p.EtcdBackup.SetMaxInterval(24 * time.Hour)

@@ -209,6 +209,7 @@ export const MaintenanceConfigStatusType = "MaintenanceConfigStatuses.omni.sider
 export const NodeForceDestroyRequestType = "NodeForceDestroyRequests.omni.sidero.dev";
 export const NotificationType = "Notifications.omni.sidero.dev";
 export const NotificationMachineRegistrationLimitID = "machine-registration-limit";
+export const NotificationNonImageFactoryMachinesID = "non-image-factory-machines";
 export const OngoingTaskType = "OngoingTasks.omni.sidero.dev";
 export const RedactedClusterMachineConfigType = "RedactedClusterMachineConfigs.omni.sidero.dev";
 export const RotateKubernetesCAType = "RotateKubernetesCAs.omni.sidero.dev";

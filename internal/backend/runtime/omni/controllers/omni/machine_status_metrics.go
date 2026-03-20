@@ -34,10 +34,18 @@ type nodeInfo struct {
 	connected    bool
 }
 
+// NonImageFactoryDeprecationConfig contains configuration for the non-ImageFactory deprecation notification.
+type NonImageFactoryDeprecationConfig struct {
+	Title   string
+	Body    string
+	Enabled bool
+}
+
 // NewMachineStatusMetricsController creates a new MachineStatusMetricsController.
-func NewMachineStatusMetricsController(maxRegisteredMachines uint32) *MachineStatusMetricsController {
+func NewMachineStatusMetricsController(maxRegisteredMachines uint32, nonImageFactoryDeprecation NonImageFactoryDeprecationConfig) *MachineStatusMetricsController {
 	return &MachineStatusMetricsController{
-		maxRegisteredMachines: maxRegisteredMachines,
+		maxRegisteredMachines:      maxRegisteredMachines,
+		nonImageFactoryDeprecation: nonImageFactoryDeprecation,
 	}
 }
 
@@ -50,16 +58,19 @@ type MachineStatusMetricsController struct {
 
 	metricsOnce sync.Once
 
+	nonImageFactoryDeprecation NonImageFactoryDeprecationConfig
+
 	maxRegisteredMachines uint32
 
 	platformNames []string
 
-	metricNumMachines             prometheus.Gauge
-	metricNumConnectedMachines    prometheus.Gauge
-	metricNumMachinesPerVersion   *prometheus.Desc
-	metricMachinePlatforms        *prometheus.GaugeVec
-	metricMachineSecureBootStatus *prometheus.GaugeVec
-	metricMachineUKIStatus        *prometheus.GaugeVec
+	metricNumMachines                 prometheus.Gauge
+	metricNumConnectedMachines        prometheus.Gauge
+	metricNumInvalidSchematicMachines prometheus.Gauge
+	metricNumMachinesPerVersion       *prometheus.Desc
+	metricMachinePlatforms            *prometheus.GaugeVec
+	metricMachineSecureBootStatus     *prometheus.GaugeVec
+	metricMachineUKIStatus            *prometheus.GaugeVec
 }
 
 // Name implements controller.Controller interface.
@@ -107,6 +118,11 @@ func (ctrl *MachineStatusMetricsController) initMetrics() {
 		ctrl.metricNumConnectedMachines = prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "omni_connected_machines",
 			Help: "Number of machines in the instance that are connected.",
+		})
+
+		ctrl.metricNumInvalidSchematicMachines = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "omni_machines_invalid_schematic",
+			Help: "Number of machines in the instance that were provisioned without using ImageFactory.",
 		})
 
 		ctrl.metricNumMachinesPerVersion = prometheus.NewDesc(
@@ -182,6 +198,12 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 			}
 		}
 
+		if ctrl.nonImageFactoryDeprecation.Enabled {
+			if err = ctrl.reconcileNonImageFactoryDeprecationNotification(ctx, r, metricsSpec); err != nil {
+				return err
+			}
+		}
+
 		select {
 		case <-ctx.Done():
 			return nil
@@ -210,6 +232,25 @@ func (ctrl *MachineStatusMetricsController) reconcileRegistrationLimitNotificati
 	return err
 }
 
+func (ctrl *MachineStatusMetricsController) reconcileNonImageFactoryDeprecationNotification(ctx context.Context, r controller.Runtime, metricsSpec *specs.MachineStatusMetricsSpec) error {
+	invalidSchematicCount := int(metricsSpec.InvalidSchematicMachinesCount)
+	if invalidSchematicCount > 0 {
+		return safe.WriterModify(ctx, r, omni.NewNotification(omni.NotificationNonImageFactoryMachinesID),
+			func(res *omni.Notification) error {
+				res.TypedSpec().Value.Title = ctrl.nonImageFactoryDeprecation.Title
+				res.TypedSpec().Value.Body = fmt.Sprintf(ctrl.nonImageFactoryDeprecation.Body, invalidSchematicCount)
+				res.TypedSpec().Value.Type = specs.NotificationSpec_WARNING
+
+				return nil
+			},
+		)
+	}
+
+	_, err := helpers.TeardownAndDestroy(ctx, r, omni.NewNotification(omni.NotificationNonImageFactoryMachinesID).Metadata())
+
+	return err
+}
+
 func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omni.MachineStatus], numPendingMachines int) *specs.MachineStatusMetricsSpec {
 	platformMetrics := make(map[string]uint32, len(ctrl.platformNames))
 	for _, p := range ctrl.platformNames {
@@ -229,7 +270,7 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		"false":       0,
 	}
 
-	var machines, connectedMachines, allocatedMachines int
+	var machines, connectedMachines, allocatedMachines, invalidSchematicMachines int
 
 	ctrl.versionsMu.Lock()
 	ctrl.versionsMap = map[nodeInfo]int32{}
@@ -253,6 +294,10 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 			allocatedMachines++
 		}
 
+		if ms.TypedSpec().Value.SchematicReady() && ms.TypedSpec().Value.GetSchematic().GetInvalid() {
+			invalidSchematicMachines++
+		}
+
 		platform := ms.TypedSpec().Value.PlatformMetadata.GetPlatform()
 		if platform != "" {
 			platformMetrics[platform]++
@@ -272,6 +317,7 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 
 	ctrl.metricNumMachines.Set(float64(machines))
 	ctrl.metricNumConnectedMachines.Set(float64(connectedMachines))
+	ctrl.metricNumInvalidSchematicMachines.Set(float64(invalidSchematicMachines))
 
 	for key, num := range platformMetrics {
 		ctrl.metricMachinePlatforms.WithLabelValues(key).Set(float64(num))
@@ -286,15 +332,16 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 	}
 
 	return &specs.MachineStatusMetricsSpec{
-		ConnectedMachinesCount:   uint32(connectedMachines),
-		RegisteredMachinesCount:  uint32(machines),
-		AllocatedMachinesCount:   uint32(allocatedMachines),
-		PendingMachinesCount:     uint32(numPendingMachines),
-		Platforms:                platformMetrics,
-		SecureBootStatus:         secureBootStatusMetrics,
-		UkiStatus:                ukiMetrics,
-		RegisteredMachinesLimit:  ctrl.maxRegisteredMachines,
-		RegistrationLimitReached: ctrl.maxRegisteredMachines > 0 && uint32(machines) >= ctrl.maxRegisteredMachines,
+		ConnectedMachinesCount:        uint32(connectedMachines),
+		RegisteredMachinesCount:       uint32(machines),
+		AllocatedMachinesCount:        uint32(allocatedMachines),
+		PendingMachinesCount:          uint32(numPendingMachines),
+		Platforms:                     platformMetrics,
+		SecureBootStatus:              secureBootStatusMetrics,
+		UkiStatus:                     ukiMetrics,
+		RegisteredMachinesLimit:       ctrl.maxRegisteredMachines,
+		RegistrationLimitReached:      ctrl.maxRegisteredMachines > 0 && uint32(machines) >= ctrl.maxRegisteredMachines,
+		InvalidSchematicMachinesCount: uint32(invalidSchematicMachines),
 	}
 }
 
@@ -317,6 +364,7 @@ func (ctrl *MachineStatusMetricsController) Collect(ch chan<- prometheus.Metric)
 
 	ctrl.metricNumMachines.Collect(ch)
 	ctrl.metricNumConnectedMachines.Collect(ch)
+	ctrl.metricNumInvalidSchematicMachines.Collect(ch)
 	ctrl.metricMachinePlatforms.Collect(ch)
 	ctrl.metricMachineSecureBootStatus.Collect(ch)
 	ctrl.metricMachineUKIStatus.Collect(ch)

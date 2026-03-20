@@ -906,6 +906,7 @@ export type MachineStatusMetricsSpec = {
   uki_status?: {[key: string]: number}
   registered_machines_limit?: number
   registration_limit_reached?: boolean
+  invalid_schematic_machines_count?: number
 }
 
 export type ClusterMetricsSpec = {

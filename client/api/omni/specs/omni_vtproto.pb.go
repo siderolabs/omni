@@ -2449,6 +2449,7 @@ func (m *MachineStatusMetricsSpec) CloneVT() *MachineStatusMetricsSpec {
 	r.PendingMachinesCount = m.PendingMachinesCount
 	r.RegisteredMachinesLimit = m.RegisteredMachinesLimit
 	r.RegistrationLimitReached = m.RegistrationLimitReached
+	r.InvalidSchematicMachinesCount = m.InvalidSchematicMachinesCount
 	if rhs := m.Platforms; rhs != nil {
 		tmpContainer := make(map[string]uint32, len(rhs))
 		for k, v := range rhs {
@@ -6525,6 +6526,9 @@ func (this *MachineStatusMetricsSpec) EqualVT(that *MachineStatusMetricsSpec) bo
 		return false
 	}
 	if this.RegistrationLimitReached != that.RegistrationLimitReached {
+		return false
+	}
+	if this.InvalidSchematicMachinesCount != that.InvalidSchematicMachinesCount {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -14038,6 +14042,11 @@ func (m *MachineStatusMetricsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.InvalidSchematicMachinesCount != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.InvalidSchematicMachinesCount))
+		i--
+		dAtA[i] = 0x58
+	}
 	if m.RegistrationLimitReached {
 		i--
 		if m.RegistrationLimitReached {
@@ -18433,6 +18442,9 @@ func (m *MachineStatusMetricsSpec) SizeVT() (n int) {
 	}
 	if m.RegistrationLimitReached {
 		n += 2
+	}
+	if m.InvalidSchematicMachinesCount != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.InvalidSchematicMachinesCount))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -36120,6 +36132,25 @@ func (m *MachineStatusMetricsSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.RegistrationLimitReached = bool(v != 0)
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InvalidSchematicMachinesCount", wireType)
+			}
+			m.InvalidSchematicMachinesCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.InvalidSchematicMachinesCount |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

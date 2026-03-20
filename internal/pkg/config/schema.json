@@ -12,7 +12,8 @@
     "etcdBackup",
     "registries",
     "debug",
-    "features"
+    "features",
+    "notifications"
   ],
   "goJSONSchema": {
     "imports": [
@@ -55,6 +56,10 @@
     "features": {
       "description": "Features contains feature flags to enable/disable various Omni features.",
       "$ref": "#/definitions/Features"
+    },
+    "notifications": {
+      "description": "Notifications contains configuration for system notifications emitted by controllers.",
+      "$ref": "#/definitions/Notifications"
     }
   },
   "definitions": {
@@ -1475,6 +1480,38 @@
           "description": "DisableControllerRuntimeCache controls whether the controller-runtime cache is disabled. When disabled, etcd is accessed for all reads. Recommended to be enabled, unless debugging specific issues.",
           "x-cli-flag": "disable-controller-runtime-cache",
           "type": "boolean"
+        }
+      }
+    },
+    "Notifications": {
+      "type": "object",
+      "required": [
+        "nonImageFactoryDeprecation"
+      ],
+      "properties": {
+        "nonImageFactoryDeprecation": {
+          "description": "NonImageFactoryDeprecation contains configuration for the notification shown when machines are provisioned without using ImageFactory.",
+          "$ref": "#/definitions/NonImageFactoryDeprecation"
+        }
+      }
+    },
+    "NonImageFactoryDeprecation": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Enabled controls whether the non-ImageFactory deprecation notification is shown when machines with invalid schematics are detected.",
+          "x-cli-flag": "non-image-factory-deprecation-enabled",
+          "type": "boolean"
+        },
+        "title": {
+          "description": "Title is the title of the non-ImageFactory deprecation notification.",
+          "x-cli-flag": "non-image-factory-deprecation-title",
+          "type": "string"
+        },
+        "body": {
+          "description": "Body is the body of the non-ImageFactory deprecation notification. Use %d as a placeholder for the number of affected machines.",
+          "x-cli-flag": "non-image-factory-deprecation-body",
+          "type": "string"
         }
       }
     }
