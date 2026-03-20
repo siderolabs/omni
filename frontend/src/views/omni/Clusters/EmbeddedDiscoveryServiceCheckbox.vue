@@ -9,7 +9,6 @@ import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 
 type Props = {
-  talosVersion?: string
   disabled?: boolean
 }
 

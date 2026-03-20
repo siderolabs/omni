@@ -5,10 +5,11 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { gte } from 'semver'
+import { computed, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
+import { type Resource, ResourceService } from '@/api/grpc'
 import {
   type ClusterSecretsRotationStatusSpec,
   type ClusterSpec,
@@ -20,10 +21,12 @@ import {
   type TalosUpgradeStatusSpec,
   TalosUpgradeStatusSpecPhase,
 } from '@/api/omni/specs/omni.pb'
+import { withRuntime } from '@/api/options'
 import {
   ClusterLocked,
   ClusterSecretsRotationStatusType,
   ClusterStatusType,
+  ClusterType,
   DefaultNamespace,
   KubernetesUpgradeStatusType,
   KubernetesUsageType,
@@ -43,9 +46,8 @@ import {
   revertTalosUpgrade,
   setClusterEtcdBackupsConfig,
   setClusterWorkloadProxy,
-  setUseEmbeddedDiscoveryService,
 } from '@/methods/cluster'
-import { embeddedDiscoveryServiceFeatureAvailable, useFeatures } from '@/methods/features'
+import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
 import OverviewRightPanel from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
@@ -122,10 +124,26 @@ const { canManageClusterFeatures } = useClusterPermissions(clusterId)
 
 const { data: features } = useFeatures()
 
-const isEmbeddedDiscoveryServiceAvailable = ref(false)
+const isEmbeddedDiscoveryServiceAvailable = computed(
+  () =>
+    gte(currentCluster.spec.talos_version!, 'v1.5.0') &&
+    (features.value?.spec.embedded_discovery_service ?? false),
+)
 
 const toggleUseEmbeddedDiscoveryService = async (value: boolean) => {
-  await setUseEmbeddedDiscoveryService(clusterId.value, value)
+  const resource = await ResourceService.Get<Resource<ClusterSpec>>(
+    {
+      namespace: DefaultNamespace,
+      type: ClusterType,
+      id: clusterId.value,
+    },
+    withRuntime(Runtime.Omni),
+  )
+
+  resource.spec.features ||= {}
+  resource.spec.features.use_embedded_discovery_service = value
+
+  await ResourceService.Update(resource, resource.metadata.version, withRuntime(Runtime.Omni))
 }
 
 const { data: secretRotationStatus } = useResourceWatch<ClusterSecretsRotationStatusSpec>(() => ({
@@ -160,10 +178,6 @@ const machineLockedForKubernetesUpgrade = computed(() => {
 
 const machineLockedForSecretRotation = computed(() => {
   return secretRotationStatus.value?.spec.status === 'rotation paused'
-})
-
-onMounted(async () => {
-  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceFeatureAvailable()
 })
 </script>
 

@@ -3,7 +3,6 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import isEqual from 'lodash/isEqual'
-import * as semver from 'semver'
 import type { Ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -41,7 +40,6 @@ import {
   TalosUpgradeStatusType,
 } from '@/api/resources'
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
-import { embeddedDiscoveryServiceFeatureAvailable } from '@/methods/features'
 import { parseLabels } from '@/methods/labels'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
 
@@ -559,25 +557,6 @@ export const setClusterWorkloadProxy = async (clusterID: string, enabled: boolea
   await ResourceService.Update(resource, resource.metadata.version, withRuntime(Runtime.Omni))
 }
 
-export const setUseEmbeddedDiscoveryService = async (clusterID: string, enabled: boolean) => {
-  const resource: Resource<ClusterSpec> = await ResourceService.Get(
-    {
-      type: ClusterType,
-      namespace: DefaultNamespace,
-      id: clusterID,
-    },
-    withRuntime(Runtime.Omni),
-  )
-
-  if (!resource.spec.features) {
-    resource.spec.features = {}
-  }
-
-  resource.spec.features.use_embedded_discovery_service = enabled
-
-  await ResourceService.Update(resource, resource.metadata.version, withRuntime(Runtime.Omni))
-}
-
 export const setClusterEtcdBackupsConfig = async (clusterID: string, spec: ClusterSpec) => {
   const resource: Resource<ClusterSpec> = await ResourceService.Get(
     {
@@ -629,20 +608,6 @@ export const triggerEtcdBackup = async (clusterID: string) => {
   }
 
   return await ResourceService.Update(manualBackup, undefined, withRuntime(Runtime.Omni))
-}
-
-export const embeddedDiscoveryServiceAvailable = async (
-  talosVersion?: string,
-): Promise<boolean> => {
-  if (!talosVersion) {
-    return false
-  }
-
-  if (semver.compare(talosVersion, 'v1.5.0') < 0) {
-    return false
-  }
-
-  return await embeddedDiscoveryServiceFeatureAvailable()
 }
 
 export const updateClusterLock = async (id: string, locked: boolean) => {

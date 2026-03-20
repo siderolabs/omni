@@ -8,7 +8,7 @@ included in the LICENSE file.
 import { dump } from 'js-yaml'
 import * as semver from 'semver'
 import type { Ref } from 'vue'
-import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { computed, onMounted, ref, useTemplateRef, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -41,12 +41,8 @@ import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import TAlert from '@/components/TAlert.vue'
 import { setupBackupStatus } from '@/methods'
 import { usePermissions } from '@/methods/auth'
-import {
-  ClusterCommandError,
-  clusterSync,
-  embeddedDiscoveryServiceAvailable,
-  nextAvailableClusterName,
-} from '@/methods/cluster'
+import { ClusterCommandError, clusterSync, nextAvailableClusterName } from '@/methods/cluster'
+import { useFeatures } from '@/methods/features'
 import { showModal } from '@/modal'
 import { showError, showSuccess } from '@/notification'
 import { initState, PatchID } from '@/states/cluster-management'
@@ -143,39 +139,21 @@ talosVersionsWatch.setup({
   },
 })
 
-const isEmbeddedDiscoveryServiceAvailable = ref(false)
+const { data: features } = useFeatures()
 
-watch(state.value.cluster, async (cluster) => {
-  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(
-    cluster?.talosVersion,
-  )
+const isEmbeddedDiscoveryServiceAvailable = computed(
+  () => features.value?.spec.embedded_discovery_service ?? false,
+)
 
+watchEffect(() => {
   if (!isEmbeddedDiscoveryServiceAvailable.value) {
     state.value.cluster.features.useEmbeddedDiscoveryService = false
   }
 })
 
-const toggleUseEmbeddedDiscoveryService = async () => {
-  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(
-    state.value.cluster?.talosVersion,
-  )
-
-  if (!isEmbeddedDiscoveryServiceAvailable.value) {
-    state.value.cluster.features.useEmbeddedDiscoveryService = false
-
-    return
-  }
-
-  state.value.cluster.features.useEmbeddedDiscoveryService =
-    !state.value.cluster.features.useEmbeddedDiscoveryService
-}
-
 onMounted(async () => {
   state.value.cluster.name = await nextAvailableClusterName(
     state.value.cluster.name ?? 'talos-default',
-  )
-  isEmbeddedDiscoveryServiceAvailable.value = await embeddedDiscoveryServiceAvailable(
-    state.value.cluster?.talosVersion,
   )
 })
 
@@ -382,10 +360,8 @@ const list = useTemplateRef('list')
         </Tooltip>
         <ClusterWorkloadProxyingCheckbox v-model="state.cluster.features.enableWorkloadProxy" />
         <EmbeddedDiscoveryServiceCheckbox
-          :checked="state.cluster.features.useEmbeddedDiscoveryService"
+          v-model="state.cluster.features.useEmbeddedDiscoveryService"
           :disabled="!isEmbeddedDiscoveryServiceAvailable"
-          :talos-version="state.cluster.talosVersion"
-          @click="toggleUseEmbeddedDiscoveryService"
         />
         <ClusterEtcdBackupCheckbox
           :backup-status="backupStatus"
