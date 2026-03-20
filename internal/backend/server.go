@@ -1213,6 +1213,9 @@ func runEmbeddedDiscoveryService(ctx context.Context, secondaryStorageDB *sqlite
 			SnapshotsEnabled: snapshotsEnabled,
 			SnapshotInterval: discoveryCfg.GetSnapshotsInterval(),
 			SnapshotStore:    snapshotStore,
+			// Nodes connect over SideroLink, so the peer IP is a tunnel address, not a real public IP.
+			// Reporting it back would cause Talos to add it as a broken KubeSpan endpoint candidate.
+			DisableClientIPReporting: true,
 		}, logger.WithOptions(zap.IncreaseLevel(logLevel)).With(logging.Component("discovery_service")))
 
 		if errors.Is(err, syscall.EADDRNOTAVAIL) {

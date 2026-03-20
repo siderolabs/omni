@@ -456,8 +456,8 @@ github.com/siderolabs/discovery-api v0.1.8 h1:Hq/Si0fFQICvdT+P/I81fRf9t5I+J6vaJN
 github.com/siderolabs/discovery-api v0.1.8/go.mod h1:JN8aBpnsArIeLNLbqt3HIYHyFR14Qfwr4etAB2ZfygA=
 github.com/siderolabs/discovery-client v0.1.15 h1:XN2nm2U/RUtevZtKZnwYAOE+Z68VpW32Me1K19zXtHU=
 github.com/siderolabs/discovery-client v0.1.15/go.mod h1:iUpFYp40CNTnqshG7d2r9zjMruLEaT0sb49rZzVSXVA=
-github.com/siderolabs/discovery-service v1.0.15 h1:byKnJma1jiL06ntVsLvP9YdZNC1b5BKxyCWaTCiuad4=
-github.com/siderolabs/discovery-service v1.0.15/go.mod h1:iMDklAW8DwnKBsHjD0pR0YeAK3GNiuVIAs8zD9jt4kg=
+github.com/siderolabs/discovery-service v1.0.16 h1:JlNRavWxiEvxOLNWXeiX3vzH8cvnPnGl80tjR7eO2X8=
+github.com/siderolabs/discovery-service v1.0.16/go.mod h1:iMDklAW8DwnKBsHjD0pR0YeAK3GNiuVIAs8zD9jt4kg=
 github.com/siderolabs/gen v0.8.6 h1:pE6shuqov3L+5rEcAUJ/kY6iJofimljQw5G95P8a5c4=
 github.com/siderolabs/gen v0.8.6/go.mod h1:J9IbusbES2W6QWjtSHpDV9iPGZHc978h1+KJ4oQRspQ=
 github.com/siderolabs/go-api-signature v0.3.12 h1:i1X+kPh9fzo+lEjtEplZSbtq1p21vKv4FCWJcB/ozvk=
