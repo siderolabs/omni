@@ -4,41 +4,32 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
+<route lang="json">
+{
+  "meta": {
+    "guard": "keys"
+  }
+}
+</route>
+
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
-import { onBeforeMount, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { OIDCService } from '@/api/omni/oidc/oidc.pb'
-import { AuthFlowQueryParam, FrontendAuthFlow, RedirectQueryParam } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
 import { useIdentity } from '@/methods/identity'
-import { hasValidKeys } from '@/methods/key'
 import { showError } from '@/notification'
 
 definePage({
   name: 'OIDC Login',
 })
 
-const router = useRouter()
 const route = useRoute()
-
-onBeforeMount(async () => {
-  const authorized = await hasValidKeys()
-
-  if (!authorized) {
-    router.replace({
-      name: 'Authenticate',
-      query: {
-        [AuthFlowQueryParam]: FrontendAuthFlow,
-        [RedirectQueryParam]: route.fullPath,
-      },
-    })
-  }
-})
 
 const { copy, copied } = useClipboard({ copiedDuring: 1000 })
 const { avatar, fullname, identity } = useIdentity()

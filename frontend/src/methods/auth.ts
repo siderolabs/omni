@@ -4,9 +4,10 @@
 // included in the LICENSE file.
 import { useAuth0 } from '@auth0/auth0-vue'
 import type { MaybeRefOrGetter } from 'vue'
-import { computed, effectScope, toValue } from 'vue'
+import { computed, effectScope, nextTick, toValue } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
@@ -184,22 +185,25 @@ export function useLogout() {
     if (keys.publicKeyID.value) {
       try {
         await AuthService.RevokePublicKey({ public_key_id: keys.publicKeyID.value })
-      } catch (error) {
+      } catch (e) {
         // During a log out action being unauthenticated is fine
-        if (error.code !== Code.UNAUTHENTICATED) throw error
+        if (!(e instanceof RequestError) || e.code !== Code.UNAUTHENTICATED) throw e
       }
     }
-
-    await auth0?.logout({
-      logoutParams: {
-        returnTo: window.location.origin,
-      },
-    })
 
     keys.clear()
     identity.clear()
 
-    if (authType.value !== AuthType.Auth0) {
+    // Wait for storages to be set
+    await nextTick()
+
+    if (auth0) {
+      await auth0.logout({
+        logoutParams: {
+          returnTo: window.location.origin,
+        },
+      })
+    } else {
       redirectToURL(`/logout?${AuthFlowQueryParam}=${FrontendAuthFlow}`)
     }
   }

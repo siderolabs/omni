@@ -4,14 +4,20 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
+<route lang="json">
+{
+  "meta": {
+    "guard": "auth0"
+  }
+}
+</route>
+
 <script setup lang="ts">
 import type { User } from '@auth0/auth0-spa-js'
 import type { Auth0VueClient } from '@auth0/auth0-vue'
 import { useAuth0 } from '@auth0/auth0-vue'
-import { until } from '@vueuse/core'
-import { milliseconds, millisecondsToSeconds } from 'date-fns'
 import { jwtDecode } from 'jwt-decode'
-import { computed, onBeforeMount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeMount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { b64Encode, type fetchOption, RequestError } from '@/api/fetch.pb'
@@ -70,19 +76,8 @@ onBeforeMount(async () => {
     case AuthType.Auth0:
       auth0 = useAuth0()
 
-      try {
-        // Wait for auth0 to be ready
-        await until(auth0.isLoading).toBe(false)
-
-        await auth0.getAccessTokenSilently()
-
-        user.value = auth0.user.value
-        idToken = auth0.idTokenClaims.value!.__raw
-      } catch {
-        await auth0.loginWithRedirect({
-          authorizationParams: { max_age: millisecondsToSeconds(milliseconds({ minutes: 2 })) },
-        })
-      }
+      user.value = auth0.user.value
+      idToken = auth0.idTokenClaims.value!.__raw
 
       break
     case AuthType.OIDC:
@@ -184,6 +179,9 @@ const generatePublicKey = async (identity: string) => {
   identityStorage.identity.value = identity.toLowerCase()
   identityStorage.fullname.value = name.value ?? ''
   identityStorage.avatar.value = picture.value ?? ''
+
+  // Wait for storages to be set
+  await nextTick()
 
   const redirect = route.query[RedirectQueryParam]?.toString()
 

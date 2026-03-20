@@ -6,6 +6,7 @@ import { useAuth0 } from '@auth0/auth0-vue'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { ref } from 'vue'
 
+import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import { AuthService } from '@/api/omni/auth/auth.pb'
 import { AuthType, authType } from '@/methods'
@@ -114,7 +115,7 @@ describe('useLogout', () => {
   })
 
   test('should not throw when RevokePublicKey fails with UNAUTHENTICATED error', async () => {
-    const error = new Error('Unauthenticated') as Error & { code: Code }
+    const error = new RequestError('Unauthenticated') as Error & { code: Code }
     error.code = Code.UNAUTHENTICATED
     vi.mocked(AuthService.RevokePublicKey).mockRejectedValue(error)
 

@@ -2,9 +2,10 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import { until } from '@vueuse/core'
 import { getUnixTime } from 'date-fns'
 import fetchIntercept from 'fetch-intercept'
-import { onBeforeMount, onUnmounted, ref, watch } from 'vue'
+import { onScopeDispose } from 'vue'
 
 import { b64Encode } from '@/api/fetch.pb'
 import {
@@ -25,63 +26,50 @@ export function useRegisterAPIInterceptor() {
   const { keyPair, publicKeyID } = useKeys()
   const { identity } = useIdentity()
 
-  const unregisterInterceptor = ref<() => void>()
+  const unregister = fetchIntercept.register({
+    async request(url, config?: { headers?: Headers; method?: string }) {
+      url = encodeURI(url)
 
-  onBeforeMount(() => {
-    unregisterInterceptor.value = fetchIntercept.register({
-      async request(url, config?: { headers?: Headers; method?: string }) {
-        url = encodeURI(url)
-
-        if (
-          !/^\/(api|image)/.test(url) ||
-          (url.startsWith('/api/auth.') && !url.startsWith('/api/auth.AuthService/RevokePublicKey'))
-        ) {
-          return [url, config]
-        }
-
-        config ||= {}
-        config.headers ||= new Headers()
-
-        const ts = getUnixTime(Date.now()).toString()
-
-        if (url.startsWith('/api')) {
-          config.headers.set(`Grpc-Metadata-${TimestampHeaderKey}`, ts)
-
-          const payload = JSON.stringify(buildPayload(url, config))
-          const signature = await generateSignatureHeader(payload)
-
-          config.headers.set(`Grpc-Metadata-${PayloadHeaderKey}`, payload)
-          config.headers.set(`Grpc-Metadata-${SignatureHeaderKey}`, signature)
-        } else if (url.startsWith('/image')) {
-          config.headers.set(TimestampHeaderKey, ts)
-
-          const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' // empty string sha256
-          const payload = [config.method ?? 'GET', url, ts, sha256].join('\n')
-          const signature = await generateSignatureHeader(payload)
-
-          config.headers.set(SignatureHeaderKey, signature)
-        }
-
+      if (
+        !/^\/(api|image)/.test(url) ||
+        (url.startsWith('/api/auth.') && !url.startsWith('/api/auth.AuthService/RevokePublicKey'))
+      ) {
         return [url, config]
-      },
-    })
+      }
+
+      config ||= {}
+      config.headers ||= new Headers()
+
+      const ts = getUnixTime(Date.now()).toString()
+
+      if (url.startsWith('/api')) {
+        config.headers.set(`Grpc-Metadata-${TimestampHeaderKey}`, ts)
+
+        const payload = JSON.stringify(buildPayload(url, config))
+        const signature = await generateSignatureHeader(payload)
+
+        config.headers.set(`Grpc-Metadata-${PayloadHeaderKey}`, payload)
+        config.headers.set(`Grpc-Metadata-${SignatureHeaderKey}`, signature)
+      } else if (url.startsWith('/image')) {
+        config.headers.set(TimestampHeaderKey, ts)
+
+        const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' // empty string sha256
+        const payload = [config.method ?? 'GET', url, ts, sha256].join('\n')
+        const signature = await generateSignatureHeader(payload)
+
+        config.headers.set(SignatureHeaderKey, signature)
+      }
+
+      return [url, config]
+    },
   })
+
+  onScopeDispose(unregister)
 
   async function generateSignatureHeader(payload: string) {
     if (!keyPair.value) {
       // Wait for keys to be created.
-      await new Promise<void>((resolve) => {
-        const handle = watch(
-          keyPair,
-          (keyPair) => {
-            if (!keyPair) return
-
-            handle.stop()
-            resolve()
-          },
-          { immediate: true },
-        )
-      })
+      await until(keyPair).toBeTruthy()
     }
 
     const array = new Uint8Array(await signDetached(payload, keyPair.value!))
@@ -90,8 +78,6 @@ export function useRegisterAPIInterceptor() {
 
     return `${SignatureVersionV1} ${identity.value} ${fingerprint} ${signature}`
   }
-
-  onUnmounted(() => unregisterInterceptor.value?.())
 }
 
 const includedHeaders = [

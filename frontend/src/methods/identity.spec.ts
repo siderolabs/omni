@@ -11,9 +11,9 @@ describe('useIdentity', () => {
   test('defaults to null', async () => {
     const { identity, avatar, fullname } = useIdentity()
 
-    expect(identity.value).toBeNull()
-    expect(avatar.value).toBeNull()
-    expect(fullname.value).toBeNull()
+    expect(identity.value).toBe('')
+    expect(avatar.value).toBe('')
+    expect(fullname.value).toBe('')
   })
 
   test('sets values', async () => {
@@ -37,9 +37,9 @@ describe('useIdentity', () => {
 
     clear()
 
-    expect(identity.value).toBeNull()
-    expect(avatar.value).toBeNull()
-    expect(fullname.value).toBeNull()
+    expect(identity.value).toBe('')
+    expect(avatar.value).toBe('')
+    expect(fullname.value).toBe('')
   })
 
   test('persists values', async () => {

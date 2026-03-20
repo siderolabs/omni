@@ -2,11 +2,16 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { useLocalStorage } from '@vueuse/core'
+import { StorageSerializers, useLocalStorage, type UseStorageOptions } from '@vueuse/core'
 
-const identityRef = useLocalStorage<string>('identity', null, { flush: 'sync' })
-const fullnameRef = useLocalStorage<string>('fullname', null, { flush: 'sync' })
-const avatarRef = useLocalStorage<string>('avatar', null, { flush: 'sync' })
+const storageOptions: UseStorageOptions<string> = {
+  serializer: StorageSerializers.string,
+  writeDefaults: false,
+}
+
+const identityRef = useLocalStorage('identity', '', storageOptions)
+const fullnameRef = useLocalStorage('fullname', '', storageOptions)
+const avatarRef = useLocalStorage('avatar', '', storageOptions)
 
 export function useIdentity() {
   return {
@@ -14,9 +19,9 @@ export function useIdentity() {
     fullname: fullnameRef,
     avatar: avatarRef,
     clear() {
-      identityRef.value = null
-      fullnameRef.value = null
-      avatarRef.value = null
+      identityRef.value = ''
+      fullnameRef.value = ''
+      avatarRef.value = ''
     },
   }
 }

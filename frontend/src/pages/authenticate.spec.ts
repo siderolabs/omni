@@ -5,10 +5,19 @@
 import { render } from '@testing-library/vue'
 import { expect, test, vi } from 'vitest'
 import { ref } from 'vue'
-
-import router from '@/router'
+import { createMemoryHistory, createRouter } from 'vue-router'
 
 import Authenticate from './authenticate.vue'
+
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [
+    {
+      path: '/',
+      component: { template: '<RouterView />' },
+    },
+  ],
+})
 
 vi.mock(import('@/methods'), async (importOriginal) => {
   const original = await importOriginal()

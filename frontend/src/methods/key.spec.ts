@@ -68,7 +68,7 @@ describe('useKeys', () => {
     const { keyPair, keyExpirationTime, publicKeyID } = useKeys()
 
     expect(keyPair.value).toBeFalsy()
-    expect(keyExpirationTime.value).toBeFalsy()
+    expect(keyExpirationTime.value).toEqual(new Date(0))
     expect(publicKeyID.value).toBeFalsy()
   })
 
@@ -82,7 +82,7 @@ describe('useKeys', () => {
     clear()
 
     expect(keyPair.value).toBeFalsy()
-    expect(keyExpirationTime.value).toBeFalsy()
+    expect(keyExpirationTime.value).toEqual(new Date(0))
     expect(publicKeyID.value).toBeFalsy()
   })
 
