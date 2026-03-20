@@ -35,13 +35,25 @@ type Info struct {
 	Name         string
 	TalosVersion string
 
-	// Address is the node's cluster-internal IP (from ClusterMachineIdentity.NodeIPs).
-	// Used for inter-node communication (e.g., apid One2Many fan-out).
-	Address string
+	// address is the node's cluster-internal IP (from ClusterMachineIdentity.NodeIPs).
+	address string
 
 	// ManagementEndpoint is the node's SideroLink address (from MachineStatus.ManagementAddress).
-	// Only routable from Omni, not between nodes.
+	// Only routable from Omni, not between nodes. Used as a fallback by GetAddress()
+	// when the cluster-internal IP is not yet known.
 	ManagementEndpoint string
+}
+
+// GetAddress returns the node's cluster-internal IP if known,
+// falling back to the SideroLink management address.
+// The fallback covers the race window during cluster bootstrap
+// when ClusterMachineIdentity.NodeIPs is not yet populated.
+func (i Info) GetAddress() string {
+	if i.address != "" {
+		return i.address
+	}
+
+	return i.ManagementEndpoint
 }
 
 type resolverMap map[string][]resource.ID
@@ -191,7 +203,7 @@ func (d *Service) updateEntryByIdentity(res *omni.ClusterMachineIdentity) {
 		address = nodeIPs[0]
 	}
 
-	info.Address = address
+	info.address = address
 
 	d.machineIDToInfo[id] = info
 	d.machineIDToAddress[id] = address
@@ -300,7 +312,7 @@ func (d *Service) deleteIdentityMappings(id resource.ID) {
 
 	info.Cluster = ""
 	info.Name = ""
-	info.Address = ""
+	info.address = ""
 
 	d.machineIDToInfo[id] = info
 	delete(d.machineIDToAddress, id)

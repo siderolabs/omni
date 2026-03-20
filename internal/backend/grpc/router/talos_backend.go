@@ -159,13 +159,15 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 	// Always strip the "node" header — Omni has already resolved and routed directly.
 	md.Delete(nodeHeaderKey)
 
-	// Preserve the "nodes" header (rewritten with resolved cluster-internal IPs) when
+	// Preserve the "nodes" header (rewritten with resolved node addresses) when
 	// the original request had "nodes". Talos apid uses it for One2Many fan-out (2+ nodes)
 	// or loopback (1 node pointing to self), which sets Metadata.Hostname in the response.
 	// This preserves the response shape that talosctl and other API consumers expect.
+	// GetAddress() returns the cluster-internal IP when available, falling back to the
+	// SideroLink management address during early bootstrap before NodeIPs are populated.
 	if len(md.Get(nodesHeaderKey)) > 0 {
 		addresses := xslices.Map(nodes, func(info dns.Info) string {
-			return info.Address
+			return info.GetAddress()
 		})
 
 		setHeaderData(ctx, md, nodesHeaderKey, addresses...)

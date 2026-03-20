@@ -73,7 +73,7 @@ func (suite *ServiceSuite) TearDownTest() {
 }
 
 func (suite *ServiceSuite) TestResolve() {
-	suite.assertResolve("test-bootstrap-cluster-1", "test-bootstrap-1-node", dns.Info{Cluster: "test-bootstrap-cluster-1", ID: "test-bootstrap-1", Name: "test-bootstrap-1-node", Address: "10.0.0.84"})
+	suite.assertResolve("test-bootstrap-cluster-1", "test-bootstrap-1-node", dns.NewInfo("test-bootstrap-cluster-1", "test-bootstrap-1", "test-bootstrap-1-node", "10.0.0.84"))
 
 	identity := omni.NewClusterMachineIdentity("test-1")
 	identity.Metadata().Labels().Set(omni.LabelCluster, "test-cluster-1")
@@ -84,7 +84,7 @@ func (suite *ServiceSuite) TestResolve() {
 	// create and assert that it resolves by machine ID, address and node name
 	suite.Require().NoError(suite.state.Create(suite.ctx, identity))
 
-	expected := dns.Info{Cluster: cluster, ID: "test-1", Name: "test-1-node", Address: "10.0.0.42"}
+	expected := dns.NewInfo(cluster, "test-1", "test-1-node", "10.0.0.42")
 	suite.assertResolve(cluster, "test-1", expected)
 	suite.assertResolve(cluster, "test-1-node", expected)
 	suite.assertResolve(cluster, "10.0.0.42", expected)
@@ -94,7 +94,7 @@ func (suite *ServiceSuite) TestResolve() {
 
 	suite.Require().NoError(suite.state.Update(suite.ctx, identity))
 
-	expected = dns.Info{Cluster: cluster, ID: "test-1", Name: "test-1-node", Address: "10.0.0.43"}
+	expected = dns.NewInfo(cluster, "test-1", "test-1-node", "10.0.0.43")
 	suite.assertResolve(cluster, "test-1", expected)
 	suite.assertResolve(cluster, "test-1-node", expected)
 	suite.assertResolve(cluster, "10.0.0.43", expected)
