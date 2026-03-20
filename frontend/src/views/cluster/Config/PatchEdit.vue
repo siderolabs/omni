@@ -5,9 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type monaco from 'monaco-editor/esm/vs/editor/editor.api'
-import { MarkerSeverity, MarkerTag } from 'monaco-editor/esm/vs/editor/editor.api'
-import { computed, defineAsyncComponent, ref, watch } from 'vue'
+import type monaco from 'monaco-editor'
+import { MarkerSeverity, MarkerTag } from 'monaco-editor'
+import { computed, ref, watch } from 'vue'
 import { type RouteLocationRaw, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -39,6 +39,7 @@ import {
   MachineStatusType,
 } from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
+import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
 import TIcon from '@/components/common/Icon/TIcon.vue'
 import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -51,10 +52,6 @@ import { machineSetTitle, sortMachineSetIds } from '@/methods/machineset'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
-
-const CodeEditor = defineAsyncComponent(
-  () => import('@/components/common/CodeEditor/CodeEditor.vue'),
-)
 
 type Props = {
   patchId: string

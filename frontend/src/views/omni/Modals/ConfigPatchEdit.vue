@@ -5,19 +5,16 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { defineAsyncComponent, ref, watchEffect } from 'vue'
+import { ref, watchEffect } from 'vue'
 
 import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import TButton from '@/components/common/Button/TButton.vue'
+import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
 import { closeModal } from '@/modal'
-
-const CodeEditor = defineAsyncComponent(
-  () => import('@/components/common/CodeEditor/CodeEditor.vue'),
-)
 
 interface Props {
   onSave: (config: string, id?: string) => void

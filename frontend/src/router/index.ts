@@ -4,12 +4,7 @@
 // included in the LICENSE file.
 
 import { Userpilot } from 'userpilot'
-import {
-  createRouter,
-  createWebHistory,
-  type RouteRecordRaw,
-  type RouteRecordRedirect,
-} from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRedirect } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
 
 // Redirects for legacy routes
@@ -32,8 +27,7 @@ const redirects: RouteRecordRedirect[] = [
 ]
 
 for (const redirect of redirects) {
-  // Cast due to https://github.com/vuejs/router/issues/2656
-  ;(routes as RouteRecordRaw[]).push(redirect)
+  routes.push(redirect)
 }
 
 const router = createRouter({

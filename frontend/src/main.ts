@@ -7,8 +7,6 @@ import '@/index.css'
 
 import { createAuth0 } from '@auth0/auth0-vue'
 import { milliseconds, millisecondsToSeconds } from 'date-fns'
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
-import yamlWorker from 'monaco-yaml/yaml.worker?worker'
 import { createApp } from 'vue'
 import { handleHotUpdate } from 'vue-router/auto-routes'
 
@@ -23,18 +21,6 @@ import { AuthType, authType, suspended } from '@/methods'
 import router from '@/router'
 
 import { withRuntime } from './api/options'
-
-if (import.meta.env.PROD) {
-  self.MonacoEnvironment = {
-    getWorker(_: string, label: string) {
-      if (label === 'yaml') {
-        return new yamlWorker()
-      }
-
-      return new editorWorker()
-    },
-  }
-}
 
 // This will update routes at runtime without reloading the page
 if (import.meta.hot) {

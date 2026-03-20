@@ -5,7 +5,22 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script lang="ts">
+import * as monaco from 'monaco-editor'
+import { configureMonacoYaml, type SchemasSettings } from 'monaco-yaml'
+
+import { getDocsLink } from '@/methods'
 import configSchemas from '@/schemas'
+
+// Monaco's internal workers (tokenization, folding, etc.) go through this path.
+window.MonacoEnvironment = {
+  getWorker(_, label) {
+    if (label === 'yaml') {
+      return new Worker(new URL('./yaml.worker.ts', import.meta.url), { type: 'module' })
+    }
+
+    return new Worker(new URL('./editor.worker.ts', import.meta.url), { type: 'module' })
+  },
+}
 
 const configSchemaMap = Object.entries(configSchemas).map(
   ([path, schema]) =>
@@ -73,13 +88,11 @@ monaco.editor.defineTheme(SIDERO_THEME, {
 </script>
 
 <script setup lang="ts">
-import * as monaco from 'monaco-editor'
-import { configureMonacoYaml, type SchemasSettings } from 'monaco-yaml'
 import { coerce, compare, gt, lt, parse } from 'semver'
 import { computed, onWatcherCleanup, useId, useTemplateRef, watch } from 'vue'
 
 import { DefaultTalosVersion } from '@/api/resources'
-import { getDocsLink, majorMinorVersion } from '@/methods'
+import { majorMinorVersion } from '@/methods'
 
 type Props = {
   value: string

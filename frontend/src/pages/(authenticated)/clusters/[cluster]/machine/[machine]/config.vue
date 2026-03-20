@@ -5,20 +5,17 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterSpec, RedactedClusterMachineConfigSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace, RedactedClusterMachineConfigType } from '@/api/resources'
+import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
 import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 definePage({ name: 'NodeConfig' })
-
-const CodeEditor = defineAsyncComponent(
-  () => import('@/components/common/CodeEditor/CodeEditor.vue'),
-)
 
 const route = useRoute()
 

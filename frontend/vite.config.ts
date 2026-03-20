@@ -9,7 +9,6 @@ import tailwindcss from '@tailwindcss/vite'
 import Vue from '@vitejs/plugin-vue'
 import dotenv from 'dotenv'
 import { defineConfig, type UserConfig } from 'vite'
-import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import { configDefaults } from 'vitest/config'
 import VueRouter from 'vue-router/vite'
@@ -80,7 +79,6 @@ export default defineConfig(({ command }) => {
       "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.userpilot.io",
       "style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com",
       'frame-src https://www.youtube.com/embed/ https://*.auth0.com',
-      "worker-src 'self' blob:", // "worker-src blob:" only required for vite dev server
     ].join(';')
 
     // Adds nonce for dev server inline scripts.
@@ -91,22 +89,11 @@ export default defineConfig(({ command }) => {
     config.html.cspNonce = cspNonce
 
     config.plugins ||= []
-    config.plugins.push(
-      {
-        // Injects nonce into the placeholder as the backend handler usually would.
-        name: 'transformIndexHtml',
-        transformIndexHtml: (html) => html.replaceAll(/{{.Nonce}}/g, cspNonce),
-      },
-      monacoEditorPlugin({
-        languageWorkers: ['editorWorkerService'],
-        customWorkers: [
-          {
-            label: 'yaml',
-            entry: 'monaco-yaml/yaml.worker',
-          },
-        ],
-      }),
-    )
+    config.plugins.push({
+      // Injects nonce into the placeholder as the backend handler usually would.
+      name: 'transformIndexHtml',
+      transformIndexHtml: (html) => html.replaceAll(/{{.Nonce}}/g, cspNonce),
+    })
   }
 
   return config
