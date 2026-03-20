@@ -44,7 +44,7 @@
     "jwt-decode": "^4.0.0",
     "lodash": "^4.17.23",
     "luxon": "^3.7.2",
-    "monaco-editor": "~0.54.0",
+    "monaco-editor": "^0.55.1",
     "monaco-yaml": "^5.4.1",
     "pluralize": "^8.0.0",
     "reka-ui": "^2.9.2",

@@ -22,6 +22,18 @@ window.MonacoEnvironment = {
   },
 }
 
+// Work around https://github.com/remcohaszing/monaco-yaml/issues/272.
+const { createWebWorker: oldCreateWebWorker } = monaco.editor
+monaco.editor.createWebWorker = (
+  opts: monaco.IWebWorkerOptions | monaco.editor.IInternalWebWorkerOptions,
+) => {
+  if ('worker' in opts) {
+    return oldCreateWebWorker(opts)
+  }
+
+  return monaco.createWebWorker(opts)
+}
+
 const configSchemaMap = Object.entries(configSchemas).map(
   ([path, schema]) =>
     [path.replace(/\.\/config_(.*)\.schema\.json/, '$1').replace('_', '.'), schema] as const,
