@@ -19,6 +19,8 @@ vi.mock('@/api/grpc', () => ({
 
 vi.mock('@/api/options', () => ({
   withRuntime: vi.fn((runtime: Runtime) => ({ runtime })),
+  withSelectors: vi.fn(),
+  withTimeout: vi.fn(),
 }))
 
 describe('nextAvailableClusterName', () => {

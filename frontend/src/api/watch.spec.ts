@@ -10,7 +10,8 @@ import {
 } from '@msw/helpers'
 import { createWatchStreamMock } from '@msw/server'
 import { waitFor } from '@testing-library/vue'
-import { describe, expect, test } from 'vitest'
+import { flushPromises } from '@vue/test-utils'
+import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import { type Ref, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -19,7 +20,18 @@ import type { MachineSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineType } from '@/api/resources'
 import Watch from '@/api/watch'
 
+// Suppress "Failed to fetch" unhandled rejections that can occur when the
+// stream retry timer fires after MSW handlers are cleared between tests.
+const suppressFailedToFetch = (event: PromiseRejectionEvent) => {
+  if (event.reason instanceof TypeError && event.reason.message === 'Failed to fetch') {
+    event.preventDefault()
+  }
+}
+
 describe('watch', () => {
+  beforeAll(() => window.addEventListener('unhandledrejection', suppressFailedToFetch))
+  afterAll(() => window.removeEventListener('unhandledrejection', suppressFailedToFetch))
+
   const items: Ref<Resource<MachineSpec>[]> = ref([])
   const watch = new Watch(items)
 
@@ -77,6 +89,8 @@ describe('watch', () => {
     watch.stop()
 
     expect(items.value).toHaveLength(0)
+
+    await flushPromises()
   })
 
   test('restarts handling', async () => {
@@ -116,5 +130,7 @@ describe('watch', () => {
     })
 
     watch.stop()
+
+    await flushPromises()
   })
 })

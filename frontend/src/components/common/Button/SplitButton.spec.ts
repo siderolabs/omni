@@ -2,35 +2,34 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import userEvent from '@testing-library/user-event'
-import { render, screen } from '@testing-library/vue'
 import { expect, test, vi } from 'vitest'
+import { userEvent } from 'vitest/browser'
+import { render } from 'vitest-browser-vue'
 
 import SplitButton from './SplitButton.vue'
 
 test('sends click events', async () => {
-  const user = userEvent.setup()
   const clickFn = vi.fn()
 
-  render(SplitButton, {
+  const screen = await render(SplitButton, {
     props: {
       actions: ['one', 'two', 'three'],
       onClick: clickFn,
     },
   })
 
-  await user.click(screen.getByRole('button', { name: 'one' }))
+  await userEvent.click(screen.getByRole('button', { name: 'one' }))
   expect(clickFn).toHaveBeenCalledExactlyOnceWith('one')
 
   clickFn.mockClear()
 
-  await user.click(screen.getByRole('button', { name: 'extra actions' }))
-  await user.click(screen.getByRole('menuitem', { name: 'one' }))
+  await userEvent.click(screen.getByRole('button', { name: 'extra actions' }))
+  await userEvent.click(screen.getByRole('menuitem', { name: 'one' }))
   expect(clickFn).toHaveBeenCalledExactlyOnceWith('one')
 
   clickFn.mockClear()
 
-  await user.click(screen.getByRole('button', { name: 'extra actions' }))
-  await user.click(screen.getByRole('menuitem', { name: 'two' }))
+  await userEvent.click(screen.getByRole('button', { name: 'extra actions' }))
+  await userEvent.click(screen.getByRole('menuitem', { name: 'two' }))
   expect(clickFn).toHaveBeenCalledExactlyOnceWith('two')
 })

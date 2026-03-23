@@ -4,15 +4,16 @@
 // included in the LICENSE file.
 import { createBootstrapEvent, createCreatedEvent } from '@msw/helpers'
 import { createWatchStreamMock } from '@msw/server'
-import { render, waitFor } from '@testing-library/vue'
+import { waitFor } from '@testing-library/vue'
 import { describe, expect, test } from 'vitest'
+import { render } from 'vitest-browser-vue'
 import { defineComponent, nextTick, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 
 import { useResourceWatch } from './useResourceWatch'
 
-function renderComposable<T>(factory: () => T) {
+async function renderComposable<T>(factory: () => T) {
   let composableResult: T
 
   const TestComponent = defineComponent({
@@ -22,7 +23,7 @@ function renderComposable<T>(factory: () => T) {
     template: '<template />',
   })
 
-  render(TestComponent)
+  await render(TestComponent)
 
   return composableResult!
 }
@@ -31,7 +32,7 @@ describe('useResourceWatch', () => {
   test('updates single resource data after watch events', async () => {
     const { pushEvents } = createWatchStreamMock({ skipBootstrap: true })
 
-    const { data, loading, err } = renderComposable(() =>
+    const { data, loading, err } = await renderComposable(() =>
       useResourceWatch({
         runtime: Runtime.Omni,
         resource: { namespace: 'default', type: 'custom.sidero.dev/Resource', id: 'res-1' },
@@ -56,7 +57,7 @@ describe('useResourceWatch', () => {
   test('maintains a list of resources for multi watch', async () => {
     const { pushEvents } = createWatchStreamMock({ skipBootstrap: true })
 
-    const { data, loading } = renderComposable(() =>
+    const { data, loading } = await renderComposable(() =>
       useResourceWatch({
         runtime: Runtime.Omni,
         resource: { namespace: 'default', type: 'custom.sidero.dev/Resource' },
@@ -91,7 +92,7 @@ describe('useResourceWatch', () => {
       skip: true,
     })
 
-    const { data, loading } = renderComposable(() => useResourceWatch(options))
+    const { data, loading } = await renderComposable(() => useResourceWatch(options))
 
     await nextTick()
     expect(loading.value).toBe(false)
