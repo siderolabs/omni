@@ -41,7 +41,7 @@ export default defineConfigWithVueTs(
     },
   },
   // By default, ESLint ignores all dot-files
-  { ignores: ['!.storybook', '.storybook/public/mockServiceWorker.js'] },
+  { ignores: ['!.storybook', '**/mockServiceWorker.js'] },
   ...storybook.configs['flat/recommended'],
   ...storybook.configs['flat/csf-strict'],
 

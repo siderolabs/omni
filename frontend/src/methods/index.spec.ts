@@ -2,9 +2,8 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { expect } from '@playwright/test'
 import { parse } from 'semver'
-import { test } from 'vitest'
+import { expect, test } from 'vitest'
 
 import { DefaultTalosVersion } from '@/api/resources'
 

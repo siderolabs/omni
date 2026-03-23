@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { useAuth0 } from '@auth0/auth0-vue'
-import { server } from '@msw/server'
+import { worker } from '@msw/server'
 import { waitFor } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
@@ -18,6 +18,7 @@ import { AuthType, authType } from '@/methods'
 import { useClusterPermissions, useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
 import { useKeys } from '@/methods/key'
+import { redirectToURL } from '@/methods/navigate'
 
 vi.mock('@auth0/auth0-vue', () => ({
   useAuth0: vi.fn(),
@@ -30,6 +31,9 @@ vi.mock('@/api/omni/auth/auth.pb', () => ({
     RevokePublicKey: vi.fn(),
   },
 }))
+vi.mock('@/methods/navigate', () => ({
+  redirectToURL: vi.fn(),
+}))
 
 describe('useLogout', () => {
   let mockKeys: ReturnType<typeof useKeys>
@@ -37,8 +41,6 @@ describe('useLogout', () => {
   let mockAuth0: {
     logout: ReturnType<typeof vi.fn>
   }
-  let originalLocation: Location
-  let mockLocation: Location
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -65,33 +67,10 @@ describe('useLogout', () => {
       logout: vi.fn().mockResolvedValue(undefined),
     }
     vi.mocked(useAuth0).mockReturnValue(mockAuth0 as unknown as ReturnType<typeof useAuth0>)
-
-    originalLocation = window.location
-    mockLocation = {
-      ...originalLocation,
-      href: 'http://localhost:3000',
-      origin: 'http://localhost:3000',
-    } as Location
-    delete (window as { location?: Location }).location
-    Object.defineProperty(window, 'location', {
-      value: mockLocation,
-      writable: true,
-      configurable: true,
-    })
-
-    Object.defineProperty(window, 'top', {
-      value: window,
-      writable: true,
-      configurable: true,
-    })
   })
 
   afterEach(() => {
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-      configurable: true,
-    })
+    vi.restoreAllMocks()
     vi.clearAllMocks()
   })
 
@@ -156,7 +135,7 @@ describe('useLogout', () => {
 
     expect(mockAuth0.logout).toHaveBeenCalledWith({
       logoutParams: {
-        returnTo: 'http://localhost:3000',
+        returnTo: window.location.origin,
       },
     })
     expect(mockKeys.clear).toHaveBeenCalled()
@@ -175,7 +154,7 @@ describe('useLogout', () => {
       await logout()
 
       expect(mockAuth0.logout).not.toHaveBeenCalled()
-      expect(window.location.href).toBe('/logout?flow=frontend')
+      expect(vi.mocked(redirectToURL)).toHaveBeenCalledWith('/logout?flow=frontend')
       expect(mockKeys.clear).toHaveBeenCalled()
       expect(mockIdentity.clear).toHaveBeenCalled()
     },
@@ -204,7 +183,7 @@ describe('useClusterPermissions', () => {
   })
 
   test('reflects loaded spec fields', async () => {
-    server.use(makeHandler({ can_update_kubernetes: true, can_update_talos: false }))
+    worker.use(makeHandler({ can_update_kubernetes: true, can_update_talos: false }))
     const { canUpdateKubernetes, canUpdateTalos } = useClusterPermissions('perm-fields')
     await waitFor(() => expect(canUpdateKubernetes.value).toBe(true))
     expect(canUpdateTalos.value).toBe(false)
@@ -223,7 +202,7 @@ describe('useClusterPermissions', () => {
         }),
       }),
     )
-    server.use(http.post('/omni.resources.ResourceService/Get', handler))
+    worker.use(http.post('/omni.resources.ResourceService/Get', handler))
 
     const { canUpdateKubernetes: a } = useClusterPermissions('perm-cached')
     const { canUpdateKubernetes: b } = useClusterPermissions('perm-cached')
@@ -240,7 +219,7 @@ describe('useClusterPermissions', () => {
     }
 
     // Single handler — two chained handlers can't both read the request body stream.
-    server.use(
+    worker.use(
       http.post('/omni.resources.ResourceService/Get', async ({ request }) => {
         const body = (await request.json()) as { id: string; type: string }
         if (body.type !== ClusterPermissionsType) return

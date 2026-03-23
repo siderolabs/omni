@@ -53,6 +53,7 @@ const forwarded = useForwardPropsEmits(alertDialogRootProps, emit)
 
       <AlertDialogContent
         class="fixed top-1/2 left-1/2 z-100 flex max-h-screen max-w-screen -translate-1/2 flex-col rounded-sm bg-naturals-n3 p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
+        :aria-describedby="undefined"
       >
         <div class="mb-5 flex flex-col">
           <AlertDialogTitle class="font-medium text-naturals-n14">{{ title }}</AlertDialogTitle>

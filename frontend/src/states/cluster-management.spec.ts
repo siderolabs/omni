@@ -3,8 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import crypto from 'crypto'
-import { describe, expect, test, vi } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import type { Resource } from '@/api/grpc'
 import {
@@ -36,11 +35,14 @@ import {
   typesOrder,
 } from '@/states/cluster-management'
 
-vi.stubGlobal('crypto', {
-  getRandomValues: (arr: unknown[]) => crypto.randomBytes(arr.length),
-})
-
 describe('cluster-management-state', () => {
+  beforeEach(() => {
+    vi.spyOn(window.crypto, 'getRandomValues').mockImplementation((array) => {
+      if (array instanceof Uint8Array) array.fill(0)
+      return array as ReturnType<typeof window.crypto.getRandomValues>
+    })
+  })
+
   initState()
 
   const tests: {

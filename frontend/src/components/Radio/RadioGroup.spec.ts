@@ -2,9 +2,9 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import userEvent from '@testing-library/user-event'
-import { render, screen, waitFor } from '@testing-library/vue'
 import { expect, test } from 'vitest'
+import { userEvent } from 'vitest/browser'
+import { render } from 'vitest-browser-vue'
 
 import RadioGroup from './RadioGroup.vue'
 import RadioGroupOption from './RadioGroupOption.vue'
@@ -18,9 +18,7 @@ const options = Array(5)
   }))
 
 test('allows selection', async () => {
-  const user = userEvent.setup()
-
-  render(RadioGroup, {
+  const screen = await render(RadioGroup, {
     props: {
       label: 'My radio',
     },
@@ -44,11 +42,9 @@ test('allows selection', async () => {
     },
   })
 
-  await waitFor(() => {
-    expect(screen.getByRole('radio', { name: options[0].label })).not.toBeChecked()
-  })
+  const radio = screen.getByRole('radio', { name: options[0].label })
 
-  await user.click(screen.getByRole('radio', { name: options[0].label }))
-
-  expect(screen.getByRole('radio', { name: options[0].label })).toBeChecked()
+  await expect.element(radio).not.toBeChecked()
+  await userEvent.click(radio)
+  await expect.element(radio).toBeChecked()
 })

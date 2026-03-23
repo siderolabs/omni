@@ -2,9 +2,10 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import userEvent from '@testing-library/user-event'
-import { render, screen, waitFor } from '@testing-library/vue'
+import { waitFor } from '@testing-library/vue'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { userEvent } from 'vitest/browser'
+import { render } from 'vitest-browser-vue'
 import { defineComponent, onMounted } from 'vue'
 
 import { deleteJoinToken } from '@/methods/auth'
@@ -41,7 +42,7 @@ describe('JoinTokenDelete', () => {
   beforeEach(() => vi.clearAllMocks())
 
   test('renders the token in the title', async () => {
-    render(JoinTokenDelete, {
+    const screen = render(JoinTokenDelete, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -50,7 +51,7 @@ describe('JoinTokenDelete', () => {
   })
 
   test('shows the permanent deletion warning', async () => {
-    render(JoinTokenDelete, {
+    const screen = render(JoinTokenDelete, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -61,7 +62,7 @@ describe('JoinTokenDelete', () => {
   })
 
   test('action button is disabled before warnings are ready', async () => {
-    render(JoinTokenDelete, {
+    const screen = render(JoinTokenDelete, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: PendingWarningsStub } },
     })
@@ -70,7 +71,7 @@ describe('JoinTokenDelete', () => {
   })
 
   test('action button is enabled once warnings are ready', async () => {
-    render(JoinTokenDelete, {
+    const screen = render(JoinTokenDelete, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -82,7 +83,7 @@ describe('JoinTokenDelete', () => {
     const user = userEvent.setup()
     vi.mocked(deleteJoinToken).mockResolvedValue(undefined)
 
-    render(JoinTokenDelete, {
+    const screen = render(JoinTokenDelete, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -98,7 +99,7 @@ describe('JoinTokenDelete', () => {
     vi.mocked(deleteJoinToken).mockResolvedValue(undefined)
     const onUpdateOpen = vi.fn()
 
-    render(JoinTokenDelete, {
+    const screen = render(JoinTokenDelete, {
       props: { token: TOKEN, open: true, 'onUpdate:open': onUpdateOpen },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -115,7 +116,7 @@ describe('JoinTokenDelete', () => {
     vi.mocked(deleteJoinToken).mockRejectedValue(new Error('Network error'))
     const onUpdateOpen = vi.fn()
 
-    render(JoinTokenDelete, {
+    const screen = render(JoinTokenDelete, {
       props: { token: TOKEN, open: true, 'onUpdate:open': onUpdateOpen },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -132,7 +133,7 @@ describe('JoinTokenDelete', () => {
   test('closes the modal when Cancel is clicked without deleting', async () => {
     const user = userEvent.setup()
 
-    render(JoinTokenDelete, {
+    const screen = render(JoinTokenDelete, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })

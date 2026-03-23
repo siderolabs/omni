@@ -2,9 +2,10 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import userEvent from '@testing-library/user-event'
-import { render, screen, waitFor } from '@testing-library/vue'
+import { waitFor } from '@testing-library/vue'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { userEvent } from 'vitest/browser'
+import { render } from 'vitest-browser-vue'
 import { defineComponent, onMounted } from 'vue'
 
 import { revokeJoinToken } from '@/methods/auth'
@@ -41,7 +42,7 @@ describe('JoinTokenRevoke', () => {
   beforeEach(() => vi.clearAllMocks())
 
   test('renders the token in the title', async () => {
-    render(JoinTokenRevoke, {
+    const screen = render(JoinTokenRevoke, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -50,7 +51,7 @@ describe('JoinTokenRevoke', () => {
   })
 
   test('shows the confirmation message', async () => {
-    render(JoinTokenRevoke, {
+    const screen = render(JoinTokenRevoke, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -59,7 +60,7 @@ describe('JoinTokenRevoke', () => {
   })
 
   test('action button is disabled before warnings are ready', async () => {
-    render(JoinTokenRevoke, {
+    const screen = render(JoinTokenRevoke, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: PendingWarningsStub } },
     })
@@ -68,7 +69,7 @@ describe('JoinTokenRevoke', () => {
   })
 
   test('action button is enabled once warnings are ready', async () => {
-    render(JoinTokenRevoke, {
+    const screen = render(JoinTokenRevoke, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -80,7 +81,7 @@ describe('JoinTokenRevoke', () => {
     const user = userEvent.setup()
     vi.mocked(revokeJoinToken).mockResolvedValue(undefined)
 
-    render(JoinTokenRevoke, {
+    const screen = render(JoinTokenRevoke, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -96,7 +97,7 @@ describe('JoinTokenRevoke', () => {
     vi.mocked(revokeJoinToken).mockResolvedValue(undefined)
     const onUpdateOpen = vi.fn()
 
-    render(JoinTokenRevoke, {
+    const screen = render(JoinTokenRevoke, {
       props: { token: TOKEN, open: true, 'onUpdate:open': onUpdateOpen },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -113,7 +114,7 @@ describe('JoinTokenRevoke', () => {
     vi.mocked(revokeJoinToken).mockRejectedValue(new Error('Permission denied'))
     const onUpdateOpen = vi.fn()
 
-    render(JoinTokenRevoke, {
+    const screen = render(JoinTokenRevoke, {
       props: { token: TOKEN, open: true, 'onUpdate:open': onUpdateOpen },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })
@@ -133,7 +134,7 @@ describe('JoinTokenRevoke', () => {
   test('closes the modal when Cancel is clicked without revoking', async () => {
     const user = userEvent.setup()
 
-    render(JoinTokenRevoke, {
+    const screen = render(JoinTokenRevoke, {
       props: { token: TOKEN, open: true },
       global: { stubs: { JoinTokenWarnings: ReadyWarningsStub } },
     })

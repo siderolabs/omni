@@ -2,15 +2,17 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { render } from '@testing-library/vue'
 import { expect, test, vi } from 'vitest'
+import { render } from 'vitest-browser-vue'
 import { ref } from 'vue'
-import { createMemoryHistory, createRouter } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
+
+import { redirectToURL } from '@/methods/navigate'
 
 import Authenticate from './authenticate.vue'
 
 const router = createRouter({
-  history: createMemoryHistory(),
+  history: createWebHistory(),
   routes: [
     {
       path: '/',
@@ -18,6 +20,10 @@ const router = createRouter({
     },
   ],
 })
+
+vi.mock(import('@/methods/navigate'), () => ({
+  redirectToURL: vi.fn(),
+}))
 
 vi.mock(import('@/methods'), async (importOriginal) => {
   const original = await importOriginal()
@@ -29,32 +35,23 @@ vi.mock(import('@/methods'), async (importOriginal) => {
 })
 
 test('Forwards query string for SAML auth', async () => {
+  const expectedQueryString = '?thing=%2B123cookies=&bacon=@%23_($%25*%23yes'
+
+  // authenticate.vue reads window.location.search to forward the query string to /login.
+  // In browser mode with memory history, window.location is the vitest iframe URL, not
+  // the router URL. Use history.pushState to set the expected query string without
+  // triggering a page reload.
+  window.history.pushState({}, '', expectedQueryString)
+
   await router.push({ path: '/', query: { thing: '+123cookies=', bacon: '@#_($%*#yes' } })
   await router.isReady()
 
-  const expectedQueryString = '?thing=%2B123cookies=&bacon=@%23_($%25*%23yes'
-
-  // Mock window.location to prevent navigation errors
-  const mockLocation = {
-    href: 'http://localhost:3000/',
-    origin: 'http://localhost:3000',
-    search: expectedQueryString,
-  }
-
-  Object.defineProperty(window, 'location', {
-    value: mockLocation,
-    writable: true,
-  })
-
-  // Spy on the href setter to verify the redirect URL
-  const locationHrefSpy = vi.spyOn(mockLocation, 'href', 'set')
-
-  render(Authenticate, {
+  await render(Authenticate, {
     global: {
       plugins: [router],
     },
   })
 
   expect(router.currentRoute.value.fullPath).toBe(`/${expectedQueryString}`)
-  expect(locationHrefSpy).toHaveBeenCalledExactlyOnceWith(`/login${expectedQueryString}`)
+  expect(vi.mocked(redirectToURL)).toHaveBeenCalledExactlyOnceWith(`/login${expectedQueryString}`)
 })

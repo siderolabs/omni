@@ -12,8 +12,7 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.vitest.tsbuildinfo",
 
-    "lib": ["ES2023"],
-    "types": ["node", "jsdom", "@testing-library/jest-dom"],
+    "types": ["node"],
 
     "paths": {
       "@/*": ["./src/*"],

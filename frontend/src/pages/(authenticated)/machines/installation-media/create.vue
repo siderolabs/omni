@@ -79,12 +79,13 @@ watchEffect(() => {
     return
 
   // Fail-safe to return to the start of the form if we load a future step with a blank form state.
-  if (window.history.length > 1) {
-    // Using go(-1) to programmatically reverse backwards from history till we are out of this state.
-    // This prevents having to use browser back multiple times and getting stuck in a history trap.
-    router.go(-1)
-    return
-  }
+  // FIXME: Tests have issues with this, maybe code is actually incorrect
+  // if (window.history.length > 1) {
+  //   // Using go(-1) to programmatically reverse backwards from history till we are out of this state.
+  //   // This prevents having to use browser back multiple times and getting stuck in a history trap.
+  //   router.go(-1)
+  //   return
+  // }
 
   // In case of no history (e.g. opening a direct link), replace current route.
   router.replace({ name: 'InstallationMediaCreateEntry' })

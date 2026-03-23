@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { server } from '@msw/server'
+import { worker } from '@msw/server'
 import { waitFor } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, test, vi } from 'vitest'
@@ -25,7 +25,7 @@ describe('useResourceList', () => {
       },
     ]
 
-    server.use(
+    worker.use(
       http.post('/omni.resources.ResourceService/List', async ({ request }) => {
         const body = await request.json()
         expect(body).toEqual({
@@ -65,7 +65,7 @@ describe('useResourceList', () => {
       }),
     )
 
-    server.use(http.post('/omni.resources.ResourceService/List', handler))
+    worker.use(http.post('/omni.resources.ResourceService/List', handler))
 
     const { data, loading, loadData } = useResourceList({
       runtime: Runtime.Omni,

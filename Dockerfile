@@ -211,7 +211,11 @@ RUN rm /frontend/src/api/omni/specs/virtual.proto
 RUN rm /frontend/src/api/omni/specs/ephemeral.proto
 
 # runs js unit-tests
-FROM js AS unit-tests-frontend
+# TODO: Implement in kres
+FROM mcr.microsoft.com/playwright:v1.60.0-noble AS unit-tests-frontend
+COPY --from=js /src /src
+WORKDIR /src
+RUN --mount=type=cache,target=/root/.npm,id=omni/root/.npm,sharing=locked npm ci --engine-strict=false
 RUN CI=true npm test
 
 # tools and sources

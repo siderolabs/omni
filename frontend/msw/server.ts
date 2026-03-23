@@ -3,27 +3,27 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { http, HttpResponse } from 'msw'
-import { setupServer } from 'msw/node'
+import { setupWorker } from 'msw/browser'
 
 import type { Resource } from '@/api/grpc'
 import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
 
 import { createWatchStreamHandler, type WatchStreamHandlerOptions } from './helpers'
 
-export const server = setupServer()
+export const worker = setupWorker()
 
 export function createWatchStreamMock<T = unknown, S = unknown>(
   options?: WatchStreamHandlerOptions<T, S>,
 ) {
   const { handler, pushEvents, closeStream } = createWatchStreamHandler(options)
 
-  server.use(handler)
+  worker.use(handler)
 
   return { pushEvents, closeStream }
 }
 
 export function createGetMock() {
-  server.use(
+  worker.use(
     http.post<never, GetRequest, GetResponse>('/omni.resources.ResourceService/Get', () => {
       return HttpResponse.json(
         { body: JSON.stringify({ spec: {}, metadata: {} } satisfies Resource) },

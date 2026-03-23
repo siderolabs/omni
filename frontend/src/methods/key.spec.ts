@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { server } from '@msw/server'
+import { worker } from '@msw/server'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { add, isAfter, isBefore, milliseconds, sub } from 'date-fns'
 import { http, HttpResponse } from 'msw'
@@ -22,7 +22,9 @@ beforeEach(() => {
   vi.mocked(useRoute, { partial: true }).mockReturnValue({})
   vi.mocked(useRouter, { partial: true }).mockReturnValue({
     isReady: vi.fn(),
-    resolve: vi.fn().mockReturnValue({ href: '' }),
+    // Return '#' so that window.location.replace('#') does a hash navigation
+    // instead of a full reload, preventing the test iframe from restarting.
+    resolve: vi.fn().mockReturnValue({ href: '#' }),
   })
 
   vi.mocked(useRouter().isReady).mockImplementation(async () => {
@@ -272,7 +274,7 @@ describe('createKeys', () => {
   test('creates & registers keys with the api', async () => {
     const emailRef = { email: '' }
 
-    server.use(
+    worker.use(
       http.post<never, RegisterPublicKeyRequest>(
         '/auth.AuthService/RegisterPublicKey',
         async ({ request }) => {

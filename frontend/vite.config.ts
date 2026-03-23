@@ -7,6 +7,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { faker } from '@faker-js/faker'
 import tailwindcss from '@tailwindcss/vite'
 import Vue from '@vitejs/plugin-vue'
+import { playwright } from '@vitest/browser-playwright'
 import dotenv from 'dotenv'
 import { defineConfig, type UserConfig } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
@@ -42,17 +43,27 @@ export default defineConfig(({ command }) => {
     },
     test: {
       setupFiles: ['vitest.setup.ts'],
-      environment: 'jsdom',
+      browser: {
+        enabled: true,
+        headless: true,
+        provider: playwright(),
+        instances: [{ browser: 'chromium' }],
+      },
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),
       alias: {
         '@msw': fileURLToPath(new URL('./msw', import.meta.url)),
+        vue: 'vue/dist/vue.esm-bundler.js',
+      },
+      onConsoleLog(log) {
+        // https://github.com/vitest-community/vitest-browser-vue/issues/9#issuecomment-3490427983
+        return !log.includes('decodeEntities option is passed')
       },
     },
     server: {
       port: 8121,
       host: '127.0.0.1',
-      forwardConsole: true,
+      forwardConsole: !isTest,
       // See customizing the dev server in the readme for allowedHosts
     },
   }
@@ -61,7 +72,7 @@ export default defineConfig(({ command }) => {
     config.plugins?.push(vueDevTools())
   }
 
-  if (command === 'serve') {
+  if (command === 'serve' && !isTest) {
     const cspNonce = faker.string.alphanumeric(14)
 
     // Inject CSP for dev server for testing.
