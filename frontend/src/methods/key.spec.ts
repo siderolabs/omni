@@ -2,8 +2,8 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { server } from '@msw/server'
-import { enableAutoUnmount, mount } from '@vue/test-utils'
+import { worker } from '@msw/server'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { add, isAfter, isBefore, milliseconds, sub } from 'date-fns'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
@@ -142,6 +142,7 @@ describe('useWatchKeyExpiry', () => {
     mount(TestComponent)
 
     await nextTick()
+    await flushPromises()
 
     expect(useKeys().keyPair.value).toBeFalsy()
     expect(useRouter().replace).toHaveBeenCalledExactlyOnceWith({
@@ -166,6 +167,7 @@ describe('useWatchKeyExpiry', () => {
     expect(useRouter().replace).not.toHaveBeenCalled()
 
     await nextTick()
+    await flushPromises()
 
     expect(useKeys().keyPair.value).toBeFalsy()
     expect(useRouter().replace).toHaveBeenCalledExactlyOnceWith({
@@ -193,6 +195,7 @@ describe('useWatchKeyExpiry', () => {
     vi.advanceTimersByTime(milliseconds({ minutes: 2 }))
 
     await nextTick()
+    await flushPromises()
 
     expect(useKeys().keyPair.value).toBeFalsy()
     expect(useRouter().replace).not.toHaveBeenCalled()
@@ -213,6 +216,7 @@ describe('useWatchKeyExpiry', () => {
     vi.advanceTimersByTime(milliseconds({ minutes: 2 }))
 
     await nextTick()
+    await flushPromises()
 
     expect(useKeys().keyPair.value).toBeDefined()
     expect(useRouter().replace).not.toHaveBeenCalled()
@@ -258,7 +262,7 @@ describe('createKeys', () => {
   test('creates & registers keys with the api', async () => {
     const emailRef = { email: '' }
 
-    server.use(
+    worker.use(
       http.post<never, RegisterPublicKeyRequest>(
         '/auth.AuthService/RegisterPublicKey',
         async ({ request }) => {

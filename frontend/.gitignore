@@ -18,6 +18,10 @@ dist-ssr
 /blob-report/
 /playwright/.cache/
 
+# Vitest browser mode artifacts
+.vitest-attachments/
+**/__screenshots__/
+
 # Storybook
 *storybook.log
 storybook-static

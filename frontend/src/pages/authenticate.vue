@@ -40,6 +40,7 @@ import { AuthType, authType } from '@/methods'
 import { useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
 import { createKeys, signDetached, useKeys } from '@/methods/key'
+import { redirectToURL } from '@/methods/navigate'
 import { showError } from '@/notification'
 
 definePage({
@@ -48,20 +49,6 @@ definePage({
 
 const user = ref<User | undefined>(undefined)
 let idToken = ''
-
-/** @description Redirect the user's top-most window to the given URL.
- *
- * This makes sure that the redirect works correctly when the call comes from inside an iframe.
- *
- * @param url The URL to redirect to.
- */
-const redirectToURL = (url: string) => {
-  if (window.top) {
-    window.top.location.href = url
-  } else {
-    window.location.href = url
-  }
-}
 
 let auth0: Auth0VueClient | undefined
 

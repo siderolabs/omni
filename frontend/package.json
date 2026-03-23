@@ -8,7 +8,8 @@
   },
   "msw": {
     "workerDirectory": [
-      ".storybook/public"
+      ".storybook/public",
+      "public"
     ]
   },
   "scripts": {
@@ -69,18 +70,17 @@
     "@storybook/addon-a11y": "^10.3.1",
     "@storybook/vue3-vite": "^10.3.1",
     "@tailwindcss/vite": "^4.2.2",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/user-event": "^14.6.1",
     "@testing-library/vue": "^8.1.0",
     "@tsconfig/node24": "^24.0.4",
     "@types/js-yaml": "^4.0.9",
-    "@types/jsdom": "^28.0.1",
     "@types/lodash": "^4.17.24",
     "@types/luxon": "^3.7.1",
     "@types/node": "^24.12.0",
     "@types/pluralize": "^0.0.33",
     "@types/semver": "^7.7.1",
     "@vitejs/plugin-vue": "^6.0.5",
+    "@vitest/browser": "^4.1.0",
+    "@vitest/browser-playwright": "^4.1.0",
     "@vitest/eslint-plugin": "^1.6.12",
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.7.0",
@@ -93,7 +93,6 @@
     "eslint-plugin-storybook": "^10.3.1",
     "eslint-plugin-vue": "^10.8.0",
     "fake-indexeddb": "^6.2.5",
-    "jsdom": "^29.0.1",
     "json-diff-ts": "^4.10.0",
     "kubernetes-types": "^1.30.0",
     "msw": "^2.12.13",
@@ -109,6 +108,7 @@
     "vite": "^8.0.1",
     "vite-plugin-vue-devtools": "^8.1.0",
     "vitest": "^4.1.0",
+    "vitest-browser-vue": "^2.1.0",
     "vue-component-type-helpers": "^3.2.6",
     "vue-tsc": "^3.2.6",
     "yaml": "^2.8.2"

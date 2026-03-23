@@ -2,4 +2,5 @@ src/api/**/*.pb.ts
 src/api/resources.ts
 src/schemas/*.schema.json
 .storybook/public/mockServiceWorker.js
+public/mockServiceWorker.js
 typed-router.d.ts

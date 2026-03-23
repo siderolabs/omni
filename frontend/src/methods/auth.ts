@@ -33,6 +33,7 @@ import {
 import { AuthType, authType } from '@/methods'
 import { useIdentity } from '@/methods/identity'
 import { useKeys } from '@/methods/key'
+import { redirectToURL } from '@/methods/navigate'
 import { useResourceGet } from '@/methods/useResourceGet'
 
 const authScope = effectScope(true)
@@ -165,14 +166,6 @@ const updateToken = async (tokenID: string, update: (token: Resource<JoinTokenSp
   update(token)
 
   await ResourceService.Update(token, token.metadata.version, withRuntime(Runtime.Omni))
-}
-
-const redirectToURL = (url: string) => {
-  if (window.top) {
-    window.top.location.href = url
-  } else {
-    window.location.href = url
-  }
 }
 
 export function useLogout() {
