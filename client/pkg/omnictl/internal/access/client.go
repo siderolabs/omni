@@ -252,7 +252,7 @@ func checkVersionWarning(sysVersion *system.SysVersion) {
 	}
 
 	if clientVersion.Major != backendVersion.Major || clientVersion.Minor != backendVersion.Minor {
-		fmt.Fprintf(os.Stderr, "[WARN] omnictl version differs from the backend version: %q vs %q.\n", clientVersion.String(), backendVersion.String())
+		fmt.Fprintf(os.Stderr, "[WARN] omnictl version %q differs from the backend version %q.\n", clientVersion.String(), backendVersion.String())
 	}
 }
 
