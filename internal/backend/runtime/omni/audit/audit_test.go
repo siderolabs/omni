@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -128,6 +129,76 @@ func TestAudit(t *testing.T) {
 	}
 
 	cmpIgnoreTime(t, logData, sb.String())
+}
+
+func TestPhaseChangeIsAudited(t *testing.T) {
+	config := config.LogsAudit{
+		Enabled: new(true),
+	}
+
+	db := testDB(t)
+
+	l := must.Value(audit.NewLog(t.Context(), config, db, zaptest.NewLogger(t)))(t)
+
+	hooks.Init(l)
+
+	res := auth.NewPublicKey("phase-change-test")
+
+	res.Metadata().Labels().Set(auth.LabelPublicKeyUserID, "002cf196-1767-43fd-8e3d-91241e2ce70c")
+
+	res.TypedSpec().Value.Identity = &specs.Identity{Email: "test@siderolabs.com"}
+	res.TypedSpec().Value.Role = "Admin"
+	res.TypedSpec().Value.Expiration = timestamppb.New(time.Unix(1325587579, 0))
+
+	createCtx := func() context.Context {
+		ad := auditlog.Data{
+			Session: auditlog.Session{
+				UserAgent: "Mozilla/5.0",
+			},
+		}
+
+		return ctxstore.WithValue(t.Context(), &ad)
+	}
+
+	// First, create the resource.
+	fn := l.LogCreate(res)
+	require.NoError(t, fn(createCtx(), res))
+
+	// Now update with only the phase changed (same spec).
+	newRes := res.DeepCopy().(*auth.PublicKey) //nolint:errcheck,forcetypeassert
+	newRes.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	updateFn := l.LogUpdate(res)
+	require.NoError(t, updateFn(createCtx(), res, newRes))
+
+	// Read all events and verify we got a teardown event.
+	rdr, err := l.Reader(t.Context(), time.Time{}, time.Now().Add(5*time.Second))
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, rdr.Close())
+	})
+
+	var events []map[string]any
+
+	for {
+		data, err := rdr.Read()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		require.NoError(t, err)
+
+		var event map[string]any
+
+		require.NoError(t, json.Unmarshal(data, &event))
+
+		events = append(events, event)
+	}
+
+	require.Len(t, events, 2, "expected create + teardown events")
+	require.Equal(t, "create", events[0]["event_type"])
+	require.Equal(t, "teardown", events[1]["event_type"])
 }
 
 func cmpIgnoreTime(t *testing.T, expected string, actual string) {

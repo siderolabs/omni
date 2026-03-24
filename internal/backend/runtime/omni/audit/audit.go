@@ -398,7 +398,7 @@ func extractData(ctx context.Context, opts options) *auditlog.Data {
 }
 
 func isEqualResource(oldRes, newRes resource.Resource) bool {
-	if oldRes.Metadata().ID() != newRes.Metadata().ID() {
+	if oldRes.Metadata().ID() != newRes.Metadata().ID() || oldRes.Metadata().Phase() != newRes.Metadata().Phase() {
 		return false
 	}
 
