@@ -35,7 +35,7 @@ test('create cluster', async ({ page }) => {
   await page.getByRole('radio', { name: 'W0' }).nth(1).click()
 
   await test.step('Edit CP config patch', async () => {
-    await page.click('button#CP')
+    await page.locator('button#CP').click()
 
     const editor = page.getByRole('textbox', { name: 'Editor content' })
 
@@ -343,6 +343,93 @@ test('node overview tabs', async ({ page }) => {
   await page.getByRole('region', { name: 'Workers' }).getByRole('link').last().click()
   await expect(servicesList.getByRole('link', { name: 'machined' })).toBeVisible()
   await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeHidden()
+})
+
+test('cluster sidebar pages', async ({ page }) => {
+  await test.step('Visit cluster overview', async () => {
+    await page.goto('/')
+    await page.getByRole('link', { name: 'Clusters' }).click()
+
+    await expect(page).toHaveURL('/clusters')
+    await expect(page.getByRole('heading', { name: 'Clusters', exact: true })).toBeVisible()
+
+    await page.getByRole('link', { name: clusterName, exact: true }).click()
+    await expect(page.getByRole('heading', { name: clusterName, exact: true })).toBeVisible()
+  })
+
+  await test.step('Validate cluster overview', async () => {
+    await expect(page.getByRole('heading', { name: clusterName })).toBeVisible()
+
+    const cpuChart = page.getByRole('figure', { name: 'CPU' })
+
+    await expect(cpuChart.getByLabel('Total')).toHaveText(/\d+\.\d{2}/)
+    await expect(cpuChart.getByLabel('Requests')).toHaveText(/\d+\.\d{2}/)
+    await expect(cpuChart.getByLabel('Limits')).toHaveText(/\d+\.\d{2}/)
+
+    const podsChart = page.getByRole('figure', { name: 'Pods' })
+
+    await expect(podsChart.getByLabel('Total')).toHaveText(/\d+/)
+    await expect(podsChart.getByLabel('Requests')).toHaveText(/\d+/)
+
+    const memoryChart = page.getByRole('figure', { name: 'Memory' })
+
+    await expect(memoryChart.getByLabel('Total')).toHaveText(/\d+\.\d{2} GB/)
+    await expect(memoryChart.getByLabel('Requests')).toHaveText(/\d+\.\d{2} GB/)
+    await expect(memoryChart.getByLabel('Limits')).toHaveText(/\d+\.\d{2} MB/)
+
+    const storageChart = page.getByRole('figure', { name: 'Ephemeral Storage' })
+
+    await expect(storageChart.getByLabel('Total')).toHaveText(/\d+\.\d{2} GB/)
+    await expect(storageChart.getByLabel('Requests')).toHaveText('0 Bytes')
+    await expect(storageChart.getByLabel('Limits')).toHaveText('0 Bytes')
+
+    await expect(page.getByText('Managed using cluster')).toBeVisible()
+  })
+
+  await test.step('Validate cluster nodes', async () => {
+    await page.getByRole('link', { name: 'Nodes' }).click()
+
+    await expect(page.getByRole('heading', { name: 'All Nodes' })).toBeVisible()
+    await expect(page.getByText(cpMachineName)).toBeVisible()
+    await expect(page.getByText('control-plane')).toBeVisible()
+  })
+
+  await test.step('Validate cluster pods', async () => {
+    await page.getByRole('link', { name: 'Pods' }).click()
+
+    await expect(page.getByRole('heading', { name: 'All Pods' })).toBeVisible()
+    await expect(page.getByText('kube-system')).not.toHaveCount(0)
+  })
+
+  await test.step('Validate cluster config patches', async () => {
+    await page.getByRole('link', { name: 'Config Patches' }).click()
+    await expect(
+      page.getByRole('heading', { name: `Cluster ${clusterName} Config Patches` }),
+    ).toBeVisible()
+
+    await expect(page.getByText('This cluster is managed using cluster templates.')).toBeVisible()
+    await expect(page.getByText(`Cluster Machine: ${cpMachineName}`)).toBeVisible()
+    await expect(page.getByText(/400-cm-\w+/).first()).toBeVisible()
+    await expect(page.getByText('User defined patch')).toBeVisible()
+  })
+
+  await test.step('Validate cluster bootstrap manifests', async () => {
+    await page.getByRole('link', { name: 'Bootstrap Manifests' }).click()
+
+    await expect(
+      page.getByRole('heading', { name: `Bootstrap Manifest Sync for ${clusterName}` }),
+    ).toBeVisible()
+    await expect(page.getByText('Manifest')).not.toHaveCount(0)
+  })
+
+  await test.step('Validate backups', async () => {
+    await page.getByRole('link', { name: 'Backups' }).click()
+
+    await expect(page.getByRole('heading', { name: 'Control Plane Backups' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'The backups storage is not properly configured' }),
+    ).toBeVisible()
+  })
 })
 
 test('destroy cluster', async ({ page }) => {

@@ -17,15 +17,17 @@ import Tag from '@/components/common/Tag/Tag.vue'
 import { getStatus } from '@/methods'
 import NodeContextMenu from '@/views/common/NodeContextMenu.vue'
 
-type MemberSpec = {
-  operatingSystem: string
-  addresses: string[]
+interface TalosMemberSpec {
+  machineType?: 'controlplane' | 'worker'
+  hostname?: string
+  operatingSystem?: string
+  addresses?: string[]
   nodeId?: string
 }
 
 const { item } = defineProps<{
   clusterId: string
-  item: Resource<ClusterMachineStatusSpec & V1NodeSpec & MemberSpec, V1NodeStatus>
+  item: Resource<ClusterMachineStatusSpec & V1NodeSpec & TalosMemberSpec, V1NodeStatus>
   searchOption?: string
 }>()
 
@@ -44,7 +46,7 @@ const nodeName = computed(() => {
 const status = computed(() => getStatus(item))
 
 const ip = computed(() => {
-  return item.spec.addresses[0] ?? ''
+  return item.spec.addresses?.[0] ?? ''
 })
 
 const roles = computed(() =>

@@ -8,7 +8,7 @@ included in the LICENSE file.
 import 'apexcharts/radialBar'
 
 import type { ApexOptions } from 'apexcharts'
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 import ApexChart from 'vue3-apexcharts/core'
 
 import { getNonce } from '@/methods'
@@ -113,21 +113,24 @@ const options = computed<ApexOptions>(() => ({
     },
   },
 }))
+
+const labelId = useId()
 </script>
 
 <template>
   <div class="flex flex-col gap-2">
-    <h2 class="text-xl font-medium text-naturals-n14">{{ title }}</h2>
+    <h2 :id="labelId" class="text-xl font-medium text-naturals-n14">{{ title }}</h2>
 
     <figure
       class="flex items-center gap-2 self-center py-2 not-visited:px-4"
       :class="{ 'flex-col': vertical }"
+      :aria-labelledby="labelId"
     >
       <ApexChart type="radialBar" width="200" :options="options" :series="series" />
 
       <figcaption class="flex flex-col gap-2">
         <dl
-          v-for="item in legendItems"
+          v-for="(item, index) in legendItems"
           :key="item.label"
           class="flex items-center gap-2 text-xs whitespace-nowrap"
         >
@@ -136,8 +139,10 @@ const options = computed<ApexOptions>(() => ({
             class="size-2 rounded-xs"
             :style="{ backgroundColor: item.color }"
           />
-          <dt class="text-naturals-n11">{{ item.label }}</dt>
-          <dd class="text-naturals-n14">{{ item.value }}</dd>
+          <dt :id="`${labelId}-dt-${index}`" class="text-naturals-n11">{{ item.label }}</dt>
+          <dd :aria-labelledby="`${labelId}-dt-${index}`" class="text-naturals-n14">
+            {{ item.value }}
+          </dd>
         </dl>
       </figcaption>
     </figure>
