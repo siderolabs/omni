@@ -23,7 +23,7 @@ vi.mock(import('@/methods/key'), async (importOriginal) => {
     useKeys: vi.fn(() => ({
       keyPair: ref(mockKey),
       publicKeyID: ref('public_key_id'),
-      keyExpirationTime: ref(null),
+      keyExpirationTime: ref(new Date(0)),
       clear: vi.fn(),
     })),
     signDetached: vi.fn().mockResolvedValue(new ArrayBuffer(10)),
@@ -193,7 +193,7 @@ describe('useRegisterAPIInterceptor', () => {
     vi.mocked(useKeys).mockReturnValue({
       keyPair: keyPairRef,
       publicKeyID: ref('public_key_id'),
-      keyExpirationTime: ref(null),
+      keyExpirationTime: ref(new Date(0)),
       clear: vi.fn(),
     })
 

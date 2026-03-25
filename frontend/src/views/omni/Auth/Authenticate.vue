@@ -9,7 +9,7 @@ import type { User } from '@auth0/auth0-spa-js'
 import type { Auth0VueClient } from '@auth0/auth0-vue'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { jwtDecode } from 'jwt-decode'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { b64Encode, type fetchOption, RequestError } from '@/api/fetch.pb'
@@ -153,9 +153,9 @@ const generatePublicKey = async (identity: string) => {
     return
   }
 
-  try {
-    await confirmPublicKey(res.publicKeyId, res.keyPair)
-  } catch {
+  await confirmPublicKey(res.publicKeyId, res.keyPair)
+
+  if (!confirmed.value) {
     keysGenerating.value = false
     return
   }
@@ -167,6 +167,9 @@ const generatePublicKey = async (identity: string) => {
   identityStorage.identity.value = identity.toLowerCase()
   identityStorage.fullname.value = name.value ?? ''
   identityStorage.avatar.value = picture.value ?? ''
+
+  // Wait for storages to be set
+  await nextTick()
 
   const redirect = route.query[RedirectQueryParam]?.toString()
 
@@ -225,8 +228,6 @@ const confirmPublicKey = async (publicKeyId: string, keyPair?: CryptoKeyPair) =>
     }
 
     showError('Failed to confirm public key', e.message)
-
-    throw e
   }
 }
 

@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { useLocalStorage } from '@vueuse/core'
+import { StorageSerializers, until, useLocalStorage } from '@vueuse/core'
 import { useIDBKeyval } from '@vueuse/integrations/useIDBKeyval'
 import { add, differenceInMilliseconds, formatRFC3339, isAfter } from 'date-fns'
 import { watchEffect } from 'vue'
@@ -15,9 +15,18 @@ import { AuthFlowQueryParam, FrontendAuthFlow, RedirectQueryParam } from '@/api/
 const { data: keyPair, isFinished: keyPairLoaded } = useIDBKeyval<CryptoKeyPair | null>(
   'keyPair',
   null,
+  { writeDefaults: false },
 )
-const keyExpirationTime = useLocalStorage<Date | null>('keyExpirationTime', null)
-const publicKeyID = useLocalStorage<string | null>('publicKeyID', null)
+
+const keyExpirationTime = useLocalStorage<Date>('keyExpirationTime', new Date(0), {
+  serializer: StorageSerializers.date,
+  writeDefaults: false,
+})
+
+const publicKeyID = useLocalStorage<string>('publicKeyID', '', {
+  serializer: StorageSerializers.string,
+  writeDefaults: false,
+})
 
 export function useKeys() {
   return {
@@ -26,8 +35,8 @@ export function useKeys() {
     publicKeyID,
     clear() {
       keyPair.value = null
-      keyExpirationTime.value = null
-      publicKeyID.value = null
+      keyExpirationTime.value = new Date(0)
+      publicKeyID.value = ''
     },
   }
 }
@@ -96,7 +105,7 @@ export async function signDetached(data: string, keyPair: CryptoKeyPair) {
 
 export async function hasValidKeys() {
   // IndexedDB is async storage, and might not yet have been initialised
-  if (!keyPairLoaded.value) return new Promise((r) => setTimeout(() => r(hasValidKeys()), 20))
+  if (!keyPairLoaded.value) await until(keyPairLoaded).toBe(true)
 
   if (!keyPair.value || !keyExpirationTime.value) return false
 
