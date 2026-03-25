@@ -7,9 +7,9 @@
   "files.associations": {
     "*.css": "tailwindcss"
   },
-  "javascript.preferences.importModuleSpecifier": "non-relative",
+  "js/ts.preferences.importModuleSpecifier": "non-relative",
+  "js/ts.preferences.preferTypeOnlyAutoImports": true,
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
   "tailwindCSS.classFunctions": ["cn", "clsx", "twMerge"],
-  "tailwindCSS.classAttributes": ["class", "toast-options", ".*-class"],
-  "typescript.preferences.preferTypeOnlyAutoImports": true,
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "tailwindCSS.classAttributes": ["class", "toast-options", ".*-class"]
 }

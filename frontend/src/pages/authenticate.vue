@@ -165,9 +165,9 @@ const generatePublicKey = async (identity: string) => {
     return
   }
 
-  try {
-    await confirmPublicKey(res.publicKeyId, res.keyPair)
-  } catch {
+  await confirmPublicKey(res.publicKeyId, res.keyPair)
+
+  if (!confirmed.value) {
     keysGenerating.value = false
     return
   }
@@ -240,8 +240,6 @@ const confirmPublicKey = async (publicKeyId: string, keyPair?: CryptoKeyPair) =>
     }
 
     showError('Failed to confirm public key', e.message)
-
-    throw e
   }
 }
 

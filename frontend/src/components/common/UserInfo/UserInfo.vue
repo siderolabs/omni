@@ -52,7 +52,7 @@ const name = computed(() => fullname || auth0?.user?.value?.name)
       <span class="truncate">{{ identity }}</span>
     </div>
     <div class="shrink-0">
-      <TActionsBox v-if="withLogoutControls">
+      <TActionsBox v-if="withLogoutControls" aria-label="user actions">
         <TActionsBoxItem @select="logout">Log Out</TActionsBoxItem>
       </TActionsBox>
     </div>

@@ -115,7 +115,7 @@ describe('useLogout', () => {
   })
 
   test('should not throw when RevokePublicKey fails with UNAUTHENTICATED error', async () => {
-    const error = new RequestError('Unauthenticated') as Error & { code: Code }
+    const error = new RequestError('Unauthenticated')
     error.code = Code.UNAUTHENTICATED
     vi.mocked(AuthService.RevokePublicKey).mockRejectedValue(error)
 
