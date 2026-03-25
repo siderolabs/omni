@@ -7,11 +7,29 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
 
+import { Runtime } from '@/api/common/omni.pb'
+import type { MachineStatusMetricsSpec } from '@/api/omni/specs/omni.pb'
+import {
+  EphemeralNamespace,
+  MachineStatusMetricsID,
+  MachineStatusMetricsType,
+} from '@/api/resources'
 import TButton from '@/components/common/Button/TButton.vue'
 import CodeBlock from '@/components/common/CodeBlock/CodeBlock.vue'
 import { getDocsLink } from '@/methods'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const isDismissed = useLocalStorage('_add_first_machine_tutorial_dismissed', false)
+
+const { data, loading } = useResourceWatch<MachineStatusMetricsSpec>(() => ({
+  skip: isDismissed.value,
+  resource: {
+    namespace: EphemeralNamespace,
+    type: MachineStatusMetricsType,
+    id: MachineStatusMetricsID,
+  },
+  runtime: Runtime.Omni,
+}))
 
 const awsCode = `aws ec2 run-instances \\
     --image-id $(aws ec2 describe-images --owners 540036508848     --filters "Name=architecture,Values=x86_64"     --query 'Images | sort_by(@, &CreationDate) | reverse(@) | [?!contains(Name, \`beta\`) && !contains(Name, \`alpha\`) && !contains(Name, \`Beta\`) && !contains(Name, \`Alpha\`)] | [0].[ImageId]'     --output text) \\
@@ -26,7 +44,12 @@ const pxeBootCode =
 
 <template>
   <section
-    v-if="!isDismissed"
+    v-if="
+      !isDismissed &&
+      !loading &&
+      !data?.spec.registered_machines_count &&
+      !data?.spec.pending_machines_count
+    "
     class="space-y-4 rounded-lg border border-primary-p3 bg-naturals-n2 p-6"
   >
     <header>
