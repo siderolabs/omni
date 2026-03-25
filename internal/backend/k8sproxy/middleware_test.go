@@ -167,9 +167,9 @@ func TestAuthorize(t *testing.T) {
 				ExpiresAt:   jwt.NewNumericDate(time.Now().Add(time.Hour)),
 			},
 			kid:        "2",
-			signingKey: key1,
+			signingKey: key2,
 
-			expectedCode: http.StatusUnauthorized,
+			expectedCode: http.StatusForbidden,
 		},
 		{
 			name: "kid mismatch",

@@ -23,17 +23,14 @@ import { signDetached, useKeys } from '@/methods/key'
  * This will add the necessary authorization headers for Omni gRPC calls.
  */
 export function useRegisterAPIInterceptor() {
-  const { keyPair, publicKeyID } = useKeys()
+  const { keyPair, publicKeyID, invalidate: invalidateKeys } = useKeys()
   const { identity } = useIdentity()
 
   const unregister = fetchIntercept.register({
     async request(url, config?: { headers?: Headers; method?: string }) {
       url = encodeURI(url)
 
-      if (
-        !/^\/(api|image)/.test(url) ||
-        (url.startsWith('/api/auth.') && !url.startsWith('/api/auth.AuthService/RevokePublicKey'))
-      ) {
+      if (!isSignedRequest(url)) {
         return [url, config]
       }
 
@@ -61,6 +58,18 @@ export function useRegisterAPIInterceptor() {
       }
 
       return [url, config]
+    },
+
+    response(response) {
+      if (
+        response.status === 401 &&
+        keyPair.value &&
+        isSignedRequest(new URL(response.url).pathname)
+      ) {
+        invalidateKeys()
+      }
+
+      return response
     },
   })
 
@@ -92,6 +101,13 @@ const includedHeaders = [
   TimestampHeaderKey,
   authHeader,
 ]
+
+function isSignedRequest(path: string): boolean {
+  return (
+    /^\/(api|image)/.test(path) &&
+    (!path.startsWith('/api/auth.') || path.startsWith('/api/auth.AuthService/RevokePublicKey'))
+  )
+}
 
 function buildPayload(url: string, config: { headers?: Headers }) {
   const headers: Record<string, string[]> = {}

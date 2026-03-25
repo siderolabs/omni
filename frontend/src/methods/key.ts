@@ -38,6 +38,9 @@ export function useKeys() {
       keyExpirationTime.value = new Date(0)
       publicKeyID.value = ''
     },
+    invalidate() {
+      keyExpirationTime.value = new Date(0)
+    },
   }
 }
 

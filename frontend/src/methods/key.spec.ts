@@ -3,11 +3,11 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { server } from '@msw/server'
-import { enableAutoUnmount, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { add, isAfter, isBefore, milliseconds, sub } from 'date-fns'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { defineComponent, nextTick } from 'vue'
+import { defineComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import type { RegisterPublicKeyRequest, RegisterPublicKeyResponse } from '@/api/omni/auth/auth.pb'
@@ -131,17 +131,24 @@ describe('useWatchKeyExpiry', () => {
   test('does nothing if no keyPair', async () => {
     mount(TestComponent)
 
-    await nextTick()
+    await flushPromises()
 
     expect(useRouter().replace).not.toHaveBeenCalled()
   })
 
-  test('clears keys if invalid expiry', async () => {
+  test('clears keys if invalidated', async () => {
+    useKeys().keyExpirationTime.value = add(now, { minutes: 1 })
     useKeys().keyPair.value = mockKey
 
     mount(TestComponent)
 
-    await nextTick()
+    await flushPromises()
+
+    expect(useKeys().keyPair.value).toBeTruthy()
+    expect(useRouter().replace).not.toHaveBeenCalled()
+
+    useKeys().invalidate()
+    await flushPromises()
 
     expect(useKeys().keyPair.value).toBeFalsy()
     expect(useRouter().replace).toHaveBeenCalledExactlyOnceWith({
@@ -150,22 +157,33 @@ describe('useWatchKeyExpiry', () => {
     })
   })
 
-  test('clears keys on expiry', async () => {
+  test('clears keys if expired on start', async () => {
+    useKeys().keyExpirationTime.value = sub(now, { minutes: 1 })
+    useKeys().keyPair.value = mockKey
+
+    mount(TestComponent)
+
+    await flushPromises()
+
+    expect(useKeys().keyPair.value).toBeFalsy()
+    expect(useRouter().replace).toHaveBeenCalledExactlyOnceWith({
+      name: 'Authenticate',
+      query: { flow: 'frontend', redirect: 'fullPath' },
+    })
+  })
+
+  test('clears keys after expiry', async () => {
     useKeys().keyExpirationTime.value = add(now, { minutes: 1 })
     useKeys().keyPair.value = mockKey
 
     mount(TestComponent)
 
-    await nextTick()
+    await flushPromises()
 
     expect(useKeys().keyPair.value).toBeDefined()
     expect(useRouter().replace).not.toHaveBeenCalled()
 
-    vi.advanceTimersByTime(milliseconds({ minutes: 2 }))
-
-    expect(useRouter().replace).not.toHaveBeenCalled()
-
-    await nextTick()
+    await vi.advanceTimersByTimeAsync(milliseconds({ minutes: 2 }))
 
     expect(useKeys().keyPair.value).toBeFalsy()
     expect(useRouter().replace).toHaveBeenCalledExactlyOnceWith({
@@ -185,14 +203,12 @@ describe('useWatchKeyExpiry', () => {
 
     mount(TestComponent)
 
-    await nextTick()
+    await flushPromises()
 
     expect(useKeys().keyPair.value).toBeDefined()
     expect(useRouter().replace).not.toHaveBeenCalled()
 
-    vi.advanceTimersByTime(milliseconds({ minutes: 2 }))
-
-    await nextTick()
+    await vi.advanceTimersByTimeAsync(milliseconds({ minutes: 2 }))
 
     expect(useKeys().keyPair.value).toBeFalsy()
     expect(useRouter().replace).not.toHaveBeenCalled()
@@ -204,15 +220,13 @@ describe('useWatchKeyExpiry', () => {
 
     const wrapper = mount(TestComponent)
 
-    await nextTick()
+    await flushPromises()
 
     expect(useKeys().keyPair.value).toBeDefined()
     expect(useRouter().replace).not.toHaveBeenCalled()
 
     wrapper.unmount()
-    vi.advanceTimersByTime(milliseconds({ minutes: 2 }))
-
-    await nextTick()
+    await vi.advanceTimersByTimeAsync(milliseconds({ minutes: 2 }))
 
     expect(useKeys().keyPair.value).toBeDefined()
     expect(useRouter().replace).not.toHaveBeenCalled()

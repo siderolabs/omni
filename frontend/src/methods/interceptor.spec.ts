@@ -4,7 +4,10 @@
 // included in the LICENSE file.
 import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { getUnixTime } from 'date-fns'
-import fetchIntercept, { type FetchInterceptor } from 'fetch-intercept'
+import fetchIntercept, {
+  type FetchInterceptor,
+  type FetchInterceptorResponse,
+} from 'fetch-intercept'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { defineComponent, ref } from 'vue'
 
@@ -25,6 +28,7 @@ vi.mock(import('@/methods/key'), async (importOriginal) => {
       publicKeyID: ref('public_key_id'),
       keyExpirationTime: ref(new Date(0)),
       clear: vi.fn(),
+      invalidate: vi.fn(),
     })),
     signDetached: vi.fn().mockResolvedValue(new ArrayBuffer(10)),
   }
@@ -68,7 +72,7 @@ const TestComponent = defineComponent({
   template: '<template />',
 })
 
-describe('useRegisterAPIInterceptor', () => {
+describe('request interceptor', () => {
   const now = 1762881349000
 
   beforeEach(() => {
@@ -195,6 +199,7 @@ describe('useRegisterAPIInterceptor', () => {
       publicKeyID: ref('public_key_id'),
       keyExpirationTime: ref(new Date(0)),
       clear: vi.fn(),
+      invalidate: vi.fn(),
     })
 
     mount(TestComponent)
@@ -223,6 +228,61 @@ describe('useRegisterAPIInterceptor', () => {
         ['grpc-metadata-x-sidero-signature', 'siderov1 testuser public_key_id AAAAAAAAAAAAAA=='],
       ]),
     )
+  })
+})
+
+describe('response interceptor', () => {
+  let responseInterceptor: NonNullable<FetchInterceptor['response']>
+
+  const mockResponse = (status: number, url: string) =>
+    ({ status, url, request: new Request(url) }) as FetchInterceptorResponse
+
+  beforeEach(() => {
+    const keyPairRef = ref(mockKey)
+
+    vi.mocked(useKeys).mockReturnValue({
+      keyPair: keyPairRef,
+      publicKeyID: ref('public_key_id'),
+      keyExpirationTime: ref(new Date(0)),
+      clear: vi.fn(),
+      invalidate: vi.fn(),
+    })
+
+    fetchInterceptMock.register.mockImplementation(({ response }) => {
+      responseInterceptor = response!
+      return vi.fn()
+    })
+
+    mount(TestComponent)
+  })
+
+  test('invalidates keys on 401 from signed request', () => {
+    responseInterceptor(mockResponse(401, 'http://localhost/api/omni.Foo/Bar'))
+
+    expect(useKeys().invalidate).toHaveBeenCalledOnce()
+  })
+
+  test.each([
+    'http://localhost/api/auth.AuthService/ConfirmPublicKey',
+    'http://localhost/fake/endpoint',
+  ])('does not invalidate on 401 from unsigned request: %s', (url) => {
+    responseInterceptor(mockResponse(401, url))
+
+    expect(useKeys().invalidate).not.toHaveBeenCalled()
+  })
+
+  test('does not invalidate on non-401 from signed request', () => {
+    responseInterceptor(mockResponse(403, 'http://localhost/api/omni.Foo/Bar'))
+
+    expect(useKeys().invalidate).not.toHaveBeenCalled()
+  })
+
+  test('does not invalidate when no keys present', () => {
+    useKeys().keyPair.value = null
+
+    responseInterceptor(mockResponse(401, 'http://localhost/api/omni.Foo/Bar'))
+
+    expect(useKeys().invalidate).not.toHaveBeenCalled()
   })
 })
 

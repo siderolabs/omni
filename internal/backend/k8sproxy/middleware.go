@@ -80,14 +80,6 @@ func AuthorizeRequest(next http.Handler, keyFunc KeyProvider, clusterUUIDResolve
 			Set("impersonate.user", claims.Subject).
 			Set("impersonate.groups", claims.Groups)
 
-		if clusterName == "" {
-			ctxzap.Error(ctx, "cluster name is empty")
-
-			w.WriteHeader(http.StatusUnauthorized)
-
-			return
-		}
-
 		// Allow JWTs without cluster UUID for backwards compatibility - use their "cluster" claim as the target cluster.
 		// If this is a newer JWT with the "cluster_uuid" claim, get the matching cluster uuid and validate it against the "cluster_uuid" claim.
 		if clusterUUID != "" {
@@ -95,7 +87,7 @@ func AuthorizeRequest(next http.Handler, keyFunc KeyProvider, clusterUUIDResolve
 			if err != nil {
 				ctxzap.Error(ctx, "failed to resolve cluster UUID", zap.Error(err))
 
-				w.WriteHeader(http.StatusUnauthorized)
+				w.WriteHeader(http.StatusInternalServerError)
 
 				return
 			}
@@ -103,7 +95,7 @@ func AuthorizeRequest(next http.Handler, keyFunc KeyProvider, clusterUUIDResolve
 			if resolvedClusterUUID != clusterUUID {
 				ctxzap.Error(ctx, "cluster UUID does not match cluster name")
 
-				w.WriteHeader(http.StatusUnauthorized)
+				w.WriteHeader(http.StatusForbidden)
 
 				return
 			}
