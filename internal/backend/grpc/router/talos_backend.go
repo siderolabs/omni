@@ -7,6 +7,7 @@ package router
 
 import (
 	"context"
+	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -70,13 +71,22 @@ type TalosBackend struct {
 	omniState    state.State
 	conn         *grpc.ClientConn
 	verifier     grpc.UnaryServerInterceptor
+	talosAuditor TalosAuditor
 	name         string
 	clusterID    string
 	authEnabled  bool
 }
 
 // NewTalosBackend builds new Talos API backend.
-func NewTalosBackend(name, clusterID string, nodeResolver NodeResolver, conn *grpc.ClientConn, authEnabled bool, verifier grpc.UnaryServerInterceptor, st state.State) *TalosBackend {
+func NewTalosBackend(
+	name, clusterID string,
+	nodeResolver NodeResolver,
+	conn *grpc.ClientConn,
+	authEnabled bool,
+	verifier grpc.UnaryServerInterceptor,
+	st state.State,
+	talosAuditor TalosAuditor,
+) *TalosBackend {
 	return &TalosBackend{
 		name:         name,
 		clusterID:    clusterID,
@@ -85,6 +95,7 @@ func NewTalosBackend(name, clusterID string, nodeResolver NodeResolver, conn *gr
 		authEnabled:  authEnabled,
 		verifier:     verifier,
 		omniState:    st,
+		talosAuditor: talosAuditor,
 	}
 }
 
@@ -131,6 +142,17 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 		return ctx, nil, err
 	}
 
+	nodes, err := resolveNodes(backend.nodeResolver, md)
+	if err != nil {
+		return ctx, nil, err
+	}
+
+	if backend.talosAuditor != nil {
+		if err = backend.talosAuditor.AuditTalosAccess(ctx, strings.TrimLeft(fullMethodName, "/"), backend.clusterID, getNodeID(md)); err != nil {
+			return ctx, nil, err
+		}
+	}
+
 	hasModifyAccess := false
 
 	_, authErr := auth.Check(ctx, auth.WithRole(role.Operator))
@@ -148,11 +170,6 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 		if _, err = auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
 			return ctx, nil, err
 		}
-	}
-
-	nodes, err := resolveNodes(backend.nodeResolver, md)
-	if err != nil {
-		return ctx, nil, err
 	}
 
 	md = md.Copy()

@@ -312,6 +312,25 @@ func (client *Client) ResetNodeUniqueToken(ctx context.Context, machineID string
 	return err
 }
 
+// MachinePowerOff powers off (shuts down) a machine. For machines managed by a static infra provider,
+// it also updates the infra machine config to prevent the provider from powering the machine back on.
+func (client *Client) MachinePowerOff(ctx context.Context, machineID string) error {
+	_, err := client.conn.MachinePowerOff(ctx, &management.MachinePowerOffRequest{
+		MachineId: machineID,
+	})
+
+	return err
+}
+
+// MachinePowerOn powers on a machine managed by a static infra provider by clearing the power off request.
+func (client *Client) MachinePowerOn(ctx context.Context, machineID string) error {
+	_, err := client.conn.MachinePowerOn(ctx, &management.MachinePowerOnRequest{
+		MachineId: machineID,
+	})
+
+	return err
+}
+
 // LogReader is a log client reader which implements io.Reader.
 type LogReader struct {
 	ctx    context.Context //nolint:containedctx

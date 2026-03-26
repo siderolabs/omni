@@ -31,6 +31,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	machinetask "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/machine"
+	machinectrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machine"
 )
 
 type KernelArgsInitializer interface {
@@ -275,8 +276,8 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 			return err
 		}
 
-		ctrl.updateMachineConnectionStatus(machine, inputs, m)
-		ctrl.updateMachinePowerState(machine, inputs, m)
+		machinectrl.UpdateConnectionStatus(m, machine, inputs.machineStatusSnapshot, inputs.infraMachineStatus)
+		machinectrl.UpdatePowerState(m, machine, inputs.machineStatusSnapshot, inputs.infraMachineStatus)
 
 		return ctrl.copyInfraProviderLabels(m, inputs.infraMachineStatus)
 	})
@@ -310,63 +311,6 @@ func (ctrl *MachineStatusController) copyInfraProviderLabels(machineStatus *omni
 	}
 
 	return nil
-}
-
-func (ctrl *MachineStatusController) updateMachinePowerState(machine *omni.Machine, inputs inputs, m *omni.MachineStatus) {
-	_, isManagedByStaticInfraProvider := machine.Metadata().Labels().Get(omni.LabelIsManagedByStaticInfraProvider)
-
-	if isManagedByStaticInfraProvider {
-		if inputs.infraMachineStatus == nil {
-			m.TypedSpec().Value.PowerState = specs.MachineStatusSpec_POWER_STATE_UNKNOWN
-
-			return
-		}
-
-		switch inputs.infraMachineStatus.TypedSpec().Value.PowerState {
-		case specs.InfraMachineStatusSpec_POWER_STATE_UNKNOWN:
-			m.TypedSpec().Value.PowerState = specs.MachineStatusSpec_POWER_STATE_UNKNOWN
-		case specs.InfraMachineStatusSpec_POWER_STATE_ON:
-			m.TypedSpec().Value.PowerState = specs.MachineStatusSpec_POWER_STATE_ON
-		case specs.InfraMachineStatusSpec_POWER_STATE_OFF:
-			m.TypedSpec().Value.PowerState = specs.MachineStatusSpec_POWER_STATE_OFF
-		}
-
-		return
-	}
-
-	m.TypedSpec().Value.PowerState = specs.MachineStatusSpec_POWER_STATE_UNSUPPORTED
-}
-
-func (ctrl *MachineStatusController) updateMachineConnectionStatus(machine *omni.Machine, inputs inputs, m *omni.MachineStatus) {
-	connected := machine.TypedSpec().Value.Connected
-
-	m.TypedSpec().Value.Connected = connected
-
-	if connected {
-		m.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
-		m.Metadata().Labels().Delete(omni.MachineStatusLabelDisconnected)
-
-		m.Metadata().Labels().Set(omni.MachineStatusLabelReadyToUse, "")
-
-		return
-	}
-
-	m.Metadata().Labels().Delete(omni.MachineStatusLabelConnected)
-
-	infraMachineIsReadyToUse := inputs.infraMachineStatus != nil &&
-		inputs.infraMachineStatus.TypedSpec().Value.PowerState != specs.InfraMachineStatusSpec_POWER_STATE_UNKNOWN &&
-		inputs.infraMachineStatus.TypedSpec().Value.ReadyToUse
-
-	_, isManagedByStaticInfraProvider := machine.Metadata().Labels().Get(omni.LabelIsManagedByStaticInfraProvider)
-	if isManagedByStaticInfraProvider && infraMachineIsReadyToUse && m.TypedSpec().Value.Cluster == "" {
-		m.Metadata().Labels().Set(omni.MachineStatusLabelReadyToUse, "")
-		m.Metadata().Labels().Delete(omni.MachineStatusLabelDisconnected)
-
-		return
-	}
-
-	m.Metadata().Labels().Delete(omni.MachineStatusLabelReadyToUse)
-	m.Metadata().Labels().Set(omni.MachineStatusLabelDisconnected, "")
 }
 
 func (ctrl *MachineStatusController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machine *omni.Machine) error {

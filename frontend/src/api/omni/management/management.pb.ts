@@ -304,6 +304,20 @@ export type DestroyUserRequest = {
   email?: string
 }
 
+export type MachinePowerOffRequest = {
+  machine_id?: string
+}
+
+export type MachinePowerOffResponse = {
+}
+
+export type MachinePowerOnRequest = {
+  machine_id?: string
+}
+
+export type MachinePowerOnResponse = {
+}
+
 export type ListUsersResponseUser = {
   id?: string
   email?: string
@@ -385,5 +399,11 @@ export class ManagementService {
   }
   static DestroyUser(req: DestroyUserRequest, ...options: fm.fetchOption[]): Promise<GoogleProtobufEmpty.Empty> {
     return fm.fetchReq<DestroyUserRequest, GoogleProtobufEmpty.Empty>("POST", `/management.ManagementService/DestroyUser`, req, ...options)
+  }
+  static MachinePowerOff(req: MachinePowerOffRequest, ...options: fm.fetchOption[]): Promise<MachinePowerOffResponse> {
+    return fm.fetchReq<MachinePowerOffRequest, MachinePowerOffResponse>("POST", `/management.ManagementService/MachinePowerOff`, req, ...options)
+  }
+  static MachinePowerOn(req: MachinePowerOnRequest, ...options: fm.fetchOption[]): Promise<MachinePowerOnResponse> {
+    return fm.fetchReq<MachinePowerOnRequest, MachinePowerOnResponse>("POST", `/management.ManagementService/MachinePowerOn`, req, ...options)
   }
 }

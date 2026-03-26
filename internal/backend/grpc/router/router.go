@@ -193,10 +193,6 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 			return proxy.One2One, nil, err
 		}
 
-		if err = r.talosAuditor.AuditTalosAccess(ctx, fullMethodName, getClusterName(md), getNodeID(md)); err != nil {
-			return proxy.One2One, nil, err
-		}
-
 		return proxy.One2One, []proxy.Backend{backend}, nil
 	}
 
@@ -267,7 +263,7 @@ func (r *Router) getForCluster(ctx context.Context, clusterID string) (proxy.Bac
 		activeGauge := r.metricActiveClients.WithLabelValues(typ)
 		activeGauge.Inc()
 
-		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState)
+		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState, r.talosAuditor)
 		r.talosBackends.Add(cacheKey, backend)
 
 		r.metricCacheSize.WithLabelValues(typ).Inc()
@@ -318,7 +314,7 @@ func (r *Router) getForMachine(ctx context.Context, clusterID string, node dns.I
 		activeGauge := r.metricActiveClients.WithLabelValues(typ)
 		activeGauge.Inc()
 
-		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState)
+		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState, r.talosAuditor)
 		r.talosBackends.Add(cacheKey, backend)
 
 		r.metricCacheSize.WithLabelValues(typ).Inc()

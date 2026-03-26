@@ -79,15 +79,15 @@ func (watcher *Watcher) Run(ctx context.Context) error {
 func (watcher *Watcher) handleEvent(ctx context.Context, event state.Event) error {
 	defer watcher.notify(ctx, event)
 
+	if event.Error != nil {
+		return fmt.Errorf("power status watcher failed: %w", event.Error)
+	}
+
 	var (
 		clusterMachineExists bool
 		infraMachineStatus   *infra.MachineStatus
 		err                  error
 	)
-
-	if event.Error != nil {
-		return fmt.Errorf("power status watcher failed: %w", event.Error)
-	}
 
 	switch res := event.Resource.(type) {
 	case *omni.ClusterMachine:
@@ -117,6 +117,8 @@ func (watcher *Watcher) handleEvent(ctx context.Context, event state.Event) erro
 		}
 
 		clusterMachineExists = err == nil
+	default:
+		return nil
 	}
 
 	if infraMachineStatus.TypedSpec().Value.PowerState != specs.InfraMachineStatusSpec_POWER_STATE_OFF {
@@ -125,9 +127,14 @@ func (watcher *Watcher) handleEvent(ctx context.Context, event state.Event) erro
 
 	snapshot := omni.NewMachineStatusSnapshot(infraMachineStatus.Metadata().ID())
 
-	if clusterMachineExists { // the machine is assigned to a cluster, mark it as "powering on"
+	switch {
+	case infraMachineStatus.TypedSpec().Value.LastPowerOffId != "":
+		// The infra provider is actively honoring a power-off request, so the machine is intentionally off.
+		snapshot.TypedSpec().Value.PowerStage = specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERED_OFF
+	case clusterMachineExists:
+		// Allocated machine is off with no honored power-off, so it is expected to be powered back on.
 		snapshot.TypedSpec().Value.PowerStage = specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERING_ON
-	} else { // the machine is not assigned to a cluster, mark it as "powered off"
+	default:
 		snapshot.TypedSpec().Value.PowerStage = specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERED_OFF
 	}
 

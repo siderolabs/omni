@@ -35,7 +35,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
-	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
@@ -46,13 +45,19 @@ func (s *managementServer) KubernetesSyncManifests(
 ) error {
 	ctx := srv.Context()
 
-	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Operator)); err != nil {
+	requestContext := router.ExtractContext(ctx)
+	if requestContext == nil {
+		return status.Error(codes.InvalidArgument, "unable to extract request context")
+	}
+
+	authCtx, _, err := s.checkClusterAuthorization(ctx, requestContext.Name, role.Operator)
+	if err != nil {
 		return err
 	}
 
-	ctx = actor.MarkContextAsInternalActor(ctx)
+	ctx = actor.MarkContextAsInternalActor(authCtx)
 
-	sync, err := s.prepareKubernetesSyncHelpers(ctx)
+	sync, err := s.prepareKubernetesSyncHelpers(ctx, authCtx, requestContext)
 	if err != nil {
 		return err
 	}
@@ -341,15 +346,14 @@ type kubernetesSyncHelpers struct {
 	manifests      []manifests.Manifest
 }
 
-func (s *managementServer) prepareKubernetesSyncHelpers(ctx context.Context) (*kubernetesSyncHelpers, error) {
-	requestContext := router.ExtractContext(ctx)
-	if requestContext == nil {
-		return nil, status.Error(codes.InvalidArgument, "unable to extract request context")
-	}
-
+func (s *managementServer) prepareKubernetesSyncHelpers(ctx, authCtx context.Context, requestContext *common.Context) (*kubernetesSyncHelpers, error) {
 	cfg, err := s.kubernetesRuntime.GetKubeconfig(ctx, requestContext)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
+	}
+
+	if err = s.auditTalosAccess(authCtx, management.ManagementService_KubernetesSyncManifests_FullMethodName, requestContext.Name, ""); err != nil {
+		return nil, err
 	}
 
 	talosClient, err := s.talosRuntime.GetClientForCluster(ctx, requestContext.Name)

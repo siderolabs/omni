@@ -989,6 +989,7 @@ export type InfraMachineConfigSpec = {
   extra_kernel_args?: string
   requested_reboot_id?: string
   cordoned?: boolean
+  power_off_request_id?: string
 }
 
 export type InfraMachineBMCConfigSpecIPMI = {

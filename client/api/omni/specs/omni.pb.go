@@ -7312,6 +7312,11 @@ type InfraMachineConfigSpec struct {
 	ExtraKernelArgs   string                                   `protobuf:"bytes,3,opt,name=extra_kernel_args,json=extraKernelArgs,proto3" json:"extra_kernel_args,omitempty"`
 	RequestedRebootId string                                   `protobuf:"bytes,4,opt,name=requested_reboot_id,json=requestedRebootId,proto3" json:"requested_reboot_id,omitempty"`
 	Cordoned          bool                                     `protobuf:"varint,5,opt,name=cordoned,proto3" json:"cordoned,omitempty"`
+	// PowerOffRequestId is set to a new UUID each time the user requests the machine to be powered off (shutdown).
+	//
+	// This is used by Omni to signal the infra provider to not power the machine back on after a shutdown,
+	// even when the machine is allocated to a cluster.
+	PowerOffRequestId string `protobuf:"bytes,6,opt,name=power_off_request_id,json=powerOffRequestId,proto3" json:"power_off_request_id,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -7379,6 +7384,13 @@ func (x *InfraMachineConfigSpec) GetCordoned() bool {
 		return x.Cordoned
 	}
 	return false
+}
+
+func (x *InfraMachineConfigSpec) GetPowerOffRequestId() string {
+	if x != nil {
+		return x.PowerOffRequestId
+	}
+	return ""
 }
 
 type InfraMachineBMCConfigSpec struct {
@@ -11757,14 +11769,15 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\vPROVISIONED\x10\x03\x12\x12\n" +
 	"\x0eDEPROVISIONING\x10\x04\x12\n" +
 	"\n" +
-	"\x06FAILED\x10\x05\"\xd3\x03\n" +
+	"\x06FAILED\x10\x05\"\x84\x04\n" +
 	"\x16InfraMachineConfigSpec\x12P\n" +
 	"\vpower_state\x18\x01 \x01(\x0e2/.specs.InfraMachineConfigSpec.MachinePowerStateR\n" +
 	"powerState\x12[\n" +
 	"\x11acceptance_status\x18\x02 \x01(\x0e2..specs.InfraMachineConfigSpec.AcceptanceStatusR\x10acceptanceStatus\x12*\n" +
 	"\x11extra_kernel_args\x18\x03 \x01(\tR\x0fextraKernelArgs\x12.\n" +
 	"\x13requested_reboot_id\x18\x04 \x01(\tR\x11requestedRebootId\x12\x1a\n" +
-	"\bcordoned\x18\x05 \x01(\bR\bcordoned\";\n" +
+	"\bcordoned\x18\x05 \x01(\bR\bcordoned\x12/\n" +
+	"\x14power_off_request_id\x18\x06 \x01(\tR\x11powerOffRequestId\";\n" +
 	"\x10AcceptanceStatus\x12\v\n" +
 	"\aPENDING\x10\x00\x12\f\n" +
 	"\bACCEPTED\x10\x01\x12\f\n" +

@@ -53,6 +53,7 @@ export type InfraMachineSpec = {
   cordoned?: boolean
   install_event_id?: string
   node_unique_token?: string
+  power_off_request_id?: string
 }
 
 export type InfraMachineStateSpec = {
@@ -66,6 +67,7 @@ export type InfraMachineStatusSpec = {
   last_reboot_timestamp?: GoogleProtobufTimestamp.Timestamp
   installed?: boolean
   wiped_node_unique_token?: string
+  last_power_off_id?: string
 }
 
 export type InfraProviderSpec = {

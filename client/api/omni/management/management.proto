@@ -316,6 +316,20 @@ message DestroyUserRequest {
   string email = 1;
 }
 
+message MachinePowerOffRequest {
+  // MachineId is the ID of the machine to power off (shutdown).
+  string machine_id = 1;
+}
+
+message MachinePowerOffResponse {}
+
+message MachinePowerOnRequest {
+  // MachineId is the ID of the machine to power on.
+  string machine_id = 1;
+}
+
+message MachinePowerOnResponse {}
+
 message ListUsersResponse {
   message User {
     string id = 1;
@@ -352,4 +366,6 @@ service ManagementService {
   rpc ListUsers(google.protobuf.Empty) returns (ListUsersResponse);
   rpc UpdateUser(UpdateUserRequest) returns (google.protobuf.Empty);
   rpc DestroyUser(DestroyUserRequest) returns (google.protobuf.Empty);
+  rpc MachinePowerOff(MachinePowerOffRequest) returns (MachinePowerOffResponse);
+  rpc MachinePowerOn(MachinePowerOnRequest) returns (MachinePowerOnResponse);
 }

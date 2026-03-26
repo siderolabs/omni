@@ -298,6 +298,8 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, helper.runtime, helper.link.Metadata().ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
+			infraMachine.TypedSpec().Value.PowerOffRequestId = "" // the machine is not allocated, clear power off request to not block the provider from powering it on
+
 			return nil
 		}
 
@@ -307,6 +309,8 @@ func (helper *infraMachineControllerHelper) modify(ctx context.Context, infraMac
 	helpers.CopyLabels(clusterMachine, infraMachine, omni.LabelCluster, omni.LabelMachineSet, omni.LabelControlPlaneRole, omni.LabelWorkerRole)
 
 	if clusterMachine.Metadata().Phase() == resource.PhaseTearingDown {
+		infraMachine.TypedSpec().Value.PowerOffRequestId = "" // the machine is being deallocated, clear power off request to not block the provider from powering it on
+
 		if clusterMachine.Metadata().Finalizers().Has(ClusterMachineConfigControllerName) {
 			return nil // the cluster machine is not reset yet
 		}
@@ -441,6 +445,7 @@ func (helper *infraMachineControllerHelper) applyInfraMachineConfig(infraMachine
 	// reset the user-override fields except the "Accepted" field
 	infraMachine.TypedSpec().Value.PreferredPowerState = defaultPreferredPowerState
 	infraMachine.TypedSpec().Value.ExtraKernelArgs = ""
+	infraMachine.TypedSpec().Value.PowerOffRequestId = ""
 
 	pendingAccept := config == nil
 
@@ -463,6 +468,7 @@ func (helper *infraMachineControllerHelper) applyInfraMachineConfig(infraMachine
 		}
 
 		infraMachine.TypedSpec().Value.ExtraKernelArgs = config.TypedSpec().Value.ExtraKernelArgs
+		infraMachine.TypedSpec().Value.PowerOffRequestId = config.TypedSpec().Value.PowerOffRequestId
 	}
 
 	if pendingAccept {

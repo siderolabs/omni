@@ -29,6 +29,7 @@ const props = withDefaults(
       title?: string
       actionLabel?: string
       loading?: boolean
+      disabled?: boolean
     }
   >(),
   {
@@ -39,7 +40,7 @@ const props = withDefaults(
 
 const emit = defineEmits<AlertDialogEmits & { confirm: [] }>()
 
-const alertDialogRootProps = reactiveOmit(props, 'title', 'actionLabel', 'loading')
+const alertDialogRootProps = reactiveOmit(props, 'title', 'actionLabel', 'loading', 'disabled')
 const forwarded = useForwardPropsEmits(alertDialogRootProps, emit)
 </script>
 
@@ -67,7 +68,7 @@ const forwarded = useForwardPropsEmits(alertDialogRootProps, emit)
             <TButton variant="secondary">Cancel</TButton>
           </AlertDialogCancel>
 
-          <TButton :disabled="loading" variant="highlighted" @click="$emit('confirm')">
+          <TButton :disabled="loading || disabled" variant="highlighted" @click="$emit('confirm')">
             <TSpinner v-if="loading" class="size-5" />
             <template v-else>{{ actionLabel }}</template>
           </TButton>

@@ -16,8 +16,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/task"
 	"github.com/siderolabs/gen/optional"
+	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -177,6 +179,12 @@ func (ctrl *MachineStatusSnapshotController) reconcileRunning(ctx context.Contex
 
 	if !machine.TypedSpec().Value.Connected {
 		ctrl.runner.StopTask(logger, machine.Metadata().ID())
+
+		// machine is disconnected, check if its last known phase was "shutting down",
+		// and if it was, mark it as powered off.
+		if err = ctrl.handleDisconnectedMachinePowerOff(ctx, r, machine.Metadata().ID()); err != nil {
+			return err
+		}
 	}
 
 	if machine.TypedSpec().Value.Connected {
@@ -188,6 +196,35 @@ func (ctrl *MachineStatusSnapshotController) reconcileRunning(ctx context.Contex
 	}
 
 	return nil
+}
+
+// handleDisconnectedMachinePowerOff checks if the machine was in shutting down stage before it got disconnected, and if it was,
+// it creates a snapshot with "powered off" stage, since we won't receive any more updates about this machine's status.
+func (ctrl *MachineStatusSnapshotController) handleDisconnectedMachinePowerOff(ctx context.Context, r controller.QRuntime, machineID resource.ID) error {
+	snapshot, err := safe.ReaderGetByID[*omni.MachineStatusSnapshot](ctx, r, machineID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	if snapshot.TypedSpec().Value.PowerStage == specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERED_OFF { // already in powered off stage
+		return nil
+	}
+
+	wasShuttingDown := snapshot.TypedSpec().Value.GetMachineStatus().GetStage() == machineapi.MachineStatusEvent_SHUTTING_DOWN
+	if !wasShuttingDown {
+		return nil
+	}
+
+	// create a synthetic snapshot with only power stage information to keep
+	// Talos machine status as-is, but mark the machine power stage as powered off.
+	poweredOffSnapshot := omni.NewMachineStatusSnapshot(machineID)
+	poweredOffSnapshot.TypedSpec().Value.PowerStage = specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERED_OFF
+
+	return ctrl.reconcileSnapshot(ctx, r, poweredOffSnapshot)
 }
 
 func (ctrl *MachineStatusSnapshotController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machine *omni.Machine) error {

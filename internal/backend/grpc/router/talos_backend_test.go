@@ -95,6 +95,7 @@ func TestTalosBackendHeaderDeletion(t *testing.T) {
 				return handler(ctx, req)
 			},
 			st.Default(),
+			nil,
 		)
 	}
 
@@ -144,6 +145,42 @@ func TestTalosBackendHeaderDeletion(t *testing.T) {
 	})
 }
 
+func TestTalosBackendAuditsAfterVerifier(t *testing.T) {
+	t.Parallel()
+
+	logger := zaptest.NewLogger(t)
+	st, err := omniruntime.NewTestState(logger)
+	require.NoError(t, err)
+
+	conn, err := dial("127.0.0.1:10501")
+	require.NoError(t, err)
+
+	auditor := &capturingTalosAuditor{}
+
+	backend := router.NewTalosBackend(
+		"test-backend",
+		"test-cluster",
+		&testNodeResolver{},
+		conn,
+		false,
+		func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+			return handler(context.WithValue(ctx, auditVerifierKey{}, "verified"), req)
+		},
+		st.Default(),
+		auditor,
+	)
+
+	ctx := metadata.NewIncomingContext(t.Context(), metadata.Pairs("node", "some-node", "cluster", "test-cluster"))
+
+	_, _, err = backend.GetConnection(ctx, machine.MachineService_Hostname_FullMethodName)
+	require.NoError(t, err)
+
+	require.Equal(t, "verified", auditor.verifierMarker)
+	require.Equal(t, "machine.MachineService/Hostname", auditor.fullMethod)
+	require.Equal(t, "test-cluster", auditor.clusterID)
+	require.Equal(t, "some-node", auditor.nodeID)
+}
+
 func makeGRPCProxy(ctx context.Context, endpoint, serverEndpoint string, st state.State) (func() error, error) {
 	grpcProxyServer := router.NewServer(&testDirector{serverEndpoint: serverEndpoint, omniState: st})
 
@@ -176,6 +213,24 @@ type testDirector struct {
 	serverEndpoint string
 }
 
+type auditVerifierKey struct{}
+
+type capturingTalosAuditor struct {
+	verifierMarker any
+	fullMethod     string
+	clusterID      string
+	nodeID         string
+}
+
+func (c *capturingTalosAuditor) AuditTalosAccess(ctx context.Context, fullMethodName, clusterID, nodeID string) error {
+	c.verifierMarker = ctx.Value(auditVerifierKey{})
+	c.fullMethod = fullMethodName
+	c.clusterID = clusterID
+	c.nodeID = nodeID
+
+	return nil
+}
+
 func (t *testDirector) Director(context.Context, string) (proxy.Mode, []proxy.Backend, error) {
 	conn, err := dial(t.serverEndpoint)
 	if err != nil {
@@ -192,6 +247,7 @@ func (t *testDirector) Director(context.Context, string) (proxy.Mode, []proxy.Ba
 			return handler(ctx, req)
 		},
 		t.omniState,
+		nil,
 	)
 
 	return proxy.One2One, []proxy.Backend{backend}, nil

@@ -18,17 +18,41 @@ type ManagementServer = managementServer
 
 type AuthServer = authServer
 
+// ManagementServerOption configures a test management server.
+type ManagementServerOption func(*ManagementServer)
+
 //nolint:revive
 func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client, logger *zap.Logger,
 	enableBreakGlassConfigs bool, kubernetesRuntime KubernetesRuntime, talosconfigProvider TalosconfigProvider,
+	opts ...ManagementServerOption,
 ) *ManagementServer {
-	return &ManagementServer{
+	server := &ManagementServer{
 		omniState:           st,
 		imageFactoryClient:  imageFactoryClient,
 		logger:              logger,
 		cfg:                 &config.Params{Features: config.Features{EnableBreakGlassConfigs: new(enableBreakGlassConfigs)}},
 		kubernetesRuntime:   kubernetesRuntime,
 		talosconfigProvider: talosconfigProvider,
+	}
+
+	for _, opt := range opts {
+		opt(server)
+	}
+
+	return server
+}
+
+// WithTalosRuntime configures the Talos runtime on a test management server.
+func WithTalosRuntime(talosRuntime TalosRuntime) ManagementServerOption {
+	return func(server *ManagementServer) {
+		server.talosRuntime = talosRuntime
+	}
+}
+
+// WithAuditLogger configures the audit logger on a test management server.
+func WithAuditLogger(auditor AuditLogger) ManagementServerOption {
+	return func(server *ManagementServer) {
+		server.auditor = auditor
 	}
 }
 
@@ -38,8 +62,4 @@ func NewAuthServer(st state.State, services config.Services, logger *zap.Logger)
 
 func NewResourceServer(st state.State, runtimes map[string]runtime.Runtime, depGrapher DependencyGrapher) *ResourceServer {
 	return newResourceServer(st, runtimes, depGrapher)
-}
-
-func GenerateDest(apiurl string) (string, error) {
-	return generateDest(apiurl)
 }

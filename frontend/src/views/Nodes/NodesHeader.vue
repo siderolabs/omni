@@ -5,15 +5,22 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { MachineSetNodeSpec } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, MachineSetNodeType } from '@/api/resources'
+import type { MachineSetNodeSpec, MachineSpec } from '@/api/omni/specs/omni.pb'
+import {
+  DefaultNamespace,
+  LabelIsManagedByStaticInfraProvider,
+  MachineSetNodeType,
+  MachineType,
+} from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import NodePowerOn from '@/views/Modals/NodePowerOn.vue'
 import NodesBreadcrumbs from '@/views/Nodes/NodesBreadcrumbs.vue'
 
 const { clusterId, machineId } = defineProps<{
@@ -23,6 +30,7 @@ const { clusterId, machineId } = defineProps<{
 
 const route = useRoute()
 const router = useRouter()
+const powerOnModalOpen = ref(false)
 
 const shutdownNode = () => {
   router.push({
@@ -32,6 +40,10 @@ const shutdownNode = () => {
       ...route.query,
     },
   })
+}
+
+const powerOnNode = () => {
+  powerOnModalOpen.value = true
 }
 
 const rebootNode = () => {
@@ -52,6 +64,19 @@ const { data: machineSetNode, loading } = useResourceWatch<MachineSetNodeSpec>((
   },
   runtime: Runtime.Omni,
 }))
+
+const { data: machine } = useResourceWatch<MachineSpec>(() => ({
+  resource: {
+    type: MachineType,
+    id: machineId,
+    namespace: DefaultNamespace,
+  },
+  runtime: Runtime.Omni,
+}))
+
+const isManagedByStaticInfraProvider = computed(
+  () => machine.value?.metadata.labels?.[LabelIsManagedByStaticInfraProvider] !== undefined,
+)
 
 const destroyNode = async () => {
   router.push({
@@ -83,6 +108,24 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
     <NodesBreadcrumbs :cluster-id :machine-id />
 
     <div class="flex">
+      <Tooltip
+        :description="
+          isManagedByStaticInfraProvider
+            ? undefined
+            : 'Power on is only available for machines managed by a static infra provider. For other machines, power on the machine manually.'
+        "
+      >
+        <TButton
+          class="header-button"
+          icon="power"
+          icon-position="left"
+          variant="secondary"
+          :disabled="!canRebootMachines || !isManagedByStaticInfraProvider"
+          @click="powerOnNode"
+        >
+          Power On
+        </TButton>
+      </Tooltip>
       <TButton
         class="header-button"
         icon="power"
@@ -126,6 +169,8 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
         Cancel Destroy
       </TButton>
     </div>
+
+    <NodePowerOn v-model:open="powerOnModalOpen" :cluster-id="clusterId" :machine-id="machineId" />
   </div>
 </template>
 

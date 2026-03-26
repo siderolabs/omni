@@ -2715,6 +2715,7 @@ func (m *InfraMachineConfigSpec) CloneVT() *InfraMachineConfigSpec {
 	r.ExtraKernelArgs = m.ExtraKernelArgs
 	r.RequestedRebootId = m.RequestedRebootId
 	r.Cordoned = m.Cordoned
+	r.PowerOffRequestId = m.PowerOffRequestId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -6956,6 +6957,9 @@ func (this *InfraMachineConfigSpec) EqualVT(that *InfraMachineConfigSpec) bool {
 		return false
 	}
 	if this.Cordoned != that.Cordoned {
+		return false
+	}
+	if this.PowerOffRequestId != that.PowerOffRequestId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -14923,6 +14927,13 @@ func (m *InfraMachineConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.PowerOffRequestId) > 0 {
+		i -= len(m.PowerOffRequestId)
+		copy(dAtA[i:], m.PowerOffRequestId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.PowerOffRequestId)))
+		i--
+		dAtA[i] = 0x32
+	}
 	if m.Cordoned {
 		i--
 		if m.Cordoned {
@@ -19187,6 +19198,10 @@ func (m *InfraMachineConfigSpec) SizeVT() (n int) {
 	}
 	if m.Cordoned {
 		n += 2
+	}
+	l = len(m.PowerOffRequestId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -38247,6 +38262,38 @@ func (m *InfraMachineConfigSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Cordoned = bool(v != 0)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PowerOffRequestId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PowerOffRequestId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
