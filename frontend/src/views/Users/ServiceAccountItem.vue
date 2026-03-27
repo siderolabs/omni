@@ -11,9 +11,9 @@ import { useRouter } from 'vue-router'
 import type { Resource } from '@/api/grpc'
 import type { IdentityStatusSpec, ServiceAccountStatusSpec } from '@/api/omni/specs/auth.pb'
 import { RoleInfraProvider } from '@/api/resources'
-import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
-import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
-import TListItem from '@/components/common/List/TListItem.vue'
+import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
+import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
+import TListItem from '@/components/List/TListItem.vue'
 import { usePermissions } from '@/methods/auth'
 
 const props = defineProps<{

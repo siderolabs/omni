@@ -44,11 +44,11 @@ import {
   watch,
 } from 'vue'
 
-import AuditLogItem from '@/components/common/AuditLogs/AuditLogItem.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import DateRangePicker from '@/components/common/DateRangePicker/DateRangePicker.vue'
-import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
+import AuditLogItem from '@/components/AuditLogs/AuditLogItem.vue'
+import TButton from '@/components/Button/TButton.vue'
+import DateRangePicker from '@/components/DateRangePicker/DateRangePicker.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import TAlert from '@/components/TAlert.vue'
 import { useReadAuditLog } from '@/views/Settings/useReadAuditLog'
 

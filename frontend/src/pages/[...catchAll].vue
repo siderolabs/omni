@@ -5,8 +5,8 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import TButton from '@/components/common/Button/TButton.vue'
-import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
+import TButton from '@/components/Button/TButton.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
 </script>
 
 <template>

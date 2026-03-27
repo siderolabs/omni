@@ -8,7 +8,7 @@ included in the LICENSE file.
 import { useRoute, useRouter } from 'vue-router'
 
 import { ManagementService } from '@/api/omni/management/management.pb'
-import TButton from '@/components/common/Button/TButton.vue'
+import TButton from '@/components/Button/TButton.vue'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/Modals/CloseButton.vue'
 

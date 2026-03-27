@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { computed, type RenderFunction } from 'vue'
 
-import Card from '@/components/common/Card/Card.vue'
+import Card from '@/components/Card/Card.vue'
 
 const { sections } = defineProps<{
   title: string

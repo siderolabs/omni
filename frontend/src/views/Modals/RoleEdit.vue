@@ -23,8 +23,8 @@ import {
   RoleReader,
   UserType,
 } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
-import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TSelectList from '@/components/SelectList/TSelectList.vue'
 import { usePermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'

@@ -26,7 +26,7 @@ import {
   MachineStatusLabelZone,
   SystemLabelPrefix,
 } from '@/api/resources'
-import type { IconType } from '@/components/common/Icon/TIcon.vue'
+import type { IconType } from '@/components/Icon/TIcon.vue'
 
 export const parseLabels = (...labels: string[]): Record<string, string> => {
   const labelsMap: Record<string, string> = {}

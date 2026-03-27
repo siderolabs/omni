@@ -7,7 +7,7 @@ import { watch } from 'vue'
 
 import type { SchematicBootloader } from '@/api/omni/management/management.pb'
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
-import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
+import type { LabelSelectItem } from '@/components/Labels/Labels.vue'
 
 export type HardwareType = 'metal' | 'cloud' | 'sbc'
 

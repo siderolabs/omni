@@ -7,9 +7,9 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type { RouteLocationRaw } from 'vue-router'
 
-import TMenuItem from '@/components/common/MenuItem/TMenuItem.vue'
+import TMenuItem from '@/components/MenuItem/TMenuItem.vue'
 
-import type { IconType } from '../common/Icon/TIcon.vue'
+import type { IconType } from '../Icon/TIcon.vue'
 
 export type SideBarItem = {
   name: string

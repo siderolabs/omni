@@ -6,8 +6,8 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { MachineStatusSpecDiagnostic } from '@/api/omni/specs/omni.pb'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TListItem from '@/components/common/List/TListItem.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import TListItem from '@/components/List/TListItem.vue'
 
 type Props = {
   diagnostics?: MachineStatusSpecDiagnostic[]

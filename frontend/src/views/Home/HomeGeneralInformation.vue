@@ -21,9 +21,9 @@ import {
   SysVersionID,
   SysVersionType,
 } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
-import Card from '@/components/common/Card/Card.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TButton from '@/components/Button/TButton.vue'
+import Card from '@/components/Card/Card.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import {
   downloadMachineJoinConfig,

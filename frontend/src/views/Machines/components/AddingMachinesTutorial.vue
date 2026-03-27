@@ -14,8 +14,8 @@ import {
   MachineStatusMetricsID,
   MachineStatusMetricsType,
 } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
-import CodeBlock from '@/components/common/CodeBlock/CodeBlock.vue'
+import TButton from '@/components/Button/TButton.vue'
+import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 

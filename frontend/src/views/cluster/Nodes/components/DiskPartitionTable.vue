@@ -7,10 +7,10 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type { Resource } from '@/api/grpc'
 import { itemID } from '@/api/watch'
-import TIcon, { type IconType } from '@/components/common/Icon/TIcon.vue'
-import TableCell from '@/components/common/Table/TableCell.vue'
-import TableRoot from '@/components/common/Table/TableRoot.vue'
-import TableRow from '@/components/common/Table/TableRow.vue'
+import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
+import TableCell from '@/components/Table/TableCell.vue'
+import TableRoot from '@/components/Table/TableRoot.vue'
+import TableRow from '@/components/Table/TableRow.vue'
 import type {
   TalosDiscoveredVolumeSpec,
   TalosVolumeStatusSpec,

@@ -6,8 +6,8 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { ServiceEvent } from '@/api/talos/machine/machine.pb'
-import type { IconType } from '@/components/common/Icon/TIcon.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import type { IconType } from '@/components/Icon/TIcon.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 import { relativeISO } from '@/methods/time'
 
 defineProps<{

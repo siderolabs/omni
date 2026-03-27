@@ -9,9 +9,9 @@ import { RadioGroup, RadioGroupOption } from '@headlessui/vue'
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { computed, ref, useTemplateRef, watch } from 'vue'
 
-import IconButton from '@/components/common/Button/IconButton.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import IconButton from '@/components/Button/IconButton.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import MachineSetLabel from '@/views/Clusters/Management/MachineSetLabel.vue'
 
 export type PickerOption = {

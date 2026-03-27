@@ -5,9 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import TButton from '@/components/common/Button/TButton.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import OngoingTasks from '@/components/common/OngoingTasks/OngoingTasks.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import OngoingTasks from '@/components/OngoingTasks/OngoingTasks.vue'
 import { getDocsLink } from '@/methods'
 
 interface Props {

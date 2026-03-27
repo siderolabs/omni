@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
 
-import TButton from '@/components/common/Button/TButton.vue'
+import TButton from '@/components/Button/TButton.vue'
 import { getDocsLink } from '@/methods'
 
 const isDismissed = useLocalStorage('_home_machines_tutorial_dismissed', false)

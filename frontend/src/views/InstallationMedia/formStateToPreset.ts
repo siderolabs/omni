@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { GrpcTunnelMode, type InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
-import type { LabelSelectItem } from '@/components/common/Labels/Labels.vue'
+import type { LabelSelectItem } from '@/components/Labels/Labels.vue'
 import type { FormState } from '@/views/InstallationMedia/useFormState'
 
 export function formStateToPreset(formState: FormState): InstallationMediaConfigSpec {

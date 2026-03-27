@@ -10,7 +10,7 @@ import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
-import TListItem from '@/components/common/List/TListItem.vue'
+import TListItem from '@/components/List/TListItem.vue'
 import type { Label } from '@/methods/labels'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 

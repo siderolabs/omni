@@ -8,8 +8,8 @@ included in the LICENSE file.
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import TButton from '@/components/common/Button/TButton.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TInput from '@/components/TInput/TInput.vue'
 import { AuthType, authType } from '@/methods'
 import { usePermissions } from '@/methods/auth'
 import { renewServiceAccount } from '@/methods/user'

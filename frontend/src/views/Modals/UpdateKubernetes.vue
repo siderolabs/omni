@@ -26,9 +26,9 @@ import {
   KubernetesVersionType,
   TalosVersionType,
 } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
-import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { getDocsLink } from '@/methods'
 import { upgradeKubernetes } from '@/methods/cluster'
 import { useResourceWatch } from '@/methods/useResourceWatch'

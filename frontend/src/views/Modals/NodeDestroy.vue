@@ -24,10 +24,10 @@ import {
   LabelMachineSet,
   MachineSetNodeType,
 } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
-import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { ClusterCommandError, destroyNodes } from '@/methods/cluster'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
 import { setupNodenameWatch } from '@/methods/node'

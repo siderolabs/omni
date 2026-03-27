@@ -14,8 +14,8 @@ import {
   ClusterStatusMetricsType,
   EphemeralNamespace,
 } from '@/api/resources'
-import Card from '@/components/common/Card/Card.vue'
-import RadialBar from '@/components/common/Charts/RadialBar.vue'
+import Card from '@/components/Card/Card.vue'
+import RadialBar from '@/components/Charts/RadialBar.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const { data } = useResourceWatch<ClusterStatusMetricsSpec>({

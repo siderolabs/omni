@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { ref, toRefs } from 'vue'
 
-import TButton from '@/components/common/Button/TButton.vue'
+import TButton from '@/components/Button/TButton.vue'
 import { closeModal } from '@/modal'
 import ExtensionsPicker from '@/views/Extensions/ExtensionsPicker.vue'
 import CloseButton from '@/views/Modals/CloseButton.vue'

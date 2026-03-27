@@ -12,7 +12,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
 import { withAbortController, withRuntime } from '@/api/options'
-import TInput from '@/components/common/TInput/TInput.vue'
+import TInput from '@/components/TInput/TInput.vue'
 import { getLabelFromID as createLabel } from '@/methods/labels'
 
 import ItemLabel from './ItemLabel.vue'

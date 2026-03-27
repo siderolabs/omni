@@ -91,9 +91,9 @@ import {
   TalosVolumeStatusType,
 } from '@/api/resources'
 import { itemID } from '@/api/watch'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getContext } from '@/context'
 import { useResourceWatch } from '@/methods/useResourceWatch'

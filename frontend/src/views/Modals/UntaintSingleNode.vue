@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import TButton from '@/components/common/Button/TButton.vue'
+import TButton from '@/components/Button/TButton.vue'
 import { closeModal } from '@/modal'
 import CloseButton from '@/views/Modals/CloseButton.vue'
 

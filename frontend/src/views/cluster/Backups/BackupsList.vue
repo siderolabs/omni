@@ -19,11 +19,11 @@ import {
   LabelCluster,
   MetricsNamespace,
 } from '@/api/resources'
-import IconButton from '@/components/common/Button/IconButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import TList from '@/components/common/List/TList.vue'
-import TListItem from '@/components/common/List/TListItem.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import IconButton from '@/components/Button/IconButton.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TList from '@/components/List/TList.vue'
+import TListItem from '@/components/List/TListItem.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { formatBytes, getDocsLink } from '@/methods'
 import { usePermissions } from '@/methods/auth'

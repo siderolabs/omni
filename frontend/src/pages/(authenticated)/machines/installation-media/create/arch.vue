@@ -15,9 +15,9 @@ import {
   PlatformMetalID,
   VirtualNamespace,
 } from '@/api/resources'
-import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
-import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
+import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
+import RadioGroup from '@/components/Radio/RadioGroup.vue'
+import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceGet } from '@/methods/useResourceGet'
 import type { FormState } from '@/views/InstallationMedia/useFormState'

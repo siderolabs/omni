@@ -11,8 +11,8 @@ import { useRoute } from 'vue-router'
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterSpec, RedactedClusterMachineConfigSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace, RedactedClusterMachineConfigType } from '@/api/resources'
-import CodeEditor from '@/components/common/CodeEditor/CodeEditor.vue'
-import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
+import CodeEditor from '@/components/CodeEditor/CodeEditor.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 definePage({ name: 'NodeConfig' })

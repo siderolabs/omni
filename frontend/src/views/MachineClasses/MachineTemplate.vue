@@ -13,10 +13,10 @@ import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
 import { GrpcTunnelMode } from '@/api/omni/specs/omni.pb'
 import { InfraProviderNamespace, InfraProviderStatusType } from '@/api/resources'
 import WatchResource from '@/api/watch'
-import JsonForm from '@/components/common/Form/JsonForm.vue'
-import Labels, { type LabelSelectItem } from '@/components/common/Labels/Labels.vue'
-import TSelectList from '@/components/common/SelectList/TSelectList.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
+import JsonForm from '@/components/Form/JsonForm.vue'
+import Labels, { type LabelSelectItem } from '@/components/Labels/Labels.vue'
+import TSelectList from '@/components/SelectList/TSelectList.vue'
+import TInput from '@/components/TInput/TInput.vue'
 
 enum GRPCTunnelMode {
   Default = 'Account Default',

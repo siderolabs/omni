@@ -18,7 +18,7 @@ import { Code } from '@/api/google/rpc/code.pb'
 import type { WatchResponse } from '@/api/omni/resources/resources.pb'
 import { EventType } from '@/api/omni/resources/resources.pb'
 import type { WatchEventSpec, WatchOptions } from '@/api/watch'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { getNonce } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 

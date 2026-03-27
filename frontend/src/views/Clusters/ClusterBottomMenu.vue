@@ -7,9 +7,9 @@ included in the LICENSE file.
 <script setup lang="ts">
 import pluralize from 'pluralize'
 
-import TAnimation from '@/components/common/Animation/TAnimation.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import TAnimation from '@/components/Animation/TAnimation.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 
 defineProps<{
   action: string

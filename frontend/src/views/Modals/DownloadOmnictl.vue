@@ -9,9 +9,9 @@ import { computedAsync } from '@vueuse/core'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import TButton from '@/components/common/Button/TButton.vue'
-import CodeBlock from '@/components/common/CodeBlock/CodeBlock.vue'
-import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import TButton from '@/components/Button/TButton.vue'
+import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
+import TSelectList from '@/components/SelectList/TSelectList.vue'
 import { getDocsLink, getPlatform } from '@/methods'
 import CloseButton from '@/views/Modals/CloseButton.vue'
 

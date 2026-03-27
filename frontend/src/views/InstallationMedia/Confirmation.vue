@@ -22,12 +22,12 @@ import {
   SBCConfigType,
   VirtualNamespace,
 } from '@/api/resources'
-import CodeBlock from '@/components/common/CodeBlock/CodeBlock.vue'
-import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
+import CopyButton from '@/components/CopyButton/CopyButton.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { getDocsLink, majorMinorVersion } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import { useDownloadImage } from '@/methods/useDownloadImage'

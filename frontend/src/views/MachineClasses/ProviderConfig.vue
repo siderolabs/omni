@@ -17,9 +17,9 @@ import {
   LabelIsStaticInfraProvider,
 } from '@/api/resources'
 import type { WatchOptions } from '@/api/watch'
-import IconButton from '@/components/common/Button/IconButton.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TList from '@/components/common/List/TList.vue'
+import IconButton from '@/components/Button/IconButton.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import TList from '@/components/List/TList.vue'
 
 const infraProviderResources: WatchOptions = {
   resource: { type: InfraProviderStatusType, namespace: InfraProviderNamespace },

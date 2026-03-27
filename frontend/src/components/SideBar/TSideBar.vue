@@ -31,9 +31,9 @@ import {
   TalosRuntimeNamespace,
   TalosServiceType,
 } from '@/api/resources'
-import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
 import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
 import TSidebarList from '@/components/SideBar/TSideBarList.vue'
+import UserInfo from '@/components/UserInfo/UserInfo.vue'
 import { getContext } from '@/context'
 import { setupBackupStatus } from '@/methods'
 import { useClusterPermissions, usePermissions } from '@/methods/auth'

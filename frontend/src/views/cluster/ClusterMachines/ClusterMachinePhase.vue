@@ -9,9 +9,9 @@ import type { Resource } from '@/api/grpc'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineStatusSpecStage } from '@/api/omni/specs/omni.pb'
 import { MachineStatusLabelConnected } from '@/api/resources'
-import type { IconType } from '@/components/common/Icon/TIcon.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import type { IconType } from '@/components/Icon/TIcon.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 
 const connected = (machine: Resource<ClusterMachineStatusSpec>): boolean => {
   if (machine.spec.stage === ClusterMachineStatusSpecStage.POWERING_ON) {

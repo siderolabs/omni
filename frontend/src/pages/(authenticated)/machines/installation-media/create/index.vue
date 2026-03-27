@@ -7,8 +7,8 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { onBeforeMount } from 'vue'
 
-import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
-import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
+import RadioGroup from '@/components/Radio/RadioGroup.vue'
+import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import type { FormState } from '@/views/InstallationMedia/useFormState'
 
 definePage({ name: 'InstallationMediaCreateEntry' })

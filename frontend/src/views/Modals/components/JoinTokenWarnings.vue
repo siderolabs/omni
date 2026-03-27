@@ -12,8 +12,8 @@ import { watch } from 'vue'
 import { Runtime } from '@/api/common/omni.pb'
 import type { JoinTokenStatusSpec } from '@/api/omni/specs/siderolink.pb'
 import { DefaultNamespace, JoinTokenStatusType } from '@/api/resources'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const { id } = defineProps<{

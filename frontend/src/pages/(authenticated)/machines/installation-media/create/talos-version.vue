@@ -17,9 +17,9 @@ import {
   JoinTokenStatusType,
   TalosVersionType,
 } from '@/api/resources'
-import GrpcTunnelCheckbox from '@/components/common/GrpcTunnelCheckbox/GrpcTunnelCheckbox.vue'
-import Labels from '@/components/common/Labels/Labels.vue'
-import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import GrpcTunnelCheckbox from '@/components/GrpcTunnelCheckbox/GrpcTunnelCheckbox.vue'
+import Labels from '@/components/Labels/Labels.vue'
+import TSelectList from '@/components/SelectList/TSelectList.vue'
 import { getDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'

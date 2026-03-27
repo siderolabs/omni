@@ -31,10 +31,10 @@ import {
   KubernetesStatusType,
   MetricsNamespace,
 } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import type { BackupsStatus } from '@/methods'
 import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
 import { useClusterPermissions } from '@/methods/auth'

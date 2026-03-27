@@ -20,10 +20,10 @@ import {
   TalosClusterNamespace,
   TalosMemberType,
 } from '@/api/resources'
-import TGroupAnimation from '@/components/common/Animation/TGroupAnimation.vue'
-import TList from '@/components/common/List/TList.vue'
-import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
+import TGroupAnimation from '@/components/Animation/TGroupAnimation.vue'
+import TList from '@/components/List/TList.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { getContext } from '@/context'
 import NodesItem from '@/views/cluster/Nodes/components/NodesItem.vue'
 

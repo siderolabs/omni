@@ -7,8 +7,8 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type { Resource } from '@/api/grpc'
 import type { ClusterSpec } from '@/api/omni/specs/omni.pb'
-import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import OverviewContent from '@/views/cluster/Overview/components/OverviewContent.vue'
 
 definePage({ name: 'ClusterOverview' })

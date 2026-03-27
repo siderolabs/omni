@@ -5,9 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import TButton from '@/components/common/Button/TButton.vue'
-import type { IconType } from '@/components/common/Icon/TIcon.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import TButton from '@/components/Button/TButton.vue'
+import type { IconType } from '@/components/Icon/TIcon.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 
 export type AlertType = 'error' | 'info' | 'success' | 'warn'
 

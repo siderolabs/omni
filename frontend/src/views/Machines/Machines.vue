@@ -28,11 +28,11 @@ import {
   MetricsNamespace,
   VirtualNamespace,
 } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
-import TList from '@/components/common/List/TList.vue'
-import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
-import StatsItem from '@/components/common/Stats/StatsItem.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TList from '@/components/List/TList.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import StatsItem from '@/components/Stats/StatsItem.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
 import type { Label } from '@/methods/labels'

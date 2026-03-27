@@ -11,9 +11,9 @@ import WordHighlighter from 'vue-word-highlighter'
 import { Runtime } from '@/api/common/omni.pb'
 import type { TalosExtensionsSpec, TalosExtensionsSpecInfo } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, TalosExtensionsType } from '@/api/resources'
-import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
+import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import TInput from '@/components/TInput/TInput.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const { talosVersion, immutableExtensions = {} } = defineProps<{

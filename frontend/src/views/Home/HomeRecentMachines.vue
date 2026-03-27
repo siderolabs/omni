@@ -8,11 +8,11 @@ included in the LICENSE file.
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { itemID } from '@/api/watch'
-import TButton from '@/components/common/Button/TButton.vue'
-import Card from '@/components/common/Card/Card.vue'
-import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TButton from '@/components/Button/TButton.vue'
+import Card from '@/components/Card/Card.vue'
+import CopyButton from '@/components/CopyButton/CopyButton.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 
 defineProps<{
   machines: Resource<MachineStatusSpec>[]

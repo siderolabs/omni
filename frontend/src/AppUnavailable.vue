@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 import THeader from '@/components/THeader/THeader.vue'
 </script>
 

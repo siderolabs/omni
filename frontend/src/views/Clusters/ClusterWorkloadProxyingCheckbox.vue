@@ -10,8 +10,8 @@ import {
   ExposedServiceLabelAnnotationKey,
   ExposedServicePortAnnotationKey,
 } from '@/api/resources'
-import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 
 type Props = {
   disabled?: boolean

@@ -10,8 +10,8 @@ import pluralize from 'pluralize'
 import type { Resource } from '@/api/grpc'
 import type { MachineSetStatusSpec } from '@/api/omni/specs/omni.pb'
 import { MachineSetPhase } from '@/api/omni/specs/omni.pb'
-import type { IconType } from '@/components/common/Icon/TIcon.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import type { IconType } from '@/components/Icon/TIcon.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 
 const phaseName = (machineset: Resource<MachineSetStatusSpec>): string => {
   switch (machineset?.spec.phase) {

@@ -8,8 +8,8 @@ included in the LICENSE file.
 import type { Resource } from '@/api/grpc'
 import type { ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterStatusSpecPhase } from '@/api/omni/specs/omni.pb'
-import type { IconType } from '@/components/common/Icon/TIcon.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import type { IconType } from '@/components/Icon/TIcon.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 
 type Props = {
   cluster?: Resource<ClusterStatusSpec>

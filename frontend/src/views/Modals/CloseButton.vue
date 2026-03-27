@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type { ButtonHTMLAttributes } from 'vue'
 
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface Props extends /* @vue-ignore */ ButtonHTMLAttributes {}

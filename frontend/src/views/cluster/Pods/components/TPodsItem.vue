@@ -10,9 +10,9 @@ import { DateTime } from 'luxon'
 import { computed, ref } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TSlideDownWrapper from '@/components/common/SlideDownWrapper/TSlideDownWrapper.vue'
-import TStatus from '@/components/common/Status/TStatus.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import TSlideDownWrapper from '@/components/SlideDownWrapper/TSlideDownWrapper.vue'
+import TStatus from '@/components/Status/TStatus.vue'
 
 const { item } = defineProps<{
   searchOption: string

@@ -10,9 +10,9 @@ import { computed, toRefs } from 'vue'
 import type { Resource } from '@/api/grpc'
 import type { ClusterMachineRequestStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineRequestStatusSpecStage } from '@/api/omni/specs/omni.pb'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TStatus from '@/components/common/Status/TStatus.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 import IconHeaderDropdownLoading from '@/components/icons/IconHeaderDropdownLoading.vue'
+import TStatus from '@/components/Status/TStatus.vue'
 import { TCommonStatuses } from '@/constants'
 
 const props = defineProps<{

@@ -33,9 +33,9 @@ import {
   TalosUpgradeStatusType,
   VirtualNamespace,
 } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
-import RadialBar from '@/components/common/Charts/RadialBar.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
+import TButton from '@/components/Button/TButton.vue'
+import RadialBar from '@/components/Charts/RadialBar.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 import TAlert from '@/components/TAlert.vue'
 import { formatBytes, setupBackupStatus } from '@/methods'
 import { useClusterPermissions } from '@/methods/auth'

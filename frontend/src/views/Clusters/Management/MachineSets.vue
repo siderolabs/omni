@@ -8,7 +8,7 @@ included in the LICENSE file.
 import { Runtime } from '@/api/common/omni.pb'
 import type { MachineClassSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, LabelWorkerRole, MachineClassType } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
+import TButton from '@/components/Button/TButton.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { state } from '@/states/cluster-management'
 

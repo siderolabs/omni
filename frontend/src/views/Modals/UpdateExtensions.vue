@@ -25,8 +25,8 @@ import {
   MachineExtensionsStatusType,
 } from '@/api/resources'
 import Watch from '@/api/watch'
-import TButton from '@/components/common/Button/TButton.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { showError } from '@/notification'
 import ExtensionsPicker from '@/views/Extensions/ExtensionsPicker.vue'
 import CloseButton from '@/views/Modals/CloseButton.vue'

@@ -7,8 +7,8 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import type { Label } from '@/methods/labels'
 
 const { label } = defineProps<{

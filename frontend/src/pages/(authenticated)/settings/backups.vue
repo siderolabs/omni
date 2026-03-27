@@ -21,12 +21,12 @@ import {
   EtcdBackupS3ConfType,
   MetricsNamespace,
 } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
-import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
-import PageHeader from '@/components/common/PageHeader.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
+import TButton from '@/components/Button/TButton.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
+import TInput from '@/components/TInput/TInput.vue'
 import { getDocsLink } from '@/methods'
 import { usePermissions } from '@/methods/auth'
 import { showError, showSuccess } from '@/notification'

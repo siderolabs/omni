@@ -8,7 +8,7 @@ included in the LICENSE file.
 import pluralize from 'pluralize'
 import { computed } from 'vue'
 
-import TButton from '@/components/common/Button/TButton.vue'
+import TButton from '@/components/Button/TButton.vue'
 
 const { controlPlanes, workers } = defineProps<{
   action: string

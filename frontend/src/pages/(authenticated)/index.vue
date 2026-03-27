@@ -8,7 +8,7 @@ included in the LICENSE file.
 import { computed } from 'vue'
 
 import { RoleNone } from '@/api/resources'
-import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import { useCurrentUser } from '@/methods/auth'
 import HomeContent from '@/views/Home/HomeContent.vue'
 import HomeNoAccess from '@/views/Home/HomeNoAccess.vue'

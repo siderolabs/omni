@@ -9,7 +9,7 @@ import pluralize from 'pluralize'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import TButton from '@/components/common/Button/TButton.vue'
+import TButton from '@/components/Button/TButton.vue'
 import { removeMachine } from '@/methods/machine'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/Modals/CloseButton.vue'

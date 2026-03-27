@@ -37,11 +37,11 @@ import {
   WorkloadProxyAuthFlow,
   workloadProxyPublicKeyIdSignatureBase64Cookie,
 } from '@/api/resources'
-import TButton from '@/components/common/Button/TButton.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import UserInfo from '@/components/common/UserInfo/UserInfo.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
+import UserInfo from '@/components/UserInfo/UserInfo.vue'
 import { AuthType, authType } from '@/methods'
 import { useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'

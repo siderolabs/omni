@@ -13,7 +13,7 @@ import { ResourceService } from '@/api/grpc'
 import type { AdvertisedEndpointsSpec } from '@/api/omni/specs/virtual.pb'
 import { withRuntime } from '@/api/options'
 import { AdvertisedEndpointsID, AdvertisedEndpointsType, VirtualNamespace } from '@/api/resources'
-import Code from '@/components/common/Labels/Code.vue'
+import Code from '@/components/Labels/Code.vue'
 
 defineProps<{ secretKey: string }>()
 

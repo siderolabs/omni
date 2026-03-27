@@ -19,9 +19,9 @@ import {
   MachineLocked,
   UpdateLocked,
 } from '@/api/resources'
-import IconButton from '@/components/common/Button/IconButton.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
+import IconButton from '@/components/Button/IconButton.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { updateMachineLock } from '@/methods/machine'
 import { showError } from '@/notification'
 import NodeContextMenu from '@/views/common/NodeContextMenu.vue'

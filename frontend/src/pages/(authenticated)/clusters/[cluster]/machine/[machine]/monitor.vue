@@ -18,7 +18,7 @@ import {
   TalosPerfNamespace,
 } from '@/api/resources'
 import { MachineService, type ProcessInfo } from '@/api/talos/machine/machine.pb'
-import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import { getContext } from '@/context'
 import { formatBytes } from '@/methods'
 import NodesMonitorChart from '@/views/cluster/Nodes/components/NodesMonitorChart.vue'

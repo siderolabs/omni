@@ -12,8 +12,8 @@ import { useRouter } from 'vue-router'
 import type { Resource } from '@/api/grpc'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineStatusSpecStage } from '@/api/omni/specs/omni.pb'
-import TActionsBox from '@/components/common/ActionsBox/TActionsBox.vue'
-import TActionsBoxItem from '@/components/common/ActionsBox/TActionsBoxItem.vue'
+import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
+import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import { useClusterPermissions } from '@/methods/auth'
 
 const router = useRouter()

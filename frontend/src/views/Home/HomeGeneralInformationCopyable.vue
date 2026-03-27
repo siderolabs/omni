@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
-import CopyButton from '@/components/common/CopyButton/CopyButton.vue'
+import CopyButton from '@/components/CopyButton/CopyButton.vue'
 
 interface Props {
   title: string

@@ -16,8 +16,8 @@ import {
   type MachineSetStatusSpec,
 } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace, LabelCluster, MachineClassType } from '@/api/resources'
-import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
+import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
+import TInput from '@/components/TInput/TInput.vue'
 import { scaleMachineSet } from '@/methods/machineset'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'

@@ -28,12 +28,12 @@ import {
   LabelMachineSet,
   LabelSystemPatch,
 } from '@/api/resources'
-import IconButton from '@/components/common/Button/IconButton.vue'
-import TButton from '@/components/common/Button/TButton.vue'
-import TIcon from '@/components/common/Icon/TIcon.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
-import TInput from '@/components/common/TInput/TInput.vue'
+import IconButton from '@/components/Button/IconButton.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
+import TInput from '@/components/TInput/TInput.vue'
 import { useClusterPermissions, usePermissions } from '@/methods/auth'
 import {
   controlPlaneTitle,

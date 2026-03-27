@@ -19,8 +19,8 @@ import {
   useForwardPropsEmits,
 } from 'reka-ui'
 
-import TButton from '@/components/common/Button/TButton.vue'
-import TSpinner from '@/components/common/Spinner/TSpinner.vue'
+import TButton from '@/components/Button/TButton.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 
 const props = withDefaults(
   defineProps<

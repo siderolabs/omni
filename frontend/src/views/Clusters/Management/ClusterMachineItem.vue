@@ -19,9 +19,9 @@ import {
   PatchBaseWeightClusterMachine,
   PatchWeightInstallDisk,
 } from '@/api/resources'
-import IconButton from '@/components/common/Button/IconButton.vue'
-import TListItem from '@/components/common/List/TListItem.vue'
-import TSelectList from '@/components/common/SelectList/TSelectList.vue'
+import IconButton from '@/components/Button/IconButton.vue'
+import TListItem from '@/components/List/TListItem.vue'
+import TSelectList from '@/components/SelectList/TSelectList.vue'
 import { formatBytes } from '@/methods'
 import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
