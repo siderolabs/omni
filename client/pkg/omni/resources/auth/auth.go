@@ -20,4 +20,6 @@ func init() {
 	registry.MustRegisterResource(SAMLAssertionType, &SAMLAssertion{})
 	registry.MustRegisterResource(SAMLLabelRuleType, &SAMLLabelRule{})
 	registry.MustRegisterResource(ServiceAccountStatusType, &ServiceAccountStatus{})
+	registry.MustRegisterResource(RoleType, &Role{})
+	registry.MustRegisterResource(RoleBindingType, &RoleBinding{})
 }

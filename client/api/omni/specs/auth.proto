@@ -210,6 +210,41 @@ message IdentityStatusSpec {
   string last_active = 3;
 }
 
+// RoleSpec describes a set of permission rules.
+message RoleSpec {
+  // Rule describes a single permission grant.
+  message Rule {
+    // Resources is the list of resource family names, or ["*"] for all.
+    repeated string resources = 1;
+    // Verbs is the list of allowed verbs: "read", "write", or ["*"] for both.
+    repeated string verbs = 2;
+    // Clusters is an optional list of cluster name patterns (fnmatch). If empty, the rule is global.
+    repeated string clusters = 3;
+    // KubernetesGroups is an optional list of K8s groups to impersonate when this rule matches a cluster.
+    repeated string kubernetes_groups = 4;
+  }
+
+  repeated Rule rules = 1;
+}
+
+// RoleBindingSpec binds a Role to a set of subjects (identities).
+message RoleBindingSpec {
+  // Subject identifies an identity by name, pattern, or labels.
+  message Subject {
+    // Name is the exact identity ID.
+    string name = 1;
+    // Match is an fnmatch pattern matched against identity IDs.
+    string match = 2;
+    // LabelSelectors is a list of label selectors matched against Identity resource labels.
+    repeated string label_selectors = 3;
+  }
+
+  // RoleRef is the ID of the Role resource this binding references.
+  string role_ref = 1;
+  // Subjects is the list of identities this binding applies to.
+  repeated Subject subjects = 2;
+}
+
 message ServiceAccountStatusSpec {
   message PgpPublicKey {
     string id = 1;

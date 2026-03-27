@@ -35,6 +35,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
+	"github.com/siderolabs/omni/internal/pkg/rbac"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/eula"
@@ -107,6 +108,10 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 	err = user.EnsureInitialResources(ctx, state.Default(), logger, cfg.Auth.InitialUsers)
 	if err != nil {
 		return fmt.Errorf("failed to write initial user resources to state: %w", err)
+	}
+
+	if err = rbac.EnsureBuiltinRoles(ctx, state.Default(), logger); err != nil {
+		return fmt.Errorf("failed to create built-in RBAC roles: %w", err)
 	}
 
 	if cfg.EulaAccept.GetName() != "" && cfg.EulaAccept.GetEmail() != "" {
