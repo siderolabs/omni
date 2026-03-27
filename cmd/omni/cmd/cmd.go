@@ -167,6 +167,7 @@ func buildRootCommand() (*cobra.Command, error) {
 	defineNotificationFlags(rootCmdFlagBinder, flagConfig)
 	defineDebugFlags(rootCmdFlagBinder, flagConfig)
 	defineEtcdBackupsFlags(rootCmd, rootCmdFlagBinder, flagConfig)
+	defineEulaFlags(rootCmd, rootCmdFlagBinder, flagConfig)
 
 	return rootCmd, nil
 }
@@ -374,4 +375,11 @@ func defineEtcdBackupsFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *c
 	b.Uint64Var("etcdBackup.downloadLimitMbps", &flagConfig.EtcdBackup.DownloadLimitMbps)
 
 	rootCmd.MarkFlagsMutuallyExclusive(b.mustFlagName("etcdBackup.s3Enabled"), b.mustFlagName("etcdBackup.localPath"))
+}
+
+func defineEulaFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.Params) {
+	b.StringVar("eulaAccept.name", &flagConfig.EulaAccept.Name)
+	b.StringVar("eulaAccept.email", &flagConfig.EulaAccept.Email)
+
+	rootCmd.MarkFlagsRequiredTogether(b.mustFlagName("eulaAccept.name"), b.mustFlagName("eulaAccept.email"))
 }

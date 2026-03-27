@@ -235,6 +235,16 @@ type EtcdParams struct {
 	RunElections *bool `json:"runElections,omitempty,omitzero" yaml:"runElections,omitempty"`
 }
 
+type EulaAccept struct {
+	// Email is the email address of the person accepting the EULA on behalf of this
+	// Omni instance.
+	Email *string `json:"email,omitempty,omitzero" yaml:"email,omitempty"`
+
+	// Name is the full name of the person accepting the EULA on behalf of this Omni
+	// instance.
+	Name *string `json:"name,omitempty,omitzero" yaml:"name,omitempty"`
+}
+
 type Features struct {
 	// DisableControllerRuntimeCache controls whether the controller-runtime cache is
 	// disabled. When disabled, etcd is accessed for all reads. Recommended to be
@@ -480,6 +490,10 @@ type Params struct {
 
 	// EtcdBackup contains etcd backup configuration for the clusters on Omni.
 	EtcdBackup EtcdBackup `json:"etcdBackup" yaml:"etcdBackup"`
+
+	// EulaAccept contains the identity of the person accepting the EULA via CLI flags
+	// or config.
+	EulaAccept EulaAccept `json:"eulaAccept" yaml:"eulaAccept"`
 
 	// Features contains feature flags to enable/disable various Omni features.
 	Features Features `json:"features" yaml:"features"`

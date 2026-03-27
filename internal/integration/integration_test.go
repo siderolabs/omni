@@ -482,6 +482,9 @@ func runOmni(t *testing.T) (string, error) {
 		return "", err
 	}
 
+	config.EulaAccept.Name = new("Test User")
+	config.EulaAccept.Email = new("test-user@siderolabs.com")
+
 	omniCtx := actor.MarkContextAsInternalActor(t.Context())
 
 	state, err := omni.NewState(omniCtx, config, logger, prometheus.DefaultRegisterer)

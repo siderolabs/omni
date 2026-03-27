@@ -29,6 +29,9 @@ skipVersionCheck: true
 config:
   account:
     id: 8a881dfd-6c03-45db-b0d0-20975e935854
+  eulaAccept:
+    name: Test User
+    email: test-user@siderolabs.com
   auth:
     auth0:
       clientID: ${AUTH0_CLIENT_ID}

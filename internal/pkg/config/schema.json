@@ -13,7 +13,8 @@
     "registries",
     "debug",
     "features",
-    "notifications"
+    "notifications",
+    "eulaAccept"
   ],
   "goJSONSchema": {
     "imports": [
@@ -60,6 +61,10 @@
     "notifications": {
       "description": "Notifications contains configuration for system notifications emitted by controllers.",
       "$ref": "#/definitions/Notifications"
+    },
+    "eulaAccept": {
+      "description": "EulaAccept contains the identity of the person accepting the EULA via CLI flags or config.",
+      "$ref": "#/definitions/EulaAccept"
     }
   },
   "definitions": {
@@ -1762,6 +1767,31 @@
           "x-cli-flag": "non-image-factory-deprecation-body",
           "type": "string",
           "default": "%d machine(s) were provisioned without ImageFactory. Support for these machines will end after a future release. Please re-provision them using ImageFactory.",
+          "goJSONSchema": {
+            "pointer": true
+          }
+        }
+      }
+    },
+    "EulaAccept": {
+      "type": "object",
+      "dependentRequired": {
+        "name": ["email"],
+        "email": ["name"]
+      },
+      "properties": {
+        "name": {
+          "description": "Name is the full name of the person accepting the EULA on behalf of this Omni instance.",
+          "x-cli-flag": "eula-accept-name",
+          "type": "string",
+          "goJSONSchema": {
+            "pointer": true
+          }
+        },
+        "email": {
+          "description": "Email is the email address of the person accepting the EULA on behalf of this Omni instance.",
+          "x-cli-flag": "eula-accept-email",
+          "type": "string",
           "goJSONSchema": {
             "pointer": true
           }

@@ -16,6 +16,7 @@ import (
 
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
@@ -39,15 +40,27 @@ func NewAuthConfig(enabled bool, logger *zap.Logger) *AuthConfig {
 // Unary returns a new unary GRPC interceptor.
 func (c *AuthConfig) Unary() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		isGetAuthConfigRequest := false
+		isPublicResourceRequest := false
 
-		if req != nil && info != nil && info.FullMethod == resapi.ResourceService_Get_FullMethodName {
-			if getReq, getReqOk := req.(*resapi.GetRequest); getReqOk && getReq.Type == authres.AuthConfigType {
-				isGetAuthConfigRequest = true
+		if req != nil && info != nil {
+			switch info.FullMethod {
+			case resapi.ResourceService_Get_FullMethodName:
+				if getReq, ok := req.(*resapi.GetRequest); ok {
+					_, isPublicResourceRequest = omni.PublicResourceTypes[getReq.Type]
+				}
+			case resapi.ResourceService_List_FullMethodName:
+				if listReq, ok := req.(*resapi.ListRequest); ok {
+					_, isPublicResourceRequest = omni.PublicResourceTypes[listReq.Type]
+				}
+			case resapi.ResourceService_Create_FullMethodName:
+				if createReq, ok := req.(*resapi.CreateRequest); ok && createReq.Resource != nil &&
+					createReq.Resource.GetMetadata().GetType() == authres.EulaAcceptanceType {
+					isPublicResourceRequest = true
+				}
 			}
 		}
 
-		ctx = c.intercept(ctx, isGetAuthConfigRequest, info.FullMethod)
+		ctx = c.intercept(ctx, isPublicResourceRequest, info.FullMethod)
 
 		return handler(ctx, req)
 	}
@@ -65,7 +78,7 @@ func (c *AuthConfig) Stream() grpc.StreamServerInterceptor {
 	}
 }
 
-func (c *AuthConfig) intercept(ctx context.Context, isGetAuthConfigRequest bool, method string) context.Context {
+func (c *AuthConfig) intercept(ctx context.Context, isPublicResourceRequest bool, method string) context.Context {
 	ctx = ctxstore.WithValue(ctx, auth.EnabledAuthContextKey{Enabled: c.enabled})
 
 	if !c.enabled {
@@ -82,7 +95,7 @@ func (c *AuthConfig) intercept(ctx context.Context, isGetAuthConfigRequest bool,
 			return false, nil
 		}
 
-		return !isGetAuthConfigRequest, nil
+		return !isPublicResourceRequest, nil
 	}))
 
 	auditData, ok := ctxstore.Value[*auditlog.Data](ctx)

@@ -175,3 +175,8 @@ export type ServiceAccountStatusSpec = {
   role?: string
   public_keys?: ServiceAccountStatusSpecPgpPublicKey[]
 }
+
+export type EulaAcceptanceSpec = {
+  accepted_by_name?: string
+  accepted_by_email?: string
+}

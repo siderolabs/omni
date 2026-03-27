@@ -8,6 +8,25 @@ match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 pre_release = true
 previous = "v1.6.0"
 
+[notes.aaa-eula-flags]
+title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
+description = """\
+A [EULA](https://siderolabs.com/eula/) agreement has been added to Omni which must be accepted in order to continue using it.
+
+This agreement can be accepted through UI or programmatically either by adding the below flags:
+```sh
+--eula-accept-name=Your Name
+--eula-accept-email=your@email.com
+```
+
+Or if using `--config-path` with the below configuration:
+```yaml
+eulaAccept:
+  name: Your Name
+  email: your@email.com
+```
+"""
+
 [notes.kubernetes-manifests-sync]
 title = "Kubernetes Manifests Sync"
 description = """\

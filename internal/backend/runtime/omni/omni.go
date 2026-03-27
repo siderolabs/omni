@@ -379,6 +379,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		installationMediaConfigValidationOptions(),
 		rotateSecretsValidationOptions(defaultState),
 		kubernetesManifestsValidationOptions(),
+		eulaValidationOptions(defaultState),
 	)
 
 	return &Runtime{

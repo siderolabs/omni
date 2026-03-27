@@ -7,7 +7,7 @@ import { getUnixTime } from 'date-fns'
 import fetchIntercept from 'fetch-intercept'
 import { onScopeDispose } from 'vue'
 
-import { b64Encode } from '@/api/fetch.pb'
+import { b64Encode, type RequestOptions } from '@/api/fetch.pb'
 import {
   authHeader,
   PayloadHeaderKey,
@@ -18,6 +18,10 @@ import {
 import { useIdentity } from '@/methods/identity'
 import { signDetached, useKeys } from '@/methods/key'
 
+export interface OmniRequestOptions extends RequestOptions {
+  skipSignature?: boolean
+}
+
 /**
  * useRegisterAPIInterceptor registers an interceptor on the global fetch.
  * This will add the necessary authorization headers for Omni gRPC calls.
@@ -27,22 +31,25 @@ export function useRegisterAPIInterceptor() {
   const { identity } = useIdentity()
 
   const unregister = fetchIntercept.register({
-    async request(url, config?: { headers?: Headers; method?: string }) {
+    async request(url, config?: RequestInit) {
       url = encodeURI(url)
 
-      if (!isSignedRequest(url)) {
+      if (!isSignedRequest(url) || (config as OmniRequestOptions)?.skipSignature) {
         return [url, config]
       }
 
       config ||= {}
-      config.headers ||= new Headers()
+
+      if (!(config.headers instanceof Headers)) {
+        config.headers = new Headers(config.headers)
+      }
 
       const ts = getUnixTime(Date.now()).toString()
 
       if (url.startsWith('/api')) {
         config.headers.set(`Grpc-Metadata-${TimestampHeaderKey}`, ts)
 
-        const payload = JSON.stringify(buildPayload(url, config))
+        const payload = JSON.stringify(buildPayload(url, config.headers))
         const signature = await generateSignatureHeader(payload)
 
         config.headers.set(`Grpc-Metadata-${PayloadHeaderKey}`, payload)
@@ -109,13 +116,13 @@ function isSignedRequest(path: string): boolean {
   )
 }
 
-function buildPayload(url: string, config: { headers?: Headers }) {
+function buildPayload(url: string, reqHeaders: Headers) {
   const headers: Record<string, string[]> = {}
 
-  if (config.headers) {
+  if (reqHeaders) {
     for (const header of includedHeaders) {
       const key = `Grpc-Metadata-${header}`
-      const value = config.headers.get(key)
+      const value = reqHeaders.get(key)
 
       if (value) {
         if (!headers[header]) {

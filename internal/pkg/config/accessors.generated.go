@@ -468,6 +468,28 @@ func (s *EtcdParams) SetRunElections(v bool) {
 	s.RunElections = &v
 }
 
+func (s *EulaAccept) GetEmail() string {
+	if s == nil || s.Email == nil {
+		return *new(string)
+	}
+	return *s.Email
+}
+
+func (s *EulaAccept) SetEmail(v string) {
+	s.Email = &v
+}
+
+func (s *EulaAccept) GetName() string {
+	if s == nil || s.Name == nil {
+		return *new(string)
+	}
+	return *s.Name
+}
+
+func (s *EulaAccept) SetName(v string) {
+	s.Name = &v
+}
+
 func (s *Features) GetDisableControllerRuntimeCache() bool {
 	if s == nil || s.DisableControllerRuntimeCache == nil {
 		return *new(bool)

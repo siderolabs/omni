@@ -37,6 +37,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
+	"github.com/siderolabs/omni/internal/pkg/eula"
 	"github.com/siderolabs/omni/internal/pkg/features"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
 )
@@ -106,6 +107,12 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 	err = user.EnsureInitialResources(ctx, state.Default(), logger, cfg.Auth.InitialUsers)
 	if err != nil {
 		return fmt.Errorf("failed to write initial user resources to state: %w", err)
+	}
+
+	if cfg.EulaAccept.GetName() != "" && cfg.EulaAccept.GetEmail() != "" {
+		if err = eula.Accept(ctx, state.Default(), eula.AcceptParams{Name: cfg.EulaAccept.GetName(), Email: cfg.EulaAccept.GetEmail()}); err != nil {
+			return fmt.Errorf("failed to accept EULA: %w", err)
+		}
 	}
 
 	machineMap := siderolink.NewMachineMap(siderolink.NewStateStorage(state.Default()))

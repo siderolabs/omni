@@ -527,6 +527,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    'Eula': RouteRecordInfo<
+      'Eula',
+      '/eula',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/forbidden': RouteRecordInfo<
       '/forbidden',
       '/forbidden',
@@ -1059,6 +1066,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/badrequest.vue': {
       routes:
         | '/badrequest'
+      views:
+        | never
+    }
+    'src/pages/eula.vue': {
+      routes:
+        | 'Eula'
       views:
         | never
     }

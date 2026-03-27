@@ -9,6 +9,7 @@ import "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 
 func init() {
 	registry.MustRegisterResource(AuthConfigType, &Config{})
+	registry.MustRegisterResource(EulaAcceptanceType, &EulaAcceptance{})
 	registry.MustRegisterResource(IdentityType, &Identity{})
 	registry.MustRegisterResource(IdentityLastActiveType, &IdentityLastActive{})
 	registry.MustRegisterResource(IdentityStatusType, &IdentityStatus{})

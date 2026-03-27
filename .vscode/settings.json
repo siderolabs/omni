@@ -1,5 +1,14 @@
 {
-    "css.lint.unknownAtRules": "ignore",
-    "vue3snippets.enable-compile-vue-file-on-did-save-code": false,
-    "go.toolsEnvVars": {}
+  "[go]": {
+    "editor.defaultFormatter": "golang.go"
+  },
+  "gopls": {
+    "formatting.gofumpt": true,
+    "ui.semanticTokens": true
+  },
+  "go.lintTool": "golangci-lint-v2",
+  "go.lintOnSave": "package",
+  "go.toolsEnvVars": {
+    "GOFLAGS": "-tags=integration"
+  }
 }

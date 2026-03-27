@@ -509,7 +509,10 @@ type interceptorCreator interface {
 func (s *Server) getAuthInterceptors(ctx context.Context) ([]interceptorCreator, error) {
 	authEnabled := authres.Enabled(s.authConfig)
 
-	result := []interceptorCreator{interceptor.NewAuthConfig(authEnabled, s.logger)}
+	result := []interceptorCreator{
+		interceptor.NewAuthConfig(authEnabled, s.logger),
+		interceptor.NewEULACheck(s.state.Default(), s.logger, s.cfg.Services.Api.URL()),
+	}
 
 	if !authEnabled {
 		return result, nil
