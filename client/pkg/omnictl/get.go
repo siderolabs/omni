@@ -10,6 +10,7 @@ import (
 	"regexp"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/spf13/cobra"
 
@@ -39,65 +40,24 @@ To get a list of all available resource definitions, issue 'omnictl get rd'`,
 	Example: "",
 	Args:    cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return access.WithClient(getResources(cmd, args))
+		return access.WithClient(getResources(args))
 	},
 }
 
 //nolint:gocognit,gocyclo,cyclop,maintidx
-func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
+func getResources(args []string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		st := client.Omni().State()
 
-		var (
-			resourceType = resource.Type(args[0]) //nolint:unconvert
-			resourceID   resource.ID
-		)
+		var id string
 
 		if len(args) > 1 {
-			resourceID = args[1]
+			id = args[1]
 		}
 
-		rd, err := resources.ResolveType(ctx, st, resourceType)
+		req, err := createResourceRequest(ctx, client, getCmdFlags.namespace, args[0], id, getCmdFlags.selector, getCmdFlags.idRegexp)
 		if err != nil {
 			return err
-		}
-
-		if !cmd.Flags().Lookup("namespace").Changed {
-			getCmdFlags.namespace = rd.TypedSpec().DefaultNamespace
-		}
-
-		var labelQuery []resource.LabelQueryOption
-
-		if getCmdFlags.selector != "" {
-			if resourceID != "" {
-				return fmt.Errorf("cannot specify both resource ID and selector")
-			}
-
-			var query *resource.LabelQuery
-
-			query, err = labels.ParseQuery(getCmdFlags.selector)
-			if err != nil {
-				return err
-			}
-
-			labelQuery = append(labelQuery, resource.RawLabelQuery(*query))
-		}
-
-		var idQuery []resource.IDQueryOption
-
-		if getCmdFlags.idRegexp != "" {
-			if resourceID != "" {
-				return fmt.Errorf("cannot specify both resource ID and ID regexp")
-			}
-
-			var idRegexp *regexp.Regexp
-
-			idRegexp, err = regexp.Compile(getCmdFlags.idRegexp)
-			if err != nil {
-				return fmt.Errorf("invalid ID regexp: %w", err)
-			}
-
-			idQuery = append(idQuery, resource.IDRegexpMatch(idRegexp))
 		}
 
 		out, err := output.NewWriter(getCmdFlags.output)
@@ -107,27 +67,25 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 
 		defer out.Flush() //nolint:errcheck
 
-		if err = out.WriteHeader(rd, getCmdFlags.watch); err != nil {
+		if err = out.WriteHeader(req.rd, getCmdFlags.watch); err != nil {
 			return err
 		}
 
-		md := resource.NewMetadata(getCmdFlags.namespace, rd.TypedSpec().Type, resourceID, resource.VersionUndefined)
-
 		switch {
-		case resourceID == "" && !getCmdFlags.watch:
+		case req.md.ID() == "" && !getCmdFlags.watch:
 			opts := []state.ListOption{
 				state.WithListUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
 			}
 
-			if len(labelQuery) > 0 {
-				opts = append(opts, state.WithLabelQuery(labelQuery...))
+			if len(req.labelQueryOptions) > 0 {
+				opts = append(opts, state.WithLabelQuery(req.labelQueryOptions...))
 			}
 
-			if len(idQuery) > 0 {
-				opts = append(opts, state.WithIDQuery(idQuery...))
+			if len(req.idQueryOptions) > 0 {
+				opts = append(opts, state.WithIDQuery(req.idQueryOptions...))
 			}
 
-			items, err := st.List(ctx, md,
+			items, err := st.List(ctx, req.md,
 				opts...,
 			)
 			if err != nil {
@@ -139,13 +97,13 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 					return err
 				}
 			}
-		case resourceID == "" && getCmdFlags.watch:
+		case req.md.ID() == "" && getCmdFlags.watch:
 			watchCh := make(chan state.Event)
 
-			err := st.WatchKind(ctx, md, watchCh,
+			err := st.WatchKind(ctx, req.md, watchCh,
 				state.WithBootstrapContents(true),
-				state.WatchWithLabelQuery(labelQuery...),
-				state.WatchWithIDQuery(idQuery...),
+				state.WatchWithLabelQuery(req.labelQueryOptions...),
+				state.WatchWithIDQuery(req.idQueryOptions...),
 				state.WithWatchKindUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
 			)
 			if err != nil {
@@ -189,8 +147,8 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 					break watchLoopKind
 				}
 			}
-		case resourceID != "" && !getCmdFlags.watch:
-			res, err := st.Get(ctx, md,
+		case req.md.ID() != "" && !getCmdFlags.watch:
+			res, err := st.Get(ctx, req.md,
 				state.WithGetUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
 			)
 			if err != nil {
@@ -200,10 +158,10 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 			if err = out.WriteResource(res, state.EventType(0)); err != nil {
 				return err
 			}
-		case resourceID != "" && getCmdFlags.watch:
+		case req.md.ID() != "" && getCmdFlags.watch:
 			watchCh := make(chan state.Event)
 
-			err := st.Watch(ctx, md, watchCh,
+			err := st.Watch(ctx, req.md, watchCh,
 				state.WithWatchUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
 			)
 			if err != nil {
@@ -237,6 +195,75 @@ func getResources(cmd *cobra.Command, args []string) func(ctx context.Context, c
 
 		return nil
 	}
+}
+
+type resourceRequest struct {
+	rd                *meta.ResourceDefinition
+	idQueryOptions    []resource.IDQueryOption
+	labelQueryOptions []resource.LabelQueryOption
+	md                resource.Metadata
+}
+
+func createResourceRequest(
+	ctx context.Context,
+	client *client.Client,
+	namespace string,
+	resourceType string,
+	resourceID resource.ID,
+	selector string,
+	idRegexp string,
+) (resourceRequest, error) {
+	st := client.Omni().State()
+
+	rd, err := resources.ResolveType(ctx, st, resourceType)
+	if err != nil {
+		return resourceRequest{}, err
+	}
+
+	if namespace == "" {
+		namespace = rd.TypedSpec().DefaultNamespace
+	}
+
+	var labelQuery []resource.LabelQueryOption
+
+	if selector != "" {
+		if resourceID != "" {
+			return resourceRequest{}, fmt.Errorf("cannot specify both resource ID and selector")
+		}
+
+		var query *resource.LabelQuery
+
+		query, err = labels.ParseQuery(selector)
+		if err != nil {
+			return resourceRequest{}, err
+		}
+
+		labelQuery = append(labelQuery, resource.RawLabelQuery(*query))
+	}
+
+	var idQuery []resource.IDQueryOption
+
+	if idRegexp != "" {
+		if resourceID != "" {
+			return resourceRequest{}, fmt.Errorf("cannot specify both resource ID and ID regexp")
+		}
+
+		var compiledIDRegexp *regexp.Regexp
+
+		compiledIDRegexp, err = regexp.Compile(idRegexp)
+		if err != nil {
+			return resourceRequest{}, fmt.Errorf("invalid ID regexp: %w", err)
+		}
+
+		idQuery = append(idQuery, resource.IDRegexpMatch(compiledIDRegexp))
+	}
+
+	return resourceRequest{
+		md:                resource.NewMetadata(namespace, rd.TypedSpec().Type, resourceID, resource.VersionUndefined),
+		idQueryOptions:    idQuery,
+		labelQueryOptions: labelQuery,
+		rd:                rd,
+	}, nil
 }
 
 func init() {
