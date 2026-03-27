@@ -30,8 +30,8 @@ import { usePermissions } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { addLabel, selectors } from '@/methods/labels'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import ClusterItem from '@/views/omni/Clusters/ClusterItem.vue'
-import LabelsInput from '@/views/omni/ItemLabels/LabelsInput.vue'
+import ClusterItem from '@/views/Clusters/ClusterItem.vue'
+import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 
 definePage({ name: 'Clusters' })
 

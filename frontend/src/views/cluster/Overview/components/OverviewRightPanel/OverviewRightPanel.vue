@@ -48,8 +48,8 @@ import DownloadSupportBundleModal from '@/views/cluster/Overview/components/Over
 import OverviewOIDCToast from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewOIDCToast.vue'
 import OverviewRightPanelCondition from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelCondition.vue'
 import OverviewRightPanelItem from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue'
-import TClusterStatus from '@/views/omni/Clusters/ClusterStatus.vue'
-import ClusterDestroy from '@/views/omni/Modals/ClusterDestroy.vue'
+import TClusterStatus from '@/views/Clusters/ClusterStatus.vue'
+import ClusterDestroy from '@/views/Modals/ClusterDestroy.vue'
 
 const { clusterId, kubernetesUpgradeStatus, talosUpgradeStatus } = defineProps<{
   clusterId: string

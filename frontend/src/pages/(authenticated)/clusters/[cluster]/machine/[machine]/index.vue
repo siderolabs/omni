@@ -50,7 +50,7 @@ import ClusterMachinePhase from '@/views/cluster/ClusterMachines/ClusterMachineP
 import NodeConditions from '@/views/cluster/Nodes/components/NodeConditions.vue'
 import NodeDiagnosticWarnings from '@/views/cluster/Nodes/NodeDiagnosticWarnings.vue'
 import NodeServiceEvents from '@/views/cluster/Nodes/NodeServiceEvents.vue'
-import ItemLabels from '@/views/omni/ItemLabels/ItemLabels.vue'
+import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 
 definePage({ name: 'NodeOverview' })
 

@@ -10,7 +10,7 @@ import { http, HttpResponse } from 'msw'
 import type { DeleteRequest, DeleteResponse } from '@/api/omni/resources/resources.pb'
 import type { InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, InstallationMediaConfigType } from '@/api/resources'
-import * as DownloadPresetModalStories from '@/views/omni/InstallationMedia/DownloadPresetModal.stories'
+import * as DownloadPresetModalStories from '@/views/InstallationMedia/DownloadPresetModal.stories'
 
 import InstallationMedia from './index.vue'
 

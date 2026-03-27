@@ -15,8 +15,8 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import TSpinner from '@/components/common/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import Confirmation from '@/views/omni/InstallationMedia/Confirmation.vue'
-import { presetToFormState } from '@/views/omni/InstallationMedia/formStateToPreset'
+import Confirmation from '@/views/InstallationMedia/Confirmation.vue'
+import { presetToFormState } from '@/views/InstallationMedia/formStateToPreset'
 
 definePage({ name: 'InstallationMediaReview' })
 

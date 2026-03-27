@@ -20,7 +20,7 @@ import * as SystemExtensionsStories from '@/pages/(authenticated)/machines/insta
 import SystemExtensions from '@/pages/(authenticated)/machines/installation-media/create/system-extensions.vue'
 import * as TalosVersionStories from '@/pages/(authenticated)/machines/installation-media/create/talos-version.stories'
 import TalosVersion from '@/pages/(authenticated)/machines/installation-media/create/talos-version.vue'
-import * as SavePresetModalStories from '@/views/omni/InstallationMedia/SavePresetModal.stories'
+import * as SavePresetModalStories from '@/views/InstallationMedia/SavePresetModal.stories'
 
 import InstallationMediaCreate from './create.vue'
 

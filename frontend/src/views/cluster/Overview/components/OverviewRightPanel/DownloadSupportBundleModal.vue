@@ -23,7 +23,7 @@ import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
-import Modal from '@/views/omni/Modals/Modal.vue'
+import Modal from '@/views/Modals/Modal.vue'
 
 const { clusterId } = defineProps<{
   clusterId: string

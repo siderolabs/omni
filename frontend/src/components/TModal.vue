@@ -11,56 +11,38 @@ import { useRoute } from 'vue-router'
 import { modal } from '@/modal'
 
 const modals: Record<string, Component> = {
-  reboot: defineAsyncComponent(() => import('@/views/omni/Modals/NodeReboot.vue')),
-  shutdown: defineAsyncComponent(() => import('@/views/omni/Modals/NodeShutdown.vue')),
-  machineRemove: defineAsyncComponent(() => import('@/views/omni/Modals/MachineRemove.vue')),
-  machineClassDestroy: defineAsyncComponent(
-    () => import('@/views/omni/Modals/MachineClassDestroy.vue'),
-  ),
-  machineSetDestroy: defineAsyncComponent(
-    () => import('@/views/omni/Modals/MachineSetDestroy.vue'),
-  ),
-  maintenanceUpdate: defineAsyncComponent(
-    () => import('@/views/omni/Modals/MaintenanceUpdate.vue'),
-  ),
-  downloadOmnictlBinaries: defineAsyncComponent(
-    () => import('@/views/omni/Modals/DownloadOmnictl.vue'),
-  ),
+  reboot: defineAsyncComponent(() => import('@/views/Modals/NodeReboot.vue')),
+  shutdown: defineAsyncComponent(() => import('@/views/Modals/NodeShutdown.vue')),
+  machineRemove: defineAsyncComponent(() => import('@/views/Modals/MachineRemove.vue')),
+  machineClassDestroy: defineAsyncComponent(() => import('@/views/Modals/MachineClassDestroy.vue')),
+  machineSetDestroy: defineAsyncComponent(() => import('@/views/Modals/MachineSetDestroy.vue')),
+  maintenanceUpdate: defineAsyncComponent(() => import('@/views/Modals/MaintenanceUpdate.vue')),
+  downloadOmnictlBinaries: defineAsyncComponent(() => import('@/views/Modals/DownloadOmnictl.vue')),
   downloadTalosctlBinaries: defineAsyncComponent(
-    () => import('@/views/omni/Modals/DownloadTalosctl.vue'),
+    () => import('@/views/Modals/DownloadTalosctl.vue'),
   ),
   exportClusterTemplate: defineAsyncComponent(
-    () => import('@/views/omni/Modals/ExportClusterTemplate.vue'),
+    () => import('@/views/Modals/ExportClusterTemplate.vue'),
   ),
-  nodeDestroy: defineAsyncComponent(() => import('@/views/omni/Modals/NodeDestroy.vue')),
-  nodeDestroyCancel: defineAsyncComponent(
-    () => import('@/views/omni/Modals/NodeDestroyCancel.vue'),
-  ),
-  updateKubernetes: defineAsyncComponent(() => import('@/views/omni/Modals/UpdateKubernetes.vue')),
-  updateTalos: defineAsyncComponent(() => import('@/views/omni/Modals/UpdateTalos.vue')),
-  configPatchDestroy: defineAsyncComponent(
-    () => import('@/views/omni/Modals/ConfigPatchDestroy.vue'),
-  ),
-  userDestroy: defineAsyncComponent(() => import('@/views/omni/Modals/UserDestroy.vue')),
-  userCreate: defineAsyncComponent(() => import('@/views/omni/Modals/UserCreate.vue')),
-  updateKernelArgs: defineAsyncComponent(() => import('@/views/omni/Modals/UpdateKernelArgs.vue')),
-  joinTokenCreate: defineAsyncComponent(() => import('@/views/omni/Modals/JoinTokenCreate.vue')),
-  joinTokenRevoke: defineAsyncComponent(() => import('@/views/omni/Modals/JoinTokenRevoke.vue')),
-  joinTokenDelete: defineAsyncComponent(() => import('@/views/omni/Modals/JoinTokenDelete.vue')),
+  nodeDestroy: defineAsyncComponent(() => import('@/views/Modals/NodeDestroy.vue')),
+  nodeDestroyCancel: defineAsyncComponent(() => import('@/views/Modals/NodeDestroyCancel.vue')),
+  updateKubernetes: defineAsyncComponent(() => import('@/views/Modals/UpdateKubernetes.vue')),
+  updateTalos: defineAsyncComponent(() => import('@/views/Modals/UpdateTalos.vue')),
+  configPatchDestroy: defineAsyncComponent(() => import('@/views/Modals/ConfigPatchDestroy.vue')),
+  userDestroy: defineAsyncComponent(() => import('@/views/Modals/UserDestroy.vue')),
+  userCreate: defineAsyncComponent(() => import('@/views/Modals/UserCreate.vue')),
+  updateKernelArgs: defineAsyncComponent(() => import('@/views/Modals/UpdateKernelArgs.vue')),
+  joinTokenCreate: defineAsyncComponent(() => import('@/views/Modals/JoinTokenCreate.vue')),
+  joinTokenRevoke: defineAsyncComponent(() => import('@/views/Modals/JoinTokenRevoke.vue')),
+  joinTokenDelete: defineAsyncComponent(() => import('@/views/Modals/JoinTokenDelete.vue')),
   serviceAccountCreate: defineAsyncComponent(
-    () => import('@/views/omni/Modals/ServiceAccountCreate.vue'),
+    () => import('@/views/Modals/ServiceAccountCreate.vue'),
   ),
-  serviceAccountRenew: defineAsyncComponent(
-    () => import('@/views/omni/Modals/ServiceAccountRenew.vue'),
-  ),
-  roleEdit: defineAsyncComponent(() => import('@/views/omni/Modals/RoleEdit.vue')),
-  updateExtensions: defineAsyncComponent(() => import('@/views/omni/Modals/UpdateExtensions.vue')),
-  infraProviderSetup: defineAsyncComponent(
-    () => import('@/views/omni/Modals/InfraProviderSetup.vue'),
-  ),
-  infraProviderDelete: defineAsyncComponent(
-    () => import('@/views/omni/Modals/InfraProviderDelete.vue'),
-  ),
+  serviceAccountRenew: defineAsyncComponent(() => import('@/views/Modals/ServiceAccountRenew.vue')),
+  roleEdit: defineAsyncComponent(() => import('@/views/Modals/RoleEdit.vue')),
+  updateExtensions: defineAsyncComponent(() => import('@/views/Modals/UpdateExtensions.vue')),
+  infraProviderSetup: defineAsyncComponent(() => import('@/views/Modals/InfraProviderSetup.vue')),
+  infraProviderDelete: defineAsyncComponent(() => import('@/views/Modals/InfraProviderDelete.vue')),
 }
 
 const route = useRoute()

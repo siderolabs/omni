@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
-import MachineLogsContainer from '@/views/omni/Machines/MachineLogsContainer.vue'
+import MachineLogsContainer from '@/views/Machines/MachineLogsContainer.vue'
 
 definePage({ name: 'MachineLogs' })
 </script>

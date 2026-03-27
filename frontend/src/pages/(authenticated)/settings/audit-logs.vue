@@ -50,7 +50,7 @@ import DateRangePicker from '@/components/common/DateRangePicker/DateRangePicker
 import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TAlert from '@/components/TAlert.vue'
-import { useReadAuditLog } from '@/views/omni/Settings/useReadAuditLog'
+import { useReadAuditLog } from '@/views/Settings/useReadAuditLog'
 
 definePage({ name: 'AuditLogs' })
 

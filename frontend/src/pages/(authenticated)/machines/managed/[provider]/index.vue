@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import Machines from '@/views/omni/Machines/Machines.vue'
+import Machines from '@/views/Machines/Machines.vue'
 
 definePage({ name: 'MachinesManagedProvider' })
 </script>

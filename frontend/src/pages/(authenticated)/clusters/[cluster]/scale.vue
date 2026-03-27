@@ -34,9 +34,9 @@ import { ClusterCommandError, clusterSync } from '@/methods/cluster'
 import { showError, showSuccess } from '@/notification'
 import { populateExisting, state } from '@/states/cluster-management'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
-import ClusterMenu from '@/views/omni/Clusters/ClusterMenu.vue'
-import ClusterMachineItem from '@/views/omni/Clusters/Management/ClusterMachineItem.vue'
-import MachineSets from '@/views/omni/Clusters/Management/MachineSets.vue'
+import ClusterMenu from '@/views/Clusters/ClusterMenu.vue'
+import ClusterMachineItem from '@/views/Clusters/Management/ClusterMachineItem.vue'
+import MachineSets from '@/views/Clusters/Management/MachineSets.vue'
 
 definePage({ name: 'ClusterScale' })
 

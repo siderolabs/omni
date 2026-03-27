@@ -7,11 +7,11 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { ref } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
-import { type HardwareType, useFormState } from '@/views/omni/InstallationMedia/useFormState'
+import { type HardwareType, useFormState } from '@/views/InstallationMedia/useFormState'
 
 import InstallationMediaCreate from './create.vue'
 
-vi.mock('@/views/omni/InstallationMedia/useFormState', () => ({
+vi.mock('@/views/InstallationMedia/useFormState', () => ({
   useFormState: vi.fn(),
 }))
 

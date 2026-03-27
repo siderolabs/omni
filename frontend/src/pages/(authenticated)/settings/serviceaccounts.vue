@@ -23,7 +23,7 @@ import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { usePermissions } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
-import ServiceAccountItem from '@/views/omni/Users/ServiceAccountItem.vue'
+import ServiceAccountItem from '@/views/Users/ServiceAccountItem.vue'
 
 definePage({
   name: 'ServiceAccounts',

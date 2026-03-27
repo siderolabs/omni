@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import MachineClass from '@/views/omni/MachineClasses/MachineClass.vue'
+import MachineClass from '@/views/MachineClasses/MachineClass.vue'
 
 definePage({ name: 'MachineClassCreate' })
 </script>

@@ -9,7 +9,7 @@ import { onBeforeMount } from 'vue'
 
 import RadioGroup from '@/components/common/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/common/Radio/RadioGroupOption.vue'
-import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
+import type { FormState } from '@/views/InstallationMedia/useFormState'
 
 definePage({ name: 'InstallationMediaCreateEntry' })
 

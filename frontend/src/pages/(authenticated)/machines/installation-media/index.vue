@@ -26,10 +26,10 @@ import TableRow from '@/components/common/Table/TableRow.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showSuccess } from '@/notification'
-import DownloadPresetModal from '@/views/omni/InstallationMedia/DownloadPresetModal.vue'
-import { presetToFormState } from '@/views/omni/InstallationMedia/formStateToPreset'
-import { useFormState } from '@/views/omni/InstallationMedia/useFormState'
-import ConfirmModal from '@/views/omni/Modals/ConfirmModal.vue'
+import DownloadPresetModal from '@/views/InstallationMedia/DownloadPresetModal.vue'
+import { presetToFormState } from '@/views/InstallationMedia/formStateToPreset'
+import { useFormState } from '@/views/InstallationMedia/useFormState'
+import ConfirmModal from '@/views/Modals/ConfirmModal.vue'
 
 definePage({ name: 'InstallationMedia' })
 

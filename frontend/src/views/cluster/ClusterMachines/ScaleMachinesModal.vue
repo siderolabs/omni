@@ -23,7 +23,7 @@ import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
-import Modal from '@/views/omni/Modals/Modal.vue'
+import Modal from '@/views/Modals/Modal.vue'
 
 const { machineSet } = defineProps<{
   machineSet: Resource<

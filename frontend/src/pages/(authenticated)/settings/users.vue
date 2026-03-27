@@ -23,7 +23,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import { AuthType, authType } from '@/methods'
 import { usePermissions } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
-import UserItem from '@/views/omni/Users/UserItem.vue'
+import UserItem from '@/views/Users/UserItem.vue'
 
 definePage({
   name: 'Users',

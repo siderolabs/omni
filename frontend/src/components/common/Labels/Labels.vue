@@ -17,7 +17,7 @@ import { ref } from 'vue'
 
 import TButton from '@/components/common/Button/TButton.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
-import ItemLabel from '@/views/omni/ItemLabels/ItemLabel.vue'
+import ItemLabel from '@/views/ItemLabels/ItemLabel.vue'
 
 const modelValue = defineModel<Record<string, LabelSelectItem>>()
 

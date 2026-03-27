@@ -3019,10 +3019,10 @@ index 00000000..55219f7a
 +    <TSpinner v-else class="mx-auto my-8 size-6" />
 +  </div>
 +</template>
-diff --git a/frontend/src/views/omni/Auth/Authenticate.vue b/frontend/src/views/omni/Auth/Authenticate.vue
+diff --git a/frontend/src/views/Auth/Authenticate.vue b/frontend/src/views/Auth/Authenticate.vue
 index 50c1628b..558256b7 100644
---- a/frontend/src/views/omni/Auth/Authenticate.vue
-+++ b/frontend/src/views/omni/Auth/Authenticate.vue
+--- a/frontend/src/views/Auth/Authenticate.vue
++++ b/frontend/src/views/Auth/Authenticate.vue
 @@ -9,7 +9,7 @@ import type { User } from '@auth0/auth0-spa-js'
  import type { Auth0VueClient } from '@auth0/auth0-vue'
  import { useAuth0 } from '@auth0/auth0-vue'

@@ -20,10 +20,10 @@ import StatsItem from '@/components/common/Stats/StatsItem.vue'
 import TableCell from '@/components/common/Table/TableCell.vue'
 import TableRoot from '@/components/common/Table/TableRoot.vue'
 import TableRow from '@/components/common/Table/TableRow.vue'
-import MachineAccept from '@/views/omni/Machines/components/MachineAccept.vue'
-import MachineDelete from '@/views/omni/Machines/components/MachineDelete.vue'
-import MachineReject from '@/views/omni/Machines/components/MachineReject.vue'
-import MachineUnreject from '@/views/omni/Machines/components/MachineUnreject.vue'
+import MachineAccept from '@/views/Machines/components/MachineAccept.vue'
+import MachineDelete from '@/views/Machines/components/MachineDelete.vue'
+import MachineReject from '@/views/Machines/components/MachineReject.vue'
+import MachineUnreject from '@/views/Machines/components/MachineUnreject.vue'
 
 definePage({ name: 'MachinesPending' })
 

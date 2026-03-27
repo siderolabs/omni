@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script lang="ts">
-import type { HardwareType } from '@/views/omni/InstallationMedia/useFormState'
+import type { HardwareType } from '@/views/InstallationMedia/useFormState'
 
 const flows = {
   metal: [
@@ -44,8 +44,8 @@ import PageContainer from '@/components/common/PageContainer/PageContainer.vue'
 import Stepper from '@/components/common/Stepper/Stepper.vue'
 import Tooltip from '@/components/common/Tooltip/Tooltip.vue'
 import { showSuccess } from '@/notification'
-import SavePresetModal from '@/views/omni/InstallationMedia/SavePresetModal.vue'
-import { useFormState } from '@/views/omni/InstallationMedia/useFormState'
+import SavePresetModal from '@/views/InstallationMedia/SavePresetModal.vue'
+import { useFormState } from '@/views/InstallationMedia/useFormState'
 
 definePage({
   name: 'InstallationMediaCreate',

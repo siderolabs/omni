@@ -13,7 +13,7 @@ import { DefaultNamespace, TalosExtensionsType } from '@/api/resources'
 import TCheckbox from '@/components/common/Checkbox/TCheckbox.vue'
 import TInput from '@/components/common/TInput/TInput.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
+import type { FormState } from '@/views/InstallationMedia/useFormState'
 
 definePage({ name: 'InstallationMediaCreateSystemExtensions' })
 

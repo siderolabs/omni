@@ -21,7 +21,7 @@ import TAlert from '@/components/TAlert.vue'
 import { getContext } from '@/context'
 import type { LogLine } from '@/methods/logs'
 import { LineDelimitedLogParser, setupLogStream } from '@/methods/logs'
-import MachineLogsContainer from '@/views/omni/Machines/MachineLogsContainer.vue'
+import MachineLogsContainer from '@/views/Machines/MachineLogsContainer.vue'
 
 definePage({ name: 'NodeLogs' })
 

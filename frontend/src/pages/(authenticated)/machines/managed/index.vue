@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { MachineFilterOption } from '@/methods/machine'
-import Machines from '@/views/omni/Machines/Machines.vue'
+import Machines from '@/views/Machines/Machines.vue'
 
 definePage({ name: 'MachinesManaged' })
 </script>

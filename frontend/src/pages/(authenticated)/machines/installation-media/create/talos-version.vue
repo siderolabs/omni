@@ -23,7 +23,7 @@ import TSelectList from '@/components/common/SelectList/TSelectList.vue'
 import { getDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import type { FormState } from '@/views/omni/InstallationMedia/useFormState'
+import type { FormState } from '@/views/InstallationMedia/useFormState'
 
 definePage({ name: 'InstallationMediaCreateTalosVersion' })
 
