@@ -278,13 +278,15 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 		}
 
 		if machines.Len() == 1 {
-			if err = safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {
-				logger.Info("setting machine request UUID", zap.String("machine", machines.Get(0).Metadata().ID()))
+			if machineRequestStatus, err = safe.WriterModifyWithResult(
+				ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus,
+				) error {
+					logger.Info("setting machine request UUID", zap.String("machine", machines.Get(0).Metadata().ID()))
 
-				res.TypedSpec().Value.Id = machines.Get(0).Metadata().ID()
+					res.TypedSpec().Value.Id = machines.Get(0).Metadata().ID()
 
-				return nil
-			}); err != nil {
+					return nil
+				}); err != nil {
 				return err
 			}
 		}
@@ -344,11 +346,13 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 			return controller.NewRequeueError(err, time.Minute)
 		}
 
-		if err = safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {
-			res.TypedSpec().Value = machineRequestStatus.TypedSpec().Value
+		if machineRequestStatus, err = safe.WriterModifyWithResult(
+			ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus,
+			) error {
+				res.TypedSpec().Value = machineRequestStatus.TypedSpec().Value
 
-			return nil
-		}); err != nil {
+				return nil
+			}); err != nil {
 			return err
 		}
 
