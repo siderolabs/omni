@@ -103,31 +103,33 @@ function createClusterPermissions(clusterName?: string) {
       },
     })
 
-    const spec = computed(() => data.value?.spec)
-
-    return {
-      canUpdateKubernetes: computed(() => spec.value?.can_update_kubernetes ?? false),
-      canUpdateTalos: computed(() => spec.value?.can_update_talos ?? false),
-      canDownloadKubeconfig: computed(() => spec.value?.can_download_kubeconfig ?? false),
-      canDownloadTalosconfig: computed(() => spec.value?.can_download_talosconfig ?? false),
-      canDownloadSupportBundle: computed(() => spec.value?.can_download_support_bundle ?? false),
-      canAddClusterMachines: computed(() => spec.value?.can_add_machines ?? false),
-      canRemoveClusterMachines: computed(() => spec.value?.can_remove_machines ?? false),
-      canSyncKubernetesManifests: computed(
-        () => spec.value?.can_sync_kubernetes_manifests ?? false,
-      ),
-      canReadConfigPatches: computed(() => spec.value?.can_read_config_patches ?? false),
-      canManageConfigPatches: computed(() => spec.value?.can_manage_config_patches ?? false),
-      canRebootMachines: computed(() => spec.value?.can_reboot_machines ?? false),
-      canRemoveMachines: computed(() => spec.value?.can_remove_machines ?? false),
-      canManageClusterFeatures: computed(() => spec.value?.can_manage_cluster_features ?? false),
-    }
+    return data
   })!
 }
 
 export function useClusterPermissions(cluster: MaybeRefOrGetter<string | undefined>) {
-  const key = toValue(cluster) ?? '__NO_CLUSTER'
-  return (clusterPermissionScopes[key] ??= createClusterPermissions(toValue(cluster)))
+  const spec = computed(() => {
+    const clusterName = toValue(cluster)
+    const cacheKey = clusterName ?? '__NO_CLUSTER'
+
+    return (clusterPermissionScopes[cacheKey] ??= createClusterPermissions(clusterName)).value?.spec
+  })
+
+  return {
+    canUpdateKubernetes: computed(() => spec.value?.can_update_kubernetes ?? false),
+    canUpdateTalos: computed(() => spec.value?.can_update_talos ?? false),
+    canDownloadKubeconfig: computed(() => spec.value?.can_download_kubeconfig ?? false),
+    canDownloadTalosconfig: computed(() => spec.value?.can_download_talosconfig ?? false),
+    canDownloadSupportBundle: computed(() => spec.value?.can_download_support_bundle ?? false),
+    canAddClusterMachines: computed(() => spec.value?.can_add_machines ?? false),
+    canRemoveClusterMachines: computed(() => spec.value?.can_remove_machines ?? false),
+    canSyncKubernetesManifests: computed(() => spec.value?.can_sync_kubernetes_manifests ?? false),
+    canReadConfigPatches: computed(() => spec.value?.can_read_config_patches ?? false),
+    canManageConfigPatches: computed(() => spec.value?.can_manage_config_patches ?? false),
+    canRebootMachines: computed(() => spec.value?.can_reboot_machines ?? false),
+    canRemoveMachines: computed(() => spec.value?.can_remove_machines ?? false),
+    canManageClusterFeatures: computed(() => spec.value?.can_manage_cluster_features ?? false),
+  }
 }
 
 export const revokeJoinToken = async (tokenID: string) => {

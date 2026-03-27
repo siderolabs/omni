@@ -3,14 +3,19 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { useAuth0 } from '@auth0/auth0-vue'
+import { server } from '@msw/server'
+import { waitFor } from '@testing-library/vue'
+import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { ref } from 'vue'
 
 import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import { AuthService } from '@/api/omni/auth/auth.pb'
+import type { ClusterPermissionsSpec } from '@/api/omni/specs/virtual.pb'
+import { ClusterPermissionsType, VirtualNamespace } from '@/api/resources'
 import { AuthType, authType } from '@/methods'
-import { useLogout } from '@/methods/auth'
+import { useClusterPermissions, useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
 import { useKeys } from '@/methods/key'
 
@@ -175,4 +180,90 @@ describe('useLogout', () => {
       expect(mockIdentity.clear).toHaveBeenCalled()
     },
   )
+})
+
+describe('useClusterPermissions', () => {
+  function makeHandler(spec: Partial<ClusterPermissionsSpec>, clusterName?: string) {
+    return http.post('/omni.resources.ResourceService/Get', async ({ request }) => {
+      const body = (await request.json()) as { id: string; type: string }
+      if (body.type !== ClusterPermissionsType) return
+      if (clusterName !== undefined && body.id !== clusterName) return
+      return HttpResponse.json({
+        body: JSON.stringify({
+          metadata: { id: body.id, namespace: VirtualNamespace, type: ClusterPermissionsType },
+          spec,
+        }),
+      })
+    })
+  }
+
+  test('defaults to false before data loads', () => {
+    const { canUpdateKubernetes, canManageConfigPatches } = useClusterPermissions('perm-defaults')
+    expect(canUpdateKubernetes.value).toBe(false)
+    expect(canManageConfigPatches.value).toBe(false)
+  })
+
+  test('reflects loaded spec fields', async () => {
+    server.use(makeHandler({ can_update_kubernetes: true, can_update_talos: false }))
+    const { canUpdateKubernetes, canUpdateTalos } = useClusterPermissions('perm-fields')
+    await waitFor(() => expect(canUpdateKubernetes.value).toBe(true))
+    expect(canUpdateTalos.value).toBe(false)
+  })
+
+  test('caches scope per cluster key — only one fetch per name', async () => {
+    const handler = vi.fn(() =>
+      HttpResponse.json({
+        body: JSON.stringify({
+          metadata: {
+            id: 'perm-cached',
+            namespace: VirtualNamespace,
+            type: ClusterPermissionsType,
+          },
+          spec: { can_update_kubernetes: true },
+        }),
+      }),
+    )
+    server.use(http.post('/omni.resources.ResourceService/Get', handler))
+
+    const { canUpdateKubernetes: a } = useClusterPermissions('perm-cached')
+    const { canUpdateKubernetes: b } = useClusterPermissions('perm-cached')
+
+    await waitFor(() => expect(a.value).toBe(true))
+    expect(b.value).toBe(true)
+    expect(handler).toHaveBeenCalledTimes(1)
+  })
+
+  test('reacts when cluster ref changes', async () => {
+    const specByCluster: Record<string, Partial<ClusterPermissionsSpec>> = {
+      'perm-cluster-a': { can_update_kubernetes: true, can_update_talos: false },
+      'perm-cluster-b': { can_update_kubernetes: false, can_update_talos: true },
+    }
+
+    // Single handler — two chained handlers can't both read the request body stream.
+    server.use(
+      http.post('/omni.resources.ResourceService/Get', async ({ request }) => {
+        const body = (await request.json()) as { id: string; type: string }
+        if (body.type !== ClusterPermissionsType) return
+        const spec = specByCluster[body.id]
+        if (!spec) return
+        return HttpResponse.json({
+          body: JSON.stringify({
+            metadata: { id: body.id, namespace: VirtualNamespace, type: ClusterPermissionsType },
+            spec,
+          }),
+        })
+      }),
+    )
+
+    const cluster = ref('perm-cluster-a')
+    const { canUpdateKubernetes, canUpdateTalos } = useClusterPermissions(cluster)
+
+    await waitFor(() => expect(canUpdateKubernetes.value).toBe(true))
+    expect(canUpdateTalos.value).toBe(false)
+
+    cluster.value = 'perm-cluster-b'
+
+    await waitFor(() => expect(canUpdateTalos.value).toBe(true))
+    expect(canUpdateKubernetes.value).toBe(false)
+  })
 })
