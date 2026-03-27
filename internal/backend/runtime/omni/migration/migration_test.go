@@ -442,6 +442,53 @@ func (suite *MigrationSuite) TestDropRedactedMachineConfigFinalizersFromClusterM
 	suite.True(cm3VersionBefore.Equal(cm3Migrated.Metadata().Version()), "expected cm3 to be left untouched")
 }
 
+func (suite *MigrationSuite) TestRemoveStaleIdentityLastActiveResources() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	// Identity with a matching IdentityLastActive — should be kept.
+	identity1 := authres.NewIdentity("user@example.com")
+	identity1.TypedSpec().Value.UserId = "user-1"
+	identity1.Metadata().Labels().Set(authres.LabelIdentityUserID, "user-1")
+	suite.Require().NoError(suite.state.Create(ctx, identity1))
+
+	ila1 := authres.NewIdentityLastActive("user@example.com")
+	suite.Require().NoError(suite.state.Create(ctx, ila1))
+
+	// Stale IdentityLastActive — no matching Identity.
+	ila2 := authres.NewIdentityLastActive("deleted-infra-provider@serviceaccount.omni.sidero.dev")
+	suite.Require().NoError(suite.state.Create(ctx, ila2))
+
+	// Stale IdentityLastActive in TearingDown phase.
+	ila3 := authres.NewIdentityLastActive("tearing-down@serviceaccount.omni.sidero.dev")
+	ila3.Metadata().SetPhase(resource.PhaseTearingDown)
+	suite.Require().NoError(suite.state.Create(ctx, ila3))
+
+	// Stale IdentityLastActive with a finalizer.
+	ila4 := authres.NewIdentityLastActive("with-finalizer@serviceaccount.omni.sidero.dev")
+	ila4.Metadata().Finalizers().Add("SomeFinalizer")
+	suite.Require().NoError(suite.state.Create(ctx, ila4))
+
+	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("removeStaleIdentityLastActiveResources")))
+	suite.Require().NoError(err)
+
+	// The one with a matching Identity should still exist.
+	kept, err := safe.ReaderGetByID[*authres.IdentityLastActive](ctx, suite.state, "user@example.com")
+	suite.Require().NoError(err)
+	suite.Require().NotNil(kept)
+
+	// All stale ones should be gone.
+	for _, id := range []string{
+		"deleted-infra-provider@serviceaccount.omni.sidero.dev",
+		"tearing-down@serviceaccount.omni.sidero.dev",
+		"with-finalizer@serviceaccount.omni.sidero.dev",
+	} {
+		_, err = safe.ReaderGetByID[*authres.IdentityLastActive](ctx, suite.state, id)
+		suite.Require().Error(err, "IdentityLastActive %q should have been removed", id)
+		suite.Require().True(state.IsNotFoundError(err), "IdentityLastActive %q should have been removed", id)
+	}
+}
+
 func TestMigrationSuite(t *testing.T) {
 	t.Parallel()
 

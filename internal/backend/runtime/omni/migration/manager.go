@@ -293,6 +293,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: dropWorkloadProxyConfigPatches,
 				name:     "dropWorkloadProxyConfigPatches",
 			},
+			{
+				callback: removeStaleIdentityLastActiveResources,
+				name:     "removeStaleIdentityLastActiveResources",
+			},
 		},
 	}
 }

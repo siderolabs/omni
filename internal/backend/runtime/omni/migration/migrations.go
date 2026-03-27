@@ -298,6 +298,59 @@ func dropRedactedClusterMachineConfigFinalizers(ctx context.Context, st state.St
 	return dropFinalizers[*omni.ClusterMachineConfig](ctx, st, "RedactedClusterMachineConfigController")
 }
 
+func removeStaleIdentityLastActiveResources(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	identityLastActives, err := safe.ReaderListAll[*authres.IdentityLastActive](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	identities, err := safe.ReaderListAll[*authres.Identity](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	identitySet := make(map[resource.ID]struct{}, identities.Len())
+
+	for identity := range identities.All() {
+		identitySet[identity.Metadata().ID()] = struct{}{}
+	}
+
+	var removed int
+
+	for ila := range identityLastActives.All() {
+		if _, identityOk := identitySet[ila.Metadata().ID()]; identityOk { // exists, continue
+			continue
+		}
+
+		// Strip any finalizers defensively before destroying.
+		if !ila.Metadata().Finalizers().Empty() {
+			if _, err = safe.StateUpdateWithConflicts(ctx, st, ila.Metadata(), func(res *authres.IdentityLastActive) error {
+				for _, f := range *res.Metadata().Finalizers() {
+					res.Metadata().Finalizers().Remove(f)
+				}
+
+				return nil
+			}, state.WithUpdateOwner(ila.Metadata().Owner()), state.WithExpectedPhaseAny()); err != nil {
+				return fmt.Errorf("failed to strip finalizers from IdentityLastActive %q: %w", ila.Metadata().ID(), err)
+			}
+		}
+
+		if err = st.TeardownAndDestroy(ctx, ila.Metadata(), state.WithTeardownAndDestroyOwner(ila.Metadata().Owner())); err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
+			return fmt.Errorf("failed to destroy IdentityLastActive %q: %w", ila.Metadata().ID(), err)
+		}
+
+		removed++
+	}
+
+	logger.Info("removed stale IdentityLastActive resources", zap.Int("removed", removed))
+
+	return nil
+}
+
 func dropWorkloadProxyConfigPatches(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 	configPatches, err := safe.ReaderListAll[*omni.ConfigPatch](ctx, st)
 	if err != nil {

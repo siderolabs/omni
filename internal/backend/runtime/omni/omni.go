@@ -189,6 +189,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewMachineRequestStatusCleanupController(),
 		omnictrl.NewInfraProviderCleanupController(),
 		omnictrl.NewLinkCleanupController(),
+		authctrl.NewIdentityCleanupController(),
 	}
 
 	imageFactoryHost := imageFactoryClient.Host()

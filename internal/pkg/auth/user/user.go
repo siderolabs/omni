@@ -146,10 +146,6 @@ func Destroy(ctx context.Context, st state.State, email string) error {
 		destroyErr = multierror.Append(destroyErr, err)
 	}
 
-	if err = st.TeardownAndDestroy(ctx, auth.NewIdentityLastActive(email).Metadata()); err != nil && !state.IsNotFoundError(err) {
-		destroyErr = multierror.Append(destroyErr, err)
-	}
-
 	return destroyErr
 }
 

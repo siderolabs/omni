@@ -181,10 +181,5 @@ func Destroy(ctx context.Context, st state.State, name string) error {
 		destroyErr = multierror.Append(destroyErr, err)
 	}
 
-	err = st.TeardownAndDestroy(ctx, authres.NewIdentityLastActive(id).Metadata())
-	if err != nil && !state.IsNotFoundError(err) {
-		destroyErr = multierror.Append(destroyErr, err)
-	}
-
 	return destroyErr
 }
