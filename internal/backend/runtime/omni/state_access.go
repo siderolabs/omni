@@ -56,6 +56,14 @@ var (
 		omni.SecretRotationType,
 		omni.RotateKubernetesCAType,
 		omni.ClusterKubernetesManifestsStatusType,
+		omni.KubernetesStatusType,
+		omni.KubernetesUpgradeStatusType,
+		omni.KubernetesUpgradeManifestStatusType,
+		omni.KubernetesNodeAuditResultType,
+		omni.TalosUpgradeStatusType,
+		omni.LoadBalancerConfigType,
+		omni.LoadBalancerStatusType,
+		omni.UpgradeRolloutType,
 	})
 
 	// clusterLabelTypeSet is the set of resource types which have the related cluster's ID as a label.
@@ -66,7 +74,10 @@ var (
 		omni.ClusterMachineConfigPatchesType,
 		omni.ClusterMachineConfigStatusType,
 		omni.ClusterMachineTalosVersionType,
+		omni.ClusterMachineStatusType,
+		omni.ClusterMachineRequestStatusType,
 		omni.ConfigPatchType,
+		omni.ControlPlaneStatusType,
 		omni.ExposedServiceType,
 		omni.ImagePullRequestType,
 		omni.ImagePullStatusType,
