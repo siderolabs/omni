@@ -25,7 +25,7 @@ import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { getContext } from '@/context'
-import NodesItem from '@/views/cluster/Nodes/components/NodesItem.vue'
+import NodesItem from '@/views/Nodes/components/NodesItem.vue'
 
 definePage({ name: 'Nodes' })
 

@@ -97,8 +97,8 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getContext } from '@/context'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import DiskPartitionTable from '@/views/cluster/Nodes/components/DiskPartitionTable.vue'
-import DiskUsageBar from '@/views/cluster/Nodes/components/DiskUsageBar.vue'
+import DiskPartitionTable from '@/views/Nodes/components/DiskPartitionTable.vue'
+import DiskUsageBar from '@/views/Nodes/components/DiskUsageBar.vue'
 
 definePage({ name: 'NodeDisks' })
 

@@ -40,7 +40,7 @@ import { useClusterPermissions, usePermissions } from '@/methods/auth'
 import { useFeatures } from '@/methods/features'
 import { useIdentity } from '@/methods/identity'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import ExposedServiceSideBar from '@/views/cluster/ExposedService/ExposedServiceSideBar.vue'
+import ExposedServiceSideBar from '@/views/ExposedService/ExposedServiceSideBar.vue'
 
 const route = useRoute()
 const context = getContext()

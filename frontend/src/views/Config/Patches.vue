@@ -31,6 +31,7 @@ import {
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
+import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
@@ -42,7 +43,6 @@ import {
   workersTitlePrefix,
 } from '@/methods/machineset'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 
 const filter = ref('')
 
@@ -337,7 +337,7 @@ const canManageConfigPatches = computed(() => {
 </template>
 
 <style scoped>
-@reference "../../../index.css";
+@reference "../../index.css";
 
 .disclosure {
   @apply relative cursor-pointer bg-naturals-n1 px-4 py-3 text-xs font-bold text-naturals-n11 transition-colors duration-200 select-none hover:text-naturals-n14;

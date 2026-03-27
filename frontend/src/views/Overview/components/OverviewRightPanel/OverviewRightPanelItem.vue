@@ -22,7 +22,7 @@ defineProps<{
 </template>
 
 <style scoped>
-@reference "../../../../../index.css";
+@reference "../../../../index.css";
 
 .overview-details-item {
   @apply flex w-full justify-between;

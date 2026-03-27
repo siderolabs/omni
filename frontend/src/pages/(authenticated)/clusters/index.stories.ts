@@ -47,7 +47,7 @@ import {
   UpdateLocked,
   VirtualNamespace,
 } from '@/api/resources'
-import MachineSetPhase from '@/views/cluster/ClusterMachines/MachineSetPhase.vue'
+import MachineSetPhase from '@/views/ClusterMachines/MachineSetPhase.vue'
 
 import Clusters from './index.vue'
 

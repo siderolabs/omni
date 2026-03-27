@@ -49,12 +49,12 @@ import {
 } from '@/methods/cluster'
 import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import ClusterMachines from '@/views/cluster/ClusterMachines/ClusterMachines.vue'
-import OverviewRightPanel from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
+import ClusterMachines from '@/views/ClusterMachines/ClusterMachines.vue'
 import ClusterEtcdBackupCheckbox from '@/views/Clusters/ClusterEtcdBackupCheckbox.vue'
 import ClusterWorkloadProxyingCheckbox from '@/views/Clusters/ClusterWorkloadProxyingCheckbox.vue'
 import EmbeddedDiscoveryServiceCheckbox from '@/views/Clusters/EmbeddedDiscoveryServiceCheckbox.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
+import OverviewRightPanel from '@/views/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
 
 // Do not show stats if the cluster has more than this number of machines.
 // Because it overloads the UI and the backend for no good reason.

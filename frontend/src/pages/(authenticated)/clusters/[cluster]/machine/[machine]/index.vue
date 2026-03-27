@@ -46,11 +46,11 @@ import { getContext } from '@/context'
 import { formatBytes, getStatus } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import ClusterMachinePhase from '@/views/cluster/ClusterMachines/ClusterMachinePhase.vue'
-import NodeConditions from '@/views/cluster/Nodes/components/NodeConditions.vue'
-import NodeDiagnosticWarnings from '@/views/cluster/Nodes/NodeDiagnosticWarnings.vue'
-import NodeServiceEvents from '@/views/cluster/Nodes/NodeServiceEvents.vue'
+import ClusterMachinePhase from '@/views/ClusterMachines/ClusterMachinePhase.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
+import NodeConditions from '@/views/Nodes/components/NodeConditions.vue'
+import NodeDiagnosticWarnings from '@/views/Nodes/NodeDiagnosticWarnings.vue'
+import NodeServiceEvents from '@/views/Nodes/NodeServiceEvents.vue'
 
 definePage({ name: 'NodeOverview' })
 

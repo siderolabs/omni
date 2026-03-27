@@ -97,7 +97,7 @@ const errors = computed(() => {
 </template>
 
 <style scoped>
-@reference "../../../index.css";
+@reference "../../index.css";
 
 .title {
   @apply my-1 flex items-center justify-start gap-4 border-l-2 border-transparent px-6 py-1.5 transition-all duration-200 hover:bg-naturals-n4;

@@ -9,7 +9,7 @@ import type { Resource } from '@/api/grpc'
 import type { ClusterSpec } from '@/api/omni/specs/omni.pb'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
-import OverviewContent from '@/views/cluster/Overview/components/OverviewContent.vue'
+import OverviewContent from '@/views/Overview/components/OverviewContent.vue'
 
 definePage({ name: 'ClusterOverview' })
 

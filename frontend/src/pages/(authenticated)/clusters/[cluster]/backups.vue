@@ -22,7 +22,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import { setupBackupStatus } from '@/methods'
 import { triggerEtcdBackup } from '@/methods/cluster'
 import { showError } from '@/notification'
-import BackupsList from '@/views/cluster/Backups/BackupsList.vue'
+import BackupsList from '@/views/Backups/BackupsList.vue'
 
 definePage({ name: 'Backups' })
 

@@ -15,7 +15,7 @@ import TabButton from '@/components/Tabs/TabButton.vue'
 import TabContent from '@/components/Tabs/TabContent.vue'
 import Tabs from '@/components/Tabs/Tabs.vue'
 import { useResourceGet } from '@/methods/useResourceGet'
-import NodesHeader from '@/views/cluster/Nodes/NodesHeader.vue'
+import NodesHeader from '@/views/Nodes/NodesHeader.vue'
 
 definePage({ name: 'NodeDetails' })
 

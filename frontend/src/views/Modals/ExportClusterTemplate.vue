@@ -13,9 +13,9 @@ import type { ClusterSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
+import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/Modals/CloseButton.vue'
 
 const router = useRouter()

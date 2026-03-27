@@ -20,10 +20,10 @@ import {
   MachineStatusType,
   SiderolinkResourceType,
 } from '@/api/resources'
+import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import { ClusterCommandError, clusterDestroy } from '@/methods/cluster'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
-import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import ConfirmModal from '@/views/Modals/ConfirmModal.vue'
 
 const { clusterId } = defineProps<{ clusterId: string }>()

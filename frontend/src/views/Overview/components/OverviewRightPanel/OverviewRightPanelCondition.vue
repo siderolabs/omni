@@ -14,7 +14,7 @@ import {
   ControlPlaneStatusSpecConditionStatus,
 } from '@/api/omni/specs/omni.pb'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
-import OverviewRightPanelItem from '@/views/cluster/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue'
+import OverviewRightPanelItem from '@/views/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue'
 
 const mapping: Record<ConditionType | number, string> = {}
 for (const key of Object.keys(ConditionType)) {

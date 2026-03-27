@@ -40,7 +40,7 @@ import {
   machineSetTitle,
 } from '@/methods/machineset'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import ScaleMachinesModal from '@/views/cluster/ClusterMachines/ScaleMachinesModal.vue'
+import ScaleMachinesModal from '@/views/ClusterMachines/ScaleMachinesModal.vue'
 
 import ClusterMachine from './ClusterMachine.vue'
 import MachineRequest from './MachineRequest.vue'

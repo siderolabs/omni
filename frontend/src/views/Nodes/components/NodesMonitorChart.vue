@@ -283,7 +283,7 @@ const options = computed(() => {
 </template>
 
 <style scoped>
-@reference "../../../../index.css";
+@reference "../../../index.css";
 
 #chartContainer .apexcharts-tooltip {
   @apply bg-naturals-n3 px-3 py-2.5 text-naturals-n14;

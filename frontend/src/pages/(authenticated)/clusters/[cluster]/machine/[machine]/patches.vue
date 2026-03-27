@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
-import Patches from '@/views/cluster/Config/Patches.vue'
+import Patches from '@/views/Config/Patches.vue'
 
 definePage({ name: 'NodePatches' })
 </script>

@@ -17,12 +17,12 @@ import {
 } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace, LabelCluster, MachineClassType } from '@/api/resources'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
+import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { scaleMachineSet } from '@/methods/machineset'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
-import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import Modal from '@/views/Modals/Modal.vue'
 
 const { machineSet } = defineProps<{

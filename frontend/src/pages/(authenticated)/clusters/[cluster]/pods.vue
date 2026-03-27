@@ -20,7 +20,7 @@ import TInput from '@/components/TInput/TInput.vue'
 import { TPodsViewFilterOptions } from '@/constants'
 import { getContext } from '@/context'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import TPodsItem from '@/views/cluster/Pods/components/TPodsItem.vue'
+import TPodsItem from '@/views/Pods/TPodsItem.vue'
 
 definePage({ name: 'Pods' })
 

@@ -41,6 +41,7 @@ import {
 import TButton from '@/components/Button/TButton.vue'
 import CodeEditor from '@/components/CodeEditor/CodeEditor.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
+import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
@@ -51,7 +52,6 @@ import { useClusterPermissions, usePermissions } from '@/methods/auth'
 import { machineSetTitle, sortMachineSetIds } from '@/methods/machineset'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
-import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 
 type Props = {
   patchId: string

@@ -26,13 +26,13 @@ import {
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
+import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { ClusterCommandError, destroyNodes } from '@/methods/cluster'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
 import { setupNodenameWatch } from '@/methods/node'
 import { showError, showSuccess } from '@/notification'
-import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/Modals/CloseButton.vue'
 
 const router = useRouter()

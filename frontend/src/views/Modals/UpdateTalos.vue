@@ -15,11 +15,11 @@ import type { TalosUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, TalosUpgradeStatusType } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
+import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { majorMinorVersion } from '@/methods'
 import { updateTalos } from '@/methods/cluster'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/Modals/CloseButton.vue'
 
 const route = useRoute()

@@ -16,11 +16,11 @@ import { withRuntime } from '@/api/options'
 import { DefaultNamespace, KernelArgsStatusType, KernelArgsType } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
+import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { useResourceGet } from '@/methods/useResourceGet.ts'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
-import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/Modals/CloseButton.vue'
 
 const args = ref('')

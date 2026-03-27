@@ -2669,30 +2669,30 @@ index 47e41681..dc7c96ee 100644
                      path: '',
                      name: 'NodeDetails',
 +                    meta: { disablePadding: true },
-                     component: () => import('@/views/cluster/Nodes/NodeDetails.vue'),
+                     component: () => import('@/views/Nodes/NodeDetails.vue'),
                      children: [
                        {
 @@ -173,6 +174,16 @@ export const routes: RouteRecordRaw[] = [
                          name: 'NodeConfig',
-                         component: () => import('@/views/cluster/Nodes/NodeConfig.vue'),
+                         component: () => import('@/views/Nodes/NodeConfig.vue'),
                        },
 +                      {
 +                        path: 'pending-updates',
 +                        name: 'NodePendingUpdates',
-+                        component: () => import('@/views/cluster/Nodes/NodePendingUpdates.vue'),
++                        component: () => import('@/views/Nodes/NodePendingUpdates.vue'),
 +                      },
 +                      {
 +                        path: 'config-diffs',
 +                        name: 'NodeConfigDiffs',
-+                        component: () => import('@/views/cluster/Nodes/NodeConfigDiffs.vue'),
++                        component: () => import('@/views/Nodes/NodeConfigDiffs.vue'),
 +                      },
                        {
                          path: 'patches',
                          name: 'NodePatches',
-diff --git a/frontend/src/views/cluster/ClusterMachines/ClusterMachine.vue b/frontend/src/views/cluster/ClusterMachines/ClusterMachine.vue
+diff --git a/frontend/src/views/ClusterMachines/ClusterMachine.vue b/frontend/src/views/ClusterMachines/ClusterMachine.vue
 index 9645277c..983969e6 100644
---- a/frontend/src/views/cluster/ClusterMachines/ClusterMachine.vue
-+++ b/frontend/src/views/cluster/ClusterMachines/ClusterMachine.vue
+--- a/frontend/src/views/ClusterMachines/ClusterMachine.vue
++++ b/frontend/src/views/ClusterMachines/ClusterMachine.vue
 @@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
  included in the LICENSE file.
  -->
@@ -2799,11 +2799,11 @@ index 9645277c..983969e6 100644
      </div>
  
      <div class="flex items-center justify-end">
-diff --git a/frontend/src/views/cluster/Nodes/NodeConfigDiffs.vue b/frontend/src/views/cluster/Nodes/NodeConfigDiffs.vue
+diff --git a/frontend/src/views/Nodes/NodeConfigDiffs.vue b/frontend/src/views/Nodes/NodeConfigDiffs.vue
 new file mode 100644
 index 00000000..2dd359ed
 --- /dev/null
-+++ b/frontend/src/views/cluster/Nodes/NodeConfigDiffs.vue
++++ b/frontend/src/views/Nodes/NodeConfigDiffs.vue
 @@ -0,0 +1,54 @@
 +<!--
 +Copyright (c) 2026 Sidero Labs, Inc.
@@ -2859,10 +2859,10 @@ index 00000000..2dd359ed
 +    <TSpinner v-else class="mx-auto my-8 size-6" />
 +  </div>
 +</template>
-diff --git a/frontend/src/views/cluster/Nodes/NodeDetails.vue b/frontend/src/views/cluster/Nodes/NodeDetails.vue
+diff --git a/frontend/src/views/Nodes/NodeDetails.vue b/frontend/src/views/Nodes/NodeDetails.vue
 index 66145b06..860ad5d4 100644
---- a/frontend/src/views/cluster/Nodes/NodeDetails.vue
-+++ b/frontend/src/views/cluster/Nodes/NodeDetails.vue
+--- a/frontend/src/views/Nodes/NodeDetails.vue
++++ b/frontend/src/views/Nodes/NodeDetails.vue
 @@ -34,6 +34,14 @@ const routes = computed(() => {
        name: 'Config',
        to: { name: 'NodeConfig', params: { machine: machine.value } },
@@ -2911,10 +2911,10 @@ index 66145b06..860ad5d4 100644
            <RouterView class="h-full" />
          </TabContent>
        </template>
-diff --git a/frontend/src/views/cluster/Nodes/NodeExtensions.vue b/frontend/src/views/cluster/Nodes/NodeExtensions.vue
+diff --git a/frontend/src/views/Nodes/NodeExtensions.vue b/frontend/src/views/Nodes/NodeExtensions.vue
 index 41814047..c09460bc 100644
---- a/frontend/src/views/cluster/Nodes/NodeExtensions.vue
-+++ b/frontend/src/views/cluster/Nodes/NodeExtensions.vue
+--- a/frontend/src/views/Nodes/NodeExtensions.vue
++++ b/frontend/src/views/Nodes/NodeExtensions.vue
 @@ -168,19 +168,21 @@ const openExtensionsUpdate = () => {
  </script>
  
@@ -2968,11 +2968,11 @@ index 41814047..c09460bc 100644
 -  @apply mb-1 bg-naturals-n2 px-6 py-2 text-xs;
 -}
 -</style>
-diff --git a/frontend/src/views/cluster/Nodes/NodePendingUpdates.vue b/frontend/src/views/cluster/Nodes/NodePendingUpdates.vue
+diff --git a/frontend/src/views/Nodes/NodePendingUpdates.vue b/frontend/src/views/Nodes/NodePendingUpdates.vue
 new file mode 100644
 index 00000000..55219f7a
 --- /dev/null
-+++ b/frontend/src/views/cluster/Nodes/NodePendingUpdates.vue
++++ b/frontend/src/views/Nodes/NodePendingUpdates.vue
 @@ -0,0 +1,45 @@
 +<!--
 +Copyright (c) 2026 Sidero Labs, Inc.

@@ -99,7 +99,7 @@ const roles = computed(() =>
 </template>
 
 <style scoped>
-@reference "../../../../index.css";
+@reference "../../../index.css";
 
 .nodes-list-item {
   @apply flex items-center border-b border-naturals-n4 px-4 py-4;

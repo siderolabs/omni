@@ -14,8 +14,8 @@ import { ResourceService } from '@/api/grpc'
 import { withRuntime } from '@/api/options'
 import { DefaultNamespace, MachineSetType } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
+import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import { showError, showSuccess } from '@/notification'
-import ManagedByTemplatesWarning from '@/views/cluster/ManagedByTemplatesWarning.vue'
 import CloseButton from '@/views/Modals/CloseButton.vue'
 
 const router = useRouter()
