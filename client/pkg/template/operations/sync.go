@@ -8,12 +8,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/fatih/color"
 
+	"github.com/siderolabs/omni/client/pkg/execdiff"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/template"
 	"github.com/siderolabs/omni/client/pkg/template/operations/internal/utils"
@@ -21,6 +21,9 @@ import (
 
 // SyncOptions contains options for SyncTemplate.
 type SyncOptions struct {
+	// Differ, when set, handles diff rendering (built-in or external tool).
+	Differ *execdiff.Differ
+
 	// DryRun indicates that no changes should be made to the cluster.
 	DryRun bool
 
@@ -69,7 +72,7 @@ func sync(ctx context.Context, syncResult *template.SyncResult, out io.Writer, s
 		yellow.Fprintf(out, "* creating%s %s\n", dryRun, boldFunc(utils.Describe(r))) //nolint:errcheck
 
 		if syncOptions.Verbose {
-			if err := utils.RenderDiff(out, nil, r); err != nil {
+			if err := renderDiff(out, syncOptions.Differ, nil, r); err != nil {
 				return err
 			}
 		}
@@ -87,7 +90,7 @@ func sync(ctx context.Context, syncResult *template.SyncResult, out io.Writer, s
 		yellow.Fprintf(out, "* updating%s %s\n", dryRun, boldFunc(utils.Describe(p.New))) //nolint:errcheck
 
 		if syncOptions.Verbose {
-			if err := utils.RenderDiff(os.Stdout, p.Old, p.New); err != nil {
+			if err := renderDiff(out, syncOptions.Differ, p.Old, p.New); err != nil {
 				return err
 			}
 		}
@@ -146,7 +149,7 @@ func syncDeleteResources(ctx context.Context, toDelete []resource.Resource, out 
 		yellow.Fprintf(out, "* tearing down%s %s\n", dryRun, boldFunc(utils.Describe(r))) //nolint:errcheck
 
 		if syncOptions.Verbose {
-			if err := utils.RenderDiff(os.Stdout, r, nil); err != nil {
+			if err := renderDiff(out, syncOptions.Differ, r, nil); err != nil {
 				return err
 			}
 		}
@@ -198,4 +201,42 @@ func syncDeleteResources(ctx context.Context, toDelete []resource.Resource, out 
 	}
 
 	return nil
+}
+
+// renderDiff renders a diff between two resources. When a Differ is set, it
+// delegates to the Differ (which may queue the diff for an external tool).
+// Otherwise it falls back to the built-in colorized RenderDiff.
+func renderDiff(w io.Writer, differ *execdiff.Differ, oldR, newR resource.Resource) error {
+	if differ == nil {
+		return utils.RenderDiff(w, oldR, newR)
+	}
+
+	var (
+		oldYAML, newYAML []byte
+		err              error
+	)
+
+	if oldR != nil {
+		oldYAML, err = utils.MarshalResource(oldR)
+		if err != nil {
+			return err
+		}
+	}
+
+	if newR != nil {
+		newYAML, err = utils.MarshalResource(newR)
+		if err != nil {
+			return err
+		}
+	}
+
+	r := oldR
+	if r == nil {
+		r = newR
+	}
+
+	label := utils.Describe(r)
+	filename := fmt.Sprintf("%s-%s.yaml", r.Metadata().Type(), r.Metadata().ID())
+
+	return differ.AddDiff(label, filename, oldYAML, newYAML)
 }

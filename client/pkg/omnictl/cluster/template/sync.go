@@ -6,6 +6,7 @@ package template
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/execdiff"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 	"github.com/siderolabs/omni/client/pkg/template/operations"
 )
@@ -36,7 +38,19 @@ var syncCmd = &cobra.Command{
 	Example: "",
 	Args:    cobra.NoArgs,
 	RunE: func(*cobra.Command, []string) error {
-		return access.WithClient(syncTemplateFiles)
+		if syncCmdFlags.options.DryRun {
+			syncCmdFlags.options.Differ = execdiff.New(os.Stdout)
+		}
+
+		err := access.WithClient(syncTemplateFiles)
+
+		if syncCmdFlags.options.Differ != nil {
+			if _, flushErr := syncCmdFlags.options.Differ.Flush(); flushErr != nil {
+				return errors.Join(err, flushErr)
+			}
+		}
+
+		return err
 	},
 }
 
