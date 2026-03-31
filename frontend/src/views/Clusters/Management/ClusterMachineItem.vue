@@ -241,70 +241,71 @@ ${isTalos112 ? talos112 : preTalos112}
   <TListItem>
     <template #default>
       <div class="flex items-center text-naturals-n13">
-        <div class="flex flex-1 items-center gap-2 truncate">
-          <span class="pr-2 font-bold">
-            <WordHighlighter
-              :query="searchQuery ?? ''"
-              :text-to-highlight="item?.spec?.network?.hostname ?? item?.metadata?.id"
-              split-by-space
-              highlight-class="bg-naturals-n14"
-            />
-          </span>
-          <MachineItemLabels
-            :resource="item"
-            :add-label-func="addMachineLabels"
-            :remove-label-func="removeMachineLabels"
-            @filter-label="(label) => $emit('filterLabel', label)"
+        <span class="grow truncate pr-2 font-bold">
+          <WordHighlighter
+            :query="searchQuery ?? ''"
+            :text-to-highlight="item?.spec?.network?.hostname ?? item?.metadata?.id"
+            split-by-space
+            highlight-class="bg-naturals-n14"
           />
-        </div>
-        <div class="flex w-lg flex-initial items-center justify-end gap-4">
-          <template v-if="machineSetIndex !== undefined">
-            <div
-              v-if="systemDiskPath"
-              class="cursor-not-allowed rounded border border-naturals-n6 py-1.5 pr-8 pl-3 text-naturals-n11"
-            >
-              Install Disk: {{ systemDiskPath }}
-            </div>
-            <div v-else>
-              <TSelectList
-                class="h-7"
-                title="Install Disk"
-                :values="disks"
-                :default-value="defaultInstallDisk"
-                @checked-value="setInstallDisk"
-              />
-            </div>
-          </template>
+        </span>
 
-          <MachineSetPicker v-model="machineSetIndex" :options="options" />
-
-          <div class="flex items-center gap-1">
-            <IconButton
-              :id="
-                machineSetIndex !== undefined
-                  ? `extensions-${options?.[machineSetIndex]?.id}`
-                  : undefined
-              "
-              class="my-auto text-naturals-n14"
-              :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
-              :icon="systemExtensions ? 'extensions-toggle' : 'extensions'"
-              @click="openExtensionConfig"
-            />
-            <IconButton
-              :id="machineSetIndex !== undefined ? options?.[machineSetIndex]?.id : undefined"
-              class="my-auto text-naturals-n14"
-              :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
-              :icon="
-                machineSetNode.patches[machinePatchID] && machineSetIndex !== undefined
-                  ? 'settings-toggle'
-                  : 'settings'
-              "
-              @click="openPatchConfig"
+        <template v-if="machineSetIndex !== undefined">
+          <div
+            v-if="systemDiskPath"
+            class="cursor-not-allowed rounded border border-naturals-n6 py-1.5 pr-8 pl-3 text-naturals-n11"
+          >
+            Install Disk: {{ systemDiskPath }}
+          </div>
+          <div v-else>
+            <TSelectList
+              class="h-7"
+              title="Install Disk"
+              :values="disks"
+              :default-value="defaultInstallDisk"
+              @checked-value="setInstallDisk"
             />
           </div>
+        </template>
+
+        <MachineSetPicker v-model="machineSetIndex" :options="options" />
+
+        <div class="flex items-center gap-1">
+          <IconButton
+            :id="
+              machineSetIndex !== undefined
+                ? `extensions-${options?.[machineSetIndex]?.id}`
+                : undefined
+            "
+            class="my-auto text-naturals-n14"
+            :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
+            :icon="systemExtensions ? 'extensions-toggle' : 'extensions'"
+            @click="openExtensionConfig"
+          />
+          <IconButton
+            :id="machineSetIndex !== undefined ? options?.[machineSetIndex]?.id : undefined"
+            class="my-auto text-naturals-n14"
+            :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
+            :icon="
+              machineSetNode.patches[machinePatchID] && machineSetIndex !== undefined
+                ? 'settings-toggle'
+                : 'settings'
+            "
+            @click="openPatchConfig"
+          />
         </div>
       </div>
     </template>
+
+    <template #secondary>
+      <MachineItemLabels
+        :resource="item"
+        :add-label-func="addMachineLabels"
+        :remove-label-func="removeMachineLabels"
+        @filter-label="(label) => $emit('filterLabel', label)"
+      />
+    </template>
+
     <template #details>
       <div class="grid grid-cols-5 pl-6">
         <div class="mt-4 mb-2">Processors</div>

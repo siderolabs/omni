@@ -15,6 +15,12 @@ const { isDefaultOpened } = defineProps<{
   disableBorderOnExpand?: boolean
 }>()
 
+defineSlots<{
+  default(): unknown
+  secondary(): unknown
+  details(): unknown
+}>()
+
 const isDropdownOpened = ref(isDefaultOpened)
 </script>
 
@@ -28,19 +34,22 @@ const isDropdownOpened = ref(isDefaultOpened)
     "
     role="row"
   >
-    <div class="flex items-center gap-1">
-      <div v-if="$slots.details" class="flex flex-col items-center gap-2">
+    <div class="flex flex-col gap-1">
+      <div class="flex items-center gap-1">
         <TIcon
+          v-if="$slots.details"
           class="size-6 cursor-pointer rounded fill-current text-naturals-n11 transition-all duration-300 hover:bg-naturals-n7"
           :class="isDropdownOpened ? 'rotate-0' : '-rotate-180'"
           icon="drop-up"
           @click="isDropdownOpened = !isDropdownOpened"
         />
+
+        <div class="min-w-0 flex-1 px-1">
+          <slot></slot>
+        </div>
       </div>
 
-      <div class="min-w-0 flex-1 px-1">
-        <slot></slot>
-      </div>
+      <slot name="secondary"></slot>
     </div>
 
     <TSlideDownWrapper :expanded="isDropdownOpened">
