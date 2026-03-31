@@ -105,6 +105,31 @@ func SaveClusterSnapshot(testCtx context.Context, options *TestOptions, clusterN
 	}
 }
 
+// AssertNoPendingMachineUpdates asserts that there are no pending machine updates for the cluster.
+func AssertNoPendingMachineUpdates(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, time.Minute)
+		defer cancel()
+
+		omniClient := options.omniClient
+		st := omniClient.Omni().State()
+
+		machinePendingUpdates := rtestutils.ResourceIDs[*omni.MachinePendingUpdates](ctx, t, st,
+			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
+		)
+
+		assert.Empty(t, machinePendingUpdates)
+
+		for _, id := range machinePendingUpdates {
+			res, err := safe.ReaderGetByID[*omni.MachinePendingUpdates](ctx, st, id)
+			require.NoError(t, err)
+
+			assert.Empty(t, res.TypedSpec().Value.Upgrade)
+			assert.Empty(t, res.TypedSpec().Value.ConfigDiff)
+		}
+	}
+}
+
 // AssertClusterSnapshot reads the snapshot from the cluster resource and asserts that versions did not change
 // and the last events still can be found in the node events.
 func AssertClusterSnapshot(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {

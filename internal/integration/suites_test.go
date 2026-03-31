@@ -13,10 +13,12 @@ import (
 
 	"google.golang.org/protobuf/types/known/durationpb"
 
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/integration/workloadproxy"
+	"github.com/stretchr/testify/require"
 )
 
 type assertClusterReadyOptions struct {
@@ -1545,6 +1547,17 @@ Test Omni upgrades, the first half that runs on the previous Omni version
 		})
 
 		t.Run("SaveClusterSnapshot", SaveClusterSnapshot(t.Context(), options, clusterName))
+
+		// lock the cluster
+		t.Run("LockCluster", func(t *testing.T) {
+			_, err := safe.StateUpdateWithConflicts(parentCtx, omniClient.Omni().State(), omni.NewCluster(clusterName).Metadata(), func(res *omni.Cluster) error {
+				res.Metadata().Annotations().Set(omni.ClusterLocked, "")
+
+				return nil
+			})
+
+			require.NoError(t, err)
+		})
 	}
 }
 
@@ -1574,6 +1587,19 @@ Test Omni upgrades, the second half that runs on the current Omni version
 			machineOptions.KubernetesVersion))
 
 		parentCtx := t.Context()
+
+		t.Run("AssertNoPendingMachineUpdates", AssertNoPendingMachineUpdates(t.Context(), options, clusterName))
+
+		// unlock the cluster
+		t.Run("UnlockCluster", func(t *testing.T) {
+			_, err := safe.StateUpdateWithConflicts(parentCtx, omniClient.Omni().State(), omni.NewCluster(clusterName).Metadata(), func(res *omni.Cluster) error {
+				res.Metadata().Annotations().Delete(omni.ClusterLocked)
+
+				return nil
+			})
+
+			require.NoError(t, err)
+		})
 
 		t.Run("AssertMachinesNotRebootedConfigUnchanged", AssertClusterSnapshot(t.Context(), options, clusterName))
 
