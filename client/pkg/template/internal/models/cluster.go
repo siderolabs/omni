@@ -82,7 +82,7 @@ type TalosCluster struct {
 }
 
 // Validate the model.
-func (cluster *Cluster) Validate() error {
+func (cluster *Cluster) Validate(opts ValidateOptions) error {
 	var multiErr error
 
 	validator := omni.ClusterValidator{
@@ -101,11 +101,11 @@ func (cluster *Cluster) Validate() error {
 		multiErr = multierror.Append(multiErr, err)
 	}
 
-	if err := cluster.Patches.Validate(); err != nil {
+	if err := cluster.Patches.Validate(opts); err != nil {
 		multiErr = multierror.Append(multiErr, err)
 	}
 
-	if err := cluster.Kubernetes.Manifests.Validate(); err != nil {
+	if err := cluster.Kubernetes.Manifests.Validate(opts); err != nil {
 		multiErr = multierror.Append(multiErr, err)
 	}
 
@@ -132,12 +132,12 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 	clusterResource.TypedSpec().Value.KubernetesVersion = strings.TrimLeft(cluster.Kubernetes.Version, "v")
 	clusterResource.TypedSpec().Value.TalosVersion = strings.TrimLeft(cluster.Talos.Version, "v")
 
-	patches, err := cluster.Patches.Translate(fmt.Sprintf("cluster-%s", cluster.Name), constants.PatchBaseWeightCluster, pair.MakePair(omni.LabelCluster, cluster.Name))
+	patches, err := cluster.Patches.Translate(ctx, fmt.Sprintf("cluster-%s", cluster.Name), constants.PatchBaseWeightCluster, pair.MakePair(omni.LabelCluster, cluster.Name))
 	if err != nil {
 		return nil, err
 	}
 
-	manifests, err := cluster.Kubernetes.Manifests.Translate(fmt.Sprintf("cluster-%s", cluster.Name), constants.PatchBaseWeightCluster,
+	manifests, err := cluster.Kubernetes.Manifests.Translate(ctx, fmt.Sprintf("cluster-%s", cluster.Name), constants.PatchBaseWeightCluster,
 		pair.MakePair(omni.LabelCluster, cluster.Name),
 	)
 	if err != nil {

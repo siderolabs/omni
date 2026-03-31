@@ -32,7 +32,7 @@ func render() error {
 
 	defer f.Close() //nolint:errcheck
 
-	return operations.RenderTemplate(f, os.Stdout)
+	return operations.RenderTemplate(f, os.Stdout, resolvedRoot)
 }
 
 func init() {

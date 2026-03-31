@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"os"
 	"slices"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -24,11 +25,11 @@ type List []Model
 // Each model should be valid, but also the set of models should be complete.
 //
 //nolint:gocyclo,cyclop
-func (l List) Validate() error {
+func (l List) Validate(opts ValidateOptions) error {
 	var multiErr error
 
 	for _, model := range l {
-		multiErr = joinErrors(multiErr, model.Validate())
+		multiErr = joinErrors(multiErr, model.Validate(opts))
 	}
 
 	// complete template should contain 1 cluster, 1 controlplane, 0-N workers
@@ -121,11 +122,12 @@ func (l List) Validate() error {
 // Translate a set of models (template) to a set of Omni resources.
 //
 // Translate assumes that the template is valid.
-func (l List) Translate() ([]resource.Resource, error) {
+func (l List) Translate(root *os.Root) ([]resource.Resource, error) {
 	context := TranslateContext{
 		LockedMachines:            map[MachineID]struct{}{},
 		MachineDescriptors:        map[MachineID]Descriptors{},
 		MachineSetLevelKernelArgs: map[MachineID]KernelArgs{},
+		Root:                      root,
 	}
 
 	for _, model := range l {

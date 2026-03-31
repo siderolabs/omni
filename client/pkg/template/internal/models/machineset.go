@@ -273,6 +273,7 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 	}
 
 	patches, err := machineset.Patches.Translate(
+		ctx,
 		id,
 		constants.PatchBaseWeightMachineSet,
 		pair.MakePair(omni.LabelCluster, ctx.ClusterName),

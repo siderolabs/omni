@@ -7,6 +7,7 @@ package operations
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"go.yaml.in/yaml/v4"
@@ -15,8 +16,8 @@ import (
 )
 
 // RenderTemplate outputs the rendered template to the given output.
-func RenderTemplate(templateReader io.Reader, output io.Writer) error {
-	tmpl, err := template.Load(templateReader)
+func RenderTemplate(templateReader io.Reader, output io.Writer, root *os.Root) error {
+	tmpl, err := template.Load(templateReader, template.WithRoot(root))
 	if err != nil {
 		return fmt.Errorf("error loading template: %w", err)
 	}

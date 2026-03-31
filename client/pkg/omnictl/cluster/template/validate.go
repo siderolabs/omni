@@ -32,7 +32,7 @@ func validate() error {
 
 	defer f.Close() //nolint:errcheck
 
-	return operations.ValidateTemplate(f)
+	return operations.ValidateTemplate(f, resolvedRoot)
 }
 
 func init() {

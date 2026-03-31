@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
@@ -65,7 +64,7 @@ type KubernetesManifest struct {
 }
 
 // Validate a kubernetes manifest.
-func (km *KubernetesManifest) Validate() error {
+func (km *KubernetesManifest) Validate(opts ValidateOptions) error {
 	var errs error
 
 	name := km.Name
@@ -95,7 +94,7 @@ func (km *KubernetesManifest) Validate() error {
 
 	switch {
 	case km.File != "":
-		_, err := os.Stat(km.File)
+		_, err := StatFile(opts.Root, km.File)
 		if err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to access %q: %w", km.File, err))
 		}
@@ -110,7 +109,7 @@ func (km *KubernetesManifest) Validate() error {
 }
 
 // Translate the model into a resource.
-func (km *KubernetesManifest) Translate(prefix string, weight int, labels ...pair.Pair[string, string]) (*omni.KubernetesManifestGroup, error) {
+func (km *KubernetesManifest) Translate(ctx TranslateContext, prefix string, weight int, labels ...pair.Pair[string, string]) (*omni.KubernetesManifestGroup, error) {
 	name := km.Name
 	if name == "" {
 		name = km.File
@@ -125,7 +124,7 @@ func (km *KubernetesManifest) Translate(prefix string, weight int, labels ...pai
 
 	switch {
 	case km.File != "":
-		raw, err = os.ReadFile(km.File)
+		raw, err = ReadFile(ctx.Root, km.File)
 	case km.Inline != nil:
 		var buf bytes.Buffer
 
@@ -172,11 +171,11 @@ func (km *KubernetesManifest) Translate(prefix string, weight int, labels ...pai
 type KubernetesManifestsList []KubernetesManifest
 
 // Validate the manifests in the list.
-func (k KubernetesManifestsList) Validate() error {
+func (k KubernetesManifestsList) Validate(opts ValidateOptions) error {
 	names := make(map[string]struct{}, len(k))
 
 	return errors.Join(xslices.Map(k, func(m KubernetesManifest) error {
-		if err := m.Validate(); err != nil {
+		if err := m.Validate(opts); err != nil {
 			return err
 		}
 
@@ -196,11 +195,11 @@ func (k KubernetesManifestsList) Validate() error {
 }
 
 // Translate the list of KubernetesManifests into a list of resources.
-func (l KubernetesManifestsList) Translate(prefix string, baseWeight int, labels ...pair.Pair[string, string]) ([]resource.Resource, error) {
+func (l KubernetesManifestsList) Translate(ctx TranslateContext, prefix string, baseWeight int, labels ...pair.Pair[string, string]) ([]resource.Resource, error) {
 	resources := make([]resource.Resource, 0, len(l))
 
 	for i, manifest := range l {
-		r, err := manifest.Translate(prefix, baseWeight+i, labels...)
+		r, err := manifest.Translate(ctx, prefix, baseWeight+i, labels...)
 		if err != nil {
 			return nil, err
 		}

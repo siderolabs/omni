@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"slices"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -20,8 +21,8 @@ import (
 )
 
 // DeleteTemplate removes all template resources from Omni.
-func DeleteTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, st state.State, syncOptions SyncOptions) error {
-	tmpl, err := template.Load(templateReader)
+func DeleteTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, st state.State, syncOptions SyncOptions, root *os.Root) error {
+	tmpl, err := template.Load(templateReader, template.WithRoot(root))
 	if err != nil {
 		return fmt.Errorf("error loading template: %w", err)
 	}

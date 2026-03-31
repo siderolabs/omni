@@ -104,7 +104,7 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, inclu
 	}
 
 	modelList := buildModelList(clusterModel, controlPlaneMachineSetModel, workerMachineSetModels, machineModels)
-	if err = modelList.Validate(); err != nil {
+	if err = modelList.Validate(models.ValidateOptions{}); err != nil {
 		return nil, fmt.Errorf("error validating models: %w", err)
 	}
 

@@ -42,7 +42,7 @@ spec:
 metadata:
     namespace: default
     type: ConfigPatches.omni.sidero.dev
-    id: 201-cluster-my-first-cluster-../testdata/patches/my-registry-mirrors.yaml
+    id: 201-cluster-my-first-cluster-patches/my-registry-mirrors.yaml
     version: undefined
     owner:
     phase: running
@@ -51,7 +51,7 @@ metadata:
     labels:
         omni.sidero.dev/cluster: my-first-cluster
     annotations:
-        name: ../testdata/patches/my-registry-mirrors.yaml
+        name: patches/my-registry-mirrors.yaml
 spec:
     data: |
         machine:

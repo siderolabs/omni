@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/cosi-project/runtime/pkg/state"
 
@@ -16,8 +17,8 @@ import (
 )
 
 // DiffTemplate outputs the diff between template resources and existing resources.
-func DiffTemplate(ctx context.Context, templateReader io.Reader, output io.Writer, st state.State) error {
-	tmpl, err := template.Load(templateReader)
+func DiffTemplate(ctx context.Context, templateReader io.Reader, output io.Writer, st state.State, root *os.Root) error {
+	tmpl, err := template.Load(templateReader, template.WithRoot(root))
 	if err != nil {
 		return fmt.Errorf("error loading template: %w", err)
 	}

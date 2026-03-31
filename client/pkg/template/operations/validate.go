@@ -7,13 +7,14 @@ package operations
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/siderolabs/omni/client/pkg/template"
 )
 
 // ValidateTemplate performs template validation.
-func ValidateTemplate(templateReader io.Reader) error {
-	tmpl, err := template.Load(templateReader)
+func ValidateTemplate(templateReader io.Reader, root *os.Root) error {
+	tmpl, err := template.Load(templateReader, template.WithRoot(root))
 	if err != nil {
 		return fmt.Errorf("error loading template: %w", err)
 	}

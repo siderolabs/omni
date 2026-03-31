@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/hashicorp/go-multierror"
@@ -42,22 +41,22 @@ type Patch struct { //nolint:govet
 }
 
 // Validate the model.
-func (l PatchList) Validate() error {
+func (l PatchList) Validate(opts ValidateOptions) error {
 	var multiErr error
 
 	for _, patch := range l {
-		multiErr = joinErrors(multiErr, patch.Validate())
+		multiErr = joinErrors(multiErr, patch.Validate(opts))
 	}
 
 	return multiErr
 }
 
 // Translate the list of patches into a list of resources.
-func (l PatchList) Translate(prefix string, baseWeight int, labels ...pair.Pair[string, string]) ([]resource.Resource, error) {
+func (l PatchList) Translate(ctx TranslateContext, prefix string, baseWeight int, labels ...pair.Pair[string, string]) ([]resource.Resource, error) {
 	resources := make([]resource.Resource, 0, len(l))
 
 	for i, patch := range l {
-		r, err := patch.Translate(prefix, baseWeight+i, labels...)
+		r, err := patch.Translate(ctx, prefix, baseWeight+i, labels...)
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +68,7 @@ func (l PatchList) Translate(prefix string, baseWeight int, labels ...pair.Pair[
 }
 
 // Validate the model.
-func (patch *Patch) Validate() error {
+func (patch *Patch) Validate(opts ValidateOptions) error {
 	var multiErr error
 
 	name := patch.Name
@@ -91,7 +90,7 @@ func (patch *Patch) Validate() error {
 
 	switch {
 	case patch.File != "":
-		raw, err := os.ReadFile(patch.File)
+		raw, err := ReadFile(opts.Root, patch.File)
 		if err != nil {
 			multiErr = multierror.Append(multiErr, fmt.Errorf("failed to access %q: %w", patch.File, err))
 		} else {
@@ -122,7 +121,7 @@ func (patch *Patch) Validate() error {
 }
 
 // Translate the model into a resource.
-func (patch *Patch) Translate(prefix string, weight int, labels ...pair.Pair[string, string]) (*omni.ConfigPatch, error) {
+func (patch *Patch) Translate(ctx TranslateContext, prefix string, weight int, labels ...pair.Pair[string, string]) (*omni.ConfigPatch, error) {
 	name := patch.Name
 	if name == "" {
 		name = patch.File
@@ -140,7 +139,7 @@ func (patch *Patch) Translate(prefix string, weight int, labels ...pair.Pair[str
 
 	switch {
 	case patch.File != "":
-		raw, err = os.ReadFile(patch.File)
+		raw, err = ReadFile(ctx.Root, patch.File)
 	case patch.Inline != nil:
 		raw, err = yaml.Marshal(patch.Inline)
 	default:

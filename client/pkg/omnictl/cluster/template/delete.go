@@ -39,7 +39,7 @@ func deleteImpl(ctx context.Context, client *client.Client, _ access.ServerInfo)
 
 	defer f.Close() //nolint:errcheck
 
-	return operations.DeleteTemplate(ctx, f, os.Stdout, client.Omni().State(), deleteCmdFlags.options)
+	return operations.DeleteTemplate(ctx, f, os.Stdout, client.Omni().State(), deleteCmdFlags.options, resolvedRoot)
 }
 
 func init() {

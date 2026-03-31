@@ -100,7 +100,7 @@ func syncTemplateFiles(ctx context.Context, client *client.Client, _ access.Serv
 			return fmt.Errorf("failed to open template file %q: %w", file, err)
 		}
 
-		err = operations.SyncTemplate(ctx, f, os.Stdout, client.Omni().State(), syncCmdFlags.options)
+		err = operations.SyncTemplate(ctx, f, os.Stdout, client.Omni().State(), syncCmdFlags.options, resolvedRoot)
 		f.Close() //nolint:errcheck
 
 		if err != nil {

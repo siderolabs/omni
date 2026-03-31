@@ -15,4 +15,7 @@ title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgra
 description = """\
 As Omni is now using `--join-tokens-mode=legacyAllowed` by default it won't start if there are any nodes running Talos below 1.6 connected to the instance.
 If you want to keep using Omni with the outdated Talos you will need to set the flag to `legacy`. But of course we strongly recommend you to update Talos ASAP.
+
+`omnictl cluster template` has breaking changes: it now restricts including files outside of the current directory.
+If using files in the parent dirs, old behavior can be enabled by using `--allowed-dir`.
 """

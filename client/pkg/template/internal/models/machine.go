@@ -81,7 +81,7 @@ func (install *MachineInstall) Validate() error {
 }
 
 // Validate the model.
-func (machine *Machine) Validate() error {
+func (machine *Machine) Validate(opts ValidateOptions) error {
 	var multiErr error
 
 	if machine.Name == "" {
@@ -92,7 +92,7 @@ func (machine *Machine) Validate() error {
 		multiErr = multierror.Append(multiErr, err)
 	}
 
-	multiErr = joinErrors(multiErr, machine.Name.Validate(), machine.Install.Validate(), machine.Patches.Validate())
+	multiErr = joinErrors(multiErr, machine.Name.Validate(), machine.Install.Validate(), machine.Patches.Validate(opts))
 	if multiErr != nil {
 		return fmt.Errorf("machine %q is invalid: %w", machine.Name, multiErr)
 	}
@@ -117,6 +117,7 @@ func (machine *Machine) Translate(ctx TranslateContext) ([]resource.Resource, er
 		}
 
 		patchResource, err := patch.Translate(
+			ctx,
 			fmt.Sprintf("cm-%s", machine.Name),
 			constants.PatchWeightInstallDisk,
 			pair.MakePair(omni.LabelCluster, ctx.ClusterName),
@@ -131,6 +132,7 @@ func (machine *Machine) Translate(ctx TranslateContext) ([]resource.Resource, er
 	}
 
 	patches, err := machine.Patches.Translate(
+		ctx,
 		fmt.Sprintf("cm-%s", machine.Name),
 		constants.PatchBaseWeightClusterMachine,
 		pair.MakePair(omni.LabelCluster, ctx.ClusterName),
