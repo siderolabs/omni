@@ -6,7 +6,7 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v1.6.1"
+previous = "v1.6.2"
 
 [notes.aaa-removed-deprecated-migration-flags]
 title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"

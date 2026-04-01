@@ -1,3 +1,54 @@
+## [Omni 1.6.3](https://github.com/siderolabs/omni/releases/tag/v1.6.3) (2026-04-01)
+
+Welcome to the v1.6.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+The deprecated flags and config fields that were kept for the SQLite migration period (introduced in v1.4.0) have been removed.
+
+If you still have any of the following flags or config keys set, **you must remove them before upgrading**, as they will cause startup errors:
+* `--audit-log-dir` (`.logs.audit.path`)
+* `--secondary-storage-path` (`.storage.secondary.path`)
+* `--machine-log-storage-path` (`.logs.machine.storage.path`)
+* `--machine-log-storage-enabled` (`.logs.machine.storage.enabled`)
+* `--log-storage-path` (`.logs.machine.storage.path`)
+* `--embedded-discovery-service-snapshot-path` (`.services.embeddedDiscoveryService.snapshotsPath`)
+* `--machine-log-buffer-capacity` (`.logs.machine.bufferInitialCapacity`)
+* `--machine-log-buffer-max-capacity` (`.logs.machine.bufferMaxCapacity`)
+* `--machine-log-buffer-safe-gap` (`.logs.machine.bufferSafetyGap`)
+* `--machine-log-num-compressed-chunks` (`.logs.machine.storage.numCompressedChunks`)
+
+The automatic migration code for BoltDB secondary storage, file-based audit logs, file-based discovery service snapshots, and circular buffer machine logs has also been removed. If you are upgrading from a version older than v1.4.0, you must first upgrade to v1.4.x to complete the migrations, then upgrade to this version.
+
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`b71f8507`](https://github.com/siderolabs/omni/commit/b71f8507832a47725b1e57685576907281e4e02a) chore: collect metrics on the initial `Collect` call to avoid empty data
+* [`7783277e`](https://github.com/siderolabs/omni/commit/7783277e58272175b548b2ba507609771b4f9606) chore: extract sqlite metrics collector into a separate goroutine
+</p>
+</details>
+
+### Dependency Changes
+
+* **golang.org/x/crypto**     v0.48.0 -> v0.49.0
+* **golang.org/x/net**        v0.51.0 -> v0.52.0
+* **golang.org/x/text**       v0.34.0 -> v0.35.0
+* **google.golang.org/grpc**  v1.79.2 -> v1.80.0
+
+Previous release can be found at [v1.6.2](https://github.com/siderolabs/omni/releases/tag/v1.6.2)
+
+
 ## [Omni 1.6.2](https://github.com/siderolabs/omni/releases/tag/v1.6.2) (2026-03-25)
 
 Welcome to the v1.6.2 release of Omni!
