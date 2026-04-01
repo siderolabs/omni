@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-03-23T13:14:08Z by kres 3675077.
+# Generated on 2026-04-07T12:09:10Z by kres 3675077.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN=scratch
@@ -322,13 +322,13 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 FROM base AS lint-govulncheck
 WORKDIR /src
 COPY --chmod=0755 hack/govulncheck.sh ./hack/govulncheck.sh
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg ./hack/govulncheck.sh ./...
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg ./hack/govulncheck.sh -exclude 'GO-2026-4923' ./...
 
 # runs govulncheck
 FROM base AS lint-govulncheck-client
 WORKDIR /src/client
 COPY --chmod=0755 hack/govulncheck.sh ./hack/govulncheck.sh
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg ./hack/govulncheck.sh ./...
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg ./hack/govulncheck.sh -exclude 'GO-2026-4923' ./...
 
 # runs unit-tests with race detector
 FROM base AS unit-tests-client-race

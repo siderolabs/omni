@@ -4,6 +4,11 @@ name: omnictl
 spec:
   disableImage: true
 ---
+kind: golang.GoVulnCheck
+spec:
+  ignore:
+    - GO-2026-4923 # not fixed yet
+---
 kind: auto.CommandConfig
 name: acompat
 spec:
