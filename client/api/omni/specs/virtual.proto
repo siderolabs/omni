@@ -46,6 +46,7 @@ message ClusterPermissionsSpec {
   bool can_read_kernel_args = 15;
   bool can_manage_kernel_args = 16;
   bool can_read_machine_pending_updates = 17;
+  bool can_read_kubernetes_manifests = 18;
 }
 
 message LabelsCompletionSpec {

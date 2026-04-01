@@ -92,6 +92,7 @@ func (m *ClusterPermissionsSpec) CloneVT() *ClusterPermissionsSpec {
 	r.CanReadKernelArgs = m.CanReadKernelArgs
 	r.CanManageKernelArgs = m.CanManageKernelArgs
 	r.CanReadMachinePendingUpdates = m.CanReadMachinePendingUpdates
+	r.CanReadKubernetesManifests = m.CanReadKubernetesManifests
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -418,6 +419,9 @@ func (this *ClusterPermissionsSpec) EqualVT(that *ClusterPermissionsSpec) bool {
 		return false
 	}
 	if this.CanReadMachinePendingUpdates != that.CanReadMachinePendingUpdates {
+		return false
+	}
+	if this.CanReadKubernetesManifests != that.CanReadKubernetesManifests {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -947,6 +951,18 @@ func (m *ClusterPermissionsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CanReadKubernetesManifests {
+		i--
+		if m.CanReadKubernetesManifests {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x90
 	}
 	if m.CanReadMachinePendingUpdates {
 		i--
@@ -1777,6 +1793,9 @@ func (m *ClusterPermissionsSpec) SizeVT() (n int) {
 		n += 3
 	}
 	if m.CanReadMachinePendingUpdates {
+		n += 3
+	}
+	if m.CanReadKubernetesManifests {
 		n += 3
 	}
 	n += len(m.unknownFields)
@@ -2855,6 +2874,26 @@ func (m *ClusterPermissionsSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.CanReadMachinePendingUpdates = bool(v != 0)
+		case 18:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanReadKubernetesManifests", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanReadKubernetesManifests = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

@@ -42,6 +42,7 @@ declare module 'vue-router/auto-routes' {
       | 'ClusterConfigPatches'
       | 'ClusterCreate'
       | 'ClusterMachinePatchEdit'
+      | 'ClusterManifestsStatus'
       | 'ClusterOverview'
       | 'ClusterPatchEdit'
       | 'ClusterScale'
@@ -117,6 +118,7 @@ declare module 'vue-router/auto-routes' {
       | 'Backups'
       | 'ClusterConfigPatches'
       | 'ClusterMachinePatchEdit'
+      | 'ClusterManifestsStatus'
       | 'ClusterOverview'
       | 'ClusterPatchEdit'
       | 'ClusterScale'
@@ -254,6 +256,13 @@ declare module 'vue-router/auto-routes' {
     'KubernetesManifestSync': RouteRecordInfo<
       'KubernetesManifestSync',
       '/clusters/:cluster/manifests',
+      { cluster: ParamValue<true> },
+      { cluster: ParamValue<false> },
+      | never
+    >,
+    'ClusterManifestsStatus': RouteRecordInfo<
+      'ClusterManifestsStatus',
+      '/clusters/:cluster/manifests-status',
       { cluster: ParamValue<true> },
       { cluster: ParamValue<false> },
       | never
@@ -620,6 +629,7 @@ declare module 'vue-router/auto-routes' {
         | 'ClusterConfigPatches'
         | 'ClusterCreate'
         | 'ClusterMachinePatchEdit'
+        | 'ClusterManifestsStatus'
         | 'ClusterOverview'
         | 'ClusterPatchEdit'
         | 'ClusterScale'
@@ -685,6 +695,7 @@ declare module 'vue-router/auto-routes' {
         | 'ClusterConfigPatches'
         | 'ClusterCreate'
         | 'ClusterMachinePatchEdit'
+        | 'ClusterManifestsStatus'
         | 'ClusterOverview'
         | 'ClusterPatchEdit'
         | 'ClusterScale'
@@ -758,6 +769,7 @@ declare module 'vue-router/auto-routes' {
         | 'Backups'
         | 'ClusterConfigPatches'
         | 'ClusterMachinePatchEdit'
+        | 'ClusterManifestsStatus'
         | 'ClusterOverview'
         | 'ClusterPatchEdit'
         | 'ClusterScale'
@@ -883,6 +895,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(authenticated)/clusters/[cluster]/manifests.vue': {
       routes:
         | 'KubernetesManifestSync'
+      views:
+        | never
+    }
+    'src/pages/(authenticated)/clusters/[cluster]/manifests-status.vue': {
+      routes:
+        | 'ClusterManifestsStatus'
       views:
         | never
     }

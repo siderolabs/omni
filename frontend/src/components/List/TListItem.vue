@@ -5,10 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from 'reka-ui'
 
 import TIcon from '@/components/Icon/TIcon.vue'
-import TSlideDownWrapper from '@/components/SlideDownWrapper/TSlideDownWrapper.vue'
 
 const { isDefaultOpened } = defineProps<{
   isDefaultOpened?: boolean
@@ -20,29 +19,32 @@ defineSlots<{
   secondary(): unknown
   details(): unknown
 }>()
-
-const isDropdownOpened = ref(isDefaultOpened)
 </script>
 
 <template>
-  <div
-    class="flex w-full flex-col border-b border-naturals-n5 px-2 py-4 text-xs text-naturals-n13 transition-all duration-500"
+  <CollapsibleRoot
+    v-slot="{ open }"
+    class="flex w-full flex-col rounded-t-sm border-b border-naturals-n5 px-2 py-4 text-xs text-naturals-n13 transition-all duration-500 last-of-type:border-none"
     :class="
-      isDropdownOpened && !disableBorderOnExpand
-        ? 'mt-1 rounded last-of-type:border-naturals-n6'
-        : 'rounded-t-sm last-of-type:border-none'
+      !disableBorderOnExpand &&
+      'data-[state=open]:mt-1 data-[state=open]:rounded data-[state=open]:last-of-type:border-naturals-n6'
     "
     role="row"
+    :default-open="isDefaultOpened"
   >
     <div class="flex flex-col gap-1">
       <div class="flex items-center gap-1">
-        <TIcon
+        <CollapsibleTrigger
           v-if="$slots.details"
-          class="size-6 cursor-pointer rounded fill-current text-naturals-n11 transition-all duration-300 hover:bg-naturals-n7"
-          :class="isDropdownOpened ? 'rotate-0' : '-rotate-180'"
-          icon="drop-up"
-          @click="isDropdownOpened = !isDropdownOpened"
-        />
+          class="group cursor-pointer rounded transition-colors hover:bg-naturals-n7"
+          :aria-label="open ? 'Collapse details' : 'Expand details'"
+        >
+          <TIcon
+            class="size-6 cursor-pointer text-naturals-n11 transition-transform duration-300 group-data-[state=closed]:-rotate-180"
+            icon="drop-up"
+            aria-hidden="true"
+          />
+        </CollapsibleTrigger>
 
         <div class="min-w-0 flex-1 px-1">
           <slot></slot>
@@ -52,10 +54,38 @@ const isDropdownOpened = ref(isDefaultOpened)
       <slot name="secondary"></slot>
     </div>
 
-    <TSlideDownWrapper :expanded="isDropdownOpened">
+    <CollapsibleContent v-if="$slots.details" class="collapsible-content overflow-hidden">
       <div class="p-2">
         <slot name="details"></slot>
       </div>
-    </TSlideDownWrapper>
-  </div>
+    </CollapsibleContent>
+  </CollapsibleRoot>
 </template>
+
+<style scoped>
+.collapsible-content[data-state='open'] {
+  animation: slideDown 200ms ease-out;
+}
+
+.collapsible-content[data-state='closed'] {
+  animation: slideUp 200ms ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--reka-collapsible-content-height);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    height: var(--reka-collapsible-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+</style>

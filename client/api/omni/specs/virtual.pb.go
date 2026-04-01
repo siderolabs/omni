@@ -358,6 +358,7 @@ type ClusterPermissionsSpec struct {
 	CanReadKernelArgs            bool                   `protobuf:"varint,15,opt,name=can_read_kernel_args,json=canReadKernelArgs,proto3" json:"can_read_kernel_args,omitempty"`
 	CanManageKernelArgs          bool                   `protobuf:"varint,16,opt,name=can_manage_kernel_args,json=canManageKernelArgs,proto3" json:"can_manage_kernel_args,omitempty"`
 	CanReadMachinePendingUpdates bool                   `protobuf:"varint,17,opt,name=can_read_machine_pending_updates,json=canReadMachinePendingUpdates,proto3" json:"can_read_machine_pending_updates,omitempty"`
+	CanReadKubernetesManifests   bool                   `protobuf:"varint,18,opt,name=can_read_kubernetes_manifests,json=canReadKubernetesManifests,proto3" json:"can_read_kubernetes_manifests,omitempty"`
 	unknownFields                protoimpl.UnknownFields
 	sizeCache                    protoimpl.SizeCache
 }
@@ -507,6 +508,13 @@ func (x *ClusterPermissionsSpec) GetCanManageKernelArgs() bool {
 func (x *ClusterPermissionsSpec) GetCanReadMachinePendingUpdates() bool {
 	if x != nil {
 		return x.CanReadMachinePendingUpdates
+	}
+	return false
+}
+
+func (x *ClusterPermissionsSpec) GetCanReadKubernetesManifests() bool {
+	if x != nil {
+		return x.CanReadKubernetesManifests
 	}
 	return false
 }
@@ -1048,7 +1056,7 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x14can_read_join_tokens\x18\x0e \x01(\bR\x11canReadJoinTokens\x123\n" +
 	"\x16can_manage_join_tokens\x18\x0f \x01(\bR\x13canManageJoinTokens\x12=\n" +
 	"\x1bcan_read_installation_media\x18\x10 \x01(\bR\x18canReadInstallationMedia\x12A\n" +
-	"\x1dcan_manage_installation_media\x18\x11 \x01(\bR\x1acanManageInstallationMedia\"\xc5\a\n" +
+	"\x1dcan_manage_installation_media\x18\x11 \x01(\bR\x1acanManageInstallationMedia\"\x88\b\n" +
 	"\x16ClusterPermissionsSpec\x12(\n" +
 	"\x10can_add_machines\x18\x01 \x01(\bR\x0ecanAddMachines\x12.\n" +
 	"\x13can_remove_machines\x18\x02 \x01(\bR\x11canRemoveMachines\x12.\n" +
@@ -1067,7 +1075,8 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x19can_manage_machine_config\x18\x0e \x01(\bR\x16canManageMachineConfig\x12/\n" +
 	"\x14can_read_kernel_args\x18\x0f \x01(\bR\x11canReadKernelArgs\x123\n" +
 	"\x16can_manage_kernel_args\x18\x10 \x01(\bR\x13canManageKernelArgs\x12F\n" +
-	" can_read_machine_pending_updates\x18\x11 \x01(\bR\x1ccanReadMachinePendingUpdates\"\xd2\x01\n" +
+	" can_read_machine_pending_updates\x18\x11 \x01(\bR\x1ccanReadMachinePendingUpdates\x12A\n" +
+	"\x1dcan_read_kubernetes_manifests\x18\x12 \x01(\bR\x1acanReadKubernetesManifests\"\xd2\x01\n" +
 	"\x14LabelsCompletionSpec\x12<\n" +
 	"\x05items\x18\x01 \x03(\v2&.specs.LabelsCompletionSpec.ItemsEntryR\x05items\x1a\x1e\n" +
 	"\x06Values\x12\x14\n" +

@@ -128,6 +128,7 @@ export function useClusterPermissions(cluster: MaybeRefOrGetter<string | undefin
     canAddClusterMachines: computed(() => spec.value?.can_add_machines ?? false),
     canRemoveClusterMachines: computed(() => spec.value?.can_remove_machines ?? false),
     canSyncKubernetesManifests: computed(() => spec.value?.can_sync_kubernetes_manifests ?? false),
+    canReadKubernetesManifests: computed(() => spec.value?.can_read_kubernetes_manifests ?? false),
     canReadConfigPatches: computed(() => spec.value?.can_read_config_patches ?? false),
     canManageConfigPatches: computed(() => spec.value?.can_manage_config_patches ?? false),
     canRebootMachines: computed(() => spec.value?.can_reboot_machines ?? false),

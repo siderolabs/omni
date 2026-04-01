@@ -57,7 +57,7 @@ const currentMachine = computed(() =>
 )
 
 const { status: backupStatus } = setupBackupStatus()
-const { canSyncKubernetesManifests, canManageClusterFeatures } =
+const { canSyncKubernetesManifests, canReadKubernetesManifests, canManageClusterFeatures } =
   useClusterPermissions(currentCluster)
 
 const { data: machineMetrics } = useResourceWatch<MachineStatusMetricsSpec>({
@@ -360,6 +360,14 @@ const clusterItems = computed(() => {
       icon: 'bootstrap-manifests',
       label: pendingManifests.value,
       labelDanger: pendingManifests.value === '!',
+    })
+  }
+
+  if (canReadKubernetesManifests.value) {
+    result.push({
+      name: 'Manifests Status',
+      route: getRoute('/manifests-status'),
+      icon: 'kubernetes',
     })
   }
 

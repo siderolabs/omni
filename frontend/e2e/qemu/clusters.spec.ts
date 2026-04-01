@@ -7,6 +7,7 @@ import os from 'node:os'
 
 import type { Page } from '@playwright/test'
 import { milliseconds } from 'date-fns'
+import { dump, load } from 'js-yaml'
 import { diff as diffJSON } from 'json-diff-ts'
 import * as uuid from 'uuid'
 import * as yaml from 'yaml'
@@ -260,7 +261,44 @@ test('cluster template export and sync', async ({ omnictl }, testInfo) => {
   })
 })
 
-test('exposed services', async ({ page }, testInfo) => {
+test('add control plane patch', async ({ page }, testInfo) => {
+  await test.step('Visit cluster overview', async () => {
+    await page.goto('/')
+    await page.getByRole('link', { name: 'Clusters' }).click()
+
+    await expect(page).toHaveURL('/clusters')
+    await expect(page.getByRole('heading', { name: 'Clusters', exact: true })).toBeVisible()
+
+    await page.getByRole('link', { name: clusterName, exact: true }).click()
+    await expect(page.getByRole('heading', { name: clusterName, exact: true })).toBeVisible()
+  })
+
+  await test.step('Visit config patches for control plane', async () => {
+    await page.getByRole('link', { name: cpMachineName }).click()
+    await page.getByRole('tab', { name: 'Patches', exact: true }).click()
+    await page.getByRole('link', { name: 'Create Patch' }).click()
+  })
+
+  await test.step('Add EnvironmentConfig patch', async () => {
+    const envPatch = await fs.readFile(new URL('./env_config_patch.yaml', import.meta.url), 'utf8')
+    await testInfo.attach('env_config_patch.yaml', {
+      body: envPatch,
+      contentType: 'application/yaml',
+    })
+
+    await page.evaluate((text) => navigator.clipboard.writeText(text), envPatch)
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(envPatch)
+
+    await page
+      .getByRole('textbox', { name: 'Editor content' })
+      .press(`${os.platform() === 'darwin' ? 'Meta' : 'Control'}+v`)
+    await expect(page.getByText('variables:')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Save' }).click()
+  })
+})
+
+test('exposed services', async ({ page, omnictl }, testInfo) => {
   test.setTimeout(milliseconds({ minutes: 2 }))
 
   await test.step('Visit cluster overview', async () => {
@@ -279,42 +317,59 @@ test('exposed services', async ({ page }, testInfo) => {
     await expect(page.getByRole('checkbox', { name: 'Workload Service Proxying' })).toBeChecked()
   })
 
-  await test.step('Visit config patches for control plane', async () => {
-    await page.getByRole('link', { name: cpMachineName }).click()
-    await page.getByRole('tab', { name: 'Patches', exact: true }).click()
-    await page.getByRole('link', { name: 'Create Patch' }).click()
+  await test.step('Visit manifests status', async () => {
+    await page.getByRole('link', { name: 'Manifests Status' }).click()
+
+    await expect(
+      page.getByRole('heading', { name: `Manifests Status — ${clusterName}` }),
+    ).toBeVisible()
   })
 
-  await test.step('Add service via inlineManifests patch', async () => {
-    const cpPatch = await fs.readFile(new URL('./e2e_nginx.yaml', import.meta.url), 'utf8')
-    await testInfo.attach('inline_manifest_patch.yaml', {
-      body: cpPatch,
+  await test.step('Verify workload proxy manifest applied', async () => {
+    const workloadProxyRow = page.getByRole('row', {
+      name: `cluster-${clusterName}-workload-proxy`,
+    })
+
+    await expect(workloadProxyRow.getByText('Applied')).toBeVisible({
+      timeout: milliseconds({ seconds: 30 }),
+    })
+
+    await expect(workloadProxyRow.getByText('Full')).toBeVisible()
+    await expect(workloadProxyRow.getByText('4/4 in sync')).toBeVisible()
+  })
+
+  await test.step('Add service via k8s manifests', async () => {
+    const rawManifest = await fs.readFile(new URL('./k8s_manifest.yaml', import.meta.url), 'utf8')
+    const parsedManifest = load(rawManifest) as { metadata: { labels?: Record<string, string> } }
+
+    parsedManifest.metadata.labels = {
+      ['omni.sidero.dev/cluster']: clusterName,
+    }
+
+    const manifestPath = testInfo.outputPath('k8s_manifest.yaml')
+    await fs.writeFile(manifestPath, dump(parsedManifest))
+    await testInfo.attach('k8s_manifest.yaml', {
+      path: manifestPath,
       contentType: 'application/yaml',
     })
 
-    await page.evaluate((text) => navigator.clipboard.writeText(text), cpPatch)
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(cpPatch)
-
-    await page
-      .getByRole('textbox', { name: 'Editor content' })
-      .press(`${os.platform() === 'darwin' ? 'Meta' : 'Control'}+v`)
-    await expect(page.getByText('inlineManifests:')).toBeVisible()
-
-    await page.getByRole('button', { name: 'Save' }).click()
+    const { stderr } = await omnictl(['apply', '-f', manifestPath])
+    expect(stderr.trim()).toHaveLength(0)
   })
 
-  await test.step('Visit cluster overview', async () => {
-    await page.goto('/')
-    await page.getByRole('link', { name: 'Clusters' }).click()
+  const nginxRow = page.getByRole('row', { name: 'nginx-service' })
 
-    await expect(page).toHaveURL('/clusters')
-    await expect(page.getByRole('heading', { name: 'Clusters', exact: true })).toBeVisible()
-
-    await page.getByRole('link', { name: clusterName, exact: true }).click()
-    await expect(page.getByRole('heading', { name: clusterName, exact: true })).toBeVisible()
+  await test.step('Verify nginx service manifest created', async () => {
+    await expect(nginxRow.getByText('Progressing')).toBeVisible()
+    await expect(nginxRow.getByText('One-Time')).toBeVisible()
+    await expect(nginxRow.getByText('0/2 in sync')).toBeVisible()
   })
 
   await expect(async () => {
+    await expect(nginxRow.getByText('Applied')).toBeVisible()
+    await expect(nginxRow.getByText('One-Time')).toBeVisible()
+    await expect(nginxRow.getByText('2/2 in sync')).toBeVisible()
+
     let servicePage: Page | undefined
 
     try {
@@ -332,6 +387,28 @@ test('exposed services', async ({ page }, testInfo) => {
   }, 'Wait for service to be running').toPass({
     intervals: [milliseconds({ seconds: 5 })],
     timeout: milliseconds({ minutes: 1 }),
+  })
+
+  await test.step('Verify individual nginx service manifests', async () => {
+    await expect(nginxRow.getByRole('table')).toBeHidden()
+    await nginxRow.getByRole('button', { name: 'Expand details' }).click()
+    await expect(nginxRow.getByRole('table')).toBeVisible()
+
+    const deploymentRow = nginxRow.getByRole('row', { name: 'Deployment/default/nginx' })
+    const serviceRow = nginxRow.getByRole('row', { name: 'Service/default/nginx' })
+
+    await expect(deploymentRow.getByRole('cell', { name: 'Deployment', exact: true })).toBeVisible()
+    await expect(deploymentRow.getByRole('cell', { name: 'nginx', exact: true })).toBeVisible()
+    await expect(deploymentRow.getByRole('cell', { name: 'default', exact: true })).toBeVisible()
+    await expect(deploymentRow.getByRole('cell', { name: 'Applied', exact: true })).toBeVisible()
+
+    await expect(serviceRow.getByRole('cell', { name: 'Service', exact: true })).toBeVisible()
+    await expect(serviceRow.getByRole('cell', { name: 'nginx', exact: true })).toBeVisible()
+    await expect(serviceRow.getByRole('cell', { name: 'default', exact: true })).toBeVisible()
+    await expect(serviceRow.getByRole('cell', { name: 'Applied', exact: true })).toBeVisible()
+
+    await nginxRow.getByRole('button', { name: 'Collapse details' }).click()
+    await expect(nginxRow.getByRole('table')).toBeHidden()
   })
 })
 
@@ -379,12 +456,12 @@ test('node overview tabs', async ({ page }) => {
 
   await test.step('Validate config history tab', async () => {
     await page.getByRole('tab', { name: 'Config History', exact: true }).click()
-    await expect(page.getByText('inlineManifests:')).toBeVisible()
+    await expect(page.getByText('variables:')).toBeVisible()
 
     // This asserts that the virtualisation is working
-    await expect(page.getByText('targetPort: 80')).toBeHidden()
-    await page.getByRole('textbox', { name: 'Search:' }).fill('targetPort:')
-    await expect(page.getByText('targetPort: 80')).toBeVisible()
+    await expect(page.getByText('WORKER_THREAD_COUNT')).toBeHidden()
+    await page.getByRole('textbox', { name: 'Search:' }).fill('WORKER_THREAD_COUNT')
+    await expect(page.getByText('WORKER_THREAD_COUNT')).toBeVisible()
   })
 
   await test.step('Validate patches tab', async () => {

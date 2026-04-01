@@ -338,6 +338,7 @@ func (v *State) clusterPermissions(ctx context.Context, ptr resource.Pointer) (*
 		clusterPermissions.TypedSpec().Value.CanUpdateTalos = true
 		clusterPermissions.TypedSpec().Value.CanManageConfigPatches = true
 		clusterPermissions.TypedSpec().Value.CanSyncKubernetesManifests = true
+		clusterPermissions.TypedSpec().Value.CanReadKubernetesManifests = true
 		clusterPermissions.TypedSpec().Value.CanManageClusterFeatures = true
 		clusterPermissions.TypedSpec().Value.CanDownloadSupportBundle = true
 		clusterPermissions.TypedSpec().Value.CanManageMachineConfig = true

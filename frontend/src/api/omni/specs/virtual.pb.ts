@@ -59,6 +59,7 @@ export type ClusterPermissionsSpec = {
   can_read_kernel_args?: boolean
   can_manage_kernel_args?: boolean
   can_read_machine_pending_updates?: boolean
+  can_read_kubernetes_manifests?: boolean
 }
 
 export type LabelsCompletionSpecValues = {
