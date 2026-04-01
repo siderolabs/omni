@@ -144,10 +144,6 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if time.Since(m.lastRefresh) > m.refreshInterval {
-		m.refresh()
-	}
-
 	ch <- prometheus.MustNewConstMetric(m.dbSizeDesc, prometheus.GaugeValue, m.cachedDBSize)
 
 	ch <- prometheus.MustNewConstMetric(m.dbFreelistSizeDesc, prometheus.GaugeValue, m.cachedFreelistSize)
@@ -163,13 +159,35 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 	m.cleanupRowsDeleted.Collect(ch)
 }
 
+// Run starts a loop that periodically refreshes metrics by querying the database.
+func (m *Metrics) Run(ctx context.Context) {
+	ticker := time.NewTicker(m.refreshInterval)
+	defer ticker.Stop()
+
+	m.mu.Lock()
+	// Initial refresh before the first tick.
+	m.refresh(ctx)
+	m.mu.Unlock()
+
+	for {
+		select {
+		case <-ticker.C:
+			m.mu.Lock()
+			m.refresh(ctx)
+			m.mu.Unlock()
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
 // refresh queries the database and updates cached values.
 // On failure, lastRefresh is still updated to avoid retrying on every scrape.
-func (m *Metrics) refresh() {
+func (m *Metrics) refresh(ctx context.Context) {
 	// Always update lastRefresh to prevent tight retry loops when the DB is unavailable.
 	defer func() { m.lastRefresh = time.Now() }()
 
-	ctx, cancel := context.WithTimeout(context.Background(), queryTimeout)
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
 
 	conn, err := m.db.Take(ctx)
