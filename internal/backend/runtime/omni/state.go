@@ -102,6 +102,13 @@ func (s *State) RunAuditCleanup(ctx context.Context) error {
 	return s.auditWrap.RunCleanup(ctx)
 }
 
+// RunSQLiteMetrics runs the SQLite metrics collector.
+func (s *State) RunSQLiteMetrics(ctx context.Context) error {
+	s.sqliteMetrics.Run(ctx)
+
+	return nil
+}
+
 // DefaultCore returns the default core state.
 func (s *State) DefaultCore() state.CoreState {
 	return s.defaultPersistentState.State

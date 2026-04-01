@@ -282,6 +282,7 @@ func (s *Server) Run(ctx context.Context) error {
 		newSubsystem("frontend dev proxy server", func() error { return s.runDevProxyServer(ctx, apiSrv.Handler()) }),
 		newSubsystem("log handler", func() error { return s.logHandler.Start(ctx) }),
 		newSubsystem("machine API", func() error { return s.runMachineAPI(ctx) }),
+		newSubsystem("SQLite metrics", func() error { return s.state.RunSQLiteMetrics(ctx) }),
 		newSubsystem("audit cleanup", func() error { return s.state.RunAuditCleanup(ctx) }),
 		newSubsystem("state error handler", func() error { return s.state.HandleErrors(ctx) }),
 	}
