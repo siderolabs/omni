@@ -156,8 +156,6 @@ func TestMetricsCaching(t *testing.T) {
 	// A new metrics instance with zero interval should see the new row.
 	registry2 := setupMetrics(t, db, &fakeSQLState{CoreState: st})
 
-	time.Sleep(time.Second)
-
 	expected2 := `
 		# HELP omni_sqlite_subsystem_row_count Total number of rows across a subsystem's tables.
 		# TYPE omni_sqlite_subsystem_row_count gauge

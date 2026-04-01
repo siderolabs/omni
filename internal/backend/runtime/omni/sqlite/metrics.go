@@ -144,6 +144,10 @@ func (m *Metrics) Collect(ch chan<- prometheus.Metric) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	if m.lastRefresh.IsZero() {
+		m.refresh(context.Background())
+	}
+
 	ch <- prometheus.MustNewConstMetric(m.dbSizeDesc, prometheus.GaugeValue, m.cachedDBSize)
 
 	ch <- prometheus.MustNewConstMetric(m.dbFreelistSizeDesc, prometheus.GaugeValue, m.cachedFreelistSize)
