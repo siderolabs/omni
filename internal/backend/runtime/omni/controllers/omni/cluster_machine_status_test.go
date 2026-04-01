@@ -7,6 +7,9 @@ package omni_test
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"runtime"
 	"testing"
 	"time"
 
@@ -15,11 +18,14 @@ import (
 	"github.com/siderolabs/go-retry/retry"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
 )
@@ -245,4 +251,94 @@ func TestClusterMachineStatusSuite(t *testing.T) {
 	t.Parallel()
 
 	suite.Run(t, new(ClusterMachineStatusSuite))
+}
+
+// TestMachineRequestStatusDestroyMapping reproduces the mapped input destruction race:
+// when MachineRequestStatus is destroyed, MapperFuncFromTyped does a Get that returns not-found,
+// so the mapper returns nil and the ClusterMachine is never re-reconciled.
+//
+// Run with: go test -v -run TestClusterMachineStatusSuite/TestMachineRequestStatusDestroyMapping -count=1000 -failfast ./internal/backend/runtime/omni/controllers/omni
+func TestMachineRequestStatusDestroyMapping(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewClusterMachineStatusController()))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			const machineID = "machine-uuid-1"
+			const requestID = "request-1"
+			const providerID = "test-provider"
+
+			st := tc.State
+
+			cluster := rmock.Mock[*omni.Cluster](ctx, t, st)
+
+			rmock.Mock[*omni.MachineSetNode](ctx, t, st,
+				options.WithID(machineID),
+				options.LabelCluster(cluster),
+				options.EmptyLabel(omni.LabelWorkerRole),
+			)
+
+			rmock.Mock[*omni.ClusterMachine](ctx, t, st, options.WithID(machineID))
+
+			machine := omni.NewMachine(machineID)
+			machine.TypedSpec().Value.Connected = true
+			require.NoError(t, st.Create(ctx, machine))
+
+			machineStatus := omni.NewMachineStatus(machineID)
+			machineStatus.Metadata().Labels().Set(omni.LabelMachineRequest, requestID)
+			require.NoError(t, st.Create(ctx, machineStatus))
+
+			statusSnapshot := omni.NewMachineStatusSnapshot(machineID)
+			statusSnapshot.TypedSpec().Value.MachineStatus = &machineapi.MachineStatusEvent{
+				Stage:  machineapi.MachineStatusEvent_RUNNING,
+				Status: &machineapi.MachineStatusEvent_MachineStatus{Ready: true},
+			}
+			require.NoError(t, st.Create(ctx, statusSnapshot))
+
+			mrs := infra.NewMachineRequestStatus(requestID)
+			mrs.TypedSpec().Value.Id = machineID
+			mrs.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+			require.NoError(t, st.Create(ctx, mrs))
+
+			// Wait for providerID to be populated.
+			rtestutils.AssertResource(ctx, t, st, machineID,
+				func(status *omni.ClusterMachineStatus, assertions *assert.Assertions) {
+					assertions.Equal(providerID, status.TypedSpec().Value.GetProvisionStatus().GetProviderId())
+				},
+			)
+
+			// Flood queue with mapped input events.
+			for i := range 100 {
+				ss := omni.NewMachineStatusSnapshot(fmt.Sprintf("pressure-%d", i))
+				ss.TypedSpec().Value.MachineStatus = &machineapi.MachineStatusEvent{}
+				require.NoError(t, st.Create(ctx, ss))
+			}
+
+			runtime.Gosched()
+
+			// Teardown+Destroy while queue is backlogged.
+			_, err := st.Teardown(ctx, mrs.Metadata())
+			require.NoError(t, err)
+			require.NoError(t, st.Destroy(ctx, mrs.Metadata()))
+
+			// If the mapper lost the event, providerID stays stale and this times out.
+			checkCtx, checkCancel := context.WithTimeout(ctx, 5*time.Second)
+			defer checkCancel()
+
+			rtestutils.AssertResource(checkCtx, t, st, machineID,
+				func(status *omni.ClusterMachineStatus, assertions *assert.Assertions) {
+					got := status.TypedSpec().Value.GetProvisionStatus().GetProviderId()
+					log.Printf("[TEST] providerID after destroy: %q", got)
+
+					assertions.Empty(got,
+						"BUG: providerID stale (%q) - mapper failed to trigger reconciliation", got)
+				},
+			)
+		},
+	)
 }
