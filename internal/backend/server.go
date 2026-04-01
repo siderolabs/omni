@@ -1000,11 +1000,16 @@ func (s *Server) runDevProxyServer(ctx context.Context, next http.Handler) error
 func (s *Server) runMetricsServer(ctx context.Context) error {
 	var metricsMux http.ServeMux
 
-	metricsMux.Handle("/metrics", promhttp.Handler())
+	metricsLogger := s.logger.With(logging.Component("metrics"))
 
-	logger := s.logger.With(zap.String("server", s.metricsService.GetEndpoint()), zap.String("server_type", "metrics"))
+	errLog, err := zap.NewStdLogAt(metricsLogger, zapcore.ErrorLevel)
+	if err != nil {
+		return fmt.Errorf("failed to create metrics error logger: %w", err)
+	}
 
-	return services.NewFromConfig(&s.metricsService, &metricsMux).Run(ctx, logger)
+	metricsMux.Handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{ErrorLog: errLog}))
+
+	return services.NewFromConfig(&s.metricsService, &metricsMux).Run(ctx, metricsLogger)
 }
 
 type oidcStore interface {
