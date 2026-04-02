@@ -156,6 +156,10 @@ func Default() *Params {
 	p.Storage.Sqlite.SetCachedPoolSize(4)
 	p.Storage.Sqlite.SetPoolSize(64)
 
+	p.Storage.Sqlite.SetMetrics(SQLiteMetricsParams{})
+	p.Storage.Sqlite.Metrics.SetRefreshInterval(120 * time.Second)
+	p.Storage.Sqlite.Metrics.SetRefreshTimeout(60 * time.Second)
+
 	p.Storage.Default.SetKind(StorageDefaultKindEtcd)
 	p.Storage.Default.Boltdb.SetPath("_out/omni.db")
 	p.Storage.Default.Etcd.Endpoints = []string{"http://localhost:2379"}

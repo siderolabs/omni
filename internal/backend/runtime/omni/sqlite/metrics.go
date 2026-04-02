@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	defaultRefreshInterval = 60 * time.Second
-	queryTimeout           = 10 * time.Second
+	defaultRefreshInterval = 120 * time.Second
+	defaultRefreshTimeout  = 60 * time.Second
 )
 
 // Subsystem names used as label values.
@@ -61,6 +61,7 @@ type Metrics struct {
 	cachedSubsystemSizes     map[string]float64
 	cachedSubsystemRowCounts map[string]float64
 	refreshInterval          time.Duration
+	refreshTimeout           time.Duration
 	cachedDBSize             float64
 	cachedFreelistSize       float64
 	mu                       sync.Mutex
@@ -71,10 +72,17 @@ var _ prometheus.Collector = &Metrics{}
 // MetricsOption configures optional metrics behavior.
 type MetricsOption func(*Metrics)
 
-// WithRefreshInterval sets the cache refresh interval. Default is 60s.
+// WithRefreshInterval sets the cache refresh interval. Default is 120s.
 func WithRefreshInterval(d time.Duration) MetricsOption {
 	return func(m *Metrics) {
 		m.refreshInterval = d
+	}
+}
+
+// WithRefreshTimeout sets the timeout for database queries during refresh. Default is 60s.
+func WithRefreshTimeout(d time.Duration) MetricsOption {
+	return func(m *Metrics) {
+		m.refreshTimeout = d
 	}
 }
 
@@ -91,6 +99,7 @@ func NewMetrics(db *sqlitexx.Pool, cosiState state.CoreState, logger *zap.Logger
 		sqlState:        dbSizer,
 		logger:          logger,
 		refreshInterval: defaultRefreshInterval,
+		refreshTimeout:  defaultRefreshTimeout,
 
 		dbSizeDesc: prometheus.NewDesc(
 			"omni_sqlite_db_size_bytes",
@@ -191,7 +200,7 @@ func (m *Metrics) refresh(ctx context.Context) {
 	// Always update lastRefresh to prevent tight retry loops when the DB is unavailable.
 	defer func() { m.lastRefresh = time.Now() }()
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	ctx, cancel := context.WithTimeout(ctx, m.refreshTimeout)
 	defer cancel()
 
 	conn, err := m.db.Take(ctx)

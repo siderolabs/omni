@@ -197,7 +197,13 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		return nil, err
 	}
 
-	sqliteMetrics := sqlite.NewMetrics(secondaryStorageDB, secondaryPersistentState.State, logger)
+	sqliteMetrics := sqlite.NewMetrics(
+		secondaryStorageDB,
+		secondaryPersistentState.State,
+		logger,
+		sqlite.WithRefreshInterval(params.Storage.Sqlite.Metrics.GetRefreshInterval()),
+		sqlite.WithRefreshTimeout(params.Storage.Sqlite.Metrics.GetRefreshTimeout()),
+	)
 	metricsRegistry.MustRegister(sqliteMetrics)
 
 	auditWrap, err := NewAuditWrap(ctx, defaultState, params, secondaryStorageDB, logger, sqliteMetrics.CleanupCallback(sqlite.SubsystemAuditLogs))
