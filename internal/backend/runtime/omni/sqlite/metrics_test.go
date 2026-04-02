@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
@@ -51,13 +52,21 @@ func (f *fakeSQLState) DBSize(context.Context) (int64, error) {
 	return f.size, nil
 }
 
-func setupMetrics(t *testing.T, db *sqlitexx.Pool, cosiState state.CoreState, opts ...sqlite.MetricsOption) *prometheus.Registry {
+func setupMetrics(t *testing.T, db *sqlitexx.Pool, cosiState state.CoreState) *prometheus.Registry {
 	t.Helper()
 
 	logger := zaptest.NewLogger(t)
 	registry := prometheus.NewRegistry()
 
-	registry.MustRegister(sqlite.NewMetrics(db, cosiState, logger, opts...))
+	metrics := sqlite.NewMetrics(db, cosiState, logger)
+
+	registry.MustRegister(metrics)
+
+	go func() {
+		metrics.Run(t.Context())
+	}()
+
+	time.Sleep(time.Second)
 
 	return registry
 }
@@ -145,7 +154,9 @@ func TestMetricsCaching(t *testing.T) {
 	assert.NoError(t, testutil.GatherAndCompare(registry, strings.NewReader(expected), "omni_sqlite_subsystem_row_count"))
 
 	// A new metrics instance with zero interval should see the new row.
-	registry2 := setupMetrics(t, db, &fakeSQLState{CoreState: st}, sqlite.WithRefreshInterval(0))
+	registry2 := setupMetrics(t, db, &fakeSQLState{CoreState: st})
+
+	time.Sleep(time.Second)
 
 	expected2 := `
 		# HELP omni_sqlite_subsystem_row_count Total number of rows across a subsystem's tables.
@@ -259,7 +270,7 @@ func TestMetricsSubsystemSizeIncludesIndexes(t *testing.T) {
 		INSERT INTO machine_logs (machine_id, message) VALUES ('m1', 'log1');
 	`)
 
-	registry := setupMetrics(t, db, &fakeSQLState{CoreState: st}, sqlite.WithRefreshInterval(0))
+	registry := setupMetrics(t, db, &fakeSQLState{CoreState: st})
 
 	families, err := registry.Gather()
 	require.NoError(t, err)
@@ -285,7 +296,7 @@ func TestMetricsSubsystemSizeIncludesIndexes(t *testing.T) {
 	// Add an index — the subsystem size should grow.
 	execSQL(t, db, `CREATE INDEX idx_machine_logs_machine_id ON machine_logs (machine_id)`)
 
-	registry2 := setupMetrics(t, db, &fakeSQLState{CoreState: st}, sqlite.WithRefreshInterval(0))
+	registry2 := setupMetrics(t, db, &fakeSQLState{CoreState: st})
 
 	families, err = registry2.Gather()
 	require.NoError(t, err)

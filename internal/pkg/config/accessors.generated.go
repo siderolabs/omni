@@ -1128,6 +1128,17 @@ func (s *SQLite) SetExtraParams(v string) {
 	s.ExtraParams = &v
 }
 
+func (s *SQLite) GetMetrics() SQLiteMetricsParams {
+	if s == nil || s.Metrics == nil {
+		return *new(SQLiteMetricsParams)
+	}
+	return *s.Metrics
+}
+
+func (s *SQLite) SetMetrics(v SQLiteMetricsParams) {
+	s.Metrics = &v
+}
+
 func (s *SQLite) GetPath() string {
 	if s == nil || s.Path == nil {
 		return *new(string)
@@ -1148,6 +1159,28 @@ func (s *SQLite) GetPoolSize() int {
 
 func (s *SQLite) SetPoolSize(v int) {
 	s.PoolSize = &v
+}
+
+func (s *SQLiteMetricsParams) GetRefreshInterval() time.Duration {
+	if s == nil || s.RefreshInterval == nil {
+		return *new(time.Duration)
+	}
+	return *s.RefreshInterval
+}
+
+func (s *SQLiteMetricsParams) SetRefreshInterval(v time.Duration) {
+	s.RefreshInterval = &v
+}
+
+func (s *SQLiteMetricsParams) GetRefreshTimeout() time.Duration {
+	if s == nil || s.RefreshTimeout == nil {
+		return *new(time.Duration)
+	}
+	return *s.RefreshTimeout
+}
+
+func (s *SQLiteMetricsParams) SetRefreshTimeout(v time.Duration) {
+	s.RefreshTimeout = &v
 }
 
 func (s *Service) GetAdvertisedURL() string {

@@ -102,6 +102,13 @@ func (s *State) RunAuditCleanup(ctx context.Context) error {
 	return s.auditWrap.RunCleanup(ctx)
 }
 
+// RunSQLiteMetrics runs the SQLite metrics collector.
+func (s *State) RunSQLiteMetrics(ctx context.Context) error {
+	s.sqliteMetrics.Run(ctx)
+
+	return nil
+}
+
 // DefaultCore returns the default core state.
 func (s *State) DefaultCore() state.CoreState {
 	return s.defaultPersistentState.State
@@ -190,7 +197,13 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		return nil, err
 	}
 
-	sqliteMetrics := sqlite.NewMetrics(secondaryStorageDB, secondaryPersistentState.State, logger)
+	sqliteMetrics := sqlite.NewMetrics(
+		secondaryStorageDB,
+		secondaryPersistentState.State,
+		logger,
+		sqlite.WithRefreshInterval(params.Storage.Sqlite.Metrics.GetRefreshInterval()),
+		sqlite.WithRefreshTimeout(params.Storage.Sqlite.Metrics.GetRefreshTimeout()),
+	)
 	metricsRegistry.MustRegister(sqliteMetrics)
 
 	auditWrap, err := NewAuditWrap(ctx, defaultState, params, secondaryStorageDB, logger, sqliteMetrics.CleanupCallback(sqlite.SubsystemAuditLogs))
