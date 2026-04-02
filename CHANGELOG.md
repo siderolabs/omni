@@ -1,3 +1,49 @@
+## [Omni 1.6.4](https://github.com/siderolabs/omni/releases/tag/v1.6.4) (2026-04-02)
+
+Welcome to the v1.6.4 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+The deprecated flags and config fields that were kept for the SQLite migration period (introduced in v1.4.0) have been removed.
+
+If you still have any of the following flags or config keys set, **you must remove them before upgrading**, as they will cause startup errors:
+* `--audit-log-dir` (`.logs.audit.path`)
+* `--secondary-storage-path` (`.storage.secondary.path`)
+* `--machine-log-storage-path` (`.logs.machine.storage.path`)
+* `--machine-log-storage-enabled` (`.logs.machine.storage.enabled`)
+* `--log-storage-path` (`.logs.machine.storage.path`)
+* `--embedded-discovery-service-snapshot-path` (`.services.embeddedDiscoveryService.snapshotsPath`)
+* `--machine-log-buffer-capacity` (`.logs.machine.bufferInitialCapacity`)
+* `--machine-log-buffer-max-capacity` (`.logs.machine.bufferMaxCapacity`)
+* `--machine-log-buffer-safe-gap` (`.logs.machine.bufferSafetyGap`)
+* `--machine-log-num-compressed-chunks` (`.logs.machine.storage.numCompressedChunks`)
+
+The automatic migration code for BoltDB secondary storage, file-based audit logs, file-based discovery service snapshots, and circular buffer machine logs has also been removed. If you are upgrading from a version older than v1.4.0, you must first upgrade to v1.4.x to complete the migrations, then upgrade to this version.
+
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`4bea9686`](https://github.com/siderolabs/omni/commit/4bea968614d5a5a65e3204c77a32dd5496404f0a) chore: bump sqlite metrics collector timeout and interval
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.6.3](https://github.com/siderolabs/omni/releases/tag/v1.6.3)
+
 ## [Omni 1.6.3](https://github.com/siderolabs/omni/releases/tag/v1.6.3) (2026-04-01)
 
 Welcome to the v1.6.3 release of Omni!
