@@ -576,6 +576,9 @@ type SQLite struct {
 	// at your own risk. It must not start with an ampersand (&).
 	ExtraParams *string `json:"extraParams,omitempty" yaml:"extraParams,omitempty"`
 
+	// Metrics corresponds to the JSON schema field "metrics".
+	Metrics *SQLiteMetricsParams `json:"metrics,omitempty" yaml:"metrics,omitempty"`
+
 	// Path is the path where the SQLite database file is stored.
 	Path *string `json:"path" yaml:"path"`
 
@@ -583,6 +586,14 @@ type SQLite struct {
 	// pool. Raising this value may improve performance under high load, at the cost
 	// of increased resource usage.
 	PoolSize *int `json:"poolSize,omitempty" yaml:"poolSize,omitempty"`
+}
+
+type SQLiteMetricsParams struct {
+	// RefreshInterval is the interval at which SQLite metrics are refreshed.
+	RefreshInterval *time.Duration `json:"refreshInterval,omitempty" yaml:"refreshInterval,omitempty"`
+
+	// RefreshTimeout is the timeout for refreshing SQLite metrics.
+	RefreshTimeout *time.Duration `json:"refreshTimeout,omitempty" yaml:"refreshTimeout,omitempty"`
 }
 
 type Service struct {

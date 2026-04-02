@@ -1226,6 +1226,34 @@
           "description": "PoolSize controls the maximum number of connections in the SQLite connection pool. Raising this value may improve performance under high load, at the cost of increased resource usage.",
           "type": "integer",
           "minimum": 1
+        },
+        "metrics": {
+          "$ref": "#/definitions/SQLiteMetricsParams"
+        }
+      }
+    },
+    "SQLiteMetricsParams": {
+      "type": "object",
+      "properties": {
+        "refreshInterval": {
+          "description": "RefreshInterval is the interval at which SQLite metrics are refreshed.",
+          "x-cli-flag": "sqlite-metrics-refresh-interval",
+          "type": "string",
+          "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
+          "goJSONSchema": {
+            "type": "time.Duration"
+          }
+        },
+        "refreshTimeout": {
+          "description": "RefreshTimeout is the timeout for refreshing SQLite metrics.",
+          "x-cli-flag": "sqlite-metrics-refresh-timeout",
+          "type": "string",
+          "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
+          "goJSONSchema": {
+            "type": "time.Duration"
+          }
         }
       }
     },
