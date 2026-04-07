@@ -28,9 +28,8 @@ import (
 )
 
 const (
-	// removeBySizeBatchCap is the maximum number of rows deleted per removeBySize invocation.
-	// The probabilistic trigger ensures convergence over multiple writes.
-	removeBySizeBatchCap = 1000
+	// removeBatchSize is the maximum number of rows deleted per batch in Remove and removeBySize.
+	removeBatchSize = 1000
 
 	// TableName is the SQLite table name used by the audit log store.
 	TableName           = "audit_logs"
@@ -222,8 +221,15 @@ func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
 	return nil
 }
 
+// Remove deletes audit log events in the given time range in batches of removeBatchSize.
+// Batching keeps each autocommit DELETE small, releasing the SQLite write lock between
+// statements so other writers sharing the same database are not blocked for long.
 func (s *Store) Remove(ctx context.Context, start, end time.Time) error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE %s >= $start AND %s <= $end`, TableName, eventTSMillisColumn, eventTSMillisColumn)
+	// DELETE ... LIMIT is not supported (requires SQLITE_ENABLE_UPDATE_DELETE_LIMIT), so we use a subquery to select the IDs to delete.
+	query := fmt.Sprintf(
+		`DELETE FROM %s WHERE %s IN (SELECT %s FROM %s WHERE %s >= $start AND %s <= $end LIMIT $limit)`,
+		TableName, idColumn, idColumn, TableName, eventTSMillisColumn, eventTSMillisColumn,
+	)
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -235,21 +241,33 @@ func (s *Store) Remove(ctx context.Context, start, end time.Time) error {
 
 	defer s.db.Put(conn)
 
-	q, err := sqlitexx.NewQuery(conn, query)
-	if err != nil {
-		return fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	var totalDeleted int
+
+	for {
+		q, qErr := sqlitexx.NewQuery(conn, query)
+		if qErr != nil {
+			return fmt.Errorf("failed to prepare sqlite statement: %w", qErr)
+		}
+
+		qErr = q.
+			BindInt64("$start", start.UnixMilli()).
+			BindInt64("$end", end.UnixMilli()).
+			BindInt64("$limit", removeBatchSize).
+			Exec()
+		if qErr != nil {
+			return fmt.Errorf("failed to remove audit log events: %w", qErr)
+		}
+
+		deleted := conn.Changes()
+		totalDeleted += deleted
+
+		if deleted == 0 || ctx.Err() != nil {
+			break
+		}
 	}
 
-	err = q.
-		BindInt64("$start", start.UnixMilli()).
-		BindInt64("$end", end.UnixMilli()).
-		Exec()
-	if err != nil {
-		return fmt.Errorf("failed to remove audit log events: %w", err)
-	}
-
-	if s.onCleanup != nil {
-		s.onCleanup(conn.Changes())
+	if s.onCleanup != nil && totalDeleted > 0 {
+		s.onCleanup(totalDeleted)
 	}
 
 	return nil
@@ -317,8 +335,8 @@ func (s *Store) removeBySize(conn *zombiesqlite.Conn) error {
 
 	// Cap per invocation to keep each cleanup fast. The probabilistic trigger
 	// on each Write ensures we converge to the target size over time.
-	if rowsToDelete > removeBySizeBatchCap {
-		rowsToDelete = removeBySizeBatchCap
+	if rowsToDelete > removeBatchSize {
+		rowsToDelete = removeBatchSize
 	}
 
 	// Compute cutoff ID from the min ID, then range-delete everything at or

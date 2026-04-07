@@ -366,6 +366,72 @@ func TestRemoveByMaxSizeBatchCap(t *testing.T) {
 	}
 }
 
+func TestRemoveBatching(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+
+	var totalCleaned int
+
+	store, db := setupStoreWithOpts(ctx, t, logger, 0, 0, auditlogsqlite.WithCleanupCallback(func(n int) { totalCleaned += n }))
+
+	const (
+		inRangeCount  = 1500
+		outRangeCount = 10
+	)
+
+	rangeStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	rangeEnd := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+
+	conn, err := db.Take(ctx)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		db.Put(conn)
+	})
+
+	for i := range inRangeCount {
+		ts := rangeStart.Add(time.Duration(i) * time.Second).UnixMilli()
+
+		q, qErr := sqlitexx.NewQuery(conn,
+			fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES ($ts, $data)", auditlogsqlite.TableName, "event_ts_ms", "event_data"))
+		require.NoError(t, qErr)
+		require.NoError(t, q.BindInt64("$ts", ts).BindBytes("$data", []byte(`{}`)).Exec())
+	}
+
+	for i := range outRangeCount {
+		ts := rangeEnd.Add(time.Duration(i+1) * time.Hour).UnixMilli()
+
+		q, qErr := sqlitexx.NewQuery(conn,
+			fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES ($ts, $data)", auditlogsqlite.TableName, "event_ts_ms", "event_data"))
+		require.NoError(t, qErr)
+		require.NoError(t, q.BindInt64("$ts", ts).BindBytes("$data", []byte(`{}`)).Exec())
+	}
+
+	// Remove all events in range — requires multiple batches (1000 + 500).
+	require.NoError(t, store.Remove(ctx, rangeStart, rangeEnd))
+
+	// Verify only out-of-range events remain.
+	rdr, err := store.Reader(ctx, time.Time{}, time.Now().Add(24*time.Hour))
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, rdr.Close())
+	})
+
+	events := readAllEvents(t, rdr)
+	assert.Len(t, events, outRangeCount, "only out-of-range events should remain")
+	assert.Equal(t, inRangeCount, totalCleaned, "cleanup callback should report all in-range rows deleted")
+
+	// Verify remaining events are all after the range.
+	for _, evt := range events {
+		assert.Greater(t, evt.TimeMillis, rangeEnd.UnixMilli(), "remaining events should be after the removal range")
+	}
+}
+
 func TestReaderParameters(t *testing.T) {
 	t.Parallel()
 
@@ -538,7 +604,7 @@ func setupStore(ctx context.Context, t *testing.T, logger *zap.Logger) (*auditlo
 	return setupStoreWithOpts(ctx, t, logger, 0, 0)
 }
 
-func setupStoreWithOpts(ctx context.Context, t *testing.T, logger *zap.Logger, maxSize uint64, cleanupProbability float64) (*auditlogsqlite.Store, *sqlitexx.Pool) {
+func setupStoreWithOpts(ctx context.Context, t *testing.T, logger *zap.Logger, maxSize uint64, cleanupProbability float64, opts ...auditlogsqlite.Option) (*auditlogsqlite.Store, *sqlitexx.Pool) {
 	t.Helper()
 
 	path := filepath.Join(t.TempDir(), "test.db")
@@ -553,7 +619,7 @@ func setupStoreWithOpts(ctx context.Context, t *testing.T, logger *zap.Logger, m
 		require.NoError(t, db.Close())
 	})
 
-	store, err := auditlogsqlite.NewStore(ctx, db, 5*time.Second, maxSize, cleanupProbability, logger)
+	store, err := auditlogsqlite.NewStore(ctx, db, 5*time.Second, maxSize, cleanupProbability, logger, opts...)
 	require.NoError(t, err)
 
 	return store, db

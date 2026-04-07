@@ -32,9 +32,8 @@ const (
 	createdAtColumn = "created_at"
 	messageColumn   = "message"
 
-	// removeBySizeBatchSize is the maximum number of rows deleted per batch in removeBySize.
-	// The method loops until the table is under maxSize, deleting up to this many rows each iteration.
-	removeBySizeBatchSize = 1000
+	// cleanupBatchSize is the maximum number of rows deleted per batch in cleanup operations.
+	cleanupBatchSize = 1000
 )
 
 // StoreManagerOption configures optional StoreManager behavior.
@@ -68,9 +67,11 @@ func (m *StoreManager) Run(ctx context.Context) error {
 		defer ticker.Stop()
 
 		tickerCh = ticker.C
-		// Do the initial cleanup immediately
+
+		// Run the first cleanup immediately but non-fatally.
+		// This avoids blocking startup if another writer holds the SQLite lock.
 		if err := m.DoCleanup(ctx); err != nil {
-			return err
+			m.logger.Warn("initial log cleanup failed, will retry on next tick", zap.Error(err))
 		}
 	}
 
@@ -93,7 +94,8 @@ func (m *StoreManager) Run(ctx context.Context) error {
 
 // DoCleanup performs the actual cleanup of old and orphaned logs.
 //
-//nolint:gocognit
+// Each batch deletes up to cleanupBatchSize rows in its own implicit autocommit statement,
+// releasing the SQLite write lock between statements so other writers are not blocked for long.
 func (m *StoreManager) DoCleanup(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, m.config.GetSqliteTimeout())
 	defer cancel()
@@ -109,85 +111,24 @@ func (m *StoreManager) DoCleanup(ctx context.Context) error {
 		machineIDs = append(machineIDs, truncateMachineID(machine.Metadata().ID()))
 	}
 
-	var rowsDeleted int
-
 	cutoff := time.Now().Add(-m.config.GetCleanupOlderThan())
 
-	// Temporary table lives in a single transaction, so we need to do everything in one transaction
-	err = func() (err error) {
-		var conn *sqlite.Conn
-
-		conn, err = m.db.Take(ctx)
-		if err != nil {
-			return fmt.Errorf("error taking connection for cleanup: %w", err)
-		}
-
-		defer m.db.Put(conn)
-
-		doneFn, transErr := sqlitex.ImmediateTransaction(conn)
-		if transErr != nil {
-			return fmt.Errorf("starting transaction for cleanup: %w", transErr)
-		}
-		defer doneFn(&err)
-
-		// Create a temporary table to store active machine IDs - it is used in the join query to delete orphaned logs
-		err = sqlitex.ExecScript(conn, `CREATE TEMPORARY TABLE machine_ids (machine_id TEXT PRIMARY KEY) STRICT`)
-		if err != nil {
-			return fmt.Errorf("failed to create temporary table: %w", err)
-		}
-
-		// Populate the temporary table with active machine IDs
-		for _, id := range machineIDs {
-			var q *sqlitexx.Query
-
-			q, err = sqlitexx.NewQuery(conn, "INSERT INTO machine_ids (machine_id) VALUES ($machine_id)")
-			if err != nil {
-				return fmt.Errorf("failed to prepare statement: %w", err)
-			}
-
-			err = q.
-				BindString("$machine_id", id).
-				Exec()
-			if err != nil {
-				return fmt.Errorf("failed to insert machine ID %q: %w", id, err)
-			}
-		}
-
-		// Delete if:
-		//   (A) Log is older than cutoff (Time-based cleanup)
-		//   OR
-		//   (B) Machine ID is NOT in the active list (Orphan cleanup)
-		deleteSQL := fmt.Sprintf(`DELETE FROM %s WHERE %s < $cutoff OR %s NOT IN (SELECT machine_id FROM machine_ids)`, TableName, createdAtColumn, machineIDColumn)
-
-		var q *sqlitexx.Query
-
-		q, err = sqlitexx.NewQuery(conn, deleteSQL)
-		if err != nil {
-			return fmt.Errorf("failed to prepare cleanup statement: %w", err)
-		}
-
-		err = q.
-			BindInt64("$cutoff", cutoff.Unix()).
-			Exec()
-		if err != nil {
-			return fmt.Errorf("failed to execute unified cleanup: %w", err)
-		}
-
-		rowsDeleted = conn.Changes()
-
-		if m.onCleanup != nil {
-			m.onCleanup(rowsDeleted)
-		}
-
-		err = sqlitex.ExecScript(conn, `DROP TABLE IF EXISTS machine_ids`)
-		if err != nil {
-			return fmt.Errorf("failed to drop temporary table: %w", err)
-		}
-
-		return nil
-	}()
+	// Phase 1: Time-based cleanup in batches
+	timeDeleted, err := m.cleanupByTime(ctx, cutoff)
 	if err != nil {
-		return err
+		return fmt.Errorf("time-based cleanup: %w", err)
+	}
+
+	// Phase 2: Orphan cleanup in batches
+	orphanDeleted, err := m.cleanupOrphans(ctx, machineIDs)
+	if err != nil {
+		return fmt.Errorf("orphan cleanup: %w", err)
+	}
+
+	rowsDeleted := timeDeleted + orphanDeleted
+
+	if m.onCleanup != nil && rowsDeleted > 0 {
+		m.onCleanup(rowsDeleted)
 	}
 
 	if rowsDeleted > 0 {
@@ -200,6 +141,7 @@ func (m *StoreManager) DoCleanup(ctx context.Context) error {
 		m.logger.Debug("completed logs cleanup", zap.Int64("rows_deleted", 0))
 	}
 
+	// Phase 3: Size-based cleanup (already batched)
 	if m.config.GetMaxSize() > 0 {
 		sizeRowsDeleted, sizeErr := m.removeBySize(ctx)
 		if sizeErr != nil {
@@ -213,9 +155,117 @@ func (m *StoreManager) DoCleanup(ctx context.Context) error {
 	return nil
 }
 
+// cleanupByTime deletes log rows older than cutoff in batches of cleanupBatchSize.
+func (m *StoreManager) cleanupByTime(ctx context.Context, cutoff time.Time) (int, error) {
+	// DELETE ... LIMIT is not supported (requires SQLITE_ENABLE_UPDATE_DELETE_LIMIT), so we use a subquery to select the IDs to delete.
+	deleteSQL := fmt.Sprintf(
+		`DELETE FROM %s WHERE %s IN (SELECT %s FROM %s WHERE %s < $cutoff LIMIT $limit)`,
+		TableName, idColumn, idColumn, TableName, createdAtColumn,
+	)
+
+	conn, err := m.db.Take(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("error taking connection: %w", err)
+	}
+
+	defer m.db.Put(conn)
+
+	var totalDeleted int
+
+	for {
+		q, qErr := sqlitexx.NewQuery(conn, deleteSQL)
+		if qErr != nil {
+			return totalDeleted, fmt.Errorf("failed to prepare statement: %w", qErr)
+		}
+
+		qErr = q.
+			BindInt64("$cutoff", cutoff.Unix()).
+			BindInt64("$limit", cleanupBatchSize).
+			Exec()
+		if qErr != nil {
+			return totalDeleted, fmt.Errorf("failed to execute delete: %w", qErr)
+		}
+
+		deleted := conn.Changes()
+		totalDeleted += deleted
+
+		if deleted == 0 || ctx.Err() != nil {
+			break
+		}
+	}
+
+	return totalDeleted, nil
+}
+
+// cleanupOrphans deletes log rows for machines that no longer exist, in batches of cleanupBatchSize.
+// It creates a temp table with active machine IDs for efficient indexed lookups.
+func (m *StoreManager) cleanupOrphans(ctx context.Context, activeMachineIDs []string) (int, error) {
+	conn, err := m.db.Take(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("error taking connection: %w", err)
+	}
+
+	defer m.db.Put(conn)
+
+	// Temp table lives on the connection (not tied to a transaction) and doesn't lock the main DB.
+	if err = sqlitex.ExecScript(conn, `CREATE TEMPORARY TABLE IF NOT EXISTS cleanup_machine_ids (machine_id TEXT PRIMARY KEY) STRICT`); err != nil {
+		return 0, fmt.Errorf("failed to create temporary table: %w", err)
+	}
+
+	// Clear any stale data from a previous run if the table already existed on this pooled connection.
+	if err = sqlitex.ExecScript(conn, `DELETE FROM cleanup_machine_ids`); err != nil {
+		return 0, fmt.Errorf("failed to clear temporary table: %w", err)
+	}
+
+	defer func() {
+		if dropErr := sqlitex.ExecScript(conn, `DROP TABLE IF EXISTS cleanup_machine_ids`); dropErr != nil {
+			m.logger.Warn("failed to drop temporary table", zap.Error(dropErr))
+		}
+	}()
+
+	for _, id := range activeMachineIDs {
+		q, qErr := sqlitexx.NewQuery(conn, "INSERT OR IGNORE INTO cleanup_machine_ids (machine_id) VALUES ($machine_id)")
+		if qErr != nil {
+			return 0, fmt.Errorf("failed to prepare insert statement: %w", qErr)
+		}
+
+		if qErr = q.BindString("$machine_id", id).Exec(); qErr != nil {
+			return 0, fmt.Errorf("failed to insert machine ID %q: %w", id, qErr)
+		}
+	}
+
+	// DELETE ... LIMIT is not supported (requires SQLITE_ENABLE_UPDATE_DELETE_LIMIT), so we use a subquery to select the IDs to delete.
+	deleteSQL := fmt.Sprintf(
+		`DELETE FROM %s WHERE %s IN (SELECT %s FROM %s WHERE %s NOT IN (SELECT machine_id FROM cleanup_machine_ids) LIMIT $limit)`,
+		TableName, idColumn, idColumn, TableName, machineIDColumn,
+	)
+
+	var totalDeleted int
+
+	for {
+		q, qErr := sqlitexx.NewQuery(conn, deleteSQL)
+		if qErr != nil {
+			return totalDeleted, fmt.Errorf("failed to prepare statement: %w", qErr)
+		}
+
+		if qErr = q.BindInt64("$limit", cleanupBatchSize).Exec(); qErr != nil {
+			return totalDeleted, fmt.Errorf("failed to execute delete: %w", qErr)
+		}
+
+		deleted := conn.Changes()
+		totalDeleted += deleted
+
+		if deleted == 0 || ctx.Err() != nil {
+			break
+		}
+	}
+
+	return totalDeleted, nil
+}
+
 // removeBySize deletes the oldest log rows globally across all machines to bring the table under maxSize bytes.
 // It estimates the number of rows to delete based on average row size, then deletes in batches of
-// removeBySizeBatchSize. The estimate may slightly overshoot; any remaining excess is handled on the next cycle.
+// cleanupBatchSize. The estimate may slightly overshoot; any remaining excess is handled on the next cycle.
 func (m *StoreManager) removeBySize(ctx context.Context) (int, error) {
 	conn, err := m.db.Take(ctx)
 	if err != nil {
@@ -236,7 +286,7 @@ func (m *StoreManager) removeBySize(ctx context.Context) (int, error) {
 	var totalDeleted int
 
 	for rowsToDelete > 0 {
-		batchSize := min(rowsToDelete, removeBySizeBatchSize)
+		batchSize := min(rowsToDelete, cleanupBatchSize)
 
 		deleted, batchErr := m.deleteOldestBatch(conn, batchSize)
 		if batchErr != nil {
