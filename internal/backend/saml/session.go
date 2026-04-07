@@ -74,14 +74,14 @@ type SessionProvider struct {
 //
 //nolint:gocognit,gocyclo,cyclop
 func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request, assertion *saml.Assertion) error {
-	hashInput := ""
+	var hashInput strings.Builder
 
 	if assertion.Subject == nil {
 		return errors.New("no subject in the assertion")
 	}
 
 	for _, subjectConfirmation := range assertion.Subject.SubjectConfirmations {
-		hashInput += subjectConfirmation.SubjectConfirmationData.InResponseTo
+		hashInput.WriteString(subjectConfirmation.SubjectConfirmationData.InResponseTo)
 	}
 
 	var logFields []zap.Field
@@ -113,12 +113,12 @@ func (sp *SessionProvider) CreateSession(w http.ResponseWriter, r *http.Request,
 
 	var session string
 
-	if hashInput == "" {
+	if hashInput.String() == "" {
 		session = uuid.New().String()
 	} else {
 		h := sha256.New()
 
-		h.Write([]byte(hashInput))
+		h.Write([]byte(hashInput.String()))
 
 		session = hex.EncodeToString(h.Sum(nil))
 	}
