@@ -421,6 +421,7 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 		return false, err
 	}
 
+	//nolint:staticcheck
 	_, err = c.UpgradeWithOptions(upgradeCtx,
 		client.WithUpgradeImage(image),
 		client.WithUpgradePreserve(!maintenance),

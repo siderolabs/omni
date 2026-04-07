@@ -613,6 +613,7 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 		return nil, fmt.Errorf("failed to create talos client: %w", err)
 	}
 
+	//nolint:staticcheck
 	if _, err = talosClient.UpgradeWithOptions(ctx, client.WithUpgradeImage(installImageStr)); err != nil {
 		return nil, fmt.Errorf("failed to upgrade machine: %w", err)
 	}
