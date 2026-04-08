@@ -1,13 +1,10 @@
 module github.com/siderolabs/omni
 
-go 1.26.1
+go 1.26.2
 
 replace (
 	// forked saml library that has the fix for Fusion Auth ACS parsing
 	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe
-
-	// fix for multiple panics, see https://github.com/neticdk/go-stdlib/pull/44
-	github.com/neticdk/go-stdlib => github.com/smira/go-stdlib v0.0.0-20260318082201-9d387eb2130d
 
 	// use nested module
 	github.com/siderolabs/omni/client => ./client

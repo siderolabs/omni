@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-04-07T14:45:56Z by kres 4e3b74d.
+# Generated on 2026-04-08T10:44:00Z by kres 5b81a3a.
 
 # common variables
 
@@ -30,7 +30,7 @@ GOMOCK_VERSION ?= 0.6.0
 DEEPCOPY_VERSION ?= v0.5.8
 GOLANGCILINT_VERSION ?= v2.11.4
 GOFUMPT_VERSION ?= v0.9.2
-GO_VERSION ?= 1.26.1
+GO_VERSION ?= 1.26.2
 GO_BUILDFLAGS ?=
 GO_BUILDTAGS ?= memory.counters,libc.memexpvar,
 GO_LDFLAGS ?=

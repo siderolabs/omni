@@ -170,8 +170,8 @@ func TestResourceLogger(t *testing.T) {
      owner:
      phase: running
      created: 2000-01-01T00:00:00Z
--    updated: 2000-01-01T00:00:00Z
 +    updated: 2000-01-01T00:00:01Z
+-    updated: 2000-01-01T00:00:00Z
  spec:
      talosversion: v1.2.3
      hardware: null
@@ -186,8 +186,8 @@ func TestResourceLogger(t *testing.T) {
                linkup: true
                description: hello
      lasterror: ""
--    managementaddress: some-address
 +    managementaddress: some-address-updated
+-    managementaddress: some-address
      connected: false
      maintenance: false
 -    cluster: some-cluster
