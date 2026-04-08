@@ -29,8 +29,8 @@ github.com/akutz/memconn v0.1.1-0.20211110233653-dae351d188b3/go.mod h1:XOEusVuS
 github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYWrPrQ=
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
 github.com/armon/go-proxyproto v0.0.0-20210323213023-7e956b284f0a/go.mod h1:QmP9hvJ91BbJmGVGSbutW19IC0Q9phDCLGaomwTJbgU=
-github.com/atombender/go-jsonschema v0.22.0 h1:7H48X5fUccsfsacar5UfP6nnOXuQzmnr6lQmH/Fj2pQ=
-github.com/atombender/go-jsonschema v0.22.0/go.mod h1:8Q281v0ozTIfvdnbwDoWQDIk0syH6F0Fpoq+Z1cs+rM=
+github.com/atombender/go-jsonschema v0.23.0 h1:1W586wlGS2Zup69szfgJpQ/NKZcjuMEocAtYvEcPyzw=
+github.com/atombender/go-jsonschema v0.23.0/go.mod h1:KAi1zDASp4e0FvlFM5QvLyU3k7+DsX+7hCq98G34gtg=
 github.com/auth0/go-jwt-middleware/v2 v2.3.1 h1:lbDyWE9aLydb3zrank+Gufb9qGJN9u//7EbJK07pRrw=
 github.com/auth0/go-jwt-middleware/v2 v2.3.1/go.mod h1:mqVr0gdB5zuaFyQFWMJH/c/2hehNjbYUD4i8Dpyf+Hc=
 github.com/aws/aws-sdk-go-v2 v1.41.5 h1:dj5kopbwUsVUVFgO4Fi5BIT3t4WyqIDjGKCangnV/yY=

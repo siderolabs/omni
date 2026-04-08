@@ -326,6 +326,8 @@ func defineStorageFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *confi
 	b.StringVar("storage.sqlite.path", &flagConfig.Storage.Sqlite.Path)
 	b.StringVar("storage.sqlite.experimentalBaseParams", &flagConfig.Storage.Sqlite.ExperimentalBaseParams)
 	b.StringVar("storage.sqlite.extraParams", &flagConfig.Storage.Sqlite.ExtraParams)
+	b.DurationVar("storage.sqlite.metrics.refreshInterval", &flagConfig.Storage.Sqlite.Metrics.RefreshInterval)
+	b.DurationVar("storage.sqlite.metrics.refreshTimeout", &flagConfig.Storage.Sqlite.Metrics.RefreshTimeout)
 	b.StringVar("storage.vault.k8sAuthMountPath", &flagConfig.Storage.Vault.K8SAuthMountPath)
 }
 

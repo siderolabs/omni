@@ -1128,17 +1128,6 @@ func (s *SQLite) SetExtraParams(v string) {
 	s.ExtraParams = &v
 }
 
-func (s *SQLite) GetMetrics() SQLiteMetricsParams {
-	if s == nil || s.Metrics == nil {
-		return *new(SQLiteMetricsParams)
-	}
-	return *s.Metrics
-}
-
-func (s *SQLite) SetMetrics(v SQLiteMetricsParams) {
-	s.Metrics = &v
-}
-
 func (s *SQLite) GetPath() string {
 	if s == nil || s.Path == nil {
 		return *new(string)
