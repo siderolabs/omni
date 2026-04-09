@@ -249,7 +249,7 @@ require (
 	github.com/sanity-io/litter v1.5.8 // indirect
 	github.com/sasha-s/go-deadlock v0.3.9 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
-	github.com/siderolabs/go-kubeconfig v0.1.1 // indirect
+	github.com/siderolabs/go-kubeconfig v0.1.2 // indirect
 	github.com/siderolabs/net v0.4.0 // indirect
 	github.com/siderolabs/protoenc v0.2.4 // indirect
 	github.com/siderolabs/tcpproxy v0.1.0 // indirect

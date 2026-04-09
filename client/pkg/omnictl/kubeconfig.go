@@ -159,6 +159,10 @@ func getKubeconfig(args []string) func(ctx context.Context, client *client.Clien
 			return extractAndMerge(data, localPath)
 		}
 
+		if kubeconfigCmdFlags.forceContextName != "" {
+			return writeWithContextName(data, localPath, kubeconfigCmdFlags.forceContextName)
+		}
+
 		return os.WriteFile(localPath, data, 0o640)
 	}
 }
@@ -179,6 +183,26 @@ func validateClusterExists(ctx context.Context, client *client.Client, clusterNa
 	return nil
 }
 
+func writeWithContextName(data []byte, localPath string, contextName string) error {
+	config, err := clientcmd.Load(data)
+	if err != nil {
+		return err
+	}
+
+	merger := kubeconfig.New()
+
+	err = merger.Merge(config, kubeconfig.MergeOptions{
+		ActivateContext:  true,
+		ForceContextName: contextName,
+		OutputWriter:     os.Stdout,
+	})
+	if err != nil {
+		return err
+	}
+
+	return merger.Write(localPath)
+}
+
 func extractAndMerge(data []byte, localPath string) error {
 	config, err := clientcmd.Load(data)
 	if err != nil {
@@ -187,7 +211,11 @@ func extractAndMerge(data []byte, localPath string) error {
 
 	merger, err := kubeconfig.Load(localPath)
 	if err != nil {
-		return err
+		if !os.IsNotExist(err) {
+			return err
+		}
+
+		merger = kubeconfig.New()
 	}
 
 	interactive := isatty.IsTerminal(os.Stdout.Fd())
@@ -238,7 +266,7 @@ func askOverwriteOrRename(prompt string) (kubeconfig.ConflictDecision, error) {
 func init() {
 	kubeconfigCmd.Flags().StringVarP(&kubeconfigCmdFlags.cluster, "cluster", "c", "", "cluster to use")
 	kubeconfigCmd.Flags().BoolVarP(&kubeconfigCmdFlags.force, "force", "f", false, "force overwrite of kubeconfig if already present, force overwrite on kubeconfig merge")
-	kubeconfigCmd.Flags().StringVar(&kubeconfigCmdFlags.forceContextName, "force-context-name", "", "force context name for kubeconfig merge")
+	kubeconfigCmd.Flags().StringVar(&kubeconfigCmdFlags.forceContextName, "force-context-name", "", "force context name in the resulting kubeconfig")
 	kubeconfigCmd.Flags().BoolVarP(&kubeconfigCmdFlags.merge, "merge", "m", true, "merge with existing kubeconfig")
 
 	kubeconfigCmd.Flags().BoolVar(&kubeconfigCmdFlags.serviceAccount, serviceAccountFlag, false,

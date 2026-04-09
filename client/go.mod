@@ -23,7 +23,7 @@ require (
 	github.com/sergi/go-diff v1.4.0
 	github.com/siderolabs/gen v0.8.6
 	github.com/siderolabs/go-api-signature v0.3.12
-	github.com/siderolabs/go-kubeconfig v0.1.1
+	github.com/siderolabs/go-kubeconfig v0.1.2
 	github.com/siderolabs/image-factory v1.0.3
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.16
