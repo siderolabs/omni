@@ -69,13 +69,13 @@ var (
 					return err
 				}
 
-				fmt.Printf("Created service account %q with public key ID %q\n", name, publicKeyID)
-				fmt.Printf("\n")
-				fmt.Printf("Set the following environment variables to use the service account:\n")
+				fmt.Fprintf(os.Stderr, "Created service account %q with public key ID %q\n", name, publicKeyID)
+				fmt.Fprintf(os.Stderr, "\n")
+				fmt.Fprintf(os.Stderr, "Set the following environment variables to use the service account:\n")
 				fmt.Printf("%s=%s\n", access.EndpointEnvVar, client.Endpoint())
 				fmt.Printf("%s=%s\n", serviceaccount.OmniServiceAccountKeyEnvVar, encodedKey)
-				fmt.Printf("\n")
-				fmt.Printf("Note: Store the service account key securely, it will not be displayed again\n")
+				fmt.Fprintf(os.Stderr, "\n")
+				fmt.Fprintf(os.Stderr, "Note: Store the service account key securely, it will not be displayed again\n")
 
 				return nil
 			})
@@ -111,13 +111,13 @@ var (
 					return err
 				}
 
-				fmt.Printf("Renewed service account %q by adding a public key with ID %q\n", name, publicKeyID)
-				fmt.Printf("\n")
-				fmt.Printf("Set the following environment variables to use the service account:\n")
+				fmt.Fprintf(os.Stderr, "Renewed service account %q by adding a public key with ID %q\n", name, publicKeyID)
+				fmt.Fprintf(os.Stderr, "\n")
+				fmt.Fprintf(os.Stderr, "Set the following environment variables to use the service account:\n")
 				fmt.Printf("%s=%s\n", access.EndpointEnvVar, client.Endpoint())
 				fmt.Printf("%s=%s\n", serviceaccount.OmniServiceAccountKeyEnvVar, encodedKey)
-				fmt.Printf("\n")
-				fmt.Printf("Note: Store the service account key securely, it will not be displayed again\n")
+				fmt.Fprintf(os.Stderr, "\n")
+				fmt.Fprintf(os.Stderr, "Note: Store the service account key securely, it will not be displayed again\n")
 
 				return nil
 			})
