@@ -1,3 +1,150 @@
+## [Omni 1.6.5](https://github.com/siderolabs/omni/releases/tag/v1.6.5) (2026-04-09)
+
+Welcome to the v1.6.5 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+The deprecated flags and config fields that were kept for the SQLite migration period (introduced in v1.4.0) have been removed.
+
+If you still have any of the following flags or config keys set, **you must remove them before upgrading**, as they will cause startup errors:
+* `--audit-log-dir` (`.logs.audit.path`)
+* `--secondary-storage-path` (`.storage.secondary.path`)
+* `--machine-log-storage-path` (`.logs.machine.storage.path`)
+* `--machine-log-storage-enabled` (`.logs.machine.storage.enabled`)
+* `--log-storage-path` (`.logs.machine.storage.path`)
+* `--embedded-discovery-service-snapshot-path` (`.services.embeddedDiscoveryService.snapshotsPath`)
+* `--machine-log-buffer-capacity` (`.logs.machine.bufferInitialCapacity`)
+* `--machine-log-buffer-max-capacity` (`.logs.machine.bufferMaxCapacity`)
+* `--machine-log-buffer-safe-gap` (`.logs.machine.bufferSafetyGap`)
+* `--machine-log-num-compressed-chunks` (`.logs.machine.storage.numCompressedChunks`)
+
+The automatic migration code for BoltDB secondary storage, file-based audit logs, file-based discovery service snapshots, and circular buffer machine logs has also been removed. If you are upgrading from a version older than v1.4.0, you must first upgrade to v1.4.x to complete the migrations, then upgrade to this version.
+
+
+### Contributors
+
+* Andrey Smirnov
+* Utku Ozdemir
+* Oguz Kilcan
+* Orzelius
+* Artem Chernyshev
+* Dmitriy Matrenichev
+* Hector Monsalve
+
+### Changes
+<details><summary>3 commits</summary>
+<p>
+
+* [`3640387a`](https://github.com/siderolabs/omni/commit/3640387a109bf06004331096a4ec64f69e710943) fix: batch SQLite cleanup deletes to reduce write lock contention
+* [`2c7de540`](https://github.com/siderolabs/omni/commit/2c7de54000549fe99f3cf17ece2c2926ae4746f5) chore: bump go to v1.26.2
+* [`bcf85902`](https://github.com/siderolabs/omni/commit/bcf859029707cb030f8efe269747a33d630a04a3) chore: bump dependencies and rekres
+</p>
+</details>
+
+### Changes from siderolabs/crypto
+<details><summary>1 commit</summary>
+<p>
+
+* [`6d82f0c`](https://github.com/siderolabs/crypto/commit/6d82f0cf90e9e9b41c5d1cec7d011361ef4649aa) fix: bump minimum TLS version to v1.3
+</p>
+</details>
+
+### Changes from siderolabs/discovery-service
+<details><summary>4 commits</summary>
+<p>
+
+* [`f1fdd95`](https://github.com/siderolabs/discovery-service/commit/f1fdd952e796301a4cebe0c2dea349519b625714) release(v1.0.17): prepare release
+* [`2267f4c`](https://github.com/siderolabs/discovery-service/commit/2267f4c5a3c7b5ef1b3c1fbe6faaa2e669aad4ab) feat: store relative expiration (TTL) instead of absolute
+* [`f708818`](https://github.com/siderolabs/discovery-service/commit/f708818f9d0b29ff966fbc276139b53e92edd88a) release(v1.0.16): prepare release
+* [`379016a`](https://github.com/siderolabs/discovery-service/commit/379016ae4d6f6024148c00d360919adb291d09cf) feat: add option to disable client IP reporting in Hello response
+</p>
+</details>
+
+### Changes from siderolabs/go-kubernetes
+<details><summary>5 commits</summary>
+<p>
+
+* [`503792d`](https://github.com/siderolabs/go-kubernetes/commit/503792def8b9637db48b579acc020172afdb9aca) chore: add retry to main kubernetes operations
+* [`6a00c4f`](https://github.com/siderolabs/go-kubernetes/commit/6a00c4f881af8d60161c7327786ce275a49bfb56) feat: handle CR defined alongside their CRD in the same apply
+* [`4ff2602`](https://github.com/siderolabs/go-kubernetes/commit/4ff2602c71028a003377f8014a911361ab2f059f) feat: update deprecations to Kuberntes 1.36.0-beta.0
+* [`691a26b`](https://github.com/siderolabs/go-kubernetes/commit/691a26b3942715c406336c9e86637973b03f8ba2) feat: add StateProvider for per-node COSI state in upgrade checks
+* [`92163c3`](https://github.com/siderolabs/go-kubernetes/commit/92163c3b39f1ff3d397d4a76bf4ea249f78931b1) fix: set a the context logger
+</p>
+</details>
+
+### Changes from siderolabs/go-talos-support
+<details><summary>2 commits</summary>
+<p>
+
+* [`6ec24a7`](https://github.com/siderolabs/go-talos-support/commit/6ec24a737729cc705ec7fc9c40e142ea2e127f32) feat: add per-node Talos client provider for support bundle collection
+* [`5e0155f`](https://github.com/siderolabs/go-talos-support/commit/5e0155fbc72db1490d21b07063dd2b35dfe48360) fix: add trailing new line when writing to logger
+</p>
+</details>
+
+### Changes from siderolabs/grpc-proxy
+<details><summary>3 commits</summary>
+<p>
+
+* [`d670c42`](https://github.com/siderolabs/grpc-proxy/commit/d670c420307acbdc1c71cc1572c1d826f07cf406) chore: bump dependencies
+* [`8614c71`](https://github.com/siderolabs/grpc-proxy/commit/8614c7158032488d36285ce2245d06f49d7447c4) chore: bump deps
+* [`80677e0`](https://github.com/siderolabs/grpc-proxy/commit/80677e04c18d908cacb69566ed95c78c400d4d99) fix: propagate the headers before the message
+</p>
+</details>
+
+### Changes from siderolabs/proto-codec
+<details><summary>1 commit</summary>
+<p>
+
+* [`9b8a14e`](https://github.com/siderolabs/proto-codec/commit/9b8a14eb93804d497f011b1c26d1936c9ef45dcd) chore: bump dependencies
+</p>
+</details>
+
+### Changes from siderolabs/siderolink
+<details><summary>1 commit</summary>
+<p>
+
+* [`0a1933c`](https://github.com/siderolabs/siderolink/commit/0a1933ce37ee5383dc0c875fa9da318f38c76e31) chore: bump dependencies
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/ProtonMail/gopenpgp/v2**                v2.9.0 -> v2.10.0
+* **github.com/aws/aws-sdk-go-v2**                     v1.41.3 -> v1.41.5
+* **github.com/aws/aws-sdk-go-v2/config**              v1.32.11 -> v1.32.14
+* **github.com/aws/aws-sdk-go-v2/credentials**         v1.19.11 -> v1.19.14
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.22.6 -> v1.22.12
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.96.4 -> v1.98.0
+* **github.com/aws/smithy-go**                         v1.24.2 -> v1.24.3
+* **github.com/cosi-project/runtime**                  v1.14.0 -> v1.14.1
+* **github.com/go-jose/go-jose/v4**                    v4.1.3 -> v4.1.4
+* **github.com/google/go-containerregistry**           v0.21.2 -> v0.21.4
+* **github.com/hashicorp/vault/api**                   v1.22.0 -> v1.23.0
+* **github.com/hashicorp/vault/api/auth/kubernetes**   v0.10.0 -> v0.12.0
+* **github.com/siderolabs/crypto**                     v0.6.4 -> v0.6.5
+* **github.com/siderolabs/discovery-service**          v1.0.15 -> v1.0.17
+* **github.com/siderolabs/go-kubernetes**              8364adde8878 -> v0.2.36
+* **github.com/siderolabs/go-talos-support**           v0.1.4 -> v0.2.0
+* **github.com/siderolabs/grpc-proxy**                 v0.5.1 -> v0.5.2
+* **github.com/siderolabs/omni/client**                v1.5.9 -> v1.6.1
+* **github.com/siderolabs/proto-codec**                v0.1.3 -> v0.1.4
+* **github.com/siderolabs/siderolink**                 v0.3.15 -> v0.3.16
+* **github.com/siderolabs/talos/pkg/machinery**        cc636f1dd1f1 -> v1.13.0-beta.1
+* **github.com/zitadel/oidc/v3**                       v3.45.5 -> v3.46.0
+* **go.etcd.io/etcd/client/pkg/v3**                    v3.6.8 -> v3.6.10
+* **go.etcd.io/etcd/client/v3**                        v3.6.8 -> v3.6.10
+* **go.etcd.io/etcd/server/v3**                        v3.6.8 -> v3.6.10
+* **golang.org/x/tools**                               v0.42.0 -> v0.43.0
+* **k8s.io/api**                                       v0.35.2 -> v0.35.3
+* **k8s.io/client-go**                                 v0.35.2 -> v0.35.3
+
+Previous release can be found at [v1.6.4](https://github.com/siderolabs/omni/releases/tag/v1.6.4)
+
 ## [Omni 1.6.4](https://github.com/siderolabs/omni/releases/tag/v1.6.4) (2026-04-02)
 
 Welcome to the v1.6.4 release of Omni!
