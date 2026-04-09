@@ -302,14 +302,29 @@ func (factory *ClientFactory) GetForCluster(ctx context.Context, clusterID strin
 	}
 }
 
-// releaseForCluster evicts all per-node clients for the given cluster from the cache.
+// releaseForCluster evicts all cached clients for the given cluster (cluster-wide and per-machine).
+//
+// The cluster-wide key ("clusterID/") is removed last to avoid a window where
+// stale per-machine entries remain in the cache after the cluster key is gone.
 func (factory *ClientFactory) releaseForCluster(clusterID string) {
-	for _, key := range factory.cache.Keys() {
-		if strings.HasPrefix(key, clusterID+"/") {
-			factory.logger.Debug("deleting Talos client from cache", zap.String("key", key))
+	clusterKey := buildCacheKey(clusterID, "")
 
-			factory.cache.Remove(key)
+	for _, key := range factory.cache.Keys() {
+		if key == clusterKey {
+			continue // remove last
 		}
+
+		if !strings.HasPrefix(key, clusterKey) {
+			continue
+		}
+
+		if factory.cache.Remove(key) {
+			factory.logger.Debug("deleted Talos client from cache", zap.String("key", key))
+		}
+	}
+
+	if factory.cache.Remove(clusterKey) {
+		factory.logger.Debug("deleted Talos client from cache", zap.String("key", clusterKey))
 	}
 }
 

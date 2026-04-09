@@ -141,14 +141,25 @@ func NewRouter(
 }
 
 // releaseForCluster evicts all cached backends for the given cluster (both cluster-scoped and per-node).
+//
+// The cluster-wide key ("clusterID/") is removed last to avoid a window where
+// stale per-machine entries remain in the cache after the cluster key is gone.
 func (r *Router) releaseForCluster(clusterID string) {
-	prefix := clusterID + "/"
+	clusterKey := buildCacheKey(clusterID, "")
 
 	for _, key := range r.talosBackends.Keys() {
-		if strings.HasPrefix(key, prefix) {
-			r.talosBackends.Remove(key)
+		if key == clusterKey {
+			continue // remove last
 		}
+
+		if !strings.HasPrefix(key, clusterKey) {
+			continue
+		}
+
+		r.talosBackends.Remove(key)
 	}
+
+	r.talosBackends.Remove(clusterKey)
 }
 
 // releaseForMachine evicts a single cached backend by cluster and machine ID.
