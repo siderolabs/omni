@@ -54,6 +54,7 @@ var adminMethodSet = xslices.ToSet([]string{
 
 	machine.MachineService_MetaWrite_FullMethodName,
 	machine.MachineService_MetaDelete_FullMethodName,
+	machine.DebugService_ContainerRun_FullMethodName,
 })
 
 // adminMethodSet1_12 is the set of methods that are allowed to be called by the minimum role of os:admin for Talos versions >= 1.12.0.
