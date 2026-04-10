@@ -16,7 +16,6 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
-	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 	"github.com/siderolabs/omni/client/pkg/omnictl/output"
 	"github.com/siderolabs/omni/client/pkg/omnictl/resources"
@@ -267,7 +266,7 @@ func createResourceRequest(
 }
 
 func init() {
-	getCmd.PersistentFlags().StringVarP(&getCmdFlags.namespace, "namespace", "n", omniresources.DefaultNamespace, "The resource namespace.")
+	getCmd.PersistentFlags().StringVarP(&getCmdFlags.namespace, "namespace", "n", "", "The resource namespace.")
 	getCmd.PersistentFlags().BoolVarP(&getCmdFlags.watch, "watch", "w", false, "Watch the resource state.")
 	getCmd.PersistentFlags().StringVarP(&getCmdFlags.output, "output", "o", "table", "Output format (json, table, yaml, jsonpath).")
 	getCmd.PersistentFlags().StringVarP(&getCmdFlags.selector, "selector", "l", "", "Selector (label query) to filter on, supports '=' and '==' (e.g. -l key1=value1,key2=value2)")
