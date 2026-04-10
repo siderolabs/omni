@@ -538,44 +538,6 @@ export const removeClusterLabels = async (clusterID: string, ...keys: string[]) 
   await ResourceService.Update(resource, undefined, withRuntime(Runtime.Omni))
 }
 
-export const setClusterWorkloadProxy = async (clusterID: string, enabled: boolean) => {
-  const resource: Resource<ClusterSpec> = await ResourceService.Get(
-    {
-      type: ClusterType,
-      namespace: DefaultNamespace,
-      id: clusterID,
-    },
-    withRuntime(Runtime.Omni),
-  )
-
-  if (!resource.spec.features) {
-    resource.spec.features = {}
-  }
-
-  resource.spec.features.enable_workload_proxy = enabled
-
-  await ResourceService.Update(resource, resource.metadata.version, withRuntime(Runtime.Omni))
-}
-
-export const setClusterEtcdBackupsConfig = async (clusterID: string, spec: ClusterSpec) => {
-  const resource: Resource<ClusterSpec> = await ResourceService.Get(
-    {
-      type: ClusterType,
-      namespace: DefaultNamespace,
-      id: clusterID,
-    },
-    withRuntime(Runtime.Omni),
-  )
-
-  if (isEqual(resource.spec.backup_configuration, spec.backup_configuration)) {
-    return
-  }
-
-  resource.spec.backup_configuration = spec.backup_configuration
-
-  await ResourceService.Update(resource, resource.metadata.version, withRuntime(Runtime.Omni))
-}
-
 export const triggerEtcdBackup = async (clusterID: string) => {
   const metadata = {
     type: EtcdManualBackupType,
