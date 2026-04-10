@@ -386,3 +386,22 @@ func dropWorkloadProxyConfigPatches(ctx context.Context, st state.State, _ *zap.
 
 	return nil
 }
+
+func makeMachineRequestsOwnerEmpty(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
+	machineRequests, err := safe.ReaderListAll[*infra.MachineRequest](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	for machineRequest := range machineRequests.All() {
+		if machineRequest.Metadata().Owner() == "" {
+			continue
+		}
+
+		if err = changeOwner(ctx, st, machineRequest, ""); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

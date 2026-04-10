@@ -155,22 +155,19 @@ func (h *machineRequestSetStatusHandler) scaleUp(ctx context.Context, r controll
 		for range 100 {
 			alias := rand.String(6)
 
-			if err := safe.WriterModify(ctx, r, infra.NewMachineRequest(machineRequestSet.Metadata().ID()+"-"+alias), func(request *infra.MachineRequest) error {
-				var err error
+			request := infra.NewMachineRequest(machineRequestSet.Metadata().ID() + "-" + alias)
 
-				request.TypedSpec().Value.TalosVersion = machineRequestSet.TypedSpec().Value.TalosVersion
+			request.TypedSpec().Value.TalosVersion = machineRequestSet.TypedSpec().Value.TalosVersion
+			request.TypedSpec().Value.Extensions = machineRequestSet.TypedSpec().Value.Extensions
+			request.TypedSpec().Value.KernelArgs = machineRequestSet.TypedSpec().Value.KernelArgs
+			request.TypedSpec().Value.MetaValues = machineRequestSet.TypedSpec().Value.MetaValues
+			request.TypedSpec().Value.ProviderData = machineRequestSet.TypedSpec().Value.ProviderData
+			request.TypedSpec().Value.GrpcTunnel = machineRequestSet.TypedSpec().Value.GrpcTunnel
 
-				request.TypedSpec().Value.Extensions = machineRequestSet.TypedSpec().Value.Extensions
-				request.TypedSpec().Value.KernelArgs = machineRequestSet.TypedSpec().Value.KernelArgs
-				request.TypedSpec().Value.MetaValues = machineRequestSet.TypedSpec().Value.MetaValues
-				request.TypedSpec().Value.ProviderData = machineRequestSet.TypedSpec().Value.ProviderData
-				request.TypedSpec().Value.GrpcTunnel = machineRequestSet.TypedSpec().Value.GrpcTunnel
+			request.Metadata().Labels().Set(omni.LabelInfraProviderID, machineRequestSet.TypedSpec().Value.ProviderId)
+			request.Metadata().Labels().Set(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())
 
-				request.Metadata().Labels().Set(omni.LabelInfraProviderID, machineRequestSet.TypedSpec().Value.ProviderId)
-				request.Metadata().Labels().Set(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())
-
-				return err
-			}); err != nil {
+			if err := r.Create(ctx, request, controller.WithCreateNoOwner()); err != nil {
 				if state.IsConflictError(err) {
 					continue
 				}
@@ -262,7 +259,7 @@ func scaleDown(ctx context.Context, r controller.ReaderWriter, machineRequests [
 }
 
 func deleteMachineRequest(ctx context.Context, r controller.ReaderWriter, request *infra.MachineRequest, machine *machineStatusLabels) error {
-	deleted, err := helpers.TeardownAndDestroy(ctx, r, request.Metadata())
+	deleted, err := helpers.TeardownAndDestroy(ctx, r, request.Metadata(), controller.WithOwner(""))
 	if err != nil {
 		return err
 	}
@@ -290,7 +287,7 @@ func (h *machineRequestSetStatusHandler) reconcileTearingDown(ctx context.Contex
 		}
 	}
 
-	destroyReady, err := helpers.TeardownAndDestroyAll(ctx, r, machineRequests.Pointers())
+	destroyReady, err := helpers.TeardownAndDestroyAll(ctx, r, machineRequests.Pointers(), controller.WithOwner(""))
 	if err != nil {
 		return err
 	}
@@ -338,7 +335,7 @@ func (h *machineRequestSetStatusHandler) handleInfraProviderDeletion(ctx context
 		}
 
 		return nil
-	}, controller.WithExpectedPhaseAny()); err != nil {
+	}, controller.WithExpectedPhaseAny(), controller.WithModifyNoOwner()); err != nil {
 		return err
 	}
 
