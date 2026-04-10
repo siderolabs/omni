@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    healthcheck-fixture: from-file
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: check
+          image: alpine
+          command: ["sh", "-c", "kubectl get pods -A --field-selector=status.phase!=Running -o name | grep . && exit 1 || exit 0"]

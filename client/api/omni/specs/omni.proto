@@ -1705,3 +1705,15 @@ message ClusterKubernetesManifestsStatusSpec {
   int32 total = 3;
   string last_error = 4;
 }
+
+// HealthcheckSpec describes a Healthcheck.
+message KubernetesHealthcheckSpec {
+  // job is the full Kubernetes Job manifest (YAML) Omni runs to perform the healthcheck. The job runs the
+  // check as a single container that terminates: exit code 0 means healthy, a failed job means unhealthy.
+  // The job manifest is responsible for its own namespace, service account and RBAC (e.g. provided via
+  // KubernetesManifests). Omni overrides the job's name and creates it fresh on every attempt.
+  string job = 1;
+  // interval is how often Omni re-checks (re-creates the job and polls its status) while it is holding an
+  // upgrade. If not set, a default interval is used.
+  google.protobuf.Duration interval = 2;
+}

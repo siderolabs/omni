@@ -39,7 +39,7 @@ func TestStatusController(t *testing.T) {
 	t.Parallel()
 
 	addControllers := func(_ context.Context, testContext testutils.TestContext) {
-		require.NoError(t, testContext.Runtime.RegisterQController(talosupgrade.NewStatusController()))
+		require.NoError(t, testContext.Runtime.RegisterQController(talosupgrade.NewStatusController(nil)))
 	}
 
 	createCluster := func(
@@ -693,6 +693,13 @@ func TestStatusController(t *testing.T) {
 				rmock.Destroy[*omni.ClusterMachineStatus](ctx, t, st, []string{removedMachine.Metadata().ID()})
 				rmock.Destroy[*omni.SchematicConfiguration](ctx, t, st, []string{removedMachine.Metadata().ID()})
 				rmock.Destroy[*omni.ClusterMachineConfigStatus](ctx, t, st, []string{removedMachine.Metadata().ID()})
+
+				rmock.Mock[*omni.Cluster](ctx, t, st, testoptions.SameID(cluster),
+					testoptions.Modify(func(res *omni.Cluster) error {
+						res.Metadata().Annotations().Set("test-poke-reconcile", "1")
+
+						return nil
+					}))
 
 				// ClusterMachineTalosVersion for the removed machine should be cleaned up.
 				rtestutils.AssertNoResource[*omni.ClusterMachineTalosVersion](ctx, t, st, removedMachine.Metadata().ID())

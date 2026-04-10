@@ -35,6 +35,20 @@ kubernetes:
               restartPolicy: Never
       name: bootstrap-job
       mode: one-time
+  healthchecks:
+    - idOverride: cluster-export-test-nodes-ready
+      job: |
+        apiVersion: batch/v1
+        kind: Job
+        spec:
+          backoffLimit: 0
+          template:
+            spec:
+              restartPolicy: Never
+              containers:
+                - name: check
+                  image: alpine
+                  command: ["sh", "-c", "kubectl get nodes"]
 talos:
   version: v1.5.5
 features:
