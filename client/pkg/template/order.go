@@ -20,9 +20,10 @@ var canonicalResourceOrder = map[resource.Type]int{
 	omni.ExtensionsConfigurationType: 2,
 	omni.ConfigPatchType:             3,
 	omni.KubernetesManifestGroupType: 4,
-	omni.MachineSetType:              5,
-	omni.MachineSetNodeType:          6,
-	omni.KernelArgsType:              7,
+	omni.KubernetesHealthCheckType:   5,
+	omni.MachineSetType:              6,
+	omni.MachineSetNodeType:          7,
+	omni.KernelArgsType:              8,
 }
 
 func sortResources[T any](s []T, mapper func(T) resource.Metadata) {

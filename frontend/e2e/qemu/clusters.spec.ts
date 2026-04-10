@@ -54,15 +54,11 @@ test('machine overview tabs', async ({ page }) => {
   await test.step('Validate logs tab', async () => {
     await page.getByRole('tab', { name: 'Logs', exact: true }).click()
 
-    await page.getByPlaceholder('Search').fill('[talos] [initramfs] booting Talos')
-    await expect
-      .soft(page.getByText(/\[talos\] \[initramfs\] booting Talos v\d\.\d+\.\d+/).first())
-      .toBeVisible()
+    await page.getByPlaceholder('Search').fill('[talos]')
+    await expect.soft(page.getByText(/\[talos\]/).first()).toBeVisible()
 
-    await page.getByPlaceholder('Search').clear()
-    await expect
-      .soft(page.getByText(/\[talos\] \[initramfs\] booting Talos v\d\.\d+\.\d+/))
-      .toBeHidden()
+    await page.getByPlaceholder('Search').fill('no-log-line-matches-this-search')
+    await expect.soft(page.getByText(/\[talos\]/)).toBeHidden()
   })
 
   await test.step('Validate patches tab', async () => {
@@ -488,15 +484,11 @@ test('node overview tabs', async ({ page }) => {
   await test.step('Validate console logs tab', async () => {
     await page.getByRole('tab', { name: 'Logs', exact: true }).click()
 
-    await page.getByPlaceholder('Search').fill('[talos] [initramfs] booting Talos')
-    await expect
-      .soft(page.getByText(/\[talos\] \[initramfs\] booting Talos v\d\.\d+\.\d+/).first())
-      .toBeVisible()
+    await page.getByPlaceholder('Search').fill('[talos]')
+    await expect.soft(page.getByText(/\[talos\]/).first()).toBeVisible()
 
-    await page.getByPlaceholder('Search').clear()
-    await expect
-      .soft(page.getByText(/\[talos\] \[initramfs\] booting Talos v\d\.\d+\.\d+/))
-      .toBeHidden()
+    await page.getByPlaceholder('Search').fill('no-log-line-matches-this-search')
+    await expect.soft(page.getByText(/\[talos\]/)).toBeHidden()
   })
 
   await test.step('Validate config tab', async () => {

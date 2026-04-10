@@ -47,6 +47,9 @@ var clusterWithKernelArgs []byte
 //go:embed testdata/cluster-with-manifests.yaml
 var clusterWithManifests []byte
 
+//go:embed testdata/cluster-with-healthchecks.yaml
+var clusterWithKubernetesHealthChecks []byte
+
 //go:embed testdata/cluster-inline-bytes.yaml
 var clusterInlineBytes []byte
 
@@ -143,6 +146,10 @@ func TestLoad(t *testing.T) {
 			data: clusterWithManifests,
 		},
 		{
+			name: "clusterWithKubernetesHealthChecks",
+			data: clusterWithKubernetesHealthChecks,
+		},
+		{
 			name: "clusterInlineBytes",
 			data: clusterInlineBytes,
 		},
@@ -205,6 +212,10 @@ func TestValidate(t *testing.T) {
 		{
 			name: "clusterWithManifests",
 			data: clusterWithManifests,
+		},
+		{
+			name: "clusterWithKubernetesHealthChecks",
+			data: clusterWithKubernetesHealthChecks,
 		},
 		{
 			name: "clusterInlineBytes",
@@ -575,6 +586,62 @@ func TestSync(t *testing.T) {
 	assert.Equal(t, []string{
 		"ConfigPatches.omni.sidero.dev(default/400-my-first-cluster-control-planes-kubespan-enabled)",
 	}, xslices.Map(sync2.Create, resource.String))
+}
+
+func TestSync_KubernetesHealthChecks(t *testing.T) {
+	t.Chdir("testdata")
+
+	root := openTestRoot(t)
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	ctx := t.Context()
+
+	templ, err := template.Load(bytes.NewReader(clusterWithKubernetesHealthChecks), template.WithRoot(root))
+	require.NoError(t, err)
+
+	syncRes, err := templ.Sync(ctx, st)
+	require.NoError(t, err)
+
+	assert.Empty(t, syncRes.Update)
+	assert.Equal(t, [][]resource.Resource{nil, nil}, syncRes.Destroy)
+
+	healthcheckIDs := xslices.Map(
+		xslices.Filter(syncRes.Create, func(r resource.Resource) bool {
+			return r.Metadata().Type() == omni.KubernetesHealthCheckType
+		}),
+		func(r resource.Resource) string { return r.Metadata().ID() },
+	)
+
+	assert.ElementsMatch(t, []string{
+		"cluster-hc-test-cluster-nodes-ready",
+		"cluster-hc-test-cluster-from-file",
+	}, healthcheckIDs)
+
+	// the job.yaml fixture file's full Job manifest should make it into the resource for the file-backed healthcheck
+	for _, r := range syncRes.Create {
+		if r.Metadata().ID() != "cluster-hc-test-cluster-from-file" {
+			continue
+		}
+
+		hc, ok := r.(*omni.KubernetesHealthCheck)
+		require.True(t, ok)
+
+		job := hc.TypedSpec().Value.Job
+		assert.Contains(t, job, "apiVersion: batch/v1")
+		assert.Contains(t, job, "kind: Job")
+		assert.Contains(t, job, "healthcheck-fixture: from-file")
+	}
+
+	for _, r := range syncRes.Create {
+		require.NoError(t, st.Create(ctx, r))
+	}
+
+	syncRes2, err := templ.Sync(ctx, st)
+	require.NoError(t, err)
+
+	assert.Empty(t, syncRes2.Create)
+	assert.Empty(t, syncRes2.Update)
+	assert.Equal(t, [][]resource.Resource{nil, nil}, syncRes2.Destroy)
 }
 
 func TestSync_KubernetesManifests(t *testing.T) {

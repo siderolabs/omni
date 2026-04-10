@@ -21,7 +21,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/configpatch"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/layeredresource"
 )
 
 type ConfigPatchesController struct {
@@ -85,7 +85,7 @@ func NewConfigPatchesController() *ConfigPatchesController {
 func (ctrl *ConfigPatchesController) transform(ctx context.Context, r controller.Reader, logger *zap.Logger,
 	clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches,
 ) error {
-	patchHelper, err := configpatch.NewHelper(ctx, r)
+	patchHelper, err := layeredresource.NewHelper[*omni.ConfigPatch](ctx, r)
 	if err != nil {
 		return err
 	}

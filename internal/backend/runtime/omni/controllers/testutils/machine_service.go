@@ -31,6 +31,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -448,7 +449,9 @@ func (ms *MachineServiceMock) SetEtcdMembers(value *machine.EtcdMemberListRespon
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
-	ms.etcdMembers = value
+	// clone so that each mock owns its backing memory: callers often share a single response
+	// across multiple mocks, and each mock guards it with its own lock, which would otherwise race.
+	ms.etcdMembers = proto.Clone(value).(*machine.EtcdMemberListResponse) //nolint:errcheck,forcetypeassert
 }
 
 func (ms *MachineServiceMock) GetEtcdMemberCount() int {

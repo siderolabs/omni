@@ -7,6 +7,7 @@ package omni_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -243,6 +244,7 @@ func testMachineRequestSetStatusReconcile(ctx context.Context, t *testing.T, st 
 	require.True(t, requests.Len() == 0)
 }
 
+//nolint:gocognit
 func reconcileLabels(ctx context.Context, st state.State, ready chan<- struct{}) error {
 	ch := make(chan state.Event, 64)
 
@@ -280,6 +282,10 @@ func reconcileLabels(ctx context.Context, st state.State, ready chan<- struct{})
 				status := event.Resource.(*infra.MachineRequestStatus) //nolint:errcheck,forcetypeassert
 
 				if err = deleteLabels(status.TypedSpec().Value.Id); err != nil {
+					if errors.Is(err, context.Canceled) {
+						return nil
+					}
+
 					return err
 				}
 			case state.Created, state.Updated:
@@ -297,6 +303,10 @@ func reconcileLabels(ctx context.Context, st state.State, ready chan<- struct{})
 					return nil
 				})
 				if err != nil && !state.IsPhaseConflictError(err) {
+					if errors.Is(err, context.Canceled) {
+						return nil
+					}
+
 					return err
 				}
 			}

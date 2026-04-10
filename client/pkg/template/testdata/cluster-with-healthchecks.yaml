@@ -1,0 +1,30 @@
+kind: Cluster
+name: hc-test-cluster
+kubernetes:
+  version: v1.30.0
+  healthchecks:
+    - name: nodes-ready
+      job: |
+        apiVersion: batch/v1
+        kind: Job
+        spec:
+          backoffLimit: 0
+          template:
+            spec:
+              restartPolicy: Never
+              containers:
+                - name: check
+                  image: alpine
+                  command: ["kubectl", "get", "nodes"]
+    - name: from-file
+      file: healthchecks/job.yaml
+talos:
+  version: v1.7.0
+---
+kind: ControlPlane
+machines:
+  - aaaaaaaa-1111-2222-3333-444444444444
+---
+kind: Workers
+machines:
+  - bbbbbbbb-1111-2222-3333-444444444444

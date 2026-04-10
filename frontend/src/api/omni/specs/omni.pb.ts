@@ -1141,3 +1141,8 @@ export type ClusterKubernetesManifestsStatusSpec = {
   total?: number
   last_error?: string
 }
+
+export type KubernetesHealthCheckSpec = {
+  job?: string
+  interval?: GoogleProtobufDuration.Duration
+}

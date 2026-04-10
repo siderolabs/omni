@@ -27,8 +27,9 @@ import (
 )
 
 type clusterResources struct {
-	patches    *layeredResources[*omni.ConfigPatch]
-	extensions *layeredResources[*omni.ExtensionsConfiguration]
+	patches      *layeredResources[*omni.ConfigPatch]
+	extensions   *layeredResources[*omni.ExtensionsConfiguration]
+	healthchecks *layeredResources[*omni.KubernetesHealthCheck]
 
 	machineSetNodes            map[string][]*omni.MachineSetNode
 	kernelArgs                 map[string]*omni.KernelArgs
@@ -53,6 +54,8 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, inclu
 	}
 
 	clusterModel.SystemExtensions = transformExtensions(resources.extensions.cluster)
+
+	clusterModel.Kubernetes.Healthchecks = transformKubernetesHealthChecksToModels(resources.healthchecks.cluster)
 
 	clusterModel.Kubernetes.Manifests, err = transformManifestsToModels(resources.manifests)
 	if err != nil {
@@ -497,6 +500,11 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 		return clusterResources{}, err
 	}
 
+	healthchecks, err := collectResourceLayers[*omni.KubernetesHealthCheck](ctx, st, clusterID, nil)
+	if err != nil {
+		return clusterResources{}, err
+	}
+
 	manifestList, err := safe.StateListAll[*omni.KubernetesManifestGroup](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterID)))
 	if err != nil {
 		return clusterResources{}, fmt.Errorf("error listing kubernetes manifests of cluster %q: %w", clusterID, err)
@@ -520,6 +528,7 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 		kernelArgs:                 machineKernelArgs,
 		patches:                    patches,
 		extensions:                 extensions,
+		healthchecks:               healthchecks,
 		clusterMachineInstallDisks: clusterMachineInstallDisks,
 		manifests:                  manifests,
 	}, nil
@@ -576,6 +585,36 @@ func transformManifestToModel(manifest *omni.KubernetesManifestGroup) (models.Ku
 		Inline:      models.NewInlineContentBytes(raw),
 		Descriptors: descriptors,
 	}, nil
+}
+
+func transformKubernetesHealthChecksToModels(healthchecks []*omni.KubernetesHealthCheck) models.KubernetesHealthCheckList {
+	if len(healthchecks) == 0 {
+		return nil
+	}
+
+	slices.SortFunc(healthchecks, func(a, b *omni.KubernetesHealthCheck) int {
+		return strings.Compare(a.Metadata().ID(), b.Metadata().ID())
+	})
+
+	result := make(models.KubernetesHealthCheckList, 0, len(healthchecks))
+
+	for _, h := range healthchecks {
+		spec := h.TypedSpec().Value
+
+		model := models.KubernetesHealthCheck{
+			Descriptors: getUserDescriptors(h),
+			IDOverride:  h.Metadata().ID(),
+			Interval:    spec.GetInterval().AsDuration(),
+		}
+
+		if spec.GetJob() != "" {
+			model.Job = models.NewInlineContentBytes([]byte(spec.GetJob()))
+		}
+
+		result = append(result, model)
+	}
+
+	return result
 }
 
 func transformExtensions(extensions []*omni.ExtensionsConfiguration) models.SystemExtensions {

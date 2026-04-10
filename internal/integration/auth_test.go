@@ -965,6 +965,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       kubernetesManifest,
 				allowedVerbSet: allVerbsSet,
 			},
+			{
+				resource:       omni.NewKubernetesHealthCheck(uuid.New().String()),
+				allowedVerbSet: allVerbsSet,
+			},
 		}...)
 
 		// read-only resources

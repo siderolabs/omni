@@ -116,3 +116,7 @@ func KernelArgsValidationOptions() []validated.StateOption {
 func MetadataValidationOptions() []validated.StateOption {
 	return metadataValidationOptions()
 }
+
+func KubernetesHealthCheckValidationOptions() []validated.StateOption {
+	return kubernetesHealthcheckValidationOptions()
+}

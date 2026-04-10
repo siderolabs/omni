@@ -280,7 +280,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		secrets.NewSecretRotationStatusController(&secrets.KubernetesClientFactory{}),
 		machineupgrade.NewStatusController(imageFactoryHost, cfg.Registries.GetTalos(), nil),
 		kernelargsctrl.NewStatusController(),
-		talosupgrade.NewStatusController(),
+		talosupgrade.NewStatusController(kubernetesRuntime),
 		infraprovider.NewCombinedStatusController(constants.InfraProviderHealthCheckInterval),
 		machine.NewStatusLinkController(linkCounterDeltaCh),
 		kubernetes.NewClusterManifestsStatusController(kubernetesRuntime),
@@ -461,6 +461,7 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*omni.MaintenanceConfigStatus](),
 		safe.WithResourceCache[*omni.MachineUpgradeStatus](),
 		safe.WithResourceCache[*omni.MachineConfigDiff](),
+		safe.WithResourceCache[*omni.KubernetesHealthCheck](),
 		safe.WithResourceCache[*siderolinkres.Config](),
 		safe.WithResourceCache[*siderolinkres.ConnectionParams](), //nolint:staticcheck
 		safe.WithResourceCache[*siderolinkres.Link](),

@@ -49,5 +49,6 @@ func Options(st state.State, etcdBackupStoreFactory store.Factory, cfg *config.P
 		kubernetesManifestsValidationOptions(),
 		eulaValidationOptions(st),
 		kernelArgsValidationOptions(),
+		kubernetesHealthcheckValidationOptions(),
 	)
 }

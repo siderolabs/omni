@@ -73,6 +73,8 @@ type KubernetesCluster struct {
 	Version string `yaml:"version"`
 	// Manifests allow defining Kubernetes manifests to be applied to the deployed Omni cluster.
 	Manifests KubernetesManifestsList `yaml:"manifests,omitempty"`
+	// Healthchecks are advanced healthcheck definitions deployed into the cluster.
+	Healthchecks KubernetesHealthCheckList `yaml:"healthchecks,omitempty"`
 }
 
 // TalosCluster is a Talos cluster settings.
@@ -106,6 +108,10 @@ func (cluster *Cluster) Validate(opts ValidateOptions) error {
 	}
 
 	if err := cluster.Kubernetes.Manifests.Validate(opts); err != nil {
+		multiErr = multierror.Append(multiErr, err)
+	}
+
+	if err := cluster.Kubernetes.Healthchecks.Validate(opts); err != nil {
 		multiErr = multierror.Append(multiErr, err)
 	}
 
@@ -155,8 +161,18 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 		clusterResource.TypedSpec().Value.BackupConfiguration = &specs.EtcdBackupConf{Interval: durationpb.New(interval), Enabled: true}
 	}
 
+	healthchecks, err := cluster.Kubernetes.Healthchecks.Translate(
+		ctx,
+		fmt.Sprintf("cluster-%s", cluster.Name),
+		pair.MakePair(omni.LabelCluster, cluster.Name),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	resourceList := append([]resource.Resource{clusterResource}, patches...)
 	resourceList = append(resourceList, manifests...)
+	resourceList = append(resourceList, healthchecks...)
 
 	schematicConfigurations := cluster.translate(
 		ctx,

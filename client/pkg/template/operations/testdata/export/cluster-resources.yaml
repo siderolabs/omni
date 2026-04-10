@@ -701,3 +701,31 @@ spec:
           restartPolicy: Never
   compresseddata: []
   mode: 2
+---
+
+
+################################ Cluster Healthchecks
+metadata:
+  namespace: default
+  type: KubernetesHealthChecks.omni.sidero.dev
+  id: cluster-export-test-nodes-ready
+  version: 1
+  owner:
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 2023-12-07T13:39:44Z
+  labels:
+    omni.sidero.dev/cluster: export-test
+spec:
+  job: |
+    apiVersion: batch/v1
+    kind: Job
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: check
+              image: alpine
+              command: ["sh", "-c", "kubectl get nodes"]

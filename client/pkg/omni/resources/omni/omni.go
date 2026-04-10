@@ -46,6 +46,7 @@ func init() {
 	registry.MustRegisterResource(EtcdManualBackupType, &EtcdManualBackup{})
 	registry.MustRegisterResource(ExposedServiceType, &ExposedService{})
 	registry.MustRegisterResource(FeaturesConfigType, &FeaturesConfig{})
+	registry.MustRegisterResource(KubernetesHealthCheckType, &KubernetesHealthCheck{})
 	registry.MustRegisterResource(ImagePullRequestType, &ImagePullRequest{})
 	registry.MustRegisterResource(ImagePullStatusType, &ImagePullStatus{})
 	registry.MustRegisterResource(ImportedClusterSecretsType, &ImportedClusterSecrets{})

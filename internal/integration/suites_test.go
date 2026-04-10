@@ -960,7 +960,7 @@ Tests upgrading Talos version, including reverting a failed upgrade.`)
 
 		t.Run(
 			"TalosUpgradeShouldSucceed",
-			AssertTalosUpgradeFlow(t.Context(), options.omniClient.Omni().State(), clusterName, options.MachineOptions.TalosVersion),
+			AssertTalosUpgradeFlow(t.Context(), options.omniClient.Omni().State(), options.omniClient.Management(), clusterName, options.MachineOptions.TalosVersion),
 		)
 
 		t.Run(

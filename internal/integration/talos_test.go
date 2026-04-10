@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -39,13 +40,20 @@ import (
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
+	corev1 "k8s.io/api/core/v1"
+	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/client"
+	clientmanagement "github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	integrationkube "github.com/siderolabs/omni/internal/integration/kubernetes"
 )
 
 // clearConnectionRefused clears cached gRPC 'connection refused' error from Talos controlplane apid instances.
@@ -62,6 +70,29 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 		_, err := c.Version(talosclient.WithNodes(innerCtx, nodes...))
 
 		return err
+	}
+
+	updateNodes := func() error {
+		var errs error
+
+		nodes = slices.DeleteFunc(nodes, func(node string) bool {
+			innerCtx, innerCancel := context.WithTimeout(ctx, time.Second)
+			defer innerCancel()
+
+			_, err := c.Version(talosclient.WithNode(innerCtx, node))
+
+			// drop only nodes that no longer resolve (removed during scale-down);
+			// keep nodes with transient errors so they're retried.
+			if status.Code(err) == codes.NotFound {
+				return true
+			}
+
+			errs = errors.Join(errs, err)
+
+			return false
+		})
+
+		return errs
 	}
 
 	require.NoError(t, retry.Constant(backoff.DefaultConfig.MaxDelay, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
@@ -88,6 +119,13 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 			case codes.DeadlineExceeded,
 				codes.Unavailable,
 				codes.Canceled:
+				return retry.ExpectedError(err)
+			case codes.NotFound:
+				updateErr := updateNodes()
+				if updateErr != nil {
+					return updateErr
+				}
+
 				return retry.ExpectedError(err)
 			}
 
@@ -455,10 +493,168 @@ func AssertTalosVersion(testCtx context.Context, options *TestOptions, clusterNa
 	}
 }
 
-// AssertTalosUpgradeFlow verifies Talos upgrade flow to the new Talos version.
-func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, clusterName, newTalosVersion string) TestFunc {
+// upgradeGateConfigMapName is the workload ConfigMap whose "healthy" label the gating healthcheck Job reads.
+const upgradeGateConfigMapName = "omni-upgrade-gate"
+
+// upgradeGateRunnerSA is the service account (created via KubernetesManifests) the gating healthcheck Job runs
+// under, so its kubectl has permission to read the gate ConfigMap.
+const upgradeGateRunnerSA = "omni-upgrade-gate-runner"
+
+// upgradeGateClosedMessage is what the gating healthcheck Job prints to stderr when the workload is unhealthy.
+// The container exits non-zero and the kubelet captures this output as the pod's termination message, which Omni
+// surfaces in the upgrade status step (rather than the opaque "BackoffLimitExceeded" Job condition reason). The
+// test asserts it bubbles up.
+const upgradeGateClosedMessage = "upgrade gate is closed: cluster is not marked healthy"
+
+// talemuInfraProviderID is the ID of the talemu infra provider, which emulates machines without a real
+// Kubernetes cluster.
+const talemuInfraProviderID = "talemu"
+
+// clusterUsesEmulatedMachines reports whether the cluster's machines are provided by the talemu emulator.
+// Emulated machines don't run a real Kubernetes cluster, so workload-based healthchecks can't be exercised.
+func clusterUsesEmulatedMachines(ctx context.Context, t *testing.T, st state.State, clusterName string) bool {
+	machines, err := safe.StateListAll[*omni.MachineStatus](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+	require.NoError(t, err)
+
+	for machine := range machines.All() {
+		if providerID, _ := machine.Metadata().Labels().Get(omni.LabelInfraProviderID); providerID == talemuInfraProviderID {
+			return true
+		}
+	}
+
+	return false
+}
+
+// applyUpgradeGate creates or updates the upgrade-gate workload ConfigMap, setting its "healthy" label.
+func applyUpgradeGate(ctx context.Context, t *testing.T, kubeClient *kubernetes.Clientset, healthy string) {
+	configMaps := kubeClient.CoreV1().ConfigMaps(corev1.NamespaceDefault)
+
+	_, err := configMaps.Create(ctx, &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   upgradeGateConfigMapName,
+			Labels: map[string]string{"healthy": healthy},
+		},
+	}, metav1.CreateOptions{})
+	if err == nil {
+		return
+	}
+
+	require.True(t, kubeerrors.IsAlreadyExists(err), "unexpected error creating upgrade gate configmap: %s", err)
+
+	configMap, err := configMaps.Get(ctx, upgradeGateConfigMapName, metav1.GetOptions{})
+	require.NoError(t, err)
+
+	if configMap.Labels == nil {
+		configMap.Labels = map[string]string{}
+	}
+
+	configMap.Labels["healthy"] = healthy
+
+	_, err = configMaps.Update(ctx, configMap, metav1.UpdateOptions{})
+	require.NoError(t, err)
+}
+
+// applyUpgradeGateRBAC creates - via a KubernetesManifestGroup that Omni syncs into the workload cluster, as a
+// user would - the service account and read-only ClusterRoleBinding the gating healthcheck Job runs under, and
+// waits until the service account is present in the cluster.
+func applyUpgradeGateRBAC(ctx context.Context, t *testing.T, st state.State, kubeClient *kubernetes.Clientset, clusterName string) {
+	manifest := fmt.Sprintf(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: %[1]s
+  namespace: %[2]s
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: %[1]s
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: %[1]s
+    namespace: %[2]s
+`, upgradeGateRunnerSA, corev1.NamespaceDefault)
+
+	group := omni.NewKubernetesManifestGroup("omni-upgrade-gate-rbac")
+	group.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+	group.TypedSpec().Value.Mode = specs.KubernetesManifestGroupSpec_FULL
+	require.NoError(t, group.TypedSpec().Value.SetUncompressedData([]byte(manifest)))
+	require.NoError(t, st.Create(ctx, group))
+
+	t.Cleanup(func() { //nolint:contextcheck
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+
+		if err := st.Destroy(cleanupCtx, group.Metadata()); err != nil && !state.IsNotFoundError(err) {
+			t.Logf("failed to clean up upgrade gate RBAC manifest group: %v", err)
+		}
+	})
+
+	// wait until Omni has synced the service account into the workload cluster
+	require.Eventually(t, func() bool {
+		_, err := kubeClient.CoreV1().ServiceAccounts(corev1.NamespaceDefault).Get(ctx, upgradeGateRunnerSA, metav1.GetOptions{})
+
+		return err == nil
+	}, 2*time.Minute, 2*time.Second, "expected the upgrade gate service account to be synced into the cluster")
+}
+
+// upgradeGateJobManifest returns the full Kubernetes Job manifest for the gating healthcheck: a kubectl pod that
+// exits 0 only when the gate ConfigMap's "healthy" label is "true", otherwise it prints upgradeGateClosedMessage
+// to stderr and fails (so Omni can surface that message in the upgrade status).
+func upgradeGateJobManifest() string {
+	return fmt.Sprintf(`apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: %[1]s
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      serviceAccountName: %[2]s
+      restartPolicy: Never
+      containers:
+        - name: check
+          image: alpine/kubectl:latest
+          command: ["sh", "-c", "if [ \"$(kubectl get configmap %[3]s -n %[1]s -o jsonpath='{.metadata.labels.healthy}')\" = \"true\" ]; then exit 0; fi; echo '%[4]s' >&2; exit 1"]
+`, corev1.NamespaceDefault, upgradeGateRunnerSA, upgradeGateConfigMapName, upgradeGateClosedMessage)
+}
+
+// assertUpgradeHeldByHealthCheck asserts that the cluster's Talos upgrade is currently held by the given
+// healthcheck, with the holding healthcheck surfaced in the upgrade status step.
+func assertUpgradeHeldByHealthCheck(ctx context.Context, t *testing.T, st state.State, clusterName, healthCheckID string) {
+	rtestutils.AssertResources(ctx, t, st, []resource.ID{clusterName}, func(r *omni.TalosUpgradeStatus, assert *assert.Assertions) {
+		assert.Equal(specs.TalosUpgradeStatusSpec_Upgrading, r.TypedSpec().Value.Phase, resourceDetails(r))
+		assert.Contains(r.TypedSpec().Value.Step, "waiting for healthchecks to pass", resourceDetails(r))
+		assert.Contains(r.TypedSpec().Value.Step, healthCheckID, resourceDetails(r))
+		// the failing healthcheck container's stderr must bubble up into the upgrade status step
+		assert.Contains(r.TypedSpec().Value.Step, upgradeGateClosedMessage, resourceDetails(r))
+	})
+}
+
+// upgradedMachineCount returns how many of the cluster's machines currently report the given Talos version.
+func upgradedMachineCount(ctx context.Context, t *testing.T, st state.State, clusterName, version string) int {
+	machines, err := safe.StateListAll[*omni.MachineStatus](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+	require.NoError(t, err)
+
+	count := 0
+
+	for machine := range machines.All() {
+		if strings.TrimLeft(machine.TypedSpec().Value.TalosVersion, "v") == version {
+			count++
+		}
+	}
+
+	return count
+}
+
+// AssertTalosUpgradeFlow verifies Talos upgrade flow to the new Talos version, including that an advanced
+// cluster healthcheck holds the rollout until the workload it checks becomes healthy.
+func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, managementClient *clientmanagement.Client, clusterName, newTalosVersion string) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
+		ctx, cancel := context.WithTimeout(testCtx, 25*time.Minute)
 		defer cancel()
 
 		// assert next version is in the list of upgrade candidate version
@@ -493,6 +689,80 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, clusterName
 		})
 		require.NoError(t, err)
 
+		// Set up an advanced cluster healthcheck that gates the upgrade on a workload being "healthy", to
+		// verify Omni holds the rollout and reports the healthcheck status until the workload reports healthy.
+		// This needs a real Kubernetes cluster, so it is skipped when the machines are emulated by talemu.
+		var releaseUpgradeGate func()
+
+		if clusterUsesEmulatedMachines(ctx, t, st, clusterName) {
+			t.Log("machines are emulated, skipping the advanced healthcheck gating")
+		} else {
+			kubeCtx := integrationkube.WrapContext(ctx, t)
+			kubeClient := integrationkube.GetClient(kubeCtx, t, managementClient, clusterName)
+
+			// the workload starts out "unhealthy" so the upgrade is held as soon as it starts
+			applyUpgradeGate(kubeCtx, t, kubeClient, "false")
+
+			// the healthcheck job runs kubectl, so provide it a service account + read-only binding via
+			// KubernetesManifests (Omni no longer creates RBAC itself)
+			applyUpgradeGateRBAC(ctx, t, st, kubeClient, clusterName)
+
+			healthCheck := omni.NewKubernetesHealthCheck(clusterName + "-upgrade-gate")
+			healthCheck.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+			healthCheck.TypedSpec().Value.Interval = durationpb.New(5 * time.Second)
+			// the job exits 0 only while the gate ConfigMap is healthy; otherwise it fails and holds the upgrade
+			healthCheck.TypedSpec().Value.Job = upgradeGateJobManifest()
+
+			require.NoError(t, st.Create(ctx, healthCheck))
+
+			// remove the gate after this sub-test so it doesn't affect the later revert/cancel upgrades;
+			// the cleanup intentionally uses a fresh context so it still runs after the test context is done
+			t.Cleanup(func() { //nolint:contextcheck
+				cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), time.Minute)
+				defer cleanupCancel()
+
+				if destroyErr := st.Destroy(cleanupCtx, healthCheck.Metadata()); destroyErr != nil && !state.IsNotFoundError(destroyErr) {
+					t.Logf("failed to clean up upgrade gate healthcheck: %v", destroyErr)
+				}
+			})
+
+			totalMachines := len(rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))))
+
+			releaseUpgradeGate = func() {
+				// the upgrade must be held by the failing healthcheck right away, and the status must surface
+				// which healthcheck is holding it
+				t.Log("upgrade should be held by the advanced healthcheck before any machine is upgraded")
+				assertUpgradeHeldByHealthCheck(ctx, t, st, clusterName, healthCheck.Metadata().ID())
+
+				// let the rollout proceed and wait until at least one (but not all) machine has been upgraded,
+				// so the next healthcheck failure lands in the middle of the upgrade sequence, not at the start
+				t.Log("marking the workload healthy to let the upgrade make some progress")
+				applyUpgradeGate(kubeCtx, t, kubeClient, "true")
+
+				t.Log("waiting for at least one machine to be upgraded")
+				require.Eventually(t, func() bool {
+					upgraded := upgradedMachineCount(ctx, t, st, clusterName, newTalosVersion)
+
+					return upgraded > 0 && upgraded < totalMachines
+				}, 15*time.Minute, 2*time.Second, "expected at least one (but not all) machine to be upgraded")
+
+				// fail the healthcheck again mid-sequence: Omni must hold the rollout before upgrading the
+				// remaining machines, not just at the very beginning of the upgrade
+				t.Log("marking the workload unhealthy again to hold the upgrade mid-sequence")
+				applyUpgradeGate(kubeCtx, t, kubeClient, "false")
+
+				t.Log("upgrade should be held again by the advanced healthcheck mid-sequence")
+				assertUpgradeHeldByHealthCheck(ctx, t, st, clusterName, healthCheck.Metadata().ID())
+
+				require.Less(t, upgradedMachineCount(ctx, t, st, clusterName, newTalosVersion), totalMachines,
+					"the upgrade must still be incomplete while held mid-sequence")
+
+				// mark the workload healthy to release the gate and let the upgrade finish
+				t.Log("marking the workload healthy to release the upgrade gate")
+				applyUpgradeGate(kubeCtx, t, kubeClient, "true")
+			}
+		}
+
 		t.Logf("upgrading cluster %q to %q", clusterName, newTalosVersion)
 
 		// trigger an upgrade
@@ -509,6 +779,11 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, clusterName
 			assert.NotEmpty(specs.TalosUpgradeStatusSpec_Upgrading, r.TypedSpec().Value.Step, resourceDetails(r))
 			assert.NotEmpty(specs.TalosUpgradeStatusSpec_Upgrading, r.TypedSpec().Value.Status, resourceDetails(r))
 		})
+
+		// on a real cluster, verify the healthcheck holds the rollout (and is reported), then release it
+		if releaseUpgradeGate != nil {
+			releaseUpgradeGate()
+		}
 
 		t.Log("upgrade is going")
 

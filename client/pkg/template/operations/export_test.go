@@ -47,6 +47,7 @@ type resources struct {
 	machineSetNodes map[string]*omni.MachineSetNode
 	configPatches   map[string]*omni.ConfigPatch
 	manifests       map[string]*omni.KubernetesManifestGroup
+	healthchecks    map[string]*omni.KubernetesHealthCheck
 }
 
 func TestExport(t *testing.T) {
@@ -100,11 +101,13 @@ func assertSync(ctx context.Context, t *testing.T, st state.State, exportedTempl
 	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.machineSetNodes), maps.Keys(resourcesAfterSync.machineSetNodes))
 	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.configPatches), maps.Keys(resourcesAfterSync.configPatches))
 	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.manifests), maps.Keys(resourcesAfterSync.manifests))
+	assert.ElementsMatch(t, maps.Keys(resourcesBeforeSync.healthchecks), maps.Keys(resourcesAfterSync.healthchecks))
 
 	// we expect everything other than config patches and manifests to be completely unchanged
 	assertVersionsUnchanged(t, resourcesBeforeSync.clusters, resourcesAfterSync.clusters)
 	assertVersionsUnchanged(t, resourcesBeforeSync.machineSets, resourcesAfterSync.machineSets)
 	assertVersionsUnchanged(t, resourcesBeforeSync.machineSetNodes, resourcesAfterSync.machineSetNodes)
+	assertVersionsUnchanged(t, resourcesBeforeSync.healthchecks, resourcesAfterSync.healthchecks)
 
 	// config patches might be updated due to discrepancies between how the cluster templates and the frontend generate them, e.g.:
 	// they might differ in the indentation/comments of the patch data, so we do a yaml-equality check on data instead of byte-equality.
@@ -163,12 +166,16 @@ func readResources(ctx context.Context, t *testing.T, st state.State) resources 
 	manifestList, err := safe.StateListAll[*omni.KubernetesManifestGroup](ctx, st)
 	require.NoError(t, err)
 
+	healthcheckList, err := safe.StateListAll[*omni.KubernetesHealthCheck](ctx, st)
+	require.NoError(t, err)
+
 	return resources{
 		clusters:        listToMap(clusterList),
 		machineSets:     listToMap(machineSetList),
 		machineSetNodes: listToMap(machineSetNodeList),
 		configPatches:   listToMap(configPatchList),
 		manifests:       listToMap(manifestList),
+		healthchecks:    listToMap(healthcheckList),
 	}
 }
 
