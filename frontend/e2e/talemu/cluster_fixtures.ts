@@ -2,6 +2,8 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import path from 'node:path'
+
 import { faker } from '@faker-js/faker'
 import { milliseconds } from 'date-fns'
 import fs from 'fs/promises'
@@ -52,6 +54,20 @@ const test = base.extend<ClusterFixtures>({
       await omnictl(['cluster', 'template', 'status', '-f', templatePath])
 
       await use({ name: clusterName })
+
+      // Save support bundle if the test failed
+      if (testInfo.status !== 'passed') {
+        const bundleDir = path.resolve(testInfo.outputDir, '..', 'support-bundles')
+        const bundlePath = path.join(bundleDir, `support-bundle-${clusterName}.zip`)
+
+        try {
+          await fs.mkdir(bundleDir, { recursive: true })
+          await omnictl(['support', '--cluster', clusterName, '--output', bundlePath])
+          await testInfo.attach(`support-bundle-${clusterName}.zip`, { path: bundlePath })
+        } catch (e) {
+          console.error(`failed to save support bundle for cluster ${clusterName}:`, e)
+        }
+      }
 
       // Destroy
       await omnictl(['cluster', 'template', 'delete', '-f', templatePath, '--verbose'])

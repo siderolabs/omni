@@ -115,6 +115,7 @@ spec:
         GRPC_GATEWAY_VERSION="$(GRPC_GATEWAY_VERSION)"
         VTPROTOBUF_VERSION="$(VTPROTOBUF_VERSION)"
         DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
+        DIS_VULNCHECK_VERSION="$(DIS_VULNCHECK_VERSION)"
         TESTPKGS="$(TESTPKGS)"
         COMPOSE_DOCKER_CLI_BUILD=1
         DOCKER_BUILDKIT=1
@@ -187,6 +188,7 @@ spec:
         GRPC_GATEWAY_VERSION="$(GRPC_GATEWAY_VERSION)"
         VTPROTOBUF_VERSION="$(VTPROTOBUF_VERSION)"
         DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
+        DIS_VULNCHECK_VERSION="$(DIS_VULNCHECK_VERSION)"
         TESTPKGS="$(TESTPKGS)"
         COMPOSE_DOCKER_CLI_BUILD=1
         DOCKER_BUILDKIT=1
@@ -713,6 +715,8 @@ spec:
       destination: frontend/src/schemas/config_1_11.schema.json
     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.6/pkg/machinery/config/schemas/config.schema.json
       destination: frontend/src/schemas/config_1_12.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.13.0-rc.0/pkg/machinery/config/schemas/config.schema.json
+      destination: frontend/src/schemas/config_1_13.schema.json
   destinationRoot: src/api
   specs:
     - source: client/api/common/omni.proto

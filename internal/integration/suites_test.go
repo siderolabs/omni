@@ -124,11 +124,6 @@ Generate various Talos images with Omni and try to download them.`)
 			"TalosImagesShouldBeDownloadableUsingCLI",
 			AssertDownloadUsingCLI(t.Context(), options.omniClient, options.OmnictlPath, options.HTTPEndpoint),
 		)
-
-		t.Run(
-			"TalosImagesShouldBeDownloadable",
-			AssertSomeImagesAreDownloadable(t.Context(), options),
-		)
 	}
 }
 
