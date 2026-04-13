@@ -28,3 +28,6 @@ type RoleContextKey struct{ Role role.Role }
 
 // IdentityContextKey is the context key for the user identity.
 type IdentityContextKey struct{ Identity string }
+
+// FingerprintContextKey is the context key for the public key fingerprint used to sign the request.
+type FingerprintContextKey struct{ Fingerprint string }

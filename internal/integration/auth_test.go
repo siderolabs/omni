@@ -996,6 +996,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isAdminOnly:    true,
 			},
 			{
+				resource:       authres.NewPublicKeyLastActive(uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+				isAdminOnly:    true,
+			},
+			{
 				resource:       authres.NewUser(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 				isAdminOnly:    true,

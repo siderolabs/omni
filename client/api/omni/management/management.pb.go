@@ -2406,6 +2406,8 @@ type ListServiceAccountsResponse_ServiceAccount_PgpPublicKey struct {
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Armored       string                 `protobuf:"bytes,2,opt,name=armored,proto3" json:"armored,omitempty"`
 	Expiration    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expiration,proto3" json:"expiration,omitempty"`
+	Created       *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created,proto3" json:"created,omitempty"`
+	LastUsed      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_used,json=lastUsed,proto3" json:"last_used,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2457,6 +2459,20 @@ func (x *ListServiceAccountsResponse_ServiceAccount_PgpPublicKey) GetArmored() s
 func (x *ListServiceAccountsResponse_ServiceAccount_PgpPublicKey) GetExpiration() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Expiration
+	}
+	return nil
+}
+
+func (x *ListServiceAccountsResponse_ServiceAccount_PgpPublicKey) GetCreated() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Created
+	}
+	return nil
+}
+
+func (x *ListServiceAccountsResponse_ServiceAccount_PgpPublicKey) GetLastUsed() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastUsed
 	}
 	return nil
 }
@@ -2782,21 +2798,23 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x1bRenewServiceAccountResponse\x12\"\n" +
 	"\rpublic_key_id\x18\x01 \x01(\tR\vpublicKeyId\"2\n" +
 	"\x1cDestroyServiceAccountRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"\xc5\x03\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\xb5\x04\n" +
 	"\x1bListServiceAccountsResponse\x12a\n" +
-	"\x10service_accounts\x18\x01 \x03(\v26.management.ListServiceAccountsResponse.ServiceAccountR\x0fserviceAccounts\x1a\xc2\x02\n" +
+	"\x10service_accounts\x18\x01 \x03(\v26.management.ListServiceAccountsResponse.ServiceAccountR\x0fserviceAccounts\x1a\xb2\x03\n" +
 	"\x0eServiceAccount\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12k\n" +
 	"\x0fpgp_public_keys\x18\x02 \x03(\v2C.management.ListServiceAccountsResponse.ServiceAccount.PgpPublicKeyR\rpgpPublicKeys\x12\x12\n" +
 	"\x04role\x18\x04 \x01(\tR\x04role\x12\x1f\n" +
 	"\vlast_active\x18\x05 \x01(\tR\n" +
-	"lastActive\x1at\n" +
+	"lastActive\x1a\xe3\x01\n" +
 	"\fPgpPublicKey\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\aarmored\x18\x02 \x01(\tR\aarmored\x12:\n" +
 	"\n" +
 	"expiration\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"expirationJ\x04\b\x03\x10\x04\"\x90\x03\n" +
+	"expiration\x124\n" +
+	"\acreated\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\acreated\x127\n" +
+	"\tlast_used\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\blastUsedJ\x04\b\x03\x10\x04\"\x90\x03\n" +
 	"\x11KubeconfigRequest\x12'\n" +
 	"\x0fservice_account\x18\x01 \x01(\bR\x0eserviceAccount\x12I\n" +
 	"\x13service_account_ttl\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x11serviceAccountTtl\x120\n" +
@@ -3070,59 +3088,61 @@ var file_omni_management_management_proto_depIdxs = []int32{
 	50, // 13: management.ListUsersResponse.users:type_name -> management.ListUsersResponse.User
 	45, // 14: management.ListServiceAccountsResponse.ServiceAccount.pgp_public_keys:type_name -> management.ListServiceAccountsResponse.ServiceAccount.PgpPublicKey
 	53, // 15: management.ListServiceAccountsResponse.ServiceAccount.PgpPublicKey.expiration:type_name -> google.protobuf.Timestamp
-	49, // 16: management.ValidateJsonSchemaResponse.Error.errors:type_name -> management.ValidateJsonSchemaResponse.Error
-	51, // 17: management.ListUsersResponse.User.saml_labels:type_name -> management.ListUsersResponse.User.SamlLabelsEntry
-	16, // 18: management.ManagementService.Kubeconfig:input_type -> management.KubeconfigRequest
-	9,  // 19: management.ManagementService.Talosconfig:input_type -> management.TalosconfigRequest
-	54, // 20: management.ManagementService.Omniconfig:input_type -> google.protobuf.Empty
-	7,  // 21: management.ManagementService.MachineLogs:input_type -> management.MachineLogsRequest
-	8,  // 22: management.ManagementService.ValidateConfig:input_type -> management.ValidateConfigRequest
-	28, // 23: management.ManagementService.ValidateJSONSchema:input_type -> management.ValidateJsonSchemaRequest
-	10, // 24: management.ManagementService.CreateServiceAccount:input_type -> management.CreateServiceAccountRequest
-	12, // 25: management.ManagementService.RenewServiceAccount:input_type -> management.RenewServiceAccountRequest
-	54, // 26: management.ManagementService.ListServiceAccounts:input_type -> google.protobuf.Empty
-	14, // 27: management.ManagementService.DestroyServiceAccount:input_type -> management.DestroyServiceAccountRequest
-	17, // 28: management.ManagementService.KubernetesUpgradePreChecks:input_type -> management.KubernetesUpgradePreChecksRequest
-	20, // 29: management.ManagementService.KubernetesSyncManifests:input_type -> management.KubernetesSyncManifestRequest
-	22, // 30: management.ManagementService.CreateSchematic:input_type -> management.CreateSchematicRequest
-	24, // 31: management.ManagementService.GetSupportBundle:input_type -> management.GetSupportBundleRequest
-	26, // 32: management.ManagementService.ReadAuditLog:input_type -> management.ReadAuditLogRequest
-	30, // 33: management.ManagementService.MaintenanceUpgrade:input_type -> management.MaintenanceUpgradeRequest
-	32, // 34: management.ManagementService.GetMachineJoinConfig:input_type -> management.GetMachineJoinConfigRequest
-	35, // 35: management.ManagementService.CreateJoinToken:input_type -> management.CreateJoinTokenRequest
-	37, // 36: management.ManagementService.ResetNodeUniqueToken:input_type -> management.ResetNodeUniqueTokenRequest
-	39, // 37: management.ManagementService.CreateUser:input_type -> management.CreateUserRequest
-	54, // 38: management.ManagementService.ListUsers:input_type -> google.protobuf.Empty
-	41, // 39: management.ManagementService.UpdateUser:input_type -> management.UpdateUserRequest
-	42, // 40: management.ManagementService.DestroyUser:input_type -> management.DestroyUserRequest
-	4,  // 41: management.ManagementService.Kubeconfig:output_type -> management.KubeconfigResponse
-	5,  // 42: management.ManagementService.Talosconfig:output_type -> management.TalosconfigResponse
-	6,  // 43: management.ManagementService.Omniconfig:output_type -> management.OmniconfigResponse
-	55, // 44: management.ManagementService.MachineLogs:output_type -> common.Data
-	54, // 45: management.ManagementService.ValidateConfig:output_type -> google.protobuf.Empty
-	29, // 46: management.ManagementService.ValidateJSONSchema:output_type -> management.ValidateJsonSchemaResponse
-	11, // 47: management.ManagementService.CreateServiceAccount:output_type -> management.CreateServiceAccountResponse
-	13, // 48: management.ManagementService.RenewServiceAccount:output_type -> management.RenewServiceAccountResponse
-	15, // 49: management.ManagementService.ListServiceAccounts:output_type -> management.ListServiceAccountsResponse
-	54, // 50: management.ManagementService.DestroyServiceAccount:output_type -> google.protobuf.Empty
-	18, // 51: management.ManagementService.KubernetesUpgradePreChecks:output_type -> management.KubernetesUpgradePreChecksResponse
-	21, // 52: management.ManagementService.KubernetesSyncManifests:output_type -> management.KubernetesSyncManifestResponse
-	23, // 53: management.ManagementService.CreateSchematic:output_type -> management.CreateSchematicResponse
-	25, // 54: management.ManagementService.GetSupportBundle:output_type -> management.GetSupportBundleResponse
-	27, // 55: management.ManagementService.ReadAuditLog:output_type -> management.ReadAuditLogResponse
-	31, // 56: management.ManagementService.MaintenanceUpgrade:output_type -> management.MaintenanceUpgradeResponse
-	33, // 57: management.ManagementService.GetMachineJoinConfig:output_type -> management.GetMachineJoinConfigResponse
-	36, // 58: management.ManagementService.CreateJoinToken:output_type -> management.CreateJoinTokenResponse
-	38, // 59: management.ManagementService.ResetNodeUniqueToken:output_type -> management.ResetNodeUniqueTokenResponse
-	40, // 60: management.ManagementService.CreateUser:output_type -> management.CreateUserResponse
-	43, // 61: management.ManagementService.ListUsers:output_type -> management.ListUsersResponse
-	54, // 62: management.ManagementService.UpdateUser:output_type -> google.protobuf.Empty
-	54, // 63: management.ManagementService.DestroyUser:output_type -> google.protobuf.Empty
-	41, // [41:64] is the sub-list for method output_type
-	18, // [18:41] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	53, // 16: management.ListServiceAccountsResponse.ServiceAccount.PgpPublicKey.created:type_name -> google.protobuf.Timestamp
+	53, // 17: management.ListServiceAccountsResponse.ServiceAccount.PgpPublicKey.last_used:type_name -> google.protobuf.Timestamp
+	49, // 18: management.ValidateJsonSchemaResponse.Error.errors:type_name -> management.ValidateJsonSchemaResponse.Error
+	51, // 19: management.ListUsersResponse.User.saml_labels:type_name -> management.ListUsersResponse.User.SamlLabelsEntry
+	16, // 20: management.ManagementService.Kubeconfig:input_type -> management.KubeconfigRequest
+	9,  // 21: management.ManagementService.Talosconfig:input_type -> management.TalosconfigRequest
+	54, // 22: management.ManagementService.Omniconfig:input_type -> google.protobuf.Empty
+	7,  // 23: management.ManagementService.MachineLogs:input_type -> management.MachineLogsRequest
+	8,  // 24: management.ManagementService.ValidateConfig:input_type -> management.ValidateConfigRequest
+	28, // 25: management.ManagementService.ValidateJSONSchema:input_type -> management.ValidateJsonSchemaRequest
+	10, // 26: management.ManagementService.CreateServiceAccount:input_type -> management.CreateServiceAccountRequest
+	12, // 27: management.ManagementService.RenewServiceAccount:input_type -> management.RenewServiceAccountRequest
+	54, // 28: management.ManagementService.ListServiceAccounts:input_type -> google.protobuf.Empty
+	14, // 29: management.ManagementService.DestroyServiceAccount:input_type -> management.DestroyServiceAccountRequest
+	17, // 30: management.ManagementService.KubernetesUpgradePreChecks:input_type -> management.KubernetesUpgradePreChecksRequest
+	20, // 31: management.ManagementService.KubernetesSyncManifests:input_type -> management.KubernetesSyncManifestRequest
+	22, // 32: management.ManagementService.CreateSchematic:input_type -> management.CreateSchematicRequest
+	24, // 33: management.ManagementService.GetSupportBundle:input_type -> management.GetSupportBundleRequest
+	26, // 34: management.ManagementService.ReadAuditLog:input_type -> management.ReadAuditLogRequest
+	30, // 35: management.ManagementService.MaintenanceUpgrade:input_type -> management.MaintenanceUpgradeRequest
+	32, // 36: management.ManagementService.GetMachineJoinConfig:input_type -> management.GetMachineJoinConfigRequest
+	35, // 37: management.ManagementService.CreateJoinToken:input_type -> management.CreateJoinTokenRequest
+	37, // 38: management.ManagementService.ResetNodeUniqueToken:input_type -> management.ResetNodeUniqueTokenRequest
+	39, // 39: management.ManagementService.CreateUser:input_type -> management.CreateUserRequest
+	54, // 40: management.ManagementService.ListUsers:input_type -> google.protobuf.Empty
+	41, // 41: management.ManagementService.UpdateUser:input_type -> management.UpdateUserRequest
+	42, // 42: management.ManagementService.DestroyUser:input_type -> management.DestroyUserRequest
+	4,  // 43: management.ManagementService.Kubeconfig:output_type -> management.KubeconfigResponse
+	5,  // 44: management.ManagementService.Talosconfig:output_type -> management.TalosconfigResponse
+	6,  // 45: management.ManagementService.Omniconfig:output_type -> management.OmniconfigResponse
+	55, // 46: management.ManagementService.MachineLogs:output_type -> common.Data
+	54, // 47: management.ManagementService.ValidateConfig:output_type -> google.protobuf.Empty
+	29, // 48: management.ManagementService.ValidateJSONSchema:output_type -> management.ValidateJsonSchemaResponse
+	11, // 49: management.ManagementService.CreateServiceAccount:output_type -> management.CreateServiceAccountResponse
+	13, // 50: management.ManagementService.RenewServiceAccount:output_type -> management.RenewServiceAccountResponse
+	15, // 51: management.ManagementService.ListServiceAccounts:output_type -> management.ListServiceAccountsResponse
+	54, // 52: management.ManagementService.DestroyServiceAccount:output_type -> google.protobuf.Empty
+	18, // 53: management.ManagementService.KubernetesUpgradePreChecks:output_type -> management.KubernetesUpgradePreChecksResponse
+	21, // 54: management.ManagementService.KubernetesSyncManifests:output_type -> management.KubernetesSyncManifestResponse
+	23, // 55: management.ManagementService.CreateSchematic:output_type -> management.CreateSchematicResponse
+	25, // 56: management.ManagementService.GetSupportBundle:output_type -> management.GetSupportBundleResponse
+	27, // 57: management.ManagementService.ReadAuditLog:output_type -> management.ReadAuditLogResponse
+	31, // 58: management.ManagementService.MaintenanceUpgrade:output_type -> management.MaintenanceUpgradeResponse
+	33, // 59: management.ManagementService.GetMachineJoinConfig:output_type -> management.GetMachineJoinConfigResponse
+	36, // 60: management.ManagementService.CreateJoinToken:output_type -> management.CreateJoinTokenResponse
+	38, // 61: management.ManagementService.ResetNodeUniqueToken:output_type -> management.ResetNodeUniqueTokenResponse
+	40, // 62: management.ManagementService.CreateUser:output_type -> management.CreateUserResponse
+	43, // 63: management.ManagementService.ListUsers:output_type -> management.ListUsersResponse
+	54, // 64: management.ManagementService.UpdateUser:output_type -> google.protobuf.Empty
+	54, // 65: management.ManagementService.DestroyUser:output_type -> google.protobuf.Empty
+	43, // [43:66] is the sub-list for method output_type
+	20, // [20:43] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_omni_management_management_proto_init() }

@@ -14,6 +14,7 @@ func init() {
 	registry.MustRegisterResource(IdentityLastActiveType, &IdentityLastActive{})
 	registry.MustRegisterResource(IdentityStatusType, &IdentityStatus{})
 	registry.MustRegisterResource(PublicKeyType, &PublicKey{})
+	registry.MustRegisterResource(PublicKeyLastActiveType, &PublicKeyLastActive{})
 	registry.MustRegisterResource(UserType, &User{})
 	registry.MustRegisterResource(AccessPolicyType, &AccessPolicy{})
 	registry.MustRegisterResource(SAMLAssertionType, &SAMLAssertion{})

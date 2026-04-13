@@ -77,6 +77,8 @@ message ListServiceAccountsResponse {
       string id = 1;
       string armored = 2;
       google.protobuf.Timestamp expiration = 3;
+      google.protobuf.Timestamp created = 4;
+      google.protobuf.Timestamp last_used = 5;
     }
 
     string name = 1;

@@ -124,11 +124,13 @@ func (i *Signature) intercept(ctx context.Context) (context.Context, error) {
 	grpc_ctxtags.Extract(ctx).
 		Set("authenticator.user_id", authenticator.UserID).
 		Set("authenticator.identity", authenticator.Identity).
-		Set("authenticator.role", string(authenticator.Role))
+		Set("authenticator.role", string(authenticator.Role)).
+		Set("authenticator.fingerprint", signature.KeyFingerprint)
 
 	ctx = ctxstore.WithValue(ctx, auth.UserIDContextKey{UserID: authenticator.UserID})
 	ctx = ctxstore.WithValue(ctx, auth.IdentityContextKey{Identity: authenticator.Identity})
 	ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: authenticator.Role})
+	ctx = ctxstore.WithValue(ctx, auth.FingerprintContextKey{Fingerprint: signature.KeyFingerprint})
 
 	return ctx, nil
 }

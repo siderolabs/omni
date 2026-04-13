@@ -190,6 +190,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewInfraProviderCleanupController(),
 		omnictrl.NewLinkCleanupController(),
 		authctrl.NewIdentityCleanupController(),
+		authctrl.NewPublicKeyCleanupController(),
 	}
 
 	imageFactoryHost := imageFactoryClient.Host()
@@ -483,6 +484,7 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*system.ResourceLabels[*omni.MachineStatus]](),
 		safe.WithResourceCache[*infra.ConfigPatchRequest](),
 		safe.WithResourceCache[*auth.IdentityLastActive](),
+		safe.WithResourceCache[*auth.PublicKeyLastActive](),
 		safe.WithResourceCache[*auth.ServiceAccountStatus](),
 		safe.WithResourceCache[*siderolinkres.MachineJoinConfig](),
 		safe.WithResourceCache[*siderolinkres.ProviderJoinConfig](),

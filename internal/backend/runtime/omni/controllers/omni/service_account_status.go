@@ -17,6 +17,7 @@ import (
 	"github.com/siderolabs/gen/optional"
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access"
@@ -78,13 +79,23 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 						continue
 					}
 
-					status.TypedSpec().Value.PublicKeys = append(status.TypedSpec().Value.PublicKeys,
-						&specs.ServiceAccountStatusSpec_PgpPublicKey{
-							Id:         key.Metadata().ID(),
-							Armored:    string(key.TypedSpec().Value.GetPublicKey()),
-							Expiration: key.TypedSpec().Value.GetExpiration(),
-						},
-					)
+					pgpKey := &specs.ServiceAccountStatusSpec_PgpPublicKey{
+						Id:         key.Metadata().ID(),
+						Armored:    string(key.TypedSpec().Value.GetPublicKey()),
+						Expiration: key.TypedSpec().Value.GetExpiration(),
+						Created:    timestamppb.New(key.Metadata().Created()),
+					}
+
+					lastActive, lastActiveErr := safe.ReaderGetByID[*auth.PublicKeyLastActive](ctx, r, key.Metadata().ID())
+					if lastActiveErr != nil && !state.IsNotFoundError(lastActiveErr) {
+						return lastActiveErr
+					}
+
+					if lastActive != nil {
+						pgpKey.LastUsed = lastActive.TypedSpec().Value.GetLastUsed()
+					}
+
+					status.TypedSpec().Value.PublicKeys = append(status.TypedSpec().Value.PublicKeys, pgpKey)
 				}
 
 				user, err := safe.ReaderGetByID[*auth.User](ctx, r, identity.TypedSpec().Value.UserId)
@@ -141,6 +152,20 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 					}, nil
 				},
 			),
+		),
+		qtransform.WithExtraMappedInput[*auth.PublicKeyLastActive](
+			func(ctx context.Context, logger *zap.Logger, r controller.QRuntime, lastActive controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				identity, ok := lastActive.Labels().Get(auth.LabelIdentity)
+				if !ok {
+					logger.Warn("missing identity label on PublicKeyLastActive resource", zap.String("resourceID", lastActive.ID()))
+
+					return nil, nil
+				}
+
+				return []resource.Pointer{
+					auth.NewIdentity(identity).Metadata(),
+				}, nil
+			},
 		),
 	)
 }

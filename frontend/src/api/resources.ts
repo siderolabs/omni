@@ -240,6 +240,7 @@ export const LabelPublicKeyUserID = "user-id";
 export const LabelIdentityUserID = "user-id";
 export const LabelIdentityTypeServiceAccount = "type-service-account";
 export const PublicKeyType = "PublicKeys.omni.sidero.dev";
+export const PublicKeyLastActiveType = "PublicKeyLastActives.omni.sidero.dev";
 export const SAMLLabelRuleType = "SAMLLabelRules.omni.sidero.dev";
 export const ServiceAccountStatusType = "ServiceAccountStatuses.omni.sidero.dev";
 export const UserType = "Users.omni.sidero.dev";

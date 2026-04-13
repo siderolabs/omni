@@ -13,6 +13,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access"
@@ -69,6 +70,27 @@ func (suite *ClusterServiceAccountStatusSuite) TestReconcile() {
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{serviceAccount.Metadata().ID()}, func(res *auth.ServiceAccountStatus, assert *assert.Assertions) {
 		assert.Equal(string(role.Admin), res.TypedSpec().Value.Role)
 		assert.Len(res.TypedSpec().Value.PublicKeys, 1)
+
+		if assert.NotNil(res.TypedSpec().Value.PublicKeys[0].Created) {
+			assert.False(res.TypedSpec().Value.PublicKeys[0].Created.AsTime().IsZero())
+		}
+
+		assert.Nil(res.TypedSpec().Value.PublicKeys[0].LastUsed)
+	})
+
+	// Create a PublicKeyLastActive for the key and verify it gets aggregated.
+	pkLastActive := auth.NewPublicKeyLastActive(publicKey.Metadata().ID())
+	pkLastActive.Metadata().Labels().Set(auth.LabelIdentity, serviceAccount.Metadata().ID())
+	pkLastActive.TypedSpec().Value.LastUsed = timestamppb.Now()
+
+	require.NoError(suite.state.Create(suite.ctx, pkLastActive))
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{serviceAccount.Metadata().ID()}, func(res *auth.ServiceAccountStatus, assert *assert.Assertions) {
+		assert.Len(res.TypedSpec().Value.PublicKeys, 1)
+
+		if assert.NotNil(res.TypedSpec().Value.PublicKeys[0].LastUsed) {
+			assert.WithinDuration(time.Now(), res.TypedSpec().Value.PublicKeys[0].LastUsed.AsTime(), 5*time.Second)
+		}
 	})
 
 	rtestutils.AssertNoResource[*auth.ServiceAccountStatus](ctx, suite.T(), suite.state, userIdentity.Metadata().ID())

@@ -66,26 +66,22 @@ func (a *Activity) Stream() grpc.StreamServerInterceptor {
 
 func (a *Activity) trackActivity(ctx context.Context) {
 	identity := identityFromContext(ctx)
-	if identity == "" {
+	fingerprint := fingerprintFromContext(ctx)
+
+	if identity == "" && fingerprint == "" {
 		return
 	}
 
 	now := time.Now()
 
-	if last, ok := a.lastUpdate.Get(identity); ok && now.Sub(last) < activityDebounceInterval {
+	updateIdentity := identity != "" && a.shouldUpdate(identity, now)
+	updateFingerprint := fingerprint != "" && identity != "" && a.shouldUpdate(fingerprint, now)
+
+	if !updateIdentity && !updateFingerprint {
 		return
 	}
 
-	a.lastUpdate.Set(identity, now)
-
-	// Periodically sweep stale debounce entries to prevent unbounded memory growth from deleted users/service accounts whose entries would otherwise linger forever.
-	if now.Unix()-a.lastSweep.Load() > int64(sweepInterval.Seconds()) {
-		a.lastSweep.Store(now.Unix())
-
-		a.lastUpdate.FilterInPlace(func(_ string, t time.Time) bool {
-			return now.Sub(t) <= activityDebounceInterval
-		})
-	}
+	a.sweepIfNeeded(now)
 
 	// Write asynchronously with a detached context to avoid blocking the RPC and to prevent client disconnects from canceling the write.
 	panichandler.Go(func() { //nolint:contextcheck
@@ -94,16 +90,53 @@ func (a *Activity) trackActivity(ctx context.Context) {
 
 		writeCtx = actor.MarkContextAsInternalActor(writeCtx)
 
-		if _, err := safe.StateUpdateWithConflicts(writeCtx, a.state, authres.NewIdentityLastActive(identity).Metadata(),
-			func(r *authres.IdentityLastActive) error {
-				r.TypedSpec().Value.LastActive = timestamppb.Now()
+		if updateIdentity {
+			if _, err := safe.StateUpdateWithConflicts(writeCtx, a.state, authres.NewIdentityLastActive(identity).Metadata(),
+				func(r *authres.IdentityLastActive) error {
+					r.TypedSpec().Value.LastActive = timestamppb.Now()
 
-				return nil
-			},
-		); err != nil && !state.IsNotFoundError(err) {
-			a.logger.Warn("failed to update identity last active", zap.String("identity", identity), zap.Error(err))
+					return nil
+				},
+			); err != nil && !state.IsNotFoundError(err) {
+				a.logger.Warn("failed to update identity last active", zap.String("identity", identity), zap.Error(err))
+			}
+		}
+
+		if updateFingerprint {
+			if err := safe.StateModify(writeCtx, a.state, authres.NewPublicKeyLastActive(fingerprint),
+				func(r *authres.PublicKeyLastActive) error {
+					r.Metadata().Labels().Set(authres.LabelIdentity, identity)
+					r.TypedSpec().Value.LastUsed = timestamppb.Now()
+
+					return nil
+				},
+			); err != nil {
+				a.logger.Warn("failed to update public key last active", zap.String("fingerprint", fingerprint), zap.Error(err))
+			}
 		}
 	}, a.logger)
+}
+
+// shouldUpdate checks if the key needs an update and records the current time if so.
+func (a *Activity) shouldUpdate(key string, now time.Time) bool {
+	if last, ok := a.lastUpdate.Get(key); ok && now.Sub(last) < activityDebounceInterval {
+		return false
+	}
+
+	a.lastUpdate.Set(key, now)
+
+	return true
+}
+
+// sweepIfNeeded periodically removes stale debounce entries to prevent unbounded memory growth.
+func (a *Activity) sweepIfNeeded(now time.Time) {
+	if now.Unix()-a.lastSweep.Load() > int64(sweepInterval.Seconds()) {
+		a.lastSweep.Store(now.Unix())
+
+		a.lastUpdate.FilterInPlace(func(_ string, t time.Time) bool {
+			return now.Sub(t) <= activityDebounceInterval
+		})
+	}
 }
 
 func identityFromContext(ctx context.Context) string {
@@ -113,6 +146,14 @@ func identityFromContext(ctx context.Context) string {
 
 	if val, ok := ctxstore.Value[auth.VerifiedEmailContextKey](ctx); ok && val.Email != "" {
 		return val.Email
+	}
+
+	return ""
+}
+
+func fingerprintFromContext(ctx context.Context) string {
+	if val, ok := ctxstore.Value[auth.FingerprintContextKey](ctx); ok && val.Fingerprint != "" {
+		return val.Fingerprint
 	}
 
 	return ""

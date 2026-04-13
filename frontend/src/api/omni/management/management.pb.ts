@@ -90,6 +90,8 @@ export type ListServiceAccountsResponseServiceAccountPgpPublicKey = {
   id?: string
   armored?: string
   expiration?: GoogleProtobufTimestamp.Timestamp
+  created?: GoogleProtobufTimestamp.Timestamp
+  last_used?: GoogleProtobufTimestamp.Timestamp
 }
 
 export type ListServiceAccountsResponseServiceAccount = {
