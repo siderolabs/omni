@@ -429,11 +429,6 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 		client.WithUpgradeForce(false),
 	)
 
-	// Failed Precondition means that the node is not in a state when the system can be upgraded.
-	if status.Code(err) == codes.FailedPrecondition {
-		return true, nil
-	}
-
 	// If upgrade is not implemented, it means that we run older Talos that doesn't support upgrades in maintenance mode.
 	if status.Code(err) == codes.Unimplemented {
 		return true, nil

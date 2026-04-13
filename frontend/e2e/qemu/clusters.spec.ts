@@ -4,6 +4,7 @@
 // included in the LICENSE file.
 import fs from 'node:fs/promises'
 import os from 'node:os'
+import path from 'node:path'
 
 import type { Page } from '@playwright/test'
 import { milliseconds } from 'date-fns'
@@ -11,11 +12,35 @@ import { diff as diffJSON } from 'json-diff-ts'
 import * as uuid from 'uuid'
 import * as yaml from 'yaml'
 
-import { expect, test } from '../omnictl_fixtures.js'
+import { expect, test as base } from '../omnictl_fixtures.js'
+
+const clusterName = 'talos-test-cluster'
+
+const test = base.extend<{ saveSupportBundleOnFailure: void }>({
+  saveSupportBundleOnFailure: [
+    async ({ omnictl }, use, testInfo) => {
+      await use()
+
+      // Save support bundle if the test failed
+      if (testInfo.status !== 'passed') {
+        const bundleDir = path.resolve(testInfo.outputDir, '..', 'support-bundles')
+        const bundlePath = path.join(bundleDir, `support-bundle-${clusterName}.zip`)
+
+        try {
+          await fs.mkdir(bundleDir, { recursive: true })
+          await omnictl(['support', '--cluster', clusterName, '--output', bundlePath])
+          await testInfo.attach(`support-bundle-${clusterName}.zip`, { path: bundlePath })
+        } catch (e) {
+          console.error(`failed to save support bundle for cluster ${clusterName}:`, e)
+        }
+      }
+    },
+    { auto: true },
+  ],
+})
 
 test.describe.configure({ mode: 'serial', retries: 0 })
 
-const clusterName = 'talos-test-cluster'
 const cpMachineName = 'deadbeef'
 
 test('create cluster', async ({ page }) => {

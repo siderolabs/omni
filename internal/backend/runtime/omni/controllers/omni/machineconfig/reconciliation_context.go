@@ -242,7 +242,7 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, err
 	}
 
-	rc.shouldUpgrade = schematicMismatch || talosVersionMismatch
+	rc.shouldUpgrade = omni.GetMachineStatusSystemDisk(rc.machineStatus) != "" && (schematicMismatch || talosVersionMismatch)
 
 	return rc, nil
 }

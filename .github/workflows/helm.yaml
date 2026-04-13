@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-04-07T14:45:56Z by kres 4e3b74d.
+# Generated on 2026-04-17T15:40:37Z by kres 15ff2fd.
 
 concurrency:
   group: helm-${{ github.head_ref || github.run_id }}
@@ -65,11 +65,6 @@ jobs:
           driver: remote
           endpoint: tcp://buildkit-amd64.ci.svc.cluster.local:1234
         timeout-minutes: 10
-      - name: Install Helm
-        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # version: v5.0.0
-      - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # version: v4.1.1
       - name: Login to registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # version: v4.1.0
@@ -97,10 +92,6 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           make helm-docs
-      - name: Check dirty
-        if: github.event_name == 'pull_request'
-        run: |
-          make check-dirty
       - name: helm login
         if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-')
         env:

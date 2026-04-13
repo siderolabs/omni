@@ -218,8 +218,8 @@ github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlE
 github.com/sasha-s/go-deadlock v0.3.9/go.mod h1:KuZj51ZFmx42q/mPaYbRk0P1xcwe697zsJKE03vD4/Y=
 github.com/sergi/go-diff v1.4.0 h1:n/SP9D5ad1fORl+llWyN+D6qoUETXNZARKjyY2/KVCw=
 github.com/sergi/go-diff v1.4.0/go.mod h1:A0bzQcvG0E7Rwjx0REVgAGH58e96+X0MeOfepqsbeW4=
-github.com/siderolabs/crypto v0.6.4 h1:uMoe/X/mABOv6yOgvKcjmjIMdv6U8JegBXlPKtyjn3g=
-github.com/siderolabs/crypto v0.6.4/go.mod h1:39B7Mdrd8qTfEYOjsWPQOk7gLTWrEI30isAW+YYj9nk=
+github.com/siderolabs/crypto v0.6.5 h1:Elq5tpWP2ApZ4Y+Kg+eIDiiWbmriCPI1mjYIMwvsYkw=
+github.com/siderolabs/crypto v0.6.5/go.mod h1:QjVcrdJQE1sxhjHqieCgwGdlIYq/xCP2DL53Up8nbU4=
 github.com/siderolabs/gen v0.8.6 h1:pE6shuqov3L+5rEcAUJ/kY6iJofimljQw5G95P8a5c4=
 github.com/siderolabs/gen v0.8.6/go.mod h1:J9IbusbES2W6QWjtSHpDV9iPGZHc978h1+KJ4oQRspQ=
 github.com/siderolabs/go-api-signature v0.3.12 h1:i1X+kPh9fzo+lEjtEplZSbtq1p21vKv4FCWJcB/ozvk=

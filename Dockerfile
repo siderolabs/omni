@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-04-07T14:45:56Z by kres 4e3b74d.
+# Generated on 2026-04-17T15:40:37Z by kres 15ff2fd.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN=scratch
@@ -148,6 +148,9 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 	&& mv /go/bin/golangci-lint /bin/golangci-lint
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go install golang.org/x/vuln/cmd/govulncheck@latest \
 	&& mv /go/bin/govulncheck /bin/govulncheck
+ARG DIS_VULNCHECK_VERSION
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go install github.com/shanduur/dis-vulncheck@${DIS_VULNCHECK_VERSION} \
+	&& mv /go/bin/dis-vulncheck /bin/dis-vulncheck
 ARG GOFUMPT_VERSION
 RUN go install mvdan.cc/gofumpt@${GOFUMPT_VERSION} \
 	&& mv /go/bin/gofumpt /bin/gofumpt
@@ -271,6 +274,7 @@ ADD https://raw.githubusercontent.com/siderolabs/talos/v1.9.6/pkg/machinery/conf
 ADD https://raw.githubusercontent.com/siderolabs/talos/v1.10.9/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_10.schema.json
 ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.6/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_11.schema.json
 ADD https://raw.githubusercontent.com/siderolabs/talos/v1.12.6/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_12.schema.json
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.13.0-rc.0/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_13.schema.json
 COPY --from=proto-compile-frontend frontend/ frontend/
 
 # run go generate
@@ -321,14 +325,12 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build
 # runs govulncheck
 FROM base AS lint-govulncheck
 WORKDIR /src
-COPY --chmod=0755 hack/govulncheck.sh ./hack/govulncheck.sh
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg ./hack/govulncheck.sh -exclude 'GO-2026-4923' ./...
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg dis-vulncheck -tool=false ./...
 
 # runs govulncheck
 FROM base AS lint-govulncheck-client
 WORKDIR /src/client
-COPY --chmod=0755 hack/govulncheck.sh ./hack/govulncheck.sh
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg ./hack/govulncheck.sh -exclude 'GO-2026-4923' ./...
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg dis-vulncheck -tool=false ./...
 
 # runs unit-tests with race detector
 FROM base AS unit-tests-client-race

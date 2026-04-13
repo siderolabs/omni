@@ -60,6 +60,8 @@ config:
     siderolink:
       wireGuard:
         advertisedEndpoint: ${NODE_IP}:30180
+  features:
+    enableTalosPreReleaseVersions: true
 
 env:
   - name: SIDEROLINK_DEV_JOIN_TOKEN
