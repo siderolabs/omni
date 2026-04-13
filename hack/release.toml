@@ -67,3 +67,23 @@ All Talos nodes can now be accessed directly via their SideroLink endpoint, \
 removing the need to route through the load balancer for Talos API calls. \
 Allowing direct access to worker nodes when control plane nodes are unavailable.
 """
+
+[notes.allow-force-destroy]
+title = "Allow Machine Request Destroy"
+description = """\
+Machine requests are now created without a controller owner, allowing operators and \
+admins to teardown stuck or unwanted requests directly. The controller replaces destroyed \
+requests automatically to maintain the desired machine count.
+"""
+
+[notes.talosctl-debug]
+title = "Allow Using `talosctl debug`"
+description = """\
+Update Omni Talos API proxy code to elevate permissions for `talosctl debug` command.
+"""
+
+[notes.defaults-in-schema]
+title = "Move Omni Defaults to JSONSchema"
+description = """\
+Omni default config values are now defined in the JSONSchema.
+"""
