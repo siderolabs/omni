@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-04-17T15:40:37Z by kres 15ff2fd.
+# Generated on 2026-05-12T15:24:41Z by kres 1762ab2.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN=scratch
@@ -13,9 +13,9 @@ ARG HELMDOCS_VERSION
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go install github.com/norwoodj/helm-docs/cmd/helm-docs@${HELMDOCS_VERSION} \
 	&& mv /go/bin/helm-docs /bin/helm-docs
 
-FROM ghcr.io/siderolabs/ca-certificates:v1.12.0 AS image-ca-certificates
+FROM ghcr.io/siderolabs/ca-certificates:v1.13.0 AS image-ca-certificates
 
-FROM ghcr.io/siderolabs/fhs:v1.12.0 AS image-fhs
+FROM ghcr.io/siderolabs/fhs:v1.13.0 AS image-fhs
 
 # base toolchain image
 FROM --platform=${BUILDPLATFORM} ${JS_TOOLCHAIN} AS js-toolchain
@@ -26,7 +26,7 @@ ENV GOPATH=/go
 ENV PATH=${PATH}:/usr/local/go/bin
 
 # runs markdownlint
-FROM docker.io/oven/bun:1.3.11-alpine AS lint-markdown
+FROM docker.io/oven/bun:1.3.13-alpine AS lint-markdown
 WORKDIR /src
 RUN bun i markdownlint-cli@0.48.0 sentences-per-line@0.5.2
 COPY .markdownlint.json .
