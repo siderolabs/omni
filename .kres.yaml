@@ -122,6 +122,7 @@ spec:
         GOTOOLCHAIN="$(GOTOOLCHAIN)"
         GOEXPERIMENT="$(GOEXPERIMENT)"
         WITH_DEBUG="$(WITH_DEBUG)"
+        DIS_VULNCHECK_VERSION="$(DIS_VULNCHECK_VERSION)"
         docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml up --build
 ---
 kind: custom.Step
@@ -193,6 +194,7 @@ spec:
         GOTOOLCHAIN="$(GOTOOLCHAIN)"
         GOEXPERIMENT="$(GOEXPERIMENT)"
         WITH_DEBUG="$(WITH_DEBUG)"
+        DIS_VULNCHECK_VERSION="$(DIS_VULNCHECK_VERSION)"
         docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml down --rmi local --remove-orphans --volumes=$(REMOVE_VOLUMES)
 ---
 kind: custom.Step

@@ -51,6 +51,7 @@ services:
         - GO_LDFLAGS=${GO_LDFLAGS}
         - GOEXPERIMENT=${GOEXPERIMENT}
         - GOTOOLCHAIN=${GOTOOLCHAIN}
+        - DIS_VULNCHECK_VERSION=${DIS_VULNCHECK_VERSION}
     environment:
       - VAULT_ADDR=http://127.0.0.1:8200
       - VAULT_TOKEN=dev-o-token
