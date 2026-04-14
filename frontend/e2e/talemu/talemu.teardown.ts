@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { test as teardown } from '../auth_fixtures'
+import { expect, test as teardown } from '../auth_fixtures'
 import { DEFAULT_MACHINE_CLASS } from '../constants'
 
 teardown('remove default machine class', async ({ page }) => {
@@ -20,7 +20,7 @@ teardown('remove default machine class', async ({ page }) => {
   })
 
   await teardown.step('Assert class deletion', async () => {
-    await page.getByText('Please confirm the action').waitFor({ state: 'detached' })
-    await classRow.waitFor({ state: 'detached' })
+    await expect(page.getByText('Please confirm the action')).not.toBeAttached()
+    await expect(classRow).not.toBeAttached()
   })
 })

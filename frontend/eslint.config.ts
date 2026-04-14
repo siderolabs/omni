@@ -64,6 +64,7 @@ export default defineConfigWithVueTs(
       'vue/custom-event-name-casing': 'error',
       'vue/define-emits-declaration': 'error',
       'vue/define-props-declaration': 'error',
+      'vue/define-props-destructuring': 'error',
       'vue/dot-notation': 'error',
       'vue/enforce-style-attribute': 'error',
       'vue/eqeqeq': 'error',
@@ -73,6 +74,8 @@ export default defineConfigWithVueTs(
       'vue/next-tick-style': 'error',
       'vue/no-boolean-default': 'error',
       'vue/no-irregular-whitespace': 'error',
+      'vue/no-ref-object-reactivity-loss': 'error',
+      'vue/no-setup-props-reactivity-loss': 'error',
       'vue/no-template-target-blank': 'error',
       'vue/no-undef-components': [
         'error',
@@ -89,11 +92,6 @@ export default defineConfigWithVueTs(
       'vue/prefer-use-template-ref': 'error',
       'vue/require-default-prop': 'off',
       'vue/require-macro-variable-name': 'error',
-
-      // Extra rules that we want to progressively fix
-      'vue/define-props-destructuring': 'warn',
-      'vue/no-ref-object-reactivity-loss': 'warn',
-      'vue/no-setup-props-reactivity-loss': 'warn',
     },
   },
 )

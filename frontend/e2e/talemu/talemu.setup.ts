@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { test as setup } from '../auth_fixtures'
+import { expect, test as setup } from '../auth_fixtures'
 import { DEFAULT_MACHINE_CLASS } from '../constants'
 
 setup('setup default machine class', async ({ page }) => {
@@ -23,7 +23,7 @@ setup('setup default machine class', async ({ page }) => {
   })
 
   await setup.step('Assert class creation', async () => {
-    await page.getByRole('heading', { name: 'Machine Classes' }).waitFor()
-    await page.getByText(DEFAULT_MACHINE_CLASS).waitFor()
+    await expect(page.getByRole('heading', { name: 'Machine Classes' })).toBeVisible()
+    await expect(page.getByText(DEFAULT_MACHINE_CLASS)).toBeVisible()
   })
 })
