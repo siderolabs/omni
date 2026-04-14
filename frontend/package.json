@@ -35,6 +35,7 @@
     "@vueuse/components": "^14.2.1",
     "@vueuse/core": "^14.2.1",
     "@vueuse/integrations": "^14.2.1",
+    "@vueuse/router": "^14.2.1",
     "apexcharts": "^5.10.6",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

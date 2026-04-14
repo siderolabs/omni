@@ -275,12 +275,9 @@ func (client *Client) GetSupportBundle(ctx context.Context, cluster string, prog
 }
 
 // ReadAuditLog reads the audit log from the backend.
-func (client *Client) ReadAuditLog(ctx context.Context, start, end string) iter.Seq2[*management.ReadAuditLogResponse, error] {
+func (client *Client) ReadAuditLog(ctx context.Context, req *management.ReadAuditLogRequest) iter.Seq2[*management.ReadAuditLogResponse, error] {
 	return func(yield func(*management.ReadAuditLogResponse, error) bool) {
-		streamingResponse, err := client.conn.ReadAuditLog(ctx, &management.ReadAuditLogRequest{
-			StartTime: start,
-			EndTime:   end,
-		})
+		streamingResponse, err := client.conn.ReadAuditLog(ctx, req)
 		if err != nil {
 			yield(nil, err)
 

@@ -507,23 +507,35 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv grpc.ServerStreamingServer[management.ReadAuditLogResponse]) error {
 	ctx := srv.Context()
 
-	if _, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin)); err != nil {
+	_, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin))
+	if err != nil {
 		return err
 	}
 
 	now := time.Now()
 
-	start, err := parseTime(req.GetStartTime(), now.AddDate(0, 0, -29))
+	filters := auditlog.ReadFilters{
+		OrderByField: auditLogOrderByField(req.GetOrderByField()),
+		OrderByDir:   auditLogOrderByDir(req.GetOrderByDir()),
+		Search:       req.GetSearch(),
+		EventType:    auditLogEventType(req.GetEventType()),
+		ResourceType: req.GetResourceType(),
+		ResourceID:   req.GetResourceId(),
+		ClusterID:    req.GetClusterId(),
+		Actor:        req.GetActor(),
+	}
+
+	filters.Start, err = parseTime(req.GetStartTime(), now.AddDate(0, 0, -29))
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "invalid start time: %v", err)
 	}
 
-	end, err := parseTime(req.GetEndTime(), now)
+	filters.End, err = parseTime(req.GetEndTime(), now)
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "invalid end time: %v", err)
 	}
 
-	rdr, err := s.auditor.Reader(ctx, start, end)
+	rdr, err := s.auditor.Reader(ctx, filters)
 	if err != nil {
 		return err
 	}
@@ -819,5 +831,62 @@ func generateDest(apiurl string) (string, error) {
 
 // AuditLogger is an interface for reading the audit log.
 type AuditLogger interface {
-	Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error)
+	Reader(ctx context.Context, filters auditlog.ReadFilters) (auditlog.Reader, error)
+}
+
+func auditLogOrderByField(f management.AuditLogOrderByField) auditlog.OrderByField {
+	switch f {
+	case management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_UNSPECIFIED:
+		return auditlog.OrderByFieldDate
+	case management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_DATE:
+		return auditlog.OrderByFieldDate
+	case management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_EVENT_TYPE:
+		return auditlog.OrderByFieldEventType
+	case management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_TYPE:
+		return auditlog.OrderByFieldResourceType
+	case management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_ID:
+		return auditlog.OrderByFieldResourceID
+	case management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_CLUSTER_ID:
+		return auditlog.OrderByFieldClusterID
+	case management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_ACTOR:
+		return auditlog.OrderByFieldActor
+	}
+
+	return auditlog.OrderByFieldDate
+}
+
+func auditLogOrderByDir(d management.AuditLogOrderByDir) auditlog.OrderByDir {
+	switch d {
+	case management.AuditLogOrderByDir_AUDIT_LOG_ORDER_BY_DIR_UNSPECIFIED:
+		return auditlog.OrderByDirASC
+	case management.AuditLogOrderByDir_AUDIT_LOG_ORDER_BY_DIR_ASC:
+		return auditlog.OrderByDirASC
+	case management.AuditLogOrderByDir_AUDIT_LOG_ORDER_BY_DIR_DESC:
+		return auditlog.OrderByDirDESC
+	}
+
+	return auditlog.OrderByDirASC
+}
+
+func auditLogEventType(e management.AuditLogEventType) auditlog.EventType {
+	switch e {
+	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_UNSPECIFIED:
+		return auditlog.EventTypeUnspecified
+	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_CREATE:
+		return auditlog.EventTypeCreate
+	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_UPDATE:
+		return auditlog.EventTypeUpdate
+	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_UPDATE_WITH_CONFLICTS:
+		return auditlog.EventTypeUpdateWithConflicts
+	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_DESTROY:
+		return auditlog.EventTypeDestroy
+	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_TEARDOWN:
+		return auditlog.EventTypeTeardown
+	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_TALOS_ACCESS:
+		return auditlog.EventTypeTalosAccess
+	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_K8S_ACCESS:
+		return auditlog.EventTypeK8SAccess
+	}
+
+	return auditlog.EventTypeUnspecified
 }

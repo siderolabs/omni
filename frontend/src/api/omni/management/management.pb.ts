@@ -17,6 +17,33 @@ export enum SchematicBootloader {
   BOOT_GRUB = 3,
 }
 
+export enum AuditLogEventType {
+  AUDIT_LOG_EVENT_TYPE_UNSPECIFIED = 0,
+  AUDIT_LOG_EVENT_TYPE_CREATE = 1,
+  AUDIT_LOG_EVENT_TYPE_UPDATE = 2,
+  AUDIT_LOG_EVENT_TYPE_UPDATE_WITH_CONFLICTS = 3,
+  AUDIT_LOG_EVENT_TYPE_DESTROY = 4,
+  AUDIT_LOG_EVENT_TYPE_TEARDOWN = 5,
+  AUDIT_LOG_EVENT_TYPE_TALOS_ACCESS = 6,
+  AUDIT_LOG_EVENT_TYPE_K8S_ACCESS = 7,
+}
+
+export enum AuditLogOrderByField {
+  AUDIT_LOG_ORDER_BY_FIELD_UNSPECIFIED = 0,
+  AUDIT_LOG_ORDER_BY_FIELD_DATE = 1,
+  AUDIT_LOG_ORDER_BY_FIELD_EVENT_TYPE = 2,
+  AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_TYPE = 3,
+  AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_ID = 4,
+  AUDIT_LOG_ORDER_BY_FIELD_CLUSTER_ID = 5,
+  AUDIT_LOG_ORDER_BY_FIELD_ACTOR = 6,
+}
+
+export enum AuditLogOrderByDir {
+  AUDIT_LOG_ORDER_BY_DIR_UNSPECIFIED = 0,
+  AUDIT_LOG_ORDER_BY_DIR_ASC = 1,
+  AUDIT_LOG_ORDER_BY_DIR_DESC = 2,
+}
+
 export enum KubernetesSSAOptionsInventoryPolicy {
   MUST_MATCH = 0,
   ADOPT_IF_NO_INVENTORY = 1,
@@ -191,6 +218,14 @@ export type GetSupportBundleResponse = {
 export type ReadAuditLogRequest = {
   start_time?: string
   end_time?: string
+  order_by_field?: AuditLogOrderByField
+  order_by_dir?: AuditLogOrderByDir
+  search?: string
+  event_type?: AuditLogEventType
+  resource_type?: string
+  resource_id?: string
+  cluster_id?: string
+  actor?: string
 }
 
 export type ReadAuditLogResponse = {

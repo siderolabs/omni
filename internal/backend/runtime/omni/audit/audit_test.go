@@ -108,7 +108,7 @@ func TestAudit(t *testing.T) {
 		action(t)
 	}
 
-	rdr, err := l.Reader(t.Context(), time.Time{}, time.Now().Add(5*time.Second))
+	rdr, err := l.Reader(t.Context(), auditlog.ReadFilters{End: time.Now().Add(5 * time.Second)})
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -172,7 +172,7 @@ func TestPhaseChangeIsAudited(t *testing.T) {
 	require.NoError(t, updateFn(createCtx(), res, newRes))
 
 	// Read all events and verify we got a teardown event.
-	rdr, err := l.Reader(t.Context(), time.Time{}, time.Now().Add(5*time.Second))
+	rdr, err := l.Reader(t.Context(), auditlog.ReadFilters{End: time.Now().Add(5 * time.Second)})
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

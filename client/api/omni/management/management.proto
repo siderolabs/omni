@@ -112,7 +112,7 @@ message KubernetesUpgradePreChecksResponse {
 }
 
 message KubernetesSSAOptions {
-   enum InventoryPolicy {
+  enum InventoryPolicy {
     MUST_MATCH = 0;
     ADOPT_IF_NO_INVENTORY = 1;
     ADOPT_ALL = 2;
@@ -199,10 +199,45 @@ message GetSupportBundleResponse {
   bytes bundle_data = 2;
 }
 
+enum AuditLogEventType {
+  AUDIT_LOG_EVENT_TYPE_UNSPECIFIED = 0;
+  AUDIT_LOG_EVENT_TYPE_CREATE = 1;
+  AUDIT_LOG_EVENT_TYPE_UPDATE = 2;
+  AUDIT_LOG_EVENT_TYPE_UPDATE_WITH_CONFLICTS = 3;
+  AUDIT_LOG_EVENT_TYPE_DESTROY = 4;
+  AUDIT_LOG_EVENT_TYPE_TEARDOWN = 5;
+  AUDIT_LOG_EVENT_TYPE_TALOS_ACCESS = 6;
+  AUDIT_LOG_EVENT_TYPE_K8S_ACCESS = 7;
+}
+
+enum AuditLogOrderByField {
+  AUDIT_LOG_ORDER_BY_FIELD_UNSPECIFIED = 0;
+  AUDIT_LOG_ORDER_BY_FIELD_DATE = 1;
+  AUDIT_LOG_ORDER_BY_FIELD_EVENT_TYPE = 2;
+  AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_TYPE = 3;
+  AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_ID = 4;
+  AUDIT_LOG_ORDER_BY_FIELD_CLUSTER_ID = 5;
+  AUDIT_LOG_ORDER_BY_FIELD_ACTOR = 6;
+}
+
+enum AuditLogOrderByDir {
+  AUDIT_LOG_ORDER_BY_DIR_UNSPECIFIED = 0;
+  AUDIT_LOG_ORDER_BY_DIR_ASC = 1;
+  AUDIT_LOG_ORDER_BY_DIR_DESC = 2;
+}
+
 // specifies start and end time (inclusive range) in <year>-<month>-<day> format. We pass time as string to avoid timezone issues.
 message ReadAuditLogRequest {
   string start_time = 1;
   string end_time = 2;
+  AuditLogOrderByField order_by_field = 3;
+  AuditLogOrderByDir order_by_dir = 4;
+  string search = 5;
+  AuditLogEventType event_type = 6;
+  string resource_type = 7;
+  string resource_id = 8;
+  string cluster_id = 9;
+  string actor = 10;
 }
 
 message ReadAuditLogResponse {

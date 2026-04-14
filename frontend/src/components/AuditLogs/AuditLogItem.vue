@@ -11,13 +11,14 @@ const decoder = new TextDecoder()
 <script setup lang="ts">
 import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from 'reka-ui'
 import { computed } from 'vue'
+import WordHighlighter from 'vue-word-highlighter'
 
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import { formatISO } from '@/methods/time'
 import type { AuditLogEvent } from '@/pages/(authenticated)/settings/audit-logs.vue'
 
-const { data } = defineProps<{ data: Uint8Array<ArrayBuffer> }>()
+const { data } = defineProps<{ data: Uint8Array<ArrayBuffer>; search: string }>()
 
 const open = defineModel<boolean>({ default: false })
 
@@ -72,29 +73,46 @@ function toggleRow() {
       </div>
 
       <div role="cell">
-        <span class="resource-label" :class="getLabelClassForEvent(item.event_type)">
-          {{ item.event_type.toUpperCase() }}
-        </span>
+        <WordHighlighter
+          v-if="item.event_type.toUpperCase()"
+          :query="search"
+          :text-to-highlight="item.event_type.toUpperCase()"
+          highlight-class="bg-naturals-n14"
+          class="resource-label"
+          :class="getLabelClassForEvent(item.event_type)"
+        />
       </div>
 
       <div role="cell" class="truncate text-naturals-n10">
-        {{ item.resource_type }}
+        <WordHighlighter
+          :query="search"
+          :text-to-highlight="item.resource_type"
+          highlight-class="bg-naturals-n14"
+          class="text-naturals-n14"
+        />
       </div>
 
       <div role="cell" class="min-w-20 space-x-2 truncate whitespace-nowrap">
-        <span class="text-naturals-n14">
-          {{
-            item.event_data.session.role ? item.event_data.session.role : 'System / Service Account'
-          }}
-        </span>
+        <WordHighlighter
+          v-if="item.event_data.session.role"
+          :query="search"
+          :text-to-highlight="item.event_data.session.role"
+          highlight-class="bg-naturals-n14"
+          class="text-naturals-n14"
+        />
 
-        <span class="text-naturals-n10">
-          {{
+        <span v-else class="text-naturals-n14">System / Service Account</span>
+
+        <WordHighlighter
+          :query="search"
+          :text-to-highlight="
             item.event_data.session.email
               ? item.event_data.session.email
               : item.event_data.session.user_agent
-          }}
-        </span>
+          "
+          highlight-class="bg-naturals-n14"
+          class="text-naturals-n10"
+        />
       </div>
     </CollapsibleTrigger>
 
@@ -103,7 +121,14 @@ function toggleRow() {
       class="collapsible-content col-span-full overflow-hidden group-hover/root:bg-white/5"
     >
       <div role="cell" class="px-2 pb-2">
-        <CodeBlock :code="JSON.stringify(item, null, 2)" />
+        <CodeBlock>
+          <WordHighlighter
+            :query="search"
+            :text-to-highlight="JSON.stringify(item, null, 2)"
+            highlight-class="bg-naturals-n14"
+            class="text-naturals-n10"
+          />
+        </CodeBlock>
       </div>
     </CollapsibleContent>
   </CollapsibleRoot>

@@ -44,7 +44,7 @@ func (n *nopLogger) Write(context.Context, auditlog.Event) error { return nil }
 
 func (n *nopLogger) Remove(context.Context, time.Time, time.Time) error { return nil }
 
-func (n *nopLogger) Reader(context.Context, time.Time, time.Time) (auditlog.Reader, error) {
+func (n *nopLogger) Reader(context.Context, auditlog.ReadFilters) (auditlog.Reader, error) {
 	return &nopReader{}, nil
 }
 

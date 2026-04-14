@@ -361,15 +361,69 @@ func (s *Store) removeBySize(conn *zombiesqlite.Conn) error {
 	return nil
 }
 
-func (s *Store) Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error) {
+func (s *Store) Reader(ctx context.Context, filters auditlog.ReadFilters) (auditlog.Reader, error) {
 	// we take the connection here, but it will be released in logReader.Close()
 	conn, err := s.db.Take(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to take connection from pool: %w", err)
 	}
 
-	query := fmt.Sprintf(`SELECT %s, %s, %s, %s, %s FROM %s WHERE %s >= $start AND %s <= $end ORDER BY %s ASC, %s ASC`, eventTypeColumn,
-		resourceTypeColumn, resourceIDColumn, eventTSMillisColumn, eventDataColumn, TableName, eventTSMillisColumn, eventTSMillisColumn, eventTSMillisColumn, idColumn)
+	conditions := []string{
+		fmt.Sprintf("%s >= $start", eventTSMillisColumn),
+		fmt.Sprintf("%s <= $end", eventTSMillisColumn),
+	}
+
+	if filters.Search != "" {
+		searchCols := []string{
+			eventTypeColumn,
+			resourceTypeColumn,
+			actorEmailColumn,
+			resourceIDColumn,
+			clusterIDColumn,
+			fmt.Sprintf("CAST(%s AS TEXT)", eventDataColumn),
+		}
+
+		orParts := make([]string, 0, len(searchCols))
+
+		for _, col := range searchCols {
+			orParts = append(orParts, fmt.Sprintf("%s LIKE '%%' || $search || '%%'", col))
+		}
+
+		conditions = append(conditions, "("+strings.Join(orParts, " OR ")+")")
+	}
+
+	eventTypeSQLStr := filters.EventType.SQLString()
+	if eventTypeSQLStr != "" {
+		conditions = append(conditions, fmt.Sprintf("%s = $event_type", eventTypeColumn))
+	}
+
+	if filters.ResourceType != "" {
+		conditions = append(conditions, fmt.Sprintf("%s = $resource_type", resourceTypeColumn))
+	}
+
+	if filters.ResourceID != "" {
+		conditions = append(conditions, fmt.Sprintf("%s = $resource_id", resourceIDColumn))
+	}
+
+	if filters.ClusterID != "" {
+		conditions = append(conditions, fmt.Sprintf("%s = $cluster_id", clusterIDColumn))
+	}
+
+	if filters.Actor != "" {
+		conditions = append(conditions, fmt.Sprintf("%s = $actor", actorEmailColumn))
+	}
+
+	orderByCol := orderByFieldColumn(filters.OrderByField)
+	orderByDir := orderByDirSQL(filters.OrderByDir)
+
+	query := fmt.Sprintf(
+		`SELECT %s, %s, %s, %s, %s FROM %s WHERE %s ORDER BY %s %s, %s ASC`,
+		eventTypeColumn, resourceTypeColumn, resourceIDColumn, eventTSMillisColumn, eventDataColumn,
+		TableName,
+		strings.Join(conditions, " AND "),
+		orderByCol, orderByDir,
+		idColumn,
+	)
 
 	q, err := sqlitexx.NewQuery(conn, query)
 	if err != nil {
@@ -379,8 +433,14 @@ func (s *Store) Reader(ctx context.Context, start, end time.Time) (auditlog.Read
 	}
 
 	it := q.
-		BindInt64("$start", start.UnixMilli()).
-		BindInt64("$end", end.UnixMilli()).
+		BindInt64("$start", filters.Start.UnixMilli()).
+		BindInt64("$end", filters.End.UnixMilli()).
+		BindStringIfSet("$search", filters.Search).
+		BindStringIfSet("$event_type", eventTypeSQLStr).
+		BindStringIfSet("$resource_type", filters.ResourceType).
+		BindStringIfSet("$resource_id", filters.ResourceID).
+		BindStringIfSet("$cluster_id", filters.ClusterID).
+		BindStringIfSet("$actor", filters.Actor).
 		QueryIter()
 
 	next, stop := iter.Pull2(it)
@@ -488,6 +548,35 @@ func (l *logReader) Read() ([]byte, error) {
 	}
 
 	return append(marshaled, '\n'), nil
+}
+
+func orderByFieldColumn(f auditlog.OrderByField) string {
+	switch f {
+	case auditlog.OrderByFieldUnspecified:
+		return eventTSMillisColumn
+	case auditlog.OrderByFieldDate:
+		return eventTSMillisColumn
+	case auditlog.OrderByFieldEventType:
+		return eventTypeColumn
+	case auditlog.OrderByFieldResourceType:
+		return resourceTypeColumn
+	case auditlog.OrderByFieldResourceID:
+		return resourceIDColumn
+	case auditlog.OrderByFieldClusterID:
+		return clusterIDColumn
+	case auditlog.OrderByFieldActor:
+		return actorEmailColumn
+	}
+
+	return eventTSMillisColumn
+}
+
+func orderByDirSQL(d auditlog.OrderByDir) string {
+	if d == auditlog.OrderByDirDESC {
+		return "DESC"
+	}
+
+	return "ASC"
 }
 
 func extractClusterID(d *auditlog.Data) string {

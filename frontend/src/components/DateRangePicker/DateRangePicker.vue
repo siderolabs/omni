@@ -37,6 +37,7 @@ import TIcon from '@/components/Icon/TIcon.vue'
 interface Props extends DateRangePickerRootProps {
   title: string
   hiddenTitle?: boolean
+  inlineTitle?: boolean
 }
 
 // eslint-disable-next-line vue/define-props-destructuring
@@ -50,7 +51,7 @@ const id = useId()
 </script>
 
 <template>
-  <div class="inline-flex flex-col gap-2">
+  <div class="inline-flex gap-2" :class="inlineTitle ? 'items-center' : 'flex-col'">
     <Label class="text-sm text-naturals-n14" :class="{ 'sr-only': hiddenTitle }" :for="id">
       {{ title }}
     </Label>
