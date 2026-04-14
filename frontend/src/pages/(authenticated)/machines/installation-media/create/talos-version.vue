@@ -85,9 +85,7 @@ watch(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
     />
 
     <p class="text-xs">
-      We strongly recommend using the latest stable version of Talos Linux ({{
-        DefaultTalosVersion
-      }}).
+      Latest recommended version of Talos Linux ({{ DefaultTalosVersion }}).
       <template v-if="features?.spec.talos_pre_release_versions_enabled">
         <br />
         Pre-release versions are suitable for testing purposes but are not advised for production
