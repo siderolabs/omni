@@ -80,7 +80,12 @@ const accept = async () => {
       >
         <p>
           Before using Sidero Omni, please review the End User License Agreement ("Agreement") at:
-          <a href="https://siderolabs.com/eula/" class="link-primary">
+          <a
+            href="https://siderolabs.com/eula/"
+            class="link-primary"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             https://siderolabs.com/eula/
           </a>
         </p>
