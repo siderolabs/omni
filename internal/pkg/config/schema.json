@@ -357,7 +357,7 @@
           "description": "JoinTokensMode configures how machine join tokens are generated and used. Set to strict to use the secure join tokens mode.",
           "x-cli-flag": "join-tokens-mode",
           "type": "string",
-          "default": "legacy",
+          "default": "legacyAllowed",
           "enum": [
             "strict",
             "legacyAllowed",

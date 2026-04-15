@@ -467,7 +467,7 @@ func TestSchemaDefaults(t *testing.T) {
 	assert.Equal(t, "https://localhost:8095", p.Services.KubernetesProxy.GetAdvertisedURL())
 
 	// services.siderolink
-	assert.Equal(t, config.SiderolinkServiceJoinTokensModeLegacy, p.Services.Siderolink.GetJoinTokensMode())
+	assert.Equal(t, config.SiderolinkServiceJoinTokensModeLegacyAllowed, p.Services.Siderolink.GetJoinTokensMode())
 	assert.Equal(t, 8090, p.Services.Siderolink.GetEventSinkPort())
 	assert.Equal(t, 8092, p.Services.Siderolink.GetLogServerPort())
 
