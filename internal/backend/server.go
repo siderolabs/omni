@@ -87,7 +87,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/auth0"
-	"github.com/siderolabs/omni/internal/pkg/auth/handler"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
 	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -328,20 +327,6 @@ func (s *Server) Run(ctx context.Context) error {
 }
 
 func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
-	imageFactoryHandler := handler.NewAuthConfig(
-		handler.NewSignature(
-			factory.NewHandler(
-				s.state.Default(),
-				s.logger.With(logging.Component("factory_proxy")),
-				&s.cfg.Registries,
-			),
-			s.authenticatorFunc(),
-			s.logger,
-		),
-		authres.Enabled(s.authConfig),
-		s.logger,
-	)
-
 	samlHandler, err := func() (*samlsp.Middleware, error) {
 		if !s.authConfig.TypedSpec().Value.Saml.Enabled {
 			return nil, nil //nolint:nilnil
@@ -358,7 +343,17 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 		return nil, err
 	}
 
-	mux, err := makeMux(imageFactoryHandler, oidcProvider, workloadProxyRedirect, s.oidcProvider, samlHandler, s.state, s.omniRuntime, s.logger, s.cfg)
+	mux, err := makeMux(
+		factory.NewHandler(),
+		oidcProvider,
+		workloadProxyRedirect,
+		s.oidcProvider,
+		samlHandler,
+		s.state,
+		s.omniRuntime,
+		s.logger,
+		s.cfg,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mux: %w", err)
 	}
