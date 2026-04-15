@@ -103,11 +103,6 @@
       "count": 1
     }
   },
-  "src/components/THeader/THeader.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
-  },
   "src/components/Tabs/TabButton.vue": {
     "vue/define-props-destructuring": {
       "count": 1

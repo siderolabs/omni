@@ -22,7 +22,7 @@
     "test": "vitest",
     "test:e2e": "playwright test",
     "lint": "eslint . && prettier -c .",
-    "lint:fix": "eslint . --fix && prettier -wl ."
+    "lint:fix": "eslint . --fix --prune-suppressions && prettier -wl ."
   },
   "dependencies": {
     "@auth0/auth0-vue": "^2.5.0",
