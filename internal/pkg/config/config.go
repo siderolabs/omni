@@ -30,7 +30,17 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/jsonschema"
 )
 
-const wireguardDefaultPort = "50180"
+const (
+	wireguardDefaultPort = "50180"
+
+	// UnsupportedTalosVersionFailOnStart controls whether Omni refuses to start when machines
+	// are running Talos versions below MinTalosVersion. This will be flipped to true in a future release.
+	UnsupportedTalosVersionFailOnStart = false
+
+	// NonImageFactoryFailOnStart controls whether Omni refuses to start when machines
+	// were provisioned without ImageFactory. This will be flipped to true in a future release.
+	NonImageFactoryFailOnStart = false
+)
 
 //go:embed schema.json
 var schemaData string
@@ -160,6 +170,18 @@ func parseConfig(r io.Reader, opts ...ParseOption) (*Params, error) {
 func (p *Params) ValidateState(ctx context.Context, st state.State) error {
 	if p.Services.Siderolink.GetJoinTokensMode() == SiderolinkServiceJoinTokensModeStrict {
 		if err := validations.EnsureAllMachinesSupportStrictTokens(ctx, st); err != nil {
+			return err
+		}
+	}
+
+	if UnsupportedTalosVersionFailOnStart {
+		if err := validations.EnsureNoMachinesBelowMinTalosVersion(ctx, st); err != nil {
+			return err
+		}
+	}
+
+	if NonImageFactoryFailOnStart {
+		if err := validations.EnsureNoNonImageFactoryMachines(ctx, st); err != nil {
 			return err
 		}
 	}

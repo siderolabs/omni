@@ -434,25 +434,6 @@ type LogsStripe struct {
 	MinCommit *uint32 `json:"minCommit,omitempty,omitzero" yaml:"minCommit,omitempty"`
 }
 
-type NonImageFactoryDeprecation struct {
-	// Body is the body of the non-ImageFactory deprecation notification. Use %d as a
-	// placeholder for the number of affected machines.
-	Body *string `json:"body,omitempty,omitzero" yaml:"body,omitempty"`
-
-	// Enabled controls whether the non-ImageFactory deprecation notification is shown
-	// when machines with invalid schematics are detected.
-	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
-
-	// Title is the title of the non-ImageFactory deprecation notification.
-	Title *string `json:"title,omitempty,omitzero" yaml:"title,omitempty"`
-}
-
-type Notifications struct {
-	// NonImageFactoryDeprecation contains configuration for the notification shown
-	// when machines are provisioned without using ImageFactory.
-	NonImageFactoryDeprecation NonImageFactoryDeprecation `json:"nonImageFactoryDeprecation" yaml:"nonImageFactoryDeprecation"`
-}
-
 type OIDC struct {
 	// AllowUnverifiedEmail controls whether users with unverified emails (without
 	// email_verified claim) are allowed to authenticate.
@@ -500,10 +481,6 @@ type Params struct {
 
 	// Logs contains logging-related configuration.
 	Logs Logs `json:"logs" yaml:"logs"`
-
-	// Notifications contains configuration for system notifications emitted by
-	// controllers.
-	Notifications Notifications `json:"notifications" yaml:"notifications"`
 
 	// Registries contains container image registries configuration.
 	Registries Registries `json:"registries" yaml:"registries"`

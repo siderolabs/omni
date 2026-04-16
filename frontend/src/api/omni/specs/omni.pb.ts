@@ -928,6 +928,8 @@ export type MachineStatusMetricsSpec = {
   registered_machines_limit?: number
   registration_limit_reached?: boolean
   invalid_schematic_machines_count?: number
+  approaching_talos_version_end_of_support_machines_count?: number
+  talos_version_end_of_support_machines_count?: number
 }
 
 export type ClusterMetricsSpec = {

@@ -164,7 +164,6 @@ func buildRootCommand() (*cobra.Command, error) {
 	defineStorageFlags(rootCmd, rootCmdFlagBinder, flagConfig)
 	defineRegistriesFlags(rootCmdFlagBinder, flagConfig)
 	defineFeatureFlags(rootCmdFlagBinder, flagConfig)
-	defineNotificationFlags(rootCmdFlagBinder, flagConfig)
 	defineDebugFlags(rootCmdFlagBinder, flagConfig)
 	defineEtcdBackupsFlags(rootCmd, rootCmdFlagBinder, flagConfig)
 	defineEulaFlags(rootCmd, rootCmdFlagBinder, flagConfig)
@@ -351,12 +350,6 @@ func defineFeatureFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.BoolVar("features.enableBreakGlassConfigs", &flagConfig.Features.EnableBreakGlassConfigs)
 	b.BoolVar("features.disableControllerRuntimeCache", &flagConfig.Features.DisableControllerRuntimeCache)
 	b.BoolVar("features.enableClusterImport", &flagConfig.Features.EnableClusterImport)
-}
-
-func defineNotificationFlags(b *FlagBinder, flagConfig *config.Params) {
-	b.BoolVar("notifications.nonImageFactoryDeprecation.enabled", &flagConfig.Notifications.NonImageFactoryDeprecation.Enabled)
-	b.StringVar("notifications.nonImageFactoryDeprecation.title", &flagConfig.Notifications.NonImageFactoryDeprecation.Title)
-	b.StringVar("notifications.nonImageFactoryDeprecation.body", &flagConfig.Notifications.NonImageFactoryDeprecation.Body)
 }
 
 func defineDebugFlags(b *FlagBinder, flagConfig *config.Params) {

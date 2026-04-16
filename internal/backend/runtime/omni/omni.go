@@ -172,11 +172,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			LBConfig: cfg.Services.LoadBalancer,
 		},
 		omnictrl.NewMachineCleanupController(),
-		omnictrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines(), omnictrl.NonImageFactoryDeprecationConfig{
-			Enabled: cfg.Notifications.NonImageFactoryDeprecation.GetEnabled(),
-			Title:   cfg.Notifications.NonImageFactoryDeprecation.GetTitle(),
-			Body:    cfg.Notifications.NonImageFactoryDeprecation.GetBody(),
-		}),
+		omnictrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines()),
 		omnictrl.NewVersionsController(cfg.Registries.GetImageFactoryBaseURL(), cfg.Features.GetEnableTalosPreReleaseVersions(), cfg.Registries.GetKubernetes()),
 		omnictrl.NewClusterLoadBalancerController(
 			cfg.Services.LoadBalancer.GetMinPort(),

@@ -919,39 +919,6 @@ func (s *LogsStripe) SetMinCommit(v uint32) {
 	s.MinCommit = &v
 }
 
-func (s *NonImageFactoryDeprecation) GetBody() string {
-	if s == nil || s.Body == nil {
-		return *new(string)
-	}
-	return *s.Body
-}
-
-func (s *NonImageFactoryDeprecation) SetBody(v string) {
-	s.Body = &v
-}
-
-func (s *NonImageFactoryDeprecation) GetEnabled() bool {
-	if s == nil || s.Enabled == nil {
-		return *new(bool)
-	}
-	return *s.Enabled
-}
-
-func (s *NonImageFactoryDeprecation) SetEnabled(v bool) {
-	s.Enabled = &v
-}
-
-func (s *NonImageFactoryDeprecation) GetTitle() string {
-	if s == nil || s.Title == nil {
-		return *new(string)
-	}
-	return *s.Title
-}
-
-func (s *NonImageFactoryDeprecation) SetTitle(v string) {
-	s.Title = &v
-}
-
 func (s *OIDC) GetAllowUnverifiedEmail() bool {
 	if s == nil || s.AllowUnverifiedEmail == nil {
 		return *new(bool)

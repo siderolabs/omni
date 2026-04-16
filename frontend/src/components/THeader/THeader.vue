@@ -10,7 +10,7 @@ import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { type NotificationSpec, NotificationSpecType } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, NotificationType } from '@/api/resources'
+import { EphemeralNamespace, NotificationType } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
 import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
@@ -28,7 +28,7 @@ defineEmits<{ toggleSidebar: [] }>()
 const { data } = useResourceWatch<NotificationSpec>({
   runtime: Runtime.Omni,
   resource: {
-    namespace: DefaultNamespace,
+    namespace: EphemeralNamespace,
     type: NotificationType,
   },
 })

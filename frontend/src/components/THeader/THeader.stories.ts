@@ -7,7 +7,7 @@ import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import { type NotificationSpec, NotificationSpecType } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, NotificationType } from '@/api/resources'
+import { EphemeralNamespace, NotificationType } from '@/api/resources'
 
 import THeader from './THeader.vue'
 
@@ -24,13 +24,13 @@ export const Default: Story = {
       handlers: [
         createWatchStreamHandler<NotificationSpec>({
           expectedOptions: {
-            namespace: DefaultNamespace,
+            namespace: EphemeralNamespace,
             type: NotificationType,
           },
           initialResources: faker.helpers.multiple(
             () => ({
               metadata: {
-                namespace: DefaultNamespace,
+                namespace: EphemeralNamespace,
                 type: NotificationType,
                 id: faker.string.uuid(),
               },

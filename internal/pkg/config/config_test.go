@@ -564,10 +564,4 @@ func TestSchemaDefaults(t *testing.T) {
 	// features
 	assert.True(t, p.Features.GetEnableConfigDataCompression())
 	assert.True(t, p.Features.GetEnableClusterImport())
-
-	// notifications.nonImageFactoryDeprecation
-	assert.False(t, p.Notifications.NonImageFactoryDeprecation.GetEnabled())
-	assert.Equal(t, "Non-ImageFactory Machines Detected", p.Notifications.NonImageFactoryDeprecation.GetTitle())
-	assert.Equal(t, "%d machine(s) were provisioned without ImageFactory. Support for these machines will end after a future release. Please re-provision them using ImageFactory.",
-		p.Notifications.NonImageFactoryDeprecation.GetBody())
 }
