@@ -4,11 +4,6 @@ name: omnictl
 spec:
   disableImage: true
 ---
-kind: golang.GoVulnCheck
-spec:
-  ignore:
-    - GO-2026-4923 # not fixed yet
----
 kind: auto.CommandConfig
 name: acompat
 spec:
@@ -872,13 +867,39 @@ spec:
         - .vue
       skipPaths:
         - node_modules/
-  enforceContexts:
-    - e2e-short
-    - e2e-scaling
-    - e2e-templates
-    - e2e-upgrades
-    - e2e-backups
-    - e2e-forced-removal
+  protectedBranches:
+    - name: main
+      enforceContexts:
+        - e2e-short
+        - e2e-scaling
+        - e2e-templates
+        - e2e-upgrades
+        - e2e-backups
+        - e2e-forced-removal
+    - name: release-1.5
+      enforceContexts:
+        - e2e-short
+        - e2e-scaling
+        - e2e-templates
+        - e2e-upgrades
+        - e2e-backups
+        - e2e-forced-removal
+    - name: release-1.6
+      enforceContexts:
+        - e2e-short
+        - e2e-scaling
+        - e2e-templates
+        - e2e-upgrades
+        - e2e-backups
+        - e2e-forced-removal
+    - name: release-1.7
+      enforceContexts:
+        - e2e-short
+        - e2e-scaling
+        - e2e-templates
+        - e2e-upgrades
+        - e2e-backups
+        - e2e-forced-removal
 ---
 kind: golang.Toolchain
 spec:

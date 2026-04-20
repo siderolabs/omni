@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-04-07T14:45:56Z by kres 4e3b74d.
+# Generated on 2026-04-18T04:34:01Z by kres 15ff2fd.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -74,6 +74,14 @@ jobs:
       - name: Set secrets for job
         run: |
           sops -d .secrets.yaml | yq -e '.secrets | to_entries[] | .key + "=" + .value' >> "$GITHUB_ENV"
+      - name: CI temp release tag
+        if: github.event_name == 'pull_request'
+        run: |
+          make ci-temp-release-tag
+      - name: Check dirty
+        if: github.event_name == 'pull_request'
+        run: |
+          make check-dirty
       - name: js
         run: |
           make js
