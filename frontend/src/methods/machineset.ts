@@ -33,8 +33,7 @@ export const sortMachineSetIds = (clusterId: string | undefined, ids: string[]):
     return ids
   }
 
-  const idsCopy = ids.concat()
-  return idsCopy.sort((a, b) => {
+  return ids.toSorted((a, b) => {
     const nameA = machineSetName(clusterId, a)
     const nameB = machineSetName(clusterId, b)
 
