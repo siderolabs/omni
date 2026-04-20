@@ -56,10 +56,17 @@ const talosVersions = computed(() =>
 )
 
 const joinTokens = computed(() =>
-  joinTokenList.value.map((t) => ({
-    label: t.spec.name || t.metadata.id || '',
-    value: t.metadata.id || '',
-  })),
+  joinTokenList.value
+    .toSorted((a, b) => {
+      if (a.spec.is_default) return -1
+      if (b.spec.is_default) return 1
+
+      return 0
+    })
+    .map((t) => ({
+      label: t.spec.name || t.metadata.id || '',
+      value: t.metadata.id || '',
+    })),
 )
 
 // Form defaults
