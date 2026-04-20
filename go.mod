@@ -84,7 +84,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
-	github.com/stripe/stripe-go/v76 v76.25.0
+	github.com/stripe/stripe-go/v85 v85.0.1
 	github.com/zitadel/logging v0.7.0
 	github.com/zitadel/oidc/v3 v3.47.2
 	go.etcd.io/bbolt v1.4.3

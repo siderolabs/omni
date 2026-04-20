@@ -26,6 +26,7 @@ import (
 	"github.com/siderolabs/gen/optional"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/role"
+	"github.com/stripe/stripe-go/v85"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/common"
@@ -305,8 +306,10 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			return nil, fmt.Errorf("environment variable STRIPE_SUBSCRIPTION_ITEM_ID is not set")
 		}
 
+		stripeClient := stripe.NewClient(stripeAPIKey)
+
 		controllers = append(controllers,
-			omnictrl.NewStripeMetricsReporterController(stripeAPIKey, subscriptionItemID, cfg.Logs.Stripe.GetMinCommit()),
+			omnictrl.NewStripeMetricsReporterController(stripeClient, subscriptionItemID, cfg.Logs.Stripe.GetMinCommit()),
 		)
 	}
 

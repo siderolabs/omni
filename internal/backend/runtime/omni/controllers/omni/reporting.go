@@ -16,8 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/optional"
-	"github.com/stripe/stripe-go/v76"
-	"github.com/stripe/stripe-go/v76/subscriptionitem"
+	"github.com/stripe/stripe-go/v85"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -33,8 +32,8 @@ const StripeMetricsReporterControllerName = "StripeMetricsReporterController"
 // StripeMetricsReporterController reports machine metrics to Stripe.
 type StripeMetricsReporterController struct {
 	generic.NamedController
+	stripeClient *stripe.Client
 
-	stripeAPIKey             string
 	stripeSubscriptionItemID string
 	stripeMinCommit          uint32
 	debounceDuration         time.Duration
@@ -56,7 +55,10 @@ func WithDebounceDuration(duration time.Duration) StripeMetricsReporterControlle
 }
 
 // NewStripeMetricsReporterController initializes StripeMetricsReporterController.
-func NewStripeMetricsReporterController(stripeAPIKey, stripeSubscriptionItemID string, stripeMinCommit uint32, opts ...StripeMetricsReporterControllerOption) *StripeMetricsReporterController {
+func NewStripeMetricsReporterController(
+	stripeClient *stripe.Client, stripeSubscriptionItemID string, stripeMinCommit uint32,
+	opts ...StripeMetricsReporterControllerOption,
+) *StripeMetricsReporterController {
 	options := &StripeMetricsReporterControllerOptions{
 		DebounceDuration: DefaultDebounceDuration,
 	}
@@ -69,7 +71,7 @@ func NewStripeMetricsReporterController(stripeAPIKey, stripeSubscriptionItemID s
 		NamedController: generic.NamedController{
 			ControllerName: StripeMetricsReporterControllerName,
 		},
-		stripeAPIKey:             stripeAPIKey,
+		stripeClient:             stripeClient,
 		stripeSubscriptionItemID: stripeSubscriptionItemID,
 		stripeMinCommit:          stripeMinCommit,
 		debounceDuration:         options.DebounceDuration,
@@ -94,8 +96,6 @@ func (ctrl *StripeMetricsReporterController) Outputs() []controller.Output {
 
 // Run implements controller.Controller interface.
 func (ctrl *StripeMetricsReporterController) Run(ctx context.Context, r controller.Runtime, log *zap.Logger) error {
-	stripe.Key = ctrl.stripeAPIKey
-
 	var (
 		pendingCount optional.Optional[uint32]
 		timerCh      <-chan time.Time
@@ -114,7 +114,7 @@ func (ctrl *StripeMetricsReporterController) Run(ctx context.Context, r controll
 			count = ctrl.stripeMinCommit
 		}
 
-		err := updateStripeSubscriptionItemQuantity(ctx, ctrl.stripeSubscriptionItemID, count, log)
+		err := updateStripeSubscriptionItemQuantity(ctx, ctrl.stripeClient, ctrl.stripeSubscriptionItemID, count, log)
 		if err != nil {
 			log.Error("Failed to update subscription item", zap.String("subscription_item_id", ctrl.stripeSubscriptionItemID), zap.Uint32("count", count), zap.Error(err))
 		}
@@ -152,17 +152,17 @@ func (ctrl *StripeMetricsReporterController) Run(ctx context.Context, r controll
 
 // updateStripeSubscriptionItemQuantity adjusts the quantity of a subscription.
 // Implements retry logic with exponential backoff for transient failures.
-func updateStripeSubscriptionItemQuantity(ctx context.Context, subscriptionItemID string, count uint32, log *zap.Logger) error {
+func updateStripeSubscriptionItemQuantity(ctx context.Context, stripeClient *stripe.Client, subscriptionItemID string, count uint32, log *zap.Logger) error {
 	operation := func() (bool, error) {
 		newQuantity := count
 
 		log.Info("Updating subscription item quantity", zap.String("subscription_item_id", subscriptionItemID), zap.Uint32("new_quantity", newQuantity))
 
-		updateParams := &stripe.SubscriptionItemParams{
+		updateParams := &stripe.SubscriptionItemUpdateParams{
 			Quantity: new(int64(newQuantity)),
 		}
 
-		_, err := subscriptionitem.Update(subscriptionItemID, updateParams)
+		_, err := stripeClient.V1SubscriptionItems.Update(ctx, subscriptionItemID, updateParams)
 		if err != nil {
 			return false, fmt.Errorf("failed to update subscription item %s quantity: %w", subscriptionItemID, err)
 		}
