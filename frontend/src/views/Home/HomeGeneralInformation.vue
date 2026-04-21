@@ -37,7 +37,7 @@ import { useResourceWatch } from '@/methods/useResourceWatch'
 import HomeGeneralInformationCopyable from '@/views/Home/HomeGeneralInformationCopyable.vue'
 
 const features = useFeatures()
-const { canReadAuditLog } = usePermissions()
+const { canReadJoinTokens, canReadAuditLog } = usePermissions()
 const auditLogAvailable = computed(() => !!features.data.value?.spec.audit_log_enabled)
 
 const { copy, copied } = useClipboard()
@@ -104,6 +104,7 @@ const {
       />
 
       <HomeGeneralInformationCopyable
+        v-if="canReadJoinTokens"
         title="Join Token"
         secret
         :value="joinTokenData?.spec.token_id"
@@ -124,11 +125,21 @@ const {
         Download Installation Media
       </TButton>
 
-      <TButton icon="long-arrow-down" icon-position="left" @click="downloadMachineJoinConfig()">
+      <TButton
+        v-if="canReadJoinTokens"
+        icon="long-arrow-down"
+        icon-position="left"
+        @click="downloadMachineJoinConfig()"
+      >
         Download Machine Join Config
       </TButton>
 
-      <TButton :icon="copied ? 'check' : 'copy'" icon-position="left" @click="copyKernelArgs">
+      <TButton
+        v-if="canReadJoinTokens"
+        :icon="copied ? 'check' : 'copy'"
+        icon-position="left"
+        @click="copyKernelArgs"
+      >
         Copy Kernel Parameters
       </TButton>
     </section>

@@ -14,13 +14,16 @@ import { DefaultNamespace, MachineStatusType } from '@/api/resources'
 import TabButton from '@/components/Tabs/TabButton.vue'
 import TabContent from '@/components/Tabs/TabContent.vue'
 import Tabs from '@/components/Tabs/Tabs.vue'
+import { useClusterPermissions } from '@/methods/auth'
 import { useResourceGet } from '@/methods/useResourceGet'
 import NodesHeader from '@/views/Nodes/NodesHeader.vue'
 
 definePage({ name: 'NodeDetails' })
 
 const route = useRoute()
-const machine = computed(() => route.params.machine as string)
+const machine = computed(() => route.params.machine)
+const { canReadMachineConfig, canReadConfigPatches, canReadMachinePendingUpdates } =
+  useClusterPermissions(() => route.params.cluster)
 
 const routes = computed(() => {
   return [
@@ -39,18 +42,22 @@ const routes = computed(() => {
     {
       name: 'Config',
       to: { name: 'NodeConfig', params: { machine: machine.value } },
+      disabled: !canReadMachineConfig.value,
     },
     {
       name: 'Pending Updates',
       to: { name: 'NodePendingUpdates', params: { machine: machine.value } },
+      disabled: !canReadMachinePendingUpdates.value,
     },
     {
       name: 'Config History',
       to: { name: 'NodeConfigDiffs', params: { machine: machine.value } },
+      disabled: !canReadMachineConfig.value,
     },
     {
       name: 'Patches',
       to: { name: 'NodePatches', params: { machine: machine.value } },
+      disabled: !canReadConfigPatches.value,
     },
     {
       name: 'Disks',
@@ -96,7 +103,14 @@ const nodeName = computed(
       tabs-list-class="px-4 md:px-6"
     >
       <template #triggers>
-        <TabButton v-for="{ name, to } in routes" :key="name" :as="RouterLink" :value="to.name" :to>
+        <TabButton
+          v-for="{ name, to, disabled } in routes"
+          :key="name"
+          :as="RouterLink"
+          :value="to.name"
+          :to
+          :disabled
+        >
           {{ name }}
         </TabButton>
       </template>

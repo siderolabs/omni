@@ -858,12 +858,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			{
 				resource:       joinToken,
 				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Update, state.Destroy}),
-				isAdminOnly:    true,
 			},
 			{
 				resource:            defaultJoinToken,
 				allowedVerbSet:      allVerbsSet,
-				isAdminOnly:         true,
 				isDestroyNotAllowed: true,
 			},
 			{
@@ -1483,26 +1481,20 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 						isOperator := testRole.Check(role.Operator) == nil
 						isAdmin := testRole.Check(role.Admin) == nil
 						_, verbAllowed := tc.allowedVerbSet[testVerb]
-						sufficientRole := true
 
-						if tc.isAdminOnly {
-							if !isAdmin {
-								sufficientRole = false
-							}
-						} else {
-							if testVerb.Readonly() {
-								if !isReader {
-									sufficientRole = false
-								}
-							} else {
-								if !isOperator {
-									sufficientRole = false
-								}
-							}
-						}
+						var sufficientRole bool
 
-						if tc.isSignatureSufficient || tc.isPublic {
+						switch {
+						case tc.isSignatureSufficient || tc.isPublic:
 							sufficientRole = true
+						case tc.isAdminOnly:
+							sufficientRole = isAdmin
+						default:
+							if testVerb.Readonly() {
+								sufficientRole = isReader
+							} else {
+								sufficientRole = isOperator
+							}
 						}
 
 						switch {

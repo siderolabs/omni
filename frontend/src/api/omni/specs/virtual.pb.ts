@@ -35,6 +35,10 @@ export type PermissionsSpec = {
   can_manage_backup_store?: boolean
   can_access_maintenance_nodes?: boolean
   can_read_audit_log?: boolean
+  can_read_join_tokens?: boolean
+  can_manage_join_tokens?: boolean
+  can_read_installation_media?: boolean
+  can_manage_installation_media?: boolean
 }
 
 export type ClusterPermissionsSpec = {
@@ -50,6 +54,11 @@ export type ClusterPermissionsSpec = {
   can_manage_config_patches?: boolean
   can_manage_cluster_features?: boolean
   can_download_support_bundle?: boolean
+  can_read_machine_config?: boolean
+  can_manage_machine_config?: boolean
+  can_read_kernel_args?: boolean
+  can_manage_kernel_args?: boolean
+  can_read_machine_pending_updates?: boolean
 }
 
 export type LabelsCompletionSpecValues = {

@@ -55,6 +55,10 @@ func (m *PermissionsSpec) CloneVT() *PermissionsSpec {
 	r.CanManageBackupStore = m.CanManageBackupStore
 	r.CanAccessMaintenanceNodes = m.CanAccessMaintenanceNodes
 	r.CanReadAuditLog = m.CanReadAuditLog
+	r.CanReadJoinTokens = m.CanReadJoinTokens
+	r.CanManageJoinTokens = m.CanManageJoinTokens
+	r.CanReadInstallationMedia = m.CanReadInstallationMedia
+	r.CanManageInstallationMedia = m.CanManageInstallationMedia
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -83,6 +87,11 @@ func (m *ClusterPermissionsSpec) CloneVT() *ClusterPermissionsSpec {
 	r.CanManageConfigPatches = m.CanManageConfigPatches
 	r.CanManageClusterFeatures = m.CanManageClusterFeatures
 	r.CanDownloadSupportBundle = m.CanDownloadSupportBundle
+	r.CanReadMachineConfig = m.CanReadMachineConfig
+	r.CanManageMachineConfig = m.CanManageMachineConfig
+	r.CanReadKernelArgs = m.CanReadKernelArgs
+	r.CanManageKernelArgs = m.CanManageKernelArgs
+	r.CanReadMachinePendingUpdates = m.CanReadMachinePendingUpdates
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -272,6 +281,18 @@ func (this *PermissionsSpec) EqualVT(that *PermissionsSpec) bool {
 	if this.CanReadAuditLog != that.CanReadAuditLog {
 		return false
 	}
+	if this.CanReadJoinTokens != that.CanReadJoinTokens {
+		return false
+	}
+	if this.CanManageJoinTokens != that.CanManageJoinTokens {
+		return false
+	}
+	if this.CanReadInstallationMedia != that.CanReadInstallationMedia {
+		return false
+	}
+	if this.CanManageInstallationMedia != that.CanManageInstallationMedia {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -322,6 +343,21 @@ func (this *ClusterPermissionsSpec) EqualVT(that *ClusterPermissionsSpec) bool {
 		return false
 	}
 	if this.CanDownloadSupportBundle != that.CanDownloadSupportBundle {
+		return false
+	}
+	if this.CanReadMachineConfig != that.CanReadMachineConfig {
+		return false
+	}
+	if this.CanManageMachineConfig != that.CanManageMachineConfig {
+		return false
+	}
+	if this.CanReadKernelArgs != that.CanReadKernelArgs {
+		return false
+	}
+	if this.CanManageKernelArgs != that.CanManageKernelArgs {
+		return false
+	}
+	if this.CanReadMachinePendingUpdates != that.CanReadMachinePendingUpdates {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -581,6 +617,50 @@ func (m *PermissionsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.CanManageInstallationMedia {
+		i--
+		if m.CanManageInstallationMedia {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
+	}
+	if m.CanReadInstallationMedia {
+		i--
+		if m.CanReadInstallationMedia {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	if m.CanManageJoinTokens {
+		i--
+		if m.CanManageJoinTokens {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x78
+	}
+	if m.CanReadJoinTokens {
+		i--
+		if m.CanReadJoinTokens {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x70
+	}
 	if m.CanReadAuditLog {
 		i--
 		if m.CanReadAuditLog {
@@ -723,6 +803,60 @@ func (m *ClusterPermissionsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.CanReadMachinePendingUpdates {
+		i--
+		if m.CanReadMachinePendingUpdates {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
+	}
+	if m.CanManageKernelArgs {
+		i--
+		if m.CanManageKernelArgs {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	if m.CanReadKernelArgs {
+		i--
+		if m.CanReadKernelArgs {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x78
+	}
+	if m.CanManageMachineConfig {
+		i--
+		if m.CanManageMachineConfig {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x70
+	}
+	if m.CanReadMachineConfig {
+		i--
+		if m.CanReadMachineConfig {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x68
 	}
 	if m.CanDownloadSupportBundle {
 		i--
@@ -1233,6 +1367,18 @@ func (m *PermissionsSpec) SizeVT() (n int) {
 	if m.CanReadAuditLog {
 		n += 2
 	}
+	if m.CanReadJoinTokens {
+		n += 2
+	}
+	if m.CanManageJoinTokens {
+		n += 2
+	}
+	if m.CanReadInstallationMedia {
+		n += 3
+	}
+	if m.CanManageInstallationMedia {
+		n += 3
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1278,6 +1424,21 @@ func (m *ClusterPermissionsSpec) SizeVT() (n int) {
 	}
 	if m.CanDownloadSupportBundle {
 		n += 2
+	}
+	if m.CanReadMachineConfig {
+		n += 2
+	}
+	if m.CanManageMachineConfig {
+		n += 2
+	}
+	if m.CanReadKernelArgs {
+		n += 2
+	}
+	if m.CanManageKernelArgs {
+		n += 3
+	}
+	if m.CanReadMachinePendingUpdates {
+		n += 3
 	}
 	n += len(m.unknownFields)
 	return n
@@ -1809,6 +1970,86 @@ func (m *PermissionsSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.CanReadAuditLog = bool(v != 0)
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanReadJoinTokens", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanReadJoinTokens = bool(v != 0)
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanManageJoinTokens", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanManageJoinTokens = bool(v != 0)
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanReadInstallationMedia", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanReadInstallationMedia = bool(v != 0)
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanManageInstallationMedia", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanManageInstallationMedia = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -2100,6 +2341,106 @@ func (m *ClusterPermissionsSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.CanDownloadSupportBundle = bool(v != 0)
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanReadMachineConfig", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanReadMachineConfig = bool(v != 0)
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanManageMachineConfig", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanManageMachineConfig = bool(v != 0)
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanReadKernelArgs", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanReadKernelArgs = bool(v != 0)
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanManageKernelArgs", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanManageKernelArgs = bool(v != 0)
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanReadMachinePendingUpdates", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanReadMachinePendingUpdates = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

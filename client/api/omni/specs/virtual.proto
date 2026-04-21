@@ -22,6 +22,10 @@ message PermissionsSpec {
   bool can_manage_backup_store = 11;
   bool can_access_maintenance_nodes = 12;
   bool can_read_audit_log = 13;
+  bool can_read_join_tokens = 14;
+  bool can_manage_join_tokens = 15;
+  bool can_read_installation_media = 16;
+  bool can_manage_installation_media = 17;
 }
 
 message ClusterPermissionsSpec {
@@ -37,6 +41,11 @@ message ClusterPermissionsSpec {
   bool can_manage_config_patches = 10;
   bool can_manage_cluster_features = 11;
   bool can_download_support_bundle = 12;
+  bool can_read_machine_config = 13;
+  bool can_manage_machine_config = 14;
+  bool can_read_kernel_args = 15;
+  bool can_manage_kernel_args = 16;
+  bool can_read_machine_pending_updates = 17;
 }
 
 message LabelsCompletionSpec {

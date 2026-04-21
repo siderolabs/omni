@@ -38,7 +38,7 @@ definePage({ name: 'JoinTokens' })
 
 const router = useRouter()
 const { copy } = useClipboard()
-const { canManageUsers } = usePermissions()
+const { canManageJoinTokens, canReadJoinTokens } = usePermissions()
 
 const showTokens = ref(false)
 
@@ -129,7 +129,7 @@ const openDeleteToken = (token: string) => {
         icon="plus"
         icon-position="left"
         variant="highlighted"
-        :disabled="!canManageUsers"
+        :disabled="!canManageJoinTokens"
         @click="openUserCreate"
       >
         Create Join Token
@@ -175,14 +175,23 @@ const openDeleteToken = (token: string) => {
             </div>
             <TActionsBox>
               <template v-if="item.spec.state === JoinTokenStatusSpecState.ACTIVE">
-                <TActionsBoxItem icon="copy" @select="() => copyValue(item.metadata.id!)">
+                <TActionsBoxItem
+                  icon="copy"
+                  :disabled="!canReadJoinTokens"
+                  @select="() => copyValue(item.metadata.id!)"
+                >
                   Copy Token
                 </TActionsBoxItem>
-                <TActionsBoxItem icon="copy" @select="() => copyKernelParams(item.metadata.id!)">
+                <TActionsBoxItem
+                  icon="copy"
+                  :disabled="!canReadJoinTokens"
+                  @select="() => copyKernelParams(item.metadata.id!)"
+                >
                   Copy Kernel Params
                 </TActionsBoxItem>
                 <TActionsBoxItem
                   icon="long-arrow-down"
+                  :disabled="!canReadJoinTokens"
                   @select="() => getMachineJoinConfig(item.metadata.id!)"
                 >
                   Download Machine Join Config
@@ -191,6 +200,7 @@ const openDeleteToken = (token: string) => {
                 <TActionsBoxItem
                   v-if="!item.spec.is_default"
                   icon="check"
+                  :disabled="!canManageJoinTokens"
                   @select="() => makeDefault(item.metadata.id!)"
                 >
                   Make Default
@@ -199,18 +209,24 @@ const openDeleteToken = (token: string) => {
                 <TActionsBoxItem
                   icon="error"
                   danger
+                  :disabled="!canManageJoinTokens"
                   @select="() => openRevokeToken(item.metadata.id!)"
                 >
                   Revoke
                 </TActionsBoxItem>
               </template>
               <template v-else>
-                <TActionsBoxItem icon="reset" @select="unrevokeJoinToken(item.metadata.id!)">
+                <TActionsBoxItem
+                  icon="reset"
+                  :disabled="!canManageJoinTokens"
+                  @select="unrevokeJoinToken(item.metadata.id!)"
+                >
                   Unrevoke
                 </TActionsBoxItem>
                 <TActionsBoxItem
                   icon="delete"
                   danger
+                  :disabled="!canManageJoinTokens"
                   @select="() => openDeleteToken(item.metadata.id!)"
                 >
                   Delete

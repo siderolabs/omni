@@ -15,6 +15,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import TabButton from '@/components/Tabs/TabButton.vue'
 import TabContent from '@/components/Tabs/TabContent.vue'
 import Tabs from '@/components/Tabs/Tabs.vue'
+import { usePermissions } from '@/methods/auth'
 import { useResourceGet } from '@/methods/useResourceGet'
 
 definePage({
@@ -23,6 +24,8 @@ definePage({
     name: 'MachineLogs',
   },
 })
+
+const { canReadMachineConfigPatches } = usePermissions()
 
 const routes = computed(() => {
   return [
@@ -33,6 +36,7 @@ const routes = computed(() => {
     {
       name: 'Patches',
       to: { name: 'MachineConfigPatches' },
+      disabled: !canReadMachineConfigPatches.value,
     },
   ]
 })
@@ -73,7 +77,14 @@ const hasMatchingTab = computed(() =>
       tabs-list-class="px-4 md:px-6"
     >
       <template #triggers>
-        <TabButton v-for="{ name, to } in routes" :key="name" :as="RouterLink" :value="to.name" :to>
+        <TabButton
+          v-for="{ name, to, disabled } in routes"
+          :key="name"
+          :as="RouterLink"
+          :value="to.name"
+          :to
+          :disabled
+        >
           {{ name }}
         </TabButton>
       </template>

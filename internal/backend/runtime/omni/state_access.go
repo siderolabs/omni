@@ -456,6 +456,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		siderolink.PendingMachineType,
 		siderolink.LinkStatusType,
 		siderolink.JoinTokenStatusType,
+		siderolink.JoinTokenType,
+		siderolink.DefaultJoinTokenType,
 		siderolink.NodeUniqueTokenStatusType,
 		siderolink.GRPCTunnelConfigType,
 		omni.MachineClassType,
@@ -485,6 +487,10 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		virtual.MetalPlatformConfigType,
 		virtual.KubernetesUsageType:
 		_, err = auth.CheckGRPC(ctx, auth.WithRole(verbToRole(access.Verb)))
+
+		if err == nil && access.Verb == state.Create && access.ResourceType == siderolink.JoinTokenType {
+			err = status.Error(codes.PermissionDenied, "only read, update and destroy access is permitted, create should be done via the management.CreateJoinToken API call")
+		}
 	case
 		meta.NamespaceType,
 		meta.ResourceDefinitionType,
@@ -514,16 +520,10 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		authres.ServiceAccountStatusType,
 		authres.SAMLLabelRuleType,
 		authres.AccessPolicyType,
-		siderolink.JoinTokenType,
-		siderolink.DefaultJoinTokenType,
 		omni.EtcdBackupS3ConfType,
 		infra.ProviderType,
 		omni.InfraMachineBMCConfigType:
 		_, err = auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
-
-		if err == nil && access.Verb == state.Create && access.ResourceType == siderolink.JoinTokenType {
-			err = status.Error(codes.PermissionDenied, "only read, update and destroy access is permitted, create should be done via the management.CreateJoinToken API call")
-		}
 
 		// Restrict direct mutations on Identity and User resources — these must go through ManagementService gRPC endpoints.
 		if err == nil && !access.Verb.Readonly() && (access.ResourceType == authres.IdentityType || access.ResourceType == authres.UserType) {

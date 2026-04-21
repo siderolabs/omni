@@ -255,17 +255,21 @@ func (v *State) permissions(ctx context.Context) (*virtual.Permissions, error) {
 	permissions.TypedSpec().Value.CanReadMachineLogs = isReader
 	permissions.TypedSpec().Value.CanReadClusters = isReader
 	permissions.TypedSpec().Value.CanReadMachines = isReader
+	permissions.TypedSpec().Value.CanReadJoinTokens = isReader
+	permissions.TypedSpec().Value.CanReadInstallationMedia = isReader
 
 	isOperator := userRole.Check(role.Operator) == nil
 	permissions.TypedSpec().Value.CanRemoveMachines = isOperator
 	permissions.TypedSpec().Value.CanCreateClusters = isOperator
 	permissions.TypedSpec().Value.CanManageMachineConfigPatches = isOperator
 	permissions.TypedSpec().Value.CanAccessMaintenanceNodes = isOperator
+	permissions.TypedSpec().Value.CanManageInstallationMedia = isOperator
 
 	isAdmin := userRole.Check(role.Admin) == nil
 	permissions.TypedSpec().Value.CanManageUsers = isAdmin
 	permissions.TypedSpec().Value.CanManageBackupStore = isAdmin
 	permissions.TypedSpec().Value.CanReadAuditLog = isAdmin
+	permissions.TypedSpec().Value.CanManageJoinTokens = isAdmin
 
 	if !permissions.TypedSpec().Value.CanCreateClusters {
 		_, err := safe.StateGet[*authres.AccessPolicy](ctx, v.PrimaryState, authres.NewAccessPolicy().Metadata())
@@ -299,6 +303,9 @@ func (v *State) clusterPermissions(ctx context.Context, ptr resource.Pointer) (*
 		clusterPermissions.TypedSpec().Value.CanDownloadKubeconfig = true
 		clusterPermissions.TypedSpec().Value.CanDownloadTalosconfig = true
 		clusterPermissions.TypedSpec().Value.CanReadConfigPatches = true
+		clusterPermissions.TypedSpec().Value.CanReadMachineConfig = true
+		clusterPermissions.TypedSpec().Value.CanReadKernelArgs = true
+		clusterPermissions.TypedSpec().Value.CanReadMachinePendingUpdates = true
 	}
 
 	if userRole.Check(role.Operator) == nil {
@@ -311,6 +318,8 @@ func (v *State) clusterPermissions(ctx context.Context, ptr resource.Pointer) (*
 		clusterPermissions.TypedSpec().Value.CanSyncKubernetesManifests = true
 		clusterPermissions.TypedSpec().Value.CanManageClusterFeatures = true
 		clusterPermissions.TypedSpec().Value.CanDownloadSupportBundle = true
+		clusterPermissions.TypedSpec().Value.CanManageMachineConfig = true
+		clusterPermissions.TypedSpec().Value.CanManageKernelArgs = true
 	}
 
 	version, err := resource.ParseVersion("1")

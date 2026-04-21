@@ -196,6 +196,10 @@ type PermissionsSpec struct {
 	CanManageBackupStore          bool                   `protobuf:"varint,11,opt,name=can_manage_backup_store,json=canManageBackupStore,proto3" json:"can_manage_backup_store,omitempty"`
 	CanAccessMaintenanceNodes     bool                   `protobuf:"varint,12,opt,name=can_access_maintenance_nodes,json=canAccessMaintenanceNodes,proto3" json:"can_access_maintenance_nodes,omitempty"`
 	CanReadAuditLog               bool                   `protobuf:"varint,13,opt,name=can_read_audit_log,json=canReadAuditLog,proto3" json:"can_read_audit_log,omitempty"`
+	CanReadJoinTokens             bool                   `protobuf:"varint,14,opt,name=can_read_join_tokens,json=canReadJoinTokens,proto3" json:"can_read_join_tokens,omitempty"`
+	CanManageJoinTokens           bool                   `protobuf:"varint,15,opt,name=can_manage_join_tokens,json=canManageJoinTokens,proto3" json:"can_manage_join_tokens,omitempty"`
+	CanReadInstallationMedia      bool                   `protobuf:"varint,16,opt,name=can_read_installation_media,json=canReadInstallationMedia,proto3" json:"can_read_installation_media,omitempty"`
+	CanManageInstallationMedia    bool                   `protobuf:"varint,17,opt,name=can_manage_installation_media,json=canManageInstallationMedia,proto3" json:"can_manage_installation_media,omitempty"`
 	unknownFields                 protoimpl.UnknownFields
 	sizeCache                     protoimpl.SizeCache
 }
@@ -307,22 +311,55 @@ func (x *PermissionsSpec) GetCanReadAuditLog() bool {
 	return false
 }
 
+func (x *PermissionsSpec) GetCanReadJoinTokens() bool {
+	if x != nil {
+		return x.CanReadJoinTokens
+	}
+	return false
+}
+
+func (x *PermissionsSpec) GetCanManageJoinTokens() bool {
+	if x != nil {
+		return x.CanManageJoinTokens
+	}
+	return false
+}
+
+func (x *PermissionsSpec) GetCanReadInstallationMedia() bool {
+	if x != nil {
+		return x.CanReadInstallationMedia
+	}
+	return false
+}
+
+func (x *PermissionsSpec) GetCanManageInstallationMedia() bool {
+	if x != nil {
+		return x.CanManageInstallationMedia
+	}
+	return false
+}
+
 type ClusterPermissionsSpec struct {
-	state                      protoimpl.MessageState `protogen:"open.v1"`
-	CanAddMachines             bool                   `protobuf:"varint,1,opt,name=can_add_machines,json=canAddMachines,proto3" json:"can_add_machines,omitempty"`
-	CanRemoveMachines          bool                   `protobuf:"varint,2,opt,name=can_remove_machines,json=canRemoveMachines,proto3" json:"can_remove_machines,omitempty"`
-	CanRebootMachines          bool                   `protobuf:"varint,3,opt,name=can_reboot_machines,json=canRebootMachines,proto3" json:"can_reboot_machines,omitempty"`
-	CanUpdateKubernetes        bool                   `protobuf:"varint,4,opt,name=can_update_kubernetes,json=canUpdateKubernetes,proto3" json:"can_update_kubernetes,omitempty"`
-	CanDownloadKubeconfig      bool                   `protobuf:"varint,5,opt,name=can_download_kubeconfig,json=canDownloadKubeconfig,proto3" json:"can_download_kubeconfig,omitempty"`
-	CanSyncKubernetesManifests bool                   `protobuf:"varint,6,opt,name=can_sync_kubernetes_manifests,json=canSyncKubernetesManifests,proto3" json:"can_sync_kubernetes_manifests,omitempty"`
-	CanUpdateTalos             bool                   `protobuf:"varint,7,opt,name=can_update_talos,json=canUpdateTalos,proto3" json:"can_update_talos,omitempty"`
-	CanDownloadTalosconfig     bool                   `protobuf:"varint,8,opt,name=can_download_talosconfig,json=canDownloadTalosconfig,proto3" json:"can_download_talosconfig,omitempty"`
-	CanReadConfigPatches       bool                   `protobuf:"varint,9,opt,name=can_read_config_patches,json=canReadConfigPatches,proto3" json:"can_read_config_patches,omitempty"`
-	CanManageConfigPatches     bool                   `protobuf:"varint,10,opt,name=can_manage_config_patches,json=canManageConfigPatches,proto3" json:"can_manage_config_patches,omitempty"`
-	CanManageClusterFeatures   bool                   `protobuf:"varint,11,opt,name=can_manage_cluster_features,json=canManageClusterFeatures,proto3" json:"can_manage_cluster_features,omitempty"`
-	CanDownloadSupportBundle   bool                   `protobuf:"varint,12,opt,name=can_download_support_bundle,json=canDownloadSupportBundle,proto3" json:"can_download_support_bundle,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	state                        protoimpl.MessageState `protogen:"open.v1"`
+	CanAddMachines               bool                   `protobuf:"varint,1,opt,name=can_add_machines,json=canAddMachines,proto3" json:"can_add_machines,omitempty"`
+	CanRemoveMachines            bool                   `protobuf:"varint,2,opt,name=can_remove_machines,json=canRemoveMachines,proto3" json:"can_remove_machines,omitempty"`
+	CanRebootMachines            bool                   `protobuf:"varint,3,opt,name=can_reboot_machines,json=canRebootMachines,proto3" json:"can_reboot_machines,omitempty"`
+	CanUpdateKubernetes          bool                   `protobuf:"varint,4,opt,name=can_update_kubernetes,json=canUpdateKubernetes,proto3" json:"can_update_kubernetes,omitempty"`
+	CanDownloadKubeconfig        bool                   `protobuf:"varint,5,opt,name=can_download_kubeconfig,json=canDownloadKubeconfig,proto3" json:"can_download_kubeconfig,omitempty"`
+	CanSyncKubernetesManifests   bool                   `protobuf:"varint,6,opt,name=can_sync_kubernetes_manifests,json=canSyncKubernetesManifests,proto3" json:"can_sync_kubernetes_manifests,omitempty"`
+	CanUpdateTalos               bool                   `protobuf:"varint,7,opt,name=can_update_talos,json=canUpdateTalos,proto3" json:"can_update_talos,omitempty"`
+	CanDownloadTalosconfig       bool                   `protobuf:"varint,8,opt,name=can_download_talosconfig,json=canDownloadTalosconfig,proto3" json:"can_download_talosconfig,omitempty"`
+	CanReadConfigPatches         bool                   `protobuf:"varint,9,opt,name=can_read_config_patches,json=canReadConfigPatches,proto3" json:"can_read_config_patches,omitempty"`
+	CanManageConfigPatches       bool                   `protobuf:"varint,10,opt,name=can_manage_config_patches,json=canManageConfigPatches,proto3" json:"can_manage_config_patches,omitempty"`
+	CanManageClusterFeatures     bool                   `protobuf:"varint,11,opt,name=can_manage_cluster_features,json=canManageClusterFeatures,proto3" json:"can_manage_cluster_features,omitempty"`
+	CanDownloadSupportBundle     bool                   `protobuf:"varint,12,opt,name=can_download_support_bundle,json=canDownloadSupportBundle,proto3" json:"can_download_support_bundle,omitempty"`
+	CanReadMachineConfig         bool                   `protobuf:"varint,13,opt,name=can_read_machine_config,json=canReadMachineConfig,proto3" json:"can_read_machine_config,omitempty"`
+	CanManageMachineConfig       bool                   `protobuf:"varint,14,opt,name=can_manage_machine_config,json=canManageMachineConfig,proto3" json:"can_manage_machine_config,omitempty"`
+	CanReadKernelArgs            bool                   `protobuf:"varint,15,opt,name=can_read_kernel_args,json=canReadKernelArgs,proto3" json:"can_read_kernel_args,omitempty"`
+	CanManageKernelArgs          bool                   `protobuf:"varint,16,opt,name=can_manage_kernel_args,json=canManageKernelArgs,proto3" json:"can_manage_kernel_args,omitempty"`
+	CanReadMachinePendingUpdates bool                   `protobuf:"varint,17,opt,name=can_read_machine_pending_updates,json=canReadMachinePendingUpdates,proto3" json:"can_read_machine_pending_updates,omitempty"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *ClusterPermissionsSpec) Reset() {
@@ -435,6 +472,41 @@ func (x *ClusterPermissionsSpec) GetCanManageClusterFeatures() bool {
 func (x *ClusterPermissionsSpec) GetCanDownloadSupportBundle() bool {
 	if x != nil {
 		return x.CanDownloadSupportBundle
+	}
+	return false
+}
+
+func (x *ClusterPermissionsSpec) GetCanReadMachineConfig() bool {
+	if x != nil {
+		return x.CanReadMachineConfig
+	}
+	return false
+}
+
+func (x *ClusterPermissionsSpec) GetCanManageMachineConfig() bool {
+	if x != nil {
+		return x.CanManageMachineConfig
+	}
+	return false
+}
+
+func (x *ClusterPermissionsSpec) GetCanReadKernelArgs() bool {
+	if x != nil {
+		return x.CanReadKernelArgs
+	}
+	return false
+}
+
+func (x *ClusterPermissionsSpec) GetCanManageKernelArgs() bool {
+	if x != nil {
+		return x.CanManageKernelArgs
+	}
+	return false
+}
+
+func (x *ClusterPermissionsSpec) GetCanReadMachinePendingUpdates() bool {
+	if x != nil {
+		return x.CanReadMachinePendingUpdates
 	}
 	return false
 }
@@ -755,7 +827,7 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x0fCurrentUserSpec\x12\x1a\n" +
 	"\bidentity\x18\x01 \x01(\tR\bidentity\x12\x12\n" +
 	"\x04role\x18\x03 \x01(\tR\x04role\x12\x17\n" +
-	"\auser_id\x18\x04 \x01(\tR\x06userIdJ\x04\b\x02\x10\x03\"\xdb\x04\n" +
+	"\auser_id\x18\x04 \x01(\tR\x06userIdJ\x04\b\x02\x10\x03\"\xc3\x06\n" +
 	"\x0fPermissionsSpec\x12*\n" +
 	"\x11can_read_clusters\x18\x01 \x01(\bR\x0fcanReadClusters\x12.\n" +
 	"\x13can_create_clusters\x18\x02 \x01(\bR\x11canCreateClusters\x12(\n" +
@@ -768,7 +840,11 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	" \x01(\bR\x1dcanManageMachineConfigPatches\x125\n" +
 	"\x17can_manage_backup_store\x18\v \x01(\bR\x14canManageBackupStore\x12?\n" +
 	"\x1ccan_access_maintenance_nodes\x18\f \x01(\bR\x19canAccessMaintenanceNodes\x12+\n" +
-	"\x12can_read_audit_log\x18\r \x01(\bR\x0fcanReadAuditLog\"\xa5\x05\n" +
+	"\x12can_read_audit_log\x18\r \x01(\bR\x0fcanReadAuditLog\x12/\n" +
+	"\x14can_read_join_tokens\x18\x0e \x01(\bR\x11canReadJoinTokens\x123\n" +
+	"\x16can_manage_join_tokens\x18\x0f \x01(\bR\x13canManageJoinTokens\x12=\n" +
+	"\x1bcan_read_installation_media\x18\x10 \x01(\bR\x18canReadInstallationMedia\x12A\n" +
+	"\x1dcan_manage_installation_media\x18\x11 \x01(\bR\x1acanManageInstallationMedia\"\xc5\a\n" +
 	"\x16ClusterPermissionsSpec\x12(\n" +
 	"\x10can_add_machines\x18\x01 \x01(\bR\x0ecanAddMachines\x12.\n" +
 	"\x13can_remove_machines\x18\x02 \x01(\bR\x11canRemoveMachines\x12.\n" +
@@ -782,7 +858,12 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x19can_manage_config_patches\x18\n" +
 	" \x01(\bR\x16canManageConfigPatches\x12=\n" +
 	"\x1bcan_manage_cluster_features\x18\v \x01(\bR\x18canManageClusterFeatures\x12=\n" +
-	"\x1bcan_download_support_bundle\x18\f \x01(\bR\x18canDownloadSupportBundle\"\xd2\x01\n" +
+	"\x1bcan_download_support_bundle\x18\f \x01(\bR\x18canDownloadSupportBundle\x125\n" +
+	"\x17can_read_machine_config\x18\r \x01(\bR\x14canReadMachineConfig\x129\n" +
+	"\x19can_manage_machine_config\x18\x0e \x01(\bR\x16canManageMachineConfig\x12/\n" +
+	"\x14can_read_kernel_args\x18\x0f \x01(\bR\x11canReadKernelArgs\x123\n" +
+	"\x16can_manage_kernel_args\x18\x10 \x01(\bR\x13canManageKernelArgs\x12F\n" +
+	" can_read_machine_pending_updates\x18\x11 \x01(\bR\x1ccanReadMachinePendingUpdates\"\xd2\x01\n" +
 	"\x14LabelsCompletionSpec\x12<\n" +
 	"\x05items\x18\x01 \x03(\v2&.specs.LabelsCompletionSpec.ItemsEntryR\x05items\x1a\x1e\n" +
 	"\x06Values\x12\x14\n" +

@@ -79,6 +79,10 @@ const permissions = authScope.run(() => {
     canReadMachineLogs: computed(() => spec.value?.can_read_machine_logs ?? false),
     canReadMachines: computed(() => spec.value?.can_read_machines ?? false),
     canRemoveMachines: computed(() => spec.value?.can_remove_machines ?? false),
+    canReadJoinTokens: computed(() => spec.value?.can_read_join_tokens ?? false),
+    canManageJoinTokens: computed(() => spec.value?.can_manage_join_tokens ?? false),
+    canReadInstallationMedia: computed(() => spec.value?.can_read_installation_media ?? false),
+    canManageInstallationMedia: computed(() => spec.value?.can_manage_installation_media ?? false),
   }
 })!
 
@@ -129,6 +133,13 @@ export function useClusterPermissions(cluster: MaybeRefOrGetter<string | undefin
     canRebootMachines: computed(() => spec.value?.can_reboot_machines ?? false),
     canRemoveMachines: computed(() => spec.value?.can_remove_machines ?? false),
     canManageClusterFeatures: computed(() => spec.value?.can_manage_cluster_features ?? false),
+    canReadMachineConfig: computed(() => spec.value?.can_read_machine_config ?? false),
+    canManageMachineConfig: computed(() => spec.value?.can_manage_machine_config ?? false),
+    canReadKernelArgs: computed(() => spec.value?.can_read_kernel_args ?? false),
+    canManageKernelArgs: computed(() => spec.value?.can_manage_kernel_args ?? false),
+    canReadMachinePendingUpdates: computed(
+      () => spec.value?.can_read_machine_pending_updates ?? false,
+    ),
   }
 }
 

@@ -635,6 +635,10 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 }
 
 func (s *managementServer) GetMachineJoinConfig(ctx context.Context, request *management.GetMachineJoinConfigRequest) (*management.GetMachineJoinConfigResponse, error) {
+	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Reader)); err != nil {
+		return nil, err
+	}
+
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
 	apiConfig, err := safe.StateGetByID[*siderolinkres.APIConfig](ctx, s.omniState, siderolinkres.ConfigID)
