@@ -22,7 +22,7 @@ beforeEach(() => {
   vi.mocked(useRoute, { partial: true }).mockReturnValue({})
   vi.mocked(useRouter, { partial: true }).mockReturnValue({
     isReady: vi.fn(),
-    replace: vi.fn(),
+    resolve: vi.fn().mockReturnValue({ href: '' }),
   })
 
   vi.mocked(useRouter().isReady).mockImplementation(async () => {
@@ -133,7 +133,7 @@ describe('useWatchKeyExpiry', () => {
 
     await flushPromises()
 
-    expect(useRouter().replace).not.toHaveBeenCalled()
+    expect(useRouter().resolve).not.toHaveBeenCalled()
   })
 
   test('clears keys if invalidated', async () => {
@@ -145,13 +145,13 @@ describe('useWatchKeyExpiry', () => {
     await flushPromises()
 
     expect(useKeys().keyPair.value).toBeTruthy()
-    expect(useRouter().replace).not.toHaveBeenCalled()
+    expect(useRouter().resolve).not.toHaveBeenCalled()
 
     useKeys().invalidate()
     await flushPromises()
 
     expect(useKeys().keyPair.value).toBeFalsy()
-    expect(useRouter().replace).toHaveBeenCalledExactlyOnceWith({
+    expect(useRouter().resolve).toHaveBeenCalledExactlyOnceWith({
       name: 'Authenticate',
       query: { flow: 'frontend', redirect: 'fullPath' },
     })
@@ -166,7 +166,7 @@ describe('useWatchKeyExpiry', () => {
     await flushPromises()
 
     expect(useKeys().keyPair.value).toBeFalsy()
-    expect(useRouter().replace).toHaveBeenCalledExactlyOnceWith({
+    expect(useRouter().resolve).toHaveBeenCalledExactlyOnceWith({
       name: 'Authenticate',
       query: { flow: 'frontend', redirect: 'fullPath' },
     })
@@ -181,12 +181,12 @@ describe('useWatchKeyExpiry', () => {
     await flushPromises()
 
     expect(useKeys().keyPair.value).toBeDefined()
-    expect(useRouter().replace).not.toHaveBeenCalled()
+    expect(useRouter().resolve).not.toHaveBeenCalled()
 
     await vi.advanceTimersByTimeAsync(milliseconds({ minutes: 2 }))
 
     expect(useKeys().keyPair.value).toBeFalsy()
-    expect(useRouter().replace).toHaveBeenCalledExactlyOnceWith({
+    expect(useRouter().resolve).toHaveBeenCalledExactlyOnceWith({
       name: 'Authenticate',
       query: { flow: 'frontend', redirect: 'fullPath' },
     })
@@ -206,12 +206,12 @@ describe('useWatchKeyExpiry', () => {
     await flushPromises()
 
     expect(useKeys().keyPair.value).toBeDefined()
-    expect(useRouter().replace).not.toHaveBeenCalled()
+    expect(useRouter().resolve).not.toHaveBeenCalled()
 
     await vi.advanceTimersByTimeAsync(milliseconds({ minutes: 2 }))
 
     expect(useKeys().keyPair.value).toBeFalsy()
-    expect(useRouter().replace).not.toHaveBeenCalled()
+    expect(useRouter().resolve).not.toHaveBeenCalled()
   })
 
   test('cleans up on unmount', async () => {
@@ -223,13 +223,13 @@ describe('useWatchKeyExpiry', () => {
     await flushPromises()
 
     expect(useKeys().keyPair.value).toBeDefined()
-    expect(useRouter().replace).not.toHaveBeenCalled()
+    expect(useRouter().resolve).not.toHaveBeenCalled()
 
     wrapper.unmount()
     await vi.advanceTimersByTimeAsync(milliseconds({ minutes: 2 }))
 
     expect(useKeys().keyPair.value).toBeDefined()
-    expect(useRouter().replace).not.toHaveBeenCalled()
+    expect(useRouter().resolve).not.toHaveBeenCalled()
   })
 })
 
