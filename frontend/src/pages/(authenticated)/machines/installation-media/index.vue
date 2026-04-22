@@ -17,6 +17,7 @@ import { DefaultNamespace, InstallationMediaConfigType } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
+import ConfirmModal from '@/components/Modals/ConfirmModal.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
@@ -29,7 +30,6 @@ import { showSuccess } from '@/notification'
 import DownloadPresetModal from '@/views/InstallationMedia/DownloadPresetModal.vue'
 import { presetToFormState } from '@/views/InstallationMedia/formStateToPreset'
 import { useFormState } from '@/views/InstallationMedia/useFormState'
-import ConfirmModal from '@/views/Modals/ConfirmModal.vue'
 
 definePage({ name: 'InstallationMedia' })
 

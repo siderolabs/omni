@@ -23,6 +23,7 @@ import TButton from '@/components/Button/TButton.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 
 const props = withDefaults(
+  // eslint-disable-next-line vue/define-props-destructuring
   defineProps<
     AlertDialogProps & {
       title?: string

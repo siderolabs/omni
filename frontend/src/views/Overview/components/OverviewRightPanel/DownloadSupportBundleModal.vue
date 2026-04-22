@@ -18,12 +18,12 @@ import { ClusterMachineIdentityType, DefaultNamespace, LabelCluster } from '@/ap
 import IconButton from '@/components/Button/IconButton.vue'
 import type { IconType } from '@/components/Icon/TIcon.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
+import Modal from '@/components/Modals/Modal.vue'
 import ProgressBar from '@/components/ProgressBar/ProgressBar.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
-import Modal from '@/views/Modals/Modal.vue'
 
 const { clusterId } = defineProps<{
   clusterId: string
