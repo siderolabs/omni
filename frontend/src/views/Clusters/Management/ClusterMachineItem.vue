@@ -13,7 +13,6 @@ import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineConfigGenOptionsSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
-import type { SiderolinkSpec } from '@/api/omni/specs/siderolink.pb'
 import {
   LabelControlPlaneRole,
   PatchBaseWeightClusterMachine,
@@ -45,7 +44,7 @@ const {
   searchQuery = undefined,
   versionMismatch,
 } = defineProps<{
-  item: Resource<MachineStatusSpec & SiderolinkSpec & MachineConfigGenOptionsSpec>
+  item: Resource<MachineStatusSpec & MachineConfigGenOptionsSpec>
   reset?: number
   searchQuery?: string
   versionMismatch: string | null
