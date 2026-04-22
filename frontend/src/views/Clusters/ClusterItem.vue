@@ -17,6 +17,7 @@ import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import IconButton from '@/components/Button/IconButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
+import ClusterDestroy from '@/components/Modals/ClusterDestroy.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { downloadKubeconfig, downloadTalosconfig } from '@/methods'
 import { useClusterPermissions } from '@/methods/auth'
@@ -25,7 +26,6 @@ import type { Label } from '@/methods/labels'
 import ClusterMachines from '@/views/ClusterMachines/ClusterMachines.vue'
 import ClusterStatus from '@/views/Clusters/ClusterStatus.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
-import ClusterDestroy from '@/views/Modals/ClusterDestroy.vue'
 
 const {
   item,

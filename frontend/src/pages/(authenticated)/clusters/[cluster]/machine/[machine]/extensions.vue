@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -34,6 +34,7 @@ import Watch from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TListItem from '@/components/List/TListItem.vue'
+import UpdateExtensionsModal from '@/components/Modals/UpdateExtensionsModal.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -45,8 +46,8 @@ definePage({ name: 'NodeExtensions' })
 
 const machineExtensionsStatus = ref<Resource<MachineExtensionsStatusSpec>>()
 const machineExtensionsStatusWatch = new Watch(machineExtensionsStatus)
+const updateExtensionsModalOpen = ref(false)
 const searchString = ref('')
-const router = useRouter()
 const route = useRoute()
 
 const machineExtensionsStatusWatchLoading = machineExtensionsStatusWatch.loading
@@ -173,15 +174,6 @@ const extensionsLevel = computed(() => {
 
   return null
 })
-
-const openExtensionsUpdate = () => {
-  router.push({
-    query: {
-      machine: route.params.machine as string,
-      modal: 'updateExtensions',
-    },
-  })
-}
 </script>
 
 <template>
@@ -255,10 +247,16 @@ const openExtensionsUpdate = () => {
       <TButton
         variant="highlighted"
         :disabled="!canUpdateTalos || invalidSchematic"
-        @click="openExtensionsUpdate"
+        @click="updateExtensionsModalOpen = true"
       >
         Update Extensions
       </TButton>
     </div>
+
+    <UpdateExtensionsModal
+      v-model:open="updateExtensionsModalOpen"
+      :cluster-id="$route.params.cluster"
+      :machine-id="$route.params.machine"
+    />
   </div>
 </template>

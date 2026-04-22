@@ -24,6 +24,7 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 
 const props = withDefaults(
+  // eslint-disable-next-line vue/define-props-destructuring
   defineProps<
     DialogRootProps & {
       title: string
