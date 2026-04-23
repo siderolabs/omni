@@ -11,6 +11,8 @@ import { createApp } from 'vue'
 import { handleHotUpdate } from 'vue-router/auto-routes'
 
 import { Runtime } from '@/api/common/omni.pb'
+import type { RequestError } from '@/api/fetch.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { initState, ResourceService } from '@/api/grpc'
 import type { AuthConfigSpec, EulaAcceptanceSpec } from '@/api/omni/specs/auth.pb'
@@ -65,7 +67,13 @@ const setupApp = async () => {
       withRuntime(Runtime.Omni),
     )
     eulaAccepted.value = true
-  } catch {
+  } catch (e) {
+    if ((e as RequestError)?.code !== Code.NOT_FOUND) {
+      console.error('failed to get eula state', e)
+      createApp(AppUnavailable).mount('#app')
+      return
+    }
+
     eulaAccepted.value = false
   }
 

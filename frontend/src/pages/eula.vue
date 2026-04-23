@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -17,6 +17,7 @@ import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { eulaAccepted } from '@/methods'
+import { useResourceGet } from '@/methods/useResourceGet'
 import { showError } from '@/notification'
 
 import { withRuntime, withSkipRequestSignature } from '../api/options'
@@ -33,6 +34,20 @@ const accepted = ref(false)
 const accepting = ref(false)
 
 const invalidForm = computed(() => !accepted.value || !name.value.trim() || !email.value.trim())
+
+const { data, loading } = useResourceGet<EulaAcceptanceSpec>({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: EulaAcceptanceType,
+    id: EulaAcceptanceID,
+  },
+  skipSignature: true,
+})
+
+watchEffect(() => {
+  if (data.value) router.replace({ name: 'Home' })
+})
 
 const accept = async () => {
   if (accepting.value) return
@@ -68,7 +83,7 @@ const accept = async () => {
 </script>
 
 <template>
-  <PageContainer class="flex h-full items-center justify-center">
+  <PageContainer v-if="!loading && !data" class="flex h-full items-center justify-center">
     <form
       class="flex w-full max-w-2xl flex-col gap-6 rounded-md bg-naturals-n3 px-8 py-8 drop-shadow-md"
       @submit.prevent="accept"
