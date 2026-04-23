@@ -169,6 +169,28 @@ export type IdentityStatusSpec = {
   last_active?: string
 }
 
+export type RoleSpecRule = {
+  resources?: string[]
+  verbs?: string[]
+  clusters?: string[]
+  kubernetes_groups?: string[]
+}
+
+export type RoleSpec = {
+  rules?: RoleSpecRule[]
+}
+
+export type RoleBindingSpecSubject = {
+  name?: string
+  match?: string
+  label_selectors?: string[]
+}
+
+export type RoleBindingSpec = {
+  role_ref?: string
+  subjects?: RoleBindingSpecSubject[]
+}
+
 export type ServiceAccountStatusSpecPgpPublicKey = {
   id?: string
   armored?: string

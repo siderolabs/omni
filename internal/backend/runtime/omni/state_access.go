@@ -13,6 +13,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/infraprovider"
+	"github.com/siderolabs/omni/internal/pkg/rbac"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
@@ -117,7 +119,10 @@ var (
 // authorizationValidationOptions returns the validation options responsible for all authorization checks.
 //
 // These include the regular checks on the user's Omni-wide role, as well as the ACLs that can authorize the user to perform additional actions on specific clusters.
-func authorizationValidationOptions(st state.State) []validated.StateOption {
+func authorizationValidationOptions(st state.State, logger *zap.Logger) []validated.StateOption {
+	// Initialize RBAC engine hooks.
+	rbac.IsClusterScoped = isClusterRelatedType
+
 	return []validated.StateOption{
 		validated.WithListValidations(
 			func(ctx context.Context, kind resource.Kind, opt ...state.ListOption) error {
@@ -128,11 +133,11 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 				}
 
 				if len(opts.LabelQueries) == 0 {
-					return checkForKindAccess(ctx, st, state.List, kind, nil)
+					return checkForKindAccess(ctx, st, state.List, kind, nil, logger)
 				}
 
 				for _, query := range opts.LabelQueries {
-					if err := checkForKindAccess(ctx, st, state.List, kind, query.Terms); err != nil {
+					if err := checkForKindAccess(ctx, st, state.List, kind, query.Terms, logger); err != nil {
 						return err
 					}
 				}
@@ -149,11 +154,11 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 				}
 
 				if len(opts.LabelQueries) == 0 {
-					return checkForKindAccess(ctx, st, state.Watch, kind, nil)
+					return checkForKindAccess(ctx, st, state.Watch, kind, nil, logger)
 				}
 
 				for _, query := range opts.LabelQueries {
-					if err := checkForKindAccess(ctx, st, state.Watch, kind, query.Terms); err != nil {
+					if err := checkForKindAccess(ctx, st, state.Watch, kind, query.Terms, logger); err != nil {
 						return err
 					}
 				}
@@ -172,7 +177,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 						ResourceType:      ptr.Type(),
 						ResourceID:        ptr.ID(),
 						Verb:              state.Get,
-					}, clusterID, false)
+					}, clusterID, false, logger)
 				}
 
 				clusterID := clusterIDFromMetadata(res.Metadata())
@@ -182,7 +187,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      res.Metadata().Type(),
 					ResourceID:        res.Metadata().ID(),
 					Verb:              state.Get,
-				}, clusterID, false)
+				}, clusterID, false, logger)
 			},
 		),
 		validated.WithWatchValidations(
@@ -197,7 +202,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      ptr.Type(),
 					ResourceID:        ptr.ID(),
 					Verb:              state.Watch,
-				}, clusterID, false)
+				}, clusterID, false, logger)
 			},
 		),
 		validated.WithCreateValidations(
@@ -209,7 +214,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      res.Metadata().Type(),
 					ResourceID:        res.Metadata().ID(),
 					Verb:              state.Create,
-				}, clusterID, false)
+				}, clusterID, false, logger)
 			},
 		),
 		validated.WithUpdateValidations(
@@ -223,7 +228,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 						ResourceType:      newRes.Metadata().Type(),
 						ResourceID:        newRes.Metadata().ID(),
 						Verb:              state.Update,
-					}, newClusterID, false)
+					}, newClusterID, false, logger)
 				}
 
 				existingClusterID := clusterIDFromMetadata(existingRes.Metadata())
@@ -233,7 +238,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      existingRes.Metadata().Type(),
 					ResourceID:        existingRes.Metadata().ID(),
 					Verb:              state.Update,
-				}, existingClusterID, false); err != nil {
+				}, existingClusterID, false, logger); err != nil {
 					return err
 				}
 
@@ -249,7 +254,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      newRes.Metadata().Type(),
 					ResourceID:        newRes.Metadata().ID(),
 					Verb:              state.Update,
-				}, newClusterID, false)
+				}, newClusterID, false, logger)
 			},
 		),
 		validated.WithDestroyValidations(
@@ -263,7 +268,7 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 						ResourceType:      ptr.Type(),
 						ResourceID:        ptr.ID(),
 						Verb:              state.Destroy,
-					}, clusterID, false)
+					}, clusterID, false, logger)
 				}
 
 				clusterID := clusterIDFromMetadata(res.Metadata())
@@ -273,13 +278,32 @@ func authorizationValidationOptions(st state.State) []validated.StateOption {
 					ResourceType:      res.Metadata().Type(),
 					ResourceID:        res.Metadata().ID(),
 					Verb:              state.Destroy,
-				}, clusterID, false)
+				}, clusterID, false, logger)
 			},
 		),
 	}
 }
 
-func checkForRole(ctx context.Context, st state.State, access state.Access, clusterID resource.ID, requireAll bool) error {
+func checkForRole(ctx context.Context, st state.State, access state.Access, clusterID resource.ID, requireAll bool, logger *zap.Logger) error {
+	// Infra provider resources have their own authz path (infraprovider.State).
+	if infraprovider.IsInfraProviderResource(access.ResourceNamespace, access.ResourceType) {
+		return nil
+	}
+
+	// When requireAll is true (List/WatchKind without cluster filter), pass empty clusterID.
+	// RBAC handles this: only global rules (no clusters field) match when clusterID is empty.
+	effectiveClusterID := clusterID
+	if requireAll {
+		effectiveClusterID = ""
+	}
+
+	return rbac.Check(ctx, st, access.ResourceType, access.Verb, effectiveClusterID, logger)
+}
+
+// checkForRoleLegacy is the original implementation, kept for reference during RBAC v2 development.
+//
+//nolint:unused
+func checkForRoleLegacy(ctx context.Context, st state.State, access state.Access, clusterID resource.ID, requireAll bool) error {
 	if actor.ContextIsInternalActor(ctx) {
 		return nil
 	}
@@ -295,7 +319,6 @@ func checkForRole(ctx context.Context, st state.State, access state.Access, clus
 		}
 
 		if clusterRole != role.None && (!requireAll || matchesAll) {
-			// override the role in the context with the computed role for this cluster
 			ctx = ctxstore.WithValue(ctx, auth.RoleContextKey{Role: clusterRole})
 		}
 	}
@@ -303,7 +326,7 @@ func checkForRole(ctx context.Context, st state.State, access state.Access, clus
 	return filterAccess(ctx, access)
 }
 
-func checkForKindAccess(ctx context.Context, st state.State, verb state.Verb, kind resource.Kind, labelTerms []resource.LabelTerm) error {
+func checkForKindAccess(ctx context.Context, st state.State, verb state.Verb, kind resource.Kind, labelTerms []resource.LabelTerm, logger *zap.Logger) error {
 	clusterID := ""
 	requireAll := false
 
@@ -317,7 +340,7 @@ func checkForKindAccess(ctx context.Context, st state.State, verb state.Verb, ki
 		ResourceNamespace: kind.Namespace(),
 		ResourceType:      kind.Type(),
 		Verb:              verb,
-	}, clusterID, requireAll)
+	}, clusterID, requireAll, logger)
 }
 
 func isClusterRelatedType(typ resource.Type) bool {

@@ -77,6 +77,9 @@ func buildRootCommand() (*cobra.Command, error) {
 				loggerConfig.Level.SetLevel(zap.DebugLevel)
 			}
 
+			// TODO(Utku): for debugging, revert
+			loggerConfig.Level.SetLevel(zap.ErrorLevel)
+
 			logger, err := loggerConfig.Build(
 				zap.AddStacktrace(zapcore.FatalLevel), // only print stack traces for fatal errors
 			)
