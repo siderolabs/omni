@@ -113,11 +113,6 @@
       "count": 1
     }
   },
-  "src/components/Watch/Watch.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
-  },
   "src/methods/useResourceWatch.spec.ts": {
     "vue/no-ref-object-reactivity-loss": {
       "count": 1
@@ -131,14 +126,6 @@
   "src/views/ClusterMachines/MachineRequest.vue": {
     "vue/define-props-destructuring": {
       "count": 1
-    }
-  },
-  "src/views/Clusters/ClusterEtcdBackupCheckbox.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    },
-    "vue/no-ref-object-reactivity-loss": {
-      "count": 2
     }
   },
   "src/views/Clusters/Management/MachineSetConfig.vue": {
@@ -171,14 +158,6 @@
   },
   "src/views/MachineClasses/ProviderConfig.vue": {
     "vue/define-props-destructuring": {
-      "count": 1
-    }
-  },
-  "src/views/Machines/MachineLogsContainer.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    },
-    "vue/no-setup-props-reactivity-loss": {
       "count": 1
     }
   },
@@ -217,11 +196,6 @@
     }
   },
   "src/views/Modals/UntaintSingleNode.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
-  },
-  "src/views/Overview/components/OverviewRightPanel/OverviewRightPanelCondition.vue": {
     "vue/define-props-destructuring": {
       "count": 1
     }

@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, toRefs } from 'vue'
+import { computed } from 'vue'
 
 import type { ControlPlaneStatusSpecCondition } from '@/api/omni/specs/omni.pb'
 import {
@@ -37,12 +37,10 @@ type Props = {
   condition: ControlPlaneStatusSpecCondition
 }
 
-const props = defineProps<Props>()
-
-const { condition } = toRefs(props)
+const { condition } = defineProps<Props>()
 
 const textClass = computed(() => {
-  switch (condition.value.severity) {
+  switch (condition.severity) {
     case ControlPlaneStatusSpecConditionSeverity.Warning:
       return 'text-yellow-y1'
     case ControlPlaneStatusSpecConditionSeverity.Error:
@@ -53,11 +51,11 @@ const textClass = computed(() => {
 })
 
 const text = computed(() => {
-  if (condition.value.status === ControlPlaneStatusSpecConditionStatus.Ready) {
+  if (condition.status === ControlPlaneStatusSpecConditionStatus.Ready) {
     return 'OK'
   }
 
-  switch (condition.value.severity) {
+  switch (condition.severity) {
     case ControlPlaneStatusSpecConditionSeverity.Warning:
       return 'Warning'
     case ControlPlaneStatusSpecConditionSeverity.Error:

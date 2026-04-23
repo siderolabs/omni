@@ -81,6 +81,7 @@ export interface TalosVolumeStatusSpec {
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
@@ -102,7 +103,8 @@ import DiskUsageBar from '@/views/Nodes/components/DiskUsageBar.vue'
 
 definePage({ name: 'NodeDisks' })
 
-const context = getContext()
+const route = useRoute()
+const context = computed(() => getContext(route))
 
 const {
   data: disks,
@@ -115,7 +117,7 @@ const {
     type: TalosDiskType,
   },
   runtime: Runtime.Talos,
-  context,
+  context: context.value,
 }))
 
 const {
@@ -129,7 +131,7 @@ const {
     type: TalosDiscoveredVolumeType,
   },
   runtime: Runtime.Talos,
-  context,
+  context: context.value,
 }))
 
 const {
@@ -143,7 +145,7 @@ const {
     type: TalosVolumeStatusType,
   },
   runtime: Runtime.Talos,
-  context,
+  context: context.value,
 }))
 
 const loading = computed(

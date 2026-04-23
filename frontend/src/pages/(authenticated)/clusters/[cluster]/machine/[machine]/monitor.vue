@@ -6,7 +6,8 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { ArrowDownIcon } from '@heroicons/vue/24/solid'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { withContext, withRuntime } from '@/api/options'
@@ -53,8 +54,10 @@ function diff<T extends Diffable>(a: T, b: T): T {
   return result as T
 }
 
+const route = useRoute()
+
 const processes = ref<Proc[]>([])
-const context = getContext()
+const context = computed(() => getContext(route))
 const headers = [
   { id: 'pid' },
   { id: 'state' },
@@ -70,8 +73,7 @@ const headers = [
 const sort = ref<keyof Proc>('cpu')
 const sortReverse = ref(true)
 
-let memTotal = 0
-let interval: number
+const memTotal = ref(0)
 
 const sum = (obj: Record<string, number>, ...args: string[]) => {
   let res = 0
@@ -94,16 +96,16 @@ let prevCPU = 0
 
 type Proc = NonNullable<Awaited<ReturnType<typeof getProcs>>>[number]
 const getProcs = async () => {
-  if (memTotal === 0) return
+  if (memTotal.value === 0) return
 
-  const options = [withRuntime(Runtime.Talos), withContext(context)]
+  const options = [withRuntime(Runtime.Talos), withContext(context.value)]
 
   const { messages: procMessages = [] } = await MachineService.Processes({}, ...options)
   const { messages: [systemStat] = [] } = await MachineService.SystemStat({}, ...options)
 
   const cpuTotal = getCPUTotal(systemStat.cpu_total ?? {}) / systemStat.cpu!.length
 
-  const total = memTotal * 1024
+  const total = memTotal.value * 1024
 
   const procs = procMessages.flatMap(({ processes = [] }) =>
     processes.map((proc) => {
@@ -140,13 +142,14 @@ async function loadProcs() {
   if (procs) processes.value = procs
 }
 
-onMounted(() => {
+watchEffect((onCleanup) => {
   loadProcs()
-  interval = window.setInterval(loadProcs, 5000)
-})
 
-onUnmounted(() => {
-  clearInterval(interval)
+  const interval = window.setInterval(loadProcs, 5000)
+
+  onCleanup(() => {
+    clearInterval(interval)
+  })
 })
 
 const handleCPU = (oldObj: Diffable, newObj: Diffable) => {
@@ -170,18 +173,10 @@ const handleMem = (
   _: unknown,
   m: { used: number; cached: number; buffers: number; total: number },
 ) => {
-  const used = m.used - m.cached - m.buffers
-
-  const memoryInitialized = memTotal === 0
-
-  memTotal = m.total
-
-  if (memoryInitialized) {
-    loadProcs()
-  }
+  memTotal.value = m.total
 
   return {
-    used: used,
+    used: m.used - m.cached - m.buffers,
     cached: m.cached,
     buffers: m.buffers,
   }

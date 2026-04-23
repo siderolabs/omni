@@ -6,14 +6,11 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
-import { onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
 import type { ClusterUUID } from '@/api/omni/specs/omni.pb'
-import { withRuntime } from '@/api/options'
 import { ClusterUUIDType, DefaultNamespace } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
@@ -21,6 +18,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { setupBackupStatus } from '@/methods'
 import { triggerEtcdBackup } from '@/methods/cluster'
+import { useResourceGet } from '@/methods/useResourceGet'
 import { showError } from '@/notification'
 import BackupsList from '@/views/Backups/BackupsList.vue'
 
@@ -30,21 +28,18 @@ const { copy } = useClipboard()
 
 const startingEtcdBackup = ref(false)
 const route = useRoute()
-const clusterUUID = ref('loading...')
 const { status: backupStatus } = setupBackupStatus()
 
-onMounted(async () => {
-  const resp: Resource<ClusterUUID> = await ResourceService.Get(
-    {
-      id: route.params.cluster as string,
-      namespace: DefaultNamespace,
-      type: ClusterUUIDType,
-    },
-    withRuntime(Runtime.Omni),
-  )
+const { data } = useResourceGet<ClusterUUID>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    id: route.params.cluster,
+    namespace: DefaultNamespace,
+    type: ClusterUUIDType,
+  },
+}))
 
-  clusterUUID.value = resp.spec.uuid!
-})
+const clusterUUID = computed(() => data.value?.spec.uuid || 'loading...')
 
 const runEtcdBackup = async () => {
   startingEtcdBackup.value = true

@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { ref } from 'vue'
+import { ref, watchEffect } from 'vue'
 
 import { ManagementService } from '@/api/omni/management/management.pb'
 import LogViewer from '@/components/LogViewer/LogViewer.vue'
@@ -23,25 +23,31 @@ interface Props {
   machineId: string
 }
 
-const props = defineProps<Props>()
+const { machineId } = defineProps<Props>()
 
-setupLogStream(
-  logs,
-  ManagementService.MachineLogs,
-  {
-    machine_id: props.machineId,
-    tail_lines: -1,
-    follow: true,
-  },
-  new DefaultLogParser((line: string): LogLine => {
-    const data = JSON.parse(line)
+watchEffect((onCleanup) => {
+  const stream = setupLogStream(
+    logs,
+    ManagementService.MachineLogs,
+    () => ({
+      machine_id: machineId,
+      tail_lines: -1,
+      follow: true,
+    }),
+    new DefaultLogParser((line: string): LogLine => {
+      const data = JSON.parse(line)
 
-    return {
-      date: formatISO(data['talos-time'], 'dd/MM/yyyy HH:mm:ss'),
-      msg: data.msg,
-    }
-  }),
-)
+      return {
+        date: formatISO(data['talos-time'], 'dd/MM/yyyy HH:mm:ss'),
+        msg: data.msg,
+      }
+    }),
+  )
+
+  onCleanup(() => {
+    stream?.shutdown()
+  })
+})
 </script>
 
 <template>

@@ -12,12 +12,11 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { MachineSetNodeSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineSetNodeType } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
-import TBreadcrumbs from '@/components/TBreadcrumbs.vue'
 import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import NodesBreadcrumbs from '@/views/Nodes/NodesBreadcrumbs.vue'
 
-const { nodeName, clusterId, machineId } = defineProps<{
-  nodeName: string
+const { clusterId, machineId } = defineProps<{
   clusterId: string
   machineId: string
 }>()
@@ -81,7 +80,8 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
 
 <template>
   <div class="mb-7 flex flex-wrap items-start justify-between">
-    <TBreadcrumbs :node-name="nodeName" />
+    <NodesBreadcrumbs :cluster-id :machine-id />
+
     <div class="flex">
       <TButton
         class="header-button"

@@ -7,9 +7,10 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { DateTime } from 'luxon'
 import type { Ref } from 'vue'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, shallowRef, watch, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 
+import type { Data } from '@/api/common/common.pb'
 import { Runtime } from '@/api/common/omni.pb'
 import { withContext, withRuntime } from '@/api/options'
 import type { LogsRequest } from '@/api/talos/machine/machine.pb'
@@ -28,7 +29,7 @@ definePage({ name: 'NodeLogs' })
 const route = useRoute()
 const inputValue = ref('')
 const logs: Ref<LogLine[]> = ref([])
-const context = getContext()
+const context = computed(() => getContext(route))
 const service = ref(route.params.service as string)
 
 const formatLoggingContext = (logRecord: Record<string, string>, ...exceptFields: string[]) => {
@@ -124,14 +125,22 @@ watch(
   },
 )
 
-const stream = setupLogStream(
-  logs,
-  MachineService.Logs,
-  params,
-  logParser,
-  withRuntime(Runtime.Talos),
-  withContext(context),
-)
+const stream = shallowRef<ReturnType<typeof setupLogStream<Data, LogsRequest>>>()
+
+watchEffect((onCleanup) => {
+  stream.value = setupLogStream(
+    logs,
+    MachineService.Logs,
+    params,
+    logParser,
+    withRuntime(Runtime.Talos),
+    withContext(context.value),
+  )
+
+  onCleanup(() => {
+    stream.value?.shutdown()
+  })
+})
 
 const err = computed(() => {
   return stream.value?.err

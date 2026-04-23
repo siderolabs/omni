@@ -3,12 +3,12 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-import type { ComputedRef, Ref } from 'vue'
-import { isRef, onMounted, onUnmounted, ref, watch } from 'vue'
+import type { MaybeRefOrGetter, Ref } from 'vue'
+import { toValue } from 'vue'
 
 import type { Data } from '@/api/common/common.pb'
 import type { fetchOption } from '@/api/fetch.pb'
-import type { Stream, StreamingRequest } from '@/api/grpc'
+import type { StreamingRequest } from '@/api/grpc'
 import { subscribe } from '@/api/grpc'
 
 export type LogLine = {
@@ -79,15 +79,13 @@ export class LineDelimitedLogParser {
 export const setupLogStream = <R extends Data, T>(
   logs: Ref<LogLine[]>,
   method: StreamingRequest<R, T>,
-  params: T | ComputedRef<T | undefined> | Ref<T>,
-  logParser: LogParser = new DefaultLogParser((l: string): LogLine => {
-    return { msg: l }
-  }),
+  params: MaybeRefOrGetter<T | undefined>,
+  logParser: LogParser = new DefaultLogParser((msg) => ({ msg })),
   ...options: fetchOption[]
-): Ref<Stream<R, T> | undefined> => {
-  const stream: Ref<Stream<R, T> | undefined> = ref()
+) => {
+  let clearLogs = false
   let buffer: LogLine[] = []
-  let flush: number | undefined
+  let flush: number
 
   const reset = () => {
     logs.value = []
@@ -95,65 +93,51 @@ export const setupLogStream = <R extends Data, T>(
     clearTimeout(flush)
   }
 
-  const init = () => {
-    if (stream.value) {
-      stream.value.shutdown()
-    }
+  const p = toValue(params)
 
-    reset()
-
-    let clearLogs = false
-
-    const p = isRef(params) ? params.value : params
-
-    if (!p) {
-      return
-    }
-
-    stream.value = subscribe(
-      method,
-      p,
-      (resp: Data & { error?: string }) => {
-        clearTimeout(flush)
-
-        if (resp.error) {
-          clearLogs = true
-          return
-        }
-
-        if (clearLogs) reset()
-
-        clearLogs = false
-
-        if (resp.bytes) {
-          const line = window.atob(resp.bytes.toString())
-
-          try {
-            buffer.push(...logParser.parse(line))
-          } catch (e) {
-            console.error(`failed to parse line ${line}`, e)
-          }
-        }
-
-        // accumulate frequent updates and then flush them in a single call
-        flush = window.setTimeout(() => {
-          logs.value = logs.value.concat(buffer)
-          buffer = []
-        }, 50)
-      },
-      options,
-    )
+  if (!p) {
+    return
   }
 
-  onMounted(init)
+  const stream = subscribe(
+    method,
+    p,
+    (resp: Data & { error?: string }) => {
+      clearTimeout(flush)
 
-  onUnmounted(() => {
-    if (stream.value) stream.value.shutdown()
-  })
+      if (resp.error) {
+        clearLogs = true
+        return
+      }
 
-  if (isRef(params)) {
-    watch(params, init)
+      if (clearLogs) reset()
+
+      clearLogs = false
+
+      if (resp.bytes) {
+        const line = window.atob(resp.bytes.toString())
+
+        try {
+          buffer.push(...logParser.parse(line))
+        } catch (e) {
+          console.error(`failed to parse line ${line}`, e)
+        }
+      }
+
+      // accumulate frequent updates and then flush them in a single call
+      flush = window.setTimeout(() => {
+        logs.value = logs.value.concat(buffer)
+        buffer = []
+      }, 50)
+    },
+    options,
+  )
+
+  return {
+    ...stream,
+    shutdown() {
+      reset()
+      stream.shutdown()
+    },
   }
-
-  return stream
 }

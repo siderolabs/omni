@@ -4,22 +4,20 @@
 // included in the LICENSE file.
 
 import { useLocalStorage } from '@vueuse/core'
-import { type RouteLocationNormalizedLoadedGeneric, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 import type { WatchContext } from '@/api/watch'
 
 export const current = useLocalStorage<string>('context', null)
 
-export function getContext(route?: RouteLocationNormalizedLoadedGeneric): WatchContext {
-  route ||= useRoute()
-
-  const cluster = clusterName()
+export function getContext(route = useRoute()): WatchContext {
+  const cluster = clusterName(route)
 
   const res: WatchContext = {
     cluster: cluster || undefined,
   }
 
-  const machine = (route.params.machine ?? route.query.machine) as string
+  const machine = 'machine' in route.params ? route.params.machine : (route.query.machine as string)
   if (machine) {
     res.node = machine
   }
@@ -27,14 +25,12 @@ export function getContext(route?: RouteLocationNormalizedLoadedGeneric): WatchC
   return res
 }
 
-export function clusterName() {
-  const route = useRoute()
-
-  if ('cluster' in route?.params) {
+export function clusterName(route = useRoute()) {
+  if ('cluster' in route.params) {
     return route.params.cluster
   }
 
-  if (route?.query.cluster) {
+  if (route.query.cluster) {
     return route.query.cluster as string
   }
 

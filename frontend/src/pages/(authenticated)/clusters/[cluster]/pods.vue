@@ -7,6 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type { PodSpec as V1PodSpec, PodStatus as V1PodStatus } from 'kubernetes-types/core/v1'
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { kubernetes } from '@/api/resources'
@@ -24,7 +25,8 @@ import TPodsItem from '@/views/Pods/TPodsItem.vue'
 
 definePage({ name: 'Pods' })
 
-const context = getContext()
+const route = useRoute()
+const context = computed(() => getContext(route))
 const filterOption = ref(TPodsViewFilterOptions.ALL)
 const searchOption = ref('')
 
@@ -34,11 +36,11 @@ const {
   data: items,
   loading,
   err,
-} = useResourceWatch<V1PodSpec, V1PodStatus>({
+} = useResourceWatch<V1PodSpec, V1PodStatus>(() => ({
   resource: { type: kubernetes.pod },
   runtime: Runtime.Kubernetes,
-  context,
-})
+  context: context.value,
+}))
 
 const filteredItems = computed(() =>
   items.value.filter(({ spec, metadata, status }) => {

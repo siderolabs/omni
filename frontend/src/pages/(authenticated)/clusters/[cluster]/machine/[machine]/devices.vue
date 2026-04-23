@@ -69,6 +69,7 @@ function asDevice(value: DeviceTreeItem): DeviceTreeDevice | undefined {
 <script setup lang="ts">
 import { TreeItem, TreeRoot, TreeVirtualizer } from 'reka-ui'
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
@@ -83,19 +84,22 @@ import { useResourceWatch } from '@/methods/useResourceWatch'
 
 definePage({ name: 'NodeDevices' })
 
+const route = useRoute()
+const context = computed(() => getContext(route))
+
 const {
   data: devices,
   loading,
   err,
   errCode,
-} = useResourceWatch<TalosPCIDeviceSpec>({
+} = useResourceWatch<TalosPCIDeviceSpec>(() => ({
   resource: {
     namespace: TalosHardwareNamespace,
     type: TalosPCIDeviceType,
   },
   runtime: Runtime.Talos,
-  context: getContext(),
-})
+  context: context.value,
+}))
 
 const tree = computed(() =>
   devices.value
