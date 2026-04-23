@@ -222,6 +222,8 @@ message ServiceAccountStatusSpec {
   string role = 1;
 
   repeated PgpPublicKey public_keys = 2;
+
+  google.protobuf.Timestamp expiration = 3;
 }
 
 // EulaAcceptanceSpec records the instance-wide EULA acceptance.

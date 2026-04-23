@@ -668,6 +668,7 @@ func (m *ServiceAccountStatusSpec) CloneVT() *ServiceAccountStatusSpec {
 	}
 	r := new(ServiceAccountStatusSpec)
 	r.Role = m.Role
+	r.Expiration = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.Expiration).CloneVT())
 	if rhs := m.PublicKeys; rhs != nil {
 		tmpContainer := make([]*ServiceAccountStatusSpec_PgpPublicKey, len(rhs))
 		for k, v := range rhs {
@@ -1598,6 +1599,9 @@ func (this *ServiceAccountStatusSpec) EqualVT(that *ServiceAccountStatusSpec) bo
 				return false
 			}
 		}
+	}
+	if !(*timestamppb1.Timestamp)(this.Expiration).EqualVT((*timestamppb1.Timestamp)(that.Expiration)) {
+		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -3350,6 +3354,16 @@ func (m *ServiceAccountStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.Expiration != nil {
+		size, err := (*timestamppb1.Timestamp)(m.Expiration).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.PublicKeys) > 0 {
 		for iNdEx := len(m.PublicKeys) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.PublicKeys[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -4081,6 +4095,10 @@ func (m *ServiceAccountStatusSpec) SizeVT() (n int) {
 			l = e.SizeVT()
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
+	}
+	if m.Expiration != nil {
+		l = (*timestamppb1.Timestamp)(m.Expiration).SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -8601,6 +8619,42 @@ func (m *ServiceAccountStatusSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PublicKeys = append(m.PublicKeys, &ServiceAccountStatusSpec_PgpPublicKey{})
 			if err := m.PublicKeys[len(m.PublicKeys)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Expiration", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Expiration == nil {
+				m.Expiration = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.Expiration).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

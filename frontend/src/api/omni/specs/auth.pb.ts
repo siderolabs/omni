@@ -180,6 +180,7 @@ export type ServiceAccountStatusSpecPgpPublicKey = {
 export type ServiceAccountStatusSpec = {
   role?: string
   public_keys?: ServiceAccountStatusSpecPgpPublicKey[]
+  expiration?: GoogleProtobufTimestamp.Timestamp
 }
 
 export type EulaAcceptanceSpec = {

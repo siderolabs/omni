@@ -983,6 +983,7 @@ type ServiceAccountStatusSpec struct {
 	state         protoimpl.MessageState                   `protogen:"open.v1"`
 	Role          string                                   `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
 	PublicKeys    []*ServiceAccountStatusSpec_PgpPublicKey `protobuf:"bytes,2,rep,name=public_keys,json=publicKeys,proto3" json:"public_keys,omitempty"`
+	Expiration    *timestamppb.Timestamp                   `protobuf:"bytes,3,opt,name=expiration,proto3" json:"expiration,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1027,6 +1028,13 @@ func (x *ServiceAccountStatusSpec) GetRole() string {
 func (x *ServiceAccountStatusSpec) GetPublicKeys() []*ServiceAccountStatusSpec_PgpPublicKey {
 	if x != nil {
 		return x.PublicKeys
+	}
+	return nil
+}
+
+func (x *ServiceAccountStatusSpec) GetExpiration() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Expiration
 	}
 	return nil
 }
@@ -2020,11 +2028,14 @@ const file_omni_specs_auth_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04role\x18\x02 \x01(\tR\x04role\x12\x1f\n" +
 	"\vlast_active\x18\x03 \x01(\tR\n" +
-	"lastActive\"\xe3\x02\n" +
+	"lastActive\"\x9f\x03\n" +
 	"\x18ServiceAccountStatusSpec\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12M\n" +
 	"\vpublic_keys\x18\x02 \x03(\v2,.specs.ServiceAccountStatusSpec.PgpPublicKeyR\n" +
-	"publicKeys\x1a\xe3\x01\n" +
+	"publicKeys\x12:\n" +
+	"\n" +
+	"expiration\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"expiration\x1a\xe3\x01\n" +
 	"\fPgpPublicKey\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\aarmored\x18\x02 \x01(\tR\aarmored\x12:\n" +
@@ -2112,22 +2123,23 @@ var file_omni_specs_auth_proto_depIdxs = []int32{
 	37, // 17: specs.IdentityLastActiveSpec.last_active:type_name -> google.protobuf.Timestamp
 	37, // 18: specs.PublicKeyLastActiveSpec.last_used:type_name -> google.protobuf.Timestamp
 	36, // 19: specs.ServiceAccountStatusSpec.public_keys:type_name -> specs.ServiceAccountStatusSpec.PgpPublicKey
-	22, // 20: specs.AuthConfigSpec.SAML.label_rules:type_name -> specs.AuthConfigSpec.SAML.LabelRulesEntry
-	23, // 21: specs.AuthConfigSpec.SAML.attribute_rules:type_name -> specs.AuthConfigSpec.SAML.AttributeRulesEntry
-	27, // 22: specs.AccessPolicyRule.Kubernetes.impersonate:type_name -> specs.AccessPolicyRule.Kubernetes.Impersonate
-	31, // 23: specs.AccessPolicyTest.Expected.kubernetes:type_name -> specs.AccessPolicyTest.Expected.Kubernetes
-	33, // 24: specs.AccessPolicyTest.User.labels:type_name -> specs.AccessPolicyTest.User.LabelsEntry
-	32, // 25: specs.AccessPolicyTest.Expected.Kubernetes.impersonate:type_name -> specs.AccessPolicyTest.Expected.Kubernetes.Impersonate
-	7,  // 26: specs.AccessPolicySpec.UserGroupsEntry.value:type_name -> specs.AccessPolicyUserGroup
-	8,  // 27: specs.AccessPolicySpec.ClusterGroupsEntry.value:type_name -> specs.AccessPolicyClusterGroup
-	37, // 28: specs.ServiceAccountStatusSpec.PgpPublicKey.expiration:type_name -> google.protobuf.Timestamp
-	37, // 29: specs.ServiceAccountStatusSpec.PgpPublicKey.created:type_name -> google.protobuf.Timestamp
-	37, // 30: specs.ServiceAccountStatusSpec.PgpPublicKey.last_used:type_name -> google.protobuf.Timestamp
-	31, // [31:31] is the sub-list for method output_type
-	31, // [31:31] is the sub-list for method input_type
-	31, // [31:31] is the sub-list for extension type_name
-	31, // [31:31] is the sub-list for extension extendee
-	0,  // [0:31] is the sub-list for field type_name
+	37, // 20: specs.ServiceAccountStatusSpec.expiration:type_name -> google.protobuf.Timestamp
+	22, // 21: specs.AuthConfigSpec.SAML.label_rules:type_name -> specs.AuthConfigSpec.SAML.LabelRulesEntry
+	23, // 22: specs.AuthConfigSpec.SAML.attribute_rules:type_name -> specs.AuthConfigSpec.SAML.AttributeRulesEntry
+	27, // 23: specs.AccessPolicyRule.Kubernetes.impersonate:type_name -> specs.AccessPolicyRule.Kubernetes.Impersonate
+	31, // 24: specs.AccessPolicyTest.Expected.kubernetes:type_name -> specs.AccessPolicyTest.Expected.Kubernetes
+	33, // 25: specs.AccessPolicyTest.User.labels:type_name -> specs.AccessPolicyTest.User.LabelsEntry
+	32, // 26: specs.AccessPolicyTest.Expected.Kubernetes.impersonate:type_name -> specs.AccessPolicyTest.Expected.Kubernetes.Impersonate
+	7,  // 27: specs.AccessPolicySpec.UserGroupsEntry.value:type_name -> specs.AccessPolicyUserGroup
+	8,  // 28: specs.AccessPolicySpec.ClusterGroupsEntry.value:type_name -> specs.AccessPolicyClusterGroup
+	37, // 29: specs.ServiceAccountStatusSpec.PgpPublicKey.expiration:type_name -> google.protobuf.Timestamp
+	37, // 30: specs.ServiceAccountStatusSpec.PgpPublicKey.created:type_name -> google.protobuf.Timestamp
+	37, // 31: specs.ServiceAccountStatusSpec.PgpPublicKey.last_used:type_name -> google.protobuf.Timestamp
+	32, // [32:32] is the sub-list for method output_type
+	32, // [32:32] is the sub-list for method input_type
+	32, // [32:32] is the sub-list for extension type_name
+	32, // [32:32] is the sub-list for extension extendee
+	0,  // [0:32] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_auth_proto_init() }

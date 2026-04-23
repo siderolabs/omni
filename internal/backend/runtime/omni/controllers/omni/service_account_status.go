@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -63,6 +64,9 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 				}
 
 				status.TypedSpec().Value.PublicKeys = nil
+				status.TypedSpec().Value.Expiration = nil
+
+				var expiration time.Time
 
 				for key := range publicKeyList.All() {
 					if key.Metadata().Phase() == resource.PhaseRunning {
@@ -84,6 +88,10 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 						Armored:    string(key.TypedSpec().Value.GetPublicKey()),
 						Expiration: key.TypedSpec().Value.GetExpiration(),
 						Created:    timestamppb.New(key.Metadata().Created()),
+					}
+
+					if expiration.Before(key.TypedSpec().Value.GetExpiration().AsTime()) {
+						expiration = key.TypedSpec().Value.GetExpiration().AsTime()
 					}
 
 					lastActive, lastActiveErr := safe.ReaderGetByID[*auth.PublicKeyLastActive](ctx, r, key.Metadata().ID())
@@ -108,6 +116,7 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 				}
 
 				status.TypedSpec().Value.Role = user.TypedSpec().Value.Role
+				status.TypedSpec().Value.Expiration = timestamppb.New(expiration)
 
 				return nil
 			},
