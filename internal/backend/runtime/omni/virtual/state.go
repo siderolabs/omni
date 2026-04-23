@@ -11,11 +11,14 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/stripe/stripe-go/v85"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -27,25 +30,36 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
+
+const supportEnabledCacheTTL = 5 * time.Minute
 
 // State is a virtual state implementation which provides virtual resources.
 // Virtual resources are not stored in the backend, but are generated on the fly.
 // They also do not behave like regular resources; for example, their content might differ, according to the caller/context.
 type State struct {
-	PrimaryState state.State
-
-	computed map[resource.Type]*Computed
-	apiURL   string
+	supportEnabledCachedAt   time.Time
+	PrimaryState             state.State
+	computed                 map[resource.Type]*Computed
+	stripeClient             *stripe.Client
+	apiURL                   string
+	stripeSubscriptionItemID string
+	supportConfig            config.Support
+	supportEnabledMu         sync.Mutex
+	supportEnabled           bool
 }
 
 // NewState creates new virtual state instance.
-func NewState(state state.State, apiURL string) *State {
+func NewState(state state.State, stripeClient *stripe.Client, apiURL, stripeSubscriptionItemID string, supportConfig config.Support) *State {
 	return &State{
-		PrimaryState: state,
-		computed:     map[resource.Type]*Computed{},
-		apiURL:       apiURL,
+		PrimaryState:             state,
+		computed:                 map[resource.Type]*Computed{},
+		apiURL:                   apiURL,
+		stripeClient:             stripeClient,
+		stripeSubscriptionItemID: stripeSubscriptionItemID,
+		supportConfig:            supportConfig,
 	}
 }
 
@@ -110,6 +124,8 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 		return v.labelsCompletion(ctx, ptr)
 	case virtual.AdvertisedEndpointsType:
 		return v.advertisedEndpoints(ctx, ptr)
+	case virtual.SupportType:
+		return v.support(ctx, ptr)
 	default:
 		return nil, stateerrors.ErrUnsupported(fmt.Errorf("unsupported resource type for get %q", ptr.Type()))
 	}
@@ -358,6 +374,78 @@ func (v *State) labelsCompletion(ctx context.Context, ptr resource.Pointer) (*vi
 	completion.TypedSpec().Value.Items = labels
 
 	return completion, nil
+}
+
+func (v *State) support(ctx context.Context, ptr resource.Pointer) (*virtual.Support, error) {
+	if ptr.ID() != virtual.SupportID {
+		return nil, stateerrors.ErrNotFound(ptr)
+	}
+
+	res := virtual.NewSupport()
+
+	version, err := resource.ParseVersion("1")
+	if err != nil {
+		return nil, err
+	}
+
+	res.Metadata().SetVersion(version)
+
+	oh := v.supportConfig.OfficeHours
+	res.TypedSpec().Value.OfficeHours = &specs.OfficeHoursConfig{
+		Summary:     oh.GetSummary(),
+		Description: oh.GetDescription(),
+		DtstartTzid: oh.GetDtstartTzid(),
+		DtendTzid:   oh.GetDtendTzid(),
+		DtstartUtc:  oh.GetDtstartUtc(),
+		DtendUtc:    oh.GetDtendUtc(),
+		Rrule:       oh.GetRrule(),
+		MeetUrl:     oh.GetMeetUrl(),
+	}
+
+	if v.stripeClient == nil || v.stripeSubscriptionItemID == "" {
+		return res, nil
+	}
+
+	v.supportEnabledMu.Lock()
+	defer v.supportEnabledMu.Unlock()
+
+	if time.Since(v.supportEnabledCachedAt) > supportEnabledCacheTTL {
+		enabled, err := fetchSupportEnabled(ctx, v.stripeClient, v.stripeSubscriptionItemID, v.supportConfig.SupportEligibleProducts)
+		if err != nil {
+			return nil, err
+		}
+
+		v.supportEnabled = enabled
+		v.supportEnabledCachedAt = time.Now()
+	}
+
+	res.TypedSpec().Value.SupportEnabled = v.supportEnabled
+
+	return res, nil
+}
+
+func fetchSupportEnabled(ctx context.Context, stripeClient *stripe.Client, stripeSubscriptionItemID string, eligibleProducts []string) (bool, error) {
+	params := &stripe.SubscriptionItemRetrieveParams{}
+	params.AddExpand("price.product")
+
+	item, err := stripeClient.V1SubscriptionItems.Retrieve(ctx, stripeSubscriptionItemID, params)
+	if err != nil {
+		return false, err
+	}
+
+	if item.Price == nil || item.Price.Product == nil {
+		return false, nil
+	}
+
+	productName := strings.ToLower(item.Price.Product.Name)
+
+	for _, eligible := range eligibleProducts {
+		if strings.Contains(productName, eligible) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func (v *State) advertisedEndpoints(_ context.Context, ptr resource.Pointer) (*virtual.AdvertisedEndpoints, error) {

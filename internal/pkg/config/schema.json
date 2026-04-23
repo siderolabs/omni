@@ -13,7 +13,8 @@
     "registries",
     "debug",
     "features",
-    "eulaAccept"
+    "eulaAccept",
+    "support"
   ],
   "goJSONSchema": {
     "imports": [
@@ -60,6 +61,10 @@
     "eulaAccept": {
       "description": "EulaAccept contains the identity of the person accepting the EULA via CLI flags or config.",
       "$ref": "#/definitions/EulaAccept"
+    },
+    "support": {
+      "description": "Support contains support-related configuration.",
+      "$ref": "#/definitions/Support"
     }
   },
   "definitions": {
@@ -1743,6 +1748,104 @@
           "description": "Email is the email address of the person accepting the EULA on behalf of this Omni instance.",
           "x-cli-flag": "eula-accept-email",
           "type": "string",
+          "goJSONSchema": {
+            "pointer": true
+          }
+        }
+      }
+    },
+    "Support": {
+      "type": "object",
+      "required": [
+        "officeHours"
+      ],
+      "properties": {
+        "supportEligibleProducts": {
+          "description": "SupportEligibleProducts is the list of Stripe product name substrings that grant access to the support portal.",
+          "x-cli-flag": "support-eligible-products",
+          "type": "array",
+          "default": ["business", "enterprise", "edge"],
+          "items": {
+            "type": "string"
+          }
+        },
+        "officeHours": {
+          "description": "OfficeHours contains the configuration for the monthly office hours shown in the help modal.",
+          "$ref": "#/definitions/OfficeHours"
+        }
+      }
+    },
+    "OfficeHours": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "description": "Summary is the calendar event title.",
+          "x-cli-flag": "office-hours-summary",
+          "type": "string",
+          "default": "Sidero Labs Monthly Office Hours",
+          "goJSONSchema": {
+            "pointer": true
+          }
+        },
+        "description": {
+          "description": "Description is the calendar event description.",
+          "x-cli-flag": "office-hours-description",
+          "type": "string",
+          "default": "A monthly meeting to chat with Sidero Labs engineers about Talos, Omni, and more.",
+          "goJSONSchema": {
+            "pointer": true
+          }
+        },
+        "dtstartTzid": {
+          "description": "DtstartTzid is the DTSTART value with TZID parameter (e.g. 'America/New_York:20260413T123000').",
+          "x-cli-flag": "office-hours-dtstart-tzid",
+          "type": "string",
+          "default": "America/New_York:20260413T123000",
+          "goJSONSchema": {
+            "pointer": true
+          }
+        },
+        "dtendTzid": {
+          "description": "DtendTzid is the DTEND value with TZID parameter (e.g. 'America/New_York:20260413T130000').",
+          "x-cli-flag": "office-hours-dtend-tzid",
+          "type": "string",
+          "default": "America/New_York:20260413T130000",
+          "goJSONSchema": {
+            "pointer": true
+          }
+        },
+        "dtstartUtc": {
+          "description": "DtstartUtc is the DTSTART value in UTC (e.g. '20260413T163000Z').",
+          "x-cli-flag": "office-hours-dtstart-utc",
+          "type": "string",
+          "default": "20260413T163000Z",
+          "goJSONSchema": {
+            "pointer": true
+          }
+        },
+        "dtendUtc": {
+          "description": "DtendUtc is the DTEND value in UTC (e.g. '20260413T170000Z').",
+          "x-cli-flag": "office-hours-dtend-utc",
+          "type": "string",
+          "default": "20260413T170000Z",
+          "goJSONSchema": {
+            "pointer": true
+          }
+        },
+        "rrule": {
+          "description": "Rrule is the iCalendar RRULE string (e.g. 'FREQ=MONTHLY;BYDAY=2MO').",
+          "x-cli-flag": "office-hours-rrule",
+          "type": "string",
+          "default": "FREQ=MONTHLY;BYDAY=2MO",
+          "goJSONSchema": {
+            "pointer": true
+          }
+        },
+        "meetUrl": {
+          "description": "MeetUrl is the video call URL for the office hours.",
+          "x-cli-flag": "office-hours-meet-url",
+          "type": "string",
+          "default": "https://meet.google.com/ivb-kjfm-jfc",
           "goJSONSchema": {
             "pointer": true
           }

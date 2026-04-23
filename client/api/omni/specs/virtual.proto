@@ -91,3 +91,19 @@ message SBCConfigSpec {
   string documentation = 4;
   string min_version = 5;
 }
+
+message OfficeHoursConfig {
+  string summary = 1;
+  string description = 2;
+  string dtstart_tzid = 3;
+  string dtend_tzid = 4;
+  string dtstart_utc = 5;
+  string dtend_utc = 6;
+  string rrule = 7;
+  string meet_url = 8;
+}
+
+message SupportSpec {
+  bool support_enabled = 1;
+  OfficeHoursConfig office_hours = 2;
+}

@@ -458,6 +458,34 @@ type OIDC struct {
 	Scopes []string `json:"scopes,omitempty,omitzero" yaml:"scopes,omitempty"`
 }
 
+type OfficeHours struct {
+	// Description is the calendar event description.
+	Description *string `json:"description,omitempty,omitzero" yaml:"description,omitempty"`
+
+	// DtendTzid is the DTEND value with TZID parameter (e.g.
+	// 'America/New_York:20260413T130000').
+	DtendTzid *string `json:"dtendTzid,omitempty,omitzero" yaml:"dtendTzid,omitempty"`
+
+	// DtendUtc is the DTEND value in UTC (e.g. '20260413T170000Z').
+	DtendUtc *string `json:"dtendUtc,omitempty,omitzero" yaml:"dtendUtc,omitempty"`
+
+	// DtstartTzid is the DTSTART value with TZID parameter (e.g.
+	// 'America/New_York:20260413T123000').
+	DtstartTzid *string `json:"dtstartTzid,omitempty,omitzero" yaml:"dtstartTzid,omitempty"`
+
+	// DtstartUtc is the DTSTART value in UTC (e.g. '20260413T163000Z').
+	DtstartUtc *string `json:"dtstartUtc,omitempty,omitzero" yaml:"dtstartUtc,omitempty"`
+
+	// MeetUrl is the video call URL for the office hours.
+	MeetUrl *string `json:"meetUrl,omitempty,omitzero" yaml:"meetUrl,omitempty"`
+
+	// Rrule is the iCalendar RRULE string (e.g. 'FREQ=MONTHLY;BYDAY=2MO').
+	Rrule *string `json:"rrule,omitempty,omitzero" yaml:"rrule,omitempty"`
+
+	// Summary is the calendar event title.
+	Summary *string `json:"summary,omitempty,omitzero" yaml:"summary,omitempty"`
+}
+
 // Params is the Omni configuration root object.
 type Params struct {
 	// Account contains account-related configuration.
@@ -490,6 +518,9 @@ type Params struct {
 
 	// Storage contains persistent storage related configuration.
 	Storage Storage `json:"storage" yaml:"storage"`
+
+	// Support contains support-related configuration.
+	Support Support `json:"support" yaml:"support"`
 }
 
 type Registries struct {
@@ -736,6 +767,16 @@ type StorageDefaultKind string
 
 const StorageDefaultKindBoltdb StorageDefaultKind = "boltdb"
 const StorageDefaultKindEtcd StorageDefaultKind = "etcd"
+
+type Support struct {
+	// OfficeHours contains the configuration for the monthly office hours shown in
+	// the help modal.
+	OfficeHours OfficeHours `json:"officeHours" yaml:"officeHours"`
+
+	// SupportEligibleProducts is the list of Stripe product name substrings that
+	// grant access to the support portal.
+	SupportEligibleProducts []string `json:"supportEligibleProducts,omitempty,omitzero" yaml:"supportEligibleProducts,omitempty"`
+}
 
 type UserPilot struct {
 	// AppToken is the UserPilot application token.

@@ -193,6 +193,8 @@ test('Shows general information', async ({ page }) => {
 test('Opens documentation', async ({ page }) => {
   await page.goto('/')
 
+  await page.getByRole('button', { name: 'Support' }).click()
+
   const [docsPage] = await Promise.all([
     page.waitForEvent('popup'),
     page.getByRole('link', { name: 'Documentation' }).click(),

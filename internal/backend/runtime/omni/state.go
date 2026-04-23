@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stripe/stripe-go/v85"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -170,7 +172,15 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		return nil, err
 	}
 
-	virtualState := virtual.NewState(state.WrapCore(defaultPersistentState.State), params.Services.Api.URL())
+	stripeAPIKey, _ := os.LookupEnv("STRIPE_API_KEY")
+	stripeSubscriptionItemID, _ := os.LookupEnv("STRIPE_SUBSCRIPTION_ITEM_ID")
+
+	var stripeClient *stripe.Client
+	if stripeAPIKey != "" {
+		stripeClient = stripe.NewClient(stripeAPIKey)
+	}
+
+	virtualState := virtual.NewState(state.WrapCore(defaultPersistentState.State), stripeClient, params.Services.Api.URL(), stripeSubscriptionItemID, params.Support)
 
 	secondaryPersistentState, err := newSQLitePersistentState(ctx, secondaryStorageDB, logger)
 	if err != nil {

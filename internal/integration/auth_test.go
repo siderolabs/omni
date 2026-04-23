@@ -1231,6 +1231,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isSignatureSufficient: true,
 			},
 			{
+				resource:       virtual.NewSupport(),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
 				resource:       omni.NewEtcdBackupStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},

@@ -167,6 +167,7 @@ func buildRootCommand() (*cobra.Command, error) {
 	defineDebugFlags(rootCmdFlagBinder, flagConfig)
 	defineEtcdBackupsFlags(rootCmd, rootCmdFlagBinder, flagConfig)
 	defineEulaFlags(rootCmd, rootCmdFlagBinder, flagConfig)
+	defineSupportFlags(rootCmdFlagBinder, flagConfig)
 
 	return rootCmd, nil
 }
@@ -368,6 +369,18 @@ func defineEtcdBackupsFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *c
 	b.Uint64Var("etcdBackup.downloadLimitMbps", &flagConfig.EtcdBackup.DownloadLimitMbps)
 
 	rootCmd.MarkFlagsMutuallyExclusive(b.mustFlagName("etcdBackup.s3Enabled"), b.mustFlagName("etcdBackup.localPath"))
+}
+
+func defineSupportFlags(b *FlagBinder, flagConfig *config.Params) {
+	b.StringSliceVar("support.supportEligibleProducts", &flagConfig.Support.SupportEligibleProducts, flagConfig.Support.SupportEligibleProducts)
+	b.StringVar("support.officeHours.summary", &flagConfig.Support.OfficeHours.Summary)
+	b.StringVar("support.officeHours.description", &flagConfig.Support.OfficeHours.Description)
+	b.StringVar("support.officeHours.dtstartTzid", &flagConfig.Support.OfficeHours.DtstartTzid)
+	b.StringVar("support.officeHours.dtendTzid", &flagConfig.Support.OfficeHours.DtendTzid)
+	b.StringVar("support.officeHours.dtstartUtc", &flagConfig.Support.OfficeHours.DtstartUtc)
+	b.StringVar("support.officeHours.dtendUtc", &flagConfig.Support.OfficeHours.DtendUtc)
+	b.StringVar("support.officeHours.rrule", &flagConfig.Support.OfficeHours.Rrule)
+	b.StringVar("support.officeHours.meetUrl", &flagConfig.Support.OfficeHours.MeetUrl)
 }
 
 func defineEulaFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.Params) {

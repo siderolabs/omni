@@ -985,6 +985,94 @@ func (s *OIDC) SetProviderURL(v string) {
 	s.ProviderURL = &v
 }
 
+func (s *OfficeHours) GetDescription() string {
+	if s == nil || s.Description == nil {
+		return *new(string)
+	}
+	return *s.Description
+}
+
+func (s *OfficeHours) SetDescription(v string) {
+	s.Description = &v
+}
+
+func (s *OfficeHours) GetDtendTzid() string {
+	if s == nil || s.DtendTzid == nil {
+		return *new(string)
+	}
+	return *s.DtendTzid
+}
+
+func (s *OfficeHours) SetDtendTzid(v string) {
+	s.DtendTzid = &v
+}
+
+func (s *OfficeHours) GetDtendUtc() string {
+	if s == nil || s.DtendUtc == nil {
+		return *new(string)
+	}
+	return *s.DtendUtc
+}
+
+func (s *OfficeHours) SetDtendUtc(v string) {
+	s.DtendUtc = &v
+}
+
+func (s *OfficeHours) GetDtstartTzid() string {
+	if s == nil || s.DtstartTzid == nil {
+		return *new(string)
+	}
+	return *s.DtstartTzid
+}
+
+func (s *OfficeHours) SetDtstartTzid(v string) {
+	s.DtstartTzid = &v
+}
+
+func (s *OfficeHours) GetDtstartUtc() string {
+	if s == nil || s.DtstartUtc == nil {
+		return *new(string)
+	}
+	return *s.DtstartUtc
+}
+
+func (s *OfficeHours) SetDtstartUtc(v string) {
+	s.DtstartUtc = &v
+}
+
+func (s *OfficeHours) GetMeetUrl() string {
+	if s == nil || s.MeetUrl == nil {
+		return *new(string)
+	}
+	return *s.MeetUrl
+}
+
+func (s *OfficeHours) SetMeetUrl(v string) {
+	s.MeetUrl = &v
+}
+
+func (s *OfficeHours) GetRrule() string {
+	if s == nil || s.Rrule == nil {
+		return *new(string)
+	}
+	return *s.Rrule
+}
+
+func (s *OfficeHours) SetRrule(v string) {
+	s.Rrule = &v
+}
+
+func (s *OfficeHours) GetSummary() string {
+	if s == nil || s.Summary == nil {
+		return *new(string)
+	}
+	return *s.Summary
+}
+
+func (s *OfficeHours) SetSummary(v string) {
+	s.Summary = &v
+}
+
 func (s *Registries) GetImageFactoryBaseURL() string {
 	if s == nil || s.ImageFactoryBaseURL == nil {
 		return *new(string)

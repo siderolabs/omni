@@ -91,3 +91,19 @@ export type SBCConfigSpec = {
   documentation?: string
   min_version?: string
 }
+
+export type OfficeHoursConfig = {
+  summary?: string
+  description?: string
+  dtstart_tzid?: string
+  dtend_tzid?: string
+  dtstart_utc?: string
+  dtend_utc?: string
+  rrule?: string
+  meet_url?: string
+}
+
+export type SupportSpec = {
+  support_enabled?: boolean
+  office_hours?: OfficeHoursConfig
+}

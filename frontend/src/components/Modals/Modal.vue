@@ -28,7 +28,7 @@ const props = withDefaults(
   defineProps<
     DialogRootProps & {
       title: string
-      actionLabel: string
+      actionLabel?: string
       cancelLabel?: string
       actionDisabled?: boolean
       loading?: boolean
@@ -86,6 +86,7 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
           </DialogClose>
 
           <TButton
+            v-if="actionLabel"
             :disabled="actionDisabled || loading"
             variant="highlighted"
             @click="$emit('confirm')"

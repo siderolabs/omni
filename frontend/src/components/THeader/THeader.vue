@@ -13,9 +13,9 @@ import { type NotificationSpec, NotificationSpecType } from '@/api/omni/specs/om
 import { EphemeralNamespace, NotificationType } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
+import HelpModal from '@/components/HelpModal/HelpModal.vue'
 import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
 import OngoingTasks from '@/components/OngoingTasks/OngoingTasks.vue'
-import { getDocsLink } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 interface Props {
@@ -33,6 +33,7 @@ const { data } = useResourceWatch<NotificationSpec>({
   },
 })
 
+const helpModalOpen = ref(false)
 const dismissedNotifications = useLocalStorage<string[]>('_dismissed_header_notifications', [])
 const currentOffset = ref(0)
 
@@ -42,8 +43,6 @@ const notifications = computed(() =>
     .sort((a, b) => (b.spec.type ?? 0) - (a.spec.type ?? 0)),
 )
 const currentNotification = computed(() => notifications.value.at(currentOffset.value))
-
-const docsLink = getDocsLink('omni')
 
 function getIcon(type: NotificationSpecType): IconType {
   switch (type) {
@@ -98,26 +97,16 @@ function dismissNotification(id: string) {
         </RouterLink>
       </div>
 
-      <div class="flex min-h-12 items-center gap-2 px-6 text-naturals-n11">
-        <a
-          :href="docsLink"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="flex gap-1 transition-colors hover:text-naturals-n14"
+      <div class="flex min-h-12 items-center gap-2 px-6">
+        <TButton
+          variant="subtle"
+          icon="check-in-circle"
+          icon-position="left"
+          class="text-naturals-n11"
+          @click="helpModalOpen = true"
         >
-          <TIcon class="size-4" icon="info" />
-          <span class="truncate text-xs max-sm:hidden">Documentation</span>
-        </a>
-
-        <a
-          href="https://github.com/siderolabs/omni/issues"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="flex gap-1 transition-colors hover:text-naturals-n14"
-        >
-          <TIcon class="size-4" icon="check-in-circle" />
-          <span class="truncate text-xs max-sm:hidden">Report an issue</span>
-        </a>
+          <span class="max-sm:sr-only">Support</span>
+        </TButton>
 
         <OngoingTasks />
       </div>
@@ -169,5 +158,7 @@ function dismissNotification(id: string) {
         <IconButton icon="close" @click="dismissNotification(currentNotification.metadata.id!)" />
       </div>
     </div>
+
+    <HelpModal v-model:open="helpModalOpen" />
   </div>
 </template>

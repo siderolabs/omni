@@ -7,7 +7,10 @@ package virtual_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -17,6 +20,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/gen/channel"
 	"github.com/stretchr/testify/require"
+	"github.com/stripe/stripe-go/v85"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
@@ -24,6 +28,7 @@ import (
 	virtualres "github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/producers"
+	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
 type mockProducer struct {
@@ -169,6 +174,135 @@ func TestComputed(t *testing.T) {
 	cancel()
 
 	require.NoError(eg.Wait())
+}
+
+func TestSupportGet(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+	defer cancel()
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	vst := virtual.NewState(st, nil, "", "", config.Support{})
+
+	require := require.New(t)
+
+	// wrong ID returns not found
+	wrongPtr := virtualres.NewSupport()
+	*wrongPtr.Metadata() = resource.NewMetadata(wrongPtr.Metadata().Namespace(), wrongPtr.Metadata().Type(), "wrong-id", resource.VersionUndefined)
+
+	_, err := vst.Get(ctx, wrongPtr.Metadata())
+	require.True(state.IsNotFoundError(err))
+
+	// correct ID returns the resource with SupportEnabled=false (no stripe keys configured)
+	res, err := vst.Get(ctx, virtualres.NewSupport().Metadata())
+	require.NoError(err)
+
+	sub, ok := res.(*virtualres.Support)
+	require.True(ok)
+	require.False(sub.TypedSpec().Value.SupportEnabled)
+}
+
+func newStripeClientWithHandler(t *testing.T, handler http.HandlerFunc) *stripe.Client {
+	t.Helper()
+
+	srv := httptest.NewServer(handler)
+	t.Cleanup(srv.Close)
+
+	backends := stripe.NewBackendsWithConfig(&stripe.BackendConfig{URL: &srv.URL})
+
+	return stripe.NewClient("test_api_key", stripe.WithBackends(backends))
+}
+
+func stripeItemResponse(productName string) map[string]any {
+	return map[string]any{
+		"id": "sub_item_id",
+		"price": map[string]any{
+			"id": "price_id",
+			"product": map[string]any{
+				"id":   "prod_id",
+				"name": productName,
+			},
+		},
+	}
+}
+
+func TestSupportGetWithStripe(t *testing.T) {
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	ptr := virtualres.NewSupport().Metadata()
+	supportCfg := config.Support{SupportEligibleProducts: []string{"business", "enterprise", "edge"}}
+
+	for _, tc := range []struct {
+		name            string
+		productName     string
+		wantSupport     bool
+		respondWithCode int
+	}{
+		{name: "enterprise product enables support", productName: "Sidero Enterprise", wantSupport: true},
+		{name: "business product enables support", productName: "Business Plan", wantSupport: true},
+		{name: "edge product enables support", productName: "Edge Plan", wantSupport: true},
+		{name: "unknown product disables support", productName: "Starter", wantSupport: false},
+		{name: "stripe error propagates", respondWithCode: http.StatusInternalServerError},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+			defer cancel()
+
+			require := require.New(t)
+
+			stripeClient := newStripeClientWithHandler(t, func(w http.ResponseWriter, r *http.Request) {
+				if tc.respondWithCode != 0 {
+					http.Error(w, `{"error":{"message":"internal error","type":"api_error"}}`, tc.respondWithCode)
+
+					return
+				}
+
+				w.WriteHeader(http.StatusOK)
+				require.NoError(json.NewEncoder(w).Encode(stripeItemResponse(tc.productName)))
+			})
+
+			vst := virtual.NewState(st, stripeClient, "", "sub_item_id", supportCfg)
+
+			res, err := vst.Get(ctx, ptr)
+			if tc.respondWithCode != 0 {
+				require.Error(err)
+
+				return
+			}
+
+			require.NoError(err)
+
+			sub, ok := res.(*virtualres.Support)
+			require.True(ok)
+			require.Equal(tc.wantSupport, sub.TypedSpec().Value.SupportEnabled)
+		})
+	}
+}
+
+func TestSupportGetCaching(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+	defer cancel()
+
+	require := require.New(t)
+
+	hits := 0
+
+	stripeClient := newStripeClientWithHandler(t, func(w http.ResponseWriter, r *http.Request) {
+		hits++
+
+		w.WriteHeader(http.StatusOK)
+		require.NoError(json.NewEncoder(w).Encode(stripeItemResponse("Enterprise")))
+	})
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	vst := virtual.NewState(st, stripeClient, "", "sub_item_id", config.Support{SupportEligibleProducts: []string{"business", "enterprise", "edge"}})
+	ptr := virtualres.NewSupport().Metadata()
+
+	_, err := vst.Get(ctx, ptr)
+	require.NoError(err)
+
+	_, err = vst.Get(ctx, ptr)
+	require.NoError(err)
+
+	require.Equal(1, hits, "expected stripe to be called only once due to caching")
 }
 
 func TestDeduper(t *testing.T) {
