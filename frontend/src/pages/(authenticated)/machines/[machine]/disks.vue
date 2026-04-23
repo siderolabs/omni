@@ -5,11 +5,11 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import MachineDevices from '@/views/Machines/MachineDevices.vue'
+import MachineDisks from '@/views/Machines/MachineDisks.vue'
 
-definePage({ name: 'NodeDevices' })
+definePage({ name: 'MachineDisks' })
 </script>
 
 <template>
-  <MachineDevices />
+  <MachineDisks />
 </template>

@@ -38,6 +38,18 @@ const routes = computed(() => {
       to: { name: 'MachineConfigPatches' },
       disabled: !canReadMachineConfigPatches.value,
     },
+    {
+      name: 'Disks',
+      to: { name: 'MachineDisks' },
+    },
+    {
+      name: 'Devices',
+      to: { name: 'MachineDevices' },
+    },
+    {
+      name: 'Extensions',
+      to: { name: 'MachineExtensions' },
+    },
   ]
 })
 

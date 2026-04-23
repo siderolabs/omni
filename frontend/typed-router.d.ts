@@ -63,6 +63,9 @@ declare module 'vue-router/auto-routes' {
       | 'MachineClassEdit'
       | 'MachineClasses'
       | 'MachineConfigPatches'
+      | 'MachineDevices'
+      | 'MachineDisks'
+      | 'MachineExtensions'
       | 'MachineLogs'
       | 'MachinePatchEdit'
       | 'Machines'
@@ -317,8 +320,32 @@ declare module 'vue-router/auto-routes' {
       { machine: ParamValue<true> },
       { machine: ParamValue<false> },
       | 'MachineConfigPatches'
+      | 'MachineDevices'
+      | 'MachineDisks'
+      | 'MachineExtensions'
       | 'MachineLogs'
       | 'MachinePatchEdit'
+    >,
+    'MachineDevices': RouteRecordInfo<
+      'MachineDevices',
+      '/machines/:machine/devices',
+      { machine: ParamValue<true> },
+      { machine: ParamValue<false> },
+      | never
+    >,
+    'MachineDisks': RouteRecordInfo<
+      'MachineDisks',
+      '/machines/:machine/disks',
+      { machine: ParamValue<true> },
+      { machine: ParamValue<false> },
+      | never
+    >,
+    'MachineExtensions': RouteRecordInfo<
+      'MachineExtensions',
+      '/machines/:machine/extensions',
+      { machine: ParamValue<true> },
+      { machine: ParamValue<false> },
+      | never
     >,
     'MachineLogs': RouteRecordInfo<
       'MachineLogs',
@@ -595,6 +622,9 @@ declare module 'vue-router/auto-routes' {
         | 'MachineClassEdit'
         | 'MachineClasses'
         | 'MachineConfigPatches'
+        | 'MachineDevices'
+        | 'MachineDisks'
+        | 'MachineExtensions'
         | 'MachineLogs'
         | 'MachinePatchEdit'
         | 'Machines'
@@ -655,6 +685,9 @@ declare module 'vue-router/auto-routes' {
         | 'MachineClassEdit'
         | 'MachineClasses'
         | 'MachineConfigPatches'
+        | 'MachineDevices'
+        | 'MachineDisks'
+        | 'MachineExtensions'
         | 'MachineLogs'
         | 'MachinePatchEdit'
         | 'Machines'
@@ -883,10 +916,31 @@ declare module 'vue-router/auto-routes' {
       routes:
         | 'Machine'
         | 'MachineConfigPatches'
+        | 'MachineDevices'
+        | 'MachineDisks'
+        | 'MachineExtensions'
         | 'MachineLogs'
         | 'MachinePatchEdit'
       views:
         | 'default'
+    }
+    'src/pages/(authenticated)/machines/[machine]/devices.vue': {
+      routes:
+        | 'MachineDevices'
+      views:
+        | never
+    }
+    'src/pages/(authenticated)/machines/[machine]/disks.vue': {
+      routes:
+        | 'MachineDisks'
+      views:
+        | never
+    }
+    'src/pages/(authenticated)/machines/[machine]/extensions.vue': {
+      routes:
+        | 'MachineExtensions'
+      views:
+        | never
     }
     'src/pages/(authenticated)/machines/[machine]/logs.vue': {
       routes:

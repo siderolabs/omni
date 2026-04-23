@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import MachineDevices from '@/views/Machines/MachineDevices.vue'
 
-definePage({ name: 'NodeDevices' })
+definePage({ name: 'MachineDevices' })
 </script>
 
 <template>
