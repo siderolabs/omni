@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 import { GrpcTunnelMode, type InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import type { LabelSelectItem } from '@/components/Labels/Labels.vue'
-import type { FormState } from '@/views/InstallationMedia/useFormState'
+import { AUTOMATIC_VERSION, type FormState } from '@/views/InstallationMedia/useFormState'
 
 export function formStateToPreset(formState: FormState): InstallationMediaConfigSpec {
   return {
@@ -24,9 +24,9 @@ export function formStateToPreset(formState: FormState): InstallationMediaConfig
           }
         : undefined,
     grpc_tunnel: formState.useGrpcTunnel ? GrpcTunnelMode.ENABLED : GrpcTunnelMode.DISABLED,
-    talos_version: formState.talosVersion,
+    talos_version: formState.talosVersion === AUTOMATIC_VERSION ? '' : formState.talosVersion,
     install_extensions: formState.systemExtensions,
-    join_token: formState.joinToken,
+    join_token: formState.joinToken === AUTOMATIC_VERSION ? '' : formState.joinToken,
     kernel_args: formState.cmdline,
     machine_labels: formState.machineUserLabels
       ? Object.entries(formState.machineUserLabels).reduce<Record<string, string>>(
@@ -47,9 +47,9 @@ export function presetToFormState(preset: InstallationMediaConfigSpec): FormStat
     sbcType: preset.sbc?.overlay,
     overlayOptions: preset.sbc?.overlay_options,
     useGrpcTunnel: preset.grpc_tunnel === GrpcTunnelMode.ENABLED,
-    talosVersion: preset.talos_version,
+    talosVersion: !preset.talos_version ? AUTOMATIC_VERSION : preset.talos_version,
     systemExtensions: preset.install_extensions,
-    joinToken: preset.join_token,
+    joinToken: !preset.join_token ? AUTOMATIC_VERSION : preset.join_token,
     cmdline: preset.kernel_args,
     machineUserLabels: preset.machine_labels
       ? Object.entries(preset.machine_labels).reduce<Record<string, LabelSelectItem>>(

@@ -1592,16 +1592,8 @@ func installationMediaConfigValidationOptions() []validated.StateOption {
 			return nil
 		}
 
-		if res.TypedSpec().Value.TalosVersion == "" {
-			return errors.New("invalid installation media config: talos version is required")
-		}
-
 		if res.TypedSpec().Value.Architecture == specs.PlatformConfigSpec_UNKNOWN_ARCH {
 			return errors.New("invalid installation media config: architecture is required")
-		}
-
-		if res.TypedSpec().Value.JoinToken == "" {
-			return errors.New("invalid installation media config: join token is required")
 		}
 
 		if res.TypedSpec().Value.Cloud != nil && res.TypedSpec().Value.Sbc != nil {

@@ -6,13 +6,23 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
-import { computed } from 'vue'
+import { compare } from 'semver'
+import { computed, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, InstallationMediaConfigType } from '@/api/resources'
+import type { InstallationMediaConfigSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import type { JoinTokenStatusSpec } from '@/api/omni/specs/siderolink.pb'
+import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
+import {
+  DefaultNamespace,
+  DefaultTalosVersion,
+  InstallationMediaConfigType,
+  JoinTokenStatusType,
+  TalosVersionType,
+} from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
+import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
@@ -20,7 +30,9 @@ import TableRow from '@/components/Table/TableRow.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useDownloadImage } from '@/methods/useDownloadImage'
 import { useResourceGet } from '@/methods/useResourceGet'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
+import { resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 import { usePresetDownloadLinks } from '@/views/InstallationMedia/usePresetDownloadLinks'
 import { usePresetSchematic } from '@/views/InstallationMedia/usePresetSchematic'
 import CloseButton from '@/views/Modals/CloseButton.vue'
@@ -35,6 +47,7 @@ const emit = defineEmits<{
 }>()
 
 const { data } = useResourceGet<InstallationMediaConfigSpec>(() => ({
+  skip: !open,
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
@@ -45,11 +58,101 @@ const { data } = useResourceGet<InstallationMediaConfigSpec>(() => ({
 
 const { copy } = useClipboard({ copiedDuring: 1000 })
 
-const preset = computed(() => data.value?.spec ?? {})
+// Fetch available versions and tokens for pickers
+const { data: talosVersionList } = useResourceWatch<TalosVersionSpec>(() => ({
+  skip: !open,
+  runtime: Runtime.Omni,
+  resource: {
+    type: TalosVersionType,
+    namespace: DefaultNamespace,
+  },
+}))
+
+const { data: joinTokenList } = useResourceWatch<JoinTokenStatusSpec>(() => ({
+  skip: !open,
+  runtime: Runtime.Omni,
+  resource: {
+    type: JoinTokenStatusType,
+    namespace: DefaultNamespace,
+  },
+}))
+
+// Picker state
+const selectedVersion = ref<string>()
+const selectedToken = ref<string>()
+const selectedArch = ref<PlatformConfigSpecArch>()
+
+const defaultTokenId = computed(
+  () => joinTokenList.value.find((t) => t.spec.is_default)?.metadata.id,
+)
+
+watchEffect(() => {
+  // Reset modal state on close
+  if (!open) {
+    selectedVersion.value = undefined
+    selectedToken.value = undefined
+    selectedArch.value = undefined
+    return
+  }
+
+  if (data.value) {
+    selectedVersion.value = data.value.spec.talos_version || DefaultTalosVersion
+    selectedToken.value = data.value.spec.join_token || defaultTokenId.value
+    selectedArch.value = data.value.spec.architecture
+  }
+})
+
+// Picker options
+const talosVersionOptions = computed(() =>
+  talosVersionList.value
+    .filter((v) => !v.spec.deprecated)
+    .map((v) => v.spec.version!)
+    .sort(compare),
+)
+
+const joinTokenOptions = computed(() =>
+  joinTokenList.value
+    .toSorted((a, b) => {
+      if (a.spec.is_default) return -1
+      if (b.spec.is_default) return 1
+
+      return 0
+    })
+    .map((t) => ({
+      label: t.spec.name || t.metadata.id || '',
+      value: t.metadata.id || '',
+    })),
+)
+
+const isSBC = computed(() => !!data.value?.spec.sbc)
+
+const archOptions = computed(() => {
+  if (isSBC.value) {
+    return [{ label: 'arm64', value: PlatformConfigSpecArch.ARM64 }]
+  }
+
+  return [
+    { label: 'amd64', value: PlatformConfigSpecArch.AMD64 },
+    { label: 'arm64', value: PlatformConfigSpecArch.ARM64 },
+  ]
+})
+
+// Resolved preset: merges original preset with picker overrides
+const resolvedPreset = computed<InstallationMediaConfigSpec>(() => {
+  const spec = data.value?.spec ?? {}
+
+  return {
+    ...spec,
+    talos_version: selectedVersion.value ?? resolveTalosVersion(spec.talos_version),
+    join_token: selectedToken.value ?? spec.join_token,
+    architecture: selectedArch.value ?? spec.architecture,
+  }
+})
+
 const schematicId = computed(() => schematic.value?.id ?? '')
 
-const { schematic } = usePresetSchematic(preset)
-const { links } = usePresetDownloadLinks(schematicId, preset)
+const { schematic } = usePresetSchematic(resolvedPreset)
+const { links } = usePresetDownloadLinks(schematicId, resolvedPreset)
 
 const {
   isGenerating: imageIsGenerating,
@@ -84,6 +187,29 @@ async function close() {
         </div>
 
         <CloseButton class="shrink-0" @click="close" />
+      </div>
+
+      <div class="flex flex-wrap gap-4">
+        <TSelectList
+          v-model="selectedVersion"
+          :values="talosVersionOptions"
+          title="Talos Version"
+          overhead-title
+        />
+
+        <TSelectList
+          v-model="selectedToken"
+          :values="joinTokenOptions"
+          title="Join Token"
+          overhead-title
+        />
+
+        <TSelectList
+          v-model="selectedArch"
+          :values="archOptions"
+          title="Architecture"
+          overhead-title
+        />
       </div>
 
       <TableRoot class="w-full">

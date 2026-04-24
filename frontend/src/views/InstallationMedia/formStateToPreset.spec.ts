@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { SchematicBootloader } from '@/api/omni/management/management.pb'
 import { GrpcTunnelMode, type InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
-import type { FormState } from '@/views/InstallationMedia/useFormState'
+import { AUTOMATIC_VERSION, type FormState } from '@/views/InstallationMedia/useFormState'
 
 import { formStateToPreset, presetToFormState } from './formStateToPreset'
 
@@ -33,6 +33,7 @@ describe('form<->preset conversion', () => {
     ).toEqual({
       hardwareType: 'metal',
       talosVersion: 'v1.12.0',
+      joinToken: AUTOMATIC_VERSION,
       machineArch: PlatformConfigSpecArch.AMD64,
       useGrpcTunnel: false,
     })
@@ -148,5 +149,24 @@ describe('form<->preset conversion', () => {
 
     expect(formStateToPreset(formState)).toEqual(preset)
     expect(presetToFormState(preset)).toEqual(formState)
+  })
+
+  it('should pass through empty talos version and join token (auto placeholders)', () => {
+    const formState: FormState = {
+      hardwareType: 'metal',
+      machineArch: PlatformConfigSpecArch.AMD64,
+      talosVersion: '',
+      joinToken: '',
+    }
+
+    const preset = formStateToPreset(formState)
+
+    expect(preset.talos_version).toBe('')
+    expect(preset.join_token).toBe('')
+
+    const roundTripped = presetToFormState(preset)
+
+    expect(roundTripped.talosVersion).toBe(AUTOMATIC_VERSION)
+    expect(roundTripped.joinToken).toBe(AUTOMATIC_VERSION)
   })
 })

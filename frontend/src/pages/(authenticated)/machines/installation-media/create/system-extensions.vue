@@ -13,7 +13,7 @@ import { DefaultNamespace, TalosExtensionsType } from '@/api/resources'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import type { FormState } from '@/views/InstallationMedia/useFormState'
+import { type FormState, resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 
 definePage({ name: 'InstallationMediaCreateSystemExtensions' })
 
@@ -22,7 +22,7 @@ const filterExtensions = ref('')
 
 const { data } = useResourceWatch<TalosExtensionsSpec>(() => ({
   resource: {
-    id: formState.value.talosVersion!,
+    id: resolveTalosVersion(formState.value.talosVersion!),
     type: TalosExtensionsType,
     namespace: DefaultNamespace,
   },

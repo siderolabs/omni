@@ -24,7 +24,6 @@ import {
 import {
   CloudPlatformConfigType,
   DefaultNamespace,
-  DefaultTalosVersion,
   FeaturesConfigID,
   FeaturesConfigType,
   LabelsMeta,
@@ -34,6 +33,7 @@ import {
   VirtualNamespace,
 } from '@/api/resources'
 import type { TalosctlDownloadsResponse } from '@/methods/useTalosctlDownloads'
+import { AUTOMATIC_VERSION } from '@/views/InstallationMedia/useFormState'
 
 import Confirmation from './confirmation.vue'
 
@@ -43,7 +43,7 @@ const meta: Meta<typeof Confirmation> = {
     modelValue: {
       hardwareType: 'metal',
       machineArch: PlatformConfigSpecArch.ARM64,
-      talosVersion: DefaultTalosVersion,
+      talosVersion: AUTOMATIC_VERSION,
       machineUserLabels: {
         'my-label': { canRemove: true, value: 'my-value' },
       },

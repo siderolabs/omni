@@ -20,7 +20,7 @@ import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceGet } from '@/methods/useResourceGet'
-import type { FormState } from '@/views/InstallationMedia/useFormState'
+import { type FormState, resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 
 definePage({ name: 'InstallationMediaCreateMachineArch' })
 
@@ -28,7 +28,7 @@ const formState = defineModel<FormState>({ required: true })
 
 const secureBootDocsLink = computed(() =>
   getDocsLink('talos', '/platform-specific-installations/bare-metal-platforms', {
-    talosVersion: formState.value.talosVersion,
+    talosVersion: resolveTalosVersion(formState.value.talosVersion),
   }),
 )
 

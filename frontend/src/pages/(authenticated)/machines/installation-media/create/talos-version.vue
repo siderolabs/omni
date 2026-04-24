@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { compare } from 'semver'
-import { computed, onBeforeMount, watch } from 'vue'
+import { computed, onBeforeMount } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
@@ -23,7 +23,11 @@ import TSelectList from '@/components/SelectList/TSelectList.vue'
 import { getDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import type { FormState } from '@/views/InstallationMedia/useFormState'
+import {
+  AUTOMATIC_VERSION,
+  type FormState,
+  resolveTalosVersion,
+} from '@/views/InstallationMedia/useFormState'
 
 definePage({ name: 'InstallationMediaCreateTalosVersion' })
 
@@ -48,15 +52,17 @@ const { data: joinTokenList, loading: joinTokensLoading } = useResourceWatch<Joi
   },
 })
 
-const talosVersions = computed(() =>
-  talosVersionList.value
+const talosVersions = computed(() => [
+  { label: 'Automatic', value: AUTOMATIC_VERSION },
+  ...talosVersionList.value
     .filter((v) => !v.spec.deprecated)
-    .map((v) => v.spec.version!)
-    .sort(compare),
-)
+    .map((v) => ({ label: v.spec.version!, value: v.spec.version! }))
+    .sort((a, b) => compare(a.value, b.value)),
+])
 
-const joinTokens = computed(() =>
-  joinTokenList.value
+const joinTokens = computed(() => [
+  { label: 'Automatic', value: AUTOMATIC_VERSION },
+  ...joinTokenList.value
     .toSorted((a, b) => {
       if (a.spec.is_default) return -1
       if (b.spec.is_default) return 1
@@ -67,11 +73,15 @@ const joinTokens = computed(() =>
       label: t.spec.name || t.metadata.id || '',
       value: t.metadata.id || '',
     })),
-)
+])
+
+const resolvedTalosVersion = computed(() => resolveTalosVersion(formState.value.talosVersion))
 
 // Form defaults
-onBeforeMount(() => (formState.value.talosVersion ??= DefaultTalosVersion))
-watch(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
+onBeforeMount(() => {
+  formState.value.talosVersion ??= AUTOMATIC_VERSION
+  formState.value.joinToken ??= AUTOMATIC_VERSION
+})
 </script>
 
 <template>
@@ -85,17 +95,23 @@ watch(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
     />
 
     <p class="text-xs">
-      Latest recommended version of Talos Linux ({{ DefaultTalosVersion }}).
+      The latest recommended version of Talos Linux is ({{ DefaultTalosVersion }}).
+
       <template v-if="features?.spec.talos_pre_release_versions_enabled">
         <br />
         Pre-release versions are suitable for testing purposes but are not advised for production
         environments.
       </template>
+
+      <br />
+      Selecting
+      <code class="rounded bg-naturals-n4 px-0.5">Automatic</code>
+      will automatically get the latest version, even if it changes.
     </p>
 
     <div class="space-y-2">
       <h2 id="docs-label-id" class="text-xs font-medium text-naturals-n14 after:content-[':']">
-        Documentation for Talos Linux {{ formState.talosVersion }}
+        Documentation for Talos Linux {{ resolvedTalosVersion }}
       </h2>
       <ul
         class="list-inside list-disc space-y-2 text-xs text-primary-p3"
@@ -105,7 +121,7 @@ watch(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
           <a
             :href="
               getDocsLink('talos', `/getting-started/what's-new-in-talos`, {
-                talosVersion: formState.talosVersion,
+                talosVersion: resolvedTalosVersion,
               })
             "
             rel="noopener noreferrer"
@@ -120,7 +136,7 @@ watch(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
           <a
             :href="
               getDocsLink('talos', '/getting-started/support-matrix', {
-                talosVersion: formState.talosVersion,
+                talosVersion: resolvedTalosVersion,
               })
             "
             rel="noopener noreferrer"
@@ -144,6 +160,12 @@ watch(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
       title="Join Token"
       overhead-title
     />
+
+    <p class="text-xs">
+      Selecting
+      <code class="rounded bg-naturals-n4 px-0.5">Automatic</code>
+      will automatically get the default join token, even if it changes.
+    </p>
 
     <h3 class="text-sm font-medium text-naturals-n14">Machine User Labels</h3>
 

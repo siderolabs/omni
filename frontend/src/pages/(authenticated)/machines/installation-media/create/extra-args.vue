@@ -18,19 +18,17 @@ import TextArea from '@/components/TextArea/TextArea.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceGet } from '@/methods/useResourceGet'
-import type { FormState } from '@/views/InstallationMedia/useFormState'
+import { type FormState, resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 
 definePage({ name: 'InstallationMediaCreateExtraArgs' })
 
 const formState = defineModel<FormState>({ required: true })
 
-const supportsCustomisingKernelArgs = computed(
-  () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.10.0'),
-)
+const resolvedVersion = computed(() => resolveTalosVersion(formState.value.talosVersion!))
 
-const supportsBootloaderSelection = computed(
-  () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.12.0-alpha.2'),
-)
+const supportsCustomisingKernelArgs = computed(() => gte(resolvedVersion.value, '1.10.0'))
+
+const supportsBootloaderSelection = computed(() => gte(resolvedVersion.value, '1.12.0-alpha.2'))
 
 const { data: selectedSBC } = useResourceGet<SBCConfigSpec>(() => ({
   skip: formState.value.hardwareType !== 'sbc',
@@ -62,7 +60,7 @@ onBeforeMount(() => (formState.value.bootloader ??= SchematicBootloader.BOOT_AUT
       <a
         target="_blank"
         rel="noopener noreferrer"
-        :href="getDocsLink('talos', '/reference/kernel', { talosVersion: formState.talosVersion })"
+        :href="getDocsLink('talos', '/reference/kernel', { talosVersion: resolvedVersion })"
         class="link-primary"
       >
         kernel command line arguments.

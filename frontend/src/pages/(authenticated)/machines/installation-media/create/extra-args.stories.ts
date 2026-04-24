@@ -9,7 +9,8 @@ import { http, HttpResponse } from 'msw'
 import type { Resource } from '@/api/grpc'
 import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
 import type { SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
-import { DefaultTalosVersion, SBCConfigType, VirtualNamespace } from '@/api/resources'
+import { SBCConfigType, VirtualNamespace } from '@/api/resources'
+import { AUTOMATIC_VERSION } from '@/views/InstallationMedia/useFormState'
 
 import ExtraArgs from './extra-args.vue'
 
@@ -31,7 +32,7 @@ const SBC: Resource<SBCConfigSpec> = {
 const meta: Meta<typeof ExtraArgs> = {
   component: ExtraArgs,
   args: {
-    modelValue: { talosVersion: DefaultTalosVersion },
+    modelValue: { talosVersion: AUTOMATIC_VERSION },
   },
 }
 
@@ -83,7 +84,7 @@ export const WithOverlayOptions: Story = {
   ...Default,
   args: {
     modelValue: {
-      talosVersion: DefaultTalosVersion,
+      talosVersion: AUTOMATIC_VERSION,
       hardwareType: 'sbc',
       sbcType: SBC.metadata.id,
     },

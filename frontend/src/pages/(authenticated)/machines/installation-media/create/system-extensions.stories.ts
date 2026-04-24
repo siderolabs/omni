@@ -7,14 +7,15 @@ import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import type { TalosExtensionsSpec, TalosExtensionsSpecInfo } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, DefaultTalosVersion, TalosExtensionsType } from '@/api/resources'
+import { DefaultNamespace, TalosExtensionsType } from '@/api/resources'
+import { AUTOMATIC_VERSION } from '@/views/InstallationMedia/useFormState'
 
 import SystemExtensions from './system-extensions.vue'
 
 const meta: Meta<typeof SystemExtensions> = {
   component: SystemExtensions,
   args: {
-    modelValue: { talosVersion: DefaultTalosVersion },
+    modelValue: { talosVersion: AUTOMATIC_VERSION },
   },
 }
 

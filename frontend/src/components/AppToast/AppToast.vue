@@ -15,6 +15,11 @@ import TIcon from '@/components/Icon/TIcon.vue'
 <template>
   <Toaster
     close-button
+    :offset="{
+      // Custom offset to show toasts above the lower bars we sometimes have
+      bottom: '4.5rem',
+      right: '1rem',
+    }"
     :toast-options="{
       unstyled: true,
       classes: {

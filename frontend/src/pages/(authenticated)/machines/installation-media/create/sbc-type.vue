@@ -16,7 +16,7 @@ import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceList } from '@/methods/useResourceList'
-import type { FormState } from '@/views/InstallationMedia/useFormState'
+import { type FormState, resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 
 definePage({ name: 'InstallationMediaCreateSBCType' })
 
@@ -30,13 +30,11 @@ const { data } = useResourceList<SBCConfigSpec>({
   },
 })
 
+const resolvedVersion = computed(() => resolveTalosVersion(formState.value.talosVersion!))
+
 const SBCs = computed(() =>
   data.value
-    ?.filter(
-      (sbc) =>
-        !sbc.spec.min_version ||
-        (formState.value.talosVersion && gte(formState.value.talosVersion, sbc.spec.min_version)),
-    )
+    ?.filter((sbc) => !sbc.spec.min_version || gte(resolvedVersion.value, sbc.spec.min_version))
     .map((sbc) => ({
       ...sbc,
       spec: {
@@ -44,7 +42,7 @@ const SBCs = computed(() =>
         documentation:
           sbc.spec.documentation &&
           getDocsLink('talos', sbc.spec.documentation, {
-            talosVersion: formState.value.talosVersion,
+            talosVersion: resolvedVersion.value,
           }),
       },
     })),

@@ -13,7 +13,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import { ResourceService } from '@/api/grpc'
 import type { InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import { withRuntime } from '@/api/options'
-import { DefaultNamespace, InstallationMediaConfigType } from '@/api/resources'
+import { DefaultNamespace, DefaultTalosVersion, InstallationMediaConfigType } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
@@ -127,7 +127,9 @@ function clonePreset(preset: (typeof presets.value)[number]) {
               {{ preset.metadata.id }}
             </RouterLink>
           </TableCell>
-          <TableCell>{{ preset.spec.talos_version }}</TableCell>
+          <TableCell>
+            {{ preset.spec.talos_version || `Automatic (${DefaultTalosVersion})` }}
+          </TableCell>
           <TableCell>
             {{
               preset.metadata.created &&

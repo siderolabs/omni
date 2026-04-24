@@ -35,7 +35,7 @@ import { useResourceGet } from '@/methods/useResourceGet'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
 import { showError } from '@/notification'
 import { formStateToPreset } from '@/views/InstallationMedia/formStateToPreset'
-import type { FormState } from '@/views/InstallationMedia/useFormState'
+import { type FormState, resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 import { usePresetDownloadLinks } from '@/views/InstallationMedia/usePresetDownloadLinks'
 import { usePresetSchematic } from '@/views/InstallationMedia/usePresetSchematic'
 import CloseButton from '@/views/Modals/CloseButton.vue'
@@ -46,12 +46,10 @@ defineProps<{
 
 const formState = defineModel<FormState>({ required: true })
 
-const supportsUnifiedInstaller = computed(
-  () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.10.0'),
-)
-const talosctlAvailable = computed(
-  () => !!formState.value.talosVersion && gte(formState.value.talosVersion, '1.11.0-alpha.3'),
-)
+const resolvedTalosVersion = computed(() => resolveTalosVersion(formState.value.talosVersion!))
+
+const supportsUnifiedInstaller = computed(() => gte(resolvedTalosVersion.value, '1.10.0'))
+const talosctlAvailable = computed(() => gte(resolvedTalosVersion.value, '1.11.0-alpha.3'))
 
 const { data: features } = useFeatures()
 const imageDownloadDialog = useTemplateRef<HTMLDialogElement>('downloadImageDialog')
@@ -77,7 +75,7 @@ useEventListener(imageDownloadDialog, 'close', abortImageDownload)
 const { downloads } = useTalosctlDownloads()
 
 const talosctlPaths = computed(
-  () => downloads.value?.get(`v${formState.value.talosVersion}`)?.map((v) => v.url) ?? [],
+  () => downloads.value?.get(`v${resolvedTalosVersion.value}`)?.map((v) => v.url) ?? [],
 )
 
 const { data: selectedCloudProvider } = useResourceGet<PlatformConfigSpec>(() => ({
@@ -132,17 +130,22 @@ const notOnlyDiskImage = computed(
 
 const preset = computed(() => formStateToPreset(formState.value))
 
-const { schematic, schematicLoading, schematicError } = usePresetSchematic(preset)
+const resolvedPreset = computed(() => ({
+  ...preset.value,
+  talos_version: resolvedTalosVersion.value,
+}))
+
+const { schematic, schematicLoading, schematicError } = usePresetSchematic(resolvedPreset)
 const schematicId = computed(() => schematic.value?.id ?? '')
 
-const { links } = usePresetDownloadLinks(schematicId, preset)
+const { links } = usePresetDownloadLinks(schematicId, resolvedPreset)
 
 const factoryUrl = computed(() => features.value?.spec.image_factory_base_url)
 
 const installerImage = computed(() =>
   supportsUnifiedInstaller.value
-    ? `${factoryUrl.value}/${formState.value.hardwareType}-installer${secureBootSuffix.value}/${schematicId.value}:${formState.value.talosVersion}`
-    : `${factoryUrl.value}/installer/${schematicId.value}:${formState.value.talosVersion}`,
+    ? `${factoryUrl.value}/${formState.value.hardwareType}-installer${secureBootSuffix.value}/${schematicId.value}:${resolvedTalosVersion.value}`
+    : `${factoryUrl.value}/installer/${schematicId.value}:${resolvedTalosVersion.value}`,
 )
 </script>
 
@@ -219,7 +222,7 @@ const installerImage = computed(() =>
       />
     </template>
 
-    <template v-if="formState.talosVersion && gte(formState.talosVersion, '1.12.0-alpha.2')">
+    <template v-if="gte(resolvedTalosVersion, '1.12.0-alpha.2')">
       <h3 class="text-sm text-naturals-n14">Local Test Cluster</h3>
       <p>
         To create a local Talos Linux test cluster from this schematic on macOS (Apple Silicon) or
@@ -227,7 +230,7 @@ const installerImage = computed(() =>
       </p>
       <CodeBlock
         :button-attrs="{ 'aria-label': 'Copy create Talos test cluster command' }"
-        :code="`talosctl cluster create qemu --schematic-id=${schematic.id} --talos-version=v${formState.talosVersion}`"
+        :code="`talosctl cluster create qemu --schematic-id=${schematic.id} --talos-version=v${resolvedTalosVersion}`"
       />
     </template>
 
@@ -246,39 +249,37 @@ const installerImage = computed(() =>
     </p>
     <CodeBlock
       :button-attrs="{ 'aria-label': 'Copy PXE booter docker run command' }"
-      :code="`docker run --rm --network host ghcr.io/siderolabs/booter:v0.3.0 --talos-version=v${formState.talosVersion} --schematic-id=${schematic.id}`"
+      :code="`docker run --rm --network host ghcr.io/siderolabs/booter:v0.3.0 --talos-version=v${resolvedTalosVersion} --schematic-id=${schematic.id}`"
     />
 
     <h3 class="text-sm text-naturals-n14">Documentation</h3>
     <ul class="ml-2 flex list-inside list-disc flex-col gap-2 text-primary-p3">
       <li>
         <a
-          v-if="formState.talosVersion"
           class="link-primary"
           :href="
             getDocsLink('talos', `/getting-started/what's-new-in-talos`, {
-              talosVersion: formState.talosVersion,
+              talosVersion: resolvedTalosVersion,
             })
           "
           target="_blank"
           rel="noopener noreferrer"
         >
-          What's New in Talos {{ majorMinorVersion(formState.talosVersion) }}
+          What's New in Talos {{ majorMinorVersion(resolvedTalosVersion) }}
         </a>
       </li>
       <li>
         <a
-          v-if="formState.talosVersion"
           class="link-primary"
           :href="
             getDocsLink('talos', '/getting-started/support-matrix', {
-              talosVersion: formState.talosVersion,
+              talosVersion: resolvedTalosVersion,
             })
           "
           target="_blank"
           rel="noopener noreferrer"
         >
-          Support Matrix for {{ majorMinorVersion(formState.talosVersion) }}
+          Support Matrix for {{ majorMinorVersion(resolvedTalosVersion) }}
         </a>
       </li>
       <li>
@@ -286,7 +287,7 @@ const installerImage = computed(() =>
           class="link-primary"
           :href="
             getDocsLink('talos', '/getting-started/getting-started', {
-              talosVersion: formState.talosVersion,
+              talosVersion: resolvedTalosVersion,
             })
           "
           target="_blank"
@@ -303,7 +304,7 @@ const installerImage = computed(() =>
             getDocsLink(
               'talos',
               '/platform-specific-installations/bare-metal-platforms/network-config',
-              { talosVersion: formState.talosVersion },
+              { talosVersion: resolvedTalosVersion },
             )
           "
           target="_blank"
@@ -317,7 +318,7 @@ const installerImage = computed(() =>
           class="link-primary"
           :href="
             getDocsLink('talos', selectedPlatform.spec.documentation, {
-              talosVersion: formState.talosVersion,
+              talosVersion: resolvedTalosVersion,
             })
           "
           target="_blank"
@@ -331,7 +332,7 @@ const installerImage = computed(() =>
           class="link-primary"
           :href="
             getDocsLink('talos', selectedSBC.spec.documentation, {
-              talosVersion: formState.talosVersion,
+              talosVersion: resolvedTalosVersion,
             })
           "
           target="_blank"
@@ -348,7 +349,7 @@ const installerImage = computed(() =>
             getDocsLink(
               'talos',
               '/platform-specific-installations/bare-metal-platforms/secureboot',
-              { talosVersion: formState.talosVersion },
+              { talosVersion: resolvedTalosVersion },
             )
           "
           target="_blank"
@@ -363,7 +364,7 @@ const installerImage = computed(() =>
           class="link-primary"
           :href="
             getDocsLink('talos', '/getting-started/prodnotes', {
-              talosVersion: formState.talosVersion,
+              talosVersion: resolvedTalosVersion,
             })
           "
           target="_blank"
@@ -378,7 +379,7 @@ const installerImage = computed(() =>
           class="link-primary"
           :href="
             getDocsLink('talos', '/troubleshooting/troubleshooting', {
-              talosVersion: formState.talosVersion,
+              talosVersion: resolvedTalosVersion,
             })
           "
           target="_blank"

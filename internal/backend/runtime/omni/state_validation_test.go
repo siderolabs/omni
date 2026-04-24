@@ -32,7 +32,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -1984,18 +1983,11 @@ func TestInstallationMediaConfigValidation(t *testing.T) {
 
 	installationMediaConfig := omnires.NewInstallationMediaConfig("test")
 
+	// Empty talos_version and join_token are valid (placeholder for stable/default)
 	err := st.Create(ctx, installationMediaConfig)
-	require.Contains(t, err.Error(), "invalid installation media config: talos version is required")
-
-	installationMediaConfig.TypedSpec().Value.TalosVersion = constants.DefaultTalosVersion
-	err = st.Create(ctx, installationMediaConfig)
 	require.Contains(t, err.Error(), "invalid installation media config: architecture is required")
 
 	installationMediaConfig.TypedSpec().Value.Architecture = specs.PlatformConfigSpec_AMD64
-	err = st.Create(ctx, installationMediaConfig)
-	require.Contains(t, err.Error(), "invalid installation media config: join token is required")
-
-	installationMediaConfig.TypedSpec().Value.JoinToken = "test-token"
 	installationMediaConfig.TypedSpec().Value.Cloud = &specs.InstallationMediaConfigSpec_Cloud{}
 	installationMediaConfig.TypedSpec().Value.Sbc = &specs.InstallationMediaConfigSpec_SBC{}
 
@@ -2009,23 +2001,9 @@ func TestInstallationMediaConfigValidation(t *testing.T) {
 	modifiedInstallationMediaConfig, ok := installationMediaConfig.DeepCopy().(*omnires.InstallationMediaConfig)
 	require.True(t, ok)
 
-	modifiedInstallationMediaConfig.TypedSpec().Value.TalosVersion = ""
-	err = st.Update(ctx, modifiedInstallationMediaConfig)
-	require.Contains(t, err.Error(), "invalid installation media config: talos version is required")
-
-	modifiedInstallationMediaConfig, ok = installationMediaConfig.DeepCopy().(*omnires.InstallationMediaConfig)
-	require.True(t, ok)
-
 	modifiedInstallationMediaConfig.TypedSpec().Value.Architecture = specs.PlatformConfigSpec_UNKNOWN_ARCH
 	err = st.Update(ctx, modifiedInstallationMediaConfig)
 	require.Contains(t, err.Error(), "invalid installation media config: architecture is required")
-
-	modifiedInstallationMediaConfig, ok = installationMediaConfig.DeepCopy().(*omnires.InstallationMediaConfig)
-	require.True(t, ok)
-
-	modifiedInstallationMediaConfig.TypedSpec().Value.JoinToken = ""
-	err = st.Update(ctx, modifiedInstallationMediaConfig)
-	require.Contains(t, err.Error(), "invalid installation media config: join token is required")
 
 	modifiedInstallationMediaConfig, ok = installationMediaConfig.DeepCopy().(*omnires.InstallationMediaConfig)
 	require.True(t, ok)

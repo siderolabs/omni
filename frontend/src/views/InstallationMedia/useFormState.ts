@@ -7,9 +7,15 @@ import { watch } from 'vue'
 
 import type { SchematicBootloader } from '@/api/omni/management/management.pb'
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
+import { DefaultTalosVersion } from '@/api/resources'
 import type { LabelSelectItem } from '@/components/Labels/Labels.vue'
 
 export type HardwareType = 'metal' | 'cloud' | 'sbc'
+export const AUTOMATIC_VERSION = 'auto'
+
+export function resolveTalosVersion<T extends string | undefined>(version: T) {
+  return version === AUTOMATIC_VERSION ? DefaultTalosVersion : version
+}
 
 export interface FormState {
   hardwareType?: HardwareType

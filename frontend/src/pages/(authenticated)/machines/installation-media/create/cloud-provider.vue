@@ -16,7 +16,7 @@ import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceList } from '@/methods/useResourceList'
-import type { FormState } from '@/views/InstallationMedia/useFormState'
+import { type FormState, resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 
 definePage({ name: 'InstallationMediaCreateCloudProvider' })
 
@@ -30,13 +30,11 @@ const { data } = useResourceList<PlatformConfigSpec>({
   },
 })
 
+const resolvedVersion = computed(() => resolveTalosVersion(formState.value.talosVersion!))
+
 const platforms = computed(() =>
   data.value
-    ?.filter(
-      (p) =>
-        !p.spec.min_version ||
-        (formState.value.talosVersion && gte(formState.value.talosVersion, p.spec.min_version)),
-    )
+    ?.filter((p) => !p.spec.min_version || gte(resolvedVersion.value, p.spec.min_version))
     .map((p) => ({
       ...p,
       spec: {
@@ -44,7 +42,7 @@ const platforms = computed(() =>
         documentation:
           p.spec.documentation &&
           getDocsLink('talos', p.spec.documentation, {
-            talosVersion: formState.value.talosVersion,
+            talosVersion: resolvedVersion.value,
           }),
       },
     })),
