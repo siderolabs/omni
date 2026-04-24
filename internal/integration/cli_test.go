@@ -25,6 +25,7 @@ import (
 
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/client"
+	clientconstants "github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -49,14 +50,10 @@ func AssertDownloadUsingCLI(testCtx context.Context, client *client.Client, omni
 		for val := range media.All() {
 			spec := val.TypedSpec().Value
 
-			switch spec.Profile {
-			case "aws":
-				fallthrough
-			case "iso":
-				images = append(images, val)
-			}
-
-			if spec.Overlay == "rpi_generic" {
+			switch {
+			case spec.Profile == "aws",
+				spec.Extension == "iso" && spec.Overlay == "",
+				spec.Overlay == "rpi_generic":
 				images = append(images, val)
 			}
 		}
@@ -154,6 +151,185 @@ func createServiceAccount(ctx context.Context, t *testing.T, client *client.Clie
 	require.NoError(t, err)
 
 	return encodedKey
+}
+
+// AssertInstallationMediaPresetCLI verifies the `omnictl media` CLI: preset create/list/delete and download from a preset.
+func AssertInstallationMediaPresetCLI(testCtx context.Context, client *client.Client, omnictlPath, httpEndpoint string) TestFunc {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		if omnictlPath == "" {
+			t.Skip()
+		}
+
+		presetName := "test-preset-" + uuid.NewString()
+		name := "test-" + uuid.NewString()
+
+		key := createServiceAccount(testCtx, t, client, name, role.Admin)
+
+		// Create a preset
+		stdout, stderr, err := runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "preset", "create", presetName,
+			"--arch", "amd64",
+			"--talos-version", clientconstants.DefaultTalosVersion,
+		)
+		require.NoErrorf(t, err, "failed to create preset. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+
+		// List presets and verify ours exists
+		stdout, stderr, err = runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "preset", "list",
+		)
+		require.NoErrorf(t, err, "failed to list presets. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+		require.Contains(t, stdout.String(), presetName)
+
+		// Wide list output should include extra columns
+		stdout, stderr, err = runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "preset", "list", "-o", "wide",
+		)
+		require.NoErrorf(t, err, "failed to list presets wide. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+		require.Contains(t, stdout.String(), "PLATFORM/OVERLAY")
+		require.Contains(t, stdout.String(), "KERNEL ARGS")
+
+		// Download from preset
+		output := filepath.Join(t.TempDir(), "preset-download.iso")
+
+		stdout, stderr, err = runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "download", presetName,
+			"--format", "iso",
+			"--output", output,
+		)
+		require.NoErrorf(t, err, "failed to download from preset. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+
+		res, err := os.Stat(output)
+		require.NoError(t, err)
+		require.Greater(t, res.Size(), int64(1024*1024))
+
+		// Delete the preset
+		stdout, stderr, err = runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "preset", "delete", presetName,
+		)
+		require.NoErrorf(t, err, "failed to delete preset. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+
+		// Verify deletion
+		stdout, stderr, err = runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "preset", "list",
+		)
+		require.NoErrorf(t, err, "failed to list presets after deletion. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+		require.NotContains(t, stdout.String(), presetName)
+
+		// --platform and --overlay are mutually exclusive
+		_, stderr, err = runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "preset", "create", "test-mutex-"+uuid.NewString(),
+			"--arch", "amd64",
+			"--platform", "aws",
+			"--overlay", "rpi_generic",
+		)
+		require.Error(t, err, "create with --platform and --overlay should fail")
+		require.Contains(t, stderr.String(), "cannot be used together")
+
+		// Deleting a non-existent preset returns an error
+		_, _, err = runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "preset", "delete", "does-not-exist-"+uuid.NewString(),
+		)
+		require.Error(t, err, "deleting a non-existent preset should fail")
+
+		// Cloud preset on AWS rejects secure boot (AWS does not support it)
+		_, stderr, err = runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "preset", "create", "test-aws-sb-"+uuid.NewString(),
+			"--arch", "amd64",
+			"--platform", "aws",
+			"--secureboot",
+		)
+		require.Error(t, err, "AWS preset with --secureboot should be rejected")
+		require.Contains(t, stderr.String(), "does not support secure boot")
+
+		// Unknown Talos version is rejected up front
+		_, stderr, err = runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "preset", "create", "test-bad-version-"+uuid.NewString(),
+			"--arch", "amd64",
+			"--talos-version", "9.99.99",
+		)
+		require.Error(t, err, "create with unknown Talos version should be rejected")
+		require.Contains(t, stderr.String(), `unknown Talos version "9.99.99"`)
+
+		// Preset created without --talos-version uses the CLI default
+		defaultsPreset := "test-defaults-" + uuid.NewString()
+
+		stdout, stderr, err = runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "preset", "create", defaultsPreset, "--arch", "amd64",
+		)
+		require.NoErrorf(t, err, "failed to create defaults preset. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+
+		t.Cleanup(func() {
+			//nolint:errcheck
+			runCmd(testCtx, omnictlPath, httpEndpoint, key, "media", "preset", "delete", defaultsPreset)
+		})
+
+		// Download with --arch and --extensions overrides
+		archOverrideOutput := filepath.Join(t.TempDir(), "arch-override.iso")
+
+		stdout, stderr, err = runCmd(
+			testCtx,
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "download", defaultsPreset,
+			"--format", "iso",
+			"--arch", "arm64",
+			"--extensions", "qemu-guest-agent",
+			"--extensions", "intel-ucode",
+			"--output", archOverrideOutput,
+		)
+		require.NoErrorf(t, err, "download with overrides failed. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+
+		res, err = os.Stat(archOverrideOutput)
+		require.NoError(t, err)
+		require.Greater(t, res.Size(), int64(1024*1024))
+	}
 }
 
 // AssertUserCLI verifies user management cli commands.

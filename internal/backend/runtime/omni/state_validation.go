@@ -29,8 +29,10 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	virtualres "github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/factory/configs"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -1592,12 +1594,34 @@ func installationMediaConfigValidationOptions() []validated.StateOption {
 			return nil
 		}
 
-		if res.TypedSpec().Value.Architecture == specs.PlatformConfigSpec_UNKNOWN_ARCH {
+		spec := res.TypedSpec().Value
+
+		if spec.Architecture == specs.PlatformConfigSpec_UNKNOWN_ARCH {
 			return errors.New("invalid installation media config: architecture is required")
 		}
 
-		if res.TypedSpec().Value.Cloud != nil && res.TypedSpec().Value.Sbc != nil {
+		if spec.Cloud != nil && spec.Sbc != nil {
 			return errors.New("invalid installation media config: both sbc and cloud fields are set")
+		}
+
+		if spec.Sbc != nil {
+			if spec.Sbc.Overlay == "" {
+				return errors.New("invalid installation media config: sbc.overlay is required when sbc is set")
+			}
+
+			if _, err := configs.GetSBCConfig(virtualres.NewSBCConfig(spec.Sbc.Overlay).Metadata()); err != nil {
+				return fmt.Errorf("invalid installation media config: unknown SBC overlay %q", spec.Sbc.Overlay)
+			}
+		}
+
+		if spec.Cloud != nil {
+			if spec.Cloud.Platform == "" {
+				return errors.New("invalid installation media config: cloud.platform is required when cloud is set")
+			}
+
+			if _, err := configs.GetCloudPlatformConfig(virtualres.NewCloudPlatformConfig(spec.Cloud.Platform).Metadata()); err != nil {
+				return fmt.Errorf("invalid installation media config: unknown cloud platform %q", spec.Cloud.Platform)
+			}
 		}
 
 		return nil
