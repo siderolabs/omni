@@ -12,7 +12,7 @@ import { useRouter } from 'vue-router'
 import TButton from '@/components/Button/TButton.vue'
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
-import { getDocsLink, getPlatform } from '@/methods'
+import { downloadFile, getDocsLink, getPlatform } from '@/methods'
 import CloseButton from '@/views/Modals/CloseButton.vue'
 
 const router = useRouter()
@@ -53,11 +53,7 @@ const download = () => {
 
   close()
 
-  const a = document.createElement('a')
-  a.href = `/omnictl/${encodeURI(selectedOption.value)}`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
+  downloadFile(`/omnictl/${encodeURI(selectedOption.value)}`)
 }
 </script>
 

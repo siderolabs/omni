@@ -12,7 +12,7 @@ import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
-import { getDocsLink, getPlatform } from '@/methods'
+import { downloadFile, getDocsLink, getPlatform } from '@/methods'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
 
 const open = defineModel<boolean>('open', { default: false })
@@ -48,11 +48,7 @@ const download = () => {
     return
   }
 
-  const a = document.createElement('a')
-  a.href = link.url
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
+  downloadFile(link.url)
 }
 
 const versionBinaries = computed<string[]>(() => {

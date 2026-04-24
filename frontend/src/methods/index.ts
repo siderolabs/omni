@@ -83,20 +83,19 @@ export const formatBytes = (bytes?: number | string, decimals = 2) => {
 }
 
 export const downloadKubeconfig = async (cluster: string) => {
-  const link = document.createElement('a')
   try {
     const response = await ManagementService.Kubeconfig({}, withContext({ cluster }))
 
-    link.href = `data:application/octet-stream;charset=utf-16le;base64,${response.kubeconfig}`
-    link.download = `${cluster}-kubeconfig.yaml`
-    link.click()
+    downloadFile(
+      `data:application/octet-stream;charset=utf-16le;base64,${response.kubeconfig}`,
+      `${cluster}-kubeconfig.yaml`,
+    )
   } catch (e) {
     showError('Failed to download Kubeconfig', e.message || e.toString())
   }
 }
 
 export const downloadTalosconfig = async (cluster?: string) => {
-  const link = document.createElement('a')
   const opts: fetchOption[] = []
 
   if (cluster) {
@@ -106,22 +105,23 @@ export const downloadTalosconfig = async (cluster?: string) => {
   try {
     const response = await ManagementService.Talosconfig({}, ...opts)
 
-    link.href = `data:application/octet-stream;charset=utf-16le;base64,${response.talosconfig}`
-    link.download = cluster ? `${cluster}-talosconfig.yaml` : 'talosconfig.yaml'
-    link.click()
+    downloadFile(
+      `data:application/octet-stream;charset=utf-16le;base64,${response.talosconfig}`,
+      cluster ? `${cluster}-talosconfig.yaml` : 'talosconfig.yaml',
+    )
   } catch (e) {
     showError('Failed to download Talosconfig', e.message || e.toString())
   }
 }
 
 export const downloadOmniconfig = async () => {
-  const link = document.createElement('a')
   try {
     const response = await ManagementService.Omniconfig({})
 
-    link.href = `data:application/octet-stream;charset=utf-16le;base64,${response.omniconfig}`
-    link.download = 'omniconfig.yaml'
-    link.click()
+    downloadFile(
+      `data:application/octet-stream;charset=utf-16le;base64,${response.omniconfig}`,
+      'omniconfig.yaml',
+    )
   } catch (e) {
     showError('Failed to download omniconfig', e.message || e.toString())
   }
@@ -204,19 +204,10 @@ export const downloadMachineJoinConfig = async (
     use_grpc_tunnel: useGRPCTunnel,
   })
 
-  const element = document.createElement('a')
-  element.setAttribute(
-    'href',
+  downloadFile(
     'data:text/plain;charset=utf-8,' + encodeURIComponent(response.config!),
+    'machine-config.yaml',
   )
-  element.setAttribute('download', 'machine-config.yaml')
-
-  element.style.display = 'none'
-  document.body.appendChild(element)
-
-  element.click()
-
-  document.body.removeChild(element)
 }
 
 type DocsType = 'talos' | 'omni' | 'k8s'
@@ -264,4 +255,20 @@ export function majorMinorVersion(version: string) {
   }
 
   return `${v.major}.${v.minor}`
+}
+
+export function downloadFile(url: string, filename?: string, target?: string) {
+  const a = document.createElement('a')
+  a.style.display = 'none'
+
+  a.href = url
+  if (filename) a.download = filename
+  if (target) {
+    a.target = target
+    if (target === '_blank') a.rel = 'noopener noreferrer'
+  }
+
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
 }

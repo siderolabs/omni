@@ -21,6 +21,7 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import ProgressBar from '@/components/ProgressBar/ProgressBar.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
+import { downloadFile } from '@/methods'
 import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
@@ -163,23 +164,13 @@ const download = async () => {
   }
 }
 
-const downloadURL = (data: string, fileName: string) => {
-  const a = document.createElement('a')
-  a.href = data
-  a.download = fileName
-  document.body.appendChild(a)
-  a.style.display = 'none'
-  a.click()
-  a.remove()
-}
-
 async function confirm() {
   if (!downloadedURL.value) {
     await download()
   }
 
   if (downloadedURL.value) {
-    downloadURL(downloadedURL.value, 'support.zip')
+    downloadFile(downloadedURL.value, 'support.zip')
   }
 }
 

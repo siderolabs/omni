@@ -55,6 +55,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import { downloadFile } from '@/methods'
 import { useReadAuditLog } from '@/views/Settings/useReadAuditLog'
 
 definePage({ name: 'AuditLogs' })
@@ -106,11 +107,8 @@ const { data, loading, error } = useReadAuditLog(() => ({
 }))
 
 function downloadLogs() {
-  const link = document.createElement('a')
   const url = window.URL.createObjectURL(new Blob(data.value, { type: 'application/json' }))
-  link.href = url
-  link.download = 'auditlog.jsonlog'
-  link.click()
+  downloadFile(url, 'auditlog.jsonlog')
   window.URL.revokeObjectURL(url)
 }
 

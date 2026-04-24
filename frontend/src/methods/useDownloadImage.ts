@@ -4,6 +4,7 @@
 // included in the LICENSE file.
 import { onUnmounted, ref } from 'vue'
 
+import { downloadFile } from '@/methods'
 import { useFeatures } from '@/methods/features'
 
 export function useDownloadImage() {
@@ -51,7 +52,7 @@ export function useDownloadImage() {
       const downloadUrl = new URL(headUrl)
       downloadUrl.searchParams.set('filename', `omni-${accountName}-${talosVersion}-${imageName}`)
 
-      downloadFile(downloadUrl)
+      downloadFile(downloadUrl.toString(), undefined, '_blank')
     } catch (e) {
       // Ignore abort errors
       if (abortController.value?.signal.aborted) return
@@ -71,15 +72,4 @@ export function useDownloadImage() {
     abort,
     download,
   }
-}
-
-async function downloadFile(url: URL | string) {
-  const a = document.createElement('a')
-  a.href = url.toString()
-  a.target = '_blank'
-
-  document.body.appendChild(a)
-
-  a.click()
-  a.remove()
 }
