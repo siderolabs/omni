@@ -29,8 +29,10 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	virtualres "github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/factory/configs"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -1592,20 +1594,34 @@ func installationMediaConfigValidationOptions() []validated.StateOption {
 			return nil
 		}
 
-		if res.TypedSpec().Value.TalosVersion == "" {
+		spec := res.TypedSpec().Value
+
+		if spec.TalosVersion == "" {
 			return errors.New("invalid installation media config: talos version is required")
 		}
 
-		if res.TypedSpec().Value.Architecture == specs.PlatformConfigSpec_UNKNOWN_ARCH {
+		if spec.Architecture == specs.PlatformConfigSpec_UNKNOWN_ARCH {
 			return errors.New("invalid installation media config: architecture is required")
 		}
 
-		if res.TypedSpec().Value.JoinToken == "" {
+		if spec.JoinToken == "" {
 			return errors.New("invalid installation media config: join token is required")
 		}
 
-		if res.TypedSpec().Value.Cloud != nil && res.TypedSpec().Value.Sbc != nil {
+		if spec.Cloud != nil && spec.Sbc != nil {
 			return errors.New("invalid installation media config: both sbc and cloud fields are set")
+		}
+
+		if spec.Sbc != nil && spec.Sbc.Overlay != "" {
+			if _, err := configs.GetSBCConfig(virtualres.NewSBCConfig(spec.Sbc.Overlay).Metadata()); err != nil {
+				return fmt.Errorf("invalid installation media config: unknown SBC overlay %q", spec.Sbc.Overlay)
+			}
+		}
+
+		if spec.Cloud != nil && spec.Cloud.Platform != "" {
+			if _, err := configs.GetCloudPlatformConfig(virtualres.NewCloudPlatformConfig(spec.Cloud.Platform).Metadata()); err != nil {
+				return fmt.Errorf("invalid installation media config: unknown cloud platform %q", spec.Cloud.Platform)
+			}
 		}
 
 		return nil
