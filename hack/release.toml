@@ -6,7 +6,7 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v1.6.0"
+previous = "v1.7.0"
 
 [notes.aaa-eula-flags]
 title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
@@ -25,65 +25,4 @@ eulaAccept:
   name: Your Name
   email: your@email.com
 ```
-"""
-
-[notes.kubernetes-manifests-sync]
-title = "Kubernetes Manifests Sync"
-description = """\
-Omni now supports syncing Kubernetes manifests directly to managed clusters. \
-Manifests can be defined in cluster templates, allowing declarative management of Kubernetes resources alongside cluster configuration.
-"""
-
-[notes.omnictl-edit]
-title = "`omnictl edit` Command"
-description = """\
-A new `omnictl edit` command has been added, allowing users to edit Omni resources interactively from the CLI.
-"""
-
-[notes.browsable-audit-logs]
-title = "Browsable Audit Logs in the UI"
-description = """\
-Audit logs are now browsable directly in the Omni UI, making it easier to review audit events without CLI access.
-"""
-
-[notes.workload-proxy-subdomain]
-title = "Workload Proxy Subdomain Options"
-description = """\
-The workload proxy now supports an empty subdomain configuration and a new `useOmniSubdomain` option, \
-providing more flexibility in how workload proxy URLs are structured.
-"""
-
-[notes.config-validation-errors]
-title = "Human-Readable Config Validation Errors"
-description = """\
-Configuration validation errors are now presented in a human-readable format, \
-making it easier to diagnose and fix configuration issues.
-"""
-
-[notes.direct-talos-node-access]
-title = "Direct Talos Node Access via SideroLink"
-description = """\
-All Talos nodes can now be accessed directly via their SideroLink endpoint, \
-removing the need to route through the load balancer for Talos API calls. \
-Allowing direct access to worker nodes when control plane nodes are unavailable.
-"""
-
-[notes.allow-force-destroy]
-title = "Allow Machine Request Destroy"
-description = """\
-Machine requests are now created without a controller owner, allowing operators and \
-admins to teardown stuck or unwanted requests directly. The controller replaces destroyed \
-requests automatically to maintain the desired machine count.
-"""
-
-[notes.talosctl-debug]
-title = "Allow Using `talosctl debug`"
-description = """\
-Update Omni Talos API proxy code to elevate permissions for `talosctl debug` command.
-"""
-
-[notes.defaults-in-schema]
-title = "Move Omni Defaults to JSONSchema"
-description = """\
-Omni default config values are now defined in the JSONSchema.
 """

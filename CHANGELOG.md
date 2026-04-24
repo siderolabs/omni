@@ -1,3 +1,48 @@
+## [Omni 1.7.1](https://github.com/siderolabs/omni/releases/tag/v1.7.1) (2026-04-24)
+
+Welcome to the v1.7.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+A [EULA](https://siderolabs.com/eula/) agreement has been added to Omni which must be accepted in order to continue using it.
+
+This agreement can be accepted through UI or programmatically either by adding the below flags:
+```sh
+--eula-accept-name=Your Name
+--eula-accept-email=your@email.com
+```
+
+Or if using `--config-path` with the below configuration:
+```yaml
+eulaAccept:
+  name: Your Name
+  email: your@email.com
+```
+
+
+### Contributors
+
+* Artem Chernyshev
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`360dc72d`](https://github.com/siderolabs/omni/commit/360dc72d044d6a608ea47e79962f5a0304d8bace) fix: skip allocating nodes for deleted/tearing down `MachineRequests`
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.7.0](https://github.com/siderolabs/omni/releases/tag/v1.7.0)
+
 ## [Omni 1.7.0](https://github.com/siderolabs/omni/releases/tag/v1.7.0) (2026-04-17)
 
 Welcome to the v1.7.0 release of Omni!
