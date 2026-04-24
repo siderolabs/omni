@@ -7,28 +7,15 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { computedAsync } from '@vueuse/core'
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
-import TButton from '@/components/Button/TButton.vue'
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
+import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { getDocsLink, getPlatform } from '@/methods'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
-import CloseButton from '@/views/Modals/CloseButton.vue'
 
-const router = useRouter()
-let closed = false
-
-const close = () => {
-  if (closed) {
-    return
-  }
-
-  closed = true
-
-  router.go(-1)
-}
+const open = defineModel<boolean>('open', { default: false })
 
 const platform = computedAsync(getPlatform)
 
@@ -50,7 +37,7 @@ const selectedVersion = ref<string>()
 const selectedPlatform = ref<string>()
 
 const download = () => {
-  close()
+  open.value = false
 
   if (!selectedVersion.value) return
 
@@ -76,13 +63,8 @@ const versionBinaries = computed<string[]>(() => {
 </script>
 
 <template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-n14">Download Talosctl</h3>
-      <CloseButton @click="close" />
-    </div>
-
-    <p class="mb-5 text-xs">
+  <Modal v-model:open="open" title="Download Talosctl" action-label="Download" @confirm="download">
+    <template #description>
       <code>talosctl</code>
       can be used to access cluster nodes using Talos machine API. Read the
       <a
@@ -94,7 +76,7 @@ const versionBinaries = computed<string[]>(() => {
         docs
       </a>
       for more information.
-    </p>
+    </template>
 
     <div class="mb-5 flex flex-col gap-2">
       <span class="text-xs text-naturals-n14">macOS and Linux (recommended)</span>
@@ -137,26 +119,5 @@ const versionBinaries = computed<string[]>(() => {
       </a>
       .
     </p>
-
-    <div class="mt-8 flex justify-end gap-4">
-      <TButton class="h-9 w-32" @click="close">
-        <span>Cancel</span>
-      </TButton>
-      <TButton class="h-9 w-32" @click="download">
-        <span>Download</span>
-      </TButton>
-    </div>
-  </div>
+  </Modal>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.modal-window {
-  @apply h-auto w-1/3 p-8;
-}
-
-.heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
-}
-</style>

@@ -18,9 +18,6 @@ const modals: Record<string, Component> = {
   machineSetDestroy: defineAsyncComponent(() => import('@/views/Modals/MachineSetDestroy.vue')),
   maintenanceUpdate: defineAsyncComponent(() => import('@/views/Modals/MaintenanceUpdate.vue')),
   downloadOmnictlBinaries: defineAsyncComponent(() => import('@/views/Modals/DownloadOmnictl.vue')),
-  downloadTalosctlBinaries: defineAsyncComponent(
-    () => import('@/views/Modals/DownloadTalosctl.vue'),
-  ),
   exportClusterTemplate: defineAsyncComponent(
     () => import('@/views/Modals/ExportClusterTemplate.vue'),
   ),
