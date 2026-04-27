@@ -32,14 +32,16 @@ type ClusterWorkloadProxyController struct {
 }
 
 // NewClusterWorkloadProxyController creates a new cluster workload proxy controller.
-func NewClusterWorkloadProxyController() (*ClusterWorkloadProxyController, error) {
-	manifestData, err := getManifestData()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config patch: %w", err)
-	}
+func NewClusterWorkloadProxyController(workloadProxyEnabled bool) (*ClusterWorkloadProxyController, error) {
+	ctrl := &ClusterWorkloadProxyController{}
 
-	ctrl := &ClusterWorkloadProxyController{
-		manifestData: manifestData,
+	if workloadProxyEnabled {
+		manifestData, err := getManifestData()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get manifest data: %w", err)
+		}
+
+		ctrl.manifestData = manifestData
 	}
 
 	ctrl.QController = qtransform.NewQController(
@@ -66,7 +68,7 @@ func NewClusterWorkloadProxyController() (*ClusterWorkloadProxyController, error
 func (ctrl *ClusterWorkloadProxyController) transform(_ context.Context, _ controller.Reader, logger *zap.Logger,
 	cluster *omni.Cluster, kubernetesManifestGroup *omni.KubernetesManifestGroup,
 ) error {
-	if !cluster.TypedSpec().Value.GetFeatures().GetEnableWorkloadProxy() {
+	if ctrl.manifestData == nil || !cluster.TypedSpec().Value.GetFeatures().GetEnableWorkloadProxy() {
 		return xerrors.NewTaggedf[qtransform.DestroyOutputTag]("workload proxy is disabled for the cluster %s", cluster.Metadata().ID())
 	}
 

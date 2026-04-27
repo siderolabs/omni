@@ -142,7 +142,9 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		return nil, err
 	}
 
-	clusterWorkloadProxyController, err := cluster.NewClusterWorkloadProxyController()
+	clusterWorkloadProxyController, err := cluster.NewClusterWorkloadProxyController(
+		cfg.Services.WorkloadProxy.GetEnabled(),
+	)
 	if err != nil {
 		return nil, err
 	}
