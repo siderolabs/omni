@@ -11,6 +11,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -199,6 +201,142 @@ func TestPhaseChangeIsAudited(t *testing.T) {
 	require.Len(t, events, 2, "expected create + teardown events")
 	require.Equal(t, "create", events[0]["event_type"])
 	require.Equal(t, "teardown", events[1]["event_type"])
+}
+
+func TestK8SAccessAuditSkipsReadLikeRequests(t *testing.T) {
+	testCases := []struct {
+		name        string
+		method      string
+		target      string
+		expectAudit bool
+	}{
+		{
+			name:   "get",
+			method: http.MethodGet,
+			target: "/api/v1/namespaces/default/pods",
+		},
+		{
+			name:   "head",
+			method: http.MethodHead,
+			target: "/api/v1/namespaces/default/pods",
+		},
+		{
+			name:   "options",
+			method: http.MethodOptions,
+			target: "/api/v1/namespaces/default/pods",
+		},
+		{
+			name:   "server side dry run patch",
+			method: http.MethodPatch,
+			target: "/apis/apps/v1/namespaces/default/deployments/guestbook-ui?dryRun=All&fieldManager=argocd-controller",
+		},
+		{
+			name:   "server side dry run delete",
+			method: http.MethodDelete,
+			target: "/api/v1/namespaces/default/configmaps/test?dryRun=All",
+		},
+		{
+			name:        "invalid bare dry run remains audited",
+			method:      http.MethodPatch,
+			target:      "/apis/apps/v1/namespaces/default/deployments/guestbook-ui?dryRun",
+			expectAudit: true,
+		},
+		{
+			name:        "invalid false dry run remains audited",
+			method:      http.MethodPatch,
+			target:      "/apis/apps/v1/namespaces/default/deployments/guestbook-ui?dryRun=false",
+			expectAudit: true,
+		},
+		{
+			name:   "self subject access review",
+			method: http.MethodPost,
+			target: "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews",
+		},
+		{
+			name:        "subject access review remains audited",
+			method:      http.MethodPost,
+			target:      "/apis/authorization.k8s.io/v1/subjectaccessreviews",
+			expectAudit: true,
+		},
+		{
+			name:        "create remains audited",
+			method:      http.MethodPost,
+			target:      "/api/v1/namespaces",
+			expectAudit: true,
+		},
+		{
+			name:        "patch remains audited",
+			method:      http.MethodPatch,
+			target:      "/apis/apps/v1/namespaces/default/deployments/guestbook-ui",
+			expectAudit: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			config := config.LogsAudit{
+				Enabled: new(true),
+			}
+
+			l := must.Value(audit.NewLog(t.Context(), config, testDB(t), zaptest.NewLogger(t)))(t)
+			handler := l.Wrap(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusNoContent)
+			}))
+
+			ctx := ctxstore.WithValue(t.Context(), &auditlog.Data{
+				K8SAccess: &auditlog.K8SAccess{
+					FullMethodName: tc.method + " " + strings.Split(tc.target, "?")[0],
+					ClusterName:    "cluster1",
+				},
+				Session: auditlog.Session{
+					Email: "user@example.com",
+				},
+			})
+			req := httptest.NewRequestWithContext(ctx, tc.method, tc.target, nil)
+
+			handler.ServeHTTP(httptest.NewRecorder(), req)
+
+			events := readAuditEvents(t, l)
+			if !tc.expectAudit {
+				require.Empty(t, events)
+
+				return
+			}
+
+			require.Len(t, events, 1)
+			require.Equal(t, "k8s_access", events[0]["event_type"])
+		})
+	}
+}
+
+func readAuditEvents(t *testing.T, l *audit.Log) []map[string]any {
+	t.Helper()
+
+	rdr, err := l.Reader(t.Context(), time.Time{}, time.Now().Add(5*time.Second))
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, rdr.Close())
+	})
+
+	var events []map[string]any
+
+	for {
+		data, err := rdr.Read()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		require.NoError(t, err)
+
+		var event map[string]any
+
+		require.NoError(t, json.Unmarshal(data, &event))
+
+		events = append(events, event)
+	}
+
+	return events
 }
 
 func cmpIgnoreTime(t *testing.T, expected string, actual string) {

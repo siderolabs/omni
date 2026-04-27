@@ -171,7 +171,7 @@ func (l *Log) AuditTalosAccess(ctx context.Context, fullMethodName string, clust
 // Wrap wraps the http.Handler with audit logging.
 func (l *Log) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if req.Method == http.MethodGet || req.Method == http.MethodHead || req.Method == http.MethodOptions {
+		if !shouldAuditK8SAccess(req) {
 			next.ServeHTTP(w, req)
 
 			return
@@ -199,6 +199,24 @@ func (l *Log) Wrap(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, req)
 	})
+}
+
+func shouldAuditK8SAccess(req *http.Request) bool {
+	switch req.Method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return false
+	}
+
+	if slices.Contains(req.URL.Query()["dryRun"], "All") { // is a dry-run request
+		return false
+	}
+
+	// This endpoint is used by kubectl auth can-i and equivalent permission checks.
+	if req.Method == http.MethodPost && req.URL.Path == "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews" {
+		return false
+	}
+
+	return true
 }
 
 // RunCleanup runs [Logger.Remove] once a minute, deleting all log entries older than the configured
