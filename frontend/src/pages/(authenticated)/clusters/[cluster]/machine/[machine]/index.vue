@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type { NodeSpec as V1NodeSpec, NodeStatus as V1NodeStatus } from 'kubernetes-types/core/v1'
 import { DateTime } from 'luxon'
-import { computed, onBeforeUnmount, ref, useId } from 'vue'
+import { computed, ref, useId, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -55,7 +55,7 @@ import NodeServiceEvents from '@/views/Nodes/NodeServiceEvents.vue'
 definePage({ name: 'NodeOverview' })
 
 const route = useRoute()
-const context = getContext()
+const context = computed(() => getContext(route))
 
 const services = ref<
   {
@@ -77,7 +77,7 @@ const fetchServices = async () => {
 
   const res = await MachineService.ServiceList(
     {},
-    withContext(context),
+    withContext(context.value),
     withRuntime(Runtime.Talos),
     withAbortController(abortController),
   )
@@ -104,22 +104,24 @@ const fetchServices = async () => {
 
 fetchServices()
 
-const stream = subscribe(
-  MachineService.Events,
-  {},
-  (event) => {
-    // For some reason @type is not typed on Any
-    const data = event.data as (typeof event.data & { ['@type']?: string }) | undefined
+watchEffect((onCleanup) => {
+  const stream = subscribe(
+    MachineService.Events,
+    {},
+    (event) => {
+      // For some reason @type is not typed on Any
+      const data = event.data as (typeof event.data & { ['@type']?: string }) | undefined
 
-    if (data?.['@type']?.includes('machine.ServiceStateEvent')) {
-      fetchServices()
-    }
-  },
-  [withRuntime(Runtime.Talos), withContext(context)],
-)
+      if (data?.['@type']?.includes('machine.ServiceStateEvent')) {
+        fetchServices()
+      }
+    },
+    [withRuntime(Runtime.Talos), withContext(context.value)],
+  )
 
-onBeforeUnmount(() => {
-  stream.shutdown()
+  onCleanup(() => {
+    stream.shutdown()
+  })
 })
 
 const configApplyStatusToConfigApplyStatusName = (status?: ConfigApplyStatus): string => {
@@ -137,15 +139,15 @@ const configApplyStatusToConfigApplyStatusName = (status?: ConfigApplyStatus): s
 
 const alertDismissed = ref(false)
 
-const { data: nodename } = useResourceWatch<{ nodename: string }>({
+const { data: nodename } = useResourceWatch<{ nodename: string }>(() => ({
   runtime: Runtime.Talos,
   resource: {
     id: TalosNodenameID,
     type: TalosNodenameType,
     namespace: TalosK8sNamespace,
   },
-  context,
-})
+  context: context.value,
+}))
 
 const { data: node } = useResourceWatch<V1NodeSpec, V1NodeStatus>(() => {
   const id = nodename.value?.spec.nodename
@@ -157,19 +159,19 @@ const { data: node } = useResourceWatch<V1NodeSpec, V1NodeStatus>(() => {
       id: id!,
       type: kubernetes.node,
     },
-    context,
+    context: context.value,
   }
 })
 
-const { data: nodeaddress } = useResourceWatch<{ addresses: string[] }>({
+const { data: nodeaddress } = useResourceWatch<{ addresses: string[] }>(() => ({
   runtime: Runtime.Talos,
   resource: {
     id: TalosAddressRoutedNoK8s,
     type: TalosNodeAddressType,
     namespace: TalosNetworkNamespace,
   },
-  context,
-})
+  context: context.value,
+}))
 
 const { data: talosMachineStatus } = useResourceWatch<{
   stage: string
@@ -180,20 +182,20 @@ const { data: talosMachineStatus } = useResourceWatch<{
       reason: string
     }[]
   }
-}>({
+}>(() => ({
   runtime: Runtime.Talos,
   resource: {
     id: TalosMachineStatusID,
     type: TalosMachineStatusType,
     namespace: TalosRuntimeNamespace,
   },
-  context,
-})
+  context: context.value,
+}))
 
 const { data: machineStatus } = useResourceWatch<MachineStatusLinkSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
-    id: route.params.machine as string,
+    id: route.params.machine,
     type: MachineStatusLinkType,
     namespace: MetricsNamespace,
   },
@@ -204,7 +206,7 @@ const { data: clusterMachineStatus } = useResourceWatch<ClusterMachineStatusSpec
   resource: {
     type: ClusterMachineStatusType,
     namespace: DefaultNamespace,
-    id: route.params.machine as string,
+    id: route.params.machine,
   },
 }))
 

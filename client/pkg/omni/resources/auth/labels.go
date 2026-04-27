@@ -25,6 +25,9 @@ const (
 	// tsgen:LabelIdentityTypeServiceAccount
 	LabelIdentityTypeServiceAccount = "type-service-account"
 
+	// LabelIdentity is the label that links a resource to its identity (email).
+	LabelIdentity = "identity"
+
 	// LabelInfraProvider is set when the service account is a infra provider service account.
 	LabelInfraProvider = omni.SystemLabelPrefix + "infra-provider"
 

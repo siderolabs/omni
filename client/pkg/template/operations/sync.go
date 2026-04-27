@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -35,8 +36,8 @@ type SyncOptions struct {
 }
 
 // SyncTemplate performs resource sync to Omni.
-func SyncTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, st state.State, syncOptions SyncOptions) error {
-	tmpl, err := template.Load(templateReader)
+func SyncTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, st state.State, syncOptions SyncOptions, root *os.Root) error {
+	tmpl, err := template.Load(templateReader, template.WithRoot(root))
 	if err != nil {
 		return fmt.Errorf("error loading template: %w", err)
 	}

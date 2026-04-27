@@ -34,6 +34,14 @@ const (
 	// NotificationNonImageFactoryMachinesID is the ID for the non-ImageFactory machines deprecation notification.
 	// tsgen:NotificationNonImageFactoryMachinesID
 	NotificationNonImageFactoryMachinesID = "non-image-factory-machines"
+
+	// NotificationApproachingTalosVersionEndOfSupportID is the ID for the notification shown when machines are approaching Talos version end of support.
+	// tsgen:NotificationApproachingTalosVersionEndOfSupportID
+	NotificationApproachingTalosVersionEndOfSupportID = "approaching-talos-version-end-of-support"
+
+	// NotificationTalosVersionEndOfSupportID is the ID for the notification shown when machines have reached Talos version end of support.
+	// tsgen:NotificationTalosVersionEndOfSupportID
+	NotificationTalosVersionEndOfSupportID = "talos-version-end-of-support"
 )
 
 // Notification describes a generic notification emitted by a controller.

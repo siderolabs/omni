@@ -254,6 +254,7 @@ function isMachineSetScalable(
         :key="itemID(request)"
         class="border-t border-naturals-n4 last-of-type:rounded-b-md"
         :request-status="request"
+        :can-destroy="canRemoveClusterMachines"
       />
 
       <div

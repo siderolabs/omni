@@ -2285,3 +2285,92 @@ func TestAccountLimitsValidation(t *testing.T) {
 		require.ErrorContains(t, err, fmt.Sprintf("maximum number of service accounts (%d) reached", maxSAs))
 	})
 }
+
+func TestEulaValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	newSt := func() state.State {
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+		return state.WrapCore(validated.NewState(innerSt, omni.EulaValidationOptions(innerSt)...))
+	}
+
+	const (
+		acceptedBy = "Test User"
+		email      = "test-user@siderolabs.com"
+	)
+
+	t.Run("create", func(t *testing.T) {
+		t.Parallel()
+
+		for _, tc := range []struct {
+			name          string
+			acceptedBy    string
+			email         string
+			errorContains string
+			useInternal   bool
+		}{
+			{
+				name:          "missing name",
+				email:         "user@example.com",
+				errorContains: "name is required",
+			},
+			{
+				name:          "missing email",
+				acceptedBy:    acceptedBy,
+				errorContains: "email is required",
+			},
+			{
+				name:          "missing both",
+				errorContains: "name is required",
+			},
+			{
+				name:        "success with name and email",
+				acceptedBy:  acceptedBy,
+				email:       email,
+				useInternal: false,
+			},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				// each sub-test needs its own state so accepts don't bleed across
+				subSt := newSt()
+
+				res := auth.NewEulaAcceptance()
+				res.TypedSpec().Value.AcceptedByName = tc.acceptedBy
+				res.TypedSpec().Value.AcceptedByEmail = tc.email
+
+				err := subSt.Create(ctx, res)
+
+				if tc.errorContains != "" {
+					require.True(t, validated.IsValidationError(err), "expected a validation error, got: %v", err)
+					require.ErrorContains(t, err, tc.errorContains)
+				} else {
+					require.NoError(t, err)
+				}
+			})
+		}
+	})
+
+	t.Run("cannot create twice", func(t *testing.T) {
+		t.Parallel()
+
+		subSt := newSt()
+
+		res := auth.NewEulaAcceptance()
+		res.TypedSpec().Value.AcceptedByName = acceptedBy
+		res.TypedSpec().Value.AcceptedByEmail = email
+
+		require.NoError(t, subSt.Create(ctx, res))
+
+		res2 := auth.NewEulaAcceptance()
+		res2.TypedSpec().Value.AcceptedByName = "Test User"
+		res2.TypedSpec().Value.AcceptedByEmail = "test-user@siderolabs.com"
+
+		err := subSt.Create(ctx, res2)
+		require.True(t, validated.IsValidationError(err))
+		require.ErrorContains(t, err, "EULA has already been accepted")
+	})
+}

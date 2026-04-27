@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -99,6 +100,26 @@ var clusterWithKernelArgsResources []byte
 //go:embed testdata/cluster-with-manifests-resources.yaml
 var clusterWithManifestsResources []byte
 
+// clusterWithParentDirPatch is a minimal template that references a patch file outside
+// the testdata directory, at client/pkg/testdata/parent-patch.yaml.
+var clusterWithParentDirPatch = []byte(`kind: Cluster
+name: parent-dir-test
+kubernetes:
+  version: v1.30.0
+talos:
+  version: v1.7.0
+patches:
+  - file: ../../testdata/parent-patch.yaml
+---
+kind: ControlPlane
+machines:
+  - aaaaaaaa-1111-2222-3333-444444444444
+---
+kind: Workers
+machines:
+  - bbbbbbbb-1111-2222-3333-444444444444
+`)
+
 func TestLoad(t *testing.T) {
 	for _, tt := range []struct { //nolint:govet
 		name          string
@@ -146,6 +167,11 @@ func TestLoad(t *testing.T) {
 
 func TestValidate(t *testing.T) {
 	t.Chdir("testdata")
+
+	root, err := os.OpenRoot(".")
+	require.NoError(t, err)
+
+	t.Cleanup(func() { root.Close() }) //nolint:errcheck
 
 	for _, tt := range []struct { //nolint:govet
 		name          string
@@ -208,7 +234,7 @@ func TestValidate(t *testing.T) {
 
 
 	* patch "does-not-exist.yaml" is invalid: 1 error occurred:
-	* failed to access "does-not-exist.yaml": open does-not-exist.yaml: no such file or directory
+	* failed to access "does-not-exist.yaml": openat does-not-exist.yaml: no such file or directory
 
 
 	* patch "" is invalid: 1 error occurred:
@@ -313,7 +339,7 @@ machine:
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			templ, err := template.Load(bytes.NewReader(tt.data))
+			templ, err := template.Load(bytes.NewReader(tt.data), template.WithRoot(root))
 			require.NoError(t, err)
 
 			err = templ.Validate()
@@ -347,6 +373,11 @@ func TestTranslate(t *testing.T) {
 	defer specs.SetCompressionConfig(originalCompressionConfig)
 
 	t.Chdir("testdata")
+
+	root, err := os.OpenRoot(".")
+	require.NoError(t, err)
+
+	t.Cleanup(func() { root.Close() }) //nolint:errcheck
 
 	for _, tt := range []struct {
 		name     string
@@ -385,7 +416,7 @@ func TestTranslate(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			templ, err := template.Load(bytes.NewReader(tt.template))
+			templ, err := template.Load(bytes.NewReader(tt.template), template.WithRoot(root))
 			require.NoError(t, err)
 
 			require.NoError(t, templ.Validate())
@@ -423,11 +454,13 @@ func TestTranslate(t *testing.T) {
 func TestSync(t *testing.T) {
 	t.Chdir("testdata")
 
+	root := openTestRoot(t)
+
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
 	ctx := t.Context()
 
-	templ1, err := template.Load(bytes.NewReader(cluster1))
+	templ1, err := template.Load(bytes.NewReader(cluster1), template.WithRoot(root))
 	require.NoError(t, err)
 
 	sync1, err := templ1.Sync(ctx, st)
@@ -441,7 +474,7 @@ func TestSync(t *testing.T) {
 		require.NoError(t, st.Create(ctx, r))
 	}
 
-	templ2, err := template.Load(bytes.NewReader(cluster2))
+	templ2, err := template.Load(bytes.NewReader(cluster2), template.WithRoot(root))
 	require.NoError(t, err)
 
 	sync2, err := templ2.Sync(ctx, st)
@@ -471,10 +504,12 @@ func TestSync(t *testing.T) {
 func TestSync_KubernetesManifests(t *testing.T) {
 	t.Chdir("testdata")
 
+	root := openTestRoot(t)
+
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 	ctx := t.Context()
 
-	templ, err := template.Load(bytes.NewReader(clusterWithManifests))
+	templ, err := template.Load(bytes.NewReader(clusterWithManifests), template.WithRoot(root))
 	require.NoError(t, err)
 
 	syncRes, err := templ.Sync(ctx, st)
@@ -514,11 +549,13 @@ func TestSync_KubernetesManifests(t *testing.T) {
 func TestDelete(t *testing.T) {
 	t.Chdir("testdata")
 
+	root := openTestRoot(t)
+
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
 	ctx := t.Context()
 
-	templ1, err := template.Load(bytes.NewReader(cluster1))
+	templ1, err := template.Load(bytes.NewReader(cluster1), template.WithRoot(root))
 	require.NoError(t, err)
 
 	sync1, err := templ1.Sync(ctx, st)
@@ -528,7 +565,7 @@ func TestDelete(t *testing.T) {
 		require.NoError(t, st.Create(ctx, r))
 	}
 
-	templ2, err := template.Load(bytes.NewReader(cluster2))
+	templ2, err := template.Load(bytes.NewReader(cluster2), template.WithRoot(root))
 	require.NoError(t, err)
 
 	syncDelete, err := templ2.Delete(ctx, st)
@@ -544,11 +581,13 @@ func TestDelete(t *testing.T) {
 func TestSync_KernelArgs_Lifecycle(t *testing.T) {
 	t.Chdir("testdata")
 
+	root := openTestRoot(t)
+
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 	ctx := t.Context()
 
 	// 1. Initial Sync: Apply the template with KernelArgs
-	templ, err := template.Load(bytes.NewReader(clusterWithKernelArgs))
+	templ, err := template.Load(bytes.NewReader(clusterWithKernelArgs), template.WithRoot(root))
 	require.NoError(t, err)
 
 	syncRes, err := templ.Sync(ctx, st)
@@ -570,7 +609,7 @@ func TestSync_KernelArgs_Lifecycle(t *testing.T) {
 
 	clusterWithKernelArgsRemoved := removeKernelArgs(t, clusterWithKernelArgs)
 
-	templRemoved, err := template.Load(bytes.NewReader(clusterWithKernelArgsRemoved))
+	templRemoved, err := template.Load(bytes.NewReader(clusterWithKernelArgsRemoved), template.WithRoot(root))
 	require.NoError(t, err)
 
 	syncResRemoved, err := templRemoved.Sync(ctx, st)
@@ -638,6 +677,94 @@ func TestSync_KernelArgs_Lifecycle(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestValidate_RootRestriction(t *testing.T) {
+	t.Chdir("testdata")
+
+	for _, tt := range []struct { //nolint:govet
+		name        string
+		data        []byte
+		rootPath    string
+		expectError bool
+	}{
+		{
+			name:     "patches allowed under current dir",
+			data:     cluster1,
+			rootPath: ".",
+		},
+		{
+			name:     "manifests file allowed",
+			data:     clusterWithManifests,
+			rootPath: ".",
+		},
+		{
+			name:     "patches allowed by specific subdirectory",
+			data:     cluster1,
+			rootPath: "patches",
+		},
+		{
+			name:        "manifests file blocked by patches-only root",
+			data:        clusterWithManifests,
+			rootPath:    "patches",
+			expectError: true,
+		},
+		{
+			name:     "manifests file allowed by specific dir",
+			data:     clusterWithManifests,
+			rootPath: "manifests",
+		},
+		{
+			name:     "nil root skips restriction",
+			data:     cluster1,
+			rootPath: "", // will pass nil root
+		},
+		{
+			name:        "parent dir patch blocked by current dir root",
+			data:        clusterWithParentDirPatch,
+			rootPath:    ".",
+			expectError: true,
+		},
+		{
+			name:     "parent dir patch allowed by widened root",
+			data:     clusterWithParentDirPatch,
+			rootPath: "../..",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var opts []template.Option
+
+			if tt.rootPath != "" {
+				root, rootErr := os.OpenRoot(tt.rootPath)
+				require.NoError(t, rootErr)
+
+				t.Cleanup(func() { root.Close() }) //nolint:errcheck
+
+				opts = append(opts, template.WithRoot(root))
+			}
+
+			templ, err := template.Load(bytes.NewReader(tt.data), opts...)
+			require.NoError(t, err)
+
+			err = templ.Validate()
+			if !tt.expectError {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
+}
+
+func openTestRoot(t *testing.T) *os.Root {
+	t.Helper()
+
+	root, err := os.OpenRoot(".")
+	require.NoError(t, err)
+
+	t.Cleanup(func() { root.Close() }) //nolint:errcheck
+
+	return root
 }
 
 func removeKernelArgs(t *testing.T, in []byte) []byte {

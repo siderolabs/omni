@@ -24,10 +24,11 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 
 const props = withDefaults(
+  // eslint-disable-next-line vue/define-props-destructuring
   defineProps<
     DialogRootProps & {
       title: string
-      actionLabel: string
+      actionLabel?: string
       cancelLabel?: string
       actionDisabled?: boolean
       loading?: boolean
@@ -85,6 +86,7 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
           </DialogClose>
 
           <TButton
+            v-if="actionLabel"
             :disabled="actionDisabled || loading"
             variant="highlighted"
             @click="$emit('confirm')"

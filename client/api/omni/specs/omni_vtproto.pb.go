@@ -2450,6 +2450,8 @@ func (m *MachineStatusMetricsSpec) CloneVT() *MachineStatusMetricsSpec {
 	r.RegisteredMachinesLimit = m.RegisteredMachinesLimit
 	r.RegistrationLimitReached = m.RegistrationLimitReached
 	r.InvalidSchematicMachinesCount = m.InvalidSchematicMachinesCount
+	r.ApproachingTalosVersionEndOfSupportMachinesCount = m.ApproachingTalosVersionEndOfSupportMachinesCount
+	r.TalosVersionEndOfSupportMachinesCount = m.TalosVersionEndOfSupportMachinesCount
 	if rhs := m.Platforms; rhs != nil {
 		tmpContainer := make(map[string]uint32, len(rhs))
 		for k, v := range rhs {
@@ -2713,6 +2715,7 @@ func (m *InfraMachineConfigSpec) CloneVT() *InfraMachineConfigSpec {
 	r.ExtraKernelArgs = m.ExtraKernelArgs
 	r.RequestedRebootId = m.RequestedRebootId
 	r.Cordoned = m.Cordoned
+	r.PowerOffRequestId = m.PowerOffRequestId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -6626,6 +6629,12 @@ func (this *MachineStatusMetricsSpec) EqualVT(that *MachineStatusMetricsSpec) bo
 	if this.InvalidSchematicMachinesCount != that.InvalidSchematicMachinesCount {
 		return false
 	}
+	if this.ApproachingTalosVersionEndOfSupportMachinesCount != that.ApproachingTalosVersionEndOfSupportMachinesCount {
+		return false
+	}
+	if this.TalosVersionEndOfSupportMachinesCount != that.TalosVersionEndOfSupportMachinesCount {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -6948,6 +6957,9 @@ func (this *InfraMachineConfigSpec) EqualVT(that *InfraMachineConfigSpec) bool {
 		return false
 	}
 	if this.Cordoned != that.Cordoned {
+		return false
+	}
+	if this.PowerOffRequestId != that.PowerOffRequestId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -14280,6 +14292,16 @@ func (m *MachineStatusMetricsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.TalosVersionEndOfSupportMachinesCount != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TalosVersionEndOfSupportMachinesCount))
+		i--
+		dAtA[i] = 0x68
+	}
+	if m.ApproachingTalosVersionEndOfSupportMachinesCount != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.ApproachingTalosVersionEndOfSupportMachinesCount))
+		i--
+		dAtA[i] = 0x60
+	}
 	if m.InvalidSchematicMachinesCount != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.InvalidSchematicMachinesCount))
 		i--
@@ -14904,6 +14926,13 @@ func (m *InfraMachineConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.PowerOffRequestId) > 0 {
+		i -= len(m.PowerOffRequestId)
+		copy(dAtA[i:], m.PowerOffRequestId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.PowerOffRequestId)))
+		i--
+		dAtA[i] = 0x32
 	}
 	if m.Cordoned {
 		i--
@@ -18939,6 +18968,12 @@ func (m *MachineStatusMetricsSpec) SizeVT() (n int) {
 	if m.InvalidSchematicMachinesCount != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.InvalidSchematicMachinesCount))
 	}
+	if m.ApproachingTalosVersionEndOfSupportMachinesCount != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.ApproachingTalosVersionEndOfSupportMachinesCount))
+	}
+	if m.TalosVersionEndOfSupportMachinesCount != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.TalosVersionEndOfSupportMachinesCount))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -19163,6 +19198,10 @@ func (m *InfraMachineConfigSpec) SizeVT() (n int) {
 	}
 	if m.Cordoned {
 		n += 2
+	}
+	l = len(m.PowerOffRequestId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -36756,6 +36795,44 @@ func (m *MachineStatusMetricsSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ApproachingTalosVersionEndOfSupportMachinesCount", wireType)
+			}
+			m.ApproachingTalosVersionEndOfSupportMachinesCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ApproachingTalosVersionEndOfSupportMachinesCount |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TalosVersionEndOfSupportMachinesCount", wireType)
+			}
+			m.TalosVersionEndOfSupportMachinesCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TalosVersionEndOfSupportMachinesCount |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -38185,6 +38262,38 @@ func (m *InfraMachineConfigSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Cordoned = bool(v != 0)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PowerOffRequestId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PowerOffRequestId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

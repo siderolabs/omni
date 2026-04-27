@@ -198,6 +198,11 @@ message IdentityLastActiveSpec {
   google.protobuf.Timestamp last_active = 1;
 }
 
+// PublicKeyLastActiveSpec tracks the last time a specific public key was used to authenticate.
+message PublicKeyLastActiveSpec {
+  google.protobuf.Timestamp last_used = 1;
+}
+
 // IdentityStatusSpec aggregates identity, user, and activity data into a single resource.
 message IdentityStatusSpec {
   string user_id = 1;
@@ -210,9 +215,22 @@ message ServiceAccountStatusSpec {
     string id = 1;
     string armored = 2;
     google.protobuf.Timestamp expiration = 3;
+    google.protobuf.Timestamp created = 4;
+    google.protobuf.Timestamp last_used = 5;
   }
 
   string role = 1;
 
   repeated PgpPublicKey public_keys = 2;
+
+  google.protobuf.Timestamp expiration = 3;
+}
+
+// EulaAcceptanceSpec records the instance-wide EULA acceptance.
+message EulaAcceptanceSpec {
+  // AcceptedByName is the full name of the person who accepted the EULA.
+  string accepted_by_name = 1;
+
+  // AcceptedByEmail is the email address of the person who accepted the EULA.
+  string accepted_by_email = 2;
 }

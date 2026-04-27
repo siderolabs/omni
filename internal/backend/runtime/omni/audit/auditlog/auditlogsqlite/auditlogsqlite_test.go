@@ -71,7 +71,7 @@ func TestReadWrite(t *testing.T) {
 	t.Run("read all", func(t *testing.T) {
 		t.Parallel()
 
-		rdr, err := store.Reader(ctx, time.Time{}, time.Now().Add(time.Hour))
+		rdr, err := store.Reader(ctx, auditlog.ReadFilters{End: time.Now().Add(time.Hour)})
 		require.NoError(t, err)
 
 		t.Cleanup(func() {
@@ -124,7 +124,7 @@ func TestRemove(t *testing.T) {
 	require.NoError(t, err)
 
 	// 3. Verify only the last event remains
-	rdr, err := store.Reader(ctx, time.Time{}, time.Now().Add(24*time.Hour))
+	rdr, err := store.Reader(ctx, auditlog.ReadFilters{End: time.Now().Add(24 * time.Hour)})
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -172,7 +172,7 @@ func TestRemoveByRetentionPeriod(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify only the 3 recent events remain.
-	rdr, err := store.Reader(ctx, time.Time{}, now.Add(time.Hour))
+	rdr, err := store.Reader(ctx, auditlog.ReadFilters{End: now.Add(time.Hour)})
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -250,7 +250,7 @@ func TestRemoveByMaxSize(t *testing.T) {
 	}))
 
 	// Verify some events were deleted.
-	rdr, err := sizedStore.Reader(ctx, time.Time{}, time.Now().Add(24*time.Hour))
+	rdr, err := sizedStore.Reader(ctx, auditlog.ReadFilters{End: time.Now().Add(24 * time.Hour)})
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -293,7 +293,7 @@ func TestRemoveByMaxSizeUnlimited(t *testing.T) {
 		require.NoError(t, store.Write(ctx, evt))
 	}
 
-	rdr, err := store.Reader(ctx, time.Time{}, time.Now().Add(24*time.Hour))
+	rdr, err := store.Reader(ctx, auditlog.ReadFilters{End: time.Now().Add(24 * time.Hour)})
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -346,7 +346,7 @@ func TestRemoveByMaxSizeBatchCap(t *testing.T) {
 
 	// Count remaining rows. The batch cap is 1000, so roughly 1000 should have been
 	// deleted, leaving ~501 rows (1500 - 1000 + 1 trigger event).
-	rdr, err := sizedStore.Reader(ctx, time.Time{}, time.Now().Add(24*time.Hour))
+	rdr, err := sizedStore.Reader(ctx, auditlog.ReadFilters{End: time.Now().Add(24 * time.Hour)})
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -363,6 +363,72 @@ func TestRemoveByMaxSizeBatchCap(t *testing.T) {
 	// Verify remaining events are the newest (oldest were deleted first).
 	for i := range len(events) - 1 {
 		assert.Greater(t, events[i+1].TimeMillis, events[i].TimeMillis, "remaining events should be ordered by time")
+	}
+}
+
+func TestRemoveBatching(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+
+	var totalCleaned int
+
+	store, db := setupStoreWithOpts(ctx, t, logger, 0, 0, auditlogsqlite.WithCleanupCallback(func(n int) { totalCleaned += n }))
+
+	const (
+		inRangeCount  = 1500
+		outRangeCount = 10
+	)
+
+	rangeStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	rangeEnd := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+
+	conn, err := db.Take(ctx)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		db.Put(conn)
+	})
+
+	for i := range inRangeCount {
+		ts := rangeStart.Add(time.Duration(i) * time.Second).UnixMilli()
+
+		q, qErr := sqlitexx.NewQuery(conn,
+			fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES ($ts, $data)", auditlogsqlite.TableName, "event_ts_ms", "event_data"))
+		require.NoError(t, qErr)
+		require.NoError(t, q.BindInt64("$ts", ts).BindBytes("$data", []byte(`{}`)).Exec())
+	}
+
+	for i := range outRangeCount {
+		ts := rangeEnd.Add(time.Duration(i+1) * time.Hour).UnixMilli()
+
+		q, qErr := sqlitexx.NewQuery(conn,
+			fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES ($ts, $data)", auditlogsqlite.TableName, "event_ts_ms", "event_data"))
+		require.NoError(t, qErr)
+		require.NoError(t, q.BindInt64("$ts", ts).BindBytes("$data", []byte(`{}`)).Exec())
+	}
+
+	// Remove all events in range — requires multiple batches (1000 + 500).
+	require.NoError(t, store.Remove(ctx, rangeStart, rangeEnd))
+
+	// Verify only out-of-range events remain.
+	rdr, err := store.Reader(ctx, auditlog.ReadFilters{End: time.Now().Add(24 * time.Hour)})
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, rdr.Close())
+	})
+
+	events := readAllEvents(t, rdr)
+	assert.Len(t, events, outRangeCount, "only out-of-range events should remain")
+	assert.Equal(t, inRangeCount, totalCleaned, "cleanup callback should report all in-range rows deleted")
+
+	// Verify remaining events are all after the range.
+	for _, evt := range events {
+		assert.Greater(t, evt.TimeMillis, rangeEnd.UnixMilli(), "remaining events should be after the removal range")
 	}
 }
 
@@ -428,7 +494,7 @@ func TestReaderParameters(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			rdr, err := store.Reader(ctx, tt.start, tt.end)
+			rdr, err := store.Reader(ctx, auditlog.ReadFilters{Start: tt.start, End: tt.end})
 			require.NoError(t, err)
 
 			t.Cleanup(func() {
@@ -534,11 +600,172 @@ func TestExtractedColumns(t *testing.T) {
 	}
 }
 
+func TestReaderFilters(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+	store, _ := setupStore(ctx, t, logger)
+
+	base := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
+
+	events := []auditlog.Event{
+		{
+			Type:         "create",
+			ResourceType: "omni.Cluster",
+			ResourceID:   "cluster-a",
+			TimeMillis:   base.Add(1 * time.Second).UnixMilli(),
+			Data: &auditlog.Data{
+				Session: auditlog.Session{Email: "alice@example.com"},
+				Cluster: &auditlog.Cluster{ID: "cluster-a"},
+			},
+		},
+		{
+			Type:         "update",
+			ResourceType: "omni.Cluster",
+			ResourceID:   "cluster-b",
+			TimeMillis:   base.Add(2 * time.Second).UnixMilli(),
+			Data: &auditlog.Data{
+				Session: auditlog.Session{Email: "bob@example.com"},
+				Cluster: &auditlog.Cluster{ID: "cluster-b"},
+			},
+		},
+		{
+			Type:         "create",
+			ResourceType: "omni.MachineSetNode",
+			ResourceID:   "node-1",
+			TimeMillis:   base.Add(3 * time.Second).UnixMilli(),
+			Data: &auditlog.Data{
+				Session:        auditlog.Session{Email: "alice@example.com"},
+				MachineSetNode: &auditlog.MachineSetNode{ID: "node-1", ClusterID: "cluster-a"},
+			},
+		},
+	}
+
+	for _, evt := range events {
+		require.NoError(t, store.Write(ctx, evt))
+	}
+
+	timeFilters := auditlog.ReadFilters{
+		Start: base,
+		End:   base.Add(1 * time.Minute),
+	}
+
+	tests := []struct {
+		name      string
+		filters   auditlog.ReadFilters
+		wantCount int
+	}{
+		{
+			name:      "EventType=create",
+			filters:   auditlog.ReadFilters{EventType: auditlog.EventTypeCreate},
+			wantCount: 2,
+		},
+		{
+			name:      "EventType=update",
+			filters:   auditlog.ReadFilters{EventType: auditlog.EventTypeUpdate},
+			wantCount: 1,
+		},
+		{
+			name:      "ResourceType=omni.Cluster",
+			filters:   auditlog.ReadFilters{ResourceType: "omni.Cluster"},
+			wantCount: 2,
+		},
+		{
+			name:      "ResourceType=omni.MachineSetNode",
+			filters:   auditlog.ReadFilters{ResourceType: "omni.MachineSetNode"},
+			wantCount: 1,
+		},
+		{
+			name:      "ResourceID=cluster-a",
+			filters:   auditlog.ReadFilters{ResourceID: "cluster-a"},
+			wantCount: 1,
+		},
+		{
+			name:      "ClusterID=cluster-a",
+			filters:   auditlog.ReadFilters{ClusterID: "cluster-a"},
+			wantCount: 2,
+		},
+		{
+			name:      "Actor=alice@example.com",
+			filters:   auditlog.ReadFilters{Actor: "alice@example.com"},
+			wantCount: 2,
+		},
+		{
+			name:      "Actor=bob@example.com",
+			filters:   auditlog.ReadFilters{Actor: "bob@example.com"},
+			wantCount: 1,
+		},
+		{
+			name:      "Actor=alice + EventType=update (no match)",
+			filters:   auditlog.ReadFilters{Actor: "alice@example.com", EventType: auditlog.EventTypeUpdate},
+			wantCount: 0,
+		},
+		{
+			name:      "Actor=alice + EventType=create",
+			filters:   auditlog.ReadFilters{Actor: "alice@example.com", EventType: auditlog.EventTypeCreate},
+			wantCount: 2,
+		},
+		{
+			name:      "Search=alice (matches actor_email)",
+			filters:   auditlog.ReadFilters{Search: "alice"},
+			wantCount: 2,
+		},
+		{
+			name:      "Search=cluster-b (matches resource_id and cluster_id)",
+			filters:   auditlog.ReadFilters{Search: "cluster-b"},
+			wantCount: 1,
+		},
+		{
+			name:      "Search=omni.Cluster (matches resource_type)",
+			filters:   auditlog.ReadFilters{Search: "omni.Cluster"},
+			wantCount: 2,
+		},
+		{
+			name:      "Search=update (matches event_type)",
+			filters:   auditlog.ReadFilters{Search: "update"},
+			wantCount: 1,
+		},
+		{
+			name:      "Search=node-1 (matches resource_id in event_data JSON)",
+			filters:   auditlog.ReadFilters{Search: "node-1"},
+			wantCount: 1,
+		},
+		{
+			name:      "Search=no-match",
+			filters:   auditlog.ReadFilters{Search: "zzz-no-match-zzz"},
+			wantCount: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			f := tt.filters
+			f.Start = timeFilters.Start
+			f.End = timeFilters.End
+
+			rdr, err := store.Reader(ctx, f)
+			require.NoError(t, err)
+
+			t.Cleanup(func() {
+				require.NoError(t, rdr.Close())
+			})
+
+			got := readAllEvents(t, rdr)
+			assert.Len(t, got, tt.wantCount)
+		})
+	}
+}
+
 func setupStore(ctx context.Context, t *testing.T, logger *zap.Logger) (*auditlogsqlite.Store, *sqlitexx.Pool) {
 	return setupStoreWithOpts(ctx, t, logger, 0, 0)
 }
 
-func setupStoreWithOpts(ctx context.Context, t *testing.T, logger *zap.Logger, maxSize uint64, cleanupProbability float64) (*auditlogsqlite.Store, *sqlitexx.Pool) {
+func setupStoreWithOpts(ctx context.Context, t *testing.T, logger *zap.Logger, maxSize uint64, cleanupProbability float64, opts ...auditlogsqlite.Option) (*auditlogsqlite.Store, *sqlitexx.Pool) {
 	t.Helper()
 
 	path := filepath.Join(t.TempDir(), "test.db")
@@ -553,7 +780,7 @@ func setupStoreWithOpts(ctx context.Context, t *testing.T, logger *zap.Logger, m
 		require.NoError(t, db.Close())
 	})
 
-	store, err := auditlogsqlite.NewStore(ctx, db, 5*time.Second, maxSize, cleanupProbability, logger)
+	store, err := auditlogsqlite.NewStore(ctx, db, 5*time.Second, maxSize, cleanupProbability, logger, opts...)
 	require.NoError(t, err)
 
 	return store, db

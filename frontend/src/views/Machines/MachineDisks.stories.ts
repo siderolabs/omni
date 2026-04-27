@@ -16,7 +16,7 @@ import NodeDisks, {
   type TalosDiscoveredVolumeSpec,
   type TalosDiskSpec,
   type TalosVolumeStatusSpec,
-} from './disks.vue'
+} from './MachineDisks.vue'
 
 const meta: Meta<typeof NodeDisks> = {
   component: NodeDisks,

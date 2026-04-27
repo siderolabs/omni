@@ -110,6 +110,7 @@ spec:
         GRPC_GATEWAY_VERSION="$(GRPC_GATEWAY_VERSION)"
         VTPROTOBUF_VERSION="$(VTPROTOBUF_VERSION)"
         DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
+        DIS_VULNCHECK_VERSION="$(DIS_VULNCHECK_VERSION)"
         TESTPKGS="$(TESTPKGS)"
         COMPOSE_DOCKER_CLI_BUILD=1
         DOCKER_BUILDKIT=1
@@ -117,6 +118,7 @@ spec:
         GOTOOLCHAIN="$(GOTOOLCHAIN)"
         GOEXPERIMENT="$(GOEXPERIMENT)"
         WITH_DEBUG="$(WITH_DEBUG)"
+        DIS_VULNCHECK_VERSION="$(DIS_VULNCHECK_VERSION)"
         docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml up --build
 ---
 kind: custom.Step
@@ -181,6 +183,7 @@ spec:
         GRPC_GATEWAY_VERSION="$(GRPC_GATEWAY_VERSION)"
         VTPROTOBUF_VERSION="$(VTPROTOBUF_VERSION)"
         DEEPCOPY_VERSION="$(DEEPCOPY_VERSION)"
+        DIS_VULNCHECK_VERSION="$(DIS_VULNCHECK_VERSION)"
         TESTPKGS="$(TESTPKGS)"
         COMPOSE_DOCKER_CLI_BUILD=1
         DOCKER_BUILDKIT=1
@@ -188,6 +191,7 @@ spec:
         GOTOOLCHAIN="$(GOTOOLCHAIN)"
         GOEXPERIMENT="$(GOEXPERIMENT)"
         WITH_DEBUG="$(WITH_DEBUG)"
+        DIS_VULNCHECK_VERSION="$(DIS_VULNCHECK_VERSION)"
         docker compose --file ./hack/compose/docker-compose.yml --file ./hack/compose/docker-compose.override.yml down --rmi local --remove-orphans --volumes=$(REMOVE_VOLUMES)
 ---
 kind: custom.Step
@@ -706,6 +710,8 @@ spec:
       destination: frontend/src/schemas/config_1_11.schema.json
     - source: https://raw.githubusercontent.com/siderolabs/talos/v1.12.6/pkg/machinery/config/schemas/config.schema.json
       destination: frontend/src/schemas/config_1_12.schema.json
+    - source: https://raw.githubusercontent.com/siderolabs/talos/v1.13.0-rc.0/pkg/machinery/config/schemas/config.schema.json
+      destination: frontend/src/schemas/config_1_13.schema.json
   destinationRoot: src/api
   specs:
     - source: client/api/common/omni.proto
@@ -802,7 +808,7 @@ spec:
         Licensor: Sidero Labs, Inc.
         LicensedWork: Omni
         Copyright: (c) 2026 Sidero Labs, Inc.
-        ChangeDate: "2030-03-13"
+        ChangeDate: "2030-04-09"
         ChangeLicense: Mozilla Public License, version 2.0
         EnterpriseLink: https://www.siderolabs.com/contact/
         AdditionalUseGrant: You may make non-production use of the Licensed Work, including for testing and evaluation, or for personal use in a home lab environment. Any use of the Licensed Work in a production environment requires a commercial license from Sidero Labs.
@@ -861,13 +867,39 @@ spec:
         - .vue
       skipPaths:
         - node_modules/
-  enforceContexts:
-    - e2e-short
-    - e2e-scaling
-    - e2e-templates
-    - e2e-upgrades
-    - e2e-backups
-    - e2e-forced-removal
+  protectedBranches:
+    - name: main
+      enforceContexts:
+        - e2e-short
+        - e2e-scaling
+        - e2e-templates
+        - e2e-upgrades
+        - e2e-backups
+        - e2e-forced-removal
+    - name: release-1.5
+      enforceContexts:
+        - e2e-short
+        - e2e-scaling
+        - e2e-templates
+        - e2e-upgrades
+        - e2e-backups
+        - e2e-forced-removal
+    - name: release-1.6
+      enforceContexts:
+        - e2e-short
+        - e2e-scaling
+        - e2e-templates
+        - e2e-upgrades
+        - e2e-backups
+        - e2e-forced-removal
+    - name: release-1.7
+      enforceContexts:
+        - e2e-short
+        - e2e-scaling
+        - e2e-templates
+        - e2e-upgrades
+        - e2e-backups
+        - e2e-forced-removal
 ---
 kind: golang.Toolchain
 spec:

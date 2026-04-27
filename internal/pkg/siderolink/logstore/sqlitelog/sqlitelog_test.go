@@ -18,6 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
@@ -665,6 +666,83 @@ func countTotalRows(ctx context.Context, t *testing.T, mgr *sqlitelog.StoreManag
 	}
 
 	return total
+}
+
+func TestTimeBasedCleanupBatching(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	logger := zaptest.NewLogger(t)
+
+	storageConf := config.Default().Logs.Machine.Storage
+	storageConf.SetCleanupProbability(0)
+	storageConf.SetCleanupOlderThan(24 * time.Hour)
+
+	path := filepath.Join(t.TempDir(), "time-batch.db")
+	dbConf := config.Default().Storage.Sqlite
+	dbConf.SetPath(path)
+
+	db, err := sqlite.OpenDB(dbConf)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+
+	omniState := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	var totalCleaned int
+
+	storeManager, err := sqlitelog.NewStoreManager(ctx, db, storageConf, omniState, logger,
+		sqlitelog.WithCleanupCallback(func(n int) { totalCleaned += n }),
+	)
+	require.NoError(t, err)
+
+	machineID := "time-batch-m1"
+	require.NoError(t, omniState.Create(ctx, omni.NewMachine(machineID)))
+
+	// Insert rows directly to control timestamps.
+	// 1500 old rows (2 days ago) + 200 recent rows (1 hour ago).
+	conn, err := db.Take(ctx)
+	require.NoError(t, err)
+
+	oldTimestamp := time.Now().Add(-48 * time.Hour).Unix()
+	recentTimestamp := time.Now().Add(-1 * time.Hour).Unix()
+
+	const (
+		oldRows    = 1500
+		recentRows = 200
+	)
+
+	for range oldRows {
+		q, qErr := sqlitexx.NewQuery(conn, fmt.Sprintf(
+			"INSERT INTO %s (%s, %s, %s) VALUES ($mid, $msg, $ts)",
+			sqlitelog.TableName, "machine_id", "message", "created_at",
+		))
+		require.NoError(t, qErr)
+		require.NoError(t, q.BindString("$mid", machineID).BindBytes("$msg", []byte("old")).BindInt64("$ts", oldTimestamp).Exec())
+	}
+
+	for range recentRows {
+		q, qErr := sqlitexx.NewQuery(conn, fmt.Sprintf(
+			"INSERT INTO %s (%s, %s, %s) VALUES ($mid, $msg, $ts)",
+			sqlitelog.TableName, "machine_id", "message", "created_at",
+		))
+		require.NoError(t, qErr)
+		require.NoError(t, q.BindString("$mid", machineID).BindBytes("$msg", []byte("recent")).BindInt64("$ts", recentTimestamp).Exec())
+	}
+
+	db.Put(conn)
+
+	// Verify all rows exist before cleanup.
+	totalBefore := countTotalRows(ctx, t, storeManager, []string{machineID})
+	require.Equal(t, oldRows+recentRows, totalBefore)
+
+	// DoCleanup should delete all 1500 old rows across multiple batches (1000 + 500).
+	require.NoError(t, storeManager.DoCleanup(ctx))
+
+	totalAfter := countTotalRows(ctx, t, storeManager, []string{machineID})
+	assert.Equal(t, recentRows, totalAfter, "only recent rows should remain after time-based cleanup")
+	assert.Equal(t, oldRows, totalCleaned, "cleanup callback should report all old rows deleted")
 }
 
 func TestOrphanLogsCleanup(t *testing.T) {

@@ -22,7 +22,7 @@ const meta: Meta<typeof TSelectList> = {
     values,
     defaultValue: values.at(-Math.round(values.length / 2)),
     hideSelectedSmallScreens: false,
-    disabled: true,
+    disabled: false,
     searcheable: true,
     overheadTitle: false,
     onCheckedValue: fn(),

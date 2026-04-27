@@ -357,7 +357,7 @@ func dropWorkloadProxyConfigPatches(ctx context.Context, st state.State, _ *zap.
 		return err
 	}
 
-	ctrl, err := cluster.NewClusterWorkloadProxyController()
+	ctrl, err := cluster.NewClusterWorkloadProxyController(true)
 	if err != nil {
 		return err
 	}
@@ -380,6 +380,25 @@ func dropWorkloadProxyConfigPatches(ctx context.Context, st state.State, _ *zap.
 		}
 
 		if err = st.Destroy(ctx, patch.Metadata(), state.WithDestroyOwner(controllerName)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func makeMachineRequestsOwnerEmpty(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
+	machineRequests, err := safe.ReaderListAll[*infra.MachineRequest](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	for machineRequest := range machineRequests.All() {
+		if machineRequest.Metadata().Owner() == "" {
+			continue
+		}
+
+		if err = changeOwner(ctx, st, machineRequest, ""); err != nil {
 			return err
 		}
 	}

@@ -13,14 +13,14 @@ import WordHighlighter from 'vue-word-highlighter'
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import { MachineStatusSpecPowerState } from '@/api/omni/specs/omni.pb'
-import { MachineStatusLabelInstalled } from '@/api/resources'
+import { LabelCluster, MachineStatusLabelInstalled } from '@/api/resources'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import CopyButton from '@/components/CopyButton/CopyButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
-import { usePermissions } from '@/methods/auth'
+import { useClusterPermissions, usePermissions } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
@@ -42,6 +42,10 @@ const { copy } = useClipboard()
 
 const { canAccessMaintenanceNodes, canReadClusters, canReadMachineLogs, canRemoveMachines } =
   usePermissions()
+
+const { canManageKernelArgs, canReadConfigPatches } = useClusterPermissions(
+  () => machine.metadata.labels?.[LabelCluster],
+)
 
 const machineName = computed(() => {
   return machine.spec.message_status?.network?.hostname ?? machine.metadata.id
@@ -157,6 +161,7 @@ const maintenanceUpdateDescription = computed(() => {
           <TActionsBox>
             <TActionsBoxItem
               icon="settings"
+              :disabled="!canReadConfigPatches"
               @select="
                 $router.push({
                   name: 'MachineConfigPatches',
@@ -169,6 +174,7 @@ const maintenanceUpdateDescription = computed(() => {
 
             <TActionsBoxItem
               icon="settings"
+              :disabled="!canManageKernelArgs"
               @select="
                 $router.push({
                   query: {
@@ -186,9 +192,9 @@ const maintenanceUpdateDescription = computed(() => {
             </TActionsBoxItem>
 
             <TActionsBoxItem
-              v-if="canRemoveMachines"
               icon="delete"
               danger
+              :disabled="!canRemoveMachines"
               @select="
                 $router.push({
                   query: {

@@ -264,6 +264,78 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	rtestutils.Destroy[*omni.MachineSet](ctx, suite.T(), suite.state, []string{machineSet.Metadata().ID()})
 }
 
+func (suite *MachineSetNodeSuite) TestNoRaceBetweenCleanupAndMachineSetNodeController() {
+	suite.startRuntime()
+
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*10)
+	defer cancel()
+
+	suite.Require().NoError(suite.runtime.RegisterQController(&omnictrl.MachineSetNodeController{}))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLabelsExtractorController[*omni.MachineStatus]()))
+	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineRequestStatusCleanupController()))
+
+	cluster := omni.NewCluster("cluster-race")
+	cluster.TypedSpec().Value.TalosVersion = "1.6.4"
+	suite.Require().NoError(suite.state.Create(ctx, cluster))
+
+	machineClass := newMachineClass(fmt.Sprintf("%s==amd64", omni.MachineStatusLabelArch))
+	suite.Require().NoError(suite.state.Create(ctx, machineClass))
+
+	machineRequest := infra.NewMachineRequest("request-race")
+	suite.Require().NoError(suite.state.Create(ctx, machineRequest))
+
+	machines := suite.createMachines(map[string]string{
+		omni.MachineStatusLabelArch:            "amd64",
+		omni.MachineStatusLabelAvailable:       "",
+		omni.MachineStatusLabelConnected:       "",
+		omni.MachineStatusLabelReadyToUse:      "",
+		omni.MachineStatusLabelReportingEvents: "",
+		omni.LabelMachineRequest:               machineRequest.Metadata().ID(),
+	})
+	machineID := machines[0].Metadata().ID()
+
+	machineRequestStatus := infra.NewMachineRequestStatus(machineRequest.Metadata().ID())
+	machineRequestStatus.TypedSpec().Value.Id = machineID
+	suite.Require().NoError(suite.state.Create(ctx, machineRequestStatus))
+
+	machineSet := omni.NewMachineSet("set-race")
+	machineSet.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
+	machineSet.Metadata().Labels().Set(omni.LabelWorkerRole, "")
+	machineSet.TypedSpec().Value.MachineAllocation = &specs.MachineSetSpec_MachineAllocation{
+		Name:         machineClass.Metadata().ID(),
+		MachineCount: 1,
+	}
+	suite.Require().NoError(suite.state.Create(ctx, machineSet))
+
+	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineID},
+		func(n *omni.MachineSetNode, assert *assert.Assertions) {},
+	)
+
+	initialMSN, err := safe.StateGetByID[*omni.MachineSetNode](ctx, suite.state, machineID)
+	suite.Require().NoError(err)
+
+	initialCreated := initialMSN.Metadata().Created()
+
+	_, err = suite.state.Teardown(ctx, machineRequest.Metadata())
+	suite.Require().NoError(err)
+
+	_, err = suite.state.Teardown(ctx, machineRequestStatus.Metadata())
+	suite.Require().NoError(err)
+
+	// Under the bug, the cleanup handler destroys the MSN and MachineSetNodeController
+	// immediately creates a new one for the same machine (new Created() timestamp).
+	// Either keeping the original MSN or leaving it destroyed is acceptable — recreating is not.
+	suite.Require().Never(func() bool {
+		msn, getErr := safe.StateGetByID[*omni.MachineSetNode](ctx, suite.state, machineID)
+		if getErr != nil {
+			return false
+		}
+
+		return msn.Metadata().Created().After(initialCreated)
+	}, time.Second*2, time.Millisecond*50,
+		"MachineSetNode should not be recreated by MachineSetNodeController after MachineRequestStatus cleanup destroyed it")
+}
+
 func TestSortFunction(t *testing.T) {
 	machineStatuses := map[resource.ID]*system.ResourceLabels[*omni.MachineStatus]{}
 	machineSetNodes := make([]*omni.MachineSetNode, 0, 10)

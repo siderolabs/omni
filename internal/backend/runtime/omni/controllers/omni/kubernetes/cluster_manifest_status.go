@@ -22,6 +22,7 @@ import (
 	fluxssa "github.com/fluxcd/pkg/ssa"
 	"github.com/fluxcd/pkg/ssa/utils"
 	"github.com/siderolabs/gen/optional"
+	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-kubernetes/kubernetes/ssa"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
@@ -291,12 +292,17 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 
 	var lastError string
 
-	if errs != nil && isFatalError(errs) {
+	if errs != nil && !xerrors.TypeIs[*controller.RequeueError](errs) {
 		logger.Error("failed to apply manifests", zap.Error(errs))
 
-		lastError = errs.Error()
+		if isFatalError(errs) {
+			lastError = errs.Error()
 
-		errs = nil
+			errs = nil
+		} else {
+			// we do not put the concrete error message in the status to avoid blowing up resource writes if the error changes on every failure
+			lastError = "retryable error occurred while applying manifests"
+		}
 	}
 
 	// update the status once again after the run is finished
@@ -563,9 +569,13 @@ func validationError(err error) bool {
 	return errors.As(err, &validationError)
 }
 
+func namespaceError(err error) bool {
+	return strings.Contains(err.Error(), "namespace not specified")
+}
+
 func isFatalError(err error) bool {
 	return apierrors.IsInvalid(err) || apierrors.IsBadRequest(err) || apierrors.IsForbidden(err) ||
-		apierrors.IsRequestEntityTooLargeError(err) || webhookError(err) || validationError(err)
+		apierrors.IsRequestEntityTooLargeError(err) || webhookError(err) || validationError(err) || namespaceError(err)
 }
 
 func (ctrl *ClusterManifestsStatusController) newSSAManager(

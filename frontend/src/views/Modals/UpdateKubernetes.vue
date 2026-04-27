@@ -143,9 +143,9 @@ const groupedK8sVersions = computed(() => {
 })
 
 const allTalosVersions = computed(() =>
-  allTalosVersionsUnsorted.value
-    .slice()
-    .sort((a, b) => semver.compare(a.spec.version!, b.spec.version!)),
+  allTalosVersionsUnsorted.value.toSorted((a, b) =>
+    semver.compare(a.spec.version!, b.spec.version!),
+  ),
 )
 
 function isVersionUpgradeable(version: string) {

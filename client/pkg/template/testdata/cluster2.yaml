@@ -9,7 +9,7 @@ features:
   useEmbeddedDiscoveryService: true
 patches:
   - file: patches/my-cluster-patch.yaml
-  - file: ../testdata/patches/my-registry-mirrors.yaml
+  - file: patches/my-registry-mirrors.yaml
 ---
 kind: ControlPlane
 machines:

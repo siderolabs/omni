@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-02-17T11:25:24Z by kres 6458cfd.
+# Generated on 2026-04-14T11:47:48Z by kres b6d29bf.
 
 *
 !frontend/src
@@ -37,5 +37,7 @@
 !.markdownlint.json
 !.license-header.go.txt
 !hack/govulncheck.sh
+!.disvulncheck.yaml
 !hack/govulncheck.sh
+!.disvulncheck.yaml
 !deploy/helm/omni

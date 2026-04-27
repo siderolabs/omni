@@ -8,9 +8,7 @@ included in the LICENSE file.
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { Runtime } from '@/api/common/omni.pb'
-import { withContext, withRuntime } from '@/api/options'
-import { MachineService } from '@/api/talos/machine/machine.pb'
+import { ManagementService } from '@/api/omni/management/management.pb'
 import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import { getContext } from '@/context'
@@ -22,7 +20,8 @@ const route = useRoute()
 const router = useRouter()
 const state = ref('Shutdown')
 
-const node = setupNodenameWatch(route.query.machine as string)
+const machineId = route.query.machine as string
+const node = setupNodenameWatch(machineId)
 
 const close = () => {
   router.go(-1)
@@ -35,17 +34,10 @@ const { canRebootMachines } = useClusterPermissions(computed(() => context.clust
 const shutdown = async () => {
   state.value = 'Shutdown in progress'
 
-  const nodeName = node.value ?? (route.query.machine as string)
+  const nodeName = node.value ?? machineId
 
   try {
-    const res = await MachineService.Shutdown({}, withRuntime(Runtime.Talos), withContext(context))
-
-    const errors: string[] = []
-    for (const message of res.messages || []) {
-      if (message?.metadata?.error)
-        errors.push(`${message.metadata.hostname || nodeName} ${message.metadata.error}`)
-    }
-    if (errors.length > 0) throw new Error(errors.join(', '))
+    await ManagementService.MachinePowerOff({ machine_id: machineId })
   } catch (e) {
     close()
 
@@ -60,7 +52,7 @@ const shutdown = async () => {
     await router.push({ name: 'ClusterOverview', params: { cluster: context.cluster! } })
   }
 
-  showSuccess('Machine Shutdown', `Machine ${nodeName} is shutting down now.`)
+  showSuccess('Machine Shutdown', `Shutdown request sent for machine ${nodeName}.`)
 }
 </script>
 

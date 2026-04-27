@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts" generic="T extends string | number">
-import { computed, onMounted, useTemplateRef, watchPostEffect } from 'vue'
+import { computed, type InputHTMLAttributes, onMounted, useTemplateRef, watchPostEffect } from 'vue'
 
 import type { IconType } from '@/components/Icon/TIcon.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
@@ -18,10 +18,11 @@ interface Props {
   focus?: boolean
   secondary?: boolean
   compact?: boolean
-  type?: 'text' | 'number' | 'password'
+  type?: InputHTMLAttributes['type']
   max?: number
   min?: number
   disabled?: boolean
+  required?: boolean
   step?: number
   onClear?: () => void
 }
@@ -107,6 +108,7 @@ onMounted(() => focus && inputRef.value?.focus())
       <input
         ref="input"
         v-model.trim="modelValue"
+        :required
         :disabled="disabled"
         :type="type"
         class="peer min-w-2 flex-1 border-none bg-transparent text-xs text-naturals-n13 placeholder-naturals-n7 outline-hidden transition-colors focus:border-transparent focus:outline-hidden disabled:opacity-0"

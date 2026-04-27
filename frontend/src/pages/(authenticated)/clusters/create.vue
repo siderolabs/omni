@@ -358,7 +358,10 @@ const list = useTemplateRef('list')
             :disabled="!supportsEncryption"
           />
         </Tooltip>
-        <ClusterWorkloadProxyingCheckbox v-model="state.cluster.features.enableWorkloadProxy" />
+        <ClusterWorkloadProxyingCheckbox
+          v-model="state.cluster.features.enableWorkloadProxy"
+          :disabled="!features?.spec.enable_workload_proxying"
+        />
         <EmbeddedDiscoveryServiceCheckbox
           v-model="state.cluster.features.useEmbeddedDiscoveryService"
           :disabled="!isEmbeddedDiscoveryServiceAvailable"

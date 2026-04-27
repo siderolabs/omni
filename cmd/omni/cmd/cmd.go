@@ -164,9 +164,10 @@ func buildRootCommand() (*cobra.Command, error) {
 	defineStorageFlags(rootCmd, rootCmdFlagBinder, flagConfig)
 	defineRegistriesFlags(rootCmdFlagBinder, flagConfig)
 	defineFeatureFlags(rootCmdFlagBinder, flagConfig)
-	defineNotificationFlags(rootCmdFlagBinder, flagConfig)
 	defineDebugFlags(rootCmdFlagBinder, flagConfig)
 	defineEtcdBackupsFlags(rootCmd, rootCmdFlagBinder, flagConfig)
+	defineEulaFlags(rootCmd, rootCmdFlagBinder, flagConfig)
+	defineSupportFlags(rootCmdFlagBinder, flagConfig)
 
 	return rootCmd, nil
 }
@@ -326,6 +327,8 @@ func defineStorageFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *confi
 	b.StringVar("storage.sqlite.path", &flagConfig.Storage.Sqlite.Path)
 	b.StringVar("storage.sqlite.experimentalBaseParams", &flagConfig.Storage.Sqlite.ExperimentalBaseParams)
 	b.StringVar("storage.sqlite.extraParams", &flagConfig.Storage.Sqlite.ExtraParams)
+	b.DurationVar("storage.sqlite.metrics.refreshInterval", &flagConfig.Storage.Sqlite.Metrics.RefreshInterval)
+	b.DurationVar("storage.sqlite.metrics.refreshTimeout", &flagConfig.Storage.Sqlite.Metrics.RefreshTimeout)
 	b.StringVar("storage.vault.k8sAuthMountPath", &flagConfig.Storage.Vault.K8SAuthMountPath)
 }
 
@@ -350,12 +353,6 @@ func defineFeatureFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.BoolVar("features.enableClusterImport", &flagConfig.Features.EnableClusterImport)
 }
 
-func defineNotificationFlags(b *FlagBinder, flagConfig *config.Params) {
-	b.BoolVar("notifications.nonImageFactoryDeprecation.enabled", &flagConfig.Notifications.NonImageFactoryDeprecation.Enabled)
-	b.StringVar("notifications.nonImageFactoryDeprecation.title", &flagConfig.Notifications.NonImageFactoryDeprecation.Title)
-	b.StringVar("notifications.nonImageFactoryDeprecation.body", &flagConfig.Notifications.NonImageFactoryDeprecation.Body)
-}
-
 func defineDebugFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.StringVar("debug.pprof.endpoint", &flagConfig.Debug.Pprof.Endpoint)
 	b.StringVar("debug.server.endpoint", &flagConfig.Debug.Server.Endpoint)
@@ -372,4 +369,23 @@ func defineEtcdBackupsFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *c
 	b.Uint64Var("etcdBackup.downloadLimitMbps", &flagConfig.EtcdBackup.DownloadLimitMbps)
 
 	rootCmd.MarkFlagsMutuallyExclusive(b.mustFlagName("etcdBackup.s3Enabled"), b.mustFlagName("etcdBackup.localPath"))
+}
+
+func defineSupportFlags(b *FlagBinder, flagConfig *config.Params) {
+	b.StringSliceVar("support.supportEligibleProducts", &flagConfig.Support.SupportEligibleProducts, flagConfig.Support.SupportEligibleProducts)
+	b.StringVar("support.officeHours.summary", &flagConfig.Support.OfficeHours.Summary)
+	b.StringVar("support.officeHours.description", &flagConfig.Support.OfficeHours.Description)
+	b.StringVar("support.officeHours.dtstartTzid", &flagConfig.Support.OfficeHours.DtstartTzid)
+	b.StringVar("support.officeHours.dtendTzid", &flagConfig.Support.OfficeHours.DtendTzid)
+	b.StringVar("support.officeHours.dtstartUtc", &flagConfig.Support.OfficeHours.DtstartUtc)
+	b.StringVar("support.officeHours.dtendUtc", &flagConfig.Support.OfficeHours.DtendUtc)
+	b.StringVar("support.officeHours.rrule", &flagConfig.Support.OfficeHours.Rrule)
+	b.StringVar("support.officeHours.meetUrl", &flagConfig.Support.OfficeHours.MeetUrl)
+}
+
+func defineEulaFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.Params) {
+	b.StringVar("eulaAccept.name", &flagConfig.EulaAccept.Name)
+	b.StringVar("eulaAccept.email", &flagConfig.EulaAccept.Email)
+
+	rootCmd.MarkFlagsRequiredTogether(b.mustFlagName("eulaAccept.name"), b.mustFlagName("eulaAccept.email"))
 }

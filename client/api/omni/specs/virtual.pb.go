@@ -196,6 +196,10 @@ type PermissionsSpec struct {
 	CanManageBackupStore          bool                   `protobuf:"varint,11,opt,name=can_manage_backup_store,json=canManageBackupStore,proto3" json:"can_manage_backup_store,omitempty"`
 	CanAccessMaintenanceNodes     bool                   `protobuf:"varint,12,opt,name=can_access_maintenance_nodes,json=canAccessMaintenanceNodes,proto3" json:"can_access_maintenance_nodes,omitempty"`
 	CanReadAuditLog               bool                   `protobuf:"varint,13,opt,name=can_read_audit_log,json=canReadAuditLog,proto3" json:"can_read_audit_log,omitempty"`
+	CanReadJoinTokens             bool                   `protobuf:"varint,14,opt,name=can_read_join_tokens,json=canReadJoinTokens,proto3" json:"can_read_join_tokens,omitempty"`
+	CanManageJoinTokens           bool                   `protobuf:"varint,15,opt,name=can_manage_join_tokens,json=canManageJoinTokens,proto3" json:"can_manage_join_tokens,omitempty"`
+	CanReadInstallationMedia      bool                   `protobuf:"varint,16,opt,name=can_read_installation_media,json=canReadInstallationMedia,proto3" json:"can_read_installation_media,omitempty"`
+	CanManageInstallationMedia    bool                   `protobuf:"varint,17,opt,name=can_manage_installation_media,json=canManageInstallationMedia,proto3" json:"can_manage_installation_media,omitempty"`
 	unknownFields                 protoimpl.UnknownFields
 	sizeCache                     protoimpl.SizeCache
 }
@@ -307,22 +311,55 @@ func (x *PermissionsSpec) GetCanReadAuditLog() bool {
 	return false
 }
 
+func (x *PermissionsSpec) GetCanReadJoinTokens() bool {
+	if x != nil {
+		return x.CanReadJoinTokens
+	}
+	return false
+}
+
+func (x *PermissionsSpec) GetCanManageJoinTokens() bool {
+	if x != nil {
+		return x.CanManageJoinTokens
+	}
+	return false
+}
+
+func (x *PermissionsSpec) GetCanReadInstallationMedia() bool {
+	if x != nil {
+		return x.CanReadInstallationMedia
+	}
+	return false
+}
+
+func (x *PermissionsSpec) GetCanManageInstallationMedia() bool {
+	if x != nil {
+		return x.CanManageInstallationMedia
+	}
+	return false
+}
+
 type ClusterPermissionsSpec struct {
-	state                      protoimpl.MessageState `protogen:"open.v1"`
-	CanAddMachines             bool                   `protobuf:"varint,1,opt,name=can_add_machines,json=canAddMachines,proto3" json:"can_add_machines,omitempty"`
-	CanRemoveMachines          bool                   `protobuf:"varint,2,opt,name=can_remove_machines,json=canRemoveMachines,proto3" json:"can_remove_machines,omitempty"`
-	CanRebootMachines          bool                   `protobuf:"varint,3,opt,name=can_reboot_machines,json=canRebootMachines,proto3" json:"can_reboot_machines,omitempty"`
-	CanUpdateKubernetes        bool                   `protobuf:"varint,4,opt,name=can_update_kubernetes,json=canUpdateKubernetes,proto3" json:"can_update_kubernetes,omitempty"`
-	CanDownloadKubeconfig      bool                   `protobuf:"varint,5,opt,name=can_download_kubeconfig,json=canDownloadKubeconfig,proto3" json:"can_download_kubeconfig,omitempty"`
-	CanSyncKubernetesManifests bool                   `protobuf:"varint,6,opt,name=can_sync_kubernetes_manifests,json=canSyncKubernetesManifests,proto3" json:"can_sync_kubernetes_manifests,omitempty"`
-	CanUpdateTalos             bool                   `protobuf:"varint,7,opt,name=can_update_talos,json=canUpdateTalos,proto3" json:"can_update_talos,omitempty"`
-	CanDownloadTalosconfig     bool                   `protobuf:"varint,8,opt,name=can_download_talosconfig,json=canDownloadTalosconfig,proto3" json:"can_download_talosconfig,omitempty"`
-	CanReadConfigPatches       bool                   `protobuf:"varint,9,opt,name=can_read_config_patches,json=canReadConfigPatches,proto3" json:"can_read_config_patches,omitempty"`
-	CanManageConfigPatches     bool                   `protobuf:"varint,10,opt,name=can_manage_config_patches,json=canManageConfigPatches,proto3" json:"can_manage_config_patches,omitempty"`
-	CanManageClusterFeatures   bool                   `protobuf:"varint,11,opt,name=can_manage_cluster_features,json=canManageClusterFeatures,proto3" json:"can_manage_cluster_features,omitempty"`
-	CanDownloadSupportBundle   bool                   `protobuf:"varint,12,opt,name=can_download_support_bundle,json=canDownloadSupportBundle,proto3" json:"can_download_support_bundle,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	state                        protoimpl.MessageState `protogen:"open.v1"`
+	CanAddMachines               bool                   `protobuf:"varint,1,opt,name=can_add_machines,json=canAddMachines,proto3" json:"can_add_machines,omitempty"`
+	CanRemoveMachines            bool                   `protobuf:"varint,2,opt,name=can_remove_machines,json=canRemoveMachines,proto3" json:"can_remove_machines,omitempty"`
+	CanRebootMachines            bool                   `protobuf:"varint,3,opt,name=can_reboot_machines,json=canRebootMachines,proto3" json:"can_reboot_machines,omitempty"`
+	CanUpdateKubernetes          bool                   `protobuf:"varint,4,opt,name=can_update_kubernetes,json=canUpdateKubernetes,proto3" json:"can_update_kubernetes,omitempty"`
+	CanDownloadKubeconfig        bool                   `protobuf:"varint,5,opt,name=can_download_kubeconfig,json=canDownloadKubeconfig,proto3" json:"can_download_kubeconfig,omitempty"`
+	CanSyncKubernetesManifests   bool                   `protobuf:"varint,6,opt,name=can_sync_kubernetes_manifests,json=canSyncKubernetesManifests,proto3" json:"can_sync_kubernetes_manifests,omitempty"`
+	CanUpdateTalos               bool                   `protobuf:"varint,7,opt,name=can_update_talos,json=canUpdateTalos,proto3" json:"can_update_talos,omitempty"`
+	CanDownloadTalosconfig       bool                   `protobuf:"varint,8,opt,name=can_download_talosconfig,json=canDownloadTalosconfig,proto3" json:"can_download_talosconfig,omitempty"`
+	CanReadConfigPatches         bool                   `protobuf:"varint,9,opt,name=can_read_config_patches,json=canReadConfigPatches,proto3" json:"can_read_config_patches,omitempty"`
+	CanManageConfigPatches       bool                   `protobuf:"varint,10,opt,name=can_manage_config_patches,json=canManageConfigPatches,proto3" json:"can_manage_config_patches,omitempty"`
+	CanManageClusterFeatures     bool                   `protobuf:"varint,11,opt,name=can_manage_cluster_features,json=canManageClusterFeatures,proto3" json:"can_manage_cluster_features,omitempty"`
+	CanDownloadSupportBundle     bool                   `protobuf:"varint,12,opt,name=can_download_support_bundle,json=canDownloadSupportBundle,proto3" json:"can_download_support_bundle,omitempty"`
+	CanReadMachineConfig         bool                   `protobuf:"varint,13,opt,name=can_read_machine_config,json=canReadMachineConfig,proto3" json:"can_read_machine_config,omitempty"`
+	CanManageMachineConfig       bool                   `protobuf:"varint,14,opt,name=can_manage_machine_config,json=canManageMachineConfig,proto3" json:"can_manage_machine_config,omitempty"`
+	CanReadKernelArgs            bool                   `protobuf:"varint,15,opt,name=can_read_kernel_args,json=canReadKernelArgs,proto3" json:"can_read_kernel_args,omitempty"`
+	CanManageKernelArgs          bool                   `protobuf:"varint,16,opt,name=can_manage_kernel_args,json=canManageKernelArgs,proto3" json:"can_manage_kernel_args,omitempty"`
+	CanReadMachinePendingUpdates bool                   `protobuf:"varint,17,opt,name=can_read_machine_pending_updates,json=canReadMachinePendingUpdates,proto3" json:"can_read_machine_pending_updates,omitempty"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *ClusterPermissionsSpec) Reset() {
@@ -435,6 +472,41 @@ func (x *ClusterPermissionsSpec) GetCanManageClusterFeatures() bool {
 func (x *ClusterPermissionsSpec) GetCanDownloadSupportBundle() bool {
 	if x != nil {
 		return x.CanDownloadSupportBundle
+	}
+	return false
+}
+
+func (x *ClusterPermissionsSpec) GetCanReadMachineConfig() bool {
+	if x != nil {
+		return x.CanReadMachineConfig
+	}
+	return false
+}
+
+func (x *ClusterPermissionsSpec) GetCanManageMachineConfig() bool {
+	if x != nil {
+		return x.CanManageMachineConfig
+	}
+	return false
+}
+
+func (x *ClusterPermissionsSpec) GetCanReadKernelArgs() bool {
+	if x != nil {
+		return x.CanReadKernelArgs
+	}
+	return false
+}
+
+func (x *ClusterPermissionsSpec) GetCanManageKernelArgs() bool {
+	if x != nil {
+		return x.CanManageKernelArgs
+	}
+	return false
+}
+
+func (x *ClusterPermissionsSpec) GetCanReadMachinePendingUpdates() bool {
+	if x != nil {
+		return x.CanReadMachinePendingUpdates
 	}
 	return false
 }
@@ -703,6 +775,158 @@ func (x *SBCConfigSpec) GetMinVersion() string {
 	return ""
 }
 
+type OfficeHoursConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Summary       string                 `protobuf:"bytes,1,opt,name=summary,proto3" json:"summary,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	DtstartTzid   string                 `protobuf:"bytes,3,opt,name=dtstart_tzid,json=dtstartTzid,proto3" json:"dtstart_tzid,omitempty"`
+	DtendTzid     string                 `protobuf:"bytes,4,opt,name=dtend_tzid,json=dtendTzid,proto3" json:"dtend_tzid,omitempty"`
+	DtstartUtc    string                 `protobuf:"bytes,5,opt,name=dtstart_utc,json=dtstartUtc,proto3" json:"dtstart_utc,omitempty"`
+	DtendUtc      string                 `protobuf:"bytes,6,opt,name=dtend_utc,json=dtendUtc,proto3" json:"dtend_utc,omitempty"`
+	Rrule         string                 `protobuf:"bytes,7,opt,name=rrule,proto3" json:"rrule,omitempty"`
+	MeetUrl       string                 `protobuf:"bytes,8,opt,name=meet_url,json=meetUrl,proto3" json:"meet_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OfficeHoursConfig) Reset() {
+	*x = OfficeHoursConfig{}
+	mi := &file_omni_specs_virtual_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OfficeHoursConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OfficeHoursConfig) ProtoMessage() {}
+
+func (x *OfficeHoursConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_virtual_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OfficeHoursConfig.ProtoReflect.Descriptor instead.
+func (*OfficeHoursConfig) Descriptor() ([]byte, []int) {
+	return file_omni_specs_virtual_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *OfficeHoursConfig) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *OfficeHoursConfig) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *OfficeHoursConfig) GetDtstartTzid() string {
+	if x != nil {
+		return x.DtstartTzid
+	}
+	return ""
+}
+
+func (x *OfficeHoursConfig) GetDtendTzid() string {
+	if x != nil {
+		return x.DtendTzid
+	}
+	return ""
+}
+
+func (x *OfficeHoursConfig) GetDtstartUtc() string {
+	if x != nil {
+		return x.DtstartUtc
+	}
+	return ""
+}
+
+func (x *OfficeHoursConfig) GetDtendUtc() string {
+	if x != nil {
+		return x.DtendUtc
+	}
+	return ""
+}
+
+func (x *OfficeHoursConfig) GetRrule() string {
+	if x != nil {
+		return x.Rrule
+	}
+	return ""
+}
+
+func (x *OfficeHoursConfig) GetMeetUrl() string {
+	if x != nil {
+		return x.MeetUrl
+	}
+	return ""
+}
+
+type SupportSpec struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	SupportEnabled bool                   `protobuf:"varint,1,opt,name=support_enabled,json=supportEnabled,proto3" json:"support_enabled,omitempty"`
+	OfficeHours    *OfficeHoursConfig     `protobuf:"bytes,2,opt,name=office_hours,json=officeHours,proto3" json:"office_hours,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *SupportSpec) Reset() {
+	*x = SupportSpec{}
+	mi := &file_omni_specs_virtual_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SupportSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SupportSpec) ProtoMessage() {}
+
+func (x *SupportSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_virtual_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SupportSpec.ProtoReflect.Descriptor instead.
+func (*SupportSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_virtual_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SupportSpec) GetSupportEnabled() bool {
+	if x != nil {
+		return x.SupportEnabled
+	}
+	return false
+}
+
+func (x *SupportSpec) GetOfficeHours() *OfficeHoursConfig {
+	if x != nil {
+		return x.OfficeHours
+	}
+	return nil
+}
+
 type LabelsCompletionSpec_Values struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Items         []string               `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
@@ -712,7 +936,7 @@ type LabelsCompletionSpec_Values struct {
 
 func (x *LabelsCompletionSpec_Values) Reset() {
 	*x = LabelsCompletionSpec_Values{}
-	mi := &file_omni_specs_virtual_proto_msgTypes[7]
+	mi := &file_omni_specs_virtual_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -724,7 +948,7 @@ func (x *LabelsCompletionSpec_Values) String() string {
 func (*LabelsCompletionSpec_Values) ProtoMessage() {}
 
 func (x *LabelsCompletionSpec_Values) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_virtual_proto_msgTypes[7]
+	mi := &file_omni_specs_virtual_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -755,7 +979,7 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x0fCurrentUserSpec\x12\x1a\n" +
 	"\bidentity\x18\x01 \x01(\tR\bidentity\x12\x12\n" +
 	"\x04role\x18\x03 \x01(\tR\x04role\x12\x17\n" +
-	"\auser_id\x18\x04 \x01(\tR\x06userIdJ\x04\b\x02\x10\x03\"\xdb\x04\n" +
+	"\auser_id\x18\x04 \x01(\tR\x06userIdJ\x04\b\x02\x10\x03\"\xc3\x06\n" +
 	"\x0fPermissionsSpec\x12*\n" +
 	"\x11can_read_clusters\x18\x01 \x01(\bR\x0fcanReadClusters\x12.\n" +
 	"\x13can_create_clusters\x18\x02 \x01(\bR\x11canCreateClusters\x12(\n" +
@@ -768,7 +992,11 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	" \x01(\bR\x1dcanManageMachineConfigPatches\x125\n" +
 	"\x17can_manage_backup_store\x18\v \x01(\bR\x14canManageBackupStore\x12?\n" +
 	"\x1ccan_access_maintenance_nodes\x18\f \x01(\bR\x19canAccessMaintenanceNodes\x12+\n" +
-	"\x12can_read_audit_log\x18\r \x01(\bR\x0fcanReadAuditLog\"\xa5\x05\n" +
+	"\x12can_read_audit_log\x18\r \x01(\bR\x0fcanReadAuditLog\x12/\n" +
+	"\x14can_read_join_tokens\x18\x0e \x01(\bR\x11canReadJoinTokens\x123\n" +
+	"\x16can_manage_join_tokens\x18\x0f \x01(\bR\x13canManageJoinTokens\x12=\n" +
+	"\x1bcan_read_installation_media\x18\x10 \x01(\bR\x18canReadInstallationMedia\x12A\n" +
+	"\x1dcan_manage_installation_media\x18\x11 \x01(\bR\x1acanManageInstallationMedia\"\xc5\a\n" +
 	"\x16ClusterPermissionsSpec\x12(\n" +
 	"\x10can_add_machines\x18\x01 \x01(\bR\x0ecanAddMachines\x12.\n" +
 	"\x13can_remove_machines\x18\x02 \x01(\bR\x11canRemoveMachines\x12.\n" +
@@ -782,7 +1010,12 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\x19can_manage_config_patches\x18\n" +
 	" \x01(\bR\x16canManageConfigPatches\x12=\n" +
 	"\x1bcan_manage_cluster_features\x18\v \x01(\bR\x18canManageClusterFeatures\x12=\n" +
-	"\x1bcan_download_support_bundle\x18\f \x01(\bR\x18canDownloadSupportBundle\"\xd2\x01\n" +
+	"\x1bcan_download_support_bundle\x18\f \x01(\bR\x18canDownloadSupportBundle\x125\n" +
+	"\x17can_read_machine_config\x18\r \x01(\bR\x14canReadMachineConfig\x129\n" +
+	"\x19can_manage_machine_config\x18\x0e \x01(\bR\x16canManageMachineConfig\x12/\n" +
+	"\x14can_read_kernel_args\x18\x0f \x01(\bR\x11canReadKernelArgs\x123\n" +
+	"\x16can_manage_kernel_args\x18\x10 \x01(\bR\x13canManageKernelArgs\x12F\n" +
+	" can_read_machine_pending_updates\x18\x11 \x01(\bR\x1ccanReadMachinePendingUpdates\"\xd2\x01\n" +
 	"\x14LabelsCompletionSpec\x12<\n" +
 	"\x05items\x18\x01 \x03(\v2&.specs.LabelsCompletionSpec.ItemsEntryR\x05items\x1a\x1e\n" +
 	"\x06Values\x12\x14\n" +
@@ -821,7 +1054,21 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\roverlay_image\x18\x03 \x01(\tR\foverlayImage\x12$\n" +
 	"\rdocumentation\x18\x04 \x01(\tR\rdocumentation\x12\x1f\n" +
 	"\vmin_version\x18\x05 \x01(\tR\n" +
-	"minVersionB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"minVersion\"\x80\x02\n" +
+	"\x11OfficeHoursConfig\x12\x18\n" +
+	"\asummary\x18\x01 \x01(\tR\asummary\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12!\n" +
+	"\fdtstart_tzid\x18\x03 \x01(\tR\vdtstartTzid\x12\x1d\n" +
+	"\n" +
+	"dtend_tzid\x18\x04 \x01(\tR\tdtendTzid\x12\x1f\n" +
+	"\vdtstart_utc\x18\x05 \x01(\tR\n" +
+	"dtstartUtc\x12\x1b\n" +
+	"\tdtend_utc\x18\x06 \x01(\tR\bdtendUtc\x12\x14\n" +
+	"\x05rrule\x18\a \x01(\tR\x05rrule\x12\x19\n" +
+	"\bmeet_url\x18\b \x01(\tR\ameetUrl\"s\n" +
+	"\vSupportSpec\x12'\n" +
+	"\x0fsupport_enabled\x18\x01 \x01(\bR\x0esupportEnabled\x12;\n" +
+	"\foffice_hours\x18\x02 \x01(\v2\x18.specs.OfficeHoursConfigR\vofficeHoursB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_virtual_proto_rawDescOnce sync.Once
@@ -836,7 +1083,7 @@ func file_omni_specs_virtual_proto_rawDescGZIP() []byte {
 }
 
 var file_omni_specs_virtual_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_omni_specs_virtual_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_omni_specs_virtual_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_omni_specs_virtual_proto_goTypes = []any{
 	(PlatformConfigSpec_BootMethod)(0),  // 0: specs.PlatformConfigSpec.BootMethod
 	(PlatformConfigSpec_Arch)(0),        // 1: specs.PlatformConfigSpec.Arch
@@ -847,19 +1094,22 @@ var file_omni_specs_virtual_proto_goTypes = []any{
 	(*AdvertisedEndpointsSpec)(nil),     // 6: specs.AdvertisedEndpointsSpec
 	(*PlatformConfigSpec)(nil),          // 7: specs.PlatformConfigSpec
 	(*SBCConfigSpec)(nil),               // 8: specs.SBCConfigSpec
-	(*LabelsCompletionSpec_Values)(nil), // 9: specs.LabelsCompletionSpec.Values
-	nil,                                 // 10: specs.LabelsCompletionSpec.ItemsEntry
+	(*OfficeHoursConfig)(nil),           // 9: specs.OfficeHoursConfig
+	(*SupportSpec)(nil),                 // 10: specs.SupportSpec
+	(*LabelsCompletionSpec_Values)(nil), // 11: specs.LabelsCompletionSpec.Values
+	nil,                                 // 12: specs.LabelsCompletionSpec.ItemsEntry
 }
 var file_omni_specs_virtual_proto_depIdxs = []int32{
-	10, // 0: specs.LabelsCompletionSpec.items:type_name -> specs.LabelsCompletionSpec.ItemsEntry
+	12, // 0: specs.LabelsCompletionSpec.items:type_name -> specs.LabelsCompletionSpec.ItemsEntry
 	1,  // 1: specs.PlatformConfigSpec.architectures:type_name -> specs.PlatformConfigSpec.Arch
 	0,  // 2: specs.PlatformConfigSpec.boot_methods:type_name -> specs.PlatformConfigSpec.BootMethod
-	9,  // 3: specs.LabelsCompletionSpec.ItemsEntry.value:type_name -> specs.LabelsCompletionSpec.Values
-	4,  // [4:4] is the sub-list for method output_type
-	4,  // [4:4] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	9,  // 3: specs.SupportSpec.office_hours:type_name -> specs.OfficeHoursConfig
+	11, // 4: specs.LabelsCompletionSpec.ItemsEntry.value:type_name -> specs.LabelsCompletionSpec.Values
+	5,  // [5:5] is the sub-list for method output_type
+	5,  // [5:5] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_virtual_proto_init() }
@@ -873,7 +1123,7 @@ func file_omni_specs_virtual_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_virtual_proto_rawDesc), len(file_omni_specs_virtual_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

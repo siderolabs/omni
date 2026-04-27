@@ -155,7 +155,7 @@ const secureBoot = computed(() => {
                     to: { name: 'ClusterOverview', params: { cluster: clusterName! } },
                     class: 'resource-label label-blue',
                   },
-                  clusterName,
+                  () => clusterName,
                 )),
           },
         ]"

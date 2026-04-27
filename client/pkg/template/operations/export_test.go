@@ -90,7 +90,7 @@ func assertSync(ctx context.Context, t *testing.T, st state.State, exportedTempl
 
 	resourcesBeforeSync := readResources(ctx, t, st)
 
-	err := operations.SyncTemplate(ctx, strings.NewReader(exportedTemplate), &sb, st, operations.SyncOptions{})
+	err := operations.SyncTemplate(ctx, strings.NewReader(exportedTemplate), &sb, st, operations.SyncOptions{}, nil)
 	require.NoError(t, err)
 
 	resourcesAfterSync := readResources(ctx, t, st)

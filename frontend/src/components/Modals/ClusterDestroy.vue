@@ -21,10 +21,10 @@ import {
   SiderolinkResourceType,
 } from '@/api/resources'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
+import ConfirmModal from '@/components/Modals/ConfirmModal.vue'
 import { ClusterCommandError, clusterDestroy } from '@/methods/cluster'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
-import ConfirmModal from '@/views/Modals/ConfirmModal.vue'
 
 const { clusterId } = defineProps<{ clusterId: string }>()
 const open = defineModel<boolean>('open', { default: false })

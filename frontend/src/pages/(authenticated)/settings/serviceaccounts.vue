@@ -59,9 +59,7 @@ const getLastActive = (item: Resource<IdentityStatusSpec>) => {
 }
 
 const getExpiration = (item: Resource<ServiceAccountStatusSpec>) => {
-  return relativeISO(
-    item.spec.public_keys?.[(item.spec.public_keys?.length ?? 0) - 1].expiration ?? '',
-  )
+  return relativeISO(item.spec.expiration ?? '')
 }
 
 const openUserCreate = () => {

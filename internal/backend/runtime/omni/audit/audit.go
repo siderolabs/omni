@@ -30,7 +30,7 @@ import (
 type Logger interface {
 	Write(ctx context.Context, event auditlog.Event) error
 	Remove(ctx context.Context, start, end time.Time) error
-	Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error)
+	Reader(ctx context.Context, filters auditlog.ReadFilters) (auditlog.Reader, error)
 }
 
 // LogOption configures optional Log behavior.
@@ -107,8 +107,8 @@ func hooksResourceTypes[T any](l *Log, m map[resource.Type]T) []resource.Type {
 
 // Reader reads the audit log file by file, oldest to newest within the given time range. The time range
 // is inclusive, and truncated to the day.
-func (l *Log) Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error) {
-	return l.auditLogger.Reader(ctx, start, end)
+func (l *Log) Reader(ctx context.Context, filters auditlog.ReadFilters) (auditlog.Reader, error) {
+	return l.auditLogger.Reader(ctx, filters)
 }
 
 // LogCreate logs the resource creation if there is a hook for this type.

@@ -11,12 +11,82 @@ import { diff as diffJSON } from 'json-diff-ts'
 import * as uuid from 'uuid'
 import * as yaml from 'yaml'
 
-import { expect, test } from '../omnictl_fixtures.js'
+import { expect, test as base } from '../omnictl_fixtures.js'
+
+const clusterName = 'talos-test-cluster'
+
+const test = base.extend<{ saveSupportBundleOnFailure: void }>({
+  saveSupportBundleOnFailure: [
+    async ({ omnictl }, use, testInfo) => {
+      await use()
+
+      // Save support bundle if the test failed
+      if (testInfo.status !== 'passed') {
+        const bundlePath = testInfo.outputPath(`support-bundle-${clusterName}.zip`)
+
+        try {
+          await omnictl(['support', '--cluster', clusterName, '--output', bundlePath])
+          await testInfo.attach(`support-bundle-${clusterName}.zip`, { path: bundlePath })
+        } catch (e) {
+          console.error(`failed to save support bundle for cluster ${clusterName}:`, e)
+        }
+      }
+    },
+    { auto: true },
+  ],
+})
 
 test.describe.configure({ mode: 'serial', retries: 0 })
 
-const clusterName = 'talos-test-cluster'
 const cpMachineName = 'deadbeef'
+
+test('machine overview tabs', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Machines' }).click()
+
+  // Open first visible machine
+  await page
+    .getByRole('link', { name: /machine-[-a-f0-9]+/ })
+    .first()
+    .click()
+
+  await test.step('Validate logs tab', async () => {
+    await page.getByRole('tab', { name: 'Logs', exact: true }).click()
+
+    await page.getByPlaceholder('Search').fill('[talos] [initramfs] booting Talos')
+    await expect
+      .soft(page.getByText(/\[talos\] \[initramfs\] booting Talos v\d\.\d+\.\d+/).first())
+      .toBeVisible()
+
+    await page.getByPlaceholder('Search').clear()
+    await expect
+      .soft(page.getByText(/\[talos\] \[initramfs\] booting Talos v\d\.\d+\.\d+/))
+      .toBeHidden()
+  })
+
+  await test.step('Validate patches tab', async () => {
+    await page.getByRole('tab', { name: 'Patches', exact: true }).click()
+    await expect.soft(page.getByRole('heading', { name: 'No Config Patches' })).toBeVisible()
+  })
+
+  await test.step('Validate disks tab', async () => {
+    await page.getByRole('tab', { name: 'Disks', exact: true }).click()
+
+    await expect
+      .soft(page.getByRole('region', { name: 'vda' }).getByText('Unallocated6.00 GB'))
+      .toBeVisible()
+  })
+
+  await test.step('Validate devices tab', async () => {
+    await page.getByRole('tab', { name: 'Devices', exact: true }).click()
+    await expect.soft(page.getByText('Ethernet controller')).toBeVisible()
+  })
+
+  await test.step('Validate extensions tab', async () => {
+    await page.getByRole('tab', { name: 'Extensions', exact: true }).click()
+    await expect.soft(page.getByText('siderolabs/hello-world-service')).toBeVisible()
+  })
+})
 
 test('create cluster', async ({ page }) => {
   test.setTimeout(milliseconds({ minutes: 16 }))
@@ -285,7 +355,16 @@ test('node overview tabs', async ({ page }) => {
 
   await test.step('Validate console logs tab', async () => {
     await page.getByRole('tab', { name: 'Console Logs', exact: true }).click()
-    await expect(page.getByText('[talos]').first()).toBeVisible()
+
+    await page.getByPlaceholder('Search').fill('[talos] [initramfs] booting Talos')
+    await expect
+      .soft(page.getByText(/\[talos\] \[initramfs\] booting Talos v\d\.\d+\.\d+/).first())
+      .toBeVisible()
+
+    await page.getByPlaceholder('Search').clear()
+    await expect
+      .soft(page.getByText(/\[talos\] \[initramfs\] booting Talos v\d\.\d+\.\d+/))
+      .toBeHidden()
   })
 
   await test.step('Validate config tab', async () => {

@@ -33,8 +33,8 @@ type StatusOptions struct {
 }
 
 // StatusTemplate queries, renders and (optionally) waits for the cluster status (health).
-func StatusTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, st state.State, options StatusOptions) error {
-	tmpl, err := template.Load(templateReader)
+func StatusTemplate(ctx context.Context, templateReader io.Reader, out io.Writer, st state.State, options StatusOptions, root *os.Root) error {
+	tmpl, err := template.Load(templateReader, template.WithRoot(root))
 	if err != nil {
 		return fmt.Errorf("error loading template: %w", err)
 	}

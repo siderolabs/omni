@@ -141,14 +141,25 @@ func NewRouter(
 }
 
 // releaseForCluster evicts all cached backends for the given cluster (both cluster-scoped and per-node).
+//
+// The cluster-wide key ("clusterID/") is removed last to avoid a window where
+// stale per-machine entries remain in the cache after the cluster key is gone.
 func (r *Router) releaseForCluster(clusterID string) {
-	prefix := clusterID + "/"
+	clusterKey := buildCacheKey(clusterID, "")
 
 	for _, key := range r.talosBackends.Keys() {
-		if strings.HasPrefix(key, prefix) {
-			r.talosBackends.Remove(key)
+		if key == clusterKey {
+			continue // remove last
 		}
+
+		if !strings.HasPrefix(key, clusterKey) {
+			continue
+		}
+
+		r.talosBackends.Remove(key)
 	}
+
+	r.talosBackends.Remove(clusterKey)
 }
 
 // releaseForMachine evicts a single cached backend by cluster and machine ID.
@@ -179,10 +190,6 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 	if runtime := md.Get(message.RuntimeHeaderKey); runtime != nil && runtime[0] == common.Runtime_Talos.String() {
 		backend, err := r.getTalosBackend(ctx, md)
 		if err != nil {
-			return proxy.One2One, nil, err
-		}
-
-		if err = r.talosAuditor.AuditTalosAccess(ctx, fullMethodName, getClusterName(md), getNodeID(md)); err != nil {
 			return proxy.One2One, nil, err
 		}
 
@@ -256,7 +263,7 @@ func (r *Router) getForCluster(ctx context.Context, clusterID string) (proxy.Bac
 		activeGauge := r.metricActiveClients.WithLabelValues(typ)
 		activeGauge.Inc()
 
-		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState)
+		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState, r.talosAuditor)
 		r.talosBackends.Add(cacheKey, backend)
 
 		r.metricCacheSize.WithLabelValues(typ).Inc()
@@ -307,7 +314,7 @@ func (r *Router) getForMachine(ctx context.Context, clusterID string, node dns.I
 		activeGauge := r.metricActiveClients.WithLabelValues(typ)
 		activeGauge.Inc()
 
-		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState)
+		backend := NewTalosBackend(cacheKey, clusterID, r.nodeResolver, conn, r.authEnabled, r.verifier, r.cosiState, r.talosAuditor)
 		r.talosBackends.Add(cacheKey, backend)
 
 		r.metricCacheSize.WithLabelValues(typ).Inc()

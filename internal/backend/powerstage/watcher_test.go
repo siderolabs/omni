@@ -73,6 +73,29 @@ func TestWatcher(t *testing.T) {
 
 	expectNotification(ctx, t, notifyCh)
 
+	// Setting LastPowerOffId on the InfraMachineStatus should flip the stage back to POWERED_OFF,
+	// even though the machine is allocated to a cluster.
+	_, err = safe.StateUpdateWithConflicts(ctx, st, status.Metadata(), func(res *infra.MachineStatus) error {
+		res.TypedSpec().Value.LastPowerOffId = "request-id-1"
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	expectSnapshot(ctx, t, snapshotCh, status.Metadata().ID(), specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERED_OFF)
+	expectNotification(ctx, t, notifyCh)
+
+	// Clearing LastPowerOffId should flip the stage back to POWERING_ON.
+	_, err = safe.StateUpdateWithConflicts(ctx, st, status.Metadata(), func(res *infra.MachineStatus) error {
+		res.TypedSpec().Value.LastPowerOffId = ""
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	expectSnapshot(ctx, t, snapshotCh, status.Metadata().ID(), specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERING_ON)
+	expectNotification(ctx, t, notifyCh)
+
 	require.NoError(t, st.Destroy(ctx, status.Metadata()))
 
 	expectNotification(ctx, t, notifyCh)

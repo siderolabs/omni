@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
 	"github.com/siderolabs/omni/internal/integration/workloadproxy"
-	"github.com/stretchr/testify/require"
 )
 
 type assertClusterReadyOptions struct {
@@ -123,11 +123,6 @@ Generate various Talos images with Omni and try to download them.`)
 		t.Run(
 			"TalosImagesShouldBeDownloadableUsingCLI",
 			AssertDownloadUsingCLI(t.Context(), options.omniClient, options.OmnictlPath, options.HTTPEndpoint),
-		)
-
-		t.Run(
-			"TalosImagesShouldBeDownloadable",
-			AssertSomeImagesAreDownloadable(t.Context(), options),
 		)
 	}
 }

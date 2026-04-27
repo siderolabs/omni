@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"iter"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -22,6 +24,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -34,18 +37,34 @@ type nodeInfo struct {
 	connected    bool
 }
 
-// NonImageFactoryDeprecationConfig contains configuration for the non-ImageFactory deprecation notification.
-type NonImageFactoryDeprecationConfig struct {
-	Title   string
-	Body    string
-	Enabled bool
-}
+const (
+	// NonImageFactoryNotificationEnabled controls whether a notification is shown for non-ImageFactory machines.
+	// This will be flipped to true in a future release.
+	NonImageFactoryNotificationEnabled = false
+
+	// UnsupportedTalosVersionNotificationEnabled controls whether notifications are shown for unsupported Talos versions.
+	UnsupportedTalosVersionNotificationEnabled = true
+
+	talosVersionSupportPolicyDocsURL = "https://docs.siderolabs.com/omni/getting-started/talos-version-support-policy"
+
+	nonImageFactoryNotificationTitle = "Non-ImageFactory Machines Detected"
+	nonImageFactoryNotificationBody  = "%d machine(s) were provisioned without ImageFactory." +
+		" Omni will refuse to start with non-ImageFactory machines in a future release." +
+		" Please re-provision them using ImageFactory."
+
+	approachingTalosEndOfSupportNotificationTitle = "Talos Version Approaching End of Support"
+	approachingTalosEndOfSupportNotificationBody  = "%d machine(s) are running a Talos version that will lose Omni support soon." +
+		" The minimum supported version is %s. Please upgrade: " + talosVersionSupportPolicyDocsURL
+
+	talosVersionEndOfSupportNotificationTitle = "Unsupported Talos Version Detected"
+	talosVersionEndOfSupportNotificationBody  = "%d machine(s) are running unsupported Talos versions (below %s)." +
+		" Please upgrade immediately: " + talosVersionSupportPolicyDocsURL
+)
 
 // NewMachineStatusMetricsController creates a new MachineStatusMetricsController.
-func NewMachineStatusMetricsController(maxRegisteredMachines uint32, nonImageFactoryDeprecation NonImageFactoryDeprecationConfig) *MachineStatusMetricsController {
+func NewMachineStatusMetricsController(maxRegisteredMachines uint32) *MachineStatusMetricsController {
 	return &MachineStatusMetricsController{
-		maxRegisteredMachines:      maxRegisteredMachines,
-		nonImageFactoryDeprecation: nonImageFactoryDeprecation,
+		maxRegisteredMachines: maxRegisteredMachines,
 	}
 }
 
@@ -58,19 +77,19 @@ type MachineStatusMetricsController struct {
 
 	metricsOnce sync.Once
 
-	nonImageFactoryDeprecation NonImageFactoryDeprecationConfig
-
 	maxRegisteredMachines uint32
 
 	platformNames []string
 
-	metricNumMachines                 prometheus.Gauge
-	metricNumConnectedMachines        prometheus.Gauge
-	metricNumInvalidSchematicMachines prometheus.Gauge
-	metricNumMachinesPerVersion       *prometheus.Desc
-	metricMachinePlatforms            *prometheus.GaugeVec
-	metricMachineSecureBootStatus     *prometheus.GaugeVec
-	metricMachineUKIStatus            *prometheus.GaugeVec
+	metricNumMachines                                    prometheus.Gauge
+	metricNumConnectedMachines                           prometheus.Gauge
+	metricNumInvalidSchematicMachines                    prometheus.Gauge
+	metricNumApproachingTalosVersionEndOfSupportMachines prometheus.Gauge
+	metricNumTalosVersionEndOfSupportMachines            prometheus.Gauge
+	metricNumMachinesPerVersion                          *prometheus.Desc
+	metricMachinePlatforms                               *prometheus.GaugeVec
+	metricMachineSecureBootStatus                        *prometheus.GaugeVec
+	metricMachineUKIStatus                               *prometheus.GaugeVec
 }
 
 // Name implements controller.Controller interface.
@@ -123,6 +142,16 @@ func (ctrl *MachineStatusMetricsController) initMetrics() {
 		ctrl.metricNumInvalidSchematicMachines = prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "omni_machines_invalid_schematic",
 			Help: "Number of machines in the instance that were provisioned without using ImageFactory.",
+		})
+
+		ctrl.metricNumApproachingTalosVersionEndOfSupportMachines = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "omni_machines_approaching_talos_version_end_of_support",
+			Help: "Number of machines running a Talos version at or near the minimum supported version.",
+		})
+
+		ctrl.metricNumTalosVersionEndOfSupportMachines = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "omni_machines_talos_version_end_of_support",
+			Help: "Number of machines running a Talos version below the minimum supported version.",
 		})
 
 		ctrl.metricNumMachinesPerVersion = prometheus.NewDesc(
@@ -198,8 +227,18 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 			}
 		}
 
-		if ctrl.nonImageFactoryDeprecation.Enabled {
+		if NonImageFactoryNotificationEnabled {
 			if err = ctrl.reconcileNonImageFactoryDeprecationNotification(ctx, r, metricsSpec); err != nil {
+				return err
+			}
+		}
+
+		if UnsupportedTalosVersionNotificationEnabled {
+			if err = ctrl.reconcileApproachingTalosVersionEndOfSupportNotification(ctx, r, metricsSpec); err != nil {
+				return err
+			}
+
+			if err = ctrl.reconcileTalosVersionEndOfSupportNotification(ctx, r, metricsSpec); err != nil {
 				return err
 			}
 		}
@@ -237,8 +276,8 @@ func (ctrl *MachineStatusMetricsController) reconcileNonImageFactoryDeprecationN
 	if invalidSchematicCount > 0 {
 		return safe.WriterModify(ctx, r, omni.NewNotification(omni.NotificationNonImageFactoryMachinesID),
 			func(res *omni.Notification) error {
-				res.TypedSpec().Value.Title = ctrl.nonImageFactoryDeprecation.Title
-				res.TypedSpec().Value.Body = fmt.Sprintf(ctrl.nonImageFactoryDeprecation.Body, invalidSchematicCount)
+				res.TypedSpec().Value.Title = nonImageFactoryNotificationTitle
+				res.TypedSpec().Value.Body = fmt.Sprintf(nonImageFactoryNotificationBody, invalidSchematicCount)
 				res.TypedSpec().Value.Type = specs.NotificationSpec_WARNING
 
 				return nil
@@ -247,6 +286,44 @@ func (ctrl *MachineStatusMetricsController) reconcileNonImageFactoryDeprecationN
 	}
 
 	_, err := helpers.TeardownAndDestroy(ctx, r, omni.NewNotification(omni.NotificationNonImageFactoryMachinesID).Metadata())
+
+	return err
+}
+
+func (ctrl *MachineStatusMetricsController) reconcileApproachingTalosVersionEndOfSupportNotification(ctx context.Context, r controller.Runtime, metricsSpec *specs.MachineStatusMetricsSpec) error {
+	count := int(metricsSpec.ApproachingTalosVersionEndOfSupportMachinesCount)
+	if count > 0 {
+		return safe.WriterModify(ctx, r, omni.NewNotification(omni.NotificationApproachingTalosVersionEndOfSupportID),
+			func(res *omni.Notification) error {
+				res.TypedSpec().Value.Title = approachingTalosEndOfSupportNotificationTitle
+				res.TypedSpec().Value.Body = fmt.Sprintf(approachingTalosEndOfSupportNotificationBody, count, constants.MinTalosVersion)
+				res.TypedSpec().Value.Type = specs.NotificationSpec_WARNING
+
+				return nil
+			},
+		)
+	}
+
+	_, err := helpers.TeardownAndDestroy(ctx, r, omni.NewNotification(omni.NotificationApproachingTalosVersionEndOfSupportID).Metadata())
+
+	return err
+}
+
+func (ctrl *MachineStatusMetricsController) reconcileTalosVersionEndOfSupportNotification(ctx context.Context, r controller.Runtime, metricsSpec *specs.MachineStatusMetricsSpec) error {
+	count := int(metricsSpec.TalosVersionEndOfSupportMachinesCount)
+	if count > 0 {
+		return safe.WriterModify(ctx, r, omni.NewNotification(omni.NotificationTalosVersionEndOfSupportID),
+			func(res *omni.Notification) error {
+				res.TypedSpec().Value.Title = talosVersionEndOfSupportNotificationTitle
+				res.TypedSpec().Value.Body = fmt.Sprintf(talosVersionEndOfSupportNotificationBody, count, constants.MinTalosVersion)
+				res.TypedSpec().Value.Type = specs.NotificationSpec_WARNING
+
+				return nil
+			},
+		)
+	}
+
+	_, err := helpers.TeardownAndDestroy(ctx, r, omni.NewNotification(omni.NotificationTalosVersionEndOfSupportID).Metadata())
 
 	return err
 }
@@ -270,7 +347,14 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		"false":       0,
 	}
 
-	var machines, connectedMachines, allocatedMachines, invalidSchematicMachines int
+	minTalosVer := semver.MustParse(constants.MinTalosVersion)
+	// Machines at MinTalosVersion or 1 minor above are "approaching talos end of support"
+	approachingThreshold := semver.Version{Major: minTalosVer.Major, Minor: minTalosVer.Minor + 2}
+
+	var (
+		machines, connectedMachines, allocatedMachines, invalidSchematicMachines int
+		approachingEndOfSupportMachines, endOfSupportTalosVersionMachines        int
+	)
 
 	ctrl.versionsMu.Lock()
 	ctrl.versionsMap = map[nodeInfo]int32{}
@@ -282,12 +366,25 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 			connectedMachines++
 		}
 
-		if ms.TypedSpec().Value.TalosVersion != "" {
+		talosVersion := ms.TypedSpec().Value.TalosVersion
+
+		if talosVersion != "" {
 			ctrl.versionsMap[nodeInfo{
-				talosVersion: ms.TypedSpec().Value.TalosVersion,
+				talosVersion: talosVersion,
 				cluster:      ms.TypedSpec().Value.Cluster,
 				connected:    ms.TypedSpec().Value.Connected,
 			}]++
+
+			if ver, err := semver.ParseTolerant(strings.TrimLeft(talosVersion, "v")); err == nil {
+				ver.Pre = nil
+
+				switch {
+				case ver.LT(minTalosVer):
+					endOfSupportTalosVersionMachines++
+				case ver.LT(approachingThreshold):
+					approachingEndOfSupportMachines++
+				}
+			}
 		}
 
 		if ms.TypedSpec().Value.Cluster != "" {
@@ -318,6 +415,8 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 	ctrl.metricNumMachines.Set(float64(machines))
 	ctrl.metricNumConnectedMachines.Set(float64(connectedMachines))
 	ctrl.metricNumInvalidSchematicMachines.Set(float64(invalidSchematicMachines))
+	ctrl.metricNumApproachingTalosVersionEndOfSupportMachines.Set(float64(approachingEndOfSupportMachines))
+	ctrl.metricNumTalosVersionEndOfSupportMachines.Set(float64(endOfSupportTalosVersionMachines))
 
 	for key, num := range platformMetrics {
 		ctrl.metricMachinePlatforms.WithLabelValues(key).Set(float64(num))
@@ -342,6 +441,8 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		RegisteredMachinesLimit:       ctrl.maxRegisteredMachines,
 		RegistrationLimitReached:      ctrl.maxRegisteredMachines > 0 && uint32(machines) >= ctrl.maxRegisteredMachines,
 		InvalidSchematicMachinesCount: uint32(invalidSchematicMachines),
+		ApproachingTalosVersionEndOfSupportMachinesCount: uint32(approachingEndOfSupportMachines),
+		TalosVersionEndOfSupportMachinesCount:            uint32(endOfSupportTalosVersionMachines),
 	}
 }
 
@@ -365,6 +466,8 @@ func (ctrl *MachineStatusMetricsController) Collect(ch chan<- prometheus.Metric)
 	ctrl.metricNumMachines.Collect(ch)
 	ctrl.metricNumConnectedMachines.Collect(ch)
 	ctrl.metricNumInvalidSchematicMachines.Collect(ch)
+	ctrl.metricNumApproachingTalosVersionEndOfSupportMachines.Collect(ch)
+	ctrl.metricNumTalosVersionEndOfSupportMachines.Collect(ch)
 	ctrl.metricMachinePlatforms.Collect(ch)
 	ctrl.metricMachineSecureBootStatus.Collect(ch)
 	ctrl.metricMachineUKIStatus.Collect(ch)

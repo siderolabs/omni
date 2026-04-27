@@ -8,6 +8,9 @@ package config_test
 import (
 	"context"
 	_ "embed"
+	"fmt"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -356,4 +359,209 @@ func TestServiceURL(t *testing.T) {
 
 		assert.Equal(t, "https://1.1.1.1:1111", url, "kubernetes proxy should always use https schema")
 	})
+}
+
+// TestConfigStructNillability verifies that all leaf fields in the generated config structs
+// are nillable (pointer, slice, or map), and all intermediate struct fields are non-pointer.
+// This prevents regressions when extending the config schema.
+//
+// Leaf fields must be nillable so that we can distinguish between "unset" and "zero value".
+// This is critical for reliably merging multiple config layers (schema defaults, config files,
+// CLI flags): without nillability, a zero-valued field (e.g., false for bool) in a higher
+// layer would silently overwrite an explicitly set value in a lower layer, which would be wrong.
+//
+// Intermediate struct fields, on the other hand, do not need to be nillable — they are purely
+// structural containers, and keeping them non-pointer allows safe navigation to leaf fields
+// without nil checks at every level.
+func TestConfigStructNillability(t *testing.T) {
+	var violations []string
+
+	checkStructNillability(reflect.TypeFor[config.Params](), "Params", &violations)
+
+	if len(violations) > 0 {
+		t.Errorf("config struct nillability violations:\n%s", strings.Join(violations, "\n"))
+	}
+}
+
+func checkStructNillability(typ reflect.Type, path string, violations *[]string) {
+	for field := range typ.Fields() {
+		if !field.IsExported() {
+			continue
+		}
+
+		fieldPath := path + "." + field.Name
+		fieldType := field.Type
+
+		underlying := fieldType
+		if fieldType.Kind() == reflect.Ptr {
+			underlying = fieldType.Elem()
+		}
+
+		if isConfigStruct(underlying) {
+			if fieldType.Kind() == reflect.Ptr {
+				*violations = append(*violations, fmt.Sprintf(
+					"%s: intermediate struct field must not be a pointer — mark it as required in its parent in schema.json to make it non-nillable",
+					fieldPath,
+				))
+			}
+
+			checkStructNillability(underlying, fieldPath, violations)
+		} else if !isNillableKind(fieldType.Kind()) {
+			*violations = append(*violations, fmt.Sprintf(
+				"%s: leaf field must be nillable — add goJSONSchema.pointer=true in schema.json",
+				fieldPath,
+			))
+		}
+	}
+}
+
+// isConfigStruct returns true if the type is a struct with exported fields,
+// i.e., an intermediate config object that contains other fields.
+func isConfigStruct(typ reflect.Type) bool {
+	if typ.Kind() != reflect.Struct {
+		return false
+	}
+
+	for field := range typ.Fields() {
+		if field.IsExported() {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isNillableKind(kind reflect.Kind) bool {
+	switch kind { //nolint:exhaustive
+	case reflect.Ptr, reflect.Slice, reflect.Map, reflect.Interface:
+		return true
+	default:
+		return false
+	}
+}
+
+// TestSchemaDefaults verifies that defaults from schema.json are correctly
+// read into the Params struct by LoadDefault.
+func TestSchemaDefaults(t *testing.T) {
+	p, err := config.LoadDefault()
+	require.NoError(t, err)
+
+	// account
+	assert.Equal(t, "edd2822a-7834-4fe0-8172-cc5581f13a8d", p.Account.GetId())
+	assert.Equal(t, "default", p.Account.GetName())
+
+	// registries
+	assert.Equal(t, "ghcr.io/siderolabs/installer", p.Registries.GetTalos())
+	assert.Equal(t, "ghcr.io/siderolabs/kubelet", p.Registries.GetKubernetes())
+	assert.Equal(t, "https://factory.talos.dev", p.Registries.GetImageFactoryBaseURL())
+
+	// services.api (inline overrides on $ref)
+	assert.Equal(t, "0.0.0.0:8080", p.Services.Api.GetEndpoint())
+	assert.Equal(t, "http://localhost:8080", p.Services.Api.GetAdvertisedURL())
+
+	// services.metrics
+	assert.Equal(t, "0.0.0.0:2122", p.Services.Metrics.GetEndpoint())
+
+	// services.kubernetesProxy
+	assert.Equal(t, "0.0.0.0:8095", p.Services.KubernetesProxy.GetEndpoint())
+	assert.Equal(t, "https://localhost:8095", p.Services.KubernetesProxy.GetAdvertisedURL())
+
+	// services.siderolink
+	assert.Equal(t, config.SiderolinkServiceJoinTokensModeLegacyAllowed, p.Services.Siderolink.GetJoinTokensMode())
+	assert.Equal(t, 8090, p.Services.Siderolink.GetEventSinkPort())
+	assert.Equal(t, 8092, p.Services.Siderolink.GetLogServerPort())
+
+	// services.siderolink.wireGuard
+	assert.Equal(t, "0.0.0.0:50180", p.Services.Siderolink.WireGuard.GetEndpoint())
+
+	// services.localResourceService
+	assert.True(t, p.Services.LocalResourceService.GetEnabled())
+	assert.Equal(t, 8081, p.Services.LocalResourceService.GetPort())
+
+	// services.embeddedDiscoveryService
+	assert.True(t, p.Services.EmbeddedDiscoveryService.GetEnabled())
+	assert.Equal(t, 8093, p.Services.EmbeddedDiscoveryService.GetPort())
+	assert.True(t, p.Services.EmbeddedDiscoveryService.GetSnapshotsEnabled())
+	assert.Equal(t, 10*time.Minute, p.Services.EmbeddedDiscoveryService.GetSnapshotsInterval())
+	assert.Equal(t, "warn", p.Services.EmbeddedDiscoveryService.GetLogLevel())
+	assert.Equal(t, 30*time.Second, p.Services.EmbeddedDiscoveryService.GetSqliteTimeout())
+
+	// services.loadBalancer
+	assert.Equal(t, 10000, p.Services.LoadBalancer.GetMinPort())
+	assert.Equal(t, 35000, p.Services.LoadBalancer.GetMaxPort())
+	assert.Equal(t, 15*time.Second, p.Services.LoadBalancer.GetDialTimeout())
+	assert.Equal(t, 30*time.Second, p.Services.LoadBalancer.GetKeepAlivePeriod())
+	assert.Equal(t, 30*time.Second, p.Services.LoadBalancer.GetTcpUserTimeout())
+	assert.Equal(t, 20*time.Second, p.Services.LoadBalancer.GetHealthCheckInterval())
+	assert.Equal(t, 15*time.Second, p.Services.LoadBalancer.GetHealthCheckTimeout())
+
+	// services.workloadProxy
+	assert.True(t, p.Services.WorkloadProxy.GetEnabled())
+	assert.Equal(t, "proxy-us", p.Services.WorkloadProxy.GetSubdomain())
+	assert.Equal(t, 5*time.Minute, p.Services.WorkloadProxy.GetStopLBsAfter())
+
+	// auth.keyPruner
+	assert.Equal(t, 10*time.Minute, p.Auth.KeyPruner.GetInterval())
+
+	// auth.initialServiceAccount
+	assert.False(t, p.Auth.InitialServiceAccount.GetEnabled())
+	assert.Equal(t, "Admin", p.Auth.InitialServiceAccount.GetRole())
+	assert.Equal(t, "_out/initial-service-account-key", p.Auth.InitialServiceAccount.GetKeyPath())
+	assert.Equal(t, "automation", p.Auth.InitialServiceAccount.GetName())
+	assert.Equal(t, time.Hour, p.Auth.InitialServiceAccount.GetLifetime())
+
+	// logs.machine.storage
+	assert.Equal(t, 30*time.Second, p.Logs.Machine.Storage.GetSqliteTimeout())
+	assert.Equal(t, 30*time.Minute, p.Logs.Machine.Storage.GetCleanupInterval())
+	assert.Equal(t, 720*time.Hour, p.Logs.Machine.Storage.GetCleanupOlderThan())
+	assert.Equal(t, 5000, p.Logs.Machine.Storage.GetMaxLinesPerMachine())
+	assert.Equal(t, uint64(0), p.Logs.Machine.Storage.GetMaxSize())
+	assert.InDelta(t, 0.01, p.Logs.Machine.Storage.GetCleanupProbability(), 0.001)
+
+	// logs.audit
+	assert.True(t, p.Logs.Audit.GetEnabled())
+	assert.Equal(t, 30*time.Second, p.Logs.Audit.GetSqliteTimeout())
+	assert.Equal(t, 720*time.Hour, p.Logs.Audit.GetRetentionPeriod())
+	assert.Equal(t, uint64(0), p.Logs.Audit.GetMaxSize())
+	assert.InDelta(t, 0.01, p.Logs.Audit.GetCleanupProbability(), 0.001)
+
+	// logs.resourceLogger
+	assert.Equal(t, "info", p.Logs.ResourceLogger.GetLogLevel())
+
+	// storage.default
+	assert.Equal(t, config.StorageDefaultKindEtcd, p.Storage.Default.GetKind())
+
+	// storage.default.etcd
+	assert.True(t, p.Storage.Default.Etcd.GetEmbedded())
+	assert.Equal(t, "_out/etcd/", p.Storage.Default.Etcd.GetEmbeddedDBPath())
+	assert.False(t, p.Storage.Default.Etcd.GetRunElections())
+	assert.Equal(t, "etcd/ca.crt", p.Storage.Default.Etcd.GetCaFile())
+	assert.Equal(t, "etcd/client.crt", p.Storage.Default.Etcd.GetCertFile())
+	assert.Equal(t, "etcd/client.key", p.Storage.Default.Etcd.GetKeyFile())
+	assert.Equal(t, 30*time.Second, p.Storage.Default.Etcd.GetDialKeepAliveTime())
+	assert.Equal(t, 5*time.Second, p.Storage.Default.Etcd.GetDialKeepAliveTimeout())
+	assert.Equal(t, []string{"http://localhost:2379"}, p.Storage.Default.Etcd.Endpoints)
+
+	// storage.default.boltdb
+	assert.Equal(t, "_out/omni.db", p.Storage.Default.Boltdb.GetPath())
+
+	// storage.sqlite
+	assert.Equal(t, "_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)", p.Storage.Sqlite.GetExperimentalBaseParams())
+	assert.Equal(t, 4, p.Storage.Sqlite.GetCachedPoolSize())
+	assert.Equal(t, 64, p.Storage.Sqlite.GetPoolSize())
+	assert.Equal(t, 2*time.Minute, p.Storage.Sqlite.Metrics.GetRefreshInterval())
+	assert.Equal(t, time.Minute, p.Storage.Sqlite.Metrics.GetRefreshTimeout())
+
+	// etcdBackup
+	assert.Equal(t, time.Minute, p.EtcdBackup.GetTickInterval())
+	assert.Equal(t, time.Hour, p.EtcdBackup.GetMinInterval())
+	assert.Equal(t, 24*time.Hour, p.EtcdBackup.GetMaxInterval())
+	assert.Equal(t, 10*time.Minute, p.EtcdBackup.GetJitter())
+
+	// debug.server
+	assert.Equal(t, ":9988", p.Debug.Server.GetEndpoint())
+
+	// features
+	assert.True(t, p.Features.GetEnableConfigDataCompression())
+	assert.True(t, p.Features.GetEnableClusterImport())
 }

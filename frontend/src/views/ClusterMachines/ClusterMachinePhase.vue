@@ -14,7 +14,10 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 
 const connected = (machine: Resource<ClusterMachineStatusSpec>): boolean => {
-  if (machine.spec.stage === ClusterMachineStatusSpecStage.POWERING_ON) {
+  if (
+    machine.spec.stage === ClusterMachineStatusSpecStage.POWERING_ON ||
+    machine.spec.stage === ClusterMachineStatusSpecStage.POWERED_OFF
+  ) {
     return true
   }
 
@@ -47,6 +50,8 @@ const stageName = (machine: Resource<ClusterMachineStatusSpec>): string => {
       return 'Preparing to Destroy'
     case ClusterMachineStatusSpecStage.POWERING_ON:
       return 'Powering On'
+    case ClusterMachineStatusSpecStage.POWERED_OFF:
+      return 'Powered Off'
     default:
       return 'Unknown'
   }
@@ -66,6 +71,8 @@ const stageIcon = (machine: Resource<ClusterMachineStatusSpec>): IconType => {
     case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
       return 'loading'
     case ClusterMachineStatusSpecStage.POWERING_ON:
+      return 'power'
+    case ClusterMachineStatusSpecStage.POWERED_OFF:
       return 'power'
     case ClusterMachineStatusSpecStage.RUNNING:
       if (machine?.spec.ready) {
@@ -97,6 +104,8 @@ const stageClass = (machine: Resource<ClusterMachineStatusSpec>): string => {
       } else {
         return 'text-red-r1'
       }
+    case ClusterMachineStatusSpecStage.POWERED_OFF:
+      return 'text-naturals-n10'
     case ClusterMachineStatusSpecStage.SHUTTING_DOWN:
     case ClusterMachineStatusSpecStage.BEFORE_DESTROY:
     case ClusterMachineStatusSpecStage.DESTROYING:

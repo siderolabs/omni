@@ -8,12 +8,19 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { fetchOption } from '@/api/fetch.pb'
 import { type Resource, ResourceService } from '@/api/grpc'
 import type { ListRequest } from '@/api/omni/resources/resources.pb'
-import { withAbortController, withContext, withRuntime, withSelectors } from '@/api/options'
+import {
+  withAbortController,
+  withContext,
+  withRuntime,
+  withSelectors,
+  withSkipRequestSignature,
+} from '@/api/options'
 import type { WatchContext } from '@/api/watch'
 
 interface ListOptionsCommon {
   resource: ListRequest
   selectors?: string[]
+  skipSignature?: boolean
   skip?: boolean
 }
 
@@ -53,6 +60,10 @@ export function useResourceList<TSpec = unknown, TStatus = unknown>(
     error.value = undefined
 
     const fetchOptions: fetchOption[] = []
+
+    if (options.skipSignature) {
+      fetchOptions.push(withSkipRequestSignature())
+    }
 
     if (options.runtime) {
       fetchOptions.push(withRuntime(options.runtime))

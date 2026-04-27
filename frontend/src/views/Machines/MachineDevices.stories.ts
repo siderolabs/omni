@@ -8,7 +8,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import { TalosHardwareNamespace, TalosPCIDeviceType } from '@/api/resources'
 
-import NodeDevices, { type TalosPCIDeviceSpec } from './devices.vue'
+import NodeDevices, { type TalosPCIDeviceSpec } from './MachineDevices.vue'
 
 const meta: Meta<typeof NodeDevices> = {
   component: NodeDevices,

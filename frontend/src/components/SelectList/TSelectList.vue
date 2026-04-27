@@ -28,11 +28,13 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import TInput from '@/components/TInput/TInput.vue'
 
 const {
+  variant = 'default',
   title = '',
   defaultValue = undefined,
   values,
   searcheable,
 } = defineProps<{
+  variant?: 'default' | 'breadcrumb'
   title?: string
   defaultValue?: T
   values: T[] | { label: string; value: T }[]
@@ -144,7 +146,13 @@ function labelFromValue(value?: T) {
     <SelectRoot v-model="selectedItem" :disabled @update:open="onOpen">
       <SelectTrigger
         :id="triggerId"
-        class="flex max-h-full w-full items-center justify-between gap-1 rounded border border-naturals-n7 bg-naturals-n2 px-3 py-2.25 text-xs text-naturals-n14 disabled:cursor-not-allowed disabled:opacity-50"
+        :class="[
+          'flex max-h-full w-full items-center justify-between gap-1 rounded text-naturals-n14 transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+          {
+            'border border-naturals-n7 bg-naturals-n2 px-3 py-2.25 text-xs': variant === 'default',
+            'p-2 leading-none hover:bg-naturals-n4': variant === 'breadcrumb',
+          },
+        ]"
       >
         <SelectValue class="flex gap-1 truncate select-none">
           <Label
@@ -188,9 +196,15 @@ function labelFromValue(value?: T) {
             <SelectItem
               v-for="item in filteredValues"
               :key="itemValue(item)"
-              class="flex cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-naturals-n9 outline-none hover:text-naturals-n13 focus:text-naturals-n13 data-[state=checked]:text-naturals-n13"
+              class="flex cursor-pointer items-center gap-2 p-1.5 font-medium text-naturals-n9 outline-none hover:text-naturals-n13 focus:text-naturals-n13 data-[state=checked]:text-primary-p3"
               :value="itemValue(item)"
             >
+              <span class="size-3">
+                <SelectItemIndicator as-child>
+                  <TIcon icon="check" class="size-full" />
+                </SelectItemIndicator>
+              </span>
+
               <SelectItemText class="truncate transition-all">
                 <WordHighligher
                   :query="searchTerm"
@@ -198,10 +212,6 @@ function labelFromValue(value?: T) {
                   highlight-class="truncate bg-transparent font-medium text-naturals-n14"
                 />
               </SelectItemText>
-
-              <SelectItemIndicator>
-                <TIcon icon="check" class="size-3" />
-              </SelectItemIndicator>
             </SelectItem>
           </SelectViewport>
 

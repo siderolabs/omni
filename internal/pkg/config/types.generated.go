@@ -12,7 +12,7 @@ type Account struct {
 
 	// MaxRegisteredMachines is the maximum number of registered machines allowed. 0
 	// means unlimited.
-	MaxRegisteredMachines *uint32 `json:"maxRegisteredMachines,omitempty" yaml:"maxRegisteredMachines,omitempty"`
+	MaxRegisteredMachines *uint32 `json:"maxRegisteredMachines,omitempty,omitzero" yaml:"maxRegisteredMachines,omitempty"`
 
 	// Name is the human-readable name of the account.
 	Name *string `json:"name" yaml:"name"`
@@ -31,7 +31,7 @@ type Auth struct {
 
 	// InitialUsers is a list of emails which should be created as admins when Omni is
 	// run for the first time.
-	InitialUsers []string `json:"initialUsers,omitempty" yaml:"initialUsers,omitempty"`
+	InitialUsers []string `json:"initialUsers,omitempty,omitzero" yaml:"initialUsers,omitempty"`
 
 	// KeyPruner contains configuration for the public keys pruner (cleanup of
 	// old/expired keys).
@@ -48,7 +48,7 @@ type Auth struct {
 
 	// Suspended is whether the Omni account is suspended. If true, Omni will run on
 	// read-only mode with a warning banner displayed in the UI.
-	Suspended *bool `json:"suspended,omitempty" yaml:"suspended,omitempty"`
+	Suspended *bool `json:"suspended,omitempty,omitzero" yaml:"suspended,omitempty"`
 
 	// Webauthn contains WebAuthn authentication configuration. It is NOT SUPPORTED as
 	// it is currently unimplemented.
@@ -57,38 +57,38 @@ type Auth struct {
 
 type Auth0 struct {
 	// ClientID is the Auth0 client ID.
-	ClientID *string `json:"clientID,omitempty" yaml:"clientID,omitempty"`
+	ClientID *string `json:"clientID,omitempty,omitzero" yaml:"clientID,omitempty"`
 
 	// Domain is the Auth0 domain.
-	Domain *string `json:"domain,omitempty" yaml:"domain,omitempty"`
+	Domain *string `json:"domain,omitempty,omitzero" yaml:"domain,omitempty"`
 
 	// Enabled controls whether the Auth0 authentication provider is enabled. Once set
 	// to true, it cannot be set back to false.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
 	// InitialUsers is a list of emails which should be created as admins when Omni is
 	// run for the first time. DEPRECATED: use params.auth.initialUsers instead, this
 	// will be removed.
-	InitialUsers []string `json:"initialUsers,omitempty" yaml:"initialUsers,omitempty"`
+	InitialUsers []string `json:"initialUsers,omitempty,omitzero" yaml:"initialUsers,omitempty"`
 
 	// UseFormData controls whether the Auth0 provider should use form data for
 	// authentication requests. When true, data to the token endpoint is transmitted
 	// as x-www-form-urlencoded data instead of JSON.
-	UseFormData *bool `json:"useFormData,omitempty" yaml:"useFormData,omitempty"`
+	UseFormData *bool `json:"useFormData,omitempty,omitzero" yaml:"useFormData,omitempty"`
 }
 
 type AuthLimits struct {
 	// MaxServiceAccounts is the maximum number of service accounts allowed. 0 means
 	// unlimited.
-	MaxServiceAccounts *uint32 `json:"maxServiceAccounts,omitempty" yaml:"maxServiceAccounts,omitempty"`
+	MaxServiceAccounts *uint32 `json:"maxServiceAccounts,omitempty,omitzero" yaml:"maxServiceAccounts,omitempty"`
 
 	// MaxUsers is the maximum number of users allowed. 0 means unlimited.
-	MaxUsers *uint32 `json:"maxUsers,omitempty" yaml:"maxUsers,omitempty"`
+	MaxUsers *uint32 `json:"maxUsers,omitempty,omitzero" yaml:"maxUsers,omitempty"`
 }
 
 type BoltDB struct {
 	// Path is the path where the BoltDB database file is stored.
-	Path *string `json:"path,omitempty" yaml:"path,omitempty"`
+	Path *string `json:"path,omitempty,omitzero" yaml:"path,omitempty"`
 }
 
 type Debug struct {
@@ -102,13 +102,13 @@ type Debug struct {
 type DebugPprof struct {
 	// Endpoint is the network endpoint the pprof server listens on. It is in the form
 	// "[host]:port".
-	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Endpoint *string `json:"endpoint,omitempty,omitzero" yaml:"endpoint,omitempty"`
 }
 
 type DebugServer struct {
 	// Endpoint is the network endpoint the debug server listens on. It is in the form
 	// "[host]:port".
-	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Endpoint *string `json:"endpoint,omitempty,omitzero" yaml:"endpoint,omitempty"`
 }
 
 // DevServerProxyService contains development server proxy service configuration.
@@ -116,111 +116,111 @@ type DevServerProxyService struct {
 	// AdvertisedURL is the URL that the dev server proxy service advertises to
 	// clients. It is in the form "http(s)://host:port". When not set, it is generated
 	// by the system based on the endpoint and TLS cert/key configuration.
-	AdvertisedURL *string `json:"advertisedURL,omitempty" yaml:"advertisedURL,omitempty"`
+	AdvertisedURL *string `json:"advertisedURL,omitempty,omitzero" yaml:"advertisedURL,omitempty"`
 
 	// CertFile is the path to the TLS certificate file for the dev server proxy
 	// service.
-	CertFile *string `json:"certFile,omitempty" yaml:"certFile,omitempty"`
+	CertFile *string `json:"certFile,omitempty,omitzero" yaml:"certFile,omitempty"`
 
 	// Endpoint is the network endpoint the dev server proxy service listens on. It is
 	// in the form "host:port".
-	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Endpoint *string `json:"endpoint,omitempty,omitzero" yaml:"endpoint,omitempty"`
 
 	// KeyFile is the path to the TLS key file for the dev server proxy service.
-	KeyFile *string `json:"keyFile,omitempty" yaml:"keyFile,omitempty"`
+	KeyFile *string `json:"keyFile,omitempty,omitzero" yaml:"keyFile,omitempty"`
 
 	// ProxyTo is the address to which the dev server proxy service forwards incoming
 	// requests. It is in the form "http(s)://host:port".
-	ProxyTo *string `json:"proxyTo,omitempty" yaml:"proxyTo,omitempty"`
+	ProxyTo *string `json:"proxyTo,omitempty,omitzero" yaml:"proxyTo,omitempty"`
 }
 
 type EmbeddedDiscoveryService struct {
 	// Enabled controls whether the embedded discovery service is enabled. It binds
 	// only to the SideroLink WireGuard address.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
 	// LogLevel is the logging level used by the embedded discovery service.
-	LogLevel *string `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
+	LogLevel *string `json:"logLevel,omitempty,omitzero" yaml:"logLevel,omitempty"`
 
 	// Port is the network port the embedded discovery service listens on.
-	Port *int `json:"port,omitempty" yaml:"port,omitempty"`
+	Port *int `json:"port,omitempty,omitzero" yaml:"port,omitempty"`
 
 	// SnapshotsEnabled controls whether the embedded discovery service periodically
 	// persists snapshots of its state to disk.
-	SnapshotsEnabled *bool `json:"snapshotsEnabled,omitempty" yaml:"snapshotsEnabled,omitempty"`
+	SnapshotsEnabled *bool `json:"snapshotsEnabled,omitempty,omitzero" yaml:"snapshotsEnabled,omitempty"`
 
 	// SnapshotsInterval is the interval at which the embedded discovery service
 	// persists snapshots of its state.
-	SnapshotsInterval *time.Duration `json:"snapshotsInterval,omitempty" yaml:"snapshotsInterval,omitempty"`
+	SnapshotsInterval *time.Duration `json:"snapshotsInterval,omitempty,omitzero" yaml:"snapshotsInterval,omitempty"`
 
 	// SqliteTimeout is the timeout for SQLite operations used by the embedded
 	// discovery service.
-	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty" yaml:"sqliteTimeout,omitempty"`
+	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty,omitzero" yaml:"sqliteTimeout,omitempty"`
 }
 
 type EtcdBackup struct {
 	// DownloadLimitMbps is the optional download bandwidth limit for etcd backups
 	// from remote storage in megabits per second. If not specified or is set to 0, it
 	// is unlimited.
-	DownloadLimitMbps *uint64 `json:"downloadLimitMbps,omitempty" yaml:"downloadLimitMbps,omitempty"`
+	DownloadLimitMbps *uint64 `json:"downloadLimitMbps,omitempty,omitzero" yaml:"downloadLimitMbps,omitempty"`
 
 	// Jitter is the jitter for etcd backups, randomly added/subtracted from the
 	// interval between automatic etcd backups.
-	Jitter *time.Duration `json:"jitter,omitempty" yaml:"jitter,omitempty"`
+	Jitter *time.Duration `json:"jitter,omitempty,omitzero" yaml:"jitter,omitempty"`
 
 	// LocalPath is the local path where etcd backups are stored before being uploaded
 	// to remote storage. Mutually exclusive with s3Enabled (.s3Enabled).
-	LocalPath *string `json:"localPath,omitempty" yaml:"localPath,omitempty"`
+	LocalPath *string `json:"localPath,omitempty,omitzero" yaml:"localPath,omitempty"`
 
 	// MaxInterval is the maximum interval between two etcd backups for a cluster.
-	MaxInterval *time.Duration `json:"maxInterval,omitempty" yaml:"maxInterval,omitempty"`
+	MaxInterval *time.Duration `json:"maxInterval,omitempty,omitzero" yaml:"maxInterval,omitempty"`
 
 	// MinInterval is the minimum interval between two etcd backups for a cluster.
-	MinInterval *time.Duration `json:"minInterval,omitempty" yaml:"minInterval,omitempty"`
+	MinInterval *time.Duration `json:"minInterval,omitempty,omitzero" yaml:"minInterval,omitempty"`
 
 	// S3Enabled controls whether an S3-compatible storage is used for etcd backups.
 	// Mutually exclusive with localPath (.localPath).
-	S3Enabled *bool `json:"s3Enabled,omitempty" yaml:"s3Enabled,omitempty"`
+	S3Enabled *bool `json:"s3Enabled,omitempty,omitzero" yaml:"s3Enabled,omitempty"`
 
 	// TickInterval is the interval between etcd backups ticks (controller events to
 	// check if any cluster needs to be backed up)
-	TickInterval *time.Duration `json:"tickInterval,omitempty" yaml:"tickInterval,omitempty"`
+	TickInterval *time.Duration `json:"tickInterval,omitempty,omitzero" yaml:"tickInterval,omitempty"`
 
 	// UploadLimitMbps is the optional upload bandwidth limit for etcd backups to
 	// remote storage in megabits per second. If not specified or is set to 0, it is
 	// unlimited.
-	UploadLimitMbps *uint64 `json:"uploadLimitMbps,omitempty" yaml:"uploadLimitMbps,omitempty"`
+	UploadLimitMbps *uint64 `json:"uploadLimitMbps,omitempty,omitzero" yaml:"uploadLimitMbps,omitempty"`
 }
 
 type EtcdParams struct {
 	// CaFile is the path to the CA certificate file for etcd client connections.
-	CaFile *string `json:"caFile,omitempty" yaml:"caFile,omitempty"`
+	CaFile *string `json:"caFile,omitempty,omitzero" yaml:"caFile,omitempty"`
 
 	// CertFile is the path to the TLS certificate file for etcd client connections.
-	CertFile *string `json:"certFile,omitempty" yaml:"certFile,omitempty"`
+	CertFile *string `json:"certFile,omitempty,omitzero" yaml:"certFile,omitempty"`
 
 	// DialKeepAliveTime is the keep-alive time for etcd client connections.
-	DialKeepAliveTime *time.Duration `json:"dialKeepAliveTime,omitempty" yaml:"dialKeepAliveTime,omitempty"`
+	DialKeepAliveTime *time.Duration `json:"dialKeepAliveTime,omitempty,omitzero" yaml:"dialKeepAliveTime,omitempty"`
 
 	// DialKeepAliveTimeout is the keep-alive timeout for etcd client connections.
-	DialKeepAliveTimeout *time.Duration `json:"dialKeepAliveTimeout,omitempty" yaml:"dialKeepAliveTimeout,omitempty"`
+	DialKeepAliveTimeout *time.Duration `json:"dialKeepAliveTimeout,omitempty,omitzero" yaml:"dialKeepAliveTimeout,omitempty"`
 
 	// Embedded controls whether to use embedded etcd server as the storage backend.
-	Embedded *bool `json:"embedded,omitempty" yaml:"embedded,omitempty"`
+	Embedded *bool `json:"embedded,omitempty,omitzero" yaml:"embedded,omitempty"`
 
 	// EmbeddedDBPath is the path where the embedded etcd database files are stored.
-	EmbeddedDBPath *string `json:"embeddedDBPath,omitempty" yaml:"embeddedDBPath,omitempty"`
+	EmbeddedDBPath *string `json:"embeddedDBPath,omitempty,omitzero" yaml:"embeddedDBPath,omitempty"`
 
 	// EmbeddedUnsafeFsync controls whether the embedded etcd server should skip fsync
 	// calls for improved performance at the cost of durability.
-	EmbeddedUnsafeFsync *bool `json:"embeddedUnsafeFsync,omitempty" yaml:"embeddedUnsafeFsync,omitempty"`
+	EmbeddedUnsafeFsync *bool `json:"embeddedUnsafeFsync,omitempty,omitzero" yaml:"embeddedUnsafeFsync,omitempty"`
 
 	// Endpoints is the list of etcd endpoints. Only used when external etcd is used
 	// (i.e., embedded is false).
-	Endpoints []string `json:"endpoints,omitempty" yaml:"endpoints,omitempty" merge:"replace"`
+	Endpoints []string `json:"endpoints,omitempty,omitzero" yaml:"endpoints,omitempty" merge:"replace"`
 
 	// KeyFile is the path to the TLS key file for etcd client connections.
-	KeyFile *string `json:"keyFile,omitempty" yaml:"keyFile,omitempty"`
+	KeyFile *string `json:"keyFile,omitempty,omitzero" yaml:"keyFile,omitempty"`
 
 	// PrivateKeySource is the source of the private key for the embedded etcd server.
 	// It is used for decrypting master key slot.
@@ -228,123 +228,133 @@ type EtcdParams struct {
 
 	// PublicKeyFiles is the list of public key files for the embedded etcd server.
 	// They are used for encrypting keys slots.
-	PublicKeyFiles []string `json:"publicKeyFiles,omitempty" yaml:"publicKeyFiles,omitempty" merge:"replace"`
+	PublicKeyFiles []string `json:"publicKeyFiles,omitempty,omitzero" yaml:"publicKeyFiles,omitempty" merge:"replace"`
 
 	// RunElections controls whether the embedded etcd server should run leader
 	// elections. Should be false for single-node Omni installations.
-	RunElections *bool `json:"runElections,omitempty" yaml:"runElections,omitempty"`
+	RunElections *bool `json:"runElections,omitempty,omitzero" yaml:"runElections,omitempty"`
+}
+
+type EulaAccept struct {
+	// Email is the email address of the person accepting the EULA on behalf of this
+	// Omni instance.
+	Email *string `json:"email,omitempty,omitzero" yaml:"email,omitempty"`
+
+	// Name is the full name of the person accepting the EULA on behalf of this Omni
+	// instance.
+	Name *string `json:"name,omitempty,omitzero" yaml:"name,omitempty"`
 }
 
 type Features struct {
 	// DisableControllerRuntimeCache controls whether the controller-runtime cache is
 	// disabled. When disabled, etcd is accessed for all reads. Recommended to be
 	// enabled, unless debugging specific issues.
-	DisableControllerRuntimeCache *bool `json:"disableControllerRuntimeCache,omitempty" yaml:"disableControllerRuntimeCache,omitempty"`
+	DisableControllerRuntimeCache *bool `json:"disableControllerRuntimeCache,omitempty,omitzero" yaml:"disableControllerRuntimeCache,omitempty"`
 
 	// EnableBreakGlassConfigs controls whether break-glass machine configurations are
 	// enabled. Break-glass configs allow direct access to the machines without going
 	// through Omni. Recommended to be disabled.
-	EnableBreakGlassConfigs *bool `json:"enableBreakGlassConfigs,omitempty" yaml:"enableBreakGlassConfigs,omitempty"`
+	EnableBreakGlassConfigs *bool `json:"enableBreakGlassConfigs,omitempty,omitzero" yaml:"enableBreakGlassConfigs,omitempty"`
 
 	// EnableClusterImport controls whether the cluster import feature is enabled.
 	// When enabled, users can import existing Talos clusters into Omni.
-	EnableClusterImport *bool `json:"enableClusterImport,omitempty" yaml:"enableClusterImport,omitempty"`
+	EnableClusterImport *bool `json:"enableClusterImport,omitempty,omitzero" yaml:"enableClusterImport,omitempty"`
 
 	// EnableConfigDataCompression controls whether machine configuration data stored
 	// in etcd is compressed to save space.
-	EnableConfigDataCompression *bool `json:"enableConfigDataCompression,omitempty" yaml:"enableConfigDataCompression,omitempty"`
+	EnableConfigDataCompression *bool `json:"enableConfigDataCompression,omitempty,omitzero" yaml:"enableConfigDataCompression,omitempty"`
 
 	// EnableTalosPreReleaseVersions controls whether pre-release Talos versions
 	// (e.g., release candidates, betas) are available for selection when
 	// creating/upgrading clusters.
-	EnableTalosPreReleaseVersions *bool `json:"enableTalosPreReleaseVersions,omitempty" yaml:"enableTalosPreReleaseVersions,omitempty"`
+	EnableTalosPreReleaseVersions *bool `json:"enableTalosPreReleaseVersions,omitempty,omitzero" yaml:"enableTalosPreReleaseVersions,omitempty"`
 }
 
 type InitialServiceAccount struct {
 	// Enabled controls whether the initial service account is created. This happens
 	// only on the first start of Omni.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
 	// KeyPath is the path where the initial service account key is stored.
-	KeyPath *string `json:"keyPath,omitempty" yaml:"keyPath,omitempty"`
+	KeyPath *string `json:"keyPath,omitempty,omitzero" yaml:"keyPath,omitempty"`
 
 	// Lifetime is the lifetime of the initial service account key.
-	Lifetime *time.Duration `json:"lifetime,omitempty" yaml:"lifetime,omitempty"`
+	Lifetime *time.Duration `json:"lifetime,omitempty,omitzero" yaml:"lifetime,omitempty"`
 
 	// Name is the name of the initial service account.
-	Name *string `json:"name,omitempty" yaml:"name,omitempty"`
+	Name *string `json:"name,omitempty,omitzero" yaml:"name,omitempty"`
 
 	// Role is the role assigned to the initial service account.
-	Role *string `json:"role,omitempty" yaml:"role,omitempty"`
+	Role *string `json:"role,omitempty,omitzero" yaml:"role,omitempty"`
 }
 
 type KeyPrunerConfig struct {
 	// Interval is the interval at which the key pruner runs.
-	Interval *time.Duration `json:"interval,omitempty" yaml:"interval,omitempty"`
+	Interval *time.Duration `json:"interval,omitempty,omitzero" yaml:"interval,omitempty"`
 }
 
 type KubernetesProxyService struct {
 	// AdvertisedURL is the URL that the Kubernetes proxy service advertises to
 	// clients. It is in the form "https://host:port". When not set, it is generated
 	// by the system based on the endpoint and TLS cert/key configuration.
-	AdvertisedURL *string `json:"advertisedURL,omitempty" yaml:"advertisedURL,omitempty"`
+	AdvertisedURL *string `json:"advertisedURL,omitempty,omitzero" yaml:"advertisedURL,omitempty"`
 
 	// CertFile is the path to the TLS certificate file for the Kubernetes proxy
 	// service.
-	CertFile *string `json:"certFile,omitempty" yaml:"certFile,omitempty"`
+	CertFile *string `json:"certFile,omitempty,omitzero" yaml:"certFile,omitempty"`
 
 	// Endpoint is the network endpoint the Kubernetes proxy service listens on. It is
 	// in the form "host:port".
-	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Endpoint *string `json:"endpoint,omitempty,omitzero" yaml:"endpoint,omitempty"`
 
 	// KeyFile is the path to the TLS key file for the Kubernetes proxy service.
-	KeyFile *string `json:"keyFile,omitempty" yaml:"keyFile,omitempty"`
+	KeyFile *string `json:"keyFile,omitempty,omitzero" yaml:"keyFile,omitempty"`
 
 	// OidcCacheBaseDir overrides the base cache directory for kubelogin in generated
 	// kubeconfigs. When empty, kubelogin uses its default (~/.kube/cache/oidc-login).
-	OidcCacheBaseDir *string `json:"oidcCacheBaseDir,omitempty" yaml:"oidcCacheBaseDir,omitempty"`
+	OidcCacheBaseDir *string `json:"oidcCacheBaseDir,omitempty,omitzero" yaml:"oidcCacheBaseDir,omitempty"`
 
 	// OidcCacheIsolation isolates OIDC token caches across clusters by appending a
 	// per-context subdirectory to the cache directory in generated kubeconfigs.
-	OidcCacheIsolation *bool `json:"oidcCacheIsolation,omitempty" yaml:"oidcCacheIsolation,omitempty"`
+	OidcCacheIsolation *bool `json:"oidcCacheIsolation,omitempty,omitzero" yaml:"oidcCacheIsolation,omitempty"`
 }
 
 type LoadBalancerService struct {
 	// DialTimeout is the timeout used by the load balancer service when dialing
 	// backend control plane nodes.
-	DialTimeout *time.Duration `json:"dialTimeout,omitempty" yaml:"dialTimeout,omitempty"`
+	DialTimeout *time.Duration `json:"dialTimeout,omitempty,omitzero" yaml:"dialTimeout,omitempty"`
 
 	// HealthCheckInterval is the interval between health checks performed by the load
 	// balancer service on backend control plane nodes.
-	HealthCheckInterval *time.Duration `json:"healthCheckInterval,omitempty" yaml:"healthCheckInterval,omitempty"`
+	HealthCheckInterval *time.Duration `json:"healthCheckInterval,omitempty,omitzero" yaml:"healthCheckInterval,omitempty"`
 
 	// HealthCheckTimeout is the timeout for health checks performed by the load
 	// balancer service on backend control plane nodes.
-	HealthCheckTimeout *time.Duration `json:"healthCheckTimeout,omitempty" yaml:"healthCheckTimeout,omitempty"`
+	HealthCheckTimeout *time.Duration `json:"healthCheckTimeout,omitempty,omitzero" yaml:"healthCheckTimeout,omitempty"`
 
 	// KeepAlivePeriod is the period used by the load balancer service for keep-alive
 	// pings to backend control plane nodes.
-	KeepAlivePeriod *time.Duration `json:"keepAlivePeriod,omitempty" yaml:"keepAlivePeriod,omitempty"`
+	KeepAlivePeriod *time.Duration `json:"keepAlivePeriod,omitempty,omitzero" yaml:"keepAlivePeriod,omitempty"`
 
 	// MaxPort is the maximum port number that can be picked by the load balancer
 	// service when allocating a new LB port to a cluster.
-	MaxPort *int `json:"maxPort,omitempty" yaml:"maxPort,omitempty"`
+	MaxPort *int `json:"maxPort,omitempty,omitzero" yaml:"maxPort,omitempty"`
 
 	// MinPort is the minimum port number that can be picked by the load balancer
 	// service when allocating a new LB port to a cluster.
-	MinPort *int `json:"minPort,omitempty" yaml:"minPort,omitempty"`
+	MinPort *int `json:"minPort,omitempty,omitzero" yaml:"minPort,omitempty"`
 
 	// TCPUserTimeout is the TCP user timeout value set on connections between the
 	// load balancer and backend control plane nodes.
-	TcpUserTimeout *time.Duration `json:"tcpUserTimeout,omitempty" yaml:"tcpUserTimeout,omitempty"`
+	TcpUserTimeout *time.Duration `json:"tcpUserTimeout,omitempty,omitzero" yaml:"tcpUserTimeout,omitempty"`
 }
 
 type LocalResourceService struct {
 	// Enabled controls whether the local resource service is enabled.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
 	// Port is the network port the local resource service listens on.
-	Port *int `json:"port,omitempty" yaml:"port,omitempty"`
+	Port *int `json:"port,omitempty,omitzero" yaml:"port,omitempty"`
 }
 
 type Logs struct {
@@ -368,21 +378,21 @@ type LogsAudit struct {
 	// of the oldest rows to reduce the table size toward maxSize; multiple cleanups
 	// may be required for the table to fall below maxSize. 0 disables size-based
 	// cleanup.
-	CleanupProbability *float64 `json:"cleanupProbability,omitempty" yaml:"cleanupProbability,omitempty"`
+	CleanupProbability *float64 `json:"cleanupProbability,omitempty,omitzero" yaml:"cleanupProbability,omitempty"`
 
 	// Enabled controls whether audit logging is enabled.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
 	// MaxSize is the maximum allowed size (in bytes) of the audit logs. When
 	// exceeded, the oldest entries are removed. 0 means unlimited.
-	MaxSize *uint64 `json:"maxSize,omitempty" yaml:"maxSize,omitempty"`
+	MaxSize *uint64 `json:"maxSize,omitempty,omitzero" yaml:"maxSize,omitempty"`
 
 	// RetentionPeriod is the duration after which audit logs are considered old and
 	// eligible for cleanup.
-	RetentionPeriod *time.Duration `json:"retentionPeriod,omitempty" yaml:"retentionPeriod,omitempty"`
+	RetentionPeriod *time.Duration `json:"retentionPeriod,omitempty,omitzero" yaml:"retentionPeriod,omitempty"`
 
 	// SqliteTimeout is the timeout for SQLite operations used for audit logs storage.
-	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty" yaml:"sqliteTimeout,omitempty"`
+	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty,omitzero" yaml:"sqliteTimeout,omitempty"`
 }
 
 type LogsMachine struct {
@@ -392,79 +402,88 @@ type LogsMachine struct {
 
 type LogsMachineStorage struct {
 	// CleanupInterval is the interval at which old machine logs are cleaned up.
-	CleanupInterval *time.Duration `json:"cleanupInterval,omitempty" yaml:"cleanupInterval,omitempty"`
+	CleanupInterval *time.Duration `json:"cleanupInterval,omitempty,omitzero" yaml:"cleanupInterval,omitempty"`
 
 	// CleanupOlderThan is the duration after which machine logs are considered old
 	// and eligible for cleanup.
-	CleanupOlderThan *time.Duration `json:"cleanupOlderThan,omitempty" yaml:"cleanupOlderThan,omitempty"`
+	CleanupOlderThan *time.Duration `json:"cleanupOlderThan,omitempty,omitzero" yaml:"cleanupOlderThan,omitempty"`
 
 	// CleanupProbability is the probability of triggering the cleanup on each log
 	// write for that machine.
-	CleanupProbability *float64 `json:"cleanupProbability,omitempty" yaml:"cleanupProbability,omitempty"`
+	CleanupProbability *float64 `json:"cleanupProbability,omitempty,omitzero" yaml:"cleanupProbability,omitempty"`
 
 	// MaxLinesPerMachine is the maximum number of log lines to keep per machine.
-	MaxLinesPerMachine *int `json:"maxLinesPerMachine,omitempty" yaml:"maxLinesPerMachine,omitempty"`
+	MaxLinesPerMachine *int `json:"maxLinesPerMachine,omitempty,omitzero" yaml:"maxLinesPerMachine,omitempty"`
 
 	// MaxSize is the maximum allowed size (in bytes) of the machine logs table. When
 	// exceeded, the oldest entries are removed globally across all machines. 0 means
 	// unlimited.
-	MaxSize *uint64 `json:"maxSize,omitempty" yaml:"maxSize,omitempty"`
+	MaxSize *uint64 `json:"maxSize,omitempty,omitzero" yaml:"maxSize,omitempty"`
 
 	// SqliteTimeout is the timeout for SQLite operations used for machine logs
 	// storage.
-	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty" yaml:"sqliteTimeout,omitempty"`
+	SqliteTimeout *time.Duration `json:"sqliteTimeout,omitempty,omitzero" yaml:"sqliteTimeout,omitempty"`
 }
 
 type LogsStripe struct {
 	// Enabled controls whether Stripe logging is enabled.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
 	// MinCommit is the minimum number of machines committed for billing purposes,
 	// reported to Stripe for the given account.
-	MinCommit *uint32 `json:"minCommit,omitempty" yaml:"minCommit,omitempty"`
-}
-
-type NonImageFactoryDeprecation struct {
-	// Body is the body of the non-ImageFactory deprecation notification. Use %d as a
-	// placeholder for the number of affected machines.
-	Body *string `json:"body,omitempty" yaml:"body,omitempty"`
-
-	// Enabled controls whether the non-ImageFactory deprecation notification is shown
-	// when machines with invalid schematics are detected.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-
-	// Title is the title of the non-ImageFactory deprecation notification.
-	Title *string `json:"title,omitempty" yaml:"title,omitempty"`
-}
-
-type Notifications struct {
-	// NonImageFactoryDeprecation contains configuration for the notification shown
-	// when machines are provisioned without using ImageFactory.
-	NonImageFactoryDeprecation NonImageFactoryDeprecation `json:"nonImageFactoryDeprecation" yaml:"nonImageFactoryDeprecation"`
+	MinCommit *uint32 `json:"minCommit,omitempty,omitzero" yaml:"minCommit,omitempty"`
 }
 
 type OIDC struct {
 	// AllowUnverifiedEmail controls whether users with unverified emails (without
 	// email_verified claim) are allowed to authenticate.
-	AllowUnverifiedEmail *bool `json:"allowUnverifiedEmail,omitempty" yaml:"allowUnverifiedEmail,omitempty"`
+	AllowUnverifiedEmail *bool `json:"allowUnverifiedEmail,omitempty,omitzero" yaml:"allowUnverifiedEmail,omitempty"`
 
 	// ClientID is the OIDC client ID.
-	ClientID *string `json:"clientID,omitempty" yaml:"clientID,omitempty"`
+	ClientID *string `json:"clientID,omitempty,omitzero" yaml:"clientID,omitempty"`
 
 	// ClientSecret is the OIDC client secret.
-	ClientSecret *string `json:"clientSecret,omitempty" yaml:"clientSecret,omitempty"`
+	ClientSecret *string `json:"clientSecret,omitempty,omitzero" yaml:"clientSecret,omitempty"`
 
 	// Enabled controls whether the OIDC authentication provider is enabled.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
 	// LogoutURL is the OIDC logout URL.
-	LogoutURL *string `json:"logoutURL,omitempty" yaml:"logoutURL,omitempty"`
+	LogoutURL *string `json:"logoutURL,omitempty,omitzero" yaml:"logoutURL,omitempty"`
 
 	// ProviderURL is the OIDC provider URL.
-	ProviderURL *string `json:"providerURL,omitempty" yaml:"providerURL,omitempty"`
+	ProviderURL *string `json:"providerURL,omitempty,omitzero" yaml:"providerURL,omitempty"`
 
 	// Scopes is the list of OIDC scopes to request during authentication.
-	Scopes []string `json:"scopes,omitempty" yaml:"scopes,omitempty"`
+	Scopes []string `json:"scopes,omitempty,omitzero" yaml:"scopes,omitempty"`
+}
+
+type OfficeHours struct {
+	// Description is the calendar event description.
+	Description *string `json:"description,omitempty,omitzero" yaml:"description,omitempty"`
+
+	// DtendTzid is the DTEND value with TZID parameter (e.g.
+	// 'America/New_York:20260413T130000').
+	DtendTzid *string `json:"dtendTzid,omitempty,omitzero" yaml:"dtendTzid,omitempty"`
+
+	// DtendUtc is the DTEND value in UTC (e.g. '20260413T170000Z').
+	DtendUtc *string `json:"dtendUtc,omitempty,omitzero" yaml:"dtendUtc,omitempty"`
+
+	// DtstartTzid is the DTSTART value with TZID parameter (e.g.
+	// 'America/New_York:20260413T123000').
+	DtstartTzid *string `json:"dtstartTzid,omitempty,omitzero" yaml:"dtstartTzid,omitempty"`
+
+	// DtstartUtc is the DTSTART value in UTC (e.g. '20260413T163000Z').
+	DtstartUtc *string `json:"dtstartUtc,omitempty,omitzero" yaml:"dtstartUtc,omitempty"`
+
+	// MeetUrl is the video call URL for the office hours.
+	MeetUrl *string `json:"meetUrl,omitempty,omitzero" yaml:"meetUrl,omitempty"`
+
+	// Rrule is the iCalendar RRULE string (e.g. 'FREQ=MONTHLY;BYDAY=2MO').
+	Rrule *string `json:"rrule,omitempty,omitzero" yaml:"rrule,omitempty"`
+
+	// Summary is the calendar event title.
+	Summary *string `json:"summary,omitempty,omitzero" yaml:"summary,omitempty"`
 }
 
 // Params is the Omni configuration root object.
@@ -481,15 +500,15 @@ type Params struct {
 	// EtcdBackup contains etcd backup configuration for the clusters on Omni.
 	EtcdBackup EtcdBackup `json:"etcdBackup" yaml:"etcdBackup"`
 
+	// EulaAccept contains the identity of the person accepting the EULA via CLI flags
+	// or config.
+	EulaAccept EulaAccept `json:"eulaAccept" yaml:"eulaAccept"`
+
 	// Features contains feature flags to enable/disable various Omni features.
 	Features Features `json:"features" yaml:"features"`
 
 	// Logs contains logging-related configuration.
 	Logs Logs `json:"logs" yaml:"logs"`
-
-	// Notifications contains configuration for system notifications emitted by
-	// controllers.
-	Notifications Notifications `json:"notifications" yaml:"notifications"`
 
 	// Registries contains container image registries configuration.
 	Registries Registries `json:"registries" yaml:"registries"`
@@ -499,6 +518,9 @@ type Params struct {
 
 	// Storage contains persistent storage related configuration.
 	Storage Storage `json:"storage" yaml:"storage"`
+
+	// Support contains support-related configuration.
+	Support Support `json:"support" yaml:"support"`
 }
 
 type Registries struct {
@@ -508,14 +530,14 @@ type Registries struct {
 
 	// ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used
 	// to build custom PXE boot images.
-	ImageFactoryPXEBaseURL *string `json:"imageFactoryPXEBaseURL,omitempty" yaml:"imageFactoryPXEBaseURL,omitempty"`
+	ImageFactoryPXEBaseURL *string `json:"imageFactoryPXEBaseURL,omitempty,omitzero" yaml:"imageFactoryPXEBaseURL,omitempty"`
 
 	// Kubernetes is the Kubernetes container registry configuration.
 	Kubernetes *string `json:"kubernetes" yaml:"kubernetes"`
 
 	// Mirrors is the list of container image registry mirrors. Used mainly for the
 	// development purposes. It must be in the format: <registry host>=<mirror URL>
-	Mirrors []string `json:"mirrors,omitempty" yaml:"mirrors,omitempty" merge:"replace"`
+	Mirrors []string `json:"mirrors,omitempty,omitzero" yaml:"mirrors,omitempty" merge:"replace"`
 
 	// Talos is the Talos installer registry configuration.
 	Talos *string `json:"talos" yaml:"talos"`
@@ -523,10 +545,10 @@ type Registries struct {
 
 type ResourceLoggerConfig struct {
 	// LogLevel is the logging level used by the resource logger.
-	LogLevel *string `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
+	LogLevel *string `json:"logLevel,omitempty,omitzero" yaml:"logLevel,omitempty"`
 
 	// Types is the list of resource types to be logged by the resource logger.
-	Types []string `json:"types,omitempty" yaml:"types,omitempty" merge:"replace"`
+	Types []string `json:"types,omitempty,omitzero" yaml:"types,omitempty" merge:"replace"`
 }
 
 type SAML struct {
@@ -535,20 +557,20 @@ type SAML struct {
 	AttributeRules SAMLAttributeRules `json:"attributeRules" yaml:"attributeRules"`
 
 	// Enabled controls whether the SAML authentication provider is enabled.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
 	// LabelRules defines mapping of SAML assertion attributes into Omni identity
 	// labels.
 	LabelRules SAMLLabelRules `json:"labelRules" yaml:"labelRules"`
 
 	// Metadata is the SAML provider metadata URL. Mutually exclusive with URL (.url).
-	Metadata *string `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Metadata *string `json:"metadata,omitempty,omitzero" yaml:"metadata,omitempty"`
 
 	// NameIDFormat is the SAML NameID format to be used.
-	NameIDFormat *string `json:"nameIDFormat,omitempty" yaml:"nameIDFormat,omitempty"`
+	NameIDFormat *string `json:"nameIDFormat,omitempty,omitzero" yaml:"nameIDFormat,omitempty"`
 
 	// URL is the SAML provider URL. Mutually exclusive with metadata URL (.metadata).
-	Url *string `json:"url,omitempty" yaml:"url,omitempty"`
+	Url *string `json:"url,omitempty,omitzero" yaml:"url,omitempty"`
 }
 
 // AttributeRules defines additional identity, fullname, firstname and lastname
@@ -563,21 +585,21 @@ type SQLite struct {
 	// CachedPoolSize controls the number of cached connections in the SQLite
 	// connection pool. The overall number of connections is limited by poolSize.
 	// CachedPoolSize should be less or equal to poolSize.
-	CachedPoolSize *int `json:"cachedPoolSize,omitempty" yaml:"cachedPoolSize,omitempty"`
+	CachedPoolSize *int `json:"cachedPoolSize,omitempty,omitzero" yaml:"cachedPoolSize,omitempty"`
 
 	// ExperimentalBaseParams contains the base parameters to be used when opening the
 	// SQLite database connection. This can cause data corruption if set incorrectly,
 	// modify at your own risk. This flag is experimental and may be removed in future
 	// versions. It must not start with a question mark (?).
-	ExperimentalBaseParams *string `json:"experimentalBaseParams,omitempty" yaml:"experimentalBaseParams,omitempty"`
+	ExperimentalBaseParams *string `json:"experimentalBaseParams,omitempty,omitzero" yaml:"experimentalBaseParams,omitempty"`
 
 	// ExtraParams contains the extra parameters to be used when opening the SQLite
 	// database connection. This can cause data corruption if set incorrectly, modify
 	// at your own risk. It must not start with an ampersand (&).
-	ExtraParams *string `json:"extraParams,omitempty" yaml:"extraParams,omitempty"`
+	ExtraParams *string `json:"extraParams,omitempty,omitzero" yaml:"extraParams,omitempty"`
 
 	// Metrics corresponds to the JSON schema field "metrics".
-	Metrics *SQLiteMetricsParams `json:"metrics,omitempty" yaml:"metrics,omitempty"`
+	Metrics SQLiteMetricsParams `json:"metrics" yaml:"metrics"`
 
 	// Path is the path where the SQLite database file is stored.
 	Path *string `json:"path" yaml:"path"`
@@ -585,32 +607,32 @@ type SQLite struct {
 	// PoolSize controls the maximum number of connections in the SQLite connection
 	// pool. Raising this value may improve performance under high load, at the cost
 	// of increased resource usage.
-	PoolSize *int `json:"poolSize,omitempty" yaml:"poolSize,omitempty"`
+	PoolSize *int `json:"poolSize,omitempty,omitzero" yaml:"poolSize,omitempty"`
 }
 
 type SQLiteMetricsParams struct {
 	// RefreshInterval is the interval at which SQLite metrics are refreshed.
-	RefreshInterval *time.Duration `json:"refreshInterval,omitempty" yaml:"refreshInterval,omitempty"`
+	RefreshInterval *time.Duration `json:"refreshInterval,omitempty,omitzero" yaml:"refreshInterval,omitempty"`
 
 	// RefreshTimeout is the timeout for refreshing SQLite metrics.
-	RefreshTimeout *time.Duration `json:"refreshTimeout,omitempty" yaml:"refreshTimeout,omitempty"`
+	RefreshTimeout *time.Duration `json:"refreshTimeout,omitempty,omitzero" yaml:"refreshTimeout,omitempty"`
 }
 
 type Service struct {
 	// AdvertisedURL is the URL that the service advertises to clients. It is in the
 	// form "http(s)://host:port". When not set, it is generated by the system based
 	// on the endpoint and TLS cert/key configuration.
-	AdvertisedURL *string `json:"advertisedURL,omitempty" yaml:"advertisedURL,omitempty"`
+	AdvertisedURL *string `json:"advertisedURL,omitempty,omitzero" yaml:"advertisedURL,omitempty"`
 
 	// CertFile is the path to the TLS certificate file for the service.
-	CertFile *string `json:"certFile,omitempty" yaml:"certFile,omitempty"`
+	CertFile *string `json:"certFile,omitempty,omitzero" yaml:"certFile,omitempty"`
 
 	// Endpoint is the network endpoint the service listens on. It is in the form
 	// "host:port".
-	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Endpoint *string `json:"endpoint,omitempty,omitzero" yaml:"endpoint,omitempty"`
 
 	// KeyFile is the path to the TLS key file for the service.
-	KeyFile *string `json:"keyFile,omitempty" yaml:"keyFile,omitempty"`
+	KeyFile *string `json:"keyFile,omitempty,omitzero" yaml:"keyFile,omitempty"`
 }
 
 type Services struct {
@@ -663,35 +685,35 @@ type SiderolinkService struct {
 	// bandwidthLimitMbps is set, defaults to one second worth of the rate. For
 	// example, with bandwidthLimitMbps=10 (1.25 MB/s) and burstBytes=5000000 (5 MB),
 	// up to 5 MB can transfer instantly, then throughput settles to 1.25 MB/s.
-	BandwidthLimitBurstBytes *uint64 `json:"bandwidthLimitBurstBytes,omitempty" yaml:"bandwidthLimitBurstBytes,omitempty"`
+	BandwidthLimitBurstBytes *uint64 `json:"bandwidthLimitBurstBytes,omitempty,omitzero" yaml:"bandwidthLimitBurstBytes,omitempty"`
 
 	// BandwidthLimitMbps is the maximum total bandwidth in megabits per second
 	// through the SideroLink tunnel. Uses a token bucket algorithm: the rate controls
 	// sustained throughput while burst allows temporary spikes. Zero means unlimited.
-	BandwidthLimitMbps *uint64 `json:"bandwidthLimitMbps,omitempty" yaml:"bandwidthLimitMbps,omitempty"`
+	BandwidthLimitMbps *uint64 `json:"bandwidthLimitMbps,omitempty,omitzero" yaml:"bandwidthLimitMbps,omitempty"`
 
 	// DisableLastEndpoint controls whether the SideroLink service should stop using
 	// the last known endpoint of a node when it becomes unreachable via WireGuard.
-	DisableLastEndpoint *bool `json:"disableLastEndpoint,omitempty" yaml:"disableLastEndpoint,omitempty"`
+	DisableLastEndpoint *bool `json:"disableLastEndpoint,omitempty,omitzero" yaml:"disableLastEndpoint,omitempty"`
 
 	// EventSinkPort is the port to be used by the nodes to publish their events over
 	// SideroLink to Omni.
-	EventSinkPort *int `json:"eventSinkPort,omitempty" yaml:"eventSinkPort,omitempty"`
+	EventSinkPort *int `json:"eventSinkPort,omitempty,omitzero" yaml:"eventSinkPort,omitempty"`
 
 	// JoinTokensMode configures how machine join tokens are generated and used. Set
 	// to strict to use the secure join tokens mode.
-	JoinTokensMode *SiderolinkServiceJoinTokensMode `json:"joinTokensMode,omitempty" yaml:"joinTokensMode,omitempty"`
+	JoinTokensMode *SiderolinkServiceJoinTokensMode `json:"joinTokensMode,omitempty,omitzero" yaml:"joinTokensMode,omitempty"`
 
 	// LogServerPort is the port to be used by the nodes to send their logs over
 	// SideroLink to Omni.
-	LogServerPort *int `json:"logServerPort,omitempty" yaml:"logServerPort,omitempty"`
+	LogServerPort *int `json:"logServerPort,omitempty,omitzero" yaml:"logServerPort,omitempty"`
 
 	// UseGRPCTunnel controls whether the SideroLink service should tunnel WireGuard
 	// traffic over gRPC, in setups where direct Wireguard connectivity is not
 	// possible (e.g., due to firewall restrictions). When enabled, the SideroLink
 	// connections from Talos machines will be configured to use the tunnel mode,
 	// regardless of their individual configuration.
-	UseGRPCTunnel *bool `json:"useGRPCTunnel,omitempty" yaml:"useGRPCTunnel,omitempty"`
+	UseGRPCTunnel *bool `json:"useGRPCTunnel,omitempty,omitzero" yaml:"useGRPCTunnel,omitempty"`
 
 	// WireGuard contains WireGuard-specific configuration for the SideroLink service.
 	WireGuard SiderolinkWireGuard `json:"wireGuard" yaml:"wireGuard"`
@@ -708,11 +730,11 @@ type SiderolinkWireGuard struct {
 	// nodes for WireGuard connectivity. It is in the form "ip:port" (IP address is
 	// required, not hostname). When not set, it is generated by the system based on
 	// the WireGuard endpoint.
-	AdvertisedEndpoint *string `json:"advertisedEndpoint,omitempty" yaml:"advertisedEndpoint,omitempty"`
+	AdvertisedEndpoint *string `json:"advertisedEndpoint,omitempty,omitzero" yaml:"advertisedEndpoint,omitempty"`
 
 	// Endpoint is the network endpoint the WireGuard interface listens on. It is in
 	// the form "ip:port" (IP address is required, not hostname).
-	Endpoint *string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Endpoint *string `json:"endpoint,omitempty,omitzero" yaml:"endpoint,omitempty"`
 }
 
 type Storage struct {
@@ -738,7 +760,7 @@ type StorageDefault struct {
 	Etcd EtcdParams `json:"etcd" yaml:"etcd"`
 
 	// Kind is the kind of the default storage backend.
-	Kind *StorageDefaultKind `json:"kind,omitempty" yaml:"kind,omitempty"`
+	Kind *StorageDefaultKind `json:"kind,omitempty,omitzero" yaml:"kind,omitempty"`
 }
 
 type StorageDefaultKind string
@@ -746,43 +768,53 @@ type StorageDefaultKind string
 const StorageDefaultKindBoltdb StorageDefaultKind = "boltdb"
 const StorageDefaultKindEtcd StorageDefaultKind = "etcd"
 
+type Support struct {
+	// OfficeHours contains the configuration for the monthly office hours shown in
+	// the help modal.
+	OfficeHours OfficeHours `json:"officeHours" yaml:"officeHours"`
+
+	// SupportEligibleProducts is the list of Stripe product name substrings that
+	// grant access to the support portal.
+	SupportEligibleProducts []string `json:"supportEligibleProducts,omitempty,omitzero" yaml:"supportEligibleProducts,omitempty"`
+}
+
 type UserPilot struct {
 	// AppToken is the UserPilot application token.
-	AppToken *string `json:"appToken,omitempty" yaml:"appToken,omitempty"`
+	AppToken *string `json:"appToken,omitempty,omitzero" yaml:"appToken,omitempty"`
 }
 
 type Vault struct {
 	// K8sAuthMountPath is the mount path of the Kubernetes auth method in Vault. When
 	// not set, it defaults to "kubernetes". This is useful when Vault is running on a
 	// different cluster and has multiple Kubernetes auth mounts.
-	K8SAuthMountPath *string `json:"k8sAuthMountPath,omitempty" yaml:"k8sAuthMountPath,omitempty"`
+	K8SAuthMountPath *string `json:"k8sAuthMountPath,omitempty,omitzero" yaml:"k8sAuthMountPath,omitempty"`
 
 	// Token is the authentication token for the Vault server. It is read from
 	// VAULT_TOKEN env var when not set. It is recommended to be passed as env var
 	// instead of being stored in the config file.
-	Token *string `json:"token,omitempty" yaml:"token,omitempty"`
+	Token *string `json:"token,omitempty,omitzero" yaml:"token,omitempty"`
 
 	// Url is the URL of the Vault server.
-	Url *string `json:"url,omitempty" yaml:"url,omitempty"`
+	Url *string `json:"url,omitempty,omitzero" yaml:"url,omitempty"`
 }
 
 type WebAuthn struct {
 	// Enabled controls whether WebAuthn authentication is enabled. It is NOT
 	// SUPPORTED as it is currently unimplemented.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
 	// Required controls whether WebAuthn authentication is required. It is NOT
 	// SUPPORTED as it is currently unimplemented.
-	Required *bool `json:"required,omitempty" yaml:"required,omitempty"`
+	Required *bool `json:"required,omitempty,omitzero" yaml:"required,omitempty"`
 }
 
 type WorkloadProxy struct {
 	// Enabled controls whether the workload proxy service is enabled.
-	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty,omitzero" yaml:"enabled,omitempty"`
 
 	// StopLBsAfter is the duration after which the workload proxy service stops load
 	// balancers for workloads that have not received any traffic.
-	StopLBsAfter *time.Duration `json:"stopLBsAfter,omitempty" yaml:"stopLBsAfter,omitempty"`
+	StopLBsAfter *time.Duration `json:"stopLBsAfter,omitempty,omitzero" yaml:"stopLBsAfter,omitempty"`
 
 	// Subdomain is the subdomain used by the workload proxy service to expose
 	// workloads. By default, it lives at the same level as Omni (e.g.,
@@ -791,7 +823,7 @@ type WorkloadProxy struct {
 	// "proxy.omni.example.com"). When useOmniSubdomain is true and subdomain is
 	// empty, services are exposed directly as subdomains of Omni (e.g.,
 	// "grafana.omni.example.com").
-	Subdomain *string `json:"subdomain,omitempty" yaml:"subdomain,omitempty"`
+	Subdomain *string `json:"subdomain,omitempty,omitzero" yaml:"subdomain,omitempty"`
 
 	// UseOmniSubdomain controls whether the workload proxy subdomain is placed under
 	// Omni's own domain (as a subdomain) rather than as a sibling. When true, the
@@ -800,5 +832,5 @@ type WorkloadProxy struct {
 	// URLs to '<alias>.<proxy-domain>' (without the instance name) and allows dashes
 	// in service aliases. When true and subdomain is empty, services are exposed
 	// directly as subdomains of Omni (e.g., '<alias>.<omni-domain>').
-	UseOmniSubdomain *bool `json:"useOmniSubdomain,omitempty" yaml:"useOmniSubdomain,omitempty"`
+	UseOmniSubdomain *bool `json:"useOmniSubdomain,omitempty,omitzero" yaml:"useOmniSubdomain,omitempty"`
 }

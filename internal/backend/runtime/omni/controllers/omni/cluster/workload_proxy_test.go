@@ -28,7 +28,7 @@ func TestClusterWorkloadProxySuite(t *testing.T) {
 	defer cancel()
 
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
-		ctrl, err := cluster.NewClusterWorkloadProxyController()
+		ctrl, err := cluster.NewClusterWorkloadProxyController(true)
 
 		require.NoError(t, err)
 

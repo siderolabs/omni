@@ -146,6 +146,8 @@ func (s *managementServer) ListServiceAccounts(ctx context.Context, _ *emptypb.E
 						Id:         key.Id,
 						Armored:    key.Armored,
 						Expiration: key.Expiration,
+						Created:    key.Created,
+						LastUsed:   key.LastUsed,
 					}
 				},
 			),

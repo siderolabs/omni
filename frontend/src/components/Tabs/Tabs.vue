@@ -22,6 +22,7 @@ interface Props extends TabsRootProps {
   tabsListClass?: ClassValue
 }
 
+// eslint-disable-next-line vue/define-props-destructuring
 const props = defineProps<Props>()
 const emit = defineEmits<TabsRootEmits>()
 

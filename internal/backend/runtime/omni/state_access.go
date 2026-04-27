@@ -32,6 +32,13 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
+// PublicResourceTypes is the set of resource types that are accessible without any authentication.
+// These are intentionally public and must remain readable before auth or EULA acceptance.
+var PublicResourceTypes = xslices.ToSet([]resource.Type{
+	authres.AuthConfigType,
+	authres.EulaAcceptanceType,
+})
+
 var (
 	// clusterIDTypeSet is the set of resource types which have the related cluster's ID as their ID.
 	clusterIDTypeSet = xslices.ToSet([]resource.Type{
@@ -380,6 +387,11 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		return nil
 	}
 
+	// Public resource types are accessible without any authentication or EULA acceptance.
+	if _, ok := PublicResourceTypes[access.ResourceType]; ok {
+		return filterAccessByType(access)
+	}
+
 	var err error
 
 	// authentication and authorization checks
@@ -444,6 +456,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		siderolink.PendingMachineType,
 		siderolink.LinkStatusType,
 		siderolink.JoinTokenStatusType,
+		siderolink.JoinTokenType,
+		siderolink.DefaultJoinTokenType,
 		siderolink.NodeUniqueTokenStatusType,
 		siderolink.GRPCTunnelConfigType,
 		omni.MachineClassType,
@@ -467,12 +481,17 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.RotateKubernetesCAType,
 		omni.UpgradeRolloutType,
 		system.ResourceLabelsType[*omni.MachineStatus](),
+		virtual.SupportType,
 		virtual.LabelsCompletionType,
 		virtual.SBCConfigType,
 		virtual.CloudPlatformConfigType,
 		virtual.MetalPlatformConfigType,
 		virtual.KubernetesUsageType:
 		_, err = auth.CheckGRPC(ctx, auth.WithRole(verbToRole(access.Verb)))
+
+		if err == nil && access.Verb == state.Create && access.ResourceType == siderolink.JoinTokenType {
+			err = status.Error(codes.PermissionDenied, "only read, update and destroy access is permitted, create should be done via the management.CreateJoinToken API call")
+		}
 	case
 		meta.NamespaceType,
 		meta.ResourceDefinitionType,
@@ -497,27 +516,20 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		authres.IdentityType,
 		authres.IdentityLastActiveType,
 		authres.IdentityStatusType,
+		authres.PublicKeyLastActiveType,
 		authres.UserType,
 		authres.ServiceAccountStatusType,
 		authres.SAMLLabelRuleType,
 		authres.AccessPolicyType,
-		siderolink.JoinTokenType,
-		siderolink.DefaultJoinTokenType,
 		omni.EtcdBackupS3ConfType,
 		infra.ProviderType,
 		omni.InfraMachineBMCConfigType:
 		_, err = auth.CheckGRPC(ctx, auth.WithRole(role.Admin))
 
-		if err == nil && access.Verb == state.Create && access.ResourceType == siderolink.JoinTokenType {
-			err = status.Error(codes.PermissionDenied, "only read, update and destroy access is permitted, create should be done via the management.CreateJoinToken API call")
-		}
-
 		// Restrict direct mutations on Identity and User resources — these must go through ManagementService gRPC endpoints.
 		if err == nil && !access.Verb.Readonly() && (access.ResourceType == authres.IdentityType || access.ResourceType == authres.UserType) {
 			err = status.Errorf(codes.PermissionDenied, "only read access is permitted on resource %v, mutations should be done via ManagementService API calls", access.ResourceType)
 		}
-	case authres.AuthConfigType:
-		// allow access even without auth
 	default:
 		err = status.Error(codes.PermissionDenied, "no access is permitted")
 	}
@@ -538,6 +550,13 @@ func filterAccessByType(access state.Access) error {
 	}
 
 	switch access.ResourceType {
+	case authres.EulaAcceptanceType:
+		// Allow read and create access. Update and destroy are forbidden — EULA acceptance is permanent.
+		if access.Verb.Readonly() || access.Verb == state.Create {
+			return nil
+		}
+
+		return status.Error(codes.PermissionDenied, "only read and create access is permitted for EULA acceptance")
 	case siderolink.PendingMachineType,
 		siderolink.LinkType:
 		// Allow read, update and delete access
@@ -617,6 +636,7 @@ func filterAccessByType(access state.Access) error {
 		authres.AuthConfigType,
 		authres.IdentityLastActiveType,
 		authres.IdentityStatusType,
+		authres.PublicKeyLastActiveType,
 		authres.ServiceAccountStatusType,
 		siderolink.JoinTokenStatusType,
 		siderolink.NodeUniqueTokenStatusType,
@@ -627,6 +647,7 @@ func filterAccessByType(access state.Access) error {
 		system.ResourceLabelsType[*omni.MachineStatus](),
 		meta.NamespaceType,
 		meta.ResourceDefinitionType,
+		virtual.SupportType,
 		virtual.AdvertisedEndpointsType,
 		virtual.CurrentUserType,
 		virtual.SBCConfigType,

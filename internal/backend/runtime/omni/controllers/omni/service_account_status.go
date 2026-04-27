@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -17,6 +18,7 @@ import (
 	"github.com/siderolabs/gen/optional"
 	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access"
@@ -62,6 +64,9 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 				}
 
 				status.TypedSpec().Value.PublicKeys = nil
+				status.TypedSpec().Value.Expiration = nil
+
+				var expiration time.Time
 
 				for key := range publicKeyList.All() {
 					if key.Metadata().Phase() == resource.PhaseRunning {
@@ -78,13 +83,27 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 						continue
 					}
 
-					status.TypedSpec().Value.PublicKeys = append(status.TypedSpec().Value.PublicKeys,
-						&specs.ServiceAccountStatusSpec_PgpPublicKey{
-							Id:         key.Metadata().ID(),
-							Armored:    string(key.TypedSpec().Value.GetPublicKey()),
-							Expiration: key.TypedSpec().Value.GetExpiration(),
-						},
-					)
+					pgpKey := &specs.ServiceAccountStatusSpec_PgpPublicKey{
+						Id:         key.Metadata().ID(),
+						Armored:    string(key.TypedSpec().Value.GetPublicKey()),
+						Expiration: key.TypedSpec().Value.GetExpiration(),
+						Created:    timestamppb.New(key.Metadata().Created()),
+					}
+
+					if expiration.Before(key.TypedSpec().Value.GetExpiration().AsTime()) {
+						expiration = key.TypedSpec().Value.GetExpiration().AsTime()
+					}
+
+					lastActive, lastActiveErr := safe.ReaderGetByID[*auth.PublicKeyLastActive](ctx, r, key.Metadata().ID())
+					if lastActiveErr != nil && !state.IsNotFoundError(lastActiveErr) {
+						return lastActiveErr
+					}
+
+					if lastActive != nil {
+						pgpKey.LastUsed = lastActive.TypedSpec().Value.GetLastUsed()
+					}
+
+					status.TypedSpec().Value.PublicKeys = append(status.TypedSpec().Value.PublicKeys, pgpKey)
 				}
 
 				user, err := safe.ReaderGetByID[*auth.User](ctx, r, identity.TypedSpec().Value.UserId)
@@ -97,6 +116,7 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 				}
 
 				status.TypedSpec().Value.Role = user.TypedSpec().Value.Role
+				status.TypedSpec().Value.Expiration = timestamppb.New(expiration)
 
 				return nil
 			},
@@ -141,6 +161,20 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 					}, nil
 				},
 			),
+		),
+		qtransform.WithExtraMappedInput[*auth.PublicKeyLastActive](
+			func(ctx context.Context, logger *zap.Logger, r controller.QRuntime, lastActive controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				identity, ok := lastActive.Labels().Get(auth.LabelIdentity)
+				if !ok {
+					logger.Warn("missing identity label on PublicKeyLastActive resource", zap.String("resourceID", lastActive.ID()))
+
+					return nil, nil
+				}
+
+				return []resource.Pointer{
+					auth.NewIdentity(identity).Metadata(),
+				}, nil
+			},
 		),
 	)
 }

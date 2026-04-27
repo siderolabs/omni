@@ -5,6 +5,8 @@
 package specs
 
 import (
+	"fmt"
+
 	"go.yaml.in/yaml/v4"
 )
 
@@ -18,4 +20,27 @@ func (c *ClusterMachineSpec) MarshalYAML() (any, error) {
 			{Kind: yaml.ScalarNode, Tag: "!!str", Value: c.KubernetesVersion},
 		},
 	}, nil
+}
+
+// UnmarshalYAML implements yaml.Unmarshaler interface.
+func (c *ClusterMachineSpec) UnmarshalYAML(node *yaml.Node) error {
+	if node.Kind != yaml.MappingNode {
+		return fmt.Errorf("expected a mapping node, got %v", node.Kind)
+	}
+
+	for i := 0; i < len(node.Content); i += 2 {
+		keyNode := node.Content[i]
+		valueNode := node.Content[i+1]
+
+		switch keyNode.Value {
+		case "kubernetes_version":
+			if err := valueNode.Decode(&c.KubernetesVersion); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unexpected field: %s", keyNode.Value)
+		}
+	}
+
+	return nil
 }

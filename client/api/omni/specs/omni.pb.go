@@ -6678,19 +6678,21 @@ func (x *MachineExtensionsStatusSpec) GetTalosVersion() string {
 
 // MachineStatusMetricsSpec provides aggregated state of the number of registered and connected machines for the Omni instance.
 type MachineStatusMetricsSpec struct {
-	state                         protoimpl.MessageState `protogen:"open.v1"`
-	RegisteredMachinesCount       uint32                 `protobuf:"varint,1,opt,name=registered_machines_count,json=registeredMachinesCount,proto3" json:"registered_machines_count,omitempty"`
-	ConnectedMachinesCount        uint32                 `protobuf:"varint,2,opt,name=connected_machines_count,json=connectedMachinesCount,proto3" json:"connected_machines_count,omitempty"`
-	AllocatedMachinesCount        uint32                 `protobuf:"varint,3,opt,name=allocated_machines_count,json=allocatedMachinesCount,proto3" json:"allocated_machines_count,omitempty"`
-	PendingMachinesCount          uint32                 `protobuf:"varint,4,opt,name=pending_machines_count,json=pendingMachinesCount,proto3" json:"pending_machines_count,omitempty"`
-	Platforms                     map[string]uint32      `protobuf:"bytes,6,rep,name=platforms,proto3" json:"platforms,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	SecureBootStatus              map[string]uint32      `protobuf:"bytes,7,rep,name=secure_boot_status,json=secureBootStatus,proto3" json:"secure_boot_status,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	UkiStatus                     map[string]uint32      `protobuf:"bytes,8,rep,name=uki_status,json=ukiStatus,proto3" json:"uki_status,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	RegisteredMachinesLimit       uint32                 `protobuf:"varint,9,opt,name=registered_machines_limit,json=registeredMachinesLimit,proto3" json:"registered_machines_limit,omitempty"`
-	RegistrationLimitReached      bool                   `protobuf:"varint,10,opt,name=registration_limit_reached,json=registrationLimitReached,proto3" json:"registration_limit_reached,omitempty"`
-	InvalidSchematicMachinesCount uint32                 `protobuf:"varint,11,opt,name=invalid_schematic_machines_count,json=invalidSchematicMachinesCount,proto3" json:"invalid_schematic_machines_count,omitempty"`
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	state                                            protoimpl.MessageState `protogen:"open.v1"`
+	RegisteredMachinesCount                          uint32                 `protobuf:"varint,1,opt,name=registered_machines_count,json=registeredMachinesCount,proto3" json:"registered_machines_count,omitempty"`
+	ConnectedMachinesCount                           uint32                 `protobuf:"varint,2,opt,name=connected_machines_count,json=connectedMachinesCount,proto3" json:"connected_machines_count,omitempty"`
+	AllocatedMachinesCount                           uint32                 `protobuf:"varint,3,opt,name=allocated_machines_count,json=allocatedMachinesCount,proto3" json:"allocated_machines_count,omitempty"`
+	PendingMachinesCount                             uint32                 `protobuf:"varint,4,opt,name=pending_machines_count,json=pendingMachinesCount,proto3" json:"pending_machines_count,omitempty"`
+	Platforms                                        map[string]uint32      `protobuf:"bytes,6,rep,name=platforms,proto3" json:"platforms,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	SecureBootStatus                                 map[string]uint32      `protobuf:"bytes,7,rep,name=secure_boot_status,json=secureBootStatus,proto3" json:"secure_boot_status,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	UkiStatus                                        map[string]uint32      `protobuf:"bytes,8,rep,name=uki_status,json=ukiStatus,proto3" json:"uki_status,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	RegisteredMachinesLimit                          uint32                 `protobuf:"varint,9,opt,name=registered_machines_limit,json=registeredMachinesLimit,proto3" json:"registered_machines_limit,omitempty"`
+	RegistrationLimitReached                         bool                   `protobuf:"varint,10,opt,name=registration_limit_reached,json=registrationLimitReached,proto3" json:"registration_limit_reached,omitempty"`
+	InvalidSchematicMachinesCount                    uint32                 `protobuf:"varint,11,opt,name=invalid_schematic_machines_count,json=invalidSchematicMachinesCount,proto3" json:"invalid_schematic_machines_count,omitempty"`
+	ApproachingTalosVersionEndOfSupportMachinesCount uint32                 `protobuf:"varint,12,opt,name=approaching_talos_version_end_of_support_machines_count,json=approachingTalosVersionEndOfSupportMachinesCount,proto3" json:"approaching_talos_version_end_of_support_machines_count,omitempty"`
+	TalosVersionEndOfSupportMachinesCount            uint32                 `protobuf:"varint,13,opt,name=talos_version_end_of_support_machines_count,json=talosVersionEndOfSupportMachinesCount,proto3" json:"talos_version_end_of_support_machines_count,omitempty"`
+	unknownFields                                    protoimpl.UnknownFields
+	sizeCache                                        protoimpl.SizeCache
 }
 
 func (x *MachineStatusMetricsSpec) Reset() {
@@ -6789,6 +6791,20 @@ func (x *MachineStatusMetricsSpec) GetRegistrationLimitReached() bool {
 func (x *MachineStatusMetricsSpec) GetInvalidSchematicMachinesCount() uint32 {
 	if x != nil {
 		return x.InvalidSchematicMachinesCount
+	}
+	return 0
+}
+
+func (x *MachineStatusMetricsSpec) GetApproachingTalosVersionEndOfSupportMachinesCount() uint32 {
+	if x != nil {
+		return x.ApproachingTalosVersionEndOfSupportMachinesCount
+	}
+	return 0
+}
+
+func (x *MachineStatusMetricsSpec) GetTalosVersionEndOfSupportMachinesCount() uint32 {
+	if x != nil {
+		return x.TalosVersionEndOfSupportMachinesCount
 	}
 	return 0
 }
@@ -7296,6 +7312,11 @@ type InfraMachineConfigSpec struct {
 	ExtraKernelArgs   string                                   `protobuf:"bytes,3,opt,name=extra_kernel_args,json=extraKernelArgs,proto3" json:"extra_kernel_args,omitempty"`
 	RequestedRebootId string                                   `protobuf:"bytes,4,opt,name=requested_reboot_id,json=requestedRebootId,proto3" json:"requested_reboot_id,omitempty"`
 	Cordoned          bool                                     `protobuf:"varint,5,opt,name=cordoned,proto3" json:"cordoned,omitempty"`
+	// PowerOffRequestId is set to a new UUID each time the user requests the machine to be powered off (shutdown).
+	//
+	// This is used by Omni to signal the infra provider to not power the machine back on after a shutdown,
+	// even when the machine is allocated to a cluster.
+	PowerOffRequestId string `protobuf:"bytes,6,opt,name=power_off_request_id,json=powerOffRequestId,proto3" json:"power_off_request_id,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -7363,6 +7384,13 @@ func (x *InfraMachineConfigSpec) GetCordoned() bool {
 		return x.Cordoned
 	}
 	return false
+}
+
+func (x *InfraMachineConfigSpec) GetPowerOffRequestId() string {
+	if x != nil {
+		return x.PowerOffRequestId
+	}
+	return ""
 }
 
 type InfraMachineBMCConfigSpec struct {
@@ -11665,7 +11693,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\tInstalled\x10\x00\x12\x0e\n" +
 	"\n" +
 	"Installing\x10\x01\x12\f\n" +
-	"\bRemoving\x10\x02\"\x8c\a\n" +
+	"\bRemoving\x10\x02\"\xdb\b\n" +
 	"\x18MachineStatusMetricsSpec\x12:\n" +
 	"\x19registered_machines_count\x18\x01 \x01(\rR\x17registeredMachinesCount\x128\n" +
 	"\x18connected_machines_count\x18\x02 \x01(\rR\x16connectedMachinesCount\x128\n" +
@@ -11678,7 +11706,9 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x19registered_machines_limit\x18\t \x01(\rR\x17registeredMachinesLimit\x12<\n" +
 	"\x1aregistration_limit_reached\x18\n" +
 	" \x01(\bR\x18registrationLimitReached\x12G\n" +
-	" invalid_schematic_machines_count\x18\v \x01(\rR\x1dinvalidSchematicMachinesCount\x1a<\n" +
+	" invalid_schematic_machines_count\x18\v \x01(\rR\x1dinvalidSchematicMachinesCount\x12q\n" +
+	"7approaching_talos_version_end_of_support_machines_count\x18\f \x01(\rR0approachingTalosVersionEndOfSupportMachinesCount\x12Z\n" +
+	"+talos_version_end_of_support_machines_count\x18\r \x01(\rR%talosVersionEndOfSupportMachinesCount\x1a<\n" +
 	"\x0ePlatformsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\rR\x05value:\x028\x01\x1aC\n" +
@@ -11739,14 +11769,15 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\vPROVISIONED\x10\x03\x12\x12\n" +
 	"\x0eDEPROVISIONING\x10\x04\x12\n" +
 	"\n" +
-	"\x06FAILED\x10\x05\"\xd3\x03\n" +
+	"\x06FAILED\x10\x05\"\x84\x04\n" +
 	"\x16InfraMachineConfigSpec\x12P\n" +
 	"\vpower_state\x18\x01 \x01(\x0e2/.specs.InfraMachineConfigSpec.MachinePowerStateR\n" +
 	"powerState\x12[\n" +
 	"\x11acceptance_status\x18\x02 \x01(\x0e2..specs.InfraMachineConfigSpec.AcceptanceStatusR\x10acceptanceStatus\x12*\n" +
 	"\x11extra_kernel_args\x18\x03 \x01(\tR\x0fextraKernelArgs\x12.\n" +
 	"\x13requested_reboot_id\x18\x04 \x01(\tR\x11requestedRebootId\x12\x1a\n" +
-	"\bcordoned\x18\x05 \x01(\bR\bcordoned\";\n" +
+	"\bcordoned\x18\x05 \x01(\bR\bcordoned\x12/\n" +
+	"\x14power_off_request_id\x18\x06 \x01(\tR\x11powerOffRequestId\";\n" +
 	"\x10AcceptanceStatus\x12\v\n" +
 	"\aPENDING\x10\x00\x12\f\n" +
 	"\bACCEPTED\x10\x01\x12\f\n" +

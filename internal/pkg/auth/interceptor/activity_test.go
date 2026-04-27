@@ -45,6 +45,7 @@ func (m *mockServerStream) SetHeader(metadata.MD) error  { return nil }
 func (m *mockServerStream) SendHeader(metadata.MD) error { return nil }
 func (m *mockServerStream) SetTrailer(metadata.MD)       {}
 
+//nolint:maintidx
 func TestActivity(t *testing.T) {
 	t.Parallel()
 
@@ -228,6 +229,62 @@ func TestActivity(t *testing.T) {
 
 		rtestutils.AssertResource(ctx, t, st, "stream-user@example.com", func(res *authres.IdentityLastActive, asrt *assert.Assertions) {
 			asrt.WithinDuration(time.Now(), res.TypedSpec().Value.LastActive.AsTime(), 5*time.Second)
+		})
+	})
+
+	t.Run("fingerprint tracking creates PublicKeyLastActive", func(t *testing.T) {
+		t.Parallel()
+
+		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		logger := zaptest.NewLogger(t)
+		activity := interceptor.NewActivity(st, logger)
+
+		require.NoError(t, st.Create(t.Context(), authres.NewIdentityLastActive("fp-user@example.com")))
+
+		ctx := ctxstore.WithValue(t.Context(), auth.IdentityContextKey{Identity: "fp-user@example.com"})
+		ctx = ctxstore.WithValue(ctx, auth.FingerprintContextKey{Fingerprint: "abc123fingerprint"})
+
+		_, err := activity.Unary()(ctx, nil, nil, noopHandler)
+		require.NoError(t, err)
+
+		rtestutils.AssertResource(ctx, t, st, "abc123fingerprint", func(res *authres.PublicKeyLastActive, asrt *assert.Assertions) {
+			asrt.WithinDuration(time.Now(), res.TypedSpec().Value.LastUsed.AsTime(), 5*time.Second)
+
+			identity, ok := res.Metadata().Labels().Get(authres.LabelIdentity)
+			asrt.True(ok)
+			asrt.Equal("fp-user@example.com", identity)
+		})
+	})
+
+	t.Run("fingerprint debounced independently from identity", func(t *testing.T) {
+		t.Parallel()
+
+		st := state.WrapCore(namespaced.NewState(inmem.Build))
+		logger := zaptest.NewLogger(t)
+		activity := interceptor.NewActivity(st, logger)
+
+		require.NoError(t, st.Create(t.Context(), authres.NewIdentityLastActive("ind-user@example.com")))
+
+		// First call with identity + fingerprint A.
+		ctx := ctxstore.WithValue(t.Context(), auth.IdentityContextKey{Identity: "ind-user@example.com"})
+		ctx = ctxstore.WithValue(ctx, auth.FingerprintContextKey{Fingerprint: "fingerprintA"})
+
+		_, err := activity.Unary()(ctx, nil, nil, noopHandler)
+		require.NoError(t, err)
+
+		rtestutils.AssertResource(ctx, t, st, "fingerprintA", func(res *authres.PublicKeyLastActive, asrt *assert.Assertions) {
+			asrt.NotNil(res.TypedSpec().Value.LastUsed)
+		})
+
+		// Second call with same identity but different fingerprint B. Identity should be debounced, but fingerprint B should be tracked.
+		ctx2 := ctxstore.WithValue(t.Context(), auth.IdentityContextKey{Identity: "ind-user@example.com"})
+		ctx2 = ctxstore.WithValue(ctx2, auth.FingerprintContextKey{Fingerprint: "fingerprintB"})
+
+		_, err = activity.Unary()(ctx2, nil, nil, noopHandler)
+		require.NoError(t, err)
+
+		rtestutils.AssertResource(ctx2, t, st, "fingerprintB", func(res *authres.PublicKeyLastActive, asrt *assert.Assertions) {
+			asrt.NotNil(res.TypedSpec().Value.LastUsed)
 		})
 	})
 

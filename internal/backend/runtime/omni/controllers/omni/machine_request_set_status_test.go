@@ -302,6 +302,112 @@ func reconcileLabels(ctx context.Context, st state.State, ready chan<- struct{})
 	}
 }
 
+func TestMachineRequestForceDestroy(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineRequestSetStatusController()))
+			require.NoError(t, tc.Runtime.RegisterQController(newTestInfraProvider()))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			testMachineRequestForceDestroy(ctx, t, tc.State)
+		},
+	)
+}
+
+func testMachineRequestForceDestroy(ctx context.Context, t *testing.T, st state.State) {
+	var eg errgroup.Group
+
+	reconcilerCtx, reconcilerCancel := context.WithCancel(ctx)
+
+	defer func() {
+		reconcilerCancel()
+
+		require.NoError(t, eg.Wait())
+	}()
+
+	watchReady := make(chan struct{})
+	errCh := make(chan error, 1)
+
+	eg.Go(func() error {
+		err := reconcileLabels(reconcilerCtx, st, watchReady)
+		if err != nil {
+			t.Logf("machine status labels reconciler crashed with error %s", err)
+
+			select {
+			case errCh <- err:
+			default:
+			}
+		}
+
+		return err
+	})
+
+	select {
+	case <-watchReady:
+	case err := <-errCh:
+		require.FailNow(t, "reconcileLabels failed before watch was established", err)
+	case <-ctx.Done():
+		require.FailNow(t, "context canceled waiting for reconcileLabels watch to be established")
+	}
+
+	machineRequestSet := rmock.Mock[*omni.MachineRequestSet](ctx, t, st,
+		options.WithID("test-force-destroy"),
+		options.Modify(func(r *omni.MachineRequestSet) error {
+			r.TypedSpec().Value.ProviderId = "test"
+			r.TypedSpec().Value.TalosVersion = "v1.7.5"
+			r.TypedSpec().Value.MachineCount = 2
+
+			return nil
+		}),
+	)
+
+	// wait for the requests to be created
+	var ids []resource.ID
+
+	err := retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
+		ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+
+		if len(ids) != int(machineRequestSet.TypedSpec().Value.MachineCount) {
+			return retry.ExpectedErrorf("expected %d requests got %d", machineRequestSet.TypedSpec().Value.MachineCount, len(ids))
+		}
+
+		return nil
+	})
+
+	require.NoError(t, err)
+
+	targetRequestID := ids[0]
+
+	// force destroy the ownerless machine request by tearing it down directly
+	_, err = st.Teardown(ctx, infra.NewMachineRequest(targetRequestID).Metadata())
+
+	require.NoError(t, err)
+
+	// the original request should be destroyed
+	rtestutils.AssertNoResource[*infra.MachineRequest](ctx, t, st, targetRequestID)
+
+	// a replacement request should be created, so total count is still 2
+	err = retry.Constant(time.Second*5).RetryWithContext(ctx, func(ctx context.Context) error {
+		ids = rtestutils.ResourceIDs[*infra.MachineRequest](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())))
+
+		if len(ids) != int(machineRequestSet.TypedSpec().Value.MachineCount) {
+			return retry.ExpectedErrorf("expected %d requests got %d", machineRequestSet.TypedSpec().Value.MachineCount, len(ids))
+		}
+
+		return nil
+	})
+
+	require.NoError(t, err)
+
+	// the replacement should be a new request, not the original
+	assert.NotContains(t, ids, targetRequestID)
+}
+
 func TestInfraProviderDeletion(t *testing.T) {
 	t.Parallel()
 
@@ -363,9 +469,7 @@ func TestInfraProviderDeletion(t *testing.T) {
 
 		machineRequest := machineRequests.Get(0)
 		machineRequest.Metadata().Finalizers().Add(providerID)
-		require.NoError(t, st.Update(ctx, machineRequest, func(updateOptions *state.UpdateOptions) {
-			updateOptions.Owner = omnictrl.MachineRequestSetStatusControllerName
-		}))
+		require.NoError(t, st.Update(ctx, machineRequest))
 
 		rtestutils.AssertResources(ctx, t, st, ids, func(r *infra.MachineRequest, assert *assert.Assertions) {
 			require.True(t, r.Metadata().Finalizers().Has(providerID))

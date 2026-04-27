@@ -33,6 +33,7 @@ auth:
   limits:
     maxUsers: ${MAX_USERS}
     maxServiceAccounts: ${MAX_SERVICE_ACCOUNTS}
+${EULA_CONFIG}
 etcdBackup:
   s3Enabled: true
 ${REGISTRY_MIRROR_CONFIG}

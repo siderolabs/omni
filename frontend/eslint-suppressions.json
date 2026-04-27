@@ -1,0 +1,203 @@
+{
+  "src/components/ActionsBox/TActionsBoxItem.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Animation/TAnimation.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Form/ArrayRenderer.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Form/BooleanRenderer.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Form/DateControlRenderer.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Form/DateTimeControlRenderer.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Form/EnumOneOfRenderer.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Form/EnumRenderer.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Form/IntegerRenderer.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    },
+    "vue/no-ref-object-reactivity-loss": {
+      "count": 4
+    }
+  },
+  "src/components/Form/JsonForm.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    },
+    "vue/no-ref-object-reactivity-loss": {
+      "count": 1
+    }
+  },
+  "src/components/Form/NumberRenderer.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    },
+    "vue/no-ref-object-reactivity-loss": {
+      "count": 4
+    }
+  },
+  "src/components/Form/StringRenderer.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Form/TimeControlRenderer.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/InfoLabel/TInfoLabel.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Labels/Code.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/List/TList.vue": {
+    "vue/no-ref-object-reactivity-loss": {
+      "count": 2
+    }
+  },
+  "src/components/List/TListItem.vue": {
+    "vue/no-setup-props-reactivity-loss": {
+      "count": 1
+    }
+  },
+  "src/components/LogViewer/LogViewer.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Pagination/TPagination.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/components/Tabs/TabContent.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/methods/useResourceWatch.spec.ts": {
+    "vue/no-ref-object-reactivity-loss": {
+      "count": 1
+    }
+  },
+  "src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/logs/[service].vue": {
+    "vue/no-ref-object-reactivity-loss": {
+      "count": 1
+    }
+  },
+  "src/views/ClusterMachines/MachineRequest.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/views/Clusters/Management/MachineSetConfig.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    },
+    "vue/no-ref-object-reactivity-loss": {
+      "count": 5
+    }
+  },
+  "src/views/Config/PatchEdit.vue": {
+    "vue/no-ref-object-reactivity-loss": {
+      "count": 1
+    }
+  },
+  "src/views/Home/HomeGeneralInformationCopyable.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/views/MachineClasses/MachineMatchItem.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/views/MachineClasses/MachineTemplate.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/views/MachineClasses/ProviderConfig.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/views/Modals/CreateExtensions.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    },
+    "vue/no-ref-object-reactivity-loss": {
+      "count": 2
+    }
+  },
+  "src/views/Modals/MachineSetConfigEdit.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    },
+    "vue/no-ref-object-reactivity-loss": {
+      "count": 6
+    }
+  },
+  "src/views/Modals/MachineTemplateExtensions.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    },
+    "vue/no-ref-object-reactivity-loss": {
+      "count": 2
+    }
+  },
+  "src/views/Modals/UntaintSingleNode.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/views/Users/ServiceAccountItem.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/views/Users/UserItem.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  },
+  "src/views/common/NodeContextMenu.vue": {
+    "vue/define-props-destructuring": {
+      "count": 1
+    }
+  }
+}

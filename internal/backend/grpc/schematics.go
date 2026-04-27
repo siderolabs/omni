@@ -30,7 +30,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
-// CreateSchematic implements ManagementServer.
+// CreateSchematic implements managementServer.
 func (s *managementServer) CreateSchematic(ctx context.Context, request *management.CreateSchematicRequest) (*management.CreateSchematicResponse, error) {
 	// creating a schematic is equivalent to creating a machine
 	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Operator)); err != nil {

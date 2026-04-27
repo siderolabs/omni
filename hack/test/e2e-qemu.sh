@@ -83,6 +83,7 @@ docker run --rm \
   -e BASE_URL="$BASE_URL" \
   -e PROJECT="qemu" \
   -v "${TEST_OUTPUTS_DIR}/e2e/playwright-report:/tmp/test/playwright-report" \
+  -v "${TEST_OUTPUTS_DIR}/e2e/support-bundles:/tmp/test/test-results/support-bundles/" \
   --network=host \
   e2etest
 

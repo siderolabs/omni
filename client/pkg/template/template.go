@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"slices"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -23,16 +24,31 @@ import (
 	"github.com/siderolabs/omni/client/pkg/template/internal/models"
 )
 
+// Option configures a Template.
+type Option func(*Template)
+
+// WithRoot sets the root directory for file access restriction.
+func WithRoot(root *os.Root) Option {
+	return func(t *Template) {
+		t.root = root
+	}
+}
+
 // Template is a cluster template.
 type Template struct {
+	root   *os.Root
 	models models.List
 }
 
 // Load the template from input.
-func Load(input io.Reader) (*Template, error) {
+func Load(input io.Reader, opts ...Option) (*Template, error) {
 	dec := yaml.NewDecoder(input)
 
 	var template Template
+
+	for _, opt := range opts {
+		opt(&template)
+	}
 
 	for {
 		var docNode yaml.Node
@@ -126,12 +142,14 @@ func WithCluster(clusterName string) *Template {
 
 // Validate the template.
 func (t *Template) Validate() error {
-	return t.models.Validate()
+	return t.models.Validate(models.ValidateOptions{
+		Root: t.root,
+	})
 }
 
 // Translate the template into resources.
 func (t *Template) Translate() ([]resource.Resource, error) {
-	return t.models.Translate()
+	return t.models.Translate(t.root)
 }
 
 // ClusterName returns the name of the cluster associated with the template.

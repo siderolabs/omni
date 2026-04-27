@@ -17,24 +17,30 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xyaml"
 	"github.com/siderolabs/talos/pkg/machinery/config/merge"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/compression"
-	consts "github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config/validations"
 	"github.com/siderolabs/omni/internal/pkg/jsonschema"
 )
 
-const wireguardDefaultPort = "50180"
+const (
+	wireguardDefaultPort = "50180"
+
+	// UnsupportedTalosVersionFailOnStart controls whether Omni refuses to start when machines
+	// are running Talos versions below MinTalosVersion. This will be flipped to true in a future release.
+	UnsupportedTalosVersionFailOnStart = false
+
+	// NonImageFactoryFailOnStart controls whether Omni refuses to start when machines
+	// were provisioned without ImageFactory. This will be flipped to true in a future release.
+	NonImageFactoryFailOnStart = false
+)
 
 //go:embed schema.json
 var schemaData string
@@ -76,120 +82,39 @@ func LoadFromFile(path string, opts ...ParseOption) (*Params, error) {
 	return parseConfig(f, opts...)
 }
 
-// Default creates the new default configuration.
-func Default() *Params {
-	p := &Params{}
+// LoadDefault creates the new default configuration by loading static defaults from the schema and applying dynamic defaults on top.
+func LoadDefault() (*Params, error) {
+	p, err := defaultsFromSchema()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load defaults from schema: %w", err)
+	}
 
-	p.Account.SetId("edd2822a-7834-4fe0-8172-cc5581f13a8d")
-	p.Account.SetName("default")
-
-	p.Services.Api.SetEndpoint(net.JoinHostPort("0.0.0.0", "8080"))
-	p.Services.Api.SetAdvertisedURL("http://localhost:8080")
-
-	p.Services.KubernetesProxy.SetEndpoint(net.JoinHostPort("0.0.0.0", "8095"))
-	p.Services.KubernetesProxy.SetAdvertisedURL("https://localhost:8095")
-
-	p.Services.Metrics.SetEndpoint(net.JoinHostPort("0.0.0.0", "2122"))
-
-	p.Services.Siderolink.WireGuard.SetEndpoint(net.JoinHostPort("0.0.0.0", wireguardDefaultPort))
+	// Dynamic defaults that depend on runtime state and cannot be expressed in the schema.
 	p.Services.Siderolink.WireGuard.SetAdvertisedEndpoint(net.JoinHostPort(localIP, wireguardDefaultPort))
-	p.Services.Siderolink.SetEventSinkPort(8090)
-	p.Services.Siderolink.SetLogServerPort(8092)
-	p.Services.Siderolink.SetJoinTokensMode(SiderolinkServiceJoinTokensModeLegacy)
-
 	p.Services.MachineAPI.SetEndpoint(net.JoinHostPort(localIP, "8090"))
-
-	p.Services.LoadBalancer.SetMinPort(10000)
-	p.Services.LoadBalancer.SetMaxPort(35000)
-	p.Services.LoadBalancer.SetDialTimeout(15 * time.Second)
-	p.Services.LoadBalancer.SetKeepAlivePeriod(30 * time.Second)
-	p.Services.LoadBalancer.SetTcpUserTimeout(30 * time.Second)
-	p.Services.LoadBalancer.SetHealthCheckInterval(20 * time.Second)
-	p.Services.LoadBalancer.SetHealthCheckTimeout(15 * time.Second)
-
-	p.Services.LocalResourceService.SetEnabled(true)
-	p.Services.LocalResourceService.SetPort(8081)
-
-	p.Services.EmbeddedDiscoveryService.SetEnabled(true)
-	p.Services.EmbeddedDiscoveryService.SetPort(8093)
-	p.Services.EmbeddedDiscoveryService.SetSnapshotsEnabled(true)
-	p.Services.EmbeddedDiscoveryService.SetSnapshotsInterval(10 * time.Minute)
-	p.Services.EmbeddedDiscoveryService.SetLogLevel(zapcore.WarnLevel.String())
-	p.Services.EmbeddedDiscoveryService.SetSqliteTimeout(30 * time.Second)
-
-	p.Services.WorkloadProxy.SetSubdomain("proxy-us")
-	p.Services.WorkloadProxy.SetEnabled(true)
-	p.Services.WorkloadProxy.SetStopLBsAfter(5 * time.Minute)
-
-	p.Auth.KeyPruner.SetInterval(10 * time.Minute)
-
-	p.Auth.InitialServiceAccount.SetEnabled(false)
-	p.Auth.InitialServiceAccount.SetRole(string(role.Admin))
-	p.Auth.InitialServiceAccount.SetKeyPath("_out/initial-service-account-key")
-	p.Auth.InitialServiceAccount.SetName("automation")
-	p.Auth.InitialServiceAccount.SetLifetime(time.Hour)
-
-	p.Registries.SetTalos(consts.TalosRegistry)
-	p.Registries.SetKubernetes(consts.KubernetesRegistry)
-	p.Registries.SetImageFactoryBaseURL(consts.ImageFactoryBaseURL)
-
-	p.Logs.Audit.SetEnabled(true)
-	p.Logs.Audit.SetSqliteTimeout(30 * time.Second)
-	p.Logs.Audit.SetRetentionPeriod(24 * 30 * time.Hour)
-	p.Logs.Audit.SetMaxSize(0)
-	p.Logs.Audit.SetCleanupProbability(0.01)
-
-	p.Logs.ResourceLogger.SetLogLevel(zapcore.InfoLevel.String())
 	p.Logs.ResourceLogger.Types = common.UserManagedResourceTypes
 
-	p.Logs.Machine.Storage.SetSqliteTimeout(30 * time.Second)
-	p.Logs.Machine.Storage.SetCleanupInterval(30 * time.Minute)
-	p.Logs.Machine.Storage.SetCleanupOlderThan(24 * 30 * time.Hour)
-	p.Logs.Machine.Storage.SetMaxLinesPerMachine(5000)
-	p.Logs.Machine.Storage.SetMaxSize(0) // 0 means unlimited
-	p.Logs.Machine.Storage.SetCleanupProbability(0.01)
+	return p, nil
+}
 
-	p.Storage.Sqlite.SetExperimentalBaseParams("_txlock=immediate&_pragma=busy_timeout(50000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)")
-	p.Storage.Sqlite.SetCachedPoolSize(4)
-	p.Storage.Sqlite.SetPoolSize(64)
-
-	p.Storage.Sqlite.SetMetrics(SQLiteMetricsParams{})
-	p.Storage.Sqlite.Metrics.SetRefreshInterval(120 * time.Second)
-	p.Storage.Sqlite.Metrics.SetRefreshTimeout(60 * time.Second)
-
-	p.Storage.Default.SetKind(StorageDefaultKindEtcd)
-	p.Storage.Default.Boltdb.SetPath("_out/omni.db")
-	p.Storage.Default.Etcd.Endpoints = []string{"http://localhost:2379"}
-	p.Storage.Default.Etcd.SetDialKeepAliveTime(30 * time.Second)
-	p.Storage.Default.Etcd.SetDialKeepAliveTimeout(5 * time.Second)
-	p.Storage.Default.Etcd.SetCaFile("etcd/ca.crt")
-	p.Storage.Default.Etcd.SetCertFile("etcd/client.crt")
-	p.Storage.Default.Etcd.SetKeyFile("etcd/client.key")
-	p.Storage.Default.Etcd.SetEmbedded(true)
-	p.Storage.Default.Etcd.SetRunElections(false)
-	p.Storage.Default.Etcd.SetEmbeddedDBPath("_out/etcd/")
-
-	p.Features.SetEnableConfigDataCompression(true)
-	p.Features.SetEnableClusterImport(true)
-
-	p.Notifications.NonImageFactoryDeprecation.SetEnabled(false)
-	p.Notifications.NonImageFactoryDeprecation.SetTitle("Non-ImageFactory Machines Detected")
-	p.Notifications.NonImageFactoryDeprecation.SetBody("%d machine(s) were provisioned without ImageFactory. Support for these machines will end after a future release. Please re-provision them " +
-		"using ImageFactory.")
-
-	p.EtcdBackup.SetTickInterval(time.Minute)
-	p.EtcdBackup.SetMinInterval(time.Hour)
-	p.EtcdBackup.SetMaxInterval(24 * time.Hour)
-	p.EtcdBackup.SetJitter(10 * time.Minute)
-
-	p.Debug.Server.SetEndpoint(":9988")
+// Default creates the new default configuration by loading static defaults from the schema and applying dynamic defaults on top.
+//
+// If it fails, it panics.
+func Default() *Params {
+	p, err := LoadDefault()
+	if err != nil {
+		panic(err)
+	}
 
 	return p
 }
 
 // Init the config using defaults, merge with overrides, populate fallbacks and validate.
 func Init(logger *zap.Logger, schema *jsonschema.Schema, params ...*Params) (*Params, error) {
-	config := Default()
+	config, err := LoadDefault()
+	if err != nil {
+		return nil, err
+	}
 
 	for _, override := range params {
 		if err := merge.Merge(config, override); err != nil {
@@ -245,6 +170,18 @@ func parseConfig(r io.Reader, opts ...ParseOption) (*Params, error) {
 func (p *Params) ValidateState(ctx context.Context, st state.State) error {
 	if p.Services.Siderolink.GetJoinTokensMode() == SiderolinkServiceJoinTokensModeStrict {
 		if err := validations.EnsureAllMachinesSupportStrictTokens(ctx, st); err != nil {
+			return err
+		}
+	}
+
+	if UnsupportedTalosVersionFailOnStart {
+		if err := validations.EnsureNoMachinesBelowMinTalosVersion(ctx, st); err != nil {
+			return err
+		}
+	}
+
+	if NonImageFactoryFailOnStart {
+		if err := validations.EnsureNoNonImageFactoryMachines(ctx, st); err != nil {
 			return err
 		}
 	}

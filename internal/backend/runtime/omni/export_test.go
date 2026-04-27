@@ -127,3 +127,7 @@ func AccountLimitsValidationOptions(st state.State, limits config.AuthLimits) []
 func KubernetesManifestsValidationOptions() []validated.StateOption {
 	return kubernetesManifestsValidationOptions()
 }
+
+func EulaValidationOptions(st state.State) []validated.StateOption {
+	return eulaValidationOptions(st)
+}

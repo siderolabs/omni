@@ -56,10 +56,17 @@ const talosVersions = computed(() =>
 )
 
 const joinTokens = computed(() =>
-  joinTokenList.value.map((t) => ({
-    label: t.spec.name || t.metadata.id || '',
-    value: t.metadata.id || '',
-  })),
+  joinTokenList.value
+    .toSorted((a, b) => {
+      if (a.spec.is_default) return -1
+      if (b.spec.is_default) return 1
+
+      return 0
+    })
+    .map((t) => ({
+      label: t.spec.name || t.metadata.id || '',
+      value: t.metadata.id || '',
+    })),
 )
 
 // Form defaults
@@ -78,9 +85,7 @@ watch(joinTokens, (v) => (formState.value.joinToken ??= v[0]?.value))
     />
 
     <p class="text-xs">
-      We strongly recommend using the latest stable version of Talos Linux ({{
-        DefaultTalosVersion
-      }}).
+      Latest recommended version of Talos Linux ({{ DefaultTalosVersion }}).
       <template v-if="features?.spec.talos_pre_release_versions_enabled">
         <br />
         Pre-release versions are suitable for testing purposes but are not advised for production

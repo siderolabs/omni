@@ -53,6 +53,18 @@ const test = base.extend<ClusterFixtures>({
 
       await use({ name: clusterName })
 
+      // Save support bundle if the test failed
+      if (testInfo.status !== 'passed') {
+        const bundlePath = testInfo.outputPath(`support-bundle-${clusterName}.zip`)
+
+        try {
+          await omnictl(['support', '--cluster', clusterName, '--output', bundlePath])
+          await testInfo.attach(`support-bundle-${clusterName}.zip`, { path: bundlePath })
+        } catch (e) {
+          console.error(`failed to save support bundle for cluster ${clusterName}:`, e)
+        }
+      }
+
       // Destroy
       await omnictl(['cluster', 'template', 'delete', '-f', templatePath, '--verbose'])
     },

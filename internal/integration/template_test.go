@@ -130,13 +130,13 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 
 			tmpl1 = renderTemplate(t, cluster1Tmpl, opts)
 
-			require.NoError(operations.ValidateTemplate(bytes.NewReader(tmpl1)))
+			require.NoError(operations.ValidateTemplate(bytes.NewReader(tmpl1), nil))
 
 			t.Log("creating template cluster")
 
 			require.NoError(operations.SyncTemplate(ctx, bytes.NewReader(tmpl1), os.Stderr, st, operations.SyncOptions{
 				Verbose: true,
-			}))
+			}, nil))
 
 			// assert that machines got allocated (label available is removed)
 			rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
@@ -180,7 +180,7 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 		// wait using the status command
 		require.NoError(operations.StatusTemplate(ctx, bytes.NewReader(tmpl1), os.Stderr, st, operations.StatusOptions{
 			Wait: true,
-		}))
+		}, nil))
 
 		// re-check with short timeout to make sure the cluster is ready
 		checkCtx, checkCancel := context.WithTimeout(ctx, 30*time.Second)
@@ -212,7 +212,7 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 
 		require.NoError(operations.SyncTemplate(ctx, bytes.NewReader(tmpl2), os.Stderr, st, operations.SyncOptions{
 			Verbose: true,
-		}))
+		}, nil))
 
 		t.Log("waiting for cluster operations to apply")
 
@@ -223,7 +223,7 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 		// wait using the status command
 		require.NoError(operations.StatusTemplate(ctx, bytes.NewReader(tmpl2), os.Stderr, st, operations.StatusOptions{
 			Wait: true,
-		}))
+		}, nil))
 
 		newAutomaticallyALlocatedMachines := rtestutils.ResourceIDs[*omni.MachineSetNode](ctx, t, st, state.WithLabelQuery(
 			resource.LabelEqual(omni.LabelMachineSet, clusterName+"-"+machineClassBasedMachineSetName),
@@ -255,13 +255,13 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 			assert.EqualValues(len(opts.CP)+len(opts.W)+2, spec.GetMachines().Total, "total machines is not the same as in the machine sets: %s", resourceDetails(status))
 		})
 
-		require.NoError(operations.ValidateTemplate(bytes.NewReader(tmpl1)))
+		require.NoError(operations.ValidateTemplate(bytes.NewReader(tmpl1), nil))
 
 		t.Log("deleting template cluster")
 
 		require.NoError(operations.DeleteTemplate(ctx, bytes.NewReader(tmpl1), os.Stderr, st, operations.SyncOptions{
 			Verbose: true,
-		}))
+		}, nil))
 
 		rtestutils.AssertNoResource[*omni.Cluster](ctx, t, st, clusterName)
 

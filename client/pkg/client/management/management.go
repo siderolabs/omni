@@ -275,12 +275,9 @@ func (client *Client) GetSupportBundle(ctx context.Context, cluster string, prog
 }
 
 // ReadAuditLog reads the audit log from the backend.
-func (client *Client) ReadAuditLog(ctx context.Context, start, end string) iter.Seq2[*management.ReadAuditLogResponse, error] {
+func (client *Client) ReadAuditLog(ctx context.Context, req *management.ReadAuditLogRequest) iter.Seq2[*management.ReadAuditLogResponse, error] {
 	return func(yield func(*management.ReadAuditLogResponse, error) bool) {
-		streamingResponse, err := client.conn.ReadAuditLog(ctx, &management.ReadAuditLogRequest{
-			StartTime: start,
-			EndTime:   end,
-		})
+		streamingResponse, err := client.conn.ReadAuditLog(ctx, req)
 		if err != nil {
 			yield(nil, err)
 
@@ -310,6 +307,25 @@ func (client *Client) ReadAuditLog(ctx context.Context, start, end string) iter.
 func (client *Client) ResetNodeUniqueToken(ctx context.Context, machineID string) error {
 	_, err := client.conn.ResetNodeUniqueToken(ctx, &management.ResetNodeUniqueTokenRequest{
 		Id: machineID,
+	})
+
+	return err
+}
+
+// MachinePowerOff powers off (shuts down) a machine. For machines managed by a static infra provider,
+// it also updates the infra machine config to prevent the provider from powering the machine back on.
+func (client *Client) MachinePowerOff(ctx context.Context, machineID string) error {
+	_, err := client.conn.MachinePowerOff(ctx, &management.MachinePowerOffRequest{
+		MachineId: machineID,
+	})
+
+	return err
+}
+
+// MachinePowerOn powers on a machine managed by a static infra provider by clearing the power off request.
+func (client *Client) MachinePowerOn(ctx context.Context, machineID string) error {
+	_, err := client.conn.MachinePowerOn(ctx, &management.MachinePowerOnRequest{
+		MachineId: machineID,
 	})
 
 	return err

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/registry"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stripe/stripe-go/v85"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -170,7 +172,15 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		return nil, err
 	}
 
-	virtualState := virtual.NewState(state.WrapCore(defaultPersistentState.State), params.Services.Api.URL())
+	stripeAPIKey, _ := os.LookupEnv("STRIPE_API_KEY")
+	stripeSubscriptionItemID, _ := os.LookupEnv("STRIPE_SUBSCRIPTION_ITEM_ID")
+
+	var stripeClient *stripe.Client
+	if stripeAPIKey != "" {
+		stripeClient = stripe.NewClient(stripeAPIKey)
+	}
+
+	virtualState := virtual.NewState(state.WrapCore(defaultPersistentState.State), stripeClient, params.Services.Api.URL(), stripeSubscriptionItemID, params.Support)
 
 	secondaryPersistentState, err := newSQLitePersistentState(ctx, secondaryStorageDB, logger)
 	if err != nil {
@@ -359,12 +369,12 @@ type AuditWrap struct {
 }
 
 // Reader reads the audit log file by file, oldest to newest.
-func (w *AuditWrap) Reader(ctx context.Context, start, end time.Time) (auditlog.Reader, error) {
+func (w *AuditWrap) Reader(ctx context.Context, filters auditlog.ReadFilters) (auditlog.Reader, error) {
 	if w.log == nil {
 		return nil, errors.New("audit log is disabled")
 	}
 
-	return w.log.Reader(ctx, start, end)
+	return w.log.Reader(ctx, filters)
 }
 
 // RunCleanup runs wrapped [audit.Log.RunCleanup] if the audit log is enabled. Otherwise, blocks until context is

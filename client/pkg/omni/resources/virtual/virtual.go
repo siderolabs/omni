@@ -17,4 +17,5 @@ func init() {
 	registry.MustRegisterResource(SBCConfigType, &SBCConfig{})
 	registry.MustRegisterResource(CloudPlatformConfigType, &CloudPlatformConfig{})
 	registry.MustRegisterResource(MetalPlatformConfigType, &MetalPlatformConfig{})
+	registry.MustRegisterResource(SupportType, &Support{})
 }

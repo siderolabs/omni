@@ -177,6 +177,14 @@ func init() {
 			Platform: talosconstants.PlatformMetal,
 		}
 		res.TypedSpec().Value.Connected = true
+		res.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+			Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{
+				{
+					LinuxName:  "sda",
+					SystemDisk: true,
+				},
+			},
+		}
 
 		return nil
 	})

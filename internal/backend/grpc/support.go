@@ -33,7 +33,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
-	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	slink "github.com/siderolabs/omni/internal/pkg/siderolink"
@@ -42,11 +41,12 @@ import (
 func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequest, serv grpc.ServerStreamingServer[management.GetSupportBundleResponse]) error {
 	ctx := serv.Context()
 
-	if _, err := auth.CheckGRPC(ctx, auth.WithRole(role.Operator)); err != nil {
+	authCtx, _, err := s.checkClusterAuthorization(ctx, req.Cluster, role.Operator)
+	if err != nil {
 		return err
 	}
 
-	resources, err := s.collectClusterResources(ctx, req.Cluster)
+	resources, err := s.collectClusterResources(authCtx, req.Cluster)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,11 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 		cols = collectors.WithSource(cols, "omni")
 	}
 
-	ctx = actor.MarkContextAsInternalActor(ctx)
+	if err = s.auditTalosAccessForNodes(authCtx, management.ManagementService_GetSupportBundle_FullMethodName, req.Cluster, machineIDs); err != nil {
+		return err
+	}
+
+	ctx = actor.MarkContextAsInternalActor(authCtx)
 
 	kubernetesClient, err := s.getKubernetesClient(ctx, req.Cluster)
 	if err != nil {

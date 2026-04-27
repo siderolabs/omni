@@ -40,7 +40,6 @@ const modals: Record<string, Component> = {
   ),
   serviceAccountRenew: defineAsyncComponent(() => import('@/views/Modals/ServiceAccountRenew.vue')),
   roleEdit: defineAsyncComponent(() => import('@/views/Modals/RoleEdit.vue')),
-  updateExtensions: defineAsyncComponent(() => import('@/views/Modals/UpdateExtensions.vue')),
   infraProviderSetup: defineAsyncComponent(() => import('@/views/Modals/InfraProviderSetup.vue')),
   infraProviderDelete: defineAsyncComponent(() => import('@/views/Modals/InfraProviderDelete.vue')),
 }

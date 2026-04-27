@@ -22,14 +22,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
-func newNonImageFactoryDeprecationConfig(enabled bool) omnictrl.NonImageFactoryDeprecationConfig {
-	return omnictrl.NonImageFactoryDeprecationConfig{
-		Enabled: enabled,
-		Title:   "Non-ImageFactory Machines Detected",
-		Body:    "%d machine(s) were provisioned without ImageFactory.",
-	}
-}
-
 func TestMachineStatusMetricsController_RegistrationLimit(t *testing.T) {
 	t.Parallel()
 
@@ -82,7 +74,7 @@ func TestMachineStatusMetricsController_RegistrationLimit(t *testing.T) {
 
 			testutils.WithRuntime(ctx, t, testutils.TestOptions{},
 				func(_ context.Context, tc testutils.TestContext) {
-					require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewMachineStatusMetricsController(tt.maxRegistered, omnictrl.NonImageFactoryDeprecationConfig{})))
+					require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewMachineStatusMetricsController(tt.maxRegistered)))
 				},
 				func(ctx context.Context, tc testutils.TestContext) {
 					for _, id := range tt.machineIDs {
@@ -113,43 +105,42 @@ func TestMachineStatusMetricsController_RegistrationLimit(t *testing.T) {
 	}
 }
 
-func TestMachineStatusMetricsController_NonImageFactoryDeprecation(t *testing.T) {
+func TestMachineStatusMetricsController_UnsupportedTalosVersion(t *testing.T) {
 	t.Parallel()
 
+	require.True(t, omnictrl.UnsupportedTalosVersionNotificationEnabled, "this test assumes UnsupportedTalosVersionNotificationEnabled is true")
+
 	for _, tt := range []struct {
-		name                string
-		invalidSchematicIDs []string
-		validSchematicIDs   []string
-		enabled             bool
-		expectNotification  bool
-		expectCount         int
+		machineVersions         map[string]string
+		name                    string
+		expectApproachingCount  int
+		expectEndOfSupportCount int
+		expectApproaching       bool
+		expectEndOfSupport      bool
 	}{
 		{
-			name:                "disabled, invalid machines present",
-			invalidSchematicIDs: []string{"m1"},
-			enabled:             false,
-			expectNotification:  false,
+			name:            "all machines above threshold",
+			machineVersions: map[string]string{"m1": "v1.10.0", "m2": "v1.11.0"},
 		},
 		{
-			name:               "enabled, no invalid machines",
-			validSchematicIDs:  []string{"m1", "m2"},
-			enabled:            true,
-			expectNotification: false,
+			name:                   "machines approaching end of support",
+			machineVersions:        map[string]string{"m1": "v1.8.0", "m2": "v1.9.0", "m3": "v1.11.0"},
+			expectApproaching:      true,
+			expectApproachingCount: 2,
 		},
 		{
-			name:                "enabled, some invalid machines",
-			invalidSchematicIDs: []string{"m1", "m2"},
-			validSchematicIDs:   []string{"m3"},
-			enabled:             true,
-			expectNotification:  true,
-			expectCount:         2,
+			name:                    "machines past end of support",
+			machineVersions:         map[string]string{"m1": "v1.7.0", "m2": "v1.6.0", "m3": "v1.11.0"},
+			expectEndOfSupport:      true,
+			expectEndOfSupportCount: 2,
 		},
 		{
-			name:                "enabled, all invalid machines",
-			invalidSchematicIDs: []string{"m1", "m2", "m3"},
-			enabled:             true,
-			expectNotification:  true,
-			expectCount:         3,
+			name:                    "mix of approaching and past end of support",
+			machineVersions:         map[string]string{"m1": "v1.8.0", "m2": "v1.7.0", "m3": "v1.11.0"},
+			expectApproaching:       true,
+			expectApproachingCount:  1,
+			expectEndOfSupport:      true,
+			expectEndOfSupportCount: 1,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -160,40 +151,35 @@ func TestMachineStatusMetricsController_NonImageFactoryDeprecation(t *testing.T)
 
 			testutils.WithRuntime(ctx, t, testutils.TestOptions{},
 				func(_ context.Context, tc testutils.TestContext) {
-					require.NoError(t, tc.Runtime.RegisterController(
-						omnictrl.NewMachineStatusMetricsController(0, newNonImageFactoryDeprecationConfig(tt.enabled)),
-					))
+					require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewMachineStatusMetricsController(0)))
 				},
 				func(ctx context.Context, tc testutils.TestContext) {
-					for _, id := range tt.invalidSchematicIDs {
+					for id, version := range tt.machineVersions {
 						ms := omni.NewMachineStatus(id)
-						ms.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-							Invalid: true,
-						}
+						ms.TypedSpec().Value.TalosVersion = version
 
 						require.NoError(t, tc.State.Create(ctx, ms))
 					}
 
-					for _, id := range tt.validSchematicIDs {
-						ms := omni.NewMachineStatus(id)
-						ms.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-							Id:     "valid-id",
-							FullId: "valid-full-id",
-						}
-
-						require.NoError(t, tc.State.Create(ctx, ms))
-					}
-
-					if tt.expectNotification {
-						rtestutils.AssertResource(ctx, t, tc.State, omni.NotificationNonImageFactoryMachinesID, func(res *omni.Notification, a *assert.Assertions) {
-							a.Equal("Non-ImageFactory Machines Detected", res.TypedSpec().Value.Title)
-							a.Contains(res.TypedSpec().Value.Body, fmt.Sprintf("%d machine(s)", tt.expectCount))
+					if tt.expectApproaching {
+						rtestutils.AssertResource(ctx, t, tc.State, omni.NotificationApproachingTalosVersionEndOfSupportID, func(res *omni.Notification, a *assert.Assertions) {
+							a.Contains(res.TypedSpec().Value.Body, fmt.Sprintf("%d machine(s)", tt.expectApproachingCount))
 							a.Equal(specs.NotificationSpec_WARNING, res.TypedSpec().Value.Type)
 						})
 					} else {
 						// Notification should not exist. Sleep briefly since there is no state change to poll on.
 						time.Sleep(500 * time.Millisecond)
-						rtestutils.AssertNoResource[*omni.Notification](ctx, t, tc.State, omni.NotificationNonImageFactoryMachinesID)
+						rtestutils.AssertNoResource[*omni.Notification](ctx, t, tc.State, omni.NotificationApproachingTalosVersionEndOfSupportID)
+					}
+
+					if tt.expectEndOfSupport {
+						rtestutils.AssertResource(ctx, t, tc.State, omni.NotificationTalosVersionEndOfSupportID, func(res *omni.Notification, a *assert.Assertions) {
+							a.Contains(res.TypedSpec().Value.Body, fmt.Sprintf("%d machine(s)", tt.expectEndOfSupportCount))
+							a.Equal(specs.NotificationSpec_WARNING, res.TypedSpec().Value.Type)
+						})
+					} else {
+						time.Sleep(500 * time.Millisecond)
+						rtestutils.AssertNoResource[*omni.Notification](ctx, t, tc.State, omni.NotificationTalosVersionEndOfSupportID)
 					}
 				},
 			)
@@ -201,7 +187,7 @@ func TestMachineStatusMetricsController_NonImageFactoryDeprecation(t *testing.T)
 	}
 }
 
-func TestMachineStatusMetricsController_NonImageFactoryDeprecationTeardown(t *testing.T) {
+func TestMachineStatusMetricsController_UnsupportedTalosVersionTeardown(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -209,35 +195,27 @@ func TestMachineStatusMetricsController_NonImageFactoryDeprecationTeardown(t *te
 
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
-			require.NoError(t, tc.Runtime.RegisterController(
-				omnictrl.NewMachineStatusMetricsController(0, newNonImageFactoryDeprecationConfig(true)),
-			))
+			require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewMachineStatusMetricsController(0)))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
-			// Create a machine with invalid schematic.
 			ms := omni.NewMachineStatus("m1")
-			ms.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{Invalid: true}
+			ms.TypedSpec().Value.TalosVersion = "v1.7.0"
 
 			require.NoError(t, tc.State.Create(ctx, ms))
 
-			// Wait for the notification to appear.
-			rtestutils.AssertResource(ctx, t, tc.State, omni.NotificationNonImageFactoryMachinesID, func(res *omni.Notification, a *assert.Assertions) {
+			rtestutils.AssertResource(ctx, t, tc.State, omni.NotificationTalosVersionEndOfSupportID, func(res *omni.Notification, a *assert.Assertions) {
 				a.Equal(specs.NotificationSpec_WARNING, res.TypedSpec().Value.Type)
 			})
 
-			// Fix the machine schematic (no longer invalid).
 			_, err := safe.StateUpdateWithConflicts(ctx, tc.State, ms.Metadata(), func(res *omni.MachineStatus) error {
-				res.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-					Id:     "valid-id",
-					FullId: "valid-full-id",
-				}
+				res.TypedSpec().Value.TalosVersion = "v1.11.0"
 
 				return nil
 			})
 			require.NoError(t, err)
 
-			// Notification should be torn down.
-			rtestutils.AssertNoResource[*omni.Notification](ctx, t, tc.State, omni.NotificationNonImageFactoryMachinesID)
+			rtestutils.AssertNoResource[*omni.Notification](ctx, t, tc.State, omni.NotificationTalosVersionEndOfSupportID)
+			rtestutils.AssertNoResource[*omni.Notification](ctx, t, tc.State, omni.NotificationApproachingTalosVersionEndOfSupportID)
 		},
 	)
 }

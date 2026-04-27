@@ -9,9 +9,9 @@ import pluralize from 'pluralize'
 import { ref } from 'vue'
 
 import { InfraMachineConfigSpecAcceptanceStatus } from '@/api/omni/specs/omni.pb'
+import ConfirmModal from '@/components/Modals/ConfirmModal.vue'
 import { updateInfraMachineConfig } from '@/methods/machine'
 import { showError, showSuccess } from '@/notification'
-import ConfirmModal from '@/views/Modals/ConfirmModal.vue'
 
 const { machines } = defineProps<{ machines: string[] }>()
 const open = defineModel<boolean>('open', { default: false })

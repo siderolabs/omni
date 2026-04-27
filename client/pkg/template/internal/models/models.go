@@ -7,6 +7,8 @@ package models
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -24,6 +26,8 @@ type Meta struct {
 
 // TranslateContext is a context for translation.
 type TranslateContext struct {
+	// Root restricts file access to a single directory tree. When nil, no restriction is applied.
+	Root                      *os.Root
 	LockedMachines            map[MachineID]struct{}
 	MachineDescriptors        map[MachineID]Descriptors
 	MachineSetLevelKernelArgs map[MachineID]KernelArgs
@@ -97,9 +101,58 @@ func (d *Descriptors) Apply(res resource.Resource) {
 	}
 }
 
+// ValidateOptions contains options for model validation.
+type ValidateOptions struct {
+	// Root restricts file access to a single directory tree. When nil, no restriction is applied.
+	Root *os.Root
+}
+
+// resolveForRoot translates a CWD-relative path into a path relative to the root directory.
+func resolveForRoot(root *os.Root, path string) (string, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+
+	rootAbs, err := filepath.Abs(root.Name())
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Rel(rootAbs, absPath)
+}
+
+// ReadFile reads a file, using root to restrict access when non-nil.
+func ReadFile(root *os.Root, path string) ([]byte, error) {
+	if root == nil {
+		return os.ReadFile(path)
+	}
+
+	rel, err := resolveForRoot(root, path)
+	if err != nil {
+		return nil, err
+	}
+
+	return root.ReadFile(rel)
+}
+
+// StatFile stats a file, using root to restrict access when non-nil.
+func StatFile(root *os.Root, path string) (os.FileInfo, error) {
+	if root == nil {
+		return os.Stat(path)
+	}
+
+	rel, err := resolveForRoot(root, path)
+	if err != nil {
+		return nil, err
+	}
+
+	return root.Stat(rel)
+}
+
 // Model is a base interface for cluster templates.
 type Model interface {
-	Validate() error
+	Validate(ValidateOptions) error
 	Translate(TranslateContext) ([]resource.Resource, error)
 }
 

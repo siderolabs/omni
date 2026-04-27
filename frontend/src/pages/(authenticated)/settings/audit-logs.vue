@@ -32,6 +32,8 @@ export interface AuditLogMsg {
 <script setup lang="ts">
 import { getLocalTimeZone, today } from '@internationalized/date'
 import { useVirtualizer } from '@tanstack/vue-virtual'
+import { refDebounced } from '@vueuse/core'
+import { useRouteQuery } from '@vueuse/router'
 import { differenceInDays } from 'date-fns'
 import { type DateRange } from 'reka-ui'
 import {
@@ -44,12 +46,15 @@ import {
   watch,
 } from 'vue'
 
+import { AuditLogOrderByDir, AuditLogOrderByField } from '@/api/omni/management/management.pb'
 import AuditLogItem from '@/components/AuditLogs/AuditLogItem.vue'
 import TButton from '@/components/Button/TButton.vue'
 import DateRangePicker from '@/components/DateRangePicker/DateRangePicker.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TAlert from '@/components/TAlert.vue'
+import TInput from '@/components/TInput/TInput.vue'
 import { useReadAuditLog } from '@/views/Settings/useReadAuditLog'
 
 definePage({ name: 'AuditLogs' })
@@ -59,10 +64,44 @@ const dateRange = shallowRef<DateRange>({
   end: today(getLocalTimeZone()).add({ days: 1 }),
 })
 
-const { data, loading } = useReadAuditLog(() => ({
+const searchInput = useRouteQuery('search', '')
+const search = refDebounced(searchInput, 500)
+
+const orderByField = useRouteQuery(
+  'orderByField',
+  AuditLogOrderByField.AUDIT_LOG_ORDER_BY_FIELD_DATE,
+  { transform: (v) => Number(v) as AuditLogOrderByField },
+)
+
+const orderByDir = useRouteQuery('orderByDir', AuditLogOrderByDir.AUDIT_LOG_ORDER_BY_DIR_ASC, {
+  transform: (v) => Number(v) as AuditLogOrderByDir,
+})
+
+const tableHeaders = [
+  { label: 'Timestamp', value: AuditLogOrderByField.AUDIT_LOG_ORDER_BY_FIELD_DATE },
+  { label: 'Type', value: AuditLogOrderByField.AUDIT_LOG_ORDER_BY_FIELD_EVENT_TYPE },
+  { label: 'Resource', value: AuditLogOrderByField.AUDIT_LOG_ORDER_BY_FIELD_RESOURCE_TYPE },
+  { label: 'Actor', value: AuditLogOrderByField.AUDIT_LOG_ORDER_BY_FIELD_ACTOR },
+]
+
+function toggleSort(value: AuditLogOrderByField) {
+  if (orderByField.value !== value) {
+    orderByField.value = value
+    orderByDir.value = AuditLogOrderByDir.AUDIT_LOG_ORDER_BY_DIR_ASC
+  } else if (orderByDir.value === AuditLogOrderByDir.AUDIT_LOG_ORDER_BY_DIR_ASC) {
+    orderByDir.value = AuditLogOrderByDir.AUDIT_LOG_ORDER_BY_DIR_DESC
+  } else {
+    orderByDir.value = AuditLogOrderByDir.AUDIT_LOG_ORDER_BY_DIR_ASC
+  }
+}
+
+const { data, loading, error } = useReadAuditLog(() => ({
   options: {
     start_time: dateRange.value.start?.toString(),
     end_time: dateRange.value.end?.toString(),
+    search: search.value,
+    order_by_field: orderByField.value,
+    order_by_dir: orderByDir.value,
   },
 }))
 
@@ -118,8 +157,12 @@ function measureElement(el: Element | ComponentPublicInstance | null) {
       </TButton>
     </div>
 
+    <TAlert v-if="error" type="error" title="Error" class="mb-4">{{ error.message }}</TAlert>
+
+    <TInput v-model="searchInput" class="mb-2" title="Search" />
+
     <div class="mb-4 flex justify-end gap-2">
-      <DateRangePicker v-model="dateRange" title="Date range" hidden-title />
+      <DateRangePicker v-model="dateRange" title="Date range" inline-title />
     </div>
 
     <TAlert
@@ -145,10 +188,26 @@ function measureElement(el: Element | ComponentPublicInstance | null) {
         class="grid shrink-0 grid-cols-[36px_160px_180px_220px_1fr] gap-x-0.5 bg-naturals-n2 px-2 text-left"
       >
         <div role="columnheader" aria-hidden="true" class="py-2 uppercase"></div>
-        <div role="columnheader" class="py-2 uppercase">Timestamp</div>
-        <div role="columnheader" class="py-2 uppercase">Type</div>
-        <div role="columnheader" class="py-2 uppercase">Resource</div>
-        <div role="columnheader" class="py-2 uppercase">Actor</div>
+        <div
+          v-for="{ label, value } in tableHeaders"
+          :key="value"
+          role="columnheader"
+          class="cursor-pointer py-2 uppercase transition-colors select-none hover:text-naturals-n11 active:text-naturals-n9"
+          @click="toggleSort(value)"
+        >
+          <span class="inline-flex items-center">
+            {{ label }}
+
+            <TIcon
+              class="size-5 text-naturals-n10 transition-transform"
+              icon="dropdown"
+              :class="{
+                invisible: orderByField !== value,
+                'rotate-180': orderByDir === AuditLogOrderByDir.AUDIT_LOG_ORDER_BY_DIR_ASC,
+              }"
+            />
+          </span>
+        </div>
       </div>
 
       <div ref="scrollContainer" role="rowgroup" class="min-h-0 flex-1 overflow-y-auto">
@@ -167,6 +226,7 @@ function measureElement(el: Element | ComponentPublicInstance | null) {
               <AuditLogItem
                 :data="data[vRow.index]"
                 :model-value="expandedRows.has(vRow.index)"
+                :search
                 @update:model-value="toggleRow(vRow.index)"
               />
             </div>

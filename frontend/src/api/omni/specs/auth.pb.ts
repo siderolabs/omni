@@ -159,6 +159,10 @@ export type IdentityLastActiveSpec = {
   last_active?: GoogleProtobufTimestamp.Timestamp
 }
 
+export type PublicKeyLastActiveSpec = {
+  last_used?: GoogleProtobufTimestamp.Timestamp
+}
+
 export type IdentityStatusSpec = {
   user_id?: string
   role?: string
@@ -169,9 +173,17 @@ export type ServiceAccountStatusSpecPgpPublicKey = {
   id?: string
   armored?: string
   expiration?: GoogleProtobufTimestamp.Timestamp
+  created?: GoogleProtobufTimestamp.Timestamp
+  last_used?: GoogleProtobufTimestamp.Timestamp
 }
 
 export type ServiceAccountStatusSpec = {
   role?: string
   public_keys?: ServiceAccountStatusSpecPgpPublicKey[]
+  expiration?: GoogleProtobufTimestamp.Timestamp
+}
+
+export type EulaAcceptanceSpec = {
+  accepted_by_name?: string
+  accepted_by_email?: string
 }

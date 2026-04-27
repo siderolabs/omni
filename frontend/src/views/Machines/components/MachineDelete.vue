@@ -8,9 +8,9 @@ included in the LICENSE file.
 import pluralize from 'pluralize'
 import { ref } from 'vue'
 
+import ConfirmModal from '@/components/Modals/ConfirmModal.vue'
 import { removeMachine } from '@/methods/machine'
 import { showError, showSuccess } from '@/notification'
-import ConfirmModal from '@/views/Modals/ConfirmModal.vue'
 
 const { machines } = defineProps<{ machines: string[] }>()
 const open = defineModel<boolean>('open', { default: false })

@@ -1356,6 +1356,8 @@ message MachineStatusMetricsSpec {
   uint32 registered_machines_limit = 9;
   bool registration_limit_reached = 10;
   uint32 invalid_schematic_machines_count = 11;
+  uint32 approaching_talos_version_end_of_support_machines_count = 12;
+  uint32 talos_version_end_of_support_machines_count = 13;
 }
 
 // ClusterMetricsSpec contains metrics about the clusters in the Omni instance.
@@ -1465,6 +1467,12 @@ message InfraMachineConfigSpec {
   string extra_kernel_args = 3;
   string requested_reboot_id = 4;
   bool cordoned = 5;
+
+  // PowerOffRequestId is set to a new UUID each time the user requests the machine to be powered off (shutdown).
+  //
+  // This is used by Omni to signal the infra provider to not power the machine back on after a shutdown,
+  // even when the machine is allocated to a cluster.
+  string power_off_request_id = 6;
 }
 
 message InfraMachineBMCConfigSpec {

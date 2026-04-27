@@ -45,6 +45,8 @@ const (
 	ManagementService_ListUsers_FullMethodName                  = "/management.ManagementService/ListUsers"
 	ManagementService_UpdateUser_FullMethodName                 = "/management.ManagementService/UpdateUser"
 	ManagementService_DestroyUser_FullMethodName                = "/management.ManagementService/DestroyUser"
+	ManagementService_MachinePowerOff_FullMethodName            = "/management.ManagementService/MachinePowerOff"
+	ManagementService_MachinePowerOn_FullMethodName             = "/management.ManagementService/MachinePowerOn"
 )
 
 // ManagementServiceClient is the client API for ManagementService service.
@@ -74,6 +76,8 @@ type ManagementServiceClient interface {
 	ListUsers(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListUsersResponse, error)
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DestroyUser(ctx context.Context, in *DestroyUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	MachinePowerOff(ctx context.Context, in *MachinePowerOffRequest, opts ...grpc.CallOption) (*MachinePowerOffResponse, error)
+	MachinePowerOn(ctx context.Context, in *MachinePowerOnRequest, opts ...grpc.CallOption) (*MachinePowerOnResponse, error)
 }
 
 type managementServiceClient struct {
@@ -350,6 +354,26 @@ func (c *managementServiceClient) DestroyUser(ctx context.Context, in *DestroyUs
 	return out, nil
 }
 
+func (c *managementServiceClient) MachinePowerOff(ctx context.Context, in *MachinePowerOffRequest, opts ...grpc.CallOption) (*MachinePowerOffResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MachinePowerOffResponse)
+	err := c.cc.Invoke(ctx, ManagementService_MachinePowerOff_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *managementServiceClient) MachinePowerOn(ctx context.Context, in *MachinePowerOnRequest, opts ...grpc.CallOption) (*MachinePowerOnResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MachinePowerOnResponse)
+	err := c.cc.Invoke(ctx, ManagementService_MachinePowerOn_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ManagementServiceServer is the server API for ManagementService service.
 // All implementations must embed UnimplementedManagementServiceServer
 // for forward compatibility.
@@ -377,6 +401,8 @@ type ManagementServiceServer interface {
 	ListUsers(context.Context, *emptypb.Empty) (*ListUsersResponse, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*emptypb.Empty, error)
 	DestroyUser(context.Context, *DestroyUserRequest) (*emptypb.Empty, error)
+	MachinePowerOff(context.Context, *MachinePowerOffRequest) (*MachinePowerOffResponse, error)
+	MachinePowerOn(context.Context, *MachinePowerOnRequest) (*MachinePowerOnResponse, error)
 	mustEmbedUnimplementedManagementServiceServer()
 }
 
@@ -455,6 +481,12 @@ func (UnimplementedManagementServiceServer) UpdateUser(context.Context, *UpdateU
 }
 func (UnimplementedManagementServiceServer) DestroyUser(context.Context, *DestroyUserRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DestroyUser not implemented")
+}
+func (UnimplementedManagementServiceServer) MachinePowerOff(context.Context, *MachinePowerOffRequest) (*MachinePowerOffResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MachinePowerOff not implemented")
+}
+func (UnimplementedManagementServiceServer) MachinePowerOn(context.Context, *MachinePowerOnRequest) (*MachinePowerOnResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MachinePowerOn not implemented")
 }
 func (UnimplementedManagementServiceServer) mustEmbedUnimplementedManagementServiceServer() {}
 func (UnimplementedManagementServiceServer) testEmbeddedByValue()                           {}
@@ -863,6 +895,42 @@ func _ManagementService_DestroyUser_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ManagementService_MachinePowerOff_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MachinePowerOffRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagementServiceServer).MachinePowerOff(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ManagementService_MachinePowerOff_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagementServiceServer).MachinePowerOff(ctx, req.(*MachinePowerOffRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ManagementService_MachinePowerOn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MachinePowerOnRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagementServiceServer).MachinePowerOn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ManagementService_MachinePowerOn_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagementServiceServer).MachinePowerOn(ctx, req.(*MachinePowerOnRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ManagementService_ServiceDesc is the grpc.ServiceDesc for ManagementService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -945,6 +1013,14 @@ var ManagementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DestroyUser",
 			Handler:    _ManagementService_DestroyUser_Handler,
+		},
+		{
+			MethodName: "MachinePowerOff",
+			Handler:    _ManagementService_MachinePowerOff_Handler,
+		},
+		{
+			MethodName: "MachinePowerOn",
+			Handler:    _ManagementService_MachinePowerOn_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

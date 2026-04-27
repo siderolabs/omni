@@ -353,8 +353,15 @@ type InfraMachineSpec struct {
 	InstallEventId uint64 `protobuf:"varint,9,opt,name=install_event_id,json=installEventId,proto3" json:"install_event_id,omitempty"`
 	// NodeUniqueToken is copied from the corresponding siderolink.Link resource.
 	NodeUniqueToken string `protobuf:"bytes,10,opt,name=node_unique_token,json=nodeUniqueToken,proto3" json:"node_unique_token,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// PowerOffRequestId is generally copied from InfraMachineConfig. Omni may clear this field on the
+	// InfraMachine spec when the machine is unallocated or being deallocated, even if the config field
+	// remains set. When non-empty, the infra provider should not power on the machine due to cluster
+	// allocation alone. The provider determines if the request is still valid by comparing the wipe_id at
+	// the time of acknowledgment with the current one: if the machine went through a deallocation cycle
+	// (wipe_id changed), the request is considered stale.
+	PowerOffRequestId string `protobuf:"bytes,11,opt,name=power_off_request_id,json=powerOffRequestId,proto3" json:"power_off_request_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *InfraMachineSpec) Reset() {
@@ -457,6 +464,13 @@ func (x *InfraMachineSpec) GetNodeUniqueToken() string {
 	return ""
 }
 
+func (x *InfraMachineSpec) GetPowerOffRequestId() string {
+	if x != nil {
+		return x.PowerOffRequestId
+	}
+	return ""
+}
+
 type InfraMachineStateSpec struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Installed     bool                   `protobuf:"varint,1,opt,name=installed,proto3" json:"installed,omitempty"`
@@ -512,8 +526,13 @@ type InfraMachineStatusSpec struct {
 	// WipedNodeUniqueToken is updated when the bare metal infra provider wipes the machine.
 	// It reads the current token from the infra.Machine resource and updates it here.
 	WipedNodeUniqueToken string `protobuf:"bytes,6,opt,name=wiped_node_unique_token,json=wipedNodeUniqueToken,proto3" json:"wiped_node_unique_token,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// LastPowerOffId is the power-off request ID that the infra provider is currently honoring.
+	// It is empty if the provider is not honoring any power-off request, either because there is no
+	// active request or because the provider considers the current request stale (e.g., due to the
+	// machine going through a deallocation cycle since the request was acknowledged).
+	LastPowerOffId string `protobuf:"bytes,7,opt,name=last_power_off_id,json=lastPowerOffId,proto3" json:"last_power_off_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *InfraMachineStatusSpec) Reset() {
@@ -584,6 +603,13 @@ func (x *InfraMachineStatusSpec) GetInstalled() bool {
 func (x *InfraMachineStatusSpec) GetWipedNodeUniqueToken() string {
 	if x != nil {
 		return x.WipedNodeUniqueToken
+	}
+	return ""
+}
+
+func (x *InfraMachineStatusSpec) GetLastPowerOffId() string {
+	if x != nil {
+		return x.LastPowerOffId
 	}
 	return ""
 }
@@ -852,7 +878,7 @@ const file_omni_specs_infra_proto_rawDesc = "" +
 	"\fPROVISIONING\x10\x01\x12\x0f\n" +
 	"\vPROVISIONED\x10\x02\x12\n" +
 	"\n" +
-	"\x06FAILED\x10\x03\"\xc7\x04\n" +
+	"\x06FAILED\x10\x03\"\xf8\x04\n" +
 	"\x10InfraMachineSpec\x12]\n" +
 	"\x15preferred_power_state\x18\x01 \x01(\x0e2).specs.InfraMachineSpec.MachinePowerStateR\x13preferredPowerState\x12[\n" +
 	"\x11acceptance_status\x18\x02 \x01(\x0e2..specs.InfraMachineConfigSpec.AcceptanceStatusR\x10acceptanceStatus\x122\n" +
@@ -866,12 +892,13 @@ const file_omni_specs_infra_proto_rawDesc = "" +
 	"\bcordoned\x18\b \x01(\bR\bcordoned\x12(\n" +
 	"\x10install_event_id\x18\t \x01(\x04R\x0einstallEventId\x12*\n" +
 	"\x11node_unique_token\x18\n" +
-	" \x01(\tR\x0fnodeUniqueToken\"<\n" +
+	" \x01(\tR\x0fnodeUniqueToken\x12/\n" +
+	"\x14power_off_request_id\x18\v \x01(\tR\x11powerOffRequestId\"<\n" +
 	"\x11MachinePowerState\x12\x13\n" +
 	"\x0fPOWER_STATE_OFF\x10\x00\x12\x12\n" +
 	"\x0ePOWER_STATE_ON\x10\x01\"5\n" +
 	"\x15InfraMachineStateSpec\x12\x1c\n" +
-	"\tinstalled\x18\x01 \x01(\bR\tinstalled\"\xae\x03\n" +
+	"\tinstalled\x18\x01 \x01(\bR\tinstalled\"\xd9\x03\n" +
 	"\x16InfraMachineStatusSpec\x12P\n" +
 	"\vpower_state\x18\x01 \x01(\x0e2/.specs.InfraMachineStatusSpec.MachinePowerStateR\n" +
 	"powerState\x12 \n" +
@@ -880,7 +907,8 @@ const file_omni_specs_infra_proto_rawDesc = "" +
 	"\x0elast_reboot_id\x18\x03 \x01(\tR\flastRebootId\x12N\n" +
 	"\x15last_reboot_timestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x13lastRebootTimestamp\x12\x1c\n" +
 	"\tinstalled\x18\x05 \x01(\bR\tinstalled\x125\n" +
-	"\x17wiped_node_unique_token\x18\x06 \x01(\tR\x14wipedNodeUniqueToken\"U\n" +
+	"\x17wiped_node_unique_token\x18\x06 \x01(\tR\x14wipedNodeUniqueToken\x12)\n" +
+	"\x11last_power_off_id\x18\a \x01(\tR\x0elastPowerOffId\"U\n" +
 	"\x11MachinePowerState\x12\x17\n" +
 	"\x13POWER_STATE_UNKNOWN\x10\x00\x12\x13\n" +
 	"\x0fPOWER_STATE_OFF\x10\x01\x12\x12\n" +

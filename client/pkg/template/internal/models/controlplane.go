@@ -22,7 +22,7 @@ type ControlPlane struct {
 }
 
 // Validate the model.
-func (controlplane *ControlPlane) Validate() error {
+func (controlplane *ControlPlane) Validate(opts ValidateOptions) error {
 	var multiErr error
 
 	if controlplane.Name != "" {
@@ -47,7 +47,7 @@ func (controlplane *ControlPlane) Validate() error {
 		multiErr = multierror.Append(multiErr, fmt.Errorf("deleteStrategy is not allowed in the controlplane"))
 	}
 
-	multiErr = joinErrors(multiErr, controlplane.MachineSet.Validate(), controlplane.Machines.Validate(), controlplane.Patches.Validate())
+	multiErr = joinErrors(multiErr, controlplane.MachineSet.Validate(), controlplane.Machines.Validate(), controlplane.Patches.Validate(opts))
 	if multiErr != nil {
 		return fmt.Errorf("controlplane is invalid: %w", multiErr)
 	}

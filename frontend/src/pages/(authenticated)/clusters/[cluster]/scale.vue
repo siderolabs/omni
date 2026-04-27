@@ -12,7 +12,11 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
-import type { ClusterSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  ClusterSpec,
+  MachineConfigGenOptionsSpec,
+  MachineStatusSpec,
+} from '@/api/omni/specs/omni.pb'
 import {
   DefaultNamespace,
   LabelNoManualAllocation,
@@ -30,8 +34,8 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
-import Watch from '@/components/Watch/Watch.vue'
 import { ClusterCommandError, clusterSync } from '@/methods/cluster'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import { populateExisting, state } from '@/states/cluster-management'
 import ClusterMenu from '@/views/Clusters/ClusterMenu.vue'
@@ -120,15 +124,35 @@ const detectVersionMismatch = (machine: Resource<MachineStatusSpec>) => {
   return 'The machine has newer Talos version installed: downgrade is not allowed. Upgrade the machine or change Talos cluster version'
 }
 
-const resource = {
-  namespace: DefaultNamespace,
-  type: MachineStatusType,
-}
-
 const existingResources = ref<Resource[]>([])
 onMounted(async () => {
   existingResources.value = await populateExisting(clusterName as string)
 })
+
+const { data, loading, err } = useResourceWatch<MachineStatusSpec & MachineConfigGenOptionsSpec>([
+  {
+    resource: {
+      namespace: DefaultNamespace,
+      type: MachineStatusType,
+    },
+    selectors: [
+      `${MachineStatusLabelAvailable}`,
+      `${MachineStatusLabelReadyToUse}`,
+      `!${MachineStatusLabelInvalidState}`,
+      `${MachineStatusLabelReportingEvents}`,
+      `!${LabelNoManualAllocation}`,
+    ],
+    runtime: Runtime.Omni,
+    sortByField: 'created',
+  },
+  {
+    resource: {
+      type: MachineConfigGenOptionsType,
+      namespace: DefaultNamespace,
+    },
+    runtime: Runtime.Omni,
+  },
+])
 </script>
 
 <template>
@@ -141,46 +165,23 @@ onMounted(async () => {
       <div class="text-naturals-n13">Machine Sets</div>
       <MachineSets />
       <div class="text-naturals-n13">Available Machines</div>
-      <Watch
-        :opts="[
-          {
-            resource: resource,
-            selectors: [
-              `${MachineStatusLabelAvailable}`,
-              `${MachineStatusLabelReadyToUse}`,
-              `!${MachineStatusLabelInvalidState}`,
-              `${MachineStatusLabelReportingEvents}`,
-              `!${LabelNoManualAllocation}`,
-            ],
-            runtime: Runtime.Omni,
-            sortByField: 'created',
-          },
-          {
-            resource: {
-              type: MachineConfigGenOptionsType,
-              namespace: DefaultNamespace,
-            },
-            runtime: Runtime.Omni,
-          },
-        ]"
-        errors-alert
-        no-records-alert
-        spinner
-      >
-        <template #norecords>
-          <TAlert v-if="!$slots.norecords" type="info" title="No Machines Available">
-            Machine is available when it is connected, not allocated and is reporting Talos events.
-          </TAlert>
-        </template>
-        <template #default="{ data }">
-          <ClusterMachineItem
-            v-for="item in data"
-            :key="itemID(item)"
-            :item="item"
-            :version-mismatch="detectVersionMismatch(item)"
-          />
-        </template>
-      </Watch>
+
+      <div v-if="loading" class="flex size-full items-center justify-center">
+        <TSpinner class="size-6" />
+      </div>
+      <TAlert v-else-if="err" title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
+      <TAlert v-else-if="!data.length" type="info" title="No Machines Available">
+        Machine is available when it is connected, not allocated and is reporting Talos events.
+      </TAlert>
+
+      <template v-else>
+        <ClusterMachineItem
+          v-for="item in data"
+          :key="itemID(item)"
+          :item="item"
+          :version-mismatch="detectVersionMismatch(item)"
+        />
+      </template>
     </div>
 
     <div v-else class="flex flex-1 items-center justify-center">

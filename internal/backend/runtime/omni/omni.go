@@ -26,6 +26,7 @@ import (
 	"github.com/siderolabs/gen/optional"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/role"
+	"github.com/stripe/stripe-go/v85"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/common"
@@ -141,7 +142,9 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		return nil, err
 	}
 
-	clusterWorkloadProxyController, err := cluster.NewClusterWorkloadProxyController()
+	clusterWorkloadProxyController, err := cluster.NewClusterWorkloadProxyController(
+		cfg.Services.WorkloadProxy.GetEnabled(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -171,11 +174,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			LBConfig: cfg.Services.LoadBalancer,
 		},
 		omnictrl.NewMachineCleanupController(),
-		omnictrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines(), omnictrl.NonImageFactoryDeprecationConfig{
-			Enabled: cfg.Notifications.NonImageFactoryDeprecation.GetEnabled(),
-			Title:   cfg.Notifications.NonImageFactoryDeprecation.GetTitle(),
-			Body:    cfg.Notifications.NonImageFactoryDeprecation.GetBody(),
-		}),
+		omnictrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines()),
 		omnictrl.NewVersionsController(cfg.Registries.GetImageFactoryBaseURL(), cfg.Features.GetEnableTalosPreReleaseVersions(), cfg.Registries.GetKubernetes()),
 		omnictrl.NewClusterLoadBalancerController(
 			cfg.Services.LoadBalancer.GetMinPort(),
@@ -190,6 +189,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewInfraProviderCleanupController(),
 		omnictrl.NewLinkCleanupController(),
 		authctrl.NewIdentityCleanupController(),
+		authctrl.NewPublicKeyCleanupController(),
 	}
 
 	imageFactoryHost := imageFactoryClient.Host()
@@ -304,8 +304,10 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			return nil, fmt.Errorf("environment variable STRIPE_SUBSCRIPTION_ITEM_ID is not set")
 		}
 
+		stripeClient := stripe.NewClient(stripeAPIKey)
+
 		controllers = append(controllers,
-			omnictrl.NewStripeMetricsReporterController(stripeAPIKey, subscriptionItemID, cfg.Logs.Stripe.GetMinCommit()),
+			omnictrl.NewStripeMetricsReporterController(stripeClient, subscriptionItemID, cfg.Logs.Stripe.GetMinCommit()),
 		)
 	}
 
@@ -379,6 +381,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		installationMediaConfigValidationOptions(),
 		rotateSecretsValidationOptions(defaultState),
 		kubernetesManifestsValidationOptions(),
+		eulaValidationOptions(defaultState),
 	)
 
 	return &Runtime{
@@ -482,6 +485,7 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*system.ResourceLabels[*omni.MachineStatus]](),
 		safe.WithResourceCache[*infra.ConfigPatchRequest](),
 		safe.WithResourceCache[*auth.IdentityLastActive](),
+		safe.WithResourceCache[*auth.PublicKeyLastActive](),
 		safe.WithResourceCache[*auth.ServiceAccountStatus](),
 		safe.WithResourceCache[*siderolinkres.MachineJoinConfig](),
 		safe.WithResourceCache[*siderolinkres.ProviderJoinConfig](),

@@ -4,9 +4,9 @@
 // included in the LICENSE file.
 
 import { clusterName } from '@/context'
+import type { OmniRequestOptions } from '@/methods/interceptor'
 
 import { Runtime } from './common/omni.pb'
-import type { RequestOptions } from './fetch.pb'
 import type { WatchContext } from './watch'
 
 export type GRPCMetadata = Record<string, string | string[]>
@@ -18,14 +18,14 @@ const runtimeMap: Record<Runtime, string> = {
 }
 
 export const withAbortController = (controller: AbortController) => {
-  return (req: RequestOptions) => {
+  return (req: OmniRequestOptions) => {
     req.controller = controller
     req.signal = controller.signal
   }
 }
 
 export const withPathPrefix = (prefix: string) => {
-  return (req: RequestOptions) => {
+  return (req: OmniRequestOptions) => {
     if (!req.url.startsWith(prefix)) {
       req.url = `${prefix}${req.url}`
     }
@@ -33,13 +33,13 @@ export const withPathPrefix = (prefix: string) => {
 }
 
 export const withRuntime = (runtime: Runtime) => {
-  return (req: RequestOptions) => {
+  return (req: OmniRequestOptions) => {
     addMetadata(req, { runtime: runtimeMap[runtime] })
   }
 }
 
 export const withMetadata = (metadata: GRPCMetadata) => {
-  return (req: RequestOptions) => {
+  return (req: OmniRequestOptions) => {
     addMetadata(req, metadata)
   }
 }
@@ -51,7 +51,7 @@ export const withSelectors = (selectors: string[]) => {
 }
 
 export const withContext = (context: WatchContext) => {
-  return (req: RequestOptions) => {
+  return (req: OmniRequestOptions) => {
     const md: GRPCMetadata = {}
 
     if (context.cluster) {
@@ -72,7 +72,7 @@ export const withContext = (context: WatchContext) => {
 }
 
 export const withTimeout = (timeout: number) => {
-  return (req: RequestOptions) => {
+  return (req: OmniRequestOptions) => {
     if (!req.controller) {
       const controller = new AbortController()
       req.signal = controller.signal
@@ -82,6 +82,12 @@ export const withTimeout = (timeout: number) => {
     window.setTimeout(() => {
       req.controller?.abort()
     }, timeout)
+  }
+}
+
+export const withSkipRequestSignature = () => {
+  return (req: OmniRequestOptions) => {
+    req.skipSignature = true
   }
 }
 

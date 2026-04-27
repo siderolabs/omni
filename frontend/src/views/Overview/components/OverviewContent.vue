@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import isEqual from 'lodash/isEqual'
 import { gte } from 'semver'
 import { computed, ref, watchEffect } from 'vue'
 
@@ -26,7 +27,6 @@ import {
   ClusterLocked,
   ClusterSecretsRotationStatusType,
   ClusterStatusType,
-  ClusterType,
   DefaultNamespace,
   KubernetesUpgradeStatusType,
   KubernetesUsageType,
@@ -44,8 +44,6 @@ import {
   removeClusterLabels,
   revertKubernetesUpgrade,
   revertTalosUpgrade,
-  setClusterEtcdBackupsConfig,
-  setClusterWorkloadProxy,
 } from '@/methods/cluster'
 import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -130,20 +128,34 @@ const isEmbeddedDiscoveryServiceAvailable = computed(
     (features.value?.spec.embedded_discovery_service ?? false),
 )
 
-const toggleUseEmbeddedDiscoveryService = async (value: boolean) => {
-  const resource = await ResourceService.Get<Resource<ClusterSpec>>(
-    {
-      namespace: DefaultNamespace,
-      type: ClusterType,
-      id: clusterId.value,
-    },
-    withRuntime(Runtime.Omni),
-  )
+async function toggleUseEmbeddedDiscoveryService(value: boolean) {
+  const resource = JSON.parse(JSON.stringify(currentCluster)) as typeof currentCluster
 
   resource.spec.features ||= {}
   resource.spec.features.use_embedded_discovery_service = value
 
-  await ResourceService.Update(resource, resource.metadata.version, withRuntime(Runtime.Omni))
+  await ResourceService.Update(resource, currentCluster.metadata.version, withRuntime(Runtime.Omni))
+}
+
+async function setClusterWorkloadProxy(value: boolean) {
+  const resource = JSON.parse(JSON.stringify(currentCluster)) as typeof currentCluster
+
+  resource.spec.features ||= {}
+  resource.spec.features.enable_workload_proxy = value
+
+  await ResourceService.Update(resource, currentCluster.metadata.version, withRuntime(Runtime.Omni))
+}
+
+async function setClusterEtcdBackupsConfig(spec: ClusterSpec) {
+  if (isEqual(currentCluster.spec.backup_configuration, spec.backup_configuration)) {
+    return
+  }
+
+  const resource = JSON.parse(JSON.stringify(currentCluster)) as typeof currentCluster
+
+  resource.spec.backup_configuration = spec.backup_configuration
+
+  await ResourceService.Update(resource, currentCluster.metadata.version, withRuntime(Runtime.Omni))
 }
 
 const { data: secretRotationStatus } = useResourceWatch<ClusterSecretsRotationStatusSpec>(() => ({
@@ -385,7 +397,7 @@ const machineLockedForSecretRotation = computed(() => {
             <ClusterWorkloadProxyingCheckbox
               :model-value="enableWorkloadProxy"
               :disabled="!canManageClusterFeatures || !features?.spec.enable_workload_proxying"
-              @update:model-value="(value) => setClusterWorkloadProxy(clusterId, value)"
+              @update:model-value="(value) => setClusterWorkloadProxy(value)"
             />
             <EmbeddedDiscoveryServiceCheckbox
               :model-value="useEmbeddedDiscoveryService"
@@ -395,7 +407,7 @@ const machineLockedForSecretRotation = computed(() => {
             <ClusterEtcdBackupCheckbox
               :backup-status="backupStatus"
               :cluster="currentCluster.spec"
-              @update:cluster="(spec) => setClusterEtcdBackupsConfig(clusterId, spec)"
+              @update:cluster="(spec) => setClusterEtcdBackupsConfig(spec)"
             />
           </div>
         </div>

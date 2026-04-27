@@ -468,6 +468,28 @@ func (s *EtcdParams) SetRunElections(v bool) {
 	s.RunElections = &v
 }
 
+func (s *EulaAccept) GetEmail() string {
+	if s == nil || s.Email == nil {
+		return *new(string)
+	}
+	return *s.Email
+}
+
+func (s *EulaAccept) SetEmail(v string) {
+	s.Email = &v
+}
+
+func (s *EulaAccept) GetName() string {
+	if s == nil || s.Name == nil {
+		return *new(string)
+	}
+	return *s.Name
+}
+
+func (s *EulaAccept) SetName(v string) {
+	s.Name = &v
+}
+
 func (s *Features) GetDisableControllerRuntimeCache() bool {
 	if s == nil || s.DisableControllerRuntimeCache == nil {
 		return *new(bool)
@@ -897,39 +919,6 @@ func (s *LogsStripe) SetMinCommit(v uint32) {
 	s.MinCommit = &v
 }
 
-func (s *NonImageFactoryDeprecation) GetBody() string {
-	if s == nil || s.Body == nil {
-		return *new(string)
-	}
-	return *s.Body
-}
-
-func (s *NonImageFactoryDeprecation) SetBody(v string) {
-	s.Body = &v
-}
-
-func (s *NonImageFactoryDeprecation) GetEnabled() bool {
-	if s == nil || s.Enabled == nil {
-		return *new(bool)
-	}
-	return *s.Enabled
-}
-
-func (s *NonImageFactoryDeprecation) SetEnabled(v bool) {
-	s.Enabled = &v
-}
-
-func (s *NonImageFactoryDeprecation) GetTitle() string {
-	if s == nil || s.Title == nil {
-		return *new(string)
-	}
-	return *s.Title
-}
-
-func (s *NonImageFactoryDeprecation) SetTitle(v string) {
-	s.Title = &v
-}
-
 func (s *OIDC) GetAllowUnverifiedEmail() bool {
 	if s == nil || s.AllowUnverifiedEmail == nil {
 		return *new(bool)
@@ -994,6 +983,94 @@ func (s *OIDC) GetProviderURL() string {
 
 func (s *OIDC) SetProviderURL(v string) {
 	s.ProviderURL = &v
+}
+
+func (s *OfficeHours) GetDescription() string {
+	if s == nil || s.Description == nil {
+		return *new(string)
+	}
+	return *s.Description
+}
+
+func (s *OfficeHours) SetDescription(v string) {
+	s.Description = &v
+}
+
+func (s *OfficeHours) GetDtendTzid() string {
+	if s == nil || s.DtendTzid == nil {
+		return *new(string)
+	}
+	return *s.DtendTzid
+}
+
+func (s *OfficeHours) SetDtendTzid(v string) {
+	s.DtendTzid = &v
+}
+
+func (s *OfficeHours) GetDtendUtc() string {
+	if s == nil || s.DtendUtc == nil {
+		return *new(string)
+	}
+	return *s.DtendUtc
+}
+
+func (s *OfficeHours) SetDtendUtc(v string) {
+	s.DtendUtc = &v
+}
+
+func (s *OfficeHours) GetDtstartTzid() string {
+	if s == nil || s.DtstartTzid == nil {
+		return *new(string)
+	}
+	return *s.DtstartTzid
+}
+
+func (s *OfficeHours) SetDtstartTzid(v string) {
+	s.DtstartTzid = &v
+}
+
+func (s *OfficeHours) GetDtstartUtc() string {
+	if s == nil || s.DtstartUtc == nil {
+		return *new(string)
+	}
+	return *s.DtstartUtc
+}
+
+func (s *OfficeHours) SetDtstartUtc(v string) {
+	s.DtstartUtc = &v
+}
+
+func (s *OfficeHours) GetMeetUrl() string {
+	if s == nil || s.MeetUrl == nil {
+		return *new(string)
+	}
+	return *s.MeetUrl
+}
+
+func (s *OfficeHours) SetMeetUrl(v string) {
+	s.MeetUrl = &v
+}
+
+func (s *OfficeHours) GetRrule() string {
+	if s == nil || s.Rrule == nil {
+		return *new(string)
+	}
+	return *s.Rrule
+}
+
+func (s *OfficeHours) SetRrule(v string) {
+	s.Rrule = &v
+}
+
+func (s *OfficeHours) GetSummary() string {
+	if s == nil || s.Summary == nil {
+		return *new(string)
+	}
+	return *s.Summary
+}
+
+func (s *OfficeHours) SetSummary(v string) {
+	s.Summary = &v
 }
 
 func (s *Registries) GetImageFactoryBaseURL() string {
@@ -1126,17 +1203,6 @@ func (s *SQLite) GetExtraParams() string {
 
 func (s *SQLite) SetExtraParams(v string) {
 	s.ExtraParams = &v
-}
-
-func (s *SQLite) GetMetrics() SQLiteMetricsParams {
-	if s == nil || s.Metrics == nil {
-		return *new(SQLiteMetricsParams)
-	}
-	return *s.Metrics
-}
-
-func (s *SQLite) SetMetrics(v SQLiteMetricsParams) {
-	s.Metrics = &v
 }
 
 func (s *SQLite) GetPath() string {

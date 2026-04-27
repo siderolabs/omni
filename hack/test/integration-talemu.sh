@@ -43,6 +43,11 @@ prepare_minio access_key="access" secret_key="secret123"
 
 export MAX_USERS=5
 export MAX_SERVICE_ACCOUNTS=5
+export EULA_CONFIG="
+eulaAccept:
+  name: Test User
+  email: test-user@siderolabs.com
+"
 
 prepare_omni_config
 

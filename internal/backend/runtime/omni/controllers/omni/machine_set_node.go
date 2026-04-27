@@ -536,6 +536,21 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 			var machineVersion semver.Version
 
+			machineRequestID, ok := machine.Metadata().Labels().Get(omni.LabelMachineRequest)
+			if ok {
+				var machineRequest *infra.MachineRequest
+
+				machineRequest, err = safe.ReaderGetByID[*infra.MachineRequest](ctx, r, machineRequestID)
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
+				// machineRequest is being torn down, skip it
+				if machineRequest == nil || machineRequest.Metadata().Phase() == resource.PhaseTearingDown {
+					continue
+				}
+			}
+
 			version, ok := machine.Metadata().Labels().Get(omni.MachineStatusLabelTalosVersion)
 			if !ok {
 				continue

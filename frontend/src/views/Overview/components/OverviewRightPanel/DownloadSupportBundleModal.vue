@@ -18,12 +18,12 @@ import { ClusterMachineIdentityType, DefaultNamespace, LabelCluster } from '@/ap
 import IconButton from '@/components/Button/IconButton.vue'
 import type { IconType } from '@/components/Icon/TIcon.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
+import Modal from '@/components/Modals/Modal.vue'
 import ProgressBar from '@/components/ProgressBar/ProgressBar.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
-import Modal from '@/views/Modals/Modal.vue'
 
 const { clusterId } = defineProps<{
   clusterId: string
@@ -61,10 +61,10 @@ const { data } = useResourceWatch<ClusterMachineIdentitySpec>(() => ({
 }))
 
 const downloading = ref(false)
-const done = ref(false)
+const downloadedURL = ref<string>()
 
 const closeText = computed(() => {
-  return done.value ? 'Close' : 'Cancel'
+  return downloadedURL.value ? 'Close' : 'Cancel'
 })
 
 let abortController: AbortController
@@ -76,6 +76,11 @@ onUnmounted(() => {
 watchEffect(() => {
   if (!open.value) {
     abortController?.abort()
+
+    if (downloadedURL.value) {
+      window.URL.revokeObjectURL(downloadedURL.value)
+    }
+
     return
   }
 
@@ -83,7 +88,7 @@ watchEffect(() => {
   sourceToProgress.value = {}
   expanded.value = {}
   downloading.value = false
-  done.value = false
+  downloadedURL.value = undefined
 })
 
 const download = async () => {
@@ -144,13 +149,7 @@ const download = async () => {
           const rawData = b64Decode(data) as Uint8Array<ArrayBuffer>
           const blob = new Blob([rawData], { type: 'application/zip' })
 
-          const url = window.URL.createObjectURL(blob)
-          downloadURL(url, 'support.zip')
-          window.URL.revokeObjectURL(url)
-
-          done.value = true
-
-          return
+          downloadedURL.value = window.URL.createObjectURL(blob)
         }
       },
       withAbortController(abortController),
@@ -174,6 +173,16 @@ const downloadURL = (data: string, fileName: string) => {
   a.remove()
 }
 
+async function confirm() {
+  if (!downloadedURL.value) {
+    await download()
+  }
+
+  if (downloadedURL.value) {
+    downloadURL(downloadedURL.value, 'support.zip')
+  }
+}
+
 const { canDownloadSupportBundle } = useClusterPermissions(computed(() => clusterId))
 </script>
 
@@ -182,10 +191,10 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
     v-model:open="open"
     title="Download Support Bundle"
     :cancel-label="closeText"
-    action-label="Download"
+    :action-label="downloadedURL ? 'Save' : 'Download'"
     :action-disabled="!canDownloadSupportBundle"
     :loading="downloading"
-    @confirm="download"
+    @confirm="confirm"
   >
     <template #description>Cluster: {{ clusterId }}</template>
 

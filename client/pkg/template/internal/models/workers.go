@@ -22,7 +22,7 @@ type Workers struct {
 }
 
 // Validate the model.
-func (workers *Workers) Validate() error {
+func (workers *Workers) Validate(opts ValidateOptions) error {
 	var multiErr error
 
 	if workers.Name == omni.ControlPlanesIDSuffix {
@@ -33,7 +33,7 @@ func (workers *Workers) Validate() error {
 		multiErr = multierror.Append(multiErr, fmt.Errorf("bootstrapSpec is not allowed in workers"))
 	}
 
-	multiErr = joinErrors(multiErr, workers.MachineSet.Validate(), workers.Machines.Validate(), workers.Patches.Validate())
+	multiErr = joinErrors(multiErr, workers.MachineSet.Validate(), workers.Machines.Validate(), workers.Patches.Validate(opts))
 	if multiErr != nil {
 		return fmt.Errorf("workers is invalid: %w", multiErr)
 	}

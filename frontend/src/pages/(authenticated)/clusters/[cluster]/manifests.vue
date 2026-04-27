@@ -6,11 +6,10 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { Ref } from 'vue'
-import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { b64Decode } from '@/api/fetch.pb'
-import type { Stream } from '@/api/grpc'
 import { subscribe } from '@/api/grpc'
 import type {
   KubernetesSyncManifestRequest,
@@ -35,7 +34,7 @@ definePage({ name: 'KubernetesManifestSync' })
 const textDecoder = new TextDecoder()
 
 const route = useRoute()
-const context = getContext()
+const context = computed(() => getContext(route))
 
 const loading = ref(true)
 const loaded = ref(false)
@@ -109,70 +108,46 @@ const highlightDiff = (line: string) => {
 
 const error = ref<string>()
 
-const setupSyncStream = () => {
-  const stream: Ref<
-    Stream<KubernetesSyncManifestRequest, KubernetesSyncManifestResponse> | undefined
-  > = ref()
+watchEffect((onCleanup) => {
+  loading.value = true
+  syncResults.value = []
+  loaded.value = false
 
-  const reset = () => {
-    syncResults.value = []
-    loaded.value = false
-  }
+  const stream = subscribe(
+    ManagementService.KubernetesSyncManifests,
+    syncParams.value,
+    (resp) => {
+      loading.value = false
 
-  const processItem = (resp: KubernetesSyncManifestResponse) => {
-    loading.value = false
+      syncResults.value = syncResults.value.concat(resp)
 
-    syncResults.value = syncResults.value.concat(resp)
-
-    nextTick(() => {
-      if (resultsComponent.value && !loaded.value) {
-        // scroll to the bottom
-        resultsComponent.value.scrollTop = resultsComponent.value.scrollHeight
-      }
-    })
-  }
-
-  const init = () => {
-    if (stream.value) {
-      stream.value.shutdown()
-      loading.value = true
-    }
-
-    reset()
-
-    stream.value = subscribe(
-      ManagementService.KubernetesSyncManifests,
-      syncParams.value,
-      processItem,
-      [withContext(context)],
-      undefined,
-      (e: Error) => {
-        error.value = e.message
-        loading.value = false
-      },
-      () => {
-        loaded.value = true
-        error.value = undefined
-
-        if (!syncParams.value.dry_run) {
-          showSuccess('Bootstrap manifests updated successfully')
+      nextTick(() => {
+        if (resultsComponent.value && !loaded.value) {
+          // scroll to the bottom
+          resultsComponent.value.scrollTop = resultsComponent.value.scrollHeight
         }
-      },
-    )
-  }
+      })
+    },
+    [withContext(context.value)],
+    undefined,
+    (e: Error) => {
+      error.value = e.message
+      loading.value = false
+    },
+    () => {
+      loaded.value = true
+      error.value = undefined
 
-  onMounted(init)
+      if (!syncParams.value.dry_run) {
+        showSuccess('Bootstrap manifests updated successfully')
+      }
+    },
+  )
 
-  onUnmounted(() => {
-    if (stream.value) stream.value.shutdown()
+  onCleanup(() => {
+    stream.shutdown()
   })
-
-  watch(syncParams.value, init)
-
-  return stream
-}
-
-setupSyncStream()
+})
 </script>
 
 <template>

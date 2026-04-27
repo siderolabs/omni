@@ -37,6 +37,10 @@ export default defineConfig({
 
   projects: [
     {
+      name: 'eula',
+      testMatch: 'eula/**/*.spec.ts',
+    },
+    {
       name: 'talemu-setup',
       testMatch: 'talemu/talemu.setup.ts',
       teardown: 'talemu-teardown',
@@ -51,7 +55,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
       },
       testMatch: 'talemu/**/*.spec.ts',
-      dependencies: ['talemu-setup'],
+      dependencies: ['eula', 'talemu-setup'],
     },
     {
       name: 'qemu',
@@ -59,6 +63,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
       },
       testMatch: 'qemu/**/*.spec.ts',
+      dependencies: ['eula'],
     },
   ],
 })

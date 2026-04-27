@@ -187,7 +187,7 @@ func applyConfigFromBytes(ctx context.Context, client *client.Client, yamlRaw []
 		if state.IsNotFoundError(err) {
 			err = createResource(ctx, st, res, applyCmdFlags.options)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to create resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
 			}
 
 			continue
@@ -241,7 +241,7 @@ func createResource(ctx context.Context, st state.State, res resource.Resource, 
 	}
 
 	if err := st.Create(ctx, res); err != nil {
-		return fmt.Errorf("failed to create resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
+		return err
 	}
 
 	return nil
@@ -279,7 +279,7 @@ func updateResource(ctx context.Context, st state.State, got resource.Resource, 
 	res.Metadata().SetVersion(got.Metadata().Version())
 
 	if err := st.Update(ctx, res); err != nil {
-		return fmt.Errorf("failed to update resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
+		return err
 	}
 
 	return nil

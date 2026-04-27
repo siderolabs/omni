@@ -135,10 +135,17 @@ func handlePublicKey(data *auditlog.Data, res resource.Resource) error {
 	}
 
 	data.Session.Fingerprint = res.Metadata().ID()
-	data.Session.UserID = userID
-	data.Session.Email = publicKey.TypedSpec().Value.GetIdentity().GetEmail()
-	data.Session.Role = r
 	data.Session.PublicKeyExpiration = publicKey.TypedSpec().Value.GetExpiration().Seconds
+
+	// Only set actor identity fields if not already populated by the auth interceptor.
+	// When an admin manages a service account, the interceptor has already set these
+	// to the admin's identity; overwriting them would incorrectly attribute the action
+	// to the service account being managed.
+	if data.Session.Email == "" {
+		data.Session.UserID = userID
+		data.Session.Email = publicKey.TypedSpec().Value.GetIdentity().GetEmail()
+		data.Session.Role = r
+	}
 
 	return nil
 }

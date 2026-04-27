@@ -8,7 +8,7 @@ included in the LICENSE file.
 import { vOnClickOutside } from '@vueuse/components'
 import { Duration } from 'luxon'
 import pluralize from 'pluralize'
-import { computed, ref, toRefs } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 
 import type { Duration as GoogleProtobufDuration } from '@/api/google/protobuf/duration.pb'
 import IconButton from '@/components/Button/IconButton.vue'
@@ -21,24 +21,25 @@ import { formatDuration, parseDuration } from '@/methods/time'
 
 const editingBackupConfig = ref(false)
 
-const props = defineProps<{
+interface Props {
   cluster: { backup_configuration?: { interval?: GoogleProtobufDuration; enabled?: boolean } }
   backupStatus: BackupsStatus
-}>()
+}
 
-const { cluster } = toRefs(props)
+const { cluster } = defineProps<Props>()
+
 const { canManageBackupStore } = usePermissions()
 
 const emit = defineEmits<{
-  'update:cluster': [(typeof props)['cluster']]
+  'update:cluster': [Props['cluster']]
 }>()
 
 const enabled = computed(() => {
-  return cluster.value.backup_configuration?.enabled === true
+  return cluster.backup_configuration?.enabled === true
 })
 
 const interval = computed(() => {
-  const value = cluster.value.backup_configuration?.interval
+  const value = cluster.backup_configuration?.interval
 
   if (!value || value.trim() === '0') {
     return undefined
@@ -47,15 +48,20 @@ const interval = computed(() => {
   return parseDuration(value).shiftTo('hours')
 })
 
-const backupIntervalPreview = ref(interval.value?.hours ?? 1)
-const backupIntervalHours = ref(backupIntervalPreview.value)
+const backupIntervalPreview = ref<number>()
+const backupIntervalHours = ref<number>()
+
+watchEffect(() => {
+  backupIntervalPreview.value = interval.value?.hours ?? 1
+  backupIntervalHours.value = backupIntervalPreview.value
+})
 
 const toggleBackupsEnabled = (enabled: boolean) => {
   emit('update:cluster', {
-    ...cluster.value,
+    ...cluster,
     backup_configuration: {
-      ...cluster.value.backup_configuration,
-      interval: cluster.value.backup_configuration?.interval || `${60 * 60}s`,
+      ...cluster.backup_configuration,
+      interval: cluster.backup_configuration?.interval || `${60 * 60}s`,
       enabled,
     },
   })
@@ -71,7 +77,7 @@ const updateBackupInterval = () => {
   backupIntervalHours.value = backupIntervalPreview.value
   editingBackupConfig.value = false
 
-  const c = { ...cluster.value }
+  const c = { ...cluster }
 
   if (!c.backup_configuration) {
     c.backup_configuration = {}

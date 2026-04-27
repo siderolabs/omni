@@ -90,10 +90,13 @@ export function useWatchKeyExpiry() {
        */
       if (route.name === 'Authenticate') return
 
-      router.replace({
-        name: 'Authenticate',
-        query: { [AuthFlowQueryParam]: FrontendAuthFlow, [RedirectQueryParam]: route.fullPath },
-      })
+      // Using location.replace instead of router.replace to do a full reload to clear any invalid states
+      window.location.replace(
+        router.resolve({
+          name: 'Authenticate',
+          query: { [AuthFlowQueryParam]: FrontendAuthFlow, [RedirectQueryParam]: route.fullPath },
+        }).href,
+      )
     }
   })
 }

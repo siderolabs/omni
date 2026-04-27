@@ -18,7 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"github.com/stripe/stripe-go/v76"
+	"github.com/stripe/stripe-go/v85"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
@@ -30,13 +30,6 @@ type StripeMetricsReporterControllerSuite struct {
 
 func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 	suite.startRuntime()
-
-	// Register controller with a min commit of 4 machines
-	suite.Require().NoError(
-		suite.runtime.RegisterController(
-			omnictrl.NewStripeMetricsReporterController("test_api_key", "sub_item_id", 4, omnictrl.WithDebounceDuration(2*time.Second)),
-		),
-	)
 
 	var (
 		machineCount int64 = 0
@@ -104,11 +97,18 @@ func (suite *StripeMetricsReporterControllerSuite) TestReconcile() {
 		}
 	}))
 
-	// Use Stripe's MockBackend
-	mockBackend := stripe.GetBackendWithConfig(stripe.APIBackend, &stripe.BackendConfig{
+	mockBackends := stripe.NewBackendsWithConfig(&stripe.BackendConfig{
 		URL: &mockServer.URL,
 	})
-	stripe.SetBackend(stripe.APIBackend, mockBackend)
+
+	stripeClient := stripe.NewClient("test_api_key", stripe.WithBackends(mockBackends))
+
+	// Register controller with a min commit of 4 machines
+	suite.Require().NoError(
+		suite.runtime.RegisterController(
+			omnictrl.NewStripeMetricsReporterController(stripeClient, "sub_item_id", 4, omnictrl.WithDebounceDuration(2*time.Second)),
+		),
+	)
 
 	// Register 1 machine and wait for the debounce so we can ensure that the min commit is what's actually reported
 	metrics := omni.NewMachineStatusMetrics(omni.MachineStatusMetricsID)

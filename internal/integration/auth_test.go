@@ -710,7 +710,7 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 				assertSuccess: assertSuccess,
 				assertFailure: assertMissingRoleFailure,
 				fn: func(ctx context.Context, cli *client.Client) error {
-					for _, err := range cli.Management().ReadAuditLog(ctx, "", "") {
+					for _, err := range cli.Management().ReadAuditLog(ctx, nil) {
 						if err != nil {
 							return err
 						}
@@ -858,12 +858,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			{
 				resource:       joinToken,
 				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Update, state.Destroy}),
-				isAdminOnly:    true,
 			},
 			{
 				resource:            defaultJoinToken,
 				allowedVerbSet:      allVerbsSet,
-				isAdminOnly:         true,
 				isDestroyNotAllowed: true,
 			},
 			{
@@ -996,9 +994,19 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				isAdminOnly:    true,
 			},
 			{
+				resource:       authres.NewPublicKeyLastActive(uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+				isAdminOnly:    true,
+			},
+			{
 				resource:       authres.NewUser(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 				isAdminOnly:    true,
+			},
+			{
+				resource:              authres.NewEulaAcceptance(),
+				allowedVerbSet:        xslices.ToSet([]state.Verb{state.Get, state.List, state.Create}),
+				isSignatureSufficient: true,
 			},
 			{
 				resource:       omni.NewClusterBootstrapStatus(uuid.New().String()),
@@ -1221,6 +1229,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:              virtual.NewPermissions(),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
+			},
+			{
+				resource:       virtual.NewSupport(),
+				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
 				resource:       omni.NewEtcdBackupStatus(uuid.New().String()),
@@ -1473,26 +1485,20 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 						isOperator := testRole.Check(role.Operator) == nil
 						isAdmin := testRole.Check(role.Admin) == nil
 						_, verbAllowed := tc.allowedVerbSet[testVerb]
-						sufficientRole := true
 
-						if tc.isAdminOnly {
-							if !isAdmin {
-								sufficientRole = false
-							}
-						} else {
-							if testVerb.Readonly() {
-								if !isReader {
-									sufficientRole = false
-								}
-							} else {
-								if !isOperator {
-									sufficientRole = false
-								}
-							}
-						}
+						var sufficientRole bool
 
-						if tc.isSignatureSufficient || tc.isPublic {
+						switch {
+						case tc.isSignatureSufficient || tc.isPublic:
 							sufficientRole = true
+						case tc.isAdminOnly:
+							sufficientRole = isAdmin
+						default:
+							if testVerb.Readonly() {
+								sufficientRole = isReader
+							} else {
+								sufficientRole = isOperator
+							}
 						}
 
 						switch {

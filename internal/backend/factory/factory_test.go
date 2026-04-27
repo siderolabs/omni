@@ -6,103 +6,50 @@
 package factory_test
 
 import (
-	"context"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
-	"time"
 
-	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
-	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/require"
 
-	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/factory"
-	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func TestParseRequest(t *testing.T) {
-	state := state.WrapCore(namespaced.NewState(inmem.Build))
-
-	specs := map[string]*specs.InstallationMediaSpec{
-		"iso-metal-arm64": {
-			Name:           "ISO",
-			Architecture:   "arm64",
-			Profile:        "metal",
-			ContentType:    "application/x-iso",
-			DestFilePrefix: "omni-metal-arm64",
-			Extension:      "iso",
-		},
-	}
-
-	ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
-	defer cancel()
-
-	for id, spec := range specs {
-		res := omni.NewInstallationMedia(id)
-		res.TypedSpec().Value = spec
-
-		require.NoError(t, state.Create(ctx, res))
-	}
-
+func TestDeprecatedHandler(t *testing.T) {
 	for _, tt := range []struct {
-		expectedParams *factory.ProxyParams
-		name           string
-		incomingURL    string
-		shouldFail     bool
+		method     string
+		expectBody bool
 	}{
 		{
-			name:        "with secureboot",
-			incomingURL: "/image/schematic/1.6.0/iso-metal-arm64?secureboot=true",
-			expectedParams: &factory.ProxyParams{
-				ProxyURL:            "https://factory.talos.dev/image/schematic/1.6.0/metal-arm64-secureboot.iso",
-				ContentType:         "application/x-iso",
-				DestinationFilename: "omni-metal-arm64-1.6.0-secureboot.iso",
-			},
+			method:     http.MethodGet,
+			expectBody: true,
 		},
 		{
-			name:        "without secureboot",
-			incomingURL: "/image/schematic/1.6.0/iso-metal-arm64",
-			expectedParams: &factory.ProxyParams{
-				ProxyURL:            "https://factory.talos.dev/image/schematic/1.6.0/metal-arm64.iso",
-				ContentType:         "application/x-iso",
-				DestinationFilename: "omni-metal-arm64-1.6.0.iso",
-			},
+			method: http.MethodHead,
 		},
 		{
-			name:        "not found: incomplete path",
-			incomingURL: "/image/schematic/",
-			shouldFail:  true,
-		},
-		{
-			name:        "not found: no /image prefix",
-			incomingURL: "/unknown",
-			shouldFail:  true,
-		},
-		{
-			name:        "not found: no such image",
-			incomingURL: "/image/schematic/1.6.0/the-image",
-			shouldFail:  true,
+			method:     http.MethodPost,
+			expectBody: true,
 		},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
+		t.Run(tt.method, func(t *testing.T) {
+			body := strings.NewReader("ignored")
+			req := httptest.NewRequestWithContext(t.Context(), tt.method, "/image/schematic/v1.11.0/iso-amd64", body)
+			resp := httptest.NewRecorder()
 
-			request, err := http.NewRequestWithContext(ctx, http.MethodHead, "https://localhost"+tt.incomingURL, nil)
-			require.NoError(err)
+			factory.NewHandler().ServeHTTP(resp, req)
 
-			cfg := &config.Registries{}
-			cfg.SetImageFactoryBaseURL("https://factory.talos.dev")
+			require.Equal(t, http.StatusGone, resp.Code)
+			require.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
 
-			params, err := factory.ParseRequest(request, state, cfg)
-			if tt.shouldFail {
-				require.Error(err)
+			if !tt.expectBody {
+				require.Empty(t, resp.Body.String())
 
 				return
 			}
 
-			require.EqualValues(tt.expectedParams, params)
+			require.Contains(t, resp.Body.String(), "Please upgrade omnictl to a recent version")
 		})
 	}
 }
