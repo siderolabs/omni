@@ -5,7 +5,6 @@
 package operations
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -157,8 +156,6 @@ func writeYAML(writer io.Writer, modelList models.List) (err error) {
 }
 
 func transformConfigPatchToModel(configPatch *omni.ConfigPatch) (models.Patch, error) {
-	var data map[string]any
-
 	buffer, err := configPatch.TypedSpec().Value.GetUncompressedData()
 	if err != nil {
 		return models.Patch{}, fmt.Errorf("failed to get patch data for patch %q: %w", configPatch.Metadata().ID(), err)
@@ -166,16 +163,12 @@ func transformConfigPatchToModel(configPatch *omni.ConfigPatch) (models.Patch, e
 
 	defer buffer.Free()
 
-	patchData := buffer.Data()
-
-	if err = yaml.Unmarshal(patchData, &data); err != nil {
-		return models.Patch{}, fmt.Errorf("failed to unmarshal patch %q: %w", configPatch.Metadata().ID(), err)
-	}
+	raw := slices.Clone(buffer.Data())
 
 	return models.Patch{
 		Descriptors: getUserDescriptors(configPatch),
 		IDOverride:  configPatch.Metadata().ID(),
-		Inline:      data,
+		Inline:      models.NewInlineContentBytes(raw),
 	}, nil
 }
 
@@ -563,23 +556,7 @@ func transformManifestToModel(manifest *omni.KubernetesManifestGroup) (models.Ku
 
 	defer buffer.Free()
 
-	var inline []map[string]any
-
-	dec := yaml.NewDecoder(bytes.NewReader(buffer.Data()))
-
-	for {
-		var doc map[string]any
-
-		if err := dec.Decode(&doc); err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-
-			return models.KubernetesManifest{}, fmt.Errorf("error decoding manifest %q: %w", manifest.Metadata().ID(), err)
-		}
-
-		inline = append(inline, doc)
-	}
+	raw := append([]byte(nil), buffer.Data()...)
 
 	name, ok := manifest.Metadata().Annotations().Get(omni.KubernetesManifestName)
 	if !ok {
@@ -595,7 +572,7 @@ func transformManifestToModel(manifest *omni.KubernetesManifestGroup) (models.Ku
 	return models.KubernetesManifest{
 		Name:        name,
 		Mode:        models.KubernetesManifestMode(manifest.TypedSpec().Value.Mode),
-		Inline:      inline,
+		Inline:      models.NewInlineContentBytes(raw),
 		Descriptors: descriptors,
 	}, nil
 }

@@ -107,13 +107,13 @@ func (machine *Machine) Translate(ctx TranslateContext) ([]resource.Resource, er
 	if machine.Install.Disk != "" {
 		patch := Patch{
 			Name: "install-disk",
-			Inline: map[string]any{
+			Inline: NewInlineContent(map[string]any{
 				"machine": map[string]any{
 					"install": map[string]any{
 						"disk": machine.Install.Disk,
 					},
 				},
-			},
+			}),
 		}
 
 		patchResource, err := patch.Translate(
