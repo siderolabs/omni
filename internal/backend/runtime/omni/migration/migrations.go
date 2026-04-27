@@ -357,7 +357,7 @@ func dropWorkloadProxyConfigPatches(ctx context.Context, st state.State, _ *zap.
 		return err
 	}
 
-	ctrl, err := cluster.NewClusterWorkloadProxyController()
+	ctrl, err := cluster.NewClusterWorkloadProxyController(true)
 	if err != nil {
 		return err
 	}
