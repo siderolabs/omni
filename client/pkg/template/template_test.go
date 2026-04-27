@@ -46,6 +46,9 @@ var clusterWithKernelArgs []byte
 //go:embed testdata/cluster-with-manifests.yaml
 var clusterWithManifests []byte
 
+//go:embed testdata/cluster-inline-bytes.yaml
+var clusterInlineBytes []byte
+
 //go:embed testdata/cluster-invalid-manifests1.yaml
 var clusterInvalidManifests1 []byte
 
@@ -139,6 +142,10 @@ func TestLoad(t *testing.T) {
 			data: clusterWithManifests,
 		},
 		{
+			name: "clusterInlineBytes",
+			data: clusterInlineBytes,
+		},
+		{
 			name:          "clusterBadYAML1",
 			data:          clusterBadYAML1,
 			expectedError: "error decoding document at line 1:1: yaml: construct errors:\n  line 7: field containerd not found in type models.Cluster",
@@ -197,6 +204,10 @@ func TestValidate(t *testing.T) {
 		{
 			name: "clusterWithManifests",
 			data: clusterWithManifests,
+		},
+		{
+			name: "clusterInlineBytes",
+			data: clusterInlineBytes,
 		},
 		{
 			name: "clusterInvalidManifests1",
@@ -449,6 +460,70 @@ func TestTranslate(t *testing.T) {
 			require.Equal(t, string(tt.expected), actual.String())
 		})
 	}
+}
+
+func TestTranslate_InlineBytes(t *testing.T) {
+	// DO NOT ADD t.Parallel() HERE, as this test modifies global compression config.
+	originalCompressionConfig := specs.GetCompressionConfig()
+
+	compressionConfig, err := compression.BuildConfig(false, false, false)
+	require.NoError(t, err)
+
+	specs.SetCompressionConfig(compressionConfig)
+	defer specs.SetCompressionConfig(originalCompressionConfig)
+
+	t.Chdir("testdata")
+
+	root := openTestRoot(t)
+
+	templ, err := template.Load(bytes.NewReader(clusterInlineBytes), template.WithRoot(root))
+	require.NoError(t, err)
+
+	require.NoError(t, templ.Validate())
+
+	resources, err := templ.Translate()
+	require.NoError(t, err)
+
+	var (
+		patchData    []byte
+		manifestData []byte
+	)
+
+	for _, r := range resources {
+		switch r.Metadata().Type() {
+		case omni.ConfigPatchType:
+			cp, ok := r.(*omni.ConfigPatch)
+			require.True(t, ok)
+
+			if cp.Metadata().ID() != "200-cluster-inline-bytes-cluster-kubespan-enabled-bytes" {
+				continue
+			}
+
+			buf, getErr := cp.TypedSpec().Value.GetUncompressedData()
+			require.NoError(t, getErr)
+
+			patchData = append([]byte(nil), buf.Data()...)
+
+			buf.Free()
+		case omni.KubernetesManifestGroupType:
+			mg, ok := r.(*omni.KubernetesManifestGroup)
+			require.True(t, ok)
+
+			buf, getErr := mg.TypedSpec().Value.GetUncompressedData()
+			require.NoError(t, getErr)
+
+			manifestData = append([]byte(nil), buf.Data()...)
+
+			buf.Free()
+		}
+	}
+
+	expectedPatch := "machine:\n  network:\n    kubespan:\n      enabled: true\n"
+	require.Equal(t, expectedPatch, string(patchData))
+
+	require.Contains(t, string(manifestData), "name: my-config")
+	require.Contains(t, string(manifestData), "name: other-config")
+	require.Contains(t, string(manifestData), "---")
 }
 
 func TestSync(t *testing.T) {
