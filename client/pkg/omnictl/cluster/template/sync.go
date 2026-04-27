@@ -34,23 +34,46 @@ var syncCmd = &cobra.Command{
 	If a file is specified, only that file will be processed.
 	If a directory is specified, all YAML files (*.yaml, *.yml) in the directory
 	and its subdirectories will be processed recursively. Each template file is
-	processed independently, allowing management of multiple clusters.`,
+	processed independently, allowing management of multiple clusters.
+
+	When --dry-run is used, ` + execdiff.EnvExternalDiff + ` environment variable can be
+	used to select an external diff command. Users can use external commands with
+	params too, example: ` + execdiff.EnvExternalDiff + `="colordiff -N -u"
+
+	By default, the built-in colorized unified diff is used.
+
+	Exit status: 0 No differences were found. 1 Differences were found. >1 An error occurred.`,
 	Example: "",
 	Args:    cobra.NoArgs,
-	RunE: func(*cobra.Command, []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		if syncCmdFlags.options.DryRun {
 			syncCmdFlags.options.Differ = execdiff.New(os.Stdout)
 		}
 
-		err := access.WithClient(syncTemplateFiles)
+		cmd.SilenceErrors = true
+
+		runErr := access.WithClient(syncTemplateFiles)
+
+		var hasDiff bool
 
 		if syncCmdFlags.options.Differ != nil {
-			if _, flushErr := syncCmdFlags.options.Differ.Flush(); flushErr != nil {
-				return errors.Join(err, flushErr)
+			flushed, flushErr := syncCmdFlags.options.Differ.Flush()
+			hasDiff = flushed
+
+			if flushErr != nil {
+				return errors.Join(runErr, flushErr)
 			}
 		}
 
-		return err
+		if runErr != nil {
+			return runErr
+		}
+
+		if hasDiff {
+			return execdiff.ErrDifferencesFound
+		}
+
+		return nil
 	},
 }
 

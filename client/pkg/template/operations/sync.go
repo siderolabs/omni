@@ -236,7 +236,7 @@ func renderDiff(w io.Writer, differ *execdiff.Differ, oldR, newR resource.Resour
 	}
 
 	label := utils.Describe(r)
-	filename := fmt.Sprintf("%s-%s.yaml", r.Metadata().Type(), r.Metadata().ID())
+	filename := execdiff.SanitizeFilename(r.Metadata().Type(), r.Metadata().ID()) + ".yaml"
 
 	return differ.AddDiff(label, filename, oldYAML, newYAML)
 }
