@@ -7,8 +7,11 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"os"
 
+	"github.com/siderolabs/omni/client/pkg/execdiff"
 	"github.com/siderolabs/omni/client/pkg/omnictl"
 	"github.com/siderolabs/omni/client/pkg/version"
 	internalversion "github.com/siderolabs/omni/internal/version"
@@ -23,6 +26,14 @@ func main() {
 	omnictl.RootCmd.Version = version.String()
 
 	if err := omnictl.RootCmd.Execute(); err != nil {
-		os.Exit(1)
+		// Differences-found is a signaling error (dry-run showed a diff),
+		// not a runtime failure. Map it to exit 1 silently so the documented
+		// contract holds: 0 = no diff, 1 = diff found, >1 = error.
+		if errors.Is(err, execdiff.ErrDifferencesFound) {
+			os.Exit(1)
+		}
+
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(2)
 	}
 }

@@ -18,11 +18,13 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/fatih/color"
 	"github.com/siderolabs/gen/ensure"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/diff"
 	"github.com/siderolabs/omni/client/pkg/execdiff"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
@@ -51,21 +53,38 @@ By default, the built-in colorized unified diff is used.
 
 Exit status: 0 No differences were found. 1 Differences were found. >1 An error occurred.`,
 	Args: cobra.NoArgs,
-	RunE: func(*cobra.Command, []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		if applyCmdFlags.options.dryRun {
 			applyCmdFlags.options.verbose = true
 			applyCmdFlags.options.differ = execdiff.New(os.Stdout)
 		}
 
-		err := access.WithClient(applyConfigFiles)
+		// Do not print ErrDifferencesFound as a user-facing error message;
+		// it's a signal for the exit code only.
+		cmd.SilenceErrors = true
+
+		runErr := access.WithClient(applyConfigFiles)
+
+		var hasDiff bool
 
 		if applyCmdFlags.options.differ != nil {
-			if _, flushErr := applyCmdFlags.options.differ.Flush(); flushErr != nil {
-				return errors.Join(err, flushErr)
+			flushed, flushErr := applyCmdFlags.options.differ.Flush()
+			hasDiff = flushed
+
+			if flushErr != nil {
+				return errors.Join(runErr, flushErr)
 			}
 		}
 
-		return err
+		if runErr != nil {
+			return runErr
+		}
+
+		if hasDiff {
+			return execdiff.ErrDifferencesFound
+		}
+
+		return nil
 	},
 }
 
@@ -194,7 +213,7 @@ func resourceLabel(res resource.Resource) string {
 }
 
 func resourceFilename(res resource.Resource) string {
-	return fmt.Sprintf("%s-%s.yaml", res.Metadata().Type(), res.Metadata().ID())
+	return execdiff.SanitizeFilename(res.Metadata().Type(), res.Metadata().ID()) + ".yaml"
 }
 
 func createResource(ctx context.Context, st state.State, res resource.Resource, opts options) error {
@@ -209,7 +228,11 @@ func createResource(ctx context.Context, st state.State, res resource.Resource, 
 				return err
 			}
 		} else {
-			fmt.Printf("Creating resource '%s'\n\n%s\n\n", res.Metadata().ID(), newYAML)
+			fmt.Printf("Creating resource '%s'\n", res.Metadata().ID())
+
+			if err := printUnifiedDiff(os.Stdout, resourceLabel(res), nil, newYAML); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -241,7 +264,11 @@ func updateResource(ctx context.Context, st state.State, got resource.Resource, 
 				return err
 			}
 		} else {
-			fmt.Printf("Updating resource '%s'\n\nold:\n%s\nnew:\n%s\n\n", res.Metadata().ID(), oldYAML, newYAML)
+			fmt.Printf("Updating resource '%s'\n", res.Metadata().ID())
+
+			if err := printUnifiedDiff(os.Stdout, resourceLabel(res), oldYAML, newYAML); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -254,6 +281,47 @@ func updateResource(ctx context.Context, st state.State, got resource.Resource, 
 	if err := st.Update(ctx, res); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// printUnifiedDiff renders a colorized unified diff, matching the --dry-run
+// differ output so verbose apply is consistent whether or not dry-run is set.
+func printUnifiedDiff(w io.Writer, label string, oldYAML, newYAML []byte) error {
+	diffStr, err := diff.Compute(oldYAML, newYAML)
+	if err != nil {
+		return err
+	}
+
+	diffStr, _ = strings.CutPrefix(diffStr, "--- a\n+++ b\n")
+
+	if diffStr == "" {
+		return nil
+	}
+
+	bold := color.New(color.Bold)
+	bold.Fprintf(w, "--- %s\n", label) //nolint:errcheck
+	bold.Fprintf(w, "+++ %s\n", label) //nolint:errcheck
+
+	cyan := color.New(color.FgCyan)
+	red := color.New(color.FgRed)
+	green := color.New(color.FgGreen)
+
+	for line := range strings.SplitSeq(diffStr, "\n") {
+		switch {
+		case strings.HasPrefix(line, "@@"):
+			cyan.Fprintln(w, line) //nolint:errcheck
+		case strings.HasPrefix(line, "-"):
+			red.Fprintln(w, line) //nolint:errcheck
+		case strings.HasPrefix(line, "+"):
+			green.Fprintln(w, line) //nolint:errcheck
+		case line == "":
+		default:
+			fmt.Fprintln(w, line) //nolint:errcheck
+		}
+	}
+
+	fmt.Fprintln(w) //nolint:errcheck
 
 	return nil
 }

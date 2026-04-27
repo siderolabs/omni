@@ -30,11 +30,17 @@ import (
 // Exit codes: 0 = no differences, 1 = differences found, >1 = error.
 const EnvExternalDiff = "OMNI_EXTERNAL_DIFF"
 
+// ErrDifferencesFound is a sentinel error returned by callers of Differ.Flush()
+// when they want to signal that differences were found. Commands should wrap
+// their result with this sentinel so that the top-level CLI can translate it
+// into the documented exit status (1 = differences found).
+var ErrDifferencesFound = errors.New("differences found")
+
 type entry struct {
-	label   string
+	label    string
 	filename string
-	oldYAML []byte
-	newYAML []byte
+	oldYAML  []byte
+	newYAML  []byte
 }
 
 // Differ accumulates resource diffs and renders them either using a built-in
@@ -60,16 +66,54 @@ func (d *Differ) IsExternal() bool {
 	return d.extCmd != ""
 }
 
+// SanitizeFilename returns a safe filename derived from the given parts.
+//
+// Path separators and traversal sequences are replaced with underscores so
+// that joining the result with a temp directory base path cannot escape the
+// directory. Empty / dot-only parts are replaced with an underscore.
+func SanitizeFilename(parts ...string) string {
+	out := make([]string, 0, len(parts))
+
+	for _, p := range parts {
+		out = append(out, sanitizeFilenamePart(p))
+	}
+
+	return strings.Join(out, "-")
+}
+
+func sanitizeFilenamePart(part string) string {
+	sanitized := strings.NewReplacer(
+		"/", "_",
+		"\\", "_",
+		"..", "__",
+		":", "_",
+		"\x00", "_",
+	).Replace(part)
+
+	switch sanitized {
+	case "", ".", "..":
+		return "_"
+	default:
+		return sanitized
+	}
+}
+
 // AddDiff records a diff between two versions of a resource.
 //
 // For creates, oldYAML should be nil. For deletes, newYAML should be nil.
 // label is a human-readable description (e.g. "MachineSet(cluster1)").
-// filename is used as the YAML file name in temp directories for external mode.
+// filename is used as the YAML file name in temp directories for external mode;
+// callers must provide a sanitized filename (see SanitizeFilename) - filenames
+// that contain path separators or traversal sequences are rejected.
 //
 // In built-in mode, the diff is rendered immediately to the writer.
 // In external mode, the entry is queued for Flush.
 func (d *Differ) AddDiff(label, filename string, oldYAML, newYAML []byte) error {
 	if d.IsExternal() {
+		if err := validateFilename(filename); err != nil {
+			return err
+		}
+
 		d.entries = append(d.entries, entry{
 			label:    label,
 			filename: filename,
@@ -81,6 +125,29 @@ func (d *Differ) AddDiff(label, filename string, oldYAML, newYAML []byte) error 
 	}
 
 	return d.renderBuiltin(label, oldYAML, newYAML)
+}
+
+// validateFilename ensures the filename is safe to join with a temp directory
+// base path: no path separators, no traversal components, not absolute, not empty.
+func validateFilename(name string) error {
+	if name == "" {
+		return errors.New("empty filename")
+	}
+
+	if filepath.IsAbs(name) {
+		return fmt.Errorf("absolute path not allowed: %q", name)
+	}
+
+	if name != filepath.Base(name) {
+		return fmt.Errorf("filename must not contain path separators: %q", name)
+	}
+
+	// filepath.Base("..") returns "..", so this also blocks parent-traversal.
+	if name == "." || name == ".." {
+		return fmt.Errorf("invalid filename: %q", name)
+	}
+
+	return nil
 }
 
 // Flush invokes the external diff tool with temp directories containing
@@ -111,6 +178,12 @@ func (d *Differ) Flush() (bool, error) {
 	defer os.RemoveAll(mergedDir) //nolint:errcheck
 
 	for _, e := range d.entries {
+		// Filenames were validated in AddDiff, but defend in depth: re-validate
+		// here to avoid any path escape if the slice was mutated.
+		if err := validateFilename(e.filename); err != nil {
+			return false, err
+		}
+
 		if e.oldYAML != nil {
 			if err := os.WriteFile(filepath.Join(liveDir, e.filename), e.oldYAML, 0o600); err != nil {
 				return false, fmt.Errorf("failed to write old YAML for %s: %w", e.label, err)
