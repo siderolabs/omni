@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"path"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -22,12 +23,14 @@ import (
 )
 
 type etcdElections struct {
-	logger   *zap.Logger
-	election *concurrency.Election
-	session  *concurrency.Session
-	eg       *panichandler.ErrGroup
+	logger         *zap.Logger
+	election       *concurrency.Election
+	session        *concurrency.Session
+	eg             *panichandler.ErrGroup
+	campaignCancel context.CancelFunc
 
-	mu sync.Mutex
+	mu         sync.Mutex
+	campaignWg sync.WaitGroup
 }
 
 func newEtcdElections(logger *zap.Logger) *etcdElections {
@@ -64,12 +67,24 @@ func (ee *etcdElections) run(ctx context.Context, client *clientv3.Client, elect
 
 	campaignErrCh := make(chan error, 1)
 
+	// Run Campaign on a sub-context so stop() can cancel it and wait for the
+	// goroutine to exit before calling Resign(); this avoids the data race on
+	// the Election's internal fields (leaderKey, leaderSession).
+	campaignCtx, campaignCancel := context.WithCancel(ctx)
+
+	ee.mu.Lock()
+	ee.campaignCancel = campaignCancel
+	ee.campaignWg.Add(1)
+	ee.mu.Unlock()
+
 	panichandler.Go(func() {
+		defer ee.campaignWg.Done()
+
 		ee.mu.Lock()
 		election := ee.election
 		ee.mu.Unlock()
 
-		campaignErrCh <- election.Campaign(ctx, campaignKey)
+		campaignErrCh <- election.Campaign(campaignCtx, campaignKey)
 	}, ee.logger)
 
 	ee.logger.Info("running the etcd election campaign")
@@ -79,6 +94,11 @@ campaignLoop:
 		select {
 		case err = <-campaignErrCh:
 			if err != nil {
+				// Campaign was canceled (parent ctx or stop()) — clean exit, not a campaign failure.
+				if errors.Is(err, context.Canceled) {
+					return nil
+				}
+
 				return fmt.Errorf("failed to conduct campaign: %w", err)
 			}
 
@@ -131,13 +151,34 @@ campaignLoop:
 
 func (ee *etcdElections) stop() error {
 	ee.mu.Lock()
+	cancel := ee.campaignCancel
+	ee.mu.Unlock()
+
+	// Cancel the in-flight Campaign and wait for the goroutine to exit. After
+	// this point, no one is mutating the Election's internal fields, so it is
+	// safe to call Resign() alongside session.Close() without racing Campaign().
+	if cancel != nil {
+		cancel()
+	}
+
+	ee.campaignWg.Wait()
+
+	ee.mu.Lock()
 	defer ee.mu.Unlock()
 
-	// Close the session to stop the elections. This revokes the lease, which
-	// deletes all keys attached to it (including the election key), achieving
-	// the same effect as Resign(). We intentionally don't call Resign() because
-	// Campaign() may still be running concurrently, writing to the Election's
-	// internal fields that Resign() would read, causing a data race.
+	if ee.election != nil {
+		// Use a fresh context: the caller ctx is typically canceled at shutdown,
+		// and we still want to delete the leader key promptly. Resign() issues a
+		// transactional delete of the leader key independent of the lease Revoke
+		// performed by session.Close(), so the leader key is removed even if
+		// Revoke is dropped during a racy shutdown.
+		resignCtx, resignCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer resignCancel()
+
+		resignErr := ee.election.Resign(resignCtx)
+		ee.logger.Info("resigned from the etcd election campaign", zap.Error(resignErr))
+	}
+
 	if ee.session != nil {
 		if err := ee.session.Close(); err != nil {
 			return err
