@@ -13,3 +13,6 @@ package internal
 
 // Generate nil-safe accessors for the config fields.
 //go:generate go run -tags=sidero.tools github.com/siderolabs/omni/internal/internal/tools/accessorgen --source=../pkg/config/types.generated.go --output=../pkg/config/accessors.generated.go
+
+// Generate Helm chart config values from the config schema.
+//go:generate go run -tags=sidero.tools github.com/siderolabs/omni/internal/internal/tools/helmvaluesgen --schema=../pkg/config/schema.json --overrides=../../deploy/helm/omni/config-overrides.yaml --values=../../deploy/helm/omni/values.yaml

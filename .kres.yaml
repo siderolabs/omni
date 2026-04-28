@@ -617,10 +617,14 @@ spec:
   baseSpecPath: /client/api
   goGenerateSpecs:
     - source: ./internal
+      extraInputs:
+        - deploy/helm/omni/config-overrides.yaml
+        - deploy/helm/omni/values.yaml
       copy:
         - frontend/
         - internal/backend/runtime/omni/controllers/omni/
         - internal/pkg/config/
+        - deploy/helm/omni/values.yaml
   vtProtobufEnabled: true
   specs:
     - source: client/api/common/omni.proto

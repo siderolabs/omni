@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-04-29T17:27:17Z by kres 7359c62.
+# Generated on 2026-04-30T07:33:35Z by kres 1762ab2.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN=scratch
@@ -281,6 +281,8 @@ COPY --from=proto-compile-frontend frontend/ frontend/
 FROM base AS go-generate-0
 WORKDIR /src
 COPY .license-header.go.txt hack/.license-header.go.txt
+COPY deploy/helm/omni/config-overrides.yaml deploy/helm/omni/config-overrides.yaml
+COPY deploy/helm/omni/values.yaml deploy/helm/omni/values.yaml
 RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg go generate ./internal/...
 RUN goimports -w -local github.com/siderolabs/omni/client,github.com/siderolabs/omni ./internal
 
@@ -382,6 +384,7 @@ COPY --from=proto-compile /client/api/ /client/api/
 COPY --from=go-generate-0 /src/frontend frontend
 COPY --from=go-generate-0 /src/internal/backend/runtime/omni/controllers/omni internal/backend/runtime/omni/controllers/omni
 COPY --from=go-generate-0 /src/internal/pkg/config internal/pkg/config
+COPY --from=go-generate-0 /src/deploy/helm/omni/values.yaml deploy/helm/omni/values.yaml
 COPY --from=embed-abbrev-generate /src/internal/version internal/version
 
 # builds acompat-linux-amd64

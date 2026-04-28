@@ -251,37 +251,22 @@ Here are the configurable parameters of the Omni chart and their default values.
 | config.account.name | string | `"app"` | Name is the human-readable name of the account. |
 | config.auth.auth0.clientID | string | `""` | ClientID is the Auth0 client ID. |
 | config.auth.auth0.domain | string | `""` | Domain is the Auth0 domain. |
-| config.auth.auth0.enabled | bool | `true` | Enabled controls whether the Auth0 authentication provider is enabled. |
-| config.auth.initialServiceAccount | string | `nil` | InitialServiceAccount contains configuration for the initial service account created when Omni is run for the first time. |
+| config.auth.auth0.enabled | bool | `true` | Enabled controls whether the Auth0 authentication provider is enabled. Once set to true, it cannot be set back to false. |
 | config.auth.initialUsers | list | `[]` | InitialUsers is a list of emails which should be created as admins when Omni is run for the first time. |
-| config.auth.keyPruner | string | `nil` | KeyPruner contains configuration for the public keys pruner. |
-| config.auth.oidc | string | `nil` | OIDC contains OIDC authentication provider configuration. |
-| config.auth.saml | string | `nil` | SAML contains SAML authentication provider configuration. |
-| config.debug.pprof | string | `nil` | Pprof contains pprof profiling configuration. |
-| config.debug.server | string | `nil` | Server contains debug server configuration. |
 | config.etcdBackup.localPath | string | `"/data/etcd-backup"` | LocalPath is the local path where etcd backups are stored. Path-based backups are enabled when this is set. This path is mounted from the persistent volume by default. |
-| config.etcdBackup.s3Enabled | bool | `false` | S3Enabled controls whether an S3-compatible storage is used for etcd backups. Mutually exclusive with localPath. |
-| config.features | string | `nil` | Features contains feature flags to enable/disable various Omni features. |
-| config.logs.audit | string | `nil` | Audit contains audit logs configuration. |
-| config.logs.machine.storage | string | `nil` | Storage contains configuration for machine logs storage. |
-| config.logs.resourceLogger | string | `nil` | ResourceLogger contains resource logger configuration. |
-| config.registries | string | `nil` | Registries contains container image registries configuration. |
+| config.etcdBackup.s3Enabled | bool | `false` | S3Enabled controls whether an S3-compatible storage is used for etcd backups. Mutually exclusive with localPath (.localPath). |
 | config.services.api.advertisedURL | string | `"https://omni.example.com"` | The advertised URL for the main Omni GRPC and HTTP API and Web UI. MUST be specified as a full URL, including scheme (http:// or https://). It MUST match the URL of the main ingress if ingress is used. |
-| config.services.embeddedDiscoveryService | string | `nil` | EmbeddedDiscoveryService contains embedded discovery service configuration. |
 | config.services.kubernetesProxy.advertisedURL | string | `"https://kubernetes.omni.example.com"` | The advertised URL for the Kubernetes API Proxy. MUST be specified as a full URL, including scheme (https://). It MUST match the URL of the kubernetes proxy ingress if ingress is used. |
-| config.services.loadBalancer | string | `nil` | LoadBalancer contains load balancer service configuration. |
-| config.services.localResourceService | string | `nil` | LocalResourceService contains local resource service configuration. |
 | config.services.machineAPI.advertisedURL | string | `"https://siderolink.omni.example.com"` | The advertised URL for the SideroLink (Machine) API. MUST be specified as a full URL, including scheme (http:// or https://). It MUST match the URL of the siderolink API ingress if ingress is used. |
 | config.services.siderolink.eventSinkPort | int | `8091` | EventSinkPort is the port to be used by the nodes to publish their events over SideroLink to Omni. |
-| config.services.siderolink.joinTokensMode | string | `"strict"` | JoinTokensMode configures how machine join tokens are generated and used. |
-| config.services.siderolink.wireGuard | string | `nil` |  |
+| config.services.siderolink.joinTokensMode | string | `"strict"` | JoinTokensMode configures how machine join tokens are generated and used. Set to strict to use the secure join tokens mode. |
 | config.services.workloadProxy.enabled | bool | `false` | Enabled controls whether the workload proxy service is enabled. In on-prem setups, it is often disabled. |
-| config.services.workloadProxy.subdomain | string | `"omni-workload"` | Subdomain is the subdomain used by the workload proxy service to expose workloads. |
+| config.services.workloadProxy.subdomain | string | `"omni-workload"` | Subdomain is the subdomain used by the workload proxy service to expose workloads. By default, it lives at the same level as Omni (e.g., "omni-apps.example.com" for Omni at "omni.example.com"). When useOmniSubdomain is true, it is placed under Omni's domain instead (e.g., "proxy.omni.example.com"). When useOmniSubdomain is true and subdomain is empty, services are exposed directly as subdomains of Omni (e.g., "grafana.omni.example.com"). |
 | config.storage.default.boltdb.path | string | `"/data/omni-boltdb.db"` | Path to the primary BoltDB database. Is **NOT USED by default**: only used if the storage.default.kind is set to "boltdb". This path is mounted from the persistent volume by default. |
 | config.storage.default.etcd.embedded | bool | `true` | Embedded controls whether to use embedded etcd server as the storage backend. |
 | config.storage.default.etcd.embeddedDBPath | string | `"/data/etcd/"` | EmbeddedDBPath is the path where the embedded etcd database files are stored. This path is mounted from the persistent volume by default. |
-| config.storage.default.etcd.privateKeySource | string | `"file:///omni.asc"` | PrivateKeySource is the source of the private key for decrypting master key slot. |
-| config.storage.default.kind | string | `"etcd"` | Kind is the kind of the default storage backend (etcd or boltdb). |
+| config.storage.default.etcd.privateKeySource | string | `"file:///omni.asc"` | PrivateKeySource is the source of the private key for the embedded etcd server. It is used for decrypting master key slot. |
+| config.storage.default.kind | string | `"etcd"` | Kind is the kind of the default storage backend. |
 | config.storage.sqlite.path | string | `"/data/secondary-storage/sqlite.db"` | Path to the SQLite database (secondary storage). This path is mounted from the persistent volume by default. |
 | config.storage.vault.token | string | `""` | Token is the authentication token for the Vault server. Tip: Use additionalConfigSources to load this from an existing Secret, or set the VAULT_TOKEN environment variable via env/envFrom. |
 | config.storage.vault.url | string | `""` | Url is the URL of the Vault server. |

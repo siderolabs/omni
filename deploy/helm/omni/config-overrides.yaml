@@ -1,0 +1,137 @@
+# Overrides for generating the `config` section in values.yaml from
+# internal/pkg/config/schema.json.
+#
+# `config` is a partial Omni config. Values present here are rendered as active
+# chart defaults; all other leaf values are rendered commented out using schema
+# defaults or type placeholders.
+#
+# `omit` removes paths from the generated chart config.
+#
+# `examples` overrides the commented-out example value used for paths that are
+# not active chart defaults.
+#
+# `comments` overrides schema descriptions only where the chart needs
+# chart-specific guidance or more concise documentation.
+
+config:
+  account:
+    name: app
+  auth:
+    auth0:
+      enabled: true
+      clientID: ""
+      domain: ""
+    initialUsers: []
+  etcdBackup:
+    localPath: /data/etcd-backup
+    s3Enabled: false
+  services:
+    api:
+      advertisedURL: https://omni.example.com
+    kubernetesProxy:
+      advertisedURL: https://kubernetes.omni.example.com
+    machineAPI:
+      advertisedURL: https://siderolink.omni.example.com
+    siderolink:
+      joinTokensMode: strict
+      eventSinkPort: 8091
+    workloadProxy:
+      enabled: false
+      subdomain: omni-workload
+  storage:
+    default:
+      kind: etcd
+      boltdb:
+        path: /data/omni-boltdb.db
+      etcd:
+        embedded: true
+        embeddedDBPath: /data/etcd/
+        privateKeySource: file:///omni.asc
+    sqlite:
+      path: /data/secondary-storage/sqlite.db
+    vault:
+      url: ""
+      token: ""
+
+omit:
+  account:
+    maxRegisteredMachines: true
+  auth:
+    auth0:
+      initialUsers: true
+    webauthn: true
+  logs:
+    stripe: true
+  support: true
+
+examples:
+  account:
+    id: ""
+  auth:
+    initialUsers:
+      - initial-user-1@example.com
+      - initial-user-2@example.com
+
+comments:
+  account:
+    id: |-
+      Unique identifier and name for this Omni instance.
+      Must be a UUID and not changed during the lifetime of the installation.
+  etcdBackup:
+    localPath: |-
+      LocalPath is the local path where etcd backups are stored.
+      Path-based backups are enabled when this is set.
+      This path is mounted from the persistent volume by default.
+  services:
+    api:
+      advertisedURL: |-
+        The advertised URL for the main Omni GRPC and HTTP API and Web UI.
+        MUST be specified as a full URL, including scheme (http:// or https://).
+        It MUST match the URL of the main ingress if ingress is used.
+    kubernetesProxy:
+      advertisedURL: |-
+        The advertised URL for the Kubernetes API Proxy.
+        MUST be specified as a full URL, including scheme (https://).
+        It MUST match the URL of the kubernetes proxy ingress if ingress is used.
+    machineAPI:
+      advertisedURL: |-
+        The advertised URL for the SideroLink (Machine) API.
+        MUST be specified as a full URL, including scheme (http:// or https://).
+        It MUST match the URL of the siderolink API ingress if ingress is used.
+    siderolink:
+      wireGuard:
+        advertisedEndpoint: |-
+          The advertised address for WireGuard connections.
+          MUST be specified in IP:PORT format (hostname is NOT supported, must be an IP address).
+          In most setups, this is either:
+          - NodePort: Use the externally accessible IP of a node and service.wireguard.nodePort (e.g., "203.0.113.10:30180")
+          - LoadBalancer: Use the LoadBalancer's external IP and service.wireguard.port (e.g., "203.0.113.50:50180")
+    workloadProxy:
+      enabled: |-
+        Enabled controls whether the workload proxy service is enabled.
+        In on-prem setups, it is often disabled.
+  auth:
+    oidc:
+      clientSecret: |-
+        ClientSecret is the OIDC client secret.
+        Tip: Use additionalConfigSources to load this from an existing Secret.
+  storage:
+    default:
+      boltdb:
+        path: |-
+          Path to the primary BoltDB database.
+          Is **NOT USED by default**: only used if the storage.default.kind is set to "boltdb".
+          This path is mounted from the persistent volume by default.
+      etcd:
+        embeddedDBPath: |-
+          EmbeddedDBPath is the path where the embedded etcd database files are stored.
+          This path is mounted from the persistent volume by default.
+    sqlite:
+      path: |-
+        Path to the SQLite database (secondary storage).
+        This path is mounted from the persistent volume by default.
+    vault:
+      token: |-
+        Token is the authentication token for the Vault server.
+        Tip: Use additionalConfigSources to load this from an existing Secret,
+        or set the VAULT_TOKEN environment variable via env/envFrom.
