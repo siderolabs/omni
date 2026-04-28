@@ -2002,7 +2002,17 @@ func TestInstallationMediaConfigValidation(t *testing.T) {
 	err = st.Create(ctx, installationMediaConfig)
 	require.Contains(t, err.Error(), "invalid installation media config: both sbc and cloud fields are set")
 
+	installationMediaConfig.TypedSpec().Value.Cloud = nil
+	installationMediaConfig.TypedSpec().Value.Sbc = &specs.InstallationMediaConfigSpec_SBC{Overlay: "nonexistent_board"}
+	err = st.Create(ctx, installationMediaConfig)
+	require.Contains(t, err.Error(), `invalid installation media config: unknown SBC overlay "nonexistent_board"`)
+
 	installationMediaConfig.TypedSpec().Value.Sbc = nil
+	installationMediaConfig.TypedSpec().Value.Cloud = &specs.InstallationMediaConfigSpec_Cloud{Platform: "nonexistent_platform"}
+	err = st.Create(ctx, installationMediaConfig)
+	require.Contains(t, err.Error(), `invalid installation media config: unknown cloud platform "nonexistent_platform"`)
+
+	installationMediaConfig.TypedSpec().Value.Cloud = &specs.InstallationMediaConfigSpec_Cloud{}
 	err = st.Create(ctx, installationMediaConfig)
 	require.NoError(t, err)
 
@@ -2034,8 +2044,23 @@ func TestInstallationMediaConfigValidation(t *testing.T) {
 	err = st.Update(ctx, modifiedInstallationMediaConfig)
 	require.Contains(t, err.Error(), "invalid installation media config: both sbc and cloud fields are set")
 
-	installationMediaConfig.TypedSpec().Value.Cloud.Platform = "AWS"
+	installationMediaConfig.TypedSpec().Value.Cloud.Platform = "aws"
 	require.NoError(t, st.Update(ctx, installationMediaConfig))
+
+	modifiedInstallationMediaConfig, ok = installationMediaConfig.DeepCopy().(*omnires.InstallationMediaConfig)
+	require.True(t, ok)
+
+	modifiedInstallationMediaConfig.TypedSpec().Value.Cloud = &specs.InstallationMediaConfigSpec_Cloud{Platform: "nonexistent"}
+	err = st.Update(ctx, modifiedInstallationMediaConfig)
+	require.Contains(t, err.Error(), `invalid installation media config: unknown cloud platform "nonexistent"`)
+
+	modifiedInstallationMediaConfig, ok = installationMediaConfig.DeepCopy().(*omnires.InstallationMediaConfig)
+	require.True(t, ok)
+
+	modifiedInstallationMediaConfig.TypedSpec().Value.Cloud = nil
+	modifiedInstallationMediaConfig.TypedSpec().Value.Sbc = &specs.InstallationMediaConfigSpec_SBC{Overlay: "nonexistent"}
+	err = st.Update(ctx, modifiedInstallationMediaConfig)
+	require.Contains(t, err.Error(), `invalid installation media config: unknown SBC overlay "nonexistent"`)
 
 	installationMediaConfig.Metadata().SetPhase(resource.PhaseTearingDown)
 	installationMediaConfig.TypedSpec().Value.TalosVersion = ""

@@ -25,6 +25,7 @@ import (
 
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/client"
+	clientconstants "github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -49,14 +50,10 @@ func AssertDownloadUsingCLI(testCtx context.Context, client *client.Client, omni
 		for val := range media.All() {
 			spec := val.TypedSpec().Value
 
-			switch spec.Profile {
-			case "aws":
-				fallthrough
-			case "iso":
-				images = append(images, val)
-			}
-
-			if spec.Overlay == "rpi_generic" {
+			switch {
+			case spec.Profile == "aws",
+				spec.Extension == "iso" && spec.Overlay == "",
+				spec.Overlay == "rpi_generic":
 				images = append(images, val)
 			}
 		}
@@ -151,6 +148,79 @@ func createServiceAccount(ctx context.Context, t *testing.T, client *client.Clie
 	require.NoError(t, err)
 
 	return encodedKey
+}
+
+// AssertInstallationMediaPresetCLI verifies installation-media CLI commands for preset create/list/delete and media download --preset.
+func AssertInstallationMediaPresetCLI(testCtx context.Context, client *client.Client, omnictlPath, httpEndpoint string) TestFunc {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		if omnictlPath == "" {
+			t.Skip()
+		}
+
+		presetName := "test-preset-" + uuid.NewString()
+		name := "test-" + uuid.NewString()
+
+		key := createServiceAccount(testCtx, t, client, name, role.Admin)
+
+		// Create a preset
+		stdout, stderr, err := runCmd(
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "create", presetName,
+			"--arch", "amd64",
+			"--talos-version", clientconstants.DefaultTalosVersion,
+		)
+		require.NoErrorf(t, err, "failed to create preset. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+
+		// List presets and verify ours exists
+		stdout, stderr, err = runCmd(
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "list",
+		)
+		require.NoErrorf(t, err, "failed to list presets. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+		require.Contains(t, stdout.String(), presetName)
+
+		// Download from preset
+		output := filepath.Join(t.TempDir(), "preset-download.iso")
+
+		stdout, stderr, err = runCmd(
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "download", presetName,
+			"--format", "iso",
+			"--output", output,
+		)
+		require.NoErrorf(t, err, "failed to download from preset. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+
+		res, err := os.Stat(output)
+		require.NoError(t, err)
+		require.Greater(t, res.Size(), int64(1024*1024))
+
+		// Delete the preset
+		stdout, stderr, err = runCmd(
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "delete", presetName,
+		)
+		require.NoErrorf(t, err, "failed to delete preset. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+
+		// Verify deletion
+		stdout, stderr, err = runCmd(
+			omnictlPath,
+			httpEndpoint,
+			key,
+			"media", "list",
+		)
+		require.NoErrorf(t, err, "failed to list presets after deletion. stdout: %q | stderr: %q", stdout.String(), stderr.String())
+		require.NotContains(t, stdout.String(), presetName)
+	}
 }
 
 // AssertUserCLI verifies user management cli commands.
