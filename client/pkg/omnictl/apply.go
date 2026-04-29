@@ -18,12 +18,14 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/fatih/color"
 	"github.com/siderolabs/gen/ensure"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/diff"
+	"github.com/siderolabs/omni/client/pkg/execdiff"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
 
@@ -38,17 +40,51 @@ var applyCmd = &cobra.Command{
 	Short: "Create or update resource using YAML file or directory as an input",
 	Long: `Create or update resources using YAML file(s) as input.
 
-	If a file is specified, only that file will be processed.
-	If a directory is specified, all YAML files (*.yaml, *.yml) in the directory
-	and its subdirectories will be processed recursively. Each file is processed
-	independently, similar to kubectl behavior.`,
+If a file is specified, only that file will be processed.
+If a directory is specified, all YAML files (*.yaml, *.yml) in the directory
+and its subdirectories will be processed recursively. Each file is processed
+independently, similar to kubectl behavior.
+
+When --dry-run is used, ` + execdiff.EnvExternalDiff + ` environment variable can be
+used to select an external diff command. Users can use external commands with
+params too, example: ` + execdiff.EnvExternalDiff + `="colordiff -N -u"
+
+By default, the built-in colorized unified diff is used.
+
+Exit status: 0 No differences were found. 1 Differences were found. >1 An error occurred.`,
 	Args: cobra.NoArgs,
-	RunE: func(*cobra.Command, []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		if applyCmdFlags.options.dryRun {
 			applyCmdFlags.options.verbose = true
+			applyCmdFlags.options.differ = execdiff.New(os.Stdout)
 		}
 
-		return access.WithClient(applyConfigFiles)
+		// Do not print ErrDifferencesFound as a user-facing error message;
+		// it's a signal for the exit code only.
+		cmd.SilenceErrors = true
+
+		runErr := access.WithClient(applyConfigFiles)
+
+		var hasDiff bool
+
+		if applyCmdFlags.options.differ != nil {
+			flushed, flushErr := applyCmdFlags.options.differ.Flush()
+			hasDiff = flushed
+
+			if flushErr != nil {
+				return errors.Join(runErr, flushErr)
+			}
+		}
+
+		if runErr != nil {
+			return runErr
+		}
+
+		if hasDiff {
+			return execdiff.ErrDifferencesFound
+		}
+
+		return nil
 	},
 }
 
@@ -167,18 +203,37 @@ func applyConfigFromBytes(ctx context.Context, client *client.Client, yamlRaw []
 }
 
 type options struct {
+	differ  *execdiff.Differ
 	dryRun  bool
 	verbose bool
 }
 
+func resourceLabel(res resource.Resource) string {
+	return fmt.Sprintf("%s(%s)", res.Metadata().Type(), res.Metadata().ID())
+}
+
+func resourceFilename(res resource.Resource) string {
+	return execdiff.SanitizeFilename(res.Metadata().Type(), res.Metadata().ID()) + ".yaml"
+}
+
 func createResource(ctx context.Context, st state.State, res resource.Resource, opts options) error {
 	if opts.verbose {
-		out, err := marshalResource(res)
+		newYAML, err := marshalResource(res)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("Creating resource '%s'\n\n%s\n\n", res.Metadata().ID(), out)
+		if opts.differ != nil {
+			if err := opts.differ.AddDiff(resourceLabel(res), resourceFilename(res), nil, newYAML); err != nil {
+				return err
+			}
+		} else {
+			fmt.Printf("Creating resource '%s'\n", res.Metadata().ID())
+
+			if err := printUnifiedDiff(os.Stdout, resourceLabel(res), nil, newYAML); err != nil {
+				return err
+			}
+		}
 	}
 
 	if opts.dryRun {
@@ -194,20 +249,27 @@ func createResource(ctx context.Context, st state.State, res resource.Resource, 
 
 func updateResource(ctx context.Context, st state.State, got resource.Resource, res resource.Resource, opts options) error {
 	if opts.verbose {
-		outGot, err := marshalResource(got)
+		oldYAML, err := marshalResource(got)
 		if err != nil {
 			return err
 		}
 
-		outRes, err := marshalResource(res)
+		newYAML, err := marshalResource(res)
 		if err != nil {
 			return err
 		}
 
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(outGot, outRes, false)
+		if opts.differ != nil {
+			if err := opts.differ.AddDiff(resourceLabel(res), resourceFilename(res), oldYAML, newYAML); err != nil {
+				return err
+			}
+		} else {
+			fmt.Printf("Updating resource '%s'\n", res.Metadata().ID())
 
-		fmt.Printf("Updating resource '%s'\n\n%s\n\n", res.Metadata().ID(), dmp.DiffPrettyText(diffs))
+			if err := printUnifiedDiff(os.Stdout, resourceLabel(res), oldYAML, newYAML); err != nil {
+				return err
+			}
+		}
 	}
 
 	if opts.dryRun {
@@ -223,18 +285,59 @@ func updateResource(ctx context.Context, st state.State, got resource.Resource, 
 	return nil
 }
 
-func marshalResource(res resource.Resource) (string, error) {
+// printUnifiedDiff renders a colorized unified diff, matching the --dry-run
+// differ output so verbose apply is consistent whether or not dry-run is set.
+func printUnifiedDiff(w io.Writer, label string, oldYAML, newYAML []byte) error {
+	diffStr, err := diff.Compute(oldYAML, newYAML)
+	if err != nil {
+		return err
+	}
+
+	diffStr, _ = strings.CutPrefix(diffStr, "--- a\n+++ b\n")
+
+	if diffStr == "" {
+		return nil
+	}
+
+	bold := color.New(color.Bold)
+	bold.Fprintf(w, "--- %s\n", label) //nolint:errcheck
+	bold.Fprintf(w, "+++ %s\n", label) //nolint:errcheck
+
+	cyan := color.New(color.FgCyan)
+	red := color.New(color.FgRed)
+	green := color.New(color.FgGreen)
+
+	for line := range strings.SplitSeq(diffStr, "\n") {
+		switch {
+		case strings.HasPrefix(line, "@@"):
+			cyan.Fprintln(w, line) //nolint:errcheck
+		case strings.HasPrefix(line, "-"):
+			red.Fprintln(w, line) //nolint:errcheck
+		case strings.HasPrefix(line, "+"):
+			green.Fprintln(w, line) //nolint:errcheck
+		case line == "":
+		default:
+			fmt.Fprintln(w, line) //nolint:errcheck
+		}
+	}
+
+	fmt.Fprintln(w) //nolint:errcheck
+
+	return nil
+}
+
+func marshalResource(res resource.Resource) ([]byte, error) {
 	yamlRes, err := resource.MarshalYAML(res)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
+		return nil, fmt.Errorf("failed to marshal resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
 	}
 
 	out, err := yaml.Marshal(yamlRes)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
+		return nil, fmt.Errorf("failed to marshal resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
 	}
 
-	return string(out), nil
+	return out, nil
 }
 
 func init() {
