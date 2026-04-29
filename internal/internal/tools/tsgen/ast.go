@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-//go:build tools
+//go:build sidero.tools
 
 package main
 
@@ -62,12 +62,14 @@ func FindTSGenConstants(f file) ([]ConstantWithDirective, error) {
 	constants := FindConstants(f)
 
 	var result []ConstantWithDirective
+
 	for _, constant := range constants {
 		for _, comment := range constant.Doc {
 			if directive, ok := extractTsGenDirective(comment); ok {
 				if directive == "" {
 					return nil, fmt.Errorf("empty directive in %s", constant.Name)
 				}
+
 				result = append(result, ConstantWithDirective{
 					Constant:  constant,
 					Directive: directive,
@@ -97,26 +99,27 @@ func extractTsGenDirective(comment string) (string, bool) {
 
 // Constant represents a constant with a doc, name and a value.
 type Constant struct {
-	Doc   []string
 	Name  string
 	Value string
+	Doc   []string
 }
 
 // ConstantWithDirective represents a Constant with a directive.
 type ConstantWithDirective struct {
-	Constant
 	Directive string
+	Constant
 }
 
 // FindConstants returns a list of constants in the given file.
 func FindConstants(file file) []Constant {
 	var result []Constant
+
 	ast.Inspect(file.f, func(n ast.Node) bool {
 		if decl, ok := n.(*ast.GenDecl); ok {
 			if decl.Tok == token.CONST {
 				if decl.Lparen == token.NoPos {
-					name := decl.Specs[0].(*ast.ValueSpec).Names[0]
-					obj := file.pkg.TypesInfo.Defs[name].(*types.Const)
+					name := decl.Specs[0].(*ast.ValueSpec).Names[0]     //nolint:forcetypeassert,errcheck
+					obj := file.pkg.TypesInfo.Defs[name].(*types.Const) //nolint:forcetypeassert,errcheck
 					value := obj.Val().String()
 
 					result = append(result, Constant{
@@ -137,7 +140,7 @@ func FindConstants(file file) []Constant {
 						}
 
 						name := valueSpec.Names[0]
-						obj := file.pkg.TypesInfo.Defs[name].(*types.Const)
+						obj := file.pkg.TypesInfo.Defs[name].(*types.Const) //nolint:forcetypeassert,errcheck
 						value := obj.Val().String()
 
 						result = append(result, Constant{
@@ -151,6 +154,7 @@ func FindConstants(file file) []Constant {
 
 			return false
 		}
+
 		return true
 	})
 

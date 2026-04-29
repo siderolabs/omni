@@ -68,8 +68,6 @@ type ClusterMachineConfigStatusController struct {
 }
 
 // NewClusterMachineConfigStatusController initializes ClusterMachineConfigStatusController.
-//
-//nolint:gocognit,gocyclo,cyclop,maintidx
 func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry string) *ClusterMachineConfigStatusController {
 	ongoingResets := &ongoingResets{
 		statuses: map[string]*resetStatus{},
@@ -543,7 +541,7 @@ func logClose(c io.Closer, logger *zap.Logger, additional string) {
 	}
 }
 
-//nolint:gocyclo,cyclop,gocognit,maintidx
+//nolint:gocyclo,cyclop
 func (ctrl *ClusterMachineConfigStatusController) reset(
 	ctx context.Context,
 	logger *zap.Logger,

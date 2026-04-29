@@ -44,7 +44,7 @@ will only work if the cluster is locked and tainted as "importing"`,
 				return fmt.Errorf("failed to abort import operation for cluster %q: %w", clusterID, err)
 			}
 
-			fmt.Fprintf(os.Stderr, "import operation was aborted successfully for cluster %q\n", clusterID) //nolint:errcheck
+			fmt.Fprintf(os.Stderr, "import operation was aborted successfully for cluster %q\n", clusterID)
 
 			return nil
 		})

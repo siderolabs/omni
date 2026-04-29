@@ -136,8 +136,6 @@ type schematicConfigurationHelper struct {
 }
 
 // Reconcile implements controller.QController interface.
-//
-//nolint:gocognit,gocyclo,cyclop
 func (helper *schematicConfigurationHelper) reconcile(
 	ctx context.Context,
 	r controller.ReaderWriter,
@@ -353,7 +351,6 @@ func newMachineCustomization(ctx context.Context, r controller.Reader, ms *omni.
 	return mc, nil
 }
 
-//nolint:recvcheck
 type machineCustomization struct {
 	machineStatus      *omni.MachineStatus
 	machineExtensions  *omni.MachineExtensions

@@ -286,7 +286,7 @@ func (s *Store) Reader(ctx context.Context, nLines int, follow bool) (logstore.L
 		}
 	}
 
-	conn, next, stop, err := s.readerRows(ctx, nLines) //nolint:rowserrcheck // false positive, we do not iterate the logs here
+	conn, next, stop, err := s.readerRows(ctx, nLines)
 	if err != nil {
 		s.unsubscribe(followCh)
 		close(closeCh)
@@ -373,7 +373,7 @@ func (r *lineReader) fetchNextBatch(ctx context.Context) error {
 
 	var err error
 
-	r.next, r.stop, err = r.store.readerRowsAfter(r.conn, r.lastLogID) //nolint:rowserrcheck // false positive, we do not iterate the logs here
+	r.next, r.stop, err = r.store.readerRowsAfter(r.conn, r.lastLogID)
 	if err != nil {
 		// If the context was canceled during the query, return EOF
 		// to allow graceful shutdown of the reader loop.

@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-//go:build tools
+//go:build sidero.tools
 
 package main
 
@@ -49,6 +49,7 @@ func run(dirsToParse []string, tags string, out string) error {
 			if err != nil {
 				return err
 			}
+
 			result = append(result, filtered...)
 		}
 
@@ -60,14 +61,16 @@ func run(dirsToParse []string, tags string, out string) error {
 
 func createFoldersForFile(out string) error {
 	dir := filepath.Dir(out)
+
 	return os.MkdirAll(dir, os.ModePerm)
 }
 
-// getParams parses the command line parameters and returns the output file, the directory to parse and an error
+// getParams parses the command line parameters and returns the output file, the directory to parse and an error.
 func getParams() (out string, dirsToParse []string, tags string, _ error) {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s -out <output file> <input dir>\n", os.Args[0])
 	}
+
 	flag.StringVar(&out, "out", "", "output file")
 	flag.StringVar(&tags, "tags", "", "build tags")
 	flag.Parse()
@@ -94,6 +97,7 @@ func getParams() (out string, dirsToParse []string, tags string, _ error) {
 // fillTemplate fills the provided Template with the given data.
 func fillTemplate(t *template.Template, data any) (string, error) {
 	var buf strings.Builder
+
 	err := t.Execute(&buf, data)
 	if err != nil {
 		return "", err
@@ -115,6 +119,7 @@ var Tpl string
 // SaveConstantsToFile saves the given constants to the given file.
 func SaveConstantsToFile(file string, data any) error {
 	t := MakeTemplate("ts_gen", Tpl)
+
 	s, err := fillTemplate(t, data)
 	if err != nil {
 		return err
@@ -133,7 +138,7 @@ func WriteFile(file string, s string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	_, err = f.WriteString(s)
 	if err != nil {

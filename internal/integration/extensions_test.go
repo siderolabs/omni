@@ -90,6 +90,7 @@ func checkExtensions(ctx context.Context, talosClient *talosclient.Client, exten
 		if i < 0 {
 			return fmt.Errorf("extensions/order mismatch: expected %q to be a subsequence of %q", extensions, collectedExtensions)
 		}
+
 		pos += i + 1
 	}
 

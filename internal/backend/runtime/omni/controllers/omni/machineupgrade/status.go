@@ -65,7 +65,7 @@ func NewStatusController(imageFactoryHost, talosRegistry string, talosClientFact
 	return ctrl
 }
 
-//nolint:gocyclo,cyclop,maintidx
+//nolint:gocyclo,cyclop
 func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader, logger *zap.Logger, ms *omni.MachineStatus, status *omni.MachineUpgradeStatus) error {
 	helpers.SyncLabels(ms, status, omni.LabelCluster, omni.LabelMachineSet)
 

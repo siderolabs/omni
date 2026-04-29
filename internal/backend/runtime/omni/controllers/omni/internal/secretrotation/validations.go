@@ -97,7 +97,7 @@ func (c Candidate) validateKubernetesCARotation(ctx context.Context, lbConfig *o
 	if err != nil {
 		return false, err
 	}
-	defer k8sClient.Close() //nolint:errcheck
+	defer k8sClient.Close()
 
 	clientset := k8sClient.Clientset()
 

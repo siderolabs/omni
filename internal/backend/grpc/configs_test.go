@@ -133,7 +133,7 @@ func TestGenerateConfigs(t *testing.T) {
 		_, err = clientcmd.Load(kubeconfig)
 		require.NoError(t, err)
 
-		updatedClusterStatus, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, st.Default(), clusterName) // nolint:govet
+		updatedClusterStatus, err := safe.ReaderGetByID[*omni.ClusterStatus](ctx, st.Default(), clusterName) //nolint:govet
 		require.NoError(t, err)
 
 		_, taintBreakGlass := updatedClusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByBreakGlass)

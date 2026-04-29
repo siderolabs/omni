@@ -89,6 +89,7 @@ func AssertBlockClusterAndTalosAPIAndKubernetesShouldBeReady(
 	clusterName, expectedTalosVersion, expectedKubernetesVersion string,
 ) []subTest { //nolint:nolintlint,revive
 	omniState := options.omniClient.Omni().State()
+
 	return AssertBlockClusterShouldBeReady(ctx, options, clusterName, expectedTalosVersion).
 		Append(AssertBlockProxyAPIAccessShouldWork(ctx, options, clusterName)...).
 		Append(

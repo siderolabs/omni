@@ -166,7 +166,6 @@ func (s *managementServer) syncSSA(
 			return fmt.Errorf("failed to send manifest sync response: %w", err)
 		}
 
-		//nolint:exhaustive
 		switch r.Action {
 		case ssa.CreatedAction, ssa.ConfiguredAction:
 			if !req.DryRun && !resp.Skipped {

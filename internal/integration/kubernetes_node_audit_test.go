@@ -35,6 +35,7 @@ import (
 //  5. Assert that the worker node eventually gets removed from Kubernetes due to node audit.
 func AssertKubernetesNodeAudit(testCtx context.Context, clusterName string, options *TestOptions) TestFunc {
 	st := options.omniClient.Omni().State()
+
 	return func(t *testing.T) {
 		ctx := kubernetes.WrapContext(testCtx, t)
 

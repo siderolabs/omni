@@ -163,7 +163,7 @@ func NewStatusController() *TalosUpgradeStatusController {
 	return ctrl
 }
 
-//nolint:gocyclo,cyclop,gocognit
+//nolint:gocyclo,cyclop
 func (ctrl *TalosUpgradeStatusController) reconcileStatus(ctx context.Context, r controller.ReaderWriter,
 	clusterMachines safe.List[*omni.ClusterMachine], outdatedMachines *outdatedMachines,
 	cluster *omni.Cluster, upgradeStatus *omni.TalosUpgradeStatus,

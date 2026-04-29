@@ -869,7 +869,7 @@ func findBackups(ctx context.Context, t *testing.T, st state.State, sf store.Fac
 }
 
 func toSlice(t *testing.T, it iter.Seq2[etcdbackup.Info, error]) []etcdbackup.Info {
-	var result []etcdbackup.Info //nolint:prealloc
+	var result []etcdbackup.Info
 
 	for v, err := range it {
 		require.NoError(t, err)

@@ -232,7 +232,7 @@ func addEditingComment(in string) string {
 	fmt.Fprintln(&sb, "# Edit Failed:")
 
 	for _, line := range lines {
-		fmt.Fprintf(&sb, "# %s\n", line) //nolint:errcheck
+		fmt.Fprintf(&sb, "# %s\n", line)
 	}
 
 	return sb.String()

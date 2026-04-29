@@ -234,7 +234,7 @@ func checkNotifications(ctx context.Context, st state.State, info ServerInfo) er
 			prefix = "[UNKNOWN]"
 		}
 
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", prefix, spec.Title, spec.Body) //nolint:errcheck
+		fmt.Fprintf(os.Stderr, "%s %s: %s\n", prefix, spec.Title, spec.Body)
 	}
 
 	return nil

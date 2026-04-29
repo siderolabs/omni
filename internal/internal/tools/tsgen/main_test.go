@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-//go:build tools
+//go:build sidero.tools
 
 package main
 
@@ -36,8 +36,7 @@ func Test_run(t *testing.T) {
 		err := run([]string{"./testdata/good/pkg/."}, "tools", "testdata/good/out/resources.ts")
 		require.NoError(t, err)
 		t.Cleanup(func() {
-			err := os.RemoveAll("testdata/good/out")
-			require.NoError(t, err)
+			require.NoError(t, os.RemoveAll("testdata/good/out"))
 		})
 
 		actual, err := os.ReadFile("testdata/good/out/resources.ts")

@@ -200,7 +200,6 @@ func (c *Config) Merge(additionalConfigPath string) ([]Rename, error) {
 	return renames, nil
 }
 
-//nolint:gocognit
 func defaultPath(readOnly bool) (string, error) {
 	path := os.Getenv(OmniConfigEnvVar)
 	if path != "" {

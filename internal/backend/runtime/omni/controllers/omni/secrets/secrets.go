@@ -42,7 +42,7 @@ type Controller struct {
 
 // NewSecretsController instantiates the secrets' controller.
 //
-//nolint:gocognit,gocyclo,cyclop,maintidx
+//nolint:gocognit,gocyclo,cyclop
 func NewSecretsController(etcdBackupStoreFactory store.Factory) *Controller {
 	ctrl := &Controller{}
 

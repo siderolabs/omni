@@ -74,7 +74,7 @@ func WatchLegacy(ctx context.Context, st state.State, md resource.Metadata, out 
 		return nil
 	}
 
-	var listOpts []state.ListOption //nolint:prealloc
+	var listOpts []state.ListOption
 
 	for _, query := range queries {
 		listOpts = append(listOpts, state.WithLabelQuery(resource.RawLabelQuery(query)))

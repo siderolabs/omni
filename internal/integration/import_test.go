@@ -35,8 +35,10 @@ import (
 func testClusterImport(t *testing.T, options *TestOptions) {
 	t.Parallel()
 
-	var clusterID string
-	var clusterNodes []string
+	var (
+		clusterID    string
+		clusterNodes []string
+	)
 
 	if options.ImportedClusterStatePath != "" {
 		f, err := os.ReadFile(options.ImportedClusterStatePath)
@@ -80,6 +82,7 @@ func testImport(t *testing.T, options *TestOptions, clusterID string, clusterNod
 
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
 	defer cancel()
+
 	logger := zaptest.NewLogger(t)
 
 	omniState := options.omniClient.Omni().State()
@@ -160,6 +163,7 @@ func testImportAbort(t *testing.T, options *TestOptions, clusterID string, clust
 
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
 	defer cancel()
+
 	logger := zaptest.NewLogger(t)
 
 	omniState := options.omniClient.Omni().State()

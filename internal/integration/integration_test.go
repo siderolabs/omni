@@ -67,7 +67,7 @@ var (
 	anotherKubernetesVersion string
 	expectedMachines         int
 
-	// provisioning flags
+	// provisioning flags.
 	provisionMachinesCount int
 	infraProvider          string
 	providerData           string
@@ -445,10 +445,10 @@ func runOmni(t *testing.T) (string, error) {
 
 	var logger *zap.Logger
 
-	switch {
-	case omniLogOutput == "inline":
+	switch omniLogOutput {
+	case "inline":
 		logger = zaptest.NewLogger(t)
-	case omniLogOutput == "":
+	case "":
 		logger = zap.NewNop()
 
 		t.Log("discard Omni log")

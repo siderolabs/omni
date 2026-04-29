@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-//go:build tools
+//go:build sidero.tools
 
 package gen_test
 
@@ -36,6 +36,7 @@ type Complex struct {
 }
 `
 	dir := t.TempDir()
+
 	inputFile := filepath.Join(dir, "input.go")
 	if err := os.WriteFile(inputFile, []byte(inputContent), 0o644); err != nil {
 		t.Fatalf("failed to write input file: %v", err)
@@ -52,6 +53,7 @@ type Complex struct {
 	if err != nil {
 		t.Fatalf("failed to read output file: %v", err)
 	}
+
 	output := string(content)
 
 	expectedChecks := []string{

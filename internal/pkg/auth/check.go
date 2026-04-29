@@ -97,8 +97,6 @@ func WithVerifiedEmail() CheckOption {
 // Check checks the given context for the given authentication and authorization conditions.
 //
 // The returned error can be checked against ErrUnauthenticated and ErrUnauthorized.
-//
-//nolint:gocyclo,cyclop
 func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 	authVal, ok := ctxstore.Value[EnabledAuthContextKey](ctx)
 	if !ok {

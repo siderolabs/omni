@@ -173,16 +173,6 @@ func talosNodeIPs(ctx context.Context, talosState state.State) ([]string, error)
 }
 
 //nolint:govet
-type testGroup struct {
-	Name         string
-	Description  string
-	Parallel     bool
-	MachineClaim int
-	Subtests     []subTest
-	Finalizer    func(t *testing.T)
-}
-
-//nolint:govet
 type subTest struct {
 	Name string
 	F    func(t *testing.T)
@@ -286,9 +276,8 @@ type MachineProviderConfig struct {
 
 // TestOptions constains all common data that might be required to run the tests.
 type TestOptions struct {
-	Options
-	omniClient        *client.Client
-	serviceAccountKey string
-
+	omniClient       *client.Client
 	machineSemaphore *semaphore.Weighted
+	Options
+	serviceAccountKey string
 }

@@ -49,8 +49,6 @@ func NewInfraMachineController(installEventCh <-chan resource.ID) *InfraMachineC
 }
 
 // Settings implements the controller.QController interface.
-//
-//nolint:dupl
 func (ctrl *InfraMachineController) Settings() controller.QSettings {
 	return controller.QSettings{
 		Inputs: []controller.Input{

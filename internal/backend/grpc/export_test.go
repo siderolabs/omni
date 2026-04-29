@@ -21,7 +21,6 @@ type AuthServer = authServer
 // ManagementServerOption configures a test management server.
 type ManagementServerOption func(*ManagementServer)
 
-//nolint:revive
 func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client, logger *zap.Logger,
 	enableBreakGlassConfigs bool, kubernetesRuntime KubernetesRuntime, talosconfigProvider TalosconfigProvider,
 	opts ...ManagementServerOption,

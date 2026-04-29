@@ -82,7 +82,7 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 				return retry.ExpectedError(err)
 			}
 
-			// nolint:exhaustive
+			//nolint:exhaustive
 			switch status.Code(err) {
 			case codes.DeadlineExceeded,
 				codes.Unavailable,
@@ -299,6 +299,7 @@ func AssertEtcdMembershipMatchesOmniResources(testCtx context.Context, options *
 					memberIDs := xslices.Map(m.Members, func(m *machine.EtcdMember) string { return etcd.FormatMemberID(m.Id) })
 
 					t.Logf("the count of members doesn't match the count of machines, expected %d, got: %d, members list: %s", len(clusterMachines), len(m.Members), memberIDs)
+
 					return
 				}
 
@@ -307,6 +308,7 @@ func AssertEtcdMembershipMatchesOmniResources(testCtx context.Context, options *
 
 					if !assert.True(collect, ok) {
 						t.Logf("found etcd member which doesn't have associated machine status")
+
 						return
 					}
 				}

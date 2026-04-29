@@ -30,7 +30,8 @@ type InfraProviderCleanupController = cleanup.Controller[*infra.Provider]
 
 // NewInfraProviderCleanupController returns a new InfraProviderCleanup controller.
 // This controller removes infra.ProviderStatus and infra.ProviderHealthStatus resources reported by the provider.
-// nolint:gocognit,gocyclo,cyclop
+//
+//nolint:gocognit,gocyclo,cyclop
 func NewInfraProviderCleanupController() *InfraProviderCleanupController {
 	return cleanup.NewController(
 		cleanup.Settings[*infra.Provider]{

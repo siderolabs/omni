@@ -67,7 +67,7 @@ func AssertWorkerNodesRollingConfigUpdate(testCtx context.Context, cli *client.C
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelMachineSet, workersResourceID))
 
-		err = machineSetPatch.TypedSpec().Value.SetUncompressedData([]byte(fmt.Sprintf(`{"machine":{"env":{"%d":"test-val"}}}`, epochSeconds)))
+		err = machineSetPatch.TypedSpec().Value.SetUncompressedData(fmt.Appendf(nil, `{"machine":{"env":{"%d":"test-val"}}}`, epochSeconds))
 		require.NoError(t, err)
 
 		require.NoError(t, st.Create(ctx, machineSetPatch))
@@ -150,13 +150,9 @@ func AssertWorkerNodesRollingScaleDown(testCtx context.Context, cli *client.Clie
 		t.Cleanup(wg.Wait)
 
 		machineSetNodeList.ForEach(func(node *omni.MachineSetNode) {
-			wg.Add(1)
-
-			go func() {
-				defer wg.Done()
-
+			wg.Go(func() {
 				rtestutils.Destroy[*omni.MachineSetNode](ctx, t, st, []string{node.Metadata().ID()})
-			}()
+			})
 		})
 
 		// expect the machine set to go into the ScalingDown phase

@@ -80,8 +80,6 @@ type TestOptions struct {
 }
 
 // Test tests the exposed services functionality in Omni.
-//
-//nolint:prealloc
 func Test(ctx context.Context, t *testing.T, omniClient *client.Client, serviceAccountKey string, opts TestOptions, clusterIDs ...string) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
 	t.Cleanup(cancel)
@@ -105,8 +103,8 @@ func Test(ctx context.Context, t *testing.T, omniClient *client.Client, serviceA
 	}
 
 	var (
-		allServices            []serviceContext       //nolint:prealloc
-		allExposedServices     []*omni.ExposedService //nolint:prealloc
+		allServices            []serviceContext
+		allExposedServices     []*omni.ExposedService
 		deploymentsToScaleDown []deploymentContext
 	)
 

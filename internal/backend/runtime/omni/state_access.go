@@ -375,8 +375,6 @@ func verbToRole(verb state.Verb) role.Role {
 }
 
 // filterAccess provides a filter to exclude some resources and operations from external sources.
-//
-//nolint:cyclop,gocyclo
 func filterAccess(ctx context.Context, access state.Access) error {
 	if actor.ContextIsInternalActor(ctx) {
 		return nil

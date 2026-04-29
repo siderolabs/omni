@@ -170,7 +170,6 @@ func (suite *MigrationSuite) TestMoveInfraProviderAnnotationsToLabels() {
 	suite.False(machine1AnnotationOk)
 }
 
-//nolint:dupl
 func (suite *MigrationSuite) TestDropSchematicConfigFinalizerFromClusterMachines() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
@@ -207,7 +206,6 @@ func (suite *MigrationSuite) TestDropSchematicConfigFinalizerFromClusterMachines
 	suite.True(cm3VersionBefore.Equal(cm3Migrated.Metadata().Version()), "expected cm3 to be left untouched")
 }
 
-//nolint:dupl
 func (suite *MigrationSuite) TestDropTalosUpgradeStatusFinalizersFromSchematicConfigs() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()

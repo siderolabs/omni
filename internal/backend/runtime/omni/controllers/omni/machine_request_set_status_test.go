@@ -240,7 +240,6 @@ func testMachineRequestSetStatusReconcile(ctx context.Context, t *testing.T, st 
 	require.True(t, requests.Len() == 0)
 }
 
-//nolint:gocognit
 func reconcileLabels(ctx context.Context, st state.State, ready chan<- struct{}) error {
 	ch := make(chan state.Event, 64)
 

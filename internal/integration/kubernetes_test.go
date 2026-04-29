@@ -228,8 +228,10 @@ func AssertKubernetesUpgradeFlow(testCtx context.Context, st state.State, manage
 			for _, status := range r.TypedSpec().Value.Nodes {
 				if status.Ready && status.KubeletVersion == kubernetesVersion {
 					upgradedKubeletCount++
+
 					continue
 				}
+
 				pendingKubeletCount++
 			}
 
@@ -281,7 +283,7 @@ func KubernetesBootstrapManifestSync(testCtx context.Context, managementClient *
 
 		t.Logf("running bootstrap manifest sync for %q", clusterName)
 
-		syncHandler := func(result *managementpb.KubernetesSyncManifestResponse) error {
+		syncHandler := func(result *managementpb.KubernetesSyncManifestResponse) error { //nolint:unparam
 			switch result.ResponseType { //nolint:exhaustive
 			case managementpb.KubernetesSyncManifestResponse_MANIFEST:
 				if result.Skipped {
@@ -581,6 +583,7 @@ func AssertKubernetesDeploymentHasRunningPods(testCtx context.Context, managemen
 	}
 }
 
+//nolint:gocognit,maintidx
 func AssertKubernetesManifestsSync(testCtx context.Context, rootClient *client.Client, clusterName string) TestFunc {
 	type params struct {
 		Name      string
@@ -750,9 +753,9 @@ spec:
 		})
 
 		require.NoError(t, retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
-			deployment, err := kubeClient.AppsV1().Deployments(corev1.NamespaceDefault).Get(ctx, "nginx", metav1.GetOptions{})
-			if err != nil {
-				return retry.ExpectedErrorf("failed to get deployment: %q", err)
+			deployment, getErr := kubeClient.AppsV1().Deployments(corev1.NamespaceDefault).Get(ctx, "nginx", metav1.GetOptions{})
+			if getErr != nil {
+				return retry.ExpectedErrorf("failed to get deployment: %q", getErr)
 			}
 
 			if len(deployment.Spec.Template.Spec.Containers) != 1 {

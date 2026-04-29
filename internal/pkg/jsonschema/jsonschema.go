@@ -180,7 +180,7 @@ func collectLeafErrors(validationErr *jsonschema.ValidationError) []*jsonschema.
 	}
 }
 
-func (schema *Schema) formatLeafError(leaf *jsonschema.ValidationError) string { //nolint:cyclop
+func (schema *Schema) formatLeafError(leaf *jsonschema.ValidationError) string {
 	switch ek := leaf.ErrorKind.(type) {
 	case *kind.Required:
 		return schema.formatRequiredError(leaf, ek)

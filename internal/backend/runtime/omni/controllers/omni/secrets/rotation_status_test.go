@@ -44,7 +44,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
 
-//nolint:maintidx,gocognit
+//nolint:maintidx
 func Test_TalosCARotation(t *testing.T) {
 	t.Parallel()
 

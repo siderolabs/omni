@@ -503,7 +503,6 @@ func TestProxyRuntime_WatchSearchForTransition(t *testing.T) {
 	testWatch(t, msgs, expected, true, runtime.WithSearchFor([]string{"cluster1"}))
 }
 
-//nolint:unparam
 func watchResponse(id int, cluster, sortByField string, count int) runtime.WatchResponse {
 	return cosi.NewResponse(
 		fmt.Sprintf("id%d", id),

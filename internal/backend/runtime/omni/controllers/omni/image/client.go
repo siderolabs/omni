@@ -42,8 +42,7 @@ func (c *TalosImageClient) ListImagesOnNode(ctx context.Context, cluster, node s
 		return nil, fmt.Errorf("failed to get talos client for node %q: %w", node, err)
 	}
 
-	//nolint:staticcheck
-	imageListStream, err := talosCli.ImageList(ctx, common.ContainerdNamespace_NS_CRI)
+	imageListStream, err := talosCli.ImageList(ctx, common.ContainerdNamespace_NS_CRI) //nolint:staticcheck
 	if err != nil {
 		return nil, fmt.Errorf("failed to list images: %w", err)
 	}
@@ -80,8 +79,7 @@ func (c *TalosImageClient) PullImageToNode(ctx context.Context, cluster, node, i
 		return fmt.Errorf("failed to get talos client for node %q: %w", node, err)
 	}
 
-	//nolint:staticcheck
-	if err = talosCli.ImagePull(ctx, common.ContainerdNamespace_NS_CRI, image); err != nil {
+	if err = talosCli.ImagePull(ctx, common.ContainerdNamespace_NS_CRI, image); err != nil { //nolint:staticcheck
 		return fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
 

@@ -43,7 +43,7 @@ To get a list of all available resource definitions, issue 'omnictl get rd'`,
 	},
 }
 
-//nolint:gocognit,gocyclo,cyclop,maintidx
+//nolint:gocognit,gocyclo,cyclop
 func getResources(args []string) func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 	return func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
 		st := client.Omni().State()

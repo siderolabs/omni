@@ -64,8 +64,6 @@ func NewMachineStatusController(imageFactoryClient ImageFactoryClient, kernelArg
 }
 
 // Settings implements controller.QController interface.
-//
-//nolint:dupl
 func (ctrl *MachineStatusController) Settings() controller.QSettings {
 	return controller.QSettings{
 		Inputs: []controller.Input{

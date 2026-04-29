@@ -74,6 +74,7 @@ func AssertDownloadUsingCLI(testCtx context.Context, client *client.Client, omni
 				output := filepath.Join(t.TempDir(), image.Metadata().ID())
 
 				stdout, stderr, err := runCmd(
+					testCtx,
 					omnictlPath,
 					httpEndpoint,
 					key, "download",
@@ -95,12 +96,13 @@ func AssertDownloadUsingCLI(testCtx context.Context, client *client.Client, omni
 	}
 }
 
-func runCmd(path, endpoint, key string, args ...string) (bytes.Buffer, bytes.Buffer, error) {
+func runCmd(ctx context.Context, path, endpoint, key string, args ...string) (bytes.Buffer, bytes.Buffer, error) {
 	var stdout, stderr bytes.Buffer
 
 	args = append([]string{"--insecure-skip-tls-verify"}, args...)
 
-	cmd := exec.Command(
+	cmd := exec.CommandContext(
+		ctx,
 		path,
 		args...,
 	)
@@ -113,7 +115,7 @@ func runCmd(path, endpoint, key string, args ...string) (bytes.Buffer, bytes.Buf
 	if err != nil {
 		return stdout, stderr, fmt.Errorf("failed to create temp home dir: %w", err)
 	}
-	defer os.RemoveAll(tempHomeDir)
+	defer os.RemoveAll(tempHomeDir) //nolint:errcheck
 
 	cmd.Env = []string{
 		fmt.Sprintf("HOME=%s", tempHomeDir),
@@ -121,7 +123,8 @@ func runCmd(path, endpoint, key string, args ...string) (bytes.Buffer, bytes.Buf
 		fmt.Sprintf("OMNI_SERVICE_ACCOUNT_KEY=%s", key),
 	}
 
-	if err := cmd.Start(); err != nil {
+	err = cmd.Start()
+	if err != nil {
 		return stdout, stderr, err
 	}
 
@@ -160,21 +163,21 @@ func AssertUserCLI(testCtx context.Context, client *client.Client, omnictlPath, 
 
 		key := createServiceAccount(testCtx, t, client, name, role.Admin)
 
-		stdout, stderr, err := runCmd(omnictlPath, httpEndpoint, key, "user", "create", "a@a.com", "--role", "Admin")
+		stdout, stderr, err := runCmd(testCtx, omnictlPath, httpEndpoint, key, "user", "create", "a@a.com", "--role", "Admin")
 		require.NoErrorf(t, err, "failed to create user. stdout: %q | stderr: %q", stdout.String(), stderr.String())
 
-		stdout, stderr, err = runCmd(omnictlPath, httpEndpoint, key, "user", "list")
+		stdout, stderr, err = runCmd(testCtx, omnictlPath, httpEndpoint, key, "user", "list")
 		require.NoErrorf(t, err, "failed to list users. stdout: %q | stderr: %q", stdout.String(), stderr.String())
 
 		require.Contains(t, stdout.String(), "a@a.com")
 
-		stdout, stderr, err = runCmd(omnictlPath, httpEndpoint, key, "user", "set-role", "--role", "Reader", "a@a.com")
+		stdout, stderr, err = runCmd(testCtx, omnictlPath, httpEndpoint, key, "user", "set-role", "--role", "Reader", "a@a.com")
 		require.NoErrorf(t, err, "failed to set role. stdout: %q | stderr: %q", stdout.String(), stderr.String())
 
-		stdout, stderr, err = runCmd(omnictlPath, httpEndpoint, key, "user", "delete", "a@a.com")
+		stdout, stderr, err = runCmd(testCtx, omnictlPath, httpEndpoint, key, "user", "delete", "a@a.com")
 		require.NoErrorf(t, err, "failed to delete user. stdout: %q | stderr: %q", stdout.String(), stderr.String())
 
-		stdout, stderr, err = runCmd(omnictlPath, httpEndpoint, key, "user", "list")
+		stdout, stderr, err = runCmd(testCtx, omnictlPath, httpEndpoint, key, "user", "list")
 		require.NoErrorf(t, err, "failed to list users. stdout: %q | stderr: %q", stdout.String(), stderr.String())
 
 		require.NotContains(t, stdout.String(), "a@a.com")

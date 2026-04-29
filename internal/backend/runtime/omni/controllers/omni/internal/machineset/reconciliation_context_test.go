@@ -19,7 +19,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 )
 
-//nolint:maintidx
 func TestReconciliationContext(t *testing.T) {
 	t.Parallel()
 

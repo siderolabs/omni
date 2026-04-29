@@ -43,7 +43,6 @@ func AssertEtcdManualBackupIsCreated(testCtx context.Context, st state.State, cl
 		// We can't use number of backups here because two backups can happen at the same second, where
 		// the newer will overwrite the older.
 		bs, err := safe.ReaderGetByID[*omni.EtcdBackupStatus](testCtx, st, clusterName)
-
 		if err == nil {
 			start = bs.TypedSpec().Value.LastBackupTime.AsTime()
 		} else if !state.IsNotFoundError(err) {

@@ -30,8 +30,6 @@ type ClusterDestroyStatusController = qtransform.QController[*omni.Cluster, *omn
 const ClusterDestroyStatusControllerName = "ClusterDestroyStatusController"
 
 // NewClusterDestroyStatusController initializes ClusterDestroyStatusController.
-//
-//nolint:gocognit,gocyclo,cyclop
 func NewClusterDestroyStatusController() *ClusterDestroyStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.Cluster, *omni.ClusterDestroyStatus]{

@@ -87,8 +87,6 @@ type ReconciliationContext struct {
 }
 
 // BuildReconciliationContext is the COSI reader dependent method to build the reconciliation context.
-//
-//nolint:gocognit
 func BuildReconciliationContext(ctx context.Context, r controller.Reader, machineSet *omni.MachineSet) (*ReconciliationContext, error) {
 	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {

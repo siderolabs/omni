@@ -32,8 +32,6 @@ import (
 )
 
 // machineProvisionHook creates a machine request set and waits until all requests are fulfilled.
-//
-//nolint:gocognit
 func machineProvisionHook(t *testing.T, client *client.Client, cfg MachineProvisionConfig, machineRequestSetName,
 	talosVersion string,
 ) {

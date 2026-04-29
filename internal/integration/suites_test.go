@@ -1228,6 +1228,7 @@ Test authorization on accessing Omni API, some tests run without a cluster, some
 		)
 
 		clientFactory := newTestClientFactory(omniEndpoint, options.omniClient)
+
 		t.Cleanup(func() {
 			clientFactory.close() //nolint:errcheck
 		})

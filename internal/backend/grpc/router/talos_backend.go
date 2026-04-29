@@ -269,7 +269,6 @@ func (backend *TalosBackend) BuildError(bool, error) ([]byte, error) {
 	return nil, nil
 }
 
-//nolint:unparam
 func setHeaderData(ctx context.Context, md metadata.MD, k string, v ...string) {
 	if len(v) == 0 {
 		return

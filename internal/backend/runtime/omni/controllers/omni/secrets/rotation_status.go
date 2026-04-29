@@ -304,7 +304,6 @@ func (s *Rotator) createInitialStage(currentPhase specs.SecretRotationSpec_Phase
 	}
 }
 
-//nolint:gocognit
 func (s *Rotator) addRotationStage(previousPhase, currentPhase specs.SecretRotationSpec_Phase) func(
 	ctx context.Context,
 	logger *zap.Logger,

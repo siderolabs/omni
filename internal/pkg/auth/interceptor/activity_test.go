@@ -66,7 +66,7 @@ func TestActivity(t *testing.T) {
 		assert.Empty(t, list.Items)
 	})
 
-	for _, tc := range []struct { //nolint:dupl
+	for _, tc := range []struct {
 		ctxSetup func(ctx context.Context, identity string) context.Context
 		name     string
 		identity string

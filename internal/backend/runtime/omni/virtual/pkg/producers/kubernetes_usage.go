@@ -65,7 +65,7 @@ type KubernetesUsage struct {
 	state             state.State
 	kubeRuntime       KubernetesClientGetter
 	factory           informers.SharedInformerFactory
-	ctx               context.Context // nolint:containedctx
+	ctx               context.Context //nolint:containedctx
 	stopCh            chan struct{}
 	logger            *zap.Logger
 	ctxCancel         context.CancelFunc

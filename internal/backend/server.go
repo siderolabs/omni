@@ -210,7 +210,7 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 
-	serverOptions, err := s.buildServerOptions(ctx) //nolint:contextcheck
+	serverOptions, err := s.buildServerOptions(ctx)
 	if err != nil {
 		return err
 	}

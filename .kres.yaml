@@ -673,6 +673,9 @@ spec:
 ---
 kind: golang.GolangciLint
 spec:
+  buildTags:
+    - integration
+    - sidero.tools
   depguardExtraRules:
     prevent_sync_errgroup:
       list-mode: lax

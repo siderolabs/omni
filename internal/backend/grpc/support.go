@@ -217,7 +217,6 @@ func (s *managementServer) collectLogs(machineID string) *collectors.Collector {
 func (s *managementServer) collectClusterResources(ctx context.Context, cluster string) ([]resource.Resource, error) {
 	st := s.omniState
 
-	//nolint:prealloc
 	var resources []resource.Resource
 
 	clusterQuery := []state.ListOption{

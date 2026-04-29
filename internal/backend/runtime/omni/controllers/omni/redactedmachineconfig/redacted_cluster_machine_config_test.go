@@ -73,7 +73,6 @@ func testReconcile(ctx context.Context, t *testing.T, st state.State, cleanupCh 
 
 			data := string(buffer.Data())
 
-			//nolint:lll
 			assert.Equal(machineConfig, data)
 		},
 	)

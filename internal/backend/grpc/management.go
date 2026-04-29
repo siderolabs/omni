@@ -1009,7 +1009,6 @@ func (s *managementServer) triggerManifestResync(ctx context.Context, requestCon
 	return nil
 }
 
-//nolint:unparam
 func (s *managementServer) authCheckGRPC(ctx context.Context, opts ...auth.CheckOption) (auth.CheckResult, error) {
 	authCheckResult, err := auth.Check(ctx, opts...)
 	if errors.Is(err, auth.ErrUnauthenticated) {

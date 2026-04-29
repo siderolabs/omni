@@ -57,8 +57,6 @@ func New() *Reporter {
 }
 
 // Report reports an update to the reporter.
-//
-//nolint:gocyclo
 func (r *Reporter) Report(update Update) {
 	line := strings.TrimSpace(update.Message)
 	// replace tabs with spaces to get consistent output length

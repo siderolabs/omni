@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-03-10T14:06:17Z by kres 3328d87.
+# Generated on 2026-04-29T17:27:17Z by kres 7359c62.
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -68,7 +68,7 @@ jobs:
           sudo -E make run-integration-test
       - name: save-integration-qemu-artifacts
         if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # version: v7.0.1
         with:
           name: integration-qemu
           path: ${{ github.workspace }}/integration-test

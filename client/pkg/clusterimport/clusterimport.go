@@ -63,7 +63,8 @@ type Context struct {
 }
 
 // BuildContext builds the import context by collecting information from the existing Talos cluster.
-// nolint:gocyclo,cyclop
+//
+//nolint:gocyclo,cyclop
 func BuildContext(ctx context.Context, input Input, omniState state.State, imageFactoryClient ImageFactoryClient, talosClient TalosClient) (*Context, error) {
 	input.logf("discovering Talos cluster state...")
 
@@ -472,7 +473,6 @@ func (c *Context) importClusterToOmni(ctx context.Context) error {
 	return nil
 }
 
-//nolint:gocognit
 func (c *Context) validate(ctx context.Context) error {
 	c.input.logf("validating cluster status...")
 

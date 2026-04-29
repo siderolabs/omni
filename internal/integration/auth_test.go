@@ -57,7 +57,6 @@ import (
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access"
-	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/client"
 	managementcli "github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/constants"
@@ -81,12 +80,10 @@ import (
 // It uses the root client (automation SA) to create new service accounts with the specified role,
 // then returns a client authenticated as that SA. Clients are cached by role.
 type testClientFactory struct {
-	endpoint          string
-	serviceAccountKey string
-	rootCli           *client.Client
-
-	mu      sync.Mutex
-	clients map[role.Role]*client.Client
+	rootCli  *client.Client
+	clients  map[role.Role]*client.Client
+	endpoint string
+	mu       sync.Mutex
 }
 
 func newTestClientFactory(endpoint string, rootCli *client.Client) *testClientFactory {
@@ -336,7 +333,7 @@ func AssertServiceAccountAPIFlow(testCtx context.Context, cli *client.Client) Te
 		assert.NoError(t, err)
 
 		rtestutils.AssertResources(testCtx, t, cli.Omni().State(), []string{
-			name + pkgaccess.ServiceAccountNameSuffix,
+			name + access.ServiceAccountNameSuffix,
 		}, func(res *authres.ServiceAccountStatus, assert *assert.Assertions) {
 			assert.Equal(string(role.Admin), res.TypedSpec().Value.Role)
 			assert.Equal(2, len(res.TypedSpec().Value.PublicKeys))
@@ -392,7 +389,7 @@ func newServiceAccountClient(cli *client.Client, name string) (*client.Client, s
 	// generate a new PGP key with long lifetime
 	comment := fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 
-	serviceAccountEmail := name + pkgaccess.ServiceAccountNameSuffix
+	serviceAccountEmail := name + access.ServiceAccountNameSuffix
 
 	key, err := pgp.GenerateKey(name, comment, serviceAccountEmail, auth.ServiceAccountMaxAllowedLifetime)
 	if err != nil {
@@ -849,7 +846,9 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 
 		importedClusterSecret := omni.NewImportedClusterSecrets(cluster.Metadata().ID())
 
-		testCases := []resourceAuthzTestCase{
+		testCases := make([]resourceAuthzTestCase, 0, 139)
+
+		testCases = append(testCases, []resourceAuthzTestCase{
 			{
 				resource:       accessPolicy,
 				allowedVerbSet: allVerbsSet,
@@ -963,7 +962,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				resource:       kubernetesManifest,
 				allowedVerbSet: allVerbsSet,
 			},
-		}
+		}...)
 
 		// read-only resources
 
@@ -1202,7 +1201,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       siderolink.NewConnectionParams(uuid.New().String()),
+				resource:       siderolink.NewConnectionParams(uuid.New().String()), //nolint:staticcheck // deprecated resource is still registered and needs authz coverage.
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
@@ -1578,6 +1577,7 @@ var (
 
 const grpcMetadataPrefix = "Grpc-Metadata-"
 
+//nolint:gocognit,maintidx
 func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, serviceAccountKey, httpEndpoint, clusterName string) TestFunc {
 	return func(t *testing.T) {
 		sa, err := serviceaccount.Decode(serviceAccountKey)
@@ -1601,21 +1601,20 @@ func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, serv
 				Method:  request.URL.Path[len("/api"):],
 			}
 
-			payloadJSON, err := json.Marshal(payload)
-			if err != nil {
-				return fmt.Errorf("failed to encode payload: %w", err)
+			payloadJSON, marshalErr := json.Marshal(payload)
+			if marshalErr != nil {
+				return fmt.Errorf("failed to encode payload: %w", marshalErr)
 			}
 
 			request.Header.Set(grpcMetadataPrefix+message.PayloadHeaderKey, string(payloadJSON))
 
-			signature, err := key.Sign(payloadJSON)
-			if err != nil {
-				return fmt.Errorf("failed to sign: %w", err)
+			signature, signErr := key.Sign(payloadJSON)
+			if signErr != nil {
+				return fmt.Errorf("failed to sign: %w", signErr)
 			}
 
 			signatureBase64 := base64.StdEncoding.EncodeToString(signature)
 
-			//nolint:canonicalheader
 			request.Header.Set(grpcMetadataPrefix+message.SignatureHeaderKey,
 				fmt.Sprintf("%s %s %s %s", message.SignatureVersionV1, email, key.Fingerprint(), signatureBase64))
 
@@ -1642,8 +1641,8 @@ func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, serv
 		require.NoError(t, err)
 
 		for _, tt := range []struct {
-			requestBody    []byte
 			method         string
+			requestBody    []byte
 			expectedStatus int
 			backend        common.Runtime
 		}{
@@ -1800,7 +1799,7 @@ func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, serv
 					fullURL, err := url.JoinPath(httpEndpoint, "api", tt.method)
 					require.NoError(t, err)
 
-					request, err := http.NewRequestWithContext(ctx, "POST",
+					request, err := http.NewRequestWithContext(ctx, http.MethodPost,
 						fullURL, bytes.NewBuffer(tt.requestBody),
 					)
 					require.NoError(t, err)
@@ -1812,6 +1811,7 @@ func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, serv
 						request.Header.Set(grpcMetadataPrefix+"Cluster", clusterName)
 					case common.Runtime_Kubernetes:
 						request.Header.Set(grpcMetadataPrefix+"Cluster", clusterName)
+					case common.Runtime_Omni:
 					}
 
 					if sign {

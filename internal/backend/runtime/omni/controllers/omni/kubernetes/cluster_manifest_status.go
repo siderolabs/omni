@@ -162,7 +162,7 @@ func (ctrl *ClusterManifestsStatusController) Reconcile(ctx context.Context, log
 	return ctrl.reconcileRunning(ctx, r, logger, res, status)
 }
 
-// nolint:gocyclo,cyclop,gocognit
+//nolint:gocyclo,cyclop,gocognit
 func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger,
 	cluster *omni.Cluster, clusterKubernetesManifestsStatus *omni.ClusterKubernetesManifestsStatus,
 ) error {
@@ -318,7 +318,7 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 	return errs
 }
 
-// nolint:gocyclo,cyclop,gocognit
+//nolint:gocyclo,cyclop,gocognit
 func (ctrl *ClusterManifestsStatusController) updateStatus(
 	ctx context.Context,
 	r controller.ReaderWriter,
@@ -543,7 +543,6 @@ func (ctrl *ClusterManifestsStatusController) sync(
 			zap.String("action", string(change.Action)),
 		)
 
-		// nolint:exhaustive
 		switch change.Action {
 		case ssa.CreatedAction, ssa.ConfiguredAction:
 			requeue = true

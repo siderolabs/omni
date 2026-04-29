@@ -37,7 +37,7 @@ func RunServer(ctx context.Context, server *grpc.Server, lis net.Listener, eg *e
 	})
 }
 
-func serverGracefulStop(server *grpc.Server, ctx context.Context, logger *zap.Logger) { //nolint:revive
+func serverGracefulStop(server *grpc.Server, ctx context.Context, logger *zap.Logger) {
 	<-ctx.Done()
 
 	stopped := make(chan struct{})

@@ -1041,10 +1041,10 @@ func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.S
 			cps.Metadata().Labels().Set(omni.LabelCluster, options.Name)
 			cps.Metadata().Labels().Set(omni.LabelClusterMachine, machineID)
 
-			return cps.TypedSpec().Value.SetUncompressedData([]byte(fmt.Sprintf(`machine:
+			return cps.TypedSpec().Value.SetUncompressedData(fmt.Appendf(nil, `machine:
   kubelet:
     extraArgs:
-      node-labels: %s=%s`, nodeLabel, machineID)))
+      node-labels: %s=%s`, nodeLabel, machineID))
 		})
 	}
 }

@@ -30,8 +30,6 @@ type MachineSetDestroyStatusController = qtransform.QController[*omni.MachineSet
 const MachineSetDestroyStatusControllerName = "MachineSetDestroyStatusController"
 
 // NewMachineSetDestroyStatusController initializes MachineSetDestroyStatusController.
-//
-//nolint:gocognit
 func NewMachineSetDestroyStatusController() *MachineSetDestroyStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.MachineSet, *omni.MachineSetDestroyStatus]{
