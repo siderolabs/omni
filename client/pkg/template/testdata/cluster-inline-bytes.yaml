@@ -1,0 +1,40 @@
+kind: Cluster
+name: inline-bytes-cluster
+kubernetes:
+  version: v1.30.0
+  manifests:
+    - name: raw-bytes-manifest
+      mode: full
+      inline: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: my-config
+          namespace: kube-system
+        data:
+          key: value
+        ---
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: other-config
+          namespace: kube-system
+        data:
+          key: other-value
+talos:
+  version: v1.7.0
+patches:
+  - name: kubespan-enabled-bytes
+    inline: |
+      machine:
+        network:
+          kubespan:
+            enabled: true
+---
+kind: ControlPlane
+machines:
+  - aaaaaaaa-1111-2222-3333-444444444444
+---
+kind: Workers
+machines:
+  - bbbbbbbb-1111-2222-3333-444444444444

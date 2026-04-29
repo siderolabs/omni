@@ -5,7 +5,6 @@
 package models
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/gen/xslices"
-	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -56,11 +54,23 @@ func (c KubernetesManifestMode) MarshalYAML() (any, error) {
 // KubernetesManifest represents the kubernetes manifest to be applied in the cluster.
 // The manifests are applied on the server side.
 type KubernetesManifest struct {
+	Inline      *InlineContent         `yaml:"inline,omitempty"`
 	Descriptors Descriptors            `yaml:",inline"`
 	Name        string                 `yaml:"name"`
 	File        string                 `yaml:"file,omitempty"`
-	Inline      []map[string]any       `yaml:"inline,omitempty"`
 	Mode        KubernetesManifestMode `yaml:"mode"`
+}
+
+// GetManifests returns the inline manifest content as YAML bytes.
+//
+// The result may contain a single document or multiple documents
+// separated by `---`, depending on the input form.
+func (km *KubernetesManifest) GetManifests() ([]byte, error) {
+	if km.Inline == nil {
+		return nil, nil
+	}
+
+	return km.Inline.Bytes()
 }
 
 // Validate a kubernetes manifest.
@@ -99,7 +109,7 @@ func (km *KubernetesManifest) Validate(opts ValidateOptions) error {
 			errs = errors.Join(errs, fmt.Errorf("failed to access %q: %w", km.File, err))
 		}
 	case km.Inline != nil:
-		_, err := yaml.Marshal(km.Inline)
+		_, err := km.GetManifests()
 		if err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to marshal inline manifest %q: %w", name, err))
 		}
@@ -126,18 +136,7 @@ func (km *KubernetesManifest) Translate(ctx TranslateContext, prefix string, wei
 	case km.File != "":
 		raw, err = ReadFile(ctx.Root, km.File)
 	case km.Inline != nil:
-		var buf bytes.Buffer
-
-		encoder := yaml.NewEncoder(&buf)
-		for _, document := range km.Inline {
-			if err = encoder.Encode(document); err != nil {
-				break
-			}
-		}
-
-		defer encoder.Close() //nolint:errcheck
-
-		raw = buf.Bytes()
+		raw, err = km.GetManifests()
 	default:
 		return nil, fmt.Errorf("missing manifests contents")
 	}

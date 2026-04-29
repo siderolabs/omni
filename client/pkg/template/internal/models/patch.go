@@ -10,7 +10,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/pair"
-	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
@@ -37,7 +36,19 @@ type Patch struct { //nolint:govet
 	File string `yaml:"file,omitempty"`
 
 	// Inline patch content.
-	Inline map[string]any `yaml:"inline,omitempty"`
+	Inline *InlineContent `yaml:"inline,omitempty"`
+}
+
+// GetPatches returns the inline patch content as YAML bytes.
+//
+// The result may contain a single document or multiple documents
+// separated by `---`, depending on the input form.
+func (patch *Patch) GetPatches() ([]byte, error) {
+	if patch.Inline == nil {
+		return nil, nil
+	}
+
+	return patch.Inline.Bytes()
 }
 
 // Validate the model.
@@ -103,7 +114,7 @@ func (patch *Patch) Validate(opts ValidateOptions) error {
 			multiErr = multierror.Append(multiErr, fmt.Errorf("either name or idOverride is required for inline patches"))
 		}
 
-		raw, err := yaml.Marshal(patch.Inline)
+		raw, err := patch.GetPatches()
 		if err != nil {
 			multiErr = multierror.Append(multiErr, fmt.Errorf("failed to marshal inline patch %q: %w", name, err))
 		} else {
@@ -141,7 +152,7 @@ func (patch *Patch) Translate(ctx TranslateContext, prefix string, weight int, l
 	case patch.File != "":
 		raw, err = ReadFile(ctx.Root, patch.File)
 	case patch.Inline != nil:
-		raw, err = yaml.Marshal(patch.Inline)
+		raw, err = patch.GetPatches()
 	default:
 		panic("missing patch contents?")
 	}
