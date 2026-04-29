@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -44,6 +45,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 				return omni.NewClusterMachine(clusterMachineStatus.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, clusterMachine *omni.ClusterMachine, clusterMachineStatus *omni.ClusterMachineStatus) error {
+				log.Printf("[CMS-DEBUG] TransformFunc called for ClusterMachine %s", clusterMachine.Metadata().ID())
 				machine, err := safe.ReaderGet[*omni.Machine](ctx, r, resource.NewMetadata(resources.DefaultNamespace, omni.MachineType, clusterMachine.Metadata().ID(), resource.VersionUndefined))
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
@@ -322,10 +324,13 @@ func updateMachineProvisionStatus(ctx context.Context, r controller.Reader, mach
 	}
 
 	if machineRequestStatus == nil {
+		log.Printf("[CMS-DEBUG] updateMachineProvisionStatus: MachineRequestStatus %q not found, providerID will be empty", machineRequestID)
+
 		return nil
 	}
 
 	cmsVal.ProvisionStatus.ProviderId, ok = machineRequestStatus.Metadata().Labels().Get(omni.LabelInfraProviderID)
+	log.Printf("[CMS-DEBUG] updateMachineProvisionStatus: MachineRequestStatus %q found, providerID=%q", machineRequestID, cmsVal.ProvisionStatus.ProviderId)
 
 	if !ok {
 		return nil
