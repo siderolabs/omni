@@ -4,14 +4,6 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<route lang="json">
-{
-  "meta": {
-    "guard": "auth0"
-  }
-}
-</route>
-
 <script setup lang="ts">
 import type { User } from '@auth0/auth0-spa-js'
 import type { Auth0VueClient } from '@auth0/auth0-vue'
@@ -50,6 +42,7 @@ import { showError } from '@/notification'
 
 definePage({
   name: 'Authenticate',
+  meta: { guard: 'auth0' },
 })
 
 const user = ref<User | undefined>(undefined)

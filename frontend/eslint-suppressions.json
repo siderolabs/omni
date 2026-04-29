@@ -93,11 +93,6 @@
       "count": 1
     }
   },
-  "src/components/LogViewer/LogViewer.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
-  },
   "src/components/Pagination/TPagination.vue": {
     "vue/define-props-destructuring": {
       "count": 1

@@ -8,7 +8,7 @@ included in the LICENSE file.
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 
 import { useClipboard } from '@vueuse/core'
-import { computed, nextTick, onMounted, onUpdated, ref, toRefs, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onMounted, onUpdated, ref, useTemplateRef, watch } from 'vue'
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller'
 import WordHighlighter from 'vue-word-highlighter'
 
@@ -22,12 +22,11 @@ type Props = {
   withoutDate?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {})
+const { searchOption, logs } = defineProps<Props>()
 const { copy, copied } = useClipboard()
 
 const follow = ref(true)
 const logView = useTemplateRef('logView')
-const { searchOption, logs } = toRefs(props)
 
 const waitUpdate = ref(false)
 
@@ -52,12 +51,12 @@ const displayLogs = computed(() => {
 })
 
 const filteredLogs = computed(() => {
-  if (!searchOption.value) {
-    return logs.value
+  if (!searchOption) {
+    return logs
   }
 
-  return logs.value.filter((elem: LogLine) => {
-    return elem?.msg.includes(searchOption.value)
+  return logs.filter((elem: LogLine) => {
+    return elem?.msg.includes(searchOption)
   })
 })
 
@@ -82,11 +81,14 @@ onMounted(scrollToBottom)
 onUpdated(scrollToBottom)
 
 watch(follow, scrollToBottom)
-watch(logs, () => {
-  waitUpdate.value = true
+watch(
+  () => logs,
+  () => {
+    waitUpdate.value = true
 
-  scrollToBottom()
-})
+    scrollToBottom()
+  },
+)
 </script>
 
 <template>

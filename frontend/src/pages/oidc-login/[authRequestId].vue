@@ -4,14 +4,6 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<route lang="json">
-{
-  "meta": {
-    "guard": "keys"
-  }
-}
-</route>
-
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
 import { ref } from 'vue'
@@ -27,6 +19,7 @@ import { showError } from '@/notification'
 
 definePage({
   name: 'OIDC Login',
+  meta: { guard: 'keys' },
 })
 
 const route = useRoute()

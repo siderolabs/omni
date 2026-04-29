@@ -17,6 +17,6 @@
     }
   },
   "vueCompilerOptions": {
-    "plugins": ["vue-router/volar/sfc-route-blocks", "vue-router/volar/sfc-typed-router"]
+    "plugins": ["vue-router/volar/sfc-typed-router"]
   }
 }
