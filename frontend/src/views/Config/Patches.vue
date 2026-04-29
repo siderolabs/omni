@@ -13,10 +13,15 @@ import type { RouteLocationRaw } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
-import type { ConfigPatchSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  ClusterMachineStatusSpec,
+  ClusterSpec,
+  ConfigPatchSpec,
+  MachineStatusSpec,
+} from '@/api/omni/specs/omni.pb'
 import {
   ClusterMachineStatusType,
+  ClusterType,
   ConfigPatchDescription,
   ConfigPatchName,
   ConfigPatchType,
@@ -27,6 +32,7 @@ import {
   LabelMachine,
   LabelMachineSet,
   LabelSystemPatch,
+  MachineStatusType,
 } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
@@ -51,21 +57,45 @@ type Props = {
   machine?: string
 }
 
-const { machine, cluster } = defineProps<Props>()
+const { machine: machineId, cluster: propClusterId } = defineProps<Props>()
+
+const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
+  skip: !machineId,
+  resource: {
+    namespace: DefaultNamespace,
+    type: MachineStatusType,
+    id: machineId!,
+  },
+  runtime: Runtime.Omni,
+}))
+
+const clusterId = computed(() => machine.value?.metadata.labels?.[LabelCluster] || propClusterId)
+
+const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
+  skip: !clusterId.value,
+  resource: {
+    type: ClusterType,
+    namespace: DefaultNamespace,
+    id: clusterId.value!,
+  },
+  runtime: Runtime.Omni,
+}))
+
 const { canManageMachineConfigPatches } = usePermissions()
-const { canManageConfigPatches: canManageClusterMachineConfigPatches } = useClusterPermissions(
-  () => cluster,
-)
+const { canManageConfigPatches: canManageClusterMachineConfigPatches } =
+  useClusterPermissions(clusterId)
 
 const selectors = computed(() => {
+  if (!clusterId.value && !machineId) return
+
   const res: string[] = []
 
-  if (cluster) {
-    res.push(`${LabelCluster}=${cluster}`)
-  } else if (machine) {
-    res.push(`${LabelMachine}=${machine}`, `${LabelClusterMachine}=${machine}`)
-  } else {
-    return
+  if (clusterId.value) {
+    res.push(`${LabelCluster}=${clusterId.value}`)
+  }
+
+  if (machineId) {
+    res.push(`${LabelMachine}=${machineId}`, `${LabelClusterMachine}=${machineId}`)
   }
 
   return res.map((item) => item + `,!${LabelSystemPatch}`)
@@ -82,13 +112,16 @@ const { data: patches, loading: patchesLoading } = useResourceWatch<ConfigPatchS
   selectUsingOR: true,
 }))
 
-const { data: machineStatuses, loading: machineStatusesLoading } = useResourceWatch<Resource>({
-  runtime: Runtime.Omni,
-  resource: {
-    type: ClusterMachineStatusType,
-    namespace: DefaultNamespace,
-  },
-})
+const { data: machineStatuses, loading: machineStatusesLoading } =
+  useResourceWatch<ClusterMachineStatusSpec>(() => ({
+    skip: !clusterId.value,
+    runtime: Runtime.Omni,
+    resource: {
+      type: ClusterMachineStatusType,
+      namespace: DefaultNamespace,
+    },
+    selectors: [`${LabelCluster}=${clusterId.value}`],
+  }))
 
 const loading = computed(() => patchesLoading.value || machineStatusesLoading.value)
 
@@ -116,32 +149,32 @@ interface RouteItem {
 const patchTypeCluster = 'Cluster'
 
 function getRouteForPatch(patch = `500-${uuidv4()}`): RouteLocationRaw {
-  if (cluster && machine) {
+  if (clusterId.value && machineId) {
     return {
       name: 'ClusterMachinePatchEdit',
       params: {
-        cluster,
-        machine,
+        cluster: clusterId.value,
+        machine: machineId,
         patch,
       },
     }
   }
 
-  if (cluster) {
+  if (clusterId.value) {
     return {
       name: 'ClusterPatchEdit',
       params: {
-        cluster,
+        cluster: clusterId.value,
         patch,
       },
     }
   }
 
-  if (machine) {
+  if (machineId) {
     return {
       name: 'MachinePatchEdit',
       params: {
-        machine,
+        machine: machineId,
         patch,
       },
     }
@@ -153,7 +186,11 @@ function getRouteForPatch(patch = `500-${uuidv4()}`): RouteLocationRaw {
 const routes = computed(() => {
   const hostnames: Record<string, string> = {}
 
-  machineStatuses.value.forEach((item: Resource) => {
+  if (machine.value?.spec.network?.hostname) {
+    hostnames[machine.value.metadata.id!] = machine.value.spec.network.hostname
+  }
+
+  machineStatuses.value.forEach((item) => {
     hostnames[item.metadata.id!] = item.metadata.labels![LabelHostname]
   })
 
@@ -163,7 +200,7 @@ const routes = computed(() => {
     groups[name] = (groups[name] ?? []).concat([r])
   }
 
-  patches.value.forEach((item: Resource) => {
+  patches.value.forEach((item) => {
     const searchValues: string[] = [
       item.metadata.id!,
       (item.metadata.annotations || {})[ConfigPatchName],
@@ -191,7 +228,7 @@ const routes = computed(() => {
     } else if (labels[LabelMachineSet]) {
       const id = labels[LabelMachineSet]
 
-      const title = machineSetTitle(cluster, id)
+      const title = machineSetTitle(clusterId.value, id)
 
       addToGroup(`${title}`, r)
     } else if (labels[LabelCluster]) {
@@ -241,8 +278,8 @@ const routes = computed(() => {
 })
 
 const canManageConfigPatches = computed(() => {
-  if (cluster) return canManageClusterMachineConfigPatches.value
-  if (machine) return canManageMachineConfigPatches.value
+  if (clusterId.value) return canManageClusterMachineConfigPatches.value
+  if (machineId) return canManageMachineConfigPatches.value
 
   return false
 })
@@ -250,7 +287,7 @@ const canManageConfigPatches = computed(() => {
 
 <template>
   <div class="flex flex-col gap-4 overflow-y-auto">
-    <ManagedByTemplatesWarning />
+    <ManagedByTemplatesWarning :resource="cluster" />
 
     <div class="flex gap-4">
       <TInput v-model="filter" class="flex-1" placeholder="Search..." icon="search" />
@@ -270,10 +307,10 @@ const canManageConfigPatches = computed(() => {
       <TAlert v-else-if="patches.length === 0" title="No Config Patches" type="info">
         There are no config patches
         {{
-          machine
-            ? `associated with machine ${machine}`
-            : cluster
-              ? `associated with cluster ${cluster}`
+          machineId
+            ? `associated with machine ${machineId}`
+            : clusterId
+              ? `associated with cluster ${clusterId}`
               : `on the account`
         }}
       </TAlert>
