@@ -380,6 +380,9 @@ func setupInfra(ctx context.Context, t *testing.T, p *provisioner, opts ...infra
 
 	logger := zaptest.NewLogger(t)
 
+	features := omni.NewFeaturesConfig(omni.FeaturesConfigID)
+	require.NoError(t, state.Create(ctx, features))
+
 	pc := infra.ProviderConfig{
 		Name:        "Test Provider",
 		Description: "This is the test provider",
