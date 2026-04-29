@@ -19,6 +19,7 @@ import {
   type PlatformConfigSpec,
   PlatformConfigSpecArch,
   PlatformConfigSpecBootMethod,
+  type QuirksSpec,
   type SBCConfigSpec,
 } from '@/api/omni/specs/virtual.pb'
 import {
@@ -29,6 +30,7 @@ import {
   LabelsMeta,
   MetalPlatformConfigType,
   PlatformMetalID,
+  QuirksType,
   SBCConfigType,
   VirtualNamespace,
 } from '@/api/resources'
@@ -83,26 +85,40 @@ export const Default = {
           ],
         }).handler,
 
-        http.get('/talosctl/downloads', () => {
-          const versions = Object.fromEntries(
-            faker.helpers.multiple(faker.system.semver).map(
-              (v) =>
-                [
-                  `v${v}`,
-                  faker.helpers.multiple(faker.hacker.noun, { count: 5 }).map((name) => ({
-                    name,
-                    url: `https://github.com/siderolabs/talos/releases/download/v${v}/talosctl-${name}-${faker.helpers.arrayElement(['amd64', 'arm64'])}`,
-                  })),
-                ] as const,
-            ),
-          )
+        http.post<never, GetRequest, GetResponse>(
+          '/omni.resources.ResourceService/Get',
+          async ({ request }) => {
+            const { id, type, namespace } = await request.clone().json()
+
+            if (type !== QuirksType || namespace !== VirtualNamespace) return
+
+            return HttpResponse.json({
+              body: JSON.stringify({
+                metadata: {
+                  namespace,
+                  type,
+                  id,
+                },
+                spec: {
+                  supports_unified_installer: true,
+                  supports_factory_talosctl: true,
+                },
+              } satisfies Resource<QuirksSpec>),
+            })
+          },
+        ),
+
+        http.get<{ version: string }>('/talosctl/downloads/:version', ({ params: { version } }) => {
+          const downloads = faker.helpers
+            .multiple(faker.hacker.noun, { count: 5 })
+            .map(
+              (name) =>
+                `https://factory.talos.dev/talosctl/v${version}/talosctl-${name}-${faker.helpers.arrayElement(['amd64', 'arm64'])}`,
+            )
 
           return HttpResponse.json<TalosctlDownloadsResponse>({
             status: '',
-            release_data: {
-              default_version: '',
-              available_versions: versions,
-            },
+            downloads,
           })
         }),
 

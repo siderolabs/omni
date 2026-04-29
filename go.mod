@@ -74,12 +74,12 @@ require (
 	github.com/siderolabs/go-retry v0.3.3
 	github.com/siderolabs/go-talos-support v0.2.1
 	github.com/siderolabs/grpc-proxy v0.5.2
-	github.com/siderolabs/image-factory v1.1.0
+	github.com/siderolabs/image-factory v1.2.0
 	github.com/siderolabs/kms-client v0.2.0
 	github.com/siderolabs/omni/client v1.6.5
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.16
-	github.com/siderolabs/talos/pkg/machinery v1.13.0-rc.0
+	github.com/siderolabs/talos/pkg/machinery v1.13.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
@@ -153,7 +153,7 @@ require (
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/creack/pty v1.1.21 // indirect
+	github.com/creack/pty v1.1.24 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/cli v29.4.0+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.5 // indirect
@@ -181,6 +181,8 @@ require (
 	github.com/go-openapi/swag/stringutils v0.25.5 // indirect
 	github.com/go-openapi/swag/typeutils v0.25.5 // indirect
 	github.com/go-openapi/swag/yamlutils v0.25.5 // indirect
+	github.com/go-openapi/testify/enable/yaml/v2 v2.4.1 // indirect
+	github.com/go-openapi/testify/v2 v2.4.1 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
@@ -189,6 +191,7 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.28.0 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
+	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/gosuri/uilive v0.0.4 // indirect

@@ -107,3 +107,8 @@ message SupportSpec {
   bool support_enabled = 1;
   OfficeHoursConfig office_hours = 2;
 }
+
+message QuirksSpec {
+  bool supports_unified_installer = 1;
+  bool supports_factory_talosctl = 2;
+}

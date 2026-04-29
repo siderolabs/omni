@@ -287,6 +287,7 @@ export const LabelsCompletionType = "LabelsCompletions.omni.sidero.dev";
 export const MetalPlatformConfigType = "MetalPlatformConfigs.omni.sidero.dev";
 export const PermissionsID = "permissions";
 export const PermissionsType = "Permissions.omni.sidero.dev";
+export const QuirksType = "Quirks.omni.sidero.dev";
 export const SBCConfigType = "SBCConfigs.omni.sidero.dev";
 export const SupportID = "support";
 export const SupportType = "Supports.omni.sidero.dev";

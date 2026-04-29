@@ -13,12 +13,14 @@ import { Runtime } from '@/api/common/omni.pb'
 import {
   type PlatformConfigSpec,
   PlatformConfigSpecBootMethod,
+  type QuirksSpec,
   type SBCConfigSpec,
 } from '@/api/omni/specs/virtual.pb'
 import {
   CloudPlatformConfigType,
   MetalPlatformConfigType,
   PlatformMetalID,
+  QuirksType,
   SBCConfigType,
   VirtualNamespace,
 } from '@/api/resources'
@@ -48,8 +50,17 @@ const formState = defineModel<FormState>({ required: true })
 
 const resolvedTalosVersion = computed(() => resolveTalosVersion(formState.value.talosVersion!))
 
-const supportsUnifiedInstaller = computed(() => gte(resolvedTalosVersion.value, '1.10.0'))
-const talosctlAvailable = computed(() => gte(resolvedTalosVersion.value, '1.11.0-alpha.3'))
+const { data: quirks } = useResourceGet<QuirksSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: VirtualNamespace,
+    type: QuirksType,
+    id: resolvedTalosVersion.value,
+  },
+}))
+
+const supportsUnifiedInstaller = computed(() => quirks.value?.spec.supports_unified_installer)
+const talosctlAvailable = computed(() => quirks.value?.spec.supports_factory_talosctl)
 
 const { data: features } = useFeatures()
 const imageDownloadDialog = useTemplateRef<HTMLDialogElement>('downloadImageDialog')
@@ -72,11 +83,7 @@ async function downloadImage(url: string) {
 
 useEventListener(imageDownloadDialog, 'close', abortImageDownload)
 
-const { downloads } = useTalosctlDownloads()
-
-const talosctlPaths = computed(
-  () => downloads.value?.get(`v${resolvedTalosVersion.value}`)?.map((v) => v.url) ?? [],
-)
+const { data: talosctlPaths } = useTalosctlDownloads(() => resolvedTalosVersion.value)
 
 const { data: selectedCloudProvider } = useResourceGet<PlatformConfigSpec>(() => ({
   skip: formState.value.hardwareType !== 'cloud',

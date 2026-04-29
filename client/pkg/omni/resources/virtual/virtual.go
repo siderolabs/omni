@@ -18,4 +18,5 @@ func init() {
 	registry.MustRegisterResource(CloudPlatformConfigType, &CloudPlatformConfig{})
 	registry.MustRegisterResource(MetalPlatformConfigType, &MetalPlatformConfig{})
 	registry.MustRegisterResource(SupportType, &Support{})
+	registry.MustRegisterResource(QuirksType, &Quirks{})
 }

@@ -132,6 +132,26 @@ test('Download omniconfig', async ({ page }, testInfo) => {
   })
 })
 
+test('Download talosctl', async ({ page }, testInfo) => {
+  await page.goto('/')
+
+  await page.getByRole('button', { name: 'Download talosctl' }).click()
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('link', { name: 'Download', exact: true }).click(),
+  ])
+
+  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+
+  const filePath = testInfo.outputPath(download.suggestedFilename())
+  await download.saveAs(filePath)
+
+  const { size } = await stat(filePath)
+
+  expect(size).toBeGreaterThan(5 * 1024 * 1024)
+})
+
 test('Download omnictl', async ({ page }, testInfo) => {
   await page.goto('/')
 

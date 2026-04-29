@@ -1235,6 +1235,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
+				resource:              virtual.NewQuirks(uuid.New().String()),
+				allowedVerbSet:        readOnlyVerbSet,
+				isSignatureSufficient: true,
+			},
+			{
 				resource:       omni.NewEtcdBackupStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},

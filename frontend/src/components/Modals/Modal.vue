@@ -31,6 +31,7 @@ const props = withDefaults(
       actionLabel?: string
       cancelLabel?: string
       actionDisabled?: boolean
+      actionHref?: string
       loading?: boolean
     }
   >(),
@@ -45,6 +46,7 @@ const dialogRootProps = reactiveOmit(
   'actionLabel',
   'cancelLabel',
   'actionDisabled',
+  'actionHref',
   'loading',
 )
 const forwarded = useForwardPropsEmits(dialogRootProps, emit)
@@ -58,7 +60,7 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
       />
 
       <DialogContent
-        class="fixed top-1/2 left-1/2 z-100 flex max-h-screen max-w-screen -translate-1/2 flex-col rounded-sm bg-naturals-n3 p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
+        class="fixed top-1/2 left-1/2 z-30 flex max-h-screen max-w-screen -translate-1/2 flex-col rounded-sm bg-naturals-n3 p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
       >
         <div class="mb-5 flex items-start justify-between gap-4">
           <div class="flex flex-col">
@@ -89,6 +91,7 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
             v-if="actionLabel"
             :disabled="actionDisabled || loading"
             variant="highlighted"
+            v-bind="actionHref ? { is: 'a', href: actionHref } : { is: 'button' }"
             @click="$emit('confirm')"
           >
             <TSpinner v-if="loading" class="size-5" />

@@ -3,52 +3,47 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { computedAsync } from '@vueuse/core'
-import { compareLoose, gte } from 'semver'
-import { computed } from 'vue'
+import { type MaybeRefOrGetter, ref, toValue } from 'vue'
 
-import { MinTalosVersion } from '@/api/resources'
-import { showError } from '@/notification'
+import { DefaultTalosVersion } from '@/api/resources'
 
 export interface TalosctlDownloadsResponse {
   status: string
-  release_data: {
-    /**
-     * NOTE: We don't use this response value as it is not correct.
-     * The backend pops the top of a sorted list, but it is sorted alphabetically,
-     * which does not correctly sort versions. For example, this sorting:
-     * - 1.1
-     * - 1.11
-     * - 1.2
-     *
-     * Giving 1.2 as a more recent version than 1.11.
-     *
-     * @deprecated Don't use this as it is not the latest version.
-     */
-    default_version: string
-    available_versions: Record<string, { name: string; url: string }[]>
-  }
+  downloads?: string[]
 }
 
-export function useTalosctlDownloads() {
-  const downloads = computedAsync(async () => {
-    try {
-      const response = await fetch('/talosctl/downloads')
+interface Options {
+  skip?: boolean
+}
 
-      const {
-        release_data: { available_versions },
-      }: TalosctlDownloadsResponse = await response.json()
+export function useTalosctlDownloads(
+  talosVersionMaybeRef?: MaybeRefOrGetter<string | undefined>,
+  options?: MaybeRefOrGetter<Options>,
+) {
+  const loading = ref(false)
+  const err = ref<Error>()
 
-      return new Map(
-        Object.entries(available_versions)
-          .filter(([v]) => gte(v, MinTalosVersion))
-          .sort(([a], [b]) => compareLoose(a, b)),
-      )
-    } catch (e) {
-      showError('Error getting latest talos releases', e?.message ?? String(e))
-    }
-  })
+  const data = computedAsync(
+    async () => {
+      try {
+        if (toValue(options)?.skip) return []
 
-  const defaultVersion = computed(() => downloads.value && Array.from(downloads.value.keys()).pop())
+        const talosVersion = toValue(talosVersionMaybeRef) ?? DefaultTalosVersion
 
-  return { downloads, defaultVersion }
+        const response = await fetch(`/talosctl/downloads/${talosVersion}`)
+
+        const { downloads }: TalosctlDownloadsResponse = await response.json()
+
+        return downloads ?? []
+      } catch (e) {
+        err.value = e instanceof Error ? e : new Error(String(e))
+
+        return []
+      }
+    },
+    [],
+    loading,
+  )
+
+  return { data, loading, err }
 }

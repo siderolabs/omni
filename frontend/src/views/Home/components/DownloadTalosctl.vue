@@ -6,60 +6,124 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computedAsync } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { compare } from 'semver'
+import { computed, ref, toValue, watchEffect } from 'vue'
 
+import { Runtime } from '@/api/common/omni.pb'
+import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import type { QuirksSpec } from '@/api/omni/specs/virtual.pb'
+import {
+  DefaultNamespace,
+  DefaultTalosVersion,
+  QuirksType,
+  TalosVersionType,
+  VirtualNamespace,
+} from '@/api/resources'
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
-import TSpinner from '@/components/Spinner/TSpinner.vue'
-import { downloadFile, getDocsLink, getPlatform } from '@/methods'
+import TAlert from '@/components/TAlert.vue'
+import { getDocsLink, getPlatform } from '@/methods'
+import { useResourceList } from '@/methods/useResourceList'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
 
 const open = defineModel<boolean>('open', { default: false })
 
 const platform = computedAsync(getPlatform)
 
-const { downloads: availableVersions, defaultVersion } = useTalosctlDownloads()
+const selectedVersion = ref<string>()
+const selectedBinary = ref<string>()
 
-const defaultPlatform = computed(() => {
-  if (!defaultVersion.value || !platform.value) return
+const { data: quirks } = useResourceList<QuirksSpec>(() => ({
+  skip: !open.value,
+  runtime: Runtime.Omni,
+  resource: {
+    type: QuirksType,
+    namespace: VirtualNamespace,
+  },
+}))
+
+const {
+  data: versions,
+  loading: versionsLoading,
+  err: versionsErr,
+} = useResourceWatch<TalosVersionSpec>(() => ({
+  skip: !open.value,
+  runtime: Runtime.Omni,
+  resource: {
+    type: TalosVersionType,
+    namespace: DefaultNamespace,
+  },
+}))
+
+const {
+  data: binaries,
+  loading: binariesLoading,
+  err: binariesErr,
+} = useTalosctlDownloads(selectedVersion, () => ({ skip: !open.value }))
+
+function getBinaryNameFromURL(url: string) {
+  return new URL(url).pathname.split('/').pop()
+}
+
+const versionsList = computed(() =>
+  versions.value
+    .filter(
+      (v) =>
+        !v.spec.deprecated &&
+        quirks.value?.find((q) => q.metadata.id === v.spec.version)?.spec.supports_factory_talosctl,
+    )
+    .map((v) => v.spec.version!)
+    .sort(compare),
+)
+
+const binariesList = computed(() =>
+  binaries.value.map((b) => ({
+    label: getBinaryNameFromURL(b) ?? b,
+    value: b,
+  })),
+)
+
+watchEffect(() => {
+  if (!open.value) {
+    selectedVersion.value = undefined
+    selectedBinary.value = undefined
+  }
+
+  const selected = toValue(selectedBinary.value)
+
+  if (selected && !binariesList.value.some((b) => b.value === selected)) {
+    selectedBinary.value = binariesList.value.find(
+      (b) => getBinaryNameFromURL(b.value) === getBinaryNameFromURL(selected),
+    )?.value
+  }
+})
+
+const defaultBinary = computed(() => {
+  if (!binaries.value || !platform.value) return
 
   const [os, arch] = platform.value
 
-  const assets = availableVersions.value?.get(defaultVersion.value)
-  const defaultAsset = assets?.find((item) => item.url.endsWith('linux-amd64'))
-  const preferredAsset = assets?.find((item) => item.url.endsWith(`${os}-${arch}`))
+  const ext = os === 'windows' ? '.exe' : ''
 
-  return (preferredAsset ?? defaultAsset)?.name
-})
+  const defaultAsset = binaries.value.find((item) => item.endsWith('linux-amd64'))
+  const preferredAsset = binaries.value.find((item) => item.endsWith(`${os}-${arch}${ext}`))
 
-const selectedVersion = ref<string>()
-const selectedPlatform = ref<string>()
-
-const download = () => {
-  open.value = false
-
-  if (!selectedVersion.value) return
-
-  const link = availableVersions.value
-    ?.get(selectedVersion.value)
-    ?.find((item) => item.name === selectedPlatform.value)
-  if (!link) {
-    return
-  }
-
-  downloadFile(link.url)
-}
-
-const versionBinaries = computed<string[]>(() => {
-  if (!selectedVersion.value) return []
-
-  return availableVersions.value?.get(selectedVersion.value)?.map((item) => item.name) ?? []
+  return preferredAsset ?? defaultAsset
 })
 </script>
 
 <template>
-  <Modal v-model:open="open" title="Download Talosctl" action-label="Download" @confirm="download">
+  <Modal
+    v-model:open="open"
+    title="Download Talosctl"
+    action-label="Download"
+    :action-disabled="!selectedBinary"
+    :action-href="selectedBinary ?? ''"
+    :loading="binariesLoading"
+    @confirm="open = false"
+  >
     <template #description>
       <code>talosctl</code>
       can be used to access cluster nodes using Talos machine API. Read the
@@ -81,26 +145,35 @@ const versionBinaries = computed<string[]>(() => {
 
     <span class="mb-2 text-xs text-naturals-n14">Manual installation</span>
 
-    <div class="mb-5 flex flex-wrap gap-4">
-      <div v-if="availableVersions && platform" class="flex flex-wrap gap-4">
-        <TSelectList
-          v-model="selectedVersion"
-          title="version"
-          :default-value="defaultVersion"
-          :values="Array.from(availableVersions.keys())"
-          searcheable
-        />
-        <TSelectList
-          v-model="selectedPlatform"
-          title="talosctl"
-          :default-value="defaultPlatform"
-          :values="versionBinaries"
-          searcheable
-        />
-      </div>
-      <div v-else>
-        <TSpinner class="h-6 w-6" />
-      </div>
+    <TAlert v-if="versionsErr || binariesErr" title="Failed to get talosctl versions" type="error">
+      {{ versionsErr }}
+      {{ binariesErr }}
+    </TAlert>
+
+    <TAlert
+      v-else-if="!binariesLoading && !binariesList.length"
+      type="warn"
+      title="No binaries found"
+    >
+      No talosctl binaries were found for version {{ selectedVersion }}
+    </TAlert>
+
+    <div class="mt-2 mb-5 flex flex-wrap gap-4">
+      <TSelectList
+        v-if="!versionsLoading && !versionsErr"
+        v-model="selectedVersion"
+        title="Talos version"
+        :default-value="DefaultTalosVersion"
+        :values="versionsList"
+      />
+
+      <TSelectList
+        v-if="binariesList.length"
+        v-model="selectedBinary"
+        title="Platform"
+        :default-value="defaultBinary"
+        :values="binariesList"
+      />
     </div>
 
     <p class="flex text-xs">

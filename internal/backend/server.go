@@ -21,10 +21,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
-	"github.com/blang/semver/v4"
 	coidc "github.com/coreos/go-oidc/v3/oidc"
 	"github.com/cosi-project/runtime/api/v1alpha1"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -351,6 +351,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 		samlHandler,
 		s.state,
 		s.omniRuntime,
+		s.imageFactoryClient,
 		s.logger,
 		s.cfg,
 	)
@@ -857,6 +858,7 @@ func makeMux(
 	samlHandler *samlsp.Middleware,
 	state *omni.State,
 	omniRuntime *omni.Runtime,
+	imageFactoryClient *imagefactory.Client,
 	logger *zap.Logger,
 	cfg *config.Params,
 ) (*http.ServeMux, error) {
@@ -895,14 +897,14 @@ func makeMux(
 		return nil, err
 	}
 
-	talosctlHandler, err := makeTalosctlHandler(state.Default(), logger)
+	talosctlHandler, err := makeTalosctlHandler(imageFactoryClient, logger)
 	if err != nil {
 		return nil, err
 	}
 
 	muxHandle("/exposed/service", workloadProxyRedirect, "exposed-service-redirect")
 	muxHandle("/omnictl/", http.StripPrefix("/omnictl/", omnictlHndlr), "files")
-	muxHandle("/talosctl/downloads", talosctlHandler, "talosctl-downloads")
+	muxHandle("/talosctl/downloads/{version}", talosctlHandler, "talosctl-downloads")
 	// actually enabled only in debug build
 	muxHandle("/debug/", debug.NewHandler(omniRuntime.GetCOSIRuntime(), state.Default()), "debug")
 
@@ -1249,14 +1251,14 @@ func runPprofServer(ctx context.Context, bindAddress string, l *zap.Logger) erro
 }
 
 //nolint:unparam
-func makeTalosctlHandler(state state.State, logger *zap.Logger) (http.Handler, error) {
+func makeTalosctlHandler(imageFactoryClient *imagefactory.Client, logger *zap.Logger) (http.Handler, error) {
 	// The list of versions does not update very often, so we can cache it.
-	cacher := cache.Value[releaseData]{Duration: time.Hour}
+	var cacherMap sync.Map
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type result struct {
-			ReleaseData *releaseData `json:"release_data,omitempty"`
-			Status      string       `json:"status"`
+			Status    string   `json:"status"`
+			Downloads []string `json:"downloads,omitempty"`
 		}
 
 		writeResult := func(a any, code int) {
@@ -1268,9 +1270,21 @@ func makeTalosctlHandler(state state.State, logger *zap.Logger) (http.Handler, e
 			}
 		}
 
+		talosVersion := r.PathValue("version")
+
+		actual, _ := cacherMap.LoadOrStore(talosVersion, &cache.Value[[]string]{Duration: time.Hour})
+
+		cacher, ok := actual.(*cache.Value[[]string])
+		if !ok {
+			logger.Error("failed to load version cache")
+			writeResult(result{Status: "failed to load version cache"}, http.StatusInternalServerError)
+
+			return
+		}
+
 		ctx := actor.MarkContextAsInternalActor(r.Context())
 
-		data, err := cacher.GetOrUpdate(func() (releaseData, error) { return getReleaseData(ctx, state) })
+		data, err := cacher.GetOrUpdate(func() ([]string, error) { return imageFactoryClient.TalosctlList(ctx, talosVersion) })
 		if err != nil {
 			logger.Error("failed to get latest talosctl release", zap.Error(err))
 			writeResult(result{Status: "failed to get latest talosctl release"}, http.StatusInternalServerError)
@@ -1279,138 +1293,10 @@ func makeTalosctlHandler(state state.State, logger *zap.Logger) (http.Handler, e
 		}
 
 		writeResult(result{
-			ReleaseData: &data,
-			Status:      "ok",
+			Status:    "ok",
+			Downloads: data,
 		}, http.StatusOK)
 	}), nil
-}
-
-func getReleaseData(ctx context.Context, state state.State) (releaseData, error) {
-	all, err := safe.StateListAll[*omnires.TalosVersion](ctx, state)
-	if err != nil {
-		return releaseData{}, fmt.Errorf("failed to list all talos versions: %w", err)
-	}
-
-	if all.Len() == 0 {
-		return releaseData{}, errors.New("no talos versions found")
-	}
-
-	versionNames := make([]string, 0, all.Len())
-
-	for val := range all.All() {
-		version := val.TypedSpec().Value.Version
-		if !strings.HasPrefix(version, "v") {
-			version = "v" + version
-		}
-
-		versionNames = append(versionNames, version)
-	}
-
-	releases, err := getGithubReleases(versionNames...)
-	if err != nil {
-		return releaseData{}, err
-	}
-
-	return releases, nil
-}
-
-func getGithubReleases(tags ...string) (releaseData, error) {
-	if len(tags) == 0 {
-		return releaseData{}, errors.New("no tags provided")
-	}
-
-	versions := make(map[string][]talosctlAsset, len(tags))
-
-	for _, tag := range tags {
-		assets := make([]talosctlAsset, 0, len(assetsData))
-
-		for _, asset := range assetsData {
-			if asset.minTalosVersion != "" {
-				v, err := semver.ParseTolerant(tag)
-				if err != nil {
-					continue
-				}
-
-				if v.LT(semver.MustParse(asset.minTalosVersion)) {
-					continue
-				}
-			}
-
-			assets = append(assets, talosctlAsset{
-				Name: asset.name,
-				URL:  fmt.Sprintf("https://github.com/siderolabs/talos/releases/download/%s/%s", tag, asset.urlPart),
-			})
-		}
-
-		versions[tag] = assets
-	}
-
-	return releaseData{
-		AvailableVersions: versions,
-		DefaultVersion:    tags[len(tags)-1],
-	}, nil
-}
-
-type releaseData struct {
-	AvailableVersions map[string][]talosctlAsset `json:"available_versions"`
-	DefaultVersion    string                     `json:"default_version,omitempty"`
-}
-
-type talosctlAsset struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-}
-
-var assetsData = []struct {
-	name            string
-	urlPart         string
-	minTalosVersion string
-}{
-	{
-		"Apple",
-		"talosctl-darwin-amd64",
-		"",
-	},
-	{
-		"Apple Silicon",
-		"talosctl-darwin-arm64",
-		"",
-	},
-	{
-		"FreeBSD",
-		"talosctl-freebsd-amd64",
-		"",
-	},
-	{
-		"FreeBSD ARM64",
-		"talosctl-freebsd-arm64",
-		"",
-	},
-	{
-		"Linux",
-		"talosctl-linux-amd64",
-		"",
-	},
-	{
-		"Linux ARM",
-		"talosctl-linux-armv7",
-		"",
-	},
-	{
-		"Linux ARM64",
-		"talosctl-linux-arm64",
-		"",
-	},
-	{
-		"Windows",
-		"talosctl-windows-amd64.exe",
-		"",
-	},
-	{
-		"Windows ARM64",
-		"talosctl-windows-arm64.exe",
-		"1.9.0",
-	},
 }
 
 // Auditor is a common interface for audit log.

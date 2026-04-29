@@ -18,12 +18,14 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"github.com/stripe/stripe-go/v85"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	omniresources "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	stateerrors "github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/errors"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/factory/configs"
@@ -126,6 +128,8 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 		return v.advertisedEndpoints(ctx, ptr)
 	case virtual.SupportType:
 		return v.support(ctx, ptr)
+	case virtual.QuirksType:
+		return v.quirks(ctx, ptr)
 	default:
 		return nil, stateerrors.ErrUnsupported(fmt.Errorf("unsupported resource type for get %q", ptr.Type()))
 	}
@@ -174,6 +178,8 @@ func (v *State) List(ctx context.Context, kind resource.Kind, opts ...state.List
 		}
 
 		return resource.List{Items: []resource.Resource{permissions}}, nil
+	case virtual.QuirksType:
+		return v.listQuirks(ctx)
 	default:
 		return resource.List{}, stateerrors.ErrUnsupported(fmt.Errorf("unsupported resource type for list %q", kind.Type()))
 	}
@@ -420,6 +426,45 @@ func (v *State) support(ctx context.Context, ptr resource.Pointer) (*virtual.Sup
 	}
 
 	res.TypedSpec().Value.SupportEnabled = v.supportEnabled
+
+	return res, nil
+}
+
+func (v *State) listQuirks(ctx context.Context) (resource.List, error) {
+	list, err := v.PrimaryState.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omniresources.TalosVersionType, "", resource.VersionUndefined))
+	if err != nil {
+		return resource.List{}, err
+	}
+
+	items := make([]resource.Resource, 0, len(list.Items))
+
+	for _, item := range list.Items {
+		q, err := v.quirks(ctx, item.Metadata())
+		if err != nil {
+			return resource.List{}, err
+		}
+
+		items = append(items, q)
+	}
+
+	return resource.List{Items: items}, nil
+}
+
+func (v *State) quirks(_ context.Context, ptr resource.Pointer) (*virtual.Quirks, error) {
+	res := virtual.NewQuirks(ptr.ID())
+
+	version, err := resource.ParseVersion("1")
+	if err != nil {
+		return nil, err
+	}
+
+	q := quirks.New(ptr.ID())
+
+	res.Metadata().SetVersion(version)
+	res.TypedSpec().Value = &specs.QuirksSpec{
+		SupportsUnifiedInstaller: q.SupportsUnifiedInstaller(),
+		SupportsFactoryTalosctl:  q.SupportsFactoryTalosctlDownload(),
+	}
 
 	return res, nil
 }

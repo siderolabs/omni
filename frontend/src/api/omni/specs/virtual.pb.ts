@@ -107,3 +107,8 @@ export type SupportSpec = {
   support_enabled?: boolean
   office_hours?: OfficeHoursConfig
 }
+
+export type QuirksSpec = {
+  supports_unified_installer?: boolean
+  supports_factory_talosctl?: boolean
+}
