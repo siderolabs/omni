@@ -53,7 +53,7 @@
     "tailwind-merge": "^3.5.0",
     "ua-parser-js": "^2.0.9",
     "userpilot": "^1.4.2",
-    "uuid": "^13.0.0",
+    "uuid": "^14.0.0",
     "vue": "^3.5.32",
     "vue-router": "^5.0.4",
     "vue-sonner": "^2.0.9",
