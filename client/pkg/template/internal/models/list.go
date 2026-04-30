@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"os"
 	"slices"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -122,12 +121,12 @@ func (l List) Validate(opts ValidateOptions) error {
 // Translate a set of models (template) to a set of Omni resources.
 //
 // Translate assumes that the template is valid.
-func (l List) Translate(root *os.Root) ([]resource.Resource, error) {
+func (l List) Translate(fc FileContext) ([]resource.Resource, error) {
 	context := TranslateContext{
+		FileContext:               fc,
 		LockedMachines:            map[MachineID]struct{}{},
 		MachineDescriptors:        map[MachineID]Descriptors{},
 		MachineSetLevelKernelArgs: map[MachineID]KernelArgs{},
-		Root:                      root,
 	}
 
 	for _, model := range l {

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -840,6 +841,33 @@ func openTestRoot(t *testing.T) *os.Root {
 	t.Cleanup(func() { root.Close() }) //nolint:errcheck
 
 	return root
+}
+
+// TestLoad_DirRelativeFiles verifies that relative file paths in the template
+// are resolved against the directory containing the template file, regardless
+// of the current working directory.
+func TestLoad_DirRelativeFiles(t *testing.T) {
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	t.Chdir(t.TempDir())
+
+	templatePath := filepath.Join(cwd, "testdata", "cluster1.yaml")
+
+	f, err := os.Open(templatePath)
+	require.NoError(t, err)
+
+	t.Cleanup(func() { f.Close() }) //nolint:errcheck
+
+	root, err := os.OpenRoot(filepath.Join(cwd, "testdata"))
+	require.NoError(t, err)
+
+	t.Cleanup(func() { root.Close() }) //nolint:errcheck
+
+	templ, err := template.Load(f, template.WithRoot(root))
+	require.NoError(t, err)
+
+	require.NoError(t, templ.Validate())
 }
 
 func removeKernelArgs(t *testing.T, in []byte) []byte {

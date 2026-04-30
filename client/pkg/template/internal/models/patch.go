@@ -101,7 +101,7 @@ func (patch *Patch) Validate(opts ValidateOptions) error {
 
 	switch {
 	case patch.File != "":
-		raw, err := ReadFile(opts.Root, patch.File)
+		raw, err := opts.ReadFile(patch.File)
 		if err != nil {
 			multiErr = multierror.Append(multiErr, fmt.Errorf("failed to access %q: %w", patch.File, err))
 		} else {
@@ -150,7 +150,7 @@ func (patch *Patch) Translate(ctx TranslateContext, prefix string, weight int, l
 
 	switch {
 	case patch.File != "":
-		raw, err = ReadFile(ctx.Root, patch.File)
+		raw, err = ctx.ReadFile(patch.File)
 	case patch.Inline != nil:
 		raw, err = patch.GetPatches()
 	default:

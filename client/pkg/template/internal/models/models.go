@@ -24,10 +24,18 @@ type Meta struct {
 	Kind string `yaml:"kind"`
 }
 
+// FileContext describes how to resolve and read files referenced by a template.
+type FileContext struct {
+	// Root restricts file access to a single directory tree. When nil, no restriction is applied.
+	Root *os.Root
+	// Dir is the directory used to resolve relative file paths from the template.
+	// When empty, callers should treat it as "." (for example, for non-file-backed templates).
+	Dir string
+}
+
 // TranslateContext is a context for translation.
 type TranslateContext struct {
-	// Root restricts file access to a single directory tree. When nil, no restriction is applied.
-	Root                      *os.Root
+	FileContext
 	LockedMachines            map[MachineID]struct{}
 	MachineDescriptors        map[MachineID]Descriptors
 	MachineSetLevelKernelArgs map[MachineID]KernelArgs
@@ -103,18 +111,27 @@ func (d *Descriptors) Apply(res resource.Resource) {
 
 // ValidateOptions contains options for model validation.
 type ValidateOptions struct {
-	// Root restricts file access to a single directory tree. When nil, no restriction is applied.
-	Root *os.Root
+	FileContext
 }
 
-// resolveForRoot translates a CWD-relative path into a path relative to the root directory.
-func resolveForRoot(root *os.Root, path string) (string, error) {
-	absPath, err := filepath.Abs(path)
+// resolveForDir resolves path against fc.Dir when path is relative.
+func (fc FileContext) resolveForDir(path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+
+	return filepath.Join(fc.Dir, path)
+}
+
+// resolveForRoot translates a path into a path relative to fc.Root,
+// resolving relative paths against fc.Dir.
+func (fc FileContext) resolveForRoot(path string) (string, error) {
+	absPath, err := filepath.Abs(fc.resolveForDir(path))
 	if err != nil {
 		return "", err
 	}
 
-	rootAbs, err := filepath.Abs(root.Name())
+	rootAbs, err := filepath.Abs(fc.Root.Name())
 	if err != nil {
 		return "", err
 	}
@@ -122,32 +139,34 @@ func resolveForRoot(root *os.Root, path string) (string, error) {
 	return filepath.Rel(rootAbs, absPath)
 }
 
-// ReadFile reads a file, using root to restrict access when non-nil.
-func ReadFile(root *os.Root, path string) ([]byte, error) {
-	if root == nil {
-		return os.ReadFile(path)
+// ReadFile reads a file, using fc.Root to restrict access when non-nil.
+// Relative paths are resolved against fc.Dir.
+func (fc FileContext) ReadFile(path string) ([]byte, error) {
+	if fc.Root == nil {
+		return os.ReadFile(fc.resolveForDir(path))
 	}
 
-	rel, err := resolveForRoot(root, path)
+	rel, err := fc.resolveForRoot(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return root.ReadFile(rel)
+	return fc.Root.ReadFile(rel)
 }
 
-// StatFile stats a file, using root to restrict access when non-nil.
-func StatFile(root *os.Root, path string) (os.FileInfo, error) {
-	if root == nil {
-		return os.Stat(path)
+// StatFile stats a file, using fc.Root to restrict access when non-nil.
+// Relative paths are resolved against fc.Dir.
+func (fc FileContext) StatFile(path string) (os.FileInfo, error) {
+	if fc.Root == nil {
+		return os.Stat(fc.resolveForDir(path))
 	}
 
-	rel, err := resolveForRoot(root, path)
+	rel, err := fc.resolveForRoot(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return root.Stat(rel)
+	return fc.Root.Stat(rel)
 }
 
 // Model is a base interface for cluster templates.

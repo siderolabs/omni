@@ -104,7 +104,7 @@ func (km *KubernetesManifest) Validate(opts ValidateOptions) error {
 
 	switch {
 	case km.File != "":
-		_, err := StatFile(opts.Root, km.File)
+		_, err := opts.StatFile(km.File)
 		if err != nil {
 			errs = errors.Join(errs, fmt.Errorf("failed to access %q: %w", km.File, err))
 		}
@@ -134,7 +134,7 @@ func (km *KubernetesManifest) Translate(ctx TranslateContext, prefix string, wei
 
 	switch {
 	case km.File != "":
-		raw, err = ReadFile(ctx.Root, km.File)
+		raw, err = ctx.ReadFile(km.File)
 	case km.Inline != nil:
 		raw, err = km.GetManifests()
 	default:

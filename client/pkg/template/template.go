@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -30,21 +31,51 @@ type Option func(*Template)
 // WithRoot sets the root directory for file access restriction.
 func WithRoot(root *os.Root) Option {
 	return func(t *Template) {
-		t.root = root
+		t.fc.Root = root
 	}
 }
 
 // Template is a cluster template.
 type Template struct {
-	root   *os.Root
+	fc     models.FileContext
 	models models.List
 }
 
+// named is implemented by readers backed by a path-like name (e.g. *os.File).
+type named interface {
+	Name() string
+}
+
+// dirFromReader returns the directory of the file backing the reader,
+// or "." when the reader is not file-backed.
+func dirFromReader(input io.Reader) (string, error) {
+	if n, ok := input.(named); ok {
+		if name := n.Name(); name != "" {
+			dir := filepath.Dir(name)
+
+			return filepath.Abs(dir)
+		}
+	}
+
+	return ".", nil
+}
+
 // Load the template from input.
+//
+// When input is an *os.File, relative file paths in the template are resolved
+// against the directory containing that file. Otherwise, paths are resolved
+// against the current working directory.
 func Load(input io.Reader, opts ...Option) (*Template, error) {
 	dec := yaml.NewDecoder(input)
 
-	var template Template
+	dir, err := dirFromReader(input)
+	if err != nil {
+		return nil, fmt.Errorf("error determining directory from input: %w", err)
+	}
+
+	template := Template{
+		fc: models.FileContext{Dir: dir},
+	}
 
 	for _, opt := range opts {
 		opt(&template)
@@ -143,13 +174,13 @@ func WithCluster(clusterName string) *Template {
 // Validate the template.
 func (t *Template) Validate() error {
 	return t.models.Validate(models.ValidateOptions{
-		Root: t.root,
+		FileContext: t.fc,
 	})
 }
 
 // Translate the template into resources.
 func (t *Template) Translate() ([]resource.Resource, error) {
-	return t.models.Translate(t.root)
+	return t.models.Translate(t.fc)
 }
 
 // ClusterName returns the name of the cluster associated with the template.
