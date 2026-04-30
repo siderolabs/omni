@@ -25,9 +25,14 @@ import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 
-const { machine, searchQuery = '' } = defineProps<{
+const {
+  machine,
+  showUUID,
+  searchQuery = '',
+} = defineProps<{
   machine: Resource<MachineStatusLinkSpec>
   panelOpen?: boolean
+  showUUID?: boolean
   searchQuery?: string
 }>()
 
@@ -48,7 +53,9 @@ const { canManageKernelArgs, canReadConfigPatches } = useClusterPermissions(
 )
 
 const machineName = computed(() => {
-  return machine.spec.message_status?.network?.hostname ?? machine.metadata.id
+  return showUUID
+    ? machine.metadata.id
+    : (machine.spec.message_status?.network?.hostname ?? machine.metadata.id)
 })
 
 const clusterName = computed(() => machine.spec.message_status?.cluster)
@@ -177,9 +184,9 @@ const maintenanceUpdateDescription = computed(() => {
               :disabled="!canManageKernelArgs"
               @select="
                 $router.push({
-                  query: {
-                    modal: 'updateKernelArgs',
-                    machine: machine.metadata.id,
+                  name: 'MachineKernelArgs',
+                  params: {
+                    machine: machine.metadata.id!,
                   },
                 })
               "

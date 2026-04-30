@@ -11,6 +11,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, LabelCluster, MachineStatusType } from '@/api/resources'
+import CopyButton from '@/components/CopyButton/CopyButton.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
@@ -47,10 +48,10 @@ function getDisplayNameForMachine(machine: Resource<MachineStatusSpec>) {
 </script>
 
 <template>
-  <div class="items-startflex-row flex flex-wrap">
+  <div class="flex flex-col gap-2">
     <div class="flex items-center">
       <RouterLink
-        class="p-2 leading-none font-medium transition hover:opacity-50"
+        class="py-2 pr-2 leading-none font-medium transition hover:opacity-50"
         :to="{ name: 'ClusterOverview', params: { cluster: clusterId } }"
       >
         {{ clusterId }}
@@ -73,6 +74,12 @@ function getDisplayNameForMachine(machine: Resource<MachineStatusSpec>) {
         searcheable
         @update:model-value="(v) => $router.push({ params: { machine: v } })"
       />
+    </div>
+
+    <div class="flex gap-1">
+      <span class="text-xs font-medium text-naturals-n12">Machine UUID:</span>
+      <span class="text-xs">{{ machineId }}</span>
+      <CopyButton :text="machineId" />
     </div>
   </div>
 </template>

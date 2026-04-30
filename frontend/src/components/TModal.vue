@@ -28,7 +28,6 @@ const modals: Record<string, Component> = {
   configPatchDestroy: defineAsyncComponent(() => import('@/views/Modals/ConfigPatchDestroy.vue')),
   userDestroy: defineAsyncComponent(() => import('@/views/Modals/UserDestroy.vue')),
   userCreate: defineAsyncComponent(() => import('@/views/Modals/UserCreate.vue')),
-  updateKernelArgs: defineAsyncComponent(() => import('@/views/Modals/UpdateKernelArgs.vue')),
   joinTokenCreate: defineAsyncComponent(() => import('@/views/Modals/JoinTokenCreate.vue')),
   joinTokenRevoke: defineAsyncComponent(() => import('@/views/Modals/JoinTokenRevoke.vue')),
   joinTokenDelete: defineAsyncComponent(() => import('@/views/Modals/JoinTokenDelete.vue')),

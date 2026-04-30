@@ -67,6 +67,10 @@ const routes = computed(() => {
       name: 'Extensions',
       to: { name: 'NodeExtensions', params: { machine: machine.value } },
     },
+    {
+      name: 'Kernel Args',
+      to: { name: 'NodeKernelArgs' },
+    },
   ]
 })
 </script>

@@ -50,6 +50,10 @@ const routes = computed(() => {
       name: 'Extensions',
       to: { name: 'MachineExtensions' },
     },
+    {
+      name: 'Kernel Args',
+      to: { name: 'MachineKernelArgs' },
+    },
   ]
 })
 

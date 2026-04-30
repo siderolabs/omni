@@ -5,17 +5,19 @@
 import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { http, HttpResponse } from 'msw'
 
-import type { Resource } from '@/api/grpc'
-import type { GetRequest } from '@/api/omni/resources/resources.pb'
 import type { KernelArgsSpec, KernelArgsStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, KernelArgsStatusType, KernelArgsType } from '@/api/resources'
 
-import UpdateKernelArgs from './UpdateKernelArgs.vue'
+import MachineKernelArgs from './MachineKernelArgs.vue'
 
-const meta: Meta<typeof UpdateKernelArgs> = {
-  component: UpdateKernelArgs,
+const machineId = faker.string.uuid()
+
+const meta: Meta<typeof MachineKernelArgs> = {
+  component: MachineKernelArgs,
+  parameters: {
+    machine: machineId,
+  },
 }
 
 export default meta
@@ -29,6 +31,7 @@ export const Data: Story = {
           expectedOptions: {
             type: KernelArgsStatusType,
             namespace: DefaultNamespace,
+            id: machineId,
           },
           initialResources: [
             {
@@ -41,27 +44,36 @@ export const Data: Story = {
                   faker.helpers.slugify(faker.hacker.phrase()).toLowerCase(),
                 ),
               },
-              metadata: {},
+              metadata: {
+                type: KernelArgsStatusType,
+                namespace: DefaultNamespace,
+                id: machineId,
+              },
             },
           ],
         }).handler,
 
-        http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
-          const { type, namespace } = await request.clone().json()
-
-          if (type !== KernelArgsType || namespace !== DefaultNamespace) return
-
-          const resource: Resource<KernelArgsSpec> = {
-            spec: {
-              args: faker.helpers.multiple(() =>
-                faker.helpers.slugify(faker.hacker.phrase()).toLowerCase(),
-              ),
+        createWatchStreamHandler<KernelArgsSpec>({
+          expectedOptions: {
+            type: KernelArgsType,
+            namespace: DefaultNamespace,
+            id: machineId,
+          },
+          initialResources: [
+            {
+              spec: {
+                args: faker.helpers.multiple(() =>
+                  faker.helpers.slugify(faker.hacker.phrase()).toLowerCase(),
+                ),
+              },
+              metadata: {
+                type: KernelArgsType,
+                namespace: DefaultNamespace,
+                id: machineId,
+              },
             },
-            metadata: {},
-          }
-
-          return HttpResponse.json({ body: JSON.stringify(resource) })
-        }),
+          ],
+        }).handler,
       ],
     },
   },

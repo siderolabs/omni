@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useLocalStorage } from '@vueuse/core'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -29,6 +30,7 @@ import {
   VirtualNamespace,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
+import TButtonGroup from '@/components/Button/TButtonGroup.vue'
 import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -50,6 +52,7 @@ const { filter, provider } = defineProps<{
 }>()
 
 const router = useRouter()
+const showUUID = useLocalStorage<'hostname' | 'uuid'>('_machines_list_show_uuid', 'hostname')
 
 const { data: infraProviderStatuses } = useResourceWatch<InfraProviderStatusSpec>({
   resource: {
@@ -258,14 +261,27 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
       </template>
 
       <template #extra-controls>
-        <TButton
-          variant="primary"
-          icon="delete"
-          :disabled="!selectedMachines.size"
-          @click="deleteItems"
-        >
-          <span class="contents max-md:hidden">Delete selected</span>
-        </TButton>
+        <div class="flex w-full items-center justify-between">
+          <TButton
+            variant="primary"
+            icon="delete"
+            :disabled="!selectedMachines.size"
+            @click="deleteItems"
+          >
+            <span class="contents max-md:hidden">Delete selected</span>
+          </TButton>
+
+          <span class="flex items-center gap-1 text-xs">
+            Display
+            <TButtonGroup
+              v-model="showUUID"
+              :options="[
+                { label: 'Hostnames', value: 'hostname' },
+                { label: 'UUIDs', value: 'uuid' },
+              ]"
+            />
+          </span>
+        </div>
       </template>
 
       <template
@@ -278,6 +294,7 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
           :search-query="searchQuery"
           :panel-open="sidePanelOpen && item.metadata.id === sidePanelSelectedItemId"
           :selected="selectedMachines.has(item.metadata.id ?? '')"
+          :show-u-u-i-d="showUUID === 'uuid'"
           @update:selected="(v) => updateSelected(item, v)"
           @open-panel="openPanel(item.metadata.id ?? '')"
           @filter-labels="(label) => addLabel(filterLabels, label)"

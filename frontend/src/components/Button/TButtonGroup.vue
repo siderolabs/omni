@@ -67,11 +67,11 @@ const modelValue = defineModel<string | number>()
 }
 
 .checked {
-  @apply bg-naturals-n4;
+  @apply bg-naturals-n6;
 }
 
 .checked span {
-  @apply text-naturals-n12;
+  @apply text-primary-p3;
 }
 
 .popper {

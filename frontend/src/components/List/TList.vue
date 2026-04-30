@@ -315,44 +315,46 @@ const openPage = (page: number | string) => {
             <TInput v-if="search" v-model="filterValueInternal" icon="search" />
           </slot>
 
-          <div class="flex items-center gap-2">
-            <slot name="extra-controls" :selected-filter-option />
+          <div class="flex justify-between gap-2">
+            <div class="grow">
+              <slot name="extra-controls" :selected-filter-option />
+            </div>
 
-            <div class="grow" />
+            <div class="flex items-center gap-2">
+              <TSelectList
+                v-if="filterOptions"
+                :title="filterCaption ?? 'Filter'"
+                :default-value="selectedFilterOption || ''"
+                :values="filterOptionsVariants"
+                @checked-value="(value) => (selectedFilterOption = value)"
+              />
 
-            <TSelectList
-              v-if="filterOptions"
-              :title="filterCaption ?? 'Filter'"
-              :default-value="selectedFilterOption || ''"
-              :values="filterOptionsVariants"
-              @checked-value="(value) => (selectedFilterOption = value)"
-            />
+              <TSelectList
+                v-if="sortOptions"
+                title="Sort by"
+                hide-selected-small-screens
+                :default-value="selectedSortOption || ''"
+                :values="sortOptionsVariants"
+                @checked-value="
+                  (value: string) => {
+                    selectedSortOption = value
+                  }
+                "
+              />
 
-            <TSelectList
-              v-if="sortOptions"
-              title="Sort by"
-              hide-selected-small-screens
-              :default-value="selectedSortOption || ''"
-              :values="sortOptionsVariants"
-              @checked-value="
-                (value: string) => {
-                  selectedSortOption = value
-                }
-              "
-            />
-
-            <TSelectList
-              v-if="itemsPerPage?.length > 1 && pagination"
-              title="Items per Page"
-              :default-value="selectedItemsPerPage"
-              :values="itemsPerPage"
-              @checked-value="
-                (value: number) => {
-                  selectedItemsPerPage = value
-                  currentPage = 1
-                }
-              "
-            />
+              <TSelectList
+                v-if="itemsPerPage?.length > 1 && pagination"
+                title="Items per Page"
+                :default-value="selectedItemsPerPage"
+                :values="itemsPerPage"
+                @checked-value="
+                  (value: number) => {
+                    selectedItemsPerPage = value
+                    currentPage = 1
+                  }
+                "
+              />
+            </div>
           </div>
         </template>
 

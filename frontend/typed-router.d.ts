@@ -69,6 +69,7 @@ declare module 'vue-router/auto-routes' {
       | 'MachineDevices'
       | 'MachineDisks'
       | 'MachineExtensions'
+      | 'MachineKernelArgs'
       | 'MachineLogs'
       | 'MachinePatchEdit'
       | 'Machines'
@@ -82,6 +83,7 @@ declare module 'vue-router/auto-routes' {
       | 'NodeDevices'
       | 'NodeDisks'
       | 'NodeExtensions'
+      | 'NodeKernelArgs'
       | 'NodeLogs'
       | 'NodeMonitor'
       | 'NodeOverview'
@@ -125,6 +127,7 @@ declare module 'vue-router/auto-routes' {
       | 'NodeDevices'
       | 'NodeDisks'
       | 'NodeExtensions'
+      | 'NodeKernelArgs'
       | 'NodeLogs'
       | 'NodeMonitor'
       | 'NodeOverview'
@@ -157,6 +160,7 @@ declare module 'vue-router/auto-routes' {
       | 'NodeDevices'
       | 'NodeDisks'
       | 'NodeExtensions'
+      | 'NodeKernelArgs'
       | 'NodeLogs'
       | 'NodeMonitor'
       | 'NodeOverview'
@@ -201,6 +205,13 @@ declare module 'vue-router/auto-routes' {
     'NodeExtensions': RouteRecordInfo<
       'NodeExtensions',
       '/clusters/:cluster/machine/:machine/extensions',
+      { cluster: ParamValue<true>, machine: ParamValue<true> },
+      { cluster: ParamValue<false>, machine: ParamValue<false> },
+      | never
+    >,
+    'NodeKernelArgs': RouteRecordInfo<
+      'NodeKernelArgs',
+      '/clusters/:cluster/machine/:machine/kernel-args',
       { cluster: ParamValue<true>, machine: ParamValue<true> },
       { cluster: ParamValue<false>, machine: ParamValue<false> },
       | never
@@ -326,6 +337,7 @@ declare module 'vue-router/auto-routes' {
       | 'MachineDevices'
       | 'MachineDisks'
       | 'MachineExtensions'
+      | 'MachineKernelArgs'
       | 'MachineLogs'
       | 'MachinePatchEdit'
     >,
@@ -346,6 +358,13 @@ declare module 'vue-router/auto-routes' {
     'MachineExtensions': RouteRecordInfo<
       'MachineExtensions',
       '/machines/:machine/extensions',
+      { machine: ParamValue<true> },
+      { machine: ParamValue<false> },
+      | never
+    >,
+    'MachineKernelArgs': RouteRecordInfo<
+      'MachineKernelArgs',
+      '/machines/:machine/kernel-args',
       { machine: ParamValue<true> },
       { machine: ParamValue<false> },
       | never
@@ -628,6 +647,7 @@ declare module 'vue-router/auto-routes' {
         | 'MachineDevices'
         | 'MachineDisks'
         | 'MachineExtensions'
+        | 'MachineKernelArgs'
         | 'MachineLogs'
         | 'MachinePatchEdit'
         | 'Machines'
@@ -641,6 +661,7 @@ declare module 'vue-router/auto-routes' {
         | 'NodeDevices'
         | 'NodeDisks'
         | 'NodeExtensions'
+        | 'NodeKernelArgs'
         | 'NodeLogs'
         | 'NodeMonitor'
         | 'NodeOverview'
@@ -691,6 +712,7 @@ declare module 'vue-router/auto-routes' {
         | 'MachineDevices'
         | 'MachineDisks'
         | 'MachineExtensions'
+        | 'MachineKernelArgs'
         | 'MachineLogs'
         | 'MachinePatchEdit'
         | 'Machines'
@@ -704,6 +726,7 @@ declare module 'vue-router/auto-routes' {
         | 'NodeDevices'
         | 'NodeDisks'
         | 'NodeExtensions'
+        | 'NodeKernelArgs'
         | 'NodeLogs'
         | 'NodeMonitor'
         | 'NodeOverview'
@@ -745,6 +768,7 @@ declare module 'vue-router/auto-routes' {
         | 'NodeDevices'
         | 'NodeDisks'
         | 'NodeExtensions'
+        | 'NodeKernelArgs'
         | 'NodeLogs'
         | 'NodeMonitor'
         | 'NodeOverview'
@@ -775,6 +799,7 @@ declare module 'vue-router/auto-routes' {
         | 'NodeDevices'
         | 'NodeDisks'
         | 'NodeExtensions'
+        | 'NodeKernelArgs'
         | 'NodeLogs'
         | 'NodeMonitor'
         | 'NodeOverview'
@@ -816,6 +841,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/extensions.vue': {
       routes:
         | 'NodeExtensions'
+      views:
+        | never
+    }
+    'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/kernel-args.vue': {
+      routes:
+        | 'NodeKernelArgs'
       views:
         | never
     }
@@ -922,6 +953,7 @@ declare module 'vue-router/auto-routes' {
         | 'MachineDevices'
         | 'MachineDisks'
         | 'MachineExtensions'
+        | 'MachineKernelArgs'
         | 'MachineLogs'
         | 'MachinePatchEdit'
       views:
@@ -942,6 +974,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(authenticated)/machines/[machine]/extensions.vue': {
       routes:
         | 'MachineExtensions'
+      views:
+        | never
+    }
+    'src/pages/(authenticated)/machines/[machine]/kernel-args.vue': {
+      routes:
+        | 'MachineKernelArgs'
       views:
         | never
     }

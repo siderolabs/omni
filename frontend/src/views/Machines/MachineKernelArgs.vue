@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
@@ -17,24 +16,25 @@ import { DefaultNamespace, KernelArgsStatusType, KernelArgsType } from '@/api/re
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
+import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TInput from '@/components/TInput/TInput.vue'
-import { useResourceGet } from '@/methods/useResourceGet.ts'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
-import CloseButton from '@/views/Modals/CloseButton.vue'
+
+const { machine } = defineProps<{
+  machine: string
+}>()
 
 const args = ref('')
-const route = useRoute()
-const router = useRouter()
 
-const { data: status } = useResourceWatch<KernelArgsStatusSpec>({
+const { data: status } = useResourceWatch<KernelArgsStatusSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
-    id: route.query.machine as string,
+    id: machine,
     namespace: DefaultNamespace,
     type: KernelArgsStatusType,
   },
-})
+}))
 
 const currentArgs = computed(() => {
   return status.value?.spec.current_args?.join(' ') || ''
@@ -46,16 +46,14 @@ const unmetConditions = computed(() => {
   return status.value?.spec.unmet_conditions || []
 })
 
-const md = {
-  id: route.query.machine as string,
-  namespace: DefaultNamespace,
-  type: KernelArgsType,
-}
-
-const { data: kernelArgs } = useResourceGet<KernelArgsSpec>({
+const { data: kernelArgs } = useResourceWatch<KernelArgsSpec>(() => ({
   runtime: Runtime.Omni,
-  resource: md,
-})
+  resource: {
+    id: machine,
+    namespace: DefaultNamespace,
+    type: KernelArgsType,
+  },
+}))
 
 const initialArgs = computed(
   () => kernelArgs.value?.spec.args?.map((arg) => arg.trim()).join(' ') ?? '',
@@ -72,6 +70,7 @@ const handleUpdateKernelArgs = async () => {
     return
   }
 
+  editArgs.value = false
   showSuccess(`Kernel args are updated`)
 
   close()
@@ -90,7 +89,14 @@ const updateKernelArgs = async () => {
 
   if (emptyArgs) {
     try {
-      await ResourceService.Delete(md, withRuntime(Runtime.Omni))
+      await ResourceService.Delete(
+        {
+          id: machine,
+          namespace: DefaultNamespace,
+          type: KernelArgsType,
+        },
+        withRuntime(Runtime.Omni),
+      )
     } catch (e) {
       if (e.code === Code.NOT_FOUND) {
         return
@@ -105,7 +111,11 @@ const updateKernelArgs = async () => {
   if (!kernelArgs.value) {
     await ResourceService.Create(
       {
-        metadata: md,
+        metadata: {
+          id: machine,
+          namespace: DefaultNamespace,
+          type: KernelArgsType,
+        },
         spec: {
           args: argsSplit,
         },
@@ -126,28 +136,11 @@ const updateKernelArgs = async () => {
 }
 
 const editArgs = ref(false)
-
-let closed = false
-
-const close = () => {
-  if (closed) {
-    return
-  }
-
-  closed = true
-
-  router.go(-1)
-}
 </script>
 
 <template>
-  <div class="modal-window flex flex-col gap-2">
-    <div class="heading">
-      <h3 class="text-base text-naturals-n14">
-        Update Kernel Args of Machine {{ route.query.machine }}
-      </h3>
-      <CloseButton @click="close" />
-    </div>
+  <PageContainer class="flex flex-col gap-2">
+    <h3 class="text-base text-naturals-n14">Update Kernel Args of Machine {{ machine }}</h3>
 
     <ManagedByTemplatesWarning :resource="kernelArgs" />
 
@@ -167,11 +160,13 @@ const close = () => {
     </template>
 
     <div class="text-sm font-semibold text-naturals-n14">Current Kernel Cmdline</div>
-    <code>{{ currentCmdline || 'none' }}</code>
+    <code class="rounded bg-naturals-n6 px-2.5 py-2 font-mono text-xs text-naturals-n13">
+      {{ currentCmdline || 'none' }}
+    </code>
     <template v-if="!editArgs">
       <div class="text-sm font-semibold text-naturals-n14">Current Kernel Args</div>
       <div class="my-0.5 flex items-center gap-2 rounded bg-naturals-n6 pr-2">
-        <code class="flex-1">
+        <code class="flex-1 rounded bg-naturals-n6 px-2.5 py-2 font-mono text-xs text-naturals-n13">
           {{ currentArgs || 'none' }}
         </code>
         <IconButton
@@ -192,21 +187,5 @@ const close = () => {
         </TButton>
       </div>
     </template>
-  </div>
+  </PageContainer>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.modal-window {
-  @apply w-3/4;
-}
-
-.heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
-}
-
-code {
-  @apply rounded bg-naturals-n6 px-1 px-2.5 py-0.5 py-2 font-mono text-xs text-naturals-n13;
-}
-</style>
