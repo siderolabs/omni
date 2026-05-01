@@ -1016,7 +1016,7 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 	)
 
 	if rc.machineConfigStatus != nil && rc.installImage != nil &&
-		rc.machineConfigStatus.TypedSpec().Value.TalosVersion != "" && rc.machineConfigStatus.TypedSpec().Value.SchematicId != "" {
+		rc.machineConfigStatus.TypedSpec().Value.TalosVersion != "" && rc.machineConfigStatus.TypedSpec().Value.SchematicId != "" && rc.shouldUpgrade {
 		currentSchematicID = rc.machineConfigStatus.TypedSpec().Value.SchematicId
 		currentTalosVersion = rc.machineConfigStatus.TypedSpec().Value.TalosVersion
 

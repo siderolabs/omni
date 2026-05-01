@@ -58,17 +58,17 @@ func (suite *ClusterMachineStatusSuite) TestNoMachineStatusSnapShotClusterStatus
 func (suite *ClusterMachineStatusSuite) TestApplyConfigErrorPropagation() {
 	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true, false)
 
-	md := omni.NewClusterMachineConfigStatus(testID).Metadata()
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, md, func(s *omni.ClusterMachineConfigStatus) error {
-		s.TypedSpec().Value.LastConfigError = "TestApplyConfigErrorPropagation error"
+	rmock.Mock[*omni.ClusterMachineConfigStatus](suite.ctx, suite.T(), suite.state, options.WithID(testID),
+		options.Modify(func(s *omni.ClusterMachineConfigStatus) error {
+			s.TypedSpec().Value.LastConfigError = "TestApplyConfigErrorPropagation error"
 
-		return nil
-	})
-	suite.Require().NoError(err)
+			return nil
+		}),
+	)
 
 	clusterMachineStatus := omni.NewClusterMachineStatus(testID)
 
-	err = retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(suite.ctx, func(ctx context.Context) error {
+	err := retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(suite.ctx, func(ctx context.Context) error {
 		res, resErr := safe.StateGet[*omni.ClusterMachineStatus](ctx, suite.state, clusterMachineStatus.Metadata())
 		if resErr != nil {
 			return retry.ExpectedError(resErr)
@@ -94,17 +94,17 @@ func (suite *ClusterMachineStatusSuite) TestApplyConfigErrorPropagation() {
 func (suite *ClusterMachineStatusSuite) TestOutdatedConfig() {
 	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true, false)
 
-	md := omni.NewClusterMachineConfigStatus(testID).Metadata()
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, md, func(s *omni.ClusterMachineConfigStatus) error {
-		s.TypedSpec().Value.ClusterMachineConfigVersion = "42"
+	rmock.Mock[*omni.ClusterMachineConfigStatus](suite.ctx, suite.T(), suite.state, options.WithID(testID),
+		options.Modify(func(s *omni.ClusterMachineConfigStatus) error {
+			s.TypedSpec().Value.ClusterMachineConfigVersion = "42"
 
-		return nil
-	})
-	suite.Require().NoError(err)
+			return nil
+		}),
+	)
 
 	clusterMachineStatus := omni.NewClusterMachineStatus(testID)
 
-	err = retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(suite.ctx, func(ctx context.Context) error {
+	err := retry.Constant(5*time.Second, retry.WithUnits(100*time.Millisecond)).RetryWithContext(suite.ctx, func(ctx context.Context) error {
 		res, resErr := safe.StateGet[*omni.ClusterMachineStatus](ctx, suite.state, clusterMachineStatus.Metadata())
 		if resErr != nil {
 			return retry.ExpectedError(resErr)
