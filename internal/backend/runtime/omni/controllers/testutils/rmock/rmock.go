@@ -30,7 +30,9 @@ import (
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	machineconfigctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/talosupgrade"
 	"github.com/siderolabs/omni/internal/pkg/certs"
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
@@ -410,6 +412,9 @@ machine:
 	setOwner[*omni.TalosConfig](secrets.NewTalosConfigController(omnictrl.DefaultDebounceDuration).ControllerName)
 	setOwner[*omni.Machine](omnictrl.NewMachineController().ControllerName)
 	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController().ControllerName)
+	setOwner[*omni.UpgradeRollout](talosupgrade.NewStatusController().ControllerName)
+	setOwner[*omni.TalosUpgradeStatus](talosupgrade.NewStatusController().ControllerName)
+	setOwner[*omni.ClusterMachineConfigStatus](machineconfigctrl.NewClusterMachineConfigStatusController("", "").ControllerName)
 }
 
 // GetOwner returns the default owner used by the mock library for the resource.

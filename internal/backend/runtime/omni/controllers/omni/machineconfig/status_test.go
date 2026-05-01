@@ -346,7 +346,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 			machineServices := testutils.NewMachineServices(t, testContext.State)
 
-			_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0, options.WithTalosVersion(actualTalosVersion))
+			_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0, withClusterMockOption(options.WithTalosVersion(actualTalosVersion)))
 
 			machineServices.ForEach(func(m *testutils.MachineServiceMock) {
 				m.OnUpdate = upgradeHandler
@@ -394,7 +394,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 			machineServices := testutils.NewMachineServices(t, testContext.State)
 
-			_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0, options.WithTalosVersion("1.10.0"))
+			_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0, withClusterMockOption(options.WithTalosVersion("1.10.0")))
 
 			ids := xslices.Map(machines, func(m *omni.ClusterMachine) string {
 				return m.Metadata().ID()
@@ -515,7 +515,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 			machineServices := testutils.NewMachineServices(t, testContext.State)
 
-			_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0, options.WithTalosVersion(talosVersion))
+			_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0, withClusterMockOption(options.WithTalosVersion(talosVersion)))
 
 			ids := xslices.Map(machines, func(m *omni.ClusterMachine) string {
 				return m.Metadata().ID()
@@ -676,6 +676,92 @@ func TestMachineConfigStatusController(t *testing.T) {
 		)
 	})
 
+	t.Run("noPendingUpdatesStorm", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+			func(ctx context.Context, testContext testutils.TestContext) {
+				clusterName := "no-system-disk"
+
+				machineServices := testutils.NewMachineServices(t, testContext.State)
+
+				// Drop the system disk from the MachineStatus default before
+				// the ClusterMachineConfig is created so the controller never
+				// observes a system disk on its first reconciliation.
+				cluster, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0,
+					withMachineStatusModifier(func(res *omni.MachineStatus) error {
+						res.TypedSpec().Value.Hardware.Blockdevices = nil
+
+						return nil
+					}),
+				)
+
+				require.Len(t, machines, 1)
+
+				id := machines[0].Metadata().ID()
+
+				updates := make(chan state.Event, 32)
+
+				err := testContext.State.Watch(ctx, omni.NewMachinePendingUpdates(id).Metadata(), updates)
+				require.NoError(t, err)
+
+				rmock.Mock[*omni.ClusterMachineConfigStatus](ctx, t, testContext.State,
+					options.WithID(id),
+					options.Modify(func(res *omni.ClusterMachineConfigStatus) error {
+						res.TypedSpec().Value.ClusterMachineConfigSha256 = "fake-sha256"
+						res.TypedSpec().Value.SchematicId = "abcd"
+						res.TypedSpec().Value.TalosVersion = "1.12.6"
+
+						return nil
+					}),
+				)
+
+				rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, testContext.State,
+					options.WithID(id),
+					options.Modify(func(res *omni.MachineConfigGenOptions) error {
+						res.TypedSpec().Value.InstallImage.TalosVersion = "1.13.0"
+
+						return nil
+					}),
+				)
+
+				awaitAllMachinesConfigured(ctx, t, testContext.State, cluster.Metadata().ID())
+
+				rmock.Mock[*omni.ClusterStatus](ctx, t, testContext.State,
+					options.WithID(cluster.Metadata().ID()),
+					options.Modify(func(res *omni.ClusterStatus) error {
+						res.TypedSpec().Value.Ready = false
+
+						return nil
+					}),
+				)
+
+				time.Sleep(time.Second * 2)
+
+				updateCount := 0
+
+				watchCtx, cancel := context.WithTimeout(ctx, time.Second*2)
+				defer cancel()
+
+				for {
+					select {
+					case e := <-updates:
+						updateCount++
+
+						t.Logf("event %s %s", e.Type, e.Resource.Metadata())
+
+						require.Less(t, updateCount, 30, "too many updates received, possible pending updates storm")
+					case <-watchCtx.Done():
+						return
+					}
+				}
+			},
+		)
+	})
+
 	// Test graceful rollout with max parallelism.
 	t.Run("gracefulConfigRollout", func(t *testing.T) {
 		t.Parallel()
@@ -818,6 +904,30 @@ func TestMachineConfigStatusController(t *testing.T) {
 	})
 }
 
+// createClusterOption customizes the resources spawned by createCluster.
+type createClusterOption func(*createClusterOptions)
+
+type createClusterOptions struct {
+	machineStatusModifier func(*omni.MachineStatus) error
+	clusterOpts           []options.MockOption
+}
+
+// withClusterMockOption forwards an option to the cluster Mock call.
+func withClusterMockOption(opt options.MockOption) createClusterOption {
+	return func(o *createClusterOptions) {
+		o.clusterOpts = append(o.clusterOpts, opt)
+	}
+}
+
+// withMachineStatusModifier applies an additional modifier to every
+// MachineStatus created by createCluster. It runs after the default preset,
+// so it can override defaults like the system disk.
+func withMachineStatusModifier(fn func(*omni.MachineStatus) error) createClusterOption {
+	return func(o *createClusterOptions) {
+		o.machineStatusModifier = fn
+	}
+}
+
 func createCluster(
 	ctx context.Context,
 	t *testing.T,
@@ -825,11 +935,17 @@ func createCluster(
 	machineServices *testutils.MachineServices,
 	clusterName string,
 	controlPlanes, workers int,
-	opts ...options.MockOption,
+	opts ...createClusterOption,
 ) (*omni.Cluster, []*omni.ClusterMachine) {
+	var clusterOpts createClusterOptions
+
+	for _, o := range opts {
+		o(&clusterOpts)
+	}
+
 	clusterOptions := append([]options.MockOption{
 		options.WithID(clusterName),
-	}, opts...)
+	}, clusterOpts.clusterOpts...)
 
 	cluster := rmock.Mock[*omni.Cluster](ctx, t, st,
 		clusterOptions...,
@@ -924,14 +1040,21 @@ func createCluster(
 			}),
 		)
 
-		rmock.Mock[*omni.MachineStatus](ctx, t, st, options.SameID(machine),
+		machineStatusOpts := []options.MockOption{
+			options.SameID(machine),
 			options.Modify(func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Maintenance = false
 
 				return nil
 			}),
 			options.WithMachineServices(ctx, machineServices),
-		)
+		}
+
+		if clusterOpts.machineStatusModifier != nil {
+			machineStatusOpts = append(machineStatusOpts, options.Modify(clusterOpts.machineStatusModifier))
+		}
+
+		rmock.Mock[*omni.MachineStatus](ctx, t, st, machineStatusOpts...)
 
 		rmock.Mock[*omni.Machine](ctx, t, st, options.SameID(machine))
 		rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st, options.SameID(machine))
