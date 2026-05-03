@@ -8,6 +8,7 @@ package exposedservice
 
 import (
 	"fmt"
+	"strings"
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -55,15 +56,28 @@ func IsExposedServiceEvent(k8sObject, oldK8sObject any, logger *zap.Logger) bool
 	oldAnnotations := oldK8sObject.(*corev1.Service).GetObjectMeta().GetAnnotations() //nolint:forcetypeassert,errcheck
 	newAnnotations := k8sObject.(*corev1.Service).GetObjectMeta().GetAnnotations()    //nolint:forcetypeassert,errcheck
 
-	for _, key := range []string{
-		constants.ExposedServiceLabelAnnotationKey, constants.ExposedServicePortAnnotationKey,
-		constants.ExposedServiceIconAnnotationKey, constants.ExposedServicePrefixAnnotationKey,
-	} {
-		if oldAnnotations[key] != newAnnotations[key] {
+	// any change to a key under the exposed-service annotation prefix counts. This
+	// covers the well-known label/port/icon/prefix keys plus their per-host-port
+	// suffixed variants (e.g. "label-30080") without having to enumerate them.
+	for key, oldVal := range oldAnnotations {
+		if !strings.HasPrefix(key, constants.ExposedServiceAnnotationPrefix) {
+			continue
+		}
+
+		if oldVal != newAnnotations[key] {
 			return true
 		}
 	}
 
-	// no change in exposed service related annotations
+	for key, newVal := range newAnnotations {
+		if !strings.HasPrefix(key, constants.ExposedServiceAnnotationPrefix) {
+			continue
+		}
+
+		if newVal != oldAnnotations[key] {
+			return true
+		}
+	}
+
 	return false
 }

@@ -269,36 +269,52 @@ func prepareServices(ctx context.Context, t *testing.T, logger *zap.Logger, omni
 		deployment.deployment, services = createKubernetesResources(ctx, t, logger, kubeClient, firstPort, numReplicasPerWorkload, numServicePerWorkload, identifier, iconBase64)
 
 		for _, service := range services {
-			expectedID := clusterID + "/" + service.Name + "." + service.Namespace
-
-			expectedPort, err := strconv.Atoi(service.Annotations[constants.ExposedServicePortAnnotationKey])
-			require.NoError(t, err)
+			legacyID := clusterID + "/" + service.Name + "." + service.Namespace
+			portStrs := strings.Split(service.Annotations[constants.ExposedServicePortAnnotationKey], ",")
+			isMultiPort := len(portStrs) > 1
 
 			expectedLabel := service.Annotations[constants.ExposedServiceLabelAnnotationKey]
 			explicitAlias, hasExplicitAlias := service.Annotations[constants.ExposedServicePrefixAnnotationKey]
 
-			var res *omni.ExposedService
+			// Multi-port lenient rule: only the lowest port can hold an explicit alias;
+			// the rest fall back to auto-generated. In this test setup the multi-port
+			// service has no explicit prefix annotation, so the effective expectation
+			// is "no explicit alias" for both of its ports — but spelling it out keeps
+			// the assertion correct if that ever changes.
+			expectExplicitAlias := hasExplicitAlias && !isMultiPort
 
-			rtestutils.AssertResource[*omni.ExposedService](ctx, t, omniState, expectedID, func(r *omni.ExposedService, assertion *assert.Assertions) {
-				assertion.Equal(expectedPort, int(r.TypedSpec().Value.Port))
-				assertion.Equal(expectedLabel, r.TypedSpec().Value.Label)
-				assertion.Equal(expectedIconBase64, r.TypedSpec().Value.IconBase64)
-				assertion.NotEmpty(r.TypedSpec().Value.Url)
-				assertion.Empty(r.TypedSpec().Value.Error)
-				assertion.Equal(hasExplicitAlias, r.TypedSpec().Value.HasExplicitAlias)
+			for _, portStr := range portStrs {
+				expectedPort, err := strconv.Atoi(portStr)
+				require.NoError(t, err)
 
-				if hasExplicitAlias {
-					assertion.Contains(r.TypedSpec().Value.Url, explicitAlias)
-				}
+				// Fresh services in this test never have a pre-existing legacy bare-ID
+				// resource, so all expected IDs are in the new suffixed format. The
+				// legacy bare-ID reuse path is covered by reconciler unit tests.
+				expectedID := fmt.Sprintf("%s/%d", legacyID, expectedPort)
 
-				res = r
-			})
+				var res *omni.ExposedService
 
-			deployment.services = append(deployment.services, serviceContext{
-				res:        res,
-				svc:        service,
-				deployment: &deployment,
-			})
+				rtestutils.AssertResource[*omni.ExposedService](ctx, t, omniState, expectedID, func(r *omni.ExposedService, assertion *assert.Assertions) {
+					assertion.Equal(expectedPort, int(r.TypedSpec().Value.Port))
+					assertion.Equal(expectedLabel, r.TypedSpec().Value.Label)
+					assertion.Equal(expectedIconBase64, r.TypedSpec().Value.IconBase64)
+					assertion.NotEmpty(r.TypedSpec().Value.Url)
+					assertion.Empty(r.TypedSpec().Value.Error)
+					assertion.Equal(expectExplicitAlias, r.TypedSpec().Value.HasExplicitAlias)
+
+					if expectExplicitAlias {
+						assertion.Contains(r.TypedSpec().Value.Url, explicitAlias)
+					}
+
+					res = r
+				})
+
+				deployment.services = append(deployment.services, serviceContext{
+					res:        res,
+					svc:        service,
+					deployment: &deployment,
+				})
+			}
 		}
 
 		cluster.deployments = append(cluster.deployments, deployment)
@@ -603,12 +619,21 @@ func createKubernetesResources(ctx context.Context, t *testing.T, logger *zap.Lo
 		svcIdentifier := fmt.Sprintf("%s-s%02d", identifier, i)
 		port := firstPort + i
 
+		// Make the last service of each workload multi-port so the multi-port code path
+		// is tested: a single Service annotated with N host ports must produce N
+		// ExposedServices. The extra port is offset by +10000 to avoid collisions with
+		// other workloads' allocations.
+		portAnnotation := strconv.Itoa(port)
+		if i == numServices-1 {
+			portAnnotation = fmt.Sprintf("%d,%d", port, port+10000)
+		}
+
 		service := corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      svcIdentifier,
 				Namespace: namespace,
 				Annotations: map[string]string{
-					constants.ExposedServicePortAnnotationKey:  strconv.Itoa(port),
+					constants.ExposedServicePortAnnotationKey:  portAnnotation,
 					constants.ExposedServiceLabelAnnotationKey: svcIdentifier,
 					constants.ExposedServiceIconAnnotationKey:  icon,
 				},

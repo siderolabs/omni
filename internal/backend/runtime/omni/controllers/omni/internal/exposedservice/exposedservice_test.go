@@ -102,6 +102,26 @@ func TestIsExposedServiceEvent(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:          "update service - change in per-host-port suffixed annotation",
+			expectChanged: true,
+			obj: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						constants.ExposedServicePortAnnotationKey:              "30080,30443",
+						constants.ExposedServicePrefixAnnotationKey + "-30443": "api-v2",
+					},
+				},
+			},
+			oldObj: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						constants.ExposedServicePortAnnotationKey:              "30080,30443",
+						constants.ExposedServicePrefixAnnotationKey + "-30443": "api-v1",
+					},
+				},
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()

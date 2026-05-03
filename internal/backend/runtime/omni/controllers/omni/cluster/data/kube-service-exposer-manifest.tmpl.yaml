@@ -47,7 +47,7 @@ spec:
         - operator: Exists
       containers:
         - name: omni-kube-service-exposer
-          image: ghcr.io/siderolabs/kube-service-exposer:v0.2.0
+          image: ghcr.io/siderolabs/kube-service-exposer:v0.3.0
           args:
             - --debug=false
             - --annotation-key={{ .AnnotationKey }}
