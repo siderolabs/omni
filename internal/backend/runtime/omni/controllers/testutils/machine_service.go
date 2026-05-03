@@ -425,8 +425,12 @@ func (ms *MachineServiceMock) Version(ctx context.Context, _ *emptypb.Empty) (*m
 		talosVersion = m.TypedSpec().Value.TalosVersion
 	}
 
-	if ms.versionHandler != nil {
-		return ms.versionHandler(ctx, nil)
+	ms.lock.Lock()
+	versionHandler := ms.versionHandler
+	ms.lock.Unlock()
+
+	if versionHandler != nil {
+		return versionHandler(ctx, nil)
 	}
 
 	return &machine.VersionResponse{
