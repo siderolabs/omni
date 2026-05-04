@@ -5,18 +5,15 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref, toRefs } from 'vue'
-
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
 import { GrpcTunnelMode } from '@/api/omni/specs/omni.pb'
 import { InfraProviderNamespace, InfraProviderStatusType } from '@/api/resources'
-import WatchResource from '@/api/watch'
 import JsonForm from '@/components/Form/JsonForm.vue'
 import Labels, { type LabelSelectItem } from '@/components/Labels/Labels.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 enum GRPCTunnelMode {
   Default = 'Account Default',
@@ -24,7 +21,7 @@ enum GRPCTunnelMode {
   Disabled = 'Disabled',
 }
 
-const props = defineProps<{
+const { infraProvider, initialLabels, kernelArguments, providerConfig, grpcTunnel } = defineProps<{
   infraProvider: string
   initialLabels: Record<string, LabelSelectItem>
   kernelArguments: string
@@ -33,7 +30,7 @@ const props = defineProps<{
 }>()
 
 const defaultTunnelMode = (() => {
-  switch (props.grpcTunnel) {
+  switch (grpcTunnel) {
     default:
     case GrpcTunnelMode.UNSET:
       return GRPCTunnelMode.Default
@@ -51,27 +48,15 @@ const emit = defineEmits<{
   'update:grpc-tunnel': [GrpcTunnelMode]
 }>()
 
-const { infraProvider, initialLabels, kernelArguments, providerConfig } = toRefs(props)
-
-const infraProviderStatus = ref<Resource<InfraProviderStatusSpec>>()
-const infraProviderStatusWatch = new WatchResource(infraProviderStatus)
-
-infraProviderStatusWatch.setup(
-  computed(() => {
-    if (!infraProvider.value) {
-      return
-    }
-
-    return {
-      resource: {
-        type: InfraProviderStatusType,
-        namespace: InfraProviderNamespace,
-        id: infraProvider.value,
-      },
-      runtime: Runtime.Omni,
-    }
-  }),
-)
+const { data: infraProviderStatus } = useResourceWatch<InfraProviderStatusSpec>(() => ({
+  skip: !infraProvider,
+  resource: {
+    type: InfraProviderStatusType,
+    namespace: InfraProviderNamespace,
+    id: infraProvider,
+  },
+  runtime: Runtime.Omni,
+}))
 
 const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
   switch (value) {
@@ -92,26 +77,24 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
   <div class="text-naturals-n13">Machine Template</div>
   <div class="rounded bg-naturals-n2">
     <div class="px-4 pt-4 pb-2 text-sm text-naturals-n13">Talos Config</div>
-    <div
-      class="machine-template flex flex-col divide-y divide-naturals-n4 border-t-8 border-naturals-n4 text-xs"
-    >
-      <div>
-        <span>Kernel Arguments</span>
+    <div class="flex flex-col divide-y divide-naturals-n4 border-t-8 border-naturals-n4 text-xs">
+      <div class="flex items-center justify-between gap-2 px-4 py-2">
+        <span class="whitespace-nowrap">Kernel Arguments</span>
         <TInput
           class="h-7 w-56"
           :model-value="kernelArguments"
           @update:model-value="(value) => $emit('update:kernel-arguments', value)"
         />
       </div>
-      <div>
-        <span>Initial Labels</span>
+      <div class="flex items-center justify-between gap-2 px-4 py-2">
+        <span class="whitespace-nowrap">Initial Labels</span>
         <Labels
           :model-value="initialLabels"
           @update:model-value="(value) => $emit('update:initial-labels', value)"
         />
       </div>
-      <div>
-        <span>Use gRPC Tunnel</span>
+      <div class="flex items-center justify-between gap-2 px-4 py-2">
+        <span class="whitespace-nowrap">Use gRPC Tunnel</span>
         <TSelectList
           class="h-6"
           :values="[GRPCTunnelMode.Default, GRPCTunnelMode.Enabled, GRPCTunnelMode.Disabled]"
@@ -134,27 +117,3 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.condition {
-  @apply rounded-md border border-transparent transition-colors;
-}
-
-.condition:focus-within {
-  @apply border-naturals-n8;
-}
-
-code {
-  @apply rounded bg-naturals-n6 px-1 py-0.5 font-mono text-naturals-n13;
-}
-
-.machine-template > * {
-  @apply flex items-center justify-between gap-2 px-4 py-2;
-}
-
-.machine-template > * > *:first-child {
-  @apply whitespace-nowrap;
-}
-</style>

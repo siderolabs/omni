@@ -9,7 +9,6 @@ import { computed, ref } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import type {
   ExtensionsConfigurationSpec,
   MachineExtensionsSpec,
@@ -28,8 +27,6 @@ import {
   MachineExtensionsType,
   MachineStatusType,
 } from '@/api/resources'
-import type { WatchOptions } from '@/api/watch'
-import Watch from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TListItem from '@/components/List/TListItem.vue'
@@ -47,12 +44,18 @@ const { clusterId, machineId, readOnly } = defineProps<{
   readOnly?: boolean
 }>()
 
-const machineExtensionsStatus = ref<Resource<MachineExtensionsStatusSpec>>()
-const machineExtensionsStatusWatch = new Watch(machineExtensionsStatus)
+const { data: machineExtensionsStatus, loading: machineExtensionsStatusWatchLoading } =
+  useResourceWatch<MachineExtensionsStatusSpec>(() => ({
+    resource: {
+      namespace: DefaultNamespace,
+      type: MachineExtensionsStatusType,
+      id: machineId,
+    },
+    runtime: Runtime.Omni,
+  }))
+
 const updateExtensionsModalOpen = ref(false)
 const searchString = ref('')
-
-const machineExtensionsStatusWatchLoading = machineExtensionsStatusWatch.loading
 
 const ready = computed(() => {
   return !machineExtensionsStatusWatchLoading.value
@@ -71,61 +74,33 @@ const { data: machineStatus } = useResourceWatch<MachineStatusSpec>(() => ({
 
 const invalidSchematic = computed(() => machineStatus.value?.spec.schematic?.invalid === true)
 
-machineExtensionsStatusWatch.setup(
-  computed((): WatchOptions | undefined => {
-    return {
-      resource: {
-        namespace: DefaultNamespace,
-        type: MachineExtensionsStatusType,
-        id: machineId,
-      },
-      runtime: Runtime.Omni,
-    }
-  }),
-)
+const { data: machineExtensions } = useResourceWatch<MachineExtensionsSpec>(() => {
+  const id = machineExtensionsStatus.value?.metadata.id
 
-const machineExtensions = ref<Resource<MachineExtensionsSpec>>()
+  return {
+    skip: !id,
+    resource: {
+      id: id!,
+      namespace: DefaultNamespace,
+      type: MachineExtensionsType,
+    },
+    runtime: Runtime.Omni,
+  }
+})
 
-const machineExtensionsWatch = new Watch(machineExtensions)
+const { data: extensionsConfiguration } = useResourceWatch<ExtensionsConfigurationSpec>(() => {
+  const id = machineExtensions.value?.metadata.labels?.[ExtensionsConfigurationLabel]
 
-machineExtensionsWatch.setup(
-  computed(() => {
-    if (!machineExtensionsStatus.value) {
-      return
-    }
-
-    return {
-      resource: {
-        id: machineExtensionsStatus.value.metadata.id!,
-        namespace: DefaultNamespace,
-        type: MachineExtensionsType,
-      },
-      runtime: Runtime.Omni,
-    }
-  }),
-)
-
-const extensionsConfiguration = ref<Resource<ExtensionsConfigurationSpec>>()
-
-const configurationsWatch = new Watch(extensionsConfiguration)
-
-configurationsWatch.setup(
-  computed((): WatchOptions | undefined => {
-    const id = machineExtensions.value?.metadata.labels?.[ExtensionsConfigurationLabel]
-    if (!id) {
-      return
-    }
-
-    return {
-      resource: {
-        namespace: DefaultNamespace,
-        type: ExtensionsConfigurationType,
-        id: id,
-      },
-      runtime: Runtime.Omni,
-    }
-  }),
-)
+  return {
+    skip: !id,
+    resource: {
+      namespace: DefaultNamespace,
+      type: ExtensionsConfigurationType,
+      id: id!,
+    },
+    runtime: Runtime.Omni,
+  }
+})
 
 const extensionsState = computed(() => {
   if (!machineExtensionsStatus.value?.spec.extensions) {

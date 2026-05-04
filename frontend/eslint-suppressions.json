@@ -141,11 +141,6 @@
       "count": 1
     }
   },
-  "src/views/MachineClasses/MachineTemplate.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
-  },
   "src/views/MachineClasses/ProviderConfig.vue": {
     "vue/define-props-destructuring": {
       "count": 1

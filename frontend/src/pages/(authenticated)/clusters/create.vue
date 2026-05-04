@@ -29,7 +29,7 @@ import {
   PatchBaseWeightMachineSet,
   TalosVersionType,
 } from '@/api/resources'
-import WatchResource, { itemID } from '@/api/watch'
+import { itemID } from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import TList from '@/components/List/TList.vue'
@@ -43,6 +43,7 @@ import { setupBackupStatus } from '@/methods'
 import { usePermissions } from '@/methods/auth'
 import { ClusterCommandError, clusterSync, nextAvailableClusterName } from '@/methods/cluster'
 import { useFeatures } from '@/methods/features'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showModal } from '@/modal'
 import { showError, showSuccess } from '@/notification'
 import { initState, PatchID } from '@/states/cluster-management'
@@ -90,8 +91,14 @@ const router = useRouter()
 
 const kubernetesVersionSelector = useTemplateRef('kubernetesVersionSelector')
 
-const talosVersionsList: Ref<Resource<TalosVersionSpec>[]> = ref([])
-const talosVersionsWatch = new WatchResource(talosVersionsList)
+const { data: talosVersionsList } = useResourceWatch<TalosVersionSpec>({
+  runtime: Runtime.Omni,
+  resource: {
+    type: TalosVersionType,
+    namespace: DefaultNamespace,
+  },
+})
+
 const reset = ref(0)
 
 const kubernetesVersions: Ref<string[]> = computed(() => {
@@ -129,14 +136,6 @@ watch(kubernetesVersions, (k8sVersions) => {
     // select the latest supported Kubernetes version by the chosen Talos version (k8sVersions are sorted on backend)
     kubernetesVersionSelector?.value?.selectItem(k8sVersions[k8sVersions.length - 1])
   }
-})
-
-talosVersionsWatch.setup({
-  runtime: Runtime.Omni,
-  resource: {
-    type: TalosVersionType,
-    namespace: DefaultNamespace,
-  },
 })
 
 const { data: features } = useFeatures()
