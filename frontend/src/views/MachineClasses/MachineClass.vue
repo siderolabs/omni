@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { dump, load } from 'js-yaml'
 import type { Ref } from 'vue'
-import { computed, nextTick, ref, useTemplateRef, watchEffect } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -196,7 +196,7 @@ const { data: machineClass, loading } = useResourceWatch<MachineClassSpec>(() =>
 
 const notFound = computed(() => !!machineClassEditId && !machineClass.value)
 
-watchEffect(() => {
+watch(machineClass, () => {
   if (!machineClassEditId) return
 
   machineClassName.value ||= machineClassEditId
