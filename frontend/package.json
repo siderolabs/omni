@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "engines": {
-    "node": "^24.14.0"
+    "node": "^24.15.0"
   },
   "msw": {
     "workerDirectory": [
