@@ -13,8 +13,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
-import type { ConfigPatchSpec } from '@/api/omni/specs/omni.pb'
+import type { ClusterMachineStatusSpec, ConfigPatchSpec } from '@/api/omni/specs/omni.pb'
 import {
   ClusterMachineStatusType,
   ConfigPatchDescription,
@@ -60,10 +59,10 @@ const { canManageConfigPatches: canManageClusterMachineConfigPatches } = useClus
 const selectors = computed(() => {
   const res: string[] = []
 
-  if (cluster) {
-    res.push(`${LabelCluster}=${cluster}`)
-  } else if (machine) {
+  if (machine) {
     res.push(`${LabelMachine}=${machine}`, `${LabelClusterMachine}=${machine}`)
+  } else if (cluster) {
+    res.push(`${LabelCluster}=${cluster}`)
   } else {
     return
   }
@@ -82,13 +81,14 @@ const { data: patches, loading: patchesLoading } = useResourceWatch<ConfigPatchS
   selectUsingOR: true,
 }))
 
-const { data: machineStatuses, loading: machineStatusesLoading } = useResourceWatch<Resource>({
-  runtime: Runtime.Omni,
-  resource: {
-    type: ClusterMachineStatusType,
-    namespace: DefaultNamespace,
-  },
-})
+const { data: machineStatuses, loading: machineStatusesLoading } =
+  useResourceWatch<ClusterMachineStatusSpec>({
+    runtime: Runtime.Omni,
+    resource: {
+      type: ClusterMachineStatusType,
+      namespace: DefaultNamespace,
+    },
+  })
 
 const loading = computed(() => patchesLoading.value || machineStatusesLoading.value)
 
@@ -153,7 +153,7 @@ function getRouteForPatch(patch = `500-${uuidv4()}`): RouteLocationRaw {
 const routes = computed(() => {
   const hostnames: Record<string, string> = {}
 
-  machineStatuses.value.forEach((item: Resource) => {
+  machineStatuses.value.forEach((item) => {
     hostnames[item.metadata.id!] = item.metadata.labels![LabelHostname]
   })
 
@@ -163,7 +163,7 @@ const routes = computed(() => {
     groups[name] = (groups[name] ?? []).concat([r])
   }
 
-  patches.value.forEach((item: Resource) => {
+  patches.value.forEach((item) => {
     const searchValues: string[] = [
       item.metadata.id!,
       (item.metadata.annotations || {})[ConfigPatchName],
