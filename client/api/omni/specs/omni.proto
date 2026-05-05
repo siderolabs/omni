@@ -1446,6 +1446,7 @@ message ClusterMachineRequestStatusSpec {
   string machine_uuid = 2;
   string provider_id = 3;
   Stage stage = 4;
+  string error = 5;
 }
 
 // InfraMachineConfigSpec is the spec of the user-owned InfraMachineConfig resource.

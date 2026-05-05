@@ -7242,6 +7242,7 @@ type ClusterMachineRequestStatusSpec struct {
 	MachineUuid   string                                `protobuf:"bytes,2,opt,name=machine_uuid,json=machineUuid,proto3" json:"machine_uuid,omitempty"`
 	ProviderId    string                                `protobuf:"bytes,3,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
 	Stage         ClusterMachineRequestStatusSpec_Stage `protobuf:"varint,4,opt,name=stage,proto3,enum=specs.ClusterMachineRequestStatusSpec_Stage" json:"stage,omitempty"`
+	Error         string                                `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7302,6 +7303,13 @@ func (x *ClusterMachineRequestStatusSpec) GetStage() ClusterMachineRequestStatus
 		return x.Stage
 	}
 	return ClusterMachineRequestStatusSpec_UNKNOWN
+}
+
+func (x *ClusterMachineRequestStatusSpec) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
 }
 
 // InfraMachineConfigSpec is the spec of the user-owned InfraMachineConfig resource.
@@ -11755,13 +11763,14 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0fnum_diagnostics\x18\x02 \x01(\rR\x0enumDiagnostics\"L\n" +
 	"\x1dMachineRequestSetPressureSpec\x12+\n" +
-	"\x11required_machines\x18\x01 \x01(\rR\x10requiredMachines\"\xa7\x02\n" +
+	"\x11required_machines\x18\x01 \x01(\rR\x10requiredMachines\"\xbd\x02\n" +
 	"\x1fClusterMachineRequestStatusSpec\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12!\n" +
 	"\fmachine_uuid\x18\x02 \x01(\tR\vmachineUuid\x12\x1f\n" +
 	"\vprovider_id\x18\x03 \x01(\tR\n" +
 	"providerId\x12B\n" +
-	"\x05stage\x18\x04 \x01(\x0e2,.specs.ClusterMachineRequestStatusSpec.StageR\x05stage\"d\n" +
+	"\x05stage\x18\x04 \x01(\x0e2,.specs.ClusterMachineRequestStatusSpec.StageR\x05stage\x12\x14\n" +
+	"\x05error\x18\x05 \x01(\tR\x05error\"d\n" +
 	"\x05Stage\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\v\n" +
 	"\aPENDING\x10\x01\x12\x10\n" +

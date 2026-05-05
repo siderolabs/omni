@@ -76,13 +76,13 @@ func NewClusterMachineRequestStatusController() *ClusterMachineRequestStatusCont
 					clusterMachineRequestStatus.TypedSpec().Value.MachineUuid = machineRequestStatus.TypedSpec().Value.Id
 
 					clusterMachineRequestStatus.TypedSpec().Value.Status = machineRequestStatus.TypedSpec().Value.Status
+					clusterMachineRequestStatus.TypedSpec().Value.Error = machineRequestStatus.TypedSpec().Value.Error
 
 					switch machineRequestStatus.TypedSpec().Value.Stage {
 					case specs.MachineRequestStatusSpec_UNKNOWN:
 						clusterMachineRequestStatus.TypedSpec().Value.Stage = specs.ClusterMachineRequestStatusSpec_PENDING
 					case specs.MachineRequestStatusSpec_PROVISIONING:
 						clusterMachineRequestStatus.TypedSpec().Value.Stage = specs.ClusterMachineRequestStatusSpec_PROVISIONING
-
 					case specs.MachineRequestStatusSpec_PROVISIONED:
 						clusterMachineRequestStatus.TypedSpec().Value.Stage = specs.ClusterMachineRequestStatusSpec_PROVISIONED
 

@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -295,21 +296,9 @@ func TestInfra(t *testing.T) {
 				ch: provisionChannel,
 			}
 
-			state := setupInfra(ctx, t, p, tt.options...)
+			st := setupInfra(ctx, t, p, tt.options...)
 
-			providerJoinConfig := siderolink.NewProviderJoinConfig(providerID)
-			providerJoinConfig.TypedSpec().Value.JoinToken = "abcd"
-
-			providerJoinConfig.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
-
-			require.NoError(t, state.Create(ctx, providerJoinConfig))
-
-			siderolinkAPIConfig := siderolink.NewAPIConfig()
-			siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "http://127.0.0.1:8099"
-			siderolinkAPIConfig.TypedSpec().Value.LogsPort = 8092
-			siderolinkAPIConfig.TypedSpec().Value.EventsPort = 8091
-
-			require.NoError(t, state.Create(ctx, siderolinkAPIConfig))
+			createSiderolinkConfigs(ctx, t, st)
 
 			customLabel := "custom"
 			customValue := "hello"
@@ -320,9 +309,9 @@ func TestInfra(t *testing.T) {
 
 			patchID := machineRequest.Metadata().ID()
 
-			require.NoError(t, state.Create(ctx, machineRequest))
+			require.NoError(t, st.Create(ctx, machineRequest))
 
-			rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
+			rtestutils.AssertResources(ctx, t, st, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
 				val, ok := machineRequestStatus.Metadata().Labels().Get(omni.LabelInfraProviderID)
 
 				assert.True(ok)
@@ -337,36 +326,36 @@ func TestInfra(t *testing.T) {
 
 			require.True(t, channel.SendWithContext(ctx, provisionChannel, struct{}{}))
 
-			rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
+			rtestutils.AssertResources(ctx, t, st, []string{machineRequest.Metadata().ID()}, func(machineRequestStatus *infrares.MachineRequestStatus, assert *assert.Assertions) {
 				assert.Equal(specs.MachineRequestStatusSpec_PROVISIONED, machineRequestStatus.TypedSpec().Value.Stage)
 			})
 
-			rtestutils.AssertResources(ctx, t, state, []string{patchID}, func(r *infrares.ConfigPatchRequest, assert *assert.Assertions) {
+			rtestutils.AssertResources(ctx, t, st, []string{patchID}, func(r *infrares.ConfigPatchRequest, assert *assert.Assertions) {
 				data, err := r.TypedSpec().Value.GetUncompressedData()
 
 				assert.NoError(err)
 				assert.EqualValues([]byte("machine: {}"), data.Data())
 			})
 
-			rtestutils.AssertResources(ctx, t, state, []string{machineRequest.Metadata().ID()}, func(testResource *TestResource, assert *assert.Assertions) {
+			rtestutils.AssertResources(ctx, t, st, []string{machineRequest.Metadata().ID()}, func(testResource *TestResource, assert *assert.Assertions) {
 				assert.True(testResource.TypedSpec().Value.Connected)
 			})
 
 			require.NotNil(t, p.getMachine(machineRequest.Metadata().ID()))
 
-			rtestutils.Destroy[*infrares.MachineRequest](ctx, t, state, []string{machineRequest.Metadata().ID()})
+			rtestutils.Destroy[*infrares.MachineRequest](ctx, t, st, []string{machineRequest.Metadata().ID()})
 
-			rtestutils.AssertNoResource[*infrares.MachineRequestStatus](ctx, t, state, machineRequest.Metadata().ID())
-			rtestutils.AssertNoResource[*TestResource](ctx, t, state, machineRequest.Metadata().ID())
+			rtestutils.AssertNoResource[*infrares.MachineRequestStatus](ctx, t, st, machineRequest.Metadata().ID())
+			rtestutils.AssertNoResource[*TestResource](ctx, t, st, machineRequest.Metadata().ID())
 
 			require.Nil(t, p.getMachine(machineRequest.Metadata().ID()))
 
-			rtestutils.AssertNoResource[*infrares.ConfigPatchRequest](ctx, t, state, patchID)
+			rtestutils.AssertNoResource[*infrares.ConfigPatchRequest](ctx, t, st, patchID)
 		})
 	}
 }
 
-func setupInfra(ctx context.Context, t *testing.T, p *provisioner, opts ...infra.Option) state.State {
+func setupInfra(ctx context.Context, t *testing.T, p provision.Provisioner[*TestResource], opts ...infra.Option) state.State {
 	state := state.WrapCore(namespaced.NewState(inmem.Build))
 
 	resourceRegistry := registry.NewResourceRegistry(state)
@@ -413,4 +402,164 @@ func setupInfra(ctx context.Context, t *testing.T, p *provisioner, opts ...infra
 	})
 
 	return state
+}
+
+func createSiderolinkConfigs(ctx context.Context, t *testing.T, st state.State) {
+	providerJoinConfig := siderolink.NewProviderJoinConfig(providerID)
+	providerJoinConfig.TypedSpec().Value.JoinToken = "abcd"
+	providerJoinConfig.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+
+	require.NoError(t, st.Create(ctx, providerJoinConfig))
+
+	siderolinkAPIConfig := siderolink.NewAPIConfig()
+	siderolinkAPIConfig.TypedSpec().Value.MachineApiAdvertisedUrl = "http://127.0.0.1:8099"
+	siderolinkAPIConfig.TypedSpec().Value.LogsPort = 8092
+	siderolinkAPIConfig.TypedSpec().Value.EventsPort = 8091
+
+	require.NoError(t, st.Create(ctx, siderolinkAPIConfig))
+}
+
+// stepProvisioner is a Provisioner whose ProvisionSteps are configurable per test.
+type stepProvisioner struct {
+	steps []provision.Step[*TestResource]
+}
+
+func (p *stepProvisioner) ProvisionSteps() []provision.Step[*TestResource] {
+	return p.steps
+}
+
+func (p *stepProvisioner) Deprovision(context.Context, *zap.Logger, *TestResource, *infrares.MachineRequest) error {
+	return nil
+}
+
+func TestProvisionStepFailurePersistsError(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	p := &stepProvisioner{
+		steps: []provision.Step[*TestResource]{
+			provision.NewStep("fail", func(context.Context, *zap.Logger, provision.Context[*TestResource]) error {
+				return errors.New("permanent failure")
+			}),
+		},
+	}
+
+	st := setupInfra(ctx, t, p)
+	createSiderolinkConfigs(ctx, t, st)
+
+	machineRequest := infrares.NewMachineRequest("fail-test")
+	machineRequest.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+
+	require.NoError(t, st.Create(ctx, machineRequest))
+
+	rtestutils.AssertResources(ctx, t, st, []string{machineRequest.Metadata().ID()}, func(mrs *infrares.MachineRequestStatus, assert *assert.Assertions) {
+		assert.Equal(specs.MachineRequestStatusSpec_FAILED, mrs.TypedSpec().Value.Stage)
+		assert.Equal("permanent failure", mrs.TypedSpec().Value.Error)
+	})
+}
+
+func TestProvisionStepRequeuePersistsError(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	t.Cleanup(cancel)
+
+	var allowSuccess atomic.Bool
+
+	p := &stepProvisioner{
+		steps: []provision.Step[*TestResource]{
+			provision.NewStep("retry-then-succeed", func(context.Context, *zap.Logger, provision.Context[*TestResource]) error {
+				if !allowSuccess.Load() {
+					return provision.NewRetryErrorf(500*time.Millisecond, "transient failure")
+				}
+
+				return nil
+			}),
+		},
+	}
+
+	st := setupInfra(ctx, t, p)
+	createSiderolinkConfigs(ctx, t, st)
+
+	machineRequest := infrares.NewMachineRequest("requeue-test")
+	machineRequest.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+
+	require.NoError(t, st.Create(ctx, machineRequest))
+
+	rtestutils.AssertResources(ctx, t, st, []string{machineRequest.Metadata().ID()}, func(mrs *infrares.MachineRequestStatus, assert *assert.Assertions) {
+		assert.Equal(specs.MachineRequestStatusSpec_PROVISIONING, mrs.TypedSpec().Value.Stage)
+		assert.Equal("transient failure", mrs.TypedSpec().Value.Error)
+	})
+
+	allowSuccess.Store(true)
+
+	rtestutils.AssertResources(ctx, t, st, []string{machineRequest.Metadata().ID()}, func(mrs *infrares.MachineRequestStatus, assert *assert.Assertions) {
+		assert.Equal(specs.MachineRequestStatusSpec_PROVISIONED, mrs.TypedSpec().Value.Stage)
+		assert.Empty(mrs.TypedSpec().Value.Error)
+	})
+}
+
+func TestProvisionStepMutationsRestricted(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	const (
+		allowedUUID    = "good-uuid"
+		allowedInfraID = "good-infra-id"
+		forbiddenLabel = "evil-label"
+	)
+
+	block := make(chan struct{})
+
+	t.Cleanup(func() { close(block) })
+
+	p := &stepProvisioner{
+		steps: []provision.Step[*TestResource]{
+			provision.NewStep("mutate", func(_ context.Context, _ *zap.Logger, pctx provision.Context[*TestResource]) error {
+				pctx.SetMachineUUID(allowedUUID)
+				pctx.SetMachineInfraID(allowedInfraID)
+
+				// Direct mutations beyond the two helper methods must NOT propagate.
+				pctx.MachineRequestStatus.TypedSpec().Value.Status = "evil status"
+				pctx.MachineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_FAILED
+				pctx.MachineRequestStatus.Metadata().Labels().Set(forbiddenLabel, "yes")
+
+				return nil
+			}),
+			provision.NewStep("block", func(ctx context.Context, _ *zap.Logger, _ provision.Context[*TestResource]) error {
+				select {
+				case <-block:
+					return nil
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}),
+		},
+	}
+
+	st := setupInfra(ctx, t, p)
+	createSiderolinkConfigs(ctx, t, st)
+
+	machineRequest := infrares.NewMachineRequest("mutate-test")
+	machineRequest.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+
+	require.NoError(t, st.Create(ctx, machineRequest))
+
+	rtestutils.AssertResources(ctx, t, st, []string{machineRequest.Metadata().ID()}, func(mrs *infrares.MachineRequestStatus, assert *assert.Assertions) {
+		assert.Equal(allowedUUID, mrs.TypedSpec().Value.Id)
+
+		infraID, ok := mrs.Metadata().Labels().Get(omni.LabelMachineInfraID)
+		assert.True(ok)
+		assert.Equal(allowedInfraID, infraID)
+
+		assert.NotEqual("evil status", mrs.TypedSpec().Value.Status)
+		assert.Equal(specs.MachineRequestStatusSpec_PROVISIONING, mrs.TypedSpec().Value.Stage)
+
+		_, hasForbidden := mrs.Metadata().Labels().Get(forbiddenLabel)
+		assert.False(hasForbidden)
+	})
 }

@@ -6,6 +6,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -18,7 +19,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/optional"
-	"github.com/siderolabs/gen/xerrors"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -316,10 +316,13 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 		machineRequestStatus.TypedSpec().Value.Error = ""
 		machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_PROVISIONING
 
+		// Pass a copy to the step so mutations beyond Id and LabelMachineInfraID don't leak into our state.
+		mrsCopy := machineRequestStatus.DeepCopy().(*infra.MachineRequestStatus) //nolint:forcetypeassert,errcheck
+
 		if err = safe.WriterModify(ctx, r, res.(T), func(st T) error { //nolint:forcetypeassert,errcheck
 			err = step.Run(ctx, logger, provision.NewContext(
 				machineRequest,
-				machineRequestStatus,
+				mrsCopy,
 				st,
 				connectionParams,
 				ctrl.imageFactory,
@@ -329,7 +332,7 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 			st.Metadata().Annotations().Set(currentStepAnnotation, step.Name())
 
 			if err != nil {
-				if !xerrors.TypeIs[*controller.RequeueError](err) {
+				if _, ok := errors.AsType[*controller.RequeueError](err); !ok { //nolint:errcheck
 					return err
 				}
 
@@ -340,8 +343,16 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 		}); err != nil {
 			logger.Error("machine provision failed", zap.Error(err), zap.String("step", step.Name()))
 
-			machineRequestStatus.TypedSpec().Value.Error = err.Error()
-			machineRequestStatus.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_FAILED
+			if writeErr := safe.WriterModify(ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus) error {
+				applyStepMutations(res, mrsCopy)
+
+				res.TypedSpec().Value.Error = err.Error()
+				res.TypedSpec().Value.Stage = specs.MachineRequestStatusSpec_FAILED
+
+				return nil
+			}); writeErr != nil {
+				return writeErr
+			}
 
 			return controller.NewRequeueError(err, time.Minute)
 		}
@@ -350,6 +361,12 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 			ctx, r, machineRequestStatus, func(res *infra.MachineRequestStatus,
 			) error {
 				res.TypedSpec().Value = machineRequestStatus.TypedSpec().Value
+
+				applyStepMutations(res, mrsCopy)
+
+				if reqErr, ok := errors.AsType[*controller.RequeueError](requeueError); ok && reqErr.Err() != nil {
+					res.TypedSpec().Value.Error = reqErr.Err().Error()
+				}
 
 				return nil
 			}); err != nil {
@@ -375,6 +392,15 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 	}
 
 	return nil
+}
+
+// applyStepMutations copies the fields a provision step is allowed to set on MachineRequestStatus from src to dst.
+func applyStepMutations(dst, src *infra.MachineRequestStatus) {
+	dst.TypedSpec().Value.Id = src.TypedSpec().Value.Id
+
+	if infraID, ok := src.Metadata().Labels().Get(omni.LabelMachineInfraID); ok {
+		dst.Metadata().Labels().Set(omni.LabelMachineInfraID, infraID)
+	}
 }
 
 func (ctrl *ProvisionController[T]) removePatches(ctx context.Context, r controller.QRuntime, requestID string) (bool, error) {

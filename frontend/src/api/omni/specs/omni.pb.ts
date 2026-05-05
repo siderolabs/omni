@@ -981,6 +981,7 @@ export type ClusterMachineRequestStatusSpec = {
   machine_uuid?: string
   provider_id?: string
   stage?: ClusterMachineRequestStatusSpecStage
+  error?: string
 }
 
 export type InfraMachineConfigSpec = {
