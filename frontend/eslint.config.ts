@@ -27,6 +27,10 @@ export default defineConfigWithVueTs(
   {
     ...pluginVitest.configs.recommended,
     files: ['src/**/*.spec.*'],
+    rules: {
+      ...pluginVitest.configs.recommended.rules,
+      'vue/one-component-per-file': 'off',
+    },
   },
   {
     ...pluginPlaywright.configs['flat/recommended'],

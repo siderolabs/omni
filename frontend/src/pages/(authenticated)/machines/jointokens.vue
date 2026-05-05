@@ -25,6 +25,8 @@ import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TButton from '@/components/Button/TButton.vue'
 import TList from '@/components/List/TList.vue'
 import TListItem from '@/components/List/TListItem.vue'
+import JoinTokenDelete from '@/components/Modals/JoinTokenDelete.vue'
+import JoinTokenRevoke from '@/components/Modals/JoinTokenRevoke.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TStatus from '@/components/Status/TStatus.vue'
@@ -41,6 +43,9 @@ const { copy } = useClipboard()
 const { canManageJoinTokens, canReadJoinTokens } = usePermissions()
 
 const showTokens = ref(false)
+const revokeTokenModalOpen = ref(false)
+const deleteTokenModalOpen = ref(false)
+const selectedToken = ref<string>()
 
 const watchOpts = [
   {
@@ -107,15 +112,13 @@ const getMachineJoinConfig = (token: string) => {
 }
 
 const openRevokeToken = (token: string) => {
-  router.push({
-    query: { modal: 'joinTokenRevoke', token: token },
-  })
+  selectedToken.value = token
+  revokeTokenModalOpen.value = true
 }
 
 const openDeleteToken = (token: string) => {
-  router.push({
-    query: { modal: 'joinTokenDelete', token: token },
-  })
+  selectedToken.value = token
+  deleteTokenModalOpen.value = true
 }
 </script>
 
@@ -237,6 +240,18 @@ const openDeleteToken = (token: string) => {
         </TListItem>
       </template>
     </TList>
+
+    <JoinTokenRevoke
+      v-if="selectedToken"
+      v-model:open="revokeTokenModalOpen"
+      :token="selectedToken"
+    />
+
+    <JoinTokenDelete
+      v-if="selectedToken"
+      v-model:open="deleteTokenModalOpen"
+      :token="selectedToken"
+    />
   </PageContainer>
 </template>
 
