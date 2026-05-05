@@ -1,3 +1,60 @@
+## [Omni 1.7.2](https://github.com/siderolabs/omni/releases/tag/v1.7.2) (2026-05-05)
+
+Welcome to the v1.7.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+A [EULA](https://siderolabs.com/eula/) agreement has been added to Omni which must be accepted in order to continue using it.
+
+This agreement can be accepted through UI or programmatically either by adding the below flags:
+```sh
+--eula-accept-name=Your Name
+--eula-accept-email=your@email.com
+```
+
+Or if using `--config-path` with the below configuration:
+```yaml
+eulaAccept:
+  name: Your Name
+  email: your@email.com
+```
+
+
+### Contributors
+
+* Edward Sammut Alessi
+* Artem Chernyshev
+* Utku Ozdemir
+
+### Changes
+<details><summary>11 commits</summary>
+<p>
+
+* [`11fbbdb76`](https://github.com/siderolabs/omni/commit/11fbbdb76d0b9b141174f4e7d123f3d285c46e97) fix(frontend): only show machine patches for currently visible machine
+* [`43f5d4cbb`](https://github.com/siderolabs/omni/commit/43f5d4cbb93a80581b4f87e9f5470e7b69c6dbf0) fix(frontend): fix editing labels on machine class
+* [`79d26cb07`](https://github.com/siderolabs/omni/commit/79d26cb073e79976893d87f5b7dab0ca666fa0ee) fix: fix the storm of `PendingUpdateStatus` create/destroy
+* [`5be4db0fd`](https://github.com/siderolabs/omni/commit/5be4db0fd64e609561f44b7d656d2b3e4df0f18c) fix: bring back election campaign resign code in the etcd state
+* [`aca77a204`](https://github.com/siderolabs/omni/commit/aca77a204871e61717fab59f8c08a8f2c91d27af) fix: stop logging Kubernetes read checks
+* [`b887e0d7a`](https://github.com/siderolabs/omni/commit/b887e0d7a05159ba98273a92ab57e06a7da092f3) fix: remove workload proxy deployment when disabled on the account
+* [`ab2f431e3`](https://github.com/siderolabs/omni/commit/ab2f431e3f3b0d3a28d2efcd0720ff4b394ca56c) fix(frontend): fix eula handling to prevent being stuck on /eula
+* [`ab4763d44`](https://github.com/siderolabs/omni/commit/ab4763d44000881d2c0526e5515a0f8848c67dc3) fix(frontend): fix indeterminate state for update extensions modal
+* [`b979f98a5`](https://github.com/siderolabs/omni/commit/b979f98a58e020f38afc9dbf46ae1223ba446752) feat(frontend): update talos version text on installation media wizard
+* [`2a0d0f4c1`](https://github.com/siderolabs/omni/commit/2a0d0f4c159785a38cc1946a8c708425a80d11bf) fix(frontend): clear page state when keys are cleared
+* [`c2adc51a0`](https://github.com/siderolabs/omni/commit/c2adc51a0abe34affc465d9128e994e55a07315e) fix(frontend): select default join token in installation media wizard
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.7.1](https://github.com/siderolabs/omni/releases/tag/v1.7.1)
+
 ## [Omni 1.7.1](https://github.com/siderolabs/omni/releases/tag/v1.7.1) (2026-04-24)
 
 Welcome to the v1.7.1 release of Omni!
