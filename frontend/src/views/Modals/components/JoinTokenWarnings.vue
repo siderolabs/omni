@@ -7,7 +7,7 @@ included in the LICENSE file.
 
 <script setup lang="ts">
 import pluralize from 'pluralize'
-import { watch } from 'vue'
+import { watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { JoinTokenStatusSpec } from '@/api/omni/specs/siderolink.pb'
@@ -22,11 +22,7 @@ const { id } = defineProps<{
 
 const emit = defineEmits<{ ready: [] }>()
 
-const {
-  data: joinTokenStatus,
-  loading,
-  running,
-} = useResourceWatch<JoinTokenStatusSpec>(() => ({
+const { data: joinTokenStatus, loading } = useResourceWatch<JoinTokenStatusSpec>(() => ({
   resource: {
     id,
     namespace: DefaultNamespace,
@@ -35,8 +31,8 @@ const {
   runtime: Runtime.Omni,
 }))
 
-watch(running, () => {
-  if (running.value) {
+watchEffect(() => {
+  if (joinTokenStatus.value) {
     emit('ready')
   }
 })

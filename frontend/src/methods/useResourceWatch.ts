@@ -23,13 +23,11 @@ interface WatchBase {
 
 interface WatchSingle<TSpec, TStatus> extends WatchBase {
   data: Ref<Resource<TSpec, TStatus> | undefined>
-  running: Ref<boolean>
 }
 
 interface WatchMulti<TSpec, TStatus> extends WatchBase {
   data: Ref<Resource<TSpec, TStatus>[]>
   total: Ref<number>
-  running: Ref<boolean>
 }
 
 interface WatchMultiJoin<TSpec, TStatus> extends WatchBase {
@@ -82,7 +80,6 @@ function useWatchSingle<TSpec = unknown, TStatus = unknown>(
     err: watch.err,
     errCode: watch.errCode,
     loading: watch.loading,
-    running: watch.running,
   }
 }
 
@@ -101,7 +98,6 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
     errCode: watch.errCode,
     loading: watch.loading,
     total: watch.total,
-    running: watch.running,
   }
 }
 

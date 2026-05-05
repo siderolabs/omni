@@ -31,7 +31,6 @@ class WatchFunc {
   protected stream?: Stream<WatchRequest, WatchResponse>
 
   public readonly loading: Ref<boolean> = ref(false)
-  public readonly running: Ref<boolean> = ref(false)
   public readonly err: Ref<string | null> = ref(null)
   public readonly errCode: Ref<Code | null> = ref(null)
 
@@ -139,13 +138,9 @@ class WatchFunc {
         if (onError) onError(e)
       },
     )
-
-    this.running.value = true
   }
 
   public stop() {
-    this.running.value = false
-
     if (this.stream) {
       this.stream.shutdown()
     }
@@ -262,8 +257,6 @@ export default class Watch<T extends Resource> extends WatchFunc {
     if (!this.stream) {
       return
     }
-
-    this.running.value = true
   }
 
   public stop() {
