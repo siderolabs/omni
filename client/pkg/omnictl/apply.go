@@ -59,10 +59,6 @@ Exit status: 0 No differences were found. 1 Differences were found. >1 An error 
 			applyCmdFlags.options.differ = execdiff.New(os.Stdout)
 		}
 
-		// Do not print ErrDifferencesFound as a user-facing error message;
-		// it's a signal for the exit code only.
-		cmd.SilenceErrors = true
-
 		runErr := access.WithClient(applyConfigFiles)
 
 		var hasDiff bool
@@ -81,6 +77,11 @@ Exit status: 0 No differences were found. 1 Differences were found. >1 An error 
 		}
 
 		if hasDiff {
+			// Don't surface ErrDifferencesFound as a user-facing error; it
+			// only carries the exit-code contract.
+			cmd.SilenceErrors = true
+			cmd.SilenceUsage = true
+
 			return execdiff.ErrDifferencesFound
 		}
 

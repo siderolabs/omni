@@ -8,7 +8,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/siderolabs/omni/client/pkg/execdiff"
@@ -29,11 +28,12 @@ func main() {
 		// Differences-found is a signaling error (dry-run showed a diff),
 		// not a runtime failure. Map it to exit 1 silently so the documented
 		// contract holds: 0 = no diff, 1 = diff found, >1 = error.
+		// Cobra prints all other errors itself (including flag-parse errors),
+		// so main does not print again to avoid duplicate "Error:" lines.
 		if errors.Is(err, execdiff.ErrDifferencesFound) {
 			os.Exit(1)
 		}
 
-		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(2)
 	}
 }

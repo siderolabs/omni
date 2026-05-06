@@ -50,8 +50,6 @@ var syncCmd = &cobra.Command{
 			syncCmdFlags.options.Differ = execdiff.New(os.Stdout)
 		}
 
-		cmd.SilenceErrors = true
-
 		runErr := access.WithClient(syncTemplateFiles)
 
 		var hasDiff bool
@@ -70,6 +68,11 @@ var syncCmd = &cobra.Command{
 		}
 
 		if hasDiff {
+			// Don't surface ErrDifferencesFound as a user-facing error; it
+			// only carries the exit-code contract.
+			cmd.SilenceErrors = true
+			cmd.SilenceUsage = true
+
 			return execdiff.ErrDifferencesFound
 		}
 
