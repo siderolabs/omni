@@ -14,6 +14,8 @@ import (
 	"iter"
 	"time"
 
+	"github.com/siderolabs/image-factory/pkg/schematic"
+	"go.yaml.in/yaml/v4"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -152,6 +154,20 @@ func (client *Client) CreateSchematic(ctx context.Context, req *management.Creat
 	}
 
 	return schematic, nil
+}
+
+// CreateSchematicFromRaw creates a schematic from the raw schematic string using the image factory.
+func (client *Client) CreateSchematicFromRaw(ctx context.Context, schematic *schematic.Schematic) (*management.CreateSchematicResponse, error) {
+	data, err := yaml.Marshal(schematic)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal schematic: %w", err)
+	}
+
+	req := &management.CreateSchematicFromRawRequest{
+		RawSchematic: data,
+	}
+
+	return client.conn.CreateSchematicFromRaw(ctx, req)
 }
 
 // CreateServiceAccount creates a service account and returns the public key ID.

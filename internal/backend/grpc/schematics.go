@@ -124,6 +124,30 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 	}, nil
 }
 
+// CreateSchematicFromRaw implements managementServer.
+func (s *managementServer) CreateSchematicFromRaw(ctx context.Context, request *management.CreateSchematicFromRawRequest) (*management.CreateSchematicResponse, error) {
+	if _, err := auth.CheckGRPC(ctx, auth.WithValidSignature(true)); err != nil {
+		return nil, err
+	}
+
+	var schematicRequest schematic.Schematic
+
+	if err := yaml.Unmarshal(request.RawSchematic, &schematicRequest); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal raw schematic: %w", err)
+	}
+
+	s.logger.Info("ensure schematic from raw", zap.Reflect("schematic", schematicRequest))
+
+	schematicInfo, err := s.imageFactoryClient.EnsureSchematic(ctx, schematicRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ensure schematic: %w", err)
+	}
+
+	return &management.CreateSchematicResponse{
+		SchematicId: schematicInfo.FullID,
+	}, nil
+}
+
 func (s *managementServer) getOverlay(ctx context.Context, req *management.CreateSchematicRequest) (schematic.Overlay, error) {
 	if !quirks.New(req.TalosVersion).SupportsOverlay() {
 		return schematic.Overlay{}, nil

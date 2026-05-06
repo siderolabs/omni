@@ -175,6 +175,10 @@ message CreateSchematicRequest {
   SchematicBootloader bootloader = 10;
 }
 
+message CreateSchematicFromRawRequest {
+  bytes raw_schematic = 1;
+}
+
 message CreateSchematicResponse {
   string schematic_id = 1;
   string pxe_url = 2;
@@ -356,6 +360,7 @@ service ManagementService {
   rpc KubernetesUpgradePreChecks(KubernetesUpgradePreChecksRequest) returns (KubernetesUpgradePreChecksResponse);
   rpc KubernetesSyncManifests(KubernetesSyncManifestRequest) returns (stream KubernetesSyncManifestResponse);
   rpc CreateSchematic(CreateSchematicRequest) returns (CreateSchematicResponse);
+  rpc CreateSchematicFromRaw(CreateSchematicFromRawRequest) returns (CreateSchematicResponse);
   rpc GetSupportBundle(GetSupportBundleRequest) returns (stream GetSupportBundleResponse);
   rpc ReadAuditLog(ReadAuditLogRequest) returns (stream ReadAuditLogResponse);
   rpc MaintenanceUpgrade(MaintenanceUpgradeRequest) returns (MaintenanceUpgradeResponse);

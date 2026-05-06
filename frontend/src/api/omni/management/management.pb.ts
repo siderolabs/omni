@@ -191,6 +191,10 @@ export type CreateSchematicRequest = {
   bootloader?: SchematicBootloader
 }
 
+export type CreateSchematicFromRawRequest = {
+  raw_schematic?: Uint8Array
+}
+
 export type CreateSchematicResponse = {
   schematic_id?: string
   pxe_url?: string
@@ -369,6 +373,9 @@ export class ManagementService {
   }
   static CreateSchematic(req: CreateSchematicRequest, ...options: fm.fetchOption[]): Promise<CreateSchematicResponse> {
     return fm.fetchReq<CreateSchematicRequest, CreateSchematicResponse>("POST", `/management.ManagementService/CreateSchematic`, req, ...options)
+  }
+  static CreateSchematicFromRaw(req: CreateSchematicFromRawRequest, ...options: fm.fetchOption[]): Promise<CreateSchematicResponse> {
+    return fm.fetchReq<CreateSchematicFromRawRequest, CreateSchematicResponse>("POST", `/management.ManagementService/CreateSchematicFromRaw`, req, ...options)
   }
   static GetSupportBundle(req: GetSupportBundleRequest, entityNotifier: fm.NotifyStreamEntityArrival<GetSupportBundleResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<GetSupportBundleRequest, GetSupportBundleResponse>("POST", `/management.ManagementService/GetSupportBundle`, req, entityNotifier, ...options)
