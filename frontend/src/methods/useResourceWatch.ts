@@ -37,12 +37,12 @@ interface WatchMultiJoin<TSpec, TStatus> extends WatchBase {
 
 export function useResourceWatch<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptionsSingle>,
-  callback?: Callback,
+  callback?: Callback<Resource<TSpec, TStatus>>,
 ): WatchSingle<TSpec, TStatus>
 
 export function useResourceWatch<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptionsMulti>,
-  callback?: Callback,
+  callback?: Callback<Resource<TSpec, TStatus>>,
 ): WatchMulti<TSpec, TStatus>
 
 export function useResourceWatch<TSpec = unknown, TStatus = unknown>(
@@ -51,12 +51,12 @@ export function useResourceWatch<TSpec = unknown, TStatus = unknown>(
 
 export function useResourceWatch<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptions | WatchJoinOptions[]>,
-  callback?: Callback,
+  callback?: Callback<Resource<TSpec, TStatus>>,
 ): WatchSingle<TSpec, TStatus> | WatchMulti<TSpec, TStatus> | WatchMultiJoin<TSpec, TStatus>
 
 export function useResourceWatch<TSpec, TStatus>(
   opts: MaybeRefOrGetter<WatchOptions | WatchJoinOptions[]>,
-  callback?: Callback,
+  callback?: Callback<Resource<TSpec, TStatus>>,
 ) {
   if (isWatchJoinOptions(opts)) return useWatchJoin<TSpec, TStatus>(opts)
 
@@ -68,7 +68,7 @@ export function useResourceWatch<TSpec, TStatus>(
 
 function useWatchSingle<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptionsSingle>,
-  callback?: Callback,
+  callback?: Callback<Resource<TSpec, TStatus>>,
 ): WatchSingle<TSpec, TStatus> {
   const data = ref<Resource<TSpec, TStatus>>()
 
@@ -85,7 +85,7 @@ function useWatchSingle<TSpec = unknown, TStatus = unknown>(
 
 function useWatchMulti<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptionsMulti>,
-  callback?: Callback,
+  callback?: Callback<Resource<TSpec, TStatus>>,
 ): WatchMulti<TSpec, TStatus> {
   const data: Ref<Resource<TSpec, TStatus>[], Resource<TSpec, TStatus>[]> = ref([])
 

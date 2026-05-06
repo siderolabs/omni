@@ -6,7 +6,8 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { ArrowDownIcon } from '@heroicons/vue/24/solid'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { withContext, withRuntime } from '@/api/options'
@@ -25,36 +26,10 @@ import NodesMonitorChart from '@/views/Nodes/components/NodesMonitorChart.vue'
 
 definePage({ name: 'NodeMonitor' })
 
-interface Diffable {
-  [key: string]: number | Diffable | Diffable[]
-}
-
-function diff<T extends Diffable>(a: T, b: T): T {
-  const result: Diffable = {}
-
-  for (const key in a) {
-    const left = a[key]
-    const right = b[key]
-
-    if (typeof left === 'number' && typeof right === 'number') {
-      result[key] = left - right
-    } else if (Array.isArray(left) && Array.isArray(right)) {
-      result[key] = left.map((val, i) => diff(val, right[i]))
-    } else if (
-      !Array.isArray(left) &&
-      !Array.isArray(right) &&
-      typeof left === 'object' &&
-      typeof right === 'object'
-    ) {
-      result[key] = diff(left, right)
-    }
-  }
-
-  return result as T
-}
+const route = useRoute()
 
 const processes = ref<Proc[]>([])
-const context = getContext()
+const context = computed(() => getContext(route))
 const headers = [
   { id: 'pid' },
   { id: 'state' },
@@ -70,23 +45,19 @@ const headers = [
 const sort = ref<keyof Proc>('cpu')
 const sortReverse = ref(true)
 
-let memTotal = 0
-let interval: number
+const memTotal = ref(0)
 
-const sum = (obj: Record<string, number>, ...args: string[]) => {
-  let res = 0
-  for (const k of args) {
-    res += obj[k] || 0
-  }
-
-  return res
-}
-
-const getCPUTotal = (stat: Record<string, number>) => {
-  const idle = sum(stat, 'idle', 'iowait')
-  const nonIdle = sum(stat, 'user', 'nice', 'system', 'irq', 'steal', 'softIrq')
-
-  return idle + nonIdle
+const getCPUTotal = (stat: TalosCPUSpec['cpuTotal']) => {
+  return [
+    stat.idle,
+    stat.iowait,
+    stat.user,
+    stat.nice,
+    stat.system,
+    stat.irq,
+    stat.steal,
+    stat.softIrq,
+  ].reduce<number>((prev, curr) => prev + (curr || 0), 0)
 }
 
 const prevProcs: Record<number, ProcessInfo> = {}
@@ -94,16 +65,16 @@ let prevCPU = 0
 
 type Proc = NonNullable<Awaited<ReturnType<typeof getProcs>>>[number]
 const getProcs = async () => {
-  if (memTotal === 0) return
+  if (memTotal.value === 0) return
 
-  const options = [withRuntime(Runtime.Talos), withContext(context)]
+  const options = [withRuntime(Runtime.Talos), withContext(context.value)]
 
   const { messages: procMessages = [] } = await MachineService.Processes({}, ...options)
   const { messages: [systemStat] = [] } = await MachineService.SystemStat({}, ...options)
 
   const cpuTotal = getCPUTotal(systemStat.cpu_total ?? {}) / systemStat.cpu!.length
 
-  const total = memTotal * 1024
+  const total = memTotal.value * 1024
 
   const procs = procMessages.flatMap(({ processes = [] }) =>
     processes.map((proc) => {
@@ -140,75 +111,95 @@ async function loadProcs() {
   if (procs) processes.value = procs
 }
 
-onMounted(() => {
+watchEffect((onCleanup) => {
   loadProcs()
-  interval = window.setInterval(loadProcs, 5000)
+
+  const interval = window.setInterval(loadProcs, 5000)
+
+  onCleanup(() => {
+    clearInterval(interval)
+  })
 })
 
-onUnmounted(() => {
-  clearInterval(interval)
-})
+interface TalosCPUSpec {
+  contextSwitches?: number
+  cpu?: []
+  cpuTotal: {
+    guest?: number
+    guestNice?: number
+    idle?: number
+    iowait?: number
+    irq?: number
+    nice?: number
+    softIrq?: number
+    steal?: number
+    system?: number
+    user?: number
+  }
+  irqTotal?: number
+  processBlocked?: number
+  processCreated?: number
+  processRunning?: number
+  softIrqTotal?: number
+}
 
-const handleCPU = (oldObj: Diffable, newObj: Diffable) => {
-  const delta = diff(oldObj, newObj)
-  const stat = delta.cpuTotal as Record<string, number>
-  const total = getCPUTotal(stat)
+const handleCPU = (oldObj: TalosCPUSpec, newObj: TalosCPUSpec) => {
+  const keys = Object.keys(oldObj.cpuTotal) as (keyof TalosCPUSpec['cpuTotal'])[]
+
+  const cpuTotal = keys.reduce<TalosCPUSpec['cpuTotal']>(
+    (prev, key) => ({
+      ...prev,
+      [key]: (oldObj.cpuTotal[key] || 0) - (newObj.cpuTotal[key] || 0),
+    }),
+    {},
+  )
+
+  const total = getCPUTotal(cpuTotal)
 
   return {
-    system: (stat.system / total) * 100,
-    user: (stat.user / total) * 100,
+    system: ((cpuTotal.system || 0) / total) * 100,
+    user: ((cpuTotal.user || 0) / total) * 100,
   }
 }
 
-const handleTotalCPU = (oldObj: Diffable, newObj: Diffable) => {
+const handleTotalCPU = (oldObj: TalosCPUSpec, newObj: TalosCPUSpec) => {
   const point = handleCPU(oldObj, newObj)
 
   return `${(point.user + point.system).toFixed(1)} %`
 }
 
-const handleMem = (
-  _: unknown,
-  m: { used: number; cached: number; buffers: number; total: number },
-) => {
-  const used = m.used - m.cached - m.buffers
+interface TalosMemorySpec {
+  total?: number
+  used?: number
+  cached?: number
+  buffers?: number
+}
 
-  const memoryInitialized = memTotal === 0
-
-  memTotal = m.total
-
-  if (memoryInitialized) {
-    loadProcs()
-  }
+const handleMem = (_: TalosMemorySpec, m: TalosMemorySpec) => {
+  memTotal.value = m.total || 0
 
   return {
-    used: used,
-    cached: m.cached,
-    buffers: m.buffers,
+    used: (m.used || 0) - (m.cached || 0) - (m.buffers || 0),
+    cached: m.cached || 0,
+    buffers: m.buffers || 0,
   }
 }
 
-const handleTotalMem = (
-  _: unknown,
-  m: { used: number; cached: number; buffers: number; total: number },
-) => {
-  const used = m.used - m.cached - m.buffers
+const handleTotalMem = (_: TalosMemorySpec, m: TalosMemorySpec) => {
+  const used = (m.used || 0) - (m.cached || 0) - (m.buffers || 0)
 
-  return `${formatBytes(used * 1024)} / ${formatBytes(m.total * 1024)}`
+  return `${formatBytes(used * 1024)} / ${formatBytes((m.total || 0) * 1024)}`
 }
 
-const handleMaxMem = (_: unknown, m: { total: number }): number => {
-  return m.total
+const handleMaxMem = (_: TalosMemorySpec, m: TalosMemorySpec) => {
+  return m.total || 0
 }
 
-const handleProcs = (oldObj: Diffable, newObj: Diffable) => {
-  const { processCreated } = diff(oldObj, newObj)
-
+const handleProcs = (oldObj: TalosCPUSpec, newObj: TalosCPUSpec) => {
   return {
-    // The diff algorithm should never return only numbers Record<string, number> for this case
-    // But due to how its typed, adding a fallback just incase
-    created: typeof processCreated === 'number' ? processCreated : Number(processCreated),
-    running: newObj.processRunning as number,
-    blocked: newObj.processBlocked as number,
+    created: (oldObj.processCreated || 0) - (newObj.processCreated || 0),
+    running: newObj.processRunning || 0,
+    blocked: newObj.processBlocked || 0,
   }
 }
 
@@ -384,7 +375,6 @@ const sortBy = (id: keyof Proc) => {
 }
 .monitor-chart {
   @apply flex-1 rounded bg-naturals-n2 p-3 pt-4;
-  min-height: 220px;
 }
 .monitor-chart:nth-child(1) {
   @apply mr-3;

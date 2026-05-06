@@ -16,16 +16,16 @@ import type { GRPCMetadata } from '@/api/options'
 import { withContext, withMetadata, withRuntime } from '@/api/options'
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
 
-export interface Callback {
-  (message: WatchResponse, spec: WatchEventSpec): void
+export interface Callback<T extends Resource> {
+  (message: WatchResponse, spec: WatchEventSpec<T>): void
 }
 
-export type WatchEventSpec = {
-  res?: Resource
-  old?: Resource
+export interface WatchEventSpec<T extends Resource> {
+  res?: T
+  old?: T
 }
 
-class WatchFunc {
+class WatchFunc<T extends Resource> {
   protected runtime: Runtime = Runtime.Kubernetes
   protected callback: (resp: WatchResponse) => void
   protected stream?: Stream<WatchRequest, WatchResponse>
@@ -34,9 +34,9 @@ class WatchFunc {
   public readonly err: Ref<string | null> = ref(null)
   public readonly errCode: Ref<Code | null> = ref(null)
 
-  constructor(callback: Callback) {
+  constructor(callback: Callback<T>) {
     this.callback = (message: WatchResponse) => {
-      const spec: WatchEventSpec = {}
+      const spec: WatchEventSpec<T> = {}
 
       if (message.event?.resource) {
         spec.res = JSON.parse(message.event?.resource)
@@ -199,7 +199,7 @@ export type WatchOptionsMulti = WatchOptionsBase & {
   resource: Omit<Metadata, 'id'>
 }
 
-export default class Watch<T extends Resource> extends WatchFunc {
+export default class Watch<T extends Resource> extends WatchFunc<T> {
   public readonly items?: Ref<T[]>
   public readonly item?: Ref<T | undefined>
   public readonly total = ref(0)
@@ -207,8 +207,8 @@ export default class Watch<T extends Resource> extends WatchFunc {
   private watchItems?: WatchItems<T>
   private lastTotal = 0
 
-  constructor(target: Ref<T[]> | Ref<T | undefined>, callback?: Callback) {
-    let handler: Callback | undefined
+  constructor(target: Ref<T[]> | Ref<T | undefined>, callback?: Callback<T>) {
+    let handler: Callback<T> | undefined
 
     super((event, spec) => {
       callback?.(event, spec)
@@ -282,7 +282,7 @@ export default class Watch<T extends Resource> extends WatchFunc {
     super.onStart()
   }
 
-  private singleItemHandler(message: WatchResponse, spec: WatchEventSpec) {
+  private singleItemHandler(message: WatchResponse, spec: WatchEventSpec<T>) {
     if (message.event?.event_type === EventType.BOOTSTRAPPED) {
       this.loading.value = false
 
@@ -308,7 +308,7 @@ export default class Watch<T extends Resource> extends WatchFunc {
     }
   }
 
-  private listHandler(message: WatchResponse, spec: WatchEventSpec) {
+  private listHandler(message: WatchResponse, spec: WatchEventSpec<T>) {
     if (!this.items || !this.watchItems) return
 
     if (message.event?.event_type === EventType.BOOTSTRAPPED) {
@@ -501,7 +501,7 @@ class WatchItems<T> {
 export type WatchJoinOptions = WatchOptions & { idFunc?: <T>(res: Resource<T>) => string }
 
 export class WatchJoin<T extends Resource> {
-  private watches: WatchFunc[] = []
+  private watches: WatchFunc<T>[] = []
   private items: Ref<T[]>
   private watchItems?: WatchItems<T>
   private itemMap: Record<string, Record<string, Record<string, ResourceSort<T>>>> = {}
@@ -579,7 +579,7 @@ export class WatchJoin<T extends Resource> {
     this.primaryResourceType = primary.resource.type
 
     const handler = (resourceType: string, opts: WatchJoinOptions) => {
-      return (resp: WatchResponse, spec: WatchEventSpec) => {
+      return (resp: WatchResponse, spec: WatchEventSpec<T>) => {
         if (!this.itemMap[resourceType]) {
           this.itemMap[resourceType] = {}
         }
