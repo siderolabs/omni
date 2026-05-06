@@ -11,7 +11,7 @@ import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import { refDebounced } from '@vueuse/core'
 import type { ApexOptions } from 'apexcharts'
 import { DateTime } from 'luxon'
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef, watchEffect } from 'vue'
 import VueApexCharts from 'vue3-apexcharts/core'
 
 import { Code } from '@/api/google/rpc/code.pb'
@@ -243,6 +243,24 @@ const options = computed(() => {
  */
 const chartProps = computed(() => ({ options: options.value, series: series.value }))
 const chartPropsDebounced = refDebounced(chartProps, 50)
+
+/**
+ * The below workaround only required until upstream PR is released
+ * See: https://github.com/apexcharts/vue3-apexcharts/issues/150
+ */
+const chartRef = useTemplateRef('chartRef')
+// eslint-disable-next-line vue/no-ref-object-reactivity-loss
+const initOptions = options.value
+
+watchEffect(() => {
+  // Wait for internal chart to be created
+  if (!chartRef.value?.chart) return
+
+  chartRef.value.updateOptions({
+    ...chartPropsDebounced.value.options,
+    series: chartPropsDebounced.value.series,
+  })
+})
 </script>
 
 <template>
@@ -271,10 +289,12 @@ const chartPropsDebounced = refDebounced(chartProps, 50)
       </div>
       <VueApexCharts
         v-show="!err && !loading"
+        ref="chartRef"
         width="100%"
         :height="180"
         type="area"
-        v-bind="chartPropsDebounced"
+        :options="initOptions"
+        :series="[]"
       />
     </div>
   </div>
