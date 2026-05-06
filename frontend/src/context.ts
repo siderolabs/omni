@@ -10,6 +10,9 @@ import type { WatchContext } from '@/api/watch'
 
 export const current = useLocalStorage<string>('context', null)
 
+/**
+ * @deprecated Pass context in explicitly instead of using this function. It relies on routing & local storage and can be flimsy.
+ */
 export function getContext(route = useRoute()): WatchContext {
   const cluster = clusterName(route)
 
@@ -25,7 +28,7 @@ export function getContext(route = useRoute()): WatchContext {
   return res
 }
 
-export function clusterName(route = useRoute()) {
+function clusterName(route: ReturnType<typeof useRoute>) {
   if ('cluster' in route.params) {
     return route.params.cluster
   }

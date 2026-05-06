@@ -32,8 +32,8 @@ const routes = computed(() => {
       to: { name: 'NodeMonitor', params: { machine: machine.value } },
     },
     {
-      name: 'Console Logs',
-      to: { name: 'NodeLogs', params: { machine: machine.value, service: 'machine' } },
+      name: 'Logs',
+      to: { name: 'NodeLogs', params: { machine: machine.value } },
     },
     {
       name: 'Config',

@@ -108,11 +108,6 @@
       "count": 1
     }
   },
-  "src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/logs/[service].vue": {
-    "vue/no-ref-object-reactivity-loss": {
-      "count": 1
-    }
-  },
   "src/views/ClusterMachines/MachineRequest.vue": {
     "vue/define-props-destructuring": {
       "count": 1

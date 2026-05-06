@@ -218,9 +218,9 @@ declare module 'vue-router/auto-routes' {
     >,
     'NodeLogs': RouteRecordInfo<
       'NodeLogs',
-      '/clusters/:cluster/machine/:machine/logs/:service',
-      { cluster: ParamValue<true>, machine: ParamValue<true>, service: ParamValue<true> },
-      { cluster: ParamValue<false>, machine: ParamValue<false>, service: ParamValue<false> },
+      '/clusters/:cluster/machine/:machine/logs/:service?',
+      { cluster: ParamValue<true>, machine: ParamValue<true>, service?: ParamValueZeroOrOne<true> },
+      { cluster: ParamValue<false>, machine: ParamValue<false>, service?: ParamValueZeroOrOne<false> },
       | never
     >,
     'NodeMonitor': RouteRecordInfo<
@@ -371,9 +371,9 @@ declare module 'vue-router/auto-routes' {
     >,
     'MachineLogs': RouteRecordInfo<
       'MachineLogs',
-      '/machines/:machine/logs',
-      { machine: ParamValue<true> },
-      { machine: ParamValue<false> },
+      '/machines/:machine/logs/:service?',
+      { machine: ParamValue<true>, service?: ParamValueZeroOrOne<true> },
+      { machine: ParamValue<false>, service?: ParamValueZeroOrOne<false> },
       | never
     >,
     'MachineConfigPatches': RouteRecordInfo<
@@ -850,7 +850,7 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/logs/[service].vue': {
+    'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/logs/[[service]].vue': {
       routes:
         | 'NodeLogs'
       views:
@@ -983,7 +983,7 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/(authenticated)/machines/[machine]/logs.vue': {
+    'src/pages/(authenticated)/machines/[machine]/logs/[[service]].vue': {
       routes:
         | 'MachineLogs'
       views:
