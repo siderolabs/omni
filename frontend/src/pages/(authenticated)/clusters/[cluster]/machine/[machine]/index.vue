@@ -7,15 +7,13 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type { NodeSpec as V1NodeSpec, NodeStatus as V1NodeStatus } from 'kubernetes-types/core/v1'
 import { DateTime } from 'luxon'
-import { computed, ref, useId, watchEffect } from 'vue'
+import { computed, ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import { subscribe } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ConfigApplyStatus } from '@/api/omni/specs/omni.pb'
-import { withAbortController, withContext, withRuntime } from '@/api/options'
 import {
   ClusterMachineStatusType,
   DefaultNamespace,
@@ -32,8 +30,6 @@ import {
   TalosNodenameType,
   TalosRuntimeNamespace,
 } from '@/api/resources'
-import type { ServiceEvent } from '@/api/talos/machine/machine.pb'
-import { MachineService } from '@/api/talos/machine/machine.pb'
 import TGroupAnimation from '@/components/Animation/TGroupAnimation.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TListItem from '@/components/List/TListItem.vue'
@@ -45,6 +41,7 @@ import { TCommonStatuses } from '@/constants'
 import { getContext } from '@/context'
 import { formatBytes, getStatus } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
+import { useMachineServices } from '@/methods/useMachineServices'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachinePhase from '@/views/ClusterMachines/ClusterMachinePhase.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
@@ -57,72 +54,7 @@ definePage({ name: 'NodeOverview' })
 const route = useRoute()
 const context = computed(() => getContext(route))
 
-const services = ref<
-  {
-    name?: string
-    state?: string
-    status: TCommonStatuses
-    events?: ServiceEvent[]
-  }[]
->([])
-
-let abortController: AbortController | undefined
-
-const fetchServices = async () => {
-  if (abortController) {
-    abortController.abort()
-  }
-
-  abortController = new AbortController()
-
-  const res = await MachineService.ServiceList(
-    {},
-    withContext(context.value),
-    withRuntime(Runtime.Talos),
-    withAbortController(abortController),
-  )
-
-  abortController = undefined
-
-  services.value = []
-
-  res.messages?.forEach((message) =>
-    message.services?.forEach((service) =>
-      services.value.push({
-        name: service.id,
-        state: service.state,
-        status: service.health?.unknown
-          ? TCommonStatuses.HEALTH_UNKNOWN
-          : service.health?.healthy
-            ? TCommonStatuses.HEALTHY
-            : TCommonStatuses.UNHEALTHY,
-        events: service.events?.events,
-      }),
-    ),
-  )
-}
-
-fetchServices()
-
-watchEffect((onCleanup) => {
-  const stream = subscribe(
-    MachineService.Events,
-    {},
-    (event) => {
-      // For some reason @type is not typed on Any
-      const data = event.data as (typeof event.data & { ['@type']?: string }) | undefined
-
-      if (data?.['@type']?.includes('machine.ServiceStateEvent')) {
-        fetchServices()
-      }
-    },
-    [withRuntime(Runtime.Talos), withContext(context.value)],
-  )
-
-  onCleanup(() => {
-    stream.shutdown()
-  })
-})
+const { services } = useMachineServices(context)
 
 const configApplyStatusToConfigApplyStatusName = (status?: ConfigApplyStatus): string => {
   switch (status) {
