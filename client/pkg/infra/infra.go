@@ -27,7 +27,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/infra/internal/resources"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
-	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
 // ProviderConfig defines the schema, human-readable provider name and description.
@@ -105,36 +104,36 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		omni.WithProviderID(provider.id),
 	))
 
+	var (
+		c   *client.Client
+		err error
+	)
+
 	switch {
 	case options.state != nil:
 		st = options.state
 	case options.omniEndpoint != "":
-		client, err := client.New(options.omniEndpoint, options.clientOptions...)
+		c, err = client.New(options.omniEndpoint, options.clientOptions...)
 		if err != nil {
 			return err
 		}
 
-		state, err := NewState(client)
+		var state *State
+
+		state, err = NewState(c)
 		if err != nil {
 			return err
 		}
 
-		defer client.Close() //nolint:errcheck
+		defer c.Close() //nolint:errcheck
 
 		st = state.State()
 	default:
 		return fmt.Errorf("invalid infra provider configuration: either WithOmniEndpoint or WithState option should be used")
 	}
 
-	features, err := safe.ReaderGetByID[*omnires.FeaturesConfig](ctx, st, omnires.FeaturesConfigID)
-	if err != nil {
-		return err
-	}
-
 	if options.imageFactory == nil {
-		options.imageFactory, err = imagefactory.NewClient(imagefactory.ClientOptions{
-			FactoryEndpoint: features.TypedSpec().Value.ImageFactoryBaseUrl,
-		})
+		options.imageFactory, err = imagefactory.NewProxiedClient(c)
 		if err != nil {
 			return err
 		}

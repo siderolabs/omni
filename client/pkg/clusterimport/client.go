@@ -256,7 +256,7 @@ func BuildTalosClient(ctx context.Context, config, context, sideroV1KeysDir stri
 }
 
 // BuildImageFactoryClient builds an Image Factory client using the Image Factory base url from Omni configuration.
-func BuildImageFactoryClient(ctx context.Context, omniState state.State) (*imagefactory.Client, error) {
+func BuildImageFactoryClient(ctx context.Context, omniState state.State) (*imagefactory.DirectClient, error) {
 	featuresConfig, err := safe.ReaderGetByID[*omni.FeaturesConfig](ctx, omniState, omni.FeaturesConfigID)
 	if err != nil {
 		return nil, fmt.Errorf("error reading features config %q: %w", omniState, err)
@@ -266,7 +266,7 @@ func BuildImageFactoryClient(ctx context.Context, omniState state.State) (*image
 		return nil, fmt.Errorf("image factory base URL is empty")
 	}
 
-	c, err := imagefactory.NewClient(imagefactory.ClientOptions{FactoryEndpoint: featuresConfig.TypedSpec().Value.ImageFactoryBaseUrl})
+	c, err := imagefactory.NewDirectClient(imagefactory.ClientOptions{FactoryEndpoint: featuresConfig.TypedSpec().Value.ImageFactoryBaseUrl})
 	if err != nil {
 		return nil, fmt.Errorf("failed to set up image factory client: %w", err)
 	}
