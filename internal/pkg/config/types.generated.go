@@ -553,6 +553,14 @@ type Registries struct {
 	// to build custom PXE boot images.
 	ImageFactoryPXEBaseURL *string `json:"imageFactoryPXEBaseURL,omitempty,omitzero" yaml:"imageFactoryPXEBaseURL,omitempty"`
 
+	// ImageFactoryPassword is the password used to authenticate against the Image
+	// Factory Enterprise service.
+	ImageFactoryPassword *string `json:"imageFactoryPassword,omitempty,omitzero" yaml:"imageFactoryPassword,omitempty"`
+
+	// ImageFactoryUsername is the username used to authenticate against the Image
+	// Factory Enterprise service.
+	ImageFactoryUsername *string `json:"imageFactoryUsername,omitempty,omitzero" yaml:"imageFactoryUsername,omitempty"`
+
 	// Kubernetes is the Kubernetes container registry configuration.
 	Kubernetes *string `json:"kubernetes" yaml:"kubernetes"`
 

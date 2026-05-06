@@ -122,6 +122,7 @@ func Init(schema *jsonschema.Schema, params ...*Params) (*Params, error) {
 	}
 
 	config.PopulateFallbacks()
+	config.applyEnvOverrides()
 
 	if err := config.Validate(schema); err != nil {
 		return nil, err
@@ -244,6 +245,24 @@ func (p *Params) GetOIDCIssuerEndpoint() (string, error) {
 	}
 
 	return u.String(), nil
+}
+
+// Environment variable names that override config values after merging.
+const (
+	EnvImageFactoryUsername = "OMNI_IMAGE_FACTORY_USERNAME"
+	EnvImageFactoryPassword = "OMNI_IMAGE_FACTORY_PASSWORD"
+)
+
+// applyEnvOverrides overrides config values from environment variables, when set.
+// Env overrides win over all other sources (defaults, files, flags).
+func (p *Params) applyEnvOverrides() {
+	if v, ok := os.LookupEnv(EnvImageFactoryUsername); ok {
+		p.Registries.SetImageFactoryUsername(v)
+	}
+
+	if v, ok := os.LookupEnv(EnvImageFactoryPassword); ok {
+		p.Registries.SetImageFactoryPassword(v)
+	}
 }
 
 // PopulateFallbacks in the config file.

@@ -20,6 +20,7 @@ import (
 	machine "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/config"
+	talosconfig "github.com/siderolabs/talos/pkg/machinery/config/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/configpatcher"
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
@@ -32,6 +33,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/imagefactoryauth"
+	omnicfg "github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // MaintenanceClientFactory creates a new MaintenanceClient.
@@ -66,8 +69,8 @@ func (c *maintenanceClient) ApplyConfiguration(ctx context.Context, req *machine
 type MaintenanceConfigStatusController = qtransform.QController[*siderolinkres.Link, *omni.MaintenanceConfigStatus]
 
 // NewMaintenanceConfigStatusController initializes MaintenanceConfigStatusController.
-func NewMaintenanceConfigStatusController(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int) *MaintenanceConfigStatusController {
-	helper := newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory, eventSinkPort, logServerPort)
+func NewMaintenanceConfigStatusController(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int, registries omnicfg.Registries) *MaintenanceConfigStatusController {
+	helper := newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory, eventSinkPort, logServerPort, registries)
 
 	return qtransform.NewQController(
 		qtransform.Settings[*siderolinkres.Link, *omni.MaintenanceConfigStatus]{
@@ -88,11 +91,11 @@ func NewMaintenanceConfigStatusController(maintenanceClientFactory MaintenanceCl
 }
 
 type maintenanceConfigStatusControllerHelper struct {
-	getMachineConfigPatch    func() (configpatcher.Patch, error)
-	maintenanceClientFactory MaintenanceClientFactory
+	getMaintenanceConfigPatch func(talosVersion string) (configpatcher.Patch, error)
+	maintenanceClientFactory  MaintenanceClientFactory
 }
 
-func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int,
+func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int, registries omnicfg.Registries,
 ) *maintenanceConfigStatusControllerHelper {
 	if maintenanceClientFactory == nil {
 		maintenanceClientFactory = func(ctx context.Context, managementAddress string) (MaintenanceClient, error) {
@@ -107,30 +110,60 @@ func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory Mainten
 		}
 	}
 
+	buildPatch := func(extraDocs ...talosconfig.Document) (configpatcher.Patch, error) {
+		cfg, err := siderolink.NewJoinOptions(
+			siderolink.WithoutMachineAPIURL(),
+			siderolink.WithEventSinkPort(eventSinkPort),
+			siderolink.WithLogServerPort(logServerPort),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		configBytes, err := cfg.RenderJoinConfig(extraDocs...)
+		if err != nil {
+			return nil, err
+		}
+
+		patch, err := configpatcher.LoadPatch(configBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load patch: %w", err)
+		}
+
+		return patch, nil
+	}
+
+	basePatch := sync.OnceValues(func() (configpatcher.Patch, error) {
+		return buildPatch()
+	})
+
+	patchWithRegistryAuth := sync.OnceValues(func() (configpatcher.Patch, error) {
+		authDoc, err := imagefactoryauth.BuildDoc(registries)
+		if err != nil {
+			return nil, fmt.Errorf("error building registry auth doc: %w", err)
+		}
+
+		if authDoc == nil {
+			return basePatch()
+		}
+
+		return buildPatch(authDoc)
+	})
+
 	return &maintenanceConfigStatusControllerHelper{
 		maintenanceClientFactory: maintenanceClientFactory,
-		getMachineConfigPatch: sync.OnceValues(func() (configpatcher.Patch, error) {
-			cfg, err := siderolink.NewJoinOptions(
-				siderolink.WithoutMachineAPIURL(),
-				siderolink.WithEventSinkPort(eventSinkPort),
-				siderolink.WithLogServerPort(logServerPort),
-			)
+		getMaintenanceConfigPatch: func(talosVersion string) (configpatcher.Patch, error) {
+			vc, err := config.ParseContractFromVersion(talosVersion)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to parse contract from version: %w", err)
 			}
 
-			configBytes, err := cfg.RenderJoinConfig()
-			if err != nil {
-				return nil, err
+			if vc.MultidocNetworkConfigSupported() {
+				return patchWithRegistryAuth()
 			}
 
-			patch, err := configpatcher.LoadPatch(configBytes)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load patch: %w", err)
-			}
-
-			return patch, nil
-		}),
+			return basePatch()
+		},
 	}
 }
 
@@ -186,7 +219,7 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 		return fmt.Errorf("error getting maintenance config: %w", err)
 	}
 
-	maintenanceConfigPatch, err := helper.getMachineConfigPatch()
+	maintenanceConfigPatch, err := helper.getMaintenanceConfigPatch(talosVersion)
 	if err != nil {
 		return fmt.Errorf("error building machine config: %w", err)
 	}

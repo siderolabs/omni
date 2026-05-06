@@ -24,7 +24,7 @@ require (
 	github.com/siderolabs/gen v0.8.6
 	github.com/siderolabs/go-api-signature v0.3.12
 	github.com/siderolabs/go-kubeconfig v0.1.2
-	github.com/siderolabs/image-factory v1.2.0
+	github.com/siderolabs/image-factory v1.3.2-0.20260518005409-cd137edc8d54
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.16
 	github.com/siderolabs/talos/pkg/machinery v1.13.2

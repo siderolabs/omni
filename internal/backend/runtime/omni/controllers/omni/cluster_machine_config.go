@@ -39,7 +39,9 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/imagefactoryauth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
+	omnicfg "github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // ClusterMachineConfigControllerName is the name of the ClusterMachineConfigController.
@@ -51,7 +53,7 @@ const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
 type ClusterMachineConfigController = qtransform.QController[*omni.ClusterMachine, *omni.ClusterMachineConfig]
 
 // NewClusterMachineConfigController initializes ClusterMachineConfigController.
-func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors []string, talosRegistry string) *ClusterMachineConfigController {
+func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors []string, talosRegistry string, registries omnicfg.Registries) *ClusterMachineConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
 			Name: ClusterMachineConfigControllerName,
@@ -62,7 +64,7 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 				return omni.NewClusterMachine(machineConfig.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, clusterMachine *omni.ClusterMachine, machineConfig *omni.ClusterMachineConfig) error {
-				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, imageFactoryHost, talosRegistry)
+				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, imageFactoryHost, talosRegistry, registries)
 			},
 		},
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigPatches](
@@ -103,6 +105,7 @@ func reconcileClusterMachineConfig(
 	registryMirrors []string,
 	imageFactoryHost string,
 	talosRegistry string,
+	registries omnicfg.Registries,
 ) error {
 	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
@@ -236,6 +239,7 @@ func reconcileClusterMachineConfig(
 	helper := clusterMachineConfigControllerHelper{
 		imageFactoryHost: imageFactoryHost,
 		talosRegistry:    talosRegistry,
+		registries:       registries,
 	}
 
 	configGenOptions := make([]generate.Option, 0, len(registryMirrors))
@@ -289,8 +293,32 @@ func reconcileClusterMachineConfig(
 }
 
 type clusterMachineConfigControllerHelper struct {
+	registries       omnicfg.Registries
 	imageFactoryHost string
 	talosRegistry    string
+}
+
+func (helper clusterMachineConfigControllerHelper) buildRegistryAuthPatch() (string, error) {
+	authDoc, err := imagefactoryauth.BuildDoc(helper.registries)
+	if err != nil {
+		return "", fmt.Errorf("failed to build image factory registry auth doc: %w", err)
+	}
+
+	if authDoc == nil {
+		return "", nil
+	}
+
+	authConfig, err := container.New(authDoc)
+	if err != nil {
+		return "", err
+	}
+
+	authBytes, err := authConfig.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
+	if err != nil {
+		return "", err
+	}
+
+	return string(authBytes), nil
 }
 
 func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.ClusterMachineConfig, data []byte) (bool, error) {
@@ -319,6 +347,7 @@ func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.Cluste
 	return bytes.Equal(oldBytes, data), nil
 }
 
+//nolint:gocyclo,cyclop,gocognit
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches,
 	clusterMachineSecrets *omni.ClusterMachineSecrets, loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion,
 	configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option, machineJoinConfig *siderolink.MachineJoinConfig,
@@ -426,6 +455,24 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 	// [TODO]: this should check current (minimum) version of the cluster (or current Talos version of the machine)
 	if quirks.New(initialTalosVersion).SupportsMultidoc() {
 		patchList = append(patchList, machineJoinConfig.TypedSpec().Value.Config.Config)
+
+		var vc *config.VersionContract
+
+		vc, err = config.ParseContractFromVersion(initialTalosVersion)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse contract from version: %w", err)
+		}
+
+		if vc.MultidocNetworkConfigSupported() {
+			authPatch, authErr := helper.buildRegistryAuthPatch()
+			if authErr != nil {
+				return nil, authErr
+			}
+
+			if authPatch != "" {
+				patchList = append(patchList, authPatch)
+			}
+		}
 	}
 
 	patches, err := configpatcher.LoadPatches(patchList)

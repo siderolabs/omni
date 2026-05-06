@@ -277,6 +277,23 @@ func TestValidateConfig(t *testing.T) {
 			config:      backups,
 			validateErr: "'not' failed",
 		},
+
+		{
+			name:   "image factory username without password",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Registries.SetImageFactoryUsername("user")
+			},
+			validateErr: `config value ".registries.imageFactoryPassword" or flag "--image-factory-password": is required when "imageFactoryUsername" is set`,
+		},
+		{
+			name:   "image factory password without username",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Registries.SetImageFactoryPassword("pass")
+			},
+			validateErr: `config value ".registries.imageFactoryUsername" or flag "--image-factory-username": is required when "imageFactoryPassword" is set`,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, err := config.FromBytes(tt.config)

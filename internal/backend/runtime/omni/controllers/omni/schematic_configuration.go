@@ -113,9 +113,6 @@ func NewSchematicConfigurationController(imageFactoryClient ImageFactoryClient) 
 
 				return ids, nil
 			}),
-		qtransform.WithExtraMappedInput[*omni.Schematic](
-			qtransform.MapperNone(),
-		),
 		qtransform.WithExtraMappedInput[*omni.MachineExtensions](
 			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
@@ -231,14 +228,8 @@ func (helper *schematicConfigurationHelper) reconcile(
 		return nil, err
 	}
 
-	if _, err = safe.ReaderGetByID[*omni.Schematic](ctx, r, id); err != nil {
-		if !state.IsNotFoundError(err) {
-			return nil, err
-		}
-
-		if _, err = helper.imageFactoryClient.EnsureSchematic(ctx, config); err != nil {
-			return nil, err
-		}
+	if _, err = helper.imageFactoryClient.EnsureSchematic(ctx, config); err != nil {
+		return nil, err
 	}
 
 	schematicConfiguration.TypedSpec().Value.SchematicId = id

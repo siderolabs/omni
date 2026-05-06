@@ -326,6 +326,8 @@ func defineRegistriesFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.StringVar("registries.kubernetes", &flagConfig.Registries.Kubernetes)
 	b.StringVar("registries.imageFactoryBaseURL", &flagConfig.Registries.ImageFactoryBaseURL)
 	b.StringVar("registries.imageFactoryPXEBaseURL", &flagConfig.Registries.ImageFactoryPXEBaseURL)
+	b.StringVar("registries.imageFactoryUsername", &flagConfig.Registries.ImageFactoryUsername)
+	b.StringVar("registries.imageFactoryPassword", &flagConfig.Registries.ImageFactoryPassword)
 
 	b.StringSliceVar("registries.mirrors", &flagConfig.Registries.Mirrors, flagConfig.Registries.Mirrors)
 }

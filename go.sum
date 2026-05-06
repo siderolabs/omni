@@ -476,8 +476,8 @@ github.com/siderolabs/go-talos-support v0.2.1 h1:QVFhcmGw1ZTTXEtukBgrdjNxYbsPAOT
 github.com/siderolabs/go-talos-support v0.2.1/go.mod h1:tfwP9mpPdmqLU8DuCDgcAd0ficLlJuB/XMtrIV8g+20=
 github.com/siderolabs/grpc-proxy v0.5.2 h1:o34tS02IxbX3qeXe0MM99zE2XhfWHuvdBtSWWRD9HNI=
 github.com/siderolabs/grpc-proxy v0.5.2/go.mod h1:ygf+gqFxWdymAXuP4qMHTa+j6SvasdcFg3XkhpvUvDw=
-github.com/siderolabs/image-factory v1.2.0 h1:5/VbxTemmzBM6QFuh0VenMr9nZCblGp9JmrWeXQTwbI=
-github.com/siderolabs/image-factory v1.2.0/go.mod h1:nAE1u+vYMK711Ktt8RshYW6S2zWNQ8XUAG7lMWeIZ7I=
+github.com/siderolabs/image-factory v1.3.2-0.20260518005409-cd137edc8d54 h1:CcMFuG2V3mZTsrU/odH3OywfuPVhw3c08o8yKRwXh0s=
+github.com/siderolabs/image-factory v1.3.2-0.20260518005409-cd137edc8d54/go.mod h1:rxNZztD7PEG9coMhkjyTPXt8xh5Xb9/2g7bX6OUqAIc=
 github.com/siderolabs/kms-client v0.2.0 h1:8RniCStUI75RTZO8qkhHOSVOnEU1AvvsKqJ7FqW/8NA=
 github.com/siderolabs/kms-client v0.2.0/go.mod h1:qq6dwcLPO0gaUyfkrhWi/37g/ZyZJzOHzvHrilLz48E=
 github.com/siderolabs/net v0.4.0 h1:1bOgVay/ijPkJz4qct98nHsiB/ysLQU0KLoBC4qLm7I=

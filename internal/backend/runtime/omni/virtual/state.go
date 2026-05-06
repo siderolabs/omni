@@ -48,13 +48,14 @@ type State struct {
 	stripeClient             *stripe.Client
 	apiURL                   string
 	stripeSubscriptionItemID string
+	registryConfig           config.Registries
 	supportConfig            config.Support
 	supportEnabledMu         sync.Mutex
 	supportEnabled           bool
 }
 
 // NewState creates new virtual state instance.
-func NewState(state state.State, stripeClient *stripe.Client, apiURL, stripeSubscriptionItemID string, supportConfig config.Support) *State {
+func NewState(state state.State, stripeClient *stripe.Client, apiURL, stripeSubscriptionItemID string, registryConfig config.Registries, supportConfig config.Support) *State {
 	return &State{
 		PrimaryState:             state,
 		computed:                 map[resource.Type]*Computed{},
@@ -62,6 +63,7 @@ func NewState(state state.State, stripeClient *stripe.Client, apiURL, stripeSubs
 		stripeClient:             stripeClient,
 		stripeSubscriptionItemID: stripeSubscriptionItemID,
 		supportConfig:            supportConfig,
+		registryConfig:           registryConfig,
 	}
 }
 
@@ -76,6 +78,8 @@ func (v *State) RunComputed(ctx context.Context, t resource.Type, factory Produc
 }
 
 // Get implements state.CoreState.
+//
+//nolint:cyclop
 func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.GetOption) (resource.Resource, error) {
 	if len(opts) > 0 {
 		return nil, stateerrors.ErrUnsupported(errors.New("no get options are supported"))
@@ -130,6 +134,12 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 		return v.support(ctx, ptr)
 	case virtual.QuirksType:
 		return v.quirks(ctx, ptr)
+	case virtual.ImageFactoryAuthType:
+		if ptr.ID() != virtual.ImageFactoryAuthID {
+			return nil, stateerrors.ErrNotFound(ptr)
+		}
+
+		return v.imageFactoryAuth(ctx, ptr)
 	default:
 		return nil, stateerrors.ErrUnsupported(fmt.Errorf("unsupported resource type for get %q", ptr.Type()))
 	}
@@ -466,6 +476,22 @@ func (v *State) quirks(_ context.Context, ptr resource.Pointer) (*virtual.Quirks
 		SupportsUnifiedInstaller: q.SupportsUnifiedInstaller(),
 		SupportsFactoryTalosctl:  q.SupportsFactoryTalosctlDownload(),
 	}
+
+	return res, nil
+}
+
+func (v *State) imageFactoryAuth(_ context.Context, _ resource.Pointer) (*virtual.ImageFactoryAuth, error) {
+	res := virtual.NewImageFactoryAuth()
+
+	version, err := resource.ParseVersion("1")
+	if err != nil {
+		return nil, err
+	}
+
+	res.Metadata().SetVersion(version)
+
+	res.TypedSpec().Value.Username = v.registryConfig.GetImageFactoryUsername()
+	res.TypedSpec().Value.Password = v.registryConfig.GetImageFactoryPassword()
 
 	return res, nil
 }

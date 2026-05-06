@@ -17,11 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/julienschmidt/httprouter"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/schematic"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
@@ -58,6 +56,7 @@ func (m *imageFactoryMock) run(ctx context.Context) error {
 func (m *imageFactoryMock) serve(ctx context.Context) {
 	router := httprouter.New()
 	router.POST("/schematics", m.handleSchematics)
+	router.GET("/schematics/:id", m.handleSchematicGet)
 
 	server := http.Server{
 		Handler: router,
@@ -116,6 +115,32 @@ func (m *imageFactoryMock) handleSchematics(rw http.ResponseWriter, r *http.Requ
 	}
 
 	rw.Write(resp) //nolint:errcheck
+}
+
+func (m *imageFactoryMock) handleSchematicGet(rw http.ResponseWriter, _ *http.Request, params httprouter.Params) {
+	m.schematicMu.Lock()
+	defer m.schematicMu.Unlock()
+
+	id := params.ByName("id")
+
+	cfg, ok := m.schematics[id]
+	if !ok {
+		rw.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	data, err := cfg.Marshal()
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(err.Error())) //nolint:errcheck
+
+		return
+	}
+
+	rw.Header().Add("Content-Type", "application/yaml")
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(data) //nolint:errcheck
 }
 
 func (m *imageFactoryMock) saveSchematic(r *http.Request) (string, []byte, error) {
@@ -306,8 +331,6 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 
 			require.NoError(t, err)
 			require.NotEmpty(t, resp.SchematicId)
-
-			rtestutils.AssertResource(ctx, t, suite.state, resp.SchematicId, func(*omni.Schematic, *assert.Assertions) {})
 
 			suite.imageFactory.schematicMu.Lock()
 			defer suite.imageFactory.schematicMu.Unlock()

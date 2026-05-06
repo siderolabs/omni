@@ -184,6 +184,8 @@ func (schema *Schema) formatLeafError(leaf *jsonschema.ValidationError) string {
 	switch ek := leaf.ErrorKind.(type) {
 	case *kind.Required:
 		return schema.formatRequiredError(leaf, ek)
+	case *kind.DependentRequired:
+		return schema.formatDependentRequiredError(leaf, ek)
 	case *kind.Type:
 		return schema.formatFieldError(leaf.InstanceLocation, formatTypeMessage(ek))
 	case *kind.MinLength:
@@ -235,6 +237,17 @@ func (schema *Schema) formatRequiredError(leaf *jsonschema.ValidationError, ek *
 	for _, missing := range ek.Missing {
 		childLocation := append(slices.Clone(leaf.InstanceLocation), missing)
 		messages = append(messages, schema.formatFieldError(childLocation, "is required"))
+	}
+
+	return strings.Join(messages, "; ")
+}
+
+func (schema *Schema) formatDependentRequiredError(leaf *jsonschema.ValidationError, ek *kind.DependentRequired) string {
+	messages := make([]string, 0, len(ek.Missing))
+
+	for _, missing := range ek.Missing {
+		childLocation := append(slices.Clone(leaf.InstanceLocation), missing)
+		messages = append(messages, schema.formatFieldError(childLocation, fmt.Sprintf("is required when %q is set", ek.Prop)))
 	}
 
 	return strings.Join(messages, "; ")

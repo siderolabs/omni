@@ -28,15 +28,11 @@ type ClientOptions struct {
 
 // EnsureSchematic creates the schematic in the image factory.
 func (se DirectClient) EnsureSchematic(ctx context.Context, schematic schematic.Schematic) (string, error) {
-	schematicID, err := schematic.ID()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate schematic ID: %w", err)
-	}
-
 	callCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	if _, err = se.client.SchematicCreate(callCtx, schematic); err != nil {
+	schematicID, _, err := se.client.SchematicCreate(callCtx, schematic)
+	if err != nil {
 		return "", fmt.Errorf("failed to create schematic: %w", err)
 	}
 

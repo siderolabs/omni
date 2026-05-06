@@ -261,25 +261,39 @@ func createIdentityLastActiveForExistingIdentities(ctx context.Context, st state
 	return nil
 }
 
-func moveSchematicCacheToEphemeral(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
-	kind := resource.NewMetadata(
-		resources.DefaultNamespace,
-		omni.SchematicType,
-		"",
-		resource.VersionUndefined,
-	)
+func moveSchematicCacheToEphemeral(_ context.Context, _ state.State, _ *zap.Logger, _ migrationContext) error {
+	// No-op: superseded by dropSchematicResource, which removes the Schematic
+	// resource type from the state entirely.
+	return nil
+}
 
-	list, err := st.List(ctx, kind)
-	if err != nil {
-		return err
-	}
+func dropSchematicResource(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	const schematicType = resource.Type("Schematics.omni.sidero.dev")
 
-	logger.Info("cleaning up schematics from default namespace", zap.Int("count", len(list.Items)))
-
-	for _, item := range list.Items {
-		err = st.Destroy(ctx, item.Metadata(), state.WithDestroyOwner(item.Metadata().Owner()))
-		if err != nil && !state.IsNotFoundError(err) {
+	for _, ns := range []resource.Namespace{resources.DefaultNamespace, resources.EphemeralNamespace} {
+		list, err := st.List(ctx, resource.NewMetadata(ns, schematicType, "", resource.VersionUndefined))
+		if err != nil {
 			return err
+		}
+
+		logger.Info("destroying schematic resources", zap.String("namespace", ns), zap.Int("count", len(list.Items)))
+
+		for _, item := range list.Items {
+			if !item.Metadata().Finalizers().Empty() {
+				if _, err = st.UpdateWithConflicts(ctx, item.Metadata(), func(res resource.Resource) error {
+					for _, f := range *res.Metadata().Finalizers() {
+						res.Metadata().Finalizers().Remove(f)
+					}
+
+					return nil
+				}, state.WithUpdateOwner(item.Metadata().Owner()), state.WithExpectedPhaseAny()); err != nil {
+					return fmt.Errorf("failed to strip finalizers from Schematic %q: %w", item.Metadata().ID(), err)
+				}
+			}
+
+			if err = st.Destroy(ctx, item.Metadata(), state.WithDestroyOwner(item.Metadata().Owner())); err != nil && !state.IsNotFoundError(err) {
+				return fmt.Errorf("failed to destroy Schematic %q: %w", item.Metadata().ID(), err)
+			}
 		}
 	}
 

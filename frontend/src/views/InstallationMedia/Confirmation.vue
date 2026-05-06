@@ -31,6 +31,7 @@ import TAlert from '@/components/TAlert.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { getDocsLink, majorMinorVersion } from '@/methods'
 import { useFeatures } from '@/methods/features'
+import { useImageFactoryAuth, withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
 import { formStateToPreset } from '@/views/InstallationMedia/formStateToPreset'
@@ -60,7 +61,13 @@ const talosctlAvailable = computed(() => quirks.value?.spec.supports_factory_tal
 
 const { data: features } = useFeatures()
 
-const { data: talosctlPaths } = useTalosctlDownloads(() => resolvedTalosVersion.value)
+const imageFactoryAuth = useImageFactoryAuth()
+
+const { data: talosctlPathsRaw } = useTalosctlDownloads(() => resolvedTalosVersion.value)
+
+const talosctlPaths = computed(() =>
+  talosctlPathsRaw.value.map((path) => withImageFactoryAuth(path, imageFactoryAuth.value)!),
+)
 
 const { data: selectedCloudProvider } = useResourceGet<PlatformConfigSpec>(() => ({
   skip: formState.value.hardwareType !== 'cloud',
@@ -124,13 +131,45 @@ const schematicId = computed(() => schematic.value?.id ?? '')
 
 const { links } = usePresetDownloadLinks(schematicId, resolvedPreset)
 
-const factoryUrl = computed(() => features.value?.spec.image_factory_base_url)
+const factoryHost = computed(() => {
+  const baseURL = features.value?.spec.image_factory_base_url
+  if (!baseURL) return ''
+
+  return new URL(baseURL).host
+})
 
 const installerImage = computed(() =>
   supportsUnifiedInstaller.value
-    ? `${factoryUrl.value}/${formState.value.hardwareType}-installer${secureBootSuffix.value}/${schematicId.value}:${resolvedTalosVersion.value}`
-    : `${factoryUrl.value}/installer/${schematicId.value}:${resolvedTalosVersion.value}`,
+    ? `${factoryHost.value}/${formState.value.hardwareType}-installer${secureBootSuffix.value}/${schematicId.value}:${resolvedTalosVersion.value}`
+    : `${factoryHost.value}/installer/${schematicId.value}:${resolvedTalosVersion.value}`,
 )
+
+const quote = (input: string) => {
+  if (/["\s\\]/.test(input) && !/'/.test(input)) {
+    return "'" + input.replace(/(['])/g, '\\$1') + "'"
+  }
+
+  if (/["'\s]/.test(input)) {
+    return '"' + input.replace(/(["\\$`!])/g, '\\$1') + '"'
+  }
+
+  return String(input).replace(/([A-Za-z]:)?([#!"$&'()*,:;<=>?@[\\\]^`{|}])/g, '$1\\$2')
+}
+
+const clusterCreateCommand = computed(() => {
+  const parts = [
+    'talosctl cluster create qemu',
+    `--schematic-id=${schematicId.value}`,
+    `--talos-version=v${resolvedTalosVersion.value}`,
+  ]
+
+  const { username, password } = imageFactoryAuth.value ?? {}
+  if (username && password) {
+    parts.push(`--image-factory-auth=${quote(`${username}:${password}`)}`)
+  }
+
+  return parts.join(' ')
+})
 </script>
 
 <template>
@@ -208,7 +247,7 @@ const installerImage = computed(() =>
       </p>
       <CodeBlock
         :button-attrs="{ 'aria-label': 'Copy create Talos test cluster command' }"
-        :code="`talosctl cluster create qemu --schematic-id=${schematic.id} --talos-version=v${resolvedTalosVersion}`"
+        :code="clusterCreateCommand"
       />
     </template>
 

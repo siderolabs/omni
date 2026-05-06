@@ -33,7 +33,7 @@ func TestTalosctlHandlerRejectsInvalidVersion(t *testing.T) {
 	}))
 	t.Cleanup(upstream.Close)
 
-	imageFactoryClient, err := imagefactory.NewClient(nil, upstream.URL)
+	imageFactoryClient, err := imagefactory.NewClient(nil, upstream.URL, "", "")
 	require.NoError(t, err)
 
 	handler, err := backend.MakeTalosctlHandler(imageFactoryClient, zaptest.NewLogger(t))

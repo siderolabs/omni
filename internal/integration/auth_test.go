@@ -1257,10 +1257,6 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       omni.NewSchematic(uuid.New().String()),
-				allowedVerbSet: readOnlyVerbSet,
-			},
-			{
 				resource:              omni.NewTalosExtensions(uuid.New().String()),
 				allowedVerbSet:        readOnlyVerbSet,
 				isSignatureSufficient: true,
@@ -1353,6 +1349,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       omni.NewClusterKubernetesManifestsStatus(uuid.NewString()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       virtual.NewImageFactoryAuth(),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 		}...)

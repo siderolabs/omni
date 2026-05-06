@@ -113,3 +113,8 @@ message QuirksSpec {
   bool supports_unified_installer = 1;
   bool supports_factory_talosctl = 2;
 }
+
+message ImageFactoryAuthSpec {
+  string username = 1;
+  string password = 2;
+}

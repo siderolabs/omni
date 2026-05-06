@@ -183,7 +183,14 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 		stripeClient = stripe.NewClient(stripeAPIKey)
 	}
 
-	virtualState := virtual.NewState(state.WrapCore(defaultPersistentState.State), stripeClient, params.Services.Api.URL(), stripeSubscriptionItemID, params.Support)
+	virtualState := virtual.NewState(
+		state.WrapCore(defaultPersistentState.State),
+		stripeClient,
+		params.Services.Api.URL(),
+		stripeSubscriptionItemID,
+		params.Registries,
+		params.Support,
+	)
 
 	secondaryPersistentState, err := newSQLitePersistentState(ctx, secondaryStorageDB, logger)
 	if err != nil {

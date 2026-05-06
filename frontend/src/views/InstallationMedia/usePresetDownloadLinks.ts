@@ -19,6 +19,7 @@ import {
 } from '@/api/resources'
 import { getDocsLink } from '@/methods'
 import { useFeatures } from '@/methods/features'
+import { useImageFactoryAuth, withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
 import { useResourceGet } from '@/methods/useResourceGet'
 
 export function usePresetDownloadLinks(
@@ -28,6 +29,7 @@ export function usePresetDownloadLinks(
   const isMetal = computed(() => !toValue(presetRef).cloud && !toValue(presetRef).sbc)
 
   const { data: features } = useFeatures()
+  const auth = useImageFactoryAuth()
 
   const { data: selectedCloudProvider } = useResourceGet<PlatformConfigSpec>(() => ({
     skip: !toValue(presetRef).cloud,
@@ -67,16 +69,25 @@ export function usePresetDownloadLinks(
     }
   })
 
-  const imageBaseURL = computed(
-    () =>
+  const imageBaseURL = computed(() =>
+    withImageFactoryAuth(
       `${features.value?.spec.image_factory_base_url}/image/${toValue(schematicId)}/${toValue(presetRef).talos_version}`,
+      auth.value,
+    ),
+  )
+
+  const pxeBaseURL = computed(() =>
+    withImageFactoryAuth(
+      `${features.value?.spec.image_factory_pxe_base_url}/${toValue(schematicId)}/${toValue(presetRef).talos_version}`,
+      auth.value,
+    ),
   )
 
   const sbcDiskImagePath = computed(() => `${imageBaseURL.value}/metal-${arch.value}.raw.xz`)
 
   const pxeBootURL = computed(() =>
     selectedPlatform.value
-      ? `${features.value?.spec.image_factory_pxe_base_url}/${toValue(schematicId)}/${toValue(presetRef).talos_version}/${selectedPlatform.value.metadata.id}-${arch.value}${secureBootSuffix.value}`
+      ? `${pxeBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}${secureBootSuffix.value}`
       : undefined,
   )
 

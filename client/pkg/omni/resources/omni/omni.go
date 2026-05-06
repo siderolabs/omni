@@ -88,7 +88,6 @@ func init() {
 	registry.MustRegisterResource(NodeForceDestroyRequestType, &NodeForceDestroyRequest{})
 	registry.MustRegisterResource(OngoingTaskType, &OngoingTask{})
 	registry.MustRegisterResource(RedactedClusterMachineConfigType, &RedactedClusterMachineConfig{})
-	registry.MustRegisterResource(SchematicType, &Schematic{})
 	registry.MustRegisterResource(SchematicConfigurationType, &SchematicConfiguration{})
 	registry.MustRegisterResource(TalosConfigType, &TalosConfig{})
 	registry.MustRegisterResource(TalosExtensionsType, &TalosExtensions{})

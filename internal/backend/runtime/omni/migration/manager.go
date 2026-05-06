@@ -301,6 +301,10 @@ func NewManager(state state.State, logger *zap.Logger) *Manager {
 				callback: makeMachineRequestsOwnerEmpty,
 				name:     "makeMachineRequestsOwnerEmpty",
 			},
+			{
+				callback: dropSchematicResource,
+				name:     "dropSchematicResource",
+			},
 		},
 	}
 }

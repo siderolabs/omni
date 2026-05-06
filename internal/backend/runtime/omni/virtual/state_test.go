@@ -181,7 +181,7 @@ func TestSupportGet(t *testing.T) {
 	defer cancel()
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
-	vst := virtual.NewState(st, nil, "", "", config.Support{})
+	vst := virtual.NewState(st, nil, "", "", config.Registries{}, config.Support{})
 
 	require := require.New(t)
 
@@ -259,7 +259,7 @@ func TestSupportGetWithStripe(t *testing.T) {
 				require.NoError(json.NewEncoder(w).Encode(stripeItemResponse(tc.productName)))
 			})
 
-			vst := virtual.NewState(st, stripeClient, "", "sub_item_id", supportCfg)
+			vst := virtual.NewState(st, stripeClient, "", "sub_item_id", config.Registries{}, supportCfg)
 
 			res, err := vst.Get(ctx, ptr)
 			if tc.respondWithCode != 0 {
@@ -293,7 +293,7 @@ func TestSupportGetCaching(t *testing.T) {
 	})
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
-	vst := virtual.NewState(st, stripeClient, "", "sub_item_id", config.Support{SupportEligibleProducts: []string{"business", "enterprise", "edge"}})
+	vst := virtual.NewState(st, stripeClient, "", "sub_item_id", config.Registries{}, config.Support{SupportEligibleProducts: []string{"business", "enterprise", "edge"}})
 	ptr := virtualres.NewSupport().Metadata()
 
 	_, err := vst.Get(ctx, ptr)

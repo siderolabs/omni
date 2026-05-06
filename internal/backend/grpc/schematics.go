@@ -113,14 +113,14 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return nil, fmt.Errorf("failed to ensure schematic: %w", err)
 	}
 
-	schematicYml, err := yaml.Marshal(schematicRequest)
+	schematicYML, err := yaml.Marshal(schematicInfo.Data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal schematic YAML: %w", err)
 	}
 
 	return &management.CreateSchematicResponse{
 		SchematicId:       schematicInfo.FullID,
-		SchematicYml:      string(schematicYml),
+		SchematicYml:      string(schematicYML),
 		GrpcTunnelEnabled: tunnelEnabled,
 	}, nil
 }

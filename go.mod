@@ -74,7 +74,7 @@ require (
 	github.com/siderolabs/go-retry v0.3.3
 	github.com/siderolabs/go-talos-support v0.2.1
 	github.com/siderolabs/grpc-proxy v0.5.2
-	github.com/siderolabs/image-factory v1.2.0
+	github.com/siderolabs/image-factory v1.3.2-0.20260518005409-cd137edc8d54
 	github.com/siderolabs/kms-client v0.2.0
 	github.com/siderolabs/omni/client v1.6.5
 	github.com/siderolabs/proto-codec v0.1.4

@@ -113,3 +113,8 @@ export type QuirksSpec = {
   supports_unified_installer?: boolean
   supports_factory_talosctl?: boolean
 }
+
+export type ImageFactoryAuthSpec = {
+  username?: string
+  password?: string
+}

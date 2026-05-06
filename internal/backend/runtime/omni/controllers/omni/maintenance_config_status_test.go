@@ -22,6 +22,7 @@ import (
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	omnicfg "github.com/siderolabs/omni/internal/pkg/config"
 	siderolinkomni "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -51,7 +52,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	}
 
 	// Register the controller and start the runtime
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456)
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, omnicfg.Registries{})
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
@@ -152,6 +153,95 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	suite.Contains(dataStr, net.JoinHostPort(siderolinkomni.ListenHost, "456"))
 	suite.Equal(machine.ApplyConfigurationRequest_AUTO, applyConfigReq.GetMode())
 	suite.Contains(dataStr, u.String())
+}
+
+func (suite *MaintenanceConfigStatusControllerSuite) TestImageFactoryRegistryAuth() {
+	getMachineConfigCh := make(chan *config.MachineConfig)
+	mgmtAddressCh := make(chan string)
+	applyConfigReqCh := make(chan *machine.ApplyConfigurationRequest)
+
+	maintenanceClient := &maintenanceClientMock{
+		getMachineConfigCh: getMachineConfigCh,
+		applyConfigReqCh:   applyConfigReqCh,
+	}
+
+	maintenanceClientFactory := func(ctx context.Context, managementAddress string) (omni.MaintenanceClient, error) {
+		select {
+		case mgmtAddressCh <- managementAddress:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+
+		return maintenanceClient, nil
+	}
+
+	registries := omnicfg.Registries{}
+	registries.SetImageFactoryBaseURL("https://factory.example.org")
+	registries.SetImageFactoryUsername("factory-user")
+	registries.SetImageFactoryPassword("factory-pass")
+
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, registries)
+
+	suite.Require().NoError(suite.runtime.RegisterQController(controller))
+
+	suite.startRuntime()
+
+	reconcileMachine := func(id, talosVersion, publicKey string) *machine.ApplyConfigurationRequest {
+		suite.T().Helper()
+
+		link := siderolinkres.NewLink(id, &specs.SiderolinkSpec{})
+		link.TypedSpec().Value.Connected = true
+		link.TypedSpec().Value.NodePublicKey = publicKey
+
+		suite.Require().NoError(suite.state.Create(suite.ctx, link))
+
+		machineStatus := omnires.NewMachineStatus(id)
+		machineStatus.TypedSpec().Value.Maintenance = true
+		machineStatus.TypedSpec().Value.ManagementAddress = id + "-address"
+		machineStatus.TypedSpec().Value.TalosVersion = talosVersion
+
+		suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
+
+		select {
+		case <-mgmtAddressCh:
+		case <-suite.ctx.Done():
+			suite.Require().Fail("timeout waiting for maintenance client factory to be called")
+		}
+
+		select {
+		case getMachineConfigCh <- nil:
+		case <-suite.ctx.Done():
+			suite.Require().Fail("timeout waiting for get machine config request")
+		}
+
+		select {
+		case req := <-maintenanceClient.applyConfigReqCh:
+			return req
+		case <-suite.ctx.Done():
+			suite.Require().Fail("timeout waiting for apply configuration request")
+		}
+
+		return nil
+	}
+
+	// Talos version that predates RegistryAuthConfig: auth must NOT be injected.
+	oldReq := reconcileMachine("old-machine", "1.11.0", "pk-old")
+	oldData := string(oldReq.Data)
+
+	suite.Contains(oldData, "omni-kmsg")
+	suite.NotContains(oldData, "kind: RegistryAuthConfig")
+	suite.NotContains(oldData, "factory-user")
+	suite.NotContains(oldData, "factory-pass")
+
+	// Talos version that supports RegistryAuthConfig: auth must be injected.
+	newReq := reconcileMachine("new-machine", "1.12.0", "pk-new")
+	newData := string(newReq.Data)
+
+	suite.Contains(newData, "omni-kmsg")
+	suite.Contains(newData, "kind: RegistryAuthConfig")
+	suite.Contains(newData, "name: factory.example.org")
+	suite.Contains(newData, "username: factory-user")
+	suite.Contains(newData, "password: factory-pass")
 }
 
 func TestMaintenanceConfigStatusControllerSuite(t *testing.T) {

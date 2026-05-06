@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	rmeta "github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/resource/typed"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -351,29 +352,25 @@ func (suite *MigrationSuite) TestChangeClusterMachineConfigPatchesOwner() {
 	suite.Assert().Equal(resource.PhaseTearingDown, cmcpTearingDown.Metadata().Phase())
 }
 
-func (suite *MigrationSuite) TestMoveSchematicCacheToEphemeral() {
+func (suite *MigrationSuite) TestDropSchematicResource() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()
 
-	// Create Schematic resources in DefaultNamespace to simulate pre-migration state.
-	// omni.NewSchematic() now creates in EphemeralNamespace, so we construct them manually.
-	newSchematic := func(id string) *omni.Schematic {
-		return typed.NewResource[omni.SchematicSpec, omni.SchematicExtension](
-			resource.NewMetadata(resources.DefaultNamespace, omni.SchematicType, id, resource.VersionUndefined),
-			protobuf.NewResourceSpec(&specs.SchematicSpec{}),
-		)
+	suite.Require().NoError(suite.state.Create(ctx, newTestSchematic(resources.DefaultNamespace, "schematic1")))
+	suite.Require().NoError(suite.state.Create(ctx, newTestSchematic(resources.DefaultNamespace, "schematic2")))
+
+	withFinalizer := newTestSchematic(resources.EphemeralNamespace, "schematic3")
+	withFinalizer.Metadata().Finalizers().Add("StaleController")
+	suite.Require().NoError(suite.state.Create(ctx, withFinalizer))
+
+	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("dropSchematicResource")))
+	suite.Require().NoError(err)
+
+	for _, ns := range []resource.Namespace{resources.DefaultNamespace, resources.EphemeralNamespace} {
+		list, err := suite.state.List(ctx, resource.NewMetadata(ns, testSchematicType, "", resource.VersionUndefined))
+		suite.Require().NoError(err)
+		suite.Assert().Emptyf(list.Items, "expected no schematics in %s namespace after migration", ns)
 	}
-
-	suite.Require().NoError(suite.state.Create(ctx, newSchematic("schematic1")))
-	suite.Require().NoError(suite.state.Create(ctx, newSchematic("schematic2")))
-
-	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("moveSchematicCacheToEphemeral")))
-	suite.Require().NoError(err)
-
-	// Verify all schematics are removed from the default namespace.
-	list, err := suite.state.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.SchematicType, "", resource.VersionUndefined))
-	suite.Require().NoError(err)
-	suite.Assert().Empty(list.Items, "expected no schematics in default namespace after migration")
 }
 
 func (suite *MigrationSuite) TestCreateIdentityLastActiveForExistingIdentities() {
@@ -492,6 +489,24 @@ func TestMigrationSuite(t *testing.T) {
 	t.Parallel()
 
 	suite.Run(t, new(MigrationSuite))
+}
+
+const testSchematicType = resource.Type("Schematics.omni.sidero.dev")
+
+type (
+	testSchematicSpec      = protobuf.ResourceSpec[specs.SchematicSpec, *specs.SchematicSpec]
+	testSchematicExtension struct{}
+)
+
+func (testSchematicExtension) ResourceDefinition() rmeta.ResourceDefinitionSpec {
+	return rmeta.ResourceDefinitionSpec{Type: testSchematicType}
+}
+
+func newTestSchematic(ns, id string) *typed.Resource[testSchematicSpec, testSchematicExtension] {
+	return typed.NewResource[testSchematicSpec, testSchematicExtension](
+		resource.NewMetadata(ns, testSchematicType, id, resource.VersionUndefined),
+		protobuf.NewResourceSpec(&specs.SchematicSpec{}),
+	)
 }
 
 func filterWith(vals ...string) func(string) bool {

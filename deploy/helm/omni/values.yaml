@@ -511,6 +511,10 @@ config:
     #imageFactoryBaseURL: https://factory.talos.dev
     # ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.
     #imageFactoryPXEBaseURL: ""
+    # ImageFactoryUsername is the username used to authenticate against the Image Factory Enterprise service.
+    #imageFactoryUsername: ""
+    # ImageFactoryPassword is the password used to authenticate against the Image Factory Enterprise service.
+    #imageFactoryPassword: ""
     # Mirrors is the list of container image registry mirrors. Used mainly for the development purposes. It must be
     # in the format: <registry host>=<mirror URL>
     #mirrors: []

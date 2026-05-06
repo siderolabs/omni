@@ -128,6 +128,10 @@
         "kubernetes",
         "imageFactoryBaseURL"
       ],
+      "dependentRequired": {
+        "imageFactoryUsername": ["imageFactoryPassword"],
+        "imageFactoryPassword": ["imageFactoryUsername"]
+      },
       "properties": {
         "talos": {
           "type": "string",
@@ -162,6 +166,16 @@
         "imageFactoryPXEBaseURL": {
           "description": "ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.",
           "x-cli-flag": "image-factory-pxe-address",
+          "type": "string"
+        },
+        "imageFactoryUsername": {
+          "description": "ImageFactoryUsername is the username used to authenticate against the Image Factory Enterprise service.",
+          "x-cli-flag": "image-factory-username",
+          "type": "string"
+        },
+        "imageFactoryPassword": {
+          "description": "ImageFactoryPassword is the password used to authenticate against the Image Factory Enterprise service.",
+          "x-cli-flag": "image-factory-password",
           "type": "string"
         },
         "mirrors": {

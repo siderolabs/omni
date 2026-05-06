@@ -53,8 +53,8 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger, pa
 		}
 
 		res.TypedSpec().Value.AuditLogEnabled = params.AuditLogEnabled
-		res.TypedSpec().Value.ImageFactoryBaseUrl = params.ImageFactoryBaseURL
 		res.TypedSpec().Value.ImageFactoryPxeBaseUrl = params.ImageFactoryPXEBaseURL.String()
+		res.TypedSpec().Value.ImageFactoryBaseUrl = params.ImageFactoryBaseURL
 
 		res.TypedSpec().Value.UserPilotSettings = &specs.UserPilotSettings{
 			AppToken: params.UserPilotAppToken,

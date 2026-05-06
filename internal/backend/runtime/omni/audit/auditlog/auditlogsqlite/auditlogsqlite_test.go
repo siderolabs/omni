@@ -239,7 +239,7 @@ func TestRemoveByMaxSize(t *testing.T) {
 	// Create a new store on the same DB with maxSize=half, probability=1.0 to always trigger cleanup.
 	maxSize := uint64(tableSize / 2)
 
-	sizedStore, err := auditlogsqlite.NewStore(ctx, db, 5*time.Second, maxSize, 1.0, logger)
+	sizedStore, err := auditlogsqlite.NewStore(ctx, db, 30*time.Second, maxSize, 1.0, logger)
 	require.NoError(t, err)
 
 	// Write one more event to trigger cleanup.
@@ -334,7 +334,7 @@ func TestRemoveByMaxSizeBatchCap(t *testing.T) {
 	// Create a new store on the same DB with maxSize=1 (effectively 0) and probability=1.0.
 	// This means all rows exceed the limit, but the batch cap (1000) should prevent
 	// deleting them all in a single cleanup pass.
-	sizedStore, err := auditlogsqlite.NewStore(ctx, db, 5*time.Second, 1, 1.0, logger)
+	sizedStore, err := auditlogsqlite.NewStore(ctx, db, 30*time.Second, 1, 1.0, logger)
 	require.NoError(t, err)
 
 	// Write one event to trigger a single cleanup pass.
@@ -780,7 +780,7 @@ func setupStoreWithOpts(ctx context.Context, t *testing.T, logger *zap.Logger, m
 		require.NoError(t, db.Close())
 	})
 
-	store, err := auditlogsqlite.NewStore(ctx, db, 5*time.Second, maxSize, cleanupProbability, logger, opts...)
+	store, err := auditlogsqlite.NewStore(ctx, db, 30*time.Second, maxSize, cleanupProbability, logger, opts...)
 	require.NoError(t, err)
 
 	return store, db

@@ -1117,6 +1117,28 @@ func (s *Registries) SetImageFactoryPXEBaseURL(v string) {
 	s.ImageFactoryPXEBaseURL = &v
 }
 
+func (s *Registries) GetImageFactoryPassword() string {
+	if s == nil || s.ImageFactoryPassword == nil {
+		return *new(string)
+	}
+	return *s.ImageFactoryPassword
+}
+
+func (s *Registries) SetImageFactoryPassword(v string) {
+	s.ImageFactoryPassword = &v
+}
+
+func (s *Registries) GetImageFactoryUsername() string {
+	if s == nil || s.ImageFactoryUsername == nil {
+		return *new(string)
+	}
+	return *s.ImageFactoryUsername
+}
+
+func (s *Registries) SetImageFactoryUsername(v string) {
+	s.ImageFactoryUsername = &v
+}
+
 func (s *Registries) GetKubernetes() string {
 	if s == nil || s.Kubernetes == nil {
 		return *new(string)

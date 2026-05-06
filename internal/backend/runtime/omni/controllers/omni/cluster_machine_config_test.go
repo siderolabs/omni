@@ -50,7 +50,7 @@ func (suite *ClusterMachineConfigSuite) registerControllers() {
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController(suite.kubernetesRuntime)))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, "ghcr.io/siderolabs/installer")))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, "ghcr.io/siderolabs/installer", conf.Registries{})))
 	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewSecretRotationStatusController(nil)))

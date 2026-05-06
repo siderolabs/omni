@@ -9,15 +9,10 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"time"
 
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/schematic"
-
-	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
 
 // Client is the image factory client.
@@ -29,8 +24,14 @@ type Client struct {
 }
 
 // NewClient creates a new image factory client.
-func NewClient(omniState state.State, imageFactoryBaseURL string) (*Client, error) {
-	factoryClient, err := client.New(imageFactoryBaseURL)
+func NewClient(omniState state.State, imageFactoryBaseURL, username, password string) (*Client, error) {
+	var clientOptions []client.Option
+
+	if username != "" && password != "" {
+		clientOptions = append(clientOptions, client.WithBasicAuth(username, password))
+	}
+
+	factoryClient, err := client.New(imageFactoryBaseURL, clientOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -58,10 +59,8 @@ func (cli *Client) Host() string {
 
 // EnsuredSchematic contains information on the ensured schematics.
 type EnsuredSchematic struct {
-	// FullID is the ID of the full schematic - with the whole content of the schematic.Schematic, i.e., the extra kernel arguments, META values, and system extensions.
-	FullID string
-
-	// PlainID is the ID of the plain schematic - with only the system extensions.
+	Data    *schematic.Schematic
+	FullID  string
 	PlainID string
 }
 
@@ -71,7 +70,7 @@ type EnsuredSchematic struct {
 //
 // We do not call the image factory for the schematics that are already known to (cached by) Omni.
 func (cli *Client) EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (EnsuredSchematic, error) {
-	fullSchematicID, err := cli.ensureSingleSchematic(ctx, inputSchematic)
+	fullSchematicID, data, err := cli.SchematicCreate(ctx, inputSchematic)
 	if err != nil {
 		return EnsuredSchematic{}, fmt.Errorf("failed to ensure single schematic: %w", err)
 	}
@@ -90,7 +89,7 @@ func (cli *Client) EnsureSchematic(ctx context.Context, inputSchematic schematic
 	}
 
 	if plainSchematicID != fullSchematicID {
-		plainSchematicID, err = cli.ensureSingleSchematic(ctx, plainSchematic)
+		plainSchematicID, _, err = cli.SchematicCreate(ctx, plainSchematic)
 		if err != nil {
 			return EnsuredSchematic{}, fmt.Errorf("failed to ensure plain schematic: %w", err)
 		}
@@ -99,40 +98,6 @@ func (cli *Client) EnsureSchematic(ctx context.Context, inputSchematic schematic
 	return EnsuredSchematic{
 		FullID:  fullSchematicID,
 		PlainID: plainSchematicID,
+		Data:    data,
 	}, nil
-}
-
-func (cli *Client) ensureSingleSchematic(ctx context.Context, schematic schematic.Schematic) (string, error) {
-	schematicID, err := schematic.ID()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate schematic ID: %w", err)
-	}
-
-	schematicResource := omni.NewSchematic(
-		schematicID,
-	)
-
-	res, err := safe.StateGetByID[*omni.Schematic](ctx, cli.state, schematicID)
-	if err != nil && !state.IsNotFoundError(err) {
-		return "", err
-	}
-
-	if res != nil {
-		return schematicID, nil
-	}
-
-	callCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	if _, err = cli.SchematicCreate(callCtx, schematic); err != nil {
-		return "", fmt.Errorf("failed to create schematic: %w", err)
-	}
-
-	ctx = actor.MarkContextAsInternalActor(ctx)
-
-	if err = cli.state.Create(ctx, schematicResource); err != nil && !state.IsConflictError(err) {
-		return "", err
-	}
-
-	return schematicID, nil
 }
