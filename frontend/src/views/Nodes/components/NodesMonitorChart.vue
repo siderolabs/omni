@@ -8,21 +8,21 @@ included in the LICENSE file.
 import 'apexcharts/area'
 
 import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
+import { refDebounced } from '@vueuse/core'
 import type { ApexOptions } from 'apexcharts'
 import { DateTime } from 'luxon'
-import type { Ref } from 'vue'
 import { computed, ref } from 'vue'
 import VueApexCharts from 'vue3-apexcharts/core'
 
 import { Code } from '@/api/google/rpc/code.pb'
-import type { WatchResponse } from '@/api/omni/resources/resources.pb'
-import { EventType } from '@/api/omni/resources/resources.pb'
+import type { Resource } from '@/api/grpc'
+import { EventType, type WatchResponse } from '@/api/omni/resources/resources.pb'
 import type { WatchEventSpec, WatchOptions } from '@/api/watch'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { getNonce } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
-type Props<T> = {
+type Props = {
   watchOpts: WatchOptions
   name: string
   title: string
@@ -53,48 +53,37 @@ const {
   maxFn,
   stacked,
   formatter,
-} = defineProps<Props<T>>()
+} = defineProps<Props>()
 
 type Point = number | number[]
 const series = ref<{ name: string; data: Point[] }[]>([])
 const seriesMap: Record<string, { index: number; version: number }> = {}
 const points: Record<number, Point[]> = {}
-const flush: Record<number, number> = {}
 const total = ref<string>()
 
-const min: Ref<number | undefined> = ref(undefined)
-const max: Ref<number | undefined> = ref(undefined)
+const min = ref<number>()
+const max = ref<number>()
 
 const tailEvents = computed(() => watchOpts.tailEvents ?? 25)
 
-const handlePoint = (message: WatchResponse, spec: WatchEventSpec) => {
+const handlePoint = (message: WatchResponse, spec: WatchEventSpec<Resource<T>>) => {
   if (message.event?.event_type !== EventType.UPDATED) {
     return
   }
 
-  const resource = spec.res
-  const old = spec.old
+  const { res: resource, old } = spec
 
-  const data = pointFn(resource?.spec, old?.spec)
+  if (!resource || !old) return
 
-  if (totalFn) {
-    total.value = totalFn(resource?.spec, old?.spec)
-  }
+  const data = pointFn(resource.spec, old.spec)
 
-  if (minFn) {
-    min.value = minFn(resource?.spec, old?.spec)
-  }
-
-  if (maxFn) {
-    max.value = maxFn(resource?.spec, old?.spec)
-  }
+  total.value = totalFn?.(resource.spec, old.spec)
+  min.value = minFn?.(resource.spec, old.spec)
+  max.value = maxFn?.(resource.spec, old.spec)
 
   for (const key in data) {
     if (!(key in seriesMap)) {
-      series.value.push({
-        name: key,
-        data: [],
-      })
+      series.value = [...series.value, { name: key, data: [] }]
 
       seriesMap[key] = {
         index: series.value.length - 1,
@@ -102,41 +91,39 @@ const handlePoint = (message: WatchResponse, spec: WatchEventSpec) => {
       }
     }
 
-    const version = Number(resource?.metadata?.version ?? '')
+    const version = Number(resource.metadata.version ?? '')
     const meta = seriesMap[key]
     if (version <= meta.version) {
       continue
     }
 
     let point: Point = data[key]
-    const updated = resource?.metadata?.updated
+    const updated = resource.metadata.updated
     if (updated) {
       point = [DateTime.fromISO(updated.toString()).toMillis(), point]
     }
-
-    clearTimeout(flush[meta.index])
 
     if (!points[meta.index]) points[meta.index] = []
 
     points[meta.index].push(point)
     meta.version = version
 
-    flush[meta.index] = window.setTimeout(() => {
-      let dst = series.value[meta.index].data
+    series.value = series.value.map((s, i) => {
+      if (i !== meta.index) return s
 
-      dst = dst.concat(points[meta.index])
+      let dst = s.data.concat(points[i])
 
       if (dst.length >= tailEvents.value) {
-        dst.splice(0, dst.length - tailEvents.value + 1)
+        dst = dst.slice(dst.length - tailEvents.value + 1)
       }
 
-      series.value[meta.index].data = dst
-      points[meta.index] = []
-    }, 50)
+      points[i] = []
+      return { ...s, data: dst }
+    })
   }
 }
 
-const { err, errCode, loading } = useResourceWatch(
+const { err, errCode, loading } = useResourceWatch<T>(
   () => ({
     ...watchOpts,
     tailEvents: tailEvents.value,
@@ -244,6 +231,18 @@ const options = computed(() => {
     },
   } satisfies ApexOptions
 })
+
+/**
+ * Workaround for https://github.com/siderolabs/omni/issues/2756
+ *
+ * To prevent flushing and to ensure options & series get updated together,
+ * we debounce combined series & options as props, at the same rate as we
+ * previously were flushing updates.
+ *
+ * This ensures there are no race conditions between options/series updates.
+ */
+const chartProps = computed(() => ({ options: options.value, series: series.value }))
+const chartPropsDebounced = refDebounced(chartProps, 50)
 </script>
 
 <template>
@@ -273,10 +272,9 @@ const options = computed(() => {
       <VueApexCharts
         v-show="!err && !loading"
         width="100%"
-        height="100%"
+        :height="180"
         type="area"
-        :options="options"
-        :series="series ?? []"
+        v-bind="chartPropsDebounced"
       />
     </div>
   </div>
@@ -285,16 +283,16 @@ const options = computed(() => {
 <style scoped>
 @reference "../../../index.css";
 
-#chartContainer .apexcharts-tooltip {
+#chartContainer :deep(.apexcharts-tooltip) {
   @apply bg-naturals-n3 px-3 py-2.5 text-naturals-n14;
 }
-#chartContainer .apexcharts-tooltip-title {
+#chartContainer :deep(.apexcharts-tooltip-title) {
   @apply bg-naturals-n3 text-naturals-n14;
 }
-#chartContainer .apexcharts-xaxistooltip-bottom {
+#chartContainer :deep(.apexcharts-xaxistooltip-bottom) {
   @apply hidden;
 }
-#chartContainer .apexcharts-tooltip .apexcharts-tooltip-series-group.active {
+#chartContainer :deep(.apexcharts-tooltip .apexcharts-tooltip-series-group.active) {
   @apply bg-naturals-n3;
 }
 </style>
