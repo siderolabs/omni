@@ -354,7 +354,7 @@ test('node overview tabs', async ({ page }) => {
   })
 
   await test.step('Validate console logs tab', async () => {
-    await page.getByRole('tab', { name: 'Console Logs', exact: true }).click()
+    await page.getByRole('tab', { name: 'Logs', exact: true }).click()
 
     await page.getByPlaceholder('Search').fill('[talos] [initramfs] booting Talos')
     await expect

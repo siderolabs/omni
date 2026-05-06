@@ -13,6 +13,10 @@ definePage({ name: 'MachineLogs' })
 
 <template>
   <PageContainer>
-    <MachineLogsContainer :machine-id="$route.params.machine" class="h-full" />
+    <MachineLogsContainer
+      :machine-id="$route.params.machine"
+      class="h-full"
+      :service="$route.params.service"
+    />
   </PageContainer>
 </template>

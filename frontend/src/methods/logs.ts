@@ -79,8 +79,8 @@ export class LineDelimitedLogParser {
 export const setupLogStream = <R extends Data, T>(
   logs: Ref<LogLine[]>,
   method: StreamingRequest<R, T>,
-  params: MaybeRefOrGetter<T | undefined>,
-  logParser: LogParser = new DefaultLogParser((msg) => ({ msg })),
+  params: MaybeRefOrGetter<T>,
+  logParser: MaybeRefOrGetter<LogParser> = new DefaultLogParser((msg) => ({ msg })),
   ...options: fetchOption[]
 ) => {
   let clearLogs = false
@@ -89,19 +89,13 @@ export const setupLogStream = <R extends Data, T>(
 
   const reset = () => {
     logs.value = []
-    logParser.reset()
+    toValue(logParser).reset()
     clearTimeout(flush)
-  }
-
-  const p = toValue(params)
-
-  if (!p) {
-    return
   }
 
   const stream = subscribe(
     method,
-    p,
+    toValue(params),
     (resp: Data & { error?: string }) => {
       clearTimeout(flush)
 
@@ -118,7 +112,7 @@ export const setupLogStream = <R extends Data, T>(
         const line = window.atob(resp.bytes.toString())
 
         try {
-          buffer.push(...logParser.parse(line))
+          buffer.push(...toValue(logParser).parse(line))
         } catch (e) {
           console.error(`failed to parse line ${line}`, e)
         }
@@ -134,7 +128,7 @@ export const setupLogStream = <R extends Data, T>(
   )
 
   return {
-    ...stream,
+    stream,
     shutdown() {
       reset()
       stream.shutdown()

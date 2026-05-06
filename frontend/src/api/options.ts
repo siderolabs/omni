@@ -2,8 +2,6 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-
-import { clusterName } from '@/context'
 import type { OmniRequestOptions } from '@/methods/interceptor'
 
 import { Runtime } from './common/omni.pb'
@@ -56,11 +54,6 @@ export const withContext = (context: WatchContext) => {
 
     if (context.cluster) {
       md.cluster = context.cluster
-    } else {
-      const currentContext = clusterName()
-      if (currentContext) {
-        md.cluster = md.cluster || currentContext
-      }
     }
 
     if (context.node) {
