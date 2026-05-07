@@ -432,7 +432,6 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.EtcdManualBackupType,
 		omni.ImagePullRequestType,
 		omni.ImagePullStatusType,
-		omni.ImportedClusterSecretsType,
 		omni.InfraMachineConfigType,
 		omni.KubernetesStatusType,
 		omni.KubernetesUpgradeManifestStatusType,
@@ -528,6 +527,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		if err == nil && !access.Verb.Readonly() && (access.ResourceType == authres.IdentityType || access.ResourceType == authres.UserType) {
 			err = status.Errorf(codes.PermissionDenied, "only read access is permitted on resource %v, mutations should be done via ManagementService API calls", access.ResourceType)
 		}
+	case omni.ImportedClusterSecretsType:
+		_, err = auth.CheckGRPC(ctx, auth.WithRole(role.Operator))
 	default:
 		err = status.Error(codes.PermissionDenied, "no access is permitted")
 	}
