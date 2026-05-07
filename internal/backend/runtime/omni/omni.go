@@ -34,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	resourceregistry "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	virtualres "github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
@@ -202,9 +203,8 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 	}
 
 	qcontrollers := []controller.QController{
+		// destroy controller for Link, which is not part of the user-managed resource set
 		destroy.NewController[*siderolinkres.Link](optional.Some[uint](4)),
-		destroy.NewController[*omni.Cluster](optional.Some[uint](4)),
-		destroy.NewController[*omni.MachineSet](optional.Some[uint](4)),
 
 		omnictrl.NewBackupDataController(),
 		omnictrl.NewClusterBootstrapStatusController(etcdBackupStoreFactory),
@@ -286,6 +286,16 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		machine.NewStatusLinkController(linkCounterDeltaCh),
 		kubernetes.NewClusterManifestsStatusController(kubernetesRuntime),
 		clusterWorkloadProxyController,
+	}
+
+	// register a destroy controller for each user-managed resource type
+	for _, resource := range resourceregistry.Resources {
+		rd := resource.ResourceDefinition()
+		if _, ok := userManagedResourceTypeSet[rd.Type]; !ok { // not user-managed, continue
+			continue
+		}
+
+		qcontrollers = append(qcontrollers, destroy.NewControllerForResource(rd, optional.Some[uint](4)))
 	}
 
 	if cfg.Auth.Saml.GetEnabled() {

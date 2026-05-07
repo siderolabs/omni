@@ -23,7 +23,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
@@ -106,7 +105,7 @@ func (ctrl *MachineSetNodeController) Settings() controller.QSettings {
 			{
 				Namespace: resources.DefaultNamespace,
 				Type:      omni.MachineSetNodeType,
-				Kind:      controller.InputQMappedDestroyReady,
+				Kind:      controller.InputQMapped,
 			},
 			{
 				Namespace: resources.InfraProviderNamespace,
@@ -290,6 +289,18 @@ func (ctrl *MachineSetNodeController) reconcileRunning(ctx context.Context, logg
 		return err
 	}
 
+	// make sure every managed node carries our finalizer so that it cannot be destroyed out
+	// from under us before we have observed its teardown and finished accounting for it
+	if err = ctrl.ensureNodeFinalizers(ctx, r, machineSetNodes); err != nil {
+		return err
+	}
+
+	// release our finalizer from tearing down nodes once every other finalizer is gone, handing
+	// the actual destruction off to the destroy controller
+	if err = ctrl.releaseDestroyReadyNodes(ctx, r, machineSetNodes); err != nil {
+		return err
+	}
+
 	nodeDiff, allocation, err := ctrl.shouldScale(ctx, r, machineSet, machineSetNodes)
 	if err != nil {
 		return err
@@ -320,7 +331,7 @@ func (ctrl *MachineSetNodeController) reconcileRunning(ctx context.Context, logg
 }
 
 func (ctrl *MachineSetNodeController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, machineSet *omni.MachineSet) error {
-	machineSetNodes, err := safe.ReaderListAll[*omni.MachineSetNode](
+	machineSetNodes, err := ctrl.getAllMachineSetNodes(
 		ctx, r,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())),
 	)
@@ -328,22 +339,106 @@ func (ctrl *MachineSetNodeController) reconcileTearingDown(ctx context.Context, 
 		return err
 	}
 
-	ready, err := helpers.TeardownAndDestroyAll(ctx, r, machineSetNodes.Pointers(), controller.WithOwner(""))
-	if err != nil {
-		return err
+	// tear every node down. Once the controller finalizer is the only one left on a node, release it
+	// so the destroy controller can destroy the node. The machine set finalizer is removed only after
+	// every node is destroy-ready, which keeps at least one finalized node around to re-trigger the
+	// controller while teardown is still in progress.
+	allDestroyReady := true
+
+	for machineSetNode := range machineSetNodes.All() {
+		md := machineSetNode.Metadata()
+
+		if _, err = r.Teardown(ctx, md, controller.WithOwner("")); err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
+			return err
+		}
+
+		switch fins := md.Finalizers(); {
+		case fins.Empty():
+			// no finalizers left, destroy controller will pick it up
+		case ctrl.onlyControllerFinalizer(fins):
+			if err = r.RemoveFinalizer(ctx, md, ctrl.Name()); err != nil {
+				return err
+			}
+		case !fins.Has(ctrl.Name()):
+			// the node has other finalizers but not the controller finalizer: add it, so that when
+			// the others drain the node is not destroyed until the controller releases the finalizer
+			if err = r.AddFinalizer(ctx, md, ctrl.Name()); err != nil && !state.IsNotFoundError(err) {
+				return err
+			}
+
+			allDestroyReady = false
+		default:
+			// other controllers still hold finalizers, teardown not finished yet
+			allDestroyReady = false
+		}
 	}
 
-	if !ready {
+	if !allDestroyReady {
 		return nil
 	}
 
 	if machineSet.Metadata().Finalizers().Has(ctrl.Name()) {
-		if err := r.RemoveFinalizer(ctx, machineSet.Metadata(), ctrl.Name()); err != nil {
+		if err = r.RemoveFinalizer(ctx, machineSet.Metadata(), ctrl.Name()); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// ensureNodeFinalizers adds the controller finalizer to every running node it manages, so the
+// node cannot be destroyed before the controller has observed and accounted for its teardown.
+func (ctrl *MachineSetNodeController) ensureNodeFinalizers(ctx context.Context, r controller.QRuntime, machineSetNodes safe.List[*omni.MachineSetNode]) error {
+	for machineSetNode := range machineSetNodes.All() {
+		md := machineSetNode.Metadata()
+
+		if md.Phase() != resource.PhaseRunning {
+			continue
+		}
+
+		if md.Finalizers().Has(ctrl.Name()) {
+			continue
+		}
+
+		if err := r.AddFinalizer(ctx, md, ctrl.Name()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// releaseDestroyReadyNodes removes the controller finalizer from tearing down nodes once it is the
+// only finalizer left, meaning every other controller has finished tearing the node down. This lets
+// the destroy controller destroy them.
+func (ctrl *MachineSetNodeController) releaseDestroyReadyNodes(ctx context.Context, r controller.QRuntime, machineSetNodes safe.List[*omni.MachineSetNode]) error {
+	for machineSetNode := range machineSetNodes.All() {
+		md := machineSetNode.Metadata()
+
+		if md.Phase() != resource.PhaseTearingDown {
+			continue
+		}
+
+		if !ctrl.onlyControllerFinalizer(md.Finalizers()) {
+			continue
+		}
+
+		if err := r.RemoveFinalizer(ctx, md, ctrl.Name()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// onlyControllerFinalizer reports whether the controller finalizer is the only finalizer left,
+// meaning every other controller has finished and the node is ready to be destroyed.
+func (ctrl *MachineSetNodeController) onlyControllerFinalizer(fins *resource.Finalizers) bool {
+	return len(*fins) == 1 && fins.Has(ctrl.Name())
 }
 
 func (ctrl *MachineSetNodeController) destroyOrphaned(
@@ -380,9 +475,15 @@ func (ctrl *MachineSetNodeController) destroyOrphaned(
 		}
 	}
 
-	_, err := helpers.TeardownAndDestroyAll(ctx, r, slices.Values(toDestroy), controller.WithOwner(""))
+	// tear the orphaned nodes down. Our finalizer is released by releaseDestroyReadyNodes once every
+	// other controller has finished, and the destroy controller does the actual destruction.
+	for _, ptr := range toDestroy {
+		if _, err := r.Teardown(ctx, ptr, controller.WithOwner("")); err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+	}
 
-	return err
+	return nil
 }
 
 type allocationConfig struct {
@@ -505,7 +606,7 @@ func (ctrl *MachineSetNodeController) shouldScale(
 	return nodeDiff, allocation, nil
 }
 
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop
 func (ctrl *MachineSetNodeController) createNodes(
 	ctx context.Context,
 	r controller.QRuntime,
@@ -585,6 +686,12 @@ func (ctrl *MachineSetNodeController) createNodes(
 
 			msn.Metadata().Labels().Set(omni.LabelManagedByMachineSetNodeController, "")
 
+			// the node carries the controller finalizer so it cannot be destroyed before the
+			// controller has accounted for its teardown, while staying owner-less so users can still
+			// delete it directly. The finalizer is set before creation so it is persisted atomically,
+			// leaving no window in which the node exists without it.
+			msn.Metadata().Finalizers().Add(ctrl.Name())
+
 			if err = r.Create(ctx, msn, controller.WithCreateNoOwner()); err != nil {
 				if state.IsConflictError(err) {
 					continue
@@ -622,34 +729,19 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 
 	slices.SortStableFunc(usedMachineSetNodes, getSortFunction(machineStatuses))
 
-	// destroy all machines which are currently in tearing down phase and have no finalizers
-	if err := machineSetNodes.ForEachErr(func(machineSetNode *omni.MachineSetNode) error {
-		if machineSetNode.Metadata().Phase() == resource.PhaseRunning {
-			return nil
+	// nodes that are already tearing down count towards the target: they are on their way out and
+	// releaseDestroyReadyNodes hands them off to the destroy controller once every other finalizer is gone
+	machineSetNodes.ForEach(func(machineSetNode *omni.MachineSetNode) {
+		if machineSetNode.Metadata().Phase() != resource.PhaseRunning {
+			machinesToDestroyCount--
 		}
-
-		machinesToDestroyCount--
-
-		if machineSetNode.Metadata().Finalizers().Empty() {
-			return r.Destroy(ctx, machineSetNode.Metadata(), controller.WithOwner(""))
-		}
-
-		return nil
-	}); err != nil {
-		return err
-	}
+	})
 
 	iterations := min(machinesToDestroyCount, len(usedMachineSetNodes))
 
 	for i := range iterations {
-		var (
-			ready bool
-			err   error
-		)
-		if ready, err = helpers.TeardownAndDestroy(
-			ctx, r, usedMachineSetNodes[i].Metadata(),
-			controller.WithOwner(""),
-		); err != nil {
+		ready, err := r.Teardown(ctx, usedMachineSetNodes[i].Metadata(), controller.WithOwner(""))
+		if err != nil {
 			if state.IsNotFoundError(err) {
 				return nil
 			}
@@ -657,11 +749,13 @@ func (ctrl *MachineSetNodeController) deleteNodes(
 			return err
 		}
 
+		logger.Info("removing machine set node", zap.String("machine", usedMachineSetNodes[i].Metadata().ID()))
+
+		// the node still has our finalizer (and likely downstream ones), so teardown is not yet
+		// ready; tear nodes down one at a time and let each teardown re-trigger us for the next
 		if !ready {
 			return nil
 		}
-
-		logger.Info("removed machine set node", zap.String("machine", usedMachineSetNodes[i].Metadata().ID()))
 	}
 
 	return nil

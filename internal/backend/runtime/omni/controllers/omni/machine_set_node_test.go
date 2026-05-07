@@ -13,11 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/controller/generic/destroy"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/kvutils"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/google/uuid"
+	"github.com/siderolabs/gen/optional"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -86,9 +88,10 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
 	defer cancel()
 
-	suite.Require().NoError(suite.runtime.RegisterQController(&omnictrl.MachineSetNodeController{}))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetNodeController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLabelsExtractorController[*omni.MachineStatus]()))
+	suite.Require().NoError(suite.runtime.RegisterQController(destroy.NewController[*omni.MachineSetNode](optional.Some[uint](4))))
 
 	machines := suite.createMachines(
 		map[string]string{
@@ -271,9 +274,10 @@ func (suite *MachineSetNodeSuite) TestNoRaceBetweenCleanupAndMachineSetNodeContr
 	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*10)
 	defer cancel()
 
-	suite.Require().NoError(suite.runtime.RegisterQController(&omnictrl.MachineSetNodeController{}))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetNodeController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLabelsExtractorController[*omni.MachineStatus]()))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineRequestStatusCleanupController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(destroy.NewController[*omni.MachineSetNode](optional.Some[uint](4))))
 
 	cluster := omni.NewCluster("cluster-race")
 	cluster.TypedSpec().Value.TalosVersion = "1.6.4"
