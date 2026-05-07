@@ -27,7 +27,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/coreos/go-oidc/v3 v3.18.0
-	github.com/cosi-project/runtime v1.14.1
+	github.com/cosi-project/runtime v1.14.2
 	github.com/cosi-project/state-etcd v0.5.3
 	github.com/cosi-project/state-sqlite v0.4.0
 	github.com/crewjam/saml v0.5.1
