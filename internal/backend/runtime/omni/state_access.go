@@ -406,7 +406,6 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.EtcdManualBackupType,
 		omni.ImagePullRequestType,
 		omni.ImagePullStatusType,
-		omni.ImportedClusterSecretsType,
 		omni.InfraMachineConfigType,
 		omni.KubernetesStatusType,
 		omni.KubernetesUpgradeManifestStatusType,
@@ -503,6 +502,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		}
 	case authres.AuthConfigType:
 		// allow access even without auth
+	case omni.ImportedClusterSecretsType:
+		_, err = auth.CheckGRPC(ctx, auth.WithRole(role.Operator))
 	default:
 		err = status.Error(codes.PermissionDenied, "no access is permitted")
 	}
