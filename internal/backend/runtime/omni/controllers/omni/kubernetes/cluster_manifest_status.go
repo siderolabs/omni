@@ -315,6 +315,19 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 		return controller.NewRequeueInterval(time.Second * 30)
 	}
 
+	// Drift detection for FULL-mode groups: re-check workload cluster
+	// state every 5 minutes so out-of-band deletions/edits get reverted
+	// without a manual nudge. The reconcile path already calls Get on
+	// every manifest in updateStatus, so the next pass will set
+	// OutOfSync and the 30s requeue above takes over from there.
+	if errs == nil {
+		for _, g := range groups {
+			if g.Mode == specs.KubernetesManifestGroupSpec_FULL {
+				return controller.NewRequeueInterval(5 * time.Minute)
+			}
+		}
+	}
+
 	return errs
 }
 
