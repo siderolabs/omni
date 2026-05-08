@@ -244,6 +244,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{}),
 		omnictrl.NewSchematicConfigurationController(imageFactoryClient),
 		secrets.NewSecretsController(storeFactory),
+		&secrets.ImportedClusterSecretsCleanupController{},
 		secrets.NewTalosConfigController(constants.CertificateValidityTime),
 		omnictrl.NewTalosExtensionsController(imageFactoryClient),
 		omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh, powerStageEventsCh),
