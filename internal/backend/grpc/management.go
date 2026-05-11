@@ -677,8 +677,12 @@ func (s *managementServer) CreateJoinToken(ctx context.Context, request *managem
 
 	joinToken := siderolinkres.NewJoinToken(token)
 
-	if request.Name == "" && len(request.Name) > omni.MaxJoinTokenNameLength {
-		return nil, status.Error(codes.InvalidArgument, "token name is invalid")
+	if request.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "token name cannot be empty")
+	}
+
+	if len(request.Name) > omni.MaxJoinTokenNameLength {
+		return nil, status.Errorf(codes.InvalidArgument, "token name cannot be longer than %d symbols", omni.MaxJoinTokenNameLength)
 	}
 
 	joinToken.TypedSpec().Value.Name = request.Name
