@@ -5,98 +5,60 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
-
+import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useClipboard } from '@vueuse/core'
-import { computed, nextTick, onMounted, onUpdated, ref, useTemplateRef, watch } from 'vue'
-import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import TButton from '@/components/Button/TButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import type { LogLine } from '@/methods/logs'
 
-type Props = {
+const { searchOption, logs } = defineProps<{
   logs: LogLine[]
   searchOption: string
   withoutDate?: boolean
-}
+}>()
 
-const { searchOption, logs } = defineProps<Props>()
 const { copy, copied } = useClipboard()
 
 const follow = ref(true)
-const logView = useTemplateRef('logView')
+const scrollContainer = useTemplateRef('scrollContainer')
 
-const waitUpdate = ref(false)
+const filteredLogs = computed(() =>
+  searchOption ? logs.filter((elem) => elem.msg.includes(searchOption)) : logs,
+)
 
-const scrollToBottom = () => {
-  if (!logView.value || !follow.value) {
-    return
-  }
-
-  waitUpdate.value = false
-  nextTick(() => {
-    logView.value?.scrollToItem(filteredLogs.value.length)
-  })
-}
-
-const displayLogs = computed(() => {
-  return filteredLogs.value.map((item: LogLine, index: number) => {
-    return {
-      ...item,
-      id: index,
-    }
-  })
-})
-
-const filteredLogs = computed(() => {
-  if (!searchOption) {
-    return logs
-  }
-
-  return logs.filter((elem: LogLine) => {
-    return elem?.msg.includes(searchOption)
-  })
-})
+const virtualizer = useVirtualizer(
+  computed(() => ({
+    count: filteredLogs.value.length,
+    getScrollElement: () => scrollContainer.value,
+    estimateSize: () => 28,
+    overscan: 5,
+  })),
+)
 
 const copyLogs = () => {
   return copy(
-    filteredLogs.value
-      .map((item: LogLine) => {
-        const arr: string[] = []
-        if (item.date) {
-          arr.push(item.date)
-        }
-
-        arr.push(item.msg)
-
-        return arr.join(' ')
-      })
-      .join('\n'),
+    filteredLogs.value.map((item) => [item.date, item.msg].filter(Boolean).join(' ')).join('\n'),
   )
 }
 
-onMounted(scrollToBottom)
-onUpdated(scrollToBottom)
-
-watch(follow, scrollToBottom)
 watch(
-  () => logs,
+  () => [follow.value, filteredLogs.value.length],
   () => {
-    waitUpdate.value = true
-
-    scrollToBottom()
+    if (follow.value) virtualizer.value.scrollToEnd()
   },
+  { flush: 'post' },
 )
 </script>
 
 <template>
-  <div class="logs-list">
-    <div class="logs-list-heading">
-      <div class="logs-list-heading-wrapper">
-        <p v-if="!withoutDate" class="logs-list-heading-name">Date</p>
-        <p class="logs-list-heading-name">Message</p>
+  <div class="flex flex-col">
+    <div class="flex w-full items-center justify-between rounded-xs bg-naturals-n2 px-4 py-2.5">
+      <div class="flex w-full gap-8 text-xs text-naturals-n13">
+        <p v-if="!withoutDate" class="w-35 shrink-0">Date</p>
+        <p class="grow">Message</p>
       </div>
       <div class="flex gap-6">
         <TButton :icon="copied ? 'check' : 'copy'" size="sm" @click="copyLogs">
@@ -105,73 +67,28 @@ watch(
         <TCheckbox v-model="follow" label="Follow Logs" />
       </div>
     </div>
-    <DynamicScroller
-      ref="logView"
-      class="logs-view"
-      :emit-update="waitUpdate"
-      :items="displayLogs"
-      :min-item-size="200"
-      @update="scrollToBottom"
-      @resize="scrollToBottom"
-    >
-      <template #default="{ item, index, active }">
-        <DynamicScrollerItem
-          :key="index"
-          class="logs-item grid-cols-6"
-          :active="active"
-          :size-dependencies="[item.msg]"
-          :item="item"
-          :data-index="index"
+    <div ref="scrollContainer" class="h-72 w-full grow overflow-auto">
+      <div class="relative" :style="{ height: `${virtualizer.getTotalSize()}px` }">
+        <div
+          v-for="virtualRow in virtualizer.getVirtualItems()"
+          :key="virtualRow.index"
+          :ref="(el) => virtualizer.measureElement(el as HTMLElement)"
+          :data-index="virtualRow.index"
+          class="absolute top-0 left-0 flex w-full gap-8 py-1.25 pl-4 font-mono text-xs"
+          :style="{ transform: `translateY(${virtualRow.start}px)` }"
         >
-          <div v-if="!withoutDate" class="logs-item-date">
-            {{ item.date }}
+          <div v-if="!withoutDate" class="w-35 shrink-0">
+            {{ filteredLogs[virtualRow.index].date }}
           </div>
-          <div class="logs-item-message">
+          <div class="grow break-all">
             <WordHighlighter
               :query="searchOption"
-              :text-to-highlight="item.msg"
+              :text-to-highlight="filteredLogs[virtualRow.index].msg"
               highlight-class="bg-naturals-n14"
             />
           </div>
-        </DynamicScrollerItem>
-      </template>
-    </DynamicScroller>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.logs-list {
-  @apply flex flex-col;
-}
-.logs-list-heading {
-  @apply flex w-full items-center justify-between bg-naturals-n2;
-  padding: 10px 16px;
-  border-radius: 2px;
-}
-.logs-list-heading-wrapper {
-  @apply flex w-full;
-}
-.logs-list-heading-name {
-  @apply w-full text-xs text-naturals-n13;
-  min-width: 100px;
-  max-width: 300px;
-}
-.logs-view {
-  @apply flex h-72 w-full grow flex-col overflow-auto;
-}
-
-.logs-item {
-  @apply flex w-full;
-  padding: 5px 0px 5px 16px;
-}
-.logs-item-date {
-  @apply w-full font-mono text-xs;
-  min-width: 100px;
-  max-width: 300px;
-}
-.logs-item-message {
-  @apply w-full font-mono text-xs break-all;
-}
-</style>
