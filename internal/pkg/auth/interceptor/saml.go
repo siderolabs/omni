@@ -27,7 +27,10 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 
-var errGRPCInvalidSAML = status.Error(codes.Unauthenticated, "invalid session")
+var (
+	errGRPCInvalidSAML        = status.Error(codes.Unauthenticated, "invalid session")
+	errSAMLSessionAlreadyUsed = errors.New("session was already used")
+)
 
 // SAML is a GRPC interceptor that verifies SAML session.
 type SAML struct {
@@ -109,17 +112,17 @@ func (i *SAML) getSession(ctx context.Context, sessionID string) (*authres.SAMLA
 		return nil, errGRPCInvalidSAML
 	}
 
+	if acs.TypedSpec().Value.Used {
+		i.logger.Info("invalid session", zap.Error(errSAMLSessionAlreadyUsed))
+
+		return nil, errGRPCInvalidSAML
+	}
+
 	var assertion saml.Assertion
 
 	err = json.Unmarshal(acs.TypedSpec().Value.Data, &assertion)
 	if err != nil {
 		return nil, err
-	}
-
-	if acs.TypedSpec().Value.Used {
-		i.logger.Info("invalid session", zap.Error(errors.New("session was already used")))
-
-		return nil, errGRPCInvalidSAML
 	}
 
 	if assertion.IssueInstant.Add(saml.MaxIssueDelay).Before(time.Now().UTC()) {
@@ -128,11 +131,24 @@ func (i *SAML) getSession(ctx context.Context, sessionID string) (*authres.SAMLA
 		return nil, errGRPCInvalidSAML
 	}
 
-	_, err = safe.StateUpdateWithConflicts(ctx, i.state, acs.Metadata(), func(r *authres.SAMLAssertion) error {
+	acs, err = safe.StateUpdateWithConflicts(ctx, i.state, acs.Metadata(), func(r *authres.SAMLAssertion) error {
+		if r.TypedSpec().Value.Used {
+			return errSAMLSessionAlreadyUsed
+		}
+
 		r.TypedSpec().Value.Used = true
 
 		return nil
 	})
+	if err != nil {
+		if errors.Is(err, errSAMLSessionAlreadyUsed) {
+			i.logger.Info("invalid session", zap.Error(err))
 
-	return acs, err
+			return nil, errGRPCInvalidSAML
+		}
+
+		return nil, err
+	}
+
+	return acs, nil
 }
