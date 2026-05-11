@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/schematic"
@@ -125,6 +126,12 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 }
 
 func (s *managementServer) getOverlay(ctx context.Context, req *management.CreateSchematicRequest) (schematic.Overlay, error) {
+	if req.TalosVersion != "" {
+		if _, err := semver.ParseTolerant(req.TalosVersion); err != nil {
+			return schematic.Overlay{}, status.Error(codes.InvalidArgument, "invalid Talos version")
+		}
+	}
+
 	if !quirks.New(req.TalosVersion).SupportsOverlay() {
 		return schematic.Overlay{}, nil
 	}

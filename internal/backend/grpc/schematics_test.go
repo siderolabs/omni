@@ -167,6 +167,11 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 
 	suite.Require().NoError(suite.state.Create(ctx, media))
 
+	overlayMedia := omni.NewInstallationMedia("overlay-test")
+	overlayMedia.TypedSpec().Value.Overlay = "test-overlay"
+
+	suite.Require().NoError(suite.state.Create(ctx, overlayMedia))
+
 	for _, tt := range []struct {
 		request       *management.CreateSchematicRequest
 		expectedError func(*testing.T, error)
@@ -269,10 +274,25 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 				require.Equal(t, codes.InvalidArgument, status.Code(err))
 			},
 		},
+		{
+			name: "invalid Talos version",
+			request: &management.CreateSchematicRequest{
+				TalosVersion: "../../secret",
+				MediaId:      "overlay-test",
+			},
+			expectedError: func(t *testing.T, err error) {
+				require.Equal(t, codes.InvalidArgument, status.Code(err))
+			},
+		},
 	} {
 		req := tt.request
-		req.TalosVersion = "v1.6.5"
-		req.MediaId = "test"
+		if req.TalosVersion == "" {
+			req.TalosVersion = "v1.6.5"
+		}
+
+		if req.MediaId == "" {
+			req.MediaId = "test"
+		}
 
 		suite.T().Run(tt.name, func(t *testing.T) {
 			resp, err := client.CreateSchematic(ctx, req)
