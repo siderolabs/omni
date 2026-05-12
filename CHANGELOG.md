@@ -1,3 +1,88 @@
+## [Omni 1.7.3](https://github.com/siderolabs/omni/releases/tag/v1.7.3) (2026-05-12)
+
+Welcome to the v1.7.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+A [EULA](https://siderolabs.com/eula/) agreement has been added to Omni which must be accepted in order to continue using it.
+
+This agreement can be accepted through UI or programmatically either by adding the below flags:
+```sh
+--eula-accept-name=Your Name
+--eula-accept-email=your@email.com
+```
+
+Or if using `--config-path` with the below configuration:
+```yaml
+eulaAccept:
+  name: Your Name
+  email: your@email.com
+```
+
+
+### Contributors
+
+* Edward Sammut Alessi
+* Oguz Kilcan
+* Utku Ozdemir
+* Andrey Smirnov
+* Artem Chernyshev
+
+### Changes
+<details><summary>11 commits</summary>
+<p>
+
+* [`284a5516`](https://github.com/siderolabs/omni/commit/284a5516a4a43ed32b2457f8fb941804d3d94772) chore: bump deps
+* [`c0ad1c46`](https://github.com/siderolabs/omni/commit/c0ad1c46329d47e91f3e6c2104ec6bf0a656ae24) chore: bump deps
+* [`9426c2ca`](https://github.com/siderolabs/omni/commit/9426c2cabccaa1d442bc8ebf28c16cae2d7c6ff7) fix: add more input validations to management API
+* [`272d3f4d`](https://github.com/siderolabs/omni/commit/272d3f4dd00e778b39fde09afde35575fe13ef13) fix: consume SAML sessions once
+* [`a199343b`](https://github.com/siderolabs/omni/commit/a199343b6bb154d3cbf4379e5dfc6b942001513e) fix: do not panic is ssa apply with multi-version CRDs
+* [`bb01bd81`](https://github.com/siderolabs/omni/commit/bb01bd81b463c0262c189b3a470efe9b6b0ae3c6) feat: destroy imported cluster secrets after bundle is consumed
+* [`f8596b67`](https://github.com/siderolabs/omni/commit/f8596b67b3e5ea50909cf8d5b7a63c39b40ee492) fix(frontend): keep machine details open when switching
+* [`a224cb02`](https://github.com/siderolabs/omni/commit/a224cb020f3aaca2bc21c3e32a38eb4a37e531e8) fix: change ImportedClusterSecrets access level to operator
+* [`2f780520`](https://github.com/siderolabs/omni/commit/2f780520924f76a8a76d8dd635ca089f2ba2a8b5) fix(frontend): add apexcharts formatter workaround
+* [`72907427`](https://github.com/siderolabs/omni/commit/729074277ce14d40a3f9cb349d8ee8216ddd6d1a) fix(frontend): fix apexcharts broken tooltips and initial state
+* [`88fd0562`](https://github.com/siderolabs/omni/commit/88fd0562604573459f3125cd6bef34bb94c5a3da) fix(frontend): fix revoking/deleting join tokens
+</p>
+</details>
+
+### Changes from siderolabs/go-kubernetes
+<details><summary>2 commits</summary>
+<p>
+
+* [`38c182f`](https://github.com/siderolabs/go-kubernetes/commit/38c182f7b3a25a320c867d4e8138ef40dfc2a1a7) fix: normalize the changeset to be keyed without apiVersion
+* [`ca35008`](https://github.com/siderolabs/go-kubernetes/commit/ca350083a113b49a5efec1feac6f10cd594280ef) feat: update k8s api to 0.36.0
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/aws/aws-sdk-go-v2/feature/s3/manager**  v1.22.12 -> v1.22.13
+* **github.com/aws/aws-sdk-go-v2/service/s3**          v1.98.0 -> v1.99.0
+* **github.com/coreos/go-oidc/v3**                     v3.17.0 -> v3.18.0
+* **github.com/cosi-project/runtime**                  v1.14.1 -> v1.15.1
+* **github.com/fluxcd/cli-utils**                      v0.37.2-flux.1 -> v1.2.0
+* **github.com/fluxcd/pkg/ssa**                        v0.70.0 -> v0.73.0
+* **github.com/google/go-containerregistry**           v0.21.4 -> v0.21.5
+* **github.com/siderolabs/go-kubernetes**              v0.2.36 -> v0.2.37
+* **github.com/siderolabs/omni/client**                v1.6.1 -> v1.6.5
+* **github.com/zitadel/oidc/v3**                       v3.46.0 -> v3.47.2
+* **golang.org/x/crypto**                              v0.49.0 -> v0.50.0
+* **golang.org/x/net**                                 v0.52.0 -> v0.53.0
+* **golang.org/x/text**                                v0.35.0 -> v0.36.0
+* **golang.org/x/tools**                               v0.43.0 -> v0.44.0
+* **k8s.io/api**                                       v0.35.3 -> v0.36.0
+* **k8s.io/apimachinery**                              v0.35.3 -> v0.36.0
+* **k8s.io/client-go**                                 v0.35.3 -> v0.36.0
+* **sigs.k8s.io/controller-runtime**                   v0.23.3 -> v0.24.0
+
+Previous release can be found at [v1.7.2](https://github.com/siderolabs/omni/releases/tag/v1.7.2)
+
 ## [Omni 1.7.2](https://github.com/siderolabs/omni/releases/tag/v1.7.2) (2026-05-05)
 
 Welcome to the v1.7.2 release of Omni!
