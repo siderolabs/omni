@@ -7,7 +7,7 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/blang/semver/v4 v4.0.0
 	github.com/containers/image/v5 v5.36.2
-	github.com/cosi-project/runtime v1.14.1
+	github.com/cosi-project/runtime v1.15.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.19.0
 	github.com/gertd/go-pluralize v0.2.1
