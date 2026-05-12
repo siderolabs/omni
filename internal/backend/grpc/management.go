@@ -52,9 +52,9 @@ import (
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	omniCtrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/validations"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
@@ -726,8 +726,8 @@ func (s *managementServer) CreateJoinToken(ctx context.Context, request *managem
 		return nil, status.Error(codes.InvalidArgument, "token name cannot be empty")
 	}
 
-	if len(request.Name) > omni.MaxJoinTokenNameLength {
-		return nil, status.Errorf(codes.InvalidArgument, "token name cannot be longer than %d symbols", omni.MaxJoinTokenNameLength)
+	if len(request.Name) > validations.MaxJoinTokenNameLength {
+		return nil, status.Errorf(codes.InvalidArgument, "token name cannot be longer than %d symbols", validations.MaxJoinTokenNameLength)
 	}
 
 	joinToken.TypedSpec().Value.Name = request.Name

@@ -65,6 +65,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/talosupgrade"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/validations"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/producers"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -119,7 +120,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		return nil, err
 	}
 
-	storeFactory := st.StoreFactory()
+	etcdBackupStoreFactory := st.StoreFactory()
 
 	powerStageEventsCh := make(chan *omni.MachineStatusSnapshot)
 	powerStageWatcher := powerstage.NewWatcher(defaultState, powerStageEventsCh, logger.With(logging.Component("power_stage_watcher")), powerstage.WatcherOptions{})
@@ -127,14 +128,14 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 	uploadLimitPerSecondBytes := cfg.EtcdBackup.GetUploadLimitMbps() * 125000     // Mbit in bytes
 	downloadLimitPerSecondBytes := cfg.EtcdBackup.GetDownloadLimitMbps() * 125000 // Mbit in bytes
 
-	storeFactory.SetThroughputs(uploadLimitPerSecondBytes, downloadLimitPerSecondBytes)
-	metricsRegistry.MustRegister(storeFactory)
+	etcdBackupStoreFactory.SetThroughputs(uploadLimitPerSecondBytes, downloadLimitPerSecondBytes)
+	metricsRegistry.MustRegister(etcdBackupStoreFactory)
 
 	backupController, err := omnictrl.NewEtcdBackupController(omnictrl.EtcdBackupControllerSettings{
 		ClientMaker: func(ctx context.Context, clusterName string) (omnictrl.TalosClient, error) {
 			return talosClientFactory.GetForCluster(ctx, clusterName)
 		},
-		StoreFactory: storeFactory,
+		StoreFactory: etcdBackupStoreFactory,
 		TickInterval: cfg.EtcdBackup.GetTickInterval(),
 		Jitter:       cfg.EtcdBackup.GetJitter(),
 	})
@@ -206,7 +207,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		destroy.NewController[*omni.MachineSet](optional.Some[uint](4)),
 
 		omnictrl.NewBackupDataController(),
-		omnictrl.NewClusterBootstrapStatusController(storeFactory),
+		omnictrl.NewClusterBootstrapStatusController(etcdBackupStoreFactory),
 		omnictrl.NewClusterConfigVersionController(),
 		omnictrl.NewClusterDestroyStatusController(),
 		omnictrl.NewMachineSetDestroyStatusController(),
@@ -242,7 +243,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewMachineSetEtcdAuditController(talosClientFactory, time.Minute),
 		redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{}),
 		omnictrl.NewSchematicConfigurationController(imageFactoryClient),
-		secrets.NewSecretsController(storeFactory),
+		secrets.NewSecretsController(etcdBackupStoreFactory),
 		&secrets.ImportedClusterSecretsCleanupController{},
 		secrets.NewTalosConfigController(constants.CertificateValidityTime),
 		omnictrl.NewTalosExtensionsController(imageFactoryClient),
@@ -364,39 +365,15 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 	metricsRegistry.MustRegister(expvarCollector)
 
 	validationOptions := slices.Concat(
-		clusterValidationOptions(defaultState, cfg.EtcdBackup, cfg.Services.EmbeddedDiscoveryService),
-		relationLabelsValidationOptions(),
-		accessPolicyValidationOptions(),
 		authorizationValidationOptions(defaultState),
-		roleValidationOptions(),
-		machineSetNodeValidationOptions(defaultState),
-		machineSetValidationOptions(defaultState, storeFactory),
-		machineClassValidationOptions(defaultState),
-		identityValidationOptions(cfg.Auth.Saml),
-		accountLimitsValidationOptions(defaultState, cfg.Auth.Limits),
-		exposedServiceValidationOptions(),
-		configPatchValidationOptions(defaultState),
-		etcdManualBackupValidationOptions(),
-		samlLabelRuleValidationOptions(),
-		s3ConfigValidationOptions(),
-		machineRequestSetValidationOptions(defaultState),
-		infraMachineConfigValidationOptions(defaultState),
-		nodeForceDestroyRequestValidationOptions(defaultState),
-		joinTokenValidationOptions(defaultState),
-		defaultJoinTokenValidationOptions(defaultState),
-		importedClusterSecretValidationOptions(defaultState, cfg.Features.GetEnableClusterImport()),
-		infraProviderValidationOptions(defaultState),
-		installationMediaConfigValidationOptions(),
-		rotateSecretsValidationOptions(defaultState),
-		kubernetesManifestsValidationOptions(),
-		eulaValidationOptions(defaultState),
+		validations.Options(defaultState, etcdBackupStoreFactory, cfg),
 	)
 
 	return &Runtime{
 		controllerRuntime:       controllerRuntime,
 		talosClientFactory:      talosClientFactory,
 		kubernetesRuntime:       kubernetesRuntime,
-		storeFactory:            storeFactory,
+		storeFactory:            etcdBackupStoreFactory,
 		dnsService:              dnsService,
 		workloadProxyReconciler: workloadProxyReconciler,
 		resourceLogger:          resourceLogger,

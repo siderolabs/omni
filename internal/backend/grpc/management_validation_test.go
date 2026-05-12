@@ -17,7 +17,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
-	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/validations"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
@@ -39,7 +39,7 @@ func TestCreateJoinTokenValidation(t *testing.T) {
 		{
 			name: "name too long",
 			request: &management.CreateJoinTokenRequest{
-				Name: strings.Repeat("x", omniruntime.MaxJoinTokenNameLength+1),
+				Name: strings.Repeat("x", validations.MaxJoinTokenNameLength+1),
 			},
 		},
 	} {

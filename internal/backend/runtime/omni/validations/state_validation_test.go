@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package omni_test
+package validations_test
 
 import (
 	"context"
@@ -36,10 +36,10 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/validations"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -77,7 +77,7 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 	}
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryService{})...)
+	st := validated.NewState(innerSt, validations.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryService{})...)
 
 	// prepare talos versions
 	for _, prep := range []struct {
@@ -463,7 +463,7 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 
 	buildState := func(conf config.EmbeddedDiscoveryService) (inner, outer state.State) {
 		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-		st := validated.NewState(innerSt, omni.ClusterValidationOptions(state.WrapCore(innerSt), config.EtcdBackup{}, conf)...)
+		st := validated.NewState(innerSt, validations.ClusterValidationOptions(state.WrapCore(innerSt), config.EtcdBackup{}, conf)...)
 
 		return innerSt, state.WrapCore(st)
 	}
@@ -550,7 +550,7 @@ func TestRelationLabelsValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.RelationLabelsValidationOptions()...)
+	st := validated.NewState(innerSt, validations.RelationLabelsValidationOptions()...)
 
 	clusterID := "test-cluster" //nolint:goconst
 	differentClusterID := "different-cluster"
@@ -638,7 +638,7 @@ func TestMachineSetValidation(t *testing.T) {
 	require.NoError(t, err)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.MachineSetValidationOptions(innerSt, etcdBackupStoreFactory)...)
+	st := validated.NewState(innerSt, validations.MachineSetValidationOptions(innerSt, etcdBackupStoreFactory)...)
 
 	machineSet1 := omnires.NewMachineSet("test-cluster-wrong-suffix")
 
@@ -752,7 +752,7 @@ func TestMachineSetBootstrapSpecValidation(t *testing.T) {
 	}
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.MachineSetValidationOptions(innerSt, &etcdBackupStoreFactory)...)
+	st := validated.NewState(innerSt, validations.MachineSetValidationOptions(innerSt, &etcdBackupStoreFactory)...)
 
 	cluster := omnires.NewCluster(clusterID)
 
@@ -854,7 +854,7 @@ func TestMachineSetNodeValidations(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := state.WrapCore(validated.NewState(innerSt, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...))
+	st := state.WrapCore(validated.NewState(innerSt, validations.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...))
 
 	cluster := omnires.NewCluster("test-cluster")
 	machineSet := omnires.NewMachineSet("test-machine-set")
@@ -896,7 +896,7 @@ func TestMachineSetLockedAnnotation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
+	st := validated.NewState(innerSt, validations.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
 
 	cluster := omnires.NewCluster("test-cluster")
 	machineSet := omnires.NewMachineSet("test-machine-set")
@@ -961,9 +961,9 @@ func TestClusterLockedAnnotation(t *testing.T) {
 	//nolint:prealloc
 	var validationOptions []validated.StateOption
 
-	validationOptions = append(validationOptions, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryService{})...)
-	validationOptions = append(validationOptions, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
-	validationOptions = append(validationOptions, omni.MachineSetValidationOptions(state.WrapCore(innerSt), etcdBackupStoreFactory)...)
+	validationOptions = append(validationOptions, validations.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryService{})...)
+	validationOptions = append(validationOptions, validations.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
+	validationOptions = append(validationOptions, validations.MachineSetValidationOptions(state.WrapCore(innerSt), etcdBackupStoreFactory)...)
 
 	st := validated.NewState(innerSt, validationOptions...)
 
@@ -1077,9 +1077,9 @@ func TestClusterImport(t *testing.T) {
 	//nolint:prealloc
 	var validationOptions []validated.StateOption
 
-	validationOptions = append(validationOptions, omni.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryService{})...)
-	validationOptions = append(validationOptions, omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
-	validationOptions = append(validationOptions, omni.MachineSetValidationOptions(state.WrapCore(innerSt), etcdBackupStoreFactory)...)
+	validationOptions = append(validationOptions, validations.ClusterValidationOptions(state.WrapCore(innerSt), etcdBackupConfig, config.EmbeddedDiscoveryService{})...)
+	validationOptions = append(validationOptions, validations.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...)
+	validationOptions = append(validationOptions, validations.MachineSetValidationOptions(state.WrapCore(innerSt), etcdBackupStoreFactory)...)
 
 	st := validated.NewState(innerSt, validationOptions...)
 
@@ -1132,7 +1132,7 @@ func TestCreateIdentityValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.IdentityValidationOptions(config.SAML{})...)
+	st := validated.NewState(innerSt, validations.IdentityValidationOptions(config.SAML{})...)
 
 	assert := assert.New(t)
 
@@ -1157,7 +1157,7 @@ func TestExposedServiceAliasValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.ExposedServiceValidationOptions()...)
+	st := validated.NewState(innerSt, validations.ExposedServiceValidationOptions()...)
 
 	exposedService := omnires.NewExposedService("test-exposed-service")
 
@@ -1191,7 +1191,7 @@ func TestConfigPatchValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.ConfigPatchValidationOptions(innerSt)...)
+	st := validated.NewState(innerSt, validations.ConfigPatchValidationOptions(innerSt)...)
 
 	configPatch := omnires.NewConfigPatch("test-config-patch")
 
@@ -1261,7 +1261,7 @@ func TestEtcdBackupValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	st := validated.NewState(innerSt, omni.EtcdManualBackupValidationOptions()...)
+	st := validated.NewState(innerSt, validations.EtcdManualBackupValidationOptions()...)
 
 	backup := omnires.NewEtcdManualBackup("test-etcd-manual-backup")
 	backup.TypedSpec().Value.BackupAt = timestamppb.New(time.Now().Add(-time.Hour))
@@ -1282,7 +1282,7 @@ func TestSAMLLabelRuleValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.SAMLLabelRuleValidationOptions()...)
+	st := validated.NewState(innerSt, validations.SAMLLabelRuleValidationOptions()...)
 
 	labelRule := auth.NewSAMLLabelRule("test-label-rule")
 	labelRule.TypedSpec().Value.AssignRole = "invalid"
@@ -1317,8 +1317,8 @@ func TestMachineSetClassesValidation(t *testing.T) {
 	st := validated.NewState(
 		innerSt,
 		append(
-			omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt)),
-			omni.MachineSetValidationOptions(state.WrapCore(innerSt), etcdBackupStoreFactory)...,
+			validations.MachineSetNodeValidationOptions(state.WrapCore(innerSt)),
+			validations.MachineSetValidationOptions(state.WrapCore(innerSt), etcdBackupStoreFactory)...,
 		)...,
 	)
 
@@ -1393,7 +1393,7 @@ func TestMachineClassValidation(t *testing.T) {
 
 	st := validated.NewState(
 		innerSt,
-		omni.MachineClassValidationOptions(state.WrapCore(innerSt))...,
+		validations.MachineClassValidationOptions(state.WrapCore(innerSt))...,
 	)
 
 	require.NoError(t, st.Create(ctx, omnires.NewCluster("test-cluster")))
@@ -1545,7 +1545,7 @@ func TestS3ConfigValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	st := validated.NewState(innerSt, omni.S3ConfigValidationOptions()...)
+	st := validated.NewState(innerSt, validations.S3ConfigValidationOptions()...)
 
 	res := omnires.NewEtcdBackupS3Conf()
 	res.TypedSpec().Value = &specs.EtcdBackupS3ConfSpec{}
@@ -1587,7 +1587,7 @@ func TestSchematicConfigurationValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	st := validated.NewState(innerSt, omni.SchematicConfigurationValidationOptions()...)
+	st := validated.NewState(innerSt, validations.SchematicConfigurationValidationOptions()...)
 
 	res := omnires.NewSchematicConfiguration("test")
 
@@ -1633,7 +1633,7 @@ func TestMachineRequestSetValidation(t *testing.T) {
 
 	require.NoError(t, innerSt.Create(ctx, providerStatus))
 
-	st := validated.NewState(innerSt, omni.MachineRequestSetValidationOptions(innerSt)...)
+	st := validated.NewState(innerSt, validations.MachineRequestSetValidationOptions(innerSt)...)
 
 	res := omnires.NewMachineRequestSet("test")
 
@@ -1673,7 +1673,7 @@ func TestInfraMachineConfigValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.InfraMachineConfigValidationOptions(innerSt)...)
+	st := validated.NewState(innerSt, validations.InfraMachineConfigValidationOptions(innerSt)...)
 	wrappedState := state.WrapCore(st)
 
 	conf := omnires.NewInfraMachineConfig("test")
@@ -1722,7 +1722,7 @@ func TestNodeForceDestroyRequestValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	st := validated.NewState(innerSt, omni.NodeForceDestroyRequestValidationOptions(innerSt)...)
+	st := validated.NewState(innerSt, validations.NodeForceDestroyRequestValidationOptions(innerSt)...)
 
 	req := omnires.NewNodeForceDestroyRequest("test")
 
@@ -1742,7 +1742,7 @@ func TestJoinTokenValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	st := validated.NewState(innerSt, omni.JoinTokenValidationOptions(innerSt)...)
+	st := validated.NewState(innerSt, validations.JoinTokenValidationOptions(innerSt)...)
 	wrappedState := state.WrapCore(st)
 
 	emptyNameToken := siderolink.NewJoinToken("empty-name-token")
@@ -1803,7 +1803,7 @@ func TestDefaultJoinTokenValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.DefaultJoinTokenValidationOptions(innerSt)...)
+	st := validated.NewState(innerSt, validations.DefaultJoinTokenValidationOptions(innerSt)...)
 	wrappedState := state.WrapCore(st)
 
 	defaultToken := siderolink.NewDefaultJoinToken()
@@ -1846,13 +1846,13 @@ func TestDefaultJoinTokenValidation(t *testing.T) {
 }
 
 var (
-	//go:embed controllers/omni/secrets/testdata/secrets-valid.yaml
+	//go:embed testdata/secrets-valid.yaml
 	validSecrets string
 
-	//go:embed controllers/omni/secrets/testdata/secrets-broken.yaml
+	//go:embed testdata/secrets-broken.yaml
 	brokenSecrets string
 
-	//go:embed controllers/omni/secrets/testdata/secrets-invalid.yaml
+	//go:embed testdata/secrets-invalid.yaml
 	invalidSecrets string
 )
 
@@ -1863,7 +1863,7 @@ func TestImportedClusterSecretValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.ImportedClusterSecretValidationOptions(innerSt, true)...)
+	st := validated.NewState(innerSt, validations.ImportedClusterSecretValidationOptions(innerSt, true)...)
 	res := omnires.NewImportedClusterSecrets("test")
 
 	res.TypedSpec().Value.Data = brokenSecrets
@@ -1899,7 +1899,7 @@ func TestInfraProviderValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.InfraProviderValidationOptions(innerSt)...)
+	st := validated.NewState(innerSt, validations.InfraProviderValidationOptions(innerSt)...)
 
 	provider := infra.NewProvider("test")
 	require.NoError(t, st.Create(ctx, provider))
@@ -1936,7 +1936,7 @@ func TestRotateSecretsValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.RotateSecretsValidationOptions(innerSt)...)
+	st := validated.NewState(innerSt, validations.RotateSecretsValidationOptions(innerSt)...)
 
 	updateTalosCATimestamp := func(rotateTalosCA *omnires.RotateTalosCA) {
 		rotateTalosCA.Metadata().Annotations().Set("timestamp", strconv.FormatInt(time.Now().Unix(), 10))
@@ -1977,7 +1977,7 @@ func TestInstallationMediaConfigValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	st := validated.NewState(state.WrapCore(namespaced.NewState(inmem.Build)), omni.InstallationMediaConfigValidationOptions()...)
+	st := validated.NewState(state.WrapCore(namespaced.NewState(inmem.Build)), validations.InstallationMediaConfigValidationOptions()...)
 
 	installationMediaConfig := omnires.NewInstallationMediaConfig("test")
 
@@ -2088,7 +2088,7 @@ func TestKubernetesManifestValidation(t *testing.T) {
 	t.Cleanup(cancel)
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-	st := validated.NewState(innerSt, omni.KubernetesManifestsValidationOptions()...)
+	st := validated.NewState(innerSt, validations.KubernetesManifestsValidationOptions()...)
 
 	m := omnires.NewKubernetesManifestGroup("1")
 	m.TypedSpec().Value.Mode = specs.KubernetesManifestGroupSpec_ONE_TIME
@@ -2171,7 +2171,7 @@ func TestAccountLimitsValidation(t *testing.T) {
 		maxUsers := 2
 
 		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-		st := state.WrapCore(validated.NewState(innerSt, omni.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
+		st := state.WrapCore(validated.NewState(innerSt, validations.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
 			MaxUsers: new(uint32(maxUsers)),
 		})...))
 
@@ -2197,7 +2197,7 @@ func TestAccountLimitsValidation(t *testing.T) {
 		maxSAs := 1
 
 		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-		st := state.WrapCore(validated.NewState(innerSt, omni.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
+		st := state.WrapCore(validated.NewState(innerSt, validations.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
 			MaxServiceAccounts: new(uint32(maxSAs)),
 		})...))
 
@@ -2223,7 +2223,7 @@ func TestAccountLimitsValidation(t *testing.T) {
 		t.Cleanup(cancel)
 
 		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-		st := state.WrapCore(validated.NewState(innerSt, omni.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
+		st := state.WrapCore(validated.NewState(innerSt, validations.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
 			MaxServiceAccounts: new(uint32(0)),
 			MaxUsers:           new(uint32(0)),
 		})...))
@@ -2251,7 +2251,7 @@ func TestAccountLimitsValidation(t *testing.T) {
 		require.NoError(t, innerSt.Create(ctx, auth.NewIdentity("existing1@example.com")))
 		require.NoError(t, innerSt.Create(ctx, auth.NewIdentity("existing2@example.com")))
 
-		st := state.WrapCore(validated.NewState(innerSt, omni.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
+		st := state.WrapCore(validated.NewState(innerSt, validations.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
 			MaxUsers: new(uint32(maxUsers)),
 		})...))
 
@@ -2270,7 +2270,7 @@ func TestAccountLimitsValidation(t *testing.T) {
 		maxSAs := 1
 
 		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
-		st := state.WrapCore(validated.NewState(innerSt, omni.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
+		st := state.WrapCore(validated.NewState(innerSt, validations.AccountLimitsValidationOptions(innerSt, config.AuthLimits{
 			MaxUsers:           new(uint32(maxUsers)),
 			MaxServiceAccounts: new(uint32(maxSAs)),
 		})...))
@@ -2304,7 +2304,7 @@ func TestEulaValidation(t *testing.T) {
 	newSt := func() state.State {
 		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 
-		return state.WrapCore(validated.NewState(innerSt, omni.EulaValidationOptions(innerSt)...))
+		return state.WrapCore(validated.NewState(innerSt, validations.EulaValidationOptions(innerSt)...))
 	}
 
 	const (
