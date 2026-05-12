@@ -16,8 +16,6 @@ For all available configuration options, see the [`values.yaml`](values.yaml) fi
 
 ## Installation
 
-This chart is not yet published to a Helm repository. To install it, clone the repository and install from the local path.
-
 ### 1. Generate an etcd Encryption Key
 
 Omni requires a GPG private key to encrypt its database. If you don't have one, generate one with:
@@ -35,14 +33,17 @@ Create a `values.yaml` file with your configuration. See the example below.
 
 ### 3. Install the Chart
 
+The chart version corresponds to the Omni release version, but with a major version of `2` instead of `1`.
+For example, Omni `v1.7.2` maps to chart version `2.7.2`.
+
 ```bash
-helm install omni ./deploy/helm/omni -n omni --create-namespace -f values.yaml
+helm install omni oci://ghcr.io/siderolabs/charts/omni --version 2.7.2 -n omni --create-namespace -f values.yaml
 ```
 
 To upgrade an existing installation:
 
 ```bash
-helm upgrade omni ./deploy/helm/omni -n omni -f values.yaml
+helm upgrade omni oci://ghcr.io/siderolabs/charts/omni --version 2.7.2 -n omni -f values.yaml
 ```
 
 ## Authentication
