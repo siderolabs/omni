@@ -1,3 +1,57 @@
+## [Omni 1.6.6](https://github.com/siderolabs/omni/releases/tag/v1.6.6) (2026-05-13)
+
+Welcome to the v1.6.6 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+The deprecated flags and config fields that were kept for the SQLite migration period (introduced in v1.4.0) have been removed.
+
+If you still have any of the following flags or config keys set, **you must remove them before upgrading**, as they will cause startup errors:
+* `--audit-log-dir` (`.logs.audit.path`)
+* `--secondary-storage-path` (`.storage.secondary.path`)
+* `--machine-log-storage-path` (`.logs.machine.storage.path`)
+* `--machine-log-storage-enabled` (`.logs.machine.storage.enabled`)
+* `--log-storage-path` (`.logs.machine.storage.path`)
+* `--embedded-discovery-service-snapshot-path` (`.services.embeddedDiscoveryService.snapshotsPath`)
+* `--machine-log-buffer-capacity` (`.logs.machine.bufferInitialCapacity`)
+* `--machine-log-buffer-max-capacity` (`.logs.machine.bufferMaxCapacity`)
+* `--machine-log-buffer-safe-gap` (`.logs.machine.bufferSafetyGap`)
+* `--machine-log-num-compressed-chunks` (`.logs.machine.storage.numCompressedChunks`)
+
+The automatic migration code for BoltDB secondary storage, file-based audit logs, file-based discovery service snapshots, and circular buffer machine logs has also been removed. If you are upgrading from a version older than v1.4.0, you must first upgrade to v1.4.x to complete the migrations, then upgrade to this version.
+
+
+### Contributors
+
+* Oguz Kilcan
+* Utku Ozdemir
+* Edward Sammut Alessi
+
+### Changes
+<details><summary>5 commits</summary>
+<p>
+
+* [`1eff7171f`](https://github.com/siderolabs/omni/commit/1eff7171faef3d1023ba691efdb1daf5e439ecf1) chore: bump golang.org/x/net to 0.53.0
+* [`4c4c1e2d8`](https://github.com/siderolabs/omni/commit/4c4c1e2d8226914f26774a309a91595f168ee921) fix: consume SAML sessions once
+* [`846051007`](https://github.com/siderolabs/omni/commit/846051007433e32e0beab6d2f698fffb874224a4) feat: destroy imported cluster secrets after bundle is consumed
+* [`b8ca100c4`](https://github.com/siderolabs/omni/commit/b8ca100c4539ea83f0ac2e53dcd523e6e5b68111) fix: change ImportedClusterSecrets access level to operator
+* [`3e69e8080`](https://github.com/siderolabs/omni/commit/3e69e80802624bf322f16aa499d5eafca16d0025) fix: add more input validations to management API
+</p>
+</details>
+
+### Dependency Changes
+
+* **golang.org/x/crypto**  v0.49.0 -> v0.50.0
+* **golang.org/x/net**     v0.52.0 -> v0.53.0
+* **golang.org/x/text**    v0.35.0 -> v0.36.0
+
+Previous release can be found at [v1.6.5](https://github.com/siderolabs/omni/releases/tag/v1.6.5)
+
 ## [Omni 1.6.5](https://github.com/siderolabs/omni/releases/tag/v1.6.5) (2026-04-09)
 
 Welcome to the v1.6.5 release of Omni!
