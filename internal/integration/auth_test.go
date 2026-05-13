@@ -945,7 +945,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       importedClusterSecret,
-				allowedVerbSet: allVerbsSet,
+				allowedVerbSet: xslices.ToSet([]state.Verb{state.Create, state.Destroy}),
 				isOperatorOnly: true,
 			},
 			{
@@ -1429,11 +1429,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		testCases = append(testCases, []resourceAuthzTestCase{
 			{
 				resource:       siderolink.NewLink(uuid.New().String(), &specs.SiderolinkSpec{}),
-				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Update, state.Destroy}),
+				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Destroy}),
 			},
 			{
 				resource:       siderolink.NewPendingMachine(uuid.New().String(), &specs.SiderolinkSpec{}),
-				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Update, state.Destroy}),
+				allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Destroy}),
 			},
 		}...)
 

@@ -20,6 +20,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
@@ -88,6 +89,25 @@ func Init(a *audit.Log) {
 	emptyDestroyFunc := func(_ context.Context, _ *auditlog.Data, _ resource.Pointer, _ ...state.DestroyOption) error {
 		return nil
 	}
+
+	// ImportedClusterSecrets is not user-managed (only create and destroy are exposed),
+	// so it is not covered by the user-managed loop below. Register explicit create and
+	// destroy hooks so the rare manual import still appears in the audit log.
+	audit.ShouldLogCreate(a, omni.ImportedClusterSecretsType, emptyCreateFunc, audit.WithInternalAgent())
+	audit.ShouldLogDestroy(a, omni.ImportedClusterSecretsType, emptyDestroyFunc, audit.WithInternalAgent())
+
+	// Link is created by Omni when a machine joins, so it is not user-managed, but users
+	// can destroy it to detach a machine. Register an explicit destroy hook so user-driven
+	// machine removals are audited.
+	audit.ShouldLogDestroy(a, siderolink.LinkType, emptyDestroyFunc, audit.WithInternalAgent())
+
+	// JoinToken create must go through the management.CreateJoinToken API (other verbs run
+	// directly against state). It is not user-managed, so register the full set of hooks
+	// explicitly so all join-token operations are audited.
+	audit.ShouldLogCreate(a, siderolink.JoinTokenType, emptyCreateFunc, audit.WithInternalAgent())
+	audit.ShouldLogUpdate(a, siderolink.JoinTokenType, emptyUpdateFunc, audit.WithInternalAgent())
+	audit.ShouldLogUpdateWithConflicts(a, siderolink.JoinTokenType, emptyUpdateFunc, audit.WithInternalAgent())
+	audit.ShouldLogDestroy(a, siderolink.JoinTokenType, emptyDestroyFunc, audit.WithInternalAgent())
 
 	customLoggedResourceTypes := xslices.ToSet(slices.Concat(a.CreateHooksResourceTypes(), a.UpdateHooksResourceTypes(), a.DestroyHooksResourceTypes()))
 

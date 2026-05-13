@@ -1871,10 +1871,6 @@ func TestImportedClusterSecretValidation(t *testing.T) {
 
 	res.TypedSpec().Value.Data = validSecrets
 	require.NoError(t, st.Create(ctx, res))
-	require.NoError(t, st.Update(ctx, res))
-
-	res.TypedSpec().Value.Data = brokenSecrets
-	require.True(t, validated.IsValidationError(st.Update(ctx, res)), "expected validation error")
 	require.NoError(t, st.Destroy(ctx, res.Metadata()))
 
 	res.TypedSpec().Value.Data = invalidSecrets
@@ -1893,7 +1889,7 @@ func TestImportedClusterSecretValidation(t *testing.T) {
 	res.TypedSpec().Value.Data = validSecrets
 	err = st.Create(ctx, res)
 	require.True(t, validated.IsValidationError(err), "expected validation error")
-	assert.ErrorContains(t, err, "cannot create/update an ImportedClusterSecrets, as there is already an existing cluster with name")
+	assert.ErrorContains(t, err, "cannot create an ImportedClusterSecrets, as there is already an existing cluster with name")
 }
 
 func TestInfraProviderValidation(t *testing.T) {

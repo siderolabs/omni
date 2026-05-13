@@ -14,13 +14,16 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
-// UserManagedResourceTypes is a list of resource types that are managed by the user.
+// UserManagedResourceTypes is a list of resource types that are fully managed by the user,
+// i.e., the user can perform all CRUD operations on them directly via the state API.
+//
+// Resources whose lifecycle is partially driven by the user but constrained by the server
+// (e.g., ImportedClusterSecrets which only supports create and destroy, Identity and User
+// whose mutations must go through ManagementService, or JoinToken whose create must go through
+// ManagementService.CreateJoinToken) do not belong here.
 var UserManagedResourceTypes = []resource.Type{
-	authres.IdentityType,
-	authres.UserType,
 	authres.AccessPolicyType,
 	authres.SAMLLabelRuleType,
-	siderolink.JoinTokenType,
 	siderolink.DefaultJoinTokenType,
 	siderolink.GRPCTunnelConfigType,
 	omni.ClusterType,
@@ -34,7 +37,6 @@ var UserManagedResourceTypes = []resource.Type{
 	omni.ExtensionsConfigurationType,
 	omni.KernelArgsType,
 	omni.MachineRequestSetType,
-	omni.ImportedClusterSecretsType,
 	omni.InfraMachineBMCConfigType,
 	omni.InfraMachineConfigType,
 	omni.InstallationMediaConfigType,

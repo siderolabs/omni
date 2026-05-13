@@ -131,3 +131,8 @@ func KubernetesManifestsValidationOptions() []validated.StateOption {
 func EulaValidationOptions(st state.State) []validated.StateOption {
 	return eulaValidationOptions(st)
 }
+
+// FilterAccessByType exposes filterAccessByType for tests.
+func FilterAccessByType(access state.Access) error {
+	return filterAccessByType(access)
+}

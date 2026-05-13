@@ -243,6 +243,42 @@ func TestTeardownDestroyValidations(t *testing.T) {
 
 	const teardownOwner = "foobar-controller"
 
+	// Teardown takes the fast path through validated.State and runs only the
+	// destroy validations, not the Update validations.
 	_, err = st.Teardown(ctx, res.Metadata(), state.WithTeardownOwner(teardownOwner))
-	require.EqualError(t, err, fmt.Sprintf("failed to validate: 2 errors occurred:\n\t* update\n\t* destroy by %s\n\n", teardownOwner))
+	require.EqualError(t, err, fmt.Sprintf("failed to validate: 1 error occurred:\n\t* destroy by %s\n\n", teardownOwner))
+}
+
+func TestTeardownAndDestroyValidations(t *testing.T) {
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := state.WrapCore(
+		validated.NewState(
+			innerSt,
+			validated.WithUpdateValidations(func(context.Context, resource.Resource, resource.Resource, ...state.UpdateOption) error {
+				return errors.New("update")
+			}), validated.WithDestroyValidations(func(_ context.Context, _ resource.Pointer, _ resource.Resource, option ...state.DestroyOption) error {
+				opts := state.DestroyOptions{}
+
+				for _, opt := range option {
+					opt(&opts)
+				}
+
+				return errors.New("destroy by " + opts.Owner)
+			}),
+		),
+	)
+
+	res := omni.NewCluster("something")
+
+	require.NoError(t, st.Create(t.Context(), res))
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	const owner = "foobar-controller"
+
+	// TeardownAndDestroy takes the fast path through validated.State and runs
+	// only the destroy validations, not the Update validations.
+	err := st.TeardownAndDestroy(ctx, res.Metadata(), state.WithTeardownAndDestroyOwner(owner))
+	require.EqualError(t, err, fmt.Sprintf("failed to validate: 1 error occurred:\n\t* destroy by %s\n\n", owner))
 }

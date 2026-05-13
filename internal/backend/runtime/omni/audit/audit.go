@@ -135,6 +135,16 @@ func (l *Log) LogDestroy(ptr resource.Pointer) DestroyHook {
 	return l.destroyHooks[ptr.Type()]
 }
 
+// LogTeardown returns the hook used to log a teardown event for this type.
+// Teardowns reuse the update hook chain so per-type handlers can distinguish
+// teardown from regular updates via the resource phase.
+func (l *Log) LogTeardown(ptr resource.Pointer) UpdateHook {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
+	return l.updateHooks[ptr.Type()]
+}
+
 // LogUpdateWithConflicts logs the resource update with conflicts if there is a hook for this type.
 func (l *Log) LogUpdateWithConflicts(ptr resource.Pointer) UpdateWithConflictsHook {
 	l.mu.RLock()

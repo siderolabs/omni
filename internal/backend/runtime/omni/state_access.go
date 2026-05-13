@@ -550,6 +550,15 @@ func filterAccessByType(access state.Access) error {
 	}
 
 	switch access.ResourceType {
+	case omni.ImportedClusterSecretsType:
+		// External callers can only create and destroy. Reads and updates are denied so the secret
+		// data is never exposed back to the client. Deletion goes through the Teardown RPC which
+		// authorizes as a destroy.
+		if access.Verb == state.Create || access.Verb == state.Destroy {
+			return nil
+		}
+
+		return status.Error(codes.PermissionDenied, "only create and destroy access is permitted for imported cluster secrets")
 	case authres.EulaAcceptanceType:
 		// Allow read and create access. Update and destroy are forbidden — EULA acceptance is permanent.
 		if access.Verb.Readonly() || access.Verb == state.Create {
@@ -559,13 +568,21 @@ func filterAccessByType(access state.Access) error {
 		return status.Error(codes.PermissionDenied, "only read and create access is permitted for EULA acceptance")
 	case siderolink.PendingMachineType,
 		siderolink.LinkType:
-		// Allow read, update and delete access
-		// Update access is required for siderolink by rtestutils.Destroy[*siderolink.Link] call on integration tests
+		// Allow read and delete access. Teardown goes through the Teardown RPC,
+		// which is authorized as a destroy, so external callers do not need update access.
+		if access.Verb.Readonly() || access.Verb == state.Destroy {
+			return nil
+		}
+
+		return status.Error(codes.PermissionDenied, "only read and delete access is permitted")
+	case siderolink.JoinTokenType:
+		// Allow read, update, and destroy. Create must go through the management.CreateJoinToken
+		// API, also enforced in filterAccess upstream.
 		if access.Verb.Readonly() || access.Verb == state.Update || access.Verb == state.Destroy {
 			return nil
 		}
 
-		return status.Error(codes.PermissionDenied, "only read, update and delete access is permitted")
+		return status.Error(codes.PermissionDenied, "only read, update and destroy access is permitted; create should be done via the management.CreateJoinToken API call")
 	case
 		omni.ClusterBootstrapStatusType,
 		omni.ClusterConfigVersionType,
@@ -633,8 +650,10 @@ func filterAccessByType(access state.Access) error {
 		omni.NotificationType,
 		omni.UpgradeRolloutType,
 		authres.AuthConfigType,
+		authres.IdentityType,
 		authres.IdentityLastActiveType,
 		authres.IdentityStatusType,
+		authres.UserType,
 		authres.PublicKeyLastActiveType,
 		authres.ServiceAccountStatusType,
 		siderolink.JoinTokenStatusType,

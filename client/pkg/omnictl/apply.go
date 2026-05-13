@@ -22,6 +22,8 @@ import (
 	"github.com/siderolabs/gen/ensure"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v4"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
@@ -144,22 +146,35 @@ func applyConfigFromBytes(ctx context.Context, client *client.Client, yamlRaw []
 
 	for _, res := range resources {
 		got, err := st.Get(ctx, res.Metadata())
-		if err != nil && !state.IsNotFoundError(err) {
-			return fmt.Errorf("failed to get resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
-		}
+		code := status.Code(err)
 
-		if state.IsNotFoundError(err) {
-			err = createResource(ctx, st, res, applyCmdFlags.options)
-			if err != nil {
+		switch {
+		case err == nil:
+			if err = updateResource(ctx, st, got, res, applyCmdFlags.options); err != nil {
+				return fmt.Errorf("failed to update resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
+			}
+		case state.IsNotFoundError(err):
+			if err = createResource(ctx, st, res, applyCmdFlags.options); err != nil {
 				return fmt.Errorf("failed to create resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
 			}
+		case code == codes.PermissionDenied || code == codes.Unauthenticated:
+			// The caller does not have read access. Fall back to attempting a
+			// blind create. If the resource already exists, the create will
+			// fail with a conflict, which means it exists but we cannot read
+			// it to update it; surface a helpful error.
+			createErr := createResource(ctx, st, res, applyCmdFlags.options)
+			if createErr == nil {
+				continue
+			}
 
-			continue
-		}
+			if state.IsConflictError(createErr) {
+				return fmt.Errorf("resource '%s' '%s' already exists and cannot be read (%w); destroy it before applying again",
+					res.Metadata().ID(), res.Metadata().Type(), err)
+			}
 
-		err = updateResource(ctx, st, got, res, applyCmdFlags.options)
-		if err != nil {
-			return fmt.Errorf("failed to update resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
+			return fmt.Errorf("failed to create resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), createErr)
+		default:
+			return fmt.Errorf("failed to get resource '%s' '%s': %w", res.Metadata().ID(), res.Metadata().Type(), err)
 		}
 	}
 

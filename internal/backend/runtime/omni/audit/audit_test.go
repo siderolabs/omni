@@ -19,6 +19,9 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
+	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -33,6 +36,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/hooks"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
+	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
@@ -56,7 +60,7 @@ func TestAudit(t *testing.T) {
 	res.Metadata().Labels().Set(auth.LabelPublicKeyUserID, "002cf196-1767-43fd-8e3d-91241e2ce70c")
 
 	res.TypedSpec().Value.Identity = &specs.Identity{Email: "dmitry.matrenichev@siderolabs.com"}
-	res.TypedSpec().Value.Role = "Admin"
+	res.TypedSpec().Value.Role = string(role.Admin)
 	res.TypedSpec().Value.PublicKey = nil
 	res.TypedSpec().Value.Expiration = timestamppb.New(time.Unix(1325587579, 0))
 
@@ -149,7 +153,7 @@ func TestPhaseChangeIsAudited(t *testing.T) {
 	res.Metadata().Labels().Set(auth.LabelPublicKeyUserID, "002cf196-1767-43fd-8e3d-91241e2ce70c")
 
 	res.TypedSpec().Value.Identity = &specs.Identity{Email: "test@siderolabs.com"}
-	res.TypedSpec().Value.Role = "Admin"
+	res.TypedSpec().Value.Role = string(role.Admin)
 	res.TypedSpec().Value.Expiration = timestamppb.New(time.Unix(1325587579, 0))
 
 	createCtx := func() context.Context {
@@ -201,6 +205,84 @@ func TestPhaseChangeIsAudited(t *testing.T) {
 	require.Len(t, events, 2, "expected create + teardown events")
 	require.Equal(t, "create", events[0]["event_type"])
 	require.Equal(t, "teardown", events[1]["event_type"])
+}
+
+// TestAuditStateTeardown verifies the auditState wrapper emits a "teardown"
+// event when state.Teardown is called for a type with an update hook.
+func TestAuditStateTeardown(t *testing.T) {
+	st, l := newAuditStateWithHooks(t)
+
+	res := newPublicKey(t, "teardown-key")
+	require.NoError(t, st.Create(t.Context(), res))
+
+	_, err := st.Teardown(t.Context(), res.Metadata())
+	require.NoError(t, err)
+
+	events := readAuditEvents(t, l)
+	require.Len(t, events, 2, "expected create + teardown events")
+	require.Equal(t, "create", events[0]["event_type"])
+	require.Equal(t, "teardown", events[1]["event_type"])
+}
+
+// TestAuditStateTeardownAndDestroy verifies the auditState wrapper emits both
+// a "teardown" and a "destroy" event when state.TeardownAndDestroy is called.
+func TestAuditStateTeardownAndDestroy(t *testing.T) {
+	st, l := newAuditStateWithHooks(t)
+
+	res := newPublicKey(t, "teardown-and-destroy-key")
+	require.NoError(t, st.Create(t.Context(), res))
+
+	require.NoError(t, st.TeardownAndDestroy(t.Context(), res.Metadata()))
+
+	events := readAuditEvents(t, l)
+	require.Len(t, events, 3, "expected create + teardown + destroy events")
+	require.Equal(t, "create", events[0]["event_type"])
+	require.Equal(t, "teardown", events[1]["event_type"])
+	require.Equal(t, "destroy", events[2]["event_type"])
+}
+
+// TestAuditStateTeardownNoHook verifies that types without registered hooks
+// produce no audit events on Teardown / TeardownAndDestroy.
+func TestAuditStateTeardownNoHook(t *testing.T) {
+	config := config.LogsAudit{Enabled: new(true)}
+	l := must.Value(audit.NewLog(t.Context(), config, testDB(t), zaptest.NewLogger(t)))(t)
+	// no hooks registered
+
+	st := audit.WrapState(state.WrapCore(namespaced.NewState(inmem.Build)), l)
+
+	res := newPublicKey(t, "no-hook-key")
+	require.NoError(t, st.Create(t.Context(), res))
+
+	_, err := st.Teardown(t.Context(), res.Metadata())
+	require.NoError(t, err)
+
+	require.NoError(t, st.TeardownAndDestroy(t.Context(), res.Metadata()))
+
+	require.Empty(t, readAuditEvents(t, l))
+}
+
+func newAuditStateWithHooks(t *testing.T) (state.State, *audit.Log) {
+	t.Helper()
+
+	config := config.LogsAudit{Enabled: new(true)}
+	l := must.Value(audit.NewLog(t.Context(), config, testDB(t), zaptest.NewLogger(t)))(t)
+
+	hooks.Init(l)
+
+	return audit.WrapState(state.WrapCore(namespaced.NewState(inmem.Build)), l), l
+}
+
+func newPublicKey(t *testing.T, id string) *auth.PublicKey {
+	t.Helper()
+
+	res := auth.NewPublicKey(id)
+
+	res.Metadata().Labels().Set(auth.LabelPublicKeyUserID, "002cf196-1767-43fd-8e3d-91241e2ce70c")
+	res.TypedSpec().Value.Identity = &specs.Identity{Email: "test@siderolabs.com"}
+	res.TypedSpec().Value.Role = string(role.Admin)
+	res.TypedSpec().Value.Expiration = timestamppb.New(time.Unix(1325587579, 0))
+
+	return res
 }
 
 func TestK8SAccessAuditSkipsReadLikeRequests(t *testing.T) {

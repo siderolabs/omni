@@ -15,13 +15,23 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 )
 
+// destroyConcurrency caps how many TeardownAndDestroy calls run in parallel.
+const destroyConcurrency = 8
+
 // Destroy tears down and destroys resources of the specified type.
 //
-//nolint:gocognit,gocyclo,cyclop
+// Each resource is deleted via [state.State.TeardownAndDestroy], which over the
+// gRPC adapter is a single atomic call that handles teardown, the wait for
+// finalizers, and destroy server-side. This means the caller does not need read
+// access to the resource, only destroy access.
+//
+// When --all or --selector is used, the resource type must support List (read
+// access) so the IDs can be enumerated. Per-ID deletion has no such requirement.
 func Destroy(ctx context.Context, st state.State, resNS, resType, selector string, all bool, ids []resource.ID) error {
 	rd, err := ResolveType(ctx, st, resType)
 	if err != nil {
@@ -32,20 +42,11 @@ func Destroy(ctx context.Context, st state.State, resNS, resType, selector strin
 		resNS = rd.TypedSpec().DefaultNamespace
 	}
 
-	listMD := resource.NewMetadata(resNS, rd.TypedSpec().Type, "", resource.VersionUndefined)
-
-	var (
-		resourceIDs   []resource.ID
-		useWatchKind  bool
-		watchKindOpts []state.WatchKindOption
-	)
+	var resourceIDs []resource.ID
 
 	if len(ids) > 0 {
 		resourceIDs = slices.Clone(ids)
-		useWatchKind = len(resourceIDs) > 10
 	} else {
-		useWatchKind = true
-
 		if !all && selector == "" {
 			return fmt.Errorf("either resource ID or one of all or selector must be specified")
 		}
@@ -61,86 +62,37 @@ func Destroy(ctx context.Context, st state.State, resNS, resType, selector strin
 			}
 
 			listOpts = append(listOpts, state.WithLabelQuery(labelQuery))
-			watchKindOpts = append(watchKindOpts, state.WatchWithLabelQuery(labelQuery))
 		}
+
+		listMD := resource.NewMetadata(resNS, rd.TypedSpec().Type, "", resource.VersionUndefined)
 
 		if resourceIDs, err = getResourceIDs(ctx, st, listMD, listOpts...); err != nil {
 			return err
 		}
 	}
 
-	watchCh := make(chan state.Event)
+	eg, gctx := errgroup.WithContext(ctx)
+	eg.SetLimit(destroyConcurrency)
 
-	if useWatchKind {
-		if err = st.WatchKind(ctx, listMD, watchCh, watchKindOpts...); err != nil {
-			return err
-		}
-	} else {
-		for _, resourceID := range resourceIDs {
-			err = st.Watch(ctx, resource.NewMetadata(resNS, rd.TypedSpec().Type, resourceID, resource.VersionUndefined), watchCh)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	resourceIDsLeft := map[resource.ID]struct{}{}
-
-	// teardown all resources
 	for _, resourceID := range resourceIDs {
-		destroyReady, teardownErr := st.Teardown(ctx, resource.NewMetadata(resNS, rd.TypedSpec().Type, resourceID, resource.VersionUndefined))
-		if teardownErr != nil {
-			return teardownErr
-		}
+		eg.Go(func() error {
+			md := resource.NewMetadata(resNS, rd.TypedSpec().Type, resourceID, resource.VersionUndefined)
 
-		fmt.Fprintf(os.Stderr, "torn down %s %s\n", rd.TypedSpec().Type, resourceID)
+			if err := st.TeardownAndDestroy(gctx, md); err != nil {
+				if state.IsNotFoundError(err) {
+					return nil
+				}
 
-		if destroyReady {
-			if err = st.Destroy(ctx, resource.NewMetadata(resNS, rd.TypedSpec().Type, resourceID, resource.VersionUndefined)); err != nil {
 				return err
 			}
 
 			fmt.Fprintf(os.Stderr, "destroyed %s %s\n", rd.TypedSpec().Type, resourceID)
 
-			continue
-		}
-
-		resourceIDsLeft[resourceID] = struct{}{}
+			return nil
+		})
 	}
 
-	// until some resources are not deleted yet...
-	for len(resourceIDsLeft) > 0 {
-		var event state.Event
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case event = <-watchCh:
-		}
-
-		switch event.Type {
-		case state.Destroyed:
-			delete(resourceIDsLeft, event.Resource.Metadata().ID())
-		case state.Created, state.Updated:
-			if _, ours := resourceIDsLeft[event.Resource.Metadata().ID()]; !ours {
-				continue
-			}
-
-			if event.Resource.Metadata().Phase() == resource.PhaseTearingDown && event.Resource.Metadata().Finalizers().Empty() {
-				if err = st.Destroy(ctx, event.Resource.Metadata()); err != nil && !state.IsNotFoundError(err) {
-					return err
-				}
-
-				fmt.Fprintf(os.Stderr, "destroyed %s %s\n", rd.TypedSpec().Type, event.Resource.Metadata().ID())
-			}
-		case state.Bootstrapped, state.Noop:
-			// ignore
-		case state.Errored:
-			return fmt.Errorf("error watching for resource deletion: %w", event.Error)
-		}
-	}
-
-	return nil
+	return eg.Wait()
 }
 
 // ResolveType resolves the resource type to a resource definition.

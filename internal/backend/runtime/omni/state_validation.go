@@ -1529,11 +1529,6 @@ func importedClusterSecretValidationOptions(st state.State, clusterImportEnabled
 
 			return validateImportedClusterSecrets(ctx, st, res)
 		})),
-		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
-			func(ctx context.Context, oldRes *omni.ImportedClusterSecrets, newRes *omni.ImportedClusterSecrets, _ ...state.UpdateOption) error {
-				return validateImportedClusterSecrets(ctx, st, newRes)
-			},
-		)),
 	}
 }
 
@@ -1544,7 +1539,7 @@ func validateImportedClusterSecrets(ctx context.Context, st state.State, res *om
 			return err
 		}
 	} else {
-		return fmt.Errorf("cannot create/update an ImportedClusterSecrets, as there is already an existing cluster with name: %q", res.Metadata().ID())
+		return fmt.Errorf("cannot create an ImportedClusterSecrets, as there is already an existing cluster with name: %q", res.Metadata().ID())
 	}
 
 	bundle, err := omni.FromImportedSecretsToSecretsBundle(res)

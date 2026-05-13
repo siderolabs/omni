@@ -171,6 +171,98 @@ func (v *State) Destroy(ctx context.Context, pointer resource.Pointer, option ..
 	return v.st.Destroy(ctx, pointer, option...)
 }
 
+// Teardown marks a resource as being destroyed, applying the same authorization
+// validations as Destroy.
+//
+// Implements [state.Teardowner], so [state.WrapCore] over this State routes
+// callers through this method instead of the default Get + Update fallback,
+// keeping the operation authorized as a destroy rather than an update.
+func (v *State) Teardown(ctx context.Context, pointer resource.Pointer, option ...state.TeardownOption) (bool, error) {
+	var opts state.TeardownOptions
+
+	for _, o := range option {
+		o(&opts)
+	}
+
+	existing, err := v.st.Get(ctx, pointer)
+	if err != nil && !state.IsNotFoundError(err) {
+		return false, err
+	}
+
+	// teardown is destructive; apply the destroy validations against the
+	// resource, mapping the teardown owner to a destroy owner.
+
+	destroyOpts := []state.DestroyOption{state.WithDestroyOwner(opts.Owner)}
+
+	var validationErrs error
+
+	for _, validation := range v.destroyValidations {
+		if validationErr := validation(ctx, pointer, existing, destroyOpts...); validationErr != nil {
+			validationErrs = multierror.Append(validationErrs, validationErr)
+		}
+	}
+
+	if validationErrs != nil {
+		return false, ValidationError(validationErrs)
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	// delegate to the underlying state. coreWrapper takes the Teardowner fast
+	// path if v.st implements it, otherwise falls back to Get + Update on v.st
+	// itself, bypassing this State's Update intercept.
+	return state.WrapCore(v.st).Teardown(ctx, pointer, option...)
+}
+
+// TeardownAndDestroy tears down a resource and destroys it once all finalizers
+// are gone, applying the same authorization validations as Destroy.
+//
+// Implements [state.TeardownAndDestroyer], so [state.WrapCore] over this State
+// routes callers through this method instead of the default Teardown + WatchFor
+// + Destroy path, ensuring the operation is authorized as a destroy and the
+// wait for finalizers happens against the underlying state.
+func (v *State) TeardownAndDestroy(ctx context.Context, pointer resource.Pointer, option ...state.TeardownAndDestroyOption) error {
+	var opts state.TeardownAndDestroyOptions
+
+	for _, o := range option {
+		o(&opts)
+	}
+
+	existing, err := v.st.Get(ctx, pointer)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	// teardown-and-destroy is destructive; apply the destroy validations against
+	// the resource, mapping the teardown-and-destroy owner to a destroy owner.
+
+	destroyOpts := []state.DestroyOption{state.WithDestroyOwner(opts.Owner)}
+
+	var validationErrs error
+
+	for _, validation := range v.destroyValidations {
+		if validationErr := validation(ctx, pointer, existing, destroyOpts...); validationErr != nil {
+			validationErrs = multierror.Append(validationErrs, validationErr)
+		}
+	}
+
+	if validationErrs != nil {
+		return ValidationError(validationErrs)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// delegate to the underlying state. coreWrapper takes the TeardownAndDestroyer
+	// fast path if v.st implements it, otherwise falls back to Teardown + WatchFor
+	// + Destroy on v.st itself, bypassing this State's Update intercept on the
+	// internal Teardown step.
+	return state.WrapCore(v.st).TeardownAndDestroy(ctx, pointer, option...)
+}
+
 // Watch watches a resource in the underlying state.
 func (v *State) Watch(ctx context.Context, pointer resource.Pointer, events chan<- state.Event, option ...state.WatchOption) error {
 	var validationErrs error

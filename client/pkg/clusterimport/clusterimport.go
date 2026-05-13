@@ -136,6 +136,10 @@ func BuildContext(ctx context.Context, input Input, omniState state.State, image
 	}
 
 	if existingCluster != nil {
+		if _, importing := existingCluster.Metadata().Annotations().Get(omni.ClusterImportIsInProgress); importing {
+			return nil, fmt.Errorf("cluster %q already exists in Omni and is marked as importing, run `omnictl cluster import abort %s` to clean it up before retrying", clusterID, clusterID)
+		}
+
 		return nil, fmt.Errorf("cluster %q already exists in Omni", clusterID)
 	}
 
@@ -855,8 +859,26 @@ func (c *Context) createImportedClusterSecrets(ctx context.Context) error {
 		return nil
 	}
 
-	if err := c.omniState.Modify(ctx, c.importedClusterSecrets, noop); err != nil {
+	err := c.omniState.Create(ctx, c.importedClusterSecrets)
+	if err == nil {
+		return nil
+	}
+
+	if !state.IsConflictError(err) {
 		return fmt.Errorf("failed to create imported cluster secrets: %w", err)
+	}
+
+	// An ImportedClusterSecrets with this ID already exists. Since the preflight in BuildContext
+	// confirmed there is no Cluster for this ID, this is an orphan left over from a previous import
+	// that crashed before its matching Cluster was created. It is safe to replace it.
+	c.input.logf("replacing orphaned imported cluster secrets %q", c.importedClusterSecrets.Metadata().ID())
+
+	if err = c.omniState.TeardownAndDestroy(ctx, c.importedClusterSecrets.Metadata()); err != nil {
+		return fmt.Errorf("failed to remove orphaned imported cluster secrets: %w", err)
+	}
+
+	if err = c.omniState.Create(ctx, c.importedClusterSecrets); err != nil {
+		return fmt.Errorf("failed to create imported cluster secrets after removing orphan: %w", err)
 	}
 
 	return nil

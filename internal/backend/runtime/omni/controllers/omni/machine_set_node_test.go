@@ -326,9 +326,13 @@ func (suite *MachineSetNodeSuite) TestNoRaceBetweenCleanupAndMachineSetNodeContr
 
 	// Under the bug, the cleanup handler destroys the MSN and MachineSetNodeController
 	// immediately creates a new one for the same machine (new Created() timestamp).
-	// Either keeping the original MSN or leaving it destroyed is acceptable — recreating is not.
+	// Either keeping the original MSN or leaving it destroyed is acceptable, recreating is not.
+	//
+	// Capture the state into a local so the orphan tick goroutine that testify.Never may leave
+	// running after timeout does not race with the next test's SetupTest overwriting suite.state.
+	st := suite.state
 	suite.Require().Never(func() bool {
-		msn, getErr := safe.StateGetByID[*omni.MachineSetNode](ctx, suite.state, machineID)
+		msn, getErr := safe.StateGetByID[*omni.MachineSetNode](ctx, st, machineID)
 		if getErr != nil {
 			return false
 		}

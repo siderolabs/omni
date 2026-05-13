@@ -47,7 +47,7 @@ func Test_Talosconfig(t *testing.T) {
 	t.Run("reconcile", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(

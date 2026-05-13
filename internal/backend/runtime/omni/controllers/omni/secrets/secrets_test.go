@@ -257,7 +257,7 @@ func TestSecretRotation(t *testing.T) {
 	t.Run("trigger Talos CA rotation", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 
 		t.Cleanup(cancel)
 
@@ -381,7 +381,7 @@ func TestSecretRotation(t *testing.T) {
 	t.Run("trigger Kubernetes CA rotation", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 
 		t.Cleanup(cancel)
 

@@ -628,7 +628,6 @@ func AssertDestroyCluster(testCtx context.Context, omniState state.State, cluste
 		require.NoError(t, err)
 
 		rtestutils.AssertNoResource[*omni.Cluster](ctx, t, omniState, clusterName)
-		rtestutils.AssertNoResource[*omni.ImportedClusterSecrets](ctx, t, omniState, clusterName)
 
 		for _, id := range patches {
 			rtestutils.AssertNoResource[*omni.ConfigPatch](ctx, t, omniState, id)

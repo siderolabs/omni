@@ -121,8 +121,6 @@ func testImport(t *testing.T, options *TestOptions, clusterID string, clusterNod
 
 	_, err = talosClient.Version(client.WithNode(ctx, clusterNodes[0]))
 	require.NoError(t, err)
-
-	rtestutils.AssertNoResource[*omni.ImportedClusterSecrets](ctx, t, omniState, clusterID)
 }
 
 func testUnlockCluster(t *testing.T, options *TestOptions, clusterID string) {

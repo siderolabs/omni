@@ -128,11 +128,86 @@ func (a *auditState) WatchFor(ctx context.Context, pointer resource.Pointer, con
 }
 
 func (a *auditState) Teardown(ctx context.Context, pointer resource.Pointer, option ...state.TeardownOption) (bool, error) {
-	return a.state.Teardown(ctx, pointer, option...)
+	fn := a.logger.LogTeardown(pointer)
+	if fn == nil {
+		return a.state.Teardown(ctx, pointer, option...)
+	}
+
+	oldRes, err := a.state.Get(ctx, pointer)
+	if err != nil && !state.IsNotFoundError(err) {
+		return false, err
+	}
+
+	ready, err := a.state.Teardown(ctx, pointer, option...)
+	if err != nil {
+		return ready, err
+	}
+
+	if oldRes == nil {
+		return ready, nil
+	}
+
+	var opts state.TeardownOptions
+
+	for _, o := range option {
+		o(&opts)
+	}
+
+	// The teardown event is emitted through the update hook chain with a
+	// synthesized post-teardown resource. Hooks that only care about teardown
+	// (e.g. when newRes is in PhaseTearingDown) trigger as expected, and the
+	// isEqualResource check naturally suppresses idempotent re-teardowns.
+	newRes := oldRes.DeepCopy()
+	newRes.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	return ready, fn(ctx, oldRes, newRes, state.WithUpdateOwner(opts.Owner))
 }
 
 func (a *auditState) TeardownAndDestroy(ctx context.Context, pointer resource.Pointer, option ...state.TeardownAndDestroyOption) error {
-	return a.state.TeardownAndDestroy(ctx, pointer, option...)
+	updateFn := a.logger.LogTeardown(pointer)
+	destroyFn := a.logger.LogDestroy(pointer)
+
+	if updateFn == nil && destroyFn == nil {
+		return a.state.TeardownAndDestroy(ctx, pointer, option...)
+	}
+
+	var oldRes resource.Resource
+
+	if updateFn != nil {
+		var err error
+
+		oldRes, err = a.state.Get(ctx, pointer)
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+	}
+
+	if err := a.state.TeardownAndDestroy(ctx, pointer, option...); err != nil {
+		return err
+	}
+
+	var opts state.TeardownAndDestroyOptions
+
+	for _, o := range option {
+		o(&opts)
+	}
+
+	if updateFn != nil && oldRes != nil {
+		newRes := oldRes.DeepCopy()
+		newRes.Metadata().SetPhase(resource.PhaseTearingDown)
+
+		if err := updateFn(ctx, oldRes, newRes, state.WithUpdateOwner(opts.Owner)); err != nil {
+			return err
+		}
+	}
+
+	if destroyFn != nil {
+		if err := destroyFn(ctx, pointer, state.WithDestroyOwner(opts.Owner)); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (a *auditState) AddFinalizer(ctx context.Context, pointer resource.Pointer, finalizer ...resource.Finalizer) error {
