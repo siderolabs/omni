@@ -120,23 +120,23 @@ func TestMachineStatusMetricsController_UnsupportedTalosVersion(t *testing.T) {
 	}{
 		{
 			name:            "all machines above threshold",
-			machineVersions: map[string]string{"m1": "v1.10.0", "m2": "v1.11.0"},
+			machineVersions: map[string]string{"m1": "v1.12.0", "m2": "v1.13.0"},
 		},
 		{
 			name:                   "machines approaching end of support",
-			machineVersions:        map[string]string{"m1": "v1.8.0", "m2": "v1.9.0", "m3": "v1.11.0"},
+			machineVersions:        map[string]string{"m1": "v1.9.0", "m2": "v1.10.0", "m3": "v1.13.0"},
 			expectApproaching:      true,
 			expectApproachingCount: 2,
 		},
 		{
 			name:                    "machines past end of support",
-			machineVersions:         map[string]string{"m1": "v1.7.0", "m2": "v1.6.0", "m3": "v1.11.0"},
+			machineVersions:         map[string]string{"m1": "v1.7.0", "m2": "v1.8.0", "m3": "v1.13.0"},
 			expectEndOfSupport:      true,
 			expectEndOfSupportCount: 2,
 		},
 		{
 			name:                    "mix of approaching and past end of support",
-			machineVersions:         map[string]string{"m1": "v1.8.0", "m2": "v1.7.0", "m3": "v1.11.0"},
+			machineVersions:         map[string]string{"m1": "v1.8.0", "m2": "v1.9.0", "m3": "v1.13.0"},
 			expectApproaching:       true,
 			expectApproachingCount:  1,
 			expectEndOfSupport:      true,

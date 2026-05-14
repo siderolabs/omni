@@ -14,10 +14,10 @@ import (
 )
 
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
-const AnotherTalosVersion = "1.12.5"
+const AnotherTalosVersion = "1.13.0"
 
 // StableTalosVersion is used in the integration tests for Talos upgrade between minor versions.
-const StableTalosVersion = "1.11.6"
+const StableTalosVersion = "1.12.6"
 
 // MinDiscoveredTalosVersion makes Omni pull the versions from this point.
 const MinDiscoveredTalosVersion = "1.3.0"
@@ -25,21 +25,20 @@ const MinDiscoveredTalosVersion = "1.3.0"
 // DefaultKubernetesVersion is pre-selected in the UI and used in the integration tests.
 //
 // tsgen:DefaultKubernetesVersion
-const DefaultKubernetesVersion = "1.35.3"
+const DefaultKubernetesVersion = "1.36.0"
 
 // DefaultTalosVersion to be used in the tests.
 const DefaultTalosVersion = constants.DefaultTalosVersion
 
 // AnotherKubernetesVersion is used in the integration tests for Kubernetes upgrade.
-const AnotherKubernetesVersion = "1.34.6"
+const AnotherKubernetesVersion = "1.35.4"
 
 // MinKubernetesVersion allowed to be used when creating the cluster.
-const MinKubernetesVersion = "1.24.0"
+const MinKubernetesVersion = "1.27.0"
 
 // DenylistedTalosVersions is a list of versions which should never show up in the version picker.
 var DenylistedTalosVersions = Denylist{
-	"1.4.2": {}, // issue with the number of open files limit
-	"1.4.3": {}, // issue with the number of open files limit
+	"1.13.1": {}, // kernel modules that are shipped as extensions when using Imager/Image Factory are broken
 }
 
 // Denylist helper.

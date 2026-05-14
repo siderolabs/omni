@@ -128,7 +128,7 @@ func (m *imageFactoryMock) handleSchematics(rw http.ResponseWriter, r *http.Requ
 	m.schematicMu.Lock()
 	defer m.schematicMu.Unlock()
 
-	id, err := m.saveSchematic(r)
+	id, data, err := m.saveSchematic(r)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(err.Error())) //nolint:errcheck
@@ -140,9 +140,11 @@ func (m *imageFactoryMock) handleSchematics(rw http.ResponseWriter, r *http.Requ
 	rw.WriteHeader(http.StatusCreated)
 
 	resp, err := json.Marshal(struct {
-		ID string `json:"id"`
+		ID        string `json:"id"`
+		Schematic string `json:"schematic"`
 	}{
-		ID: id,
+		ID:        id,
+		Schematic: string(data),
 	})
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -154,24 +156,24 @@ func (m *imageFactoryMock) handleSchematics(rw http.ResponseWriter, r *http.Requ
 	rw.Write(resp) //nolint:errcheck
 }
 
-func (m *imageFactoryMock) saveSchematic(r *http.Request) (string, error) {
+func (m *imageFactoryMock) saveSchematic(r *http.Request) (string, []byte, error) {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	if err = r.Body.Close(); err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	cfg, err := schematic.Unmarshal(data)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	id, err := cfg.ID()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	if m.schematics == nil {
@@ -180,7 +182,7 @@ func (m *imageFactoryMock) saveSchematic(r *http.Request) (string, error) {
 
 	m.schematics[id] = *cfg
 
-	return id, nil
+	return id, data, nil
 }
 
 type TalosExtensionsSuite struct {

@@ -59,6 +59,16 @@ type Server struct {
 	certData *certData
 }
 
+// EnableUnencryptedHTTP2 configures the underlying http.Server to accept
+// HTTP/1.1 and cleartext HTTP/2 (h2c) on the same listener. Use this for
+// non-TLS endpoints that must serve gRPC over HTTP/2.
+func (s *Server) EnableUnencryptedHTTP2() {
+	p := new(http.Protocols)
+	p.SetHTTP1(true)
+	p.SetUnencryptedHTTP2(true)
+	s.server.Protocols = p
+}
+
 type certData struct {
 	cert     tls.Certificate
 	certFile string

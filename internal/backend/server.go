@@ -51,8 +51,6 @@ import (
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -720,16 +718,7 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 }
 
 func (s *Server) makeAPIServer(regular http.Handler, grpcServer *grpcServer) *apiServer {
-	wrap := func(fn func(w http.ResponseWriter, req *http.Request)) http.Handler {
-		if s.apiService.IsSecure() {
-			return http.HandlerFunc(fn)
-		}
-
-		// If we don't have TLS data, wrap the handler in http2.Server
-		return h2c.NewHandler(http.HandlerFunc(fn), &http2.Server{})
-	}
-
-	handler := wrap(func(w http.ResponseWriter, req *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.ProtoMajor == 2 && strings.HasPrefix(
 			req.Header.Get("Content-Type"), "application/grpc") {
 			// grpcServer provides top-level gRPC proxy handler.
@@ -742,11 +731,14 @@ func (s *Server) makeAPIServer(regular http.Handler, grpcServer *grpcServer) *ap
 		regular.ServeHTTP(w, req)
 	})
 
+	srv := services.NewFromConfig(&s.apiService, handler)
+	if !s.apiService.IsSecure() {
+		// Without TLS, accept HTTP/1.1 and cleartext HTTP/2 (h2c) so gRPC works.
+		srv.EnableUnencryptedHTTP2()
+	}
+
 	return &apiServer{
-		srv: services.NewFromConfig(
-			&s.apiService,
-			handler,
-		),
+		srv:     srv,
 		handler: handler,
 		logger:  s.logger.With(zap.String("server", s.apiService.GetEndpoint()), zap.String("server_type", "api")),
 	}

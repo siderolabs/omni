@@ -2,7 +2,7 @@
 
 # THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 #
-# Generated on 2026-04-30T07:33:35Z by kres 1762ab2.
+# Generated on 2026-05-12T17:49:10Z by kres 1762ab2.
 
 ARG JS_TOOLCHAIN
 ARG TOOLCHAIN=scratch
@@ -274,7 +274,7 @@ ADD https://raw.githubusercontent.com/siderolabs/talos/v1.9.6/pkg/machinery/conf
 ADD https://raw.githubusercontent.com/siderolabs/talos/v1.10.9/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_10.schema.json
 ADD https://raw.githubusercontent.com/siderolabs/talos/v1.11.6/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_11.schema.json
 ADD https://raw.githubusercontent.com/siderolabs/talos/v1.12.6/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_12.schema.json
-ADD https://raw.githubusercontent.com/siderolabs/talos/v1.13.0-rc.0/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_13.schema.json
+ADD https://raw.githubusercontent.com/siderolabs/talos/v1.13.2/pkg/machinery/config/schemas/config.schema.json frontend/src/schemas/config_1_13.schema.json
 COPY --from=proto-compile-frontend frontend/ frontend/
 
 # run go generate

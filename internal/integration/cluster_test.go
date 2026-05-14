@@ -76,6 +76,16 @@ type ClusterOptions struct {
 	AllowSchedulingOnControlPlanes bool
 }
 
+func withEmbeddedDiscoveryService(features *specs.ClusterSpec_Features) *specs.ClusterSpec_Features {
+	if features == nil {
+		features = &specs.ClusterSpec_Features{}
+	}
+
+	features.UseEmbeddedDiscoveryService = true
+
+	return features
+}
+
 // CreateCluster verifies cluster creation.
 func CreateCluster(testCtx context.Context, testOptions *TestOptions, options ClusterOptions) TestFunc {
 	return func(t *testing.T) {
@@ -101,7 +111,7 @@ func CreateCluster(testCtx context.Context, testOptions *TestOptions, options Cl
 			cluster := omni.NewCluster(options.Name)
 			cluster.TypedSpec().Value.TalosVersion = options.MachineOptions.TalosVersion
 			cluster.TypedSpec().Value.KubernetesVersion = options.MachineOptions.KubernetesVersion
-			cluster.TypedSpec().Value.Features = options.Features
+			cluster.TypedSpec().Value.Features = withEmbeddedDiscoveryService(options.Features)
 			cluster.TypedSpec().Value.BackupConfiguration = options.EtcdBackup
 
 			require.NoError(st.Create(ctx, cluster))
@@ -160,7 +170,7 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 		cluster := omni.NewCluster(options.Name)
 		cluster.TypedSpec().Value.TalosVersion = options.MachineOptions.TalosVersion
 		cluster.TypedSpec().Value.KubernetesVersion = options.MachineOptions.KubernetesVersion
-		cluster.TypedSpec().Value.Features = options.Features
+		cluster.TypedSpec().Value.Features = withEmbeddedDiscoveryService(options.Features)
 		cluster.TypedSpec().Value.BackupConfiguration = options.EtcdBackup
 
 		kubespanEnabler := omni.NewConfigPatch(fmt.Sprintf("%s-kubespan-enabler", options.Name))
