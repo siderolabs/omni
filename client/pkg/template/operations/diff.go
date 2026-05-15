@@ -12,12 +12,16 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 
+	"github.com/siderolabs/omni/client/pkg/execdiff"
 	"github.com/siderolabs/omni/client/pkg/template"
-	"github.com/siderolabs/omni/client/pkg/template/operations/internal/utils"
 )
 
 // DiffTemplate outputs the diff between template resources and existing resources.
-func DiffTemplate(ctx context.Context, templateReader io.Reader, output io.Writer, st state.State, root *os.Root) error {
+//
+// When differ is non-nil, it is used to render diffs (built-in colorized output
+// or via an external diff tool when OMNI_EXTERNAL_DIFF is set). When differ is
+// nil, the legacy direct-write rendering is used.
+func DiffTemplate(ctx context.Context, templateReader io.Reader, output io.Writer, st state.State, differ *execdiff.Differ, root *os.Root) error {
 	tmpl, err := template.Load(templateReader, template.WithRoot(root))
 	if err != nil {
 		return fmt.Errorf("error loading template: %w", err)
@@ -33,20 +37,20 @@ func DiffTemplate(ctx context.Context, templateReader io.Reader, output io.Write
 	}
 
 	for _, p := range syncResult.Update {
-		if err = utils.RenderDiff(output, p.Old, p.New); err != nil {
+		if err = renderDiff(output, differ, p.Old, p.New); err != nil {
 			return err
 		}
 	}
 
 	for _, r := range syncResult.Create {
-		if err = utils.RenderDiff(output, nil, r); err != nil {
+		if err = renderDiff(output, differ, nil, r); err != nil {
 			return err
 		}
 	}
 
 	for _, phase := range syncResult.Destroy {
 		for _, r := range phase {
-			if err = utils.RenderDiff(output, r, nil); err != nil {
+			if err = renderDiff(output, differ, r, nil); err != nil {
 				return err
 			}
 		}

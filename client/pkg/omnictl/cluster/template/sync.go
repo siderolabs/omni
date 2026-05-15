@@ -6,6 +6,7 @@ package template
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
+	"github.com/siderolabs/omni/client/pkg/execdiff"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 	"github.com/siderolabs/omni/client/pkg/template/operations"
 )
@@ -32,11 +34,49 @@ var syncCmd = &cobra.Command{
 	If a file is specified, only that file will be processed.
 	If a directory is specified, all YAML files (*.yaml, *.yml) in the directory
 	and its subdirectories will be processed recursively. Each template file is
-	processed independently, allowing management of multiple clusters.`,
+	processed independently, allowing management of multiple clusters.
+
+	When --dry-run is used, ` + execdiff.EnvExternalDiff + ` environment variable can be
+	used to select an external diff command. Users can use external commands with
+	params too, example: ` + execdiff.EnvExternalDiff + `="colordiff -N -u"
+
+	By default, the built-in colorized unified diff is used.
+
+	Exit status: 0 No differences were found. 1 Differences were found. >1 An error occurred.`,
 	Example: "",
 	Args:    cobra.NoArgs,
-	RunE: func(*cobra.Command, []string) error {
-		return access.WithClient(syncTemplateFiles)
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		if syncCmdFlags.options.DryRun {
+			syncCmdFlags.options.Differ = execdiff.New(os.Stdout)
+		}
+
+		runErr := access.WithClient(syncTemplateFiles)
+
+		var hasDiff bool
+
+		if syncCmdFlags.options.Differ != nil {
+			flushed, flushErr := syncCmdFlags.options.Differ.Flush()
+			hasDiff = flushed
+
+			if flushErr != nil {
+				return errors.Join(runErr, flushErr)
+			}
+		}
+
+		if runErr != nil {
+			return runErr
+		}
+
+		if hasDiff {
+			// Don't surface ErrDifferencesFound as a user-facing error; it
+			// only carries the exit-code contract.
+			cmd.SilenceErrors = true
+			cmd.SilenceUsage = true
+
+			return execdiff.ErrDifferencesFound
+		}
+
+		return nil
 	},
 }
 

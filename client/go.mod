@@ -20,7 +20,6 @@ require (
 	github.com/mattn/go-isatty v0.0.21
 	github.com/neticdk/go-stdlib v1.0.1
 	github.com/planetscale/vtprotobuf v0.6.1-0.20250313105119-ba97887b0a25
-	github.com/sergi/go-diff v1.4.0
 	github.com/siderolabs/gen v0.8.6
 	github.com/siderolabs/go-api-signature v0.3.12
 	github.com/siderolabs/go-kubeconfig v0.1.2
