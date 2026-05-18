@@ -105,8 +105,8 @@ services:
     ports:
       - "127.0.0.1:9000:9000"
     environment:
-      MINIO_ACCESS_KEY: access
-      MINIO_SECRET_KEY: secret123
+      MINIO_ROOT_USER: access
+      MINIO_ROOT_PASSWORD: secret123
     command: server /minio-server/export
 
   prometheus:

@@ -159,7 +159,7 @@ function prepare_minio() {
   mkdir -p "${TEST_OUTPUTS_DIR}/minio/data"
 
   docker run --rm -d -p 9000:9000 \
-    -v "${TEST_OUTPUTS_DIR}/minio/data:/data" -e MINIO_ACCESS_KEY="$access_key" -e MINIO_SECRET_KEY="$secret_key" \
+    -v "${TEST_OUTPUTS_DIR}/minio/data:/data" -e MINIO_ROOT_USER="$access_key" -e MINIO_ROOT_PASSWORD="$secret_key" \
     --name "${MINIO_CONTAINER_NAME}" "${MINIO_DOCKER_IMAGE}" \
     server /data
 
