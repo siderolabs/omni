@@ -46,6 +46,8 @@ const (
 	_ = runtime.MachineStatusType
 	// tsgen:TalosVolumeStatusType
 	_ = block.VolumeStatusType
+	// tsgen:TalosSystemInformationType
+	_ = hardware.SystemInformationType
 
 	// Resource ids.
 	// tsgen:TalosNodenameID
@@ -58,6 +60,8 @@ const (
 	_ = perf.MemoryID
 	// tsgen:TalosMachineStatusID
 	_ = runtime.MachineStatusID
+	// tsgen:TalosSystemInformationID
+	_ = hardware.SystemInformationID
 
 	// Namespaces.
 	// tsgen:TalosPerfNamespace

@@ -11,13 +11,20 @@ import { computed, h } from 'vue'
 import { RouterLink } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
+import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
+import {
+  TalosHardwareNamespace,
+  TalosSystemInformationID,
+  TalosSystemInformationType,
+} from '@/api/resources'
 import { formatBytes } from '@/methods'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import MachineItemInfoCard from '@/views/Machines/MachineItemInfoCard.vue'
 import CloseButton from '@/views/Modals/CloseButton.vue'
 
-const { machine = undefined, searchQuery = '' } = defineProps<{
+const { machine, searchQuery } = defineProps<{
   machine?: Resource<MachineStatusLinkSpec>
   searchQuery?: string
 }>()
@@ -25,6 +32,29 @@ const { machine = undefined, searchQuery = '' } = defineProps<{
 defineEmits<{
   close: []
 }>()
+
+interface TalosSystemInformationSpec {
+  manufacturer?: string
+  productName?: string
+  version?: string
+  serialnumber?: string
+  uuid?: string
+  wakeUpType?: string
+  skuNumber?: string
+}
+
+const { data: sysInfo } = useResourceWatch<TalosSystemInformationSpec>(() => ({
+  skip: !machine?.metadata.id,
+  runtime: Runtime.Talos,
+  resource: {
+    namespace: TalosHardwareNamespace,
+    type: TalosSystemInformationType,
+    id: TalosSystemInformationID,
+  },
+  context: {
+    node: machine?.metadata.id,
+  },
+}))
 
 const machineName = computed(
   () => machine?.spec.message_status?.network?.hostname ?? machine?.metadata.id,
@@ -133,6 +163,7 @@ const secureBoot = computed(() => {
       <MachineItemInfoCard
         title="System"
         :sections="[
+          { title: 'Serial Number', value: sysInfo?.spec.serialnumber },
           { title: 'Extensions', value: machine?.spec.message_status?.schematic?.extensions },
         ]"
       />

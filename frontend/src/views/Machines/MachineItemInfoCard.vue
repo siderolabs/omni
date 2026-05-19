@@ -29,7 +29,7 @@ const filteredSections = computed(() =>
 </script>
 
 <template>
-  <Card>
+  <Card v-if="filteredSections.length > 0">
     <h3 class="px-4 pt-3 pb-2 text-sm font-medium text-naturals-n14">{{ title }}</h3>
 
     <dl class="flex flex-col items-start gap-1 p-4 text-xs wrap-anywhere text-naturals-n12">
