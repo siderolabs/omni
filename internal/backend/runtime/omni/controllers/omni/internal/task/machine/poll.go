@@ -277,6 +277,7 @@ func pollPlatformMetadata(ctx context.Context, c *client.Client, info *Info) err
 				InstanceId:   r.TypedSpec().InstanceID,
 				ProviderId:   r.TypedSpec().ProviderID,
 				Spot:         r.TypedSpec().Spot,
+				Tags:         r.TypedSpec().Tags,
 			}
 
 			return nil
