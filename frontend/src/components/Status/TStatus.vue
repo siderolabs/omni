@@ -67,6 +67,10 @@ const iconData = computed((): { iconClass?: string; iconTypeValue?: IconType } =
           iconClass: 'text-green-g1',
         }
       case TCommonStatuses.FINISHED:
+        return {
+          iconTypeValue: 'stop-circle',
+          iconClass: 'text-naturals-n9',
+        }
       case TCommonStatuses.FAILED:
         return {
           iconTypeValue: 'error',

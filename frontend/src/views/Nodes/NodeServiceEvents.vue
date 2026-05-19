@@ -36,6 +36,9 @@ const eventStyle = (state: string) => {
 
       break
     case 'Finished':
+      icon = 'stop'
+
+      break
     case 'Failed':
       icon = 'error'
       color = 'bg-red-r1'
@@ -51,7 +54,7 @@ const eventStyle = (state: string) => {
 </script>
 
 <template>
-  <div class="mt-4 -mb-2 pl-1">
+  <div class="pl-1">
     <div class="flex h-full w-full flex-col gap-4 border-l-2 border-naturals-n4">
       <div v-for="event in events" :key="event.ts" class="grid grid-cols-6 gap-3">
         <div class="flex items-center gap-3">

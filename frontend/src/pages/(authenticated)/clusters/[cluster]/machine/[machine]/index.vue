@@ -409,7 +409,7 @@ const servicesSectionHeadingId = useId()
             </div>
           </template>
           <template #details>
-            <NodeServiceEvents :events="service.events" />
+            <NodeServiceEvents class="mt-4 -mb-2" :events="service.events" />
           </template>
         </TListItem>
       </TGroupAnimation>

@@ -131,6 +131,8 @@ export const icons = {
   settings: defineAsyncComponent(() => import('../icons/IconSettings.vue')),
   'sidero-monochrome': defineAsyncComponent(() => import('../icons/IconSideroMonochrome.vue')),
   sidero: defineAsyncComponent(() => import('../icons/IconSidero.vue')),
+  stop: defineAsyncComponent(() => import('../icons/IconStop.vue')),
+  'stop-circle': defineAsyncComponent(() => import('../icons/IconStopCircle.vue')),
   tag: TagIcon,
   talos: defineAsyncComponent(() => import('../icons/IconTalos.vue')),
   'talos-config': defineAsyncComponent(() => import('../icons/IconTalosConfig.vue')),
