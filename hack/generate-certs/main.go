@@ -251,8 +251,7 @@ func (c *cfg) validate() error {
 	}
 }
 
-const composeTemplate = `version: '3.8'
-services:
+const composeTemplate = `services:
   omni:
     command: >-
       --sqlite-storage-path=/_out/secondary-storage/sqlite.db
