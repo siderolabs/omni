@@ -17,9 +17,14 @@ import (
 func main() {
 	args := os.Args[1:]
 	if debug, _ := strconv.ParseBool(os.Getenv("WITH_DEBUG")); debug {
+		listenAddr := os.Getenv("DELVE_LISTEN_ADDR")
+		if listenAddr == "" {
+			listenAddr = "127.0.0.1:12345"
+		}
+
 		dlvArgs := append([]string{
 			"/debug/dlv", "exec",
-			"--headless", "--listen=:12345",
+			"--headless", "--listen=" + listenAddr,
 			"--api-version=2", "--accept-multiclient",
 			"--continue", "/omni", "--",
 		}, args...)

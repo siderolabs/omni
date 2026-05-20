@@ -151,7 +151,11 @@ On first run, the launcher binary and `dlv` are built from source inside Docker 
 `dlv-tools` volume; subsequent starts reuse the cached binaries.
 Omni starts immediately — `--continue` is set so the process does not wait for a client to connect.
 
-Delve listens on `:12345`, which is reachable directly on the host via `network_mode: host`.
+Delve listens on `127.0.0.1:12345` by default. Override with `DELVE_LISTEN_ADDR`:
+
+```shell
+make docker-compose-up WITH_DEBUG=1 DELVE_LISTEN_ADDR=0.0.0.0:12345
+```
 
 Connect the debugger from the CLI:
 

@@ -79,6 +79,7 @@ services:
       - SIDEROLINK_DEV_JOIN_TOKEN=w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD
       # Controls runtime debug flags.
       - WITH_DEBUG=${WITH_DEBUG:-false}
+      - DELVE_LISTEN_ADDR=${DELVE_LISTEN_ADDR:-127.0.0.1:12345}
     command: >-
       --sqlite-storage-path=/_out/secondary-storage/sqlite.db
 
