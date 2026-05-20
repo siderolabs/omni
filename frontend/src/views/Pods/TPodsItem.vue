@@ -7,19 +7,17 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type { Pod as V1Pod } from 'kubernetes-types/core/v1'
 import { DateTime } from 'luxon'
-import { computed, ref } from 'vue'
+import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from 'reka-ui'
+import { computed } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import TIcon from '@/components/Icon/TIcon.vue'
-import TSlideDownWrapper from '@/components/SlideDownWrapper/TSlideDownWrapper.vue'
 import TStatus from '@/components/Status/TStatus.vue'
 
 const { item } = defineProps<{
   searchOption: string
   item: V1Pod
 }>()
-
-const isDropdownOpened = ref(false)
 
 const readyContainers = computed(() =>
   item.status?.containerStatuses?.filter((item) => item?.ready),
@@ -36,22 +34,22 @@ const getAge = (age: string) =>
 </script>
 
 <template>
-  <div
-    class="relative mb-1 flex w-full min-w-md flex-col border py-4.75 pr-3.5 pl-2 transition-all duration-500"
-    :class="
-      isDropdownOpened
-        ? 'rounded border-naturals-n5'
-        : 'rounded-t-sm border-transparent border-b-naturals-n5 last-of-type:border-b-transparent'
-    "
+  <CollapsibleRoot
+    v-slot="{ open }"
+    class="group relative mb-1 flex w-full min-w-md flex-col border py-4.75 pr-3.5 pl-2 transition-all duration-500 not-data-[state=open]:rounded-t-sm not-data-[state=open]:border-transparent not-data-[state=open]:border-b-naturals-n5 not-data-[state=open]:last-of-type:border-b-transparent data-[state=open]:rounded data-[state=open]:border-naturals-n5"
   >
     <ul class="flex w-full items-center justify-start">
-      <li class="flex w-1/6 items-center text-xs text-naturals-n13">
-        <TIcon
-          class="mr-1 size-6 cursor-pointer rounded fill-current text-naturals-n11 transition-all duration-300 hover:bg-naturals-n7"
-          :class="isDropdownOpened && '-rotate-180'"
-          icon="drop-up"
-          @click="isDropdownOpened = !isDropdownOpened"
-        />
+      <li class="flex w-1/6 items-center gap-1 text-xs text-naturals-n13">
+        <CollapsibleTrigger
+          class="cursor-pointer rounded transition-colors hover:bg-naturals-n7"
+          :aria-label="open ? 'Collapse details' : 'Expand details'"
+        >
+          <TIcon
+            class="size-6 cursor-pointer text-naturals-n11 transition-transform duration-300 group-data-[state=open]:-rotate-180"
+            icon="drop-up"
+            aria-hidden="true"
+          />
+        </CollapsibleTrigger>
 
         <WordHighlighter
           :query="searchOption"
@@ -81,7 +79,7 @@ const getAge = (age: string) =>
       </li>
     </ul>
 
-    <TSlideDownWrapper :expanded="isDropdownOpened" class="text-xs text-naturals-n12">
+    <CollapsibleContent class="collapsible-content overflow-hidden text-xs text-naturals-n12">
       <div class="flex items-center pt-6.5">
         <div class="flex w-1/6 flex-col gap-1.75 pl-7">
           <p>Restarts</p>
@@ -118,6 +116,34 @@ const getAge = (age: string) =>
           </div>
         </div>
       </div>
-    </TSlideDownWrapper>
-  </div>
+    </CollapsibleContent>
+  </CollapsibleRoot>
 </template>
+
+<style scoped>
+.collapsible-content[data-state='open'] {
+  animation: slideDown 200ms ease-out;
+}
+
+.collapsible-content[data-state='closed'] {
+  animation: slideUp 200ms ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--reka-collapsible-content-height);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    height: var(--reka-collapsible-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+</style>

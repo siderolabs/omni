@@ -19,14 +19,12 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { TPodsViewFilterOptions } from '@/constants'
-import { getContext } from '@/context'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import TPodsItem from '@/views/Pods/TPodsItem.vue'
 
 definePage({ name: 'Pods' })
 
 const route = useRoute()
-const context = computed(() => getContext(route))
 const filterOption = ref(TPodsViewFilterOptions.ALL)
 const searchOption = ref('')
 
@@ -39,21 +37,43 @@ const {
 } = useResourceWatch<V1PodSpec, V1PodStatus>(() => ({
   resource: { type: kubernetes.pod },
   runtime: Runtime.Kubernetes,
-  context: context.value,
+  context: {
+    cluster: route.params.cluster,
+  },
 }))
 
+function phaseToNum(phase?: string) {
+  switch (phase) {
+    case 'Failed':
+      return 1
+    case 'Pending':
+      return 2
+    case 'Succeeded':
+      return 3
+    case 'Running':
+      return 4
+    default:
+      return 0
+  }
+}
+
 const filteredItems = computed(() =>
-  items.value.filter(({ spec, metadata, status }) => {
-    if (filterOption.value !== TPodsViewFilterOptions.ALL && status?.phase !== filterOption.value) {
-      return false
-    }
+  items.value
+    .filter(({ spec, metadata, status }) => {
+      if (
+        filterOption.value !== TPodsViewFilterOptions.ALL &&
+        status?.phase !== filterOption.value
+      ) {
+        return false
+      }
 
-    if (!searchOption.value) return true
+      if (!searchOption.value) return true
 
-    return [metadata.name, metadata.namespace, spec.nodeName]
-      .filter((o) => typeof o === 'string')
-      .some((o) => o.includes(searchOption.value))
-  }),
+      return [metadata.name, metadata.namespace, spec.nodeName]
+        .filter((o) => typeof o === 'string')
+        .some((o) => o.includes(searchOption.value))
+    })
+    .toSorted((a, b) => phaseToNum(a.status?.phase) - phaseToNum(b.status?.phase)),
 )
 </script>
 
@@ -68,8 +88,8 @@ const filteredItems = computed(() =>
     </TAlert>
 
     <div v-else class="pt-2">
-      <div class="mb-3 flex justify-between">
-        <TInput v-model="searchOption" secondary placeholder="Search..." />
+      <div class="mb-3 flex gap-4">
+        <TInput v-model="searchOption" icon="search" placeholder="Search..." class="w-full" />
         <TSelectList
           title="Phase"
           :default-value="TPodsViewFilterOptions.ALL"
