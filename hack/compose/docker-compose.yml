@@ -71,6 +71,7 @@ services:
       # Controls runtime debug flags.
       - WITH_DEBUG=${WITH_DEBUG:-false}
       - DELVE_LISTEN_ADDR=${DELVE_LISTEN_ADDR:-127.0.0.1:12345}
+      - OMNI_BIN=${OMNI_BIN:-/omni}
     command: >-
       --sqlite-storage-path=/_out/secondary-storage/sqlite.db
 

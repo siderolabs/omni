@@ -12,15 +12,25 @@ import (
 	"syscall"
 )
 
-const WITH_DEBUG_ENV = "WITH_DEBUG"
+const (
+	WITH_DEBUG_ENV = "WITH_DEBUG"
+	OMNI_BIN_ENV   = "OMNI_BIN"
+)
 
 // This is a simple launcher for development purposes.
 // Execs the main Omni binary, optionally under Delve for debugging.
 //
-// Set WITH_DEBUG=true to enable the Delve debug server.
+// Set WITH_DEBUG=true to enable the Delve debug server, defaults to false.
+// Set OMNI_BIN to the path of the Omni binary to execute (required).
 func main() {
 	args := os.Args[1:]
 	isDebug := false
+
+	omniPath := os.Getenv(OMNI_BIN_ENV)
+	if omniPath == "" {
+		fmt.Fprintf(os.Stderr, "launcher: %s is required\n", OMNI_BIN_ENV)
+		os.Exit(1)
+	}
 
 	if rawWithDebug := os.Getenv(WITH_DEBUG_ENV); rawWithDebug != "" {
 		var err error
@@ -40,14 +50,14 @@ func main() {
 			"/debug/dlv", "exec",
 			"--headless", "--listen=" + listenAddr,
 			"--api-version=2", "--accept-multiclient",
-			"--continue", "/omni", "--",
+			"--continue", omniPath, "--",
 		}, args...)
 		if err := syscall.Exec("/debug/dlv", dlvArgs, os.Environ()); err != nil {
 			fmt.Fprintln(os.Stderr, "launcher: exec dlv:", err)
 			os.Exit(1)
 		}
 	} else {
-		if err := syscall.Exec("/omni", append([]string{"/omni"}, args...), os.Environ()); err != nil {
+		if err := syscall.Exec(omniPath, append([]string{omniPath}, args...), os.Environ()); err != nil {
 			fmt.Fprintln(os.Stderr, "launcher: exec omni:", err)
 			os.Exit(1)
 		}
