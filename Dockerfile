@@ -399,7 +399,15 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 ARG WITH_DEBUG=false
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GCFLAGS=""; [ "$WITH_DEBUG" = "true" ] && GCFLAGS="all=-N -l"; go build -gcflags="$GCFLAGS" ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=acompat -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /acompat-linux-amd64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    GCFLAGS=""; \
+    case "$WITH_DEBUG" in true|1) GCFLAGS="all=-N -l" ;; esac; \
+    go build \
+        -gcflags="$GCFLAGS" \
+        ${GO_BUILDFLAGS} \
+        -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=acompat -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" \
+        -o /acompat-linux-amd64
 
 # builds integration-test-darwin-amd64
 FROM base AS integration-test-darwin-amd64-build
@@ -465,7 +473,15 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 ARG WITH_DEBUG=false
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GCFLAGS=""; [ "$WITH_DEBUG" = "true" ] && GCFLAGS="all=-N -l"; go build -gcflags="$GCFLAGS" ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=make-cookies -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /make-cookies-linux-amd64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    GCFLAGS=""; \
+    case "$WITH_DEBUG" in true|1) GCFLAGS="all=-N -l" ;; esac; \
+    go build \
+        -gcflags="$GCFLAGS" \
+        ${GO_BUILDFLAGS} \
+        -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=make-cookies -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" \
+        -o /make-cookies-linux-amd64
 
 # builds omni-darwin-amd64
 FROM base AS omni-darwin-amd64-build
@@ -479,7 +495,15 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 ARG WITH_DEBUG=false
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GCFLAGS=""; [ "$WITH_DEBUG" = "true" ] && GCFLAGS="all=-N -l"; GOARCH=amd64 GOOS=darwin go build -gcflags="$GCFLAGS" ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omni -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omni-darwin-amd64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    GCFLAGS=""; \
+    case "$WITH_DEBUG" in true|1) GCFLAGS="all=-N -l" ;; esac; \
+    GOARCH=amd64 GOOS=darwin go build \
+        -gcflags="$GCFLAGS" \
+        ${GO_BUILDFLAGS} \
+        -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omni -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" \
+        -o /omni-darwin-amd64
 
 # builds omni-darwin-arm64
 FROM base AS omni-darwin-arm64-build
@@ -493,7 +517,15 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 ARG WITH_DEBUG=false
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GCFLAGS=""; [ "$WITH_DEBUG" = "true" ] && GCFLAGS="all=-N -l"; GOARCH=arm64 GOOS=darwin go build -gcflags="$GCFLAGS" ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omni -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omni-darwin-arm64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    GCFLAGS=""; \
+    case "$WITH_DEBUG" in true|1) GCFLAGS="all=-N -l" ;; esac; \
+    GOARCH=arm64 GOOS=darwin go build \
+        -gcflags="$GCFLAGS" \
+        ${GO_BUILDFLAGS} \
+        -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omni -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" \
+        -o /omni-darwin-arm64
 
 # builds omni-linux-amd64
 FROM base AS omni-linux-amd64-build
@@ -507,7 +539,15 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 ARG WITH_DEBUG=false
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GCFLAGS=""; [ "$WITH_DEBUG" = "true" ] && GCFLAGS="all=-N -l"; GOARCH=amd64 GOOS=linux go build -gcflags="$GCFLAGS" ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omni -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omni-linux-amd64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    GCFLAGS=""; \
+    case "$WITH_DEBUG" in true|1) GCFLAGS="all=-N -l" ;; esac; \
+    GOARCH=amd64 GOOS=linux go build \
+        -gcflags="$GCFLAGS" \
+        ${GO_BUILDFLAGS} \
+        -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omni -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" \
+        -o /omni-linux-amd64
 
 # builds omni-linux-arm64
 FROM base AS omni-linux-arm64-build
@@ -521,7 +561,15 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 ARG WITH_DEBUG=false
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GCFLAGS=""; [ "$WITH_DEBUG" = "true" ] && GCFLAGS="all=-N -l"; GOARCH=arm64 GOOS=linux go build -gcflags="$GCFLAGS" ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omni -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omni-linux-arm64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    GCFLAGS=""; \
+    case "$WITH_DEBUG" in true|1) GCFLAGS="all=-N -l" ;; esac; \
+    GOARCH=arm64 GOOS=linux go build \
+        -gcflags="$GCFLAGS" \
+        ${GO_BUILDFLAGS} \
+        -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omni -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" \
+        -o /omni-linux-arm64
 
 # builds omnictl-darwin-amd64
 FROM base AS omnictl-darwin-amd64-build
@@ -535,7 +583,15 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 ARG WITH_DEBUG=false
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GCFLAGS=""; [ "$WITH_DEBUG" = "true" ] && GCFLAGS="all=-N -l"; GOARCH=amd64 GOOS=darwin go build -gcflags="$GCFLAGS" ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omnictl -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omnictl-darwin-amd64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    GCFLAGS=""; \
+    case "$WITH_DEBUG" in true|1) GCFLAGS="all=-N -l" ;; esac; \
+    GOARCH=amd64 GOOS=darwin go build \
+        -gcflags="$GCFLAGS" \
+        ${GO_BUILDFLAGS} \
+        -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omnictl -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" \
+        -o /omnictl-darwin-amd64
 
 # builds omnictl-darwin-arm64
 FROM base AS omnictl-darwin-arm64-build
@@ -549,7 +605,15 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 ARG WITH_DEBUG=false
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GCFLAGS=""; [ "$WITH_DEBUG" = "true" ] && GCFLAGS="all=-N -l"; GOARCH=arm64 GOOS=darwin go build -gcflags="$GCFLAGS" ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omnictl -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omnictl-darwin-arm64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    GCFLAGS=""; \
+    case "$WITH_DEBUG" in true|1) GCFLAGS="all=-N -l" ;; esac; \
+    GOARCH=arm64 GOOS=darwin go build \
+        -gcflags="$GCFLAGS" \
+        ${GO_BUILDFLAGS} \
+        -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omnictl -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" \
+        -o /omnictl-darwin-arm64
 
 # builds omnictl-linux-amd64
 FROM base AS omnictl-linux-amd64-build
@@ -563,7 +627,15 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 ARG WITH_DEBUG=false
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GCFLAGS=""; [ "$WITH_DEBUG" = "true" ] && GCFLAGS="all=-N -l"; GOARCH=amd64 GOOS=linux go build -gcflags="$GCFLAGS" ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omnictl -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omnictl-linux-amd64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    GCFLAGS=""; \
+    case "$WITH_DEBUG" in true|1) GCFLAGS="all=-N -l" ;; esac; \
+    GOARCH=amd64 GOOS=linux go build \
+        -gcflags="$GCFLAGS" \
+        ${GO_BUILDFLAGS} \
+        -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omnictl -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" \
+        -o /omnictl-linux-amd64
 
 # builds omnictl-linux-arm64
 FROM base AS omnictl-linux-arm64-build
@@ -577,7 +649,15 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 ARG WITH_DEBUG=false
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GCFLAGS=""; [ "$WITH_DEBUG" = "true" ] && GCFLAGS="all=-N -l"; GOARCH=arm64 GOOS=linux go build -gcflags="$GCFLAGS" ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omnictl -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omnictl-linux-arm64
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    GCFLAGS=""; \
+    case "$WITH_DEBUG" in true|1) GCFLAGS="all=-N -l" ;; esac; \
+    GOARCH=arm64 GOOS=linux go build \
+        -gcflags="$GCFLAGS" \
+        ${GO_BUILDFLAGS} \
+        -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omnictl -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" \
+        -o /omnictl-linux-arm64
 
 # builds omnictl-windows-amd64.exe
 FROM base AS omnictl-windows-amd64.exe-build
@@ -591,7 +671,15 @@ ARG VERSION_PKG="internal/version"
 ARG SHA
 ARG TAG
 ARG WITH_DEBUG=false
-RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build --mount=type=cache,target=/go/pkg,id=omni/go/pkg GCFLAGS=""; [ "$WITH_DEBUG" = "true" ] && GCFLAGS="all=-N -l"; GOARCH=amd64 GOOS=windows go build -gcflags="$GCFLAGS" ${GO_BUILDFLAGS} -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omnictl -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" -o /omnictl-windows-amd64.exe
+RUN --mount=type=cache,target=/root/.cache/go-build,id=omni/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg,id=omni/go/pkg \
+    GCFLAGS=""; \
+    case "$WITH_DEBUG" in true|1) GCFLAGS="all=-N -l" ;; esac; \
+    GOARCH=amd64 GOOS=windows go build \
+        -gcflags="$GCFLAGS" \
+        ${GO_BUILDFLAGS} \
+        -ldflags "${GO_LDFLAGS} -X ${VERSION_PKG}.Name=omnictl -X ${VERSION_PKG}.SHA=${SHA} -X ${VERSION_PKG}.Tag=${TAG}" \
+        -o /omnictl-windows-amd64.exe
 
 FROM scratch AS acompat-linux-amd64
 COPY --from=acompat-linux-amd64-build /acompat-linux-amd64 /acompat-linux-amd64

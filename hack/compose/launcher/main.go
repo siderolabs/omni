@@ -12,11 +12,25 @@ import (
 	"syscall"
 )
 
+const WITH_DEBUG_ENV = "WITH_DEBUG"
+
 // This is a simple launcher for development purposes.
 // Execs the main Omni binary, optionally under Delve for debugging.
+//
+// Set WITH_DEBUG=true to enable the Delve debug server.
 func main() {
 	args := os.Args[1:]
-	if debug, _ := strconv.ParseBool(os.Getenv("WITH_DEBUG")); debug {
+	isDebug := false
+
+	if rawWithDebug := os.Getenv(WITH_DEBUG_ENV); rawWithDebug != "" {
+		var err error
+		if isDebug, err = strconv.ParseBool(rawWithDebug); err != nil {
+			fmt.Fprintf(os.Stderr, "launcher: invalid %s=%q: %v\n", WITH_DEBUG_ENV, rawWithDebug, err)
+			os.Exit(1)
+		}
+	}
+
+	if isDebug {
 		listenAddr := os.Getenv("DELVE_LISTEN_ADDR")
 		if listenAddr == "" {
 			listenAddr = "127.0.0.1:12345"

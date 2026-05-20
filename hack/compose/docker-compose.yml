@@ -4,15 +4,6 @@
 # included in the LICENSE file.
 
 services:
-  dlv-init:
-    image: golang:1.26-alpine
-    restart: on-failure
-    volumes:
-      - dlv-tools:/output
-      - ./launcher:/launcher:ro
-    command: >-
-      sh -c "test -f /output/launcher || (cd /launcher && CGO_ENABLED=0 GOOS=linux GO111MODULE=off go build -o /output/launcher .); [ '${WITH_DEBUG:-false}' != 'true' ] || test -f /output/dlv || (CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@1.26.3 && cp /go/bin/dlv /output/)"
-
   omni:
     network_mode: host
     devices:
@@ -82,6 +73,26 @@ services:
       - DELVE_LISTEN_ADDR=${DELVE_LISTEN_ADDR:-127.0.0.1:12345}
     command: >-
       --sqlite-storage-path=/_out/secondary-storage/sqlite.db
+
+  dlv-init:
+    image: golang:1.26-alpine
+    restart: on-failure
+    volumes:
+      - dlv-tools:/output
+      - ./launcher:/launcher:ro
+    command:
+      - sh
+      - -c
+      - |
+        # Install Delve and build the launcher binary if not already present in the output volume.
+        test -f /output/launcher || \
+          (cd /launcher && CGO_ENABLED=0 GOOS=linux GO111MODULE=off go build -o /output/launcher .)
+        case '${WITH_DEBUG:-false}' in
+          true|1)
+            test -f /output/dlv || \
+              (CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@1.26.3 && cp /go/bin/dlv /output/)
+            ;;
+        esac
 
   vault-dev:
     container_name: local-vault
