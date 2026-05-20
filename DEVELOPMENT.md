@@ -133,6 +133,34 @@ Node.js development server can be used to get immediate feedback on frontend cha
 When making frontend changes, `https://my.host/` will only update after stopping docker-compose environment with `^C` and running `make docker-compose-up WITH_DEBUG=1` again.
 At the same time `https://my.host:8120/` will update immediately.
 
+## Delve Debugger
+
+Passing `WITH_DEBUG=1` starts Omni under the [Delve](https://github.com/go-delve/delve) headless debug server.
+Without it, Omni runs directly with no debugger attached.
+
+`WITH_DEBUG=1` also:
+
+- keeps the symbol table (the default build strips it with `-s`)
+- disables compiler optimizations and inlining (`-gcflags=all=-N -l`) for clean step-through debugging
+
+```shell
+make docker-compose-up WITH_DEBUG=1
+```
+
+On first run, the launcher binary and `dlv` are built from source inside Docker and cached in the
+`dlv-tools` volume; subsequent starts reuse the cached binaries.
+Omni starts immediately — `--continue` is set so the process does not wait for a client to connect.
+
+Delve listens on `:12345`, which is reachable directly on the host via `network_mode: host`.
+
+Connect the debugger from the CLI:
+
+```shell
+dlv connect localhost:12345
+```
+
+Alternatively, use the provided VS Code launch configuration ([`.vscode/launch.json`](.vscode/launch.json)).
+
 ## Use `omnictl`
 
 Download `omniconfig` from the Omni UI.

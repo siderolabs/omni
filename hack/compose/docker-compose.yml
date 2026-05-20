@@ -4,14 +4,28 @@
 # included in the LICENSE file.
 
 services:
+  dlv-init:
+    image: golang:1.26-alpine
+    restart: on-failure
+    volumes:
+      - dlv-tools:/output
+      - ./launcher:/launcher:ro
+    command: >-
+      sh -c "test -f /output/launcher || (cd /launcher && CGO_ENABLED=0 GOOS=linux go build -o /output/launcher .); [ '${WITH_DEBUG:-false}' != '1' ] || test -f /output/dlv || (CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@latest && cp /go/bin/dlv /output/)"
+
   omni:
     network_mode: host
     devices:
       - /dev/net/tun
     depends_on:
-      - vault-dev
-      - node-dev
-      - minio-mc
+      vault-dev:
+        condition: service_started
+      node-dev:
+        condition: service_started
+      minio-mc:
+        condition: service_started
+      dlv-init:
+        condition: service_completed_successfully
     volumes:
       - etcd:/_out/etcd
       - logs:/_out/logs
@@ -19,10 +33,16 @@ services:
       - etcd-backup:/tmp/omni-data/etcd-backup
       - audit-logs:/tmp/omni-data/audit-logs
       - ../generate-certs/certs:/etc/ssl/omni-certs:ro
+      - dlv-tools:/debug:ro
     container_name: local-omni
     restart: on-failure
     cap_add:
       - NET_ADMIN
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    entrypoint:
+      - /debug/launcher
     build:
       context: ../../
       dockerfile: Dockerfile
@@ -51,12 +71,14 @@ services:
         - TESTPKGS=${TESTPKGS:?error}
         - GO_LDFLAGS=${GO_LDFLAGS}
         - GOEXPERIMENT=${GOEXPERIMENT}
+        - WITH_DEBUG=${WITH_DEBUG:-false}
         - GOTOOLCHAIN=${GOTOOLCHAIN}
         - DIS_VULNCHECK_VERSION=${DIS_VULNCHECK_VERSION}
     environment:
       - VAULT_ADDR=http://127.0.0.1:8200
       - VAULT_TOKEN=dev-o-token
       - SIDEROLINK_DEV_JOIN_TOKEN=w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD
+      - WITH_DEBUG=${WITH_DEBUG:-false}
     command: >-
       --sqlite-storage-path=/_out/secondary-storage/sqlite.db
 
@@ -158,3 +180,4 @@ volumes:
   etcd-backup:
   audit-logs:
   grafana_data:
+  dlv-tools:
