@@ -118,6 +118,10 @@ func (ctrl *MachineStatusController) Settings() controller.QSettings {
 				Kind: controller.OutputExclusive,
 				Type: omni.MachineStatusType,
 			},
+			{
+				Kind: controller.OutputShared,
+				Type: omni.MachineLabelsType,
+			},
 		},
 		Concurrency: optional.Some[uint](4),
 		RunHook: func(ctx context.Context, _ *zap.Logger, r controller.QRuntime) error {
@@ -330,6 +334,11 @@ func (ctrl *MachineStatusController) reconcileTearingDown(ctx context.Context, r
 
 //nolint:gocyclo,cyclop,gocognit
 func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r controller.QRuntime, event machinetask.Info) error {
+	machineLabelsReady, initErr := ctrl.initPlatformTagLabels(ctx, r, event)
+	if initErr != nil {
+		return initErr
+	}
+
 	if err := safe.WriterModify(ctx, r, omni.NewMachineStatus(event.MachineID), func(m *omni.MachineStatus) error {
 		spec := m.TypedSpec().Value
 
@@ -403,6 +412,13 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			spec.KernelCmdline = event.KernelCmdline
 		}
 
+		if machineLabelsReady {
+			_, platformTagLabelsInitialized := m.Metadata().Annotations().Get(omni.PlatformTagLabelsInitialized)
+			if !platformTagLabelsInitialized {
+				m.Metadata().Annotations().Set(omni.PlatformTagLabelsInitialized, "")
+			}
+		}
+
 		if event.ImageLabels != nil {
 			spec.ImageLabels = event.ImageLabels
 
@@ -456,6 +472,58 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 	}
 
 	return nil
+}
+
+// initPlatformTagLabels bootstraps a MachineLabels resource from PlatformMetadata tags on the first join.
+// It returns true when the labels are considered ready (resource created, already existed, or no tags to apply),
+// which is the signal for the caller to stamp the PlatformTagLabelsInitialized annotation.
+// Subsequent calls are short-circuited by the annotation.
+func (ctrl *MachineStatusController) initPlatformTagLabels(ctx context.Context, r controller.QRuntime, event machinetask.Info) (bool, error) {
+	if event.PlatformMetadata == nil {
+		return false, nil
+	}
+
+	tags := event.PlatformMetadata.GetTags()
+	if len(tags) == 0 {
+		// Cloud machine with no tags: nothing to bootstrap, but mark as ready so the annotation is set.
+		return true, nil
+	}
+
+	machineStatus, err := safe.ReaderGetByID[*omni.MachineStatus](ctx, r, event.MachineID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	_, isAlreadyInitialized := machineStatus.Metadata().Annotations().Get(omni.PlatformTagLabelsInitialized)
+	if isAlreadyInitialized {
+		// We only populate these labels on Omni join, and from there on the user can freely modify them.
+		return true, nil
+	}
+
+	existingMachineLabels, err := safe.ReaderGetByID[*omni.MachineLabels](ctx, r, event.MachineID)
+	if err != nil && !state.IsNotFoundError(err) {
+		return false, err
+	}
+
+	if existingMachineLabels != nil {
+		return true, nil
+	}
+
+	machineLabels := omni.NewMachineLabels(event.MachineID)
+
+	for k, v := range tags {
+		machineLabels.Metadata().Labels().Set(k, v)
+	}
+
+	if err = r.Create(ctx, machineLabels, controller.WithCreateNoOwner()); err != nil && !state.IsConflictError(err) {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (ctrl *MachineStatusController) handleEventSchematic(ctx context.Context, ms *omni.MachineStatus, event machinetask.Info) error {
