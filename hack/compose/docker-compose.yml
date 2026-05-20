@@ -11,7 +11,7 @@ services:
       - dlv-tools:/output
       - ./launcher:/launcher:ro
     command: >-
-      sh -c "test -f /output/launcher || (cd /launcher && CGO_ENABLED=0 GOOS=linux go build -o /output/launcher .); [ '${WITH_DEBUG:-false}' != '1' ] || test -f /output/dlv || (CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@1.26.3 && cp /go/bin/dlv /output/)"
+      sh -c "test -f /output/launcher || (cd /launcher && CGO_ENABLED=0 GOOS=linux GO111MODULE=off go build -o /output/launcher .); [ '${WITH_DEBUG:-false}' != '1' ] || test -f /output/dlv || (CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@1.26.3 && cp /go/bin/dlv /output/)"
 
   omni:
     network_mode: host
