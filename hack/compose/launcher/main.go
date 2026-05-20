@@ -8,6 +8,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"syscall"
 )
 
@@ -15,7 +16,7 @@ import (
 // Execs the main Omni binary, optionally under Delve for debugging.
 func main() {
 	args := os.Args[1:]
-	if os.Getenv("WITH_DEBUG") == "1" {
+	if debug, _ := strconv.ParseBool(os.Getenv("WITH_DEBUG")); debug {
 		dlvArgs := append([]string{
 			"/debug/dlv", "exec",
 			"--headless", "--listen=:12345",
