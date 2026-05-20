@@ -11,6 +11,8 @@ import (
 	"syscall"
 )
 
+// This is a simple launcher for development purposes.
+// Execs the main Omni binary, optionally under Delve for debugging.
 func main() {
 	args := os.Args[1:]
 	if os.Getenv("WITH_DEBUG") == "1" {

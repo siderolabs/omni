@@ -40,6 +40,7 @@ services:
       - NET_ADMIN
       - SYS_PTRACE
     security_opt:
+      # Delve requires unconfined seccomp to allow ptrace and other syscalls for debugging.
       - seccomp:unconfined
     entrypoint:
       - /debug/launcher
@@ -71,6 +72,7 @@ services:
         - TESTPKGS=${TESTPKGS:?error}
         - GO_LDFLAGS=${GO_LDFLAGS}
         - GOEXPERIMENT=${GOEXPERIMENT}
+        # Controls build-time debug flags.
         - WITH_DEBUG=${WITH_DEBUG:-false}
         - GOTOOLCHAIN=${GOTOOLCHAIN}
         - DIS_VULNCHECK_VERSION=${DIS_VULNCHECK_VERSION}
@@ -78,6 +80,7 @@ services:
       - VAULT_ADDR=http://127.0.0.1:8200
       - VAULT_TOKEN=dev-o-token
       - SIDEROLINK_DEV_JOIN_TOKEN=w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD
+      # Controls runtime debug flags.
       - WITH_DEBUG=${WITH_DEBUG:-false}
     command: >-
       --sqlite-storage-path=/_out/secondary-storage/sqlite.db
