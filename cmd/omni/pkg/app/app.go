@@ -101,7 +101,8 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	prometheus.MustRegister(discoveryClientCache)
 
-	omniRuntime, err := omni.NewRuntime(cfg, talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
+	omniRuntime, err := omni.NewRuntime(
+		cfg, talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
 		imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
 		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime, talosRuntime, logger.With(logging.Component("omni_runtime")),
 	)

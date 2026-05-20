@@ -192,7 +192,8 @@ func generateArgoCDManifestInputs(maxSizeBytes int) ([][]byte, error) {
 		}, &helmclient.HelmTemplateOptions{
 			KubeVersion: kubeVersion,
 			APIVersions: chartutil.DefaultVersionSet,
-		})
+		},
+	)
 	if err != nil {
 		return nil, err
 	}

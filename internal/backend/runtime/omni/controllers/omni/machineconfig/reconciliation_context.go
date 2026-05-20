@@ -163,7 +163,8 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		}
 	}
 
-	rc.machineStatusSnapshot, err = safe.ReaderGetByID[*omni.MachineStatusSnapshot](ctx, r,
+	rc.machineStatusSnapshot, err = safe.ReaderGetByID[*omni.MachineStatusSnapshot](
+		ctx, r,
 		machineConfig.Metadata().ID(),
 	)
 	if err != nil {

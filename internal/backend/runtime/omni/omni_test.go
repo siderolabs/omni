@@ -145,7 +145,8 @@ func (suite *OmniRuntimeSuite) TestCrud() {
 			1,
 		},
 	} {
-		list, err := suite.runtime.List(suite.ctx,
+		list, err := suite.runtime.List(
+			suite.ctx,
 			runtime.WithResource(testResourceType),
 			runtime.WithNamespace(namespace),
 			runtime.WithLabelSelectors(tt.labels...),

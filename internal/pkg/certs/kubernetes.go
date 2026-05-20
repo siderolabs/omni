@@ -159,7 +159,8 @@ func NewKubernetesCertificateAndKey(ca *talosx509.PEMEncodedCertificateAndKey, c
 		return nil, fmt.Errorf("error getting Kubernetes CA: %w", err)
 	}
 
-	clientCert, err := talosx509.NewKeyPair(k8sCA,
+	clientCert, err := talosx509.NewKeyPair(
+		k8sCA,
 		talosx509.CommonName(constants.KubernetesAdminCertCommonName),
 		talosx509.Organization(talosconstants.KubernetesAdminCertOrganization),
 		talosx509.NotBefore(time.Now().Add(-allowedTimeSkew)),

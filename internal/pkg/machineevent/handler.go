@@ -80,7 +80,8 @@ func (handler *Handler) HandleEvent(ctx context.Context, event events.Event) err
 }
 
 func (handler *Handler) handleMachineStatusEvent(ctx context.Context, event *machineapi.MachineStatusEvent, machineID resource.ID) error {
-	handler.logger.Info("got machine status event",
+	handler.logger.Info(
+		"got machine status event",
 		zap.String("machine", machineID),
 		zap.String("stage", event.Stage.String()),
 		zap.Any("status", event.Status),

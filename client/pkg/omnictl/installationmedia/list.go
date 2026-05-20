@@ -76,7 +76,8 @@ func listPresets(ctx context.Context, client *client.Client, wide bool) error {
 			talosVersion = constants.DefaultTalosVersion
 		}
 
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s", //nolint:errcheck
+		fmt.Fprintf( //nolint:errcheck
+			w, "%s\t%s\t%s\t%s\t%s",
 			preset.Metadata().ID(),
 			download.ArchToString(spec.Architecture),
 			talosVersion,
@@ -85,7 +86,8 @@ func listPresets(ctx context.Context, client *client.Client, wide bool) error {
 		)
 
 		if wide {
-			fmt.Fprintf(w, "\t%v\t%s\t%s\t%s\t%s\t%s", //nolint:errcheck
+			fmt.Fprintf( //nolint:errcheck
+				w, "\t%v\t%s\t%s\t%s\t%s\t%s",
 				spec.SecureBoot,
 				extensionsOrDash(spec.InstallExtensions),
 				machineLabelsOrDash(spec.MachineLabels),

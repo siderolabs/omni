@@ -197,7 +197,8 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 				if upgradeStatus.TypedSpec().Value.Phase == specs.KubernetesUpgradeStatusSpec_Done {
 					// upgrade is done, so calculate the upgrade versions
 					upgradeStatus.TypedSpec().Value.UpgradeVersions, err = kubernetes.CalculateUpgradeVersions(
-						ctx, r, upgradeStatus.TypedSpec().Value.LastUpgradeVersion, cluster.TypedSpec().Value.TalosVersion)
+						ctx, r, upgradeStatus.TypedSpec().Value.LastUpgradeVersion, cluster.TypedSpec().Value.TalosVersion,
+					)
 					if err != nil {
 						return err
 					}
@@ -297,7 +298,8 @@ func updateImagePullRequest(ctx context.Context, r controller.ReaderWriter, upgr
 		var nodeImageList []*specs.ImagePullRequestSpec_NodeImageList
 
 		for _, node := range upgradePath.AllNodes {
-			nodeImageList = append(nodeImageList,
+			nodeImageList = append(
+				nodeImageList,
 				&specs.ImagePullRequestSpec_NodeImageList{
 					Node:   node,
 					Images: upgradePath.AllNodesToRequiredImages[node],

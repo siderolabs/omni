@@ -132,7 +132,8 @@ func (m *StoreManager) DoCleanup(ctx context.Context) error {
 	}
 
 	if rowsDeleted > 0 {
-		m.logger.Info("completed logs cleanup",
+		m.logger.Info(
+			"completed logs cleanup",
 			zap.Int("rows_deleted", rowsDeleted),
 			zap.Int("active_machines", len(machineIDs)),
 			zap.Time("cutoff_time", cutoff),

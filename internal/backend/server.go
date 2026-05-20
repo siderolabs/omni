@@ -402,7 +402,8 @@ func (s *Server) makeProxyServer(ctx context.Context, eg *errgroup.Group) (*grpc
 
 	eg.Go(func() error { return rtr.ResourceWatcher(ctx, s.state.Default(), s.logger) })
 
-	srv := router.NewServer(rtr,
+	srv := router.NewServer(
+		rtr,
 		router.Interceptors(s.logger),
 		grpc.ChainStreamInterceptor(
 			grpcutil.StreamSetAuditData(),
@@ -627,7 +628,8 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 	if rateLimiter != nil {
 		prometheus.MustRegister(rateLimiter)
 
-		s.logger.Info("bandwidth rate limiting enabled",
+		s.logger.Info(
+			"bandwidth rate limiting enabled",
 			zap.Uint64("mbps", s.cfg.Services.Siderolink.GetBandwidthLimitMbps()),
 			zap.Uint64("burst_bytes", s.cfg.Services.Siderolink.GetBandwidthLimitBurstBytes()),
 		)
@@ -675,7 +677,8 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 	kms.Register(server)
 
 	eg.Go(func() error {
-		return slink.Run(groupCtx,
+		return slink.Run(
+			groupCtx,
 			siderolink.ListenHost,
 			strconv.Itoa(s.cfg.Services.Siderolink.GetEventSinkPort()),
 			strconv.Itoa(talosconstants.TrustdPort),
@@ -720,7 +723,8 @@ func (s *Server) workloadProxyHandler(next http.Handler) (http.Handler, error) {
 func (s *Server) makeAPIServer(regular http.Handler, grpcServer *grpcServer) *apiServer {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.ProtoMajor == 2 && strings.HasPrefix(
-			req.Header.Get("Content-Type"), "application/grpc") {
+			req.Header.Get("Content-Type"), "application/grpc",
+		) {
 			// grpcServer provides top-level gRPC proxy handler.
 			grpcServer.ServeHTTP(w, setRealIPRequest(req))
 
@@ -902,8 +906,10 @@ func makeMux(
 	muxHandle("/debug/", debug.NewHandler(omniRuntime.GetCOSIRuntime(), state.Default()), "debug")
 
 	// OIDC Provider
-	mux.Handle("/oidc/",
-		http.StripPrefix("/oidc",
+	mux.Handle(
+		"/oidc/",
+		http.StripPrefix(
+			"/oidc",
 			monitoring.NewHandler(
 				logging.NewHandler(
 					oidcHandler,

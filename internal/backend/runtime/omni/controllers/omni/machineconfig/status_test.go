@@ -51,7 +51,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 	}
 
 	awaitAllMachinesConfigured := func(ctx context.Context, t *testing.T, st state.State, clusterName string) {
-		ids := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st,
+		ids := rtestutils.ResourceIDs[*omni.ClusterMachine](
+			ctx, t, st,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 
@@ -99,7 +100,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 	resetHandler := func(ctx context.Context, _ *machine.ResetRequest, st state.State, id string) (*machine.ResetResponse, error) {
 		t.Logf("setting maintenance for %v", id)
 
-		if err := safe.StateModify(ctx, st, omni.NewMachineStatusSnapshot(id),
+		if err := safe.StateModify(
+			ctx, st, omni.NewMachineStatusSnapshot(id),
 			func(res *omni.MachineStatusSnapshot) error {
 				res.TypedSpec().Value.MachineStatus.Stage = machine.MachineStatusEvent_MAINTENANCE
 
@@ -121,7 +123,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				machineServices := testutils.NewMachineServices(t, testContext.State)
 
@@ -162,7 +165,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				machineServices := testutils.NewMachineServices(t, testContext.State)
 
@@ -192,7 +196,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				machineServices := testutils.NewMachineServices(t, testContext.State)
 
@@ -248,7 +253,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 			brokenMachineID := machines[2].Metadata().ID()
 
-			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, testContext.State,
+			rmock.Mock[*omni.MachineStatusSnapshot](
+				ctx, t, testContext.State,
 				options.WithID(brokenMachineID),
 				options.Modify(func(res *omni.MachineStatusSnapshot) error {
 					res.TypedSpec().Value.MachineStatus.Stage = machine.MachineStatusEvent_BOOTING
@@ -293,7 +299,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 				expectedSchematicID  = "cccc"
 			)
 
-			rmock.MockList[*omni.MachineConfigGenOptions](ctx, t, testContext.State,
+			rmock.MockList[*omni.MachineConfigGenOptions](
+				ctx, t, testContext.State,
 				options.QueryIDs[*omni.MachineSetNode](resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())),
 				options.ItemOptions(
 					options.Modify(func(res *omni.MachineConfigGenOptions) error {
@@ -305,7 +312,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 				),
 			)
 
-			rtestutils.AssertResources(ctx, t, testContext.State, rtestutils.ResourceIDs[*omni.MachineStatus](ctx, t, testContext.State),
+			rtestutils.AssertResources(
+				ctx, t, testContext.State, rtestutils.ResourceIDs[*omni.MachineStatus](ctx, t, testContext.State),
 				func(res *omni.MachineStatus, assert *assert.Assertions) {
 					assert.Equal(expectedTalosVersion, res.TypedSpec().Value.TalosVersion)
 					assert.Equal(expectedSchematicID, res.TypedSpec().Value.Schematic.Id)
@@ -356,7 +364,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 				return m.Metadata().ID()
 			})
 
-			rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, testContext.State,
+			rmock.Mock[*omni.MachineConfigGenOptions](
+				ctx, t, testContext.State,
 				options.WithID(ids[0]),
 				options.Modify(func(res *omni.MachineConfigGenOptions) error {
 					res.TypedSpec().Value.InstallImage.TalosVersion = "1.9.3"
@@ -365,7 +374,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 				}),
 			)
 
-			rtestutils.AssertResources(ctx, t, testContext.State, ids,
+			rtestutils.AssertResources(
+				ctx, t, testContext.State, ids,
 				func(res *omni.MachineStatus, assert *assert.Assertions) {
 					assert.Equal("1.9.3", res.TypedSpec().Value.TalosVersion)
 				},
@@ -406,7 +416,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 			awaitAllMachinesConfigured(ctx, t, testContext.State, clusterName)
 
-			rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, testContext.State,
+			rmock.Mock[*omni.MachineConfigGenOptions](
+				ctx, t, testContext.State,
 				options.WithID(ids[0]),
 				options.Modify(func(res *omni.MachineConfigGenOptions) error {
 					res.TypedSpec().Value.InstallImage.SchematicId = "bbbb"
@@ -419,7 +430,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 				assert.Equal("bbbb", res.TypedSpec().Value.Schematic.Id)
 			})
 
-			rmock.Mock[*omni.MachineStatus](ctx, t, testContext.State,
+			rmock.Mock[*omni.MachineStatus](
+				ctx, t, testContext.State,
 				options.WithID(ids[0]),
 				options.Modify(func(res *omni.MachineStatus) error {
 					res.TypedSpec().Value.Schematic.Invalid = true
@@ -460,7 +472,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 			})
 
 			// Mark the machine as having an invalid schematic
-			rmock.Mock[*omni.MachineStatus](ctx, t, testContext.State,
+			rmock.Mock[*omni.MachineStatus](
+				ctx, t, testContext.State,
 				options.WithID(id),
 				options.Modify(func(res *omni.MachineStatus) error {
 					res.TypedSpec().Value.Schematic.Invalid = true
@@ -482,7 +495,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 			})
 
 			// Apply a config change to verify the controller still processes it
-			rmock.Mock[*omni.ClusterMachineConfig](ctx, t, testContext.State,
+			rmock.Mock[*omni.ClusterMachineConfig](
+				ctx, t, testContext.State,
 				options.WithID(id),
 				options.Modify(func(r *omni.ClusterMachineConfig) error {
 					return r.TypedSpec().Value.SetUncompressedData([]byte(`machine:
@@ -527,7 +541,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 			awaitAllMachinesConfigured(ctx, t, testContext.State, clusterName)
 
-			rmock.MockList[*omni.MachineConfigGenOptions](ctx, t, testContext.State,
+			rmock.MockList[*omni.MachineConfigGenOptions](
+				ctx, t, testContext.State,
 				options.QueryIDs[*omni.MachineSetNode](),
 				options.ItemOptions(
 					options.Modify(func(res *omni.MachineConfigGenOptions) error {
@@ -573,7 +588,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 			_, machines := createCluster(ctx, t, testContext.State, testutils.NewMachineServices(t, testContext.State), clusterName, 1, 0)
 
-			rmock.Mock[*omni.ClusterMachineConfig](ctx, t, testContext.State,
+			rmock.Mock[*omni.ClusterMachineConfig](
+				ctx, t, testContext.State,
 				options.WithID(machines[0].Metadata().ID()),
 				options.Modify(func(res *omni.ClusterMachineConfig) error {
 					res.TypedSpec().Value.GenerationError = "TestGenerationErrorPropagation error"
@@ -582,7 +598,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 				}),
 			)
 
-			rtestutils.AssertResources(ctx, t, testContext.State, []string{machines[0].Metadata().ID()},
+			rtestutils.AssertResources(
+				ctx, t, testContext.State, []string{machines[0].Metadata().ID()},
 				func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
 					assert.Equal("TestGenerationErrorPropagation error", res.TypedSpec().Value.LastConfigError)
 				},
@@ -600,7 +617,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				machineServices := testutils.NewMachineServices(t, testContext.State)
 
@@ -614,7 +632,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 					return m.Metadata().ID()
 				})
 
-				rmock.MockList[*omni.MachineSetNode](ctx, t, testContext.State,
+				rmock.MockList[*omni.MachineSetNode](
+					ctx, t, testContext.State,
 					options.IDs(ids),
 					options.ItemOptions(
 						options.Modify(func(r *omni.MachineSetNode) error {
@@ -631,7 +650,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 					assert.GreaterOrEqual(t, len(machineServer.GetApplyRequests()), 1)
 				})
 
-				rmock.MockList[*omni.ClusterMachineConfig](ctx, t, testContext.State,
+				rmock.MockList[*omni.ClusterMachineConfig](
+					ctx, t, testContext.State,
 					options.IDs(ids),
 					options.ItemOptions(
 						options.Modify(func(r *omni.ClusterMachineConfig) error {
@@ -648,7 +668,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 				})
 
 				// unlock all machines
-				rmock.MockList[*omni.MachineSetNode](ctx, t, testContext.State,
+				rmock.MockList[*omni.MachineSetNode](
+					ctx, t, testContext.State,
 					options.IDs(ids),
 					options.ItemOptions(
 						options.Modify(func(r *omni.MachineSetNode) error {
@@ -682,7 +703,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				clusterName := "no-system-disk"
 
@@ -691,7 +713,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 				// Drop the system disk from the MachineStatus default before
 				// the ClusterMachineConfig is created so the controller never
 				// observes a system disk on its first reconciliation.
-				cluster, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0,
+				cluster, machines := createCluster(
+					ctx, t, testContext.State, machineServices, clusterName, 1, 0,
 					withMachineStatusModifier(func(res *omni.MachineStatus) error {
 						res.TypedSpec().Value.Hardware.Blockdevices = nil
 
@@ -708,7 +731,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 				err := testContext.State.Watch(ctx, omni.NewMachinePendingUpdates(id).Metadata(), updates)
 				require.NoError(t, err)
 
-				rmock.Mock[*omni.ClusterMachineConfigStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterMachineConfigStatus](
+					ctx, t, testContext.State,
 					options.WithID(id),
 					options.Modify(func(res *omni.ClusterMachineConfigStatus) error {
 						res.TypedSpec().Value.ClusterMachineConfigSha256 = "fake-sha256"
@@ -719,7 +743,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 					}),
 				)
 
-				rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, testContext.State,
+				rmock.Mock[*omni.MachineConfigGenOptions](
+					ctx, t, testContext.State,
 					options.WithID(id),
 					options.Modify(func(res *omni.MachineConfigGenOptions) error {
 						res.TypedSpec().Value.InstallImage.TalosVersion = "1.13.0"
@@ -730,7 +755,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 				awaitAllMachinesConfigured(ctx, t, testContext.State, cluster.Metadata().ID())
 
-				rmock.Mock[*omni.ClusterStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, testContext.State,
 					options.WithID(cluster.Metadata().ID()),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.TypedSpec().Value.Ready = false
@@ -769,7 +795,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				clusterName := "graceful"
 
@@ -821,7 +848,8 @@ func TestMachineConfigStatusController(t *testing.T) {
     kubespan:
       enabled: true`
 
-				rmock.MockList[*omni.ClusterMachineConfig](ctx, t, testContext.State,
+				rmock.MockList[*omni.ClusterMachineConfig](
+					ctx, t, testContext.State,
 					options.IDs(ids),
 					options.ItemOptions(
 						options.Modify(func(r *omni.ClusterMachineConfig) error {
@@ -872,7 +900,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 					mu.Unlock()
 
 					// poke the machine set node to trigger update after we switch the updatedID to NO_REBOOT mode
-					rmock.Mock[*omni.MachineSetNode](ctx, t, testContext.State,
+					rmock.Mock[*omni.MachineSetNode](
+						ctx, t, testContext.State,
 						options.WithID(updatedID),
 						options.EmptyLabel("poke"),
 					)
@@ -947,7 +976,8 @@ func createCluster(
 		options.WithID(clusterName),
 	}, clusterOpts.clusterOpts...)
 
-	cluster := rmock.Mock[*omni.Cluster](ctx, t, st,
+	cluster := rmock.Mock[*omni.Cluster](
+		ctx, t, st,
 		clusterOptions...,
 	)
 
@@ -957,13 +987,15 @@ func createCluster(
 	rmock.Mock[*omni.ClusterStatus](ctx, t, st, options.SameID(cluster))
 	rmock.Mock[*omni.LoadBalancerConfig](ctx, t, st, options.SameID(cluster))
 
-	cpMachineSet := rmock.Mock[*omni.MachineSet](ctx, t, st,
+	cpMachineSet := rmock.Mock[*omni.MachineSet](
+		ctx, t, st,
 		options.WithID(omni.ControlPlanesResourceID(clusterName)),
 		options.LabelCluster(cluster),
 		options.EmptyLabel(omni.LabelControlPlaneRole),
 	)
 
-	workersMachineSet := rmock.Mock[*omni.MachineSet](ctx, t, st,
+	workersMachineSet := rmock.Mock[*omni.MachineSet](
+		ctx, t, st,
 		options.WithID(omni.WorkersResourceID(clusterName)),
 		options.LabelCluster(cluster),
 		options.EmptyLabel(omni.LabelWorkerRole),
@@ -979,7 +1011,8 @@ func createCluster(
 		return res
 	}
 
-	rmock.MockList[*omni.MachineSetConfigStatus](ctx, t, st,
+	rmock.MockList[*omni.MachineSetConfigStatus](
+		ctx, t, st,
 		options.IDs([]string{
 			cpMachineSet.Metadata().ID(),
 			workersMachineSet.Metadata().ID(),
@@ -987,7 +1020,8 @@ func createCluster(
 	)
 
 	// create control planes
-	rmock.MockList[*omni.MachineSetNode](ctx, t, st,
+	rmock.MockList[*omni.MachineSetNode](
+		ctx, t, st,
 		options.IDs(getIDs("cp", controlPlanes)),
 		options.ItemOptions(
 			options.LabelCluster(cluster),
@@ -998,7 +1032,8 @@ func createCluster(
 
 	if workers > 0 {
 		// create workers
-		rmock.MockList[*omni.MachineSetNode](ctx, t, st,
+		rmock.MockList[*omni.MachineSetNode](
+			ctx, t, st,
 			options.IDs(getIDs("w", workers)),
 			options.ItemOptions(
 				options.LabelCluster(cluster),
@@ -1008,7 +1043,8 @@ func createCluster(
 		)
 	}
 
-	machines := rmock.MockList[*omni.ClusterMachine](ctx, t, st,
+	machines := rmock.MockList[*omni.ClusterMachine](
+		ctx, t, st,
 		options.QueryIDs[*omni.MachineSetNode](),
 		options.ItemOptions(
 			options.LabelCluster(cluster),
@@ -1024,7 +1060,8 @@ func createCluster(
 	)
 
 	for _, machine := range machines {
-		rmock.Mock[*siderolink.MachineJoinConfig](ctx, t, st, options.SameID(machine),
+		rmock.Mock[*siderolink.MachineJoinConfig](
+			ctx, t, st, options.SameID(machine),
 			options.Modify(func(res *siderolink.MachineJoinConfig) error {
 				res.TypedSpec().Value.Config = &specs.JoinConfig{}
 
@@ -1032,7 +1069,8 @@ func createCluster(
 			}),
 		)
 
-		rmock.Mock[*siderolink.Link](ctx, t, st, options.SameID(machine),
+		rmock.Mock[*siderolink.Link](
+			ctx, t, st, options.SameID(machine),
 			options.Modify(func(res *siderolink.Link) error {
 				res.TypedSpec().Value.Connected = true
 

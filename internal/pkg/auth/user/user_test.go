@@ -49,7 +49,8 @@ func TestInitialUsers(t *testing.T) {
 		timothy = "timothy@example.com"
 	)
 
-	require.NoError(t, user.EnsureInitialResources(ctx, st, logger,
+	require.NoError(t, user.EnsureInitialResources(
+		ctx, st, logger,
 		[]string{
 			john,
 			richard,
@@ -58,7 +59,8 @@ func TestInitialUsers(t *testing.T) {
 
 	assertUsers(ctx, t, st, []string{john, richard})
 
-	require.NoError(t, user.EnsureInitialResources(ctx, st, logger,
+	require.NoError(t, user.EnsureInitialResources(
+		ctx, st, logger,
 		[]string{
 			richard,
 			john,
@@ -67,7 +69,8 @@ func TestInitialUsers(t *testing.T) {
 
 	assertUsers(ctx, t, st, []string{john, richard})
 
-	require.NoError(t, user.EnsureInitialResources(ctx, st, logger,
+	require.NoError(t, user.EnsureInitialResources(
+		ctx, st, logger,
 		[]string{
 			richard,
 			timothy,

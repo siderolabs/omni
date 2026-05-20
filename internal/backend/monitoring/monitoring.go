@@ -62,9 +62,12 @@ func init() {
 
 // NewHandler creates http handler wrapper which reports metrics to prometheus.
 func NewHandler(handler http.Handler, labels prometheus.Labels) http.Handler {
-	return promhttp.InstrumentHandlerInFlight(requestsInFlightGauge,
-		promhttp.InstrumentHandlerDuration(requestsDuration.MustCurryWith(labels),
-			promhttp.InstrumentHandlerCounter(requestsCounter.MustCurryWith(labels),
+	return promhttp.InstrumentHandlerInFlight(
+		requestsInFlightGauge,
+		promhttp.InstrumentHandlerDuration(
+			requestsDuration.MustCurryWith(labels),
+			promhttp.InstrumentHandlerCounter(
+				requestsCounter.MustCurryWith(labels),
 				promhttp.InstrumentHandlerResponseSize(requestsResponseSize.MustCurryWith(labels), handler),
 			),
 		),

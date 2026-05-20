@@ -88,7 +88,8 @@ func (ctrl *ImagePullStatusController) Run(ctx context.Context, r controller.Run
 }
 
 func (ctrl *ImagePullStatusController) updatePullStatus(ctx context.Context, r controller.Runtime, pullStatus imagetask.PullStatus) error {
-	if err := safe.WriterModify[*omni.ImagePullStatus](ctx, r,
+	if err := safe.WriterModify[*omni.ImagePullStatus](
+		ctx, r,
 		omni.NewImagePullStatus(pullStatus.Request.Metadata().ID()),
 		func(status *omni.ImagePullStatus) error {
 			helpers.CopyAllLabels(pullStatus.Request, status)

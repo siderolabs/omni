@@ -151,7 +151,8 @@ var (
 				fmt.Fprintf(writer, "ID\tNAME\tDESCRIPTION\tCONNECTED\tERROR\n") //nolint:errcheck
 
 				for ps := range infraProviders.All() {
-					fmt.Fprintf(writer, //nolint:errcheck
+					fmt.Fprintf( //nolint:errcheck
+						writer,
 						"%s\t%s\t%s\t%t\t%s\n",
 						ps.Metadata().ID(),
 						ps.TypedSpec().Value.Name,

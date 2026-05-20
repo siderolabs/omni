@@ -132,7 +132,8 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 			// If at all possible, when updating the CSP, please also update it for the dev server.
 			// This can be done in frontend/vite.config.ts and will ensure CSP issues are reproducible
 			// on both dev and prod.
-			w.Header().Set("Content-Security-Policy",
+			w.Header().Set(
+				"Content-Security-Policy",
 				"upgrade-insecure-requests"+
 					";default-src 'self'"+
 					fmt.Sprintf(";script-src 'self' 'nonce-%s' https://*.userpilot.io", nonce)+
@@ -146,11 +147,12 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 			)
 
 			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-			w.Header().Set("Permissions-Policy", "accelerometer=(), ambient-light-sensor=(), "+
-				"autoplay=(self), battery=(), camera=(), cross-origin-isolated=(self), display-capture=(), "+
-				"document-domain=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), "+
-				"magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials=(self),"+
-				"screen-wake-lock=(), sync-xhr=(self), usb=(), web-share=(), xr-spatial-tracking=()",
+			w.Header().Set(
+				"Permissions-Policy", "accelerometer=(), ambient-light-sensor=(), "+
+					"autoplay=(self), battery=(), camera=(), cross-origin-isolated=(self), display-capture=(), "+
+					"document-domain=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), "+
+					"magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials=(self),"+
+					"screen-wake-lock=(), sync-xhr=(self), usb=(), web-share=(), xr-spatial-tracking=()",
 			)
 
 			// Read index.html content

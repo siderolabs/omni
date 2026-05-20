@@ -84,7 +84,8 @@ func (d *DedupScheduler) Run(ctx context.Context) {
 
 		for id, pw := range d.producers {
 			if pw.stale {
-				d.logger.Debug("stopping producer",
+				d.logger.Debug(
+					"stopping producer",
 					zap.String("type", pw.resource.Type()),
 					zap.String("namespace", pw.resource.Namespace()),
 					zap.String("id", pw.resource.ID()),
@@ -95,7 +96,8 @@ func (d *DedupScheduler) Run(ctx context.Context) {
 				pw.producer.Stop()
 
 				if err := d.state.Destroy(ctx, pw.resource); err != nil && !state.IsNotFoundError(err) {
-					d.logger.Error("failed to cleanup resources after stopping computed watch producer",
+					d.logger.Error(
+						"failed to cleanup resources after stopping computed watch producer",
 						zap.String("resource", fmt.Sprintf("%s/%s/%s", pw.resource.Namespace(), pw.resource.Type(), pw.resource.ID())),
 					)
 				}

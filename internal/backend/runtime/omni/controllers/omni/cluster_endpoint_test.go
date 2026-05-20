@@ -33,7 +33,8 @@ func (suite *ClusterEndpointSuite) TestReconcile() {
 
 	cluster, _ := suite.createCluster(clusterName, 3, 1)
 
-	rtestutils.AssertResources(suite.ctx, suite.T(), suite.state, []string{clusterName},
+	rtestutils.AssertResources(
+		suite.ctx, suite.T(), suite.state, []string{clusterName},
 		func(clusterEndpoint *omni.ClusterEndpoint, assert *assert.Assertions) {
 			assert.Len(clusterEndpoint.TypedSpec().Value.ManagementAddresses, 3)
 

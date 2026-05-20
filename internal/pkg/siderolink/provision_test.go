@@ -173,7 +173,8 @@ func TestProvision(t *testing.T) {
 		response, err := provisionHandler.Provision(ctx, request)
 		require.NoError(t, err)
 
-		rtestutils.AssertResources(ctx, t, state, []string{request.NodePublicKey},
+		rtestutils.AssertResources(
+			ctx, t, state, []string{request.NodePublicKey},
 			func(r *siderolinkres.PendingMachine, assertion *assert.Assertions) {
 				assertion.NotEmpty(r.TypedSpec().Value.NodeSubnet)
 				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
@@ -189,14 +190,16 @@ func TestProvision(t *testing.T) {
 		response, err = provisionHandler.Provision(ctx, request)
 		require.NoError(t, err)
 
-		rtestutils.AssertResources(ctx, t, state, []string{request.NodeUuid},
+		rtestutils.AssertResources(
+			ctx, t, state, []string{request.NodeUuid},
 			func(r *siderolinkres.Link, assertion *assert.Assertions) {
 				assertion.NotEmpty(r.TypedSpec().Value.NodeSubnet)
 				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
 			},
 		)
 
-		rtestutils.AssertResources(ctx, t, state, []string{request.NodeUuid},
+		rtestutils.AssertResources(
+			ctx, t, state, []string{request.NodeUuid},
 			func(r *siderolinkres.NodeUniqueToken, assertion *assert.Assertions) {
 				require.Equal(t, *request.NodeUniqueToken, r.TypedSpec().Value.Token)
 			},
@@ -253,7 +256,8 @@ func TestProvision(t *testing.T) {
 
 			require.NoError(t, err)
 
-			rtestutils.AssertResources(ctx, t, state, []string{request.NodePublicKey},
+			rtestutils.AssertResources(
+				ctx, t, state, []string{request.NodePublicKey},
 				func(r *siderolinkres.PendingMachine, assertion *assert.Assertions) {
 					assertion.NotEmpty(r.TypedSpec().Value.NodeSubnet)
 					assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
@@ -265,7 +269,8 @@ func TestProvision(t *testing.T) {
 			_, err = provisionHandler.Provision(ctx, request)
 			require.NoError(t, err)
 
-			rtestutils.AssertResources(ctx, t, state, []string{request.NodeUuid},
+			rtestutils.AssertResources(
+				ctx, t, state, []string{request.NodeUuid},
 				func(r *siderolinkres.Link, assertion *assert.Assertions) {
 					assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
 				},
@@ -500,7 +505,8 @@ func TestProvision(t *testing.T) {
 		_, err := provisionHandler.Provision(ctx, request)
 		require.NoError(t, err)
 
-		rtestutils.AssertResources(ctx, t, state, []string{request.NodeUuid},
+		rtestutils.AssertResources(
+			ctx, t, state, []string{request.NodeUuid},
 			func(r *siderolinkres.Link, assertion *assert.Assertions) {
 				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
 			},
@@ -573,7 +579,8 @@ func TestProvision(t *testing.T) {
 		_, err = provisionHandler.Provision(ctx, request2)
 		require.NoError(t, err)
 
-		rtestutils.AssertResources(ctx, t, state, []string{request.NodeUuid},
+		rtestutils.AssertResources(
+			ctx, t, state, []string{request.NodeUuid},
 			func(r *siderolinkres.Link, assertion *assert.Assertions) {
 				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
 			},
@@ -618,7 +625,8 @@ func TestProvision(t *testing.T) {
 		_, err = provisionHandler.Provision(ctx, request)
 		require.NoError(t, err)
 
-		rtestutils.AssertResources(ctx, t, state, []string{request.NodeUuid},
+		rtestutils.AssertResources(
+			ctx, t, state, []string{request.NodeUuid},
 			func(r *siderolinkres.Link, assertion *assert.Assertions) {
 				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
 
@@ -674,7 +682,8 @@ func TestProvision(t *testing.T) {
 		_, err = provisionHandler.Provision(ctx, request)
 		require.NoError(t, err)
 
-		rtestutils.AssertResources(ctx, t, state, []string{request.NodeUuid},
+		rtestutils.AssertResources(
+			ctx, t, state, []string{request.NodeUuid},
 			func(r *siderolinkres.Link, assertion *assert.Assertions) {
 				assertion.Equal(r.TypedSpec().Value.NodePublicKey, request.NodePublicKey)
 

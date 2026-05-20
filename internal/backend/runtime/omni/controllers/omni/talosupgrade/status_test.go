@@ -62,13 +62,15 @@ func TestStatusController(t *testing.T) {
 				return nil
 			}))
 
-		cpMachineSet := rmock.Mock[*omni.MachineSet](ctx, t, st,
+		cpMachineSet := rmock.Mock[*omni.MachineSet](
+			ctx, t, st,
 			testoptions.WithID(omni.ControlPlanesResourceID(clusterName)),
 			testoptions.LabelCluster(cluster),
 			testoptions.EmptyLabel(omni.LabelControlPlaneRole),
 		)
 
-		workersMachineSet := rmock.Mock[*omni.MachineSet](ctx, t, st,
+		workersMachineSet := rmock.Mock[*omni.MachineSet](
+			ctx, t, st,
 			testoptions.WithID(omni.WorkersResourceID(clusterName)),
 			testoptions.LabelCluster(cluster),
 			testoptions.EmptyLabel(omni.LabelWorkerRole),
@@ -85,7 +87,8 @@ func TestStatusController(t *testing.T) {
 		}
 
 		// create control planes
-		rmock.MockList[*omni.MachineSetNode](ctx, t, st,
+		rmock.MockList[*omni.MachineSetNode](
+			ctx, t, st,
 			testoptions.IDs(getIDs("cp", controlPlanes)),
 			testoptions.ItemOptions(
 				testoptions.LabelCluster(cluster),
@@ -96,7 +99,8 @@ func TestStatusController(t *testing.T) {
 
 		if workers > 0 {
 			// create workers
-			rmock.MockList[*omni.MachineSetNode](ctx, t, st,
+			rmock.MockList[*omni.MachineSetNode](
+				ctx, t, st,
 				testoptions.IDs(getIDs("w", workers)),
 				testoptions.ItemOptions(
 					testoptions.LabelCluster(cluster),
@@ -106,7 +110,8 @@ func TestStatusController(t *testing.T) {
 			)
 		}
 
-		cpMachines := rmock.MockList[*omni.ClusterMachine](ctx, t, st,
+		cpMachines := rmock.MockList[*omni.ClusterMachine](
+			ctx, t, st,
 			testoptions.QueryIDs[*omni.MachineSetNode](resource.LabelEqual(omni.LabelMachineSet, cpMachineSet.Metadata().ID())),
 			testoptions.ItemOptions(
 				testoptions.LabelCluster(cluster),
@@ -120,7 +125,8 @@ func TestStatusController(t *testing.T) {
 			),
 		)
 
-		workerMachines := rmock.MockList[*omni.ClusterMachine](ctx, t, st,
+		workerMachines := rmock.MockList[*omni.ClusterMachine](
+			ctx, t, st,
 			testoptions.QueryIDs[*omni.MachineSetNode](resource.LabelEqual(omni.LabelMachineSet, workersMachineSet.Metadata().ID())),
 			testoptions.ItemOptions(
 				testoptions.LabelCluster(cluster),
@@ -176,7 +182,8 @@ func TestStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 
-		list, err := safe.StateListAll[*omni.ClusterMachine](ctx, st,
+		list, err := safe.StateListAll[*omni.ClusterMachine](
+			ctx, st,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterID)),
 		)
 
@@ -205,7 +212,8 @@ func TestStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				st := testContext.State
 				clusterName := "talos-upgrade-cluster"
@@ -222,7 +230,8 @@ func TestStatusController(t *testing.T) {
 					anotherTalosVersion: {"1.32.0", "1.33.0", "1.34.2"},
 				}
 
-				rmock.MockList[*omni.TalosVersion](ctx, t, st,
+				rmock.MockList[*omni.TalosVersion](
+					ctx, t, st,
 					testoptions.IDs(xmaps.Keys(talosVersions)),
 					testoptions.ItemOptions(
 						testoptions.Modify(func(res *omni.TalosVersion) error {
@@ -244,7 +253,8 @@ func TestStatusController(t *testing.T) {
 				}
 
 				// All machines are in sync → status should be Done.
-				rtestutils.AssertResource(ctx, t, st, clusterName,
+				rtestutils.AssertResource(
+					ctx, t, st, clusterName,
 					func(res *omni.TalosUpgradeStatus, assertions *assert.Assertions) {
 						assertions.Equal(specs.TalosUpgradeStatusSpec_Done, res.TypedSpec().Value.Phase)
 						assertions.Equal(talosVersion, res.TypedSpec().Value.LastUpgradeVersion)
@@ -274,7 +284,8 @@ func TestStatusController(t *testing.T) {
 
 				// Create MachinePendingUpdates to simulate the machineconfig controller detecting pending upgrades.
 				for _, machine := range machines {
-					rmock.Mock[*omni.MachinePendingUpdates](ctx, t, st,
+					rmock.Mock[*omni.MachinePendingUpdates](
+						ctx, t, st,
 						testoptions.WithID(machine.Metadata().ID()),
 						testoptions.Modify(func(res *omni.MachinePendingUpdates) error {
 							res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
@@ -365,7 +376,8 @@ func TestStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				st := testContext.State
 				clusterName := "talos-upgrade-locked"
@@ -403,7 +415,8 @@ func TestStatusController(t *testing.T) {
 					))
 
 				// Lock all machines.
-				rmock.MockList[*omni.MachineSetNode](ctx, t, st,
+				rmock.MockList[*omni.MachineSetNode](
+					ctx, t, st,
 					testoptions.IDs(machineIDs),
 					testoptions.ItemOptions(
 						testoptions.Modify(func(r *omni.MachineSetNode) error {
@@ -416,7 +429,8 @@ func TestStatusController(t *testing.T) {
 
 				// Create MachinePendingUpdates for all machines.
 				for _, machine := range machines {
-					rmock.Mock[*omni.MachinePendingUpdates](ctx, t, st,
+					rmock.Mock[*omni.MachinePendingUpdates](
+						ctx, t, st,
 						testoptions.WithID(machine.Metadata().ID()),
 						testoptions.Modify(func(res *omni.MachinePendingUpdates) error {
 							res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
@@ -450,7 +464,8 @@ func TestStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				st := testContext.State
 				clusterName := "talos-upgrade-rollout"
@@ -515,7 +530,8 @@ func TestStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				st := testContext.State
 				clusterName := "talos-upgrade-rollout-cp-first"
@@ -555,7 +571,8 @@ func TestStatusController(t *testing.T) {
 
 				// Create MachinePendingUpdates for all machines.
 				for _, machine := range machines {
-					rmock.Mock[*omni.MachinePendingUpdates](ctx, t, st,
+					rmock.Mock[*omni.MachinePendingUpdates](
+						ctx, t, st,
 						testoptions.WithID(machine.Metadata().ID()),
 						testoptions.Modify(func(res *omni.MachinePendingUpdates) error {
 							res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
@@ -591,7 +608,8 @@ func TestStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				st := testContext.State
 				clusterName := "talos-upgrade-versions"
@@ -684,7 +702,8 @@ func TestStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				st := testContext.State
 				clusterName := "talos-upgrade-finalization"
@@ -723,7 +742,8 @@ func TestStatusController(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				st := testContext.State
 				clusterName := "talos-upgrade-schematic"
@@ -741,7 +761,8 @@ func TestStatusController(t *testing.T) {
 
 				// Create pending updates indicating a schematic change (same version, different schematic).
 				for _, machine := range machines {
-					rmock.Mock[*omni.MachinePendingUpdates](ctx, t, st,
+					rmock.Mock[*omni.MachinePendingUpdates](
+						ctx, t, st,
 						testoptions.WithID(machine.Metadata().ID()),
 						testoptions.Modify(func(res *omni.MachinePendingUpdates) error {
 							res.Metadata().Labels().Set(omni.LabelCluster, clusterName)

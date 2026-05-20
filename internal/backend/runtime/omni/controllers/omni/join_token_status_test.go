@@ -44,7 +44,8 @@ func (suite *JoinTokenStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(ctx, token))
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
 		func(res *siderolink.JoinTokenStatus, assert *assert.Assertions) {
 			assert.Equal(specs.JoinTokenStatusSpec_ACTIVE, res.TypedSpec().Value.State)
 			assert.Equal(token.TypedSpec().Value.Name, res.TypedSpec().Value.Name)
@@ -60,13 +61,15 @@ func (suite *JoinTokenStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
 		func(res *siderolink.JoinTokenStatus, assert *assert.Assertions) {
 			assert.Equal(specs.JoinTokenStatusSpec_ACTIVE, res.TypedSpec().Value.State)
 		},
 	)
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
 		func(res *siderolink.JoinTokenStatus, assert *assert.Assertions) {
 			assert.Equal(specs.JoinTokenStatusSpec_EXPIRED, res.TypedSpec().Value.State)
 		},
@@ -77,7 +80,8 @@ func (suite *JoinTokenStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(ctx, defaultToken))
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
 		func(res *siderolink.JoinTokenStatus, assert *assert.Assertions) {
 			assert.True(res.TypedSpec().Value.IsDefault)
 		},
@@ -92,7 +96,8 @@ func (suite *JoinTokenStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
 		func(res *siderolink.JoinTokenStatus, assert *assert.Assertions) {
 			assert.Equal(specs.JoinTokenStatusSpec_REVOKED, res.TypedSpec().Value.State)
 		},
@@ -107,7 +112,8 @@ func (suite *JoinTokenStatusSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
 		func(res *siderolink.JoinTokenStatus, assert *assert.Assertions) {
 			assert.Equal(specs.JoinTokenStatusSpec_ACTIVE, res.TypedSpec().Value.State)
 		},

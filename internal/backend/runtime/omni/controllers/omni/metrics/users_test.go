@@ -32,14 +32,16 @@ func TestUserMetrics(t *testing.T) {
 
 	ctrl := &metrics.UserMetricsController{}
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, testContext testutils.TestContext) {
 			require.NoError(t, testContext.Runtime.RegisterController(ctrl))
 
 			st := testContext.State
 
 			// User active 1 day ago (within both 7d and 30d windows).
-			rmock.Mock[*authres.IdentityLastActive](ctx, t, st,
+			rmock.Mock[*authres.IdentityLastActive](
+				ctx, t, st,
 				options.WithID("recent-user@example.com"),
 				options.Modify(func(res *authres.IdentityLastActive) error {
 					res.TypedSpec().Value.LastActive = timestamppb.New(time.Now().Add(-24 * time.Hour))
@@ -49,7 +51,8 @@ func TestUserMetrics(t *testing.T) {
 			)
 
 			// User active 10 days ago (within 30d window only).
-			rmock.Mock[*authres.IdentityLastActive](ctx, t, st,
+			rmock.Mock[*authres.IdentityLastActive](
+				ctx, t, st,
 				options.WithID("older-user@example.com"),
 				options.Modify(func(res *authres.IdentityLastActive) error {
 					res.TypedSpec().Value.LastActive = timestamppb.New(time.Now().Add(-10 * 24 * time.Hour))
@@ -59,7 +62,8 @@ func TestUserMetrics(t *testing.T) {
 			)
 
 			// Service account active 2 days ago (within both windows).
-			rmock.Mock[*authres.IdentityLastActive](ctx, t, st,
+			rmock.Mock[*authres.IdentityLastActive](
+				ctx, t, st,
 				options.WithID("mysa@serviceaccount.omni.sidero.dev"),
 				options.Modify(func(res *authres.IdentityLastActive) error {
 					res.TypedSpec().Value.LastActive = timestamppb.New(time.Now().Add(-2 * 24 * time.Hour))
@@ -69,7 +73,8 @@ func TestUserMetrics(t *testing.T) {
 			)
 
 			// User active 60 days ago (outside both windows).
-			rmock.Mock[*authres.IdentityLastActive](ctx, t, st,
+			rmock.Mock[*authres.IdentityLastActive](
+				ctx, t, st,
 				options.WithID("inactive@example.com"),
 				options.Modify(func(res *authres.IdentityLastActive) error {
 					res.TypedSpec().Value.LastActive = timestamppb.New(time.Now().Add(-60 * 24 * time.Hour))
@@ -79,19 +84,23 @@ func TestUserMetrics(t *testing.T) {
 			)
 
 			// Identity resources for total count.
-			rmock.Mock[*authres.Identity](ctx, t, st,
+			rmock.Mock[*authres.Identity](
+				ctx, t, st,
 				options.WithID("recent-user@example.com"),
 			)
 
-			rmock.Mock[*authres.Identity](ctx, t, st,
+			rmock.Mock[*authres.Identity](
+				ctx, t, st,
 				options.WithID("older-user@example.com"),
 			)
 
-			rmock.Mock[*authres.Identity](ctx, t, st,
+			rmock.Mock[*authres.Identity](
+				ctx, t, st,
 				options.WithID("inactive@example.com"),
 			)
 
-			rmock.Mock[*authres.Identity](ctx, t, st,
+			rmock.Mock[*authres.Identity](
+				ctx, t, st,
 				options.WithID("mysa@serviceaccount.omni.sidero.dev"),
 				options.EmptyLabel(authres.LabelIdentityTypeServiceAccount),
 			)

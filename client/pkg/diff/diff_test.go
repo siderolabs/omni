@@ -25,7 +25,8 @@ import (
 // BenchmarkComputeDiff tests various state transitions of the diff logic.
 func BenchmarkComputeDiff(b *testing.B) {
 	modifiedConfigBytes := modifyConfig(b, baseConfigBytes, func(c *v1alpha1.Config) {
-		c.MachineConfig.MachineFiles = append(c.MachineConfig.MachineFiles,
+		c.MachineConfig.MachineFiles = append(
+			c.MachineConfig.MachineFiles,
 			&v1alpha1.MachineFile{
 				FileContent:     "aaa",
 				FilePermissions: 0o777,
@@ -136,7 +137,8 @@ var populatedToEmptyDiff string
 // TestComputeDiff tests the ComputeDiff function with various state transitions.
 func TestComputeDiff(t *testing.T) {
 	modifiedConfigBytes := modifyConfig(t, baseConfigBytes, func(c *v1alpha1.Config) {
-		c.MachineConfig.MachineFiles = append(c.MachineConfig.MachineFiles,
+		c.MachineConfig.MachineFiles = append(
+			c.MachineConfig.MachineFiles,
 			&v1alpha1.MachineFile{
 				FileContent:     "aaa",
 				FilePermissions: 0o777,

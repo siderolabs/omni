@@ -206,7 +206,8 @@ func (suite *LoadBalancerSuite) TestLoadBalancers() {
 			r.TypedSpec().Value.HasConnectedControlPlanes = false
 
 			return nil
-		})
+		},
+	)
 	suite.Require().NoError(err)
 
 	// the loadbalancer should be stopped

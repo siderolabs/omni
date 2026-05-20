@@ -72,7 +72,8 @@ func TestMachineStatusMetricsController_RegistrationLimit(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 			t.Cleanup(cancel)
 
-			testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+			testutils.WithRuntime(
+				ctx, t, testutils.TestOptions{},
 				func(_ context.Context, tc testutils.TestContext) {
 					require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewMachineStatusMetricsController(tt.maxRegistered)))
 				},
@@ -149,7 +150,8 @@ func TestMachineStatusMetricsController_UnsupportedTalosVersion(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 			t.Cleanup(cancel)
 
-			testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+			testutils.WithRuntime(
+				ctx, t, testutils.TestOptions{},
 				func(_ context.Context, tc testutils.TestContext) {
 					require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewMachineStatusMetricsController(0)))
 				},
@@ -193,7 +195,8 @@ func TestMachineStatusMetricsController_UnsupportedTalosVersionTeardown(t *testi
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewMachineStatusMetricsController(0)))
 		},

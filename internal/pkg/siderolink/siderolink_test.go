@@ -233,7 +233,8 @@ func (suite *SiderolinkSuite) TestNodes() {
 
 	// Wait for JoinTokenStatusController to reconcile the token into an ACTIVE JoinTokenStatus,
 	// otherwise the provision handler will reject the request as the token status doesn't exist yet.
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{joinToken},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{joinToken},
 		func(r *siderolink.JoinTokenStatus, assertion *assert.Assertions) {
 			assertion.Equal(specs.JoinTokenStatusSpec_ACTIVE, r.TypedSpec().Value.State)
 		},
@@ -374,7 +375,8 @@ func (suite *SiderolinkSuite) TestVirtualNodes() {
 
 	// Wait for JoinTokenStatusController to reconcile the token into an ACTIVE JoinTokenStatus,
 	// otherwise the provision handler will reject the request as the token status doesn't exist yet.
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{joinToken},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{joinToken},
 		func(r *siderolink.JoinTokenStatus, assertion *assert.Assertions) {
 			assertion.Equal(specs.JoinTokenStatusSpec_ACTIVE, r.TypedSpec().Value.State)
 		},

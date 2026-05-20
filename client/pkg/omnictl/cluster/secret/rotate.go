@@ -111,7 +111,8 @@ func rotateCA[T resource.Resource](ctx context.Context, client *client.Client, i
 
 	fmt.Printf("starting to rotate %s for the cluster %q\n", componentName, cluster.Metadata().ID())
 
-	if err = safe.StateModify[T](ctx, st, r,
+	if err = safe.StateModify[T](
+		ctx, st, r,
 		func(res T) error {
 			res.Metadata().Annotations().Set("timestamp", strconv.FormatInt(time.Now().Unix(), 10))
 

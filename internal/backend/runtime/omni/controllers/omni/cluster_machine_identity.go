@@ -157,7 +157,8 @@ func (ctrl *ClusterMachineIdentityController) reconcileCollectors(ctx context.Co
 			return fmt.Errorf("failed to determine the machine set of the cluster machine %s", id)
 		}
 
-		machine, err := safe.ReaderGet[*omni.Machine](ctx, r,
+		machine, err := safe.ReaderGet[*omni.Machine](
+			ctx, r,
 			omni.NewMachine(id).Metadata(),
 		)
 		if err != nil {

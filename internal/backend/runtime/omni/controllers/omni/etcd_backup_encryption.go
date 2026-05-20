@@ -46,7 +46,8 @@ func NewEtcdBackupEncryptionController() *EtcdBackupEncryptionController {
 
 				value.EncryptionKey = key
 
-				logger.Info("generated etcd backup encryption key",
+				logger.Info(
+					"generated etcd backup encryption key",
 					zap.String("cluster", backupEncryption.Metadata().ID()),
 					zap.String("uuid", c.TypedSpec().Value.Uuid),
 				)

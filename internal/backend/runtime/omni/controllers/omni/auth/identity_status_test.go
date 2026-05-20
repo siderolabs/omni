@@ -35,14 +35,16 @@ func TestIdentityStatus_AggregatesAllFields(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(authctrl.NewIdentityStatusController()))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			st := tc.State
 
-			rmock.Mock[*authres.User](ctx, t, st,
+			rmock.Mock[*authres.User](
+				ctx, t, st,
 				options.WithID("user-1"),
 				options.Modify(func(u *authres.User) error {
 					u.TypedSpec().Value.Role = roleAdmin
@@ -53,7 +55,8 @@ func TestIdentityStatus_AggregatesAllFields(t *testing.T) {
 
 			now := time.Now()
 
-			rmock.Mock[*authres.IdentityLastActive](ctx, t, st,
+			rmock.Mock[*authres.IdentityLastActive](
+				ctx, t, st,
 				options.WithID("user@example.com"),
 				options.Modify(func(r *authres.IdentityLastActive) error {
 					r.TypedSpec().Value.LastActive = timestamppb.New(now)
@@ -62,7 +65,8 @@ func TestIdentityStatus_AggregatesAllFields(t *testing.T) {
 				}),
 			)
 
-			rmock.Mock[*authres.Identity](ctx, t, st,
+			rmock.Mock[*authres.Identity](
+				ctx, t, st,
 				options.WithID("user@example.com"),
 				options.Modify(func(i *authres.Identity) error {
 					i.TypedSpec().Value.UserId = "user-1"
@@ -87,14 +91,16 @@ func TestIdentityStatus_SkipsWhenUserNotFound(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(authctrl.NewIdentityStatusController()))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			st := tc.State
 
-			rmock.Mock[*authres.Identity](ctx, t, st,
+			rmock.Mock[*authres.Identity](
+				ctx, t, st,
 				options.WithID("orphan@example.com"),
 				options.Modify(func(i *authres.Identity) error {
 					i.TypedSpec().Value.UserId = "nonexistent-user"
@@ -117,14 +123,16 @@ func TestIdentityStatus_EmptyLastActive(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(authctrl.NewIdentityStatusController()))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			st := tc.State
 
-			rmock.Mock[*authres.User](ctx, t, st,
+			rmock.Mock[*authres.User](
+				ctx, t, st,
 				options.WithID("user-2"),
 				options.Modify(func(u *authres.User) error {
 					u.TypedSpec().Value.Role = roleReader
@@ -133,7 +141,8 @@ func TestIdentityStatus_EmptyLastActive(t *testing.T) {
 				}),
 			)
 
-			rmock.Mock[*authres.Identity](ctx, t, st,
+			rmock.Mock[*authres.Identity](
+				ctx, t, st,
 				options.WithID("inactive@example.com"),
 				options.Modify(func(i *authres.Identity) error {
 					i.TypedSpec().Value.UserId = "user-2"
@@ -158,14 +167,16 @@ func TestIdentityStatus_PropagatesServiceAccountLabel(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(authctrl.NewIdentityStatusController()))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			st := tc.State
 
-			rmock.Mock[*authres.User](ctx, t, st,
+			rmock.Mock[*authres.User](
+				ctx, t, st,
 				options.WithID("sa-user-1"),
 				options.Modify(func(u *authres.User) error {
 					u.TypedSpec().Value.Role = roleAdmin
@@ -174,7 +185,8 @@ func TestIdentityStatus_PropagatesServiceAccountLabel(t *testing.T) {
 				}),
 			)
 
-			rmock.Mock[*authres.Identity](ctx, t, st,
+			rmock.Mock[*authres.Identity](
+				ctx, t, st,
 				options.WithID("mysa@serviceaccount.omni.sidero.dev"),
 				options.Modify(func(i *authres.Identity) error {
 					i.TypedSpec().Value.UserId = "sa-user-1"
@@ -200,14 +212,16 @@ func TestIdentityStatus_UpdatesOnRoleChange(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(authctrl.NewIdentityStatusController()))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			st := tc.State
 
-			rmock.Mock[*authres.User](ctx, t, st,
+			rmock.Mock[*authres.User](
+				ctx, t, st,
 				options.WithID("user-3"),
 				options.Modify(func(u *authres.User) error {
 					u.TypedSpec().Value.Role = roleReader
@@ -216,7 +230,8 @@ func TestIdentityStatus_UpdatesOnRoleChange(t *testing.T) {
 				}),
 			)
 
-			rmock.Mock[*authres.Identity](ctx, t, st,
+			rmock.Mock[*authres.Identity](
+				ctx, t, st,
 				options.WithID("changeme@example.com"),
 				options.Modify(func(i *authres.Identity) error {
 					i.TypedSpec().Value.UserId = "user-3"
@@ -231,7 +246,8 @@ func TestIdentityStatus_UpdatesOnRoleChange(t *testing.T) {
 			})
 
 			// Update the user role.
-			rmock.Mock[*authres.User](ctx, t, st,
+			rmock.Mock[*authres.User](
+				ctx, t, st,
 				options.WithID("user-3"),
 				options.Modify(func(u *authres.User) error {
 					u.TypedSpec().Value.Role = roleAdmin
@@ -253,14 +269,16 @@ func TestIdentityStatus_UpdatesOnLastActiveChange(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(authctrl.NewIdentityStatusController()))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			st := tc.State
 
-			rmock.Mock[*authres.User](ctx, t, st,
+			rmock.Mock[*authres.User](
+				ctx, t, st,
 				options.WithID("user-4"),
 				options.Modify(func(u *authres.User) error {
 					u.TypedSpec().Value.Role = roleOperator
@@ -269,7 +287,8 @@ func TestIdentityStatus_UpdatesOnLastActiveChange(t *testing.T) {
 				}),
 			)
 
-			rmock.Mock[*authres.Identity](ctx, t, st,
+			rmock.Mock[*authres.Identity](
+				ctx, t, st,
 				options.WithID("track@example.com"),
 				options.Modify(func(i *authres.Identity) error {
 					i.TypedSpec().Value.UserId = "user-4"
@@ -287,7 +306,8 @@ func TestIdentityStatus_UpdatesOnLastActiveChange(t *testing.T) {
 			// Record activity.
 			now := time.Now()
 
-			rmock.Mock[*authres.IdentityLastActive](ctx, t, st,
+			rmock.Mock[*authres.IdentityLastActive](
+				ctx, t, st,
 				options.WithID("track@example.com"),
 				options.Modify(func(r *authres.IdentityLastActive) error {
 					r.TypedSpec().Value.LastActive = timestamppb.New(now)

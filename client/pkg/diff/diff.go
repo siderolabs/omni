@@ -33,7 +33,8 @@ func Compute(previousData, newData []byte) (string, error) {
 		return fmt.Sprintf("@@ -%d,%d +%d,%d @@ diff too large to display\n", 1, prevLines, 1, newLines), nil
 	}
 
-	result, err := myers.Diff(string(previousData), string(newData),
+	result, err := myers.Diff(
+		string(previousData), string(newData),
 		myers.WithUnifiedFormatter(),
 		myers.WithLinearSpace(true),
 		// Disable the library's standard-Myers and LCS fallback paths:

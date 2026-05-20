@@ -300,11 +300,13 @@ func testDecryptEtcdBackup(ctx context.Context, t *testing.T, testContext testut
 		clusters[0].TypedSpec().Value.EncryptionKey,
 	))(t)
 
-	require.EqualValues(t,
+	require.EqualValues(
+		t,
 		clusters[0].TypedSpec().Value.AesCbcEncryptionSecret,
 		decryptedHeader.AESCBCEncryptionSecret,
 	)
-	require.EqualValues(t,
+	require.EqualValues(
+		t,
 		clusters[0].TypedSpec().Value.SecretboxEncryptionSecret,
 		decryptedHeader.SecretboxEncryptionSecret,
 	)
@@ -433,7 +435,8 @@ func testListBackupsWithExistingData(ctx context.Context, t *testing.T, testCont
 }
 
 func uploadBackupData(ctx context.Context, t *testing.T, store etcdbackup.Store, cluster *omni.BackupData, timestamp time.Time) {
-	require.NoError(t,
+	require.NoError(
+		t,
 		store.Upload(ctx, etcdbackup.Description{
 			Timestamp:   timestamp,
 			ClusterUUID: cluster.TypedSpec().Value.ClusterUuid,
@@ -514,7 +517,8 @@ func testEtcdManualBackupFindResource(ctx context.Context, t *testing.T, testCon
 
 	assert.EqualValues(t, len(backups), backupRes.Len())
 
-	assert.Equal(t,
+	assert.Equal(
+		t,
 		omni.NewEtcdBackup(clusterNames[0], backups[0].Timestamp).Metadata().ID(),
 		backupRes.Get(0).Metadata().ID(),
 	)
@@ -751,11 +755,13 @@ func testS3Backup(ctx context.Context, t *testing.T, rt *runtime.Runtime, st sta
 		clusters[0].TypedSpec().Value.EncryptionKey,
 	))(t)
 
-	require.EqualValues(t,
+	require.EqualValues(
+		t,
 		clusters[0].TypedSpec().Value.AesCbcEncryptionSecret,
 		decryptedHeader.AESCBCEncryptionSecret,
 	)
-	require.EqualValues(t,
+	require.EqualValues(
+		t,
 		clusters[0].TypedSpec().Value.SecretboxEncryptionSecret,
 		decryptedHeader.SecretboxEncryptionSecret,
 	)

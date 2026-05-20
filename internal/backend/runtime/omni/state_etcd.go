@@ -69,7 +69,8 @@ func newEtcdPersistentState(ctx context.Context, params *config.Params, observer
 			return nil, err
 		}
 	} else {
-		logger.Info("skipped elections",
+		logger.Info(
+			"skipped elections",
 			zap.Bool("embedded", embedded),
 			zap.Bool("force_elections", runElections),
 		)
@@ -275,7 +276,8 @@ func getExternalEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 	certFile := params.GetCertFile()
 	keyFile := params.GetKeyFile()
 	caFile := params.GetCaFile()
-	logger.Info("starting etcd client",
+	logger.Info(
+		"starting etcd client",
 		zap.Strings("endpoints", params.Endpoints),
 		zap.String("cert_path", certFile),
 		zap.String("key_path", keyFile),

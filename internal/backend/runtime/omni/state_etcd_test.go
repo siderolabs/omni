@@ -125,7 +125,8 @@ func TestEtcdInitialization(t *testing.T) {
 
 			defer cancel()
 
-			state, err := omni.NewEtcdPersistentState(ctx,
+			state, err := omni.NewEtcdPersistentState(
+				ctx,
 				&config.Params{
 					Account: config.Account{
 						Name: new("instance-name"),
@@ -204,7 +205,8 @@ func TestEncryptDecrypt(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
 			defer cancel()
 
-			state, err := omni.NewEtcdPersistentState(ctx,
+			state, err := omni.NewEtcdPersistentState(
+				ctx,
 				&config.Params{
 					Account: config.Account{
 						Name: new("instance-name"),

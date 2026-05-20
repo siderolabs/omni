@@ -409,12 +409,12 @@ func checkStructNillability(typ reflect.Type, path string, violations *[]string)
 		fieldType := field.Type
 
 		underlying := fieldType
-		if fieldType.Kind() == reflect.Ptr {
+		if fieldType.Kind() == reflect.Pointer {
 			underlying = fieldType.Elem()
 		}
 
 		if isConfigStruct(underlying) {
-			if fieldType.Kind() == reflect.Ptr {
+			if fieldType.Kind() == reflect.Pointer {
 				*violations = append(*violations, fmt.Sprintf(
 					"%s: intermediate struct field must not be a pointer — mark it as required in its parent in schema.json to make it non-nillable",
 					fieldPath,
@@ -449,7 +449,7 @@ func isConfigStruct(typ reflect.Type) bool {
 
 func isNillableKind(kind reflect.Kind) bool {
 	switch kind { //nolint:exhaustive
-	case reflect.Ptr, reflect.Slice, reflect.Map, reflect.Interface:
+	case reflect.Pointer, reflect.Slice, reflect.Map, reflect.Interface:
 		return true
 	default:
 		return false

@@ -45,7 +45,8 @@ func TestPayloadUnaryServerInterceptor(t *testing.T) {
 
 	server := grpc.NewServer(grpc.ChainUnaryInterceptor(
 		grpc_ctxtags.UnaryServerInterceptor(),
-		grpc_zap.UnaryServerInterceptor(logger,
+		grpc_zap.UnaryServerInterceptor(
+			logger,
 			grpc_zap.WithTimestampFormat(""),
 			grpc_zap.WithDurationField(func(_ time.Duration) zap.Field {
 				return zap.Float64("grpc.duration", 1)

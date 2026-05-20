@@ -1314,7 +1314,8 @@ func TestMachineSetClassesValidation(t *testing.T) {
 	etcdBackupStoreFactory, err := store.NewStoreFactory(config.EtcdBackup{})
 	require.NoError(t, err)
 
-	st := validated.NewState(innerSt,
+	st := validated.NewState(
+		innerSt,
 		append(
 			omni.MachineSetNodeValidationOptions(state.WrapCore(innerSt)),
 			omni.MachineSetValidationOptions(state.WrapCore(innerSt), etcdBackupStoreFactory)...,
@@ -1390,7 +1391,8 @@ func TestMachineClassValidation(t *testing.T) {
 
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	st := validated.NewState(innerSt,
+	st := validated.NewState(
+		innerSt,
 		omni.MachineClassValidationOptions(state.WrapCore(innerSt))...,
 	)
 

@@ -56,7 +56,8 @@ func SaveClusterSnapshot(testCtx context.Context, options *TestOptions, clusterN
 			ShaSums:   map[string]string{},
 		}
 
-		cmcss := rtestutils.ResourceIDs[*omni.ClusterMachineConfigStatus](ctx, t, st,
+		cmcss := rtestutils.ResourceIDs[*omni.ClusterMachineConfigStatus](
+			ctx, t, st,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 
@@ -71,7 +72,8 @@ func SaveClusterSnapshot(testCtx context.Context, options *TestOptions, clusterN
 			require.NoError(c.Close())
 		})
 
-		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, omniClient.Omni().State(),
+		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](
+			ctx, t, omniClient.Omni().State(),
 			state.WithLabelQuery(
 				resource.LabelEqual(omni.LabelCluster, clusterName),
 				resource.LabelExists(omni.LabelControlPlaneRole),
@@ -91,7 +93,8 @@ func SaveClusterSnapshot(testCtx context.Context, options *TestOptions, clusterN
 
 		require.NoError(err)
 
-		_, err = safe.StateUpdateWithConflicts(ctx,
+		_, err = safe.StateUpdateWithConflicts(
+			ctx,
 			omniClient.Omni().State(),
 			omni.NewCluster(clusterName).Metadata(),
 			func(res *omni.Cluster) error {
@@ -114,7 +117,8 @@ func AssertNoPendingMachineUpdates(testCtx context.Context, options *TestOptions
 		omniClient := options.omniClient
 		st := omniClient.Omni().State()
 
-		machinePendingUpdates := rtestutils.ResourceIDs[*omni.MachinePendingUpdates](ctx, t, st,
+		machinePendingUpdates := rtestutils.ResourceIDs[*omni.MachinePendingUpdates](
+			ctx, t, st,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 
@@ -153,7 +157,8 @@ func AssertClusterSnapshot(testCtx context.Context, options *TestOptions, cluste
 
 		require.NoError(json.Unmarshal([]byte(snapshotData), &snapshot))
 
-		ids := rtestutils.ResourceIDs[*omni.ClusterMachineConfigStatus](ctx, t, omniState,
+		ids := rtestutils.ResourceIDs[*omni.ClusterMachineConfigStatus](
+			ctx, t, omniState,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 

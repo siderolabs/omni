@@ -80,7 +80,8 @@ func AssertDownloadUsingCLI(testCtx context.Context, client *client.Client, omni
 					"--initial-labels",
 					"key=value",
 					"--output",
-					output)
+					output,
+				)
 				require.NoError(t, err, "stdout:\n %s\nstderr:\n%s", stdout.String(), stderr.String())
 
 				res, err := os.Stat(output)

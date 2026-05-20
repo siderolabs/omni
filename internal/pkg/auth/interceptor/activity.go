@@ -91,7 +91,8 @@ func (a *Activity) trackActivity(ctx context.Context) {
 		writeCtx = actor.MarkContextAsInternalActor(writeCtx)
 
 		if updateIdentity {
-			if _, err := safe.StateUpdateWithConflicts(writeCtx, a.state, authres.NewIdentityLastActive(identity).Metadata(),
+			if _, err := safe.StateUpdateWithConflicts(
+				writeCtx, a.state, authres.NewIdentityLastActive(identity).Metadata(),
 				func(r *authres.IdentityLastActive) error {
 					r.TypedSpec().Value.LastActive = timestamppb.Now()
 
@@ -103,7 +104,8 @@ func (a *Activity) trackActivity(ctx context.Context) {
 		}
 
 		if updateFingerprint {
-			if err := safe.StateModify(writeCtx, a.state, authres.NewPublicKeyLastActive(fingerprint),
+			if err := safe.StateModify(
+				writeCtx, a.state, authres.NewPublicKeyLastActive(fingerprint),
 				func(r *authres.PublicKeyLastActive) error {
 					r.Metadata().Labels().Set(authres.LabelIdentity, identity)
 					r.TypedSpec().Value.LastUsed = timestamppb.Now()

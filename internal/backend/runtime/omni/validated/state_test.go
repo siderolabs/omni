@@ -34,7 +34,8 @@ func TestValidations(t *testing.T) {
 	testMgmtAddress := "test-mgmt-address"
 	testTalosVersion := "test-talos-version"
 
-	st := validated.NewState(innerSt,
+	st := validated.NewState(
+		innerSt,
 		validated.WithCreateValidations(
 			// generic create validator
 			func(_ context.Context, res resource.Resource, _ ...state.CreateOption) error {
@@ -210,7 +211,8 @@ func TestValidations(t *testing.T) {
 func TestTeardownDestroyValidations(t *testing.T) {
 	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
 	st := state.WrapCore(
-		validated.NewState(innerSt,
+		validated.NewState(
+			innerSt,
 			validated.WithUpdateValidations(func(context.Context, resource.Resource, resource.Resource, ...state.UpdateOption) error {
 				return errors.New("update")
 			}), validated.WithDestroyValidations(func(_ context.Context, _ resource.Pointer, _ resource.Resource, option ...state.DestroyOption) error {

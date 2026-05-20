@@ -26,6 +26,8 @@ type service struct {
 	keyFile       *string
 }
 
+const schemeHTTP = "http"
+
 func wrapService(bindEndpoint, advertisedURL, certFile, keyFile *string) service {
 	return service{
 		bindEndpoint:  bindEndpoint,
@@ -59,7 +61,7 @@ func (s service) url(schemeOverrides map[string]string) string {
 		return advertisedURL
 	}
 
-	schema := "http"
+	schema := schemeHTTP
 	if s.isSecure() {
 		schema = "https"
 	}
@@ -105,7 +107,7 @@ func (s *KubernetesProxyService) IsSecure() bool {
 //
 // It is always HTTPS.
 func (s *KubernetesProxyService) URL() string {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).url(map[string]string{"http": "https"})
+	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).url(map[string]string{schemeHTTP: "https"})
 }
 
 // MachineAPI is the public API of Omni that helps to establish WireGuard connections.
@@ -117,7 +119,7 @@ type MachineAPI Service
 //
 // If the URL schema is "http", it is replaced with "grpc" to meet the SideroLink API library's protocol requirement.
 func (m MachineAPI) URL() string {
-	url := wrapService(m.Endpoint, m.AdvertisedURL, m.CertFile, m.KeyFile).url(map[string]string{"http": "grpc"})
+	url := wrapService(m.Endpoint, m.AdvertisedURL, m.CertFile, m.KeyFile).url(map[string]string{schemeHTTP: "grpc"})
 
 	return url
 }

@@ -17,7 +17,8 @@ import (
 )
 
 func newSQLitePersistentState(ctx context.Context, db *sqlitexx.Pool, logger *zap.Logger) (*PersistentState, error) {
-	st, err := sqlite.NewState(ctx, db, store.ProtobufMarshaler{},
+	st, err := sqlite.NewState(
+		ctx, db, store.ProtobufMarshaler{},
 		sqlite.WithLogger(logger),
 		sqlite.WithTablePrefix("metrics_"),
 		// run aggressive compaction, as we store frequently updated link counters here

@@ -41,7 +41,8 @@ func setupEtcdAuditCluster(
 	rmock.Mock[*omni.TalosConfig](ctx, t, st, options.SameID(cluster))
 	rmock.Mock[*omni.ClusterStatus](ctx, t, st, options.SameID(cluster))
 
-	machineSet := rmock.Mock[*omni.MachineSet](ctx, t, st,
+	machineSet := rmock.Mock[*omni.MachineSet](
+		ctx, t, st,
 		options.WithID(omni.ControlPlanesResourceID(clusterName)),
 		options.LabelCluster(cluster),
 		options.EmptyLabel(omni.LabelControlPlaneRole),
@@ -52,7 +53,8 @@ func setupEtcdAuditCluster(
 		}),
 	)
 
-	rmock.MockList[*omni.MachineSetNode](ctx, t, st,
+	rmock.MockList[*omni.MachineSetNode](
+		ctx, t, st,
 		options.IDs(machineIDs),
 		options.ItemOptions(
 			options.LabelCluster(cluster),
@@ -62,7 +64,8 @@ func setupEtcdAuditCluster(
 	)
 
 	for _, id := range machineIDs {
-		rmock.Mock[*omni.MachineStatus](ctx, t, st,
+		rmock.Mock[*omni.MachineStatus](
+			ctx, t, st,
 			options.WithID(id),
 			options.WithMachineServices(ctx, machineServices),
 		)
@@ -84,14 +87,16 @@ func addClusterMachine(
 	machineSet *omni.MachineSet,
 	id string,
 ) {
-	rmock.Mock[*omni.MachineSetNode](ctx, t, st,
+	rmock.Mock[*omni.MachineSetNode](
+		ctx, t, st,
 		options.WithID(id),
 		options.LabelCluster(cluster),
 		options.LabelMachineSet(machineSet),
 		options.EmptyLabel(omni.LabelControlPlaneRole),
 	)
 
-	rmock.Mock[*omni.MachineStatus](ctx, t, st,
+	rmock.Mock[*omni.MachineStatus](
+		ctx, t, st,
 		options.WithID(id),
 		options.WithMachineServices(ctx, machineServices),
 	)
@@ -137,7 +142,8 @@ func TestMachineSetEtcdAudit(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerControllers(t),
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, registerControllers(t),
 			func(ctx context.Context, tc testutils.TestContext) {
 				machineServices := testutils.NewMachineServices(t, tc.State)
 				setupEtcdAuditCluster(ctx, t, tc.State, machineServices, "etcd_audit/unchanged", machines)
@@ -173,7 +179,8 @@ func TestMachineSetEtcdAudit(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerControllers(t),
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, registerControllers(t),
 			func(ctx context.Context, tc testutils.TestContext) {
 				machineServices := testutils.NewMachineServices(t, tc.State)
 				setupEtcdAuditCluster(ctx, t, tc.State, machineServices, "etcd_audit/cleanedUp", machines)
@@ -268,7 +275,8 @@ func TestEtcdStatus(t *testing.T) {
 
 	initIdentities := func(ctx context.Context, t *testing.T, st state.State, items ...string) {
 		for _, m := range items {
-			rmock.Mock[*omni.ClusterMachineIdentity](ctx, t, st,
+			rmock.Mock[*omni.ClusterMachineIdentity](
+				ctx, t, st,
 				options.WithID(m),
 				options.Modify(func(res *omni.ClusterMachineIdentity) error {
 					res.TypedSpec().Value.EtcdMemberId = memberIDs[m]
@@ -281,7 +289,8 @@ func TestEtcdStatus(t *testing.T) {
 
 	setConnected := func(ctx context.Context, t *testing.T, st state.State, items ...string) {
 		for _, m := range items {
-			rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st,
+			rmock.Mock[*omni.ClusterMachineStatus](
+				ctx, t, st,
 				options.WithID(m),
 				options.Modify(func(res *omni.ClusterMachineStatus) error {
 					res.Metadata().Labels().Set(omni.MachineStatusLabelConnected, "")
@@ -428,7 +437,8 @@ func TestEtcdStatus(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 			t.Cleanup(cancel)
 
-			testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+			testutils.WithRuntime(
+				ctx, t, testutils.TestOptions{},
 				func(context.Context, testutils.TestContext) {},
 				func(ctx context.Context, tc testutils.TestContext) {
 					machineServices := testutils.NewMachineServices(t, tc.State)

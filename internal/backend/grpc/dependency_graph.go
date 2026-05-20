@@ -225,7 +225,8 @@ func (s *ResourceServer) DependencyGraph(ctx context.Context, req *resources.Dep
 			return nil
 		}
 
-		res.Edges = append(res.Edges,
+		res.Edges = append(
+			res.Edges,
 			&resources.DependencyGraphResponse_Edge{
 				Id:       fmt.Sprintf("e_%s->%s", source, target),
 				Source:   source,

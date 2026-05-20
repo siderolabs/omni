@@ -206,7 +206,8 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 		return nil
 	}
 
-	manifestList, err := safe.ReaderListAll[*omni.KubernetesManifestGroup](ctx, r,
+	manifestList, err := safe.ReaderListAll[*omni.KubernetesManifestGroup](
+		ctx, r,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())),
 	)
 	if err != nil {
@@ -346,7 +347,8 @@ func (ctrl *ClusterManifestsStatusController) updateStatus(
 		return dr.Get(ctx, obj.Name, v1.GetOptions{})
 	}
 
-	return safe.WriterModifyWithResult(ctx, r, omni.NewClusterKubernetesManifestsStatus(clusterName),
+	return safe.WriterModifyWithResult(
+		ctx, r, omni.NewClusterKubernetesManifestsStatus(clusterName),
 		func(r *omni.ClusterKubernetesManifestsStatus) error {
 			visited := make(map[string]struct{})
 
@@ -536,7 +538,8 @@ func (ctrl *ClusterManifestsStatusController) sync(
 			continue
 		}
 
-		logger.Debug("manifest status",
+		logger.Debug(
+			"manifest status",
 			zap.String("name", obj.GetName()),
 			zap.String("namespace", obj.GetNamespace()),
 			zap.String("group", group),

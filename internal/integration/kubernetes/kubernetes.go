@@ -40,7 +40,8 @@ func WrapContext(ctx context.Context, t *testing.T) context.Context {
 // GetClient retrieves a Kubernetes clientset for the specified cluster using the management client.
 func GetClient(ctx context.Context, t *testing.T, managementClient *management.Client, clusterName string) *kubernetes.Clientset {
 	// use service account kubeconfig to bypass oidc flow
-	kubeconfigBytes, err := managementClient.WithCluster(clusterName).Kubeconfig(ctx,
+	kubeconfigBytes, err := managementClient.WithCluster(clusterName).Kubeconfig(
+		ctx,
 		management.WithServiceAccount(24*time.Hour, "integration-test", constants.DefaultAccessGroup),
 	)
 	require.NoError(t, err)

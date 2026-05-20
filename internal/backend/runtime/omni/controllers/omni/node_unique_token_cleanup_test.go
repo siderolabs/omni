@@ -49,7 +49,8 @@ func (suite *MachineStatusSnapshotControllerSuite) TestNodeUniqueTokenCleanup() 
 	time.Sleep(time.Second)
 
 	// resource still exists
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{token.Metadata().ID()},
 		func(res *siderolink.NodeUniqueToken, assert *assert.Assertions) {},
 	)
 
@@ -59,7 +60,8 @@ func (suite *MachineStatusSnapshotControllerSuite) TestNodeUniqueTokenCleanup() 
 
 	suite.Require().NoError(suite.state.Destroy(ctx, link.Metadata()))
 
-	rtestutils.AssertResource(ctx, suite.T(), suite.state, token.Metadata().ID(),
+	rtestutils.AssertResource(
+		ctx, suite.T(), suite.state, token.Metadata().ID(),
 		func(res *siderolink.NodeUniqueToken, assert *assert.Assertions) {
 			assert.Equal(resource.PhaseTearingDown, res.Metadata().Phase())
 		},

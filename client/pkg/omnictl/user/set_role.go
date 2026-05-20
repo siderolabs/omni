@@ -48,7 +48,8 @@ func setUserRoleLegacy(ctx context.Context, client *client.Client, email string)
 		return err
 	}
 
-	_, err = safe.StateUpdateWithConflicts(ctx, client.Omni().State(),
+	_, err = safe.StateUpdateWithConflicts(
+		ctx, client.Omni().State(),
 		auth.NewUser(identity.TypedSpec().Value.UserId).Metadata(),
 		func(user *auth.User) error {
 			user.TypedSpec().Value.Role = setRoleCmdFlags.role

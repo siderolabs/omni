@@ -123,7 +123,8 @@ func init() {
 		&importCmdFlags.talosConfig,
 		"talosconfig",
 		"",
-		fmt.Sprintf("The path to the Talos configuration file. Defaults to '%s' env variable if set, otherwise '%s'.",
+		fmt.Sprintf(
+			"The path to the Talos configuration file. Defaults to '%s' env variable if set, otherwise '%s'.",
 			constants.TalosConfigEnvVar,
 			filepath.Join("$HOME", constants.TalosDir, constants.TalosconfigFilename),
 		),

@@ -235,7 +235,8 @@ func createListener(ctx context.Context, host, port string) (net.Listener, error
 			}
 
 			return err
-		}); err != nil {
+		},
+	); err != nil {
 		return nil, fmt.Errorf("error listening for endpoint %s: %w", endpoint, err)
 	}
 

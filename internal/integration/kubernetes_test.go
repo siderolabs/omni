@@ -715,8 +715,9 @@ spec:
 			assert.Len(group.Manifests, 3)
 		})
 
-		rtestutils.Destroy[*omni.KubernetesManifestGroup](ctx, t, st, rtestutils.ResourceIDs[*omni.KubernetesManifestGroup](ctx, t, st,
-			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))),
+		rtestutils.Destroy[*omni.KubernetesManifestGroup](
+			ctx, t, st, rtestutils.ResourceIDs[*omni.KubernetesManifestGroup](ctx, t, st,
+				state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))),
 		)
 
 		rtestutils.AssertResources(ctx, t, st, []string{clusterName}, func(r *omni.ClusterKubernetesManifestsStatus, assert *assert.Assertions) {
@@ -763,7 +764,8 @@ spec:
 			}
 
 			if deployment.Spec.Template.Spec.Containers[0].Image != "nginx:alpine" {
-				return retry.ExpectedErrorf("deployment has not been updated with the new image, expected %q but got %q",
+				return retry.ExpectedErrorf(
+					"deployment has not been updated with the new image, expected %q but got %q",
 					"nginx:alpine", deployment.Spec.Template.Spec.Containers[0].Image,
 				)
 			}
@@ -812,8 +814,9 @@ spec:
 		require.Len(t, deployment.Spec.Template.Spec.Containers, 1)
 		assert.Equal(t, "nginx:alpine", deployment.Spec.Template.Spec.Containers[0].Image)
 
-		rtestutils.Destroy[*omni.KubernetesManifestGroup](ctx, t, st, rtestutils.ResourceIDs[*omni.KubernetesManifestGroup](ctx, t, st,
-			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))),
+		rtestutils.Destroy[*omni.KubernetesManifestGroup](
+			ctx, t, st, rtestutils.ResourceIDs[*omni.KubernetesManifestGroup](ctx, t, st,
+				state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName))),
 		)
 	}
 }

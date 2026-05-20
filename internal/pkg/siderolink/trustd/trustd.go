@@ -65,7 +65,8 @@ func getCertificate(st state.State, serverAddr net.IP) func(info *tls.ClientHell
 			return nil, fmt.Errorf("failed to parse CA certificate: %w", err)
 		}
 
-		serverCert, err := x509.NewKeyPair(ca,
+		serverCert, err := x509.NewKeyPair(
+			ca,
 			x509.IPAddresses([]net.IP{serverAddr}),
 			x509.CommonName("omni"),
 			x509.NotAfter(time.Now().Add(5*time.Minute)),

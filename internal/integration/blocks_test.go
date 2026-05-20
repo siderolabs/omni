@@ -35,10 +35,11 @@ func AssertBlockClusterShouldBeReady(ctx context.Context, options *TestOptions, 
 		},
 		{
 			"MachinesStatusShouldBeNotAvailable",
-			AssertMachineStatus(ctx, omniClient.Omni().State(), false, clusterName, map[string]string{
-				omni.MachineStatusLabelConnected:       "",
-				omni.MachineStatusLabelReportingEvents: "",
-			},
+			AssertMachineStatus(
+				ctx, omniClient.Omni().State(), false, clusterName, map[string]string{
+					omni.MachineStatusLabelConnected:       "",
+					omni.MachineStatusLabelReportingEvents: "",
+				},
 				[]string{omni.MachineStatusLabelAvailable},
 			),
 		},

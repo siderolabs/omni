@@ -237,7 +237,7 @@ func (ms *machineService) ServiceList(context.Context, *emptypb.Empty) (*machine
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
-	if (ms.serviceList) == nil {
+	if ms.serviceList == nil {
 		return nil, status.Errorf(codes.Internal, "service list is not mocked")
 	}
 
@@ -578,7 +578,8 @@ func (suite *OmniSuite) destroyClusterByID(clusterID string) {
 	ctx, cancel := context.WithTimeout(suite.ctx, 10*time.Second)
 	defer cancel()
 
-	list, err := safe.StateListAll[*omni.ClusterMachine](ctx, suite.state,
+	list, err := safe.StateListAll[*omni.ClusterMachine](
+		ctx, suite.state,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterID)),
 	)
 
@@ -594,7 +595,8 @@ func (suite *OmniSuite) destroyClusterByID(clusterID string) {
 		rtestutils.Destroy[*siderolink.Link](ctx, suite.T(), suite.state, []string{cs.Metadata().ID()})
 	}
 
-	machineSets, err := safe.StateListAll[*omni.MachineSet](ctx, suite.state,
+	machineSets, err := safe.StateListAll[*omni.MachineSet](
+		ctx, suite.state,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterID)),
 	)
 

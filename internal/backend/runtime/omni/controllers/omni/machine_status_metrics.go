@@ -211,7 +211,8 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 
 		metricsSpec := ctrl.gatherMetrics(machineStatuses.All(), pendingMachines)
 
-		if err = safe.WriterModify(ctx, r, omni.NewMachineStatusMetrics(omni.MachineStatusMetricsID),
+		if err = safe.WriterModify(
+			ctx, r, omni.NewMachineStatusMetrics(omni.MachineStatusMetricsID),
 			func(res *omni.MachineStatusMetrics) error {
 				res.TypedSpec().Value = metricsSpec
 
@@ -253,12 +254,14 @@ func (ctrl *MachineStatusMetricsController) Run(ctx context.Context, r controlle
 
 func (ctrl *MachineStatusMetricsController) reconcileRegistrationLimitNotification(ctx context.Context, r controller.Runtime, metricsSpec *specs.MachineStatusMetricsSpec) error {
 	if metricsSpec.RegistrationLimitReached {
-		return safe.WriterModify(ctx, r, omni.NewNotification(omni.NotificationMachineRegistrationLimitID),
+		return safe.WriterModify(
+			ctx, r, omni.NewNotification(omni.NotificationMachineRegistrationLimitID),
 			func(res *omni.Notification) error {
 				res.TypedSpec().Value.Title = "Machine Registration Limit Reached"
 				res.TypedSpec().Value.Body = fmt.Sprintf(
 					"%d/%d machines registered. New machines will be rejected.",
-					metricsSpec.RegisteredMachinesCount, metricsSpec.RegisteredMachinesLimit)
+					metricsSpec.RegisteredMachinesCount, metricsSpec.RegisteredMachinesLimit,
+				)
 				res.TypedSpec().Value.Type = specs.NotificationSpec_WARNING
 
 				return nil
@@ -274,7 +277,8 @@ func (ctrl *MachineStatusMetricsController) reconcileRegistrationLimitNotificati
 func (ctrl *MachineStatusMetricsController) reconcileNonImageFactoryDeprecationNotification(ctx context.Context, r controller.Runtime, metricsSpec *specs.MachineStatusMetricsSpec) error {
 	invalidSchematicCount := int(metricsSpec.InvalidSchematicMachinesCount)
 	if invalidSchematicCount > 0 {
-		return safe.WriterModify(ctx, r, omni.NewNotification(omni.NotificationNonImageFactoryMachinesID),
+		return safe.WriterModify(
+			ctx, r, omni.NewNotification(omni.NotificationNonImageFactoryMachinesID),
 			func(res *omni.Notification) error {
 				res.TypedSpec().Value.Title = nonImageFactoryNotificationTitle
 				res.TypedSpec().Value.Body = fmt.Sprintf(nonImageFactoryNotificationBody, invalidSchematicCount)
@@ -293,7 +297,8 @@ func (ctrl *MachineStatusMetricsController) reconcileNonImageFactoryDeprecationN
 func (ctrl *MachineStatusMetricsController) reconcileApproachingTalosVersionEndOfSupportNotification(ctx context.Context, r controller.Runtime, metricsSpec *specs.MachineStatusMetricsSpec) error {
 	count := int(metricsSpec.ApproachingTalosVersionEndOfSupportMachinesCount)
 	if count > 0 {
-		return safe.WriterModify(ctx, r, omni.NewNotification(omni.NotificationApproachingTalosVersionEndOfSupportID),
+		return safe.WriterModify(
+			ctx, r, omni.NewNotification(omni.NotificationApproachingTalosVersionEndOfSupportID),
 			func(res *omni.Notification) error {
 				res.TypedSpec().Value.Title = approachingTalosEndOfSupportNotificationTitle
 				res.TypedSpec().Value.Body = fmt.Sprintf(approachingTalosEndOfSupportNotificationBody, count, constants.MinTalosVersion)
@@ -312,7 +317,8 @@ func (ctrl *MachineStatusMetricsController) reconcileApproachingTalosVersionEndO
 func (ctrl *MachineStatusMetricsController) reconcileTalosVersionEndOfSupportNotification(ctx context.Context, r controller.Runtime, metricsSpec *specs.MachineStatusMetricsSpec) error {
 	count := int(metricsSpec.TalosVersionEndOfSupportMachinesCount)
 	if count > 0 {
-		return safe.WriterModify(ctx, r, omni.NewNotification(omni.NotificationTalosVersionEndOfSupportID),
+		return safe.WriterModify(
+			ctx, r, omni.NewNotification(omni.NotificationTalosVersionEndOfSupportID),
 			func(res *omni.Notification) error {
 				res.TypedSpec().Value.Title = talosVersionEndOfSupportNotificationTitle
 				res.TypedSpec().Value.Body = fmt.Sprintf(talosVersionEndOfSupportNotificationBody, count, constants.MinTalosVersion)

@@ -112,7 +112,8 @@ func (d *Destroy) Apply(ctx context.Context, r controller.ReaderWriter, logger *
 		return fmt.Errorf("error removing finalizer from machine %q: %w", clusterMachine.Metadata().ID(), err)
 	}
 
-	logger.Info("deleted the machine",
+	logger.Info(
+		"deleted the machine",
 		zap.String("machine", clusterMachine.Metadata().ID()),
 	)
 

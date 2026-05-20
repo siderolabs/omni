@@ -46,7 +46,8 @@ func TestGetClientForCluster(t *testing.T) {
 			&bundle.InputOptions{
 				ClusterName: clusterName,
 				Endpoint:    "https://127.0.0.1:6443",
-			}))
+			},
+		))
 		require.NoError(t, err)
 
 		talosconfig := omni.NewTalosConfig(clusterName)
@@ -99,7 +100,8 @@ func TestClientLifecycle(t *testing.T) {
 			&bundle.InputOptions{
 				ClusterName: clusterName,
 				Endpoint:    "https://127.0.0.1:6443",
-			}))
+			},
+		))
 		require.NoError(t, err)
 
 		talosconfig := omni.NewTalosConfig(clusterName)

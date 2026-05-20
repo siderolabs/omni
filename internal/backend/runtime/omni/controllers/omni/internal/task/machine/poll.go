@@ -109,7 +109,8 @@ func pollHostname(ctx context.Context, c *client.Client, info *Info) error {
 			info.Domainname = new(r.TypedSpec().Domainname)
 
 			return nil
-		})
+		},
+	)
 }
 
 func filterAddresses(maintenanceMode bool) func(r *network.NodeAddress) bool {
@@ -155,7 +156,8 @@ func pollAddresses(ctx context.Context, c *client.Client, info *Info) error {
 			}
 
 			return nil
-		})
+		},
+	)
 }
 
 func filterRoutes(r *network.RouteStatus) bool {
@@ -176,7 +178,8 @@ func pollRoutes(ctx context.Context, c *client.Client, info *Info) error {
 			}
 
 			return nil
-		})
+		},
+	)
 }
 
 func filterNetworkLinks(r *network.LinkStatus) bool {
@@ -205,7 +208,8 @@ func pollNetworkLinks(ctx context.Context, c *client.Client, info *Info) error {
 			})
 
 			return nil
-		})
+		},
+	)
 }
 
 func pollProcessors(ctx context.Context, c *client.Client, info *Info) error {
@@ -230,7 +234,8 @@ func pollProcessors(ctx context.Context, c *client.Client, info *Info) error {
 			})
 
 			return nil
-		})
+		},
+	)
 }
 
 func pollMemory(ctx context.Context, c *client.Client, info *Info) error {
@@ -252,7 +257,8 @@ func pollMemory(ctx context.Context, c *client.Client, info *Info) error {
 			})
 
 			return nil
-		})
+		},
+	)
 }
 
 func pollPlatformMetadata(ctx context.Context, c *client.Client, info *Info) error {
@@ -274,7 +280,8 @@ func pollPlatformMetadata(ctx context.Context, c *client.Client, info *Info) err
 			}
 
 			return nil
-		})
+		},
+	)
 }
 
 func pollSecurityState(ctx context.Context, c *client.Client, info *Info) error {
@@ -369,7 +376,8 @@ func pollDisks(ctx context.Context, c *client.Client, info *Info) error {
 			})
 
 			return nil
-		})
+		},
+	)
 }
 
 func pollDisksLegacy(ctx context.Context, c *client.Client, info *Info) error {
@@ -442,7 +450,8 @@ func pollMeta(ctx context.Context, c *client.Client, info *Info) error {
 			info.ImageLabels = labels
 
 			return nil
-		})
+		},
+	)
 }
 
 func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
@@ -484,7 +493,8 @@ func pollDiagnostics(ctx context.Context, c *client.Client, info *Info) error {
 			})
 
 			return nil
-		}); err != nil {
+		},
+	); err != nil {
 		return err
 	}
 
@@ -507,5 +517,6 @@ func pollKernelCmdline(ctx context.Context, c *client.Client, info *Info) error 
 			info.KernelCmdline = r.TypedSpec().Cmdline
 
 			return nil
-		})
+		},
+	)
 }

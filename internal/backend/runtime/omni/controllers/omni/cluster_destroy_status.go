@@ -52,16 +52,20 @@ func NewClusterDestroyStatusController() *ClusterDestroyStatusController {
 					return fmt.Errorf("failed to list control planes %w", err)
 				}
 
-				cmStatuses, err := r.List(ctx, omni.NewClusterMachineStatus("").Metadata(),
-					state.WithLabelQuery(resource.LabelEqual(
-						omni.LabelCluster, cluster.Metadata().ID()),
+				cmStatuses, err := r.List(
+					ctx, omni.NewClusterMachineStatus("").Metadata(),
+					state.WithLabelQuery(
+						resource.LabelEqual(
+							omni.LabelCluster, cluster.Metadata().ID(),
+						),
 					),
 				)
 				if err != nil {
 					return err
 				}
 
-				clusterDestroyStatus.TypedSpec().Value.Phase = fmt.Sprintf("Destroying: %s, %s",
+				clusterDestroyStatus.TypedSpec().Value.Phase = fmt.Sprintf(
+					"Destroying: %s, %s",
 					pluralize.NewClient().Pluralize("machine set", len(msStatuses.Items), true),
 					pluralize.NewClient().Pluralize("machine", len(cmStatuses.Items), true),
 				)

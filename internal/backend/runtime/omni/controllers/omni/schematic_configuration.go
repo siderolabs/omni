@@ -112,7 +112,8 @@ func NewSchematicConfigurationController(imageFactoryClient ImageFactoryClient) 
 				}
 
 				return ids, nil
-			}),
+			},
+		),
 		qtransform.WithExtraMappedInput[*omni.MachineExtensions](
 			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
@@ -472,7 +473,8 @@ func computeMachineExtensionsStatus(ms *omni.MachineStatus, customization *machi
 			}
 		}
 
-		statusExtensions = append(statusExtensions,
+		statusExtensions = append(
+			statusExtensions,
 			&specs.MachineExtensionsStatusSpec_Item{
 				Name:      extension,
 				Immutable: immutable,

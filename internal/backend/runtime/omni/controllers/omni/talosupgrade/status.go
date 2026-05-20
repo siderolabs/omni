@@ -262,7 +262,8 @@ func (ctrl *TalosUpgradeStatusController) reconcileStatus(ctx context.Context, r
 	}
 
 	if len(outdatedMachines.upgrading) > 0 {
-		upgradeStatus.TypedSpec().Value.Step = fmt.Sprintf("current %s: %s", pluralize.NewClient().Pluralize("machine", len(outdatedMachines.upgrading), false),
+		upgradeStatus.TypedSpec().Value.Step = fmt.Sprintf(
+			"current %s: %s", pluralize.NewClient().Pluralize("machine", len(outdatedMachines.upgrading), false),
 			strings.Join(outdatedMachines.upgrading, ", "),
 		)
 
@@ -350,7 +351,8 @@ func (ctrl *TalosUpgradeStatusController) updateRolloutState(ctx context.Context
 func (ctrl *TalosUpgradeStatusController) reconcileTalosVersions(ctx context.Context, r controller.ReaderWriter, cluster *omni.Cluster,
 	clusterMachines safe.List[*omni.ClusterMachine],
 ) error {
-	clusterMachineTalosVersions, err := safe.ReaderListAll[*omni.ClusterMachineTalosVersion](ctx, r,
+	clusterMachineTalosVersions, err := safe.ReaderListAll[*omni.ClusterMachineTalosVersion](
+		ctx, r,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())),
 	)
 	if err != nil {
@@ -429,7 +431,8 @@ func (ctrl *TalosUpgradeStatusController) reconcileUpgradeVersions(ctx context.C
 
 	// upgrade is done, so calculate the upgrade versions
 	upgradeStatus.TypedSpec().Value.UpgradeVersions, err = talos.CalculateUpgradeVersions(
-		ctx, r, clusterConfigVersion.TypedSpec().Value.Version, upgradeStatus.TypedSpec().Value.LastUpgradeVersion, cluster.TypedSpec().Value.KubernetesVersion)
+		ctx, r, clusterConfigVersion.TypedSpec().Value.Version, upgradeStatus.TypedSpec().Value.LastUpgradeVersion, cluster.TypedSpec().Value.KubernetesVersion,
+	)
 
 	return err
 }

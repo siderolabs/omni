@@ -217,7 +217,8 @@ func (ctrl *KubernetesStatusController) updateExposedServices(ctx context.Contex
 		serviceCluster, _ := updatedService.Metadata().Labels().Get(omni.LabelCluster)
 
 		if !updatedVersion.Equal(version) {
-			logger.Info("updated exposed service",
+			logger.Info(
+				"updated exposed service",
 				zap.Uint64("version", updatedVersion.Value()),
 				zap.String("cluster", serviceCluster),
 				zap.Bool("has_explicit_alias", updatedService.TypedSpec().Value.HasExplicitAlias),
@@ -414,7 +415,8 @@ func (ctrl *KubernetesStatusController) startWatcher(ctx context.Context, logger
 		return err
 	}
 
-	w.podFactory = informers.NewSharedInformerFactoryWithOptions(w.client.Clientset(), 0,
+	w.podFactory = informers.NewSharedInformerFactoryWithOptions(
+		w.client.Clientset(), 0,
 		informers.WithNamespace("kube-system"),
 		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
 			options.LabelSelector = controlplanePodSelector.String()

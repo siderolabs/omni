@@ -76,7 +76,8 @@ func (suite *ClusterSuite) TestReconcile() {
 			}
 
 			return retry.ExpectedError(suite.state.Destroy(suite.ctx, cluster.Metadata()))
-		}))
+		},
+	))
 }
 
 func TestClusterSuite(t *testing.T) {

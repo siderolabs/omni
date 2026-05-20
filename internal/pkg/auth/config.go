@@ -65,7 +65,8 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 
 		webauthnEnabled := authParams.Webauthn.GetEnabled()
 		if res.TypedSpec().Value.Webauthn.Enabled && !webauthnEnabled {
-			logger.Warn("webauthn is disabled in Config, but enabled in the cluster, refusing to disable it",
+			logger.Warn(
+				"webauthn is disabled in Config, but enabled in the cluster, refusing to disable it",
 				zap.String("resource", confPtr.ID()),
 			)
 		} else {
@@ -86,7 +87,8 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 			return nil, fmt.Errorf("failed to create Config resource: %w", err)
 		}
 
-		logger.Info("created Config resource",
+		logger.Info(
+			"created Config resource",
 			zap.String("resource", confPtr.ID()),
 			zap.Any("auth0", authParams.Auth0),
 			zap.Any("webauthn", authParams.Webauthn),
@@ -104,7 +106,8 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 	authConfig, err := safe.StateUpdateWithConflicts(ctx, st, confPtr, func(res *auth.Config) error {
 		setConfig(res)
 
-		logger.Info("updated Config resource",
+		logger.Info(
+			"updated Config resource",
 			zap.String("resource", confPtr.ID()),
 			zap.Any("auth0", authParams.Auth0),
 			zap.Any("webauthn", authParams.Webauthn),

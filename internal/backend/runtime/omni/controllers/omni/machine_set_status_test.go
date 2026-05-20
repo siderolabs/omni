@@ -57,7 +57,8 @@ func setupMachineSetCluster(
 	rmock.Mock[*omni.LoadBalancerStatus](ctx, t, st, lbOpts...)
 
 	msOpts := make([]options.MockOption, 0, 3+len(msModify))
-	msOpts = append(msOpts,
+	msOpts = append(
+		msOpts,
 		options.WithID(machineSetName),
 		options.LabelCluster(cluster),
 		options.Modify(func(r *omni.MachineSet) error {
@@ -70,7 +71,8 @@ func setupMachineSetCluster(
 
 	machineSet := rmock.Mock[*omni.MachineSet](ctx, t, st, msOpts...)
 
-	rmock.MockList[*omni.MachineSetNode](ctx, t, st,
+	rmock.MockList[*omni.MachineSetNode](
+		ctx, t, st,
 		options.IDs(machineIDs),
 		options.ItemOptions(
 			options.LabelCluster(cluster),
@@ -89,7 +91,8 @@ func setupMachineSetCluster(
 // mssUpdateStage creates or updates ClusterMachineStatus for each machine as RUNNING and ready.
 func mssUpdateStage(ctx context.Context, t *testing.T, st state.State, machineIDs []string) {
 	for _, id := range machineIDs {
-		rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st,
+		rmock.Mock[*omni.ClusterMachineStatus](
+			ctx, t, st,
 			options.WithID(id),
 			options.Modify(func(res *omni.ClusterMachineStatus) error {
 				res.TypedSpec().Value.Stage = specs.ClusterMachineStatusSpec_RUNNING
@@ -136,7 +139,8 @@ func TestMachineSetStatus_ScaleUp(t *testing.T) {
 	machineSetName := "machine-set-scale-up"
 	machines := []string{"node1", "node2", "node3"}
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
 		func(ctx context.Context, tc testutils.TestContext) {
 			machineSet := setupMachineSetCluster(ctx, t, tc.State, clusterName, machineSetName, machines, true)
 
@@ -156,7 +160,8 @@ func TestMachineSetStatus_EmptyTeardown(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
 		func(ctx context.Context, tc testutils.TestContext) {
 			cluster := rmock.Mock[*omni.Cluster](ctx, t, tc.State, options.WithID("empty-teardown"))
 
@@ -188,7 +193,8 @@ func TestMachineSetStatus_ScaleDown(t *testing.T) {
 	machineSetName := "machine-set-scale-down"
 	machines := []string{"scaledown-1", "scaledown-2", "scaledown-3"}
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
 		func(ctx context.Context, tc testutils.TestContext) {
 			// Create cluster with LoadBalancer initially unhealthy so the deleted machine can linger
 			machineSet := setupMachineSetCluster(ctx, t, tc.State, clusterName, machineSetName, machines, false)
@@ -246,9 +252,11 @@ func TestMachineSetStatus_ScaleDownWithMaxParallelism(t *testing.T) {
 		machines[i] = fmt.Sprintf("node-test-scale-down-max-parallelism-%02d", i)
 	}
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
 		func(ctx context.Context, tc testutils.TestContext) {
-			machineSet := setupMachineSetCluster(ctx, t, tc.State, clusterName, machineSetName, machines, true,
+			machineSet := setupMachineSetCluster(
+				ctx, t, tc.State, clusterName, machineSetName, machines, true,
 				options.Modify(func(r *omni.MachineSet) error {
 					r.TypedSpec().Value.DeleteStrategy = specs.MachineSetSpec_Rolling
 					r.TypedSpec().Value.DeleteStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
@@ -265,7 +273,8 @@ func TestMachineSetStatus_ScaleDownWithMaxParallelism(t *testing.T) {
 			mssAssertMachinesState(ctx, t, tc.State, machines, clusterName, machineSet.Metadata().ID())
 
 			// add a test finalizer to each cluster machine to prevent actual deletion
-			clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](ctx, tc.State,
+			clusterMachineList, err := safe.StateListAll[*omni.ClusterMachine](
+				ctx, tc.State,
 				state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())),
 			)
 			require.NoError(t, err)
@@ -285,7 +294,8 @@ func TestMachineSetStatus_ScaleDownWithMaxParallelism(t *testing.T) {
 			}
 
 			getTearingDownClusterMachines := func() []*omni.ClusterMachine {
-				list, err := safe.StateListAll[*omni.ClusterMachine](ctx, tc.State,
+				list, err := safe.StateListAll[*omni.ClusterMachine](
+					ctx, tc.State,
 					state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())),
 				)
 				require.NoError(t, err)
@@ -401,7 +411,8 @@ func TestMachineSetStatus_Teardown(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 			t.Cleanup(cancel)
 
-			testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+			testutils.WithRuntime(
+				ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
 				func(ctx context.Context, tc testutils.TestContext) {
 					machineSet := setupMachineSetCluster(ctx, t, tc.State, "teardown", "machine-set-teardown", machines, true)
 
@@ -441,7 +452,8 @@ func TestMachineSetStatus_ClusterLocks(t *testing.T) {
 	machineSetName := "machine-set-locks"
 	machines := []string{"node01", "node02", "node03"}
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
 		func(ctx context.Context, tc testutils.TestContext) {
 			machineSet := setupMachineSetCluster(ctx, t, tc.State, clusterName, machineSetName, machines, true)
 
@@ -502,7 +514,8 @@ func TestMachineSetStatus_MachineIsAddedToAnotherMachineSet(t *testing.T) {
 	clusterName := "cluster-machine-move"
 	machines := []string{"node01"}
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, registerMachineSetStatusController(t),
 		func(ctx context.Context, tc testutils.TestContext) {
 			setupMachineSetCluster(ctx, t, tc.State, clusterName, "machine-set-1", machines, true)
 
@@ -527,7 +540,8 @@ func TestMachineSetStatus_MachineIsAddedToAnotherMachineSet(t *testing.T) {
 
 			rmock.Mock[*omni.LoadBalancerStatus](ctx, t, tc.State, options.WithID(clusterName))
 
-			machineSet2 := rmock.Mock[*omni.MachineSet](ctx, t, tc.State,
+			machineSet2 := rmock.Mock[*omni.MachineSet](
+				ctx, t, tc.State,
 				options.WithID("machine-set-2"),
 				options.LabelCluster(cluster2),
 				options.Modify(func(r *omni.MachineSet) error {
@@ -537,7 +551,8 @@ func TestMachineSetStatus_MachineIsAddedToAnotherMachineSet(t *testing.T) {
 				}),
 			)
 
-			rmock.Mock[*omni.MachineSetNode](ctx, t, tc.State,
+			rmock.Mock[*omni.MachineSetNode](
+				ctx, t, tc.State,
 				options.WithID("node01"),
 				options.LabelCluster(cluster2),
 				options.LabelMachineSet(machineSet2),

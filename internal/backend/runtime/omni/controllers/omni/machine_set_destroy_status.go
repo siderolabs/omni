@@ -45,9 +45,12 @@ func NewMachineSetDestroyStatusController() *MachineSetDestroyStatusController {
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("not tearing down")
 				}
 
-				cmStatuses, err := r.List(ctx, omni.NewClusterMachineStatus("").Metadata(),
-					state.WithLabelQuery(resource.LabelEqual(
-						omni.LabelMachineSet, machineSet.Metadata().ID()),
+				cmStatuses, err := r.List(
+					ctx, omni.NewClusterMachineStatus("").Metadata(),
+					state.WithLabelQuery(
+						resource.LabelEqual(
+							omni.LabelMachineSet, machineSet.Metadata().ID(),
+						),
 					),
 				)
 				if err != nil {

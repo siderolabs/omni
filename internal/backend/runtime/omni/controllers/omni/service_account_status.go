@@ -141,8 +141,10 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 		},
 		qtransform.WithExtraMappedInput[*auth.User](
 			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, user controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
-				identities, err := safe.ReaderListAll[*auth.Identity](ctx, r, state.WithLabelQuery(
-					resource.LabelEqual(auth.LabelIdentityUserID, user.ID())),
+				identities, err := safe.ReaderListAll[*auth.Identity](
+					ctx, r, state.WithLabelQuery(
+						resource.LabelEqual(auth.LabelIdentityUserID, user.ID()),
+					),
 				)
 				if err != nil {
 					return nil, err

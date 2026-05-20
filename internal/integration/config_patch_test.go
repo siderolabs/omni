@@ -233,7 +233,8 @@ func AssertRevertBrokenConfigPatch(testCtx context.Context, cli *client.Client, 
 
 		st := cli.Omni().State()
 
-		cmIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st,
+		cmIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](
+			ctx, t, st,
 			state.WithLabelQuery(
 				resource.LabelEqual(omni.LabelCluster, clusterName),
 				resource.LabelExists(omni.LabelControlPlaneRole),
@@ -291,7 +292,8 @@ func AssertConfigPatchWithInvalidConfig(testCtx context.Context, cli *client.Cli
 
 		st := cli.Omni().State()
 
-		cmIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st,
+		cmIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](
+			ctx, t, st,
 			state.WithLabelQuery(
 				resource.LabelEqual(omni.LabelCluster, clusterName),
 				resource.LabelExists(omni.LabelControlPlaneRole),

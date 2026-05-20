@@ -95,7 +95,8 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	suite.Require().NoError(suite.state.Create(ctx, machineStatus))
 
 	// a schematic should already be created with the current list of extensions, without requiring a cluster machine
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 			_, hasClusterLabel := schematicConfiguration.Metadata().Labels().Get(omni.LabelCluster)
 			assertion.False(hasClusterLabel)
@@ -106,7 +107,8 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(ctx, clusterMachine))
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 			_, hasClusterLabel := schematicConfiguration.Metadata().Labels().Get(omni.LabelCluster)
 			assertion.True(hasClusterLabel)
@@ -125,7 +127,8 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	// customization: {}
 	expectedSchematic = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
@@ -147,7 +150,8 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	//       - siderolabs/something
 	expectedSchematic = "df7c842f133b05c875f2139ea94b09eae3d425e00a95e6f9f54552f442d9f8c0"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
@@ -174,7 +178,8 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	//       - siderolabs/something
 	expectedSchematic = "f6a68c47512b4f3c50ccbd6d57873d2194dcac15f3a79d7703c05538a83429d7"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
@@ -199,7 +204,8 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	//       - siderolabs/something-else
 	expectedSchematic = "d7eb0c567b0b108e9b69ee0217c0fed99847175549b48d7b41ec6ef45d993965"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
@@ -220,9 +226,10 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	// customization: {}
 	expectedSchematic = "2611e4c1b6b8de906c9ad8f2248145d034ce8f657706407fe2f6a01086331a7d"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-		assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
-	},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+		},
 	)
 
 	// reset everything to the default state, should revert back to the initial set of extensions
@@ -240,9 +247,10 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	//       - siderolabs/something
 	expectedSchematic = "8ac31bbb181769d0963b217bb48f92839059ce90bc9e8b08836892c0182f8cb8"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-		assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
-	},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+		},
 	)
 
 	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
@@ -263,7 +271,8 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	//       - siderolabs/intel-ice-firmware
 	expectedSchematic = "35a502528a50b5c9d264a152545c4b02c2b82a2a5c8fd7398baa9fe78abfb1a2"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
@@ -275,7 +284,8 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	suite.Require().NoError(suite.state.Create(ctx, extensionsConfiguration))
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
@@ -290,7 +300,8 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName},
 		func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 		},
@@ -319,9 +330,10 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	//       - siderolabs/x11
 	expectedSchematic = "5fd4ef8a66795a9aba2520a2be1bb4fb64ef7405a775e40965cf6d7aa417665f"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-		assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
-	},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+		},
 	)
 
 	// create kernel args, should change the schematic ID
@@ -345,9 +357,10 @@ func (suite *SchematicConfigurationSuite) TestReconcile() {
 	//       - siderolabs/x11
 	expectedSchematic = "17b419c0d747bbd2399e2d06d16def170636569e9116e3e015b5be0015dd82c7"
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
-		assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
-	},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
+			assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
+		},
 	)
 
 	// set the UKI to false, the schematic should no more contain the kernel args (as updating them is not supported)

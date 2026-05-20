@@ -907,7 +907,8 @@ func (s *managementServer) auditTalosAccessForNodes(ctx context.Context, fullMet
 func (s *managementServer) setMachinePowerOffRequestID(ctx context.Context, machineID string) error {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	_, err := safe.StateUpdateWithConflicts(ctx, s.omniState, omnires.NewInfraMachineConfig(machineID).Metadata(),
+	_, err := safe.StateUpdateWithConflicts(
+		ctx, s.omniState, omnires.NewInfraMachineConfig(machineID).Metadata(),
 		func(config *omnires.InfraMachineConfig) error {
 			if config.TypedSpec().Value.AcceptanceStatus != specs.InfraMachineConfigSpec_ACCEPTED {
 				return fmt.Errorf("infra machine config is not accepted yet, cannot set machine power-off request")
@@ -957,7 +958,8 @@ func (s *managementServer) isManagedByStaticInfraProvider(ctx context.Context, m
 func (s *managementServer) clearMachinePowerOffRequestID(ctx context.Context, machineID string) error {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	_, err := safe.StateUpdateWithConflicts(ctx, s.omniState, omnires.NewInfraMachineConfig(machineID).Metadata(),
+	_, err := safe.StateUpdateWithConflicts(
+		ctx, s.omniState, omnires.NewInfraMachineConfig(machineID).Metadata(),
 		func(config *omnires.InfraMachineConfig) error {
 			if config.TypedSpec().Value.AcceptanceStatus != specs.InfraMachineConfigSpec_ACCEPTED {
 				return fmt.Errorf("infra machine config is not accepted yet, cannot clear machine power-off request")

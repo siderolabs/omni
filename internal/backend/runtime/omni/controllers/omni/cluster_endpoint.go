@@ -35,7 +35,8 @@ func NewClusterEndpointController() *ClusterEndpointController {
 				return omni.NewCluster(clusterEndpoint.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, cluster *omni.Cluster, clusterEndpoint *omni.ClusterEndpoint) error {
-				items, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, r,
+				items, err := safe.ReaderListAll[*omni.ClusterMachineStatus](
+					ctx, r,
 					state.WithLabelQuery(
 						resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()),
 						resource.LabelExists(omni.LabelControlPlaneRole),

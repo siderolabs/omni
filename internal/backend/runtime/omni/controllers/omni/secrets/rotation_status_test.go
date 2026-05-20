@@ -56,12 +56,14 @@ func Test_TalosCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -112,12 +114,14 @@ func Test_TalosCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil)))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
@@ -207,12 +211,14 @@ func Test_TalosCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -227,7 +233,8 @@ func Test_TalosCARotation(t *testing.T) {
 					assertion.Equal(specs.SecretRotationSpec_NONE, res.TypedSpec().Value.Component)
 				})
 
-				rmock.Mock[*omni.ClusterStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, testContext.State,
 					options.WithID(cluster.Metadata().ID()),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.Metadata().Annotations().Set(omni.ClusterLocked, "")
@@ -244,7 +251,8 @@ func Test_TalosCARotation(t *testing.T) {
 					assertions.Equal("waiting for the cluster to be unlocked", res.TypedSpec().Value.Step)
 				})
 
-				rmock.Mock[*omni.ClusterStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, testContext.State,
 					options.WithID(cluster.Metadata().ID()),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.Metadata().Annotations().Delete(omni.ClusterLocked)
@@ -267,12 +275,14 @@ func Test_TalosCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -287,7 +297,8 @@ func Test_TalosCARotation(t *testing.T) {
 					assertion.Equal(specs.SecretRotationSpec_NONE, res.TypedSpec().Value.Component)
 				})
 
-				rmock.Mock[*omni.ClusterStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, testContext.State,
 					options.WithID(cluster.Metadata().ID()),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.TypedSpec().Value.Ready = false
@@ -307,7 +318,8 @@ func Test_TalosCARotation(t *testing.T) {
 					assertions.Equal("waiting for the cluster to become ready", res.TypedSpec().Value.Step)
 				})
 
-				rmock.Mock[*omni.ClusterStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, testContext.State,
 					options.WithID(cluster.Metadata().ID()),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.TypedSpec().Value.Ready = true
@@ -331,12 +343,14 @@ func Test_TalosCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -358,7 +372,8 @@ func Test_TalosCARotation(t *testing.T) {
 					assertion.Equal(specs.SecretRotationSpec_NONE, res.TypedSpec().Value.Component)
 				})
 
-				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterMachineStatus](
+					ctx, t, testContext.State,
 					options.WithID(machineID),
 					options.Modify(func(res *omni.ClusterMachineStatus) error {
 						res.Metadata().Annotations().Set(omni.MachineLocked, "")
@@ -377,7 +392,8 @@ func Test_TalosCARotation(t *testing.T) {
 					assertions.Contains(res.TypedSpec().Value.Step, "waiting for machines")
 				})
 
-				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterMachineStatus](
+					ctx, t, testContext.State,
 					options.WithID(machineID),
 					options.Modify(func(res *omni.ClusterMachineStatus) error {
 						res.Metadata().Annotations().Delete(omni.MachineLocked)
@@ -399,12 +415,14 @@ func Test_TalosCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -426,7 +444,8 @@ func Test_TalosCARotation(t *testing.T) {
 					assertion.Equal(specs.SecretRotationSpec_NONE, res.TypedSpec().Value.Component)
 				})
 
-				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterMachineStatus](
+					ctx, t, testContext.State,
 					options.WithID(machineID),
 					options.Modify(func(res *omni.ClusterMachineStatus) error {
 						res.TypedSpec().Value.Ready = false
@@ -445,7 +464,8 @@ func Test_TalosCARotation(t *testing.T) {
 					assertions.Contains(res.TypedSpec().Value.Step, "waiting for machines")
 				})
 
-				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterMachineStatus](
+					ctx, t, testContext.State,
 					options.WithID(machineID),
 					options.Modify(func(res *omni.ClusterMachineStatus) error {
 						res.TypedSpec().Value.Ready = true
@@ -467,12 +487,14 @@ func Test_TalosCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -497,7 +519,8 @@ func Test_TalosCARotation(t *testing.T) {
 				// trigger rotation
 				rmock.Mock[*omni.RotateTalosCA](ctx, t, testContext.State, options.WithID(cluster.Metadata().ID()))
 
-				rmock.Mock[*omni.ClusterSecrets](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterSecrets](
+					ctx, t, testContext.State,
 					options.WithID(cluster.Metadata().ID()),
 					options.Modify(func(res *omni.ClusterSecrets) error {
 						return nil
@@ -547,7 +570,8 @@ func Test_KubernetesCARotation(t *testing.T) {
 		switch path {
 		case filepath.Join(talosconstants.KubeletPKIDir, "kubelet-client-current.pem"):
 			// Generate client certificate for kubelet
-			clientKeyPair, certErr := talosx509.NewKeyPair(ca,
+			clientKeyPair, certErr := talosx509.NewKeyPair(
+				ca,
 				talosx509.CommonName("system:node:"+machineID),
 				talosx509.Organization("system:nodes"),
 				talosx509.NotBefore(time.Now().Add(-10*time.Second)),
@@ -563,7 +587,8 @@ func Test_KubernetesCARotation(t *testing.T) {
 
 		case filepath.Join(talosconstants.KubernetesAPIServerSecretsDir, "apiserver.crt"):
 			// Generate server certificate for apiserver
-			serverKeyPair, certErr := talosx509.NewKeyPair(ca,
+			serverKeyPair, certErr := talosx509.NewKeyPair(
+				ca,
 				talosx509.CommonName("kube-apiserver"),
 				talosx509.DNSNames([]string{"kubernetes", "kubernetes.default", "kubernetes.default.svc", "kubernetes.default.svc.cluster.local"}),
 				talosx509.IPAddresses([]net.IP{net.ParseIP("127.0.0.1")}),
@@ -592,12 +617,14 @@ func Test_KubernetesCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -648,12 +675,14 @@ func Test_KubernetesCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil)))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
@@ -752,12 +781,14 @@ func Test_KubernetesCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -781,7 +812,8 @@ func Test_KubernetesCARotation(t *testing.T) {
 					assertion.Equal(specs.SecretRotationSpec_NONE, res.TypedSpec().Value.Component)
 				})
 
-				rmock.Mock[*omni.ClusterStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, testContext.State,
 					options.WithID(cluster.Metadata().ID()),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.Metadata().Annotations().Set(omni.ClusterLocked, "")
@@ -798,7 +830,8 @@ func Test_KubernetesCARotation(t *testing.T) {
 					assertions.Equal("waiting for the cluster to be unlocked", res.TypedSpec().Value.Step)
 				})
 
-				rmock.Mock[*omni.ClusterStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, testContext.State,
 					options.WithID(cluster.Metadata().ID()),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.Metadata().Annotations().Delete(omni.ClusterLocked)
@@ -821,12 +854,14 @@ func Test_KubernetesCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -850,7 +885,8 @@ func Test_KubernetesCARotation(t *testing.T) {
 					assertion.Equal(specs.SecretRotationSpec_NONE, res.TypedSpec().Value.Component)
 				})
 
-				rmock.Mock[*omni.ClusterStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, testContext.State,
 					options.WithID(cluster.Metadata().ID()),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.TypedSpec().Value.Ready = false
@@ -870,7 +906,8 @@ func Test_KubernetesCARotation(t *testing.T) {
 					assertions.Equal("waiting for the cluster to become ready", res.TypedSpec().Value.Step)
 				})
 
-				rmock.Mock[*omni.ClusterStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, testContext.State,
 					options.WithID(cluster.Metadata().ID()),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.TypedSpec().Value.Ready = true
@@ -894,12 +931,14 @@ func Test_KubernetesCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -930,7 +969,8 @@ func Test_KubernetesCARotation(t *testing.T) {
 					assertion.Equal(specs.SecretRotationSpec_NONE, res.TypedSpec().Value.Component)
 				})
 
-				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterMachineStatus](
+					ctx, t, testContext.State,
 					options.WithID(machineID),
 					options.Modify(func(res *omni.ClusterMachineStatus) error {
 						res.Metadata().Annotations().Set(omni.MachineLocked, "")
@@ -949,7 +989,8 @@ func Test_KubernetesCARotation(t *testing.T) {
 					assertions.Contains(res.TypedSpec().Value.Step, "waiting for machines")
 				})
 
-				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterMachineStatus](
+					ctx, t, testContext.State,
 					options.WithID(machineID),
 					options.Modify(func(res *omni.ClusterMachineStatus) error {
 						res.Metadata().Annotations().Delete(omni.MachineLocked)
@@ -971,12 +1012,14 @@ func Test_KubernetesCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 			},
@@ -1007,7 +1050,8 @@ func Test_KubernetesCARotation(t *testing.T) {
 					assertion.Equal(specs.SecretRotationSpec_NONE, res.TypedSpec().Value.Component)
 				})
 
-				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterMachineStatus](
+					ctx, t, testContext.State,
 					options.WithID(machineID),
 					options.Modify(func(res *omni.ClusterMachineStatus) error {
 						res.TypedSpec().Value.Ready = false
@@ -1026,7 +1070,8 @@ func Test_KubernetesCARotation(t *testing.T) {
 					assertions.Contains(res.TypedSpec().Value.Step, "waiting for machines")
 				})
 
-				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterMachineStatus](
+					ctx, t, testContext.State,
 					options.WithID(machineID),
 					options.Modify(func(res *omni.ClusterMachineStatus) error {
 						res.TypedSpec().Value.Ready = true
@@ -1048,12 +1093,14 @@ func Test_KubernetesCARotation(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
 			func(ctx context.Context, testContext testutils.TestContext) {
 				require.NoError(t, testContext.Runtime.RegisterQController(
 					secretsctrl.NewSecretRotationStatusController(
 						&fakeKubernetesClientFactory{},
-					)))
+					),
+				))
 				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil)))
@@ -1070,7 +1117,8 @@ func Test_KubernetesCARotation(t *testing.T) {
 				// trigger rotation
 				rmock.Mock[*omni.RotateKubernetesCA](ctx, t, testContext.State, options.WithID(cluster.Metadata().ID()))
 
-				rmock.Mock[*omni.ClusterSecrets](ctx, t, testContext.State,
+				rmock.Mock[*omni.ClusterSecrets](
+					ctx, t, testContext.State,
 					options.WithID(cluster.Metadata().ID()),
 					options.Modify(func(res *omni.ClusterSecrets) error {
 						return nil
@@ -1108,12 +1156,14 @@ func Test_ConcurrentRotationRejection(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(ctx context.Context, testContext testutils.TestContext) {
 			require.NoError(t, testContext.Runtime.RegisterQController(
 				secretsctrl.NewSecretRotationStatusController(
 					&fakeKubernetesClientFactory{},
-				)))
+				),
+			))
 			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 			require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 		},
@@ -1153,12 +1203,14 @@ func Test_ComponentIsolationDuringRotation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(ctx context.Context, testContext testutils.TestContext) {
 			require.NoError(t, testContext.Runtime.RegisterQController(
 				secretsctrl.NewSecretRotationStatusController(
 					&fakeKubernetesClientFactory{},
-				)))
+				),
+			))
 			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 			require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController("test.factory", "ghcr.io/siderolabs/installer")))
 		},
@@ -1229,7 +1281,8 @@ func createCluster(
 		options.WithID(clusterName),
 	}, opts...)
 
-	cluster := rmock.Mock[*omni.Cluster](ctx, t, st,
+	cluster := rmock.Mock[*omni.Cluster](
+		ctx, t, st,
 		clusterOptions...,
 	)
 
@@ -1247,7 +1300,8 @@ func createCluster(
 		return nil
 	}))
 
-	cpMachineSet := rmock.Mock[*omni.MachineSet](ctx, t, st,
+	cpMachineSet := rmock.Mock[*omni.MachineSet](
+		ctx, t, st,
 		options.WithID(omni.ControlPlanesResourceID(clusterName)),
 		options.LabelCluster(cluster),
 		options.EmptyLabel(omni.LabelControlPlaneRole),
@@ -1255,7 +1309,8 @@ func createCluster(
 	rmock.Mock[*omni.MachineSetStatus](ctx, t, st, options.SameID(cpMachineSet))
 	rmock.Mock[*omni.MachineSetConfigStatus](ctx, t, st, options.SameID(cpMachineSet))
 
-	workersMachineSet := rmock.Mock[*omni.MachineSet](ctx, t, st,
+	workersMachineSet := rmock.Mock[*omni.MachineSet](
+		ctx, t, st,
 		options.WithID(omni.WorkersResourceID(clusterName)),
 		options.LabelCluster(cluster),
 		options.EmptyLabel(omni.LabelWorkerRole),
@@ -1274,7 +1329,8 @@ func createCluster(
 	}
 
 	// create control planes
-	rmock.MockList[*omni.MachineSetNode](ctx, t, st,
+	rmock.MockList[*omni.MachineSetNode](
+		ctx, t, st,
 		options.IDs(getIDs("cp", controlPlanes)),
 		options.ItemOptions(
 			options.LabelCluster(cluster),
@@ -1285,7 +1341,8 @@ func createCluster(
 
 	if workers > 0 {
 		// create workers
-		rmock.MockList[*omni.MachineSetNode](ctx, t, st,
+		rmock.MockList[*omni.MachineSetNode](
+			ctx, t, st,
 			options.IDs(getIDs("w", workers)),
 			options.ItemOptions(
 				options.LabelCluster(cluster),
@@ -1295,7 +1352,8 @@ func createCluster(
 		)
 	}
 
-	cpMachines := rmock.MockList[*omni.ClusterMachine](ctx, t, st,
+	cpMachines := rmock.MockList[*omni.ClusterMachine](
+		ctx, t, st,
 		options.QueryIDs[*omni.MachineSetNode](resource.LabelEqual(omni.LabelMachineSet, cpMachineSet.Metadata().ID())),
 		options.ItemOptions(
 			options.LabelCluster(cluster),
@@ -1310,7 +1368,8 @@ func createCluster(
 		),
 	)
 
-	workerMachines := rmock.MockList[*omni.ClusterMachine](ctx, t, st,
+	workerMachines := rmock.MockList[*omni.ClusterMachine](
+		ctx, t, st,
 		options.QueryIDs[*omni.MachineSetNode](resource.LabelEqual(omni.LabelMachineSet, workersMachineSet.Metadata().ID())),
 		options.ItemOptions(
 			options.LabelCluster(cluster),
@@ -1328,7 +1387,8 @@ func createCluster(
 	machines := slices.Concat(cpMachines, workerMachines)
 
 	for _, machine := range machines {
-		rmock.Mock[*siderolink.MachineJoinConfig](ctx, t, st, options.SameID(machine),
+		rmock.Mock[*siderolink.MachineJoinConfig](
+			ctx, t, st, options.SameID(machine),
 			options.Modify(func(res *siderolink.MachineJoinConfig) error {
 				res.TypedSpec().Value.Config = &specs.JoinConfig{
 					Config: `
@@ -1350,7 +1410,8 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092`,
 			}),
 		)
 
-		rmock.Mock[*siderolink.Link](ctx, t, st, options.SameID(machine),
+		rmock.Mock[*siderolink.Link](
+			ctx, t, st, options.SameID(machine),
 			options.Modify(func(res *siderolink.Link) error {
 				res.TypedSpec().Value.Connected = true
 
@@ -1358,7 +1419,8 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092`,
 			}),
 		)
 
-		rmock.Mock[*omni.MachineStatus](ctx, t, st, options.SameID(machine),
+		rmock.Mock[*omni.MachineStatus](
+			ctx, t, st, options.SameID(machine),
 			options.Modify(func(res *omni.MachineStatus) error {
 				service := machineServices.Create(ctx, res.Metadata().ID())
 				res.TypedSpec().Value.Maintenance = false

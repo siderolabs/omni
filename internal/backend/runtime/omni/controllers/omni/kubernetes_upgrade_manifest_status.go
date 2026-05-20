@@ -263,7 +263,8 @@ func reconcileSSA(
 		return fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 
-	manager, err := ssa.NewManager(ctx, cfg,
+	manager, err := ssa.NewManager(
+		ctx, cfg,
 		constants.KubernetesFieldManagerName,
 		constants.KubernetesInventoryNamespace,
 		constants.KubernetesBootstrapManifestsInventoryName,

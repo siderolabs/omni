@@ -473,7 +473,7 @@ func (ms *MachineServiceMock) ServiceList(context.Context, *emptypb.Empty) (*mac
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
-	if (ms.serviceList) == nil {
+	if ms.serviceList == nil {
 		return nil, status.Errorf(codes.Internal, "service list is not mocked")
 	}
 

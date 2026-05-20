@@ -137,7 +137,8 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, etcdAuditResult controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 				clusterName := etcdAuditResult.ID()
 
-				items, err := safe.ReaderListAll[*omni.MachineSet](ctx, r,
+				items, err := safe.ReaderListAll[*omni.MachineSet](
+					ctx, r,
 					state.WithLabelQuery(
 						resource.LabelEqual(omni.LabelCluster, clusterName),
 						resource.LabelExists(omni.LabelControlPlaneRole),

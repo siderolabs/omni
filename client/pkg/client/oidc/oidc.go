@@ -27,7 +27,8 @@ func NewClient(conn *grpc.ClientConn) *Client {
 
 // Authenticate confirms the OIDC auth request.
 func (client *Client) Authenticate(ctx context.Context, requestID string) (string, error) {
-	resp, err := client.conn.Authenticate(ctx,
+	resp, err := client.conn.Authenticate(
+		ctx,
 		&oidc.AuthenticateRequest{
 			AuthRequestId: requestID,
 		},

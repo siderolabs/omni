@@ -139,7 +139,8 @@ func getKubeconfig(args []string) func(ctx context.Context, client *client.Clien
 			))
 		}
 
-		opts = append(opts,
+		opts = append(
+			opts,
 			management.WithGrantType(kubeconfigCmdFlags.grantType),
 			management.WithBreakGlassKubeconfig(kubeconfigCmdFlags.breakGlass),
 			management.WithOIDCCacheBaseDir(kubeconfigCmdFlags.oidcCacheBaseDir),

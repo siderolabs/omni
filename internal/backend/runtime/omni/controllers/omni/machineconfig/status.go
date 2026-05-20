@@ -209,7 +209,8 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 		}
 
 		if !inSync {
-			logger.Info("the machine talos version is out of sync, the config is not applied",
+			logger.Info(
+				"the machine talos version is out of sync, the config is not applied",
 				zap.String("machine", machineConfig.Metadata().ID()),
 			)
 
@@ -420,7 +421,8 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 	}
 
 	//nolint:staticcheck
-	_, err = c.UpgradeWithOptions(upgradeCtx,
+	_, err = c.UpgradeWithOptions(
+		upgradeCtx,
 		client.WithUpgradeImage(image),
 		client.WithUpgradePreserve(!maintenance),
 		client.WithUpgradeStage(stageUpgrade),
@@ -512,7 +514,8 @@ func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.C
 		Mode: machineapi.ApplyConfigurationRequest_AUTO,
 	})
 	if err != nil {
-		logger.Error("apply config failed",
+		logger.Error(
+			"apply config failed",
 			zap.String("machine", rc.ID()),
 			zap.Error(err),
 			zap.Stringer("config_version", rc.machineConfig.Metadata().Version()),
@@ -526,7 +529,8 @@ func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.C
 	}
 
 	mode := resp.Messages[0].GetMode()
-	logger.Info("applied machine config",
+	logger.Info(
+		"applied machine config",
 		zap.String("machine", rc.ID()),
 		zap.Stringer("config_version", rc.machineConfig.Metadata().Version()),
 		zap.Stringer("mode", mode),
@@ -698,7 +702,8 @@ func (ctrl *ClusterMachineConfigStatusController) reset(
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("check back when machine '%s' gets into maintenance mode", machineID)
 	}
 
-	logger.Error("failed resetting node",
+	logger.Error(
+		"failed resetting node",
 		zap.Error(err),
 	)
 
@@ -894,7 +899,8 @@ func (ctrl *ClusterMachineConfigStatusController) acquireUpgradeLock(ctx context
 
 	qruntime := r.(controller.QRuntime) //nolint:forcetypeassert,errcheck
 
-	clusterMachines, err := qruntime.ListUncached(ctx,
+	clusterMachines, err := qruntime.ListUncached(
+		ctx,
 		omni.NewClusterMachine("").Metadata(),
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 	)
@@ -947,7 +953,8 @@ func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx co
 
 	qruntime := r.(controller.QRuntime) //nolint:forcetypeassert,errcheck
 
-	clusterMachines, err := qruntime.ListUncached(ctx,
+	clusterMachines, err := qruntime.ListUncached(
+		ctx,
 		omni.NewClusterMachine("").Metadata(),
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSetName)),
 	)

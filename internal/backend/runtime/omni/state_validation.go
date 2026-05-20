@@ -966,7 +966,8 @@ func accountLimitsValidationOptions(st state.State, limits config.AuthLimits) []
 					return nil
 				}
 
-				existing, err := safe.StateListAll[*authres.Identity](ctx, st,
+				existing, err := safe.StateListAll[*authres.Identity](
+					ctx, st,
 					state.WithLabelQuery(resource.LabelExists(authres.LabelIdentityTypeServiceAccount)),
 				)
 				if err != nil {
@@ -985,7 +986,8 @@ func accountLimitsValidationOptions(st state.State, limits config.AuthLimits) []
 				return nil
 			}
 
-			existing, err := safe.StateListAll[*authres.Identity](ctx, st,
+			existing, err := safe.StateListAll[*authres.Identity](
+				ctx, st,
 				state.WithLabelQuery(resource.LabelExists(authres.LabelIdentityTypeServiceAccount, resource.NotMatches)),
 			)
 			if err != nil {
@@ -1530,7 +1532,8 @@ func importedClusterSecretValidationOptions(st state.State, clusterImportEnabled
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
 			func(ctx context.Context, oldRes *omni.ImportedClusterSecrets, newRes *omni.ImportedClusterSecrets, _ ...state.UpdateOption) error {
 				return validateImportedClusterSecrets(ctx, st, newRes)
-			})),
+			},
+		)),
 	}
 }
 
@@ -1634,7 +1637,8 @@ func installationMediaConfigValidationOptions() []validated.StateOption {
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
 			func(ctx context.Context, _, newRes *omni.InstallationMediaConfig, _ ...state.UpdateOption) error {
 				return validateInstallationMedia(newRes)
-			})),
+			},
+		)),
 	}
 }
 
@@ -1643,20 +1647,24 @@ func rotateSecretsValidationOptions(st state.State) []validated.StateOption {
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
 			func(ctx context.Context, _ *omni.RotateTalosCA, newRes *omni.RotateTalosCA, _ ...state.UpdateOption) error {
 				return validateRotateSecretModify(ctx, st, newRes)
-			})),
+			},
+		)),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
 			func(ctx context.Context, _ *omni.RotateKubernetesCA, newRes *omni.RotateKubernetesCA, _ ...state.UpdateOption) error {
 				return validateRotateSecretModify(ctx, st, newRes)
-			})),
+			},
+		)),
 
 		validated.WithDestroyValidations(validated.NewDestroyValidationForType(
 			func(ctx context.Context, ptr resource.Pointer, existingRes *omni.RotateTalosCA, _ ...state.DestroyOption) error {
 				return validateRotateSecretDestroy(ctx, st, existingRes)
-			})),
+			},
+		)),
 		validated.WithDestroyValidations(validated.NewDestroyValidationForType(
 			func(ctx context.Context, ptr resource.Pointer, existingRes *omni.RotateKubernetesCA, _ ...state.DestroyOption) error {
 				return validateRotateSecretDestroy(ctx, st, existingRes)
-			})),
+			},
+		)),
 	}
 }
 

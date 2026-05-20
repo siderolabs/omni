@@ -72,7 +72,8 @@ func (handler *nodeUniqueTokenStatusHandler) reconcileRunning(
 	}
 
 	if !siderolink.SupportsSecureJoinTokens(talosVersion) {
-		logger.Debug("the token is not generated: not supported by the machine Talos version",
+		logger.Debug(
+			"the token is not generated: not supported by the machine Talos version",
 			zap.String("version", talosVersion),
 		)
 
@@ -125,7 +126,8 @@ func (handler *nodeUniqueTokenStatusHandler) reconcileRunning(
 	}
 
 	// create a pending machine status to force generating the node unique token
-	return safe.WriterModify(ctx, r, siderolinkres.NewPendingMachine(link.TypedSpec().Value.NodePublicKey, link.TypedSpec().Value),
+	return safe.WriterModify(
+		ctx, r, siderolinkres.NewPendingMachine(link.TypedSpec().Value.NodePublicKey, link.TypedSpec().Value),
 		func(pendingMachine *siderolinkres.PendingMachine) error {
 			pendingMachine.Metadata().Labels().Set(omni.MachineUUID, link.Metadata().ID())
 

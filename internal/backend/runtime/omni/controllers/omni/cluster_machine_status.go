@@ -54,7 +54,8 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 					return err
 				}
 
-				helpers.CopyLabels(clusterMachine, clusterMachineStatus,
+				helpers.CopyLabels(
+					clusterMachine, clusterMachineStatus,
 					omni.LabelCluster,
 					omni.LabelControlPlaneRole,
 					omni.LabelWorkerRole,

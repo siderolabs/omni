@@ -115,7 +115,8 @@ func (c *Client) Connected(ctx context.Context, r controller.Reader) (bool, erro
 
 	// this is a cluster client, check cluster connectivity
 
-	clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](ctx, r,
+	clusterStatus, err := safe.ReaderGet[*omni.ClusterStatus](
+		ctx, r,
 		omni.NewClusterStatus(c.clusterID).Metadata(),
 	)
 	if err != nil {
@@ -329,7 +330,8 @@ func (factory *ClientFactory) releaseForCluster(clusterID string) {
 }
 
 func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterID string) (*Client, error) {
-	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](ctx, factory.omniState,
+	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](
+		ctx, factory.omniState,
 		omni.NewClusterEndpoint(clusterID).Metadata(),
 	)
 	if err != nil {
@@ -454,7 +456,8 @@ func buildCacheKey(clusterID, machineID string) string {
 }
 
 func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID, machineID string) (*Client, error) {
-	machineStatus, getErr := safe.StateGet[*omni.MachineStatus](ctx, factory.omniState,
+	machineStatus, getErr := safe.StateGet[*omni.MachineStatus](
+		ctx, factory.omniState,
 		omni.NewMachineStatus(machineID).Metadata(),
 	)
 	if getErr != nil {
@@ -485,7 +488,8 @@ func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID, ma
 	}
 
 	// Maintenance mode: encrypted but no certificate verification.
-	c, err := client.New(ctx,
+	c, err := client.New(
+		ctx,
 		client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), //nolint:gosec
 		client.WithEndpoints(managementAddress),
 		client.WithGRPCDialOptions(

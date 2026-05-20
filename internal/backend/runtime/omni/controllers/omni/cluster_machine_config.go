@@ -437,7 +437,8 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 	}
 
 	if _, preserveApidCheckExtKeyUsage := clusterMachine.Metadata().Annotations().Get(omni.PreserveApidCheckExtKeyUsage); preserveApidCheckExtKeyUsage {
-		patchList = slices.Insert(patchList, 0, `machine:
+		patchList = slices.Insert(
+			patchList, 0, `machine:
   features:
     apidCheckExtKeyUsage: true
 `,
@@ -445,7 +446,8 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 	}
 
 	if _, preserveDiskQuotaSupport := clusterMachine.Metadata().Annotations().Get(omni.PreserveDiskQuotaSupport); preserveDiskQuotaSupport {
-		patchList = slices.Insert(patchList, 0, `machine:
+		patchList = slices.Insert(
+			patchList, 0, `machine:
   features:
     diskQuotaSupport: true
 `,

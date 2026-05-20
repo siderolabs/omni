@@ -121,7 +121,7 @@ func calcTier(err error, elapsed time.Duration) (upstream.Tier, error) {
 		return -1, err
 	}
 
-	for i := len(mins) - 1; i >= 0; i-- {
+	for i := range slices.Backward(mins) {
 		if elapsed >= mins[i] {
 			return upstream.Tier(i), nil
 		}

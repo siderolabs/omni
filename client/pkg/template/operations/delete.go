@@ -53,7 +53,8 @@ func deleteTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 			return err
 		}
 
-		machines, err := st.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineStatusType, "", resource.VersionUndefined),
+		machines, err := st.List(
+			ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineStatusType, "", resource.VersionUndefined),
 			state.WithLabelQuery(resource.LabelExists(omni.MachineStatusLabelDisconnected), resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 		if err != nil {
@@ -67,7 +68,8 @@ func deleteTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 		for _, machine := range machines.Items {
 			var patches resource.List
 
-			patches, err = st.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ConfigPatchType, "", resource.VersionUndefined),
+			patches, err = st.List(
+				ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ConfigPatchType, "", resource.VersionUndefined),
 				state.WithLabelQuery(resource.LabelEqual(omni.LabelMachine, machine.Metadata().ID())),
 			)
 			if err != nil {
@@ -78,7 +80,8 @@ func deleteTemplate(ctx context.Context, tmpl *template.Template, out io.Writer,
 			links = append(links, siderolink.NewLink(machine.Metadata().ID(), nil))
 		}
 
-		extensionsConfigurations, err := st.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ExtensionsConfigurationType, "", resource.VersionUndefined),
+		extensionsConfigurations, err := st.List(
+			ctx, resource.NewMetadata(resources.DefaultNamespace, omni.ExtensionsConfigurationType, "", resource.VersionUndefined),
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 		if err != nil {

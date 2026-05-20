@@ -88,7 +88,8 @@ func (ctrl *DiscoveryAffiliateDeleteTaskController) Reconcile(ctx context.Contex
 
 	expiredOnDiscoveryService := res.Metadata().Created().Add(ctrl.affiliateTTL).Before(ctrl.clock.Now())
 	if expiredOnDiscoveryService {
-		logger.Info("skipping affiliate delete, already expired on discovery service",
+		logger.Info(
+			"skipping affiliate delete, already expired on discovery service",
 			zap.String("cluster_id", res.TypedSpec().Value.ClusterId),
 			zap.String("affiliate_id", res.Metadata().ID()),
 			zap.String("endpoint", res.TypedSpec().Value.DiscoveryServiceEndpoint),
@@ -107,7 +108,8 @@ func (ctrl *DiscoveryAffiliateDeleteTaskController) Reconcile(ctx context.Contex
 			return fmt.Errorf("error deleting affiliate %q/%q from %q: %w", clusterID, affiliateID, endpoint, err)
 		}
 
-		logger.Info("deleted the affiliate from the discovery service",
+		logger.Info(
+			"deleted the affiliate from the discovery service",
 			zap.String("cluster_id", clusterID),
 			zap.String("affiliate_id", affiliateID),
 			zap.String("endpoint", endpoint),

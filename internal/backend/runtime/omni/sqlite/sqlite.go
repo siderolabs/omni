@@ -38,7 +38,8 @@ func OpenDB(config config.SQLite) (*sqlitexx.Pool, error) {
 		dsn += "?" + allParams
 	}
 
-	db, err := sqlitexx.NewPool(dsn,
+	db, err := sqlitexx.NewPool(
+		dsn,
 		sqlitexx.PoolOptions{
 			Flags:         zombiesqlite.OpenReadWrite | zombiesqlite.OpenCreate | zombiesqlite.OpenWAL | zombiesqlite.OpenURI,
 			LowWatermark:  config.GetCachedPoolSize(),

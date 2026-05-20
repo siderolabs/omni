@@ -73,7 +73,8 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	clusterName := "talos-default-2"
 	cluster, machines := suite.createClusterWithTalosVersion(clusterName, 1, 1, "1.10.0")
 
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
+	_, err := safe.StateUpdateWithConflicts(
+		suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
 			patches, err := config.TypedSpec().Value.GetUncompressedPatches()
 			suite.Require().NoError(err)
@@ -126,7 +127,8 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 
 	newImage := fmt.Sprintf("%s:v1.0.2", conf.Default().Registries.GetTalos())
 
-	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
+	_, err = safe.StateUpdateWithConflicts(
+		suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
 			patches, patchesErr := config.TypedSpec().Value.GetUncompressedPatches()
 			suite.Require().NoError(patchesErr)
@@ -230,7 +232,8 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 	_, machines := suite.createCluster(clusterName, 1, 0)
 	suite.Require().Greater(len(machines), 0)
 
-	_, err := safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
+	_, err := safe.StateUpdateWithConflicts(
+		suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
 			patches, err := config.TypedSpec().Value.GetUncompressedPatches()
 			suite.Require().NoError(err)
@@ -378,7 +381,8 @@ func (suite *ClusterMachineConfigSuite) TestGenerateWithoutComments() {
 
 	newImage := fmt.Sprintf("%s:v1.10.1", conf.Default().Registries.GetTalos())
 
-	_, err = safe.StateUpdateWithConflicts(suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
+	_, err = safe.StateUpdateWithConflicts(
+		suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
 			patches, patchesErr := config.TypedSpec().Value.GetUncompressedPatches()
 			suite.Require().NoError(patchesErr)

@@ -123,7 +123,8 @@ func (backend *TalosBackend) GetConnection(ctx context.Context, fullMethodName s
 	}
 
 	// perform authentication, result of the authentication should be written to ctx
-	_, err := backend.verifier(ctx, nil, nil,
+	_, err := backend.verifier(
+		ctx, nil, nil,
 		func(innerCtx context.Context, _ any) (any, error) {
 			// save enhanced context
 			//nolint:fatcontext

@@ -247,7 +247,8 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 
 	machine := omni.NewMachine(machines[3].Metadata().ID()).Metadata()
 
-	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, machine,
+	_, err = safe.StateUpdateWithConflicts(
+		ctx, suite.state, machine,
 		func(res *omni.Machine) error {
 			res.Metadata().Labels().Set(omni.LabelMachineRequest, machineRequest.Metadata().ID())
 
@@ -307,7 +308,8 @@ func (suite *MachineSetNodeSuite) TestNoRaceBetweenCleanupAndMachineSetNodeContr
 	}
 	suite.Require().NoError(suite.state.Create(ctx, machineSet))
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machineID},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machineID},
 		func(n *omni.MachineSetNode, assert *assert.Assertions) {},
 	)
 

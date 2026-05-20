@@ -224,7 +224,8 @@ func (t *Template) actualResources(ctx context.Context, st state.State, expected
 			return nil, err
 		}
 
-		filteredItems := xslices.Filter(items.Items,
+		filteredItems := xslices.Filter(
+			items.Items,
 			func(r resource.Resource) bool {
 				_, programmaticallyCreatedMachineSetNode := r.Metadata().Labels().Get(omni.LabelManagedByMachineSetNodeController)
 

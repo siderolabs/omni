@@ -124,7 +124,8 @@ func (suite *PendingMachineStatusSuite) TestReconcile() {
 
 	uuidCounts := map[string]map[string]struct{}{}
 
-	rtestutils.AssertResources(suite.ctx, suite.T(), suite.state, awaitMachines,
+	rtestutils.AssertResources(
+		suite.ctx, suite.T(), suite.state, awaitMachines,
 		func(ms *siderolink.PendingMachineStatus, assert *assert.Assertions) {
 			assert.NotEmpty(ms.TypedSpec().Value.Token)
 

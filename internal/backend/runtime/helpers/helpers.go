@@ -18,7 +18,8 @@ import (
 
 // GetMachineEndpoints reads all possible machine endpoints from the ClusterMachineIdentity resources.
 func GetMachineEndpoints(ctx context.Context, st state.State, clusterName string) ([]string, error) {
-	endpoints, err := safe.ReaderListAll[*omni.ClusterMachineIdentity](ctx, st,
+	endpoints, err := safe.ReaderListAll[*omni.ClusterMachineIdentity](
+		ctx, st,
 		state.WithLabelQuery(
 			resource.LabelEqual(omni.LabelCluster, clusterName),
 			resource.LabelExists(omni.LabelControlPlaneRole),

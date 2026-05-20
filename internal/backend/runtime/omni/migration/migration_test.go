@@ -266,11 +266,13 @@ func (suite *MigrationSuite) TestMakeMachineSetNodeOwnerEmpty() {
 	msnTearingDown.Metadata().SetPhase(resource.PhaseTearingDown)
 
 	suite.Require().NoError(suite.state.Create(ctx, msnRunning))
-	suite.Require().NoError(suite.state.Create(ctx, msnOwned,
-		state.WithCreateOwner(omnictrl.NewMachineSetNodeController().ControllerName)),
+	suite.Require().NoError(
+		suite.state.Create(ctx, msnOwned,
+			state.WithCreateOwner(omnictrl.NewMachineSetNodeController().ControllerName)),
 	)
-	suite.Require().NoError(suite.state.Create(ctx, msnTearingDown,
-		state.WithCreateOwner(omnictrl.NewMachineSetNodeController().ControllerName)),
+	suite.Require().NoError(
+		suite.state.Create(ctx, msnTearingDown,
+			state.WithCreateOwner(omnictrl.NewMachineSetNodeController().ControllerName)),
 	)
 
 	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("makeMachineSetNodesOwnerEmpty")))
@@ -320,11 +322,13 @@ func (suite *MigrationSuite) TestChangeClusterMachineConfigPatchesOwner() {
 	cmcpTearingDown := omni.NewClusterMachineConfigPatches("tearingDown")
 	cmcpTearingDown.Metadata().SetPhase(resource.PhaseTearingDown)
 
-	suite.Require().NoError(suite.state.Create(ctx, cmcpRunning,
-		state.WithCreateOwner(omnictrl.NewMachineSetStatusController().ControllerName)),
+	suite.Require().NoError(
+		suite.state.Create(ctx, cmcpRunning,
+			state.WithCreateOwner(omnictrl.NewMachineSetStatusController().ControllerName)),
 	)
-	suite.Require().NoError(suite.state.Create(ctx, cmcpTearingDown,
-		state.WithCreateOwner(omnictrl.NewMachineSetStatusController().ControllerName)),
+	suite.Require().NoError(
+		suite.state.Create(ctx, cmcpTearingDown,
+			state.WithCreateOwner(omnictrl.NewMachineSetStatusController().ControllerName)),
 	)
 
 	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("changeClusterMachineConfigPatchesOwner")))

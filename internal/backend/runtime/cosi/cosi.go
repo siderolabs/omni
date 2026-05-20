@@ -214,7 +214,8 @@ func Watch(ctx context.Context, st state.State, md resource.Metadata, out chan<-
 
 	opts := make([]state.WatchKindOption, 0, len(queries)+1)
 
-	opts = append(opts,
+	opts = append(
+		opts,
 		state.WithBootstrapContents(true),
 	)
 

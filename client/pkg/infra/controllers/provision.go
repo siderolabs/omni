@@ -99,7 +99,8 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 	}
 
 	if ctrl.useV2Tokens {
-		inputs = append(inputs,
+		inputs = append(
+			inputs,
 			controller.Input{
 				Namespace: resources.InfraProviderNamespace,
 				Type:      siderolinkres.ProviderJoinConfigType,
@@ -114,7 +115,8 @@ func (ctrl *ProvisionController[T]) Settings() controller.QSettings {
 			},
 		)
 	} else {
-		inputs = append(inputs,
+		inputs = append(
+			inputs,
 			controller.Input{
 				Namespace: resources.DefaultNamespace,
 				Type:      siderolinkres.ConnectionParamsType,
@@ -270,8 +272,10 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 	if machineRequestStatus.TypedSpec().Value.Id == "" {
 		var machines safe.List[*infra.MachineRegistration]
 
-		machines, err = safe.ReaderListAll[*infra.MachineRegistration](ctx, r, state.WithLabelQuery(
-			resource.LabelEqual(omni.LabelMachineRequest, machineRequest.Metadata().ID())),
+		machines, err = safe.ReaderListAll[*infra.MachineRegistration](
+			ctx, r, state.WithLabelQuery(
+				resource.LabelEqual(omni.LabelMachineRequest, machineRequest.Metadata().ID()),
+			),
 		)
 		if err != nil {
 			return err
@@ -286,7 +290,8 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 					res.TypedSpec().Value.Id = machines.Get(0).Metadata().ID()
 
 					return nil
-				}); err != nil {
+				},
+			); err != nil {
 				return err
 			}
 		}
@@ -369,7 +374,8 @@ func (ctrl *ProvisionController[T]) reconcileRunning(ctx context.Context, r cont
 				}
 
 				return nil
-			}); err != nil {
+			},
+		); err != nil {
 			return err
 		}
 

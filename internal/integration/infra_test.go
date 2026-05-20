@@ -66,7 +66,8 @@ func machineProvisionHook(t *testing.T, client *client.Client, cfg MachineProvis
 	var resources safe.List[*infra.MachineRequestStatus]
 
 	err = retry.Constant(time.Second*60).RetryWithContext(ctx, func(ctx context.Context) error {
-		resources, err = safe.ReaderListAll[*infra.MachineRequestStatus](ctx, client.Omni().State(),
+		resources, err = safe.ReaderListAll[*infra.MachineRequestStatus](
+			ctx, client.Omni().State(),
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSetName)),
 		)
 		if err != nil {
@@ -122,7 +123,8 @@ func machineDeprovisionHook(t *testing.T, client *client.Client, machineRequestS
 	ctx, cancel := context.WithTimeout(t.Context(), time.Minute*5)
 	defer cancel()
 
-	requestIDs := rtestutils.ResourceIDs[*infra.MachineRequest](ctx, t, client.Omni().State(),
+	requestIDs := rtestutils.ResourceIDs[*infra.MachineRequest](
+		ctx, t, client.Omni().State(),
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSetName)),
 	)
 

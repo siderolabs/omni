@@ -73,7 +73,8 @@ func (suite *MachineStatusSnapshotControllerSuite) TestNodeUniqueTokenStatus() {
 		suite.Require().NoError(suite.state.Create(ctx, machine))
 		suite.Require().NoError(suite.state.Create(ctx, machineStatus))
 
-		rmock.Mock[*siderolink.Link](ctx, suite.T(), suite.state,
+		rmock.Mock[*siderolink.Link](
+			ctx, suite.T(), suite.state,
 			options.WithID(machine.Metadata().ID()),
 			options.Modify(func(res *siderolink.Link) error {
 				res.TypedSpec().Value.NodePublicKey = machine.Metadata().ID()
@@ -91,7 +92,8 @@ func (suite *MachineStatusSnapshotControllerSuite) TestNodeUniqueTokenStatus() {
 		assert.Equal(specs.NodeUniqueTokenStatusSpec_EPHEMERAL, status.TypedSpec().Value.State)
 	})
 
-	_, err := safe.StateUpdateWithConflicts(ctx, suite.state, system.NewResourceLabels[*omnires.MachineStatus](id).Metadata(),
+	_, err := safe.StateUpdateWithConflicts(
+		ctx, suite.state, system.NewResourceLabels[*omnires.MachineStatus](id).Metadata(),
 		func(res *system.ResourceLabels[*omnires.MachineStatus]) error {
 			res.Metadata().Labels().Set(omnires.MachineStatusLabelInstalled, "")
 
@@ -117,7 +119,8 @@ func (suite *MachineStatusSnapshotControllerSuite) TestNodeUniqueTokenStatus() {
 		assert.Equal(specs.NodeUniqueTokenStatusSpec_NONE, status.TypedSpec().Value.State)
 	})
 
-	_, err = safe.StateUpdateWithConflicts(ctx, suite.state, system.NewResourceLabels[*omnires.MachineStatus](id).Metadata(),
+	_, err = safe.StateUpdateWithConflicts(
+		ctx, suite.state, system.NewResourceLabels[*omnires.MachineStatus](id).Metadata(),
 		func(res *system.ResourceLabels[*omnires.MachineStatus]) error {
 			res.Metadata().Labels().Set(omnires.MachineStatusLabelConnected, "")
 

@@ -420,7 +420,8 @@ func checkTokenWarnings(ctx context.Context, client *client.Client, id, operatio
 			os.Stderr,
 			"WARNING: %d of %s won't be able to connect if the token is revoked/deleted\n",
 			len(joinTokenStatus.TypedSpec().Value.Warnings),
-			pluralize.NewClient().Pluralize("machine", int(joinTokenStatus.TypedSpec().Value.UseCount), true)); err != nil {
+			pluralize.NewClient().Pluralize("machine", int(joinTokenStatus.TypedSpec().Value.UseCount), true),
+		); err != nil {
 			return err
 		}
 

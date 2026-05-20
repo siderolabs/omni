@@ -39,16 +39,17 @@ func TestReconcile(t *testing.T) {
 
 	cleanupCh := make(chan struct{})
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(_ context.Context, testContext testutils.TestContext) {
-		controller := redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{
-			DiffMaxAge: 100 * time.Millisecond,
-			CleanupCh:  cleanupCh,
-		})
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, func(_ context.Context, testContext testutils.TestContext) {
+			controller := redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{
+				DiffMaxAge: 100 * time.Millisecond,
+				CleanupCh:  cleanupCh,
+			})
 
-		require.NoError(t, testContext.Runtime.RegisterQController(controller))
-	}, func(ctx context.Context, testContext testutils.TestContext) {
-		testReconcile(ctx, t, testContext.State, cleanupCh)
-	},
+			require.NoError(t, testContext.Runtime.RegisterQController(controller))
+		}, func(ctx context.Context, testContext testutils.TestContext) {
+			testReconcile(ctx, t, testContext.State, cleanupCh)
+		},
 	)
 }
 
@@ -64,7 +65,8 @@ func testReconcile(ctx context.Context, t *testing.T, st state.State, cleanupCh 
 	require.NoError(t, cmc.TypedSpec().Value.SetUncompressedData([]byte(machineConfig)))
 	require.NoError(t, st.Create(ctx, cmc))
 
-	rtestutils.AssertResource(ctx, t, st, id,
+	rtestutils.AssertResource(
+		ctx, t, st, id,
 		func(cmcr *omni.RedactedClusterMachineConfig, assert *assert.Assertions) {
 			buffer, err := cmcr.TypedSpec().Value.GetUncompressedData()
 			assert.NoError(err)
@@ -108,12 +110,13 @@ func TestTeardown(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(_ context.Context, testContext testutils.TestContext) {
-		controller := redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{})
-		require.NoError(t, testContext.Runtime.RegisterQController(controller))
-	}, func(ctx context.Context, testContext testutils.TestContext) {
-		testTeardown(ctx, t, testContext.State)
-	},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, func(_ context.Context, testContext testutils.TestContext) {
+			controller := redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{})
+			require.NoError(t, testContext.Runtime.RegisterQController(controller))
+		}, func(ctx context.Context, testContext testutils.TestContext) {
+			testTeardown(ctx, t, testContext.State)
+		},
 	)
 }
 
@@ -154,16 +157,17 @@ func TestMaxDiffCount(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(_ context.Context, testContext testutils.TestContext) {
-		controller := redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{
-			DiffCleanupInterval: 50 * time.Millisecond,
-			DiffMaxAge:          24 * time.Hour,
-			DiffMaxCount:        2,
-		})
-		require.NoError(t, testContext.Runtime.RegisterQController(controller))
-	}, func(ctx context.Context, testContext testutils.TestContext) {
-		testMaxDiffCount(ctx, t, testContext.State)
-	},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, func(_ context.Context, testContext testutils.TestContext) {
+			controller := redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{
+				DiffCleanupInterval: 50 * time.Millisecond,
+				DiffMaxAge:          24 * time.Hour,
+				DiffMaxCount:        2,
+			})
+			require.NoError(t, testContext.Runtime.RegisterQController(controller))
+		}, func(ctx context.Context, testContext testutils.TestContext) {
+			testMaxDiffCount(ctx, t, testContext.State)
+		},
 	)
 }
 

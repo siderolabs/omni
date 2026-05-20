@@ -335,7 +335,8 @@ func ReplaceControlPlanes(testCtx context.Context, st state.State, options Clust
 		ctx, cancel := context.WithTimeout(testCtx, 30*time.Second)
 		defer cancel()
 
-		existingControlPlanes := rtestutils.ResourceIDs[*omni.MachineSetNode](ctx, t, st,
+		existingControlPlanes := rtestutils.ResourceIDs[*omni.MachineSetNode](
+			ctx, t, st,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, options.Name), resource.LabelExists(omni.LabelControlPlaneRole)),
 		)
 
@@ -653,7 +654,8 @@ func AssertDestroyCluster(testCtx context.Context, omniState state.State, cluste
 		rtestutils.AssertResources(ctx, t, omniState, clusterMachineIDs, func(machine *omni.MachineStatus, asrt *assert.Assertions) {
 			_, isAvailable := machine.Metadata().Labels().Get(omni.MachineStatusLabelAvailable)
 			machineCluster, machineBound := machine.Metadata().Labels().Get(omni.LabelCluster)
-			asrt.True(isAvailable || (machineBound && machineCluster != clusterName),
+			asrt.True(
+				isAvailable || (machineBound && machineCluster != clusterName),
 				"machine %q: available %v, bound %v, cluster %q", machine.Metadata().ID(), isAvailable, machineBound, machineCluster,
 			)
 		})

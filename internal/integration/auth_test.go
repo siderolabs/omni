@@ -1625,7 +1625,8 @@ func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, serv
 			return nil
 		}
 
-		nodes, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, rootCli.Omni().State(),
+		nodes, err := safe.ReaderListAll[*omni.ClusterMachineStatus](
+			ctx, rootCli.Omni().State(),
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		)
 
@@ -1803,7 +1804,8 @@ func AssertFrontendResourceAPI(ctx context.Context, rootCli *client.Client, serv
 					fullURL, err := url.JoinPath(httpEndpoint, "api", tt.method)
 					require.NoError(t, err)
 
-					request, err := http.NewRequestWithContext(ctx, http.MethodPost,
+					request, err := http.NewRequestWithContext(
+						ctx, http.MethodPost,
 						fullURL, bytes.NewBuffer(tt.requestBody),
 					)
 					require.NoError(t, err)

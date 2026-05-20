@@ -135,7 +135,8 @@ func (handler *machineSetStatusHandler) reconcileRunning(ctx context.Context, r 
 		return err
 	}
 
-	if err = safe.WriterModify(ctx, r, omni.NewMachineSetConfigStatus(machineSet.Metadata().ID()),
+	if err = safe.WriterModify(
+		ctx, r, omni.NewMachineSetConfigStatus(machineSet.Metadata().ID()),
 		func(machineSetConfigStatus *omni.MachineSetConfigStatus) error {
 			// should run always
 			machineset.ReconcileStatus(rc, machineSetStatus, machineSetConfigStatus)
@@ -186,7 +187,8 @@ func (handler *machineSetStatusHandler) reconcileTearingDown(ctx context.Context
 			return modifyErr
 		}
 
-		modifyErr = safe.WriterModify(ctx, r, omni.NewMachineSetConfigStatus(machineSet.Metadata().ID()),
+		modifyErr = safe.WriterModify(
+			ctx, r, omni.NewMachineSetConfigStatus(machineSet.Metadata().ID()),
 			func(status *omni.MachineSetConfigStatus) error {
 				status.TypedSpec().Value.ShouldResetGraceful = false
 

@@ -58,7 +58,8 @@ func (suite *ClusterMachineStatusSuite) TestNoMachineStatusSnapShotClusterStatus
 func (suite *ClusterMachineStatusSuite) TestApplyConfigErrorPropagation() {
 	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true, false)
 
-	rmock.Mock[*omni.ClusterMachineConfigStatus](suite.ctx, suite.T(), suite.state, options.WithID(testID),
+	rmock.Mock[*omni.ClusterMachineConfigStatus](
+		suite.ctx, suite.T(), suite.state, options.WithID(testID),
 		options.Modify(func(s *omni.ClusterMachineConfigStatus) error {
 			s.TypedSpec().Value.LastConfigError = "TestApplyConfigErrorPropagation error"
 
@@ -94,7 +95,8 @@ func (suite *ClusterMachineStatusSuite) TestApplyConfigErrorPropagation() {
 func (suite *ClusterMachineStatusSuite) TestOutdatedConfig() {
 	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true, false)
 
-	rmock.Mock[*omni.ClusterMachineConfigStatus](suite.ctx, suite.T(), suite.state, options.WithID(testID),
+	rmock.Mock[*omni.ClusterMachineConfigStatus](
+		suite.ctx, suite.T(), suite.state, options.WithID(testID),
 		options.Modify(func(s *omni.ClusterMachineConfigStatus) error {
 			s.TypedSpec().Value.ClusterMachineConfigVersion = "42"
 
@@ -141,28 +143,33 @@ func (suite *ClusterMachineStatusSuite) setupStageTest(machineStatusEvent *machi
 		role = omni.LabelControlPlaneRole
 	}
 
-	rmock.Mock[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state,
+	rmock.Mock[*omni.MachineSetNode](
+		suite.ctx, suite.T(), suite.state,
 		options.WithID(testID),
 		options.LabelCluster(cluster),
 		options.EmptyLabel(role),
 	)
 
-	rmock.Mock[*omni.ClusterMachine](suite.ctx, suite.T(), suite.state,
+	rmock.Mock[*omni.ClusterMachine](
+		suite.ctx, suite.T(), suite.state,
 		options.WithID(testID),
 	)
 
 	statusSnapshot := omni.NewMachineStatusSnapshot(testID)
 	statusSnapshot.TypedSpec().Value.MachineStatus = machineStatusEvent
 
-	rmock.Mock[*omni.MachineConfigGenOptions](suite.ctx, suite.T(), suite.state,
+	rmock.Mock[*omni.MachineConfigGenOptions](
+		suite.ctx, suite.T(), suite.state,
 		options.WithID(testID),
 	)
 
-	rmock.Mock[*omni.ClusterMachineConfig](suite.ctx, suite.T(), suite.state,
+	rmock.Mock[*omni.ClusterMachineConfig](
+		suite.ctx, suite.T(), suite.state,
 		options.WithID(testID),
 	)
 
-	rmock.Mock[*omni.ClusterMachineConfigStatus](suite.ctx, suite.T(), suite.state,
+	rmock.Mock[*omni.ClusterMachineConfigStatus](
+		suite.ctx, suite.T(), suite.state,
 		options.WithID(testID),
 	)
 
@@ -181,7 +188,8 @@ func (suite *ClusterMachineStatusSuite) assertStage(expectedStage specs.ClusterM
 			assertions.Equal(expectedReadiness, statusVal.Ready)
 			assertions.Equal(expectedStage, statusVal.Stage)
 			assertions.Equal(expectedApidAvailable, statusVal.ApidAvailable)
-		})
+		},
+	)
 }
 
 func (suite *ClusterMachineStatusSuite) TestDestroying() {

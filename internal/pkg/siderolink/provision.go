@@ -222,7 +222,8 @@ func newLink[T res](provisionContext *provisionContext,
 }
 
 func updateNodeUniqueToken(ctx context.Context, logger *zap.Logger, st state.State, provisionContext *provisionContext) error {
-	return safe.StateModify(ctx, st, siderolinkres.NewNodeUniqueToken(provisionContext.request.NodeUuid),
+	return safe.StateModify(
+		ctx, st, siderolinkres.NewNodeUniqueToken(provisionContext.request.NodeUuid),
 		func(res *siderolinkres.NodeUniqueToken) error {
 			defer func() {
 				res.TypedSpec().Value.Token = provisionContext.request.GetNodeUniqueToken()
@@ -479,7 +480,8 @@ func genProvisionResponse(ctx context.Context, logger *zap.Logger, st state.Stat
 
 	logger.Debug("waiting for the Wireguard peer to be created", zap.String("link", link.Metadata().String()))
 
-	_, err := st.WatchFor(ctx,
+	_, err := st.WatchFor(
+		ctx,
 		siderolinkres.NewLinkStatus(link).Metadata(),
 		state.WithPhases(resource.PhaseRunning),
 		state.WithCondition(func(r resource.Resource) (bool, error) {
@@ -504,7 +506,8 @@ func genProvisionResponse(ctx context.Context, logger *zap.Logger, st state.Stat
 
 	endpoints := strings.Split(endpoint, ",")
 
-	logger.Debug("generated response",
+	logger.Debug(
+		"generated response",
 		zap.String("node_address", spec.NodeSubnet),
 		zap.String("public_key", wgConfig.PublicKey),
 		zap.String("grpc_addr_port", spec.VirtualAddrport),
@@ -636,7 +639,8 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 	}
 
 	if pendingMachine != nil {
-		pendingMachineStatus, err = safe.StateWatchFor[*siderolinkres.PendingMachineStatus](ctx,
+		pendingMachineStatus, err = safe.StateWatchFor[*siderolinkres.PendingMachineStatus](
+			ctx,
 			h.state,
 			siderolinkres.NewPendingMachineStatus(pendingMachine.Metadata().ID()).Metadata(),
 			state.WithPhases(resource.PhaseRunning),

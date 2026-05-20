@@ -43,7 +43,8 @@ func (suite *LabelsExtractorControllerSuite) TestReconcile() {
 
 	labelsID := machine.Metadata().ID()
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{labelsID},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{labelsID},
 		func(labels *system.ResourceLabels[*omni.MachineStatus], assert *assert.Assertions) {
 			value, ok := labels.Metadata().Labels().Get(omni.LabelCluster)
 
@@ -60,7 +61,8 @@ func (suite *LabelsExtractorControllerSuite) TestReconcile() {
 	})
 	suite.Require().NoError(err)
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{labelsID},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{labelsID},
 		func(labels *system.ResourceLabels[*omni.MachineStatus], assert *assert.Assertions) {
 			_, ok := labels.Metadata().Labels().Get(omni.LabelCluster)
 			assert.False(ok)

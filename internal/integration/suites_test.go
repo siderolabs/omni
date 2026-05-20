@@ -340,7 +340,8 @@ Set up Kubernetes manifests in the cluster.`)
 
 		options.claimMachines(t, clusterOptions.ControlPlanes+clusterOptions.Workers)
 
-		runTests(t, AssertClusterCreateAndReady(t.Context(), options, clusterOptions,
+		runTests(t, AssertClusterCreateAndReady(
+			t.Context(), options, clusterOptions,
 			subTest{
 				"KubernetesManifestsShouldBeCreated",
 				AssertKubernetesManifestsSync(t.Context(), options.omniClient, clusterOptions.Name),
@@ -1090,8 +1091,10 @@ Finally, a completely new cluster is created using the same backup to test the "
 
 		assertClusterAndAPIReady(t, clusterName, options)
 
-		runTests(t,
-			AssertBlockKubernetesDeploymentCreateAndRunning(t.Context(), options.omniClient.Management(),
+		runTests(
+			t,
+			AssertBlockKubernetesDeploymentCreateAndRunning(
+				t.Context(), options.omniClient.Management(),
 				clusterName,
 				"default",
 				"test",
@@ -1118,7 +1121,8 @@ Finally, a completely new cluster is created using the same backup to test the "
 
 		runTests(
 			t,
-			AssertBlockCreateClusterFromEtcdBackup(t.Context(), options, options.Options,
+			AssertBlockCreateClusterFromEtcdBackup(
+				t.Context(), options, options.Options,
 				clusterName,
 				secondClusterName,
 				"default",
@@ -1138,7 +1142,8 @@ Finally, a completely new cluster is created using the same backup to test the "
 
 		runTests(
 			t,
-			AssertBlockRestoreEtcdFromLatestBackup(t.Context(), options, options.Options,
+			AssertBlockRestoreEtcdFromLatestBackup(
+				t.Context(), options, options.Options,
 				3,
 				clusterName,
 				"default",

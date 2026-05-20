@@ -112,7 +112,8 @@ func AssertTalosMaintenanceAPIAccessViaOmni(testCtx context.Context, options *Te
 			require.NoError(t, maintenanceClient.Close())
 		})
 
-		machines, err := safe.ReaderListAll[*omni.MachineStatus](ctx, omniClient.Omni().State(),
+		machines, err := safe.ReaderListAll[*omni.MachineStatus](
+			ctx, omniClient.Omni().State(),
 			state.WithLabelQuery(resource.LabelExists(omni.MachineStatusLabelAvailable)),
 		)
 		require.NoError(t, err)
@@ -174,7 +175,8 @@ func AssertTalosAPIAccessViaOmni(testCtx context.Context, options *TestOptions, 
 			assert.NoError(t, err)
 			assert.Len(t, version.Messages, len(machineNames))
 
-			assert.Equal(t,
+			assert.Equal(
+				t,
 				xslices.ToSet(machineIPs),
 				xslices.ToSet(xslices.Map(version.Messages, func(m *machine.Version) string {
 					return m.GetMetadata().GetHostname()
@@ -186,7 +188,8 @@ func AssertTalosAPIAccessViaOmni(testCtx context.Context, options *TestOptions, 
 			assert.NoError(t, err)
 			assert.Len(t, version.Messages, len(machineNames))
 
-			assert.Equal(t,
+			assert.Equal(
+				t,
 				xslices.ToSet(machineIPs),
 				xslices.ToSet(xslices.Map(version.Messages, func(m *machine.Version) string {
 					return m.GetMetadata().GetHostname()
@@ -268,7 +271,8 @@ func AssertEtcdMembershipMatchesOmniResources(testCtx context.Context, options *
 			require.NoError(t, talosClient.Close())
 		})
 
-		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, omniClient.Omni().State(),
+		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](
+			ctx, t, omniClient.Omni().State(),
 			state.WithLabelQuery(
 				resource.LabelEqual(omni.LabelCluster, cluster),
 				resource.LabelExists(omni.LabelControlPlaneRole),
@@ -332,7 +336,8 @@ func AssertTalosMembersMatchOmni(testCtx context.Context, options *TestOptions, 
 			require.NoError(talosClient.Close())
 		})
 
-		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, omniClient.Omni().State(),
+		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](
+			ctx, t, omniClient.Omni().State(),
 			state.WithLabelQuery(
 				resource.LabelEqual(omni.LabelCluster, clusterName),
 			),
@@ -344,7 +349,8 @@ func AssertTalosMembersMatchOmni(testCtx context.Context, options *TestOptions, 
 		for _, machineID := range machineIDs {
 			var clusterMachineIdentity *omni.ClusterMachineIdentity
 
-			clusterMachineIdentity, err := safe.StateGet[*omni.ClusterMachineIdentity](ctx, omniClient.Omni().State(),
+			clusterMachineIdentity, err := safe.StateGet[*omni.ClusterMachineIdentity](
+				ctx, omniClient.Omni().State(),
 				omni.NewClusterMachineIdentity(machineID).Metadata(),
 			)
 
@@ -645,7 +651,8 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 
 		t.Logf("watching for the machines in cluster %q", clusterName)
 
-		require.NoError(t, st.WatchKind(ctx, omni.NewClusterMachineStatus("").Metadata(), events,
+		require.NoError(t, st.WatchKind(
+			ctx, omni.NewClusterMachineStatus("").Metadata(), events,
 			state.WatchWithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
 		))
 

@@ -114,7 +114,8 @@ func WithClient(f func(ctx context.Context, client *client.Client, info ServerIn
 				fmt.Fprintf(os.Stderr, "[WARN] basic auth is deprecated and has no effect\n")
 			}
 
-			opts = append(opts,
+			opts = append(
+				opts,
 				client.WithUserAccount(contextName, configCtx.Auth.SideroV1.Identity),
 				client.WithCustomKeysDir(config.CustomSideroV1KeysDirPath(CmdFlags.SideroV1KeysDir)),
 			)

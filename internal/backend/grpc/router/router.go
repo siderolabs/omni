@@ -89,7 +89,8 @@ func NewRouter(
 	talosAuditor TalosAuditor,
 	verifier grpc.UnaryServerInterceptor,
 ) (*Router, error) {
-	omniConn, err := grpc.NewClient(transport.Address(),
+	omniConn, err := grpc.NewClient(
+		transport.Address(),
 		grpc.WithContextDialer(func(dctx context.Context, _ string) (net.Conn, error) {
 			return transport.DialContext(dctx)
 		}),
@@ -348,7 +349,8 @@ func buildCacheKey(clusterID, machineID string) string {
 // getClusterConn builds a gRPC connection that load-balances across all healthy CP nodes of a cluster.
 // It reads the ClusterEndpoint resource to get the management addresses and uses gRPC round-robin.
 func (r *Router) getClusterConn(ctx context.Context, clusterID string) (*grpc.ClientConn, error) {
-	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](ctx, r.cosiState,
+	clusterEndpoint, err := safe.StateGet[*omni.ClusterEndpoint](
+		ctx, r.cosiState,
 		omni.NewClusterEndpoint(clusterID).Metadata(),
 	)
 	if err != nil {
@@ -420,7 +422,8 @@ func (r *Router) dialTalosMaintenance(endpoint string) (*grpc.ClientConn, error)
 }
 
 func (r *Router) dialTalosWithCreds(creds credentials.TransportCredentials, endpoints []string) (*grpc.ClientConn, error) {
-	target := fmt.Sprintf("%s:///%s",
+	target := fmt.Sprintf(
+		"%s:///%s",
 		resolver.RoundRobinResolverScheme,
 		strings.Join(endpoints, ","),
 	)

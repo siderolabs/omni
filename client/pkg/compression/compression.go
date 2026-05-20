@@ -72,7 +72,8 @@ func BuildConfig(enabled, useDict, usePool bool) (specs.CompressionConfig, error
 				128 * 1024,      // 128KB
 				512 * 1024,      // 512KB
 				2 * 1024 * 1024, // 2MB
-			})
+			},
+		)
 	}
 
 	return specs.CompressionConfig{

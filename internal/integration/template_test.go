@@ -159,13 +159,15 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 			require.Greater(len(automaticallyAllocatedMachines), 0)
 
 			// add finalizer on the machine set node to make the test fail if it tries to delete the machine set node unexpectedly
-			require.NoError(st.AddFinalizer(ctx,
+			require.NoError(st.AddFinalizer(
+				ctx,
 				omni.NewMachineSetNode(automaticallyAllocatedMachines[0], machineSet).Metadata(),
 				lockDelete,
 			))
 
 			t.Cleanup(func() {
-				err = st.RemoveFinalizer(testCtx,
+				err = st.RemoveFinalizer(
+					testCtx,
 					omni.NewMachineSetNode(
 						automaticallyAllocatedMachines[0],
 						omni.NewMachineSet(""),
@@ -234,7 +236,8 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 		for _, id := range automaticallyAllocatedMachines {
 			require.Contains(newAutomaticallyALlocatedMachines, id)
 
-			require.NoError(st.RemoveFinalizer(ctx, omni.NewMachineSetNode(id, omni.NewMachineSet("")).Metadata(),
+			require.NoError(st.RemoveFinalizer(
+				ctx, omni.NewMachineSetNode(id, omni.NewMachineSet("")).Metadata(),
 				lockDelete,
 			))
 		}

@@ -206,7 +206,8 @@ func (s *Storage) storeKey(ctx context.Context, keyID string, privateKey *rsa.Pr
 
 	key.TypedSpec().Value.Expiration = timestamppb.New(s.clock.Now().Add(2*external.KeyRotationInterval + maxTokenFiletime))
 
-	s.logger.Info("generating new OIDC key",
+	s.logger.Info(
+		"generating new OIDC key",
 		zap.String("key_id", key.Metadata().ID()),
 		zap.Stringer("expiration", key.TypedSpec().Value.Expiration.AsTime()),
 	)
@@ -224,7 +225,8 @@ func (s *Storage) cleanupOldKeys(ctx context.Context) error {
 
 	for key := range keys.All() {
 		if s.clock.Now().After(key.TypedSpec().Value.Expiration.AsTime()) {
-			s.logger.Info("destroying expired OIDC key",
+			s.logger.Info(
+				"destroying expired OIDC key",
 				zap.String("key_id", key.Metadata().ID()),
 				zap.Stringer("expiration", key.TypedSpec().Value.Expiration.AsTime()),
 			)
@@ -246,7 +248,8 @@ func (s *Storage) cleanupOldKeys(ctx context.Context) error {
 		}
 	}
 
-	s.logger.Info("active OIDC public signing keys",
+	s.logger.Info(
+		"active OIDC public signing keys",
 		zap.Strings("key_ids", xslices.Map(newKeySet, func(key op.Key) string { return key.ID() })),
 	)
 

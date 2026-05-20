@@ -33,14 +33,15 @@ func NewClusterMachineController() *ClusterMachineController {
 					)
 				}),
 				withFinalizerCheck(
-					cleanup.RemoveOutputs[*omni.ConfigPatch](func(clusterMachine *omni.ClusterMachine) state.ListOption {
-						clusterName, _ := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
+					cleanup.RemoveOutputs[*omni.ConfigPatch](
+						func(clusterMachine *omni.ClusterMachine) state.ListOption {
+							clusterName, _ := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
 
-						return state.WithLabelQuery(
-							resource.LabelEqual(omni.LabelCluster, clusterName),
-							resource.LabelEqual(omni.LabelClusterMachine, clusterMachine.Metadata().ID()),
-						)
-					},
+							return state.WithLabelQuery(
+								resource.LabelEqual(omni.LabelCluster, clusterName),
+								resource.LabelEqual(omni.LabelClusterMachine, clusterMachine.Metadata().ID()),
+							)
+						},
 						cleanup.WithExtraOwners(KubernetesUpgradeStatusControllerName),
 					), func(clusterMachine *omni.ClusterMachine) error {
 						_, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
@@ -49,7 +50,8 @@ func NewClusterMachineController() *ClusterMachineController {
 						}
 
 						return nil
-					}),
+					},
+				),
 			),
 		},
 	)

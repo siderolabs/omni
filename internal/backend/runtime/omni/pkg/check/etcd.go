@@ -51,10 +51,11 @@ func newErrorf(severity specs.ControlPlaneStatusSpec_Condition_Severity, interru
 
 // Etcd checks that all etcd members are healthy and are in sync, etcd responds on all nodes.
 func Etcd(ctx context.Context, r controller.Reader, clusterName string) error {
-	clusterMachineStatuses, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, r, state.WithLabelQuery(
-		resource.LabelEqual(omni.LabelCluster, clusterName),
-		resource.LabelExists(omni.LabelControlPlaneRole),
-	),
+	clusterMachineStatuses, err := safe.ReaderListAll[*omni.ClusterMachineStatus](
+		ctx, r, state.WithLabelQuery(
+			resource.LabelEqual(omni.LabelCluster, clusterName),
+			resource.LabelExists(omni.LabelControlPlaneRole),
+		),
 	)
 	if err != nil {
 		return newErrorf(specs.ControlPlaneStatusSpec_Condition_Error, false, "Failed to get the list of machines %s", err.Error())
@@ -275,7 +276,8 @@ func EtcdStatus(ctx context.Context, r controller.Reader, machineSet *omni.Machi
 
 	var healthyMembers int
 
-	statuses, err := safe.ReaderListAll[*omni.ClusterMachineStatus](ctx, r,
+	statuses, err := safe.ReaderListAll[*omni.ClusterMachineStatus](
+		ctx, r,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())),
 	)
 	if err != nil {

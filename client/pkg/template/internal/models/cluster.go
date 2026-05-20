@@ -137,7 +137,8 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 		return nil, err
 	}
 
-	manifests, err := cluster.Kubernetes.Manifests.Translate(ctx, fmt.Sprintf("cluster-%s", cluster.Name), constants.PatchBaseWeightCluster,
+	manifests, err := cluster.Kubernetes.Manifests.Translate(
+		ctx, fmt.Sprintf("cluster-%s", cluster.Name), constants.PatchBaseWeightCluster,
 		pair.MakePair(omni.LabelCluster, cluster.Name),
 	)
 	if err != nil {

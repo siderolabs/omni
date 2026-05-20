@@ -241,7 +241,8 @@ func TestRoleInSAMLLabelRules(t *testing.T) {
 		[]*auth.SAMLLabelRule{operatorRoleToDeveloper, readerRoleToDeveloper, adminRoleToManager, invalidRoleToFoobar},
 		map[string]string{
 			"saml.omni.sidero.dev/role/developer": "",
-		}, logger)
+		}, logger,
+	)
 
 	require.EqualValues(t, matchedRole.TypedSpec().Value.AssignRole, role.Operator)
 

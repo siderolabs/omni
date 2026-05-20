@@ -310,7 +310,8 @@ func (s *ResourceServer) Delete(ctx context.Context, in *resources.DeleteRequest
 
 	opts := withContext(router.ExtractContext(ctx))
 
-	opts = append(opts,
+	opts = append(
+		opts,
 		runtime.WithNamespace(in.Namespace),
 		runtime.WithName(in.Id),
 		runtime.WithResource(in.Type),
@@ -332,7 +333,8 @@ func (s *ResourceServer) Teardown(ctx context.Context, in *resources.DeleteReque
 
 	opts := withContext(router.ExtractContext(ctx))
 
-	opts = append(opts,
+	opts = append(
+		opts,
 		runtime.WithNamespace(in.Namespace),
 		runtime.WithName(in.Id),
 		runtime.WithResource(in.Type),

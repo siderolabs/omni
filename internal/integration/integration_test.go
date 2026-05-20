@@ -145,7 +145,8 @@ func TestIntegration(t *testing.T) {
 			options.ProvisionConfigs = append(options.ProvisionConfigs, cfg)
 		}
 	} else {
-		options.ProvisionConfigs = append(options.ProvisionConfigs,
+		options.ProvisionConfigs = append(
+			options.ProvisionConfigs,
 			MachineProvisionConfig{
 				MachineCount: provisionMachinesCount,
 				Provider: MachineProviderConfig{
@@ -261,15 +262,18 @@ func init() {
 	flag.StringVar(&wipeAMachineScript, "omni.wipe-a-machine-script", "hack/test/wipe-a-vm.sh", "a script to run to wipe a machine by UUID (optional)")
 	flag.StringVar(&freezeAMachineScript, "omni.freeze-a-machine-script", "hack/test/freeze-a-vm.sh", "a script to run to freeze a machine by UUID (optional)")
 	flag.StringVar(&omnictlPath, "omni.omnictl-path", "_out/omnictl-linux-amd64", "omnictl CLI script path (optional)")
-	flag.StringVar(&talosVersion, "omni.talos-version",
+	flag.StringVar(
+		&talosVersion, "omni.talos-version",
 		clientconsts.DefaultTalosVersion,
 		"talos version for workload clusters. this should point to the latest Talos version supported by Omni",
 	)
-	flag.StringVar(&anotherTalosVersion, "omni.another-talos-version",
+	flag.StringVar(
+		&anotherTalosVersion, "omni.another-talos-version",
 		constants.AnotherTalosVersion,
 		"talos version for upgrade test. this should point to an earlier Talos version under the same minor",
 	)
-	flag.StringVar(&stableTalosVersion, "omni.stable-talos-version",
+	flag.StringVar(
+		&stableTalosVersion, "omni.stable-talos-version",
 		constants.StableTalosVersion,
 		"talos version for upgrade test. this should point to the latest Talos version under the previous minor",
 	)
@@ -339,7 +343,8 @@ func preRunHooks(t *testing.T, options *TestOptions) {
 			continue
 		}
 
-		t.Logf("provision %d machines using provider %q, machine request set name provisioned%d",
+		t.Logf(
+			"provision %d machines using provider %q, machine request set name provisioned%d",
 			cfg.MachineCount,
 			cfg.Provider.ID,
 			i,

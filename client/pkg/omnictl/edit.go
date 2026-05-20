@@ -114,7 +114,8 @@ func editFn(c *client.Client) func(context.Context, []resource.Resource, error) 
 				w = crlf.NewCRLFWriter(w)
 			}
 
-			_, err := fmt.Fprintf(w,
+			_, err := fmt.Fprintf(
+				w,
 				"# Editing:\n",
 			)
 			if err != nil {
@@ -122,7 +123,8 @@ func editFn(c *client.Client) func(context.Context, []resource.Resource, error) 
 			}
 
 			for _, id := range ids {
-				_, err = fmt.Fprintf(w,
+				_, err = fmt.Fprintf(
+					w,
 					"#   %s\n", id,
 				)
 				if err != nil {
@@ -265,7 +267,8 @@ or 'notepad' for Windows.`,
 			var resources []resource.Resource
 
 			if req.md.ID() == "" {
-				resList, err := c.Omni().State().List(ctx, req.md,
+				resList, err := c.Omni().State().List(
+					ctx, req.md,
 					state.WithListUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
 					state.WithLabelQuery(req.labelQueryOptions...),
 					state.WithIDQuery(req.idQueryOptions...),
@@ -276,7 +279,8 @@ or 'notepad' for Windows.`,
 
 				resources = resList.Items
 			} else {
-				res, err := c.Omni().State().Get(ctx, req.md,
+				res, err := c.Omni().State().Get(
+					ctx, req.md,
 					state.WithGetUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
 				)
 				if err != nil {

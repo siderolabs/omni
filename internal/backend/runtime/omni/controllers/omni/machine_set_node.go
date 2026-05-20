@@ -132,7 +132,8 @@ func (ctrl *MachineSetNodeController) MapInput(
 ) ([]resource.Pointer, error) {
 	switch ptr.Type() {
 	case omni.ClusterType:
-		machineSets, err := safe.ReaderListAll[*omni.MachineSet](ctx, r,
+		machineSets, err := safe.ReaderListAll[*omni.MachineSet](
+			ctx, r,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, ptr.ID())),
 		)
 		if err != nil {
@@ -196,7 +197,8 @@ func (ctrl *MachineSetNodeController) MapInput(
 
 		return []resource.Pointer{omni.NewMachineSet(machineSetID).Metadata()}, nil
 	case infra.MachineRequestType:
-		machines, err := safe.ReaderListAll[*omni.Machine](ctx, r,
+		machines, err := safe.ReaderListAll[*omni.Machine](
+			ctx, r,
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequest, ptr.ID())),
 		)
 		if err != nil {
@@ -223,7 +225,8 @@ func (ctrl *MachineSetNodeController) MapInput(
 }
 
 func (ctrl *MachineSetNodeController) getAllMachineSetNodes(ctx context.Context, r controller.QRuntime, opts ...state.ListOption) (safe.List[*omni.MachineSetNode], error) {
-	items, err := r.ListUncached(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, "", resource.VersionUndefined),
+	items, err := r.ListUncached(
+		ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, "", resource.VersionUndefined),
 		opts...,
 	)
 	if err != nil {
@@ -279,7 +282,8 @@ func (ctrl *MachineSetNodeController) reconcileRunning(ctx context.Context, logg
 		return nil
 	}
 
-	machineSetNodes, err := ctrl.getAllMachineSetNodes(ctx, r,
+	machineSetNodes, err := ctrl.getAllMachineSetNodes(
+		ctx, r,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())),
 	)
 	if err != nil {
@@ -316,7 +320,8 @@ func (ctrl *MachineSetNodeController) reconcileRunning(ctx context.Context, logg
 }
 
 func (ctrl *MachineSetNodeController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, machineSet *omni.MachineSet) error {
-	machineSetNodes, err := safe.ReaderListAll[*omni.MachineSetNode](ctx, r,
+	machineSetNodes, err := safe.ReaderListAll[*omni.MachineSetNode](
+		ctx, r,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID())),
 	)
 	if err != nil {

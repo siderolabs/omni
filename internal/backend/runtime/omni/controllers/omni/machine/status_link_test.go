@@ -43,13 +43,16 @@ func TestBasicMachineOnAndOff(t *testing.T) {
 
 	deltaCh := make(chan siderolinkmanager.LinkCounterDeltas)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, setupTest(t, deltaCh),
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, setupTest(t, deltaCh),
 		func(ctx context.Context, testContext testutils.TestContext) {
-			m := rmock.Mock[*siderolink.Link](ctx, t, testContext.State,
+			m := rmock.Mock[*siderolink.Link](
+				ctx, t, testContext.State,
 				options.WithID(testID),
 			)
 
-			rmock.Mock[*omni.MachineStatus](ctx, t, testContext.State,
+			rmock.Mock[*omni.MachineStatus](
+				ctx, t, testContext.State,
 				options.WithID(testID),
 				options.Modify(func(st *omni.MachineStatus) error {
 					st.TypedSpec().Value.Connected = true
@@ -74,7 +77,8 @@ func TestBasicMachineOnAndOff(t *testing.T) {
 				t.Fatal("timed out sending delta")
 			}
 
-			rtestutils.AssertResource(ctx, t, testContext.State, omni.NewMachineStatusLink(m.Metadata().ID()).Metadata().ID(),
+			rtestutils.AssertResource(
+				ctx, t, testContext.State, omni.NewMachineStatusLink(m.Metadata().ID()).Metadata().ID(),
 				func(r *omni.MachineStatusLink, assert *assert.Assertions) {
 					statusVal := r.TypedSpec().Value
 
@@ -101,13 +105,16 @@ func TestTwoMachines(t *testing.T) {
 
 	deltaCh := make(chan siderolinkmanager.LinkCounterDeltas)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, setupTest(t, deltaCh),
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, setupTest(t, deltaCh),
 		func(ctx context.Context, testContext testutils.TestContext) {
-			m := rmock.Mock[*siderolink.Link](ctx, t, testContext.State,
+			m := rmock.Mock[*siderolink.Link](
+				ctx, t, testContext.State,
 				options.WithID(testID),
 			)
 
-			rmock.Mock[*omni.MachineStatus](ctx, t, testContext.State,
+			rmock.Mock[*omni.MachineStatus](
+				ctx, t, testContext.State,
 				options.WithID(testID),
 				options.Modify(func(st *omni.MachineStatus) error {
 					st.TypedSpec().Value.Connected = true
@@ -120,11 +127,13 @@ func TestTwoMachines(t *testing.T) {
 				assert.True(r.TypedSpec().Value.GetMessageStatus().GetConnected())
 			})
 
-			m2 := rmock.Mock[*siderolink.Link](ctx, t, testContext.State,
+			m2 := rmock.Mock[*siderolink.Link](
+				ctx, t, testContext.State,
 				options.WithID(testID2),
 			)
 
-			rmock.Mock[*omni.MachineStatus](ctx, t, testContext.State,
+			rmock.Mock[*omni.MachineStatus](
+				ctx, t, testContext.State,
 				options.WithID(testID2),
 				options.Modify(func(st *omni.MachineStatus) error {
 					st.TypedSpec().Value.Connected = true
@@ -154,7 +163,8 @@ func TestTwoMachines(t *testing.T) {
 				t.Fatal("timed out sending delta")
 			}
 
-			rtestutils.AssertResource(ctx, t, testContext.State, omni.NewMachineStatusLink(m.Metadata().ID()).Metadata().ID(),
+			rtestutils.AssertResource(
+				ctx, t, testContext.State, omni.NewMachineStatusLink(m.Metadata().ID()).Metadata().ID(),
 				func(r *omni.MachineStatusLink, assert *assert.Assertions) {
 					statusVal := r.TypedSpec().Value
 
@@ -165,7 +175,8 @@ func TestTwoMachines(t *testing.T) {
 				},
 			)
 
-			rtestutils.AssertResource(ctx, t, testContext.State, omni.NewMachineStatusLink(m2.Metadata().ID()).Metadata().ID(),
+			rtestutils.AssertResource(
+				ctx, t, testContext.State, omni.NewMachineStatusLink(m2.Metadata().ID()).Metadata().ID(),
 				func(r *omni.MachineStatusLink, assert *assert.Assertions) {
 					statusVal := r.TypedSpec().Value
 
@@ -181,7 +192,8 @@ func TestTwoMachines(t *testing.T) {
 
 			rtestutils.AssertNoResource[*omni.MachineStatusLink](ctx, t, testContext.State, omni.NewMachineStatusLink(m.Metadata().ID()).Metadata().ID())
 
-			rtestutils.AssertResource(ctx, t, testContext.State, omni.NewMachineStatusLink(m2.Metadata().ID()).Metadata().ID(),
+			rtestutils.AssertResource(
+				ctx, t, testContext.State, omni.NewMachineStatusLink(m2.Metadata().ID()).Metadata().ID(),
 				func(r *omni.MachineStatusLink, assert *assert.Assertions) {
 					statusVal := r.TypedSpec().Value
 
@@ -205,7 +217,8 @@ func TestNonExistingMachineDelta(t *testing.T) {
 
 	deltaCh := make(chan siderolinkmanager.LinkCounterDeltas)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, setupTest(t, deltaCh),
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, setupTest(t, deltaCh),
 		func(ctx context.Context, testContext testutils.TestContext) {
 			select {
 			case deltaCh <- siderolinkmanager.LinkCounterDeltas{

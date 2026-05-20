@@ -86,7 +86,8 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, inclu
 
 	for _, machineSetNodes := range resources.machineSetNodes {
 		for _, machineSetNode := range machineSetNodes {
-			machineModel, transformErr := transformMachineSetNodeToModel(machineSetNode,
+			machineModel, transformErr := transformMachineSetNodeToModel(
+				machineSetNode,
 				resources.kernelArgs[machineSetNode.Metadata().ID()],
 				resources.patches.clusterMachine[machineSetNode.Metadata().ID()],
 				resources.clusterMachineInstallDisks[machineSetNode.Metadata().ID()],

@@ -104,7 +104,8 @@ func (suite *DiscoveryAffiliateDeleteTaskSuite) TestExpiration() {
 	}
 
 	// assert that the task is still there, as the deletion failed
-	rtestutils.AssertResource[*omni.DiscoveryAffiliateDeleteTask](suite.ctx, suite.T(), suite.state, task.Metadata().ID(),
+	rtestutils.AssertResource[*omni.DiscoveryAffiliateDeleteTask](
+		suite.ctx, suite.T(), suite.state, task.Metadata().ID(),
 		func(r *omni.DiscoveryAffiliateDeleteTask, assertion *assert.Assertions) {
 			assertion.Equal(resource.PhaseRunning, r.Metadata().Phase())
 		},

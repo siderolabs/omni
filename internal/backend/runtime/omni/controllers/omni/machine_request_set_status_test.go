@@ -69,7 +69,8 @@ func TestMachineRequestSetStatusReconcile(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineRequestSetStatusController()))
 			require.NoError(t, tc.Runtime.RegisterQController(newTestInfraProvider()))
@@ -116,7 +117,8 @@ func testMachineRequestSetStatusReconcile(ctx context.Context, t *testing.T, st 
 		require.FailNow(t, "context canceled waiting for reconcileLabels watch to be established")
 	}
 
-	machineRequestSet := rmock.Mock[*omni.MachineRequestSet](ctx, t, st,
+	machineRequestSet := rmock.Mock[*omni.MachineRequestSet](
+		ctx, t, st,
 		options.WithID("test"),
 		options.Modify(func(r *omni.MachineRequestSet) error {
 			r.TypedSpec().Value.ProviderId = "test"
@@ -167,7 +169,8 @@ func testMachineRequestSetStatusReconcile(ctx context.Context, t *testing.T, st 
 
 	rtestutils.AssertResources(ctx, t, st, ids, func(*infra.MachineRequestStatus, *assert.Assertions) {})
 
-	requestStatuses, err := safe.ReaderListAll[*infra.MachineRequestStatus](ctx, st,
+	requestStatuses, err := safe.ReaderListAll[*infra.MachineRequestStatus](
+		ctx, st,
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineRequestSet, machineRequestSet.Metadata().ID())),
 	)
 
@@ -307,7 +310,8 @@ func TestMachineRequestForceDestroy(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	t.Cleanup(cancel)
 
-	testutils.WithRuntime(ctx, t, testutils.TestOptions{},
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineRequestSetStatusController()))
 			require.NoError(t, tc.Runtime.RegisterQController(newTestInfraProvider()))
@@ -354,7 +358,8 @@ func testMachineRequestForceDestroy(ctx context.Context, t *testing.T, st state.
 		require.FailNow(t, "context canceled waiting for reconcileLabels watch to be established")
 	}
 
-	machineRequestSet := rmock.Mock[*omni.MachineRequestSet](ctx, t, st,
+	machineRequestSet := rmock.Mock[*omni.MachineRequestSet](
+		ctx, t, st,
 		options.WithID("test-force-destroy"),
 		options.Modify(func(r *omni.MachineRequestSet) error {
 			r.TypedSpec().Value.ProviderId = "test"

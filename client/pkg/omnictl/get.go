@@ -84,7 +84,8 @@ func getResources(args []string) func(ctx context.Context, client *client.Client
 				opts = append(opts, state.WithIDQuery(req.idQueryOptions...))
 			}
 
-			items, err := st.List(ctx, req.md,
+			items, err := st.List(
+				ctx, req.md,
 				opts...,
 			)
 			if err != nil {
@@ -99,7 +100,8 @@ func getResources(args []string) func(ctx context.Context, client *client.Client
 		case req.md.ID() == "" && getCmdFlags.watch:
 			watchCh := make(chan state.Event)
 
-			err := st.WatchKind(ctx, req.md, watchCh,
+			err := st.WatchKind(
+				ctx, req.md, watchCh,
 				state.WithBootstrapContents(true),
 				state.WatchWithLabelQuery(req.labelQueryOptions...),
 				state.WatchWithIDQuery(req.idQueryOptions...),
@@ -147,7 +149,8 @@ func getResources(args []string) func(ctx context.Context, client *client.Client
 				}
 			}
 		case req.md.ID() != "" && !getCmdFlags.watch:
-			res, err := st.Get(ctx, req.md,
+			res, err := st.Get(
+				ctx, req.md,
 				state.WithGetUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
 			)
 			if err != nil {
@@ -160,7 +163,8 @@ func getResources(args []string) func(ctx context.Context, client *client.Client
 		case req.md.ID() != "" && getCmdFlags.watch:
 			watchCh := make(chan state.Event)
 
-			err := st.Watch(ctx, req.md, watchCh,
+			err := st.Watch(
+				ctx, req.md, watchCh,
 				state.WithWatchUnmarshalOptions(state.WithSkipProtobufUnmarshal()),
 			)
 			if err != nil {

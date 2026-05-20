@@ -114,7 +114,8 @@ func (s *managementServer) syncSSA(
 		return s.diffSSA(ctx, req, sync, srv)
 	}
 
-	manager, err := ssa.NewManager(ctx, sync.cfg,
+	manager, err := ssa.NewManager(
+		ctx, sync.cfg,
 		constants.KubernetesFieldManagerName,
 		constants.KubernetesInventoryNamespace,
 		constants.KubernetesBootstrapManifestsInventoryName,
@@ -211,7 +212,8 @@ func (s *managementServer) diffSSA(
 		return fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
-	manager, err := ssa.NewManager(ctx, sync.cfg,
+	manager, err := ssa.NewManager(
+		ctx, sync.cfg,
 		constants.KubernetesFieldManagerName,
 		constants.KubernetesInventoryNamespace,
 		constants.KubernetesBootstrapManifestsInventoryName,

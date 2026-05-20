@@ -66,7 +66,8 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092
 		"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
 	}
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{machine.Metadata().ID()},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{machine.Metadata().ID()},
 		func(res *siderolink.MachineJoinConfig, assert *assert.Assertions) {
 			assert.Equal(expectedConfig, res.TypedSpec().Value.Config.Config)
 			assert.Equal(expectedKernelArgs, res.TypedSpec().Value.Config.KernelArgs)

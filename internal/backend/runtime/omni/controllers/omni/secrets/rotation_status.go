@@ -515,7 +515,8 @@ func (s *Rotator) handleClusterMachineSecretRotation(
 
 	viableCandidates, blockedCandidates := pendingRotations.Viable(secretrotation.Serial, secretrotation.Parallel)
 
-	logger.Info("Rotating secret",
+	logger.Info(
+		"Rotating secret",
 		zap.String("cluster", clusterStatus.Metadata().ID()),
 		zap.String("component", rotationStatus.TypedSpec().Value.Component.String()),
 		zap.String("phase", rotationStatus.TypedSpec().Value.Phase.String()),

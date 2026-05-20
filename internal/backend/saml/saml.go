@@ -244,7 +244,8 @@ func createErrorHandler(logger *zap.Logger, advertisedURL string) func(http.Resp
 			// There is no structured way to detect this; if the library changes its error format,
 			// this detection may need updating.
 			if strings.Contains(invalidSAML.PrivateErr.Error(), "LogoutResponse") {
-				logger.Info("received LogoutResponse on ACS endpoint, treating as logout",
+				logger.Info(
+					"received LogoutResponse on ACS endpoint, treating as logout",
 					zap.Error(invalidSAML.PrivateErr),
 				)
 
@@ -255,7 +256,8 @@ func createErrorHandler(logger *zap.Logger, advertisedURL string) func(http.Resp
 				return
 			}
 
-			logger.Warn("received invalid saml response",
+			logger.Warn(
+				"received invalid saml response",
 				zap.String("response", invalidSAML.Response),
 				zap.Time("now", invalidSAML.Now),
 				zap.Error(invalidSAML.PrivateErr),

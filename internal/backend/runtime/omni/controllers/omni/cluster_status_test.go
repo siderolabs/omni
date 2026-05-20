@@ -180,13 +180,15 @@ func TestClusterStatusReconcile(t *testing.T) {
 					cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
 
 					if tt.cpMachineSet != nil {
-						cpMS := rmock.Mock[*omni.MachineSet](ctx, t, st,
+						cpMS := rmock.Mock[*omni.MachineSet](
+							ctx, t, st,
 							options.WithID(clusterName+"-cp"),
 							options.LabelCluster(cluster),
 							options.EmptyLabel(omni.LabelControlPlaneRole),
 						)
 
-						rmock.Mock[*omni.MachineSetStatus](ctx, t, st,
+						rmock.Mock[*omni.MachineSetStatus](
+							ctx, t, st,
 							options.SameID(cpMS),
 							options.Modify(func(res *omni.MachineSetStatus) error {
 								res.TypedSpec().Value = tt.cpMachineSet
@@ -197,13 +199,15 @@ func TestClusterStatusReconcile(t *testing.T) {
 					}
 
 					if tt.workerMachineSet != nil {
-						workerMS := rmock.Mock[*omni.MachineSet](ctx, t, st,
+						workerMS := rmock.Mock[*omni.MachineSet](
+							ctx, t, st,
 							options.WithID(omni.WorkersResourceID(clusterName)),
 							options.LabelCluster(cluster),
 							options.EmptyLabel(omni.LabelWorkerRole),
 						)
 
-						rmock.Mock[*omni.MachineSetStatus](ctx, t, st,
+						rmock.Mock[*omni.MachineSetStatus](
+							ctx, t, st,
 							options.SameID(workerMS),
 							options.Modify(func(res *omni.MachineSetStatus) error {
 								res.TypedSpec().Value = tt.workerMachineSet
@@ -214,7 +218,8 @@ func TestClusterStatusReconcile(t *testing.T) {
 					}
 
 					if tt.cpStatus != nil {
-						rmock.Mock[*omni.ControlPlaneStatus](ctx, t, st,
+						rmock.Mock[*omni.ControlPlaneStatus](
+							ctx, t, st,
 							options.WithID(clusterName+"-cp"),
 							options.Modify(func(res *omni.ControlPlaneStatus) error {
 								res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
@@ -226,7 +231,8 @@ func TestClusterStatusReconcile(t *testing.T) {
 					}
 
 					if tt.lbStatus != nil {
-						rmock.Mock[*omni.LoadBalancerStatus](ctx, t, st,
+						rmock.Mock[*omni.LoadBalancerStatus](
+							ctx, t, st,
 							options.WithID(clusterName),
 							options.Modify(func(res *omni.LoadBalancerStatus) error {
 								res.TypedSpec().Value = tt.lbStatus
@@ -271,7 +277,8 @@ func TestClusterStatusImportedTaint(t *testing.T) {
 
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
 
-				rmock.Mock[*omni.ClusterSecrets](ctx, t, st,
+				rmock.Mock[*omni.ClusterSecrets](
+					ctx, t, st,
 					options.SameID(cluster),
 					options.Modify(func(res *omni.ClusterSecrets) error {
 						res.TypedSpec().Value.Imported = true
@@ -305,7 +312,8 @@ func TestClusterStatusImportedTaint(t *testing.T) {
 
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
 
-				rmock.Mock[*omni.ClusterSecrets](ctx, t, st,
+				rmock.Mock[*omni.ClusterSecrets](
+					ctx, t, st,
 					options.SameID(cluster),
 					options.Modify(func(res *omni.ClusterSecrets) error {
 						res.TypedSpec().Value.Imported = true
@@ -324,7 +332,8 @@ func TestClusterStatusImportedTaint(t *testing.T) {
 				// Set both rotation timestamps on ClusterSecrets
 				now := strconv.Itoa(int(time.Now().Unix()))
 
-				rmock.Mock[*omni.ClusterSecrets](ctx, t, st,
+				rmock.Mock[*omni.ClusterSecrets](
+					ctx, t, st,
 					options.SameID(cluster),
 					options.Modify(func(res *omni.ClusterSecrets) error {
 						res.Metadata().Annotations().Set(omni.RotateTalosCATimestamp, now)
@@ -360,7 +369,8 @@ func TestClusterStatusImportedTaint(t *testing.T) {
 
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
 
-				rmock.Mock[*omni.ClusterSecrets](ctx, t, st,
+				rmock.Mock[*omni.ClusterSecrets](
+					ctx, t, st,
 					options.SameID(cluster),
 					options.Modify(func(res *omni.ClusterSecrets) error {
 						res.TypedSpec().Value.Imported = true
@@ -411,7 +421,8 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 					func(_ *omni.ClusterStatus, _ *assert.Assertions) {})
 
 				// Set the break glass taint on ClusterStatus (this is normally done by another controller)
-				rmock.Mock[*omni.ClusterStatus](ctx, t, st,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, st,
 					options.WithID(clusterName),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.Metadata().Labels().Set(omni.LabelClusterTaintedByBreakGlass, "")
@@ -423,7 +434,8 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 
 				// Now add rotation timestamps to ClusterSecrets. ClusterSecrets is a declared
 				// input to the controller, so updating it naturally triggers a reconcile.
-				rmock.Mock[*omni.ClusterSecrets](ctx, t, st,
+				rmock.Mock[*omni.ClusterSecrets](
+					ctx, t, st,
 					options.SameID(cluster),
 					options.Modify(func(res *omni.ClusterSecrets) error {
 						res.Metadata().Annotations().Set(omni.RotateTalosCATimestamp, strconv.Itoa(int(rotationTime.Unix())))
@@ -465,7 +477,8 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
 
-				rmock.Mock[*omni.ClusterSecrets](ctx, t, st,
+				rmock.Mock[*omni.ClusterSecrets](
+					ctx, t, st,
 					options.SameID(cluster),
 					options.Modify(func(res *omni.ClusterSecrets) error {
 						res.Metadata().Annotations().Set(omni.RotateTalosCATimestamp, strconv.Itoa(int(rotationTime.Unix())))
@@ -480,7 +493,8 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 					func(_ *omni.ClusterStatus, _ *assert.Assertions) {})
 
 				// Set the break glass taint with timestamp AFTER the rotations
-				rmock.Mock[*omni.ClusterStatus](ctx, t, st,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, st,
 					options.WithID(clusterName),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.Metadata().Labels().Set(omni.LabelClusterTaintedByBreakGlass, "")
@@ -491,7 +505,8 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 				)
 
 				// Trigger a reconcile by updating the cluster
-				rmock.Mock[*omni.Cluster](ctx, t, st,
+				rmock.Mock[*omni.Cluster](
+					ctx, t, st,
 					options.WithID(clusterName),
 					options.Modify(func(res *omni.Cluster) error {
 						res.Metadata().Annotations().Set("trigger", "reconcile")
@@ -529,7 +544,8 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
 
 				// Only Talos CA rotated
-				rmock.Mock[*omni.ClusterSecrets](ctx, t, st,
+				rmock.Mock[*omni.ClusterSecrets](
+					ctx, t, st,
 					options.SameID(cluster),
 					options.Modify(func(res *omni.ClusterSecrets) error {
 						res.Metadata().Annotations().Set(omni.RotateTalosCATimestamp, strconv.Itoa(int(time.Now().Unix())))
@@ -543,7 +559,8 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 					func(_ *omni.ClusterStatus, _ *assert.Assertions) {})
 
 				// Set the break glass taint
-				rmock.Mock[*omni.ClusterStatus](ctx, t, st,
+				rmock.Mock[*omni.ClusterStatus](
+					ctx, t, st,
 					options.WithID(clusterName),
 					options.Modify(func(res *omni.ClusterStatus) error {
 						res.Metadata().Labels().Set(omni.LabelClusterTaintedByBreakGlass, "")
@@ -554,7 +571,8 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 				)
 
 				// Trigger a reconcile
-				rmock.Mock[*omni.Cluster](ctx, t, st,
+				rmock.Mock[*omni.Cluster](
+					ctx, t, st,
 					options.WithID(clusterName),
 					options.Modify(func(res *omni.Cluster) error {
 						res.Metadata().Annotations().Set("trigger", "reconcile")

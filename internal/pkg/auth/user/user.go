@@ -91,7 +91,8 @@ func Update(ctx context.Context, st state.State, email, userRole string) error {
 		return err
 	}
 
-	_, err = safe.StateUpdateWithConflicts(ctx, st,
+	_, err = safe.StateUpdateWithConflicts(
+		ctx, st,
 		auth.NewUser(identity.TypedSpec().Value.UserId).Metadata(),
 		func(user *auth.User) error {
 			user.TypedSpec().Value.Role = string(parsedRole)

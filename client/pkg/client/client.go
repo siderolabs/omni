@@ -104,7 +104,8 @@ func New(endpoint string, opts ...Option) (*Client, error) {
 		grpcDialOptions = append(grpcDialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
-	grpcDialOptions = append(grpcDialOptions,
+	grpcDialOptions = append(
+		grpcDialOptions,
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize),
 			grpc.UseCompressor(gzip.Name),

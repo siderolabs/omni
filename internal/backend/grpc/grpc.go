@@ -155,7 +155,8 @@ func RegisterGateway(
 		}
 	}
 
-	registerTo.Handle("/api/",
+	registerTo.Handle(
+		"/api/",
 		compress.Handler(
 			monitoring.NewHandler(
 				logging.NewHandler(

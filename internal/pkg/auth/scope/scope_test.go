@@ -60,17 +60,20 @@ func TestMatches(t *testing.T) {
 	assert.False(t, scope.ClusterAny.Matches(scope.UserAny))
 
 	// different objects with specific action don't match
-	assert.False(t, scope.New(scope.ObjectUser, scope.ActionCreate, scope.PerspectiveNone).
-		Matches(scope.New(scope.ObjectCluster, scope.ActionCreate, scope.PerspectiveNone)),
+	assert.False(
+		t, scope.New(scope.ObjectUser, scope.ActionCreate, scope.PerspectiveNone).
+			Matches(scope.New(scope.ObjectCluster, scope.ActionCreate, scope.PerspectiveNone)),
 	)
 
 	// different actions don't match
-	assert.False(t, scope.New(scope.ObjectUser, scope.ActionCreate, scope.PerspectiveNone).
-		Matches(scope.New(scope.ObjectUser, scope.ActionDestroy, scope.PerspectiveNone)),
+	assert.False(
+		t, scope.New(scope.ObjectUser, scope.ActionCreate, scope.PerspectiveNone).
+			Matches(scope.New(scope.ObjectUser, scope.ActionDestroy, scope.PerspectiveNone)),
 	)
 
 	// different perspectives don't match
-	assert.False(t, scope.New(scope.ObjectUser, scope.ActionCreate, scope.PerspectiveNone).
-		Matches(scope.New(scope.ObjectUser, scope.ActionCreate, "test-perspective")),
+	assert.False(
+		t, scope.New(scope.ObjectUser, scope.ActionCreate, scope.PerspectiveNone).
+			Matches(scope.New(scope.ObjectUser, scope.ActionCreate, "test-perspective")),
 	)
 }

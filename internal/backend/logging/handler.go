@@ -56,7 +56,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fields = append(fields, zap.Any(k, v))
 	}
 
-	logger.Info("HTTP request done",
+	logger.Info(
+		"HTTP request done",
 		append(
 			[]zapcore.Field{
 				zap.Duration("duration", metrics.Duration),

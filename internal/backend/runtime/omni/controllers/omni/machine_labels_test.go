@@ -54,7 +54,8 @@ func (suite *MachineLabelsSuite) TestLabelsReconcile() {
 				assertions.True(exists)
 				assertions.Equal(expected, actual)
 			}
-		})
+		},
+	)
 
 	rtestutils.Destroy[*omni.MachineLabels](suite.ctx, suite.T(), suite.state, []resource.ID{labels.Metadata().ID()})
 	assertNoResource(&suite.OmniSuite, labels)
@@ -64,7 +65,8 @@ func (suite *MachineLabelsSuite) TestLabelsReconcile() {
 		machineStatus.Metadata(),
 		func(res *omni.MachineStatus, assertions *assert.Assertions) {
 			assertions.True(res.Metadata().Labels().Empty())
-		})
+		},
+	)
 }
 
 func TestMachineLabelsSuite(t *testing.T) {

@@ -103,7 +103,8 @@ func TestNewSecrets(t *testing.T) {
 					assertions.NoError(err)
 					assertions.NotEmpty(bundle)
 					assertions.Equal(clusterSecretsSpec.Imported, false)
-				})
+				},
+			)
 
 			// Check that we can get cluster secrets by metadata.
 			rtestutils.AssertResource(
@@ -112,7 +113,8 @@ func TestNewSecrets(t *testing.T) {
 				st,
 				foundClusterSecrets.Metadata().ID(),
 				func(res *omni.ClusterSecrets, _ *assert.Assertions) {
-				})
+				},
+			)
 
 			// Check that cluster secrets will be removed when the cluster is removed.
 			rtestutils.Destroy[*omni.Cluster](ctx, t, st, []resource.ID{cluster.Metadata().ID()})
@@ -259,7 +261,8 @@ func TestSecretRotation(t *testing.T) {
 
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				st := testContext.State
 
@@ -312,7 +315,8 @@ func TestSecretRotation(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+				rtestutils.AssertResource(
+					ctx, t, st, cluster.Metadata().ID(),
 					func(res *omni.ClusterSecrets, assertions *assert.Assertions) {
 						assertions.NotNil(res.TypedSpec().Value.GetExtraCerts())
 						assertions.NotNil(res.TypedSpec().Value.ExtraCerts.GetOs())
@@ -325,7 +329,8 @@ func TestSecretRotation(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+				rtestutils.AssertResource(
+					ctx, t, st, cluster.Metadata().ID(),
 					func(res *omni.ClusterSecrets, assert *assert.Assertions) {
 						bundle, innerErr := omni.ToSecretsBundle(res.TypedSpec().Value.Data)
 						assert.NoError(innerErr)
@@ -344,7 +349,8 @@ func TestSecretRotation(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+				rtestutils.AssertResource(
+					ctx, t, st, cluster.Metadata().ID(),
 					func(res *omni.ClusterSecrets, assertions *assert.Assertions) {
 						timestamp, timestampOK := res.Metadata().Annotations().Get(omni.RotateTalosCATimestamp)
 						assertions.True(timestampOK)
@@ -359,7 +365,8 @@ func TestSecretRotation(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+				rtestutils.AssertResource(
+					ctx, t, st, cluster.Metadata().ID(),
 					func(res *omni.ClusterSecrets, assertions *assert.Assertions) {
 						assertions.Nil(res.TypedSpec().Value.ExtraCerts)
 						timestamp, timestampOK := res.Metadata().Annotations().Get(omni.RotateTalosCATimestamp)
@@ -378,7 +385,8 @@ func TestSecretRotation(t *testing.T) {
 
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				st := testContext.State
 
@@ -434,7 +442,8 @@ func TestSecretRotation(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+				rtestutils.AssertResource(
+					ctx, t, st, cluster.Metadata().ID(),
 					func(res *omni.ClusterSecrets, assertions *assert.Assertions) {
 						assertions.NotNil(res.TypedSpec().Value.GetExtraCerts())
 						assertions.NotNil(res.TypedSpec().Value.ExtraCerts.GetK8S())
@@ -447,7 +456,8 @@ func TestSecretRotation(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+				rtestutils.AssertResource(
+					ctx, t, st, cluster.Metadata().ID(),
 					func(res *omni.ClusterSecrets, assert *assert.Assertions) {
 						bundle, innerErr := omni.ToSecretsBundle(res.TypedSpec().Value.Data)
 						assert.NoError(innerErr)
@@ -466,7 +476,8 @@ func TestSecretRotation(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+				rtestutils.AssertResource(
+					ctx, t, st, cluster.Metadata().ID(),
 					func(res *omni.ClusterSecrets, assertions *assert.Assertions) {
 						timestamp, timestampOK := res.Metadata().Annotations().Get(omni.RotateKubernetesCATimestamp)
 						assertions.True(timestampOK)
@@ -481,7 +492,8 @@ func TestSecretRotation(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, cluster.Metadata().ID(),
+				rtestutils.AssertResource(
+					ctx, t, st, cluster.Metadata().ID(),
 					func(res *omni.ClusterSecrets, assertions *assert.Assertions) {
 						assertions.Nil(res.TypedSpec().Value.ExtraCerts)
 						timestamp, timestampOK := res.Metadata().Annotations().Get(omni.RotateKubernetesCATimestamp)

@@ -124,7 +124,8 @@ func (h *handler) Certificate(ctx context.Context, in *securityapi.CertificateRe
 		return nil, status.Errorf(codes.InvalidArgument, "failed to parse CSR: %s", err)
 	}
 
-	h.logger.Info("received CSR signing request",
+	h.logger.Info(
+		"received CSR signing request",
 		zap.Stringer("remote_addr", remotePeer.Addr),
 		zap.Stringer("subject", request.Subject),
 		zap.Strings("dns_names", request.DNSNames),

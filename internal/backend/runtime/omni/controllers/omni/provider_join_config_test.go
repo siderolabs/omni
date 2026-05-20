@@ -53,7 +53,8 @@ func (suite *ProviderJoinConfigSuite) TestReconcile() {
 
 	var token string
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{provider.Metadata().ID()},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{provider.Metadata().ID()},
 		func(res *siderolink.ProviderJoinConfig, assert *assert.Assertions) {
 			token = res.TypedSpec().Value.JoinToken
 
@@ -93,7 +94,8 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092
 		"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
 	}
 
-	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{provider.Metadata().ID()},
+	rtestutils.AssertResources(
+		ctx, suite.T(), suite.state, []string{provider.Metadata().ID()},
 		func(res *siderolink.ProviderJoinConfig, assert *assert.Assertions) {
 			assert.Equal(expectedConfig, res.TypedSpec().Value.Config.Config)
 			assert.Equal(expectedKernelArgs, res.TypedSpec().Value.Config.KernelArgs)

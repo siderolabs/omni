@@ -65,7 +65,8 @@ func AssertWorkerNodesRollingConfigUpdate(testCtx context.Context, cli *client.C
 		machineSetPatch := omni.NewConfigPatch(
 			fmt.Sprintf("000-test-update-parallelism-%d", epochSeconds),
 			pair.MakePair(omni.LabelCluster, clusterName),
-			pair.MakePair(omni.LabelMachineSet, workersResourceID))
+			pair.MakePair(omni.LabelMachineSet, workersResourceID),
+		)
 
 		err = machineSetPatch.TypedSpec().Value.SetUncompressedData(fmt.Appendf(nil, `{"machine":{"env":{"%d":"test-val"}}}`, epochSeconds))
 		require.NoError(t, err)

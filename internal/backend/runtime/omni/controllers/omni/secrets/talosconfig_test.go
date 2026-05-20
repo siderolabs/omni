@@ -50,7 +50,8 @@ func Test_Talosconfig(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*10)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				st := testContext.State
 				clusterName := "test-reconcile"
@@ -80,7 +81,8 @@ func Test_Talosconfig(t *testing.T) {
 				var firstCrt string
 
 				config := omni.NewTalosConfig(clusterName)
-				rtestutils.AssertResource(ctx, t, st, config.Metadata().ID(),
+				rtestutils.AssertResource(
+					ctx, t, st, config.Metadata().ID(),
 					func(res *omni.TalosConfig, _ *assert.Assertions) {
 						spec := res.TypedSpec().Value
 
@@ -108,7 +110,8 @@ func Test_Talosconfig(t *testing.T) {
 				// issue a refresh tick
 				require.NoError(t, st.Create(ctx, system.NewCertRefreshTick("refresh")))
 
-				rtestutils.AssertResource(ctx, t, st, config.Metadata().ID(),
+				rtestutils.AssertResource(
+					ctx, t, st, config.Metadata().ID(),
 					func(res *omni.TalosConfig, assertions *assert.Assertions) {
 						spec := res.TypedSpec().Value
 
@@ -130,7 +133,8 @@ func Test_Talosconfig(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
 		t.Cleanup(cancel)
 
-		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers,
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
 			func(ctx context.Context, testContext testutils.TestContext) {
 				st := testContext.State
 				clusterName := "test-rotate-secret"
@@ -158,7 +162,8 @@ func Test_Talosconfig(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, clusterName,
+				rtestutils.AssertResource(
+					ctx, t, st, clusterName,
 					func(res *omni.TalosConfig, assertions *assert.Assertions) {
 						spec := res.TypedSpec().Value
 
@@ -202,7 +207,8 @@ func Test_Talosconfig(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, clusterName,
+				rtestutils.AssertResource(
+					ctx, t, st, clusterName,
 					func(res *omni.TalosConfig, assertions *assert.Assertions) {
 						acceptedCAs := []*talosx509.PEMEncodedCertificate{
 							{Crt: oldTalosCA.Crt},
@@ -263,7 +269,8 @@ func Test_Talosconfig(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, clusterName,
+				rtestutils.AssertResource(
+					ctx, t, st, clusterName,
 					func(res *omni.TalosConfig, assertions *assert.Assertions) {
 						acceptedCAs := []*talosx509.PEMEncodedCertificate{
 							{Crt: newTalosCA.CrtPEM},
@@ -311,7 +318,8 @@ func Test_Talosconfig(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, clusterName,
+				rtestutils.AssertResource(
+					ctx, t, st, clusterName,
 					func(res *omni.TalosConfig, assertions *assert.Assertions) {
 						acceptedCAs := []*talosx509.PEMEncodedCertificate{
 							{Crt: newTalosCA.CrtPEM},
@@ -361,7 +369,8 @@ func Test_Talosconfig(t *testing.T) {
 					return nil
 				}))
 
-				rtestutils.AssertResource(ctx, t, st, clusterName,
+				rtestutils.AssertResource(
+					ctx, t, st, clusterName,
 					func(res *omni.TalosConfig, assertions *assert.Assertions) {
 						spec := res.TypedSpec().Value
 

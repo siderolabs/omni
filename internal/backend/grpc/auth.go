@@ -111,7 +111,8 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 
 	identity, err := safe.StateGet[*authres.Identity](ctx, s.state, authres.NewIdentity(email).Metadata())
 	if state.IsNotFoundError(err) {
-		s.logger.Error("public key not registered, identity not found",
+		s.logger.Error(
+			"public key not registered, identity not found",
 			zap.String("email", email),
 			zap.String("fingerprint", pubKey.id),
 		)
@@ -134,7 +135,8 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 
 		user, err = safe.StateGet[*authres.User](ctx, s.state, authres.NewUser(userID).Metadata())
 		if state.IsNotFoundError(err) {
-			s.logger.Error("public key not registered, user not found",
+			s.logger.Error(
+				"public key not registered, user not found",
 				zap.String("email", email),
 				zap.String("user_id", userID),
 				zap.String("fingerprint", pubKey.id),
@@ -180,7 +182,8 @@ func (s *authServer) RegisterPublicKey(ctx context.Context, request *authpb.Regi
 			return nil, err
 		}
 
-		s.logger.Info("new public key registered",
+		s.logger.Info(
+			"new public key registered",
 			zap.String("email", email),
 			zap.String("fingerprint", pubKey.id),
 			zap.Time("expiration", pubKey.expiration),
@@ -277,7 +280,8 @@ func (s *authServer) RevokePublicKey(ctx context.Context, request *authpb.Revoke
 		return nil, err
 	}
 
-	if err = s.state.TeardownAndDestroy(ctx, pubKey.Metadata(),
+	if err = s.state.TeardownAndDestroy(
+		ctx, pubKey.Metadata(),
 		state.WithTeardownAndDestroyOwner((&omni.KeyPrunerController{}).Name()),
 	); err != nil {
 		return nil, err
@@ -334,7 +338,8 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		return nil, err
 	}
 
-	s.logger.Info("public key confirmed",
+	s.logger.Info(
+		"public key confirmed",
 		zap.String("email", email),
 		zap.String("fingerprint", pubKey.Metadata().ID()),
 		zap.Time("expiration", pubKey.TypedSpec().Value.GetExpiration().AsTime()),

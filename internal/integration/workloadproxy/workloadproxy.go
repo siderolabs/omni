@@ -393,7 +393,8 @@ func testAccess(ctx context.Context, t *testing.T, logger *zap.Logger, saKey *pg
 	errs := make([]error, parallelTestBatchSize)
 
 	for i, exposedService := range exposedServices {
-		logger.Info("test exposed service",
+		logger.Info(
+			"test exposed service",
 			zap.String("id", exposedService.Metadata().ID()),
 			zap.String("url", exposedService.TypedSpec().Value.Url),
 			zap.Int("expectedStatusCode", expectedStatusCode),
@@ -747,7 +748,8 @@ func createKubernetesResources(ctx context.Context, t *testing.T, logger *zap.Lo
 		}
 
 		if !assert.Equal(collect, int(dep.Status.ReadyReplicas), numReplicas) {
-			logger.Debug("deployment does not have expected number of replicas",
+			logger.Debug(
+				"deployment does not have expected number of replicas",
 				zap.String("namespace", deployment.Namespace),
 				zap.String("name", deployment.Name),
 				zap.Int("expected", numReplicas),

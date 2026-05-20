@@ -30,8 +30,9 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.PersistentFlags().StringVar(&access.CmdFlags.Omniconfig, "omniconfig", "",
-		fmt.Sprintf("The path to the omni configuration file. Defaults to '%s' env variable if set, otherwise '%s'. "+
-			"'%s' is Deprecated and only used as a last resort for reading existing configuration file.",
+		fmt.Sprintf(
+			"The path to the omni configuration file. Defaults to '%s' env variable if set, otherwise '%s'. "+
+				"'%s' is Deprecated and only used as a last resort for reading existing configuration file.",
 			config.OmniConfigEnvVar,
 			filepath.Join("$HOME", constants.TalosDir, config.OmniRelativePath),
 			filepath.Join("$XDG_CONFIG_HOME", config.OmniRelativePath),
@@ -44,7 +45,8 @@ func init() {
 		&access.CmdFlags.SideroV1KeysDir,
 		"siderov1-keys-dir",
 		"",
-		fmt.Sprintf("The path to the SideroV1 auth PGP keys directory. Defaults to '%s' env variable if set, otherwise '%s'.",
+		fmt.Sprintf(
+			"The path to the SideroV1 auth PGP keys directory. Defaults to '%s' env variable if set, otherwise '%s'.",
 			constants.SideroV1KeysDirEnvVar,
 			filepath.Join("$HOME", constants.TalosDir, constants.SideroV1KeysDir),
 		),

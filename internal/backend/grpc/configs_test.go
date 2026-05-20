@@ -214,7 +214,8 @@ func runServer(t *testing.T, st state.State, enableBreakGlassConfigs bool, kuber
 
 	logger := zaptest.NewLogger(t)
 
-	opts = append(opts,
+	opts = append(
+		opts,
 		grpc.UnaryInterceptor(func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 			md, ok := metadata.FromIncomingContext(ctx)
 			if !ok {

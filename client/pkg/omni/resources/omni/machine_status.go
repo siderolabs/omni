@@ -230,7 +230,8 @@ func MachineStatusReconcileLabels(machineStatus *MachineStatus) {
 			return optional.None[string]()
 		}
 
-		installed := slices.IndexFunc(machineStatus.TypedSpec().Value.Hardware.Blockdevices,
+		installed := slices.IndexFunc(
+			machineStatus.TypedSpec().Value.Hardware.Blockdevices,
 			func(dev *specs.MachineStatusSpec_HardwareStatus_BlockDevice) bool {
 				return dev.SystemDisk
 			},

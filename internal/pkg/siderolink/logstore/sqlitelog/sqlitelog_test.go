@@ -692,7 +692,8 @@ func TestTimeBasedCleanupBatching(t *testing.T) {
 
 	var totalCleaned int
 
-	storeManager, err := sqlitelog.NewStoreManager(ctx, db, storageConf, omniState, logger,
+	storeManager, err := sqlitelog.NewStoreManager(
+		ctx, db, storageConf, omniState, logger,
 		sqlitelog.WithCleanupCallback(func(n int) { totalCleaned += n }),
 	)
 	require.NoError(t, err)

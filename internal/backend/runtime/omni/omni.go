@@ -259,7 +259,8 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewLinkStatusController[*siderolinkres.Link](peers),
 		omnictrl.NewLinkStatusController[*siderolinkres.PendingMachine](peers),
 		omnictrl.NewPendingMachineStatusController(),
-		omnictrl.NewMaintenanceConfigStatusController(nil,
+		omnictrl.NewMaintenanceConfigStatusController(
+			nil,
 			cfg.Services.Siderolink.GetEventSinkPort(),
 			cfg.Services.Siderolink.GetLogServerPort(),
 			cfg.Registries,
@@ -286,13 +287,15 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 	}
 
 	if cfg.Auth.Saml.GetEnabled() {
-		controllers = append(controllers,
+		controllers = append(
+			controllers,
 			&omnictrl.SAMLAssertionController{},
 		)
 	}
 
 	if cfg.Services.Siderolink.GetJoinTokensMode() != config.SiderolinkServiceJoinTokensModeLegacy {
-		qcontrollers = append(qcontrollers,
+		qcontrollers = append(
+			qcontrollers,
 			omnictrl.NewNodeUniqueTokenStatusController(),
 		)
 	}
@@ -310,7 +313,8 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 
 		stripeClient := stripe.NewClient(stripeAPIKey)
 
-		controllers = append(controllers,
+		controllers = append(
+			controllers,
 			omnictrl.NewStripeMetricsReporterController(stripeClient, subscriptionItemID, cfg.Logs.Stripe.GetMinCommit()),
 		)
 	}
