@@ -39,9 +39,6 @@ services:
     cap_add:
       - NET_ADMIN
       - SYS_PTRACE
-    security_opt:
-      # Delve requires unconfined seccomp to allow ptrace and other syscalls for debugging.
-      - seccomp:unconfined
     entrypoint:
       - /debug/launcher
     build:
