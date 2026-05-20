@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	goruntime "runtime"
 
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
 	taloscommon "github.com/siderolabs/talos/pkg/machinery/api/common"
@@ -94,6 +95,8 @@ func (r *Runtime) watch(ctx context.Context, events chan<- runtime.WatchResponse
 			return err
 		}
 	}
+
+	defer goruntime.KeepAlive(c)
 
 	return cosi.WatchLegacy(
 		ctx,
