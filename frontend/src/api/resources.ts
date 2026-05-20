@@ -84,6 +84,7 @@ export const KubernetesManifestName = "name";
 export const ClusterLocked = "omni.sidero.dev/cluster-locked";
 export const ClusterImportIsInProgress = "omni.sidero.dev/cluster-import-is-in-progress";
 export const KernelArgsInitialized = "omni.sidero.dev/kernel-args-initialized";
+export const PlatformTagLabelsInitialized = "omni.sidero.dev/platform-tag-labels-initialized";
 export const EtcdBackupS3ConfID = "etcd-backup-s3-conf";
 export const EtcdBackupS3ConfType = "EtcdBackupS3Configs.omni.sidero.dev";
 export const BackupDataType = "BackupDatas.omni.sidero.dev";
