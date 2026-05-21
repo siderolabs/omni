@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -27,7 +28,14 @@ import (
 	"github.com/siderolabs/omni/client/pkg/infra/internal/resources"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
+	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 )
+
+// proxiedImageFactoryMinVersion is the minimum Omni version that supports proxying image factory requests
+// through the management API. Older servers don't expose CreateSchematicFromRaw, so the provider has to
+// reach the image factory directly.
+var proxiedImageFactoryMinVersion = semver.Version{Major: 1, Minor: 9}
 
 // ProviderConfig defines the schema, human-readable provider name and description.
 type ProviderConfig struct {
@@ -133,7 +141,7 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 	}
 
 	if options.imageFactory == nil {
-		options.imageFactory, err = imagefactory.NewProxiedClient(c)
+		options.imageFactory, err = newImageFactoryClient(ctx, c, st, logger)
 		if err != nil {
 			return err
 		}
@@ -196,6 +204,59 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 	}
 
 	return runtime.Run(ctx)
+}
+
+// newImageFactoryClient picks the image factory client implementation based on the Omni server version.
+// Omni >= 1.9 supports proxying through the management API; older servers (and configurations without
+// an Omni API client) require talking to the image factory directly. The endpoint is taken from
+// FeaturesConfig.ImageFactoryBaseUrl when set, otherwise NewDirectClient falls back to the default
+// public Talos image factory URL.
+func newImageFactoryClient(ctx context.Context, c *client.Client, st state.State, logger *zap.Logger) (provision.FactoryClient, error) {
+	useProxied := c != nil
+
+	if useProxied {
+		supported, err := supportsProxiedImageFactory(ctx, st, logger)
+		if err != nil {
+			return nil, err
+		}
+
+		useProxied = supported
+	}
+
+	if useProxied {
+		return imagefactory.NewProxiedClient(c)
+	}
+
+	features, err := safe.ReaderGetByID[*omnires.FeaturesConfig](ctx, st, omnires.FeaturesConfigID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get features config: %w", err)
+	}
+
+	return imagefactory.NewDirectClient(imagefactory.ClientOptions{
+		FactoryEndpoint: features.TypedSpec().Value.ImageFactoryBaseUrl,
+	})
+}
+
+// supportsProxiedImageFactory returns true if the Omni server is new enough to proxy image factory requests
+// through the management API. If the version can't be determined it defaults to true so that the provider
+// keeps using the new API path.
+func supportsProxiedImageFactory(ctx context.Context, st state.State, logger *zap.Logger) (bool, error) {
+	sysVersion, err := safe.ReaderGetByID[*system.SysVersion](ctx, st, system.SysVersionID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get Omni system version: %w", err)
+	}
+
+	backendVersion := sysVersion.TypedSpec().Value.BackendVersion
+
+	v, err := semver.ParseTolerant(strings.TrimPrefix(backendVersion, "v"))
+	if err != nil {
+		logger.Warn("failed to parse Omni backend version, assuming proxied image factory API is supported",
+			zap.String("backend_version", backendVersion), zap.Error(err))
+
+		return true, nil
+	}
+
+	return v.GTE(proxiedImageFactoryMinVersion), nil
 }
 
 func getResourceDefinitions(ctx context.Context, state state.State) (map[string]struct{}, error) {
