@@ -32,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/backend/logging"
+	"github.com/siderolabs/omni/internal/backend/ratelimit"
 	"github.com/siderolabs/omni/internal/backend/runtime/keyprovider"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -39,7 +40,7 @@ import (
 // compressionThresholdBytes is the minimum marshaled size of the data to be considered for compression.
 const compressionThresholdBytes = 2048
 
-func newEtcdPersistentState(ctx context.Context, params *config.Params, observer etcd.ObserverFunc, logger *zap.Logger) (state *PersistentState, err error) {
+func newEtcdPersistentState(ctx context.Context, params *config.Params, observer etcd.ObserverFunc, throttler *ratelimit.Throttler, logger *zap.Logger) (state *PersistentState, err error) {
 	accountID := params.Account.GetId()
 	prefix := fmt.Sprintf("/omni/%s", url.PathEscape(accountID))
 
@@ -98,6 +99,7 @@ func newEtcdPersistentState(ctx context.Context, params *config.Params, observer
 		etcd.WithKeyPrefix(prefix),
 		etcd.WithSalt(salt[:]),
 		etcd.WithObserver(observer),
+		etcd.WithLimiter(throttler.LimiterFunc()),
 	)
 
 	return &PersistentState{
