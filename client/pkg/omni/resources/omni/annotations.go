@@ -57,6 +57,13 @@ const (
 	// tsgen:KernelArgsInitialized
 	KernelArgsInitialized = SystemLabelPrefix + "kernel-args-initialized"
 
+	// PlatformTagLabelsInitialized indicates that user labels have been initialized from PlatformMetadata tags.
+	//
+	// This annotation is set on MachineStatus resource.
+	//
+	// tsgen:PlatformTagLabelsInitialized
+	PlatformTagLabelsInitialized = SystemLabelPrefix + "platform-tag-labels-initialized"
+
 	// TaintedByBreakGlassTimestamp is set on the ClusterStatus when it was tainted by break glass.
 	// The presence of the taint is determined by the label LabelClusterTaintedByBreakGlass on the ClusterStatus resource.
 	TaintedByBreakGlassTimestamp = SystemLabelPrefix + "tainted-by-break-glass-timestamp"

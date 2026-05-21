@@ -203,6 +203,10 @@ const (
 	// tsgen:MachineStatusLabelInstance
 	MachineStatusLabelInstance = SystemLabelPrefix + "instance"
 
+	// MachineStatusLabelTag describes a user-defined machine tag.
+	// tsgen:MachineStatusLabelTag
+	MachineStatusLabelTag = SystemLabelPrefix + "tag"
+
 	// MachineStatusLabelTalosVersion describes the machine talos version.
 	// tsgen:MachineStatusLabelTalosVersion
 	MachineStatusLabelTalosVersion = SystemLabelPrefix + "talos-version"

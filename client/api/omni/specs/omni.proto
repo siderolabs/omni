@@ -150,6 +150,8 @@ message MachineStatusSpec {
     string provider_id = 7;
     // Spot instance flag.
     bool spot = 8;
+    // Tags map the instance's tags (cloud).
+    map<string, string> tags = 9;
   }
 
   message Schematic {
