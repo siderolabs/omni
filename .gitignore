@@ -7,5 +7,6 @@ hack/generate-certs.yml
 hack/generate-certs/ca-root
 hack/generate-certs/certs
 hack/compose/docker-compose.override.yml
+hack/compose/launcher/launcher
 go.work.sum
 frontend/node_modules
