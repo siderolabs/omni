@@ -2,6 +2,8 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import { formatDuration, intervalToDuration } from 'date-fns'
+
 import type { OmniRequestOptions } from '@/methods/interceptor'
 
 import { Runtime } from './common/omni.pb'
@@ -72,8 +74,13 @@ export const withTimeout = (timeout: number) => {
       req.controller = controller
     }
 
-    window.setTimeout(() => {
-      req.controller?.abort()
+    req.timeoutID = window.setTimeout(() => {
+      const duration =
+        timeout >= 1_000
+          ? formatDuration(intervalToDuration({ start: 0, end: timeout }))
+          : `${timeout}ms`
+
+      req.controller?.abort(new Error(`Request timed out after ${duration}`))
     }, timeout)
   }
 }
