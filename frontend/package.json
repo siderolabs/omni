@@ -26,6 +26,8 @@
   },
   "dependencies": {
     "@auth0/auth0-vue": "^2.7.0",
+    "@fontsource/roboto": "^5.2.10",
+    "@fontsource/roboto-mono": "^5.2.9",
     "@headlessui/vue": "^1.7.23",
     "@heroicons/vue": "^2.2.0",
     "@internationalized/date": "^3.12.1",
