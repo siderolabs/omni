@@ -148,11 +148,36 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 
 			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 			w.Header().Set(
-				"Permissions-Policy", "accelerometer=(), ambient-light-sensor=(), "+
-					"autoplay=(self), battery=(), camera=(), cross-origin-isolated=(self), display-capture=(), "+
-					"document-domain=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), "+
-					"magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials=(self),"+
-					"screen-wake-lock=(), sync-xhr=(self), usb=(), web-share=(), xr-spatial-tracking=()",
+				"Permissions-Policy", strings.Join([]string{
+					"accelerometer=()",
+					"autoplay=()",
+					"bluetooth=()",
+					"camera=()",
+					"clipboard-read=(self)",
+					"clipboard-write=(self)",
+					"cross-origin-isolated=()",
+					"display-capture=()",
+					"encrypted-media=()",
+					"fullscreen=()",
+					"geolocation=()",
+					"gyroscope=()",
+					"hid=()",
+					"idle-detection=()",
+					"magnetometer=()",
+					"microphone=()",
+					"midi=()",
+					"payment=()",
+					"picture-in-picture=()",
+					"publickey-credentials-create=()",
+					"publickey-credentials-get=()",
+					"screen-wake-lock=()",
+					"serial=()",
+					"sync-xhr=()",
+					"usb=()",
+					"web-share=()",
+					"window-management=()",
+					"xr-spatial-tracking=()",
+				}, ", "),
 			)
 
 			// Read index.html content

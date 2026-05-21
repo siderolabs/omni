@@ -81,6 +81,37 @@ export default defineConfig(({ command }) => {
       'frame-src https://www.youtube.com/embed/ https://*.auth0.com',
     ].join(';')
 
+    config.server.headers['Permissions-Policy'] = [
+      'accelerometer=()',
+      'autoplay=()',
+      'bluetooth=()',
+      'camera=()',
+      'clipboard-read=(self)',
+      'clipboard-write=(self)',
+      'cross-origin-isolated=()',
+      'display-capture=()',
+      'encrypted-media=()',
+      'fullscreen=()',
+      'geolocation=()',
+      'gyroscope=()',
+      'hid=()',
+      'idle-detection=()',
+      'magnetometer=()',
+      'microphone=()',
+      'midi=()',
+      'payment=()',
+      'picture-in-picture=()',
+      'publickey-credentials-create=()',
+      'publickey-credentials-get=()',
+      'screen-wake-lock=()',
+      'serial=()',
+      'sync-xhr=()',
+      'usb=()',
+      'web-share=()',
+      'window-management=()',
+      'xr-spatial-tracking=()',
+    ].join(', ')
+
     // Adds nonce for dev server inline scripts.
     // Note that it also adds an extra meta tag,
     // but we should only rely on the one present in index.html
