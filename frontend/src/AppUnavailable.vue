@@ -4,15 +4,23 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
+<script lang="ts">
+import { ref } from 'vue'
+
+export const appUnavailableError = ref<Error>()
+</script>
+
 <script setup lang="ts">
 import TIcon from '@/components/Icon/TIcon.vue'
+import TAlert from '@/components/TAlert.vue'
 import THeader from '@/components/THeader/THeader.vue'
 </script>
 
 <template>
   <div class="flex min-h-screen flex-col">
     <THeader />
-    <div class="flex flex-1 flex-col items-center justify-center">
+
+    <div class="flex flex-1 flex-col items-center justify-center gap-4">
       <div class="flex gap-4 rounded-lg bg-naturals-n6 px-6 py-4 drop-shadow-md">
         <TIcon icon="warning" class="h-12 w-12 fill-current text-naturals-n14" />
         <div class="flex flex-col text-naturals-n13">
@@ -24,6 +32,10 @@ import THeader from '@/components/THeader/THeader.vue'
           </div>
         </div>
       </div>
+
+      <TAlert v-if="appUnavailableError" type="error" title="Error">
+        {{ appUnavailableError.message }}
+      </TAlert>
     </div>
   </div>
 </template>

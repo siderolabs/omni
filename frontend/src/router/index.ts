@@ -7,6 +7,7 @@ import { authGuard } from '@auth0/auth0-vue'
 import { Userpilot } from 'userpilot'
 import { createRouter, createWebHistory, type RouteRecordRedirect } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
+import { handleHotUpdate } from 'vue-router/auto-routes'
 
 import { AuthFlowQueryParam, FrontendAuthFlow, RedirectQueryParam } from '@/api/resources'
 import { AuthType, authType, eulaAccepted } from '@/methods'
@@ -81,5 +82,10 @@ router.beforeEach(async (to) => {
     }
   }
 })
+
+// This will update routes at runtime without reloading the page
+if (import.meta.hot) {
+  handleHotUpdate(router)
+}
 
 export default router
