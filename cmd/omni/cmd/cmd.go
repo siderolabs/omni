@@ -319,6 +319,18 @@ func defineStorageFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *confi
 	b.DurationVar("storage.sqlite.metrics.refreshInterval", &flagConfig.Storage.Sqlite.Metrics.RefreshInterval)
 	b.DurationVar("storage.sqlite.metrics.refreshTimeout", &flagConfig.Storage.Sqlite.Metrics.RefreshTimeout)
 	b.StringVar("storage.vault.k8sAuthMountPath", &flagConfig.Storage.Vault.K8SAuthMountPath)
+
+	b.DurationVar("storage.rateLimits.etcd.maxWait", &flagConfig.Storage.RateLimits.Etcd.MaxWait)
+	defineEtcdClassWriteRateLimitFlags(b, "user", &flagConfig.Storage.RateLimits.Etcd.User)
+	defineEtcdClassWriteRateLimitFlags(b, "infraProvider", &flagConfig.Storage.RateLimits.Etcd.InfraProvider)
+	defineEtcdClassWriteRateLimitFlags(b, "internal", &flagConfig.Storage.RateLimits.Etcd.Internal)
+}
+
+func defineEtcdClassWriteRateLimitFlags(b *FlagBinder, class string, cls *config.EtcdClassWriteRateLimit) {
+	prefix := "storage.rateLimits.etcd." + class + "."
+
+	b.Uint64Var(prefix+"writeBytesPerSecond", &cls.WriteBytesPerSecond)
+	b.Uint64Var(prefix+"writeBytesBurst", &cls.WriteBytesBurst)
 }
 
 func defineRegistriesFlags(b *FlagBinder, flagConfig *config.Params) {

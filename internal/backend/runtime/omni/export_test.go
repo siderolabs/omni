@@ -29,7 +29,7 @@ func NewMockState(st state.State) (*State, error) {
 }
 
 func NewEtcdPersistentState(ctx context.Context, params *config.Params, logger *zap.Logger) (*PersistentState, error) {
-	return newEtcdPersistentState(ctx, params, nil, logger)
+	return newEtcdPersistentState(ctx, params, nil, nil, logger)
 }
 
 func GetEmbeddedEtcdClientWithServer(params *config.EtcdParams, logger *zap.Logger) (EtcdState, error) {

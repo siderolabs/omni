@@ -192,6 +192,19 @@ type EtcdBackup struct {
 	UploadLimitMbps *uint64 `json:"uploadLimitMbps,omitempty,omitzero" yaml:"uploadLimitMbps,omitempty"`
 }
 
+// EtcdClassWriteRateLimit defines etcd write-bytes throttle settings for one
+// caller class. Both knobs must be non-zero for the gate to engage.
+type EtcdClassWriteRateLimit struct {
+	// WriteBytesBurst is the maximum byte burst allowed above WriteBytesPerSecond.
+	// Must be at least the size of the single largest mutation, otherwise that
+	// mutation will never admit. 0 disables the throttle for this class.
+	WriteBytesBurst *uint64 `json:"writeBytesBurst,omitempty,omitzero" yaml:"writeBytesBurst,omitempty"`
+
+	// WriteBytesPerSecond is the sustained marshaled-payload byte rate allowed for
+	// etcd mutations. 0 disables the throttle for this class.
+	WriteBytesPerSecond *uint64 `json:"writeBytesPerSecond,omitempty,omitzero" yaml:"writeBytesPerSecond,omitempty"`
+}
+
 type EtcdParams struct {
 	// CaFile is the path to the CA certificate file for etcd client connections.
 	CaFile *string `json:"caFile,omitempty,omitzero" yaml:"caFile,omitempty"`
@@ -233,6 +246,33 @@ type EtcdParams struct {
 	// RunElections controls whether the embedded etcd server should run leader
 	// elections. Should be false for single-node Omni installations.
 	RunElections *bool `json:"runElections,omitempty,omitzero" yaml:"runElections,omitempty"`
+}
+
+// EtcdWriteRateLimits contains per-caller-class etcd write-bytes throttle settings
+// plus a shared maxWait cap. Each class's bucket is independent; setting
+// writeBytesPerSecond=0 or writeBytesBurst=0 disables the gate for that class.
+type EtcdWriteRateLimits struct {
+	// InfraProvider contains write-bytes throttle settings for operations performed
+	// by infrastructure providers.
+	InfraProvider EtcdClassWriteRateLimit `json:"infraProvider" yaml:"infraProvider"`
+
+	// Internal contains write-bytes throttle settings for operations performed by
+	// Omni's in-process controllers. Throttling internal callers naturally caps
+	// controller-driven write storms at the configured budget — see CLAUDE.md for the
+	// design rationale.
+	Internal EtcdClassWriteRateLimit `json:"internal" yaml:"internal"`
+
+	// MaxWait is the maximum time a single mutation will block waiting for tokens
+	// before failing with DeadlineExceeded. The effective wait is
+	// min(ctx.Deadline-now, maxWait). Load-bearing for callers that pass
+	// context.Background() — without this cap, a buggy controller could wait
+	// indefinitely. 0 means "no internal cap, rely on ctx deadline alone" (not
+	// recommended).
+	MaxWait *time.Duration `json:"maxWait,omitempty,omitzero" yaml:"maxWait,omitempty"`
+
+	// User contains write-bytes throttle settings for operations performed by end
+	// users (authenticated humans and user-owned service accounts).
+	User EtcdClassWriteRateLimit `json:"user" yaml:"user"`
 }
 
 type EulaAccept struct {
@@ -544,6 +584,15 @@ type Params struct {
 	Support Support `json:"support" yaml:"support"`
 }
 
+type RateLimits struct {
+	// Etcd contains write rate-limit settings that only apply when the default
+	// storage backend is etcd. The bytes/sec gate throttles mutations
+	// (Create/Update/Destroy) by marshaled-payload size to protect etcd from
+	// revision/storage blowup. Throttling is bounded by the caller's context deadline
+	// and by `maxWait`, whichever is shorter.
+	Etcd EtcdWriteRateLimits `json:"etcd" yaml:"etcd"`
+}
+
 type Registries struct {
 	// ImageFactoryBaseURL is the base URL of the Image Factory service used to build
 	// custom machine images.
@@ -769,6 +818,10 @@ type SiderolinkWireGuard struct {
 type Storage struct {
 	// Default contains the default storage backend configuration.
 	Default StorageDefault `json:"default" yaml:"default"`
+
+	// RateLimits contains rate-limit settings for state writes. Today the only gate
+	// is etcd-specific (bytes/sec, throttling — see the `etcd` sub-block).
+	RateLimits RateLimits `json:"rateLimits" yaml:"rateLimits"`
 
 	// Sqlite contains SQLite storage backend configuration. It is used to store
 	// machine logs, audit logs, discovery service state, and as the secondary storage

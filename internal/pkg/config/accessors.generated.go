@@ -358,6 +358,28 @@ func (s *EtcdBackup) SetUploadLimitMbps(v uint64) {
 	s.UploadLimitMbps = &v
 }
 
+func (s *EtcdClassWriteRateLimit) GetWriteBytesBurst() uint64 {
+	if s == nil || s.WriteBytesBurst == nil {
+		return *new(uint64)
+	}
+	return *s.WriteBytesBurst
+}
+
+func (s *EtcdClassWriteRateLimit) SetWriteBytesBurst(v uint64) {
+	s.WriteBytesBurst = &v
+}
+
+func (s *EtcdClassWriteRateLimit) GetWriteBytesPerSecond() uint64 {
+	if s == nil || s.WriteBytesPerSecond == nil {
+		return *new(uint64)
+	}
+	return *s.WriteBytesPerSecond
+}
+
+func (s *EtcdClassWriteRateLimit) SetWriteBytesPerSecond(v uint64) {
+	s.WriteBytesPerSecond = &v
+}
+
 func (s *EtcdParams) GetCaFile() string {
 	if s == nil || s.CaFile == nil {
 		return *new(string)
@@ -466,6 +488,17 @@ func (s *EtcdParams) GetRunElections() bool {
 
 func (s *EtcdParams) SetRunElections(v bool) {
 	s.RunElections = &v
+}
+
+func (s *EtcdWriteRateLimits) GetMaxWait() time.Duration {
+	if s == nil || s.MaxWait == nil {
+		return *new(time.Duration)
+	}
+	return *s.MaxWait
+}
+
+func (s *EtcdWriteRateLimits) SetMaxWait(v time.Duration) {
+	s.MaxWait = &v
 }
 
 func (s *EulaAccept) GetEmail() string {
