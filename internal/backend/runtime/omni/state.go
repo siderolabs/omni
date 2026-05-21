@@ -29,6 +29,7 @@ import (
 	resourceregistry "github.com/siderolabs/omni/client/pkg/omni/resources/registry"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/logging"
+	"github.com/siderolabs/omni/internal/backend/ratelimit"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/hooks"
@@ -165,8 +166,8 @@ func NewState(ctx context.Context, params *config.Params, logger *zap.Logger, me
 	case config.StorageDefaultKindEtcd:
 		etcdMetrics := newEtcdMetrics()
 		metricsRegistry.MustRegister(etcdMetrics)
-
-		defaultPersistentState, err = newEtcdPersistentState(ctx, params, etcdMetrics.Observe, logger)
+		throttler := ratelimit.New(params.Storage.RateLimits.Etcd, metricsRegistry)
+		defaultPersistentState, err = newEtcdPersistentState(ctx, params, etcdMetrics.Observe, throttler, logger)
 	default:
 		return nil, fmt.Errorf("unknown storage kind %q", params.Storage.Default.GetKind())
 	}

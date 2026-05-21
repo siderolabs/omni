@@ -1294,7 +1294,8 @@
       "required": [
         "default",
         "vault",
-        "sqlite"
+        "sqlite",
+        "rateLimits"
       ],
       "properties": {
         "default": {
@@ -1308,6 +1309,93 @@
         "sqlite": {
           "description": "Sqlite contains SQLite storage backend configuration. It is used to store machine logs, audit logs, discovery service state, and as the secondary storage for the frequently updated and less critical data.",
           "$ref": "#/definitions/SQLite"
+        },
+        "rateLimits": {
+          "description": "RateLimits contains rate-limit settings for state writes. Today the only gate is etcd-specific (bytes/sec, throttling — see the `etcd` sub-block).",
+          "$ref": "#/definitions/RateLimits"
+        }
+      }
+    },
+    "RateLimits": {
+      "type": "object",
+      "required": [
+        "etcd"
+      ],
+      "properties": {
+        "etcd": {
+          "description": "Etcd contains write rate-limit settings that only apply when the default storage backend is etcd. The bytes/sec gate throttles mutations (Create/Update/Destroy) by marshaled-payload size to protect etcd from revision/storage blowup. Throttling is bounded by the caller's context deadline and by `maxWait`, whichever is shorter.",
+          "$ref": "#/definitions/EtcdWriteRateLimits"
+        }
+      }
+    },
+    "EtcdWriteRateLimits": {
+      "type": "object",
+      "required": [
+        "user",
+        "infraProvider",
+        "internal"
+      ],
+      "description": "EtcdWriteRateLimits contains per-caller-class etcd write-bytes throttle settings plus a shared maxWait cap. Each class's bucket is independent; setting writeBytesPerSecond=0 or writeBytesBurst=0 disables the gate for that class.",
+      "properties": {
+        "maxWait": {
+          "description": "MaxWait is the maximum time a single mutation will block waiting for tokens before failing with DeadlineExceeded. The effective wait is min(ctx.Deadline-now, maxWait). Load-bearing for callers that pass context.Background() — without this cap, a buggy controller could wait indefinitely. 0 means \"no internal cap, rely on ctx deadline alone\" (not recommended).",
+          "x-cli-flag": "storage-rate-limits-etcd-max-wait",
+          "type": "string",
+          "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+          "x-pattern-message": "must be a valid Go duration (e.g., '10s', '1h30m')",
+          "default": "30s",
+          "goJSONSchema": {
+            "type": "time.Duration",
+            "pointer": true
+          }
+        },
+        "user": {
+          "description": "User contains write-bytes throttle settings for operations performed by end users (authenticated humans and user-owned service accounts).",
+          "$ref": "#/definitions/EtcdClassWriteRateLimit",
+          "properties": {
+            "writeBytesPerSecond": { "x-cli-flag": "storage-rate-limits-etcd-user-write-bytes-per-second" },
+            "writeBytesBurst":     { "x-cli-flag": "storage-rate-limits-etcd-user-write-bytes-burst" }
+          }
+        },
+        "infraProvider": {
+          "description": "InfraProvider contains write-bytes throttle settings for operations performed by infrastructure providers.",
+          "$ref": "#/definitions/EtcdClassWriteRateLimit",
+          "properties": {
+            "writeBytesPerSecond": { "x-cli-flag": "storage-rate-limits-etcd-infra-provider-write-bytes-per-second" },
+            "writeBytesBurst":     { "x-cli-flag": "storage-rate-limits-etcd-infra-provider-write-bytes-burst" }
+          }
+        },
+        "internal": {
+          "description": "Internal contains write-bytes throttle settings for operations performed by Omni's in-process controllers. Throttling internal callers naturally caps controller-driven write storms at the configured budget — see CLAUDE.md for the design rationale.",
+          "$ref": "#/definitions/EtcdClassWriteRateLimit",
+          "properties": {
+            "writeBytesPerSecond": { "x-cli-flag": "storage-rate-limits-etcd-internal-write-bytes-per-second" },
+            "writeBytesBurst":     { "x-cli-flag": "storage-rate-limits-etcd-internal-write-bytes-burst" }
+          }
+        }
+      }
+    },
+    "EtcdClassWriteRateLimit": {
+      "type": "object",
+      "description": "EtcdClassWriteRateLimit defines etcd write-bytes throttle settings for one caller class. Both knobs must be non-zero for the gate to engage.",
+      "properties": {
+        "writeBytesPerSecond": {
+          "description": "WriteBytesPerSecond is the sustained marshaled-payload byte rate allowed for etcd mutations. 0 disables the throttle for this class.",
+          "type": "integer",
+          "minimum": 0,
+          "goJSONSchema": {
+            "type": "uint64",
+            "pointer": true
+          }
+        },
+        "writeBytesBurst": {
+          "description": "WriteBytesBurst is the maximum byte burst allowed above WriteBytesPerSecond. Must be at least the size of the single largest mutation, otherwise that mutation will never admit. 0 disables the throttle for this class.",
+          "type": "integer",
+          "minimum": 0,
+          "goJSONSchema": {
+            "type": "uint64",
+            "pointer": true
+          }
         }
       }
     },
