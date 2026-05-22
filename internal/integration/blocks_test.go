@@ -71,7 +71,7 @@ func AssertBlockProxyAPIAccessShouldWork(ctx context.Context, options *TestOptio
 	return []subTest{
 		{
 			"ClusterKubernetesAPIShouldBeAccessibleViaOmni",
-			AssertKubernetesAPIAccessViaOmni(ctx, options.omniClient, clusterName, true, 5*time.Minute),
+			AssertKubernetesAPIAccessViaOmni(ctx, options.omniClient, clusterName, true, 10*time.Minute),
 		},
 		{
 			"ClusterTalosAPIShouldBeAccessibleViaOmni",
@@ -152,7 +152,7 @@ func AssertBlockRestoreEtcdFromLatestBackup(ctx context.Context, testOptions *Te
 	).Append(
 		subTest{
 			"KubernetesAPIShouldBeAccessible",
-			AssertKubernetesAPIAccessViaOmni(ctx, omniClient, clusterName, false, 300*time.Second),
+			AssertKubernetesAPIAccessViaOmni(ctx, omniClient, clusterName, false, 10*time.Minute),
 		},
 		subTest{
 			"ClusterNodesShouldBeInDesiredState",

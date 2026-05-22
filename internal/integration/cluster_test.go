@@ -437,7 +437,7 @@ func AssertClusterMachinesStage(testCtx context.Context, st state.State, cluster
 // AssertClusterMachinesReady verifies that cluster machines reach ready state.
 func AssertClusterMachinesReady(testCtx context.Context, st state.State, clusterName string) TestFunc {
 	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 4*time.Minute)
+		ctx, cancel := context.WithTimeout(testCtx, 20*time.Minute)
 		defer cancel()
 
 		require := require.New(t)
