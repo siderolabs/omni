@@ -113,10 +113,10 @@ func setLabelOptional(labels *resource.Labels, key string, valueFunc func() opti
 	}
 }
 
-// MachineStatusReconcileLabels builds a set of labels based on hardware/meta information.
+// ReconcileMachineStatusLabels builds a set of labels based on hardware/meta information.
 //
 //nolint:gocognit
-func MachineStatusReconcileLabels(machineStatus *MachineStatus) {
+func ReconcileMachineStatusLabels(machineStatus *MachineStatus) {
 	labels := machineStatus.Metadata().Labels()
 
 	setLabel(labels, MachineStatusLabelCores, func() string {

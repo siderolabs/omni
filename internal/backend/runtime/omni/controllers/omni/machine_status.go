@@ -118,6 +118,10 @@ func (ctrl *MachineStatusController) Settings() controller.QSettings {
 				Kind: controller.OutputExclusive,
 				Type: omni.MachineStatusType,
 			},
+			{
+				Kind: controller.OutputShared,
+				Type: omni.MachineLabelsType,
+			},
 		},
 		Concurrency: optional.Some[uint](4),
 		RunHook: func(ctx context.Context, _ *zap.Logger, r controller.QRuntime) error {
@@ -268,7 +272,9 @@ func (ctrl *MachineStatusController) reconcileRunning(ctx context.Context, r con
 
 		helpers.CopyUserLabels(m, ctrl.mergeLabels(m, inputs.machineLabels))
 
-		ctrl.reconcileLabels(m, inputs.infraMachineStatus)
+		if errLabels := ctrl.reconcileLabels(m, inputs.infraMachineStatus); errLabels != nil {
+			return errLabels
+		}
 
 		if err = ctrl.setClusterRelation(inputs, m); err != nil {
 			return err
@@ -330,8 +336,8 @@ func (ctrl *MachineStatusController) reconcileTearingDown(ctx context.Context, r
 
 //nolint:gocyclo,cyclop,gocognit
 func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r controller.QRuntime, event machinetask.Info) error {
-	if err := safe.WriterModify(ctx, r, omni.NewMachineStatus(event.MachineID), func(m *omni.MachineStatus) error {
-		spec := m.TypedSpec().Value
+	if err := safe.WriterModify(ctx, r, omni.NewMachineStatus(event.MachineID), func(machineStatus *omni.MachineStatus) error {
+		spec := machineStatus.TypedSpec().Value
 
 		if event.LastError != nil {
 			spec.LastError = event.LastError.Error()
@@ -406,7 +412,7 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 		if event.ImageLabels != nil {
 			spec.ImageLabels = event.ImageLabels
 
-			m.Metadata().Labels().Do(func(temp kvutils.TempKV) {
+			machineStatus.Metadata().Labels().Do(func(temp kvutils.TempKV) {
 				for key, value := range spec.ImageLabels {
 					temp.Set(key, value)
 				}
@@ -414,9 +420,9 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 		}
 
 		if event.NoAccess {
-			m.Metadata().Labels().Set(omni.MachineStatusLabelInvalidState, "")
+			machineStatus.Metadata().Labels().Set(omni.MachineStatusLabelInvalidState, "")
 		} else {
-			m.Metadata().Labels().Delete(omni.MachineStatusLabelInvalidState)
+			machineStatus.Metadata().Labels().Delete(omni.MachineStatusLabelInvalidState)
 		}
 
 		if event.SecurityState != nil {
@@ -424,14 +430,24 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 		}
 
 		if event.Schematic != nil {
-			if err := ctrl.handleEventSchematic(ctx, m, event); err != nil {
+			if err := ctrl.handleEventSchematic(ctx, machineStatus, event); err != nil {
 				return fmt.Errorf("failed to handle schematic event: %w", err)
 			}
 		}
 
 		spec.Maintenance = event.MaintenanceMode
 
-		ctrl.reconcileLabels(m, event.InfraMachineStatus)
+		if err := ctrl.reconcileLabels(machineStatus, event.InfraMachineStatus); err != nil {
+			return fmt.Errorf("failed to reconcile labels: %w", err)
+		}
+
+		// Intentionally do this separately from the usual labels reconciliation, as these
+		// are based only on PlatformMetadata tags.
+		if machineStatus.TypedSpec().Value.PlatformMetadata != nil {
+			if err := ctrl.reconcilePlatformTagLabels(ctx, r, machineStatus); err != nil {
+				return err
+			}
+		}
 
 		return nil
 	}); err != nil && !state.IsPhaseConflictError(err) {
@@ -453,6 +469,43 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 		if _, err := ctrl.ImageFactoryClient.EnsureSchematic(ctx, machineSchematic); err != nil {
 			return fmt.Errorf("error ensuring schematic: %w", err)
 		}
+	}
+
+	return nil
+}
+
+// reconcilePlatformTagLabels bootstraps a MachineLabels resource from PlatformMetadata tags on the first join
+// and stamps the PlatformTagLabelsInitialized annotation on both machineLabels and machineStatus when done.
+// Subsequent calls are short-circuited by the annotation on machineLabels.
+// We only populate these labels on Omni join; from there on the user can freely modify them.
+func (ctrl *MachineStatusController) reconcilePlatformTagLabels(ctx context.Context, r controller.QRuntime, machineStatus *omni.MachineStatus) error {
+	if err := safe.WriterModify(ctx, r, omni.NewMachineLabels(machineStatus.Metadata().ID()), func(machineLabels *omni.MachineLabels) error {
+		// Skip if annotation is set on either resource, but ensure eventual consistency, in case any of the writes failed before.
+		if _, isAnnotated := machineStatus.Metadata().Annotations().Get(omni.PlatformTagLabelsInitialized); isAnnotated {
+			machineLabels.Metadata().Annotations().Set(omni.PlatformTagLabelsInitialized, "")
+
+			return nil
+		}
+
+		if _, isAnnotated := machineLabels.Metadata().Annotations().Get(omni.PlatformTagLabelsInitialized); isAnnotated {
+			machineStatus.Metadata().Annotations().Set(omni.PlatformTagLabelsInitialized, "")
+
+			return nil
+		}
+
+		for k, v := range machineStatus.TypedSpec().Value.PlatformMetadata.GetTags() {
+			// Do not overwrite pre-existing user labels.
+			if _, ok := machineLabels.Metadata().Labels().Get(k); !ok {
+				machineLabels.Metadata().Labels().Set(k, v)
+			}
+		}
+
+		machineLabels.Metadata().Annotations().Set(omni.PlatformTagLabelsInitialized, "")
+		machineStatus.Metadata().Annotations().Set(omni.PlatformTagLabelsInitialized, "")
+
+		return nil
+	}, controller.WithModifyNoOwner()); err != nil {
+		return err
 	}
 
 	return nil
@@ -526,14 +579,14 @@ func (ctrl *MachineStatusController) handleEventSchematic(ctx context.Context, m
 	return nil
 }
 
-// reconcileLabels is a wrapper around omni.MachineStatusReconcileLabels, but it overrides the "installed" label
+// reconcileLabels is a wrapper around omni.ReconcileMachineStatusLabels, but it overrides the "installed" label
 // based on a matching infra.MachineStatus for that machine.
 //
 // This is because if there is a matching infra.MachineStatus, it means that the machine is managed by a static infrastructure provider (e.g., the bare-metal provider),
 // and it might be powered off by the provider. In that case, the block disks information on the MachineStatus might be not up to date,
 // and the information on infra.MachineStatus will be more reliable.
-func (ctrl *MachineStatusController) reconcileLabels(machineStatus *omni.MachineStatus, infraMachineStatus *infra.MachineStatus) {
-	omni.MachineStatusReconcileLabels(machineStatus)
+func (ctrl *MachineStatusController) reconcileLabels(machineStatus *omni.MachineStatus, infraMachineStatus *infra.MachineStatus) error {
+	omni.ReconcileMachineStatusLabels(machineStatus)
 
 	if infraMachineStatus != nil {
 		if infraMachineStatus.TypedSpec().Value.Installed {
@@ -542,6 +595,8 @@ func (ctrl *MachineStatusController) reconcileLabels(machineStatus *omni.Machine
 			machineStatus.Metadata().Labels().Delete(omni.MachineStatusLabelInstalled)
 		}
 	}
+
+	return nil
 }
 
 type inputs struct {
@@ -597,11 +652,11 @@ func (ctrl *MachineStatusController) handleInputs(ctx context.Context, r control
 	return in, nil
 }
 
-func (ctrl *MachineStatusController) mergeLabels(m *omni.MachineStatus, machineLabels *omni.MachineLabels) map[string]string {
+func (ctrl *MachineStatusController) mergeLabels(machineStatus *omni.MachineStatus, machineLabels *omni.MachineLabels) map[string]string {
 	labels := map[string]string{}
 
-	if m.TypedSpec().Value.ImageLabels != nil {
-		maps.Copy(labels, m.TypedSpec().Value.ImageLabels)
+	if machineStatus.TypedSpec().Value.ImageLabels != nil {
+		maps.Copy(labels, machineStatus.TypedSpec().Value.ImageLabels)
 	}
 
 	if machineLabels != nil {

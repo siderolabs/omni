@@ -15,7 +15,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/runtime"
 )
 
-func TestMachineStatusReconcileLabels(t *testing.T) {
+func TestReconcileMachineStatusLabels(t *testing.T) {
 	t.Parallel()
 
 	for _, test := range []struct { //nolint:govet
@@ -133,7 +133,7 @@ func TestMachineStatusReconcileLabels(t *testing.T) {
 
 			ms.TypedSpec().Value = test.spec
 
-			omni.MachineStatusReconcileLabels(ms)
+			omni.ReconcileMachineStatusLabels(ms)
 
 			assert.Equal(t, test.want, ms.Metadata().Labels().Raw())
 		})
