@@ -792,6 +792,10 @@ spec:
     - omnictl-*
     - omni-*
 ---
+kind: golang.SBOM
+spec:
+  enabled: true
+---
 kind: common.Image
 name: image-omni
 spec:
