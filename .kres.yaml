@@ -80,6 +80,27 @@ spec:
       toplevel: true
       dependants:
         - coverage
+    - name: sign-images
+      toplevel: true
+---
+kind: custom.Step
+name: sign-images
+spec:
+  makefile:
+    enabled: true
+    phony: true
+    variables:
+      - name: IMAGE_SIGNER_IMAGE
+        defaultValue: ghcr.io/siderolabs/image-signer:v0.3.2
+    script:
+      - |
+        @test -n "$$GITHUB_TOKEN" || { echo "GITHUB_TOKEN must be set"; exit 1; }
+        @TMP=$$(mktemp -d) && trap 'rm -rf $$TMP' EXIT && \
+          printf '{"auths":{"ghcr.io":{"username":"x","password":"%s"}}}' "$$GITHUB_TOKEN" > $$TMP/config.json && \
+          docker run --rm -p 127.0.0.1:8585:8585 \
+            -v $$TMP:/dc:ro -e DOCKER_CONFIG=/dc \
+            $(IMAGE_SIGNER_IMAGE) sign --timeout=15m \
+            $(REGISTRY_AND_USERNAME)/omni:$(IMAGE_TAG)
 ---
 kind: custom.Step
 name: docker-compose-up

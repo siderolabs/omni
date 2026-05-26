@@ -96,6 +96,7 @@ TOOLCHAIN ?= docker.io/golang:1.26-alpine
 # extra variables
 
 REMOVE_VOLUMES ?= false
+IMAGE_SIGNER_IMAGE ?= ghcr.io/siderolabs/image-signer:v0.3.2
 
 # help menu
 
@@ -490,6 +491,16 @@ mkcert-uninstall:
 
 run-integration-test: integration-test-linux-amd64 omnictl-linux-amd64 omni-linux-amd64
 	@hack/test/integration.sh
+
+.PHONY: sign-images
+sign-images:
+	@test -n "$$GITHUB_TOKEN" || { echo "GITHUB_TOKEN must be set"; exit 1; }
+	@TMP=$$(mktemp -d) && trap 'rm -rf $$TMP' EXIT && \
+	  printf '{"auths":{"ghcr.io":{"username":"x","password":"%s"}}}' "$$GITHUB_TOKEN" > $$TMP/config.json && \
+	  docker run --rm -p 127.0.0.1:8585:8585 \
+	    -v $$TMP:/dc:ro -e DOCKER_CONFIG=/dc \
+	    $(IMAGE_SIGNER_IMAGE) sign --timeout=15m \
+	    $(REGISTRY_AND_USERNAME)/omni:$(IMAGE_TAG)
 
 .PHONY: rekres
 rekres:
