@@ -740,10 +740,8 @@ func bindMachine(ctx context.Context, t *testing.T, st state.State, bindOpts bin
 				"install": map[string]any{
 					"disk": "/dev/vda",
 				},
-				"kubelet": map[string]any{
-					"extraArgs": map[string]any{
-						"node-labels": fmt.Sprintf("%s=%s", nodeLabel, bindOpts.machineID),
-					},
+				"nodeLabels": map[string]any{
+					nodeLabel: bindOpts.machineID,
 				},
 			},
 		}
@@ -1053,9 +1051,9 @@ func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.S
 			cps.Metadata().Labels().Set(omni.LabelClusterMachine, machineID)
 
 			return cps.TypedSpec().Value.SetUncompressedData(fmt.Appendf(nil, `machine:
-  kubelet:
-    extraArgs:
-      node-labels: %s=%s`, nodeLabel, machineID))
+  nodeLabels:
+    %s: %s
+`, nodeLabel, machineID))
 		})
 	}
 }
