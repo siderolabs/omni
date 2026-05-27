@@ -75,7 +75,7 @@ Depending on your environment you'll need to rewrite or add some options to the 
 After that, you can run the following command to start the docker-compose environment:
 
 ```shell
-make docker-compose-up WITH_DEBUG=1
+make docker-compose-up WITH_DEBUG=true
 ```
 
 When you're done, you can run the following command to stop the docker-compose environment:
@@ -130,8 +130,41 @@ By default, Omni serves the frontend and API on `*:443`, so you can open the Omn
 You should see your Talos VMs registered in the `Machines` tab, and a cluster can be created in the `Clusters` tab.
 
 Node.js development server can be used to get immediate feedback on frontend changes: `https://my.host:8120/`.
-When making frontend changes, `https://my.host/` will only update after stopping docker-compose environment with `^C` and running `make docker-compose-up WITH_DEBUG=1` again.
+When making frontend changes, `https://my.host/` will only update after stopping docker-compose environment with `^C` and running `make docker-compose-up WITH_DEBUG=true` again.
 At the same time `https://my.host:8120/` will update immediately.
+
+## Delve Debugger
+
+Passing `WITH_DEBUG=true` starts Omni under the [Delve](https://github.com/go-delve/delve) headless debug server.
+Without it, Omni runs directly with no debugger attached.
+
+`WITH_DEBUG=true` also:
+
+- keeps the symbol table (the default build strips it with `-s`)
+- disables compiler optimizations and inlining (`-gcflags=all=-N -l`) for clean step-through debugging
+
+```shell
+make docker-compose-up WITH_DEBUG=true
+```
+
+On first run, the launcher binary and `dlv` are built from source inside Docker and cached in the
+`dlv-tools` volume; subsequent starts reuse the cached binaries.
+Omni starts immediately — `--continue` is set so the process does not wait for a client to connect.
+
+Delve listens on `127.0.0.1:12345` by default.
+Override with `DELVE_LISTEN_ADDR`:
+
+```shell
+make docker-compose-up WITH_DEBUG=true DELVE_LISTEN_ADDR=0.0.0.0:12345
+```
+
+Connect the debugger from the CLI:
+
+```shell
+dlv connect localhost:12345
+```
+
+Alternatively, use the provided VS Code launch configuration ([`.vscode/launch.json`](.vscode/launch.json)).
 
 ## Use `omnictl`
 
@@ -244,7 +277,7 @@ spec:
 
 ## Controller Dependency Graphs
 
-If Omni is built `WITH_DEBUG=1`, it provides an additional handler under `/debug` prefix:
+If Omni is built `WITH_DEBUG=true`, it provides an additional handler under `/debug` prefix:
 
 ```shell
 curl https://my.host/debug/controller-graph | dot -Tsvg -o controller.svg

@@ -270,7 +270,7 @@ const composeTemplate = `services:
       --bind-addr {{ .BindAddr }}
       --frontend-dst http://127.0.0.1:8121
       --frontend-bind 0.0.0.0:8120
-      --debug
+      --log-level debug
       --etcd-embedded-unsafe-fsync=true
       --etcd-backup-s3
       {{- range $key, $value := .RegistryMirrors }}

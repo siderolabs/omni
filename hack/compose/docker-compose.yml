@@ -9,9 +9,14 @@ services:
     devices:
       - /dev/net/tun
     depends_on:
-      - vault-dev
-      - node-dev
-      - minio-mc
+      vault-dev:
+        condition: service_started
+      node-dev:
+        condition: service_started
+      minio-mc:
+        condition: service_started
+      dlv-init:
+        condition: service_completed_successfully
     volumes:
       - etcd:/_out/etcd
       - logs:/_out/logs
@@ -19,10 +24,14 @@ services:
       - etcd-backup:/tmp/omni-data/etcd-backup
       - audit-logs:/tmp/omni-data/audit-logs
       - ../generate-certs/certs:/etc/ssl/omni-certs:ro
+      - dlv-tools:/debug:ro
     container_name: local-omni
     restart: on-failure
     cap_add:
       - NET_ADMIN
+      - SYS_PTRACE
+    entrypoint:
+      - /debug/launcher
     build:
       context: ../../
       dockerfile: Dockerfile
@@ -51,14 +60,39 @@ services:
         - TESTPKGS=${TESTPKGS:?error}
         - GO_LDFLAGS=${GO_LDFLAGS}
         - GOEXPERIMENT=${GOEXPERIMENT}
+        # Controls build-time debug flags.
+        - WITH_DEBUG=${WITH_DEBUG:-false}
         - GOTOOLCHAIN=${GOTOOLCHAIN}
         - SYFT_VERSION=${SYFT_VERSION:?error}
     environment:
       - VAULT_ADDR=http://127.0.0.1:8200
       - VAULT_TOKEN=dev-o-token
       - SIDEROLINK_DEV_JOIN_TOKEN=w7uVuW3zbVKIYQuzEcyetAHeYMeo5q2L9RvkAVfCfSCD
+      # Controls runtime debug flags.
+      - WITH_DEBUG=${WITH_DEBUG:-false}
+      - DELVE_LISTEN_ADDR=${DELVE_LISTEN_ADDR:-0.0.0.0:12345}
+      - OMNI_BIN=${OMNI_BIN:-/omni}
     command: >-
       --sqlite-storage-path=/_out/secondary-storage/sqlite.db
+
+  dlv-init:
+    image: golang:1.26-alpine
+    restart: on-failure
+    volumes:
+      - dlv-tools:/output
+      - ./launcher:/launcher:ro
+    command:
+      - sh
+      - -c
+      - |
+        cd /launcher && CGO_ENABLED=0 GOOS=linux GO111MODULE=off go build -o /output/launcher .
+        # Install Delve
+        case '${WITH_DEBUG:-false}' in
+          true|1)
+            test -f /output/dlv || \
+              (CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@1.26.3 && cp /go/bin/dlv /output/)
+            ;;
+        esac
 
   vault-dev:
     container_name: local-vault
@@ -158,3 +192,4 @@ volumes:
   etcd-backup:
   audit-logs:
   grafana_data:
+  dlv-tools:
