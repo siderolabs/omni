@@ -104,18 +104,15 @@ const maintenanceUpdateDescription = computed(() => {
         <CopyButton :text="machineName" />
 
         <Tooltip description="Powered on">
-          <span>
-            <TIcon
-              v-if="
-                machine.spec.message_status?.power_state ===
-                MachineStatusSpecPowerState.POWER_STATE_ON
-              "
-              icon="power"
-              class="size-4 shrink-0 text-green-g1"
-              aria-label="machine powered on"
-            />
-            Powered on
-          </span>
+          <TIcon
+            v-if="
+              machine.spec.message_status?.power_state ===
+              MachineStatusSpecPowerState.POWER_STATE_ON
+            "
+            icon="power"
+            class="size-4 shrink-0 text-green-g1"
+            aria-label="machine powered on"
+          />
         </Tooltip>
 
         <Tooltip description="Powered off">
