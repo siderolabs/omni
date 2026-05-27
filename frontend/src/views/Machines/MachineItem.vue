@@ -103,23 +103,32 @@ const maintenanceUpdateDescription = computed(() => {
 
         <CopyButton :text="machineName" />
 
-        <TIcon
-          v-if="
-            machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_ON
-          "
-          icon="power"
-          class="size-4 shrink-0 text-green-g1"
-          aria-label="machine powered on"
-        />
+        <Tooltip description="Powered on">
+          <span>
+            <TIcon
+              v-if="
+                machine.spec.message_status?.power_state ===
+                MachineStatusSpecPowerState.POWER_STATE_ON
+              "
+              icon="power"
+              class="size-4 shrink-0 text-green-g1"
+              aria-label="machine powered on"
+            />
+            Powered on
+          </span>
+        </Tooltip>
 
-        <TIcon
-          v-if="
-            machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_OFF
-          "
-          icon="power-off"
-          class="size-4 shrink-0 text-red-r1"
-          aria-label="machine powered off"
-        />
+        <Tooltip description="Powered off">
+          <TIcon
+            v-if="
+              machine.spec.message_status?.power_state ===
+              MachineStatusSpecPowerState.POWER_STATE_OFF
+            "
+            icon="power-off"
+            class="size-4 shrink-0 text-red-r1"
+            aria-label="machine powered off"
+          />
+        </Tooltip>
 
         <div class="grow" />
 
