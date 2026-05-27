@@ -22,7 +22,6 @@ declare module 'vue-router' {
   interface TypesConfig {
     ParamParsers:
       | never
-    RouteNamedMap: import('vue-router/auto-routes').RouteNamedMap
   }
 }
 
