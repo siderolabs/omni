@@ -872,6 +872,80 @@ func TestMachineSetBootstrapSpecValidation(t *testing.T) {
 	assert.ErrorContains(t, err, "bootstrap spec is immutable after creation")
 }
 
+func TestMachineSetBootstrapSnapshotValidation(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name        string
+		snapshot    string
+		errContains string
+	}{
+		{
+			name:     "empty snapshot",
+			snapshot: "",
+		},
+		{
+			name:     "canonical snapshot name",
+			snapshot: "00000000FFFFFFFF.snapshot",
+		},
+		{
+			name:     "nested path under cluster prefix",
+			snapshot: "archive/2024/cluster-foo/00000000FFFFFFFF.snapshot",
+		},
+		{
+			name:        "parent directory traversal",
+			snapshot:    "../OTHER-CLUSTER/00000000FFFFFFFF.snapshot",
+			errContains: "must be a relative path",
+		},
+		{
+			name:        "absolute path",
+			snapshot:    "/etc/passwd",
+			errContains: "must be a relative path",
+		},
+		{
+			name:        "exceeds length cap",
+			snapshot:    strings.Repeat("a", validations.MaxBootstrapSnapshotLength+1),
+			errContains: "too long",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+			t.Cleanup(cancel)
+
+			clusterID := "test-cluster"
+			innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+			st := validated.NewState(innerSt, validations.MachineSetValidationOptions(innerSt, &mockEtcdBackupStoreFactory{})...)
+
+			require.NoError(t, st.Create(ctx, omnires.NewCluster(clusterID)))
+
+			machineSet := omnires.NewMachineSet(omnires.ControlPlanesResourceID(clusterID))
+			machineSet.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
+			machineSet.Metadata().Labels().Set(omnires.LabelControlPlaneRole, "")
+			machineSet.TypedSpec().Value.BootstrapSpec = &specs.MachineSetSpec_BootstrapSpec{
+				ClusterUuid: "70fcf307-f9be-40dc-81de-6a427adfc1d4",
+				Snapshot:    tt.snapshot,
+			}
+
+			err := st.Create(ctx, machineSet)
+			if tt.errContains == "" {
+				// the syntactic check passes; the request still fails on the cluster-UUID lookup below it,
+				// which is fine - we just need to confirm the syntactic error did not fire.
+				if err != nil {
+					assert.NotContains(t, err.Error(), "must be a relative path")
+					assert.NotContains(t, err.Error(), "too long")
+				}
+
+				return
+			}
+
+			assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+			assert.ErrorContains(t, err, tt.errContains)
+		})
+	}
+}
+
 func TestMachineSetNodeValidations(t *testing.T) {
 	t.Parallel()
 

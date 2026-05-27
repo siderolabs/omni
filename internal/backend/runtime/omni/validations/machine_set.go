@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -20,6 +21,11 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 )
+
+// MaxBootstrapSnapshotLength caps the length of MachineSet.bootstrap_spec.snapshot in bytes.
+// Anchored on Linux PATH_MAX, which is the most permissive of the supported backup stores'
+// path limits, so any value that could legitimately reach either backend fits.
+const MaxBootstrapSnapshotLength = 4096
 
 // machineSetValidationOptions returns the validation options for the machine set resource.
 //
@@ -228,6 +234,10 @@ func validateBootstrapSpec(ctx context.Context, st state.State, etcdBackupStoreF
 		return nil
 	}
 
+	if err := validateBootstrapSnapshot(bootstrapSpec.GetSnapshot()); err != nil {
+		return err
+	}
+
 	clusterUUIDs, err := safe.StateListAll[*omni.ClusterUUID](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelClusterUUID, bootstrapSpec.GetClusterUuid())))
 	if err != nil {
 		return fmt.Errorf("error getting cluster UUIDs: %w", err)
@@ -266,6 +276,22 @@ func validateBootstrapSpec(ctx context.Context, st state.State, etcdBackupStoreF
 
 	if data.SecretboxEncryptionSecret != backupData.TypedSpec().Value.SecretboxEncryptionSecret {
 		return errors.New("secretbox encryption secret mismatch")
+	}
+
+	return nil
+}
+
+func validateBootstrapSnapshot(snapshot string) error {
+	if snapshot == "" {
+		return nil
+	}
+
+	if len(snapshot) > MaxBootstrapSnapshotLength {
+		return fmt.Errorf("bootstrap snapshot path is too long: %d bytes (max %d)", len(snapshot), MaxBootstrapSnapshotLength)
+	}
+
+	if !fs.ValidPath(snapshot) {
+		return errors.New("bootstrap snapshot must be a relative path without parent-directory references")
 	}
 
 	return nil
