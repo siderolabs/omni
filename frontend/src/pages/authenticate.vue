@@ -168,13 +168,13 @@ const generatePublicKey = async (identity: string) => {
     return
   }
 
-  keys.keyPair.value = res.keyPair
-  keys.keyExpirationTime.value = res.keyExpirationTime
-  keys.publicKeyID.value = res.publicKeyId
-
   identityStorage.identity.value = identity.toLowerCase()
   identityStorage.fullname.value = name.value ?? ''
   identityStorage.avatar.value = picture.value ?? ''
+
+  keys.keyExpirationTime.value = res.keyExpirationTime
+  keys.publicKeyID.value = res.publicKeyId
+  await keys.setKeyPair(res.keyPair)
 
   // Wait for storages to be set
   await nextTick()

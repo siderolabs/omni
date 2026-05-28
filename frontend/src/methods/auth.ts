@@ -196,7 +196,7 @@ export function useLogout() {
       }
     }
 
-    keys.clear()
+    await keys.clear()
     identity.clear()
 
     // Wait for storages to be set

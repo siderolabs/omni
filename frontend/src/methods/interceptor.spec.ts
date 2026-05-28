@@ -9,7 +9,7 @@ import fetchIntercept, {
   type FetchInterceptorResponse,
 } from 'fetch-intercept'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { defineComponent, ref } from 'vue'
+import { defineComponent, type Ref, ref } from 'vue'
 
 import { signDetached, useKeys } from '@/methods/key'
 
@@ -27,6 +27,7 @@ vi.mock(import('@/methods/key'), async (importOriginal) => {
       keyPair: ref(mockKey),
       publicKeyID: ref('public_key_id'),
       keyExpirationTime: ref(new Date(0)),
+      setKeyPair: vi.fn(),
       clear: vi.fn(),
       invalidate: vi.fn(),
     })),
@@ -171,6 +172,7 @@ describe('request interceptor', () => {
       keyPair: keyPairRef,
       publicKeyID: ref('public_key_id'),
       keyExpirationTime: ref(new Date(0)),
+      setKeyPair: vi.fn(),
       clear: vi.fn(),
       invalidate: vi.fn(),
     })
@@ -218,13 +220,16 @@ describe('response interceptor', () => {
       }),
     }) as FetchInterceptorResponse
 
+  let keyPairRef: Ref<CryptoKeyPair | null>
+
   beforeEach(() => {
-    const keyPairRef = ref(mockKey)
+    keyPairRef = ref(mockKey)
 
     vi.mocked(useKeys).mockReturnValue({
       keyPair: keyPairRef,
       publicKeyID: ref('public_key_id'),
       keyExpirationTime: ref(new Date(0)),
+      setKeyPair: vi.fn(),
       clear: vi.fn(),
       invalidate: vi.fn(),
     })
@@ -265,7 +270,7 @@ describe('response interceptor', () => {
   })
 
   test('does not invalidate when no keys present', () => {
-    useKeys().keyPair.value = null
+    keyPairRef.value = null
 
     responseInterceptor(mockResponse(401, 'http://localhost/api/omni.Foo/Bar'))
 

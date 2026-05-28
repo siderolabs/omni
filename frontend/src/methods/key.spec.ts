@@ -18,8 +18,8 @@ import { createKeys, hasValidKeys, signDetached, useKeys, useWatchKeyExpiry } fr
 
 vi.mock('vue-router')
 
-beforeEach(() => {
-  useKeys().clear()
+beforeEach(async () => {
+  await useKeys().clear()
 
   vi.mocked(useRoute, { partial: true }).mockReturnValue({})
   vi.mocked(useRouter, { partial: true }).mockReturnValue({
@@ -74,14 +74,14 @@ describe('useKeys', () => {
     expect(publicKeyID.value).toBeFalsy()
   })
 
-  test('clears values', () => {
-    const { keyPair, keyExpirationTime, publicKeyID, clear } = useKeys()
+  test('clears values', async () => {
+    const { keyPair, setKeyPair, keyExpirationTime, publicKeyID, clear } = useKeys()
 
-    keyPair.value = mockKey
+    await setKeyPair(mockKey)
     keyExpirationTime.value = new Date()
     publicKeyID.value = '1'
 
-    clear()
+    await clear()
 
     expect(keyPair.value).toBeFalsy()
     expect(keyExpirationTime.value).toEqual(new Date(0))
@@ -92,9 +92,9 @@ describe('useKeys', () => {
     const date = new Date()
 
     await (async () => {
-      const { keyPair, keyExpirationTime, publicKeyID } = useKeys()
+      const { setKeyPair, keyExpirationTime, publicKeyID } = useKeys()
 
-      keyPair.value = mockKey
+      await setKeyPair(mockKey)
       keyExpirationTime.value = date
       publicKeyID.value = '1'
     })()
@@ -141,7 +141,7 @@ describe('useWatchKeyExpiry', () => {
 
   test('clears keys if invalidated', async () => {
     useKeys().keyExpirationTime.value = add(now, { minutes: 1 })
-    useKeys().keyPair.value = mockKey
+    await useKeys().setKeyPair(mockKey)
 
     mount(TestComponent)
 
@@ -151,33 +151,35 @@ describe('useWatchKeyExpiry', () => {
     expect(useRouter().resolve).not.toHaveBeenCalled()
 
     useKeys().invalidate()
-    await flushPromises()
 
+    // The redirect waits for the key pair to be removed from IndexedDB
+    await vi.waitFor(() =>
+      expect(useRouter().resolve).toHaveBeenCalledExactlyOnceWith({
+        name: 'Authenticate',
+        query: { flow: 'frontend', redirect: 'fullPath' },
+      }),
+    )
     expect(useKeys().keyPair.value).toBeFalsy()
-    expect(useRouter().resolve).toHaveBeenCalledExactlyOnceWith({
-      name: 'Authenticate',
-      query: { flow: 'frontend', redirect: 'fullPath' },
-    })
   })
 
   test('clears keys if expired on start', async () => {
     useKeys().keyExpirationTime.value = sub(now, { minutes: 1 })
-    useKeys().keyPair.value = mockKey
+    await useKeys().setKeyPair(mockKey)
 
     mount(TestComponent)
 
-    await flushPromises()
-
+    await vi.waitFor(() =>
+      expect(useRouter().resolve).toHaveBeenCalledExactlyOnceWith({
+        name: 'Authenticate',
+        query: { flow: 'frontend', redirect: 'fullPath' },
+      }),
+    )
     expect(useKeys().keyPair.value).toBeFalsy()
-    expect(useRouter().resolve).toHaveBeenCalledExactlyOnceWith({
-      name: 'Authenticate',
-      query: { flow: 'frontend', redirect: 'fullPath' },
-    })
   })
 
   test('clears keys after expiry', async () => {
     useKeys().keyExpirationTime.value = add(now, { minutes: 1 })
-    useKeys().keyPair.value = mockKey
+    await useKeys().setKeyPair(mockKey)
 
     mount(TestComponent)
 
@@ -188,16 +190,18 @@ describe('useWatchKeyExpiry', () => {
 
     await vi.advanceTimersByTimeAsync(milliseconds({ minutes: 2 }))
 
+    await vi.waitFor(() =>
+      expect(useRouter().resolve).toHaveBeenCalledExactlyOnceWith({
+        name: 'Authenticate',
+        query: { flow: 'frontend', redirect: 'fullPath' },
+      }),
+    )
     expect(useKeys().keyPair.value).toBeFalsy()
-    expect(useRouter().resolve).toHaveBeenCalledExactlyOnceWith({
-      name: 'Authenticate',
-      query: { flow: 'frontend', redirect: 'fullPath' },
-    })
   })
 
   test('keeps existing auth flow on expiry', async () => {
     useKeys().keyExpirationTime.value = add(now, { minutes: 1 })
-    useKeys().keyPair.value = mockKey
+    await useKeys().setKeyPair(mockKey)
 
     vi.mocked(useRouter().isReady).mockImplementation(async () => {
       vi.mocked(useRoute()).fullPath = 'fullPath'
@@ -219,7 +223,7 @@ describe('useWatchKeyExpiry', () => {
 
   test('cleans up on unmount', async () => {
     useKeys().keyExpirationTime.value = add(now, { minutes: 1 })
-    useKeys().keyPair.value = mockKey
+    await useKeys().setKeyPair(mockKey)
 
     const wrapper = mount(TestComponent)
 
@@ -257,14 +261,14 @@ describe('hasValidKeys', () => {
   })
 
   test('false if expired', async () => {
-    useKeys().keyPair.value = mockKey
+    await useKeys().setKeyPair(mockKey)
     useKeys().keyExpirationTime.value = sub(Date.now(), { seconds: 10 })
 
     await expect(hasValidKeys()).resolves.toBeFalsy()
   })
 
   test('true if has valid expiration in the future', async () => {
-    useKeys().keyPair.value = mockKey
+    await useKeys().setKeyPair(mockKey)
     useKeys().keyExpirationTime.value = add(Date.now(), { seconds: 10 })
 
     await expect(hasValidKeys()).resolves.toBeTruthy()
