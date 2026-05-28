@@ -224,6 +224,224 @@ export const WithEmptyVolume: Story = {
   },
 }
 
+export const WithCdrom: Story = {
+  parameters: {
+    msw: {
+      handlers: [
+        createWatchStreamHandler<TalosDiskSpec>({
+          expectedOptions: {
+            namespace: TalosRuntimeNamespace,
+            type: TalosDiskType,
+          },
+          initialResources: [
+            {
+              metadata: {
+                id: 'sr0',
+                namespace: TalosRuntimeNamespace,
+                type: TalosDiskType,
+              },
+              spec: {
+                cdrom: true,
+                dev_path: '/dev/sr0',
+                pretty_size: '750 MB',
+                size: 786432000,
+                readonly: true,
+                transport: 'ata',
+              },
+            },
+            {
+              // Empty CD-ROM: should be hidden from the view
+              metadata: {
+                id: 'sr1',
+                namespace: TalosRuntimeNamespace,
+                type: TalosDiskType,
+              },
+              spec: {
+                cdrom: true,
+                dev_path: '/dev/sr1',
+                pretty_size: '0 B',
+                size: 0,
+                readonly: true,
+              },
+            },
+          ],
+        }).handler,
+
+        createWatchStreamHandler<TalosDiscoveredVolumeSpec>({
+          expectedOptions: {
+            namespace: TalosRuntimeNamespace,
+            type: TalosDiscoveredVolumeType,
+          },
+          initialResources: [
+            {
+              // Non-empty CDROM: name is set, so it is shown.
+              metadata: {
+                id: 'sr0',
+                namespace: TalosRuntimeNamespace,
+                type: TalosDiscoveredVolumeType,
+              },
+              spec: {
+                dev_path: '/dev/sr0',
+                name: 'iso9660',
+                pretty_size: '750 MB',
+                size: 786432000,
+                type: 'disk',
+              },
+            },
+            {
+              // Empty CDROM: name is "" — Talos always creates the volume entry
+              // but leaves name blank when no media is present. This disk should
+              // be hidden from the view.
+              metadata: {
+                id: 'sr1',
+                namespace: TalosRuntimeNamespace,
+                type: TalosDiscoveredVolumeType,
+              },
+              spec: {
+                dev_path: '/dev/sr1',
+                name: '',
+                pretty_size: '0 B',
+                size: 0,
+                type: 'disk',
+              },
+            },
+          ],
+        }).handler,
+
+        createWatchStreamHandler<TalosVolumeStatusSpec>({
+          expectedOptions: {
+            namespace: TalosRuntimeNamespace,
+            type: TalosVolumeStatusType,
+          },
+          initialResources: [],
+        }).handler,
+      ],
+    },
+  },
+}
+
+export const WithLuksEncryption: Story = {
+  parameters: {
+    msw: {
+      handlers: [
+        createWatchStreamHandler<TalosDiskSpec>({
+          expectedOptions: {
+            namespace: TalosRuntimeNamespace,
+            type: TalosDiskType,
+          },
+          initialResources: [
+            {
+              metadata: {
+                id: 'vda',
+                namespace: TalosRuntimeNamespace,
+                type: TalosDiskType,
+              },
+              spec: {
+                dev_path: '/dev/vda',
+                pretty_size: '20 GB',
+                size: 21474836480,
+                transport: 'virtio',
+              },
+            },
+            {
+              // Device-mapper device for the open LUKS container — should be
+              // filtered out and NOT rendered as a top-level disk.
+              metadata: {
+                id: 'dm-0',
+                namespace: TalosRuntimeNamespace,
+                type: TalosDiskType,
+              },
+              spec: {
+                dev_path: '/dev/dm-0',
+                pretty_size: '104 MB',
+                size: 104857600,
+              },
+            },
+          ],
+        }).handler,
+
+        createWatchStreamHandler<TalosDiscoveredVolumeSpec>({
+          expectedOptions: {
+            namespace: TalosRuntimeNamespace,
+            type: TalosDiscoveredVolumeType,
+          },
+          initialResources: [
+            {
+              metadata: {
+                id: 'vda1',
+                namespace: TalosRuntimeNamespace,
+                type: TalosDiscoveredVolumeType,
+              },
+              spec: {
+                dev_path: '/dev/vda1',
+                name: 'vfat',
+                parent: 'vda',
+                partition_index: 1,
+                partition_label: 'EFI',
+                pretty_size: '105 MB',
+                size: 105906176,
+                type: 'partition',
+              },
+            },
+            {
+              // LUKS-encrypted partition: name is 'luks2' in the raw discovered
+              // volume, but VolumeStatus provides the inner filesystem (xfs).
+              metadata: {
+                id: 'vda2',
+                namespace: TalosRuntimeNamespace,
+                type: TalosDiscoveredVolumeType,
+              },
+              spec: {
+                dev_path: '/dev/vda2',
+                name: 'luks2',
+                parent: 'vda',
+                partition_index: 2,
+                partition_label: 'EPHEMERAL',
+                pretty_size: '19 GB',
+                size: 20265148416,
+                type: 'partition',
+              },
+            },
+          ],
+        }).handler,
+
+        createWatchStreamHandler<TalosVolumeStatusSpec>({
+          expectedOptions: {
+            namespace: TalosRuntimeNamespace,
+            type: TalosVolumeStatusType,
+          },
+          initialResources: [
+            {
+              metadata: {
+                id: 'EPHEMERAL',
+                namespace: TalosRuntimeNamespace,
+                type: TalosVolumeStatusType,
+              },
+              spec: {
+                configuredEncryptionKeys: ['static'],
+                encryptionProvider: 'luks2',
+                encryptionSlot: 0,
+                filesystem: 'xfs',
+                location: '/dev/vda2',
+                mountLocation: '/dev/dm-0',
+                mountSpec: {
+                  targetPath: '/var',
+                },
+                parentLocation: '/dev/vda',
+                partitionIndex: 2,
+                phase: 'ready',
+                prettySize: '19 GB',
+                size: 20265148416,
+                type: 'partition',
+              },
+            },
+          ],
+        }).handler,
+      ],
+    },
+  },
+}
+
 export const NoData: Story = {
   parameters: {
     msw: {

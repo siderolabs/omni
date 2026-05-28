@@ -34,7 +34,19 @@ const getFilesystemIcon = (fsType?: string): IconType => {
   const lower = fsType.toLowerCase()
   if (lower.includes('xfs') || lower.includes('ext')) return 'server'
   if (lower.includes('vfat') || lower.includes('fat')) return 'cpu-chip'
+  if (lower.includes('luks')) return 'locked'
   return 'document'
+}
+
+const getEffectiveFilesystem = (
+  volume: Resource<TalosDiscoveredVolumeSpec>,
+  volumeStatus?: Resource<TalosVolumeStatusSpec>,
+): string => {
+  // When encryption is active, the DV name is luks, but we want to show the actual filesystem
+  if (volumeStatus?.spec.encryptionProvider && volumeStatus.spec.filesystem) {
+    return volumeStatus.spec.filesystem
+  }
+  return volume.spec.name || volumeStatus?.spec.filesystem || 'N/A'
 }
 
 const isEncrypted = (item?: Resource<TalosVolumeStatusSpec>) => {
@@ -91,7 +103,7 @@ const getEncryptionIcon = (item?: Resource<TalosVolumeStatusSpec>): IconType => 
           <TableCell>
             <div class="flex items-center gap-2">
               <TIcon
-                :icon="getFilesystemIcon(volume.spec.name || volumeStatus?.spec.filesystem)"
+                :icon="getFilesystemIcon(getEffectiveFilesystem(volume, volumeStatus))"
                 class="size-4 shrink-0 text-naturals-n14"
               />
 
@@ -111,7 +123,7 @@ const getEncryptionIcon = (item?: Resource<TalosVolumeStatusSpec>): IconType => 
           </TableCell>
 
           <TableCell class="font-medium">
-            {{ volume.spec.name || volumeStatus?.spec.filesystem || 'N/A' }}
+            {{ getEffectiveFilesystem(volume, volumeStatus) }}
           </TableCell>
 
           <TableCell>

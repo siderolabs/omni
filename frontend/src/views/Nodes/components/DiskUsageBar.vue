@@ -41,6 +41,7 @@ const getVolumeClass = (volume: Resource<TalosDiscoveredVolumeSpec>) => {
   if (label?.includes('boot')) return 'bg-orange-500'
   if (label?.includes('state')) return 'bg-purple-500'
   if (label?.includes('ephemeral')) return 'bg-blue-500'
+  if (fsType?.includes('luks')) return 'bg-indigo-500'
   if (fsType?.includes('xfs') || fsType?.includes('ext')) return 'bg-green-600'
   if (fsType?.includes('vfat') || fsType?.includes('fat')) return 'bg-yellow-600'
   if (fsType?.includes('swap')) return 'bg-red-500'

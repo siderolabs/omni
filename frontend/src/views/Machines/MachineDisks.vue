@@ -157,7 +157,14 @@ const errCode = computed(
 
 const organizedDisks = computed(() =>
   disks.value
-    .filter((d) => !d.metadata.id?.startsWith('loop'))
+    .filter(
+      (d) =>
+        !d.metadata.id?.startsWith('loop') &&
+        // Device-mapper devices (dm-N) are synthetic kernel block devices created for
+        // things like LUKS encryption. They are represented through their parent
+        // partition's VolumeStatus and should not appear as top-level disk entries.
+        !d.metadata.id?.startsWith('dm-'),
+    )
     .map((disk) => ({
       disk,
       partitions: volumes.value
@@ -169,7 +176,10 @@ const organizedDisks = computed(() =>
         .sort(
           (a, b) => (a.volume.spec.partition_index || 0) - (b.volume.spec.partition_index || 0),
         ),
-    })),
+    }))
+    // Hide empty CD-ROMs. Talos always creates a DiscoveredVolume for a CDROM
+    // drive but leaves `name` (filesystem type) as "" when no media is present.
+    .filter((d) => !d.disk.spec.cdrom || d.partitions.some((p) => p.volume.spec.name)),
 )
 </script>
 
@@ -209,6 +219,12 @@ const organizedDisks = computed(() =>
               {{ diskInfo.disk.spec.pretty_size }}
             </span>
             <div class="flex items-center gap-2">
+              <span
+                v-if="diskInfo.disk.spec.cdrom"
+                class="rounded bg-naturals-n5 px-2 py-1 text-xs text-naturals-n13"
+              >
+                CD-ROM
+              </span>
               <span
                 v-if="diskInfo.disk.spec.transport"
                 class="rounded bg-naturals-n5 px-2 py-1 text-xs text-naturals-n13"
