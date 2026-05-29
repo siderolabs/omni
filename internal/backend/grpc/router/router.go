@@ -227,15 +227,13 @@ func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) (proxy.Bac
 		clusterID = nodes[0].Cluster
 	}
 
-	// Multiple nodes: route through a CP node and preserve the "nodes" header
-	// so that Talos apid handles the One2Many fan-out.
-	// Omni cannot do this itself — One2Many merges multiple responses (including per-node errors)
-	// into a single gRPC response, and some APIs explicitly reject One2Many calls.
-	if len(nodes) > 1 {
+	// Always preserve the "nodes" header when submitted: route through a CP node and let Talos
+	// handle it, for compatibility with clients that expect the response shape it produces.
+	if len(md.Get(nodesHeaderKey)) > 0 {
 		return r.getForCluster(ctx, clusterID)
 	}
 
-	// Single node: connect directly via SideroLink, strip all routing headers.
+	// Single "node" header: connect directly to the node via SideroLink.
 	return r.getForMachine(ctx, clusterID, nodes[0])
 }
 
