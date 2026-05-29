@@ -45,6 +45,11 @@ spec:
           GOOS: darwin
           GOARCH: arm64
 ---
+kind: js.Chromatic
+spec:
+  enabled: true
+  sopsExtractKey: '["secrets"]["CHROMATIC_PROJECT_TOKEN"]'
+---
 kind: common.GHWorkflow
 spec:
   customRunnerGroup: large

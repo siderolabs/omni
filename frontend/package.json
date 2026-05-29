@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "engines": {
-    "node": "^24.15.0"
+    "node": "^24.16.0"
   },
   "msw": {
     "workerDirectory": [
@@ -30,7 +30,7 @@
     "@fontsource/roboto-mono": "^5.2.9",
     "@headlessui/vue": "^1.7.23",
     "@heroicons/vue": "^2.2.0",
-    "@internationalized/date": "^3.12.1",
+    "@internationalized/date": "^3.12.2",
     "@jsonforms/vue": "^3.7.0",
     "@jsonforms/vue-vanilla": "^3.7.0",
     "@tanstack/vue-virtual": "^3.13.26",
@@ -58,7 +58,7 @@
     "userpilot": "^1.4.2",
     "uuid": "^14.0.0",
     "vue": "^3.5.35",
-    "vue-router": "^5.0.7",
+    "vue-router": "^5.1.0",
     "vue-sonner": "^2.0.9",
     "vue-word-highlighter": "^1.2.6",
     "vue3-apexcharts": "^1.11.1",
@@ -117,7 +117,7 @@
     "yaml": "^2.9.0"
   },
   "overrides": {
-    "vue-router": "^5.0.7",
+    "vue-router": "^5.1.0",
     "dompurify": "^3.3.3",
     "@eslint/config-helpers": "0.6.0"
   }

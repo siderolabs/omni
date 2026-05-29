@@ -20,9 +20,9 @@ import type {
 
 declare module 'vue-router' {
   interface TypesConfig {
-    ParamParsers:
-      | never
+    _ParamParsers: {}
     RouteNamedMap: import('vue-router/auto-routes').RouteNamedMap
+    _RouteFileInfoMap: import('vue-router/auto-routes')._RouteFileInfoMap
   }
 }
 
@@ -685,6 +685,8 @@ declare module 'vue-router/auto-routes' {
         | 'Users'
       views:
         | 'default'
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)@sidebar.vue': {
       routes:
@@ -751,17 +753,23 @@ declare module 'vue-router/auto-routes' {
         | 'Users'
       views:
         | 'default'
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/index.vue': {
       routes:
         | 'Home'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/clusters/index.vue': {
       routes:
         | 'Clusters'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/clusters/[cluster].vue': {
@@ -791,17 +799,23 @@ declare module 'vue-router/auto-routes' {
         | 'Pods'
       views:
         | 'default'
+      pathParamNames:
+        | 'cluster'
     }
     'src/pages/(authenticated)/clusters/[cluster]/index.vue': {
       routes:
         | 'ClusterOverview'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/backups.vue': {
       routes:
         | 'Backups'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine].vue': {
@@ -820,11 +834,15 @@ declare module 'vue-router/auto-routes' {
         | 'NodePendingUpdates'
       views:
         | 'default'
+      pathParamNames:
+        | 'machine'
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/index.vue': {
       routes:
         | 'NodeOverview'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/config.vue': {
@@ -832,11 +850,15 @@ declare module 'vue-router/auto-routes' {
         | 'NodeConfig'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/config-diffs.vue': {
       routes:
         | 'NodeConfigDiffs'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/devices.vue': {
@@ -844,11 +866,15 @@ declare module 'vue-router/auto-routes' {
         | 'NodeDevices'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/disks.vue': {
       routes:
         | 'NodeDisks'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/extensions.vue': {
@@ -856,11 +882,15 @@ declare module 'vue-router/auto-routes' {
         | 'NodeExtensions'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/kernel-args.vue': {
       routes:
         | 'NodeKernelArgs'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/logs/[[service]].vue': {
@@ -868,11 +898,15 @@ declare module 'vue-router/auto-routes' {
         | 'NodeLogs'
       views:
         | never
+      pathParamNames:
+        | 'service'
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/monitor.vue': {
       routes:
         | 'NodeMonitor'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/patches.vue': {
@@ -880,11 +914,15 @@ declare module 'vue-router/auto-routes' {
         | 'NodePatches'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/pending-updates.vue': {
       routes:
         | 'NodePendingUpdates'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine].patches/[patch].vue': {
@@ -892,11 +930,15 @@ declare module 'vue-router/auto-routes' {
         | 'ClusterMachinePatchEdit'
       views:
         | never
+      pathParamNames:
+        | 'patch'
     }
     'src/pages/(authenticated)/clusters/[cluster]/manifests.vue': {
       routes:
         | 'KubernetesManifestSync'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/manifests-status.vue': {
@@ -904,11 +946,15 @@ declare module 'vue-router/auto-routes' {
         | 'ClusterManifestsStatus'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/nodes.vue': {
       routes:
         | 'Nodes'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/patches.vue': {
@@ -916,17 +962,23 @@ declare module 'vue-router/auto-routes' {
         | 'ClusterConfigPatches'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/patches.[patch].vue': {
       routes:
         | 'ClusterPatchEdit'
       views:
         | never
+      pathParamNames:
+        | 'patch'
     }
     'src/pages/(authenticated)/clusters/[cluster]/pods.vue': {
       routes:
         | 'Pods'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/clusters/[cluster]/scale.vue': {
@@ -934,11 +986,15 @@ declare module 'vue-router/auto-routes' {
         | 'ClusterScale'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/clusters/create.vue': {
       routes:
         | 'ClusterCreate'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machine-classes/index.vue': {
@@ -946,23 +1002,31 @@ declare module 'vue-router/auto-routes' {
         | 'MachineClasses'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/machine-classes/[classname].vue': {
       routes:
         | 'MachineClassEdit'
       views:
         | never
+      pathParamNames:
+        | 'classname'
     }
     'src/pages/(authenticated)/machine-classes/create.vue': {
       routes:
         | 'MachineClassCreate'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/machines/index.vue': {
       routes:
         | 'Machines'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machines/[machine].vue': {
@@ -977,11 +1041,15 @@ declare module 'vue-router/auto-routes' {
         | 'MachinePatchEdit'
       views:
         | 'default'
+      pathParamNames:
+        | 'machine'
     }
     'src/pages/(authenticated)/machines/[machine]/devices.vue': {
       routes:
         | 'MachineDevices'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machines/[machine]/disks.vue': {
@@ -989,11 +1057,15 @@ declare module 'vue-router/auto-routes' {
         | 'MachineDisks'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/machines/[machine]/extensions.vue': {
       routes:
         | 'MachineExtensions'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machines/[machine]/kernel-args.vue': {
@@ -1001,17 +1073,23 @@ declare module 'vue-router/auto-routes' {
         | 'MachineKernelArgs'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/machines/[machine]/logs/[[service]].vue': {
       routes:
         | 'MachineLogs'
       views:
         | never
+      pathParamNames:
+        | 'service'
     }
     'src/pages/(authenticated)/machines/[machine]/patches/index.vue': {
       routes:
         | 'MachineConfigPatches'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machines/[machine]/patches/[patch].vue': {
@@ -1019,11 +1097,15 @@ declare module 'vue-router/auto-routes' {
         | 'MachinePatchEdit'
       views:
         | never
+      pathParamNames:
+        | 'patch'
     }
     'src/pages/(authenticated)/machines/installation-media/index.vue': {
       routes:
         | 'InstallationMedia'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machines/installation-media/[presetId].vue': {
@@ -1031,6 +1113,8 @@ declare module 'vue-router/auto-routes' {
         | 'InstallationMediaReview'
       views:
         | never
+      pathParamNames:
+        | 'presetId'
     }
     'src/pages/(authenticated)/machines/installation-media/create.vue': {
       routes:
@@ -1045,11 +1129,15 @@ declare module 'vue-router/auto-routes' {
         | 'InstallationMediaCreateTalosVersion'
       views:
         | 'default'
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/machines/installation-media/create/index.vue': {
       routes:
         | 'InstallationMediaCreateEntry'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machines/installation-media/create/arch.vue': {
@@ -1057,11 +1145,15 @@ declare module 'vue-router/auto-routes' {
         | 'InstallationMediaCreateMachineArch'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/machines/installation-media/create/cloud-provider.vue': {
       routes:
         | 'InstallationMediaCreateCloudProvider'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machines/installation-media/create/confirmation.vue': {
@@ -1069,11 +1161,15 @@ declare module 'vue-router/auto-routes' {
         | 'InstallationMediaCreateConfirmation'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/machines/installation-media/create/extra-args.vue': {
       routes:
         | 'InstallationMediaCreateExtraArgs'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machines/installation-media/create/sbc-type.vue': {
@@ -1081,11 +1177,15 @@ declare module 'vue-router/auto-routes' {
         | 'InstallationMediaCreateSBCType'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/machines/installation-media/create/system-extensions.vue': {
       routes:
         | 'InstallationMediaCreateSystemExtensions'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machines/installation-media/create/talos-version.vue': {
@@ -1093,11 +1193,15 @@ declare module 'vue-router/auto-routes' {
         | 'InstallationMediaCreateTalosVersion'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/machines/jointokens.vue': {
       routes:
         | 'JoinTokens'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machines/managed/index.vue': {
@@ -1105,11 +1209,15 @@ declare module 'vue-router/auto-routes' {
         | 'MachinesManaged'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/machines/managed/[provider]/index.vue': {
       routes:
         | 'MachinesManagedProvider'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/machines/manual.vue': {
@@ -1117,11 +1225,15 @@ declare module 'vue-router/auto-routes' {
         | 'MachinesManual'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/machines/pending.vue': {
       routes:
         | 'MachinesPending'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/settings.vue': {
@@ -1134,11 +1246,15 @@ declare module 'vue-router/auto-routes' {
         | 'Users'
       views:
         | 'default'
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/settings/audit-logs.vue': {
       routes:
         | 'AuditLogs'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/settings/backups.vue': {
@@ -1146,11 +1262,15 @@ declare module 'vue-router/auto-routes' {
         | 'BackupStorage'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/settings/infraproviders.vue': {
       routes:
         | 'InfraProviders'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/(authenticated)/settings/serviceaccounts.vue': {
@@ -1158,11 +1278,15 @@ declare module 'vue-router/auto-routes' {
         | 'ServiceAccounts'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/(authenticated)/settings/users.vue': {
       routes:
         | 'Users'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/[...catchAll].vue': {
@@ -1170,11 +1294,15 @@ declare module 'vue-router/auto-routes' {
         | '/[...catchAll]'
       views:
         | never
+      pathParamNames:
+        | 'catchAll'
     }
     'src/pages/authenticate.vue': {
       routes:
         | 'Authenticate'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/badrequest.vue': {
@@ -1182,11 +1310,15 @@ declare module 'vue-router/auto-routes' {
         | '/badrequest'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/eula.vue': {
       routes:
         | 'Eula'
       views:
+        | never
+      pathParamNames:
         | never
     }
     'src/pages/forbidden.vue': {
@@ -1194,12 +1326,16 @@ declare module 'vue-router/auto-routes' {
         | '/forbidden'
       views:
         | never
+      pathParamNames:
+        | never
     }
     'src/pages/oidc-login/[authRequestId].vue': {
       routes:
         | 'OIDC Login'
       views:
         | never
+      pathParamNames:
+        | 'authRequestId'
     }
   }
 
