@@ -92,23 +92,34 @@ function measureElement(el?: Element | ComponentPublicInstance | null) {
 
 <template>
   <div class="flex h-full flex-col gap-4">
-    <div v-if="withSearch" class="flex items-center gap-2">
-      <TInput v-model.trim="search" title="Search" class="grow" @keydown.enter="nextMatch" />
+    <div v-if="withSearch || $slots['extra-controls']" class="flex items-center gap-2">
+      <slot
+        name="extra-controls"
+        :search
+        :matched-lines="matchedLines"
+        :current-match-index="currentMatchIndex"
+        :next-match="nextMatch"
+        :prev-match="prevMatch"
+      />
 
-      <div class="flex gap-1">
-        <IconButton
-          :disabled="!matchedLines.length"
-          icon="arrow-up"
-          aria-label="Previous match"
-          @click="prevMatch"
-        />
-        <IconButton
-          :disabled="!matchedLines.length"
-          icon="arrow-down"
-          aria-label="Next match"
-          @click="nextMatch"
-        />
-      </div>
+      <template v-if="withSearch">
+        <TInput v-model.trim="search" title="Search" class="grow" @keydown.enter="nextMatch" />
+
+        <div class="flex gap-1">
+          <IconButton
+            :disabled="!matchedLines.length"
+            icon="arrow-up"
+            aria-label="Previous match"
+            @click="prevMatch"
+          />
+          <IconButton
+            :disabled="!matchedLines.length"
+            icon="arrow-down"
+            aria-label="Next match"
+            @click="nextMatch"
+          />
+        </div>
+      </template>
     </div>
 
     <div ref="scrollContainerRef" class="min-h-0 flex-1 overflow-y-auto font-mono text-sm/relaxed">

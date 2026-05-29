@@ -5,7 +5,8 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { compareAsc, compareDesc, parseISO } from 'date-fns'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -13,6 +14,7 @@ import type { MachineConfigDiffSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, LabelMachine, MachineConfigDiffType } from '@/api/resources'
 import DiffRenderer from '@/components/DiffRenderer/DiffRenderer.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
+import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { formatISO } from '@/methods/time'
@@ -35,8 +37,20 @@ const { data: configDiffs, loading: diffsLoading } = useResourceWatch<MachineCon
   }),
 )
 
+const sortOrder = ref<'asc' | 'desc'>('desc')
+
+const sortOptions = [
+  { label: 'Creation Time ⬇', value: 'desc' as const },
+  { label: 'Creation Time ⬆', value: 'asc' as const },
+]
+
 const combinedDiff = computed(() =>
   configDiffs.value
+    .toSorted((a, b) =>
+      sortOrder.value === 'desc'
+        ? compareDesc(parseISO(a.metadata.created!), parseISO(b.metadata.created!))
+        : compareAsc(parseISO(a.metadata.created!), parseISO(b.metadata.created!)),
+    )
     .map((d) => `# Created on ${formatISO(d.metadata.created!)}\n${d.spec.diff}`)
     .join('\n'),
 )
@@ -49,7 +63,11 @@ const combinedDiff = computed(() =>
         No previously applied config diffs found for this machine
       </TAlert>
 
-      <DiffRenderer v-else class="h-full" :diff="combinedDiff" with-search />
+      <DiffRenderer v-else class="h-full" :diff="combinedDiff" with-search>
+        <template #extra-controls>
+          <TSelectList v-model="sortOrder" title="Sort by" :values="sortOptions" />
+        </template>
+      </DiffRenderer>
     </template>
 
     <TSpinner v-else class="mx-auto my-8 size-6" />
