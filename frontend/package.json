@@ -31,7 +31,7 @@
     "@internationalized/date": "^3.12.1",
     "@jsonforms/vue": "^3.7.0",
     "@jsonforms/vue-vanilla": "^3.7.0",
-    "@tanstack/vue-virtual": "^3.13.24",
+    "@tanstack/vue-virtual": "^3.13.26",
     "@vueuse/components": "^14.3.0",
     "@vueuse/core": "^14.3.0",
     "@vueuse/integrations": "^14.3.0",
