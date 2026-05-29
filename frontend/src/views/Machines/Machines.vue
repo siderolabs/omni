@@ -149,6 +149,17 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
     selectedMachines.value.delete(id)
   }
 }
+
+function selectAll(items: Resource[]) {
+  const typedItems = items as Resource<MachineStatusLinkSpec>[]
+  const allSelected =
+    typedItems.length > 0 &&
+    typedItems.every((item) => selectedMachines.value.has(item.metadata.id ?? ''))
+
+  for (const item of typedItems) {
+    updateSelected(item, !allSelected)
+  }
+}
 </script>
 
 <template>
@@ -260,16 +271,27 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
         />
       </template>
 
-      <template #extra-controls>
+      <template #extra-controls="{ items }">
         <div class="flex w-full items-center justify-between">
-          <TButton
-            variant="primary"
-            icon="delete"
-            :disabled="!selectedMachines.size"
-            @click="deleteItems"
-          >
-            <span class="contents max-md:hidden">Delete selected</span>
-          </TButton>
+          <div class="flex gap-2">
+            <TButton
+              variant="primary"
+              icon="check-in-circle"
+              :disabled="!items.length"
+              @click="selectAll(items)"
+            >
+              <span class="contents max-md:hidden">Select all</span>
+            </TButton>
+
+            <TButton
+              variant="primary"
+              icon="delete"
+              :disabled="!selectedMachines.size"
+              @click="deleteItems"
+            >
+              <span class="contents max-md:hidden">Delete selected</span>
+            </TButton>
+          </div>
 
           <span class="flex items-center gap-1 text-xs">
             Display
