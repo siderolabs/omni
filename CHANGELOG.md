@@ -1,3 +1,52 @@
+## [Omni 1.8.1](https://github.com/siderolabs/omni/releases/tag/v1.8.1) (2026-05-29)
+
+Welcome to the v1.8.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+As Omni is now using `--join-tokens-mode=legacyAllowed` by default it won't start if there are any nodes running Talos below 1.6 connected to the instance.
+If you want to keep using Omni with the outdated Talos you will need to set the flag to `legacy`. But of course we strongly recommend you to update Talos ASAP.
+
+`omnictl cluster template` has breaking changes: it now restricts including files outside of the current directory.
+If using files in the parent dirs, old behavior can be enabled by using `--allowed-dir`.
+
+
+### Contributors
+
+* Edward Sammut Alessi
+* Utku Ozdemir
+* Maja Bojarska
+* Noel Georgi
+
+### Changes
+<details><summary>9 commits</summary>
+<p>
+
+* [`2d6a357d`](https://github.com/siderolabs/omni/commit/2d6a357d0e4906df96e902c0ddd18a3c1b72d934) fix(frontend): bump @tanstack/vue-virtual for log viewer
+* [`4a19fddc`](https://github.com/siderolabs/omni/commit/4a19fddc4665a8a0e4f2bae152ba8a8d4eedeba0) fix: do not downgrade nodes header to single node
+* [`4f26d7bf`](https://github.com/siderolabs/omni/commit/4f26d7bf04ca54667b9e28fd7215bc695de95e7d) fix(frontend): remove lingering test code
+* [`8ca3b41d`](https://github.com/siderolabs/omni/commit/8ca3b41db4ad36f6ed24fb7bf4720a9a99d01519) feat(frontend): add tooltips to power state
+* [`18cdf4ad`](https://github.com/siderolabs/omni/commit/18cdf4adc31ccde3876e629b18fe1d093aec217f) feat: refactor logviewer to tanstack virtual
+* [`3cf06b5a`](https://github.com/siderolabs/omni/commit/3cf06b5aa82182e6d15b2601959c4a85d2670557) fix: fetch versions from registry with auth
+* [`620ff48c`](https://github.com/siderolabs/omni/commit/620ff48c993c8eb088fda13278c87f6548ef58ba) chore: bump deps to patch GO-2026-5027
+* [`b1e970c5`](https://github.com/siderolabs/omni/commit/b1e970c593e05eeb4f6bc63d103c0550371f39ee) feat(frontend): add some feedback when omni is loading
+* [`1bf2890d`](https://github.com/siderolabs/omni/commit/1bf2890ddda35d081f93743e30f95a63417265c7) fix: dont clean clients with active watches
+</p>
+</details>
+
+### Dependency Changes
+
+* **golang.org/x/net**  v0.54.0 -> v0.55.0
+
+Previous release can be found at [v1.8.0](https://github.com/siderolabs/omni/releases/tag/v1.8.0)
+
+
+
 ## [Omni 1.8.0](https://github.com/siderolabs/omni/releases/tag/v1.8.0) (2026-05-21)
 
 Welcome to the v1.8.0 release of Omni!
