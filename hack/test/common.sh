@@ -20,7 +20,22 @@ echo "127.0.0.1 my-instance.omni.localhost" | tee -a /etc/hosts
 echo "127.0.0.1 omni.localhost" | tee -a /etc/hosts
 
 # Settings.
-LATEST_STABLE_OMNI=$(git tag -l --sort=-version:refname HEAD "v*" | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+
+# Pick the previous stable Omni release the upgrade tests start from, based on the branch.
+# E.g. when cutting:
+# - v1.8.1 on release-1.8 -> start from v1.8.0  (latest patch of the same line)
+# - v1.7.4 on release-1.7 -> start from v1.7.3  (its own line, not the newer v1.8.0)
+# - a dev build on main   -> start from v1.8.0  (latest stable overall)
+# Otherwise an older release branch grabs a newer minor and the upgrade becomes a downgrade.
+# CI checks out a detached HEAD, so the branch comes from the environment.
+TARGET_BRANCH="${GITHUB_BASE_REF:-${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}}"
+STABLE_OMNI_TAGS=$(git tag -l --sort=-version:refname "v*" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$')
+if [[ "${TARGET_BRANCH}" =~ ^release-([0-9]+)\.([0-9]+)$ ]]; then
+  LATEST_STABLE_OMNI=$(awk -F'[v.]' -v major="${BASH_REMATCH[1]}" -v minor="${BASH_REMATCH[2]}" \
+    '($2 < major) || ($2 == major && $3 <= minor) { print; exit }' <<<"${STABLE_OMNI_TAGS}")
+else
+  LATEST_STABLE_OMNI=$(head -n 1 <<<"${STABLE_OMNI_TAGS}")
+fi
 
 export TALOS_VERSION=1.13.3
 export KUBERNETES_VERSION=1.36.1
