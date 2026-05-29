@@ -148,12 +148,7 @@ const openDeleteToken = (token: string) => {
             <div class="tokens-grid flex-1">
               <div class="flex items-center gap-2">
                 <span class="truncate">{{ item.spec.name ?? 'initial token' }}</span>
-                <div
-                  v-if="item.spec.is_default"
-                  class="rounded bg-primary-p3/10 px-2 py-1 text-primary-p3"
-                >
-                  Default
-                </div>
+                <div v-if="item.spec.is_default" class="resource-label label-orange">Default</div>
               </div>
               <div
                 class="cursor-pointer truncate font-mono"

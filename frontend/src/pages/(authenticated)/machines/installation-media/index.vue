@@ -6,17 +6,24 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { formatISO, parseISO } from 'date-fns'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { ResourceService } from '@/api/grpc'
 import type { InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
+import { type JoinTokenStatusSpec, JoinTokenStatusSpecState } from '@/api/omni/specs/siderolink.pb'
 import { withRuntime } from '@/api/options'
-import { DefaultNamespace, DefaultTalosVersion, InstallationMediaConfigType } from '@/api/resources'
+import {
+  DefaultNamespace,
+  DefaultTalosVersion,
+  InstallationMediaConfigType,
+  JoinTokenStatusType,
+} from '@/api/resources'
 import { itemID } from '@/api/watch'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 import ConfirmModal from '@/components/Modals/ConfirmModal.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -25,6 +32,7 @@ import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
+import { TCommonStatuses } from '@/constants'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showSuccess } from '@/notification'
 import DownloadPresetModal from '@/views/InstallationMedia/DownloadPresetModal.vue'
@@ -42,6 +50,29 @@ const { data: presets, loading: presetsLoading } = useResourceWatch<Installation
     namespace: DefaultNamespace,
     type: InstallationMediaConfigType,
   },
+})
+
+const { data: joinTokens, loading: joinTokensLoading } = useResourceWatch<JoinTokenStatusSpec>({
+  runtime: Runtime.Omni,
+  resource: {
+    type: JoinTokenStatusType,
+    namespace: DefaultNamespace,
+  },
+})
+
+const loading = computed(() => presetsLoading.value || joinTokensLoading.value)
+const defaultToken = computed(() => joinTokens.value.find((t) => t.spec.is_default))
+
+const presetList = computed(() => {
+  if (loading.value) return
+
+  return presets.value.map((p) => ({
+    ...p,
+    tokenAutomatic: !p.spec.join_token,
+    token: p.spec.join_token
+      ? joinTokens.value.find((t) => t.metadata.id === p.spec.join_token)
+      : defaultToken.value,
+  }))
 })
 
 watch([presets, presetsLoading], ([presets, presetsLoading]) => {
@@ -90,7 +121,7 @@ function clonePreset(preset: (typeof presets.value)[number]) {
 
 <template>
   <PageContainer class="flex h-full flex-col gap-6">
-    <TSpinner v-if="presetsLoading" class="size-8 self-center" />
+    <TSpinner v-if="loading" class="size-8 self-center" />
 
     <div class="flex items-start justify-between gap-1">
       <PageHeader title="Installation Media" />
@@ -109,13 +140,14 @@ function clonePreset(preset: (typeof presets.value)[number]) {
         <TableRow>
           <TableCell th>Name</TableCell>
           <TableCell th>Talos version</TableCell>
+          <TableCell th>Join token</TableCell>
           <TableCell th>Date created</TableCell>
           <TableCell th>Action</TableCell>
         </TableRow>
       </template>
 
       <template #body>
-        <TableRow v-for="preset in presets" :key="itemID(preset)">
+        <TableRow v-for="{ token, tokenAutomatic, ...preset } in presetList" :key="itemID(preset)">
           <TableCell>
             <RouterLink
               class="list-item-link"
@@ -128,7 +160,42 @@ function clonePreset(preset: (typeof presets.value)[number]) {
             </RouterLink>
           </TableCell>
           <TableCell>
-            {{ preset.spec.talos_version || `Automatic (${DefaultTalosVersion})` }}
+            <div class="flex items-center gap-2">
+              {{ preset.spec.talos_version || DefaultTalosVersion }}
+              <span v-if="!preset.spec.talos_version" class="resource-label label-green">
+                Automatic
+              </span>
+            </div>
+          </TableCell>
+          <TableCell>
+            <div class="flex items-center gap-2">
+              <template v-if="token">
+                {{ token.spec.name }}
+              </template>
+
+              <span v-else class="resource-label label-red flex items-center gap-1">
+                <TIcon icon="warning" />
+                Deleted
+              </span>
+
+              <span
+                v-if="token?.spec.state === JoinTokenStatusSpecState.REVOKED"
+                class="resource-label label-red flex items-center gap-1"
+              >
+                <TIcon icon="warning" />
+                {{ TCommonStatuses.REVOKED }}
+              </span>
+
+              <span
+                v-if="token?.spec.state === JoinTokenStatusSpecState.EXPIRED"
+                class="resource-label label-red flex items-center gap-1"
+              >
+                <TIcon icon="warning" />
+                {{ TCommonStatuses.EXPIRED }}
+              </span>
+
+              <span v-if="tokenAutomatic" class="resource-label label-green">Automatic</span>
+            </div>
           </TableCell>
           <TableCell>
             {{
