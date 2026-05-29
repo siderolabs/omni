@@ -15,7 +15,7 @@ services:
         condition: service_started
       minio-mc:
         condition: service_started
-      dlv-init:
+      runtime-tools-init:
         condition: service_completed_successfully
     volumes:
       - etcd:/_out/etcd
@@ -75,7 +75,8 @@ services:
     command: >-
       --sqlite-storage-path=/_out/secondary-storage/sqlite.db
 
-  dlv-init:
+  # The launcher is needed regardless of WITH_DEBUG.
+  runtime-tools-init:
     image: golang:1.26-alpine
     restart: on-failure
     volumes:
@@ -90,7 +91,7 @@ services:
         case '${WITH_DEBUG:-false}' in
           true|1)
             test -f /output/dlv || \
-              (CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@1.26.3 && cp /go/bin/dlv /output/)
+              (CGO_ENABLED=0 go install github.com/go-delve/delve/cmd/dlv@v1.26.3 && cp /go/bin/dlv /output/)
             ;;
         esac
 
