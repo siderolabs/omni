@@ -276,6 +276,8 @@ func defineLogsFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.P
 	b.IntVar("logs.machine.storage.maxLinesPerMachine", &flagConfig.Logs.Machine.Storage.MaxLinesPerMachine)
 	b.Uint64Var("logs.machine.storage.maxSize", &flagConfig.Logs.Machine.Storage.MaxSize)
 	b.Float64Var("logs.machine.storage.cleanupProbability", &flagConfig.Logs.Machine.Storage.CleanupProbability)
+	b.Uint64Var("logs.machine.ingestionRateLimitBytesPerSecond", &flagConfig.Logs.Machine.IngestionRateLimitBytesPerSecond)
+	b.Uint64Var("logs.machine.ingestionRateBurstBytes", &flagConfig.Logs.Machine.IngestionRateBurstBytes)
 
 	if err := rootCmd.Flags().MarkHidden(b.mustFlagName("logs.machine.storage.cleanupProbability")); err != nil {
 		return err

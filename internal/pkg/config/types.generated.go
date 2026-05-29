@@ -460,6 +460,14 @@ const LogsLevelInfo LogsLevel = "info"
 const LogsLevelWarn LogsLevel = "warn"
 
 type LogsMachine struct {
+	// IngestionRateBurstBytes is the maximum burst bytes for machine log ingestion
+	// from a single machine. Defaults to one second worth of rate when zero.
+	IngestionRateBurstBytes *uint64 `json:"ingestionRateBurstBytes,omitempty,omitzero" yaml:"ingestionRateBurstBytes,omitempty"`
+
+	// IngestionRateLimitBytesPerSecond is the maximum bytes per second of machine
+	// logs accepted from a single machine. Zero (default) disables rate limiting.
+	IngestionRateLimitBytesPerSecond *uint64 `json:"ingestionRateLimitBytesPerSecond,omitempty,omitzero" yaml:"ingestionRateLimitBytesPerSecond,omitempty"`
+
 	// Storage contains configuration for machine logs storage.
 	Storage LogsMachineStorage `json:"storage" yaml:"storage"`
 }

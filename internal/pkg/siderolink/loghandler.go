@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"net/netip"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
@@ -33,6 +34,14 @@ type LogHandlerOption func(*logHandlerOptions)
 
 type logHandlerOptions struct {
 	onCleanup func(int)
+	limiter   *LogIngestionLimiter
+}
+
+// WithLogIngestionLimiter sets a per-machine log ingestion limiter.
+func WithLogIngestionLimiter(limiter *LogIngestionLimiter) LogHandlerOption {
+	return func(o *logHandlerOptions) {
+		o.limiter = limiter
+	}
 }
 
 // WithLogHandlerCleanupCallback sets a callback that is called after cleanup with the number of deleted rows.
@@ -66,6 +75,7 @@ func NewLogHandler(secondaryStorageDB *sqlitexx.Pool, machineMap *MachineMap, om
 		omniState:  omniState,
 		cache:      cache,
 		logger:     logger,
+		limiter:    options.limiter,
 	}
 
 	return &handler, nil
@@ -77,6 +87,7 @@ type LogHandler struct {
 	machineMap *MachineMap
 	logger     *zap.Logger
 	cache      *MachineCache
+	limiter    *LogIngestionLimiter
 }
 
 // Start starts the LogHandler.
@@ -119,6 +130,10 @@ func (h *LogHandler) Start(ctx context.Context) error {
 					machineID := MachineID(event.Resource.Metadata().ID())
 
 					h.machineMap.RemoveByMachineID(machineID)
+
+					if h.limiter != nil {
+						h.limiter.Forget(machineID)
+					}
 
 					err := h.cache.remove(ctx, machineID)
 					if err != nil {
@@ -178,6 +193,12 @@ func (h *LogHandler) writeMessage(ctx context.Context, ip string, data []byte) e
 	id, err := h.machineMap.GetMachineID(ip)
 	if err != nil {
 		return fmt.Errorf("failed to get machine ID for ip address %q: %w", ip, err)
+	}
+
+	if h.limiter != nil {
+		if !h.limiter.Allow(time.Now(), id, len(data)) {
+			return nil
+		}
 	}
 
 	err = h.cache.WriteMessage(ctx, id, data)

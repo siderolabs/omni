@@ -123,6 +123,15 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	machineMap := siderolink.NewMachineMap(siderolink.NewStateStorage(state.Default()))
 
+	logIngestionLimiter := siderolink.NewLogIngestionLimiter(
+		cfg.Logs.Machine.GetIngestionRateLimitBytesPerSecond(),
+		cfg.Logs.Machine.GetIngestionRateBurstBytes(),
+		logger,
+	)
+	if logIngestionLimiter != nil {
+		prometheus.MustRegister(logIngestionLimiter)
+	}
+
 	logHandler, err := siderolink.NewLogHandler(
 		state.SecondaryStorageDB(),
 		machineMap,
@@ -130,6 +139,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		&cfg.Logs.Machine,
 		logger.With(logging.Component("siderolink_log_handler")),
 		siderolink.WithLogHandlerCleanupCallback(state.SQLiteMetrics().CleanupCallback(sqlite.SubsystemMachineLogs)),
+		siderolink.WithLogIngestionLimiter(logIngestionLimiter),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to set up log handler: %w", err)

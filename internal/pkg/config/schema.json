@@ -1132,6 +1132,28 @@
         "storage": {
           "description": "Storage contains configuration for machine logs storage.",
           "$ref": "#/definitions/LogsMachineStorage"
+        },
+        "ingestionRateLimitBytesPerSecond": {
+          "description": "IngestionRateLimitBytesPerSecond is the maximum bytes per second of machine logs accepted from a single machine. Zero (default) disables rate limiting.",
+          "x-cli-flag": "machine-log-ingestion-rate-limit-bps",
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "goJSONSchema": {
+            "type": "uint64",
+            "pointer": true
+          }
+        },
+        "ingestionRateBurstBytes": {
+          "description": "IngestionRateBurstBytes is the maximum burst bytes for machine log ingestion from a single machine. Defaults to one second worth of rate when zero.",
+          "x-cli-flag": "machine-log-ingestion-rate-burst-bytes",
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "goJSONSchema": {
+            "type": "uint64",
+            "pointer": true
+          }
         }
       }
     },

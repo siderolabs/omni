@@ -886,6 +886,28 @@ func (s *LogsAudit) SetSqliteTimeout(v time.Duration) {
 	s.SqliteTimeout = &v
 }
 
+func (s *LogsMachine) GetIngestionRateBurstBytes() uint64 {
+	if s == nil || s.IngestionRateBurstBytes == nil {
+		return *new(uint64)
+	}
+	return *s.IngestionRateBurstBytes
+}
+
+func (s *LogsMachine) SetIngestionRateBurstBytes(v uint64) {
+	s.IngestionRateBurstBytes = &v
+}
+
+func (s *LogsMachine) GetIngestionRateLimitBytesPerSecond() uint64 {
+	if s == nil || s.IngestionRateLimitBytesPerSecond == nil {
+		return *new(uint64)
+	}
+	return *s.IngestionRateLimitBytesPerSecond
+}
+
+func (s *LogsMachine) SetIngestionRateLimitBytesPerSecond(v uint64) {
+	s.IngestionRateLimitBytesPerSecond = &v
+}
+
 func (s *LogsMachineStorage) GetCleanupInterval() time.Duration {
 	if s == nil || s.CleanupInterval == nil {
 		return *new(time.Duration)

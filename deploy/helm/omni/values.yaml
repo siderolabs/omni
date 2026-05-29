@@ -378,6 +378,12 @@ config:
         #maxSize: 0
         # CleanupProbability is the probability of triggering the cleanup on each log write for that machine.
         #cleanupProbability: 0.01
+      # IngestionRateLimitBytesPerSecond is the maximum bytes per second of machine logs accepted from a single
+      # machine. Zero (default) disables rate limiting.
+      #ingestionRateLimitBytesPerSecond: 0
+      # IngestionRateBurstBytes is the maximum burst bytes for machine log ingestion from a single machine. Defaults
+      # to one second worth of rate when zero.
+      #ingestionRateBurstBytes: 0
     # Audit contains audit logs configuration.
     audit:
       # Enabled controls whether audit logging is enabled.
