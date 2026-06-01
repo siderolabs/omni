@@ -43,6 +43,7 @@ import { MachineFilterOption } from '@/methods/machine'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
+import MaintenanceUpdateModal from '@/views/Machines/components/MaintenanceUpdateModal.vue'
 import MachineDetailsPanel from '@/views/Machines/MachineDetailsPanel.vue'
 import MachineItem from '@/views/Machines/MachineItem.vue'
 
@@ -53,6 +54,9 @@ const { filter, provider } = defineProps<{
 
 const router = useRouter()
 const showUUID = useLocalStorage<'hostname' | 'uuid'>('_machines_list_show_uuid', 'hostname')
+
+const maintenaceUpdateModalOpen = ref(false)
+const maintenaceUpdateModalMachine = ref<string>()
 
 const { data: infraProviderStatuses } = useResourceWatch<InfraProviderStatusSpec>({
   resource: {
@@ -298,6 +302,12 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
           @update:selected="(v) => updateSelected(item, v)"
           @open-panel="openPanel(item.metadata.id ?? '')"
           @filter-labels="(label) => addLabel(filterLabels, label)"
+          @open-update-talos="
+            (machine) => {
+              maintenaceUpdateModalMachine = machine
+              maintenaceUpdateModalOpen = true
+            }
+          "
         />
       </template>
 
@@ -310,5 +320,11 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
         />
       </template>
     </TList>
+
+    <MaintenanceUpdateModal
+      v-if="maintenaceUpdateModalMachine"
+      v-model:open="maintenaceUpdateModalOpen"
+      :machine-id="maintenaceUpdateModalMachine"
+    />
   </PageContainer>
 </template>

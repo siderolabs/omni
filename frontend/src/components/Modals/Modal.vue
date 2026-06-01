@@ -33,6 +33,7 @@ const props = withDefaults(
       actionDisabled?: boolean
       actionHref?: string
       loading?: boolean
+      contentClass?: string
     }
   >(),
   { cancelLabel: 'Cancel' },
@@ -48,6 +49,7 @@ const dialogRootProps = reactiveOmit(
   'actionDisabled',
   'actionHref',
   'loading',
+  'contentClass',
 )
 const forwarded = useForwardPropsEmits(dialogRootProps, emit)
 </script>
@@ -60,9 +62,9 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
       />
 
       <DialogContent
-        class="fixed top-1/2 left-1/2 z-30 flex max-h-screen max-w-screen -translate-1/2 flex-col rounded-sm bg-naturals-n3 p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
+        class="fixed inset-0 z-30 m-auto flex h-max max-h-screen w-max max-w-screen flex-col rounded-sm bg-naturals-n3 p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
       >
-        <div class="mb-5 flex items-start justify-between gap-4">
+        <div class="mb-5 flex shrink-0 items-start justify-between gap-4">
           <div class="flex flex-col">
             <DialogTitle class="font-medium text-naturals-n14">{{ title }}</DialogTitle>
             <DialogDescription v-if="$slots.description" class="text-sm">
@@ -78,11 +80,11 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
           </DialogClose>
         </div>
 
-        <div class="overflow-y-auto">
+        <div class="min-h-0 grow overflow-y-auto" :class="contentClass">
           <slot></slot>
         </div>
 
-        <div class="mt-8 flex items-center justify-end gap-2">
+        <div class="mt-8 flex shrink-0 items-center justify-end gap-2">
           <DialogClose as-child>
             <TButton variant="secondary">{{ cancelLabel }}</TButton>
           </DialogClose>

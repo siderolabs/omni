@@ -38,6 +38,7 @@ const {
 
 defineEmits<{
   openPanel: []
+  openUpdateTalos: [machine: string]
   filterLabels: [Label]
 }>()
 
@@ -156,15 +157,7 @@ const maintenanceUpdateDescription = computed(() => {
             <button
               :disabled="!canDoMaintenanceUpdate"
               class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-naturals-n11 hover:not-disabled:bg-naturals-n4 hover:not-disabled:text-naturals-n14 disabled:opacity-40"
-              @click="
-                $router.push({
-                  query: {
-                    modal: 'maintenanceUpdate',
-                    machine: machine.metadata.id,
-                    cluster: clusterName,
-                  },
-                })
-              "
+              @click="$emit('openUpdateTalos', machine.metadata.id!)"
             >
               <span class="max-md:hidden">Update Talos</span>
               <TIcon icon="upgrade" aria-hidden="true" />

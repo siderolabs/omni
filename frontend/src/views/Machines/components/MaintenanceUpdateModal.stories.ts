@@ -11,7 +11,7 @@ import type { Resource } from '@/api/grpc'
 import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/resources'
 
-import MaintenanceUpdate from './MaintenanceUpdate.vue'
+import MaintenanceUpdate from './MaintenanceUpdateModal.vue'
 
 const talosVersions = faker.helpers
   .uniqueArray(
@@ -26,6 +26,10 @@ const talosVersions = faker.helpers
 
 const meta: Meta<typeof MaintenanceUpdate> = {
   component: MaintenanceUpdate,
+  args: {
+    open: true,
+    machineId: faker.string.uuid(),
+  },
 }
 
 export default meta

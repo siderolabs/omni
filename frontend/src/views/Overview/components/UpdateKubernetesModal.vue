@@ -7,8 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
 import * as semver from 'semver'
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
@@ -26,62 +25,63 @@ import {
   KubernetesVersionType,
   TalosVersionType,
 } from '@/api/resources'
-import TButton from '@/components/Button/TButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
-import TSpinner from '@/components/Spinner/TSpinner.vue'
+import Modal from '@/components/Modals/Modal.vue'
 import { getDocsLink } from '@/methods'
 import { upgradeKubernetes } from '@/methods/cluster'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import CloseButton from '@/views/Modals/CloseButton.vue'
 
-const route = useRoute()
-const router = useRouter()
+const { clusterName } = defineProps<{
+  clusterName: string
+}>()
+
+const open = defineModel<boolean>('open', { default: false })
 
 const runningPrechecks = ref(false)
 const preCheckError = ref('')
 const selectedVersion = ref('')
 
-const clusterName = computed(() => ('cluster' in route.params ? route.params.cluster : ''))
-
 const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
+  skip: !open.value,
   resource: {
     type: ClusterType,
     namespace: DefaultNamespace,
-    id: clusterName.value,
+    id: clusterName,
   },
   runtime: Runtime.Omni,
 }))
 
 const { data: status } = useResourceWatch<KubernetesUpgradeStatusSpec>(() => ({
+  skip: !open.value,
   resource: {
     namespace: DefaultNamespace,
     type: KubernetesUpgradeStatusType,
-    id: clusterName.value,
+    id: clusterName,
   },
   runtime: Runtime.Omni,
 }))
 
-const { data: allK8sVersions } = useResourceWatch<KubernetesVersionSpec>({
+const { data: allK8sVersions } = useResourceWatch<KubernetesVersionSpec>(() => ({
+  skip: !open.value,
   resource: {
     namespace: DefaultNamespace,
     type: KubernetesVersionType,
   },
   runtime: Runtime.Omni,
-})
+}))
 
-const { data: allTalosVersionsUnsorted } = useResourceWatch<TalosVersionSpec>({
+const { data: allTalosVersionsUnsorted } = useResourceWatch<TalosVersionSpec>(() => ({
+  skip: !open.value,
   resource: {
     type: TalosVersionType,
     namespace: DefaultNamespace,
   },
   runtime: Runtime.Omni,
-})
+}))
 
-watch(status, () => {
-  if (selectedVersion.value === '') {
-    selectedVersion.value = status.value?.spec.last_upgrade_version || ''
-  }
+watchEffect(() => {
+  if (open.value) selectedVersion.value = status.value?.spec.last_upgrade_version || ''
 })
 
 const supportedK8sVersions = computed(() =>
@@ -173,18 +173,6 @@ const action = computed(() => {
   return 'Unchanged'
 })
 
-let closed = false
-
-const close = () => {
-  if (closed) {
-    return
-  }
-
-  closed = true
-
-  router.go(-1)
-}
-
 const upgradeClick = async () => {
   runningPrechecks.value = true
   preCheckError.value = ''
@@ -194,13 +182,13 @@ const upgradeClick = async () => {
       {
         new_version: selectedVersion.value,
       },
-      withContext({ cluster: clusterName.value }),
+      withContext({ cluster: clusterName }),
     )
 
     if (response.ok) {
-      upgradeKubernetes(clusterName.value, selectedVersion.value)
+      upgradeKubernetes(clusterName, selectedVersion.value)
 
-      close()
+      open.value = false
     } else {
       preCheckError.value = response.reason!
     }
@@ -213,101 +201,96 @@ const upgradeClick = async () => {
 </script>
 
 <template>
-  <div class="modal-window my-4 flex max-h-screen flex-col gap-2">
-    <div class="mb-5 flex items-center justify-between text-xl text-naturals-n14">
-      <h3 class="text-base text-naturals-n14">Update Kubernetes</h3>
-      <CloseButton @click="close" />
+  <Modal
+    v-model:open="open"
+    title="Update Kubernetes"
+    :action-label="action"
+    :action-disabled="
+      !status || runningPrechecks || selectedVersion === status?.spec?.last_upgrade_version
+    "
+    :loading="runningPrechecks || !status"
+    content-class="flex min-h-0 max-w-xl flex-1 flex-col gap-2"
+    @confirm="upgradeClick"
+  >
+    <div class="shrink-0">
+      <ManagedByTemplatesWarning warning-style="popup" />
     </div>
-    <ManagedByTemplatesWarning warning-style="popup" />
-    <template v-if="status">
-      <RadioGroup
-        id="k8s-upgrade-version"
-        v-model="selectedVersion"
-        class="flex max-h-64 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
-      >
-        <template
-          v-for="(
-            { minTalosVersion, clusterSupportsGroup, upgradeable: groupUpgradeable, versions },
-            group
-          ) in groupedK8sVersions"
-          :key="group"
-        >
-          <RadioGroupLabel
-            as="div"
-            class="sticky top-0 w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold"
-          >
-            {{ group }}
-            {{
-              groupUpgradeable
-                ? ''
-                : clusterSupportsGroup
-                  ? " - Can't skip minor version upgrades"
-                  : ` - Requires Talos version ${minTalosVersion}`
-            }}
-          </RadioGroupLabel>
-          <div class="flex flex-col gap-1">
-            <RadioGroupOption
-              v-for="{ upgradeable, version } in versions"
-              :key="version"
-              v-slot="{ checked }"
-              :value="version"
-              :disabled="!upgradeable"
-            >
-              <div
-                class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
-                :class="{ 'bg-naturals-n4': checked }"
-              >
-                <TCheckbox
-                  :model-value="checked"
-                  class="pointer-events-none"
-                  :disabled="!upgradeable"
-                  @vue:mounted="
-                    ($event) =>
-                      checked && ($event.el as HTMLElement).scrollIntoView({ block: 'center' })
-                  "
-                />
-                {{ version }}
-                <span v-if="version === status.spec.last_upgrade_version">(current)</span>
-              </div>
-            </RadioGroupOption>
-          </div>
-        </template>
-      </RadioGroup>
-    </template>
 
-    <p class="text-xs">
+    <RadioGroup
+      v-if="status"
+      v-model="selectedVersion"
+      class="flex max-h-64 min-h-16 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
+    >
+      <template
+        v-for="(
+          { minTalosVersion, clusterSupportsGroup, upgradeable: groupUpgradeable, versions }, group
+        ) in groupedK8sVersions"
+        :key="group"
+      >
+        <RadioGroupLabel
+          as="div"
+          class="sticky top-0 w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold"
+        >
+          {{ group }}
+          {{
+            groupUpgradeable
+              ? ''
+              : clusterSupportsGroup
+                ? " - Can't skip minor version upgrades"
+                : ` - Requires Talos version ${minTalosVersion}`
+          }}
+        </RadioGroupLabel>
+        <div class="flex flex-col gap-1">
+          <RadioGroupOption
+            v-for="{ upgradeable, version } in versions"
+            :key="version"
+            v-slot="{ checked }"
+            :value="version"
+            :disabled="!upgradeable"
+          >
+            <div
+              class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
+              :class="{ 'bg-naturals-n4': checked }"
+            >
+              <TCheckbox
+                :model-value="checked"
+                class="pointer-events-none"
+                :disabled="!upgradeable"
+                @vue:mounted="
+                  ($event) =>
+                    checked && ($event.el as HTMLElement).scrollIntoView({ block: 'center' })
+                "
+              />
+              {{ version }}
+              <span v-if="version === status.spec.last_upgrade_version">(current)</span>
+            </div>
+          </RadioGroupOption>
+        </div>
+      </template>
+    </RadioGroup>
+
+    <p class="shrink-0 text-xs">
       Downgrading minor versions is not supported. You can not skip minor version upgrades. You can
       only upgrade to versions supported by your Talos version. See the
       <a class="link-primary" :href="k8sSupportMatrixDocsLink">support matrix</a>
       for which versions are supported by your Talos version.
     </p>
 
-    <p class="text-xs">
+    <p class="shrink-0 text-xs">
       Changing the Kubernetes version can result in control plane downtime. During this change you
       will be able to cancel the upgrade.
     </p>
-    <p class="text-xs">This operation starts immediately.</p>
+    <p class="shrink-0 text-xs">This operation starts immediately.</p>
 
-    <div v-if="runningPrechecks" class="text-xs text-primary-p3">
+    <div v-if="runningPrechecks" class="shrink-0 text-xs text-primary-p3">
       Running pre-checks to validate the upgrade...
     </div>
 
-    <div v-if="preCheckError" class="font-mono text-xs whitespace-pre-line text-primary-p3">
+    <div
+      v-if="preCheckError"
+      class="shrink-0 font-mono text-xs whitespace-pre-line text-primary-p3"
+    >
       {{ preCheckError }}
     </div>
-
-    <div class="flex justify-end gap-4">
-      <TButton
-        class="h-9 w-32"
-        :disabled="
-          !status || runningPrechecks || selectedVersion === status?.spec?.last_upgrade_version
-        "
-        variant="highlighted"
-        @click="upgradeClick"
-      >
-        <TSpinner v-if="runningPrechecks || !status" class="h-5 w-5" />
-        <span v-else>{{ action }}</span>
-      </TButton>
-    </div>
-  </div>
+  </Modal>
 </template>

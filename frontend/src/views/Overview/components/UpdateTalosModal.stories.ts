@@ -10,7 +10,7 @@ import * as semver from 'semver'
 import type { TalosUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, TalosUpgradeStatusType } from '@/api/resources'
 
-import UpdateTalos from './UpdateTalos.vue'
+import UpdateTalos from './UpdateTalosModal.vue'
 
 const upgrade_versions = faker.helpers
   .uniqueArray(
@@ -21,6 +21,10 @@ const upgrade_versions = faker.helpers
 
 const meta: Meta<typeof UpdateTalos> = {
   component: UpdateTalos,
+  args: {
+    open: true,
+    clusterName: 'talos-default',
+  },
 }
 
 export default meta

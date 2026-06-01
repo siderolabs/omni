@@ -7,46 +7,48 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
 import * as semver from 'semver'
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/resources'
-import TButton from '@/components/Button/TButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
-import TSpinner from '@/components/Spinner/TSpinner.vue'
+import Modal from '@/components/Modals/Modal.vue'
 import { majorMinorVersion } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
-import CloseButton from '@/views/Modals/CloseButton.vue'
 
-const router = useRouter()
-const route = useRoute()
+const { machineId } = defineProps<{
+  machineId: string
+}>()
+
+const open = defineModel<boolean>('open', { default: false })
 
 const selectedVersion = ref('')
 
-const { data: talosVersions, loading } = useResourceWatch<TalosVersionSpec>({
+const { data: talosVersions, loading } = useResourceWatch<TalosVersionSpec>(() => ({
+  skip: !open.value,
   resource: {
     type: TalosVersionType,
     namespace: DefaultNamespace,
   },
   runtime: Runtime.Omni,
-})
+}))
 
-const { data: machine } = useResourceWatch<MachineStatusSpec>({
+const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
+  skip: !open.value,
   resource: {
     type: MachineStatusType,
     namespace: DefaultNamespace,
-    id: route.query.machine as string,
+    id: machineId,
   },
   runtime: Runtime.Omni,
-})
+}))
 
-watch(machine, () => {
-  selectedVersion.value = machine.value?.spec.talos_version?.slice(1) ?? ''
+watchEffect(() => {
+  if (open.value) selectedVersion.value = machine.value?.spec.talos_version?.slice(1) ?? ''
 })
 
 const updating = ref(false)
@@ -69,18 +71,6 @@ const upgradeVersions = computed(() => {
     }, {})
 })
 
-let closed = false
-
-const close = () => {
-  if (closed) {
-    return
-  }
-
-  closed = true
-
-  router.go(-1)
-}
-
 const upgradeClick = async () => {
   if (machine.value?.spec.talos_version === `v${selectedVersion.value}`) {
     return
@@ -90,7 +80,7 @@ const upgradeClick = async () => {
 
   try {
     await ManagementService.MaintenanceUpgrade({
-      machine_id: route.query.machine as string,
+      machine_id: machineId,
       version: selectedVersion.value,
     })
   } catch (e) {
@@ -100,28 +90,34 @@ const upgradeClick = async () => {
   } finally {
     updating.value = false
 
-    close()
+    open.value = false
   }
 
   showSuccess(
     'The Machine Update Triggered',
-    `Machine ${route.query.machine} is being updated to Talos version ${selectedVersion.value}`,
+    `Machine ${machineId} is being updated to Talos version ${selectedVersion.value}`,
   )
 }
 </script>
 
 <template>
-  <div class="modal-window flex h-1/2 flex-col gap-2">
-    <div class="heading">
-      <h3 class="text-base text-naturals-n14">Update Talos on Node {{ $route.query.machine }}</h3>
-      <CloseButton @click="close" />
+  <Modal
+    v-model:open="open"
+    :title="`Update Talos on Node ${machineId}`"
+    action-label="Update"
+    :action-disabled="!talosVersions || updating"
+    :loading="!talosVersions || updating"
+    content-class="flex min-h-0 max-w-xl flex-1 flex-col gap-2"
+    @confirm="upgradeClick"
+  >
+    <div class="shrink-0">
+      <ManagedByTemplatesWarning warning-style="popup" />
     </div>
-    <ManagedByTemplatesWarning warning-style="popup" />
+
     <template v-if="!loading && machine">
       <RadioGroup
-        id="k8s-upgrade-version"
         v-model="selectedVersion"
-        class="flex flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
+        class="flex max-h-64 min-h-16 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
       >
         <template v-for="(versions, group) in upgradeVersions" :key="group">
           <RadioGroupLabel as="div" class="w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold">
@@ -147,29 +143,5 @@ const upgradeClick = async () => {
         </template>
       </RadioGroup>
     </template>
-    <div v-else class="flex-1" />
-
-    <div class="flex justify-end gap-4">
-      <TButton
-        class="h-9 w-32"
-        :disabled="!talosVersions || updating"
-        variant="highlighted"
-        @click="upgradeClick"
-      >
-        <TSpinner v-if="!talosVersions || updating" class="h-5 w-5" />
-        <span v-else>Update</span>
-      </TButton>
-    </div>
-  </div>
+  </Modal>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
-}
-optgroup {
-  @apply font-bold text-naturals-n14;
-}
-</style>

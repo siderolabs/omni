@@ -22,7 +22,7 @@ import {
   TalosVersionType,
 } from '@/api/resources'
 
-import UpdateKubernetes from './UpdateKubernetes.vue'
+import UpdateKubernetes from './UpdateKubernetesModal.vue'
 
 const k8sVersions = faker.helpers
   .uniqueArray(
@@ -43,6 +43,10 @@ const talosVersions = faker.helpers
 
 const meta: Meta<typeof UpdateKubernetes> = {
   component: UpdateKubernetes,
+  args: {
+    open: true,
+    clusterName: 'talos-default',
+  },
 }
 
 export default meta

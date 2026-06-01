@@ -7,7 +7,6 @@ included in the LICENSE file.
 <script setup lang="ts">
 import * as semver from 'semver'
 import { computed, markRaw, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -50,6 +49,8 @@ import DownloadSupportBundleModal from '@/views/Overview/components/OverviewRigh
 import OverviewOIDCToast from '@/views/Overview/components/OverviewRightPanel/OverviewOIDCToast.vue'
 import OverviewRightPanelCondition from '@/views/Overview/components/OverviewRightPanel/OverviewRightPanelCondition.vue'
 import OverviewRightPanelItem from '@/views/Overview/components/OverviewRightPanel/OverviewRightPanelItem.vue'
+import UpdateKubernetesModal from '@/views/Overview/components/UpdateKubernetesModal.vue'
+import UpdateTalosModal from '@/views/Overview/components/UpdateTalosModal.vue'
 
 const { clusterId, kubernetesUpgradeStatus, talosUpgradeStatus } = defineProps<{
   clusterId: string
@@ -57,8 +58,6 @@ const { clusterId, kubernetesUpgradeStatus, talosUpgradeStatus } = defineProps<{
   talosUpgradeStatus?: Resource<TalosUpgradeStatusSpec>
   etcdBackups?: BackupsStatus
 }>()
-
-const router = useRouter()
 
 const { data: clusterStatus } = useResourceWatch<ClusterStatusSpec>(() => ({
   runtime: Runtime.Omni,
@@ -194,21 +193,16 @@ const getVersion = (spec: { last_upgrade_version?: string; current_upgrade_versi
 }
 
 const openClusterUpdate = (type: Update, locked: boolean) => {
-  if (locked) {
-    return
+  if (locked) return
+
+  switch (type) {
+    case Update.Kubernetes:
+      if (canUpdateKubernetes.value) updateKubernetesModalOpen.value = true
+      break
+    case Update.Talos:
+      if (canUpdateTalos.value) updateTalosModalOpen.value = true
+      break
   }
-
-  if (type === Update.Kubernetes && !canUpdateKubernetes.value) {
-    return
-  }
-
-  if (type === Update.Talos && !canUpdateTalos.value) {
-    return
-  }
-
-  const modal = type === Update.Talos ? 'updateTalos' : 'updateKubernetes'
-
-  router.push({ query: { modal: modal, cluster: clusterStatus.value?.metadata.id } })
 }
 
 const locked = computed(() => {
@@ -239,6 +233,8 @@ const {
 
 const clusterDestroyModalOpen = ref(false)
 const downloadSupportBundleModalOpen = ref(false)
+const updateTalosModalOpen = ref(false)
+const updateKubernetesModalOpen = ref(false)
 </script>
 
 <template>
@@ -286,6 +282,12 @@ const downloadSupportBundleModalOpen = ref(false)
             @click="openClusterUpdate(Update.Talos, locked)"
           />
         </Tooltip>
+
+        <UpdateTalosModal
+          v-if="clusterStatus?.metadata.id"
+          v-model:open="updateTalosModalOpen"
+          :cluster-name="clusterStatus.metadata.id"
+        />
       </OverviewRightPanelItem>
       <OverviewRightPanelItem v-if="kubernetesUpgradeStatus" name="Kubernetes Version">
         <div>{{ kubernetesVersion }}</div>
@@ -303,6 +305,12 @@ const downloadSupportBundleModalOpen = ref(false)
             @click="openClusterUpdate(Update.Kubernetes, locked)"
           />
         </Tooltip>
+
+        <UpdateKubernetesModal
+          v-if="clusterStatus?.metadata.id"
+          v-model:open="updateKubernetesModalOpen"
+          :cluster-name="clusterStatus.metadata.id"
+        />
       </OverviewRightPanelItem>
     </div>
     <template v-if="clusterStatus?.spec">
