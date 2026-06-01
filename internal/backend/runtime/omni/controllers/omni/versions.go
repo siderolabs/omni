@@ -30,8 +30,8 @@ import (
 )
 
 var (
-	// minK8sVersion sets minimum Kubernetes version for building the list of versions.
-	minK8sVersion = semver.MustParse(consts.MinKubernetesVersion)
+	// minDiscoveredK8sVersion sets minimum Kubernetes version for building the list of versions.
+	minDiscoveredK8sVersion = semver.MustParse(consts.MinDiscoveredKubernetesVersion)
 	// minDiscoveredTalosVersion sets minimum Talos version for building the list of versions.
 	minDiscoveredTalosVersion = semver.MustParse(consts.MinDiscoveredTalosVersion)
 	// minTalosVersion sets minimum Talos version which are not deprecated.
@@ -305,7 +305,7 @@ func (ctrl *VersionsController) reconcileKubernetesVersions(ctx context.Context,
 		return nil, err
 	}
 
-	versions := ctrl.getVersionsAfter(allVersions, minK8sVersion, false)
+	versions := ctrl.getVersionsAfter(allVersions, minDiscoveredK8sVersion, false)
 
 	for _, v := range versions {
 		k8sVersion := omni.NewKubernetesVersion(v)

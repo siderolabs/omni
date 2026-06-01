@@ -33,8 +33,8 @@ const DefaultTalosVersion = constants.DefaultTalosVersion
 // AnotherKubernetesVersion is used in the integration tests for Kubernetes upgrade.
 const AnotherKubernetesVersion = "1.35.4"
 
-// MinKubernetesVersion allowed to be used when creating the cluster.
-const MinKubernetesVersion = "1.27.0"
+// MinDiscoveredKubernetesVersion makes Omni pull the versions from this point.
+const MinDiscoveredKubernetesVersion = "1.23.0"
 
 // DenylistedTalosVersions is a list of versions which should never show up in the version picker.
 var DenylistedTalosVersions = Denylist{
