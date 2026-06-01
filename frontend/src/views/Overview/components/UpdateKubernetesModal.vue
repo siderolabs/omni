@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
-import * as semver from 'semver'
+import { compare, gte, parse, satisfies } from 'semver'
 import { computed, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -88,7 +88,7 @@ const supportedK8sVersions = computed(() =>
   (status.value?.spec.upgrade_versions ?? [])
     .concat(status.value?.spec.last_upgrade_version ?? '')
     .filter((v) => !!v)
-    .sort(semver.compare),
+    .sort(compare),
 )
 
 interface VersionGroup {
@@ -108,9 +108,9 @@ const groupedK8sVersions = computed(() => {
   )
 
   return allK8sVersions.value
-    .map((v) => semver.parse(v.spec.version, false, true))
-    .sort(semver.compare)
-    .filter((v) => semver.gte(v, oldestSupportedVersion))
+    .map((v) => parse(v.spec.version, false, true))
+    .sort((a, b) => compare(b, a))
+    .filter((v) => gte(v, oldestSupportedVersion))
     .reduce<Record<string, VersionGroup>>((result, parsed) => {
       const { major, minor } = parsed
       const version = parsed.format()
@@ -120,11 +120,11 @@ const groupedK8sVersions = computed(() => {
       result[majorMinor] ||= {
         clusterSupportsGroup:
           clusterTalosVersion?.spec.compatible_kubernetes_versions?.some((v) =>
-            semver.satisfies(v, majorMinor),
+            satisfies(v, majorMinor),
           ) ?? false,
         minTalosVersion:
           allTalosVersions.value.find((v) =>
-            v.spec.compatible_kubernetes_versions?.some((v) => semver.satisfies(v, majorMinor)),
+            v.spec.compatible_kubernetes_versions?.some((v) => satisfies(v, majorMinor)),
           )?.spec.version ?? 'unknown',
         upgradeable: isVersionUpgradeable(`${major}.${minor}.0`),
         versions: [],
@@ -143,9 +143,7 @@ const groupedK8sVersions = computed(() => {
 })
 
 const allTalosVersions = computed(() =>
-  allTalosVersionsUnsorted.value.toSorted((a, b) =>
-    semver.compare(a.spec.version!, b.spec.version!),
-  ),
+  allTalosVersionsUnsorted.value.toSorted((a, b) => compare(b.spec.version!, a.spec.version!)),
 )
 
 function isVersionUpgradeable(version: string) {
@@ -163,7 +161,7 @@ const action = computed(() => {
     return 'Loading...'
   }
 
-  switch (semver.compare(selectedVersion.value, status.value.spec.last_upgrade_version ?? '')) {
+  switch (compare(selectedVersion.value, status.value.spec.last_upgrade_version ?? '')) {
     case 1:
       return 'Upgrade'
     case -1:

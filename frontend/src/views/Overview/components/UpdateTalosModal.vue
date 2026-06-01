@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
-import * as semver from 'semver'
+import { compare } from 'semver'
 import { computed, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -48,7 +48,7 @@ const upgradeVersions = computed(() => {
   const sorted = [
     ...status.value.spec.upgrade_versions,
     status.value.spec.last_upgrade_version ?? '',
-  ].sort(semver.compare)
+  ].sort((a, b) => compare(b, a))
 
   const result: Record<string, string[]> = {}
 
@@ -70,7 +70,7 @@ const action = computed(() => {
     return 'Loading...'
   }
 
-  switch (semver.compare(selectedVersion.value, status.value.spec.last_upgrade_version ?? '')) {
+  switch (compare(selectedVersion.value, status.value.spec.last_upgrade_version ?? '')) {
     case 1:
       return 'Upgrade'
     case -1:
@@ -121,7 +121,14 @@ const upgradeClick = async () => {
               class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
               :class="{ 'bg-naturals-n4': checked }"
             >
-              <TCheckbox :model-value="checked" class="pointer-events-none" />
+              <TCheckbox
+                :model-value="checked"
+                class="pointer-events-none"
+                @vue:mounted="
+                  ($event) =>
+                    checked && ($event.el as HTMLElement).scrollIntoView({ block: 'center' })
+                "
+              />
               {{ version }}
               <span v-if="version === status.spec.last_upgrade_version">(current)</span>
             </div>

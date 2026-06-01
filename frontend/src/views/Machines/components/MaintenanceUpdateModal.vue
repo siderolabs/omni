@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
-import * as semver from 'semver'
+import { compare } from 'semver'
 import { computed, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -56,7 +56,7 @@ const updating = ref(false)
 const upgradeVersions = computed(() => {
   return talosVersions.value
     .filter((v) => !v.spec.deprecated)
-    .sort((a, b) => semver.compare(a.metadata.id ?? '', b.metadata.id ?? ''))
+    .sort((a, b) => compare(b.metadata.id ?? '', a.metadata.id ?? ''))
     .reduce<Record<string, string[]>>((result, version) => {
       const versionId = version.metadata.id
 
@@ -134,7 +134,14 @@ const upgradeClick = async () => {
                 class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
                 :class="{ 'bg-naturals-n4': checked }"
               >
-                <TCheckbox :model-value="checked" class="pointer-events-none" />
+                <TCheckbox
+                  :model-value="checked"
+                  class="pointer-events-none"
+                  @vue:mounted="
+                    ($event) =>
+                      checked && ($event.el as HTMLElement).scrollIntoView({ block: 'center' })
+                  "
+                />
                 {{ version }}
                 <span v-if="version === machine.spec.talos_version?.slice(1)">(current)</span>
               </div>
