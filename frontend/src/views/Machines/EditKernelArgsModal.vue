@@ -132,7 +132,11 @@ async function updateKernelArgs() {
         </div>
       </div>
 
-      <TInput v-model="args" class="h-full flex-1 font-mono" placeholder="none" />
+      <TInput
+        v-model="args"
+        class="max-w-full min-w-70 font-mono sm:min-w-80 md:min-w-100 [&_input]:field-sizing-content"
+        placeholder="none"
+      />
     </div>
   </Modal>
 </template>
