@@ -31,6 +31,7 @@ import Modal from '@/components/Modals/Modal.vue'
 import { getDocsLink } from '@/methods'
 import { upgradeKubernetes } from '@/methods/cluster'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import { showError } from '@/notification'
 
 const { clusterName } = defineProps<{
   clusterName: string
@@ -39,7 +40,6 @@ const { clusterName } = defineProps<{
 const open = defineModel<boolean>('open', { default: false })
 
 const runningPrechecks = ref(false)
-const preCheckError = ref('')
 const selectedVersion = ref('')
 
 const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
@@ -52,15 +52,17 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
   runtime: Runtime.Omni,
 }))
 
-const { data: status } = useResourceWatch<KubernetesUpgradeStatusSpec>(() => ({
-  skip: !open.value,
-  resource: {
-    namespace: DefaultNamespace,
-    type: KubernetesUpgradeStatusType,
-    id: clusterName,
-  },
-  runtime: Runtime.Omni,
-}))
+const { data: status, loading: statusLoading } = useResourceWatch<KubernetesUpgradeStatusSpec>(
+  () => ({
+    skip: !open.value,
+    resource: {
+      namespace: DefaultNamespace,
+      type: KubernetesUpgradeStatusType,
+      id: clusterName,
+    },
+    runtime: Runtime.Omni,
+  }),
+)
 
 const { data: allK8sVersions } = useResourceWatch<KubernetesVersionSpec>(() => ({
   skip: !open.value,
@@ -173,7 +175,6 @@ const action = computed(() => {
 
 const upgradeClick = async () => {
   runningPrechecks.value = true
-  preCheckError.value = ''
 
   try {
     const response = await ManagementService.KubernetesUpgradePreChecks(
@@ -183,18 +184,18 @@ const upgradeClick = async () => {
       withContext({ cluster: clusterName }),
     )
 
-    if (response.ok) {
-      upgradeKubernetes(clusterName, selectedVersion.value)
-
-      open.value = false
-    } else {
-      preCheckError.value = response.reason!
+    if (!response.ok) {
+      throw new Error(response.reason)
     }
-  } catch (e) {
-    preCheckError.value = e.message || e.toString()
-  }
 
-  runningPrechecks.value = false
+    await upgradeKubernetes(clusterName, selectedVersion.value)
+
+    open.value = false
+  } catch (e) {
+    showError(e instanceof Error ? e.message : String(e))
+  } finally {
+    runningPrechecks.value = false
+  }
 }
 </script>
 
@@ -206,7 +207,7 @@ const upgradeClick = async () => {
     :action-disabled="
       !status || runningPrechecks || selectedVersion === status?.spec?.last_upgrade_version
     "
-    :loading="runningPrechecks || !status"
+    :loading="statusLoading || runningPrechecks"
     content-class="flex min-h-0 max-w-xl flex-1 flex-col gap-2"
     @confirm="upgradeClick"
   >
@@ -282,13 +283,6 @@ const upgradeClick = async () => {
 
     <div v-if="runningPrechecks" class="shrink-0 text-xs text-primary-p3">
       Running pre-checks to validate the upgrade...
-    </div>
-
-    <div
-      v-if="preCheckError"
-      class="shrink-0 font-mono text-xs whitespace-pre-line text-primary-p3"
-    >
-      {{ preCheckError }}
     </div>
   </Modal>
 </template>

@@ -18,6 +18,7 @@ import Modal from '@/components/Modals/Modal.vue'
 import { majorMinorVersion } from '@/methods'
 import { updateTalos } from '@/methods/cluster'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import { showError } from '@/notification'
 
 const { clusterName } = defineProps<{
   clusterName: string
@@ -25,8 +26,9 @@ const { clusterName } = defineProps<{
 
 const open = defineModel<boolean>('open', { default: false })
 const selectedVersion = ref('')
+const updating = ref(false)
 
-const { data: status } = useResourceWatch<TalosUpgradeStatusSpec>(() => ({
+const { data: status, loading: statusLoading } = useResourceWatch<TalosUpgradeStatusSpec>(() => ({
   skip: !open.value,
   resource: {
     namespace: DefaultNamespace,
@@ -81,9 +83,17 @@ const action = computed(() => {
 })
 
 const upgradeClick = async () => {
-  updateTalos(clusterName, selectedVersion.value)
+  updating.value = true
 
-  open.value = false
+  try {
+    await updateTalos(clusterName, selectedVersion.value)
+
+    open.value = false
+  } catch (e) {
+    showError(e instanceof Error ? e.message : String(e))
+  } finally {
+    updating.value = false
+  }
 }
 </script>
 
@@ -93,7 +103,7 @@ const upgradeClick = async () => {
     title="Update Talos"
     :action-label="action"
     :action-disabled="!status || selectedVersion === status?.spec?.last_upgrade_version"
-    :loading="!status"
+    :loading="statusLoading || updating"
     content-class="flex min-h-0 max-w-xl flex-1 flex-col gap-2"
     @confirm="upgradeClick"
   >

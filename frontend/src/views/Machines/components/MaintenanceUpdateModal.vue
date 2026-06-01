@@ -28,14 +28,16 @@ const open = defineModel<boolean>('open', { default: false })
 
 const selectedVersion = ref('')
 
-const { data: talosVersions, loading } = useResourceWatch<TalosVersionSpec>(() => ({
-  skip: !open.value,
-  resource: {
-    type: TalosVersionType,
-    namespace: DefaultNamespace,
-  },
-  runtime: Runtime.Omni,
-}))
+const { data: talosVersions, loading: talosVersionsLoading } = useResourceWatch<TalosVersionSpec>(
+  () => ({
+    skip: !open.value,
+    resource: {
+      type: TalosVersionType,
+      namespace: DefaultNamespace,
+    },
+    runtime: Runtime.Omni,
+  }),
+)
 
 const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
   skip: !open.value,
@@ -106,7 +108,7 @@ const upgradeClick = async () => {
     :title="`Update Talos on Node ${machineId}`"
     action-label="Update"
     :action-disabled="!talosVersions || updating"
-    :loading="!talosVersions || updating"
+    :loading="talosVersionsLoading || updating"
     content-class="flex min-h-0 max-w-xl flex-1 flex-col gap-2"
     @confirm="upgradeClick"
   >
@@ -114,7 +116,7 @@ const upgradeClick = async () => {
       <ManagedByTemplatesWarning warning-style="popup" />
     </div>
 
-    <template v-if="!loading && machine">
+    <template v-if="!talosVersionsLoading && machine">
       <RadioGroup
         v-model="selectedVersion"
         class="flex max-h-64 min-h-16 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
