@@ -139,6 +139,23 @@ func clusterMachineStageString(phase specs.ClusterMachineStatusSpec_Stage) strin
 	return c(phaseString)
 }
 
+func clusterMachineNodeNameString(clusterMachine *omni.ClusterMachineStatus) string {
+	nodename, _ := clusterMachine.Metadata().Labels().Get(omni.ClusterMachineStatusLabelNodeName)
+	if nodename == "" {
+		return ""
+	}
+
+	return color.CyanString("(%s)", nodename)
+}
+
+func clusterMachineLockedString(clusterMachine *omni.ClusterMachineStatus) string {
+	if _, locked := clusterMachine.Metadata().Annotations().Get(omni.MachineLocked); !locked {
+		return ""
+	}
+
+	return " " + color.BlueString("Locked")
+}
+
 func clusterMachineConnected(clusterMachine *omni.ClusterMachineStatus) string {
 	_, connected := clusterMachine.Metadata().Labels().Get(omni.MachineStatusLabelConnected)
 	if connected {
@@ -158,7 +175,7 @@ func clusterMachineConfigOutdated(outdated bool) string {
 
 func clusterMachineConfigStatus(node *omni.ClusterMachineStatus) string {
 	if _, locked := node.Metadata().Labels().Get(omni.UpdateLocked); locked {
-		return " " + color.BlueString("Pending Config Update (Machine Locked)")
+		return " " + color.BlueString("Pending Config Update")
 	}
 
 	switch node.TypedSpec().Value.ConfigApplyStatus {

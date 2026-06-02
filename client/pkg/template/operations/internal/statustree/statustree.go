@@ -58,12 +58,14 @@ func (t NodeWrapper) String() string {
 		)
 	case *omni.ClusterMachineStatus:
 		return fmt.Sprintf(
-			"%s %q %s%s%s%s%s",
+			"%s %q%s %s%s%s%s%s%s",
 			color.YellowString("Machine"),
 			node.Metadata().ID(),
+			clusterMachineNodeNameString(node),
 			clusterMachineStageString(node.TypedSpec().Value.Stage),
 			clusterMachineReadyString(node),
 			clusterMachineConnected(node),
+			clusterMachineLockedString(node),
 			clusterMachineConfigOutdated(!node.TypedSpec().Value.ConfigUpToDate),
 			clusterMachineConfigStatus(node),
 		)
