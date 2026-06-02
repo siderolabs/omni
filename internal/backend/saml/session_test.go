@@ -17,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	csaml "github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
+	dsig "github.com/russellhaering/goxmldsig"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -62,6 +63,7 @@ func TestUserInfo(t *testing.T) {
 	} {
 		t.Run(tt.file, func(t *testing.T) {
 			fakeTime = tt.time
+			csaml.Clock = dsig.NewFakeClockAt(csaml.TimeNow())
 
 			rootURL, err := url.Parse(tt.rootURL)
 			require.NoError(t, err)
