@@ -302,6 +302,7 @@ export type MachineStatusSpecPlatformMetadata = {
   instance_id?: string
   provider_id?: string
   spot?: boolean
+  tags?: {[key: string]: string}
 }
 
 export type MachineStatusSpecSchematicInitialState = {
