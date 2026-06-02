@@ -3,11 +3,12 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package omni
+package schematic
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -25,69 +26,45 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 )
 
-// SchematicConfigurationControllerName is the name of the SchematicConfiguration controller.
-const SchematicConfigurationControllerName = "SchematicConfigurationController"
+// ConfigurationControllerName is the name of the SchematicConfiguration controller.
+const ConfigurationControllerName = "SchematicConfigurationController"
 
-// SchematicConfigurationController combines MachineExtensions resource, MachineStatus overlay into SchematicConfiguration for each existing MachineStatus.
+// Ensurer can ensure a schematic exists in the image factory, i.e., an image factory client.
+type Ensurer interface {
+	EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error)
+}
+
+// ConfigurationController combines MachineExtensions resource, MachineStatus overlay into SchematicConfiguration for each existing MachineStatus.
 // Ensures schematic exists in the image factory.
-type SchematicConfigurationController = qtransform.QController[*omni.MachineStatus, *omni.SchematicConfiguration]
+type ConfigurationController struct {
+	*qtransform.QController[*omni.MachineStatus, *omni.SchematicConfiguration]
+	imageFactoryClient Ensurer
+}
 
-// NewSchematicConfigurationController initializes SchematicConfigurationController.
-func NewSchematicConfigurationController(imageFactoryClient ImageFactoryClient) *SchematicConfigurationController {
-	helper := &schematicConfigurationHelper{
+// NewConfigurationController initializes SchematicConfigurationController.
+func NewConfigurationController(imageFactoryClient Ensurer) *ConfigurationController {
+	ctrl := &ConfigurationController{
 		imageFactoryClient: imageFactoryClient,
 	}
 
-	return qtransform.NewQController(
+	ctrl.QController = qtransform.NewQController(
 		qtransform.Settings[*omni.MachineStatus, *omni.SchematicConfiguration]{
-			Name: SchematicConfigurationControllerName,
+			Name: ConfigurationControllerName,
 			MapMetadataFunc: func(machineStatus *omni.MachineStatus) *omni.SchematicConfiguration {
 				return omni.NewSchematicConfiguration(machineStatus.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(schematicConfiguration *omni.SchematicConfiguration) *omni.MachineStatus {
 				return omni.NewMachineStatus(schematicConfiguration.Metadata().ID())
 			},
-			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger,
-				machineStatus *omni.MachineStatus, schematicConfiguration *omni.SchematicConfiguration,
-			) error {
-				status, err := helper.reconcile(ctx, r, machineStatus, schematicConfiguration)
-				if err != nil {
-					return err
-				}
-
-				return safe.WriterModify(ctx, r, status, func(r *omni.MachineExtensionsStatus) error {
-					helpers.CopyAllLabels(status, r)
-
-					r.TypedSpec().Value = status.TypedSpec().Value
-
-					return nil
-				})
-			},
-			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, machineStatus *omni.MachineStatus) error {
-				statusMD := omni.NewMachineExtensionsStatus(machineStatus.Metadata().ID()).Metadata()
-
-				ready, err := helpers.TeardownAndDestroy(ctx, r, statusMD)
-				if err != nil {
-					return err
-				}
-
-				if !ready {
-					return nil
-				}
-
-				err = r.RemoveFinalizer(ctx, omni.NewMachineExtensions(machineStatus.Metadata().ID()).Metadata(), SchematicConfigurationControllerName)
-				if err != nil && !state.IsNotFoundError(err) {
-					return err
-				}
-
-				return nil
-			},
+			TransformExtraOutputFunc:        ctrl.transform,
+			FinalizerRemovalExtraOutputFunc: ctrl.finalizerRemoval,
 		},
 		qtransform.WithExtraMappedInput[*omni.ClusterMachine](
 			qtransform.MapperSameID[*omni.MachineStatus](),
@@ -127,46 +104,50 @@ func NewSchematicConfigurationController(imageFactoryClient ImageFactoryClient) 
 			},
 		),
 	)
+
+	return ctrl
 }
 
-type schematicConfigurationHelper struct {
-	imageFactoryClient ImageFactoryClient
+func (ctrl *ConfigurationController) saveMachineExtensionStatus(ctx context.Context, r controller.ReaderWriter, status *omni.MachineExtensionsStatus) error {
+	return safe.WriterModify(ctx, r, omni.NewMachineExtensionsStatus(status.Metadata().ID()), func(res *omni.MachineExtensionsStatus) error {
+		helpers.CopyAllLabels(status, res)
+
+		res.TypedSpec().Value = status.TypedSpec().Value
+
+		return nil
+	})
 }
 
-// Reconcile implements controller.QController interface.
-func (helper *schematicConfigurationHelper) reconcile(
-	ctx context.Context,
-	r controller.ReaderWriter,
-	ms *omni.MachineStatus,
-	schematicConfiguration *omni.SchematicConfiguration,
-) (*omni.MachineExtensionsStatus, error) {
+func (ctrl *ConfigurationController) transform(ctx context.Context, r controller.ReaderWriter,
+	_ *zap.Logger, ms *omni.MachineStatus, schematicConfiguration *omni.SchematicConfiguration,
+) error {
 	machineExtensions, err := safe.ReaderGetByID[*omni.MachineExtensions](ctx, r, ms.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
-		return nil, err
+		return err
 	}
 
 	if machineExtensions != nil {
-		if err = updateFinalizers(ctx, r, machineExtensions); err != nil {
-			return nil, err
+		if err = ctrl.updateFinalizers(ctx, r, machineExtensions); err != nil {
+			return err
 		}
 	}
 
 	if !ms.TypedSpec().Value.SchematicReady() {
-		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("schematic is not yet ready")
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("schematic is not yet ready")
 	}
 
 	securityState := ms.TypedSpec().Value.SecurityState
 	if securityState == nil {
-		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("security state is not yet available")
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("security state is not yet available")
 	}
 
 	if ms.TypedSpec().Value.TalosVersion == "" {
-		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine Talos version is not yet available")
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine Talos version is not yet available")
 	}
 
 	cm, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, ms.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
-		return nil, err
+		return err
 	}
 
 	var (
@@ -178,11 +159,11 @@ func (helper *schematicConfigurationHelper) reconcile(
 	if cm != nil && cm.Metadata().Phase() == resource.PhaseRunning { // machine is allocated to a cluster
 		clusterName, ok := cm.Metadata().Labels().Get(omni.LabelCluster)
 		if !ok {
-			return nil, errors.New("failed to determine cluster")
+			return errors.New("failed to determine cluster")
 		}
 
 		if cluster, err = safe.ReaderGetByID[*omni.Cluster](ctx, r, clusterName); err != nil {
-			return nil, err
+			return err
 		}
 
 		talosVersion = cluster.TypedSpec().Value.TalosVersion
@@ -199,70 +180,88 @@ func (helper *schematicConfigurationHelper) reconcile(
 
 	machineExtensionsStatus.TypedSpec().Value.TalosVersion = "v" + talosVersion
 
-	overlay := getOverlay(ms.TypedSpec().Value.Schematic)
+	// Invalid machines bypassed the image factory entirely (extensions baked into a custom Talos build).
+	// They have no usable schematic info, but downstream controllers still need a SchematicConfiguration
+	// resource to exist so the install image / config generation pipeline runs. Emit a minimal one and
+	// let the downstream's existing Invalid handling (installimage.Build falls back to talosRegistry:version,
+	// ReconciliationContext skips schematic mismatch) take over.
+	if ms.TypedSpec().Value.Schematic.Invalid {
+		schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
+		schematicConfiguration.TypedSpec().Value.SchematicId = ""
+
+		return ctrl.saveMachineExtensionStatus(ctx, r, machineExtensionsStatus)
+	}
+
+	rawSchematic := ms.TypedSpec().Value.Schematic.GetRaw()
+	if rawSchematic == "" {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine schematic raw YAML is not yet available")
+	}
 
 	kernelArgs, err := determineKernelArgs(ctx, ms, r)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	customization, err := newMachineCustomization(ctx, r, ms, cluster)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
 
-	config := schematic.Schematic{
-		Customization: schematic.Customization{
-			SystemExtensions: schematic.SystemExtensions{
-				OfficialExtensions: customization.extensionsList,
-			},
-			ExtraKernelArgs: kernelArgs,
-			Meta:            customization.meta,
-		},
-		Overlay: overlay,
-	}
-
-	id, err := config.ID()
+	// Patch only the fields Omni manages (extensions list, kernel args). Everything else
+	// the user/factory put into the schematic (owner, secureboot, bootloader, meta,
+	// overlay incl. options, future fields) is preserved by going through the raw YAML
+	// the machine reports.
+	patched, err := imagefactory.PatchSchematic(rawSchematic, customization.extensionsList, kernelArgs)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to patch schematic: %w", err)
 	}
 
-	if _, err = helper.imageFactoryClient.EnsureSchematic(ctx, config); err != nil {
-		return nil, err
+	// TODO(preserve-schematic): when the patched schematic is content-equal to the
+	// source raw (i.e. no Omni-driven customization changed anything), short-circuit
+	// the factory call and publish ms.Schematic.FullId directly.
+	id, _, err := ctrl.imageFactoryClient.EnsureSchematic(ctx, patched)
+	if err != nil {
+		return err
 	}
 
 	schematicConfiguration.TypedSpec().Value.SchematicId = id
-	schematicConfiguration.TypedSpec().Value.KernelArgs = kernelArgs
 	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, &customization)
 
-	return machineExtensionsStatus, nil
+	return ctrl.saveMachineExtensionStatus(ctx, r, machineExtensionsStatus)
 }
 
-func getOverlay(schematicConfig *specs.MachineStatusSpec_Schematic) schematic.Overlay {
-	if schematicConfig.Overlay == nil {
-		return schematic.Overlay{}
+func (ctrl *ConfigurationController) finalizerRemoval(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, machineStatus *omni.MachineStatus) error {
+	statusMD := omni.NewMachineExtensionsStatus(machineStatus.Metadata().ID()).Metadata()
+
+	ready, err := helpers.TeardownAndDestroy(ctx, r, statusMD)
+	if err != nil {
+		return err
 	}
 
-	overlay := schematicConfig.Overlay
-
-	return schematic.Overlay{
-		Name:  overlay.Name,
-		Image: overlay.Image,
-	}
-}
-
-func updateFinalizers(ctx context.Context, r controller.ReaderWriter, extensions *omni.MachineExtensions) error {
-	if extensions.Metadata().Phase() == resource.PhaseTearingDown {
-		return r.RemoveFinalizer(ctx, extensions.Metadata(), SchematicConfigurationControllerName)
-	}
-
-	if extensions.Metadata().Finalizers().Has(SchematicConfigurationControllerName) {
+	if !ready {
 		return nil
 	}
 
-	return r.AddFinalizer(ctx, extensions.Metadata(), SchematicConfigurationControllerName)
+	err = r.RemoveFinalizer(ctx, omni.NewMachineExtensions(machineStatus.Metadata().ID()).Metadata(), ConfigurationControllerName)
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	return nil
+}
+
+func (ctrl *ConfigurationController) updateFinalizers(ctx context.Context, r controller.ReaderWriter, extensions *omni.MachineExtensions) error {
+	if extensions.Metadata().Phase() == resource.PhaseTearingDown {
+		return r.RemoveFinalizer(ctx, extensions.Metadata(), ConfigurationControllerName)
+	}
+
+	if extensions.Metadata().Finalizers().Has(ctrl.Name()) {
+		return nil
+	}
+
+	return r.AddFinalizer(ctx, extensions.Metadata(), ctrl.Name())
 }
 
 // newMachineCustomization creates a new machineCustomization based on the given machine status and cluster.
@@ -275,16 +274,6 @@ func newMachineCustomization(ctx context.Context, r controller.Reader, ms *omni.
 		machineStatus: ms,
 		cluster:       cluster,
 	}
-
-	// Leave meta values as-is to prevent any unwanted upgrades.
-	// They are no-op for non-UKI machines, but we still preserve them to not cause a schematic ID change, which would upgrade (reboot) the machine.
-	mc.meta = xslices.Map(ms.TypedSpec().Value.Schematic.MetaValues,
-		func(v *specs.MetaValue) schematic.MetaValue {
-			return schematic.MetaValue{
-				Key:   uint8(v.GetKey()),
-				Value: v.GetValue(),
-			}
-		})
 
 	if cluster == nil {
 		// The machine is not allocated to a cluster, we simply preserve the existing extensions of the machine.
@@ -349,7 +338,6 @@ type machineCustomization struct {
 	cluster            *omni.Cluster
 	extensionsList     []string
 	detectedExtensions []string
-	meta               []schematic.MetaValue
 }
 
 func determineKernelArgs(ctx context.Context, machineStatus *omni.MachineStatus, r controller.Reader) ([]string, error) {

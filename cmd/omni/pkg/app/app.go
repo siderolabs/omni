@@ -83,7 +83,6 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 	}
 
 	imageFactoryClient, err := imagefactory.NewClient(
-		state.Default(),
 		cfg.Registries.GetImageFactoryBaseURL(),
 		cfg.Registries.GetImageFactoryUsername(),
 		cfg.Registries.GetImageFactoryPassword(),

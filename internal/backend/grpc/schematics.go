@@ -108,18 +108,18 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return nil, err
 	}
 
-	schematicInfo, err := s.imageFactoryClient.EnsureSchematic(ctx, schematicRequest)
+	schematicID, schematicData, err := s.imageFactoryClient.EnsureSchematic(ctx, schematicRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure schematic: %w", err)
 	}
 
-	schematicYML, err := yaml.Marshal(schematicInfo.Data)
+	schematicYML, err := schematicData.Marshal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal schematic YAML: %w", err)
 	}
 
 	return &management.CreateSchematicResponse{
-		SchematicId:       schematicInfo.FullID,
+		SchematicId:       schematicID,
 		SchematicYml:      string(schematicYML),
 		GrpcTunnelEnabled: tunnelEnabled,
 	}, nil
@@ -131,21 +131,20 @@ func (s *managementServer) CreateSchematicFromRaw(ctx context.Context, request *
 		return nil, err
 	}
 
-	var schematicRequest schematic.Schematic
-
-	if err := yaml.Unmarshal(request.RawSchematic, &schematicRequest); err != nil {
+	schematicRequest, err := schematic.Unmarshal(request.RawSchematic)
+	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal raw schematic: %w", err)
 	}
 
 	s.logger.Info("ensure schematic from raw", zap.Reflect("schematic", schematicRequest))
 
-	schematicInfo, err := s.imageFactoryClient.EnsureSchematic(ctx, schematicRequest)
+	schematicID, _, err := s.imageFactoryClient.EnsureSchematic(ctx, *schematicRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure schematic: %w", err)
 	}
 
 	return &management.CreateSchematicResponse{
-		SchematicId: schematicInfo.FullID,
+		SchematicId: schematicID,
 	}, nil
 }
 

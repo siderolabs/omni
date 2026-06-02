@@ -11,11 +11,10 @@ import (
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/constants"
 	"github.com/siderolabs/image-factory/pkg/schematic"
-	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
-	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/internal/backend/extensions"
 )
@@ -23,25 +22,22 @@ import (
 // ErrInvalidSchematic means that the machine has extensions installed bypassing the image factory.
 var ErrInvalidSchematic = fmt.Errorf("invalid schematic")
 
-// SchematicInfo contains the information about the schematic - the plain schematic ID and the extensions.
+// SchematicInfo contains the information about the schematic observed on a machine.
 type SchematicInfo struct {
-	ID          string
 	FullID      string
 	Raw         string
-	Overlay     schematic.Overlay
 	Extensions  []string
 	KernelArgs  []string
-	MetaValues  []schematic.MetaValue
 	InAgentMode bool
 }
 
-// GetSchematicInfo uses Talos API to list all the schematics, and computes the plain schematic ID,
-// taking only the extensions into account - ignoring everything else, e.g., the kernel command line args or meta values.
+// GetSchematicInfo lists the extension status resources on the given Talos COSI state, and computes the schematic ID
+// from the extensions found on the machine, ignoring everything else (e.g., the kernel command line args).
 //
 // The argument fallbackKernelArgs is only used if the machine doesn't have the schematic meta extension, i.e., its installation media was created bypassing image factory -
 // in that case, we synthesize the schematic ID in a best-effort way (only if it doesn't have any extensions), and use the provided fallback kernel args as the current args of the machine.
-func GetSchematicInfo(ctx context.Context, c *client.Client, fallbackKernelArgs []string) (SchematicInfo, error) {
-	items, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, c.COSI)
+func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackKernelArgs []string) (SchematicInfo, error) {
+	items, err := safe.StateListAll[*runtime.ExtensionStatus](ctx, talosState)
 	if err != nil {
 		return SchematicInfo{}, fmt.Errorf("failed to list extensions: %w", err)
 	}
@@ -49,7 +45,7 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, fallbackKernelArgs 
 	var (
 		exts         []string
 		fullID       string
-		rawSchematic = &schematic.Schematic{}
+		rawSchematic *schematic.Schematic
 		manifest     string
 	)
 
@@ -65,7 +61,7 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, fallbackKernelArgs 
 			if status.TypedSpec().Metadata.ExtraInfo != "" {
 				manifest = status.TypedSpec().Metadata.ExtraInfo
 
-				if err = yaml.Unmarshal([]byte(manifest), rawSchematic); err != nil {
+				if rawSchematic, err = schematic.Unmarshal([]byte(manifest)); err != nil {
 					return SchematicInfo{}, fmt.Errorf("failed to unmarshal schematic manifest: %w", err)
 				}
 			}
@@ -90,48 +86,43 @@ func GetSchematicInfo(ctx context.Context, c *client.Client, fallbackKernelArgs 
 		return SchematicInfo{}, ErrInvalidSchematic
 	}
 
-	extensionsSchematic := schematic.Schematic{
-		Customization: schematic.Customization{
-			SystemExtensions: schematic.SystemExtensions{
-				OfficialExtensions: exts,
-			},
-		},
-	}
-
-	id, err := extensionsSchematic.ID()
-	if err != nil {
-		return SchematicInfo{}, fmt.Errorf("failed to calculate extensions schematic ID: %w", err)
-	}
-
-	var (
-		kernelArgs []string
-		metaValues []schematic.MetaValue
-		overlay    schematic.Overlay
-	)
+	var kernelArgs []string
 
 	if rawSchematic != nil {
 		kernelArgs = rawSchematic.Customization.ExtraKernelArgs
-		metaValues = rawSchematic.Customization.Meta
-		overlay = rawSchematic.Overlay
 	}
 
-	if fullID == "" { // we could not find the full ID, so we fall back to synthesizing it using the default args
+	if fullID == "" { // we could not find the full ID, so we fall back to synthesizing it (and the raw YAML) using the default args
 		kernelArgs = fallbackKernelArgs
-		extensionsSchematic.Customization.ExtraKernelArgs = fallbackKernelArgs
 
-		fullID, err = extensionsSchematic.ID()
+		synthesized := schematic.Schematic{
+			Customization: schematic.Customization{
+				SystemExtensions: schematic.SystemExtensions{
+					OfficialExtensions: exts,
+				},
+				ExtraKernelArgs: fallbackKernelArgs,
+			},
+		}
+
+		var err error
+
+		fullID, err = synthesized.ID()
 		if err != nil {
 			return SchematicInfo{}, fmt.Errorf("failed to calculate full schematic ID: %w", err)
 		}
+
+		raw, err := synthesized.Marshal()
+		if err != nil {
+			return SchematicInfo{}, fmt.Errorf("failed to marshal synthesized schematic: %w", err)
+		}
+
+		manifest = string(raw)
 	}
 
 	return SchematicInfo{
-		ID:         id,
 		FullID:     fullID,
 		Extensions: exts,
 		KernelArgs: kernelArgs,
-		MetaValues: metaValues,
-		Overlay:    overlay,
 		Raw:        manifest,
 	}, nil
 }

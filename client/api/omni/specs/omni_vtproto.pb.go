@@ -320,10 +320,8 @@ func (m *MachineStatusSpec_Schematic) CloneVT() *MachineStatusSpec_Schematic {
 		return (*MachineStatusSpec_Schematic)(nil)
 	}
 	r := new(MachineStatusSpec_Schematic)
-	r.Id = m.Id
 	r.Invalid = m.Invalid
 	r.InitialSchematic = m.InitialSchematic
-	r.Overlay = m.Overlay.CloneVT()
 	r.FullId = m.FullId
 	r.InAgentMode = m.InAgentMode
 	r.Raw = m.Raw
@@ -337,13 +335,6 @@ func (m *MachineStatusSpec_Schematic) CloneVT() *MachineStatusSpec_Schematic {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
 		r.KernelArgs = tmpContainer
-	}
-	if rhs := m.MetaValues; rhs != nil {
-		tmpContainer := make([]*MetaValue, len(rhs))
-		for k, v := range rhs {
-			tmpContainer[k] = v.CloneVT()
-		}
-		r.MetaValues = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -2292,11 +2283,6 @@ func (m *SchematicConfigurationSpec) CloneVT() *SchematicConfigurationSpec {
 	r := new(SchematicConfigurationSpec)
 	r.SchematicId = m.SchematicId
 	r.TalosVersion = m.TalosVersion
-	if rhs := m.KernelArgs; rhs != nil {
-		tmpContainer := make([]string, len(rhs))
-		copy(tmpContainer, rhs)
-		r.KernelArgs = tmpContainer
-	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -3699,9 +3685,6 @@ func (this *MachineStatusSpec_Schematic) EqualVT(that *MachineStatusSpec_Schemat
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.Id != that.Id {
-		return false
-	}
 	if this.Invalid != that.Invalid {
 		return false
 	}
@@ -3717,9 +3700,6 @@ func (this *MachineStatusSpec_Schematic) EqualVT(that *MachineStatusSpec_Schemat
 	if this.InitialSchematic != that.InitialSchematic {
 		return false
 	}
-	if !this.Overlay.EqualVT(that.Overlay) {
-		return false
-	}
 	if len(this.KernelArgs) != len(that.KernelArgs) {
 		return false
 	}
@@ -3727,23 +3707,6 @@ func (this *MachineStatusSpec_Schematic) EqualVT(that *MachineStatusSpec_Schemat
 		vy := that.KernelArgs[i]
 		if vx != vy {
 			return false
-		}
-	}
-	if len(this.MetaValues) != len(that.MetaValues) {
-		return false
-	}
-	for i, vx := range this.MetaValues {
-		vy := that.MetaValues[i]
-		if p, q := vx, vy; p != q {
-			if p == nil {
-				p = &MetaValue{}
-			}
-			if q == nil {
-				q = &MetaValue{}
-			}
-			if !p.EqualVT(q) {
-				return false
-			}
 		}
 	}
 	if this.FullId != that.FullId {
@@ -6407,15 +6370,6 @@ func (this *SchematicConfigurationSpec) EqualVT(that *SchematicConfigurationSpec
 	if this.TalosVersion != that.TalosVersion {
 		return false
 	}
-	if len(this.KernelArgs) != len(that.KernelArgs) {
-		return false
-	}
-	for i, vx := range this.KernelArgs {
-		vy := that.KernelArgs[i]
-		if vx != vy {
-			return false
-		}
-	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -8609,18 +8563,6 @@ func (m *MachineStatusSpec_Schematic) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i--
 		dAtA[i] = 0x4a
 	}
-	if len(m.MetaValues) > 0 {
-		for iNdEx := len(m.MetaValues) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.MetaValues[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x42
-		}
-	}
 	if len(m.KernelArgs) > 0 {
 		for iNdEx := len(m.KernelArgs) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.KernelArgs[iNdEx])
@@ -8629,16 +8571,6 @@ func (m *MachineStatusSpec_Schematic) MarshalToSizedBufferVT(dAtA []byte) (int, 
 			i--
 			dAtA[i] = 0x3a
 		}
-	}
-	if m.Overlay != nil {
-		size, err := m.Overlay.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x32
 	}
 	if len(m.InitialSchematic) > 0 {
 		i -= len(m.InitialSchematic)
@@ -8665,13 +8597,6 @@ func (m *MachineStatusSpec_Schematic) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		}
 		i--
 		dAtA[i] = 0x10
-	}
-	if len(m.Id) > 0 {
-		i -= len(m.Id)
-		copy(dAtA[i:], m.Id)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Id)))
-		i--
-		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -14026,15 +13951,6 @@ func (m *SchematicConfigurationSpec) MarshalToSizedBufferVT(dAtA []byte) (int, e
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
-	if len(m.KernelArgs) > 0 {
-		for iNdEx := len(m.KernelArgs) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.KernelArgs[iNdEx])
-			copy(dAtA[i:], m.KernelArgs[iNdEx])
-			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.KernelArgs[iNdEx])))
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
 	if len(m.TalosVersion) > 0 {
 		i -= len(m.TalosVersion)
 		copy(dAtA[i:], m.TalosVersion)
@@ -16839,10 +16755,6 @@ func (m *MachineStatusSpec_Schematic) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Id)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
 	if m.Invalid {
 		n += 2
 	}
@@ -16856,19 +16768,9 @@ func (m *MachineStatusSpec_Schematic) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
-	if m.Overlay != nil {
-		l = m.Overlay.SizeVT()
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
 	if len(m.KernelArgs) > 0 {
 		for _, s := range m.KernelArgs {
 			l = len(s)
-			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-		}
-	}
-	if len(m.MetaValues) > 0 {
-		for _, e := range m.MetaValues {
-			l = e.SizeVT()
 			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
 	}
@@ -18972,12 +18874,6 @@ func (m *SchematicConfigurationSpec) SizeVT() (n int) {
 	l = len(m.TalosVersion)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	if len(m.KernelArgs) > 0 {
-		for _, s := range m.KernelArgs {
-			l = len(s)
-			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -22188,38 +22084,6 @@ func (m *MachineStatusSpec_Schematic) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: MachineStatusSpec_Schematic: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Id = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Invalid", wireType)
@@ -22304,42 +22168,6 @@ func (m *MachineStatusSpec_Schematic) UnmarshalVT(dAtA []byte) error {
 			}
 			m.InitialSchematic = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Overlay", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Overlay == nil {
-				m.Overlay = &Overlay{}
-			}
-			if err := m.Overlay.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field KernelArgs", wireType)
@@ -22371,40 +22199,6 @@ func (m *MachineStatusSpec_Schematic) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.KernelArgs = append(m.KernelArgs, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
-		case 8:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MetaValues", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.MetaValues = append(m.MetaValues, &MetaValue{})
-			if err := m.MetaValues[len(m.MetaValues)-1].UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
 			iNdEx = postIndex
 		case 9:
 			if wireType != 2 {
@@ -35849,38 +35643,6 @@ func (m *SchematicConfigurationSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.TalosVersion = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field KernelArgs", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.KernelArgs = append(m.KernelArgs, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

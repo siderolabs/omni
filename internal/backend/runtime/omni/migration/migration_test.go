@@ -32,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/logging"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/clustermachine"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/schematic"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/migration"
 )
 
@@ -177,12 +178,12 @@ func (suite *MigrationSuite) TestDropSchematicConfigFinalizerFromClusterMachines
 	defer cancel()
 
 	cm1 := omni.NewClusterMachine("cm1")
-	cm1.Metadata().Finalizers().Add(omnictrl.SchematicConfigurationControllerName)
+	cm1.Metadata().Finalizers().Add(schematic.ConfigurationControllerName)
 	cm1.Metadata().SetPhase(resource.PhaseTearingDown)
 	suite.Require().NoError(suite.state.Create(ctx, cm1))
 
 	cm2 := omni.NewClusterMachine("cm2")
-	cm2.Metadata().Finalizers().Add(omnictrl.SchematicConfigurationControllerName)
+	cm2.Metadata().Finalizers().Add(schematic.ConfigurationControllerName)
 	suite.Require().NoError(cm2.Metadata().SetOwner("some-owner"))
 	suite.Require().NoError(suite.state.Create(ctx, cm2, state.WithCreateOwner("some-owner")))
 
@@ -203,8 +204,8 @@ func (suite *MigrationSuite) TestDropSchematicConfigFinalizerFromClusterMachines
 	cm3Migrated, err := suite.state.Get(ctx, cm3.Metadata())
 	suite.Require().NoError(err)
 
-	suite.False(cm1Migrated.Metadata().Finalizers().Has(omnictrl.SchematicConfigurationControllerName))
-	suite.False(cm2Migrated.Metadata().Finalizers().Has(omnictrl.SchematicConfigurationControllerName))
+	suite.False(cm1Migrated.Metadata().Finalizers().Has(schematic.ConfigurationControllerName))
+	suite.False(cm2Migrated.Metadata().Finalizers().Has(schematic.ConfigurationControllerName))
 	suite.True(cm3VersionBefore.Equal(cm3Migrated.Metadata().Version()), "expected cm3 to be left untouched")
 }
 

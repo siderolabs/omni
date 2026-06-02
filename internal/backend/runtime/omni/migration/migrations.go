@@ -22,6 +22,7 @@ import (
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/cluster"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/clustermachine"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/schematic"
 )
 
 func moveClusterTaintFromResourceToLabel(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
@@ -161,9 +162,9 @@ func dropSchematicConfigFinalizerFromClusterMachines(ctx context.Context, s stat
 	}
 
 	for cm := range list.All() {
-		if cm.Metadata().Finalizers().Has(omnictrl.SchematicConfigurationControllerName) {
+		if cm.Metadata().Finalizers().Has(schematic.ConfigurationControllerName) {
 			if _, err = safe.StateUpdateWithConflicts(ctx, s, cm.Metadata(), func(res *omni.ClusterMachine) error {
-				res.Metadata().Finalizers().Remove(omnictrl.SchematicConfigurationControllerName)
+				res.Metadata().Finalizers().Remove(schematic.ConfigurationControllerName)
 
 				return nil
 			}, state.WithUpdateOwner(cm.Metadata().Owner()), state.WithExpectedPhaseAny()); err != nil {

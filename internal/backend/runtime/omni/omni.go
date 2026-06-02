@@ -61,6 +61,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
 	metricsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/metrics"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/redactedmachineconfig"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/schematic"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/talosupgrade"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
@@ -241,7 +242,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewMachineSetNodeController(),
 		omnictrl.NewMachineSetEtcdAuditController(talosClientFactory, time.Minute),
 		redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{}),
-		omnictrl.NewSchematicConfigurationController(imageFactoryClient),
+		schematic.NewConfigurationController(imageFactoryClient),
 		secrets.NewSecretsController(etcdBackupStoreFactory),
 		&secrets.ImportedClusterSecretsCleanupController{},
 		secrets.NewTalosConfigController(constants.CertificateValidityTime),

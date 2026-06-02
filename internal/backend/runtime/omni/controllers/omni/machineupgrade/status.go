@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -24,7 +23,6 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/installimage"
-	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
@@ -96,17 +94,15 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		return fmt.Errorf("failed to unmarshal schematic: %w", err)
 	}
 
-	currentSchematic := *machineSchematic
-
-	schematicID, err := currentSchematic.ID()
+	computedID, err := machineSchematic.ID()
 	if err != nil {
 		return fmt.Errorf("failed to calculate schematic ID: %w", err)
 	}
 
-	if schematicID != schematicSpec.FullId {
+	if computedID != schematicSpec.FullId {
 		// when we calculate the schematic ID, we get a different result than machine reports. The image factory library version might be outdated.
 		// Do not take any action to prevent undesired schematic changes/upgrades.
-		logger.Error("schematic ID mismatch, skip upgrade", zap.String("reported", schematicSpec.FullId), zap.String("calculated", schematicID))
+		logger.Error("schematic ID mismatch, skip upgrade", zap.String("reported", schematicSpec.FullId), zap.String("calculated", computedID))
 
 		status.TypedSpec().Value.Phase = specs.MachineUpgradeStatusSpec_Unknown
 		status.TypedSpec().Value.Status = ""
@@ -140,11 +136,6 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		return nil
 	}
 
-	schematicEqual, schematicEqualWithoutKernelArgs, err := ctrl.checkSchematicEquality(currentSchematic, schematicConfiguration)
-	if err != nil {
-		return fmt.Errorf("failed to get schematic diff: %w", err)
-	}
-
 	// TODO: - We could centralize the maintenance mode upgrades in this controller and drop it from the management API.
 	//       - Here, we would also manage the Talos version updates, and even extensions management.
 	//       - For now, we hardcode "talosVersionEqual" to true, as we atm only handle schematic updates.
@@ -154,7 +145,7 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 	status.TypedSpec().Value.CurrentTalosVersion = talosVersion
 
 	// Note: "platform" and "secure boot state" should probably never change in an install image, therefore, the following checks are enough
-	installImagesEqual := schematicEqual && talosVersionEqual
+	installImagesEqual := schematicSpec.FullId == desiredSchematicID && talosVersionEqual
 
 	if installImagesEqual {
 		status.TypedSpec().Value.Status = "machine is up to date"
@@ -189,22 +180,6 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 	}
 
 	securityState := ms.TypedSpec().Value.SecurityState
-
-	if schematicEqualWithoutKernelArgs {
-		var updateSupported bool
-
-		// We pass ClusterMachineConfig as nil, since this controller only handles maintenance mode upgrades at the moment.
-		if updateSupported, err = kernelargs.UpdateSupported(ms, nil); err != nil {
-			return fmt.Errorf("failed to check if kernel args update is supported: %w", err)
-		}
-
-		if !updateSupported {
-			status.TypedSpec().Value.Status = "kernel args are cannot be updated: machine is not booted with UKI and Talos version is < 1.12"
-			status.TypedSpec().Value.Error = ""
-
-			return nil
-		}
-	}
 
 	platform := ms.TypedSpec().Value.GetPlatformMetadata().GetPlatform()
 	if platform == "" {
@@ -298,20 +273,4 @@ func (ctrl *StatusController) doUpgrade(ctx context.Context, machineStatus *omni
 	}
 
 	return nil
-}
-
-func (ctrl *StatusController) checkSchematicEquality(currentSchematic schematic.Schematic, schematicConfig *omni.SchematicConfiguration) (equal, equalWithoutKernelArgs bool, err error) {
-	kernelArgsMismatch := !slices.Equal(currentSchematic.Customization.ExtraKernelArgs, schematicConfig.TypedSpec().Value.KernelArgs)
-
-	currentSchematic.Customization.ExtraKernelArgs = schematicConfig.TypedSpec().Value.KernelArgs
-
-	currentID, err := currentSchematic.ID()
-	if err != nil {
-		return false, false, fmt.Errorf("failed to calculate current schematic ID: %w", err)
-	}
-
-	equalWithoutKernelArgs = currentID == schematicConfig.TypedSpec().Value.SchematicId
-	equal = equalWithoutKernelArgs && !kernelArgsMismatch
-
-	return equal, equalWithoutKernelArgs, nil
 }

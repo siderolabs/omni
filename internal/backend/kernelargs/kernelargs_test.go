@@ -26,7 +26,6 @@ func machineStatusWithArgs(currentArgs []string) *omni.MachineStatus {
 	ms := omni.NewMachineStatus("test-machine")
 	ms.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
 	ms.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-		Id:         "some-id",
 		FullId:     "some-full-id",
 		KernelArgs: currentArgs,
 	}

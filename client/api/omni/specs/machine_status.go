@@ -21,5 +21,5 @@ func (spec *MachineStatusSpec) SchematicReady() bool {
 		return true
 	}
 
-	return spec.Schematic.Id != "" && spec.Schematic.FullId != ""
+	return spec.Schematic.FullId != ""
 }

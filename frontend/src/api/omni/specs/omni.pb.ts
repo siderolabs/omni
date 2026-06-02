@@ -310,13 +310,10 @@ export type MachineStatusSpecSchematicInitialState = {
 }
 
 export type MachineStatusSpecSchematic = {
-  id?: string
   invalid?: boolean
   extensions?: string[]
   initial_schematic?: string
-  overlay?: Overlay
   kernel_args?: string[]
-  meta_values?: MetaValue[]
   full_id?: string
   in_agent_mode?: boolean
   raw?: string
@@ -882,7 +879,6 @@ export type TalosExtensionsSpec = {
 export type SchematicConfigurationSpec = {
   schematic_id?: string
   talos_version?: string
-  kernel_args?: string[]
 }
 
 export type ExtensionsConfigurationSpec = {

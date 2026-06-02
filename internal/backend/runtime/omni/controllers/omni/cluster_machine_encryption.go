@@ -14,6 +14,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
 
@@ -80,6 +81,10 @@ func (ctrl *ClusterMachineEncryptionController) Run(ctx context.Context, r contr
 
 		params, err := safe.ReaderGetByID[*siderolink.APIConfig](ctx, r, siderolink.ConfigID)
 		if err != nil {
+			if state.IsNotFoundError(err) { // not initialized yet, skip
+				continue
+			}
+
 			return err
 		}
 

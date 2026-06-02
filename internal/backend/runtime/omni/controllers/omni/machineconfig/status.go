@@ -416,7 +416,7 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 	// Use the existing protected args (e.g., the siderolink args) as the fallback args if we cannot determine the actual expected args
 	fallbackKernelArgs := kernelargs.FilterProtected(rc.machineStatus.TypedSpec().Value.Schematic.KernelArgs)
 
-	schematicInfo, err := talosutils.GetSchematicInfo(ctx, c, fallbackKernelArgs)
+	schematicInfo, err := talosutils.GetSchematicInfo(ctx, c.COSI, fallbackKernelArgs)
 	if err != nil {
 		if !errors.Is(err, talosutils.ErrInvalidSchematic) {
 			return false, err
@@ -427,7 +427,7 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 		expectedSchematic = ""
 	}
 
-	if actualVersion == expectedVersion && rc.SchematicEqual(schematicInfo.ID, schematicInfo.FullID, expectedSchematic) {
+	if actualVersion == expectedVersion && schematicInfo.FullID == expectedSchematic {
 		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = actualVersion
 		rc.machineConfigStatus.TypedSpec().Value.SchematicId = expectedSchematic
 
@@ -446,7 +446,7 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 	logger.Info("upgrading the machine",
 		zap.String("from_version", actualVersion),
 		zap.String("to_version", expectedVersion),
-		zap.String("from_schematic", schematicInfo.ID),
+		zap.String("from_schematic", schematicInfo.FullID),
 		zap.String("to_schematic", expectedSchematic),
 		zap.String("image", image),
 		zap.String("machine", rc.ID()))

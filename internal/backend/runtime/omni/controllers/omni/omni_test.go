@@ -31,6 +31,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/siderolabs/go-retry/retry"
+	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
@@ -61,6 +62,19 @@ const (
 
 	imageFactoryHost = "factory-test.talos.dev"
 )
+
+// emptySchematicRaw is the marshaled form of an empty schematic — used as the default Raw
+// for test MachineStatus fixtures so SchematicConfigurationController can patch it.
+var emptySchematicRaw = mustMarshalSchematic(schematic.Schematic{})
+
+func mustMarshalSchematic(s schematic.Schematic) string {
+	data, err := s.Marshal()
+	if err != nil {
+		panic(err)
+	}
+
+	return string(data)
+}
 
 //nolint:govet
 type machineService struct {
@@ -502,8 +516,8 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 
 		machineStatus.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
 		machineStatus.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-			Id:           defaultSchematic,
 			FullId:       defaultSchematic,
+			Raw:          emptySchematicRaw,
 			InitialState: &specs.MachineStatusSpec_Schematic_InitialState{},
 		}
 		machineStatus.TypedSpec().Value.InitialTalosVersion = cluster.TypedSpec().Value.TalosVersion

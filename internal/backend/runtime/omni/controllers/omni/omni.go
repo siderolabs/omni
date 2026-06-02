@@ -17,13 +17,12 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	"go.uber.org/zap"
-
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 )
 
-// ImageFactoryClient ensures that the given schematic exists in the image factory.
+// ImageFactoryClient is the contract Omni controllers rely on for interacting with the image factory.
 type ImageFactoryClient interface {
-	EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (imagefactory.EnsuredSchematic, error)
+	EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error)
+	SchematicGet(ctx context.Context, id string) (*schematic.Schematic, error)
 	Host() string
 }
 

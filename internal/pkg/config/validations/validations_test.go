@@ -96,7 +96,7 @@ func TestEnsureNoNonImageFactoryMachines(t *testing.T) {
 		{
 			name: "valid schematic",
 			machines: map[string]*specs.MachineStatusSpec_Schematic{
-				"m1": {Id: "abc", FullId: "abc123"},
+				"m1": {FullId: "abc123"},
 			},
 		},
 		{
@@ -115,7 +115,7 @@ func TestEnsureNoNonImageFactoryMachines(t *testing.T) {
 		{
 			name: "mix of valid and invalid",
 			machines: map[string]*specs.MachineStatusSpec_Schematic{
-				"m1": {Id: "abc", FullId: "abc123"},
+				"m1": {FullId: "abc123"},
 				"m2": {Invalid: true},
 			},
 			expectErr: true,

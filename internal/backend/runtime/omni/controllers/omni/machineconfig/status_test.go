@@ -82,9 +82,9 @@ func TestMachineConfigStatusController(t *testing.T) {
 			parts := strings.Split(u.Path, "/")
 
 			if !strings.HasPrefix(urlString, "ghcr.io") {
-				res.TypedSpec().Value.Schematic.Id = parts[2]
+				res.TypedSpec().Value.Schematic.FullId = parts[2]
 			} else {
-				res.TypedSpec().Value.Schematic.Id = ""
+				res.TypedSpec().Value.Schematic.FullId = ""
 			}
 
 			res.TypedSpec().Value.TalosVersion = strings.TrimLeft(tag, "v")
@@ -316,7 +316,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 				ctx, t, testContext.State, rtestutils.ResourceIDs[*omni.MachineStatus](ctx, t, testContext.State),
 				func(res *omni.MachineStatus, assert *assert.Assertions) {
 					assert.Equal(expectedTalosVersion, res.TypedSpec().Value.TalosVersion)
-					assert.Equal(expectedSchematicID, res.TypedSpec().Value.Schematic.Id)
+					assert.Equal(expectedSchematicID, res.TypedSpec().Value.Schematic.FullId)
 				},
 			)
 
@@ -427,7 +427,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			)
 
 			rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.MachineStatus, assert *assert.Assertions) {
-				assert.Equal("bbbb", res.TypedSpec().Value.Schematic.Id)
+				assert.Equal("bbbb", res.TypedSpec().Value.Schematic.FullId)
 			})
 
 			rmock.Mock[*omni.MachineStatus](
@@ -477,7 +477,6 @@ func TestMachineConfigStatusController(t *testing.T) {
 				options.WithID(id),
 				options.Modify(func(res *omni.MachineStatus) error {
 					res.TypedSpec().Value.Schematic.Invalid = true
-					res.TypedSpec().Value.Schematic.Id = ""
 					res.TypedSpec().Value.Schematic.FullId = ""
 
 					return nil
@@ -571,7 +570,6 @@ func TestMachineConfigStatusController(t *testing.T) {
 				options.WithID(id),
 				options.Modify(func(res *omni.MachineStatus) error {
 					res.TypedSpec().Value.Schematic.Invalid = true
-					res.TypedSpec().Value.Schematic.Id = ""
 					res.TypedSpec().Value.Schematic.FullId = ""
 
 					return nil
@@ -643,7 +641,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			)
 
 			rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.MachineStatus, assert *assert.Assertions) {
-				assert.Equal(res.TypedSpec().Value.Schematic.Id, "bbbb")
+				assert.Equal(res.TypedSpec().Value.Schematic.FullId, "bbbb")
 			})
 
 			requests := machineServices.Get(ids[0]).GetUpgradeRequests()

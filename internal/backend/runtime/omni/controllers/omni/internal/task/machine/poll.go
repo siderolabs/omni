@@ -458,7 +458,7 @@ func pollMeta(ctx context.Context, c *client.Client, info *Info) error {
 func pollExtensions(ctx context.Context, c *client.Client, info *Info) error {
 	var err error
 
-	schematicInfo, err := talos.GetSchematicInfo(ctx, c, info.DefaultKernelArgs)
+	schematicInfo, err := talos.GetSchematicInfo(ctx, c.COSI, info.DefaultKernelArgs)
 	if err != nil {
 		if errors.Is(err, talos.ErrInvalidSchematic) {
 			info.Schematic = &SchematicInfo{

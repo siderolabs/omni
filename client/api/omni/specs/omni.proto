@@ -159,10 +159,7 @@ message MachineStatusSpec {
       repeated string extensions = 1;
     }
 
-    // Id is the image factory schematic id used for the image generation.
-    //
-    // This must be be plain id computed solely from the system extensions, not including the kernel command line arguments, META content etc.
-    string id = 1;
+    reserved 1;
 
     // Invalid marks the machine as having extensions installed bypassing image factory.
     // Which makes it impossible to detect schematic id and manage the image generation
@@ -177,19 +174,14 @@ message MachineStatusSpec {
 
     reserved 5;
 
-    // Overlay contains the information about the overlay used during the machine image generation.
-    // It is used by SBC images.
-    Overlay overlay = 6;
+    reserved 6;
 
     // KernelArgs is the kernel command line arguments used during the machine image generation.
     repeated string kernel_args = 7;
 
-    // MetaValues is the list of meta values used during the machine image generation.
-    repeated MetaValue meta_values = 8;
+    reserved 8;
 
-    // FullId is the full id of the schematic - including the kernel command line arguments, META content etc.
-    //
-    // It is used instead of Id primarily when the machine has secure boot enabled.
+    // FullId is the id of the schematic.
     string full_id = 9;
 
     // InAgentMode indicates that the machine is running in agent mode.
@@ -1297,9 +1289,7 @@ message TalosExtensionsSpec {
 message SchematicConfigurationSpec {
   string schematic_id = 1;
   string talos_version = 2;
-
-  // KernelArgs are the kernel args which were used to compute the SchematicId.
-  repeated string kernel_args = 3;
+  reserved 3;
 }
 
 // ExtensionsConfigurationSpec is the desired list of extensions to be installed on the machine or the set of machines.

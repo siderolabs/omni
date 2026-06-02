@@ -93,7 +93,7 @@ func (suite *GrpcSuite) SetupTest() {
 		suite.Require().NoError(suite.imageFactory.eg.Wait())
 	})
 
-	imageFactoryClient, err := imagefactory.NewClient(suite.state, suite.imageFactory.address, "", "")
+	imageFactoryClient, err := imagefactory.NewClient(suite.imageFactory.address, "", "")
 	suite.Require().NoError(err)
 
 	workloadProxyReconciler := workloadproxy.NewReconciler(logger, zap.InfoLevel, 30*time.Second)

@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"net/http"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -19,7 +20,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/task"
 	"github.com/siderolabs/gen/optional"
-	"github.com/siderolabs/gen/xslices"
+	factoryclient "github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"go.uber.org/zap"
@@ -29,6 +30,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	machinetask "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/machine"
 	machinectrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machine"
@@ -124,13 +126,13 @@ func (ctrl *MachineStatusController) Settings() controller.QSettings {
 			},
 		},
 		Concurrency: optional.Some[uint](4),
-		RunHook: func(ctx context.Context, _ *zap.Logger, r controller.QRuntime) error {
+		RunHook: func(ctx context.Context, logger *zap.Logger, r controller.QRuntime) error {
 			for {
 				select {
 				case <-ctx.Done():
 					return nil
 				case event := <-ctrl.notifyCh:
-					if err := ctrl.handleNotification(ctx, r, event); err != nil {
+					if err := ctrl.handleNotification(ctx, r, event, logger); err != nil {
 						return err
 					}
 				}
@@ -334,9 +336,68 @@ func (ctrl *MachineStatusController) reconcileTearingDown(ctx context.Context, r
 	return r.RemoveFinalizer(ctx, machine.Metadata(), ctrl.Name())
 }
 
+// populateSchematicRaw fills schematicInfo.Raw for the "meta extension present but no ExtraInfo" case (older Talos)
+// by either reusing the raw we already have stored on the machine's MachineStatus or fetching from the image factory.
+//
+// Once Raw is recovered, KernelArgs is hydrated from it. Otherwise downstream writes empty kernel args into
+// MachineStatus and PatchSchematic ends up stripping the real kernel args.
+//
+// If the factory returns 404, the schematic is not known to it (the machine likely came from a different factory).
+// In that case we leave Raw empty and downstream controllers skip schematic management until raw becomes available.
+// Any other error (network, auth, marshal failure) is propagated so the reconcile retries.
+//
+// Raw and FullID are always written together, never out of sync.
+func (ctrl *MachineStatusController) populateSchematicRaw(ctx context.Context, info *machinetask.SchematicInfo, existing *omni.MachineStatus, logger *zap.Logger) error {
+	if info == nil || info.FullID == "" || info.Raw != "" || info.InAgentMode || info.Invalid {
+		return nil
+	}
+
+	var raw string
+
+	if existing.TypedSpec().Value.GetSchematic().GetFullId() == info.FullID && existing.TypedSpec().Value.GetSchematic().GetRaw() != "" {
+		raw = existing.TypedSpec().Value.Schematic.Raw
+	} else {
+		logger = logger.With(zap.String("id", existing.Metadata().ID()), zap.String("schematic_id", info.FullID))
+
+		logger.Info("machine does have a schematic ID but no raw schematic, get it from image factory")
+
+		sch, err := ctrl.ImageFactoryClient.SchematicGet(ctx, info.FullID)
+		if err != nil {
+			if factoryclient.IsHTTPErrorCode(err, http.StatusNotFound) {
+				logger.Warn("raw schematic not found in image factory", zap.String("host", ctrl.ImageFactoryClient.Host()))
+
+				return nil
+			}
+
+			return fmt.Errorf("failed to fetch schematic %q from image factory: %w", info.FullID, err)
+		}
+
+		data, err := sch.Marshal()
+		if err != nil {
+			return fmt.Errorf("failed to marshal schematic %q fetched from image factory: %w", info.FullID, err)
+		}
+
+		raw = string(data)
+	}
+
+	parsed, err := schematic.Unmarshal([]byte(raw))
+	if err != nil {
+		return fmt.Errorf("failed to parse recovered schematic %q: %w", info.FullID, err)
+	}
+
+	info.Raw = raw
+	info.KernelArgs = parsed.Customization.ExtraKernelArgs
+
+	return nil
+}
+
 //nolint:gocyclo,cyclop,gocognit
-func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r controller.QRuntime, event machinetask.Info) error {
+func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r controller.QRuntime, event machinetask.Info, logger *zap.Logger) error {
 	if err := safe.WriterModify(ctx, r, omni.NewMachineStatus(event.MachineID), func(machineStatus *omni.MachineStatus) error {
+		if err := ctrl.populateSchematicRaw(ctx, event.Schematic, machineStatus, logger); err != nil {
+			return err
+		}
+
 		spec := machineStatus.TypedSpec().Value
 
 		if event.LastError != nil {
@@ -454,19 +515,21 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 		return fmt.Errorf("error modifying resource: %w", err)
 	}
 
-	if event.Schematic != nil && event.Schematic.ID != "" {
-		machineSchematic := schematic.Schematic{
-			Customization: schematic.Customization{
-				SystemExtensions: schematic.SystemExtensions{
-					OfficialExtensions: event.Schematic.Extensions,
-				},
-				ExtraKernelArgs: event.Schematic.KernelArgs,
-				Meta:            event.Schematic.MetaValues,
-			},
-			Overlay: event.Schematic.Overlay,
+	// Backfill the factory if the schematic the machine booted with happens to be missing
+	// there (e.g. after a factory swap). Routed through PatchSchematic so the upload
+	// preserves all fields the user/factory set on the original schematic (owner,
+	// secureboot, bootloader, meta, overlay incl. options, future fields).
+	if event.Schematic != nil && event.Schematic.FullID != "" && event.Schematic.Raw != "" {
+		machineSchematic, err := imagefactory.PatchSchematic(
+			event.Schematic.Raw,
+			event.Schematic.Extensions,
+			event.Schematic.KernelArgs,
+		)
+		if err != nil {
+			return fmt.Errorf("error patching schematic for re-upload: %w", err)
 		}
 
-		if _, err := ctrl.ImageFactoryClient.EnsureSchematic(ctx, machineSchematic); err != nil {
+		if _, _, err := ctrl.ImageFactoryClient.EnsureSchematic(ctx, machineSchematic); err != nil {
 			return fmt.Errorf("error ensuring schematic: %w", err)
 		}
 	}
@@ -529,26 +592,11 @@ func (ctrl *MachineStatusController) handleEventSchematic(ctx context.Context, m
 	}
 
 	spec.Schematic.Raw = event.Schematic.Raw
-	spec.Schematic.Id = event.Schematic.ID
 	spec.Schematic.FullId = event.Schematic.FullID
 	spec.Schematic.Extensions = event.Schematic.Extensions
 	spec.Schematic.Invalid = event.Schematic.Invalid
 	spec.Schematic.KernelArgs = event.Schematic.KernelArgs
 	spec.Schematic.InAgentMode = event.Schematic.InAgentMode
-
-	spec.Schematic.MetaValues = xslices.Map(event.Schematic.MetaValues, func(value schematic.MetaValue) *specs.MetaValue {
-		return &specs.MetaValue{
-			Key:   uint32(value.Key),
-			Value: value.Value,
-		}
-	})
-
-	if event.Schematic.Overlay.Name != "" {
-		spec.Schematic.Overlay = &specs.Overlay{
-			Name:  event.Schematic.Overlay.Name,
-			Image: event.Schematic.Overlay.Image,
-		}
-	}
 
 	if spec.Schematic.InitialSchematic == "" {
 		spec.Schematic.InitialSchematic = spec.Schematic.FullId

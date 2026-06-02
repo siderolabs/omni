@@ -7,6 +7,7 @@ package omni_test
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	factoryclient "github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/constants"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -28,36 +30,23 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
 type imageFactoryClientMock struct{}
 
-func (i *imageFactoryClientMock) EnsureSchematic(_ context.Context, sch schematic.Schematic) (imagefactory.EnsuredSchematic, error) {
-	fullID, err := sch.ID()
+func (i *imageFactoryClientMock) EnsureSchematic(_ context.Context, sch schematic.Schematic) (string, *schematic.Schematic, error) {
+	id, err := sch.ID()
 	if err != nil {
-		return imagefactory.EnsuredSchematic{}, err
+		return "", nil, err
 	}
 
-	plainSchematic := schematic.Schematic{
-		Customization: schematic.Customization{
-			SystemExtensions: schematic.SystemExtensions{
-				OfficialExtensions: sch.Customization.SystemExtensions.OfficialExtensions,
-			},
-		},
-	}
+	return id, &sch, nil
+}
 
-	plainID, err := plainSchematic.ID()
-	if err != nil {
-		return imagefactory.EnsuredSchematic{}, err
-	}
-
-	return imagefactory.EnsuredSchematic{
-		FullID:  fullID,
-		PlainID: plainID,
-	}, nil
+func (i *imageFactoryClientMock) SchematicGet(_ context.Context, _ string) (*schematic.Schematic, error) {
+	return nil, &factoryclient.HTTPError{Code: http.StatusNotFound, Message: "not found"}
 }
 
 func (i *imageFactoryClientMock) Host() string {
@@ -585,11 +574,16 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 		"talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092",
 	}
 
-	vanillaID, err := new(schematic.Schematic{
+	vanillaSchematic := schematic.Schematic{
 		Customization: schematic.Customization{
 			ExtraKernelArgs: kernelArgs,
 		},
-	}).ID()
+	}
+
+	vanillaID, err := vanillaSchematic.ID()
+	suite.Require().NoError(err)
+
+	vanillaRaw, err := vanillaSchematic.Marshal()
 	suite.Require().NoError(err)
 
 	for _, tt := range []struct {
@@ -627,7 +621,6 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 				},
 			},
 			expected: &specs.MachineStatusSpec_Schematic{
-				Id:               "7d79f1ce28d7e6c099bc89ccf02238fb574165eb4834c2abf2a61eab998d4dc6",
 				InitialSchematic: "full-id",
 				Extensions:       []string{"siderolabs/gvisor", "siderolabs/hello-world-service", "siderolabs/mdadm"},
 				FullId:           "full-id",
@@ -655,9 +648,9 @@ func (suite *MachineStatusSuite) TestMachineSchematic() {
 		{
 			name: "vanilla autodetect",
 			expected: &specs.MachineStatusSpec_Schematic{
-				Id:               defaultSchematic,
 				InitialSchematic: vanillaID,
 				FullId:           vanillaID,
+				Raw:              string(vanillaRaw),
 				KernelArgs:       kernelArgs,
 				InitialState:     &specs.MachineStatusSpec_Schematic_InitialState{},
 			},

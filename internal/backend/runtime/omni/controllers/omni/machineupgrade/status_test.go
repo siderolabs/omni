@@ -109,7 +109,6 @@ func TestReconcile(t *testing.T) {
 
 		schematicConfiguration := omni.NewSchematicConfiguration(id)
 		schematicConfiguration.TypedSpec().Value.SchematicId = currentSchematicID
-		schematicConfiguration.TypedSpec().Value.KernelArgs = initialSchematic.Customization.ExtraKernelArgs
 		require.NoError(t, st.Create(ctx, schematicConfiguration))
 
 		currentSchematicRaw, err := initialSchematic.Marshal()
@@ -141,18 +140,9 @@ func TestReconcile(t *testing.T) {
 			res.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
 				Extensions:       initialSchematic.Customization.SystemExtensions.OfficialExtensions,
 				InitialSchematic: currentSchematicID,
-				Overlay: &specs.Overlay{
-					Image: initialSchematic.Overlay.Image,
-					Name:  initialSchematic.Overlay.Name,
-				},
-				KernelArgs: initialSchematic.Customization.ExtraKernelArgs,
-				MetaValues: []*specs.MetaValue{
-					{Key: 1, Value: "value1"},
-					{Key: 2, Value: "value2"},
-				},
-				Id:     "test-id",
-				FullId: currentSchematicID,
-				Raw:    string(currentSchematicRaw),
+				KernelArgs:       initialSchematic.Customization.ExtraKernelArgs,
+				FullId:           currentSchematicID,
+				Raw:              string(currentSchematicRaw),
 				InitialState: &specs.MachineStatusSpec_Schematic_InitialState{
 					Extensions: initialSchematic.Customization.SystemExtensions.OfficialExtensions,
 				},
@@ -230,7 +220,6 @@ func updateKernelArgs(ctx context.Context, t *testing.T, st state.State, schemat
 
 	_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewSchematicConfiguration(id).Metadata(), func(res *omni.SchematicConfiguration) error {
 		res.TypedSpec().Value.SchematicId = updatedSchematicID
-		res.TypedSpec().Value.KernelArgs = updatedSchematic.Customization.ExtraKernelArgs
 
 		return nil
 	})

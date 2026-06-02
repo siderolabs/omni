@@ -6341,11 +6341,9 @@ func (x *TalosExtensionsSpec) GetItems() []*TalosExtensionsSpec_Info {
 
 // SchematicConfigurationSpec is the desired Image Factory schematic for a machine, machine set or a cluster.
 type SchematicConfigurationSpec struct {
-	state        protoimpl.MessageState `protogen:"open.v1"`
-	SchematicId  string                 `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
-	TalosVersion string                 `protobuf:"bytes,2,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
-	// KernelArgs are the kernel args which were used to compute the SchematicId.
-	KernelArgs    []string `protobuf:"bytes,3,rep,name=kernel_args,json=kernelArgs,proto3" json:"kernel_args,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SchematicId   string                 `protobuf:"bytes,1,opt,name=schematic_id,json=schematicId,proto3" json:"schematic_id,omitempty"`
+	TalosVersion  string                 `protobuf:"bytes,2,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6392,13 +6390,6 @@ func (x *SchematicConfigurationSpec) GetTalosVersion() string {
 		return x.TalosVersion
 	}
 	return ""
-}
-
-func (x *SchematicConfigurationSpec) GetKernelArgs() []string {
-	if x != nil {
-		return x.KernelArgs
-	}
-	return nil
 }
 
 // ExtensionsConfigurationSpec is the desired list of extensions to be installed on the machine or the set of machines.
@@ -8727,10 +8718,6 @@ func (x *MachineStatusSpec_PlatformMetadata) GetTags() map[string]string {
 
 type MachineStatusSpec_Schematic struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Id is the image factory schematic id used for the image generation.
-	//
-	// This must be be plain id computed solely from the system extensions, not including the kernel command line arguments, META content etc.
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Invalid marks the machine as having extensions installed bypassing image factory.
 	// Which makes it impossible to detect schematic id and manage the image generation
 	// using image factory.
@@ -8739,16 +8726,9 @@ type MachineStatusSpec_Schematic struct {
 	Extensions []string `protobuf:"bytes,3,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	// InitialSchematic is the one first schematic the machine was using when it was connected to Omni for the first time.
 	InitialSchematic string `protobuf:"bytes,4,opt,name=initial_schematic,json=initialSchematic,proto3" json:"initial_schematic,omitempty"`
-	// Overlay contains the information about the overlay used during the machine image generation.
-	// It is used by SBC images.
-	Overlay *Overlay `protobuf:"bytes,6,opt,name=overlay,proto3" json:"overlay,omitempty"`
 	// KernelArgs is the kernel command line arguments used during the machine image generation.
 	KernelArgs []string `protobuf:"bytes,7,rep,name=kernel_args,json=kernelArgs,proto3" json:"kernel_args,omitempty"`
-	// MetaValues is the list of meta values used during the machine image generation.
-	MetaValues []*MetaValue `protobuf:"bytes,8,rep,name=meta_values,json=metaValues,proto3" json:"meta_values,omitempty"`
-	// FullId is the full id of the schematic - including the kernel command line arguments, META content etc.
-	//
-	// It is used instead of Id primarily when the machine has secure boot enabled.
+	// FullId is the id of the schematic.
 	FullId string `protobuf:"bytes,9,opt,name=full_id,json=fullId,proto3" json:"full_id,omitempty"`
 	// InAgentMode indicates that the machine is running in agent mode.
 	InAgentMode bool `protobuf:"varint,10,opt,name=in_agent_mode,json=inAgentMode,proto3" json:"in_agent_mode,omitempty"`
@@ -8790,13 +8770,6 @@ func (*MachineStatusSpec_Schematic) Descriptor() ([]byte, []int) {
 	return file_omni_specs_omni_proto_rawDescGZIP(), []int{4, 3}
 }
 
-func (x *MachineStatusSpec_Schematic) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
 func (x *MachineStatusSpec_Schematic) GetInvalid() bool {
 	if x != nil {
 		return x.Invalid
@@ -8818,23 +8791,9 @@ func (x *MachineStatusSpec_Schematic) GetInitialSchematic() string {
 	return ""
 }
 
-func (x *MachineStatusSpec_Schematic) GetOverlay() *Overlay {
-	if x != nil {
-		return x.Overlay
-	}
-	return nil
-}
-
 func (x *MachineStatusSpec_Schematic) GetKernelArgs() []string {
 	if x != nil {
 		return x.KernelArgs
-	}
-	return nil
-}
-
-func (x *MachineStatusSpec_Schematic) GetMetaValues() []*MetaValue {
-	if x != nil {
-		return x.MetaValues
 	}
 	return nil
 }
@@ -11173,7 +11132,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x05image\x18\x02 \x01(\tR\x05image\"3\n" +
 	"\tMetaValue\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\rR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"\xdf\x1a\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\x84\x1a\n" +
 	"\x11MachineStatusSpec\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12C\n" +
 	"\bhardware\x18\x02 \x01(\v2'.specs.MachineStatusSpec.HardwareStatusR\bhardware\x12@\n" +
@@ -11258,19 +11217,15 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x04tags\x18\t \x03(\v23.specs.MachineStatusSpec.PlatformMetadata.TagsEntryR\x04tags\x1a7\n" +
 	"\tTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a\xdb\x03\n" +
-	"\tSchematic\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a\x80\x03\n" +
+	"\tSchematic\x12\x18\n" +
 	"\ainvalid\x18\x02 \x01(\bR\ainvalid\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x03 \x03(\tR\n" +
 	"extensions\x12+\n" +
-	"\x11initial_schematic\x18\x04 \x01(\tR\x10initialSchematic\x12(\n" +
-	"\aoverlay\x18\x06 \x01(\v2\x0e.specs.OverlayR\aoverlay\x12\x1f\n" +
+	"\x11initial_schematic\x18\x04 \x01(\tR\x10initialSchematic\x12\x1f\n" +
 	"\vkernel_args\x18\a \x03(\tR\n" +
-	"kernelArgs\x121\n" +
-	"\vmeta_values\x18\b \x03(\v2\x10.specs.MetaValueR\n" +
-	"metaValues\x12\x17\n" +
+	"kernelArgs\x12\x17\n" +
 	"\afull_id\x18\t \x01(\tR\x06fullId\x12\"\n" +
 	"\rin_agent_mode\x18\n" +
 	" \x01(\bR\vinAgentMode\x12\x10\n" +
@@ -11279,7 +11234,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\fInitialState\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x01 \x03(\tR\n" +
-	"extensionsJ\x04\b\x05\x10\x06\x1aP\n" +
+	"extensionsJ\x04\b\x01\x10\x02J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\b\x10\t\x1aP\n" +
 	"\n" +
 	"Diagnostic\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
@@ -11753,12 +11708,10 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x10\n" +
 	"\x03ref\x18\x05 \x01(\tR\x03ref\x12\x16\n" +
-	"\x06digest\x18\x06 \x01(\tR\x06digest\"\x85\x01\n" +
+	"\x06digest\x18\x06 \x01(\tR\x06digest\"j\n" +
 	"\x1aSchematicConfigurationSpec\x12!\n" +
 	"\fschematic_id\x18\x01 \x01(\tR\vschematicId\x12#\n" +
-	"\rtalos_version\x18\x02 \x01(\tR\ftalosVersion\x12\x1f\n" +
-	"\vkernel_args\x18\x03 \x03(\tR\n" +
-	"kernelArgs\"=\n" +
+	"\rtalos_version\x18\x02 \x01(\tR\ftalosVersionJ\x04\b\x03\x10\x04\"=\n" +
 	"\x1bExtensionsConfigurationSpec\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x01 \x03(\tR\n" +
@@ -12388,37 +12341,35 @@ var file_omni_specs_omni_proto_depIdxs = []int32{
 	143, // 106: specs.MachineStatusSpec.HardwareStatus.blockdevices:type_name -> specs.MachineStatusSpec.HardwareStatus.BlockDevice
 	144, // 107: specs.MachineStatusSpec.NetworkStatus.network_links:type_name -> specs.MachineStatusSpec.NetworkStatus.NetworkLinkStatus
 	145, // 108: specs.MachineStatusSpec.PlatformMetadata.tags:type_name -> specs.MachineStatusSpec.PlatformMetadata.TagsEntry
-	31,  // 109: specs.MachineStatusSpec.Schematic.overlay:type_name -> specs.Overlay
-	32,  // 110: specs.MachineStatusSpec.Schematic.meta_values:type_name -> specs.MetaValue
-	146, // 111: specs.MachineStatusSpec.Schematic.initial_state:type_name -> specs.MachineStatusSpec.Schematic.InitialState
-	151, // 112: specs.ClusterSecretsSpec.Certs.os:type_name -> specs.ClusterSecretsSpec.Certs.CA
-	151, // 113: specs.ClusterSecretsSpec.Certs.k8s:type_name -> specs.ClusterSecretsSpec.Certs.CA
-	10,  // 114: specs.MachineSetSpec.MachineClass.allocation_type:type_name -> specs.MachineSetSpec.MachineClass.Type
-	11,  // 115: specs.MachineSetSpec.MachineAllocation.allocation_type:type_name -> specs.MachineSetSpec.MachineAllocation.Type
-	155, // 116: specs.MachineSetSpec.UpdateStrategyConfig.rolling:type_name -> specs.MachineSetSpec.RollingUpdateStrategyConfig
-	2,   // 117: specs.ControlPlaneStatusSpec.Condition.type:type_name -> specs.ConditionType
-	14,  // 118: specs.ControlPlaneStatusSpec.Condition.status:type_name -> specs.ControlPlaneStatusSpec.Condition.Status
-	15,  // 119: specs.ControlPlaneStatusSpec.Condition.severity:type_name -> specs.ControlPlaneStatusSpec.Condition.Severity
-	159, // 120: specs.KubernetesStatusSpec.NodeStaticPods.static_pods:type_name -> specs.KubernetesStatusSpec.StaticPodStatus
-	32,  // 121: specs.MachineClassSpec.Provision.meta_values:type_name -> specs.MetaValue
-	3,   // 122: specs.MachineClassSpec.Provision.grpc_tunnel:type_name -> specs.GrpcTunnelMode
-	30,  // 123: specs.MachineConfigGenOptionsSpec.InstallImage.security_state:type_name -> specs.SecurityState
-	18,  // 124: specs.MachineExtensionsStatusSpec.Item.phase:type_name -> specs.MachineExtensionsStatusSpec.Item.Phase
-	22,  // 125: specs.ClusterMachineSecretsSpec.Rotation.status:type_name -> specs.SecretRotationSpec.Status
-	23,  // 126: specs.ClusterMachineSecretsSpec.Rotation.phase:type_name -> specs.SecretRotationSpec.Phase
-	24,  // 127: specs.ClusterMachineSecretsSpec.Rotation.component:type_name -> specs.SecretRotationSpec.Component
-	150, // 128: specs.ClusterMachineSecretsSpec.Rotation.extra_certs:type_name -> specs.ClusterSecretsSpec.Certs
-	27,  // 129: specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.Phase
-	28,  // 130: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.Phase
-	26,  // 131: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.mode:type_name -> specs.KubernetesManifestGroupSpec.Mode
-	185, // 132: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.manifests:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry
-	183, // 133: specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus
-	182, // 134: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus
-	135, // [135:135] is the sub-list for method output_type
-	135, // [135:135] is the sub-list for method input_type
-	135, // [135:135] is the sub-list for extension type_name
-	135, // [135:135] is the sub-list for extension extendee
-	0,   // [0:135] is the sub-list for field type_name
+	146, // 109: specs.MachineStatusSpec.Schematic.initial_state:type_name -> specs.MachineStatusSpec.Schematic.InitialState
+	151, // 110: specs.ClusterSecretsSpec.Certs.os:type_name -> specs.ClusterSecretsSpec.Certs.CA
+	151, // 111: specs.ClusterSecretsSpec.Certs.k8s:type_name -> specs.ClusterSecretsSpec.Certs.CA
+	10,  // 112: specs.MachineSetSpec.MachineClass.allocation_type:type_name -> specs.MachineSetSpec.MachineClass.Type
+	11,  // 113: specs.MachineSetSpec.MachineAllocation.allocation_type:type_name -> specs.MachineSetSpec.MachineAllocation.Type
+	155, // 114: specs.MachineSetSpec.UpdateStrategyConfig.rolling:type_name -> specs.MachineSetSpec.RollingUpdateStrategyConfig
+	2,   // 115: specs.ControlPlaneStatusSpec.Condition.type:type_name -> specs.ConditionType
+	14,  // 116: specs.ControlPlaneStatusSpec.Condition.status:type_name -> specs.ControlPlaneStatusSpec.Condition.Status
+	15,  // 117: specs.ControlPlaneStatusSpec.Condition.severity:type_name -> specs.ControlPlaneStatusSpec.Condition.Severity
+	159, // 118: specs.KubernetesStatusSpec.NodeStaticPods.static_pods:type_name -> specs.KubernetesStatusSpec.StaticPodStatus
+	32,  // 119: specs.MachineClassSpec.Provision.meta_values:type_name -> specs.MetaValue
+	3,   // 120: specs.MachineClassSpec.Provision.grpc_tunnel:type_name -> specs.GrpcTunnelMode
+	30,  // 121: specs.MachineConfigGenOptionsSpec.InstallImage.security_state:type_name -> specs.SecurityState
+	18,  // 122: specs.MachineExtensionsStatusSpec.Item.phase:type_name -> specs.MachineExtensionsStatusSpec.Item.Phase
+	22,  // 123: specs.ClusterMachineSecretsSpec.Rotation.status:type_name -> specs.SecretRotationSpec.Status
+	23,  // 124: specs.ClusterMachineSecretsSpec.Rotation.phase:type_name -> specs.SecretRotationSpec.Phase
+	24,  // 125: specs.ClusterMachineSecretsSpec.Rotation.component:type_name -> specs.SecretRotationSpec.Component
+	150, // 126: specs.ClusterMachineSecretsSpec.Rotation.extra_certs:type_name -> specs.ClusterSecretsSpec.Certs
+	27,  // 127: specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus.Phase
+	28,  // 128: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.phase:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.Phase
+	26,  // 129: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.mode:type_name -> specs.KubernetesManifestGroupSpec.Mode
+	185, // 130: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.manifests:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry
+	183, // 131: specs.ClusterKubernetesManifestsStatusSpec.GroupsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.GroupStatus
+	182, // 132: specs.ClusterKubernetesManifestsStatusSpec.GroupStatus.ManifestsEntry.value:type_name -> specs.ClusterKubernetesManifestsStatusSpec.ManifestStatus
+	133, // [133:133] is the sub-list for method output_type
+	133, // [133:133] is the sub-list for method input_type
+	133, // [133:133] is the sub-list for extension type_name
+	133, // [133:133] is the sub-list for extension extendee
+	0,   // [0:133] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_omni_proto_init() }

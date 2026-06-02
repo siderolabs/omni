@@ -24,7 +24,6 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/kernelargs"
 )
 
 // ReconciliationContext describes all related data for one reconciliation call of the machine config status controller.
@@ -39,10 +38,9 @@ type ReconciliationContext struct {
 	lastConfigError       string
 	redactedMachineConfig []byte
 
-	shouldUpgrade          bool
-	compareFullSchematicID bool
-	configUpdatesAllowed   bool
-	locked                 bool
+	shouldUpgrade        bool
+	configUpdatesAllowed bool
+	locked               bool
 }
 
 func checkClusterReady(ctx context.Context, r controller.Reader, machineConfig *omni.ClusterMachineConfig) (bool, error) {
@@ -99,15 +97,6 @@ func checkMachineStatus(ctx context.Context, r controller.Reader, machineStatus 
 
 func (rc *ReconciliationContext) ID() string {
 	return rc.machineConfig.Metadata().ID()
-}
-
-// SchematicEqual compares the schematic using the complex condition.
-func (rc *ReconciliationContext) SchematicEqual(extensionsOnlyID, fullID, expectedSchematic string) bool {
-	if rc.compareFullSchematicID {
-		return fullID == expectedSchematic
-	}
-
-	return extensionsOnlyID == expectedSchematic || fullID == expectedSchematic
 }
 
 // BuildReconciliationContext is the COSI reader dependent method to build the reconciliation context.
@@ -207,16 +196,8 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	// Invalid schematic means the machine was not provisioned via image factory.
 	// Skip schematic comparison — schematic plays no role in upgrade decisions for these machines.
 	if !rc.machineStatus.TypedSpec().Value.Schematic.Invalid {
-		schematicMismatch = machineConfigStatus.TypedSpec().Value.SchematicId != rc.installImage.SchematicId
-
-		rc.compareFullSchematicID, err = kernelargs.UpdateSupported(rc.machineStatus, func() (*omni.ClusterMachineConfig, error) {
-			return machineConfig, nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to determine if kernel args update is supported for machine %q: %w", machineConfig.Metadata().ID(), err)
-		}
-
-		schematicMismatch = schematicMismatch || !rc.SchematicEqual(rc.machineStatus.TypedSpec().Value.Schematic.Id, rc.machineStatus.TypedSpec().Value.Schematic.FullId, rc.installImage.SchematicId)
+		schematicMismatch = machineConfigStatus.TypedSpec().Value.SchematicId != rc.installImage.SchematicId ||
+			rc.machineStatus.TypedSpec().Value.Schematic.FullId != rc.installImage.SchematicId
 	}
 
 	talosVersionMismatch := strings.TrimLeft(rc.machineStatus.TypedSpec().Value.TalosVersion, "v") != machineConfigStatus.TypedSpec().Value.TalosVersion ||

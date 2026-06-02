@@ -30,6 +30,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/schematic"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/talosupgrade"
 	conf "github.com/siderolabs/omni/internal/pkg/config"
@@ -49,7 +50,7 @@ type ClusterMachineConfigSuite struct {
 func (suite *ClusterMachineConfigSuite) registerControllers() {
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController(suite.kubernetesRuntime)))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSchematicConfigurationController(&imageFactoryClientMock{})))
+	suite.Require().NoError(suite.runtime.RegisterQController(schematic.NewConfigurationController(&imageFactoryClientMock{})))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, "ghcr.io/siderolabs/installer", conf.Registries{})))
 	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineStatusController()))

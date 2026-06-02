@@ -59,7 +59,6 @@ func TestReconcile(t *testing.T) {
 			}
 
 			res.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
-				Id:         "test-id",
 				FullId:     "test-full-id",
 				KernelArgs: []string{"arg-1", "arg-2"},
 			}
