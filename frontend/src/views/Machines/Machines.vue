@@ -159,6 +159,7 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
   <PageContainer class="h-full">
     <TList
       :opts="{
+        type: undefined as unknown as MachineStatusLinkSpec,
         runtime: Runtime.Omni,
         resource: {
           type: MachineStatusLinkType,

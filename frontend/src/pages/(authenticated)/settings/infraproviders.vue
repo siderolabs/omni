@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -23,7 +23,6 @@ import {
   InfraProviderServiceAccountDomain,
   RoleInfraProvider,
 } from '@/api/resources'
-import type { WatchOptions } from '@/api/watch'
 import { itemID } from '@/api/watch'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
@@ -43,18 +42,6 @@ definePage({
 
 const router = useRouter()
 const { canManageUsers } = usePermissions()
-
-const watchOpts = computed<WatchOptions>(() => {
-  return {
-    runtime: Runtime.Omni,
-    resource: {
-      namespace: EphemeralNamespace,
-      type: InfraProviderCombinedStatusType,
-    },
-    selectors: selectors(filterLabels.value),
-    sortByField: 'created',
-  }
-})
 
 const getStatus = (item: Resource<InfraProviderCombinedStatusSpec>) => {
   if (!item.spec.health?.initialized) {
@@ -135,7 +122,16 @@ const openRotateSecretKey = async (name: string) => {
         </TButton>
       </div>
       <TList
-        :opts="watchOpts"
+        :opts="{
+          type: undefined as unknown as InfraProviderCombinedStatusSpec,
+          runtime: Runtime.Omni,
+          resource: {
+            namespace: EphemeralNamespace,
+            type: InfraProviderCombinedStatusType,
+          },
+          selectors: selectors(filterLabels),
+          sortByField: 'created',
+        }"
         search
         no-records-alert
         pagination

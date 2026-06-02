@@ -16,16 +16,9 @@ import {
   InfraProviderStatusType,
   LabelIsStaticInfraProvider,
 } from '@/api/resources'
-import type { WatchOptions } from '@/api/watch'
 import IconButton from '@/components/Button/IconButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TList from '@/components/List/TList.vue'
-
-const infraProviderResources: WatchOptions = {
-  resource: { type: InfraProviderStatusType, namespace: InfraProviderNamespace },
-  runtime: Runtime.Omni,
-  selectors: [`!${LabelIsStaticInfraProvider}`],
-}
 
 const props = defineProps<{
   infraProvider?: string
@@ -67,7 +60,15 @@ const setInfraProvider = (item: Resource<InfraProviderStatusSpec>) => {
   <div class="text-naturals-n13">Infrastructure Provider</div>
   <TList
     :key="infraProvider"
-    :opts="infraProviderResources"
+    :opts="{
+      type: undefined as unknown as InfraProviderStatusSpec,
+      resource: {
+        type: InfraProviderStatusType,
+        namespace: InfraProviderNamespace,
+      },
+      runtime: Runtime.Omni,
+      selectors: [`!${LabelIsStaticInfraProvider}`],
+    }"
     :search="showAllProviders"
     class="mb-1"
   >

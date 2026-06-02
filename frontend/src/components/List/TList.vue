@@ -4,7 +4,7 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts">
+<script setup lang="ts" generic="T = unknown">
 import { useLocalStorage } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 
@@ -37,7 +37,8 @@ const { pagination, search, opts, sortOptions, filterOptions, filterValue, filte
   defineProps<{
     pagination?: boolean
     search?: boolean
-    opts: WatchOptionsMulti
+    // type: T is the only way to type the generic
+    opts: WatchOptionsMulti & { type: T }
     sortOptions?: { id: string; desc: string; descending?: boolean }[]
     filterOptions?: { query?: string; desc: string }[]
     filterValue?: string
@@ -207,8 +208,7 @@ const {
   err,
   loading,
   total,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} = useResourceWatch<any>(() => ({
+} = useResourceWatch<T>(() => ({
   ...opts,
   ...paginationState.value,
   ...searchState.value,

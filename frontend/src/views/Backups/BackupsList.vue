@@ -9,7 +9,11 @@ import { useClipboard } from '@vueuse/core'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { EtcdBackupOverallStatusSpec, EtcdBackupStatusSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  EtcdBackupOverallStatusSpec,
+  EtcdBackupSpec,
+  EtcdBackupStatusSpec,
+} from '@/api/omni/specs/omni.pb'
 import {
   EtcdBackupOverallStatusID,
   EtcdBackupOverallStatusType,
@@ -130,6 +134,7 @@ const {
     <TList
       :key="etcdBackupStatus?.metadata.updated"
       :opts="{
+        type: undefined as unknown as EtcdBackupSpec,
         resource: {
           namespace: ExternalNamespace,
           type: EtcdBackupType,
@@ -154,7 +159,7 @@ const {
         </div>
 
         <TListItem v-for="item in items" :key="item.metadata.id!">
-          <div class="relative pr-3 text-naturals-n12" :class="{ 'pl-7': !item.spec.description }">
+          <div class="relative pr-3 pl-7 text-naturals-n12">
             <div class="grid grid-cols-4 items-center justify-center gap-1 pr-12">
               <WordHighlighter
                 :query="searchQuery"
@@ -169,7 +174,7 @@ const {
               </div>
               <div class="flex items-center gap-2 text-naturals-n14">
                 {{ item.spec.snapshot }}
-                <IconButton icon="copy" @click="copy(item.spec.snapshot)" />
+                <IconButton icon="copy" @click="copy(item.spec.snapshot ?? '')" />
               </div>
             </div>
           </div>

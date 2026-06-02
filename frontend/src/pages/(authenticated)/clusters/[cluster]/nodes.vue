@@ -92,6 +92,7 @@ function getNodeItem(
     <PageHeader title="All Nodes" />
     <TList
       :opts="{
+        type: undefined as unknown as ClusterMachineStatusSpec,
         runtime: Runtime.Omni,
         resource: {
           type: ClusterMachineStatusType,

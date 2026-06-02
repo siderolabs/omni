@@ -5,13 +5,12 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
+import type { MachineClassSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineClassType } from '@/api/resources'
-import type { WatchOptions } from '@/api/watch'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
 import TList from '@/components/List/TList.vue'
@@ -25,16 +24,6 @@ import { usePermissions } from '@/methods/auth'
 definePage({ name: 'MachineClasses' })
 
 const { canRemoveMachines } = usePermissions()
-
-const watchOpts = computed((): WatchOptions => {
-  return {
-    resource: {
-      namespace: DefaultNamespace,
-      type: MachineClassType,
-    },
-    runtime: Runtime.Omni,
-  }
-})
 
 const router = useRouter()
 
@@ -57,7 +46,19 @@ const openMachineClassDestroy = (id: string) => {
       </TButton>
     </div>
 
-    <TList :opts="watchOpts" class="mb-6" search pagination>
+    <TList
+      :opts="{
+        type: undefined as unknown as MachineClassSpec,
+        resource: {
+          namespace: DefaultNamespace,
+          type: MachineClassType,
+        },
+        runtime: Runtime.Omni,
+      }"
+      class="mb-6"
+      search
+      pagination
+    >
       <template #norecords>
         <TAlert type="info" title="No classes found">
           Create your first Machine Class to automate cluster provisioning and scaling from classes
@@ -76,7 +77,7 @@ const openMachineClassDestroy = (id: string) => {
           </div>
         </div>
         <TListItem v-for="item in items" :key="item.metadata.id!">
-          <div class="relative pr-3 text-naturals-n12" :class="{ 'pl-7': !item.spec.description }">
+          <div class="relative pr-3 pl-7 text-naturals-n12">
             <IconButton
               icon="delete"
               aria-label="delete"

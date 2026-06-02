@@ -10,7 +10,11 @@ import { ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { type Resource, ResourceService } from '@/api/grpc'
-import { type DefaultJoinTokenSpec, JoinTokenStatusSpecState } from '@/api/omni/specs/siderolink.pb'
+import {
+  type DefaultJoinTokenSpec,
+  type JoinTokenStatusSpec,
+  JoinTokenStatusSpecState,
+} from '@/api/omni/specs/siderolink.pb'
 import { withRuntime } from '@/api/options'
 import {
   DefaultJoinTokenID,
@@ -47,7 +51,7 @@ const revokeTokenModalOpen = ref(false)
 const deleteTokenModalOpen = ref(false)
 const selectedToken = ref<string>()
 
-const getStatusString = (state: JoinTokenStatusSpecState): TCommonStatuses => {
+const getStatusString = (state?: JoinTokenStatusSpecState): TCommonStatuses => {
   switch (state) {
     case JoinTokenStatusSpecState.ACTIVE:
       return TCommonStatuses.ACTIVE
@@ -124,6 +128,7 @@ const openDeleteToken = (token: string) => {
     </div>
     <TList
       :opts="{
+        type: undefined as unknown as JoinTokenStatusSpec,
         runtime: Runtime.Omni,
         resource: {
           type: JoinTokenStatusType,

@@ -65,6 +65,7 @@ const openUserCreate = () => {
       </div>
       <TList
         :opts="{
+          type: undefined as unknown as IdentityStatusSpec,
           runtime: Runtime.Omni,
           resource: {
             type: IdentityStatusType,

@@ -394,6 +394,7 @@ const list = useTemplateRef('list')
       <TList
         ref="list"
         :opts="{
+          type: undefined as unknown as MachineStatusSpec,
           resource: {
             namespace: DefaultNamespace,
             type: MachineStatusType,

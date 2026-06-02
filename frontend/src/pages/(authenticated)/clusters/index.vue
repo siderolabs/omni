@@ -5,10 +5,10 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { ClusterStatusMetricsSpec } from '@/api/omni/specs/omni.pb'
+import type { ClusterStatusMetricsSpec, ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
 import {
   ClusterStatusMetricsID,
   ClusterStatusMetricsType,
@@ -18,7 +18,7 @@ import {
   LabelsCompletionType,
   VirtualNamespace,
 } from '@/api/resources'
-import { itemID, type WatchOptions } from '@/api/watch'
+import { itemID } from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
@@ -36,18 +36,6 @@ import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 definePage({ name: 'Clusters' })
 
 const { canCreateClusters } = usePermissions()
-
-const watchOpts = computed<WatchOptions>(() => {
-  return {
-    runtime: Runtime.Omni,
-    resource: {
-      namespace: DefaultNamespace,
-      type: ClusterStatusType,
-    },
-    selectors: selectors(filterLabels.value),
-    sortByField: 'created',
-  }
-})
 
 const { data } = useResourceWatch<ClusterStatusMetricsSpec>({
   resource: {
@@ -78,7 +66,16 @@ const filterOptions = [
 <template>
   <PageContainer>
     <TList
-      :opts="watchOpts"
+      :opts="{
+        type: undefined as unknown as ClusterStatusSpec,
+        runtime: Runtime.Omni,
+        resource: {
+          namespace: DefaultNamespace,
+          type: ClusterStatusType,
+        },
+        selectors: selectors(filterLabels),
+        sortByField: 'created',
+      }"
       search
       no-records-alert
       pagination

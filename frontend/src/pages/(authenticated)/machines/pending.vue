@@ -9,6 +9,7 @@ import { ref } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
+import type { InfraMachineSpec } from '@/api/omni/specs/infra.pb'
 import { InfraMachineType, InfraProviderNamespace, LabelInfraProviderID } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
@@ -39,6 +40,7 @@ const unrejectModalOpen = ref(false)
   <PageContainer>
     <TList
       :opts="{
+        type: undefined as unknown as InfraMachineSpec,
         runtime: Runtime.Omni,
         resource: {
           type: InfraMachineType,
