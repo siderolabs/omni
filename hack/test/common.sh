@@ -42,9 +42,9 @@ export KUBERNETES_VERSION=1.36.1
 # To use in:
 # - Omni upgrade tests, to prevent Talos changes interfering with Omni changes
 # - Talos minor upgrade tests
-export STABLE_TALOS_VERSION=1.12.6
+export STABLE_TALOS_VERSION=1.12.8
 export ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-$LATEST_STABLE_OMNI}"
-export ANOTHER_KUBERNETES_VERSION=1.35.4
+export ANOTHER_KUBERNETES_VERSION=1.35.5
 
 export INTEGRATION_PREPARE_TEST_ARGS="${INTEGRATION_PREPARE_TEST_ARGS:-}"
 export ARTIFACTS=_out

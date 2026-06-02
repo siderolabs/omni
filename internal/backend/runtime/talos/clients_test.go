@@ -46,6 +46,7 @@ func TestGetClientForCluster(t *testing.T) {
 			&bundle.InputOptions{
 				ClusterName: clusterName,
 				Endpoint:    "https://127.0.0.1:6443",
+				KubeVersion: "1.36.1",
 			},
 		))
 		require.NoError(t, err)
@@ -100,6 +101,7 @@ func TestClientLifecycle(t *testing.T) {
 			&bundle.InputOptions{
 				ClusterName: clusterName,
 				Endpoint:    "https://127.0.0.1:6443",
+				KubeVersion: "1.36.1",
 			},
 		))
 		require.NoError(t, err)

@@ -280,11 +280,11 @@ func (data *testData) prepareNode(ctx context.Context, t *testing.T, node string
 			apiServerConfig.TypedSpec().Image = "registry.k8s.io/kube-apiserver:" + data.kubernetesVersion
 			require.NoError(t, st.Create(ctx, apiServerConfig))
 
-			schedulerConfig := k8s.NewSchedulerConfig()
+			schedulerConfig := k8s.NewSchedulerConfig(k8s.SchedulerConfigID)
 			schedulerConfig.TypedSpec().Image = "registry.k8s.io/kube-scheduler:" + data.kubernetesVersion
 			require.NoError(t, st.Create(ctx, schedulerConfig))
 
-			controllerManagerConfig := k8s.NewControllerManagerConfig()
+			controllerManagerConfig := k8s.NewControllerManagerConfig(k8s.ControllerManagerConfigID)
 			controllerManagerConfig.TypedSpec().Image = "registry.k8s.io/kube-controller-manager:" + data.kubernetesVersion
 			require.NoError(t, st.Create(ctx, controllerManagerConfig))
 

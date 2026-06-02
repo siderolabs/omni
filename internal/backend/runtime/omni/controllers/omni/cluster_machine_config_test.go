@@ -516,6 +516,7 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 		fallthrough
 	case "1.12.1":
 	case "1.13.1":
+	case "1.14.1":
 	default:
 		suite.T().Fatalf("untested initial version: %s", initialVersion)
 	}
@@ -523,8 +524,9 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 	suite.Equal(manifestDirectoryDisabled, finalConfig.Machine().Kubelet().DisableManifestsDirectory(), "disableManifestsDirectory value has changed unexpectedly")
 	suite.Equal(legacyMirrorRemoved, len(finalConfig.RegistryMirrorConfigs()) == 0, "legacy registry mirror value has changed unexpectedly")
 	suite.Equal(diskQuotaSupportEnabled, finalConfig.Machine().Features().DiskQuotaSupportEnabled(), "diskQuotaSupport feature value has changed unexpectedly")
-	suite.Equal(hostDNSEnabled, finalConfig.Machine().Features().HostDNS().Enabled(), "hostDNS feature value has changed unexpectedly")
-	suite.Equal(hostDNSForwardKubeDNSToHost, finalConfig.Machine().Features().HostDNS().ForwardKubeDNSToHost(), "hostDNS.forwardKubeDNSToHost value has changed unexpectedly")
+	hostDNSConfig := finalConfig.NetworkHostDNSConfig()
+	suite.Equal(hostDNSEnabled, hostDNSConfig != nil && hostDNSConfig.HostDNSEnabled(), "hostDNS feature value has changed unexpectedly")
+	suite.Equal(hostDNSForwardKubeDNSToHost, hostDNSConfig != nil && hostDNSConfig.ForwardKubeDNSToHost(), "hostDNS.forwardKubeDNSToHost value has changed unexpectedly")
 	suite.Equal(kubePrismEnabled, finalConfig.Machine().Features().KubePrism().Enabled(), "kubePrism feature value has changed unexpectedly")
 	suite.Equal(nodeHasLabelsSet, len(finalConfig.Machine().NodeLabels()) > 0, "node labels value has changed unexpectedly")
 	suite.Equal(grubUseUkiCmdlineSet, finalConfig.Machine().Install().GrubUseUKICmdline(), "grubUseUkiCmdline value has changed unexpectedly")

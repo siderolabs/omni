@@ -300,7 +300,11 @@ func newContext(input Input, talosCli talosClientWrapper, imageFactoryClient Ima
 	}
 
 	ics := omni.NewImportedClusterSecrets(clusterID)
-	secretsBundle := secrets.NewBundleFromConfig(secrets.NewFixedClock(time.Now()), nodeInfoMap[controlPlanes[0]].machineConfig.Provider())
+
+	secretsBundle, err := secrets.NewBundleFromConfig(secrets.NewFixedClock(time.Now()), nodeInfoMap[controlPlanes[0]].machineConfig.Provider())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create secrets bundle: %w", err)
+	}
 
 	bundleYaml, err := yaml.Marshal(secretsBundle)
 	if err != nil {

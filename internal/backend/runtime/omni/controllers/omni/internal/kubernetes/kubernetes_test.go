@@ -40,22 +40,6 @@ func TestComponentPatch(t *testing.T) {
 		assert.Equal(t, v, strings.TrimLeft(tag, "v"))
 	}
 
-	componentVersionAssertion := map[kubernetes.Component]func(*testing.T, config.Provider, string){
-		kubernetes.APIServer: func(t *testing.T, cfg config.Provider, v string) {
-			assertVersion(t, v, cfg.Cluster().APIServer().Image())
-			assertVersion(t, v, cfg.Cluster().Proxy().Image())
-		},
-		kubernetes.ControllerManager: func(t *testing.T, cfg config.Provider, v string) {
-			assertVersion(t, v, cfg.Cluster().ControllerManager().Image())
-		},
-		kubernetes.Scheduler: func(t *testing.T, cfg config.Provider, v string) {
-			assertVersion(t, v, cfg.Cluster().Scheduler().Image())
-		},
-		kubernetes.Kubelet: func(t *testing.T, cfg config.Provider, v string) {
-			assertVersion(t, v, cfg.Machine().Kubelet().Image())
-		},
-	}
-
 	for i := range 10 {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			t.Parallel()
@@ -67,6 +51,22 @@ func TestComponentPatch(t *testing.T) {
 
 			v1alpha1Cfg := &v1alpha1.Config{}
 			cfg := container.NewV1Alpha1(v1alpha1Cfg)
+
+			componentVersionAssertion := map[kubernetes.Component]func(*testing.T, config.Provider, string){
+				kubernetes.APIServer: func(t *testing.T, cfg config.Provider, v string) {
+					assertVersion(t, v, cfg.Cluster().APIServer().Image())
+					assertVersion(t, v, cfg.Cluster().Proxy().Image())
+				},
+				kubernetes.ControllerManager: func(t *testing.T, _ config.Provider, v string) {
+					assertVersion(t, v, v1alpha1Cfg.ClusterConfig.ControllerManagerConfig.Image()) //nolint:staticcheck
+				},
+				kubernetes.Scheduler: func(t *testing.T, _ config.Provider, v string) {
+					assertVersion(t, v, v1alpha1Cfg.ClusterConfig.SchedulerConfig.Image()) //nolint:staticcheck
+				},
+				kubernetes.Kubelet: func(t *testing.T, cfg config.Provider, v string) {
+					assertVersion(t, v, cfg.Machine().Kubelet().Image())
+				},
+			}
 
 			for _, component := range components {
 				component.Patch("1.2.3").Apply(v1alpha1Cfg)

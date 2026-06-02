@@ -100,6 +100,10 @@ func patchAPIServer(version string) Patcher {
 	}
 }
 
+// The inline controller manager config fields are deprecated in favor of separate config documents, but Omni still
+// relies on the inline form, so the deprecation is suppressed here.
+//
+//nolint:staticcheck
 func patchControllerManager(version string) Patcher {
 	img := fmt.Sprintf("%s:v%s", constants.KubernetesControllerManagerImage, version)
 
@@ -119,6 +123,10 @@ func patchControllerManager(version string) Patcher {
 	}
 }
 
+// The inline scheduler config fields are deprecated in favor of separate config documents, but Omni still relies on
+// the inline form, so the deprecation is suppressed here.
+//
+//nolint:staticcheck
 func patchScheduler(version string) Patcher {
 	img := fmt.Sprintf("%s:v%s", constants.KubernetesSchedulerImage, version)
 
