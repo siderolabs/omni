@@ -899,9 +899,15 @@ func makeMux(
 		return nil, err
 	}
 
+	scanHandler, err := makeScanHandler(imageFactoryClient, logger)
+	if err != nil {
+		return nil, err
+	}
+
 	muxHandle("/exposed/service", workloadProxyRedirect, "exposed-service-redirect")
 	muxHandle("/omnictl/", http.StripPrefix("/omnictl/", omnictlHndlr), "files")
 	muxHandle("/talosctl/downloads/{version}", talosctlHandler, "talosctl-downloads")
+	muxHandle("/scans/{schematicID}/{talosVersion}/{arch}/report.json", scanHandler, "scan-report")
 	// actually enabled only in debug build
 	muxHandle("/debug/", debug.NewHandler(omniRuntime.GetCOSIRuntime(), state.Default()), "debug")
 
@@ -1300,6 +1306,60 @@ func makeTalosctlHandler(imageFactoryClient *imagefactory.Client, logger *zap.Lo
 		writeResult(result{
 			Status:    "ok",
 			Downloads: data,
+		}, http.StatusOK)
+	}), nil
+}
+
+//nolint:unparam
+func makeScanHandler(imageFactoryClient *imagefactory.Client, logger *zap.Logger) (http.Handler, error) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		type result struct {
+			Status string          `json:"status"`
+			Report json.RawMessage `json:"report,omitempty"`
+		}
+
+		writeResult := func(a any, code int) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(code)
+
+			if err := json.NewEncoder(w).Encode(a); err != nil {
+				logger.Error("failed to encode result", zap.Error(err))
+			}
+		}
+
+		schematicID := r.PathValue("schematicID")
+		talosVersion := r.PathValue("talosVersion")
+		arch := r.PathValue("arch")
+
+		if _, err := semver.ParseTolerant(talosVersion); err != nil {
+			logger.Info("invalid Talos version", zap.Error(err))
+			writeResult(result{
+				Status: "invalid Talos version",
+			}, http.StatusBadRequest)
+
+			return
+		}
+
+		ctx := actor.MarkContextAsInternalActor(r.Context())
+
+		data, err := imageFactoryClient.ScanReport(ctx, schematicID, talosVersion, arch, "report.json")
+		if err != nil {
+			logger.Error(
+				"failed to get scan report",
+				zap.Error(err),
+				zap.String("schematicID", schematicID),
+				zap.String("talosVersion", talosVersion),
+				zap.String("arch", arch),
+			)
+
+			writeResult(result{
+				Status: "failed to get scan report",
+			}, http.StatusInternalServerError)
+		}
+
+		writeResult(result{
+			Status: "ok",
+			Report: data,
 		}, http.StatusOK)
 	}), nil
 }

@@ -358,7 +358,7 @@ const clusterItems = computed(() => {
     result.push({
       name: 'Bootstrap Manifests',
       route: getRoute('/manifests'),
-      icon: 'bootstrap-manifests',
+      icon: 'document-text',
       label: pendingManifests.value,
       labelDanger: pendingManifests.value === '!',
     })

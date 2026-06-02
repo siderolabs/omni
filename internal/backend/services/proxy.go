@@ -60,7 +60,7 @@ func (prx *httpProxy) Run(ctx context.Context, next http.Handler, logger *zap.Lo
 	srv := NewFromConfig(
 		&prx.config,
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if hasPrefix(r.URL.Path, "/api/", "/omnictl/", "/talosctl/", "/image/") {
+			if hasPrefix(r.URL.Path, "/api/", "/omnictl/", "/talosctl/", "/image/", "/scans/") {
 				next.ServeHTTP(w, r)
 
 				return

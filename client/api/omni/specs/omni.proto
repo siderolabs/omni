@@ -1123,6 +1123,9 @@ message FeaturesConfigSpec {
 
   // Account represents omni account information.
   Account account = 10;
+
+  // IsEnterpriseImageFactory is true when the configured image factory URL is an enterprise one.
+  bool is_enterprise_image_factory = 11;
 }
 
 message UserPilotSettings {

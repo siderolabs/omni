@@ -54,7 +54,7 @@ const openUserCreate = () => {
     <div class="flex grow flex-col gap-2">
       <div class="flex justify-end">
         <TButton
-          icon="user-add"
+          icon="user-plus"
           icon-position="left"
           variant="highlighted"
           :disabled="!canManageUsers || authType === AuthType.SAML"

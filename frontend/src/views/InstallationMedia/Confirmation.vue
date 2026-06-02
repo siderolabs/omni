@@ -23,6 +23,7 @@ import {
   SBCConfigType,
   VirtualNamespace,
 } from '@/api/resources'
+import TButton from '@/components/Button/TButton.vue'
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
 import CopyButton from '@/components/CopyButton/CopyButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
@@ -38,6 +39,7 @@ import { formStateToPreset } from '@/views/InstallationMedia/formStateToPreset'
 import { type FormState, resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 import { usePresetDownloadLinks } from '@/views/InstallationMedia/usePresetDownloadLinks'
 import { usePresetSchematic } from '@/views/InstallationMedia/usePresetSchematic'
+import Scan from '@/views/InstallationMedia/vulnerabilities/Scan.vue'
 
 defineProps<{
   isReviewPage?: boolean
@@ -60,6 +62,8 @@ const supportsUnifiedInstaller = computed(() => quirks.value?.spec.supports_unif
 const talosctlAvailable = computed(() => quirks.value?.spec.supports_factory_talosctl)
 
 const { data: features } = useFeatures()
+const imageFactoryBaseURL = computed(() => features.value?.spec.image_factory_base_url)
+const isEnterpriseFactory = computed(() => features.value?.spec.is_enterprise_image_factory)
 
 const imageFactoryAuth = useImageFactoryAuth()
 
@@ -131,12 +135,9 @@ const schematicId = computed(() => schematic.value?.id ?? '')
 
 const { links } = usePresetDownloadLinks(schematicId, resolvedPreset)
 
-const factoryHost = computed(() => {
-  const baseURL = features.value?.spec.image_factory_base_url
-  if (!baseURL) return ''
-
-  return new URL(baseURL).host
-})
+const factoryHost = computed(() =>
+  imageFactoryBaseURL.value ? new URL(imageFactoryBaseURL.value).host : '',
+)
 
 const installerImage = computed(() =>
   supportsUnifiedInstaller.value
@@ -170,10 +171,37 @@ const clusterCreateCommand = computed(() => {
 
   return parts.join(' ')
 })
+
+const SPDXBaseURL = computed(() =>
+  imageFactoryBaseURL.value
+    ? `${imageFactoryBaseURL.value}/spdx/${schematicId.value}/v${resolvedTalosVersion.value}/amd64`
+    : '',
+)
+
+const VEXBaseURL = computed(() =>
+  imageFactoryBaseURL.value
+    ? `${imageFactoryBaseURL.value}/vex/v${resolvedTalosVersion.value}/vex.json`
+    : '',
+)
 </script>
 
 <template>
   <div v-if="schematic" class="flex flex-col gap-4 text-xs">
+    <Scan
+      v-if="isEnterpriseFactory"
+      :schematic-id
+      :talos-version="resolvedTalosVersion"
+      :arch="formState.machineArch!"
+    />
+
+    <template v-else>
+      <h3 class="text-sm text-naturals-n14">Vulnerability Scan</h3>
+      <p>
+        Vulnerability scan reports are only available through the Talos Linux Image Factory
+        Enterprise.
+      </p>
+    </template>
+
     <h2 v-if="!isReviewPage" class="text-sm text-naturals-n14">Schematic Ready</h2>
 
     <p class="flex items-center gap-1">
@@ -196,7 +224,10 @@ const clusterCreateCommand = computed(() => {
     <p v-else-if="selectedSBC">Use the following disk image for {{ selectedSBC.spec.label }}:</p>
 
     <dl class="flex flex-col gap-2">
-      <template v-for="{ label, link, documentation, copyOnly } in links" :key="link">
+      <template
+        v-for="{ label, link, documentation, withChecksums, copyOnly } in links"
+        :key="link"
+      >
         <dt class="font-medium text-naturals-n14 not-first-of-type:mt-2">
           {{ label }}
           <Tooltip v-if="documentation" description="Documentation">
@@ -211,17 +242,55 @@ const clusterCreateCommand = computed(() => {
           </Tooltip>
         </dt>
 
-        <dd v-if="copyOnly" class="flex items-center gap-1">
-          <code class="whitespace-wrap rounded bg-naturals-n4 px-2 py-1 wrap-anywhere">
-            {{ link }}
-          </code>
-          <CopyButton :aria-label="`Copy ${label} link`" :text="link" />
-        </dd>
+        <dd class="flex items-center gap-1.5">
+          <template v-if="copyOnly">
+            <code class="whitespace-wrap rounded bg-naturals-n4 px-2 py-1 wrap-anywhere">
+              {{ link }}
+            </code>
+            <CopyButton :aria-label="`Copy ${label} link`" :text="link" />
+          </template>
 
-        <dd v-else>
-          <a class="link-primary" :href="link" target="_blank" rel="noopener noreferrer">
+          <a v-else class="link-primary" :href="link" target="_blank" rel="noopener noreferrer">
             {{ link }}
           </a>
+
+          <template v-if="withChecksums">
+            <Tooltip
+              :disabled="isEnterpriseFactory"
+              description="Checksums are only available through the Talos Linux Enterprise Image Factory."
+            >
+              <TButton
+                is="a"
+                :disabled="!isEnterpriseFactory"
+                :href="`${link}.sha256`"
+                target="_blank"
+                rel="noopener noreferrer"
+                size="sm"
+                :icon="isEnterpriseFactory ? 'arrow-down-tray' : 'locked'"
+                icon-position="left"
+              >
+                sha256
+              </TButton>
+            </Tooltip>
+
+            <Tooltip
+              :disabled="isEnterpriseFactory"
+              description="Checksums are only available through the Talos Linux Enterprise Image Factory."
+            >
+              <TButton
+                is="a"
+                :disabled="!isEnterpriseFactory"
+                :href="`${link}.sha512`"
+                target="_blank"
+                rel="noopener noreferrer"
+                size="sm"
+                :icon="isEnterpriseFactory ? 'arrow-down-tray' : 'locked'"
+                icon-position="left"
+              >
+                sha512
+              </TButton>
+            </Tooltip>
+          </template>
         </dd>
       </template>
     </dl>
@@ -420,7 +489,24 @@ const clusterCreateCommand = computed(() => {
         </dd>
       </dl>
     </template>
+
+    <h3 class="text-sm text-naturals-n14">SBOM (SPDX)</h3>
+    <a v-if="isEnterpriseFactory" :href="SPDXBaseURL" class="link-primary max-w-max">
+      {{ SPDXBaseURL }}
+    </a>
+    <span v-else>
+      SBOM (SPDX) bundle is only available through the Talos Linux Image Factory Enterprise.
+    </span>
+
+    <h3 class="text-sm text-naturals-n14">VEX (Vulnerability Exploitability eXchange)</h3>
+    <a v-if="isEnterpriseFactory" :href="VEXBaseURL" class="link-primary max-w-max">
+      {{ VEXBaseURL }}
+    </a>
+    <span v-else>
+      VEX document is only available through the Talos Linux Image Factory Enterprise.
+    </span>
   </div>
+
   <div v-else class="flex flex-col gap-4">
     <p v-if="schematicLoading" class="flex items-center gap-2 text-sm">
       <TSpinner class="size-4" />

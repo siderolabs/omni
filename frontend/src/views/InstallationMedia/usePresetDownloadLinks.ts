@@ -113,7 +113,7 @@ export function usePresetDownloadLinks(
     const preset = toValue(presetRef)
 
     if (preset.sbc) {
-      return [{ label: 'Disk Image', link: sbcDiskImagePath.value }]
+      return [{ label: 'Disk Image', link: sbcDiskImagePath.value, withChecksums: true }]
     }
 
     if (!selectedPlatform.value?.spec.boot_methods) {
@@ -123,6 +123,7 @@ export function usePresetDownloadLinks(
     interface DownloadLink {
       label: string
       link: string
+      withChecksums?: boolean
       copyOnly?: boolean
       documentation?: {
         label: string
@@ -139,6 +140,7 @@ export function usePresetDownloadLinks(
             return {
               label: 'SecureBoot Disk Image',
               link: platformDiskImagePath.value,
+              withChecksums: true,
               documentation: isMetal.value
                 ? {
                     label: 'SecureBoot documentation',
@@ -154,12 +156,12 @@ export function usePresetDownloadLinks(
 
           if (isMetal.value && qcow2DiskImagePath.value) {
             return [
-              { label: 'Disk Image (raw)', link: platformDiskImagePath.value },
-              { label: 'Disk Image (qcow2)', link: qcow2DiskImagePath.value },
+              { label: 'Disk Image (raw)', link: platformDiskImagePath.value, withChecksums: true },
+              { label: 'Disk Image (qcow2)', link: qcow2DiskImagePath.value, withChecksums: true },
             ]
           }
 
-          return { label: 'Disk Image', link: platformDiskImagePath.value }
+          return { label: 'Disk Image', link: platformDiskImagePath.value, withChecksums: true }
         }
 
         case PlatformConfigSpecBootMethod.ISO: {
@@ -169,6 +171,7 @@ export function usePresetDownloadLinks(
             return {
               label: 'SecureBoot ISO',
               link: isoPath.value,
+              withChecksums: true,
               documentation: {
                 label: 'SecureBoot documentation',
                 link: getDocsLink(
@@ -183,6 +186,7 @@ export function usePresetDownloadLinks(
           return {
             label: 'ISO',
             link: isoPath.value,
+            withChecksums: true,
             documentation: isMetal.value
               ? {
                   label: 'ISO documentation',

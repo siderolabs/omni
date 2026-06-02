@@ -111,6 +111,7 @@ const dynamicProps = computed(() => {
           'order-first': iconPosition === 'left',
         },
       ]"
+      aria-hidden="true"
     />
   </component>
 </template>

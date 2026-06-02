@@ -1857,6 +1857,7 @@ func (m *FeaturesConfigSpec) CloneVT() *FeaturesConfigSpec {
 	r.TalosPreReleaseVersionsEnabled = m.TalosPreReleaseVersionsEnabled
 	r.ImageFactoryPxeBaseUrl = m.ImageFactoryPxeBaseUrl
 	r.Account = m.Account.CloneVT()
+	r.IsEnterpriseImageFactory = m.IsEnterpriseImageFactory
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -5801,6 +5802,9 @@ func (this *FeaturesConfigSpec) EqualVT(that *FeaturesConfigSpec) bool {
 		return false
 	}
 	if !this.Account.EqualVT(that.Account) {
+		return false
+	}
+	if this.IsEnterpriseImageFactory != that.IsEnterpriseImageFactory {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -12726,6 +12730,16 @@ func (m *FeaturesConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.IsEnterpriseImageFactory {
+		i--
+		if m.IsEnterpriseImageFactory {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
+	}
 	if m.Account != nil {
 		size, err := m.Account.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -18392,6 +18406,9 @@ func (m *FeaturesConfigSpec) SizeVT() (n int) {
 	if m.Account != nil {
 		l = m.Account.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.IsEnterpriseImageFactory {
+		n += 2
 	}
 	n += len(m.unknownFields)
 	return n
@@ -32879,6 +32896,26 @@ func (m *FeaturesConfigSpec) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsEnterpriseImageFactory", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsEnterpriseImageFactory = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

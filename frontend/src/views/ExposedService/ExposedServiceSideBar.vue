@@ -65,7 +65,7 @@ const errors = computed(() => {
             :route="service.spec.url"
             :name="service.spec.label!"
             :icon-svg-base64="service.spec.icon_base64"
-            icon="exposed-service"
+            icon="window"
             regular-link
           />
           <div v-if="errors.length" class="flex items-center gap-4 pr-5 pl-6 text-xs">

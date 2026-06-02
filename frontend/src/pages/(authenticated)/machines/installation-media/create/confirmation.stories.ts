@@ -6,7 +6,7 @@ import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { dump } from 'js-yaml'
-import { http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
 import {
@@ -36,6 +36,8 @@ import {
 } from '@/api/resources'
 import type { TalosctlDownloadsResponse } from '@/methods/useTalosctlDownloads'
 import { AUTOMATIC_VERSION } from '@/views/InstallationMedia/useFormState'
+import report from '@/views/InstallationMedia/vulnerabilities/sample-report.json'
+import type { ScansResponse } from '@/views/InstallationMedia/vulnerabilities/useVulnerabilityReport'
 
 import Confirmation from './confirmation.vue'
 
@@ -74,7 +76,8 @@ export const Default = {
           initialResources: [
             {
               spec: {
-                image_factory_base_url: 'https://factory.talos.dev',
+                image_factory_base_url: 'https://factory-enterprise.talos.dev',
+                is_enterprise_image_factory: true,
               },
               metadata: {
                 namespace: DefaultNamespace,
@@ -121,6 +124,18 @@ export const Default = {
             downloads,
           })
         }),
+
+        http.get<{ version: string }>(
+          '/scans/:schematicId/:talosVersion/:arch/report.json',
+          async () => {
+            await delay(2_000)
+
+            return HttpResponse.json<ScansResponse>({
+              status: '',
+              report,
+            })
+          },
+        ),
 
         http.post<never, GetRequest, GetResponse>(
           '/omni.resources.ResourceService/Get',
@@ -225,6 +240,8 @@ export const Default = {
         http.post<never, CreateSchematicRequest, CreateSchematicResponse>(
           '/management.ManagementService/CreateSchematic',
           async ({ request }) => {
+            await delay(2_000)
+
             const { secure_boot, talos_version, join_token } = await request.clone().json()
 
             const schematic_id = faker.string.uuid()
@@ -250,6 +267,37 @@ export const Default = {
             })
           },
         ),
+      ],
+    },
+  },
+} satisfies Story
+
+export const NotEnterprise = {
+  parameters: {
+    msw: {
+      handlers: [
+        createWatchStreamHandler<FeaturesConfigSpec>({
+          expectedOptions: {
+            namespace: DefaultNamespace,
+            type: FeaturesConfigType,
+            id: FeaturesConfigID,
+          },
+          initialResources: [
+            {
+              spec: {
+                image_factory_base_url: 'https://factory.talos.dev',
+                is_enterprise_image_factory: false,
+              },
+              metadata: {
+                namespace: DefaultNamespace,
+                type: FeaturesConfigType,
+                id: FeaturesConfigID,
+              },
+            },
+          ],
+        }).handler,
+
+        ...Default.parameters.msw.handlers,
       ],
     },
   },

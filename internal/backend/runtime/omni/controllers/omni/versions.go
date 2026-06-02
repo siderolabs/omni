@@ -17,7 +17,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/compatibility"
 	"go.uber.org/zap"
@@ -25,6 +24,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	consts "github.com/siderolabs/omni/internal/pkg/constants"
 	"github.com/siderolabs/omni/internal/pkg/registry"
 )
@@ -43,15 +43,17 @@ const VersionRefreshInterval = 15 * time.Minute
 
 // VersionsController creates omni.KubernetesVersions and omni.TalosVersions by scanning container registry.
 type VersionsController struct {
-	imageFactoryBaseURL           string
+	imageFactoryClient            *imagefactory.Client
+	st                            state.State
 	kubernetesRegistry            string
 	enableTalosPreReleaseVersions bool
 }
 
 // NewVersionsController creates a new VersionsController.
-func NewVersionsController(imageFactoryBaseURL string, enableTalosPreReleaseVersions bool, kubernetesRegistry string) *VersionsController {
+func NewVersionsController(imageFactoryClient *imagefactory.Client, st state.State, enableTalosPreReleaseVersions bool, kubernetesRegistry string) *VersionsController {
 	return &VersionsController{
-		imageFactoryBaseURL:           imageFactoryBaseURL,
+		imageFactoryClient:            imageFactoryClient,
+		st:                            st,
 		enableTalosPreReleaseVersions: enableTalosPreReleaseVersions,
 		kubernetesRegistry:            kubernetesRegistry,
 	}
@@ -126,6 +128,21 @@ func (ctrl *VersionsController) reconcileAllVersions(ctx context.Context, r cont
 		return fmt.Errorf("error reconciling Talos versions: %w", err)
 	}
 
+	// After a successful factory request the sniffer transport will have captured the Server header.
+	// Update FeaturesConfig with the detected enterprise state. Use direct state access (same path as
+	// features.UpdateResources) to avoid controller-ownership conflicts on the unowned resource.
+	isEnterprise := ctrl.imageFactoryClient.CachedIsEnterprise()
+
+	featuresConfig := omni.NewFeaturesConfig(omni.FeaturesConfigID)
+
+	if _, err = safe.StateUpdateWithConflicts(ctx, ctrl.st, featuresConfig.Metadata(), func(res *omni.FeaturesConfig) error {
+		res.TypedSpec().Value.IsEnterpriseImageFactory = isEnterprise
+
+		return nil
+	}); err != nil && !state.IsNotFoundError(err) {
+		return fmt.Errorf("failed to update features config with enterprise image factory state: %w", err)
+	}
+
 	return nil
 }
 
@@ -139,13 +156,8 @@ func (ctrl *VersionsController) fetchVersionsFromRegistry(ctx context.Context, s
 	return registry.UpgradeCandidates(ctx, source)
 }
 
-func (ctrl *VersionsController) fetchTalosVersions(ctx context.Context, factoryURL string) ([]string, error) {
-	client, err := client.New(factoryURL)
-	if err != nil {
-		return nil, err
-	}
-
-	return client.Versions(ctx)
+func (ctrl *VersionsController) fetchTalosVersions(ctx context.Context) ([]string, error) {
+	return ctrl.imageFactoryClient.Versions(ctx)
 }
 
 func (ctrl *VersionsController) getVersionsAfter(versions []string, minVersion semver.Version, includePreReleaseVersions bool) []string {
@@ -253,7 +265,7 @@ func forAllCompatibleVersions(
 func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r controller.Runtime, k8sVersions []*compatibility.KubernetesVersion, logger *zap.Logger) error {
 	tracker := trackResource(r, resources.DefaultNamespace, omni.TalosVersionType)
 
-	allVersions, err := ctrl.fetchTalosVersions(ctx, ctrl.imageFactoryBaseURL)
+	allVersions, err := ctrl.fetchTalosVersions(ctx)
 	if err != nil {
 		return err
 	}

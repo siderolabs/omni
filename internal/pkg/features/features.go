@@ -28,11 +28,11 @@ type Params struct {
 	AccountName                     string
 	AccountID                       string
 	UserPilotAppToken               string
-	AuditLogEnabled                 bool
 	EtcdBackupMinInterval           time.Duration
 	EtcdBackupMaxInterval           time.Duration
 	EtcdBackupTickInterval          time.Duration
 	StripeMinCommit                 uint32
+	AuditLogEnabled                 bool
 	WorkloadProxyEnabled            bool
 	StripeEnabled                   bool
 	EmbeddedDiscoveryServiceEnabled bool

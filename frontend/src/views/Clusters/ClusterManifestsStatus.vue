@@ -138,7 +138,7 @@ const groupInSyncCount = (group: ClusterKubernetesManifestsStatusSpecGroupStatus
   <PageContainer class="flex flex-col">
     <PageHeader :title="`Manifests Status — ${cluster}`">
       <template v-if="data">
-        <StatsItem title="Total" :value="data.spec.total ?? 0" icon="bootstrap-manifests" />
+        <StatsItem title="Total" :value="data.spec.total ?? 0" icon="document-text" />
         <StatsItem title="In Sync" :value="inSyncCount" icon="check-in-circle" />
         <StatsItem
           v-if="data.spec.out_of_sync"

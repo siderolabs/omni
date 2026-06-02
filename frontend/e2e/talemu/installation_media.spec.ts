@@ -103,6 +103,22 @@ test('Download installation media', async ({ page }, testInfo) => {
   let schematicId: string
 
   await test.step('Confirmation step', async () => {
+    await expect(
+      page.getByText(
+        'Vulnerability scan reports are only available through the Talos Linux Image Factory Enterprise.',
+      ),
+    ).toBeVisible()
+    await expect(
+      page.getByText(
+        'SBOM (SPDX) bundle is only available through the Talos Linux Image Factory Enterprise.',
+      ),
+    ).toBeVisible()
+    await expect(
+      page.getByText(
+        'VEX document is only available through the Talos Linux Image Factory Enterprise.',
+      ),
+    ).toBeVisible()
+
     await page.getByRole('button', { name: 'Copy schematic ID' }).click()
 
     await expect
@@ -159,6 +175,9 @@ test('Download installation media', async ({ page }, testInfo) => {
     await expect(
       page.getByText(`https://pxe.factory.talos.dev/${schematicId}/1.12.0/metal-arm64-secureboot`),
     ).toBeVisible()
+
+    await expect(page.getByRole('button', { name: 'sha256' }).first()).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'sha512' }).first()).toBeDisabled()
 
     await page.getByRole('button', { name: 'Save' }).click()
     await page.getByRole('textbox', { name: 'Name:' }).fill(savedPresetName)

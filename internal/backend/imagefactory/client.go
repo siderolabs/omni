@@ -8,24 +8,50 @@ package imagefactory
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
+	"strings"
+	"sync/atomic"
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 )
 
+// serverSnifferTransport wraps an http.RoundTripper and records whether the image factory
+// identifies itself as an Enterprise instance via the Server response header.
+// It captures the header from the first successful response so no extra requests are needed.
+type serverSnifferTransport struct {
+	wrapped      http.RoundTripper
+	detected     atomic.Bool
+	isEnterprise atomic.Bool
+}
+
+func (t *serverSnifferTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := t.wrapped.RoundTrip(req)
+	if err == nil && t.detected.CompareAndSwap(false, true) {
+		t.isEnterprise.Store(strings.Contains(resp.Header.Get("Server"), "Enterprise"))
+	}
+
+	return resp, err
+}
+
 // Client is the image factory client.
 type Client struct {
 	*client.Client
 
-	state state.State
-	host  string
+	sniffer *serverSnifferTransport
+	state   state.State
+	host    string
 }
 
 // NewClient creates a new image factory client.
 func NewClient(omniState state.State, imageFactoryBaseURL, username, password string) (*Client, error) {
+	sniffer := &serverSnifferTransport{wrapped: http.DefaultTransport}
+
 	var clientOptions []client.Option
+
+	clientOptions = append(clientOptions, client.WithClient(http.Client{Transport: sniffer}))
 
 	if username != "" && password != "" {
 		clientOptions = append(clientOptions, client.WithBasicAuth(username, password))
@@ -42,9 +68,10 @@ func NewClient(omniState state.State, imageFactoryBaseURL, username, password st
 	}
 
 	return &Client{
-		state:  omniState,
-		Client: factoryClient,
-		host:   baseURL.Host,
+		state:   omniState,
+		Client:  factoryClient,
+		host:    baseURL.Host,
+		sniffer: sniffer,
 	}, nil
 }
 
@@ -55,6 +82,13 @@ func (cli *Client) Host() string {
 	}
 
 	return cli.host
+}
+
+// CachedIsEnterprise reports whether the connected image factory is an Enterprise instance.
+// The value is detected from the Server response header of the first successful HTTP response
+// and cached; it returns false until at least one response has been received.
+func (cli *Client) CachedIsEnterprise() bool {
+	return cli.sniffer.isEnterprise.Load()
 }
 
 // EnsuredSchematic contains information on the ensured schematics.

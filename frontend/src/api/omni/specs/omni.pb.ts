@@ -762,6 +762,7 @@ export type FeaturesConfigSpec = {
   talos_pre_release_versions_enabled?: boolean
   image_factory_pxe_base_url?: string
   account?: Account
+  is_enterprise_image_factory?: boolean
 }
 
 export type UserPilotSettings = {
