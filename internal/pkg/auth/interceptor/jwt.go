@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/siderolabs/go-api-signature/pkg/jwt"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"go.uber.org/zap"

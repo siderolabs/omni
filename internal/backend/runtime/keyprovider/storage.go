@@ -11,7 +11,7 @@ import (
 	"crypto/rand"
 	"errors"
 
-	"github.com/ProtonMail/gopenpgp/v2/crypto"
+	"github.com/ProtonMail/gopenpgp/v3/crypto"
 	"github.com/cosi-project/runtime/pkg/keystorage"
 	"github.com/cosi-project/state-etcd/pkg/keystorage/recstore"
 	"github.com/cosi-project/state-etcd/pkg/state/impl/etcd"

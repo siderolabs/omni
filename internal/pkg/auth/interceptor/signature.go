@@ -9,8 +9,7 @@ import (
 	"context"
 	"errors"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -21,6 +20,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
+	grpc_ctxtags "github.com/siderolabs/omni/internal/pkg/grpcutil/grpctags"
 )
 
 var errGRPCInvalidSignature = status.Error(codes.Unauthenticated, "invalid signature")

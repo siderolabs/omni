@@ -10,10 +10,11 @@ import (
 	"net/http"
 
 	"github.com/felixge/httpsnoop"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	grpc_ctxtags "github.com/siderolabs/omni/internal/pkg/grpcutil/grpctags"
+	"github.com/siderolabs/omni/internal/pkg/grpcutil/grpczap/ctxzap"
 )
 
 // Handler adds structured logging to each request going through a wrapped handler.

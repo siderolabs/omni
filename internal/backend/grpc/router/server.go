@@ -8,8 +8,6 @@ package router
 import (
 	"context"
 
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/siderolabs/grpc-proxy/proxy"
 	_ "github.com/siderolabs/proto-codec/codec" // for encoding.CodecV2
 	"go.uber.org/zap"
@@ -18,6 +16,8 @@ import (
 	"google.golang.org/grpc/codes"
 
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
+	grpc_ctxtags "github.com/siderolabs/omni/internal/pkg/grpcutil/grpctags"
+	grpc_zap "github.com/siderolabs/omni/internal/pkg/grpcutil/grpczap"
 )
 
 // Director is a gRPC proxy director.

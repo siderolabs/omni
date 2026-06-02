@@ -13,7 +13,8 @@ import (
 	"strings"
 	"time"
 
-	pgpcrypto "github.com/ProtonMail/gopenpgp/v2/crypto"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
+	pgpcrypto "github.com/ProtonMail/gopenpgp/v3/crypto"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/santhosh-tekuri/jsonschema/v6/kind"
 	authpb "github.com/siderolabs/go-api-signature/api/auth"
@@ -107,7 +108,12 @@ func validatePGPPublicKey(armored []byte, opts ...pgp.ValidationOption) (publicK
 		return publicKey{}, errors.New("PGP key contains private key")
 	}
 
-	lifetimeSecs := pgpKey.GetEntity().PrimaryIdentity().SelfSignature.KeyLifetimeSecs
+	sig, _ := pgpKey.GetEntity().PrimaryIdentity(time.Time{}, &packet.Config{})
+	if sig == nil {
+		return publicKey{}, errors.New("PGP key has no primary identity")
+	}
+
+	lifetimeSecs := sig.KeyLifetimeSecs
 	if lifetimeSecs == nil {
 		return publicKey{}, errors.New("PGP key has no expiration")
 	}

@@ -36,10 +36,8 @@ import (
 	protobufserver "github.com/cosi-project/runtime/pkg/state/protobuf/server"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/crewjam/saml/samlsp"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -95,6 +93,8 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
+	grpc_ctxtags "github.com/siderolabs/omni/internal/pkg/grpcutil/grpctags"
+	grpc_zap "github.com/siderolabs/omni/internal/pkg/grpcutil/grpczap"
 	"github.com/siderolabs/omni/internal/pkg/kms"
 	"github.com/siderolabs/omni/internal/pkg/machineevent"
 	"github.com/siderolabs/omni/internal/pkg/siderolink"
@@ -404,7 +404,7 @@ func (s *Server) makeProxyServer(ctx context.Context, eg *errgroup.Group) (*grpc
 
 	srv := router.NewServer(
 		rtr,
-		router.Interceptors(s.logger),
+		router.Interceptors(s.logger), //nolint:contextcheck
 		grpc.ChainStreamInterceptor(
 			grpcutil.StreamSetAuditData(),
 			// enabled is always true here because we are interested in audit data rather than auth process
@@ -454,7 +454,7 @@ func (s *Server) buildServerOptions(ctx context.Context) ([]grpc.ServerOption, e
 	streamInterceptors := []grpc.StreamServerInterceptor{
 		grpc_ctxtags.StreamServerInterceptor(),
 		logLevelOverrideStreamInterceptor,
-		grpc_zap.StreamServerInterceptor(s.logger, grpc_zap.WithMessageProducer(messageProducer)),
+		grpc_zap.StreamServerInterceptor(s.logger, grpc_zap.WithMessageProducer(messageProducer)), //nolint:contextcheck
 		grpc_prometheus.StreamServerInterceptor,
 		grpc_recovery.StreamServerInterceptor(recoveryOpt),
 		grpcutil.StreamSetUserAgent(),

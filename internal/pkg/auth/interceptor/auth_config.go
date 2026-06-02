@@ -8,7 +8,7 @@ package interceptor
 import (
 	"context"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"github.com/siderolabs/go-api-signature/pkg/message"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

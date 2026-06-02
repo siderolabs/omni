@@ -6,7 +6,9 @@
 package k8sproxy
 
 import (
-	"github.com/golang-jwt/jwt/v4"
+	"errors"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // claims represents a JWT claims.
@@ -27,25 +29,21 @@ type claims struct {
 	Groups []string `json:"groups"`
 }
 
-func (claims *claims) Valid() error {
-	if err := claims.RegisteredClaims.Valid(); err != nil {
-		return err
-	}
-
+func (claims *claims) Validate() error {
 	if claims.ExpiresAt == nil {
-		return jwt.NewValidationError("expiration is empty", jwt.ValidationErrorClaimsInvalid)
+		return errors.New("expiration is empty")
 	}
 
 	if claims.Cluster == "" {
-		return jwt.NewValidationError("cluster is empty", jwt.ValidationErrorClaimsInvalid)
+		return errors.New("cluster is empty")
 	}
 
 	if claims.Subject == "" {
-		return jwt.NewValidationError("subject is empty", jwt.ValidationErrorClaimsInvalid)
+		return errors.New("subject is empty")
 	}
 
 	if len(claims.Groups) == 0 {
-		return jwt.NewValidationError("groups is empty", jwt.ValidationErrorClaimsInvalid)
+		return errors.New("groups is empty")
 	}
 
 	return nil

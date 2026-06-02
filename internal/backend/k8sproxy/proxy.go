@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
+	"github.com/siderolabs/omni/internal/pkg/grpcutil/grpczap/ctxzap"
 )
 
 // proxyHandler implements the HTTP reverse proxy.

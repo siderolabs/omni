@@ -13,8 +13,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/auth0/go-jwt-middleware/v2/jwks"
-	"github.com/auth0/go-jwt-middleware/v2/validator"
+	"github.com/auth0/go-jwt-middleware/v3/jwks"
+	"github.com/auth0/go-jwt-middleware/v3/validator"
 	"github.com/siderolabs/go-api-signature/pkg/jwt"
 )
 
@@ -36,15 +36,21 @@ func NewIDTokenVerifier(domain, clientID string) (*IDTokenVerifier, error) {
 		return nil, err
 	}
 
-	provider := jwks.NewCachingProvider(issuerURL, tokenValidationCacheDuration)
+	provider, err := jwks.NewCachingProvider(
+		jwks.WithIssuerURL(issuerURL),
+		jwks.WithCacheTTL(tokenValidationCacheDuration),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	idTokenValidator, err := validator.New(
-		provider.KeyFunc,
-		validator.RS256,
-		issuerURL.String(),
-		[]string{clientID},
+		validator.WithKeyFunc(provider.KeyFunc),
+		validator.WithAlgorithm(validator.RS256),
+		validator.WithIssuer(issuerURL.String()),
+		validator.WithAudience(clientID),
 		validator.WithAllowedClockSkew(tokenValidationAllowedClockSkew),
-		validator.WithCustomClaims(func() validator.CustomClaims {
+		validator.WithCustomClaims(func() *CustomIDClaims {
 			return &CustomIDClaims{}
 		}),
 	)

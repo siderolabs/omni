@@ -8,10 +8,9 @@ package grpcutil
 import (
 	"context"
 
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
-
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
+	grpc_ctxtags "github.com/siderolabs/omni/internal/pkg/grpcutil/grpctags"
 )
 
 // SetAuditInCtx sets audit data in the context.

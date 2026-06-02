@@ -28,7 +28,6 @@ import (
 	"testing"
 	"time"
 
-	pgpcrypto "github.com/ProtonMail/gopenpgp/v2/crypto"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
@@ -244,10 +243,10 @@ func AssertPublicKeyWithoutLifetimeNotRegistered(testCtx context.Context, cli *c
 
 		email := "test-user-invalid@siderolabs.com"
 
-		key, err := pgpcrypto.GenerateKey("", email, "x25519", 0)
+		key, err := pgp.GenerateKey("", "", email, 0)
 		require.NoError(t, err)
 
-		armored, err := key.GetArmoredPublicKey()
+		armored, err := key.ArmorPublic()
 		require.NoError(t, err)
 
 		_, err = cli.Auth().RegisterPGPPublicKey(ctx, email, []byte(armored))
@@ -479,8 +478,10 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 				fn: func(ctx context.Context, cli *client.Client) error {
 					_, err := cli.Management().CreateServiceAccount(ctx, "doesntmatter", "doesntmatter", string(role.None), true)
 
-					// ignore the armored pgp key parse error
-					if err != nil && strings.Contains(err.Error(), "no armored data found") {
+					// the call passes an intentionally invalid armored PGP key, which fails parsing after the
+					// authz check with codes.Unknown. Authz failures surface as codes.PermissionDenied, so treat
+					// the parse error as success here instead of matching the library error text.
+					if status.Code(err) == codes.Unknown {
 						return nil
 					}
 

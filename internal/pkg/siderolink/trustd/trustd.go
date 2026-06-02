@@ -17,9 +17,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/siderolabs/crypto/x509"
 	securityapi "github.com/siderolabs/talos/pkg/machinery/api/security"
@@ -30,6 +28,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	grpc_ctxtags "github.com/siderolabs/omni/internal/pkg/grpcutil/grpctags"
+	grpc_zap "github.com/siderolabs/omni/internal/pkg/grpcutil/grpczap"
 )
 
 func recoveryHandler(logger *zap.Logger) grpc_recovery.RecoveryHandlerFunc {

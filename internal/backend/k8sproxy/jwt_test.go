@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -85,7 +85,7 @@ func TestJWTValidation(t *testing.T) {
 				Cluster: "cluster-a",
 				Groups:  []string{"group-a"},
 			},
-			expectedErrorContains: "token is expired by",
+			expectedErrorContains: "token is expired",
 		},
 		{
 			name: "not-yet-valid",
@@ -117,13 +117,11 @@ func TestJWTValidation(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.claims.Valid()
+			err := jwt.NewValidator().Validate(&tt.claims)
 
 			if tt.expectedErrorContains != "" {
-				var validationError *jwt.ValidationError
-
-				require.ErrorAs(t, err, &validationError)
-				assert.ErrorContains(t, validationError, tt.expectedErrorContains)
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tt.expectedErrorContains)
 			} else {
 				require.NoError(t, err)
 			}

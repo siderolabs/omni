@@ -13,14 +13,14 @@ import (
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"k8s.io/client-go/transport"
 
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
+	grpc_ctxtags "github.com/siderolabs/omni/internal/pkg/grpcutil/grpctags"
+	"github.com/siderolabs/omni/internal/pkg/grpcutil/grpczap/ctxzap"
 )
 
 const authorizationHeader = "Authorization"

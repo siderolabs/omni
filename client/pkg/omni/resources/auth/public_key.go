@@ -7,7 +7,7 @@ package auth
 import (
 	"fmt"
 
-	pgpcrypto "github.com/ProtonMail/gopenpgp/v2/crypto"
+	pgpcrypto "github.com/ProtonMail/gopenpgp/v3/crypto"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"

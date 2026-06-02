@@ -16,8 +16,6 @@ import (
 	"testing"
 	"time"
 
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -29,6 +27,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
+	grpc_ctxtags "github.com/siderolabs/omni/internal/pkg/grpcutil/grpctags"
+	grpc_zap "github.com/siderolabs/omni/internal/pkg/grpcutil/grpczap"
 )
 
 func TestPayloadUnaryServerInterceptor(t *testing.T) {

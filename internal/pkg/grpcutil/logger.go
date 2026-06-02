@@ -9,12 +9,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/netip"
 	"strings"
 
 	"github.com/cosi-project/runtime/api/v1alpha1"
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -25,6 +24,8 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	grpc_ctxtags "github.com/siderolabs/omni/internal/pkg/grpcutil/grpctags"
+	grpc_zap "github.com/siderolabs/omni/internal/pkg/grpcutil/grpczap"
 )
 
 const (
@@ -154,10 +155,10 @@ func setRealIPAddress(ctx context.Context) {
 		}
 	}
 
-	p, ok := peer.FromContext(ctx)
-	if ok {
-		if _, err := netip.ParseAddr(p.Addr.String()); err == nil {
-			// IPv4 or IPv6 address, preserve it
+	if p, ok := peer.FromContext(ctx); ok {
+		if addr, ok := parsePeerAddress(p.Addr); ok {
+			tags.Set("peer.address", addr.String())
+
 			return
 		}
 	}
@@ -167,6 +168,28 @@ func setRealIPAddress(ctx context.Context) {
 	} else {
 		tags.Set("peer.address", "<invalid_ip>")
 	}
+}
+
+func parsePeerAddress(addr net.Addr) (netip.Addr, bool) {
+	if addr == nil {
+		return netip.Addr{}, false
+	}
+
+	if parsed, err := netip.ParseAddr(addr.String()); err == nil {
+		return parsed, true
+	}
+
+	host, _, err := net.SplitHostPort(addr.String())
+	if err != nil {
+		return netip.Addr{}, false
+	}
+
+	parsed, err := netip.ParseAddr(host)
+	if err != nil {
+		return netip.Addr{}, false
+	}
+
+	return parsed, true
 }
 
 func setUserAgent(ctx context.Context) {

@@ -18,8 +18,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/siderolabs/omni/internal/backend/k8sproxy"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
+	"github.com/siderolabs/omni/internal/pkg/grpcutil/grpczap/ctxzap"
 )
 
 var mockClusterUUIDResolver = func(_ context.Context, clusterID resource.ID) (string, error) {
@@ -46,8 +46,28 @@ type mockClaims struct {
 	Groups      []string         `json:"groups,omitempty"`
 }
 
-func (c *mockClaims) Valid() error {
-	return nil
+func (c *mockClaims) GetExpirationTime() (*jwt.NumericDate, error) {
+	return c.ExpiresAt, nil
+}
+
+func (c *mockClaims) GetIssuedAt() (*jwt.NumericDate, error) {
+	return nil, nil //nolint:nilnil
+}
+
+func (c *mockClaims) GetNotBefore() (*jwt.NumericDate, error) {
+	return nil, nil //nolint:nilnil
+}
+
+func (c *mockClaims) GetIssuer() (string, error) {
+	return "", nil
+}
+
+func (c *mockClaims) GetSubject() (string, error) {
+	return c.Subject, nil
+}
+
+func (c *mockClaims) GetAudience() (jwt.ClaimStrings, error) {
+	return nil, nil
 }
 
 func TestAuthorize(t *testing.T) {
