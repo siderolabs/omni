@@ -32,17 +32,6 @@ definePage({
 const router = useRouter()
 const { canManageUsers } = usePermissions()
 
-const watchOpts = [
-  {
-    runtime: Runtime.Omni,
-    resource: {
-      type: IdentityStatusType,
-      namespace: EphemeralNamespace,
-    },
-    selectors: [`!${LabelIdentityTypeServiceAccount}`],
-  },
-]
-
 const getLastActive = (item: Resource<IdentityStatusSpec>) => {
   if (!item.spec.last_active) return 'Never'
 
@@ -74,7 +63,19 @@ const openUserCreate = () => {
           Add User
         </TButton>
       </div>
-      <TList :opts="watchOpts" pagination class="flex-1" search>
+      <TList
+        :opts="{
+          runtime: Runtime.Omni,
+          resource: {
+            type: IdentityStatusType,
+            namespace: EphemeralNamespace,
+          },
+          selectors: [`!${LabelIdentityTypeServiceAccount}`],
+        }"
+        pagination
+        class="flex-1"
+        search
+      >
         <template #default="{ items }">
           <div class="users-header">
             <div class="users-grid">

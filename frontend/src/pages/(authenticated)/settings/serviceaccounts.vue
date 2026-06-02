@@ -23,6 +23,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { usePermissions } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import ServiceAccountItem from '@/views/Users/ServiceAccountItem.vue'
 
 definePage({
@@ -32,34 +33,25 @@ definePage({
 const router = useRouter()
 const { canManageUsers } = usePermissions()
 
-const watchOpts = [
-  {
-    runtime: Runtime.Omni,
-    resource: {
-      type: ServiceAccountStatusType,
-      namespace: EphemeralNamespace,
-    },
-    idFunc: (res: Resource) => res.metadata.id!,
+const { data: identities } = useResourceWatch<IdentityStatusSpec>({
+  runtime: Runtime.Omni,
+  resource: {
+    type: IdentityStatusType,
+    namespace: EphemeralNamespace,
   },
-  {
-    runtime: Runtime.Omni,
-    resource: {
-      type: IdentityStatusType,
-      namespace: EphemeralNamespace,
-    },
-    selectors: [LabelIdentityTypeServiceAccount],
-    idFunc: (res: Resource) => res.metadata.id!,
-  },
-]
+  selectors: [LabelIdentityTypeServiceAccount],
+})
 
-const getLastActive = (item: Resource<IdentityStatusSpec>) => {
-  if (!item.spec.last_active) return 'Never'
+const getLastActive = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
+  const identity = identities.value.find((s) => s.metadata.id === serviceAcc.metadata.id)
 
-  return relativeISO(item.spec.last_active)
+  if (!identity?.spec.last_active) return 'Never'
+
+  return relativeISO(identity.spec.last_active)
 }
 
-const getExpiration = (item: Resource<ServiceAccountStatusSpec>) => {
-  return relativeISO(item.spec.expiration ?? '')
+const getExpiration = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
+  return relativeISO(serviceAcc.spec.expiration ?? '')
 }
 
 const openUserCreate = () => {
@@ -87,7 +79,18 @@ const openUserCreate = () => {
           Create Service Account
         </TButton>
       </div>
-      <TList :opts="watchOpts" pagination class="flex-1" search>
+      <TList
+        :opts="{
+          runtime: Runtime.Omni,
+          resource: {
+            type: ServiceAccountStatusType,
+            namespace: EphemeralNamespace,
+          },
+        }"
+        pagination
+        class="flex-1"
+        search
+      >
         <template #default="{ items }">
           <div class="users-header">
             <div class="users-grid">
@@ -100,7 +103,13 @@ const openUserCreate = () => {
           <ServiceAccountItem
             v-for="item in items"
             :key="itemID(item)"
-            :item="item"
+            :item="{
+              ...item,
+              spec: {
+                ...item.spec,
+                ...identities.find((s) => s.metadata.id === item.metadata.id)?.spec,
+              },
+            }"
             :last-active="getLastActive(item)"
             :expiration="getExpiration(item)"
           />

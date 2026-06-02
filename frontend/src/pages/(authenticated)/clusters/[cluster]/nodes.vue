@@ -5,7 +5,8 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import type { Node as V1Node } from 'kubernetes-types/core/v1'
+import type { NodeSpec as V1NodeSpec, NodeStatus as V1NodeStatus } from 'kubernetes-types/core/v1'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -25,53 +26,82 @@ import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { getContext } from '@/context'
-import NodesItem from '@/views/Nodes/components/NodesItem.vue'
+import { useResourceWatch } from '@/methods/useResourceWatch'
+import NodesItem, { type TalosMemberSpec } from '@/views/Nodes/components/NodesItem.vue'
 
 definePage({ name: 'Nodes' })
 
 const route = useRoute()
 const context = getContext()
 
-const opts = [
-  {
-    runtime: Runtime.Omni,
-    resource: {
-      type: ClusterMachineStatusType,
-      namespace: DefaultNamespace,
-    },
-    selectors: [`${LabelCluster}=${route.params.cluster}`],
-    idFunc: (item: Resource<ClusterMachineStatusSpec>): string => {
-      return (item?.metadata?.labels ?? {})[ClusterMachineStatusLabelNodeName] ?? item.metadata.id
-    },
+const { data: v1Nodes } = useResourceWatch<V1NodeSpec, V1NodeStatus>({
+  runtime: Runtime.Kubernetes,
+  resource: {
+    type: kubernetes.node,
   },
-  {
-    runtime: Runtime.Kubernetes,
-    resource: {
-      type: kubernetes.node,
-    },
-    context,
-    idFunc: (item: V1Node): string => {
-      return item.metadata!.name!
-    },
+  context,
+})
+
+const { data: talosMembers } = useResourceWatch<TalosMemberSpec>({
+  runtime: Runtime.Talos,
+  resource: {
+    type: TalosMemberType,
+    namespace: TalosClusterNamespace,
   },
-  {
-    runtime: Runtime.Talos,
-    resource: {
-      type: TalosMemberType,
-      namespace: TalosClusterNamespace,
+  context,
+})
+
+const v1NodesMap = computed(() =>
+  Object.fromEntries(v1Nodes.value.map((n) => [n.metadata.name!, n])),
+)
+
+const talosMembersMap = computed(() =>
+  Object.fromEntries(talosMembers.value.map((m) => [m.metadata.id!, m])),
+)
+
+function getNodeItem(
+  item: Resource<ClusterMachineStatusSpec>,
+): Resource<ClusterMachineStatusSpec & V1NodeSpec & TalosMemberSpec, V1NodeStatus> {
+  const itemID = item.metadata.labels?.[ClusterMachineStatusLabelNodeName] ?? item.metadata.id!
+
+  const v1node = v1NodesMap.value[itemID]
+  const talosMember = talosMembersMap.value[itemID]
+
+  return {
+    ...item,
+    spec: {
+      ...item.spec,
+      ...v1node?.spec,
+      ...talosMember?.spec,
     },
-    context,
-    idFunc: (item: Resource): string => {
-      return item.metadata.id!
+    metadata: {
+      ...item.metadata,
+      labels: {
+        ...item.metadata.labels,
+        ...v1node?.metadata.labels,
+        ...talosMember?.metadata.labels,
+      },
     },
-  },
-]
+    status: v1node?.status,
+  }
+}
 </script>
 
 <template>
   <PageContainer class="flex w-full flex-col gap-4">
     <PageHeader title="All Nodes" />
-    <TList :opts="opts" search pagination>
+    <TList
+      :opts="{
+        runtime: Runtime.Omni,
+        resource: {
+          type: ClusterMachineStatusType,
+          namespace: DefaultNamespace,
+        },
+        selectors: [`${LabelCluster}=${route.params.cluster}`],
+      }"
+      search
+      pagination
+    >
       <template #default="{ items, searchQuery }">
         <div class="nodes-list">
           <div class="nodes-list-heading">
@@ -86,7 +116,7 @@ const opts = [
               v-for="item in items"
               :key="item.metadata.id!"
               :cluster-id="$route.params.cluster"
-              :item="item"
+              :item="getNodeItem(item)"
               :search-option="searchQuery"
             />
           </TGroupAnimation>

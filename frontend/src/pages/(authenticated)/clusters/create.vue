@@ -13,7 +13,11 @@ import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
-import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  MachineConfigGenOptionsSpec,
+  MachineStatusSpec,
+  TalosVersionSpec,
+} from '@/api/omni/specs/omni.pb'
 import {
   DefaultKubernetesVersion,
   DefaultNamespace,
@@ -254,10 +258,17 @@ const createCluster_ = async (untaint: boolean) => {
   router.push({ name: 'ClusterOverview', params: { cluster: clusterName! } })
 }
 
-const resource = {
-  namespace: DefaultNamespace,
-  type: MachineStatusType,
-}
+const { data: machineConfigGenOptions } = useResourceWatch<MachineConfigGenOptionsSpec>({
+  resource: {
+    type: MachineConfigGenOptionsType,
+    namespace: DefaultNamespace,
+  },
+  runtime: Runtime.Omni,
+})
+
+const machineConfigGenOptionsMap = computed(() =>
+  Object.fromEntries(machineConfigGenOptions.value.map((c) => [c.metadata.id!, c])),
+)
 
 const talosVersions = computed(() => {
   const res: string[] = []
@@ -382,27 +393,21 @@ const list = useTemplateRef('list')
       <div class="text-naturals-n13">Available Machines</div>
       <TList
         ref="list"
-        :opts="[
-          {
-            resource: resource,
-            runtime: Runtime.Omni,
-            selectors: [
-              `${MachineStatusLabelAvailable}`,
-              `${MachineStatusLabelReadyToUse}`,
-              `!${MachineStatusLabelInvalidState}`,
-              `${MachineStatusLabelReportingEvents}`,
-              `!${LabelNoManualAllocation}`,
-            ],
-            sortByField: 'created',
+        :opts="{
+          resource: {
+            namespace: DefaultNamespace,
+            type: MachineStatusType,
           },
-          {
-            resource: {
-              type: MachineConfigGenOptionsType,
-              namespace: DefaultNamespace,
-            },
-            runtime: Runtime.Omni,
-          },
-        ]"
+          runtime: Runtime.Omni,
+          selectors: [
+            `${MachineStatusLabelAvailable}`,
+            `${MachineStatusLabelReadyToUse}`,
+            `!${MachineStatusLabelInvalidState}`,
+            `${MachineStatusLabelReportingEvents}`,
+            `!${LabelNoManualAllocation}`,
+          ],
+          sortByField: 'created',
+        }"
         search
         pagination
         class="h-max shrink-0"
@@ -420,7 +425,13 @@ const list = useTemplateRef('list')
             :key="itemID(item)"
             :version-mismatch="detectVersionMismatch(item)"
             :reset="reset"
-            :item="item"
+            :item="{
+              ...item,
+              spec: {
+                ...item.spec,
+                ...machineConfigGenOptionsMap[item.metadata.id!]?.spec,
+              },
+            }"
             :search-query="searchQuery"
             @filter-label="list?.addFilterLabel"
           />

@@ -47,16 +47,6 @@ const revokeTokenModalOpen = ref(false)
 const deleteTokenModalOpen = ref(false)
 const selectedToken = ref<string>()
 
-const watchOpts = [
-  {
-    runtime: Runtime.Omni,
-    resource: {
-      type: JoinTokenStatusType,
-      namespace: DefaultNamespace,
-    },
-  },
-]
-
 const getStatusString = (state: JoinTokenStatusSpecState): TCommonStatuses => {
   switch (state) {
     case JoinTokenStatusSpecState.ACTIVE:
@@ -132,7 +122,18 @@ const openDeleteToken = (token: string) => {
         Create Join Token
       </TButton>
     </div>
-    <TList :opts="watchOpts" pagination class="flex-1" search>
+    <TList
+      :opts="{
+        runtime: Runtime.Omni,
+        resource: {
+          type: JoinTokenStatusType,
+          namespace: DefaultNamespace,
+        },
+      }"
+      pagination
+      class="flex-1"
+      search
+    >
       <template #default="{ items }">
         <div class="tokens-header">
           <div class="tokens-grid">

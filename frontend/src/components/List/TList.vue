@@ -6,17 +6,15 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
-import type { Ref } from 'vue'
 import { computed, ref, watch } from 'vue'
 
-import type { Resource } from '@/api/grpc'
-import type { WatchJoinOptions, WatchOptions } from '@/api/watch'
-import Watch, { WatchJoin } from '@/api/watch'
+import type { WatchOptions, WatchOptionsMulti } from '@/api/watch'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 defineExpose({
   addFilterLabel: (label: { key: string; value?: string }) => {
@@ -39,7 +37,7 @@ const { pagination, search, opts, sortOptions, filterOptions, filterValue, filte
   defineProps<{
     pagination?: boolean
     search?: boolean
-    opts?: WatchOptions | WatchJoinOptions[] | object
+    opts: WatchOptionsMulti
     sortOptions?: { id: string; desc: string; descending?: boolean }[]
     filterOptions?: { query?: string; desc: string }[]
     filterValue?: string
@@ -67,10 +65,6 @@ const filterOptionsVariants = computed(() => {
     return opt.desc
   })
 })
-
-const items: Ref<Resource[]> = ref([])
-
-const optsList = opts as WatchJoinOptions[]
 
 const filterValueInternal = ref('')
 const currentPage = ref(1)
@@ -109,13 +103,6 @@ const sortByState = computed(() => {
   return {}
 })
 
-const watchOptions = computed<WatchOptions>(() => {
-  const watchSingle = opts
-  const watchJoin = opts as WatchJoinOptions[]
-
-  return (watchJoin?.length ? watchJoin[0] : watchSingle) as WatchOptions
-})
-
 const paginationState = computed(() => {
   if (!pagination) {
     return {}
@@ -129,12 +116,6 @@ const paginationState = computed(() => {
 
 const searchState = computed<Pick<WatchOptions, 'searchFor' | 'selectors'>>(() => {
   if (!search) {
-    return {}
-  }
-
-  const o = watchOptions.value
-
-  if (!o) {
     return {}
   }
 
@@ -165,7 +146,7 @@ const searchState = computed<Pick<WatchOptions, 'searchFor' | 'selectors'>>(() =
   }
 
   const res: { selectors?: string[]; searchFor?: string[] } = {
-    selectors: (o.selectors ?? []).concat(selectors),
+    selectors: (opts.selectors ?? []).concat(selectors),
   }
 
   if (searchFor.length > 0) {
@@ -187,57 +168,6 @@ const searchQuery = computed(() => {
 
   return searchState.value.searchFor.join(' ')
 })
-
-const setupWatch = () => {
-  const w = new Watch(items)
-
-  w.setup(
-    computed(() => {
-      if (!opts) {
-        return
-      }
-
-      return {
-        ...paginationState.value,
-        ...(opts as WatchOptions),
-        ...searchState.value,
-        ...sortByState.value,
-      }
-    }),
-  )
-
-  return w
-}
-
-const setupJoinWatch = () => {
-  const w = new WatchJoin(items)
-
-  w.setup(
-    computed(() => {
-      if (!opts) {
-        return
-      }
-
-      return {
-        ...paginationState.value,
-        ...(opts as WatchJoinOptions[])[0],
-        ...searchState.value,
-        ...sortByState.value,
-      }
-    }),
-    computed(() => {
-      if (!opts) {
-        return
-      }
-
-      const o = opts as WatchJoinOptions[]
-
-      return o.slice(1, o.length)
-    }),
-  )
-
-  return w
-}
 
 const paginationRange = computed(() => {
   let ranges: number[][]
@@ -272,7 +202,18 @@ const paginationRange = computed(() => {
   return res
 })
 
-const { err, loading, total } = optsList?.length ? setupJoinWatch() : setupWatch()
+const {
+  data: items,
+  err,
+  loading,
+  total,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} = useResourceWatch<any>(() => ({
+  ...opts,
+  ...paginationState.value,
+  ...searchState.value,
+  ...sortByState.value,
+}))
 
 const totalPageCount = computed(() => {
   return Math.ceil(total.value / selectedItemsPerPage.value)

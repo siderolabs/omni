@@ -129,30 +129,53 @@ onMounted(async () => {
   existingResources.value = await populateExisting(clusterName as string)
 })
 
-const { data, loading, err } = useResourceWatch<MachineStatusSpec & MachineConfigGenOptionsSpec>([
-  {
-    resource: {
-      namespace: DefaultNamespace,
-      type: MachineStatusType,
-    },
-    selectors: [
-      `${MachineStatusLabelAvailable}`,
-      `${MachineStatusLabelReadyToUse}`,
-      `!${MachineStatusLabelInvalidState}`,
-      `${MachineStatusLabelReportingEvents}`,
-      `!${LabelNoManualAllocation}`,
-    ],
-    runtime: Runtime.Omni,
-    sortByField: 'created',
+const {
+  data: machineStatuses,
+  loading: machineStatusesLoading,
+  err: machineStatusesErr,
+} = useResourceWatch<MachineStatusSpec>({
+  resource: {
+    namespace: DefaultNamespace,
+    type: MachineStatusType,
   },
-  {
-    resource: {
-      type: MachineConfigGenOptionsType,
-      namespace: DefaultNamespace,
-    },
-    runtime: Runtime.Omni,
+  selectors: [
+    `${MachineStatusLabelAvailable}`,
+    `${MachineStatusLabelReadyToUse}`,
+    `!${MachineStatusLabelInvalidState}`,
+    `${MachineStatusLabelReportingEvents}`,
+    `!${LabelNoManualAllocation}`,
+  ],
+  runtime: Runtime.Omni,
+  sortByField: 'created',
+})
+
+const {
+  data: machineConfigGenOptions,
+  loading: machineConfigGenOptionsLoading,
+  err: machineConfigGenOptionsErr,
+} = useResourceWatch<MachineConfigGenOptionsSpec>({
+  resource: {
+    type: MachineConfigGenOptionsType,
+    namespace: DefaultNamespace,
   },
-])
+  runtime: Runtime.Omni,
+})
+
+const machineConfigGenOptionsMap = computed(() =>
+  Object.fromEntries(machineConfigGenOptions.value.map((c) => [c.metadata.id!, c])),
+)
+
+const loading = computed(() => machineStatusesLoading.value || machineConfigGenOptionsLoading.value)
+const err = computed(() => machineStatusesErr.value || machineConfigGenOptionsErr.value)
+const data = computed(() =>
+  machineStatuses.value.map<Resource<MachineStatusSpec & MachineConfigGenOptionsSpec>>((m) => ({
+    ...m,
+    spec: {
+      ...m.spec,
+      ...machineConfigGenOptionsMap.value[m.metadata.id!]?.spec,
+    },
+  })),
+)
 </script>
 
 <template>
