@@ -763,10 +763,16 @@ export type FeaturesConfigSpec = {
   image_factory_pxe_base_url?: string
   account?: Account
   is_enterprise_image_factory?: boolean
+  posthog_settings?: PosthogSettings
 }
 
 export type UserPilotSettings = {
   app_token?: string
+}
+
+export type PosthogSettings = {
+  api_key?: string
+  api_host?: string
 }
 
 export type StripeSettings = {

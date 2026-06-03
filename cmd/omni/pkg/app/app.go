@@ -155,6 +155,8 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		ImageFactoryBaseURL:             cfg.Registries.GetImageFactoryBaseURL(),
 		ImageFactoryPXEBaseURL:          imageFactoryPXEBaseURL,
 		UserPilotAppToken:               cfg.Account.UserPilot.GetAppToken(),
+		PosthogAPIKey:                   cfg.Account.Posthog.GetApiKey(),
+		PosthogAPIHost:                  cfg.Account.Posthog.GetApiHost(),
 		StripeEnabled:                   cfg.Logs.Stripe.GetEnabled(),
 		StripeMinCommit:                 cfg.Logs.Stripe.GetMinCommit(),
 		AccountID:                       cfg.Account.GetId(),

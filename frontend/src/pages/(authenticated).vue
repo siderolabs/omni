@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { usePostHog } from '@/methods/posthog'
 import { useDocumentTitle } from '@/methods/title'
 import { useUserpilot } from '@/methods/userpilot'
 
@@ -14,6 +15,7 @@ definePage({
 
 useDocumentTitle()
 useUserpilot()
+usePostHog()
 </script>
 
 <template>

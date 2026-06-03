@@ -50,6 +50,7 @@
     "monaco-editor": "^0.55.1",
     "monaco-yaml": "^5.5.0",
     "pluralize": "^8.0.0",
+    "posthog-js": "^1.379.1",
     "reka-ui": "^2.9.8",
     "semver": "^7.8.1",
     "shell-quote": "^1.8.4",

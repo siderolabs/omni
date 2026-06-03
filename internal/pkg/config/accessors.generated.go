@@ -1128,6 +1128,28 @@ func (s *OfficeHours) SetSummary(v string) {
 	s.Summary = &v
 }
 
+func (s *Posthog) GetApiHost() string {
+	if s == nil || s.ApiHost == nil {
+		return *new(string)
+	}
+	return *s.ApiHost
+}
+
+func (s *Posthog) SetApiHost(v string) {
+	s.ApiHost = &v
+}
+
+func (s *Posthog) GetApiKey() string {
+	if s == nil || s.ApiKey == nil {
+		return *new(string)
+	}
+	return *s.ApiKey
+}
+
+func (s *Posthog) SetApiKey(v string) {
+	s.ApiKey = &v
+}
+
 func (s *Registries) GetImageFactoryBaseURL() string {
 	if s == nil || s.ImageFactoryBaseURL == nil {
 		return *new(string)

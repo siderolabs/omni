@@ -138,6 +138,8 @@ func buildRootCommand() (*cobra.Command, error) {
 	rootCmdFlagBinder.StringVar("account.id", &flagConfig.Account.Id)
 	rootCmdFlagBinder.StringVar("account.name", &flagConfig.Account.Name)
 	rootCmdFlagBinder.StringVar("account.userPilot.appToken", &flagConfig.Account.UserPilot.AppToken)
+	rootCmdFlagBinder.StringVar("account.posthog.apiKey", &flagConfig.Account.Posthog.ApiKey)
+	rootCmdFlagBinder.StringVar("account.posthog.apiHost", &flagConfig.Account.Posthog.ApiHost)
 	rootCmdFlagBinder.Uint32Var("account.maxRegisteredMachines", &flagConfig.Account.MaxRegisteredMachines)
 
 	defineServiceFlags(rootCmdFlagBinder, flagConfig)

@@ -17,6 +17,9 @@ type Account struct {
 	// Name is the human-readable name of the account.
 	Name *string `json:"name" yaml:"name"`
 
+	// Posthog contains PostHog analytics configuration.
+	Posthog Posthog `json:"posthog" yaml:"posthog"`
+
 	// UserPilot contains UserPilot-related configuration.
 	UserPilot UserPilot `json:"userPilot" yaml:"userPilot"`
 }
@@ -582,6 +585,14 @@ type Params struct {
 
 	// Support contains support-related configuration.
 	Support Support `json:"support" yaml:"support"`
+}
+
+type Posthog struct {
+	// ApiHost is the PostHog API host events are sent to.
+	ApiHost *string `json:"apiHost,omitempty,omitzero" yaml:"apiHost,omitempty"`
+
+	// ApiKey is the PostHog project API key (public).
+	ApiKey *string `json:"apiKey,omitempty,omitzero" yaml:"apiKey,omitempty"`
 }
 
 type RateLimits struct {

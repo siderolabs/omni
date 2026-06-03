@@ -72,6 +72,7 @@
       "type": "object",
       "required": [
         "userPilot",
+        "posthog",
         "id",
         "name"
       ],
@@ -100,6 +101,10 @@
           "description": "UserPilot contains UserPilot-related configuration.",
           "$ref": "#/definitions/UserPilot"
         },
+        "posthog": {
+          "description": "Posthog contains PostHog analytics configuration.",
+          "$ref": "#/definitions/Posthog"
+        },
         "maxRegisteredMachines": {
           "description": "MaxRegisteredMachines is the maximum number of registered machines allowed. 0 means unlimited.",
           "type": "integer",
@@ -117,6 +122,21 @@
         "appToken": {
           "description": "AppToken is the UserPilot application token.",
           "x-cli-flag": "user-pilot-app-token",
+          "type": "string"
+        }
+      }
+    },
+    "Posthog": {
+      "type": "object",
+      "properties": {
+        "apiKey": {
+          "description": "ApiKey is the PostHog project API key (public).",
+          "x-cli-flag": "account-posthog-api-key",
+          "type": "string"
+        },
+        "apiHost": {
+          "description": "ApiHost is the PostHog API host events are sent to.",
+          "x-cli-flag": "account-posthog-api-host",
           "type": "string"
         }
       }

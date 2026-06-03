@@ -1126,10 +1126,21 @@ message FeaturesConfigSpec {
 
   // IsEnterpriseImageFactory is true when the configured image factory URL is an enterprise one.
   bool is_enterprise_image_factory = 11;
+
+  // PosthogSettings enables PostHog analytics on the frontend side.
+  PosthogSettings posthog_settings = 12;
 }
 
 message UserPilotSettings {
   string app_token = 1;
+}
+
+message PosthogSettings {
+  // ApiKey is the PostHog project API key (public).
+  string api_key = 1;
+
+  // ApiHost is the PostHog API host events are sent to.
+  string api_host = 2;
 }
 
 message StripeSettings {

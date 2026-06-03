@@ -74,6 +74,13 @@ config:
     userPilot:
       # AppToken is the UserPilot application token.
       #appToken: ""
+    # @ignored
+    # Posthog contains PostHog analytics configuration.
+    posthog:
+      # ApiKey is the PostHog project API key (public).
+      #apiKey: ""
+      # ApiHost is the PostHog API host events are sent to.
+      #apiHost: ""
   # Services contains configuration for various services run by Omni.
   services:
     # Api contains API/UI service configuration.

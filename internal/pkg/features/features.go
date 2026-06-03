@@ -28,6 +28,8 @@ type Params struct {
 	AccountName                     string
 	AccountID                       string
 	UserPilotAppToken               string
+	PosthogAPIKey                   string
+	PosthogAPIHost                  string
 	EtcdBackupMinInterval           time.Duration
 	EtcdBackupMaxInterval           time.Duration
 	EtcdBackupTickInterval          time.Duration
@@ -58,6 +60,10 @@ func UpdateResources(ctx context.Context, st state.State, logger *zap.Logger, pa
 
 		res.TypedSpec().Value.UserPilotSettings = &specs.UserPilotSettings{
 			AppToken: params.UserPilotAppToken,
+		}
+		res.TypedSpec().Value.PosthogSettings = &specs.PosthogSettings{
+			ApiKey:  params.PosthogAPIKey,
+			ApiHost: params.PosthogAPIHost,
 		}
 		res.TypedSpec().Value.StripeSettings = &specs.StripeSettings{
 			Enabled:   params.StripeEnabled,
