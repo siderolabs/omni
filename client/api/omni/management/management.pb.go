@@ -1393,7 +1393,6 @@ type CreateSchematicRequest struct {
 	MetaValues               map[uint32]string                               `protobuf:"bytes,3,rep,name=meta_values,json=metaValues,proto3" json:"meta_values,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	TalosVersion             string                                          `protobuf:"bytes,4,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
 	MediaId                  string                                          `protobuf:"bytes,5,opt,name=media_id,json=mediaId,proto3" json:"media_id,omitempty"`
-	SecureBoot               bool                                            `protobuf:"varint,6,opt,name=secure_boot,json=secureBoot,proto3" json:"secure_boot,omitempty"`
 	SiderolinkGrpcTunnelMode CreateSchematicRequest_SiderolinkGRPCTunnelMode `protobuf:"varint,7,opt,name=siderolink_grpc_tunnel_mode,json=siderolinkGrpcTunnelMode,proto3,enum=management.CreateSchematicRequest_SiderolinkGRPCTunnelMode" json:"siderolink_grpc_tunnel_mode,omitempty"`
 	JoinToken                string                                          `protobuf:"bytes,8,opt,name=join_token,json=joinToken,proto3" json:"join_token,omitempty"`
 	Overlay                  *CreateSchematicRequest_Overlay                 `protobuf:"bytes,9,opt,name=overlay,proto3" json:"overlay,omitempty"`
@@ -1465,13 +1464,6 @@ func (x *CreateSchematicRequest) GetMediaId() string {
 		return x.MediaId
 	}
 	return ""
-}
-
-func (x *CreateSchematicRequest) GetSecureBoot() bool {
-	if x != nil {
-		return x.SecureBoot
-	}
-	return false
 }
 
 func (x *CreateSchematicRequest) GetSiderolinkGrpcTunnelMode() CreateSchematicRequest_SiderolinkGRPCTunnelMode {
@@ -3298,7 +3290,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\fResponseType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\f\n" +
 	"\bMANIFEST\x10\x01\x12\v\n" +
-	"\aROLLOUT\x10\x02\"\x8b\x06\n" +
+	"\aROLLOUT\x10\x02\"\xf0\x05\n" +
 	"\x16CreateSchematicRequest\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x01 \x03(\tR\n" +
@@ -3307,9 +3299,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\vmeta_values\x18\x03 \x03(\v22.management.CreateSchematicRequest.MetaValuesEntryR\n" +
 	"metaValues\x12#\n" +
 	"\rtalos_version\x18\x04 \x01(\tR\ftalosVersion\x12\x19\n" +
-	"\bmedia_id\x18\x05 \x01(\tR\amediaId\x12\x1f\n" +
-	"\vsecure_boot\x18\x06 \x01(\bR\n" +
-	"secureBoot\x12z\n" +
+	"\bmedia_id\x18\x05 \x01(\tR\amediaId\x12z\n" +
 	"\x1bsiderolink_grpc_tunnel_mode\x18\a \x01(\x0e2;.management.CreateSchematicRequest.SiderolinkGRPCTunnelModeR\x18siderolinkGrpcTunnelMode\x12\x1d\n" +
 	"\n" +
 	"join_token\x18\b \x01(\tR\tjoinToken\x12D\n" +
@@ -3328,7 +3318,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x18SiderolinkGRPCTunnelMode\x12\b\n" +
 	"\x04AUTO\x10\x00\x12\f\n" +
 	"\bDISABLED\x10\x01\x12\v\n" +
-	"\aENABLED\x10\x02\"D\n" +
+	"\aENABLED\x10\x02J\x04\b\x06\x10\a\"D\n" +
 	"\x1dCreateSchematicFromRawRequest\x12#\n" +
 	"\rraw_schematic\x18\x01 \x01(\fR\frawSchematic\"\xaa\x01\n" +
 	"\x17CreateSchematicResponse\x12!\n" +

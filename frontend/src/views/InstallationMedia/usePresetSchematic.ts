@@ -58,7 +58,6 @@ export function usePresetSchematic(presetRef: MaybeRefOrGetter<InstallationMedia
             : undefined,
         overlay,
         talos_version: preset.talos_version,
-        secure_boot: preset.secure_boot,
         siderolink_grpc_tunnel_mode:
           preset.grpc_tunnel === GrpcTunnelMode.ENABLED
             ? CreateSchematicRequestSiderolinkGRPCTunnelMode.ENABLED

@@ -452,7 +452,6 @@ func (m *CreateSchematicRequest) CloneVT() *CreateSchematicRequest {
 	r := new(CreateSchematicRequest)
 	r.TalosVersion = m.TalosVersion
 	r.MediaId = m.MediaId
-	r.SecureBoot = m.SecureBoot
 	r.SiderolinkGrpcTunnelMode = m.SiderolinkGrpcTunnelMode
 	r.JoinToken = m.JoinToken
 	r.Overlay = m.Overlay.CloneVT()
@@ -1614,9 +1613,6 @@ func (this *CreateSchematicRequest) EqualVT(that *CreateSchematicRequest) bool {
 		return false
 	}
 	if this.MediaId != that.MediaId {
-		return false
-	}
-	if this.SecureBoot != that.SecureBoot {
 		return false
 	}
 	if this.SiderolinkGrpcTunnelMode != that.SiderolinkGrpcTunnelMode {
@@ -3511,16 +3507,6 @@ func (m *CreateSchematicRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i--
 		dAtA[i] = 0x38
 	}
-	if m.SecureBoot {
-		i--
-		if m.SecureBoot {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x30
-	}
 	if len(m.MediaId) > 0 {
 		i -= len(m.MediaId)
 		copy(dAtA[i:], m.MediaId)
@@ -5399,9 +5385,6 @@ func (m *CreateSchematicRequest) SizeVT() (n int) {
 	l = len(m.MediaId)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
-	if m.SecureBoot {
-		n += 2
 	}
 	if m.SiderolinkGrpcTunnelMode != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.SiderolinkGrpcTunnelMode))
@@ -8830,26 +8813,6 @@ func (m *CreateSchematicRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.MediaId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SecureBoot", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.SecureBoot = bool(v != 0)
 		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SiderolinkGrpcTunnelMode", wireType)

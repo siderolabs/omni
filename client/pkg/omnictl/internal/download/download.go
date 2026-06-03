@@ -529,7 +529,6 @@ func createSchematic(ctx context.Context, client *client.Client, image ImageInfo
 		MetaValues:               metaValues,
 		ExtraKernelArgs:          params.ExtraKernelArgs,
 		Extensions:               extensions,
-		SecureBoot:               params.SecureBoot,
 		TalosVersion:             params.TalosVersion,
 		SiderolinkGrpcTunnelMode: params.GrpcTunnelMode,
 		JoinToken:                params.JoinToken,

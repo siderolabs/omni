@@ -245,13 +245,13 @@ export const Default = {
           async ({ request }) => {
             await delay(2_000)
 
-            const { secure_boot, talos_version, join_token } = await request.clone().json()
+            const { talos_version, join_token } = await request.clone().json()
 
             const schematic_id = faker.string.uuid()
 
             return HttpResponse.json({
               schematic_id,
-              pxe_url: `https://pxe.factory.talos.dev/pxe/${schematic_id}/${talos_version}/metal-arm64-${secure_boot ? '-secureboot' : ''}`,
+              pxe_url: `https://pxe.factory.talos.dev/pxe/${schematic_id}/${talos_version}/metal-arm64`,
               schematic_yml: dump(
                 {
                   customization: {
