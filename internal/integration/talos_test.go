@@ -382,28 +382,9 @@ func AssertTalosVersion(testCtx context.Context, options *TestOptions, clusterNa
 
 		st := omniClient.Omni().State()
 
-		clusterMachineIPs := func() ([]string, error) {
-			cms, err := safe.StateListAll[*omni.ClusterMachineIdentity](
-				ctx,
-				st,
-				state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			return safe.Map(cms, func(m *omni.ClusterMachineIdentity) (string, error) {
-				if len(m.TypedSpec().Value.GetNodeIps()) == 0 {
-					return "", fmt.Errorf("no ips discovered")
-				}
-
-				return m.TypedSpec().Value.GetNodeIps()[0], nil
-			})
-		}
-
 		machineIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](ctx, t, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
 
-		machineIPs, err := clusterMachineIPs()
+		machineIPs, err := clusterMachineIPs(ctx, st, clusterName)
 		require.NoError(err)
 
 		// assert using Omni MachineStatus resource
@@ -425,7 +406,7 @@ func AssertTalosVersion(testCtx context.Context, options *TestOptions, clusterNa
 
 		require.NoError(retry.Constant(time.Minute, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
 			// Re-fetch machine IPs to exclude machines removed during scale-down.
-			currentIPs, ipErr := clusterMachineIPs()
+			currentIPs, ipErr := clusterMachineIPs(ctx, st, clusterName)
 			if ipErr != nil {
 				return retry.ExpectedError(ipErr)
 			}
@@ -452,6 +433,54 @@ func AssertTalosVersion(testCtx context.Context, options *TestOptions, clusterNa
 			asrt.Equal(expectedVersion, r.TypedSpec().Value.LastUpgradeVersion, resourceDetails(r))
 		})
 	}
+}
+
+func clusterMachineIPs(ctx context.Context, st state.State, clusterName string) ([]string, error) {
+	machineSetNodes, err := safe.StateListAll[*omni.MachineSetNode](ctx, st, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+	if err != nil {
+		return nil, err
+	}
+
+	identities, err := safe.StateListAll[*omni.ClusterMachineIdentity](
+		ctx,
+		st,
+		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	idToIdentity := make(map[resource.ID]*omni.ClusterMachineIdentity, identities.Len())
+
+	for identity := range identities.All() {
+		idToIdentity[identity.Metadata().ID()] = identity
+	}
+
+	ips := make([]string, 0, machineSetNodes.Len())
+
+	for msn := range machineSetNodes.All() {
+		if msn.Metadata().Phase() == resource.PhaseTearingDown {
+			continue
+		}
+
+		identity, ok := idToIdentity[msn.Metadata().ID()]
+		if !ok {
+			return nil, fmt.Errorf("no cluster machine identity found for machine set node %q", msn.Metadata().ID())
+		}
+
+		if identity.Metadata().Phase() == resource.PhaseTearingDown {
+			return nil, fmt.Errorf("cluster machine identity %q is tearing down", identity.Metadata().ID())
+		}
+
+		nodeIPs := identity.TypedSpec().Value.NodeIps
+		if len(nodeIPs) == 0 {
+			return nil, fmt.Errorf("no ips discovered for cluster machine %q", identity.Metadata().ID())
+		}
+
+		ips = append(ips, nodeIPs[0])
+	}
+
+	return ips, nil
 }
 
 // AssertTalosUpgradeFlow verifies Talos upgrade flow to the new Talos version.

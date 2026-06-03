@@ -62,6 +62,7 @@ docker run --name "${TALEMU_CONTAINER_NAME}" \
   -it -d \
   "${TALEMU_INFRA_PROVIDER_IMAGE}" \
   --create-service-account \
+  --disable-node-proxying \
   --omni-api-endpoint="https://${LOCAL_IP}:8099"
 
 SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
