@@ -19,6 +19,7 @@ import {
   TalosSystemInformationID,
   TalosSystemInformationType,
 } from '@/api/resources'
+import type { SystemInformationSpec } from '@/api/talos/hardware.pb'
 import { formatBytes } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import MachineItemInfoCard from '@/views/Machines/MachineItemInfoCard.vue'
@@ -33,17 +34,7 @@ defineEmits<{
   close: []
 }>()
 
-interface TalosSystemInformationSpec {
-  manufacturer?: string
-  productName?: string
-  version?: string
-  serialnumber?: string
-  uuid?: string
-  wakeUpType?: string
-  skuNumber?: string
-}
-
-const { data: sysInfo } = useResourceWatch<TalosSystemInformationSpec>(() => ({
+const { data: sysInfo } = useResourceWatch<SystemInformationSpec>(() => ({
   skip: !machine?.metadata.id,
   runtime: Runtime.Talos,
   resource: {

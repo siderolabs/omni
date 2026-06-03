@@ -7,8 +7,9 @@ import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import { TalosHardwareNamespace, TalosPCIDeviceType } from '@/api/resources'
+import type { PCIDeviceSpec } from '@/api/talos/hardware.pb'
 
-import NodeDevices, { type TalosPCIDeviceSpec } from './MachineDevices.vue'
+import NodeDevices from './MachineDevices.vue'
 
 const meta: Meta<typeof NodeDevices> = {
   component: NodeDevices,
@@ -42,7 +43,7 @@ export const Data: Story = {
   parameters: {
     msw: {
       handlers: [
-        createWatchStreamHandler<TalosPCIDeviceSpec>({
+        createWatchStreamHandler<PCIDeviceSpec>({
           expectedOptions: {
             namespace: TalosHardwareNamespace,
             type: TalosPCIDeviceType,

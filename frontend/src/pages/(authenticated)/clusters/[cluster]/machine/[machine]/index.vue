@@ -30,6 +30,9 @@ import {
   TalosNodenameType,
   TalosRuntimeNamespace,
 } from '@/api/resources'
+import type { NodenameSpec } from '@/api/talos/k8s.pb'
+import type { NodeAddressSpec } from '@/api/talos/network.pb'
+import type { MachineStatusSpec } from '@/api/talos/runtime.pb'
 import TGroupAnimation from '@/components/Animation/TGroupAnimation.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TListItem from '@/components/List/TListItem.vue'
@@ -71,7 +74,7 @@ const configApplyStatusToConfigApplyStatusName = (status?: ConfigApplyStatus): s
 
 const alertDismissed = ref(false)
 
-const { data: nodename } = useResourceWatch<{ nodename: string }>(() => ({
+const { data: nodename } = useResourceWatch<NodenameSpec>(() => ({
   runtime: Runtime.Talos,
   resource: {
     id: TalosNodenameID,
@@ -95,7 +98,7 @@ const { data: node } = useResourceWatch<V1NodeSpec, V1NodeStatus>(() => {
   }
 })
 
-const { data: nodeaddress } = useResourceWatch<{ addresses: string[] }>(() => ({
+const { data: nodeaddress } = useResourceWatch<NodeAddressSpec>(() => ({
   runtime: Runtime.Talos,
   resource: {
     id: TalosAddressRoutedNoK8s,
@@ -105,16 +108,7 @@ const { data: nodeaddress } = useResourceWatch<{ addresses: string[] }>(() => ({
   context: context.value,
 }))
 
-const { data: talosMachineStatus } = useResourceWatch<{
-  stage: string
-  status: {
-    ready: boolean
-    unmetConditions: {
-      name: string
-      reason: string
-    }[]
-  }
-}>(() => ({
+const { data: talosMachineStatus } = useResourceWatch<MachineStatusSpec>(() => ({
   runtime: Runtime.Talos,
   resource: {
     id: TalosMachineStatusID,
@@ -265,7 +259,7 @@ const servicesSectionHeadingId = useId()
         <h4 class="overview-data-heading">Talos</h4>
         <div class="overview-data-row">
           <p class="overview-data-name">Addresses</p>
-          <p class="overview-data">{{ nodeaddress?.spec.addresses.join(', ') }}</p>
+          <p class="overview-data">{{ nodeaddress?.spec.addresses?.join(', ') }}</p>
         </div>
         <div class="overview-data-row">
           <p class="overview-data-name">OS</p>
@@ -313,8 +307,8 @@ const servicesSectionHeadingId = useId()
         <div v-if="talosMachineStatus" class="overview-data-row">
           <p class="overview-data-name">Unmet Conditions</p>
           <NodeConditions
-            v-if="talosMachineStatus.spec.status?.unmetConditions.length > 0"
-            :conditions="talosMachineStatus.spec.status?.unmetConditions"
+            v-if="talosMachineStatus.spec.status?.unmetConditions?.length"
+            :conditions="talosMachineStatus.spec.status.unmetConditions"
           />
           <div v-else class="flex items-center gap-1 text-xs text-green-g1">
             <TIcon icon="check-in-circle-classic" class="h-4" />

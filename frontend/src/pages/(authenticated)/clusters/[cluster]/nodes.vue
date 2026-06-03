@@ -21,13 +21,14 @@ import {
   TalosClusterNamespace,
   TalosMemberType,
 } from '@/api/resources'
+import type { MemberSpec } from '@/api/talos/cluster.pb'
 import TGroupAnimation from '@/components/Animation/TGroupAnimation.vue'
 import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { getContext } from '@/context'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import NodesItem, { type TalosMemberSpec } from '@/views/Nodes/components/NodesItem.vue'
+import NodesItem from '@/views/Nodes/components/NodesItem.vue'
 
 definePage({ name: 'Nodes' })
 
@@ -42,7 +43,7 @@ const { data: v1Nodes } = useResourceWatch<V1NodeSpec, V1NodeStatus>({
   context,
 })
 
-const { data: talosMembers } = useResourceWatch<TalosMemberSpec>({
+const { data: talosMembers } = useResourceWatch<MemberSpec>({
   runtime: Runtime.Talos,
   resource: {
     type: TalosMemberType,
@@ -61,7 +62,7 @@ const talosMembersMap = computed(() =>
 
 function getNodeItem(
   item: Resource<ClusterMachineStatusSpec>,
-): Resource<ClusterMachineStatusSpec & V1NodeSpec & TalosMemberSpec, V1NodeStatus> {
+): Resource<ClusterMachineStatusSpec & V1NodeSpec & MemberSpec, V1NodeStatus> {
   const itemID = item.metadata.labels?.[ClusterMachineStatusLabelNodeName] ?? item.metadata.id!
 
   const v1node = v1NodesMap.value[itemID]

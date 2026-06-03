@@ -19,6 +19,7 @@ import {
   TalosPerfNamespace,
 } from '@/api/resources'
 import { MachineService, type ProcessInfo } from '@/api/talos/machine/machine.pb'
+import type { CPUSpec, MemorySpec } from '@/api/talos/perf.pb'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import { getContext } from '@/context'
 import { formatBytes } from '@/methods'
@@ -47,16 +48,16 @@ const sortReverse = ref(true)
 
 const memTotal = ref(0)
 
-const getCPUTotal = (stat: TalosCPUSpec['cpuTotal']) => {
+const getCPUTotal = (stat: CPUSpec['cpuTotal']) => {
   return [
-    stat.idle,
-    stat.iowait,
-    stat.user,
-    stat.nice,
-    stat.system,
-    stat.irq,
-    stat.steal,
-    stat.softIrq,
+    stat?.idle,
+    stat?.iowait,
+    stat?.user,
+    stat?.nice,
+    stat?.system,
+    stat?.irq,
+    stat?.steal,
+    stat?.softIrq,
   ].reduce<number>((prev, curr) => prev + (curr || 0), 0)
 }
 
@@ -121,61 +122,35 @@ watchEffect((onCleanup) => {
   })
 })
 
-interface TalosCPUSpec {
-  contextSwitches?: number
-  cpu?: []
-  cpuTotal: {
-    guest?: number
-    guestNice?: number
-    idle?: number
-    iowait?: number
-    irq?: number
-    nice?: number
-    softIrq?: number
-    steal?: number
-    system?: number
-    user?: number
-  }
-  irqTotal?: number
-  processBlocked?: number
-  processCreated?: number
-  processRunning?: number
-  softIrqTotal?: number
-}
+const handleCPU = (oldObj: CPUSpec, newObj: CPUSpec) => {
+  const keys = Object.keys(oldObj.cpuTotal ?? {}) as (keyof CPUSpec['cpuTotal'])[]
 
-const handleCPU = (oldObj: TalosCPUSpec, newObj: TalosCPUSpec) => {
-  const keys = Object.keys(oldObj.cpuTotal) as (keyof TalosCPUSpec['cpuTotal'])[]
-
-  const cpuTotal = keys.reduce<TalosCPUSpec['cpuTotal']>(
+  const cpuTotal = keys.reduce<CPUSpec['cpuTotal']>(
     (prev, key) => ({
       ...prev,
-      [key]: (oldObj.cpuTotal[key] || 0) - (newObj.cpuTotal[key] || 0),
+      [key]: (oldObj.cpuTotal?.[key] || 0) - (newObj.cpuTotal?.[key] || 0),
     }),
     {},
   )
 
   const total = getCPUTotal(cpuTotal)
+  if (total === 0) {
+    return { system: 0, user: 0 }
+  }
 
   return {
-    system: ((cpuTotal.system || 0) / total) * 100,
-    user: ((cpuTotal.user || 0) / total) * 100,
+    system: ((cpuTotal?.system || 0) / total) * 100,
+    user: ((cpuTotal?.user || 0) / total) * 100,
   }
 }
 
-const handleTotalCPU = (oldObj: TalosCPUSpec, newObj: TalosCPUSpec) => {
+const handleTotalCPU = (oldObj: CPUSpec, newObj: CPUSpec) => {
   const point = handleCPU(oldObj, newObj)
 
   return `${(point.user + point.system).toFixed(1)} %`
 }
 
-interface TalosMemorySpec {
-  total?: number
-  used?: number
-  cached?: number
-  buffers?: number
-}
-
-const handleMem = (_: TalosMemorySpec, m: TalosMemorySpec) => {
+const handleMem = (_: MemorySpec, m: MemorySpec) => {
   memTotal.value = m.total || 0
 
   return {
@@ -185,17 +160,17 @@ const handleMem = (_: TalosMemorySpec, m: TalosMemorySpec) => {
   }
 }
 
-const handleTotalMem = (_: TalosMemorySpec, m: TalosMemorySpec) => {
+const handleTotalMem = (_: MemorySpec, m: MemorySpec) => {
   const used = (m.used || 0) - (m.cached || 0) - (m.buffers || 0)
 
   return `${formatBytes(used * 1024)} / ${formatBytes((m.total || 0) * 1024)}`
 }
 
-const handleMaxMem = (_: TalosMemorySpec, m: TalosMemorySpec) => {
+const handleMaxMem = (_: MemorySpec, m: MemorySpec) => {
   return m.total || 0
 }
 
-const handleProcs = (oldObj: TalosCPUSpec, newObj: TalosCPUSpec) => {
+const handleProcs = (oldObj: CPUSpec, newObj: CPUSpec) => {
   return {
     created: (oldObj.processCreated || 0) - (newObj.processCreated || 0),
     running: newObj.processRunning || 0,

@@ -6,20 +6,17 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { Resource } from '@/api/grpc'
+import type { DiscoveredVolumeSpec, VolumeStatusSpec } from '@/api/talos/block.pb'
 import { itemID } from '@/api/watch'
 import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
-import type {
-  TalosDiscoveredVolumeSpec,
-  TalosVolumeStatusSpec,
-} from '@/views/Machines/MachineDisks.vue'
 
 defineProps<{
   partitions: {
-    volume: Resource<TalosDiscoveredVolumeSpec>
-    volumeStatus?: Resource<TalosVolumeStatusSpec>
+    volume: Resource<DiscoveredVolumeSpec>
+    volumeStatus?: Resource<VolumeStatusSpec>
   }[]
 }>()
 
@@ -39,8 +36,8 @@ const getFilesystemIcon = (fsType?: string): IconType => {
 }
 
 const getEffectiveFilesystem = (
-  volume: Resource<TalosDiscoveredVolumeSpec>,
-  volumeStatus?: Resource<TalosVolumeStatusSpec>,
+  volume: Resource<DiscoveredVolumeSpec>,
+  volumeStatus?: Resource<VolumeStatusSpec>,
 ): string => {
   // When encryption is active, the DV name is luks, but we want to show the actual filesystem
   if (volumeStatus?.spec.encryptionProvider && volumeStatus.spec.filesystem) {
@@ -49,7 +46,7 @@ const getEffectiveFilesystem = (
   return volume.spec.name || volumeStatus?.spec.filesystem || 'N/A'
 }
 
-const isEncrypted = (item?: Resource<TalosVolumeStatusSpec>) => {
+const isEncrypted = (item?: Resource<VolumeStatusSpec>) => {
   if (!item) {
     return Encryption.Unknown
   }
@@ -57,7 +54,7 @@ const isEncrypted = (item?: Resource<TalosVolumeStatusSpec>) => {
   return item.spec.encryptionProvider ? Encryption.Enabled : Encryption.Disabled
 }
 
-const getEncryptionClass = (item?: Resource<TalosVolumeStatusSpec>) => {
+const getEncryptionClass = (item?: Resource<VolumeStatusSpec>) => {
   switch (isEncrypted(item)) {
     case Encryption.Disabled:
       return 'text-red-r1'
@@ -68,7 +65,7 @@ const getEncryptionClass = (item?: Resource<TalosVolumeStatusSpec>) => {
   }
 }
 
-const getEncryptionIcon = (item?: Resource<TalosVolumeStatusSpec>): IconType => {
+const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
   switch (isEncrypted(item)) {
     case Encryption.Disabled:
       return 'unlocked'

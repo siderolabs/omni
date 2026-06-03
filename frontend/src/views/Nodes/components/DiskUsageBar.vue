@@ -8,13 +8,13 @@ included in the LICENSE file.
 import { computed } from 'vue'
 
 import type { Resource } from '@/api/grpc'
+import type { DiscoveredVolumeSpec, DiskSpec } from '@/api/talos/block.pb'
 import { itemID } from '@/api/watch'
 import { formatBytes } from '@/methods'
-import type { TalosDiscoveredVolumeSpec, TalosDiskSpec } from '@/views/Machines/MachineDisks.vue'
 
 const { disk, volumes } = defineProps<{
-  disk: Resource<TalosDiskSpec>
-  volumes: Resource<TalosDiscoveredVolumeSpec>[]
+  disk: Resource<DiskSpec>
+  volumes: Resource<DiscoveredVolumeSpec>[]
 }>()
 
 const usedSpace = computed(() => volumes.reduce((sum, p) => sum + (p.spec.size || 0), 0))
@@ -33,7 +33,7 @@ const unallocatedPercent = computed(() => {
   return Math.max(0, partitionPercent(diskSize - usedSpace.value, diskSize))
 })
 
-const getVolumeClass = (volume: Resource<TalosDiscoveredVolumeSpec>) => {
+const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
   const fsType = volume.spec.name?.toLowerCase()
   const label = volume.spec.partition_label?.toLowerCase()
 

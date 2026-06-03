@@ -5,17 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script lang="ts">
-export interface TalosPCIDeviceSpec {
-  class?: string
-  subclass?: string
-  vendor?: string
-  product?: string
-  class_id?: string
-  subclass_id?: string
-  vendor_id?: string
-  product_id?: string
-  driver?: string
-}
+import type { PCIDeviceSpec } from '@/api/talos/hardware.pb'
 
 const PCI_CLASS_ICONS: Record<string, IconType> = {
   '0x01': 'circle-stack',
@@ -40,7 +30,7 @@ interface DeviceTreeGroup {
 interface DeviceTreeDevice {
   id: string
   label: string
-  device: Resource<TalosPCIDeviceSpec>
+  device: Resource<PCIDeviceSpec>
 }
 
 function getSortKey(item: DeviceTreeItem) {
@@ -90,7 +80,7 @@ const {
   loading,
   err,
   errCode,
-} = useResourceWatch<TalosPCIDeviceSpec>(() => ({
+} = useResourceWatch<PCIDeviceSpec>(() => ({
   resource: {
     namespace: TalosHardwareNamespace,
     type: TalosPCIDeviceType,

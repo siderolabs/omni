@@ -4,16 +4,6 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script lang="ts">
-export interface TalosMemberSpec {
-  machineType?: 'controlplane' | 'worker'
-  hostname?: string
-  operatingSystem?: string
-  addresses?: string[]
-  nodeId?: string
-}
-</script>
-
 <script setup lang="ts">
 import type { NodeSpec as V1NodeSpec, NodeStatus as V1NodeStatus } from 'kubernetes-types/core/v1'
 import { computed } from 'vue'
@@ -22,6 +12,7 @@ import WordHighlighter from 'vue-word-highlighter'
 import type { Resource } from '@/api/grpc'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineStatusLabelNodeName } from '@/api/resources'
+import type { MemberSpec } from '@/api/talos/cluster.pb'
 import TStatus from '@/components/Status/TStatus.vue'
 import Tag from '@/components/Tag/Tag.vue'
 import { getStatus } from '@/methods'
@@ -29,7 +20,7 @@ import NodeContextMenu from '@/views/common/NodeContextMenu.vue'
 
 const { item } = defineProps<{
   clusterId: string
-  item: Resource<ClusterMachineStatusSpec & V1NodeSpec & TalosMemberSpec, V1NodeStatus>
+  item: Resource<ClusterMachineStatusSpec & V1NodeSpec & MemberSpec, V1NodeStatus>
   searchOption?: string
 }>()
 

@@ -11,12 +11,13 @@ import {
   TalosRuntimeNamespace,
   TalosVolumeStatusType,
 } from '@/api/resources'
+import {
+  type DiscoveredVolumeSpec,
+  type DiskSpec,
+  type VolumeStatusSpec,
+} from '@/api/talos/block.pb'
 
-import NodeDisks, {
-  type TalosDiscoveredVolumeSpec,
-  type TalosDiskSpec,
-  type TalosVolumeStatusSpec,
-} from './MachineDisks.vue'
+import NodeDisks from './MachineDisks.vue'
 
 const meta: Meta<typeof NodeDisks> = {
   component: NodeDisks,
@@ -29,7 +30,7 @@ export const WithData = {
   parameters: {
     msw: {
       handlers: [
-        createWatchStreamHandler<TalosDiskSpec>({
+        createWatchStreamHandler<DiskSpec>({
           expectedOptions: {
             namespace: TalosRuntimeNamespace,
             type: TalosDiskType,
@@ -51,7 +52,7 @@ export const WithData = {
           ],
         }).handler,
 
-        createWatchStreamHandler<TalosDiscoveredVolumeSpec>({
+        createWatchStreamHandler<DiscoveredVolumeSpec>({
           expectedOptions: {
             namespace: TalosRuntimeNamespace,
             type: TalosDiscoveredVolumeType,
@@ -142,7 +143,7 @@ export const WithData = {
           ],
         }).handler,
 
-        createWatchStreamHandler<TalosVolumeStatusSpec>({
+        createWatchStreamHandler<VolumeStatusSpec>({
           expectedOptions: {
             namespace: TalosRuntimeNamespace,
             type: TalosVolumeStatusType,
@@ -210,7 +211,7 @@ export const WithEmptyVolume: Story = {
   parameters: {
     msw: {
       handlers: [
-        createWatchStreamHandler<TalosDiscoveredVolumeSpec>({
+        createWatchStreamHandler<DiscoveredVolumeSpec>({
           expectedOptions: {
             namespace: TalosRuntimeNamespace,
             type: TalosDiscoveredVolumeType,
@@ -228,7 +229,7 @@ export const WithCdrom: Story = {
   parameters: {
     msw: {
       handlers: [
-        createWatchStreamHandler<TalosDiskSpec>({
+        createWatchStreamHandler<DiskSpec>({
           expectedOptions: {
             namespace: TalosRuntimeNamespace,
             type: TalosDiskType,
@@ -267,7 +268,7 @@ export const WithCdrom: Story = {
           ],
         }).handler,
 
-        createWatchStreamHandler<TalosDiscoveredVolumeSpec>({
+        createWatchStreamHandler<DiscoveredVolumeSpec>({
           expectedOptions: {
             namespace: TalosRuntimeNamespace,
             type: TalosDiscoveredVolumeType,
@@ -308,7 +309,7 @@ export const WithCdrom: Story = {
           ],
         }).handler,
 
-        createWatchStreamHandler<TalosVolumeStatusSpec>({
+        createWatchStreamHandler<VolumeStatusSpec>({
           expectedOptions: {
             namespace: TalosRuntimeNamespace,
             type: TalosVolumeStatusType,
@@ -324,7 +325,7 @@ export const WithLuksEncryption: Story = {
   parameters: {
     msw: {
       handlers: [
-        createWatchStreamHandler<TalosDiskSpec>({
+        createWatchStreamHandler<DiskSpec>({
           expectedOptions: {
             namespace: TalosRuntimeNamespace,
             type: TalosDiskType,
@@ -360,7 +361,7 @@ export const WithLuksEncryption: Story = {
           ],
         }).handler,
 
-        createWatchStreamHandler<TalosDiscoveredVolumeSpec>({
+        createWatchStreamHandler<DiscoveredVolumeSpec>({
           expectedOptions: {
             namespace: TalosRuntimeNamespace,
             type: TalosDiscoveredVolumeType,
@@ -405,7 +406,7 @@ export const WithLuksEncryption: Story = {
           ],
         }).handler,
 
-        createWatchStreamHandler<TalosVolumeStatusSpec>({
+        createWatchStreamHandler<VolumeStatusSpec>({
           expectedOptions: {
             namespace: TalosRuntimeNamespace,
             type: TalosVolumeStatusType,

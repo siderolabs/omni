@@ -8,6 +8,9 @@ package internal
 
 //go:generate go run -tags=sidero.tools github.com/siderolabs/omni/internal/internal/tools/tsgen -out ../../frontend/src/api/resources.ts ../../,../../client/
 
+// Generate TypeScript types for Talos COSI resource specs from yaml struct tags.
+//go:generate go run -tags=sidero.tools github.com/siderolabs/omni/internal/internal/tools/talostsgen ../../frontend/src/api/talos
+
 // Generate JSON schema.
 //go:generate go tool go-jsonschema --only-models --struct-name-from-title --tags=json,yaml --package=config --extra-imports -o=../pkg/config/types.generated.go ../pkg/config/schema.json
 

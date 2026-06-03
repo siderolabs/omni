@@ -5,14 +5,12 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import type { UnmetCondition } from '@/api/talos/runtime.pb'
 import TIcon from '@/components/Icon/TIcon.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 
 defineProps<{
-  conditions: {
-    name: string
-    reason: string
-  }[]
+  conditions: UnmetCondition[]
 }>()
 </script>
 

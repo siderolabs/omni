@@ -31,6 +31,7 @@ import {
   TalosRuntimeNamespace,
   TalosServiceType,
 } from '@/api/resources'
+import type { ServiceSpec } from '@/api/talos/v1alpha1.pb'
 import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
 import TSidebarList from '@/components/SideBar/TSideBarList.vue'
 import UserInfo from '@/components/UserInfo/UserInfo.vue'
@@ -99,7 +100,7 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
   },
 }))
 
-const { data: services } = useResourceWatch(() => ({
+const { data: services } = useResourceWatch<ServiceSpec>(() => ({
   skip: !currentMachine.value,
   resource: {
     type: TalosServiceType,

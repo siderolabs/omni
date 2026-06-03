@@ -4,81 +4,6 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script lang="ts">
-export interface TalosDiskSpec {
-  bus_path?: string
-  cdrom?: boolean
-  dev_path?: string
-  io_size?: number
-  modalias?: string
-  pretty_size?: string
-  readonly?: boolean
-  rotational?: boolean
-  sector_size?: number
-  size?: number
-  sub_system?: string
-  symlinks?: string[]
-  transport?: string
-}
-
-export interface TalosDiscoveredVolumeSpec {
-  block_size?: number
-  dev_path?: string
-  device_path?: string
-  filesystem_block_size?: number
-  io_size?: number
-  name?: string
-  label?: string
-  offset?: number
-  parent?: string
-  parent_dev_path?: string
-  partition_index?: number
-  partition_label?: string
-  partition_type?: string
-  partition_uuid?: string
-  pretty_size?: string
-  probed_size?: number
-  sector_size?: number
-  size?: number
-  type?: string
-  uuid?: string
-}
-
-export interface TalosVolumeStatusMountSpec {
-  fileMode?: number
-  gid?: number
-  parentId?: string
-  projectQuotaSupport?: boolean
-  recursiveRelabel?: boolean
-  selinuxLabel?: string
-  targetPath?: string
-  uid?: number
-}
-
-export interface TalosVolumeStatusSpec {
-  mountSpec?: TalosVolumeStatusMountSpec
-  phase?: string
-  type?: string
-  parentID?: string
-  symlink?: {
-    force?: boolean
-    symlinkTargetPath?: string
-  }
-  configuredEncryptionKeys?: string[]
-  encryptionProvider?: string
-  encryptionSlot?: number
-  filesystem?: string
-  location?: string
-  mountLocation?: string
-  parentLocation?: string
-  partitionIndex?: number
-  partitionUUID?: string
-  prettySize?: string
-  size?: number
-  uuid?: string
-}
-</script>
-
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
@@ -91,6 +16,7 @@ import {
   TalosRuntimeNamespace,
   TalosVolumeStatusType,
 } from '@/api/resources'
+import type { DiscoveredVolumeSpec, DiskSpec, VolumeStatusSpec } from '@/api/talos/block.pb'
 import { itemID } from '@/api/watch'
 import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
@@ -109,7 +35,7 @@ const {
   loading: disksLoading,
   err: disksErr,
   errCode: disksErrCode,
-} = useResourceWatch<TalosDiskSpec>(() => ({
+} = useResourceWatch<DiskSpec>(() => ({
   resource: {
     namespace: TalosRuntimeNamespace,
     type: TalosDiskType,
@@ -123,7 +49,7 @@ const {
   loading: volumesLoading,
   err: volumesErr,
   errCode: volumesErrCode,
-} = useResourceWatch<TalosDiscoveredVolumeSpec>(() => ({
+} = useResourceWatch<DiscoveredVolumeSpec>(() => ({
   resource: {
     namespace: TalosRuntimeNamespace,
     type: TalosDiscoveredVolumeType,
@@ -137,7 +63,7 @@ const {
   loading: volumeStatusesLoading,
   err: volumeStatusesErr,
   errCode: volumeStatusesErrCode,
-} = useResourceWatch<TalosVolumeStatusSpec>(() => ({
+} = useResourceWatch<VolumeStatusSpec>(() => ({
   resource: {
     namespace: TalosRuntimeNamespace,
     type: TalosVolumeStatusType,
