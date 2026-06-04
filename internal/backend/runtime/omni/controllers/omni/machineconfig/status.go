@@ -213,12 +213,20 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 				zap.String("machine", machineConfig.Metadata().ID()),
 			)
 
-			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("'%s' the machine talos version is out of sync: %w", machineConfig.Metadata().ID(), err)
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine talos version is out of sync: %s", machineConfig.Metadata().ID())
 		}
-	} else {
-		if err = ctrl.releaseUpgradeLock(ctx, r, rc.clusterMachine); err != nil {
-			return fmt.Errorf("failed to release upgrade lock: %w", err)
-		}
+	}
+
+	// At this point the machine is in sync: it either needed no upgrade, or the upgrade just
+	// completed. Release the upgrade lock here, before entering the config-apply phase, so the
+	// upgrade and config-update locks are never held simultaneously by the same machine.
+	//
+	// Holding the upgrade lock into the config-apply phase allows a lock-ordering inversion to
+	// deadlock the whole machine set: one machine holds the config-update lock and waits for the
+	// upgrade lock, while another holds the upgrade lock and waits for the config-update lock.
+	// Neither lock is ever released and the machine set is stuck until Omni is restarted.
+	if err = ctrl.releaseUpgradeLock(ctx, r, rc.clusterMachine); err != nil {
+		return fmt.Errorf("failed to release upgrade lock: %w", err)
 	}
 
 	stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()
@@ -977,7 +985,7 @@ func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx co
 }
 
 func (ctrl *ClusterMachineConfigStatusController) releaseConfigUpdateLock(ctx context.Context, r controller.ReaderWriter, clusterMachine *omni.ClusterMachine) error {
-	if !clusterMachine.Metadata().Finalizers().Has(ConfigUpdateFinalizer) {
+	if clusterMachine == nil || !clusterMachine.Metadata().Finalizers().Has(ConfigUpdateFinalizer) {
 		return nil
 	}
 
@@ -985,7 +993,7 @@ func (ctrl *ClusterMachineConfigStatusController) releaseConfigUpdateLock(ctx co
 }
 
 func (ctrl *ClusterMachineConfigStatusController) releaseUpgradeLock(ctx context.Context, r controller.ReaderWriter, clusterMachine *omni.ClusterMachine) error {
-	if !clusterMachine.Metadata().Finalizers().Has(UpgradeFinalizer) {
+	if clusterMachine == nil || !clusterMachine.Metadata().Finalizers().Has(UpgradeFinalizer) {
 		return nil
 	}
 
