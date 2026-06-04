@@ -383,6 +383,7 @@ Here are the configurable parameters of the Omni chart and their default values.
 | service.wireguard.annotations | object | `{}` | Annotations for the WireGuard service. |
 | service.wireguard.clusterIP | string | `""` | ClusterIP for the WireGuard service. |
 | service.wireguard.labels | object | `{}` | Additional labels for the WireGuard service. |
+| service.wireguard.loadBalancerIP | string | `""` | loadBalancerIP for the WireGuard service. |
 | service.wireguard.nodePort | int | `30180` | NodePort for the WireGuard service. |
 | service.wireguard.port | int | `50180` | Port for the WireGuard service. |
 | service.wireguard.type | string | `"NodePort"` | Service type for WireGuard (NodePort or LoadBalancer recommended). |

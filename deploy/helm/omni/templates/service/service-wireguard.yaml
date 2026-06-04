@@ -17,6 +17,9 @@ spec:
   {{- with .Values.service.wireguard.clusterIP }}
   clusterIP: {{ . | quote}}
   {{- end }}
+  {{- if and .Values.service.wireguard.loadBalancerIP (eq .Values.service.wireguard.type "LoadBalancer") }}
+  loadBalancerIP: {{ .Values.service.wireguard.loadBalancerIP | quote }}
+  {{- end }}
   ports:
     - name: wireguard
       {{- if and .Values.service.wireguard.nodePort (or (eq .Values.service.wireguard.type "NodePort") (eq .Values.service.wireguard.type "LoadBalancer")) }}

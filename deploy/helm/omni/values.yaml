@@ -869,6 +869,8 @@ service:
     port: 50180
     # -- NodePort for the WireGuard service.
     nodePort: 30180
+    # -- loadBalancerIP for the WireGuard service.
+    loadBalancerIP: ""
     # -- ClusterIP for the WireGuard service.
     clusterIP: ""
 # Omni metrics configuration
