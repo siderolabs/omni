@@ -121,33 +121,6 @@ describe('request interceptor', () => {
     },
   )
 
-  test.each(['/image/', '/image/thing/whatever'])(
-    'intercepts image route: %s',
-    async (originalUrl) => {
-      let interceptor: FetchInterceptor['request']
-
-      fetchInterceptMock.register.mockImplementation(({ request }) => {
-        interceptor = request
-
-        return vi.fn()
-      })
-
-      mount(TestComponent)
-
-      expect(fetchInterceptMock.register).toHaveBeenCalledOnce()
-      expectToBeDefined(interceptor)
-
-      const [url, config] = await interceptor(originalUrl, undefined)
-      const headers = Array.from(config.headers) as [string, string]
-
-      expect(url).toBe(originalUrl)
-      expect(headers).toMatchObject([
-        ['x-sidero-signature', 'siderov1 testuser public_key_id AAAAAAAAAAAAAA=='],
-        ['x-sidero-timestamp', getUnixTime(now).toString()],
-      ])
-    },
-  )
-
   test.each(['/fake', '/api/auth.whatever'])(
     'does not intercept route: %s',
     async (originalUrl) => {

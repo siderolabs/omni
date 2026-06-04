@@ -81,19 +81,22 @@ export const Default: Story = {
           })),
         }).handler,
 
-        http.get<{ version: string }>('/talosctl/downloads/:version', ({ params: { version } }) => {
-          const downloads = faker.helpers
-            .multiple(faker.hacker.noun, { count: 5 })
-            .map(
-              (name) =>
-                `https://factory.talos.dev/talosctl/v${version}/talosctl-${name}-${faker.helpers.arrayElement(['amd64', 'arm64'])}`,
-            )
+        http.get<{ version: string }>(
+          '/api/talosctl/downloads/:version',
+          ({ params: { version } }) => {
+            const downloads = faker.helpers
+              .multiple(faker.hacker.noun, { count: 5 })
+              .map(
+                (name) =>
+                  `https://factory.talos.dev/talosctl/v${version}/talosctl-${name}-${faker.helpers.arrayElement(['amd64', 'arm64'])}`,
+              )
 
-          return HttpResponse.json<TalosctlDownloadsResponse>({
-            status: '',
-            downloads,
-          })
-        }),
+            return HttpResponse.json<TalosctlDownloadsResponse>({
+              status: '',
+              downloads,
+            })
+          },
+        ),
       ],
     },
   },

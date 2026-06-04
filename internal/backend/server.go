@@ -899,15 +899,15 @@ func makeMux(
 		return nil, err
 	}
 
-	scanHandler, err := makeScanHandler(imageFactoryClient, logger)
+	vulnsHandler, err := makeScanHandler(imageFactoryClient, logger)
 	if err != nil {
 		return nil, err
 	}
 
 	muxHandle("/exposed/service", workloadProxyRedirect, "exposed-service-redirect")
-	muxHandle("/omnictl/", http.StripPrefix("/omnictl/", omnictlHndlr), "files")
-	muxHandle("/talosctl/downloads/{version}", talosctlHandler, "talosctl-downloads")
-	muxHandle("/scans/{schematicID}/{talosVersion}/{arch}/report.json", scanHandler, "scan-report")
+	muxHandle("/api/omnictl/", http.StripPrefix("/api/omnictl/", omnictlHndlr), "files")
+	muxHandle("/api/talosctl/downloads/{version}", talosctlHandler, "talosctl-downloads")
+	muxHandle("/api/vulns/{schematicID}/{talosVersion}/{arch}/report.json", vulnsHandler, "vulns-report")
 	// actually enabled only in debug build
 	muxHandle("/debug/", debug.NewHandler(omniRuntime.GetCOSIRuntime(), state.Default()), "debug")
 

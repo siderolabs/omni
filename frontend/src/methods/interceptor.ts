@@ -54,14 +54,6 @@ export function useRegisterAPIInterceptor() {
 
         config.headers.set(`Grpc-Metadata-${PayloadHeaderKey}`, payload)
         config.headers.set(`Grpc-Metadata-${SignatureHeaderKey}`, signature)
-      } else if (url.startsWith('/image')) {
-        config.headers.set(TimestampHeaderKey, ts)
-
-        const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' // empty string sha256
-        const payload = [config.method ?? 'GET', url, ts, sha256].join('\n')
-        const signature = await generateSignatureHeader(payload)
-
-        config.headers.set(SignatureHeaderKey, signature)
       }
 
       return [url, config]
@@ -111,7 +103,7 @@ const includedHeaders = [
 
 function isSignedRequest(path: string): boolean {
   return (
-    /^\/(api|image)/.test(path) &&
+    /^\/api/.test(path) &&
     (!path.startsWith('/api/auth.') || path.startsWith('/api/auth.AuthService/RevokePublicKey'))
   )
 }

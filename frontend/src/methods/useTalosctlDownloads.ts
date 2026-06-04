@@ -30,7 +30,7 @@ export function useTalosctlDownloads(
 
         const talosVersion = toValue(talosVersionMaybeRef) ?? DefaultTalosVersion
 
-        const response = await fetch(`/talosctl/downloads/${talosVersion}`)
+        const response = await fetch(`/api/talosctl/downloads/${talosVersion}`)
 
         const { downloads }: TalosctlDownloadsResponse = await response.json()
 

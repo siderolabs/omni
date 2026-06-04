@@ -53,7 +53,7 @@ const download = () => {
 
   close()
 
-  downloadFile(`/omnictl/${encodeURI(selectedOption.value)}`)
+  downloadFile(`/api/omnictl/${encodeURI(selectedOption.value)}`)
 }
 </script>
 
