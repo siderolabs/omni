@@ -1107,3 +1107,75 @@ func createCluster(
 
 	return cluster, machines
 }
+
+// TestUpgradeLockReleasedBeforeConfigApply is a regression test for siderolabs/omni#2805.
+//
+// Once a machine is in sync, it must release the upgrade lock before entering the
+// config-apply phase, so it never holds both the upgrade and the config-update lock at the
+// same time. If it held both, two machines could deadlock, each holding one lock while
+// waiting for the other, stalling the whole machine set.
+func TestUpgradeLockReleasedBeforeConfigApply(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer")))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, "deadlock-regression", 1, 0)
+			id := machines[0].Metadata().ID()
+
+			// Wait for the initial config to be applied: the config-update lock is only taken
+			// once the machine already has an applied config.
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			// The machine completes upgrades on request, but its config apply never succeeds, so
+			// it stays in the config-apply phase holding the config-update lock.
+			machineServices.Get(id).OnUpdate = func(ctx context.Context, req *machine.UpgradeRequest, st state.State, machineID string) (*machine.UpgradeResponse, error) {
+				_, tag, _ := strings.Cut(req.Image, ":")
+
+				return &machine.UpgradeResponse{}, safe.StateModify(ctx, st, omni.NewMachineStatus(machineID), func(res *omni.MachineStatus) error {
+					res.TypedSpec().Value.TalosVersion = strings.TrimLeft(tag, "v")
+
+					return nil
+				})
+			}
+			machineServices.Get(id).OnApplyConfig = func(context.Context, *machine.ApplyConfigurationRequest, state.State, string) (*machine.ApplyConfigurationResponse, error) {
+				return nil, errors.New("config apply blocked")
+			}
+
+			// Trigger a config change and an upgrade at the same time.
+			rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id), options.Modify(func(r *omni.ClusterMachineConfig) error {
+				return r.TypedSpec().Value.SetUncompressedData([]byte("machine:\n  network:\n    kubespan:\n      enabled: true"))
+			}))
+			rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+				res.TypedSpec().Value.InstallImage.TalosVersion = "1.12.7"
+
+				return nil
+			}))
+
+			// The upgrade completes on the machine.
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineStatus, a *assert.Assertions) {
+				a.Equal("1.12.7", res.TypedSpec().Value.TalosVersion)
+			})
+
+			// The machine is now stuck applying config, holding the config-update lock. It must
+			// not also hold the upgrade lock: the upgrade lock has to be released before the
+			// config-apply phase, so a machine never holds both at once.
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachine, a *assert.Assertions) {
+				a.True(res.Metadata().Finalizers().Has(machineconfig.ConfigUpdateFinalizer), "should hold the config-update lock")
+				a.False(res.Metadata().Finalizers().Has(machineconfig.UpgradeFinalizer), "must not hold the upgrade lock during config apply")
+			})
+		},
+	)
+}
