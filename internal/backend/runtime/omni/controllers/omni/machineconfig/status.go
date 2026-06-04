@@ -202,32 +202,8 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 		machineConfigStatus.TypedSpec().Value.SchematicId = ""
 	}
 
-	if rc.shouldUpgrade {
-		inSync, syncErr := ctrl.upgrade(ctx, logger, r, rc)
-		if syncErr != nil {
-			return syncErr
-		}
-
-		if !inSync {
-			logger.Info(
-				"the machine talos version is out of sync, the config is not applied",
-				zap.String("machine", machineConfig.Metadata().ID()),
-			)
-
-			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine talos version is out of sync: %s", machineConfig.Metadata().ID())
-		}
-	}
-
-	// At this point the machine is in sync: it either needed no upgrade, or the upgrade just
-	// completed. Release the upgrade lock here, before entering the config-apply phase, so the
-	// upgrade and config-update locks are never held simultaneously by the same machine.
-	//
-	// Holding the upgrade lock into the config-apply phase allows a lock-ordering inversion to
-	// deadlock the whole machine set: one machine holds the config-update lock and waits for the
-	// upgrade lock, while another holds the upgrade lock and waits for the config-update lock.
-	// Neither lock is ever released and the machine set is stuck until Omni is restarted.
-	if err = ctrl.releaseUpgradeLock(ctx, r, rc.clusterMachine); err != nil {
-		return fmt.Errorf("failed to release upgrade lock: %w", err)
+	if err = ctrl.reconcileUpgrade(ctx, logger, r, rc); err != nil {
+		return err
 	}
 
 	stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()
@@ -342,6 +318,55 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileTearingDown(ctx conte
 	return nil
 }
 
+// reconcileUpgrade brings the machine to its desired Talos version before its config is
+// applied, and keeps the upgrade and config-update locks from ever being held at the same
+// time. It returns nil once the machine is in sync and its config can be applied.
+//
+// The upgrade and config-update locks must never be held together by the same machine: that
+// is what allows a lock-ordering inversion to deadlock the whole machine set, with one
+// machine holding the config-update lock while waiting for the upgrade lock and another doing
+// the opposite, leaving the set stuck until Omni is restarted. To avoid it:
+//   - while the machine is parked waiting for a free upgrade slot, the config-update lock is
+//     released, so it does not pin a config rollout slot and starve machines that only need a
+//     config change. The lock is re-acquired later when the machine applies its config.
+//   - once the machine is in sync, the upgrade lock is released before the config-apply phase.
+func (ctrl *ClusterMachineConfigStatusController) reconcileUpgrade(
+	ctx context.Context,
+	logger *zap.Logger,
+	r controller.ReaderWriter,
+	rc *ReconciliationContext,
+) error {
+	if rc.shouldUpgrade {
+		inSync, err := ctrl.upgrade(ctx, logger, r, rc)
+		if err != nil {
+			// Only release the config-update lock when the machine is specifically blocked
+			// waiting for a free upgrade slot. It will not apply its config until it upgrades,
+			// so holding the slot just starves machines that only need a config change. On other
+			// (transient) upgrade failures the lock is kept, so a machine still completing its
+			// config reboot is not disturbed.
+			if errors.Is(err, errAcquireUpgradeLock) {
+				if releaseErr := ctrl.releaseConfigUpdateLock(ctx, r, rc.clusterMachine); releaseErr != nil {
+					return fmt.Errorf("failed to release config update lock: %w", releaseErr)
+				}
+			}
+
+			return err
+		}
+
+		if !inSync {
+			logger.Info("the machine talos version is out of sync, the config is not applied", zap.String("machine", rc.ID()))
+
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine talos version is out of sync: %s", rc.ID())
+		}
+	}
+
+	if err := ctrl.releaseUpgradeLock(ctx, r, rc.clusterMachine); err != nil {
+		return fmt.Errorf("failed to release upgrade lock: %w", err)
+	}
+
+	return nil
+}
+
 func (ctrl *ClusterMachineConfigStatusController) upgrade(
 	inputCtx context.Context,
 	logger *zap.Logger,
@@ -414,7 +439,7 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 	}
 
 	if err = ctrl.acquireUpgradeLock(ctx, r, rc); err != nil {
-		return false, fmt.Errorf("failed to acquire upgrade lock: %w", err)
+		return false, err
 	}
 
 	logger.Info("upgrading the machine",
@@ -873,6 +898,11 @@ func (ctrl *ClusterMachineConfigStatusController) getClient(
 	return result, nil
 }
 
+// errAcquireUpgradeLock marks the case where a machine cannot upgrade because no upgrade slot
+// is free. It is also SkipReconcile-tagged so the framework still treats it as a skip, while
+// callers can detect this specific reason with errors.Is.
+var errAcquireUpgradeLock = errors.New("failed to acquire upgrade lock")
+
 func (ctrl *ClusterMachineConfigStatusController) acquireUpgradeLock(ctx context.Context, r controller.ReaderWriter,
 	rc *ReconciliationContext,
 ) error {
@@ -908,7 +938,7 @@ func (ctrl *ClusterMachineConfigStatusController) acquireUpgradeLock(ctx context
 
 	quota := rollout.TypedSpec().Value.MachineSetsUpgradeQuota[machineSetName]
 	if quota == 0 {
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for free quota for upgrade")
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%w: waiting for free quota for upgrade", errAcquireUpgradeLock)
 	}
 
 	qruntime := r.(controller.QRuntime) //nolint:forcetypeassert,errcheck
@@ -930,7 +960,7 @@ func (ctrl *ClusterMachineConfigStatusController) acquireUpgradeLock(ctx context
 		}
 
 		if quota <= 0 {
-			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("quota %d for upgrades reached, waiting for the locks to be released", maxQuota)
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%w: quota %d for upgrades reached, waiting for the locks to be released", errAcquireUpgradeLock, maxQuota)
 		}
 	}
 
