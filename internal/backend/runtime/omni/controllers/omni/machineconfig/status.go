@@ -259,6 +259,12 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 				return nil
 			}
 
+			if errors.Is(err, errAcquireConfigLock) {
+				logger.Info("failed to acquire config apply lock, another operation is ongoing", zap.Error(err))
+
+				return nil
+			}
+
 			return fmt.Errorf("failed to apply config to machine '%s': %w", machineConfig.Metadata().ID(), err)
 		}
 	}
@@ -458,6 +464,8 @@ func (ctrl *ClusterMachineConfigStatusController) stageUpgrade(actualTalosVersio
 	return version.Major == 1 && version.Minor == 9 && version.Patch < 3, nil
 }
 
+var errAcquireConfigLock = errors.New("failed to acquire config update lock")
+
 func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.Context,
 	logger *zap.Logger,
 	r controller.ReaderWriter,
@@ -512,8 +520,6 @@ func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.C
 	defer data.Free()
 
 	if err = ctrl.acquireConfigUpdateLock(ctx, r, rc); err != nil {
-		logger.Debug("skip applying the config, failed to acquire lock", zap.Error(err))
-
 		return 0, err
 	}
 
@@ -946,7 +952,7 @@ func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx co
 	}
 
 	if !rc.configUpdatesAllowed {
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine set blocks the config changes")
+		return fmt.Errorf("%w: machine set blocks the config changes", errAcquireConfigLock)
 	}
 
 	machineSetName, ok := rc.clusterMachine.Metadata().Labels().Get(omni.LabelMachineSet)
@@ -984,7 +990,7 @@ func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx co
 		}
 
 		if quota <= 0 {
-			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("quota %d for updates reached, waiting for the locks to be released, pending: %#v", updateParallelism, pendingMachines)
+			return fmt.Errorf("%w: quota %d for updates reached, waiting for the locks to be released, pending: %#v", errAcquireConfigLock, updateParallelism, pendingMachines)
 		}
 	}
 

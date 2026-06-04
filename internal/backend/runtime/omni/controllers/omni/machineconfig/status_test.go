@@ -514,6 +514,91 @@ func TestMachineConfigStatusController(t *testing.T) {
 		})
 	})
 
+	t.Run("configUpdatesBlockedStillPersistsStatus", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(ctx, t, testutils.TestOptions{}, addControllers, func(ctx context.Context, testContext testutils.TestContext) {
+			clusterName := "config-updates-blocked"
+			machineServices := testutils.NewMachineServices(t, testContext.State)
+			_, machines := createCluster(ctx, t, testContext.State, machineServices, clusterName, 1, 0)
+			require.Len(t, machines, 1)
+
+			id := machines[0].Metadata().ID()
+
+			awaitAllMachinesConfigured(ctx, t, testContext.State, clusterName)
+
+			var sha256BeforeBlock string
+
+			rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+				assert.NotEmpty(res.TypedSpec().Value.SchematicId)
+				assert.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+
+				sha256BeforeBlock = res.TypedSpec().Value.ClusterMachineConfigSha256
+			})
+
+			rmock.Mock[*omni.MachineSetConfigStatus](
+				ctx, t, testContext.State,
+				options.WithID(omni.ControlPlanesResourceID(clusterName)),
+				options.Modify(func(res *omni.MachineSetConfigStatus) error {
+					res.TypedSpec().Value.ConfigUpdatesAllowed = false
+
+					return nil
+				}),
+			)
+
+			// Push a config change that produces a new SHA. With updates blocked, acquireConfigUpdateLock
+			// will fail and the new SHA must not land on the status.
+			rmock.Mock[*omni.ClusterMachineConfig](
+				ctx, t, testContext.State,
+				options.WithID(id),
+				options.Modify(func(r *omni.ClusterMachineConfig) error {
+					return r.TypedSpec().Value.SetUncompressedData([]byte(`machine:
+  network:
+    kubespan:
+      enabled: true`))
+				}),
+			)
+
+			rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachinePendingUpdates, assert *assert.Assertions) {
+				assert.NotEmpty(res.TypedSpec().Value.ConfigDiff)
+			})
+
+			rmock.Mock[*omni.MachineStatus](
+				ctx, t, testContext.State,
+				options.WithID(id),
+				options.Modify(func(res *omni.MachineStatus) error {
+					res.TypedSpec().Value.Schematic.Invalid = true
+					res.TypedSpec().Value.Schematic.Id = ""
+					res.TypedSpec().Value.Schematic.FullId = ""
+
+					return nil
+				}),
+			)
+
+			rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+				assert.Empty(res.TypedSpec().Value.SchematicId)
+				assert.Equal(sha256BeforeBlock, res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			rmock.Mock[*omni.MachineSetConfigStatus](
+				ctx, t, testContext.State,
+				options.WithID(omni.ControlPlanesResourceID(clusterName)),
+				options.Modify(func(res *omni.MachineSetConfigStatus) error {
+					res.TypedSpec().Value.ConfigUpdatesAllowed = true
+
+					return nil
+				}),
+			)
+
+			rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
+				assert.NotEqual(sha256BeforeBlock, res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+		})
+	})
+
 	// Creates a cluster with the machine with secure boot mode enabled.
 	// Install image should have `installer-secureboot` path.
 	t.Run("secureBootInstallImage", func(t *testing.T) {
