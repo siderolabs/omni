@@ -300,7 +300,7 @@ export default class Watch<T extends Resource> extends WatchFunc<T> {
     switch (message.event?.event_type) {
       case EventType.UPDATED:
       case EventType.CREATED:
-        this.item.value = spec.res as T
+        this.item.value = spec.res
         break
       case EventType.DESTROYED:
         this.item.value = undefined
@@ -340,7 +340,7 @@ export default class Watch<T extends Resource> extends WatchFunc<T> {
   }
 }
 
-const compareFn = <T>(
+const compareFn = <T extends Resource>(
   left: ResourceSort<T>,
   right: ResourceSort<T>,
   sortDescending?: boolean,
@@ -367,8 +367,8 @@ const compareFn = <T>(
   return 0
 }
 
-function getInsertionIndex<T>(
-  arr: Resource<T>[],
+function getInsertionIndex<T extends Resource>(
+  arr: T[],
   item: ResourceSort<T>,
   sortDescending?: boolean,
 ): number {
@@ -417,17 +417,17 @@ export const itemID = (item: {
   return `${item.metadata.namespace || 'default'}.${item.metadata.name ?? item.metadata.id}`
 }
 
-type ResourceSort<T> = Resource<T> & { sortFieldData?: string }
+type ResourceSort<T> = T & { sortFieldData?: string }
 
 // WatchItems wraps items list and handles sort order, insertions and removals.
-class WatchItems<T> {
+class WatchItems<T extends Resource> {
   private items: ResourceSort<T>[]
   private bootstrapList: ResourceSort<T>[] = []
 
   public bootstrapped: boolean = false
   private sortDescending: boolean = false
 
-  constructor(items: Resource<T>[]) {
+  constructor(items: T[]) {
     this.items = items
   }
 
@@ -442,7 +442,7 @@ class WatchItems<T> {
     })
   }
 
-  public createOrUpdate(item: ResourceSort<T>, old?: Resource<T>) {
+  public createOrUpdate(item: ResourceSort<T>, old?: T) {
     const items = this.bootstrapped ? this.items : this.bootstrapList
 
     let foundIndex = this.findIndex(itemID(old ?? item), items)
@@ -491,8 +491,8 @@ class WatchItems<T> {
     this.bootstrapList = []
   }
 
-  private findIndex(id: string, items: Resource<T>[]): number {
-    return items.findIndex((element: Resource<T>) => {
+  private findIndex(id: string, items: T[]): number {
+    return items.findIndex((element: T) => {
       return itemID(element) === id
     })
   }

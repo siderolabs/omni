@@ -50,7 +50,7 @@ const s3ConfigMetadata = {
 }
 
 onMounted(async () => {
-  const status: Resource<EtcdBackupOverallStatusSpec> = await ResourceService.Get(
+  const status = await ResourceService.Get<Resource<EtcdBackupOverallStatusSpec>>(
     {
       id: EtcdBackupOverallStatusID,
       type: EtcdBackupOverallStatusType,
@@ -68,7 +68,10 @@ onMounted(async () => {
   }
 
   try {
-    const config = await ResourceService.Get(s3ConfigMetadata, withRuntime(Runtime.Omni))
+    const config = await ResourceService.Get<Resource<EtcdBackupS3ConfSpec>>(
+      s3ConfigMetadata,
+      withRuntime(Runtime.Omni),
+    )
 
     s3Spec.value = config?.spec
   } catch (e) {
@@ -120,7 +123,10 @@ const updateConfig = async () => {
   let exists: boolean = false
 
   try {
-    config = await ResourceService.Get(s3ConfigMetadata, withRuntime(Runtime.Omni))
+    config = await ResourceService.Get<Resource<EtcdBackupS3ConfSpec>>(
+      s3ConfigMetadata,
+      withRuntime(Runtime.Omni),
+    )
 
     exists = true
   } catch (e) {
@@ -137,9 +143,16 @@ const updateConfig = async () => {
 
   try {
     if (exists) {
-      await ResourceService.Update(config, config.metadata.version || 0, withRuntime(Runtime.Omni))
+      await ResourceService.Update<Resource<EtcdBackupS3ConfSpec>>(
+        config,
+        config.metadata.version || 0,
+        withRuntime(Runtime.Omni),
+      )
     } else {
-      await ResourceService.Create(config, withRuntime(Runtime.Omni))
+      await ResourceService.Create<Resource<EtcdBackupS3ConfSpec>>(
+        config,
+        withRuntime(Runtime.Omni),
+      )
     }
   } catch (e) {
     showError('Failed to Update Storage Config', e.message)

@@ -507,7 +507,7 @@ export class State {
       )
     }
 
-    resources = resources.sort((a: Resource, b: Resource) => {
+    resources = resources.sort((a, b) => {
       type TypeKey = keyof typeof typesOrder
 
       if (typesOrder[a.metadata.type! as TypeKey] > typesOrder[b.metadata.type! as TypeKey]) {
@@ -528,8 +528,7 @@ export class State {
     const baseResources: Record<string, Record<string, Resource>> = {}
 
     for (const r of this.baseResources) {
-      baseResources[r.metadata.type!] = baseResources[r.metadata.type!] || {}
-
+      baseResources[r.metadata.type!] ||= {}
       baseResources[r.metadata.type!][r.metadata.id!] = r
     }
 
@@ -543,8 +542,8 @@ export class State {
           ...res.metadata,
         },
         spec: {
-          ...base.spec,
-          ...res.spec,
+          ...(base.spec ?? {}),
+          ...(res.spec ?? {}),
         },
       }
     })
@@ -652,7 +651,7 @@ export const populateExisting = async (clusterName: string) => {
   const resources: Resource[] = []
 
   // list all cluster config patches
-  const patches: Resource<ConfigPatch>[] = await ResourceService.List(
+  const patches = await ResourceService.List<Resource<ConfigPatch>>(
     {
       type: ConfigPatchType,
       namespace: DefaultNamespace,
@@ -667,7 +666,7 @@ export const populateExisting = async (clusterName: string) => {
     patchesByID[patch.metadata.id!] = patch
   }
 
-  const systemExtensions: Resource<ExtensionsConfigurationSpec>[] = await ResourceService.List(
+  const systemExtensions = await ResourceService.List<Resource<ExtensionsConfigurationSpec>>(
     {
       type: ExtensionsConfigurationType,
       namespace: DefaultNamespace,
@@ -831,7 +830,7 @@ export const populateExisting = async (clusterName: string) => {
   }
 
   // get machine set nodes
-  const machineSetNodes: Resource<MachineSetNode>[] = await ResourceService.List(
+  const machineSetNodes = await ResourceService.List<Resource<MachineSetNode>>(
     {
       type: MachineSetNodeType,
       namespace: DefaultNamespace,

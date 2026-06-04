@@ -36,7 +36,10 @@ const toISOString = (inputDateTime: string) => {
       type="datetime-local"
       :value="dataTime"
       :disabled="!control.enabled"
-      @change="(event) => p.handleChange(control.path, toISOString((event.target as any)?.value))"
+      @change="
+        (event) =>
+          p.handleChange(control.path, toISOString((event.target as HTMLInputElement)?.value))
+      "
     />
     <div
       v-if="isChrome()"

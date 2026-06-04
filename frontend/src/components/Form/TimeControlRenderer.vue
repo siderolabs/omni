@@ -32,7 +32,7 @@ const dataTime = computed(() => (control.value.data ?? '').substr(0, 16))
       type="time"
       :value="dataTime"
       :disabled="!control.enabled"
-      @change="(event) => p.handleChange(control.path, (event.target as any)?.value)"
+      @change="(event) => p.handleChange(control.path, (event.target as HTMLInputElement)?.value)"
     />
     <div
       v-if="isChrome()"

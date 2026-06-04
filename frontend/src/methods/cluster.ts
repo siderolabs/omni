@@ -260,7 +260,7 @@ export const destroyNodes = async (
   let controlPlanes = 0
 
   try {
-    const resp: Resource[] = await ResourceService.List(
+    const resp = await ResourceService.List<Resource<MachineSetNodeSpec>>(
       {
         namespace: DefaultNamespace,
         type: MachineSetNodeType,

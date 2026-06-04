@@ -4,8 +4,8 @@
 // included in the LICENSE file.
 
 import { Runtime } from '@/api/common/omni.pb'
-import { ResourceService } from '@/api/grpc'
-import { MachineSetSpecMachineAllocationType } from '@/api/omni/specs/omni.pb'
+import { type Resource, ResourceService } from '@/api/grpc'
+import { type MachineSetSpec, MachineSetSpecMachineAllocationType } from '@/api/omni/specs/omni.pb'
 import { withRuntime } from '@/api/options'
 import {
   ControlPlanesIDSuffix,
@@ -97,7 +97,7 @@ export const scaleMachineSet = async (
     throw new Error('machine set count can not be negative')
   }
 
-  const ms = await ResourceService.Get(
+  const ms = await ResourceService.Get<Resource<MachineSetSpec>>(
     {
       id: id,
       type: MachineSetType,

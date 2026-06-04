@@ -175,8 +175,7 @@ export class Stream<R, T> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Resource<T = any, S = any> = {
+export type Resource<T = unknown, S = unknown> = {
   metadata: Metadata & { name?: string }
   spec: T
   status?: S
