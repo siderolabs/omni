@@ -1,3 +1,53 @@
+## [Omni 1.8.2](https://github.com/siderolabs/omni/releases/tag/v1.8.2) (2026-06-05)
+
+Welcome to the v1.8.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**
+
+As Omni is now using `--join-tokens-mode=legacyAllowed` by default it won't start if there are any nodes running Talos below 1.6 connected to the instance.
+If you want to keep using Omni with the outdated Talos you will need to set the flag to `legacy`. But of course we strongly recommend you to update Talos ASAP.
+
+`omnictl cluster template` has breaking changes: it now restricts including files outside of the current directory.
+If using files in the parent dirs, old behavior can be enabled by using `--allowed-dir`.
+
+
+### Contributors
+
+* Orzelius
+* Edward Sammut Alessi
+* Oguz Kilcan
+* Utku Ozdemir
+
+### Changes
+<details><summary>4 commits</summary>
+<p>
+
+* [`8609a36f`](https://github.com/siderolabs/omni/commit/8609a36f4971a0475804167b523e69c8d272f406) test: mock clock in saml test
+* [`ab83b633`](https://github.com/siderolabs/omni/commit/ab83b6336d52744426ac11d615d8b2418efa408b) fix: prevent deadlock between machine upgrade and config update
+* [`bcaa305a`](https://github.com/siderolabs/omni/commit/bcaa305a87d8d4a2a03189cc1af5b8d35121e892) chore: bump go-kubernetes library
+* [`a46d0065`](https://github.com/siderolabs/omni/commit/a46d0065ba969ffa0a0dc84e39059b3d7befe558) fix: lower minimum discovered Kubernetes version
+</p>
+</details>
+
+### Changes from siderolabs/go-kubernetes
+<details><summary>1 commit</summary>
+<p>
+
+* [`131a2bd`](https://github.com/siderolabs/go-kubernetes/commit/131a2bd641eb725630ce3c49576a360f69e7ab66) fix: handle cluster-scoped resources with a ns correctly
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/siderolabs/go-kubernetes**  v0.2.37 -> v0.2.38
+
+Previous release can be found at [v1.8.1](https://github.com/siderolabs/omni/releases/tag/v1.8.1)
+
 ## [Omni 1.8.1](https://github.com/siderolabs/omni/releases/tag/v1.8.1) (2026-05-29)
 
 Welcome to the v1.8.1 release of Omni!
