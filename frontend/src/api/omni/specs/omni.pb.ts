@@ -574,6 +574,8 @@ export type TalosVersionSpec = {
   version?: string
   compatible_kubernetes_versions?: string[]
   deprecated?: boolean
+  upgradable_talos_versions?: string[]
+  unsupported?: boolean
 }
 
 export type InstallationMediaSpec = {

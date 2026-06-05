@@ -55,21 +55,41 @@ watchEffect(() => {
 
 const updating = ref(false)
 
+interface VersionGroup {
+  versions: string[]
+  unsupported: boolean
+}
+
+const versionMap = computed(() => new Map(talosVersions.value.map((v) => [v.metadata.id!, v])))
+const currentVersion = computed(() => machine.value?.spec.talos_version?.slice(1))
+
 const upgradeVersions = computed(() => {
-  return talosVersions.value
-    .filter((v) => !v.spec.deprecated)
-    .sort((a, b) => compare(b.metadata.id ?? '', a.metadata.id ?? ''))
-    .reduce<Record<string, string[]>>((result, version) => {
-      const versionId = version.metadata.id
+  if (!currentVersion.value) return []
 
-      if (versionId) {
-        const majorMinor = majorMinorVersion(versionId)
+  const upgradeVersions =
+    versionMap.value.get(currentVersion.value)?.spec.upgradable_talos_versions ?? []
 
-        result[majorMinor] ??= []
-        result[majorMinor].push(versionId)
+  return [currentVersion.value, ...upgradeVersions]
+    .map((v) => versionMap.value.get(v))
+    .filter(
+      (v): v is NonNullable<typeof v> =>
+        !!v && (!v.spec.deprecated || v.spec.version === currentVersion.value),
+    )
+    .sort((a, b) => compare(b.spec.version!, a.spec.version!))
+    .reduce<Record<string, VersionGroup>>((prev, { spec: { unsupported, version } }) => {
+      const majorMinor = majorMinorVersion(version!)
+
+      prev[majorMinor] ||= {
+        versions: [],
+        unsupported: true,
       }
 
-      return result
+      if (!unsupported || version === currentVersion.value) {
+        prev[majorMinor].versions.push(version!)
+        prev[majorMinor].unsupported = false
+      }
+
+      return prev
     }, {})
 })
 
@@ -117,17 +137,22 @@ const upgradeClick = async () => {
     </div>
 
     <template v-if="!talosVersionsLoading && machine">
+      <span v-if="!Object.keys(upgradeVersions).length">No versions found</span>
+
       <RadioGroup
         v-model="selectedVersion"
         class="flex max-h-64 min-h-16 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
       >
-        <template v-for="(versions, group) in upgradeVersions" :key="group">
-          <RadioGroupLabel as="div" class="w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold">
-            {{ group }}
+        <template v-for="(group, label) in upgradeVersions" :key="label">
+          <RadioGroupLabel
+            as="div"
+            class="sticky top-0 w-full bg-naturals-n4 p-1 pl-7 text-sm font-bold"
+          >
+            {{ `${label}${group.unsupported ? ' - Not supported by this Omni release' : ''}` }}
           </RadioGroupLabel>
           <div class="flex flex-col gap-1">
             <RadioGroupOption
-              v-for="version in versions"
+              v-for="version in group.versions"
               :key="version"
               v-slot="{ checked }"
               :value="version"

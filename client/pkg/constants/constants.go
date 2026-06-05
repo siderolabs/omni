@@ -19,6 +19,10 @@ const DefaultTalosVersion = "1.13.3"
 // tsgen:MinTalosVersion
 const MinTalosVersion = "1.9.0"
 
+// LatestSupportedTalosVersion is the highest Talos release Omni officially supports as an upgrade target.
+// tsgen:LatestSupportedTalosVersion
+const LatestSupportedTalosVersion = "1.13"
+
 const (
 	// TalosRegistry is the default Talos repository URL.
 	TalosRegistry = "ghcr.io/siderolabs/installer"

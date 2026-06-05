@@ -276,16 +276,29 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 		return consts.DenylistedTalosVersions.IsAllowed(v)
 	})
 
+	upgradeTargets, err := computeUpgradeTargets(talosVersions)
+	if err != nil {
+		return fmt.Errorf("failed to compute Talos upgrade targets: %w", err)
+	}
+
+	latestSupported, err := semver.ParseTolerant(constants.LatestSupportedTalosVersion)
+	if err != nil {
+		return fmt.Errorf("failed to parse latest supported Talos version %q: %w", constants.LatestSupportedTalosVersion, err)
+	}
+
 	err = forAllCompatibleVersions(talosVersions, k8sVersions, func(talosVer string, compatibleK8sVersions []string) error {
 		talosVersion := omni.NewTalosVersion(talosVer)
 		if writeErr := safe.WriterModify(ctx, r, talosVersion, func(res *omni.TalosVersion) error {
 			res.TypedSpec().Value.Version = talosVer
 			res.TypedSpec().Value.CompatibleKubernetesVersions = compatibleK8sVersions
+			res.TypedSpec().Value.UpgradableTalosVersions = upgradeTargets[talosVer]
 
-			v := semver.MustParse(strings.TrimLeft(talosVer, "v"))
-			v.Pre = nil
+			parsed := semver.MustParse(strings.TrimLeft(talosVer, "v"))
+			res.TypedSpec().Value.Unsupported = !targetAllowed(parsed, latestSupported.Major, latestSupported.Minor, ctrl.enableTalosPreReleaseVersions)
 
-			res.TypedSpec().Value.Deprecated = v.LT(minTalosVersion)
+			stable := parsed
+			stable.Pre = nil
+			res.TypedSpec().Value.Deprecated = stable.LT(minTalosVersion)
 
 			return nil
 		}); writeErr != nil {
@@ -307,6 +320,95 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 	logger.Info("reconciled Talos versions")
 
 	return tracker.cleanup(ctx)
+}
+
+// computeUpgradeTargets builds a map from each source Talos version to the full list of versions a machine running that source can be upgraded to per Talos's compatibility matrix.
+func computeUpgradeTargets(versions []string) (map[string][]string, error) {
+	type candidate struct {
+		talos   *compatibility.TalosVersion
+		version string
+	}
+
+	candidates := make([]candidate, 0, len(versions))
+	semverByVersion := make(map[string]semver.Version, len(versions))
+
+	for _, ver := range versions {
+		parsed, parseErr := semver.ParseTolerant(ver)
+		if parseErr != nil {
+			return nil, fmt.Errorf("failed to parse Talos version %q: %w", ver, parseErr)
+		}
+
+		tv, parseErr := compatibility.ParseTalosVersion(&machine.VersionInfo{Tag: ver})
+		if parseErr != nil {
+			return nil, fmt.Errorf("failed to parse Talos version %q for compatibility check: %w", ver, parseErr)
+		}
+
+		candidates = append(candidates, candidate{
+			version: ver,
+			talos:   tv,
+		})
+		semverByVersion[ver] = parsed
+	}
+
+	result := make(map[string][]string, len(candidates))
+
+	for _, source := range candidates {
+		targets := make([]string, 0, len(candidates))
+
+		for _, target := range candidates {
+			if target.version == source.version {
+				continue
+			}
+
+			if target.talos.UpgradeableFrom(source.talos) != nil {
+				continue
+			}
+
+			targets = append(targets, target.version)
+		}
+
+		slices.SortFunc(targets, func(a, b string) int {
+			va := semverByVersion[a]
+			vb := semverByVersion[b]
+
+			return va.Compare(vb)
+		})
+
+		result[source.version] = targets
+	}
+
+	return result, nil
+}
+
+// targetAllowed decides whether a Talos version may appear in an upgrade-target list given the global cap on supported versions and the pre-release feature flag.
+//
+// Examples (latestSupported = 1.13):
+//
+//	1.12.5              -> allowed (older minor)
+//	1.13.0, 1.13.3      -> allowed (within the supported minor)
+//	1.14.0              -> rejected (beyond cap, stable release)
+//	1.14.0-rc.1         -> allowed only when enablePreReleases is true (next minor, pre-release)
+//	1.15.0-alpha.0      -> rejected (skips a minor beyond the cap)
+//	2.0.0, 2.0.0-rc.1   -> rejected (new major beyond the cap)
+func targetAllowed(target semver.Version, latestSupportedMajor, latestSupportedMinor uint64, enablePreReleases bool) bool {
+	if target.Major < latestSupportedMajor {
+		return true
+	}
+
+	if target.Major == latestSupportedMajor && target.Minor <= latestSupportedMinor {
+		return true
+	}
+
+	// Beyond the cap. Allow next-minor pre-releases only when the pre-release feature is enabled.
+	if !enablePreReleases {
+		return false
+	}
+
+	if target.Major != latestSupportedMajor || target.Minor != latestSupportedMinor+1 {
+		return false
+	}
+
+	return len(target.Pre) > 0
 }
 
 func (ctrl *VersionsController) reconcileKubernetesVersions(ctx context.Context, r controller.Runtime, logger *zap.Logger) ([]string, error) {

@@ -32,6 +32,7 @@ export const authPublicKeyIDQueryParam = "public-key-id";
 export const SecureBoot = "secureboot";
 export const DefaultTalosVersion = "1.13.3";
 export const MinTalosVersion = "1.9.0";
+export const LatestSupportedTalosVersion = "1.13";
 export const PatchWeightInstallDisk = 0;
 export const PatchBaseWeightCluster = 200;
 export const PatchBaseWeightMachineSet = 400;

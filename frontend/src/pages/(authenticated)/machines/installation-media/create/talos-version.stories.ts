@@ -68,9 +68,17 @@ export const Default = {
               40,
             )
             .concat(DefaultTalosVersion)
-            .map((version) => ({
-              spec: { version, deprecated: faker.datatype.boolean() },
-              metadata: { id: version },
+            .map<Resource<TalosVersionSpec>>((version) => ({
+              spec: {
+                version,
+                deprecated: faker.datatype.boolean(),
+                unsupported: faker.datatype.boolean(),
+              },
+              metadata: {
+                id: version,
+                type: TalosVersionType,
+                namespace: DefaultNamespace,
+              },
             })),
         }).handler,
 

@@ -5,19 +5,34 @@
 import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import * as semver from 'semver'
+import { compare, minor } from 'semver'
 
-import type { TalosUpgradeStatusSpec } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, TalosUpgradeStatusType } from '@/api/resources'
+import type { Resource } from '@/api/grpc.ts'
+import type { TalosUpgradeStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import { DefaultNamespace, TalosUpgradeStatusType, TalosVersionType } from '@/api/resources'
 
 import UpdateTalos from './UpdateTalosModal.vue'
 
-const upgrade_versions = faker.helpers
-  .uniqueArray(
-    () => `1.${faker.number.int({ min: 28, max: 32 })}.${faker.number.int({ min: 0, max: 10 })}`,
-    40,
-  )
-  .sort(semver.compare)
+faker.seed(0)
+
+const versions = faker.helpers.uniqueArray(
+  () => `1.${faker.number.int({ min: 28, max: 32 })}.${faker.number.int({ min: 0, max: 10 })}`,
+  40,
+)
+
+const talosVersions = versions.sort(compare).map<Resource<TalosVersionSpec>>((version) => ({
+  spec: {
+    version,
+    deprecated: faker.datatype.boolean(),
+    unsupported: faker.datatype.boolean(),
+    upgradable_talos_versions: versions.filter((v) => minor(v) === minor(version) + 1),
+  },
+  metadata: {
+    id: version,
+    type: TalosVersionType,
+    namespace: DefaultNamespace,
+  },
+}))
 
 const meta: Meta<typeof UpdateTalos> = {
   component: UpdateTalos,
@@ -40,18 +55,30 @@ export const Data: Story = {
             namespace: DefaultNamespace,
           },
           initialResources: () => {
-            const [last_upgrade_version] = upgrade_versions.splice(
-              Math.round(upgrade_versions.length / 2),
-              1,
-            )
+            const [last_upgrade_version] = versions.splice(Math.round(versions.length / 2), 1)
 
             return [
               {
-                spec: { last_upgrade_version, upgrade_versions },
-                metadata: {},
+                spec: {
+                  last_upgrade_version,
+                  upgrade_versions: versions,
+                },
+                metadata: {
+                  id: faker.string.uuid(),
+                  type: TalosUpgradeStatusType,
+                  namespace: DefaultNamespace,
+                },
               },
             ]
           },
+        }).handler,
+
+        createWatchStreamHandler<TalosVersionSpec>({
+          expectedOptions: {
+            type: TalosVersionType,
+            namespace: DefaultNamespace,
+          },
+          initialResources: talosVersions,
         }).handler,
       ],
     },

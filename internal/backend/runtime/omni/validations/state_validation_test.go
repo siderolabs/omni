@@ -84,15 +84,18 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 		version       string
 		compatibleK8s []string
 		deprecated    bool
+		unsupported   bool
 	}{
-		{"1.3.0", []string{"1.26.0", "1.27.1"}, true},
-		{"1.3.4", []string{"1.26.0", "1.27.1"}, true},
-		{"1.4.0", []string{"1.27.0", "1.27.1"}, false},
-		{"1.5.0", []string{"1.28.0", "1.28.1", "1.29.0", "1.30.0", "1.30.1", "1.30.2"}, false},
+		{"1.3.0", []string{"1.26.0", "1.27.1"}, true, false},
+		{"1.3.4", []string{"1.26.0", "1.27.1"}, true, false},
+		{"1.4.0", []string{"1.27.0", "1.27.1"}, false, false},
+		{"1.5.0", []string{"1.28.0", "1.28.1", "1.29.0", "1.30.0", "1.30.1", "1.30.2"}, false, false},
+		{"1.14.0", []string{"1.30.0", "1.30.1", "1.30.2"}, false, true},
 	} {
 		talosVersion := omnires.NewTalosVersion(prep.version)
 		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = prep.compatibleK8s
 		talosVersion.TypedSpec().Value.Deprecated = prep.deprecated
+		talosVersion.TypedSpec().Value.Unsupported = prep.unsupported
 
 		require.NoError(t, st.Create(ctx, talosVersion))
 	}
@@ -122,6 +125,14 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 				shouldFail:    true,
 				errorIs:       validated.IsValidationError,
 				errorContains: "is no longer supported",
+			},
+			{
+				name:              "beyond cap talos version",
+				talosVersion:      "1.14.0",
+				kubernetesVersion: "1.30.0",
+				shouldFail:        true,
+				errorIs:           validated.IsValidationError,
+				errorContains:     "is not supported by this Omni release",
 			},
 			{
 				name:          "unsupported kubernetes version",
@@ -287,6 +298,20 @@ func TestClusterValidation(t *testing.T) { //nolint:gocognit,maintidx
 					talosVersion:      "1.3.4",
 					kubernetesVersion: "1.26.0",
 				},
+			},
+			{
+				name: "supported to beyond cap upgrade",
+				from: clusterVersions{
+					talosVersion:      "1.5.0",
+					kubernetesVersion: "1.30.0",
+				},
+				to: clusterVersions{
+					talosVersion:      "1.14.0",
+					kubernetesVersion: "1.30.0",
+				},
+				shouldFail:    true,
+				errorIs:       validated.IsValidationError,
+				errorContains: "is not supported by this Omni release",
 			},
 			{
 				name: "over 1 minor jump upgrade",

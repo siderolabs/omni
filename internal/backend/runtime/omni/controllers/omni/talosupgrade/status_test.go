@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -230,13 +231,22 @@ func TestStatusController(t *testing.T) {
 					anotherTalosVersion: {"1.32.0", "1.33.0", "1.34.2"},
 				}
 
+				talosVersionIDs := xmaps.Keys(talosVersions)
+				slices.SortFunc(talosVersionIDs, func(v1 string, v2 string) int {
+					sv1 := semver.MustParse(v1)
+					sv2 := semver.MustParse(v2)
+
+					return sv1.Compare(sv2)
+				})
+
 				rmock.MockList[*omni.TalosVersion](
 					ctx, t, st,
-					testoptions.IDs(xmaps.Keys(talosVersions)),
+					testoptions.IDs(talosVersionIDs),
 					testoptions.ItemOptions(
 						testoptions.Modify(func(res *omni.TalosVersion) error {
 							res.TypedSpec().Value.Version = res.Metadata().ID()
 							res.TypedSpec().Value.CompatibleKubernetesVersions = talosVersions[res.Metadata().ID()]
+							res.TypedSpec().Value.UpgradableTalosVersions = talosVersionIDs
 
 							return nil
 						}),
@@ -383,6 +393,8 @@ func TestStatusController(t *testing.T) {
 				clusterName := "talos-upgrade-locked"
 				talosVersion := constants.DefaultTalosVersion
 				anotherTalosVersion := constants.AnotherTalosVersion
+
+				rmock.Mock[*omni.TalosVersion](ctx, t, st, testoptions.WithID(talosVersion))
 
 				cluster, machines := createCluster(ctx, t, st, clusterName, 1, 3,
 					testoptions.WithTalosVersion(talosVersion))
@@ -537,6 +549,8 @@ func TestStatusController(t *testing.T) {
 				clusterName := "talos-upgrade-rollout-cp-first"
 				talosVersion := constants.DefaultTalosVersion
 				anotherTalosVersion := constants.AnotherTalosVersion
+
+				rmock.Mock[*omni.TalosVersion](ctx, t, st, testoptions.WithID(talosVersion))
 
 				cluster, machines := createCluster(ctx, t, st, clusterName, 1, 2,
 					testoptions.WithTalosVersion(talosVersion))
@@ -749,6 +763,8 @@ func TestStatusController(t *testing.T) {
 				clusterName := "talos-upgrade-schematic"
 				talosVersion := constants.DefaultTalosVersion
 				altSchematic := "c6ee5f479027e5ca84e5518c3a56d62e2283b6d30a5846e6295aa7113735df40"
+
+				rmock.Mock[*omni.TalosVersion](ctx, t, st, testoptions.WithID(talosVersion))
 
 				_, machines := createCluster(ctx, t, st, clusterName, 1, 1,
 					testoptions.WithTalosVersion(talosVersion))

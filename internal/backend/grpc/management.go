@@ -593,12 +593,29 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 		return nil, status.Error(codes.InvalidArgument, "machine id is required")
 	}
 
+	if req.Version == "" {
+		return nil, status.Error(codes.InvalidArgument, "talos version is required")
+	}
+
 	authCtx, clusterName, err := s.checkAuthorization(ctx, req.MachineId, role.Operator)
 	if err != nil {
 		return nil, err
 	}
 
 	ctx = actor.MarkContextAsInternalActor(authCtx)
+
+	targetTalosVersion, err := safe.StateGetByID[*omnires.TalosVersion](ctx, s.omniState, strings.TrimPrefix(req.Version, "v"))
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Errorf(codes.FailedPrecondition, "talos version %q is not tracked by this Omni release", req.Version)
+		}
+
+		return nil, fmt.Errorf("failed to look up Talos version: %w", err)
+	}
+
+	if targetTalosVersion.TypedSpec().Value.Unsupported {
+		return nil, status.Errorf(codes.FailedPrecondition, "talos version %q is not supported by this Omni release", req.Version)
+	}
 
 	machineStatus, err := safe.StateGetByID[*omnires.MachineStatus](ctx, s.omniState, req.MachineId)
 	if err != nil {

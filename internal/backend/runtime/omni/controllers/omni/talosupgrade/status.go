@@ -82,7 +82,7 @@ func NewStatusController() *TalosUpgradeStatusController {
 					return err
 				}
 
-				return ctrl.reconcileUpgradeVersions(ctx, r, cluster, upgradeStatus)
+				return ctrl.reconcileUpgradeVersions(ctx, r, logger, cluster, upgradeStatus)
 			},
 			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, cluster *omni.Cluster) error {
 				clusterMachineTalosVersions, err := safe.ReaderListAll[*omni.ClusterMachineTalosVersion](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())))
@@ -412,7 +412,13 @@ func (ctrl *TalosUpgradeStatusController) reconcileTalosVersions(ctx context.Con
 	return nil
 }
 
-func (ctrl *TalosUpgradeStatusController) reconcileUpgradeVersions(ctx context.Context, r controller.ReaderWriter, cluster *omni.Cluster, upgradeStatus *omni.TalosUpgradeStatus) error {
+func (ctrl *TalosUpgradeStatusController) reconcileUpgradeVersions(
+	ctx context.Context,
+	r controller.ReaderWriter,
+	logger *zap.Logger,
+	cluster *omni.Cluster,
+	upgradeStatus *omni.TalosUpgradeStatus,
+) error {
 	if upgradeStatus.TypedSpec().Value.Phase != specs.TalosUpgradeStatusSpec_Done {
 		// upgrade is going, or failed, so clear the upgrade versions
 		upgradeStatus.TypedSpec().Value.UpgradeVersions = nil
@@ -431,7 +437,7 @@ func (ctrl *TalosUpgradeStatusController) reconcileUpgradeVersions(ctx context.C
 
 	// upgrade is done, so calculate the upgrade versions
 	upgradeStatus.TypedSpec().Value.UpgradeVersions, err = talos.CalculateUpgradeVersions(
-		ctx, r, clusterConfigVersion.TypedSpec().Value.Version, upgradeStatus.TypedSpec().Value.LastUpgradeVersion, cluster.TypedSpec().Value.KubernetesVersion,
+		ctx, r, logger, clusterConfigVersion.TypedSpec().Value.Version, upgradeStatus.TypedSpec().Value.LastUpgradeVersion, cluster.TypedSpec().Value.KubernetesVersion,
 	)
 
 	return err

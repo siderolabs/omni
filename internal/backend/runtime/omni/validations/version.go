@@ -47,6 +47,11 @@ func validateTalosVersion(ctx context.Context, st state.State, current, newVersi
 		return fmt.Errorf("talos version %q is no longer supported", newVersion)
 	}
 
+	// reject the target whenever it's beyond the LatestSupportedTalosVersion cap.
+	if talosVersion.TypedSpec().Value.Unsupported {
+		return fmt.Errorf("talos version %q is not supported by this Omni release", newVersion)
+	}
+
 	return nil
 }
 

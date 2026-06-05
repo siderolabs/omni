@@ -56,7 +56,12 @@ const talosVersions = computed(() => [
   { label: 'Automatic', value: AUTOMATIC_VERSION },
   ...talosVersionList.value
     .filter((v) => !v.spec.deprecated)
-    .map((v) => ({ label: v.spec.version!, value: v.spec.version! }))
+    .map(({ spec: { version, unsupported = false } }) => ({
+      label: version!,
+      value: version!,
+      disabled: unsupported,
+      tooltip: unsupported ? `This Omni release does not support Talos ${version}.` : undefined,
+    }))
     .sort((a, b) => compare(a.value, b.value)),
 ])
 

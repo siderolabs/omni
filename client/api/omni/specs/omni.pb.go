@@ -3992,8 +3992,12 @@ type TalosVersionSpec struct {
 	Version                      string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
 	CompatibleKubernetesVersions []string               `protobuf:"bytes,2,rep,name=compatible_kubernetes_versions,json=compatibleKubernetesVersions,proto3" json:"compatible_kubernetes_versions,omitempty"`
 	Deprecated                   bool                   `protobuf:"varint,3,opt,name=deprecated,proto3" json:"deprecated,omitempty"`
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+	// UpgradableTalosVersions is the pre-computed list of Talos versions a machine running this version can be upgraded to.
+	UpgradableTalosVersions []string `protobuf:"bytes,4,rep,name=upgradable_talos_versions,json=upgradableTalosVersions,proto3" json:"upgradable_talos_versions,omitempty"`
+	// Unsupported is true when this Talos version is not confirmed to be working with Omni.
+	Unsupported   bool `protobuf:"varint,5,opt,name=unsupported,proto3" json:"unsupported,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TalosVersionSpec) Reset() {
@@ -4043,6 +4047,20 @@ func (x *TalosVersionSpec) GetCompatibleKubernetesVersions() []string {
 func (x *TalosVersionSpec) GetDeprecated() bool {
 	if x != nil {
 		return x.Deprecated
+	}
+	return false
+}
+
+func (x *TalosVersionSpec) GetUpgradableTalosVersions() []string {
+	if x != nil {
+		return x.UpgradableTalosVersions
+	}
+	return nil
+}
+
+func (x *TalosVersionSpec) GetUnsupported() bool {
+	if x != nil {
+		return x.Unsupported
 	}
 	return false
 }
@@ -11474,13 +11492,15 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\ahealthy\x18\x03 \x01(\bR\ahealthy\x12\x18\n" +
 	"\astopped\x18\x04 \x01(\bR\astoppedJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03\"1\n" +
 	"\x15KubernetesVersionSpec\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\"\x92\x01\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\"\xf0\x01\n" +
 	"\x10TalosVersionSpec\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12D\n" +
 	"\x1ecompatible_kubernetes_versions\x18\x02 \x03(\tR\x1ccompatibleKubernetesVersions\x12\x1e\n" +
 	"\n" +
 	"deprecated\x18\x03 \x01(\bR\n" +
-	"deprecated\"\xe7\x02\n" +
+	"deprecated\x12:\n" +
+	"\x19upgradable_talos_versions\x18\x04 \x03(\tR\x17upgradableTalosVersions\x12 \n" +
+	"\vunsupported\x18\x05 \x01(\bR\vunsupported\"\xe7\x02\n" +
 	"\x15InstallationMediaSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\"\n" +
 	"\farchitecture\x18\x02 \x01(\tR\farchitecture\x12\x18\n" +

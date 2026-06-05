@@ -26,6 +26,7 @@ import WordHighligher from 'vue-word-highlighter'
 
 import TIcon from '@/components/Icon/TIcon.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 
 const {
   variant = 'default',
@@ -37,7 +38,7 @@ const {
   variant?: 'default' | 'breadcrumb'
   title?: string
   defaultValue?: T
-  values: T[] | { label: string; value: T }[]
+  values: T[] | { label: string; value: T; disabled?: boolean; tooltip?: string }[]
   disabled?: boolean
   searcheable?: boolean
   hideSelectedSmallScreens?: boolean
@@ -113,6 +114,14 @@ function itemValue(item: T | { value: T }) {
     default:
       return item.value
   }
+}
+
+function itemDisabled(item: T | { disabled?: boolean }): boolean {
+  return typeof item === 'object' && !!item.disabled
+}
+
+function itemTooltip(item: T | { tooltip?: string }): string | undefined {
+  return typeof item === 'object' ? item.tooltip : undefined
 }
 
 function labelFromValue(value?: T) {
@@ -193,26 +202,33 @@ function labelFromValue(value?: T) {
           </SelectScrollUpButton>
 
           <SelectViewport>
-            <SelectItem
+            <Tooltip
               v-for="item in filteredValues"
               :key="itemValue(item)"
-              class="flex cursor-pointer items-center gap-2 p-1.5 font-medium text-naturals-n9 outline-none hover:text-naturals-n13 focus:text-naturals-n13 data-[state=checked]:text-primary-p3"
-              :value="itemValue(item)"
+              :description="itemTooltip(item)"
+              :disabled="!itemTooltip(item)"
+              placement="right"
             >
-              <span class="size-3">
-                <SelectItemIndicator as-child>
-                  <TIcon icon="check" class="size-full" />
-                </SelectItemIndicator>
-              </span>
+              <SelectItem
+                class="flex cursor-pointer items-center gap-1 p-1.5 font-medium text-naturals-n9 outline-none not-data-disabled:hover:text-naturals-n13 focus:text-naturals-n13 data-disabled:cursor-not-allowed data-disabled:text-naturals-n7 data-disabled:italic data-[state=checked]:text-primary-p3"
+                :value="itemValue(item)"
+                :disabled="itemDisabled(item)"
+              >
+                <span class="size-3">
+                  <SelectItemIndicator as-child>
+                    <TIcon icon="check" class="size-full" />
+                  </SelectItemIndicator>
+                </span>
 
-              <SelectItemText class="truncate transition-all">
-                <WordHighligher
-                  :query="searchTerm"
-                  :text-to-highlight="itemLabel(item)"
-                  highlight-class="truncate bg-transparent font-medium text-naturals-n14"
-                />
-              </SelectItemText>
-            </SelectItem>
+                <SelectItemText class="truncate px-1 transition-all">
+                  <WordHighligher
+                    :query="searchTerm"
+                    :text-to-highlight="itemLabel(item)"
+                    highlight-class="truncate bg-transparent font-medium text-naturals-n14"
+                  />
+                </SelectItemText>
+              </SelectItem>
+            </Tooltip>
           </SelectViewport>
 
           <SelectScrollDownButton>

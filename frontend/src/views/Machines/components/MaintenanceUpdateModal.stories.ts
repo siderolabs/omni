@@ -5,7 +5,7 @@
 import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import * as semver from 'semver'
+import { compare, minor } from 'semver'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
@@ -13,16 +13,26 @@ import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/res
 
 import MaintenanceUpdate from './MaintenanceUpdateModal.vue'
 
-const talosVersions = faker.helpers
-  .uniqueArray(
-    () => `1.${faker.number.int({ min: 28, max: 32 })}.${faker.number.int({ min: 0, max: 10 })}`,
-    40,
-  )
-  .sort(semver.compare)
-  .map<Resource<TalosVersionSpec>>((version) => ({
-    spec: { version, deprecated: faker.datatype.boolean() },
-    metadata: { id: version },
-  }))
+faker.seed(0)
+
+const versions = faker.helpers.uniqueArray(
+  () => `1.${faker.number.int({ min: 28, max: 32 })}.${faker.number.int({ min: 0, max: 10 })}`,
+  40,
+)
+
+const talosVersions = versions.sort(compare).map<Resource<TalosVersionSpec>>((version) => ({
+  spec: {
+    version,
+    deprecated: faker.datatype.boolean(),
+    unsupported: faker.datatype.boolean(),
+    upgradable_talos_versions: versions.filter((v) => minor(v) === minor(version) + 1),
+  },
+  metadata: {
+    id: version,
+    type: TalosVersionType,
+    namespace: DefaultNamespace,
+  },
+}))
 
 const meta: Meta<typeof MaintenanceUpdate> = {
   component: MaintenanceUpdate,
@@ -40,18 +50,27 @@ export const Data: Story = {
     msw: {
       handlers: [
         createWatchStreamHandler<TalosVersionSpec>({
-          expectedOptions: { type: TalosVersionType, namespace: DefaultNamespace },
+          expectedOptions: {
+            type: TalosVersionType,
+            namespace: DefaultNamespace,
+          },
           initialResources: talosVersions,
         }).handler,
 
         createWatchStreamHandler<MachineStatusSpec>({
-          expectedOptions: { type: MachineStatusType, namespace: DefaultNamespace },
+          expectedOptions: {
+            type: MachineStatusType,
+            namespace: DefaultNamespace,
+          },
           initialResources: [
             {
               spec: {
                 talos_version: `v${talosVersions.filter((s) => !s.spec.deprecated).at(-(talosVersions.length / 4))?.spec.version}`,
               },
-              metadata: {},
+              metadata: {
+                type: MachineStatusType,
+                namespace: DefaultNamespace,
+              },
             },
           ],
         }).handler,

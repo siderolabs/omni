@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { dump } from 'js-yaml'
-import * as semver from 'semver'
+import { compare, parse } from 'semver'
 import type { Ref } from 'vue'
 import { computed, onMounted, ref, useTemplateRef, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
@@ -87,9 +87,9 @@ const removeLabels = (_: string, ...keys: string[]) => {
   state.value.removeClusterLabels(keys)
 }
 
-const supportsEncryption = computed(() => {
-  return semver.compare(state.value.cluster.talosVersion ?? '', 'v1.5.0') >= 0
-})
+const supportsEncryption = computed(
+  () => compare(state.value.cluster.talosVersion ?? '', 'v1.5.0') >= 0,
+)
 
 const router = useRouter()
 
@@ -169,8 +169,8 @@ const createCluster = async () => {
 }
 
 const detectVersionMismatch = (machine: Resource<MachineStatusSpec>) => {
-  const clusterVersion = semver.parse(state.value.cluster.talosVersion)
-  const machineVersion = semver.parse(machine.spec.talos_version)
+  const clusterVersion = parse(state.value.cluster.talosVersion)
+  const machineVersion = parse(machine.spec.talos_version)
 
   const installed = machine.metadata.labels?.[MachineStatusLabelInstalled] !== undefined
   const inAgentMode = !!machine.spec.schematic?.in_agent_mode
@@ -270,21 +270,17 @@ const machineConfigGenOptionsMap = computed(() =>
   Object.fromEntries(machineConfigGenOptions.value.map((c) => [c.metadata.id!, c])),
 )
 
-const talosVersions = computed(() => {
-  const res: string[] = []
-
-  for (const version of talosVersionsList.value) {
-    if (version.spec.deprecated) {
-      continue
-    }
-
-    res.push(version.spec.version!)
-  }
-
-  res.sort(semver.compare)
-
-  return res
-})
+const talosVersions = computed(() =>
+  talosVersionsList.value
+    .filter((v) => !v.spec.deprecated)
+    .map(({ spec: { version, unsupported = false } }) => ({
+      label: version!,
+      value: version!,
+      disabled: unsupported,
+      tooltip: unsupported ? `This Omni release does not support Talos ${version}.` : undefined,
+    }))
+    .sort((a, b) => compare(a.value, b.value)),
+)
 
 const hasConfigs = computed(() => {
   return Object.keys(state.value.cluster.patches).length > 0
