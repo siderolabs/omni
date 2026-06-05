@@ -449,6 +449,7 @@ export type ClusterMachineConfigSpec = {
   compressed_data?: Uint8Array
   without_comments?: boolean
   grub_use_uki_cmdline?: boolean
+  discovery_service_endpoint?: string
 }
 
 export type RedactedClusterMachineConfigSpec = {
@@ -461,6 +462,10 @@ export type ClusterMachineIdentitySpec = {
   etcd_member_id?: string
   nodename?: string
   node_ips?: string[]
+  discovery_service_endpoint?: string
+}
+
+export type MachineDiscoveryServiceConfigSpec = {
   discovery_service_endpoint?: string
 }
 

@@ -158,6 +158,9 @@ func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry str
 		}, controller.Output{
 			Type: omni.MachinePendingUpdatesType,
 			Kind: controller.OutputExclusive,
+		}, controller.Output{
+			Type: omni.MachineDiscoveryServiceConfigType,
+			Kind: controller.OutputExclusive,
 		}),
 	)
 
@@ -263,6 +266,13 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 
 	machineConfigStatus.TypedSpec().Value.LastConfigError = ""
 
+	// The config is applied now, so publish the discovery service endpoint that was resolved from
+	// the config Omni generated. This lets the rest of Omni use that endpoint instead of reading it
+	// back from the node.
+	if err = ctrl.reconcileDiscoveryServiceConfig(ctx, r, machineConfig); err != nil {
+		return err
+	}
+
 	if _, err = helpers.TeardownAndDestroy(ctx, r, omni.NewMachinePendingUpdates(machineConfig.Metadata().ID()).Metadata()); err != nil {
 		return err
 	}
@@ -291,6 +301,10 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileTearingDown(ctx conte
 		return nil
 	}
 
+	if _, err = helpers.TeardownAndDestroy(ctx, r, omni.NewMachineDiscoveryServiceConfig(machineConfig.Metadata().ID()).Metadata()); err != nil {
+		return err
+	}
+
 	if err = ctrl.releaseConfigUpdateLock(ctx, r, clusterMachine); err != nil {
 		return err
 	}
@@ -316,6 +330,24 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileTearingDown(ctx conte
 	ctrl.ongoingResets.deleteStatus(machineConfig.Metadata().ID())
 
 	return nil
+}
+
+// reconcileDiscoveryServiceConfig publishes the discovery service endpoint that Omni resolved from
+// the machine config it generated. It runs only after a successful apply, so the published value
+// reflects what Omni pushed to the machine. Downstream teardown logic uses this endpoint instead of
+// reading it back from the node.
+func (ctrl *ClusterMachineConfigStatusController) reconcileDiscoveryServiceConfig(
+	ctx context.Context,
+	r controller.ReaderWriter,
+	machineConfig *omni.ClusterMachineConfig,
+) error {
+	return safe.WriterModify(ctx, r, omni.NewMachineDiscoveryServiceConfig(machineConfig.Metadata().ID()), func(res *omni.MachineDiscoveryServiceConfig) error {
+		helpers.CopyLabels(machineConfig, res, omni.LabelMachineSet, omni.LabelCluster, omni.LabelControlPlaneRole, omni.LabelWorkerRole)
+
+		res.TypedSpec().Value.DiscoveryServiceEndpoint = machineConfig.TypedSpec().Value.DiscoveryServiceEndpoint
+
+		return nil
+	})
 }
 
 // reconcileUpgrade brings the machine to its desired Talos version before its config is

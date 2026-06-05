@@ -289,7 +289,32 @@ func reconcileClusterMachineConfig(
 	machineConfig.TypedSpec().Value.GenerationError = ""
 	machineConfig.TypedSpec().Value.GrubUseUkiCmdline = conf.Machine().Install().GrubUseUKICmdline()
 
+	// Record the discovery service endpoint resolved from the config we generated, so the rest of
+	// Omni can use it instead of reading it back from the node.
+	machineConfig.TypedSpec().Value.DiscoveryServiceEndpoint = discoveryServiceEndpoint(conf)
+
 	return nil
+}
+
+// discoveryServiceEndpoint returns the discovery service endpoint the given config resolves to,
+// applying Talos defaults. It returns an empty string when discovery or the service registry is
+// disabled, mirroring the enablement decision Talos itself makes from the same config.
+//
+// The navigation is nil-safe here: this config is generated for a machine being added to a cluster,
+// so it always carries a v1alpha1 document, and the discovery chain below returns empty configs and
+// value types rather than nil.
+func discoveryServiceEndpoint(cfg config.Provider) string {
+	discovery := cfg.Cluster().Discovery()
+	if !discovery.Enabled() {
+		return ""
+	}
+
+	service := discovery.Registries().Service()
+	if !service.Enabled() {
+		return ""
+	}
+
+	return service.Endpoint()
 }
 
 type clusterMachineConfigControllerHelper struct {

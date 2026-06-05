@@ -461,6 +461,10 @@ message ClusterMachineConfigSpec {
 
   // GrubUseUkiCmdline indicates the .machine.install.grubUseUKICmdline status.
   bool grub_use_uki_cmdline = 6;
+
+  // DiscoveryServiceEndpoint is the discovery service endpoint resolved from this generated config.
+  // It contains the protocol prefix (http://|https://) and is empty if discovery is disabled.
+  string discovery_service_endpoint = 7;
 }
 
 // ClusterMachineConfigSpec stores generated Talos node machine config.
@@ -492,6 +496,18 @@ message ClusterMachineIdentitySpec {
   //
   // It is empty if discovery service is not enabled.
   string discovery_service_endpoint = 9;
+}
+
+// MachineDiscoveryServiceConfigSpec keeps the discovery service endpoint that Omni resolved
+// from the machine configuration it generated and applied.
+//
+// It is produced by the config status controller only after the config has been applied, so it
+// reflects what Omni pushed to the machine. This lets the rest of Omni use the endpoint from the
+// config it generated instead of reading it back from the node.
+message MachineDiscoveryServiceConfigSpec {
+  // DiscoveryServiceEndpoint is the discovery service endpoint resolved from the applied config.
+  // It contains the protocol prefix (http://|https://) and is empty if discovery is disabled.
+  string discovery_service_endpoint = 1;
 }
 
 enum ConfigApplyStatus {

@@ -1039,6 +1039,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
+				resource:       omni.NewMachineDiscoveryServiceConfig(uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
 				resource:       omni.NewClusterMachineStatus(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},

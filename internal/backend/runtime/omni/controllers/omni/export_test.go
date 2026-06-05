@@ -29,3 +29,7 @@ func GetMachineSetNodeSortFunction(machineStatuses map[resource.ID]*system.Resou
 func StripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error) {
 	return stripTalosAPIAccessOSAdminRole(cfg)
 }
+
+func DiscoveryServiceEndpoint(cfg config.Provider) string {
+	return discoveryServiceEndpoint(cfg)
+}

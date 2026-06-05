@@ -50,6 +50,11 @@ func (ctrl *ClusterMachineIdentityController) Inputs() []controller.Input {
 			Type:      omni.TalosConfigType,
 			Kind:      controller.InputWeak,
 		},
+		{
+			Namespace: resources.DefaultNamespace,
+			Type:      omni.MachineDiscoveryServiceConfigType,
+			Kind:      controller.InputWeak,
+		},
 	}
 }
 
@@ -77,7 +82,14 @@ func (ctrl *ClusterMachineIdentityController) Run(ctx context.Context, r control
 		case <-ctx.Done():
 			return nil
 		case clusterMachineIdentity := <-notifyCh:
-			err := safe.WriterModify(ctx, r, clusterMachineIdentity, func(res *omni.ClusterMachineIdentity) error {
+			// The discovery service endpoint is sourced from MachineDiscoveryServiceConfig, which Omni
+			// derives from the config it generated and applied, instead of reading it back from the node.
+			discoveryServiceEndpoint, discoveryEndpointKnown, err := ctrl.discoveryServiceEndpoint(ctx, r, clusterMachineIdentity.Metadata().ID())
+			if err != nil {
+				return err
+			}
+
+			err = safe.WriterModify(ctx, r, clusterMachineIdentity, func(res *omni.ClusterMachineIdentity) error {
 				// we should replace the labels
 				res.Metadata().Labels().Do(func(temp kvutils.TempKV) {
 					for _, key := range res.Metadata().Labels().Keys() {
@@ -91,7 +103,11 @@ func (ctrl *ClusterMachineIdentityController) Run(ctx context.Context, r control
 
 				_, isCp := clusterMachineIdentity.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 				spec := clusterMachineIdentity.TypedSpec().Value
-				res.TypedSpec().Value.DiscoveryServiceEndpoint = spec.DiscoveryServiceEndpoint
+
+				// Keep any previously known endpoint if Omni has not resolved one yet.
+				if discoveryEndpointKnown {
+					res.TypedSpec().Value.DiscoveryServiceEndpoint = discoveryServiceEndpoint
+				}
 
 				switch {
 				case !isCp:
@@ -146,6 +162,12 @@ func (ctrl *ClusterMachineIdentityController) reconcileCollectors(ctx context.Co
 		}
 
 		id := clusterMachine.Metadata().ID()
+
+		// keep the identity's discovery service endpoint in sync with the value Omni resolved from
+		// the applied config, which can change independently of the identity collector task.
+		if err = ctrl.syncDiscoveryServiceEndpoint(ctx, r, id); err != nil {
+			return err
+		}
 
 		clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
 		if !ok {
@@ -202,4 +224,57 @@ func (ctrl *ClusterMachineIdentityController) reconcileCollectors(ctx context.Co
 	ctrl.runner.Reconcile(ctx, logger, expectedCollectors, notifyCh)
 
 	return tracker.cleanup(ctx)
+}
+
+// discoveryServiceEndpoint returns the discovery service endpoint Omni resolved from the applied
+// machine config. The second return value is false when Omni has not resolved one yet (the config
+// has not been applied), which the callers treat as "leave the existing endpoint untouched" rather
+// than clearing it. An empty endpoint with a true flag means discovery is disabled.
+func (ctrl *ClusterMachineIdentityController) discoveryServiceEndpoint(ctx context.Context, r controller.Reader, id resource.ID) (string, bool, error) {
+	cfg, err := safe.ReaderGetByID[*omni.MachineDiscoveryServiceConfig](ctx, r, id)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return "", false, nil
+		}
+
+		return "", false, err
+	}
+
+	return cfg.TypedSpec().Value.DiscoveryServiceEndpoint, true, nil
+}
+
+// syncDiscoveryServiceEndpoint keeps an existing ClusterMachineIdentity's discovery service endpoint
+// in sync with MachineDiscoveryServiceConfig, which can change independently of the identity collector
+// task (for example, right after a config is applied). It never creates the identity, and is only
+// called for machines that are not being torn down, so it cannot clear the endpoint while teardown
+// still needs it.
+func (ctrl *ClusterMachineIdentityController) syncDiscoveryServiceEndpoint(ctx context.Context, r controller.Runtime, id resource.ID) error {
+	endpoint, known, err := ctrl.discoveryServiceEndpoint(ctx, r, id)
+	if err != nil {
+		return err
+	}
+
+	// Omni has not resolved an endpoint yet, so keep any previously known value on the identity.
+	if !known {
+		return nil
+	}
+
+	identity, err := safe.ReaderGetByID[*omni.ClusterMachineIdentity](ctx, r, id)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	if identity.TypedSpec().Value.DiscoveryServiceEndpoint == endpoint {
+		return nil
+	}
+
+	return safe.WriterModify(ctx, r, omni.NewClusterMachineIdentity(id), func(res *omni.ClusterMachineIdentity) error {
+		res.TypedSpec().Value.DiscoveryServiceEndpoint = endpoint
+
+		return nil
+	})
 }
