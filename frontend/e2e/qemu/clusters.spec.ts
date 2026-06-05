@@ -412,6 +412,61 @@ test('exposed services', async ({ page, omnictl }, testInfo) => {
   })
 })
 
+test('kubespan', async ({ page }, testInfo) => {
+  await test.step('Visit create cluster patch page', async () => {
+    await page.goto('/')
+    await page.getByRole('link', { name: 'Clusters' }).click()
+
+    await expect(page).toHaveURL('/clusters')
+    await expect(page.getByRole('heading', { name: 'Clusters', exact: true })).toBeVisible()
+
+    await page.getByRole('link', { name: clusterName, exact: true }).click()
+    await expect(page.getByRole('heading', { name: clusterName, exact: true })).toBeVisible()
+
+    await page.getByRole('main').getByRole('link', { name: 'Config Patches' }).click()
+    await page.getByRole('link', { name: 'Create Patch' }).click()
+    await expect(page.getByRole('heading', { name: 'Create Patch', exact: true })).toBeVisible()
+  })
+
+  await test.step('Add kubespan patch', async () => {
+    const kubespanPatch = await fs.readFile(
+      new URL('./kubespan_patch.yaml', import.meta.url),
+      'utf8',
+    )
+    await testInfo.attach('kubespan_patch.yaml', {
+      body: kubespanPatch,
+      contentType: 'application/yaml',
+    })
+
+    await page.evaluate((text) => navigator.clipboard.writeText(text), kubespanPatch)
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(kubespanPatch)
+
+    await page
+      .getByRole('textbox', { name: 'Editor content' })
+      .press(`${os.platform() === 'darwin' ? 'Meta' : 'Control'}+v`)
+    await expect(page.getByText('kind: KubeSpanConfig')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Save' }).click()
+  })
+
+  await test.step('Visit kubespan page', async () => {
+    await page.goto('/')
+    await page.getByRole('link', { name: 'Clusters' }).click()
+
+    const servicesList = page.getByRole('region', { name: 'Services' })
+
+    await page.getByRole('region', { name: 'Control Planes' }).getByRole('link').last().click()
+    await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeVisible()
+    await page.getByRole('tab', { name: 'KubeSpan', exact: true }).click()
+  })
+
+  await expect
+    .soft(page.getByRole('heading', { name: 'KubeSpan status', exact: true }))
+    .toBeVisible()
+  await expect.soft(page.getByText('Total Nodes: 2')).toBeVisible()
+  await expect.soft(page.getByText('Incoming / Outgoing traffic')).toBeVisible()
+})
+
 test('node overview tabs', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('link', { name: 'Clusters' }).click()
@@ -456,7 +511,7 @@ test('node overview tabs', async ({ page }) => {
 
   await test.step('Validate config history tab', async () => {
     await page.getByRole('tab', { name: 'Config History', exact: true }).click()
-    await expect(page.getByText('variables:')).toBeVisible()
+    await expect(page.getByText('+variables:')).toBeVisible()
 
     // This asserts that the virtualisation is working
     await expect(page.getByText('WORKER_THREAD_COUNT')).toBeHidden()
@@ -469,7 +524,11 @@ test('node overview tabs', async ({ page }) => {
     await expect(page.getByText('This cluster is managed using cluster templates.')).toBeVisible()
     await expect(page.getByText(`Cluster Machine: ${cpMachineName}`)).toBeVisible()
     await expect(page.getByText(/400-cm-\w+/).first()).toBeVisible()
-    await expect(page.getByText('User defined patch')).toBeVisible()
+    await expect(page.getByText('User defined patch').first()).toBeVisible()
+  })
+
+  await test.step('Validate kubespan tab', async () => {
+    await page.getByRole('tab', { name: 'KubeSpan', exact: true }).click()
   })
 
   await test.step('Validate disks tab', async () => {
@@ -566,7 +625,7 @@ test('cluster sidebar pages', async ({ page }) => {
     await expect(page.getByText('This cluster is managed using cluster templates.')).toBeVisible()
     await expect(page.getByText(`Cluster Machine: ${cpMachineName}`)).toBeVisible()
     await expect(page.getByText(/400-cm-\w+/).first()).toBeVisible()
-    await expect(page.getByText('User defined patch')).toBeVisible()
+    await expect(page.getByText('User defined patch').first()).toBeVisible()
   })
 
   await test.step('Validate cluster bootstrap manifests', async () => {

@@ -119,7 +119,7 @@ onMounted(() => focus && inputRef.value?.focus())
 
       <TIcon
         v-if="icon"
-        class="order-first size-4 fill-current text-naturals-n8 transition-colors peer-focus:text-naturals-n14"
+        class="order-first size-4 text-naturals-n8 transition-colors peer-focus:text-naturals-n14"
         :icon="icon"
       />
 

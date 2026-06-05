@@ -81,6 +81,7 @@ export const icons = {
   'fail-auth': defineAsyncComponent(() => import('../icons/IconFailAuth.vue')),
   folder: defineAsyncComponent(() => import('../icons/IconFolder.vue')),
   'folder-open': defineAsyncComponent(() => import('../icons/IconFolderOpen.vue')),
+  fullscreen: defineAsyncComponent(() => import('../icons/IconFullscreen.vue')),
   gcp: defineAsyncComponent(() => import('../icons/IconGCP.vue')),
   hamburger: defineAsyncComponent(() => import('../icons/IconHamburger.vue')),
   'header-logo': defineAsyncComponent(() => import('../icons/IconHeaderLogo.vue')),

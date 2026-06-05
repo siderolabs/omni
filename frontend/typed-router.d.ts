@@ -86,6 +86,7 @@ declare module 'vue-router/auto-routes' {
       | 'NodeDisks'
       | 'NodeExtensions'
       | 'NodeKernelArgs'
+      | 'NodeKubeSpanStatus'
       | 'NodeLogs'
       | 'NodeMonitor'
       | 'NodeOverview'
@@ -131,6 +132,7 @@ declare module 'vue-router/auto-routes' {
       | 'NodeDisks'
       | 'NodeExtensions'
       | 'NodeKernelArgs'
+      | 'NodeKubeSpanStatus'
       | 'NodeLogs'
       | 'NodeMonitor'
       | 'NodeOverview'
@@ -164,6 +166,7 @@ declare module 'vue-router/auto-routes' {
       | 'NodeDisks'
       | 'NodeExtensions'
       | 'NodeKernelArgs'
+      | 'NodeKubeSpanStatus'
       | 'NodeLogs'
       | 'NodeMonitor'
       | 'NodeOverview'
@@ -215,6 +218,13 @@ declare module 'vue-router/auto-routes' {
     'NodeKernelArgs': RouteRecordInfo<
       'NodeKernelArgs',
       '/clusters/:cluster/machine/:machine/kernel-args',
+      { cluster: ParamValue<true>, machine: ParamValue<true> },
+      { cluster: ParamValue<false>, machine: ParamValue<false> },
+      | never
+    >,
+    'NodeKubeSpanStatus': RouteRecordInfo<
+      'NodeKubeSpanStatus',
+      '/clusters/:cluster/machine/:machine/kubespan-status',
       { cluster: ParamValue<true>, machine: ParamValue<true> },
       { cluster: ParamValue<false>, machine: ParamValue<false> },
       | never
@@ -673,6 +683,7 @@ declare module 'vue-router/auto-routes' {
         | 'NodeDisks'
         | 'NodeExtensions'
         | 'NodeKernelArgs'
+        | 'NodeKubeSpanStatus'
         | 'NodeLogs'
         | 'NodeMonitor'
         | 'NodeOverview'
@@ -741,6 +752,7 @@ declare module 'vue-router/auto-routes' {
         | 'NodeDisks'
         | 'NodeExtensions'
         | 'NodeKernelArgs'
+        | 'NodeKubeSpanStatus'
         | 'NodeLogs'
         | 'NodeMonitor'
         | 'NodeOverview'
@@ -790,6 +802,7 @@ declare module 'vue-router/auto-routes' {
         | 'NodeDisks'
         | 'NodeExtensions'
         | 'NodeKernelArgs'
+        | 'NodeKubeSpanStatus'
         | 'NodeLogs'
         | 'NodeMonitor'
         | 'NodeOverview'
@@ -827,6 +840,7 @@ declare module 'vue-router/auto-routes' {
         | 'NodeDisks'
         | 'NodeExtensions'
         | 'NodeKernelArgs'
+        | 'NodeKubeSpanStatus'
         | 'NodeLogs'
         | 'NodeMonitor'
         | 'NodeOverview'
@@ -888,6 +902,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/kernel-args.vue': {
       routes:
         | 'NodeKernelArgs'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(authenticated)/clusters/[cluster]/machine/[machine]/kubespan-status.vue': {
+      routes:
+        | 'NodeKubeSpanStatus'
       views:
         | never
       pathParamNames:

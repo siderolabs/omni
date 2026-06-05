@@ -8,10 +8,18 @@ included in the LICENSE file.
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
+import { Runtime } from '@/api/common/omni.pb'
+import {
+  TalosConfigNamespace,
+  TalosKubespanConfigID,
+  TalosKubeSpanConfigType,
+} from '@/api/resources'
+import type { ConfigSpec } from '@/api/talos/kubespan.pb'
 import TabButton from '@/components/Tabs/TabButton.vue'
 import TabContent from '@/components/Tabs/TabContent.vue'
 import Tabs from '@/components/Tabs/Tabs.vue'
 import { useClusterPermissions } from '@/methods/auth'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 import NodesHeader from '@/views/Nodes/NodesHeader.vue'
 
 definePage({ name: 'NodeDetails' })
@@ -20,6 +28,19 @@ const route = useRoute()
 const machine = computed(() => route.params.machine)
 const { canReadMachineConfig, canReadConfigPatches, canReadMachinePendingUpdates } =
   useClusterPermissions(() => route.params.cluster)
+
+const { data: kubeSpanConfig } = useResourceWatch<ConfigSpec>(() => ({
+  runtime: Runtime.Talos,
+  resource: {
+    namespace: TalosConfigNamespace,
+    type: TalosKubeSpanConfigType,
+    id: TalosKubespanConfigID,
+  },
+  context: {
+    cluster: route.params.cluster,
+    machine: route.params.machine,
+  },
+}))
 
 const routes = computed(() => {
   return [
@@ -54,6 +75,11 @@ const routes = computed(() => {
       name: 'Patches',
       to: { name: 'NodePatches', params: { machine: machine.value } },
       disabled: !canReadConfigPatches.value,
+    },
+    {
+      name: 'KubeSpan',
+      to: { name: 'NodeKubeSpanStatus', params: { machine: machine.value } },
+      disabled: !kubeSpanConfig.value?.spec.enabled,
     },
     {
       name: 'Disks',

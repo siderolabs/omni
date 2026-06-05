@@ -88,9 +88,7 @@ included in the LICENSE file.
   }
 
   .resource-label {
-    @apply rounded-sm px-2 py-1 text-xs text-naturals-n11;
-
-    background-color: color-mix(in srgb, currentColor 10%, transparent);
+    @apply rounded-sm bg-current/10 px-2 py-1 text-xs text-naturals-n11;
 
     &:is(a:not(:disabled), button:not(:disabled), [role='button']:not(:disabled)) {
       @apply transition-[filter];

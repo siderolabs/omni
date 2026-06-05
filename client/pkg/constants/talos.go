@@ -8,8 +8,10 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/block"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
+	"github.com/siderolabs/talos/pkg/machinery/resources/config"
 	"github.com/siderolabs/talos/pkg/machinery/resources/hardware"
 	"github.com/siderolabs/talos/pkg/machinery/resources/k8s"
+	"github.com/siderolabs/talos/pkg/machinery/resources/kubespan"
 	"github.com/siderolabs/talos/pkg/machinery/resources/network"
 	"github.com/siderolabs/talos/pkg/machinery/resources/perf"
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
@@ -21,7 +23,6 @@ const (
 	// Types.
 	// tsgen:PlatformMetalID
 	_ = constants.PlatformMetal
-	// Types.
 	// tsgen:TalosServiceType
 	_ = v1alpha1.ServiceType
 	// tsgen:TalosCPUType
@@ -48,6 +49,10 @@ const (
 	_ = block.VolumeStatusType
 	// tsgen:TalosSystemInformationType
 	_ = hardware.SystemInformationType
+	// tsgen:TalosKubeSpanPeerStatusType
+	_ = kubespan.PeerStatusType
+	// tsgen:TalosKubeSpanConfigType
+	_ = kubespan.ConfigType
 
 	// Resource ids.
 	// tsgen:TalosNodenameID
@@ -62,8 +67,12 @@ const (
 	_ = runtime.MachineStatusID
 	// tsgen:TalosSystemInformationID
 	_ = hardware.SystemInformationID
+	// tsgen:TalosKubespanConfigID
+	_ = kubespan.ConfigID
 
 	// Namespaces.
+	// tsgen:TalosConfigNamespace
+	_ = config.NamespaceName
 	// tsgen:TalosPerfNamespace
 	_ = perf.NamespaceName
 	// tsgen:TalosClusterNamespace
@@ -76,4 +85,6 @@ const (
 	_ = k8s.NamespaceName
 	// tsgen:TalosNetworkNamespace
 	_ = network.NamespaceName
+	// tsgen:TalosKubeSpanNamespace
+	_ = kubespan.NamespaceName
 )

@@ -16,7 +16,13 @@ export interface WatchStreamHandlerOptions<T, S> {
   totalResults?: number
   initialResources?:
     | Resource<T, S>[]
-    | ((options: WatchRequest & { selectors?: Record<string, string> }) => Resource<T, S>[])
+    | ((
+        options: WatchRequest & {
+          selectors?: Record<string, string>
+          contextCluster: string | null
+          contextNode: string | null
+        },
+      ) => Resource<T, S>[])
 }
 
 export function createWatchStreamHandler<T = unknown, S = unknown>({
@@ -33,7 +39,10 @@ export function createWatchStreamHandler<T = unknown, S = unknown>({
       // Cloning to not block fallthrough requests
       const options = await request.clone().json()
 
-      const selectorHeader = request.headers.get('Grpc-Metadata-selectors')
+      const contextCluster = request.headers.get('Grpc-Metadata-Cluster')
+      const contextNode = request.headers.get('Grpc-Metadata-Node')
+      const selectorHeader = request.headers.get('Grpc-Metadata-Selectors')
+
       const selectors = selectorHeader
         ? Object.fromEntries(selectorHeader.split(',').map((s) => s.split('=') as [string, string]))
         : undefined
@@ -47,7 +56,7 @@ export function createWatchStreamHandler<T = unknown, S = unknown>({
 
       const resources = Array.isArray(initialResources)
         ? initialResources
-        : initialResources({ ...options, selectors })
+        : initialResources({ ...options, selectors, contextCluster, contextNode })
 
       if (sort) {
         resources.sort((a, b) =>
