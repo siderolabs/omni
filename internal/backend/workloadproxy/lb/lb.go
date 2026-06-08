@@ -9,6 +9,7 @@ package lb
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"time"
 
@@ -18,21 +19,26 @@ import (
 )
 
 // LB is a minimal wrapper around [upstream.List] which provides a simpler interface for picking an upstream address.
+//
+// addresses and fallbackCounter are only accessed from Reconcile and PickAddress, both of which the workload
+// proxy reconciler always calls while holding its own mutex, so they need no synchronization of their own.
 type LB struct {
-	logger    *zap.Logger
-	upstreams *upstream.List[node]
+	logger          *zap.Logger
+	upstreams       *upstream.List[node]
+	addresses       []string
+	fallbackCounter uint
 }
 
 // New creates a new load balancer with the given upstream addresses and logger.
 func New(upstreamAddresses []string, logger *zap.Logger, options ...upstream.ListOption) (*LB, error) {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
 	nodes := slices.Values(xslices.Map(upstreamAddresses, func(addr string) node {
 		return node{address: addr, logger: logger}
 	}))
 	nodesEqual := func(a, b node) bool { return a.address == b.address }
-
-	if logger == nil {
-		logger = zap.NewNop()
-	}
 
 	upstreams, err := upstream.NewListWithCmp(nodes, nodesEqual, options...)
 	if err != nil {
@@ -42,6 +48,7 @@ func New(upstreamAddresses []string, logger *zap.Logger, options ...upstream.Lis
 	return &LB{
 		logger:    logger,
 		upstreams: upstreams,
+		addresses: slices.Clone(upstreamAddresses),
 	}, nil
 }
 
@@ -52,18 +59,33 @@ func (lb *LB) Reconcile(upstreamAddresses []string) error {
 	}))
 
 	lb.upstreams.Reconcile(nodes)
+	lb.addresses = slices.Clone(upstreamAddresses)
 
 	return nil
 }
 
-// PickAddress picks a healthy upstream address from the load balancer.
+// PickAddress picks a healthy upstream address, falling back to any known upstream when all are benched.
 func (lb *LB) PickAddress() (string, error) {
 	pickedNode, err := lb.upstreams.Pick()
-	if err != nil {
-		return "", err
+	if err == nil {
+		return pickedNode.address, nil
 	}
 
-	return pickedNode.address, nil
+	// Optimistic fallback: when every upstream is benched, Pick reports no upstreams available.
+	// A cold load balancer (freshly created after an Omni restart, all scores starting at zero)
+	// gets benched by a single failed health check, e.g. one that coincided with a brief upstream
+	// blip, and would otherwise keep failing until the next health check restores a score, up to
+	// one health check interval later. Hand out a known upstream anyway, round-robin: if it
+	// actually serves, the caller recovers immediately, and the periodic health check brings the
+	// score back up on its own.
+	if errors.Is(err, upstream.ErrNoUpstreams) && len(lb.addresses) > 0 {
+		addr := lb.addresses[lb.fallbackCounter%uint(len(lb.addresses))]
+		lb.fallbackCounter++
+
+		return addr, nil
+	}
+
+	return "", err
 }
 
 // Notify notifies the load balancer for it to refresh its internal state.
