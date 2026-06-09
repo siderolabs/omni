@@ -1739,6 +1739,215 @@ func TestInfraMachineConfigValidation(t *testing.T) {
 	require.NoError(t, st.Destroy(ctx, conf.Metadata()))
 }
 
+func TestMetadataIDValidation(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name        string
+		id          string
+		errContains string
+	}{
+		{name: "valid", id: "regular-id"},
+		{name: "empty", id: "", errContains: "must not be empty"},
+		{name: "newline", id: "foo\nbar", errContains: "control character"},
+		{name: "tab", id: "foo\tbar", errContains: "control character"},
+		{name: "NUL", id: "foo\x00bar", errContains: "control character"},
+		{name: "ANSI escape", id: "\x1b[31mred\x1b[0m", errContains: "control character"},
+		{name: "DEL", id: "foo\x7fbar", errContains: "control character"},
+		{name: "NEL", id: "foo\u0085bar", errContains: "control character"},
+		{
+			name:        "too long",
+			id:          strings.Repeat("x", validations.MaxResourceIDLength+1),
+			errContains: "too long",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+			st := validated.NewState(innerSt, validations.MetadataValidationOptions()...)
+
+			res := omnires.NewKernelArgs(tt.id)
+
+			err := st.Create(ctx, res)
+			if tt.errContains == "" {
+				require.NoError(t, err)
+
+				return
+			}
+
+			assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+			assert.ErrorContains(t, err, tt.errContains)
+		})
+	}
+}
+
+func TestMetadataLabelsAnnotationsValidation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("create rejects bad entries", func(t *testing.T) {
+		t.Parallel()
+
+		for _, tt := range []struct {
+			labels      map[string]string
+			annotations map[string]string
+			name        string
+			errContains string
+		}{
+			{name: "valid labels and annotations", labels: map[string]string{"env": "prod"}, annotations: map[string]string{"note": "ok"}},
+			{name: "empty label key", labels: map[string]string{"": "v"}, errContains: "label key must not be empty"},
+			{name: "empty annotation key", annotations: map[string]string{"": "v"}, errContains: "annotation key must not be empty"},
+			{name: "newline in label key", labels: map[string]string{"foo\nbar": "v"}, errContains: "label key"},
+			{name: "newline in label value", labels: map[string]string{"k": "v\nbroken"}, errContains: "label value"},
+			{
+				name:        "label key too long",
+				labels:      map[string]string{strings.Repeat("k", validations.MaxLabelKeyLength+1): "v"},
+				errContains: "label key is too long",
+			},
+			{
+				name:        "label value too long",
+				labels:      map[string]string{"k": strings.Repeat("v", validations.MaxLabelValueLength+1)},
+				errContains: "label value for key",
+			},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+				t.Cleanup(cancel)
+
+				innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+				st := validated.NewState(innerSt, validations.MetadataValidationOptions()...)
+
+				res := omnires.NewKernelArgs("test-" + strings.ReplaceAll(tt.name, " ", "-"))
+				for k, v := range tt.labels {
+					res.Metadata().Labels().Set(k, v)
+				}
+
+				for k, v := range tt.annotations {
+					res.Metadata().Annotations().Set(k, v)
+				}
+
+				err := st.Create(ctx, res)
+				if tt.errContains == "" {
+					require.NoError(t, err)
+
+					return
+				}
+
+				assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+				assert.ErrorContains(t, err, tt.errContains)
+			})
+		}
+	})
+
+	t.Run("create rejects count over cap", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Cleanup(cancel)
+
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := validated.NewState(innerSt, validations.MetadataValidationOptions()...)
+
+		res := omnires.NewKernelArgs("count-test")
+		for i := range validations.MaxLabelsCount + 1 {
+			res.Metadata().Labels().Set(fmt.Sprintf("k%d", i), "v")
+		}
+
+		err := st.Create(ctx, res)
+		assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+		assert.ErrorContains(t, err, "too many labels")
+	})
+
+	t.Run("update with unchanged offending entries passes", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Cleanup(cancel)
+
+		// Stage an offending resource via the inner state (bypassing validation).
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+		res := omnires.NewKernelArgs("update-test-1")
+		res.Metadata().Labels().Set("", "empty-key-still-here")
+		res.Metadata().Labels().Set("foo\nbar", "newline-key-still-here")
+		res.Metadata().Annotations().Set("", "empty-anno-still-here")
+		require.NoError(t, innerSt.Create(ctx, res))
+
+		st := validated.NewState(innerSt, validations.MetadataValidationOptions()...)
+
+		// Update the spec without changing labels or annotations: should succeed.
+		updated, err := safe.StateGetByID[*omnires.KernelArgs](ctx, state.WrapCore(st), "update-test-1")
+		require.NoError(t, err)
+
+		updated.TypedSpec().Value.Args = []string{"console=ttyS0"}
+		require.NoError(t, st.Update(ctx, updated))
+	})
+
+	t.Run("update rejects newly added bad entries", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Cleanup(cancel)
+
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+		res := omnires.NewKernelArgs("update-test-2")
+		res.Metadata().Labels().Set("", "preexisting")
+		require.NoError(t, innerSt.Create(ctx, res))
+
+		st := validated.NewState(innerSt, validations.MetadataValidationOptions()...)
+
+		updated, err := safe.StateGetByID[*omnires.KernelArgs](ctx, state.WrapCore(st), "update-test-2")
+		require.NoError(t, err)
+
+		updated.Metadata().Labels().Set("foo\nbar", "fresh-bad-key")
+
+		err = st.Update(ctx, updated)
+		assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+		assert.ErrorContains(t, err, "label key")
+	})
+
+	t.Run("update count cap permits unchanged over-cap state", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Cleanup(cancel)
+
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+		// Pre-populate with more labels than the cap, bypassing validation.
+		res := omnires.NewKernelArgs("update-test-3")
+		for i := range validations.MaxLabelsCount + 10 {
+			res.Metadata().Labels().Set(fmt.Sprintf("k%d", i), "v")
+		}
+
+		require.NoError(t, innerSt.Create(ctx, res))
+
+		st := validated.NewState(innerSt, validations.MetadataValidationOptions()...)
+
+		// Same-count update (over cap, but did not grow): allowed.
+		updated, err := safe.StateGetByID[*omnires.KernelArgs](ctx, state.WrapCore(st), "update-test-3")
+		require.NoError(t, err)
+
+		updated.TypedSpec().Value.Args = []string{"x"}
+		require.NoError(t, st.Update(ctx, updated))
+
+		// Add one more: count grew past cap from over-cap state → reject.
+		updated, err = safe.StateGetByID[*omnires.KernelArgs](ctx, state.WrapCore(st), "update-test-3")
+		require.NoError(t, err)
+		updated.Metadata().Labels().Set("extra-one", "v")
+
+		err = st.Update(ctx, updated)
+		assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+		assert.ErrorContains(t, err, "too many labels")
+	})
+}
+
 func TestNodeForceDestroyRequestValidation(t *testing.T) {
 	t.Parallel()
 

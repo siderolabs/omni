@@ -22,6 +22,7 @@ import (
 // Options returns the full set of state validation options for all user-facing resource types.
 func Options(st state.State, etcdBackupStoreFactory store.Factory, cfg *config.Params) []validated.StateOption {
 	return slices.Concat(
+		metadataValidationOptions(),
 		clusterValidationOptions(st, cfg.EtcdBackup, cfg.Services.EmbeddedDiscoveryService),
 		relationLabelsValidationOptions(),
 		accessPolicyValidationOptions(),

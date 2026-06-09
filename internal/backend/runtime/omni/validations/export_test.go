@@ -108,3 +108,7 @@ func KubernetesManifestsValidationOptions() []validated.StateOption {
 func EulaValidationOptions(st state.State) []validated.StateOption {
 	return eulaValidationOptions(st)
 }
+
+func MetadataValidationOptions() []validated.StateOption {
+	return metadataValidationOptions()
+}
