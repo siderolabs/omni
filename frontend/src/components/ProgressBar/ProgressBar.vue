@@ -18,7 +18,7 @@ const progress = defineModel<number>({ required: true })
   <div class="flex items-center gap-2">
     <ProgressRoot v-model="progress" class="h-2 flex-1 overflow-hidden rounded-sm bg-naturals-n5">
       <ProgressIndicator
-        class="transition-color h-full w-full origin-left transition-transform"
+        class="h-full w-full origin-left transition-colors transition-transform"
         :style="{ transform: `scaleX(${progress}%)`, 'background-color': color }"
       />
     </ProgressRoot>

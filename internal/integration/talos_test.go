@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -825,6 +826,170 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 
 		AssertDestroyCluster(ctx, omniClient.Omni().State(), clusterName, false, false)(t)
 	}
+}
+
+// maintenanceLifecycleMinTalosVersion is the minimum Talos version that exposes the LifecycleService APIs used by MaintenanceLifecycle.
+var maintenanceLifecycleMinTalosVersion = semver.MustParse("1.13.0")
+
+// AssertMachineShouldBeInstalledInMaintenanceMode verifies that Talos can be installed to disk on a
+// machine running in maintenance mode (in memory) via the MaintenanceLifecycle management API with
+// OPERATION_INSTALL.
+
+// outMachineID is set to the ID of the machine that was installed to be used later on AssertMachineShouldBeUpgradedViaMaintenanceLifecycle test.
+func AssertMachineShouldBeInstalledInMaintenanceMode(testCtx context.Context, options *TestOptions, talosVersion string, outMachineID *resource.ID) TestFunc {
+	return func(t *testing.T) {
+		parsedVersion, err := semver.ParseTolerant(talosVersion)
+		require.NoError(t, err)
+
+		parsedVersion.Pre = nil
+		parsedVersion.Build = nil
+
+		if parsedVersion.LT(maintenanceLifecycleMinTalosVersion) {
+			t.Skipf("maintenance lifecycle requires Talos %s or newer, test runs on %q", maintenanceLifecycleMinTalosVersion, talosVersion)
+		}
+
+		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
+		defer cancel()
+
+		omniClient := options.omniClient
+		omniState := omniClient.Omni().State()
+
+		// pick a machine in maintenance mode and does not yet have Talos installed on disk.
+		uninstalledMaintenance := func(machineStatus *omni.MachineStatus, _ []*omni.MachineStatus) bool {
+			_, installed := machineStatus.Metadata().Labels().Get(omni.MachineStatusLabelInstalled)
+
+			return machineStatus.TypedSpec().Value.Maintenance && !installed && installDisk(machineStatus) != ""
+		}
+
+		var machineID resource.ID
+
+		pickUnallocatedMachines(ctx, t, omniState, 1, uninstalledMaintenance, func(machineIDs []resource.ID) {
+			machineID = machineIDs[0]
+		})
+
+		machineStatus, err := safe.StateGetByID[*omni.MachineStatus](ctx, omniState, machineID)
+		require.NoError(t, err)
+
+		require.True(t, machineStatus.TypedSpec().Value.Maintenance, "machine %q should be in maintenance mode", machineID)
+
+		_, installed := machineStatus.Metadata().Labels().Get(omni.MachineStatusLabelInstalled)
+		require.False(t, installed, "machine %q should not have Talos installed yet", machineID)
+
+		disk := installDisk(machineStatus)
+		require.NotEmpty(t, disk, "machine %q has no installable disk", machineID)
+
+		t.Logf("installing Talos (in-memory version %q) to %q on maintenance machine %q", machineStatus.TypedSpec().Value.TalosVersion, disk, machineID)
+
+		lifecycle := omniClient.Management().MaintenanceLifecycle(
+			ctx,
+			machineID,
+			management.MaintenanceLifecycleRequest_OPERATION_INSTALL,
+			"",
+			disk,
+		)
+
+		for resp, installErr := range lifecycle {
+			require.NoError(t, installErr, "install failed on machine %q", machineID)
+
+			if msg := resp.GetMessage(); msg != "" {
+				t.Logf("install progress (%s): %s", machineID, msg)
+			}
+		}
+
+		rtestutils.AssertResource[*omni.MachineStatus](ctx, t, omniState, machineID, func(ms *omni.MachineStatus, assertion *assert.Assertions) {
+			assertion.True(ms.Metadata().Labels().Matches(resource.LabelTerm{
+				Key: omni.MachineStatusLabelInstalled,
+				Op:  resource.LabelOpExists,
+			}), "machine %q should report Talos installed after maintenance install", machineID)
+		})
+
+		if outMachineID != nil {
+			*outMachineID = machineID
+		}
+	}
+}
+
+// AssertMachineShouldBeUpgradedViaMaintenanceLifecycle verifies that the on-disk Talos on a machine
+// that is in maintenance mode and already has Talos installed can be upgraded to a different version
+// via the MaintenanceLifecycle management API with OPERATION_UPGRADE.
+func AssertMachineShouldBeUpgradedViaMaintenanceLifecycle(
+	testCtx context.Context,
+	options *TestOptions,
+	machineID *resource.ID,
+	targetVersion string,
+) TestFunc {
+	return func(t *testing.T) {
+		parsedVersion, err := semver.ParseTolerant(targetVersion)
+		require.NoError(t, err)
+
+		parsedVersion.Pre = nil
+		parsedVersion.Build = nil
+
+		if parsedVersion.LT(maintenanceLifecycleMinTalosVersion) {
+			t.Skipf("maintenance lifecycle requires Talos %s or newer, upgrade target is %q", maintenanceLifecycleMinTalosVersion, targetVersion)
+		}
+
+		require.NotEmpty(t, *machineID, "machineID must be set by a preceding install assertion")
+
+		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
+		defer cancel()
+
+		omniClient := options.omniClient
+		omniState := omniClient.Omni().State()
+
+		machineStatus, err := safe.StateGetByID[*omni.MachineStatus](ctx, omniState, *machineID)
+		require.NoError(t, err)
+
+		require.True(t, machineStatus.TypedSpec().Value.Maintenance, "machine %q should still be in maintenance mode after install", *machineID)
+
+		_, installed := machineStatus.Metadata().Labels().Get(omni.MachineStatusLabelInstalled)
+		require.True(t, installed, "machine %q should have Talos installed before upgrade", *machineID)
+
+		target := strings.TrimPrefix(targetVersion, "v")
+		currentVersion := strings.TrimPrefix(machineStatus.TypedSpec().Value.TalosVersion, "v")
+		require.NotEqual(t, target, currentVersion, "upgrade target %q must differ from current in-memory version %q", target, currentVersion)
+
+		t.Logf("upgrading Talos on maintenance machine %q from %q to %q", *machineID, currentVersion, target)
+
+		lifecycle := omniClient.Management().MaintenanceLifecycle(
+			ctx,
+			*machineID,
+			management.MaintenanceLifecycleRequest_OPERATION_UPGRADE,
+			target,
+			"",
+		)
+
+		for resp, upgradeErr := range lifecycle {
+			require.NoError(t, upgradeErr, "upgrade failed on machine %q", *machineID)
+
+			if msg := resp.GetMessage(); msg != "" {
+				t.Logf("upgrade progress (%s): %s", *machineID, msg)
+			}
+		}
+
+		rtestutils.AssertResource[*omni.MachineStatus](ctx, t, omniState, *machineID, func(ms *omni.MachineStatus, assertion *assert.Assertions) {
+			got := strings.TrimPrefix(ms.TypedSpec().Value.TalosVersion, "v")
+			assertion.Equal(target, got, "machine %q should report Talos %q after maintenance upgrade", *machineID, target)
+			assertion.True(ms.Metadata().Labels().Matches(resource.LabelTerm{
+				Key: omni.MachineStatusLabelInstalled,
+				Op:  resource.LabelOpExists,
+			}), "machine %q should still report Talos installed after maintenance upgrade", *machineID)
+		})
+	}
+}
+
+func installDisk(machineStatus *omni.MachineStatus) string {
+	for _, dev := range machineStatus.TypedSpec().Value.GetHardware().GetBlockdevices() {
+		if dev.GetReadonly() || dev.GetType() == "CD" {
+			continue
+		}
+
+		if name := dev.GetLinuxName(); name != "" {
+			return name
+		}
+	}
+
+	return ""
 }
 
 // AssertTalosServiceIsRestarted verifies that Talos service is restarted on the nodes that match given cluster machine label query options.

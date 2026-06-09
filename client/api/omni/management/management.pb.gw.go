@@ -479,6 +479,29 @@ func local_request_ManagementService_MaintenanceUpgrade_0(ctx context.Context, m
 	return msg, metadata, err
 }
 
+func request_ManagementService_MaintenanceLifecycle_0(ctx context.Context, marshaler runtime.Marshaler, client ManagementServiceClient, req *http.Request, pathParams map[string]string) (ManagementService_MaintenanceLifecycleClient, runtime.ServerMetadata, error) {
+	var (
+		protoReq MaintenanceLifecycleRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
+	stream, err := client.MaintenanceLifecycle(ctx, &protoReq)
+	if err != nil {
+		return nil, metadata, err
+	}
+	header, err := stream.Header()
+	if err != nil {
+		return nil, metadata, err
+	}
+	metadata.HeaderMD = header
+	return stream, metadata, nil
+}
+
 func request_ManagementService_GetMachineJoinConfig_0(ctx context.Context, marshaler runtime.Marshaler, client ManagementServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var (
 		protoReq GetMachineJoinConfigRequest
@@ -1016,6 +1039,13 @@ func RegisterManagementServiceHandlerServer(ctx context.Context, mux *runtime.Se
 		}
 		forward_ManagementService_MaintenanceUpgrade_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
+
+	mux.Handle(http.MethodPost, pattern_ManagementService_MaintenanceLifecycle_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
+		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+		return
+	})
 	mux.Handle(http.MethodPost, pattern_ManagementService_GetMachineJoinConfig_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -1525,6 +1555,23 @@ func RegisterManagementServiceHandlerClient(ctx context.Context, mux *runtime.Se
 		}
 		forward_ManagementService_MaintenanceUpgrade_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
+	mux.Handle(http.MethodPost, pattern_ManagementService_MaintenanceLifecycle_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/management.ManagementService/MaintenanceLifecycle", runtime.WithHTTPPathPattern("/management.ManagementService/MaintenanceLifecycle"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_ManagementService_MaintenanceLifecycle_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_ManagementService_MaintenanceLifecycle_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+	})
 	mux.Handle(http.MethodPost, pattern_ManagementService_GetMachineJoinConfig_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -1699,6 +1746,7 @@ var (
 	pattern_ManagementService_GetSupportBundle_0           = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "GetSupportBundle"}, ""))
 	pattern_ManagementService_ReadAuditLog_0               = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "ReadAuditLog"}, ""))
 	pattern_ManagementService_MaintenanceUpgrade_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "MaintenanceUpgrade"}, ""))
+	pattern_ManagementService_MaintenanceLifecycle_0       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "MaintenanceLifecycle"}, ""))
 	pattern_ManagementService_GetMachineJoinConfig_0       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "GetMachineJoinConfig"}, ""))
 	pattern_ManagementService_CreateJoinToken_0            = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "CreateJoinToken"}, ""))
 	pattern_ManagementService_ResetNodeUniqueToken_0       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "ResetNodeUniqueToken"}, ""))
@@ -1728,6 +1776,7 @@ var (
 	forward_ManagementService_GetSupportBundle_0           = runtime.ForwardResponseStream
 	forward_ManagementService_ReadAuditLog_0               = runtime.ForwardResponseStream
 	forward_ManagementService_MaintenanceUpgrade_0         = runtime.ForwardResponseMessage
+	forward_ManagementService_MaintenanceLifecycle_0       = runtime.ForwardResponseStream
 	forward_ManagementService_GetMachineJoinConfig_0       = runtime.ForwardResponseMessage
 	forward_ManagementService_CreateJoinToken_0            = runtime.ForwardResponseMessage
 	forward_ManagementService_ResetNodeUniqueToken_0       = runtime.ForwardResponseMessage

@@ -89,7 +89,7 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
         class="flex items-center gap-1.5"
       >
         <span class="inline-block size-2.5 rounded-sm" :class="getVolumeClass(volume)" />
-        <span class="text-naturalsn-n12 font-medium">
+        <span class="font-medium text-naturals-n12">
           {{ volume.spec.partition_label || volume.spec.label || volume.spec.dev_path }}
         </span>
         <span class="font-medium text-naturals-n10">
@@ -98,7 +98,7 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
       </div>
       <div v-if="unallocatedPercent > 0" class="flex items-center gap-1.5">
         <span class="inline-block size-2.5 rounded-sm bg-naturals-n5" />
-        <span class="text-naturalsn-n12 font-medium">Unallocated</span>
+        <span class="font-medium text-naturals-n12">Unallocated</span>
         <span class="font-medium text-naturals-n10">
           {{ formatBytes(unallocatedSpace) }}
         </span>

@@ -55,6 +55,16 @@ func WithAuditLogger(auditor AuditLogger) ManagementServerOption {
 	}
 }
 
+// CheckMaintenanceLifecycleTalosVersion exposes the in-memory version gate for testing.
+func CheckMaintenanceLifecycleTalosVersion(version string) error {
+	return checkMaintenanceLifecycleTalosVersion(version)
+}
+
+// ClaimMaintenanceLifecycleSlot pre-claims the in-flight slot for a machine, simulating a concurrent lifecycle operation.
+func (s *ManagementServer) ClaimMaintenanceLifecycleSlot(machineID string) {
+	s.maintenanceLifecycleInFlight.Store(machineID, struct{}{})
+}
+
 func NewAuthServer(st state.State, services config.Services, logger *zap.Logger) (*AuthServer, error) {
 	return newAuthServer(st, services, logger)
 }

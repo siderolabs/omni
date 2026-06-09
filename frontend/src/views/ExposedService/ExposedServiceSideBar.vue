@@ -50,7 +50,7 @@ const errors = computed(() => {
           <p class="title-name truncate">Exposed Services</p>
           <div class="expand-button">
             <TIcon
-              class="transition-color h-6 w-6 transition-transform duration-250 hover:text-naturals-n13"
+              class="h-6 w-6 transition-colors transition-transform duration-250 hover:text-naturals-n13"
               :class="{ 'rotate-180': !open }"
               icon="drop-up"
             />

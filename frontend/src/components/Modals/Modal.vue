@@ -22,6 +22,7 @@ import {
 import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
+import { cn } from '@/methods/utils'
 
 const props = withDefaults(
   // eslint-disable-next-line vue/define-props-destructuring
@@ -80,7 +81,7 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
           </DialogClose>
         </div>
 
-        <div class="min-h-0 grow overflow-y-auto" :class="contentClass">
+        <div :class="cn('min-h-0 grow overflow-y-auto', contentClass)">
           <slot></slot>
         </div>
 

@@ -15,12 +15,14 @@ import UpdateTalos from './UpdateTalosModal.vue'
 
 faker.seed(0)
 
-const versions = faker.helpers.uniqueArray(
-  () => `1.${faker.number.int({ min: 28, max: 32 })}.${faker.number.int({ min: 0, max: 10 })}`,
-  40,
-)
+const versions = faker.helpers
+  .uniqueArray(
+    () => `1.${faker.number.int({ min: 28, max: 32 })}.${faker.number.int({ min: 0, max: 10 })}`,
+    40,
+  )
+  .sort(compare)
 
-const talosVersions = versions.sort(compare).map<Resource<TalosVersionSpec>>((version) => ({
+const talosVersions = versions.map<Resource<TalosVersionSpec>>((version) => ({
   spec: {
     version,
     deprecated: faker.datatype.boolean(),
@@ -81,14 +83,6 @@ export const Data: Story = {
           initialResources: talosVersions,
         }).handler,
       ],
-    },
-  },
-}
-
-export const NoData: Story = {
-  parameters: {
-    msw: {
-      handlers: [createWatchStreamHandler().handler],
     },
   },
 }
