@@ -7,16 +7,17 @@ package omni
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/benbjohnson/clock"
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/safe"
-	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
 
 // KeyPrunerController is a controller which periodically prunes expired public keys.
@@ -103,6 +104,8 @@ func (k *KeyPrunerController) run(ctx context.Context, runtime controller.Runtim
 		return err
 	}
 
+	var errs error
+
 	for v := range list.All() {
 		md := v.Metadata()
 		publicKeySpec := v.TypedSpec().Value
@@ -113,17 +116,13 @@ func (k *KeyPrunerController) run(ctx context.Context, runtime controller.Runtim
 
 		logger.Info("removing expired public key", zap.String("id", md.ID()), zap.Time("expiration", publicKeySpec.Expiration.AsTime()))
 
-		err := runtime.Destroy(ctx, md)
-		if state.IsOwnerConflictError(err) {
-			// probably empty owner, trying to remove it again
-			err = runtime.Destroy(ctx, md)
-			if err != nil {
-				logger.Error("error destroying key with empty owner", zap.String("id", md.ID()), zap.Error(err))
-			}
-		} else if err != nil {
-			logger.Error("error destroying key", zap.String("id", md.ID()), zap.Error(err))
+		// The key may carry finalizers (e.g. from PublicKeyCleanupController) and may be owned by another component or
+		// by no one (service account keys are created without an owner), so tear it down using its own owner and destroy
+		// it once its finalizers are gone. Keys not yet ready are destroyed on a subsequent run.
+		if _, err = helpers.TeardownAndDestroy(ctx, runtime, md, controller.WithOwner(md.Owner())); err != nil {
+			errs = errors.Join(errs, fmt.Errorf("failed to remove expired public key %q: %w", md.ID(), err))
 		}
 	}
 
-	return nil
+	return errs
 }

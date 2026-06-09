@@ -6,70 +6,146 @@
 package omni_test
 
 import (
+	"context"
 	"testing"
+	"testing/synctest"
 	"time"
 
-	"github.com/benbjohnson/clock"
+	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	authctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/auth"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
-func TestKeyPrunerSuite(t *testing.T) {
+const keyPrunerInterval = 10 * time.Minute
+
+// newExpiringKey builds a confirmed public key that expires after the given duration relative to the (virtual) now.
+func newExpiringKey(id string, expiresIn time.Duration) *authres.PublicKey {
+	publicKey := authres.NewPublicKey(id)
+	publicKey.TypedSpec().Value.Confirmed = true
+	publicKey.TypedSpec().Value.Expiration = timestamppb.New(time.Now().Add(expiresIn))
+
+	return publicKey
+}
+
+// TestRemoveExpiredKey verifies that the key pruner removes keys past their expiration while leaving the rest alone.
+func TestRemoveExpiredKey(t *testing.T) {
 	t.Parallel()
 
-	suite.Run(t, new(KeyPrunerSuite))
+	synctest.Test(t, func(t *testing.T) {
+		testutils.WithRuntime(
+			t.Context(),
+			t,
+			testutils.TestOptions{},
+			func(_ context.Context, tc testutils.TestContext) {
+				require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewKeyPrunerController(keyPrunerInterval)))
+			},
+			func(ctx context.Context, tc testutils.TestContext) {
+				owner := new(omnictrl.KeyPrunerController{}).Name()
+
+				expiredKey := newExpiringKey("expired", time.Hour)
+				liveKey := newExpiringKey("live", 24*time.Hour)
+
+				require.NoError(t, tc.State.Create(ctx, expiredKey, state.WithCreateOwner(owner)))
+				require.NoError(t, tc.State.Create(ctx, liveKey, state.WithCreateOwner(owner)))
+
+				// advance past the first key's expiration but not the second's
+				time.Sleep(2 * time.Hour)
+				synctest.Wait()
+
+				// the expired key must be pruned
+				_, err := tc.State.Get(ctx, expiredKey.Metadata())
+				require.Truef(t, state.IsNotFoundError(err), "expired key should have been pruned, got err: %v", err)
+
+				// the non-expired key must be left untouched (still present and running, not torn down)
+				liveRes, err := tc.State.Get(ctx, liveKey.Metadata())
+				require.NoError(t, err)
+				require.Equal(t, resource.PhaseRunning, liveRes.Metadata().Phase())
+			},
+		)
+	})
 }
 
-type KeyPrunerSuite struct {
-	OmniSuite
+// TestRemoveExpiredKeyWithCleanupFinalizer verifies that the key pruner removes an expired public key even when
+// PublicKeyCleanupController has put a finalizer on it, by tearing the key down so the finalizer is removed before destroying it.
+func TestRemoveExpiredKeyWithCleanupFinalizer(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		testutils.WithRuntime(
+			t.Context(),
+			t,
+			testutils.TestOptions{},
+			func(_ context.Context, tc testutils.TestContext) {
+				require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewKeyPrunerController(keyPrunerInterval)))
+				require.NoError(t, tc.Runtime.RegisterController(authctrl.NewPublicKeyCleanupController()))
+			},
+			func(ctx context.Context, tc testutils.TestContext) {
+				owner := new(omnictrl.KeyPrunerController{}).Name()
+				finalizer := authctrl.NewPublicKeyCleanupController().Name()
+
+				publicKey := newExpiringKey("expired", time.Hour)
+				require.NoError(t, tc.State.Create(ctx, publicKey, state.WithCreateOwner(owner)))
+
+				// wait until the cleanup controller puts its finalizer on the key
+				rtestutils.AssertResource(ctx, t, tc.State, publicKey.Metadata().ID(), func(r *authres.PublicKey, a *assert.Assertions) {
+					a.True(r.Metadata().Finalizers().Has(finalizer))
+				})
+
+				// advance past expiration, allowing the teardown and the subsequent destroy to happen
+				time.Sleep(2 * time.Hour)
+				synctest.Wait()
+
+				// the expired key must be pruned
+				_, err := tc.State.Get(ctx, publicKey.Metadata())
+				require.Truef(t, state.IsNotFoundError(err), "expired key should have been pruned, got err: %v", err)
+			},
+		)
+	})
 }
 
-const defaultExpirationTime = 8 * time.Second
+// TestRemoveExpiredKeyWithEmptyOwner verifies that the key pruner removes an expired public key that is not owned by
+// the pruner and carries a cleanup finalizer, as is the case for service account keys. The pruner cannot assume itself
+// to be the owner, and must tear the key down to drop the finalizer before destroying it.
+func TestRemoveExpiredKeyWithEmptyOwner(t *testing.T) {
+	t.Parallel()
 
-func (suite *KeyPrunerSuite) setup() *clock.Mock {
-	fakeClock := clock.NewMock()
-	fakeClock.Set(time.Now())
+	synctest.Test(t, func(t *testing.T) {
+		testutils.WithRuntime(
+			t.Context(),
+			t,
+			testutils.TestOptions{},
+			func(_ context.Context, tc testutils.TestContext) {
+				require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewKeyPrunerController(keyPrunerInterval)))
+				require.NoError(t, tc.Runtime.RegisterController(authctrl.NewPublicKeyCleanupController()))
+			},
+			func(ctx context.Context, tc testutils.TestContext) {
+				finalizer := authctrl.NewPublicKeyCleanupController().Name()
 
-	suite.startRuntime()
+				// no WithCreateOwner, mirroring how service account keys are created
+				publicKey := newExpiringKey("expired", time.Hour)
+				require.NoError(t, tc.State.Create(ctx, publicKey))
 
-	suite.Require().NoError(suite.runtime.RegisterController(
-		omnictrl.NewKeyPrunerController(1*time.Second, omnictrl.WithClock(fakeClock)),
-	))
+				// wait until the cleanup controller puts its finalizer on the key
+				rtestutils.AssertResource(ctx, t, tc.State, publicKey.Metadata().ID(), func(r *authres.PublicKey, a *assert.Assertions) {
+					a.True(r.Metadata().Finalizers().Has(finalizer))
+				})
 
-	return fakeClock
-}
+				// advance past expiration
+				time.Sleep(2 * time.Hour)
+				synctest.Wait()
 
-func (suite *KeyPrunerSuite) TestRemoveExpiredKey() {
-	fakeClock := suite.setup()
-
-	publicKey := authres.NewPublicKey(testID)
-	publicKey.TypedSpec().Value.Confirmed = true
-	publicKey.TypedSpec().Value.Expiration = timestamppb.New(fakeClock.Now().Add(defaultExpirationTime))
-
-	fakeClock.Add(4 * time.Second)
-
-	publicKey2 := authres.NewPublicKey("testID2")
-	publicKey2.TypedSpec().Value.Confirmed = true
-	publicKey2.TypedSpec().Value.Expiration = timestamppb.New(fakeClock.Now().Add(defaultExpirationTime))
-
-	suite.Assert().NoError(suite.state.Create(suite.ctx, publicKey, state.WithCreateOwner(new(omnictrl.KeyPrunerController{}).Name())))
-	suite.Assert().NoError(suite.state.Create(suite.ctx, publicKey2, state.WithCreateOwner(new(omnictrl.KeyPrunerController{}).Name())))
-
-	assertResource(&suite.OmniSuite, publicKey.Metadata(), func(*authres.PublicKey, *assert.Assertions) {})
-
-	fakeClock.Add(3 * time.Second)
-
-	assertResource(&suite.OmniSuite, publicKey.Metadata(), func(*authres.PublicKey, *assert.Assertions) {})
-
-	fakeClock.Add(2 * time.Second)
-
-	assertNoResource(&suite.OmniSuite, publicKey)
-
-	// Check that second key is not removed
-	assertResource(&suite.OmniSuite, publicKey2.Metadata(), func(*authres.PublicKey, *assert.Assertions) {})
+				// the expired key must be pruned
+				_, err := tc.State.Get(ctx, publicKey.Metadata())
+				require.Truef(t, state.IsNotFoundError(err), "expired key should have been pruned, got err: %v", err)
+			},
+		)
+	})
 }
