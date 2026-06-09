@@ -14,7 +14,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/jonboulle/clockwork"
 	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
 
@@ -33,18 +32,12 @@ type DiscoveryClientCache interface {
 // DiscoveryAffiliateDeleteTaskController generates cluster UUID for every cluster.
 type DiscoveryAffiliateDeleteTaskController struct {
 	discoveryClientCache DiscoveryClientCache
-	clock                clockwork.Clock
 	affiliateTTL         time.Duration
 }
 
 // NewDiscoveryAffiliateDeleteTaskController creates a new DiscoveryAffiliateDeleteTaskController.
-func NewDiscoveryAffiliateDeleteTaskController(clock clockwork.Clock, discoveryClientCache DiscoveryClientCache) *DiscoveryAffiliateDeleteTaskController {
-	if clock == nil {
-		clock = clockwork.NewRealClock()
-	}
-
+func NewDiscoveryAffiliateDeleteTaskController(discoveryClientCache DiscoveryClientCache) *DiscoveryAffiliateDeleteTaskController {
 	return &DiscoveryAffiliateDeleteTaskController{
-		clock:                clock,
 		discoveryClientCache: discoveryClientCache,
 		affiliateTTL:         30 * time.Minute,
 	}
@@ -86,7 +79,7 @@ func (ctrl *DiscoveryAffiliateDeleteTaskController) Reconcile(ctx context.Contex
 		return err
 	}
 
-	expiredOnDiscoveryService := res.Metadata().Created().Add(ctrl.affiliateTTL).Before(ctrl.clock.Now())
+	expiredOnDiscoveryService := res.Metadata().Created().Add(ctrl.affiliateTTL).Before(time.Now())
 	if expiredOnDiscoveryService {
 		logger.Info(
 			"skipping affiliate delete, already expired on discovery service",

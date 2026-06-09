@@ -20,7 +20,6 @@ import (
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/jonboulle/clockwork"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/siderolabs/gen/optional"
@@ -266,7 +265,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			cfg.Services.Siderolink.GetLogServerPort(),
 			cfg.Registries,
 		),
-		omnictrl.NewDiscoveryAffiliateDeleteTaskController(clockwork.NewRealClock(), discoveryClientCache),
+		omnictrl.NewDiscoveryAffiliateDeleteTaskController(discoveryClientCache),
 		omnictrl.NewServiceAccountStatusController(),
 		authctrl.NewIdentityStatusController(),
 		omnictrl.NewInfraMachineRegistrationController(),

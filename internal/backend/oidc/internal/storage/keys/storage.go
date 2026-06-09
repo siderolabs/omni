@@ -16,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/benbjohnson/clock"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/go-jose/go-jose/v4"
@@ -37,7 +36,6 @@ import (
 //nolint:govet
 type Storage struct {
 	st     state.State
-	clock  clock.Clock
 	logger *zap.Logger
 
 	mu           sync.Mutex
@@ -46,10 +44,9 @@ type Storage struct {
 }
 
 // NewStorage creates a new Storage.
-func NewStorage(st state.State, clock clock.Clock, logger *zap.Logger) *Storage {
+func NewStorage(st state.State, logger *zap.Logger) *Storage {
 	result := &Storage{
 		st:     st,
-		clock:  clock,
 		logger: logger,
 	}
 
@@ -133,10 +130,14 @@ func (s *Storage) RunRefreshKey(ctx context.Context, opts ...Opts) error {
 		s.logger.Error("key refresher failed", zap.Error(err))
 
 		// wait some time before restarting
+		timer := time.NewTimer(10 * time.Second)
+
 		select {
 		case <-ctx.Done():
+			timer.Stop()
+
 			return nil
-		case <-s.clock.After(10 * time.Second):
+		case <-timer.C:
 		}
 	}
 
@@ -144,7 +145,7 @@ func (s *Storage) RunRefreshKey(ctx context.Context, opts ...Opts) error {
 }
 
 func (s *Storage) runRefreshKey(ctx context.Context, ch chan<- op.SigningKey) error {
-	ticker := s.clock.Ticker(external.KeyRotationInterval)
+	ticker := time.NewTicker(external.KeyRotationInterval)
 	defer ticker.Stop()
 
 	for ctx.Err() == nil {
@@ -204,7 +205,7 @@ func (s *Storage) storeKey(ctx context.Context, keyID string, privateKey *rsa.Pr
 
 	maxTokenFiletime := s.MaxTokenLifetime()
 
-	key.TypedSpec().Value.Expiration = timestamppb.New(s.clock.Now().Add(2*external.KeyRotationInterval + maxTokenFiletime))
+	key.TypedSpec().Value.Expiration = timestamppb.New(time.Now().Add(2*external.KeyRotationInterval + maxTokenFiletime))
 
 	s.logger.Info(
 		"generating new OIDC key",
@@ -224,7 +225,7 @@ func (s *Storage) cleanupOldKeys(ctx context.Context) error {
 	newKeySet := make([]op.Key, 0, keys.Len())
 
 	for key := range keys.All() {
-		if s.clock.Now().After(key.TypedSpec().Value.Expiration.AsTime()) {
+		if time.Now().After(key.TypedSpec().Value.Expiration.AsTime()) {
 			s.logger.Info(
 				"destroying expired OIDC key",
 				zap.String("key_id", key.Metadata().ID()),

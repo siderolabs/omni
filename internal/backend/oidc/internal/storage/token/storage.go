@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/benbjohnson/clock"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/go-jose/go-jose/v4"
@@ -41,16 +40,14 @@ const Lifetime = 5 * time.Minute
 //nolint:govet
 type Storage struct {
 	state state.State
-	clock clock.Clock
 
 	mu     sync.Mutex
 	tokens map[string]*models.Token
 }
 
 // NewStorage creates a new token storage.
-func NewStorage(st state.State, clk clock.Clock) *Storage {
+func NewStorage(st state.State) *Storage {
 	return &Storage{
-		clock:  clk,
 		tokens: map[string]*models.Token{},
 		state:  st,
 	}
@@ -139,7 +136,7 @@ func (s *Storage) accessToken(applicationID, refreshTokenID, subject string, aud
 		RefreshTokenID: refreshTokenID,
 		Subject:        subject,
 		Audience:       audience,
-		Expiration:     s.clock.Now().Add(Lifetime),
+		Expiration:     time.Now().Add(Lifetime),
 		Scopes:         scopes,
 	}
 
@@ -165,7 +162,7 @@ func (s *Storage) SetUserinfoFromToken(ctx context.Context, userinfo *oidc.UserI
 
 		token, ok := s.tokens[tokenID]
 
-		if ok && s.clock.Now().After(token.Expiration) {
+		if ok && time.Now().After(token.Expiration) {
 			return nil, false
 		}
 

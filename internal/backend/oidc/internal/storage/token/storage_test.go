@@ -8,9 +8,9 @@ package token_test
 
 import (
 	"testing"
+	"testing/synctest"
 	"time"
 
-	"github.com/benbjohnson/clock"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
@@ -32,7 +32,7 @@ func TestValidateJWTProfileScopes(t *testing.T) {
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	s := token.NewStorage(st, clock.NewMock())
+	s := token.NewStorage(st)
 
 	scopes, err := s.ValidateJWTProfileScopes(ctx, "", []string{
 		oidc.ScopeOpenID,
@@ -85,7 +85,7 @@ func TestGetPrivateClaimsFromScopes(t *testing.T) {
 	require.NoError(t, st.Create(ctx, user))
 	require.NoError(t, st.Create(ctx, cluster))
 
-	s := token.NewStorage(st, clock.NewMock())
+	s := token.NewStorage(st)
 
 	claims, err := s.GetPrivateClaimsFromScopes(ctx, userIdentity, "", []string{
 		oidc.ScopeOpenID,
@@ -188,7 +188,7 @@ func TestSetUserinfoFromScopes(t *testing.T) {
 	require.NoError(t, st.Create(ctx, user))
 	require.NoError(t, st.Create(ctx, cluster))
 
-	s := token.NewStorage(st, clock.NewMock())
+	s := token.NewStorage(st)
 
 	ui := &oidc.UserInfo{}
 
@@ -215,57 +215,60 @@ func TestSetUserinfoFromScopes(t *testing.T) {
 }
 
 func TestTokenIntrospection(t *testing.T) {
-	ctx := t.Context()
+	synctest.Test(t, func(t *testing.T) {
+		ctx := t.Context()
 
-	req := mockTokenRequest{}
+		req := mockTokenRequest{}
 
-	userIdentity := req.GetSubject()
-	userID := "test-user-id"
+		userIdentity := req.GetSubject()
+		userID := "test-user-id"
 
-	identity := auth.NewIdentity(userIdentity)
+		identity := auth.NewIdentity(userIdentity)
 
-	identity.TypedSpec().Value.UserId = userID
+		identity.TypedSpec().Value.UserId = userID
 
-	user := auth.NewUser(userID)
+		user := auth.NewUser(userID)
 
-	// will bring constants.DefaultAccessGroup scope
-	user.TypedSpec().Value.Role = string(role.Operator)
+		// will bring constants.DefaultAccessGroup scope
+		user.TypedSpec().Value.Role = string(role.Operator)
 
-	st := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	require.NoError(t, st.Create(ctx, identity))
-	require.NoError(t, st.Create(ctx, user))
+		require.NoError(t, st.Create(ctx, identity))
+		require.NoError(t, st.Create(ctx, user))
 
-	clck := clock.NewMock()
-	s := token.NewStorage(st, clck)
+		s := token.NewStorage(st)
 
-	// create token and try fetching information from it
-	tokenID, expiration, err := s.CreateAccessToken(ctx, req)
-	require.NoError(t, err)
+		// create token and try fetching information from it
+		now := time.Now()
 
-	assert.Equal(t, clck.Now().Add(token.Lifetime), expiration)
-	assert.NotEmpty(t, tokenID)
+		tokenID, expiration, err := s.CreateAccessToken(ctx, req)
+		require.NoError(t, err)
 
-	ui := &oidc.UserInfo{}
+		assert.Equal(t, now.Add(token.Lifetime), expiration)
+		assert.NotEmpty(t, tokenID)
 
-	err = s.SetUserinfoFromToken(ctx, ui, tokenID, userIdentity, "")
-	require.NoError(t, err)
+		ui := &oidc.UserInfo{}
 
-	assert.Equal(t, "some@example.com", ui.Subject)
-	assert.Equal(t, map[string]any{
-		"cluster": "cluster1",
-		"groups":  []string{constants.DefaultAccessGroup},
-	}, ui.Claims)
+		err = s.SetUserinfoFromToken(ctx, ui, tokenID, userIdentity, "")
+		require.NoError(t, err)
 
-	// advance time so that token expires
-	clck.Add(token.Lifetime + time.Second)
+		assert.Equal(t, "some@example.com", ui.Subject)
+		assert.Equal(t, map[string]any{
+			"cluster": "cluster1",
+			"groups":  []string{constants.DefaultAccessGroup},
+		}, ui.Claims)
 
-	err = s.SetUserinfoFromToken(ctx, ui, tokenID, "", "")
-	assert.Error(t, err)
+		// advance time so that token expires
+		time.Sleep(token.Lifetime + time.Second)
 
-	// invalid ID
-	err = s.SetUserinfoFromToken(ctx, ui, "invalid", "", "")
-	assert.Error(t, err)
+		err = s.SetUserinfoFromToken(ctx, ui, tokenID, "", "")
+		assert.Error(t, err)
+
+		// invalid ID
+		err = s.SetUserinfoFromToken(ctx, ui, "invalid", "", "")
+		assert.Error(t, err)
+	})
 }
 
 func TestRevokeToken(t *testing.T) {
@@ -273,8 +276,7 @@ func TestRevokeToken(t *testing.T) {
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	clock := clock.NewMock()
-	s := token.NewStorage(st, clock)
+	s := token.NewStorage(st)
 
 	tokenID, _, err := s.CreateAccessToken(ctx, mockTokenRequest{})
 	require.NoError(t, err)
@@ -291,8 +293,7 @@ func TestTerminateSession(t *testing.T) {
 
 	st := state.WrapCore(namespaced.NewState(inmem.Build))
 
-	clock := clock.NewMock()
-	s := token.NewStorage(st, clock)
+	s := token.NewStorage(st)
 
 	tokenID, _, err := s.CreateAccessToken(ctx, mockTokenRequest{})
 	require.NoError(t, err)

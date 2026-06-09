@@ -8,120 +8,103 @@ package omni_test
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/jonboulle/clockwork"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
-type DiscoveryAffiliateDeleteTaskSuite struct {
-	OmniSuite
-}
-
-func (suite *DiscoveryAffiliateDeleteTaskSuite) TestReconcile() {
-	suite.startRuntime()
-
-	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
-	defer cancel()
-
-	deleteCh := make(chan affiliateDelete)
-	clock := clockwork.NewFakeClock()
-	discoveryClientCache := &discoveryClientCacheMock{
-		deleteCh: deleteCh,
-	}
-	controller := omnictrl.NewDiscoveryAffiliateDeleteTaskController(clock, discoveryClientCache)
-
-	suite.Require().NoError(suite.runtime.RegisterQController(controller))
-
+func newDiscoveryAffiliateDeleteTask() *omni.DiscoveryAffiliateDeleteTask {
 	task := omni.NewDiscoveryAffiliateDeleteTask("affiliate1")
 	task.TypedSpec().Value.ClusterId = "cluster1"
 	task.TypedSpec().Value.DiscoveryServiceEndpoint = "endpoint1"
 
-	suite.Require().NoError(suite.state.Create(ctx, task, state.WithCreateOwner(omnictrl.ClusterMachineTeardownControllerName)))
-
-	// capture the single deletion attempt and assert the values
-	select {
-	case <-ctx.Done():
-		suite.Require().Fail("reconciliation timed out")
-	case affDelete := <-deleteCh:
-		suite.Equal("endpoint1", affDelete.endpoint)
-		suite.Equal("cluster1", affDelete.cluster)
-		suite.Equal("affiliate1", affDelete.affiliate)
-	}
-
-	// assert that the delete task is cleaned up
-	rtestutils.AssertNoResource[*omni.DiscoveryAffiliateDeleteTask](suite.ctx, suite.T(), suite.state, task.Metadata().ID())
+	return task
 }
 
-func (suite *DiscoveryAffiliateDeleteTaskSuite) TestExpiration() {
-	suite.startRuntime()
-
-	deleteCh := make(chan affiliateDelete, 128) // use a large enough buffer to not block retries of the controller
-	clock := clockwork.NewFakeClock()
-	discoveryClientCache := &discoveryClientCacheMock{
-		deleteCh:     deleteCh,
-		failDeletion: true, // block deletion - simulate discovery service being not accessible
-	}
-	controller := omnictrl.NewDiscoveryAffiliateDeleteTaskController(clock, discoveryClientCache)
-
-	suite.Require().NoError(suite.runtime.RegisterQController(controller))
-
-	task := omni.NewDiscoveryAffiliateDeleteTask("affiliate1")
-	task.TypedSpec().Value.ClusterId = "cluster1"
-	task.TypedSpec().Value.DiscoveryServiceEndpoint = "endpoint1"
-
-	suite.Require().NoError(suite.state.Create(suite.ctx, task, state.WithCreateOwner(omnictrl.ClusterMachineTeardownControllerName)))
-
-	// advance time, but not enough for the affiliate to be assumed to be pruned by the discovery service itself
-	clock.Advance(10 * time.Minute)
-
-	// capture a deletion attempt and assert the values
-	select {
-	case <-suite.ctx.Done():
-		suite.Require().Fail("timed out")
-	case affDelete := <-deleteCh:
-		suite.Equal("endpoint1", affDelete.endpoint)
-		suite.Equal("cluster1", affDelete.cluster)
-		suite.Equal("affiliate1", affDelete.affiliate)
-	}
-
-	// capture another deletion attempt, since the first one has failed, and re-assert the values
-	select {
-	case <-suite.ctx.Done():
-		suite.Require().Fail("timed out")
-	case affDelete := <-deleteCh:
-		suite.Equal("endpoint1", affDelete.endpoint)
-		suite.Equal("cluster1", affDelete.cluster)
-		suite.Equal("affiliate1", affDelete.affiliate)
-	}
-
-	// assert that the task is still there, as the deletion failed
-	rtestutils.AssertResource[*omni.DiscoveryAffiliateDeleteTask](
-		suite.ctx, suite.T(), suite.state, task.Metadata().ID(),
-		func(r *omni.DiscoveryAffiliateDeleteTask, assertion *assert.Assertions) {
-			assertion.Equal(resource.PhaseRunning, r.Metadata().Phase())
-		},
-	)
-
-	// advance the time further so that the affiliate is assumed to be pruned by the discovery service itself and a delete call will not be attempted
-	clock.Advance(21 * time.Minute)
-
-	// assert that the delete task is cleaned up
-	rtestutils.AssertNoResource[*omni.DiscoveryAffiliateDeleteTask](suite.ctx, suite.T(), suite.state, task.Metadata().ID())
-}
-
-func TestDiscoveryAffiliateDeleteTaskSuite(t *testing.T) {
+// TestDiscoveryAffiliateDeleteTaskReconcile verifies that the affiliate is deleted from the discovery service and the
+// task is cleaned up.
+func TestDiscoveryAffiliateDeleteTaskReconcile(t *testing.T) {
 	t.Parallel()
 
-	suite.Run(t, new(DiscoveryAffiliateDeleteTaskSuite))
+	synctest.Test(t, func(t *testing.T) {
+		mock := &discoveryClientCacheMock{}
+
+		testutils.WithRuntime(
+			t.Context(),
+			t,
+			testutils.TestOptions{},
+			func(_ context.Context, tc testutils.TestContext) {
+				require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewDiscoveryAffiliateDeleteTaskController(mock)))
+			},
+			func(ctx context.Context, tc testutils.TestContext) {
+				task := newDiscoveryAffiliateDeleteTask()
+				require.NoError(t, tc.State.Create(ctx, task, state.WithCreateOwner(omnictrl.ClusterMachineTeardownControllerName)))
+
+				// the affiliate is not yet expired, so it is deleted from the discovery service and the task is cleaned up
+				rtestutils.AssertNoResource[*omni.DiscoveryAffiliateDeleteTask](ctx, t, tc.State, task.Metadata().ID())
+
+				synctest.Wait()
+
+				assert.Equal(t, []affiliateDelete{{"endpoint1", "cluster1", "affiliate1"}}, mock.calls())
+			},
+		)
+	})
+}
+
+// TestDiscoveryAffiliateDeleteTaskExpiration verifies that while the affiliate cannot be deleted the task is retained,
+// and once enough time passes for the discovery service to have pruned the affiliate itself, the task is cleaned up
+// without attempting a deletion.
+func TestDiscoveryAffiliateDeleteTaskExpiration(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		mock := &discoveryClientCacheMock{failDeletion: true}
+
+		testutils.WithRuntime(
+			t.Context(),
+			t,
+			testutils.TestOptions{},
+			func(_ context.Context, tc testutils.TestContext) {
+				require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewDiscoveryAffiliateDeleteTaskController(mock)))
+			},
+			func(ctx context.Context, tc testutils.TestContext) {
+				task := newDiscoveryAffiliateDeleteTask()
+				require.NoError(t, tc.State.Create(ctx, task, state.WithCreateOwner(omnictrl.ClusterMachineTeardownControllerName)))
+
+				synctest.Wait()
+
+				// a deletion was attempted with the expected values, but it failed, so the task is retained
+				calls := mock.calls()
+				require.NotEmpty(t, calls)
+				assert.Equal(t, affiliateDelete{"endpoint1", "cluster1", "affiliate1"}, calls[0])
+
+				rtestutils.AssertResource[*omni.DiscoveryAffiliateDeleteTask](
+					ctx, t, tc.State, task.Metadata().ID(),
+					func(r *omni.DiscoveryAffiliateDeleteTask, assertion *assert.Assertions) {
+						assertion.Equal(resource.PhaseRunning, r.Metadata().Phase())
+					},
+				)
+
+				// advance past the TTL so that the affiliate is assumed to be pruned by the discovery service itself.
+				// while the deletion keeps failing the task is never torn down, so the task being cleaned up below proves
+				// the expired branch skipped the deletion and let the task go.
+				time.Sleep(31 * time.Minute)
+
+				rtestutils.AssertNoResource[*omni.DiscoveryAffiliateDeleteTask](ctx, t, tc.State, task.Metadata().ID())
+			},
+		)
+	})
 }
 
 type affiliateDelete struct {
@@ -131,20 +114,26 @@ type affiliateDelete struct {
 }
 
 type discoveryClientCacheMock struct {
-	deleteCh     chan affiliateDelete
+	recorded     []affiliateDelete
+	mu           sync.Mutex
 	failDeletion bool
 }
 
-func (d *discoveryClientCacheMock) AffiliateDelete(ctx context.Context, endpoint, cluster, affiliate string) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case d.deleteCh <- affiliateDelete{endpoint, cluster, affiliate}:
-	}
+func (d *discoveryClientCacheMock) AffiliateDelete(_ context.Context, endpoint, cluster, affiliate string) error {
+	d.mu.Lock()
+	d.recorded = append(d.recorded, affiliateDelete{endpoint, cluster, affiliate})
+	d.mu.Unlock()
 
 	if d.failDeletion {
 		return fmt.Errorf("deletion blocked - discovery service is not accessible")
 	}
 
 	return nil
+}
+
+func (d *discoveryClientCacheMock) calls() []affiliateDelete {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	return append([]affiliateDelete(nil), d.recorded...)
 }

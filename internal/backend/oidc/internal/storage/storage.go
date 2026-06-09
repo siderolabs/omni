@@ -11,7 +11,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/benbjohnson/clock"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -42,12 +41,10 @@ var _ op.Storage = &Storage{}
 func NewStorage(st state.State, logger *zap.Logger) *Storage {
 	logger = logger.With(logging.Component("oidc_storage"))
 
-	clk := clock.New()
-
 	return &Storage{
 		authRequestStorage: authrequest.NewStorage(),
-		tokenStorage:       token.NewStorage(st, clk),
-		keyStorage:         keys.NewStorage(st, clk, logger),
+		tokenStorage:       token.NewStorage(st),
+		keyStorage:         keys.NewStorage(st, logger),
 	}
 }
 
