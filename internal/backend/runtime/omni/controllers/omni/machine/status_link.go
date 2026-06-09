@@ -62,6 +62,11 @@ func (ctrl *StatusLinkController) Settings() controller.QSettings {
 				Kind:      controller.InputQMapped,
 			},
 			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.MachineStatusSnapshotType,
+				Kind:      controller.InputQMapped,
+			},
+			{
 				Namespace: resources.MetricsNamespace,
 				Type:      omni.MachineStatusLinkType,
 				Kind:      controller.InputQMappedDestroyReady,
@@ -99,7 +104,7 @@ func (ctrl *StatusLinkController) Settings() controller.QSettings {
 // MapInput implements controller.QController interface.
 func (ctrl *StatusLinkController) MapInput(ctx context.Context, logger *zap.Logger, r controller.QRuntime, ptr controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
 	switch ptr.Type() {
-	case omni.MachineStatusType, omni.MachineStatusLinkType:
+	case omni.MachineStatusType, omni.MachineStatusSnapshotType, omni.MachineStatusLinkType:
 		return []resource.Pointer{
 			siderolink.NewLink(ptr.ID(), nil).Metadata(),
 		}, nil
@@ -204,6 +209,15 @@ func (ctrl *StatusLinkController) reconcileRunning(ctx context.Context, r contro
 
 	machineStatusLink.TypedSpec().Value.MessageStatus = machineStatus.TypedSpec().Value
 	machineStatusLink.TypedSpec().Value.MachineCreatedAt = machineStatus.Metadata().Created().Unix()
+
+	snapshot, err := safe.ReaderGetByID[*omni.MachineStatusSnapshot](ctx, r, link.Metadata().ID())
+	if err != nil {
+		if !state.IsNotFoundError(err) {
+			return err
+		}
+	} else {
+		machineStatusLink.TypedSpec().Value.Snapshot = snapshot.TypedSpec().Value
+	}
 
 	return nil
 }

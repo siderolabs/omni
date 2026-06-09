@@ -43,7 +43,9 @@ import { MachineFilterOption } from '@/methods/machine'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
+import MaintenanceInstallModal from '@/views/Machines/components/MaintenanceInstallModal.vue'
 import MaintenanceUpdateModal from '@/views/Machines/components/MaintenanceUpdateModal.vue'
+import MaintenanceUpgradeModal from '@/views/Machines/components/MaintenanceUpgradeModal.vue'
 import MachineDetailsPanel from '@/views/Machines/MachineDetailsPanel.vue'
 import MachineItem from '@/views/Machines/MachineItem.vue'
 
@@ -56,7 +58,11 @@ const router = useRouter()
 const showUUID = useLocalStorage<'hostname' | 'uuid'>('_machines_list_show_uuid', 'hostname')
 
 const maintenaceUpdateModalOpen = ref(false)
+const maintenaceUpgradeModalOpen = ref(false)
+const maintenaceInstallModalOpen = ref(false)
 const maintenaceUpdateModalMachine = ref<string>()
+const maintenaceUpgradeModalMachine = ref<string>()
+const maintenaceInstallModalMachine = ref<string>()
 
 const { data: infraProviderStatuses } = useResourceWatch<InfraProviderStatusSpec>({
   resource: {
@@ -303,10 +309,22 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
           @update:selected="(v) => updateSelected(item, v)"
           @open-panel="openPanel(item.metadata.id ?? '')"
           @filter-labels="(label) => addLabel(filterLabels, label)"
-          @open-update-talos="
+          @open-maintenance-update="
             (machine) => {
               maintenaceUpdateModalMachine = machine
               maintenaceUpdateModalOpen = true
+            }
+          "
+          @open-maintenance-upgrade="
+            (machine) => {
+              maintenaceUpgradeModalMachine = machine
+              maintenaceUpgradeModalOpen = true
+            }
+          "
+          @open-maintenance-install="
+            (machine) => {
+              maintenaceInstallModalMachine = machine
+              maintenaceInstallModalOpen = true
             }
           "
         />
@@ -326,6 +344,18 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
       v-if="maintenaceUpdateModalMachine"
       v-model:open="maintenaceUpdateModalOpen"
       :machine-id="maintenaceUpdateModalMachine"
+    />
+
+    <MaintenanceUpgradeModal
+      v-if="maintenaceUpgradeModalMachine"
+      v-model:open="maintenaceUpgradeModalOpen"
+      :machine-id="maintenaceUpgradeModalMachine"
+    />
+
+    <MaintenanceInstallModal
+      v-if="maintenaceInstallModalMachine"
+      v-model:open="maintenaceInstallModalOpen"
+      :machine-id="maintenaceInstallModalMachine"
     />
   </PageContainer>
 </template>

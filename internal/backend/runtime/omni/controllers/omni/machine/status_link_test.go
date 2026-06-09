@@ -12,6 +12,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -63,6 +64,15 @@ func TestBasicMachineOnAndOff(t *testing.T) {
 
 			rtestutils.AssertResources(ctx, t, testContext.State, []string{testID}, func(r *omni.MachineStatusLink, assert *assert.Assertions) {
 				assert.True(r.TypedSpec().Value.GetMessageStatus().GetConnected())
+			})
+
+			rmock.Mock[*omni.MachineStatusSnapshot](
+				ctx, t, testContext.State,
+				options.WithID(testID),
+			)
+
+			rtestutils.AssertResource(ctx, t, testContext.State, testID, func(r *omni.MachineStatusLink, assert *assert.Assertions) {
+				assert.Equal(machineapi.MachineStatusEvent_RUNNING, r.TypedSpec().Value.GetSnapshot().GetMachineStatus().GetStage())
 			})
 
 			select {

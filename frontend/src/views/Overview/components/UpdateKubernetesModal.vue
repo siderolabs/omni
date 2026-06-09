@@ -208,7 +208,7 @@ const upgradeClick = async () => {
       !status || runningPrechecks || selectedVersion === status?.spec?.last_upgrade_version
     "
     :loading="statusLoading || runningPrechecks"
-    content-class="flex min-h-0 max-w-xl flex-1 flex-col gap-2"
+    content-class="flex max-w-xl flex-col gap-2"
     @confirm="upgradeClick"
   >
     <div class="shrink-0">
@@ -248,7 +248,7 @@ const upgradeClick = async () => {
             :disabled="!upgradeable"
           >
             <div
-              class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
+              class="flex transform cursor-pointer items-center gap-2 px-2 py-1 text-sm transition-colors hover:bg-naturals-n4"
               :class="{ 'bg-naturals-n4': checked }"
             >
               <TCheckbox

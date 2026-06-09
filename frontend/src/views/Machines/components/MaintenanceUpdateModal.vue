@@ -11,12 +11,20 @@ import { computed, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { ManagementService } from '@/api/omni/management/management.pb'
-import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/resources'
+import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
+import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import {
+  DefaultNamespace,
+  MachineStatusLinkType,
+  MetricsNamespace,
+  TalosVersionType,
+} from '@/api/resources'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import Modal from '@/components/Modals/Modal.vue'
+import TAlert from '@/components/TAlert.vue'
 import { majorMinorVersion } from '@/methods'
+import { useDerivedMachineStage } from '@/methods/useDerivedMachineStage'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 
@@ -27,6 +35,7 @@ const { machineId } = defineProps<{
 const open = defineModel<boolean>('open', { default: false })
 
 const selectedVersion = ref('')
+const updating = ref(false)
 
 const { data: talosVersions, loading: talosVersionsLoading } = useResourceWatch<TalosVersionSpec>(
   () => ({
@@ -39,32 +48,39 @@ const { data: talosVersions, loading: talosVersionsLoading } = useResourceWatch<
   }),
 )
 
-const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
+const { data: machine } = useResourceWatch<MachineStatusLinkSpec>(() => ({
   skip: !open.value,
   resource: {
-    type: MachineStatusType,
-    namespace: DefaultNamespace,
+    type: MachineStatusLinkType,
+    namespace: MetricsNamespace,
     id: machineId,
   },
   runtime: Runtime.Omni,
 }))
 
+const versionMap = computed(() => new Map(talosVersions.value.map((v) => [v.metadata.id!, v])))
+const currentVersion = computed(() => machine.value?.spec.message_status?.talos_version?.slice(1))
+
 watchEffect(() => {
-  if (open.value) selectedVersion.value = machine.value?.spec.talos_version?.slice(1) ?? ''
+  if (open.value) selectedVersion.value = currentVersion.value ?? ''
 })
 
-const updating = ref(false)
+const { installing, upgrading } = useDerivedMachineStage(() => machine.value?.spec.snapshot)
+
+const inProgress = computed(() => installing.value || upgrading.value)
+const inProgressMessage = computed(() =>
+  installing.value
+    ? 'A Talos install is already in progress on this machine.'
+    : 'A Talos upgrade is already in progress on this machine.',
+)
 
 interface VersionGroup {
   versions: string[]
   unsupported: boolean
 }
 
-const versionMap = computed(() => new Map(talosVersions.value.map((v) => [v.metadata.id!, v])))
-const currentVersion = computed(() => machine.value?.spec.talos_version?.slice(1))
-
 const upgradeVersions = computed(() => {
-  if (!currentVersion.value) return []
+  if (!currentVersion.value) return {}
 
   const upgradeVersions =
     versionMap.value.get(currentVersion.value)?.spec.upgradable_talos_versions ?? []
@@ -94,7 +110,7 @@ const upgradeVersions = computed(() => {
 })
 
 const upgradeClick = async () => {
-  if (machine.value?.spec.talos_version === `v${selectedVersion.value}`) {
+  if (machine.value?.spec.message_status?.talos_version === `v${selectedVersion.value}`) {
     return
   }
 
@@ -125,16 +141,23 @@ const upgradeClick = async () => {
 <template>
   <Modal
     v-model:open="open"
-    :title="`Update Talos on Node ${machineId}`"
+    title="Update Talos"
     action-label="Update"
-    :action-disabled="!talosVersions || updating"
+    cancel-label="Close"
+    :action-disabled="!talosVersions || updating || inProgress"
     :loading="talosVersionsLoading || updating"
-    content-class="flex min-h-0 max-w-xl flex-1 flex-col gap-2"
+    content-class="flex max-w-xl flex-col gap-2"
     @confirm="upgradeClick"
   >
+    <template #description>Node {{ machineId }}</template>
+
     <div class="shrink-0">
       <ManagedByTemplatesWarning warning-style="popup" />
     </div>
+
+    <TAlert v-if="inProgress" type="warn" title="Upgrade in progress">
+      {{ inProgressMessage }}
+    </TAlert>
 
     <template v-if="!talosVersionsLoading && machine">
       <span v-if="!Object.keys(upgradeVersions).length">No versions found</span>
@@ -158,7 +181,7 @@ const upgradeClick = async () => {
               :value="version"
             >
               <div
-                class="tranform transition-color flex cursor-pointer items-center gap-2 px-2 py-1 text-sm hover:bg-naturals-n4"
+                class="flex transform cursor-pointer items-center gap-2 px-2 py-1 text-sm transition-colors hover:bg-naturals-n4"
                 :class="{ 'bg-naturals-n4': checked }"
               >
                 <TCheckbox
@@ -170,7 +193,7 @@ const upgradeClick = async () => {
                   "
                 />
                 {{ version }}
-                <span v-if="version === machine.spec.talos_version?.slice(1)">(current)</span>
+                <span v-if="version === currentVersion">(current)</span>
               </div>
             </RadioGroupOption>
           </div>

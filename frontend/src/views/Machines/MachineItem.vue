@@ -6,6 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
+import * as semver from 'semver'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
@@ -23,6 +24,7 @@ import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions, usePermissions } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
+import { useDerivedMachineStage } from '@/methods/useDerivedMachineStage'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 
 const {
@@ -38,7 +40,9 @@ const {
 
 defineEmits<{
   openPanel: []
-  openUpdateTalos: [machine: string]
+  openMaintenanceUpdate: [machine: string]
+  openMaintenanceInstall: [machine: string]
+  openMaintenanceUpgrade: [machine: string]
   filterLabels: [Label]
 }>()
 
@@ -61,8 +65,20 @@ const machineName = computed(() => {
 
 const clusterName = computed(() => machine.spec.message_status?.cluster)
 
+const { installing, upgrading, status } = useDerivedMachineStage(() => machine.spec.snapshot)
+
 const canDoMaintenanceUpdate = computed(() => {
   if (machine.spec.message_status?.cluster) {
+    return false
+  }
+
+  if (installing.value || upgrading.value) {
+    return false
+  }
+
+  // Agent-mode machines are rejected by both MaintenanceUpgrade and MaintenanceLifecycle on the
+  // server, so don't expose a button that the server will refuse.
+  if (machine.spec.message_status?.schematic?.in_agent_mode) {
     return false
   }
 
@@ -74,11 +90,52 @@ const maintenanceUpdateDescription = computed(() => {
     return 'Maintenance upgrade is not possible: machine is a part of a cluster'
   }
 
+  if (installing.value) {
+    return 'Maintenance upgrade is not possible: a Talos install is already in progress on this machine'
+  }
+
+  if (upgrading.value) {
+    return 'Maintenance upgrade is not possible: a Talos upgrade is already in progress on this machine'
+  }
+
+  if (machine.spec.message_status?.schematic?.in_agent_mode) {
+    return 'Maintenance upgrade is not possible: machine is in agent mode'
+  }
+
   if (!canDoMaintenanceUpdate.value) {
     return 'Maintenance upgrade is not possible: Talos is not installed'
   }
 
   return 'Change Talos version'
+})
+
+const canShowMaintenanceInstall = computed(() => {
+  if (!canAccessMaintenanceNodes.value) {
+    return false
+  }
+
+  if (machine.spec.message_status?.cluster) {
+    return false
+  }
+
+  if (machine.metadata.labels?.[MachineStatusLabelInstalled] !== undefined) {
+    return false
+  }
+
+  if (machine.spec.message_status?.schematic?.in_agent_mode) {
+    return false
+  }
+
+  const version = semver.coerce(machine.spec.message_status?.talos_version)
+
+  return version !== null && semver.gte(version, '1.13.0')
+})
+
+// `MaintenanceLifecycle(OPERATION_UPGRADE)` only exists in Talos >= 1.13
+const canUseLifecycleUpgrade = computed(() => {
+  const version = semver.coerce(machine.spec.message_status?.talos_version)
+
+  return version !== null && semver.gte(version, '1.13.0')
 })
 </script>
 
@@ -102,30 +159,50 @@ const maintenanceUpdateDescription = computed(() => {
           </RouterLink>
         </h2>
 
-        <CopyButton :text="machineName" />
+        <Tooltip :description="showUUID ? 'Copy machine UUID' : 'Copy machine name'">
+          <CopyButton :text="machineName" />
+        </Tooltip>
 
-        <Tooltip description="Powered on">
+        <Tooltip
+          v-if="
+            machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_ON
+          "
+          description="Powered on"
+        >
           <TIcon
-            v-if="
-              machine.spec.message_status?.power_state ===
-              MachineStatusSpecPowerState.POWER_STATE_ON
-            "
             icon="power"
             class="size-4 shrink-0 text-green-g1"
             aria-label="machine powered on"
           />
         </Tooltip>
 
-        <Tooltip description="Powered off">
+        <Tooltip
+          v-if="
+            machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_OFF
+          "
+          description="Powered off"
+        >
           <TIcon
-            v-if="
-              machine.spec.message_status?.power_state ===
-              MachineStatusSpecPowerState.POWER_STATE_OFF
-            "
             icon="power-off"
             class="size-4 shrink-0 text-red-r1"
             aria-label="machine powered off"
           />
+        </Tooltip>
+
+        <Tooltip
+          v-if="status"
+          :description="status.name"
+          :class="{ 'opacity-50': machine.spec.tearing_down }"
+        >
+          <!-- Wrapper to prevent tooltip bounce when icon is animated e.g. loading -->
+          <span class="size-4 shrink-0">
+            <TIcon
+              :icon="status.icon"
+              class="size-full"
+              :class="status.class"
+              :aria-label="`status: ${status.name.toLowerCase()}`"
+            />
+          </span>
         </Tooltip>
 
         <div class="grow" />
@@ -157,7 +234,11 @@ const maintenanceUpdateDescription = computed(() => {
             <button
               :disabled="!canDoMaintenanceUpdate"
               class="flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-naturals-n11 hover:not-disabled:bg-naturals-n4 hover:not-disabled:text-naturals-n14 disabled:opacity-40"
-              @click="$emit('openUpdateTalos', machine.metadata.id!)"
+              @click="
+                canUseLifecycleUpgrade
+                  ? $emit('openMaintenanceUpgrade', machine.metadata.id!)
+                  : $emit('openMaintenanceUpdate', machine.metadata.id!)
+              "
             >
               <span class="max-md:hidden">Update Talos</span>
               <TIcon icon="upgrade" aria-hidden="true" />
@@ -165,6 +246,15 @@ const maintenanceUpdateDescription = computed(() => {
           </Tooltip>
 
           <TActionsBox>
+            <TActionsBoxItem
+              v-if="canShowMaintenanceInstall"
+              icon="upgrade"
+              :disabled="installing || upgrading"
+              @select="$emit('openMaintenanceInstall', machine.metadata.id!)"
+            >
+              Install Talos
+            </TActionsBoxItem>
+
             <TActionsBoxItem
               icon="settings"
               :disabled="!canReadConfigPatches"

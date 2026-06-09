@@ -24,11 +24,12 @@ const (
 
 // MachineStatusLinkSpec describes the combination of MessageStatusSpec and SideroLinkSpec and SiderolinkCounterSpec
 type MachineStatusLinkSpec struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	MessageStatus     *MachineStatusSpec     `protobuf:"bytes,1,opt,name=message_status,json=messageStatus,proto3" json:"message_status,omitempty"`
-	SiderolinkCounter *SiderolinkCounterSpec `protobuf:"bytes,2,opt,name=siderolink_counter,json=siderolinkCounter,proto3" json:"siderolink_counter,omitempty"`
-	MachineCreatedAt  int64                  `protobuf:"varint,3,opt,name=machine_created_at,json=machineCreatedAt,proto3" json:"machine_created_at,omitempty"`
-	TearingDown       bool                   `protobuf:"varint,4,opt,name=tearing_down,json=tearingDown,proto3" json:"tearing_down,omitempty"`
+	state             protoimpl.MessageState     `protogen:"open.v1"`
+	MessageStatus     *MachineStatusSpec         `protobuf:"bytes,1,opt,name=message_status,json=messageStatus,proto3" json:"message_status,omitempty"`
+	SiderolinkCounter *SiderolinkCounterSpec     `protobuf:"bytes,2,opt,name=siderolink_counter,json=siderolinkCounter,proto3" json:"siderolink_counter,omitempty"`
+	MachineCreatedAt  int64                      `protobuf:"varint,3,opt,name=machine_created_at,json=machineCreatedAt,proto3" json:"machine_created_at,omitempty"`
+	TearingDown       bool                       `protobuf:"varint,4,opt,name=tearing_down,json=tearingDown,proto3" json:"tearing_down,omitempty"`
+	Snapshot          *MachineStatusSnapshotSpec `protobuf:"bytes,5,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -91,16 +92,24 @@ func (x *MachineStatusLinkSpec) GetTearingDown() bool {
 	return false
 }
 
+func (x *MachineStatusLinkSpec) GetSnapshot() *MachineStatusSnapshotSpec {
+	if x != nil {
+		return x.Snapshot
+	}
+	return nil
+}
+
 var File_omni_specs_ephemeral_proto protoreflect.FileDescriptor
 
 const file_omni_specs_ephemeral_proto_rawDesc = "" +
 	"\n" +
-	"\x1aomni/specs/ephemeral.proto\x12\x05specs\x1a\x15omni/specs/omni.proto\x1a\x1bomni/specs/siderolink.proto\"\xf6\x01\n" +
+	"\x1aomni/specs/ephemeral.proto\x12\x05specs\x1a\x15omni/specs/omni.proto\x1a\x1bomni/specs/siderolink.proto\"\xb4\x02\n" +
 	"\x15MachineStatusLinkSpec\x12?\n" +
 	"\x0emessage_status\x18\x01 \x01(\v2\x18.specs.MachineStatusSpecR\rmessageStatus\x12K\n" +
 	"\x12siderolink_counter\x18\x02 \x01(\v2\x1c.specs.SiderolinkCounterSpecR\x11siderolinkCounter\x12,\n" +
 	"\x12machine_created_at\x18\x03 \x01(\x03R\x10machineCreatedAt\x12!\n" +
-	"\ftearing_down\x18\x04 \x01(\bR\vtearingDownB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"\ftearing_down\x18\x04 \x01(\bR\vtearingDown\x12<\n" +
+	"\bsnapshot\x18\x05 \x01(\v2 .specs.MachineStatusSnapshotSpecR\bsnapshotB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_ephemeral_proto_rawDescOnce sync.Once
@@ -116,18 +125,20 @@ func file_omni_specs_ephemeral_proto_rawDescGZIP() []byte {
 
 var file_omni_specs_ephemeral_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_omni_specs_ephemeral_proto_goTypes = []any{
-	(*MachineStatusLinkSpec)(nil), // 0: specs.MachineStatusLinkSpec
-	(*MachineStatusSpec)(nil),     // 1: specs.MachineStatusSpec
-	(*SiderolinkCounterSpec)(nil), // 2: specs.SiderolinkCounterSpec
+	(*MachineStatusLinkSpec)(nil),     // 0: specs.MachineStatusLinkSpec
+	(*MachineStatusSpec)(nil),         // 1: specs.MachineStatusSpec
+	(*SiderolinkCounterSpec)(nil),     // 2: specs.SiderolinkCounterSpec
+	(*MachineStatusSnapshotSpec)(nil), // 3: specs.MachineStatusSnapshotSpec
 }
 var file_omni_specs_ephemeral_proto_depIdxs = []int32{
 	1, // 0: specs.MachineStatusLinkSpec.message_status:type_name -> specs.MachineStatusSpec
 	2, // 1: specs.MachineStatusLinkSpec.siderolink_counter:type_name -> specs.SiderolinkCounterSpec
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 2: specs.MachineStatusLinkSpec.snapshot:type_name -> specs.MachineStatusSnapshotSpec
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_omni_specs_ephemeral_proto_init() }

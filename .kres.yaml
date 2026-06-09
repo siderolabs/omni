@@ -463,7 +463,7 @@ spec:
           skipArtifactDownload: true
         environmentOverride:
           TEST_CLASS: integration-qemu
-          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|MaintenanceUpgrade)$"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|KernelArgsUpdate|MaintenanceUpgrade|MaintenanceLifecycle)$"
       - name: e2e-templates
         needsOverride:
           [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]

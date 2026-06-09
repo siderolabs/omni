@@ -133,7 +133,7 @@ const upgradeClick = async () => {
     :action-label="action"
     :action-disabled="!status || selectedVersion === currentVersion"
     :loading="statusLoading || updating"
-    content-class="flex min-h-0 max-w-xl flex-1 flex-col gap-2"
+    content-class="flex max-w-xl flex-col gap-2"
     @confirm="upgradeClick"
   >
     <div class="shrink-0">

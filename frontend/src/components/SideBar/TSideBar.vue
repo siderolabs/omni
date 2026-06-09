@@ -5,11 +5,11 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import { type Resource, ResourceService } from '@/api/grpc'
+import type { Resource } from '@/api/grpc'
 import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
 import type {
   ClusterMachineIdentitySpec,
@@ -17,7 +17,6 @@ import type {
   KubernetesUpgradeManifestStatusSpec,
   MachineStatusMetricsSpec,
 } from '@/api/omni/specs/omni.pb'
-import { withRuntime } from '@/api/options'
 import {
   ClusterMachineIdentityType,
   ClusterType,
@@ -35,16 +34,15 @@ import type { ServiceSpec } from '@/api/talos/v1alpha1.pb'
 import type { SideBarItem } from '@/components/SideBar/TSideBarList.vue'
 import TSidebarList from '@/components/SideBar/TSideBarList.vue'
 import UserInfo from '@/components/UserInfo/UserInfo.vue'
-import { getContext } from '@/context'
 import { setupBackupStatus } from '@/methods'
 import { useClusterPermissions, usePermissions } from '@/methods/auth'
 import { useFeatures } from '@/methods/features'
 import { useIdentity } from '@/methods/identity'
+import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ExposedServiceSideBar from '@/views/ExposedService/ExposedServiceSideBar.vue'
 
 const route = useRoute()
-const context = getContext()
 const { avatar, fullname, identity } = useIdentity()
 
 const { data: featuresConfig } = useFeatures()
@@ -107,32 +105,23 @@ const { data: services } = useResourceWatch<ServiceSpec>(() => ({
     namespace: TalosRuntimeNamespace,
   },
   runtime: Runtime.Talos,
-  context,
+  context: {
+    cluster: currentCluster.value,
+    node: currentMachine.value,
+  },
 }))
 
-const node = ref<string>()
-
-watch(
-  currentMachine,
-  async (machineId) => {
-    if (!machineId) {
-      node.value = undefined
-      return
-    }
-
-    const nodename = await ResourceService.Get<Resource<ClusterMachineIdentitySpec>>(
-      {
-        type: ClusterMachineIdentityType,
-        id: machineId,
-        namespace: DefaultNamespace,
-      },
-      withRuntime(Runtime.Omni),
-    )
-
-    node.value = nodename.spec.nodename
+const { data: nodename } = useResourceGet<ClusterMachineIdentitySpec>(() => ({
+  skip: !currentCluster.value || !currentMachine.value,
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterMachineIdentityType,
+    id: currentMachine.value,
   },
-  { immediate: true },
-)
+}))
+
+const node = computed(() => nodename.value?.spec.nodename)
 
 const groupProviders = (statuses: Resource<InfraProviderStatusSpec>[]) =>
   statuses.reduce<Record<string, typeof statuses>>((res, status) => {

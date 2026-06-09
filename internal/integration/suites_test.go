@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -1177,6 +1178,44 @@ Create a cluster out of the same machine on version2, Omni should upgrade the ma
 				"integration-maintenance-upgrade",
 				options.AnotherKubernetesVersion,
 				options.MachineOptions.TalosVersion,
+				options.AnotherTalosVersion,
+			),
+		)
+	}
+}
+
+func testMaintenanceLifecycle(options *TestOptions) TestFunc {
+	return func(t *testing.T) {
+		t.Log(`
+Test install + upgrade through the MaintenanceLifecycle management API on a single maintenance-mode machine.
+
+Step 1: pick an unallocated maintenance-mode machine without Talos installed, install Talos to disk via
+MaintenanceLifecycle (OPERATION_INSTALL).
+Step 2: on the same machine — now reporting Talos installed and still in maintenance mode — upgrade the
+on-disk Talos to a different version via MaintenanceLifecycle (OPERATION_UPGRADE) and assert the machine
+eventually reports the upgrade target as its running Talos version.`)
+
+		t.Parallel()
+
+		options.claimMachines(t, 1)
+
+		// machineID is set by the MachineShouldBeInstalledInMaintenanceMode and consumed by the MachineShouldBeUpgradedInMaintenanceMode so both run against the same machine.
+		var machineID resource.ID
+
+		t.Run(
+			"MachineShouldBeInstalledInMaintenanceMode",
+			AssertMachineShouldBeInstalledInMaintenanceMode(
+				t.Context(), options,
+				options.MachineOptions.TalosVersion,
+				&machineID,
+			),
+		)
+
+		t.Run(
+			"MachineShouldBeUpgradedInMaintenanceMode",
+			AssertMachineShouldBeUpgradedViaMaintenanceLifecycle(
+				t.Context(), options,
+				&machineID,
 				options.AnotherTalosVersion,
 			),
 		)
