@@ -330,7 +330,7 @@ var (
 	}
 
 	joinTokenDeleteCmd = &cobra.Command{
-		Use:     "delete <name>",
+		Use:     "delete <id>",
 		Aliases: []string{"d"},
 		Short:   "Delete a join token",
 		Args:    cobra.ExactArgs(1),
