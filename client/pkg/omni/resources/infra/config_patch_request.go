@@ -23,7 +23,7 @@ func NewConfigPatchRequest(id resource.ID) *ConfigPatchRequest {
 }
 
 const (
-	// ConfigPatchRequestType is the type of the ConfigPatch resource.
+	// ConfigPatchRequestType is the type of the ConfigPatchRequest resource.
 	// tsgen:ConfigPatchRequestType
 	ConfigPatchRequestType = resource.Type("ConfigPatchRequests.omni.sidero.dev")
 )
@@ -35,7 +35,7 @@ type ConfigPatchRequest = typed.Resource[ConfigPatchRequestSpec, ConfigPatchRequ
 // ConfigPatchRequestSpec wraps specs.ConfigPatchRequestSpec.
 type ConfigPatchRequestSpec = protobuf.ResourceSpec[specs.ConfigPatchSpec, *specs.ConfigPatchSpec]
 
-// ConfigPatchRequestExtension provides auxiliary methods for ConfigPatch resource.
+// ConfigPatchRequestExtension provides auxiliary methods for ConfigPatchRequest resource.
 type ConfigPatchRequestExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

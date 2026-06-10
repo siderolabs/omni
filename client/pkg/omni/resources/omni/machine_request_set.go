@@ -33,7 +33,7 @@ type MachineRequestSet = typed.Resource[MachineRequestSetSpec, MachineRequestSet
 // MachineRequestSetSpec wraps specs.MachineRequestSetSpec.
 type MachineRequestSetSpec = protobuf.ResourceSpec[specs.MachineRequestSetSpec, *specs.MachineRequestSetSpec]
 
-// MachineRequestSetExtension providers auxiliary methods for MachineRequestSet resource.
+// MachineRequestSetExtension provides auxiliary methods for MachineRequestSet resource.
 type MachineRequestSetExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

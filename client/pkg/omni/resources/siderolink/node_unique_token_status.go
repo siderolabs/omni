@@ -31,7 +31,7 @@ type NodeUniqueTokenStatus = typed.Resource[NodeUniqueTokenStatusSpec, NodeUniqu
 // NodeUniqueTokenStatusSpec wraps specs.NodeUniqueTokenStatusSpec.
 type NodeUniqueTokenStatusSpec = protobuf.ResourceSpec[specs.NodeUniqueTokenStatusSpec, *specs.NodeUniqueTokenStatusSpec]
 
-// NodeUniqueTokenStatusExtension providers auxiliary methods for NodeUniqueTokenStatus resource.
+// NodeUniqueTokenStatusExtension provides auxiliary methods for NodeUniqueTokenStatus resource.
 type NodeUniqueTokenStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

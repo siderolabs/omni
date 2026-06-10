@@ -43,7 +43,7 @@ type Config = typed.Resource[ConfigSpec, ConfigExtension]
 // ConfigSpec wraps specs.AuthConfigSpec.
 type ConfigSpec = protobuf.ResourceSpec[specs.AuthConfigSpec, *specs.AuthConfigSpec]
 
-// ConfigExtension providers auxiliary methods for Config resource.
+// ConfigExtension provides auxiliary methods for Config resource.
 type ConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

@@ -33,7 +33,7 @@ type ClusterMachineTalosVersion = typed.Resource[ClusterMachineTalosVersionSpec,
 // ClusterMachineTalosVersionSpec wraps specs.ClusterMachineTalosVersionSpec.
 type ClusterMachineTalosVersionSpec = protobuf.ResourceSpec[specs.ClusterMachineTalosVersionSpec, *specs.ClusterMachineTalosVersionSpec]
 
-// ClusterMachineTalosVersionExtension providers auxiliary methods for ClusterMachineTalosVersion resource.
+// ClusterMachineTalosVersionExtension provides auxiliary methods for ClusterMachineTalosVersion resource.
 type ClusterMachineTalosVersionExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

@@ -35,7 +35,7 @@ type Machine = typed.Resource[MachineSpec, MachineExtension]
 // MachineSpec wraps specs.MachineSpec.
 type MachineSpec = protobuf.ResourceSpec[specs.InfraMachineSpec, *specs.InfraMachineSpec]
 
-// MachineExtension providers auxiliary methods for Machine resource.
+// MachineExtension provides auxiliary methods for Machine resource.
 type MachineExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

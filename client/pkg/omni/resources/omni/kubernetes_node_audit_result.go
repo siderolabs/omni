@@ -42,8 +42,8 @@ func (KubernetesNodeAuditResultExtension) ResourceDefinition() meta.ResourceDefi
 		DefaultNamespace: resources.DefaultNamespace,
 		PrintColumns: []meta.PrintColumn{
 			{
-				Name:     "Nodes",
-				JSONPath: "{.nodes}",
+				Name:     "Deleted Nodes",
+				JSONPath: "{.deletednodes}",
 			},
 		},
 	}

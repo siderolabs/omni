@@ -23,12 +23,12 @@ func NewClusterBootstrapStatus(id resource.ID) *ClusterBootstrapStatus {
 }
 
 const (
-	// ClusterBootstrapStatusType is the type of the ClusterMachineConfigStatus resource.
+	// ClusterBootstrapStatusType is the type of the ClusterBootstrapStatus resource.
 	// tsgen:ClusterBootstrapStatusType
 	ClusterBootstrapStatusType = resource.Type("ClusterBootstrapStatuses.omni.sidero.dev")
 )
 
-// ClusterBootstrapStatus describes a cluster machine status.
+// ClusterBootstrapStatus describes a cluster bootstrap status.
 type ClusterBootstrapStatus = typed.Resource[ClusterBootstrapStatusSpec, ClusterBootstrapStatusExtension]
 
 // ClusterBootstrapStatusSpec wraps specs.ClusterBootstrapStatusSpec.

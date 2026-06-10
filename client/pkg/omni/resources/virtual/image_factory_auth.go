@@ -40,7 +40,7 @@ type ImageFactoryAuth = typed.Resource[ImageFactoryAuthSpec, ImageFactoryAuthExt
 // ImageFactoryAuthSpec wraps specs.ImageFactoryAuthSpec.
 type ImageFactoryAuthSpec = protobuf.ResourceSpec[specs.ImageFactoryAuthSpec, *specs.ImageFactoryAuthSpec]
 
-// ImageFactoryAuthExtension providers auxiliary methods for ImageFactoryAuth resource.
+// ImageFactoryAuthExtension provides auxiliary methods for ImageFactoryAuth resource.
 type ImageFactoryAuthExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

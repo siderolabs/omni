@@ -31,7 +31,7 @@ type NodeUniqueToken = typed.Resource[NodeUniqueTokenSpec, NodeUniqueTokenExtens
 // NodeUniqueTokenSpec wraps specs.NodeUniqueTokenSpec.
 type NodeUniqueTokenSpec = protobuf.ResourceSpec[specs.NodeUniqueTokenSpec, *specs.NodeUniqueTokenSpec]
 
-// NodeUniqueTokenExtension providers auxiliary methods for NodeUniqueToken resource.
+// NodeUniqueTokenExtension provides auxiliary methods for NodeUniqueToken resource.
 type NodeUniqueTokenExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

@@ -472,7 +472,6 @@ export type ClusterMachineStatusSpecProvisionStatus = {
 export type ClusterMachineStatusSpec = {
   ready?: boolean
   stage?: ClusterMachineStatusSpecStage
-  apid_available?: boolean
   config_up_to_date?: boolean
   last_config_error?: string
   management_address?: string

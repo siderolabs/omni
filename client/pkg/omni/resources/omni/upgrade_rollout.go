@@ -35,7 +35,7 @@ type UpgradeRollout = typed.Resource[UpgradeRolloutSpec, UpgradeRolloutExtension
 // UpgradeRolloutSpec wraps specs.UpgradeRolloutSpec.
 type UpgradeRolloutSpec = protobuf.ResourceSpec[specs.UpgradeRolloutSpec, *specs.UpgradeRolloutSpec]
 
-// UpgradeRolloutExtension providers auxiliary methods for UpgradeRollout resource.
+// UpgradeRolloutExtension provides auxiliary methods for UpgradeRollout resource.
 type UpgradeRolloutExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

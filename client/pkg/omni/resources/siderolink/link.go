@@ -34,7 +34,7 @@ type Link = typed.Resource[LinkSpec, LinkExtension]
 // LinkSpec wraps specs.SiderolinkSpec.
 type LinkSpec = protobuf.ResourceSpec[specs.SiderolinkSpec, *specs.SiderolinkSpec]
 
-// LinkExtension providers auxiliary methods for Link resource.
+// LinkExtension provides auxiliary methods for Link resource.
 type LinkExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

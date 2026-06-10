@@ -37,7 +37,7 @@ type LinkStatus = typed.Resource[LinkStatusSpec, LinkStatusExtension]
 // LinkStatusSpec wraps specs.LinkStatusSpec.
 type LinkStatusSpec = protobuf.ResourceSpec[specs.LinkStatusSpec, *specs.LinkStatusSpec]
 
-// LinkStatusExtension providers auxiliary methods for LinkStatus resource.
+// LinkStatusExtension provides auxiliary methods for LinkStatus resource.
 type LinkStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

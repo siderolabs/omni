@@ -40,7 +40,7 @@ type CurrentUser = typed.Resource[CurrentUserSpec, CurrentUserExtension]
 // CurrentUserSpec wraps specs.CurrentUserSpec.
 type CurrentUserSpec = protobuf.ResourceSpec[specs.CurrentUserSpec, *specs.CurrentUserSpec]
 
-// CurrentUserExtension providers auxiliary methods for CurrentUser resource.
+// CurrentUserExtension provides auxiliary methods for CurrentUser resource.
 type CurrentUserExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

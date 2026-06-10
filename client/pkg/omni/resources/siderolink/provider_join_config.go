@@ -33,7 +33,7 @@ type ProviderJoinConfig = typed.Resource[ProviderJoinConfigSpec, ProviderJoinCon
 // ProviderJoinConfigSpec wraps specs.ProviderJoinConfigSpec.
 type ProviderJoinConfigSpec = protobuf.ResourceSpec[specs.ProviderJoinConfigSpec, *specs.ProviderJoinConfigSpec]
 
-// ProviderJoinConfigExtension providers auxiliary methods for ProviderJoinConfig resource.
+// ProviderJoinConfigExtension provides auxiliary methods for ProviderJoinConfig resource.
 type ProviderJoinConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

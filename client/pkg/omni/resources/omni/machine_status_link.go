@@ -36,7 +36,7 @@ type MachineStatusLinkSpec = protobuf.ResourceSpec[specs.MachineStatusLinkSpec, 
 // tsgen:MachineStatusLinkType
 const MachineStatusLinkType = resource.Type("MachineStatusLinks.omni.sidero.dev")
 
-// MachineStatusLinkExtension providers auxiliary methods for MachineStatusLink resource.
+// MachineStatusLinkExtension provides auxiliary methods for MachineStatusLink resource.
 type MachineStatusLinkExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

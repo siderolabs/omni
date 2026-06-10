@@ -39,7 +39,7 @@ type ClusterSecrets = typed.Resource[ClusterSecretsSpec, ClusterSecretsExtension
 // ClusterSecretsSpec wraps specs.ClusterSecretsSpec.
 type ClusterSecretsSpec = protobuf.ResourceSpec[specs.ClusterSecretsSpec, *specs.ClusterSecretsSpec]
 
-// ClusterSecretsExtension providers auxiliary methods for ClusterSecrets resource.
+// ClusterSecretsExtension provides auxiliary methods for ClusterSecrets resource.
 type ClusterSecretsExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

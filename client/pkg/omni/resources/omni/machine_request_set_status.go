@@ -33,7 +33,7 @@ type MachineRequestSetStatus = typed.Resource[MachineRequestSetStatusSpec, Machi
 // MachineRequestSetStatusSpec wraps specs.MachineRequestSetStatusSpec.
 type MachineRequestSetStatusSpec = protobuf.ResourceSpec[specs.MachineRequestSetStatusSpec, *specs.MachineRequestSetStatusSpec]
 
-// MachineRequestSetStatusExtension providers auxiliary methods for MachineRequestSetStatus resource.
+// MachineRequestSetStatusExtension provides auxiliary methods for MachineRequestSetStatus resource.
 type MachineRequestSetStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

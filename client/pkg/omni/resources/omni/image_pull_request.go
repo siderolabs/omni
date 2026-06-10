@@ -33,7 +33,7 @@ type ImagePullRequest = typed.Resource[ImagePullRequestSpec, ImagePullRequestExt
 // ImagePullRequestSpec wraps specs.ImagePullRequestSpec.
 type ImagePullRequestSpec = protobuf.ResourceSpec[specs.ImagePullRequestSpec, *specs.ImagePullRequestSpec]
 
-// ImagePullRequestExtension providers auxiliary methods for ImagePullRequest resource.
+// ImagePullRequestExtension provides auxiliary methods for ImagePullRequest resource.
 type ImagePullRequestExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

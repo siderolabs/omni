@@ -35,7 +35,7 @@ type ClusterPermissions = typed.Resource[ClusterPermissionsSpec, ClusterPermissi
 // ClusterPermissionsSpec wraps specs.ClusterPermissionsSpec.
 type ClusterPermissionsSpec = protobuf.ResourceSpec[specs.ClusterPermissionsSpec, *specs.ClusterPermissionsSpec]
 
-// ClusterPermissionsExtension providers auxiliary methods for ClusterPermissions resource.
+// ClusterPermissionsExtension provides auxiliary methods for ClusterPermissions resource.
 type ClusterPermissionsExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

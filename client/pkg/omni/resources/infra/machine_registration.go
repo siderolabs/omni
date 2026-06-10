@@ -32,7 +32,7 @@ const (
 // MachineRegistration contains the minimum data extracted from the machine resource required by the infra providers.
 type MachineRegistration = typed.Resource[MachineRegistrationSpec, MachineRegistrationExtension]
 
-// MachineRegistrationExtension providers auxiliary methods for MachineRegistration resource.
+// MachineRegistrationExtension provides auxiliary methods for MachineRegistration resource.
 type MachineRegistrationExtension struct{}
 
 // MachineRegistrationSpec wraps specs.MachineRegistrationSpec.

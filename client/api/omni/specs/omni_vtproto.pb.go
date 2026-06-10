@@ -860,7 +860,6 @@ func (m *ClusterMachineStatusSpec) CloneVT() *ClusterMachineStatusSpec {
 	r := new(ClusterMachineStatusSpec)
 	r.Ready = m.Ready
 	r.Stage = m.Stage
-	r.ApidAvailable = m.ApidAvailable
 	r.ConfigUpToDate = m.ConfigUpToDate
 	r.LastConfigError = m.LastConfigError
 	r.ManagementAddress = m.ManagementAddress
@@ -4425,9 +4424,6 @@ func (this *ClusterMachineStatusSpec) EqualVT(that *ClusterMachineStatusSpec) bo
 		return false
 	}
 	if this.Stage != that.Stage {
-		return false
-	}
-	if this.ApidAvailable != that.ApidAvailable {
 		return false
 	}
 	if this.ConfigUpToDate != that.ConfigUpToDate {
@@ -10145,16 +10141,6 @@ func (m *ClusterMachineStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		}
 		i--
 		dAtA[i] = 0x20
-	}
-	if m.ApidAvailable {
-		i--
-		if m.ApidAvailable {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x18
 	}
 	if m.Stage != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Stage))
@@ -17454,9 +17440,6 @@ func (m *ClusterMachineStatusSpec) SizeVT() (n int) {
 	}
 	if m.Stage != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.Stage))
-	}
-	if m.ApidAvailable {
-		n += 2
 	}
 	if m.ConfigUpToDate {
 		n += 2
@@ -26259,26 +26242,6 @@ func (m *ClusterMachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ApidAvailable", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.ApidAvailable = bool(v != 0)
 		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConfigUpToDate", wireType)

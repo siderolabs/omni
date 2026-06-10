@@ -33,7 +33,7 @@ type GRPCTunnelConfig = typed.Resource[GRPCTunnelConfigSpec, GRPCTunnelConfigExt
 // GRPCTunnelConfigSpec wraps specs.GRPCTunnelConfigSpec.
 type GRPCTunnelConfigSpec = protobuf.ResourceSpec[specs.GRPCTunnelConfigSpec, *specs.GRPCTunnelConfigSpec]
 
-// GRPCTunnelConfigExtension providers auxiliary methods for GRPCTunnelConfig resource.
+// GRPCTunnelConfigExtension provides auxiliary methods for GRPCTunnelConfig resource.
 type GRPCTunnelConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

@@ -35,7 +35,7 @@ type NodeForceDestroyRequest = typed.Resource[NodeForceDestroyRequestSpec, NodeF
 // NodeForceDestroyRequestSpec wraps specs.NodeForceDestroyRequestSpec.
 type NodeForceDestroyRequestSpec = protobuf.ResourceSpec[specs.NodeForceDestroyRequestSpec, *specs.NodeForceDestroyRequestSpec]
 
-// NodeForceDestroyRequestExtension providers auxiliary methods for NodeForceDestroyRequest resource.
+// NodeForceDestroyRequestExtension provides auxiliary methods for NodeForceDestroyRequest resource.
 type NodeForceDestroyRequestExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

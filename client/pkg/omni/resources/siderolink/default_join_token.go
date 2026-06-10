@@ -39,7 +39,7 @@ type DefaultJoinToken = typed.Resource[DefaultJoinTokenSpec, DefaultJoinTokenExt
 // DefaultJoinTokenSpec wraps specs.DefaultJoinTokenSpec.
 type DefaultJoinTokenSpec = protobuf.ResourceSpec[specs.DefaultJoinTokenSpec, *specs.DefaultJoinTokenSpec]
 
-// DefaultJoinTokenExtension providers auxiliary methods for DefaultJoinToken resource.
+// DefaultJoinTokenExtension provides auxiliary methods for DefaultJoinToken resource.
 type DefaultJoinTokenExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

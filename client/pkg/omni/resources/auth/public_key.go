@@ -41,7 +41,7 @@ type PublicKey = typed.Resource[PublicKeySpec, PublicKeyExtension]
 // PublicKeySpec wraps specs.PublicKeySpec.
 type PublicKeySpec = protobuf.ResourceSpec[specs.PublicKeySpec, *specs.PublicKeySpec]
 
-// PublicKeyExtension providers auxiliary methods for PublicKey resource.
+// PublicKeyExtension provides auxiliary methods for PublicKey resource.
 type PublicKeyExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

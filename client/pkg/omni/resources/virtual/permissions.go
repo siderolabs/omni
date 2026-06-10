@@ -42,7 +42,7 @@ type Permissions = typed.Resource[PermissionsSpec, PermissionsExtension]
 // PermissionsSpec wraps specs.PermissionsSpec.
 type PermissionsSpec = protobuf.ResourceSpec[specs.PermissionsSpec, *specs.PermissionsSpec]
 
-// PermissionsExtension providers auxiliary methods for Permissions resource.
+// PermissionsExtension provides auxiliary methods for Permissions resource.
 type PermissionsExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

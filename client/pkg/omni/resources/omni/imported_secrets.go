@@ -37,7 +37,7 @@ type ImportedClusterSecrets = typed.Resource[ImportedClusterSecretsSpec, Importe
 // ImportedClusterSecretsSpec wraps specs.ImportedClusterSecretsSpec.
 type ImportedClusterSecretsSpec = protobuf.ResourceSpec[specs.ImportedClusterSecretsSpec, *specs.ImportedClusterSecretsSpec]
 
-// ImportedClusterSecretsExtension providers auxiliary methods for ImportedClusterSecrets resource.
+// ImportedClusterSecretsExtension provides auxiliary methods for ImportedClusterSecrets resource.
 type ImportedClusterSecretsExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

@@ -37,7 +37,7 @@ type InstallationMedia = typed.Resource[InstallationMediaSpec, InstallationMedia
 // InstallationMediaSpec wraps specs.InstallationMediaSpec.
 type InstallationMediaSpec = protobuf.ResourceSpec[specs.InstallationMediaSpec, *specs.InstallationMediaSpec]
 
-// InstallationMediaExtension providers auxiliary methods for InstallationMedia resource.
+// InstallationMediaExtension provides auxiliary methods for InstallationMedia resource.
 type InstallationMediaExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

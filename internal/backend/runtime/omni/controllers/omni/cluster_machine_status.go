@@ -77,7 +77,6 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 				if err != nil {
 					if state.IsNotFoundError(err) { // ignore, as another reconciliation will be triggered once it appears
 						cmsVal.Stage = specs.ClusterMachineStatusSpec_UNKNOWN
-						cmsVal.ApidAvailable = false
 						cmsVal.Ready = false
 						cmsVal.IsRemoved = true
 
@@ -150,7 +149,6 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 				if err != nil {
 					if state.IsNotFoundError(err) {
 						cmsVal.Stage = specs.ClusterMachineStatusSpec_UNKNOWN
-						cmsVal.ApidAvailable = false
 						cmsVal.Ready = false
 
 						return nil
@@ -188,13 +186,6 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 				cmsVal.ConfigApplyStatus = configApplyStatus(cmsVal)
 
 				status := statusSnapshot.TypedSpec().Value.GetMachineStatus()
-
-				cmsVal.ApidAvailable = false
-
-				_, isControlPlaneNode := clusterMachineStatus.Metadata().Labels().Get(omni.LabelControlPlaneRole)
-				if (status.GetStage() == machineapi.MachineStatusEvent_BOOTING || status.GetStage() == machineapi.MachineStatusEvent_RUNNING) && isControlPlaneNode {
-					cmsVal.ApidAvailable = machine != nil && machine.TypedSpec().Value.Connected
-				}
 
 				// should we also mark it as not ready when the clustermachine is tearing down (?)
 				cmsVal.Ready = status.GetStatus().GetReady() &&

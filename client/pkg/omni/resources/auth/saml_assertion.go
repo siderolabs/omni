@@ -33,7 +33,7 @@ type SAMLAssertion = typed.Resource[SAMLAssertionSpec, SAMLAssertionExtension]
 // SAMLAssertionSpec wraps specs.SAMLAssertionSpec.
 type SAMLAssertionSpec = protobuf.ResourceSpec[specs.SAMLAssertionSpec, *specs.SAMLAssertionSpec]
 
-// SAMLAssertionExtension providers auxiliary methods for SAMLAssertion resource.
+// SAMLAssertionExtension provides auxiliary methods for SAMLAssertion resource.
 type SAMLAssertionExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

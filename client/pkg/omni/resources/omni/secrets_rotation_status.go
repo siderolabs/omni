@@ -33,7 +33,7 @@ type ClusterSecretsRotationStatus = typed.Resource[ClusterSecretsRotationStatusS
 // ClusterSecretsRotationStatusSpec wraps specs.ClusterSecretsRotationStatusSpec.
 type ClusterSecretsRotationStatusSpec = protobuf.ResourceSpec[specs.ClusterSecretsRotationStatusSpec, *specs.ClusterSecretsRotationStatusSpec]
 
-// ClusterSecretsRotationStatusExtension providers auxiliary methods for ClusterSecretsRotationStatus resource.
+// ClusterSecretsRotationStatusExtension provides auxiliary methods for ClusterSecretsRotationStatus resource.
 type ClusterSecretsRotationStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

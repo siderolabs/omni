@@ -33,7 +33,7 @@ type MachineJoinConfig = typed.Resource[MachineJoinConfigSpec, MachineJoinConfig
 // MachineJoinConfigSpec wraps specs.MachineJoinConfigSpec.
 type MachineJoinConfigSpec = protobuf.ResourceSpec[specs.MachineJoinConfigSpec, *specs.MachineJoinConfigSpec]
 
-// MachineJoinConfigExtension providers auxiliary methods for MachineJoinConfig resource.
+// MachineJoinConfigExtension provides auxiliary methods for MachineJoinConfig resource.
 type MachineJoinConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

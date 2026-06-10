@@ -33,7 +33,7 @@ type KubernetesUsage = typed.Resource[KubernetesUsageSpec, KubernetesUsageExtens
 // KubernetesUsageSpec wraps specs.KubernetesUsageSpec.
 type KubernetesUsageSpec = protobuf.ResourceSpec[specs.KubernetesUsageSpec, *specs.KubernetesUsageSpec]
 
-// KubernetesUsageExtension providers auxiliary methods for KubernetesUsage resource.
+// KubernetesUsageExtension provides auxiliary methods for KubernetesUsage resource.
 type KubernetesUsageExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

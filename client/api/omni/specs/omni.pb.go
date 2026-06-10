@@ -3121,12 +3121,10 @@ func (x *ClusterMachineIdentitySpec) GetDiscoveryServiceEndpoint() string {
 type ClusterMachineStatusSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Ready is true if all services are healthy.
-	Ready bool                           `protobuf:"varint,1,opt,name=ready,proto3" json:"ready,omitempty"`
-	Stage ClusterMachineStatusSpec_Stage `protobuf:"varint,2,opt,name=stage,proto3,enum=specs.ClusterMachineStatusSpec_Stage" json:"stage,omitempty"`
-	// ApidAvailable is true if the node is a control plane node and the apid service is healthy.
-	ApidAvailable   bool   `protobuf:"varint,3,opt,name=apid_available,json=apidAvailable,proto3" json:"apid_available,omitempty"`
-	ConfigUpToDate  bool   `protobuf:"varint,4,opt,name=config_up_to_date,json=configUpToDate,proto3" json:"config_up_to_date,omitempty"`
-	LastConfigError string `protobuf:"bytes,5,opt,name=last_config_error,json=lastConfigError,proto3" json:"last_config_error,omitempty"`
+	Ready           bool                           `protobuf:"varint,1,opt,name=ready,proto3" json:"ready,omitempty"`
+	Stage           ClusterMachineStatusSpec_Stage `protobuf:"varint,2,opt,name=stage,proto3,enum=specs.ClusterMachineStatusSpec_Stage" json:"stage,omitempty"`
+	ConfigUpToDate  bool                           `protobuf:"varint,4,opt,name=config_up_to_date,json=configUpToDate,proto3" json:"config_up_to_date,omitempty"`
+	LastConfigError string                         `protobuf:"bytes,5,opt,name=last_config_error,json=lastConfigError,proto3" json:"last_config_error,omitempty"`
 	// Management address is copied from the machine status resource.
 	ManagementAddress string            `protobuf:"bytes,6,opt,name=management_address,json=managementAddress,proto3" json:"management_address,omitempty"`
 	ConfigApplyStatus ConfigApplyStatus `protobuf:"varint,7,opt,name=config_apply_status,json=configApplyStatus,proto3,enum=specs.ConfigApplyStatus" json:"config_apply_status,omitempty"`
@@ -3180,13 +3178,6 @@ func (x *ClusterMachineStatusSpec) GetStage() ClusterMachineStatusSpec_Stage {
 		return x.Stage
 	}
 	return ClusterMachineStatusSpec_UNKNOWN
-}
-
-func (x *ClusterMachineStatusSpec) GetApidAvailable() bool {
-	if x != nil {
-		return x.ApidAvailable
-	}
-	return false
 }
 
 func (x *ClusterMachineStatusSpec) GetConfigUpToDate() bool {
@@ -11388,11 +11379,10 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x0eetcd_member_id\x18\x02 \x01(\x04R\fetcdMemberId\x12\x1a\n" +
 	"\bnodename\x18\x03 \x01(\tR\bnodename\x12\x19\n" +
 	"\bnode_ips\x18\b \x03(\tR\anodeIps\x12<\n" +
-	"\x1adiscovery_service_endpoint\x18\t \x01(\tR\x18discoveryServiceEndpoint\"\xfb\x05\n" +
+	"\x1adiscovery_service_endpoint\x18\t \x01(\tR\x18discoveryServiceEndpoint\"\xda\x05\n" +
 	"\x18ClusterMachineStatusSpec\x12\x14\n" +
 	"\x05ready\x18\x01 \x01(\bR\x05ready\x12;\n" +
-	"\x05stage\x18\x02 \x01(\x0e2%.specs.ClusterMachineStatusSpec.StageR\x05stage\x12%\n" +
-	"\x0eapid_available\x18\x03 \x01(\bR\rapidAvailable\x12)\n" +
+	"\x05stage\x18\x02 \x01(\x0e2%.specs.ClusterMachineStatusSpec.StageR\x05stage\x12)\n" +
 	"\x11config_up_to_date\x18\x04 \x01(\bR\x0econfigUpToDate\x12*\n" +
 	"\x11last_config_error\x18\x05 \x01(\tR\x0flastConfigError\x12-\n" +
 	"\x12management_address\x18\x06 \x01(\tR\x11managementAddress\x12H\n" +
@@ -11420,7 +11410,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"DESTROYING\x10\x05\x12\x0f\n" +
 	"\vPOWERING_ON\x10\n" +
 	"\x12\x0f\n" +
-	"\vPOWERED_OFF\x10\v\"v\n" +
+	"\vPOWERED_OFF\x10\vJ\x04\b\x03\x10\x04\"v\n" +
 	"\bMachines\x12\x14\n" +
 	"\x05total\x18\x01 \x01(\rR\x05total\x12\x18\n" +
 	"\ahealthy\x18\x02 \x01(\rR\ahealthy\x12\x1c\n" +

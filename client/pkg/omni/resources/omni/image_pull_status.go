@@ -33,7 +33,7 @@ type ImagePullStatus = typed.Resource[ImagePullStatusSpec, ImagePullStatusExtens
 // ImagePullStatusSpec wraps specs.ImagePullStatusSpec.
 type ImagePullStatusSpec = protobuf.ResourceSpec[specs.ImagePullStatusSpec, *specs.ImagePullStatusSpec]
 
-// ImagePullStatusExtension providers auxiliary methods for ImagePullStatus resource.
+// ImagePullStatusExtension provides auxiliary methods for ImagePullStatus resource.
 type ImagePullStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

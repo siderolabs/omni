@@ -41,7 +41,7 @@ type Config = typed.Resource[ConfigSpec, ConfigExtension]
 // ConfigSpec wraps specs.SiderolinkConfigSpec.
 type ConfigSpec = protobuf.ResourceSpec[specs.SiderolinkConfigSpec, *specs.SiderolinkConfigSpec]
 
-// ConfigExtension providers auxiliary methods for Config resource.
+// ConfigExtension provides auxiliary methods for Config resource.
 type ConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

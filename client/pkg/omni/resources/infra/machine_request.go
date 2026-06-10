@@ -35,7 +35,7 @@ type MachineRequest = typed.Resource[MachineRequestSpec, MachineRequestExtension
 // MachineRequestSpec wraps specs.MachineRequestSpec.
 type MachineRequestSpec = protobuf.ResourceSpec[specs.MachineRequestSpec, *specs.MachineRequestSpec]
 
-// MachineRequestExtension providers auxiliary methods for MachineRequest resource.
+// MachineRequestExtension provides auxiliary methods for MachineRequest resource.
 type MachineRequestExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.
@@ -48,10 +48,6 @@ func (MachineRequestExtension) ResourceDefinition() meta.ResourceDefinitionSpec 
 			{
 				Name:     "Talos Version",
 				JSONPath: "{.talosversion}",
-			},
-			{
-				Name:     "Schematic ID",
-				JSONPath: "{.schematicid}",
 			},
 		},
 	}

@@ -39,7 +39,7 @@ type SysVersion = typed.Resource[SysVersionSpec, SysVersionExtension]
 // SysVersionSpec wraps specs.SysVersionSpec.
 type SysVersionSpec = protobuf.ResourceSpec[specs.SysVersionSpec, *specs.SysVersionSpec]
 
-// SysVersionExtension providers auxiliary methods for SysVersion resource.
+// SysVersionExtension provides auxiliary methods for SysVersion resource.
 type SysVersionExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

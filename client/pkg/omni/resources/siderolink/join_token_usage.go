@@ -36,7 +36,7 @@ type JoinTokenUsage = typed.Resource[JoinTokenUsageSpec, JoinTokenUsageExtension
 // JoinTokenUsageSpec wraps specs.JoinTokenUsageSpec.
 type JoinTokenUsageSpec = protobuf.ResourceSpec[specs.JoinTokenUsageSpec, *specs.JoinTokenUsageSpec]
 
-// JoinTokenUsageExtension providers auxiliary methods for JoinTokenUsage resource.
+// JoinTokenUsageExtension provides auxiliary methods for JoinTokenUsage resource.
 type JoinTokenUsageExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

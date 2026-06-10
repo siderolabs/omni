@@ -35,7 +35,7 @@ type Identity = typed.Resource[IdentitySpec, IdentityExtension]
 // IdentitySpec wraps specs.IdentitySpec.
 type IdentitySpec = protobuf.ResourceSpec[specs.IdentitySpec, *specs.IdentitySpec]
 
-// IdentityExtension providers auxiliary methods for Identity resource.
+// IdentityExtension provides auxiliary methods for Identity resource.
 type IdentityExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

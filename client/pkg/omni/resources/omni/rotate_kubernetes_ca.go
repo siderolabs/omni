@@ -33,7 +33,7 @@ type RotateKubernetesCA = typed.Resource[RotateKubernetesCASpec, RotateKubernete
 // RotateKubernetesCASpec wraps specs.RotateKubernetesCASpec.
 type RotateKubernetesCASpec = protobuf.ResourceSpec[specs.RotateKubernetesCASpec, *specs.RotateKubernetesCASpec]
 
-// RotateKubernetesCAExtension providers auxiliary methods for RotateKubernetesCA resource.
+// RotateKubernetesCAExtension provides auxiliary methods for RotateKubernetesCA resource.
 type RotateKubernetesCAExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

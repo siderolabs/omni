@@ -35,7 +35,7 @@ type DBVersion = typed.Resource[DBVersionSpec, DBVersionExtension]
 // DBVersionSpec wraps specs.DBVersionSpec.
 type DBVersionSpec = protobuf.ResourceSpec[specs.DBVersionSpec, *specs.DBVersionSpec]
 
-// DBVersionExtension providers auxiliary methods for DBVersion resource.
+// DBVersionExtension provides auxiliary methods for DBVersion resource.
 type DBVersionExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

@@ -33,7 +33,7 @@ type KubernetesStatus = typed.Resource[KubernetesStatusSpec, KubernetesStatusExt
 // KubernetesStatusSpec wraps specs.KubernetesStatusSpec.
 type KubernetesStatusSpec = protobuf.ResourceSpec[specs.KubernetesStatusSpec, *specs.KubernetesStatusSpec]
 
-// KubernetesStatusExtension providers auxiliary methods for KubernetesStatus resource.
+// KubernetesStatusExtension provides auxiliary methods for KubernetesStatus resource.
 type KubernetesStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

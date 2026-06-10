@@ -33,7 +33,7 @@ type APIConfig = typed.Resource[APIConfigSpec, APIConfigExtension]
 // APIConfigSpec wraps specs.APIConfigSpec.
 type APIConfigSpec = protobuf.ResourceSpec[specs.SiderolinkAPIConfigSpec, *specs.SiderolinkAPIConfigSpec]
 
-// APIConfigExtension providers auxiliary methods for SiderolinkAPIConfig resource.
+// APIConfigExtension provides auxiliary methods for SiderolinkAPIConfig resource.
 type APIConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

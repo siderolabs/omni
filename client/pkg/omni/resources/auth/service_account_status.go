@@ -35,7 +35,7 @@ type ServiceAccountStatus = typed.Resource[ServiceAccountStatusSpec, ServiceAcco
 // ServiceAccountStatusSpec wraps specs.ServiceAccountStatusSpec.
 type ServiceAccountStatusSpec = protobuf.ResourceSpec[specs.ServiceAccountStatusSpec, *specs.ServiceAccountStatusSpec]
 
-// ServiceAccountStatusExtension providers auxiliary methods for ServiceAccountStatus resource.
+// ServiceAccountStatusExtension provides auxiliary methods for ServiceAccountStatus resource.
 type ServiceAccountStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

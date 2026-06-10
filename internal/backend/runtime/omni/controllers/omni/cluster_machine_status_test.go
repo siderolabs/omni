@@ -46,17 +46,17 @@ func (suite *ClusterMachineStatusSuite) TearDownTest() {
 }
 
 func (suite *ClusterMachineStatusSuite) TestNoMachineStatusSnapShotClusterStatusZeroValue() {
-	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true, false)
+	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true)
 
 	// when
 	rtestutils.Destroy[*omni.MachineStatus](suite.ctx, suite.T(), suite.state, []string{testID})
 
 	// then
-	suite.assertStage(specs.ClusterMachineStatusSpec_UNKNOWN, false, false)
+	suite.assertStage(specs.ClusterMachineStatusSpec_UNKNOWN, false)
 }
 
 func (suite *ClusterMachineStatusSuite) TestApplyConfigErrorPropagation() {
-	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true, false)
+	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true)
 
 	rmock.Mock[*omni.ClusterMachineConfigStatus](
 		suite.ctx, suite.T(), suite.state, options.WithID(testID),
@@ -93,7 +93,7 @@ func (suite *ClusterMachineStatusSuite) TestApplyConfigErrorPropagation() {
 }
 
 func (suite *ClusterMachineStatusSuite) TestOutdatedConfig() {
-	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true, false)
+	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true)
 
 	rmock.Mock[*omni.ClusterMachineConfigStatus](
 		suite.ctx, suite.T(), suite.state, options.WithID(testID),
@@ -125,7 +125,7 @@ func (suite *ClusterMachineStatusSuite) TestOutdatedConfig() {
 	suite.Assert().NoError(err)
 }
 
-func (suite *ClusterMachineStatusSuite) setupStageTest(machineStatusEvent *machineapi.MachineStatusEvent, connected, isControlPlaneNode bool) {
+func (suite *ClusterMachineStatusSuite) setupStageTest(machineStatusEvent *machineapi.MachineStatusEvent, connected bool) {
 	suite.setup()
 
 	testID := "testID"
@@ -137,17 +137,11 @@ func (suite *ClusterMachineStatusSuite) setupStageTest(machineStatusEvent *machi
 	machine.TypedSpec().Value.Connected = connected
 	machineStatus := omni.NewMachineStatus(testID)
 
-	role := omni.LabelWorkerRole
-
-	if isControlPlaneNode {
-		role = omni.LabelControlPlaneRole
-	}
-
 	rmock.Mock[*omni.MachineSetNode](
 		suite.ctx, suite.T(), suite.state,
 		options.WithID(testID),
 		options.LabelCluster(cluster),
-		options.EmptyLabel(role),
+		options.EmptyLabel(omni.LabelWorkerRole),
 	)
 
 	rmock.Mock[*omni.ClusterMachine](
@@ -178,7 +172,7 @@ func (suite *ClusterMachineStatusSuite) setupStageTest(machineStatusEvent *machi
 	suite.Assert().NoError(suite.state.Create(suite.ctx, statusSnapshot))
 }
 
-func (suite *ClusterMachineStatusSuite) assertStage(expectedStage specs.ClusterMachineStatusSpec_Stage, expectedReadiness, expectedApidAvailable bool) {
+func (suite *ClusterMachineStatusSuite) assertStage(expectedStage specs.ClusterMachineStatusSpec_Stage, expectedReadiness bool) {
 	assertResource(
 		&suite.OmniSuite,
 		*omni.NewClusterMachineStatus("testID").Metadata(),
@@ -187,66 +181,56 @@ func (suite *ClusterMachineStatusSuite) assertStage(expectedStage specs.ClusterM
 
 			assertions.Equal(expectedReadiness, statusVal.Ready)
 			assertions.Equal(expectedStage, statusVal.Stage)
-			assertions.Equal(expectedApidAvailable, statusVal.ApidAvailable)
 		},
 	)
 }
 
 func (suite *ClusterMachineStatusSuite) TestDestroying() {
-	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RESETTING}, true, false)
+	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RESETTING}, true)
 
-	suite.assertStage(specs.ClusterMachineStatusSpec_DESTROYING, false, false)
+	suite.assertStage(specs.ClusterMachineStatusSpec_DESTROYING, false)
 }
 
 func (suite *ClusterMachineStatusSuite) TestInstalling() {
-	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_INSTALLING}, true, false)
+	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_INSTALLING}, true)
 
-	suite.assertStage(specs.ClusterMachineStatusSpec_INSTALLING, false, false)
+	suite.assertStage(specs.ClusterMachineStatusSpec_INSTALLING, false)
 }
 
 func (suite *ClusterMachineStatusSuite) TestBoot() {
-	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_BOOTING}, true, false)
+	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_BOOTING}, true)
 
-	suite.assertStage(specs.ClusterMachineStatusSpec_BOOTING, false, false)
+	suite.assertStage(specs.ClusterMachineStatusSpec_BOOTING, false)
 }
 
 func (suite *ClusterMachineStatusSuite) TestReboot() {
-	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_REBOOTING}, true, false)
+	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_REBOOTING}, true)
 
-	suite.assertStage(specs.ClusterMachineStatusSpec_REBOOTING, false, false)
+	suite.assertStage(specs.ClusterMachineStatusSpec_REBOOTING, false)
 }
 
 func (suite *ClusterMachineStatusSuite) TestRunning() {
 	suite.setupStageTest(&machineapi.MachineStatusEvent{
 		Stage:  machineapi.MachineStatusEvent_RUNNING,
 		Status: &machineapi.MachineStatusEvent_MachineStatus{Ready: true},
-	}, true, false)
+	}, true)
 
-	suite.assertStage(specs.ClusterMachineStatusSpec_RUNNING, true, false)
+	suite.assertStage(specs.ClusterMachineStatusSpec_RUNNING, true)
 }
 
 func (suite *ClusterMachineStatusSuite) TestRunningNotConnected() {
 	suite.setupStageTest(&machineapi.MachineStatusEvent{
 		Stage:  machineapi.MachineStatusEvent_RUNNING,
 		Status: &machineapi.MachineStatusEvent_MachineStatus{Ready: true},
-	}, false, false)
+	}, false)
 
-	suite.assertStage(specs.ClusterMachineStatusSpec_RUNNING, false, false)
+	suite.assertStage(specs.ClusterMachineStatusSpec_RUNNING, false)
 }
 
 func (suite *ClusterMachineStatusSuite) TestRunningNotReady() {
-	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true, false)
+	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true)
 
-	suite.assertStage(specs.ClusterMachineStatusSpec_RUNNING, false, false)
-}
-
-func (suite *ClusterMachineStatusSuite) TestApidAvailable() {
-	suite.setupStageTest(&machineapi.MachineStatusEvent{
-		Stage:  machineapi.MachineStatusEvent_RUNNING,
-		Status: &machineapi.MachineStatusEvent_MachineStatus{Ready: true},
-	}, true, true)
-
-	suite.assertStage(specs.ClusterMachineStatusSpec_RUNNING, true, true)
+	suite.assertStage(specs.ClusterMachineStatusSpec_RUNNING, false)
 }
 
 func TestClusterMachineStatusSuite(t *testing.T) {

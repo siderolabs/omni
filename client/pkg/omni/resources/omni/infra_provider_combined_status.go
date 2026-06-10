@@ -36,7 +36,7 @@ type InfraProviderCombinedStatus = typed.Resource[InfraProviderCombinedStatusSpe
 // InfraProviderCombinedStatusSpec wraps specs.InfraProviderCombinedStatusSpec.
 type InfraProviderCombinedStatusSpec = protobuf.ResourceSpec[specs.InfraProviderCombinedStatusSpec, *specs.InfraProviderCombinedStatusSpec]
 
-// InfraProviderCombinedStatusExtension providers auxiliary methods for InfraProviderCombinedStatus resource.
+// InfraProviderCombinedStatusExtension provides auxiliary methods for InfraProviderCombinedStatus resource.
 type InfraProviderCombinedStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

@@ -30,7 +30,7 @@ type JWTPublicKey = typed.Resource[JWTPublicKeySpec, JWTPublicKeyExtension]
 // JWTPublicKeySpec wraps specs.JWTPublicKeySpec.
 type JWTPublicKeySpec = protobuf.ResourceSpec[specs.JWTPublicKeySpec, *specs.JWTPublicKeySpec]
 
-// JWTPublicKeyExtension providers auxiliary methods for JWTPublicKey resource.
+// JWTPublicKeyExtension provides auxiliary methods for JWTPublicKey resource.
 type JWTPublicKeyExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

@@ -35,7 +35,7 @@ type SBCConfig = typed.Resource[SBCConfigSpec, SBCConfigExtension]
 // SBCConfigSpec wraps specs.SBCConfigSpec.
 type SBCConfigSpec = protobuf.ResourceSpec[specs.SBCConfigSpec, *specs.SBCConfigSpec]
 
-// SBCConfigExtension providers auxiliary methods for SBCConfig resource.
+// SBCConfigExtension provides auxiliary methods for SBCConfig resource.
 type SBCConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

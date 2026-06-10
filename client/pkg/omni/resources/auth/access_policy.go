@@ -38,7 +38,7 @@ type AccessPolicy = typed.Resource[AccessPolicySpec, AccessPolicyExtension]
 // AccessPolicySpec wraps specs.AccessPolicySpec.
 type AccessPolicySpec = protobuf.ResourceSpec[specs.AccessPolicySpec, *specs.AccessPolicySpec]
 
-// AccessPolicyExtension providers auxiliary methods for AccessPolicy resource.
+// AccessPolicyExtension provides auxiliary methods for AccessPolicy resource.
 type AccessPolicyExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

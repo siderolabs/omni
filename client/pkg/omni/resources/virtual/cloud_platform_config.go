@@ -35,7 +35,7 @@ type CloudPlatformConfig = typed.Resource[CloudPlatformConfigSpec, CloudPlatform
 // CloudPlatformConfigSpec wraps specs.CloudPlatformConfigSpec.
 type CloudPlatformConfigSpec = protobuf.ResourceSpec[specs.PlatformConfigSpec, *specs.PlatformConfigSpec]
 
-// CloudPlatformConfigExtension providers auxiliary methods for CloudPlatformConfig resource.
+// CloudPlatformConfigExtension provides auxiliary methods for CloudPlatformConfig resource.
 type CloudPlatformConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

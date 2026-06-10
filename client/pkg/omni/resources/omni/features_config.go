@@ -41,7 +41,7 @@ type FeaturesConfig = typed.Resource[FeaturesConfigSpec, FeaturesConfigExtension
 // FeaturesConfigSpec wraps specs.FeaturesConfigSpec.
 type FeaturesConfigSpec = protobuf.ResourceSpec[specs.FeaturesConfigSpec, *specs.FeaturesConfigSpec]
 
-// FeaturesConfigExtension providers auxiliary methods for FeaturesConfig resource.
+// FeaturesConfigExtension provides auxiliary methods for FeaturesConfig resource.
 type FeaturesConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

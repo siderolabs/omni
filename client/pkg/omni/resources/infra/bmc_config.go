@@ -35,7 +35,7 @@ type BMCConfig = typed.Resource[BMCConfigSpec, BMCConfigExtension]
 // BMCConfigSpec wraps specs.BMCConfigSpec.
 type BMCConfigSpec = protobuf.ResourceSpec[specs.BMCConfigSpec, *specs.BMCConfigSpec]
 
-// BMCConfigExtension providers auxiliary methods for BMCConfig resource.
+// BMCConfigExtension provides auxiliary methods for BMCConfig resource.
 type BMCConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

@@ -33,7 +33,7 @@ type PendingMachineStatus = typed.Resource[PendingMachineStatusSpec, PendingMach
 // PendingMachineStatusSpec wraps specs.SiderolinkSpec.
 type PendingMachineStatusSpec = protobuf.ResourceSpec[specs.PendingMachineStatusSpec, *specs.PendingMachineStatusSpec]
 
-// PendingMachineStatusExtension providers auxiliary methods for PendingMachineStatus resource.
+// PendingMachineStatusExtension provides auxiliary methods for PendingMachineStatus resource.
 type PendingMachineStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

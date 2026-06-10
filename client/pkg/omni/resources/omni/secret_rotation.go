@@ -35,7 +35,7 @@ type SecretRotation = typed.Resource[SecretRotationSpec, SecretRotationExtension
 // SecretRotationSpec wraps specs.SecretRotationSpec.
 type SecretRotationSpec = protobuf.ResourceSpec[specs.SecretRotationSpec, *specs.SecretRotationSpec]
 
-// SecretRotationExtension providers auxiliary methods for the SecretRotation resource.
+// SecretRotationExtension provides auxiliary methods for the SecretRotation resource.
 type SecretRotationExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

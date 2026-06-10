@@ -33,7 +33,7 @@ type TalosExtensions = typed.Resource[TalosExtensionsSpec, TalosExtensionsExtens
 // TalosExtensionsSpec wraps specs.TalosExtensionsSpec.
 type TalosExtensionsSpec = protobuf.ResourceSpec[specs.TalosExtensionsSpec, *specs.TalosExtensionsSpec]
 
-// TalosExtensionsExtension providers auxiliary methods for TalosExtensions resource.
+// TalosExtensionsExtension provides auxiliary methods for TalosExtensions resource.
 type TalosExtensionsExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

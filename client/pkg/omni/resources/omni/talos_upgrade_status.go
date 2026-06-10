@@ -33,7 +33,7 @@ type TalosUpgradeStatus = typed.Resource[TalosUpgradeStatusSpec, TalosUpgradeSta
 // TalosUpgradeStatusSpec wraps specs.TalosUpgradeStatusSpec.
 type TalosUpgradeStatusSpec = protobuf.ResourceSpec[specs.TalosUpgradeStatusSpec, *specs.TalosUpgradeStatusSpec]
 
-// TalosUpgradeStatusExtension providers auxiliary methods for TalosUpgradeStatus resource.
+// TalosUpgradeStatusExtension provides auxiliary methods for TalosUpgradeStatus resource.
 type TalosUpgradeStatusExtension struct{}
 
 // ResourceDefinition implements typed.ResourceDefinition interface.

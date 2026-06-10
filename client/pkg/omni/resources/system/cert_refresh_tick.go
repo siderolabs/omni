@@ -31,7 +31,7 @@ type CertRefreshTick = typed.Resource[CertRefreshTickSpec, CertRefreshTickExtens
 // CertRefreshTickSpec wraps specs.CertRefreshTickSpec.
 type CertRefreshTickSpec = protobuf.ResourceSpec[specs.CertRefreshTickSpec, *specs.CertRefreshTickSpec]
 
-// CertRefreshTickExtension providers auxiliary methods for CertRefreshTick resource.
+// CertRefreshTickExtension provides auxiliary methods for CertRefreshTick resource.
 type CertRefreshTickExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

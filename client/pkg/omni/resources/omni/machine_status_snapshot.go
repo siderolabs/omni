@@ -35,7 +35,7 @@ type MachineStatusSnapshot = typed.Resource[MachineStatusSnapshotSpec, MachineSt
 // MachineStatusSnapshotSpec wraps specs.MachineStatusSnapshotSpec.
 type MachineStatusSnapshotSpec = protobuf.ResourceSpec[specs.MachineStatusSnapshotSpec, *specs.MachineStatusSnapshotSpec]
 
-// MachineStatusSnapshotExtension providers auxiliary methods for MachineStatusSnapshot resource.
+// MachineStatusSnapshotExtension provides auxiliary methods for MachineStatusSnapshot resource.
 type MachineStatusSnapshotExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

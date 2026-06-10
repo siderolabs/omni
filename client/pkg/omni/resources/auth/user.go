@@ -35,7 +35,7 @@ type User = typed.Resource[UserSpec, UserExtension]
 // UserSpec wraps specs.UserSpec.
 type UserSpec = protobuf.ResourceSpec[specs.UserSpec, *specs.UserSpec]
 
-// UserExtension providers auxiliary methods for User resource.
+// UserExtension provides auxiliary methods for User resource.
 type UserExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

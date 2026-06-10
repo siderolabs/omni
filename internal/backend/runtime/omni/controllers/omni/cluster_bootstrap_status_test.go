@@ -228,7 +228,6 @@ func (suite *ClusterBootstrapStatusSuite) TestReconcile() {
 		}
 
 		clusterMachineStatus.TypedSpec().Value.ManagementAddress = suite.socketConnectionString
-		clusterMachineStatus.TypedSpec().Value.ApidAvailable = true
 
 		suite.Require().NoError(suite.state.Create(suite.ctx, clusterMachineStatus))
 	}

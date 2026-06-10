@@ -35,7 +35,7 @@ type InfraMachineConfig = typed.Resource[InfraMachineConfigSpec, InfraMachineCon
 // InfraMachineConfigSpec wraps specs.InfraMachineConfigSpec.
 type InfraMachineConfigSpec = protobuf.ResourceSpec[specs.InfraMachineConfigSpec, *specs.InfraMachineConfigSpec]
 
-// InfraMachineConfigExtension providers auxiliary methods for InfraMachineConfig resource.
+// InfraMachineConfigExtension provides auxiliary methods for InfraMachineConfig resource.
 type InfraMachineConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

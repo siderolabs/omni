@@ -32,7 +32,7 @@ type TestResource = typed.Resource[TestResourceSpec, TestResourceExtension]
 // TestResourceSpec wraps specs.TestResourceSpec.
 type TestResourceSpec = protobuf.ResourceSpec[specs.MachineSpec, *specs.MachineSpec]
 
-// TestResourceExtension providers auxiliary methods for TestResource resource.
+// TestResourceExtension provides auxiliary methods for TestResource resource.
 type TestResourceExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

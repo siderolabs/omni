@@ -33,7 +33,7 @@ type KubernetesUpgradeStatus = typed.Resource[KubernetesUpgradeStatusSpec, Kuber
 // KubernetesUpgradeStatusSpec wraps specs.KubernetesUpgradeStatusSpec.
 type KubernetesUpgradeStatusSpec = protobuf.ResourceSpec[specs.KubernetesUpgradeStatusSpec, *specs.KubernetesUpgradeStatusSpec]
 
-// KubernetesUpgradeStatusExtension providers auxiliary methods for KubernetesUpgradeStatus resource.
+// KubernetesUpgradeStatusExtension provides auxiliary methods for KubernetesUpgradeStatus resource.
 type KubernetesUpgradeStatusExtension struct{}
 
 // ResourceDefinition implements typed.ResourceDefinition interface.

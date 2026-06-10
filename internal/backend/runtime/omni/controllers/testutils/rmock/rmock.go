@@ -104,7 +104,6 @@ func init() {
 			helpers.CopyAllLabels(clusterMachine, res)
 		}
 
-		res.TypedSpec().Value.ApidAvailable = true
 		res.TypedSpec().Value.ConfigApplyStatus = specs.ConfigApplyStatus_APPLIED
 
 		machineStatus, err := safe.ReaderGetByID[*omni.MachineStatus](ctx, st, res.Metadata().ID())

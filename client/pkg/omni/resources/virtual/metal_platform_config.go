@@ -35,7 +35,7 @@ type MetalPlatformConfig = typed.Resource[MetalPlatformConfigSpec, MetalPlatform
 // MetalPlatformConfigSpec wraps specs.MetalPlatformConfigSpec.
 type MetalPlatformConfigSpec = protobuf.ResourceSpec[specs.PlatformConfigSpec, *specs.PlatformConfigSpec]
 
-// MetalPlatformConfigExtension providers auxiliary methods for MetalPlatformConfig resource.
+// MetalPlatformConfigExtension provides auxiliary methods for MetalPlatformConfig resource.
 type MetalPlatformConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

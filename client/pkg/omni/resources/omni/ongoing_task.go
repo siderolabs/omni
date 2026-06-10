@@ -33,7 +33,7 @@ type OngoingTask = typed.Resource[OngoingTaskSpec, OngoingTaskExtension]
 // OngoingTaskSpec wraps specs.OngoingTaskSpec.
 type OngoingTaskSpec = protobuf.ResourceSpec[specs.OngoingTaskSpec, *specs.OngoingTaskSpec]
 
-// OngoingTaskExtension providers auxiliary methods for OngoingTask resource.
+// OngoingTaskExtension provides auxiliary methods for OngoingTask resource.
 type OngoingTaskExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

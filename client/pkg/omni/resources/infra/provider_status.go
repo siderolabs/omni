@@ -36,7 +36,7 @@ type ProviderStatus = typed.Resource[ProviderStatusSpec, ProviderStatusExtension
 // ProviderStatusSpec wraps specs.ProviderStatusSpec.
 type ProviderStatusSpec = protobuf.ResourceSpec[specs.InfraProviderStatusSpec, *specs.InfraProviderStatusSpec]
 
-// ProviderStatusExtension providers auxiliary methods for InfraProviderStatus resource.
+// ProviderStatusExtension provides auxiliary methods for InfraProviderStatus resource.
 type ProviderStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

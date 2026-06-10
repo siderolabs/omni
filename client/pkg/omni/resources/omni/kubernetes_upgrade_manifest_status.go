@@ -33,7 +33,7 @@ type KubernetesUpgradeManifestStatus = typed.Resource[KubernetesUpgradeManifestS
 // KubernetesUpgradeManifestStatusSpec wraps specs.KubernetesUpgradeManifestStatusSpec.
 type KubernetesUpgradeManifestStatusSpec = protobuf.ResourceSpec[specs.KubernetesUpgradeManifestStatusSpec, *specs.KubernetesUpgradeManifestStatusSpec]
 
-// KubernetesUpgradeManifestStatusExtension providers auxiliary methods for KubernetesUpgradeManifestStatus resource.
+// KubernetesUpgradeManifestStatusExtension provides auxiliary methods for KubernetesUpgradeManifestStatus resource.
 type KubernetesUpgradeManifestStatusExtension struct{}
 
 // ResourceDefinition implements typed.ResourceDefinition interface.

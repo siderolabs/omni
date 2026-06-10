@@ -35,7 +35,7 @@ type SAMLLabelRule = typed.Resource[SAMLLabelRuleSpec, SAMLLabelRuleExtension]
 // SAMLLabelRuleSpec wraps specs.SAMLLabelRuleSpec.
 type SAMLLabelRuleSpec = protobuf.ResourceSpec[specs.SAMLLabelRuleSpec, *specs.SAMLLabelRuleSpec]
 
-// SAMLLabelRuleExtension providers auxiliary methods for SAMLLabelRule resource.
+// SAMLLabelRuleExtension provides auxiliary methods for SAMLLabelRule resource.
 type SAMLLabelRuleExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

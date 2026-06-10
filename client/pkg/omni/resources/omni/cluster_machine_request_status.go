@@ -33,7 +33,7 @@ type ClusterMachineRequestStatus = typed.Resource[ClusterMachineRequestStatusSpe
 // ClusterMachineRequestStatusSpec wraps specs.ClusterMachineRequestStatusSpec.
 type ClusterMachineRequestStatusSpec = protobuf.ResourceSpec[specs.ClusterMachineRequestStatusSpec, *specs.ClusterMachineRequestStatusSpec]
 
-// ClusterMachineRequestStatusExtension providers auxiliary methods for ClusterMachineRequestStatus resource.
+// ClusterMachineRequestStatusExtension provides auxiliary methods for ClusterMachineRequestStatus resource.
 type ClusterMachineRequestStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.
@@ -44,16 +44,8 @@ func (ClusterMachineRequestStatusExtension) ResourceDefinition() meta.ResourceDe
 		DefaultNamespace: resources.DefaultNamespace,
 		PrintColumns: []meta.PrintColumn{
 			{
-				Name:     "Ready",
-				JSONPath: "{.ready}",
-			},
-			{
 				Name:     "Stage",
 				JSONPath: "{.stage}",
-			},
-			{
-				Name:     "apid",
-				JSONPath: "{.apidavailable}",
 			},
 		},
 	}

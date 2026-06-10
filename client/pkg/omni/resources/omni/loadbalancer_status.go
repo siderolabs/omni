@@ -31,7 +31,7 @@ type LoadBalancerStatus = typed.Resource[LoadBalancerStatusSpec, LoadBalancerSta
 // LoadBalancerStatusSpec wraps specs.LoadBalancerStatusSpec.
 type LoadBalancerStatusSpec = protobuf.ResourceSpec[specs.LoadBalancerStatusSpec, *specs.LoadBalancerStatusSpec]
 
-// LoadBalancerStatusExtension providers auxiliary methods for LoadBalancerStatus resource.
+// LoadBalancerStatusExtension provides auxiliary methods for LoadBalancerStatus resource.
 type LoadBalancerStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

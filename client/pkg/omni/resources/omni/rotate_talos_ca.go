@@ -33,7 +33,7 @@ type RotateTalosCA = typed.Resource[RotateTalosCASpec, RotateTalosCAExtension]
 // RotateTalosCASpec wraps specs.RotateTalosCASpec.
 type RotateTalosCASpec = protobuf.ResourceSpec[specs.RotateTalosCASpec, *specs.RotateTalosCASpec]
 
-// RotateTalosCAExtension providers auxiliary methods for RotateTalosCA resource.
+// RotateTalosCAExtension provides auxiliary methods for RotateTalosCA resource.
 type RotateTalosCAExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

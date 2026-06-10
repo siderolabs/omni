@@ -46,7 +46,7 @@ type ConnectionParams = typed.Resource[ConnectionParamsSpec, ConnectionParamsExt
 // ConnectionParamsSpec wraps specs.ConnectionParamsSpec.
 type ConnectionParamsSpec = protobuf.ResourceSpec[specs.ConnectionParamsSpec, *specs.ConnectionParamsSpec]
 
-// ConnectionParamsExtension providers auxiliary methods for ConnectionParams resource.
+// ConnectionParamsExtension provides auxiliary methods for ConnectionParams resource.
 type ConnectionParamsExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

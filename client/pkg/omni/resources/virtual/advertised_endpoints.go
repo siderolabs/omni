@@ -40,7 +40,7 @@ type AdvertisedEndpoints = typed.Resource[AdvertisedEndpointsSpec, AdvertisedEnd
 // AdvertisedEndpointsSpec wraps specs.AdvertisedEndpointsSpec.
 type AdvertisedEndpointsSpec = protobuf.ResourceSpec[specs.AdvertisedEndpointsSpec, *specs.AdvertisedEndpointsSpec]
 
-// AdvertisedEndpointsExtension providers auxiliary methods for AdvertisedEndpoints resource.
+// AdvertisedEndpointsExtension provides auxiliary methods for AdvertisedEndpoints resource.
 type AdvertisedEndpointsExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

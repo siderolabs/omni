@@ -35,7 +35,7 @@ type MachineRequestStatus = typed.Resource[MachineRequestStatusSpec, MachineRequ
 // MachineRequestStatusSpec wraps specs.MachineRequestStatusSpec.
 type MachineRequestStatusSpec = protobuf.ResourceSpec[specs.MachineRequestStatusSpec, *specs.MachineRequestStatusSpec]
 
-// MachineRequestStatusExtension providers auxiliary methods for MachineRequestStatus resource.
+// MachineRequestStatusExtension provides auxiliary methods for MachineRequestStatus resource.
 type MachineRequestStatusExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

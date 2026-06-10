@@ -35,7 +35,7 @@ type Provider = typed.Resource[ProviderSpec, ProviderExtension]
 // ProviderSpec wraps specs.ProviderSpec.
 type ProviderSpec = protobuf.ResourceSpec[specs.InfraProviderSpec, *specs.InfraProviderSpec]
 
-// ProviderExtension providers auxiliary methods for InfraProvider resource.
+// ProviderExtension provides auxiliary methods for InfraProvider resource.
 type ProviderExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

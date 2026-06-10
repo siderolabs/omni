@@ -528,8 +528,7 @@ message ClusterMachineStatusSpec {
 
   Stage stage = 2;
 
-  // ApidAvailable is true if the node is a control plane node and the apid service is healthy.
-  bool apid_available = 3;
+  reserved 3;
 
   bool config_up_to_date = 4;
   string last_config_error = 5;

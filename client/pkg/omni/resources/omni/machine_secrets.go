@@ -35,7 +35,7 @@ type ClusterMachineSecrets = typed.Resource[ClusterMachineSecretsSpec, ClusterMa
 // ClusterMachineSecretsSpec wraps specs.ClusterMachineSecretsSpec.
 type ClusterMachineSecretsSpec = protobuf.ResourceSpec[specs.ClusterMachineSecretsSpec, *specs.ClusterMachineSecretsSpec]
 
-// ClusterMachineSecretsExtension providers auxiliary methods for the ClusterMachineSecrets resource.
+// ClusterMachineSecretsExtension provides auxiliary methods for the ClusterMachineSecrets resource.
 type ClusterMachineSecretsExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.

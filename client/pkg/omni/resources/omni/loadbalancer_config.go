@@ -31,7 +31,7 @@ type LoadBalancerConfig = typed.Resource[LoadBalancerConfigSpec, LoadBalancerCon
 // LoadBalancerConfigSpec wraps specs.LoadBalancerConfigSpec.
 type LoadBalancerConfigSpec = protobuf.ResourceSpec[specs.LoadBalancerConfigSpec, *specs.LoadBalancerConfigSpec]
 
-// LoadBalancerConfigExtension providers auxiliary methods for LoadBalancerConfig resource.
+// LoadBalancerConfigExtension provides auxiliary methods for LoadBalancerConfig resource.
 type LoadBalancerConfigExtension struct{}
 
 // ResourceDefinition implements [typed.Extension] interface.
