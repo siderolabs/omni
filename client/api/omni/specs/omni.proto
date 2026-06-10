@@ -289,6 +289,10 @@ message ClusterSpec {
     bool disk_encryption = 2;
     // UseEmbeddedDiscoveryService enables the embedded discovery service.
     bool use_embedded_discovery_service = 3;
+    // EnableNodeAuditSkip allows the omni.sidero.dev/node-audit-skip annotation on Kubernetes nodes
+    // to exempt them from the Kubernetes node audit. Disabled by default to prevent unauthorized
+    // node hijacking by anyone with permissions to annotate nodes inside the cluster.
+    bool enable_node_audit_skip = 4;
   }
 
   reserved 1;
@@ -972,6 +976,7 @@ message KubernetesStatusSpec {
     string nodename = 1;
     string kubelet_version = 2;
     bool ready = 3;
+    bool skip_audit = 4;
   }
 
   // status of each node, sorted by nodename

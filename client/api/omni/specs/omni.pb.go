@@ -9302,8 +9302,12 @@ type ClusterSpec_Features struct {
 	DiskEncryption bool `protobuf:"varint,2,opt,name=disk_encryption,json=diskEncryption,proto3" json:"disk_encryption,omitempty"`
 	// UseEmbeddedDiscoveryService enables the embedded discovery service.
 	UseEmbeddedDiscoveryService bool `protobuf:"varint,3,opt,name=use_embedded_discovery_service,json=useEmbeddedDiscoveryService,proto3" json:"use_embedded_discovery_service,omitempty"`
-	unknownFields               protoimpl.UnknownFields
-	sizeCache                   protoimpl.SizeCache
+	// EnableNodeAuditSkip allows the omni.sidero.dev/node-audit-skip annotation on Kubernetes nodes
+	// to exempt them from the Kubernetes node audit. Disabled by default to prevent unauthorized
+	// node hijacking by anyone with permissions to annotate nodes inside the cluster.
+	EnableNodeAuditSkip bool `protobuf:"varint,4,opt,name=enable_node_audit_skip,json=enableNodeAuditSkip,proto3" json:"enable_node_audit_skip,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ClusterSpec_Features) Reset() {
@@ -9353,6 +9357,13 @@ func (x *ClusterSpec_Features) GetDiskEncryption() bool {
 func (x *ClusterSpec_Features) GetUseEmbeddedDiscoveryService() bool {
 	if x != nil {
 		return x.UseEmbeddedDiscoveryService
+	}
+	return false
+}
+
+func (x *ClusterSpec_Features) GetEnableNodeAuditSkip() bool {
+	if x != nil {
+		return x.EnableNodeAuditSkip
 	}
 	return false
 }
@@ -9934,6 +9945,7 @@ type KubernetesStatusSpec_NodeStatus struct {
 	Nodename       string                 `protobuf:"bytes,1,opt,name=nodename,proto3" json:"nodename,omitempty"`
 	KubeletVersion string                 `protobuf:"bytes,2,opt,name=kubelet_version,json=kubeletVersion,proto3" json:"kubelet_version,omitempty"`
 	Ready          bool                   `protobuf:"varint,3,opt,name=ready,proto3" json:"ready,omitempty"`
+	SkipAudit      bool                   `protobuf:"varint,4,opt,name=skip_audit,json=skipAudit,proto3" json:"skip_audit,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -9985,6 +9997,13 @@ func (x *KubernetesStatusSpec_NodeStatus) GetKubeletVersion() string {
 func (x *KubernetesStatusSpec_NodeStatus) GetReady() bool {
 	if x != nil {
 		return x.Ready
+	}
+	return false
+}
+
+func (x *KubernetesStatusSpec_NodeStatus) GetSkipAudit() bool {
+	if x != nil {
+		return x.SkipAudit
 	}
 	return false
 }
@@ -11257,16 +11276,17 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x0fTalosConfigSpec\x12\x0e\n" +
 	"\x02ca\x18\x01 \x01(\tR\x02ca\x12\x10\n" +
 	"\x03crt\x18\x02 \x01(\tR\x03crt\x12\x10\n" +
-	"\x03key\x18\x03 \x01(\tR\x03key\"\x99\x03\n" +
+	"\x03key\x18\x03 \x01(\tR\x03key\"\xce\x03\n" +
 	"\vClusterSpec\x12-\n" +
 	"\x12kubernetes_version\x18\x02 \x01(\tR\x11kubernetesVersion\x12#\n" +
 	"\rtalos_version\x18\x03 \x01(\tR\ftalosVersion\x127\n" +
 	"\bfeatures\x18\x04 \x01(\v2\x1b.specs.ClusterSpec.FeaturesR\bfeatures\x12H\n" +
-	"\x14backup_configuration\x18\x05 \x01(\v2\x15.specs.EtcdBackupConfR\x13backupConfiguration\x1a\xac\x01\n" +
+	"\x14backup_configuration\x18\x05 \x01(\v2\x15.specs.EtcdBackupConfR\x13backupConfiguration\x1a\xe1\x01\n" +
 	"\bFeatures\x122\n" +
 	"\x15enable_workload_proxy\x18\x01 \x01(\bR\x13enableWorkloadProxy\x12'\n" +
 	"\x0fdisk_encryption\x18\x02 \x01(\bR\x0ediskEncryption\x12C\n" +
-	"\x1euse_embedded_discovery_service\x18\x03 \x01(\bR\x1buseEmbeddedDiscoveryServiceJ\x04\b\x01\x10\x02\"\x12\n" +
+	"\x1euse_embedded_discovery_service\x18\x03 \x01(\bR\x1buseEmbeddedDiscoveryService\x123\n" +
+	"\x16enable_node_audit_skip\x18\x04 \x01(\bR\x13enableNodeAuditSkipJ\x04\b\x01\x10\x02\"\x12\n" +
 	"\x10ClusterTaintSpec\"a\n" +
 	"\x0eEtcdBackupConf\x125\n" +
 	"\binterval\x18\x01 \x01(\v2\x19.google.protobuf.DurationR\binterval\x12\x18\n" +
@@ -11557,16 +11577,18 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\aWarning\x10\x01\x12\t\n" +
 	"\x05Error\x10\x02\"H\n" +
 	"\x13ClusterEndpointSpec\x121\n" +
-	"\x14management_addresses\x18\x01 \x03(\tR\x13managementAddresses\"\xdb\x03\n" +
+	"\x14management_addresses\x18\x01 \x03(\tR\x13managementAddresses\"\xfb\x03\n" +
 	"\x14KubernetesStatusSpec\x12<\n" +
 	"\x05nodes\x18\x01 \x03(\v2&.specs.KubernetesStatusSpec.NodeStatusR\x05nodes\x12K\n" +
 	"\vstatic_pods\x18\x02 \x03(\v2*.specs.KubernetesStatusSpec.NodeStaticPodsR\n" +
-	"staticPods\x1ag\n" +
+	"staticPods\x1a\x86\x01\n" +
 	"\n" +
 	"NodeStatus\x12\x1a\n" +
 	"\bnodename\x18\x01 \x01(\tR\bnodename\x12'\n" +
 	"\x0fkubelet_version\x18\x02 \x01(\tR\x0ekubeletVersion\x12\x14\n" +
-	"\x05ready\x18\x03 \x01(\bR\x05ready\x1aS\n" +
+	"\x05ready\x18\x03 \x01(\bR\x05ready\x12\x1d\n" +
+	"\n" +
+	"skip_audit\x18\x04 \x01(\bR\tskipAudit\x1aS\n" +
 	"\x0fStaticPodStatus\x12\x10\n" +
 	"\x03app\x18\x01 \x01(\tR\x03app\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12\x14\n" +

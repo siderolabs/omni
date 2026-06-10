@@ -121,6 +121,111 @@ func (suite *KubernetesNodeAuditSuite) TestReconcile() {
 	require.ElementsMatch(suite.T(), []string{"cluster1-node4", "cluster1-node5", "cluster2-node2", "cluster2-node3"}, kubernetesClient.getDeleted())
 }
 
+func (suite *KubernetesNodeAuditSuite) TestSkipAudit() {
+	suite.startRuntime()
+
+	kubernetesClient := &kubernetesClientMock{}
+	getKubernetesClient := func(context.Context, string) (omnictrl.KubernetesClient, error) {
+		return kubernetesClient, nil
+	}
+
+	kubernetesNodeAuditController := omnictrl.NewKubernetesNodeAuditController(getKubernetesClient, 2*time.Second)
+
+	suite.Require().NoError(suite.runtime.RegisterQController(kubernetesNodeAuditController))
+
+	// cluster has a virtual node (e.g. VirtualKubelet) that is not in the desired list but is annotated to skip the audit
+	clusterID := "skip-audit-cluster"
+	cluster := omni.NewCluster(clusterID)
+	cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{EnableNodeAuditSkip: true}
+
+	clusterKubernetesNodes := omni.NewClusterKubernetesNodes(clusterID)
+	clusterKubernetesStatus := omni.NewKubernetesStatus(clusterID)
+
+	clusterKubernetesNodes.TypedSpec().Value.Nodes = []string{"node1", "node2"}
+	clusterKubernetesStatus.TypedSpec().Value.Nodes = []*specs.KubernetesStatusSpec_NodeStatus{
+		{Nodename: "node1"},
+		{Nodename: "node2"},
+		{Nodename: "virtual-node", SkipAudit: true}, // must be preserved (feature enabled)
+		{Nodename: "orphan-node"},                   // must be deleted
+	}
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, cluster))
+	suite.Require().NoError(suite.state.Create(suite.ctx, clusterKubernetesNodes))
+	suite.Require().NoError(suite.state.Create(suite.ctx, clusterKubernetesStatus))
+
+	// only orphan-node should be deleted; virtual-node must remain
+	assertResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult(clusterID).Metadata(),
+		func(res *omni.KubernetesNodeAuditResult, assertion *assert.Assertions) {
+			assertion.Equal([]string{"orphan-node"}, res.TypedSpec().Value.DeletedNodes)
+		})
+
+	require.ElementsMatch(suite.T(), []string{"orphan-node"}, kubernetesClient.getDeleted())
+
+	// remove deleted orphan-node from the status (simulating that it was actually removed from Kubernetes)
+	_, err := safe.StateUpdateWithConflicts[*omni.KubernetesStatus](suite.ctx, suite.state, clusterKubernetesStatus.Metadata(), func(res *omni.KubernetesStatus) error {
+		res.TypedSpec().Value.Nodes = []*specs.KubernetesStatusSpec_NodeStatus{
+			{Nodename: "node1"},
+			{Nodename: "node2"},
+			{Nodename: "virtual-node", SkipAudit: true},
+		}
+
+		return nil
+	})
+	suite.Require().NoError(err)
+
+	// disable the cluster feature - virtual-node must now be deleted because the annotation is no longer honored
+	_, err = safe.StateUpdateWithConflicts[*omni.Cluster](suite.ctx, suite.state, cluster.Metadata(), func(res *omni.Cluster) error {
+		res.TypedSpec().Value.Features = &specs.ClusterSpec_Features{EnableNodeAuditSkip: false}
+
+		return nil
+	})
+	suite.Require().NoError(err)
+
+	assertResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult(clusterID).Metadata(),
+		func(res *omni.KubernetesNodeAuditResult, assertion *assert.Assertions) {
+			assertion.Equal([]string{"virtual-node"}, res.TypedSpec().Value.DeletedNodes)
+		})
+
+	require.ElementsMatch(suite.T(), []string{"orphan-node", "virtual-node"}, kubernetesClient.getDeleted())
+}
+
+func (suite *KubernetesNodeAuditSuite) TestSkipAuditDisabledByDefault() {
+	suite.startRuntime()
+
+	kubernetesClient := &kubernetesClientMock{}
+	getKubernetesClient := func(context.Context, string) (omnictrl.KubernetesClient, error) {
+		return kubernetesClient, nil
+	}
+
+	kubernetesNodeAuditController := omnictrl.NewKubernetesNodeAuditController(getKubernetesClient, 2*time.Second)
+
+	suite.Require().NoError(suite.runtime.RegisterQController(kubernetesNodeAuditController))
+
+	// cluster exists but has no Features set - SkipAudit annotation must NOT be honored
+	clusterID := "no-feature-cluster"
+	cluster := omni.NewCluster(clusterID)
+
+	clusterKubernetesNodes := omni.NewClusterKubernetesNodes(clusterID)
+	clusterKubernetesStatus := omni.NewKubernetesStatus(clusterID)
+
+	clusterKubernetesNodes.TypedSpec().Value.Nodes = []string{"node1"}
+	clusterKubernetesStatus.TypedSpec().Value.Nodes = []*specs.KubernetesStatusSpec_NodeStatus{
+		{Nodename: "node1"},
+		{Nodename: "rogue-node", SkipAudit: true}, // self-annotated but feature is off, must be deleted
+	}
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, cluster))
+	suite.Require().NoError(suite.state.Create(suite.ctx, clusterKubernetesNodes))
+	suite.Require().NoError(suite.state.Create(suite.ctx, clusterKubernetesStatus))
+
+	assertResource[*omni.KubernetesNodeAuditResult](&suite.OmniSuite, omni.NewKubernetesNodeAuditResult(clusterID).Metadata(),
+		func(res *omni.KubernetesNodeAuditResult, assertion *assert.Assertions) {
+			assertion.Equal([]string{"rogue-node"}, res.TypedSpec().Value.DeletedNodes)
+		})
+
+	require.ElementsMatch(suite.T(), []string{"rogue-node"}, kubernetesClient.getDeleted())
+}
+
 type kubernetesClientMock struct {
 	deleted []string
 	mu      sync.Mutex

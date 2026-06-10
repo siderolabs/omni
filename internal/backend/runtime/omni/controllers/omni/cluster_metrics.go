@@ -106,12 +106,14 @@ func (ctrl *ClusterMetricsController) FeatureMetrics(clusters iter.Seq[*omni.Clu
 		featureWorkloadProxy            = "workload_proxy"
 		featureDiskEncryption           = "disk_encryption"
 		featureEmbeddedDiscoveryService = "embedded_discovery_service"
+		featureEnableNodeAuditSkip      = "node_audit_skip"
 	)
 
 	featuresByCluster := map[string]uint32{
 		featureWorkloadProxy:            0,
 		featureDiskEncryption:           0,
 		featureEmbeddedDiscoveryService: 0,
+		featureEnableNodeAuditSkip:      0,
 	}
 
 	for cluster := range clusters {
@@ -125,6 +127,10 @@ func (ctrl *ClusterMetricsController) FeatureMetrics(clusters iter.Seq[*omni.Clu
 
 		if cluster.TypedSpec().Value.GetFeatures().GetUseEmbeddedDiscoveryService() {
 			featuresByCluster[featureEmbeddedDiscoveryService]++
+		}
+
+		if cluster.TypedSpec().Value.GetFeatures().GetEnableNodeAuditSkip() {
+			featuresByCluster[featureEnableNodeAuditSkip]++
 		}
 	}
 

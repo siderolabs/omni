@@ -16,6 +16,7 @@ spec:
         enableworkloadproxy: false
         diskencryption: false
         useembeddeddiscoveryservice: false
+        enablenodeauditskip: false
     backupconfiguration: null
 ---
 metadata:

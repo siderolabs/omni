@@ -442,6 +442,7 @@ func (m *ClusterSpec_Features) CloneVT() *ClusterSpec_Features {
 	r.EnableWorkloadProxy = m.EnableWorkloadProxy
 	r.DiskEncryption = m.DiskEncryption
 	r.UseEmbeddedDiscoveryService = m.UseEmbeddedDiscoveryService
+	r.EnableNodeAuditSkip = m.EnableNodeAuditSkip
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -1564,6 +1565,7 @@ func (m *KubernetesStatusSpec_NodeStatus) CloneVT() *KubernetesStatusSpec_NodeSt
 	r.Nodename = m.Nodename
 	r.KubeletVersion = m.KubeletVersion
 	r.Ready = m.Ready
+	r.SkipAudit = m.SkipAudit
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -3892,6 +3894,9 @@ func (this *ClusterSpec_Features) EqualVT(that *ClusterSpec_Features) bool {
 	if this.UseEmbeddedDiscoveryService != that.UseEmbeddedDiscoveryService {
 		return false
 	}
+	if this.EnableNodeAuditSkip != that.EnableNodeAuditSkip {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -5326,6 +5331,9 @@ func (this *KubernetesStatusSpec_NodeStatus) EqualVT(that *KubernetesStatusSpec_
 		return false
 	}
 	if this.Ready != that.Ready {
+		return false
+	}
+	if this.SkipAudit != that.SkipAudit {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8937,6 +8945,16 @@ func (m *ClusterSpec_Features) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.EnableNodeAuditSkip {
+		i--
+		if m.EnableNodeAuditSkip {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.UseEmbeddedDiscoveryService {
 		i--
 		if m.UseEmbeddedDiscoveryService {
@@ -12026,6 +12044,16 @@ func (m *KubernetesStatusSpec_NodeStatus) MarshalToSizedBufferVT(dAtA []byte) (i
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.SkipAudit {
+		i--
+		if m.SkipAudit {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
 	}
 	if m.Ready {
 		i--
@@ -16934,6 +16962,9 @@ func (m *ClusterSpec_Features) SizeVT() (n int) {
 	if m.UseEmbeddedDiscoveryService {
 		n += 2
 	}
+	if m.EnableNodeAuditSkip {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -18118,6 +18149,9 @@ func (m *KubernetesStatusSpec_NodeStatus) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	if m.Ready {
+		n += 2
+	}
+	if m.SkipAudit {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -23387,6 +23421,26 @@ func (m *ClusterSpec_Features) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.UseEmbeddedDiscoveryService = bool(v != 0)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnableNodeAuditSkip", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.EnableNodeAuditSkip = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -31024,6 +31078,26 @@ func (m *KubernetesStatusSpec_NodeStatus) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Ready = bool(v != 0)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SkipAudit", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.SkipAudit = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

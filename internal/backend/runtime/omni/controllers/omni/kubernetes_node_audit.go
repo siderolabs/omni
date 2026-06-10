@@ -66,9 +66,34 @@ func NewKubernetesNodeAuditController(getKubernetesClientFunc GetKubernetesClien
 				}
 
 				cluster := nodes.Metadata().ID()
-				actualNodes := xslices.Map(status.TypedSpec().Value.GetNodes(), func(nodeStatus *specs.KubernetesStatusSpec_NodeStatus) string {
-					return nodeStatus.Nodename
-				})
+
+				// EnableNodeAuditSkip is a cluster-level feature flag that must be set by the cluster owner
+				// in Omni before the omni.sidero.dev/node-audit-skip annotation on a Kubernetes node is honored.
+				// This prevents a workload with nodes/patch RBAC from hijacking the audit by self-annotating.
+				honorSkipAudit := false
+
+				clusterRes, err := safe.ReaderGetByID[*omni.Cluster](ctx, r, cluster)
+				if err != nil && !state.IsNotFoundError(err) {
+					return fmt.Errorf("failed to get cluster: %w", err)
+				}
+
+				if clusterRes != nil {
+					honorSkipAudit = clusterRes.TypedSpec().Value.GetFeatures().GetEnableNodeAuditSkip()
+				}
+
+				nodeStatuses := status.TypedSpec().Value.GetNodes()
+				if honorSkipAudit {
+					nodeStatuses = xslices.Filter(status.TypedSpec().Value.GetNodes(), func(nodeStatus *specs.KubernetesStatusSpec_NodeStatus) bool {
+						return !nodeStatus.SkipAudit
+					})
+				}
+
+				actualNodes := xslices.Map(
+					nodeStatuses,
+					func(nodeStatus *specs.KubernetesStatusSpec_NodeStatus) string {
+						return nodeStatus.Nodename
+					},
+				)
 				desiredNodes := nodes.TypedSpec().Value.Nodes
 
 				if slices.Contains(desiredNodes, "") {
@@ -120,6 +145,7 @@ func NewKubernetesNodeAuditController(getKubernetesClientFunc GetKubernetesClien
 		},
 		qtransform.WithConcurrency(2),
 		qtransform.WithExtraMappedInput[*omni.KubernetesStatus](qtransform.MapperSameID[*omni.ClusterKubernetesNodes]()),
+		qtransform.WithExtraMappedInput[*omni.Cluster](qtransform.MapperSameID[*omni.ClusterKubernetesNodes]()),
 	)
 }
 

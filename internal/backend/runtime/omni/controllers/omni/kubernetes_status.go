@@ -513,9 +513,12 @@ func (w *kubernetesWatcher) nodesSync(ctx context.Context, notifyCh chan<- kuber
 	status.Nodes = make([]*specs.KubernetesStatusSpec_NodeStatus, len(nodes))
 
 	for i, node := range nodes {
+		_, skipAudit := node.Annotations[omni.KubernetesNodeAuditSkip]
+
 		status.Nodes[i] = &specs.KubernetesStatusSpec_NodeStatus{
 			Nodename:       node.Name,
 			KubeletVersion: strings.TrimLeft(node.Status.NodeInfo.KubeletVersion, "v"),
+			SkipAudit:      skipAudit,
 		}
 
 		for _, condition := range node.Status.Conditions {

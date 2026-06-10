@@ -90,4 +90,10 @@ const (
 
 	// KubernetesManifestOwner is added to the kubernetes resources which are created by a KubernetesManifest resource.
 	KubernetesManifestOwner = SystemLabelPrefix + "owned-by-kubernetes-manifest"
+
+	// KubernetesNodeAuditSkip is an annotation set on a Kubernetes node object to request exemption from Omni's node audit.
+	// When present (with any value) and ClusterSpec.Features.EnableNodeAuditSkip is enabled for the cluster, the node will
+	// not be deleted by the KubernetesNodeAuditController even if it has no corresponding ClusterMachine.
+	// Use this for virtual nodes such as those created by VirtualKubelet.
+	KubernetesNodeAuditSkip = SystemLabelPrefix + "node-audit-skip"
 )
