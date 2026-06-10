@@ -31,6 +31,7 @@ import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TStatus from '@/components/Status/TStatus.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { TCommonStatuses } from '@/constants'
 import { usePermissions } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
@@ -164,7 +165,9 @@ const openRotateSecretKey = async (name: string) => {
                 </div>
               </div>
 
-              <TStatus :title="getStatus(item)" />
+              <Tooltip :description="item.spec.health?.error" placement="top-start">
+                <TStatus :title="getStatus(item)" />
+              </Tooltip>
               <div class="truncate text-xs">
                 {{ item.spec.description }}
               </div>
