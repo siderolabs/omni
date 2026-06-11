@@ -43,6 +43,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	talosutils "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
@@ -776,7 +777,9 @@ func (ctrl *ClusterMachineConfigStatusController) shouldReset(
 		return false, fmt.Errorf("finalizer: failed to get cluster status '%s': %w", clusterName, err)
 	}
 
-	machine, err := safe.ReaderGetByID[*omni.Machine](ctx, r, machineID)
+	// Read the Machine uncached: a cached read can briefly still report a Machine that is being torn
+	// down or destroyed as present and running, so the reset decision below could be made on stale data.
+	machine, err := safe.ReaderGetByID[*omni.Machine](ctx, uncached.Reader(r), machineID)
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return false, nil
