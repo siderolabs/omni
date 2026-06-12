@@ -14,9 +14,9 @@ import HomeClustersChart from '@/views/Home/HomeClustersChart.vue'
 import HomeClustersTutorialCard from '@/views/Home/HomeClustersTutorialCard.vue'
 import HomeGeneralInformation from '@/views/Home/HomeGeneralInformation.vue'
 import HomeMachinesChart from '@/views/Home/HomeMachinesChart.vue'
-import HomeMachinesTutorialCard from '@/views/Home/HomeMachinesTutorialCard.vue'
 import HomeRecentClusters from '@/views/Home/HomeRecentClusters.vue'
 import HomeRecentMachines from '@/views/Home/HomeRecentMachines.vue'
+import WelcomeToOmniCard from '@/views/Home/WelcomeToOmniCard.vue'
 
 const { canReadClusters, canReadMachines } = usePermissions()
 
@@ -64,7 +64,7 @@ const showReleaseNotes = false
           <template
             v-if="canReadClusters && canReadMachines && !machinesLoading && !clustersLoading"
           >
-            <HomeMachinesTutorialCard v-if="!machines.length" />
+            <WelcomeToOmniCard v-if="!machines.length" />
             <HomeClustersTutorialCard v-else-if="!clusters.length" />
           </template>
 

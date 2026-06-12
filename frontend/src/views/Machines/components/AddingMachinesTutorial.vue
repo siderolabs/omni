@@ -94,14 +94,17 @@ const pxeBootCode =
       </p>
     </div>
 
-    <div class="grid grid-cols-2 gap-2">
-      <TButton icon="close" icon-position="left" @click="isDismissed = true">Dismiss</TButton>
+    <div class="flex items-center justify-end gap-2">
+      <TButton icon="close" icon-position="left" variant="secondary" @click="isDismissed = true">
+        Dismiss
+      </TButton>
 
       <TButton
         is="router-link"
         icon="long-arrow-down"
         icon-position="left"
         :to="{ name: 'InstallationMedia' }"
+        variant="highlighted"
       >
         Download Installation Media
       </TButton>

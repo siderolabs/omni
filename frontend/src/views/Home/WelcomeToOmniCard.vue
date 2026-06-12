@@ -19,39 +19,39 @@ const isDismissed = useLocalStorage('_home_machines_tutorial_dismissed', false)
     class="space-y-4 rounded-lg border border-primary-p3 bg-naturals-n2 p-6"
   >
     <header>
-      <h2 class="text-sm font-medium text-naturals-n14">Getting Started: Machines</h2>
+      <h2 class="text-sm font-medium text-naturals-n14">Welcome to Omni</h2>
     </header>
 
     <div class="space-y-4 text-xs font-medium">
-      <p>To add your first machine create Installation Media and put it onto your machine.</p>
+      <p>
+        Omni manages your Talos Linux clusters from one control plane. To get started, register your
+        first machine — download installation media, boot a machine with it, and it'll appear here
+        automatically.
+      </p>
 
       <p>
-        Read
         <a
           class="link-primary"
-          :href="
-            getDocsLink(
-              'omni',
-              '/omni-cluster-setup/registering-machines/register-machines-with-omni',
-            )
-          "
+          :href="getDocsLink('omni', '/getting-started/getting-started')"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Register machines with Omni
+          Follow the Getting Started guide →
         </a>
-        documentation to learn about other options.
       </p>
     </div>
 
-    <div class="grid grid-cols-2 gap-2">
-      <TButton icon="close" icon-position="left" @click="isDismissed = true">Dismiss</TButton>
+    <div class="flex items-center justify-end gap-2">
+      <TButton icon="close" icon-position="left" variant="secondary" @click="isDismissed = true">
+        Dismiss
+      </TButton>
 
       <TButton
         is="router-link"
         icon="long-arrow-down"
         icon-position="left"
         :to="{ name: 'InstallationMedia' }"
+        variant="highlighted"
       >
         Download Installation Media
       </TButton>

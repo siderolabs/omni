@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
-import HomeMachinesTutorialCard from './HomeMachinesTutorialCard.vue'
+import HomeMachinesTutorialCard from './WelcomeToOmniCard.vue'
 
 const meta: Meta = {
   component: HomeMachinesTutorialCard,
