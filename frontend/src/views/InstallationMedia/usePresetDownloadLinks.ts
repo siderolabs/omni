@@ -78,7 +78,7 @@ export function usePresetDownloadLinks(
 
   const pxeBaseURL = computed(() =>
     withImageFactoryAuth(
-      `${features.value?.spec.image_factory_pxe_base_url}/${toValue(schematicId)}/${toValue(presetRef).talos_version}`,
+      `${features.value?.spec.image_factory_pxe_base_url}/pxe/${toValue(schematicId)}/${toValue(presetRef).talos_version}`,
       auth.value,
     ),
   )

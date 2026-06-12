@@ -46,6 +46,7 @@ export const Default: Story = {
             {
               spec: {
                 image_factory_base_url: 'https://factory-enterprise.talos.dev',
+                image_factory_pxe_base_url: 'https://pxe.factory-enterprise.talos.dev',
               },
               metadata: {
                 namespace: DefaultNamespace,

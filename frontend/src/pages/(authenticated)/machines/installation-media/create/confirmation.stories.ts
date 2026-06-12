@@ -77,6 +77,7 @@ export const Default = {
             {
               spec: {
                 image_factory_base_url: 'https://factory-enterprise.talos.dev',
+                image_factory_pxe_base_url: 'https://pxe.factory-enterprise.talos.dev',
                 is_enterprise_image_factory: true,
               },
               metadata: {
@@ -289,6 +290,7 @@ export const NotEnterprise = {
             {
               spec: {
                 image_factory_base_url: 'https://factory.talos.dev',
+                image_factory_pxe_base_url: 'https://pxe.factory.talos.dev',
                 is_enterprise_image_factory: false,
               },
               metadata: {
