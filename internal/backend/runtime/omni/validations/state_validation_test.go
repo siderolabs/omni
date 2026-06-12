@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -2353,6 +2354,65 @@ func TestKubernetesManifestValidation(t *testing.T) {
 
 	require.True(t, validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(t, err, "error loading JSON manifest into unstructured")
+}
+
+func TestKubernetesHealthcheckValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	t.Cleanup(cancel)
+
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, validations.KubernetesHealthcheckValidationOptions()...)
+
+	const jobManifest = "apiVersion: batch/v1\nkind: Job\nspec:\n  template:\n    spec:\n      containers:\n        - name: check\n          image: alpine\n"
+
+	// a healthcheck without a job manifest is rejected
+	hc := omnires.NewKubernetesHealthcheck("test")
+
+	err := st.Create(ctx, hc)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "healthcheck job manifest must be set")
+
+	// with a job manifest and a too-small interval, the interval is rejected
+	hc.TypedSpec().Value.Job = jobManifest
+	hc.TypedSpec().Value.Interval = durationpb.New(time.Second)
+
+	err = st.Create(ctx, hc)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "healthcheck interval must be at least 5s")
+
+	// an unset interval is allowed (a default is used)
+	hc.TypedSpec().Value.Interval = nil
+	require.NoError(t, st.Create(ctx, hc))
+
+	// a healthcheck whose ID does not form a valid Kubernetes runner object name is rejected
+	badID := omnires.NewKubernetesHealthcheck("Invalid_ID")
+	badID.TypedSpec().Value.Job = jobManifest
+
+	err = st.Create(ctx, badID)
+
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "cannot be used to build the runner name")
+
+	// an interval at or above the minimum is allowed
+	_, err = safe.StateUpdateWithConflicts(ctx, state.WrapCore(st), hc.Metadata(), func(res *omnires.KubernetesHealthcheck) error {
+		res.TypedSpec().Value.Interval = durationpb.New(5 * time.Second)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	// dropping below the minimum on update is rejected
+	_, err = safe.StateUpdateWithConflicts(ctx, state.WrapCore(st), hc.Metadata(), func(res *omnires.KubernetesHealthcheck) error {
+		res.TypedSpec().Value.Interval = durationpb.New(time.Second)
+
+		return nil
+	})
+	require.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "healthcheck interval must be at least 5s")
 }
 
 type mockEtcdBackupStoreFactory struct {

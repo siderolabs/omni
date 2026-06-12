@@ -112,3 +112,7 @@ func EulaValidationOptions(st state.State) []validated.StateOption {
 func MetadataValidationOptions() []validated.StateOption {
 	return metadataValidationOptions()
 }
+
+func KubernetesHealthcheckValidationOptions() []validated.StateOption {
+	return kubernetesHealthcheckValidationOptions()
+}

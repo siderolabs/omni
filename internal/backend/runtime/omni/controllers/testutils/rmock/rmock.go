@@ -410,8 +410,8 @@ machine:
 	setOwner[*omni.TalosConfig](secrets.NewTalosConfigController(omnictrl.DefaultDebounceDuration).ControllerName)
 	setOwner[*omni.Machine](omnictrl.NewMachineController().ControllerName)
 	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController().ControllerName)
-	setOwner[*omni.UpgradeRollout](talosupgrade.NewStatusController().ControllerName)
-	setOwner[*omni.TalosUpgradeStatus](talosupgrade.NewStatusController().ControllerName)
+	setOwner[*omni.UpgradeRollout](talosupgrade.NewStatusController(nil).ControllerName)
+	setOwner[*omni.TalosUpgradeStatus](talosupgrade.NewStatusController(nil).ControllerName)
 	setOwner[*omni.ClusterMachineConfigStatus](machineconfigctrl.NewClusterMachineConfigStatusController("", "").ControllerName)
 }
 

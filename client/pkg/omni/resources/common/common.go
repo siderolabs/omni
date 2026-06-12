@@ -45,4 +45,5 @@ var UserManagedResourceTypes = []resource.Type{
 	infra.ProviderType,
 	omni.RotateTalosCAType,
 	omni.RotateKubernetesCAType,
+	omni.KubernetesHealthcheckType,
 }

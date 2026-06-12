@@ -91,6 +91,9 @@ func NewClusterController(kubernetesRuntime KubernetesRuntime) *ClusterControlle
 					cleanup.RemoveOutputs[*omni.ExtensionsConfiguration](func(cluster *omni.Cluster) state.ListOption {
 						return state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()))
 					}),
+					cleanup.RemoveOutputs[*omni.KubernetesHealthcheck](func(cluster *omni.Cluster) state.ListOption {
+						return state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()))
+					}),
 					cleanup.HasNoOutputs[*omni.ClusterMachine](func(cluster *omni.Cluster) state.ListOption {
 						return state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()))
 					}),
