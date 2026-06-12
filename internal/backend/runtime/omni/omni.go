@@ -42,6 +42,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/logging"
+	"github.com/siderolabs/omni/internal/backend/machineconfigpatch"
 	"github.com/siderolabs/omni/internal/backend/powerstage"
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
 	"github.com/siderolabs/omni/internal/backend/runtime"
@@ -201,6 +202,11 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		return nil, fmt.Errorf("failed to create extra kernel args initializer: %w", err)
 	}
 
+	machineConfigExtractor, err := machineconfigpatch.NewExtractor(defaultState, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create machine config extractor: %w", err)
+	}
+
 	qcontrollers := []controller.QController{
 		destroy.NewController[*siderolinkres.Link](optional.Some[uint](4)),
 		destroy.NewController[*omni.Cluster](optional.Some[uint](4)),
@@ -222,6 +228,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewClusterMachineTeardownController(omnictrl.NewGetKubernetesClientFunc(kubernetesRuntime)),
 		omnictrl.NewMachineConfigGenOptionsController(),
 		omnictrl.NewMachineStatusController(imageFactoryClient, exraKernelArgsInitializer),
+		omnictrl.NewMachineConfigExtractionController(nil, machineConfigExtractor),
 		machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, cfg.Registries.GetTalos()),
 		omnictrl.NewClusterMachineEncryptionKeyController(),
 		omnictrl.NewClusterMachineStatusController(),
@@ -459,6 +466,7 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*omni.TalosUpgradeStatus](),
 		safe.WithResourceCache[*omni.TalosVersion](),
 		safe.WithResourceCache[*omni.MaintenanceConfigStatus](),
+		safe.WithResourceCache[*omni.MachineConfigExtractionStatus](),
 		safe.WithResourceCache[*omni.MachineUpgradeStatus](),
 		safe.WithResourceCache[*omni.MachineConfigDiff](),
 		safe.WithResourceCache[*siderolinkres.Config](),

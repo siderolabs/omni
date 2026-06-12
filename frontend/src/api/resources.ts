@@ -197,6 +197,7 @@ export const LabelMachineRequestInUse = "omni.sidero.dev/machine-request-in-use"
 export const MachineType = "Machines.omni.sidero.dev";
 export const MachineClassType = "MachineClasses.omni.sidero.dev";
 export const MachineConfigDiffType = "MachineConfigDiffs.omni.sidero.dev";
+export const MachineConfigExtractionStatusType = "MachineConfigExtractionStatuses.omni.sidero.dev";
 export const MachineConfigGenOptionsType = "MachineConfigGenOptions.omni.sidero.dev";
 export const MachineExtensionsType = "MachineExtensions.omni.sidero.dev";
 export const MachineExtensionsStatusType = "MachineExtensionsStatuses.omni.sidero.dev";

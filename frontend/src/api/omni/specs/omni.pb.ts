@@ -356,6 +356,7 @@ export type ClusterSpecFeatures = {
   enable_workload_proxy?: boolean
   disk_encryption?: boolean
   use_embedded_discovery_service?: boolean
+  enable_node_audit_skip?: boolean
 }
 
 export type ClusterSpec = {
@@ -686,6 +687,7 @@ export type KubernetesStatusSpecNodeStatus = {
   nodename?: string
   kubelet_version?: string
   ready?: boolean
+  skip_audit?: boolean
 }
 
 export type KubernetesStatusSpecStaticPodStatus = {
@@ -1016,6 +1018,7 @@ export type InfraMachineBMCConfigSpec = {
 
 export type MaintenanceConfigStatusSpec = {
   public_key_at_last_apply?: string
+  last_applied_config_hash?: string
 }
 
 export type NodeForceDestroyRequestSpec = {
@@ -1138,4 +1141,9 @@ export type ClusterKubernetesManifestsStatusSpec = {
   out_of_sync?: number
   total?: number
   last_error?: string
+}
+
+export type MachineConfigExtractionStatusSpec = {
+  initialized?: boolean
+  error?: string
 }

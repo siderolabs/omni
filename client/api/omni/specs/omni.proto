@@ -1509,6 +1509,8 @@ message InfraMachineBMCConfigSpec {
 message MaintenanceConfigStatusSpec {
   // PublicKeyAtLastApply is the SideroLink public key of the machine at the time of the last apply.
   string public_key_at_last_apply = 1;
+  // LastAppliedConfigHash is the hash of the desired maintenance config inputs at the time of the last apply.
+  string last_applied_config_hash = 2;
 }
 
 // NodeForceDestroyRequestSpec is used to force delete a node.
@@ -1709,4 +1711,12 @@ message ClusterKubernetesManifestsStatusSpec {
   int32 out_of_sync = 2;
   int32 total = 3;
   string last_error = 4;
+}
+
+// MachineConfigExtractionStatusSpec tracks whether the config a machine arrived with has been extracted into a config patch.
+message MachineConfigExtractionStatusSpec {
+  // Initialized is set once the machine's incoming config has been extracted (or determined to be empty / not preservable).
+  bool initialized = 1;
+  // Error is set if the machine's incoming config could not be preserved as an editable config patch (e.g. it contains fields not allowed in a config patch). No patch is created in that case.
+  string error = 2;
 }
