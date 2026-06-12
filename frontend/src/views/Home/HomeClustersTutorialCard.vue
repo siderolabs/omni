@@ -50,10 +50,18 @@ const isDismissed = useLocalStorage('_home_clusters_tutorial_dismissed', false)
       </p>
     </div>
 
-    <div class="grid grid-cols-2 gap-2">
-      <TButton icon="close" icon-position="left" @click="isDismissed = true">Dismiss</TButton>
+    <div class="flex items-center justify-end gap-2">
+      <TButton icon="close" icon-position="left" variant="secondary" @click="isDismissed = true">
+        Dismiss
+      </TButton>
 
-      <TButton is="router-link" icon="plus" icon-position="left" :to="{ name: 'ClusterCreate' }">
+      <TButton
+        is="router-link"
+        icon="plus"
+        icon-position="left"
+        :to="{ name: 'ClusterCreate' }"
+        variant="highlighted"
+      >
         Create Cluster
       </TButton>
     </div>
