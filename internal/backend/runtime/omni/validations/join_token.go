@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -32,6 +33,10 @@ func joinTokenValidationOptions(st state.State) []validated.StateOption {
 
 		if len(res.TypedSpec().Value.Name) > MaxJoinTokenNameLength {
 			return fmt.Errorf("join token name cannot be longer than %d symbols", MaxJoinTokenNameLength)
+		}
+
+		if strings.ContainsFunc(res.TypedSpec().Value.Name, isControlChar) {
+			return errors.New("the join token name must not contain control characters")
 		}
 
 		return nil

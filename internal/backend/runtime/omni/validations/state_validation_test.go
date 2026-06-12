@@ -2361,6 +2361,76 @@ func TestJoinTokenValidation(t *testing.T) {
 	assert.NoError(t, wrappedState.Destroy(ctx, normalJoinToken.Metadata()))
 }
 
+func TestJoinTokenNameControlCharsValidation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("create rejects control character in name", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Cleanup(cancel)
+
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := validated.NewState(innerSt, validations.JoinTokenValidationOptions(innerSt)...)
+
+		token := siderolink.NewJoinToken("token-control-char")
+		token.TypedSpec().Value.Name = "foo\nbar"
+
+		err := state.WrapCore(st).Create(ctx, token)
+		assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+		assert.ErrorContains(t, err, "control character")
+	})
+
+	t.Run("update with unchanged offending name passes", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Cleanup(cancel)
+
+		// Stage a token with an offending name via the inner state (bypassing validation).
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+		token := siderolink.NewJoinToken("token-stale-bad-name")
+		token.TypedSpec().Value.Name = "stale\nbad"
+		require.NoError(t, innerSt.Create(ctx, token))
+
+		st := validated.NewState(innerSt, validations.JoinTokenValidationOptions(innerSt)...)
+		wrappedState := state.WrapCore(st)
+
+		// Update a different field on the spec; name unchanged.
+		_, err := safe.StateUpdateWithConflicts(ctx, wrappedState, token.Metadata(), func(t *siderolink.JoinToken) error {
+			t.TypedSpec().Value.Revoked = true
+
+			return nil
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("update changing name to bad value rejects", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Cleanup(cancel)
+
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+		st := validated.NewState(innerSt, validations.JoinTokenValidationOptions(innerSt)...)
+		wrappedState := state.WrapCore(st)
+
+		token := siderolink.NewJoinToken("token-update-bad")
+		token.TypedSpec().Value.Name = "valid-name"
+		require.NoError(t, wrappedState.Create(ctx, token))
+
+		_, err := safe.StateUpdateWithConflicts(ctx, wrappedState, token.Metadata(), func(t *siderolink.JoinToken) error {
+			t.TypedSpec().Value.Name = "freshly\nbad"
+
+			return nil
+		})
+
+		assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+		assert.ErrorContains(t, err, "control character")
+	})
+}
+
 func TestDefaultJoinTokenValidation(t *testing.T) {
 	t.Parallel()
 
