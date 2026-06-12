@@ -24,6 +24,8 @@ import (
 )
 
 // machineClassValidationOptions returns the validation options for the machine class resource.
+//
+//nolint:gocognit
 func machineClassValidationOptions(st state.State) []validated.StateOption {
 	validate := func(ctx context.Context, oldRes, res *omni.MachineClass) error {
 		if res.TypedSpec().Value.AutoProvision != nil && res.TypedSpec().Value.MatchLabels != nil {
@@ -41,6 +43,10 @@ func machineClassValidationOptions(st state.State) []validated.StateOption {
 				if err := validateProviderData(ctx, st, autoProvision.ProviderId, autoProvision.ProviderData); err != nil {
 					return err
 				}
+			}
+
+			if err := validateUserStringSlice("auto provision kernel args", autoProvision.GetKernelArgs(), MaxKernelArgsCount, MaxKernelArgLength); err != nil {
+				return err
 			}
 
 			return nil

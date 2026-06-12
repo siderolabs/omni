@@ -109,6 +109,10 @@ func EulaValidationOptions(st state.State) []validated.StateOption {
 	return eulaValidationOptions(st)
 }
 
+func KernelArgsValidationOptions() []validated.StateOption {
+	return kernelArgsValidationOptions()
+}
+
 func MetadataValidationOptions() []validated.StateOption {
 	return metadataValidationOptions()
 }

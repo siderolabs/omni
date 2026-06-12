@@ -56,6 +56,10 @@ func installationMediaConfigValidationOptions() []validated.StateOption {
 			}
 		}
 
+		if err := validateUserString("kernel args", spec.GetKernelArgs(), MaxExtraKernelArgsLength); err != nil {
+			return err
+		}
+
 		return nil
 	}
 

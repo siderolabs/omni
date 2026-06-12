@@ -19,15 +19,37 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 )
 
+// MaxRequestIDLength caps the byte length of the request ID fields on InfraMachineConfig.
+const MaxRequestIDLength = 128
+
 func infraMachineConfigValidationOptions(st state.State) []validated.StateOption {
+	validateSpec := func(res *omni.InfraMachineConfig) error {
+		if err := validateUserString("requested reboot ID", res.TypedSpec().Value.GetRequestedRebootId(), MaxRequestIDLength); err != nil {
+			return err
+		}
+
+		if err := validateUserString("power-off request ID", res.TypedSpec().Value.GetPowerOffRequestId(), MaxRequestIDLength); err != nil {
+			return err
+		}
+
+		if err := validateUserString("extra kernel args", res.TypedSpec().Value.GetExtraKernelArgs(), MaxExtraKernelArgsLength); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	return []validated.StateOption{
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *omni.InfraMachineConfig, _ ...state.CreateOption) error {
+			return validateSpec(res)
+		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(func(_ context.Context, oldRes, newRes *omni.InfraMachineConfig, _ ...state.UpdateOption) error {
 			if oldRes.TypedSpec().Value.AcceptanceStatus == specs.InfraMachineConfigSpec_ACCEPTED &&
 				newRes.TypedSpec().Value.AcceptanceStatus != oldRes.TypedSpec().Value.AcceptanceStatus {
 				return errors.New("an accepted machine cannot be rejected or set back to pending acceptance")
 			}
 
-			return nil
+			return validateSpec(newRes)
 		})),
 		validated.WithDestroyValidations(validated.NewDestroyValidationForType(func(ctx context.Context, _ resource.Pointer, res *omni.InfraMachineConfig, _ ...state.DestroyOption) error {
 			if res.TypedSpec().Value.AcceptanceStatus != specs.InfraMachineConfigSpec_ACCEPTED {

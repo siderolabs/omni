@@ -37,5 +37,9 @@ func validateMachineRequestSet(ctx context.Context, st state.State, oldRes, res 
 		}
 	}
 
+	if err := validateUserStringSlice("kernel args", res.TypedSpec().Value.GetKernelArgs(), MaxKernelArgsCount, MaxKernelArgLength); err != nil {
+		return err
+	}
+
 	return validateTalosVersion(ctx, st, "", res.TypedSpec().Value.TalosVersion)
 }
