@@ -1,0 +1,32 @@
+customization:
+  meta: [{ key: 42, value: test-1 }, { key: 41, value: test-2 }]
+  extraKernelArgs:
+    - console=tty0
+    - console=ttyS0
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/hello-world-service
+  embeddedMachineConfiguration: |
+    apiVersion: v1alpha1
+    kind: SideroLinkConfig
+    apiUrl: grpc://${LOCAL_IP}:8090?jointoken=${JOIN_TOKEN}
+    ---
+    apiVersion: v1alpha1
+    kind: EventSinkConfig
+    endpoint: '[fdae:41e4:649b:9303::1]:8091'
+    ---
+    apiVersion: v1alpha1
+    kind: KmsgLogConfig
+    name: omni-kmsg
+    url: 'tcp://[fdae:41e4:649b:9303::1]:8092'
+    ---
+    apiVersion: v1alpha1
+    kind: EnvironmentConfig
+    variables:
+        OMNI_EMBEDDED_CONFIG_MARKER: omni-embedded-config-env-marker
+    ---
+    apiVersion: v1alpha1
+    kind: StaticHostConfig
+    name: 10.99.0.1
+    hostnames:
+        - omni-embedded-config-host-marker

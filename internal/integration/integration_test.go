@@ -242,6 +242,7 @@ func TestIntegration(t *testing.T) {
 		t.Run("EtcdBackupAndRestore", testEtcdBackupAndRestore(testOptions))
 		t.Run("MaintenanceUpgrade", testMaintenanceUpgrade(testOptions))
 		t.Run("MaintenanceLifecycle", testMaintenanceLifecycle(testOptions))
+		t.Run("EmbeddedMachineConfig", testEmbeddedMachineConfig(testOptions))
 		t.Run("Auth", testAuth(testOptions))
 		t.Run("ClusterTemplate", testClusterTemplate(testOptions))
 		t.Run("WorkloadProxy", testWorkloadProxy(testOptions))

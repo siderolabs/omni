@@ -21,8 +21,9 @@ ENABLE_SECUREBOOT="${ENABLE_SECUREBOOT:-false}"
 # Machine Counts: 10 machines in total
 TOTAL_MACHINES=10
 
-PARTIAL_CONFIG_MACHINES=4 # 4 machines: siderolink via partial config, UKI, no secure boot
-NON_UKI_MACHINES=2        # 2 machines: siderolink via kernel args, non-UKI, no secure boot
+PARTIAL_CONFIG_MACHINES=2  # 2 machines: siderolink via partial config, UKI, no secure boot
+EMBEDDED_CONFIG_MACHINES=2 # 2 machines: config (siderolink docs + user docs) embedded in the image, UKI, no secure boot
+NON_UKI_MACHINES=2         # 2 machines: siderolink via kernel args, non-UKI, no secure boot
 
 KERNEL_ARGS_MACHINES=4 # 4 machines: siderolink via kernel args, UKI, no secure boot
 SECURE_BOOT_MACHINES=0 # 0 machines: secure boot, UKI, siderolink via kernel args
@@ -32,7 +33,7 @@ if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
   SECURE_BOOT_MACHINES=2 # 2 machines: siderolink via kernel args, UKI, secure boot
 fi
 
-if [[ $((PARTIAL_CONFIG_MACHINES + NON_UKI_MACHINES + KERNEL_ARGS_MACHINES + SECURE_BOOT_MACHINES)) -ne $TOTAL_MACHINES ]]; then
+if [[ $((PARTIAL_CONFIG_MACHINES + EMBEDDED_CONFIG_MACHINES + NON_UKI_MACHINES + KERNEL_ARGS_MACHINES + SECURE_BOOT_MACHINES)) -ne $TOTAL_MACHINES ]]; then
   echo "Error: unexpected total machine count, exiting" >&2
   exit 1
 fi
@@ -73,12 +74,16 @@ eulaAccept:
 prepare_omni_config
 
 PARTIAL_CONFIG_SCHEMATIC_ID=$(prepare_partial_config)
+EMBEDDED_CONFIG_SCHEMATIC_ID=$(prepare_embedded_config)
 KERNEL_ARGS_SCHEMATIC_ID=$(prepare_kernel_args_schematic)
 
 # Create machines.
 if [[ "${CREATE_QEMU_MACHINES:-true}" == "true" ]]; then
   create_machines name=test-partial-config count="${PARTIAL_CONFIG_MACHINES}" cidr=172.20.0.0/24 secure_boot=false uki=true use_partial_config=true talos_version="${QEMU_TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
+  # embedded-config machines boot from a schematic with the config baked in, so they reuse the partial-config path with the embedded schematic.
+  create_machines name=test-embedded-config count="${EMBEDDED_CONFIG_MACHINES}" cidr=172.24.0.0/24 secure_boot=false uki=true use_partial_config=true talos_version="${QEMU_TALOS_VERSION}" \
+    kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${EMBEDDED_CONFIG_SCHEMATIC_ID}"
   create_machines name=test-kernel-args count="${KERNEL_ARGS_MACHINES}" cidr=172.21.0.0/24 secure_boot=false uki=true use_partial_config=false talos_version="${QEMU_TALOS_VERSION}" \
     kernel_args_schematic_id="${KERNEL_ARGS_SCHEMATIC_ID}" partial_config_schematic_id="${PARTIAL_CONFIG_SCHEMATIC_ID}"
   create_machines name=test-secure-boot count="${SECURE_BOOT_MACHINES}" cidr=172.22.0.0/24 secure_boot=true uki=true use_partial_config=false talos_version="${QEMU_TALOS_VERSION}" \

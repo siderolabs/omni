@@ -81,6 +81,63 @@ func TestGetClientForCluster(t *testing.T) {
 	})
 }
 
+func TestGetMaintenance(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(context.Context, testutils.TestContext) {
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		// Use a nop logger because runtime.AddCleanup finalizers may run after the test completes,
+		// and zaptest loggers panic when logging to a finished testing.T.
+		clientFactory := talos.NewClientFactory(testContext.State, zap.NewNop())
+
+		// A machine in maintenance: it has a status but is not part of any cluster.
+		maintMachine := omni.NewMachineStatus("m-maint")
+		maintMachine.TypedSpec().Value.ManagementAddress = "127.0.0.1"
+		require.NoError(t, testContext.State.Create(ctx, maintMachine))
+
+		// An allocated machine: it has a status and a cluster machine.
+		allocMachine := omni.NewMachineStatus("m-alloc")
+		allocMachine.TypedSpec().Value.ManagementAddress = "127.0.0.1"
+		require.NoError(t, testContext.State.Create(ctx, allocMachine))
+
+		cm := omni.NewClusterMachine("m-alloc")
+		cm.Metadata().Labels().Set(omni.LabelCluster, "alpha")
+		require.NoError(t, testContext.State.Create(ctx, cm))
+
+		// --- Maintenance machine: returns a maintenance (no cluster) client ---
+
+		maint, err := clientFactory.GetMaintenance(ctx, "m-maint")
+		require.NoError(t, err)
+		assert.Empty(t, maint.ClusterID())
+		assert.Equal(t, "m-maint", maint.MachineID())
+
+		// Cached: a second call returns the same pointer.
+		maintAgain, err := clientFactory.GetMaintenance(ctx, "m-maint")
+		require.NoError(t, err)
+		assert.Same(t, maint, maintAgain)
+
+		// GetForMachine shares the same maintenance cache entry.
+		viaForMachine, err := clientFactory.GetForMachine(ctx, "m-maint")
+		require.NoError(t, err)
+		assert.Same(t, maint, viaForMachine)
+
+		// --- Allocated machine: refuses to return a cluster client ---
+
+		_, err = clientFactory.GetMaintenance(ctx, "m-alloc")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "is not in maintenance mode")
+		assert.False(t, talos.IsClientNotReadyError(err))
+
+		// --- Unknown machine (no status yet): not ready ---
+
+		_, err = clientFactory.GetMaintenance(ctx, "m-unknown")
+		require.True(t, talos.IsClientNotReadyError(err))
+	})
+}
+
 func TestClientLifecycle(t *testing.T) {
 	t.Parallel()
 

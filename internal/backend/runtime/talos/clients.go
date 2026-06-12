@@ -364,9 +364,30 @@ func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterID str
 // It returns a maintenance or a regular client depending on whether the node is currently part of a cluster or not.
 // Returned client is cached and must not be closed by the consumer.
 func (factory *ClientFactory) GetForMachine(ctx context.Context, machineID string) (*Client, error) {
+	return factory.getForMachine(ctx, machineID, false)
+}
+
+// GetMaintenance constructs a Talos client connected directly to a specific node's SideroLink address over the insecure
+// maintenance connection.
+//
+// Unlike GetForMachine, it never falls through to the cluster (secure) client: if the machine turns out to be part of a
+// cluster, it returns an error instead. This way a caller acting on a machine it believes to be in maintenance mode
+// (based on a possibly stale machine status) can never accidentally reconfigure an allocated machine.
+// Returned client is cached and must not be closed by the consumer.
+func (factory *ClientFactory) GetMaintenance(ctx context.Context, machineID string) (*Client, error) {
+	return factory.getForMachine(ctx, machineID, true)
+}
+
+func (factory *ClientFactory) getForMachine(ctx context.Context, machineID string, maintenanceOnly bool) (*Client, error) {
 	clusterID, idErr := factory.lookupClusterID(ctx, machineID)
 	if idErr != nil {
 		return nil, idErr
+	}
+
+	// when only a maintenance client was asked for, refuse to build (or return a cached) cluster client. checked before
+	// touching the cache so a concurrently cached cluster client can never leak through either.
+	if maintenanceOnly && clusterID != "" {
+		return nil, fmt.Errorf("machine %q is not in maintenance mode", machineID)
 	}
 
 	cacheKey := buildCacheKey(clusterID, machineID)

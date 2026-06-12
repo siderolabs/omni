@@ -1018,6 +1018,7 @@ export type InfraMachineBMCConfigSpec = {
 
 export type MaintenanceConfigStatusSpec = {
   public_key_at_last_apply?: string
+  last_applied_config_hash?: string
 }
 
 export type NodeForceDestroyRequestSpec = {
@@ -1145,4 +1146,9 @@ export type ClusterKubernetesManifestsStatusSpec = {
 export type KubernetesHealthCheckSpec = {
   job?: string
   interval?: GoogleProtobufDuration.Duration
+}
+
+export type MachineConfigExtractionStatusSpec = {
+  initialized?: boolean
+  error?: string
 }

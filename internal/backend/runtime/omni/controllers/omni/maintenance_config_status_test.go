@@ -30,10 +30,18 @@ type MaintenanceConfigStatusControllerSuite struct {
 	OmniSuite
 }
 
+// markConfigExtracted marks the machine's incoming config as already extracted, which the maintenance config controller waits for before applying.
+func (suite *OmniSuite) markConfigExtracted(id string) {
+	status := omnires.NewMachineConfigExtractionStatus(id)
+	status.TypedSpec().Value.Initialized = true
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, status))
+}
+
 func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus() {
 	// Prepare the mock maintenance client factory
 	getMachineConfigCh := make(chan *config.MachineConfig)
-	mgmtAddressCh := make(chan string)
+	machineIDCh := make(chan string)
 	applyConfigReqCh := make(chan *machine.ApplyConfigurationRequest)
 
 	maintenanceClient := &maintenanceClientMock{
@@ -41,9 +49,9 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 		applyConfigReqCh:   applyConfigReqCh,
 	}
 
-	maintenanceClientFactory := func(ctx context.Context, managementAddress string) (omni.MaintenanceClient, error) {
+	maintenanceClientFactory := func(ctx context.Context, machineID string) (omni.MaintenanceClient, error) {
 		select {
-		case mgmtAddressCh <- managementAddress:
+		case machineIDCh <- machineID:
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		}
@@ -73,10 +81,12 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 
 	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
 
-	// Assert that the maintenance client factory was called with the correct management address
+	suite.markConfigExtracted("test-machine")
+
+	// Assert that the maintenance client factory was called with the correct machine ID
 	select {
-	case mgmtAddr := <-mgmtAddressCh:
-		suite.Require().Equal("test-address", mgmtAddr)
+	case observedMachineID := <-machineIDCh:
+		suite.Require().Equal("test-machine", observedMachineID)
 	case <-suite.ctx.Done():
 		suite.Require().Fail("timeout waiting for maintenance client factory to be called")
 	}
@@ -112,10 +122,10 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	})
 	suite.Require().NoError(err)
 
-	// Assert again that the maintenance client factory was called with the correct management address
+	// Assert again that the maintenance client factory was called with the correct machine ID
 	select {
-	case mgmtAddr := <-mgmtAddressCh:
-		suite.Require().Equal("test-address", mgmtAddr)
+	case observedMachineID := <-machineIDCh:
+		suite.Require().Equal("test-machine", observedMachineID)
 	case <-suite.ctx.Done():
 		suite.Require().Fail("timeout waiting for maintenance client factory to be called")
 	}
@@ -157,7 +167,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 
 func (suite *MaintenanceConfigStatusControllerSuite) TestImageFactoryRegistryAuth() {
 	getMachineConfigCh := make(chan *config.MachineConfig)
-	mgmtAddressCh := make(chan string)
+	machineIDCh := make(chan string)
 	applyConfigReqCh := make(chan *machine.ApplyConfigurationRequest)
 
 	maintenanceClient := &maintenanceClientMock{
@@ -165,9 +175,9 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestImageFactoryRegistryAut
 		applyConfigReqCh:   applyConfigReqCh,
 	}
 
-	maintenanceClientFactory := func(ctx context.Context, managementAddress string) (omni.MaintenanceClient, error) {
+	maintenanceClientFactory := func(ctx context.Context, machineID string) (omni.MaintenanceClient, error) {
 		select {
-		case mgmtAddressCh <- managementAddress:
+		case machineIDCh <- machineID:
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		}
@@ -202,8 +212,10 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestImageFactoryRegistryAut
 
 		suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
 
+		suite.markConfigExtracted(id)
+
 		select {
-		case <-mgmtAddressCh:
+		case <-machineIDCh:
 		case <-suite.ctx.Done():
 			suite.Require().Fail("timeout waiting for maintenance client factory to be called")
 		}
@@ -242,6 +254,99 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestImageFactoryRegistryAut
 	suite.Contains(newData, "name: factory.example.org")
 	suite.Contains(newData, "username: factory-user")
 	suite.Contains(newData, "password: factory-pass")
+}
+
+func (suite *MaintenanceConfigStatusControllerSuite) TestMachineConfigPatchPreserved() {
+	getMachineConfigCh := make(chan *config.MachineConfig)
+	machineIDCh := make(chan string)
+	applyConfigReqCh := make(chan *machine.ApplyConfigurationRequest)
+
+	maintenanceClient := &maintenanceClientMock{
+		getMachineConfigCh: getMachineConfigCh,
+		applyConfigReqCh:   applyConfigReqCh,
+	}
+
+	maintenanceClientFactory := func(ctx context.Context, machineID string) (omni.MaintenanceClient, error) {
+		select {
+		case machineIDCh <- machineID:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+
+		return maintenanceClient, nil
+	}
+
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, omnicfg.Registries{})
+
+	suite.Require().NoError(suite.runtime.RegisterQController(controller))
+
+	suite.startRuntime()
+
+	// a machine-level config patch which carries a partial config document to preserve (TrustedRootsConfig) and a v1alpha1 document which must be stripped in maintenance mode
+	const patchData = `machine:
+  install:
+    disk: /dev/sda
+---
+apiVersion: v1alpha1
+kind: TrustedRootsConfig
+name: my-enterprise-ca
+certificates: |
+  -----BEGIN CERTIFICATE-----
+  MIIB
+  -----END CERTIFICATE-----
+`
+
+	patch := omnires.NewConfigPatch("000-preserved-machine-config-patch-machine")
+	patch.Metadata().Labels().Set(omnires.LabelMachine, "patch-machine")
+	suite.Require().NoError(patch.TypedSpec().Value.SetUncompressedData([]byte(patchData)))
+	suite.Require().NoError(suite.state.Create(suite.ctx, patch))
+
+	link := siderolinkres.NewLink("patch-machine", &specs.SiderolinkSpec{})
+	link.TypedSpec().Value.Connected = true
+	link.TypedSpec().Value.NodePublicKey = "patch-machine-key"
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, link))
+
+	machineStatus := omnires.NewMachineStatus("patch-machine")
+	machineStatus.TypedSpec().Value.Maintenance = true
+	machineStatus.TypedSpec().Value.ManagementAddress = "patch-address"
+	machineStatus.TypedSpec().Value.TalosVersion = "1.5.0"
+
+	suite.Require().NoError(suite.state.Create(suite.ctx, machineStatus))
+
+	suite.markConfigExtracted("patch-machine")
+
+	select {
+	case <-machineIDCh:
+	case <-suite.ctx.Done():
+		suite.Require().Fail("timeout waiting for maintenance client factory to be called")
+	}
+
+	// no existing config on the machine
+	select {
+	case getMachineConfigCh <- nil:
+	case <-suite.ctx.Done():
+		suite.Require().Fail("timeout waiting for get machine config request")
+	}
+
+	var applyConfigReq *machine.ApplyConfigurationRequest
+
+	select {
+	case applyConfigReq = <-applyConfigReqCh:
+	case <-suite.ctx.Done():
+		suite.Require().Fail("timeout waiting for apply configuration request")
+	}
+
+	dataStr := string(applyConfigReq.Data)
+
+	// the preserved partial document and the base connection documents are applied
+	suite.Contains(dataStr, "TrustedRootsConfig")
+	suite.Contains(dataStr, "my-enterprise-ca")
+	suite.Contains(dataStr, "omni-kmsg")
+
+	// the v1alpha1 document is stripped, so the machine is not installed and stays in maintenance mode
+	suite.NotContains(dataStr, "/dev/sda")
+	suite.NotContains(dataStr, "install:")
 }
 
 func TestMaintenanceConfigStatusControllerSuite(t *testing.T) {

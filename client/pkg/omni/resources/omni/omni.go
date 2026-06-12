@@ -84,6 +84,7 @@ func init() {
 	registry.MustRegisterResource(MachineStatusMetricsType, &MachineStatusMetrics{})
 	registry.MustRegisterResource(NotificationType, &Notification{})
 	registry.MustRegisterResource(MaintenanceConfigStatusType, &MaintenanceConfigStatus{})
+	registry.MustRegisterResource(MachineConfigExtractionStatusType, &MachineConfigExtractionStatus{})
 	registry.MustRegisterResource(LoadBalancerConfigType, &LoadBalancerConfig{})
 	registry.MustRegisterResource(LoadBalancerStatusType, &LoadBalancerStatus{})
 	registry.MustRegisterResource(NodeForceDestroyRequestType, &NodeForceDestroyRequest{})

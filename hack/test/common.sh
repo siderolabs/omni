@@ -217,6 +217,16 @@ function prepare_talos_image() {
   curl -X POST --data-binary "${schematic}" https://factory.talos.dev/schematics | jq -r '.id'
 }
 
+# Prepare a schematic whose image carries the machine config baked in via embeddedMachineConfiguration.
+# Machines booted from it arrive at Omni already carrying user documents on top of the SideroLink connection docs, so
+# there is nothing to serve over HTTP.
+function prepare_embedded_config() {
+  local schematic
+  schematic=$(envsubst <hack/test/templates/embedded-config-schematic.yaml)
+
+  curl -X POST --data-binary "${schematic}" https://factory.talos.dev/schematics | jq -r '.id'
+}
+
 function generate_non_masquerade_cidrs() {
   local exclude="$1"
   local found=false
