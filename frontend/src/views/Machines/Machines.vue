@@ -13,8 +13,9 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import type { InfraProviderStatusSpec } from '@/api/omni/specs/infra.pb'
-import type { MachineStatusMetricsSpec } from '@/api/omni/specs/omni.pb'
+import type { MachineStatusMetricsSpec, MachineStatusSnapshotSpec } from '@/api/omni/specs/omni.pb'
 import {
+  DefaultNamespace,
   EphemeralNamespace,
   InfraProviderNamespace,
   InfraProviderStatusType,
@@ -25,6 +26,7 @@ import {
   MachineStatusLinkType,
   MachineStatusMetricsID,
   MachineStatusMetricsType,
+  MachineStatusSnapshotType,
   MachineStatusType,
   MetricsNamespace,
   VirtualNamespace,
@@ -43,7 +45,9 @@ import { MachineFilterOption } from '@/methods/machine'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
+import MaintenanceInstallModal from '@/views/Machines/components/MaintenanceInstallModal.vue'
 import MaintenanceUpdateModal from '@/views/Machines/components/MaintenanceUpdateModal.vue'
+import MaintenanceUpgradeModal from '@/views/Machines/components/MaintenanceUpgradeModal.vue'
 import MachineDetailsPanel from '@/views/Machines/MachineDetailsPanel.vue'
 import MachineItem from '@/views/Machines/MachineItem.vue'
 
@@ -56,7 +60,11 @@ const router = useRouter()
 const showUUID = useLocalStorage<'hostname' | 'uuid'>('_machines_list_show_uuid', 'hostname')
 
 const maintenaceUpdateModalOpen = ref(false)
+const maintenaceUpgradeModalOpen = ref(false)
+const maintenaceInstallModalOpen = ref(false)
 const maintenaceUpdateModalMachine = ref<string>()
+const maintenaceUpgradeModalMachine = ref<string>()
+const maintenaceInstallModalMachine = ref<string>()
 
 const { data: infraProviderStatuses } = useResourceWatch<InfraProviderStatusSpec>({
   resource: {
@@ -65,6 +73,16 @@ const { data: infraProviderStatuses } = useResourceWatch<InfraProviderStatusSpec
   },
   runtime: Runtime.Omni,
 })
+
+const { data: snapshots } = useResourceWatch<MachineStatusSnapshotSpec>({
+  resource: {
+    type: MachineStatusSnapshotType,
+    namespace: DefaultNamespace,
+  },
+  runtime: Runtime.Omni,
+})
+
+const snapshotMap = computed(() => new Map(snapshots.value.map((s) => [s.metadata.id!, s])))
 
 const selectors = computed(() => {
   const selectors: string[] = []
@@ -299,14 +317,27 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
           :search-query="searchQuery"
           :panel-open="sidePanelOpen && item.metadata.id === sidePanelSelectedItemId"
           :selected="selectedMachines.has(item.metadata.id ?? '')"
+          :snapshot="snapshotMap.get(item.metadata.id ?? '')"
           :show-u-u-i-d="showUUID === 'uuid'"
           @update:selected="(v) => updateSelected(item, v)"
           @open-panel="openPanel(item.metadata.id ?? '')"
           @filter-labels="(label) => addLabel(filterLabels, label)"
-          @open-update-talos="
+          @open-maintenance-update="
             (machine) => {
               maintenaceUpdateModalMachine = machine
               maintenaceUpdateModalOpen = true
+            }
+          "
+          @open-maintenance-upgrade="
+            (machine) => {
+              maintenaceUpgradeModalMachine = machine
+              maintenaceUpgradeModalOpen = true
+            }
+          "
+          @open-maintenance-install="
+            (machine) => {
+              maintenaceInstallModalMachine = machine
+              maintenaceInstallModalOpen = true
             }
           "
         />
@@ -326,6 +357,19 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
       v-if="maintenaceUpdateModalMachine"
       v-model:open="maintenaceUpdateModalOpen"
       :machine-id="maintenaceUpdateModalMachine"
+      :snapshot="snapshotMap.get(maintenaceUpdateModalMachine)"
+    />
+
+    <MaintenanceUpgradeModal
+      v-if="maintenaceUpgradeModalMachine"
+      v-model:open="maintenaceUpgradeModalOpen"
+      :machine-id="maintenaceUpgradeModalMachine"
+    />
+
+    <MaintenanceInstallModal
+      v-if="maintenaceInstallModalMachine"
+      v-model:open="maintenaceInstallModalOpen"
+      :machine-id="maintenaceInstallModalMachine"
     />
   </PageContainer>
 </template>

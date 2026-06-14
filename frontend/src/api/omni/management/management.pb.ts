@@ -62,6 +62,12 @@ export enum CreateSchematicRequestSiderolinkGRPCTunnelMode {
   ENABLED = 2,
 }
 
+export enum MaintenanceLifecycleRequestOperation {
+  OPERATION_UNSPECIFIED = 0,
+  OPERATION_INSTALL = 1,
+  OPERATION_UPGRADE = 2,
+}
+
 export type KubeconfigResponse = {
   kubeconfig?: Uint8Array
 }
@@ -259,6 +265,17 @@ export type MaintenanceUpgradeRequest = {
 export type MaintenanceUpgradeResponse = {
 }
 
+export type MaintenanceLifecycleRequest = {
+  machine_id?: string
+  operation?: MaintenanceLifecycleRequestOperation
+  version?: string
+  disk?: string
+}
+
+export type MaintenanceLifecycleResponse = {
+  message?: string
+}
+
 export type GetMachineJoinConfigRequest = {
   use_grpc_tunnel?: boolean
   join_token?: string
@@ -384,6 +401,9 @@ export class ManagementService {
   }
   static MaintenanceUpgrade(req: MaintenanceUpgradeRequest, ...options: fm.fetchOption[]): Promise<MaintenanceUpgradeResponse> {
     return fm.fetchReq<MaintenanceUpgradeRequest, MaintenanceUpgradeResponse>("POST", `/management.ManagementService/MaintenanceUpgrade`, req, ...options)
+  }
+  static MaintenanceLifecycle(req: MaintenanceLifecycleRequest, entityNotifier: fm.NotifyStreamEntityArrival<MaintenanceLifecycleResponse>, ...options: fm.fetchOption[]): Promise<void> {
+    return fm.fetchStreamingRequest<MaintenanceLifecycleRequest, MaintenanceLifecycleResponse>("POST", `/management.ManagementService/MaintenanceLifecycle`, req, entityNotifier, ...options)
   }
   static GetMachineJoinConfig(req: GetMachineJoinConfigRequest, ...options: fm.fetchOption[]): Promise<GetMachineJoinConfigResponse> {
     return fm.fetchReq<GetMachineJoinConfigRequest, GetMachineJoinConfigResponse>("POST", `/management.ManagementService/GetMachineJoinConfig`, req, ...options)

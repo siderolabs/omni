@@ -5,22 +5,37 @@
 import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
+import { delay, http, HttpResponse } from 'msw'
 import { compare, minor } from 'semver'
 
 import type { Resource } from '@/api/grpc'
-import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/resources'
+import type {
+  MaintenanceUpgradeRequest,
+  MaintenanceUpgradeResponse,
+} from '@/api/omni/management/management.pb.ts'
+import { type MachineStatusSpec, type TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import {
+  DefaultNamespace,
+  MachineStatusSnapshotType,
+  MachineStatusType,
+  TalosVersionType,
+} from '@/api/resources'
+import { MachineStatusEventMachineStage } from '@/api/talos/machine/machine.pb.ts'
 
 import MaintenanceUpdate from './MaintenanceUpdateModal.vue'
 
 faker.seed(0)
 
-const versions = faker.helpers.uniqueArray(
-  () => `1.${faker.number.int({ min: 28, max: 32 })}.${faker.number.int({ min: 0, max: 10 })}`,
-  40,
-)
+const machineId = faker.string.uuid()
 
-const talosVersions = versions.sort(compare).map<Resource<TalosVersionSpec>>((version) => ({
+const versions = faker.helpers
+  .uniqueArray(
+    () => `1.${faker.number.int({ min: 28, max: 32 })}.${faker.number.int({ min: 0, max: 10 })}`,
+    40,
+  )
+  .sort(compare)
+
+const talosVersions = versions.map<Resource<TalosVersionSpec>>((version) => ({
   spec: {
     version,
     deprecated: faker.datatype.boolean(),
@@ -38,14 +53,14 @@ const meta: Meta<typeof MaintenanceUpdate> = {
   component: MaintenanceUpdate,
   args: {
     open: true,
-    machineId: faker.string.uuid(),
+    machineId,
   },
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Data: Story = {
+export const Data = {
   parameters: {
     msw: {
       handlers: [
@@ -61,6 +76,7 @@ export const Data: Story = {
           expectedOptions: {
             type: MachineStatusType,
             namespace: DefaultNamespace,
+            id: machineId,
           },
           initialResources: [
             {
@@ -70,19 +86,43 @@ export const Data: Story = {
               metadata: {
                 type: MachineStatusType,
                 namespace: DefaultNamespace,
+                id: machineId,
               },
             },
           ],
         }).handler,
+
+        http.post<never, MaintenanceUpgradeRequest, MaintenanceUpgradeResponse>(
+          '/management.ManagementService/MaintenanceUpgrade',
+          async () => {
+            await delay(1_000)
+
+            return HttpResponse.json({} as MaintenanceUpgradeResponse)
+          },
+        ),
       ],
     },
   },
-}
+} satisfies Story
 
-export const NoData: Story = {
+export const AlreadyInProgress: Story = {
+  args: {
+    snapshot: {
+      spec: {
+        machine_status: {
+          stage: MachineStatusEventMachineStage.INSTALLING,
+        },
+      },
+      metadata: {
+        type: MachineStatusSnapshotType,
+        namespace: DefaultNamespace,
+        id: machineId,
+      },
+    },
+  },
   parameters: {
     msw: {
-      handlers: [createWatchStreamHandler().handler],
+      handlers: Data.parameters.msw.handlers,
     },
   },
 }

@@ -13,11 +13,13 @@ import (
 	"io"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -113,18 +115,19 @@ func newManagementServer(cfg *config.Params, omniState state.State, jwtSigningKe
 // managementServer implements omni management service.
 type managementServer struct {
 	management.UnimplementedManagementServiceServer
-	cfg                   *config.Params
-	kubernetesRuntime     KubernetesRuntime
-	omniState             state.State
-	jwtSigningKeyProvider JWTSigningKeyProvider
-	auditor               AuditLogger
-	talosconfigProvider   TalosconfigProvider
-	talosRuntime          TalosRuntime
-	logHandler            *siderolinkinternal.LogHandler
-	logger                *zap.Logger
-	dnsService            *dns.Service
-	imageFactoryClient    *imagefactory.Client
-	omniconfigDest        string
+	cfg                          *config.Params
+	kubernetesRuntime            KubernetesRuntime
+	omniState                    state.State
+	jwtSigningKeyProvider        JWTSigningKeyProvider
+	auditor                      AuditLogger
+	talosconfigProvider          TalosconfigProvider
+	talosRuntime                 TalosRuntime
+	logHandler                   *siderolinkinternal.LogHandler
+	logger                       *zap.Logger
+	dnsService                   *dns.Service
+	imageFactoryClient           *imagefactory.Client
+	omniconfigDest               string
+	maintenanceLifecycleInFlight sync.Map
 }
 
 func (s *managementServer) register(server grpc.ServiceRegistrar) {
@@ -604,19 +607,6 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 
 	ctx = actor.MarkContextAsInternalActor(authCtx)
 
-	targetTalosVersion, err := safe.StateGetByID[*omnires.TalosVersion](ctx, s.omniState, strings.TrimPrefix(req.Version, "v"))
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil, status.Errorf(codes.FailedPrecondition, "talos version %q is not tracked by this Omni release", req.Version)
-		}
-
-		return nil, fmt.Errorf("failed to look up Talos version: %w", err)
-	}
-
-	if targetTalosVersion.TypedSpec().Value.Unsupported {
-		return nil, status.Errorf(codes.FailedPrecondition, "talos version %q is not supported by this Omni release", req.Version)
-	}
-
 	machineStatus, err := safe.StateGetByID[*omnires.MachineStatus](ctx, s.omniState, req.MachineId)
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -628,6 +618,14 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 
 	if !machineStatus.TypedSpec().Value.Maintenance {
 		return nil, status.Error(codes.FailedPrecondition, "machine is not in maintenance mode")
+	}
+
+	if err = s.checkTalosUpgradeTarget(ctx, req.Version, machineStatus.TypedSpec().Value.TalosVersion, false); err != nil {
+		return nil, err
+	}
+
+	if machineStatus.TypedSpec().Value.GetSchematic().GetInAgentMode() {
+		return nil, status.Error(codes.FailedPrecondition, "maintenance upgrade is not allowed on machines in agent mode")
 	}
 
 	if !machineStatus.TypedSpec().Value.SchematicReady() {
@@ -648,6 +646,7 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 		TalosVersion:         req.Version,
 		SchematicId:          machineStatus.TypedSpec().Value.Schematic.FullId,
 		SchematicInitialized: true,
+		SchematicInvalid:     machineStatus.TypedSpec().Value.Schematic.Invalid,
 		Platform:             platform,
 		SecurityState:        securityState,
 	}
@@ -678,6 +677,471 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 	}
 
 	return &management.MaintenanceUpgradeResponse{}, nil
+}
+
+// maintenanceLifecycleMinTalosVersion is the minimum Talos version that exposes the LifecycleService.Install/Upgrade APIs that this RPC drives.
+var maintenanceLifecycleMinTalosVersion = semver.MustParse("1.13.0")
+
+// maintenanceLifecycleTimeout caps how long a single MaintenanceLifecycle RPC can run server-side once the underlying Talos calls have been detached from the client stream.
+// It needs to cover the slowest realistic image pull plus the actual disk write.
+const maintenanceLifecycleTimeout = 15 * time.Minute
+
+// maintenanceRebootTimeout is the deadline for the post-operation reboot RPC.
+const maintenanceRebootTimeout = time.Minute
+
+// MaintenanceLifecycle installs or upgrades Talos on disk for a machine running in maintenance mode, streaming installer progress.
+//
+//nolint:gocyclo,cyclop,gocognit,maintidx
+func (s *managementServer) MaintenanceLifecycle(
+	req *management.MaintenanceLifecycleRequest,
+	srv grpc.ServerStreamingServer[management.MaintenanceLifecycleResponse],
+) error {
+	ctx := srv.Context()
+
+	s.logger.Info(
+		"maintenance lifecycle request received",
+		zap.String("machine_id", req.MachineId),
+		zap.Stringer("operation", req.Operation),
+		zap.String("version", req.Version),
+		zap.String("disk", req.Disk),
+	)
+
+	if req.MachineId == "" {
+		return status.Error(codes.InvalidArgument, "machine id is required")
+	}
+
+	switch req.Operation {
+	case management.MaintenanceLifecycleRequest_OPERATION_INSTALL:
+		if req.Disk == "" {
+			return status.Error(codes.InvalidArgument, "disk is required for INSTALL")
+		}
+	case management.MaintenanceLifecycleRequest_OPERATION_UPGRADE:
+		if req.Disk != "" {
+			return status.Error(codes.InvalidArgument, "disk must not be set for UPGRADE")
+		}
+
+		if req.Version == "" {
+			return status.Error(codes.InvalidArgument, "version is required for UPGRADE")
+		}
+	case management.MaintenanceLifecycleRequest_OPERATION_UNSPECIFIED:
+		fallthrough
+	default:
+		return status.Error(codes.InvalidArgument, "operation must be OPERATION_INSTALL or OPERATION_UPGRADE")
+	}
+
+	authCtx, _, err := s.checkAuthorization(ctx, req.MachineId, role.Operator)
+	if err != nil {
+		return err
+	}
+
+	ctx = actor.MarkContextAsInternalActor(authCtx)
+
+	machineStatus, err := safe.StateGetByID[*omnires.MachineStatus](ctx, s.omniState, req.MachineId)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return status.Error(codes.NotFound, "machine not found")
+		}
+
+		return wrapLifecycleErr(err, "failed to get machine status")
+	}
+
+	if !machineStatus.TypedSpec().Value.Maintenance {
+		return status.Error(codes.FailedPrecondition, "machine is not in maintenance mode")
+	}
+
+	if err = checkMaintenanceLifecycleTalosVersion(machineStatus.TypedSpec().Value.TalosVersion); err != nil {
+		return err
+	}
+
+	if req.Version != "" {
+		allowSameVersion := req.Operation == management.MaintenanceLifecycleRequest_OPERATION_INSTALL
+		if err = s.checkTalosUpgradeTarget(ctx, req.Version, machineStatus.TypedSpec().Value.TalosVersion, allowSameVersion); err != nil {
+			return err
+		}
+	}
+
+	if machineStatus.TypedSpec().Value.GetSchematic().GetInAgentMode() {
+		return status.Error(codes.FailedPrecondition, "maintenance lifecycle is not allowed on machines in agent mode")
+	}
+
+	if !machineStatus.TypedSpec().Value.SchematicReady() {
+		return status.Error(codes.FailedPrecondition, "machine schematic is not ready yet")
+	}
+
+	_, installed := machineStatus.Metadata().Labels().Get(omnires.MachineStatusLabelInstalled)
+
+	switch req.Operation { //nolint:exhaustive
+	case management.MaintenanceLifecycleRequest_OPERATION_INSTALL:
+		if installed {
+			return status.Error(codes.FailedPrecondition, "Talos is already installed on this machine; use OPERATION_UPGRADE")
+		}
+	case management.MaintenanceLifecycleRequest_OPERATION_UPGRADE:
+		if !installed {
+			return status.Error(codes.FailedPrecondition, "Talos is not installed on this machine; use OPERATION_INSTALL")
+		}
+	}
+
+	if _, loaded := s.maintenanceLifecycleInFlight.LoadOrStore(req.MachineId, struct{}{}); loaded {
+		return status.Errorf(codes.FailedPrecondition, "a maintenance lifecycle operation is already in progress for machine %q", req.MachineId)
+	}
+
+	defer s.maintenanceLifecycleInFlight.Delete(req.MachineId)
+
+	platform := machineStatus.TypedSpec().Value.GetPlatformMetadata().GetPlatform()
+	if platform == "" {
+		return status.Error(codes.FailedPrecondition, "machine platform is not known yet")
+	}
+
+	securityState := machineStatus.TypedSpec().Value.SecurityState
+	if securityState == nil {
+		return status.Error(codes.FailedPrecondition, "machine security state is not known yet")
+	}
+
+	version := req.Version
+	if version == "" {
+		version = strings.TrimPrefix(machineStatus.TypedSpec().Value.TalosVersion, "v")
+	}
+
+	installImage := &specs.MachineConfigGenOptionsSpec_InstallImage{
+		TalosVersion:         version,
+		SchematicId:          machineStatus.TypedSpec().Value.Schematic.FullId,
+		SchematicInitialized: true,
+		SchematicInvalid:     machineStatus.TypedSpec().Value.Schematic.Invalid,
+		Platform:             platform,
+		SecurityState:        securityState,
+	}
+
+	installImageStr, err := installimage.Build(s.imageFactoryClient.Host(), req.MachineId, installImage, s.cfg.Registries.GetTalos())
+	if err != nil {
+		return wrapLifecycleErr(err, "failed to build install image")
+	}
+
+	s.logger.Info("built maintenance lifecycle image", zap.String("image", installImageStr), zap.String("version", version))
+
+	address := machineStatus.TypedSpec().Value.ManagementAddress
+	opts := talos.GetSocketOptions(address)
+	opts = append(opts, client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), client.WithEndpoints(address))
+
+	talosClient, err := client.New(authCtx, opts...)
+	if err != nil {
+		return wrapLifecycleErr(err, "failed to create talos client")
+	}
+
+	defer talosClient.Close() //nolint:errcheck
+
+	// Detach the operation from the client stream so that it can continue running even if the client disconnects.
+	installCtx, cancel := context.WithTimeout(context.WithoutCancel(authCtx), maintenanceLifecycleTimeout)
+	defer cancel()
+
+	// Best-effort progress send: once the client is gone we keep the operation running and just stop
+	// trying to relay events. The first send failure is logged so operators can correlate disconnects;
+	// subsequent failures are silently swallowed.
+	var sendDisconnectLogOnce sync.Once
+
+	send := func(resp *management.MaintenanceLifecycleResponse) {
+		if srv.Context().Err() != nil {
+			return
+		}
+
+		if sendErr := srv.Send(resp); sendErr != nil {
+			sendDisconnectLogOnce.Do(func() {
+				s.logger.Info(
+					"maintenance lifecycle client disconnected; operation continues server-side",
+					zap.String("machine_id", req.MachineId),
+					zap.Error(sendErr),
+				)
+			})
+		}
+	}
+
+	containerd := &common.ContainerdInstance{
+		Driver:    common.ContainerDriver_CONTAINERD,
+		Namespace: common.ContainerdNamespace_NS_SYSTEM,
+	}
+
+	// LifecycleService.Install/Upgrade do not pull from a registry; they expect the image to already be present in the machine's containerd store.
+	resolvedImage, err := s.pullInstallerImage(installCtx, talosClient, containerd, installImageStr, req.MachineId, send)
+	if err != nil {
+		return wrapLifecycleErr(err, "failed to pull installer image")
+	}
+
+	switch req.Operation { //nolint:exhaustive
+	case management.MaintenanceLifecycleRequest_OPERATION_INSTALL:
+		if err = s.streamMaintenanceInstall(installCtx, talosClient, containerd, resolvedImage, req.Disk, req.MachineId, send); err != nil {
+			return err
+		}
+	case management.MaintenanceLifecycleRequest_OPERATION_UPGRADE:
+		if err = s.streamMaintenanceUpgrade(installCtx, talosClient, containerd, resolvedImage, req.MachineId, send); err != nil {
+			return err
+		}
+	}
+
+	return s.rebootAfterMaintenanceLifecycle(installCtx, talosClient, req.MachineId, send)
+}
+
+// rebootAfterMaintenanceLifecycle reboots the machine after a successful install or upgrade so it boots from disk into the freshly written Talos.
+func (s *managementServer) rebootAfterMaintenanceLifecycle(
+	ctx context.Context,
+	talosClient *client.Client,
+	machineID string,
+	send func(*management.MaintenanceLifecycleResponse),
+) error {
+	send(&management.MaintenanceLifecycleResponse{Message: "[omni] rebooting machine to boot into installed Talos"})
+
+	if err := s.auditTalosAccess(ctx, machineapi.MachineService_Reboot_FullMethodName, "", machineID); err != nil {
+		return err
+	}
+
+	// Renew the context with a new timeout to prevent the reboot operation from being cut short by the install/upgrade timeout.
+	rebootCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), maintenanceRebootTimeout)
+	defer cancel()
+
+	if err := talosClient.Reboot(rebootCtx); err != nil {
+		return wrapLifecycleErr(err, "failed to reboot machine after lifecycle operation")
+	}
+
+	return nil
+}
+
+func wrapLifecycleErr(err error, prefix string) error {
+	if err == nil {
+		return nil
+	}
+
+	if s, ok := status.FromError(err); ok {
+		return status.Errorf(s.Code(), "%s: %s", prefix, s.Message())
+	}
+
+	return status.Errorf(codes.Internal, "%s: %v", prefix, err)
+}
+
+// checkMaintenanceLifecycleTalosVersion verifies the machine runs a Talos version exposing the LifecycleService.Install/Upgrade APIs.
+func checkMaintenanceLifecycleTalosVersion(version string) error {
+	parsed, err := semver.ParseTolerant(version)
+	if err != nil {
+		return status.Errorf(codes.FailedPrecondition, "failed to parse machine Talos version %q: %v", version, err)
+	}
+
+	parsed.Pre = nil
+	parsed.Build = nil
+
+	if parsed.LT(maintenanceLifecycleMinTalosVersion) {
+		return status.Errorf(codes.FailedPrecondition,
+			"the lifecycle API requires Talos %s or newer, machine is running %q", maintenanceLifecycleMinTalosVersion, version)
+	}
+
+	return nil
+}
+
+func (s *managementServer) checkTalosUpgradeTarget(
+	ctx context.Context,
+	targetVersion, currentVersion string,
+	allowSameVersion bool,
+) error {
+	targetID := strings.TrimPrefix(targetVersion, "v")
+
+	targetTalosVersion, err := safe.StateGetByID[*omnires.TalosVersion](ctx, s.omniState, targetID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return status.Errorf(codes.FailedPrecondition,
+				"requested Talos version %q is not tracked by this Omni release", targetVersion)
+		}
+
+		return wrapLifecycleErr(err, fmt.Sprintf("failed to look up Talos version %q", targetID))
+	}
+
+	if targetTalosVersion.TypedSpec().Value.Unsupported {
+		return status.Errorf(codes.FailedPrecondition,
+			"requested Talos version %q is not supported by this Omni release", targetVersion)
+	}
+
+	sourceID := strings.TrimPrefix(currentVersion, "v")
+
+	if allowSameVersion && targetID == sourceID {
+		return nil
+	}
+
+	sourceTalosVersion, err := safe.StateGetByID[*omnires.TalosVersion](ctx, s.omniState, sourceID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return status.Errorf(codes.FailedPrecondition,
+				"no upgrade targets available: machine is running an untracked Talos version %q", currentVersion)
+		}
+
+		return wrapLifecycleErr(err, fmt.Sprintf("failed to look up TalosVersion %q", sourceID))
+	}
+
+	if slices.Contains(sourceTalosVersion.TypedSpec().Value.UpgradableTalosVersions, targetID) {
+		return nil
+	}
+
+	return status.Errorf(codes.FailedPrecondition,
+		"requested Talos version %q is not a supported target from the version running in memory (%q)",
+		targetVersion, currentVersion)
+}
+
+// pullInstallerImage pulls the installer image into the machine's containerd and returns the resolved image name, as required by LifecycleService.{Install,Upgrade}'s InstallArtifactsSource.
+func (s *managementServer) pullInstallerImage(
+	ctx context.Context,
+	talosClient *client.Client,
+	containerd *common.ContainerdInstance,
+	imageRef, machineID string,
+	send func(*management.MaintenanceLifecycleResponse),
+) (string, error) {
+	send(&management.MaintenanceLifecycleResponse{Message: fmt.Sprintf("[omni] pulling installer image %s", imageRef)})
+
+	if err := s.auditTalosAccess(ctx, machineapi.ImageService_Pull_FullMethodName, "", machineID); err != nil {
+		return "", err
+	}
+
+	pullClient, err := talosClient.ImageClient.Pull(ctx, &machineapi.ImageServicePullRequest{
+		Containerd: containerd,
+		ImageRef:   imageRef,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if err = pullClient.CloseSend(); err != nil {
+		return "", err
+	}
+
+	var resolved string
+
+	for {
+		msg, recvErr := pullClient.Recv()
+		if recvErr != nil {
+			if errors.Is(recvErr, io.EOF) {
+				break
+			}
+
+			return "", recvErr
+		}
+
+		if name := msg.GetName(); name != "" {
+			resolved = name
+		}
+	}
+
+	if resolved == "" {
+		resolved = imageRef
+	}
+
+	send(&management.MaintenanceLifecycleResponse{Message: fmt.Sprintf("[omni] installer image pulled: %s", resolved)})
+
+	return resolved, nil
+}
+
+// streamMaintenanceInstall runs LifecycleService.Install and relays installer progress via the provided send closure.
+func (s *managementServer) streamMaintenanceInstall(
+	ctx context.Context,
+	talosClient *client.Client,
+	containerd *common.ContainerdInstance,
+	imageRef, disk, machineID string,
+	send func(*management.MaintenanceLifecycleResponse),
+) error {
+	if err := s.auditTalosAccess(ctx, machineapi.LifecycleService_Install_FullMethodName, "", machineID); err != nil {
+		return err
+	}
+
+	installClient, err := talosClient.LifecycleClient.Install(ctx, &machineapi.LifecycleServiceInstallRequest{
+		Containerd: containerd,
+		Source: &machineapi.InstallArtifactsSource{
+			ImageName: imageRef,
+		},
+		Destination: &machineapi.InstallDestination{
+			Disk: disk,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	if err = installClient.CloseSend(); err != nil {
+		return err
+	}
+
+	for {
+		msg, recvErr := installClient.Recv()
+		if recvErr != nil {
+			if errors.Is(recvErr, io.EOF) {
+				return nil
+			}
+
+			return recvErr
+		}
+
+		if err = relayLifecycleProgress(msg.GetProgress(), "installation", send); err != nil {
+			return err
+		}
+	}
+}
+
+// streamMaintenanceUpgrade runs LifecycleService.Upgrade and relays installer progress via the provided send closure.
+func (s *managementServer) streamMaintenanceUpgrade(
+	ctx context.Context,
+	talosClient *client.Client,
+	containerd *common.ContainerdInstance,
+	imageRef, machineID string,
+	send func(*management.MaintenanceLifecycleResponse),
+) error {
+	if err := s.auditTalosAccess(ctx, machineapi.LifecycleService_Upgrade_FullMethodName, "", machineID); err != nil {
+		return err
+	}
+
+	upgradeClient, err := talosClient.LifecycleClient.Upgrade(ctx, &machineapi.LifecycleServiceUpgradeRequest{
+		Containerd: containerd,
+		Source: &machineapi.InstallArtifactsSource{
+			ImageName: imageRef,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	if err = upgradeClient.CloseSend(); err != nil {
+		return err
+	}
+
+	for {
+		msg, recvErr := upgradeClient.Recv()
+		if recvErr != nil {
+			if errors.Is(recvErr, io.EOF) {
+				return nil
+			}
+
+			return recvErr
+		}
+
+		if err = relayLifecycleProgress(msg.GetProgress(), "upgrade", send); err != nil {
+			return err
+		}
+	}
+}
+
+func relayLifecycleProgress(
+	progress *machineapi.LifecycleServiceInstallProgress,
+	operationLabel string,
+	send func(*management.MaintenanceLifecycleResponse),
+) error {
+	switch payload := progress.GetResponse().(type) {
+	case *machineapi.LifecycleServiceInstallProgress_Message:
+		// Talos's installer container coalesces multiple log.Printf calls into a single message. Split on '\n' and trim trailing whitespace.
+		for line := range strings.SplitSeq(progress.GetMessage(), "\n") {
+			line = strings.TrimRight(line, " \t\r")
+			if line == "" {
+				continue
+			}
+
+			send(&management.MaintenanceLifecycleResponse{Message: "[talos] " + line})
+		}
+	case *machineapi.LifecycleServiceInstallProgress_ExitCode:
+		if payload.ExitCode != 0 {
+			return status.Errorf(codes.Internal, "%s failed with exit code %d", operationLabel, payload.ExitCode)
+		}
+	}
+
+	return nil
 }
 
 func (s *managementServer) GetMachineJoinConfig(ctx context.Context, request *management.GetMachineJoinConfigRequest) (*management.GetMachineJoinConfigResponse, error) {

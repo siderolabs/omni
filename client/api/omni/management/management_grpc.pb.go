@@ -39,6 +39,7 @@ const (
 	ManagementService_GetSupportBundle_FullMethodName           = "/management.ManagementService/GetSupportBundle"
 	ManagementService_ReadAuditLog_FullMethodName               = "/management.ManagementService/ReadAuditLog"
 	ManagementService_MaintenanceUpgrade_FullMethodName         = "/management.ManagementService/MaintenanceUpgrade"
+	ManagementService_MaintenanceLifecycle_FullMethodName       = "/management.ManagementService/MaintenanceLifecycle"
 	ManagementService_GetMachineJoinConfig_FullMethodName       = "/management.ManagementService/GetMachineJoinConfig"
 	ManagementService_CreateJoinToken_FullMethodName            = "/management.ManagementService/CreateJoinToken"
 	ManagementService_ResetNodeUniqueToken_FullMethodName       = "/management.ManagementService/ResetNodeUniqueToken"
@@ -71,6 +72,7 @@ type ManagementServiceClient interface {
 	GetSupportBundle(ctx context.Context, in *GetSupportBundleRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetSupportBundleResponse], error)
 	ReadAuditLog(ctx context.Context, in *ReadAuditLogRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadAuditLogResponse], error)
 	MaintenanceUpgrade(ctx context.Context, in *MaintenanceUpgradeRequest, opts ...grpc.CallOption) (*MaintenanceUpgradeResponse, error)
+	MaintenanceLifecycle(ctx context.Context, in *MaintenanceLifecycleRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[MaintenanceLifecycleResponse], error)
 	GetMachineJoinConfig(ctx context.Context, in *GetMachineJoinConfigRequest, opts ...grpc.CallOption) (*GetMachineJoinConfigResponse, error)
 	CreateJoinToken(ctx context.Context, in *CreateJoinTokenRequest, opts ...grpc.CallOption) (*CreateJoinTokenResponse, error)
 	ResetNodeUniqueToken(ctx context.Context, in *ResetNodeUniqueTokenRequest, opts ...grpc.CallOption) (*ResetNodeUniqueTokenResponse, error)
@@ -296,6 +298,25 @@ func (c *managementServiceClient) MaintenanceUpgrade(ctx context.Context, in *Ma
 	return out, nil
 }
 
+func (c *managementServiceClient) MaintenanceLifecycle(ctx context.Context, in *MaintenanceLifecycleRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[MaintenanceLifecycleResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ManagementService_ServiceDesc.Streams[4], ManagementService_MaintenanceLifecycle_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[MaintenanceLifecycleRequest, MaintenanceLifecycleResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ManagementService_MaintenanceLifecycleClient = grpc.ServerStreamingClient[MaintenanceLifecycleResponse]
+
 func (c *managementServiceClient) GetMachineJoinConfig(ctx context.Context, in *GetMachineJoinConfigRequest, opts ...grpc.CallOption) (*GetMachineJoinConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetMachineJoinConfigResponse)
@@ -407,6 +428,7 @@ type ManagementServiceServer interface {
 	GetSupportBundle(*GetSupportBundleRequest, grpc.ServerStreamingServer[GetSupportBundleResponse]) error
 	ReadAuditLog(*ReadAuditLogRequest, grpc.ServerStreamingServer[ReadAuditLogResponse]) error
 	MaintenanceUpgrade(context.Context, *MaintenanceUpgradeRequest) (*MaintenanceUpgradeResponse, error)
+	MaintenanceLifecycle(*MaintenanceLifecycleRequest, grpc.ServerStreamingServer[MaintenanceLifecycleResponse]) error
 	GetMachineJoinConfig(context.Context, *GetMachineJoinConfigRequest) (*GetMachineJoinConfigResponse, error)
 	CreateJoinToken(context.Context, *CreateJoinTokenRequest) (*CreateJoinTokenResponse, error)
 	ResetNodeUniqueToken(context.Context, *ResetNodeUniqueTokenRequest) (*ResetNodeUniqueTokenResponse, error)
@@ -476,6 +498,9 @@ func (UnimplementedManagementServiceServer) ReadAuditLog(*ReadAuditLogRequest, g
 }
 func (UnimplementedManagementServiceServer) MaintenanceUpgrade(context.Context, *MaintenanceUpgradeRequest) (*MaintenanceUpgradeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MaintenanceUpgrade not implemented")
+}
+func (UnimplementedManagementServiceServer) MaintenanceLifecycle(*MaintenanceLifecycleRequest, grpc.ServerStreamingServer[MaintenanceLifecycleResponse]) error {
+	return status.Error(codes.Unimplemented, "method MaintenanceLifecycle not implemented")
 }
 func (UnimplementedManagementServiceServer) GetMachineJoinConfig(context.Context, *GetMachineJoinConfigRequest) (*GetMachineJoinConfigResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMachineJoinConfig not implemented")
@@ -803,6 +828,17 @@ func _ManagementService_MaintenanceUpgrade_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ManagementService_MaintenanceLifecycle_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(MaintenanceLifecycleRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ManagementServiceServer).MaintenanceLifecycle(m, &grpc.GenericServerStream[MaintenanceLifecycleRequest, MaintenanceLifecycleResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ManagementService_MaintenanceLifecycleServer = grpc.ServerStreamingServer[MaintenanceLifecycleResponse]
+
 func _ManagementService_GetMachineJoinConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetMachineJoinConfigRequest)
 	if err := dec(in); err != nil {
@@ -1080,6 +1116,11 @@ var ManagementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "ReadAuditLog",
 			Handler:       _ManagementService_ReadAuditLog_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "MaintenanceLifecycle",
+			Handler:       _ManagementService_MaintenanceLifecycle_Handler,
 			ServerStreams: true,
 		},
 	},

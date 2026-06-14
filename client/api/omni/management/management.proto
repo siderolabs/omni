@@ -273,6 +273,29 @@ message MaintenanceUpgradeRequest {
 message MaintenanceUpgradeResponse {
 }
 
+message MaintenanceLifecycleRequest {
+  enum Operation {
+    OPERATION_UNSPECIFIED = 0;
+    // OPERATION_INSTALL writes Talos to a fresh disk on a machine with no on-disk Talos installed yet.
+    OPERATION_INSTALL = 1;
+    // OPERATION_UPGRADE replaces the existing on-disk Talos on a machine in maintenance mode.
+    OPERATION_UPGRADE = 2;
+  }
+
+  string machine_id = 1;
+  Operation operation = 2;
+  // version is the Talos version to install/upgrade to.
+  string version = 3;
+  // disk is the target install disk (e.g. "/dev/sda"). Required for OPERATION_INSTALL; must be empty
+  // for OPERATION_UPGRADE (the existing system disk is reused).
+  string disk = 4;
+}
+
+message MaintenanceLifecycleResponse {
+  // message indicates the current progress of the installation or upgrade.
+  string message = 1;
+}
+
 message GetMachineJoinConfigRequest {
   bool use_grpc_tunnel = 1;
   string join_token = 2;
@@ -364,6 +387,7 @@ service ManagementService {
   rpc GetSupportBundle(GetSupportBundleRequest) returns (stream GetSupportBundleResponse);
   rpc ReadAuditLog(ReadAuditLogRequest) returns (stream ReadAuditLogResponse);
   rpc MaintenanceUpgrade(MaintenanceUpgradeRequest) returns (MaintenanceUpgradeResponse);
+  rpc MaintenanceLifecycle(MaintenanceLifecycleRequest) returns (stream MaintenanceLifecycleResponse);
   rpc GetMachineJoinConfig(GetMachineJoinConfigRequest) returns (GetMachineJoinConfigResponse);
   rpc CreateJoinToken(CreateJoinTokenRequest) returns (CreateJoinTokenResponse);
   rpc ResetNodeUniqueToken(ResetNodeUniqueTokenRequest) returns (ResetNodeUniqueTokenResponse);

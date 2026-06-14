@@ -312,6 +312,45 @@ func (client *Client) ReadAuditLog(ctx context.Context, req *management.ReadAudi
 	}
 }
 
+// MaintenanceLifecycle installs Talos to disk or upgrades the existing on-disk Talos on a machine running in maintenance mode.
+func (client *Client) MaintenanceLifecycle(
+	ctx context.Context,
+	machineID string,
+	operation management.MaintenanceLifecycleRequest_Operation,
+	version, disk string,
+) iter.Seq2[*management.MaintenanceLifecycleResponse, error] {
+	return func(yield func(*management.MaintenanceLifecycleResponse, error) bool) {
+		streamingResponse, err := client.conn.MaintenanceLifecycle(ctx, &management.MaintenanceLifecycleRequest{
+			MachineId: machineID,
+			Operation: operation,
+			Version:   version,
+			Disk:      disk,
+		})
+		if err != nil {
+			yield(nil, err)
+
+			return
+		}
+
+		for {
+			response, err := streamingResponse.Recv()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return
+				}
+
+				yield(nil, err)
+
+				return
+			}
+
+			if !yield(response, nil) {
+				return
+			}
+		}
+	}
+}
+
 // ResetNodeUniqueToken resets the node unique token for the machine, which forces the machine to get a new one on next startup.
 func (client *Client) ResetNodeUniqueToken(ctx context.Context, machineID string) error {
 	_, err := client.conn.ResetNodeUniqueToken(ctx, &management.ResetNodeUniqueTokenRequest{

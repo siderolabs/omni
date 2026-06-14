@@ -128,7 +128,7 @@ const componentAttributes = computed(() => {
             @click.stop.prevent="() => toggleSubmenu(true)"
           >
             <TIcon
-              class="transition-color h-6 w-6 transition-transform duration-250 group-hover/item:text-naturals-n13"
+              class="h-6 w-6 transition-colors transition-transform duration-250 group-hover/item:text-naturals-n13"
               :class="{ 'rotate-180': !expanded }"
               icon="drop-up"
             />
@@ -146,7 +146,7 @@ const componentAttributes = computed(() => {
             class="relative flex gap-2 transition-all duration-200"
           >
             <div
-              class="transition-color absolute top-0 z-20 mx-5 h-4 border-b-2 border-l-2 duration-200"
+              class="absolute top-0 z-20 mx-5 h-4 border-b-2 border-l-2 transition-colors duration-200"
               :class="[
                 index <= selectedIndex ? 'border-primary-p2' : 'border-naturals-n8',
                 { 'w-2': index === (subItems?.length || 0) - 1 || item.route === $route.path },
@@ -155,7 +155,7 @@ const componentAttributes = computed(() => {
             />
             <div
               v-if="index !== (subItems?.length ?? 0) - 1"
-              class="transition-color absolute top-4 bottom-0 z-20 mx-5 w-2 border-l-2 duration-200"
+              class="absolute top-4 bottom-0 z-20 mx-5 w-2 border-l-2 transition-colors duration-200"
               :class="index < selectedIndex ? 'border-primary-p2' : 'border-naturals-n8'"
               :style="linePadding"
             />
