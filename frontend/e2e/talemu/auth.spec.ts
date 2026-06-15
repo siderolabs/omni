@@ -21,7 +21,7 @@ test('Key expiration without existing auth session', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
 
   await test.step('Invalidate keys', async () => {
-    await page.evaluate(() => localStorage.setItem('keyExpirationTime', new Date(0).toISOString()))
+    await page.localStorage.setItem('keyExpirationTime', new Date(0).toISOString())
 
     // Clear auth0 cookies
     await page.context().clearCookies()
@@ -37,7 +37,7 @@ test('Key expiration with existing auth session', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
 
   await test.step('Invalidate keys', async () => {
-    await page.evaluate(() => localStorage.setItem('keyExpirationTime', new Date(0).toISOString()))
+    await page.localStorage.setItem('keyExpirationTime', new Date(0).toISOString())
     await page.goto('/')
   })
 
@@ -50,7 +50,7 @@ test('Escape invalid key state', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
 
   await test.step('Purposefully break signatures', async () => {
-    await page.evaluate(() => localStorage.setItem('publicKeyID', 'fake!'))
+    await page.localStorage.setItem('publicKeyID', 'fake!')
     await page.goto('/')
   })
 
