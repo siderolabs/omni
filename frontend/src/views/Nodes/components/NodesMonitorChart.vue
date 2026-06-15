@@ -11,13 +11,13 @@ import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import { refDebounced } from '@vueuse/core'
 import type { ApexOptions } from 'apexcharts'
 import { DateTime } from 'luxon'
-import { computed, ref, useTemplateRef, watchEffect } from 'vue'
+import { computed, ref, useTemplateRef, watch, watchEffect } from 'vue'
 import VueApexCharts from 'vue3-apexcharts/core'
 
 import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
-import { EventType, type WatchResponse } from '@/api/omni/resources/resources.pb'
-import type { WatchEventSpec, WatchOptions } from '@/api/watch'
+import { EventType } from '@/api/omni/resources/resources.pb'
+import type { WatchOptions } from '@/api/watch'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { getNonce } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -57,8 +57,8 @@ const {
 
 type Point = number | number[]
 const series = ref<{ name: string; data: Point[] }[]>([])
-const seriesMap: Record<string, { index: number; version: number }> = {}
-const points: Record<number, Point[]> = {}
+let seriesMap: Record<string, { index: number; version: number }> = {}
+let points: Record<number, Point[]> = {}
 const total = ref<string>()
 
 const min = ref<number>()
@@ -66,15 +66,7 @@ const max = ref<number>()
 
 const tailEvents = computed(() => watchOpts.tailEvents ?? 25)
 
-const handlePoint = (message: WatchResponse, spec: WatchEventSpec<Resource<T>>) => {
-  if (message.event?.event_type !== EventType.UPDATED) {
-    return
-  }
-
-  const { res: resource, old } = spec
-
-  if (!resource || !old) return
-
+const handlePoint = (resource: Resource<T>, old: Resource<T>) => {
   const data = pointFn(resource.spec, old.spec)
 
   total.value = totalFn?.(resource.spec, old.spec)
@@ -128,8 +120,26 @@ const { err, errCode, loading } = useResourceWatch<T>(
     ...watchOpts,
     tailEvents: tailEvents.value,
   }),
-  handlePoint,
+  ({ event }, { res, old }) => {
+    switch (event?.event_type) {
+      case EventType.UPDATED:
+        if (res && old) handlePoint(res, old)
+        break
+    }
+  },
 )
+
+watch(loading, (val) => {
+  if (!val) return
+
+  // Reset chart to initial state if watch restarts
+  series.value = []
+  seriesMap = {}
+  points = {}
+  total.value = undefined
+  min.value = undefined
+  max.value = undefined
+})
 
 const options = computed(() => {
   return {
