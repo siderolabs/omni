@@ -2259,7 +2259,8 @@ func TestKernelArgsValidation(t *testing.T) {
 				ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 				t.Cleanup(cancel)
 
-				st := validated.NewState(state.WrapCore(namespaced.NewState(inmem.Build)), validations.InstallationMediaConfigValidationOptions()...)
+				innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+				st := validated.NewState(innerSt, validations.InstallationMediaConfigValidationOptions(innerSt)...)
 
 				media := omnires.NewInstallationMediaConfig("test")
 				media.TypedSpec().Value.Architecture = specs.PlatformConfigSpec_AMD64
@@ -2277,6 +2278,69 @@ func TestKernelArgsValidation(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestInstallationMediaConfigTalosVersionValidation(t *testing.T) {
+	t.Parallel()
+
+	const talosVersionID = "1.13.2"
+
+	setup := func(t *testing.T) state.State {
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Cleanup(cancel)
+
+		talosVersion := omnires.NewTalosVersion(talosVersionID)
+		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.0"}
+		require.NoError(t, innerSt.Create(ctx, talosVersion))
+
+		return innerSt
+	}
+
+	for _, tt := range []struct {
+		name         string
+		talosVersion string
+		errContains  string
+	}{
+		{name: "empty"},
+		{name: "canonical", talosVersion: talosVersionID},
+		{name: "v-prefixed", talosVersion: "v" + talosVersionID},
+		{
+			name:         "double-v-prefixed",
+			talosVersion: "vv" + talosVersionID,
+			errContains:  `unknown Talos version "vv1.13.2"`,
+		},
+		{
+			name:         "unknown",
+			talosVersion: "9.9.9",
+			errContains:  `unknown Talos version "9.9.9"`,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			innerSt := setup(t)
+			st := validated.NewState(innerSt, validations.InstallationMediaConfigValidationOptions(innerSt)...)
+
+			media := omnires.NewInstallationMediaConfig("test")
+			media.TypedSpec().Value.Architecture = specs.PlatformConfigSpec_AMD64
+			media.TypedSpec().Value.TalosVersion = tt.talosVersion
+
+			err := st.Create(ctx, media)
+			if tt.errContains == "" {
+				require.NoError(t, err)
+
+				return
+			}
+
+			assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+			assert.ErrorContains(t, err, tt.errContains)
+		})
+	}
 }
 
 func TestNodeForceDestroyRequestValidation(t *testing.T) {
@@ -2612,7 +2676,8 @@ func TestInstallationMediaConfigValidation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	t.Cleanup(cancel)
 
-	st := validated.NewState(state.WrapCore(namespaced.NewState(inmem.Build)), validations.InstallationMediaConfigValidationOptions()...)
+	innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+	st := validated.NewState(innerSt, validations.InstallationMediaConfigValidationOptions(innerSt)...)
 
 	installationMediaConfig := omnires.NewInstallationMediaConfig("test")
 

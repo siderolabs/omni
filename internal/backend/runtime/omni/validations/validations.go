@@ -44,7 +44,7 @@ func Options(st state.State, etcdBackupStoreFactory store.Factory, cfg *config.P
 		defaultJoinTokenValidationOptions(st),
 		importedClusterSecretValidationOptions(st, cfg.Features.GetEnableClusterImport()),
 		infraProviderValidationOptions(st),
-		installationMediaConfigValidationOptions(),
+		installationMediaConfigValidationOptions(st),
 		rotateSecretsValidationOptions(st),
 		kubernetesManifestsValidationOptions(),
 		eulaValidationOptions(st),

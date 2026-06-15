@@ -118,10 +118,13 @@ func createPreset(ctx context.Context, cmd *cobra.Command, client *client.Client
 		}
 	}
 
+	// Strip a leading "v" so the value matches the canonical Talos version form.
+	talosVersion := strings.TrimPrefix(createCmdFlags.talosVersion, "v")
+
 	// An empty user value means "use the server's default at download time"; for create-time
 	// validation against platform min-versions and extension catalogs, fall back to the CLI's
 	// default Talos version so the checks still run.
-	validationTalosVersion := createCmdFlags.talosVersion
+	validationTalosVersion := talosVersion
 	if validationTalosVersion == "" {
 		validationTalosVersion = constants.DefaultTalosVersion
 	}
@@ -136,7 +139,7 @@ func createPreset(ctx context.Context, cmd *cobra.Command, client *client.Client
 	}
 
 	spec := &specs.InstallationMediaConfigSpec{
-		TalosVersion:      createCmdFlags.talosVersion,
+		TalosVersion:      talosVersion,
 		Architecture:      arch,
 		InstallExtensions: createCmdFlags.extensions,
 		KernelArgs:        strings.Join(createCmdFlags.extraKernelArgs, " "),

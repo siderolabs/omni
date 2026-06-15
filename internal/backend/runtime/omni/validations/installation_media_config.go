@@ -9,8 +9,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -20,8 +22,9 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/factory/configs"
 )
 
-func installationMediaConfigValidationOptions() []validated.StateOption {
-	validateInstallationMedia := func(res *omni.InstallationMediaConfig) error {
+//nolint:gocognit
+func installationMediaConfigValidationOptions(st state.State) []validated.StateOption {
+	validateInstallationMedia := func(ctx context.Context, res *omni.InstallationMediaConfig) error {
 		if res.Metadata().Phase() == resource.PhaseTearingDown {
 			return nil
 		}
@@ -60,16 +63,31 @@ func installationMediaConfigValidationOptions() []validated.StateOption {
 			return err
 		}
 
+		if version := spec.GetTalosVersion(); version != "" {
+			// Strip a leading "v" before the lookup so older omnictl clients that did not yet
+			// normalize the user input still validate against the canonical "1.2.3" form stored
+			// on Talos version resources.
+			lookup := strings.TrimPrefix(version, "v")
+
+			if _, err := safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(lookup).Metadata()); err != nil {
+				if state.IsNotFoundError(err) {
+					return fmt.Errorf("unknown Talos version %q", version)
+				}
+
+				return fmt.Errorf("failed to look up Talos version %q: %w", version, err)
+			}
+		}
+
 		return nil
 	}
 
 	return []validated.StateOption{
 		validated.WithCreateValidations(validated.NewCreateValidationForType(func(ctx context.Context, res *omni.InstallationMediaConfig, _ ...state.CreateOption) error {
-			return validateInstallationMedia(res)
+			return validateInstallationMedia(ctx, res)
 		})),
 		validated.WithUpdateValidations(validated.NewUpdateValidationForType(
 			func(ctx context.Context, _, newRes *omni.InstallationMediaConfig, _ ...state.UpdateOption) error {
-				return validateInstallationMedia(newRes)
+				return validateInstallationMedia(ctx, newRes)
 			},
 		)),
 	}
