@@ -19,7 +19,6 @@ const modals: Record<string, Component> = {
   exportClusterTemplate: defineAsyncComponent(
     () => import('@/views/Modals/ExportClusterTemplate.vue'),
   ),
-  nodeDestroy: defineAsyncComponent(() => import('@/views/Modals/NodeDestroy.vue')),
   nodeDestroyCancel: defineAsyncComponent(() => import('@/views/Modals/NodeDestroyCancel.vue')),
   configPatchDestroy: defineAsyncComponent(() => import('@/views/Modals/ConfigPatchDestroy.vue')),
   userDestroy: defineAsyncComponent(() => import('@/views/Modals/UserDestroy.vue')),

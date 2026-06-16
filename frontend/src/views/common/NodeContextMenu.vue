@@ -14,6 +14,7 @@ import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineStatusSpecStage } from '@/api/omni/specs/omni.pb'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
+import NodeDestroyModal from '@/components/Modals/NodeDestroyModal.vue'
 import NodeRebootModal from '@/components/Modals/NodeRebootModal.vue'
 import { useClusterPermissions } from '@/methods/auth'
 
@@ -27,21 +28,11 @@ const { clusterName, clusterMachineStatus } = defineProps<{
 }>()
 
 const nodeRebootModalOpen = ref(false)
+const nodeDestroyModalOpen = ref(false)
 
 const { canRebootMachines, canAddClusterMachines, canRemoveMachines } = useClusterPermissions(
   () => clusterName,
 )
-
-const deleteNode = () => {
-  router.push({
-    query: {
-      modal: 'nodeDestroy',
-      cluster: clusterName,
-      machine: clusterMachineStatus.metadata.id,
-      goback: 'true',
-    },
-  })
-}
 
 const shutdownNode = () => {
   router.push({
@@ -104,7 +95,7 @@ const copyMachineID = () => {
       v-else-if="!deleteDisabled && canRemoveMachines"
       icon="delete"
       danger
-      @select="deleteNode"
+      @select="nodeDestroyModalOpen = true"
     >
       Destroy
     </TActionsBoxItem>
@@ -114,6 +105,13 @@ const copyMachineID = () => {
   <NodeRebootModal
     v-if="nodeRebootModalOpen"
     v-model:open="nodeRebootModalOpen"
+    :cluster-id="clusterName"
+    :machine-id="clusterMachineStatus.metadata.id!"
+  />
+
+  <NodeDestroyModal
+    v-if="nodeDestroyModalOpen"
+    v-model:open="nodeDestroyModalOpen"
     :cluster-id="clusterName"
     :machine-id="clusterMachineStatus.metadata.id!"
   />

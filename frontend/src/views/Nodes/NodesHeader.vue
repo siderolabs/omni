@@ -17,6 +17,7 @@ import {
   MachineType,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
+import NodeDestroyModal from '@/components/Modals/NodeDestroyModal.vue'
 import NodeRebootModal from '@/components/Modals/NodeRebootModal.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions } from '@/methods/auth'
@@ -33,6 +34,7 @@ const route = useRoute()
 const router = useRouter()
 const powerOnModalOpen = ref(false)
 const nodeRebootModalOpen = ref(false)
+const nodeDestroyModalOpen = ref(false)
 
 const shutdownNode = () => {
   router.push({
@@ -65,16 +67,6 @@ const { data: machine } = useResourceWatch<MachineSpec>(() => ({
 const isManagedByStaticInfraProvider = computed(
   () => machine.value?.metadata.labels?.[LabelIsManagedByStaticInfraProvider] !== undefined,
 )
-
-const destroyNode = async () => {
-  router.push({
-    query: {
-      modal: 'nodeDestroy',
-      machine: machineId,
-      cluster: clusterId,
-    },
-  })
-}
 
 const restoreNode = async () => {
   router.push({
@@ -141,7 +133,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
         icon-position="left"
         variant="secondary"
         :disabled="!canRemoveMachines"
-        @click="destroyNode"
+        @click="nodeDestroyModalOpen = true"
       >
         Destroy
       </TButton>
@@ -164,6 +156,18 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
       v-model:open="nodeRebootModalOpen"
       :cluster-id="clusterId"
       :machine-id="machineId"
+    />
+
+    <NodeDestroyModal
+      v-model:open="nodeDestroyModalOpen"
+      :cluster-id="clusterId"
+      :machine-id="machineId"
+      @on-destroy="
+        $router.push({
+          name: 'ClusterOverview',
+          params: { cluster: clusterId },
+        })
+      "
     />
   </div>
 </template>

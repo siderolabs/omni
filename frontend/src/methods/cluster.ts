@@ -14,9 +14,7 @@ import type {
   ClusterSpec,
   EtcdManualBackupSpec,
   KubernetesUpgradeStatusSpec,
-  MachineSetNodeSpec,
   MachineSetSpec,
-  NodeForceDestroyRequestSpec,
   TalosUpgradeStatusSpec,
 } from '@/api/omni/specs/omni.pb'
 import { withRuntime, withSelectors, withTimeout } from '@/api/options'
@@ -35,13 +33,10 @@ import {
   LabelManagedByMachineSetNodeController,
   MachineSetNodeType,
   MachineSetType,
-  NodeForceDestroyRequestType,
-  SiderolinkResourceType,
   TalosUpgradeStatusType,
 } from '@/api/resources'
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
 import { parseLabels } from '@/methods/labels'
-import { controlPlaneMachineSetId } from '@/methods/machineset'
 
 import { isoNow } from './time'
 
@@ -50,11 +45,6 @@ export type MachineConfig = {
   configPatch: string
   installDisk?: string
   id?: string
-}
-
-type MachineSetNode = {
-  metadata: Metadata
-  spec: MachineSetNodeSpec
 }
 
 const createResources = async (resources: Resource[]) => {
@@ -248,115 +238,6 @@ export const getMachineConfigPatchesToDelete = async (machineID: string) => {
   }
 
   return resources
-}
-
-export const destroyNodes = async (
-  clusterName: string,
-  ids: string[],
-  forceEtcdLeave: boolean,
-  force?: boolean,
-) => {
-  const machineSetNodes: Record<string, MachineSetNode> = {}
-  let controlPlanes = 0
-
-  try {
-    const resp = await ResourceService.List<Resource<MachineSetNodeSpec>>(
-      {
-        namespace: DefaultNamespace,
-        type: MachineSetNodeType,
-      },
-      withRuntime(Runtime.Omni),
-      withSelectors([`${LabelCluster}=${clusterName}`]),
-    )
-
-    for (const item of resp) {
-      machineSetNodes[item.metadata.id!] = item
-
-      if (!item.metadata.labels) {
-        item.metadata.labels = {}
-      }
-
-      if (item.metadata.labels[LabelMachineSet] === controlPlaneMachineSetId(clusterName)) {
-        controlPlanes++
-      }
-    }
-  } catch (e) {
-    throw new ClusterCommandError(
-      'Failed to Destroy Node',
-      `Failed to fetch the machine set nodes: ${e.message}`,
-    )
-  }
-
-  const resources: DeleteRequest[] = []
-  const links: DeleteRequest[] = []
-
-  for (const id of ids) {
-    if (
-      (machineSetNodes[id]?.metadata?.labels || {})[LabelMachineSet] ===
-        controlPlaneMachineSetId(clusterName) &&
-      controlPlanes === 1
-    ) {
-      throw new ClusterCommandError(
-        `Failed to Destroy Node ${id}`,
-        'The cluster should have at least one control plane running',
-      )
-    }
-
-    if (forceEtcdLeave) {
-      // if this is a force-delete, MachineSetNode might already be gone, and it is ok
-      try {
-        await ResourceService.Get<Resource<NodeForceDestroyRequestSpec>>(
-          {
-            type: NodeForceDestroyRequestType,
-            namespace: DefaultNamespace,
-            id: id,
-          },
-          withRuntime(Runtime.Omni),
-        )
-      } catch (e) {
-        if (e.code !== Code.NOT_FOUND) {
-          throw e
-        }
-
-        const forceDeleteRequest: Resource<NodeForceDestroyRequestSpec> = {
-          metadata: {
-            id: id,
-            namespace: DefaultNamespace,
-            type: NodeForceDestroyRequestType,
-          },
-          spec: {},
-        }
-
-        await ResourceService.Create(forceDeleteRequest, withRuntime(Runtime.Omni))
-      }
-    } else if (!force && !machineSetNodes[id]?.metadata) {
-      // if this is not a force-delete, and the node is not found, it is an error
-      throw new ClusterCommandError(
-        `Failed to Destroy Node ${id}`,
-        'The node with such id is not part of the cluster',
-      )
-    }
-
-    if (machineSetNodes[id]) {
-      const md = machineSetNodes[id]?.metadata
-      resources.push({
-        id: md.id!,
-        namespace: md.namespace!,
-        type: md.type!,
-      })
-    }
-
-    if (force) {
-      links.push({
-        id: id,
-        namespace: DefaultNamespace,
-        type: SiderolinkResourceType,
-      })
-    }
-  }
-
-  await teardownResources(links)
-  await destroyResources(resources)
 }
 
 export const restoreNode = async (clusterMachine: Resource) => {
