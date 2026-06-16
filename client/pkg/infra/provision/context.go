@@ -143,6 +143,10 @@ func (context *Context[T]) SetMachineInfraID(value string) {
 
 // UnmarshalProviderData reads provider data string from the machine request into the dest.
 func (context *Context[T]) UnmarshalProviderData(dest any) error {
+	if context.machineRequest.TypedSpec().Value.ProviderData == "" {
+		return nil
+	}
+
 	return yaml.Unmarshal([]byte(context.machineRequest.TypedSpec().Value.ProviderData), dest)
 }
 
