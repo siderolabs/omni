@@ -51,6 +51,7 @@
     "monaco-yaml": "^5.5.1",
     "pluralize": "^8.0.0",
     "posthog-js": "^1.386.8",
+    "pretty-bytes": "^7.1.0",
     "reka-ui": "2.9.9",
     "semver": "^7.8.4",
     "shell-quote": "^1.8.4",

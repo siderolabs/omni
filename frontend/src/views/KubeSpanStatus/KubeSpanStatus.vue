@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import prettyBytes from 'pretty-bytes'
 import { computed, ref, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -24,7 +25,6 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import StatsItem from '@/components/Stats/StatsItem.vue'
 import TInput from '@/components/TInput/TInput.vue'
-import { formatBytes } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import KubeSpanCanvas from '@/views/KubeSpanStatus/components/KubeSpanCanvas.vue'
 
@@ -207,7 +207,7 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
                   <span class="font-medium tracking-wide uppercase">RX</span>
                 </span>
 
-                {{ formatBytes(peer.spec.receiveBytes) }}
+                {{ prettyBytes(peer.spec.receiveBytes ?? 0) }}
               </span>
 
               <span class="flex items-center gap-1">
@@ -216,7 +216,7 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
                   <TIcon icon="long-arrow-top" class="size-3" />
                 </span>
 
-                {{ formatBytes(peer.spec.transmitBytes) }}
+                {{ prettyBytes(peer.spec.transmitBytes ?? 0) }}
               </span>
             </div>
           </div>

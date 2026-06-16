@@ -6,6 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { ArrowDownIcon } from '@heroicons/vue/24/solid'
+import prettyBytes from 'pretty-bytes'
 import { computed, ref, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -22,7 +23,6 @@ import { MachineService, type ProcessInfo } from '@/api/talos/machine/machine.pb
 import type { CPUSpec, MemorySpec } from '@/api/talos/perf.pb'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import { getContext } from '@/context'
-import { formatBytes } from '@/methods'
 import NodesMonitorChart from '@/views/Nodes/components/NodesMonitorChart.vue'
 
 definePage({ name: 'NodeMonitor' })
@@ -163,7 +163,7 @@ const handleMem = (_: MemorySpec, m: MemorySpec) => {
 const handleTotalMem = (_: MemorySpec, m: MemorySpec) => {
   const used = (m.used || 0) - (m.cached || 0) - (m.buffers || 0)
 
-  return `${formatBytes(used * 1024)} / ${formatBytes((m.total || 0) * 1024)}`
+  return `${prettyBytes(used * 1024, { binary: true })} / ${prettyBytes((m.total || 0) * 1024, { binary: true })}`
 }
 
 const handleMaxMem = (_: MemorySpec, m: MemorySpec) => {
@@ -248,12 +248,7 @@ const sortBy = (id: keyof Proc) => {
             :total-fn="handleTotalMem"
             :min-fn="() => 0"
             :max-fn="handleMaxMem"
-            :formatter="
-              (input) =>
-                typeof input === 'number'
-                  ? formatBytes(input * 1024)
-                  : formatBytes(Number(input) * 1024)
-            "
+            :formatter="(input) => prettyBytes(Number(input) * 1024, { binary: true })"
           />
         </div>
       </div>
@@ -317,10 +312,10 @@ const sortBy = (id: keyof Proc) => {
             {{ process.mem.toFixed(1) }}
           </div>
           <div>
-            {{ formatBytes(process.virtualMemory) }}
+            {{ prettyBytes(process.virtualMemory, { binary: true }) }}
           </div>
           <div>
-            {{ formatBytes(process.residentMemory) }}
+            {{ prettyBytes(process.residentMemory, { binary: true }) }}
           </div>
           <div>
             {{ process.cpuTime }}

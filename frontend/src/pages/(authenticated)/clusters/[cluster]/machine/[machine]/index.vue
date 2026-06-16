@@ -7,6 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import type { NodeSpec as V1NodeSpec, NodeStatus as V1NodeStatus } from 'kubernetes-types/core/v1'
 import { DateTime } from 'luxon'
+import prettyBytes from 'pretty-bytes'
 import { computed, ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -42,7 +43,7 @@ import Tag from '@/components/Tag/Tag.vue'
 import TAlert from '@/components/TAlert.vue'
 import { TCommonStatuses } from '@/constants'
 import { getContext } from '@/context'
-import { formatBytes, getStatus } from '@/methods'
+import { getStatus } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { useMachineServices } from '@/methods/useMachineServices'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -184,14 +185,13 @@ const getCPUInfo = () => {
 }
 
 const getMemInfo = () => {
-  const total = machineStatus.value?.spec.message_status?.hardware?.memory_modules?.reduce(
-    (prev, current) => {
-      return prev + current.size_mb!
-    },
-    0,
-  )
+  const total =
+    machineStatus.value?.spec.message_status?.hardware?.memory_modules?.reduce(
+      (prev, current) => prev + (current.size_mb ?? 0),
+      0,
+    ) ?? 0
 
-  return formatBytes(total! * 1024 * 1024)
+  return prettyBytes(total * 1024 * 1024, { binary: true })
 }
 
 const getSecureBootStatus = () => {

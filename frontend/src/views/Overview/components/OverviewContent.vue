@@ -6,6 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import isEqual from 'lodash/isEqual'
+import prettyBytes from 'pretty-bytes'
 import { gte } from 'semver'
 import { computed, ref, watchEffect } from 'vue'
 
@@ -37,7 +38,7 @@ import TButton from '@/components/Button/TButton.vue'
 import RadialBar from '@/components/Charts/RadialBar.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TAlert from '@/components/TAlert.vue'
-import { formatBytes, setupBackupStatus } from '@/methods'
+import { setupBackupStatus } from '@/methods'
 import { useClusterPermissions } from '@/methods/auth'
 import {
   addClusterLabels,
@@ -229,7 +230,7 @@ const machineLockedForSecretRotation = computed(() => {
               { label: 'Requests', value: usage?.spec?.mem?.requests ?? 0 },
               { label: 'Limits', value: usage?.spec?.mem?.limits ?? 0 },
             ]"
-            :legend-formatter="formatBytes"
+            :legend-formatter="(bytes) => prettyBytes(bytes, { binary: true })"
           />
           <RadialBar
             title="Ephemeral Storage"
@@ -239,7 +240,7 @@ const machineLockedForSecretRotation = computed(() => {
               { label: 'Requests', value: usage?.spec?.storage?.requests ?? 0 },
               { label: 'Limits', value: usage?.spec?.storage?.limits ?? 0 },
             ]"
-            :legend-formatter="formatBytes"
+            :legend-formatter="prettyBytes"
           />
         </div>
         <div

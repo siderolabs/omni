@@ -6,6 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
+import prettyBytes from 'pretty-bytes'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -29,7 +30,7 @@ import TList from '@/components/List/TList.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
-import { formatBytes, getDocsLink } from '@/methods'
+import { getDocsLink } from '@/methods'
 import { usePermissions } from '@/methods/auth'
 import { formatISO } from '@/methods/time'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -170,7 +171,7 @@ const {
                 {{ formatISO(item.spec.created_at as string, dateFormat) }}
               </div>
               <div class="text-naturals-n14">
-                {{ formatBytes(parseInt(item.spec.size ?? '0')) }}
+                {{ prettyBytes(parseInt(item.spec.size ?? '0')) }}
               </div>
               <div class="flex items-center gap-2 text-naturals-n14">
                 {{ item.spec.snapshot }}

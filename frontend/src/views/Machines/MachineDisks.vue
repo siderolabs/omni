@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import prettyBytes from 'pretty-bytes'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -142,7 +143,7 @@ const organizedDisks = computed(() =>
           </div>
           <div class="flex items-center gap-4">
             <span class="text-sm text-naturals-n14">
-              {{ diskInfo.disk.spec.pretty_size }}
+              {{ prettyBytes(diskInfo.disk.spec.size ?? 0) }}
             </span>
             <div class="flex items-center gap-2">
               <span

@@ -74,7 +74,7 @@ test('machine overview tabs', async ({ page }) => {
     await page.getByRole('tab', { name: 'Disks', exact: true }).click()
 
     await expect
-      .soft(page.getByRole('region', { name: 'vda' }).getByText('Unallocated6.00 GB'))
+      .soft(page.getByRole('region', { name: 'vda' }).getByText('Unallocated6.44 GB'))
       .toBeVisible()
   })
 
@@ -577,26 +577,26 @@ test('cluster sidebar pages', async ({ page }) => {
 
     const cpuChart = page.getByRole('figure', { name: 'CPU' })
 
-    await expect(cpuChart.getByLabel('Total')).toHaveText(/\d+\.\d{2}/)
-    await expect(cpuChart.getByLabel('Requests')).toHaveText(/\d+\.\d{2}/)
-    await expect(cpuChart.getByLabel('Limits')).toHaveText(/\d+\.\d{2}/)
+    await expect.soft(cpuChart.getByLabel('Total')).toHaveText(/^\d+(\.\d{1,2})?$/)
+    await expect.soft(cpuChart.getByLabel('Requests')).toHaveText(/^\d+(\.\d{1,2})?$/)
+    await expect.soft(cpuChart.getByLabel('Limits')).toHaveText(/^\d+(\.\d{1,2})?$/)
 
     const podsChart = page.getByRole('figure', { name: 'Pods' })
 
-    await expect(podsChart.getByLabel('Total')).toHaveText(/\d+/)
-    await expect(podsChart.getByLabel('Requests')).toHaveText(/\d+/)
+    await expect.soft(podsChart.getByLabel('Total')).toHaveText(/^\d+$/)
+    await expect.soft(podsChart.getByLabel('Requests')).toHaveText(/^\d+$/)
 
     const memoryChart = page.getByRole('figure', { name: 'Memory' })
 
-    await expect(memoryChart.getByLabel('Total')).toHaveText(/\d+\.\d{2} GB/)
-    await expect(memoryChart.getByLabel('Requests')).toHaveText(/\d+\.\d{2} GB/)
-    await expect(memoryChart.getByLabel('Limits')).toHaveText(/\d+\.\d{2} MB/)
+    await expect.soft(memoryChart.getByLabel('Total')).toHaveText(/^\d+(\.\d{1,2})? GiB$/)
+    await expect.soft(memoryChart.getByLabel('Requests')).toHaveText(/^\d+(\.\d{1,2})? GiB$/)
+    await expect.soft(memoryChart.getByLabel('Limits')).toHaveText(/^\d+(\.\d{1,2})? MiB$/)
 
     const storageChart = page.getByRole('figure', { name: 'Ephemeral Storage' })
 
-    await expect(storageChart.getByLabel('Total')).toHaveText(/\d+\.\d{2} GB/)
-    await expect(storageChart.getByLabel('Requests')).toHaveText('0 Bytes')
-    await expect(storageChart.getByLabel('Limits')).toHaveText('0 Bytes')
+    await expect.soft(storageChart.getByLabel('Total')).toHaveText(/^\d+(\.\d{1,2})? GB$/)
+    await expect.soft(storageChart.getByLabel('Requests')).toHaveText('0 B')
+    await expect.soft(storageChart.getByLabel('Limits')).toHaveText('0 B')
 
     await expect(page.getByText('Managed using cluster')).toBeVisible()
   })

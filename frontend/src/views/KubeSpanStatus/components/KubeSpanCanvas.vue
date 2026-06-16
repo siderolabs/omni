@@ -6,13 +6,13 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useElementBounding } from '@vueuse/core'
+import prettyBytes from 'pretty-bytes'
 import { computed, ref, useTemplateRef, watch } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type { ClusterMachineIdentitySpec } from '@/api/omni/specs/omni.pb'
 import { LabelControlPlaneRole } from '@/api/resources'
 import type { PeerStatusSpec } from '@/api/talos/kubespan.pb'
-import { formatBytes } from '@/methods'
 
 const { selectedMachine, machineNodenameMap, peers, peerMatches } = defineProps<{
   selectedMachine: Resource<ClusterMachineIdentitySpec>
@@ -366,7 +366,7 @@ function resetView() {
           <div class="flex flex-col gap-1 text-xs">
             <span class="text-naturals-n11">Incoming / Outgoing traffic</span>
             <span class="text-naturals-n14">
-              {{ `${formatBytes(totalTrafficIn)} / ${formatBytes(totalTrafficOut)}` }}
+              {{ `${prettyBytes(totalTrafficIn)} / ${prettyBytes(totalTrafficOut)}` }}
             </span>
           </div>
         </div>

@@ -5,12 +5,12 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import prettyBytes from 'pretty-bytes'
 import { computed } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type { DiscoveredVolumeSpec, DiskSpec } from '@/api/talos/block.pb'
 import { itemID } from '@/api/watch'
-import { formatBytes } from '@/methods'
 
 const { disk, volumes } = defineProps<{
   disk: Resource<DiskSpec>
@@ -55,7 +55,7 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
       <div
         v-for="volume in volumes"
         :key="itemID(volume)"
-        :title="`${volume.spec.partition_label || volume.spec.label || volume.spec.dev_path} — ${volume.spec.pretty_size}`"
+        :title="`${volume.spec.partition_label || volume.spec.label || volume.spec.dev_path} — ${prettyBytes(volume.spec.size ?? 0)}`"
         :class="getVolumeClass(volume)"
         :style="{
           width: `${partitionPercent(volume.spec.size, disk.spec.size)}%`,
@@ -68,7 +68,7 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
         >
           {{ volume.spec.partition_label || volume.spec.label || '' }}
           <span class="opacity-80">
-            {{ volume.spec.pretty_size }}
+            {{ prettyBytes(volume.spec.size ?? 0) }}
           </span>
         </span>
       </div>
@@ -93,14 +93,14 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
           {{ volume.spec.partition_label || volume.spec.label || volume.spec.dev_path }}
         </span>
         <span class="font-medium text-naturals-n10">
-          {{ volume.spec.pretty_size }}
+          {{ prettyBytes(volume.spec.size ?? 0) }}
         </span>
       </div>
       <div v-if="unallocatedPercent > 0" class="flex items-center gap-1.5">
         <span class="inline-block size-2.5 rounded-sm bg-naturals-n5" />
         <span class="font-medium text-naturals-n12">Unallocated</span>
         <span class="font-medium text-naturals-n10">
-          {{ formatBytes(unallocatedSpace) }}
+          {{ prettyBytes(unallocatedSpace) }}
         </span>
       </div>
     </div>

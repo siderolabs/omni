@@ -7,6 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { DateTime } from 'luxon'
 import pluralize from 'pluralize'
+import prettyBytes from 'pretty-bytes'
 import { computed, h } from 'vue'
 import { RouterLink } from 'vue-router'
 import WordHighlighter from 'vue-word-highlighter'
@@ -20,7 +21,6 @@ import {
   TalosSystemInformationType,
 } from '@/api/resources'
 import type { SystemInformationSpec } from '@/api/talos/hardware.pb'
-import { formatBytes } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import MachineItemInfoCard from '@/views/Machines/MachineItemInfoCard.vue'
 import CloseButton from '@/views/Modals/CloseButton.vue'
@@ -68,7 +68,10 @@ const processors = computed(() =>
 const memorymodules = computed(() =>
   machine?.spec.message_status?.hardware?.memory_modules
     ?.filter((mem) => !!mem.size_mb)
-    .map(({ description, size_mb = 0 }) => `${formatBytes(size_mb * 1024 * 1024)} ${description}`),
+    .map(
+      ({ description, size_mb = 0 }) =>
+        `${prettyBytes(size_mb * 1024 * 1024, { binary: true })} ${description}`,
+    ),
 )
 
 const clusterName = computed(() => machine?.spec.message_status?.cluster)
@@ -109,7 +112,7 @@ const secureBoot = computed(() => {
           {
             title: 'Block devices',
             value: machine?.spec.message_status?.hardware?.blockdevices?.map(
-              (dev) => `${dev.linux_name} ${formatBytes(dev.size)} ${dev.type}`,
+              (dev) => `${dev.linux_name} ${prettyBytes(Number(dev.size || '0'))} ${dev.type}`,
             ),
           },
           {
@@ -138,15 +141,11 @@ const secureBoot = computed(() => {
           { title: 'Addresses', value: machine?.spec.message_status?.network?.addresses },
           {
             title: 'Bytes sent',
-            value: machine?.spec.siderolink_counter?.bytes_sent
-              ? formatBytes(machine?.spec.siderolink_counter.bytes_sent)
-              : '0B',
+            value: prettyBytes(Number(machine?.spec.siderolink_counter?.bytes_sent || '0')),
           },
           {
             title: 'Bytes received',
-            value: machine?.spec.siderolink_counter?.bytes_received
-              ? formatBytes(machine?.spec.siderolink_counter.bytes_received)
-              : '0B',
+            value: prettyBytes(Number(machine?.spec.siderolink_counter?.bytes_received || '0')),
           },
         ]"
       />

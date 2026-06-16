@@ -7,6 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { dump } from 'js-yaml'
 import pluralize from 'pluralize'
+import prettyBytes from 'pretty-bytes'
 import semver from 'semver'
 import { computed, ref, watch } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
@@ -21,7 +22,6 @@ import {
 import IconButton from '@/components/Button/IconButton.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
-import { formatBytes } from '@/methods'
 import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { showModal } from '@/modal'
@@ -131,9 +131,9 @@ const options = computed(() => {
 
     if (disabled) {
       if (ms.role === LabelControlPlaneRole) {
-        tooltip = `The node must have more than ${formatBytes(cpMemoryThreshold * 1024 * 1024)} of RAM to be used as a control plane`
+        tooltip = `The node must have more than ${prettyBytes(cpMemoryThreshold * 1024 * 1024, { binary: true })} of RAM to be used as a control plane`
       } else {
-        tooltip = `The node must have more than ${formatBytes(workerMemoryTheshold * 1024 * 1024)} of RAM to be used as a worker`
+        tooltip = `The node must have more than ${prettyBytes(workerMemoryTheshold * 1024 * 1024, { binary: true })} of RAM to be used as a worker`
       }
     }
 
@@ -320,12 +320,14 @@ ${isTalos112 ? talos112 : preTalos112}
         </div>
         <div>
           <div v-for="(mem, index) in memoryModules" :key="index">
-            {{ formatBytes((mem?.size_mb || 0) * 1024 * 1024) }} {{ mem.description }}
+            {{ prettyBytes((mem?.size_mb || 0) * 1024 * 1024, { binary: true }) }}
+            {{ mem.description }}
           </div>
         </div>
         <div>
           <div v-for="(dev, index) in item?.spec?.hardware?.blockdevices" :key="index">
-            {{ dev.linux_name }} {{ formatBytes(dev.size) }} {{ dev.type }}
+            {{ dev.linux_name }} {{ prettyBytes(Number(dev.size || '0')) }}
+            {{ dev.type }}
           </div>
         </div>
         <div>

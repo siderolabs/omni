@@ -5,6 +5,8 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import prettyBytes from 'pretty-bytes'
+
 import type { Resource } from '@/api/grpc'
 import type { DiscoveredVolumeSpec, VolumeStatusSpec } from '@/api/talos/block.pb'
 import { itemID } from '@/api/watch'
@@ -137,7 +139,7 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
             {{ volume.spec.uuid }}
           </TableCell>
 
-          <TableCell class="font-medium">{{ volume.spec.pretty_size }}</TableCell>
+          <TableCell class="font-medium">{{ prettyBytes(volume.spec.size ?? 0) }}</TableCell>
         </TableRow>
       </template>
     </TableRoot>
