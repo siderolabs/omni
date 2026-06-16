@@ -19,7 +19,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 )
 
-// MaxRequestIDLength caps the byte length of the request ID fields on InfraMachineConfig.
+// MaxRequestIDLength caps the byte length of the request ID fields on InfraMachineConfig. The
+// value is arbitrary, picked well above what real callers would send. Bump if needed.
 const MaxRequestIDLength = 128
 
 func infraMachineConfigValidationOptions(st state.State) []validated.StateOption {

@@ -120,3 +120,7 @@ func MetadataValidationOptions() []validated.StateOption {
 func KubernetesHealthCheckValidationOptions() []validated.StateOption {
 	return kubernetesHealthcheckValidationOptions()
 }
+
+func ExtensionsConfigurationValidationOptions(st state.State) []validated.StateOption {
+	return extensionsConfigurationValidationOptions(st)
+}

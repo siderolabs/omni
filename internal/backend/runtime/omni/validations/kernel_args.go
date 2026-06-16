@@ -14,6 +14,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 )
 
+// The caps below are arbitrary, picked well above what real callers would send.
+// They bound user input. Bump if needed.
 const (
 	// MaxKernelArgLength caps the byte length of a single entry in a repeated kernel args list.
 	MaxKernelArgLength = 256

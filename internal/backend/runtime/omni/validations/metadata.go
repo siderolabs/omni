@@ -18,6 +18,8 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 )
 
+// The caps below are arbitrary, picked well above what real callers would send.
+// They bound user input. Bump if needed.
 const (
 	// MaxResourceIDLength caps the byte length of a resource ID.
 	MaxResourceIDLength = 1024

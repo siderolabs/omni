@@ -63,22 +63,22 @@ func installationMediaConfigValidationOptions(st state.State) []validated.StateO
 			return err
 		}
 
-		if version := spec.GetTalosVersion(); version != "" {
-			// Strip a leading "v" before the lookup so older omnictl clients that did not yet
-			// normalize the user input still validate against the canonical "1.2.3" form stored
-			// on Talos version resources.
-			lookup := strings.TrimPrefix(version, "v")
+		// Strip a leading "v" so older omnictl clients that did not yet normalize the user input
+		// still validate against the canonical "1.2.3" form stored on Talos version resources and
+		// the extensions catalog.
+		talosVersion := strings.TrimPrefix(spec.GetTalosVersion(), "v")
 
-			if _, err := safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(lookup).Metadata()); err != nil {
+		if talosVersion != "" {
+			if _, err := safe.StateGet[*omni.TalosVersion](ctx, st, omni.NewTalosVersion(talosVersion).Metadata()); err != nil {
 				if state.IsNotFoundError(err) {
-					return fmt.Errorf("unknown Talos version %q", version)
+					return fmt.Errorf("unknown Talos version %q", spec.GetTalosVersion())
 				}
 
-				return fmt.Errorf("failed to look up Talos version %q: %w", version, err)
+				return fmt.Errorf("failed to look up Talos version %q: %w", spec.GetTalosVersion(), err)
 			}
 		}
 
-		return nil
+		return validateExtensions(ctx, st, talosVersion, spec.GetInstallExtensions())
 	}
 
 	return []validated.StateOption{

@@ -41,5 +41,9 @@ func validateMachineRequestSet(ctx context.Context, st state.State, oldRes, res 
 		return err
 	}
 
-	return validateTalosVersion(ctx, st, "", res.TypedSpec().Value.TalosVersion)
+	if err := validateTalosVersion(ctx, st, "", res.TypedSpec().Value.TalosVersion); err != nil {
+		return err
+	}
+
+	return validateExtensions(ctx, st, res.TypedSpec().Value.TalosVersion, res.TypedSpec().Value.GetExtensions())
 }

@@ -14,6 +14,7 @@ import (
 	"io"
 	"iter"
 	"math/big"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -33,6 +34,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -2342,6 +2344,288 @@ func TestInstallationMediaConfigTalosVersionValidation(t *testing.T) {
 			assert.ErrorContains(t, err, tt.errContains)
 		})
 	}
+}
+
+//nolint:maintidx
+func TestExtensionsCatalogValidation(t *testing.T) {
+	t.Parallel()
+
+	// Use the same default Talos version as the validator so empty-version cases (where the
+	// validator falls back to constants.DefaultTalosVersion) still find a catalog in the test
+	// state.
+	talosVersionID := constants.DefaultTalosVersion
+
+	setupBaseState := func(t *testing.T) state.State {
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Cleanup(cancel)
+
+		talosVersion := omnires.NewTalosVersion(talosVersionID)
+		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.0"}
+		require.NoError(t, innerSt.Create(ctx, talosVersion))
+
+		catalog := omnires.NewTalosExtensions(talosVersionID)
+		catalog.TypedSpec().Value.Items = []*specs.TalosExtensionsSpec_Info{
+			{Name: "siderolabs/qemu-guest-agent"},
+			{Name: "siderolabs/i915-ucode"},
+		}
+		require.NoError(t, innerSt.Create(ctx, catalog))
+
+		return innerSt
+	}
+
+	t.Run("installation media config", func(t *testing.T) {
+		t.Parallel()
+
+		// An empty Talos version is the "automatic" sentinel. The validator falls back to the
+		// default Talos version's catalog so extension names are still checked. With a concrete
+		// version, the catalog for that version is used as for any other resource.
+		for _, tt := range []struct {
+			name         string
+			talosVersion string
+			errContains  string
+			extensions   []string
+		}{
+			{name: "empty extensions, no version"},
+			{name: "valid extension without version (automatic)", extensions: []string{"siderolabs/qemu-guest-agent"}},
+			{
+				name:        "unknown extension without version (automatic)",
+				extensions:  []string{"siderolabs/typo-extension"},
+				errContains: "is not available",
+			},
+			{name: "valid extension with version", talosVersion: talosVersionID, extensions: []string{"siderolabs/qemu-guest-agent"}},
+			{name: "valid extension with v-prefixed version", talosVersion: "v" + talosVersionID, extensions: []string{"siderolabs/qemu-guest-agent"}},
+			{
+				name:         "unknown extension with version",
+				talosVersion: talosVersionID,
+				extensions:   []string{"siderolabs/typo-extension"},
+				errContains:  "is not available",
+			},
+			{
+				name:         "short extension name accepted via siderolabs fallback",
+				talosVersion: talosVersionID,
+				extensions:   []string{"qemu-guest-agent"},
+			},
+			{
+				name:         "short unknown extension rejected",
+				talosVersion: talosVersionID,
+				extensions:   []string{"does-not-exist"},
+				errContains:  "is not available",
+			},
+			{
+				name:         "foreign-namespace extension rejected",
+				talosVersion: talosVersionID,
+				extensions:   []string{"someorg/qemu-guest-agent"},
+				errContains:  "is not available",
+			},
+			{
+				name:         "duplicate extension rejected",
+				talosVersion: talosVersionID,
+				extensions:   []string{"siderolabs/qemu-guest-agent", "siderolabs/qemu-guest-agent"},
+				errContains:  "is listed more than once",
+			},
+			{
+				name:         "short and full of the same extension rejected as duplicate",
+				talosVersion: talosVersionID,
+				extensions:   []string{"qemu-guest-agent", "siderolabs/qemu-guest-agent"},
+				errContains:  "is listed more than once",
+			},
+			{
+				name:         "too many extensions rejected",
+				talosVersion: talosVersionID,
+				extensions:   slices.Repeat([]string{"siderolabs/qemu-guest-agent"}, validations.MaxExtensionsCount+1),
+				errContains:  "exceeds maximum",
+			},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+				t.Cleanup(cancel)
+
+				innerSt := setupBaseState(t)
+				st := validated.NewState(innerSt, validations.InstallationMediaConfigValidationOptions(innerSt)...)
+
+				media := omnires.NewInstallationMediaConfig("test")
+				media.TypedSpec().Value.Architecture = specs.PlatformConfigSpec_AMD64
+				media.TypedSpec().Value.TalosVersion = tt.talosVersion
+				media.TypedSpec().Value.InstallExtensions = tt.extensions
+
+				err := st.Create(ctx, media)
+				if tt.errContains == "" {
+					require.NoError(t, err)
+
+					return
+				}
+
+				assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+				assert.ErrorContains(t, err, tt.errContains)
+			})
+		}
+	})
+
+	t.Run("extensions configuration", func(t *testing.T) {
+		t.Parallel()
+
+		const clusterID = "test-cluster"
+
+		setupClusterState := func(t *testing.T) state.State {
+			innerSt := setupBaseState(t)
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			cluster := omnires.NewCluster(clusterID)
+			cluster.TypedSpec().Value.TalosVersion = talosVersionID
+			cluster.TypedSpec().Value.KubernetesVersion = "1.30.0"
+			require.NoError(t, innerSt.Create(ctx, cluster))
+
+			return innerSt
+		}
+
+		t.Run("empty extensions", func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			innerSt := setupClusterState(t)
+			st := validated.NewState(innerSt, validations.ExtensionsConfigurationValidationOptions(innerSt)...)
+
+			res := omnires.NewExtensionsConfiguration("test")
+			res.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
+
+			require.NoError(t, st.Create(ctx, res))
+		})
+
+		t.Run("valid extension", func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			innerSt := setupClusterState(t)
+			st := validated.NewState(innerSt, validations.ExtensionsConfigurationValidationOptions(innerSt)...)
+
+			res := omnires.NewExtensionsConfiguration("test")
+			res.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
+			res.TypedSpec().Value.Extensions = []string{"siderolabs/qemu-guest-agent"}
+
+			require.NoError(t, st.Create(ctx, res))
+		})
+
+		t.Run("unknown extension", func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			innerSt := setupClusterState(t)
+			st := validated.NewState(innerSt, validations.ExtensionsConfigurationValidationOptions(innerSt)...)
+
+			res := omnires.NewExtensionsConfiguration("test")
+			res.Metadata().Labels().Set(omnires.LabelCluster, clusterID)
+			res.TypedSpec().Value.Extensions = []string{"siderolabs/typo-extension"}
+
+			err := st.Create(ctx, res)
+			assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+			assert.ErrorContains(t, err, "is not available")
+		})
+
+		t.Run("missing cluster label", func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			innerSt := setupClusterState(t)
+			st := validated.NewState(innerSt, validations.ExtensionsConfigurationValidationOptions(innerSt)...)
+
+			res := omnires.NewExtensionsConfiguration("test")
+			res.TypedSpec().Value.Extensions = []string{"siderolabs/qemu-guest-agent"}
+
+			err := st.Create(ctx, res)
+			assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+			assert.ErrorContains(t, err, "must target a cluster via the cluster label")
+		})
+
+		t.Run("cluster does not exist", func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			innerSt := setupClusterState(t)
+			st := validated.NewState(innerSt, validations.ExtensionsConfigurationValidationOptions(innerSt)...)
+
+			res := omnires.NewExtensionsConfiguration("test")
+			res.Metadata().Labels().Set(omnires.LabelCluster, "nonexistent")
+			res.TypedSpec().Value.Extensions = []string{"siderolabs/qemu-guest-agent"}
+
+			err := st.Create(ctx, res)
+			assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+			assert.ErrorContains(t, err, `cluster "nonexistent" does not exist`)
+		})
+	})
+
+	t.Run("machine request set", func(t *testing.T) {
+		t.Parallel()
+
+		setupRequestState := func(t *testing.T) state.State {
+			innerSt := setupBaseState(t)
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			providerStatus := infra.NewProviderStatus("talemu")
+			providerStatus.TypedSpec().Value.Schema = string(schema)
+			require.NoError(t, innerSt.Create(ctx, providerStatus))
+
+			return innerSt
+		}
+
+		newRequestSet := func() *omnires.MachineRequestSet {
+			res := omnires.NewMachineRequestSet("test")
+			res.TypedSpec().Value.ProviderId = "talemu"
+			res.TypedSpec().Value.TalosVersion = talosVersionID
+			res.TypedSpec().Value.ProviderData = "size: t2.small\n"
+
+			return res
+		}
+
+		t.Run("valid extension", func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			innerSt := setupRequestState(t)
+			st := validated.NewState(innerSt, validations.MachineRequestSetValidationOptions(innerSt)...)
+
+			res := newRequestSet()
+			res.TypedSpec().Value.Extensions = []string{"siderolabs/i915-ucode"}
+
+			require.NoError(t, st.Create(ctx, res))
+		})
+
+		t.Run("unknown extension", func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			innerSt := setupRequestState(t)
+			st := validated.NewState(innerSt, validations.MachineRequestSetValidationOptions(innerSt)...)
+
+			res := newRequestSet()
+			res.TypedSpec().Value.Extensions = []string{"siderolabs/typo-extension"}
+
+			err := st.Create(ctx, res)
+			assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+			assert.ErrorContains(t, err, "is not available")
+		})
+	})
 }
 
 func TestNodeForceDestroyRequestValidation(t *testing.T) {

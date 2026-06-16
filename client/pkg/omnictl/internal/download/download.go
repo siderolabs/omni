@@ -328,6 +328,16 @@ func ValidateExtensions(ctx context.Context, st state.State, talosVersion string
 	return err
 }
 
+// ResolveExtensions expands short or partial extension names into full catalog names for the
+// given Talos version. Returns an error if any name has no match.
+func ResolveExtensions(ctx context.Context, st state.State, talosVersion string, extensions []string) ([]string, error) {
+	if len(extensions) == 0 {
+		return nil, nil
+	}
+
+	return lookupExtensions(ctx, st, talosVersion, extensions, false)
+}
+
 func checkMinTalosVersion(actual, minVersion, source string) error {
 	if minVersion == "" {
 		return nil
