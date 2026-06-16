@@ -2,8 +2,6 @@
 count: 15
 provider:
   id: talemu
-  data: |
-    secure_boot: false
 ---
 count: 15
 provider:
