@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { computed } from 'vue'
+import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
@@ -13,15 +13,21 @@ import {
 } from '@/api/resources'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
-export const setupNodenameWatch = (id: string) => {
-  const { data } = useResourceWatch<ClusterMachineStatusSpec>({
+export function useNodeName(
+  machineId: MaybeRefOrGetter<string>,
+  options?: MaybeRefOrGetter<{ skip?: boolean }>,
+) {
+  const { data } = useResourceWatch<ClusterMachineStatusSpec>(() => ({
+    skip: toValue(options)?.skip,
     resource: {
       type: ClusterMachineStatusType,
       namespace: DefaultNamespace,
-      id,
+      id: toValue(machineId),
     },
     runtime: Runtime.Omni,
-  })
+  }))
 
-  return computed(() => data.value?.metadata.labels?.[ClusterMachineStatusLabelNodeName] ?? '')
+  return computed(
+    () => data.value?.metadata.labels?.[ClusterMachineStatusLabelNodeName] ?? toValue(machineId),
+  )
 }

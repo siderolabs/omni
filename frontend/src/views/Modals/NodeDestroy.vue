@@ -31,7 +31,7 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { ClusterCommandError, destroyNodes } from '@/methods/cluster'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
-import { setupNodenameWatch } from '@/methods/node'
+import { useNodeName } from '@/methods/node'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/Modals/CloseButton.vue'
 
@@ -149,7 +149,7 @@ onMounted(async () => {
   warning.value = `${pluralize('Control Plane', controlPlanes - 1, true)} will not provide fault-tolerance with etcd quorum requirements. Removing this machine will result in an even number of control plane nodes, which reduces the fault tolerance of the etcd cluster.`
 })
 
-const node = setupNodenameWatch(route.query.machine as string)
+const node = useNodeName(route.query.machine as string)
 
 const destroyNode = async () => {
   scalingDown.value = true

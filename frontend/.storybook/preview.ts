@@ -11,6 +11,8 @@ import { vueRouter } from 'storybook-vue3-router'
 import { createMemoryHistory } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
 
+import AppToast from '../src/components/AppToast/AppToast.vue'
+
 // Initialize MSW
 initialize({ onUnhandledRequest: 'bypass' })
 
@@ -25,6 +27,10 @@ const preview: Preview = {
         history: createMemoryHistory(),
         routes,
       },
+    }),
+    () => ({
+      components: { AppToast },
+      template: '<AppToast /><story />',
     }),
   ],
   parameters: {

@@ -11,7 +11,6 @@ import { useRoute } from 'vue-router'
 import { modal } from '@/modal'
 
 const modals: Record<string, Component> = {
-  reboot: defineAsyncComponent(() => import('@/views/Modals/NodeReboot.vue')),
   shutdown: defineAsyncComponent(() => import('@/views/Modals/NodeShutdown.vue')),
   machineRemove: defineAsyncComponent(() => import('@/views/Modals/MachineRemove.vue')),
   machineClassDestroy: defineAsyncComponent(() => import('@/views/Modals/MachineClassDestroy.vue')),

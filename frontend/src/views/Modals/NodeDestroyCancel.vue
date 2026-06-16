@@ -14,7 +14,7 @@ import { ClusterMachineType, DefaultNamespace } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { ClusterCommandError, restoreNode } from '@/methods/cluster'
-import { setupNodenameWatch } from '@/methods/node'
+import { useNodeName } from '@/methods/node'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/Modals/CloseButton.vue'
@@ -50,7 +50,7 @@ const close = (goBack?: boolean) => {
   router.go(-1)
 }
 
-const node = setupNodenameWatch(route.query.machine as string)
+const node = useNodeName(route.query.machine as string)
 
 const restore = async (clusterMachine: Resource<ClusterMachineSpec>) => {
   if (!route.query.machine) {

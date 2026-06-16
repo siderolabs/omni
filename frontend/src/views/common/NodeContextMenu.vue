@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
-import { computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import type { Resource } from '@/api/grpc'
@@ -14,27 +14,30 @@ import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineStatusSpecStage } from '@/api/omni/specs/omni.pb'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
+import NodeRebootModal from '@/components/Modals/NodeRebootModal.vue'
 import { useClusterPermissions } from '@/methods/auth'
 
 const router = useRouter()
 const { copy } = useClipboard()
 
-const props = defineProps<{
+const { clusterName, clusterMachineStatus } = defineProps<{
   clusterName: string
   deleteDisabled?: boolean
   clusterMachineStatus: Resource<ClusterMachineStatusSpec>
 }>()
 
+const nodeRebootModalOpen = ref(false)
+
 const { canRebootMachines, canAddClusterMachines, canRemoveMachines } = useClusterPermissions(
-  computed(() => props.clusterName),
+  () => clusterName,
 )
 
 const deleteNode = () => {
   router.push({
     query: {
       modal: 'nodeDestroy',
-      cluster: props.clusterName,
-      machine: props.clusterMachineStatus.metadata.id,
+      cluster: clusterName,
+      machine: clusterMachineStatus.metadata.id,
       goback: 'true',
     },
   })
@@ -44,19 +47,8 @@ const shutdownNode = () => {
   router.push({
     query: {
       modal: 'shutdown',
-      cluster: props.clusterName,
-      machine: props.clusterMachineStatus.metadata.id,
-      goback: 'true',
-    },
-  })
-}
-
-const rebootNode = () => {
-  router.push({
-    query: {
-      modal: 'reboot',
-      cluster: props.clusterName,
-      machine: props.clusterMachineStatus.metadata.id,
+      cluster: clusterName,
+      machine: clusterMachineStatus.metadata.id,
       goback: 'true',
     },
   })
@@ -66,15 +58,15 @@ const restoreNode = () => {
   router.push({
     query: {
       modal: 'nodeDestroyCancel',
-      cluster: props.clusterName,
-      machine: props.clusterMachineStatus.metadata.id,
+      cluster: clusterName,
+      machine: clusterMachineStatus.metadata.id,
       goback: 'true',
     },
   })
 }
 
 const copyMachineID = () => {
-  copy(props.clusterMachineStatus.metadata.id!)
+  copy(clusterMachineStatus.metadata.id!)
 }
 </script>
 
@@ -95,7 +87,7 @@ const copyMachineID = () => {
     <TActionsBoxItem v-if="canRebootMachines" icon="power" @select="shutdownNode">
       Shutdown
     </TActionsBoxItem>
-    <TActionsBoxItem v-if="canRebootMachines" icon="reboot" @select="rebootNode">
+    <TActionsBoxItem v-if="canRebootMachines" icon="reboot" @select="nodeRebootModalOpen = true">
       Reboot
     </TActionsBoxItem>
     <TActionsBoxItem
@@ -117,4 +109,12 @@ const copyMachineID = () => {
       Destroy
     </TActionsBoxItem>
   </TActionsBox>
+
+  <!-- v-if on modals as there may be many menus mounting many modals -->
+  <NodeRebootModal
+    v-if="nodeRebootModalOpen"
+    v-model:open="nodeRebootModalOpen"
+    :cluster-id="clusterName"
+    :machine-id="clusterMachineStatus.metadata.id!"
+  />
 </template>

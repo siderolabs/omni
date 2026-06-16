@@ -17,6 +17,7 @@ import {
   MachineType,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
+import NodeRebootModal from '@/components/Modals/NodeRebootModal.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -31,25 +32,12 @@ const { clusterId, machineId } = defineProps<{
 const route = useRoute()
 const router = useRouter()
 const powerOnModalOpen = ref(false)
+const nodeRebootModalOpen = ref(false)
 
 const shutdownNode = () => {
   router.push({
     query: {
       modal: 'shutdown',
-      machine: machineId,
-      ...route.query,
-    },
-  })
-}
-
-const powerOnNode = () => {
-  powerOnModalOpen.value = true
-}
-
-const rebootNode = () => {
-  router.push({
-    query: {
-      modal: 'reboot',
       machine: machineId,
       ...route.query,
     },
@@ -121,7 +109,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
           icon-position="left"
           variant="secondary"
           :disabled="!canRebootMachines || !isManagedByStaticInfraProvider"
-          @click="powerOnNode"
+          @click="powerOnModalOpen = true"
         >
           Power On
         </TButton>
@@ -142,7 +130,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
         icon-position="left"
         variant="secondary"
         :disabled="!canRebootMachines"
-        @click="rebootNode"
+        @click="nodeRebootModalOpen = true"
       >
         Reboot
       </TButton>
@@ -171,6 +159,12 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
     </div>
 
     <NodePowerOn v-model:open="powerOnModalOpen" :cluster-id="clusterId" :machine-id="machineId" />
+
+    <NodeRebootModal
+      v-model:open="nodeRebootModalOpen"
+      :cluster-id="clusterId"
+      :machine-id="machineId"
+    />
   </div>
 </template>
 

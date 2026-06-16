@@ -180,10 +180,5 @@
     "vue/define-props-destructuring": {
       "count": 1
     }
-  },
-  "src/views/common/NodeContextMenu.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
   }
 }

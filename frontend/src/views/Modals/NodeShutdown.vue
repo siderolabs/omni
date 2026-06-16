@@ -13,7 +13,7 @@ import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import { getContext } from '@/context'
 import { useClusterPermissions } from '@/methods/auth'
-import { setupNodenameWatch } from '@/methods/node'
+import { useNodeName } from '@/methods/node'
 import { showError, showSuccess } from '@/notification'
 
 const route = useRoute()
@@ -21,7 +21,7 @@ const router = useRouter()
 const state = ref('Shutdown')
 
 const machineId = route.query.machine as string
-const node = setupNodenameWatch(machineId)
+const node = useNodeName(machineId)
 
 const close = () => {
   router.go(-1)
