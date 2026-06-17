@@ -14,6 +14,7 @@ import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineStatusSpecStage } from '@/api/omni/specs/omni.pb'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
+import NodeDestroyCancelModal from '@/components/Modals/NodeDestroyCancelModal.vue'
 import NodeDestroyModal from '@/components/Modals/NodeDestroyModal.vue'
 import NodeRebootModal from '@/components/Modals/NodeRebootModal.vue'
 import { useClusterPermissions } from '@/methods/auth'
@@ -29,6 +30,7 @@ const { clusterName, clusterMachineStatus } = defineProps<{
 
 const nodeRebootModalOpen = ref(false)
 const nodeDestroyModalOpen = ref(false)
+const nodeDestroyCancelModalOpen = ref(false)
 
 const { canRebootMachines, canAddClusterMachines, canRemoveMachines } = useClusterPermissions(
   () => clusterName,
@@ -38,17 +40,6 @@ const shutdownNode = () => {
   router.push({
     query: {
       modal: 'shutdown',
-      cluster: clusterName,
-      machine: clusterMachineStatus.metadata.id,
-      goback: 'true',
-    },
-  })
-}
-
-const restoreNode = () => {
-  router.push({
-    query: {
-      modal: 'nodeDestroyCancel',
       cluster: clusterName,
       machine: clusterMachineStatus.metadata.id,
       goback: 'true',
@@ -87,7 +78,7 @@ const copyMachineID = () => {
         canAddClusterMachines
       "
       icon="rollback"
-      @select="restoreNode"
+      @select="nodeDestroyCancelModalOpen = true"
     >
       Cancel Destroy
     </TActionsBoxItem>
@@ -113,6 +104,12 @@ const copyMachineID = () => {
     v-if="nodeDestroyModalOpen"
     v-model:open="nodeDestroyModalOpen"
     :cluster-id="clusterName"
+    :machine-id="clusterMachineStatus.metadata.id!"
+  />
+
+  <NodeDestroyCancelModal
+    v-if="nodeDestroyCancelModalOpen"
+    v-model:open="nodeDestroyCancelModalOpen"
     :machine-id="clusterMachineStatus.metadata.id!"
   />
 </template>
