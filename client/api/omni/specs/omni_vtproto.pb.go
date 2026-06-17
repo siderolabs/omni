@@ -960,6 +960,7 @@ func (m *ClusterMachineConfigStatusSpec) CloneVT() *ClusterMachineConfigStatusSp
 	r.TalosVersion = m.TalosVersion
 	r.SchematicId = m.SchematicId
 	r.RedactedCurrentMachineConfig = m.RedactedCurrentMachineConfig
+	r.PreRebootBootId = m.PreRebootBootId
 	if rhs := m.CompressedRedactedMachineConfig; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -1473,6 +1474,7 @@ func (m *MachineStatusSnapshotSpec) CloneVT() *MachineStatusSnapshotSpec {
 	}
 	r := new(MachineStatusSnapshotSpec)
 	r.PowerStage = m.PowerStage
+	r.BootId = m.BootId
 	if rhs := m.MachineStatus; rhs != nil {
 		if vtpb, ok := interface{}(rhs).(interface {
 			CloneVT() *machine.MachineStatusEvent
@@ -4599,6 +4601,9 @@ func (this *ClusterMachineConfigStatusSpec) EqualVT(that *ClusterMachineConfigSt
 	if string(this.CompressedRedactedMachineConfig) != string(that.CompressedRedactedMachineConfig) {
 		return false
 	}
+	if this.PreRebootBootId != that.PreRebootBootId {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -5258,6 +5263,9 @@ func (this *MachineStatusSnapshotSpec) EqualVT(that *MachineStatusSnapshotSpec) 
 		return false
 	}
 	if this.PowerStage != that.PowerStage {
+		return false
+	}
+	if this.BootId != that.BootId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10476,6 +10484,13 @@ func (m *ClusterMachineConfigStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (in
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.PreRebootBootId) > 0 {
+		i -= len(m.PreRebootBootId)
+		copy(dAtA[i:], m.PreRebootBootId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.PreRebootBootId)))
+		i--
+		dAtA[i] = 0x5a
+	}
 	if len(m.CompressedRedactedMachineConfig) > 0 {
 		i -= len(m.CompressedRedactedMachineConfig)
 		copy(dAtA[i:], m.CompressedRedactedMachineConfig)
@@ -11930,6 +11945,13 @@ func (m *MachineStatusSnapshotSpec) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.BootId) > 0 {
+		i -= len(m.BootId)
+		copy(dAtA[i:], m.BootId)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.BootId)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if m.PowerStage != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.PowerStage))
@@ -17728,6 +17750,10 @@ func (m *ClusterMachineConfigStatusSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	l = len(m.PreRebootBootId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -18276,6 +18302,10 @@ func (m *MachineStatusSnapshotSpec) SizeVT() (n int) {
 	}
 	if m.PowerStage != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.PowerStage))
+	}
+	l = len(m.BootId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -27354,6 +27384,38 @@ func (m *ClusterMachineConfigStatusSpec) UnmarshalVT(dAtA []byte) error {
 				m.CompressedRedactedMachineConfig = []byte{}
 			}
 			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PreRebootBootId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PreRebootBootId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -30880,6 +30942,38 @@ func (m *MachineStatusSnapshotSpec) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BootId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BootId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

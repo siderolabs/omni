@@ -11,6 +11,7 @@ import (
 
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -32,6 +33,7 @@ func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client
 		cfg:                 &config.Params{Features: config.Features{EnableBreakGlassConfigs: new(enableBreakGlassConfigs)}},
 		kubernetesRuntime:   kubernetesRuntime,
 		talosconfigProvider: talosconfigProvider,
+		lifecycleManager:    lifecycle.NewManager(logger, "test-factory", "ghcr.io/siderolabs/installer"),
 	}
 
 	for _, opt := range opts {
@@ -55,14 +57,11 @@ func WithAuditLogger(auditor AuditLogger) ManagementServerOption {
 	}
 }
 
-// CheckMaintenanceLifecycleTalosVersion exposes the in-memory version gate for testing.
-func CheckMaintenanceLifecycleTalosVersion(version string) error {
-	return checkMaintenanceLifecycleTalosVersion(version)
-}
-
-// ClaimMaintenanceLifecycleSlot pre-claims the in-flight slot for a machine, simulating a concurrent lifecycle operation.
-func (s *ManagementServer) ClaimMaintenanceLifecycleSlot(machineID string) {
-	s.maintenanceLifecycleInFlight.Store(machineID, struct{}{})
+// WithLifecycleManager overrides the lifecycle manager on a test management server.
+func WithLifecycleManager(m LifecycleManager) ManagementServerOption {
+	return func(server *ManagementServer) {
+		server.lifecycleManager = m
+	}
 }
 
 func NewAuthServer(st state.State, services config.Services, logger *zap.Logger) (*AuthServer, error) {

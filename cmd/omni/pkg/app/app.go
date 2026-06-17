@@ -32,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/sqlite"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
@@ -100,10 +101,17 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	prometheus.MustRegister(discoveryClientCache)
 
+	lifecycleManager := lifecycle.NewManager(
+		logger.With(logging.Component("talos_lifecycle")),
+		imageFactoryClient.Host(),
+		cfg.Registries.GetTalos(),
+	)
+
 	omniRuntime, err := omni.NewRuntime(
 		cfg, talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
 		imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
-		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime, talosRuntime, logger.With(logging.Component("omni_runtime")),
+		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime, talosRuntime,
+		lifecycleManager, logger.With(logging.Component("omni_runtime")),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to set up the controller runtime: %w", err)
@@ -192,6 +200,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		logger,
 		kubernetesRuntime,
 		talosRuntime,
+		lifecycleManager,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %w", err)

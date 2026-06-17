@@ -3524,8 +3524,13 @@ type ClusterMachineConfigStatusSpec struct {
 	//
 	// Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
 	CompressedRedactedMachineConfig []byte `protobuf:"bytes,10,opt,name=compressed_redacted_machine_config,json=compressedRedactedMachineConfig,proto3" json:"compressed_redacted_machine_config,omitempty"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
+	// PreRebootBootId is the machine boot ID captured when an operation that requires the
+	// machine to reboot (e.g. an install/upgrade via LifecycleService) was last issued. It
+	// debounces such operations: the controller waits until the machine reboots and its boot
+	// ID changes before acting again.
+	PreRebootBootId string `protobuf:"bytes,11,opt,name=pre_reboot_boot_id,json=preRebootBootId,proto3" json:"pre_reboot_boot_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ClusterMachineConfigStatusSpec) Reset() {
@@ -3605,6 +3610,13 @@ func (x *ClusterMachineConfigStatusSpec) GetCompressedRedactedMachineConfig() []
 		return x.CompressedRedactedMachineConfig
 	}
 	return nil
+}
+
+func (x *ClusterMachineConfigStatusSpec) GetPreRebootBootId() string {
+	if x != nil {
+		return x.PreRebootBootId
+	}
+	return ""
 }
 
 type MachinePendingUpdatesSpec struct {
@@ -4714,6 +4726,8 @@ type MachineStatusSnapshotSpec struct {
 	state         protoimpl.MessageState               `protogen:"open.v1"`
 	MachineStatus *machine.MachineStatusEvent          `protobuf:"bytes,1,opt,name=machine_status,json=machineStatus,proto3" json:"machine_status,omitempty"`
 	PowerStage    MachineStatusSnapshotSpec_PowerStage `protobuf:"varint,2,opt,name=power_stage,json=powerStage,proto3,enum=specs.MachineStatusSnapshotSpec_PowerStage" json:"power_stage,omitempty"`
+	// BootId is the machine's kernel boot identifier (/proc/sys/kernel/random/boot_id).
+	BootId        string `protobuf:"bytes,3,opt,name=boot_id,json=bootId,proto3" json:"boot_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4760,6 +4774,13 @@ func (x *MachineStatusSnapshotSpec) GetPowerStage() MachineStatusSnapshotSpec_Po
 		return x.PowerStage
 	}
 	return MachineStatusSnapshotSpec_POWER_STAGE_NONE
+}
+
+func (x *MachineStatusSnapshotSpec) GetBootId() string {
+	if x != nil {
+		return x.BootId
+	}
+	return ""
 }
 
 // ControlPlaneStatusSpec contains the status of the MachineSets which manage control plane nodes.
@@ -11545,7 +11566,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\vClusterUUID\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\"4\n" +
 	"\x18ClusterConfigVersionSpec\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\"\xc2\x03\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\"\xef\x03\n" +
 	"\x1eClusterMachineConfigStatusSpec\x12C\n" +
 	"\x1ecluster_machine_config_version\x18\x03 \x01(\tR\x1bclusterMachineConfigVersion\x12A\n" +
 	"\x1dcluster_machine_config_sha256\x18\x05 \x01(\tR\x1aclusterMachineConfigSha256\x12*\n" +
@@ -11554,7 +11575,8 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\fschematic_id\x18\b \x01(\tR\vschematicId\x12E\n" +
 	"\x1fredacted_current_machine_config\x18\t \x01(\tR\x1credactedCurrentMachineConfig\x12K\n" +
 	"\"compressed_redacted_machine_config\x18\n" +
-	" \x01(\fR\x1fcompressedRedactedMachineConfigJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x04\x10\x05\"\x98\x02\n" +
+	" \x01(\fR\x1fcompressedRedactedMachineConfig\x12+\n" +
+	"\x12pre_reboot_boot_id\x18\v \x01(\tR\x0fpreRebootBootIdJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x04\x10\x05\"\x98\x02\n" +
 	"\x19MachinePendingUpdatesSpec\x12B\n" +
 	"\aupgrade\x18\x01 \x01(\v2(.specs.MachinePendingUpdatesSpec.UpgradeR\aupgrade\x12\x1f\n" +
 	"\vconfig_diff\x18\x02 \x01(\tR\n" +
@@ -11680,11 +11702,12 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x0fupdate_strategy\x18\x03 \x01(\x0e2$.specs.MachineSetSpec.UpdateStrategyR\x0eupdateStrategy\x12`\n" +
 	"\x16update_strategy_config\x18\x04 \x01(\v2*.specs.MachineSetSpec.UpdateStrategyConfigR\x14updateStrategyConfig\"\x14\n" +
 	"\x12MachineSetNodeSpec\"\x13\n" +
-	"\x11MachineLabelsSpec\"\x8b\x02\n" +
+	"\x11MachineLabelsSpec\"\xa4\x02\n" +
 	"\x19MachineStatusSnapshotSpec\x12B\n" +
 	"\x0emachine_status\x18\x01 \x01(\v2\x1b.machine.MachineStatusEventR\rmachineStatus\x12L\n" +
 	"\vpower_stage\x18\x02 \x01(\x0e2+.specs.MachineStatusSnapshotSpec.PowerStageR\n" +
-	"powerStage\"\\\n" +
+	"powerStage\x12\x17\n" +
+	"\aboot_id\x18\x03 \x01(\tR\x06bootId\"\\\n" +
 	"\n" +
 	"PowerStage\x12\x14\n" +
 	"\x10POWER_STAGE_NONE\x10\x00\x12\x1b\n" +

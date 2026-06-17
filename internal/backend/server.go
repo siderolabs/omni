@@ -79,6 +79,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/saml"
 	"github.com/siderolabs/omni/internal/backend/services"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/frontend"
 	"github.com/siderolabs/omni/internal/memconn"
 	"github.com/siderolabs/omni/internal/pkg/auth"
@@ -115,6 +116,7 @@ type Server struct {
 	dnsService              *dns.Service
 	workloadProxyReconciler *workloadproxy.Reconciler
 	imageFactoryClient      *imagefactory.Client
+	lifecycleManager        *lifecycle.Manager
 	installEventCh          chan<- resource.ID
 	linkCounterDeltaCh      chan<- siderolink.LinkCounterDeltas
 	siderolinkEventsCh      chan<- *omnires.MachineStatusSnapshot
@@ -143,6 +145,7 @@ func NewServer(
 	logger *zap.Logger,
 	kubernetesRuntime *kubernetes.Runtime,
 	talosRuntime *talosruntime.Runtime,
+	lifecycleManager *lifecycle.Manager,
 ) (*Server, error) {
 	s := &Server{
 		cfg:                     cfg,
@@ -156,6 +159,7 @@ func NewServer(
 		dnsService:              dnsService,
 		workloadProxyReconciler: workloadProxyReconciler,
 		imageFactoryClient:      imageFactoryClient,
+		lifecycleManager:        lifecycleManager,
 		linkCounterDeltaCh:      linkCounterDeltaCh,
 		siderolinkEventsCh:      siderolinkEventsCh,
 		installEventCh:          installEventCh,
@@ -234,6 +238,7 @@ func (s *Server) Run(ctx context.Context) error {
 		s.kubernetesRuntime,
 		s.talosRuntime,
 		runtimes,
+		s.lifecycleManager,
 	)
 
 	actualSrv, gtwyDialsTo, err := s.serverAndGateway(ctx, servicesServer, mux, serverOptions...)

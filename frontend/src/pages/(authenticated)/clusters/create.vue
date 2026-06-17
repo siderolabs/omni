@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { dump } from 'js-yaml'
-import { compare, parse } from 'semver'
+import { compare } from 'semver'
 import type { Ref } from 'vue'
 import { computed, onMounted, ref, useTemplateRef, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
@@ -24,7 +24,6 @@ import {
   LabelNoManualAllocation,
   MachineConfigGenOptionsType,
   MachineStatusLabelAvailable,
-  MachineStatusLabelInstalled,
   MachineStatusLabelInvalidState,
   MachineStatusLabelReadyToUse,
   MachineStatusLabelReportingEvents,
@@ -46,6 +45,7 @@ import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { setupBackupStatus } from '@/methods'
 import { usePermissions } from '@/methods/auth'
 import { ClusterCommandError, clusterSync, nextAvailableClusterName } from '@/methods/cluster'
+import { machineCompatibleWithCluster } from '@/methods/compat'
 import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showModal } from '@/modal'
@@ -169,38 +169,13 @@ const createCluster = async () => {
 }
 
 const detectVersionMismatch = (machine: Resource<MachineStatusSpec>) => {
-  const clusterVersion = parse(state.value.cluster.talosVersion)
-  const machineVersion = parse(machine.spec.talos_version)
+  const compat = machineCompatibleWithCluster(machine, state.value.cluster.talosVersion!)
+  return compat.ok ? null : compat.reason
+}
 
-  const installed = machine.metadata.labels?.[MachineStatusLabelInstalled] !== undefined
-  const inAgentMode = !!machine.spec.schematic?.in_agent_mode
-
-  if (!machineVersion || !clusterVersion) {
-    return null
-  }
-
-  if (!installed) {
-    if (
-      machineVersion?.major === clusterVersion?.major &&
-      machineVersion?.minor === clusterVersion?.minor
-    ) {
-      return null
-    }
-
-    if (inAgentMode) {
-      return null
-    }
-
-    return 'The machine running from ISO or PXE must have the same major and minor version as the cluster it is going to be added to. Please use another ISO or change the cluster Talos version'
-  }
-  if (
-    machineVersion?.major <= clusterVersion?.major &&
-    machineVersion?.minor <= clusterVersion?.minor
-  ) {
-    return null
-  }
-
-  return 'The machine has newer Talos version installed: downgrade is not allowed. Upgrade the machine or change Talos cluster version'
+const detectAutoInstallNotice = (machine: Resource<MachineStatusSpec>) => {
+  const compat = machineCompatibleWithCluster(machine, state.value.cluster.talosVersion!)
+  return compat.ok && compat.willAutoInstall ? compat.reason : null
 }
 
 const createCluster_ = async (untaint: boolean) => {
@@ -421,6 +396,7 @@ const list = useTemplateRef('list')
             v-for="item in items"
             :key="itemID(item)"
             :version-mismatch="detectVersionMismatch(item)"
+            :auto-install-notice="detectAutoInstallNotice(item)"
             :reset="reset"
             :item="{
               ...item,

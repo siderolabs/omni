@@ -7,7 +7,6 @@ package machineupgrade
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 
@@ -30,10 +29,7 @@ type TalosClient interface {
 type talosCliFactory struct{}
 
 func (t *talosCliFactory) New(ctx context.Context, managementAddress string) (TalosClient, error) {
-	opts := talos.GetSocketOptions(managementAddress)
-	opts = append(opts, client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), client.WithEndpoints(managementAddress))
-
-	talosClient, err := client.New(ctx, opts...)
+	talosClient, err := talos.NewMaintenanceClient(ctx, managementAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create talos client: %w", err)
 	}

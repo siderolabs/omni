@@ -1104,7 +1104,7 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 }
 
 // maintenanceLifecycleMinTalosVersion is the minimum Talos version that exposes the LifecycleService APIs used by MaintenanceLifecycle.
-var maintenanceLifecycleMinTalosVersion = semver.MustParse("1.13.0")
+var maintenanceLifecycleMinTalosVersion, _ = semver.ParseTolerant(omni.LifecycleServiceMinTalosVersion) //nolint:errcheck
 
 // AssertMachineShouldBeInstalledInMaintenanceMode verifies that Talos can be installed to disk on a
 // machine running in maintenance mode (in memory) via the MaintenanceLifecycle management API with

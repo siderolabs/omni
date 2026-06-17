@@ -136,7 +136,7 @@ const filterOptions = [
         />
       </template>
       <template #default="{ items, searchQuery }">
-        <div class="grid grid-cols-[repeat(4,1fr)_--spacing(18)] gap-3">
+        <div class="grid grid-cols-[repeat(4,1fr)_--spacing(24)] gap-3">
           <div
             class="col-span-full grid grid-cols-subgrid bg-naturals-n2 px-3 py-2.5 text-xs max-lg:hidden"
           >

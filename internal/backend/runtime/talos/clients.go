@@ -126,6 +126,18 @@ func (c *Client) Connected(ctx context.Context, r controller.Reader) (bool, erro
 	return clusterStatus.TypedSpec().Value.GetAvailable(), nil
 }
 
+// NewMaintenanceClient opens an insecure Talos client to a machine's maintenance API.
+func NewMaintenanceClient(ctx context.Context, address string) (*client.Client, error) {
+	opts := GetSocketOptions(address)
+	opts = append(
+		opts,
+		client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), //nolint:gosec
+		client.WithEndpoints(address),
+	)
+
+	return client.New(ctx, opts...)
+}
+
 // GetSocketOptions adds unix socket parameters to the client configuration
 // if the address has unix:// schema.
 func GetSocketOptions(address string) []client.OptionFunc {

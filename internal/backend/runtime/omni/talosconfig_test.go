@@ -47,7 +47,7 @@ func TestOperatorTalosconfig(t *testing.T) {
 	kubernetesRuntime := kubernetes.New(st.Default(), logger, "", "", "")
 
 	r, err := omniruntime.NewRuntime(omniconfig.Default(), clientFactory, dnsService, workloadProxyReconciler, nil, nil, nil, nil, nil,
-		st, prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, nil, logging.IncreaseLevel(logger, zap.InfoLevel))
+		st, prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, nil, nil, logging.IncreaseLevel(logger, zap.InfoLevel))
 
 	require.NoError(t, err)
 

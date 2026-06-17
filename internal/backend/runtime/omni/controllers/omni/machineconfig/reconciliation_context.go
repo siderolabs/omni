@@ -26,6 +26,23 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
+// LifecycleOp identifies which upgrade/install path the controller should follow for a given machine.
+type LifecycleOp int
+
+const (
+	// LifecycleOpNone means on-disk Talos already matches the install image; no action needed.
+	LifecycleOpNone LifecycleOp = iota
+
+	// LifecycleOpLegacyUpgrade is an in-place upgrade via MachineService.Upgrade.
+	LifecycleOpLegacyUpgrade
+
+	// LifecycleOpMaintenanceInstall is LifecycleService.Install for a maintenance machine with no Talos on disk.
+	LifecycleOpMaintenanceInstall
+
+	// LifecycleOpMaintenanceUpgrade is LifecycleService.Upgrade for a maintenance machine that has Talos on disk.
+	LifecycleOpMaintenanceUpgrade
+)
+
 // ReconciliationContext describes all related data for one reconciliation call of the machine config status controller.
 type ReconciliationContext struct {
 	machineStatus         *omni.MachineStatus
@@ -36,11 +53,18 @@ type ReconciliationContext struct {
 	installImage          *specs.MachineConfigGenOptionsSpec_InstallImage
 
 	lastConfigError       string
+	installDisk           string
+	bootID                string
 	redactedMachineConfig []byte
 
-	shouldUpgrade        bool
 	configUpdatesAllowed bool
 	locked               bool
+	lifecycleOp          LifecycleOp
+}
+
+// hasPendingLifecycleOperation returns true when an upgrade/install action needs to run before config can be applied.
+func (rc *ReconciliationContext) hasPendingLifecycleOperation() bool {
+	return rc.lifecycleOp != LifecycleOpNone
 }
 
 func checkClusterReady(ctx context.Context, r controller.Reader, machineConfig *omni.ClusterMachineConfig) (bool, error) {
@@ -191,6 +215,8 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install image not found", machineConfig.Metadata().ID())
 	}
 
+	rc.installDisk = genOptions.TypedSpec().Value.InstallDisk
+
 	schematicMismatch := false
 
 	// Invalid schematic means the machine was not provisioned via image factory.
@@ -224,7 +250,51 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, err
 	}
 
-	rc.shouldUpgrade = omni.GetMachineStatusSystemDisk(rc.machineStatus) != "" && (schematicMismatch || talosVersionMismatch)
+	rc.bootID = rc.machineStatusSnapshot.TypedSpec().Value.BootId
+
+	rc.lifecycleOp = DecideLifecycleOp(rc.machineStatus, rc.installImage, schematicMismatch, talosVersionMismatch)
+	if rc.lifecycleOp == LifecycleOpMaintenanceInstall && rc.installDisk == "" {
+		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install disk is not yet selected", machineConfig.Metadata().ID())
+	}
 
 	return rc, nil
+}
+
+// DecideLifecycleOp picks the upgrade/install path from the live machine state. Exported for tests.
+func DecideLifecycleOp(machineStatus *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, schematicMismatch, talosVersionMismatch bool) LifecycleOp {
+	hasSystemDisk := omni.GetMachineStatusSystemDisk(machineStatus) != ""
+
+	machineVersion, machineSupportsLifecycle := omni.ParseTalosVersionLifecycleSupport(machineStatus.TypedSpec().Value.TalosVersion)
+	targetVersion, targetSupportsLifecycle := omni.ParseTalosVersionLifecycleSupport(installImage.TalosVersion)
+
+	// Maintenance path: both the machine and the target must support the LifecycleService API.
+	if machineStatus.TypedSpec().Value.Maintenance && machineSupportsLifecycle && targetSupportsLifecycle {
+		machineSchematic := machineStatus.TypedSpec().Value.GetSchematic()
+		schematicDiffers := !machineSchematic.GetInvalid() && machineSchematic.GetFullId() != installImage.SchematicId
+
+		switch {
+		case hasSystemDisk && (!machineVersion.EQ(targetVersion) || schematicDiffers):
+			// Talos is already on disk but not at the target version/schematic: upgrade it in place via LifecycleService.Upgrade.
+			return LifecycleOpMaintenanceUpgrade
+		case !hasSystemDisk && (machineVersion.Major != targetVersion.Major || machineVersion.Minor != targetVersion.Minor):
+			// Nothing on disk yet and the running (ISO/PXE) minor differs from the target: the normal config-apply install only works within the same minor, so write the target to disk via
+			// LifecycleService.Install.
+			return LifecycleOpMaintenanceInstall
+		default:
+			// Either the on-disk Talos already matches the target, or there's no disk but the running minor matches the target so the normal config-apply path installs it.
+			return LifecycleOpNone
+		}
+	}
+
+	if !schematicMismatch && !talosVersionMismatch {
+		return LifecycleOpNone
+	}
+
+	// Even though LifecycleService.Upgrade can upgrade machines that are part of a cluster, that flow has not been implemented yet. Continue to use the legacy in-place MachineService.Upgrade.
+	if hasSystemDisk {
+		return LifecycleOpLegacyUpgrade
+	}
+
+	// No Talos on disk and not eligible for a maintenance install: Omni has no way to install Talos on this machine today, so nothing is done.
+	return LifecycleOpNone
 }

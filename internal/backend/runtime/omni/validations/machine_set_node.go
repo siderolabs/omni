@@ -66,9 +66,8 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 			return err
 		}
 
-		machineTalosVersion, err := semver.Parse(strings.TrimLeft(machineStatus.TypedSpec().Value.TalosVersion, "v"))
-		if err != nil {
-			// ignore version check if it's not possible to parse machine Talos version
+		// ignore version check if it's not possible to parse machine Talos version
+		if _, parseErr := semver.Parse(strings.TrimLeft(machineStatus.TypedSpec().Value.TalosVersion, "v")); parseErr != nil {
 			return nil //nolint:nilerr
 		}
 
@@ -77,23 +76,9 @@ func machineSetNodeValidationOptions(st state.State) []validated.StateOption {
 			return err
 		}
 
-		inAgentMode := machineStatus.TypedSpec().Value.Schematic.GetInAgentMode()
-
-		if !inAgentMode && (machineTalosVersion.Major > clusterTalosVersion.Major || machineTalosVersion.Minor > clusterTalosVersion.Minor) {
-			return fmt.Errorf(
-				"cannot add machine set node to the cluster %s as it will trigger Talos downgrade on the node (%s -> %s)",
-				cluster.Metadata().ID(),
-				machineTalosVersion.String(),
-				clusterTalosVersion.String(),
-			)
-		}
-
-		installed := omni.GetMachineStatusSystemDisk(machineStatus) != ""
-
-		if !installed && !inAgentMode && (machineTalosVersion.Major != clusterTalosVersion.Major || machineTalosVersion.Minor != clusterTalosVersion.Minor) {
-			return errors.New(
-				"machines which are running Talos without installation can be added only to Talos clusters with the same major and minor versions",
-			)
+		ok, _, reason := omni.MachineCompatibleWithCluster(machineStatus, clusterTalosVersion)
+		if !ok {
+			return errors.New(reason)
 		}
 
 		return nil

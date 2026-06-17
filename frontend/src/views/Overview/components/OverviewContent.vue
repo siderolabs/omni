@@ -13,6 +13,7 @@ import { computed, ref, watchEffect } from 'vue'
 import { Runtime } from '@/api/common/omni.pb'
 import { type Resource, ResourceService } from '@/api/grpc'
 import {
+  type ClusterMachineStatusSpec,
   type ClusterSecretsRotationStatusSpec,
   type ClusterSpec,
   type ClusterStatusSpec,
@@ -26,11 +27,13 @@ import {
 import { withRuntime } from '@/api/options'
 import {
   ClusterLocked,
+  ClusterMachineStatusType,
   ClusterSecretsRotationStatusType,
   ClusterStatusType,
   DefaultNamespace,
   KubernetesUpgradeStatusType,
   KubernetesUsageType,
+  LabelCluster,
   TalosUpgradeStatusType,
   VirtualNamespace,
 } from '@/api/resources'
@@ -159,6 +162,19 @@ async function setClusterEtcdBackupsConfig(spec: ClusterSpec) {
   await ResourceService.Update(resource, currentCluster.metadata.version, withRuntime(Runtime.Omni))
 }
 
+const { data: clusterMachineStatuses } = useResourceWatch<ClusterMachineStatusSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterMachineStatusType,
+  },
+  selectors: [`${LabelCluster}=${clusterId.value}`],
+}))
+
+const machinesWithErrors = computed(() =>
+  clusterMachineStatuses.value.filter((m) => !!m.spec.last_config_error),
+)
+
 const { data: secretRotationStatus } = useResourceWatch<ClusterSecretsRotationStatusSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
@@ -200,6 +216,14 @@ const machineLockedForSecretRotation = computed(() => {
       <TAlert v-if="clusterLocked" title="Cluster is Locked" type="warn" class="mb-4">
         All operations on this cluster are currently disabled. Config patches can be created,
         updated or deleted but these changes will not be applied while the cluster is locked.
+      </TAlert>
+      <TAlert
+        v-if="machinesWithErrors.length > 0"
+        :title="`${machinesWithErrors.length} ${machinesWithErrors.length === 1 ? 'machine has' : 'machines have'} configuration errors`"
+        type="error"
+        class="mb-4"
+      >
+        Open the cluster machine detail page for each affected node to view the error and recover.
       </TAlert>
       <div class="relative mb-6 min-h-25 bg-naturals-n2 p-5">
         <div
@@ -427,7 +451,7 @@ const machineLockedForSecretRotation = computed(() => {
         <div class="flex px-6 pb-4">
           <span class="text-sm text-naturals-n13">Machines</span>
         </div>
-        <div class="grid grid-cols-[repeat(4,1fr)_--spacing(18)]">
+        <div class="grid grid-cols-[repeat(4,1fr)_--spacing(24)]">
           <ClusterMachines is-subgrid :cluster-i-d="clusterId" />
         </div>
       </div>

@@ -43,11 +43,13 @@ const {
   reset = undefined,
   searchQuery = undefined,
   versionMismatch,
+  autoInstallNotice = null,
 } = defineProps<{
   item: Resource<MachineStatusSpec & MachineConfigGenOptionsSpec>
   reset?: number
   searchQuery?: string
   versionMismatch: string | null
+  autoInstallNotice?: string | null
 }>()
 
 const machineSetNode = ref<MachineSetNode>({
@@ -126,31 +128,41 @@ const options = computed(() => {
   const canUseAsWorker = memoryCapacity === 0 || memoryCapacity >= workerMemoryTheshold
 
   return state.value.machineSets.map<PickerOption>((ms) => {
-    let disabled = ms.role === LabelControlPlaneRole ? !canUseAsControlPlane : !canUseAsWorker
-    let tooltip: string | undefined
+    const reasons: string[] = []
+    let disabled = false
 
-    if (disabled) {
-      if (ms.role === LabelControlPlaneRole) {
-        tooltip = `The node must have more than ${prettyBytes(cpMemoryThreshold * 1024 * 1024, { binary: true })} of RAM to be used as a control plane`
-      } else {
-        tooltip = `The node must have more than ${prettyBytes(workerMemoryTheshold * 1024 * 1024, { binary: true })} of RAM to be used as a worker`
-      }
+    if (ms.role === LabelControlPlaneRole && !canUseAsControlPlane) {
+      disabled = true
+      reasons.push(
+        `The node must have more than ${prettyBytes(cpMemoryThreshold * 1024 * 1024, { binary: true })} of RAM to be used as a control plane`,
+      )
+    } else if (ms.role !== LabelControlPlaneRole && !canUseAsWorker) {
+      disabled = true
+      reasons.push(
+        `The node must have more than ${prettyBytes(workerMemoryTheshold * 1024 * 1024, { binary: true })} of RAM to be used as a worker`,
+      )
     }
 
     if (ms.machineAllocation) {
       disabled = true
-      tooltip = `The machine class ${ms.id} is using machine class so no manual allocation is possible`
+      reasons.push(
+        `The machine class ${ms.id} is using machine class so no manual allocation is possible`,
+      )
     }
 
     if (versionMismatch) {
       disabled = true
-      tooltip = versionMismatch
+      reasons.push(versionMismatch)
+    }
+
+    if (autoInstallNotice) {
+      reasons.push(autoInstallNotice)
     }
 
     return {
       id: ms.id,
       disabled: disabled,
-      tooltip: tooltip,
+      tooltip: reasons.length > 0 ? reasons.join('\n\n') : undefined,
       labelClass: ms.labelClass,
     }
   })

@@ -618,6 +618,12 @@ message ClusterMachineConfigStatusSpec {
   //
   // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   bytes compressed_redacted_machine_config = 10;
+
+  // PreRebootBootId is the machine boot ID captured when an operation that requires the
+  // machine to reboot (e.g. an install/upgrade via LifecycleService) was last issued. It
+  // debounces such operations: the controller waits until the machine reboots and its boot
+  // ID changes before acting again.
+  string pre_reboot_boot_id = 11;
 }
 
 message MachinePendingUpdatesSpec {
@@ -932,6 +938,8 @@ message MachineStatusSnapshotSpec {
 
   machine.MachineStatusEvent machine_status = 1;
   PowerStage power_stage = 2;
+  // BootId is the machine's kernel boot identifier (/proc/sys/kernel/random/boot_id).
+  string boot_id = 3;
 }
 
 enum ConditionType {

@@ -63,20 +63,12 @@ func NewMachineConfigGenOptionsController() *MachineConfigGenOptionsController {
 // GenInstallConfig creates a config patch with an automatically picked install disk.
 func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVersion *omni.ClusterMachineTalosVersion, genOptions *omni.MachineConfigGenOptions) {
 	if clusterMachineTalosVersion != nil {
-		if genOptions.TypedSpec().Value.InstallImage == nil {
-			genOptions.TypedSpec().Value.InstallImage = &specs.MachineConfigGenOptionsSpec_InstallImage{}
-		}
-
-		genOptions.TypedSpec().Value.InstallImage.SchematicId = clusterMachineTalosVersion.TypedSpec().Value.SchematicId
-		genOptions.TypedSpec().Value.InstallImage.TalosVersion = clusterMachineTalosVersion.TypedSpec().Value.TalosVersion
-		genOptions.TypedSpec().Value.InstallImage.SchematicInitialized = machineStatus.TypedSpec().Value.SchematicReady()
-
-		if genOptions.TypedSpec().Value.InstallImage.SchematicInitialized {
-			genOptions.TypedSpec().Value.InstallImage.SchematicInvalid = machineStatus.TypedSpec().Value.GetSchematic().GetInvalid()
-		}
-
-		genOptions.TypedSpec().Value.InstallImage.SecurityState = machineStatus.TypedSpec().Value.SecurityState
-		genOptions.TypedSpec().Value.InstallImage.Platform = machineStatus.TypedSpec().Value.GetPlatformMetadata().GetPlatform()
+		genOptions.TypedSpec().Value.InstallImage = omni.NewInstallImage(
+			machineStatus,
+			clusterMachineTalosVersion.TypedSpec().Value.TalosVersion,
+			clusterMachineTalosVersion.TypedSpec().Value.SchematicId,
+			machineStatus.TypedSpec().Value.SchematicReady(),
+		)
 	}
 
 	if machineStatus.TypedSpec().Value.Hardware == nil {

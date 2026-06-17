@@ -9,7 +9,6 @@ package helpers
 import (
 	"context"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/hex"
 	"fmt"
 	"iter"
@@ -201,14 +200,7 @@ func GetTalosClient[T interface {
 	opts := talos.GetSocketOptions(address)
 
 	createInsecureClient := func() (*client.Client, error) {
-		return client.New(ctx,
-			append(
-				opts,
-				client.WithTLSConfig(&tls.Config{
-					InsecureSkipVerify: true,
-				}),
-				client.WithEndpoints(address),
-			)...)
+		return talos.NewMaintenanceClient(ctx, address)
 	}
 
 	if machineResource == nil {

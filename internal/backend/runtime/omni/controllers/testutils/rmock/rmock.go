@@ -412,7 +412,7 @@ machine:
 	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController().ControllerName)
 	setOwner[*omni.UpgradeRollout](talosupgrade.NewStatusController(nil).ControllerName)
 	setOwner[*omni.TalosUpgradeStatus](talosupgrade.NewStatusController(nil).ControllerName)
-	setOwner[*omni.ClusterMachineConfigStatus](machineconfigctrl.NewClusterMachineConfigStatusController("", "").ControllerName)
+	setOwner[*omni.ClusterMachineConfigStatus](machineconfigctrl.NewClusterMachineConfigStatusController("", "", nil).ControllerName)
 }
 
 // GetOwner returns the default owner used by the mock library for the resource.

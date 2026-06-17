@@ -9,7 +9,6 @@ package machineconfig
 import (
 	"context"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -45,6 +44,7 @@ import (
 	talosutils "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
 
 const (
@@ -57,19 +57,28 @@ const (
 	maintenanceCheckAttempts  = 5
 )
 
-// ClusterMachineConfigStatusController manages ClusterMachineStatus resource lifecycle.
+// LifecycleManager runs maintenance-mode Talos install/upgrade operations on a single machine for the controller.
+type LifecycleManager interface {
+	// CheckAlive verifies the machine is reachable over the maintenance API at the given address before committing to an operation.
+	CheckAlive(ctx context.Context, address string) error
+	// Run performs the maintenance install/upgrade flow synchronously, returning ErrAlreadyInFlight if another operation holds the machine.
+	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
+}
+
+// ClusterMachineConfigStatusController manages the ClusterMachineStatus resource lifecycle.
 //
-// ClusterMachineConfigStatusController applies the generated machine config  on each corresponding machine.
+// ClusterMachineConfigStatusController applies the generated machine config on each corresponding machine.
 type ClusterMachineConfigStatusController struct {
 	*qtransform.QController[*omni.ClusterMachineConfig, *omni.ClusterMachineConfigStatus]
 	ongoingResets    *ongoingResets
+	lifecycleManager LifecycleManager
 	imageFactoryHost string
 	talosRegistry    string
 	acquireLockMu    sync.Mutex
 }
 
 // NewClusterMachineConfigStatusController initializes ClusterMachineConfigStatusController.
-func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry string) *ClusterMachineConfigStatusController {
+func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry string, lifecycleManager LifecycleManager) *ClusterMachineConfigStatusController {
 	ongoingResets := &ongoingResets{
 		statuses: map[string]*resetStatus{},
 	}
@@ -78,6 +87,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry str
 		imageFactoryHost: imageFactoryHost,
 		talosRegistry:    talosRegistry,
 		ongoingResets:    ongoingResets,
+		lifecycleManager: lifecycleManager,
 	}
 
 	ctrl.QController = qtransform.NewQController(
@@ -337,7 +347,12 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileUpgrade(
 	r controller.ReaderWriter,
 	rc *ReconciliationContext,
 ) error {
-	if rc.shouldUpgrade {
+	// PreRebootBootId only tracks an in-flight maintenance reboot. Clear it for any non-maintenance path so a stale ID can't later debounce a fresh maintenance operation.
+	if rc.lifecycleOp != LifecycleOpMaintenanceInstall && rc.lifecycleOp != LifecycleOpMaintenanceUpgrade {
+		rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = ""
+	}
+
+	if rc.hasPendingLifecycleOperation() {
 		inSync, err := ctrl.upgrade(ctx, logger, r, rc)
 		if err != nil {
 			// Only release the config-update lock when the machine is specifically blocked
@@ -368,13 +383,23 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileUpgrade(
 	return nil
 }
 
-func (ctrl *ClusterMachineConfigStatusController) upgrade(
-	inputCtx context.Context,
-	logger *zap.Logger,
-	r controller.ReaderWriter,
-	rc *ReconciliationContext,
-) (bool, error) {
-	// use short timeout for the all API calls but upgrade to quickly skip "dead" nodes
+func (ctrl *ClusterMachineConfigStatusController) upgrade(ctx context.Context, logger *zap.Logger, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {
+	switch rc.lifecycleOp {
+	case LifecycleOpNone:
+		return true, nil
+
+	case LifecycleOpMaintenanceInstall, LifecycleOpMaintenanceUpgrade:
+		return ctrl.runMaintenanceLifecycle(ctx, logger, r, rc)
+
+	case LifecycleOpLegacyUpgrade:
+		fallthrough
+	default:
+		return ctrl.legacyUpgrade(ctx, logger, r, rc)
+	}
+}
+
+func (ctrl *ClusterMachineConfigStatusController) legacyUpgrade(inputCtx context.Context, logger *zap.Logger, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {
+	// use short timeout for all API calls except upgrade to quickly skip "dead" nodes
 	ctx, cancel := context.WithTimeout(inputCtx, 5*time.Second)
 	defer cancel()
 
@@ -475,6 +500,99 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 	}
 
 	return false, err
+}
+
+// maintenanceLifecyclePollInterval paces a retry when the operation can't make progress yet (another caller holds the in-flight slot, or the machine is still rebooting from a prior operation).
+const maintenanceLifecyclePollInterval = 30 * time.Second
+
+// runMaintenanceLifecycle performs a LifecycleService.Install or Upgrade synchronously via the Lifecycle Manager.
+func (ctrl *ClusterMachineConfigStatusController) runMaintenanceLifecycle(
+	ctx context.Context,
+	logger *zap.Logger,
+	r controller.ReaderWriter,
+	rc *ReconciliationContext,
+) (bool, error) {
+	machineID := rc.ID()
+
+	if rc.bootID == "" {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine boot ID before running maintenance lifecycle operation: %s", rc.ID())
+	}
+
+	preRebootBootID := rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId
+	if rc.bootID == preRebootBootID {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot after maintenance lifecycle operation: %s", rc.ID())
+	}
+
+	if stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage(); stage != machineapi.MachineStatusEvent_MAINTENANCE {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine %s is not in maintenance stage (%s); skipping maintenance lifecycle operation", machineID, stage)
+	}
+
+	probeCtx, probeCancel := context.WithTimeout(ctx, lifecycle.LivenessProbeTimeout)
+	defer probeCancel()
+
+	if err := ctrl.lifecycleManager.CheckAlive(probeCtx, rc.machineStatus.TypedSpec().Value.ManagementAddress); err != nil {
+		logger.Info("maintenance lifecycle pre-flight liveness probe failed; will retry", zap.String("machine", machineID), zap.Error(err))
+
+		return false, controller.NewRequeueInterval(maintenanceLifecyclePollInterval)
+	}
+
+	if err := ctrl.acquireUpgradeLock(ctx, r, rc); err != nil {
+		return false, err
+	}
+
+	operation := lifecycle.Operation{
+		MachineID:     machineID,
+		MachineStatus: rc.machineStatus,
+		Version:       rc.installImage.TalosVersion,
+		InstallImage:  rc.installImage,
+	}
+	operationName := ""
+
+	switch rc.lifecycleOp { //nolint:exhaustive
+	case LifecycleOpMaintenanceInstall:
+		operation.Kind = lifecycle.KindInstall
+		operation.Disk = rc.installDisk
+		operationName = "maintenance install"
+	case LifecycleOpMaintenanceUpgrade:
+		operation.Kind = lifecycle.KindUpgrade
+		operationName = "maintenance upgrade"
+	}
+
+	logger.Info("running maintenance lifecycle",
+		zap.String("machine", machineID),
+		zap.Stringer("op", operation.Kind),
+		zap.String("version", operation.Version),
+		zap.String("disk", operation.Disk))
+
+	runCtx, cancel := context.WithTimeout(ctx, lifecycle.MaintenanceLifecycleTimeout)
+	defer cancel()
+
+	err := ctrl.lifecycleManager.Run(runCtx, operation, lifecycle.WithProgress(func(msg string) {
+		logger.Debug("maintenance lifecycle progress", zap.String("machine", machineID), zap.String("message", msg))
+	}))
+
+	switch {
+	case errors.Is(err, lifecycle.ErrAlreadyInFlight):
+		// The management RPC is operating on this machine; retry once it releases the slot.
+		logger.Info("maintenance lifecycle already in flight", zap.String("machine", machineID))
+
+		return false, controller.NewRequeueInterval(maintenanceLifecyclePollInterval)
+	case err != nil:
+		// Returning a raw error would make qtransform drop the output write and lose LastConfigError.
+		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, fmt.Sprintf("%s failed", operationName)).Error()
+
+		logger.Error("maintenance lifecycle operation failed",
+			zap.String("machine", machineID),
+			zap.String("op", operationName),
+			zap.Error(err))
+
+		return false, controller.NewRequeueInterval(maintenanceLifecyclePollInterval)
+	default:
+		rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = rc.bootID
+		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = ""
+
+		return false, controller.NewRequeueInterval(maintenanceLifecyclePollInterval)
+	}
 }
 
 // stageUpgrade decides if the upgrade should be staged.
@@ -859,16 +977,12 @@ func (ctrl *ClusterMachineConfigStatusController) getClient(
 	machineConfig *omni.ClusterMachineConfig,
 ) (*client.Client, error) {
 	address := machineStatus.TypedSpec().Value.ManagementAddress
-	opts := talos.GetSocketOptions(address)
 
 	if useMaintenance {
-		return client.New(ctx,
-			append(
-				opts,
-				client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}),
-				client.WithEndpoints(address),
-			)...)
+		return talos.NewMaintenanceClient(ctx, address)
 	}
+
+	opts := talos.GetSocketOptions(address)
 
 	clusterName, ok := machineConfig.Metadata().Labels().Get(omni.LabelCluster)
 	if !ok {
@@ -1068,7 +1182,7 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 	)
 
 	if rc.machineConfigStatus != nil && rc.installImage != nil &&
-		rc.machineConfigStatus.TypedSpec().Value.TalosVersion != "" && rc.machineConfigStatus.TypedSpec().Value.SchematicId != "" && rc.shouldUpgrade {
+		rc.machineConfigStatus.TypedSpec().Value.TalosVersion != "" && rc.machineConfigStatus.TypedSpec().Value.SchematicId != "" && rc.hasPendingLifecycleOperation() {
 		currentSchematicID = rc.machineConfigStatus.TypedSpec().Value.SchematicId
 		currentTalosVersion = rc.machineConfigStatus.TypedSpec().Value.TalosVersion
 

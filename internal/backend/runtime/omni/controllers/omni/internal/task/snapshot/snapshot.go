@@ -10,6 +10,8 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -77,7 +79,7 @@ func (spec CollectTaskSpec) sendInfo(ctx context.Context, info *omni.MachineStat
 }
 
 // RunTask runs the machine status collector.
-func (spec CollectTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, notifyCh InfoChan) error {
+func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, notifyCh InfoChan) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -96,6 +98,8 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, notifyCh
 	if _, registered := registeredTypes[runtime.MachineStatusType]; !registered {
 		return nil
 	}
+
+	bootID := readBootID(ctx, client, logger)
 
 	watchCh := make(chan state.Event)
 
@@ -128,12 +132,41 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, _ *zap.Logger, notifyCh
 			}
 
 			snapshot.TypedSpec().Value.MachineStatus = ev
+			snapshot.TypedSpec().Value.BootId = bootID
 
 			if !spec.sendInfo(ctx, snapshot, notifyCh) {
 				return nil
 			}
 		}
 	}
+}
+
+// readBootID reads the machine's kernel boot identifier from the node. It is best-effort: on certain scenarios boot_id might not be available, instead of failing with error it returns "".
+func readBootID(ctx context.Context, c *client.Client, logger *zap.Logger) string {
+	read := func() (string, error) {
+		r, err := c.Read(ctx, "/proc/sys/kernel/random/boot_id")
+		if err != nil {
+			return "", err
+		}
+
+		defer r.Close() //nolint:errcheck
+
+		data, err := io.ReadAll(r)
+		if err != nil {
+			return "", err
+		}
+
+		return strings.TrimSpace(string(data)), nil
+	}
+
+	bootID, err := read()
+	if err != nil {
+		logger.Debug("failed to read boot id", zap.Error(err))
+
+		return ""
+	}
+
+	return bootID
 }
 
 func (spec CollectTaskSpec) getClient(ctx context.Context) (*client.Client, error) {

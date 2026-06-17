@@ -65,7 +65,7 @@ func TestGenerateConfigs(t *testing.T) {
 
 	rt, err := omniruntime.NewRuntime(config.Default(), nil, nil, nil,
 		nil, nil, nil, nil, nil, st, prometheus.NewRegistry(),
-		nil, kubernetesRuntime, nil, logging.IncreaseLevel(logger, zap.InfoLevel))
+		nil, kubernetesRuntime, nil, nil, logging.IncreaseLevel(logger, zap.InfoLevel))
 	require.NoError(t, err)
 
 	clusterName := "cluster1"

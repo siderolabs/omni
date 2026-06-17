@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math"
 	"slices"
-	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -640,8 +639,6 @@ func (ctrl *MachineSetNodeController) createNodes(
 		for i := range availableMachineClassMachines.Len() {
 			machine := availableMachineClassMachines.Get(i)
 
-			var machineVersion semver.Version
-
 			machineRequestID, ok := machine.Metadata().Labels().Get(omni.LabelMachineRequest)
 			if ok {
 				var machineRequest *infra.MachineRequest
@@ -657,26 +654,8 @@ func (ctrl *MachineSetNodeController) createNodes(
 				}
 			}
 
-			version, ok := machine.Metadata().Labels().Get(omni.MachineStatusLabelTalosVersion)
-			if !ok {
-				continue
-			}
-
-			machineVersion, err = semver.Parse(strings.TrimPrefix(version, "v"))
-			if err != nil {
-				continue
-			}
-
-			// do not try to allocate the machine if it's Talos major or minor version is greater than cluster Talos version
-			// this way we don't allow downgrading the machines while allocating them
-			if machineVersion.Major > clusterVersion.Major || machineVersion.Minor > clusterVersion.Minor {
-				continue
-			}
-
-			// do not try to allocate the machine if it's running Talos from an ISO or PXE and it's major and minor version do not match.
-			_, installed := machine.Metadata().Labels().Get(omni.MachineStatusLabelInstalled)
-
-			if !installed && (machineVersion.Major != clusterVersion.Major || machineVersion.Minor != clusterVersion.Minor) {
+			compatible, _, _ := omni.MachineLabelsCompatibleWithCluster(machine.Metadata().Labels(), clusterVersion)
+			if !compatible {
 				continue
 			}
 

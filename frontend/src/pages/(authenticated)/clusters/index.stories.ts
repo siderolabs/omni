@@ -41,6 +41,7 @@ import {
   LabelControlPlaneRole,
   LabelMachineSet,
   LabelWorkerRole,
+  MachineLocked,
   MachineSetStatusType,
   MachineSetType,
   MachineStatusLabelConnected,
@@ -57,6 +58,56 @@ const meta: Meta<typeof Clusters> = {
 
 export default meta
 type Story = StoryObj<typeof meta>
+
+const seedFromId = (id: string) => id.split('').reduce((prev, curr) => prev + curr.charCodeAt(0), 0)
+
+// Generates the machine statuses for a single machine set. faker is a sequential
+// PRNG, so reseeding from the machine-set label makes the generated UUIDs
+// deterministic — which lets the diagnostics handler reproduce the exact machine
+// IDs that belong to a given cluster without coordinating shared state.
+const clusterMachineStatuses = (
+  clusterLabel: string,
+  machineSetLabel: string,
+): Resource<ClusterMachineStatusSpec>[] => {
+  faker.seed(seedFromId(machineSetLabel))
+
+  const roleLabel = machineSetLabel.includes(ControlPlanesIDSuffix)
+    ? LabelControlPlaneRole
+    : LabelWorkerRole
+
+  return faker.helpers.multiple<Resource<ClusterMachineStatusSpec>>(
+    () => ({
+      spec: {
+        ready: faker.datatype.boolean(),
+        stage: faker.helpers.enumValue(ClusterMachineStatusSpecStage),
+        config_apply_status: faker.helpers.enumValue(ConfigApplyStatus),
+        last_config_error: faker.helpers.maybe(() => faker.hacker.phrase()),
+      },
+      metadata: {
+        id: faker.string.uuid(),
+        annotations: faker.helpers.maybe(() => ({ [MachineLocked]: '' })),
+        labels: {
+          [LabelCluster]: clusterLabel,
+          [LabelMachineSet]: machineSetLabel,
+          [roleLabel]: '',
+          ...faker.helpers.maybe(() => ({ [MachineStatusLabelConnected]: '' })),
+          ...faker.helpers.maybe(() => ({ [UpdateLocked]: '' })),
+        },
+      },
+    }),
+    { count: { min: 0, max: 5 } },
+  )
+}
+
+// Reproduces the machine IDs of every machine set in a cluster, mirroring how
+// MachineSet handler derives the control-plane/worker machine-set IDs.
+const clusterMachineIds = (clusterLabel: string): string[] =>
+  [`${clusterLabel}-${ControlPlanesIDSuffix}`, `${clusterLabel}-${DefaultWorkersIDSuffix}`].flatMap(
+    (machineSetLabel) =>
+      clusterMachineStatuses(clusterLabel, machineSetLabel).map(
+        (machine) => machine.metadata.id ?? '',
+      ),
+  )
 
 export const Data: Story = {
   parameters: {
@@ -148,7 +199,17 @@ export const Data: Story = {
             type: ClusterDiagnosticsType,
             namespace: DefaultNamespace,
           },
-          initialResources: [{ spec: { nodes: [] }, metadata: {} }],
+          initialResources: ({ id: clusterID = '' }) => {
+            const machineIds = clusterMachineIds(clusterID)
+
+            faker.seed(seedFromId(clusterID))
+
+            const nodes = machineIds
+              .filter(() => faker.datatype.boolean())
+              .map((id) => ({ id, num_diagnostics: faker.number.int({ min: 1, max: 10 }) }))
+
+            return [{ spec: { nodes }, metadata: { id: clusterID } }]
+          },
         }).handler,
 
         createWatchStreamHandler<MachineSetStatusSpec>({
@@ -204,31 +265,7 @@ export const Data: Story = {
               [LabelCluster]: clusterLabel = '',
               [LabelMachineSet]: machineSetLabel = '',
             } = {},
-          }) => {
-            faker.seed(
-              machineSetLabel.split('').reduce((prev, curr) => prev + curr.charCodeAt(0), 0),
-            )
-
-            return faker.helpers.multiple<Resource<ClusterMachineStatusSpec>>(
-              () => ({
-                spec: {
-                  ready: faker.datatype.boolean(),
-                  stage: faker.helpers.enumValue(ClusterMachineStatusSpecStage),
-                  config_apply_status: faker.helpers.enumValue(ConfigApplyStatus),
-                },
-                metadata: {
-                  id: faker.string.uuid(),
-                  labels: {
-                    [LabelCluster]: clusterLabel,
-                    [LabelMachineSet]: machineSetLabel,
-                    ...faker.helpers.maybe(() => ({ [MachineStatusLabelConnected]: '' })),
-                    ...faker.helpers.maybe(() => ({ [UpdateLocked]: '' })),
-                  },
-                },
-              }),
-              { count: { min: 0, max: 5 } },
-            )
-          },
+          }) => clusterMachineStatuses(clusterLabel, machineSetLabel),
         }).handler,
 
         createWatchStreamHandler<ClusterMachineRequestStatusSpec>({

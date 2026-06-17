@@ -175,7 +175,7 @@ function isMachineSetScalable(
     :value="machineSetId"
     class="grid border-t-8 border-naturals-n4 text-naturals-n14"
     :class="
-      isSubgrid ? 'col-span-full grid-cols-subgrid' : 'grid-cols-[repeat(4,1fr)_--spacing(18)]'
+      isSubgrid ? 'col-span-full grid-cols-subgrid' : 'grid-cols-[repeat(4,1fr)_--spacing(24)]'
     "
     :aria-labelledby="sectionHeadingId"
     v-bind="$attrs"

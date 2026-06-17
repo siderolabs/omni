@@ -31,6 +31,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/monitoring"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/memconn"
 	"github.com/siderolabs/omni/internal/pkg/compress"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -58,6 +59,7 @@ func MakeServiceServers(
 	kubernetesRuntime KubernetesRuntime,
 	talosRuntime TalosRuntime,
 	runtimes map[string]runtime.Runtime,
+	lifecycleManager *lifecycle.Manager,
 ) iter.Seq2[ServiceServer, error] {
 	dest, err := generateDest(cfg.Services.Api.URL())
 	if err != nil {
@@ -99,6 +101,7 @@ func MakeServiceServers(
 			kubernetesRuntime,
 			talosRuntime,
 			omniRuntime,
+			lifecycleManager,
 		),
 		auth,
 		&COSIResourceServer{

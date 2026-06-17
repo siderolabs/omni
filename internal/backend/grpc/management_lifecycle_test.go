@@ -22,38 +22,10 @@ import (
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
 	omniruntime "github.com/siderolabs/omni/internal/backend/runtime/omni"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
-
-func TestCheckMaintenanceLifecycleTalosVersion(t *testing.T) {
-	for _, tt := range []struct {
-		name    string
-		version string
-		wantErr bool
-	}{
-		{name: "supported", version: "v1.13.0", wantErr: false},
-		{name: "supported without v prefix", version: "1.13.2", wantErr: false},
-		{name: "supported newer minor", version: "v1.14.0", wantErr: false},
-		{name: "supported pre-release", version: "v1.13.0-beta.1", wantErr: false},
-		{name: "too old", version: "v1.12.5", wantErr: true},
-		{name: "much older", version: "v1.9.0", wantErr: true},
-		{name: "unparseable", version: "not-a-version", wantErr: true},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			err := grpcomni.CheckMaintenanceLifecycleTalosVersion(tt.version)
-
-			if tt.wantErr {
-				require.Error(t, err)
-				require.Equal(t, codes.FailedPrecondition, status.Code(err))
-
-				return
-			}
-
-			require.NoError(t, err)
-		})
-	}
-}
 
 func TestMaintenanceLifecycleGuards(t *testing.T) {
 	const (
@@ -237,9 +209,9 @@ func TestMaintenanceLifecycleInFlightGuard(t *testing.T) {
 	talosVersion.TypedSpec().Value.UpgradableTalosVersions = []string{"1.13.0"}
 	require.NoError(t, st.Create(actor.MarkContextAsInternalActor(t.Context()), talosVersion))
 
-	server := grpcomni.NewManagementServer(st, nil, zaptest.NewLogger(t), false, nil, nil)
+	manager := fakeLifecycleManager{runErr: lifecycle.ErrAlreadyInFlight}
 
-	server.ClaimMaintenanceLifecycleSlot(machineID)
+	server := grpcomni.NewManagementServer(st, nil, zaptest.NewLogger(t), false, nil, nil, grpcomni.WithLifecycleManager(manager))
 
 	ctx := managementPowerTestContext(t.Context(), identityID, role.Operator)
 
@@ -256,6 +228,16 @@ func TestMaintenanceLifecycleInFlightGuard(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.FailedPrecondition, status.Code(err), "unexpected status: %v", err)
 	require.Contains(t, status.Convert(err).Message(), "already in progress")
+}
+
+type fakeLifecycleManager struct {
+	runErr error
+}
+
+func (fakeLifecycleManager) SupportsLifecycleManagement(string) error { return nil }
+
+func (f fakeLifecycleManager) Run(context.Context, lifecycle.Operation, ...lifecycle.Option) error {
+	return f.runErr
 }
 
 func newMaintenanceLifecycleTestState(

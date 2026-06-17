@@ -514,6 +514,7 @@ export type ClusterMachineConfigStatusSpec = {
   schematic_id?: string
   redacted_current_machine_config?: string
   compressed_redacted_machine_config?: Uint8Array
+  pre_reboot_boot_id?: string
 }
 
 export type MachinePendingUpdatesSpecUpgrade = {
@@ -666,6 +667,7 @@ export type MachineLabelsSpec = {
 export type MachineStatusSnapshotSpec = {
   machine_status?: MachineMachine.MachineStatusEvent
   power_stage?: MachineStatusSnapshotSpecPowerStage
+  boot_id?: string
 }
 
 export type ControlPlaneStatusSpecCondition = {

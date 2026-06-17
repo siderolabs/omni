@@ -992,6 +992,93 @@ func TestMachineSetNodeValidations(t *testing.T) {
 	}))
 }
 
+// TestMachineSetNodeMaintenanceInstallCompatibility verifies the relaxed version gate that allows
+// not-installed >=1.13 maintenance machines to join clusters at a different (compatible) Talos minor,
+// while still rejecting not-installed <1.13 minor mismatches.
+func TestMachineSetNodeMaintenanceInstallCompatibility(t *testing.T) {
+	t.Parallel()
+
+	type tcase struct {
+		name             string
+		machineVersion   string
+		clusterVersion   string
+		installedSysDisk bool
+		wantErr          bool
+	}
+
+	for _, tc := range []tcase{
+		{
+			name:           "not-installed 1.13 maintenance + 1.13 cluster - allowed (auto-install)",
+			machineVersion: "1.13.0",
+			clusterVersion: "1.13.4",
+			wantErr:        false,
+		},
+		{
+			name:           "not-installed 1.13 maintenance + 1.14 cluster - allowed (auto-install)",
+			machineVersion: "1.13.0",
+			clusterVersion: "1.14.0",
+			wantErr:        false,
+		},
+		{
+			name:           "not-installed 1.12 maintenance + 1.13 cluster - rejected (no install path)",
+			machineVersion: "1.12.5",
+			clusterVersion: "1.13.4",
+			wantErr:        true,
+		},
+		{
+			name:             "installed 1.12 + 1.13 cluster - allowed (legacy upgrade path)",
+			machineVersion:   "1.12.5",
+			installedSysDisk: true,
+			clusterVersion:   "1.13.4",
+			wantErr:          false,
+		},
+		{
+			name:             "installed 1.14 + 1.13 cluster - rejected (downgrade)",
+			machineVersion:   "1.14.0",
+			installedSysDisk: true,
+			clusterVersion:   "1.13.4",
+			wantErr:          true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+			t.Cleanup(cancel)
+
+			innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+			st := state.WrapCore(validated.NewState(innerSt, validations.MachineSetNodeValidationOptions(state.WrapCore(innerSt))...))
+
+			cluster := omnires.NewCluster("c1")
+			cluster.TypedSpec().Value.TalosVersion = tc.clusterVersion
+
+			machineSet := omnires.NewMachineSet("c1-workers")
+			machineSet.Metadata().Labels().Set(omnires.LabelCluster, "c1")
+
+			machineStatus := omnires.NewMachineStatus("m1")
+			machineStatus.TypedSpec().Value.TalosVersion = tc.machineVersion
+			machineStatus.Metadata().Labels().Set(omnires.MachineStatusLabelTalosVersion, tc.machineVersion)
+
+			if tc.installedSysDisk {
+				machineStatus.Metadata().Labels().Set(omnires.MachineStatusLabelInstalled, "")
+			}
+
+			require.NoError(t, st.Create(ctx, cluster))
+			require.NoError(t, st.Create(ctx, machineSet))
+			require.NoError(t, st.Create(ctx, machineStatus))
+
+			machineSetNode := omnires.NewMachineSetNode("m1", machineSet)
+
+			err := st.Create(ctx, machineSetNode)
+			if tc.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestMachineSetLockedAnnotation(t *testing.T) {
 	t.Parallel()
 

@@ -263,6 +263,10 @@ func (ctrl *MachineStatusSnapshotController) reconcileSnapshot(ctx context.Conte
 			m.TypedSpec().Value.MachineStatus = snapshot.TypedSpec().Value.MachineStatus
 		}
 
+		if snapshot.TypedSpec().Value.BootId != "" { // only the collect task reads the boot ID; preserve the existing value for siderolink/power snapshots
+			m.TypedSpec().Value.BootId = snapshot.TypedSpec().Value.BootId
+		}
+
 		m.TypedSpec().Value.PowerStage = snapshot.TypedSpec().Value.PowerStage // always set the power stage
 
 		return nil

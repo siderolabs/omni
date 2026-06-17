@@ -239,6 +239,7 @@ export const TalosExtensionsType = "TalosExtensions.omni.sidero.dev";
 export const TalosUpgradeStatusType = "TalosUpgradeStatuses.omni.sidero.dev";
 export const TalosVersionType = "TalosVersions.omni.sidero.dev";
 export const UpgradeRolloutType = "UpgradeRollouts.omni.sidero.dev";
+export const LifecycleServiceMinTalosVersion = "1.13";
 export const AccessPolicyType = "AccessPolicies.omni.sidero.dev";
 export const AuthConfigID = "auth-config";
 export const AuthConfigType = "AuthConfigs.omni.sidero.dev";

@@ -71,6 +71,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/producers"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	newgroup "github.com/siderolabs/omni/internal/pkg/errgroup"
@@ -106,7 +107,8 @@ type Runtime struct {
 func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
 	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, st *State, metricsRegistry prometheus.Registerer,
-	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime, talosRuntime omnictrl.TalosClientGetter, logger *zap.Logger,
+	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime, talosRuntime omnictrl.TalosClientGetter,
+	lifecycleManager *lifecycle.Manager, logger *zap.Logger,
 ) (*Runtime, error) {
 	var opts []options.Option
 
@@ -223,7 +225,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewMachineConfigGenOptionsController(),
 		omnictrl.NewMachineStatusController(imageFactoryClient, exraKernelArgsInitializer),
 		machineconfig.NewExtractionController(machineconfig.NewReader(talosClientFactory)),
-		machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, cfg.Registries.GetTalos()),
+		machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, cfg.Registries.GetTalos(), lifecycleManager),
 		omnictrl.NewClusterMachineEncryptionKeyController(),
 		omnictrl.NewClusterMachineStatusController(),
 		omnictrl.NewClusterStatusController(cfg.Services.EmbeddedDiscoveryService.GetEnabled()),
