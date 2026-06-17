@@ -36,6 +36,7 @@ import { TCommonStatuses } from '@/constants'
 import { usePermissions } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { selectors } from '@/methods/labels'
+import InfraProviderSetupModal from '@/views/InfraProviders/components/InfraProviderSetupModal.vue'
 
 definePage({
   name: 'InfraProviders',
@@ -43,6 +44,7 @@ definePage({
 
 const router = useRouter()
 const { canManageUsers } = usePermissions()
+const infraProviderSetupModalOpen = ref(false)
 
 const getStatus = (item: Resource<InfraProviderCombinedStatusSpec>) => {
   if (!item.spec.health?.initialized) {
@@ -61,12 +63,6 @@ const getStatus = (item: Resource<InfraProviderCombinedStatusSpec>) => {
 }
 
 const filterLabels = ref<Label[]>([])
-
-const openInfraProviderSetup = () => {
-  router.push({
-    query: { modal: 'infraProviderSetup' },
-  })
-}
 
 const openInfraProviderDelete = (name: string) => {
   router.push({
@@ -117,7 +113,7 @@ const openRotateSecretKey = async (name: string) => {
           icon-position="left"
           variant="highlighted"
           :disabled="!canManageUsers"
-          @click="openInfraProviderSetup"
+          @click="infraProviderSetupModalOpen = true"
         >
           New Infra Provider Setup
         </TButton>
@@ -185,5 +181,7 @@ const openRotateSecretKey = async (name: string) => {
         </template>
       </TList>
     </div>
+
+    <InfraProviderSetupModal v-model:open="infraProviderSetupModalOpen" />
   </PageContainer>
 </template>
