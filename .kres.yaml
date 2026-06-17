@@ -584,13 +584,14 @@ spec:
   config: |-
     creation_rules:
       - age: age1xrpa9ujxxcj2u2gzfrzv8mxak4rts94a6y60ypurv6rs5cpr4e4sg95f0k
-        # order: Andrey, Noel, Artem, Utku, Edward
+        # order: Andrey, Noel, Artem, Utku, Edward, Oguz
         pgp: >-
           4F8E31286D7997C9625C6F7B322C6F63F594CE7C,
           CC51116A94490FA6FB3C18EB2401FCAE863A06CA,
           77D901DDCB59376D9E4131279BAC0E08F5067BB8,
           11177A43C6E3752E682AC690DBD13117B0A14E93,
-          484DF208A16D4E209D686E9D65558E016966977A
+          484DF208A16D4E209D686E9D65558E016966977A,
+          C76B256FCB26806F8AA10A82372F271E3AD80BFC
 ---
 kind: golang.Build
 name: omni
