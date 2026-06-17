@@ -36,6 +36,7 @@ import { TCommonStatuses } from '@/constants'
 import { usePermissions } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { selectors } from '@/methods/labels'
+import InfraProviderDeleteModal from '@/views/InfraProviders/components/InfraProviderDeleteModal.vue'
 import InfraProviderSetupModal from '@/views/InfraProviders/components/InfraProviderSetupModal.vue'
 
 definePage({
@@ -45,6 +46,8 @@ definePage({
 const router = useRouter()
 const { canManageUsers } = usePermissions()
 const infraProviderSetupModalOpen = ref(false)
+const infraProviderDeleteModalOpen = ref(false)
+const infraProviderDeleteProviderId = ref<string>()
 
 const getStatus = (item: Resource<InfraProviderCombinedStatusSpec>) => {
   if (!item.spec.health?.initialized) {
@@ -63,12 +66,6 @@ const getStatus = (item: Resource<InfraProviderCombinedStatusSpec>) => {
 }
 
 const filterLabels = ref<Label[]>([])
-
-const openInfraProviderDelete = (name: string) => {
-  router.push({
-    query: { modal: 'infraProviderDelete', provider: name },
-  })
-}
 
 const openRotateSecretKey = async (name: string) => {
   const saName = `${name}@${InfraProviderServiceAccountDomain}`
@@ -173,7 +170,12 @@ const openRotateSecretKey = async (name: string) => {
                 <IconButton
                   icon="delete"
                   danger
-                  @click="() => openInfraProviderDelete(item.metadata.id!)"
+                  @click="
+                    () => {
+                      infraProviderDeleteProviderId = item.metadata.id
+                      infraProviderDeleteModalOpen = true
+                    }
+                  "
                 />
               </div>
             </div>
@@ -183,5 +185,11 @@ const openRotateSecretKey = async (name: string) => {
     </div>
 
     <InfraProviderSetupModal v-model:open="infraProviderSetupModalOpen" />
+
+    <InfraProviderDeleteModal
+      v-if="infraProviderDeleteProviderId"
+      v-model:open="infraProviderDeleteModalOpen"
+      :provider-id="infraProviderDeleteProviderId"
+    />
   </PageContainer>
 </template>
