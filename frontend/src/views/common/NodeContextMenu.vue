@@ -7,7 +7,6 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { useClipboard } from '@vueuse/core'
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import type { Resource } from '@/api/grpc'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
@@ -17,9 +16,9 @@ import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import NodeDestroyCancelModal from '@/components/Modals/NodeDestroyCancelModal.vue'
 import NodeDestroyModal from '@/components/Modals/NodeDestroyModal.vue'
 import NodeRebootModal from '@/components/Modals/NodeRebootModal.vue'
+import NodeShutdownModal from '@/components/Modals/NodeShutdownModal.vue'
 import { useClusterPermissions } from '@/methods/auth'
 
-const router = useRouter()
 const { copy } = useClipboard()
 
 const { clusterName, clusterMachineStatus } = defineProps<{
@@ -28,6 +27,7 @@ const { clusterName, clusterMachineStatus } = defineProps<{
   clusterMachineStatus: Resource<ClusterMachineStatusSpec>
 }>()
 
+const nodeShutdownModalOpen = ref(false)
 const nodeRebootModalOpen = ref(false)
 const nodeDestroyModalOpen = ref(false)
 const nodeDestroyCancelModalOpen = ref(false)
@@ -35,17 +35,6 @@ const nodeDestroyCancelModalOpen = ref(false)
 const { canRebootMachines, canAddClusterMachines, canRemoveMachines } = useClusterPermissions(
   () => clusterName,
 )
-
-const shutdownNode = () => {
-  router.push({
-    query: {
-      modal: 'shutdown',
-      cluster: clusterName,
-      machine: clusterMachineStatus.metadata.id,
-      goback: 'true',
-    },
-  })
-}
 
 const copyMachineID = () => {
   copy(clusterMachineStatus.metadata.id!)
@@ -66,7 +55,7 @@ const copyMachineID = () => {
       Logs
     </TActionsBoxItem>
     <TActionsBoxItem icon="copy" @select="copyMachineID">Copy Machine ID</TActionsBoxItem>
-    <TActionsBoxItem v-if="canRebootMachines" icon="power" @select="shutdownNode">
+    <TActionsBoxItem v-if="canRebootMachines" icon="power" @select="nodeShutdownModalOpen = true">
       Shutdown
     </TActionsBoxItem>
     <TActionsBoxItem v-if="canRebootMachines" icon="reboot" @select="nodeRebootModalOpen = true">
@@ -93,6 +82,13 @@ const copyMachineID = () => {
   </TActionsBox>
 
   <!-- v-if on modals as there may be many menus mounting many modals -->
+  <NodeShutdownModal
+    v-if="nodeShutdownModalOpen"
+    v-model:open="nodeShutdownModalOpen"
+    :cluster-id="clusterName"
+    :machine-id="clusterMachineStatus.metadata.id!"
+  />
+
   <NodeRebootModal
     v-if="nodeRebootModalOpen"
     v-model:open="nodeRebootModalOpen"

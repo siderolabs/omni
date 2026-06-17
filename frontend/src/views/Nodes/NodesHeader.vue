@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { MachineSetNodeSpec, MachineSpec } from '@/api/omni/specs/omni.pb'
@@ -20,6 +19,7 @@ import TButton from '@/components/Button/TButton.vue'
 import NodeDestroyCancelModal from '@/components/Modals/NodeDestroyCancelModal.vue'
 import NodeDestroyModal from '@/components/Modals/NodeDestroyModal.vue'
 import NodeRebootModal from '@/components/Modals/NodeRebootModal.vue'
+import NodeShutdownModal from '@/components/Modals/NodeShutdownModal.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -31,22 +31,11 @@ const { clusterId, machineId } = defineProps<{
   machineId: string
 }>()
 
-const route = useRoute()
-const router = useRouter()
 const powerOnModalOpen = ref(false)
+const nodeShutdownModalOpen = ref(false)
 const nodeRebootModalOpen = ref(false)
 const nodeDestroyModalOpen = ref(false)
 const nodeDestroyCancelModalOpen = ref(false)
-
-const shutdownNode = () => {
-  router.push({
-    query: {
-      modal: 'shutdown',
-      machine: machineId,
-      ...route.query,
-    },
-  })
-}
 
 const { data: machineSetNode, loading } = useResourceWatch<MachineSetNodeSpec>(() => ({
   resource: {
@@ -104,7 +93,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
         icon-position="left"
         variant="secondary"
         :disabled="!canRebootMachines"
-        @click="shutdownNode"
+        @click="nodeShutdownModalOpen = true"
       >
         Shutdown
       </TButton>
@@ -143,6 +132,12 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
     </div>
 
     <NodePowerOn v-model:open="powerOnModalOpen" :cluster-id="clusterId" :machine-id="machineId" />
+
+    <NodeShutdownModal
+      v-model:open="nodeShutdownModalOpen"
+      :cluster-id="clusterId"
+      :machine-id="machineId"
+    />
 
     <NodeRebootModal
       v-model:open="nodeRebootModalOpen"
