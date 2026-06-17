@@ -214,6 +214,37 @@ func TestGetSchematicInfo(t *testing.T) {
 		assert.Equal(t, []string{"siderolabs/gvisor"}, info.Extensions)
 	})
 
+	t.Run("embedded-config meta extension is filtered out", func(t *testing.T) {
+		t.Parallel()
+
+		// machines carrying an embedded machine configuration report an "embedded-config" meta extension which must not leak into the extensions list
+		st := buildState(t, []extension{
+			{name: constants.SchematicIDExtensionName, version: factorySchematicID, extraInfo: factorySchematicYAML},
+			{name: "embedded-config"},
+			{name: "siderolabs/gvisor"},
+		})
+
+		info, err := talos.GetSchematicInfo(t.Context(), st, nil)
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{"siderolabs/gvisor"}, info.Extensions)
+	})
+
+	t.Run("embedded-config meta extension alone does not trigger ErrInvalidSchematic", func(t *testing.T) {
+		t.Parallel()
+
+		// no real extensions, no schematic meta extension, only the embedded-config meta extension: it must be ignored, so the synthesizing fallback path is taken without error
+		st := buildState(t, []extension{
+			{name: "embedded-config"},
+		})
+
+		info, err := talos.GetSchematicInfo(t.Context(), st, nil)
+		require.NoError(t, err)
+
+		assert.Empty(t, info.Extensions)
+		assert.Equal(t, schematicID(t, schematic.Schematic{}), info.FullID)
+	})
+
 	t.Run("extension name without official prefix gets prefixed", func(t *testing.T) {
 		t.Parallel()
 

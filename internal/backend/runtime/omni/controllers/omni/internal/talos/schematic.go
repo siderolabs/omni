@@ -51,11 +51,11 @@ func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackK
 
 	for status := range items.All() {
 		name := status.TypedSpec().Metadata.Name
-		if name == extensions.MetalAgentExtensionName {
-			return SchematicInfo{InAgentMode: true}, nil
-		}
 
-		if name == constants.SchematicIDExtensionName { // skip the meta extension
+		switch name {
+		case extensions.MetalAgentExtensionName:
+			return SchematicInfo{InAgentMode: true}, nil
+		case constants.SchematicIDExtensionName: // skip the meta extension
 			fullID = status.TypedSpec().Metadata.Version
 
 			if status.TypedSpec().Metadata.ExtraInfo != "" {
@@ -65,19 +65,15 @@ func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackK
 					return SchematicInfo{}, fmt.Errorf("failed to unmarshal schematic manifest: %w", err)
 				}
 			}
+		case "modules.dep": // ignore the virtual extension used for kernel modules dependencies
+		case "embedded-config": // ignore the meta extension reported by machines carrying an embedded machine configuration
+		default:
+			if !strings.HasPrefix(name, extensions.OfficialPrefix) {
+				name = extensions.OfficialPrefix + name
+			}
 
-			continue
+			exts = append(exts, name)
 		}
-
-		if name == "modules.dep" { // ignore the virtual extension used for kernel modules dependencies
-			continue
-		}
-
-		if !strings.HasPrefix(name, extensions.OfficialPrefix) {
-			name = extensions.OfficialPrefix + name
-		}
-
-		exts = append(exts, name)
 	}
 
 	exts = extensions.MapNames(exts)
