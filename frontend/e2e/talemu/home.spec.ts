@@ -159,7 +159,7 @@ test('Download omnictl', async ({ page }, testInfo) => {
 
   const [download] = await Promise.all([
     page.waitForEvent('download'),
-    page.getByRole('button', { name: 'Download', exact: true }).click(),
+    page.getByRole('link', { name: 'Download', exact: true }).click(),
   ])
 
   await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()

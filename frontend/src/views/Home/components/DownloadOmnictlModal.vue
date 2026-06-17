@@ -7,26 +7,13 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { computedAsync } from '@vueuse/core'
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
-import TButton from '@/components/Button/TButton.vue'
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
+import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
-import { downloadFile, getDocsLink, getPlatform } from '@/methods'
-import CloseButton from '@/views/Modals/CloseButton.vue'
+import { getDocsLink, getPlatform } from '@/methods'
 
-const router = useRouter()
-let closed = false
-
-const close = () => {
-  if (closed) {
-    return
-  }
-
-  closed = true
-
-  router.go(-1)
-}
+const open = defineModel<boolean>('open', { default: false })
 
 const options = [
   'omnictl-darwin-amd64',
@@ -47,23 +34,17 @@ const defaultValue = computed(() => {
 })
 
 const selectedOption = ref<string>()
-
-const download = () => {
-  if (!selectedOption.value) return
-
-  close()
-
-  downloadFile(`/api/omnictl/${encodeURI(selectedOption.value)}`)
-}
 </script>
 
 <template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-n14">Download Omnictl</h3>
-      <CloseButton @click="close" />
-    </div>
-
+  <Modal
+    v-model:open="open"
+    title="Download Omnictl"
+    action-label="Download"
+    :action-disabled="!selectedOption"
+    :action-href="`/api/omnictl/${encodeURI(selectedOption!)}`"
+    @confirm="open = false"
+  >
     <p class="mb-5 text-xs">
       <code>omnictl</code>
       can be used to access omni resources. Read the
@@ -94,26 +75,5 @@ const download = () => {
         searcheable
       />
     </div>
-
-    <div class="mt-8 flex justify-end gap-4">
-      <TButton class="h-9 w-32" @click="close">
-        <span>Cancel</span>
-      </TButton>
-      <TButton class="h-9 w-32" :disabled="!selectedOption" @click="download">
-        <span>Download</span>
-      </TButton>
-    </div>
-  </div>
+  </Modal>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.modal-window {
-  @apply h-auto w-1/3 p-8;
-}
-
-.heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
-}
-</style>

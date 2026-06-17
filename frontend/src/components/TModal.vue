@@ -14,7 +14,6 @@ const modals: Record<string, Component> = {
   machineRemove: defineAsyncComponent(() => import('@/views/Modals/MachineRemove.vue')),
   machineClassDestroy: defineAsyncComponent(() => import('@/views/Modals/MachineClassDestroy.vue')),
   machineSetDestroy: defineAsyncComponent(() => import('@/views/Modals/MachineSetDestroy.vue')),
-  downloadOmnictlBinaries: defineAsyncComponent(() => import('@/views/Modals/DownloadOmnictl.vue')),
   exportClusterTemplate: defineAsyncComponent(
     () => import('@/views/Modals/ExportClusterTemplate.vue'),
   ),

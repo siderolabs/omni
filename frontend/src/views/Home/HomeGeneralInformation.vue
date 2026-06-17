@@ -34,6 +34,7 @@ import {
 import { usePermissions } from '@/methods/auth'
 import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import DownloadOmnictlModal from '@/views/Home/components/DownloadOmnictlModal.vue'
 import DownloadTalosctl from '@/views/Home/components/DownloadTalosctl.vue'
 import HomeGeneralInformationCopyable from '@/views/Home/HomeGeneralInformationCopyable.vue'
 
@@ -41,6 +42,7 @@ const features = useFeatures()
 const { canReadJoinTokens, canReadAuditLog } = usePermissions()
 const auditLogAvailable = computed(() => !!features.data.value?.spec.audit_log_enabled)
 const downloadTalosctlOpen = ref(false)
+const downloadOmnictlModalOpen = ref(false)
 
 const { copy, copied } = useClipboard()
 
@@ -177,7 +179,7 @@ const {
         variant="primary"
         icon="talos-config"
         icon-position="left"
-        @click="$router.push({ query: { modal: 'downloadOmnictlBinaries' } })"
+        @click="downloadOmnictlModalOpen = true"
       >
         Download omnictl
       </TButton>
@@ -198,5 +200,6 @@ const {
     </section>
 
     <DownloadTalosctl v-model:open="downloadTalosctlOpen" />
+    <DownloadOmnictlModal v-model:open="downloadOmnictlModalOpen" />
   </Card>
 </template>

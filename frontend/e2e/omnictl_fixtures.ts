@@ -38,7 +38,7 @@ const test = base.extend<OmnictlFixtures>({
 
       const [downloadOmnictl] = await Promise.all([
         page.waitForEvent('download'),
-        page.getByRole('button', { name: 'Download', exact: true }).click(),
+        page.getByRole('link', { name: 'Download', exact: true }).click(),
       ])
 
       const omnictlPath = testInfo.outputPath(downloadOmnictl.suggestedFilename())

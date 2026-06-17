@@ -5,11 +5,10 @@
 import userEvent from '@testing-library/user-event'
 import { render, screen } from '@testing-library/vue'
 import { beforeEach, expect, test, vi } from 'vitest'
-import { createMemoryHistory, createRouter } from 'vue-router'
 
 import { getPlatform } from '@/methods'
 
-import DownloadOmnictl from './DownloadOmnictl.vue'
+import DownloadOmnictlModal from './DownloadOmnictlModal.vue'
 
 vi.mock('@/methods', () => ({
   getDocsLink: vi.fn(() => 'https://docs.example.com'),
@@ -18,29 +17,15 @@ vi.mock('@/methods', () => ({
 
 const mockGetPlatform = vi.mocked(getPlatform)
 
-let router: ReturnType<typeof createRouter>
-
 beforeEach(() => {
   vi.clearAllMocks()
-
-  router = createRouter({
-    history: createMemoryHistory(),
-    routes: [
-      {
-        path: '/',
-        component: { template: '<RouterView />' },
-      },
-    ],
-  })
 })
 
 test('sets default value based on platform', async () => {
   mockGetPlatform.mockResolvedValue(['linux', 'amd64'])
 
-  render(DownloadOmnictl, {
-    global: {
-      plugins: [router],
-    },
+  render(DownloadOmnictlModal, {
+    props: { open: true },
   })
 
   expect(await screen.findByLabelText('omnictl')).toHaveTextContent('omnictl-linux-amd64')
@@ -50,10 +35,8 @@ test('allows selecting other options', async () => {
   const user = userEvent.setup()
   mockGetPlatform.mockResolvedValue(['linux', 'amd64'])
 
-  render(DownloadOmnictl, {
-    global: {
-      plugins: [router],
-    },
+  render(DownloadOmnictlModal, {
+    props: { open: true },
   })
 
   const trigger = await screen.findByLabelText('omnictl')

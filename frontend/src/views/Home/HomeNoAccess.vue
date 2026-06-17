@@ -5,9 +5,14 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { ref } from 'vue'
+
 import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import { downloadOmniconfig } from '@/methods'
+import DownloadOmnictlModal from '@/views/Home/components/DownloadOmnictlModal.vue'
+
+const downloadOmnictlModalOpen = ref(false)
 </script>
 
 <template>
@@ -42,10 +47,12 @@ import { downloadOmniconfig } from '@/methods'
         variant="primary"
         icon="talos-config"
         icon-position="left"
-        @click="$router.push({ query: { modal: 'downloadOmnictlBinaries' } })"
+        @click="downloadOmnictlModalOpen = true"
       >
         Download omnictl
       </TButton>
     </div>
+
+    <DownloadOmnictlModal v-model:open="downloadOmnictlModalOpen" />
   </div>
 </template>
