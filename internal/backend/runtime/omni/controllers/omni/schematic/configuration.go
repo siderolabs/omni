@@ -110,7 +110,7 @@ func NewConfigurationController(imageFactoryClient Ensurer) *ConfigurationContro
 
 func (ctrl *ConfigurationController) saveMachineExtensionStatus(ctx context.Context, r controller.ReaderWriter, status *omni.MachineExtensionsStatus) error {
 	return safe.WriterModify(ctx, r, omni.NewMachineExtensionsStatus(status.Metadata().ID()), func(res *omni.MachineExtensionsStatus) error {
-		helpers.CopyAllLabels(status, res)
+		helpers.SyncAllLabels(status, res)
 
 		res.TypedSpec().Value = status.TypedSpec().Value
 

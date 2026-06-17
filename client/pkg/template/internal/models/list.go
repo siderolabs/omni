@@ -126,7 +126,7 @@ func (l List) Translate(fc FileContext) ([]resource.Resource, error) {
 		FileContext:               fc,
 		LockedMachines:            map[MachineID]struct{}{},
 		MachineDescriptors:        map[MachineID]Descriptors{},
-		MachineSetLevelKernelArgs: map[MachineID]KernelArgs{},
+		MachineSetLevelKernelArgs: map[MachineID]OptionalList{},
 	}
 
 	for _, model := range l {

@@ -24,8 +24,10 @@ const KindCluster = "Cluster"
 
 // Cluster is a top-level template object.
 type Cluster struct { //nolint:govet
-	Meta             `yaml:",inline"`
-	SystemExtensions `yaml:",inline"`
+	Meta `yaml:",inline"`
+
+	// SystemExtensions are the system extensions to install on the machines of the cluster.
+	SystemExtensions OptionalList `yaml:"systemExtensions,omitempty"`
 
 	// Name is the name of the cluster.
 	Name string `yaml:"name"`
@@ -46,7 +48,7 @@ type Cluster struct { //nolint:govet
 	Patches PatchList `yaml:"patches,omitempty"`
 
 	// KernelArgs are the additional kernel arguments.
-	KernelArgs KernelArgs `yaml:",inline"`
+	KernelArgs OptionalList `yaml:"kernelArgs,omitempty"`
 }
 
 // Features defines cluster-wide features.
@@ -174,7 +176,8 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 	resourceList = append(resourceList, manifests...)
 	resourceList = append(resourceList, healthchecks...)
 
-	schematicConfigurations := cluster.translate(
+	schematicConfigurations := translateExtensions(
+		cluster.SystemExtensions,
 		ctx,
 		cluster.Name,
 	)

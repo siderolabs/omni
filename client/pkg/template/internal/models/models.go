@@ -38,18 +38,19 @@ type TranslateContext struct {
 	FileContext
 	LockedMachines            map[MachineID]struct{}
 	MachineDescriptors        map[MachineID]Descriptors
-	MachineSetLevelKernelArgs map[MachineID]KernelArgs
-	ClusterLevelKernelArgs    KernelArgs
+	MachineSetLevelKernelArgs map[MachineID]OptionalList
 	ClusterName               string
+	ClusterLevelKernelArgs    OptionalList
 }
 
-// SystemExtensions is embedded in Cluster, MachineSet and Machine objects.
-type SystemExtensions struct {
-	SystemExtensions []string `yaml:"systemExtensions,omitempty"`
-}
-
-func (s *SystemExtensions) translate(ctx TranslateContext, nameSuffix string, labels ...pair.Pair[string, string]) []resource.Resource {
-	if len(s.SystemExtensions) == 0 {
+// translateExtensions translates a system extensions list, defined at a cluster, machine set, or
+// machine level, into an extensions configuration resource.
+//
+// An unset list leaves the machine's current extensions untouched, while an empty list clears them
+// instead of falling back to the set of extensions discovered when the machine first connected.
+func translateExtensions(extensions OptionalList, ctx TranslateContext, nameSuffix string, labels ...pair.Pair[string, string]) []resource.Resource {
+	values, defined := extensions.Get()
+	if !defined {
 		return nil
 	}
 
@@ -63,7 +64,7 @@ func (s *SystemExtensions) translate(ctx TranslateContext, nameSuffix string, la
 		}
 	})
 
-	configuration.TypedSpec().Value.Extensions = s.SystemExtensions
+	configuration.TypedSpec().Value.Extensions = values
 
 	return []resource.Resource{
 		configuration,

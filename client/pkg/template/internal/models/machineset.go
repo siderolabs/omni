@@ -19,8 +19,10 @@ import (
 
 // MachineSet is a base model for controlplane and workers.
 type MachineSet struct { //nolint:govet
-	Meta             `yaml:",inline"`
-	SystemExtensions `yaml:",inline"`
+	Meta `yaml:",inline"`
+
+	// SystemExtensions are the system extensions to install on the machines of the machine set.
+	SystemExtensions OptionalList `yaml:"systemExtensions,omitempty"`
 
 	// Name is the name of the machine set. When empty, the default name will be used.
 	Name string `yaml:"name,omitempty"`
@@ -48,7 +50,7 @@ type MachineSet struct { //nolint:govet
 	Patches PatchList `yaml:"patches,omitempty"`
 
 	// KernelArgs are the additional kernel arguments.
-	KernelArgs KernelArgs `yaml:",inline"`
+	KernelArgs OptionalList `yaml:"kernelArgs,omitempty"`
 }
 
 // BootstrapSpec defines the model for setting the bootstrap specification, i.e. restoring from a backup, in the machine set.
@@ -285,7 +287,8 @@ func (machineset *MachineSet) translate(ctx TranslateContext, nameSuffix, roleLa
 
 	resourceList = append(resourceList, patches...)
 
-	schematicConfigurations := machineset.SystemExtensions.translate(
+	schematicConfigurations := translateExtensions(
+		machineset.SystemExtensions,
 		ctx,
 		id,
 		pair.MakePair(omni.LabelMachineSet, id),

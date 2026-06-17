@@ -617,12 +617,16 @@ func transformKubernetesHealthChecksToModels(healthchecks []*omni.KubernetesHeal
 	return result
 }
 
-func transformExtensions(extensions []*omni.ExtensionsConfiguration) models.SystemExtensions {
+func transformExtensions(extensions []*omni.ExtensionsConfiguration) models.OptionalList {
 	if len(extensions) == 0 {
-		return models.SystemExtensions{}
+		// No extensions configuration at this level: leave the list unset.
+		return models.OptionalList{}
 	}
 
-	return models.SystemExtensions{SystemExtensions: extensions[0].TypedSpec().Value.Extensions}
+	// An extensions configuration exists at this level: export the list explicitly, even when it
+	// is empty, so that a re-applied template keeps clearing the extensions instead of falling back
+	// to the machine's initially discovered set.
+	return models.NewOptionalList(extensions[0].TypedSpec().Value.Extensions)
 }
 
 type layeredResources[T meta.ResourceWithRD] struct {

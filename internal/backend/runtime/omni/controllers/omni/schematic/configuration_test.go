@@ -115,6 +115,20 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 				},
 			)
 
+			// while allocated to a cluster, the machine extensions status carries the cluster-related labels
+			rtestutils.AssertResources(
+				ctx, t, st, []string{machineName},
+				func(machineExtensionsStatus *omni.MachineExtensionsStatus, assertion *assert.Assertions) {
+					cl, hasClusterLabel := machineExtensionsStatus.Metadata().Labels().Get(omni.LabelCluster)
+					assertion.True(hasClusterLabel)
+					assertion.Equal(clusterName, cl)
+
+					ms, hasMachineSetLabel := machineExtensionsStatus.Metadata().Labels().Get(omni.LabelMachineSet)
+					assertion.True(hasMachineSetLabel)
+					assertion.Equal(machineSet, ms)
+				},
+			)
+
 			// set empty extensions list for the cluster
 			extensionsConfiguration := omni.NewExtensionsConfiguration("test")
 			extensionsConfiguration.TypedSpec().Value.Extensions = nil
@@ -406,6 +420,15 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 				_, hasClusterLabel := schematicConfiguration.Metadata().Labels().Get(omni.LabelCluster)
 				assertion.False(hasClusterLabel)
+			})
+
+			// once deallocated, the machine extensions status must drop the cluster-related labels as well
+			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(machineExtensionsStatus *omni.MachineExtensionsStatus, assertion *assert.Assertions) {
+				_, hasClusterLabel := machineExtensionsStatus.Metadata().Labels().Get(omni.LabelCluster)
+				assertion.False(hasClusterLabel)
+
+				_, hasMachineSetLabel := machineExtensionsStatus.Metadata().Labels().Get(omni.LabelMachineSet)
+				assertion.False(hasMachineSetLabel)
 			})
 
 			// Change the extensions in the ExtensionsConfiguration: because the machine is no more allocated, it should be no-op, and the existing list of extensions should be preserved.

@@ -27,8 +27,10 @@ const KindMachine = "Machine"
 
 // Machine provides customization for a specific machine.
 type Machine struct { //nolint:govet
-	Meta             `yaml:",inline"`
-	SystemExtensions `yaml:",inline"`
+	Meta `yaml:",inline"`
+
+	// SystemExtensions are the system extensions to install on the machine.
+	SystemExtensions OptionalList `yaml:"systemExtensions,omitempty"`
 
 	// Machine name (ID).
 	Name MachineID `yaml:"name"`
@@ -46,7 +48,7 @@ type Machine struct { //nolint:govet
 	Patches PatchList `yaml:"patches,omitempty"`
 
 	// KernelArgs are the additional kernel arguments.
-	KernelArgs KernelArgs `yaml:",inline"`
+	KernelArgs OptionalList `yaml:"kernelArgs,omitempty"`
 }
 
 // MachineInstall provides machine install configuration.
@@ -144,7 +146,8 @@ func (machine *Machine) Translate(ctx TranslateContext) ([]resource.Resource, er
 
 	resourceList = append(resourceList, patches...)
 
-	schematicConfigurations := machine.translate(
+	schematicConfigurations := translateExtensions(
+		machine.SystemExtensions,
 		ctx,
 		string(machine.Name),
 		pair.MakePair(omni.LabelClusterMachine, string(machine.Name)),
