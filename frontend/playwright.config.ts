@@ -44,6 +44,10 @@ export default defineConfig({
       name: 'talemu-setup',
       testMatch: 'talemu/talemu.setup.ts',
       teardown: 'talemu-teardown',
+      // The setup uses the auth fixture, which assumes the EULA is already
+      // accepted. Without this dependency talemu-setup races the eula project
+      // and intermittently gets stuck on the EULA gate ("setting up auth" timeout).
+      dependencies: ['eula'],
     },
     {
       name: 'talemu-teardown',

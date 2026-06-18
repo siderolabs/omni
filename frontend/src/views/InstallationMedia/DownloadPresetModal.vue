@@ -212,6 +212,7 @@ async function close() {
                   <IconButton
                     is="a"
                     :href="link"
+                    :disabled="!schematicId"
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="download"
@@ -220,7 +221,12 @@ async function close() {
                 </Tooltip>
 
                 <Tooltip description="Copy link">
-                  <IconButton aria-label="copy link" icon="copy" @click="copy(link)" />
+                  <IconButton
+                    aria-label="copy link"
+                    icon="copy"
+                    :disabled="!schematicId"
+                    @click="copy(link)"
+                  />
                 </Tooltip>
               </div>
             </TableCell>
