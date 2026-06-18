@@ -65,7 +65,17 @@ export MAX_SERVICE_ACCOUNTS="${MAX_SERVICE_ACCOUNTS:-0}"
 export MAX_REGISTERED_MACHINES="${MAX_REGISTERED_MACHINES:-0}"
 export REGISTRY_MIRROR_FLAGS=()
 export REGISTRY_MIRROR_CONFIG=""
+export REGISTRY_MIRRORS_BODY=""
 export IMPORTED_CLUSTER_ARGS=()
+export IMAGE_FACTORY_PUBLIC_URL="https://factory.talos.dev"
+export IMAGE_FACTORY_ENTERPRISE_URL="https://factory.siderolabs.com"
+export WITH_IMAGE_FACTORY_ENTERPRISE="${WITH_IMAGE_FACTORY_ENTERPRISE:-false}"
+export OMNI_IMAGE_FACTORY_BASE_URL="${IMAGE_FACTORY_PUBLIC_URL}"
+export FACTORY_API_URL="${OMNI_IMAGE_FACTORY_BASE_URL}"
+export FACTORY_IMAGE_URL="${OMNI_IMAGE_FACTORY_BASE_URL}"
+export FACTORY_CURL_AUTH="${FACTORY_CURL_AUTH:-}"
+# Basic-auth args for curl calls against the factory schematic API. Empty for the public factory, so it expands to nothing when unset.
+FACTORY_CURL_ARGS=()
 
 RUN_DIR=$(pwd)
 export RUN_DIR
@@ -87,18 +97,18 @@ fi
 
 # Prepare schematic with kernel args
 function prepare_kernel_args_schematic() {
+  set_factory_curl_args
+
   KERNEL_ARGS_SCHEMATIC=$(envsubst <hack/test/templates/kernel-args-schematic.yaml)
 
-  curl -X POST --data-binary "${KERNEL_ARGS_SCHEMATIC}" https://factory.talos.dev/schematics | jq -r '.id'
+  curl "${FACTORY_CURL_ARGS[@]}" -X POST --data-binary "${KERNEL_ARGS_SCHEMATIC}" "${FACTORY_API_URL}/schematics" | jq -r '.id'
 }
 
 # Build registry mirror args.
 function configure_registry_mirrors() {
   if [[ "${CI:-false}" == "true" ]]; then
     REGISTRY_MIRROR_FLAGS=()
-    REGISTRY_MIRROR_CONFIG="
-registries:
-  mirrors:
+    REGISTRY_MIRRORS_BODY="  mirrors:
 "
 
     for registry in docker.io k8s.gcr.io quay.io gcr.io ghcr.io registry.k8s.io factory.talos.dev; do
@@ -106,8 +116,8 @@ registries:
       addr=$(python3 -c "import socket; print(socket.gethostbyname('${service}'))")
 
       REGISTRY_MIRROR_FLAGS+=("--registry-mirror=${registry}=http://${addr}:5000")
-      REGISTRY_MIRROR_CONFIG+="    - ${registry}=http://${addr}:5000"
-      REGISTRY_MIRROR_CONFIG+=$'\n'
+      REGISTRY_MIRRORS_BODY+="    - ${registry}=http://${addr}:5000"
+      REGISTRY_MIRRORS_BODY+=$'\n'
     done
   fi
 }
@@ -189,6 +199,23 @@ function minio_cleanup() {
 }
 
 function prepare_omni_config() {
+  # Credentials are passed to Omni via OMNI_IMAGE_FACTORY_USERNAME/PASSWORD so they stay out of the config.yaml that is uploaded as a CI artifact.
+  local registries_body=""
+
+  if [[ -n "${OMNI_IMAGE_FACTORY_BASE_URL:-}" ]]; then
+    registries_body+="  imageFactoryBaseURL: ${OMNI_IMAGE_FACTORY_BASE_URL}"$'\n'
+  fi
+
+  registries_body+="${REGISTRY_MIRRORS_BODY}"
+
+  if [[ -n "${registries_body}" ]]; then
+    REGISTRY_MIRROR_CONFIG="registries:"$'\n'"${registries_body}"
+  else
+    REGISTRY_MIRROR_CONFIG=""
+  fi
+
+  export REGISTRY_MIRROR_CONFIG
+
   envsubst <hack/test/templates/omni-config.yaml >"${OMNI_CONFIG}"
 }
 
@@ -204,27 +231,33 @@ function prepare_partial_config() {
   python3 -m http.server "$PARTIAL_CONFIG_PORT" --bind "0.0.0.0" --directory "$partial_config_dir" >/dev/null 2>&1 &
   PARTIAL_CONFIG_SERVER_PID=$! # capture the PID to kill it in cleanup
 
+  set_factory_curl_args
+
   local schematic
   schematic=$(envsubst <hack/test/templates/partial-config-schematic.yaml)
 
-  curl -X POST --data-binary "${schematic}" https://factory.talos.dev/schematics | jq -r '.id'
+  curl "${FACTORY_CURL_ARGS[@]}" -X POST --data-binary "${schematic}" "${FACTORY_API_URL}/schematics" | jq -r '.id'
 }
 
 function prepare_talos_image() {
+  set_factory_curl_args
+
   local schematic
   schematic=$(cat hack/test/templates/talos-image-schematic.yaml)
 
-  curl -X POST --data-binary "${schematic}" https://factory.talos.dev/schematics | jq -r '.id'
+  curl "${FACTORY_CURL_ARGS[@]}" -X POST --data-binary "${schematic}" "${FACTORY_API_URL}/schematics" | jq -r '.id'
 }
 
 # Prepare a schematic whose image carries the machine config baked in via embeddedMachineConfiguration.
 # Machines booted from it arrive at Omni already carrying user documents on top of the SideroLink connection docs, so
 # there is nothing to serve over HTTP.
 function prepare_embedded_config() {
+  set_factory_curl_args
+
   local schematic
   schematic=$(envsubst <hack/test/templates/embedded-config-schematic.yaml)
 
-  curl -X POST --data-binary "${schematic}" https://factory.talos.dev/schematics | jq -r '.id'
+  curl "${FACTORY_CURL_ARGS[@]}" -X POST --data-binary "${schematic}" "${FACTORY_API_URL}/schematics" | jq -r '.id'
 }
 
 function generate_non_masquerade_cidrs() {
@@ -314,10 +347,10 @@ function create_machines() {
     cluster_create_args+=(
       "--with-tpm2"
       "--disk-encryption-key-types=tpm"
-      "--iso-path=https://factory.talos.dev/image/${schematic_id}/v${talos_version}/metal-amd64-secureboot.iso"
+      "--iso-path=${FACTORY_IMAGE_URL}/image/${schematic_id}/v${talos_version}/metal-amd64-secureboot.iso"
     )
   else
-    cluster_create_args+=("--iso-path=https://factory.talos.dev/image/${schematic_id}/v${talos_version}/metal-amd64.iso")
+    cluster_create_args+=("--iso-path=${FACTORY_IMAGE_URL}/image/${schematic_id}/v${talos_version}/metal-amd64.iso")
   fi
 
   "${ARTIFACTS}/talosctl" cluster create dev \
@@ -380,6 +413,33 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
 
   IMPORTED_CLUSTER_ARGS+=("--talos.config-path=${TEST_OUTPUTS_DIR}/${name}/talosconfig")
   IMPORTED_CLUSTER_ARGS+=("--talos.cluster-state-path=${HOME}/.talos/clusters/${name}/state.yaml")
+}
+
+function set_factory_curl_args() {
+  FACTORY_CURL_ARGS=()
+  if [[ -n "${FACTORY_CURL_AUTH:-}" ]]; then
+    FACTORY_CURL_ARGS=(-u "${FACTORY_CURL_AUTH}")
+  fi
+}
+
+function configure_image_factory() {
+  if [[ "${WITH_IMAGE_FACTORY_ENTERPRISE}" != "true" ]]; then
+    return
+  fi
+
+  # Configure env vars for Image Factory Enterprise
+  : "${IMAGE_FACTORY_ENTERPRISE_USERNAME:?IMAGE_FACTORY_ENTERPRISE_USERNAME must be set when WITH_IMAGE_FACTORY_ENTERPRISE=true}"
+  : "${IMAGE_FACTORY_ENTERPRISE_PASSWORD:?IMAGE_FACTORY_ENTERPRISE_PASSWORD must be set when WITH_IMAGE_FACTORY_ENTERPRISE=true}"
+  export OMNI_IMAGE_FACTORY_BASE_URL="${IMAGE_FACTORY_ENTERPRISE_URL}"
+  export OMNI_IMAGE_FACTORY_USERNAME="${IMAGE_FACTORY_ENTERPRISE_USERNAME}"
+  export OMNI_IMAGE_FACTORY_PASSWORD="${IMAGE_FACTORY_ENTERPRISE_PASSWORD}"
+
+  export FACTORY_API_URL="${OMNI_IMAGE_FACTORY_BASE_URL}"
+  export FACTORY_CURL_AUTH="${OMNI_IMAGE_FACTORY_USERNAME}:${OMNI_IMAGE_FACTORY_PASSWORD}"
+
+  local proto="${OMNI_IMAGE_FACTORY_BASE_URL%%://*}"
+  local host="${OMNI_IMAGE_FACTORY_BASE_URL#*://}"
+  export FACTORY_IMAGE_URL="${proto}://${OMNI_IMAGE_FACTORY_USERNAME}:${OMNI_IMAGE_FACTORY_PASSWORD}@${host}"
 }
 
 # No cleanup here, as it runs in the CI as a container in a pod.

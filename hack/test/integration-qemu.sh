@@ -10,6 +10,7 @@ set -eoux pipefail
 # Load common functions and variables.
 source ./hack/test/common.sh
 
+
 QEMU_TALOS_VERSION="${TALOS_VERSION}"
 WITH_QEMU_TALOS_VERSION_OVERRIDE="${WITH_QEMU_TALOS_VERSION_OVERRIDE:-false}"
 if [[ "${WITH_QEMU_TALOS_VERSION_OVERRIDE}" == "true" ]]; then
@@ -52,6 +53,9 @@ trap cleanup EXIT SIGINT
 
 # Download required artifacts.
 prepare_artifacts
+
+# Select the public or enterprise image factory based on WITH_IMAGE_FACTORY_ENTERPRISE.
+configure_image_factory
 
 # Build registry mirror args.
 configure_registry_mirrors

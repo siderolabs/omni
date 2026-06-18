@@ -572,6 +572,11 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 		return err
 	}
 
+	username, password, err := ImageFactoryCredentials(ctx, client.Omni().State(), features)
+	if err != nil {
+		return err
+	}
+
 	legacy := !quirks.New(params.TalosVersion).SupportsOverlay()
 
 	generatedFilename := image.generateFilename(legacy, params.SecureBoot, true)
@@ -586,7 +591,13 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 			return err
 		}
 
-		fmt.Println(pxeURL.JoinPath("pxe", schematicResp.SchematicId, params.TalosVersion, pxeFilename).String())
+		pxeURL = pxeURL.JoinPath("pxe", schematicResp.SchematicId, params.TalosVersion, pxeFilename)
+
+		if username != "" && password != "" {
+			pxeURL.User = url.UserPassword(username, password)
+		}
+
+		fmt.Println(pxeURL.String())
 
 		return nil
 	}
@@ -594,6 +605,10 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 	req, err := createDirectRequest(ctx, features.TypedSpec().Value.ImageFactoryBaseUrl, schematicResp.SchematicId, params.TalosVersion, generatedFilename, params.SecureBoot)
 	if err != nil {
 		return err
+	}
+
+	if username != "" && password != "" {
+		req.SetBasicAuth(username, password)
 	}
 
 	dest := params.Output
@@ -608,6 +623,20 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 	}
 
 	return downloadToFile(req, client.KeyProvider(), dest)
+}
+
+// ImageFactoryCredentials returns the credentials to authenticate installation media downloads against the configured image factory.
+func ImageFactoryCredentials(ctx context.Context, st state.State, features *omni.FeaturesConfig) (username, password string, err error) {
+	if !features.TypedSpec().Value.GetIsEnterpriseImageFactory() {
+		return "", "", nil
+	}
+
+	auth, err := safe.ReaderGetByID[*virtual.ImageFactoryAuth](ctx, st, virtual.ImageFactoryAuthID)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get image factory auth: %w", err)
+	}
+
+	return auth.TypedSpec().Value.GetUsername(), auth.TypedSpec().Value.GetPassword(), nil
 }
 
 func filterMedia[T any](ctx context.Context, client *client.Client, check func(value *omni.InstallationMedia) (T, bool)) ([]T, error) {

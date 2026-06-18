@@ -54,7 +54,7 @@ SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
   nice -n 10 "${ARTIFACTS}"/omni-linux-amd64 --config-path "${OMNI_CONFIG}" \
   --etcd-embedded-unsafe-fsync=true \
   --etcd-backup-s3 \
-  "${REGISTRY_MIRROR_FLAGS[@]}" &
+  "${REGISTRY_MIRROR_FLAGS[@]}" >"${TEST_OUTPUTS_DIR}/omni-e2e.log" 2>&1 &
 
 # Run the e2e test.
 # the e2e tests are in a submodule and need to be executed in a container with playwright dependencies

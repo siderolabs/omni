@@ -476,7 +476,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|ClusterTemplate)$"
       - name: e2e-backups
         needsOverride:
@@ -490,7 +489,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|EtcdBackupAndRestore)$"
       - name: e2e-workload-proxy
         needsOverride:
@@ -504,7 +502,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|WorkloadProxy)$"
       - name: e2e-omni-upgrade
         needsOverride:
@@ -518,7 +515,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          TEST_CLASS: integration-qemu
           INTEGRATION_PREPARE_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|OmniUpgradePrepare)$"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(OmniUpgradeVerify)$"
           WITH_QEMU_TALOS_VERSION_OVERRIDE: true
@@ -534,7 +530,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/ClusterImport"
           CREATE_QEMU_MACHINES: false
           CREATE_TALOS_CLUSTER: true
@@ -550,7 +545,6 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          TEST_CLASS: integration-qemu
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosUpgradesMinor)$"
           WITH_QEMU_TALOS_VERSION_OVERRIDE: true
       - name: e2e-rotate-ca
@@ -565,9 +559,21 @@ spec:
         artifacts:
           skipArtifactDownload: true
         environmentOverride:
-          INTEGRATION_RUN_E2E_TEST: "false"
           INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|RotateCA)$"
-          RUN_TALEMU_TESTS: false
+      - name: e2e-enterprise
+        needsOverride:
+          [integration-talemu, integration-qemu, e2e-qemu, e2e-talemu, e2e-helm]
+        crons:
+          - "30 1 * * *"
+        runnerGroup: large
+        triggerLabels:
+          - integration/e2e
+          - integration/e2e-enterprise
+        artifacts:
+          skipArtifactDownload: true
+        environmentOverride:
+          WITH_IMAGE_FACTORY_ENTERPRISE: "true"
+          INTEGRATION_TEST_ARGS: "--test.run TestIntegration/Suites/(CleanState|TalosImageGeneration|TalosUpgrades|KernelArgsUpdate)$"
 ---
 kind: common.Build
 spec:
