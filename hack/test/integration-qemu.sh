@@ -34,6 +34,14 @@ if [[ "${ENABLE_SECUREBOOT}" == "true" ]]; then
   SECURE_BOOT_MACHINES=2 # 2 machines: siderolink via kernel args, UKI, secure boot
 fi
 
+# Talos < 1.13 does not support embedded config (added in 1.13), so skip those machines.
+# TODO: remove this block once Talos 1.14 is released.
+qemu_talos_minor=$(echo "${QEMU_TALOS_VERSION#v}" | cut -d. -f1,2)
+if [[ "$(printf '%s\n%s\n' "${qemu_talos_minor}" "1.13" | sort -V | head -n1)" != "1.13" ]]; then
+  EMBEDDED_CONFIG_MACHINES=0
+  TOTAL_MACHINES=$((TOTAL_MACHINES - 2))
+fi
+
 if [[ $((PARTIAL_CONFIG_MACHINES + EMBEDDED_CONFIG_MACHINES + NON_UKI_MACHINES + KERNEL_ARGS_MACHINES + SECURE_BOOT_MACHINES)) -ne $TOTAL_MACHINES ]]; then
   echo "Error: unexpected total machine count, exiting" >&2
   exit 1

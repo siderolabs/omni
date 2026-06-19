@@ -37,7 +37,7 @@ else
   LATEST_STABLE_OMNI=$(head -n 1 <<<"${STABLE_OMNI_TAGS}")
 fi
 
-export TALOS_VERSION=1.13.3
+export TALOS_VERSION=1.13.4
 export KUBERNETES_VERSION=1.36.1
 # To use in:
 # - Omni upgrade tests, to prevent Talos changes interfering with Omni changes

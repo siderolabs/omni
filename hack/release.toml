@@ -6,220 +6,121 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v1.7.0"
+previous = "v1.8.0"
 
-[notes.aaa-upgrade-nodes]
-title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
+[notes.maintenance-config-patches]
+title = "Machine Config Patches in Maintenance Mode"
 description = """\
-As Omni is now using `--join-tokens-mode=legacyAllowed` by default it won't start if there are any nodes running Talos below 1.6 connected to the instance.
-If you want to keep using Omni with the outdated Talos you will need to set the flag to `legacy`. But of course we strongly recommend you to update Talos ASAP.
-
-`omnictl cluster template` has breaking changes: it now restricts including files outside of the current directory.
-If using files in the parent dirs, old behavior can be enabled by using `--allowed-dir`.
+Omni can now apply machine-level config patches while a machine is still in maintenance mode, not just after it joins a cluster. The patches go on top \
+of the configuration the machine already runs, next to the SideroLink documents Omni manages, and Omni will not apply a document that installs Talos \
+and pulls the machine out of maintenance. Omni also keeps whatever configuration a machine connects with as a low-priority, user-owned patch. So a \
+machine that arrives with its own config (say a TrustedRootsConfig document) keeps it, and your own patches still win.
 """
 
-[notes.powered-off-machines]
-title = "Powered Off Machine State"
+[notes.maintenance-install-upgrade]
+title = "Install and Upgrade Talos in Maintenance Mode"
 description = """\
-Machines that are shut down now appear as "Powered Off" in the UI instead of being stuck in "Shutting Down" with a greyed-out unreachable state. \
-Static infra providers honor the shutdown until the machine goes through a deallocation cycle, instead of automatically powering it back on. \
-The CLI gains `omnictl machine shutdown` and `omnictl machine power-on` commands.
+A new streaming management API installs or upgrades Talos on machines booted in maintenance mode. It comes with `omnictl` install and upgrade \
+subcommands and frontend modals that stream installer progress live. This feature uses Talos's LifecycleService API, which became available in v1.13.0. \
+So it works with any Talos version starting from v1.13.0.
 """
 
-[notes.omnictl-media]
-title = "`omnictl media` Command Group"
+[notes.talos-upgrade-cap]
+title = "Talos Upgrade Targets Capped at the Latest Supported Release"
 description = """\
-A new `omnictl media preset {create,list,delete}` command group manages InstallationMediaConfig presets from the CLI, \
-and `omnictl media download <preset>` downloads from them. \
-Preset validation runs against the server's CloudPlatformConfig, SBCConfig, and TalosExtensions resources at create time. \
-The legacy `omnictl download` is preserved but deprecated.
+Each Omni release now declares the latest Talos minor version it can support end to end. Cluster create and update, the maintenance upgrade API, the \
+upgrade status computation, and every version picker in the UI all read this same cap, so you can no longer pick a Talos version newer than the \
+running Omni supports.
 """
 
-[notes.installation-media-placeholders]
-title = "Installation Media Placeholders"
+[notes.schematic-preservation]
+title = "Schematic Contents Preserved on Update"
 description = """\
-InstallationMediaConfig now accepts empty strings for `talosVersion` and `joinToken`, which resolve to the current stable version and default token at download time. \
-The create wizard exposes "Automatic" options for these fields, and the download modal shows version/token/arch pickers for all presets.
+When Omni changes a machine's schematic, it now touches only the fields it manages (extensions and kernel args) and leaves the rest alone, instead of \
+rebuilding the schematic from scratch. It reads the full schematic from the machine or the Image Factory and stores it as is.
 """
 
-[notes.talosctl-from-factory]
-title = "Download `talosctl` From Factory"
+[notes.platform-tags-labels]
+title = "Platform Tags Exposed as Machine Labels"
 description = """\
-`talosctl` binaries are now downloaded directly from the Talos Image Factory instead of GitHub.
+Talos PlatformMetadata tags (for example EC2 instance tags) now appear as editable, removable machine labels in Omni. Omni fills them in once, when \
+the machine first joins, and your own custom labels win on any key conflict.
 """
 
-[notes.plain-download-links]
-title = "Plain Download Links for Images"
+[notes.node-audit-skip]
+title = "Opt-In Skip of Kubernetes Node Audit"
 description = """\
-The frontend now uses plain browser download links for factory image downloads instead of intercepting them.
+The Kubernetes node audit deletes nodes that no ClusterMachine backs. You can now skip it for individual nodes, which helps with virtual nodes such as \
+VirtualKubelet. A node is skipped only when it has the `omni.sidero.dev/node-audit-skip` annotation and the cluster owner has turned on the matching \
+cluster feature, so a workload cannot annotate its own way out of the audit.
 """
 
-[notes.kube-service-multiport]
-title = "Multi-Port Workload Proxy"
+[notes.image-factory-enterprise]
+title = "Support for Image Factory Enterprise"
 description = """\
-The `omni-kube-service-exposer.sidero.dev/port` annotation now accepts a comma-separated list of `host-port` or `host-port:service-port` entries, \
-each producing its own ExposedService URL. Label, icon, and prefix annotations gain per-host-port suffixed variants (e.g. `label-30080`). \
-Existing single-port exposed services keep their URLs across the upgrade.
+Two new config options, `registries.imageFactoryUsername` and `registries.imageFactoryPassword`, let Omni authenticate to the Image Factory Enterprise with \
+HTTP basic auth.
 """
 
-[notes.template-relative-paths]
-title = "Template Includes Resolved Relative to Template File"
+[notes.etcd-write-rate-limit]
+title = "Per-Class etcd Write Rate Limiting"
 description = """\
-`omnictl cluster template` commands now resolve patch and Kubernetes manifest includes relative to the template YAML file, \
-rather than the current working directory of `omnictl`.
+You can now throttle etcd writes by payload size, with separate budgets for end users, infra providers, and internal callers. It is off by default and \
+turns on via `storage.rateLimits.etcd.*`. Four new Prometheus series report throttle wait time, admitted writes, rejected writes, and rejected bytes, \
+labeled by class. The failure counters also carry a reason of timeout or oversize.
 """
 
-[notes.template-allowed-dirs]
-title = "Cluster Template Include Directory Restrictions"
+[notes.log-ingestion-rate-limit]
+title = "Per-Machine Log Ingestion Rate Limit"
 description = """\
-By default, cluster templates can only include files from the same directory as the template file. \
-This prevents malicious templates from including arbitrary files like `/etc/passwd`. \
-The previous behavior can be restored with `--allowed-dir`.
+Log ingestion now uses a per-machine token bucket, so one noisy machine can no longer overwhelm the log store. It is off by default to keep backwards compatibility.
 """
 
-[notes.template-inline-raw-bytes]
-title = "Raw Bytes Support in Template Inline Fields"
+[notes.helm-wireguard-lb-ip]
+title = "Static loadBalancerIP for the WireGuard Service in Helm"
 description = """\
-Inline fields for manifests and config patches now accept three forms: a single inline map (for backward compatibility), a list of inline maps, or raw bytes (which may contain multiple YAML documents). \
-`omnictl cluster template export` now exports patches and manifests as raw bytes so multi-document values round-trip correctly.
+The Helm chart has a new `service.wireguard.loadBalancerIP` value for setting a static load balancer IP on the WireGuard Kubernetes Service. It is \
+rendered only when the WireGuard service type is `LoadBalancer`.
 """
 
-[notes.imported-cluster-secrets-cleanup]
-title = "Imported Cluster Secrets Cleanup"
+[notes.kubernetes-manifests-ui]
+title = "Kubernetes Manifests Status in the UI"
 description = """\
-A new controller tears down `ImportedClusterSecrets` once their content has been copied into `ClusterSecrets` and marked `Imported=true`, \
-so imported bootstrap material does not linger in the state after a successful import.
+The frontend now shows the status of a cluster's synced Kubernetes manifests.
 """
 
-[notes.image-factory-provider-proxy]
-title = "Image Factory Proxy for Infra Providers"
+[notes.omnictl-cluster-status]
+title = "Node Names and Locked Status in `omnictl cluster status`"
 description = """\
-Infra provider Image Factory requests can now be proxied through Omni via a new schematic creation API that accepts raw YAML. \
-This is useful when Omni holds authentication for the Image Factory or when multiple Image Factory endpoints need to be supported.
+The `omnictl cluster status` tree now prints each machine's Kubernetes node name in parentheses after its UUID, so you can match a machine to the \
+upgrade status lines that reference node names. A "Locked" indicator shows up whenever a machine is locked.
 """
 
-[notes.image-factory-legacy-removed]
-title = "Legacy Installation Media Proxying Removed"
+[notes.media-wizard-vuln-items]
+title = "SBOM, VEX, and Vulnerability Scan on the Installation Media Wizard"
 description = """\
-Omni no longer proxies legacy installation media download requests to the Talos Image Factory. \
-Such requests are now rejected with a message asking users to upgrade `omnictl`, which downloads installation media directly from the factory.
+The installation media wizard's confirmation page now shows SBOM and VEX links plus the vulnerability scan and modal, the same as the Image Factory. \
+This shows up only when you use the Image Factory Enterprise.
 """
 
-[notes.infra-provider-factory-endpoint]
-title = "Infra Provider Factory Endpoint"
+[notes.frontend-kubespan-status]
+title = "KubeSpan Status View"
 description = """\
-Infra providers now use the Image Factory endpoint configured in Omni's features state (sourced from args/config) instead of a hardcoded default. \
-The configured factory URL is exposed on the provider.
+A new graphical view shows KubeSpan peer status for a cluster machine.
 """
 
-[notes.machine-request-errors]
-title = "Provision Step Errors on Machine Requests"
+[notes.supply-chain]
+title = "Signed Images and SBOM Release Artifacts"
 description = """\
-A new `Error` field on `ClusterMachineRequestStatus` surfaces provision step failures so users can see why a request is stuck without scraping logs. \
-Errors are now persisted on both failure and requeue paths.
+Omni releases now ship an SBOM built from the Go modules as a release artifact, and Sidero Labs signs the published container images during release.
 """
 
-[notes.talos-end-of-support]
-title = "Talos Version End-of-Support Notifications"
+[notes.frontend-qol]
+title = "Frontend Quality-of-Life Improvements"
 description = """\
-Omni now tracks machines running Talos versions approaching or past end of support relative to `MinTalosVersion`, \
-emits two new notifications (approaching end of support, end of support reached), and exposes Prometheus metrics for both.
-"""
-
-[notes.audit-log-filters]
-title = "Additional Audit Log Filters"
-description = """\
-Audit logs gain a generic search box and sortable columns in the UI, plus CLI filters for `event_type`, `resource_type`, `resource_id`, `cluster_id`, and `actor`.
-"""
-
-[notes.service-account-key-tracking]
-title = "Per-Key Creation and Last-Active Tracking for Service Accounts"
-description = """\
-Service account key listings now include per-key creation timestamps and last-active times. \
-`omnictl serviceaccount list` shows `KEY CREATED` and `KEY LAST ACTIVE` columns alongside the existing SA-level `LAST ACTIVE`. \
-A new `PublicKeyLastActive` resource backs this tracking, and the activity interceptor records last-used timestamps per signing key fingerprint.
-"""
-
-[notes.serviceaccount-create-comment]
-title = "Commented `omnictl serviceaccount create` Output"
-description = """\
-The output of `omnictl serviceaccount create` is now commented out by default, making it friendlier for piping into `.env` files and shell automation.
-"""
-
-[notes.join-token-reader-access]
-title = "Reader Access to Join Tokens"
-description = """\
-Users with the reader role can now read join tokens.
-Reader had access to it before through Talos logs, so making the access more consistent.
-More fine grained access will come with RBAC v2 later on.
-"""
-
-[notes.etcd-write-metrics]
-title = "Per-Actor etcd Write Metrics"
-description = """\
-New `omni_etcd_operations_total` and `omni_etcd_resource_bytes_total` Prometheus counters track etcd writes, \
-split by operation (create/update/teardown/destroy), actor (internal/user/service account/infra provider), actor ID, and resource type. \
-Byte sizes are captured from the actual on-disk payload via a new `WithObserver` hook in `state-etcd`.
-"""
-
-[notes.log-config]
-title = "Configurable Log Level and Format"
-description = """\
-Omni's log level and log format are now configurable via flags and config.
-"""
-
-[notes.helm-values-from-schema]
-title = "Helm Chart Values Generated From Config Schema"
-description = """\
-A new `helmvaluesgen` tool, run on `make generate`, updates the `config:` section of the Helm chart's `values.yaml` from Omni's config schema, \
-applying chart-specific overrides for defaults, omissions, and descriptions.
-"""
-
-[notes.frontend-qol-machines]
-title = "Frontend Quality-of-Life Improvements for Machines"
-description = """\
-The cluster machine page gains a copy-UUID button, the machines list page can toggle between hostnames and UUIDs (with the preference saved), \
-and machine and cluster machine pages gain kernel args tabs for editing kernel arguments inline instead of through a modal.
-"""
-
-[notes.frontend-disks-devices]
-title = "Disks and Devices on Machine Pages"
-description = """\
-The frontend now shows disks and devices on the machines and individual machine pages.
-"""
-
-[notes.frontend-machine-switching]
-title = "Quick Switching Between Cluster Machines"
-description = """\
-The frontend allows quickly switching between machines within a cluster from the machine detail view.
-"""
-
-[notes.frontend-log-switching]
-title = "Switching Logs Inside the Logs Tab"
-description = """\
-The logs tab now allows switching between log sources directly inside the tab.
-"""
-
-[notes.frontend-support-modal]
-title = "Support Modal"
-description = """\
-A new support modal in the frontend exposes links to GitHub issues, support channels, documentation, community resources, and office hours.
-"""
-
-[notes.frontend-notifications]
-title = "In-UI Notifications"
-description = """\
-Omni notifications are now shown in the UI as dismissible banners.
-"""
-
-[notes.frontend-resave-support-bundle]
-title = "Re-Saving the Omni Support Bundle"
-description = """\
-The frontend now allows re-saving a previously generated Omni support bundle without regenerating it.
-"""
-
-[notes.frontend-installation-media-version]
-title = "Talos Version Text on Installation Media Wizard"
-description = """\
-The installation media wizard's Talos version text has been updated for clarity.
+A round of UI improvements across Omni. The home screen has a reworked "Welcome to Omni" card. An unhealthy infrastructure provider shows its error on \
+hover, the machine details panel shows the SMBIOS serial number, and kernel args editing moved into a modal. Config diffs have a sort-order toggle, \
+version pickers sort newest first and scroll to the current selection, and Talos and Kubernetes update calls now report their errors. The disks view \
+got several cleanups, pods sort by status, power-state icons have tooltips, Omni shows a loading indicator when it is slow to start, and the rewritten \
+log viewer scrolls to the bottom reliably.
 """
