@@ -119,11 +119,6 @@
       "count": 5
     }
   },
-  "src/views/Config/PatchEdit.vue": {
-    "vue/no-ref-object-reactivity-loss": {
-      "count": 1
-    }
-  },
   "src/views/Home/HomeGeneralInformationCopyable.vue": {
     "vue/define-props-destructuring": {
       "count": 1

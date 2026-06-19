@@ -113,22 +113,6 @@ const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
   runtime: Runtime.Omni,
 }))
 
-const nodeIDMap: Record<string, string> = {}
-const machineSetIDMap: Record<string, string> = {}
-const patchToCreate: Resource<ConfigPatchSpec> = {
-  metadata: {
-    namespace: DefaultNamespace,
-    type: ConfigPatchType,
-    labels: {},
-    annotations: {
-      [ConfigPatchName]: patchName.value,
-    },
-  },
-  spec: {
-    data: '',
-  },
-}
-
 const checkEncryption = (model: monaco.editor.ITextModel, tokens: monaco.Token[]) => {
   const markers: monaco.editor.IMarkerData[] = []
   if (!cluster.value?.spec?.features?.disk_encryption) {
@@ -185,28 +169,26 @@ const { data: machineSets } = useResourceWatch<MachineSetSpec>(() => ({
   selectors: [`${LabelCluster}=${clusterId}`],
 }))
 
-const machineSetTitles = computed(() => {
-  const sorted = sortMachineSetIds(
-    clusterId,
-    machineSets.value.map((value) => value.metadata.id!),
-  )
+const machineSetIDMap = computed(() =>
+  Object.fromEntries(
+    sortMachineSetIds(
+      clusterId,
+      machineSets.value.map((value) => value.metadata.id!),
+    ).map((machineSetId) => [machineSetTitle(clusterId, machineSetId), machineSetId]),
+  ),
+)
 
-  return sorted.map((machineSetId) => {
-    const title = machineSetTitle(clusterId, machineSetId)
-    machineSetIDMap[title] = machineSetId ?? ''
-    return title
-  })
-})
+const nodeIDMap = computed(() =>
+  Object.fromEntries(
+    clusterMachines.value.map((item) => [
+      `Node: ${item.metadata.labels?.[LabelHostname] || item.metadata.id}`,
+      item.metadata.id!,
+    ]),
+  ),
+)
 
-const machines = computed(() => {
-  return clusterMachines.value.map((item: Resource) => {
-    const name = `Node: ${(item.metadata?.labels ?? {})[LabelHostname] || item.metadata.id}`
-
-    nodeIDMap[name] = item.metadata.id!
-
-    return name
-  })
-})
+const machineSetTitles = computed(() => Object.keys(machineSetIDMap.value))
+const machines = computed(() => Object.keys(nodeIDMap.value))
 
 const { data: clusterMachines } = useResourceWatch<ClusterMachineStatusSpec>(() => ({
   skip: !clusterId,
@@ -244,22 +226,6 @@ watch(weight, (value: number) => {
   router.replace({ params: { patch: `${value}-${id}` } })
 })
 
-watch(patchName, () => {
-  if (patchName.value) {
-    patchToCreate.metadata.annotations![ConfigPatchName] = patchName.value
-  } else {
-    delete patchToCreate.metadata.annotations![ConfigPatchName]
-  }
-})
-
-watch(patchDescription, () => {
-  if (patchName.value) {
-    patchToCreate.metadata.annotations![ConfigPatchDescription] = patchDescription.value
-  } else {
-    delete patchToCreate.metadata.annotations![ConfigPatchDescription]
-  }
-})
-
 const loadPatch = () => {
   const match = /^(\d+)-.+/.exec(patchId)
 
@@ -294,15 +260,15 @@ loadPatch()
 watch(configPatch, loadPatch)
 
 const patchTypes = computed(() => {
-  if (clusterId && !machineId) {
-    return [PatchType.Cluster as string].concat(machineSetTitles.value).concat(machines.value)
-  }
-
-  if (machine.value?.metadata.labels?.[LabelCluster] ?? machineId) {
+  if (clusterId && machineId) {
     return [PatchType.ClusterMachine, PatchType.Machine]
   }
 
-  return undefined
+  if (machineId) {
+    return [PatchType.Machine]
+  }
+
+  return [PatchType.Cluster, ...machineSetTitles.value, ...machines.value]
 })
 
 enum State {
@@ -354,7 +320,7 @@ const notes = computed(() => {
 const saving = ref(false)
 
 const getPatchLabels = () => {
-  const patchType = selectedPatchType ?? patchTypes.value?.[0]
+  const patchType = selectedPatchType ?? patchTypes.value[0]
 
   if (!patchType || patchType === PatchType.Machine) {
     return {
@@ -371,13 +337,13 @@ const getPatchLabels = () => {
     [LabelCluster]: cluster,
   }
 
-  const machineID = nodeIDMap[patchType]
+  const machineID = nodeIDMap.value[patchType]
 
   if (patchType === PatchType.ClusterMachine || machineID) {
     labels[LabelClusterMachine] = machineID ?? machine.value?.metadata.id
   }
 
-  const machineSetID = machineSetIDMap[patchType]
+  const machineSetID = machineSetIDMap.value[patchType]
 
   if (machineSetID) {
     labels[LabelMachineSet] = machineSetID
@@ -393,23 +359,32 @@ const saveConfig = async () => {
     config.value = codeEditor.getValue()
   }
 
-  let currentPatch: Resource<ConfigPatchSpec> | undefined = configPatch.value
-
-  if (create) {
-    patchToCreate.metadata.id = patchId
-    patchToCreate.spec.data = config.value
-
-    currentPatch = patchToCreate
-    currentPatch.metadata.labels = getPatchLabels()
+  const currentPatch: Resource<ConfigPatchSpec> = configPatch.value || {
+    metadata: {
+      namespace: DefaultNamespace,
+      type: ConfigPatchType,
+      id: patchId,
+      labels: getPatchLabels(),
+    },
+    spec: {},
   }
 
-  if (!currentPatch) {
-    return
+  currentPatch.metadata.annotations ??= {}
+  currentPatch.spec.data = config.value
+
+  if (patchName.value) {
+    currentPatch.metadata.annotations[ConfigPatchName] = patchName.value
+  } else {
+    delete currentPatch.metadata.annotations[ConfigPatchName]
+  }
+
+  if (patchName.value) {
+    currentPatch.metadata.annotations[ConfigPatchDescription] = patchDescription.value
+  } else {
+    delete currentPatch.metadata.annotations[ConfigPatchDescription]
   }
 
   saving.value = true
-
-  currentPatch.spec.data = config.value
 
   try {
     if (!create) {
@@ -453,7 +428,7 @@ const canManageConfigPatches = computed(() =>
         <TInput v-model="patchName" title="Name" />
         <TInput v-model="patchDescription" class="flex-1" title="Description" />
         <TSelectList
-          v-if="patchTypes"
+          v-if="patchTypes.length"
           title="Patch Target"
           :default-value="patchTypes[0]"
           :values="patchTypes"
