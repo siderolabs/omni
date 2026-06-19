@@ -20,37 +20,101 @@ export interface Callback<T extends Resource> {
   (message: WatchResponse, spec: WatchEventSpec<T>): void
 }
 
-export interface WatchEventSpec<T extends Resource> {
+interface WatchEventSpec<T extends Resource> {
   res?: T
   old?: T
 }
 
-class WatchFunc<T extends Resource> {
-  protected runtime: Runtime = Runtime.Kubernetes
-  protected callback: (resp: WatchResponse) => void
-  protected stream?: Stream<WatchRequest, WatchResponse>
+export interface WatchContext {
+  cluster?: string
+  node?: string
+}
 
-  public readonly loading: Ref<boolean> = ref(false)
-  public readonly err: Ref<string | null> = ref(null)
-  public readonly errCode: Ref<Code | null> = ref(null)
+export type WatchOptions = WatchOptionsSingle | WatchOptionsMulti
 
-  constructor(callback: Callback<T>) {
+interface WatchOptionsCommon {
+  selectors?: string[]
+  selectUsingOR?: boolean
+  tailEvents?: number
+  offset?: number
+  limit?: number
+  sortByField?: string
+  sortDescending?: boolean
+  searchFor?: string[]
+  /**
+   * Disables watch while true
+   */
+  skip?: boolean
+}
+
+type WatchOptionsBase = WatchOptionsCommon &
+  (
+    | { runtime: Runtime.Omni; context?: never }
+    | { runtime: Exclude<Runtime, Runtime.Omni>; context: WatchContext }
+  )
+
+export type WatchOptionsSingle = WatchOptionsBase & {
+  resource: Metadata & { id: string }
+}
+
+export type WatchOptionsMulti = WatchOptionsBase & {
+  resource: Omit<Metadata, 'id'>
+}
+
+export default class Watch<T extends Resource> {
+  private runtime = Runtime.Kubernetes
+  private callback: (resp: WatchResponse) => void
+  private stream?: Stream<WatchRequest, WatchResponse>
+
+  public readonly loading = ref(false)
+  public readonly err = ref<string | null>(null)
+  public readonly errCode = ref<Code | null>(null)
+
+  public readonly items?: Ref<T[]>
+  public readonly item?: Ref<T | undefined>
+  public readonly total = ref(0)
+
+  private watchItems?: WatchItems<T>
+  private lastTotal = 0
+
+  constructor(target: Ref<T[]> | Ref<T | undefined>, callback?: Callback<T>) {
+    let handler: Callback<T> | undefined
+
     this.callback = (message: WatchResponse) => {
       const spec: WatchEventSpec<T> = {}
 
-      if (message.event?.resource) {
-        spec.res = JSON.parse(message.event?.resource)
-      }
-
-      if (message.event?.old) {
-        spec.old = JSON.parse(message.event?.old)
-      }
+      if (message.event?.resource) spec.res = JSON.parse(message.event.resource)
+      if (message.event?.old) spec.old = JSON.parse(message.event.old)
 
       if (message.event?.event_type === EventType.BOOTSTRAPPED) {
         this.loading.value = false
       }
 
-      callback(message, spec)
+      callback?.(message, spec)
+      handler?.(message, spec)
+
+      if (
+        message.total !== undefined ||
+        ![EventType.BOOTSTRAPPED, EventType.UNKNOWN].includes(
+          message.event?.event_type ?? EventType.UNKNOWN,
+        )
+      ) {
+        this.lastTotal = message.total ?? 0
+
+        if (this.watchItems?.bootstrapped) {
+          this.total.value = this.lastTotal
+        }
+      }
+    }
+
+    if (this.isItemsRef(target)) {
+      handler = this.listHandler.bind(this)
+
+      this.items = target
+    } else {
+      handler = this.singleItemHandler.bind(this)
+
+      this.item = target
     }
   }
 
@@ -93,7 +157,19 @@ class WatchFunc<T extends Resource> {
   }
 
   public start(opts: WatchOptions) {
-    return this.createStream(opts)
+    if (this.items) {
+      this.watchItems = new WatchItems(this.items.value)
+
+      this.items.value.splice(0, this.items.value.length)
+    }
+
+    this.watchItems?.setDescending(opts.sortDescending ?? false)
+
+    this.createStream(opts)
+
+    if (!this.stream) {
+      return
+    }
   }
 
   public createStream(opts: WatchOptions, onStart?: () => void, onError?: (err: Error) => void) {
@@ -144,123 +220,6 @@ class WatchFunc<T extends Resource> {
     if (this.stream) {
       this.stream.shutdown()
     }
-  }
-
-  public id(item: { metadata: { id?: string; name?: string; namespace?: string } }): string {
-    return itemID(item)
-  }
-
-  protected onStart() {
-    this.err.value = null
-    this.errCode.value = null
-    this.loading.value = true
-  }
-
-  protected onError(error: Error) {
-    this.err.value = error.message ?? error.toString()
-    this.errCode.value = error instanceof RequestError ? ((error.code as Code) ?? null) : null
-    this.loading.value = false
-  }
-}
-
-export type WatchContext = {
-  cluster?: string
-  node?: string
-}
-
-export type WatchOptions = WatchOptionsSingle | WatchOptionsMulti
-
-interface WatchOptionsCommon {
-  selectors?: string[]
-  selectUsingOR?: boolean
-  tailEvents?: number
-  offset?: number
-  limit?: number
-  sortByField?: string
-  sortDescending?: boolean
-  searchFor?: string[]
-  /**
-   * Disables watch while true
-   */
-  skip?: boolean
-}
-
-type WatchOptionsBase = WatchOptionsCommon &
-  (
-    | { runtime: Runtime.Omni; context?: never }
-    | { runtime: Exclude<Runtime, Runtime.Omni>; context: WatchContext }
-  )
-
-export type WatchOptionsSingle = WatchOptionsBase & {
-  resource: Metadata & { id: string }
-}
-
-export type WatchOptionsMulti = WatchOptionsBase & {
-  resource: Omit<Metadata, 'id'>
-}
-
-export default class Watch<T extends Resource> extends WatchFunc<T> {
-  public readonly items?: Ref<T[]>
-  public readonly item?: Ref<T | undefined>
-  public readonly total = ref(0)
-
-  private watchItems?: WatchItems<T>
-  private lastTotal = 0
-
-  constructor(target: Ref<T[]> | Ref<T | undefined>, callback?: Callback<T>) {
-    let handler: Callback<T> | undefined
-
-    super((event, spec) => {
-      callback?.(event, spec)
-      handler?.(event, spec)
-
-      if (
-        event.total !== undefined ||
-        ![EventType.BOOTSTRAPPED, EventType.UNKNOWN].includes(
-          event.event?.event_type ?? EventType.UNKNOWN,
-        )
-      ) {
-        this.lastTotal = event.total ?? 0
-
-        if (this.watchItems?.bootstrapped) {
-          this.total.value = this.lastTotal
-        }
-      }
-    })
-
-    if (this.isItemsRef(target)) {
-      handler = this.listHandler.bind(this)
-
-      this.items = target
-    } else {
-      handler = this.singleItemHandler.bind(this)
-
-      this.item = target
-    }
-  }
-
-  private isItemsRef(target: Ref<T[]> | Ref<T | undefined>): target is Ref<T[]> {
-    return Array.isArray(target.value)
-  }
-
-  public start(opts: WatchOptions) {
-    if (this.items) {
-      this.watchItems = new WatchItems(this.items.value)
-
-      this.items.value.splice(0, this.items.value.length)
-    }
-
-    this.watchItems?.setDescending(opts.sortDescending ?? false)
-
-    this.createStream(opts)
-
-    if (!this.stream) {
-      return
-    }
-  }
-
-  public stop() {
-    super.stop()
 
     if (this.watchItems) {
       this.watchItems.reset()
@@ -274,12 +233,28 @@ export default class Watch<T extends Resource> extends WatchFunc<T> {
     }
   }
 
-  protected onStart() {
+  public id(item: { metadata: { id?: string; name?: string; namespace?: string } }): string {
+    return itemID(item)
+  }
+
+  private onStart() {
     if (this.watchItems) {
       this.watchItems.reset()
     }
 
-    super.onStart()
+    this.err.value = null
+    this.errCode.value = null
+    this.loading.value = true
+  }
+
+  private onError(error: Error) {
+    this.err.value = error.message ?? error.toString()
+    this.errCode.value = error instanceof RequestError ? ((error.code as Code) ?? null) : null
+    this.loading.value = false
+  }
+
+  private isItemsRef(target: Ref<T[]> | Ref<T | undefined>): target is Ref<T[]> {
+    return Array.isArray(target.value)
   }
 
   private singleItemHandler(message: WatchResponse, spec: WatchEventSpec<T>) {
