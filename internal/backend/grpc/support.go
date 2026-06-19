@@ -6,7 +6,6 @@
 package grpc
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -51,19 +50,19 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 		return err
 	}
 
-	progress := make(chan bundle.Progress)
+	var machineIDs []string
 
-	var b bytes.Buffer
+	if err = s.auditTalosAccessForNodes(authCtx, management.ManagementService_GetSupportBundle_FullMethodName, req.Cluster, machineIDs); err != nil {
+		return err
+	}
 
-	f := bufio.NewWriter(&b)
+	ctx = actor.MarkContextAsInternalActor(authCtx)
 
 	cols := make([]*collectors.Collector, 0, len(resources))
 
-	var machineIDs []string
-
 	for _, res := range resources {
 		if res.Metadata().Type() == siderolink.LinkType {
-			cols = append(cols, s.collectLogs(res.Metadata().ID()))
+			cols = append(cols, s.collectLogs(ctx, res.Metadata().ID()))
 
 			machineIDs = append(machineIDs, res.Metadata().ID())
 		}
@@ -72,12 +71,6 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 
 		cols = collectors.WithSource(cols, "omni")
 	}
-
-	if err = s.auditTalosAccessForNodes(authCtx, management.ManagementService_GetSupportBundle_FullMethodName, req.Cluster, machineIDs); err != nil {
-		return err
-	}
-
-	ctx = actor.MarkContextAsInternalActor(authCtx)
 
 	kubernetesClient, err := s.getKubernetesClient(ctx, req.Cluster)
 	if err != nil {
@@ -91,16 +84,20 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 		}
 	}
 
+	progress := make(chan bundle.Progress)
+
+	var b bytes.Buffer
+
 	options := bundle.NewOptions(
-		bundle.WithArchiveOutput(f),
+		bundle.WithArchiveOutput(&b),
 		bundle.WithKubernetesClient(kubernetesClient),
-		bundle.WithTalosClientProvider(func(ctx context.Context, machineID string) (*client.Client, error) {
+		bundle.WithTalosClientProvider(func(ctx context.Context, machineID string) (context.Context, *client.Client, error) {
 			c, clientErr := s.talosRuntime.GetClientForMachine(ctx, machineID)
 			if clientErr != nil {
-				return nil, clientErr
+				return ctx, nil, clientErr
 			}
 
-			return c.Client, nil
+			return ctx, c.Client, nil
 		}),
 		bundle.WithNodes(machineIDs...),
 		bundle.WithNumWorkers(4),
@@ -164,7 +161,7 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 func (s *managementServer) writeResource(res resource.Resource) *collectors.Collector {
 	filename := fmt.Sprintf("omni/resources/%s-%s.yaml", res.Metadata().Type(), res.Metadata().ID())
 
-	return collectors.NewCollector(filename, func(context.Context, *bundle.Options) ([]byte, error) {
+	return collectors.NewCollector(filename, func() ([]byte, error) {
 		raw, err := resource.MarshalYAML(res)
 		if err != nil {
 			return nil, err
@@ -174,10 +171,10 @@ func (s *managementServer) writeResource(res resource.Resource) *collectors.Coll
 	})
 }
 
-func (s *managementServer) collectLogs(machineID string) *collectors.Collector {
+func (s *managementServer) collectLogs(ctx context.Context, machineID string) *collectors.Collector {
 	filename := fmt.Sprintf("omni/machine-logs/%s.log", machineID)
 
-	return collectors.NewCollector(filename, func(ctx context.Context, _ *bundle.Options) ([]byte, error) {
+	return collectors.NewCollector(filename, func() ([]byte, error) {
 		r, err := s.logHandler.GetReader(ctx, slink.MachineID(machineID), false, optional.None[int32]())
 		if err != nil {
 			if errors.Is(err, slink.ErrLogStoreNotFound) {
@@ -191,8 +188,6 @@ func (s *managementServer) collectLogs(machineID string) *collectors.Collector {
 
 		var b bytes.Buffer
 
-		w := bufio.NewWriter(&b)
-
 		for {
 			l, err := r.ReadLine(ctx)
 			if err != nil {
@@ -203,10 +198,7 @@ func (s *managementServer) collectLogs(machineID string) *collectors.Collector {
 				return nil, err
 			}
 
-			_, err = w.WriteString(string(l) + "\n")
-			if err != nil {
-				return nil, err
-			}
+			b.WriteString(string(l) + "\n")
 		}
 
 		return b.Bytes(), nil
