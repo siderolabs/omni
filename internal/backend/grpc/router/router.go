@@ -100,6 +100,11 @@ func NewRouter(
 			grpc.MaxCallRecvMsgSize(math.MaxInt32),
 			grpc.ForceCodecV2(proxy.Codec()),
 		),
+		// Disable idle mode: this is a permanent in-process loopback connection,
+		// so there is nothing to reclaim by going idle, and it avoids the
+		// first-request latency of re-establishing the connection after a quiet
+		// period.
+		grpc.WithIdleTimeout(0),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial omni backend: %w", err)

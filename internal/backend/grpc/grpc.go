@@ -142,6 +142,11 @@ func RegisterGateway(
 			return memtrans.DialContext(dctx)
 		}),
 		grpc.WithSharedWriteBuffer(true),
+		// Disable idle mode: this is a permanent in-process loopback connection,
+		// so there is nothing to reclaim by going idle, and it avoids the
+		// first-request latency of re-establishing the connection after a quiet
+		// period.
+		grpc.WithIdleTimeout(0),
 	}
 
 	for srv, err := range servers {
