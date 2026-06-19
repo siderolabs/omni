@@ -178,6 +178,17 @@ func (handler *pendingMachineStatusHandler) handleUUIDConflicts(
 		return nil
 	}
 
+	// Skip generating a new override UUID if one was already issued for this pending machine.
+	//
+	// The pending machine is keyed by the node public key and keeps the conflict annotation until it
+	// is cleaned up, so this handler can reconcile several times for the same machine. Generating a
+	// fresh uuid.NewString() on every reconcile makes the machine re-join under multiple UUIDs, which
+	// creates duplicate Link resources for a single physical machine (same public key and node subnet).
+	// Mirror the idempotency guard used by generateUniqueNodeToken: issue the override exactly once.
+	if existing, ok := pendingMachineStatus.Metadata().Annotations().Get(omni.MachineUUID); ok && existing != machineUUID {
+		return nil
+	}
+
 	id := uuid.NewString()
 
 	if err := c.MetaWrite(ctx, meta.UUIDOverride, []byte(id)); err != nil {

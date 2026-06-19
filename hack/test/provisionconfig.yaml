@@ -1,7 +1,14 @@
 ---
-count: 15
+count: 10
 provider:
   id: talemu
+---
+# provision 5 machines with fixed fake UUID to make them conflict to test UUID conflict resolution
+count: 5
+provider:
+  id: talemu
+  data: |
+    uuid: 00000000-0000-0000-0000-000000000000
 ---
 count: 15
 provider:

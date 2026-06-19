@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
@@ -158,6 +159,71 @@ func (suite *PendingMachineStatusSuite) TestReconcile() {
 
 	metaKeys = machineServices["p4"].getMetaKeys()
 	suite.Assert().NotContains(metaKeys, meta.UUIDOverride)
+}
+
+// TestUUIDConflictGeneratedOnce ensures the override UUID is generated exactly once for a conflicting
+// pending machine, even if the controller reconciles many times while the conflict annotation is set.
+//
+// Regenerating the override on every reconcile makes the machine re-join under multiple UUIDs, which
+// produces duplicate Link resources (same public key and node subnet) for a single physical machine.
+func (suite *PendingMachineStatusSuite) TestUUIDConflictGeneratedOnce() {
+	suite.startRuntime()
+
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*10)
+	defer cancel()
+
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewPendingMachineStatusController()))
+
+	const (
+		name        = "conflict-once"
+		machineUUID = "dup-uuid"
+	)
+
+	ms, err := suite.newServer(name)
+	suite.Require().NoError(err)
+
+	pendingMachine := siderolink.NewPendingMachine(name, &specs.SiderolinkSpec{})
+	pendingMachine.Metadata().Labels().Set(omni.MachineUUID, machineUUID)
+	pendingMachine.Metadata().Annotations().Set(siderolink.PendingMachineUUIDConflict, "")
+	pendingMachine.TypedSpec().Value.NodeSubnet = unixSocket + suite.socketPath + name
+
+	suite.Require().NoError(suite.state.Create(ctx, pendingMachine))
+	suite.Require().NoError(suite.state.Create(ctx, siderolink.NewLinkStatus(pendingMachine)))
+
+	// wait until the controller injects a freshly generated override UUID
+	var overrideUUID string
+
+	rtestutils.AssertResource(
+		ctx, suite.T(), suite.state, name,
+		func(pms *siderolink.PendingMachineStatus, assert *assert.Assertions) {
+			id, ok := pms.Metadata().Annotations().Get(omni.MachineUUID)
+			assert.True(ok)
+			assert.NotEqual(machineUUID, id)
+
+			overrideUUID = id
+		},
+	)
+
+	suite.Require().NotEmpty(overrideUUID)
+	suite.Require().Equal(overrideUUID, ms.getMetaKeys()[meta.UUIDOverride])
+
+	// force repeated reconciles of the same pending machine, mirroring the per-provision touches that
+	// happen in production while the conflict annotation is still present
+	for i := range 10 {
+		_, err = safe.StateUpdateWithConflicts(ctx, suite.state, pendingMachine.Metadata(), func(res *siderolink.PendingMachine) error {
+			res.Metadata().Annotations().Set("reconcile-trigger", fmt.Sprintf("%d", i))
+
+			return nil
+		})
+		suite.Require().NoError(err)
+	}
+
+	// the override UUID must be written exactly once and never change
+	suite.Assert().Never(func() bool {
+		return ms.getMetaWriteCount(meta.UUIDOverride) != 1
+	}, time.Second*2, time.Millisecond*50)
+
+	suite.Assert().Equal(overrideUUID, ms.getMetaKeys()[meta.UUIDOverride])
 }
 
 func TestPendingMachineStatusSuite(t *testing.T) {

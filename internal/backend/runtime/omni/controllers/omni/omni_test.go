@@ -90,7 +90,8 @@ type machineService struct {
 	serviceList             *machine.ServiceListResponse
 	etcdLeaveClusterHandler func(context.Context, *machine.EtcdLeaveClusterRequest) (*machine.EtcdLeaveClusterResponse, error)
 
-	metaKeys map[uint32]string
+	metaKeys       map[uint32]string
+	metaWriteCount map[uint32]int
 
 	address      string
 	state        state.State
@@ -102,6 +103,13 @@ func (ms *machineService) getMetaKeys() map[uint32]string {
 	defer ms.lock.Unlock()
 
 	return maps.Clone(ms.metaKeys)
+}
+
+func (ms *machineService) getMetaWriteCount(key uint32) int {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	return ms.metaWriteCount[key]
 }
 
 func (ms *machineService) ApplyConfiguration(_ context.Context, req *machine.ApplyConfigurationRequest) (*machine.ApplyConfigurationResponse, error) {
@@ -266,7 +274,12 @@ func (ms *machineService) MetaWrite(_ context.Context, req *machine.MetaWriteReq
 		ms.metaKeys = map[uint32]string{}
 	}
 
+	if ms.metaWriteCount == nil {
+		ms.metaWriteCount = map[uint32]int{}
+	}
+
 	ms.metaKeys[req.Key] = string(req.Value)
+	ms.metaWriteCount[req.Key]++
 
 	return &machine.MetaWriteResponse{}, nil
 }
