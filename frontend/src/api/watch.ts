@@ -2,8 +2,8 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import type { MaybeRefOrGetter, Ref } from 'vue'
-import { effectScope, onScopeDispose, ref, toRef, toValue, watch } from 'vue'
+import type { Ref } from 'vue'
+import { ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { type fetchOption, RequestError } from '@/api/fetch.pb'
@@ -116,44 +116,6 @@ export default class Watch<T extends Resource> {
 
       this.item = target
     }
-  }
-
-  public setup(opts: MaybeRefOrGetter<WatchOptions | undefined>) {
-    const scope = effectScope()
-
-    scope.run(() => {
-      let unmounted = false
-
-      const startWatch = () => {
-        this.stop()
-
-        const watchOptions = toValue(opts)
-
-        if (!watchOptions || watchOptions.skip) return
-
-        this.start(watchOptions)
-
-        if (unmounted) {
-          this.stop()
-        }
-      }
-
-      watch(toRef(opts), (newval, oldval) => {
-        if (JSON.stringify(newval) !== JSON.stringify(oldval)) {
-          startWatch()
-        }
-      })
-
-      startWatch()
-
-      onScopeDispose(() => {
-        unmounted = true
-
-        this.stop()
-      })
-    })
-
-    return scope
   }
 
   public start(opts: WatchOptions) {

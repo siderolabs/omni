@@ -101,11 +101,6 @@
       "count": 1
     }
   },
-  "src/methods/useResourceWatch.spec.ts": {
-    "vue/no-ref-object-reactivity-loss": {
-      "count": 1
-    }
-  },
   "src/views/ClusterMachines/MachineRequest.vue": {
     "vue/define-props-destructuring": {
       "count": 1

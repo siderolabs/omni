@@ -32,6 +32,7 @@ export function createWatchStreamHandler<T = unknown, S = unknown>({
   initialResources = [],
 }: WatchStreamHandlerOptions<T, S> = {}) {
   const controllerRef: { value?: ReadableStreamDefaultController<Uint8Array> } = {}
+  let closeCallbacks: Array<() => void> = []
 
   const handler = http.post<never, WatchRequest>(
     '/omni.resources.ResourceService/Watch',
@@ -51,6 +52,11 @@ export function createWatchStreamHandler<T = unknown, S = unknown>({
 
       const { stream, controller } = createStream()
       controllerRef.value = controller
+
+      request.signal.addEventListener('abort', () => {
+        closeCallbacks.forEach((cb) => cb())
+        closeCallbacks = []
+      })
 
       const { sort_by_field: sort } = options
 
@@ -83,7 +89,21 @@ export function createWatchStreamHandler<T = unknown, S = unknown>({
     },
   )
 
-  return { handler, pushEvents, closeStream }
+  return { handler, pushEvents, closeStream, waitForStreamClose }
+
+  function waitForStreamClose(timeout = 1000) {
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error('stream was not closed within timeout — was stop() called?')),
+        timeout,
+      )
+
+      closeCallbacks.push(() => {
+        clearTimeout(timer)
+        resolve()
+      })
+    })
+  }
 
   async function waitForController() {
     return new Promise<void>((resolve) => {

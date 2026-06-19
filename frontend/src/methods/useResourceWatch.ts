@@ -2,7 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { type MaybeRefOrGetter, type Ref, ref, toValue } from 'vue'
+import { type MaybeRefOrGetter, onWatcherCleanup, type Ref, ref, toValue, watch } from 'vue'
 
 import type { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
@@ -50,8 +50,7 @@ function useWatchSingle<TSpec = unknown, TStatus = unknown>(
 ): WatchSingle<TSpec, TStatus> {
   const data = ref<Resource<TSpec, TStatus>>()
 
-  const watch = new Watch(data, callback)
-  watch.setup(opts)
+  const watch = useWatch(data, opts, callback)
 
   return {
     data,
@@ -67,8 +66,7 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
 ): WatchMulti<TSpec, TStatus> {
   const data: Ref<Resource<TSpec, TStatus>[], Resource<TSpec, TStatus>[]> = ref([])
 
-  const watch = new Watch(data, callback)
-  watch.setup(opts)
+  const watch = useWatch(data, opts, callback)
 
   return {
     data,
@@ -83,4 +81,27 @@ function isWatchOptionsSingle(
   opts: MaybeRefOrGetter<WatchOptions>,
 ): opts is MaybeRefOrGetter<WatchOptionsSingle> {
   return 'id' in toValue(opts).resource
+}
+
+function useWatch<T extends Resource>(
+  data: Ref<T[]> | Ref<T | undefined>,
+  opts: MaybeRefOrGetter<WatchOptions>,
+  callback?: Callback<T>,
+) {
+  const resWatch = new Watch(data, callback)
+
+  watch(
+    () => JSON.stringify(toValue(opts)),
+    () => {
+      const watchOptions = toValue(opts)
+
+      if (watchOptions.skip) return
+
+      resWatch.start(watchOptions)
+      onWatcherCleanup(() => resWatch.stop())
+    },
+    { immediate: true },
+  )
+
+  return resWatch
 }

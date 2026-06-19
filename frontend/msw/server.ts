@@ -15,11 +15,11 @@ export const server = setupServer()
 export function createWatchStreamMock<T = unknown, S = unknown>(
   options?: WatchStreamHandlerOptions<T, S>,
 ) {
-  const { handler, pushEvents, closeStream } = createWatchStreamHandler(options)
+  const { handler, pushEvents, closeStream, waitForStreamClose } = createWatchStreamHandler(options)
 
   server.use(handler)
 
-  return { pushEvents, closeStream }
+  return { pushEvents, closeStream, waitForStreamClose }
 }
 
 export function createGetMock() {
