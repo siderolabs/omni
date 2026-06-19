@@ -6,16 +6,17 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { Resource } from '@/api/grpc'
-import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
+import { LabelCluster } from '@/api/resources'
 import { itemID } from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import Card from '@/components/Card/Card.vue'
 import CopyButton from '@/components/CopyButton/CopyButton.vue'
-import TIcon from '@/components/Icon/TIcon.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
+import MachineStage from '@/components/Status/MachineStage.vue'
 
 defineProps<{
-  machines: Resource<MachineStatusSpec>[]
+  machines: Resource<MachineStatusLinkSpec>[]
   loading: boolean
 }>()
 </script>
@@ -58,24 +59,15 @@ defineProps<{
       </div>
 
       <div class="flex min-w-0 justify-center">
-        <span v-if="item.spec.cluster" class="resource-label label-blue truncate">
-          cluster:{{ item.spec.cluster }}
+        <span
+          v-if="item.metadata.labels?.[LabelCluster]"
+          class="resource-label label-blue truncate"
+        >
+          cluster:{{ item.metadata.labels[LabelCluster] }}
         </span>
       </div>
 
-      <div
-        class="flex items-center gap-1 place-self-end"
-        :class="item.metadata.phase === 'running' ? 'text-green-g1' : 'text-red-r1'"
-      >
-        <TIcon
-          class="h-4"
-          :icon="item.metadata.phase === 'running' ? 'check-in-circle' : 'delete'"
-        />
-
-        <span class="contents max-sm:hidden">
-          {{ item.metadata.phase === 'running' ? 'Running' : 'Destroying' }}
-        </span>
-      </div>
+      <MachineStage :machine="item" class="place-self-end" />
     </div>
   </Card>
 </template>

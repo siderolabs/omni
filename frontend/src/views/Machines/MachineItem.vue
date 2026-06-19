@@ -20,6 +20,7 @@ import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import CopyButton from '@/components/CopyButton/CopyButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
+import MachineStage from '@/components/Status/MachineStage.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions, usePermissions } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
@@ -65,7 +66,7 @@ const machineName = computed(() => {
 
 const clusterName = computed(() => machine.spec.message_status?.cluster)
 
-const { installing, upgrading, status } = useDerivedMachineStage(() => machine.spec.snapshot)
+const { installing, upgrading } = useDerivedMachineStage(() => machine.spec.snapshot)
 
 const canDoMaintenanceUpdate = computed(() => {
   if (machine.spec.message_status?.cluster) {
@@ -189,21 +190,7 @@ const canUseLifecycleUpgrade = computed(() => {
           />
         </Tooltip>
 
-        <Tooltip
-          v-if="status"
-          :description="status.name"
-          :class="{ 'opacity-50': machine.spec.tearing_down }"
-        >
-          <!-- Wrapper to prevent tooltip bounce when icon is animated e.g. loading -->
-          <span class="size-4 shrink-0">
-            <TIcon
-              :icon="status.icon"
-              class="size-full"
-              :class="status.class"
-              :aria-label="`status: ${status.name.toLowerCase()}`"
-            />
-          </span>
-        </Tooltip>
+        <MachineStage :machine icon-only />
 
         <div class="grow" />
 

@@ -6,8 +6,14 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { Runtime } from '@/api/common/omni.pb'
-import type { ClusterStatusSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
-import { ClusterStatusType, DefaultNamespace, MachineStatusType } from '@/api/resources'
+import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
+import type { ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
+import {
+  ClusterStatusType,
+  DefaultNamespace,
+  MachineStatusLinkType,
+  MetricsNamespace,
+} from '@/api/resources'
 import { usePermissions } from '@/methods/auth'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import HomeClustersChart from '@/views/Home/HomeClustersChart.vue'
@@ -31,16 +37,18 @@ const { data: clusters, loading: clustersLoading } = useResourceWatch<ClusterSta
   sortDescending: true,
 }))
 
-const { data: machines, loading: machinesLoading } = useResourceWatch<MachineStatusSpec>(() => ({
-  skip: !canReadMachines.value,
-  resource: {
-    namespace: DefaultNamespace,
-    type: MachineStatusType,
-  },
-  runtime: Runtime.Omni,
-  sortByField: 'created',
-  sortDescending: true,
-}))
+const { data: machines, loading: machinesLoading } = useResourceWatch<MachineStatusLinkSpec>(
+  () => ({
+    skip: !canReadMachines.value,
+    resource: {
+      namespace: MetricsNamespace,
+      type: MachineStatusLinkType,
+    },
+    runtime: Runtime.Omni,
+    sortByField: 'created',
+    sortDescending: true,
+  }),
+)
 
 // Disabled entirely until we decide where to get the information from
 const showReleaseNotes = false
