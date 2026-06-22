@@ -267,6 +267,7 @@ func (m *QuirksSpec) CloneVT() *QuirksSpec {
 	r := new(QuirksSpec)
 	r.SupportsUnifiedInstaller = m.SupportsUnifiedInstaller
 	r.SupportsFactoryTalosctl = m.SupportsFactoryTalosctl
+	r.SupportsEmbeddedConfig = m.SupportsEmbeddedConfig
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -687,6 +688,9 @@ func (this *QuirksSpec) EqualVT(that *QuirksSpec) bool {
 		return false
 	}
 	if this.SupportsFactoryTalosctl != that.SupportsFactoryTalosctl {
+		return false
+	}
+	if this.SupportsEmbeddedConfig != that.SupportsEmbeddedConfig {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1678,6 +1682,16 @@ func (m *QuirksSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.SupportsEmbeddedConfig {
+		i--
+		if m.SupportsEmbeddedConfig {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.SupportsFactoryTalosctl {
 		i--
 		if m.SupportsFactoryTalosctl {
@@ -2088,6 +2102,9 @@ func (m *QuirksSpec) SizeVT() (n int) {
 		n += 2
 	}
 	if m.SupportsFactoryTalosctl {
+		n += 2
+	}
+	if m.SupportsEmbeddedConfig {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -4430,6 +4447,26 @@ func (m *QuirksSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.SupportsFactoryTalosctl = bool(v != 0)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SupportsEmbeddedConfig", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.SupportsEmbeddedConfig = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

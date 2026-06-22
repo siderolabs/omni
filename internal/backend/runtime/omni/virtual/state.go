@@ -475,6 +475,7 @@ func (v *State) quirks(_ context.Context, ptr resource.Pointer) (*virtual.Quirks
 	res.TypedSpec().Value = &specs.QuirksSpec{
 		SupportsUnifiedInstaller: q.SupportsUnifiedInstaller(),
 		SupportsFactoryTalosctl:  q.SupportsFactoryTalosctlDownload(),
+		SupportsEmbeddedConfig:   q.SupportsEmbeddedConfig(),
 	}
 
 	return res, nil

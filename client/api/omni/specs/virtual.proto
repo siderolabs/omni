@@ -112,6 +112,7 @@ message SupportSpec {
 message QuirksSpec {
   bool supports_unified_installer = 1;
   bool supports_factory_talosctl = 2;
+  bool supports_embedded_config = 3;
 }
 
 message ImageFactoryAuthSpec {

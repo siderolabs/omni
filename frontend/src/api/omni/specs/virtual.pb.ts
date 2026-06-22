@@ -112,6 +112,7 @@ export type SupportSpec = {
 export type QuirksSpec = {
   supports_unified_installer?: boolean
   supports_factory_talosctl?: boolean
+  supports_embedded_config?: boolean
 }
 
 export type ImageFactoryAuthSpec = {

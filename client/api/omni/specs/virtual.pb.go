@@ -939,6 +939,7 @@ type QuirksSpec struct {
 	state                    protoimpl.MessageState `protogen:"open.v1"`
 	SupportsUnifiedInstaller bool                   `protobuf:"varint,1,opt,name=supports_unified_installer,json=supportsUnifiedInstaller,proto3" json:"supports_unified_installer,omitempty"`
 	SupportsFactoryTalosctl  bool                   `protobuf:"varint,2,opt,name=supports_factory_talosctl,json=supportsFactoryTalosctl,proto3" json:"supports_factory_talosctl,omitempty"`
+	SupportsEmbeddedConfig   bool                   `protobuf:"varint,3,opt,name=supports_embedded_config,json=supportsEmbeddedConfig,proto3" json:"supports_embedded_config,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -983,6 +984,13 @@ func (x *QuirksSpec) GetSupportsUnifiedInstaller() bool {
 func (x *QuirksSpec) GetSupportsFactoryTalosctl() bool {
 	if x != nil {
 		return x.SupportsFactoryTalosctl
+	}
+	return false
+}
+
+func (x *QuirksSpec) GetSupportsEmbeddedConfig() bool {
+	if x != nil {
+		return x.SupportsEmbeddedConfig
 	}
 	return false
 }
@@ -1181,11 +1189,12 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"\bmeet_url\x18\b \x01(\tR\ameetUrl\"s\n" +
 	"\vSupportSpec\x12'\n" +
 	"\x0fsupport_enabled\x18\x01 \x01(\bR\x0esupportEnabled\x12;\n" +
-	"\foffice_hours\x18\x02 \x01(\v2\x18.specs.OfficeHoursConfigR\vofficeHours\"\x86\x01\n" +
+	"\foffice_hours\x18\x02 \x01(\v2\x18.specs.OfficeHoursConfigR\vofficeHours\"\xc0\x01\n" +
 	"\n" +
 	"QuirksSpec\x12<\n" +
 	"\x1asupports_unified_installer\x18\x01 \x01(\bR\x18supportsUnifiedInstaller\x12:\n" +
-	"\x19supports_factory_talosctl\x18\x02 \x01(\bR\x17supportsFactoryTalosctl\"N\n" +
+	"\x19supports_factory_talosctl\x18\x02 \x01(\bR\x17supportsFactoryTalosctl\x128\n" +
+	"\x18supports_embedded_config\x18\x03 \x01(\bR\x16supportsEmbeddedConfig\"N\n" +
 	"\x14ImageFactoryAuthSpec\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpasswordB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
