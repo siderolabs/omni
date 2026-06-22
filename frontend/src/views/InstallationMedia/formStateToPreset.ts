@@ -23,6 +23,7 @@ export function formStateToPreset(formState: FormState): InstallationMediaConfig
             overlay_options: formState.overlayOptions,
           }
         : undefined,
+    embedded_machine_config: formState.embeddedMachineConfig,
     grpc_tunnel: formState.useGrpcTunnel ? GrpcTunnelMode.ENABLED : GrpcTunnelMode.DISABLED,
     talos_version: formState.talosVersion === AUTOMATIC_VERSION ? '' : formState.talosVersion,
     install_extensions: formState.systemExtensions,
@@ -46,6 +47,7 @@ export function presetToFormState(preset: InstallationMediaConfigSpec): FormStat
     cloudPlatform: preset.cloud?.platform,
     sbcType: preset.sbc?.overlay,
     overlayOptions: preset.sbc?.overlay_options,
+    embeddedMachineConfig: preset.embedded_machine_config,
     useGrpcTunnel: preset.grpc_tunnel === GrpcTunnelMode.ENABLED,
     talosVersion: !preset.talos_version ? AUTOMATIC_VERSION : preset.talos_version,
     systemExtensions: preset.install_extensions,

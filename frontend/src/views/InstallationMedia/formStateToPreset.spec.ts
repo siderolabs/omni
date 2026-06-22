@@ -54,6 +54,7 @@ describe('form<->preset conversion', () => {
         'user/label': { value: 'test', canRemove: true },
       },
       secureBoot: true,
+      embeddedMachineConfig: 'version: v1alpha1',
     }
 
     const preset: InstallationMediaConfigSpec = {
@@ -71,6 +72,7 @@ describe('form<->preset conversion', () => {
         'user/label': 'test',
       },
       secure_boot: true,
+      embedded_machine_config: 'version: v1alpha1',
     }
 
     expect(formStateToPreset(formState)).toEqual(preset)
@@ -93,6 +95,7 @@ describe('form<->preset conversion', () => {
         'user/label': { value: 'test', canRemove: true },
       },
       secureBoot: false,
+      embeddedMachineConfig: 'version: v1alpha1',
     }
 
     const preset: InstallationMediaConfigSpec = {
@@ -111,6 +114,7 @@ describe('form<->preset conversion', () => {
         'user/label': 'test',
       },
       secure_boot: false,
+      embedded_machine_config: 'version: v1alpha1',
     }
 
     expect(formStateToPreset(formState)).toEqual(preset)
@@ -131,6 +135,7 @@ describe('form<->preset conversion', () => {
         'user/label': { value: 'test', canRemove: true },
       },
       secureBoot: false,
+      embeddedMachineConfig: 'version: v1alpha1',
     }
 
     const preset: InstallationMediaConfigSpec = {
@@ -145,6 +150,7 @@ describe('form<->preset conversion', () => {
         'user/label': 'test',
       },
       secure_boot: false,
+      embedded_machine_config: 'version: v1alpha1',
     }
 
     expect(formStateToPreset(formState)).toEqual(preset)

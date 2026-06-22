@@ -10,8 +10,8 @@ import { computed, onBeforeMount } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { SchematicBootloader } from '@/api/omni/management/management.pb'
-import type { SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
-import { SBCConfigType, VirtualNamespace } from '@/api/resources'
+import type { QuirksSpec, SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
+import { QuirksType, SBCConfigType, VirtualNamespace } from '@/api/resources'
 import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import TextArea from '@/components/TextArea/TextArea.vue'
@@ -27,8 +27,16 @@ const formState = defineModel<FormState>({ required: true })
 const resolvedVersion = computed(() => resolveTalosVersion(formState.value.talosVersion!))
 
 const supportsCustomisingKernelArgs = computed(() => gte(resolvedVersion.value, '1.10.0'))
-
 const supportsBootloaderSelection = computed(() => gte(resolvedVersion.value, '1.12.0-alpha.2'))
+
+const { data: quirks } = useResourceGet<QuirksSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: VirtualNamespace,
+    type: QuirksType,
+    id: resolvedVersion.value,
+  },
+}))
 
 const { data: selectedSBC } = useResourceGet<SBCConfigSpec>(() => ({
   skip: formState.value.hardwareType !== 'sbc',
@@ -90,6 +98,38 @@ onBeforeMount(() => (formState.value.bootloader ??= SchematicBootloader.BOOT_AUT
     </p>
 
     <p>Skip this step if unsure.</p>
+
+    <template v-if="quirks?.spec.supports_embedded_config">
+      <TextArea
+        v-model="formState.embeddedMachineConfig"
+        placeholder="apiVersion: v1alpha1
+kind: HostnameConfig
+hostname: my-custom-hostname
+auto: off"
+        title="Embedded machine configuration"
+        overhead-title
+      />
+
+      <p>
+        This configuration will be embedded into the image. For more details see the
+        <a
+          target="_blank"
+          rel="noopener noreferrer"
+          :href="
+            getDocsLink(
+              'talos',
+              '/configure-your-talos-cluster/system-configuration/acquire#embedded-configuration',
+              { talosVersion: resolvedVersion },
+            )
+          "
+          class="link-primary"
+        >
+          documentation.
+        </a>
+      </p>
+
+      <p>Skip this step if unsure.</p>
+    </template>
 
     <template v-if="selectedSBC">
       <TextArea

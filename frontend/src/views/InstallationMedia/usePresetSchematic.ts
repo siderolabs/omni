@@ -57,6 +57,7 @@ export function usePresetSchematic(presetRef: MaybeRefOrGetter<InstallationMedia
             ? { [LabelsMeta]: dump({ machineLabels: preset.machine_labels }) }
             : undefined,
         overlay,
+        embedded_machine_config: preset.embedded_machine_config,
         talos_version: preset.talos_version,
         siderolink_grpc_tunnel_mode:
           preset.grpc_tunnel === GrpcTunnelMode.ENABLED

@@ -29,6 +29,7 @@ export interface FormState {
   sbcType?: string
   systemExtensions?: string[]
   cmdline?: string
+  embeddedMachineConfig?: string
   overlayOptions?: string
   bootloader?: SchematicBootloader
 }
