@@ -456,6 +456,7 @@ func (m *CreateSchematicRequest) CloneVT() *CreateSchematicRequest {
 	r.JoinToken = m.JoinToken
 	r.Overlay = m.Overlay.CloneVT()
 	r.Bootloader = m.Bootloader
+	r.EmbeddedMachineConfig = m.EmbeddedMachineConfig
 	if rhs := m.Extensions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -1662,6 +1663,9 @@ func (this *CreateSchematicRequest) EqualVT(that *CreateSchematicRequest) bool {
 		return false
 	}
 	if this.Bootloader != that.Bootloader {
+		return false
+	}
+	if this.EmbeddedMachineConfig != that.EmbeddedMachineConfig {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3563,6 +3567,13 @@ func (m *CreateSchematicRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.EmbeddedMachineConfig) > 0 {
+		i -= len(m.EmbeddedMachineConfig)
+		copy(dAtA[i:], m.EmbeddedMachineConfig)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.EmbeddedMachineConfig)))
+		i--
+		dAtA[i] = 0x5a
 	}
 	if m.Bootloader != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Bootloader))
@@ -5582,6 +5593,10 @@ func (m *CreateSchematicRequest) SizeVT() (n int) {
 	}
 	if m.Bootloader != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.Bootloader))
+	}
+	l = len(m.EmbeddedMachineConfig)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -9141,6 +9156,38 @@ func (m *CreateSchematicRequest) UnmarshalVT(dAtA []byte) error {
 					break
 				}
 			}
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EmbeddedMachineConfig", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EmbeddedMachineConfig = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

@@ -194,6 +194,7 @@ export type CreateSchematicRequest = {
   join_token?: string
   overlay?: CreateSchematicRequestOverlay
   bootloader?: SchematicBootloader
+  embedded_machine_config?: string
 }
 
 export type CreateSchematicFromRawRequest = {

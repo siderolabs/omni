@@ -173,6 +173,7 @@ message CreateSchematicRequest {
   string join_token = 8;
   Overlay overlay = 9;
   SchematicBootloader bootloader = 10;
+  string embedded_machine_config = 11;
 }
 
 message CreateSchematicFromRawRequest {

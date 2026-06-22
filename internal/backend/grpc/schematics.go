@@ -51,6 +51,7 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		SystemExtensions: schematic.SystemExtensions{
 			OfficialExtensions: request.Extensions,
 		},
+		EmbeddedMachineConfiguration: request.EmbeddedMachineConfig,
 	}
 
 	if request.Bootloader != management.SchematicBootloader_BOOT_AUTO {

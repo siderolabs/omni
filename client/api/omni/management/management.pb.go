@@ -1448,6 +1448,7 @@ type CreateSchematicRequest struct {
 	JoinToken                string                                          `protobuf:"bytes,8,opt,name=join_token,json=joinToken,proto3" json:"join_token,omitempty"`
 	Overlay                  *CreateSchematicRequest_Overlay                 `protobuf:"bytes,9,opt,name=overlay,proto3" json:"overlay,omitempty"`
 	Bootloader               SchematicBootloader                             `protobuf:"varint,10,opt,name=bootloader,proto3,enum=management.SchematicBootloader" json:"bootloader,omitempty"`
+	EmbeddedMachineConfig    string                                          `protobuf:"bytes,11,opt,name=embedded_machine_config,json=embeddedMachineConfig,proto3" json:"embedded_machine_config,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -1543,6 +1544,13 @@ func (x *CreateSchematicRequest) GetBootloader() SchematicBootloader {
 		return x.Bootloader
 	}
 	return SchematicBootloader_BOOT_AUTO
+}
+
+func (x *CreateSchematicRequest) GetEmbeddedMachineConfig() string {
+	if x != nil {
+		return x.EmbeddedMachineConfig
+	}
+	return ""
 }
 
 type CreateSchematicFromRawRequest struct {
@@ -3457,7 +3465,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\fResponseType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\f\n" +
 	"\bMANIFEST\x10\x01\x12\v\n" +
-	"\aROLLOUT\x10\x02\"\xf0\x05\n" +
+	"\aROLLOUT\x10\x02\"\xa8\x06\n" +
 	"\x16CreateSchematicRequest\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x01 \x03(\tR\n" +
@@ -3474,7 +3482,8 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\n" +
 	"bootloader\x18\n" +
 	" \x01(\x0e2\x1f.management.SchematicBootloaderR\n" +
-	"bootloader\x1aM\n" +
+	"bootloader\x126\n" +
+	"\x17embedded_machine_config\x18\v \x01(\tR\x15embeddedMachineConfig\x1aM\n" +
 	"\aOverlay\x12\x14\n" +
 	"\x05image\x18\x01 \x01(\tR\x05image\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
