@@ -213,10 +213,10 @@ watch(machineClass, () => {
   const labelsMeta = machineClass.value?.spec.auto_provision?.meta_values?.find(
     (item) => item.key === LabelsMeta,
   )
-  if (labelsMeta) {
+  if (labelsMeta?.value) {
     initialLabels.value = {}
 
-    const l = (load(labelsMeta.value!) as { machineLabels: Record<string, string> }).machineLabels
+    const { machineLabels: l } = load(labelsMeta.value) as { machineLabels: Record<string, string> }
 
     for (const key in l) {
       initialLabels.value[key] = {
@@ -228,10 +228,10 @@ watch(machineClass, () => {
 
   if (
     machineClass.value?.spec.auto_provision?.provider_id &&
-    machineClass.value?.spec.auto_provision?.provider_data
+    machineClass.value.spec.auto_provision.provider_data
   ) {
     providerConfigs.value[machineClass.value.spec.auto_provision.provider_id] = load(
-      machineClass.value?.spec.auto_provision?.provider_data,
+      machineClass.value.spec.auto_provision.provider_data,
     ) as Record<string, unknown>
   }
 

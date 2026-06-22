@@ -8,14 +8,14 @@ import { fileURLToPath } from 'node:url'
 import { includeIgnoreFile } from '@eslint/config-helpers'
 import pluginVitest from '@vitest/eslint-plugin'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
-import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+import { vueTsConfigs, withVueTs } from '@vue/eslint-config-typescript'
 import { globalIgnores } from 'eslint/config'
 import pluginPlaywright from 'eslint-plugin-playwright'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
 import storybook from 'eslint-plugin-storybook'
 import pluginVue from 'eslint-plugin-vue'
 
-export default defineConfigWithVueTs(
+export default withVueTs(
   includeIgnoreFile(fileURLToPath(new URL('.gitignore', import.meta.url))),
   globalIgnores(['src/api/resources.ts']),
 

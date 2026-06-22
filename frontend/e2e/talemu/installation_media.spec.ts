@@ -135,6 +135,7 @@ test('Download installation media', async ({ page }, testInfo) => {
     await expect
       .poll(async () => {
         const schematicYml = await page.evaluate(() => navigator.clipboard.readText())
+        if (!schematicYml) return
         const parsedSchematicYml = load(schematicYml)
 
         await testInfo.attach('schematic.yaml', {
