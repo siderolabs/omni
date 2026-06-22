@@ -42,15 +42,17 @@ import {
   workersTitlePrefix,
 } from '@/methods/machineset'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import ConfigPatchDestroyModal from '@/views/Config/components/ConfigPatchDestroyModal.vue'
 
-const filter = ref('')
-
-type Props = {
+const { machine, cluster } = defineProps<{
   cluster?: string
   machine?: string
-}
+}>()
 
-const { machine, cluster } = defineProps<Props>()
+const filter = ref('')
+const configPatchDestroyModalOpen = ref(false)
+const configPatchDestroyModalPatchId = ref<string>()
+
 const { canManageMachineConfigPatches } = usePermissions()
 const { canManageConfigPatches: canManageClusterMachineConfigPatches } = useClusterPermissions(
   () => cluster,
@@ -308,7 +310,8 @@ const canManageConfigPatches = computed(() => {
                 class="absolute top-0 right-3 bottom-0 m-auto"
                 @click.stop="
                   () => {
-                    $router.push({ query: { modal: 'configPatchDestroy', id: item.id } })
+                    configPatchDestroyModalOpen = true
+                    configPatchDestroyModalPatchId = item.id
                   }
                 "
               />
@@ -333,6 +336,12 @@ const canManageConfigPatches = computed(() => {
         </template>
       </Disclosure>
     </div>
+
+    <ConfigPatchDestroyModal
+      v-if="configPatchDestroyModalPatchId"
+      v-model:open="configPatchDestroyModalOpen"
+      :patch-id="configPatchDestroyModalPatchId"
+    />
   </div>
 </template>
 
