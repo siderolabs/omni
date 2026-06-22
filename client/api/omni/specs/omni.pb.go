@@ -7782,20 +7782,21 @@ func (x *MachineConfigDiffSpec) GetDiff() string {
 }
 
 type InstallationMediaConfigSpec struct {
-	state             protoimpl.MessageState             `protogen:"open.v1"`
-	TalosVersion      string                             `protobuf:"bytes,1,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
-	Architecture      PlatformConfigSpec_Arch            `protobuf:"varint,2,opt,name=architecture,proto3,enum=specs.PlatformConfigSpec_Arch" json:"architecture,omitempty"`
-	InstallExtensions []string                           `protobuf:"bytes,3,rep,name=install_extensions,json=installExtensions,proto3" json:"install_extensions,omitempty"`
-	KernelArgs        string                             `protobuf:"bytes,4,opt,name=kernel_args,json=kernelArgs,proto3" json:"kernel_args,omitempty"`
-	Cloud             *InstallationMediaConfigSpec_Cloud `protobuf:"bytes,5,opt,name=cloud,proto3" json:"cloud,omitempty"`
-	Sbc               *InstallationMediaConfigSpec_SBC   `protobuf:"bytes,6,opt,name=sbc,proto3" json:"sbc,omitempty"`
-	JoinToken         string                             `protobuf:"bytes,7,opt,name=join_token,json=joinToken,proto3" json:"join_token,omitempty"`
-	SecureBoot        bool                               `protobuf:"varint,8,opt,name=secure_boot,json=secureBoot,proto3" json:"secure_boot,omitempty"`
-	GrpcTunnel        GrpcTunnelMode                     `protobuf:"varint,9,opt,name=grpc_tunnel,json=grpcTunnel,proto3,enum=specs.GrpcTunnelMode" json:"grpc_tunnel,omitempty"`
-	MachineLabels     map[string]string                  `protobuf:"bytes,10,rep,name=machine_labels,json=machineLabels,proto3" json:"machine_labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Bootloader        management.SchematicBootloader     `protobuf:"varint,11,opt,name=bootloader,proto3,enum=management.SchematicBootloader" json:"bootloader,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                 protoimpl.MessageState             `protogen:"open.v1"`
+	TalosVersion          string                             `protobuf:"bytes,1,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
+	Architecture          PlatformConfigSpec_Arch            `protobuf:"varint,2,opt,name=architecture,proto3,enum=specs.PlatformConfigSpec_Arch" json:"architecture,omitempty"`
+	InstallExtensions     []string                           `protobuf:"bytes,3,rep,name=install_extensions,json=installExtensions,proto3" json:"install_extensions,omitempty"`
+	KernelArgs            string                             `protobuf:"bytes,4,opt,name=kernel_args,json=kernelArgs,proto3" json:"kernel_args,omitempty"`
+	Cloud                 *InstallationMediaConfigSpec_Cloud `protobuf:"bytes,5,opt,name=cloud,proto3" json:"cloud,omitempty"`
+	Sbc                   *InstallationMediaConfigSpec_SBC   `protobuf:"bytes,6,opt,name=sbc,proto3" json:"sbc,omitempty"`
+	JoinToken             string                             `protobuf:"bytes,7,opt,name=join_token,json=joinToken,proto3" json:"join_token,omitempty"`
+	SecureBoot            bool                               `protobuf:"varint,8,opt,name=secure_boot,json=secureBoot,proto3" json:"secure_boot,omitempty"`
+	GrpcTunnel            GrpcTunnelMode                     `protobuf:"varint,9,opt,name=grpc_tunnel,json=grpcTunnel,proto3,enum=specs.GrpcTunnelMode" json:"grpc_tunnel,omitempty"`
+	MachineLabels         map[string]string                  `protobuf:"bytes,10,rep,name=machine_labels,json=machineLabels,proto3" json:"machine_labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Bootloader            management.SchematicBootloader     `protobuf:"varint,11,opt,name=bootloader,proto3,enum=management.SchematicBootloader" json:"bootloader,omitempty"`
+	EmbeddedMachineConfig string                             `protobuf:"bytes,12,opt,name=embedded_machine_config,json=embeddedMachineConfig,proto3" json:"embedded_machine_config,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *InstallationMediaConfigSpec) Reset() {
@@ -7903,6 +7904,13 @@ func (x *InstallationMediaConfigSpec) GetBootloader() management.SchematicBootlo
 		return x.Bootloader
 	}
 	return management.SchematicBootloader(0)
+}
+
+func (x *InstallationMediaConfigSpec) GetEmbeddedMachineConfig() string {
+	if x != nil {
+		return x.EmbeddedMachineConfig
+	}
+	return ""
 }
 
 // RotateTalosCASpec is used to initiate Talos CA rotation.
@@ -12021,7 +12029,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12 \n" +
 	"\vinitialized\x18\x03 \x01(\bR\vinitialized\"+\n" +
 	"\x15MachineConfigDiffSpec\x12\x12\n" +
-	"\x04diff\x18\x01 \x01(\tR\x04diff\"\x98\x06\n" +
+	"\x04diff\x18\x01 \x01(\tR\x04diff\"\xd0\x06\n" +
 	"\x1bInstallationMediaConfigSpec\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12B\n" +
 	"\farchitecture\x18\x02 \x01(\x0e2\x1e.specs.PlatformConfigSpec.ArchR\farchitecture\x12-\n" +
@@ -12040,7 +12048,8 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	" \x03(\v25.specs.InstallationMediaConfigSpec.MachineLabelsEntryR\rmachineLabels\x12?\n" +
 	"\n" +
 	"bootloader\x18\v \x01(\x0e2\x1f.management.SchematicBootloaderR\n" +
-	"bootloader\x1a#\n" +
+	"bootloader\x126\n" +
+	"\x17embedded_machine_config\x18\f \x01(\tR\x15embeddedMachineConfig\x1a#\n" +
 	"\x05Cloud\x12\x1a\n" +
 	"\bplatform\x18\x01 \x01(\tR\bplatform\x1aH\n" +
 	"\x03SBC\x12\x18\n" +

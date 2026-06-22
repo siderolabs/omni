@@ -1563,6 +1563,7 @@ message InstallationMediaConfigSpec {
   GrpcTunnelMode grpc_tunnel = 9;
   map<string, string> machine_labels = 10;
   management.SchematicBootloader bootloader = 11;
+  string embedded_machine_config = 12;
 }
 
 // RotateTalosCASpec is used to initiate Talos CA rotation.

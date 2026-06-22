@@ -1067,6 +1067,7 @@ export type InstallationMediaConfigSpec = {
   grpc_tunnel?: GrpcTunnelMode
   machine_labels?: {[key: string]: string}
   bootloader?: ManagementManagement.SchematicBootloader
+  embedded_machine_config?: string
 }
 
 export type RotateTalosCASpec = {
