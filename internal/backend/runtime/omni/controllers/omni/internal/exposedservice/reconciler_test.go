@@ -224,10 +224,10 @@ func TestReconcilerInvalidAliases(t *testing.T) {
 		expectError      string
 		useOmniSubdomain bool
 	}{
-		{name: "dot in alias - useOmniSubdomain", prefix: "my.service", useOmniSubdomain: true, expectError: "not a valid DNS label"},
-		{name: "dot in alias - default mode", prefix: "my.service", useOmniSubdomain: false, expectError: "not a valid DNS label"},
-		{name: "underscore in alias - useOmniSubdomain", prefix: "my_service", useOmniSubdomain: true, expectError: "not a valid DNS label"},
-		{name: "underscore in alias - default mode", prefix: "my_service", useOmniSubdomain: false, expectError: "not a valid DNS label"},
+		{name: "dot in alias - useOmniSubdomain", prefix: "my.service", useOmniSubdomain: true, expectError: "not a valid DNS-1123 label"},
+		{name: "dot in alias - default mode", prefix: "my.service", useOmniSubdomain: false, expectError: "not a valid DNS-1123 label"},
+		{name: "underscore in alias - useOmniSubdomain", prefix: "my_service", useOmniSubdomain: true, expectError: "not a valid DNS-1123 label"},
+		{name: "underscore in alias - default mode", prefix: "my_service", useOmniSubdomain: false, expectError: "not a valid DNS-1123 label"},
 		{name: "dash in alias - default mode", prefix: "my-service", useOmniSubdomain: false, expectError: "contains a dash"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

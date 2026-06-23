@@ -45,6 +45,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validations"
 	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/dnslabel"
 )
 
 //go:embed testdata/infra.json
@@ -2981,6 +2982,58 @@ func TestInfraProviderValidation(t *testing.T) {
 
 	require.NoError(t, st.Destroy(ctx, machine.Metadata()))
 	require.NoError(t, st.Destroy(ctx, provider.Metadata()))
+}
+
+func TestInfraProviderNameValidation(t *testing.T) {
+	t.Parallel()
+
+	newState := func(t *testing.T) (context.Context, state.CoreState) {
+		t.Helper()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Cleanup(cancel)
+
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+		return ctx, validated.NewState(innerSt, validations.InfraProviderValidationOptions(innerSt)...)
+	}
+
+	for _, name := range []string{"a", "aws-1", "qemu-1", "abc123", "abc-123-def"} {
+		t.Run("accept/"+name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, st := newState(t)
+
+			require.NoError(t, st.Create(ctx, infra.NewProvider(name)))
+		})
+	}
+
+	rejectCases := []struct {
+		name    string
+		id      string
+		message string
+	}{
+		{"whitespace", "foo bar", "not a valid DNS-1123 label"},
+		{"uppercase", "AWS-1", "not a valid DNS-1123 label"},
+		{"underscore", "aws_1", "not a valid DNS-1123 label"},
+		{"colon", "infra-provider:foo", "not a valid DNS-1123 label"},
+		{"leading hyphen", "-aws", "not a valid DNS-1123 label"},
+		{"trailing hyphen", "aws-", "not a valid DNS-1123 label"},
+		{"non-ascii", "qemü-1", "not a valid DNS-1123 label"},
+		{"too long", strings.Repeat("a", dnslabel.MaxLength+1), "DNS-1123 label is too long"},
+	}
+
+	for _, tc := range rejectCases {
+		t.Run("reject/"+tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, st := newState(t)
+
+			err := st.Create(ctx, infra.NewProvider(tc.id))
+			require.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+			assert.ErrorContains(t, err, tc.message)
+		})
+	}
 }
 
 func TestRotateSecretsValidation(t *testing.T) {

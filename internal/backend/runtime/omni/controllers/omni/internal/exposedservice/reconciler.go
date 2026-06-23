@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -27,10 +26,8 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/pkg/dnslabel"
 )
-
-// dnsLabelRegexp validates an RFC 1123 DNS label: lowercase alphanumeric with optional dashes, no leading/trailing dash, max 63 chars.
-var dnsLabelRegexp = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
 
 // Reconciler is the reconciler for ExposedService resources.
 type Reconciler struct {
@@ -324,10 +321,9 @@ func (reconciler *Reconciler) buildExposedServiceURL(alias string) (string, erro
 		return "", errors.New("empty alias")
 	}
 
-	// Validate alias as an RFC 1123 DNS label: lowercase alphanumeric with optional dashes,
-	// no leading/trailing dash, max 63 chars.
-	if !dnsLabelRegexp.MatchString(alias) {
-		return "", fmt.Errorf("alias %q is not a valid DNS label (must be lowercase alphanumeric with optional dashes, no leading/trailing dash, max 63 chars)", alias)
+	// The alias becomes a DNS label of the workload proxy URL, so it has to satisfy RFC 1123.
+	if err := dnslabel.Validate(alias); err != nil {
+		return "", fmt.Errorf("invalid alias: %w", err)
 	}
 
 	if reconciler.useOmniSubdomain {

@@ -16,10 +16,20 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
+	"github.com/siderolabs/omni/internal/pkg/dnslabel"
 )
 
 func infraProviderValidationOptions(st state.State) []validated.StateOption {
 	return []validated.StateOption{
+		validated.WithCreateValidations(validated.NewCreateValidationForType(func(_ context.Context, res *infra.Provider, _ ...state.CreateOption) error {
+			// The ID becomes the local part of the matching service account identity, so it has
+			// to be a DNS-1123 label or PGP identity construction rejects it later.
+			if err := dnslabel.Validate(res.Metadata().ID()); err != nil {
+				return fmt.Errorf("invalid infra provider name: %w", err)
+			}
+
+			return nil
+		})),
 		validated.WithDestroyValidations(validated.NewDestroyValidationForType(func(ctx context.Context, ptr resource.Pointer, res *infra.Provider, _ ...state.DestroyOption) error {
 			if res == nil {
 				return nil
