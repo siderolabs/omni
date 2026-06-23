@@ -63,7 +63,7 @@ func listPresets(ctx context.Context, client *client.Client, wide bool) error {
 
 	header := "NAME\tARCH\tTALOS VERSION\tTYPE\tPLATFORM/OVERLAY"
 	if wide {
-		header += "\tSECURE BOOT\tEXTENSIONS\tLABELS\tBOOTLOADER\tGRPC TUNNEL\tKERNEL ARGS"
+		header += "\tSECURE BOOT\tEXTENSIONS\tLABELS\tBOOTLOADER\tGRPC TUNNEL\tKERNEL ARGS\tEMBEDDED CONFIG"
 	}
 
 	fmt.Fprintln(w, header) //nolint:errcheck
@@ -87,13 +87,14 @@ func listPresets(ctx context.Context, client *client.Client, wide bool) error {
 
 		if wide {
 			fmt.Fprintf( //nolint:errcheck
-				w, "\t%v\t%s\t%s\t%s\t%s\t%s",
+				w, "\t%v\t%s\t%s\t%s\t%s\t%s\t%s",
 				spec.SecureBoot,
 				extensionsOrDash(spec.InstallExtensions),
 				machineLabelsOrDash(spec.MachineLabels),
 				download.BootloaderToString(spec.Bootloader),
 				download.GrpcTunnelModeToString(spec.GrpcTunnel),
 				kernelArgsOrDash(spec.KernelArgs),
+				yesOrDash(spec.EmbeddedMachineConfig != ""),
 			)
 		}
 
@@ -123,6 +124,14 @@ func platformOrOverlay(spec *specs.InstallationMediaConfigSpec) string {
 	default:
 		return "-"
 	}
+}
+
+func yesOrDash(present bool) string {
+	if present {
+		return "yes"
+	}
+
+	return "-"
 }
 
 func kernelArgsOrDash(args string) string {

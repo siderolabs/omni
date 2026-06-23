@@ -129,6 +129,8 @@ type Params struct { //nolint:govet
 	ExtraKernelArgs []string
 	Extensions      []string
 
+	EmbeddedMachineConfig string
+
 	Bootloader management.SchematicBootloader
 	PXE        bool
 	SecureBoot bool
@@ -317,6 +319,44 @@ func ValidateTalosVersion(ctx context.Context, st state.State, talosVersion stri
 	return nil
 }
 
+// ReadEmbeddedMachineConfigFile reads the embedded machine config from the given path.
+// A path of "-" reads from standard input, allowing the config to be piped in.
+func ReadEmbeddedMachineConfigFile(path string) (string, error) {
+	switch path {
+	case "":
+		return "", nil
+	case "-":
+		contents, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return "", fmt.Errorf("failed to read embedded machine config from stdin: %w", err)
+		}
+
+		return string(contents), nil
+	default:
+		contents, err := os.ReadFile(path)
+		if err != nil {
+			return "", fmt.Errorf("failed to read embedded machine config file %q: %w", path, err)
+		}
+
+		return string(contents), nil
+	}
+}
+
+// ValidateEmbeddedConfigSupport verifies the given Talos version supports an embedded machine
+// configuration, using the server's Quirks resource as the source of truth.
+func ValidateEmbeddedConfigSupport(ctx context.Context, st state.State, talosVersion string) error {
+	q, err := safe.ReaderGetByID[*virtual.Quirks](ctx, st, strings.TrimLeft(talosVersion, "v"))
+	if err != nil {
+		return fmt.Errorf("failed to look up quirks for Talos version %q: %w", talosVersion, err)
+	}
+
+	if !q.TypedSpec().Value.GetSupportsEmbeddedConfig() {
+		return fmt.Errorf("embedded machine config is not supported by Talos version %q", talosVersion)
+	}
+
+	return nil
+}
+
 // ValidateExtensions verifies all requested extensions exist for the given Talos version.
 func ValidateExtensions(ctx context.Context, st state.State, talosVersion string, extensions []string) error {
 	if len(extensions) == 0 {
@@ -442,6 +482,8 @@ func BuildParamsFromPreset(spec *specs.InstallationMediaConfigSpec, arch string)
 		params.Extensions = spec.InstallExtensions
 	}
 
+	params.EmbeddedMachineConfig = spec.EmbeddedMachineConfig
+
 	if len(spec.MachineLabels) > 0 {
 		params.Labels = make([]string, 0, len(spec.MachineLabels))
 		for k, v := range spec.MachineLabels {
@@ -543,6 +585,7 @@ func createSchematic(ctx context.Context, client *client.Client, image ImageInfo
 		SiderolinkGrpcTunnelMode: params.GrpcTunnelMode,
 		JoinToken:                params.JoinToken,
 		Bootloader:               params.Bootloader,
+		EmbeddedMachineConfig:    params.EmbeddedMachineConfig,
 	}
 
 	if params.Overlay != nil {

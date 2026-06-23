@@ -8,19 +8,20 @@ package installationmedia
 import "github.com/spf13/cobra"
 
 const (
-	flagArch            = "arch"
-	flagTalosVersion    = "talos-version"
-	flagInitialLabels   = "initial-labels"
-	flagExtraKernelArgs = "extra-kernel-args"
-	flagExtensions      = "extensions"
-	flagSecureBoot      = "secureboot"
-	flagPlatform        = "platform"
-	flagOverlay         = "overlay"
-	flagOverlayOptions  = "overlay-options"
-	flagJoinTokenName   = "join-token"
-	flagBootloader      = "bootloader"
-	flagGRPCTunnel      = "use-siderolink-grpc-tunnel"
-	flagFormat          = "format"
+	flagArch                      = "arch"
+	flagTalosVersion              = "talos-version"
+	flagInitialLabels             = "initial-labels"
+	flagExtraKernelArgs           = "extra-kernel-args"
+	flagExtensions                = "extensions"
+	flagSecureBoot                = "secureboot"
+	flagPlatform                  = "platform"
+	flagOverlay                   = "overlay"
+	flagOverlayOptions            = "overlay-options"
+	flagJoinTokenName             = "join-token"
+	flagBootloader                = "bootloader"
+	flagGRPCTunnel                = "use-siderolink-grpc-tunnel"
+	flagFormat                    = "format"
+	flagEmbeddedMachineConfigFile = "embedded-machine-config-file"
 )
 
 var cmd = &cobra.Command{

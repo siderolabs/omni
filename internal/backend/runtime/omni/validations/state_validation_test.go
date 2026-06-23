@@ -2346,6 +2346,76 @@ func TestInstallationMediaConfigTalosVersionValidation(t *testing.T) {
 	}
 }
 
+func TestInstallationMediaConfigEmbeddedConfigValidation(t *testing.T) {
+	t.Parallel()
+
+	const embeddedConfig = "version: v1alpha1\nmachine: {}\n"
+
+	setup := func(t *testing.T, versions ...string) state.State {
+		innerSt := state.WrapCore(namespaced.NewState(inmem.Build))
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		t.Cleanup(cancel)
+
+		for _, v := range versions {
+			talosVersion := omnires.NewTalosVersion(v)
+			talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.0"}
+			require.NoError(t, innerSt.Create(ctx, talosVersion))
+		}
+
+		return innerSt
+	}
+
+	for _, tt := range []struct {
+		name         string
+		talosVersion string
+		errContains  string
+		versions     []string
+	}{
+		{
+			name:         "supported version",
+			talosVersion: "1.13.2",
+			versions:     []string{"1.13.2"},
+		},
+		{
+			name:         "empty version defers to download time",
+			talosVersion: "",
+			versions:     []string{"1.13.2"},
+		},
+		{
+			name:         "unsupported version",
+			talosVersion: "1.11.0",
+			versions:     []string{"1.11.0"},
+			errContains:  `embedded machine config is not supported by Talos version "1.11.0"`,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			t.Cleanup(cancel)
+
+			innerSt := setup(t, tt.versions...)
+			st := validated.NewState(innerSt, validations.InstallationMediaConfigValidationOptions(innerSt)...)
+
+			media := omnires.NewInstallationMediaConfig("test")
+			media.TypedSpec().Value.Architecture = specs.PlatformConfigSpec_AMD64
+			media.TypedSpec().Value.TalosVersion = tt.talosVersion
+			media.TypedSpec().Value.EmbeddedMachineConfig = embeddedConfig
+
+			err := st.Create(ctx, media)
+			if tt.errContains == "" {
+				require.NoError(t, err)
+
+				return
+			}
+
+			assert.True(t, validated.IsValidationError(err), "expected validation error, got %v", err)
+			assert.ErrorContains(t, err, tt.errContains)
+		})
+	}
+}
+
 //nolint:maintidx
 func TestExtensionsCatalogValidation(t *testing.T) {
 	t.Parallel()

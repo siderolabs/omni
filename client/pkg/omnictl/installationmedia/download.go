@@ -23,16 +23,17 @@ import (
 )
 
 var downloadCmdFlags struct {
-	output                  string
-	format                  string
-	arch                    string
-	talosVersion            string
-	joinTokenName           string
-	labels                  []string
-	extensions              []string
-	extraKernelArgs         []string
-	secureBoot              bool
-	useSiderolinkGRPCTunnel bool
+	output                    string
+	format                    string
+	arch                      string
+	talosVersion              string
+	joinTokenName             string
+	embeddedMachineConfigFile string
+	labels                    []string
+	extensions                []string
+	extraKernelArgs           []string
+	secureBoot                bool
+	useSiderolinkGRPCTunnel   bool
 }
 
 var downloadCmd = &cobra.Command{
@@ -107,6 +108,8 @@ func init() {
 	downloadCmd.Flags().StringSliceVar(&downloadCmdFlags.extensions, flagExtensions, nil, "Override extensions to pre-install")
 	downloadCmd.Flags().BoolVar(&downloadCmdFlags.secureBoot, flagSecureBoot, false, "Override secure boot setting")
 	downloadCmd.Flags().StringVar(&downloadCmdFlags.joinTokenName, flagJoinTokenName, "", "Join token ID override (uses preset token if empty)")
+	downloadCmd.Flags().StringVar(&downloadCmdFlags.embeddedMachineConfigFile, flagEmbeddedMachineConfigFile, "",
+		"Override the embedded machine config, reading it from a file or \"-\" for stdin")
 	downloadCmd.Flags().BoolVar(&downloadCmdFlags.useSiderolinkGRPCTunnel, flagGRPCTunnel, false,
 		"Configure Talos to use the SideroLink (WireGuard) gRPC tunnel over HTTP/2 for Omni management traffic, instead of UDP."+
 			" Only enable this if the network blocks UDP packets, as HTTP tunneling adds significant overhead for communications.")
@@ -187,6 +190,13 @@ func runDownload(ctx context.Context, cmd *cobra.Command, client *client.Client,
 		params.SecureBoot = downloadCmdFlags.secureBoot
 	}
 
+	if cmd.Flags().Changed(flagEmbeddedMachineConfigFile) {
+		params.EmbeddedMachineConfig, err = download.ReadEmbeddedMachineConfigFile(downloadCmdFlags.embeddedMachineConfigFile)
+		if err != nil {
+			return err
+		}
+	}
+
 	if err = revalidateOverrides(ctx, cmd, client.Omni().State(), spec, params, arch); err != nil {
 		return err
 	}
@@ -212,9 +222,18 @@ func revalidateOverrides(ctx context.Context, cmd *cobra.Command, st state.State
 	secureBootChanged := cmd.Flags().Changed(flagSecureBoot)
 	extensionsChanged := cmd.Flags().Changed(flagExtensions)
 	archChanged := cmd.Flags().Changed(flagArch)
+	embeddedConfigChanged := cmd.Flags().Changed(flagEmbeddedMachineConfigFile)
 
 	if talosChanged {
 		if err := download.ValidateTalosVersion(ctx, st, params.TalosVersion); err != nil {
+			return err
+		}
+	}
+
+	// Re-check embedded config support when the config itself was overridden, or when the Talos
+	// version changed under a preset that already carries an embedded config.
+	if params.EmbeddedMachineConfig != "" && (embeddedConfigChanged || talosChanged) {
+		if err := download.ValidateEmbeddedConfigSupport(ctx, st, params.TalosVersion); err != nil {
 			return err
 		}
 	}

@@ -20,18 +20,19 @@ import (
 )
 
 var createCmdFlags struct {
-	arch            string
-	talosVersion    string
-	platform        string
-	overlay         string
-	overlayOptions  string
-	joinTokenName   string
-	bootloader      string
-	extensions      []string
-	extraKernelArgs []string
-	labels          []string
-	secureBoot      bool
-	grpcTunnel      bool
+	arch                      string
+	talosVersion              string
+	platform                  string
+	overlay                   string
+	overlayOptions            string
+	joinTokenName             string
+	bootloader                string
+	embeddedMachineConfigFile string
+	extensions                []string
+	extraKernelArgs           []string
+	labels                    []string
+	secureBoot                bool
+	grpcTunnel                bool
 }
 
 var createCmd = &cobra.Command{
@@ -53,6 +54,10 @@ Examples:
     omnictl media preset create full-preset --arch amd64 \
         --extensions qemu-guest-agent --extensions intel-ucode \
         --initial-labels env=production --initial-labels team=infra
+
+    # Create a preset with an embedded machine config read from a file
+    omnictl media preset create embedded-preset --arch amd64 \
+        --embedded-machine-config-file ./machine-config.yaml
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -82,6 +87,7 @@ func init() {
 	createCmd.Flags().BoolVar(&createCmdFlags.secureBoot, flagSecureBoot, false, "Enable SecureBoot in the preset")
 	createCmd.Flags().StringVar(&createCmdFlags.joinTokenName, flagJoinTokenName, "", "Join token ID (uses default token if empty)")
 	createCmd.Flags().StringVar(&createCmdFlags.bootloader, flagBootloader, "auto", "Bootloader type (auto, uefi, bios, dual)")
+	createCmd.Flags().StringVar(&createCmdFlags.embeddedMachineConfigFile, flagEmbeddedMachineConfigFile, "", "Embedded machine config read from a file, or \"-\" for stdin")
 	createCmd.Flags().BoolVar(&createCmdFlags.grpcTunnel, flagGRPCTunnel, false,
 		"Configure Talos to use the SideroLink (WireGuard) gRPC tunnel over HTTP/2 for Omni management traffic, instead of UDP."+
 			" Only enable this if the network blocks UDP packets, as HTTP tunneling adds significant overhead for communications.")
@@ -139,14 +145,28 @@ func createPreset(ctx context.Context, cmd *cobra.Command, client *client.Client
 		return err
 	}
 
+	var embeddedMachineConfig string
+
+	if createCmdFlags.embeddedMachineConfigFile != "" {
+		if err = download.ValidateEmbeddedConfigSupport(ctx, client.Omni().State(), resolveTalosVersion); err != nil {
+			return err
+		}
+
+		embeddedMachineConfig, err = download.ReadEmbeddedMachineConfigFile(createCmdFlags.embeddedMachineConfigFile)
+		if err != nil {
+			return err
+		}
+	}
+
 	spec := &specs.InstallationMediaConfigSpec{
-		TalosVersion:      talosVersion,
-		Architecture:      arch,
-		InstallExtensions: resolvedExtensions,
-		KernelArgs:        strings.Join(createCmdFlags.extraKernelArgs, " "),
-		JoinToken:         tokenID,
-		SecureBoot:        createCmdFlags.secureBoot,
-		Bootloader:        bootloader,
+		TalosVersion:          talosVersion,
+		Architecture:          arch,
+		InstallExtensions:     resolvedExtensions,
+		KernelArgs:            strings.Join(createCmdFlags.extraKernelArgs, " "),
+		JoinToken:             tokenID,
+		SecureBoot:            createCmdFlags.secureBoot,
+		Bootloader:            bootloader,
+		EmbeddedMachineConfig: embeddedMachineConfig,
 	}
 
 	switch {

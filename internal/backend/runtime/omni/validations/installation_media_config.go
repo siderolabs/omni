@@ -14,6 +14,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -75,6 +76,12 @@ func installationMediaConfigValidationOptions(st state.State) []validated.StateO
 				}
 
 				return fmt.Errorf("failed to look up Talos version %q: %w", spec.GetTalosVersion(), err)
+			}
+
+			// An empty Talos version tracks the server default at download time, which always
+			// supports embedded config, so only gate when a concrete version is pinned.
+			if spec.GetEmbeddedMachineConfig() != "" && !quirks.New(talosVersion).SupportsEmbeddedConfig() {
+				return fmt.Errorf("embedded machine config is not supported by Talos version %q", spec.GetTalosVersion())
 			}
 		}
 

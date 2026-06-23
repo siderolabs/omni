@@ -5,6 +5,8 @@
 package download_test
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -259,6 +261,88 @@ func TestBuildParamsFromPresetDefaults(t *testing.T) {
 		params, err := download.BuildParamsFromPreset(spec, "amd64")
 		require.NoError(t, err)
 		require.Empty(t, params.JoinToken)
+	})
+
+	t.Run("EmbeddedMachineConfig is carried over", func(t *testing.T) {
+		t.Parallel()
+
+		spec := &specs.InstallationMediaConfigSpec{EmbeddedMachineConfig: "version: v1alpha1\nmachine: {}\n"}
+		params, err := download.BuildParamsFromPreset(spec, "amd64")
+		require.NoError(t, err)
+		require.Equal(t, "version: v1alpha1\nmachine: {}\n", params.EmbeddedMachineConfig)
+	})
+}
+
+func TestReadEmbeddedMachineConfigFile(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns empty when no path is given", func(t *testing.T) {
+		t.Parallel()
+
+		out, err := download.ReadEmbeddedMachineConfigFile("")
+		require.NoError(t, err)
+		require.Empty(t, out)
+	})
+
+	t.Run("reads the file when a path is given", func(t *testing.T) {
+		t.Parallel()
+
+		path := filepath.Join(t.TempDir(), "config.yaml")
+		require.NoError(t, os.WriteFile(path, []byte("version: v1alpha1\nmachine: {}\n"), 0o600))
+
+		out, err := download.ReadEmbeddedMachineConfigFile(path)
+		require.NoError(t, err)
+		require.Equal(t, "version: v1alpha1\nmachine: {}\n", out)
+	})
+
+	t.Run("errors with the path when the file is missing", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := download.ReadEmbeddedMachineConfigFile(filepath.Join(t.TempDir(), "missing.yaml"))
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "missing.yaml")
+	})
+}
+
+func TestValidateEmbeddedConfigSupport(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+
+	newQuirks := func(version string, supported bool) *virtual.Quirks {
+		q := virtual.NewQuirks(version)
+		q.TypedSpec().Value.SupportsEmbeddedConfig = supported
+
+		return q
+	}
+
+	t.Run("passes when the version supports embedded config", func(t *testing.T) {
+		t.Parallel()
+
+		st := newTestState(t)
+		require.NoError(t, st.Create(ctx, newQuirks("1.13.0", true)))
+
+		require.NoError(t, download.ValidateEmbeddedConfigSupport(ctx, st, "1.13.0"))
+	})
+
+	t.Run("fails when the version does not support embedded config", func(t *testing.T) {
+		t.Parallel()
+
+		st := newTestState(t)
+		require.NoError(t, st.Create(ctx, newQuirks("1.11.0", false)))
+
+		err := download.ValidateEmbeddedConfigSupport(ctx, st, "1.11.0")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "embedded machine config is not supported by Talos")
+	})
+
+	t.Run("strips a leading v before the lookup", func(t *testing.T) {
+		t.Parallel()
+
+		st := newTestState(t)
+		require.NoError(t, st.Create(ctx, newQuirks("1.13.0", true)))
+
+		require.NoError(t, download.ValidateEmbeddedConfigSupport(ctx, st, "v1.13.0"))
 	})
 }
 
