@@ -97,12 +97,6 @@ enum PatchType {
   Machine = 'Machine',
 }
 
-let codeEditor: monaco.editor.IStandaloneCodeEditor | undefined
-
-const editorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
-  codeEditor = editor
-}
-
 const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
   skip: !machineId,
   resource: {
@@ -355,10 +349,6 @@ const getPatchLabels = () => {
 const saveConfig = async () => {
   const create = state.value === State.NotExists
 
-  if (codeEditor) {
-    config.value = codeEditor.getValue()
-  }
-
   const currentPatch: Resource<ConfigPatchSpec> = configPatch.value || {
     metadata: {
       namespace: DefaultNamespace,
@@ -451,11 +441,10 @@ const canManageConfigPatches = computed(() =>
 
         <CodeEditor
           v-else
-          v-model:value="config"
+          v-model="config"
           :options="{ readOnly: !canManageConfigPatches }"
           :validators="[checkEncryption]"
           :talos-version="cluster?.spec.talos_version"
-          @editor-did-mount="editorDidMount"
         />
       </div>
     </PageContainer>

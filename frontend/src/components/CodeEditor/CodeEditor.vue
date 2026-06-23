@@ -109,8 +109,6 @@ import { DefaultTalosVersion } from '@/api/resources'
 import { majorMinorVersion } from '@/methods'
 
 type Props = {
-  value: string
-  editorDidMount?: (editor: monaco.editor.IStandaloneCodeEditor) => void
   options?: monaco.editor.IStandaloneEditorConstructionOptions
   validators?: ((
     model: monaco.editor.ITextModel,
@@ -119,33 +117,22 @@ type Props = {
   talosVersion?: string
 }
 
-const emit = defineEmits<{
-  'update:value': [string]
-  editorDidMount: [monaco.editor.IStandaloneCodeEditor]
-}>()
+const { options, validators, talosVersion = DefaultTalosVersion } = defineProps<Props>()
 
-const { value, options, validators, talosVersion = DefaultTalosVersion } = defineProps<Props>()
+const modelValue = defineModel<string>({ default: '' })
 
 const editor = useTemplateRef<HTMLDivElement>('editor')
 
 let instanceRef: monaco.editor.IStandaloneCodeEditor | undefined
 
-watch(
-  () => value,
-  (val) => {
-    const model = instanceRef?.getModel()
+watch(modelValue, (val) => {
+  const model = instanceRef?.getModel()
+  if (!model) return
 
-    if (!model) {
-      return
-    }
-
-    if (val === model.getValue()) {
-      return
-    }
-
+  if (val !== model.getValue()) {
     model.setValue(val)
-  },
-)
+  }
+})
 
 const modelId = useId()
 const schemaVersion = computed(() => {
@@ -171,7 +158,7 @@ watch([editor, schemaVersion], () => {
   }
 
   const model = monaco.editor.createModel(
-    value,
+    modelValue.value,
     'yaml',
     monaco.Uri.parse(
       `inmemory://${modelId}_${majorMinorVersion(schemaVersion.value.format())}.yaml`,
@@ -215,12 +202,11 @@ watch([editor, schemaVersion], () => {
     // debounce
     clearTimeout(handle)
 
-    emit('update:value', model.getValue())
+    modelValue.value = model.getValue()
 
     handle = window.setTimeout(validate, 500)
   })
 
-  emit('editorDidMount', instance)
   instanceRef = instance
 
   onWatcherCleanup(() => {

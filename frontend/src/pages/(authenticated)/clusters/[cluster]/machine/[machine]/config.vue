@@ -5,7 +5,6 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -36,14 +35,12 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
     id: route.params.cluster as string,
   },
 }))
-
-const config = computed(() => configResource.value?.spec.data ?? '')
 </script>
 
 <template>
   <PageContainer class="h-full">
     <CodeEditor
-      v-model:value="config"
+      :model-value="configResource?.spec.data"
       :options="{ readOnly: true }"
       :talos-version="cluster?.spec.talos_version"
     />
