@@ -92,7 +92,7 @@ const saveAndClose = async () => {
         {{ err.message }}
       </TAlert>
 
-      <CodeEditor v-model="configChanges" :talos-version="talosVersion" />
+      <CodeEditor v-model="configChanges" :talos-version="talosVersion" class="size-full" />
     </div>
     <div class="flex justify-between gap-4 rounded-b bg-naturals-n3 p-4">
       <TButton variant="secondary" @click="close">Cancel</TButton>

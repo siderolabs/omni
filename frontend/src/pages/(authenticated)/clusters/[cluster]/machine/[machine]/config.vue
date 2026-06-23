@@ -43,6 +43,7 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
       :model-value="configResource?.spec.data"
       :options="{ readOnly: true }"
       :talos-version="cluster?.spec.talos_version"
+      class="size-full"
     />
   </PageContainer>
 </template>

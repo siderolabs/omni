@@ -85,7 +85,7 @@ monaco.editor.defineTheme(SIDERO_THEME, {
 
     'editorStickyScroll.background': styles.getPropertyValue('--color-naturals-n0'),
 
-    'editor.background': '#00000000',
+    'editor.background': styles.getPropertyValue('--color-naturals-n0'),
 
     'editorHoverWidget.background': styles.getPropertyValue('--color-naturals-n3'),
     'editorHoverWidget.border': styles.getPropertyValue('--color-naturals-n7'),
@@ -172,7 +172,16 @@ watch([editor, schemaVersion], () => {
     fontFamily: styles.getPropertyValue('--font-mono'),
     automaticLayout: true,
     tabSize: 2,
+    insertSpaces: true,
+    detectIndentation: false,
+    trimAutoWhitespace: true,
+    renderWhitespace: 'boundary',
     fixedOverflowWidgets: true,
+    lineNumbersMinChars: 3,
+    lineDecorationsWidth: 5,
+    stickyScroll: {
+      enabled: true,
+    },
     minimap: {
       enabled: false,
     },
@@ -222,5 +231,5 @@ watch([editor, schemaVersion], () => {
 </script>
 
 <template>
-  <div id="editor" ref="editor" class="h-full w-full" />
+  <div ref="editor"></div>
 </template>

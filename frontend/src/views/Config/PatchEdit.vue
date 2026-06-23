@@ -445,6 +445,7 @@ const canManageConfigPatches = computed(() =>
           :options="{ readOnly: !canManageConfigPatches }"
           :validators="[checkEncryption]"
           :talos-version="cluster?.spec.talos_version"
+          class="size-full"
         />
       </div>
     </PageContainer>
