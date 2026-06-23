@@ -6,12 +6,15 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { gte } from 'semver'
-import { computed, onBeforeMount } from 'vue'
+import { computed, onBeforeMount, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { SchematicBootloader } from '@/api/omni/management/management.pb'
 import type { QuirksSpec, SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
 import { QuirksType, SBCConfigType, VirtualNamespace } from '@/api/resources'
+import IconButton from '@/components/Button/IconButton.vue'
+import CodeEditor from '@/components/CodeEditor/CodeEditor.vue'
+import Expandable from '@/components/Expandable/Expandable.vue'
 import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import TextArea from '@/components/TextArea/TextArea.vue'
@@ -25,6 +28,8 @@ definePage({ name: 'InstallationMediaCreateExtraArgs' })
 const formState = defineModel<FormState>({ required: true })
 
 const resolvedVersion = computed(() => resolveTalosVersion(formState.value.talosVersion!))
+
+const configEditorExpanded = ref(false)
 
 const supportsCustomisingKernelArgs = computed(() => gte(resolvedVersion.value, '1.10.0'))
 const supportsBootloaderSelection = computed(() => gte(resolvedVersion.value, '1.12.0-alpha.2'))
@@ -100,15 +105,29 @@ onBeforeMount(() => (formState.value.bootloader ??= SchematicBootloader.BOOT_AUT
     <p>Skip this step if unsure.</p>
 
     <template v-if="quirks?.spec.supports_embedded_config">
-      <TextArea
-        v-model="formState.embeddedMachineConfig"
-        placeholder="apiVersion: v1alpha1
-kind: HostnameConfig
-hostname: my-custom-hostname
-auto: off"
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-naturals-n14">Embedded machine configuration</span>
+
+        <IconButton
+          icon="fullscreen"
+          class="size-6 shrink-0"
+          aria-label="Expand editor"
+          @click="configEditorExpanded = true"
+        />
+      </div>
+
+      <Expandable
+        v-model:expanded="configEditorExpanded"
         title="Embedded machine configuration"
-        overhead-title
-      />
+        class="data-[state=closed]:h-50 data-[state=closed]:overflow-hidden data-[state=closed]:rounded data-[state=closed]:border data-[state=closed]:border-naturals-n8"
+      >
+        <CodeEditor
+          v-model="formState.embeddedMachineConfig"
+          :talos-version="resolvedVersion"
+          :options="{ ariaLabel: 'Embedded machine configuration' }"
+          class="size-full"
+        />
+      </Expandable>
 
       <p>
         This configuration will be embedded into the image. For more details see the
