@@ -17,7 +17,6 @@ import CodeEditor from '@/components/CodeEditor/CodeEditor.vue'
 import Expandable from '@/components/Expandable/Expandable.vue'
 import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
-import TextArea from '@/components/TextArea/TextArea.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceGet } from '@/methods/useResourceGet'
@@ -29,7 +28,8 @@ const formState = defineModel<FormState>({ required: true })
 
 const resolvedVersion = computed(() => resolveTalosVersion(formState.value.talosVersion!))
 
-const configEditorExpanded = ref(false)
+const embeddedConfigExpanded = ref(false)
+const overlayOptionsExpanded = ref(false)
 
 const supportsCustomisingKernelArgs = computed(() => gte(resolvedVersion.value, '1.10.0'))
 const supportsBootloaderSelection = computed(() => gte(resolvedVersion.value, '1.12.0-alpha.2'))
@@ -112,12 +112,12 @@ onBeforeMount(() => (formState.value.bootloader ??= SchematicBootloader.BOOT_AUT
           icon="fullscreen"
           class="size-6 shrink-0"
           aria-label="Expand editor"
-          @click="configEditorExpanded = true"
+          @click="embeddedConfigExpanded = true"
         />
       </div>
 
       <Expandable
-        v-model:expanded="configEditorExpanded"
+        v-model:expanded="embeddedConfigExpanded"
         title="Embedded machine configuration"
         class="data-[state=closed]:h-50 data-[state=closed]:overflow-hidden data-[state=closed]:rounded data-[state=closed]:border data-[state=closed]:border-naturals-n8"
       >
@@ -151,12 +151,29 @@ onBeforeMount(() => (formState.value.bootloader ??= SchematicBootloader.BOOT_AUT
     </template>
 
     <template v-if="selectedSBC">
-      <TextArea
-        v-model="formState.overlayOptions"
-        placeholder="configTxtAppend: 'dtoverlay=vc4-fkms-v3d'"
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-naturals-n14">Extra overlay options (advanced)</span>
+
+        <IconButton
+          icon="fullscreen"
+          class="size-6 shrink-0"
+          aria-label="Expand editor"
+          @click="overlayOptionsExpanded = true"
+        />
+      </div>
+
+      <Expandable
+        v-model:expanded="overlayOptionsExpanded"
         title="Extra overlay options (advanced)"
-        overhead-title
-      />
+        class="data-[state=closed]:h-50 data-[state=closed]:overflow-hidden data-[state=closed]:rounded data-[state=closed]:border data-[state=closed]:border-naturals-n8"
+      >
+        <CodeEditor
+          v-model="formState.overlayOptions"
+          :options="{ ariaLabel: 'Extra overlay options (advanced)' }"
+          disable-config-validation
+          class="size-full"
+        />
+      </Expandable>
 
       <p>
         This step allows you to customize the overlay options for the

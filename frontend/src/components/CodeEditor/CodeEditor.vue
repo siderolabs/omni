@@ -57,7 +57,7 @@ const schemas = configSchemaMap.map<SchemasSettings>(([version, origSchema]) => 
 
   return {
     uri: schema.$id!,
-    fileMatch: [`*_${version}.yaml`],
+    fileMatch: [`*_${version}.patch.yaml`],
     schema,
   }
 })
@@ -115,9 +115,15 @@ type Props = {
     tokens: monaco.Token[],
   ) => monaco.editor.IMarkerData[])[]
   talosVersion?: string
+  disableConfigValidation?: boolean
 }
 
-const { options, validators, talosVersion = DefaultTalosVersion } = defineProps<Props>()
+const {
+  options,
+  validators,
+  disableConfigValidation,
+  talosVersion = DefaultTalosVersion,
+} = defineProps<Props>()
 
 const modelValue = defineModel<string>({ default: '' })
 
@@ -161,7 +167,9 @@ watch([editor, schemaVersion], () => {
     modelValue.value,
     'yaml',
     monaco.Uri.parse(
-      `inmemory://${modelId}_${majorMinorVersion(schemaVersion.value.format())}.yaml`,
+      disableConfigValidation
+        ? `inmemory://${modelId}.yaml`
+        : `inmemory://${modelId}_${majorMinorVersion(schemaVersion.value.format())}.patch.yaml`,
     ),
   )
 
