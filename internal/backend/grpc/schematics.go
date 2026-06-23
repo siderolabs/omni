@@ -102,8 +102,6 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		Customization: customization,
 	}
 
-	s.logger.Info("ensure schematic", zap.Reflect("schematic", schematicRequest))
-
 	schematicRequest.Overlay, err = s.getOverlay(ctx, request)
 	if err != nil {
 		return nil, err
@@ -113,6 +111,8 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure schematic: %w", err)
 	}
+
+	s.logger.Info("ensure schematic succeeded", zap.String("schematic_id", schematicID), zap.String("factory_host", s.imageFactoryClient.Host()))
 
 	schematicYML, err := schematicData.Marshal()
 	if err != nil {
@@ -137,12 +137,12 @@ func (s *managementServer) CreateSchematicFromRaw(ctx context.Context, request *
 		return nil, fmt.Errorf("failed to unmarshal raw schematic: %w", err)
 	}
 
-	s.logger.Info("ensure schematic from raw", zap.Reflect("schematic", schematicRequest))
-
 	schematicID, _, err := s.imageFactoryClient.EnsureSchematic(ctx, *schematicRequest)
 	if err != nil {
-		return nil, fmt.Errorf("failed to ensure schematic: %w", err)
+		return nil, fmt.Errorf("failed to ensure raw schematic: %w", err)
 	}
+
+	s.logger.Info("ensure raw schematic succeeded", zap.String("schematic_id", schematicID), zap.String("factory_host", s.imageFactoryClient.Host()))
 
 	return &management.CreateSchematicResponse{
 		SchematicId: schematicID,
