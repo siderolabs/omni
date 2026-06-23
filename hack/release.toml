@@ -33,6 +33,33 @@ upgrade status computation, and every version picker in the UI all read this sam
 running Omni supports.
 """
 
+[notes.embedded-machine-config]
+title = "Embedded Machine Config for Installation Media"
+description = """\
+Installation media can now carry an embedded machine configuration, so a machine applies it on first boot before it ever reaches Omni. You can set \
+it from the frontend or with `omnictl` when creating installation media, and Omni stores it on the schematic request alongside the rest of the media \
+config. The option is exposed only where the underlying stack reports support for it, through a new `supports_embedded_config` quirk.
+"""
+
+[notes.extension-catalog-validation]
+title = "Talos Extension Names Validated Against the Catalog"
+description = """\
+Extension names on installation media configs, machine request sets, and extensions configurations are now validated against the Talos extensions \
+catalog for the relevant Talos version. Unknown names, duplicates, and oversized lists are rejected, and when no Talos version is set the default \
+version's catalog is used so the names still get checked. Names without a namespace are looked up under `siderolabs/`, so older clients that send the \
+documented short form keep working. The `omnictl installation media create` command now resolves short or partial extension names to canonical form \
+before sending, replacing the client-side catalog check it used to do.
+"""
+
+[notes.cluster-healthcheck-jobs]
+title = "Cluster Health Check Jobs"
+description = """\
+Cluster templates now support health check jobs that gate Talos upgrades. Omni creates the jobs when a Talos upgrade is running and re-runs them on \
+an interval until they succeed, re-creating a job whenever it fails. The checks run before each node upgrade in the upgrade status controller, and if \
+any defined health check fails Omni drops the available upgrade quota to zero, blocking further upgrades until the checks pass. You can read more \
+about this feature on the [docs](https://docs.siderolabs.com/omni/cluster-management/gate-talos-upgrades-with-healthchecks).
+"""
+
 [notes.schematic-preservation]
 title = "Schematic Contents Preserved on Update"
 description = """\
@@ -122,5 +149,5 @@ A round of UI improvements across Omni. The home screen has a reworked "Welcome 
 hover, the machine details panel shows the SMBIOS serial number, and kernel args editing moved into a modal. Config diffs have a sort-order toggle, \
 version pickers sort newest first and scroll to the current selection, and Talos and Kubernetes update calls now report their errors. The disks view \
 got several cleanups, pods sort by status, power-state icons have tooltips, Omni shows a loading indicator when it is slow to start, and the rewritten \
-log viewer scrolls to the bottom reliably.
+log viewer scrolls to the bottom reliably. Machine patches no longer offer the cluster-machine patch option and surface an error when a machine is not part of a cluster.
 """
