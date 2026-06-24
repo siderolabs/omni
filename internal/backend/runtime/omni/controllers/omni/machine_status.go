@@ -501,7 +501,12 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			}
 		}
 
-		spec.Maintenance = event.MaintenanceMode
+		// A machine is in maintenance mode only if the collect task actually reached it over the insecure
+		// maintenance connection. The task falls back to that connection whenever Omni has no Talos config for the
+		// machine yet, even for an already configured machine (for example during cluster import). Such a machine
+		// rejects the insecure connection and reports no access, so it must not be treated as running in
+		// maintenance mode.
+		spec.Maintenance = event.MaintenanceMode && !event.NoAccess
 
 		if err := ctrl.reconcileLabels(machineStatus, event.InfraMachineStatus); err != nil {
 			return fmt.Errorf("failed to reconcile labels: %w", err)

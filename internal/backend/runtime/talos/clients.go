@@ -162,6 +162,9 @@ type ClientFactory struct {
 	cache *expirable.LRU[string, *Client]
 	sf    singleflight.Group
 
+	// started is closed by StartCacheManager once all its watches are registered.
+	started chan struct{}
+
 	metricCacheSize     *prometheus.GaugeVec
 	metricActiveClients *prometheus.GaugeVec
 	metricCacheHits     *prometheus.CounterVec
@@ -181,6 +184,7 @@ func NewClientFactory(omniState state.State, logger *zap.Logger) *ClientFactory 
 	f := &ClientFactory{
 		omniState:       omniState,
 		logger:          logger,
+		started:         make(chan struct{}),
 		metricCacheSize: cacheSize,
 		metricActiveClients: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "omni_talos_clientfactory_active_clients",
@@ -361,7 +365,8 @@ func (factory *ClientFactory) buildForCluster(ctx context.Context, clusterID str
 }
 
 // GetForMachine constructs a Talos client connected directly to a specific node's SideroLink address.
-// It returns a maintenance or a regular client depending on whether the node is currently part of a cluster or not.
+// It returns a maintenance (insecure) or a regular (secure) client depending on whether the machine is currently in
+// maintenance mode or not, as reported by its MachineStatus.
 // Returned client is cached and must not be closed by the consumer.
 func (factory *ClientFactory) GetForMachine(ctx context.Context, machineID string) (*Client, error) {
 	return factory.getForMachine(ctx, machineID, false)
@@ -370,24 +375,46 @@ func (factory *ClientFactory) GetForMachine(ctx context.Context, machineID strin
 // GetMaintenance constructs a Talos client connected directly to a specific node's SideroLink address over the insecure
 // maintenance connection.
 //
-// Unlike GetForMachine, it never falls through to the cluster (secure) client: if the machine turns out to be part of a
-// cluster, it returns an error instead. This way a caller acting on a machine it believes to be in maintenance mode
-// (based on a possibly stale machine status) can never accidentally reconfigure an allocated machine.
+// It determines the machine mode solely from its MachineStatus: if the machine status does not exist yet, or the machine
+// is not in maintenance mode, it returns an error instead of a client. This way a caller acting on a machine it believes
+// to be in maintenance mode (based on a possibly stale view) can never accidentally reconfigure an allocated machine that
+// has already left maintenance.
 // Returned client is cached and must not be closed by the consumer.
 func (factory *ClientFactory) GetMaintenance(ctx context.Context, machineID string) (*Client, error) {
 	return factory.getForMachine(ctx, machineID, true)
 }
 
 func (factory *ClientFactory) getForMachine(ctx context.Context, machineID string, maintenanceOnly bool) (*Client, error) {
-	clusterID, idErr := factory.lookupClusterID(ctx, machineID)
-	if idErr != nil {
-		return nil, idErr
+	machineStatus, err := safe.StateGet[*omni.MachineStatus](
+		ctx, factory.omniState,
+		omni.NewMachineStatus(machineID).Metadata(),
+	)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, NewClientNotReadyError(err)
+		}
+
+		return nil, err
 	}
+
+	spec := machineStatus.TypedSpec().Value
 
 	// when only a maintenance client was asked for, refuse to build (or return a cached) cluster client. checked before
 	// touching the cache so a concurrently cached cluster client can never leak through either.
-	if maintenanceOnly && clusterID != "" {
+	if maintenanceOnly && !spec.Maintenance {
 		return nil, fmt.Errorf("machine %q is not in maintenance mode", machineID)
+	}
+
+	// A machine in maintenance mode is reachable only over the insecure maintenance connection, even when already
+	// allocated to a cluster. Otherwise it is reachable over its cluster's secure connection. A machine that is in
+	// neither state has no reachable client, so report it as not ready rather than caching a doomed one.
+	clusterID := spec.Cluster
+
+	switch {
+	case spec.Maintenance:
+		clusterID = ""
+	case clusterID == "":
+		return nil, NewClientNotReadyError(fmt.Errorf("machine %q is neither in maintenance mode nor allocated to a cluster", machineID))
 	}
 
 	cacheKey := buildCacheKey(clusterID, machineID)
@@ -406,7 +433,7 @@ func (factory *ClientFactory) getForMachine(ctx context.Context, machineID strin
 
 		factory.metricCacheMisses.WithLabelValues(typ).Inc()
 
-		cli, err := factory.buildForMachine(ctx, clusterID, machineID)
+		cli, err := factory.buildForMachine(ctx, clusterID, machineStatus)
 		if err != nil {
 			return nil, err
 		}
@@ -443,25 +470,6 @@ func (factory *ClientFactory) getForMachine(ctx context.Context, machineID strin
 	}
 }
 
-// lookupClusterID returns the cluster name for the given machine, or an empty string if it's not in a cluster.
-func (factory *ClientFactory) lookupClusterID(ctx context.Context, machineID string) (string, error) {
-	clusterMachine, err := safe.StateGetByID[*omni.ClusterMachine](ctx, factory.omniState, machineID)
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return "", nil
-		}
-
-		return "", fmt.Errorf("failed to get ClusterMachine for machine %q: %w", machineID, err)
-	}
-
-	cluster, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
-	if !ok {
-		return "", fmt.Errorf("cluster machine %q has no cluster label", machineID)
-	}
-
-	return cluster, nil
-}
-
 // buildCacheKey constructs a cache key for a client based on cluster and machine IDs.
 //
 // If no machine is specified, this is a cluster-client, and its key will be "clusterID/".
@@ -476,18 +484,8 @@ func buildCacheKey(clusterID, machineID string) string {
 	return clusterID + "/" + machineID
 }
 
-func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID, machineID string) (*Client, error) {
-	machineStatus, getErr := safe.StateGet[*omni.MachineStatus](
-		ctx, factory.omniState,
-		omni.NewMachineStatus(machineID).Metadata(),
-	)
-	if getErr != nil {
-		if state.IsNotFoundError(getErr) {
-			return nil, NewClientNotReadyError(getErr)
-		}
-
-		return nil, getErr
-	}
+func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID string, machineStatus *omni.MachineStatus) (*Client, error) {
+	machineID := machineStatus.Metadata().ID()
 
 	managementAddress := machineStatus.TypedSpec().Value.ManagementAddress
 	if managementAddress == "" {
@@ -533,13 +531,26 @@ func (factory *ClientFactory) releaseForMachine(clusterID, machineID string) {
 	factory.cache.Remove(cacheKey)
 }
 
+// WaitForCacheStart blocks until StartCacheManager has registered all its watches, or the context is done.
+//
+// A caller can use it to be sure the cache manager is live and will observe subsequent state changes before relying on
+// its cache invalidation.
+func (factory *ClientFactory) WaitForCacheStart(ctx context.Context) error {
+	select {
+	case <-factory.started:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 // StartCacheManager starts watching the relevant resources to do the client cache invalidation.
 func (factory *ClientFactory) StartCacheManager(ctx context.Context) error {
 	eventCh := make(chan state.Event)
 
 	clusterEndpointMd := omni.NewClusterEndpoint("").Metadata()
 	talosconfigMd := omni.NewTalosConfig("").Metadata()
-	clusterMachineMd := omni.NewClusterMachine("").Metadata()
+	machineStatusMd := omni.NewMachineStatus("").Metadata()
 
 	err := factory.omniState.WatchKind(ctx, clusterEndpointMd, eventCh)
 	if err != nil {
@@ -551,12 +562,14 @@ func (factory *ClientFactory) StartCacheManager(ctx context.Context) error {
 		return fmt.Errorf("failed to watch TalosConfigs: %w", err)
 	}
 
-	err = factory.omniState.WatchKind(ctx, clusterMachineMd, eventCh)
+	err = factory.omniState.WatchKind(ctx, machineStatusMd, eventCh)
 	if err != nil {
-		return fmt.Errorf("failed to watch ClusterMachines: %w", err)
+		return fmt.Errorf("failed to watch MachineStatuses: %w", err)
 	}
 
 	factory.logger.Debug("started Talos client cache manager")
+
+	close(factory.started)
 
 	for {
 		var event state.Event
@@ -577,32 +590,67 @@ func (factory *ClientFactory) StartCacheManager(ctx context.Context) error {
 		case state.Created, state.Updated, state.Destroyed: // handle below
 		}
 
-		if event.Resource.Metadata().Type() == omni.ClusterMachineType {
-			factory.handleClusterMachineEvent(event)
-
-			continue
+		switch event.Resource.Metadata().Type() {
+		case omni.MachineStatusType:
+			factory.handleMachineStatusEvent(event)
+		default:
+			// ClusterEndpoint or TalosConfig changed — invalidate the cluster with all its clients.
+			clusterID := event.Resource.Metadata().ID()
+			factory.releaseForCluster(clusterID)
 		}
-
-		// ClusterEndpoint or TalosConfig changed — invalidate the cluster with all its clients.
-		clusterID := event.Resource.Metadata().ID()
-		factory.releaseForCluster(clusterID)
 	}
 }
 
-func (factory *ClientFactory) handleClusterMachineEvent(event state.Event) {
-	switch event.Type { //nolint:exhaustive // event type is already filtered at call site
-	case state.Created:
-		factory.releaseForMachine("", event.Resource.Metadata().ID())
-	case state.Destroyed:
-		clusterID, ok := event.Resource.Metadata().Labels().Get(omni.LabelCluster)
-		if !ok {
-			factory.logger.Error("cluster machine has no cluster label, cannot evict from cache", zap.String("id", event.Resource.Metadata().ID()))
+// handleMachineStatusEvent evicts the now-stale clients of a machine whose maintenance mode or cluster changed.
+//
+// A machine is reachable over exactly one client: the insecure maintenance client while in maintenance mode, or the
+// secure cluster client otherwise. On every change the clients the machine is no longer reachable through are evicted,
+// which is idempotent and never drops the currently valid one.
+//
+// The previous cluster is read from the old version of the resource carried by the event, so the secure cluster client
+// can be evicted even when the machine status has already cleared its cluster field as the machine leaves the cluster.
+func (factory *ClientFactory) handleMachineStatusEvent(event state.Event) {
+	machineID := event.Resource.Metadata().ID()
 
-			return
-		}
+	machineStatus, ok := event.Resource.(*omni.MachineStatus)
+	if !ok {
+		factory.logger.Error("unexpected resource type for machine status event", zap.String("id", machineID))
 
-		factory.releaseForMachine(clusterID, event.Resource.Metadata().ID())
+		return
 	}
+
+	// evictCluster drops the secure cluster client for a non-empty cluster (an empty cluster would target the
+	// maintenance client instead, which must never be evicted as a side effect here).
+	evictCluster := func(clusterID string) {
+		if clusterID != "" {
+			factory.releaseForMachine(clusterID, machineID)
+		}
+	}
+
+	if event.Type == state.Destroyed {
+		// the machine is gone: drop both its maintenance and its secure cluster client.
+		factory.releaseForMachine("", machineID)
+		evictCluster(machineStatus.TypedSpec().Value.Cluster)
+
+		return
+	}
+
+	// evict the secure client of the previous cluster if the machine moved to a different one or left it entirely.
+	if old, ok := event.Old.(*omni.MachineStatus); ok {
+		if oldCluster := old.TypedSpec().Value.Cluster; oldCluster != machineStatus.TypedSpec().Value.Cluster {
+			evictCluster(oldCluster)
+		}
+	}
+
+	if machineStatus.TypedSpec().Value.Maintenance {
+		// the machine is in maintenance mode: its current secure cluster client is stale.
+		evictCluster(machineStatus.TypedSpec().Value.Cluster)
+
+		return
+	}
+
+	// the machine is not in maintenance mode: the insecure maintenance client is stale.
+	factory.releaseForMachine("", machineID)
 }
 
 // Describe implements prom.Collector interface.

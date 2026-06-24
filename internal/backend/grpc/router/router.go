@@ -497,12 +497,8 @@ func (r *Router) ResourceWatcher(ctx context.Context, s state.State, logger *zap
 		return fmt.Errorf("failed to watch ClusterEndpoints: %w", err)
 	}
 
-	if err := s.WatchKind(ctx, omni.NewMachine("").Metadata(), events); err != nil {
-		return fmt.Errorf("failed to watch Machines: %w", err)
-	}
-
-	if err := s.WatchKind(ctx, omni.NewClusterMachine("").Metadata(), events); err != nil {
-		return fmt.Errorf("failed to watch ClusterMachines: %w", err)
+	if err := s.WatchKind(ctx, omni.NewMachineStatus("").Metadata(), events); err != nil {
+		return fmt.Errorf("failed to watch MachineStatuses: %w", err)
 	}
 
 	for {
@@ -523,15 +519,8 @@ func (r *Router) ResourceWatcher(ctx context.Context, s state.State, logger *zap
 		}
 
 		switch event.Resource.Metadata().Type() {
-		case omni.MachineType:
-			if event.Type == state.Destroyed {
-				machineID := event.Resource.Metadata().ID()
-				r.releaseForMachine("", machineID)
-
-				logger.Info("remove machine talos backend", zap.String("machine", machineID))
-			}
-		case omni.ClusterMachineType:
-			r.handleClusterMachineEvent(logger, event)
+		case omni.MachineStatusType:
+			r.handleMachineStatusEvent(logger, event)
 		default: // Cluster, ClusterSecrets, or ClusterEndpoint changed: remove all backends for the cluster
 			clusterID := event.Resource.Metadata().ID()
 			r.releaseForCluster(clusterID)
@@ -541,26 +530,62 @@ func (r *Router) ResourceWatcher(ctx context.Context, s state.State, logger *zap
 	}
 }
 
-func (r *Router) handleClusterMachineEvent(logger *zap.Logger, event state.Event) {
+// handleMachineStatusEvent evicts the now-stale backends of a machine whose maintenance mode or cluster changed.
+//
+// A machine is reachable over exactly one backend: the insecure maintenance backend while in maintenance mode, or the
+// secure cluster backend otherwise. On every change the backends the machine is no longer reachable through are evicted,
+// which is idempotent and never drops the currently valid one.
+//
+// The previous cluster is read from the old version of the resource carried by the event, so the secure cluster backend
+// can be evicted even when the machine status has already cleared its cluster field as the machine leaves the cluster.
+func (r *Router) handleMachineStatusEvent(logger *zap.Logger, event state.Event) {
 	machineID := event.Resource.Metadata().ID()
 
-	switch event.Type { //nolint:exhaustive // event type is already filtered at call site
-	case state.Created: // machine joined cluster: evict stale maintenance backend
+	machineStatus, ok := event.Resource.(*omni.MachineStatus)
+	if !ok {
+		logger.Warn("unexpected resource type for machine status event", zap.String("machine", machineID))
+
+		return
+	}
+
+	// evictCluster drops the secure cluster backend for a non-empty cluster (an empty cluster would target the
+	// maintenance backend instead, which must never be evicted as a side effect here).
+	evictCluster := func(clusterID string) {
+		if clusterID != "" {
+			r.releaseForMachine(clusterID, machineID)
+
+			logger.Info("remove node talos backend", zap.String("cluster", clusterID), zap.String("machine", machineID))
+		}
+	}
+
+	if event.Type == state.Destroyed {
+		// the machine is gone: drop both its maintenance and its secure cluster backend.
 		r.releaseForMachine("", machineID)
+		evictCluster(machineStatus.TypedSpec().Value.Cluster)
 
 		logger.Info("remove maintenance talos backend", zap.String("machine", machineID))
-	case state.Destroyed: // machine left cluster: evict its cluster backend
-		clusterID, ok := event.Resource.Metadata().Labels().Get(omni.LabelCluster)
-		if !ok {
-			logger.Warn("ClusterMachine has no cluster label, skipping backend cleanup", zap.String("machine", machineID))
 
-			return
-		}
-
-		r.releaseForMachine(clusterID, machineID)
-
-		logger.Info("remove node talos backend", zap.String("cluster", clusterID), zap.String("machine", machineID))
+		return
 	}
+
+	// evict the secure backend of the previous cluster if the machine moved to a different one or left it entirely.
+	if old, ok := event.Old.(*omni.MachineStatus); ok {
+		if oldCluster := old.TypedSpec().Value.Cluster; oldCluster != machineStatus.TypedSpec().Value.Cluster {
+			evictCluster(oldCluster)
+		}
+	}
+
+	if machineStatus.TypedSpec().Value.Maintenance {
+		// the machine is in maintenance mode: its current secure cluster backend is stale.
+		evictCluster(machineStatus.TypedSpec().Value.Cluster)
+
+		return
+	}
+
+	// the machine is not in maintenance mode: the insecure maintenance backend is stale.
+	r.releaseForMachine("", machineID)
+
+	logger.Info("remove maintenance talos backend", zap.String("machine", machineID))
 }
 
 // ExtractContext reads cluster context from the supplied metadata.

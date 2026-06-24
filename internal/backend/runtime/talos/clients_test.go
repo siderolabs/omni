@@ -7,7 +7,6 @@ package talos_test
 
 import (
 	"context"
-	"runtime"
 	"testing"
 	"time"
 
@@ -93,19 +92,25 @@ func TestGetMaintenance(t *testing.T) {
 		// and zaptest loggers panic when logging to a finished testing.T.
 		clientFactory := talos.NewClientFactory(testContext.State, zap.NewNop())
 
-		// A machine in maintenance: it has a status but is not part of any cluster.
+		// A machine in maintenance mode: it has a status with the maintenance flag set.
 		maintMachine := omni.NewMachineStatus("m-maint")
 		maintMachine.TypedSpec().Value.ManagementAddress = "127.0.0.1"
+		maintMachine.TypedSpec().Value.Maintenance = true
 		require.NoError(t, testContext.State.Create(ctx, maintMachine))
 
-		// An allocated machine: it has a status and a cluster machine.
-		allocMachine := omni.NewMachineStatus("m-alloc")
-		allocMachine.TypedSpec().Value.ManagementAddress = "127.0.0.1"
-		require.NoError(t, testContext.State.Create(ctx, allocMachine))
+		// A configured machine: it is allocated to a cluster and no longer in maintenance mode.
+		configuredMachine := omni.NewMachineStatus("m-configured")
+		configuredMachine.TypedSpec().Value.ManagementAddress = "127.0.0.1"
+		configuredMachine.TypedSpec().Value.Cluster = "alpha"
+		require.NoError(t, testContext.State.Create(ctx, configuredMachine))
 
-		cm := omni.NewClusterMachine("m-alloc")
-		cm.Metadata().Labels().Set(omni.LabelCluster, "alpha")
-		require.NoError(t, testContext.State.Create(ctx, cm))
+		// An allocated machine that is still in maintenance mode: it has a cluster set, but its initial
+		// configuration has not been applied yet, so it is only reachable over the maintenance connection.
+		allocatedMaintMachine := omni.NewMachineStatus("m-alloc-maint")
+		allocatedMaintMachine.TypedSpec().Value.ManagementAddress = "127.0.0.1"
+		allocatedMaintMachine.TypedSpec().Value.Cluster = "alpha"
+		allocatedMaintMachine.TypedSpec().Value.Maintenance = true
+		require.NoError(t, testContext.State.Create(ctx, allocatedMaintMachine))
 
 		// --- Maintenance machine: returns a maintenance (no cluster) client ---
 
@@ -124,9 +129,21 @@ func TestGetMaintenance(t *testing.T) {
 		require.NoError(t, err)
 		assert.Same(t, maint, viaForMachine)
 
-		// --- Allocated machine: refuses to return a cluster client ---
+		// --- Allocated machine still in maintenance: maintenance client, despite the cluster being set ---
 
-		_, err = clientFactory.GetMaintenance(ctx, "m-alloc")
+		allocMaint, err := clientFactory.GetMaintenance(ctx, "m-alloc-maint")
+		require.NoError(t, err)
+		assert.Empty(t, allocMaint.ClusterID())
+		assert.Equal(t, "m-alloc-maint", allocMaint.MachineID())
+
+		// GetForMachine also returns the maintenance client, not a cluster client.
+		allocMaintViaForMachine, err := clientFactory.GetForMachine(ctx, "m-alloc-maint")
+		require.NoError(t, err)
+		assert.Same(t, allocMaint, allocMaintViaForMachine)
+
+		// --- Configured machine: refuses to return a maintenance client ---
+
+		_, err = clientFactory.GetMaintenance(ctx, "m-configured")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "is not in maintenance mode")
 		assert.False(t, talos.IsClientNotReadyError(err))
@@ -174,20 +191,20 @@ func TestClientLifecycle(t *testing.T) {
 		clusterEndpoint.TypedSpec().Value.ManagementAddresses = []string{"localhost"}
 		require.NoError(t, testContext.State.Create(ctx, clusterEndpoint))
 
-		// --- Setup: 5 machines with MachineStatus ---
+		// --- Setup: m1-m3 configured in cluster, m4-m5 in maintenance ---
 
-		for _, id := range []string{"m1", "m2", "m3", "m4", "m5"} {
+		for _, id := range []string{"m1", "m2", "m3"} {
 			ms := omni.NewMachineStatus(id)
 			ms.TypedSpec().Value.ManagementAddress = "127.0.0.1"
+			ms.TypedSpec().Value.Cluster = clusterName
 			require.NoError(t, testContext.State.Create(ctx, ms))
 		}
 
-		// --- Setup: m1-m3 in cluster, m4-m5 in maintenance ---
-
-		for _, id := range []string{"m1", "m2", "m3"} {
-			cm := omni.NewClusterMachine(id)
-			cm.Metadata().Labels().Set(omni.LabelCluster, clusterName)
-			require.NoError(t, testContext.State.Create(ctx, cm))
+		for _, id := range []string{"m4", "m5"} {
+			ms := omni.NewMachineStatus(id)
+			ms.TypedSpec().Value.ManagementAddress = "127.0.0.1"
+			ms.TypedSpec().Value.Maintenance = true
+			require.NoError(t, testContext.State.Create(ctx, ms))
 		}
 
 		// Start cache manager in background.
@@ -200,6 +217,10 @@ func TestClientLifecycle(t *testing.T) {
 		t.Cleanup(func() {
 			require.NoError(t, eg.Wait())
 		})
+
+		// Wait until the cache manager has registered its watches before mutating state below, so its eviction events
+		// are not missed.
+		require.NoError(t, clientFactory.WaitForCacheStart(ctx))
 
 		// --- Phase 1: Initial client creation ---
 
@@ -242,17 +263,18 @@ func TestClientLifecycle(t *testing.T) {
 		require.NoError(t, err)
 		assert.Same(t, maintenanceM4, c)
 
-		// --- Phase 3: Machine joins cluster (m4) — maintenance client evicted ---
+		// --- Phase 3: Machine leaves maintenance (m4) — maintenance client evicted ---
 
-		cm4 := omni.NewClusterMachine("m4")
-		cm4.Metadata().Labels().Set(omni.LabelCluster, clusterName)
-		require.NoError(t, testContext.State.Create(ctx, cm4))
+		ms4, err := safe.StateGet[*omni.MachineStatus](ctx, testContext.State, omni.NewMachineStatus("m4").Metadata())
+		require.NoError(t, err)
+
+		ms4.TypedSpec().Value.Maintenance = false
+		ms4.TypedSpec().Value.Cluster = clusterName
+		require.NoError(t, testContext.State.Update(ctx, ms4))
 
 		var newM4 *talos.Client
 
 		require.EventuallyWithT(t, func(collect *assert.CollectT) {
-			runtime.Gosched() // allow the cache manager goroutine to process eviction events
-
 			client, clientErr := clientFactory.GetForMachine(ctx, "m4")
 			assert.NoError(collect, clientErr)
 			assert.NotSame(collect, maintenanceM4, client, "m4 maintenance client should have been evicted")
@@ -268,13 +290,17 @@ func TestClientLifecycle(t *testing.T) {
 
 		// --- Phase 4: Machine leaves cluster (m2) — client evicted ---
 
-		require.NoError(t, testContext.State.Destroy(ctx, omni.NewClusterMachine("m2").Metadata()))
+		// The machine goes back to maintenance mode and its status clears the cluster.
+		ms2, err := safe.StateGet[*omni.MachineStatus](ctx, testContext.State, omni.NewMachineStatus("m2").Metadata())
+		require.NoError(t, err)
+
+		ms2.TypedSpec().Value.Maintenance = true
+		ms2.TypedSpec().Value.Cluster = ""
+		require.NoError(t, testContext.State.Update(ctx, ms2))
 
 		var newM2 *talos.Client
 
 		require.EventuallyWithT(t, func(collect *assert.CollectT) {
-			runtime.Gosched() // allow the cache manager goroutine to process eviction events
-
 			client, clientErr := clientFactory.GetForMachine(ctx, "m2")
 			assert.NoError(collect, clientErr)
 			assert.NotSame(collect, clientM2, client, "m2 client should have been evicted")
@@ -298,8 +324,6 @@ func TestClientLifecycle(t *testing.T) {
 
 		// Cluster-wide client evicted.
 		require.EventuallyWithT(t, func(collect *assert.CollectT) {
-			runtime.Gosched() // allow the cache manager goroutine to process eviction events
-
 			client, clientErr := clientFactory.GetForCluster(ctx, clusterName)
 			assert.NoError(collect, clientErr)
 			assert.NotSame(collect, clusterClient, client, "cluster client should have been evicted")
@@ -322,5 +346,102 @@ func TestClientLifecycle(t *testing.T) {
 		c, err = clientFactory.GetForMachine(ctx, "m2")
 		require.NoError(t, err)
 		assert.Same(t, newM2, c, "m2 (now maintenance) should be unaffected")
+	})
+}
+
+// TestClusterClientEvictedOnClusterLeave verifies that the secure cluster client of a machine is evicted when the machine
+// leaves its cluster, so that a later rejoin to the same cluster does not reuse the stale client.
+//
+// The machine status clears its cluster field as the machine leaves, so the cluster name needed to evict the secure
+// cluster client is read from the previous version of the resource carried by the update event. This is why the cache
+// manager does not need to watch cluster machines.
+func TestClusterClientEvictedOnClusterLeave(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(context.Context, testutils.TestContext) {
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		// Use a nop logger because runtime.AddCleanup finalizers may run after the test completes,
+		// and zaptest loggers panic when logging to a finished testing.T.
+		clientFactory := talos.NewClientFactory(testContext.State, zap.NewNop())
+
+		const clusterName = "alpha"
+
+		// Cluster credentials, required to build a secure cluster client.
+		configBundle, err := bundle.NewBundle(bundle.WithInputOptions(
+			&bundle.InputOptions{
+				ClusterName: clusterName,
+				Endpoint:    "https://127.0.0.1:6443",
+				KubeVersion: "1.36.1",
+			},
+		))
+		require.NoError(t, err)
+
+		talosconfig := omni.NewTalosConfig(clusterName)
+		bundleCtx := configBundle.TalosCfg.Contexts[configBundle.TalosCfg.Context]
+		talosconfig.TypedSpec().Value.Ca = bundleCtx.CA
+		talosconfig.TypedSpec().Value.Crt = bundleCtx.Crt
+		talosconfig.TypedSpec().Value.Key = bundleCtx.Key
+		require.NoError(t, testContext.State.Create(ctx, talosconfig))
+
+		// A machine configured in the cluster.
+		ms := omni.NewMachineStatus("m1")
+		ms.TypedSpec().Value.ManagementAddress = "127.0.0.1"
+		ms.TypedSpec().Value.Cluster = clusterName
+		require.NoError(t, testContext.State.Create(ctx, ms))
+
+		var eg errgroup.Group
+
+		eg.Go(func() error {
+			return clientFactory.StartCacheManager(ctx)
+		})
+
+		t.Cleanup(func() {
+			require.NoError(t, eg.Wait())
+		})
+
+		// Wait until the cache manager has registered its watches before mutating state. Otherwise the cluster leave
+		// below can happen before the watches exist and its eviction event would be missed.
+		require.NoError(t, clientFactory.WaitForCacheStart(ctx))
+
+		// Initial secure cluster client.
+		clusterClient, err := clientFactory.GetForMachine(ctx, "m1")
+		require.NoError(t, err)
+		require.Equal(t, clusterName, clusterClient.ClusterID())
+
+		// --- Machine leaves the cluster and goes back to maintenance: cluster field is cleared in the same update ---
+
+		ms, err = safe.StateGet[*omni.MachineStatus](ctx, testContext.State, omni.NewMachineStatus("m1").Metadata())
+		require.NoError(t, err)
+
+		ms.TypedSpec().Value.Maintenance = true
+		ms.TypedSpec().Value.Cluster = ""
+		require.NoError(t, testContext.State.Update(ctx, ms))
+
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			client, clientErr := clientFactory.GetForMachine(ctx, "m1")
+			assert.NoError(collect, clientErr)
+			assert.Empty(collect, client.ClusterID(), "m1 should now be a maintenance client")
+		}, time.Minute, 100*time.Millisecond)
+
+		// --- Machine rejoins the same cluster ---
+
+		ms, err = safe.StateGet[*omni.MachineStatus](ctx, testContext.State, omni.NewMachineStatus("m1").Metadata())
+		require.NoError(t, err)
+
+		ms.TypedSpec().Value.Maintenance = false
+		ms.TypedSpec().Value.Cluster = clusterName
+		require.NoError(t, testContext.State.Update(ctx, ms))
+
+		// The cluster client built before the machine left must not be reused: it was evicted on leave using the previous
+		// cluster name from the update event. Otherwise the rejoined machine would be served the stale client.
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			client, clientErr := clientFactory.GetForMachine(ctx, "m1")
+			assert.NoError(collect, clientErr)
+			assert.Equal(collect, clusterName, client.ClusterID(), "m1 should be a cluster client again")
+			assert.NotSame(collect, clusterClient, client, "stale cluster client must have been evicted on cluster leave")
+		}, time.Minute, 100*time.Millisecond)
 	})
 }
