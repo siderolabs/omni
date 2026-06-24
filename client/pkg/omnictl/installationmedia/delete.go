@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
@@ -39,7 +40,9 @@ func init() {
 func deletePreset(ctx context.Context, client *client.Client, name string) error {
 	md := resource.NewMetadata(resources.DefaultNamespace, omni.InstallationMediaConfigType, name, resource.VersionUndefined)
 
-	if err := client.Omni().State().TeardownAndDestroy(ctx, md); err != nil {
+	// A NotFound is not an error: the generic destroy controller registered for InstallationMediaConfig races the
+	// Destroy step of this TeardownAndDestroy and might win. That means the preset is already gone, so the delete has effectively succeeded.
+	if err := client.Omni().State().TeardownAndDestroy(ctx, md); err != nil && !state.IsNotFoundError(err) {
 		return fmt.Errorf("failed to delete installation media preset %q: %w", name, err)
 	}
 
