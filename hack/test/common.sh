@@ -95,6 +95,8 @@ if [[ "${CI:-false}" == "true" ]]; then
   WIREGUARD_IP=172.20.0.1
 fi
 
+export MACHINE_API_IP="${MACHINE_API_IP:-$LOCAL_IP}"
+
 # Prepare schematic with kernel args
 function prepare_kernel_args_schematic() {
   set_factory_curl_args

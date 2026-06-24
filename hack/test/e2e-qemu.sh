@@ -48,6 +48,9 @@ prepare_vault
 # Start MinIO server.
 prepare_minio access_key="access" secret_key="secret123"
 
+# QEMU machines reach Omni via the stable WireGuard IP, so advertise the machine API there to keep  Omni-generated schematic IDs constant across runs.
+export MACHINE_API_IP="${WIREGUARD_IP}"
+
 # Prepare omni config.
 prepare_omni_config
 
