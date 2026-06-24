@@ -1355,6 +1355,8 @@ func makeScanHandler(imageFactoryClient *imagefactory.Client, logger *zap.Logger
 			writeResult(result{
 				Status: "failed to get scan report",
 			}, http.StatusInternalServerError)
+
+			return
 		}
 
 		writeResult(result{

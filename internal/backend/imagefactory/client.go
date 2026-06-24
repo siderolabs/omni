@@ -20,7 +20,8 @@ import (
 
 // requestTimeout caps every call to the image factory. Without it, the factory's HTTP client has
 // no internal timeout, so a stuck connection would pin a controller reconcile slot indefinitely.
-const requestTimeout = 30 * time.Second
+// 30 minutes as the scan report request can be particularly slow.
+const requestTimeout = 30 * time.Minute
 
 // serverSnifferTransport wraps an http.RoundTripper and records whether the image factory
 // identifies itself as an Enterprise instance via the Server response header.

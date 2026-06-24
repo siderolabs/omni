@@ -157,6 +157,9 @@ func (ctrl *VersionsController) fetchVersionsFromRegistry(ctx context.Context, s
 }
 
 func (ctrl *VersionsController) fetchTalosVersions(ctx context.Context) ([]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
 	return ctrl.imageFactoryClient.Versions(ctx)
 }
 
