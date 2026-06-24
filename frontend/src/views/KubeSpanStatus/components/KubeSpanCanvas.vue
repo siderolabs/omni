@@ -68,15 +68,16 @@ const edgePaths = computed(() =>
   peers.map((peer, i) => {
     const key = peer.metadata.id!
     const pos = getPeerPos(key, i)
+    const online = isOnline(peer)
 
     return {
       key,
       peer,
       d: bezierPath(cardX + cardWidth, 0, pos.x, pos.y + peerHeight / 2),
-      stroke: peerColor(peer),
+      stroke: online ? 'var(--color-green-g1)' : 'var(--color-red-r1)',
       sw: edgeStrokeWidth(peer),
-      online: isOnline(peer),
-      dimmed: !peerMatches.has(peer.metadata.id!),
+      online: online,
+      dimmed: !online || !peerMatches.has(peer.metadata.id!),
     }
   }),
 )
@@ -110,10 +111,6 @@ function centerViewport() {
 
 function isOnline(peer: Resource<PeerStatusSpec>) {
   return peer.spec.state === 'up'
-}
-
-function peerColor(peer: Resource<PeerStatusSpec>) {
-  return isOnline(peer) ? 'var(--color-green-g1)' : 'var(--color-red-r1)'
 }
 
 function edgeStrokeWidth(peer: Resource<PeerStatusSpec>) {
@@ -318,6 +315,7 @@ function resetView() {
           :stroke-width="e.sw"
           fill="none"
           stroke-linecap="round"
+          :stroke-dasharray="e.online ? undefined : '4 4'"
           :opacity="e.dimmed ? 0.35 : 0.7"
         />
       </g>
@@ -392,7 +390,10 @@ function resetView() {
         @mousedown.stop.prevent="onCardMouseDown($event, c.key, c.basePos.x, c.basePos.y)"
         @click="onPeerClick(c.peer)"
       >
-        <div class="size-2 rounded-xs" :style="{ backgroundColor: peerColor(c.peer) }"></div>
+        <div
+          class="size-2 rounded-xs border border-current"
+          :class="isOnline(c.peer) ? 'bg-current text-green-g1' : 'text-red-r1'"
+        ></div>
 
         <div class="flex min-w-0 grow flex-col gap-1">
           <div class="truncate text-xs/tight font-medium text-naturals-n12">
