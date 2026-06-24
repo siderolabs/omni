@@ -43,10 +43,8 @@ func (suite *MachineStatusSnapshotControllerSuite) TestNodeUniqueTokenCleanup() 
 
 	link := siderolink.NewLink(token.Metadata().ID(), &specs.SiderolinkSpec{})
 
-	// Create the link first so that by the time the controller sees the recreated token,
-	// the link already exists and the token is not treated as orphaned. If the token is
-	// created first, a CI-loaded test goroutine can be preempted long enough between the
-	// two creates for the controller's orphan-TTL requeue to fire and destroy the token.
+	// Create the link before recreating the token. The controller reads the link uncached, so an
+	// existing link is always observed and the token is never treated as orphaned, even on a busy runner.
 	suite.Require().NoError(suite.state.Create(ctx, link))
 	suite.Require().NoError(suite.state.Create(ctx, token))
 

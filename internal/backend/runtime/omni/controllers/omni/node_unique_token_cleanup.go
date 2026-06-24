@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 )
 
 // NodeUniqueTokenCleanupControllerName is the name of the NodeUniqueTokenCleanupController.
@@ -101,7 +102,10 @@ func (ctrl *NodeUniqueTokenCleanupController) Reconcile(ctx context.Context,
 }
 
 func (ctrl *NodeUniqueTokenCleanupController) reconcileRunning(ctx context.Context, r controller.QRuntime, logger *zap.Logger, nodeUniqueToken *siderolink.NodeUniqueToken) error {
-	link, err := safe.ReaderGetByID[*siderolink.Link](ctx, r, nodeUniqueToken.Metadata().ID())
+	// Read the link uncached. The cached input replica is fed by a separate watch stream and can lag
+	// real state, so a link that already exists may not yet be visible when the token's reconcile fires.
+	// Acting on a stale "no link" view here would wrongly tear down a token that actually has a link.
+	link, err := safe.ReaderGetByID[*siderolink.Link](ctx, uncached.Reader(r), nodeUniqueToken.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
