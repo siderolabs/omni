@@ -11,6 +11,7 @@ import (
 	"maps"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
@@ -361,7 +362,11 @@ func (ctrl *MachineStatusController) populateSchematicRaw(ctx context.Context, i
 
 		logger.Info("machine does have a schematic ID but no raw schematic, get it from image factory")
 
-		sch, err := ctrl.ImageFactoryClient.SchematicGet(ctx, info.FullID)
+		factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+		sch, err := ctrl.ImageFactoryClient.SchematicGet(factoryCtx, info.FullID)
+
+		cancel()
+
 		if err != nil {
 			if factoryclient.IsHTTPErrorCode(err, http.StatusNotFound) {
 				logger.Warn("raw schematic not found in image factory", zap.String("host", ctrl.ImageFactoryClient.Host()))
@@ -529,7 +534,12 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			return fmt.Errorf("error patching schematic for re-upload: %w", err)
 		}
 
-		if _, _, err := ctrl.ImageFactoryClient.EnsureSchematic(ctx, machineSchematic); err != nil {
+		factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+		_, _, err = ctrl.ImageFactoryClient.EnsureSchematic(factoryCtx, machineSchematic)
+
+		cancel()
+
+		if err != nil {
 			return fmt.Errorf("error ensuring schematic: %w", err)
 		}
 	}

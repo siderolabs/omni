@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -221,7 +222,11 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 	// TODO(preserve-schematic): when the patched schematic is content-equal to the
 	// source raw (i.e. no Omni-driven customization changed anything), short-circuit
 	// the factory call and publish ms.Schematic.FullId directly.
-	id, _, err := ctrl.imageFactoryClient.EnsureSchematic(ctx, patched)
+	factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+	id, _, err := ctrl.imageFactoryClient.EnsureSchematic(factoryCtx, patched)
+
+	cancel()
+
 	if err != nil {
 		return err
 	}
