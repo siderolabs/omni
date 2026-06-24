@@ -82,6 +82,9 @@ eulaAccept:
   email: test-user@siderolabs.com
 "
 
+# QEMU machines reach Omni via the stable WireGuard IP, so advertise the machine API there to keep Omni-generated schematic IDs constant across runs.
+export MACHINE_API_IP="${WIREGUARD_IP}"
+
 # Prepare omni config.
 prepare_omni_config
 

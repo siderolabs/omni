@@ -18,7 +18,7 @@ services:
     eventSinkPort: 8091
   machineAPI:
     endpoint: 0.0.0.0:8090
-    advertisedURL: grpc://${LOCAL_IP}:8090
+    advertisedURL: grpc://${MACHINE_API_IP}:8090
   workloadProxy:
     enabled: true
     subdomain: proxy-us
