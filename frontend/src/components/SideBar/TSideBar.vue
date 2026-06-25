@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { gte } from 'semver'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -342,6 +343,18 @@ const clusterItems = computed(() => {
       icon: 'settings',
     },
   ]
+
+  if (
+    featuresConfig.value?.spec.is_enterprise_image_factory &&
+    cluster.value?.spec.talos_version &&
+    gte(cluster.value.spec.talos_version, '1.13.0')
+  ) {
+    result.push({
+      name: 'Security',
+      route: getRoute('/security'),
+      icon: 'key',
+    })
+  }
 
   if (canSyncKubernetesManifests.value) {
     result.push({

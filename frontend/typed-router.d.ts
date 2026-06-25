@@ -47,6 +47,7 @@ declare module 'vue-router/auto-routes' {
       | 'ClusterOverview'
       | 'ClusterPatchEdit'
       | 'ClusterScale'
+      | 'ClusterSecurity'
       | 'Clusters'
       | 'Home'
       | 'InfraProviders'
@@ -124,6 +125,7 @@ declare module 'vue-router/auto-routes' {
       | 'ClusterOverview'
       | 'ClusterPatchEdit'
       | 'ClusterScale'
+      | 'ClusterSecurity'
       | 'KubernetesManifestSync'
       | 'NodeConfig'
       | 'NodeConfigDiffs'
@@ -309,6 +311,13 @@ declare module 'vue-router/auto-routes' {
     'ClusterScale': RouteRecordInfo<
       'ClusterScale',
       '/clusters/:cluster/scale',
+      { cluster: ParamValue<true> },
+      { cluster: ParamValue<false> },
+      | never
+    >,
+    'ClusterSecurity': RouteRecordInfo<
+      'ClusterSecurity',
+      '/clusters/:cluster/security',
       { cluster: ParamValue<true> },
       { cluster: ParamValue<false> },
       | never
@@ -644,6 +653,7 @@ declare module 'vue-router/auto-routes' {
         | 'ClusterOverview'
         | 'ClusterPatchEdit'
         | 'ClusterScale'
+        | 'ClusterSecurity'
         | 'Clusters'
         | 'Home'
         | 'InfraProviders'
@@ -713,6 +723,7 @@ declare module 'vue-router/auto-routes' {
         | 'ClusterOverview'
         | 'ClusterPatchEdit'
         | 'ClusterScale'
+        | 'ClusterSecurity'
         | 'Clusters'
         | 'Home'
         | 'InfraProviders'
@@ -794,6 +805,7 @@ declare module 'vue-router/auto-routes' {
         | 'ClusterOverview'
         | 'ClusterPatchEdit'
         | 'ClusterScale'
+        | 'ClusterSecurity'
         | 'KubernetesManifestSync'
         | 'NodeConfig'
         | 'NodeConfigDiffs'
@@ -1006,6 +1018,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/(authenticated)/clusters/[cluster]/scale.vue': {
       routes:
         | 'ClusterScale'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/(authenticated)/clusters/[cluster]/security.vue': {
+      routes:
+        | 'ClusterSecurity'
       views:
         | never
       pathParamNames:
