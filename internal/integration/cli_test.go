@@ -256,15 +256,15 @@ func AssertInstallationMediaPresetCLI(testCtx context.Context, client *client.Cl
 		require.Error(t, err, "create with --platform and --overlay should fail")
 		require.Contains(t, stderr.String(), "cannot be used together")
 
-		// Deleting a non-existent preset returns an error
-		_, _, err = runCmd(
+		// Deleting a non-existent preset should be a no-op
+		stdout, stderr, err = runCmd(
 			testCtx,
 			omnictlPath,
 			httpEndpoint,
 			key,
 			"media", "preset", "delete", "does-not-exist-"+uuid.NewString(),
 		)
-		require.Error(t, err, "deleting a non-existent preset should fail")
+		require.NoError(t, err, "deleting a non-existent preset should succeed")
 
 		// Cloud preset on AWS rejects secure boot (AWS does not support it)
 		_, stderr, err = runCmd(
