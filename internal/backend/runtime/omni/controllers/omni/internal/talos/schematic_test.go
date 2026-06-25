@@ -202,8 +202,9 @@ func TestGetSchematicInfo(t *testing.T) {
 	t.Run("modules.dep is filtered out", func(t *testing.T) {
 		t.Parallel()
 
+		// No raw manifest, so the extension list is reconstructed from the extension status resources and modules.dep must be filtered out.
 		st := buildState(t, []extension{
-			{name: constants.SchematicIDExtensionName, version: factorySchematicID, extraInfo: factorySchematicYAML},
+			{name: constants.SchematicIDExtensionName, version: factorySchematicID},
 			{name: "modules.dep"},
 			{name: "siderolabs/gvisor"},
 		})
@@ -217,9 +218,10 @@ func TestGetSchematicInfo(t *testing.T) {
 	t.Run("embedded-config meta extension is filtered out", func(t *testing.T) {
 		t.Parallel()
 
-		// machines carrying an embedded machine configuration report an "embedded-config" meta extension which must not leak into the extensions list
+		// No raw manifest, so the extension list is reconstructed from the extension status resources.
+		// Machines carrying an embedded machine configuration report an "embedded-config" meta extension which must not leak into the extensions list.
 		st := buildState(t, []extension{
-			{name: constants.SchematicIDExtensionName, version: factorySchematicID, extraInfo: factorySchematicYAML},
+			{name: constants.SchematicIDExtensionName, version: factorySchematicID},
 			{name: "embedded-config"},
 			{name: "siderolabs/gvisor"},
 		})
@@ -248,8 +250,9 @@ func TestGetSchematicInfo(t *testing.T) {
 	t.Run("extension name without official prefix gets prefixed", func(t *testing.T) {
 		t.Parallel()
 
+		// No raw manifest, so the extension list is reconstructed from the extension status resources and the prefix is applied.
 		st := buildState(t, []extension{
-			{name: constants.SchematicIDExtensionName, version: factorySchematicID, extraInfo: factorySchematicYAML},
+			{name: constants.SchematicIDExtensionName, version: factorySchematicID},
 			{name: "gvisor"}, // missing "siderolabs/" prefix
 		})
 
@@ -262,9 +265,58 @@ func TestGetSchematicInfo(t *testing.T) {
 	t.Run("extension with wrong manifest name is remapped", func(t *testing.T) {
 		t.Parallel()
 
+		// No raw manifest, so the extension list is reconstructed from the extension status resources.
 		// v4l-uvc is a known wrong manifest name remapped to v4l-uvc-drivers.
 		st := buildState(t, []extension{
+			{name: constants.SchematicIDExtensionName, version: factorySchematicID},
+			{name: "siderolabs/v4l-uvc"},
+		})
+
+		info, err := talos.GetSchematicInfo(t.Context(), st, nil)
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{"siderolabs/v4l-uvc-drivers"}, info.Extensions)
+	})
+
+	t.Run("raw schematic manifest is the definitive extension source", func(t *testing.T) {
+		t.Parallel()
+
+		// The raw manifest lists exactly the user-requested extensions. The extension status resources additionally
+		// report a future meta/virtual extension and a stray extension that are NOT part of the schematic. They must
+		// not leak into the result: the extension list is taken verbatim from the raw manifest.
+		st := buildState(t, []extension{
 			{name: constants.SchematicIDExtensionName, version: factorySchematicID, extraInfo: factorySchematicYAML},
+			{name: "siderolabs/gvisor"},
+			{name: "siderolabs/mdadm"},
+			{name: "some-future-meta-extension"}, // unknown meta extension we don't (yet) know to skip
+			{name: "siderolabs/stray-extension"}, // present on the machine but not part of the schematic manifest
+		})
+
+		info, err := talos.GetSchematicInfo(t.Context(), st, []string{"this-fallback-must-not-be-used"})
+		require.NoError(t, err)
+
+		assert.Equal(t, factorySchematicID, info.FullID)
+		assert.Equal(t, factorySchematicYAML, info.Raw)
+		assert.Equal(t, factorySchematic.Customization.ExtraKernelArgs, info.KernelArgs)
+		assert.Equal(t, factorySchematic.Customization.SystemExtensions.OfficialExtensions, info.Extensions)
+	})
+
+	t.Run("wrong manifest name in the raw manifest is normalized", func(t *testing.T) {
+		t.Parallel()
+
+		// A schematic can carry a known wrong manifest name (e.g. v4l-uvc instead of v4l-uvc-drivers). Even on the
+		// manifest path we normalize it, so the result stays consistent with the reconstruction path and with the
+		// desired extension list computed elsewhere.
+		wrongNameSchematic := schematic.Schematic{
+			Customization: schematic.Customization{
+				SystemExtensions: schematic.SystemExtensions{
+					OfficialExtensions: []string{"siderolabs/v4l-uvc"},
+				},
+			},
+		}
+
+		st := buildState(t, []extension{
+			{name: constants.SchematicIDExtensionName, version: schematicID(t, wrongNameSchematic), extraInfo: schematicYAML(t, wrongNameSchematic)},
 			{name: "siderolabs/v4l-uvc"},
 		})
 

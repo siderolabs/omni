@@ -34,6 +34,9 @@ type SchematicInfo struct {
 // GetSchematicInfo lists the extension status resources on the given Talos COSI state, and computes the schematic ID
 // from the extensions found on the machine, ignoring everything else (e.g., the kernel command line args).
 //
+// If the schematic meta extension carries the raw manifest (Talos v1.7+),
+// we take the extension list from it directly instead of reconstructing it from the extension status resources, so virtual and meta extensions cannot leak into it.
+//
 // The argument fallbackKernelArgs is only used if the machine doesn't have the schematic meta extension, i.e., its installation media was created bypassing image factory -
 // in that case, we synthesize the schematic ID in a best-effort way (only if it doesn't have any extensions), and use the provided fallback kernel args as the current args of the machine.
 func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackKernelArgs []string) (SchematicInfo, error) {
@@ -43,7 +46,7 @@ func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackK
 	}
 
 	var (
-		exts         []string
+		observedExts []string
 		fullID       string
 		rawSchematic *schematic.Schematic
 		manifest     string
@@ -56,10 +59,11 @@ func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackK
 		case extensions.MetalAgentExtensionName:
 			return SchematicInfo{InAgentMode: true}, nil
 		case constants.SchematicIDExtensionName: // skip the meta extension
-			fullID = status.TypedSpec().Metadata.Version
+			meta := status.TypedSpec().Metadata
+			fullID = meta.Version
 
-			if status.TypedSpec().Metadata.ExtraInfo != "" {
-				manifest = status.TypedSpec().Metadata.ExtraInfo
+			if meta.ExtraInfo != "" {
+				manifest = meta.ExtraInfo
 
 				if rawSchematic, err = schematic.Unmarshal([]byte(manifest)); err != nil {
 					return SchematicInfo{}, fmt.Errorf("failed to unmarshal schematic manifest: %w", err)
@@ -72,25 +76,34 @@ func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackK
 				name = extensions.OfficialPrefix + name
 			}
 
-			exts = append(exts, name)
+			observedExts = append(observedExts, name)
 		}
 	}
 
+	// Prefer the raw schematic manifest as the definitive source of the extension list, since it records exactly the
+	// user-requested extensions. Otherwise reconstruct the list from the observed extension status resources. Either
+	// way, normalize the known wrong manifest names.
+	exts := observedExts
+	if rawSchematic != nil {
+		exts = rawSchematic.Customization.SystemExtensions.OfficialExtensions
+	}
+
 	exts = extensions.MapNames(exts)
+
+	if rawSchematic != nil { // the manifest also carries the definitive kernel args and raw YAML
+		return SchematicInfo{
+			FullID:     fullID,
+			Extensions: exts,
+			KernelArgs: rawSchematic.Customization.ExtraKernelArgs,
+			Raw:        manifest,
+		}, nil
+	}
 
 	if fullID == "" && len(exts) > 0 {
 		return SchematicInfo{}, ErrInvalidSchematic
 	}
 
-	var kernelArgs []string
-
-	if rawSchematic != nil {
-		kernelArgs = rawSchematic.Customization.ExtraKernelArgs
-	}
-
 	if fullID == "" { // we could not find the full ID, so we fall back to synthesizing it (and the raw YAML) using the default args
-		kernelArgs = fallbackKernelArgs
-
 		synthesized := schematic.Schematic{
 			Customization: schematic.Customization{
 				SystemExtensions: schematic.SystemExtensions{
@@ -99,8 +112,6 @@ func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackK
 				ExtraKernelArgs: fallbackKernelArgs,
 			},
 		}
-
-		var err error
 
 		fullID, err = synthesized.ID()
 		if err != nil {
@@ -112,13 +123,18 @@ func GetSchematicInfo(ctx context.Context, talosState state.CoreState, fallbackK
 			return SchematicInfo{}, fmt.Errorf("failed to marshal synthesized schematic: %w", err)
 		}
 
-		manifest = string(raw)
+		return SchematicInfo{
+			FullID:     fullID,
+			Extensions: exts,
+			KernelArgs: fallbackKernelArgs,
+			Raw:        string(raw),
+		}, nil
 	}
 
+	// The meta extension is present (so the full ID is known) but it carries no raw manifest: report the extension list
+	// reconstructed from the observed extension status resources, with no kernel args nor raw manifest available.
 	return SchematicInfo{
 		FullID:     fullID,
 		Extensions: exts,
-		KernelArgs: kernelArgs,
-		Raw:        manifest,
 	}, nil
 }
