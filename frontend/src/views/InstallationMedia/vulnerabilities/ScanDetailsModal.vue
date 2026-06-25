@@ -14,11 +14,14 @@ import TListItem from '@/components/List/TListItem.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import { useFeatures } from '@/methods/features'
 import { cn } from '@/methods/utils'
-import type {
-  Match,
-  RelatedVulnerability,
-  Vulnerability,
-} from '@/views/InstallationMedia/vulnerabilities/ReportTypes'
+import {
+  countBySeverity,
+  getCveId,
+  getPreferredVulnURL,
+  getScore,
+  sortMatches,
+} from '@/views/InstallationMedia/vulnerabilities/matchUtils'
+import type { Match } from '@/views/InstallationMedia/vulnerabilities/ReportTypes'
 
 const {
   matches,
@@ -47,56 +50,16 @@ const arch = computed(() => {
   }
 })
 
-function compileVulnURLs(v: Vulnerability) {
-  return [v.dataSource, ...(v.urls ?? [])].filter((s): s is string => !!s)
-}
-
-function getPreferredVulnURL(v: Vulnerability, relatedVulnerabilities: RelatedVulnerability[]) {
-  const pool: string[] = []
-
-  if (v.id.startsWith('CVE-')) pool.push(...compileVulnURLs(v))
-
-  if (relatedVulnerabilities)
-    pool.push(
-      ...relatedVulnerabilities.filter((r) => r.id.startsWith('CVE-')).flatMap(compileVulnURLs),
-    )
-
-  if (!pool.length) pool.push(...compileVulnURLs(v))
-
-  return pool.find((p) => p.includes('nvd.nist.gov')) || pool[0] || ''
-}
-
 const sortedMatches = computed(() =>
-  matches
-    .map((m) => {
-      const score =
-        m.vulnerability.cvss.find((c) => c.type === 'Primary')?.metrics.baseScore ||
-        m.vulnerability.cvss.at(0)?.metrics.baseScore
-
-      return {
-        ...m,
-        score,
-        url: getPreferredVulnURL(m.vulnerability, m.relatedVulnerabilities),
-        cveID: m.vulnerability.id.startsWith('CVE-')
-          ? m.vulnerability.id
-          : m.relatedVulnerabilities.find((r) => r.id.startsWith('CVE-'))?.id || m.vulnerability.id,
-      }
-    })
-    .toSorted((a, b) => {
-      if (!a.score || !b.score || a.score === b.score) return b.cveID.localeCompare(a.cveID)
-
-      return b.score - a.score
-    }),
+  sortMatches(matches).map((m) => ({
+    ...m,
+    score: getScore(m),
+    url: getPreferredVulnURL(m.vulnerability, m.relatedVulnerabilities),
+    cveID: getCveId(m),
+  })),
 )
 
-const counts = computed(() =>
-  sortedMatches.value.reduce((prev, curr) => {
-    const sev = curr.vulnerability.severity
-    const count = prev.get(sev) ?? 0
-
-    return prev.set(sev, count + 1)
-  }, new Map<string, number>()),
-)
+const counts = computed(() => countBySeverity(matches))
 </script>
 
 <template>
