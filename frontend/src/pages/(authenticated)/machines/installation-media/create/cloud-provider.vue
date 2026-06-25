@@ -34,7 +34,7 @@ const resolvedVersion = computed(() => resolveTalosVersion(formState.value.talos
 
 const platforms = computed(() =>
   data.value
-    ?.filter((p) => !p.spec.min_version || gte(resolvedVersion.value, p.spec.min_version))
+    .filter((p) => !p.spec.min_version || gte(resolvedVersion.value, p.spec.min_version))
     .map((p) => ({
       ...p,
       spec: {

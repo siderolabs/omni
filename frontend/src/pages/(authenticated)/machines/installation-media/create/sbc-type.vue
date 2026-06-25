@@ -34,7 +34,7 @@ const resolvedVersion = computed(() => resolveTalosVersion(formState.value.talos
 
 const SBCs = computed(() =>
   data.value
-    ?.filter((sbc) => !sbc.spec.min_version || gte(resolvedVersion.value, sbc.spec.min_version))
+    .filter((sbc) => !sbc.spec.min_version || gte(resolvedVersion.value, sbc.spec.min_version))
     .map((sbc) => ({
       ...sbc,
       spec: {

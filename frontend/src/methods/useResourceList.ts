@@ -33,7 +33,7 @@ export type ListOptions = ListOptionsCommon &
 export function useResourceList<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<ListOptions>,
 ) {
-  const data = ref<Resource<TSpec, TStatus>[]>()
+  const data = ref<Resource<TSpec, TStatus>[]>([])
   const loading = ref(true)
   const error = ref<Error>()
 

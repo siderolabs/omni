@@ -72,7 +72,7 @@ const versionsList = computed(() =>
     .filter(
       (v) =>
         !v.spec.deprecated &&
-        quirks.value?.find((q) => q.metadata.id === v.spec.version)?.spec.supports_factory_talosctl,
+        quirks.value.find((q) => q.metadata.id === v.spec.version)?.spec.supports_factory_talosctl,
     )
     .map((v) => v.spec.version!)
     .sort(compare),
