@@ -68,6 +68,11 @@ func setupEtcdAuditCluster(
 			ctx, t, st,
 			options.WithID(id),
 			options.WithMachineServices(ctx, machineServices),
+			options.Modify(func(res *omni.MachineStatus) error {
+				res.TypedSpec().Value.Cluster = clusterName
+
+				return nil
+			}),
 		)
 
 		rmock.Mock[*omni.ClusterMachine](ctx, t, st, options.WithID(id))
@@ -99,6 +104,11 @@ func addClusterMachine(
 		ctx, t, st,
 		options.WithID(id),
 		options.WithMachineServices(ctx, machineServices),
+		options.Modify(func(res *omni.MachineStatus) error {
+			res.TypedSpec().Value.Cluster = cluster.Metadata().ID()
+
+			return nil
+		}),
 	)
 
 	rmock.Mock[*omni.ClusterMachine](ctx, t, st, options.WithID(id))
@@ -439,7 +449,9 @@ func TestEtcdStatus(t *testing.T) {
 
 			testutils.WithRuntime(
 				ctx, t, testutils.TestOptions{},
-				func(context.Context, testutils.TestContext) {},
+				func(_ context.Context, tc testutils.TestContext) {
+					require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewClusterEndpointController()))
+				},
 				func(ctx context.Context, tc testutils.TestContext) {
 					machineServices := testutils.NewMachineServices(t, tc.State)
 					clusterName := "etcd_status/" + tt.name
@@ -456,7 +468,9 @@ func TestEtcdStatus(t *testing.T) {
 						tt.setup(ctx, t, tc.State, machineServices, cluster, machineSet)
 					}
 
-					status, err := check.EtcdStatus(ctx, tc.State, machineSet)
+					clientFactory := talos.NewClientFactory(tc.State, tc.Logger)
+
+					status, err := check.EtcdStatus(ctx, tc.State, machineSet, clientFactory)
 					tt.check(t, status, err)
 				},
 			)

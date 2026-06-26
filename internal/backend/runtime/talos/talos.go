@@ -290,6 +290,14 @@ func (r *Runtime) GetClientForMachine(ctx context.Context, machineID string) (*C
 	return c, nil
 }
 
+// GetMaintenanceClientForMachine returns a Talos client connected to the given machine over its insecure maintenance
+// connection.
+//
+// It only succeeds if the machine currently reports itself as running in maintenance mode.
+func (r *Runtime) GetMaintenanceClientForMachine(ctx context.Context, machineID string) (*Client, error) {
+	return r.clientFactory.GetMaintenance(ctx, machineID)
+}
+
 type item struct {
 	runtime.BasicItem[*runtime.Resource]
 }

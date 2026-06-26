@@ -125,6 +125,12 @@ func (c *capturingTalosRuntime) GetClientForMachine(ctx context.Context, _ strin
 	return talosruntime.NewClient(nil, "", ""), nil
 }
 
+func (c *capturingTalosRuntime) GetMaintenanceClientForMachine(ctx context.Context, _ string) (*talosruntime.Client, error) {
+	c.machineCtx = captureContext(ctx)
+
+	return talosruntime.NewClient(nil, "", ""), nil
+}
+
 type capturingAuditLogger struct {
 	err        error
 	fullMethod string

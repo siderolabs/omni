@@ -27,11 +27,12 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
 func registerMachineSetStatusController(t *testing.T) testutils.TestFunc {
 	return func(_ context.Context, tc testutils.TestContext) {
-		require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
+		require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewMachineSetStatusController(talos.NewClientFactory(tc.State, tc.Logger))))
 	}
 }
 

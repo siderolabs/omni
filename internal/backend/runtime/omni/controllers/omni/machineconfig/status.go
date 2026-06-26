@@ -9,11 +9,9 @@ package machineconfig
 import (
 	"context"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"slices"
 	"strings"
 	"sync"
@@ -62,22 +60,24 @@ const (
 // ClusterMachineConfigStatusController applies the generated machine config  on each corresponding machine.
 type ClusterMachineConfigStatusController struct {
 	*qtransform.QController[*omni.ClusterMachineConfig, *omni.ClusterMachineConfigStatus]
-	ongoingResets    *ongoingResets
-	imageFactoryHost string
-	talosRegistry    string
-	acquireLockMu    sync.Mutex
+	talosClientFactory *talos.ClientFactory
+	ongoingResets      *ongoingResets
+	imageFactoryHost   string
+	talosRegistry      string
+	acquireLockMu      sync.Mutex
 }
 
 // NewClusterMachineConfigStatusController initializes ClusterMachineConfigStatusController.
-func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry string) *ClusterMachineConfigStatusController {
+func NewClusterMachineConfigStatusController(talosClientFactory *talos.ClientFactory, imageFactoryHost, talosRegistry string) *ClusterMachineConfigStatusController {
 	ongoingResets := &ongoingResets{
 		statuses: map[string]*resetStatus{},
 	}
 
 	ctrl := &ClusterMachineConfigStatusController{
-		imageFactoryHost: imageFactoryHost,
-		talosRegistry:    talosRegistry,
-		ongoingResets:    ongoingResets,
+		talosClientFactory: talosClientFactory,
+		imageFactoryHost:   imageFactoryHost,
+		talosRegistry:      talosRegistry,
+		ongoingResets:      ongoingResets,
 	}
 
 	ctrl.QController = qtransform.NewQController(
@@ -209,7 +209,7 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 
 	stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()
 	if stage == machineapi.MachineStatusEvent_BOOTING || stage == machineapi.MachineStatusEvent_RUNNING {
-		if err = ctrl.deleteUpgradeMetaKey(ctx, logger, r, rc); err != nil {
+		if err = ctrl.deleteUpgradeMetaKey(ctx, logger, rc); err != nil {
 			return err
 		}
 	}
@@ -394,12 +394,10 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 		return false, xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' does not have talos version", rc.ID()))
 	}
 
-	c, err := ctrl.getClient(ctx, r, maintenance, rc.machineStatus, rc.machineConfig)
+	c, err := ctrl.getClient(ctx, maintenance, rc.machineStatus)
 	if err != nil {
 		return false, fmt.Errorf("failed to get client: %w", err)
 	}
-
-	defer logClose(c, logger, fmt.Sprintf("machine '%s'", rc.machineConfig.Metadata().ID()))
 
 	expectedVersion := rc.installImage.TalosVersion
 	expectedSchematic := rc.installImage.SchematicId
@@ -408,7 +406,7 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(
 		rc.installImage.SchematicId = ""
 	}
 
-	actualVersion, err := getVersion(ctx, c)
+	actualVersion, err := getVersion(ctx, c.Client)
 	if err != nil {
 		return false, err
 	}
@@ -523,12 +521,10 @@ func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.C
 		return 0, fmt.Errorf("failed to apply machine config: the machine is expected to be running in the normal mode, but is running in maintenance")
 	}
 
-	c, err := ctrl.getClient(ctx, r, applyMaintenance, rc.machineStatus, rc.machineConfig)
+	c, err := ctrl.getClient(ctx, applyMaintenance, rc.machineStatus)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get client: %w", err)
 	}
-
-	defer logClose(c, logger, fmt.Sprintf("machine '%s'", rc.ID()))
 
 	_, err = c.Version(ctx)
 	if err != nil {
@@ -579,12 +575,6 @@ func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.C
 	return mode, nil
 }
 
-func logClose(c io.Closer, logger *zap.Logger, additional string) {
-	if err := c.Close(); err != nil {
-		logger.Error(additional+": failed to close client", zap.Error(err))
-	}
-}
-
 //nolint:gocyclo,cyclop
 func (ctrl *ClusterMachineConfigStatusController) reset(
 	ctx context.Context,
@@ -627,7 +617,7 @@ func (ctrl *ClusterMachineConfigStatusController) reset(
 		return fmt.Errorf("failed to get machine status snapshot '%s': %w", machineID, err)
 	}
 
-	var c *client.Client
+	var c *talos.Client
 
 	machineStage := statusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()
 
@@ -641,12 +631,10 @@ func (ctrl *ClusterMachineConfigStatusController) reset(
 
 	if inMaintenance {
 		// verify that we are in maintenance mode
-		c, err = ctrl.getClient(ctx, r, true, machineStatus, machineConfig)
+		c, err = ctrl.getClient(ctx, true, machineStatus)
 		if err != nil {
 			return fmt.Errorf("failed to get maintenance client for machine '%s': %w", machineID, err)
 		}
-
-		defer logClose(c, logger, "reset maintenance")
 
 		_, err = c.Version(ctx)
 
@@ -691,12 +679,10 @@ func (ctrl *ClusterMachineConfigStatusController) reset(
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' is in %s stage", machineID, machineStage))
 	}
 
-	c, err = ctrl.getClient(ctx, r, false, machineStatus, machineConfig)
+	c, err = ctrl.getClient(ctx, false, machineStatus)
 	if err != nil {
 		return fmt.Errorf("failed to get client for machine '%s': %w", machineID, err)
 	}
-
-	defer logClose(c, logger, "reset")
 
 	err = c.MetaDelete(ctx, meta.StateEncryptionConfig)
 	if err != nil {
@@ -715,7 +701,7 @@ func (ctrl *ClusterMachineConfigStatusController) reset(
 	if isControlPlane && ctrl.ongoingResets.shouldLeaveEtcd(machineID) {
 		ctrl.ongoingResets.handleEtcdLeave(machineID)
 
-		err = ctrl.gracefulEtcdLeave(ctx, c, machineID)
+		err = ctrl.gracefulEtcdLeave(ctx, c.Client, machineID)
 		if err != nil {
 			return controller.NewRequeueError(err, time.Second)
 		}
@@ -851,54 +837,36 @@ func (ctrl *ClusterMachineConfigStatusController) gracefulEtcdLeave(ctx context.
 	return nil
 }
 
+// getClient returns a cached Talos client for the machine. When the machine is being driven through maintenance
+// mode the caller asks for the insecure maintenance client, otherwise it gets the machine's secure cluster client.
+// The choice of connection is ultimately enforced by the client factory based on the machine's reported state.
 func (ctrl *ClusterMachineConfigStatusController) getClient(
 	ctx context.Context,
-	r controller.Reader,
 	useMaintenance bool,
 	machineStatus *omni.MachineStatus,
-	machineConfig *omni.ClusterMachineConfig,
-) (*client.Client, error) {
-	address := machineStatus.TypedSpec().Value.ManagementAddress
-	opts := talos.GetSocketOptions(address)
+) (*talos.Client, error) {
+	machineID := machineStatus.Metadata().ID()
+
+	var (
+		c   *talos.Client
+		err error
+	)
 
 	if useMaintenance {
-		return client.New(ctx,
-			append(
-				opts,
-				client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}),
-				client.WithEndpoints(address),
-			)...)
+		c, err = ctrl.talosClientFactory.GetMaintenance(ctx, machineID)
+	} else {
+		c, err = ctrl.talosClientFactory.GetForMachine(ctx, machineID)
 	}
 
-	clusterName, ok := machineConfig.Metadata().Labels().Get(omni.LabelCluster)
-	if !ok {
-		return nil, errors.New("no cluster name label")
-	}
-
-	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(clusterName).Metadata())
 	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("cluster '%s' talosconfig not found: %w", clusterName, err)
+		if talos.IsClientNotReadyError(err) {
+			return nil, xerrors.NewTagged[qtransform.SkipReconcileTag](err)
 		}
 
-		return nil, fmt.Errorf("cluster '%s' failed to get talosconfig: %w", clusterName, err)
+		return nil, err
 	}
 
-	var endpoints []string
-
-	if opts == nil {
-		endpoints = []string{address}
-	}
-
-	config := omni.NewTalosClientConfig(talosConfig, endpoints...)
-	opts = append(opts, client.WithConfig(config))
-
-	result, err := client.New(ctx, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client to machine '%s': %w", machineConfig.Metadata().ID(), err)
-	}
-
-	return result, nil
+	return c, nil
 }
 
 // errAcquireUpgradeLock marks the case where a machine cannot upgrade because no upgrade slot
@@ -1107,15 +1075,12 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 func (ctrl *ClusterMachineConfigStatusController) deleteUpgradeMetaKey(
 	ctx context.Context,
 	logger *zap.Logger,
-	r controller.Reader,
 	rc *ReconciliationContext,
 ) error {
-	client, err := ctrl.getClient(ctx, r, false, rc.machineStatus, rc.machineConfig)
+	client, err := ctrl.getClient(ctx, false, rc.machineStatus)
 	if err != nil {
 		return fmt.Errorf("failed to get client for machine %q: %w", rc.ID(), err)
 	}
-
-	defer logClose(client, logger, fmt.Sprintf("machine %q", rc.ID()))
 
 	if err = client.MetaDelete(ctx, meta.Upgrade); err != nil {
 		if status.Code(err) == codes.NotFound {

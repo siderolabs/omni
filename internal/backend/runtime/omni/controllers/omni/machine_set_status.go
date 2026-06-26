@@ -23,6 +23,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
 // MachineSetStatusController manages MachineSetStatus resource lifecycle.
@@ -33,8 +34,8 @@ type MachineSetStatusController = qtransform.QController[*omni.MachineSet, *omni
 const requeueInterval = time.Second * 30
 
 // NewMachineSetStatusController creates new MachineSetStatusController.
-func NewMachineSetStatusController() *MachineSetStatusController {
-	handler := &machineSetStatusHandler{}
+func NewMachineSetStatusController(talosClientFactory *talos.ClientFactory) *MachineSetStatusController {
+	handler := &machineSetStatusHandler{talosClientFactory: talosClientFactory}
 
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.MachineSet, *omni.MachineSetStatus]{
@@ -118,7 +119,9 @@ func NewMachineSetStatusController() *MachineSetStatusController {
 	)
 }
 
-type machineSetStatusHandler struct{}
+type machineSetStatusHandler struct {
+	talosClientFactory *talos.ClientFactory
+}
 
 func (handler *machineSetStatusHandler) reconcileRunning(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger,
 	machineSet *omni.MachineSet, machineSetStatus *omni.MachineSetStatus,
@@ -250,5 +253,5 @@ func (handler *machineSetStatusHandler) reconcileMachines(ctx context.Context, r
 	}
 
 	// return requeue as separate flag and return requeue in the end of the function
-	return machineset.ReconcileMachines(ctx, r, logger, rc)
+	return machineset.ReconcileMachines(ctx, r, logger, rc, handler.talosClientFactory)
 }

@@ -8,7 +8,6 @@ package machineupgrade
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -29,16 +28,12 @@ import (
 
 type StatusController struct {
 	*qtransform.QController[*omni.MachineStatus, *omni.MachineUpgradeStatus]
-	talosClientFactory TalosClientFactory
+	talosClientFactory *talos.ClientFactory
 	imageFactoryHost   string
 	talosRegistry      string
 }
 
-func NewStatusController(imageFactoryHost, talosRegistry string, talosClientFactory TalosClientFactory) *StatusController {
-	if talosClientFactory == nil {
-		talosClientFactory = &talosCliFactory{}
-	}
-
+func NewStatusController(imageFactoryHost, talosRegistry string, talosClientFactory *talos.ClientFactory) *StatusController {
 	ctrl := &StatusController{
 		imageFactoryHost:   imageFactoryHost,
 		talosRegistry:      talosRegistry,
@@ -256,18 +251,13 @@ func (ctrl *StatusController) checkCooldown(status *omni.MachineUpgradeStatus, l
 	return controller.NewRequeueInterval(remainingTime)
 }
 
-func (ctrl *StatusController) doUpgrade(ctx context.Context, machineStatus *omni.MachineStatus, installImage string) (retErr error) {
-	talosClient, err := ctrl.talosClientFactory.New(ctx, machineStatus.TypedSpec().Value.ManagementAddress)
+func (ctrl *StatusController) doUpgrade(ctx context.Context, machineStatus *omni.MachineStatus, installImage string) error {
+	talosClient, err := ctrl.talosClientFactory.GetMaintenance(ctx, machineStatus.Metadata().ID())
 	if err != nil {
-		return fmt.Errorf("failed to create Talos client: %w", err)
+		return fmt.Errorf("failed to get maintenance Talos client: %w", err)
 	}
 
-	defer func() {
-		if closeErr := talosClient.Close(); closeErr != nil {
-			retErr = errors.Join(retErr, fmt.Errorf("failed to close Talos client: %w", closeErr))
-		}
-	}()
-
+	//nolint:staticcheck
 	if _, err = talosClient.UpgradeWithOptions(ctx, client.WithUpgradeImage(installImage)); err != nil {
 		return fmt.Errorf("failed to do Talos upgrade: %w", err)
 	}

@@ -20,6 +20,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/pkg/check"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
 // ControllerName controller name constant.
@@ -36,7 +37,7 @@ func toSlice[T resource.Resource](list safe.List[T]) []T {
 }
 
 // ReconcileMachines creates, updates and tears down the machines using the ReconciliationContext.
-func ReconcileMachines(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, rc *ReconciliationContext) (bool, error) {
+func ReconcileMachines(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, rc *ReconciliationContext, clientFactory *talos.ClientFactory) (bool, error) {
 	if rc.cluster == nil {
 		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine set cluster does not exist")
 	}
@@ -69,7 +70,7 @@ func ReconcileMachines(ctx context.Context, r controller.ReaderWriter, logger *z
 
 			defer cancel()
 
-			return check.EtcdStatus(ctx, r, machineSet)
+			return check.EtcdStatus(ctx, r, machineSet, clientFactory)
 		})
 		if err != nil {
 			return false, err

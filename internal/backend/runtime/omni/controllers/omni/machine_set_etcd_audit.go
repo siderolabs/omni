@@ -347,7 +347,7 @@ func (auditor *etcdAuditor) auditMember(ctx context.Context, r controller.Reader
 		return clusterMachineIdentity.TypedSpec().Value.EtcdMemberId, nil
 	}
 
-	cli, err := auditor.getNodeClient(ctx, r, clusterName, machine)
+	cli, err := auditor.getNodeClient(ctx, r, machine)
 	if err != nil {
 		if errors.Is(err, errSkipNode) {
 			return 0, nil
@@ -355,8 +355,6 @@ func (auditor *etcdAuditor) auditMember(ctx context.Context, r controller.Reader
 
 		return 0, err
 	}
-
-	defer cli.Close() //nolint:errcheck
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 
@@ -368,7 +366,7 @@ func (auditor *etcdAuditor) auditMember(ctx context.Context, r controller.Reader
 		etcdMember       *etcd.Member
 	)
 
-	if ephemeralMounted, err = auditor.checkEphemeralMount(ctx, cli); err != nil {
+	if ephemeralMounted, err = auditor.checkEphemeralMount(ctx, cli.Client); err != nil {
 		return 0, err
 	}
 
@@ -378,11 +376,11 @@ func (auditor *etcdAuditor) auditMember(ctx context.Context, r controller.Reader
 		return 0, controller.NewRequeueError(requeueErr, auditor.requeueAfterDuration)
 	}
 
-	if hasEtcdDirectory, err = auditor.checkEtcdDirectory(ctx, cli); err != nil {
+	if hasEtcdDirectory, err = auditor.checkEtcdDirectory(ctx, cli.Client); err != nil {
 		return 0, err
 	}
 
-	if etcdMember, err = auditor.getEtcdMember(ctx, cli); err != nil {
+	if etcdMember, err = auditor.getEtcdMember(ctx, cli.Client); err != nil {
 		return 0, err
 	}
 
@@ -427,7 +425,7 @@ func (auditor *etcdAuditor) removeMember(ctx context.Context, cli *talos.Client,
 	return nil
 }
 
-func (auditor *etcdAuditor) getNodeClient(ctx context.Context, r controller.Reader, cluster, id string) (*client.Client, error) {
+func (auditor *etcdAuditor) getNodeClient(ctx context.Context, r controller.Reader, id string) (*talos.Client, error) {
 	clusterMachineStatus, err := safe.ReaderGet[*omni.ClusterMachineStatus](ctx, r, omni.NewClusterMachineStatus(id).Metadata())
 	if err != nil {
 		return nil, err
@@ -437,32 +435,13 @@ func (auditor *etcdAuditor) getNodeClient(ctx context.Context, r controller.Read
 		return nil, errSkipNode
 	}
 
-	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(cluster).Metadata())
+	result, err := auditor.talosClientFactory.GetForMachine(ctx, id)
 	if err != nil {
-		if state.IsNotFoundError(err) {
-			return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("talosconfig for cluster %q is not found: %w", cluster, err)
+		if talos.IsClientNotReadyError(err) {
+			return nil, xerrors.NewTagged[qtransform.SkipReconcileTag](err)
 		}
 
-		return nil, fmt.Errorf("cluster %q failed to get talosconfig: %w", cluster, err)
-	}
-
-	if clusterMachineStatus.TypedSpec().Value.ManagementAddress == "" {
-		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine %q doesn't have management address", id)
-	}
-
-	endpoints := []string{clusterMachineStatus.TypedSpec().Value.ManagementAddress}
-
-	opts := talos.GetSocketOptions(clusterMachineStatus.TypedSpec().Value.ManagementAddress)
-
-	if opts == nil {
-		opts = append(opts, client.WithEndpoints(clusterMachineStatus.TypedSpec().Value.ManagementAddress))
-	}
-
-	opts = append(opts, client.WithConfig(omni.NewTalosClientConfig(talosConfig, endpoints...)))
-
-	result, err := client.New(ctx, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client to machine %q: %w", id, err)
+		return nil, fmt.Errorf("failed to get client to machine %q: %w", id, err)
 	}
 
 	return result, nil
