@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -20,16 +20,14 @@ import PageHeader from '@/components/PageHeader.vue'
 import Tag from '@/components/Tag/Tag.vue'
 import TAlert from '@/components/TAlert.vue'
 import { usePermissions } from '@/methods/auth'
+import MachineClassDestroyModal from '@/views/MachineClasses/components/MachineClassDestroyModal.vue'
 
 definePage({ name: 'MachineClasses' })
 
 const { canRemoveMachines } = usePermissions()
 
-const router = useRouter()
-
-const openMachineClassDestroy = (id: string) => {
-  router.push({ query: { modal: 'machineClassDestroy', classname: id } })
-}
+const machineClassDestroyModalOpen = ref(false)
+const machineClassDestroyModalClassId = ref<string>()
 </script>
 
 <template>
@@ -82,7 +80,12 @@ const openMachineClassDestroy = (id: string) => {
               icon="delete"
               aria-label="delete"
               class="absolute top-0 right-0 bottom-0 my-auto"
-              @click="() => openMachineClassDestroy(item.metadata.id!)"
+              @click="
+                () => {
+                  machineClassDestroyModalOpen = true
+                  machineClassDestroyModalClassId = item.metadata.id
+                }
+              "
             />
             <div class="list-grid">
               <div>
@@ -108,6 +111,12 @@ const openMachineClassDestroy = (id: string) => {
         </TListItem>
       </template>
     </TList>
+
+    <MachineClassDestroyModal
+      v-if="machineClassDestroyModalClassId"
+      v-model:open="machineClassDestroyModalOpen"
+      :machine-class-id="machineClassDestroyModalClassId"
+    />
   </PageContainer>
 </template>
 
