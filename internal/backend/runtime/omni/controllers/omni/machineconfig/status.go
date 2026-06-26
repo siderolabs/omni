@@ -179,7 +179,8 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 		return err
 	}
 
-	if err = ctrl.computePendingUpdates(ctx, r, rc); err != nil {
+	configChanged, err := ctrl.computePendingUpdates(ctx, r, rc)
+	if err != nil {
 		return fmt.Errorf("failed to compute pending updates: %w", err)
 	}
 
@@ -226,7 +227,14 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 
 	mode := machineapi.ApplyConfigurationRequest_NO_REBOOT
 
-	if machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != shaSumString { // latest config is not yet applied, perform config apply
+	// Re-apply when the confirmed config differs from the desired one (sha mismatch), or when the
+	// config we last pushed to the machine differs from the desired one. The second case covers a
+	// reboot-requiring change reverted before the machine confirms it: such a push is committed to
+	// the machine but its sha is recorded only after the machine comes back, so a revert in that
+	// window leaves the recorded sha matching the desired config. Comparing the last pushed config
+	// lets us notice the machine still runs the reverted change and re-apply, instead of treating it
+	// as in sync.
+	if machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != shaSumString || configChanged {
 		mode, err = ctrl.applyConfig(ctx, logger, r, rc)
 		if err != nil {
 			grpcSt := client.Status(err)
@@ -1046,19 +1054,23 @@ func (ctrl *ClusterMachineConfigStatusController) releaseUpgradeLock(ctx context
 	return r.RemoveFinalizer(ctx, clusterMachine.Metadata(), UpgradeFinalizer)
 }
 
-func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) error {
+// computePendingUpdates reconciles the MachinePendingUpdates resource and reports whether the
+// config last pushed to the machine (the redacted config stored in the status) differs from the
+// desired config. The caller uses this to re-apply a machine that has drifted from the desired
+// config even when the recorded (confirmed) sha already matches it.
+func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {
 	pendingUpdates := omni.NewMachinePendingUpdates(rc.machineConfig.Metadata().ID())
 
 	currentRedactedMachineConfig, err := rc.machineConfigStatus.TypedSpec().Value.GetUncompressedData()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	defer currentRedactedMachineConfig.Free()
 
 	configDiff, err := diff.Compute(currentRedactedMachineConfig.Data(), rc.redactedMachineConfig)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	var (
@@ -1080,10 +1092,10 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 	if !upgradeDiff && configDiff == "" {
 		_, err = helpers.TeardownAndDestroy(ctx, r, pendingUpdates.Metadata())
 
-		return err
+		return false, err
 	}
 
-	return safe.WriterModify(ctx, r, pendingUpdates, func(res *omni.MachinePendingUpdates) error {
+	return configDiff != "", safe.WriterModify(ctx, r, pendingUpdates, func(res *omni.MachinePendingUpdates) error {
 		helpers.CopyAllLabels(rc.machineConfig, res)
 
 		if upgradeDiff {
