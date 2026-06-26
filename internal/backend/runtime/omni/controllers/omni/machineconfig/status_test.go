@@ -1686,6 +1686,129 @@ func TestConfigUpdateLockReleasedWhenUpgradeBlocked(t *testing.T) {
 	)
 }
 
+// TestRevertRebootRequiringPatchRecoversMachine is a regression test for the flaky
+// TestIntegration/Suites/ConfigPatching/InvalidConfigPatchShouldBeReverted.
+//
+// It mirrors that scenario: a reboot-requiring config patch is applied, the machine reboots into
+// it, and the patch is removed before the machine confirms it. The controller has to re-apply the
+// reverted config so the machine reboots back into a good state, rather than treating it as already
+// in sync and leaving it stuck on the removed patch.
+//
+// A reboot-mode apply records the applied config sha only after the machine comes back, so when the
+// patch is removed first the recorded sha still matches the reverted config and, before the fix, the
+// controller saw nothing to do. The mock keeps the patch in reboot mode so its sha is never
+// recorded, which makes the lost race reproduce on every run.
+func TestRevertRebootRequiringPatchRecoversMachine(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			controller := machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManagerMock())
+			require.NoError(t, tc.Runtime.RegisterQController(controller))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, "revert-wedge", 1, 0)
+			id := machines[0].Metadata().ID()
+
+			const brokenMarker = "config-patch-test-file-broken"
+
+			// The broken patch reports a reboot-requiring change, like Talos does for a machine.files
+			// change; the initial config and the revert report no reboot. Because the patch always
+			// reports reboot, the controller never records its sha through a follow-up no-op apply,
+			// which is what makes the lost race reproduce on every run.
+			machineServices.Get(id).OnApplyConfig = func(_ context.Context, req *machine.ApplyConfigurationRequest, _ state.State, _ string) (*machine.ApplyConfigurationResponse, error) {
+				mode := machine.ApplyConfigurationRequest_NO_REBOOT
+				if strings.Contains(string(req.GetData()), brokenMarker) {
+					mode = machine.ApplyConfigurationRequest_REBOOT
+				}
+
+				return &machine.ApplyConfigurationResponse{
+					Messages: []*machine.ApplyConfiguration{{Mode: mode}},
+				}, nil
+			}
+
+			// Wait for the initial (good) config to be applied and recorded.
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			// Capture the good config so we can revert to it byte-for-byte later.
+			goodCfg := func() []byte {
+				cmc, err := safe.ReaderGetByID[*omni.ClusterMachineConfig](ctx, st, id)
+				require.NoError(t, err)
+
+				buf, err := cmc.TypedSpec().Value.GetUncompressedData()
+				require.NoError(t, err)
+
+				defer buf.Free()
+
+				return slices.Clone(buf.Data())
+			}()
+
+			setStage := func(stage machine.MachineStatusEvent_MachineStage) {
+				rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+					if res.TypedSpec().Value.MachineStatus == nil {
+						res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{}
+					}
+
+					res.TypedSpec().Value.MachineStatus.Stage = stage
+
+					return nil
+				}))
+			}
+
+			lastAppliedIsBroken := func() bool {
+				reqs := machineServices.Get(id).GetApplyRequests()
+				if len(reqs) == 0 {
+					return false
+				}
+
+				return strings.Contains(string(reqs[len(reqs)-1].GetData()), brokenMarker)
+			}
+
+			// 1. Apply the broken, reboot-requiring patch.
+			brokenCfg := "machine:\n  files:\n    - content: test\n      permissions: 0o666\n      path: /tmp/config-patch-test-file-broken-1.txt\n      op: create"
+
+			rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id), options.Modify(func(r *omni.ClusterMachineConfig) error {
+				return r.TypedSpec().Value.SetUncompressedData([]byte(brokenCfg))
+			}))
+
+			// The broken config reaches the machine (it is now "rebooting into" it).
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				assert.True(c, lastAppliedIsBroken(), "broken config should have been applied to the machine")
+			}, 5*time.Second, 20*time.Millisecond)
+
+			// 2. The machine reboots into the patch. Its sha was never recorded (the apply reported
+			// a reboot), so the controller has no confirmed record of what the machine is running.
+			setStage(machine.MachineStatusEvent_REBOOTING)
+
+			// 3. Remove the broken patch while the machine is still mid-reboot: revert to the good config.
+			rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id), options.Modify(func(r *omni.ClusterMachineConfig) error {
+				return r.TypedSpec().Value.SetUncompressedData(goodCfg)
+			}))
+
+			// 4. The machine comes back up (still running the broken config on disk).
+			setStage(machine.MachineStatusEvent_RUNNING)
+
+			// 5. The controller has to recover the machine by re-applying the reverted config so it
+			// can reboot back into it. Before the fix it considered the machine in sync (recorded
+			// sha == reverted config sha) and never re-applied, leaving it stuck and timing out this
+			// assertion.
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				assert.False(c, lastAppliedIsBroken(), "controller should re-apply the reverted config to recover the machine, but the last config applied is still the broken one")
+			}, 10*time.Second, 50*time.Millisecond)
+		},
+	)
+}
+
 // setupMaintenanceMachine creates a single-machine cluster whose machine is booted in maintenance
 // mode and needs Talos written to disk via the LifecycleService.
 func setupMaintenanceMachine(
