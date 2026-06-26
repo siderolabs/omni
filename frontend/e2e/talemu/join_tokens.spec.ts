@@ -13,7 +13,7 @@ const DEFAULT_TOKEN = 'testonly'
 const HIDDEN_TOKEN = /•+/
 const NEW_TOKEN = faker.string.alphanumeric(16)
 
-test.describe.configure({ mode: 'serial' })
+test.describe.configure({ mode: 'serial', retries: 0 })
 
 test('Join tokens list read functionality', async ({ page }, testInfo) => {
   await page.goto('/')
@@ -244,6 +244,8 @@ test('Delete join token', async ({ page }) => {
 
     await page.getByRole('row', { name: 'initial token' }).getByLabel('token actions').click()
     await page.getByRole('menuitem', { name: 'Make Default' }).click()
+
+    await expect(row.getByText('Default')).toBeHidden()
   })
 
   await test.step('Delete token', async () => {

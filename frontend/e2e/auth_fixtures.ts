@@ -20,7 +20,11 @@ const test = base.extend<AuthFixtures>({
       if (!process.env.AUTH_USERNAME) throw new Error('username is not set')
       if (!process.env.AUTH_PASSWORD) throw new Error('password is not set')
 
-      await page.goto('/')
+      // Sometimes auth0 page load is flaky
+      await expect(async () => {
+        await page.goto('/')
+        await expect(page.getByRole('textbox', { name: 'Email address' })).toBeVisible()
+      }, 'Navigate to auth0 login page').toPass()
 
       await page.getByRole('textbox', { name: 'Email address' }).fill(process.env.AUTH_USERNAME)
       await page.getByRole('textbox', { name: 'Password' }).fill(process.env.AUTH_PASSWORD)
