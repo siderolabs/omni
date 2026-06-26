@@ -45,6 +45,7 @@ import { formatISO } from '@/methods/time'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showWarning } from '@/notification'
 import TClusterStatus from '@/views/Clusters/ClusterStatus.vue'
+import ExportClusterTemplateModal from '@/views/Overview/components/ExportClusterTemplateModal.vue'
 import DownloadSupportBundleModal from '@/views/Overview/components/OverviewRightPanel/DownloadSupportBundleModal.vue'
 import OverviewOIDCToast from '@/views/Overview/components/OverviewRightPanel/OverviewOIDCToast.vue'
 import OverviewRightPanelCondition from '@/views/Overview/components/OverviewRightPanel/OverviewRightPanelCondition.vue'
@@ -235,6 +236,7 @@ const clusterDestroyModalOpen = ref(false)
 const downloadSupportBundleModalOpen = ref(false)
 const updateTalosModalOpen = ref(false)
 const updateKubernetesModalOpen = ref(false)
+const exportClusterTemplateModalOpen = ref(false)
 </script>
 
 <template>
@@ -404,13 +406,10 @@ const updateKubernetesModalOpen = ref(false)
         </TButton>
 
         <TButton
-          is="router-link"
           variant="primary"
           icon="kube-config"
           icon-position="left"
-          :to="{
-            query: { modal: 'exportClusterTemplate' },
-          }"
+          @click="exportClusterTemplateModalOpen = true"
         >
           Export Cluster Template
         </TButton>
@@ -516,6 +515,11 @@ const updateKubernetesModalOpen = ref(false)
 
         <DownloadSupportBundleModal
           v-model:open="downloadSupportBundleModalOpen"
+          :cluster-id="clusterStatus.metadata.id!"
+        />
+
+        <ExportClusterTemplateModal
+          v-model:open="exportClusterTemplateModalOpen"
           :cluster-id="clusterStatus.metadata.id!"
         />
       </div>

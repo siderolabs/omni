@@ -5,54 +5,42 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterType, DefaultNamespace } from '@/api/resources'
-import TButton from '@/components/Button/TButton.vue'
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
+import Modal from '@/components/Modals/Modal.vue'
 import { getDocsLink } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import CloseButton from '@/views/Modals/CloseButton.vue'
 
-const router = useRouter()
-const route = useRoute()
+const { clusterId } = defineProps<{
+  clusterId: string
+}>()
 
-let closed = false
-
-const close = () => {
-  if (closed) {
-    return
-  }
-
-  closed = true
-
-  router.go(-1)
-}
-
-const clusterId = computed(() => ('cluster' in route.params ? route.params.cluster : ''))
+const open = defineModel<boolean>('open', { default: false })
 
 const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
+  skip: !open.value,
   runtime: Runtime.Omni,
   resource: {
     type: ClusterType,
     namespace: DefaultNamespace,
-    id: clusterId.value,
+    id: clusterId,
   },
 }))
 </script>
 
 <template>
-  <div class="modal-window">
-    <div class="heading">
-      <h3 class="text-base text-naturals-n14">Export Cluster Template</h3>
-      <CloseButton @click="close" />
-    </div>
+  <Modal
+    v-model:open="open"
+    title="Export Cluster Template"
+    cancel-label="Close"
+    content-class="max-w-xl"
+  >
+    <template #description>Cluster {{ clusterId }}</template>
 
-    <div class="mb-5 flex flex-col gap-2 text-sm">
+    <div class="flex flex-col gap-2 text-sm">
       <ManagedByTemplatesWarning
         :resource="cluster"
         warning-text-templates="This cluster is already managed using cluster templates. Make sure any external changes to templates have already been applied before exporting this template again, or your changes will be lost."
@@ -73,19 +61,8 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
         <code>omnictl</code>
         command
       </p>
+
       <CodeBlock :code="`omnictl cluster template export -c ${clusterId}`" />
     </div>
-
-    <div class="flex justify-end">
-      <TButton class="h-9 w-32" @click="close">Close</TButton>
-    </div>
-  </div>
+  </Modal>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.heading {
-  @apply mb-5 flex items-center justify-between text-xl text-naturals-n14;
-}
-</style>
