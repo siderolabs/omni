@@ -125,8 +125,6 @@ export default class Watch<T extends Resource> {
       this.items.value.splice(0, this.items.value.length)
     }
 
-    this.watchItems?.setDescending(opts.sortDescending ?? false)
-
     this.createStream(opts)
 
     if (!this.stream) {
@@ -265,6 +263,7 @@ export default class Watch<T extends Resource> {
       case EventType.CREATED:
         this.watchItems.createOrUpdate(
           { ...spec.res, sortFieldData: message.sort_field_data },
+          message.sort_descending ?? false,
           spec.old,
         )
 
@@ -362,24 +361,12 @@ class WatchItems<T extends Resource> {
   private bootstrapList: ResourceSort<T>[] = []
 
   public bootstrapped: boolean = false
-  private sortDescending: boolean = false
 
   constructor(items: T[]) {
     this.items = items
   }
 
-  public setDescending(descending: boolean) {
-    if (this.sortDescending === descending) {
-      return
-    }
-
-    this.sortDescending = descending
-    this.items.sort((a, b): number => {
-      return compareFn(a, b, descending)
-    })
-  }
-
-  public createOrUpdate(item: ResourceSort<T>, old?: T) {
+  public createOrUpdate(item: ResourceSort<T>, sortDescending: boolean, old?: T) {
     const items = this.bootstrapped ? this.items : this.bootstrapList
 
     let foundIndex = this.findIndex(itemID(old ?? item), items)
@@ -394,7 +381,7 @@ class WatchItems<T extends Resource> {
     }
 
     if (foundIndex < 0) {
-      const index = getInsertionIndex(items, item, this.sortDescending)
+      const index = getInsertionIndex(items, item, sortDescending)
 
       items.splice(index, 0, item)
     }
