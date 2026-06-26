@@ -62,8 +62,8 @@ export type WatchOptionsMulti = WatchOptionsBase & {
 }
 
 export default class Watch<T extends Resource> {
-  private runtime = Runtime.Kubernetes
-  private callback: (resp: WatchResponse) => void
+  private callback: Callback<T> | undefined
+  private handler: Callback<T>
   private stream?: Stream<WatchRequest, WatchResponse>
 
   public readonly loading = ref(false)
@@ -78,41 +78,14 @@ export default class Watch<T extends Resource> {
   private lastTotal = 0
 
   constructor(target: Ref<T[]> | Ref<T | undefined>, callback?: Callback<T>) {
-    let handler: Callback<T> | undefined
-
-    this.callback = (message: WatchResponse) => {
-      const spec: WatchEventSpec<T> = {}
-
-      if (message.event?.resource) spec.res = JSON.parse(message.event.resource)
-      if (message.event?.old) spec.old = JSON.parse(message.event.old)
-
-      if (message.event?.event_type === EventType.BOOTSTRAPPED) {
-        this.loading.value = false
-      }
-
-      callback?.(message, spec)
-      handler?.(message, spec)
-
-      if (
-        message.total !== undefined ||
-        ![EventType.BOOTSTRAPPED, EventType.UNKNOWN].includes(
-          message.event?.event_type ?? EventType.UNKNOWN,
-        )
-      ) {
-        this.lastTotal = message.total ?? 0
-
-        if (this.watchItems?.bootstrapped) {
-          this.total.value = this.lastTotal
-        }
-      }
-    }
+    this.callback = callback
 
     if (this.isItemsRef(target)) {
-      handler = this.listHandler.bind(this)
+      this.handler = this.listHandler.bind(this)
 
       this.items = target
     } else {
-      handler = this.singleItemHandler.bind(this)
+      this.handler = this.singleItemHandler.bind(this)
 
       this.item = target
     }
@@ -125,19 +98,9 @@ export default class Watch<T extends Resource> {
       this.items.value.splice(0, this.items.value.length)
     }
 
-    this.createStream(opts)
-
-    if (!this.stream) {
-      return
-    }
-  }
-
-  public createStream(opts: WatchOptions, onStart?: () => void, onError?: (err: Error) => void) {
     this.loading.value = true
     this.err.value = null
     this.errCode.value = null
-
-    this.runtime = opts.runtime
 
     const metadata: GRPCMetadata = {}
 
@@ -145,7 +108,7 @@ export default class Watch<T extends Resource> {
       metadata.selectors = opts.selectors.join(opts.selectUsingOR ? ';' : ',')
     }
 
-    const fetchOptions: fetchOption[] = [withRuntime(this.runtime), withMetadata(metadata)]
+    const fetchOptions: fetchOption[] = [withRuntime(opts.runtime), withMetadata(metadata)]
 
     if (opts.context) {
       fetchOptions.push(withContext(opts.context))
@@ -163,54 +126,58 @@ export default class Watch<T extends Resource> {
         search_for: opts.searchFor,
         offset: opts.offset,
       },
-      this.callback,
+      (message) => {
+        const spec: WatchEventSpec<T> = {}
+
+        if (message.event?.resource) spec.res = JSON.parse(message.event.resource)
+        if (message.event?.old) spec.old = JSON.parse(message.event.old)
+
+        if (message.event?.event_type === EventType.BOOTSTRAPPED) {
+          this.loading.value = false
+        }
+
+        this.callback?.(message, spec)
+        this.handler(message, spec)
+
+        if (
+          message.total !== undefined ||
+          ![EventType.BOOTSTRAPPED, EventType.UNKNOWN].includes(
+            message.event?.event_type ?? EventType.UNKNOWN,
+          )
+        ) {
+          this.lastTotal = message.total ?? 0
+
+          if (this.watchItems?.bootstrapped) {
+            this.total.value = this.lastTotal
+          }
+        }
+      },
       fetchOptions,
       () => {
-        this.onStart()
-        if (onStart) onStart()
+        this.watchItems?.reset()
+
+        this.err.value = null
+        this.errCode.value = null
+        this.loading.value = true
       },
-      (e: Error) => {
-        this.onError(e)
-        if (onError) onError(e)
+      (error) => {
+        this.err.value = error.message ?? error.toString()
+        this.errCode.value = error instanceof RequestError ? ((error.code as Code) ?? null) : null
+        this.loading.value = false
       },
     )
   }
 
   public stop() {
-    if (this.stream) {
-      this.stream.shutdown()
-    }
-
-    if (this.watchItems) {
-      this.watchItems.reset()
-      this.total.value = 0
-    }
+    this.stream?.shutdown()
+    this.watchItems?.reset()
+    this.total.value = 0
 
     if (this.items) {
       this.items.value.splice(0, this.items.value.length)
     } else if (this.item) {
       this.item.value = undefined
     }
-  }
-
-  public id(item: { metadata: { id?: string; name?: string; namespace?: string } }): string {
-    return itemID(item)
-  }
-
-  private onStart() {
-    if (this.watchItems) {
-      this.watchItems.reset()
-    }
-
-    this.err.value = null
-    this.errCode.value = null
-    this.loading.value = true
-  }
-
-  private onError(error: Error) {
-    this.err.value = error.message ?? error.toString()
-    this.errCode.value = error instanceof RequestError ? ((error.code as Code) ?? null) : null
-    this.loading.value = false
   }
 
   private isItemsRef(target: Ref<T[]> | Ref<T | undefined>): target is Ref<T[]> {
