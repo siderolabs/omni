@@ -21,7 +21,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
 // MachineTeardownControllerName is the name of the MachineTeardownController.
@@ -29,15 +29,17 @@ const MachineTeardownControllerName = "MachineTeardownController"
 
 // MachineTeardownController processes additional teardown steps for a machine leaving a machine set.
 type MachineTeardownController struct {
+	talosClientFactory *talos.ClientFactory
 	generic.NamedController
 }
 
 // NewMachineTeardownController initializes MachineTeardownController.
-func NewMachineTeardownController() *MachineTeardownController {
+func NewMachineTeardownController(talosClientFactory *talos.ClientFactory) *MachineTeardownController {
 	return &MachineTeardownController{
 		NamedController: generic.NamedController{
 			ControllerName: MachineTeardownControllerName,
 		},
+		talosClientFactory: talosClientFactory,
 	}
 }
 
@@ -95,7 +97,7 @@ func (ctrl *MachineTeardownController) Reconcile(ctx context.Context, logger *za
 	}
 
 	if machineStatus.Metadata().Phase() == resource.PhaseTearingDown {
-		if err := ctrl.resetMachine(ctx, r, machineStatus, logger); err != nil {
+		if err := ctrl.resetMachine(ctx, machineStatus, logger); err != nil {
 			return err
 		}
 
@@ -111,23 +113,22 @@ func (ctrl *MachineTeardownController) Reconcile(ctx context.Context, logger *za
 
 func (ctrl *MachineTeardownController) resetMachine(
 	ctx context.Context,
-	r controller.QRuntime,
 	machineStatus *omni.MachineStatus,
 	logger *zap.Logger,
 ) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 
-	c, err := helpers.GetTalosClient(ctx, r, machineStatus.TypedSpec().Value.ManagementAddress, machineStatus)
+	c, err := ctrl.talosClientFactory.GetForMachine(ctx, machineStatus.Metadata().ID())
 	if err != nil {
+		if talos.IsClientNotReadyError(err) {
+			logger.Info("skipping machine wipe as the machine is not reachable", zap.Error(err))
+
+			return nil
+		}
+
 		return err
 	}
-
-	defer func() {
-		if e := c.Close(); e != nil {
-			logger.Warn("failed to close reset-machine client", zap.Error(err))
-		}
-	}()
 
 	disks, err := c.Disks(ctx)
 	if err != nil {

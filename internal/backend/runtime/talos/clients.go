@@ -507,8 +507,10 @@ func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID str
 	}
 
 	// Maintenance mode: encrypted but no certificate verification.
-	c, err := client.New(
-		ctx,
+	// GetSocketOptions handles unix:// management addresses (used in tests); it returns nil for real
+	// siderolink addresses, leaving the regular insecure TCP dial below.
+	opts := GetSocketOptions(managementAddress)
+	opts = append(opts,
 		client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), //nolint:gosec
 		client.WithEndpoints(managementAddress),
 		client.WithGRPCDialOptions(
@@ -516,6 +518,8 @@ func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID str
 			grpc.WithSharedWriteBuffer(true),
 		),
 	)
+
+	c, err := client.New(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}

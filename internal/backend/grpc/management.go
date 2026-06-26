@@ -7,7 +7,6 @@ package grpc
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -79,6 +78,7 @@ type TalosRuntime interface {
 	GetTalosconfigRaw(context *commonOmni.Context, identity string) ([]byte, error)
 	GetClientForCluster(ctx context.Context, clusterName string) (*talos.Client, error)
 	GetClientForMachine(ctx context.Context, machineID string) (*talos.Client, error)
+	GetMaintenanceClientForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 }
 
 // TalosconfigProvider provides raw and operator Talos configurations.
@@ -658,13 +658,9 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 
 	s.logger.Info("built maintenance upgrade image", zap.String("image", installImageStr))
 
-	address := machineStatus.TypedSpec().Value.ManagementAddress
-	opts := talos.GetSocketOptions(address)
-	opts = append(opts, client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), client.WithEndpoints(address))
-
-	talosClient, err := client.New(authCtx, opts...)
+	talosClient, err := s.talosRuntime.GetMaintenanceClientForMachine(authCtx, req.MachineId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create talos client: %w", err)
+		return nil, fmt.Errorf("failed to get maintenance talos client: %w", err)
 	}
 
 	if err = s.auditTalosAccess(authCtx, machineapi.MachineService_Upgrade_FullMethodName, clusterName, req.MachineId); err != nil {
@@ -818,16 +814,10 @@ func (s *managementServer) MaintenanceLifecycle(
 
 	s.logger.Info("built maintenance lifecycle image", zap.String("image", installImageStr), zap.String("version", version))
 
-	address := machineStatus.TypedSpec().Value.ManagementAddress
-	opts := talos.GetSocketOptions(address)
-	opts = append(opts, client.WithTLSConfig(&tls.Config{InsecureSkipVerify: true}), client.WithEndpoints(address))
-
-	talosClient, err := client.New(authCtx, opts...)
+	talosClient, err := s.talosRuntime.GetMaintenanceClientForMachine(authCtx, req.MachineId)
 	if err != nil {
-		return wrapLifecycleErr(err, "failed to create talos client")
+		return wrapLifecycleErr(err, "failed to get maintenance talos client")
 	}
-
-	defer talosClient.Close() //nolint:errcheck
 
 	// Detach the operation from the client stream so that it can continue running even if the client disconnects.
 	installCtx, cancel := context.WithTimeout(context.WithoutCancel(authCtx), maintenanceLifecycleTimeout)
@@ -860,23 +850,23 @@ func (s *managementServer) MaintenanceLifecycle(
 	}
 
 	// LifecycleService.Install/Upgrade do not pull from a registry; they expect the image to already be present in the machine's containerd store.
-	resolvedImage, err := s.pullInstallerImage(installCtx, talosClient, containerd, installImageStr, req.MachineId, send)
+	resolvedImage, err := s.pullInstallerImage(installCtx, talosClient.Client, containerd, installImageStr, req.MachineId, send)
 	if err != nil {
 		return wrapLifecycleErr(err, "failed to pull installer image")
 	}
 
 	switch req.Operation { //nolint:exhaustive
 	case management.MaintenanceLifecycleRequest_OPERATION_INSTALL:
-		if err = s.streamMaintenanceInstall(installCtx, talosClient, containerd, resolvedImage, req.Disk, req.MachineId, send); err != nil {
+		if err = s.streamMaintenanceInstall(installCtx, talosClient.Client, containerd, resolvedImage, req.Disk, req.MachineId, send); err != nil {
 			return err
 		}
 	case management.MaintenanceLifecycleRequest_OPERATION_UPGRADE:
-		if err = s.streamMaintenanceUpgrade(installCtx, talosClient, containerd, resolvedImage, req.MachineId, send); err != nil {
+		if err = s.streamMaintenanceUpgrade(installCtx, talosClient.Client, containerd, resolvedImage, req.MachineId, send); err != nil {
 			return err
 		}
 	}
 
-	return s.rebootAfterMaintenanceLifecycle(installCtx, talosClient, req.MachineId, send)
+	return s.rebootAfterMaintenanceLifecycle(installCtx, talosClient.Client, req.MachineId, send)
 }
 
 // rebootAfterMaintenanceLifecycle reboots the machine after a successful install or upgrade so it boots from disk into the freshly written Talos.

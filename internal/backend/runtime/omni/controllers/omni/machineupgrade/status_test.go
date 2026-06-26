@@ -15,8 +15,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/schematic"
-	"github.com/siderolabs/talos/pkg/machinery/api/machine"
-	"github.com/siderolabs/talos/pkg/machinery/client"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,47 +23,19 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineupgrade"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
-
-type mockTalosClient struct {
-	upgradeImages []string
-}
-
-func (m *mockTalosClient) Close() error {
-	return nil
-}
-
-func (m *mockTalosClient) UpgradeWithOptions(_ context.Context, opt ...client.UpgradeOption) (*machine.UpgradeResponse, error) {
-	var opts client.UpgradeOptions
-
-	for _, o := range opt {
-		o(&opts)
-	}
-
-	m.upgradeImages = append(m.upgradeImages, opts.Request.Image)
-
-	return &machine.UpgradeResponse{}, nil
-}
-
-type mockTalosClientFactory struct {
-	talosClient *mockTalosClient
-}
-
-func (m *mockTalosClientFactory) New(context.Context, string) (machineupgrade.TalosClient, error) {
-	return m.talosClient, nil
-}
 
 func TestReconcile(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
-	talosClient := &mockTalosClient{}
-	talosClientFactory := &mockTalosClientFactory{
-		talosClient: talosClient,
-	}
+	var machineServices *testutils.MachineServices
 
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
-		ctrl := machineupgrade.NewStatusController("mock-host", "ghcr.io/siderolabs/installer", talosClientFactory)
+		machineServices = testutils.NewMachineServices(t, testContext.State)
+
+		ctrl := machineupgrade.NewStatusController("mock-host", "ghcr.io/siderolabs/installer", talos.NewClientFactory(testContext.State, testContext.Logger))
 
 		require.NoError(t, testContext.Runtime.RegisterQController(ctrl))
 	}, func(ctx context.Context, testContext testutils.TestContext) {
@@ -73,7 +43,10 @@ func TestReconcile(t *testing.T) {
 
 		st := testContext.State
 
+		machineService := machineServices.Create(ctx, id)
+
 		ms := omni.NewMachineStatus(id)
+		ms.TypedSpec().Value.ManagementAddress = machineService.SocketConnectionString
 
 		require.NoError(t, st.Create(ctx, ms))
 
@@ -181,11 +154,12 @@ func TestReconcile(t *testing.T) {
 			assertion.Equal(updatedSchematicID, res.TypedSpec().Value.CurrentSchematicId)
 		})
 
-		require.Len(t, talosClient.upgradeImages, 1)
+		upgradeRequests := machineService.GetUpgradeRequests()
+		require.Len(t, upgradeRequests, 1)
 
 		expectedInstallImage := fmt.Sprintf("mock-host/metal-installer/%s:v1.11.3", updatedSchematicID)
 
-		assert.Equal(t, expectedInstallImage, talosClient.upgradeImages[0])
+		assert.Equal(t, expectedInstallImage, upgradeRequests[0].Image)
 
 		// take it out of maintenance
 		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {

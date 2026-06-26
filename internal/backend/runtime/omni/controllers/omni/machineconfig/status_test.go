@@ -36,18 +36,29 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
 const (
 	imageFactoryHost = "factory-test.talos.dev"
 )
 
+// newConfigStatusController builds the controller under test, wiring it to a Talos client factory
+// backed by the test state so it dials the per-machine mock Talos services.
+func newConfigStatusController(tc testutils.TestContext) *machineconfig.ClusterMachineConfigStatusController {
+	return machineconfig.NewClusterMachineConfigStatusController(
+		talos.NewClientFactory(tc.State, tc.Logger),
+		imageFactoryHost,
+		"ghcr.io/siderolabs/installer",
+	)
+}
+
 //nolint:gocognit,maintidx,gocyclo,cyclop
 func TestMachineConfigStatusController(t *testing.T) {
 	t.Parallel()
 
 	addControllers := func(_ context.Context, testContext testutils.TestContext) {
-		require.NoError(t, testContext.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer")))
+		require.NoError(t, testContext.Runtime.RegisterQController(newConfigStatusController(testContext)))
 	}
 
 	awaitAllMachinesConfigured := func(ctx context.Context, t *testing.T, st state.State, clusterName string) {
@@ -104,6 +115,19 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, st, omni.NewMachineStatusSnapshot(id),
 			func(res *omni.MachineStatusSnapshot) error {
 				res.TypedSpec().Value.MachineStatus.Stage = machine.MachineStatusEvent_MAINTENANCE
+
+				return nil
+			},
+		); err != nil {
+			return nil, err
+		}
+
+		// Keep MachineStatus in sync with the snapshot: the client factory decides between the secure and
+		// the maintenance connection based on the machine's reported maintenance state.
+		if err := safe.StateModify(
+			ctx, st, omni.NewMachineStatus(id),
+			func(res *omni.MachineStatus) error {
+				res.TypedSpec().Value.Maintenance = true
 
 				return nil
 			},
@@ -1165,6 +1189,7 @@ func createCluster(
 			options.SameID(machine),
 			options.Modify(func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.Maintenance = false
+				res.TypedSpec().Value.Cluster = clusterName
 
 				return nil
 			}),
@@ -1206,7 +1231,7 @@ func TestUpgradeLockReleasedBeforeConfigApply(t *testing.T) {
 	testutils.WithRuntime(
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
-			require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer")))
+			require.NoError(t, tc.Runtime.RegisterQController(newConfigStatusController(tc)))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			st := tc.State
@@ -1280,7 +1305,7 @@ func TestConfigUpdateLockReleasedWhenUpgradeBlocked(t *testing.T) {
 	testutils.WithRuntime(
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
-			require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer")))
+			require.NoError(t, tc.Runtime.RegisterQController(newConfigStatusController(tc)))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			st := tc.State

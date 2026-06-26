@@ -402,17 +402,17 @@ machine:
 	})
 
 	setOwner[*omni.ClusterStatus](omnictrl.NewClusterStatusController(false).ControllerName)
-	setOwner[*omni.ClusterMachine](omnictrl.NewMachineSetStatusController().ControllerName)
+	setOwner[*omni.ClusterMachine](omnictrl.NewMachineSetStatusController(nil).ControllerName)
 	setOwner[*omni.ClusterMachineStatus](omnictrl.NewClusterMachineStatusController().ControllerName)
 	setOwner[*omni.ClusterSecrets](secrets.NewSecretsController(nil).ControllerName)
 	setOwner[*omni.ClusterMachineConfig](omnictrl.NewClusterMachineController().ControllerName)
 	setOwner[*omni.MachineConfigGenOptions](omnictrl.NewMachineConfigGenOptionsController().ControllerName)
 	setOwner[*omni.TalosConfig](secrets.NewTalosConfigController(omnictrl.DefaultDebounceDuration).ControllerName)
 	setOwner[*omni.Machine](omnictrl.NewMachineController().ControllerName)
-	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController().ControllerName)
+	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController(nil).ControllerName)
 	setOwner[*omni.UpgradeRollout](talosupgrade.NewStatusController(nil).ControllerName)
 	setOwner[*omni.TalosUpgradeStatus](talosupgrade.NewStatusController(nil).ControllerName)
-	setOwner[*omni.ClusterMachineConfigStatus](machineconfigctrl.NewClusterMachineConfigStatusController("", "").ControllerName)
+	setOwner[*omni.ClusterMachineConfigStatus](machineconfigctrl.NewClusterMachineConfigStatusController(nil, "", "").ControllerName)
 }
 
 // GetOwner returns the default owner used by the mock library for the resource.

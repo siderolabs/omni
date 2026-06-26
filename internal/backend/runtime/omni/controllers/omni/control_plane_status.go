@@ -24,6 +24,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/pkg/check"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
 // ControlPlaneStatusController creates ControlPlaneStatus resource for controlplane MachineSets.
@@ -36,7 +37,7 @@ const (
 )
 
 // NewControlPlaneStatusController initializes ControlPlaneStatusController.
-func NewControlPlaneStatusController() *ControlPlaneStatusController {
+func NewControlPlaneStatusController(talosClientFactory *talos.ClientFactory) *ControlPlaneStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.MachineSet, *omni.ControlPlaneStatus]{
 			Name: "ControlPlaneStatusController",
@@ -74,7 +75,9 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 					},
 					{
 						condition: specs.ConditionType_Etcd,
-						check:     check.Etcd,
+						check: func(ctx context.Context, r controller.Reader, clusterName string) error {
+							return check.Etcd(ctx, r, clusterName, talosClientFactory)
+						},
 					},
 				}
 

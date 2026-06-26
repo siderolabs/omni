@@ -23,12 +23,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
 type MachineSetNodeSuite struct {
@@ -89,7 +91,7 @@ func (suite *MachineSetNodeSuite) TestReconcile() {
 	defer cancel()
 
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetNodeController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineSetStatusController(talos.NewClientFactory(suite.state, zaptest.NewLogger(suite.T())))))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewLabelsExtractorController[*omni.MachineStatus]()))
 	suite.Require().NoError(suite.runtime.RegisterQController(destroy.NewController[*omni.MachineSetNode](optional.Some[uint](4))))
 
