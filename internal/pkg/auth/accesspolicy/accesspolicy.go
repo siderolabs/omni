@@ -133,6 +133,38 @@ func Validate(accessPolicy *auth.AccessPolicy) error {
 				validationErrs = multierror.Append(validationErrs, err)
 			}
 		}
+
+		for _, ruleUser := range rule.GetUsers() {
+			if strings.HasPrefix(ruleUser, "group") && !strings.HasPrefix(ruleUser, GroupPrefix) {
+				validationErrs = multierror.Append(validationErrs, fmt.Errorf(
+					"invalid user reference %q in rule: did you mean %q?",
+					ruleUser, GroupPrefix+strings.TrimPrefix(ruleUser, "groups/")))
+			}
+
+			if strings.HasPrefix(ruleUser, GroupPrefix) {
+				groupName := ruleUser[len(GroupPrefix):]
+				if _, ok := accessPolicySpec.GetUserGroups()[groupName]; !ok {
+					validationErrs = multierror.Append(validationErrs, fmt.Errorf(
+						"rule references undefined user group %q", groupName))
+				}
+			}
+		}
+
+		for _, ruleCluster := range rule.GetClusters() {
+			if strings.HasPrefix(ruleCluster, "group") && !strings.HasPrefix(ruleCluster, GroupPrefix) {
+				validationErrs = multierror.Append(validationErrs, fmt.Errorf(
+					"invalid cluster reference %q in rule: did you mean %q?",
+					ruleCluster, GroupPrefix+strings.TrimPrefix(ruleCluster, "groups/")))
+			}
+
+			if strings.HasPrefix(ruleCluster, GroupPrefix) {
+				groupName := ruleCluster[len(GroupPrefix):]
+				if _, ok := accessPolicySpec.GetClusterGroups()[groupName]; !ok {
+					validationErrs = multierror.Append(validationErrs, fmt.Errorf(
+						"rule references undefined cluster group %q", groupName))
+				}
+			}
+		}
 	}
 
 	// check tests
