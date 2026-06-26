@@ -8,7 +8,6 @@ included in the LICENSE file.
 import pluralize from 'pluralize'
 import { AccordionContent, AccordionHeader, AccordionItem, AccordionTrigger } from 'reka-ui'
 import { computed, ref, useId } from 'vue'
-import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -40,6 +39,7 @@ import {
   machineSetTitle,
 } from '@/methods/machineset'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import MachineSetDestroyModal from '@/views/ClusterMachines/components/MachineSetDestroyModal.vue'
 import ScaleMachinesModal from '@/views/ClusterMachines/ScaleMachinesModal.vue'
 
 import ClusterMachine from './ClusterMachine.vue'
@@ -65,6 +65,7 @@ const { data: machineSet } = useResourceWatch<MachineSetStatusSpec>(() => ({
 
 const clusterID = computed(() => machineSet.value?.metadata.labels?.[LabelCluster])
 const scaleMachinesModalOpen = ref(false)
+const machineSetDestroyModalOpen = ref(false)
 
 const hiddenMachinesCount = computed(() => {
   if (showMachinesCount.value === undefined) {
@@ -99,14 +100,6 @@ const { data: requests } = useResourceWatch<ClusterMachineRequestStatusSpec>(() 
   runtime: Runtime.Omni,
   limit: showMachinesCount.value,
 }))
-
-const router = useRouter()
-
-const openMachineSetDestroy = () => {
-  router.push({
-    query: { modal: 'machineSetDestroy', machineSet: machineSetId },
-  })
-}
 
 const { canRemoveClusterMachines } = useClusterPermissions(clusterID)
 
@@ -229,7 +222,7 @@ function isMachineSetScalable(
 
       <div class="flex items-center justify-end">
         <TActionsBox v-if="canRemoveMachineSet && machineSet">
-          <TActionsBoxItem icon="delete" danger @select="() => openMachineSetDestroy()">
+          <TActionsBoxItem icon="delete" danger @select="machineSetDestroyModalOpen = true">
             Destroy Machine Set
           </TActionsBoxItem>
         </TActionsBox>
@@ -273,6 +266,13 @@ function isMachineSetScalable(
     v-if="isMachineSetScalable(machineSet)"
     v-model:open="scaleMachinesModalOpen"
     :machine-set="machineSet"
+  />
+
+  <MachineSetDestroyModal
+    v-if="clusterID && machineSet?.metadata.id"
+    v-model:open="machineSetDestroyModalOpen"
+    :cluster-id="clusterID"
+    :machine-set-id="machineSet.metadata.id"
   />
 </template>
 
