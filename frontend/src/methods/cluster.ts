@@ -329,7 +329,7 @@ export const destroyNodes = async (
 
         await ResourceService.Create(forceDeleteRequest, withRuntime(Runtime.Omni))
       }
-    } else if (!machineSetNodes[id]?.metadata) {
+    } else if (!force && !machineSetNodes[id]?.metadata) {
       // if this is not a force-delete, and the node is not found, it is an error
       throw new ClusterCommandError(
         `Failed to Destroy Node ${id}`,
