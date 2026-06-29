@@ -95,9 +95,8 @@ const getProcs = async () => {
         state: proc.state!,
         virtualMemory: parseInt(proc.virtual_memory || '0'),
         residentMemory: parseInt(proc.resident_memory || '0'),
-        command: proc.command!,
+        command: proc.args!,
         cpuTime: proc.cpu_time || 0,
-        args: proc.args!,
       }
     }),
   )
@@ -294,7 +293,7 @@ const sortBy = (id: keyof Proc) => {
           v-for="process in sortedProcesses"
           :key="process.pid"
           class="grid grid-cols-12 py-2 text-xs text-naturals-n12"
-          :title="process.command + ' ' + process.args"
+          :title="process.command"
         >
           <div>
             {{ process.pid }}
@@ -320,7 +319,7 @@ const sortBy = (id: keyof Proc) => {
           <div>
             {{ process.cpuTime }}
           </div>
-          <div class="col-span-4 truncate">{{ process.command }} {{ process.args }}</div>
+          <div class="col-span-4 truncate">{{ process.command }}</div>
         </div>
       </div>
     </div>
