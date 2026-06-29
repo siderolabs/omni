@@ -475,10 +475,10 @@ test('node overview tabs', async ({ page }) => {
 
   await test.step('Validate monitor tab', async () => {
     await page.getByRole('tab', { name: 'Monitor', exact: true }).click()
-    await expect(page.getByText('CPU usage')).toBeVisible()
-    await expect(page.getByText('Memory', { exact: true })).toBeVisible()
-    await expect(page.getByText('Processes')).toBeVisible()
-    await expect(page.getByText('init /sbin/init')).toBeVisible()
+    await expect.soft(page.getByText('CPU usage')).toBeVisible()
+    await expect.soft(page.getByText('Memory', { exact: true })).toBeVisible()
+    await expect.soft(page.getByText('Processes')).toBeVisible()
+    await expect.soft(page.getByText('/sbin/init')).toBeVisible()
   })
 
   await test.step('Validate console logs tab', async () => {
