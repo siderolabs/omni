@@ -11,7 +11,6 @@ import { useRoute } from 'vue-router'
 import { modal } from '@/modal'
 
 const modals: Record<string, Component> = {
-  machineRemove: defineAsyncComponent(() => import('@/views/Modals/MachineRemove.vue')),
   userDestroy: defineAsyncComponent(() => import('@/views/Modals/UserDestroy.vue')),
   userCreate: defineAsyncComponent(() => import('@/views/Modals/UserCreate.vue')),
   serviceAccountCreate: defineAsyncComponent(

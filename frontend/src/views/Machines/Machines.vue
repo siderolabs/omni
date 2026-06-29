@@ -7,7 +7,6 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -43,6 +42,7 @@ import { MachineFilterOption } from '@/methods/machine'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
+import MachineRemoveModal from '@/views/Machines/components/MachineRemoveModal.vue'
 import MaintenanceInstallModal from '@/views/Machines/components/MaintenanceInstallModal.vue'
 import MaintenanceUpdateModal from '@/views/Machines/components/MaintenanceUpdateModal.vue'
 import MaintenanceUpgradeModal from '@/views/Machines/components/MaintenanceUpgradeModal.vue'
@@ -54,7 +54,6 @@ const { filter, provider } = defineProps<{
   provider?: string
 }>()
 
-const router = useRouter()
 const showUUID = useLocalStorage<'hostname' | 'uuid'>('_machines_list_show_uuid', 'hostname')
 
 const maintenaceUpdateModalOpen = ref(false)
@@ -63,6 +62,12 @@ const maintenaceInstallModalOpen = ref(false)
 const maintenaceUpdateModalMachine = ref<string>()
 const maintenaceUpgradeModalMachine = ref<string>()
 const maintenaceInstallModalMachine = ref<string>()
+
+const machineRemoveModal = ref({
+  open: false,
+  machines: [] as string[],
+  clusters: [] as string[],
+})
 
 const { data: infraProviderStatuses } = useResourceWatch<InfraProviderStatusSpec>({
   resource: {
@@ -140,13 +145,11 @@ function deleteItems() {
     .map((m) => m.spec.message_status?.cluster)
     .filter((m) => typeof m === 'string')
 
-  router.push({
-    query: {
-      modal: 'machineRemove',
-      machine: machines,
-      cluster: [...new Set(clusters)],
-    },
-  })
+  machineRemoveModal.value = {
+    open: true,
+    machines: machines,
+    clusters: [...new Set(clusters)],
+  }
 }
 
 const selectedMachines = ref<Map<string, Resource<MachineStatusLinkSpec>>>(new Map())
@@ -327,6 +330,13 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
               maintenaceInstallModalOpen = true
             }
           "
+          @open-machine-remove="
+            (machine, clusters) => {
+              machineRemoveModal.open = true
+              machineRemoveModal.machines = [machine]
+              machineRemoveModal.clusters = clusters
+            }
+          "
         />
       </template>
 
@@ -356,6 +366,12 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
       v-if="maintenaceInstallModalMachine"
       v-model:open="maintenaceInstallModalOpen"
       :machine-id="maintenaceInstallModalMachine"
+    />
+
+    <MachineRemoveModal
+      v-model:open="machineRemoveModal.open"
+      :machines="machineRemoveModal.machines"
+      :clusters="machineRemoveModal.clusters"
     />
   </PageContainer>
 </template>

@@ -44,6 +44,7 @@ defineEmits<{
   openMaintenanceUpdate: [machine: string]
   openMaintenanceInstall: [machine: string]
   openMaintenanceUpgrade: [machine: string]
+  openMachineRemove: [machine: string, clusters: string[]]
   filterLabels: [Label]
 }>()
 
@@ -279,13 +280,7 @@ const canUseLifecycleUpgrade = computed(() => {
               danger
               :disabled="!canRemoveMachines"
               @select="
-                $router.push({
-                  query: {
-                    modal: 'machineRemove',
-                    machine: machine.metadata.id,
-                    cluster: clusterName,
-                  },
-                })
+                $emit('openMachineRemove', machine.metadata.id!, clusterName ? [clusterName!] : [])
               "
             >
               Remove Machine
