@@ -13,6 +13,8 @@ import (
 
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
@@ -42,15 +44,41 @@ func (c *TalosImageClient) ListImagesOnNode(ctx context.Context, cluster, node s
 		return nil, fmt.Errorf("failed to get talos client for node %q: %w", node, err)
 	}
 
-	imageListStream, err := talosCli.ImageList(ctx, common.ContainerdNamespace_NS_CRI) //nolint:staticcheck
+	stream, err := talosCli.ImageClient.List(ctx, &machine.ImageServiceListRequest{
+		Containerd: &common.ContainerdInstance{
+			Driver:    common.ContainerDriver_CRI,
+			Namespace: common.ContainerdNamespace_NS_CRI,
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list images: %w", err)
 	}
 
-	return c.readImagesFromStream(imageListStream)
+	images, err := readImagesFromStream(stream)
+	// Requires Talos >=1.13.0
+	if status.Code(err) == codes.Unimplemented {
+		legacyStream, legacyErr := talosCli.ImageList(ctx, common.ContainerdNamespace_NS_CRI) //nolint:staticcheck
+		if legacyErr != nil {
+			return nil, fmt.Errorf("failed to list images: %w", legacyErr)
+		}
+
+		return readImagesFromStream(legacyStream)
+	}
+
+	return images, err
 }
 
-func (c *TalosImageClient) readImagesFromStream(stream machine.MachineService_ImageListClient) ([]string, error) {
+// imageName is implemented by the image list response messages of both the legacy and the ImageService APIs.
+type imageName interface {
+	GetName() string
+}
+
+// imageNameStream is the common shape of the Talos image list streams.
+type imageNameStream[T imageName] interface {
+	Recv() (T, error)
+}
+
+func readImagesFromStream[T imageName](stream imageNameStream[T]) ([]string, error) {
 	var images []string
 
 	for {
@@ -79,9 +107,36 @@ func (c *TalosImageClient) PullImageToNode(ctx context.Context, cluster, node, i
 		return fmt.Errorf("failed to get talos client for node %q: %w", node, err)
 	}
 
-	if err = talosCli.ImagePull(ctx, common.ContainerdNamespace_NS_CRI, image); err != nil { //nolint:staticcheck
+	stream, err := talosCli.ImageClient.Pull(ctx, &machine.ImageServicePullRequest{
+		ImageRef: image,
+		Containerd: &common.ContainerdInstance{
+			Driver:    common.ContainerDriver_CRI,
+			Namespace: common.ContainerdNamespace_NS_CRI,
+		},
+	})
+	if err != nil {
 		return fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
 
-	return nil
+	for {
+		_, err = stream.Recv()
+		if err == nil {
+			continue
+		}
+
+		// Requires Talos >=1.13.0
+		if status.Code(err) == codes.Unimplemented {
+			if err = talosCli.ImagePull(ctx, common.ContainerdNamespace_NS_CRI, image); err != nil { //nolint:staticcheck
+				return fmt.Errorf("failed to pull image %s: %w", image, err)
+			}
+
+			return nil
+		}
+
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+
+		return fmt.Errorf("failed to pull image %s: %w", image, err)
+	}
 }
