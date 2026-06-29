@@ -168,6 +168,7 @@ const options = computed(() => {
     stroke: stroke,
     tooltip: {
       theme: 'dark',
+      inverseOrder: stacked,
       x: {
         format: 'HH:mm:ss',
       },

@@ -21,8 +21,8 @@ import {
 } from '@/api/resources'
 import { MachineService, type ProcessInfo } from '@/api/talos/machine/machine.pb'
 import type { CPUSpec, MemorySpec } from '@/api/talos/perf.pb'
+import type { WatchContext } from '@/api/watch'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
-import { getContext } from '@/context'
 import NodesMonitorChart from '@/views/Nodes/components/NodesMonitorChart.vue'
 
 definePage({ name: 'NodeMonitor' })
@@ -30,7 +30,11 @@ definePage({ name: 'NodeMonitor' })
 const route = useRoute()
 
 const processes = ref<Proc[]>([])
-const context = computed(() => getContext(route))
+const context = computed<WatchContext>(() => ({
+  cluster: route.params.cluster,
+  node: route.params.machine,
+}))
+
 const headers = [
   { id: 'pid' },
   { id: 'state' },
@@ -95,7 +99,7 @@ const getProcs = async () => {
         state: proc.state!,
         virtualMemory: parseInt(proc.virtual_memory || '0'),
         residentMemory: parseInt(proc.resident_memory || '0'),
-        command: proc.args!,
+        command: processArgs(proc),
         cpuTime: proc.cpu_time || 0,
       }
     }),
@@ -104,6 +108,26 @@ const getProcs = async () => {
   prevCPU = cpuTotal
 
   return procs
+}
+
+// Based on talosctl processes cmd -> https://github.com/siderolabs/talos/blob/e9e027c6317aef55b8eb3463993ae6e856dcfc1c/cmd/talosctl/cmd/talos/processes.go#L105-L125
+function processArgs(p: ProcessInfo) {
+  const argsCmd = p.args?.trim().split(/\s+/).at(0)
+  const execCmd = p.executable?.trim().split(/\s+/).at(0)
+
+  let command
+
+  if (!p.executable) {
+    command = p.command
+  } else if (argsCmd && argsCmd === execCmd?.split('/').pop()) {
+    // Always use full command path if available
+    command = p.args!.replace(argsCmd, execCmd)
+  } else {
+    command = p.args
+  }
+
+  // Replace control characters with spaces
+  return command?.replace(/\p{Cc}/gu, ' ') ?? ''
 }
 
 async function loadProcs() {
@@ -143,10 +167,17 @@ const handleCPU = (oldObj: CPUSpec, newObj: CPUSpec) => {
   }
 }
 
-const handleTotalCPU = (oldObj: CPUSpec, newObj: CPUSpec) => {
-  const point = handleCPU(oldObj, newObj)
+function formatPct(input: string | number) {
+  // Double Number() to format to 1 DP, with a re-parse to drop .0
+  const pct = Number(Number(input).toFixed(1))
 
-  return `${(point.user + point.system).toFixed(1)} %`
+  return `${pct} %`
+}
+
+const handleTotalCPU = (oldObj: CPUSpec, newObj: CPUSpec) => {
+  const { user, system } = handleCPU(oldObj, newObj)
+
+  return formatPct(user + system)
 }
 
 const handleMem = (_: MemorySpec, m: MemorySpec) => {
@@ -207,6 +238,7 @@ const sortBy = (id: keyof Proc) => {
             class="h-full"
             name="cpu"
             title="CPU usage"
+            :colors="['var(--color-yellow-y1)', 'var(--color-primary-p3)']"
             :watch-opts="{
               runtime: Runtime.Talos,
               resource: {
@@ -220,6 +252,8 @@ const sortBy = (id: keyof Proc) => {
             :total-fn="handleTotalCPU"
             :min-fn="() => 0"
             :max-fn="() => 100"
+            :formatter="(input) => formatPct(input)"
+            stacked
           />
         </div>
         <div class="monitor-chart">

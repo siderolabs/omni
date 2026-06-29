@@ -188,18 +188,24 @@ const processesHandler = http.post('/machine.MachineService/Processes', () => {
     messages: [
       {
         metadata: {},
-        processes: baseProcs.map(
-          (proc): ProcessInfo => ({
+        processes: baseProcs.map((proc): ProcessInfo => {
+          // argv[0]: absolute paths stay as-is, bare names get a plausible
+          // install path so `executable` mirrors what real Talos reports.
+          const argv0 = proc.args.split(' ')[0]
+          const executable = argv0.startsWith('/') ? argv0 : `/usr/bin/${argv0}`
+
+          return {
             pid: proc.pid,
             state: proc.state,
             threads: proc.threads,
             virtual_memory: String(proc.virtualMemory),
             resident_memory: String(proc.residentMemory),
             args: proc.args,
-            command: proc.args.split(' ')[0].split('/').pop(),
+            executable,
+            command: executable.split('/').pop(),
             cpu_time: Number((proc.baseCpuTime + tick * proc.cpuRate).toFixed(2)),
-          }),
-        ),
+          }
+        }),
       },
     ],
   } satisfies ProcessesResponse)
