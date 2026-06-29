@@ -24,8 +24,8 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapio"
 	"go.yaml.in/yaml/v4"
-	"helm.sh/helm/v3/pkg/chartutil"
-	"helm.sh/helm/v3/pkg/repo"
+	"helm.sh/helm/v4/pkg/chart/common"
+	"helm.sh/helm/v4/pkg/repo/v1"
 )
 
 const (
@@ -177,7 +177,7 @@ func generateArgoCDManifestInputs(maxSizeBytes int) ([][]byte, error) {
 		return nil, err
 	}
 
-	kubeVersion, err := chartutil.ParseKubeVersion(argoCDChartKubeVersion)
+	kubeVersion, err := common.ParseKubeVersion(argoCDChartKubeVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +191,7 @@ func generateArgoCDManifestInputs(maxSizeBytes int) ([][]byte, error) {
 			Version:     argoCDChartVersion,
 		}, &helmclient.HelmTemplateOptions{
 			KubeVersion: kubeVersion,
-			APIVersions: chartutil.DefaultVersionSet,
+			APIVersions: common.DefaultVersionSet,
 		},
 	)
 	if err != nil {
