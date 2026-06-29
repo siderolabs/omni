@@ -128,7 +128,7 @@ const groupedK8sVersions = computed(() => {
           allTalosVersions.value.find((v) =>
             v.spec.compatible_kubernetes_versions?.some((v) => satisfies(v, majorMinor)),
           )?.spec.version ?? 'unknown',
-        upgradeable: isVersionUpgradeable(`${major}.${minor}.0`),
+        upgradeable: supportedK8sVersions.value.some((v) => satisfies(v, majorMinor)),
         versions: [],
       }
 
