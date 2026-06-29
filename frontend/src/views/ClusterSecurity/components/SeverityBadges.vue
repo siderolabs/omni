@@ -12,9 +12,17 @@ import { cn } from '@/methods/utils'
 import { countBySeverity } from '@/views/InstallationMedia/vulnerabilities/matchUtils'
 import type { Match } from '@/views/InstallationMedia/vulnerabilities/ReportTypes'
 
-const { matches } = defineProps<{ matches: Match[] }>()
+const { matches, activeFilter } = defineProps<{
+  matches: Match[]
+  activeFilter?: string
+  clickable?: boolean
+}>()
 
 const counts = computed(() => countBySeverity(matches))
+
+defineEmits<{
+  clickSeverity: [string]
+}>()
 </script>
 
 <template>
@@ -32,8 +40,12 @@ const counts = computed(() => countBySeverity(matches))
           'bg-orange-700 text-white': sev === 'High',
           'bg-orange-500 text-white': sev === 'Medium',
           'bg-yellow-500 text-black': sev === 'Low',
+          'transition-[filter] hover:brightness-120 active:brightness-80': clickable,
+          'opacity-30': activeFilter && activeFilter !== sev,
         })
       "
+      :role="clickable ? 'button' : undefined"
+      @click="$emit('clickSeverity', sev)"
     >
       {{ count }} {{ sev }}
     </li>

@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import TButton from '@/components/Button/TButton.vue'
@@ -30,6 +30,13 @@ const {
 const open = defineModel<boolean>('open', { default: false })
 
 const { data: features } = useFeatures()
+const severityFilter = ref<string>()
+
+watchEffect(() => {
+  if (open.value) return
+
+  severityFilter.value = undefined
+})
 
 const arch = computed(() => {
   switch (archEnum) {
@@ -41,12 +48,28 @@ const arch = computed(() => {
       throw new Error(`Unexpected arch "${archEnum}" received`)
   }
 })
+
+const filteredMatches = computed(() =>
+  severityFilter.value
+    ? matches.filter((m) => m.vulnerability.severity === severityFilter.value)
+    : matches,
+)
+
+function toggleSeverityFilter(severity: string) {
+  severityFilter.value = severityFilter.value === severity ? undefined : severity
+}
 </script>
 
 <template>
   <Modal v-model:open="open" title="Scan details" cancel-label="Close">
     <template #description>
-      <SeverityBadges :matches class="mt-2" />
+      <SeverityBadges
+        :matches
+        :active-filter="severityFilter"
+        class="mt-2"
+        clickable
+        @click-severity="toggleSeverityFilter"
+      />
     </template>
 
     <div class="flex flex-col">
@@ -77,7 +100,7 @@ const arch = computed(() => {
         </ul>
       </div>
 
-      <VulnerabilityList :matches />
+      <VulnerabilityList :matches="filteredMatches" />
     </div>
   </Modal>
 </template>
