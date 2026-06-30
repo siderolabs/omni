@@ -260,8 +260,7 @@ function clonePreset(preset: (typeof presets.value)[number]) {
     <DownloadPresetModal
       v-if="presetIdToDownload"
       :id="presetIdToDownload"
-      :open="downloadPresetModalOpen"
-      @close="downloadPresetModalOpen = false"
+      v-model:open="downloadPresetModalOpen"
     />
   </PageContainer>
 </template>

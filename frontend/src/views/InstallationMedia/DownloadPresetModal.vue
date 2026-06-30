@@ -21,7 +21,7 @@ import {
   TalosVersionType,
 } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
-import TButton from '@/components/Button/TButton.vue'
+import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
@@ -32,19 +32,15 @@ import { useResourceWatch } from '@/methods/useResourceWatch'
 import { resolveTalosVersion } from '@/views/InstallationMedia/useFormState'
 import { usePresetDownloadLinks } from '@/views/InstallationMedia/usePresetDownloadLinks'
 import { usePresetSchematic } from '@/views/InstallationMedia/usePresetSchematic'
-import CloseButton from '@/views/Modals/CloseButton.vue'
 
-const { open, id } = defineProps<{
-  open?: boolean
+const { id } = defineProps<{
   id: string
 }>()
 
-const emit = defineEmits<{
-  close: []
-}>()
+const open = defineModel<boolean>('open', { default: false })
 
 const { data } = useResourceGet<InstallationMediaConfigSpec>(() => ({
-  skip: !open,
+  skip: !open.value,
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
@@ -57,7 +53,7 @@ const { copy } = useClipboard({ copiedDuring: 1000 })
 
 // Fetch available versions and tokens for pickers
 const { data: talosVersionList } = useResourceWatch<TalosVersionSpec>(() => ({
-  skip: !open,
+  skip: !open.value,
   runtime: Runtime.Omni,
   resource: {
     type: TalosVersionType,
@@ -66,7 +62,7 @@ const { data: talosVersionList } = useResourceWatch<TalosVersionSpec>(() => ({
 }))
 
 const { data: joinTokenList } = useResourceWatch<JoinTokenStatusSpec>(() => ({
-  skip: !open,
+  skip: !open.value,
   runtime: Runtime.Omni,
   resource: {
     type: JoinTokenStatusType,
@@ -85,7 +81,7 @@ const defaultTokenId = computed(
 
 watchEffect(() => {
   // Reset modal state on close
-  if (!open) {
+  if (!open.value) {
     selectedVersion.value = undefined
     selectedToken.value = undefined
     selectedArch.value = undefined
@@ -150,27 +146,13 @@ const schematicId = computed(() => schematic.value?.id ?? '')
 
 const { schematic } = usePresetSchematic(resolvedPreset)
 const { links } = usePresetDownloadLinks(schematicId, resolvedPreset)
-
-async function close() {
-  emit('close')
-}
 </script>
 
 <template>
-  <div
-    class="fixed inset-0 z-30 flex items-center justify-center bg-naturals-n0/90"
-    :class="!open && 'hidden'"
-  >
-    <div class="modal-window gap-4">
-      <div class="flex items-start justify-between">
-        <div class="flex flex-col gap-2 text-naturals-n14">
-          <h3 class="text-base font-medium">Download</h3>
-          <p class="text-sm">Files for {{ id }}</p>
-        </div>
+  <Modal v-model:open="open" title="Download">
+    <template #description>Files for {{ id }}</template>
 
-        <CloseButton class="shrink-0" @click="close" />
-      </div>
-
+    <div class="flex flex-col gap-4">
       <div class="flex flex-wrap gap-4">
         <TSelectList
           v-model="selectedVersion"
@@ -233,12 +215,6 @@ async function close() {
           </TableRow>
         </template>
       </TableRoot>
-
-      <div class="flex gap-1">
-        <div class="grow"></div>
-
-        <TButton @click="close">Close</TButton>
-      </div>
     </div>
-  </div>
+  </Modal>
 </template>

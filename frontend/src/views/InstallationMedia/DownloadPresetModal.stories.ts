@@ -38,7 +38,8 @@ const meta: Meta<typeof DownloadPresetModal> = {
   component: DownloadPresetModal,
   args: {
     open: true,
-    onClose: fn(),
+    'onUpdate:open': fn(),
+    id: `${faker.hacker.noun()} preset`,
   },
 }
 
