@@ -162,13 +162,5 @@
     "vue/no-ref-object-reactivity-loss": {
       "count": 6
     }
-  },
-  "src/views/Modals/MachineTemplateExtensions.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    },
-    "vue/no-ref-object-reactivity-loss": {
-      "count": 2
-    }
   }
 }
