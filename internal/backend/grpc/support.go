@@ -27,13 +27,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	slink "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 

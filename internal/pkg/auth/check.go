@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 

@@ -56,6 +56,7 @@ import (
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/client"
 	managementcli "github.com/siderolabs/omni/client/pkg/client/management"
 	"github.com/siderolabs/omni/client/pkg/constants"
@@ -71,7 +72,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/infraprovider"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
 	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/grpcutil"
 )
 

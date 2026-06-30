@@ -16,10 +16,10 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validations"
 	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
 )
 

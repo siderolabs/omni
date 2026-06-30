@@ -20,9 +20,9 @@ import (
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 type mockRoleProvider struct {

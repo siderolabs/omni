@@ -18,9 +18,9 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	"github.com/siderolabs/omni/internal/pkg/auth/user"
 )
 

@@ -17,6 +17,10 @@ const (
 	// tsgen:ResourceManagedByClusterTemplates
 	ResourceManagedByClusterTemplates = SystemLabelPrefix + "managed-by-cluster-templates"
 
+	// ResourceManagedByGitopsTools is an annotation which indicates that a resource is managed by GitOps.
+	// tsgen:ResourceManagedByGitopsTools
+	ResourceManagedByGitopsTools = SystemLabelPrefix + "managed-by-gitops-tools"
+
 	// ConfigPatchName human readable patch name.
 	// tsgen:ConfigPatchName
 	ConfigPatchName = "name"

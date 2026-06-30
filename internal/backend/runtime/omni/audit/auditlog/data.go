@@ -9,7 +9,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 )
 
 const (

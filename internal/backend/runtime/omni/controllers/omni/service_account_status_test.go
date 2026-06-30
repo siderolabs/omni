@@ -17,9 +17,9 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 type ClusterServiceAccountStatusSuite struct {

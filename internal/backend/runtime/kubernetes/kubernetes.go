@@ -41,6 +41,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/k8s"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
@@ -51,7 +52,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/helpers"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 // Name kubernetes runtime string id.

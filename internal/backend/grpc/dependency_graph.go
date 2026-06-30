@@ -25,9 +25,9 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/proto"
 
 	"github.com/siderolabs/omni/client/api/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 func (s *ResourceServer) Controllers(ctx context.Context, _ *resources.ControllersRequest) (*resources.ControllersResponse, error) {

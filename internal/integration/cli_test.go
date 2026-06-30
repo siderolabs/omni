@@ -24,11 +24,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/client"
 	clientconstants "github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 // AssertDownloadUsingCLI verifies generated image download using omnictl.

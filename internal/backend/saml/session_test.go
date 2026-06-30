@@ -22,9 +22,9 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/saml"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 func TestUserInfo(t *testing.T) {

@@ -15,12 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	authctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/auth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 const (

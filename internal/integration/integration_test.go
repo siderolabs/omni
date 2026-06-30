@@ -37,6 +37,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	"github.com/siderolabs/omni/client/pkg/access"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/client"
 	clientconsts "github.com/siderolabs/omni/client/pkg/constants"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -47,7 +48,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	omnisa "github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/constants"

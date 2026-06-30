@@ -34,10 +34,10 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/siderolabs/omni/client/api/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 type testServer struct {

@@ -56,6 +56,7 @@ import (
 
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/access"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -87,7 +88,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/auth0"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
 	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 	serviceaccountmgmt "github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
 	"github.com/siderolabs/omni/internal/pkg/cache"
 	"github.com/siderolabs/omni/internal/pkg/compress"

@@ -1,7 +1,6 @@
-// Copyright (c) 2026 Sidero Labs, Inc.
-//
-// Use of this software is governed by the Business Source License
-// included in the LICENSE file.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 // Package role contains the role definitions and checks.
 package role

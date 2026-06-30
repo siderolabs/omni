@@ -19,9 +19,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pkgaccess "github.com/siderolabs/omni/client/pkg/access"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/internal/pkg/auth"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 const (

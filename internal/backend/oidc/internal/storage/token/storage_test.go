@@ -19,12 +19,12 @@ import (
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/oidc/external"
 	"github.com/siderolabs/omni/internal/backend/oidc/internal/storage/token"
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
 )
 
 func TestValidateJWTProfileScopes(t *testing.T) {

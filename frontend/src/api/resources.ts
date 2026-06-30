@@ -5,11 +5,6 @@
 
 // THIS FILE WAS AUTOMATICALLY GENERATED, PLEASE DO NOT EDIT.
 
-export const RoleNone = "None";
-export const RoleInfraProvider = "InfraProvider";
-export const RoleReader = "Reader";
-export const RoleOperator = "Operator";
-export const RoleAdmin = "Admin";
 export const RedirectQueryParam = "redirect";
 export const AuthFlowQueryParam = "flow";
 export const CLIAuthFlow = "cli";
@@ -74,6 +69,11 @@ export const TalosNetworkNamespace = "network";
 export const TalosKubeSpanNamespace = "kubespan";
 export const ServiceAccountDomain = "serviceaccount.omni.sidero.dev";
 export const InfraProviderServiceAccountDomain = "infra-provider.serviceaccount.omni.sidero.dev";
+export const RoleNone = "None";
+export const RoleInfraProvider = "InfraProvider";
+export const RoleReader = "Reader";
+export const RoleOperator = "Operator";
+export const RoleAdmin = "Admin";
 export const DefaultNamespace = "default";
 export const EphemeralNamespace = "ephemeral";
 export const MetricsNamespace = "metrics";
@@ -84,6 +84,7 @@ export const InfraProviderEphemeralNamespace = "infra-provider-ephemeral";
 export const MachineLocked = "omni.sidero.dev/locked";
 export const UpdateLocked = "omni.sidero.dev/locked-update";
 export const ResourceManagedByClusterTemplates = "omni.sidero.dev/managed-by-cluster-templates";
+export const ResourceManagedByGitopsTools = "omni.sidero.dev/managed-by-gitops-tools";
 export const ConfigPatchName = "name";
 export const ConfigPatchDescription = "description";
 export const KubernetesManifestName = "name";

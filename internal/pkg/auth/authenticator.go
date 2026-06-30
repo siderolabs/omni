@@ -10,7 +10,7 @@ import (
 
 	"github.com/siderolabs/go-api-signature/pkg/message"
 
-	"github.com/siderolabs/omni/internal/pkg/auth/role"
+	"github.com/siderolabs/omni/client/pkg/access/role"
 )
 
 // Authenticator represents an authenticator.
