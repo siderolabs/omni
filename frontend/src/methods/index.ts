@@ -2,10 +2,9 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import Bowser from 'bowser'
 import type { Node as V1Node } from 'kubernetes-types/core/v1'
 import { coerce } from 'semver'
-import { UAParser } from 'ua-parser-js'
-import { CPUArch, OSName } from 'ua-parser-js/enums'
 import type { Ref } from 'vue'
 import { computed, ref } from 'vue'
 
@@ -28,29 +27,38 @@ export function getNonce() {
   return document.querySelector<HTMLMetaElement>("meta[name='csp-nonce']")?.content ?? ''
 }
 
+interface UADataValues {
+  platform?: string
+  architecture?: string
+}
+
+interface UADataNavigator extends Navigator {
+  userAgentData?: {
+    platform?: string
+    getHighEntropyValues?: (hints: string[]) => Promise<UADataValues>
+  }
+}
+
 export async function getPlatform() {
   try {
-    const result = await new UAParser().getResult().withClientHints()
+    const uaData = (navigator as UADataNavigator).userAgentData
+
+    const { platform, architecture } = uaData?.getHighEntropyValues
+      ? { platform: uaData.platform, ...(await uaData.getHighEntropyValues(['architecture'])) }
+      : { platform: Bowser.parse(navigator.userAgent).os.name, architecture: undefined }
 
     const os = (() => {
-      switch (true) {
-        case result.os.is(OSName.MACOS):
+      switch (platform?.toLowerCase()) {
+        case 'macos':
           return 'darwin'
-        case result.os.is(OSName.WINDOWS):
+        case 'windows':
           return 'windows'
         default:
           return 'linux'
       }
     })()
 
-    const arch = (() => {
-      switch (true) {
-        case result.cpu.is(CPUArch.ARM_64):
-          return 'arm64'
-        default:
-          return 'amd64'
-      }
-    })()
+    const arch = /arm/i.test(architecture ?? navigator.userAgent) ? 'arm64' : 'amd64'
 
     return [os, arch] as const
   } catch {
