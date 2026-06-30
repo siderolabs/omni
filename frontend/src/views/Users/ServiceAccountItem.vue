@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import type { Resource } from '@/api/grpc'
 import type { IdentityStatusSpec, ServiceAccountStatusSpec } from '@/api/omni/specs/auth.pb'
@@ -16,6 +15,7 @@ import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import { usePermissions } from '@/methods/auth'
 import RoleEditModal from '@/views/Users/components/RoleEditModal.vue'
+import ServiceAccountRenewModal from '@/views/Users/components/ServiceAccountRenewModal.vue'
 import UserDestroyModal from '@/views/Users/components/UserDestroyModal.vue'
 
 const { item } = defineProps<{
@@ -25,8 +25,6 @@ const { item } = defineProps<{
 }>()
 
 const { canManageUsers } = usePermissions()
-
-const router = useRouter()
 
 const userDestroyModal = ref<{
   open: boolean
@@ -43,15 +41,12 @@ const roleEditModal = ref<{
   open: false,
 })
 
-const renewKey = () => {
-  const query: Record<string, string> = {
-    serviceAccount: item.metadata.id ?? '',
-  }
-
-  router.push({
-    query: { modal: 'serviceAccountRenew', ...query },
-  })
-}
+const serviceAccountRenewModal = ref<{
+  open: boolean
+  identity?: string
+}>({
+  open: false,
+})
 </script>
 
 <template>
@@ -68,7 +63,12 @@ const renewKey = () => {
         </div>
         <div class="flex justify-between">
           <TActionsBox v-if="canManageUsers">
-            <TActionsBoxItem icon="refresh" @select="renewKey">Renew Key</TActionsBoxItem>
+            <TActionsBoxItem
+              icon="refresh"
+              @select="serviceAccountRenewModal = { open: true, identity: item.metadata.id }"
+            >
+              Renew Key
+            </TActionsBoxItem>
             <TActionsBoxItem
               v-if="item.spec.role !== RoleInfraProvider"
               icon="edit"
@@ -92,6 +92,12 @@ const renewKey = () => {
           </TActionsBox>
         </div>
       </div>
+
+      <ServiceAccountRenewModal
+        v-if="serviceAccountRenewModal.identity"
+        v-model:open="serviceAccountRenewModal.open"
+        :identity="serviceAccountRenewModal.identity"
+      />
 
       <RoleEditModal
         v-if="roleEditModal.identity && roleEditModal.userId"

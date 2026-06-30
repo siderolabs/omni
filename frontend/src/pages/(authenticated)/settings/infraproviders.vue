@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
@@ -39,12 +38,12 @@ import { selectors } from '@/methods/labels'
 import InfraProviderDeleteModal from '@/views/InfraProviders/components/InfraProviderDeleteModal.vue'
 import InfraProviderSetupModal from '@/views/InfraProviders/components/InfraProviderSetupModal.vue'
 import ServiceAccountCreateModal from '@/views/Users/components/ServiceAccountCreateModal.vue'
+import ServiceAccountRenewModal from '@/views/Users/components/ServiceAccountRenewModal.vue'
 
 definePage({
   name: 'InfraProviders',
 })
 
-const router = useRouter()
 const { canManageUsers } = usePermissions()
 const infraProviderSetupModalOpen = ref(false)
 const infraProviderDeleteModalOpen = ref(false)
@@ -53,6 +52,13 @@ const serviceAccCreateModal = ref<{
   open: boolean
   name?: string
   role?: string
+}>({
+  open: false,
+})
+
+const serviceAccountRenewModal = ref<{
+  open: boolean
+  identity?: string
 }>({
   open: false,
 })
@@ -95,9 +101,10 @@ const openRotateSecretKey = async (name: string) => {
   }
 
   if (identity) {
-    router.push({
-      query: { modal: 'serviceAccountRenew', serviceAccount: saName },
-    })
+    serviceAccountRenewModal.value = {
+      open: true,
+      identity: saName,
+    }
   } else {
     serviceAccCreateModal.value = {
       open: true,
@@ -198,6 +205,12 @@ const openRotateSecretKey = async (name: string) => {
       v-model:open="serviceAccCreateModal.open"
       :name="serviceAccCreateModal.name"
       :role="serviceAccCreateModal.role"
+    />
+
+    <ServiceAccountRenewModal
+      v-if="serviceAccountRenewModal.identity"
+      v-model:open="serviceAccountRenewModal.open"
+      :identity="serviceAccountRenewModal.identity"
     />
 
     <InfraProviderSetupModal v-model:open="infraProviderSetupModalOpen" />
