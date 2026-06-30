@@ -15,6 +15,7 @@ import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import { usePermissions } from '@/methods/auth'
+import RoleEditModal from '@/views/Users/components/RoleEditModal.vue'
 import UserDestroyModal from '@/views/Users/components/UserDestroyModal.vue'
 
 const { item } = defineProps<{
@@ -34,16 +35,13 @@ const userDestroyModal = ref<{
   open: false,
 })
 
-const editUser = () => {
-  const query: Record<string, string> = {
-    serviceAccount: item.metadata.id!,
-    user: item.spec.user_id!,
-  }
-
-  router.push({
-    query: { modal: 'roleEdit', ...query },
-  })
-}
+const roleEditModal = ref<{
+  open: boolean
+  identity?: string
+  userId?: string
+}>({
+  open: false,
+})
 
 const renewKey = () => {
   const query: Record<string, string> = {
@@ -74,7 +72,13 @@ const renewKey = () => {
             <TActionsBoxItem
               v-if="item.spec.role !== RoleInfraProvider"
               icon="edit"
-              @select="editUser"
+              @select="
+                roleEditModal = {
+                  open: true,
+                  identity: item.metadata.id,
+                  userId: item.spec.user_id,
+                }
+              "
             >
               Edit Service Account
             </TActionsBoxItem>
@@ -88,6 +92,14 @@ const renewKey = () => {
           </TActionsBox>
         </div>
       </div>
+
+      <RoleEditModal
+        v-if="roleEditModal.identity && roleEditModal.userId"
+        v-model:open="roleEditModal.open"
+        :identity="roleEditModal.identity"
+        :user-id="roleEditModal.userId"
+        is-service-account
+      />
 
       <UserDestroyModal
         v-if="userDestroyModal.identity"

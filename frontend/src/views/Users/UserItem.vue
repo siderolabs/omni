@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import type { Resource } from '@/api/grpc'
 import type { IdentityStatusSpec } from '@/api/omni/specs/auth.pb'
@@ -15,6 +14,7 @@ import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import { usePermissions } from '@/methods/auth'
+import RoleEditModal from '@/views/Users/components/RoleEditModal.vue'
 import UserDestroyModal from '@/views/Users/components/UserDestroyModal.vue'
 
 const { item } = defineProps<{
@@ -24,11 +24,17 @@ const { item } = defineProps<{
 
 const { canManageUsers } = usePermissions()
 
-const router = useRouter()
-
 const userDestroyModal = ref<{
   open: boolean
   identity?: string
+}>({
+  open: false,
+})
+
+const roleEditModal = ref<{
+  open: boolean
+  identity?: string
+  userId?: string
 }>({
   open: false,
 })
@@ -40,17 +46,6 @@ const labels = computed(() => {
       .map((l: string) => l.replace(`${SAMLLabelPrefix}`, '')) || []
   )
 })
-
-const editUser = () => {
-  const query: Record<string, string> = {
-    user: item.spec.user_id!,
-    identity: item.metadata.id ?? '',
-  }
-
-  router.push({
-    query: { modal: 'roleEdit', ...query },
-  })
-}
 </script>
 
 <template>
@@ -71,7 +66,18 @@ const editUser = () => {
         </div>
         <div class="flex justify-between">
           <TActionsBox v-if="canManageUsers">
-            <TActionsBoxItem icon="edit" @select="editUser">Edit User</TActionsBoxItem>
+            <TActionsBoxItem
+              icon="edit"
+              @select="
+                roleEditModal = {
+                  open: true,
+                  identity: item.metadata.id,
+                  userId: item.spec.user_id,
+                }
+              "
+            >
+              Edit User
+            </TActionsBoxItem>
             <TActionsBoxItem
               icon="delete"
               danger
@@ -82,6 +88,13 @@ const editUser = () => {
           </TActionsBox>
         </div>
       </div>
+
+      <RoleEditModal
+        v-if="roleEditModal.identity && roleEditModal.userId"
+        v-model:open="roleEditModal.open"
+        :identity="roleEditModal.identity"
+        :user-id="roleEditModal.userId"
+      />
 
       <UserDestroyModal
         v-if="userDestroyModal.identity"

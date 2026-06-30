@@ -15,7 +15,6 @@ const modals: Record<string, Component> = {
     () => import('@/views/Modals/ServiceAccountCreate.vue'),
   ),
   serviceAccountRenew: defineAsyncComponent(() => import('@/views/Modals/ServiceAccountRenew.vue')),
-  roleEdit: defineAsyncComponent(() => import('@/views/Modals/RoleEdit.vue')),
 }
 
 const route = useRoute()
