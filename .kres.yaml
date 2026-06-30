@@ -825,7 +825,7 @@ spec:
     - omnictl-*
     - omni-*
 ---
-kind: golang.SBOM
+kind: common.SBOM
 spec:
   enabled: true
 ---
