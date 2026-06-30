@@ -112,10 +112,7 @@
     }
   },
   "src/views/Clusters/Management/MachineSetConfig.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    },
-    "vue/no-ref-object-reactivity-loss": {
+    "vue/no-setup-props-reactivity-loss": {
       "count": 5
     }
   },

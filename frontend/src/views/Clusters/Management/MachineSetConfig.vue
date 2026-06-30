@@ -6,8 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import pluralize from 'pluralize'
-import type { Ref } from 'vue'
-import { computed, ref, toRefs, useId, watch } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineClassSpec } from '@/api/omni/specs/omni.pb'
@@ -16,13 +15,13 @@ import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
 import TButtonGroup from '@/components/Button/TButtonGroup.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
+import ConfigPatchEditModal from '@/components/Modals/ConfigPatchEditModal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { showModal } from '@/modal'
-import type { ConfigPatch, MachineSet } from '@/states/cluster-management'
+import type { MachineSet } from '@/states/cluster-management'
 import { PatchID } from '@/states/cluster-management'
-import ConfigPatchEdit from '@/views/Modals/ConfigPatchEdit.vue'
 
 import MachineSetConfigEdit from '../../Modals/MachineSetConfigEdit.vue'
 
@@ -45,15 +44,15 @@ const allocationModes = computed(() => {
     {
       label: AllocationMode.MachineClass,
       value: AllocationMode.MachineClass,
-      disabled: !machineClasses?.value?.length,
-      tooltip: !machineClasses?.value?.length ? 'No Machine Classes Available' : undefined,
+      disabled: !machineClasses?.length,
+      tooltip: !machineClasses?.length ? 'No Machine Classes Available' : undefined,
     },
   ]
 
   return res
 })
 
-const props = defineProps<{
+const { machineClasses, modelValue } = defineProps<{
   talosVersion?: string
   noRemove?: boolean
   onRemove?: () => void
@@ -61,24 +60,23 @@ const props = defineProps<{
   modelValue: MachineSet
 }>()
 
-const { machineClasses, modelValue } = toRefs(props)
-
 const machineClassOptions = computed(() => {
-  return machineClasses?.value?.map((r: Resource) => r.metadata.id!) || []
+  return machineClasses?.map((r: Resource) => r.metadata.id!) || []
 })
 
 const selectedMachineClass = computed(() => {
-  return machineClasses?.value?.find((item) => item.metadata.id === sourceName.value)
+  return machineClasses?.find((item) => item.metadata.id === sourceName.value)
 })
 
+const configPatchEditModalOpen = ref(false)
 const allocationMode = ref(
-  modelValue.value.machineAllocation ? AllocationMode.MachineClass : AllocationMode.Manual,
+  modelValue.machineAllocation ? AllocationMode.MachineClass : AllocationMode.Manual,
 )
 const useMachineClasses = computed(() => allocationMode.value === AllocationMode.MachineClass)
-const sourceName = ref(modelValue.value.machineAllocation?.name)
-const machineCount = ref(modelValue.value.machineAllocation?.size ?? 1)
-const patches: Ref<Record<string, ConfigPatch>> = ref(modelValue.value.patches)
-const unlimited = ref(modelValue.value.machineAllocation?.size === 'unlimited')
+const sourceName = ref(modelValue.machineAllocation?.name)
+const machineCount = ref(modelValue.machineAllocation?.size ?? 1)
+const patches = ref(modelValue.patches)
+const unlimited = ref(modelValue.machineAllocation?.size === 'unlimited')
 const allMachines = computed(() => {
   if (selectedMachineClass?.value?.spec.auto_provision) {
     return false
@@ -87,18 +85,21 @@ const allMachines = computed(() => {
   return unlimited.value
 })
 
-watch(modelValue, () => {
-  sourceName.value = modelValue.value.machineAllocation?.name
-  machineCount.value =
-    typeof modelValue.value.machineAllocation?.size === 'number'
-      ? modelValue.value.machineAllocation?.size
-      : 1
-  patches.value = modelValue.value.patches
+watch(
+  () => modelValue,
+  () => {
+    sourceName.value = modelValue.machineAllocation?.name
+    machineCount.value =
+      typeof modelValue.machineAllocation?.size === 'number'
+        ? modelValue.machineAllocation?.size
+        : 1
+    patches.value = modelValue.patches
 
-  if (modelValue.value.machineAllocation) {
-    allocationMode.value = AllocationMode.MachineClass
-  }
-})
+    if (modelValue.machineAllocation) {
+      allocationMode.value = AllocationMode.MachineClass
+    }
+  },
+)
 
 watch([sourceName, machineCount, useMachineClasses, patches, allMachines], () => {
   if (useMachineClasses.value && !sourceName.value && machineClassOptions.value.length > 0) {
@@ -114,7 +115,7 @@ watch([sourceName, machineCount, useMachineClasses, patches, allMachines], () =>
       : undefined
 
   const machineSet: MachineSet = {
-    ...modelValue.value,
+    ...modelValue,
     machineAllocation: mc,
     patches: patches.value,
   }
@@ -124,31 +125,24 @@ watch([sourceName, machineCount, useMachineClasses, patches, allMachines], () =>
 
 const openMachineSetConfig = () => {
   showModal(MachineSetConfigEdit, {
-    machineSet: modelValue.value,
+    machineSet: modelValue,
   })
 }
 
-const openPatchConfig = () => {
-  showModal(ConfigPatchEdit, {
-    talosVersion: props.talosVersion,
-    config: patches.value[PatchID.Default]?.data ?? '',
-    id: `Machine Set ${modelValue.value.name}`,
-    onSave(config: string) {
-      if (!config) {
-        delete patches.value[PatchID.Default]
+const onSavePatchConfig = (config: string) => {
+  if (!config) {
+    delete patches.value[PatchID.Default]
 
-        return
-      }
+    return
+  }
 
-      patches.value = {
-        [PatchID.Default]: {
-          data: config,
-          weight: PatchBaseWeightMachineSet,
-        },
-        ...patches.value,
-      }
+  patches.value = {
+    [PatchID.Default]: {
+      data: config,
+      weight: PatchBaseWeightMachineSet,
     },
-  })
+    ...patches.value,
+  }
 }
 
 const labelId = useId()
@@ -211,9 +205,17 @@ const labelId = useId()
         <IconButton icon="chart-bar" @click="openMachineSetConfig" />
         <IconButton
           :icon="patches[PatchID.Default] ? 'settings-toggle' : 'settings'"
-          @click="openPatchConfig"
+          @click="configPatchEditModalOpen = true"
         />
       </div>
     </div>
+
+    <ConfigPatchEditModal
+      :id="`Machine Set ${modelValue.name}`"
+      v-model:open="configPatchEditModalOpen"
+      :config="patches[PatchID.Default]?.data ?? ''"
+      :talos-version="talosVersion"
+      @save="onSavePatchConfig"
+    />
   </li>
 </template>

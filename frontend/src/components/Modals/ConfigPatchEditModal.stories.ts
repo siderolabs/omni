@@ -10,12 +10,14 @@ import type { Empty } from '@/api/google/protobuf/empty.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { ValidateConfigRequest } from '@/api/omni/management/management.pb'
 
-import ConfigPatchEdit from './ConfigPatchEdit.vue'
+import ConfigPatchEditModal from './ConfigPatchEditModal.vue'
 
-const meta: Meta<typeof ConfigPatchEdit> = {
-  component: ConfigPatchEdit,
+const meta: Meta<typeof ConfigPatchEditModal> = {
+  component: ConfigPatchEditModal,
   decorators: [() => ({ template: '<div class="fixed inset-0"><story/></div>' })],
   args: {
+    open: true,
+    'onUpdate:open': fn(),
     id: 'Machine Set main worker pool',
     config: `# Machine config patch for node "foo-bar"
 

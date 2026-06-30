@@ -35,6 +35,7 @@ const props = withDefaults(
       actionHref?: string
       loading?: boolean
       contentClass?: string
+      disableContentPadding?: boolean
     }
   >(),
   { cancelLabel: 'Cancel' },
@@ -51,6 +52,7 @@ const dialogRootProps = reactiveOmit(
   'actionHref',
   'loading',
   'contentClass',
+  'disableContentPadding',
 )
 const forwarded = useForwardPropsEmits(dialogRootProps, emit)
 </script>
@@ -63,7 +65,7 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
       />
 
       <DialogContent
-        class="fixed inset-0 z-30 m-auto flex h-max max-h-screen w-max max-w-screen flex-col rounded-sm bg-naturals-n3 p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
+        class="fixed inset-0 z-30 m-auto flex h-max max-h-screen w-max max-w-screen flex-col rounded-sm bg-naturals-n3 px-(--padding-x) py-8 zoom-in-75 zoom-out-75 [--padding-x:--spacing(8)] fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
       >
         <div class="mb-5 flex shrink-0 items-start justify-between gap-4">
           <div class="flex flex-col">
@@ -81,7 +83,15 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
           </DialogClose>
         </div>
 
-        <div :class="cn('min-h-0 grow overflow-y-auto', contentClass)">
+        <div
+          :class="
+            cn(
+              'min-h-0 grow overflow-y-auto',
+              { '-mx-(--padding-x)': disableContentPadding },
+              contentClass,
+            )
+          "
+        >
           <slot></slot>
         </div>
 

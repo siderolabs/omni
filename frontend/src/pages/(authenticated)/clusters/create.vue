@@ -36,6 +36,7 @@ import { itemID } from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import TList from '@/components/List/TList.vue'
+import ConfigPatchEditModal from '@/components/Modals/ConfigPatchEditModal.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
@@ -48,7 +49,6 @@ import { ClusterCommandError, clusterSync, nextAvailableClusterName } from '@/me
 import { machineCompatibleWithCluster } from '@/methods/compat'
 import { useFeatures } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import { showModal } from '@/modal'
 import { showError, showSuccess } from '@/notification'
 import { initState, PatchID } from '@/states/cluster-management'
 import ClusterEtcdBackupCheckbox from '@/views/Clusters/ClusterEtcdBackupCheckbox.vue'
@@ -60,7 +60,6 @@ import ClusterMachineItem from '@/views/Clusters/Management/ClusterMachineItem.v
 import MachineSets from '@/views/Clusters/Management/MachineSets.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
-import ConfigPatchEdit from '@/views/Modals/ConfigPatchEdit.vue'
 
 definePage({ name: 'ClusterCreate' })
 
@@ -76,6 +75,7 @@ const labelContainer: Ref<Resource> = computed(() => {
 
 const { status: backupStatus } = setupBackupStatus()
 const { canCreateClusters } = usePermissions()
+const configPatchEditModalOpen = ref(false)
 const untaintSingleNodeModalOpen = ref(false)
 
 const state = initState()
@@ -262,24 +262,17 @@ const hasConfigs = computed(() => {
   return Object.keys(state.value.cluster.patches).length > 0
 })
 
-const openPatchConfig = () => {
-  showModal(ConfigPatchEdit, {
-    talosVersion: state.value.cluster.talosVersion,
-    id: 'Cluster',
-    config: state.value.cluster.patches[PatchID.Default]?.data ?? '',
-    onSave: async (config: string) => {
-      if (config === '') {
-        delete state.value.cluster.patches[PatchID.Default]
+const onSavePatchConfig = (config: string) => {
+  if (config === '') {
+    delete state.value.cluster.patches[PatchID.Default]
 
-        return
-      }
+    return
+  }
 
-      state.value.cluster.patches[PatchID.Default] = {
-        data: config,
-        weight: PatchBaseWeightCluster,
-      }
-    },
-  })
+  state.value.cluster.patches[PatchID.Default] = {
+    data: config,
+    weight: PatchBaseWeightCluster,
+  }
 }
 
 const list = useTemplateRef('list')
@@ -314,7 +307,7 @@ const list = useTemplateRef('list')
         <TButton
           variant="primary"
           :icon="hasConfigs ? 'settings-toggle' : 'settings'"
-          @click="openPatchConfig"
+          @click="configPatchEditModalOpen = true"
         >
           Config Patches
         </TButton>
@@ -426,6 +419,14 @@ const list = useTemplateRef('list')
         action="Create Cluster"
       />
     </div>
+
+    <ConfigPatchEditModal
+      id="Cluster"
+      v-model:open="configPatchEditModalOpen"
+      :config="state.cluster.patches[PatchID.Default]?.data"
+      :talos-version="state.cluster.talosVersion"
+      @save="onSavePatchConfig"
+    />
 
     <UntaintSingleNodeModal
       v-model:open="untaintSingleNodeModalOpen"
