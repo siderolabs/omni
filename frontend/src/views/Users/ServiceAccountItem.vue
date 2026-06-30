@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { toRefs } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import type { Resource } from '@/api/grpc'
@@ -15,33 +15,29 @@ import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import { usePermissions } from '@/methods/auth'
+import UserDestroyModal from '@/views/Users/components/UserDestroyModal.vue'
 
-const props = defineProps<{
+const { item } = defineProps<{
   expiration?: string
   lastActive: string
   item: Resource<ServiceAccountStatusSpec & IdentityStatusSpec>
 }>()
 
-const { item } = toRefs(props)
 const { canManageUsers } = usePermissions()
 
 const router = useRouter()
 
-const deleteUser = () => {
-  const query: Record<string, string> = {
-    user: props.item.spec.user_id!,
-    serviceAccount: props.item.metadata.id ?? '',
-  }
-
-  router.push({
-    query: { modal: 'userDestroy', ...query },
-  })
-}
+const userDestroyModal = ref<{
+  open: boolean
+  identity?: string
+}>({
+  open: false,
+})
 
 const editUser = () => {
   const query: Record<string, string> = {
-    serviceAccount: props.item.metadata.id!,
-    user: props.item.spec.user_id!,
+    serviceAccount: item.metadata.id!,
+    user: item.spec.user_id!,
   }
 
   router.push({
@@ -51,7 +47,7 @@ const editUser = () => {
 
 const renewKey = () => {
   const query: Record<string, string> = {
-    serviceAccount: props.item.metadata.id ?? '',
+    serviceAccount: item.metadata.id ?? '',
   }
 
   router.push({
@@ -64,12 +60,12 @@ const renewKey = () => {
   <TListItem>
     <template #default>
       <div class="flex items-center gap-2">
-        <div class="users-grid flex-1 text-naturals-n13">
+        <div class="grid flex-1 grid-cols-4 items-center pr-2 text-xs text-naturals-n13 *:truncate">
           <div class="font-bold">{{ item.metadata.id }}</div>
           <div class="max-w-min rounded bg-naturals-n3 px-2 py-1 text-naturals-n10">
-            {{ props.item.spec.role ?? 'None' }}
+            {{ item.spec.role ?? 'None' }}
           </div>
-          <div class="text-naturals-n10">{{ props.lastActive }}</div>
+          <div class="text-naturals-n10">{{ lastActive }}</div>
           <div>{{ expiration }}</div>
         </div>
         <div class="flex justify-between">
@@ -82,24 +78,23 @@ const renewKey = () => {
             >
               Edit Service Account
             </TActionsBoxItem>
-            <TActionsBoxItem icon="delete" danger @select="deleteUser">
+            <TActionsBoxItem
+              icon="delete"
+              danger
+              @select="userDestroyModal = { open: true, identity: item.metadata.id }"
+            >
               Delete Service Account
             </TActionsBoxItem>
           </TActionsBox>
         </div>
       </div>
+
+      <UserDestroyModal
+        v-if="userDestroyModal.identity"
+        v-model:open="userDestroyModal.open"
+        :identity="userDestroyModal.identity"
+        is-service-account
+      />
     </template>
   </TListItem>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.users-grid {
-  @apply grid grid-cols-4 items-center pr-2;
-}
-
-.users-grid > * {
-  @apply truncate text-xs;
-}
-</style>

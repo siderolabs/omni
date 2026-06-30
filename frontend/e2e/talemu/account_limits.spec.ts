@@ -26,13 +26,13 @@ test.describe.configure({ mode: 'serial' })
 async function deleteServiceAccountViaUI(page: Page, name: string): Promise<void> {
   const fullID = `${name}@serviceaccount.omni.sidero.dev`
 
-  const row = page.getByText(fullID).locator('..').locator('..')
+  const row = page.getByRole('row').filter({ hasText: fullID })
   await row.getByRole('button').click()
 
   await page.getByRole('menuitem', { name: 'Delete Service Account' }).click()
 
-  await page.locator('.modal-window').getByRole('button', { name: 'Delete' }).click()
-  await expect(page.locator('.modal-window')).toBeHidden()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click()
+  await expect(page.getByRole('alertdialog')).toBeHidden()
 }
 
 // ---------------------------------------------------------------------------
@@ -41,13 +41,13 @@ async function deleteServiceAccountViaUI(page: Page, name: string): Promise<void
 
 /** Delete a user via the UI. Assumes the page is on /settings/users. */
 async function deleteUserViaUI(page: Page, email: string): Promise<void> {
-  const row = page.getByText(email, { exact: true }).locator('..').locator('..')
+  const row = page.getByRole('row').filter({ hasText: email })
   await row.getByRole('button').click()
 
   await page.getByRole('menuitem', { name: 'Delete User' }).click()
 
-  await page.locator('.modal-window').getByRole('button', { name: 'Delete' }).click()
-  await expect(page.locator('.modal-window')).toBeHidden()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click()
+  await expect(page.getByRole('alertdialog')).toBeHidden()
 }
 
 // ---------------------------------------------------------------------------
@@ -62,7 +62,7 @@ test.describe('Account limits', () => {
     await expect(page.getByText('Service Accounts', { exact: true }).first()).toBeVisible()
 
     // Clean up any leftover e2e service accounts from previous runs.
-    const saRows = page.locator('text=@serviceaccount.omni.sidero.dev')
+    const saRows = page.getByRole('row').getByText('@serviceaccount.omni.sidero.dev')
     const saCount = await saRows.count()
 
     for (let i = saCount - 1; i >= 0; i--) {
@@ -162,7 +162,7 @@ test.describe('Account limits', () => {
     await expect(page.getByText('Users', { exact: true }).first()).toBeVisible()
 
     // Clean up any leftover e2e users from previous runs.
-    const userRows = page.locator(`text=${userPrefix}`)
+    const userRows = page.getByRole('row').getByText(userPrefix)
     const userCount = await userRows.count()
 
     for (let i = userCount - 1; i >= 0; i--) {
@@ -231,9 +231,8 @@ test.describe('Account limits', () => {
       )
     } finally {
       try {
-        if (await page.getByRole('dialog').isVisible()) {
-          await page.getByRole('dialog').getByRole('button', { name: 'close' }).first().click()
-        }
+        await page.keyboard.press('Escape')
+        await expect(page.getByRole('dialog')).toBeHidden()
 
         for (const email of createdUsers) {
           await deleteUserViaUI(page, email)

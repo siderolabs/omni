@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, toRefs } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import type { Resource } from '@/api/grpc'
@@ -15,40 +15,36 @@ import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import { usePermissions } from '@/methods/auth'
+import UserDestroyModal from '@/views/Users/components/UserDestroyModal.vue'
 
-const props = defineProps<{
+const { item } = defineProps<{
   item: Resource<IdentityStatusSpec>
   lastActive: string
 }>()
 
-const { item } = toRefs(props)
 const { canManageUsers } = usePermissions()
 
 const router = useRouter()
 
+const userDestroyModal = ref<{
+  open: boolean
+  identity?: string
+}>({
+  open: false,
+})
+
 const labels = computed(() => {
   return (
-    Object.keys(item?.value?.metadata?.labels || {})
+    Object.keys(item.metadata.labels || {})
       .filter((l) => l.startsWith(SAMLLabelPrefix))
       .map((l: string) => l.replace(`${SAMLLabelPrefix}`, '')) || []
   )
 })
 
-const deleteUser = () => {
-  const query: Record<string, string> = {
-    user: props.item.spec.user_id!,
-    identity: props.item.metadata.id ?? '',
-  }
-
-  router.push({
-    query: { modal: 'userDestroy', ...query },
-  })
-}
-
 const editUser = () => {
   const query: Record<string, string> = {
-    user: props.item.spec.user_id!,
-    identity: props.item.metadata.id ?? '',
+    user: item.spec.user_id!,
+    identity: item.metadata.id ?? '',
   }
 
   router.push({
@@ -61,12 +57,12 @@ const editUser = () => {
   <TListItem>
     <template #default>
       <div class="flex items-center gap-2">
-        <div class="users-grid flex-1 text-naturals-n13">
+        <div class="grid flex-1 grid-cols-6 items-center pr-2 text-xs text-naturals-n13 *:truncate">
           <div class="font-bold">{{ item.metadata.id }}</div>
           <div class="max-w-min rounded bg-naturals-n3 px-2 py-1 text-naturals-n10">
-            {{ props.item.spec.role ?? 'None' }}
+            {{ item.spec.role ?? 'None' }}
           </div>
-          <div class="text-naturals-n10">{{ props.lastActive }}</div>
+          <div class="text-naturals-n10">{{ lastActive }}</div>
           <div class="col-span-3 flex flex-wrap gap-1">
             <div v-for="label in labels" :key="label" class="resource-label">
               {{ label }}
@@ -76,38 +72,22 @@ const editUser = () => {
         <div class="flex justify-between">
           <TActionsBox v-if="canManageUsers">
             <TActionsBoxItem icon="edit" @select="editUser">Edit User</TActionsBoxItem>
-            <TActionsBoxItem icon="delete" danger @select="deleteUser">Delete User</TActionsBoxItem>
+            <TActionsBoxItem
+              icon="delete"
+              danger
+              @select="userDestroyModal = { open: true, identity: item.metadata.id }"
+            >
+              Delete User
+            </TActionsBoxItem>
           </TActionsBox>
         </div>
       </div>
+
+      <UserDestroyModal
+        v-if="userDestroyModal.identity"
+        v-model:open="userDestroyModal.open"
+        :identity="userDestroyModal.identity"
+      />
     </template>
   </TListItem>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.users-grid {
-  @apply grid grid-cols-6 items-center pr-2;
-}
-
-.users-grid > * {
-  @apply truncate text-xs;
-}
-
-.scope > * {
-  @apply bg-naturals-n4 p-0.5 px-1 text-naturals-n10;
-}
-
-.scope-action-enabled {
-  @apply bg-naturals-n4 p-0.5 px-1 text-green-g1;
-}
-
-.scope > *:first-child {
-  @apply rounded-l;
-}
-
-.scope > *:last-child {
-  @apply rounded-r;
-}
-</style>

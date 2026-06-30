@@ -170,15 +170,5 @@
     "vue/no-ref-object-reactivity-loss": {
       "count": 2
     }
-  },
-  "src/views/Users/ServiceAccountItem.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
-  },
-  "src/views/Users/UserItem.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
   }
 }
