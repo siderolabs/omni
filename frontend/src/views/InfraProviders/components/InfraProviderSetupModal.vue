@@ -16,7 +16,7 @@ import Modal from '@/components/Modals/Modal.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { createServiceAccount } from '@/methods/user'
 import { showError } from '@/notification'
-import ServiceAccountKey from '@/views/Modals/components/ServiceAccountKey.vue'
+import ServiceAccountKey from '@/views/Users/components/ServiceAccountKey.vue'
 
 const open = defineModel<boolean>('open', { default: false })
 

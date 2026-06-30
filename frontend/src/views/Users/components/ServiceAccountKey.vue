@@ -5,32 +5,26 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { onBeforeMount, ref } from 'vue'
+import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
 import type { AdvertisedEndpointsSpec } from '@/api/omni/specs/virtual.pb'
-import { withRuntime } from '@/api/options'
 import { AdvertisedEndpointsID, AdvertisedEndpointsType, VirtualNamespace } from '@/api/resources'
 import Code from '@/components/Labels/Code.vue'
+import { useResourceGet } from '@/methods/useResourceGet'
 
 defineProps<{ secretKey: string }>()
 
-const apiURL = ref('loading...')
-
-onBeforeMount(async () => {
-  const endpoints = await ResourceService.Get<Resource<AdvertisedEndpointsSpec>>(
-    {
-      type: AdvertisedEndpointsType,
-      namespace: VirtualNamespace,
-      id: AdvertisedEndpointsID,
-    },
-    withRuntime(Runtime.Omni),
-  )
-
-  apiURL.value = endpoints.spec.grpc_api_url!
+const { data: endpoints } = useResourceGet<AdvertisedEndpointsSpec>({
+  resource: {
+    type: AdvertisedEndpointsType,
+    namespace: VirtualNamespace,
+    id: AdvertisedEndpointsID,
+  },
+  runtime: Runtime.Omni,
 })
+
+const apiURL = computed(() => (endpoints.value ? endpoints.value.spec.grpc_api_url : 'loading...'))
 </script>
 
 <template>

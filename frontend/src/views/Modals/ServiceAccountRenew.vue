@@ -15,8 +15,7 @@ import { usePermissions } from '@/methods/auth'
 import { renewServiceAccount } from '@/methods/user'
 import { showError, showSuccess } from '@/notification'
 import CloseButton from '@/views/Modals/CloseButton.vue'
-
-import ServiceAccountKey from './components/ServiceAccountKey.vue'
+import ServiceAccountKey from '@/views/Users/components/ServiceAccountKey.vue'
 
 const router = useRouter()
 const route = useRoute()

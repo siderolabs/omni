@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -24,14 +24,16 @@ import PageHeader from '@/components/PageHeader.vue'
 import { usePermissions } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import ServiceAccountCreateModal from '@/views/Users/components/ServiceAccountCreateModal.vue'
 import ServiceAccountItem from '@/views/Users/ServiceAccountItem.vue'
 
 definePage({
   name: 'ServiceAccounts',
 })
 
-const router = useRouter()
 const { canManageUsers } = usePermissions()
+
+const serviceAccCreateModalOpen = ref(false)
 
 const { data: identities } = useResourceWatch<IdentityStatusSpec>({
   runtime: Runtime.Omni,
@@ -53,12 +55,6 @@ const getLastActive = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
 const getExpiration = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
   return relativeISO(serviceAcc.spec.expiration ?? '')
 }
-
-const openUserCreate = () => {
-  router.push({
-    query: { modal: 'serviceAccountCreate' },
-  })
-}
 </script>
 
 <template>
@@ -74,7 +70,7 @@ const openUserCreate = () => {
           icon-position="left"
           variant="highlighted"
           :disabled="!canManageUsers"
-          @click="openUserCreate"
+          @click="serviceAccCreateModalOpen = true"
         >
           Create Service Account
         </TButton>
@@ -117,6 +113,8 @@ const openUserCreate = () => {
         </template>
       </TList>
     </div>
+
+    <ServiceAccountCreateModal v-model:open="serviceAccCreateModalOpen" />
   </PageContainer>
 </template>
 

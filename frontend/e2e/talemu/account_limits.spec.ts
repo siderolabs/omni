@@ -85,7 +85,7 @@ test.describe('Account limits', () => {
         await page.getByRole('textbox', { name: 'ID:' }).fill(name)
 
         await page
-          .locator('.modal-window')
+          .getByRole('dialog')
           .getByRole('button', { name: 'Create Service Account' })
           .click()
 
@@ -105,13 +105,13 @@ test.describe('Account limits', () => {
             'maximum number of service accounts',
           )
 
-          await page.locator('.modal-window').getByRole('button', { name: 'close' }).click()
+          await page.getByRole('dialog').getByRole('button', { name: 'close' }).first().click()
 
           return
         }
 
-        await page.locator('.modal-window').getByRole('button', { name: 'close' }).click()
-        await expect(page.locator('.modal-window')).toBeHidden()
+        await page.getByRole('dialog').getByRole('button', { name: 'close' }).first().click()
+        await expect(page.getByRole('dialog')).toBeHidden()
 
         createdServiceAccounts.push(name)
       }
@@ -123,10 +123,7 @@ test.describe('Account limits', () => {
 
       await page.getByRole('textbox', { name: 'ID:' }).fill(saName)
 
-      await page
-        .locator('.modal-window')
-        .getByRole('button', { name: 'Create Service Account' })
-        .click()
+      await page.getByRole('dialog').getByRole('button', { name: 'Create Service Account' }).click()
 
       await expect(
         page.locator('[data-sonner-toast][data-type="error"]'),
@@ -138,9 +135,8 @@ test.describe('Account limits', () => {
       )
     } finally {
       try {
-        if (await page.locator('.modal-window').isVisible()) {
-          await page.locator('.modal-window').getByRole('button', { name: 'close' }).click()
-        }
+        await page.keyboard.press('Escape')
+        await expect(page.getByRole('dialog')).toBeHidden()
 
         for (const name of createdServiceAccounts) {
           await deleteServiceAccountViaUI(page, name)

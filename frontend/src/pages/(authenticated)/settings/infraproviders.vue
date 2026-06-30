@@ -38,6 +38,7 @@ import type { Label } from '@/methods/labels'
 import { selectors } from '@/methods/labels'
 import InfraProviderDeleteModal from '@/views/InfraProviders/components/InfraProviderDeleteModal.vue'
 import InfraProviderSetupModal from '@/views/InfraProviders/components/InfraProviderSetupModal.vue'
+import ServiceAccountCreateModal from '@/views/Users/components/ServiceAccountCreateModal.vue'
 
 definePage({
   name: 'InfraProviders',
@@ -48,6 +49,13 @@ const { canManageUsers } = usePermissions()
 const infraProviderSetupModalOpen = ref(false)
 const infraProviderDeleteModalOpen = ref(false)
 const infraProviderDeleteProviderId = ref<string>()
+const serviceAccCreateModal = ref<{
+  open: boolean
+  name?: string
+  role?: string
+}>({
+  open: false,
+})
 
 const getStatus = (item: Resource<InfraProviderCombinedStatusSpec>) => {
   if (!item.spec.health?.initialized) {
@@ -91,9 +99,11 @@ const openRotateSecretKey = async (name: string) => {
       query: { modal: 'serviceAccountRenew', serviceAccount: saName },
     })
   } else {
-    router.push({
-      query: { modal: 'serviceAccountCreate', name: name, role: RoleInfraProvider },
-    })
+    serviceAccCreateModal.value = {
+      open: true,
+      name,
+      role: RoleInfraProvider,
+    }
   }
 }
 </script>
@@ -183,6 +193,12 @@ const openRotateSecretKey = async (name: string) => {
         </template>
       </TList>
     </div>
+
+    <ServiceAccountCreateModal
+      v-model:open="serviceAccCreateModal.open"
+      :name="serviceAccCreateModal.name"
+      :role="serviceAccCreateModal.role"
+    />
 
     <InfraProviderSetupModal v-model:open="infraProviderSetupModalOpen" />
 
