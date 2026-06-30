@@ -23,7 +23,7 @@ const mockSavePresetModal = {
   name: 'SavePresetModal',
   template: '<div v-if="open" class="save-preset-modal"><slot /></div>',
   props: ['open', 'formState'],
-  emits: ['close', 'saved'],
+  emits: ['saved'],
 }
 
 const routes = [

@@ -43,7 +43,6 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import Stepper from '@/components/Stepper/Stepper.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
-import { showSuccess } from '@/notification'
 import SavePresetModal from '@/views/InstallationMedia/SavePresetModal.vue'
 import { useFormState } from '@/views/InstallationMedia/useFormState'
 
@@ -134,13 +133,6 @@ function onStepperChange(stepperValue?: number) {
 }
 
 const savePresetModalOpen = ref(false)
-
-function onSaved(name: string) {
-  showSuccess(`Preset saved as ${name}`)
-
-  isSaved.value = true
-  savePresetModalOpen.value = false
-}
 </script>
 
 <template>
@@ -206,11 +198,6 @@ function onSaved(name: string) {
       </div>
     </div>
 
-    <SavePresetModal
-      :open="savePresetModalOpen"
-      :form-state
-      @close="savePresetModalOpen = false"
-      @saved="onSaved"
-    />
+    <SavePresetModal v-model:open="savePresetModalOpen" :form-state @saved="isSaved = true" />
   </PageContainer>
 </template>
