@@ -12,7 +12,6 @@ import { modal } from '@/modal'
 
 const modals: Record<string, Component> = {
   userDestroy: defineAsyncComponent(() => import('@/views/Modals/UserDestroy.vue')),
-  userCreate: defineAsyncComponent(() => import('@/views/Modals/UserCreate.vue')),
   serviceAccountCreate: defineAsyncComponent(
     () => import('@/views/Modals/ServiceAccountCreate.vue'),
   ),

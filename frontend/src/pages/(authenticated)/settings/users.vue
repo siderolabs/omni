@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -23,25 +23,21 @@ import PageHeader from '@/components/PageHeader.vue'
 import { AuthType, authType } from '@/methods'
 import { usePermissions } from '@/methods/auth'
 import { relativeISO } from '@/methods/time'
+import UserCreateModal from '@/views/Users/components/UserCreateModal.vue'
 import UserItem from '@/views/Users/UserItem.vue'
 
 definePage({
   name: 'Users',
 })
 
-const router = useRouter()
 const { canManageUsers } = usePermissions()
+
+const useCreateModalOpen = ref(false)
 
 const getLastActive = (item: Resource<IdentityStatusSpec>) => {
   if (!item.spec.last_active) return 'Never'
 
   return relativeISO(item.spec.last_active)
-}
-
-const openUserCreate = () => {
-  router.push({
-    query: { modal: 'userCreate' },
-  })
 }
 </script>
 
@@ -58,7 +54,7 @@ const openUserCreate = () => {
           icon-position="left"
           variant="highlighted"
           :disabled="!canManageUsers || authType === AuthType.SAML"
-          @click="openUserCreate"
+          @click="useCreateModalOpen = true"
         >
           Add User
         </TButton>
@@ -78,8 +74,8 @@ const openUserCreate = () => {
         search
       >
         <template #default="{ items }">
-          <div class="users-header">
-            <div class="users-grid">
+          <div class="mb-1 bg-naturals-n2 px-4 py-2.5 text-xs">
+            <div class="grid grid-cols-6 pr-2">
               <div>Email</div>
               <div>Role</div>
               <div>Last Active</div>
@@ -95,22 +91,7 @@ const openUserCreate = () => {
         </template>
       </TList>
     </div>
+
+    <UserCreateModal v-model:open="useCreateModalOpen" />
   </PageContainer>
 </template>
-
-<style scoped>
-@reference "../../../index.css";
-
-.users-grid {
-  @apply grid grid-cols-6 pr-2;
-}
-
-.users-header {
-  @apply mb-1 bg-naturals-n2;
-  padding: 10px 16px;
-}
-
-.users-header > * {
-  @apply text-xs;
-}
-</style>

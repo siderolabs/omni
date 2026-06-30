@@ -184,12 +184,12 @@ test.describe('Account limits', () => {
 
         await page.getByRole('textbox', { name: 'User Email:' }).fill(email)
 
-        await page.locator('.modal-window').getByRole('button', { name: 'Create User' }).click()
+        await page.getByRole('dialog').getByRole('button', { name: 'Create User' }).click()
 
         // Check if we got an error (limit reached) or success (modal closes).
         const result = await Promise.race([
           page
-            .locator('.modal-window')
+            .getByRole('dialog')
             .waitFor({ state: 'hidden' })
             .then(() => 'success' as const),
           page
@@ -203,7 +203,7 @@ test.describe('Account limits', () => {
             'maximum number of users',
           )
 
-          await page.locator('.modal-window').getByRole('button', { name: 'close' }).click()
+          await page.getByRole('dialog').getByRole('button', { name: 'close' }).first().click()
 
           return
         }
@@ -219,7 +219,7 @@ test.describe('Account limits', () => {
 
       await page.getByRole('textbox', { name: 'User Email:' }).fill(email)
 
-      await page.locator('.modal-window').getByRole('button', { name: 'Create User' }).click()
+      await page.getByRole('dialog').getByRole('button', { name: 'Create User' }).click()
 
       await expect(
         page.locator('[data-sonner-toast][data-type="error"]'),
@@ -231,8 +231,8 @@ test.describe('Account limits', () => {
       )
     } finally {
       try {
-        if (await page.locator('.modal-window').isVisible()) {
-          await page.locator('.modal-window').getByRole('button', { name: 'close' }).click()
+        if (await page.getByRole('dialog').isVisible()) {
+          await page.getByRole('dialog').getByRole('button', { name: 'close' }).first().click()
         }
 
         for (const email of createdUsers) {
