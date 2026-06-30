@@ -49,6 +49,7 @@
     "luxon": "^3.7.2",
     "monaco-editor": "^0.55.1",
     "monaco-yaml": "^5.5.1",
+    "openpgp": "^6.3.1",
     "pluralize": "^8.0.0",
     "posthog-js": "^1.391.6",
     "pretty-bytes": "^7.1.0",
@@ -103,7 +104,6 @@
     "kubernetes-types": "^1.30.0",
     "msw": "^2.14.6",
     "msw-storybook-addon": "^2.0.7",
-    "openpgp": "^6.3.1",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "storybook": "^10.4.6",
@@ -115,8 +115,7 @@
     "vite-plugin-vue-devtools": "^8.1.3",
     "vitest": "^4.1.9",
     "vue-component-type-helpers": "^3.3.5",
-    "vue-tsc": "^3.3.5",
-    "yaml": "^2.9.0"
+    "vue-tsc": "^3.3.5"
   },
   "overrides": {
     "esbuild": "^0.28.1",

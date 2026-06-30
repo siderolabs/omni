@@ -4,7 +4,7 @@
 // included in the LICENSE file.
 import { readFile, stat } from 'node:fs/promises'
 
-import * as yaml from 'yaml'
+import { load, loadAll } from 'js-yaml'
 
 import { expect, test } from '../auth_fixtures'
 
@@ -28,7 +28,7 @@ test('Download machine join config', async ({ page }, testInfo) => {
   await download.saveAs(filePath)
   await testInfo.attach(download.suggestedFilename(), { path: filePath })
 
-  const documents = yaml.parseAllDocuments(await readFile(filePath, 'utf-8')).map((d) => d.toJS())
+  const documents = loadAll(await readFile(filePath, 'utf-8'))
 
   expect(documents).toEqual([
     {
@@ -86,7 +86,7 @@ test('Download talosconfig', async ({ page }, testInfo) => {
   await download.saveAs(filePath)
   await testInfo.attach(download.suggestedFilename(), { path: filePath })
 
-  const document = yaml.parse(await readFile(filePath, 'utf-8'))
+  const document = load(await readFile(filePath, 'utf-8'))
 
   expect(document).toEqual({
     context: 'default',
@@ -115,7 +115,7 @@ test('Download omniconfig', async ({ page }, testInfo) => {
   await download.saveAs(filePath)
   await testInfo.attach(download.suggestedFilename(), { path: filePath })
 
-  const document = yaml.parse(await readFile(filePath, 'utf-8'))
+  const document = load(await readFile(filePath, 'utf-8'))
 
   expect(document).toEqual({
     context: 'default',

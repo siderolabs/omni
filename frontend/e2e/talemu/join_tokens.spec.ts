@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises'
 
 import { faker } from '@faker-js/faker'
-import * as yaml from 'yaml'
+import { loadAll } from 'js-yaml'
 
 import { expect, test } from '../auth_fixtures'
 
@@ -93,9 +93,7 @@ test('Join tokens list read functionality', async ({ page }, testInfo) => {
     await downloadConfig.saveAs(omniconfigPath)
     await testInfo.attach(downloadConfig.suggestedFilename(), { path: omniconfigPath })
 
-    const documents = yaml
-      .parseAllDocuments(await readFile(omniconfigPath, 'utf-8'))
-      .map((d) => d.toJS())
+    const documents = loadAll(await readFile(omniconfigPath, 'utf-8'))
 
     expect(documents).toEqual([
       {

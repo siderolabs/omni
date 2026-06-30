@@ -10,7 +10,6 @@ import { milliseconds } from 'date-fns'
 import { dump, load } from 'js-yaml'
 import { diff as diffJSON } from 'json-diff-ts'
 import * as uuid from 'uuid'
-import * as yaml from 'yaml'
 
 import { expect, test as base } from '../omnictl_fixtures.js'
 
@@ -250,8 +249,8 @@ test('cluster template export and sync', async ({ omnictl }, testInfo) => {
       }),
     ).toHaveLength(0)
 
-    const ymlObjBefore = yaml.parse(configPatchBefore.spec.data)
-    const ymlObjAfter = yaml.parse(configPatchAfter.spec.data)
+    const ymlObjBefore = load(configPatchBefore.spec.data)
+    const ymlObjAfter = load(configPatchAfter.spec.data)
 
     expect(ymlObjBefore).toStrictEqual(ymlObjAfter)
   })
