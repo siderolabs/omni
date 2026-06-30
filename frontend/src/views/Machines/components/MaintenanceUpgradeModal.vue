@@ -191,8 +191,8 @@ const doUpgrade = async () => {
   <Modal
     v-model:open="open"
     title="Upgrade Talos"
-    :action-label="finished ? 'Done' : 'Upgrade'"
-    cancel-label="Close"
+    :action-label="finished ? undefined : 'Upgrade'"
+    :cancel-label="finished ? 'Close' : 'Cancel'"
     :action-disabled="
       machineLoading ||
       !selectedVersion ||
@@ -201,7 +201,7 @@ const doUpgrade = async () => {
     "
     :loading="upgrading"
     content-class="flex max-w-xl flex-col gap-2"
-    @confirm="finished ? (open = false) : doUpgrade()"
+    @confirm="doUpgrade"
   >
     <template #description>Node {{ machineId }}</template>
 

@@ -216,8 +216,8 @@ const doInstall = async () => {
   <Modal
     v-model:open="open"
     title="Install Talos"
-    :action-label="finished ? 'Done' : 'Install'"
-    cancel-label="Close"
+    :action-label="finished ? undefined : 'Install'"
+    :cancel-label="finished ? 'Close' : 'Cancel'"
     :action-disabled="
       machineLoading ||
       !selectedDisk ||
@@ -227,7 +227,7 @@ const doInstall = async () => {
     "
     :loading="installing"
     content-class="flex max-w-xl flex-col gap-2"
-    @confirm="finished ? (open = false) : doInstall()"
+    @confirm="doInstall"
   >
     <template #description>Node {{ machineId }}</template>
 
