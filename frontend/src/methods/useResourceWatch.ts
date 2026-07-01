@@ -6,8 +6,9 @@ import { type MaybeRefOrGetter, onWatcherCleanup, type Ref, ref, toValue, watch 
 
 import type { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
+import { EventType } from '@/api/omni/resources/resources.pb'
 import type { Callback, WatchOptions, WatchOptionsMulti, WatchOptionsSingle } from '@/api/watch'
-import Watch from '@/api/watch'
+import Watch, { itemID, WatchItems } from '@/api/watch'
 
 interface WatchBase {
   err: Ref<string | null>
@@ -49,14 +50,45 @@ function useWatchSingle<TSpec = unknown, TStatus = unknown>(
   callback?: Callback<Resource<TSpec, TStatus>>,
 ): WatchSingle<TSpec, TStatus> {
   const data = ref<Resource<TSpec, TStatus>>()
+  const loading = ref(false)
 
-  const watch = useWatch(data, opts, callback)
+  const watch = useWatch<Resource<TSpec, TStatus>>(loading, opts, {
+    onMessage(message, spec) {
+      callback?.(message, spec)
+
+      const eventType = message.event?.event_type ?? EventType.UNKNOWN
+
+      switch (eventType) {
+        case EventType.BOOTSTRAPPED:
+          loading.value = false
+          break
+        case EventType.UPDATED:
+        case EventType.CREATED:
+          if (!spec.res) {
+            throw new Error(`malformed ${eventType} event: no resource defined`)
+          }
+
+          data.value = spec.res
+          break
+        case EventType.DESTROYED:
+          if (!spec.res) {
+            throw new Error(`malformed ${eventType} event: no resource defined`)
+          }
+
+          data.value = undefined
+          break
+      }
+    },
+    onStop() {
+      data.value = undefined
+    },
+  })
 
   return {
     data,
     err: watch.err,
     errCode: watch.errCode,
-    loading: watch.loading,
+    loading,
   }
 }
 
@@ -65,15 +97,72 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
   callback?: Callback<Resource<TSpec, TStatus>>,
 ): WatchMulti<TSpec, TStatus> {
   const data: Ref<Resource<TSpec, TStatus>[], Resource<TSpec, TStatus>[]> = ref([])
+  const loading = ref(false)
+  const total = ref(0)
 
-  const watch = useWatch(data, opts, callback)
+  let watchItems: WatchItems<Resource<TSpec, TStatus>> | undefined
+
+  const watch = useWatch<Resource<TSpec, TStatus>>(loading, opts, {
+    onMessage(message, spec) {
+      callback?.(message, spec)
+
+      const eventType = message.event?.event_type ?? EventType.UNKNOWN
+
+      switch (eventType) {
+        case EventType.BOOTSTRAPPED:
+          loading.value = false
+          watchItems?.bootstrap()
+
+          break
+        case EventType.UPDATED:
+        case EventType.CREATED:
+          if (!spec.res) {
+            throw new Error(`malformed ${eventType} event: no resource defined`)
+          }
+
+          watchItems?.createOrUpdate(
+            { ...spec.res, sortFieldData: message.sort_field_data },
+            message.sort_descending ?? false,
+            spec.old,
+          )
+
+          break
+        case EventType.DESTROYED:
+          if (!spec.res) {
+            throw new Error(`malformed ${eventType} event: no resource defined`)
+          }
+
+          watchItems?.remove(itemID(spec.res))
+
+          break
+      }
+
+      if (
+        message.total !== undefined ||
+        ![EventType.BOOTSTRAPPED, EventType.UNKNOWN].includes(eventType)
+      ) {
+        if (watchItems?.bootstrapped) {
+          total.value = message.total ?? 0
+        }
+      }
+    },
+    onStart() {
+      watchItems = new WatchItems(data.value)
+    },
+    onStop() {
+      watchItems?.reset()
+
+      total.value = 0
+      data.value.splice(0, data.value.length)
+    },
+  })
 
   return {
     data,
     err: watch.err,
     errCode: watch.errCode,
-    loading: watch.loading,
-    total: watch.total,
+    loading,
+    total,
   }
 }
 
@@ -84,11 +173,21 @@ function isWatchOptionsSingle(
 }
 
 function useWatch<T extends Resource>(
-  data: Ref<T[]> | Ref<T | undefined>,
+  loading: Ref<boolean>,
   opts: MaybeRefOrGetter<WatchOptions>,
-  callback?: Callback<T>,
+  {
+    onMessage,
+    onStart,
+    onStop,
+    onError,
+  }: {
+    onMessage?: Callback<T>
+    onStart?(): void
+    onStop?(): void
+    onError?(e: Error): void
+  } = {},
 ) {
-  const resWatch = new Watch(data, callback)
+  const resWatch = new Watch<T>(loading, onMessage, onStart, onError)
 
   watch(
     () => JSON.stringify(toValue(opts)),
@@ -98,7 +197,10 @@ function useWatch<T extends Resource>(
       if (watchOptions.skip) return
 
       resWatch.start(watchOptions)
-      onWatcherCleanup(() => resWatch.stop())
+      onWatcherCleanup(() => {
+        resWatch.stop()
+        onStop?.()
+      })
     },
     { immediate: true },
   )

@@ -62,42 +62,19 @@ export type WatchOptionsMulti = WatchOptionsBase & {
 }
 
 export default class Watch<T extends Resource> {
-  private callback: Callback<T> | undefined
-  private handler: Callback<T>
   private stream?: Stream<WatchRequest, WatchResponse>
 
-  public readonly loading = ref(false)
   public readonly err = ref<string | null>(null)
   public readonly errCode = ref<Code | null>(null)
 
-  public readonly items?: Ref<T[]>
-  public readonly item?: Ref<T | undefined>
-  public readonly total = ref(0)
-
-  private watchItems?: WatchItems<T>
-  private lastTotal = 0
-
-  constructor(target: Ref<T[]> | Ref<T | undefined>, callback?: Callback<T>) {
-    this.callback = callback
-
-    if (this.isItemsRef(target)) {
-      this.handler = this.listHandler.bind(this)
-
-      this.items = target
-    } else {
-      this.handler = this.singleItemHandler.bind(this)
-
-      this.item = target
-    }
-  }
+  constructor(
+    private readonly loading: Ref<boolean>,
+    private readonly callback?: Callback<T>,
+    private readonly onStart?: () => void,
+    private readonly onError?: (e: Error) => void,
+  ) {}
 
   public start(opts: WatchOptions) {
-    if (this.items) {
-      this.watchItems = new WatchItems(this.items.value)
-
-      this.items.value.splice(0, this.items.value.length)
-    }
-
     this.loading.value = true
     this.err.value = null
     this.errCode.value = null
@@ -137,30 +114,18 @@ export default class Watch<T extends Resource> {
         }
 
         this.callback?.(message, spec)
-        this.handler(message, spec)
-
-        if (
-          message.total !== undefined ||
-          ![EventType.BOOTSTRAPPED, EventType.UNKNOWN].includes(
-            message.event?.event_type ?? EventType.UNKNOWN,
-          )
-        ) {
-          this.lastTotal = message.total ?? 0
-
-          if (this.watchItems?.bootstrapped) {
-            this.total.value = this.lastTotal
-          }
-        }
       },
       fetchOptions,
       () => {
-        this.watchItems?.reset()
+        this.onStart?.()
 
         this.err.value = null
         this.errCode.value = null
         this.loading.value = true
       },
       (error) => {
+        this.onError?.(error)
+
         this.err.value = error.message ?? error.toString()
         this.errCode.value = error instanceof RequestError ? ((error.code as Code) ?? null) : null
         this.loading.value = false
@@ -170,76 +135,6 @@ export default class Watch<T extends Resource> {
 
   public stop() {
     this.stream?.shutdown()
-    this.watchItems?.reset()
-    this.total.value = 0
-
-    if (this.items) {
-      this.items.value.splice(0, this.items.value.length)
-    } else if (this.item) {
-      this.item.value = undefined
-    }
-  }
-
-  private isItemsRef(target: Ref<T[]> | Ref<T | undefined>): target is Ref<T[]> {
-    return Array.isArray(target.value)
-  }
-
-  private singleItemHandler(message: WatchResponse, spec: WatchEventSpec<T>) {
-    if (message.event?.event_type === EventType.BOOTSTRAPPED) {
-      this.loading.value = false
-
-      return
-    }
-
-    if (!spec.res) {
-      throw new Error(`malformed ${message.event?.event_type} event: no resource defined`)
-    }
-
-    if (!this.item) {
-      return
-    }
-
-    switch (message.event?.event_type) {
-      case EventType.UPDATED:
-      case EventType.CREATED:
-        this.item.value = spec.res
-        break
-      case EventType.DESTROYED:
-        this.item.value = undefined
-        break
-    }
-  }
-
-  private listHandler(message: WatchResponse, spec: WatchEventSpec<T>) {
-    if (!this.items || !this.watchItems) return
-
-    if (message.event?.event_type === EventType.BOOTSTRAPPED) {
-      this.loading.value = false
-
-      this.watchItems.bootstrap()
-
-      return
-    }
-
-    if (!spec.res) {
-      throw new Error(`malformed ${message.event?.event_type} event: no resource defined`)
-    }
-
-    switch (message.event?.event_type) {
-      case EventType.UPDATED:
-      case EventType.CREATED:
-        this.watchItems.createOrUpdate(
-          { ...spec.res, sortFieldData: message.sort_field_data },
-          message.sort_descending ?? false,
-          spec.old,
-        )
-
-        break
-      case EventType.DESTROYED:
-        this.watchItems.remove(itemID(spec.res))
-
-        break
-    }
   }
 }
 
@@ -323,7 +218,7 @@ export const itemID = (item: {
 type ResourceSort<T> = T & { sortFieldData?: string }
 
 // WatchItems wraps items list and handles sort order, insertions and removals.
-class WatchItems<T extends Resource> {
+export class WatchItems<T extends Resource> {
   private items: ResourceSort<T>[]
   private bootstrapList: ResourceSort<T>[] = []
 
