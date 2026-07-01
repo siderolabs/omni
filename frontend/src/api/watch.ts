@@ -2,28 +2,9 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import type { Ref } from 'vue'
-import { ref } from 'vue'
-
 import { Runtime } from '@/api/common/omni.pb'
-import { type fetchOption, RequestError } from '@/api/fetch.pb'
-import type { Code } from '@/api/google/rpc/code.pb'
-import type { Resource, Stream } from '@/api/grpc'
-import { ResourceService } from '@/api/grpc'
-import type { WatchRequest, WatchResponse } from '@/api/omni/resources/resources.pb'
-import { EventType } from '@/api/omni/resources/resources.pb'
-import type { GRPCMetadata } from '@/api/options'
-import { withContext, withMetadata, withRuntime } from '@/api/options'
+import type { Resource } from '@/api/grpc'
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
-
-export interface Callback<T extends Resource> {
-  (message: WatchResponse, spec: WatchEventSpec<T>): void
-}
-
-interface WatchEventSpec<T extends Resource> {
-  res?: T
-  old?: T
-}
 
 export interface WatchContext {
   cluster?: string
@@ -59,83 +40,6 @@ export type WatchOptionsSingle = WatchOptionsBase & {
 
 export type WatchOptionsMulti = WatchOptionsBase & {
   resource: Omit<Metadata, 'id'>
-}
-
-export default class Watch<T extends Resource> {
-  private stream?: Stream<WatchRequest, WatchResponse>
-
-  public readonly err = ref<string | null>(null)
-  public readonly errCode = ref<Code | null>(null)
-
-  constructor(
-    private readonly loading: Ref<boolean>,
-    private readonly callback?: Callback<T>,
-    private readonly onStart?: () => void,
-    private readonly onError?: (e: Error) => void,
-  ) {}
-
-  public start(opts: WatchOptions) {
-    this.loading.value = true
-    this.err.value = null
-    this.errCode.value = null
-
-    const metadata: GRPCMetadata = {}
-
-    if (opts.selectors?.length) {
-      metadata.selectors = opts.selectors.join(opts.selectUsingOR ? ';' : ',')
-    }
-
-    const fetchOptions: fetchOption[] = [withRuntime(opts.runtime), withMetadata(metadata)]
-
-    if (opts.context) {
-      fetchOptions.push(withContext(opts.context))
-    }
-
-    this.stream = ResourceService.Watch(
-      {
-        id: 'id' in opts.resource ? opts.resource.id : undefined,
-        namespace: opts.resource.namespace,
-        type: opts.resource.type,
-        tail_events: opts.tailEvents,
-        limit: opts.limit,
-        sort_by_field: opts.sortByField,
-        sort_descending: opts.sortDescending,
-        search_for: opts.searchFor,
-        offset: opts.offset,
-      },
-      (message) => {
-        const spec: WatchEventSpec<T> = {}
-
-        if (message.event?.resource) spec.res = JSON.parse(message.event.resource)
-        if (message.event?.old) spec.old = JSON.parse(message.event.old)
-
-        if (message.event?.event_type === EventType.BOOTSTRAPPED) {
-          this.loading.value = false
-        }
-
-        this.callback?.(message, spec)
-      },
-      fetchOptions,
-      () => {
-        this.onStart?.()
-
-        this.err.value = null
-        this.errCode.value = null
-        this.loading.value = true
-      },
-      (error) => {
-        this.onError?.(error)
-
-        this.err.value = error.message ?? error.toString()
-        this.errCode.value = error instanceof RequestError ? ((error.code as Code) ?? null) : null
-        this.loading.value = false
-      },
-    )
-  }
-
-  public stop() {
-    this.stream?.shutdown()
-  }
 }
 
 const compareFn = <T extends Resource>(

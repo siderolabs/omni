@@ -4,11 +4,13 @@
 // included in the LICENSE file.
 import { type MaybeRefOrGetter, onWatcherCleanup, type Ref, ref, toValue, watch } from 'vue'
 
+import { RequestError } from '@/api/fetch.pb'
 import type { Code } from '@/api/google/rpc/code.pb'
-import type { Resource } from '@/api/grpc'
-import { EventType } from '@/api/omni/resources/resources.pb'
-import type { Callback, WatchOptions, WatchOptionsMulti, WatchOptionsSingle } from '@/api/watch'
-import Watch, { itemID, WatchItems } from '@/api/watch'
+import { type Resource, ResourceService } from '@/api/grpc'
+import { EventType, type WatchResponse } from '@/api/omni/resources/resources.pb'
+import { type GRPCMetadata, withContext, withMetadata, withRuntime } from '@/api/options'
+import type { WatchOptions, WatchOptionsMulti, WatchOptionsSingle } from '@/api/watch'
+import { itemID, WatchItems } from '@/api/watch'
 
 interface WatchBase {
   err: Ref<string | null>
@@ -50,31 +52,17 @@ function useWatchSingle<TSpec = unknown, TStatus = unknown>(
   callback?: Callback<Resource<TSpec, TStatus>>,
 ): WatchSingle<TSpec, TStatus> {
   const data = ref<Resource<TSpec, TStatus>>()
-  const loading = ref(false)
 
-  const watch = useWatch<Resource<TSpec, TStatus>>(loading, opts, {
+  const { err, errCode, loading } = useWatchStream<Resource<TSpec, TStatus>>(opts, {
     onMessage(message, spec) {
       callback?.(message, spec)
 
-      const eventType = message.event?.event_type ?? EventType.UNKNOWN
-
-      switch (eventType) {
-        case EventType.BOOTSTRAPPED:
-          loading.value = false
-          break
+      switch (message.event?.event_type) {
         case EventType.UPDATED:
         case EventType.CREATED:
-          if (!spec.res) {
-            throw new Error(`malformed ${eventType} event: no resource defined`)
-          }
-
           data.value = spec.res
           break
         case EventType.DESTROYED:
-          if (!spec.res) {
-            throw new Error(`malformed ${eventType} event: no resource defined`)
-          }
-
           data.value = undefined
           break
       }
@@ -86,8 +74,8 @@ function useWatchSingle<TSpec = unknown, TStatus = unknown>(
 
   return {
     data,
-    err: watch.err,
-    errCode: watch.errCode,
+    err,
+    errCode,
     loading,
   }
 }
@@ -97,53 +85,45 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
   callback?: Callback<Resource<TSpec, TStatus>>,
 ): WatchMulti<TSpec, TStatus> {
   const data: Ref<Resource<TSpec, TStatus>[], Resource<TSpec, TStatus>[]> = ref([])
-  const loading = ref(false)
   const total = ref(0)
 
   let watchItems: WatchItems<Resource<TSpec, TStatus>> | undefined
 
-  const watch = useWatch<Resource<TSpec, TStatus>>(loading, opts, {
+  const { err, errCode, loading } = useWatchStream<Resource<TSpec, TStatus>>(opts, {
     onMessage(message, spec) {
       callback?.(message, spec)
 
-      const eventType = message.event?.event_type ?? EventType.UNKNOWN
-
-      switch (eventType) {
+      switch (message.event?.event_type) {
         case EventType.BOOTSTRAPPED:
-          loading.value = false
           watchItems?.bootstrap()
+
+          // Bootstrap means that all initial items have arrived
+          total.value = message.total ?? 0
 
           break
         case EventType.UPDATED:
         case EventType.CREATED:
-          if (!spec.res) {
-            throw new Error(`malformed ${eventType} event: no resource defined`)
-          }
-
           watchItems?.createOrUpdate(
-            { ...spec.res, sortFieldData: message.sort_field_data },
+            { ...spec.res!, sortFieldData: message.sort_field_data },
             message.sort_descending ?? false,
             spec.old,
           )
 
-          break
-        case EventType.DESTROYED:
-          if (!spec.res) {
-            throw new Error(`malformed ${eventType} event: no resource defined`)
+          // Wait for all initial items to arrive
+          if (watchItems?.bootstrapped) {
+            total.value = message.total ?? 0
           }
 
-          watchItems?.remove(itemID(spec.res))
+          break
+        case EventType.DESTROYED:
+          watchItems?.remove(itemID(spec.res!))
+
+          // Wait for all initial items to arrive
+          if (watchItems?.bootstrapped) {
+            total.value = message.total ?? 0
+          }
 
           break
-      }
-
-      if (
-        message.total !== undefined ||
-        ![EventType.BOOTSTRAPPED, EventType.UNKNOWN].includes(eventType)
-      ) {
-        if (watchItems?.bootstrapped) {
-          total.value = message.total ?? 0
-        }
       }
     },
     onStart() {
@@ -159,8 +139,8 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
 
   return {
     data,
-    err: watch.err,
-    errCode: watch.errCode,
+    err,
+    errCode,
     loading,
     total,
   }
@@ -172,38 +152,131 @@ function isWatchOptionsSingle(
   return 'id' in toValue(opts).resource
 }
 
-function useWatch<T extends Resource>(
-  loading: Ref<boolean>,
+interface Callback<T extends Resource> {
+  (message: WatchResponse, spec: WatchEventSpec<T>): void
+}
+
+interface WatchEventSpec<T extends Resource> {
+  res?: T
+  old?: T
+}
+
+function useWatchStream<T extends Resource>(
   opts: MaybeRefOrGetter<WatchOptions>,
   {
     onMessage,
     onStart,
     onStop,
-    onError,
   }: {
     onMessage?: Callback<T>
     onStart?(): void
     onStop?(): void
-    onError?(e: Error): void
   } = {},
 ) {
-  const resWatch = new Watch<T>(loading, onMessage, onStart, onError)
+  const loading = ref(false)
+  const err = ref<string | null>(null)
+  const errCode = ref<Code | null>(null)
 
   watch(
     () => JSON.stringify(toValue(opts)),
     () => {
-      const watchOptions = toValue(opts)
+      const {
+        skip,
+        resource,
+        runtime,
+        context,
+        selectors = [],
+        selectUsingOR,
+        searchFor,
+        sortByField,
+        sortDescending,
+        limit,
+        offset,
+        tailEvents,
+      } = toValue(opts)
 
-      if (watchOptions.skip) return
+      if (skip) {
+        loading.value = false
+        return
+      }
 
-      resWatch.start(watchOptions)
+      const metadata: GRPCMetadata = {}
+
+      if (selectors.length) {
+        metadata.selectors = selectors.join(selectUsingOR ? ';' : ',')
+      }
+
+      const fetchOptions = [withRuntime(runtime), withMetadata(metadata)]
+
+      if (context) {
+        fetchOptions.push(withContext(context))
+      }
+
+      const stream = ResourceService.Watch(
+        {
+          id: 'id' in resource ? resource.id : undefined,
+          namespace: resource.namespace,
+          type: resource.type,
+          tail_events: tailEvents,
+          limit,
+          sort_by_field: sortByField,
+          sort_descending: sortDescending,
+          search_for: searchFor,
+          offset,
+        },
+        onWatchMessage,
+        fetchOptions,
+        onWatchStart,
+        onWatchError,
+      )
+
       onWatcherCleanup(() => {
-        resWatch.stop()
+        stream.shutdown()
         onStop?.()
       })
     },
     { immediate: true },
   )
 
-  return resWatch
+  function onWatchMessage(message: WatchResponse) {
+    const spec: WatchEventSpec<T> = {}
+
+    if (message.event) {
+      const { resource, old, event_type } = message.event
+
+      switch (event_type) {
+        case EventType.BOOTSTRAPPED:
+          loading.value = false
+          break
+        case EventType.CREATED:
+        case EventType.UPDATED:
+        case EventType.DESTROYED:
+          if (!resource) {
+            throw new Error(`malformed ${event_type} event: no resource defined`)
+          }
+
+          spec.res = JSON.parse(resource)
+
+          if (old) spec.old = JSON.parse(old)
+      }
+    }
+
+    onMessage?.(message, spec)
+  }
+
+  function onWatchStart() {
+    err.value = null
+    errCode.value = null
+    loading.value = true
+
+    onStart?.()
+  }
+
+  function onWatchError(error: Error) {
+    err.value = error.message || String(error)
+    errCode.value = error instanceof RequestError ? ((error.code as Code) ?? null) : null
+    loading.value = false
+  }
+
+  return { loading, err, errCode }
 }
