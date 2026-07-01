@@ -334,6 +334,10 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 			rt:          omni.ControlPlaneStatusType,
 			listOptions: clusterQuery,
 		},
+		{
+			rt:          omni.MachinePendingUpdatesType,
+			listOptions: clusterQuery,
+		},
 	}
 
 	machineIDs := map[string]struct{}{}
@@ -413,6 +417,17 @@ func (s *managementServer) collectClusterResources(ctx context.Context, cluster 
 		}
 
 		resources = append(resources, labels)
+
+		machineConfigGenOptions, err := safe.ReaderGetByID[*omni.MachineConfigGenOptions](ctx, st, id)
+		if err != nil {
+			if state.IsNotFoundError(err) {
+				continue
+			}
+
+			return nil, err
+		}
+
+		resources = append(resources, machineConfigGenOptions)
 	}
 
 	return resources, nil
