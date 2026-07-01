@@ -41,6 +41,7 @@ func (suite *ClusterMachineStatusSuite) TearDownTest() {
 	rtestutils.DestroyAll[*omni.MachineSetNode](suite.ctx, suite.T(), suite.state)
 	rtestutils.DestroyAll[*omni.ClusterMachineConfigStatus](suite.ctx, suite.T(), suite.state)
 	rtestutils.DestroyAll[*omni.MachineStatusSnapshot](suite.ctx, suite.T(), suite.state)
+	rtestutils.DestroyAll[*omni.MachinePendingUpdates](suite.ctx, suite.T(), suite.state)
 
 	suite.OmniSuite.TearDownTest()
 }
@@ -95,13 +96,8 @@ func (suite *ClusterMachineStatusSuite) TestApplyConfigErrorPropagation() {
 func (suite *ClusterMachineStatusSuite) TestOutdatedConfig() {
 	suite.setupStageTest(&machineapi.MachineStatusEvent{Stage: machineapi.MachineStatusEvent_RUNNING}, true)
 
-	rmock.Mock[*omni.ClusterMachineConfigStatus](
+	rmock.Mock[*omni.MachinePendingUpdates](
 		suite.ctx, suite.T(), suite.state, options.WithID(testID),
-		options.Modify(func(s *omni.ClusterMachineConfigStatus) error {
-			s.TypedSpec().Value.ClusterMachineConfigVersion = "42"
-
-			return nil
-		}),
 	)
 
 	clusterMachineStatus := omni.NewClusterMachineStatus(testID)
