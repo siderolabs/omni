@@ -12,7 +12,6 @@ import { useRouter } from 'vue-router'
 import AppToast from '@/components/AppToast/AppToast.vue'
 import TSuspended from '@/components/Suspended/TSuspended.vue'
 import THeader from '@/components/THeader/THeader.vue'
-import TModal from '@/components/TModal.vue'
 import { suspended } from '@/methods'
 import { useRegisterAPIInterceptor } from '@/methods/interceptor'
 import { useWatchKeyExpiry } from '@/methods/key'
@@ -76,6 +75,4 @@ const darkThemeEnabled = computed(() => {
       </div>
     </div>
   </div>
-
-  <TModal />
 </template>

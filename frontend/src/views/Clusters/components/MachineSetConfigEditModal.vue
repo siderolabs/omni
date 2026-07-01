@@ -5,14 +5,13 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref, toRefs } from 'vue'
+import { ref, watchEffect } from 'vue'
 
 import { MachineSetSpecUpdateStrategy } from '@/api/omni/specs/omni.pb'
 import { LabelWorkerRole } from '@/api/resources'
-import TButton from '@/components/Button/TButton.vue'
 import TButtonGroup from '@/components/Button/TButtonGroup.vue'
+import Modal from '@/components/Modals/Modal.vue'
 import TInput from '@/components/TInput/TInput.vue'
-import { closeModal } from '@/modal'
 import type { MachineSet } from '@/states/cluster-management'
 import { state } from '@/states/cluster-management'
 
@@ -38,91 +37,82 @@ const optionsUpgrade = [
   },
 ]
 
-interface Props {
+const { machineSet } = defineProps<{
   machineSet: MachineSet
-}
+}>()
 
-const props = defineProps<Props>()
+const open = defineModel<boolean>('open', { default: false })
 
-const { machineSet } = toRefs(props)
+const updateParallelism = ref(1)
+const deleteParallelism = ref(1)
+const upgradeParallelism = ref(1)
 
-const updateParallelism = ref(
-  machineSet.value.updateStrategy?.config?.rolling?.max_parallelism ?? 1,
-)
-const deleteParallelism = ref(
-  machineSet.value.deleteStrategy?.config?.rolling?.max_parallelism ?? 1,
-)
-const upgradeParallelism = ref(
-  machineSet.value.upgradeStrategy?.config?.rolling?.max_parallelism ?? 1,
-)
+const updateStrategy = ref(MachineSetSpecUpdateStrategy.Rolling)
+const deleteStrategy = ref(MachineSetSpecUpdateStrategy.Unset)
+const upgradeStrategy = ref(MachineSetSpecUpdateStrategy.Unset)
 
-const updateStrategy = ref<MachineSetSpecUpdateStrategy>(
-  machineSet.value.updateStrategy?.type ?? MachineSetSpecUpdateStrategy.Rolling,
-)
-const deleteStrategy = ref<MachineSetSpecUpdateStrategy>(
-  machineSet.value.deleteStrategy?.type ?? MachineSetSpecUpdateStrategy.Unset,
-)
-const upgradeStrategy = ref<MachineSetSpecUpdateStrategy>(
-  machineSet.value.upgradeStrategy?.type ?? MachineSetSpecUpdateStrategy.Unset,
-)
+watchEffect(() => {
+  if (!open.value) return
 
-const close = () => {
-  closeModal()
-}
+  updateParallelism.value = machineSet.updateStrategy?.config?.rolling?.max_parallelism ?? 1
+  deleteParallelism.value = machineSet.deleteStrategy?.config?.rolling?.max_parallelism ?? 1
+  upgradeParallelism.value = machineSet.upgradeStrategy?.config?.rolling?.max_parallelism ?? 1
+
+  updateStrategy.value = machineSet.updateStrategy?.type ?? MachineSetSpecUpdateStrategy.Rolling
+  deleteStrategy.value = machineSet.deleteStrategy?.type ?? MachineSetSpecUpdateStrategy.Unset
+  upgradeStrategy.value = machineSet.upgradeStrategy?.type ?? MachineSetSpecUpdateStrategy.Unset
+})
 
 const saveAndClose = async () => {
-  const ms = state.value.machineSets.find((item) => item.id === machineSet.value.id)
+  const ms = state.value.machineSets.find((item) => item.id === machineSet.id)
   if (!ms) {
     return
   }
 
   if (ms?.role === LabelWorkerRole) {
-    if (updateStrategy.value !== undefined) {
-      ms.updateStrategy = {
-        type: updateStrategy.value,
-        config: {
-          rolling: {
-            max_parallelism: updateParallelism.value,
-          },
-        },
-      }
-    }
-
-    if (deleteStrategy.value !== undefined) {
-      ms.deleteStrategy = {
-        type: deleteStrategy.value,
-        config: {
-          rolling: {
-            max_parallelism: deleteParallelism.value,
-          },
-        },
-      }
-    }
-  }
-
-  if (upgradeStrategy.value !== undefined) {
-    ms.upgradeStrategy = {
-      type: upgradeStrategy.value,
-    }
-
-    if (upgradeStrategy.value === MachineSetSpecUpdateStrategy.Rolling) {
-      ms.upgradeStrategy.config = {
+    ms.updateStrategy = {
+      type: updateStrategy.value,
+      config: {
         rolling: {
-          max_parallelism: upgradeParallelism.value,
+          max_parallelism: updateParallelism.value,
         },
-      }
+      },
+    }
+
+    ms.deleteStrategy = {
+      type: deleteStrategy.value,
+      config: {
+        rolling: {
+          max_parallelism: deleteParallelism.value,
+        },
+      },
     }
   }
 
-  close()
+  ms.upgradeStrategy = {
+    type: upgradeStrategy.value,
+  }
+
+  if (upgradeStrategy.value === MachineSetSpecUpdateStrategy.Rolling) {
+    ms.upgradeStrategy.config = {
+      rolling: {
+        max_parallelism: upgradeParallelism.value,
+      },
+    }
+  }
+
+  open.value = false
 }
 </script>
 
 <template>
-  <div class="modal-window">
-    <div class="my-7 flex items-center px-8">
-      <div class="heading">Machine Set Scaling Configuration</div>
-    </div>
+  <Modal
+    v-model:open="open"
+    title="Machine Set Scaling Configuration"
+    action-label="Save"
+    disable-content-padding
+    @confirm="saveAndClose"
+  >
     <div class="flex flex-1 flex-col">
       <template v-if="machineSet.role === LabelWorkerRole">
         <div
@@ -168,20 +158,5 @@ const saveAndClose = async () => {
         </div>
       </div>
     </div>
-    <div class="flex justify-between gap-4 rounded-b bg-naturals-n3 p-4">
-      <TButton variant="secondary" @click="close">Cancel</TButton>
-      <TButton @click="saveAndClose">Save</TButton>
-    </div>
-  </div>
+  </Modal>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.modal-window {
-  @apply p-0;
-}
-.heading {
-  @apply text-xl text-naturals-n14;
-}
-</style>

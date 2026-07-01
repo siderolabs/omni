@@ -19,11 +19,9 @@ import ConfigPatchEditModal from '@/components/Modals/ConfigPatchEditModal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TInput from '@/components/TInput/TInput.vue'
-import { showModal } from '@/modal'
 import type { MachineSet } from '@/states/cluster-management'
 import { PatchID } from '@/states/cluster-management'
-
-import MachineSetConfigEdit from '../../Modals/MachineSetConfigEdit.vue'
+import MachineSetConfigEditModal from '@/views/Clusters/components/MachineSetConfigEditModal.vue'
 
 const emit = defineEmits<{
   'update:modelValue': [MachineSet]
@@ -69,6 +67,7 @@ const selectedMachineClass = computed(() => {
 })
 
 const configPatchEditModalOpen = ref(false)
+const machineSetConfigEditModalOpen = ref(false)
 const allocationMode = ref(
   modelValue.machineAllocation ? AllocationMode.MachineClass : AllocationMode.Manual,
 )
@@ -122,12 +121,6 @@ watch([sourceName, machineCount, useMachineClasses, patches, allMachines], () =>
 
   emit('update:modelValue', machineSet)
 })
-
-const openMachineSetConfig = () => {
-  showModal(MachineSetConfigEdit, {
-    machineSet: modelValue,
-  })
-}
 
 const onSavePatchConfig = (config: string) => {
   if (!config) {
@@ -202,7 +195,7 @@ const labelId = useId()
     <div class="flex w-24 items-center justify-end gap-2">
       <TButton v-if="!noRemove" class="h-6" size="sm" @click="onRemove">Remove</TButton>
       <div class="flex justify-center gap-1">
-        <IconButton icon="chart-bar" @click="openMachineSetConfig" />
+        <IconButton icon="chart-bar" @click="machineSetConfigEditModalOpen = true" />
         <IconButton
           :icon="patches[PatchID.Default] ? 'settings-toggle' : 'settings'"
           @click="configPatchEditModalOpen = true"
@@ -216,6 +209,11 @@ const labelId = useId()
       :config="patches[PatchID.Default]?.data ?? ''"
       :talos-version="talosVersion"
       @save="onSavePatchConfig"
+    />
+
+    <MachineSetConfigEditModal
+      v-model:open="machineSetConfigEditModalOpen"
+      :machine-set="modelValue"
     />
   </li>
 </template>
