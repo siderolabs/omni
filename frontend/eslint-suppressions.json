@@ -144,14 +144,6 @@
       "count": 1
     }
   },
-  "src/views/Modals/CreateExtensions.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    },
-    "vue/no-ref-object-reactivity-loss": {
-      "count": 2
-    }
-  },
   "src/views/Modals/MachineSetConfigEdit.vue": {
     "vue/define-props-destructuring": {
       "count": 1

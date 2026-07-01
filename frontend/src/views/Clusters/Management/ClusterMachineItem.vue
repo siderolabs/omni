@@ -25,12 +25,11 @@ import ConfigPatchEditModal from '@/components/Modals/ConfigPatchEditModal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
-import { showModal } from '@/modal'
 import type { MachineSetNode } from '@/states/cluster-management'
 import { PatchID, state } from '@/states/cluster-management'
+import CreateExtensionsModal from '@/views/Clusters/components/CreateExtensionsModal.vue'
 import MachineItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 
-import CreateExtensions from '../../Modals/CreateExtensions.vue'
 import type { PickerOption } from './MachineSetPicker.vue'
 import MachineSetPicker from './MachineSetPicker.vue'
 
@@ -57,6 +56,7 @@ const machineSetNode = ref<MachineSetNode>({
 })
 const machineSetIndex = ref<number>()
 const configPatchEditModalOpen = ref(false)
+const createExtensionsModalOpen = ref(false)
 const blockdevices = computed(() => item.spec.hardware?.blockdevices || [])
 const systemDiskPath = computed(
   () => blockdevices.value.find((device) => device.system_disk)?.linux_name,
@@ -194,18 +194,6 @@ const setInstallDisk = (value: string) => {
 
 const systemExtensions = ref<string[]>()
 
-const openExtensionConfig = () => {
-  showModal(CreateExtensions, {
-    machine: item.metadata.id!,
-    modelValue: systemExtensions.value,
-    onSave(extensions?: string[]) {
-      machineSetNode.value.systemExtensions = extensions
-
-      systemExtensions.value = extensions
-    },
-  })
-}
-
 const exampleConfigPatch = computed(() => {
   const isTalos112 =
     !state.value.cluster.talosVersion ||
@@ -290,7 +278,7 @@ const onSavePatchConfig = (config: string) => {
             class="my-auto text-naturals-n14"
             :disabled="machineSetIndex === undefined || options?.[machineSetIndex]?.disabled"
             :icon="systemExtensions ? 'extensions-toggle' : 'extensions'"
-            @click="openExtensionConfig"
+            @click="createExtensionsModalOpen = true"
           />
           <IconButton
             :id="machineSetIndex !== undefined ? options?.[machineSetIndex]?.id : undefined"
@@ -312,6 +300,18 @@ const onSavePatchConfig = (config: string) => {
         :config="exampleConfigPatch"
         :talos-version="state.cluster.talosVersion"
         @save="onSavePatchConfig"
+      />
+
+      <CreateExtensionsModal
+        v-model:open="createExtensionsModalOpen"
+        :machine="item.metadata.id!"
+        :model-value="systemExtensions"
+        @save="
+          (extensions) => {
+            machineSetNode.systemExtensions = extensions
+            systemExtensions = extensions
+          }
+        "
       />
     </template>
 

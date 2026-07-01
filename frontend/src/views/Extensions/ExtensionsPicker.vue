@@ -90,7 +90,7 @@ const updateExtension = (extension: TalosExtensionsSpecInfo, enabled: boolean) =
             highlight-class="bg-naturals-n14"
           />
         </div>
-        <div class="text-xs text-naturals-n13">{{ extension.version }}</div>
+        <div class="text-xs wrap-break-word text-naturals-n13">{{ extension.version }}</div>
         <div class="text-xs text-naturals-n13">{{ extension.author }}</div>
         <div v-if="extension.description && showDescriptions" class="col-span-4 text-xs">
           {{ extension.description }}
