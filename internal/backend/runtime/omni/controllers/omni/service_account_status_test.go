@@ -69,7 +69,10 @@ func (suite *ClusterServiceAccountStatusSuite) TestReconcile() {
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{serviceAccount.Metadata().ID()}, func(res *auth.ServiceAccountStatus, assert *assert.Assertions) {
 		assert.Equal(string(role.Admin), res.TypedSpec().Value.Role)
-		assert.Len(res.TypedSpec().Value.PublicKeys, 1)
+
+		if !assert.Len(res.TypedSpec().Value.PublicKeys, 1) {
+			return
+		}
 
 		if assert.NotNil(res.TypedSpec().Value.PublicKeys[0].Created) {
 			assert.False(res.TypedSpec().Value.PublicKeys[0].Created.AsTime().IsZero())
@@ -86,7 +89,9 @@ func (suite *ClusterServiceAccountStatusSuite) TestReconcile() {
 	require.NoError(suite.state.Create(suite.ctx, pkLastActive))
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{serviceAccount.Metadata().ID()}, func(res *auth.ServiceAccountStatus, assert *assert.Assertions) {
-		assert.Len(res.TypedSpec().Value.PublicKeys, 1)
+		if !assert.Len(res.TypedSpec().Value.PublicKeys, 1) {
+			return
+		}
 
 		if assert.NotNil(res.TypedSpec().Value.PublicKeys[0].LastUsed) {
 			assert.WithinDuration(time.Now(), res.TypedSpec().Value.PublicKeys[0].LastUsed.AsTime(), 5*time.Second)

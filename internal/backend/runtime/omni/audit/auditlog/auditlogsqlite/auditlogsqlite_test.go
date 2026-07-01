@@ -313,23 +313,56 @@ func TestRemoveByMaxSizeBatchCap(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 
 	// Seed 1500 events into a store with no size limit.
-	seedStore, db := setupStore(ctx, t, logger)
+	_, db := setupStore(ctx, t, logger)
 
 	const totalEvents = 1500
 
-	for i := range totalEvents {
-		evt := auditlog.Event{
-			Type:       "batch-cap-test",
-			TimeMillis: int64(i) * 1000,
-			Data: &auditlog.Data{
+	require.NoError(t, func() (err error) {
+		var conn *zombiesqlite.Conn
+
+		if conn, err = db.Take(ctx); err != nil {
+			return err
+		}
+
+		defer db.Put(conn)
+
+		endTx, err := sqlitex.ImmediateTransaction(conn)
+		if err != nil {
+			return err
+		}
+
+		defer endTx(&err)
+
+		insertQuery := fmt.Sprintf("INSERT INTO %s (%s, %s, %s) VALUES ($type, $ts, $data)",
+			auditlogsqlite.TableName, "event_type", "event_ts_ms", "event_data")
+
+		for i := range totalEvents {
+			data, mErr := json.Marshal(&auditlog.Data{
 				Session: auditlog.Session{
 					UserID: fmt.Sprintf("user-%d", i),
 					Email:  fmt.Sprintf("user-%d@example.com", i),
 				},
-			},
+			})
+			if mErr != nil {
+				return mErr
+			}
+
+			q, qErr := sqlitexx.NewQuery(conn, insertQuery)
+			if qErr != nil {
+				return qErr
+			}
+
+			if err = q.
+				BindString("$type", "batch-cap-test").
+				BindInt64("$ts", int64(i)*1000).
+				BindBytes("$data", data).
+				Exec(); err != nil {
+				return err
+			}
 		}
-		require.NoError(t, seedStore.Write(ctx, evt))
-	}
+
+		return nil
+	}())
 
 	// Create a new store on the same DB with maxSize=1 (effectively 0) and probability=1.0.
 	// This means all rows exceed the limit, but the batch cap (1000) should prevent
@@ -386,30 +419,48 @@ func TestRemoveBatching(t *testing.T) {
 	rangeStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	rangeEnd := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
 
-	conn, err := db.Take(ctx)
-	require.NoError(t, err)
+	require.NoError(t, func() (err error) {
+		var conn *zombiesqlite.Conn
 
-	t.Cleanup(func() {
-		db.Put(conn)
-	})
+		if conn, err = db.Take(ctx); err != nil {
+			return err
+		}
 
-	for i := range inRangeCount {
-		ts := rangeStart.Add(time.Duration(i) * time.Second).UnixMilli()
+		defer db.Put(conn)
 
-		q, qErr := sqlitexx.NewQuery(conn,
-			fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES ($ts, $data)", auditlogsqlite.TableName, "event_ts_ms", "event_data"))
-		require.NoError(t, qErr)
-		require.NoError(t, q.BindInt64("$ts", ts).BindBytes("$data", []byte(`{}`)).Exec())
-	}
+		endTx, err := sqlitex.ImmediateTransaction(conn)
+		if err != nil {
+			return err
+		}
 
-	for i := range outRangeCount {
-		ts := rangeEnd.Add(time.Duration(i+1) * time.Hour).UnixMilli()
+		defer endTx(&err)
 
-		q, qErr := sqlitexx.NewQuery(conn,
-			fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES ($ts, $data)", auditlogsqlite.TableName, "event_ts_ms", "event_data"))
-		require.NoError(t, qErr)
-		require.NoError(t, q.BindInt64("$ts", ts).BindBytes("$data", []byte(`{}`)).Exec())
-	}
+		insertQuery := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES ($ts, $data)",
+			auditlogsqlite.TableName, "event_ts_ms", "event_data")
+
+		insert := func(ts int64) error {
+			q, qErr := sqlitexx.NewQuery(conn, insertQuery)
+			if qErr != nil {
+				return qErr
+			}
+
+			return q.BindInt64("$ts", ts).BindBytes("$data", []byte(`{}`)).Exec()
+		}
+
+		for i := range inRangeCount {
+			if err = insert(rangeStart.Add(time.Duration(i) * time.Second).UnixMilli()); err != nil {
+				return err
+			}
+		}
+
+		for i := range outRangeCount {
+			if err = insert(rangeEnd.Add(time.Duration(i+1) * time.Hour).UnixMilli()); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}())
 
 	// Remove all events in range — requires multiple batches (1000 + 500).
 	require.NoError(t, store.Remove(ctx, rangeStart, rangeEnd))
