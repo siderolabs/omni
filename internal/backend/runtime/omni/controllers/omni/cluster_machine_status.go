@@ -176,7 +176,7 @@ func NewClusterMachineStatusController() *ClusterMachineStatusController {
 				}
 
 				if clusterMachineConfigStatus != nil && clusterMachineConfig != nil {
-					cmsVal.ConfigUpToDate = !isOutdated(clusterMachineConfig, clusterMachineConfigStatus)
+					cmsVal.ConfigUpToDate = !isOutdated(pendingMachineUpdate, clusterMachineConfigStatus)
 					cmsVal.LastConfigError = clusterMachineConfigStatus.TypedSpec().Value.LastConfigError
 				} else {
 					cmsVal.ConfigUpToDate = false
@@ -338,6 +338,6 @@ func configApplyStatus(spec *specs.ClusterMachineStatusSpec) specs.ConfigApplySt
 	}
 }
 
-func isOutdated(clusterMachineConfig *omni.ClusterMachineConfig, configStatus *omni.ClusterMachineConfigStatus) bool {
-	return configStatus.TypedSpec().Value.ClusterMachineConfigVersion != clusterMachineConfig.Metadata().Version().String() || configStatus.TypedSpec().Value.LastConfigError != ""
+func isOutdated(machinePendingUpdates *omni.MachinePendingUpdates, configStatus *omni.ClusterMachineConfigStatus) bool {
+	return machinePendingUpdates != nil || configStatus.TypedSpec().Value.LastConfigError != ""
 }
