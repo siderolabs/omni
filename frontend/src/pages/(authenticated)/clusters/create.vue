@@ -54,13 +54,13 @@ import { initState, PatchID } from '@/states/cluster-management'
 import ClusterEtcdBackupCheckbox from '@/views/Clusters/ClusterEtcdBackupCheckbox.vue'
 import ClusterMenu from '@/views/Clusters/ClusterMenu.vue'
 import ClusterWorkloadProxyingCheckbox from '@/views/Clusters/ClusterWorkloadProxyingCheckbox.vue'
+import UntaintSingleNodeModal from '@/views/Clusters/components/UntaintSingleNodeModal.vue'
 import EmbeddedDiscoveryServiceCheckbox from '@/views/Clusters/EmbeddedDiscoveryServiceCheckbox.vue'
 import ClusterMachineItem from '@/views/Clusters/Management/ClusterMachineItem.vue'
 import MachineSets from '@/views/Clusters/Management/MachineSets.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
 import ConfigPatchEdit from '@/views/Modals/ConfigPatchEdit.vue'
-import UntaintSingleNode from '@/views/Modals/UntaintSingleNode.vue'
 
 definePage({ name: 'ClusterCreate' })
 
@@ -76,6 +76,7 @@ const labelContainer: Ref<Resource> = computed(() => {
 
 const { status: backupStatus } = setupBackupStatus()
 const { canCreateClusters } = usePermissions()
+const untaintSingleNodeModalOpen = ref(false)
 
 const state = initState()
 
@@ -162,7 +163,7 @@ onMounted(async () => {
 
 const createCluster = async () => {
   if (state.value.untaintSingleNode()) {
-    showModal(UntaintSingleNode, { onContinue: createCluster_ })
+    untaintSingleNodeModalOpen.value = true
   } else {
     await createCluster_(false)
   }
@@ -425,5 +426,11 @@ const list = useTemplateRef('list')
         action="Create Cluster"
       />
     </div>
+
+    <UntaintSingleNodeModal
+      v-model:open="untaintSingleNodeModalOpen"
+      :talos-version="state.cluster.talosVersion"
+      @continue="createCluster_"
+    />
   </PageContainer>
 </template>

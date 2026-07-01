@@ -171,11 +171,6 @@
       "count": 2
     }
   },
-  "src/views/Modals/UntaintSingleNode.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
-  },
   "src/views/Users/ServiceAccountItem.vue": {
     "vue/define-props-destructuring": {
       "count": 1
