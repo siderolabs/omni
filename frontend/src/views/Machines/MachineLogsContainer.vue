@@ -149,7 +149,7 @@ watchEffect((onCleanup) => {
 
           return {
             date: formatISO(data['talos-time'], 'dd/MM/yyyy HH:mm:ss'),
-            msg: data.msg,
+            msg: data.msg.replace(/\n$/, ''),
           }
         }),
       )
