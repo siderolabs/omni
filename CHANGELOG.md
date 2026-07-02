@@ -1,3 +1,48 @@
+## [Omni 1.9.1](https://github.com/siderolabs/omni/releases/tag/v1.9.1) (2026-07-02)
+
+Welcome to the v1.9.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Edward Sammut Alessi
+* Oguz Kilcan
+* Utku Ozdemir
+* Artem Chernyshev
+* Nguyen Duc Quynh
+
+### Changes
+<details><summary>15 commits</summary>
+<p>
+
+* [`6d8a8256f`](https://github.com/siderolabs/omni/commit/6d8a8256f36798b27ab47fc2834c3f57a30e12be) fix(frontend): prevent copying double newlines in machine logs
+* [`d9b182274`](https://github.com/siderolabs/omni/commit/d9b1822745ad8a0e170f17817458df4474ce5fea) refactor(frontend): replace ua-parser-js with bowser
+* [`adec58a7a`](https://github.com/siderolabs/omni/commit/adec58a7a68bc571c1039471341ca1e7389af278) chore(frontend): drop yaml dependency and move openpgp to dependencies
+* [`434c8facd`](https://github.com/siderolabs/omni/commit/434c8facd3ed9a5163a1e98cd323f2b27841754b) chore: rekres for js sbom
+* [`ea05006d8`](https://github.com/siderolabs/omni/commit/ea05006d8f3763db16474afe99635df01f69048b) fix: update COSI runtime to fix hanging TeardownAndDestroy calls
+* [`c9afbb1a6`](https://github.com/siderolabs/omni/commit/c9afbb1a6505d0434c747cad8d932953cb30edb6) fix: align config outdated status in ui and cli
+* [`d8aec1c81`](https://github.com/siderolabs/omni/commit/d8aec1c8131231db2a68d6e30a1a864eeb7181a1) fix(frontend): only show process args in command column
+* [`f7731e0ef`](https://github.com/siderolabs/omni/commit/f7731e0ef9256030fc8588627a7d813b15749249) fix(frontend): allow in-minor patch upgrades in update kubernetes on Omni
+* [`cea826355`](https://github.com/siderolabs/omni/commit/cea826355b2c13a5d50a2b55c20d19edd1bf4b9c) fix: advertise reachable machine API address in cluster-import test
+* [`07cfb3009`](https://github.com/siderolabs/omni/commit/07cfb3009f446c9bb795fb3f3d5b62608929e0f1) test: stabilize image-factory schematic across CI runs
+* [`039946447`](https://github.com/siderolabs/omni/commit/0399464476e366702b80e79ccacb182f74dc4247) test: drop non-existent preset delete error expectation
+* [`41d962e0f`](https://github.com/siderolabs/omni/commit/41d962e0f3ffb358ca8e94cc8f58d75bf7c3c437) fix: tolerate NotFound on installation media preset delete
+* [`9e4509c25`](https://github.com/siderolabs/omni/commit/9e4509c252e53aa343930fc1d4f9698e500b3ba8) fix: recover a machine from a reverted reboot-requiring config patch
+* [`88b8e873d`](https://github.com/siderolabs/omni/commit/88b8e873d633a12fc2b2bf711567a7378dfcb9b3) fix: move timeout for factory requests to controllers
+* [`69d1a0e0e`](https://github.com/siderolabs/omni/commit/69d1a0e0ede4f61340b1951a7ba49884d98f90d0) fix(frontend): allow force-destroy when MachineSetNode is already gone
+</p>
+</details>
+
+### Dependency Changes
+
+* **github.com/cosi-project/runtime**  v1.16.1 -> v1.16.2
+
+Previous release can be found at [v1.9.0](https://github.com/siderolabs/omni/releases/tag/v1.9.0)
+
 ## [Omni 1.9.0](https://github.com/siderolabs/omni/releases/tag/v1.9.0) (2026-06-25)
 
 Welcome to the v1.9.0 release of Omni!
