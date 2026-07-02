@@ -2,7 +2,15 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { type MaybeRefOrGetter, onWatcherCleanup, type Ref, ref, toValue, watch } from 'vue'
+import {
+  computed,
+  type MaybeRefOrGetter,
+  onWatcherCleanup,
+  type Ref,
+  ref,
+  toValue,
+  watch,
+} from 'vue'
 
 import { RequestError } from '@/api/fetch.pb'
 import type { Code } from '@/api/google/rpc/code.pb'
@@ -10,7 +18,7 @@ import { type Resource, ResourceService } from '@/api/grpc'
 import { EventType, type WatchResponse } from '@/api/omni/resources/resources.pb'
 import { type GRPCMetadata, withContext, withMetadata, withRuntime } from '@/api/options'
 import type { WatchOptions, WatchOptionsMulti, WatchOptionsSingle } from '@/api/watch'
-import { itemID, WatchItems } from '@/api/watch'
+import { itemID } from '@/api/watch'
 
 interface WatchBase {
   err: Ref<string | null>
@@ -84,10 +92,9 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptionsMulti>,
   callback?: Callback<Resource<TSpec, TStatus>>,
 ): WatchMulti<TSpec, TStatus> {
-  const data: Ref<Resource<TSpec, TStatus>[], Resource<TSpec, TStatus>[]> = ref([])
+  const data: Ref<ResourceSort<Resource<TSpec, TStatus>>[]> = ref([])
   const total = ref(0)
-
-  let watchItems: WatchItems<Resource<TSpec, TStatus>> | undefined
+  const bootstrapped = ref(false)
 
   const { err, errCode, loading } = useWatchStream<Resource<TSpec, TStatus>>(opts, {
     onMessage(message, spec) {
@@ -95,55 +102,121 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
 
       switch (message.event?.event_type) {
         case EventType.BOOTSTRAPPED:
-          watchItems?.bootstrap()
-
-          // Bootstrap means that all initial items have arrived
+          bootstrapped.value = true
           total.value = message.total ?? 0
-
           break
         case EventType.UPDATED:
         case EventType.CREATED:
-          watchItems?.createOrUpdate(
-            { ...spec.res!, sortFieldData: message.sort_field_data },
-            message.sort_descending ?? false,
-            spec.old,
-          )
-
-          // Wait for all initial items to arrive
-          if (watchItems?.bootstrapped) {
-            total.value = message.total ?? 0
+          const item: ResourceSort<Resource<TSpec, TStatus>> = {
+            ...spec.res!,
+            sortFieldData: message.sort_field_data,
           }
+
+          const itemIndex = data.value.findIndex((r) => itemID(r) === itemID(spec.old ?? item))
+          const itemExists = itemIndex > -1
+          const sortValueChanged = data.value[itemIndex]?.sortFieldData !== item.sortFieldData
+
+          if (itemExists && !sortValueChanged) {
+            // Updates that don't affect sorting
+            data.value[itemIndex] = item
+          } else {
+            // Update affects sorting, remove first
+            if (itemExists) data.value.splice(itemIndex, 1)
+
+            const index = getInsertionIndex(data.value, item, message.sort_descending)
+
+            // Insert into sorted position
+            data.value.splice(index, 0, item)
+          }
+
+          total.value = message.total ?? 0
 
           break
         case EventType.DESTROYED:
-          watchItems?.remove(itemID(spec.res!))
-
-          // Wait for all initial items to arrive
-          if (watchItems?.bootstrapped) {
-            total.value = message.total ?? 0
-          }
+          data.value = data.value.filter((r) => itemID(r) !== itemID(spec.res!))
+          total.value = message.total ?? 0
 
           break
       }
     },
     onStart() {
-      watchItems = new WatchItems(data.value)
+      bootstrapped.value = false
+      total.value = 0
+      data.value = []
     },
     onStop() {
-      watchItems?.reset()
-
       total.value = 0
-      data.value.splice(0, data.value.length)
+      data.value = []
     },
   })
 
   return {
-    data,
+    data: computed(() => (bootstrapped.value ? data.value : [])),
+    total: computed(() => (bootstrapped.value ? total.value : 0)),
     err,
     errCode,
     loading,
-    total,
   }
+}
+
+type ResourceSort<T> = T & { sortFieldData?: string }
+
+function compareFn<T extends Resource>(
+  left: ResourceSort<T>,
+  right: ResourceSort<T>,
+  sortDescending?: boolean,
+) {
+  const inv = sortDescending ? -1 : 1
+
+  if (left.sortFieldData && right.sortFieldData) {
+    if (left.sortFieldData > right.sortFieldData) return 1 * inv
+    if (left.sortFieldData < right.sortFieldData) return -1 * inv
+  }
+
+  const leftID = itemID(left)
+  const rightID = itemID(right)
+
+  if (leftID > rightID) return 1
+  if (leftID < rightID) return -1
+
+  return 0
+}
+
+function getInsertionIndex<T extends Resource>(
+  arr: ResourceSort<T>[],
+  item: ResourceSort<T>,
+  sortDescending?: boolean,
+): number {
+  const itemsCount = arr.length
+  if (!itemsCount) return 0
+
+  const lastItem = arr[itemsCount - 1]
+
+  if (compareFn(item, lastItem, sortDescending) >= 0) {
+    return itemsCount
+  }
+
+  const getMidPoint = (start: number, end: number) => Math.floor((end - start) / 2) + start
+  let start = 0
+  let end = itemsCount - 1
+  let index = getMidPoint(start, end)
+
+  while (start < end) {
+    const curItem = arr[index]
+
+    const comparison = compareFn(item, curItem, sortDescending)
+
+    if (comparison === 0) {
+      break
+    } else if (comparison < 0) {
+      end = index
+    } else {
+      start = index + 1
+    }
+    index = getMidPoint(start, end)
+  }
+
+  return index
 }
 
 function isWatchOptionsSingle(
