@@ -8,7 +8,6 @@ included in the LICENSE file.
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import { LabelCluster } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import Card from '@/components/Card/Card.vue'
 import CopyButton from '@/components/CopyButton/CopyButton.vue'
@@ -44,7 +43,7 @@ defineProps<{
 
     <div
       v-for="item in machines.slice(0, 5)"
-      :key="itemID(item)"
+      :key="item.metadata.id"
       class="grid grid-cols-3 items-center gap-2 border-t border-naturals-n4 px-4 py-3 max-sm:grid-cols-[1fr_1fr_auto]"
     >
       <div class="flex min-w-0 items-center gap-2">

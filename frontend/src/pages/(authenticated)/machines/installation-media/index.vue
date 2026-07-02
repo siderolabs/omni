@@ -20,7 +20,6 @@ import {
   InstallationMediaConfigType,
   JoinTokenStatusType,
 } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
@@ -147,7 +146,10 @@ function clonePreset(preset: (typeof presets.value)[number]) {
       </template>
 
       <template #body>
-        <TableRow v-for="{ token, tokenAutomatic, ...preset } in presetList" :key="itemID(preset)">
+        <TableRow
+          v-for="{ token, tokenAutomatic, ...preset } in presetList"
+          :key="preset.metadata.id"
+        >
           <TableCell>
             <RouterLink
               class="list-item-link"

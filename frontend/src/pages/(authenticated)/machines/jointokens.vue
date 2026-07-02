@@ -22,7 +22,6 @@ import {
   DefaultNamespace,
   JoinTokenStatusType,
 } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TButton from '@/components/Button/TButton.vue'
@@ -149,7 +148,7 @@ const openDeleteToken = (token: string) => {
             <div>Use Count</div>
           </div>
         </div>
-        <TListItem v-for="item in items" :key="itemID(item)">
+        <TListItem v-for="item in items" :key="item.metadata.id">
           <div class="flex gap-2">
             <div class="tokens-grid flex-1">
               <div class="flex items-center gap-2">

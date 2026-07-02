@@ -11,7 +11,6 @@ import { computed, watch } from 'vue'
 import { Runtime } from '@/api/common/omni.pb'
 import type { PlatformConfigSpec } from '@/api/omni/specs/virtual.pb'
 import { CloudPlatformConfigType, VirtualNamespace } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
@@ -56,7 +55,7 @@ watch(platforms, (v) => (formState.value.cloudPlatform ??= v?.[0]?.metadata.id))
   <RadioGroup v-model="formState.cloudPlatform" label="Cloud">
     <RadioGroupOption
       v-for="platform in platforms"
-      :key="itemID(platform)"
+      :key="platform.metadata.id"
       :value="platform.metadata.id!"
     >
       {{ platform.spec.label }}

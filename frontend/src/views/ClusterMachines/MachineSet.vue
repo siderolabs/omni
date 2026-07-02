@@ -27,7 +27,6 @@ import {
   LabelMachineSet,
   MachineSetStatusType,
 } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TButton from '@/components/Button/TButton.vue'
@@ -235,7 +234,7 @@ function isMachineSetScalable(
       <ClusterMachine
         v-for="machine in machines"
         :id="machine.metadata.id"
-        :key="itemID(machine)"
+        :key="machine.metadata.id"
         class="border-t border-naturals-n4 last-of-type:rounded-b-md"
         :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id!)"
         :machine="machine"
@@ -244,7 +243,7 @@ function isMachineSetScalable(
 
       <MachineRequest
         v-for="request in requests"
-        :key="itemID(request)"
+        :key="request.metadata.id"
         class="border-t border-naturals-n4 last-of-type:rounded-b-md"
         :request-status="request"
         :can-destroy="canRemoveClusterMachines"

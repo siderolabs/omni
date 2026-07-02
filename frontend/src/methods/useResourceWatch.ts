@@ -20,7 +20,6 @@ import { EventType, type WatchResponse } from '@/api/omni/resources/resources.pb
 import type { RuntimeContext } from '@/api/options'
 import { type GRPCMetadata, withContext, withMetadata, withRuntime } from '@/api/options'
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
-import { itemID } from '@/api/watch'
 
 type WatchOptionsBase = {
   selectors?: string[]
@@ -247,6 +246,15 @@ function getInsertionIndex<T extends Resource>(
   }
 
   return index
+}
+
+// Required for resources that can span multiple namespaces like k8s resources
+function itemID(item: { metadata: { id?: string; name?: string; namespace?: string } }) {
+  if (item.metadata === null) {
+    return ''
+  }
+
+  return `${item.metadata.namespace || 'default'}.${item.metadata.name ?? item.metadata.id}`
 }
 
 function isWatchOptionsSingle(

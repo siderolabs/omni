@@ -32,7 +32,6 @@ import {
   PatchBaseWeightMachineSet,
   TalosVersionType,
 } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import TList from '@/components/List/TList.vue'
@@ -388,7 +387,7 @@ const list = useTemplateRef('list')
         <template #default="{ items, searchQuery }">
           <ClusterMachineItem
             v-for="item in items"
-            :key="itemID(item)"
+            :key="item.metadata.id"
             :version-mismatch="detectVersionMismatch(item)"
             :auto-install-notice="detectAutoInstallNotice(item)"
             :reset="reset"

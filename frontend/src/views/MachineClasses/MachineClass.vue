@@ -26,7 +26,6 @@ import {
   MachineClassType,
   MachineStatusType,
 } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
 import TButtonGroup from '@/components/Button/TButtonGroup.vue'
@@ -534,7 +533,7 @@ const submit = async () => {
 
             <MachineMatchItem
               v-for="item in machines"
-              :key="itemID(item)"
+              :key="item.metadata.id"
               :machine="item"
               @filter-labels="copyLabel"
             />

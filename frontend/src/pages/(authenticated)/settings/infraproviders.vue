@@ -22,7 +22,6 @@ import {
   InfraProviderServiceAccountDomain,
   RoleInfraProvider,
 } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import IconButton from '@/components/Button/IconButton.vue'
 import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
@@ -153,7 +152,7 @@ const openRotateSecretKey = async (name: string) => {
           <div class="flex flex-col gap-2">
             <div
               v-for="item in items"
-              :key="itemID(item)"
+              :key="item.metadata.id"
               class="grid grid-cols-4 items-center rounded border border-naturals-n5 bg-naturals-n1 p-3"
               :class="{ 'border-dashed': !item.spec.name }"
             >

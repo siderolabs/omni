@@ -18,7 +18,6 @@ import {
   LabelsCompletionType,
   VirtualNamespace,
 } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
@@ -150,7 +149,7 @@ const filterOptions = [
           <ul class="col-span-full grid grid-cols-subgrid gap-3">
             <ClusterItem
               v-for="(item, index) in items"
-              :key="itemID(item)"
+              :key="item.metadata.id"
               :default-open="index === 0"
               :search-query="searchQuery"
               :item="item"

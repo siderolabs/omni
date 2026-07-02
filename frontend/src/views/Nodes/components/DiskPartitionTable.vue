@@ -9,7 +9,6 @@ import prettyBytes from 'pretty-bytes'
 
 import type { Resource } from '@/api/grpc'
 import type { DiscoveredVolumeSpec, VolumeStatusSpec } from '@/api/talos/block.pb'
-import { itemID } from '@/api/watch'
 import TIcon, { type IconType } from '@/components/Icon/TIcon.vue'
 import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
@@ -95,7 +94,7 @@ const getEncryptionIcon = (item?: Resource<VolumeStatusSpec>): IconType => {
       <template #body>
         <TableRow
           v-for="{ volume, volumeStatus } in partitions"
-          :key="itemID(volume)"
+          :key="volume.metadata.id"
           :aria-labelledby="`volume-${volume.metadata.id}-title`"
           class="whitespace-nowrap"
         >

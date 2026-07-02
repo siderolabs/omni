@@ -26,7 +26,6 @@ import {
   MachineStatusLabelReportingEvents,
   MachineStatusType,
 } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -177,7 +176,7 @@ const data = computed(() =>
       <template v-else>
         <ClusterMachineItem
           v-for="item in data"
-          :key="itemID(item)"
+          :key="item.metadata.id"
           :item="item"
           :version-mismatch="detectVersionMismatch(item)"
           :auto-install-notice="detectAutoInstallNotice(item)"

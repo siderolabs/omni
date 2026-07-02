@@ -11,7 +11,6 @@ import { computed, watch } from 'vue'
 import { Runtime } from '@/api/common/omni.pb'
 import type { SBCConfigSpec } from '@/api/omni/specs/virtual.pb'
 import { SBCConfigType, VirtualNamespace } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import RadioGroup from '@/components/Radio/RadioGroup.vue'
 import RadioGroupOption from '@/components/Radio/RadioGroupOption.vue'
 import { getDocsLink } from '@/methods'
@@ -54,7 +53,7 @@ watch(SBCs, (v) => (formState.value.sbcType ??= v?.[0]?.metadata.id))
 
 <template>
   <RadioGroup v-model="formState.sbcType" label="Single Board Computer">
-    <RadioGroupOption v-for="sbc in SBCs" :key="itemID(sbc)" :value="sbc.metadata.id!">
+    <RadioGroupOption v-for="sbc in SBCs" :key="sbc.metadata.id" :value="sbc.metadata.id!">
       {{ sbc.spec.label }}
 
       <template #description>

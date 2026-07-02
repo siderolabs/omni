@@ -18,7 +18,6 @@ import {
   TalosVolumeStatusType,
 } from '@/api/resources'
 import type { DiscoveredVolumeSpec, DiskSpec, VolumeStatusSpec } from '@/api/talos/block.pb'
-import { itemID } from '@/api/watch'
 import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
@@ -124,7 +123,7 @@ const organizedDisks = computed(() =>
     <section
       v-for="diskInfo in organizedDisks"
       v-else
-      :key="itemID(diskInfo.disk)"
+      :key="diskInfo.disk.metadata.id"
       class="overflow-hidden rounded-lg"
       :aria-labelledby="`disk-${diskInfo.disk.metadata.id}-title`"
     >

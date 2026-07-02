@@ -11,7 +11,6 @@ import WordHighlighter from 'vue-word-highlighter'
 import { Runtime } from '@/api/common/omni.pb'
 import type { InfraMachineSpec } from '@/api/omni/specs/infra.pb'
 import { InfraMachineType, InfraProviderNamespace, LabelInfraProviderID } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import TList from '@/components/List/TList.vue'
@@ -116,7 +115,7 @@ const unrejectModalOpen = ref(false)
           <template #body>
             <TableRow
               v-for="item in items"
-              :key="itemID(item)"
+              :key="item.metadata.id"
               role="button"
               :aria-label="item.metadata.id"
               @click="

@@ -15,7 +15,6 @@ import {
   IdentityStatusType,
   LabelIdentityTypeServiceAccount,
 } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
@@ -84,7 +83,7 @@ const getLastActive = (item: Resource<IdentityStatusSpec>) => {
           </div>
           <UserItem
             v-for="item in items"
-            :key="itemID(item)"
+            :key="item.metadata.id"
             :item="item"
             :last-active="getLastActive(item)"
           />

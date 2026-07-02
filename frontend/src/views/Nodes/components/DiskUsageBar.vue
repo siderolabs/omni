@@ -10,7 +10,6 @@ import { computed } from 'vue'
 
 import type { Resource } from '@/api/grpc'
 import type { DiscoveredVolumeSpec, DiskSpec } from '@/api/talos/block.pb'
-import { itemID } from '@/api/watch'
 
 const { disk, volumes } = defineProps<{
   disk: Resource<DiskSpec>
@@ -54,7 +53,7 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
     <div class="flex h-8 w-full overflow-hidden rounded bg-naturals-n5">
       <div
         v-for="volume in volumes"
-        :key="itemID(volume)"
+        :key="volume.metadata.id"
         :title="`${volume.spec.partition_label || volume.spec.label || volume.spec.dev_path} — ${prettyBytes(volume.spec.size ?? 0)}`"
         :class="getVolumeClass(volume)"
         :style="{
@@ -85,7 +84,7 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
     <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-naturals-n11">
       <div
         v-for="volume in volumes"
-        :key="'legend-' + itemID(volume)"
+        :key="'legend-' + volume.metadata.id"
         class="flex items-center gap-1.5"
       >
         <span class="inline-block size-2.5 rounded-sm" :class="getVolumeClass(volume)" />

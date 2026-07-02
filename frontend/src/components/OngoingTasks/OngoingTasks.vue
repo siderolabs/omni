@@ -16,7 +16,6 @@ import {
   SecretRotationSpecComponent,
 } from '@/api/omni/specs/omni.pb'
 import { EphemeralNamespace, OngoingTaskType } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import TIcon from '@/components/Icon/TIcon.vue'
 import IconHeaderDropdownLoading from '@/components/icons/IconHeaderDropdownLoading.vue'
 import { formatISO } from '@/methods/time'
@@ -95,7 +94,7 @@ const getCurrentComponent = (item: Resource<OngoingTaskSpec>) => {
       >
         <div
           v-for="item in data"
-          :key="itemID(item)"
+          :key="item.metadata.id"
           class="flex flex-col gap-2 border-naturals-n4 p-6 not-last:border-b"
         >
           <div class="flex items-center justify-between gap-4">

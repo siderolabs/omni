@@ -16,7 +16,6 @@ import {
   LabelIdentityTypeServiceAccount,
   ServiceAccountStatusType,
 } from '@/api/resources'
-import { itemID } from '@/api/watch'
 import TButton from '@/components/Button/TButton.vue'
 import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
@@ -99,7 +98,7 @@ const getExpiration = (serviceAcc: Resource<ServiceAccountStatusSpec>) => {
           </div>
           <ServiceAccountItem
             v-for="item in items"
-            :key="itemID(item)"
+            :key="item.metadata.id"
             :item="{
               ...item,
               spec: {
