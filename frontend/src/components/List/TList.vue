@@ -8,13 +8,16 @@ included in the LICENSE file.
 import { useLocalStorage } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 
-import type { WatchOptions, WatchOptionsMulti } from '@/api/watch'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
-import { useResourceWatch } from '@/methods/useResourceWatch'
+import {
+  useResourceWatch,
+  type WatchOptions,
+  type WatchOptionsMulti,
+} from '@/methods/useResourceWatch'
 
 defineExpose({
   addFilterLabel: (label: { key: string; value?: string }) => {

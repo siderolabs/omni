@@ -6,9 +6,9 @@ import { type MaybeRefOrGetter, ref, toValue, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { subscribe } from '@/api/grpc'
+import type { RuntimeContext } from '@/api/options'
 import { withAbortController, withContext, withRuntime } from '@/api/options'
 import { MachineService, type ServiceEvent } from '@/api/talos/machine/machine.pb'
-import type { WatchContext } from '@/api/watch'
 import { TCommonStatuses } from '@/constants'
 
 interface Service {
@@ -18,7 +18,7 @@ interface Service {
   events?: ServiceEvent[]
 }
 
-export function useMachineServices(context: MaybeRefOrGetter<WatchContext>) {
+export function useMachineServices(context: MaybeRefOrGetter<RuntimeContext>) {
   const services = ref<Service[]>([])
   const serviceListVersion = ref(0)
 

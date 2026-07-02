@@ -12,13 +12,43 @@ import {
   watch,
 } from 'vue'
 
+import { Runtime } from '@/api/common/omni.pb'
 import { RequestError } from '@/api/fetch.pb'
 import type { Code } from '@/api/google/rpc/code.pb'
 import { type Resource, ResourceService } from '@/api/grpc'
 import { EventType, type WatchResponse } from '@/api/omni/resources/resources.pb'
+import type { RuntimeContext } from '@/api/options'
 import { type GRPCMetadata, withContext, withMetadata, withRuntime } from '@/api/options'
-import type { WatchOptions, WatchOptionsMulti, WatchOptionsSingle } from '@/api/watch'
+import type { Metadata } from '@/api/v1alpha1/resource.pb'
 import { itemID } from '@/api/watch'
+
+type WatchOptionsBase = {
+  selectors?: string[]
+  selectUsingOR?: boolean
+  tailEvents?: number
+  offset?: number
+  limit?: number
+  sortByField?: string
+  sortDescending?: boolean
+  searchFor?: string[]
+  /**
+   * Disables watch while true
+   */
+  skip?: boolean
+} & (
+  | { runtime: Runtime.Omni; context?: never }
+  | { runtime: Exclude<Runtime, Runtime.Omni>; context: RuntimeContext }
+)
+
+export type WatchOptionsSingle = WatchOptionsBase & {
+  resource: Metadata & { id: string }
+}
+
+export type WatchOptionsMulti = WatchOptionsBase & {
+  resource: Omit<Metadata, 'id'>
+}
+
+export type WatchOptions = WatchOptionsSingle | WatchOptionsMulti
 
 interface WatchBase {
   err: Ref<string | null>

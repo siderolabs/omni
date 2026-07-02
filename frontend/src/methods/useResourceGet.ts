@@ -8,6 +8,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import type { fetchOption } from '@/api/fetch.pb'
 import { type Resource, ResourceService } from '@/api/grpc'
 import type { GetRequest } from '@/api/omni/resources/resources.pb'
+import type { RuntimeContext } from '@/api/options'
 import {
   withAbortController,
   withContext,
@@ -15,7 +16,6 @@ import {
   withSelectors,
   withSkipRequestSignature,
 } from '@/api/options'
-import type { WatchContext } from '@/api/watch'
 
 interface GetOptionsCommon {
   resource: GetRequest
@@ -27,7 +27,7 @@ interface GetOptionsCommon {
 export type GetOptions = GetOptionsCommon &
   (
     | { runtime: Runtime.Omni; context?: never }
-    | { runtime: Exclude<Runtime, Runtime.Omni>; context: WatchContext }
+    | { runtime: Exclude<Runtime, Runtime.Omni>; context: RuntimeContext }
   )
 
 export function useResourceGet<TSpec = unknown, TStatus = unknown>(

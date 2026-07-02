@@ -11,6 +11,7 @@ import { computed, ref, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
+import type { RuntimeContext } from '@/api/options'
 import { withContext, withRuntime } from '@/api/options'
 import {
   TalosCPUID,
@@ -21,7 +22,6 @@ import {
 } from '@/api/resources'
 import { MachineService, type ProcessInfo } from '@/api/talos/machine/machine.pb'
 import type { CPUSpec, MemorySpec } from '@/api/talos/perf.pb'
-import type { WatchContext } from '@/api/watch'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import NodesMonitorChart from '@/views/Nodes/components/NodesMonitorChart.vue'
 
@@ -30,7 +30,7 @@ definePage({ name: 'NodeMonitor' })
 const route = useRoute()
 
 const processes = ref<Proc[]>([])
-const context = computed<WatchContext>(() => ({
+const context = computed<RuntimeContext>(() => ({
   cluster: route.params.cluster,
   node: route.params.machine,
 }))

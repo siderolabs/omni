@@ -7,9 +7,13 @@ import { formatDuration, intervalToDuration } from 'date-fns'
 import type { OmniRequestOptions } from '@/methods/interceptor'
 
 import { Runtime } from './common/omni.pb'
-import type { WatchContext } from './watch'
 
 export type GRPCMetadata = Record<string, string | string[]>
+
+export interface RuntimeContext {
+  cluster?: string
+  node?: string
+}
 
 const runtimeMap: Record<Runtime, string> = {
   [Runtime.Kubernetes]: 'Kubernetes',
@@ -50,7 +54,7 @@ export const withSelectors = (selectors: string[]) => {
   })
 }
 
-export const withContext = (context: WatchContext) => {
+export const withContext = (context: RuntimeContext) => {
   return (req: OmniRequestOptions) => {
     const md: GRPCMetadata = {}
 

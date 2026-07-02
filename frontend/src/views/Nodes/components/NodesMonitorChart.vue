@@ -17,10 +17,9 @@ import VueApexCharts from 'vue3-apexcharts/core'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { EventType } from '@/api/omni/resources/resources.pb'
-import type { WatchOptions } from '@/api/watch'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import { getNonce } from '@/methods'
-import { useResourceWatch } from '@/methods/useResourceWatch'
+import { useResourceWatch, type WatchOptions } from '@/methods/useResourceWatch'
 
 type Props = {
   watchOpts: WatchOptions

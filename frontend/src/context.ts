@@ -6,17 +6,17 @@
 import { useLocalStorage } from '@vueuse/core'
 import { useRoute } from 'vue-router'
 
-import type { WatchContext } from '@/api/watch'
+import type { RuntimeContext } from '@/api/options'
 
 export const current = useLocalStorage<string>('context', null)
 
 /**
  * @deprecated Pass context in explicitly instead of using this function. It relies on routing & local storage and can be flimsy.
  */
-export function getContext(route = useRoute()): WatchContext {
+export function getContext(route = useRoute()): RuntimeContext {
   const cluster = clusterName(route)
 
-  const res: WatchContext = {
+  const res: RuntimeContext = {
     cluster: cluster || undefined,
   }
 
