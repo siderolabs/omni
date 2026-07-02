@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
@@ -163,6 +164,59 @@ func TestInvalidRole(t *testing.T) {
 
 	err := accesspolicy.Validate(accessPolicy)
 	assert.ErrorContains(t, err, "unknown role")
+}
+
+func TestValidateUndefinedGroupReferences(t *testing.T) {
+	accessPolicy := getAccessPolicy(t, aclValidRaw)
+
+	// add a rule referencing non-existent user group and cluster group
+	accessPolicy.TypedSpec().Value.Rules = append(accessPolicy.TypedSpec().Value.Rules, &specs.AccessPolicyRule{
+		Users:    []string{"group/non-existent-user-group"},
+		Clusters: []string{"group/non-existent-cluster-group"},
+	})
+
+	err := accesspolicy.Validate(accessPolicy)
+	assert.ErrorContains(t, err, `rule references undefined user group "non-existent-user-group"`)
+	assert.ErrorContains(t, err, `rule references undefined cluster group "non-existent-cluster-group"`)
+}
+
+func TestValidateUndefinedGroupPluralPrefix(t *testing.T) {
+	accessPolicy := getAccessPolicy(t, aclValidMatchSelectorRaw)
+
+	// "groups/" does NOT match GroupPrefix "group/" (the 's' vs '/' at position 5)
+	// The new validation catches this as a likely typo and suggests the correct prefix.
+	accessPolicy.TypedSpec().Value.Rules[0].Users = []string{"groups/user-group-1"}
+
+	err := accesspolicy.Validate(accessPolicy)
+	assert.ErrorContains(t, err, `invalid user reference "groups/user-group-1" in rule: did you mean "group/user-group-1"?`)
+}
+
+func TestValidateRejectsGroupsPluralClusters(t *testing.T) {
+	accessPolicy := getAccessPolicy(t, aclValidMatchSelectorRaw)
+
+	// same typo detection for cluster references
+	accessPolicy.TypedSpec().Value.Rules[0].Clusters = []string{"groups/cluster-group-1"}
+
+	err := accesspolicy.Validate(accessPolicy)
+	assert.ErrorContains(t, err, `invalid cluster reference "groups/cluster-group-1" in rule: did you mean "group/cluster-group-1"?`)
+}
+
+func TestCheckLabelSelectorWithRole(t *testing.T) {
+	accessPolicy := getAccessPolicy(t, aclValidMatchSelectorRaw)
+
+	// add a role to the rule that uses label selectors
+	accessPolicy.TypedSpec().Value.Rules[1].Role = "Reader"
+
+	identityMD := auth.NewIdentity("label-matched-user@example.com").Metadata()
+	identityMD.Labels().Set("key-1", "value-1")
+	identityMD.Labels().Set("key-2", "something")
+
+	checkResult, err := accesspolicy.Check(accessPolicy,
+		omni.NewCluster("cluster-x").Metadata(),
+		identityMD)
+	require.NoError(t, err)
+	assert.Equal(t, "Reader", string(checkResult.Role))
+	assert.ElementsMatch(t, []string{"k8s-group-1"}, checkResult.KubernetesImpersonateGroups)
 }
 
 func getAccessPolicy(t *testing.T, raw []byte) *auth.AccessPolicy {
