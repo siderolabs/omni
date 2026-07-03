@@ -12,7 +12,7 @@ import type { ClusterMachineSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineType, DefaultNamespace } from '@/api/resources'
 import ConfirmModal from '@/components/Modals/ConfirmModal.vue'
 import { ClusterCommandError, restoreNode } from '@/methods/cluster'
-import { useNodeName } from '@/methods/node'
+import { useMachineName } from '@/methods/node'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 
@@ -22,7 +22,7 @@ const { machineId } = defineProps<{
 
 const open = defineModel<boolean>('open', { default: false })
 
-const nodeName = useNodeName(
+const nodeName = useMachineName(
   () => machineId,
   () => ({ skip: !open.value }),
 )

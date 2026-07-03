@@ -5,16 +5,16 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, toRefs } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import TListItem from '@/components/List/TListItem.vue'
 import type { Label } from '@/methods/labels'
+import { useMachineName } from '@/methods/node'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 
-const props = defineProps<{
+const { machine } = defineProps<{
   machine: Resource<MachineStatusSpec>
   searchQuery?: string
 }>()
@@ -23,11 +23,7 @@ defineEmits<{
   filterLabels: [Label]
 }>()
 
-const { machine } = toRefs(props)
-
-const machineName = computed(() => {
-  return machine.value.spec.network?.hostname ?? machine.value.metadata.id
-})
+const machineName = useMachineName(() => machine)
 </script>
 
 <template>

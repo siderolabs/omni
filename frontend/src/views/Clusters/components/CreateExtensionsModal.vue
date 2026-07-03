@@ -12,6 +12,7 @@ import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineStatusType } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import Modal from '@/components/Modals/Modal.vue'
+import { getMachineName } from '@/methods/node'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ExtensionsPicker from '@/views/Extensions/ExtensionsPicker.vue'
 
@@ -68,7 +69,7 @@ const updateExtensions = () => {
   >
     <template #description>
       Select the extensions to be installed on node
-      {{ machineStatus?.spec.network?.hostname ?? machine }}.
+      {{ getMachineName(machineStatus) }}.
     </template>
 
     <div class="flex flex-col gap-2">

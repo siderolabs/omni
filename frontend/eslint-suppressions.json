@@ -121,11 +121,6 @@
       "count": 5
     }
   },
-  "src/views/MachineClasses/MachineMatchItem.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
-  },
   "src/views/MachineClasses/MachineTemplate.vue": {
     "vue/custom-event-name-casing": {
       "count": 6

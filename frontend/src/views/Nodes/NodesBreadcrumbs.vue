@@ -8,11 +8,11 @@ included in the LICENSE file.
 import { computed, ref, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { Resource } from '@/api/grpc'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, LabelCluster, MachineStatusType } from '@/api/resources'
 import CopyButton from '@/components/CopyButton/CopyButton.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
+import { getMachineName } from '@/methods/node'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const { clusterId, machineId } = defineProps<{
@@ -31,7 +31,7 @@ const { data: machineStatuses } = useResourceWatch<MachineStatusSpec>(() => ({
 
 const machines = computed(() =>
   machineStatuses.value.map((machine) => ({
-    label: getDisplayNameForMachine(machine),
+    label: getMachineName(machine),
     value: machine.metadata.id!,
   })),
 )
@@ -41,10 +41,6 @@ const selectedMachine = ref<string>()
 watchEffect(() => {
   selectedMachine.value = machineId
 })
-
-function getDisplayNameForMachine(machine: Resource<MachineStatusSpec>) {
-  return machine.spec.network?.hostname || machine.metadata.id!
-}
 </script>
 
 <template>

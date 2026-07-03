@@ -21,6 +21,7 @@ import {
   TalosSystemInformationType,
 } from '@/api/resources'
 import type { SystemInformationSpec } from '@/api/talos/hardware.pb'
+import { useMachineName } from '@/methods/node'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import MachineItemInfoCard from '@/views/Machines/MachineItemInfoCard.vue'
 import CloseButton from '@/views/Modals/CloseButton.vue'
@@ -47,9 +48,7 @@ const { data: sysInfo } = useResourceWatch<SystemInformationSpec>(() => ({
   },
 }))
 
-const machineName = computed(
-  () => machine?.spec.message_status?.network?.hostname ?? machine?.metadata.id,
-)
+const machineName = useMachineName(() => machine)
 
 const processors = computed(() =>
   machine?.spec.message_status?.hardware?.processors?.map(

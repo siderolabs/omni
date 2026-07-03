@@ -10,7 +10,7 @@ import { ref, watchEffect } from 'vue'
 import { ManagementService } from '@/api/omni/management/management.pb'
 import ConfirmModal from '@/components/Modals/ConfirmModal.vue'
 import { useClusterPermissions } from '@/methods/auth'
-import { useNodeName } from '@/methods/node'
+import { useMachineName } from '@/methods/node'
 import { showError, showSuccess } from '@/notification'
 
 const { clusterId, machineId } = defineProps<{
@@ -21,7 +21,7 @@ const { clusterId, machineId } = defineProps<{
 const open = defineModel<boolean>('open', { default: false })
 const isShuttingDown = ref(false)
 
-const nodeName = useNodeName(
+const nodeName = useMachineName(
   () => machineId,
   () => ({ skip: !open.value }),
 )

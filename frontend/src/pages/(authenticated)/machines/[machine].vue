@@ -8,15 +8,12 @@ included in the LICENSE file.
 import { computed } from 'vue'
 import { RouterLink, type RouterView, useRoute } from 'vue-router'
 
-import { Runtime } from '@/api/common/omni.pb'
-import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, MachineStatusType } from '@/api/resources'
 import PageHeader from '@/components/PageHeader.vue'
 import TabButton from '@/components/Tabs/TabButton.vue'
 import TabContent from '@/components/Tabs/TabContent.vue'
 import Tabs from '@/components/Tabs/Tabs.vue'
 import { usePermissions } from '@/methods/auth'
-import { useResourceGet } from '@/methods/useResourceGet'
+import { useMachineName } from '@/methods/node'
 
 definePage({
   name: 'Machine',
@@ -59,21 +56,7 @@ const routes = computed(() => {
 
 const route = useRoute()
 
-const { data: machine } = useResourceGet<MachineStatusSpec>(() => ({
-  resource: {
-    namespace: DefaultNamespace,
-    type: MachineStatusType,
-    id: route.params.machine as string,
-  },
-  runtime: Runtime.Omni,
-}))
-
-const machineName = computed(
-  () =>
-    machine.value?.spec.network?.hostname ||
-    machine.value?.metadata.id ||
-    (route.params.machine as string),
-)
+const machineName = useMachineName(() => route.params.machine)
 
 /**
  * Some child routes do not match any tab, e.g. MachinePatchEdit

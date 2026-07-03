@@ -25,6 +25,7 @@ import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions, usePermissions } from '@/methods/auth'
 import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
+import { getMachineName } from '@/methods/node'
 import { useDerivedMachineStage } from '@/methods/useDerivedMachineStage'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 
@@ -60,9 +61,7 @@ const { canManageKernelArgs, canReadConfigPatches } = useClusterPermissions(
 )
 
 const machineName = computed(() => {
-  return showUUID
-    ? machine.metadata.id
-    : (machine.spec.message_status?.network?.hostname ?? machine.metadata.id)
+  return showUUID ? machine.metadata.id : getMachineName(machine)
 })
 
 const clusterName = computed(() => machine.spec.message_status?.cluster)

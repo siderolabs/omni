@@ -12,7 +12,7 @@ import { withContext, withRuntime } from '@/api/options'
 import { MachineService } from '@/api/talos/machine/machine.pb'
 import ConfirmModal from '@/components/Modals/ConfirmModal.vue'
 import { useClusterPermissions } from '@/methods/auth'
-import { useNodeName } from '@/methods/node'
+import { useMachineName } from '@/methods/node'
 import { showError, showSuccess } from '@/notification'
 
 const { clusterId, machineId } = defineProps<{
@@ -22,7 +22,7 @@ const { clusterId, machineId } = defineProps<{
 
 const open = defineModel<boolean>('open', { default: false })
 
-const nodeName = useNodeName(
+const nodeName = useMachineName(
   () => machineId,
   () => ({ skip: !open.value }),
 )

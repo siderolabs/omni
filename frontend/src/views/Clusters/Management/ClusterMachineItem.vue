@@ -25,6 +25,7 @@ import ConfigPatchEditModal from '@/components/Modals/ConfigPatchEditModal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
+import { useMachineName } from '@/methods/node'
 import type { MachineSetNode } from '@/states/cluster-management'
 import { PatchID, state } from '@/states/cluster-management'
 import CreateExtensionsModal from '@/views/Clusters/components/CreateExtensionsModal.vue'
@@ -50,6 +51,8 @@ const {
   versionMismatch: string | null
   autoInstallNotice?: string | null
 }>()
+
+const machineName = useMachineName(() => item)
 
 const machineSetNode = ref<MachineSetNode>({
   patches: {},
@@ -242,7 +245,7 @@ const onSavePatchConfig = (config: string) => {
         <span class="grow truncate pr-2 font-bold">
           <WordHighlighter
             :query="searchQuery ?? ''"
-            :text-to-highlight="item?.spec?.network?.hostname ?? item?.metadata?.id"
+            :text-to-highlight="machineName"
             split-by-space
             highlight-class="bg-naturals-n14"
           />

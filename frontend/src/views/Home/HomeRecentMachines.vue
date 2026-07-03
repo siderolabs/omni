@@ -13,6 +13,7 @@ import Card from '@/components/Card/Card.vue'
 import CopyButton from '@/components/CopyButton/CopyButton.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import MachineStage from '@/components/Status/MachineStage.vue'
+import { getMachineName } from '@/methods/node'
 
 defineProps<{
   machines: Resource<MachineStatusLinkSpec>[]
@@ -51,10 +52,10 @@ defineProps<{
           :to="{ name: 'Machine', params: { machine: item.metadata.id! } }"
           class="list-item-link truncate"
         >
-          {{ item.metadata.id }}
+          {{ getMachineName(item) }}
         </RouterLink>
 
-        <CopyButton :text="item.metadata.id" />
+        <CopyButton :text="getMachineName(item)" />
       </div>
 
       <div class="flex min-w-0 justify-center">
