@@ -46,6 +46,7 @@ message AuthConfigSpec {
   bool suspended = 3;
   SAML saml = 4;
   OIDC oidc = 5;
+  bool has_initial_user = 6;
 }
 
 // SAMLAssertionSpec describes SAML assertion.

@@ -407,6 +407,52 @@ func (suite *MigrationSuite) TestCreateIdentityLastActiveForExistingIdentities()
 	suite.Assert().Nil(saLastActive.TypedSpec().Value.LastActive, "new IdentityLastActive should have no timestamp")
 }
 
+func (suite *MigrationSuite) TestSetInitialUserFlagFromExistingKey() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	// Any existing public key means the instance has been used, so the flag is back-filled.
+	key := authres.NewPublicKey("some-key")
+	key.Metadata().Labels().Set(authres.LabelPublicKeyUserID, "user-1")
+	suite.Require().NoError(suite.state.Create(ctx, key))
+
+	suite.Require().NoError(suite.state.Create(ctx, authres.NewAuthConfig()))
+
+	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("setInitialUserFlagForExistingInstances")))
+	suite.Require().NoError(err)
+
+	authConfig, err := safe.ReaderGetByID[*authres.Config](ctx, suite.state, authres.ConfigID)
+	suite.Require().NoError(err)
+	suite.Assert().True(authConfig.TypedSpec().Value.GetHasInitialUser(), "existing public key must back-fill the flag")
+}
+
+func (suite *MigrationSuite) TestSetInitialUserFlagNoKeys() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	// An instance with a config but no public keys keeps the flag false.
+	suite.Require().NoError(suite.state.Create(ctx, authres.NewAuthConfig()))
+
+	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("setInitialUserFlagForExistingInstances")))
+	suite.Require().NoError(err)
+
+	authConfig, err := safe.ReaderGetByID[*authres.Config](ctx, suite.state, authres.ConfigID)
+	suite.Require().NoError(err)
+	suite.Assert().False(authConfig.TypedSpec().Value.GetHasInitialUser(), "no public keys means no initial user")
+}
+
+func (suite *MigrationSuite) TestSetInitialUserFlagNoConfig() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	// A fresh instance has no auth config yet: the migration is a no-op and must not fail.
+	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("setInitialUserFlagForExistingInstances")))
+	suite.Require().NoError(err)
+
+	_, err = safe.ReaderGetByID[*authres.Config](ctx, suite.state, authres.ConfigID)
+	suite.Assert().True(state.IsNotFoundError(err), "migration must not create the auth config on a fresh instance")
+}
+
 func (suite *MigrationSuite) TestDropRedactedMachineConfigFinalizersFromClusterMachineConfigs() {
 	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
 	defer cancel()

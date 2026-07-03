@@ -75,14 +75,15 @@ func (PublicKeySpec_Type) EnumDescriptor() ([]byte, []int) {
 
 // AuthConfigSpec describes the authentication configuration.
 type AuthConfigSpec struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Auth0         *AuthConfigSpec_Auth0    `protobuf:"bytes,1,opt,name=auth0,proto3" json:"auth0,omitempty"`
-	Webauthn      *AuthConfigSpec_Webauthn `protobuf:"bytes,2,opt,name=webauthn,proto3" json:"webauthn,omitempty"`
-	Suspended     bool                     `protobuf:"varint,3,opt,name=suspended,proto3" json:"suspended,omitempty"`
-	Saml          *AuthConfigSpec_SAML     `protobuf:"bytes,4,opt,name=saml,proto3" json:"saml,omitempty"`
-	Oidc          *AuthConfigSpec_OIDC     `protobuf:"bytes,5,opt,name=oidc,proto3" json:"oidc,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState   `protogen:"open.v1"`
+	Auth0          *AuthConfigSpec_Auth0    `protobuf:"bytes,1,opt,name=auth0,proto3" json:"auth0,omitempty"`
+	Webauthn       *AuthConfigSpec_Webauthn `protobuf:"bytes,2,opt,name=webauthn,proto3" json:"webauthn,omitempty"`
+	Suspended      bool                     `protobuf:"varint,3,opt,name=suspended,proto3" json:"suspended,omitempty"`
+	Saml           *AuthConfigSpec_SAML     `protobuf:"bytes,4,opt,name=saml,proto3" json:"saml,omitempty"`
+	Oidc           *AuthConfigSpec_OIDC     `protobuf:"bytes,5,opt,name=oidc,proto3" json:"oidc,omitempty"`
+	HasInitialUser bool                     `protobuf:"varint,6,opt,name=has_initial_user,json=hasInitialUser,proto3" json:"has_initial_user,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *AuthConfigSpec) Reset() {
@@ -148,6 +149,13 @@ func (x *AuthConfigSpec) GetOidc() *AuthConfigSpec_OIDC {
 		return x.Oidc
 	}
 	return nil
+}
+
+func (x *AuthConfigSpec) GetHasInitialUser() bool {
+	if x != nil {
+		return x.HasInitialUser
+	}
+	return false
 }
 
 // SAMLAssertionSpec describes SAML assertion.
@@ -1894,13 +1902,14 @@ var File_omni_specs_auth_proto protoreflect.FileDescriptor
 
 const file_omni_specs_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x15omni/specs/auth.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf8\a\n" +
+	"\x15omni/specs/auth.proto\x12\x05specs\x1a\x1btalos/machine/machine.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa2\b\n" +
 	"\x0eAuthConfigSpec\x121\n" +
 	"\x05auth0\x18\x01 \x01(\v2\x1b.specs.AuthConfigSpec.Auth0R\x05auth0\x12:\n" +
 	"\bwebauthn\x18\x02 \x01(\v2\x1e.specs.AuthConfigSpec.WebauthnR\bwebauthn\x12\x1c\n" +
 	"\tsuspended\x18\x03 \x01(\bR\tsuspended\x12.\n" +
 	"\x04saml\x18\x04 \x01(\v2\x1a.specs.AuthConfigSpec.SAMLR\x04saml\x12.\n" +
-	"\x04oidc\x18\x05 \x01(\v2\x1a.specs.AuthConfigSpec.OIDCR\x04oidc\x1ax\n" +
+	"\x04oidc\x18\x05 \x01(\v2\x1a.specs.AuthConfigSpec.OIDCR\x04oidc\x12(\n" +
+	"\x10has_initial_user\x18\x06 \x01(\bR\x0ehasInitialUser\x1ax\n" +
 	"\x05Auth0\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x16\n" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x1b\n" +

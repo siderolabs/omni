@@ -124,6 +124,20 @@ func EnsureAuthConfigResource(ctx context.Context, st state.State, logger *zap.L
 	return authConfig, nil
 }
 
+// SetHasInitialUser flips the HasInitialUser flag on the auth Config resource to true.
+func SetHasInitialUser(ctx context.Context, st state.State) error {
+	_, err := safe.StateUpdateWithConflicts(ctx, st, auth.NewAuthConfig().Metadata(), func(res *auth.Config) error {
+		res.TypedSpec().Value.HasInitialUser = true
+
+		return nil
+	})
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	return nil
+}
+
 func validateParams(authParams config.Auth) error {
 	samlEnabled := authParams.Saml.GetEnabled()
 	auth0Enabled := authParams.Auth0.GetEnabled()

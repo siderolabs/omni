@@ -16,5 +16,5 @@ test('accept EULA', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Accept' }).click()
 
-  await expect(page.getByText(/Log in to [\w\s]+ to continue to [\w\s]+./)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible()
 })

@@ -23,8 +23,14 @@ const test = base.extend<AuthFixtures>({
       // Sometimes auth0 page load is flaky
       await expect(async () => {
         await page.goto('/')
-        await expect(page.getByRole('textbox', { name: 'Email address' })).toBeVisible()
+        await page.getByRole('heading', { name: 'Welcome' }).waitFor()
       }, 'Navigate to auth0 login page').toPass()
+
+      // Switch to login page, if we are sent to signup page (first user login gets signup)
+      if (await page.getByText('Already have an account?').isVisible()) {
+        await page.getByRole('link', { name: 'Log in' }).click()
+        await page.getByText("Don't have an account?").isVisible()
+      }
 
       await page.getByRole('textbox', { name: 'Email address' }).fill(process.env.AUTH_USERNAME)
       await page.getByRole('textbox', { name: 'Password' }).fill(process.env.AUTH_PASSWORD)

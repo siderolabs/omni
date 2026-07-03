@@ -346,6 +346,10 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 		zap.String("role", pubKey.TypedSpec().Value.GetRole()),
 	)
 
+	if err = auth.SetHasInitialUser(ctx, s.state); err != nil {
+		return nil, err
+	}
+
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
 		values := md.Get(workloadproxy.PublicKeyIDSignatureBase64Cookie)

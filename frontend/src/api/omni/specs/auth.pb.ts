@@ -47,6 +47,7 @@ export type AuthConfigSpec = {
   suspended?: boolean
   saml?: AuthConfigSpecSAML
   oidc?: AuthConfigSpecOIDC
+  has_initial_user?: boolean
 }
 
 export type SAMLAssertionSpec = {

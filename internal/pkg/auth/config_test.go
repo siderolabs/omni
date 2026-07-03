@@ -8,6 +8,7 @@ package auth_test
 import (
 	"testing"
 
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
@@ -17,6 +18,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -203,4 +205,37 @@ func TestEnsureAuthConfigResource(t *testing.T) {
 			assert.True(t, proto.Equal(authConfig.TypedSpec().Value, tt.expected), "expected %v, got %v", tt.expected, authConfig.TypedSpec().Value)
 		})
 	}
+}
+
+func auth0Config() config.Auth {
+	var c config.Auth
+
+	c.Auth0.SetEnabled(true)
+	c.Auth0.SetClientID("client-id")
+	c.Auth0.SetDomain("domain")
+
+	return c
+}
+
+func TestMarkUsersLoggedIn(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	logger := zaptest.NewLogger(t).With(logging.Component("auth"))
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	authConfig, err := auth.EnsureAuthConfigResource(ctx, st, logger, auth0Config())
+	require.NoError(t, err)
+	require.False(t, authConfig.TypedSpec().Value.GetHasInitialUser())
+
+	require.NoError(t, auth.SetHasInitialUser(ctx, st))
+
+	authConfig, err = safe.StateGet[*authres.Config](ctx, st, authres.NewAuthConfig().Metadata())
+	require.NoError(t, err)
+	assert.True(t, authConfig.TypedSpec().Value.GetHasInitialUser())
+
+	authConfig, err = auth.EnsureAuthConfigResource(ctx, st, logger, auth0Config())
+	require.NoError(t, err)
+	assert.True(t, authConfig.TypedSpec().Value.GetHasInitialUser())
 }

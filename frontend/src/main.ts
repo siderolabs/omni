@@ -78,6 +78,13 @@ async function setupApp() {
   if (authConfig.spec.auth0?.enabled) {
     authType.value = AuthType.Auth0
 
+    const searchParams = new URLSearchParams(window.location.search)
+    const signupDisabled =
+      searchParams.get('error') === 'invalid_request' &&
+      searchParams.get('error_description') === 'signup is disabled'
+
+    const requestSignup = !authConfig.spec.has_initial_user && !signupDisabled
+
     app.use(
       createAuth0({
         domain: authConfig.spec.auth0.domain!,
@@ -85,6 +92,7 @@ async function setupApp() {
         authorizationParams: {
           redirect_uri: window.location.origin,
           max_age: millisecondsToSeconds(milliseconds({ minutes: 2 })),
+          screen_hint: requestSignup ? 'signup' : 'login',
         },
         useFormData: !!authConfig.spec.auth0.useFormData,
       }),

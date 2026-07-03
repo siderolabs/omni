@@ -402,6 +402,34 @@ func dropWorkloadProxyConfigPatches(ctx context.Context, st state.State, _ *zap.
 	return nil
 }
 
+func setInitialUserFlagForExistingInstances(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	authConfig, err := safe.ReaderGetByID[*authres.Config](ctx, st, authres.ConfigID)
+	if state.IsNotFoundError(err) {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	publicKeys, err := safe.ReaderListAll[*authres.PublicKey](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	if _, err = safe.StateUpdateWithConflicts(ctx, st, authConfig.Metadata(), func(res *authres.Config) error {
+		res.TypedSpec().Value.HasInitialUser = publicKeys.Len() > 0
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	logger.Info("back-filled HasInitialUser flag from existing public keys")
+
+	return nil
+}
+
 func makeMachineRequestsOwnerEmpty(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
 	machineRequests, err := safe.ReaderListAll[*infra.MachineRequest](ctx, st)
 	if err != nil {
