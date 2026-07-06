@@ -1,7 +1,0 @@
-cluster:
-  discovery:
-    enabled: true
----
-apiVersion: v1alpha1
-kind: KubeSpanConfig
-enabled: true

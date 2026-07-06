@@ -16,10 +16,13 @@ import {
   ClusterMachineIdentityType,
   DefaultNamespace,
   LabelCluster,
+  TalosConfigNamespace,
+  TalosKubespanConfigID,
+  TalosKubeSpanConfigType,
   TalosKubeSpanNamespace,
   TalosKubeSpanPeerStatusType,
 } from '@/api/resources'
-import type { PeerStatusSpec } from '@/api/talos/kubespan.pb'
+import type { ConfigSpec, PeerStatusSpec } from '@/api/talos/kubespan.pb'
 import IconButton from '@/components/Button/IconButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
@@ -27,6 +30,7 @@ import StatsItem from '@/components/Stats/StatsItem.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import KubeSpanCanvas from '@/views/KubeSpanStatus/components/KubeSpanCanvas.vue'
+import KubeSpanStatusQuickStart from '@/views/KubeSpanStatus/KubeSpanStatusQuickStart.vue'
 
 const { clusterId, machineId } = defineProps<{
   clusterId: string
@@ -36,6 +40,19 @@ const { clusterId, machineId } = defineProps<{
 const searchQuery = ref('')
 const canvasRef = useTemplateRef('canvasRef')
 const router = useRouter()
+
+const { data: kubeSpanConfig } = useResourceWatch<ConfigSpec>(() => ({
+  runtime: Runtime.Talos,
+  resource: {
+    namespace: TalosConfigNamespace,
+    type: TalosKubeSpanConfigType,
+    id: TalosKubespanConfigID,
+  },
+  context: {
+    cluster: clusterId,
+    machine: machineId,
+  },
+}))
 
 const { data: machines } = useResourceWatch<ClusterMachineIdentitySpec>(() => ({
   resource: {
@@ -97,7 +114,7 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
 </script>
 
 <template>
-  <PageContainer class="@container flex h-full flex-col gap-4">
+  <PageContainer v-if="kubeSpanConfig?.spec.enabled" class="@container flex h-full flex-col gap-4">
     <div class="flex flex-wrap gap-6">
       <h1 class="shrink-0 text-xl font-medium text-naturals-n14">KubeSpan status</h1>
       <div class="flex flex-wrap gap-6">
@@ -224,4 +241,6 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
       </div>
     </div>
   </PageContainer>
+
+  <KubeSpanStatusQuickStart v-else-if="kubeSpanConfig" :cluster-id="clusterId" />
 </template>

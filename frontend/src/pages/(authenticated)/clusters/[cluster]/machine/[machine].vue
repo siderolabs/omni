@@ -10,15 +10,7 @@ import { RouterLink, useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
-import {
-  DefaultNamespace,
-  LabelCluster,
-  MachineStatusType,
-  TalosConfigNamespace,
-  TalosKubespanConfigID,
-  TalosKubeSpanConfigType,
-} from '@/api/resources'
-import type { ConfigSpec } from '@/api/talos/kubespan.pb'
+import { DefaultNamespace, LabelCluster, MachineStatusType } from '@/api/resources'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TabButton from '@/components/Tabs/TabButton.vue'
@@ -51,19 +43,6 @@ const { data: machine, loading: machineLoading } = useResourceWatch<MachineStatu
 const isPartOfCluster = computed(
   () => machine.value?.metadata.labels?.[LabelCluster] === clusterId.value,
 )
-
-const { data: kubeSpanConfig } = useResourceWatch<ConfigSpec>(() => ({
-  runtime: Runtime.Talos,
-  resource: {
-    namespace: TalosConfigNamespace,
-    type: TalosKubeSpanConfigType,
-    id: TalosKubespanConfigID,
-  },
-  context: {
-    cluster: clusterId.value,
-    machine: machineId.value,
-  },
-}))
 
 const routes = computed(() => {
   return [
@@ -102,7 +81,6 @@ const routes = computed(() => {
     {
       name: 'KubeSpan',
       to: { name: 'NodeKubeSpanStatus', params: { machine: machineId.value } },
-      disabled: !kubeSpanConfig.value?.spec.enabled,
     },
     {
       name: 'Disks',

@@ -16,10 +16,13 @@ import {
   DefaultNamespace,
   LabelControlPlaneRole,
   LabelWorkerRole,
+  TalosConfigNamespace,
+  TalosKubespanConfigID,
+  TalosKubeSpanConfigType,
   TalosKubeSpanNamespace,
   TalosKubeSpanPeerStatusType,
 } from '@/api/resources.ts'
-import type { PeerStatusSpec } from '@/api/talos/kubespan.pb.ts'
+import type { ConfigSpec, PeerStatusSpec } from '@/api/talos/kubespan.pb.ts'
 
 import KubeSpanStatus from './KubeSpanStatus.vue'
 
@@ -68,6 +71,26 @@ export const Default = {
   parameters: {
     msw: {
       handlers: [
+        createWatchStreamHandler<ConfigSpec>({
+          expectedOptions: {
+            namespace: TalosConfigNamespace,
+            type: TalosKubeSpanConfigType,
+            id: TalosKubespanConfigID,
+          },
+          initialResources: [
+            {
+              spec: {
+                enabled: true,
+              },
+              metadata: {
+                namespace: TalosConfigNamespace,
+                type: TalosKubeSpanConfigType,
+                id: TalosKubespanConfigID,
+              },
+            },
+          ],
+        }).handler,
+
         createWatchStreamHandler<ClusterMachineIdentitySpec>({
           expectedOptions: {
             namespace: DefaultNamespace,

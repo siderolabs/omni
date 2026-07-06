@@ -407,43 +407,7 @@ test('exposed services', async ({ page, omnictl }, testInfo) => {
   })
 })
 
-test('kubespan', async ({ page }, testInfo) => {
-  await test.step('Visit create cluster patch page', async () => {
-    await page.goto('/')
-    await page.getByRole('link', { name: 'Clusters' }).click()
-
-    await expect(page).toHaveURL('/clusters')
-    await expect(page.getByRole('heading', { name: 'Clusters', exact: true })).toBeVisible()
-
-    await page.getByRole('link', { name: clusterName, exact: true }).click()
-    await expect(page.getByRole('heading', { name: clusterName, exact: true })).toBeVisible()
-
-    await page.getByRole('main').getByRole('link', { name: 'Config Patches' }).click()
-    await page.getByRole('link', { name: 'Create Patch' }).click()
-    await expect(page.getByRole('heading', { name: 'Create Patch', exact: true })).toBeVisible()
-  })
-
-  await test.step('Add kubespan patch', async () => {
-    const kubespanPatch = await fs.readFile(
-      new URL('./kubespan_patch.yaml', import.meta.url),
-      'utf8',
-    )
-    await testInfo.attach('kubespan_patch.yaml', {
-      body: kubespanPatch,
-      contentType: 'application/yaml',
-    })
-
-    await page.evaluate((text) => navigator.clipboard.writeText(text), kubespanPatch)
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(kubespanPatch)
-
-    await page
-      .getByRole('textbox', { name: 'Editor content' })
-      .press(`${os.platform() === 'darwin' ? 'Meta' : 'Control'}+v`)
-    await expect(page.getByText('kind: KubeSpanConfig')).toBeVisible()
-
-    await page.getByRole('button', { name: 'Save' }).click()
-  })
-
+test('kubespan', async ({ page }) => {
   await test.step('Visit kubespan page', async () => {
     await page.goto('/')
     await page.getByRole('link', { name: 'Clusters' }).click()
@@ -453,6 +417,19 @@ test('kubespan', async ({ page }, testInfo) => {
     await page.getByRole('region', { name: 'Control Planes' }).getByRole('link').last().click()
     await expect(servicesList.getByRole('link', { name: 'etcd' })).toBeVisible()
     await page.getByRole('tab', { name: 'KubeSpan', exact: true }).click()
+  })
+
+  await test.step('Add kubespan patch', async () => {
+    await page.getByRole('button', { name: 'Enable KubeSpan' }).click()
+
+    await expect(
+      page.getByText(
+        'Wireguard encryption adds overhead to each packet that can reduce network throughput',
+      ),
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Enable KubeSpan' }).click()
+
+    await expect(page.getByText('The config patch was applied')).toBeVisible()
   })
 
   await expect
