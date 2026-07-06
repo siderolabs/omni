@@ -20,7 +20,7 @@ import (
 func TestCheckTalosVersion(t *testing.T) {
 	t.Parallel()
 
-	m := lifecycle.NewManager(zapNop(t), "factory", "ghcr.io/siderolabs/installer")
+	m := lifecycle.NewManager(zapNop(t), "factory", "ghcr.io/siderolabs/installer", nil, nil)
 
 	for _, tc := range []struct {
 		name    string
@@ -58,7 +58,7 @@ func TestKindString(t *testing.T) {
 func TestInFlightGuard(t *testing.T) {
 	t.Parallel()
 
-	m := lifecycle.NewManager(zapNop(t), "factory", "ghcr.io/siderolabs/installer")
+	m := lifecycle.NewManager(zapNop(t), "factory", "ghcr.io/siderolabs/installer", nil, nil)
 
 	require.True(t, m.AcquireForTest("machine-1"), "first acquire should succeed")
 	require.False(t, m.AcquireForTest("machine-1"), "second acquire should be rejected while held")
@@ -71,7 +71,7 @@ func TestInFlightGuard(t *testing.T) {
 func TestRunRejectsWhenInFlight(t *testing.T) {
 	t.Parallel()
 
-	m := lifecycle.NewManager(zapNop(t), "factory", "ghcr.io/siderolabs/installer")
+	m := lifecycle.NewManager(zapNop(t), "factory", "ghcr.io/siderolabs/installer", nil, nil)
 
 	require.True(t, m.AcquireForTest("machine-1"))
 
@@ -83,7 +83,7 @@ func TestRunRejectsWhenInFlight(t *testing.T) {
 func TestRunReleasesSlotOnFailure(t *testing.T) {
 	t.Parallel()
 
-	m := lifecycle.NewManager(zapNop(t), "factory.talos.dev", "ghcr.io/siderolabs/installer")
+	m := lifecycle.NewManager(zapNop(t), "factory.talos.dev", "ghcr.io/siderolabs/installer", nil, nil)
 
 	// No platform metadata → the flow fails fast in buildInstallImage.
 	ms := omni.NewMachineStatus("machine-1")

@@ -27,6 +27,9 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/emptypb"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
+	ktesting "k8s.io/client-go/testing"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/meta"
@@ -51,7 +54,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 	addControllers := func(_ context.Context, testContext testutils.TestContext) {
 		require.NoError(t, testContext.Runtime.RegisterQController(
-			machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManagerMock()),
+			machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(testContext.State, nil)),
 		))
 	}
 
@@ -1026,15 +1029,15 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("maintenanceInstall", func(t *testing.T) {
 		t.Parallel()
 
-		mock := testutils.NewLifecycleManagerMock()
-
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
-				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", mock)))
+				require.NoError(t, tc.Runtime.RegisterQController(
+					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				st := tc.State
@@ -1050,16 +1053,11 @@ func TestMachineConfigStatusController(t *testing.T) {
 					a.Empty(res.TypedSpec().Value.LastConfigError)
 				})
 
-				ops := mock.RunOperations()
-				require.NotEmpty(t, ops)
-				assert.Equal(t, lifecycle.KindInstall, ops[0].Kind)
-				assert.Equal(t, maintenanceTargetVersion, ops[0].Version)
-				assert.Equal(t, "/dev/vda", ops[0].Disk)
-				assert.Equal(t, id, ops[0].MachineID)
-
-				machineStatus, err := safe.StateGetByID[*omni.MachineStatus](ctx, st, id)
-				require.NoError(t, err)
-				assert.Contains(t, mock.CheckAliveCalls(), machineStatus.TypedSpec().Value.ManagementAddress, "the machine should be probed before the operation")
+				installs := machineServices.Get(id).GetLifecycleInstallRequests()
+				require.NotEmpty(t, installs)
+				assert.Equal(t, "/dev/vda", installs[0].GetDestination().GetDisk())
+				assert.Contains(t, installs[0].GetSource().GetImageName(), maintenanceTargetVersion)
+				assert.Empty(t, machineServices.Get(id).GetLifecycleUpgradeRequests(), "a maintenance machine with no disk must be installed, not upgraded")
 			},
 		)
 	})
@@ -1069,15 +1067,15 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("maintenanceUpgrade", func(t *testing.T) {
 		t.Parallel()
 
-		mock := testutils.NewLifecycleManagerMock()
-
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
-				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", mock)))
+				require.NoError(t, tc.Runtime.RegisterQController(
+					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				st := tc.State
@@ -1091,10 +1089,10 @@ func TestMachineConfigStatusController(t *testing.T) {
 					a.Equal(bootID, res.TypedSpec().Value.PreRebootBootId)
 				})
 
-				ops := mock.RunOperations()
-				require.NotEmpty(t, ops)
-				assert.Equal(t, lifecycle.KindUpgrade, ops[0].Kind)
-				assert.Equal(t, maintenanceTargetVersion, ops[0].Version)
+				upgrades := machineServices.Get(id).GetLifecycleUpgradeRequests()
+				require.NotEmpty(t, upgrades)
+				assert.Contains(t, upgrades[0].GetSource().GetImageName(), maintenanceTargetVersion)
+				assert.Empty(t, machineServices.Get(id).GetLifecycleInstallRequests(), "a maintenance machine with a disk must be upgraded, not installed")
 			},
 		)
 	})
@@ -1105,24 +1103,28 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("maintenanceLifecycleError", func(t *testing.T) {
 		t.Parallel()
 
-		mock := testutils.NewLifecycleManagerMock()
-		mock.RunFunc = func(context.Context, lifecycle.Operation, ...lifecycle.Option) error {
-			return errors.New("installer blew up")
-		}
-
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
-				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", mock)))
+				require.NoError(t, tc.Runtime.RegisterQController(
+					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				st := tc.State
 				machineServices := testutils.NewMachineServices(t, st)
 
-				id := setupMaintenanceMachine(ctx, t, st, machineServices, "maint-error", false, "boot-error")
+				id := setupMaintenanceMachine(
+					ctx, t, st, machineServices, "maint-error", false, "boot-error",
+					func(svc *testutils.MachineServiceMock) {
+						svc.SetLifecycleInstallHandler(func(*machine.LifecycleServiceInstallRequest) error {
+							return errors.New("installer blew up")
+						})
+					},
+				)
 
 				rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
 					a.Contains(res.TypedSpec().Value.LastConfigError, "installer blew up")
@@ -1137,36 +1139,77 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("maintenanceLifecycleAlreadyInFlight", func(t *testing.T) {
 		t.Parallel()
 
-		mock := testutils.NewLifecycleManagerMock()
-		mock.RunFunc = func(context.Context, lifecycle.Operation, ...lifecycle.Option) error {
-			return lifecycle.ErrAlreadyInFlight
-		}
-
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		t.Cleanup(cancel)
+
+		// The controller and the background holder share one Manager, so the background operation holds the
+		// machine's in-flight slot and the controller's own Run observes ErrAlreadyInFlight.
+		var manager *lifecycle.Manager
 
 		testutils.WithRuntime(
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
-				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", mock)))
+				manager = testutils.NewLifecycleManager(tc.State, nil)
+				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", manager)))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				st := tc.State
 				machineServices := testutils.NewMachineServices(t, st)
 
-				id := setupMaintenanceMachine(ctx, t, st, machineServices, "maint-inflight", false, "boot-inflight")
+				installEntered := make(chan struct{})
+				release := make(chan struct{})
 
-				// Wait until Run has been attempted.
-				require.EventuallyWithT(t, func(c *assert.CollectT) {
-					assert.NotEmpty(c, mock.RunOperations())
-				}, 10*time.Second, 50*time.Millisecond)
+				var once sync.Once
 
-				// The in-flight result is not an error, so it must not be recorded as one, and the boot ID
-				// must not be recorded (the operation has not actually completed).
+				id := setupMaintenanceMachine(
+					ctx, t, st, machineServices, "maint-inflight", false, "boot-inflight",
+					func(svc *testutils.MachineServiceMock) {
+						svc.SetLifecycleInstallHandler(func(*machine.LifecycleServiceInstallRequest) error {
+							once.Do(func() { close(installEntered) })
+							<-release
+
+							return nil
+						})
+					},
+				)
+
+				machineStatus, err := safe.StateGetByID[*omni.MachineStatus](ctx, st, id)
+				require.NoError(t, err)
+
+				genOptions, err := safe.StateGetByID[*omni.MachineConfigGenOptions](ctx, st, id)
+				require.NoError(t, err)
+
+				runErr := make(chan error, 1)
+
+				go func() {
+					runErr <- manager.Run(ctx, lifecycle.Operation{
+						MachineID:     id,
+						MachineStatus: machineStatus,
+						Version:       maintenanceTargetVersion,
+						InstallImage:  genOptions.TypedSpec().Value.InstallImage,
+						Kind:          lifecycle.KindInstall,
+						Disk:          "/dev/vda",
+					})
+				}()
+
+				select {
+				case <-installEntered:
+				case <-ctx.Done():
+					t.Fatal("background install never started")
+				}
+
+				// The slot is held, so the controller's Run returns ErrAlreadyInFlight, which is not a failure:
+				// no error is recorded and the boot ID is not set. Negative assertion: give the controller time
+				// to (not) record anything.
+				time.Sleep(time.Second)
+
 				rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
 					a.Empty(res.TypedSpec().Value.LastConfigError)
 					a.Empty(res.TypedSpec().Value.PreRebootBootId)
 				})
+
+				close(release)
+				require.NoError(t, <-runErr)
 			},
 		)
 	})
@@ -1176,38 +1219,50 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("maintenanceLivenessProbeFailure", func(t *testing.T) {
 		t.Parallel()
 
-		mock := testutils.NewLifecycleManagerMock()
-		mock.CheckAliveFunc = func(context.Context, string) error {
-			return errors.New("machine unreachable")
-		}
-
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
-				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", mock)))
+				require.NoError(t, tc.Runtime.RegisterQController(
+					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				st := tc.State
 				machineServices := testutils.NewMachineServices(t, st)
 
-				id := setupMaintenanceMachine(ctx, t, st, machineServices, "maint-dead", false, "boot-dead")
+				// The machine is unreachable: its Version RPC (used by the pre-flight liveness probe) fails.
+				probed := make(chan struct{}, 1)
 
-				machineStatus, err := safe.StateGetByID[*omni.MachineStatus](ctx, st, id)
-				require.NoError(t, err)
+				id := setupMaintenanceMachine(
+					ctx, t, st, machineServices, "maint-dead", false, "boot-dead",
+					func(svc *testutils.MachineServiceMock) {
+						svc.SetVersionHandler(func(context.Context, *emptypb.Empty) (*machine.VersionResponse, error) {
+							select {
+							case probed <- struct{}{}:
+							default:
+							}
 
-				// The machine is probed at its management address.
-				require.EventuallyWithT(t, func(c *assert.CollectT) {
-					assert.Contains(c, mock.CheckAliveCalls(), machineStatus.TypedSpec().Value.ManagementAddress)
-				}, 10*time.Second, 50*time.Millisecond)
+							return nil, errors.New("machine unreachable")
+						})
+					},
+				)
+
+				// The machine is contacted (probe attempted) but keeps failing.
+				select {
+				case <-probed:
+				case <-ctx.Done():
+					t.Fatal("machine was never probed")
+				}
 
 				// The probe keeps failing, so the operation must never start. Negative assertion: give the
 				// controller time to (not) act.
 				time.Sleep(time.Second)
 
-				assert.Empty(t, mock.RunOperations(), "the operation must not start when the machine is unreachable")
+				assert.Empty(t, machineServices.Get(id).GetLifecycleInstallRequests(), "the operation must not start when the machine is unreachable")
+				assert.Empty(t, machineServices.Get(id).GetLifecycleUpgradeRequests())
 			},
 		)
 	})
@@ -1217,15 +1272,15 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("maintenanceBootIDDebounce", func(t *testing.T) {
 		t.Parallel()
 
-		mock := testutils.NewLifecycleManagerMock()
-
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
-				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", mock)))
+				require.NoError(t, tc.Runtime.RegisterQController(
+					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				st := tc.State
@@ -1240,7 +1295,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 					a.Equal(bootID, res.TypedSpec().Value.PreRebootBootId)
 				})
 
-				require.Len(t, mock.RunOperations(), 1)
+				require.Len(t, machineServices.Get(id).GetLifecycleInstallRequests(), 1)
 
 				// Poke a declared input to force another reconcile while the boot ID is unchanged.
 				rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
@@ -1253,7 +1308,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 				// Negative assertion: the operation must not run again until the machine reboots.
 				time.Sleep(time.Second)
 
-				assert.Len(t, mock.RunOperations(), 1, "operation must not re-run while the boot ID is unchanged")
+				assert.Len(t, machineServices.Get(id).GetLifecycleInstallRequests(), 1, "operation must not re-run while the boot ID is unchanged")
 			},
 		)
 	})
@@ -1263,15 +1318,15 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("maintenanceNotInMaintenanceStage", func(t *testing.T) {
 		t.Parallel()
 
-		mock := testutils.NewLifecycleManagerMock()
-
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
-				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", mock)))
+				require.NoError(t, tc.Runtime.RegisterQController(
+					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				st := tc.State
@@ -1289,7 +1344,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 				// Negative assertion: nothing to poll on, so give the controller time to (not) act.
 				time.Sleep(time.Second)
 
-				assert.Empty(t, mock.RunOperations(), "the operation must not run outside the maintenance stage")
+				assert.Empty(t, machineServices.Get(id).GetLifecycleInstallRequests(), "the operation must not run outside the maintenance stage")
+				assert.Empty(t, machineServices.Get(id).GetLifecycleUpgradeRequests())
 			},
 		)
 	})
@@ -1300,15 +1356,15 @@ func TestMachineConfigStatusController(t *testing.T) {
 	t.Run("maintenanceUpgradeLockReleased", func(t *testing.T) {
 		t.Parallel()
 
-		mock := testutils.NewLifecycleManagerMock()
-
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
-				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", mock)))
+				require.NoError(t, tc.Runtime.RegisterQController(
+					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				st := tc.State
@@ -1338,8 +1394,9 @@ func TestMachineConfigStatusController(t *testing.T) {
 					a.True(res.Metadata().Finalizers().Has(machineconfig.UpgradeFinalizer), "the upgrade lock must be held while the operation is in flight")
 				})
 
-				require.NotEmpty(t, mock.RunOperations())
-				assert.Equal(t, lifecycle.KindUpgrade, mock.RunOperations()[0].Kind)
+				require.EventuallyWithT(t, func(c *assert.CollectT) {
+					assert.NotEmpty(c, machineServices.Get(id).GetLifecycleUpgradeRequests())
+				}, 10*time.Second, 50*time.Millisecond)
 
 				// The machine reboots into the target Talos: it leaves maintenance mode and reports the
 				// target version, so there is no longer an operation to run. The upgrade lock must then be
@@ -1556,7 +1613,7 @@ func TestUpgradeLockReleasedBeforeConfigApply(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManagerMock()),
+				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -1564,7 +1621,9 @@ func TestUpgradeLockReleasedBeforeConfigApply(t *testing.T) {
 
 			machineServices := testutils.NewMachineServices(t, st)
 
-			_, machines := createCluster(ctx, t, st, machineServices, "deadlock-regression", 1, 0)
+			// Pin to a pre-1.13 version so the upgrade takes the legacy MachineService.Upgrade path
+			// (the OnUpdate handler below stands in for it). This test exercises lock release, not the path.
+			_, machines := createCluster(ctx, t, st, machineServices, "deadlock-regression", 1, 0, withClusterMockOption(options.WithTalosVersion("1.12.5")))
 			id := machines[0].Metadata().ID()
 
 			// Wait for the initial config to be applied: the config-update lock is only taken
@@ -1632,7 +1691,7 @@ func TestConfigUpdateLockReleasedWhenUpgradeBlocked(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManagerMock()),
+				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -1642,7 +1701,9 @@ func TestConfigUpdateLockReleasedWhenUpgradeBlocked(t *testing.T) {
 
 			machineServices := testutils.NewMachineServices(t, st)
 
-			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			// Pin to a pre-1.13 version so the upgrade takes the legacy path. This test exercises the
+			// config-update/upgrade lock interaction, not the upgrade path itself.
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0, withClusterMockOption(options.WithTalosVersion("1.12.5")))
 			id := machines[0].Metadata().ID()
 
 			// Wait for the initial config to be applied: the config-update lock is only taken
@@ -1707,7 +1768,7 @@ func TestRevertRebootRequiringPatchRecoversMachine(t *testing.T) {
 	testutils.WithRuntime(
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
-			controller := machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManagerMock())
+			controller := machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil))
 			require.NoError(t, tc.Runtime.RegisterQController(controller))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -1814,6 +1875,7 @@ func TestRevertRebootRequiringPatchRecoversMachine(t *testing.T) {
 func setupMaintenanceMachine(
 	ctx context.Context, t *testing.T, st state.State, machineServices *testutils.MachineServices,
 	clusterName string, hasSystemDisk bool, bootID string,
+	configureService ...func(*testutils.MachineServiceMock),
 ) string {
 	_, machines := createCluster(
 		ctx, t, st, machineServices, clusterName, 1, 0,
@@ -1831,6 +1893,12 @@ func setupMaintenanceMachine(
 
 	id := machines[0].Metadata().ID()
 
+	// Configure the machine service before the trigger resources below, so failure injection is in place
+	// before the controller can run the operation.
+	for _, configure := range configureService {
+		configure(machineServices.Get(id))
+	}
+
 	// The target version differs from the machine's running version in minor and supports the API.
 	rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
 		res.TypedSpec().Value.InstallImage.TalosVersion = maintenanceTargetVersion
@@ -1846,4 +1914,432 @@ func setupMaintenanceMachine(
 	}))
 
 	return id
+}
+
+// TestClusterLifecycleUpgrade verifies that a running (non-maintenance) Talos 1.13+ cluster machine
+// with a version mismatch is upgraded through the cluster lifecycle path (LifecycleService.Upgrade via
+// the lifecycle manager), not the legacy MachineService.Upgrade, and that the reboot is debounced by
+// the boot ID.
+func TestClusterLifecycleUpgrade(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	provider := &testutils.FakeKubernetesProvider{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, provider)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			clusterName := "cluster-lifecycle-upgrade"
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			id := machines[0].Metadata().ID()
+
+			// Wait for the initial config to be applied so the upgrade lock logic engages.
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			nodeName := "node-" + id
+
+			// Seed the node the cluster-upgrade path cordons and drains before rebooting.
+			provider.SetClientset(testutils.NewFakeKubernetesClientset(nodeName))
+
+			const bootID = "boot-cluster-upgrade"
+
+			// The machine is up and running with a known boot ID.
+			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING}
+				res.TypedSpec().Value.BootId = bootID
+
+				return nil
+			}))
+
+			rmock.Mock[*omni.ClusterMachineIdentity](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.ClusterMachineIdentity) error {
+				res.TypedSpec().Value.Nodename = nodeName
+
+				return nil
+			}))
+
+			// Free upgrade quota for the control plane machine set so the upgrade lock can be acquired.
+			rmock.Mock[*omni.UpgradeRollout](ctx, t, st, options.WithID(clusterName), options.Modify(func(res *omni.UpgradeRollout) error {
+				if res.TypedSpec().Value.MachineSetsUpgradeQuota == nil {
+					res.TypedSpec().Value.MachineSetsUpgradeQuota = map[string]int32{}
+				}
+
+				res.TypedSpec().Value.MachineSetsUpgradeQuota[omni.ControlPlanesResourceID(clusterName)] = 1
+
+				return nil
+			}))
+
+			// Request a same-minor upgrade: both the machine and the target support the LifecycleService API,
+			// so this must take the cluster lifecycle path rather than the legacy one.
+			targetVersion := "1.13.99"
+
+			rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+				res.TypedSpec().Value.InstallImage.TalosVersion = targetVersion
+
+				return nil
+			}))
+
+			// The boot ID is recorded so the reboot is debounced, and the machine received a
+			// LifecycleService.Upgrade (not the legacy MachineService.Upgrade).
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Equal(bootID, res.TypedSpec().Value.PreRebootBootId)
+			})
+
+			upgrades := machineServices.Get(id).GetLifecycleUpgradeRequests()
+			require.NotEmpty(t, upgrades)
+			assert.Contains(t, upgrades[0].GetSource().GetImageName(), targetVersion)
+			assert.Empty(t, machineServices.Get(id).GetUpgradeRequests(), "the machine must not receive a legacy MachineService.Upgrade")
+		},
+	)
+}
+
+// TestClusterLifecycleConvergesOnLiveVersion is a regression test for the upgrade re-trigger race.
+//
+// DecideLifecycleOp routes off the cached MachineStatus, which lags a reboot, so it can still ask for an
+// upgrade just after the node has come back on the target version. runClusterLifecycle re-checks the
+// node's live version and, finding it already at the target, converges instead of cordoning, draining and
+// rebooting the machine a second time.
+func TestClusterLifecycleConvergesOnLiveVersion(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			clusterName := "cluster-lifecycle-converged"
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			id := machines[0].Metadata().ID()
+
+			// Let the machine settle and resolve its schematic so the live re-check compares against the
+			// schematic the machine genuinely reports.
+			var installedSchematic string
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+				a.NotEmpty(res.TypedSpec().Value.SchematicId)
+
+				installedSchematic = res.TypedSpec().Value.SchematicId
+			})
+
+			targetVersion := "1.13.99"
+
+			// The node already runs the target version live, even though the cached MachineStatus still
+			// reports the old one (the post-reboot lag the re-check is meant to absorb).
+			machineServices.ForEach(func(m *testutils.MachineServiceMock) {
+				m.SetVersionHandler(func(context.Context, *emptypb.Empty) (*machine.VersionResponse, error) {
+					return &machine.VersionResponse{
+						Messages: []*machine.Version{{Version: &machine.VersionInfo{Tag: "v" + targetVersion}}},
+					}, nil
+				})
+			})
+
+			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING}
+				res.TypedSpec().Value.BootId = "boot-converged"
+
+				return nil
+			}))
+
+			rmock.Mock[*omni.UpgradeRollout](ctx, t, st, options.WithID(clusterName), options.Modify(func(res *omni.UpgradeRollout) error {
+				if res.TypedSpec().Value.MachineSetsUpgradeQuota == nil {
+					res.TypedSpec().Value.MachineSetsUpgradeQuota = map[string]int32{}
+				}
+
+				res.TypedSpec().Value.MachineSetsUpgradeQuota[omni.ControlPlanesResourceID(clusterName)] = 1
+
+				return nil
+			}))
+
+			// Target the live version, keeping the resolved schematic so only the version mismatch (from the
+			// lagging MachineStatus) would route to an upgrade.
+			rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+				res.TypedSpec().Value.InstallImage.TalosVersion = targetVersion
+				res.TypedSpec().Value.InstallImage.SchematicId = installedSchematic
+
+				return nil
+			}))
+
+			// The config status converges to the live version with the reboot marker left empty. Had the
+			// controller re-triggered instead, it would have recorded the boot ID and never stamped the
+			// target version here, so this pair of positive checks rules out a spurious upgrade.
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Equal(targetVersion, res.TypedSpec().Value.TalosVersion)
+				a.Empty(res.TypedSpec().Value.PreRebootBootId)
+			})
+		},
+	)
+}
+
+// TestClusterLifecycleHoldsUpgradeLockUntilFinalized verifies the upgrade lock is held until the node is
+// finalized: when the post-reboot uncordon fails, the lock stays held so the rollout waits rather than
+// freeing the quota slot and letting the next machine start through an unfinalized node.
+func TestClusterLifecycleHoldsUpgradeLockUntilFinalized(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	provider := &testutils.FakeKubernetesProvider{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, provider)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			clusterName := "cluster-lifecycle-finalize-fail"
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			id := machines[0].Metadata().ID()
+
+			var installedSchematic string
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+				a.NotEmpty(res.TypedSpec().Value.SchematicId)
+
+				installedSchematic = res.TypedSpec().Value.SchematicId
+			})
+
+			nodeName := "node-" + id
+
+			// Step 1 needs cordon/drain/reboot to succeed, so seed the node into a working clientset.
+			provider.SetClientset(testutils.NewFakeKubernetesClientset(nodeName))
+
+			rmock.Mock[*omni.ClusterMachineIdentity](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.ClusterMachineIdentity) error {
+				res.TypedSpec().Value.Nodename = nodeName
+
+				return nil
+			}))
+
+			rmock.Mock[*omni.UpgradeRollout](ctx, t, st, options.WithID(clusterName), options.Modify(func(res *omni.UpgradeRollout) error {
+				if res.TypedSpec().Value.MachineSetsUpgradeQuota == nil {
+					res.TypedSpec().Value.MachineSetsUpgradeQuota = map[string]int32{}
+				}
+
+				res.TypedSpec().Value.MachineSetsUpgradeQuota[omni.ControlPlanesResourceID(clusterName)] = 1
+
+				return nil
+			}))
+
+			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING}
+				res.TypedSpec().Value.BootId = "boot-before"
+
+				return nil
+			}))
+
+			targetVersion := "1.13.99"
+
+			rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+				res.TypedSpec().Value.InstallImage.TalosVersion = targetVersion
+				res.TypedSpec().Value.InstallImage.SchematicId = installedSchematic
+
+				return nil
+			}))
+
+			// The upgrade triggers (live version still differs) and takes the upgrade lock.
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.Equal("boot-before", res.TypedSpec().Value.PreRebootBootId)
+			})
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachine, a *assert.Assertions) {
+				a.True(res.Metadata().Finalizers().Has(machineconfig.UpgradeFinalizer))
+			})
+
+			// Swap in a clientset whose node reads fail, so the post-reboot uncordon can never succeed.
+			uncordonAttempted := make(chan struct{}, 1)
+
+			failingClientset := testutils.NewFakeKubernetesClientset(nodeName)
+			failingClientset.PrependReactor("get", "nodes", func(ktesting.Action) (bool, k8sruntime.Object, error) {
+				select {
+				case uncordonAttempted <- struct{}{}:
+				default:
+				}
+
+				return true, nil, errors.New("node unreachable")
+			})
+			provider.SetClientset(failingClientset)
+
+			// The node comes back on the target version, so the controller converges and moves to finalize.
+			machineServices.ForEach(func(m *testutils.MachineServiceMock) {
+				m.SetVersionHandler(func(context.Context, *emptypb.Empty) (*machine.VersionResponse, error) {
+					return &machine.VersionResponse{
+						Messages: []*machine.Version{{Version: &machine.VersionInfo{Tag: "v" + targetVersion}}},
+					}, nil
+				})
+			})
+
+			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING}
+				res.TypedSpec().Value.BootId = "boot-after"
+
+				return nil
+			}))
+
+			// Finalize (uncordon) is attempted, proving we reached the finalize step.
+			select {
+			case <-uncordonAttempted:
+			case <-ctx.Done():
+				t.Fatal("uncordon was never attempted")
+			}
+
+			// Because it fails, the upgrade lock is still held.
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachine, a *assert.Assertions) {
+				a.True(res.Metadata().Finalizers().Has(machineconfig.UpgradeFinalizer), "the upgrade lock must be held until the node is finalized")
+			})
+		},
+	)
+}
+
+// triggerClusterUpgrade points machine id at targetVersion, gives it a node name, and frees control-plane
+// upgrade quota, so the controller runs the cluster-lifecycle upgrade for it.
+func triggerClusterUpgrade(ctx context.Context, t *testing.T, st state.State, clusterName, id, nodeName, targetVersion string) {
+	rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+		res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_RUNNING}
+		res.TypedSpec().Value.BootId = "boot-" + id
+
+		return nil
+	}))
+
+	rmock.Mock[*omni.ClusterMachineIdentity](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.ClusterMachineIdentity) error {
+		res.TypedSpec().Value.Nodename = nodeName
+
+		return nil
+	}))
+
+	rmock.Mock[*omni.UpgradeRollout](ctx, t, st, options.WithID(clusterName), options.Modify(func(res *omni.UpgradeRollout) error {
+		if res.TypedSpec().Value.MachineSetsUpgradeQuota == nil {
+			res.TypedSpec().Value.MachineSetsUpgradeQuota = map[string]int32{}
+		}
+
+		res.TypedSpec().Value.MachineSetsUpgradeQuota[omni.ControlPlanesResourceID(clusterName)] = 1
+
+		return nil
+	}))
+
+	rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+		res.TypedSpec().Value.InstallImage.TalosVersion = targetVersion
+
+		return nil
+	}))
+}
+
+// TestClusterLifecycleForfeitsEtcdLeadership verifies a control-plane node in a multi-control-plane cluster
+// forfeits etcd leadership before the upgrade reboot.
+func TestClusterLifecycleForfeitsEtcdLeadership(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	provider := &testutils.FakeKubernetesProvider{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, provider)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+			clusterName := "cluster-forfeit"
+			machineServices := testutils.NewMachineServices(t, st)
+
+			// Three control planes, so the upgraded control plane has somewhere to hand leadership off to.
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 3, 0)
+			id := machines[0].Metadata().ID()
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			nodeName := "node-" + id
+			provider.SetClientset(testutils.NewFakeKubernetesClientset(nodeName))
+
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.99")
+
+			// The control-plane node forfeits etcd leadership before its reboot.
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				assert.Positive(c, machineServices.Get(id).GetEtcdForfeitLeadershipCount())
+			}, 10*time.Second, 50*time.Millisecond)
+		},
+	)
+}
+
+// TestClusterLifecycleSkipsEtcdForfeitForLoneControlPlane verifies a lone control plane does not forfeit
+// etcd leadership (there is nowhere to hand it off to).
+func TestClusterLifecycleSkipsEtcdForfeitForLoneControlPlane(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	provider := &testutils.FakeKubernetesProvider{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, provider)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+			clusterName := "cluster-lone-cp"
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			id := machines[0].Metadata().ID()
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			nodeName := "node-" + id
+			provider.SetClientset(testutils.NewFakeKubernetesClientset(nodeName))
+
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.99")
+
+			// Wait until the upgrade has run (boot ID recorded): the forfeit, if any, happens during the run.
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.PreRebootBootId)
+			})
+
+			// A lone control plane must not forfeit leadership.
+			assert.Zero(t, machineServices.Get(id).GetEtcdForfeitLeadershipCount())
+		},
+	)
 }

@@ -914,6 +914,16 @@ func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clu
 		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
 		defer cancel()
 
+		// Canceling an upgrade means catching it mid-flight and redirecting it. That needs a stable
+		// in-flight window: on real hardware a reboot takes long enough that exactly one machine is
+		// upgrading when the revert lands and the rollout stays serialized. Emulated machines complete an
+		// upgrade in a couple of seconds, faster than the rollout loop and this test's watch-then-revert
+		// react, so the revert never catches a clean mid-flight state and the per-machine targets churn
+		// instead of settling. Skip it there, matching how the healthcheck gating is skipped for emulation.
+		if clusterUsesEmulatedMachines(ctx, t, st, clusterName) {
+			t.Skip("upgrade cancellation needs real (slow) reboots to catch an upgrade mid-flight; emulated machines complete upgrades before the revert can take effect")
+		}
+
 		t.Logf("apply upgrade to %s", newTalosVersion)
 
 		_, err := safe.StateUpdateWithConflicts(ctx, st, omni.NewCluster(clusterName).Metadata(), func(cluster *omni.Cluster) error {

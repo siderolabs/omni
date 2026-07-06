@@ -57,12 +57,12 @@ const (
 	maintenanceCheckAttempts  = 5
 )
 
-// LifecycleManager runs maintenance-mode Talos install/upgrade operations on a single machine for the controller.
+// LifecycleManager owns the node-side install/upgrade work. The controller decides timing.
 type LifecycleManager interface {
-	// CheckAlive verifies the machine is reachable over the maintenance API at the given address before committing to an operation.
-	CheckAlive(ctx context.Context, address string) error
-	// Run performs the maintenance install/upgrade flow synchronously, returning ErrAlreadyInFlight if another operation holds the machine.
+	CheckAlive(ctx context.Context, machineID string) error
+	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
+	FinalizeReboot(ctx context.Context, opts ...lifecycle.Option) error
 }
 
 // ClusterMachineConfigStatusController manages the ClusterMachineStatus resource lifecycle.
@@ -152,6 +152,9 @@ func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry str
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput[*omni.MachineSetNode](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
+		),
+		qtransform.WithExtraMappedInput[*omni.ClusterMachineIdentity](
 			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
 		),
 		qtransform.WithExtraMappedInput[*omni.ClusterStatus](
@@ -355,8 +358,8 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileUpgrade(
 	r controller.ReaderWriter,
 	rc *ReconciliationContext,
 ) error {
-	// PreRebootBootId only tracks an in-flight maintenance reboot. Clear it for any non-maintenance path so a stale ID can't later debounce a fresh maintenance operation.
-	if rc.lifecycleOp != LifecycleOpMaintenanceInstall && rc.lifecycleOp != LifecycleOpMaintenanceUpgrade {
+	// The legacy path doesn't use the reboot marker, so clear it lest a stale ID debounce a later operation.
+	if rc.lifecycleOp == LifecycleOpLegacyUpgrade {
 		rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = ""
 	}
 
@@ -382,11 +385,61 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileUpgrade(
 
 			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine talos version is out of sync: %s", rc.ID())
 		}
+	} else {
+		// The cached view can read None while the machine we triggered is still mid-reboot. Applying then
+		// loses the config, so wait for the boot ID to change before clearing the marker and applying.
+		if preRebootBootID := rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId; preRebootBootID != "" && rc.bootID == preRebootBootID {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot before applying config: %s", rc.ID())
+		}
+
+		// Record the version so the status reflects an already-at-target machine that ran no upgrade path.
+		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = strings.TrimLeft(rc.machineStatus.TypedSpec().Value.TalosVersion, "v")
+
+		if rc.machineStatus.TypedSpec().Value.GetSchematic().GetInvalid() {
+			rc.machineConfigStatus.TypedSpec().Value.SchematicId = ""
+		} else {
+			rc.machineConfigStatus.TypedSpec().Value.SchematicId = rc.installImage.SchematicId
+		}
+	}
+
+	// Finalize before releasing the upgrade lock so the next machine can't start until this one is fully back.
+	if err := ctrl.finalizeReboot(ctx, r, rc); err != nil {
+		return err
 	}
 
 	if err := ctrl.releaseUpgradeLock(ctx, r, rc.clusterMachine); err != nil {
 		return fmt.Errorf("failed to release upgrade lock: %w", err)
 	}
+
+	return nil
+}
+
+// finalizeReboot uncordons the node, then clears the reboot marker. The marker is shared with the
+// maintenance paths, which never cordon, but Uncordon is a harmless no-op on an uncordoned node.
+func (ctrl *ClusterMachineConfigStatusController) finalizeReboot(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) error {
+	if rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId == "" {
+		return nil
+	}
+
+	// A machine still in maintenance was never a Kubernetes node, so there is nothing to uncordon.
+	if !rc.machineStatus.TypedSpec().Value.Maintenance {
+		clusterName, ok := rc.clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
+		if ok {
+			nodeName, err := ctrl.getNodeName(ctx, r, rc.ID())
+			if err != nil {
+				return err
+			}
+
+			if nodeName != "" {
+				if err = ctrl.lifecycleManager.FinalizeReboot(ctx, lifecycle.WithUncordon(clusterName, nodeName)); err != nil {
+					// Keep PreRebootBootId so the next reconcile retries the uncordon.
+					return controller.NewRequeueError(fmt.Errorf("failed to finalize reboot for machine %q: %w", rc.ID(), err), lifecycleOperationPollInterval)
+				}
+			}
+		}
+	}
+
+	rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = ""
 
 	return nil
 }
@@ -398,6 +451,9 @@ func (ctrl *ClusterMachineConfigStatusController) upgrade(ctx context.Context, l
 
 	case LifecycleOpMaintenanceInstall, LifecycleOpMaintenanceUpgrade:
 		return ctrl.runMaintenanceLifecycle(ctx, logger, r, rc)
+
+	case LifecycleOpClusterUpgrade:
+		return ctrl.runClusterLifecycle(ctx, logger, r, rc)
 
 	case LifecycleOpLegacyUpgrade:
 		fallthrough
@@ -427,42 +483,14 @@ func (ctrl *ClusterMachineConfigStatusController) legacyUpgrade(inputCtx context
 		return false, xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' does not have talos version", rc.ID()))
 	}
 
-	c, err := ctrl.getClient(ctx, r, maintenance, rc.machineStatus, rc.machineConfig)
-	if err != nil {
-		return false, fmt.Errorf("failed to get client: %w", err)
-	}
-
-	defer logClose(c, logger, fmt.Sprintf("machine '%s'", rc.machineConfig.Metadata().ID()))
-
-	expectedVersion := rc.installImage.TalosVersion
-	expectedSchematic := rc.installImage.SchematicId
-
-	if rc.machineStatus.TypedSpec().Value.Schematic.Invalid {
-		rc.installImage.SchematicId = ""
-	}
-
-	actualVersion, err := getVersion(ctx, c)
+	installed, err := ctrl.checkInstalledImage(ctx, rc)
 	if err != nil {
 		return false, err
 	}
 
-	// Use the existing protected args (e.g., the siderolink args) as the fallback args if we cannot determine the actual expected args
-	fallbackKernelArgs := kernelargs.FilterProtected(rc.machineStatus.TypedSpec().Value.Schematic.KernelArgs)
-
-	schematicInfo, err := talosutils.GetSchematicInfo(ctx, c.COSI, fallbackKernelArgs)
-	if err != nil {
-		if !errors.Is(err, talosutils.ErrInvalidSchematic) {
-			return false, err
-		}
-
-		// compatibility code for the machines running extensions installed bypassing image factory
-		// make schematic play no role in the checks
-		expectedSchematic = ""
-	}
-
-	if actualVersion == expectedVersion && schematicInfo.FullID == expectedSchematic {
-		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = actualVersion
-		rc.machineConfigStatus.TypedSpec().Value.SchematicId = expectedSchematic
+	if installed.atTarget {
+		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = installed.version
+		rc.machineConfigStatus.TypedSpec().Value.SchematicId = installed.schematic
 
 		return true, nil
 	}
@@ -477,10 +505,10 @@ func (ctrl *ClusterMachineConfigStatusController) legacyUpgrade(inputCtx context
 	}
 
 	logger.Info("upgrading the machine",
-		zap.String("from_version", actualVersion),
-		zap.String("to_version", expectedVersion),
-		zap.String("from_schematic", schematicInfo.FullID),
-		zap.String("to_schematic", expectedSchematic),
+		zap.String("from_version", installed.version),
+		zap.String("to_version", rc.installImage.TalosVersion),
+		zap.String("from_schematic", installed.currentSchematic),
+		zap.String("to_schematic", rc.installImage.SchematicId),
 		zap.String("image", image),
 		zap.String("machine", rc.ID()))
 
@@ -488,13 +516,18 @@ func (ctrl *ClusterMachineConfigStatusController) legacyUpgrade(inputCtx context
 	upgradeCtx, upgradeCancel := context.WithTimeout(inputCtx, 5*time.Minute)
 	defer upgradeCancel()
 
-	stageUpgrade, err := ctrl.stageUpgrade(actualVersion)
+	stageUpgrade, err := ctrl.stageUpgrade(installed.version)
 	if err != nil {
 		return false, err
 	}
 
+	nodeClient, err := ctrl.lifecycleManager.GetForMachine(upgradeCtx, rc.ID())
+	if err != nil {
+		return false, fmt.Errorf("failed to get talos client: %w", err)
+	}
+
 	//nolint:staticcheck
-	_, err = c.UpgradeWithOptions(
+	_, err = nodeClient.UpgradeWithOptions(
 		upgradeCtx,
 		client.WithUpgradeImage(image),
 		client.WithUpgradePreserve(!maintenance),
@@ -510,10 +543,10 @@ func (ctrl *ClusterMachineConfigStatusController) legacyUpgrade(inputCtx context
 	return false, err
 }
 
-// maintenanceLifecyclePollInterval paces a retry when the operation can't make progress yet (another caller holds the in-flight slot, or the machine is still rebooting from a prior operation).
-const maintenanceLifecyclePollInterval = 30 * time.Second
+// lifecycleOperationPollInterval paces a retry when the operation can't make progress yet (another caller holds the in-flight slot, or the machine is still rebooting from a prior operation).
+const lifecycleOperationPollInterval = 30 * time.Second
 
-// runMaintenanceLifecycle performs a LifecycleService.Install or Upgrade synchronously via the Lifecycle Manager.
+// runMaintenanceLifecycle performs a maintenance install or upgrade via Talos's LifecycleService.
 func (ctrl *ClusterMachineConfigStatusController) runMaintenanceLifecycle(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -522,26 +555,31 @@ func (ctrl *ClusterMachineConfigStatusController) runMaintenanceLifecycle(
 ) (bool, error) {
 	machineID := rc.ID()
 
-	if rc.bootID == "" {
-		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine boot ID before running maintenance lifecycle operation: %s", rc.ID())
+	operationName := "maintenance upgrade"
+	if rc.lifecycleOp == LifecycleOpMaintenanceInstall {
+		operationName = "maintenance install"
 	}
 
-	preRebootBootID := rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId
-	if rc.bootID == preRebootBootID {
-		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot after maintenance lifecycle operation: %s", rc.ID())
+	if rc.bootID == "" {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine boot ID before %s: %s", operationName, machineID)
+	}
+
+	// Wait if we already triggered the install/upgrade and the node hasn't rebooted yet.
+	if preRebootBootID := rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId; preRebootBootID != "" && rc.bootID == preRebootBootID {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot after %s: %s", operationName, machineID)
 	}
 
 	if stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage(); stage != machineapi.MachineStatusEvent_MAINTENANCE {
-		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine %s is not in maintenance stage (%s); skipping maintenance lifecycle operation", machineID, stage)
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine %s is not in maintenance stage (%s), skipping %s", machineID, stage, operationName)
 	}
 
 	probeCtx, probeCancel := context.WithTimeout(ctx, lifecycle.LivenessProbeTimeout)
 	defer probeCancel()
 
-	if err := ctrl.lifecycleManager.CheckAlive(probeCtx, rc.machineStatus.TypedSpec().Value.ManagementAddress); err != nil {
-		logger.Info("maintenance lifecycle pre-flight liveness probe failed; will retry", zap.String("machine", machineID), zap.Error(err))
+	if err := ctrl.lifecycleManager.CheckAlive(probeCtx, machineID); err != nil {
+		logger.Info("liveness probe before "+operationName+" failed, will retry", zap.String("machine", machineID), zap.Error(err))
 
-		return false, controller.NewRequeueInterval(maintenanceLifecyclePollInterval)
+		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
 	}
 
 	if err := ctrl.acquireUpgradeLock(ctx, r, rc); err != nil {
@@ -554,53 +592,266 @@ func (ctrl *ClusterMachineConfigStatusController) runMaintenanceLifecycle(
 		Version:       rc.installImage.TalosVersion,
 		InstallImage:  rc.installImage,
 	}
-	operationName := ""
 
 	switch rc.lifecycleOp { //nolint:exhaustive
 	case LifecycleOpMaintenanceInstall:
 		operation.Kind = lifecycle.KindInstall
 		operation.Disk = rc.installDisk
-		operationName = "maintenance install"
 	case LifecycleOpMaintenanceUpgrade:
 		operation.Kind = lifecycle.KindUpgrade
-		operationName = "maintenance upgrade"
 	}
 
-	logger.Info("running maintenance lifecycle",
+	logger.Info("running "+operationName,
 		zap.String("machine", machineID),
-		zap.Stringer("op", operation.Kind),
 		zap.String("version", operation.Version),
 		zap.String("disk", operation.Disk))
 
-	runCtx, cancel := context.WithTimeout(ctx, lifecycle.MaintenanceLifecycleTimeout)
-	defer cancel()
-
-	err := ctrl.lifecycleManager.Run(runCtx, operation, lifecycle.WithProgress(func(msg string) {
-		logger.Debug("maintenance lifecycle progress", zap.String("machine", machineID), zap.String("message", msg))
+	err := ctrl.lifecycleManager.Run(ctx, operation, lifecycle.WithProgress(func(msg string) {
+		logger.Debug(operationName+" progress", zap.String("machine", machineID), zap.String("message", msg))
 	}))
 
 	switch {
 	case errors.Is(err, lifecycle.ErrAlreadyInFlight):
-		// The management RPC is operating on this machine; retry once it releases the slot.
-		logger.Info("maintenance lifecycle already in flight", zap.String("machine", machineID))
+		// The management RPC is operating on this machine, so retry once it releases the slot.
+		logger.Info(operationName+" already in flight", zap.String("machine", machineID))
 
-		return false, controller.NewRequeueInterval(maintenanceLifecyclePollInterval)
+		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
 	case err != nil:
 		// Returning a raw error would make qtransform drop the output write and lose LastConfigError.
 		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, fmt.Sprintf("%s failed", operationName)).Error()
 
-		logger.Error("maintenance lifecycle operation failed",
-			zap.String("machine", machineID),
-			zap.String("op", operationName),
-			zap.Error(err))
+		logger.Error(operationName+" failed", zap.String("machine", machineID), zap.Error(err))
 
-		return false, controller.NewRequeueInterval(maintenanceLifecyclePollInterval)
+		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
 	default:
 		rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = rc.bootID
 		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = ""
 
-		return false, controller.NewRequeueInterval(maintenanceLifecyclePollInterval)
+		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
 	}
+}
+
+// runClusterLifecycle upgrades an in-cluster Talos 1.13+ machine via LifecycleService.Upgrade.
+func (ctrl *ClusterMachineConfigStatusController) runClusterLifecycle(
+	ctx context.Context,
+	logger *zap.Logger,
+	r controller.ReaderWriter,
+	rc *ReconciliationContext,
+) (bool, error) {
+	machineID := rc.ID()
+
+	if rc.bootID == "" {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine boot ID before upgrade: %s", machineID)
+	}
+
+	if stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage(); stage != machineapi.MachineStatusEvent_RUNNING {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine %s is not running (%s), skipping upgrade", machineID, stage)
+	}
+
+	clusterName, ok := rc.clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return false, fmt.Errorf("cluster machine %q has no cluster label", machineID)
+	}
+
+	installed, err := ctrl.checkInstalledImage(ctx, rc)
+	if err != nil {
+		logger.Info("version check before upgrade failed, will retry", zap.String("machine", machineID), zap.Error(err))
+
+		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+	}
+
+	if installed.atTarget {
+		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = installed.version
+		rc.machineConfigStatus.TypedSpec().Value.SchematicId = installed.schematic
+
+		return true, nil
+	}
+
+	// Wait if we already triggered the upgrade and the node hasn't rebooted yet.
+	if preRebootBootID := rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId; preRebootBootID != "" && preRebootBootID == rc.bootID {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot after upgrade: %s", machineID)
+	}
+
+	nodeName, err := ctrl.getNodeName(ctx, r, machineID)
+	if err != nil {
+		return false, err
+	}
+
+	// Without a node name we can't cordon and drain, so wait rather than reboot a cluster member undrained.
+	if nodeName == "" {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for node name before upgrade: %s", machineID)
+	}
+
+	if err = ctrl.acquireUpgradeLock(ctx, r, rc); err != nil {
+		return false, err
+	}
+
+	opts := []lifecycle.Option{
+		lifecycle.WithProgress(func(msg string) {
+			logger.Debug("upgrade progress", zap.String("machine", machineID), zap.String("message", msg))
+		}),
+		lifecycle.WithCordonDrain(clusterName, nodeName),
+	}
+
+	clusterMachines, err := ctrl.listClusterMachines(ctx, r, clusterName)
+	if err != nil {
+		return false, err
+	}
+
+	if forfeitHook := ctrl.etcdForfeitHook(rc, clusterMachines); forfeitHook != nil {
+		opts = append(opts, lifecycle.WithPreRebootHooks(forfeitHook))
+	}
+
+	operation := lifecycle.Operation{
+		MachineID:     machineID,
+		MachineStatus: rc.machineStatus,
+		Version:       rc.installImage.TalosVersion,
+		InstallImage:  rc.installImage,
+		Kind:          lifecycle.KindUpgrade,
+	}
+
+	logger.Info("running upgrade",
+		zap.String("machine", machineID),
+		zap.String("version", operation.Version),
+		zap.String("node", nodeName))
+
+	err = ctrl.lifecycleManager.Run(ctx, operation, opts...)
+
+	switch {
+	case errors.Is(err, lifecycle.ErrAlreadyInFlight):
+		// The management RPC is operating on this machine, so retry once it releases the slot.
+		logger.Info("upgrade already in flight", zap.String("machine", machineID))
+
+		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+	case err != nil:
+		// Returning a raw error would make qtransform drop the output write and lose LastConfigError.
+		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, "upgrade failed").Error()
+
+		logger.Error("upgrade failed", zap.String("machine", machineID), zap.Error(err))
+
+		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+	default:
+		rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = rc.bootID
+		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = ""
+
+		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+	}
+}
+
+// installedImage is the version and schematic read live from a node, plus whether they match the target.
+type installedImage struct {
+	version          string
+	schematic        string
+	currentSchematic string
+	atTarget         bool
+}
+
+// checkInstalledImage reads the node's running version and schematic live and compares them to the target.
+func (ctrl *ClusterMachineConfigStatusController) checkInstalledImage(
+	ctx context.Context, rc *ReconciliationContext,
+) (installedImage, error) {
+	nodeClient, err := ctrl.lifecycleManager.GetForMachine(ctx, rc.ID())
+	if err != nil {
+		return installedImage{}, fmt.Errorf("failed to get talos client: %w", err)
+	}
+
+	actualVersion, err := getVersion(ctx, nodeClient.Client)
+	if err != nil {
+		return installedImage{}, err
+	}
+
+	// compatibility code for the machines running extensions installed bypassing image factory make schematic play no role in the checks
+	if rc.machineStatus.TypedSpec().Value.Schematic.Invalid {
+		return installedImage{
+			version:          actualVersion,
+			schematic:        "",
+			atTarget:         actualVersion == rc.installImage.TalosVersion,
+			currentSchematic: "",
+		}, nil
+	}
+
+	// Use the existing protected args (e.g., the siderolink args) as the fallback args if we cannot determine the actual expected args
+	fallbackKernelArgs := kernelargs.FilterProtected(rc.machineStatus.TypedSpec().Value.Schematic.KernelArgs)
+
+	schematicInfo, err := talosutils.GetSchematicInfo(ctx, nodeClient.COSI, fallbackKernelArgs)
+	if err != nil {
+		if errors.Is(err, talosutils.ErrInvalidSchematic) {
+			return installedImage{
+				version:          actualVersion,
+				schematic:        "",
+				atTarget:         actualVersion == rc.installImage.TalosVersion,
+				currentSchematic: "",
+			}, nil
+		}
+
+		return installedImage{}, err
+	}
+
+	return installedImage{
+		version:          actualVersion,
+		schematic:        rc.installImage.SchematicId,
+		currentSchematic: schematicInfo.FullID,
+		atTarget:         actualVersion == rc.installImage.TalosVersion && schematicInfo.FullID == rc.installImage.SchematicId,
+	}, nil
+}
+
+// etcdForfeitHook forfeits this node's etcd leadership if it's a ControlPlane node on a multi ControlPlane cluster.
+func (ctrl *ClusterMachineConfigStatusController) etcdForfeitHook(rc *ReconciliationContext, clusterMachines []resource.Resource) lifecycle.PreRebootHook {
+	if rc.clusterMachine == nil {
+		return nil
+	}
+
+	if _, isControlPlane := rc.clusterMachine.Metadata().Labels().Get(omni.LabelControlPlaneRole); !isControlPlane {
+		return nil
+	}
+
+	controlPlaneCount := 0
+
+	for _, clusterMachine := range clusterMachines {
+		if _, ok := clusterMachine.Metadata().Labels().Get(omni.LabelControlPlaneRole); ok {
+			controlPlaneCount++
+		}
+	}
+
+	if controlPlaneCount <= 1 {
+		return nil
+	}
+
+	return func(hookCtx context.Context, talosClient *client.Client) error {
+		_, forfeitErr := talosClient.EtcdForfeitLeadership(hookCtx, &machineapi.EtcdForfeitLeadershipRequest{})
+
+		return forfeitErr
+	}
+}
+
+// listClusterMachines lists the cluster's ClusterMachines uncached, so callers see the freshest finalizer set.
+func (ctrl *ClusterMachineConfigStatusController) listClusterMachines(ctx context.Context, r controller.ReaderWriter, clusterName string) ([]resource.Resource, error) {
+	qruntime := r.(controller.QRuntime) //nolint:forcetypeassert,errcheck
+
+	list, err := qruntime.ListUncached(
+		ctx,
+		omni.NewClusterMachine("").Metadata(),
+		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return list.Items, nil
+}
+
+// getNodeName returns the machine's Kubernetes node name, or "" if its ClusterMachineIdentity isn't present yet.
+func (ctrl *ClusterMachineConfigStatusController) getNodeName(ctx context.Context, r controller.Reader, machineID string) (string, error) {
+	identity, err := safe.ReaderGetByID[*omni.ClusterMachineIdentity](ctx, r, machineID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return "", nil
+		}
+
+		return "", fmt.Errorf("failed to get cluster machine identity %q: %w", machineID, err)
+	}
+
+	return identity.TypedSpec().Value.Nodename, nil
 }
 
 // stageUpgrade decides if the upgrade should be staged.
@@ -1066,20 +1317,14 @@ func (ctrl *ClusterMachineConfigStatusController) acquireUpgradeLock(ctx context
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%w: waiting for free quota for upgrade", errAcquireUpgradeLock)
 	}
 
-	qruntime := r.(controller.QRuntime) //nolint:forcetypeassert,errcheck
-
-	clusterMachines, err := qruntime.ListUncached(
-		ctx,
-		omni.NewClusterMachine("").Metadata(),
-		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
-	)
+	clusterMachines, err := ctrl.listClusterMachines(ctx, r, clusterName)
 	if err != nil {
 		return err
 	}
 
 	maxQuota := quota
 
-	for _, clusterMachine := range clusterMachines.Items {
+	for _, clusterMachine := range clusterMachines {
 		if clusterMachine.Metadata().Finalizers().Has(UpgradeFinalizer) {
 			quota--
 		}

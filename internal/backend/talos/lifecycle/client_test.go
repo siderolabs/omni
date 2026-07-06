@@ -19,7 +19,7 @@ import (
 func TestBuildInstallImage(t *testing.T) {
 	t.Parallel()
 
-	m := lifecycle.NewManager(zapNop(t), "factory.talos.dev", "ghcr.io/siderolabs/installer")
+	m := lifecycle.NewManager(zapNop(t), "factory.talos.dev", "ghcr.io/siderolabs/installer", nil, nil)
 
 	ms := omni.NewMachineStatus("machine-1")
 	ms.TypedSpec().Value.TalosVersion = "1.13.1"

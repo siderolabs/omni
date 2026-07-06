@@ -41,6 +41,9 @@ const (
 
 	// LifecycleOpMaintenanceUpgrade is LifecycleService.Upgrade for a maintenance machine that has Talos on disk.
 	LifecycleOpMaintenanceUpgrade
+
+	// LifecycleOpClusterUpgrade is LifecycleService.Upgrade for an in-cluster machine (Talos 1.13+), with cordon/drain/reboot orchestrated by Omni.
+	LifecycleOpClusterUpgrade
 )
 
 // ReconciliationContext describes all related data for one reconciliation call of the machine config status controller.
@@ -267,34 +270,48 @@ func DecideLifecycleOp(machineStatus *omni.MachineStatus, installImage *specs.Ma
 	machineVersion, machineSupportsLifecycle := omni.ParseTalosVersionLifecycleSupport(machineStatus.TypedSpec().Value.TalosVersion)
 	targetVersion, targetSupportsLifecycle := omni.ParseTalosVersionLifecycleSupport(installImage.TalosVersion)
 
-	// Maintenance path: both the machine and the target must support the LifecycleService API.
-	if machineStatus.TypedSpec().Value.Maintenance && machineSupportsLifecycle && targetSupportsLifecycle {
-		machineSchematic := machineStatus.TypedSpec().Value.GetSchematic()
-		schematicDiffers := !machineSchematic.GetInvalid() && machineSchematic.GetFullId() != installImage.SchematicId
+	// The LifecycleService paths (Talos 1.13+ both ends) decide from the live version/schematic, not the
+	// mismatch flags, so a stale status can't trigger a spurious first-reconcile upgrade.
+	if machineSupportsLifecycle && targetSupportsLifecycle {
+		if machineStatus.TypedSpec().Value.Maintenance {
+			switch {
+			case hasSystemDisk && (!machineVersion.EQ(targetVersion) || schematicDiffers(machineStatus, installImage)):
+				return LifecycleOpMaintenanceUpgrade
+			case !hasSystemDisk && (machineVersion.Major != targetVersion.Major || machineVersion.Minor != targetVersion.Minor):
+				// Cross-minor without a disk: config-apply only installs within the same minor, so install explicitly.
+				return LifecycleOpMaintenanceInstall
+			default:
+				// Already at target, or same-minor with no disk where config-apply installs it for us.
+				return LifecycleOpNone
+			}
+		}
 
-		switch {
-		case hasSystemDisk && (!machineVersion.EQ(targetVersion) || schematicDiffers):
-			// Talos is already on disk but not at the target version/schematic: upgrade it in place via LifecycleService.Upgrade.
-			return LifecycleOpMaintenanceUpgrade
-		case !hasSystemDisk && (machineVersion.Major != targetVersion.Major || machineVersion.Minor != targetVersion.Minor):
-			// Nothing on disk yet and the running (ISO/PXE) minor differs from the target: the normal config-apply install only works within the same minor, so write the target to disk via
-			// LifecycleService.Install.
-			return LifecycleOpMaintenanceInstall
-		default:
-			// Either the on-disk Talos already matches the target, or there's no disk but the running minor matches the target so the normal config-apply path installs it.
+		if hasSystemDisk {
+			if !machineVersion.EQ(targetVersion) || schematicDiffers(machineStatus, installImage) {
+				return LifecycleOpClusterUpgrade
+			}
+
 			return LifecycleOpNone
 		}
 	}
 
+	// Older machine or target: the legacy path, gated on the config-status mismatch flags.
 	if !schematicMismatch && !talosVersionMismatch {
 		return LifecycleOpNone
 	}
 
-	// Even though LifecycleService.Upgrade can upgrade machines that are part of a cluster, that flow has not been implemented yet. Continue to use the legacy in-place MachineService.Upgrade.
 	if hasSystemDisk {
 		return LifecycleOpLegacyUpgrade
 	}
 
 	// No Talos on disk and not eligible for a maintenance install: Omni has no way to install Talos on this machine today, so nothing is done.
 	return LifecycleOpNone
+}
+
+// schematicDiffers reports whether the machine's schematic differs from the target's. An invalid schematic
+// (not provisioned via image factory) reports false.
+func schematicDiffers(machineStatus *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) bool {
+	machineSchematic := machineStatus.TypedSpec().Value.GetSchematic()
+
+	return !machineSchematic.GetInvalid() && machineSchematic.GetFullId() != installImage.SchematicId
 }

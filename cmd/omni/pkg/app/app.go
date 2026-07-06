@@ -105,6 +105,8 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		logger.With(logging.Component("talos_lifecycle")),
 		imageFactoryClient.Host(),
 		cfg.Registries.GetTalos(),
+		kubernetesRuntime,
+		talosClientFactory,
 	)
 
 	omniRuntime, err := omni.NewRuntime(

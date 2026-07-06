@@ -60,6 +60,9 @@ func (m *Manager) pullInstallerImage(
 	imageRef, machineID string,
 	cfg runConfig,
 ) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, PullTimeout)
+	defer cancel()
+
 	emitf(cfg.progress, "[omni] pulling installer image %s", imageRef)
 
 	if err := cfg.audit(ctx, machineapi.ImageService_Pull_FullMethodName, machineID); err != nil {
@@ -112,6 +115,9 @@ func (m *Manager) install(
 	resolvedImage, disk, machineID string,
 	cfg runConfig,
 ) error {
+	ctx, cancel := context.WithTimeout(ctx, InstallTimeout)
+	defer cancel()
+
 	if err := cfg.audit(ctx, machineapi.LifecycleService_Install_FullMethodName, machineID); err != nil {
 		return err
 	}
@@ -157,6 +163,9 @@ func (m *Manager) upgrade(
 	resolvedImage, machineID string,
 	cfg runConfig,
 ) error {
+	ctx, cancel := context.WithTimeout(ctx, InstallTimeout)
+	defer cancel()
+
 	if err := cfg.audit(ctx, machineapi.LifecycleService_Upgrade_FullMethodName, machineID); err != nil {
 		return err
 	}
@@ -193,6 +202,9 @@ func (m *Manager) upgrade(
 
 // reboot triggers a Talos reboot on the machine.
 func (m *Manager) reboot(ctx context.Context, talosClient *talosclient.Client, machineID string, cfg runConfig) error {
+	ctx, cancel := context.WithTimeout(ctx, RebootTimeout)
+	defer cancel()
+
 	emitf(cfg.progress, "[omni] rebooting machine to boot into installed Talos")
 
 	if err := cfg.audit(ctx, machineapi.MachineService_Reboot_FullMethodName, machineID); err != nil {

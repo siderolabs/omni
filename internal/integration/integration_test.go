@@ -512,6 +512,7 @@ func runOmni(t *testing.T) (string, error) {
 	t.Log("waiting for Omni to start")
 
 	rtestutils.AssertResources(ctx, t, state.Default(), []string{talosVersion}, func(*omnires.TalosVersion, *assert.Assertions) {})
+	rtestutils.AssertResources(ctx, t, state.Default(), []string{talosVersion}, func(*omnires.TalosExtensions, *assert.Assertions) {})
 
 	sa, err := createBootstrapServiceAccount(omniCtx, "root", state.Default())
 	if err != nil {

@@ -9,33 +9,49 @@ import (
 	"context"
 	"sync"
 
+	"github.com/siderolabs/go-kubernetes/kubernetes/nodedrain"
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
+	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	k8s "k8s.io/client-go/kubernetes"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
-// Manager runs Talos's LifecycleService.Install/Upgrade for machines in maintenance mode. Run
-// performs the full flow (pull, install/upgrade, reboot) synchronously and allows only one in-flight operation per machine.
+// KubernetesClientProvider resolves a cluster's Kubernetes clientset for cordon/drain/uncordon.
+type KubernetesClientProvider interface {
+	GetKubernetesClientset(ctx context.Context, cluster string) (k8s.Interface, error)
+}
+
+// TalosClientFactory hands out a cached Talos client for a machine. The returned client must not be closed by the caller.
+type TalosClientFactory interface {
+	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
+}
+
+// Manager runs Talos's LifecycleService install/upgrade for a single machine, one in-flight op per machine.
 type Manager struct {
-	logger             *zap.Logger
-	containerdInstance *common.ContainerdInstance
-	inFlight           map[string]struct{}
-	imageFactoryHost   string
-	talosRegistry      string
+	logger                   *zap.Logger
+	containerdInstance       *common.ContainerdInstance
+	kubernetesClientProvider KubernetesClientProvider
+	talosClientFactory       TalosClientFactory
+	inFlight                 map[string]struct{}
+	imageFactoryHost         string
+	talosRegistry            string
 
 	mu sync.Mutex
 }
 
-// NewManager creates a Manager.
-func NewManager(logger *zap.Logger, imageFactoryHost, talosRegistry string) *Manager {
+// NewManager creates a Manager. kubernetesClients may be nil for callers that never cordon/drain.
+func NewManager(logger *zap.Logger, imageFactoryHost, talosRegistry string, kubernetesClientProvider KubernetesClientProvider, talosClientFactory TalosClientFactory) *Manager {
 	return &Manager{
-		logger:           logger,
-		imageFactoryHost: imageFactoryHost,
-		talosRegistry:    talosRegistry,
+		logger:                   logger,
+		imageFactoryHost:         imageFactoryHost,
+		talosRegistry:            talosRegistry,
+		kubernetesClientProvider: kubernetesClientProvider,
+		talosClientFactory:       talosClientFactory,
 		containerdInstance: &common.ContainerdInstance{
 			Driver:    common.ContainerDriver_CONTAINERD,
 			Namespace: common.ContainerdNamespace_NS_SYSTEM,
@@ -44,14 +60,64 @@ func NewManager(logger *zap.Logger, imageFactoryHost, talosRegistry string) *Man
 	}
 }
 
+// clientset resolves the cluster's Kubernetes clientset, erroring when no provider was configured.
+func (m *Manager) clientset(ctx context.Context, cluster string) (k8s.Interface, error) {
+	if m.kubernetesClientProvider == nil {
+		return nil, status.Error(codes.Internal, "kubernetes client provider not configured, cannot cordon/drain/uncordon node")
+	}
+
+	return m.kubernetesClientProvider.GetKubernetesClientset(ctx, cluster)
+}
+
+// PreRebootHook runs before the node is drained. An error aborts the Run.
+type PreRebootHook func(ctx context.Context, talosClient *talosclient.Client) error
+
+// nodeRef names a cluster node.
+type nodeRef struct {
+	clusterName string
+	nodeName    string
+}
+
 // runConfig holds the per-call options resolved from Option values.
 type runConfig struct {
-	audit    AuditFunc
-	progress func(string)
+	audit       AuditFunc
+	progress    func(string)
+	cordonDrain *nodeRef
+	uncordon    *nodeRef
+	preReboot   []PreRebootHook
 }
 
 // Option configures a single Run.
 type Option func(*runConfig)
+
+// WithCordonDrain makes Run cordon and drain the node before reboot. Set for cluster members.
+func WithCordonDrain(clusterName, nodeName string) Option {
+	return func(cfg *runConfig) {
+		if clusterName != "" && nodeName != "" {
+			cfg.cordonDrain = &nodeRef{clusterName: clusterName, nodeName: nodeName}
+		}
+	}
+}
+
+// WithUncordon makes FinalizeReboot uncordon the node once it is back up.
+func WithUncordon(clusterName, nodeName string) Option {
+	return func(cfg *runConfig) {
+		if clusterName != "" && nodeName != "" {
+			cfg.uncordon = &nodeRef{clusterName: clusterName, nodeName: nodeName}
+		}
+	}
+}
+
+// WithPreRebootHooks registers hooks to run after the install/upgrade and before the node is drained, in order.
+func WithPreRebootHooks(hooks ...PreRebootHook) Option {
+	return func(cfg *runConfig) {
+		for _, h := range hooks {
+			if h != nil {
+				cfg.preReboot = append(cfg.preReboot, h)
+			}
+		}
+	}
+}
 
 // WithProgress sets the sink for operator-visible progress messages (gRPC stream or logger).
 func WithProgress(fn func(string)) Option {
@@ -75,21 +141,29 @@ func WithAudit(fn AuditFunc) Option {
 func (m *Manager) SupportsLifecycleManagement(version string) error {
 	if _, ok := omni.ParseTalosVersionLifecycleSupport(version); !ok {
 		return status.Errorf(codes.FailedPrecondition,
-			"machine Talos version %q is not supported; the lifecycle API requires Talos %s or newer",
+			"machine Talos version %q is not supported: the lifecycle API requires Talos %s or newer",
 			version, omni.LifecycleServiceMinTalosVersion)
 	}
 
 	return nil
 }
 
-// CheckAlive verifies the machine is reachable over the maintenance API with a quick Version call, so callers can fail fast instead of committing the full operation to an unresponsive machine.
-func (m *Manager) CheckAlive(ctx context.Context, address string) error {
-	talosClient, err := talos.NewMaintenanceClient(ctx, address)
-	if err != nil {
-		return status.Errorf(codes.Internal, "failed to create talos client: %v", err)
+// GetForMachine returns the cached Talos client for a machine, selecting maintenance or cluster mode from
+// live state. The client is owned by the factory and must not be closed by the caller.
+func (m *Manager) GetForMachine(ctx context.Context, machineID string) (*talos.Client, error) {
+	if m.talosClientFactory == nil {
+		return nil, status.Error(codes.Internal, "talos client factory not configured")
 	}
 
-	defer talosClient.Close() //nolint:errcheck
+	return m.talosClientFactory.GetForMachine(ctx, machineID)
+}
+
+// CheckAlive does a quick Version call on the machine's Talos client, so callers can fail fast instead of committing the full operation to an unresponsive machine.
+func (m *Manager) CheckAlive(ctx context.Context, machineID string) error {
+	talosClient, err := m.GetForMachine(ctx, machineID)
+	if err != nil {
+		return err
+	}
 
 	if _, err = talosClient.Version(ctx); err != nil {
 		return err
@@ -98,7 +172,7 @@ func (m *Manager) CheckAlive(ctx context.Context, address string) error {
 	return nil
 }
 
-// Run performs the maintenance flow synchronously, returning when the machine has been rebooted into the target Talos or on error.
+// Run performs the install or upgrade synchronously, returning when the machine has been rebooted into the target Talos or on error.
 // Returns ErrAlreadyInFlight if another operation holds this machine.
 func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 	cfg := runConfig{audit: NoAudit, progress: func(string) {}}
@@ -117,17 +191,18 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 		return WrapErr(err, "failed to build install image")
 	}
 
-	m.logger.Info("built maintenance lifecycle image",
+	m.logger.Info("built installer image",
 		zap.String("machine_id", op.MachineID),
 		zap.String("image", installImageStr),
 		zap.Stringer("operation", op.Kind))
 
-	talosClient, err := talos.NewMaintenanceClient(ctx, op.MachineStatus.TypedSpec().Value.ManagementAddress)
+	// The factory owns the cached client, so we never close it.
+	nodeClient, err := m.GetForMachine(ctx, op.MachineID)
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to create talos client: %v", err)
+		return err
 	}
 
-	defer talosClient.Close() //nolint:errcheck
+	talosClient := nodeClient.Client
 
 	// Install/Upgrade expect the image already present in containerd so we pull it here.
 	resolvedImage, err := m.pullInstallerImage(ctx, talosClient, installImageStr, op.MachineID, cfg)
@@ -160,12 +235,92 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 		return status.Errorf(codes.InvalidArgument, "unknown operation kind: %d", op.Kind)
 	}
 
-	// Renew context for the reboot so it doesn't run on residual timeout budget.
-	rebootCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), RebootTimeout)
+	for _, hook := range cfg.preReboot {
+		if err = m.runPreRebootHook(ctx, hook, talosClient); err != nil {
+			return WrapErr(err, "pre-reboot hook failed")
+		}
+	}
+
+	if err = m.runCordonAndDrain(ctx, cfg); err != nil {
+		return WrapErr(err, "cordon/drain before reboot failed")
+	}
+
+	if err = m.reboot(ctx, talosClient, op.MachineID, cfg); err != nil {
+		return WrapErr(err, "failed to reboot machine after install/upgrade")
+	}
+
+	return nil
+}
+
+// runPreRebootHook runs a single pre-reboot hook under its own timeout.
+func (m *Manager) runPreRebootHook(ctx context.Context, hook PreRebootHook, talosClient *talosclient.Client) error {
+	ctx, cancel := context.WithTimeout(ctx, PreRebootHookTimeout)
 	defer cancel()
 
-	if err = m.reboot(rebootCtx, talosClient, op.MachineID, cfg); err != nil {
-		return WrapErr(err, "failed to reboot machine after lifecycle operation")
+	return hook(ctx, talosClient)
+}
+
+// runCordonAndDrain cordons and drains the node when WithCordonDrain was set.
+func (m *Manager) runCordonAndDrain(ctx context.Context, cfg runConfig) error {
+	if cfg.cordonDrain == nil {
+		return nil
+	}
+
+	target := cfg.cordonDrain
+
+	clientset, err := m.clientset(ctx, target.clusterName)
+	if err != nil {
+		return WrapErr(err, "failed to get kubernetes client to cordon/drain node")
+	}
+
+	cordonCtx, cancel := context.WithTimeout(ctx, CordonTimeout)
+	defer cancel()
+
+	emitf(cfg.progress, "[omni] cordoning node %s", target.nodeName)
+
+	if err = nodedrain.Cordon(cordonCtx, clientset, target.nodeName); err != nil {
+		return err
+	}
+
+	emitf(cfg.progress, "[omni] draining node %s", target.nodeName)
+
+	// Drain bounds itself with its own DefaultDrainTimeout.
+	if err = nodedrain.Drain(ctx, clientset, target.nodeName, nodedrain.DrainOptions{
+		Progress: func(msg string) { cfg.progress("[omni] " + msg) },
+	}); err != nil {
+		return err
+	}
+
+	emitf(cfg.progress, "[omni] node %s drained", target.nodeName)
+
+	return nil
+}
+
+// FinalizeReboot uncordons the node, separate from Run because the caller decides when the machine is back.
+func (m *Manager) FinalizeReboot(ctx context.Context, opts ...Option) error {
+	cfg := runConfig{progress: func(string) {}}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	if cfg.uncordon == nil {
+		return nil
+	}
+
+	target := cfg.uncordon
+
+	clientset, err := m.clientset(ctx, target.clusterName)
+	if err != nil {
+		return WrapErr(err, "failed to get kubernetes client to uncordon node")
+	}
+
+	uncordonCtx, cancel := context.WithTimeout(ctx, CordonTimeout)
+	defer cancel()
+
+	emitf(cfg.progress, "[omni] uncordoning node %s", target.nodeName)
+
+	if err = nodedrain.Uncordon(uncordonCtx, clientset, target.nodeName); err != nil {
+		return WrapErr(err, "failed to uncordon node")
 	}
 
 	return nil

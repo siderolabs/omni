@@ -127,10 +127,14 @@ func NewMachineServiceMock(ctx context.Context, t *testing.T, id string, omniSta
 		SocketConnectionString: "unix://" + address,
 		omniState:              omniState,
 	}
+	lifecycleService := &lifecycleServiceMock{ms: machineService}
+	imageService := &imageServiceMock{}
 
 	resourceState := server.NewState(machineService.State)
 
 	machine.RegisterMachineServiceServer(machineServer, machineService)
+	machine.RegisterLifecycleServiceServer(machineServer, lifecycleService)
+	machine.RegisterImageServiceServer(machineServer, imageService)
 	storage.RegisterStorageServiceServer(machineServer, machineService)
 	v1alpha1.RegisterStateServer(machineServer, resourceState)
 
@@ -175,8 +179,17 @@ type MachineServiceMock struct {
 	versionHandler          func(ctx context.Context, _ *emptypb.Empty) (*machine.VersionResponse, error)
 	readHandler             func(*machine.ReadRequest, grpc.ServerStreamingServer[common.Data]) error
 
-	metaDeleteKeyToCount map[uint32]int
-	metaKeys             map[uint32]string
+	lifecycleInstallHandler func(*machine.LifecycleServiceInstallRequest) error
+	lifecycleUpgradeHandler func(*machine.LifecycleServiceUpgradeRequest) error
+	rebootHandler           func() error
+
+	lifecycleInstallRequests []*machine.LifecycleServiceInstallRequest
+	lifecycleUpgradeRequests []*machine.LifecycleServiceUpgradeRequest
+	rebootCount              int
+
+	metaDeleteKeyToCount       map[uint32]int
+	metaKeys                   map[uint32]string
+	etcdForfeitLeadershipCount int
 
 	address                string
 	omniState              state.State
@@ -328,7 +341,112 @@ func (ms *MachineServiceMock) EtcdForfeitLeadership(context.Context, *machine.Et
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
+	ms.etcdForfeitLeadershipCount++
+
 	return &machine.EtcdForfeitLeadershipResponse{}, nil
+}
+
+func (ms *MachineServiceMock) GetEtcdForfeitLeadershipCount() int {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	return ms.etcdForfeitLeadershipCount
+}
+
+func (ms *MachineServiceMock) Reboot(_ context.Context, _ *machine.RebootRequest) (*machine.RebootResponse, error) {
+	ms.lock.Lock()
+	ms.rebootCount++
+	handler := ms.rebootHandler
+	ms.lock.Unlock()
+
+	if handler != nil {
+		if err := handler(); err != nil {
+			return nil, err
+		}
+	}
+
+	return &machine.RebootResponse{}, nil
+}
+
+func (ms *MachineServiceMock) GetRebootCount() int {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	return ms.rebootCount
+}
+
+func (ms *MachineServiceMock) SetRebootHandler(handler func() error) {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	ms.rebootHandler = handler
+}
+
+type lifecycleServiceMock struct {
+	machine.UnimplementedLifecycleServiceServer
+	ms *MachineServiceMock
+}
+
+func (l *lifecycleServiceMock) Install(req *machine.LifecycleServiceInstallRequest, _ grpc.ServerStreamingServer[machine.LifecycleServiceInstallResponse]) error {
+	l.ms.lock.Lock()
+	l.ms.lifecycleInstallRequests = append(l.ms.lifecycleInstallRequests, req)
+	handler := l.ms.lifecycleInstallHandler
+	l.ms.lock.Unlock()
+
+	if handler != nil {
+		return handler(req)
+	}
+
+	return nil
+}
+
+func (l *lifecycleServiceMock) Upgrade(req *machine.LifecycleServiceUpgradeRequest, _ grpc.ServerStreamingServer[machine.LifecycleServiceUpgradeResponse]) error {
+	l.ms.lock.Lock()
+	l.ms.lifecycleUpgradeRequests = append(l.ms.lifecycleUpgradeRequests, req)
+	handler := l.ms.lifecycleUpgradeHandler
+	l.ms.lock.Unlock()
+
+	if handler != nil {
+		return handler(req)
+	}
+
+	return nil
+}
+
+type imageServiceMock struct {
+	machine.UnimplementedImageServiceServer
+}
+
+func (imageServiceMock) Pull(*machine.ImageServicePullRequest, grpc.ServerStreamingServer[machine.ImageServicePullResponse]) error {
+	return nil
+}
+
+func (ms *MachineServiceMock) SetLifecycleInstallHandler(handler func(*machine.LifecycleServiceInstallRequest) error) {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	ms.lifecycleInstallHandler = handler
+}
+
+func (ms *MachineServiceMock) SetLifecycleUpgradeHandler(handler func(*machine.LifecycleServiceUpgradeRequest) error) {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	ms.lifecycleUpgradeHandler = handler
+}
+
+func (ms *MachineServiceMock) GetLifecycleInstallRequests() []*machine.LifecycleServiceInstallRequest {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	return slices.Clone(ms.lifecycleInstallRequests)
+}
+
+func (ms *MachineServiceMock) GetLifecycleUpgradeRequests() []*machine.LifecycleServiceUpgradeRequest {
+	ms.lock.Lock()
+	defer ms.lock.Unlock()
+
+	return slices.Clone(ms.lifecycleUpgradeRequests)
 }
 
 func (ms *MachineServiceMock) EtcdLeaveCluster(ctx context.Context, req *machine.EtcdLeaveClusterRequest) (*machine.EtcdLeaveClusterResponse, error) {

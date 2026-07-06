@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -25,6 +26,13 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	machinetask "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/machine"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
+)
+
+const (
+	// bootIDProbeInterval is how often the collect task checks whether the machine bootID is stale.
+	bootIDProbeInterval = 30 * time.Second
+	// bootIDCheckTimeout is how long the collect task waits for the machine bootID to be available.
+	bootIDCheckTimeout = 5 * time.Second
 )
 
 // InfoChan is a channel for sending machine info from tasks back to the controller.
@@ -99,7 +107,7 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		return nil
 	}
 
-	bootID := readBootID(ctx, client, logger)
+	bootID := spec.readBootID(ctx, client, logger)
 
 	watchCh := make(chan state.Event)
 
@@ -107,12 +115,22 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		return err
 	}
 
+	bootIDTicker := time.NewTicker(bootIDProbeInterval)
+	defer bootIDTicker.Stop()
+
 	for {
 		var event state.Event
 
 		select {
 		case <-ctx.Done():
 			return nil
+		case <-bootIDTicker.C:
+			currentBootID := spec.readBootID(ctx, client, logger)
+			if bootID != currentBootID {
+				return fmt.Errorf("boot id changed, restarting the task (old: %s, new: %s)", bootID, currentBootID)
+			}
+
+			continue
 		case event = <-watchCh:
 		}
 
@@ -142,7 +160,10 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 }
 
 // readBootID reads the machine's kernel boot identifier from the node. It is best-effort: on certain scenarios boot_id might not be available, instead of failing with error it returns "".
-func readBootID(ctx context.Context, c *client.Client, logger *zap.Logger) string {
+func (spec CollectTaskSpec) readBootID(ctx context.Context, c *client.Client, logger *zap.Logger) string {
+	ctx, cancel := context.WithTimeout(ctx, bootIDCheckTimeout)
+	defer cancel()
+
 	read := func() (string, error) {
 		r, err := c.Read(ctx, "/proc/sys/kernel/random/boot_id")
 		if err != nil {

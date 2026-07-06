@@ -34,6 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic/dynamicinformer"
+	k8sclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -401,6 +402,16 @@ func (r *Runtime) GetClient(ctx context.Context, cluster string) (*Client, error
 	return r.getOrCreateClient(ctx, &runtime.QueryOptions{
 		Context: cluster,
 	})
+}
+
+// GetKubernetesClientset returns the cluster's typed Kubernetes clientset.
+func (r *Runtime) GetKubernetesClientset(ctx context.Context, cluster string) (k8sclient.Interface, error) {
+	client, err := r.GetClient(ctx, cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Clientset(), nil
 }
 
 func (r *Runtime) getOrCreateClient(ctx context.Context, opts *runtime.QueryOptions) (*Client, error) {

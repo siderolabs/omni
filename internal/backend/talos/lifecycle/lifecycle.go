@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-// Package lifecycle runs Talos's LifecycleService.Install/Upgrade for machines in maintenance mode.
+// Package lifecycle runs Talos's LifecycleService install/upgrade for a single machine.
 package lifecycle
 
 import (
@@ -17,15 +17,22 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
-// MaintenanceLifecycleTimeout caps how long a single maintenance install/upgrade can run server-side.
-// It covers the slowest realistic image pull plus the actual disk write.
-const MaintenanceLifecycleTimeout = 15 * time.Minute
+// PullTimeout bounds pulling the installer image into containerd.
+const PullTimeout = 5 * time.Minute
+
+// InstallTimeout bounds writing the image to disk (LifecycleService install or upgrade).
+const InstallTimeout = 5 * time.Minute
+
+// PreRebootHookTimeout bounds each pre-reboot hook.
+const PreRebootHookTimeout = time.Minute
 
 // RebootTimeout is the deadline for the post-operation reboot RPC.
 const RebootTimeout = time.Minute
 
-// LivenessProbeTimeout caps the pre-flight liveness probe so a stale "connected" flag can't make us
-// commit the full operation to an unresponsive machine.
+// CordonTimeout bounds the node cordon patch issued before reboot and the uncordon patch issued after it.
+const CordonTimeout = 30 * time.Second
+
+// LivenessProbeTimeout caps the pre-flight liveness probe so a stale "connected" flag can't commit us to an unresponsive machine.
 const LivenessProbeTimeout = 5 * time.Second
 
 // Kind identifies a lifecycle operation.
@@ -34,7 +41,7 @@ type Kind int
 const (
 	// KindInstall writes Talos to a fresh disk on a machine with no on-disk Talos installed yet.
 	KindInstall Kind = iota + 1
-	// KindUpgrade replaces the existing on-disk Talos on a machine in maintenance mode.
+	// KindUpgrade replaces the existing on-disk Talos.
 	KindUpgrade
 )
 
@@ -64,7 +71,7 @@ type Operation struct {
 }
 
 // ErrAlreadyInFlight is returned by Run when another operation is already in progress for the machine.
-var ErrAlreadyInFlight = errors.New("a maintenance lifecycle operation is already in progress for this machine")
+var ErrAlreadyInFlight = errors.New("an operation is already in progress for this machine")
 
 // WrapErr wraps an error with a prefix. If the error is a gRPC status, the returned error will have the same status code and the message will be prefixed.
 func WrapErr(err error, prefix string) error {

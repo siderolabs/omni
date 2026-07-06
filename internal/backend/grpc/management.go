@@ -810,9 +810,9 @@ func (s *managementServer) MaintenanceLifecycle(
 		}
 	}
 
-	// Detach the operation from the client stream so that it can continue running even if the client disconnects.
-	runCtx, cancel := context.WithTimeout(context.WithoutCancel(authCtx), lifecycle.MaintenanceLifecycleTimeout)
-	defer cancel()
+	// Detach the operation from the client stream so it keeps running even if the client disconnects. There
+	// is no overall deadline: each stage of Run bounds itself.
+	runCtx := context.WithoutCancel(authCtx)
 
 	operation := lifecycle.Operation{
 		MachineID:     req.MachineId,
