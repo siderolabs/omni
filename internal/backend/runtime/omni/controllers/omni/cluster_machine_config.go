@@ -422,7 +422,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 				clusterAcceptedCAs = append(clusterAcceptedCAs, &x509.PEMEncodedCertificate{Crt: clusterMachineSecrets.TypedSpec().Value.Rotation.ExtraCerts.K8S.Crt})
 			}
 
-			config.ClusterConfig.ClusterAcceptedCAs = clusterAcceptedCAs
+			config.ClusterConfig.ClusterAcceptedCAs = clusterAcceptedCAs //nolint:staticcheck
 
 			return nil
 		})

@@ -123,3 +123,27 @@ export type LVMVolumeGroupStatusSpec = {
   prettySize?: string
   prettyFree?: string
 }
+
+export type MDArraySpecSpec = {
+  level?: string
+  volumeSelector?: string
+  metadata?: string
+}
+
+export type MDArrayStatusSpec = {
+  level?: string
+  device?: string
+  members?: string[]
+  error?: string
+  status?: string
+  raidDevices?: number
+  uuid?: string
+  name?: string
+  metadata?: string
+  arrayState?: string
+  syncAction?: string
+}
+
+export type MDRefreshRequestSpec = {
+  request?: number
+}

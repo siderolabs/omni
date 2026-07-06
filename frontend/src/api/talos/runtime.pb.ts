@@ -177,6 +177,12 @@ export type ServicePIDSpec = {
   mountNamespace?: string
 }
 
+export type UnattendedInstallStatusSpec = {
+  image?: string
+  phase?: string
+  error?: string
+}
+
 export type UniqueMachineTokenSpec = {
   token?: string
 }

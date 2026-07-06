@@ -35,6 +35,7 @@ export type EtcdRootSpec = {
 
 export type KubeletSpec = {
   endpoint?: string
+  endpointTLSServerName?: string
   acceptedCAs?: PEMEncodedCertificate[]
   bootstrapTokenID?: string
   bootstrapTokenSecret?: string
@@ -62,8 +63,13 @@ export type KubernetesRootSpec = {
   dnsDomain?: string
   issuingCA?: PEMEncodedCertificateAndKey
   acceptedCAs?: PEMEncodedCertificate[]
-  serviceAccount?: PEMEncodedKey
   aggregatorCA?: PEMEncodedCertificateAndKey
+  acceptedAggregatorCAs?: PEMEncodedCertificate[]
+  serviceAccount?: PEMEncodedKey
+  serviceAccountAcceptedKeys?: PEMEncodedKey[]
+  issuerURL?: string
+  acceptedIssuers?: string[]
+  apiAudiences?: string[]
   aesCBCEncryptionSecret?: string
   bootstrapTokenID?: string
   bootstrapTokenSecret?: string

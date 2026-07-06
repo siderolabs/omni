@@ -25,6 +25,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
+	"github.com/siderolabs/talos/pkg/machinery/resources/block"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -1665,6 +1666,147 @@ func createCluster(
 	rmock.Mock[*omni.UpgradeRollout](ctx, t, st, options.SameID(cluster))
 
 	return cluster, machines
+}
+
+// TestResetSystemPartitionsToWipe verifies which system partitions Omni asks Talos
+// to wipe on reset: Talos 1.14+ additionally wipes the CRI, KUBELET, ETCD and LOG
+// volumes, but only the ones that actually exist on the machine (reported via a
+// block.VolumeStatus with a non-empty Location) - Talos itself fails the whole
+// reset call if asked to wipe a label with no matching volume.
+//
+// It also guards against a Talos version carrying a "v" prefix, which must be parsed
+// without panicking the controller.
+func TestResetSystemPartitionsToWipe(t *testing.T) {
+	t.Parallel()
+
+	allVolumeLabels := []string{"CRI", "KUBELET", "ETCD", "LOG"}
+
+	for _, tt := range []struct {
+		name            string
+		talosVersion    string
+		existingVolumes []string
+		expectedLabels  []string
+	}{
+		{
+			name:            "pre-1.14 wipes STATE and EPHEMERAL only",
+			talosVersion:    "1.13.0",
+			existingVolumes: allVolumeLabels,
+			expectedLabels:  []string{"EPHEMERAL", "STATE"},
+		},
+		{
+			name:            "1.14 also wipes CRI, KUBELET, ETCD and LOG",
+			talosVersion:    "1.14.1",
+			existingVolumes: allVolumeLabels,
+			expectedLabels:  []string{"EPHEMERAL", "STATE", "CRI", "KUBELET", "ETCD", "LOG"},
+		},
+		{
+			name:            "1.14 alpha predates the beta.0 cutoff and wipes STATE and EPHEMERAL only",
+			talosVersion:    "1.14.0-alpha.2",
+			existingVolumes: allVolumeLabels,
+			expectedLabels:  []string{"EPHEMERAL", "STATE"},
+		},
+		{
+			name:            "1.14 beta.0 meets the cutoff and also wipes CRI, KUBELET, ETCD and LOG",
+			talosVersion:    "1.14.0-beta.0",
+			existingVolumes: allVolumeLabels,
+			expectedLabels:  []string{"EPHEMERAL", "STATE", "CRI", "KUBELET", "ETCD", "LOG"},
+		},
+		{
+			name:            "v-prefixed version is parsed without panicking",
+			talosVersion:    "v1.14.1",
+			existingVolumes: allVolumeLabels,
+			expectedLabels:  []string{"EPHEMERAL", "STATE", "CRI", "KUBELET", "ETCD", "LOG"},
+		},
+		{
+			name:            "1.14 skips volumes that don't exist on the machine",
+			talosVersion:    "1.14.1",
+			existingVolumes: []string{"CRI", "KUBELET"},
+			expectedLabels:  []string{"EPHEMERAL", "STATE", "CRI", "KUBELET"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+			t.Cleanup(cancel)
+
+			testutils.WithRuntime(
+				ctx, t, testutils.TestOptions{DisableCache: true},
+				func(_ context.Context, testContext testutils.TestContext) {
+					require.NoError(t, testContext.Runtime.RegisterQController(
+						machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					))
+				},
+				func(ctx context.Context, testContext testutils.TestContext) {
+					machineServices := testutils.NewMachineServices(t, testContext.State)
+
+					resetHandler := func(ctx context.Context, _ *machine.ResetRequest, st state.State, id string) (*machine.ResetResponse, error) {
+						if err := safe.StateModify(
+							ctx, st, omni.NewMachineStatusSnapshot(id),
+							func(res *omni.MachineStatusSnapshot) error {
+								res.TypedSpec().Value.MachineStatus.Stage = machine.MachineStatusEvent_MAINTENANCE
+
+								return nil
+							},
+						); err != nil {
+							return nil, err
+						}
+
+						return &machine.ResetResponse{}, nil
+					}
+
+					_, machines := createCluster(ctx, t, testContext.State, machineServices, "reset-partitions", 3, 3)
+
+					machineServices.ForEach(func(m *testutils.MachineServiceMock) {
+						m.OnReset = resetHandler
+
+						for _, label := range tt.existingVolumes {
+							volumeStatus := block.NewVolumeStatus(block.NamespaceName, label)
+							volumeStatus.TypedSpec().Location = "/dev/" + strings.ToLower(label)
+
+							require.NoError(t, m.State.Create(ctx, volumeStatus))
+						}
+					})
+
+					ids := xslices.Map(machines, func(m *omni.ClusterMachine) string {
+						return m.Metadata().ID()
+					})
+
+					// Let the machines configure with the default version (matching the cluster,
+					// so no upgrade is required), then pin the reported Talos version before tearing
+					// down: the reset path reads it to decide which partitions to wipe.
+					rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+						a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+					})
+
+					for _, id := range ids {
+						require.NoError(t, safe.StateModify(ctx, testContext.State, omni.NewMachineStatus(id), func(res *omni.MachineStatus) error {
+							res.TypedSpec().Value.TalosVersion = tt.talosVersion
+
+							return nil
+						}))
+					}
+
+					rmock.Destroy[*omni.ClusterMachineConfig](ctx, t, testContext.State, ids)
+
+					for _, id := range ids {
+						rtestutils.AssertNoResource[*omni.ClusterMachineConfigStatus](ctx, t, testContext.State, id)
+					}
+
+					machineServices.ForEach(func(machineServer *testutils.MachineServiceMock) {
+						requests := machineServer.GetResetRequests()
+						require.NotEmpty(t, requests)
+
+						labels := xslices.Map(requests[len(requests)-1].SystemPartitionsToWipe, func(p *machine.ResetPartitionSpec) string {
+							return p.Label
+						})
+
+						assert.ElementsMatch(t, tt.expectedLabels, labels)
+					})
+				},
+			)
+		})
+	}
 }
 
 // TestUpgradeLockReleasedBeforeConfigApply is a regression test for siderolabs/omni#2805.

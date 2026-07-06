@@ -535,6 +535,14 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 		}
 		machineStatus.TypedSpec().Value.InitialTalosVersion = cluster.TypedSpec().Value.TalosVersion
 		machineStatus.TypedSpec().Value.SecurityState = &specs.SecurityState{}
+		machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+			Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{
+				{
+					LinuxName:  testInstallDisk,
+					SystemDisk: true,
+				},
+			},
+		}
 		machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 			Platform: talosconstants.PlatformMetal,
 		}
