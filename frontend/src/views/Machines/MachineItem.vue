@@ -300,7 +300,7 @@ const canUseLifecycleUpgrade = computed(() => {
         :resource="machine"
         :add-label-func="machine.spec.tearing_down ? undefined : addMachineLabels"
         :remove-label-func="removeMachineLabels"
-        @filter-label="(label) => $emit('filterLabels', label)"
+        @select-label="(label) => $emit('filterLabels', label)"
       />
     </div>
   </div>

@@ -179,7 +179,11 @@ watch(filterValue, async (val, old, onCleanup) => {
           class="-mx-1 -my-2 rounded-md border p-0.5 transition-all"
           :class="selectedLabel === index ? 'border-white' : 'border-transparent'"
         >
-          <ItemLabel small :label="{ ...label, removable: true }" @remove="removeLabel(index)" />
+          <ItemLabel
+            small
+            :label="{ ...label, removable: true }"
+            @remove-label="removeLabel(index)"
+          />
         </div>
       </template>
     </TInput>

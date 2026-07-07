@@ -24,7 +24,7 @@ const { resource, addLabelFunc, removeLabelFunc } = defineProps<{
 }>()
 
 defineEmits<{
-  filterLabel: [Label]
+  selectLabel: [label: Label]
 }>()
 
 const labelOrder = {
@@ -132,8 +132,8 @@ const destroyUserLabel = async (key: string) => {
       v-for="label in labels"
       :key="label.key"
       :label="{ ...label, removable: label.removable && !!removeLabelFunc }"
-      @remove="removeLabelFunc ? destroyUserLabel : undefined"
-      @filter-label="(label) => $emit('filterLabel', label)"
+      @remove-label="removeLabelFunc ? destroyUserLabel(label.key) : undefined"
+      @select-label="$emit('selectLabel', label)"
     />
     <TInput
       v-if="addingLabel"

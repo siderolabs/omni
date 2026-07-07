@@ -42,7 +42,7 @@ const machineName = useMachineName(() => machine)
               highlight-class="bg-naturals-n14"
             />
           </RouterLink>
-          <ItemLabels :resource="machine" @filter-label="(label) => $emit('filterLabels', label)" />
+          <ItemLabels :resource="machine" @select-label="(label) => $emit('filterLabels', label)" />
         </div>
         <div class="w-8 flex-initial">
           <div class="flex justify-end" />

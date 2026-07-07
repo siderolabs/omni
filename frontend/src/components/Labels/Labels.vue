@@ -73,7 +73,7 @@ const removeLabel = (key: string) => {
         labelClass: label.labelClass,
         removable: label.canRemove,
       }"
-      @remove="removeLabel"
+      @remove-label="removeLabel(key)"
     />
     <TInput
       v-if="addingLabel"

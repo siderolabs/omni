@@ -21,8 +21,8 @@ interface Props extends /* @vue-ignore */ ButtonHTMLAttributes {
 const { label } = defineProps<Props>()
 
 defineEmits<{
-  filterLabel: [label: Label]
-  remove: [key: string]
+  selectLabel: []
+  removeLabel: []
 }>()
 
 const description = computed(() => {
@@ -40,7 +40,7 @@ const description = computed(() => {
       class="inline-flex items-center gap-1"
       :class="['resource-label', label.labelClass, small ? 'max-w-50' : 'max-w-75']"
       v-bind="$attrs"
-      @click.stop="$emit('filterLabel', label)"
+      @click.stop="$emit('selectLabel')"
     >
       <TIcon v-if="label.icon" :icon="label.icon" class="-ml-1 size-3.5 shrink-0" />
       <span class="truncate">
@@ -50,7 +50,7 @@ const description = computed(() => {
         v-if="label.removable"
         icon="close"
         class="-mr-1 size-3 shrink-0 cursor-pointer rounded-full transition-all hover:bg-naturals-n14 hover:text-naturals-n1"
-        @click.stop="$emit('remove', label.key)"
+        @click.stop="$emit('removeLabel')"
       />
     </button>
   </Tooltip>

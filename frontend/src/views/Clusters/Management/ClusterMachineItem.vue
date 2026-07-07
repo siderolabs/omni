@@ -323,7 +323,7 @@ const onSavePatchConfig = (config: string) => {
         :resource="item"
         :add-label-func="addMachineLabels"
         :remove-label-func="removeMachineLabels"
-        @filter-label="(label) => $emit('filterLabel', label)"
+        @select-label="(label) => $emit('filterLabel', label)"
       />
     </template>
 

@@ -194,7 +194,7 @@ const clusterDestroyDialogOpen = ref(false)
           :resource="item"
           :add-label-func="addClusterLabels"
           :remove-label-func="removeClusterLabels"
-          @filter-label="(label) => $emit('filterLabels', label)"
+          @select-label="(label) => $emit('filterLabels', label)"
         />
       </div>
 
