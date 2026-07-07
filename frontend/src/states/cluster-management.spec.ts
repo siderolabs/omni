@@ -81,6 +81,7 @@ describe('cluster-management-state', () => {
           enableWorkloadProxy: true,
           useEmbeddedDiscoveryService: true,
           encryptDisks: true,
+          enableNodeAuditSkip: true,
         },
         labels: {
           my: 'label',
@@ -157,6 +158,7 @@ describe('cluster-management-state', () => {
                 disk_encryption: true,
                 enable_workload_proxy: true,
                 use_embedded_discovery_service: true,
+                enable_node_audit_skip: true,
               },
               kubernetes_version: '1.24.0',
               talos_version: '1.5.3',

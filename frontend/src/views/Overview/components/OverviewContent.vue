@@ -55,6 +55,7 @@ import ClusterMachines from '@/views/ClusterMachines/ClusterMachines.vue'
 import ClusterEtcdBackupCheckbox from '@/views/Clusters/ClusterEtcdBackupCheckbox.vue'
 import ClusterWorkloadProxyingCheckbox from '@/views/Clusters/ClusterWorkloadProxyingCheckbox.vue'
 import EmbeddedDiscoveryServiceCheckbox from '@/views/Clusters/EmbeddedDiscoveryServiceCheckbox.vue'
+import NodeAuditSkipCheckbox from '@/views/Clusters/NodeAuditSkipCheckbox.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 import OverviewRightPanel from '@/views/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
 
@@ -70,11 +71,13 @@ const { currentCluster } = defineProps<Props>()
 
 const enableWorkloadProxy = ref(false)
 const useEmbeddedDiscoveryService = ref(false)
+const enableNodeAuditSkip = ref(false)
 
 watchEffect(() => {
   enableWorkloadProxy.value = currentCluster.spec.features?.enable_workload_proxy || false
   useEmbeddedDiscoveryService.value =
     currentCluster.spec.features?.use_embedded_discovery_service || false
+  enableNodeAuditSkip.value = currentCluster.spec.features?.enable_node_audit_skip || false
 })
 
 const { status: backupStatus } = setupBackupStatus()
@@ -146,6 +149,15 @@ async function setClusterWorkloadProxy(value: boolean) {
 
   resource.spec.features ||= {}
   resource.spec.features.enable_workload_proxy = value
+
+  await ResourceService.Update(resource, currentCluster.metadata.version, withRuntime(Runtime.Omni))
+}
+
+async function setNodeAuditSkip(value: boolean) {
+  const resource = JSON.parse(JSON.stringify(currentCluster)) as typeof currentCluster
+
+  resource.spec.features ||= {}
+  resource.spec.features.enable_node_audit_skip = value
 
   await ResourceService.Update(resource, currentCluster.metadata.version, withRuntime(Runtime.Omni))
 }
@@ -428,6 +440,11 @@ const machineLockedForSecretRotation = computed(() => {
               :model-value="useEmbeddedDiscoveryService"
               :disabled="!canManageClusterFeatures || !isEmbeddedDiscoveryServiceAvailable"
               @update:model-value="(value) => toggleUseEmbeddedDiscoveryService(value)"
+            />
+            <NodeAuditSkipCheckbox
+              :model-value="enableNodeAuditSkip"
+              :disabled="!canManageClusterFeatures"
+              @update:model-value="(value) => setNodeAuditSkip(value)"
             />
             <ClusterEtcdBackupCheckbox
               :backup-status="backupStatus"

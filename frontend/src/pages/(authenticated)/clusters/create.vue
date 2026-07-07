@@ -57,6 +57,7 @@ import UntaintSingleNodeModal from '@/views/Clusters/components/UntaintSingleNod
 import EmbeddedDiscoveryServiceCheckbox from '@/views/Clusters/EmbeddedDiscoveryServiceCheckbox.vue'
 import ClusterMachineItem from '@/views/Clusters/Management/ClusterMachineItem.vue'
 import MachineSets from '@/views/Clusters/Management/MachineSets.vue'
+import NodeAuditSkipCheckbox from '@/views/Clusters/NodeAuditSkipCheckbox.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
 
@@ -340,6 +341,7 @@ const list = useTemplateRef('list')
           v-model="state.cluster.features.useEmbeddedDiscoveryService"
           :disabled="!isEmbeddedDiscoveryServiceAvailable"
         />
+        <NodeAuditSkipCheckbox v-model="state.cluster.features.enableNodeAuditSkip" />
         <ClusterEtcdBackupCheckbox
           :backup-status="backupStatus"
           :cluster="{

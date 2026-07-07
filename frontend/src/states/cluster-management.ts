@@ -121,6 +121,7 @@ export type Cluster = {
     encryptDisks?: boolean
     enableWorkloadProxy?: boolean
     useEmbeddedDiscoveryService?: boolean
+    enableNodeAuditSkip?: boolean
   }
   systemExtensions?: string[]
   etcdBackupConfig?: EtcdBackupConf
@@ -322,6 +323,13 @@ export class State {
       cluster.spec.features = {
         ...cluster.spec.features,
         disk_encryption: this.cluster.features.encryptDisks,
+      }
+    }
+
+    if (this.cluster.features.enableNodeAuditSkip) {
+      cluster.spec.features = {
+        ...cluster.spec.features,
+        enable_node_audit_skip: this.cluster.features.enableNodeAuditSkip,
       }
     }
 
@@ -706,6 +714,7 @@ export const populateExisting = async (clusterName: string) => {
       enableWorkloadProxy: cluster.spec.features?.enable_workload_proxy,
       encryptDisks: cluster.spec.features?.disk_encryption,
       useEmbeddedDiscoveryService: cluster.spec.features?.use_embedded_discovery_service,
+      enableNodeAuditSkip: cluster.spec.features?.enable_node_audit_skip,
     },
     etcdBackupConfig: {
       enabled: cluster.spec.backup_configuration?.enabled,
