@@ -270,7 +270,6 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
             namespace: VirtualNamespace,
           }"
           class="w-full"
-          placeholder="Search ..."
         />
       </template>
 

@@ -116,11 +116,6 @@
       "count": 1
     }
   },
-  "src/views/ItemLabels/LabelsInput.vue": {
-    "vue/custom-event-name-casing": {
-      "count": 5
-    }
-  },
   "src/views/MachineClasses/MachineTemplate.vue": {
     "vue/custom-event-name-casing": {
       "count": 6
