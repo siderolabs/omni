@@ -7,6 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue'
 import { DocumentIcon } from '@heroicons/vue/24/solid'
+import { useRouteQuery } from '@vueuse/router'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
@@ -49,7 +50,7 @@ const { machine, cluster } = defineProps<{
   machine?: string
 }>()
 
-const filter = ref('')
+const filter = useRouteQuery('q', '')
 const configPatchDestroyModalOpen = ref(false)
 const configPatchDestroyModalPatchId = ref<string>()
 

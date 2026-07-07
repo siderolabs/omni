@@ -5,8 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useRouteQuery } from '@vueuse/router'
 import type { PodSpec as V1PodSpec, PodStatus as V1PodStatus } from 'kubernetes-types/core/v1'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -25,8 +26,8 @@ import TPodsItem from '@/views/Pods/TPodsItem.vue'
 definePage({ name: 'Pods' })
 
 const route = useRoute()
-const filterOption = ref(TPodsViewFilterOptions.ALL)
-const searchOption = ref('')
+const filterOption = useRouteQuery('filter', TPodsViewFilterOptions.ALL)
+const searchOption = useRouteQuery('q', '')
 
 const filterOptions = Object.values(TPodsViewFilterOptions)
 
@@ -90,12 +91,7 @@ const filteredItems = computed(() =>
     <div v-else class="pt-2">
       <div class="mb-3 flex gap-4">
         <TInput v-model="searchOption" icon="search" placeholder="Search..." class="w-full" />
-        <TSelectList
-          title="Phase"
-          :default-value="TPodsViewFilterOptions.ALL"
-          :values="filterOptions"
-          @checked-value="filterOption = $event"
-        />
+        <TSelectList v-model="filterOption" title="Phase" :values="filterOptions" />
       </div>
 
       <ul class="mb-1 flex rounded bg-naturals-n2 px-8 py-2.5 text-xs text-naturals-n13">

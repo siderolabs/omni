@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useRouteQuery } from '@vueuse/router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterStatusMetricsSpec, ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
@@ -26,8 +26,7 @@ import StatsItem from '@/components/Stats/StatsItem.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
 import { usePermissions } from '@/methods/auth'
-import type { Label } from '@/methods/labels'
-import { addLabel, selectors } from '@/methods/labels'
+import { addLabel, selectors, useLabelRouteQuery } from '@/methods/labels'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterItem from '@/views/Clusters/ClusterItem.vue'
 import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
@@ -45,8 +44,8 @@ const { data } = useResourceWatch<ClusterStatusMetricsSpec>({
   runtime: Runtime.Omni,
 })
 
-const filterValue = ref('')
-const filterLabels = ref<Label[]>([])
+const filterLabels = useLabelRouteQuery()
+const filterValue = useRouteQuery('q', '')
 
 const sortOptions = [
   { id: 'id', desc: 'ID ⬆' },
@@ -153,7 +152,7 @@ const filterOptions = [
               :default-open="index === 0"
               :search-query="searchQuery"
               :item="item"
-              @filter-labels="(label) => addLabel(filterLabels, label)"
+              @filter-labels="(label) => (filterLabels = addLabel(filterLabels, label))"
             />
           </ul>
         </div>

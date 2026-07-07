@@ -3,6 +3,8 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { useRouteQuery } from '@vueuse/router'
+
 import {
   InfraProviderLabelPrefix,
   LabelCluster,
@@ -82,12 +84,35 @@ const labelClasses: Record<string, string> = {
 
 export const getLabelClass = (labelKey: string) => labelClasses[labelKey]
 
+export function useLabelRouteQuery() {
+  return useRouteQuery<string, Label[]>('labels', '', {
+    transform: {
+      get(val) {
+        if (!val) return []
+
+        try {
+          const parsed = JSON.parse(window.atob(val))
+
+          return Array.isArray(parsed) ? parsed : []
+        } catch {
+          return []
+        }
+      },
+      set(val) {
+        if (!val.length) return ''
+
+        return window.btoa(JSON.stringify(val))
+      },
+    },
+  })
+}
+
 export const addLabel = (dest: Label[], label: Label) => {
   if (dest.find((l) => l.value === label.value && l.key === label.key)) {
-    return
+    return dest
   }
 
-  dest.push({
+  return dest.concat({
     ...label,
     id: !label.value ? `has label: ${label.id}` : label.id,
   })

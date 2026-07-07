@@ -5,8 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useRouteQuery } from '@vueuse/router'
 import prettyBytes from 'pretty-bytes'
-import { computed, ref, useTemplateRef } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -37,7 +38,7 @@ const { clusterId, machineId } = defineProps<{
   machineId: string
 }>()
 
-const searchQuery = ref('')
+const searchQuery = useRouteQuery('q', '')
 const canvasRef = useTemplateRef('canvasRef')
 const router = useRouter()
 

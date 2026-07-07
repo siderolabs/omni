@@ -5,8 +5,9 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useRouteQuery } from '@vueuse/router'
 import { compareAsc, compareDesc, parseISO } from 'date-fns'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -37,7 +38,7 @@ const { data: configDiffs, loading: diffsLoading } = useResourceWatch<MachineCon
   }),
 )
 
-const sortOrder = ref<'asc' | 'desc'>('desc')
+const sortOrder = useRouteQuery<'asc' | 'desc'>('sort', 'desc')
 
 const sortOptions = [
   { label: 'Creation Time ⬇', value: 'desc' as const },

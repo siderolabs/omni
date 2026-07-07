@@ -6,6 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
+import { useRouteQuery } from '@vueuse/router'
 import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -36,8 +37,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import StatsItem from '@/components/Stats/StatsItem.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
-import type { Label } from '@/methods/labels'
-import { addLabel, selectors as labelsToSelectors } from '@/methods/labels'
+import { addLabel, selectors as labelsToSelectors, useLabelRouteQuery } from '@/methods/labels'
 import { MachineFilterOption } from '@/methods/machine'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
@@ -124,8 +124,8 @@ const sortOptions = [
   { id: 'last_alive', desc: 'Last Active Time ⬇' },
 ]
 
-const filterLabels = ref<Label[]>([])
-const filterValue = ref('')
+const filterLabels = useLabelRouteQuery()
+const filterValue = useRouteQuery('q', '')
 
 const docsLink = getDocsLink('omni', '/explanation/infrastructure-providers')
 const openDocs = () => window.open(docsLink, '_blank')?.focus()
@@ -310,7 +310,7 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
           :show-u-u-i-d="showUUID === 'uuid'"
           @update:selected="(v) => updateSelected(item, v)"
           @open-panel="openPanel(item.metadata.id ?? '')"
-          @filter-labels="(label) => addLabel(filterLabels, label)"
+          @filter-labels="(label) => (filterLabels = addLabel(filterLabels, label))"
           @open-maintenance-update="
             (machine) => {
               maintenaceUpdateModalMachine = machine

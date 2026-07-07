@@ -6,6 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts" generic="T = unknown">
 import { useLocalStorage } from '@vueuse/core'
+import { useRouteQuery } from '@vueuse/router'
 import { computed, ref, watch } from 'vue'
 
 import TIcon from '@/components/Icon/TIcon.vue'
@@ -70,11 +71,11 @@ const filterOptionsVariants = computed(() => {
   })
 })
 
-const filterValueInternal = ref('')
+const filterValueInternal = useRouteQuery('q', '')
 const currentPage = ref(1)
 const selectedItemsPerPage = useLocalStorage('itemsPerPage', 10)
-const selectedSortOption = ref<string | undefined>(sortOptionsVariants?.value?.[0])
-const selectedFilterOption = ref<string | undefined>(filterOptionsVariants.value?.[0])
+const selectedSortOption = useRouteQuery('sort', sortOptionsVariants?.value?.[0])
+const selectedFilterOption = useRouteQuery('filter', filterOptionsVariants.value?.[0])
 const sidePanelOpen = ref(false)
 const sidePanelSelectedItemId = ref<string>()
 
@@ -288,15 +289,10 @@ const openPage = (page: number | string) => {
 
               <TSelectList
                 v-if="itemsPerPage?.length > 1 && pagination"
+                v-model="selectedItemsPerPage"
                 title="Items per Page"
-                :default-value="selectedItemsPerPage"
                 :values="itemsPerPage"
-                @checked-value="
-                  (value: number) => {
-                    selectedItemsPerPage = value
-                    currentPage = 1
-                  }
-                "
+                @checked-value="currentPage = 1"
               />
             </div>
           </div>

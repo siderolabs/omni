@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useRouteQuery } from '@vueuse/router'
 import { computed, ref } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
@@ -55,7 +56,7 @@ const { data: machineExtensionsStatus, loading: machineExtensionsStatusWatchLoad
   }))
 
 const updateExtensionsModalOpen = ref(false)
-const searchString = ref('')
+const searchString = useRouteQuery('q', '')
 
 const ready = computed(() => {
   return !machineExtensionsStatusWatchLoading.value

@@ -65,7 +65,7 @@ const dateRange = shallowRef<DateRange>({
   end: today(getLocalTimeZone()).add({ days: 1 }),
 })
 
-const searchInput = useRouteQuery('search', '')
+const searchInput = useRouteQuery('q', '')
 const search = refDebounced(searchInput, 500)
 
 const orderByField = useRouteQuery(

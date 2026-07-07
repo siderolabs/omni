@@ -32,8 +32,6 @@ import TStatus from '@/components/Status/TStatus.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { TCommonStatuses } from '@/constants'
 import { usePermissions } from '@/methods/auth'
-import type { Label } from '@/methods/labels'
-import { selectors } from '@/methods/labels'
 import InfraProviderDeleteModal from '@/views/InfraProviders/components/InfraProviderDeleteModal.vue'
 import InfraProviderSetupModal from '@/views/InfraProviders/components/InfraProviderSetupModal.vue'
 import ServiceAccountCreateModal from '@/views/Users/components/ServiceAccountCreateModal.vue'
@@ -77,8 +75,6 @@ const getStatus = (item: Resource<InfraProviderCombinedStatusSpec>) => {
 
   return TCommonStatuses.HEALTHY
 }
-
-const filterLabels = ref<Label[]>([])
 
 const openRotateSecretKey = async (name: string) => {
   const saName = `${name}@${InfraProviderServiceAccountDomain}`
@@ -139,7 +135,6 @@ const openRotateSecretKey = async (name: string) => {
             namespace: EphemeralNamespace,
             type: InfraProviderCombinedStatusType,
           },
-          selectors: selectors(filterLabels),
           sortByField: 'created',
         }"
         search

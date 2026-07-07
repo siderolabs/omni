@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useRouteQuery } from '@vueuse/router'
 import { DateTime } from 'luxon'
 import { computed, ref, watchEffect } from 'vue'
 
@@ -29,7 +30,7 @@ const { clusterId, machineId, service } = defineProps<{
   service?: string
 }>()
 
-const searchInput = ref('')
+const searchInput = useRouteQuery('q', '')
 const logs = ref<LogLine[]>([])
 const context = computed(() => ({
   cluster: clusterId,
