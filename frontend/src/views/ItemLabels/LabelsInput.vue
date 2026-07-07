@@ -242,18 +242,7 @@ watch(
           class="-mx-1 -my-2 rounded-md border p-0.5 transition-all"
           :class="selectedLabel === index ? 'border-white' : 'border-transparent'"
         >
-          <ItemLabel
-            small
-            :label="{
-              ...label,
-              removable: true,
-            }"
-            :remove-label="
-              async () => {
-                removeLabel(index)
-              }
-            "
-          />
+          <ItemLabel small :label="{ ...label, removable: true }" @remove="removeLabel(index)" />
         </div>
       </template>
     </TInput>
@@ -268,7 +257,7 @@ watch(
         :class="{ 'bg-naturals-n4': index === selectedSuggestion }"
         @click="autoComplete(index)"
       >
-        <ItemLabel :label="suggestion" class="pointer-events-none" />
+        <ItemLabel :label="{ ...suggestion, removable: false }" class="pointer-events-none" />
       </div>
     </div>
   </div>

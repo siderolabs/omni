@@ -131,8 +131,8 @@ const destroyUserLabel = async (key: string) => {
     <ItemLabel
       v-for="label in labels"
       :key="label.key"
-      :label="label"
-      :remove-label="removeLabelFunc ? destroyUserLabel : undefined"
+      :label="{ ...label, removable: label.removable && !!removeLabelFunc }"
+      @remove="removeLabelFunc ? destroyUserLabel : undefined"
       @filter-label="(label) => $emit('filterLabel', label)"
     />
     <TInput

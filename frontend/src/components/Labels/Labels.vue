@@ -48,7 +48,7 @@ const addLabel = async () => {
   }
 }
 
-const removeLabel = async (key: string) => {
+const removeLabel = (key: string) => {
   addingLabel.value = false
 
   currentLabel.value = ''
@@ -73,7 +73,7 @@ const removeLabel = async (key: string) => {
         labelClass: label.labelClass,
         removable: label.canRemove,
       }"
-      :remove-label="removeLabel"
+      @remove="removeLabel"
     />
     <TInput
       v-if="addingLabel"
