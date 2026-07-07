@@ -41,7 +41,7 @@ const versions = faker.helpers
   .concat(DefaultTalosVersion)
   .sort(compare)
 
-export const Default: Story = {
+export const Default = {
   parameters: {
     msw: {
       handlers: [
@@ -100,4 +100,4 @@ export const Default: Story = {
       ],
     },
   },
-}
+} satisfies Story
