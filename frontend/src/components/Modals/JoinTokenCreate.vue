@@ -63,7 +63,7 @@ const handleCreate = async () => {
     @confirm="handleCreate"
   >
     <div class="flex flex-col gap-2">
-      <TInput v-model="name" title="Name" class="h-full flex-1" :on-clear="() => (name = '')" />
+      <TInput v-model="name" title="Name" class="h-full flex-1" clearable />
 
       <div class="flex items-center gap-1 text-xs">
         Lifetime:

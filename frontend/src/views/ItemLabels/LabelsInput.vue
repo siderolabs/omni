@@ -229,12 +229,9 @@ watch(
       class="h-full flex-1 flex-wrap text-xs"
       icon="search"
       :model-value="filterValue"
-      :on-clear="
-        () => {
-          $emit('update:filter-labels', [])
-        }
-      "
       :placeholder
+      clearable
+      @clear="$emit('update:filter-labels', [])"
       @update:model-value="(value) => $emit('update:filter-value', value)"
       @click="showCompletions = true"
     >

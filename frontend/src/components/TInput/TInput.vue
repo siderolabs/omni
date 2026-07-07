@@ -23,8 +23,8 @@ interface Props {
   min?: number
   disabled?: boolean
   required?: boolean
+  clearable?: boolean
   step?: number
-  onClear?: () => void
 }
 
 const {
@@ -36,11 +36,11 @@ const {
   max = undefined,
   min = undefined,
   step = 1,
-  onClear = undefined,
 } = defineProps<Props>()
 
 const emit = defineEmits<{
   blur: []
+  clear: []
 }>()
 
 defineExpose({
@@ -62,7 +62,7 @@ const inputRef = useTemplateRef('input')
 
 const clearInput = () => {
   updateValue('')
-  onClear?.()
+  emit('clear')
 }
 
 const blurHandler = () => {
@@ -137,7 +137,7 @@ onMounted(() => focus && inputRef.value?.focus())
       </div>
 
       <TIcon
-        v-else-if="modelValue !== '' || onClear"
+        v-else-if="modelValue !== '' || clearable"
         role="button"
         aria-label="clear"
         class="size-4 fill-current text-naturals-n8 transition-colors peer-focus:text-naturals-n14"

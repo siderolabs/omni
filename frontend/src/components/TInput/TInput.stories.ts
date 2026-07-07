@@ -24,6 +24,7 @@ const meta: Meta<typeof TInput> = {
     secondary: false,
     focus: false,
     compact: false,
+    clearable: true,
     onClear: fn(),
     'onUpdate:modelValue': fn(),
   },
