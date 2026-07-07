@@ -6,7 +6,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
 import HomeClustersTutorialCard from './HomeClustersTutorialCard.vue'
 
-const meta: Meta = {
+const meta: Meta<typeof HomeClustersTutorialCard> = {
   component: HomeClustersTutorialCard,
 }
 

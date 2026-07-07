@@ -76,10 +76,7 @@ const showReleaseNotes = false
             <HomeClustersTutorialCard v-else-if="!clusters.length" />
           </template>
 
-          <div
-            class="grid grid-cols-1 gap-2"
-            :class="{ 'xl:grid-cols-2': canReadClusters && canReadMachines }"
-          >
+          <div class="grid grid-cols-1 gap-2">
             <HomeClustersChart v-if="canReadClusters" />
             <HomeMachinesChart v-if="canReadMachines" />
           </div>

@@ -32,7 +32,7 @@ faker.seed(0)
 
 const joinToken = faker.string.alphanumeric(44)
 
-const meta: Meta = {
+const meta: Meta<typeof HomeGeneralInformation> = {
   component: HomeGeneralInformation,
 }
 

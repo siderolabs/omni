@@ -36,7 +36,7 @@ import HomeContent from './HomeContent.vue'
 
 faker.seed(0)
 
-const meta: Meta = {
+const meta: Meta<typeof HomeContent> = {
   component: HomeContent,
 }
 

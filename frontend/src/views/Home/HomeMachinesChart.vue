@@ -15,8 +15,8 @@ import {
   MachineStatusMetricsType,
 } from '@/api/resources'
 import Card from '@/components/Card/Card.vue'
-import RadialBar from '@/components/Charts/RadialBar.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import HomeStatusSegmentedBar from '@/views/Home/HomeStatusSegmentedBar.vue'
 
 const { data } = useResourceWatch<MachineStatusMetricsSpec>({
   resource: {
@@ -26,6 +26,14 @@ const { data } = useResourceWatch<MachineStatusMetricsSpec>({
   },
   runtime: Runtime.Omni,
 })
+
+const colors = {
+  connected: 'var(--color-primary-p3)',
+  notConnected: 'var(--color-red-r1)',
+  inCluster: 'var(--color-green-g1)',
+  freeMachine: 'var(--color-blue-b1)',
+  pending: 'var(--color-yellow-y1)',
+}
 
 const counts = computed(() => {
   const spec = data.value?.spec
@@ -44,20 +52,27 @@ const counts = computed(() => {
     freeMachineCount: Math.max(registeredCount - allocatedCount, 0),
   }
 })
+
+const connectionItems = computed(() => [
+  { label: 'Connected', value: counts.value.connectedCount, color: colors.connected },
+  { label: 'Not Connected', value: counts.value.notConnectedCount, color: colors.notConnected },
+])
+
+const allocationItems = computed(() => [
+  { label: 'In Cluster', value: counts.value.inClusterCount, color: colors.inCluster },
+  { label: 'Free Machine', value: counts.value.freeMachineCount, color: colors.freeMachine },
+  { label: 'Pending', value: counts.value.pendingCount, color: colors.pending },
+])
 </script>
 
 <template>
   <Card class="p-4">
-    <RadialBar
+    <HomeStatusSegmentedBar
       title="Machines"
-      show-hollow-total
       :total="counts.totalCount"
-      :items="[
-        { label: 'Connected', value: counts.connectedCount },
-        { label: 'Not Connected', value: counts.notConnectedCount },
-        { label: 'In Cluster', value: counts.inClusterCount },
-        { label: 'Free Machine', value: counts.freeMachineCount },
-        { label: 'Pending', value: counts.pendingCount },
+      :bars="[
+        { label: 'Connection', segments: connectionItems },
+        { label: 'Allocation', segments: allocationItems },
       ]"
     />
   </Card>

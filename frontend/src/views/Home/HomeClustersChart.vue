@@ -15,8 +15,8 @@ import {
   EphemeralNamespace,
 } from '@/api/resources'
 import Card from '@/components/Card/Card.vue'
-import RadialBar from '@/components/Charts/RadialBar.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import HomeStatusSegmentedBar from '@/views/Home/HomeStatusSegmentedBar.vue'
 
 const { data } = useResourceWatch<ClusterStatusMetricsSpec>({
   resource: {
@@ -27,37 +27,44 @@ const { data } = useResourceWatch<ClusterStatusMetricsSpec>({
   runtime: Runtime.Omni,
 })
 
-const counts = computed(() => {
+const items = computed(() => {
   const spec = data.value?.spec
 
   const notReadyCount = spec?.not_ready_count ?? 0
-  const destroyingCount = spec?.phases?.[ClusterStatusSpecPhase.DESTROYING] ?? 0
   const runningCount = spec?.phases?.[ClusterStatusSpecPhase.RUNNING] ?? 0
-  const scalingDownCount = spec?.phases?.[ClusterStatusSpecPhase.SCALING_DOWN] ?? 0
-  const scalingUpCount = spec?.phases?.[ClusterStatusSpecPhase.SCALING_UP] ?? 0
 
-  return {
-    healthyCount: Math.max(runningCount - notReadyCount, 0),
-    unhealthyCount: notReadyCount,
-    scalingUpCount,
-    scalingDownCount,
-    destroyingCount,
-  }
+  return [
+    {
+      label: 'Healthy',
+      value: Math.max(runningCount - notReadyCount, 0),
+      color: 'var(--color-primary-p3)',
+    },
+    { label: 'Unhealthy', value: notReadyCount, color: 'var(--color-red-r1)' },
+    {
+      label: 'Scaling Up',
+      value: spec?.phases?.[ClusterStatusSpecPhase.SCALING_UP] ?? 0,
+      color: 'var(--color-green-g1)',
+    },
+    {
+      label: 'Scaling Down',
+      value: spec?.phases?.[ClusterStatusSpecPhase.SCALING_DOWN] ?? 0,
+      color: 'var(--color-blue-b1)',
+    },
+    {
+      label: 'Destroying',
+      value: spec?.phases?.[ClusterStatusSpecPhase.DESTROYING] ?? 0,
+      color: 'var(--color-yellow-y1)',
+    },
+  ]
 })
 </script>
 
 <template>
   <Card class="p-4">
-    <RadialBar
+    <HomeStatusSegmentedBar
       title="Clusters"
-      show-hollow-total
-      :items="[
-        { label: 'Healthy', value: counts.healthyCount },
-        { label: 'Unhealthy', value: counts.unhealthyCount },
-        { label: 'Scaling Up', value: counts.scalingUpCount },
-        { label: 'Scaling Down', value: counts.scalingDownCount },
-        { label: 'Destroying', value: counts.destroyingCount },
-      ]"
+      :total="items.reduce((sum, item) => sum + item.value, 0)"
+      :bars="[{ segments: items }]"
     />
   </Card>
 </template>

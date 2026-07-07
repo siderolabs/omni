@@ -14,7 +14,7 @@ import {
 
 import HomeClustersChart from './HomeClustersChart.vue'
 
-const meta: Meta = {
+const meta: Meta<typeof HomeClustersChart> = {
   component: HomeClustersChart,
 }
 

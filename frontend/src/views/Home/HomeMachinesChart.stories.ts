@@ -14,7 +14,7 @@ import {
 
 import HomeMachinesChart from './HomeMachinesChart.vue'
 
-const meta: Meta = {
+const meta: Meta<typeof HomeMachinesChart> = {
   component: HomeMachinesChart,
 }
 
