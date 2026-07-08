@@ -8,37 +8,29 @@ included in the LICENSE file.
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import TIcon from '@/components/Icon/TIcon.vue'
-import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useDerivedMachineStage } from '@/methods/useDerivedMachineStage'
+import { cn } from '@/methods/utils'
 
-defineOptions({ inheritAttrs: false })
-
-const { machine, iconOnly } = defineProps<{
+const { machine } = defineProps<{
   machine: Resource<MachineStatusLinkSpec>
-  iconOnly?: boolean
 }>()
 
 const { status } = useDerivedMachineStage(() => machine.spec.snapshot)
 </script>
 
 <template>
-  <Tooltip
+  <span
     v-if="status"
-    :disabled="!iconOnly"
-    :description="status.name"
-    :class="{ 'opacity-50': machine.spec.tearing_down }"
+    :class="
+      cn(
+        'inline-flex items-center gap-1 text-xs',
+        status.class,
+        { 'opacity-50': machine.spec.tearing_down },
+        $attrs.class,
+      )
+    "
   >
-    <div class="flex items-center gap-1" v-bind="$attrs" :class="status.class">
-      <!-- Wrapper to prevent tooltip bounce when icon is animated e.g. loading -->
-      <span class="size-4 shrink-0">
-        <TIcon
-          :icon="status.icon"
-          class="size-full"
-          :aria-label="`status: ${status.name.toLowerCase()}`"
-        />
-      </span>
-
-      <span v-if="!iconOnly" class="text-xs">{{ status.name }}</span>
-    </div>
-  </Tooltip>
+    <TIcon :icon="status.icon" class="size-4" aria-hidden="true" />
+    {{ status.name }}
+  </span>
 </template>
