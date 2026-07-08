@@ -13,7 +13,6 @@ import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
-import { MachineStatusSpecPowerState } from '@/api/omni/specs/omni.pb'
 import { LabelCluster, MachineStatusLabelInstalled } from '@/api/resources'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
@@ -161,36 +160,10 @@ const canUseLifecycleUpgrade = computed(() => {
         </h2>
 
         <Tooltip :description="showUUID ? 'Copy machine UUID' : 'Copy machine name'">
-          <CopyButton :text="machineName" />
+          <CopyButton :text="machineName" class="shrink-0" />
         </Tooltip>
 
-        <Tooltip
-          v-if="
-            machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_ON
-          "
-          description="Powered on"
-        >
-          <TIcon
-            icon="power"
-            class="size-4 shrink-0 text-green-g1"
-            aria-label="machine powered on"
-          />
-        </Tooltip>
-
-        <Tooltip
-          v-if="
-            machine.spec.message_status?.power_state === MachineStatusSpecPowerState.POWER_STATE_OFF
-          "
-          description="Powered off"
-        >
-          <TIcon
-            icon="power-off"
-            class="size-4 shrink-0 text-red-r1"
-            aria-label="machine powered off"
-          />
-        </Tooltip>
-
-        <MachineStage :machine icon-only />
+        <MachineStage :machine />
 
         <div class="grow" />
 
