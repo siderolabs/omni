@@ -20,6 +20,7 @@ import HomeClustersChart from '@/views/Home/HomeClustersChart.vue'
 import HomeClustersTutorialCard from '@/views/Home/HomeClustersTutorialCard.vue'
 import HomeGeneralInformation from '@/views/Home/HomeGeneralInformation.vue'
 import HomeMachinesChart from '@/views/Home/HomeMachinesChart.vue'
+import HomeOngoingOperations from '@/views/Home/HomeOngoingOperations.vue'
 import HomeRecentClusters from '@/views/Home/HomeRecentClusters.vue'
 import HomeRecentMachines from '@/views/Home/HomeRecentMachines.vue'
 import WelcomeToOmniCard from '@/views/Home/WelcomeToOmniCard.vue'
@@ -80,6 +81,8 @@ const showReleaseNotes = false
             <HomeClustersChart v-if="canReadClusters" />
             <HomeMachinesChart v-if="canReadMachines" />
           </div>
+
+          <HomeOngoingOperations />
 
           <div class="flex flex-col gap-2">
             <HomeRecentClusters v-if="canReadClusters" :clusters :loading="clustersLoading" />

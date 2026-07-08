@@ -8,64 +8,14 @@ included in the LICENSE file.
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { ref } from 'vue'
 
-import { Runtime } from '@/api/common/omni.pb'
-import { type Resource } from '@/api/grpc'
-import {
-  KubernetesUpgradeStatusSpecPhase,
-  type OngoingTaskSpec,
-  SecretRotationSpecComponent,
-} from '@/api/omni/specs/omni.pb'
-import { EphemeralNamespace, OngoingTaskType } from '@/api/resources'
 import TIcon from '@/components/Icon/TIcon.vue'
 import IconHeaderDropdownLoading from '@/components/icons/IconHeaderDropdownLoading.vue'
+import { useOngoingTasks } from '@/methods/ongoingTasks'
 import { formatISO } from '@/methods/time'
-import { useResourceWatch } from '@/methods/useResourceWatch'
 
-const { data } = useResourceWatch<OngoingTaskSpec>(() => ({
-  resource: {
-    namespace: EphemeralNamespace,
-    type: OngoingTaskType,
-  },
-  runtime: Runtime.Omni,
-}))
+const { data } = useOngoingTasks()
 
 const dropdownOpen = ref(false)
-
-const getPreviousVersion = (item: Resource<OngoingTaskSpec>) => {
-  if (item.spec.kubernetes_upgrade) {
-    return item.spec.kubernetes_upgrade.last_upgrade_version
-  }
-
-  if (item.spec.talos_upgrade) {
-    return item.spec.talos_upgrade.last_upgrade_version
-  }
-
-  return item.spec.machine_upgrade?.current_schematic_id
-}
-
-const getCurrentVersion = (item: Resource<OngoingTaskSpec>) => {
-  if (item.spec.kubernetes_upgrade) {
-    return item.spec.kubernetes_upgrade.current_upgrade_version
-  }
-
-  if (item.spec.talos_upgrade) {
-    return item.spec.talos_upgrade.current_upgrade_version
-  }
-
-  return item.spec.machine_upgrade?.current_schematic_id
-}
-
-const getCurrentComponent = (item: Resource<OngoingTaskSpec>) => {
-  if (item.spec.secrets_rotation) {
-    switch (item.spec.secrets_rotation.component) {
-      case SecretRotationSpecComponent.TALOS_CA:
-        return 'Talos CA'
-      default:
-        return
-    }
-  }
-  return
-}
 </script>
 
 <template>
@@ -93,7 +43,7 @@ const getCurrentComponent = (item: Resource<OngoingTaskSpec>) => {
         side="bottom"
       >
         <div
-          v-for="item in data"
+          v-for="{ item, desc } in data"
           :key="item.metadata.id"
           class="flex flex-col gap-2 border-naturals-n4 p-6 not-last:border-b"
         >
@@ -111,56 +61,37 @@ const getCurrentComponent = (item: Resource<OngoingTaskSpec>) => {
           </div>
 
           <div class="text-xs text-naturals-n9">
-            <span v-if="item.spec.destroy" class="truncate">
-              {{ item.spec.destroy.phase }}
-            </span>
-
-            <span v-else-if="item.spec.secrets_rotation" class="whitespace-nowrap">
-              Rotating {{ getCurrentComponent(item) }}
-            </span>
-
-            <div v-else class="flex items-center gap-2 text-xs">
-              <template v-if="getCurrentVersion(item)">
-                <span v-if="item.spec.kubernetes_upgrade" class="whitespace-nowrap">
-                  Upgrade Kubernetes
-                </span>
-                <span v-else-if="item.spec.machine_upgrade" class="whitespace-nowrap">
-                  Upgrade Machine
-                </span>
-                <span v-else class="whitespace-nowrap">Upgrade Talos</span>
-                <div class="flex-1" />
-                <span
-                  class="truncate rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13"
-                >
-                  {{ getPreviousVersion(item) }}
-                </span>
-                <span>⇾</span>
-                <span
-                  class="truncate rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13"
-                >
-                  {{ getCurrentVersion(item) }}
-                </span>
-              </template>
-
-              <template
-                v-else-if="
-                  (item.spec?.kubernetes_upgrade?.phase ?? item.spec?.talos_upgrade?.phase) ===
-                  KubernetesUpgradeStatusSpecPhase.Reverting
-                "
+            <div v-if="desc.fromVersion && desc.toVersion" class="flex items-center gap-2 text-xs">
+              <span class="whitespace-nowrap">{{ desc.action }}</span>
+              <div class="flex-1" />
+              <span
+                class="truncate rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13"
               >
-                <span class="whitespace-nowrap">Reverting back to</span>
-                <div class="flex-1" />
-                <span
-                  class="rounded bg-naturals-n4 px-2 text-xs font-bold whitespace-nowrap text-naturals-n13"
-                >
-                  {{
-                    (item.spec.kubernetes_upgrade ?? item.spec.talos_upgrade)?.last_upgrade_version
-                  }}
-                </span>
-              </template>
-
-              <span v-else class="whitespace-nowrap">Updating machine schematics</span>
+                {{ desc.fromVersion }}
+              </span>
+              <span>⇾</span>
+              <span
+                class="truncate rounded bg-naturals-n4 px-2 text-xs font-bold text-naturals-n13"
+              >
+                {{ desc.toVersion }}
+              </span>
             </div>
+
+            <div v-else-if="desc.revertingTo" class="flex items-center gap-2 text-xs">
+              <span class="whitespace-nowrap">Reverting back to</span>
+              <div class="flex-1" />
+              <span
+                class="rounded bg-naturals-n4 px-2 text-xs font-bold whitespace-nowrap text-naturals-n13"
+              >
+                {{ desc.revertingTo }}
+              </span>
+            </div>
+
+            <span v-else-if="desc.component" class="whitespace-nowrap">
+              {{ desc.action }} · {{ desc.component }}
+            </span>
+
+            <span v-else class="whitespace-nowrap">{{ desc.action }}</span>
           </div>
         </div>
 

@@ -31,6 +31,7 @@ import { MachineStatusEventMachineStage } from '@/api/talos/machine/machine.pb.t
 import * as HomeClustersChartStories from '@/views/Home/HomeClustersChart.stories'
 import * as HomeGeneralInformationStories from '@/views/Home/HomeGeneralInformation.stories'
 import * as HomeMachinesChartStories from '@/views/Home/HomeMachinesChart.stories'
+import * as HomeOngoingOperationsStories from '@/views/Home/HomeOngoingOperations.stories'
 
 import HomeContent from './HomeContent.vue'
 
@@ -141,6 +142,7 @@ export const Default: Story = {
         ...HomeGeneralInformationStories.Default.parameters.msw.handlers,
         ...HomeClustersChartStories.Default.parameters.msw.handlers,
         ...HomeMachinesChartStories.Default.parameters.msw.handlers,
+        ...HomeOngoingOperationsStories.Default.parameters.msw.handlers,
       ],
     },
   },
