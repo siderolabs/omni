@@ -24,9 +24,9 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/siderolabs/omni/client/api/talos/machine"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/cookies"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
 	"github.com/siderolabs/omni/internal/backend/runtime"
@@ -52,7 +52,7 @@ func MakeServiceServers(
 	oidcProvider OIDCProvider,
 	jwtSigningKeyProvider JWTSigningKeyProvider,
 	dnsService *dns.Service,
-	imageFactoryClient *imagefactory.Client,
+	imageFactoryClients *imagefactory.Clients,
 	logger *zap.Logger,
 	auditor AuditLogger,
 	cfg *config.Params,
@@ -95,7 +95,7 @@ func MakeServiceServers(
 			logHandler,
 			logger.With(logging.Component("management_server")),
 			dnsService,
-			imageFactoryClient,
+			imageFactoryClients,
 			auditor,
 			dest,
 			kubernetesRuntime,

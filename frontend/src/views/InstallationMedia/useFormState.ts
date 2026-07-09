@@ -20,6 +20,7 @@ export function resolveTalosVersion<T extends string | undefined>(version: T) {
 export interface FormState {
   hardwareType?: HardwareType
   talosVersion?: string
+  imageFactoryUrl?: string
   useGrpcTunnel?: boolean
   joinToken?: string
   machineUserLabels?: Record<string, LabelSelectItem>

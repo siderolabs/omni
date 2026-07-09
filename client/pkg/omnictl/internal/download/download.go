@@ -69,6 +69,7 @@ type ImageInfo struct {
 	Overlay        string // SBC overlay name (empty for non-SBC)
 	Architecture   string // amd64, arm64
 	Extension      string // file extension (iso, raw.xz, qcow2)
+	FactoryURL     string // factory base URL used for the Image
 	NoSecureBoot   bool   // true if secure boot is not supported
 }
 
@@ -408,6 +409,7 @@ type MediaBuildOptions struct {
 	Platform       string
 	Overlay        string
 	OverlayOptions string
+	FactoryURL     string
 }
 
 // BuildImageFromPreset constructs an ImageInfo from preset configuration.
@@ -417,6 +419,7 @@ func BuildImageFromPreset(ctx context.Context, client *client.Client, name, arch
 		Name:           name,
 		DestFilePrefix: name,
 		Architecture:   arch,
+		FactoryURL:     opts.FactoryURL,
 	}
 
 	switch {
@@ -586,6 +589,7 @@ func createSchematic(ctx context.Context, client *client.Client, image ImageInfo
 		JoinToken:                params.JoinToken,
 		Bootloader:               params.Bootloader,
 		EmbeddedMachineConfig:    params.EmbeddedMachineConfig,
+		ImageFactoryUrl:          image.FactoryURL,
 	}
 
 	if params.Overlay != nil {
@@ -620,12 +624,9 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 		fmt.Fprintf(os.Stderr, "WARNING: requested setting \"--use-siderolink-grpc-tunnel\" is ignored because the server's SideroLink gRPC tunnel setting is enabled.\n")
 	}
 
-	features, err := safe.ReaderGetByID[*omni.FeaturesConfig](ctx, client.Omni().State(), omni.FeaturesConfigID)
-	if err != nil {
-		return err
-	}
+	fmt.Fprintf(os.Stderr, "Using image factory at %q\n", image.FactoryURL)
 
-	username, password, err := ImageFactoryCredentials(ctx, client.Omni().State(), features)
+	username, password, err := ImageFactoryCredentials(ctx, client.Omni().State(), image.FactoryURL)
 	if err != nil {
 		return err
 	}
@@ -635,11 +636,23 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 	generatedFilename := image.generateFilename(legacy, params.SecureBoot, true)
 
 	if params.PXE {
+		var features *omni.FeaturesConfig
+
+		features, err = safe.ReaderGetByID[*omni.FeaturesConfig](ctx, client.Omni().State(), omni.FeaturesConfigID)
+		if err != nil {
+			return fmt.Errorf("failed to get features config: %w", err)
+		}
+
+		pxeURLString := features.TypedSpec().Value.ImageFactoryPxeBaseUrl
+		if strings.TrimRight(features.TypedSpec().Value.SecondaryImageFactoryBaseUrl, "/") == strings.TrimRight(image.FactoryURL, "/") {
+			pxeURLString = features.TypedSpec().Value.SecondaryImageFactoryPxeBaseUrl
+		}
+
 		pxeFilename := image.generateFilename(legacy, params.SecureBoot, false)
 
 		var pxeURL *url.URL
 
-		pxeURL, err = url.Parse(features.TypedSpec().Value.ImageFactoryPxeBaseUrl)
+		pxeURL, err = url.Parse(pxeURLString)
 		if err != nil {
 			return err
 		}
@@ -655,7 +668,7 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 		return nil
 	}
 
-	req, err := createDirectRequest(ctx, features.TypedSpec().Value.ImageFactoryBaseUrl, schematicResp.SchematicId, params.TalosVersion, generatedFilename, params.SecureBoot)
+	req, err := createDirectRequest(ctx, image.FactoryURL, schematicResp.SchematicId, params.TalosVersion, generatedFilename, params.SecureBoot)
 	if err != nil {
 		return err
 	}
@@ -679,13 +692,13 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 }
 
 // ImageFactoryCredentials returns the credentials to authenticate installation media downloads against the configured image factory.
-func ImageFactoryCredentials(ctx context.Context, st state.State, features *omni.FeaturesConfig) (username, password string, err error) {
-	if !features.TypedSpec().Value.GetIsEnterpriseImageFactory() {
-		return "", "", nil
-	}
-
-	auth, err := safe.ReaderGetByID[*virtual.ImageFactoryAuth](ctx, st, virtual.ImageFactoryAuthID)
+func ImageFactoryCredentials(ctx context.Context, st state.State, url string) (username, password string, err error) {
+	auth, err := safe.ReaderGetByID[*virtual.ImageFactoryAuth](ctx, st, url)
 	if err != nil {
+		if state.IsNotFoundError(err) {
+			return "", "", nil
+		}
+
 		return "", "", fmt.Errorf("failed to get image factory auth: %w", err)
 	}
 

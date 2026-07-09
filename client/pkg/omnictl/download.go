@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/spf13/cobra"
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/download"
 )
@@ -117,6 +119,13 @@ To download the latest Radxa ROCK PI 4 image, run:
 			if err != nil {
 				return err
 			}
+
+			version, err := safe.ReaderGetByID[*omni.TalosVersion](ctx, client.Omni().State(), deprecatedDownloadFlags.talosVersion)
+			if err != nil {
+				return fmt.Errorf("version %q is not known by this Omni instance", deprecatedDownloadFlags.talosVersion)
+			}
+
+			image.FactoryURL = version.TypedSpec().Value.ImageFactoryUrl
 
 			return download.DownloadImageTo(ctx, client, image, params)
 		})

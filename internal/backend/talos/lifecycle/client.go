@@ -29,11 +29,7 @@ type AuditFunc func(ctx context.Context, fullMethodName, machineID string) error
 func NoAudit(_ context.Context, _, _ string) error { return nil }
 
 // buildInstallImage constructs the installer image reference.
-func (m *Manager) buildInstallImage(machineID string, ms *omni.MachineStatus, version string, target *specs.MachineConfigGenOptionsSpec_InstallImage) (string, error) {
-	if target != nil {
-		return installimage.Build(m.imageFactoryHost, machineID, target, m.talosRegistry)
-	}
-
+func (m *Manager) buildInstallImage(ctx context.Context, machineID string, ms *omni.MachineStatus, version string, target *specs.MachineConfigGenOptionsSpec_InstallImage) (string, error) {
 	spec := ms.TypedSpec().Value
 
 	if spec.GetPlatformMetadata().GetPlatform() == "" {
@@ -48,9 +44,22 @@ func (m *Manager) buildInstallImage(machineID string, ms *omni.MachineStatus, ve
 		version = strings.TrimPrefix(spec.TalosVersion, "v")
 	}
 
-	installImage := omni.NewInstallImage(ms, version, spec.Schematic.FullId, true)
+	if target != nil {
+		if target.TalosVersion == "" {
+			target.TalosVersion = version
+		}
 
-	return installimage.Build(m.imageFactoryHost, machineID, installImage, m.talosRegistry)
+		return installimage.Build(machineID, target, m.talosRegistry)
+	}
+
+	imageFactoryClient, err := m.imageFactoryClients.ForTalosVersion(ctx, version)
+	if err != nil {
+		return "", fmt.Errorf("failed to get image factory client for Talos version %q: %w", version, err)
+	}
+
+	installImage := omni.NewInstallImage(ms, version, spec.Schematic.FullId, imageFactoryClient.Host(), true)
+
+	return installimage.Build(machineID, installImage, m.talosRegistry)
 }
 
 // pullInstallerImage pulls the installer image into the machine's containerd and returns the resolved image name, as required by LifecycleService.{Install,Upgrade}'s InstallArtifactsSource.

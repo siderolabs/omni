@@ -27,6 +27,9 @@ import (
 	"github.com/siderolabs/gen/xerrors"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
+	documentconfig "github.com/siderolabs/talos/pkg/machinery/config/config"
+	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -63,7 +66,6 @@ type LifecycleManager interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
 	FinalizeReboot(ctx context.Context, opts ...lifecycle.Option) error
-	ImageFactoryHost() string
 	TalosRegistry() string
 }
 
@@ -190,7 +192,7 @@ func (ctrl *StatusController) reconcileRunning(
 		return err
 	}
 
-	configChanged, err := ctrl.computePendingUpdates(ctx, r, rc)
+	computeDiffResult, err := ctrl.computePendingUpdates(ctx, r, rc)
 	if err != nil {
 		return fmt.Errorf("failed to compute pending updates: %w", err)
 	}
@@ -215,14 +217,21 @@ func (ctrl *StatusController) reconcileRunning(
 		machineConfigStatus.TypedSpec().Value.SchematicId = ""
 	}
 
-	if err = ctrl.reconcileUpgrade(ctx, logger, r, rc); err != nil {
-		return err
-	}
-
-	stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()
-	if stage == machineapi.MachineStatusEvent_BOOTING || stage == machineapi.MachineStatusEvent_RUNNING {
-		if err = ctrl.deleteUpgradeMetaKey(ctx, logger, r, rc); err != nil {
+	// A high priority config change (e.g. the registry auth for a newly configured image factory)
+	// must reach the machine before any upgrade: the upgrade pulls the installer image from that
+	// factory, so the credentials have to be applied to the machine config first. Skip the upgrade
+	// for this reconcile and apply the config immediately; the upgrade proceeds on a later reconcile
+	// once the machine already has the new auth.
+	if !computeDiffResult.hasHighPriorityConfigChanges {
+		if err = ctrl.reconcileUpgrade(ctx, logger, r, rc); err != nil {
 			return err
+		}
+
+		stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()
+		if stage == machineapi.MachineStatusEvent_BOOTING || stage == machineapi.MachineStatusEvent_RUNNING {
+			if err = ctrl.deleteUpgradeMetaKey(ctx, logger, r, rc); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -245,7 +254,7 @@ func (ctrl *StatusController) reconcileRunning(
 	// window leaves the recorded sha matching the desired config. Comparing the last pushed config
 	// lets us notice the machine still runs the reverted change and re-apply, instead of treating it
 	// as in sync.
-	if machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != shaSumString || configChanged {
+	if machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 != shaSumString || computeDiffResult.hasConfigChanges {
 		mode, err = ctrl.applyConfig(ctx, logger, r, rc)
 		if err != nil {
 			grpcSt := client.Status(err)
@@ -495,11 +504,12 @@ func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *za
 	if installed.atTarget {
 		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = installed.version
 		rc.machineConfigStatus.TypedSpec().Value.SchematicId = installed.schematic
+		rc.machineConfigStatus.TypedSpec().Value.ImageFactoryUrl = installed.factoryHost
 
 		return true, nil
 	}
 
-	image, err := installimage.Build(ctrl.lifecycleManager.ImageFactoryHost(), rc.ID(), rc.installImage, ctrl.lifecycleManager.TalosRegistry())
+	image, err := installimage.Build(rc.ID(), rc.installImage, ctrl.lifecycleManager.TalosRegistry())
 	if err != nil {
 		return false, err
 	}
@@ -743,6 +753,7 @@ func (ctrl *StatusController) runClusterLifecycle(
 type installedImage struct {
 	version          string
 	schematic        string
+	factoryHost      string
 	currentSchematic string
 	atTarget         bool
 }
@@ -766,6 +777,7 @@ func (ctrl *StatusController) checkInstalledImage(
 		return installedImage{
 			version:          actualVersion,
 			schematic:        "",
+			factoryHost:      "",
 			atTarget:         actualVersion == rc.installImage.TalosVersion,
 			currentSchematic: "",
 		}, nil
@@ -780,6 +792,7 @@ func (ctrl *StatusController) checkInstalledImage(
 			return installedImage{
 				version:          actualVersion,
 				schematic:        "",
+				factoryHost:      "",
 				atTarget:         actualVersion == rc.installImage.TalosVersion,
 				currentSchematic: "",
 			}, nil
@@ -791,6 +804,7 @@ func (ctrl *StatusController) checkInstalledImage(
 	return installedImage{
 		version:          actualVersion,
 		schematic:        rc.installImage.SchematicId,
+		factoryHost:      rc.installImage.ImageFactoryHost,
 		currentSchematic: schematicInfo.FullID,
 		atTarget:         actualVersion == rc.installImage.TalosVersion && schematicInfo.FullID == rc.installImage.SchematicId,
 	}, nil
@@ -1415,23 +1429,30 @@ func (ctrl *StatusController) releaseUpgradeLock(ctx context.Context, r controll
 	return r.RemoveFinalizer(ctx, clusterMachine.Metadata(), UpgradeFinalizer)
 }
 
+type pendingConfigComputeResult struct {
+	hasConfigChanges             bool
+	hasHighPriorityConfigChanges bool
+}
+
 // computePendingUpdates reconciles the MachinePendingUpdates resource and reports whether the
 // config last pushed to the machine (the redacted config stored in the status) differs from the
 // desired config. The caller uses this to re-apply a machine that has drifted from the desired
 // config even when the recorded (confirmed) sha already matches it.
-func (ctrl *StatusController) computePendingUpdates(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {
+func (ctrl *StatusController) computePendingUpdates(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) (pendingConfigComputeResult, error) {
 	pendingUpdates := omni.NewMachinePendingUpdates(rc.machineConfig.Metadata().ID())
+
+	var res pendingConfigComputeResult
 
 	currentRedactedMachineConfig, err := rc.machineConfigStatus.TypedSpec().Value.GetUncompressedData()
 	if err != nil {
-		return false, err
+		return res, err
 	}
 
 	defer currentRedactedMachineConfig.Free()
 
 	configDiff, err := diff.Compute(currentRedactedMachineConfig.Data(), rc.redactedMachineConfig)
 	if err != nil {
-		return false, err
+		return res, err
 	}
 
 	var (
@@ -1453,10 +1474,17 @@ func (ctrl *StatusController) computePendingUpdates(ctx context.Context, r contr
 	if !upgradeDiff && configDiff == "" {
 		_, err = helpers.TeardownAndDestroy(ctx, r, pendingUpdates.Metadata())
 
-		return false, err
+		return pendingConfigComputeResult{}, err
 	}
 
-	return configDiff != "", safe.WriterModify(ctx, r, pendingUpdates, func(res *omni.MachinePendingUpdates) error {
+	res.hasConfigChanges = configDiff != ""
+
+	res.hasHighPriorityConfigChanges, err = computeHighPriorityConfigChanges(currentRedactedMachineConfig.Data(), rc.redactedMachineConfig)
+	if err != nil {
+		return res, fmt.Errorf("failed to compute high priority config changes: %w", err)
+	}
+
+	return res, safe.WriterModify(ctx, r, pendingUpdates, func(res *omni.MachinePendingUpdates) error {
 		helpers.CopyAllLabels(rc.machineConfig, res)
 
 		if upgradeDiff {
@@ -1475,6 +1503,69 @@ func (ctrl *StatusController) computePendingUpdates(ctx context.Context, r contr
 
 		return nil
 	})
+}
+
+// computeHighPriorityConfigChanges reports whether the transition from oldConfig to newConfig adds
+// or modifies an image factory registry auth document (cri.RegistryAuthConfig). Such changes are
+// high priority: a machine that just gained credentials for a newly configured image factory must
+// receive them before it upgrades, since the upgrade pulls the installer image from that factory.
+func computeHighPriorityConfigChanges(oldConfig, newConfig []byte) (bool, error) {
+	oldAuth, err := registryAuthConfigs(oldConfig)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse the current machine config: %w", err)
+	}
+
+	newAuth, err := registryAuthConfigs(newConfig)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse the desired machine config: %w", err)
+	}
+
+	// A registry auth document present in the new config but missing from (or differing in) the old
+	// config means credentials for a factory were just added or changed. Removals are not treated as
+	// high priority: dropping credentials does not need to reach the machine before an upgrade.
+	for host, newValue := range newAuth {
+		if oldValue, ok := oldAuth[host]; !ok || oldValue != newValue {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// registryAuthConfigs returns the registry auth documents (cri.RegistryAuthConfig) present in the
+// given machine config, keyed by their registry host. The value captures the authentication fields
+// so callers can detect both additions and modifications.
+func registryAuthConfigs(configBytes []byte) (map[string]string, error) {
+	if len(configBytes) == 0 {
+		return nil, nil //nolint:nilnil
+	}
+
+	cfg, err := configloader.NewFromBytes(configBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	result := map[string]string{}
+
+	for _, doc := range cfg.Documents() {
+		if doc.Kind() != cri.RegistryAuthConfig {
+			continue
+		}
+
+		authDoc, ok := doc.(documentconfig.RegistryAuthConfigDocument)
+		if !ok {
+			continue
+		}
+
+		result[authDoc.Name()] = strings.Join([]string{
+			authDoc.Username(),
+			authDoc.Password(),
+			authDoc.Auth(),
+			authDoc.IdentityToken(),
+		}, "\x00")
+	}
+
+	return result, nil
 }
 
 func (ctrl *StatusController) deleteUpgradeMetaKey(

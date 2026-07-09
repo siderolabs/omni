@@ -17,11 +17,7 @@ import (
 )
 
 // Build builds the install image for the provided properties.
-func Build(imageFactoryHost string, resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, talosRegistry string) (string, error) {
-	if imageFactoryHost == "" {
-		return "", fmt.Errorf("image factory host is not set")
-	}
-
+func Build(resID resource.ID, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, talosRegistry string) (string, error) {
 	if installImage == nil {
 		return "", fmt.Errorf("install image is nil for machine %q", resID)
 	}
@@ -70,7 +66,11 @@ func Build(imageFactoryHost string, resID resource.ID, installImage *specs.Machi
 	}
 
 	if schematicID != "" {
-		return imageFactoryHost + "/" + installerName + "/" + schematicID + ":" + desiredTalosVersion, nil
+		if installImage.ImageFactoryHost == "" {
+			return "", fmt.Errorf("machine %q has no image factory host set", resID)
+		}
+
+		return installImage.ImageFactoryHost + "/" + installerName + "/" + schematicID + ":" + desiredTalosVersion, nil
 	}
 
 	return talosRegistry + ":" + desiredTalosVersion, nil

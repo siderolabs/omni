@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -22,9 +23,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	consts "github.com/siderolabs/omni/internal/pkg/constants"
 	"github.com/siderolabs/omni/internal/pkg/registry"
 )
@@ -43,16 +44,16 @@ const VersionRefreshInterval = 15 * time.Minute
 
 // VersionsController creates omni.KubernetesVersions and omni.TalosVersions by scanning container registry.
 type VersionsController struct {
-	imageFactoryClient            *imagefactory.Client
+	imageFactoryClients           *imagefactory.Clients
 	st                            state.State
 	kubernetesRegistry            string
 	enableTalosPreReleaseVersions bool
 }
 
 // NewVersionsController creates a new VersionsController.
-func NewVersionsController(imageFactoryClient *imagefactory.Client, st state.State, enableTalosPreReleaseVersions bool, kubernetesRegistry string) *VersionsController {
+func NewVersionsController(imageFactoryClients *imagefactory.Clients, st state.State, enableTalosPreReleaseVersions bool, kubernetesRegistry string) *VersionsController {
 	return &VersionsController{
-		imageFactoryClient:            imageFactoryClient,
+		imageFactoryClients:           imageFactoryClients,
 		st:                            st,
 		enableTalosPreReleaseVersions: enableTalosPreReleaseVersions,
 		kubernetesRegistry:            kubernetesRegistry,
@@ -131,7 +132,7 @@ func (ctrl *VersionsController) reconcileAllVersions(ctx context.Context, r cont
 	// After a successful factory request the sniffer transport will have captured the Server header.
 	// Update FeaturesConfig with the detected enterprise state. Use direct state access (same path as
 	// features.UpdateResources) to avoid controller-ownership conflicts on the unowned resource.
-	isEnterprise := ctrl.imageFactoryClient.CachedIsEnterprise()
+	isEnterprise := ctrl.imageFactoryClients.Primary().CachedIsEnterprise()
 
 	featuresConfig := omni.NewFeaturesConfig(omni.FeaturesConfigID)
 
@@ -156,11 +157,53 @@ func (ctrl *VersionsController) fetchVersionsFromRegistry(ctx context.Context, s
 	return registry.UpgradeCandidates(ctx, source)
 }
 
-func (ctrl *VersionsController) fetchTalosVersions(ctx context.Context) ([]string, error) {
+// talosVersionSource records which image factory provides a given Talos version.
+type talosVersionSource struct {
+	factoryURL   string
+	isEnterprise bool
+}
+
+// fetchTalosVersions fetches the available Talos versions from the configured image factories and
+// returns a map from the (normalized, no leading "v") version to the factory that provides it.
+//
+// Versions from the primary factory overwrite the ones from the secondary factory: the secondary is
+// a fallback source only. If the secondary factory fetch fails, discovery continues with the primary
+// factory alone.
+func (ctrl *VersionsController) fetchTalosVersions(ctx context.Context, logger *zap.Logger) (map[string]talosVersionSource, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 
-	return ctrl.imageFactoryClient.Versions(ctx)
+	versionToFactory := map[string]talosVersionSource{}
+
+	// Fetch the secondary factory first so the primary overwrites it on any version present in both.
+	if secondary, ok := ctrl.imageFactoryClients.Secondary(); ok {
+		secondaryVersions, err := secondary.Versions(ctx)
+		if err != nil {
+			logger.Warn("failed to fetch Talos versions from the secondary image factory, falling back to the primary factory only",
+				zap.String("factory", secondary.URL()), zap.Error(err))
+		} else {
+			source := talosVersionSource{factoryURL: secondary.URL(), isEnterprise: secondary.CachedIsEnterprise()}
+
+			for _, v := range secondaryVersions {
+				versionToFactory[strings.TrimLeft(v, "v")] = source
+			}
+		}
+	}
+
+	primary := ctrl.imageFactoryClients.Primary()
+
+	primaryVersions, err := primary.Versions(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	primarySource := talosVersionSource{factoryURL: primary.URL(), isEnterprise: primary.CachedIsEnterprise()}
+
+	for _, v := range primaryVersions {
+		versionToFactory[strings.TrimLeft(v, "v")] = primarySource
+	}
+
+	return versionToFactory, nil
 }
 
 func (ctrl *VersionsController) getVersionsAfter(versions []string, minVersion semver.Version, includePreReleaseVersions bool) []string {
@@ -268,10 +311,12 @@ func forAllCompatibleVersions(
 func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r controller.Runtime, k8sVersions []*compatibility.KubernetesVersion, logger *zap.Logger) error {
 	tracker := trackResource(r, resources.DefaultNamespace, omni.TalosVersionType)
 
-	allVersions, err := ctrl.fetchTalosVersions(ctx)
+	versionToFactory, err := ctrl.fetchTalosVersions(ctx, logger)
 	if err != nil {
 		return err
 	}
+
+	allVersions := slices.Collect(maps.Keys(versionToFactory))
 
 	talosVersions := ctrl.getVersionsAfter(allVersions, minDiscoveredTalosVersion, ctrl.enableTalosPreReleaseVersions)
 
@@ -292,9 +337,13 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 	err = forAllCompatibleVersions(talosVersions, k8sVersions, func(talosVer string, compatibleK8sVersions []string) error {
 		talosVersion := omni.NewTalosVersion(talosVer)
 		if writeErr := safe.WriterModify(ctx, r, talosVersion, func(res *omni.TalosVersion) error {
+			source := versionToFactory[strings.TrimLeft(talosVer, "v")]
+
 			res.TypedSpec().Value.Version = talosVer
 			res.TypedSpec().Value.CompatibleKubernetesVersions = compatibleK8sVersions
 			res.TypedSpec().Value.UpgradableTalosVersions = upgradeTargets[talosVer]
+			res.TypedSpec().Value.ImageFactoryUrl = source.factoryURL
+			res.TypedSpec().Value.IsEnterprise = source.isEnterprise
 
 			parsed := semver.MustParse(strings.TrimLeft(talosVer, "v"))
 			res.TypedSpec().Value.Unsupported = !targetAllowed(parsed, latestSupported.Major, latestSupported.Minor, ctrl.enableTalosPreReleaseVersions)

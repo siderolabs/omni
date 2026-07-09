@@ -21,6 +21,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/task"
 	"github.com/siderolabs/gen/optional"
+	"github.com/siderolabs/go-pointer"
 	factoryclient "github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -46,7 +47,7 @@ const MachineStatusControllerName = "MachineStatusController"
 
 // MachineStatusController manages omni.MachineStatuses based on information from Talos API.
 type MachineStatusController struct {
-	ImageFactoryClient    ImageFactoryClient
+	imageFactoryClients   ImageFactoryClientProvider
 	kernelArgsInitializer KernelArgsInitializer
 	runner                *task.Runner[machinetask.InfoChan, machinetask.CollectTaskSpec]
 	notifyCh              chan machinetask.Info
@@ -54,14 +55,14 @@ type MachineStatusController struct {
 }
 
 // NewMachineStatusController initializes MachineStatusController.
-func NewMachineStatusController(imageFactoryClient ImageFactoryClient, kernelArgsInitializer KernelArgsInitializer) *MachineStatusController {
+func NewMachineStatusController(imageFactoryClients ImageFactoryClientProvider, kernelArgsInitializer KernelArgsInitializer) *MachineStatusController {
 	return &MachineStatusController{
 		NamedController: generic.NamedController{
 			ControllerName: MachineStatusControllerName,
 		},
 		notifyCh:              make(chan machinetask.Info),
 		runner:                task.NewEqualRunner[machinetask.CollectTaskSpec](),
-		ImageFactoryClient:    imageFactoryClient,
+		imageFactoryClients:   imageFactoryClients,
 		kernelArgsInitializer: kernelArgsInitializer,
 	}
 }
@@ -362,14 +363,19 @@ func (ctrl *MachineStatusController) populateSchematicRaw(ctx context.Context, i
 
 		logger.Info("machine does have a schematic ID but no raw schematic, get it from image factory")
 
+		factoryClient, err := ctrl.imageFactoryClients.ForTalosVersion(ctx, existing.TypedSpec().Value.TalosVersion)
+		if err != nil {
+			return err
+		}
+
 		factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
-		sch, err := ctrl.ImageFactoryClient.SchematicGet(factoryCtx, info.FullID)
+		sch, err := factoryClient.SchematicGet(factoryCtx, info.FullID)
 
 		cancel()
 
 		if err != nil {
 			if factoryclient.IsHTTPErrorCode(err, http.StatusNotFound) {
-				logger.Warn("raw schematic not found in image factory", zap.String("host", ctrl.ImageFactoryClient.Host()))
+				logger.Warn("raw schematic not found in image factory", zap.String("host", factoryClient.Host()))
 
 				return nil
 			}
@@ -530,6 +536,13 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 	// preserves all fields the user/factory set on the original schematic (owner,
 	// secureboot, bootloader, meta, overlay incl. options, future fields).
 	if event.Schematic != nil && event.Schematic.FullID != "" && event.Schematic.Raw != "" {
+		talosVersion := pointer.SafeDeref(event.TalosVersion)
+
+		factoryClient, err := ctrl.imageFactoryClients.ForTalosVersion(ctx, talosVersion)
+		if err != nil {
+			return fmt.Errorf("failed to get image factory client for Talos version %q %w", talosVersion, err)
+		}
+
 		machineSchematic, err := imagefactory.PatchSchematic(
 			event.Schematic.Raw,
 			event.Schematic.Extensions,
@@ -540,7 +553,7 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 		}
 
 		factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
-		_, _, err = ctrl.ImageFactoryClient.EnsureSchematic(factoryCtx, machineSchematic)
+		_, _, err = factoryClient.EnsureSchematic(factoryCtx, machineSchematic)
 
 		cancel()
 

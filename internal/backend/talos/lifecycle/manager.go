@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 	k8s "k8s.io/client-go/kubernetes"
 
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
@@ -38,17 +39,23 @@ type Manager struct {
 	kubernetesClientProvider KubernetesClientProvider
 	talosClientFactory       TalosClientFactory
 	inFlight                 map[string]struct{}
-	imageFactoryHost         string
+	imageFactoryClients      *imagefactory.Clients
 	talosRegistry            string
 
 	mu sync.Mutex
 }
 
 // NewManager creates a Manager. kubernetesClients may be nil for callers that never cordon/drain.
-func NewManager(logger *zap.Logger, imageFactoryHost, talosRegistry string, kubernetesClientProvider KubernetesClientProvider, talosClientFactory TalosClientFactory) *Manager {
+func NewManager(
+	logger *zap.Logger,
+	imageFactoryClients *imagefactory.Clients,
+	talosRegistry string,
+	kubernetesClientProvider KubernetesClientProvider,
+	talosClientFactory TalosClientFactory,
+) *Manager {
 	return &Manager{
 		logger:                   logger,
-		imageFactoryHost:         imageFactoryHost,
+		imageFactoryClients:      imageFactoryClients,
 		talosRegistry:            talosRegistry,
 		kubernetesClientProvider: kubernetesClientProvider,
 		talosClientFactory:       talosClientFactory,
@@ -58,12 +65,6 @@ func NewManager(logger *zap.Logger, imageFactoryHost, talosRegistry string, kube
 		},
 		inFlight: map[string]struct{}{},
 	}
-}
-
-// ImageFactoryHost is the image factory host used to build install images, shared by every caller
-// so they don't each need their own copy of what is really a single deployment-wide setting.
-func (m *Manager) ImageFactoryHost() string {
-	return m.imageFactoryHost
 }
 
 // TalosRegistry is the Talos installer registry used when a machine has no schematic, shared by every
@@ -198,7 +199,7 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 
 	defer m.release(op.MachineID)
 
-	installImageStr, err := m.buildInstallImage(op.MachineID, op.MachineStatus, op.Version, op.InstallImage)
+	installImageStr, err := m.buildInstallImage(ctx, op.MachineID, op.MachineStatus, op.Version, op.InstallImage)
 	if err != nil {
 		return WrapErr(err, "failed to build install image")
 	}

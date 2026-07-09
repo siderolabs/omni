@@ -134,18 +134,26 @@ const archOptions = computed(() => {
 const resolvedPreset = computed<InstallationMediaConfigSpec>(() => {
   const spec = data.value?.spec ?? {}
 
+  const talosVersion = selectedVersion.value ?? resolveTalosVersion(spec.talos_version)
+
+  // The selected Talos version determines which factory serves the image (primary wins on the merged
+  // list). Fall back to the preset's stored factory URL for versions no longer listed.
+  const versionFactoryURL = talosVersionList.value.find((v) => v.spec.version === talosVersion)
+    ?.spec.image_factory_url
+
   return {
     ...spec,
-    talos_version: selectedVersion.value ?? resolveTalosVersion(spec.talos_version),
+    talos_version: talosVersion,
     join_token: selectedToken.value ?? spec.join_token,
     architecture: selectedArch.value ?? spec.architecture,
+    image_factory_url: versionFactoryURL || spec.image_factory_url,
   }
 })
 
 const schematicId = computed(() => schematic.value?.id ?? '')
 
 const { schematic } = usePresetSchematic(resolvedPreset)
-const { links } = usePresetDownloadLinks(schematicId, resolvedPreset)
+const { links, orphaned } = usePresetDownloadLinks(schematicId, resolvedPreset)
 </script>
 
 <template>
@@ -153,6 +161,16 @@ const { links } = usePresetDownloadLinks(schematicId, resolvedPreset)
     <template #description>Files for {{ id }}</template>
 
     <div class="flex flex-col gap-4">
+      <div
+        v-if="orphaned"
+        class="rounded border border-red-r1 bg-red-r1/10 p-3 text-xs text-red-r1"
+        role="alert"
+      >
+        The image factory this preset uses is no longer configured in Omni, so its images can no
+        longer be downloaded. Pick a Talos version served by a configured factory, or recreate the
+        preset.
+      </div>
+
       <div class="flex flex-wrap gap-4">
         <TSelectList
           v-model="selectedVersion"
@@ -194,7 +212,7 @@ const { links } = usePresetDownloadLinks(schematicId, resolvedPreset)
                   <IconButton
                     is="a"
                     :href="link"
-                    :disabled="!schematicId"
+                    :disabled="!schematicId || orphaned"
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="download"
@@ -206,7 +224,7 @@ const { links } = usePresetDownloadLinks(schematicId, resolvedPreset)
                   <IconButton
                     aria-label="copy link"
                     icon="copy"
-                    :disabled="!schematicId"
+                    :disabled="!schematicId || orphaned"
                     @click="copy(link)"
                   />
                 </Tooltip>

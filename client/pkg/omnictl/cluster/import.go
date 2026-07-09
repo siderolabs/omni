@@ -17,6 +17,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/clusterimport"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 )
 
@@ -28,7 +29,7 @@ const (
 var abortImportCmd = &cobra.Command{
 	Use:   "abort <cluster name>",
 	Short: "Abort an ongoing cluster import operation",
-	Long: `Abort an ongoing cluster import operation. This will clean up any resources created during the import process and 
+	Long: `Abort an ongoing cluster import operation. This will clean up any resources created during the import process and
 will only work if the cluster is locked and tainted as "importing"`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -65,7 +66,7 @@ func importCluster(ctx context.Context, client *client.Client, _ access.ServerIn
 
 	omniState := client.Omni().State()
 
-	imageFactoryClient, err := clusterimport.BuildImageFactoryClient(ctx, omniState)
+	imageFactoryClients, err := imagefactory.NewClientsFromState(ctx, omniState)
 	if err != nil {
 		return err
 	}
@@ -75,7 +76,7 @@ func importCluster(ctx context.Context, client *client.Client, _ access.ServerIn
 		return err
 	}
 
-	importContext, err := clusterimport.BuildContext(ctx, input, omniState, imageFactoryClient, talosClient)
+	importContext, err := clusterimport.BuildContext(ctx, input, omniState, imageFactoryClients, talosClient)
 	if err != nil {
 		return err
 	}

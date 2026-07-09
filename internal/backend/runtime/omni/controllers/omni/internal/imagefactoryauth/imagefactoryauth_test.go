@@ -54,3 +54,82 @@ func TestBuildDoc(t *testing.T) {
 		assert.Equal(t, "pass", doc.Password())
 	})
 }
+
+func TestBuildDocs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no credentials returns nil", func(t *testing.T) {
+		t.Parallel()
+
+		docs, err := imagefactoryauth.BuildDocs(omnicfg.Registries{})
+		require.NoError(t, err)
+		assert.Empty(t, docs)
+	})
+
+	t.Run("only primary credentials", func(t *testing.T) {
+		t.Parallel()
+
+		registries := omnicfg.Registries{}
+		registries.SetImageFactoryBaseURL("https://factory.example.org")
+		registries.SetImageFactoryUsername("user")
+		registries.SetImageFactoryPassword("pass")
+
+		docs, err := imagefactoryauth.BuildDocs(registries)
+		require.NoError(t, err)
+		require.Len(t, docs, 1)
+
+		assert.Equal(t, "factory.example.org", docs[0].Name())
+		assert.Equal(t, "user", docs[0].Username())
+		assert.Equal(t, "pass", docs[0].Password())
+	})
+
+	t.Run("primary and secondary credentials", func(t *testing.T) {
+		t.Parallel()
+
+		registries := omnicfg.Registries{}
+		registries.SetImageFactoryBaseURL("https://factory.example.org")
+		registries.SetImageFactoryUsername("user")
+		registries.SetImageFactoryPassword("pass")
+
+		var secondary omnicfg.Factory
+
+		secondary.SetUrl("https://factory.secondary.example.org")
+		secondary.SetUsername("secondary-user")
+		secondary.SetPassword("secondary-pass")
+
+		registries.Factories.Secondary = secondary
+
+		docs, err := imagefactoryauth.BuildDocs(registries)
+		require.NoError(t, err)
+		require.Len(t, docs, 2)
+
+		assert.Equal(t, "factory.example.org", docs[0].Name())
+		assert.Equal(t, "user", docs[0].Username())
+		assert.Equal(t, "pass", docs[0].Password())
+
+		assert.Equal(t, "factory.secondary.example.org", docs[1].Name())
+		assert.Equal(t, "secondary-user", docs[1].Username())
+		assert.Equal(t, "secondary-pass", docs[1].Password())
+	})
+
+	t.Run("secondary without credentials is skipped", func(t *testing.T) {
+		t.Parallel()
+
+		registries := omnicfg.Registries{}
+		registries.SetImageFactoryBaseURL("https://factory.example.org")
+		registries.SetImageFactoryUsername("user")
+		registries.SetImageFactoryPassword("pass")
+
+		var secondary omnicfg.Factory
+
+		secondary.SetUrl("https://factory.secondary.example.org")
+
+		registries.Factories.Secondary = secondary
+
+		docs, err := imagefactoryauth.BuildDocs(registries)
+		require.NoError(t, err)
+		require.Len(t, docs, 1)
+
+		assert.Equal(t, "factory.example.org", docs[0].Name())
+	})
+}

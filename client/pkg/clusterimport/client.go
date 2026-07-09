@@ -29,9 +29,6 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/resources/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-
-	"github.com/siderolabs/omni/client/pkg/infra/imagefactory"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
 // TalosClient is a minimal interface for Talos client used in cluster import.
@@ -45,7 +42,7 @@ type TalosClient interface {
 
 // ImageFactoryClient is a minimal interface for Image Factory client used in cluster import.
 type ImageFactoryClient interface {
-	EnsureSchematic(ctx context.Context, schematic schematic.Schematic) (string, error)
+	EnsureSchematic(ctx context.Context, schematic schematic.Schematic, talosVersion string) (string, error)
 }
 
 type talosClientWrapper struct {
@@ -254,23 +251,4 @@ func BuildTalosClient(ctx context.Context, config, context, sideroV1KeysDir stri
 		State:  c.COSI,
 		Client: c,
 	}, nil
-}
-
-// BuildImageFactoryClient builds an Image Factory client using the Image Factory base url from Omni configuration.
-func BuildImageFactoryClient(ctx context.Context, omniState state.State) (*imagefactory.DirectClient, error) {
-	featuresConfig, err := safe.ReaderGetByID[*omni.FeaturesConfig](ctx, omniState, omni.FeaturesConfigID)
-	if err != nil {
-		return nil, fmt.Errorf("error reading features config %q: %w", omniState, err)
-	}
-
-	if featuresConfig.TypedSpec().Value.ImageFactoryBaseUrl == "" {
-		return nil, fmt.Errorf("image factory base URL is empty")
-	}
-
-	c, err := imagefactory.NewDirectClient(imagefactory.ClientOptions{FactoryEndpoint: featuresConfig.TypedSpec().Value.ImageFactoryBaseUrl})
-	if err != nil {
-		return nil, fmt.Errorf("failed to set up image factory client: %w", err)
-	}
-
-	return c, nil
 }

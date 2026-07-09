@@ -213,25 +213,6 @@ func (p *Params) Validate(schema *jsonschema.Schema) error {
 
 var localIP = getLocalIPOrEmpty()
 
-// GetImageFactoryPXEBaseURL reads image factory PXE address from the args.
-func (p *Params) GetImageFactoryPXEBaseURL() (*url.URL, error) {
-	pxeBaseURL := p.Registries.GetImageFactoryPXEBaseURL()
-	if pxeBaseURL != "" {
-		return url.Parse(pxeBaseURL)
-	}
-
-	factoryBaseURL := p.Registries.GetImageFactoryBaseURL()
-
-	url, err := url.Parse(factoryBaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid URL specified for the image factory: %w", err)
-	}
-
-	url.Host = fmt.Sprintf("pxe.%s", url.Host)
-
-	return url, nil
-}
-
 // GetOIDCIssuerEndpoint returns the OIDC issuer endpoint.
 func (p *Params) GetOIDCIssuerEndpoint() (string, error) {
 	u, err := url.Parse(p.Services.Api.URL())
@@ -254,7 +235,11 @@ const (
 )
 
 // applyEnvOverrides overrides config values from environment variables, when set.
-// Env overrides win over all other sources (defaults, files, flags).
+//
+// These set the deprecated flat imageFactory* fields, which GetPrimaryFactory treats as the
+// fallback for the primary factory credentials. As a result, the env vars remain authoritative
+// over the deprecated inputs, but an explicitly-set factories.primary.username/password (via
+// config file or flag) takes precedence over them.
 func (p *Params) applyEnvOverrides() {
 	if v, ok := os.LookupEnv(EnvImageFactoryUsername); ok {
 		p.Registries.SetImageFactoryUsername(v)

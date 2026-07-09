@@ -45,7 +45,7 @@ import (
 
 type imageFactoryClientMock struct{}
 
-func (i *imageFactoryClientMock) EnsureSchematic(_ context.Context, schematic schematic.Schematic) (string, error) {
+func (i *imageFactoryClientMock) EnsureSchematic(_ context.Context, schematic schematic.Schematic, talosVersion string) (string, error) {
 	return schematic.ID()
 }
 

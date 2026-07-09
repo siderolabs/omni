@@ -24,6 +24,8 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/access/role"
+	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -107,12 +109,27 @@ func (s *managementServer) CreateSchematic(ctx context.Context, request *managem
 		return nil, err
 	}
 
-	schematicID, schematicData, err := s.imageFactoryClient.EnsureSchematic(ctx, schematicRequest)
+	var imageFactoryClient imagefactory.FactoryClient
+
+	if request.ImageFactoryUrl != "" {
+		imageFactoryClient = s.imageFactoryClients.ForURL(request.ImageFactoryUrl)
+
+		if imageFactoryClient == nil {
+			return nil, fmt.Errorf("no image factory client configured for the given URL %q", request.ImageFactoryUrl)
+		}
+	} else {
+		imageFactoryClient, err = s.imageFactoryClients.ForTalosVersion(ctx, request.TalosVersion)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get image factory client for Talos version %q: %w", request.TalosVersion, err)
+		}
+	}
+
+	schematicID, schematicData, err := imageFactoryClient.EnsureSchematic(ctx, schematicRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure schematic: %w", err)
 	}
 
-	s.logger.Info("ensure schematic succeeded", zap.String("schematic_id", schematicID), zap.String("factory_host", s.imageFactoryClient.Host()))
+	s.logger.Info("ensure schematic succeeded", zap.String("schematic_id", schematicID), zap.String("factory_host", imageFactoryClient.Host()))
 
 	schematicYML, err := schematicData.Marshal()
 	if err != nil {
@@ -137,12 +154,22 @@ func (s *managementServer) CreateSchematicFromRaw(ctx context.Context, request *
 		return nil, fmt.Errorf("failed to unmarshal raw schematic: %w", err)
 	}
 
-	schematicID, _, err := s.imageFactoryClient.EnsureSchematic(ctx, *schematicRequest)
+	talosVersion := request.TalosVersion
+	if talosVersion == "" {
+		talosVersion = constants.DefaultTalosVersion
+	}
+
+	factoryClient, err := s.imageFactoryClients.ForTalosVersion(ctx, talosVersion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get image factory client for Talos version: %w", err)
+	}
+
+	schematicID, _, err := factoryClient.EnsureSchematic(ctx, *schematicRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ensure raw schematic: %w", err)
 	}
 
-	s.logger.Info("ensure raw schematic succeeded", zap.String("schematic_id", schematicID), zap.String("factory_host", s.imageFactoryClient.Host()))
+	s.logger.Info("ensure raw schematic succeeded", zap.String("schematic_id", schematicID), zap.String("factory_host", s.imageFactoryClients.Primary().Host()))
 
 	return &management.CreateSchematicResponse{
 		SchematicId: schematicID,
@@ -189,7 +216,12 @@ func (s *managementServer) getOverlay(ctx context.Context, req *management.Creat
 		return schematic.Overlay{}, nil
 	}
 
-	overlays, err := s.imageFactoryClient.OverlaysVersions(ctx, req.TalosVersion)
+	imageFactoryClient, err := s.imageFactoryClients.ForTalosVersion(ctx, req.TalosVersion)
+	if err != nil {
+		return schematic.Overlay{}, fmt.Errorf("failed to get image factory client for Talos version: %w", err)
+	}
+
+	overlays, err := imageFactoryClient.OverlaysVersions(ctx, req.TalosVersion)
 	if err != nil {
 		return schematic.Overlay{}, fmt.Errorf("failed to get overlays list for the Talos version: %w", err)
 	}

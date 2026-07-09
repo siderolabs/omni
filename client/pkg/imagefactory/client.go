@@ -1,7 +1,6 @@
-// Copyright (c) 2026 Sidero Labs, Inc.
-//
-// Use of this software is governed by the Business Source License
-// included in the LICENSE file.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 package imagefactory
 
@@ -47,6 +46,7 @@ type Client struct {
 
 	sniffer *serverSnifferTransport
 	host    string
+	url     string
 }
 
 // NewClient creates a new image factory client.
@@ -74,6 +74,7 @@ func NewClient(imageFactoryBaseURL, username, password string) (*Client, error) 
 	return &Client{
 		Client:  factoryClient,
 		host:    baseURL.Host,
+		url:     imageFactoryBaseURL,
 		sniffer: sniffer,
 	}, nil
 }
@@ -85,6 +86,15 @@ func (cli *Client) Host() string {
 	}
 
 	return cli.host
+}
+
+// URL returns the base URL of the image factory client, as it was configured.
+func (cli *Client) URL() string {
+	if cli == nil {
+		return ""
+	}
+
+	return cli.url
 }
 
 // CachedIsEnterprise reports whether the connected image factory is an Enterprise instance.
@@ -100,6 +110,18 @@ func (cli *Client) CachedIsEnterprise() bool {
 // The factory deduplicates by content: if the same schematic was uploaded before, it returns
 // the existing ID without creating a new one.
 func (cli *Client) EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error) {
+	if !cli.sniffer.detected.Load() {
+		// if not loaded yet, make a request to detect the factory version and whether it's Enterprise or not
+		if _, err := cli.Versions(ctx); err != nil {
+			return "", nil, fmt.Errorf("failed to detect image factory version: %w", err)
+		}
+	}
+
+	// drop the owner from the schematic before sending it to the factory for the community version
+	if !cli.CachedIsEnterprise() {
+		inputSchematic.Owner = ""
+	}
+
 	id, data, err := cli.SchematicCreate(ctx, inputSchematic)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to ensure schematic: %w", err)

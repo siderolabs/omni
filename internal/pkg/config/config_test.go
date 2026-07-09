@@ -294,6 +294,27 @@ func TestValidateConfig(t *testing.T) {
 			},
 			validateErr: `config value ".registries.imageFactoryUsername" or flag "--image-factory-username": is required when "imageFactoryPassword" is set`,
 		},
+		{
+			name:   "primary factory username without password",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Registries.Factories.Primary.SetUsername("user")
+			},
+			validateErr: `config value ".registries.factories.primary.password" or flag "--primary-factory-password": is required when "username" is set`,
+		},
+		{
+			name:   "secondary factory username without password",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				var f config.Factory
+
+				f.SetUrl("https://factory.secondary.example.com")
+				f.SetUsername("secondary-user")
+
+				cfg.Registries.Factories.Secondary = f
+			},
+			validateErr: `config value ".registries.factories.secondary.password" or flag "--secondary-factory-password": is required when "username" is set`,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, err := config.FromBytes(tt.config)
@@ -469,7 +490,14 @@ func TestSchemaDefaults(t *testing.T) {
 	// registries
 	assert.Equal(t, "ghcr.io/siderolabs/installer", p.Registries.GetTalos())
 	assert.Equal(t, "ghcr.io/siderolabs/kubelet", p.Registries.GetKubernetes())
-	assert.Equal(t, "https://factory.talos.dev", p.Registries.GetImageFactoryBaseURL())
+
+	// registries.factories: with nothing configured, the primary factory resolves to the
+	// deprecated field default, and there is no secondary factory.
+	primaryFactory := p.Registries.GetPrimaryFactory()
+	assert.Equal(t, "https://factory.talos.dev", primaryFactory.GetUrl())
+
+	_, hasSecondary := p.Registries.GetSecondaryFactory()
+	assert.False(t, hasSecondary)
 
 	// services.api (inline overrides on $ref)
 	assert.Equal(t, "0.0.0.0:8080", p.Services.Api.GetEndpoint())
@@ -580,4 +608,86 @@ func TestSchemaDefaults(t *testing.T) {
 	// features
 	assert.True(t, p.Features.GetEnableConfigDataCompression())
 	assert.True(t, p.Features.GetEnableClusterImport())
+}
+
+// TestFactories verifies the resolution of the primary/secondary factories, including the
+// "new wins, deprecated fallback" rule for the primary factory.
+func TestFactories(t *testing.T) {
+	t.Run("deprecated fields only", func(t *testing.T) {
+		p, err := config.FromBytes([]byte(`
+registries:
+  imageFactoryBaseURL: https://old.example.com
+  imageFactoryPXEBaseURL: https://pxe.old.example.com
+  imageFactoryUsername: old-user
+  imageFactoryPassword: old-pass
+`))
+		require.NoError(t, err)
+
+		primary := p.Registries.GetPrimaryFactory()
+		assert.Equal(t, "https://old.example.com", primary.GetUrl())
+		assert.Equal(t, "https://pxe.old.example.com", primary.GetPxeURL())
+		assert.Equal(t, "old-user", primary.GetUsername())
+		assert.Equal(t, "old-pass", primary.GetPassword())
+
+		_, hasSecondary := p.Registries.GetSecondaryFactory()
+		assert.False(t, hasSecondary)
+	})
+
+	t.Run("primary wins over deprecated", func(t *testing.T) {
+		p, err := config.FromBytes([]byte(`
+registries:
+  imageFactoryBaseURL: https://old.example.com
+  imageFactoryUsername: old-user
+  imageFactoryPassword: old-pass
+  factories:
+    primary:
+      url: https://new.example.com
+`))
+		require.NoError(t, err)
+
+		primary := p.Registries.GetPrimaryFactory()
+		assert.Equal(t, "https://new.example.com", primary.GetUrl())
+		// fields not set on the primary factory still fall back to the deprecated ones
+		assert.Equal(t, "old-user", primary.GetUsername())
+		assert.Equal(t, "old-pass", primary.GetPassword())
+	})
+
+	t.Run("secondary factory", func(t *testing.T) {
+		p, err := config.FromBytes([]byte(`
+registries:
+  factories:
+    primary:
+      url: https://primary.example.com
+    secondary:
+      url: https://secondary.example.com
+      username: secondary-user
+      password: secondary-pass
+`))
+		require.NoError(t, err)
+
+		secondary, ok := p.Registries.GetSecondaryFactory()
+		require.True(t, ok)
+		assert.Equal(t, "https://secondary.example.com", secondary.GetUrl())
+		assert.Equal(t, "secondary-user", secondary.GetUsername())
+		assert.Equal(t, "secondary-pass", secondary.GetPassword())
+	})
+
+	t.Run("pxe base url derivation", func(t *testing.T) {
+		// explicit pxe URL is used verbatim
+		explicit := config.Factory{}
+		explicit.SetUrl("https://factory.example.com")
+		explicit.SetPxeURL("https://custom-pxe.example.com")
+
+		u, err := explicit.PXEBaseURL()
+		require.NoError(t, err)
+		assert.Equal(t, "https://custom-pxe.example.com", u.String())
+
+		// without an explicit pxe URL, it is derived by prefixing the host with "pxe."
+		derived := config.Factory{}
+		derived.SetUrl("https://factory.example.com")
+
+		u, err = derived.PXEBaseURL()
+		require.NoError(t, err)
+		assert.Equal(t, "https://pxe.factory.example.com", u.String())
+	})
 }

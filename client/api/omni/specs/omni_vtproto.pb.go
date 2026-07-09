@@ -961,6 +961,7 @@ func (m *ClusterMachineConfigStatusSpec) CloneVT() *ClusterMachineConfigStatusSp
 	r.SchematicId = m.SchematicId
 	r.RedactedCurrentMachineConfig = m.RedactedCurrentMachineConfig
 	r.PreRebootBootId = m.PreRebootBootId
+	r.ImageFactoryUrl = m.ImageFactoryUrl
 	if rhs := m.CompressedRedactedMachineConfig; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -1182,6 +1183,8 @@ func (m *TalosVersionSpec) CloneVT() *TalosVersionSpec {
 	r.Version = m.Version
 	r.Deprecated = m.Deprecated
 	r.Unsupported = m.Unsupported
+	r.ImageFactoryUrl = m.ImageFactoryUrl
+	r.IsEnterprise = m.IsEnterprise
 	if rhs := m.CompatibleKubernetesVersions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -1859,6 +1862,8 @@ func (m *FeaturesConfigSpec) CloneVT() *FeaturesConfigSpec {
 	r.Account = m.Account.CloneVT()
 	r.IsEnterpriseImageFactory = m.IsEnterpriseImageFactory
 	r.PosthogSettings = m.PosthogSettings.CloneVT()
+	r.SecondaryImageFactoryBaseUrl = m.SecondaryImageFactoryBaseUrl
+	r.SecondaryImageFactoryPxeBaseUrl = m.SecondaryImageFactoryPxeBaseUrl
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2024,6 +2029,7 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) CloneVT() *MachineConfigGenOp
 	r.SchematicInvalid = m.SchematicInvalid
 	r.Platform = m.Platform
 	r.SecurityState = m.SecurityState.CloneVT()
+	r.ImageFactoryHost = m.ImageFactoryHost
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2965,6 +2971,7 @@ func (m *InstallationMediaConfigSpec) CloneVT() *InstallationMediaConfigSpec {
 	r.GrpcTunnel = m.GrpcTunnel
 	r.Bootloader = m.Bootloader
 	r.EmbeddedMachineConfig = m.EmbeddedMachineConfig
+	r.ImageFactoryUrl = m.ImageFactoryUrl
 	if rhs := m.InstallExtensions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -4606,6 +4613,9 @@ func (this *ClusterMachineConfigStatusSpec) EqualVT(that *ClusterMachineConfigSt
 	if this.PreRebootBootId != that.PreRebootBootId {
 		return false
 	}
+	if this.ImageFactoryUrl != that.ImageFactoryUrl {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -4876,6 +4886,12 @@ func (this *TalosVersionSpec) EqualVT(that *TalosVersionSpec) bool {
 		}
 	}
 	if this.Unsupported != that.Unsupported {
+		return false
+	}
+	if this.ImageFactoryUrl != that.ImageFactoryUrl {
+		return false
+	}
+	if this.IsEnterprise != that.IsEnterprise {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -5862,6 +5878,12 @@ func (this *FeaturesConfigSpec) EqualVT(that *FeaturesConfigSpec) bool {
 	if !this.PosthogSettings.EqualVT(that.PosthogSettings) {
 		return false
 	}
+	if this.SecondaryImageFactoryBaseUrl != that.SecondaryImageFactoryBaseUrl {
+		return false
+	}
+	if this.SecondaryImageFactoryPxeBaseUrl != that.SecondaryImageFactoryPxeBaseUrl {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -6083,6 +6105,9 @@ func (this *MachineConfigGenOptionsSpec_InstallImage) EqualVT(that *MachineConfi
 		return false
 	}
 	if !this.SecurityState.EqualVT(that.SecurityState) {
+		return false
+	}
+	if this.ImageFactoryHost != that.ImageFactoryHost {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7370,6 +7395,9 @@ func (this *InstallationMediaConfigSpec) EqualVT(that *InstallationMediaConfigSp
 		return false
 	}
 	if this.EmbeddedMachineConfig != that.EmbeddedMachineConfig {
+		return false
+	}
+	if this.ImageFactoryUrl != that.ImageFactoryUrl {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10492,6 +10520,13 @@ func (m *ClusterMachineConfigStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (in
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.ImageFactoryUrl) > 0 {
+		i -= len(m.ImageFactoryUrl)
+		copy(dAtA[i:], m.ImageFactoryUrl)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ImageFactoryUrl)))
+		i--
+		dAtA[i] = 0x62
+	}
 	if len(m.PreRebootBootId) > 0 {
 		i -= len(m.PreRebootBootId)
 		copy(dAtA[i:], m.PreRebootBootId)
@@ -11083,6 +11118,23 @@ func (m *TalosVersionSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.IsEnterprise {
+		i--
+		if m.IsEnterprise {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
+	}
+	if len(m.ImageFactoryUrl) > 0 {
+		i -= len(m.ImageFactoryUrl)
+		copy(dAtA[i:], m.ImageFactoryUrl)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ImageFactoryUrl)))
+		i--
+		dAtA[i] = 0x32
 	}
 	if m.Unsupported {
 		i--
@@ -12868,6 +12920,20 @@ func (m *FeaturesConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.SecondaryImageFactoryPxeBaseUrl) > 0 {
+		i -= len(m.SecondaryImageFactoryPxeBaseUrl)
+		copy(dAtA[i:], m.SecondaryImageFactoryPxeBaseUrl)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.SecondaryImageFactoryPxeBaseUrl)))
+		i--
+		dAtA[i] = 0x72
+	}
+	if len(m.SecondaryImageFactoryBaseUrl) > 0 {
+		i -= len(m.SecondaryImageFactoryBaseUrl)
+		copy(dAtA[i:], m.SecondaryImageFactoryBaseUrl)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.SecondaryImageFactoryBaseUrl)))
+		i--
+		dAtA[i] = 0x6a
+	}
 	if m.PosthogSettings != nil {
 		size, err := m.PosthogSettings.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -13384,6 +13450,13 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) MarshalToSizedBufferVT(dAtA [
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.ImageFactoryHost) > 0 {
+		i -= len(m.ImageFactoryHost)
+		copy(dAtA[i:], m.ImageFactoryHost)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ImageFactoryHost)))
+		i--
+		dAtA[i] = 0x42
 	}
 	if m.SecurityState != nil {
 		size, err := m.SecurityState.MarshalToSizedBufferVT(dAtA[:i])
@@ -15792,6 +15865,13 @@ func (m *InstallationMediaConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.ImageFactoryUrl) > 0 {
+		i -= len(m.ImageFactoryUrl)
+		copy(dAtA[i:], m.ImageFactoryUrl)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ImageFactoryUrl)))
+		i--
+		dAtA[i] = 0x6a
+	}
 	if len(m.EmbeddedMachineConfig) > 0 {
 		i -= len(m.EmbeddedMachineConfig)
 		copy(dAtA[i:], m.EmbeddedMachineConfig)
@@ -17774,6 +17854,10 @@ func (m *ClusterMachineConfigStatusSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	l = len(m.ImageFactoryUrl)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -17986,6 +18070,13 @@ func (m *TalosVersionSpec) SizeVT() (n int) {
 		}
 	}
 	if m.Unsupported {
+		n += 2
+	}
+	l = len(m.ImageFactoryUrl)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.IsEnterprise {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -18732,6 +18823,14 @@ func (m *FeaturesConfigSpec) SizeVT() (n int) {
 		l = m.PosthogSettings.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	l = len(m.SecondaryImageFactoryBaseUrl)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SecondaryImageFactoryPxeBaseUrl)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -18903,6 +19002,10 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) SizeVT() (n int) {
 	}
 	if m.SecurityState != nil {
 		l = m.SecurityState.SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ImageFactoryHost)
+	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -19874,6 +19977,10 @@ func (m *InstallationMediaConfigSpec) SizeVT() (n int) {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.Bootloader))
 	}
 	l = len(m.EmbeddedMachineConfig)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.ImageFactoryUrl)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -27443,6 +27550,38 @@ func (m *ClusterMachineConfigStatusSpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.PreRebootBootId = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ImageFactoryUrl", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ImageFactoryUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -28786,6 +28925,58 @@ func (m *TalosVersionSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.Unsupported = bool(v != 0)
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ImageFactoryUrl", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ImageFactoryUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsEnterprise", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsEnterprise = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -33370,6 +33561,70 @@ func (m *FeaturesConfigSpec) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SecondaryImageFactoryBaseUrl", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SecondaryImageFactoryBaseUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SecondaryImageFactoryPxeBaseUrl", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SecondaryImageFactoryPxeBaseUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -34473,6 +34728,38 @@ func (m *MachineConfigGenOptionsSpec_InstallImage) UnmarshalVT(dAtA []byte) erro
 			if err := m.SecurityState.UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ImageFactoryHost", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ImageFactoryHost = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -40865,6 +41152,38 @@ func (m *InstallationMediaConfigSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.EmbeddedMachineConfig = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ImageFactoryUrl", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ImageFactoryUrl = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

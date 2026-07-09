@@ -6,6 +6,7 @@
 package schematic
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -21,7 +22,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/image-factory/pkg/schematic"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -30,6 +30,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 )
@@ -37,22 +38,17 @@ import (
 // ConfigurationControllerName is the name of the SchematicConfiguration controller.
 const ConfigurationControllerName = "SchematicConfigurationController"
 
-// Ensurer can ensure a schematic exists in the image factory, i.e., an image factory client.
-type Ensurer interface {
-	EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error)
-}
-
 // ConfigurationController combines MachineExtensions resource, MachineStatus overlay into SchematicConfiguration for each existing MachineStatus.
 // Ensures schematic exists in the image factory.
 type ConfigurationController struct {
 	*qtransform.QController[*omni.MachineStatus, *omni.SchematicConfiguration]
-	imageFactoryClient Ensurer
+	imageFactoryClients omnictrl.ImageFactoryClientProvider
 }
 
 // NewConfigurationController initializes SchematicConfigurationController.
-func NewConfigurationController(imageFactoryClient Ensurer) *ConfigurationController {
+func NewConfigurationController(imageFactoryClients omnictrl.ImageFactoryClientProvider) *ConfigurationController {
 	ctrl := &ConfigurationController{
-		imageFactoryClient: imageFactoryClient,
+		imageFactoryClients: imageFactoryClients,
 	}
 
 	ctrl.QController = qtransform.NewQController(
@@ -98,6 +94,18 @@ func NewConfigurationController(imageFactoryClient Ensurer) *ConfigurationContro
 		qtransform.WithExtraMappedInput[*omni.KernelArgs](
 			qtransform.MapperSameID[*omni.MachineStatus](),
 		),
+		qtransform.WithExtraMappedInput[*omni.TalosVersion](
+			// The available Talos versions determine which factory serves each machine's schematic, so a
+			// change to the merged version set has to re-reconcile every machine's schematic configuration.
+			func(ctx context.Context, _ *zap.Logger, runtime controller.QRuntime, _ controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				msList, err := safe.ReaderListAll[*omni.MachineStatus](ctx, runtime)
+				if err != nil {
+					return nil, err
+				}
+
+				return slices.Collect(msList.Pointers()), nil
+			},
+		),
 		qtransform.WithExtraOutputs(
 			controller.Output{
 				Type: omni.MachineExtensionsStatusType,
@@ -119,8 +127,9 @@ func (ctrl *ConfigurationController) saveMachineExtensionStatus(ctx context.Cont
 	})
 }
 
+//nolint:gocyclo,cyclop
 func (ctrl *ConfigurationController) transform(ctx context.Context, r controller.ReaderWriter,
-	_ *zap.Logger, ms *omni.MachineStatus, schematicConfiguration *omni.SchematicConfiguration,
+	logger *zap.Logger, ms *omni.MachineStatus, schematicConfiguration *omni.SchematicConfiguration,
 ) error {
 	machineExtensions, err := safe.ReaderGetByID[*omni.MachineExtensions](ctx, r, ms.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
@@ -208,6 +217,8 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 		return err
 	}
 
+	versionOutdated := schematicConfiguration.TypedSpec().Value.TalosVersion != talosVersion
+
 	schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
 
 	// Patch only the fields Omni manages (extensions list, kernel args). Everything else
@@ -219,19 +230,41 @@ func (ctrl *ConfigurationController) transform(ctx context.Context, r controller
 		return fmt.Errorf("failed to patch schematic: %w", err)
 	}
 
-	// TODO(preserve-schematic): when the patched schematic is content-equal to the
-	// source raw (i.e. no Omni-driven customization changed anything), short-circuit
-	// the factory call and publish ms.Schematic.FullId directly.
-	factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
-	id, _, err := ctrl.imageFactoryClient.EnsureSchematic(factoryCtx, patched)
-
-	cancel()
-
+	factoryClient, err := ctrl.imageFactoryClients.ForTalosVersion(ctx, talosVersion)
 	if err != nil {
 		return err
 	}
 
-	schematicConfiguration.TypedSpec().Value.SchematicId = id
+	patchedRaw, err := patched.Marshal()
+	if err != nil {
+		return fmt.Errorf("failed to marshal patched schematic: %w", err)
+	}
+
+	// The desired schematic is content-equal to the one the machine already booted with, so no
+	// Omni-driven customization changed anything: skip the factory round-trip and publish the
+	// machine's own full schematic ID directly (it already carries the factory-assigned owner, if any).
+	if !bytes.Equal([]byte(ms.TypedSpec().Value.Schematic.Raw), patchedRaw) || versionOutdated {
+		factoryCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+
+		id, _, err := factoryClient.EnsureSchematic(factoryCtx, patched)
+
+		cancel()
+
+		if err != nil {
+			return err
+		}
+
+		logger.Info(
+			"generated new schematic",
+			zap.String("machine", ms.Metadata().ID()),
+			zap.String("talos_version", talosVersion),
+			zap.String("image_factory", factoryClient.Host()),
+			zap.String("schematic_id", id),
+		)
+
+		schematicConfiguration.TypedSpec().Value.SchematicId = id
+	}
+
 	machineExtensionsStatus.TypedSpec().Value.Extensions = computeMachineExtensionsStatus(ms, &customization)
 
 	return ctrl.saveMachineExtensionStatus(ctx, r, machineExtensionsStatus)
