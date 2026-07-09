@@ -158,9 +158,10 @@ func (client *Client) CreateSchematic(ctx context.Context, req *management.Creat
 }
 
 // CreateSchematicFromRaw creates a schematic from the raw schematic string using the image factory.
-func (client *Client) CreateSchematicFromRaw(ctx context.Context, schematic []byte) (*management.CreateSchematicResponse, error) {
+func (client *Client) CreateSchematicFromRaw(ctx context.Context, schematic []byte, talosVersion string) (*management.CreateSchematicResponse, error) {
 	req := &management.CreateSchematicFromRawRequest{
 		RawSchematic: schematic,
+		TalosVersion: talosVersion,
 	}
 
 	return client.conn.CreateSchematicFromRaw(ctx, req)

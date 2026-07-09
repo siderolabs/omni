@@ -9,6 +9,8 @@ package app
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
@@ -20,12 +22,12 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend"
 	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/backend/dns"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
@@ -84,13 +86,11 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		}
 	}
 
-	imageFactoryClient, err := imagefactory.NewClient(
-		cfg.Registries.GetImageFactoryBaseURL(),
-		cfg.Registries.GetImageFactoryUsername(),
-		cfg.Registries.GetImageFactoryPassword(),
-	)
+	primaryFactory := cfg.Registries.GetPrimaryFactory()
+
+	imageFactoryClients, err := setupImageFactoryClients(cfg, state)
 	if err != nil {
-		return fmt.Errorf("failed to set up image factory client: %w", err)
+		return err
 	}
 
 	linkCounterDeltaCh := make(chan siderolink.LinkCounterDeltas)
@@ -104,7 +104,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	lifecycleManager := lifecycle.NewManager(
 		logger.With(logging.Component("talos_lifecycle")),
-		imageFactoryClient.Host(),
+		imageFactoryClients,
 		cfg.Registries.GetTalos(),
 		kubernetesRuntime,
 		talosClientFactory,
@@ -113,7 +113,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	omniRuntime, err := omni.NewRuntime(
 		cfg, talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
-		imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
+		imageFactoryClients, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
 		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime, talosRuntime,
 		lifecycleManager, logger.With(logging.Component("omni_runtime")),
 	)
@@ -167,9 +167,9 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		return fmt.Errorf("failed to ensure ImageFactoryAuth resources: %w", err)
 	}
 
-	imageFactoryPXEBaseURL, err := cfg.GetImageFactoryPXEBaseURL()
+	factoryURLs, err := resolveFactoryURLs(&cfg.Registries)
 	if err != nil {
-		return fmt.Errorf("failed to get image factory PXE base URL: %w", err)
+		return err
 	}
 
 	if err = features.UpdateResources(ctx, state.Default(), logger, features.Params{
@@ -179,8 +179,10 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		EtcdBackupMinInterval:           cfg.EtcdBackup.GetMinInterval(),
 		EtcdBackupMaxInterval:           cfg.EtcdBackup.GetMaxInterval(),
 		AuditLogEnabled:                 cfg.Logs.Audit.GetEnabled(),
-		ImageFactoryBaseURL:             cfg.Registries.GetImageFactoryBaseURL(),
-		ImageFactoryPXEBaseURL:          imageFactoryPXEBaseURL,
+		ImageFactoryBaseURL:             primaryFactory.GetUrl(),
+		ImageFactoryPXEBaseURL:          factoryURLs.primaryPXE,
+		SecondaryImageFactoryBaseURL:    factoryURLs.secondaryBase,
+		SecondaryImageFactoryPXEBaseURL: factoryURLs.secondaryPXE,
 		UserPilotAppToken:               cfg.Account.UserPilot.GetAppToken(),
 		PosthogAPIKey:                   cfg.Account.Posthog.GetApiKey(),
 		PosthogAPIHost:                  cfg.Account.Posthog.GetApiHost(),
@@ -200,7 +202,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		state,
 		dnsService,
 		workloadProxyReconciler,
-		imageFactoryClient,
+		imageFactoryClients,
 		linkCounterDeltaCh,
 		siderolinkEventsCh,
 		installEventCh,
@@ -223,17 +225,29 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 	return nil
 }
 
-func ensureImageFactoryAuthResources(ctx context.Context, state *omni.State, config *config.Params) error {
+// ensureImageFactoryAuthResources creates an ImageFactoryAuth resource for each configured factory that
+// has credentials, and prunes the resources of the factories which are no longer configured.
+func ensureImageFactoryAuthResources(ctx context.Context, state *omni.State, cfg *config.Params) error {
+	factories := []config.Factory{cfg.Registries.GetPrimaryFactory()}
+
+	if secondary, ok := cfg.Registries.GetSecondaryFactory(); ok {
+		factories = append(factories, secondary)
+	}
+
 	visited := map[string]struct{}{}
 
-	if config.Registries.ImageFactoryUsername != nil && config.Registries.ImageFactoryPassword != nil {
-		// a single URL for now, but will be changed in the next PRs
-		url := config.Registries.GetImageFactoryBaseURL()
-		visited[url] = struct{}{}
+	for _, factory := range factories {
+		if factory.GetUsername() == "" || factory.GetPassword() == "" {
+			continue
+		}
 
-		if err := safe.StateModify(ctx, state.Default(), omnires.NewImageFactoryAuth(url), func(res *omnires.ImageFactoryAuth) error {
-			res.TypedSpec().Value.Username = config.Registries.GetImageFactoryUsername()
-			res.TypedSpec().Value.Password = config.Registries.GetImageFactoryPassword()
+		res := omnires.NewImageFactoryAuth(factory.GetUrl())
+
+		visited[res.Metadata().ID()] = struct{}{}
+
+		if err := safe.StateModify(ctx, state.Default(), res, func(res *omnires.ImageFactoryAuth) error {
+			res.TypedSpec().Value.Username = factory.GetUsername()
+			res.TypedSpec().Value.Password = factory.GetPassword()
 
 			return nil
 		}); err != nil {
@@ -255,4 +269,79 @@ func ensureImageFactoryAuthResources(ctx context.Context, state *omni.State, con
 	}
 
 	return nil
+}
+
+// factoryURLs holds the image factory endpoints published to the frontend via FeaturesConfig.
+type factoryURLs struct {
+	primaryPXE    *url.URL
+	secondaryBase string
+	secondaryPXE  string
+}
+
+// resolveFactoryURLs derives the PXE endpoints of the configured image factories and validates that
+// the primary and the secondary factory are actually distinct.
+func resolveFactoryURLs(registries *config.Registries) (factoryURLs, error) {
+	primary := registries.GetPrimaryFactory()
+
+	primaryPXE, err := primary.PXEBaseURL()
+	if err != nil {
+		return factoryURLs{}, fmt.Errorf("failed to get image factory PXE base URL: %w", err)
+	}
+
+	res := factoryURLs{primaryPXE: primaryPXE}
+
+	secondary, ok := registries.GetSecondaryFactory()
+	if !ok {
+		return res, nil
+	}
+
+	if strings.TrimRight(primary.GetUrl(), "/") == strings.TrimRight(secondary.GetUrl(), "/") {
+		return factoryURLs{}, fmt.Errorf("primary and secondary image factory URLs cannot be the same: %q", primary.GetUrl())
+	}
+
+	secondaryPXE, err := secondary.PXEBaseURL()
+	if err != nil {
+		return factoryURLs{}, fmt.Errorf("failed to get secondary image factory PXE base URL: %w", err)
+	}
+
+	res.secondaryBase = secondary.GetUrl()
+	res.secondaryPXE = secondaryPXE.String()
+
+	return res, nil
+}
+
+// setupImageFactoryClients builds the image factory clients for the primary and (optional) secondary factories.
+func setupImageFactoryClients(cfg *config.Params, state *omni.State) (*imagefactory.Clients, error) {
+	primaryFactory := cfg.Registries.GetPrimaryFactory()
+
+	imageFactoryClient, err := imagefactory.NewClient(
+		primaryFactory.GetUrl(),
+		primaryFactory.GetUsername(),
+		primaryFactory.GetPassword(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set up image factory client: %w", err)
+	}
+
+	clients := imagefactory.NewClients(
+		state.Default(),
+		imageFactoryClient,
+	)
+
+	if secondaryFactory, ok := cfg.Registries.GetSecondaryFactory(); ok {
+		var secondaryFactoryClient *imagefactory.Client
+
+		secondaryFactoryClient, err = imagefactory.NewClient(
+			secondaryFactory.GetUrl(),
+			secondaryFactory.GetUsername(),
+			secondaryFactory.GetPassword(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to set up secondary image factory client: %w", err)
+		}
+
+		clients.SetSecondary(secondaryFactoryClient)
+	}
+
+	return clients, nil
 }

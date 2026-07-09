@@ -38,6 +38,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/image"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/machineconfig"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -48,7 +49,7 @@ import (
 type Context struct {
 	talosClient            talosClientWrapper
 	omniState              state.State
-	imageFactoryClient     ImageFactoryClient
+	imageFactoryClients    *imagefactory.Clients
 	machineSetNodesMap     map[resource.ID]*omni.MachineSetNode
 	importedClusterSecrets *omni.ImportedClusterSecrets
 	controlPlaneMachineSet *omni.MachineSet
@@ -65,7 +66,7 @@ type Context struct {
 // BuildContext builds the import context by collecting information from the existing Talos cluster.
 //
 //nolint:gocyclo,cyclop
-func BuildContext(ctx context.Context, input Input, omniState state.State, imageFactoryClient ImageFactoryClient, talosClient TalosClient) (*Context, error) {
+func BuildContext(ctx context.Context, input Input, omniState state.State, imageFactoryClients *imagefactory.Clients, talosClient TalosClient) (*Context, error) {
 	input.logf("discovering Talos cluster state...")
 
 	talosCli := talosClientWrapper{talosClient}
@@ -170,7 +171,7 @@ func BuildContext(ctx context.Context, input Input, omniState state.State, image
 		return nil, fmt.Errorf("talos version %q is not compatible with kubernetes version %q", versions.TalosVersion, versions.KubernetesVersion)
 	}
 
-	return newContext(input, talosCli, imageFactoryClient, nodeInfoMap, joinOpts, omniState, clusterID, versions)
+	return newContext(input, talosCli, imageFactoryClients, nodeInfoMap, joinOpts, omniState, clusterID, versions)
 }
 
 type nodeInfo struct {
@@ -274,14 +275,14 @@ func collectNodeInfo(ctx context.Context, talosCli talosClientWrapper, node stri
 	return info, nil
 }
 
-func newContext(input Input, talosCli talosClientWrapper, imageFactoryClient ImageFactoryClient, nodeInfoMap map[string]nodeInfo,
+func newContext(input Input, talosCli talosClientWrapper, imageFactoryClients *imagefactory.Clients, nodeInfoMap map[string]nodeInfo,
 	joinOptions *siderolink.JoinOptions, omniState state.State, clusterID string, versions Versions,
 ) (*Context, error) {
 	importContext := &Context{
 		nodeInfoMap:         nodeInfoMap,
 		joinOptions:         joinOptions,
 		talosClient:         talosCli,
-		imageFactoryClient:  imageFactoryClient,
+		imageFactoryClients: imageFactoryClients,
 		omniState:           omniState,
 		input:               input,
 		ensuredSchematicIDs: map[string]struct{}{},
@@ -596,7 +597,12 @@ func (c *Context) ensureSchematic(ctx context.Context, info *nodeInfo) error {
 		return nil
 	}
 
-	ensuredSchematicID, schematicErr := c.imageFactoryClient.EnsureSchematic(ctx, *info.schematic)
+	imageFactoryClient, err := c.imageFactoryClients.ForTalosVersion(ctx, info.talosVersion.Tag)
+	if err != nil {
+		return fmt.Errorf("failed to get image factory client for Talos version %q: %w", info.talosVersion.Tag, err)
+	}
+
+	ensuredSchematicID, _, schematicErr := imageFactoryClient.EnsureSchematic(ctx, *info.schematic)
 	if schematicErr != nil {
 		return fmt.Errorf("failed to ensure schematic %q for node %q in image factory: %w", info.schematicID, info.hostname, schematicErr)
 	}

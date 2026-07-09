@@ -24,7 +24,7 @@ import (
 
 // FactoryClient ensures that the given schematic exists in the image factory.
 type FactoryClient interface {
-	EnsureSchematic(context.Context, schematic.Schematic) (string, error)
+	EnsureSchematic(context.Context, schematic.Schematic, string) (string, error)
 }
 
 // SchematicOptions is used during schematic ID generation.
@@ -244,5 +244,5 @@ provide them to the machine through another mechanism using the infrastructure p
 
 	logger.Info("creating schematic", zap.Reflect("schematic", res))
 
-	return context.imageFactory.EnsureSchematic(ctx, res)
+	return context.imageFactory.EnsureSchematic(ctx, res, context.GetTalosVersion())
 }

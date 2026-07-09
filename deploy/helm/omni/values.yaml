@@ -552,13 +552,43 @@ config:
     # Kubernetes is the Kubernetes container registry configuration.
     #kubernetes: ghcr.io/siderolabs/kubelet
     # ImageFactoryBaseURL is the base URL of the Image Factory service used to build custom machine images.
+    #
+    # Deprecated: use factories.primary.url instead.
     #imageFactoryBaseURL: https://factory.talos.dev
     # ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.
+    #
+    # Deprecated: use factories.primary.pxeURL instead.
     #imageFactoryPXEBaseURL: ""
     # ImageFactoryUsername is the username used to authenticate against the Image Factory Enterprise service.
+    #
+    # Deprecated: use factories.primary.username instead.
     #imageFactoryUsername: ""
     # ImageFactoryPassword is the password used to authenticate against the Image Factory Enterprise service.
+    #
+    # Deprecated: use factories.primary.password instead.
     #imageFactoryPassword: ""
+    # Factories contains the primary and secondary Image Factory configurations.
+    factories:
+      # Primary is the primary Image Factory configuration.
+      primary:
+        # URL is the base URL of the Image Factory service used to build custom machine images.
+        #url: ""
+        # PxeURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.
+        #pxeURL: ""
+        # Username is the username used to authenticate against the Image Factory Enterprise service.
+        #username: ""
+        # Password is the password used to authenticate against the Image Factory Enterprise service.
+        #password: ""
+      # Secondary is the secondary Image Factory configuration.
+      secondary:
+        # URL is the base URL of the Image Factory service used to build custom machine images.
+        #url: ""
+        # PxeURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.
+        #pxeURL: ""
+        # Username is the username used to authenticate against the Image Factory Enterprise service.
+        #username: ""
+        # Password is the password used to authenticate against the Image Factory Enterprise service.
+        #password: ""
     # Mirrors is the list of container image registry mirrors. Used mainly for the development purposes. It must be
     # in the format: <registry host>=<mirror URL>
     #mirrors: []

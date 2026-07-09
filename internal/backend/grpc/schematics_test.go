@@ -57,6 +57,7 @@ func (m *imageFactoryMock) serve(ctx context.Context) {
 	router := httprouter.New()
 	router.POST("/schematics", m.handleSchematics)
 	router.GET("/schematics/:id", m.handleSchematicGet)
+	router.GET("/versions", m.handleVersions)
 
 	server := http.Server{
 		Handler: router,
@@ -83,6 +84,20 @@ func (m *imageFactoryMock) serve(ctx context.Context) {
 
 		return nil
 	})
+}
+
+func (m *imageFactoryMock) handleVersions(rw http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	rw.Header().Add("Content-Type", "application/json")
+
+	resp, err := json.Marshal([]string{})
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(err.Error())) //nolint:errcheck
+
+		return
+	}
+
+	rw.Write(resp) //nolint:errcheck
 }
 
 func (m *imageFactoryMock) handleSchematics(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {

@@ -29,6 +29,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/clusterimport"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -86,7 +87,8 @@ func testImport(t *testing.T, options *TestOptions, clusterID string, clusterNod
 	logger := zaptest.NewLogger(t)
 
 	omniState := options.omniClient.Omni().State()
-	imageFactoryClient, err := clusterimport.BuildImageFactoryClient(ctx, omniState)
+
+	imageFactoryClients, err := imagefactory.NewClientsFromState(ctx, omniState)
 	require.NoError(t, err)
 
 	talosClient, err := clusterimport.BuildTalosClient(ctx, options.TalosconfigPath, "", "", nil)
@@ -101,7 +103,7 @@ func testImport(t *testing.T, options *TestOptions, clusterID string, clusterNod
 	require.True(t, state.IsNotFoundError(err))
 	require.Nil(t, cluster)
 
-	importContext, err := clusterimport.BuildContext(ctx, input, omniState, imageFactoryClient, talosClient)
+	importContext, err := clusterimport.BuildContext(ctx, input, omniState, imageFactoryClients, talosClient)
 	require.NoError(t, err)
 
 	defer importContext.Close() //nolint:errcheck

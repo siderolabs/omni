@@ -339,10 +339,29 @@ func defineEtcdClassWriteRateLimitFlags(b *FlagBinder, class string, cls *config
 func defineRegistriesFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.StringVar("registries.talos", &flagConfig.Registries.Talos)
 	b.StringVar("registries.kubernetes", &flagConfig.Registries.Kubernetes)
-	b.StringVar("registries.imageFactoryBaseURL", &flagConfig.Registries.ImageFactoryBaseURL)
-	b.StringVar("registries.imageFactoryPXEBaseURL", &flagConfig.Registries.ImageFactoryPXEBaseURL)
-	b.StringVar("registries.imageFactoryUsername", &flagConfig.Registries.ImageFactoryUsername)
-	b.StringVar("registries.imageFactoryPassword", &flagConfig.Registries.ImageFactoryPassword)
+
+	// Deprecated image factory flags, superseded by the --primary-factory-* flags below.
+	// These intentionally target the deprecated fields to preserve backward compatibility.
+	//nolint:staticcheck
+	b.deprecatedStringAlias("image-factory-address", "use --primary-factory-url", &flagConfig.Registries.ImageFactoryBaseURL)
+	//nolint:staticcheck
+	b.deprecatedStringAlias("image-factory-pxe-address", "use --primary-factory-pxe-url", &flagConfig.Registries.ImageFactoryPXEBaseURL)
+	//nolint:staticcheck
+	b.deprecatedStringAlias("image-factory-username", "use --primary-factory-username", &flagConfig.Registries.ImageFactoryUsername)
+	//nolint:staticcheck
+	b.deprecatedStringAlias("image-factory-password", "use --primary-factory-password", &flagConfig.Registries.ImageFactoryPassword)
+
+	primary := &flagConfig.Registries.Factories.Primary
+	b.StringVar("registries.factories.primary.url", &primary.Url)
+	b.StringVar("registries.factories.primary.pxeURL", &primary.PxeURL)
+	b.StringVar("registries.factories.primary.username", &primary.Username)
+	b.StringVar("registries.factories.primary.password", &primary.Password)
+
+	secondary := &flagConfig.Registries.Factories.Secondary
+	b.StringVar("registries.factories.secondary.url", &secondary.Url)
+	b.StringVar("registries.factories.secondary.pxeURL", &secondary.PxeURL)
+	b.StringVar("registries.factories.secondary.username", &secondary.Username)
+	b.StringVar("registries.factories.secondary.password", &secondary.Password)
 
 	b.StringSliceVar("registries.mirrors", &flagConfig.Registries.Mirrors, flagConfig.Registries.Mirrors)
 }

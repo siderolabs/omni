@@ -37,11 +37,11 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/management"
 	resapi "github.com/siderolabs/omni/client/api/omni/resources"
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
@@ -102,7 +102,7 @@ func (suite *GrpcSuite) SetupTest() {
 
 	suite.runtime, err = omniruntime.NewRuntime(
 		config.Default(), clientFactory, dnsService, workloadProxyReconciler, nil,
-		imageFactoryClient, nil, nil, nil, st,
+		imagefactory.NewClients(suite.state, imageFactoryClient), nil, nil, nil, st,
 		prometheus.NewRegistry(), discoveryClientCache, kubernetesRuntime, nil, nil, logging.IncreaseLevel(logger, zap.InfoLevel),
 	)
 	suite.Require().NoError(err)

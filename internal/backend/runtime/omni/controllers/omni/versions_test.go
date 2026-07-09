@@ -6,11 +6,18 @@
 package omni_test
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/image-factory/pkg/client"
+	"github.com/siderolabs/image-factory/pkg/schematic"
 	"github.com/siderolabs/talos/pkg/machinery/compatibility"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap/zaptest"
 
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
@@ -100,4 +107,115 @@ func Benchmark_ForAllCompatibleVersions(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+// stubFactoryClient is a minimal imagefactory.FactoryClient used to drive fetchTalosVersions. It is
+// defined here (rather than reusing testutils) because testutils imports this package.
+type stubFactoryClient struct {
+	err      error
+	url      string
+	versions []string
+}
+
+func (s *stubFactoryClient) URL() string { return s.url }
+
+func (s *stubFactoryClient) Host() string { return s.url }
+
+func (s *stubFactoryClient) Versions(context.Context) ([]string, error) {
+	return s.versions, s.err
+}
+
+func (s *stubFactoryClient) CachedIsEnterprise() bool { return false }
+
+func (s *stubFactoryClient) EnsureSchematic(context.Context, schematic.Schematic) (string, *schematic.Schematic, error) {
+	return "", nil, nil
+}
+
+func (s *stubFactoryClient) SchematicGet(context.Context, string) (*schematic.Schematic, error) {
+	return nil, nil //nolint:nilnil
+}
+
+func (s *stubFactoryClient) OverlaysVersions(context.Context, string) ([]client.OverlayInfo, error) {
+	return nil, nil
+}
+
+func (s *stubFactoryClient) ExtensionsVersions(context.Context, string) ([]client.ExtensionInfo, error) {
+	return nil, nil
+}
+
+func (s *stubFactoryClient) TalosctlList(context.Context, string) ([]string, error) { return nil, nil }
+
+func (s *stubFactoryClient) ScanReport(context.Context, string, string, string, string) ([]byte, error) {
+	return nil, nil
+}
+
+// TestFetchTalosVersions verifies the two configured factories are independent: a failure fetching one
+// never fails the other, the failed factory's URL is reported so its versions can be preserved, and the
+// primary still overwrites the secondary for versions present in both.
+func TestFetchTalosVersions(t *testing.T) {
+	t.Parallel()
+
+	logger := zaptest.NewLogger(t)
+
+	const (
+		primaryURL   = "https://primary.test"
+		secondaryURL = "https://secondary.test"
+	)
+
+	newClients := func(primary, secondary *stubFactoryClient) *imagefactory.Clients {
+		clients := imagefactory.NewClients(nil, primary)
+		if secondary != nil {
+			clients.SetSecondary(secondary)
+		}
+
+		return clients
+	}
+
+	t.Run("both succeed: primary overwrites shared versions, nothing failed", func(t *testing.T) {
+		t.Parallel()
+
+		clients := newClients(
+			&stubFactoryClient{url: primaryURL, versions: []string{"v1.13.0", "v1.13.5"}},
+			&stubFactoryClient{url: secondaryURL, versions: []string{"v1.13.5", "v1.14.0"}},
+		)
+
+		versionToFactory, failed := omni.FetchTalosVersions(t.Context(), clients, logger)
+
+		assert.Empty(t, failed)
+		assert.Equal(t, primaryURL, versionToFactory["1.13.0"].FactoryURL)
+		assert.Equal(t, primaryURL, versionToFactory["1.13.5"].FactoryURL) // primary overwrites the shared version
+		assert.Equal(t, secondaryURL, versionToFactory["1.14.0"].FactoryURL)
+	})
+
+	t.Run("secondary fails: it is reported and the primary is unaffected", func(t *testing.T) {
+		t.Parallel()
+
+		clients := newClients(
+			&stubFactoryClient{url: primaryURL, versions: []string{"v1.13.0"}},
+			&stubFactoryClient{url: secondaryURL, err: errors.New("503 service unavailable")},
+		)
+
+		versionToFactory, failed := omni.FetchTalosVersions(t.Context(), clients, logger)
+
+		assert.Contains(t, failed, secondaryURL)
+		assert.NotContains(t, failed, primaryURL)
+		assert.Equal(t, primaryURL, versionToFactory["1.13.0"].FactoryURL)
+		assert.NotContains(t, versionToFactory, "1.14.0") // a secondary-only version is simply not observed this cycle
+	})
+
+	t.Run("primary fails: it is reported and the secondary is unaffected", func(t *testing.T) {
+		t.Parallel()
+
+		clients := newClients(
+			&stubFactoryClient{url: primaryURL, err: errors.New("503 service unavailable")},
+			&stubFactoryClient{url: secondaryURL, versions: []string{"v1.13.5", "v1.14.0"}},
+		)
+
+		versionToFactory, failed := omni.FetchTalosVersions(t.Context(), clients, logger)
+
+		assert.Contains(t, failed, primaryURL)
+		assert.NotContains(t, failed, secondaryURL)
+		assert.Equal(t, secondaryURL, versionToFactory["1.13.5"].FactoryURL) // no primary result to overwrite it
+		assert.Equal(t, secondaryURL, versionToFactory["1.14.0"].FactoryURL)
+	})
 }

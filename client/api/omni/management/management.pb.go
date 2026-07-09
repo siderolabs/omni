@@ -1452,6 +1452,7 @@ type CreateSchematicRequest struct {
 	Overlay                  *CreateSchematicRequest_Overlay                 `protobuf:"bytes,9,opt,name=overlay,proto3" json:"overlay,omitempty"`
 	Bootloader               SchematicBootloader                             `protobuf:"varint,10,opt,name=bootloader,proto3,enum=management.SchematicBootloader" json:"bootloader,omitempty"`
 	EmbeddedMachineConfig    string                                          `protobuf:"bytes,11,opt,name=embedded_machine_config,json=embeddedMachineConfig,proto3" json:"embedded_machine_config,omitempty"`
+	ImageFactoryUrl          string                                          `protobuf:"bytes,12,opt,name=image_factory_url,json=imageFactoryUrl,proto3" json:"image_factory_url,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -1556,9 +1557,17 @@ func (x *CreateSchematicRequest) GetEmbeddedMachineConfig() string {
 	return ""
 }
 
+func (x *CreateSchematicRequest) GetImageFactoryUrl() string {
+	if x != nil {
+		return x.ImageFactoryUrl
+	}
+	return ""
+}
+
 type CreateSchematicFromRawRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RawSchematic  []byte                 `protobuf:"bytes,1,opt,name=raw_schematic,json=rawSchematic,proto3" json:"raw_schematic,omitempty"`
+	TalosVersion  string                 `protobuf:"bytes,2,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1598,6 +1607,13 @@ func (x *CreateSchematicFromRawRequest) GetRawSchematic() []byte {
 		return x.RawSchematic
 	}
 	return nil
+}
+
+func (x *CreateSchematicFromRawRequest) GetTalosVersion() string {
+	if x != nil {
+		return x.TalosVersion
+	}
+	return ""
 }
 
 type CreateSchematicResponse struct {
@@ -3521,7 +3537,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\fResponseType\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\f\n" +
 	"\bMANIFEST\x10\x01\x12\v\n" +
-	"\aROLLOUT\x10\x02\"\xa8\x06\n" +
+	"\aROLLOUT\x10\x02\"\xd4\x06\n" +
 	"\x16CreateSchematicRequest\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\x01 \x03(\tR\n" +
@@ -3539,7 +3555,8 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"bootloader\x18\n" +
 	" \x01(\x0e2\x1f.management.SchematicBootloaderR\n" +
 	"bootloader\x126\n" +
-	"\x17embedded_machine_config\x18\v \x01(\tR\x15embeddedMachineConfig\x1aM\n" +
+	"\x17embedded_machine_config\x18\v \x01(\tR\x15embeddedMachineConfig\x12*\n" +
+	"\x11image_factory_url\x18\f \x01(\tR\x0fimageFactoryUrl\x1aM\n" +
 	"\aOverlay\x12\x14\n" +
 	"\x05image\x18\x01 \x01(\tR\x05image\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
@@ -3550,9 +3567,10 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x18SiderolinkGRPCTunnelMode\x12\b\n" +
 	"\x04AUTO\x10\x00\x12\f\n" +
 	"\bDISABLED\x10\x01\x12\v\n" +
-	"\aENABLED\x10\x02J\x04\b\x06\x10\a\"D\n" +
+	"\aENABLED\x10\x02J\x04\b\x06\x10\a\"i\n" +
 	"\x1dCreateSchematicFromRawRequest\x12#\n" +
-	"\rraw_schematic\x18\x01 \x01(\fR\frawSchematic\"\xaa\x01\n" +
+	"\rraw_schematic\x18\x01 \x01(\fR\frawSchematic\x12#\n" +
+	"\rtalos_version\x18\x02 \x01(\tR\ftalosVersion\"\xaa\x01\n" +
 	"\x17CreateSchematicResponse\x12!\n" +
 	"\fschematic_id\x18\x01 \x01(\tR\vschematicId\x12\x17\n" +
 	"\apxe_url\x18\x02 \x01(\tR\x06pxeUrl\x12.\n" +

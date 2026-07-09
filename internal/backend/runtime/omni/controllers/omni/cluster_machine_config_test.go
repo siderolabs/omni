@@ -13,6 +13,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/go-retry/retry"
@@ -33,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/schematic"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/talosupgrade"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	conf "github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -50,15 +52,15 @@ type ClusterMachineConfigSuite struct {
 func (suite *ClusterMachineConfigSuite) registerControllers() {
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController(suite.kubernetesRuntime)))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(schematic.NewConfigurationController(&imageFactoryClientMock{})))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(imageFactoryHost, nil, "ghcr.io/siderolabs/installer", conf.Registries{})))
+	suite.Require().NoError(suite.runtime.RegisterQController(schematic.NewConfigurationController(testutils.NewFactoryClientSet())))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", conf.Registries{})))
 	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewSecretsController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(secrets.NewSecretRotationStatusController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterStatusController(false)))
 	suite.Require().NoError(suite.runtime.RegisterQController(talosupgrade.NewStatusController(nil)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineConfigGenOptionsController(testutils.NewFactoryClientSet())))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewSiderolinkAPIConfigController(testMachineAPIURL, testSiderolinkCfg)))
 	suite.Require().NoError(suite.runtime.RegisterQController(newMockJoinTokenUsageController[*siderolink.Link]()))
@@ -67,7 +69,10 @@ func (suite *ClusterMachineConfigSuite) registerControllers() {
 func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	suite.startRuntime()
 
-	createJoinParams(suite.ctx, suite.state, suite.T())
+	ctx, cancel := context.WithTimeout(suite.ctx, 10*time.Second)
+	defer cancel()
+
+	createJoinParams(ctx, suite.state, suite.T())
 
 	suite.registerControllers()
 
@@ -75,7 +80,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	cluster, machines := suite.createClusterWithTalosVersion(clusterName, 1, 1, "1.10.0")
 
 	_, err := safe.StateUpdateWithConflicts(
-		suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
+		ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
 			patches, err := config.TypedSpec().Value.GetUncompressedPatches()
 			suite.Require().NoError(err)
@@ -91,9 +96,11 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	suite.Require().NoError(err)
 
 	for i, m := range machines {
-		assertResource(
-			&suite.OmniSuite,
-			*omni.NewClusterMachineConfig(m.Metadata().ID()).Metadata(),
+		rtestutils.AssertResources(
+			ctx,
+			suite.T(),
+			suite.state,
+			[]string{m.Metadata().ID()},
 			func(cfg *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 				buffer, bufferErr := cfg.TypedSpec().Value.GetUncompressedData()
 				suite.Require().NoError(bufferErr)
@@ -129,7 +136,7 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 	newImage := fmt.Sprintf("%s:v1.0.2", conf.Default().Registries.GetTalos())
 
 	_, err = safe.StateUpdateWithConflicts(
-		suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
+		ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
 			patches, patchesErr := config.TypedSpec().Value.GetUncompressedPatches()
 			suite.Require().NoError(patchesErr)
@@ -144,9 +151,11 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 
 	suite.Require().NoError(err)
 
-	assertResource(
-		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
+	rtestutils.AssertResources(
+		ctx,
+		suite.T(),
+		suite.state,
+		[]string{machines[0].Metadata().ID()},
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			spec := res.TypedSpec().Value
 
@@ -176,6 +185,9 @@ func (suite *ClusterMachineConfigSuite) TestReconcile() {
 func (suite *ClusterMachineConfigSuite) TestGeneratePreserveFeatures() {
 	suite.startRuntime()
 
+	ctx, cancel := context.WithTimeout(suite.ctx, 10*time.Second)
+	defer cancel()
+
 	createJoinParams(suite.ctx, suite.state, suite.T())
 
 	suite.registerControllers()
@@ -192,9 +204,11 @@ func (suite *ClusterMachineConfigSuite) TestGeneratePreserveFeatures() {
 
 	suite.Require().NoError(err)
 
-	assertResource(
-		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
+	rtestutils.AssertResources(
+		ctx,
+		suite.T(),
+		suite.state,
+		[]string{machines[0].Metadata().ID()},
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			spec := res.TypedSpec().Value
 
@@ -224,7 +238,10 @@ func (suite *ClusterMachineConfigSuite) TestGeneratePreserveFeatures() {
 func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 	suite.startRuntime()
 
-	createJoinParams(suite.ctx, suite.state, suite.T())
+	ctx, cancel := context.WithTimeout(suite.ctx, 10*time.Second)
+	defer cancel()
+
+	createJoinParams(ctx, suite.state, suite.T())
 
 	suite.registerControllers()
 
@@ -234,7 +251,7 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 	suite.Require().Greater(len(machines), 0)
 
 	_, err := safe.StateUpdateWithConflicts(
-		suite.ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
+		ctx, suite.state, omni.NewClusterMachineConfigPatches(machines[0].Metadata().ID()).Metadata(),
 		func(config *omni.ClusterMachineConfigPatches) error {
 			patches, err := config.TypedSpec().Value.GetUncompressedPatches()
 			suite.Require().NoError(err)
@@ -251,9 +268,11 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 
 	suite.Require().NoError(err)
 
-	assertResource(
-		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
+	rtestutils.AssertResources(
+		ctx,
+		suite.T(),
+		suite.state,
+		[]string{machines[0].Metadata().ID()},
 		func(cfg *omni.ClusterMachineConfig, assert *assert.Assertions) {
 			expectedError := "yaml: construct errors"
 
@@ -272,7 +291,10 @@ func (suite *ClusterMachineConfigSuite) TestGenerationError() {
 func (suite *ClusterMachineConfigSuite) TestConfigEncodingStability() {
 	suite.startRuntime()
 
-	createJoinParams(suite.ctx, suite.state, suite.T())
+	ctx, cancel := context.WithTimeout(suite.ctx, 10*time.Second)
+	defer cancel()
+
+	createJoinParams(ctx, suite.state, suite.T())
 
 	suite.registerControllers()
 
@@ -298,7 +320,10 @@ func (suite *ClusterMachineConfigSuite) TestConfigEncodingStability() {
 func (suite *ClusterMachineConfigSuite) TestGenerateWithoutComments() {
 	suite.startRuntime()
 
-	createJoinParams(suite.ctx, suite.state, suite.T())
+	ctx, cancel := context.WithTimeout(suite.ctx, 10*time.Second)
+	defer cancel()
+
+	createJoinParams(ctx, suite.state, suite.T())
 
 	suite.registerControllers()
 
@@ -440,9 +465,14 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 		err                  error
 	)
 
-	assertResource( // assert the initialConfig and initialize the previousConfig with it
-		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(machines[0].Metadata().ID()).Metadata(),
+	ctx, cancel := context.WithTimeout(suite.ctx, 10*time.Second)
+	defer cancel()
+
+	rtestutils.AssertResources( // assert the initialConfig and initialize the previousConfig with it
+		ctx,
+		suite.T(),
+		suite.state,
+		[]string{machines[0].Metadata().ID()},
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			buffer, bufferErr := res.TypedSpec().Value.GetUncompressedData()
 			suite.Require().NoError(bufferErr)
@@ -544,9 +574,14 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityTo(previousTa
 	})
 	suite.Require().NoError(err)
 
-	assertResource(
-		&suite.OmniSuite,
-		*omni.NewClusterMachineConfig(machineID).Metadata(),
+	ctx, cancel := context.WithTimeout(suite.ctx, 10*time.Second)
+	defer cancel()
+
+	rtestutils.AssertResources(
+		ctx,
+		suite.T(),
+		suite.state,
+		[]string{machineID},
 		func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
 			spec := res.TypedSpec().Value
 

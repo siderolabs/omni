@@ -15,15 +15,17 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic/cleanup"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/image-factory/pkg/schematic"
 	"go.uber.org/zap"
+
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 )
 
-// ImageFactoryClient is the contract Omni controllers rely on for interacting with the image factory.
-type ImageFactoryClient interface {
-	EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error)
-	SchematicGet(ctx context.Context, id string) (*schematic.Schematic, error)
-	Host() string
+// ImageFactoryClientProvider gives Omni controllers access to the configured image factory clients.
+type ImageFactoryClientProvider interface {
+	Primary() imagefactory.FactoryClient
+	Secondary() (imagefactory.FactoryClient, bool)
+	ForTalosVersion(ctx context.Context, version string) (imagefactory.FactoryClient, error)
+	ForHost(host string) imagefactory.FactoryClient
 }
 
 type cleanupOptions struct {

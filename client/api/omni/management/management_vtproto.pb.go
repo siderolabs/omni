@@ -457,6 +457,7 @@ func (m *CreateSchematicRequest) CloneVT() *CreateSchematicRequest {
 	r.Overlay = m.Overlay.CloneVT()
 	r.Bootloader = m.Bootloader
 	r.EmbeddedMachineConfig = m.EmbeddedMachineConfig
+	r.ImageFactoryUrl = m.ImageFactoryUrl
 	if rhs := m.Extensions; rhs != nil {
 		tmpContainer := make([]string, len(rhs))
 		copy(tmpContainer, rhs)
@@ -490,6 +491,7 @@ func (m *CreateSchematicFromRawRequest) CloneVT() *CreateSchematicFromRawRequest
 		return (*CreateSchematicFromRawRequest)(nil)
 	}
 	r := new(CreateSchematicFromRawRequest)
+	r.TalosVersion = m.TalosVersion
 	if rhs := m.RawSchematic; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -1672,6 +1674,9 @@ func (this *CreateSchematicRequest) EqualVT(that *CreateSchematicRequest) bool {
 	if this.EmbeddedMachineConfig != that.EmbeddedMachineConfig {
 		return false
 	}
+	if this.ImageFactoryUrl != that.ImageFactoryUrl {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1689,6 +1694,9 @@ func (this *CreateSchematicFromRawRequest) EqualVT(that *CreateSchematicFromRawR
 		return false
 	}
 	if string(this.RawSchematic) != string(that.RawSchematic) {
+		return false
+	}
+	if this.TalosVersion != that.TalosVersion {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3584,6 +3592,13 @@ func (m *CreateSchematicRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.ImageFactoryUrl) > 0 {
+		i -= len(m.ImageFactoryUrl)
+		copy(dAtA[i:], m.ImageFactoryUrl)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.ImageFactoryUrl)))
+		i--
+		dAtA[i] = 0x62
+	}
 	if len(m.EmbeddedMachineConfig) > 0 {
 		i -= len(m.EmbeddedMachineConfig)
 		copy(dAtA[i:], m.EmbeddedMachineConfig)
@@ -3699,6 +3714,13 @@ func (m *CreateSchematicFromRawRequest) MarshalToSizedBufferVT(dAtA []byte) (int
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.TalosVersion) > 0 {
+		i -= len(m.TalosVersion)
+		copy(dAtA[i:], m.TalosVersion)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.TalosVersion)))
+		i--
+		dAtA[i] = 0x12
 	}
 	if len(m.RawSchematic) > 0 {
 		i -= len(m.RawSchematic)
@@ -5639,6 +5661,10 @@ func (m *CreateSchematicRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	l = len(m.ImageFactoryUrl)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -5650,6 +5676,10 @@ func (m *CreateSchematicFromRawRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	l = len(m.RawSchematic)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TalosVersion)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -9241,6 +9271,38 @@ func (m *CreateSchematicRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.EmbeddedMachineConfig = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ImageFactoryUrl", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ImageFactoryUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -9325,6 +9387,38 @@ func (m *CreateSchematicFromRawRequest) UnmarshalVT(dAtA []byte) error {
 			if m.RawSchematic == nil {
 				m.RawSchematic = []byte{}
 			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TalosVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TalosVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

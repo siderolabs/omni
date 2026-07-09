@@ -18,8 +18,9 @@ import {
   VirtualNamespace,
 } from '@/api/resources'
 import { getDocsLink } from '@/methods'
-import { useFeatures, useIsEnterprise } from '@/methods/features'
-import { useImageFactoryAuth, withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
+import { useIsEnterprise } from '@/methods/features'
+import { withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
+import { useResolvedFactory } from '@/methods/useResolvedFactory'
 import { useResourceGet } from '@/methods/useResourceGet'
 
 export function usePresetDownloadLinks(
@@ -28,8 +29,6 @@ export function usePresetDownloadLinks(
 ) {
   const isMetal = computed(() => !toValue(presetRef).cloud && !toValue(presetRef).sbc)
 
-  const { data: features } = useFeatures()
-  const auth = useImageFactoryAuth()
   const isEnterpriseFactory = useIsEnterprise()
 
   const { data: selectedCloudProvider } = useResourceGet<PlatformConfigSpec>(() => ({
@@ -70,17 +69,27 @@ export function usePresetDownloadLinks(
     }
   })
 
+  // Resolve which configured factory this preset targets. The preset stores the factory URL it was
+  // created against; when that URL is no longer among the configured factories the preset is orphaned
+  // and its images can no longer be downloaded.
+  const {
+    base: factoryBaseURL,
+    pxe: factoryPxeBaseURL,
+    credentials,
+    orphaned,
+  } = useResolvedFactory(() => toValue(presetRef).image_factory_url)
+
   const imageBaseURL = computed(() =>
     withImageFactoryAuth(
-      `${features.value?.spec.image_factory_base_url}/image/${toValue(schematicId)}/${toValue(presetRef).talos_version}`,
-      auth.value,
+      `${factoryBaseURL.value}/image/${toValue(schematicId)}/${toValue(presetRef).talos_version}`,
+      credentials.value,
     ),
   )
 
   const pxeBaseURL = computed(() =>
     withImageFactoryAuth(
-      `${features.value?.spec.image_factory_pxe_base_url}/pxe/${toValue(schematicId)}/${toValue(presetRef).talos_version}`,
-      auth.value,
+      `${factoryPxeBaseURL.value}/pxe/${toValue(schematicId)}/${toValue(presetRef).talos_version}`,
+      credentials.value,
     ),
   )
 
@@ -236,5 +245,5 @@ export function usePresetDownloadLinks(
       })
   })
 
-  return { links }
+  return { links, orphaned }
 }

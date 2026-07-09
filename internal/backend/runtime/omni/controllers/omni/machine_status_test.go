@@ -7,7 +7,6 @@ package omni_test
 
 import (
 	"context"
-	"net/http"
 	"testing"
 	"time"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	factoryclient "github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/constants"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
@@ -32,26 +30,8 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
-
-type imageFactoryClientMock struct{}
-
-func (i *imageFactoryClientMock) EnsureSchematic(_ context.Context, sch schematic.Schematic) (string, *schematic.Schematic, error) {
-	id, err := sch.ID()
-	if err != nil {
-		return "", nil, err
-	}
-
-	return id, &sch, nil
-}
-
-func (i *imageFactoryClientMock) SchematicGet(_ context.Context, _ string) (*schematic.Schematic, error) {
-	return nil, &factoryclient.HTTPError{Code: http.StatusNotFound, Message: "not found"}
-}
-
-func (i *imageFactoryClientMock) Host() string {
-	return "image.factory.test"
-}
 
 type MachineStatusSuite struct {
 	OmniSuite
@@ -78,7 +58,7 @@ func (suite *MachineStatusSuite) setup() {
 	exraKernelArgsInitializer, err := kernelargs.NewInitializer(suite.state, logger)
 	suite.Require().NoError(err)
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusController(&imageFactoryClientMock{}, exraKernelArgsInitializer)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineStatusController(testutils.NewFactoryClientSet(), exraKernelArgsInitializer)))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewMachineJoinConfigController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(newMockJoinTokenUsageController[*omni.Machine]()))
 }

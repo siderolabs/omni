@@ -32,7 +32,7 @@ const installDiskMinSize = 5e9 // 5GB
 type MachineConfigGenOptionsController = qtransform.QController[*omni.MachineStatus, *omni.MachineConfigGenOptions]
 
 // NewMachineConfigGenOptionsController initializes MachineConfigGenOptionsController.
-func NewMachineConfigGenOptionsController() *MachineConfigGenOptionsController {
+func NewMachineConfigGenOptionsController(imageFactoryClients ImageFactoryClientProvider) *MachineConfigGenOptionsController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.MachineStatus, *omni.MachineConfigGenOptions]{
 			Name: MachineConfigGenOptionsControllerName,
@@ -48,7 +48,32 @@ func NewMachineConfigGenOptionsController() *MachineConfigGenOptionsController {
 					return err
 				}
 
-				GenInstallConfig(machineStatus, clusterMachineTalosVersion, options)
+				var (
+					talosVersion string
+					schematicID  string
+				)
+
+				if clusterMachineTalosVersion != nil {
+					talosVersion = clusterMachineTalosVersion.TypedSpec().Value.TalosVersion
+					schematicID = clusterMachineTalosVersion.TypedSpec().Value.SchematicId
+				}
+
+				imageFactoryClient, err := imageFactoryClients.ForTalosVersion(ctx, talosVersion)
+				if err != nil {
+					return err
+				}
+
+				imageFactoryHost := imageFactoryClient.Host()
+
+				// Migration code: do not change image factory URL if it was already set in the options and the Talos version and schematic ID match the cluster machine Talos version.
+				// Image factory URL will only be upgraded when the Talos version or schematic ID changes, or when the image factory URL is empty.
+				if options.TypedSpec().Value.InstallImage != nil && clusterMachineTalosVersion != nil &&
+					(options.TypedSpec().Value.InstallImage.TalosVersion == talosVersion &&
+						options.TypedSpec().Value.InstallImage.SchematicId == schematicID) {
+					imageFactoryHost = options.TypedSpec().Value.InstallImage.ImageFactoryHost
+				}
+
+				GenInstallConfig(machineStatus, clusterMachineTalosVersion, options, imageFactoryHost)
 
 				return nil
 			},
@@ -61,12 +86,13 @@ func NewMachineConfigGenOptionsController() *MachineConfigGenOptionsController {
 }
 
 // GenInstallConfig creates a config patch with an automatically picked install disk.
-func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVersion *omni.ClusterMachineTalosVersion, genOptions *omni.MachineConfigGenOptions) {
+func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVersion *omni.ClusterMachineTalosVersion, genOptions *omni.MachineConfigGenOptions, imageFactoryHost string) {
 	if clusterMachineTalosVersion != nil {
 		genOptions.TypedSpec().Value.InstallImage = omni.NewInstallImage(
 			machineStatus,
 			clusterMachineTalosVersion.TypedSpec().Value.TalosVersion,
 			clusterMachineTalosVersion.TypedSpec().Value.SchematicId,
+			imageFactoryHost,
 			machineStatus.TypedSpec().Value.SchematicReady(),
 		)
 	}

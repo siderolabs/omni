@@ -31,6 +31,7 @@ import (
 	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -40,7 +41,6 @@ import (
 	virtualres "github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 	pkgruntime "github.com/siderolabs/omni/client/pkg/runtime"
 	"github.com/siderolabs/omni/internal/backend/dns"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/powerstage"
@@ -105,7 +105,7 @@ type Runtime struct {
 //
 //nolint:maintidx
 func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dnsService *dns.Service, workloadProxyReconciler *workloadproxy.Reconciler,
-	resourceLogger *resourcelogger.Logger, imageFactoryClient *imagefactory.Client, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
+	resourceLogger *resourcelogger.Logger, imageFactoryClients *imagefactory.Clients, linkCounterDeltaCh <-chan siderolink.LinkCounterDeltas,
 	siderolinkEventsCh <-chan *omni.MachineStatusSnapshot, installEventCh <-chan cosiresource.ID, st *State, metricsRegistry prometheus.Registerer,
 	discoveryClientCache omnictrl.DiscoveryClientCache, kubernetesRuntime omnictrl.KubernetesRuntime, talosRuntime omnictrl.TalosClientGetter,
 	lifecycleManager *lifecycle.Manager, logger *zap.Logger,
@@ -179,7 +179,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		},
 		omnictrl.NewMachineCleanupController(),
 		omnictrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines()),
-		omnictrl.NewVersionsController(imageFactoryClient, st.Default(), cfg.Features.GetEnableTalosPreReleaseVersions(), cfg.Registries.GetKubernetes()),
+		omnictrl.NewVersionsController(imageFactoryClients, st.Default(), cfg.Features.GetEnableTalosPreReleaseVersions(), cfg.Registries.GetKubernetes()),
 		omnictrl.NewClusterLoadBalancerController(
 			cfg.Services.LoadBalancer.GetMinPort(),
 			cfg.Services.LoadBalancer.GetMaxPort(),
@@ -196,7 +196,6 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		authctrl.NewPublicKeyCleanupController(),
 	}
 
-	imageFactoryHost := imageFactoryClient.Host()
 	peers := siderolink.NewPeersPool(logger, siderolink.DefaultWireguardHandler)
 
 	exraKernelArgsInitializer, err := kernelargs.NewInitializer(defaultState, logger)
@@ -216,14 +215,13 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewClusterEndpointController(),
 		omnictrl.NewClusterKubernetesNodesController(),
 		omnictrl.NewClusterMachineConfigController(
-			imageFactoryHost,
 			cfg.Registries.Mirrors,
 			cfg.Registries.GetTalos(),
 			cfg.Registries,
 		),
 		omnictrl.NewClusterMachineTeardownController(omnictrl.NewGetKubernetesClientFunc(kubernetesRuntime)),
-		omnictrl.NewMachineConfigGenOptionsController(),
-		omnictrl.NewMachineStatusController(imageFactoryClient, exraKernelArgsInitializer),
+		omnictrl.NewMachineConfigGenOptionsController(imageFactoryClients),
+		omnictrl.NewMachineStatusController(imageFactoryClients, exraKernelArgsInitializer),
 		machineconfig.NewExtractionController(machineconfig.NewReader(talosClientFactory)),
 		machineconfig.NewStatusController(lifecycleManager),
 		omnictrl.NewClusterMachineEncryptionKeyController(),
@@ -245,11 +243,11 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewMachineSetNodeController(),
 		omnictrl.NewMachineSetEtcdAuditController(talosClientFactory, time.Minute),
 		redactedmachineconfig.NewController(redactedmachineconfig.ControllerOptions{}),
-		schematic.NewConfigurationController(imageFactoryClient),
+		schematic.NewConfigurationController(imageFactoryClients),
 		secrets.NewSecretsController(etcdBackupStoreFactory),
 		&secrets.ImportedClusterSecretsCleanupController{},
 		secrets.NewTalosConfigController(constants.CertificateValidityTime),
-		omnictrl.NewTalosExtensionsController(imageFactoryClient),
+		omnictrl.NewTalosExtensionsController(imageFactoryClients),
 		omnictrl.NewMachineStatusSnapshotController(siderolinkEventsCh, powerStageEventsCh),
 		omnictrl.NewMachineProvisionController(),
 		omnictrl.NewMachineRequestLinkController(defaultState),
@@ -281,7 +279,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewNodeUniqueTokenCleanupController(time.Minute),
 		clustermachine.NewConfigPatchesController(),
 		secrets.NewSecretRotationStatusController(&secrets.KubernetesClientFactory{}),
-		machineupgrade.NewStatusController(lifecycleManager),
+		machineupgrade.NewStatusController(imageFactoryClients, lifecycleManager),
 		kernelargsctrl.NewStatusController(),
 		talosupgrade.NewStatusController(kubernetesRuntime),
 		infraprovider.NewCombinedStatusController(constants.InfraProviderHealthCheckInterval),

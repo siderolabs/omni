@@ -43,6 +43,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -51,7 +52,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/backend/dns"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
+	imagefactoryinternal "github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
@@ -99,7 +100,7 @@ type LifecycleManager interface {
 }
 
 func newManagementServer(cfg *config.Params, omniState state.State, jwtSigningKeyProvider JWTSigningKeyProvider, logHandler *siderolinkinternal.LogHandler, logger *zap.Logger,
-	dnsService *dns.Service, imageFactoryClient *imagefactory.Client, auditor AuditLogger, omniconfigDest string,
+	dnsService *dns.Service, imageFactoryClients *imagefactory.Clients, auditor AuditLogger, omniconfigDest string,
 	kubernetesRuntime KubernetesRuntime, talosRuntime TalosRuntime, talosconfigProvider TalosconfigProvider,
 	lifecycleManager LifecycleManager,
 ) *managementServer {
@@ -110,7 +111,7 @@ func newManagementServer(cfg *config.Params, omniState state.State, jwtSigningKe
 		logHandler:            logHandler,
 		logger:                logger,
 		dnsService:            dnsService,
-		imageFactoryClient:    imageFactoryClient,
+		imageFactoryClients:   imageFactoryClients,
 		auditor:               auditor,
 		omniconfigDest:        omniconfigDest,
 		kubernetesRuntime:     kubernetesRuntime,
@@ -143,7 +144,7 @@ type managementServer struct {
 	logHandler            *siderolinkinternal.LogHandler
 	logger                *zap.Logger
 	dnsService            *dns.Service
-	imageFactoryClient    *imagefactory.Client
+	imageFactoryClients   *imagefactory.Clients
 	lifecycleManager      LifecycleManager
 	management.UnimplementedManagementServiceServer
 	omniState      state.State
@@ -763,6 +764,33 @@ func validateAuditLogFollowRequest(req *management.ReadAuditLogRequest) error {
 	return nil
 }
 
+func (s *managementServer) ensureSchematic(ctx context.Context, talosVersion string, machineStatus *omnires.MachineStatus) (string, string, error) {
+	factoryClient, err := s.imageFactoryClients.ForTalosVersion(ctx, talosVersion)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get image factory client for Talos version %q: %w", talosVersion, err)
+	}
+
+	schematicSpec := machineStatus.TypedSpec().Value.GetSchematic()
+
+	id := schematicSpec.GetFullId()
+
+	if schematicSpec.GetFullId() != "" && schematicSpec.GetRaw() != "" && !schematicSpec.GetInvalid() && !schematicSpec.GetInAgentMode() {
+		patched, patchErr := imagefactoryinternal.PatchSchematic(schematicSpec.GetRaw(), schematicSpec.GetExtensions(), schematicSpec.GetKernelArgs())
+		if patchErr != nil {
+			return "", "", fmt.Errorf("failed to patch schematic: %w", patchErr)
+		}
+
+		ensureCtx, cancel := context.WithTimeout(ctx, time.Minute)
+		defer cancel()
+
+		if id, _, err = factoryClient.EnsureSchematic(ensureCtx, patched); err != nil {
+			return "", "", fmt.Errorf("failed to ensure schematic on factory %q: %w", factoryClient.URL(), err)
+		}
+	}
+
+	return id, factoryClient.URL(), nil
+}
+
 // MaintenanceUpgrade performs a maintenance upgrade on a specified machine.
 func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *management.MaintenanceUpgradeRequest) (*management.MaintenanceUpgradeResponse, error) {
 	s.logger.Info("maintenance upgrade request received", zap.String("machine_id", req.MachineId), zap.String("version", req.Version))
@@ -817,16 +845,27 @@ func (s *managementServer) MaintenanceUpgrade(ctx context.Context, req *manageme
 		return nil, status.Error(codes.FailedPrecondition, "machine security state is not known yet")
 	}
 
+	schematicID, factoryURL, err := s.ensureSchematic(ctx, req.Version, machineStatus)
+	if err != nil {
+		return nil, err
+	}
+
+	factoryURLParsed, err := url.Parse(factoryURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse factory URL %q: %w", factoryURL, err)
+	}
+
 	installImage := &specs.MachineConfigGenOptionsSpec_InstallImage{
 		TalosVersion:         req.Version,
-		SchematicId:          machineStatus.TypedSpec().Value.Schematic.FullId,
+		SchematicId:          schematicID,
 		SchematicInitialized: true,
 		SchematicInvalid:     machineStatus.TypedSpec().Value.Schematic.Invalid,
 		Platform:             platform,
 		SecurityState:        securityState,
+		ImageFactoryHost:     factoryURLParsed.Host,
 	}
 
-	installImageStr, err := installimage.Build(s.imageFactoryClient.Host(), req.MachineId, installImage, s.cfg.Registries.GetTalos())
+	installImageStr, err := installimage.Build(req.MachineId, installImage, s.cfg.Registries.GetTalos())
 	if err != nil {
 		return nil, fmt.Errorf("failed to build install image: %w", err)
 	}
@@ -977,9 +1016,27 @@ func (s *managementServer) MaintenanceLifecycle(
 		}
 	}
 
+	var (
+		schematicID string
+		factoryURL  string
+	)
+
+	// Register the machine's schematic on the factory that serves the target Talos version, so the
+	// lifecycle manager (which resolves that same factory from the version) can pull the installer.
+	if schematicID, factoryURL, err = s.ensureSchematic(ctx, req.Version, machineStatus); err != nil {
+		return err
+	}
+
 	// Detach the operation from the client stream so it keeps running even if the client disconnects. There
 	// is no overall deadline: each stage of Run bounds itself.
 	runCtx := context.WithoutCancel(authCtx)
+
+	factoryURLParsed, err := url.Parse(factoryURL)
+	if err != nil {
+		return fmt.Errorf("failed to parse factory URL %q: %w", factoryURL, err)
+	}
+
+	installImage := omnires.NewInstallImage(machineStatus, req.Version, schematicID, factoryURLParsed.Host, true)
 
 	operation := lifecycle.Operation{
 		MachineID:     req.MachineId,
@@ -987,6 +1044,7 @@ func (s *managementServer) MaintenanceLifecycle(
 		Kind:          opKind,
 		Version:       req.Version,
 		Disk:          req.Disk,
+		InstallImage:  installImage,
 	}
 
 	err = s.lifecycleManager.Run(

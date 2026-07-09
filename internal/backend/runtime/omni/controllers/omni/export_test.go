@@ -6,10 +6,14 @@
 package omni
 
 import (
+	"context"
+
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/siderolabs/talos/pkg/machinery/compatibility"
 	"github.com/siderolabs/talos/pkg/machinery/config"
+	"go.uber.org/zap"
 
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 )
@@ -28,4 +32,10 @@ func GetMachineSetNodeSortFunction(machineStatuses map[resource.ID]*system.Resou
 
 func StripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error) {
 	return stripTalosAPIAccessOSAdminRole(cfg)
+}
+
+func FetchTalosVersions(
+	ctx context.Context, imageFactoryClients *imagefactory.Clients, logger *zap.Logger,
+) (versionToFactory map[string]talosVersionSource, failedFactoryURLs map[string]struct{}) {
+	return fetchTalosVersions(ctx, imageFactoryClients, logger)
 }

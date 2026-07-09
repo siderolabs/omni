@@ -146,7 +146,8 @@
       "required": [
         "talos",
         "kubernetes",
-        "imageFactoryBaseURL"
+        "imageFactoryBaseURL",
+        "factories"
       ],
       "dependentRequired": {
         "imageFactoryUsername": ["imageFactoryPassword"],
@@ -175,8 +176,9 @@
         },
         "imageFactoryBaseURL": {
           "type": "string",
-          "description": "ImageFactoryBaseURL is the base URL of the Image Factory service used to build custom machine images.",
+          "description": "ImageFactoryBaseURL is the base URL of the Image Factory service used to build custom machine images.\n\nDeprecated: use factories.primary.url instead.",
           "x-cli-flag": "image-factory-address",
+          "deprecated": true,
           "minLength": 1,
           "default": "https://factory.talos.dev",
           "goJSONSchema": {
@@ -184,19 +186,26 @@
           }
         },
         "imageFactoryPXEBaseURL": {
-          "description": "ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.",
+          "description": "ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.\n\nDeprecated: use factories.primary.pxeURL instead.",
           "x-cli-flag": "image-factory-pxe-address",
+          "deprecated": true,
           "type": "string"
         },
         "imageFactoryUsername": {
-          "description": "ImageFactoryUsername is the username used to authenticate against the Image Factory Enterprise service.",
+          "description": "ImageFactoryUsername is the username used to authenticate against the Image Factory Enterprise service.\n\nDeprecated: use factories.primary.username instead.",
           "x-cli-flag": "image-factory-username",
+          "deprecated": true,
           "type": "string"
         },
         "imageFactoryPassword": {
-          "description": "ImageFactoryPassword is the password used to authenticate against the Image Factory Enterprise service.",
+          "description": "ImageFactoryPassword is the password used to authenticate against the Image Factory Enterprise service.\n\nDeprecated: use factories.primary.password instead.",
           "x-cli-flag": "image-factory-password",
+          "deprecated": true,
           "type": "string"
+        },
+        "factories": {
+          "description": "Factories contains the primary and secondary Image Factory configurations.",
+          "$ref": "#/definitions/Factories"
         },
         "mirrors": {
           "description": "Mirrors is the list of container image registry mirrors. Used mainly for the development purposes. It must be in the format: <registry host>=<mirror URL>",
@@ -210,6 +219,60 @@
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    "Factories": {
+      "type": "object",
+      "required": [
+        "primary",
+        "secondary"
+      ],
+      "properties": {
+        "primary": {
+          "description": "Primary is the primary Image Factory configuration.",
+          "$ref": "#/definitions/Factory",
+          "properties": {
+            "url": { "x-cli-flag": "primary-factory-url" },
+            "pxeURL": { "x-cli-flag": "primary-factory-pxe-url" },
+            "username": { "x-cli-flag": "primary-factory-username" },
+            "password": { "x-cli-flag": "primary-factory-password" }
+          }
+        },
+        "secondary": {
+          "description": "Secondary is the secondary Image Factory configuration.",
+          "$ref": "#/definitions/Factory",
+          "properties": {
+            "url": { "x-cli-flag": "secondary-factory-url" },
+            "pxeURL": { "x-cli-flag": "secondary-factory-pxe-url" },
+            "username": { "x-cli-flag": "secondary-factory-username" },
+            "password": { "x-cli-flag": "secondary-factory-password" }
+          }
+        }
+      }
+    },
+    "Factory": {
+      "type": "object",
+      "dependentRequired": {
+        "username": ["password"],
+        "password": ["username"]
+      },
+      "properties": {
+        "url": {
+          "description": "URL is the base URL of the Image Factory service used to build custom machine images.",
+          "type": "string"
+        },
+        "pxeURL": {
+          "description": "PxeURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.",
+          "type": "string"
+        },
+        "username": {
+          "description": "Username is the username used to authenticate against the Image Factory Enterprise service.",
+          "type": "string"
+        },
+        "password": {
+          "description": "Password is the password used to authenticate against the Image Factory Enterprise service.",
+          "type": "string"
         }
       }
     },

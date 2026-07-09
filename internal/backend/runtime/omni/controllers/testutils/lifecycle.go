@@ -9,9 +9,11 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"testing"
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +21,7 @@ import (
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
@@ -28,6 +31,15 @@ const (
 	testImageFactoryHost = "factory-test.talos.dev"
 	testTalosRegistry    = "ghcr.io/siderolabs/installer"
 )
+
+// NewImageFactoryClients builds an image factory client set with a single primary factory at the test
+// host, backed by the given state (used to resolve the per-Talos-version factory via ForTalosVersion).
+func NewImageFactoryClients(t *testing.T, st state.State) *imagefactory.Clients {
+	c, err := imagefactory.NewClient("https://"+testImageFactoryHost, "", "")
+	require.NoError(t, err)
+
+	return imagefactory.NewClients(st, c)
+}
 
 // FakeKubernetesProvider implements lifecycle.KubernetesClientProvider, returning a fixed clientset for any cluster.
 type FakeKubernetesProvider struct {
@@ -100,10 +112,10 @@ func (f socketTalosClientFactory) GetForMachine(ctx context.Context, machineID s
 
 // NewLifecycleManager builds a real lifecycle.Manager wired to a Talos client factory that reaches the
 // machine mocks over their sockets and to the given Kubernetes client provider.
-func NewLifecycleManager(st state.State, k8sProvider lifecycle.KubernetesClientProvider) *lifecycle.Manager {
+func NewLifecycleManager(t *testing.T, st state.State, k8sProvider lifecycle.KubernetesClientProvider) *lifecycle.Manager {
 	return lifecycle.NewManager(
 		zap.NewNop(),
-		testImageFactoryHost,
+		NewImageFactoryClients(t, st),
 		testTalosRegistry,
 		k8sProvider,
 		socketTalosClientFactory{st: st},

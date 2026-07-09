@@ -479,6 +479,50 @@ func (s *EulaAccept) SetName(v string) {
 	s.Name = &v
 }
 
+func (s *Factory) GetPassword() string {
+	if s == nil || s.Password == nil {
+		return *new(string)
+	}
+	return *s.Password
+}
+
+func (s *Factory) SetPassword(v string) {
+	s.Password = &v
+}
+
+func (s *Factory) GetPxeURL() string {
+	if s == nil || s.PxeURL == nil {
+		return *new(string)
+	}
+	return *s.PxeURL
+}
+
+func (s *Factory) SetPxeURL(v string) {
+	s.PxeURL = &v
+}
+
+func (s *Factory) GetUrl() string {
+	if s == nil || s.Url == nil {
+		return *new(string)
+	}
+	return *s.Url
+}
+
+func (s *Factory) SetUrl(v string) {
+	s.Url = &v
+}
+
+func (s *Factory) GetUsername() string {
+	if s == nil || s.Username == nil {
+		return *new(string)
+	}
+	return *s.Username
+}
+
+func (s *Factory) SetUsername(v string) {
+	s.Username = &v
+}
+
 func (s *Features) GetDisableControllerRuntimeCache() bool {
 	if s == nil || s.DisableControllerRuntimeCache == nil {
 		return *new(bool)

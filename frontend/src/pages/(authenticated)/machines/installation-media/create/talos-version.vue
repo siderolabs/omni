@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { compare } from 'semver'
-import { computed, onBeforeMount } from 'vue'
+import { computed, onBeforeMount, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
@@ -81,6 +81,22 @@ const joinTokens = computed(() => [
 ])
 
 const resolvedTalosVersion = computed(() => resolveTalosVersion(formState.value.talosVersion))
+
+// Track which factory serves the selected version (the primary factory wins on the merged list), so
+// the preset records its factory and downloads can be blocked once that factory is deconfigured.
+const resolvedFactoryURL = computed(
+  () =>
+    talosVersionList.value.find((v) => v.spec.version === resolvedTalosVersion.value)?.spec
+      .image_factory_url,
+)
+
+watch(
+  resolvedFactoryURL,
+  (url) => {
+    formState.value.imageFactoryUrl = url
+  },
+  { immediate: true },
+)
 
 // Form defaults
 onBeforeMount(() => {

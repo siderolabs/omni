@@ -63,7 +63,6 @@ type LifecycleManager interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
 	FinalizeReboot(ctx context.Context, opts ...lifecycle.Option) error
-	ImageFactoryHost() string
 	TalosRegistry() string
 }
 
@@ -541,11 +540,16 @@ func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *za
 	if installed.atTarget {
 		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = installed.version
 		rc.machineConfigStatus.TypedSpec().Value.SchematicId = installed.schematic
+		rc.machineConfigStatus.TypedSpec().Value.ImageFactoryHost = installed.factoryHost
 
 		return true, nil
 	}
 
-	image, err := installimage.Build(ctrl.lifecycleManager.ImageFactoryHost(), rc.ID(), rc.installImage, ctrl.lifecycleManager.TalosRegistry())
+	if rc.installImage.ImageFactoryHost == "" {
+		return false, xerrors.NewTagged[qtransform.SkipReconcileTag](fmt.Errorf("machine '%s' does not have image factory host", rc.ID()))
+	}
+
+	image, err := installimage.Build(rc.ID(), rc.installImage, ctrl.lifecycleManager.TalosRegistry())
 	if err != nil {
 		return false, err
 	}
@@ -639,6 +643,7 @@ func (ctrl *StatusController) runMaintenanceLifecycle(
 	if installed.atTarget && omni.GetMachineStatusSystemDisk(rc.machineStatus) != "" {
 		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = installed.version
 		rc.machineConfigStatus.TypedSpec().Value.SchematicId = installed.schematic
+		rc.machineConfigStatus.TypedSpec().Value.ImageFactoryHost = installed.factoryHost
 
 		return true, nil
 	}
@@ -729,6 +734,7 @@ func (ctrl *StatusController) runClusterLifecycle(
 	if installed.atTarget {
 		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = installed.version
 		rc.machineConfigStatus.TypedSpec().Value.SchematicId = installed.schematic
+		rc.machineConfigStatus.TypedSpec().Value.ImageFactoryHost = installed.factoryHost
 
 		return true, nil
 	}
@@ -803,6 +809,7 @@ func (ctrl *StatusController) runClusterLifecycle(
 type installedImage struct {
 	version          string
 	schematic        string
+	factoryHost      string
 	currentSchematic string
 	atTarget         bool
 }
@@ -826,6 +833,7 @@ func (ctrl *StatusController) checkInstalledImage(
 		return installedImage{
 			version:          actualVersion,
 			schematic:        "",
+			factoryHost:      "",
 			atTarget:         actualVersion == rc.installImage.TalosVersion,
 			currentSchematic: "",
 		}, nil
@@ -840,6 +848,7 @@ func (ctrl *StatusController) checkInstalledImage(
 			return installedImage{
 				version:          actualVersion,
 				schematic:        "",
+				factoryHost:      "",
 				atTarget:         actualVersion == rc.installImage.TalosVersion,
 				currentSchematic: "",
 			}, nil
@@ -851,6 +860,7 @@ func (ctrl *StatusController) checkInstalledImage(
 	return installedImage{
 		version:          actualVersion,
 		schematic:        rc.installImage.SchematicId,
+		factoryHost:      rc.installImage.ImageFactoryHost,
 		currentSchematic: schematicInfo.FullID,
 		atTarget:         actualVersion == rc.installImage.TalosVersion && schematicInfo.FullID == rc.installImage.SchematicId,
 	}, nil

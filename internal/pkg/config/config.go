@@ -213,25 +213,6 @@ func (p *Params) Validate(schema *jsonschema.Schema) error {
 
 var localIP = getLocalIPOrEmpty()
 
-// GetImageFactoryPXEBaseURL reads image factory PXE address from the args.
-func (p *Params) GetImageFactoryPXEBaseURL() (*url.URL, error) {
-	pxeBaseURL := p.Registries.GetImageFactoryPXEBaseURL()
-	if pxeBaseURL != "" {
-		return url.Parse(pxeBaseURL)
-	}
-
-	factoryBaseURL := p.Registries.GetImageFactoryBaseURL()
-
-	url, err := url.Parse(factoryBaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid URL specified for the image factory: %w", err)
-	}
-
-	url.Host = fmt.Sprintf("pxe.%s", url.Host)
-
-	return url, nil
-}
-
 // GetOIDCIssuerEndpoint returns the OIDC issuer endpoint.
 func (p *Params) GetOIDCIssuerEndpoint() (string, error) {
 	u, err := url.Parse(p.Services.Api.URL())
@@ -249,19 +230,57 @@ func (p *Params) GetOIDCIssuerEndpoint() (string, error) {
 
 // Environment variable names that override config values after merging.
 const (
+	// EnvImageFactoryUsername and EnvImageFactoryPassword set the deprecated flat imageFactory*
+	// fields.
+	//
+	// Deprecated: use EnvPrimaryFactoryUsername/EnvPrimaryFactoryPassword instead.
 	EnvImageFactoryUsername = "OMNI_IMAGE_FACTORY_USERNAME"
+	// Deprecated: use EnvPrimaryFactoryUsername/EnvPrimaryFactoryPassword instead.
 	EnvImageFactoryPassword = "OMNI_IMAGE_FACTORY_PASSWORD"
+
+	EnvPrimaryFactoryUsername   = "OMNI_PRIMARY_FACTORY_USERNAME"
+	EnvPrimaryFactoryPassword   = "OMNI_PRIMARY_FACTORY_PASSWORD"
+	EnvSecondaryFactoryUsername = "OMNI_SECONDARY_FACTORY_USERNAME"
+	EnvSecondaryFactoryPassword = "OMNI_SECONDARY_FACTORY_PASSWORD"
 )
 
 // applyEnvOverrides overrides config values from environment variables, when set.
-// Env overrides win over all other sources (defaults, files, flags).
+//
+// It runs after the config file and flags have been merged, so the environment always wins over
+// the input it targets. The per-factory vars set factories.{primary,secondary}.* directly, while
+// the deprecated pair sets the flat imageFactory* fields that GetPrimaryFactory only consults as a
+// fallback. The resulting precedence for the primary factory credentials is therefore:
+//
+//	OMNI_PRIMARY_FACTORY_* > factories.primary.* > OMNI_IMAGE_FACTORY_* > flat imageFactory*
+//
+// Note that the schema requires a username and a password to be set together, so supplying only
+// one half of a pair fails validation.
 func (p *Params) applyEnvOverrides() {
+	//nolint:staticcheck
 	if v, ok := os.LookupEnv(EnvImageFactoryUsername); ok {
 		p.Registries.SetImageFactoryUsername(v)
 	}
 
+	//nolint:staticcheck
 	if v, ok := os.LookupEnv(EnvImageFactoryPassword); ok {
 		p.Registries.SetImageFactoryPassword(v)
+	}
+
+	for _, factory := range []struct {
+		target      *Factory
+		usernameEnv string
+		passwordEnv string
+	}{
+		{target: &p.Registries.Factories.Primary, usernameEnv: EnvPrimaryFactoryUsername, passwordEnv: EnvPrimaryFactoryPassword},
+		{target: &p.Registries.Factories.Secondary, usernameEnv: EnvSecondaryFactoryUsername, passwordEnv: EnvSecondaryFactoryPassword},
+	} {
+		if v, ok := os.LookupEnv(factory.usernameEnv); ok {
+			factory.target.SetUsername(v)
+		}
+
+		if v, ok := os.LookupEnv(factory.passwordEnv); ok {
+			factory.target.SetPassword(v)
+		}
 	}
 }
 

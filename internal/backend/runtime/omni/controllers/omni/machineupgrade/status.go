@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -21,6 +22,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -32,18 +34,19 @@ import (
 type LifecycleManager interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
-	ImageFactoryHost() string
 	TalosRegistry() string
 }
 
 type StatusController struct {
 	*qtransform.QController[*omni.MachineStatus, *omni.MachineUpgradeStatus]
-	lifecycleManager LifecycleManager
+	lifecycleManager    LifecycleManager
+	imageFactoryClients *imagefactory.Clients
 }
 
-func NewStatusController(lifecycleManager LifecycleManager) *StatusController {
+func NewStatusController(imageFactoryClients *imagefactory.Clients, lifecycleManager LifecycleManager) *StatusController {
 	ctrl := &StatusController{
-		lifecycleManager: lifecycleManager,
+		lifecycleManager:    lifecycleManager,
+		imageFactoryClients: imageFactoryClients,
 	}
 
 	ctrl.QController = qtransform.NewQController(
@@ -197,12 +200,27 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		return nil
 	}
 
+	// The SchematicConfiguration controller stores the Talos version without the leading "v", while the
+	// machine status may report it with the prefix, so compare the normalized values.
+	if strings.TrimLeft(schematicConfiguration.TypedSpec().Value.TalosVersion, "v") != strings.TrimLeft(talosVersion, "v") {
+		status.TypedSpec().Value.Status = "waiting for schematic to be in sync with the Talos version"
+		status.TypedSpec().Value.Error = ""
+
+		return nil
+	}
+
+	imageFactoryClient, err := ctrl.imageFactoryClients.ForTalosVersion(ctx, talosVersion)
+	if err != nil {
+		return fmt.Errorf("failed to get image factory client for Talos version %q: %w", talosVersion, err)
+	}
+
 	installImage := &specs.MachineConfigGenOptionsSpec_InstallImage{
 		TalosVersion:         talosVersion,
 		SchematicId:          desiredSchematicID,
 		SchematicInitialized: true,
 		Platform:             platform,
 		SecurityState:        securityState,
+		ImageFactoryHost:     imageFactoryClient.Host(),
 	}
 
 	schematicMismatch := schematicSpec.FullId != desiredSchematicID
@@ -298,7 +316,7 @@ func (ctrl *StatusController) lifecycleUpgrade(ctx context.Context, logger *zap.
 func (ctrl *StatusController) legacyUpgrade(ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) error {
 	machineID := ms.Metadata().ID()
 
-	installImageStr, err := installimage.Build(ctrl.lifecycleManager.ImageFactoryHost(), machineID, installImage, ctrl.lifecycleManager.TalosRegistry())
+	installImageStr, err := installimage.Build(machineID, installImage, ctrl.lifecycleManager.TalosRegistry())
 	if err != nil {
 		return fmt.Errorf("failed to build install image: %w", err)
 	}

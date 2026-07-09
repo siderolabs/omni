@@ -5,11 +5,14 @@
 package download_test
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
@@ -351,20 +354,13 @@ func TestImageFactoryCredentials(t *testing.T) {
 
 	ctx := t.Context()
 
-	newFeatures := func(enterprise bool) *omni.FeaturesConfig {
-		features := omni.NewFeaturesConfig(omni.FeaturesConfigID)
-		features.TypedSpec().Value.IsEnterpriseImageFactory = enterprise
-
-		return features
-	}
-
 	t.Run("public factory returns no credentials without reading the auth resource", func(t *testing.T) {
 		t.Parallel()
 
 		// State is intentionally empty: a public factory must not require the auth resource.
 		st := newTestState(t)
 
-		username, password, err := download.ImageFactoryCredentials(ctx, st, newFeatures(false))
+		username, password, err := download.ImageFactoryCredentials(ctx, st, "")
 		require.NoError(t, err)
 		require.Empty(t, username)
 		require.Empty(t, password)
@@ -380,24 +376,51 @@ func TestImageFactoryCredentials(t *testing.T) {
 		auth.TypedSpec().Value.Password = "s3cr3t"
 		require.NoError(t, st.Create(ctx, auth))
 
-		features := newFeatures(true)
-		features.TypedSpec().Value.ImageFactoryBaseUrl = "https://factory.example.org"
-
-		username, password, err := download.ImageFactoryCredentials(ctx, st, features)
+		username, password, err := download.ImageFactoryCredentials(ctx, st, auth.Metadata().ID())
 		require.NoError(t, err)
 		require.Equal(t, "omni-e2e-test", username)
 		require.Equal(t, "s3cr3t", password)
 	})
 
-	t.Run("enterprise factory errors when the auth resource is missing", func(t *testing.T) {
+	t.Run("trims a trailing slash off the factory URL", func(t *testing.T) {
 		t.Parallel()
 
 		st := newTestState(t)
 
-		_, _, err := download.ImageFactoryCredentials(ctx, st, newFeatures(true))
+		auth := omni.NewImageFactoryAuth("https://factory.example.org")
+		auth.TypedSpec().Value.Username = "omni-e2e-test"
+		auth.TypedSpec().Value.Password = "s3cr3t"
+		require.NoError(t, st.Create(ctx, auth))
+
+		username, password, err := download.ImageFactoryCredentials(ctx, st, "https://factory.example.org/")
+		require.NoError(t, err)
+		require.Equal(t, "omni-e2e-test", username)
+		require.Equal(t, "s3cr3t", password)
+	})
+
+	t.Run("propagates a lookup failure that is not NotFound", func(t *testing.T) {
+		t.Parallel()
+
+		// A missing auth resource means "public factory" and is handled above; any other failure has to
+		// surface instead of silently downgrading to anonymous downloads.
+		st := failingGetState{State: newTestState(t), err: errors.New("state is unavailable")}
+
+		_, _, err := download.ImageFactoryCredentials(ctx, st, "https://factory.example.org")
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to get image factory auth")
+		require.Contains(t, err.Error(), "state is unavailable")
 	})
+}
+
+// failingGetState is a state.State whose Get always fails with a non-NotFound error.
+type failingGetState struct {
+	state.State
+
+	err error
+}
+
+func (s failingGetState) Get(context.Context, resource.Pointer, ...state.GetOption) (resource.Resource, error) {
+	return nil, s.err
 }
 
 func TestGrpcTunnelModeToString(t *testing.T) {

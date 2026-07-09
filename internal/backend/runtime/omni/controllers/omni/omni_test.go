@@ -60,7 +60,7 @@ const (
 	unixSocket       = "unix://"
 	defaultSchematic = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
 
-	imageFactoryHost = "factory-test.talos.dev"
+	imageFactoryHost = "image.factory.test"
 )
 
 // emptySchematicRaw is the marshaled form of an empty schematic — used as the default Raw
@@ -636,8 +636,8 @@ func (suite *OmniSuite) destroyClusterByID(clusterID string) {
 	rtestutils.Destroy[*omni.ClusterConfigVersion](ctx, suite.T(), suite.state, []string{clusterID})
 	rtestutils.Destroy[*omni.Cluster](ctx, suite.T(), suite.state, []string{clusterID})
 
-	assertNoResource[*omni.BackupData](suite, omni.NewBackupData(clusterID))
-	assertNoResource[*omni.EtcdBackupStatus](suite, omni.NewEtcdBackupStatus(clusterID))
+	rtestutils.AssertNoResource[*omni.BackupData](ctx, suite.T(), suite.state, clusterID)
+	rtestutils.AssertNoResource[*omni.EtcdBackupStatus](ctx, suite.T(), suite.state, clusterID)
 }
 
 func newMockJoinTokenUsageController[T generic.ResourceWithRD]() *qtransform.QController[T, *siderolink.JoinTokenUsage] {

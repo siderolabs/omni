@@ -18,9 +18,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 )
 
 // TalosExtensionsController creates omni.TalosExtensions for each omni.TalosVersion.
@@ -29,7 +29,7 @@ import (
 type TalosExtensionsController = qtransform.QController[*omni.TalosVersion, *omni.TalosExtensions]
 
 // NewTalosExtensionsController instantiates the TalosExtensions controller.
-func NewTalosExtensionsController(imageFactoryClient *imagefactory.Client) *TalosExtensionsController {
+func NewTalosExtensionsController(imageFactoryClients *imagefactory.Clients) *TalosExtensionsController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.TalosVersion, *omni.TalosExtensions]{
 			Name: "TalosExtensionsController",
@@ -42,6 +42,11 @@ func NewTalosExtensionsController(imageFactoryClient *imagefactory.Client) *Talo
 			TransformFunc: func(ctx context.Context, _ controller.Reader, _ *zap.Logger, version *omni.TalosVersion, extensionsResource *omni.TalosExtensions) error {
 				ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 				defer cancel()
+
+				imageFactoryClient := imageFactoryClients.ForURL(version.TypedSpec().Value.ImageFactoryUrl)
+				if imageFactoryClient == nil {
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("no image factory client configured for URL %q", version.TypedSpec().Value.ImageFactoryUrl)
+				}
 
 				versions, err := imageFactoryClient.Versions(ctx)
 				if err != nil {

@@ -515,6 +515,7 @@ export type ClusterMachineConfigStatusSpec = {
   redacted_current_machine_config?: string
   compressed_redacted_machine_config?: Uint8Array
   pre_reboot_boot_id?: string
+  image_factory_url?: string
 }
 
 export type MachinePendingUpdatesSpecUpgrade = {
@@ -574,6 +575,8 @@ export type TalosVersionSpec = {
   deprecated?: boolean
   upgradable_talos_versions?: string[]
   unsupported?: boolean
+  image_factory_url?: string
+  is_enterprise?: boolean
 }
 
 export type InstallationMediaSpec = {
@@ -766,6 +769,8 @@ export type FeaturesConfigSpec = {
   account?: Account
   is_enterprise_image_factory?: boolean
   posthog_settings?: PosthogSettings
+  secondary_image_factory_base_url?: string
+  secondary_image_factory_pxe_base_url?: string
 }
 
 export type UserPilotSettings = {
@@ -813,6 +818,7 @@ export type MachineConfigGenOptionsSpecInstallImage = {
   schematic_invalid?: boolean
   platform?: string
   security_state?: SecurityState
+  image_factory_host?: string
 }
 
 export type MachineConfigGenOptionsSpec = {
@@ -1072,6 +1078,7 @@ export type InstallationMediaConfigSpec = {
   machine_labels?: {[key: string]: string}
   bootloader?: ManagementManagement.SchematicBootloader
   embedded_machine_config?: string
+  image_factory_url?: string
 }
 
 export type RotateTalosCASpec = {

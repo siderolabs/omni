@@ -27,7 +27,7 @@ type ClientOptions struct {
 }
 
 // EnsureSchematic creates the schematic in the image factory.
-func (se DirectClient) EnsureSchematic(ctx context.Context, schematic schematic.Schematic) (string, error) {
+func (se DirectClient) EnsureSchematic(ctx context.Context, schematic schematic.Schematic, _ string) (string, error) {
 	callCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -68,13 +68,13 @@ func NewProxiedClient(client *omniclient.Client) (*ProxiedClient, error) {
 }
 
 // EnsureSchematic creates the schematic in the image factory through Omni API.
-func (pc *ProxiedClient) EnsureSchematic(ctx context.Context, schematic schematic.Schematic) (string, error) {
+func (pc *ProxiedClient) EnsureSchematic(ctx context.Context, schematic schematic.Schematic, talosVersion string) (string, error) {
 	data, err := schematic.Marshal()
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal schematic: %w", err)
 	}
 
-	resp, err := pc.client.Management().CreateSchematicFromRaw(ctx, data)
+	resp, err := pc.client.Management().CreateSchematicFromRaw(ctx, data, talosVersion)
 	if err != nil {
 		return "", fmt.Errorf("failed to create schematic through Omni API: %w", err)
 	}

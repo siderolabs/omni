@@ -10,9 +10,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -24,6 +26,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/google/uuid"
 	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/image-factory/pkg/client"
 	imagefactoryconstants "github.com/siderolabs/image-factory/pkg/constants"
 	"github.com/siderolabs/image-factory/pkg/schematic"
 	clusterapi "github.com/siderolabs/talos/pkg/machinery/api/cluster"
@@ -53,6 +56,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/siderolabs/omni/client/pkg/clusterimport"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
@@ -150,26 +154,74 @@ func (f *mockHealthCheckClient) CloseSend() error {
 }
 
 type mockImageFactoryClient struct {
-	logger              *zap.Logger
-	ensuredSchematicIDs []string
+	logger     *zap.Logger
+	schematics map[string]schematic.Schematic
+	mu         sync.Mutex
 }
 
-func (m *mockImageFactoryClient) EnsureSchematic(_ context.Context, schematic schematic.Schematic) (string, error) {
+func (m *mockImageFactoryClient) EnsureSchematic(_ context.Context, schematic schematic.Schematic) (string, *schematic.Schematic, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	marshaled, err := schematic.Marshal()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	m.logger.Info("mock ensure schematic", zap.String("schematic", string(marshaled)))
 
 	schematicID, err := schematic.ID()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	m.ensuredSchematicIDs = append(m.ensuredSchematicIDs, schematicID)
+	m.schematics[schematicID] = schematic
 
-	return schematicID, nil
+	return schematicID, &schematic, nil
+}
+
+func (m *mockImageFactoryClient) SchematicGet(_ context.Context, id string) (*schematic.Schematic, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	s, ok := m.schematics[id]
+	if !ok {
+		return nil, &client.HTTPError{Code: http.StatusNotFound, Message: "not found"}
+	}
+
+	return &s, nil
+}
+
+func (m *mockImageFactoryClient) Host() string {
+	return "image.factory.test"
+}
+
+func (m *mockImageFactoryClient) URL() string {
+	return "https://image.factory.test"
+}
+
+func (m *mockImageFactoryClient) OverlaysVersions(_ context.Context, _ string) ([]client.OverlayInfo, error) {
+	return nil, nil
+}
+
+func (m *mockImageFactoryClient) Versions(_ context.Context) ([]string, error) {
+	return []string{"v1.13.6"}, nil
+}
+
+func (m *mockImageFactoryClient) ExtensionsVersions(_ context.Context, _ string) ([]client.ExtensionInfo, error) {
+	return nil, nil
+}
+
+func (m *mockImageFactoryClient) CachedIsEnterprise() bool {
+	return false
+}
+
+func (m *mockImageFactoryClient) TalosctlList(_ context.Context, _ string) ([]string, error) {
+	return []string{"https://image.factory.test/talosctl/v1.13.6/talosctl"}, nil
+}
+
+func (m *mockImageFactoryClient) ScanReport(_ context.Context, _, _, _, _ string) ([]byte, error) {
+	return nil, nil
 }
 
 type testData struct {
@@ -177,7 +229,7 @@ type testData struct {
 	input               *clusterimport.Input
 	env                 map[string]string
 	talosClient         *mockTalosClient
-	imageFactoryClient  *mockImageFactoryClient
+	imageFactoryClients *imagefactory.Clients
 	bundle              *secrets.Bundle
 	kubernetesVersion   string
 	talosVersion        string
@@ -199,9 +251,14 @@ func (data *testData) prepare(ctx context.Context, t *testing.T, logger *zap.Log
 	data.prepareNodes(ctx, t)
 	data.prepareOmniState(ctx, t)
 
-	data.imageFactoryClient = &mockImageFactoryClient{
-		logger: logger.With(zap.String("component", "image-factory-client")),
-	}
+	data.imageFactoryClients = imagefactory.NewClients(
+		data.omniState,
+		&mockImageFactoryClient{
+			logger:     logger.With(zap.String("component", "image-factory-client")),
+			schematics: map[string]schematic.Schematic{},
+		},
+	)
+
 	data.talosClient = newMockTalosClient(data.nodes, logger.With(zap.String("component", "talos-client")))
 }
 
@@ -487,7 +544,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClient, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
 				require.NoError(t, err)
 
 				defer func() {
@@ -573,7 +630,11 @@ func TestImportContext(t *testing.T) {
 				assertBackup(t, data.nodes, data.input.BackupOutput)
 
 				schematicIDs := xslices.Map(data.nodes, func(n *mockNode) string { return n.schematicID })
-				assert.ElementsMatch(t, schematicIDs, data.imageFactoryClient.ensuredSchematicIDs)
+
+				for _, id := range schematicIDs {
+					_, err := data.imageFactoryClients.Primary().SchematicGet(ctx, id)
+					require.NoError(t, err)
+				}
 			},
 		},
 		{
@@ -596,7 +657,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClient, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
 				require.NoError(t, err)
 
 				defer func() {
@@ -672,8 +733,10 @@ func TestImportContext(t *testing.T) {
 				}
 
 				schematicIDs := xslices.Map(data.nodes, func(n *mockNode) string { return n.schematicID })
+
 				for _, id := range schematicIDs {
-					assert.Contains(t, data.imageFactoryClient.ensuredSchematicIDs, id)
+					_, err := data.imageFactoryClients.Primary().SchematicGet(ctx, id)
+					require.NoError(t, err)
 				}
 
 				assertBackup(t, data.nodes, data.input.BackupOutput)
@@ -696,7 +759,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClient, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
 				require.NoError(t, err)
 
 				defer func() {
@@ -738,12 +801,14 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClient, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to collect node info")
 				require.Nil(t, importContext)
 
-				assert.Len(t, data.imageFactoryClient.ensuredSchematicIDs, 0)
+				client := data.imageFactoryClients.Primary().(*mockImageFactoryClient) //nolint:errcheck,forcetypeassert
+
+				assert.Len(t, client.schematics, 0)
 			},
 		},
 		{
@@ -763,7 +828,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClient, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
 				require.NoError(t, err)
 
 				defer func() {
@@ -793,7 +858,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClient, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
 				require.NoError(t, err)
 
 				defer func() {
@@ -820,7 +885,7 @@ func TestImportContext(t *testing.T) {
 				testData.prepare(ctx, t, logger)
 			},
 			assertFunc: func(ctx context.Context, t *testing.T, logger *zap.Logger, data *testData) {
-				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClient, data.talosClient)
+				importContext, err := clusterimport.BuildContext(ctx, *data.input, data.omniState, data.imageFactoryClients, data.talosClient)
 				require.Error(t, err)
 				require.ErrorContains(t, err, "minimum required version of talos is")
 				require.Nil(t, importContext)

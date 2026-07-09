@@ -174,10 +174,12 @@ message CreateSchematicRequest {
   Overlay overlay = 9;
   SchematicBootloader bootloader = 10;
   string embedded_machine_config = 11;
+  string image_factory_url = 12;
 }
 
 message CreateSchematicFromRawRequest {
   bytes raw_schematic = 1;
+  string talos_version = 2;
 }
 
 message CreateSchematicResponse {

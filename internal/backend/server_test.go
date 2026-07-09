@@ -11,11 +11,14 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
+	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	backend "github.com/siderolabs/omni/internal/backend"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 )
 
 func TestTalosctlHandlerRejectsInvalidVersion(t *testing.T) {
@@ -36,7 +39,11 @@ func TestTalosctlHandlerRejectsInvalidVersion(t *testing.T) {
 	imageFactoryClient, err := imagefactory.NewClient(upstream.URL, "", "")
 	require.NoError(t, err)
 
-	handler, err := backend.MakeTalosctlHandler(imageFactoryClient, zaptest.NewLogger(t))
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	imageFactoryClients := imagefactory.NewClients(st, imageFactoryClient)
+
+	handler, err := backend.MakeTalosctlHandler(imageFactoryClients, zaptest.NewLogger(t))
 	require.NoError(t, err)
 
 	validReq := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/talosctl/downloads/v1.2.3", nil)

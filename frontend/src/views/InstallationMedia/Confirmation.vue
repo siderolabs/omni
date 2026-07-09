@@ -9,6 +9,7 @@ import { gte } from 'semver'
 import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
+import type { TalosVersionSpec } from '@/api/omni/specs/omni.pb'
 import {
   type PlatformConfigSpec,
   PlatformConfigSpecBootMethod,
@@ -17,10 +18,12 @@ import {
 } from '@/api/omni/specs/virtual.pb'
 import {
   CloudPlatformConfigType,
+  DefaultNamespace,
   MetalPlatformConfigType,
   PlatformMetalID,
   QuirksType,
   SBCConfigType,
+  TalosVersionType,
   VirtualNamespace,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
@@ -31,8 +34,8 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { getDocsLink, majorMinorVersion } from '@/methods'
-import { useFeatures, useIsEnterprise } from '@/methods/features'
 import { useImageFactoryAuth, withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
+import { useResolvedFactory } from '@/methods/useResolvedFactory'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
 import { formStateToPreset } from '@/views/InstallationMedia/formStateToPreset'
@@ -61,11 +64,27 @@ const { data: quirks } = useResourceGet<QuirksSpec>(() => ({
 const supportsUnifiedInstaller = computed(() => quirks.value?.spec.supports_unified_installer)
 const talosctlAvailable = computed(() => quirks.value?.spec.supports_factory_talosctl)
 
-const { data: features } = useFeatures()
-const imageFactoryBaseURL = computed(() => features.value?.spec.image_factory_base_url)
-const isEnterpriseFactory = useIsEnterprise()
+// The selected Talos version records which factory actually serves it (a version may live only on the
+// secondary factory). All of its assets - installer image, SBOM, VEX - must go to that factory, and
+// its enterprise status decides which enterprise-only assets are available.
+const { data: talosVersion } = useResourceGet<TalosVersionSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: TalosVersionType,
+    id: resolvedTalosVersion.value,
+  },
+}))
 
-const imageFactoryAuth = useImageFactoryAuth()
+const { base: factoryBaseURL, credentials: factoryCredentialsRef } = useResolvedFactory(
+  () => talosVersion.value?.spec.image_factory_url,
+)
+
+const isEnterpriseFactory = computed(() => talosVersion.value?.spec.is_enterprise)
+
+const imageFactoryAuth = useImageFactoryAuth(
+  computed(() => talosVersion.value?.spec.image_factory_url),
+)
 
 const { data: talosctlPathsRaw } = useTalosctlDownloads(() => resolvedTalosVersion.value)
 
@@ -135,9 +154,7 @@ const schematicId = computed(() => schematic.value?.id ?? '')
 
 const { links } = usePresetDownloadLinks(schematicId, resolvedPreset)
 
-const factoryHost = computed(() =>
-  imageFactoryBaseURL.value ? new URL(imageFactoryBaseURL.value).host : '',
-)
+const factoryHost = computed(() => (factoryBaseURL.value ? new URL(factoryBaseURL.value).host : ''))
 
 const installerImage = computed(() =>
   supportsUnifiedInstaller.value
@@ -160,11 +177,14 @@ const quote = (input: string) => {
 const clusterCreateCommand = computed(() => {
   const parts = [
     'talosctl cluster create qemu',
+    `--image-factory-url=${factoryBaseURL.value}`,
     `--schematic-id=${schematicId.value}`,
     `--talos-version=v${resolvedTalosVersion.value}`,
   ]
 
-  const { username, password } = imageFactoryAuth.value ?? {}
+  // The local cluster pulls the installer from the factory that serves this version, so it must
+  // authenticate with that factory's credentials.
+  const { username, password } = factoryCredentialsRef.value ?? {}
   if (username && password) {
     parts.push(`--image-factory-auth=${quote(`${username}:${password}`)}`)
   }
@@ -173,15 +193,13 @@ const clusterCreateCommand = computed(() => {
 })
 
 const SPDXBaseURL = computed(() =>
-  imageFactoryBaseURL.value
-    ? `${imageFactoryBaseURL.value}/spdx/${schematicId.value}/v${resolvedTalosVersion.value}/amd64`
+  factoryBaseURL.value
+    ? `${factoryBaseURL.value}/spdx/${schematicId.value}/v${resolvedTalosVersion.value}/amd64`
     : '',
 )
 
 const VEXBaseURL = computed(() =>
-  imageFactoryBaseURL.value
-    ? `${imageFactoryBaseURL.value}/vex/v${resolvedTalosVersion.value}/vex.json`
-    : '',
+  factoryBaseURL.value ? `${factoryBaseURL.value}/vex/v${resolvedTalosVersion.value}/vex.json` : '',
 )
 </script>
 

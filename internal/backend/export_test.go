@@ -10,9 +10,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 )
 
-func MakeTalosctlHandler(imageFactoryClient *imagefactory.Client, logger *zap.Logger) (http.Handler, error) {
-	return makeTalosctlHandler(imageFactoryClient, logger)
+func MakeTalosctlHandler(imageFactoryClients *imagefactory.Clients, logger *zap.Logger) (http.Handler, error) {
+	return makeTalosctlHandler(imageFactoryClients, logger)
 }

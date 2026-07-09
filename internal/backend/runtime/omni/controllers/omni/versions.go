@@ -8,6 +8,7 @@ package omni
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -22,9 +23,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	consts "github.com/siderolabs/omni/internal/pkg/constants"
 	"github.com/siderolabs/omni/internal/pkg/registry"
 )
@@ -43,16 +44,16 @@ const VersionRefreshInterval = 15 * time.Minute
 
 // VersionsController creates omni.KubernetesVersions and omni.TalosVersions by scanning container registry.
 type VersionsController struct {
-	imageFactoryClient            *imagefactory.Client
+	imageFactoryClients           *imagefactory.Clients
 	st                            state.State
 	kubernetesRegistry            string
 	enableTalosPreReleaseVersions bool
 }
 
 // NewVersionsController creates a new VersionsController.
-func NewVersionsController(imageFactoryClient *imagefactory.Client, st state.State, enableTalosPreReleaseVersions bool, kubernetesRegistry string) *VersionsController {
+func NewVersionsController(imageFactoryClients *imagefactory.Clients, st state.State, enableTalosPreReleaseVersions bool, kubernetesRegistry string) *VersionsController {
 	return &VersionsController{
-		imageFactoryClient:            imageFactoryClient,
+		imageFactoryClients:           imageFactoryClients,
 		st:                            st,
 		enableTalosPreReleaseVersions: enableTalosPreReleaseVersions,
 		kubernetesRegistry:            kubernetesRegistry,
@@ -131,7 +132,7 @@ func (ctrl *VersionsController) reconcileAllVersions(ctx context.Context, r cont
 	// After a successful factory request the sniffer transport will have captured the Server header.
 	// Update FeaturesConfig with the detected enterprise state. Use direct state access (same path as
 	// features.UpdateResources) to avoid controller-ownership conflicts on the unowned resource.
-	isEnterprise := ctrl.imageFactoryClient.CachedIsEnterprise()
+	isEnterprise := ctrl.imageFactoryClients.Primary().CachedIsEnterprise()
 
 	featuresConfig := omni.NewFeaturesConfig(omni.FeaturesConfigID)
 
@@ -156,11 +157,66 @@ func (ctrl *VersionsController) fetchVersionsFromRegistry(ctx context.Context, s
 	return registry.UpgradeCandidates(ctx, source)
 }
 
-func (ctrl *VersionsController) fetchTalosVersions(ctx context.Context) ([]string, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
-	defer cancel()
+// talosVersionSource records which image factory provides a given Talos version.
+type talosVersionSource struct {
+	FactoryURL   string
+	IsEnterprise bool
+}
 
-	return ctrl.imageFactoryClient.Versions(ctx)
+// fetchTalosVersions fetches the available Talos versions from the configured image factories and
+// returns a map from the (normalized, no leading "v") version to the factory that provides it, plus the
+// set of factory URLs that could not be enumerated this cycle.
+//
+// Versions from the primary factory overwrite the ones from the secondary factory: the secondary is a
+// fallback source only. The two factories are independent: a failure fetching one never fails the other,
+// and a factory that could not be enumerated is reported in failedFactoryURLs so the caller keeps its
+// existing versions instead of pruning them. Each factory is fetched with its own deadline so a slow one
+// cannot eat the other's budget.
+func fetchTalosVersions(ctx context.Context, imageFactoryClients *imagefactory.Clients, logger *zap.Logger) (versionToFactory map[string]talosVersionSource, failedFactoryURLs map[string]struct{}) {
+	versionToFactory = map[string]talosVersionSource{}
+	failedFactoryURLs = map[string]struct{}{}
+
+	fetch := func(client imagefactory.FactoryClient) ([]string, error) {
+		fetchCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+		defer cancel()
+
+		return client.Versions(fetchCtx)
+	}
+
+	// Fetch the secondary factory first so the primary overwrites it on any version present in both.
+	if secondary, ok := imageFactoryClients.Secondary(); ok {
+		secondaryVersions, err := fetch(secondary)
+		if err != nil {
+			failedFactoryURLs[secondary.URL()] = struct{}{}
+
+			logger.Warn("failed to fetch Talos versions from the secondary image factory; keeping its existing versions",
+				zap.String("factory", secondary.URL()), zap.Error(err))
+		} else {
+			source := talosVersionSource{FactoryURL: secondary.URL(), IsEnterprise: secondary.CachedIsEnterprise()}
+
+			for _, v := range secondaryVersions {
+				versionToFactory[strings.TrimLeft(v, "v")] = source
+			}
+		}
+	}
+
+	primary := imageFactoryClients.Primary()
+
+	primaryVersions, err := fetch(primary)
+	if err != nil {
+		failedFactoryURLs[primary.URL()] = struct{}{}
+
+		logger.Warn("failed to fetch Talos versions from the primary image factory; keeping its existing versions",
+			zap.String("factory", primary.URL()), zap.Error(err))
+	} else {
+		primarySource := talosVersionSource{FactoryURL: primary.URL(), IsEnterprise: primary.CachedIsEnterprise()}
+
+		for _, v := range primaryVersions {
+			versionToFactory[strings.TrimLeft(v, "v")] = primarySource
+		}
+	}
+
+	return versionToFactory, failedFactoryURLs
 }
 
 func (ctrl *VersionsController) getVersionsAfter(versions []string, minVersion semver.Version, includePreReleaseVersions bool) []string {
@@ -268,10 +324,9 @@ func forAllCompatibleVersions(
 func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r controller.Runtime, k8sVersions []*compatibility.KubernetesVersion, logger *zap.Logger) error {
 	tracker := trackResource(r, resources.DefaultNamespace, omni.TalosVersionType)
 
-	allVersions, err := ctrl.fetchTalosVersions(ctx)
-	if err != nil {
-		return err
-	}
+	versionToFactory, failedFactoryURLs := fetchTalosVersions(ctx, ctrl.imageFactoryClients, logger)
+
+	allVersions := slices.Collect(maps.Keys(versionToFactory))
 
 	talosVersions := ctrl.getVersionsAfter(allVersions, minDiscoveredTalosVersion, ctrl.enableTalosPreReleaseVersions)
 
@@ -292,9 +347,13 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 	err = forAllCompatibleVersions(talosVersions, k8sVersions, func(talosVer string, compatibleK8sVersions []string) error {
 		talosVersion := omni.NewTalosVersion(talosVer)
 		if writeErr := safe.WriterModify(ctx, r, talosVersion, func(res *omni.TalosVersion) error {
+			source := versionToFactory[strings.TrimLeft(talosVer, "v")]
+
 			res.TypedSpec().Value.Version = talosVer
 			res.TypedSpec().Value.CompatibleKubernetesVersions = compatibleK8sVersions
 			res.TypedSpec().Value.UpgradableTalosVersions = upgradeTargets[talosVer]
+			res.TypedSpec().Value.ImageFactoryUrl = source.FactoryURL
+			res.TypedSpec().Value.IsEnterprise = source.IsEnterprise
 
 			parsed := semver.MustParse(strings.TrimLeft(talosVer, "v"))
 			res.TypedSpec().Value.Unsupported = !targetAllowed(parsed, latestSupported.Major, latestSupported.Minor, ctrl.enableTalosPreReleaseVersions)
@@ -318,6 +377,22 @@ func (ctrl *VersionsController) reconcileTalosVersions(ctx context.Context, r co
 	})
 	if err != nil {
 		return err
+	}
+
+	// Preserve the existing versions of any factory that could not be enumerated this cycle, so a transient
+	// outage does not prune them. Pruning a secondary-only version would make ForTalosVersion silently
+	// reroute it to the primary once its resource is gone.
+	if len(failedFactoryURLs) > 0 {
+		existing, listErr := safe.ReaderListAll[*omni.TalosVersion](ctx, r)
+		if listErr != nil {
+			return fmt.Errorf("failed to list existing Talos versions: %w", listErr)
+		}
+
+		for res := range existing.All() {
+			if _, failed := failedFactoryURLs[res.TypedSpec().Value.ImageFactoryUrl]; failed {
+				tracker.keep(res)
+			}
+		}
 	}
 
 	logger.Info("reconciled Talos versions")

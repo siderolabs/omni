@@ -58,6 +58,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/access"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -68,7 +69,6 @@ import (
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/health"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/k8sproxy"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
@@ -115,7 +115,7 @@ type Server struct {
 	authConfig              *authres.Config
 	dnsService              *dns.Service
 	workloadProxyReconciler *workloadproxy.Reconciler
-	imageFactoryClient      *imagefactory.Client
+	imageFactoryClients     *imagefactory.Clients
 	lifecycleManager        *lifecycle.Manager
 	installEventCh          chan<- resource.ID
 	linkCounterDeltaCh      chan<- siderolink.LinkCounterDeltas
@@ -134,7 +134,7 @@ func NewServer(
 	state *omni.State,
 	dnsService *dns.Service,
 	workloadProxyReconciler *workloadproxy.Reconciler,
-	imageFactoryClient *imagefactory.Client,
+	imageFactoryClients *imagefactory.Clients,
 	linkCounterDeltaCh chan<- siderolink.LinkCounterDeltas,
 	siderolinkEventsCh chan<- *omnires.MachineStatusSnapshot,
 	installEventCh chan<- resource.ID,
@@ -157,7 +157,7 @@ func NewServer(
 		authConfig:              authConfig,
 		dnsService:              dnsService,
 		workloadProxyReconciler: workloadProxyReconciler,
-		imageFactoryClient:      imageFactoryClient,
+		imageFactoryClients:     imageFactoryClients,
 		lifecycleManager:        lifecycleManager,
 		linkCounterDeltaCh:      linkCounterDeltaCh,
 		siderolinkEventsCh:      siderolinkEventsCh,
@@ -229,7 +229,7 @@ func (s *Server) Run(ctx context.Context) error {
 		oidcProvider,
 		oidcStorage,
 		s.dnsService,
-		s.imageFactoryClient,
+		s.imageFactoryClients,
 		s.logger,
 		s.state.Auditor(),
 		s.cfg,
@@ -352,7 +352,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 		samlHandler,
 		s.state,
 		s.omniRuntime,
-		s.imageFactoryClient,
+		s.imageFactoryClients,
 		s.logger,
 		s.cfg,
 	)
@@ -854,7 +854,7 @@ func makeMux(
 	samlHandler *samlsp.Middleware,
 	state *omni.State,
 	omniRuntime *omni.Runtime,
-	imageFactoryClient *imagefactory.Client,
+	imageFactoryClients *imagefactory.Clients,
 	logger *zap.Logger,
 	cfg *config.Params,
 ) (*http.ServeMux, error) {
@@ -867,8 +867,10 @@ func makeMux(
 		))
 	}
 
+	primaryFactory := cfg.Registries.GetPrimaryFactory()
+
 	frontendHandler := compress.Handler(
-		frontend.NewStaticHandler(7200, cfg.Registries.GetImageFactoryBaseURL()),
+		frontend.NewStaticHandler(7200, primaryFactory.GetUrl()),
 		gzip.BestCompression,
 	)
 
@@ -904,12 +906,12 @@ func makeMux(
 		return nil, err
 	}
 
-	talosctlHandler, err := makeTalosctlHandler(imageFactoryClient, logger)
+	talosctlHandler, err := makeTalosctlHandler(imageFactoryClients, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	vulnsHandler, err := makeScanHandler(imageFactoryClient, logger)
+	vulnsHandler, err := makeScanHandler(imageFactoryClients, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -1256,7 +1258,7 @@ func runPprofServer(ctx context.Context, bindAddress string, l *zap.Logger) erro
 }
 
 //nolint:unparam
-func makeTalosctlHandler(imageFactoryClient *imagefactory.Client, logger *zap.Logger) (http.Handler, error) {
+func makeTalosctlHandler(imageFactoryClients *imagefactory.Clients, logger *zap.Logger) (http.Handler, error) {
 	// The list of versions does not update very often, so we can cache it.
 	var cacherMap sync.Map
 
@@ -1295,7 +1297,14 @@ func makeTalosctlHandler(imageFactoryClient *imagefactory.Client, logger *zap.Lo
 
 		ctx := actor.MarkContextAsInternalActor(r.Context())
 
-		data, err := cacher.GetOrUpdate(func() ([]string, error) { return imageFactoryClient.TalosctlList(ctx, talosVersion) })
+		data, err := cacher.GetOrUpdate(func() ([]string, error) {
+			imageFactoryClient, err := imageFactoryClients.ForTalosVersion(ctx, talosVersion)
+			if err != nil {
+				return nil, err
+			}
+
+			return imageFactoryClient.TalosctlList(ctx, talosVersion)
+		})
 		if err != nil {
 			logger.Error("failed to get latest talosctl release", zap.Error(err))
 			writeResult(result{Status: "failed to get latest talosctl release"}, http.StatusInternalServerError)
@@ -1311,7 +1320,7 @@ func makeTalosctlHandler(imageFactoryClient *imagefactory.Client, logger *zap.Lo
 }
 
 //nolint:unparam
-func makeScanHandler(imageFactoryClient *imagefactory.Client, logger *zap.Logger) (http.Handler, error) {
+func makeScanHandler(imageFactoryClients *imagefactory.Clients, logger *zap.Logger) (http.Handler, error) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type result struct {
 			Status string          `json:"status"`
@@ -1341,6 +1350,23 @@ func makeScanHandler(imageFactoryClient *imagefactory.Client, logger *zap.Logger
 		}
 
 		ctx := actor.MarkContextAsInternalActor(r.Context())
+
+		imageFactoryClient, err := imageFactoryClients.ForTalosVersion(ctx, talosVersion)
+		if err != nil {
+			logger.Error(
+				"failed to get image factory client",
+				zap.Error(err),
+				zap.String("schematicID", schematicID),
+				zap.String("talosVersion", talosVersion),
+				zap.String("arch", arch),
+			)
+
+			writeResult(result{
+				Status: "failed to get image factory client",
+			}, http.StatusInternalServerError)
+
+			return
+		}
 
 		data, err := imageFactoryClient.ScanReport(ctx, schematicID, talosVersion, arch, "report.json")
 		if err != nil {
