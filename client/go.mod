@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni/client
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/ProtonMail/go-crypto v1.4.1
