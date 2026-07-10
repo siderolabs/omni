@@ -154,6 +154,8 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		return fmt.Errorf("failed to set up log handler: %w", err)
 	}
 
+	prometheus.MustRegister(logHandler)
+
 	authConfig, err := auth.EnsureAuthConfigResource(ctx, state.Default(), logger, cfg.Auth)
 	if err != nil {
 		return fmt.Errorf("failed to write auth parameters to state: %w", err)

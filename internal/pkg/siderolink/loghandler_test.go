@@ -16,7 +16,9 @@ import (
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/siderolabs/gen/optional"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -112,6 +114,61 @@ func TestLogHandler_HandleMessage(t *testing.T) {
 		line, err = reader.ReadLine(ctx)
 		require.NoError(t, err)
 		require.Equal(t, `{"hello": "world5"}`, string(line))
+	})
+}
+
+func TestLogHandler_IngestedBytesMetric(t *testing.T) {
+	storageConfig := config.LogsMachine{}
+
+	t.Run("counts bytes ingested when no limiter is configured", func(t *testing.T) {
+		machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{
+			IPToMachine: map[string]siderolink.MachineID{
+				"1.2.3.4": "machine1",
+			},
+		})
+
+		st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+		handler, err := siderolink.NewLogHandler(testDB(t), machineMap, st, &storageConfig, zaptest.NewLogger(t))
+		require.NoError(t, err)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		t.Cleanup(cancel)
+
+		msg := []byte(`{"hello": "world"}`)
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), msg)
+
+		assert.InDelta(t, float64(len(msg)), testutil.ToFloat64(handler), 0.01)
+	})
+
+	t.Run("does not count bytes rejected by the rate limiter", func(t *testing.T) {
+		machineMap := siderolink.NewMachineMap(&siderolink.MapStorage{
+			IPToMachine: map[string]siderolink.MachineID{
+				"1.2.3.4": "machine1",
+			},
+		})
+
+		st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+		// Low sustained rate with a small burst: the first message exhausts the
+		// burst, and the second is guaranteed to be rejected since refilling a
+		// single token takes a full second.
+		limiter := siderolink.NewLogIngestionLimiter(1, 10, zaptest.NewLogger(t))
+
+		handler, err := siderolink.NewLogHandler(testDB(t), machineMap, st, &storageConfig, zaptest.NewLogger(t),
+			siderolink.WithLogIngestionLimiter(limiter))
+		require.NoError(t, err)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		t.Cleanup(cancel)
+
+		allowed := []byte("0123456789")
+		rejected := []byte("x")
+
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), allowed)
+		handler.HandleMessage(ctx, netip.MustParseAddr("1.2.3.4"), rejected)
+
+		assert.InDelta(t, float64(len(allowed)), testutil.ToFloat64(handler), 0.01)
 	})
 }
 

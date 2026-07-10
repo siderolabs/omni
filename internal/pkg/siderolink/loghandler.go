@@ -13,6 +13,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/siderolabs/gen/optional"
 	"go.uber.org/zap"
 
@@ -76,6 +77,12 @@ func NewLogHandler(secondaryStorageDB *sqlitexx.Pool, machineMap *MachineMap, om
 		cache:      cache,
 		logger:     logger,
 		limiter:    options.limiter,
+		ingestedBytes: prometheus.NewCounter(prometheus.CounterOpts{
+			Namespace: "omni",
+			Subsystem: "machine_logs",
+			Name:      "ingested_bytes_total",
+			Help:      "Total bytes of machine log messages successfully written to storage.",
+		}),
 	}
 
 	return &handler, nil
@@ -83,11 +90,24 @@ func NewLogHandler(secondaryStorageDB *sqlitexx.Pool, machineMap *MachineMap, om
 
 // LogHandler stores a map of machines to their log stores.
 type LogHandler struct {
-	omniState  state.State
-	machineMap *MachineMap
-	logger     *zap.Logger
-	cache      *MachineCache
-	limiter    *LogIngestionLimiter
+	omniState     state.State
+	machineMap    *MachineMap
+	logger        *zap.Logger
+	cache         *MachineCache
+	limiter       *LogIngestionLimiter
+	ingestedBytes prometheus.Counter
+}
+
+var _ prometheus.Collector = &LogHandler{}
+
+// Describe implements prometheus.Collector.
+func (h *LogHandler) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(h, ch)
+}
+
+// Collect implements prometheus.Collector.
+func (h *LogHandler) Collect(ch chan<- prometheus.Metric) {
+	h.ingestedBytes.Collect(ch)
 }
 
 // Start starts the LogHandler.
@@ -205,6 +225,8 @@ func (h *LogHandler) writeMessage(ctx context.Context, ip string, data []byte) e
 	if err != nil {
 		return fmt.Errorf("failed to write message to log store for machine %q: %w", id, err)
 	}
+
+	h.ingestedBytes.Add(float64(len(data)))
 
 	return nil
 }
