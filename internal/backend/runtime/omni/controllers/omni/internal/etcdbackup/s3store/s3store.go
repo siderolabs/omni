@@ -15,7 +15,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/siderolabs/go-pointer"
@@ -53,14 +53,12 @@ func NewStore(client *s3.Client, bucket string, upRate, downRate uint64) *Store 
 }
 
 // Upload stores the data from [io.Reader] in a file. Implements [Store].
-//
-//nolint:staticcheck
 func (s *Store) Upload(ctx context.Context, descr etcdbackup.Description, r io.Reader) error {
-	uploader := manager.NewUploader(s.client, func(u *manager.Uploader) {
-		u.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
+	uploader := transfermanager.New(s.client, func(o *transfermanager.Options) {
+		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 	})
 
-	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
+	_, err := uploader.UploadObject(ctx, &transfermanager.UploadObjectInput{
 		Bucket: new(s.bucket),
 		Key:    new(path.Join(descr.ClusterUUID, etcdbackup.CreateSnapshotName(descr.Timestamp))),
 		Body:   newReaderLimiter(io.NopCloser(r), s.uploadRate),

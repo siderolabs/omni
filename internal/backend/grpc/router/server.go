@@ -35,7 +35,6 @@ func NewServer(router Director, options ...grpc.ServerOption) *grpc.Server {
 					router.Director,
 				),
 			),
-			grpc.SharedWriteBuffer(true),
 		},
 		options...,
 	)

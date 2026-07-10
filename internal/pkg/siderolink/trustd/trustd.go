@@ -113,7 +113,6 @@ func NewServer(logger *zap.Logger, st state.State, serverAddr net.IP) *grpc.Serv
 		grpc.Creds(
 			credentials.NewTLS(tlsConfig),
 		),
-		grpc.SharedWriteBuffer(true),
 	}
 
 	server := grpc.NewServer(options...)

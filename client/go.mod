@@ -2,6 +2,9 @@ module github.com/siderolabs/omni/client
 
 go 1.26.5
 
+// fix for https://github.com/yaml/go-yaml/issues/376
+replace go.yaml.in/yaml/v4 v4.0.0-rc.6 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260711085733-86003acec573
+
 require (
 	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/ProtonMail/gopenpgp/v3 v3.4.1
@@ -17,7 +20,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jxskiss/base62 v1.1.0
-	github.com/klauspost/compress v1.18.6
+	github.com/klauspost/compress v1.19.0
 	github.com/mattn/go-isatty v0.0.22
 	github.com/neticdk/go-stdlib v1.0.1
 	github.com/planetscale/vtprotobuf v0.6.1-0.20250313105119-ba97887b0a25
@@ -33,7 +36,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/xlab/treeprint v1.2.0
 	go.uber.org/zap v1.28.0
-	go.yaml.in/yaml/v4 v4.0.0-rc.4
+	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	golang.org/x/sync v0.20.0
 	golang.org/x/term v0.43.0
 	google.golang.org/grpc v1.81.1

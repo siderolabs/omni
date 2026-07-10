@@ -258,7 +258,6 @@ func (factory *ClientFactory) connectionOptions(ctx context.Context, id string, 
 			grpc.WithDefaultCallOptions(
 				grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize),
 			),
-			grpc.WithSharedWriteBuffer(true),
 		),
 	}, nil
 }
@@ -525,7 +524,6 @@ func (factory *ClientFactory) buildForMachine(ctx context.Context, clusterID str
 		client.WithEndpoints(managementAddress),
 		client.WithGRPCDialOptions(
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
-			grpc.WithSharedWriteBuffer(true),
 		),
 	)
 	if err != nil {

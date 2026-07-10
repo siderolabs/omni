@@ -103,7 +103,7 @@ func createConn(endpoint string) (*grpc.ClientConn, error) {
 		TTL: defaultTTL,
 	})
 
-	opts = append(opts, grpc.WithSharedWriteBuffer(true), grpc.WithTransportCredentials(transportCredentials))
+	opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
 
 	discoveryConn, err := grpc.NewClient(target, opts...)
 	if err != nil {

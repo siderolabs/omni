@@ -25,7 +25,9 @@ import (
 	"github.com/siderolabs/gen/xslices"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/pkg/v3/featuregate"
 	"go.etcd.io/etcd/server/v3/embed"
+	"go.etcd.io/etcd/server/v3/features"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -185,10 +187,12 @@ func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 	cfg.AuthToken = ""
 	cfg.AutoCompactionMode = "periodic"
 	cfg.AutoCompactionRetention = "5h"
-	cfg.ExperimentalCompactHashCheckEnabled = true
-	cfg.ExperimentalInitialCorruptCheck = true
 	cfg.UnsafeNoFsync = params.GetEmbeddedUnsafeFsync()
 	cfg.WarningUnaryRequestDuration = embed.DefaultWarningUnaryRequestDuration
+	cfg.ServerFeatureGate.(featuregate.MutableFeatureGate).SetFromMap(map[string]bool{ //nolint:errcheck,forcetypeassert
+		string(features.CompactHashCheck):    true,
+		string(features.InitialCorruptCheck): true,
+	})
 
 	peerURL, err := url.Parse("http://localhost:0")
 	if err != nil {
@@ -248,7 +252,6 @@ func getEmbeddedEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 		DialTimeout: 5 * time.Second,
 		DialOptions: []grpc.DialOption{
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
-			grpc.WithSharedWriteBuffer(true),
 		},
 		// never enable debug logs for etcd client, they are too chatty
 		Logger: logging.IncreaseLevel(logger, zap.InfoLevel).With(logging.Component("etcd_client")),
@@ -304,7 +307,6 @@ func getExternalEtcdState(params *config.EtcdParams, logger *zap.Logger) (EtcdSt
 		DialTimeout:          5 * time.Second,
 		DialOptions: []grpc.DialOption{
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(constants.GRPCMaxMessageSize)),
-			grpc.WithSharedWriteBuffer(true),
 		},
 		TLS: tlsConfig,
 		// never enable debug logs for etcd client, they are too chatty

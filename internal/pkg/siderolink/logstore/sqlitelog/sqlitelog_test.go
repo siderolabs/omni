@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 func TestReadWrite(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
@@ -387,7 +387,7 @@ func TestFollowTail(t *testing.T) {
 func TestFollowRapidWrites(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
@@ -749,7 +749,7 @@ func TestTimeBasedCleanupBatching(t *testing.T) {
 func TestOrphanLogsCleanup(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)

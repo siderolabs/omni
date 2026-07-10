@@ -498,7 +498,6 @@ func (s *Server) buildServerOptions(ctx context.Context) ([]grpc.ServerOption, e
 		grpc.MaxRecvMsgSize(constants.GRPCMaxMessageSize),
 		grpc.ChainUnaryInterceptor(unaryInterceptors...),
 		grpc.ChainStreamInterceptor(streamInterceptors...),
-		grpc.SharedWriteBuffer(true),
 	}, nil
 }
 
@@ -674,9 +673,7 @@ func (s *Server) runMachineAPI(ctx context.Context) error {
 
 	eg, groupCtx := errgroup.WithContext(ctx)
 
-	server := grpc.NewServer(
-		grpc.SharedWriteBuffer(true),
-	)
+	server := grpc.NewServer()
 
 	slink.Register(server)
 	kms.Register(server)
@@ -1121,7 +1118,6 @@ func runLocalResourceServer(ctx context.Context, st state.CoreState, serverOptio
 	serverOptions = append([]grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(unaryInterceptor),
 		grpc.ChainStreamInterceptor(streamInterceptor),
-		grpc.SharedWriteBuffer(true),
 	}, serverOptions...)
 
 	grpcServer := grpc.NewServer(serverOptions...)

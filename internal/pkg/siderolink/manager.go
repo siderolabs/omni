@@ -496,9 +496,7 @@ func (manager *Manager) startWireguard(ctx context.Context, eg *errgroup.Group, 
 }
 
 func (manager *Manager) startEventsGRPC(ctx context.Context, eg *errgroup.Group, listener net.Listener) {
-	server := grpc.NewServer(
-		grpc.SharedWriteBuffer(true),
-	)
+	server := grpc.NewServer()
 	sink := events.NewSink(manager.machineEventHandler, []proto.Message{
 		&machineapi.MachineStatusEvent{},
 		&machineapi.SequenceEvent{}, // used to detect if Talos was installed on the disk, which is used by static infra providers (e.g., bare-metal infra provider)
