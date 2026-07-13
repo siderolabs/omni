@@ -2,6 +2,8 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import 'fake-indexeddb/auto'
+
 import { server } from '@msw/server'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { add, isAfter, isBefore, milliseconds, sub } from 'date-fns'
@@ -118,7 +120,8 @@ describe('useWatchKeyExpiry', () => {
   })
 
   beforeEach(() => {
-    vi.useFakeTimers()
+    // fake-indexeddb uses setImmediate which shouldn't be mocked
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
     vi.setSystemTime(now)
   })
 
