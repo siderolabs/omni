@@ -109,7 +109,7 @@ import { DefaultTalosVersion } from '@/api/resources'
 import { majorMinorVersion } from '@/methods'
 
 type Props = {
-  options?: monaco.editor.IStandaloneEditorConstructionOptions
+  options?: monaco.editor.IEditorOptions & monaco.editor.IGlobalEditorOptions
   validators?: ((
     model: monaco.editor.ITextModel,
     tokens: monaco.Token[],
@@ -158,23 +158,8 @@ const schemaVersion = computed(() => {
   return version
 })
 
-watch([editor, schemaVersion], () => {
-  if (!editor.value) {
-    return
-  }
-
-  const model = monaco.editor.createModel(
-    modelValue.value,
-    'yaml',
-    monaco.Uri.parse(
-      disableConfigValidation
-        ? `inmemory://${modelId}.yaml`
-        : `inmemory://${modelId}_${majorMinorVersion(schemaVersion.value.format())}.patch.yaml`,
-    ),
-  )
-
-  const instance = monaco.editor.create(editor.value, {
-    model,
+const editorOptions = computed<monaco.editor.IEditorOptions & monaco.editor.IGlobalEditorOptions>(
+  () => ({
     theme: SIDERO_THEME,
     fontSize: 14,
     fontFamily: styles.getPropertyValue('--font-mono'),
@@ -200,6 +185,25 @@ watch([editor, schemaVersion], () => {
       strings: true,
     },
     ...options,
+  }),
+)
+
+watch([editor, schemaVersion], ([editor, schemaVersion]) => {
+  if (!editor) return
+
+  const model = monaco.editor.createModel(
+    modelValue.value,
+    'yaml',
+    monaco.Uri.parse(
+      disableConfigValidation
+        ? `inmemory://${modelId}.yaml`
+        : `inmemory://${modelId}_${majorMinorVersion(schemaVersion.format())}.patch.yaml`,
+    ),
+  )
+
+  const instance = monaco.editor.create(editor, {
+    model,
+    ...editorOptions.value,
   })
 
   function validate() {
@@ -236,6 +240,10 @@ watch([editor, schemaVersion], () => {
     instanceRef = undefined
   })
 })
+
+// updateOptions is a partial merge, you must explicitly toggle options
+// simply deleting a key from options won't reset it to its default value
+watch(editorOptions, (options) => instanceRef?.updateOptions(options))
 </script>
 
 <template>
