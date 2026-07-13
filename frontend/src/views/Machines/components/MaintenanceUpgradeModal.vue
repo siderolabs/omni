@@ -9,9 +9,11 @@ import { RadioGroup, RadioGroupLabel, RadioGroupOption } from '@headlessui/vue'
 import { compare } from 'semver'
 import { computed, nextTick, onUnmounted, ref, useTemplateRef, watch, watchEffect } from 'vue'
 
+import type { Error } from '@/api/common/common.pb'
 import { Runtime } from '@/api/common/omni.pb'
 import {
   MaintenanceLifecycleRequestOperation,
+  type MaintenanceLifecycleResponse,
   ManagementService,
 } from '@/api/omni/management/management.pb'
 import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
@@ -22,7 +24,6 @@ import Modal from '@/components/Modals/Modal.vue'
 import TAlert from '@/components/TAlert.vue'
 import { majorMinorVersion } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
-import { showError } from '@/notification'
 
 const { machineId } = defineProps<{
   machineId: string
@@ -31,7 +32,13 @@ const { machineId } = defineProps<{
 const open = defineModel<boolean>('open', { default: false })
 
 const selectedVersion = ref('')
-const progress = ref<string[]>([])
+const progress = ref<
+  {
+    level?: 'info' | 'error'
+    message: string
+  }[]
+>([])
+
 const upgrading = ref(false)
 const finished = ref(false)
 const inProgressFromServer = ref(false)
@@ -161,8 +168,12 @@ const doUpgrade = async () => {
         operation: MaintenanceLifecycleRequestOperation.OPERATION_UPGRADE,
         version: selectedVersion.value,
       },
-      ({ message }) => {
-        if (message) progress.value.push(message)
+      (e: MaintenanceLifecycleResponse & { error?: Error }) => {
+        if (e?.message) {
+          progress.value.push({ level: 'info', message: e.message })
+        } else if (e?.error) {
+          throw e.error
+        }
       },
       withAbortController(abortController),
     )
@@ -173,11 +184,11 @@ const doUpgrade = async () => {
 
     // The server's per-machine in-flight guard returns FailedPrecondition with this exact phrase when
     // a concurrent MaintenanceLifecycle is already running for the machine. Render it as a sticky
-    // banner so the user has a clear, persistent explanation; other failures fall through to a toast.
+    // banner so the user has a clear, persistent explanation; other failures are logged.
     if (typeof e?.message === 'string' && e.message.includes('already in progress')) {
       inProgressFromServer.value = true
     } else {
-      showError(`Maintenance upgrade on ${machineId} failed`, e?.message)
+      progress.value.push({ level: 'error', message: `[error] ${e?.message}` })
     }
 
     if (progress.value.length > 0) finished.value = true
@@ -267,8 +278,10 @@ const doUpgrade = async () => {
         <pre
           ref="progressEl"
           class="grow basis-80 overflow-y-auto rounded bg-naturals-n2 p-2 text-xs wrap-anywhere whitespace-pre-wrap text-naturals-n11"
-          >{{ progress.join('\n') || 'Starting upgrade…' }}</pre
-        >
+        ><template v-if="progress.length > 0"><template v-for="line in progress" :key="line.message"><span v-if="line.level === 'info'" class="text-naturals-n11">{{ line.message }}
+</span><span v-else-if="line.level === 'error'" class="text-red-r1">{{ line.message }}
+</span></template></template><template v-else>Starting upgrade...</template>
+        </pre>
       </div>
     </template>
   </Modal>
