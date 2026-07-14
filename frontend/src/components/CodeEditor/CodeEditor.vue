@@ -77,7 +77,13 @@ const monacoYaml = configureMonacoYaml(monaco, {
 
 const modelSchemas = new Map<string, string>()
 
-function refreshSchemas() {
+function setModelSchema(modelId: string, schema: string | null) {
+  if (typeof schema === 'string') {
+    modelSchemas.set(modelId, schema)
+  } else {
+    modelSchemas.delete(modelId)
+  }
+
   return monacoYaml.update({
     ...monacoYaml.getOptions(),
     schemas: versionedSchemas.map(({ version, settings }) => ({
@@ -120,7 +126,7 @@ monaco.editor.defineTheme(SIDERO_THEME, {
 
 <script setup lang="ts">
 import { coerce, compare, gt, lt, parse } from 'semver'
-import { computed, onWatcherCleanup, useId, useTemplateRef, watch } from 'vue'
+import { computed, onWatcherCleanup, ref, useId, useTemplateRef, watch } from 'vue'
 
 import { DefaultTalosVersion } from '@/api/resources'
 import { majorMinorVersion } from '@/methods'
@@ -175,9 +181,12 @@ const schemaVersion = computed(() => {
   return version
 })
 
+const wordWrap = ref<'on' | 'off'>('off')
+
 const editorOptions = computed<monaco.editor.IEditorOptions & monaco.editor.IGlobalEditorOptions>(
   () => ({
     theme: SIDERO_THEME,
+    wordWrap: wordWrap.value,
     fontSize: 14,
     fontFamily: styles.getPropertyValue('--font-mono'),
     automaticLayout: true,
@@ -219,6 +228,17 @@ watch(editor, (editor) => {
     ...editorOptions.value,
   })
 
+  const action = instance.addAction({
+    id: 'toggle-word-wrap',
+    label: 'Toggle Word Wrap',
+    keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.KeyZ],
+    contextMenuGroupId: 'view',
+    contextMenuOrder: 1,
+    run() {
+      wordWrap.value = wordWrap.value === 'on' ? 'off' : 'on'
+    },
+  })
+
   function validate() {
     if (!validators?.length) return
 
@@ -248,6 +268,7 @@ watch(editor, (editor) => {
 
     contentChangeListener.dispose()
     model.dispose()
+    action.dispose()
     instance.dispose()
 
     instanceRef = undefined
@@ -257,17 +278,10 @@ watch(editor, (editor) => {
 watch(
   [schemaVersion, () => disableConfigValidation],
   ([version, disableConfigValidation]) => {
-    if (disableConfigValidation) {
-      modelSchemas.delete(modelId)
-    } else {
-      modelSchemas.set(modelId, majorMinorVersion(version.format()))
-    }
-
-    refreshSchemas()
+    setModelSchema(modelId, disableConfigValidation ? null : majorMinorVersion(version.format()))
 
     onWatcherCleanup(() => {
-      modelSchemas.delete(modelId)
-      refreshSchemas()
+      setModelSchema(modelId, null)
     })
   },
   { immediate: true },
