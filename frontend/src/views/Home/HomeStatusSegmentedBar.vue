@@ -51,7 +51,7 @@ function barTotal(bar: Bar) {
             "
           >
             <span
-              v-for="segment in bar.segments"
+              v-for="segment in bar.segments.filter((s) => s.value > 0)"
               :key="segment.label"
               class="h-full transition-all"
               :style="{
