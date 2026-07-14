@@ -1360,7 +1360,8 @@ func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx co
 		return errors.New("failed to get machine set name from the cluster machine")
 	}
 
-	machineSetConfigStatus, err := safe.ReaderGetByID[*omni.MachineSetConfigStatus](ctx, r, machineSetName)
+	// A stale strategy could exceed the configured update parallelism.
+	machineSetConfigStatus, err := safe.ReaderGetByID[*omni.MachineSetConfigStatus](ctx, uncached.Reader(r), machineSetName)
 	if err != nil {
 		return err
 	}
