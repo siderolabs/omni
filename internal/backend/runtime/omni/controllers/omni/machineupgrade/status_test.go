@@ -15,8 +15,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/schematic"
-	"github.com/siderolabs/talos/pkg/machinery/api/machine"
-	"github.com/siderolabs/talos/pkg/machinery/client"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,45 +25,12 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
-type mockTalosClient struct {
-	upgradeImages []string
-}
-
-func (m *mockTalosClient) Close() error {
-	return nil
-}
-
-func (m *mockTalosClient) UpgradeWithOptions(_ context.Context, opt ...client.UpgradeOption) (*machine.UpgradeResponse, error) {
-	var opts client.UpgradeOptions
-
-	for _, o := range opt {
-		o(&opts)
-	}
-
-	m.upgradeImages = append(m.upgradeImages, opts.Request.Image)
-
-	return &machine.UpgradeResponse{}, nil
-}
-
-type mockTalosClientFactory struct {
-	talosClient *mockTalosClient
-}
-
-func (m *mockTalosClientFactory) New(context.Context, string) (machineupgrade.TalosClient, error) {
-	return m.talosClient, nil
-}
-
 func TestReconcile(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
-	talosClient := &mockTalosClient{}
-	talosClientFactory := &mockTalosClientFactory{
-		talosClient: talosClient,
-	}
-
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
-		ctrl := machineupgrade.NewStatusController("mock-host", "ghcr.io/siderolabs/installer", talosClientFactory)
+		ctrl := machineupgrade.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil))
 
 		require.NoError(t, testContext.Runtime.RegisterQController(ctrl))
 	}, func(ctx context.Context, testContext testutils.TestContext) {
@@ -73,7 +38,11 @@ func TestReconcile(t *testing.T) {
 
 		st := testContext.State
 
+		machineServices := testutils.NewMachineServices(t, st)
+		machineService := machineServices.Create(ctx, id)
+
 		ms := omni.NewMachineStatus(id)
+		ms.TypedSpec().Value.ManagementAddress = machineService.SocketConnectionString
 
 		require.NoError(t, st.Create(ctx, ms))
 
@@ -119,6 +88,7 @@ func TestReconcile(t *testing.T) {
 		updatedSchematicID, err := updatedSchematic.ID()
 		require.NoError(t, err)
 
+		// Talos version older than 1.13: the controller must fall back to the legacy MachineService.Upgrade.
 		const talosVersion = "v1.11.3"
 
 		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
@@ -181,11 +151,14 @@ func TestReconcile(t *testing.T) {
 			assertion.Equal(updatedSchematicID, res.TypedSpec().Value.CurrentSchematicId)
 		})
 
-		require.Len(t, talosClient.upgradeImages, 1)
+		upgradeRequests := machineService.GetUpgradeRequests()
+		require.Len(t, upgradeRequests, 1)
 
-		expectedInstallImage := fmt.Sprintf("mock-host/metal-installer/%s:v1.11.3", updatedSchematicID)
+		// The image factory host/registry come from the lifecycle.Manager built by testutils.NewLifecycleManager, shared by both the legacy and LifecycleService paths.
+		expectedInstallImage := fmt.Sprintf("factory-test.talos.dev/metal-installer/%s:v1.11.3", updatedSchematicID)
 
-		assert.Equal(t, expectedInstallImage, talosClient.upgradeImages[0])
+		assert.Equal(t, expectedInstallImage, upgradeRequests[0].GetImage())
+		assert.Empty(t, machineService.GetLifecycleUpgradeRequests())
 
 		// take it out of maintenance
 		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
@@ -206,6 +179,113 @@ func TestReconcile(t *testing.T) {
 		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
 			assertion.Equal("not in maintenance mode", res.TypedSpec().Value.Status)
 		})
+	})
+}
+
+// TestReconcileLifecycleUpgrade verifies that a maintenance-mode machine running Talos 1.13+ with a
+// schematic mismatch is upgraded through Talos's LifecycleService.Upgrade, not the legacy
+// MachineService.Upgrade.
+func TestReconcileLifecycleUpgrade(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
+		ctrl := machineupgrade.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil))
+
+		require.NoError(t, testContext.Runtime.RegisterQController(ctrl))
+	}, func(ctx context.Context, testContext testutils.TestContext) {
+		const id = "test-lifecycle"
+
+		st := testContext.State
+
+		machineServices := testutils.NewMachineServices(t, st)
+		machineService := machineServices.Create(ctx, id)
+
+		ms := omni.NewMachineStatus(id)
+		ms.TypedSpec().Value.ManagementAddress = machineService.SocketConnectionString
+
+		require.NoError(t, st.Create(ctx, ms))
+
+		initialSchematic := schematic.Schematic{
+			Customization: schematic.Customization{
+				ExtraKernelArgs: []string{"arg1"},
+			},
+		}
+
+		currentSchematicID, err := initialSchematic.ID()
+		require.NoError(t, err)
+
+		currentSchematicRaw, err := initialSchematic.Marshal()
+		require.NoError(t, err)
+
+		schematicConfiguration := omni.NewSchematicConfiguration(id)
+		schematicConfiguration.TypedSpec().Value.SchematicId = currentSchematicID
+		require.NoError(t, st.Create(ctx, schematicConfiguration))
+
+		updatedSchematic := updateKernelArgs(ctx, t, st, initialSchematic, id, []string{"updated-arg"})
+
+		updatedSchematicID, err := updatedSchematic.ID()
+		require.NoError(t, err)
+
+		// Talos version 1.13+: the controller must use Talos's LifecycleService.Upgrade.
+		const talosVersion = "1.13.4"
+
+		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
+			res.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
+
+			res.TypedSpec().Value.Maintenance = true
+			res.TypedSpec().Value.TalosVersion = talosVersion
+
+			res.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+				Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{{LinuxName: "/dev/sda", SystemDisk: true}},
+			}
+
+			res.TypedSpec().Value.SecurityState = &specs.SecurityState{BootedWithUki: true}
+
+			res.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
+				Platform: talosconstants.PlatformMetal,
+			}
+
+			res.TypedSpec().Value.Schematic = &specs.MachineStatusSpec_Schematic{
+				InitialSchematic: currentSchematicID,
+				KernelArgs:       initialSchematic.Customization.ExtraKernelArgs,
+				FullId:           currentSchematicID,
+				Raw:              string(currentSchematicRaw),
+			}
+
+			return nil
+		})
+		require.NoError(t, err)
+
+		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+			assertion.Equal(specs.MachineUpgradeStatusSpec_Upgrading, res.TypedSpec().Value.Phase)
+			assertion.Equal("Talos upgrade initiated", res.TypedSpec().Value.Status)
+			assertion.Empty(res.TypedSpec().Value.Error)
+		})
+
+		updatedSchematicRaw, err := updatedSchematic.Marshal()
+		require.NoError(t, err)
+
+		// update MachineStatus to simulate the upgrade completing and the machine rebooting into the target schematic
+		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
+			res.TypedSpec().Value.Schematic.FullId = updatedSchematicID
+			res.TypedSpec().Value.Schematic.Raw = string(updatedSchematicRaw)
+
+			return nil
+		})
+		require.NoError(t, err)
+
+		rtestutils.AssertResource(ctx, t, st, id, func(res *omni.MachineUpgradeStatus, assertion *assert.Assertions) {
+			assertion.Equal(specs.MachineUpgradeStatusSpec_UpToDate, res.TypedSpec().Value.Phase)
+		})
+
+		lifecycleUpgradeRequests := machineService.GetLifecycleUpgradeRequests()
+		require.Len(t, lifecycleUpgradeRequests, 1)
+
+		expectedInstallImage := fmt.Sprintf("factory-test.talos.dev/metal-installer/%s:v%s", updatedSchematicID, talosVersion)
+
+		assert.Equal(t, expectedInstallImage, lifecycleUpgradeRequests[0].GetSource().GetImageName())
+		assert.Empty(t, machineService.GetUpgradeRequests())
 	})
 }
 

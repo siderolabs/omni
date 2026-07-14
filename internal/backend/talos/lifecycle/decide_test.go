@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package machineconfig_test
+package lifecycle_test
 
 import (
 	"testing"
@@ -13,10 +13,10 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
 
-func TestDecideLifecycleOp(t *testing.T) {
+func TestDecideOp(t *testing.T) {
 	t.Parallel()
 
 	mkMachineStatus := func(version string, schematic *specs.MachineStatusSpec_Schematic, hasSystemDisk, inMaintenance bool) *omni.MachineStatus {
@@ -54,7 +54,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 		snapshot             *omni.MachineStatusSnapshot
 		image                *specs.MachineConfigGenOptionsSpec_InstallImage
 		name                 string
-		want                 machineconfig.LifecycleOp
+		want                 lifecycle.Op
 		schematicMismatch    bool
 		talosVersionMismatch bool
 	}
@@ -65,7 +65,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			machine:  mkMachineStatus("1.13.4", nil, true, false),
 			snapshot: mkSnapshot(machineapi.MachineStatusEvent_RUNNING),
 			image:    mkImage("1.13.4", ""),
-			want:     machineconfig.LifecycleOpNone,
+			want:     lifecycle.OpNone,
 		},
 		{
 			name:                 "not-installed 1.13 in maintenance, minor version mismatch → maintenance install",
@@ -73,7 +73,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			snapshot:             mkSnapshot(machineapi.MachineStatusEvent_MAINTENANCE),
 			image:                mkImage("1.14.1", ""),
 			talosVersionMismatch: true,
-			want:                 machineconfig.LifecycleOpMaintenanceInstall,
+			want:                 lifecycle.OpMaintenanceInstall,
 		},
 		{
 			name:                 "not-installed 1.13 in maintenance, patch-only mismatch → config-apply install (None)",
@@ -82,7 +82,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			image:                mkImage("1.13.4", ""),
 			talosVersionMismatch: true,
 			// same config contract (major.minor): the maintenance config apply installs the exact target version itself, no lifecycle install needed
-			want: machineconfig.LifecycleOpNone,
+			want: lifecycle.OpNone,
 		},
 		{
 			name:     "not-installed 1.13 in maintenance at target version → config-apply install (None) despite stale mismatch flags",
@@ -92,7 +92,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			// machineConfigStatus-based flags signal a mismatch on the first reconcile (empty status); the live machine state must win.
 			schematicMismatch:    true,
 			talosVersionMismatch: true,
-			want:                 machineconfig.LifecycleOpNone,
+			want:                 lifecycle.OpNone,
 		},
 		{
 			name:                 "not-installed 1.13 in maintenance, schematic-only mismatch → config-apply install (None)",
@@ -101,7 +101,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			image:                mkImage("1.13.4", "target-schematic"),
 			schematicMismatch:    true,
 			talosVersionMismatch: true,
-			want:                 machineconfig.LifecycleOpNone,
+			want:                 lifecycle.OpNone,
 		},
 		{
 			name:                 "installed 1.13 in maintenance with patch-only mismatch → maintenance upgrade (exact compare)",
@@ -110,14 +110,14 @@ func TestDecideLifecycleOp(t *testing.T) {
 			image:                mkImage("1.13.4", ""),
 			talosVersionMismatch: true,
 			// config apply cannot change the on-disk version, so installed machines compare exact versions, not just the contract
-			want: machineconfig.LifecycleOpMaintenanceUpgrade,
+			want: lifecycle.OpMaintenanceUpgrade,
 		},
 		{
 			name:     "installed 1.13 in maintenance with schematic mismatch → maintenance upgrade",
 			machine:  mkMachineStatus("1.13.4", &specs.MachineStatusSpec_Schematic{FullId: "boot-schematic"}, true, true),
 			snapshot: mkSnapshot(machineapi.MachineStatusEvent_MAINTENANCE),
 			image:    mkImage("1.13.4", "target-schematic"),
-			want:     machineconfig.LifecycleOpMaintenanceUpgrade,
+			want:     lifecycle.OpMaintenanceUpgrade,
 		},
 		{
 			name:     "installed 1.13 in maintenance at target → config apply (None), the post-install state",
@@ -127,7 +127,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			// stale flags again: the maintenance flow never writes the config status back
 			schematicMismatch:    true,
 			talosVersionMismatch: true,
-			want:                 machineconfig.LifecycleOpNone,
+			want:                 lifecycle.OpNone,
 		},
 		{
 			name:                 "installed 1.12 in maintenance → legacy upgrade (machine doesn't support lifecycle)",
@@ -135,7 +135,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			snapshot:             mkSnapshot(machineapi.MachineStatusEvent_MAINTENANCE),
 			image:                mkImage("1.12.6", ""),
 			talosVersionMismatch: true,
-			want:                 machineconfig.LifecycleOpLegacyUpgrade,
+			want:                 lifecycle.OpLegacyUpgrade,
 		},
 		{
 			name:                 "installed 1.13 running mode mismatch → cluster upgrade (both support lifecycle)",
@@ -143,7 +143,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			snapshot:             mkSnapshot(machineapi.MachineStatusEvent_RUNNING),
 			image:                mkImage("1.13.5", ""),
 			talosVersionMismatch: true,
-			want:                 machineconfig.LifecycleOpClusterUpgrade,
+			want:                 lifecycle.OpClusterUpgrade,
 		},
 		{
 			name:                 "installed 1.12 running mode mismatch → legacy upgrade (machine doesn't support lifecycle)",
@@ -151,7 +151,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			snapshot:             mkSnapshot(machineapi.MachineStatusEvent_RUNNING),
 			image:                mkImage("1.12.6", ""),
 			talosVersionMismatch: true,
-			want:                 machineconfig.LifecycleOpLegacyUpgrade,
+			want:                 lifecycle.OpLegacyUpgrade,
 		},
 		{
 			name:                 "installed 1.13 running, downgrade to 1.12 → legacy upgrade (target doesn't support lifecycle)",
@@ -159,7 +159,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			snapshot:             mkSnapshot(machineapi.MachineStatusEvent_RUNNING),
 			image:                mkImage("1.12.6", ""),
 			talosVersionMismatch: true,
-			want:                 machineconfig.LifecycleOpLegacyUpgrade,
+			want:                 lifecycle.OpLegacyUpgrade,
 		},
 		{
 			name:                 "not-installed 1.12 in maintenance + 1.13 cluster → no path (gate stands)",
@@ -167,7 +167,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			snapshot:             mkSnapshot(machineapi.MachineStatusEvent_MAINTENANCE),
 			image:                mkImage("1.13.4", ""),
 			talosVersionMismatch: true,
-			want:                 machineconfig.LifecycleOpNone,
+			want:                 lifecycle.OpNone,
 		},
 		{
 			name:                 "not-installed 1.13 in maintenance + 1.12 cluster → no path (target doesn't support lifecycle)",
@@ -175,7 +175,7 @@ func TestDecideLifecycleOp(t *testing.T) {
 			snapshot:             mkSnapshot(machineapi.MachineStatusEvent_MAINTENANCE),
 			image:                mkImage("1.12.6", ""),
 			talosVersionMismatch: true,
-			want:                 machineconfig.LifecycleOpNone,
+			want:                 lifecycle.OpNone,
 		},
 		{
 			name:    "invalid schematic plays no role in the maintenance decision",
@@ -184,13 +184,13 @@ func TestDecideLifecycleOp(t *testing.T) {
 				machineapi.MachineStatusEvent_MAINTENANCE,
 			),
 			image: mkImage("1.13.4", "target-schematic"),
-			want:  machineconfig.LifecycleOpNone,
+			want:  lifecycle.OpNone,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := machineconfig.DecideLifecycleOp(tc.machine, tc.image, tc.schematicMismatch, tc.talosVersionMismatch)
+			got := lifecycle.DecideOp(tc.machine, tc.image, tc.schematicMismatch, tc.talosVersionMismatch)
 			assert.Equal(t, tc.want, got)
 		})
 	}

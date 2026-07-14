@@ -25,24 +25,25 @@ import (
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
+
+// LifecycleManager runs Talos's LifecycleService install/upgrade for a single machine, and hands out a cached client for the legacy fallback path.
+type LifecycleManager interface {
+	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
+	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
+	ImageFactoryHost() string
+	TalosRegistry() string
+}
 
 type StatusController struct {
 	*qtransform.QController[*omni.MachineStatus, *omni.MachineUpgradeStatus]
-	talosClientFactory TalosClientFactory
-	imageFactoryHost   string
-	talosRegistry      string
+	lifecycleManager LifecycleManager
 }
 
-func NewStatusController(imageFactoryHost, talosRegistry string, talosClientFactory TalosClientFactory) *StatusController {
-	if talosClientFactory == nil {
-		talosClientFactory = &talosCliFactory{}
-	}
-
+func NewStatusController(lifecycleManager LifecycleManager) *StatusController {
 	ctrl := &StatusController{
-		imageFactoryHost:   imageFactoryHost,
-		talosRegistry:      talosRegistry,
-		talosClientFactory: talosClientFactory,
+		lifecycleManager: lifecycleManager,
 	}
 
 	ctrl.QController = qtransform.NewQController(
@@ -204,14 +205,9 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 		SecurityState:        securityState,
 	}
 
-	installImageStr, err := installimage.Build(ctrl.imageFactoryHost, ms.Metadata().ID(), installImage, ctrl.talosRegistry)
-	if err != nil {
-		return fmt.Errorf("failed to build install image: %w", err)
-	}
+	schematicMismatch := schematicSpec.FullId != desiredSchematicID
 
-	logger.Info("built Talos upgrade image", zap.String("image", installImageStr))
-
-	if err = ctrl.doUpgrade(ctx, ms, installImageStr); err != nil {
+	if err = ctrl.upgrade(ctx, logger, ms, installImage, schematicMismatch); err != nil {
 		if talos.IsClientNotReadyError(err) {
 			status.TypedSpec().Value.Status = "Talos client is not yet ready: " + err.Error()
 			status.TypedSpec().Value.Error = ""
@@ -256,19 +252,66 @@ func (ctrl *StatusController) checkCooldown(status *omni.MachineUpgradeStatus, l
 	return controller.NewRequeueInterval(remainingTime)
 }
 
-func (ctrl *StatusController) doUpgrade(ctx context.Context, machineStatus *omni.MachineStatus, installImage string) (retErr error) {
-	talosClient, err := ctrl.talosClientFactory.New(ctx, machineStatus.TypedSpec().Value.ManagementAddress)
-	if err != nil {
-		return fmt.Errorf("failed to create Talos client: %w", err)
+// upgrade runs Talos's LifecycleService.Upgrade for machines that support it (Talos 1.13+),
+// falling back to the deprecated MachineService.Upgrade for older ones.
+func (ctrl *StatusController) upgrade(
+	ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, schematicMismatch bool,
+) error {
+	switch op := lifecycle.DecideOp(ms, installImage, schematicMismatch, false); op {
+	case lifecycle.OpMaintenanceUpgrade:
+		return ctrl.lifecycleUpgrade(ctx, logger, ms, installImage)
+	case lifecycle.OpLegacyUpgrade:
+		return ctrl.legacyUpgrade(ctx, logger, ms, installImage)
+	case lifecycle.OpNone, lifecycle.OpMaintenanceInstall, lifecycle.OpClusterUpgrade:
+		return fmt.Errorf("unreachable lifecycle op %d for machine %q", op, ms.Metadata().ID())
+	default:
+		return fmt.Errorf("unknown lifecycle op %d for machine %q", op, ms.Metadata().ID())
+	}
+}
+
+// lifecycleUpgrade upgrades the machine via Talos's LifecycleService.Upgrade.
+func (ctrl *StatusController) lifecycleUpgrade(ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) error {
+	machineID := ms.Metadata().ID()
+
+	operation := lifecycle.Operation{
+		MachineID:     machineID,
+		MachineStatus: ms,
+		Version:       installImage.TalosVersion,
+		InstallImage:  installImage,
+		Kind:          lifecycle.KindUpgrade,
 	}
 
-	defer func() {
-		if closeErr := talosClient.Close(); closeErr != nil {
-			retErr = errors.Join(retErr, fmt.Errorf("failed to close Talos client: %w", closeErr))
-		}
-	}()
+	err := ctrl.lifecycleManager.Run(ctx, operation, lifecycle.WithProgress(func(msg string) {
+		logger.Debug("upgrade progress", zap.String("machine", machineID), zap.String("message", msg))
+	}))
 
-	if _, err = talosClient.UpgradeWithOptions(ctx, client.WithUpgradeImage(installImage)); err != nil {
+	if errors.Is(err, lifecycle.ErrAlreadyInFlight) {
+		logger.Info("upgrade already in flight", zap.String("machine", machineID))
+
+		return controller.NewRequeueInterval(lifecycle.RetryInterval)
+	}
+
+	return err
+}
+
+// legacyUpgrade upgrades the machine via the deprecated MachineService.Upgrade, for Talos versions older than 1.13.
+func (ctrl *StatusController) legacyUpgrade(ctx context.Context, logger *zap.Logger, ms *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) error {
+	machineID := ms.Metadata().ID()
+
+	installImageStr, err := installimage.Build(ctrl.lifecycleManager.ImageFactoryHost(), machineID, installImage, ctrl.lifecycleManager.TalosRegistry())
+	if err != nil {
+		return fmt.Errorf("failed to build install image: %w", err)
+	}
+
+	logger.Info("built Talos upgrade image", zap.String("image", installImageStr))
+
+	talosClient, err := ctrl.lifecycleManager.GetForMachine(ctx, machineID)
+	if err != nil {
+		return fmt.Errorf("failed to get talos client: %w", err)
+	}
+
+	//nolint:staticcheck
+	if _, err = talosClient.UpgradeWithOptions(ctx, client.WithUpgradeImage(installImageStr)); err != nil {
 		return fmt.Errorf("failed to do Talos upgrade: %w", err)
 	}
 

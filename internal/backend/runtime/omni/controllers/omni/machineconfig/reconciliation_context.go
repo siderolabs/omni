@@ -25,26 +25,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
-)
-
-// LifecycleOp identifies which upgrade/install path the controller should follow for a given machine.
-type LifecycleOp int
-
-const (
-	// LifecycleOpNone means on-disk Talos already matches the install image; no action needed.
-	LifecycleOpNone LifecycleOp = iota
-
-	// LifecycleOpLegacyUpgrade is an in-place upgrade via MachineService.Upgrade.
-	LifecycleOpLegacyUpgrade
-
-	// LifecycleOpMaintenanceInstall is LifecycleService.Install for a maintenance machine with no Talos on disk.
-	LifecycleOpMaintenanceInstall
-
-	// LifecycleOpMaintenanceUpgrade is LifecycleService.Upgrade for a maintenance machine that has Talos on disk.
-	LifecycleOpMaintenanceUpgrade
-
-	// LifecycleOpClusterUpgrade is LifecycleService.Upgrade for an in-cluster machine (Talos 1.13+), with cordon/drain/reboot orchestrated by Omni.
-	LifecycleOpClusterUpgrade
+	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
 
 // ReconciliationContext describes all related data for one reconciliation call of the machine config status controller.
@@ -63,12 +44,12 @@ type ReconciliationContext struct {
 
 	configUpdatesAllowed bool
 	locked               bool
-	lifecycleOp          LifecycleOp
+	lifecycleOp          lifecycle.Op
 }
 
 // hasPendingLifecycleOperation returns true when an upgrade/install action needs to run before config can be applied.
 func (rc *ReconciliationContext) hasPendingLifecycleOperation() bool {
-	return rc.lifecycleOp != LifecycleOpNone
+	return rc.lifecycleOp != lifecycle.OpNone
 }
 
 func checkClusterReady(ctx context.Context, r controller.Reader, machineConfig *omni.ClusterMachineConfig) (bool, error) {
@@ -257,63 +238,10 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 
 	rc.bootID = rc.machineStatusSnapshot.TypedSpec().Value.BootId
 
-	rc.lifecycleOp = DecideLifecycleOp(rc.machineStatus, rc.installImage, schematicMismatch, talosVersionMismatch)
-	if rc.lifecycleOp == LifecycleOpMaintenanceInstall && rc.installDisk == "" {
+	rc.lifecycleOp = lifecycle.DecideOp(rc.machineStatus, rc.installImage, schematicMismatch, talosVersionMismatch)
+	if rc.lifecycleOp == lifecycle.OpMaintenanceInstall && rc.installDisk == "" {
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install disk is not yet selected", machineConfig.Metadata().ID())
 	}
 
 	return rc, nil
-}
-
-// DecideLifecycleOp picks the upgrade/install path from the live machine state. Exported for tests.
-func DecideLifecycleOp(machineStatus *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage, schematicMismatch, talosVersionMismatch bool) LifecycleOp {
-	hasSystemDisk := omni.GetMachineStatusSystemDisk(machineStatus) != ""
-
-	machineVersion, machineSupportsLifecycle := omni.ParseTalosVersionLifecycleSupport(machineStatus.TypedSpec().Value.TalosVersion)
-	targetVersion, targetSupportsLifecycle := omni.ParseTalosVersionLifecycleSupport(installImage.TalosVersion)
-
-	// The LifecycleService paths (Talos 1.13+ both ends) decide from the live version/schematic, not the
-	// mismatch flags, so a stale status can't trigger a spurious first-reconcile upgrade.
-	if machineSupportsLifecycle && targetSupportsLifecycle {
-		if machineStatus.TypedSpec().Value.Maintenance {
-			switch {
-			case hasSystemDisk && (!machineVersion.EQ(targetVersion) || schematicDiffers(machineStatus, installImage)):
-				return LifecycleOpMaintenanceUpgrade
-			case !hasSystemDisk && (machineVersion.Major != targetVersion.Major || machineVersion.Minor != targetVersion.Minor):
-				// Cross-minor without a disk: config-apply only installs within the same minor, so install explicitly.
-				return LifecycleOpMaintenanceInstall
-			default:
-				// Already at target, or same-minor with no disk where config-apply installs it for us.
-				return LifecycleOpNone
-			}
-		}
-
-		if hasSystemDisk {
-			if !machineVersion.EQ(targetVersion) || schematicDiffers(machineStatus, installImage) {
-				return LifecycleOpClusterUpgrade
-			}
-
-			return LifecycleOpNone
-		}
-	}
-
-	// Older machine or target: the legacy path, gated on the config-status mismatch flags.
-	if !schematicMismatch && !talosVersionMismatch {
-		return LifecycleOpNone
-	}
-
-	if hasSystemDisk {
-		return LifecycleOpLegacyUpgrade
-	}
-
-	// No Talos on disk and not eligible for a maintenance install: Omni has no way to install Talos on this machine today, so nothing is done.
-	return LifecycleOpNone
-}
-
-// schematicDiffers reports whether the machine's schematic differs from the target's. An invalid schematic
-// (not provisioned via image factory) reports false.
-func schematicDiffers(machineStatus *omni.MachineStatus, installImage *specs.MachineConfigGenOptionsSpec_InstallImage) bool {
-	machineSchematic := machineStatus.TypedSpec().Value.GetSchematic()
-
-	return !machineSchematic.GetInvalid() && machineSchematic.GetFullId() != installImage.SchematicId
 }

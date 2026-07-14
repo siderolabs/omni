@@ -63,29 +63,27 @@ type LifecycleManager interface {
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
 	FinalizeReboot(ctx context.Context, opts ...lifecycle.Option) error
+	ImageFactoryHost() string
+	TalosRegistry() string
 }
 
-// ClusterMachineConfigStatusController manages the ClusterMachineStatus resource lifecycle.
+// StatusController manages the ClusterMachineConfigStatus resource lifecycle.
 //
-// ClusterMachineConfigStatusController applies the generated machine config on each corresponding machine.
-type ClusterMachineConfigStatusController struct {
+// StatusController applies the generated machine config on each corresponding machine.
+type StatusController struct {
 	*qtransform.QController[*omni.ClusterMachineConfig, *omni.ClusterMachineConfigStatus]
 	ongoingResets    *ongoingResets
 	lifecycleManager LifecycleManager
-	imageFactoryHost string
-	talosRegistry    string
 	acquireLockMu    sync.Mutex
 }
 
-// NewClusterMachineConfigStatusController initializes ClusterMachineConfigStatusController.
-func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry string, lifecycleManager LifecycleManager) *ClusterMachineConfigStatusController {
+// NewStatusController initializes StatusController.
+func NewStatusController(lifecycleManager LifecycleManager) *StatusController {
 	ongoingResets := &ongoingResets{
 		statuses: map[string]*resetStatus{},
 	}
 
-	ctrl := &ClusterMachineConfigStatusController{
-		imageFactoryHost: imageFactoryHost,
-		talosRegistry:    talosRegistry,
+	ctrl := &StatusController{
 		ongoingResets:    ongoingResets,
 		lifecycleManager: lifecycleManager,
 	}
@@ -179,7 +177,7 @@ func NewClusterMachineConfigStatusController(imageFactoryHost, talosRegistry str
 }
 
 //nolint:gocognit,gocyclo,cyclop
-func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
+func (ctrl *StatusController) reconcileRunning(
 	ctx context.Context, r controller.ReaderWriter, logger *zap.Logger,
 	machineConfig *omni.ClusterMachineConfig, machineConfigStatus *omni.ClusterMachineConfigStatus,
 ) error {
@@ -298,7 +296,7 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileRunning(
 	return nil
 }
 
-func (ctrl *ClusterMachineConfigStatusController) reconcileTearingDown(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, machineConfig *omni.ClusterMachineConfig) error {
+func (ctrl *StatusController) reconcileTearingDown(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, machineConfig *omni.ClusterMachineConfig) error {
 	clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, r, machineConfig.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return err
@@ -352,14 +350,14 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileTearingDown(ctx conte
 //     released, so it does not pin a config rollout slot and starve machines that only need a
 //     config change. The lock is re-acquired later when the machine applies its config.
 //   - once the machine is in sync, the upgrade lock is released before the config-apply phase.
-func (ctrl *ClusterMachineConfigStatusController) reconcileUpgrade(
+func (ctrl *StatusController) reconcileUpgrade(
 	ctx context.Context,
 	logger *zap.Logger,
 	r controller.ReaderWriter,
 	rc *ReconciliationContext,
 ) error {
 	// The legacy path doesn't use the reboot marker, so clear it lest a stale ID debounce a later operation.
-	if rc.lifecycleOp == LifecycleOpLegacyUpgrade {
+	if rc.lifecycleOp == lifecycle.OpLegacyUpgrade {
 		rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = ""
 	}
 
@@ -422,7 +420,7 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileUpgrade(
 
 // finalizeReboot uncordons the node, then clears the reboot marker. The marker is shared with the
 // maintenance paths, which never cordon, but Uncordon is a harmless no-op on an uncordoned node.
-func (ctrl *ClusterMachineConfigStatusController) finalizeReboot(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) error {
+func (ctrl *StatusController) finalizeReboot(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) error {
 	if rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId == "" {
 		return nil
 	}
@@ -439,7 +437,7 @@ func (ctrl *ClusterMachineConfigStatusController) finalizeReboot(ctx context.Con
 			if nodeName != "" {
 				if err = ctrl.lifecycleManager.FinalizeReboot(ctx, lifecycle.WithUncordon(clusterName, nodeName)); err != nil {
 					// Keep PreRebootBootId so the next reconcile retries the uncordon.
-					return controller.NewRequeueError(fmt.Errorf("failed to finalize reboot for machine %q: %w", rc.ID(), err), lifecycleOperationPollInterval)
+					return controller.NewRequeueError(fmt.Errorf("failed to finalize reboot for machine %q: %w", rc.ID(), err), lifecycle.RetryInterval)
 				}
 			}
 		}
@@ -450,25 +448,25 @@ func (ctrl *ClusterMachineConfigStatusController) finalizeReboot(ctx context.Con
 	return nil
 }
 
-func (ctrl *ClusterMachineConfigStatusController) upgrade(ctx context.Context, logger *zap.Logger, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {
+func (ctrl *StatusController) upgrade(ctx context.Context, logger *zap.Logger, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {
 	switch rc.lifecycleOp {
-	case LifecycleOpNone:
+	case lifecycle.OpNone:
 		return true, nil
 
-	case LifecycleOpMaintenanceInstall, LifecycleOpMaintenanceUpgrade:
+	case lifecycle.OpMaintenanceInstall, lifecycle.OpMaintenanceUpgrade:
 		return ctrl.runMaintenanceLifecycle(ctx, logger, r, rc)
 
-	case LifecycleOpClusterUpgrade:
+	case lifecycle.OpClusterUpgrade:
 		return ctrl.runClusterLifecycle(ctx, logger, r, rc)
 
-	case LifecycleOpLegacyUpgrade:
+	case lifecycle.OpLegacyUpgrade:
 		fallthrough
 	default:
 		return ctrl.legacyUpgrade(ctx, logger, r, rc)
 	}
 }
 
-func (ctrl *ClusterMachineConfigStatusController) legacyUpgrade(inputCtx context.Context, logger *zap.Logger, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {
+func (ctrl *StatusController) legacyUpgrade(inputCtx context.Context, logger *zap.Logger, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {
 	// use short timeout for all API calls except upgrade to quickly skip "dead" nodes
 	ctx, cancel := context.WithTimeout(inputCtx, 5*time.Second)
 	defer cancel()
@@ -501,7 +499,7 @@ func (ctrl *ClusterMachineConfigStatusController) legacyUpgrade(inputCtx context
 		return true, nil
 	}
 
-	image, err := installimage.Build(ctrl.imageFactoryHost, rc.ID(), rc.installImage, ctrl.talosRegistry)
+	image, err := installimage.Build(ctrl.lifecycleManager.ImageFactoryHost(), rc.ID(), rc.installImage, ctrl.lifecycleManager.TalosRegistry())
 	if err != nil {
 		return false, err
 	}
@@ -549,11 +547,8 @@ func (ctrl *ClusterMachineConfigStatusController) legacyUpgrade(inputCtx context
 	return false, err
 }
 
-// lifecycleOperationPollInterval paces a retry when the operation can't make progress yet (another caller holds the in-flight slot, or the machine is still rebooting from a prior operation).
-const lifecycleOperationPollInterval = 30 * time.Second
-
 // runMaintenanceLifecycle performs a maintenance install or upgrade via Talos's LifecycleService.
-func (ctrl *ClusterMachineConfigStatusController) runMaintenanceLifecycle(
+func (ctrl *StatusController) runMaintenanceLifecycle(
 	ctx context.Context,
 	logger *zap.Logger,
 	r controller.ReaderWriter,
@@ -562,7 +557,7 @@ func (ctrl *ClusterMachineConfigStatusController) runMaintenanceLifecycle(
 	machineID := rc.ID()
 
 	operationName := "maintenance upgrade"
-	if rc.lifecycleOp == LifecycleOpMaintenanceInstall {
+	if rc.lifecycleOp == lifecycle.OpMaintenanceInstall {
 		operationName = "maintenance install"
 	}
 
@@ -585,7 +580,7 @@ func (ctrl *ClusterMachineConfigStatusController) runMaintenanceLifecycle(
 	if err := ctrl.lifecycleManager.CheckAlive(probeCtx, machineID); err != nil {
 		logger.Info("liveness probe before "+operationName+" failed, will retry", zap.String("machine", machineID), zap.Error(err))
 
-		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	}
 
 	if err := ctrl.acquireUpgradeLock(ctx, r, rc); err != nil {
@@ -600,10 +595,10 @@ func (ctrl *ClusterMachineConfigStatusController) runMaintenanceLifecycle(
 	}
 
 	switch rc.lifecycleOp { //nolint:exhaustive
-	case LifecycleOpMaintenanceInstall:
+	case lifecycle.OpMaintenanceInstall:
 		operation.Kind = lifecycle.KindInstall
 		operation.Disk = rc.installDisk
-	case LifecycleOpMaintenanceUpgrade:
+	case lifecycle.OpMaintenanceUpgrade:
 		operation.Kind = lifecycle.KindUpgrade
 	}
 
@@ -621,24 +616,24 @@ func (ctrl *ClusterMachineConfigStatusController) runMaintenanceLifecycle(
 		// The management RPC is operating on this machine, so retry once it releases the slot.
 		logger.Info(operationName+" already in flight", zap.String("machine", machineID))
 
-		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	case err != nil:
 		// Returning a raw error would make qtransform drop the output write and lose LastConfigError.
 		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, fmt.Sprintf("%s failed", operationName)).Error()
 
 		logger.Error(operationName+" failed", zap.String("machine", machineID), zap.Error(err))
 
-		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	default:
 		rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = rc.bootID
 		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = ""
 
-		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	}
 }
 
 // runClusterLifecycle upgrades an in-cluster Talos 1.13+ machine via LifecycleService.Upgrade.
-func (ctrl *ClusterMachineConfigStatusController) runClusterLifecycle(
+func (ctrl *StatusController) runClusterLifecycle(
 	ctx context.Context,
 	logger *zap.Logger,
 	r controller.ReaderWriter,
@@ -663,7 +658,7 @@ func (ctrl *ClusterMachineConfigStatusController) runClusterLifecycle(
 	if err != nil {
 		logger.Info("version check before upgrade failed, will retry", zap.String("machine", machineID), zap.Error(err))
 
-		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	}
 
 	if installed.atTarget {
@@ -728,19 +723,19 @@ func (ctrl *ClusterMachineConfigStatusController) runClusterLifecycle(
 		// The management RPC is operating on this machine, so retry once it releases the slot.
 		logger.Info("upgrade already in flight", zap.String("machine", machineID))
 
-		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	case err != nil:
 		// Returning a raw error would make qtransform drop the output write and lose LastConfigError.
 		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, "upgrade failed").Error()
 
 		logger.Error("upgrade failed", zap.String("machine", machineID), zap.Error(err))
 
-		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	default:
 		rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId = rc.bootID
 		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = ""
 
-		return false, controller.NewRequeueInterval(lifecycleOperationPollInterval)
+		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	}
 }
 
@@ -753,7 +748,7 @@ type installedImage struct {
 }
 
 // checkInstalledImage reads the node's running version and schematic live and compares them to the target.
-func (ctrl *ClusterMachineConfigStatusController) checkInstalledImage(
+func (ctrl *StatusController) checkInstalledImage(
 	ctx context.Context, rc *ReconciliationContext,
 ) (installedImage, error) {
 	nodeClient, err := ctrl.lifecycleManager.GetForMachine(ctx, rc.ID())
@@ -802,7 +797,7 @@ func (ctrl *ClusterMachineConfigStatusController) checkInstalledImage(
 }
 
 // etcdForfeitHook forfeits this node's etcd leadership if it's a ControlPlane node on a multi ControlPlane cluster.
-func (ctrl *ClusterMachineConfigStatusController) etcdForfeitHook(rc *ReconciliationContext, clusterMachines []resource.Resource) lifecycle.PreRebootHook {
+func (ctrl *StatusController) etcdForfeitHook(rc *ReconciliationContext, clusterMachines []resource.Resource) lifecycle.PreRebootHook {
 	if rc.clusterMachine == nil {
 		return nil
 	}
@@ -831,7 +826,7 @@ func (ctrl *ClusterMachineConfigStatusController) etcdForfeitHook(rc *Reconcilia
 }
 
 // listClusterMachines lists the cluster's ClusterMachines uncached, so callers see the freshest finalizer set.
-func (ctrl *ClusterMachineConfigStatusController) listClusterMachines(ctx context.Context, r controller.ReaderWriter, clusterName string) ([]resource.Resource, error) {
+func (ctrl *StatusController) listClusterMachines(ctx context.Context, r controller.ReaderWriter, clusterName string) ([]resource.Resource, error) {
 	qruntime := r.(controller.QRuntime) //nolint:forcetypeassert,errcheck
 
 	list, err := qruntime.ListUncached(
@@ -847,7 +842,7 @@ func (ctrl *ClusterMachineConfigStatusController) listClusterMachines(ctx contex
 }
 
 // getNodeName returns the machine's Kubernetes node name, or "" if its ClusterMachineIdentity isn't present yet.
-func (ctrl *ClusterMachineConfigStatusController) getNodeName(ctx context.Context, r controller.Reader, machineID string) (string, error) {
+func (ctrl *StatusController) getNodeName(ctx context.Context, r controller.Reader, machineID string) (string, error) {
 	identity, err := safe.ReaderGetByID[*omni.ClusterMachineIdentity](ctx, r, machineID)
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -864,7 +859,7 @@ func (ctrl *ClusterMachineConfigStatusController) getNodeName(ctx context.Contex
 //
 // Currently, it is only required as a workaround for this bug affecting Talos 1.9.0-1.9.2:
 // https://github.com/siderolabs/talos/issues/10163.
-func (ctrl *ClusterMachineConfigStatusController) stageUpgrade(actualTalosVersion string) (bool, error) {
+func (ctrl *StatusController) stageUpgrade(actualTalosVersion string) (bool, error) {
 	version, err := semver.ParseTolerant(actualTalosVersion)
 	if err != nil {
 		return false, fmt.Errorf("failed to parse talos version %q: %w", actualTalosVersion, err)
@@ -875,7 +870,7 @@ func (ctrl *ClusterMachineConfigStatusController) stageUpgrade(actualTalosVersio
 
 var errAcquireConfigLock = errors.New("failed to acquire config update lock")
 
-func (ctrl *ClusterMachineConfigStatusController) applyConfig(inputCtx context.Context,
+func (ctrl *StatusController) applyConfig(inputCtx context.Context,
 	logger *zap.Logger,
 	r controller.ReaderWriter,
 	rc *ReconciliationContext,
@@ -969,7 +964,7 @@ func logClose(c io.Closer, logger *zap.Logger, additional string) {
 }
 
 //nolint:gocyclo,cyclop
-func (ctrl *ClusterMachineConfigStatusController) reset(
+func (ctrl *StatusController) reset(
 	ctx context.Context,
 	logger *zap.Logger,
 	r controller.Reader,
@@ -1133,7 +1128,7 @@ func (ctrl *ClusterMachineConfigStatusController) reset(
 	return fmt.Errorf("failed resetting node '%s': %w", machineID, err)
 }
 
-func (ctrl *ClusterMachineConfigStatusController) shouldReset(
+func (ctrl *StatusController) shouldReset(
 	ctx context.Context,
 	r controller.Reader,
 	machineConfig *omni.ClusterMachineConfig,
@@ -1186,7 +1181,7 @@ func (ctrl *ClusterMachineConfigStatusController) shouldReset(
 	return true, nil
 }
 
-func (ctrl *ClusterMachineConfigStatusController) shouldResetGraceful(
+func (ctrl *StatusController) shouldResetGraceful(
 	ctx context.Context,
 	logger *zap.Logger,
 	r controller.Reader,
@@ -1220,7 +1215,7 @@ func (ctrl *ClusterMachineConfigStatusController) shouldResetGraceful(
 	return machineSetConfigStatus != nil && machineSetConfigStatus.TypedSpec().Value.ShouldResetGraceful, nil
 }
 
-func (ctrl *ClusterMachineConfigStatusController) gracefulEtcdLeave(ctx context.Context, c *client.Client, id string) error {
+func (ctrl *StatusController) gracefulEtcdLeave(ctx context.Context, c *client.Client, id string) error {
 	_, err := c.EtcdForfeitLeadership(ctx, &machineapi.EtcdForfeitLeadershipRequest{})
 	if err != nil {
 		return fmt.Errorf("failed to forfeit leadership, node %q: %w", id, err)
@@ -1234,7 +1229,7 @@ func (ctrl *ClusterMachineConfigStatusController) gracefulEtcdLeave(ctx context.
 	return nil
 }
 
-func (ctrl *ClusterMachineConfigStatusController) getClient(
+func (ctrl *StatusController) getClient(
 	ctx context.Context,
 	r controller.Reader,
 	useMaintenance bool,
@@ -1285,7 +1280,7 @@ func (ctrl *ClusterMachineConfigStatusController) getClient(
 // callers can detect this specific reason with errors.Is.
 var errAcquireUpgradeLock = errors.New("failed to acquire upgrade lock")
 
-func (ctrl *ClusterMachineConfigStatusController) acquireUpgradeLock(ctx context.Context, r controller.ReaderWriter,
+func (ctrl *StatusController) acquireUpgradeLock(ctx context.Context, r controller.ReaderWriter,
 	rc *ReconciliationContext,
 ) error {
 	ctrl.acquireLockMu.Lock()
@@ -1343,7 +1338,7 @@ func (ctrl *ClusterMachineConfigStatusController) acquireUpgradeLock(ctx context
 	return r.AddFinalizer(ctx, rc.clusterMachine.Metadata(), UpgradeFinalizer)
 }
 
-func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx context.Context, r controller.ReaderWriter,
+func (ctrl *StatusController) acquireConfigUpdateLock(ctx context.Context, r controller.ReaderWriter,
 	rc *ReconciliationContext,
 ) error {
 	ctrl.acquireLockMu.Lock()
@@ -1404,7 +1399,7 @@ func (ctrl *ClusterMachineConfigStatusController) acquireConfigUpdateLock(ctx co
 	return r.AddFinalizer(ctx, rc.clusterMachine.Metadata(), ConfigUpdateFinalizer)
 }
 
-func (ctrl *ClusterMachineConfigStatusController) releaseConfigUpdateLock(ctx context.Context, r controller.ReaderWriter, clusterMachine *omni.ClusterMachine) error {
+func (ctrl *StatusController) releaseConfigUpdateLock(ctx context.Context, r controller.ReaderWriter, clusterMachine *omni.ClusterMachine) error {
 	if clusterMachine == nil || !clusterMachine.Metadata().Finalizers().Has(ConfigUpdateFinalizer) {
 		return nil
 	}
@@ -1412,7 +1407,7 @@ func (ctrl *ClusterMachineConfigStatusController) releaseConfigUpdateLock(ctx co
 	return r.RemoveFinalizer(ctx, clusterMachine.Metadata(), ConfigUpdateFinalizer)
 }
 
-func (ctrl *ClusterMachineConfigStatusController) releaseUpgradeLock(ctx context.Context, r controller.ReaderWriter, clusterMachine *omni.ClusterMachine) error {
+func (ctrl *StatusController) releaseUpgradeLock(ctx context.Context, r controller.ReaderWriter, clusterMachine *omni.ClusterMachine) error {
 	if clusterMachine == nil || !clusterMachine.Metadata().Finalizers().Has(UpgradeFinalizer) {
 		return nil
 	}
@@ -1424,7 +1419,7 @@ func (ctrl *ClusterMachineConfigStatusController) releaseUpgradeLock(ctx context
 // config last pushed to the machine (the redacted config stored in the status) differs from the
 // desired config. The caller uses this to re-apply a machine that has drifted from the desired
 // config even when the recorded (confirmed) sha already matches it.
-func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {
+func (ctrl *StatusController) computePendingUpdates(ctx context.Context, r controller.ReaderWriter, rc *ReconciliationContext) (bool, error) {
 	pendingUpdates := omni.NewMachinePendingUpdates(rc.machineConfig.Metadata().ID())
 
 	currentRedactedMachineConfig, err := rc.machineConfigStatus.TypedSpec().Value.GetUncompressedData()
@@ -1482,7 +1477,7 @@ func (ctrl *ClusterMachineConfigStatusController) computePendingUpdates(ctx cont
 	})
 }
 
-func (ctrl *ClusterMachineConfigStatusController) deleteUpgradeMetaKey(
+func (ctrl *StatusController) deleteUpgradeMetaKey(
 	ctx context.Context,
 	logger *zap.Logger,
 	r controller.Reader,

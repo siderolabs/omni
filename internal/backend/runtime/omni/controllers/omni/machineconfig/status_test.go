@@ -54,7 +54,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 	addControllers := func(_ context.Context, testContext testutils.TestContext) {
 		require.NoError(t, testContext.Runtime.RegisterQController(
-			machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(testContext.State, nil)),
+			machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
 		))
 	}
 
@@ -1036,7 +1036,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1074,7 +1074,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1110,7 +1110,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1150,7 +1150,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				manager = testutils.NewLifecycleManager(tc.State, nil)
-				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", manager)))
+				require.NoError(t, tc.Runtime.RegisterQController(machineconfig.NewStatusController(manager)))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
 				st := tc.State
@@ -1226,7 +1226,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1279,7 +1279,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1325,7 +1325,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1363,7 +1363,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1438,7 +1438,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			ctx, t, testutils.TestOptions{},
 			func(_ context.Context, tc testutils.TestContext) {
 				require.NoError(t, tc.Runtime.RegisterQController(
-					machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
 				))
 			},
 			func(ctx context.Context, tc testutils.TestContext) {
@@ -1682,7 +1682,7 @@ func TestUpgradeLockReleasedBeforeConfigApply(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -1760,7 +1760,7 @@ func TestConfigUpdateLockReleasedWhenUpgradeBlocked(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -1837,7 +1837,7 @@ func TestRevertRebootRequiringPatchRecoversMachine(t *testing.T) {
 	testutils.WithRuntime(
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
-			controller := machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil))
+			controller := machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil))
 			require.NoError(t, tc.Runtime.RegisterQController(controller))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2001,7 +2001,7 @@ func TestClusterLifecycleUpgrade(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, provider)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2091,7 +2091,7 @@ func TestClusterLifecycleConvergesOnLiveVersion(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, nil)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2179,7 +2179,7 @@ func TestClusterLifecycleHoldsUpgradeLockUntilFinalized(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, provider)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2339,7 +2339,7 @@ func TestClusterLifecycleForfeitsEtcdLeadership(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, provider)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
@@ -2382,7 +2382,7 @@ func TestClusterLifecycleSkipsEtcdForfeitForLoneControlPlane(t *testing.T) {
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
 			require.NoError(t, tc.Runtime.RegisterQController(
-				machineconfig.NewClusterMachineConfigStatusController(imageFactoryHost, "ghcr.io/siderolabs/installer", testutils.NewLifecycleManager(tc.State, provider)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, provider)),
 			))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {

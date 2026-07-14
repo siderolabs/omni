@@ -35,6 +35,10 @@ const CordonTimeout = 30 * time.Second
 // LivenessProbeTimeout caps the pre-flight liveness probe so a stale "connected" flag can't commit us to an unresponsive machine.
 const LivenessProbeTimeout = 5 * time.Second
 
+// RetryInterval paces a caller's retry when Run can't make progress yet for a machine (ErrAlreadyInFlight,
+// or the machine is still rebooting from a prior operation).
+const RetryInterval = 30 * time.Second
+
 // Kind identifies a lifecycle operation.
 type Kind int
 

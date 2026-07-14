@@ -60,6 +60,18 @@ func NewManager(logger *zap.Logger, imageFactoryHost, talosRegistry string, kube
 	}
 }
 
+// ImageFactoryHost is the image factory host used to build install images, shared by every caller
+// so they don't each need their own copy of what is really a single deployment-wide setting.
+func (m *Manager) ImageFactoryHost() string {
+	return m.imageFactoryHost
+}
+
+// TalosRegistry is the Talos installer registry used when a machine has no schematic, shared by every
+// caller so they don't each need their own copy of what is really a single deployment-wide setting.
+func (m *Manager) TalosRegistry() string {
+	return m.talosRegistry
+}
+
 // clientset resolves the cluster's Kubernetes clientset, erroring when no provider was configured.
 func (m *Manager) clientset(ctx context.Context, cluster string) (k8s.Interface, error) {
 	if m.kubernetesClientProvider == nil {
