@@ -199,7 +199,7 @@ func S3ClientFromResource(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf) (*
 
 	client := s3.NewFromConfig(loadedCfg, func(o *s3.Options) {
 		o.UsePathStyle = true
-		o.BaseEndpoint = aws.String(baseEndpoint)
+		o.BaseEndpoint = resolveBaseEndpoint(baseEndpoint)
 		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 		o.DisableLogOutputChecksumValidationSkipped = true
 	})
@@ -210,6 +210,19 @@ func S3ClientFromResource(ctx context.Context, s3Conf *omni.EtcdBackupS3Conf) (*
 	}
 
 	return client, bucket, nil
+}
+
+// resolveBaseEndpoint returns the S3 base endpoint override for the given endpoint string, or nil
+// to fall back to the SDK's default endpoint resolution.
+//
+// The AWS SDK treats a non-nil BaseEndpoint of "" as an explicit (invalid) endpoint override, so
+// an unset endpoint must resolve to a nil pointer rather than aws.String("").
+func resolveBaseEndpoint(endpoint string) *string {
+	if endpoint == "" {
+		return nil
+	}
+
+	return aws.String(endpoint)
 }
 
 // Description returns a description of the store.
