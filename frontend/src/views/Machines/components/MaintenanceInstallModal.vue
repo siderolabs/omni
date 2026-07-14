@@ -290,8 +290,7 @@ const doInstall = async () => {
         <pre
           ref="progressEl"
           class="grow basis-80 overflow-y-auto rounded bg-naturals-n2 p-2 text-xs wrap-anywhere whitespace-pre-wrap text-naturals-n11"
-          >{{ progress.length ? progress.join('\n') : 'Starting install…' }}</pre
-        >
+          >{{ progress.length ? progress.join('\n') : 'Starting install…' }}</pre>
       </div>
     </template>
   </Modal>

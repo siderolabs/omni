@@ -612,7 +612,9 @@ export class State {
 
   private checkSchedulingEnabled(data: string) {
     const loaded = loadAll(data) as
-      | { cluster?: { allowSchedulingOnControlPlanes?: boolean } }[]
+      | {
+          cluster?: { allowSchedulingOnControlPlanes?: boolean }
+        }[]
       | undefined
       | null
 
