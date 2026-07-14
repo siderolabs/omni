@@ -601,6 +601,9 @@ func (m *ReadAuditLogRequest) CloneVT() *ReadAuditLogRequest {
 	r.ResourceId = m.ResourceId
 	r.ClusterId = m.ClusterId
 	r.Actor = m.Actor
+	r.Follow = m.Follow
+	r.StartTsMs = m.StartTsMs
+	r.FromId = m.FromId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -617,6 +620,7 @@ func (m *ReadAuditLogResponse) CloneVT() *ReadAuditLogResponse {
 		return (*ReadAuditLogResponse)(nil)
 	}
 	r := new(ReadAuditLogResponse)
+	r.Id = m.Id
 	if rhs := m.AuditLog; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -1833,6 +1837,15 @@ func (this *ReadAuditLogRequest) EqualVT(that *ReadAuditLogRequest) bool {
 	if this.Actor != that.Actor {
 		return false
 	}
+	if this.Follow != that.Follow {
+		return false
+	}
+	if this.StartTsMs != that.StartTsMs {
+		return false
+	}
+	if this.FromId != that.FromId {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1850,6 +1863,9 @@ func (this *ReadAuditLogResponse) EqualVT(that *ReadAuditLogResponse) bool {
 		return false
 	}
 	if string(this.AuditLog) != string(that.AuditLog) {
+		return false
+	}
+	if this.Id != that.Id {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3942,6 +3958,26 @@ func (m *ReadAuditLogRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.FromId != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.FromId))
+		i--
+		dAtA[i] = 0x68
+	}
+	if m.StartTsMs != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.StartTsMs))
+		i--
+		dAtA[i] = 0x60
+	}
+	if m.Follow {
+		i--
+		if m.Follow {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
+	}
 	if len(m.Actor) > 0 {
 		i -= len(m.Actor)
 		copy(dAtA[i:], m.Actor)
@@ -4038,6 +4074,11 @@ func (m *ReadAuditLogResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Id != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.Id))
+		i--
+		dAtA[i] = 0x10
 	}
 	if len(m.AuditLog) > 0 {
 		i -= len(m.AuditLog)
@@ -5744,6 +5785,15 @@ func (m *ReadAuditLogRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.Follow {
+		n += 2
+	}
+	if m.StartTsMs != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.StartTsMs))
+	}
+	if m.FromId != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.FromId))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -5757,6 +5807,9 @@ func (m *ReadAuditLogResponse) SizeVT() (n int) {
 	l = len(m.AuditLog)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Id != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.Id))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -10161,6 +10214,64 @@ func (m *ReadAuditLogRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Actor = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Follow", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Follow = bool(v != 0)
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartTsMs", wireType)
+			}
+			m.StartTsMs = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.StartTsMs |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FromId", wireType)
+			}
+			m.FromId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FromId |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -10246,6 +10357,25 @@ func (m *ReadAuditLogResponse) UnmarshalVT(dAtA []byte) error {
 				m.AuditLog = []byte{}
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			m.Id = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Id |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

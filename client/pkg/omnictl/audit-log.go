@@ -6,11 +6,14 @@ package omnictl
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"iter"
 	"maps"
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -28,6 +31,8 @@ var auditLogFlags struct {
 	resourceID   string
 	clusterID    string
 	actor        string
+	since        time.Duration
+	follow       bool
 }
 
 // auditLog represents audit-log command.
@@ -40,10 +45,26 @@ var auditLog = &cobra.Command{
 		start := safeGet(arg, 0)
 		end := safeGet(arg, 1)
 
+		var startTsMs int64
+
+		if auditLogFlags.since < 0 {
+			return errors.New("--since must be positive")
+		}
+
+		if auditLogFlags.since > 0 {
+			if start != "" {
+				return errors.New("--since cannot be combined with the start argument")
+			}
+
+			startTsMs = time.Now().Add(-auditLogFlags.since).UnixMilli()
+		}
+
 		return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
-			for resp, err := range client.Management().ReadAuditLog(ctx, &management.ReadAuditLogRequest{
+			// the fields that cannot be combined with --follow are rejected by the server
+			req := &management.ReadAuditLogRequest{
 				StartTime:    start,
 				EndTime:      end,
+				StartTsMs:    startTsMs,
 				Search:       auditLogFlags.search,
 				EventType:    auditLogFlags.eventType.value,
 				OrderByField: auditLogFlags.orderByField.value,
@@ -52,13 +73,27 @@ var auditLog = &cobra.Command{
 				ResourceId:   auditLogFlags.resourceID,
 				ClusterId:    auditLogFlags.clusterID,
 				Actor:        auditLogFlags.actor,
-			}) {
+			}
+
+			var events iter.Seq2[*management.ReadAuditLogResponse, error]
+
+			if auditLogFlags.follow {
+				events = client.Management().FollowAuditLog(ctx, req)
+			} else {
+				events = client.Management().ReadAuditLog(ctx, req)
+			}
+
+			for resp, err := range events {
 				if err != nil {
+					// interrupting the command is not an error, e.g. ctrl-c on a followed stream
+					if ctx.Err() != nil {
+						return nil
+					}
+
 					return err
 				}
 
-				_, err := os.Stdout.Write(resp.AuditLog)
-				if err != nil {
+				if _, err := os.Stdout.Write(resp.AuditLog); err != nil {
 					return err
 				}
 			}
@@ -152,6 +187,14 @@ func init() {
 	auditLog.Flags().StringVar(&auditLogFlags.resourceID, "resource-id", "", "filter events by resource ID")
 	auditLog.Flags().StringVar(&auditLogFlags.clusterID, "cluster-id", "", "filter events by cluster ID")
 	auditLog.Flags().StringVar(&auditLogFlags.actor, "actor", "", "filter events by actor email")
+	auditLog.Flags().BoolVarP(&auditLogFlags.follow, "follow", "f", false,
+		"stream new events as they are written, starting at the current tail unless --since is given. "+
+			"Cannot be combined with filters. The stream is re-established transparently whenever the "+
+			"server ends it cleanly, while errors terminate the command.")
+	auditLog.Flags().DurationVar(&auditLogFlags.since, "since", 0,
+		"start from the given duration ago, e.g. 2h. More precise than the date-only start argument, "+
+			"and the only way to include history in follow mode. A duration reaching past the "+
+			"retention period returns everything still retained.")
 
 	RootCmd.AddCommand(auditLog)
 }

@@ -6,6 +6,8 @@
 package grpc
 
 import (
+	"time"
+
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
@@ -16,6 +18,9 @@ import (
 )
 
 type ManagementServer = managementServer
+
+// AuditLogFollowBatchSize is exported for testing.
+const AuditLogFollowBatchSize = auditLogFollowBatchSize
 
 type AuthServer = authServer
 
@@ -34,6 +39,8 @@ func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client
 		kubernetesRuntime:   kubernetesRuntime,
 		talosconfigProvider: talosconfigProvider,
 		lifecycleManager:    lifecycle.NewManager(logger, "test-factory", "ghcr.io/siderolabs/installer", nil, nil),
+
+		auditLogFollowLease: auditLogFollowDefaultLease,
 	}
 
 	for _, opt := range opts {
@@ -41,6 +48,14 @@ func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client
 	}
 
 	return server
+}
+
+// WithAuditLogFollowLease configures the stream lease of audit log follow streams on a test
+// management server.
+func WithAuditLogFollowLease(lease time.Duration) ManagementServerOption {
+	return func(server *ManagementServer) {
+		server.auditLogFollowLease = lease
+	}
 }
 
 // WithTalosRuntime configures the Talos runtime on a test management server.

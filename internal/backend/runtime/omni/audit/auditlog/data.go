@@ -147,6 +147,8 @@ type AuditLogAccess struct {
 	ResourceID   string `json:"resource_id,omitempty"`
 	ClusterID    string `json:"cluster_id,omitempty"`
 	Actor        string `json:"actor,omitempty"`
+	FromID       int64  `json:"from_id,omitempty"`
+	Follow       bool   `json:"follow,omitempty"`
 }
 
 // K8SAccess struct contains information about the access to the Kubernetes cluster.

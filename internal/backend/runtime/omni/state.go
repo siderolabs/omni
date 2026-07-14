@@ -388,6 +388,34 @@ func (w *AuditWrap) Reader(ctx context.Context, filters auditlog.ReadFilters) (a
 	return w.log.Reader(ctx, filters)
 }
 
+// FollowStart resolves the initial follow position for the given inclusive start timestamp.
+func (w *AuditWrap) FollowStart(ctx context.Context, startTsMs int64) (int64, error) {
+	if w.log == nil {
+		return 0, errors.New("audit log is disabled")
+	}
+
+	return w.log.FollowStart(ctx, startTsMs)
+}
+
+// FollowBatch reads one batch of events after the given position.
+func (w *AuditWrap) FollowBatch(ctx context.Context, afterID int64, limit int64) ([]auditlog.Entry, error) {
+	if w.log == nil {
+		return nil, errors.New("audit log is disabled")
+	}
+
+	return w.log.FollowBatch(ctx, afterID, limit)
+}
+
+// FollowSubscribe registers a wakeup channel signaled after every audit event write. With
+// the audit log disabled it returns a nil channel: following fails before ever waiting.
+func (w *AuditWrap) FollowSubscribe() (<-chan struct{}, func()) {
+	if w.log == nil {
+		return nil, func() {}
+	}
+
+	return w.log.FollowSubscribe()
+}
+
 // RunCleanup runs wrapped [audit.Log.RunCleanup] if the audit log is enabled. Otherwise, blocks until context is
 // canceled.
 func (w *AuditWrap) RunCleanup(ctx context.Context) error {
@@ -425,6 +453,16 @@ func (w *AuditWrap) AuditAuditLogAccess(ctx context.Context, filters auditlog.Re
 	}
 
 	return w.log.AuditAuditLogAccess(ctx, filters)
+}
+
+// AuditAuditLogFollow logs an audit log access event for a follow stream. It does nothing if
+// the audit log is disabled.
+func (w *AuditWrap) AuditAuditLogFollow(ctx context.Context, fromID, startTsMs int64) error {
+	if w.log == nil {
+		return nil
+	}
+
+	return w.log.AuditAuditLogFollow(ctx, fromID, startTsMs)
 }
 
 // WrapState wraps the state with audit logging. It does nothing if the audit log is disabled.

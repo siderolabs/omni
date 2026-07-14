@@ -7,6 +7,7 @@
 package auditlog
 
 import (
+	"errors"
 	"io"
 	"time"
 
@@ -17,6 +18,18 @@ type Reader interface {
 	io.Closer
 	Read() ([]byte, error)
 }
+
+// Entry is a single audit log event read for streaming: the marshaled, newline-terminated
+// payload and the storage id.
+type Entry struct {
+	Payload []byte
+	ID      int64
+}
+
+// ErrFollowPositionLost means the position a follower reads from points beyond every stored
+// event. Cleanup cannot cause this, it always spares the newest event so ids keep increasing,
+// but a database replaced underneath, e.g. restored from a backup, can.
+var ErrFollowPositionLost = errors.New("the follow position no longer exists")
 
 // EventType represents the type of audit log event.
 type EventType int

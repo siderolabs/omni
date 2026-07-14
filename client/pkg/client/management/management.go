@@ -87,12 +87,15 @@ func WithOIDCCacheIsolation(value bool) KubeconfigOption {
 // Client for Management API .
 type Client struct {
 	conn management.ManagementServiceClient
+
+	followReconnectFloor time.Duration
 }
 
 // NewClient builds a client out of gRPC connection.
 func NewClient(conn *grpc.ClientConn) *Client {
 	return &Client{
-		conn: management.NewManagementServiceClient(conn),
+		conn:                 management.NewManagementServiceClient(conn),
+		followReconnectFloor: auditLogFollowReconnectFloor,
 	}
 }
 
@@ -284,6 +287,9 @@ func (client *Client) GetSupportBundle(ctx context.Context, cluster string, prog
 }
 
 // ReadAuditLog reads the audit log from the backend.
+//
+// To follow the audit log continuously, use [Client.FollowAuditLog], which also handles the
+// follow protocol details of the raw request.
 func (client *Client) ReadAuditLog(ctx context.Context, req *management.ReadAuditLogRequest) iter.Seq2[*management.ReadAuditLogResponse, error] {
 	return func(yield func(*management.ReadAuditLogResponse, error) bool) {
 		streamingResponse, err := client.conn.ReadAuditLog(ctx, req)
@@ -310,6 +316,115 @@ func (client *Client) ReadAuditLog(ctx context.Context, req *management.ReadAudi
 			}
 		}
 	}
+}
+
+// ErrAuditLogFollowUnsupported means the server does not implement following the audit log.
+var ErrAuditLogFollowUnsupported = errors.New("the server does not support following the audit log")
+
+// auditLogFollowReconnectFloor is the minimum wait before re-establishing a cleanly ended
+// follow stream, guarding against hammering a server that ends streams unusually fast.
+const auditLogFollowReconnectFloor = 500 * time.Millisecond
+
+// FollowAuditLog streams the audit log endlessly: the backlog from the requested start
+// position first, then new events as they are written. The start position is either an id
+// on FromId (exact, as delivered in previous follow responses, plus one), or an inclusive
+// Unix millisecond timestamp on StartTsMs, where zero means the current tail and one means
+// everything the server still retains. The follow flag is set by this method, and the
+// remaining request fields are passed through as given: the server rejects the ones that
+// cannot be combined with following, such as filters.
+//
+// The server bounds the lifetime of every follow stream, and this iterator reconnects
+// transparently when a stream ends cleanly, resuming exactly after the last delivered event.
+//
+// Every stream starts with an event-less acknowledgment carrying the resolved start position
+// as its id. The acknowledgments are yielded like the events, with an empty audit log
+// payload: a consumer persisting its position for exact recovery should persist their ids
+// too, so that a failure before the first event does not lose the resolved position.
+//
+// Any error ends the iteration: the caller decides the retry policy and resumes by calling
+// again with FromId set to the id of the last response it processed, plus one. Following a
+// server without follow support yields [ErrAuditLogFollowUnsupported].
+func (client *Client) FollowAuditLog(ctx context.Context, req *management.ReadAuditLogRequest) iter.Seq2[*management.ReadAuditLogResponse, error] {
+	return func(yield func(*management.ReadAuditLogResponse, error) bool) {
+		req = req.CloneVT()
+		req.Follow = true
+
+		for {
+			if !client.followAuditLogOnce(ctx, req, yield) {
+				return
+			}
+
+			// a clean end after a valid acknowledgment is the server ending the stream at
+			// its lifetime bound: reconnect and resume
+			select {
+			case <-ctx.Done():
+				yield(nil, ctx.Err())
+
+				return
+			case <-time.After(client.followReconnectFloor):
+			}
+		}
+	}
+}
+
+// followAuditLogOnce consumes a single follow stream, yielding its events and advancing the
+// start position on the request for the next stream. It reports whether following should
+// continue, which it should not when the stream failed, the server turned out not to support
+// following, or the consumer stopped the iteration.
+func (client *Client) followAuditLogOnce(
+	ctx context.Context, req *management.ReadAuditLogRequest, yield func(*management.ReadAuditLogResponse, error) bool,
+) bool {
+	// each attempt gets its own canceled-on-return context, so that a consumer stopping the
+	// iteration mid-stream tears the stream down instead of leaving it open until its lease ends
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	gotAck := false
+
+	for resp, err := range client.ReadAuditLog(ctx, req) {
+		if err != nil {
+			yield(nil, err)
+
+			return false
+		}
+
+		// every follow stream starts with an event-less acknowledgment: an event as the
+		// first message means the server served a bounded read, ignoring the follow flag
+		if !gotAck {
+			if len(resp.AuditLog) != 0 {
+				yield(nil, ErrAuditLogFollowUnsupported)
+
+				return false
+			}
+
+			gotAck = true
+
+			// the position is an exact id from here on: drop the timestamp so that the
+			// reconnect requests stay unambiguous
+			req.StartTsMs = 0
+		} else if len(resp.AuditLog) == 0 || resp.Id <= 0 {
+			yield(nil, errors.New("malformed audit log follow event"))
+
+			return false
+		}
+
+		// The acknowledgment is yielded like the events, so that the consumer can persist
+		// the resolved start position before any event arrives. The resume position only
+		// advances after the consumer accepts the response.
+		if !yield(resp, nil) {
+			return false
+		}
+
+		req.FromId = resp.Id + 1
+	}
+
+	if !gotAck {
+		yield(nil, ErrAuditLogFollowUnsupported)
+
+		return false
+	}
+
+	return true
 }
 
 // MaintenanceLifecycle installs Talos to disk or upgrades the existing on-disk Talos on a machine running in maintenance mode.

@@ -48,8 +48,25 @@ func (n *nopLogger) Reader(context.Context, auditlog.ReadFilters) (auditlog.Read
 	return &nopReader{}, nil
 }
 
+func (n *nopLogger) FollowStart(context.Context, int64) (int64, error) {
+	return 0, fmt.Errorf("audit logs are disabled")
+}
+
+func (n *nopLogger) FollowBatch(context.Context, int64, int64) ([]auditlog.Entry, error) {
+	return nil, fmt.Errorf("audit logs are disabled")
+}
+
+// FollowSubscribe returns a nil channel: nothing is ever written, so there is nothing to
+// wake up for, and following fails before it ever waits, at the start position resolution
+// or at the first batch read of an id resume.
+func (n *nopLogger) FollowSubscribe() (<-chan struct{}, func()) {
+	return nil, func() {}
+}
+
 type nopReader struct{}
 
 func (n *nopReader) Close() error { return nil }
 
-func (n *nopReader) Read() ([]byte, error) { return nil, fmt.Errorf("audit logs are disabled") }
+func (n *nopReader) Read() ([]byte, error) {
+	return nil, fmt.Errorf("audit logs are disabled")
+}

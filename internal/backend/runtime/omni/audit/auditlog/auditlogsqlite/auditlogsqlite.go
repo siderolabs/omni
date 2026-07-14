@@ -14,7 +14,9 @@ import (
 	"io"
 	"iter"
 	"math/rand/v2"
+	"slices"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -87,9 +89,14 @@ func WithCleanupCallback(cb func(int)) Option {
 
 // Store is the SQLite-backed audit log store.
 type Store struct {
-	db                 *sqlitexx.Pool
-	logger             *zap.Logger
-	onCleanup          func(int)
+	db        *sqlitexx.Pool
+	logger    *zap.Logger
+	onCleanup func(int)
+
+	// subscribers holds the follower wakeup channels, guarded by subscribersMu.
+	subscribers   []chan struct{}
+	subscribersMu sync.Mutex
+
 	timeout            time.Duration
 	maxSize            uint64
 	cleanupProbability float64
@@ -160,7 +167,7 @@ func NewStore(ctx context.Context, db *sqlitexx.Pool, timeout time.Duration, max
 }
 
 func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
-	query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) VALUES 
+	query := fmt.Sprintf(`INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) VALUES
 	($event_type, $resource_type, $event_ts_ms, $event_data, $actor_email, $resource_id, $cluster_id)`,
 		TableName, eventTypeColumn, resourceTypeColumn, eventTSMillisColumn, eventDataColumn,
 		actorEmailColumn, resourceIDColumn, clusterIDColumn)
@@ -212,6 +219,10 @@ func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
 		return fmt.Errorf("failed to write audit log event: %w", err)
 	}
 
+	// waking the followers before the opportunistic cleanup is safe: cleanup spares the
+	// newest event, so it can never remove the one just announced
+	s.notifySubscribers()
+
 	if s.maxSize > 0 && rand.Float64() < s.cleanupProbability {
 		if err := s.removeBySize(conn); err != nil {
 			s.logger.Warn("failed to cleanup audit logs by size", zap.Error(err))
@@ -224,11 +235,15 @@ func (s *Store) Write(ctx context.Context, event auditlog.Event) error {
 // Remove deletes audit log events in the given time range in batches of removeBatchSize.
 // Batching keeps each autocommit DELETE small, releasing the SQLite write lock between
 // statements so other writers sharing the same database are not blocked for long.
+//
+// The event with the highest id is never deleted, no matter the range: without it, SQLite
+// would reuse its id for the next event, and the ids serve as the positions of the follow
+// streams, which reused ids would silently corrupt.
 func (s *Store) Remove(ctx context.Context, start, end time.Time) error {
 	// DELETE ... LIMIT is not supported (requires SQLITE_ENABLE_UPDATE_DELETE_LIMIT), so we use a subquery to select the IDs to delete.
 	query := fmt.Sprintf(
-		`DELETE FROM %s WHERE %s IN (SELECT %s FROM %s WHERE %s >= $start AND %s <= $end LIMIT $limit)`,
-		TableName, idColumn, idColumn, TableName, eventTSMillisColumn, eventTSMillisColumn,
+		`DELETE FROM %s WHERE %s IN (SELECT %s FROM %s WHERE %s >= $start AND %s <= $end AND %s < (SELECT MAX(%s) FROM %s) LIMIT $limit)`,
+		TableName, idColumn, idColumn, TableName, eventTSMillisColumn, eventTSMillisColumn, idColumn, idColumn, TableName,
 	)
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
@@ -343,6 +358,12 @@ func (s *Store) removeBySize(conn *zombiesqlite.Conn) error {
 	// below it. This lets SQLite use the primary key index directly.
 	cutoffID := minID + rowsToDelete - 1
 
+	// The event with the highest id is never deleted: without it, SQLite would reuse its id
+	// for the next event, corrupting the follow stream positions the ids serve as.
+	if cutoffID >= maxID {
+		cutoffID = maxID - 1
+	}
+
 	deleteQuery := fmt.Sprintf(`DELETE FROM %s WHERE %s <= $cutoff_id`, TableName, idColumn)
 
 	q, err = sqlitexx.NewQuery(conn, deleteQuery)
@@ -453,6 +474,176 @@ func (s *Store) Reader(ctx context.Context, filters auditlog.ReadFilters) (audit
 	}, nil
 }
 
+// FollowStart resolves the initial follow position for the given inclusive start timestamp:
+// the position just below the first event at or after it, so that following from the returned
+// position delivers that event first. A zero start, or a start beyond every stored event,
+// resolves to the current tail exactly, delivering only events written afterwards.
+//
+// The timestamp resolution is best-effort under non-monotonic clocks: the ids follow the
+// insertion order, and an event written under a stepped-back clock can carry a timestamp
+// below its predecessors. Exactness is what the id positions are for.
+func (s *Store) FollowStart(ctx context.Context, startTsMs int64) (int64, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	conn, err := s.db.Take(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer s.db.Put(conn)
+
+	// A single statement resolves each case in one consistent snapshot: events committed
+	// afterwards have higher ids than anything it observed, so the following FollowBatch
+	// calls pick them up and nothing can fall between the lookup and the returned position.
+	query := fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) AS pos FROM %s", idColumn, TableName)
+	if startTsMs > 0 {
+		query = fmt.Sprintf(`SELECT COALESCE(
+			(SELECT MIN(%s) - 1 FROM %s WHERE %s >= $start),
+			(SELECT COALESCE(MAX(%s), 0) FROM %s)
+		) AS pos`,
+			idColumn, TableName, eventTSMillisColumn, idColumn, TableName)
+	}
+
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	if startTsMs > 0 {
+		q = q.BindInt64("$start", startTsMs)
+	}
+
+	var pos int64
+
+	if err = q.QueryRow(func(stmt *zombiesqlite.Stmt) error {
+		pos = stmt.GetInt64("pos")
+
+		return nil
+	}); err != nil {
+		return 0, fmt.Errorf("failed to resolve the follow start position: %w", err)
+	}
+
+	return pos, nil
+}
+
+// FollowSubscribe registers a wakeup channel signaled after every write, for a follower to
+// wait on between [Store.FollowBatch] calls instead of polling. The channel is buffered to
+// one, so a wakeup arriving while the follower is busy is kept, never lost: subscribing
+// before a scan therefore guarantees that no event written after that scan goes unnoticed.
+// The returned function unsubscribes and must be called when the follower is done.
+func (s *Store) FollowSubscribe() (<-chan struct{}, func()) {
+	ch := make(chan struct{}, 1)
+
+	s.subscribersMu.Lock()
+	s.subscribers = append(s.subscribers, ch)
+	s.subscribersMu.Unlock()
+
+	return ch, func() {
+		s.subscribersMu.Lock()
+		defer s.subscribersMu.Unlock()
+
+		s.subscribers = slices.DeleteFunc(s.subscribers, func(c chan struct{}) bool { return c == ch })
+	}
+}
+
+// notifySubscribers wakes every follower after a write, without blocking on the ones that
+// are already woken.
+func (s *Store) notifySubscribers() {
+	s.subscribersMu.Lock()
+	defer s.subscribersMu.Unlock()
+
+	for _, ch := range s.subscribers {
+		select {
+		case ch <- struct{}{}:
+		default: // the channel already holds a wakeup
+		}
+	}
+}
+
+// FollowBatch reads up to limit events with ids above afterID, oldest first. The events are
+// fully materialized, holding a database connection only for the read itself. Receiving
+// fewer events than the limit means the log is exhausted for now: the caller waits before
+// the next call, keeping its position at the last event it received.
+//
+// When the position no longer exists because every event at or above it was cleaned up and
+// the storage ids restarted below it, FollowBatch returns [auditlog.ErrFollowPositionLost]:
+// without this, a follower would wait blindly for the restarted ids to catch up.
+func (s *Store) FollowBatch(ctx context.Context, afterID int64, limit int64) ([]auditlog.Entry, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	conn, err := s.db.Take(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to take connection from pool: %w", err)
+	}
+
+	defer s.db.Put(conn)
+
+	query := fmt.Sprintf(`SELECT %s, %s, %s, %s, %s, %s FROM %s WHERE %s > $after_id ORDER BY %s ASC LIMIT $limit`,
+		idColumn, eventTypeColumn, resourceTypeColumn, resourceIDColumn, eventTSMillisColumn, eventDataColumn,
+		TableName, idColumn, idColumn)
+
+	q, err := sqlitexx.NewQuery(conn, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	var entries []auditlog.Entry
+
+	for stmt, iterErr := range q.
+		BindInt64("$after_id", afterID).
+		BindInt64("$limit", limit).
+		QueryIter() {
+		if iterErr != nil {
+			return nil, fmt.Errorf("failed to read audit log event: %w", iterErr)
+		}
+
+		payload, marshalErr := marshalEventRow(stmt)
+		if marshalErr != nil {
+			return nil, marshalErr
+		}
+
+		entries = append(entries, auditlog.Entry{
+			ID:      stmt.GetInt64(idColumn),
+			Payload: payload,
+		})
+	}
+
+	if len(entries) == 0 && afterID > 0 {
+		maxID, maxErr := readMaxID(conn)
+		if maxErr != nil {
+			return nil, maxErr
+		}
+
+		if maxID < afterID {
+			return nil, auditlog.ErrFollowPositionLost
+		}
+	}
+
+	return entries, nil
+}
+
+// readMaxID returns the highest id in the audit log table, zero when the table is empty.
+func readMaxID(conn *zombiesqlite.Conn) (int64, error) {
+	q, err := sqlitexx.NewQuery(conn, fmt.Sprintf("SELECT COALESCE(MAX(%s), 0) AS max_id FROM %s", idColumn, TableName))
+	if err != nil {
+		return 0, fmt.Errorf("failed to prepare sqlite statement: %w", err)
+	}
+
+	var maxID int64
+
+	if err = q.QueryRow(func(stmt *zombiesqlite.Stmt) error {
+		maxID = stmt.GetInt64("max_id")
+
+		return nil
+	}); err != nil {
+		return 0, fmt.Errorf("failed to read the max audit log event id: %w", err)
+	}
+
+	return maxID, nil
+}
+
 func (s *Store) HasData(ctx context.Context) (bool, error) {
 	query := fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", TableName)
 
@@ -517,6 +708,12 @@ func (l *logReader) Read() ([]byte, error) {
 		return nil, io.EOF
 	}
 
+	return marshalEventRow(result)
+}
+
+// marshalEventRow marshals the audit log event in the current statement row into its
+// newline-terminated JSON payload.
+func marshalEventRow(result *zombiesqlite.Stmt) ([]byte, error) {
 	var dataJSON []byte
 
 	var event rawEvent

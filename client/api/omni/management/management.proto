@@ -244,10 +244,35 @@ message ReadAuditLogRequest {
   string resource_id = 8;
   string cluster_id = 9;
   string actor = 10;
+  // Follow keeps the stream open after the backlog is drained, delivering new events as they are written.
+  //
+  // Events are delivered in insertion order. No ordering, search, filter or time-range fields may be
+  // combined with follow, except StartTsMs. The server acknowledges follow support with an initial
+  // response carrying an empty audit_log, and ends the stream cleanly after a bounded duration:
+  // reconnect to keep following.
+  bool follow = 11;
+  // StartTsMs is the inclusive start position in Unix milliseconds, matched against the event timestamps.
+  //
+  // Zero means unset. When set, it takes precedence over StartTime. When unset in follow mode, the
+  // stream starts at the current tail, delivering only events written after the stream was established.
+  // To read everything retained, pass 1.
+  int64 start_ts_ms = 12;
+  // FromId is the inclusive follow start position by event id, as delivered in the follow responses.
+  //
+  // Zero means unset. When set, it takes precedence over the timestamp fields, and the resume is
+  // exact. Only usable with follow, and only with ids obtained from the same server: following an
+  // id position the server no longer knows fails the stream.
+  int64 from_id = 13;
 }
 
 message ReadAuditLogResponse {
   bytes audit_log = 1;
+  // Id is the id of the event in AuditLog, populated on follow streams. Following from FromId set to
+  // an id plus one resumes exactly after that event.
+  //
+  // Every follow stream starts with an acknowledgment response carrying an empty AuditLog, whose id is
+  // the resolved start position: the id just before the first event the stream will deliver.
+  int64 id = 2;
 }
 
 message ValidateJsonSchemaRequest {

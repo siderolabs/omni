@@ -21,6 +21,7 @@ import (
 	"go.uber.org/goleak"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
+	"golang.org/x/sync/errgroup"
 	zombiesqlite "zombiezen.com/go/sqlite"
 	"zombiezen.com/go/sqlite/sqlitex"
 
@@ -859,4 +860,358 @@ func readAllEvents(t *testing.T, rdr auditlog.Reader) []auditlog.Event {
 
 		events = append(events, evt)
 	}
+}
+
+func TestFollowStartPositions(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	store, _ := setupStore(ctx, t, zaptest.NewLogger(t))
+
+	// empty table: every start resolves to the zero tail
+	pos, err := store.FollowStart(ctx, 123)
+	require.NoError(t, err)
+	assert.Zero(t, pos)
+
+	writeEventAt(ctx, t, store, 100)
+	writeEventAt(ctx, t, store, 200)
+	writeEventAt(ctx, t, store, 300)
+
+	for _, testCase := range []struct {
+		name        string
+		startTsMs   int64
+		expectedPos int64
+	}{
+		{name: "zero starts at the tail exactly", startTsMs: 0, expectedPos: 3},
+		{name: "before all events starts at the beginning", startTsMs: 1, expectedPos: 0},
+		{name: "exact match is inclusive", startTsMs: 200, expectedPos: 1},
+		{name: "between events starts at the next one", startTsMs: 250, expectedPos: 2},
+		{name: "after all events starts at the tail", startTsMs: 400, expectedPos: 3},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			startPos, startErr := store.FollowStart(ctx, testCase.startTsMs)
+			require.NoError(t, startErr)
+			assert.Equal(t, testCase.expectedPos, startPos)
+		})
+	}
+}
+
+func TestFollowBatchPagination(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	store, _ := setupStore(ctx, t, zaptest.NewLogger(t))
+
+	for i := range 5 {
+		writeEventAt(ctx, t, store, int64(100*(i+1)))
+	}
+
+	entries, err := store.FollowBatch(ctx, 0, 2)
+	require.NoError(t, err)
+	require.Len(t, entries, 2)
+	assert.Equal(t, int64(1), entries[0].ID)
+	assert.Equal(t, int64(2), entries[1].ID)
+
+	// payloads are newline-terminated JSON events
+	var event auditlog.Event
+
+	require.NoError(t, json.Unmarshal(entries[0].Payload, &event))
+	assert.Equal(t, int64(100), event.TimeMillis)
+	assert.Equal(t, byte('\n'), entries[0].Payload[len(entries[0].Payload)-1])
+
+	entries, err = store.FollowBatch(ctx, 2, 2)
+	require.NoError(t, err)
+	require.Len(t, entries, 2)
+	assert.Equal(t, int64(3), entries[0].ID)
+	assert.Equal(t, int64(4), entries[1].ID)
+
+	// a short batch means the log is exhausted for now
+	entries, err = store.FollowBatch(ctx, 4, 2)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	assert.Equal(t, int64(5), entries[0].ID)
+
+	entries, err = store.FollowBatch(ctx, 5, 2)
+	require.NoError(t, err)
+	assert.Empty(t, entries)
+}
+
+func TestCleanupSparesNewestEvent(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	store, _ := setupStore(ctx, t, zaptest.NewLogger(t))
+
+	writeEventAt(ctx, t, store, 100) // id 1
+	writeEventAt(ctx, t, store, 200) // id 2
+
+	// a removal spanning every event spares the one with the highest id: SQLite would
+	// otherwise hand out its id again, corrupting the follow positions
+	require.NoError(t, store.Remove(ctx, time.UnixMilli(0), time.UnixMilli(250)))
+
+	entries, err := store.FollowBatch(ctx, 0, 10)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	assert.Equal(t, int64(2), entries[0].ID, "the newest event survives a full-range removal")
+
+	writeEventAt(ctx, t, store, 300)
+
+	// ids keep increasing across the cleanup, so a follower position stays exact
+	entries, err = store.FollowBatch(ctx, 2, 10)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	assert.Equal(t, int64(3), entries[0].ID)
+
+	// an exhausted but existing position is not lost, it just has nothing new
+	entries, err = store.FollowBatch(ctx, 3, 10)
+	require.NoError(t, err)
+	assert.Empty(t, entries)
+}
+
+func TestRemoveBySizeSparesNewestEvent(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	// a tiny size budget with certain cleanup: every write triggers a size cleanup that
+	// wants to delete far more rows than exist
+	store, _ := setupStoreWithOpts(ctx, t, zaptest.NewLogger(t), 1, 1.0)
+
+	writeEventAt(ctx, t, store, 100) // id 1
+	writeEventAt(ctx, t, store, 200) // id 2, its write deletes everything the clamp allows
+
+	entries, err := store.FollowBatch(ctx, 0, 10)
+	require.NoError(t, err)
+	require.NotEmpty(t, entries, "the newest event must survive the size cleanup")
+	assert.Equal(t, int64(2), entries[len(entries)-1].ID)
+
+	// ids keep increasing across the cleanup, so a follower position stays exact
+	writeEventAt(ctx, t, store, 300)
+
+	entries, err = store.FollowBatch(ctx, 2, 10)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	assert.Equal(t, int64(3), entries[0].ID)
+}
+
+func TestFollowPositionLost(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	store, _ := setupStore(ctx, t, zaptest.NewLogger(t))
+
+	writeEventAt(ctx, t, store, 100) // id 1
+
+	// a position beyond every stored event cannot happen through cleanup (the newest event
+	// survives it), only through the database being replaced, e.g. restored from a backup:
+	// reading from it reports the position as lost instead of waiting blindly
+	_, err := store.FollowBatch(ctx, 5, 10)
+	require.ErrorIs(t, err, auditlog.ErrFollowPositionLost)
+}
+
+func TestFollowSinglePoolConnection(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	path := filepath.Join(t.TempDir(), "test.db")
+
+	conf := config.Default().Storage.Sqlite
+	conf.SetPath(path)
+	conf.SetPoolSize(1)
+
+	db, err := sqlite.OpenDB(conf)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, db.Close())
+	})
+
+	store, err := auditlogsqlite.NewStore(ctx, db, 30*time.Second, 0, 0, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	// every operation must release the single connection, otherwise the next call deadlocks
+	writeEventAt(ctx, t, store, 100)
+
+	pos, err := store.FollowStart(ctx, 1)
+	require.NoError(t, err)
+	assert.Zero(t, pos)
+
+	entries, err := store.FollowBatch(ctx, 0, 10)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+
+	writeEventAt(ctx, t, store, 200)
+
+	entries, err = store.FollowBatch(ctx, 1, 10)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+}
+
+func TestFollowCanceledContext(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	t.Cleanup(cancel)
+
+	store, _ := setupStore(ctx, t, zaptest.NewLogger(t))
+
+	writeEventAt(ctx, t, store, 100)
+
+	canceledCtx, cancelNow := context.WithCancel(ctx)
+	cancelNow()
+
+	_, err := store.FollowStart(canceledCtx, 1)
+	require.Error(t, err)
+
+	_, err = store.FollowBatch(canceledCtx, 0, 10)
+	require.Error(t, err)
+}
+
+func TestFollowConcurrentWrites(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	store, _ := setupStore(ctx, t, zaptest.NewLogger(t))
+
+	const numEvents = 200
+
+	var eg errgroup.Group
+
+	eg.Go(func() error {
+		for i := range numEvents {
+			if err := store.Write(ctx, auditlog.Event{Type: "create", TimeMillis: int64(i + 1)}); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	// follow the way the server does: read batches, advance to the watermark on a short batch,
+	// and verify that no id is ever skipped
+	eg.Go(func() error {
+		var (
+			pos      int64
+			received []int64
+		)
+
+		for len(received) < numEvents {
+			if ctx.Err() != nil {
+				return fmt.Errorf("timed out after receiving %d events", len(received))
+			}
+
+			entries, err := store.FollowBatch(ctx, pos, 16)
+			if err != nil {
+				return err
+			}
+
+			for _, entry := range entries {
+				received = append(received, entry.ID)
+			}
+
+			if len(entries) > 0 {
+				pos = entries[len(entries)-1].ID
+			}
+		}
+
+		for i, id := range received {
+			if id != int64(i+1) {
+				return fmt.Errorf("received id %d at position %d", id, i)
+			}
+		}
+
+		return nil
+	})
+
+	require.NoError(t, eg.Wait())
+}
+
+func TestFollowSubscribeWakesOnWrite(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	store, _ := setupStore(ctx, t, zaptest.NewLogger(t))
+
+	wakeCh, unsubscribe := store.FollowSubscribe()
+	defer unsubscribe()
+
+	otherWakeCh, otherUnsubscribe := store.FollowSubscribe()
+	defer otherUnsubscribe()
+
+	select {
+	case <-wakeCh:
+		t.Fatal("no wakeup must arrive before a write")
+	default:
+	}
+
+	writeEventAt(ctx, t, store, 100)
+
+	select {
+	case <-wakeCh:
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for the write wakeup")
+	}
+
+	// every subscriber gets its own wakeup
+	select {
+	case <-otherWakeCh:
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for the write wakeup of the second subscriber")
+	}
+
+	entries, err := store.FollowBatch(ctx, 0, 16)
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+
+	// writes arriving while the follower is busy collapse into one pending wakeup
+	writeEventAt(ctx, t, store, 200)
+	writeEventAt(ctx, t, store, 300)
+
+	select {
+	case <-wakeCh:
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for the write wakeup")
+	}
+
+	entries, err = store.FollowBatch(ctx, entries[len(entries)-1].ID, 16)
+	require.NoError(t, err)
+	require.Len(t, entries, 2, "one wakeup is enough, the scan picks up everything written")
+
+	unsubscribe()
+
+	writeEventAt(ctx, t, store, 400)
+
+	select {
+	case <-wakeCh:
+		t.Fatal("no wakeup must arrive after unsubscribing")
+	default:
+	}
+}
+
+func writeEventAt(ctx context.Context, t *testing.T, store *auditlogsqlite.Store, tsMillis int64) {
+	t.Helper()
+
+	event := auditlog.MakeEvent("create", "test.resource", "test-id", &auditlog.Data{
+		Session: auditlog.Session{UserID: "user-1"},
+	})
+	event.TimeMillis = tsMillis
+
+	require.NoError(t, store.Write(ctx, event))
 }

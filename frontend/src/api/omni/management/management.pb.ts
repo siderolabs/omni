@@ -237,10 +237,14 @@ export type ReadAuditLogRequest = {
   resource_id?: string
   cluster_id?: string
   actor?: string
+  follow?: boolean
+  start_ts_ms?: string
+  from_id?: string
 }
 
 export type ReadAuditLogResponse = {
   audit_log?: Uint8Array
+  id?: string
 }
 
 export type ValidateJsonSchemaRequest = {

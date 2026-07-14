@@ -1766,17 +1766,36 @@ func (x *GetSupportBundleResponse) GetBundleData() []byte {
 
 // specifies start and end time (inclusive range) in <year>-<month>-<day> format. We pass time as string to avoid timezone issues.
 type ReadAuditLogRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StartTime     string                 `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	EndTime       string                 `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
-	OrderByField  AuditLogOrderByField   `protobuf:"varint,3,opt,name=order_by_field,json=orderByField,proto3,enum=management.AuditLogOrderByField" json:"order_by_field,omitempty"`
-	OrderByDir    AuditLogOrderByDir     `protobuf:"varint,4,opt,name=order_by_dir,json=orderByDir,proto3,enum=management.AuditLogOrderByDir" json:"order_by_dir,omitempty"`
-	Search        string                 `protobuf:"bytes,5,opt,name=search,proto3" json:"search,omitempty"`
-	EventType     AuditLogEventType      `protobuf:"varint,6,opt,name=event_type,json=eventType,proto3,enum=management.AuditLogEventType" json:"event_type,omitempty"`
-	ResourceType  string                 `protobuf:"bytes,7,opt,name=resource_type,json=resourceType,proto3" json:"resource_type,omitempty"`
-	ResourceId    string                 `protobuf:"bytes,8,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
-	ClusterId     string                 `protobuf:"bytes,9,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
-	Actor         string                 `protobuf:"bytes,10,opt,name=actor,proto3" json:"actor,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	StartTime    string                 `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	EndTime      string                 `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	OrderByField AuditLogOrderByField   `protobuf:"varint,3,opt,name=order_by_field,json=orderByField,proto3,enum=management.AuditLogOrderByField" json:"order_by_field,omitempty"`
+	OrderByDir   AuditLogOrderByDir     `protobuf:"varint,4,opt,name=order_by_dir,json=orderByDir,proto3,enum=management.AuditLogOrderByDir" json:"order_by_dir,omitempty"`
+	Search       string                 `protobuf:"bytes,5,opt,name=search,proto3" json:"search,omitempty"`
+	EventType    AuditLogEventType      `protobuf:"varint,6,opt,name=event_type,json=eventType,proto3,enum=management.AuditLogEventType" json:"event_type,omitempty"`
+	ResourceType string                 `protobuf:"bytes,7,opt,name=resource_type,json=resourceType,proto3" json:"resource_type,omitempty"`
+	ResourceId   string                 `protobuf:"bytes,8,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	ClusterId    string                 `protobuf:"bytes,9,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
+	Actor        string                 `protobuf:"bytes,10,opt,name=actor,proto3" json:"actor,omitempty"`
+	// Follow keeps the stream open after the backlog is drained, delivering new events as they are written.
+	//
+	// Events are delivered in insertion order. No ordering, search, filter or time-range fields may be
+	// combined with follow, except StartTsMs. The server acknowledges follow support with an initial
+	// response carrying an empty audit_log, and ends the stream cleanly after a bounded duration:
+	// reconnect to keep following.
+	Follow bool `protobuf:"varint,11,opt,name=follow,proto3" json:"follow,omitempty"`
+	// StartTsMs is the inclusive start position in Unix milliseconds, matched against the event timestamps.
+	//
+	// Zero means unset. When set, it takes precedence over StartTime. When unset in follow mode, the
+	// stream starts at the current tail, delivering only events written after the stream was established.
+	// To read everything retained, pass 1.
+	StartTsMs int64 `protobuf:"varint,12,opt,name=start_ts_ms,json=startTsMs,proto3" json:"start_ts_ms,omitempty"`
+	// FromId is the inclusive follow start position by event id, as delivered in the follow responses.
+	//
+	// Zero means unset. When set, it takes precedence over the timestamp fields, and the resume is
+	// exact. Only usable with follow, and only with ids obtained from the same server: following an
+	// id position the server no longer knows fails the stream.
+	FromId        int64 `protobuf:"varint,13,opt,name=from_id,json=fromId,proto3" json:"from_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1881,9 +1900,36 @@ func (x *ReadAuditLogRequest) GetActor() string {
 	return ""
 }
 
+func (x *ReadAuditLogRequest) GetFollow() bool {
+	if x != nil {
+		return x.Follow
+	}
+	return false
+}
+
+func (x *ReadAuditLogRequest) GetStartTsMs() int64 {
+	if x != nil {
+		return x.StartTsMs
+	}
+	return 0
+}
+
+func (x *ReadAuditLogRequest) GetFromId() int64 {
+	if x != nil {
+		return x.FromId
+	}
+	return 0
+}
+
 type ReadAuditLogResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AuditLog      []byte                 `protobuf:"bytes,1,opt,name=audit_log,json=auditLog,proto3" json:"audit_log,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	AuditLog []byte                 `protobuf:"bytes,1,opt,name=audit_log,json=auditLog,proto3" json:"audit_log,omitempty"`
+	// Id is the id of the event in AuditLog, populated on follow streams. Following from FromId set to
+	// an id plus one resumes exactly after that event.
+	//
+	// Every follow stream starts with an acknowledgment response carrying an empty AuditLog, whose id is
+	// the resolved start position: the id just before the first event the stream will deliver.
+	Id            int64 `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1923,6 +1969,13 @@ func (x *ReadAuditLogResponse) GetAuditLog() []byte {
 		return x.AuditLog
 	}
 	return nil
+}
+
+func (x *ReadAuditLogResponse) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
 }
 
 type ValidateJsonSchemaRequest struct {
@@ -3516,7 +3569,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12\x14\n" +
 	"\x05state\x18\x03 \x01(\tR\x05state\x12\x14\n" +
 	"\x05total\x18\x04 \x01(\x05R\x05total\x12\x14\n" +
-	"\x05value\x18\x05 \x01(\x05R\x05value\"\xaa\x03\n" +
+	"\x05value\x18\x05 \x01(\x05R\x05value\"\xfb\x03\n" +
 	"\x13ReadAuditLogRequest\x12\x1d\n" +
 	"\n" +
 	"start_time\x18\x01 \x01(\tR\tstartTime\x12\x19\n" +
@@ -3533,9 +3586,13 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\n" +
 	"cluster_id\x18\t \x01(\tR\tclusterId\x12\x14\n" +
 	"\x05actor\x18\n" +
-	" \x01(\tR\x05actor\"3\n" +
+	" \x01(\tR\x05actor\x12\x16\n" +
+	"\x06follow\x18\v \x01(\bR\x06follow\x12\x1e\n" +
+	"\vstart_ts_ms\x18\f \x01(\x03R\tstartTsMs\x12\x17\n" +
+	"\afrom_id\x18\r \x01(\x03R\x06fromId\"C\n" +
 	"\x14ReadAuditLogResponse\x12\x1b\n" +
-	"\taudit_log\x18\x01 \x01(\fR\bauditLog\"G\n" +
+	"\taudit_log\x18\x01 \x01(\fR\bauditLog\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\x03R\x02id\"G\n" +
 	"\x19ValidateJsonSchemaRequest\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\tR\x04data\x12\x16\n" +
 	"\x06schema\x18\x02 \x01(\tR\x06schema\"\x86\x02\n" +

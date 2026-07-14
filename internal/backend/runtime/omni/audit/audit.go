@@ -31,6 +31,9 @@ type Logger interface {
 	Write(ctx context.Context, event auditlog.Event) error
 	Remove(ctx context.Context, start, end time.Time) error
 	Reader(ctx context.Context, filters auditlog.ReadFilters) (auditlog.Reader, error)
+	FollowStart(ctx context.Context, startTsMs int64) (int64, error)
+	FollowBatch(ctx context.Context, afterID int64, limit int64) ([]auditlog.Entry, error)
+	FollowSubscribe() (<-chan struct{}, func())
 }
 
 // LogOption configures optional Log behavior.
@@ -111,6 +114,21 @@ func (l *Log) Reader(ctx context.Context, filters auditlog.ReadFilters) (auditlo
 	return l.auditLogger.Reader(ctx, filters)
 }
 
+// FollowStart resolves the initial follow position for the given inclusive start timestamp.
+func (l *Log) FollowStart(ctx context.Context, startTsMs int64) (int64, error) {
+	return l.auditLogger.FollowStart(ctx, startTsMs)
+}
+
+// FollowBatch reads one batch of events after the given position.
+func (l *Log) FollowBatch(ctx context.Context, afterID int64, limit int64) ([]auditlog.Entry, error) {
+	return l.auditLogger.FollowBatch(ctx, afterID, limit)
+}
+
+// FollowSubscribe registers a wakeup channel signaled after every audit event write.
+func (l *Log) FollowSubscribe() (<-chan struct{}, func()) {
+	return l.auditLogger.FollowSubscribe()
+}
+
 // LogCreate logs the resource creation if there is a hook for this type.
 func (l *Log) LogCreate(r resource.Resource) CreateHook {
 	l.mu.RLock()
@@ -180,16 +198,8 @@ func (l *Log) AuditTalosAccess(ctx context.Context, fullMethodName string, clust
 
 // AuditAuditLogAccess logs the audit log access event.
 func (l *Log) AuditAuditLogAccess(ctx context.Context, filters auditlog.ReadFilters) error {
-	data := extractData(ctx, options{
-		userAgent:     internalAgent,
-		newDataIfNone: true,
-	})
-	if data == nil {
-		return nil
-	}
-
 	// the query bounds have millisecond precision, format the logged range accordingly
-	data.AuditLogAccess = &auditlog.AuditLogAccess{
+	return l.auditAuditLogAccess(ctx, &auditlog.AuditLogAccess{
 		Start:        filters.Start.Truncate(time.Millisecond).Format(time.RFC3339Nano),
 		End:          filters.End.Truncate(time.Millisecond).Format(time.RFC3339Nano),
 		Search:       filters.Search,
@@ -198,7 +208,36 @@ func (l *Log) AuditAuditLogAccess(ctx context.Context, filters auditlog.ReadFilt
 		ResourceID:   filters.ResourceID,
 		ClusterID:    filters.ClusterID,
 		Actor:        filters.Actor,
+	})
+}
+
+// AuditAuditLogFollow logs the audit log access event for a follow stream, recording the
+// mechanism that actually positions the stream: the exact id when given, the timestamp
+// otherwise.
+func (l *Log) AuditAuditLogFollow(ctx context.Context, fromID, startTsMs int64) error {
+	access := &auditlog.AuditLogAccess{Follow: true}
+
+	switch {
+	case fromID > 0:
+		access.FromID = fromID
+	case startTsMs > 0:
+		access.Start = time.UnixMilli(startTsMs).Format(time.RFC3339Nano)
 	}
+
+	return l.auditAuditLogAccess(ctx, access)
+}
+
+// auditAuditLogAccess writes the audit log access event with the given access description.
+func (l *Log) auditAuditLogAccess(ctx context.Context, access *auditlog.AuditLogAccess) error {
+	data := extractData(ctx, options{
+		userAgent:     internalAgent,
+		newDataIfNone: true,
+	})
+	if data == nil {
+		return nil
+	}
+
+	data.AuditLogAccess = access
 
 	return l.auditLogger.Write(ctx, auditlog.Event{
 		Type:       auditlog.EventTypeAuditLogAccess.SQLString(),

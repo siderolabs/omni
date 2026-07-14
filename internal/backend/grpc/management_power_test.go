@@ -141,6 +141,22 @@ func (c *capturingAuditLogger) AuditAuditLogAccess(context.Context, auditlog.Rea
 	return nil
 }
 
+func (c *capturingAuditLogger) AuditAuditLogFollow(context.Context, int64, int64) error {
+	return nil
+}
+
+func (c *capturingAuditLogger) FollowStart(context.Context, int64) (int64, error) {
+	return 0, errors.New("not implemented")
+}
+
+func (c *capturingAuditLogger) FollowBatch(context.Context, int64, int64) ([]auditlog.Entry, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (c *capturingAuditLogger) FollowSubscribe() (<-chan struct{}, func()) {
+	return nil, func() {}
+}
+
 func (c *capturingAuditLogger) AuditTalosAccess(ctx context.Context, fullMethodName, clusterID, nodeID string) error {
 	c.ctx = captureContext(ctx)
 	c.fullMethod = fullMethodName

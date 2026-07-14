@@ -117,8 +117,20 @@ func newManagementServer(cfg *config.Params, omniState state.State, jwtSigningKe
 		talosRuntime:          talosRuntime,
 		talosconfigProvider:   talosconfigProvider,
 		lifecycleManager:      lifecycleManager,
+
+		auditLogFollowLease: auditLogFollowDefaultLease,
 	}
 }
+
+const (
+	// auditLogFollowDefaultLease bounds the lifetime of a single follow stream, forcing the
+	// client to reconnect and re-authenticate to keep following.
+	auditLogFollowDefaultLease = time.Hour
+
+	// auditLogFollowBatchSize is the number of events a follow stream reads from the store
+	// per batch.
+	auditLogFollowBatchSize = 512
+)
 
 // managementServer implements omni management service.
 type managementServer struct {
@@ -136,6 +148,8 @@ type managementServer struct {
 	management.UnimplementedManagementServiceServer
 	omniState      state.State
 	omniconfigDest string
+
+	auditLogFollowLease time.Duration
 }
 
 func (s *managementServer) register(server grpc.ServiceRegistrar) {
@@ -547,6 +561,18 @@ func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv
 		return err
 	}
 
+	if req.GetStartTsMs() < 0 {
+		return status.Error(codes.InvalidArgument, "start_ts_ms cannot be negative")
+	}
+
+	if req.GetFromId() < 0 {
+		return status.Error(codes.InvalidArgument, "from_id cannot be negative")
+	}
+
+	if req.GetFollow() {
+		return s.followAuditLog(req, srv)
+	}
+
 	now := time.Now()
 
 	filters := auditlog.ReadFilters{
@@ -568,6 +594,14 @@ func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv
 	filters.End, err = parseTime(req.GetEndTime(), now)
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "invalid end time: %v", err)
+	}
+
+	if req.GetFromId() != 0 {
+		return status.Error(codes.InvalidArgument, "from_id requires follow")
+	}
+
+	if startTsMs := req.GetStartTsMs(); startTsMs > 0 {
+		filters.Start = time.UnixMilli(startTsMs)
 	}
 
 	if err = s.auditor.AuditAuditLogAccess(ctx, filters); err != nil {
@@ -598,6 +632,135 @@ func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv
 	}
 
 	return closeFn()
+}
+
+// followAuditLog streams the audit log: the backlog from the requested start position first,
+// then new events as they are written, until the stream lease expires. A client keeps
+// following by reconnecting and resuming from the id of the last received event.
+func (s *managementServer) followAuditLog(req *management.ReadAuditLogRequest, srv grpc.ServerStreamingServer[management.ReadAuditLogResponse]) error {
+	ctx := srv.Context()
+
+	if err := validateAuditLogFollowRequest(req); err != nil {
+		return err
+	}
+
+	if err := s.auditor.AuditAuditLogFollow(ctx, req.GetFromId(), req.GetStartTsMs()); err != nil {
+		return fmt.Errorf("failed to audit the audit log access: %w", err)
+	}
+
+	var pos int64
+
+	if fromID := req.GetFromId(); fromID > 0 {
+		// an id position resumes exactly where a previous stream left off
+		pos = fromID - 1
+	} else {
+		var err error
+
+		// a timestamp start needs resolving into an id position, a zero one means the tail
+		if pos, err = s.auditor.FollowStart(ctx, req.GetStartTsMs()); err != nil {
+			// the acknowledgment is deliberately not sent yet: a stream that cannot even
+			// resolve its start position fails without ever looking like a working follow
+			return err
+		}
+	}
+
+	// Acknowledge the follow mode with an event-less response before any events. A server
+	// unaware of the follow flag can never produce one, so receiving it as the first message
+	// is how the client knows the stream will actually follow instead of ending at the
+	// backlog. It carries the resolved start position, the exact resume baseline for a
+	// client whose stream ends before delivering any event.
+	if err := srv.Send(&management.ReadAuditLogResponse{Id: pos}); err != nil {
+		return err
+	}
+
+	// The stream is bounded: it ends cleanly when the lease expires, and the client is
+	// expected to reconnect and continue from the position it reached. Reconnecting re-runs
+	// authentication and authorization, which are otherwise checked only at stream start,
+	// so an identity that has been revoked, expired or downgraded stops being served within
+	// the lease duration.
+	lease := time.NewTimer(s.auditLogFollowLease)
+	defer lease.Stop()
+
+	// Written events wake the stream through the subscription instead of a poll. Subscribing
+	// before the first scan means no event can slip through: one written after a scan leaves
+	// a wakeup behind, and the wait after that scan returns immediately.
+	wakeCh, unsubscribe := s.auditor.FollowSubscribe()
+	defer unsubscribe()
+
+	for {
+		entries, err := s.auditor.FollowBatch(ctx, pos, auditLogFollowBatchSize)
+		if err != nil {
+			// The position points beyond every stored event, which cleanup cannot cause (it
+			// spares the newest event) but a database restored from a backup can. There is
+			// no safe automatic recovery from an id position, so the stream fails and the
+			// operator decides how to recover.
+			if errors.Is(err, auditlog.ErrFollowPositionLost) {
+				return status.Error(codes.FailedPrecondition, "the follow position no longer exists")
+			}
+
+			return err
+		}
+
+		for _, entry := range entries {
+			if err = srv.Send(&management.ReadAuditLogResponse{AuditLog: entry.Payload, Id: entry.ID}); err != nil {
+				return err
+			}
+
+			// Honor the lease during long drains, not only while idle. The bound is soft: a
+			// send blocked on a client that stopped reading is only interrupted by the
+			// transport, so such a stream can overrun the lease and receives at most one
+			// more event once the client resumes reading.
+			select {
+			case <-lease.C:
+				return nil
+			default:
+			}
+		}
+
+		if len(entries) > 0 {
+			pos = entries[len(entries)-1].ID
+		}
+
+		if int64(len(entries)) == auditLogFollowBatchSize {
+			continue // keep draining the backlog
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-lease.C:
+			return nil
+		case <-wakeCh:
+		}
+	}
+}
+
+// validateAuditLogFollowRequest rejects the request fields that make no sense combined with
+// follow: a followed log is always whole, in insertion order and without an end.
+func validateAuditLogFollowRequest(req *management.ReadAuditLogRequest) error {
+	incompatible := []struct {
+		name string
+		set  bool
+	}{
+		{"start_time", req.GetStartTime() != ""},
+		{"end_time", req.GetEndTime() != ""},
+		{"order_by_field", req.GetOrderByField() != management.AuditLogOrderByField_AUDIT_LOG_ORDER_BY_FIELD_UNSPECIFIED},
+		{"order_by_dir", req.GetOrderByDir() != management.AuditLogOrderByDir_AUDIT_LOG_ORDER_BY_DIR_UNSPECIFIED},
+		{"search", req.GetSearch() != ""},
+		{"event_type", req.GetEventType() != management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_UNSPECIFIED},
+		{"resource_type", req.GetResourceType() != ""},
+		{"resource_id", req.GetResourceId() != ""},
+		{"cluster_id", req.GetClusterId() != ""},
+		{"actor", req.GetActor() != ""},
+	}
+
+	for _, field := range incompatible {
+		if field.set {
+			return status.Errorf(codes.InvalidArgument, "%s cannot be combined with follow", field.name)
+		}
+	}
+
+	return nil
 }
 
 // MaintenanceUpgrade performs a maintenance upgrade on a specified machine.
@@ -1313,8 +1476,12 @@ func generateDest(apiurl string) (string, error) {
 // AuditLogger is an interface for reading the audit log and logging access events.
 type AuditLogger interface {
 	Reader(ctx context.Context, filters auditlog.ReadFilters) (auditlog.Reader, error)
+	FollowStart(ctx context.Context, startTsMs int64) (int64, error)
+	FollowBatch(ctx context.Context, afterID int64, limit int64) ([]auditlog.Entry, error)
+	FollowSubscribe() (<-chan struct{}, func())
 	AuditTalosAccess(ctx context.Context, fullMethodName, clusterID, nodeID string) error
 	AuditAuditLogAccess(ctx context.Context, filters auditlog.ReadFilters) error
+	AuditAuditLogFollow(ctx context.Context, fromID, startTsMs int64) error
 }
 
 func auditLogOrderByField(f management.AuditLogOrderByField) auditlog.OrderByField {
