@@ -39,7 +39,7 @@ const configSchemaMap = Object.entries(configSchemas).map(
     [path.replace(/\.\/config_(.*)\.schema\.json/, '$1').replace('_', '.'), schema] as const,
 )
 
-const schemas = configSchemaMap.map<SchemasSettings>(([version, origSchema]) => {
+const versionedSchemas = configSchemaMap.map(([version, origSchema]) => {
   const schema: typeof origSchema = JSON.parse(JSON.stringify(origSchema))
 
   for (const name in schema.$defs) {
@@ -56,21 +56,38 @@ const schemas = configSchemaMap.map<SchemasSettings>(([version, origSchema]) => 
   }
 
   return {
-    uri: schema.$id!,
-    fileMatch: [`*_${version}.patch.yaml`],
-    schema,
+    version,
+    settings: {
+      uri: schema.$id!,
+      fileMatch: [],
+      schema,
+    } satisfies SchemasSettings,
   }
 })
 
-configureMonacoYaml(monaco, {
+const monacoYaml = configureMonacoYaml(monaco, {
   hover: true,
   completion: true,
   validate: true,
   format: {
     enable: true,
   },
-  schemas,
+  schemas: [],
 })
+
+const modelSchemas = new Map<string, string>()
+
+function refreshSchemas() {
+  return monacoYaml.update({
+    ...monacoYaml.getOptions(),
+    schemas: versionedSchemas.map(({ version, settings }) => ({
+      ...settings,
+      fileMatch: [...modelSchemas]
+        .filter(([, assigned]) => assigned === version)
+        .map(([modelId]) => `*${modelId}.yaml`),
+    })),
+  })
+}
 
 // Can't use CSS variables inside monaco https://github.com/microsoft/monaco-editor/issues/2427
 const styles = getComputedStyle(document.documentElement)
@@ -188,17 +205,13 @@ const editorOptions = computed<monaco.editor.IEditorOptions & monaco.editor.IGlo
   }),
 )
 
-watch([editor, schemaVersion], ([editor, schemaVersion]) => {
+watch(editor, (editor) => {
   if (!editor) return
 
   const model = monaco.editor.createModel(
     modelValue.value,
     'yaml',
-    monaco.Uri.parse(
-      disableConfigValidation
-        ? `inmemory://${modelId}.yaml`
-        : `inmemory://${modelId}_${majorMinorVersion(schemaVersion.format())}.patch.yaml`,
-    ),
+    monaco.Uri.parse(`inmemory://${modelId}.yaml`),
   )
 
   const instance = monaco.editor.create(editor, {
@@ -240,6 +253,25 @@ watch([editor, schemaVersion], ([editor, schemaVersion]) => {
     instanceRef = undefined
   })
 })
+
+watch(
+  [schemaVersion, () => disableConfigValidation],
+  ([version, disableConfigValidation]) => {
+    if (disableConfigValidation) {
+      modelSchemas.delete(modelId)
+    } else {
+      modelSchemas.set(modelId, majorMinorVersion(version.format()))
+    }
+
+    refreshSchemas()
+
+    onWatcherCleanup(() => {
+      modelSchemas.delete(modelId)
+      refreshSchemas()
+    })
+  },
+  { immediate: true },
+)
 
 // updateOptions is a partial merge, you must explicitly toggle options
 // simply deleting a key from options won't reset it to its default value
