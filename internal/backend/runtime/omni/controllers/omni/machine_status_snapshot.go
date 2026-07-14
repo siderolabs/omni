@@ -84,15 +84,15 @@ func (ctrl *MachineStatusSnapshotController) Settings() controller.QSettings {
 				case <-ctx.Done():
 					return nil
 				case resource := <-ctrl.siderolinkCh:
-					if err := ctrl.reconcileSnapshot(ctx, r, resource); err != nil {
+					if err := ctrl.reconcileSnapshot(ctx, r, resource, false); err != nil {
 						return err
 					}
 				case resource := <-ctrl.notifyCh:
-					if err := ctrl.reconcileSnapshot(ctx, r, resource); err != nil {
+					if err := ctrl.reconcileSnapshot(ctx, r, resource, true); err != nil {
 						return err
 					}
 				case resource := <-ctrl.powerStageCh:
-					if err := ctrl.reconcileSnapshot(ctx, r, resource); err != nil {
+					if err := ctrl.reconcileSnapshot(ctx, r, resource, false); err != nil {
 						return err
 					}
 				}
@@ -224,7 +224,7 @@ func (ctrl *MachineStatusSnapshotController) handleDisconnectedMachinePowerOff(c
 	poweredOffSnapshot := omni.NewMachineStatusSnapshot(machineID)
 	poweredOffSnapshot.TypedSpec().Value.PowerStage = specs.MachineStatusSnapshotSpec_POWER_STAGE_POWERED_OFF
 
-	return ctrl.reconcileSnapshot(ctx, r, poweredOffSnapshot)
+	return ctrl.reconcileSnapshot(ctx, r, poweredOffSnapshot, false)
 }
 
 func (ctrl *MachineStatusSnapshotController) reconcileTearingDown(ctx context.Context, r controller.QRuntime, logger *zap.Logger, machine *omni.Machine) error {
@@ -244,7 +244,7 @@ func (ctrl *MachineStatusSnapshotController) reconcileTearingDown(ctx context.Co
 	return r.RemoveFinalizer(ctx, machine.Metadata(), ctrl.Name())
 }
 
-func (ctrl *MachineStatusSnapshotController) reconcileSnapshot(ctx context.Context, r controller.QRuntime, snapshot *omni.MachineStatusSnapshot) error {
+func (ctrl *MachineStatusSnapshotController) reconcileSnapshot(ctx context.Context, r controller.QRuntime, snapshot *omni.MachineStatusSnapshot, fromCollectTask bool) error {
 	machine, err := safe.ReaderGetByID[*omni.Machine](ctx, r, snapshot.Metadata().ID())
 	if err != nil {
 		if state.IsNotFoundError(err) {
@@ -263,7 +263,11 @@ func (ctrl *MachineStatusSnapshotController) reconcileSnapshot(ctx context.Conte
 			m.TypedSpec().Value.MachineStatus = snapshot.TypedSpec().Value.MachineStatus
 		}
 
-		if snapshot.TypedSpec().Value.BootId != "" { // only the collect task reads the boot ID; preserve the existing value for siderolink/power snapshots
+		// Only the collect task reads the boot ID, so it is the sole authority on the field: apply its
+		// value even when empty (e.g. the connected Talos version doesn't support reading it, such as
+		// after a downgrade), otherwise a stale boot ID from before the downgrade would stick forever.
+		// Siderolink/power-stage snapshots never carry a boot ID, so they must never touch it.
+		if fromCollectTask {
 			m.TypedSpec().Value.BootId = snapshot.TypedSpec().Value.BootId
 		}
 

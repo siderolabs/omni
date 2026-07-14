@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/channel"
@@ -33,6 +34,9 @@ const (
 	bootIDProbeInterval = 30 * time.Second
 	// bootIDCheckTimeout is how long the collect task waits for the machine bootID to be available.
 	bootIDCheckTimeout = 5 * time.Second
+	// minTalosVersionForRead is the earliest Talos version whose MachineService implements the Read RPC;
+	// older machines always return Unimplemented for it, so boot ID collection is skipped below it.
+	minTalosVersionForRead = "1.13"
 )
 
 // InfoChan is a channel for sending machine info from tasks back to the controller.
@@ -107,7 +111,19 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		return nil
 	}
 
-	bootID := spec.readBootID(ctx, client, logger)
+	var (
+		bootID         string
+		bootIDTickerCh <-chan time.Time
+	)
+
+	if spec.talosSupportsBootID(ctx, client, logger) {
+		bootID = spec.readBootID(ctx, client, logger)
+
+		bootIDTicker := time.NewTicker(bootIDProbeInterval)
+		defer bootIDTicker.Stop()
+
+		bootIDTickerCh = bootIDTicker.C
+	}
 
 	watchCh := make(chan state.Event)
 
@@ -115,16 +131,13 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		return err
 	}
 
-	bootIDTicker := time.NewTicker(bootIDProbeInterval)
-	defer bootIDTicker.Stop()
-
 	for {
 		var event state.Event
 
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-bootIDTicker.C:
+		case <-bootIDTickerCh:
 			currentBootID := spec.readBootID(ctx, client, logger)
 			if bootID != currentBootID {
 				return fmt.Errorf("boot id changed, restarting the task (old: %s, new: %s)", bootID, currentBootID)
@@ -157,6 +170,36 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 			}
 		}
 	}
+}
+
+// talosSupportsBootID reports whether the connected machine's Talos version implements the Read RPC used
+// to fetch boot_id. Older machines always return Unimplemented for it, so callers should skip the attempt
+// entirely rather than pay the RPC round trip (and its timeout) on every probe.
+func (spec CollectTaskSpec) talosSupportsBootID(ctx context.Context, c *client.Client, logger *zap.Logger) bool {
+	ctx, cancel := context.WithTimeout(ctx, bootIDCheckTimeout)
+	defer cancel()
+
+	versionResp, err := c.Version(ctx)
+	if err != nil {
+		logger.Debug("failed to read talos version for boot id support check", zap.Error(err))
+
+		return false
+	}
+
+	minVersion := semver.MustParse(minTalosVersionForRead + ".0")
+
+	for _, msg := range versionResp.GetMessages() {
+		version, err := semver.ParseTolerant(msg.GetVersion().GetTag())
+		if err != nil {
+			continue
+		}
+
+		if version.GTE(minVersion) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // readBootID reads the machine's kernel boot identifier from the node. It is best-effort: on certain scenarios boot_id might not be available, instead of failing with error it returns "".

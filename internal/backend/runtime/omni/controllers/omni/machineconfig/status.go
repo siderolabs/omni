@@ -392,13 +392,19 @@ func (ctrl *ClusterMachineConfigStatusController) reconcileUpgrade(
 			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot before applying config: %s", rc.ID())
 		}
 
-		// Record the version so the status reflects an already-at-target machine that ran no upgrade path.
-		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = strings.TrimLeft(rc.machineStatus.TypedSpec().Value.TalosVersion, "v")
+		// LifecycleOpNone here doesn't always mean "confirmed at target": for a maintenance machine with no
+		// system disk yet, DecideLifecycleOp returns None to let the imminent config-apply perform the
+		// install itself, so the live version is still the pre-install one, not what will end up on disk.
+		// Only record it once the machine actually has Talos on disk.
+		if omni.GetMachineStatusSystemDisk(rc.machineStatus) != "" {
+			// Record the version so the status reflects an already-at-target machine that ran no upgrade path.
+			rc.machineConfigStatus.TypedSpec().Value.TalosVersion = strings.TrimLeft(rc.machineStatus.TypedSpec().Value.TalosVersion, "v")
 
-		if rc.machineStatus.TypedSpec().Value.GetSchematic().GetInvalid() {
-			rc.machineConfigStatus.TypedSpec().Value.SchematicId = ""
-		} else {
-			rc.machineConfigStatus.TypedSpec().Value.SchematicId = rc.installImage.SchematicId
+			if rc.machineStatus.TypedSpec().Value.GetSchematic().GetInvalid() {
+				rc.machineConfigStatus.TypedSpec().Value.SchematicId = ""
+			} else {
+				rc.machineConfigStatus.TypedSpec().Value.SchematicId = rc.installImage.SchematicId
+			}
 		}
 	}
 
