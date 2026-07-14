@@ -43,7 +43,7 @@ const CONTROLLER_RUNTIME = 'controller-runtime' // service with logs that isn't 
 // 'machine' check to continue support for /logs/machine but it is equivalent to /logs
 const isMachineLogs = computed(() => !service || service === MACHINE_LOGS)
 
-const { services } = useMachineServices(context)
+const { data: services } = useMachineServices(context)
 
 const servicesSelectValues = computed(() => [
   MACHINE_LOGS,

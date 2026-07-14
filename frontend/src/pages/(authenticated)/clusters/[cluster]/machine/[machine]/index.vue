@@ -12,6 +12,7 @@ import { computed, ref, useId } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ConfigApplyStatus } from '@/api/omni/specs/omni.pb'
@@ -42,7 +43,6 @@ import TStatus from '@/components/Status/TStatus.vue'
 import Tag from '@/components/Tag/Tag.vue'
 import TAlert from '@/components/TAlert.vue'
 import { TCommonStatuses } from '@/constants'
-import { getContext } from '@/context'
 import { getStatus } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { useMachineServices } from '@/methods/useMachineServices'
@@ -56,9 +56,12 @@ import NodeServiceEvents from '@/views/Nodes/NodeServiceEvents.vue'
 definePage({ name: 'NodeOverview' })
 
 const route = useRoute()
-const context = computed(() => getContext(route))
+const context = computed(() => ({
+  cluster: route.params.cluster,
+  node: route.params.machine,
+}))
 
-const { services } = useMachineServices(context)
+const { data: services, err: servicesErr, errCode: servicesErrCode } = useMachineServices(context)
 
 const configApplyStatusToConfigApplyStatusName = (status?: ConfigApplyStatus): string => {
   switch (status) {
@@ -376,7 +379,8 @@ const servicesSectionHeadingId = useId()
         <li class="overview-table-name">Running</li>
         <li class="overview-table-name">Health</li>
       </ul>
-      <TGroupAnimation>
+
+      <TGroupAnimation v-if="services.length">
         <TListItem v-for="service in services" :key="service.name">
           <template #default>
             <div class="grid grid-cols-4 p-1">
@@ -407,6 +411,11 @@ const servicesSectionHeadingId = useId()
           </template>
         </TListItem>
       </TGroupAnimation>
+
+      <div v-else-if="servicesErr" class="flex items-center justify-center py-8 text-sm">
+        <span v-if="servicesErrCode === Code.UNAVAILABLE">Talos API is not ready yet</span>
+        <span v-else class="text-red-r1">{{ servicesErr }}</span>
+      </div>
     </section>
   </PageContainer>
 </template>

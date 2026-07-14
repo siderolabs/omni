@@ -2,15 +2,17 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import { refThrottled } from '@vueuse/core'
 import { type MaybeRefOrGetter, ref, toValue, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { RequestError } from '@/api/fetch.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import { subscribe } from '@/api/grpc'
 import type { RuntimeContext } from '@/api/options'
 import { withAbortController, withContext, withRuntime } from '@/api/options'
 import { MachineService, type ServiceEvent } from '@/api/talos/machine/machine.pb'
 import { TCommonStatuses } from '@/constants'
-import { showError } from '@/notification'
 
 interface Service {
   name?: string
@@ -20,15 +22,30 @@ interface Service {
 }
 
 export function useMachineServices(context: MaybeRefOrGetter<RuntimeContext>) {
-  const services = ref<Service[]>([])
+  const data = ref<Service[]>([])
+  const loading = ref(true)
+  const err = ref<Error>()
+  const errCode = ref<Code>()
+
   const serviceListVersion = ref(0)
+  const serviceListVersionDebounced = refThrottled(serviceListVersion, 1000)
+
+  let retryCount = 0
+  let retryTimer: number | undefined
 
   watchEffect(async (onCleanup) => {
     // To track for forced updates
-    void serviceListVersion.value
+    void serviceListVersionDebounced.value
 
     const abortController = new AbortController()
-    onCleanup(() => abortController.abort())
+    onCleanup(() => {
+      abortController.abort()
+      clearTimeout(retryTimer)
+    })
+
+    loading.value = true
+    err.value = undefined
+    errCode.value = undefined
 
     try {
       const { messages = [] } = await MachineService.ServiceList(
@@ -38,7 +55,7 @@ export function useMachineServices(context: MaybeRefOrGetter<RuntimeContext>) {
         withAbortController(abortController),
       )
 
-      services.value = messages.flatMap(({ services = [] }) =>
+      data.value = messages.flatMap(({ services = [] }) =>
         services.map((service) => ({
           name: service.id,
           state: service.state,
@@ -50,10 +67,20 @@ export function useMachineServices(context: MaybeRefOrGetter<RuntimeContext>) {
           events: service.events?.events,
         })),
       )
+
+      retryCount = 0
     } catch (e) {
       if (abortController.signal.aborted) return
 
-      showError('Error', e instanceof Error ? e.message : String(e))
+      err.value = e instanceof Error ? e : new Error(JSON.stringify(e))
+      errCode.value = e instanceof RequestError ? e.code : undefined
+
+      // Retry with backoff
+      const backoff = Math.min(2 ** retryCount * 500, 10_000)
+      retryCount++
+      retryTimer = setTimeout(() => serviceListVersion.value++, backoff)
+    } finally {
+      loading.value = false
     }
   })
 
@@ -76,5 +103,5 @@ export function useMachineServices(context: MaybeRefOrGetter<RuntimeContext>) {
     onCleanup(() => stream.shutdown())
   })
 
-  return { services }
+  return { data, loading, err, errCode }
 }
