@@ -146,7 +146,6 @@ const updateLock = async () => {
         :cluster-machine-status="machine"
         :cluster-name="clusterName"
         :delete-disabled="deleteDisabled!"
-        @click.stop
       />
     </div>
   </div>
