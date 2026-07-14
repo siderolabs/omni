@@ -24,6 +24,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 )
 
 // ReconciliationContext describes all related data for one reconciliation call of the machine config status controller.
@@ -208,7 +209,8 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, errors.New("failed to get machine set name from the machine config resource")
 	}
 
-	machineSetConfigStatus, err := safe.ReaderGetByID[*omni.MachineSetConfigStatus](ctx, r, machineSetName)
+	// A stale allow value could apply a config while updates are blocked.
+	machineSetConfigStatus, err := safe.ReaderGetByID[*omni.MachineSetConfigStatus](ctx, uncached.Reader(r), machineSetName)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}
