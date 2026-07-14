@@ -35,30 +35,35 @@ interface OngoingTaskDescription {
   revertingTo?: string
 }
 
-const taskScope = effectScope(true)
-
-const tasks = taskScope.run(() => {
-  const { data } = useResourceWatch<OngoingTaskSpec>(() => ({
-    resource: {
-      namespace: EphemeralNamespace,
-      type: OngoingTaskType,
-    },
-    runtime: Runtime.Omni,
-  }))
-
-  return data
-})!
+let tasks: ReturnType<typeof initOngoingTasks> | undefined
 
 export function useOngoingTasks() {
+  tasks ||= initOngoingTasks()
+
+  const { data, ...rest } = tasks
+
   return {
     data: computed(() =>
-      tasks.value.map((item) => ({
+      data.value.map((item) => ({
         item,
         desc: describeOngoingTask(item),
         summary: ongoingTaskSummary(item),
       })),
     ),
+    ...rest,
   }
+}
+
+function initOngoingTasks() {
+  return effectScope(true).run(() => {
+    return useResourceWatch<OngoingTaskSpec>(() => ({
+      resource: {
+        namespace: EphemeralNamespace,
+        type: OngoingTaskType,
+      },
+      runtime: Runtime.Omni,
+    }))
+  })!
 }
 
 function secretComponentName(component?: SecretRotationSpecComponent) {
