@@ -127,7 +127,12 @@ export class Stream<R, T> {
           return
         }
 
-        console.error('watch failed', e)
+        const watchTarget =
+          params && typeof params === 'object' && 'namespace' in params && 'type' in params
+            ? `${params.namespace}/${params.type}`
+            : (String(method).match(/`\/(.*?)`/)?.[1] ?? 'Unknown service')
+
+        console.error(`Watch failed for "${watchTarget}"\n\n${e.message}`)
 
         const err = e instanceof Error ? e : new Error(String(e))
 
