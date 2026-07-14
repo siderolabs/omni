@@ -619,6 +619,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    'Logout': RouteRecordInfo<
+      'Logout',
+      '/logout',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     'OIDC Login': RouteRecordInfo<
       'OIDC Login',
       '/oidc-login/:authRequestId',
@@ -1366,6 +1373,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/forbidden.vue': {
       routes:
         | '/forbidden'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/logout.vue': {
+      routes:
+        | 'Logout'
       views:
         | never
       pathParamNames:
