@@ -137,6 +137,10 @@ func (c *capturingAuditLogger) Reader(context.Context, auditlog.ReadFilters) (au
 	return nil, errors.New("not implemented")
 }
 
+func (c *capturingAuditLogger) AuditAuditLogAccess(context.Context, auditlog.ReadFilters) error {
+	return nil
+}
+
 func (c *capturingAuditLogger) AuditTalosAccess(ctx context.Context, fullMethodName, clusterID, nodeID string) error {
 	c.ctx = captureContext(ctx)
 	c.fullMethod = fullMethodName

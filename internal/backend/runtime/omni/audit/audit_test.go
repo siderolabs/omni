@@ -391,6 +391,64 @@ func TestK8SAccessAuditSkipsReadLikeRequests(t *testing.T) {
 	}
 }
 
+func TestAuditLogAccessIsAudited(t *testing.T) {
+	config := config.LogsAudit{
+		Enabled: new(true),
+	}
+
+	l := must.Value(audit.NewLog(t.Context(), config, testDB(t), zaptest.NewLogger(t)))(t)
+
+	ctx := ctxstore.WithValue(t.Context(), &auditlog.Data{
+		Session: auditlog.Session{
+			UserAgent: "Mozilla/5.0",
+			Email:     "user@example.com",
+		},
+	})
+
+	filters := auditlog.ReadFilters{
+		Start:     time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		End:       time.Date(2026, 1, 31, 0, 0, 0, 0, time.UTC),
+		Search:    "some-search",
+		ClusterID: "cluster1",
+		EventType: auditlog.EventTypeTalosAccess,
+	}
+
+	require.NoError(t, l.AuditAuditLogAccess(ctx, filters))
+
+	events := readAuditEvents(t, l)
+	require.Len(t, events, 1)
+	require.Equal(t, "audit_log_access", events[0]["event_type"])
+
+	eventData, ok := events[0]["event_data"].(map[string]any)
+	require.True(t, ok)
+
+	session, ok := eventData["session"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "user@example.com", session["email"])
+
+	access, ok := eventData["audit_log_access"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "2026-01-01T00:00:00Z", access["start"])
+	require.Equal(t, "2026-01-31T00:00:00Z", access["end"])
+	require.Equal(t, "some-search", access["search"])
+	require.Equal(t, "cluster1", access["cluster_id"])
+	require.Equal(t, "talos_access", access["event_type"])
+
+	// a cluster-scoped access event is discoverable via the cluster ID filter
+	rdr, err := l.Reader(t.Context(), auditlog.ReadFilters{End: time.Now().Add(5 * time.Second), ClusterID: "cluster1"})
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		require.NoError(t, rdr.Close())
+	})
+
+	_, err = rdr.Read()
+	require.NoError(t, err)
+
+	_, err = rdr.Read()
+	require.ErrorIs(t, err, io.EOF)
+}
+
 func readAuditEvents(t *testing.T, l *audit.Log) []map[string]any {
 	t.Helper()
 

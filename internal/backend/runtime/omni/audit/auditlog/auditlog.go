@@ -30,6 +30,7 @@ const (
 	EventTypeTeardown                      // "teardown"
 	EventTypeTalosAccess                   // "talos_access"
 	EventTypeK8SAccess                     // "k8s_access"
+	EventTypeAuditLogAccess                // "audit_log_access"
 )
 
 // SQLString returns the string stored in the database for this event type.
@@ -51,6 +52,8 @@ func (e EventType) SQLString() string {
 		return "talos_access"
 	case EventTypeK8SAccess:
 		return "k8s_access"
+	case EventTypeAuditLogAccess:
+		return "audit_log_access"
 	}
 
 	return ""

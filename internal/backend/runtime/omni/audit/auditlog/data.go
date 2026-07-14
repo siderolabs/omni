@@ -32,6 +32,7 @@ type Data struct {
 	MachineConfigDiff *MachineConfigDiff `json:"machine_config_diff,omitempty"`
 	TalosAccess       *TalosAccess       `json:"talos_access,omitempty"`
 	K8SAccess         *K8SAccess         `json:"k8s_access,omitempty"`
+	AuditLogAccess    *AuditLogAccess    `json:"audit_log_access,omitempty"`
 	MigrationError    *MigrationError    `json:"migration_error,omitempty"`
 	Session           Session            `json:"session"`
 }
@@ -134,6 +135,18 @@ type TalosAccess struct {
 	FullMethodName string `json:"full_method_name,omitempty"`
 	ClusterName    string `json:"cluster_name,omitempty"`
 	MachineIP      string `json:"machine_ip,omitempty"`
+}
+
+// AuditLogAccess struct contains information about the access to the audit log itself.
+type AuditLogAccess struct {
+	Start        string `json:"start,omitempty"`
+	End          string `json:"end,omitempty"`
+	Search       string `json:"search,omitempty"`
+	EventType    string `json:"event_type,omitempty"`
+	ResourceType string `json:"resource_type,omitempty"`
+	ResourceID   string `json:"resource_id,omitempty"`
+	ClusterID    string `json:"cluster_id,omitempty"`
+	Actor        string `json:"actor,omitempty"`
 }
 
 // K8SAccess struct contains information about the access to the Kubernetes cluster.

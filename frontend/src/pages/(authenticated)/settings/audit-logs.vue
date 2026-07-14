@@ -8,6 +8,7 @@ included in the LICENSE file.
 export type AuditLogEvent =
   | 'k8s_access'
   | 'talos_access'
+  | 'audit_log_access'
   | 'create'
   | 'destroy'
   | 'update_with_conflicts'

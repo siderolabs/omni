@@ -570,6 +570,10 @@ func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv
 		return status.Errorf(codes.InvalidArgument, "invalid end time: %v", err)
 	}
 
+	if err = s.auditor.AuditAuditLogAccess(ctx, filters); err != nil {
+		return fmt.Errorf("failed to audit the audit log access: %w", err)
+	}
+
 	rdr, err := s.auditor.Reader(ctx, filters)
 	if err != nil {
 		return err
@@ -1306,10 +1310,11 @@ func generateDest(apiurl string) (string, error) {
 	return result, nil
 }
 
-// AuditLogger is an interface for reading the audit log and logging Talos access events.
+// AuditLogger is an interface for reading the audit log and logging access events.
 type AuditLogger interface {
 	Reader(ctx context.Context, filters auditlog.ReadFilters) (auditlog.Reader, error)
 	AuditTalosAccess(ctx context.Context, fullMethodName, clusterID, nodeID string) error
+	AuditAuditLogAccess(ctx context.Context, filters auditlog.ReadFilters) error
 }
 
 func auditLogOrderByField(f management.AuditLogOrderByField) auditlog.OrderByField {
@@ -1364,6 +1369,8 @@ func auditLogEventType(e management.AuditLogEventType) auditlog.EventType {
 		return auditlog.EventTypeTalosAccess
 	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_K8S_ACCESS:
 		return auditlog.EventTypeK8SAccess
+	case management.AuditLogEventType_AUDIT_LOG_EVENT_TYPE_AUDIT_LOG_ACCESS:
+		return auditlog.EventTypeAuditLogAccess
 	}
 
 	return auditlog.EventTypeUnspecified

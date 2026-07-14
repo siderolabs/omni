@@ -418,6 +418,15 @@ func (w *AuditWrap) AuditTalosAccess(ctx context.Context, fullMethodName, cluste
 	return w.log.AuditTalosAccess(ctx, fullMethodName, clusterID, nodeID)
 }
 
+// AuditAuditLogAccess logs an audit log access event. It does nothing if the audit log is disabled.
+func (w *AuditWrap) AuditAuditLogAccess(ctx context.Context, filters auditlog.ReadFilters) error {
+	if w.log == nil {
+		return nil
+	}
+
+	return w.log.AuditAuditLogAccess(ctx, filters)
+}
+
 // WrapState wraps the state with audit logging. It does nothing if the audit log is disabled.
 func (w *AuditWrap) WrapState(resourceState state.State) state.State {
 	if w.log == nil {

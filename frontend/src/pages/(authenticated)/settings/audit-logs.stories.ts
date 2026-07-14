@@ -22,6 +22,7 @@ type Story = StoryObj<typeof meta>
 const EVENT_TYPES: AuditLogEvent[] = [
   'k8s_access',
   'talos_access',
+  'audit_log_access',
   'create',
   'destroy',
   'update_with_conflicts',

@@ -178,6 +178,35 @@ func (l *Log) AuditTalosAccess(ctx context.Context, fullMethodName string, clust
 	})
 }
 
+// AuditAuditLogAccess logs the audit log access event.
+func (l *Log) AuditAuditLogAccess(ctx context.Context, filters auditlog.ReadFilters) error {
+	data := extractData(ctx, options{
+		userAgent:     internalAgent,
+		newDataIfNone: true,
+	})
+	if data == nil {
+		return nil
+	}
+
+	// the query bounds have millisecond precision, format the logged range accordingly
+	data.AuditLogAccess = &auditlog.AuditLogAccess{
+		Start:        filters.Start.Truncate(time.Millisecond).Format(time.RFC3339Nano),
+		End:          filters.End.Truncate(time.Millisecond).Format(time.RFC3339Nano),
+		Search:       filters.Search,
+		EventType:    filters.EventType.SQLString(),
+		ResourceType: filters.ResourceType,
+		ResourceID:   filters.ResourceID,
+		ClusterID:    filters.ClusterID,
+		Actor:        filters.Actor,
+	}
+
+	return l.auditLogger.Write(ctx, auditlog.Event{
+		Type:       auditlog.EventTypeAuditLogAccess.SQLString(),
+		TimeMillis: time.Now().UnixMilli(),
+		Data:       data,
+	})
+}
+
 // Wrap wraps the http.Handler with audit logging.
 func (l *Log) Wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

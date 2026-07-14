@@ -89,6 +89,7 @@ const (
 	AuditLogEventType_AUDIT_LOG_EVENT_TYPE_TEARDOWN              AuditLogEventType = 5
 	AuditLogEventType_AUDIT_LOG_EVENT_TYPE_TALOS_ACCESS          AuditLogEventType = 6
 	AuditLogEventType_AUDIT_LOG_EVENT_TYPE_K8S_ACCESS            AuditLogEventType = 7
+	AuditLogEventType_AUDIT_LOG_EVENT_TYPE_AUDIT_LOG_ACCESS      AuditLogEventType = 8
 )
 
 // Enum value maps for AuditLogEventType.
@@ -102,6 +103,7 @@ var (
 		5: "AUDIT_LOG_EVENT_TYPE_TEARDOWN",
 		6: "AUDIT_LOG_EVENT_TYPE_TALOS_ACCESS",
 		7: "AUDIT_LOG_EVENT_TYPE_K8S_ACCESS",
+		8: "AUDIT_LOG_EVENT_TYPE_AUDIT_LOG_ACCESS",
 	}
 	AuditLogEventType_value = map[string]int32{
 		"AUDIT_LOG_EVENT_TYPE_UNSPECIFIED":           0,
@@ -112,6 +114,7 @@ var (
 		"AUDIT_LOG_EVENT_TYPE_TEARDOWN":              5,
 		"AUDIT_LOG_EVENT_TYPE_TALOS_ACCESS":          6,
 		"AUDIT_LOG_EVENT_TYPE_K8S_ACCESS":            7,
+		"AUDIT_LOG_EVENT_TYPE_AUDIT_LOG_ACCESS":      8,
 	}
 )
 
@@ -3614,7 +3617,7 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\tBOOT_AUTO\x10\x00\x12\r\n" +
 	"\tBOOT_DUAL\x10\x01\x12\v\n" +
 	"\aBOOT_SD\x10\x02\x12\r\n" +
-	"\tBOOT_GRUB\x10\x03*\xbc\x02\n" +
+	"\tBOOT_GRUB\x10\x03*\xe7\x02\n" +
 	"\x11AuditLogEventType\x12$\n" +
 	" AUDIT_LOG_EVENT_TYPE_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bAUDIT_LOG_EVENT_TYPE_CREATE\x10\x01\x12\x1f\n" +
@@ -3623,7 +3626,8 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\x1cAUDIT_LOG_EVENT_TYPE_DESTROY\x10\x04\x12!\n" +
 	"\x1dAUDIT_LOG_EVENT_TYPE_TEARDOWN\x10\x05\x12%\n" +
 	"!AUDIT_LOG_EVENT_TYPE_TALOS_ACCESS\x10\x06\x12#\n" +
-	"\x1fAUDIT_LOG_EVENT_TYPE_K8S_ACCESS\x10\a*\xaf\x02\n" +
+	"\x1fAUDIT_LOG_EVENT_TYPE_K8S_ACCESS\x10\a\x12)\n" +
+	"%AUDIT_LOG_EVENT_TYPE_AUDIT_LOG_ACCESS\x10\b*\xaf\x02\n" +
 	"\x14AuditLogOrderByField\x12(\n" +
 	"$AUDIT_LOG_ORDER_BY_FIELD_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dAUDIT_LOG_ORDER_BY_FIELD_DATE\x10\x01\x12'\n" +
