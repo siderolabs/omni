@@ -24,12 +24,9 @@ services:
     subdomain: proxy-us
     stopLBsAfter: 15s # use a short duration to test turning lazy LBs on/off
 auth:
-  auth0:
-    enabled: true
-    clientID: ${AUTH0_CLIENT_ID}
-    domain: ${AUTH0_DOMAIN}
-    initialUsers:
-      - ${AUTH_USERNAME}
+${AUTH_PROVIDER_CONFIG}
+  initialUsers:
+    - ${AUTH_USERNAME}
   limits:
     maxUsers: ${MAX_USERS}
     maxServiceAccounts: ${MAX_SERVICE_ACCOUNTS}

@@ -156,7 +156,8 @@ make helm-plugin-install
 make chart-unittest
 
 # Install Omni via Helm.
-OMNI_NAMESPACE="omni"
+# Exported so envsubst can substitute it when rendering the Dex manifest.
+export OMNI_NAMESPACE="omni"
 
 # Create the namespace with privileged pod security - Omni requires NET_ADMIN and hostPath (/dev/net/tun).
 kubectl create namespace "${OMNI_NAMESPACE}"
@@ -184,8 +185,18 @@ if [ ${#mirrors_items[@]} -gt 0 ]; then
 fi
 export REGISTRY_MIRRORS_JSON
 
+# Deploy an in-cluster Dex (OIDC provider) that Omni discovers at startup.
+# The issuer is the in-cluster service DNS name, reachable from the Omni pod; the
+# Helm suite performs no browser login, so nothing outside the cluster needs Dex.
+export DEX_HELM_ISSUER="http://dex.${OMNI_NAMESPACE}.svc.cluster.local:5556/dex"
+export DEX_HELM_REDIRECT_URI="https://omni.example.org/oidc/consume"
+
+envsubst '${OMNI_NAMESPACE} ${DEX_HELM_ISSUER} ${DEX_OIDC_CLIENT_ID} ${DEX_OIDC_CLIENT_SECRET} ${DEX_HELM_REDIRECT_URI} ${AUTH_USERNAME} ${DEX_DOCKER_IMAGE}' \
+  <hack/test/helm/templates/dex.yaml | kubectl apply -f -
+kubectl rollout status deployment/dex -n "${OMNI_NAMESPACE}" --timeout=120s
+
 # Render the Helm values template with envsubst.
-export OMNI_IMAGE_REPO OMNI_IMAGE_TAG AUTH0_CLIENT_ID AUTH0_DOMAIN AUTH0_TEST_USERNAME NODE_IP JOIN_TOKEN
+export OMNI_IMAGE_REPO OMNI_IMAGE_TAG NODE_IP JOIN_TOKEN
 
 # ============================================================
 # Phase 1: Smoke test with embedded etcd

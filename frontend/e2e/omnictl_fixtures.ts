@@ -63,7 +63,18 @@ const test = base.extend<OmnictlFixtures>({
             const [authURL] = stderr.match(/\bhttps?:\/\/\S+/gi) ?? []
 
             if (authURL) {
+              if (!process.env.AUTH_USERNAME) throw new Error('username is not set')
+              if (!process.env.AUTH_PASSWORD) throw new Error('password is not set')
+
               await page.goto(authURL)
+
+              await page
+                .getByRole('textbox', { name: 'email address' })
+                .fill(process.env.AUTH_USERNAME)
+              await page.getByRole('textbox', { name: 'Password' }).fill(process.env.AUTH_PASSWORD)
+              await page.getByRole('button', { name: 'Login' }).click()
+
+              await expect(page.getByText('Authenticate CLI Access')).toBeVisible()
 
               await page.getByRole('button', { name: 'Grant Access' }).click()
               await page.getByText('Successfully logged in').waitFor()

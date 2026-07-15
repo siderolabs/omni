@@ -55,10 +55,36 @@ export CI="${CI}"
 export BASE_URL=https://my-instance.omni.localhost:8099/
 export VAULT_ADDR=http://127.0.0.1:8200
 export VAULT_TOKEN=dev-o-token
-export AUTH_USERNAME="${AUTH0_TEST_USERNAME}"
-export AUTH_PASSWORD="${AUTH0_TEST_PASSWORD}"
-export AUTH0_CLIENT_ID="${AUTH0_CLIENT_ID}"
-export AUTH0_DOMAIN="${AUTH0_DOMAIN}"
+export AUTH_PROVIDER="${AUTH_PROVIDER:-dex}"
+
+if [[ "${AUTH_PROVIDER}" == "auth0" ]]; then
+  export AUTH_USERNAME="${AUTH0_TEST_USERNAME}"
+  export AUTH_PASSWORD="${AUTH0_TEST_PASSWORD}"
+  export AUTH0_CLIENT_ID="${AUTH0_CLIENT_ID}"
+  export AUTH0_DOMAIN="${AUTH0_DOMAIN}"
+  export AUTH_PROVIDER_CONFIG="  auth0:
+    enabled: true
+    clientID: ${AUTH0_CLIENT_ID}
+    domain: ${AUTH0_DOMAIN}"
+
+else
+  export AUTH_USERNAME="test-user@siderolabs.com"
+  export AUTH_PASSWORD="test-password-1234"
+  export DEX_ISSUER="http://127.0.0.1:5556/dex"
+  export DEX_OIDC_CLIENT_ID="omni"
+  export DEX_OIDC_CLIENT_SECRET="omni-oidc-secret"
+  export AUTH_PROVIDER_CONFIG="  oidc:
+    enabled: true
+    clientID: ${DEX_OIDC_CLIENT_ID}
+    clientSecret: ${DEX_OIDC_CLIENT_SECRET}
+    providerURL: ${DEX_ISSUER}
+    scopes:
+      - openid
+      - profile
+      - email
+    allowUnverifiedEmail: true"
+fi
+
 export OMNI_CONFIG="${TEST_OUTPUTS_DIR}/config.yaml"
 export MAX_USERS="${MAX_USERS:-0}"
 export MAX_SERVICE_ACCOUNTS="${MAX_SERVICE_ACCOUNTS:-0}"
@@ -168,6 +194,40 @@ function prepare_vault() {
 
 function vault_cleanup() {
   docker rm -f "${VAULT_CONTAINER_NAME}" || true
+}
+
+DEX_CONTAINER_NAME=dex-dev
+# Exported so it can be consumed by envsubst in the Helm suite's Dex manifest.
+export DEX_DOCKER_IMAGE=ghcr.io/dexidp/dex:v2.41.1
+function prepare_dex() {
+  # Start Dex, the local OIDC provider used for browser-based auth in the suites.
+  # It must be up before Omni starts, because Omni performs OIDC discovery against
+  # DEX_ISSUER at startup.
+  local dex_dir="${TEST_OUTPUTS_DIR}/dex"
+  mkdir -p "${dex_dir}"
+
+  # Restrict envsubst to our own variables so the bcrypt hash (which contains '$')
+  # in the config is left untouched.
+  envsubst '${DEX_ISSUER} ${DEX_OIDC_CLIENT_ID} ${DEX_OIDC_CLIENT_SECRET} ${BASE_URL} ${AUTH_USERNAME}' \
+    <hack/test/templates/dex-config.yaml >"${dex_dir}/config.yaml"
+
+  docker run --rm -d --network host \
+    -v "${dex_dir}/config.yaml:/etc/dex/config.yaml:ro" \
+    --name "${DEX_CONTAINER_NAME}" "${DEX_DOCKER_IMAGE}" \
+    dex serve /etc/dex/config.yaml
+
+  # Wait for the discovery endpoint to come up so Omni's startup discovery succeeds.
+  local i
+  for i in $(seq 1 30); do
+    if curl -sf "${DEX_ISSUER}/.well-known/openid-configuration" >/dev/null; then
+      break
+    fi
+    sleep 1
+  done
+}
+
+function dex_cleanup() {
+  docker rm -f "${DEX_CONTAINER_NAME}" || true
 }
 
 MINIO_CONTAINER_NAME=minio-dev

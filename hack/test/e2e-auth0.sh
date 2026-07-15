@@ -7,6 +7,9 @@
 
 set -eoux pipefail
 
+# Set before sourcing common.sh so it selects the auth0 branch at load time.
+export AUTH_PROVIDER=auth0
+
 # Load common functions and variables.
 source ./hack/test/common.sh
 
@@ -21,7 +24,6 @@ function cleanup() {
   common_cleanup
   vault_cleanup
   minio_cleanup
-  dex_cleanup
 }
 
 trap cleanup EXIT SIGINT
@@ -37,9 +39,6 @@ prepare_vault
 
 # Start MinIO server.
 prepare_minio access_key="access" secret_key="secret123"
-
-# Start Dex (local OIDC provider) before Omni, which discovers it at startup.
-prepare_dex
 
 export MAX_USERS=5
 export MAX_SERVICE_ACCOUNTS=5
@@ -69,7 +68,7 @@ docker run --rm \
   -e AUTH_PASSWORD="$AUTH_PASSWORD" \
   -e AUTH_USERNAME="$AUTH_USERNAME" \
   -e BASE_URL="$BASE_URL" \
-  -e PROJECT="talemu" \
+  -e PROJECT="auth0" \
   -v "${TEST_OUTPUTS_DIR}/e2e/playwright-report:/tmp/test/playwright-report" \
   --network=host \
   e2etest

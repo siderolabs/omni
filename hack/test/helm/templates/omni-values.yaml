@@ -34,8 +34,17 @@ config:
     email: test-user@siderolabs.com
   auth:
     auth0:
-      clientID: ${AUTH0_CLIENT_ID}
-      domain: ${AUTH0_DOMAIN}
+      enabled: false
+    oidc:
+      enabled: true
+      clientID: ${DEX_OIDC_CLIENT_ID}
+      clientSecret: ${DEX_OIDC_CLIENT_SECRET}
+      providerURL: ${DEX_HELM_ISSUER}
+      scopes:
+        - openid
+        - profile
+        - email
+      allowUnverifiedEmail: true
     initialServiceAccount:
       enabled: true
       role: Admin
@@ -43,7 +52,7 @@ config:
       name: automation
       lifetime: 720h
     initialUsers:
-      - ${AUTH0_TEST_USERNAME}
+      - ${AUTH_USERNAME}
   registries:
     mirrors: ${REGISTRY_MIRRORS_JSON}
   services:

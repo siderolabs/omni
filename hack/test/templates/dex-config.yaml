@@ -1,0 +1,19 @@
+issuer: ${DEX_ISSUER}
+storage:
+  type: memory
+web:
+  http: 0.0.0.0:5556
+oauth2:
+  skipApprovalScreen: true
+staticClients:
+  - id: ${DEX_OIDC_CLIENT_ID}
+    name: Omni
+    secret: ${DEX_OIDC_CLIENT_SECRET}
+    redirectURIs:
+      - ${BASE_URL}oidc/consume
+enablePasswordDB: true
+staticPasswords:
+  - email: "${AUTH_USERNAME}"
+    hash: "$2y$10$PXZ0H8l0iXX.RG0cM7aFjObwYtq2e0fVCjiz9O4t6P55AD8nOIaha"
+    username: "test-user"
+    userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"

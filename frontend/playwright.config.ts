@@ -49,6 +49,14 @@ export default defineConfig({
       dependencies: ['eula'],
     },
     {
+      name: 'auth0',
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+      testMatch: 'auth0/**/*.spec.ts',
+      dependencies: ['eula'],
+    },
+    {
       name: 'talemu',
       use: {
         ...devices['Desktop Chrome'],

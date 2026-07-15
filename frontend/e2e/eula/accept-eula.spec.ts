@@ -16,5 +16,6 @@ test('accept EULA', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Accept' }).click()
 
-  await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible()
+  // Arbitrarily chosen select to match both dex & auth0 logins
+  await expect(page.getByRole('textbox', { name: 'Password' })).toBeVisible()
 })

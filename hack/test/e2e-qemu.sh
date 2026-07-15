@@ -32,6 +32,7 @@ function cleanup() {
   common_cleanup
   vault_cleanup
   minio_cleanup
+  dex_cleanup
 }
 
 trap cleanup EXIT SIGINT
@@ -47,6 +48,9 @@ prepare_vault
 
 # Start MinIO server.
 prepare_minio access_key="access" secret_key="secret123"
+
+# Start Dex (local OIDC provider) before Omni, which discovers it at startup.
+prepare_dex
 
 # QEMU machines reach Omni via the stable WireGuard IP, so advertise the machine API there to keep  Omni-generated schematic IDs constant across runs.
 export MACHINE_API_IP="${WIREGUARD_IP}"

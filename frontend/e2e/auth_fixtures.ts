@@ -20,27 +20,18 @@ const test = base.extend<AuthFixtures>({
       if (!process.env.AUTH_USERNAME) throw new Error('username is not set')
       if (!process.env.AUTH_PASSWORD) throw new Error('password is not set')
 
-      // Sometimes auth0 page load is flaky
+      // Navigating to Omni redirects through the backend /login handler to the Dex
+      // (OIDC) login form. The page load can be flaky, so retry until the form shows.
       await expect(async () => {
         await page.goto('/')
-        await page.getByRole('heading', { name: 'Welcome' }).waitFor()
-      }, 'Navigate to auth0 login page').toPass()
+        await page.getByRole('heading', { name: 'Log in to Your Account' }).waitFor()
+      }, 'Navigate to Dex login page').toPass()
 
-      // Switch to login page, if we are sent to signup page (first user login gets signup)
-      if (await page.getByText('Already have an account?').isVisible()) {
-        await page.getByRole('link', { name: 'Log in' }).click()
-        await page.getByText("Don't have an account?").isVisible()
-      }
-
-      await page.getByRole('textbox', { name: 'Email address' }).fill(process.env.AUTH_USERNAME)
+      await page.getByRole('textbox', { name: 'email address' }).fill(process.env.AUTH_USERNAME)
       await page.getByRole('textbox', { name: 'Password' }).fill(process.env.AUTH_PASSWORD)
-      await page.getByRole('button', { name: 'Continue', exact: true }).click()
+      await page.getByRole('button', { name: 'Login' }).click()
 
       await page.getByRole('heading', { name: 'Home' }).waitFor()
-
-      if (await page.getByText('Cookies for a Better Experience').isVisible()) {
-        await page.getByRole('button', { name: 'Accept', exact: true }).click()
-      }
 
       await use()
     },

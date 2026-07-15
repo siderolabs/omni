@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex
+  namespace: ${OMNI_NAMESPACE}
+data:
+  config.yaml: |
+    issuer: ${DEX_HELM_ISSUER}
+    storage:
+      type: memory
+    web:
+      http: 0.0.0.0:5556
+    oauth2:
+      skipApprovalScreen: true
+    staticClients:
+      - id: ${DEX_OIDC_CLIENT_ID}
+        name: Omni
+        secret: ${DEX_OIDC_CLIENT_SECRET}
+        redirectURIs:
+          - ${DEX_HELM_REDIRECT_URI}
+    enablePasswordDB: true
+    staticPasswords:
+      - email: "${AUTH_USERNAME}"
+        hash: "$2y$10$PXZ0H8l0iXX.RG0cM7aFjObwYtq2e0fVCjiz9O4t6P55AD8nOIaha"
+        username: "test-user"
+        userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dex
+  namespace: ${OMNI_NAMESPACE}
+  labels:
+    app: dex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dex
+  template:
+    metadata:
+      labels:
+        app: dex
+    spec:
+      containers:
+        - name: dex
+          image: ${DEX_DOCKER_IMAGE}
+          args:
+            - dex
+            - serve
+            - /etc/dex/config.yaml
+          ports:
+            - name: http
+              containerPort: 5556
+          readinessProbe:
+            httpGet:
+              path: /dex/.well-known/openid-configuration
+              port: 5556
+            initialDelaySeconds: 2
+            periodSeconds: 2
+          volumeMounts:
+            - name: config
+              mountPath: /etc/dex
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: dex
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dex
+  namespace: ${OMNI_NAMESPACE}
+spec:
+  selector:
+    app: dex
+  ports:
+    - name: http
+      port: 5556
+      targetPort: 5556

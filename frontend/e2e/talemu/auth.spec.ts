@@ -12,10 +12,10 @@ test('Logout', async ({ page }) => {
   await page.getByRole('button', { name: 'user actions' }).click()
   await page.getByRole('menuitem', { name: 'Log Out' }).click()
 
-  await expect(page.getByText('Log in')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Log in to Your Account' })).toBeVisible()
 })
 
-test('Key expiration without existing auth session', async ({ page }) => {
+test('Key expiration', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
@@ -23,25 +23,12 @@ test('Key expiration without existing auth session', async ({ page }) => {
   await test.step('Invalidate keys', async () => {
     await page.localStorage.setItem('keyExpirationTime', new Date(0).toISOString())
 
-    // Clear auth0 cookies
+    // Clear session cookies
     await page.context().clearCookies()
     await page.goto('/')
   })
 
-  await expect(page.getByText('Log in')).toBeVisible()
-})
-
-test('Key expiration with existing auth session', async ({ page }) => {
-  await page.goto('/')
-
-  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
-
-  await test.step('Invalidate keys', async () => {
-    await page.localStorage.setItem('keyExpirationTime', new Date(0).toISOString())
-    await page.goto('/')
-  })
-
-  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Log in to Your Account' })).toBeVisible()
 })
 
 test('Escape invalid key state', async ({ page }) => {
@@ -54,5 +41,5 @@ test('Escape invalid key state', async ({ page }) => {
     await page.goto('/')
   })
 
-  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Log in to Your Account' })).toBeVisible()
 })
