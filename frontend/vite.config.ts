@@ -75,7 +75,7 @@ export default defineConfig(({ command }) => {
       `script-src 'self' 'nonce-${cspNonce}' https://*.userpilot.io https://*.posthog.com`,
       "media-src 'self' https://js.userpilot.io",
       'img-src * data:',
-      "connect-src 'self' https://factory.staging.talos.dev https://factory.talos.dev https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io https://*.posthog.com",
+      "connect-src 'self' https://factory.stage-pnap.managed.siderolabs.io/ https://factory.talos.dev https://*.auth0.com https://*.userpilot.io wss://*.userpilot.io https://*.posthog.com",
       "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://fonts.userpilot.io",
       "style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com",
       'frame-src https://www.youtube.com/embed/ https://*.auth0.com',
