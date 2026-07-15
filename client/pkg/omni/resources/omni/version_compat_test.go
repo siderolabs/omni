@@ -59,17 +59,18 @@ func TestMachineCompatibleWithCluster(t *testing.T) {
 			wantOK:  false,
 		},
 		{
-			name:    "not-installed same minor",
-			machine: mkMachine("1.13.4", false, false),
-			cluster: "1.13.4",
-			wantOK:  true,
+			name:        "not-installed same minor, both >= 1.13 (auto-install)",
+			machine:     mkMachine("1.13.4", false, false),
+			cluster:     "1.13.4",
+			wantOK:      true,
+			wantInstall: true,
 		},
 		{
 			name:        "not-installed 1.13 maintenance to 1.13.4 (auto-install)",
 			machine:     mkMachine("1.13.0", false, false),
 			cluster:     "1.13.4",
 			wantOK:      true,
-			wantInstall: false, // same minor → no auto-install needed, normal config path
+			wantInstall: true, // no system disk always installs explicitly, even within the same minor
 		},
 		{
 			name:        "not-installed 1.13 to higher 1.14 cluster (auto-install)",
@@ -83,6 +84,13 @@ func TestMachineCompatibleWithCluster(t *testing.T) {
 			machine: mkMachine("1.12.5", false, false),
 			cluster: "1.13.4",
 			wantOK:  false,
+		},
+		{
+			name:        "not-installed 1.12 same minor, below 1.13 (legacy config-apply)",
+			machine:     mkMachine("1.12.5", false, false),
+			cluster:     "1.12.6",
+			wantOK:      true,
+			wantInstall: false, // below 1.13 there is no explicit install mechanism, config-apply installs within the same minor
 		},
 		{
 			name:    "agent mode always ok",

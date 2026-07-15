@@ -76,32 +76,33 @@ func TestDecideOp(t *testing.T) {
 			want:                 lifecycle.OpMaintenanceInstall,
 		},
 		{
-			name:                 "not-installed 1.13 in maintenance, patch-only mismatch → config-apply install (None)",
+			name:                 "not-installed 1.13 in maintenance, patch-only mismatch → maintenance install",
 			machine:              mkMachineStatus("1.13.0", nil, false, true),
 			snapshot:             mkSnapshot(machineapi.MachineStatusEvent_MAINTENANCE),
 			image:                mkImage("1.13.4", ""),
 			talosVersionMismatch: true,
-			// same config contract (major.minor): the maintenance config apply installs the exact target version itself, no lifecycle install needed
-			want: lifecycle.OpNone,
+			// no system disk: always install explicitly via LifecycleService, even within the same major.minor
+			want: lifecycle.OpMaintenanceInstall,
 		},
 		{
-			name:     "not-installed 1.13 in maintenance at target version → config-apply install (None) despite stale mismatch flags",
+			name:     "not-installed 1.13 in maintenance at target version → maintenance install despite stale mismatch flags",
 			machine:  mkMachineStatus("1.13.4", nil, false, true),
 			snapshot: mkSnapshot(machineapi.MachineStatusEvent_MAINTENANCE),
 			image:    mkImage("1.13.4", ""),
-			// machineConfigStatus-based flags signal a mismatch on the first reconcile (empty status); the live machine state must win.
+			// machineConfigStatus-based flags signal a mismatch on the first reconcile (empty status); it doesn't matter
+			// here either way, since no system disk always means an explicit install regardless of version match.
 			schematicMismatch:    true,
 			talosVersionMismatch: true,
-			want:                 lifecycle.OpNone,
+			want:                 lifecycle.OpMaintenanceInstall,
 		},
 		{
-			name:                 "not-installed 1.13 in maintenance, schematic-only mismatch → config-apply install (None)",
+			name:                 "not-installed 1.13 in maintenance, schematic-only mismatch → maintenance install",
 			machine:              mkMachineStatus("1.13.4", &specs.MachineStatusSpec_Schematic{FullId: "boot-schematic"}, false, true),
 			snapshot:             mkSnapshot(machineapi.MachineStatusEvent_MAINTENANCE),
 			image:                mkImage("1.13.4", "target-schematic"),
 			schematicMismatch:    true,
 			talosVersionMismatch: true,
-			want:                 lifecycle.OpNone,
+			want:                 lifecycle.OpMaintenanceInstall,
 		},
 		{
 			name:                 "installed 1.13 in maintenance with patch-only mismatch → maintenance upgrade (exact compare)",

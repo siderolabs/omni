@@ -390,10 +390,10 @@ func (ctrl *StatusController) reconcileUpgrade(
 			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot before applying config: %s", rc.ID())
 		}
 
-		// LifecycleOpNone here doesn't always mean "confirmed at target": for a maintenance machine with no
-		// system disk yet, DecideLifecycleOp returns None to let the imminent config-apply perform the
-		// install itself, so the live version is still the pre-install one, not what will end up on disk.
-		// Only record it once the machine actually has Talos on disk.
+		// A machine with no system disk hasn't installed Talos yet: its live TalosVersion is still the
+		// boot media it's running from, not what will end up on disk once config-apply installs it, so
+		// only record the version once it actually has one. This can only happen for Talos < 1.13 on
+		// either end.
 		if omni.GetMachineStatusSystemDisk(rc.machineStatus) != "" {
 			// Record the version so the status reflects an already-at-target machine that ran no upgrade path.
 			rc.machineConfigStatus.TypedSpec().Value.TalosVersion = strings.TrimLeft(rc.machineStatus.TypedSpec().Value.TalosVersion, "v")

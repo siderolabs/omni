@@ -1421,14 +1421,14 @@ func TestMachineConfigStatusController(t *testing.T) {
 		)
 	})
 
-	// maintenanceFreshInstallDoesNotRecordPreInstallVersion verifies a fresh maintenance machine (no
-	// system disk) whose booted version shares the target's major.minor but differs in patch does not
-	// get its live pre-install version recorded as if it were confirmed installed. DecideLifecycleOp
-	// returns LifecycleOpNone here, trusting the imminent config-apply to install the exact target patch
-	// itself (see TestDecideLifecycleOp's "patch-only mismatch" case); recording the live version at this
-	// point would durably store the wrong patch and make TalosUpgradeStatusController think a real
-	// upgrade/downgrade is needed once the install actually completes.
-	t.Run("maintenanceFreshInstallDoesNotRecordPreInstallVersion", func(t *testing.T) {
+	// maintenanceSameMinorInstallUsesLifecycleService verifies a fresh maintenance machine (no system
+	// disk) whose booted version shares the target's major.minor but differs in patch still installs
+	// through an explicit LifecycleService.Install, not through config-apply: DecideLifecycleOp returns
+	// LifecycleOpMaintenanceInstall regardless of minor match (see TestDecideLifecycleOp's "patch-only
+	// mismatch" case). The pre-install live version must also not be recorded as the confirmed installed
+	// version until the install actually completes, or TalosUpgradeStatusController would think a real
+	// upgrade/downgrade is needed once it does.
+	t.Run("maintenanceSameMinorInstallUsesLifecycleService", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -1451,7 +1451,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 				)
 
 				_, machines := createCluster(
-					ctx, t, st, machineServices, "maint-fresh-install", 1, 0,
+					ctx, t, st, machineServices, "maint-same-minor-install", 1, 0,
 					withMachineStatusModifier(func(res *omni.MachineStatus) error {
 						res.TypedSpec().Value.Maintenance = true
 						res.TypedSpec().Value.TalosVersion = machineVersion
@@ -1471,20 +1471,20 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 				rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
 					res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_MAINTENANCE}
-					res.TypedSpec().Value.BootId = "boot-fresh-install"
+					res.TypedSpec().Value.BootId = "boot-same-minor-install"
 
 					return nil
 				}))
 
-				// Wait for config-apply to actually run, a real signal that reconcileUpgrade returned nil
-				// and let config-apply proceed, while checking that the live pre-install version was
-				// never recorded as the confirmed installed version.
+				// The install runs and the boot ID marker is recorded, a real signal that
+				// runMaintenanceLifecycle triggered LifecycleService.Install.
 				rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
-					a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256, "config must still be applied via the config-apply install path")
+					a.Equal("boot-same-minor-install", res.TypedSpec().Value.PreRebootBootId)
+					a.Empty(res.TypedSpec().Value.ClusterMachineConfigSha256, "config-apply must not run until after the install completes")
 					a.Empty(res.TypedSpec().Value.TalosVersion, "the pre-install live version must not be recorded as the confirmed installed version")
 				})
 
-				assert.Empty(t, machineServices.Get(id).GetLifecycleInstallRequests(), "no explicit lifecycle install is expected for a same-minor patch-only mismatch")
+				require.Len(t, machineServices.Get(id).GetLifecycleInstallRequests(), 1, "a same-minor no-disk install must go through an explicit lifecycle install")
 				assert.Empty(t, machineServices.Get(id).GetLifecycleUpgradeRequests())
 			},
 		)

@@ -41,16 +41,17 @@ func DecideOp(machineStatus *omni.MachineStatus, installImage *specs.MachineConf
 	// mismatch flags, so a stale status can't trigger a spurious first-reconcile upgrade.
 	if machineSupportsLifecycle && targetSupportsLifecycle {
 		if machineStatus.TypedSpec().Value.Maintenance {
-			switch {
-			case hasSystemDisk && (!machineVersion.EQ(targetVersion) || schematicDiffers(machineStatus, installImage)):
-				return OpMaintenanceUpgrade
-			case !hasSystemDisk && (machineVersion.Major != targetVersion.Major || machineVersion.Minor != targetVersion.Minor):
-				// Cross-minor without a disk: config-apply only installs within the same minor, so install explicitly.
-				return OpMaintenanceInstall
-			default:
-				// Already at target, or same-minor with no disk where config-apply installs it for us.
+			if hasSystemDisk {
+				if !machineVersion.EQ(targetVersion) || schematicDiffers(machineStatus, installImage) {
+					return OpMaintenanceUpgrade
+				}
+
 				return OpNone
 			}
+
+			// No Talos on disk: always install explicitly via LifecycleService.Install. ApplyConfig is used
+			// only to configure machines that already have Talos on disk, never to trigger an install.
+			return OpMaintenanceInstall
 		}
 
 		if hasSystemDisk {

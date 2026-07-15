@@ -65,14 +65,14 @@ func versionCompatibleWithCluster(machineVersion semver.Version, installed bool,
 		return true, false, ""
 	}
 
-	// Same major.minor: Omni applies config and Talos installs through the normal config path.
-	if machineVersion.Major == clusterVersion.Major && machineVersion.Minor == clusterVersion.Minor {
-		return true, false, ""
-	}
-
-	// Cross-minor and not-installed: Omni can support the install only if both sides are >= 1.13.
+	// Not-installed, both sides >= 1.13: Omni installs Talos explicitly via LifecycleService, regardless of minor match.
 	if talosVersionSupportsLifecycleService(machineVersion) && talosVersionSupportsLifecycleService(clusterVersion) {
 		return true, true, ""
+	}
+
+	// Below 1.13 there is no explicit install mechanism: config-apply can only install within the same minor.
+	if machineVersion.Major == clusterVersion.Major && machineVersion.Minor == clusterVersion.Minor {
+		return true, false, ""
 	}
 
 	return false, false, "the machine running from ISO or PXE must have the same major and minor version as the cluster " +

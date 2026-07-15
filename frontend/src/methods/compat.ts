@@ -76,15 +76,17 @@ export function machineCompatibleWithCluster(
     return okResult
   }
 
+  // Not-installed, both sides >= 1.13: Omni installs Talos explicitly via LifecycleService, regardless of minor match.
+  if (supportsMaintenanceInstall(machineVersion) && supportsMaintenanceInstall(clusterVersion)) {
+    return okWithInstall(clusterVersionStr.replace(/^v/, ''))
+  }
+
+  // Below 1.13 there is no explicit install mechanism: config-apply can only install within the same minor.
   if (
     machineVersion.major === clusterVersion.major &&
     machineVersion.minor === clusterVersion.minor
   ) {
     return okResult
-  }
-
-  if (supportsMaintenanceInstall(machineVersion) && supportsMaintenanceInstall(clusterVersion)) {
-    return okWithInstall(clusterVersionStr.replace(/^v/, ''))
   }
 
   return {
