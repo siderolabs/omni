@@ -939,6 +939,7 @@ export type MachineStatusMetricsSpec = {
   invalid_schematic_machines_count?: number
   approaching_talos_version_end_of_support_machines_count?: number
   talos_version_end_of_support_machines_count?: number
+  cores_count?: string
 }
 
 export type ClusterMetricsSpec = {

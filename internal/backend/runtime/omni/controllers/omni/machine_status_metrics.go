@@ -85,6 +85,7 @@ type MachineStatusMetricsController struct {
 	metricNumConnectedMachines                           prometheus.Gauge
 	metricNumInvalidSchematicMachines                    prometheus.Gauge
 	metricNumApproachingTalosVersionEndOfSupportMachines prometheus.Gauge
+	metricNumCores                                       prometheus.Gauge
 	metricNumTalosVersionEndOfSupportMachines            prometheus.Gauge
 	metricNumMachinesPerVersion                          *prometheus.Desc
 	metricMachinePlatforms                               *prometheus.GaugeVec
@@ -132,6 +133,11 @@ func (ctrl *MachineStatusMetricsController) initMetrics() {
 		ctrl.metricNumMachines = prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "omni_machines",
 			Help: "Number of machines in the instance.",
+		})
+
+		ctrl.metricNumCores = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "omni_machines_cores",
+			Help: "Number of CPU cores in the instance.",
 		})
 
 		ctrl.metricNumConnectedMachines = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -362,6 +368,8 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		approachingEndOfSupportMachines, endOfSupportTalosVersionMachines        int
 	)
 
+	var cores uint64
+
 	ctrl.versionsMu.Lock()
 	ctrl.versionsMap = map[nodeInfo]int32{}
 
@@ -406,6 +414,10 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 			platformMetrics[platform]++
 		}
 
+		for _, proc := range ms.TypedSpec().Value.GetHardware().GetProcessors() {
+			cores += uint64(proc.GetCoreCount())
+		}
+
 		securityState := ms.TypedSpec().Value.SecurityState
 		if securityState != nil {
 			secureBootStatusMetrics[strconv.FormatBool(securityState.SecureBoot)]++
@@ -436,6 +448,8 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		ctrl.metricMachineUKIStatus.WithLabelValues(key).Set(float64(num))
 	}
 
+	ctrl.metricNumCores.Set(float64(cores))
+
 	return &specs.MachineStatusMetricsSpec{
 		ConnectedMachinesCount:        uint32(connectedMachines),
 		RegisteredMachinesCount:       uint32(machines),
@@ -449,6 +463,7 @@ func (ctrl *MachineStatusMetricsController) gatherMetrics(statuses iter.Seq[*omn
 		InvalidSchematicMachinesCount: uint32(invalidSchematicMachines),
 		ApproachingTalosVersionEndOfSupportMachinesCount: uint32(approachingEndOfSupportMachines),
 		TalosVersionEndOfSupportMachinesCount:            uint32(endOfSupportTalosVersionMachines),
+		CoresCount:                                       cores,
 	}
 }
 

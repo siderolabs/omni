@@ -2474,6 +2474,7 @@ func (m *MachineStatusMetricsSpec) CloneVT() *MachineStatusMetricsSpec {
 	r.InvalidSchematicMachinesCount = m.InvalidSchematicMachinesCount
 	r.ApproachingTalosVersionEndOfSupportMachinesCount = m.ApproachingTalosVersionEndOfSupportMachinesCount
 	r.TalosVersionEndOfSupportMachinesCount = m.TalosVersionEndOfSupportMachinesCount
+	r.CoresCount = m.CoresCount
 	if rhs := m.Platforms; rhs != nil {
 		tmpContainer := make(map[string]uint32, len(rhs))
 		for k, v := range rhs {
@@ -6723,6 +6724,9 @@ func (this *MachineStatusMetricsSpec) EqualVT(that *MachineStatusMetricsSpec) bo
 		return false
 	}
 	if this.TalosVersionEndOfSupportMachinesCount != that.TalosVersionEndOfSupportMachinesCount {
+		return false
+	}
+	if this.CoresCount != that.CoresCount {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -14526,6 +14530,11 @@ func (m *MachineStatusMetricsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.CoresCount != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.CoresCount))
+		i--
+		dAtA[i] = 0x70
+	}
 	if m.TalosVersionEndOfSupportMachinesCount != 0 {
 		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.TalosVersionEndOfSupportMachinesCount))
 		i--
@@ -19361,6 +19370,9 @@ func (m *MachineStatusMetricsSpec) SizeVT() (n int) {
 	}
 	if m.TalosVersionEndOfSupportMachinesCount != 0 {
 		n += 1 + protohelpers.SizeOfVarint(uint64(m.TalosVersionEndOfSupportMachinesCount))
+	}
+	if m.CoresCount != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.CoresCount))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -37564,6 +37576,25 @@ func (m *MachineStatusMetricsSpec) UnmarshalVT(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.TalosVersionEndOfSupportMachinesCount |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CoresCount", wireType)
+			}
+			m.CoresCount = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CoresCount |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
