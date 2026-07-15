@@ -6763,6 +6763,7 @@ type MachineStatusMetricsSpec struct {
 	InvalidSchematicMachinesCount                    uint32                 `protobuf:"varint,11,opt,name=invalid_schematic_machines_count,json=invalidSchematicMachinesCount,proto3" json:"invalid_schematic_machines_count,omitempty"`
 	ApproachingTalosVersionEndOfSupportMachinesCount uint32                 `protobuf:"varint,12,opt,name=approaching_talos_version_end_of_support_machines_count,json=approachingTalosVersionEndOfSupportMachinesCount,proto3" json:"approaching_talos_version_end_of_support_machines_count,omitempty"`
 	TalosVersionEndOfSupportMachinesCount            uint32                 `protobuf:"varint,13,opt,name=talos_version_end_of_support_machines_count,json=talosVersionEndOfSupportMachinesCount,proto3" json:"talos_version_end_of_support_machines_count,omitempty"`
+	CoresCount                                       uint64                 `protobuf:"varint,14,opt,name=cores_count,json=coresCount,proto3" json:"cores_count,omitempty"`
 	unknownFields                                    protoimpl.UnknownFields
 	sizeCache                                        protoimpl.SizeCache
 }
@@ -6877,6 +6878,13 @@ func (x *MachineStatusMetricsSpec) GetApproachingTalosVersionEndOfSupportMachine
 func (x *MachineStatusMetricsSpec) GetTalosVersionEndOfSupportMachinesCount() uint32 {
 	if x != nil {
 		return x.TalosVersionEndOfSupportMachinesCount
+	}
+	return 0
+}
+
+func (x *MachineStatusMetricsSpec) GetCoresCount() uint64 {
+	if x != nil {
+		return x.CoresCount
 	}
 	return 0
 }
@@ -11907,7 +11915,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\tInstalled\x10\x00\x12\x0e\n" +
 	"\n" +
 	"Installing\x10\x01\x12\f\n" +
-	"\bRemoving\x10\x02\"\xdb\b\n" +
+	"\bRemoving\x10\x02\"\xfc\b\n" +
 	"\x18MachineStatusMetricsSpec\x12:\n" +
 	"\x19registered_machines_count\x18\x01 \x01(\rR\x17registeredMachinesCount\x128\n" +
 	"\x18connected_machines_count\x18\x02 \x01(\rR\x16connectedMachinesCount\x128\n" +
@@ -11922,7 +11930,9 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	" \x01(\bR\x18registrationLimitReached\x12G\n" +
 	" invalid_schematic_machines_count\x18\v \x01(\rR\x1dinvalidSchematicMachinesCount\x12q\n" +
 	"7approaching_talos_version_end_of_support_machines_count\x18\f \x01(\rR0approachingTalosVersionEndOfSupportMachinesCount\x12Z\n" +
-	"+talos_version_end_of_support_machines_count\x18\r \x01(\rR%talosVersionEndOfSupportMachinesCount\x1a<\n" +
+	"+talos_version_end_of_support_machines_count\x18\r \x01(\rR%talosVersionEndOfSupportMachinesCount\x12\x1f\n" +
+	"\vcores_count\x18\x0e \x01(\x04R\n" +
+	"coresCount\x1a<\n" +
 	"\x0ePlatformsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\rR\x05value:\x028\x01\x1aC\n" +

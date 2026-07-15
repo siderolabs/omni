@@ -1372,6 +1372,8 @@ message MachineStatusMetricsSpec {
   uint32 invalid_schematic_machines_count = 11;
   uint32 approaching_talos_version_end_of_support_machines_count = 12;
   uint32 talos_version_end_of_support_machines_count = 13;
+
+  uint64 cores_count = 14;
 }
 
 // ClusterMetricsSpec contains metrics about the clusters in the Omni instance.
