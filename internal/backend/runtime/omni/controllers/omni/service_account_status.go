@@ -34,7 +34,7 @@ const serviceAccountStatusControllerName = "ServiceAccountStatusController"
 
 // NewServiceAccountStatusController instantiates the ServiceAccountStatus controller.
 //
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop
 func NewServiceAccountStatusController() *ServiceAccountStatusController {
 	return qtransform.NewQController(
 		qtransform.Settings[*auth.Identity, *auth.ServiceAccountStatus]{
@@ -64,9 +64,11 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 				}
 
 				status.TypedSpec().Value.PublicKeys = nil
-				status.TypedSpec().Value.Expiration = nil
 
-				var expiration time.Time
+				var (
+					expiration    time.Time
+					hasRunningKey bool
+				)
 
 				for key := range publicKeyList.All() {
 					if key.Metadata().Phase() == resource.PhaseRunning {
@@ -82,6 +84,8 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 
 						continue
 					}
+
+					hasRunningKey = true
 
 					pgpKey := &specs.ServiceAccountStatusSpec_PgpPublicKey{
 						Id:         key.Metadata().ID(),
@@ -116,7 +120,10 @@ func NewServiceAccountStatusController() *ServiceAccountStatusController {
 				}
 
 				status.TypedSpec().Value.Role = user.TypedSpec().Value.Role
-				status.TypedSpec().Value.Expiration = timestamppb.New(expiration)
+
+				if hasRunningKey {
+					status.TypedSpec().Value.Expiration = timestamppb.New(expiration)
+				}
 
 				return nil
 			},

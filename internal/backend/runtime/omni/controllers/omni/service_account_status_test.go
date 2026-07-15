@@ -52,8 +52,11 @@ func (suite *ClusterServiceAccountStatusSuite) TestReconcile() {
 	user2 := auth.NewUser(infraProviderServiceAccount.TypedSpec().Value.UserId)
 	user2.TypedSpec().Value.Role = string(role.InfraProvider)
 
+	keyExpiration := time.Now().Add(time.Hour).Truncate(time.Second).UTC()
+
 	publicKey := auth.NewPublicKey("asdf")
 	publicKey.Metadata().Labels().Set(auth.LabelPublicKeyUserID, user1.Metadata().ID())
+	publicKey.TypedSpec().Value.Expiration = timestamppb.New(keyExpiration)
 	publicKey.TypedSpec().Value.Identity = &specs.Identity{
 		Email: serviceAccount.Metadata().ID(),
 	}
@@ -69,6 +72,10 @@ func (suite *ClusterServiceAccountStatusSuite) TestReconcile() {
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{serviceAccount.Metadata().ID()}, func(res *auth.ServiceAccountStatus, assert *assert.Assertions) {
 		assert.Equal(string(role.Admin), res.TypedSpec().Value.Role)
+
+		if assert.NotNil(res.TypedSpec().Value.Expiration) {
+			assert.Equal(keyExpiration, res.TypedSpec().Value.Expiration.AsTime())
+		}
 
 		if !assert.Len(res.TypedSpec().Value.PublicKeys, 1) {
 			return
@@ -106,6 +113,11 @@ func (suite *ClusterServiceAccountStatusSuite) TestReconcile() {
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{serviceAccount.Metadata().ID()}, func(res *auth.ServiceAccountStatus, assert *assert.Assertions) {
 		assert.Equal(string(role.Admin), res.TypedSpec().Value.Role)
 		assert.Len(res.TypedSpec().Value.PublicKeys, 0)
+
+		// once the last key is removed, the last-known expiration is retained rather than reset to the zero time.
+		if assert.NotNil(res.TypedSpec().Value.Expiration) {
+			assert.Equal(keyExpiration, res.TypedSpec().Value.Expiration.AsTime())
+		}
 	})
 
 	require.NoError(suite.state.Create(suite.ctx, publicKey))
