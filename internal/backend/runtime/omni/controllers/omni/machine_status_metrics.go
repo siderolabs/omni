@@ -485,6 +485,7 @@ func (ctrl *MachineStatusMetricsController) Collect(ch chan<- prometheus.Metric)
 	ctrl.versionsMu.Unlock()
 
 	ctrl.metricNumMachines.Collect(ch)
+	ctrl.metricNumCores.Collect(ch)
 	ctrl.metricNumConnectedMachines.Collect(ch)
 	ctrl.metricNumInvalidSchematicMachines.Collect(ch)
 	ctrl.metricNumApproachingTalosVersionEndOfSupportMachines.Collect(ch)

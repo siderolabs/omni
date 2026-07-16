@@ -13,6 +13,9 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -187,6 +190,27 @@ func TestMachineStatusMetricsController_UnsupportedTalosVersion(t *testing.T) {
 			)
 		})
 	}
+}
+
+func TestMachineStatusMetricsController_CollectMetrics(t *testing.T) {
+	t.Parallel()
+
+	registry := prometheus.NewPedanticRegistry()
+	require.NoError(t, registry.Register(omnictrl.NewMachineStatusMetricsController(0)))
+
+	families, err := registry.Gather()
+	require.NoError(t, err)
+
+	names := xslices.Map(families, func(family *dto.MetricFamily) string { return family.GetName() })
+
+	assert.ElementsMatch(t, []string{
+		"omni_machines",
+		"omni_machines_cores",
+		"omni_connected_machines",
+		"omni_machines_invalid_schematic",
+		"omni_machines_approaching_talos_version_end_of_support",
+		"omni_machines_talos_version_end_of_support",
+	}, names)
 }
 
 func TestMachineStatusMetricsController_UnsupportedTalosVersionTeardown(t *testing.T) {
