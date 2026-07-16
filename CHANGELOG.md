@@ -1,3 +1,30 @@
+## [Omni 1.9.3](https://github.com/siderolabs/omni/releases/tag/v1.9.3) (2026-07-16)
+
+Welcome to the v1.9.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`2039e64c`](https://github.com/siderolabs/omni/commit/2039e64c2807180e106a7048d1d1e1cedf3e6d09) fix: expose the machines cores and virtual state watches metrics
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.9.2](https://github.com/siderolabs/omni/releases/tag/v1.9.2)
+
 ## [Omni 1.9.2](https://github.com/siderolabs/omni/releases/tag/v1.9.2) (2026-07-16)
 
 Welcome to the v1.9.2 release of Omni!
