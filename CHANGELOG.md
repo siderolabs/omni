@@ -1,3 +1,40 @@
+## [Omni 1.9.2](https://github.com/siderolabs/omni/releases/tag/v1.9.2) (2026-07-16)
+
+Welcome to the v1.9.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Utku Ozdemir
+* Artem Chernyshev
+* Edward Sammut Alessi
+* Oguz Kilcan
+
+### Changes
+<details><summary>8 commits</summary>
+<p>
+
+* [`cb70055a`](https://github.com/siderolabs/omni/commit/cb70055a5562cc6be1662609488977c19ba76591) chore: fix linter errors
+* [`5e12de4e`](https://github.com/siderolabs/omni/commit/5e12de4eba0e1007afcc452e8c1e5b0f0f73bb7b) fix: update kube-service-exposer to v0.4.0
+* [`6a09a6b6`](https://github.com/siderolabs/omni/commit/6a09a6b605f9d4eaf706d670b4d55e1aa4cf2fd9) feat: introduce the new metric that counts total number of cores
+* [`147eea3d`](https://github.com/siderolabs/omni/commit/147eea3d170ef3ba377a16306b39316a32ed7de2) fix: dont clear sa expiration when no keys are left
+* [`4833f75b`](https://github.com/siderolabs/omni/commit/4833f75b5a5e724e2f71c157c6b6c6e06d8ad7d7) fix: honor current machine set update limits
+* [`bd0aee31`](https://github.com/siderolabs/omni/commit/bd0aee318f9d8f0fddd849aa35688cbdf88ef209) fix: properly propagate errors coming from the machine lifecycle API
+* [`8262b3d1`](https://github.com/siderolabs/omni/commit/8262b3d1b050a1edd43e01280f2b7fc215774c92) fix: don't treat unset S3 endpoint as an empty override
+* [`9c15aae2`](https://github.com/siderolabs/omni/commit/9c15aae2434b7326ba5f07199d832413c70fcaca) fix(frontend): remove power icon from machines page
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.9.1](https://github.com/siderolabs/omni/releases/tag/v1.9.1)
+
 ## [Omni 1.9.1](https://github.com/siderolabs/omni/releases/tag/v1.9.1) (2026-07-02)
 
 Welcome to the v1.9.1 release of Omni!
