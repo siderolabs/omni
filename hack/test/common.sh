@@ -190,9 +190,25 @@ function prepare_minio() {
     --name "${MINIO_CONTAINER_NAME}" "${MINIO_DOCKER_IMAGE}" \
     server /data
 
-  sleep 2
+  # Wait for MinIO to accept connections before configuring it. A fixed sleep races
+  # startup and intermittently fails the first request with "connection reset by peer",
+  # so retry the alias set until it succeeds.
+  local i
+  for i in $(seq 1 30); do
+    if "${ARTIFACTS}/mc" alias set myminio http://127.0.0.1:9000 "$access_key" "$secret_key" >/dev/null 2>&1; then
+      break
+    fi
 
-  "${ARTIFACTS}/mc" alias set myminio http://127.0.0.1:9000 "$access_key" "$secret_key"
+    if [[ "$i" -eq 30 ]]; then
+      echo "Error: MinIO did not become ready in time" >&2
+      # Run once more without silencing output so the actual error is surfaced.
+      "${ARTIFACTS}/mc" alias set myminio http://127.0.0.1:9000 "$access_key" "$secret_key"
+      return 1
+    fi
+
+    sleep 1
+  done
+
   "${ARTIFACTS}/mc" mb myminio/mybucket || true
 }
 
