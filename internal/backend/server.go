@@ -282,7 +282,7 @@ func (s *Server) Run(ctx context.Context) error {
 		newSubsystem("internal gRPC server", func() error { return apiSrv.Run(ctx) }),
 		newSubsystem("metrics server", func() error { return s.runMetricsServer(ctx) }),
 		newSubsystem("k8s proxy server", func() error { return s.runK8sProxyServer(ctx, oidcStorage) }),
-		newSubsystem("frontend dev proxy server", func() error { return s.runDevProxyServer(ctx, apiSrv.Handler()) }),
+		newSubsystem("frontend dev proxy server", func() error { return s.runDevProxyServer(ctx, apiSrv.Handler(), mux) }),
 		newSubsystem("log handler", func() error { return s.logHandler.Start(ctx) }),
 		newSubsystem("machine API", func() error { return s.runMachineAPI(ctx) }),
 		newSubsystem("SQLite metrics", func() error { return s.state.RunSQLiteMetrics(ctx) }),
@@ -996,13 +996,13 @@ func getOmnictlDownloads(dir string) (http.Handler, error) {
 	return http.FileServer(http.Dir(dir)), nil
 }
 
-func (s *Server) runDevProxyServer(ctx context.Context, next http.Handler) error {
+func (s *Server) runDevProxyServer(ctx context.Context, next http.Handler, router *http.ServeMux) error {
 	handler, err := services.NewFrontendHandler(s.devServerProxy, s.logger)
 	if err != nil {
 		return fmt.Errorf("failed to set up frontend handler: %w", err)
 	}
 
-	return services.NewProxy(s.devServerProxy, handler).Run(ctx, next, s.logger)
+	return services.NewProxy(s.devServerProxy, handler, router).Run(ctx, next, s.logger)
 }
 
 func (s *Server) runMetricsServer(ctx context.Context) error {

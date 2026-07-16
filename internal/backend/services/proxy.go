@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -27,7 +26,10 @@ type Proxy interface {
 }
 
 // NewProxy creates a new proxy server. If the destination is empty, the proxy server will be a no-op.
-func NewProxy(config config.DevServerProxyService, handler http.Handler) Proxy {
+//
+// router is the backend's real request mux. It is consulted (never served) to decide which requests
+// are frontend requests, so the dev server routes identically to the non-dev server.
+func NewProxy(config config.DevServerProxyService, handler http.Handler, router *http.ServeMux) Proxy {
 	switch {
 	case config.GetEndpoint() == "":
 		return &nopProxy{reason: "bind address is empty"}
@@ -37,36 +39,33 @@ func NewProxy(config config.DevServerProxyService, handler http.Handler) Proxy {
 		return &httpProxy{
 			config:  config,
 			proxyTo: handler,
+			router:  router,
 		}
 	}
 }
 
 type httpProxy struct {
 	proxyTo http.Handler
+	router  *http.ServeMux
 	config  config.DevServerProxyService
-}
-
-func hasPrefix(s string, prefixes ...string) bool {
-	for _, prefix := range prefixes {
-		if strings.HasPrefix(s, prefix) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (prx *httpProxy) Run(ctx context.Context, next http.Handler, logger *zap.Logger) error {
 	srv := NewFromConfig(
 		&prx.config,
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if hasPrefix(r.URL.Path, "/api/") {
-				next.ServeHTTP(w, r)
+			_, pattern := prx.router.Handler(r)
+			isCatchAllRoute := pattern == "/"
+
+			// Catch-all matches are frontend requests; send them to the dev server.
+			// Everything else routes to the backend exactly like the non-dev server.
+			if isCatchAllRoute {
+				prx.proxyTo.ServeHTTP(w, r)
 
 				return
 			}
 
-			prx.proxyTo.ServeHTTP(w, r)
+			next.ServeHTTP(w, r)
 		}),
 	)
 
