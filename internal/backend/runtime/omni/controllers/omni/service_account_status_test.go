@@ -72,6 +72,7 @@ func (suite *ClusterServiceAccountStatusSuite) TestReconcile() {
 
 	rtestutils.AssertResources(ctx, suite.T(), suite.state, []string{serviceAccount.Metadata().ID()}, func(res *auth.ServiceAccountStatus, assert *assert.Assertions) {
 		assert.Equal(string(role.Admin), res.TypedSpec().Value.Role)
+
 		if assert.NotNil(res.TypedSpec().Value.Expiration) {
 			assert.Equal(keyExpiration, res.TypedSpec().Value.Expiration.AsTime())
 		}
