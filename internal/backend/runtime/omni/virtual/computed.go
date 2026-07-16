@@ -43,11 +43,7 @@ func NewComputed(resourceType string, factory ProducerFactory, resolveID Produce
 	state := state.WrapCore(namespaced.NewState(inmem.Build))
 	scheduler := NewDedupScheduler(resourceType, state, factory, cleanupInterval, logger)
 
-	if registerMetrics {
-		prometheus.DefaultRegisterer.MustRegister(scheduler)
-	}
-
-	return &Computed{
+	computed := &Computed{
 		state:          state,
 		watchScheduler: scheduler,
 		resolveID:      resolveID,
@@ -60,6 +56,12 @@ func NewComputed(resourceType string, factory ProducerFactory, resolveID Produce
 		}),
 		logger: logger,
 	}
+
+	if registerMetrics {
+		prometheus.DefaultRegisterer.MustRegister(scheduler, computed)
+	}
+
+	return computed
 }
 
 // Run starts underlying watch scheduler.

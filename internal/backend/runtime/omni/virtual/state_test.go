@@ -18,7 +18,10 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/siderolabs/gen/channel"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/require"
 	"github.com/stripe/stripe-go/v85"
 	"go.uber.org/zap"
@@ -146,6 +149,15 @@ func TestComputed(t *testing.T) {
 
 	err = st.Watch(ctx, virtualres.NewCurrentUser().Metadata(), events)
 	require.NoError(err)
+
+	registry := prometheus.NewPedanticRegistry()
+	require.NoError(registry.Register(st))
+
+	families, err := registry.Gather()
+	require.NoError(err)
+
+	names := xslices.Map(families, func(family *dto.MetricFamily) string { return family.GetName() })
+	require.Equal([]string{"omni_virtual_state_watches"}, names)
 
 	updated := 0
 	created := 0
