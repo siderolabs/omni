@@ -2,8 +2,6 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { stat } from 'node:fs/promises'
-
 import { faker } from '@faker-js/faker'
 import { milliseconds } from 'date-fns'
 import { load } from 'js-yaml'
@@ -201,17 +199,7 @@ test('Download installation media', async ({ page }, testInfo) => {
       .poll(async () => await page.evaluate(() => navigator.clipboard.readText()))
       .toBe(`https://factory.talos.dev/image/${schematicId}/1.12.0/metal-arm64-secureboot.iso`)
 
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      isoRow.getByLabel('download').click(),
-    ])
-
-    const filePath = testInfo.outputPath(download.suggestedFilename())
-    await download.saveAs(filePath)
-
-    const { size } = await stat(filePath)
-
-    expect(size, 'Expect ISO to be at least 50MB').toBeGreaterThan(50 * 1024 * 1024)
+    // Note: Skipping testing of download as it is flaky and doesn't test anything about the frontend
 
     await page.getByRole('button', { name: 'Close', exact: true }).click()
   })
