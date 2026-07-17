@@ -55,11 +55,11 @@ func (input *Input) initVersions(nodeName, detectedTalosVersion, detectedKuberne
 		KubernetesVersion: kubernetesVersion.String(),
 	}
 
-	if versions.InitialTalosVersion, err = input.determineInitialVersion(talosVersion, versions.InitialTalosVersion, "talos", nodeName); err != nil {
+	if versions.InitialTalosVersion, err = input.determineInitialVersion(talosVersion, input.Versions.InitialTalosVersion, "talos", nodeName); err != nil {
 		return Versions{}, err
 	}
 
-	if versions.InitialKubernetesVersion, err = input.determineInitialVersion(kubernetesVersion, versions.InitialKubernetesVersion, "kubernetes", nodeName); err != nil {
+	if versions.InitialKubernetesVersion, err = input.determineInitialVersion(kubernetesVersion, input.Versions.InitialKubernetesVersion, "kubernetes", nodeName); err != nil {
 		return Versions{}, err
 	}
 
