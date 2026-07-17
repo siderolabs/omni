@@ -39,7 +39,7 @@ services:
     maxPort: 20000
     dialTimeout: 30s
   devServerProxy:
-    endpoint: 0.0.0.0:8120
+    proxyTo: http://127.0.0.1:8121
   workloadProxy:
     enabled: true
     subdomain: "proxy-us"

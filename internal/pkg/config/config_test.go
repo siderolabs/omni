@@ -331,7 +331,7 @@ func TestServiceURL(t *testing.T) {
 	t.Run("explicit advertised url", func(t *testing.T) {
 		t.Parallel()
 
-		conf := &config.DevServerProxyService{
+		conf := &config.Service{
 			Endpoint:      new("1.1.1.1:1111"),
 			AdvertisedURL: new("https://2.2.2.2:2222"),
 		}

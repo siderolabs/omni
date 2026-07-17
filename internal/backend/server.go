@@ -123,7 +123,6 @@ type Server struct {
 	oidcProvider            *coidc.Provider
 	apiService              config.Service
 	metricsService          config.Service
-	devServerProxy          config.DevServerProxyService
 	k8sProxyService         config.KubernetesProxyService
 	pprofBindAddress        string
 	workloadProxyKey        []byte
@@ -163,7 +162,6 @@ func NewServer(
 		linkCounterDeltaCh:      linkCounterDeltaCh,
 		siderolinkEventsCh:      siderolinkEventsCh,
 		installEventCh:          installEventCh,
-		devServerProxy:          cfg.Services.DevServerProxy,
 		apiService:              cfg.Services.Api,
 		metricsService:          cfg.Services.Metrics,
 		pprofBindAddress:        cfg.Debug.Pprof.GetEndpoint(),
@@ -282,7 +280,6 @@ func (s *Server) Run(ctx context.Context) error {
 		newSubsystem("internal gRPC server", func() error { return apiSrv.Run(ctx) }),
 		newSubsystem("metrics server", func() error { return s.runMetricsServer(ctx) }),
 		newSubsystem("k8s proxy server", func() error { return s.runK8sProxyServer(ctx, oidcStorage) }),
-		newSubsystem("frontend dev proxy server", func() error { return s.runDevProxyServer(ctx, apiSrv.Handler(), mux) }),
 		newSubsystem("log handler", func() error { return s.logHandler.Start(ctx) }),
 		newSubsystem("machine API", func() error { return s.runMachineAPI(ctx) }),
 		newSubsystem("SQLite metrics", func() error { return s.state.RunSQLiteMetrics(ctx) }),
@@ -870,14 +867,25 @@ func makeMux(
 		))
 	}
 
-	muxHandle(
-		"/",
-		compress.Handler(
-			frontend.NewStaticHandler(7200, cfg.Registries.GetImageFactoryBaseURL()),
-			gzip.BestCompression,
-		),
-		"static",
+	frontendHandler := compress.Handler(
+		frontend.NewStaticHandler(7200, cfg.Registries.GetImageFactoryBaseURL()),
+		gzip.BestCompression,
 	)
+
+	// Development: when a frontend dev server is configured, serve it through
+	// the main listener instead of the embedded frontend. The UI is then
+	// developed on the same origin the API and auth flows use, so login and
+	// browser storage behave exactly as in production, with hot reload.
+	if cfg.Services.DevServerProxy.GetProxyTo() != "" {
+		devServerProxyHandler, err := services.NewFrontendHandler(cfg.Services.DevServerProxy, logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create the frontend dev server handler: %w", err)
+		}
+
+		frontendHandler = devServerProxyHandler
+	}
+
+	muxHandle("/", frontendHandler, "static")
 
 	if err := registerAuthHandlers(
 		mux,
@@ -994,15 +1002,6 @@ func getOmnictlDownloads(dir string) (http.Handler, error) {
 	}
 
 	return http.FileServer(http.Dir(dir)), nil
-}
-
-func (s *Server) runDevProxyServer(ctx context.Context, next http.Handler, router *http.ServeMux) error {
-	handler, err := services.NewFrontendHandler(s.devServerProxy, s.logger)
-	if err != nil {
-		return fmt.Errorf("failed to set up frontend handler: %w", err)
-	}
-
-	return services.NewProxy(s.devServerProxy, handler, router).Run(ctx, next, s.logger)
 }
 
 func (s *Server) runMetricsServer(ctx context.Context) error {

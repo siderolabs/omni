@@ -273,12 +273,6 @@ func (p *Params) PopulateFallbacks() {
 		p.Services.KubernetesProxy.SetKeyFile(p.Services.Api.GetKeyFile())
 	}
 
-	// copy the keys from the main API server if dev server proxy doesn't have certs defined explicitly.
-	if !p.Services.DevServerProxy.IsSecure() {
-		p.Services.DevServerProxy.SetCertFile(p.Services.Api.GetCertFile())
-		p.Services.DevServerProxy.SetKeyFile(p.Services.Api.GetKeyFile())
-	}
-
 	if p.Auth.Auth0.InitialUsers != nil && p.Auth.InitialUsers == nil {
 		p.Auth.InitialUsers = p.Auth.Auth0.InitialUsers
 	}

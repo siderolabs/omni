@@ -123,15 +123,3 @@ func (m MachineAPI) URL() string {
 
 	return url
 }
-
-func (s *DevServerProxyService) URL() string {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).url(nil)
-}
-
-func (s *DevServerProxyService) GetBindEndpoint() string {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).getBindEndpoint()
-}
-
-func (s *DevServerProxyService) IsSecure() bool {
-	return wrapService(s.Endpoint, s.AdvertisedURL, s.CertFile, s.KeyFile).isSecure()
-}

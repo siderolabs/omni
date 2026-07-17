@@ -217,7 +217,6 @@ func defineServiceFlags(b *FlagBinder, flagConfig *config.Params) {
 
 	// DevServerProxy
 	b.StringVar("services.devServerProxy.proxyTo", &flagConfig.Services.DevServerProxy.ProxyTo)
-	b.StringVar("services.devServerProxy.endpoint", &flagConfig.Services.DevServerProxy.Endpoint)
 }
 
 func defineAuthFlags(rootCmd *cobra.Command, b *FlagBinder, flagConfig *config.Params) {

@@ -129,9 +129,7 @@ By default, Omni serves the frontend and API on `*:443`, so you can open the Omn
 
 You should see your Talos VMs registered in the `Machines` tab, and a cluster can be created in the `Clusters` tab.
 
-Node.js development server can be used to get immediate feedback on frontend changes: `https://my.host:8120/`.
-When making frontend changes, `https://my.host/` will only update after stopping docker-compose environment with `^C` and running `make docker-compose-up WITH_DEBUG=true` again.
-At the same time `https://my.host:8120/` will update immediately.
+When the Node.js development server is configured with `--frontend-dst`, `https://my.host/` serves it instead of the embedded frontend, so frontend changes show up immediately on the same URL the API and login flows use.
 
 ## Delve Debugger
 

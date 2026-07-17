@@ -114,26 +114,11 @@ type DebugServer struct {
 	Endpoint *string `json:"endpoint,omitempty,omitzero" yaml:"endpoint,omitempty"`
 }
 
-// DevServerProxyService contains development server proxy service configuration.
+// DevServerProxyService contains frontend development server configuration.
 type DevServerProxyService struct {
-	// AdvertisedURL is the URL that the dev server proxy service advertises to
-	// clients. It is in the form "http(s)://host:port". When not set, it is generated
-	// by the system based on the endpoint and TLS cert/key configuration.
-	AdvertisedURL *string `json:"advertisedURL,omitempty,omitzero" yaml:"advertisedURL,omitempty"`
-
-	// CertFile is the path to the TLS certificate file for the dev server proxy
-	// service.
-	CertFile *string `json:"certFile,omitempty,omitzero" yaml:"certFile,omitempty"`
-
-	// Endpoint is the network endpoint the dev server proxy service listens on. It is
-	// in the form "host:port".
-	Endpoint *string `json:"endpoint,omitempty,omitzero" yaml:"endpoint,omitempty"`
-
-	// KeyFile is the path to the TLS key file for the dev server proxy service.
-	KeyFile *string `json:"keyFile,omitempty,omitzero" yaml:"keyFile,omitempty"`
-
-	// ProxyTo is the address to which the dev server proxy service forwards incoming
-	// requests. It is in the form "http(s)://host:port".
+	// ProxyTo is the address of the frontend development server. When set, the main
+	// endpoint serves it instead of the embedded frontend. It is in the form
+	// "http(s)://host:port". Development use only.
 	ProxyTo *string `json:"proxyTo,omitempty,omitzero" yaml:"proxyTo,omitempty"`
 }
 

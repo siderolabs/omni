@@ -6,7 +6,6 @@
 package services
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -19,72 +18,6 @@ import (
 
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
-
-// Proxy is a proxy server.
-type Proxy interface {
-	Run(ctx context.Context, next http.Handler, logger *zap.Logger) error
-}
-
-// NewProxy creates a new proxy server. If the destination is empty, the proxy server will be a no-op.
-//
-// router is the backend's real request mux. It is consulted (never served) to decide which requests
-// are frontend requests, so the dev server routes identically to the non-dev server.
-func NewProxy(config config.DevServerProxyService, handler http.Handler, router *http.ServeMux) Proxy {
-	switch {
-	case config.GetEndpoint() == "":
-		return &nopProxy{reason: "bind address is empty"}
-	case config.GetProxyTo() == "":
-		return &nopProxy{reason: "proxy destination is empty"}
-	default:
-		return &httpProxy{
-			config:  config,
-			proxyTo: handler,
-			router:  router,
-		}
-	}
-}
-
-type httpProxy struct {
-	proxyTo http.Handler
-	router  *http.ServeMux
-	config  config.DevServerProxyService
-}
-
-func (prx *httpProxy) Run(ctx context.Context, next http.Handler, logger *zap.Logger) error {
-	srv := NewFromConfig(
-		&prx.config,
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_, pattern := prx.router.Handler(r)
-			isCatchAllRoute := pattern == "/"
-
-			// Catch-all matches are frontend requests; send them to the dev server.
-			// Everything else routes to the backend exactly like the non-dev server.
-			if isCatchAllRoute {
-				prx.proxyTo.ServeHTTP(w, r)
-
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		}),
-	)
-
-	logger = logger.With(zap.String("server", prx.config.GetEndpoint()), zap.String("server_type", "proxy_server"))
-
-	return srv.Run(ctx, logger)
-}
-
-type nopProxy struct {
-	reason string
-}
-
-func (n *nopProxy) Run(ctx context.Context, _ http.Handler, logger *zap.Logger) error {
-	logger.Info("proxy server disabled", zap.String("reason", n.reason))
-
-	<-ctx.Done()
-
-	return nil
-}
 
 // NewFrontendHandler creates a new frontend handler from the given dst address. If dst is empty, the handler will be a no-op.
 func NewFrontendHandler(config config.DevServerProxyService, logger *zap.Logger) (http.Handler, error) {

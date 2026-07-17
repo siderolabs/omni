@@ -149,50 +149,6 @@ func (s *DebugServer) SetEndpoint(v string) {
 	s.Endpoint = &v
 }
 
-func (s *DevServerProxyService) GetAdvertisedURL() string {
-	if s == nil || s.AdvertisedURL == nil {
-		return *new(string)
-	}
-	return *s.AdvertisedURL
-}
-
-func (s *DevServerProxyService) SetAdvertisedURL(v string) {
-	s.AdvertisedURL = &v
-}
-
-func (s *DevServerProxyService) GetCertFile() string {
-	if s == nil || s.CertFile == nil {
-		return *new(string)
-	}
-	return *s.CertFile
-}
-
-func (s *DevServerProxyService) SetCertFile(v string) {
-	s.CertFile = &v
-}
-
-func (s *DevServerProxyService) GetEndpoint() string {
-	if s == nil || s.Endpoint == nil {
-		return *new(string)
-	}
-	return *s.Endpoint
-}
-
-func (s *DevServerProxyService) SetEndpoint(v string) {
-	s.Endpoint = &v
-}
-
-func (s *DevServerProxyService) GetKeyFile() string {
-	if s == nil || s.KeyFile == nil {
-		return *new(string)
-	}
-	return *s.KeyFile
-}
-
-func (s *DevServerProxyService) SetKeyFile(v string) {
-	s.KeyFile = &v
-}
-
 func (s *DevServerProxyService) GetProxyTo() string {
 	if s == nil || s.ProxyTo == nil {
 		return *new(string)
