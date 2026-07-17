@@ -17,6 +17,7 @@ import (
 	"github.com/siderolabs/gen/optional"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 )
 
@@ -115,7 +116,7 @@ func setLabelOptional(labels *resource.Labels, key string, valueFunc func() opti
 
 // ReconcileMachineStatusLabels builds a set of labels based on hardware/meta information.
 //
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop
 func ReconcileMachineStatusLabels(machineStatus *MachineStatus) {
 	labels := machineStatus.Metadata().Labels()
 
@@ -223,6 +224,27 @@ func ReconcileMachineStatusLabels(machineStatus *MachineStatus) {
 
 	setLabel(labels, MachineStatusLabelTalosVersion, func() string {
 		return machineStatus.TypedSpec().Value.TalosVersion
+	})
+
+	setLabelOptional(labels, MachineStatusLabelEnterprise, func() optional.Optional[string] {
+		if machineStatus.TypedSpec().Value.TalosVersionName == constants.TalosEnterpriseVersionName {
+			return optional.Some("")
+		}
+
+		return optional.None[string]()
+	})
+
+	setLabelOptional(labels, MachineStatusLabelFIPS, func() optional.Optional[string] {
+		switch machineStatus.TypedSpec().Value.GetSecurityState().GetFipsState() {
+		case specs.SecurityState_FIPS_STATE_ENABLED:
+			return optional.Some("enabled")
+		case specs.SecurityState_FIPS_STATE_STRICT:
+			return optional.Some("strict")
+		case specs.SecurityState_FIPS_STATE_DISABLED:
+			fallthrough
+		default:
+			return optional.None[string]()
+		}
 	})
 
 	setLabelOptional(labels, MachineStatusLabelInstalled, func() optional.Optional[string] {

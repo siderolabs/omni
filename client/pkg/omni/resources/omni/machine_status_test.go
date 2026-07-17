@@ -125,6 +125,39 @@ func TestReconcileMachineStatusLabels(t *testing.T) {
 				omni.MachineStatusLabelNet:   "1Gbps",
 			},
 		},
+		{
+			name: "enterprise with fips",
+			spec: &specs.MachineStatusSpec{
+				TalosVersionName: "Talos Enterprise",
+				SecurityState: &specs.SecurityState{
+					FipsState: specs.SecurityState_FIPS_STATE_ENABLED,
+				},
+			},
+			want: map[string]string{
+				omni.MachineStatusLabelEnterprise: "",
+				omni.MachineStatusLabelFIPS:       "enabled",
+			},
+		},
+		{
+			name: "enterprise with strict fips",
+			spec: &specs.MachineStatusSpec{
+				TalosVersionName: "Talos Enterprise",
+				SecurityState: &specs.SecurityState{
+					FipsState: specs.SecurityState_FIPS_STATE_STRICT,
+				},
+			},
+			want: map[string]string{
+				omni.MachineStatusLabelEnterprise: "",
+				omni.MachineStatusLabelFIPS:       "strict",
+			},
+		},
+		{
+			name: "non-enterprise",
+			spec: &specs.MachineStatusSpec{
+				TalosVersionName: "Talos",
+				SecurityState:    &specs.SecurityState{},
+			},
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -138,6 +171,34 @@ func TestReconcileMachineStatusLabels(t *testing.T) {
 			assert.Equal(t, test.want, ms.Metadata().Labels().Raw())
 		})
 	}
+}
+
+func TestReconcileMachineStatusLabelsClearing(t *testing.T) {
+	t.Parallel()
+
+	ms := omni.NewMachineStatus("")
+	ms.TypedSpec().Value = &specs.MachineStatusSpec{
+		TalosVersionName: "Talos Enterprise",
+		SecurityState: &specs.SecurityState{
+			FipsState: specs.SecurityState_FIPS_STATE_STRICT,
+		},
+	}
+
+	omni.ReconcileMachineStatusLabels(ms)
+
+	assert.Equal(t, map[string]string{
+		omni.MachineStatusLabelEnterprise: "",
+		omni.MachineStatusLabelFIPS:       "strict",
+	}, ms.Metadata().Labels().Raw())
+
+	// downgrade to a non-enterprise version, the labels must be cleared
+
+	ms.TypedSpec().Value.TalosVersionName = ""
+	ms.TypedSpec().Value.SecurityState = &specs.SecurityState{}
+
+	omni.ReconcileMachineStatusLabels(ms)
+
+	assert.Empty(t, ms.Metadata().Labels().Raw())
 }
 
 func TestLookup(t *testing.T) {

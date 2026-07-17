@@ -23,6 +23,9 @@ const MinTalosVersion = "1.9.0"
 // tsgen:LatestSupportedTalosVersion
 const LatestSupportedTalosVersion = "1.13"
 
+// TalosEnterpriseVersionName is the version name reported by Talos Enterprise builds.
+const TalosEnterpriseVersionName = "Talos Enterprise"
+
 const (
 	// TalosRegistry is the default Talos repository URL.
 	TalosRegistry = "ghcr.io/siderolabs/installer"

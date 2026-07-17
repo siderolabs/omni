@@ -49,6 +49,12 @@ export enum GrpcTunnelMode {
   DISABLED = 2,
 }
 
+export enum SecurityStateFIPSState {
+  FIPS_STATE_DISABLED = 0,
+  FIPS_STATE_ENABLED = 1,
+  FIPS_STATE_STRICT = 2,
+}
+
 export enum MachineStatusSpecRole {
   NONE = 0,
   CONTROL_PLANE = 1,
@@ -230,6 +236,7 @@ export type MachineSpec = {
 export type SecurityState = {
   secure_boot?: boolean
   booted_with_uki?: boolean
+  fips_state?: SecurityStateFIPSState
 }
 
 export type Overlay = {
@@ -344,6 +351,7 @@ export type MachineStatusSpec = {
   power_state?: MachineStatusSpecPowerState
   security_state?: SecurityState
   kernel_cmdline?: string
+  talos_version_name?: string
 }
 
 export type TalosConfigSpec = {
@@ -515,7 +523,8 @@ export type ClusterMachineConfigStatusSpec = {
   redacted_current_machine_config?: string
   compressed_redacted_machine_config?: Uint8Array
   pre_reboot_boot_id?: string
-  image_factory_url?: string
+  applied_high_priority_config_hash?: string
+  image_factory_host?: string
 }
 
 export type MachinePendingUpdatesSpecUpgrade = {

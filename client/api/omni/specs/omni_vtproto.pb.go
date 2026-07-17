@@ -55,6 +55,7 @@ func (m *SecurityState) CloneVT() *SecurityState {
 	r := new(SecurityState)
 	r.SecureBoot = m.SecureBoot
 	r.BootedWithUki = m.BootedWithUki
+	r.FipsState = m.FipsState
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -390,6 +391,7 @@ func (m *MachineStatusSpec) CloneVT() *MachineStatusSpec {
 	r.PowerState = m.PowerState
 	r.SecurityState = m.SecurityState.CloneVT()
 	r.KernelCmdline = m.KernelCmdline
+	r.TalosVersionName = m.TalosVersionName
 	if rhs := m.ImageLabels; rhs != nil {
 		tmpContainer := make(map[string]string, len(rhs))
 		for k, v := range rhs {
@@ -3355,6 +3357,9 @@ func (this *SecurityState) EqualVT(that *SecurityState) bool {
 	if this.BootedWithUki != that.BootedWithUki {
 		return false
 	}
+	if this.FipsState != that.FipsState {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -3910,6 +3915,9 @@ func (this *MachineStatusSpec) EqualVT(that *MachineStatusSpec) bool {
 		return false
 	}
 	if this.KernelCmdline != that.KernelCmdline {
+		return false
+	}
+	if this.TalosVersionName != that.TalosVersionName {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7965,6 +7973,11 @@ func (m *SecurityState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.FipsState != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.FipsState))
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.BootedWithUki {
 		i--
 		if m.BootedWithUki {
@@ -8870,6 +8883,15 @@ func (m *MachineStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.TalosVersionName) > 0 {
+		i -= len(m.TalosVersionName)
+		copy(dAtA[i:], m.TalosVersionName)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.TalosVersionName)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xba
 	}
 	if len(m.KernelCmdline) > 0 {
 		i -= len(m.KernelCmdline)
@@ -16900,6 +16922,9 @@ func (m *SecurityState) SizeVT() (n int) {
 	if m.BootedWithUki {
 		n += 2
 	}
+	if m.FipsState != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.FipsState))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -17340,6 +17365,10 @@ func (m *MachineStatusSpec) SizeVT() (n int) {
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.KernelCmdline)
+	if l > 0 {
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.TalosVersionName)
 	if l > 0 {
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -20618,6 +20647,25 @@ func (m *SecurityState) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.BootedWithUki = bool(v != 0)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FipsState", wireType)
+			}
+			m.FipsState = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FipsState |= SecurityState_FIPSState(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -23691,6 +23739,38 @@ func (m *MachineStatusSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.KernelCmdline = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 23:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TalosVersionName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TalosVersionName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

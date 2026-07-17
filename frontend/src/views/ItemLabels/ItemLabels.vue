@@ -42,6 +42,8 @@ const labelOrder = {
   available: 5,
   connected: 10,
   disconnected: 10,
+  enterprise: 12,
+  fips: 14,
   platform: 20,
   cores: 30,
   mem: 40,

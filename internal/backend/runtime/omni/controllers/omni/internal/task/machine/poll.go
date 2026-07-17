@@ -58,7 +58,7 @@ var machinePollers = map[string]machinePollFunction{
 	//
 	// resourcePollers skip polling the resource if it is not defined on the Talos API.
 	//
-	// furthermore, by doing this, we skip watching this resource, which is what we want, since it does not change over time.
+	// the resource is still watched: the FIPS state follows the installed image, so it changes across upgrades.
 	"securityState": pollSecurityState,
 }
 
@@ -91,6 +91,41 @@ func pollVersion(ctx context.Context, c *client.Client, info *Info) error {
 		info.TalosVersion = new(msg.GetVersion().GetTag())
 		info.Arch = new(msg.GetVersion().GetArch())
 	}
+
+	return pollVersionName(ctx, c, info)
+}
+
+// pollVersionName reads the version name (e.g. "Talos Enterprise") from the Version resource.
+//
+// The name is only updated on a definitive outcome, as a partially populated Info is sent even when the poll fails,
+// and a transient error must not wipe the previously known name.
+//
+// The resource is not defined on older Talos versions, in which case the name is explicitly set to empty,
+// so that the information is cleared if the machine was downgraded.
+//
+// If the resource is defined but not created yet (e.g. early on boot), the name is left untouched,
+// as the update on the resource creation triggers another poll.
+func pollVersionName(ctx context.Context, c *client.Client, info *Info) error {
+	if _, err := safe.StateGetByID[*meta.ResourceDefinition](ctx, c.COSI, strings.ToLower(runtime.VersionType)); err != nil {
+		if !state.IsNotFoundError(err) {
+			return fmt.Errorf("failed to get version rd: %w", err)
+		}
+
+		info.TalosVersionName = new("")
+
+		return nil
+	}
+
+	version, err := safe.StateGetByID[*runtime.Version](ctx, c.COSI, runtime.NewVersion().Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return fmt.Errorf("failed to get version: %w", err)
+	}
+
+	info.TalosVersionName = new(version.TypedSpec().Name)
 
 	return nil
 }
@@ -286,27 +321,36 @@ func pollPlatformMetadata(ctx context.Context, c *client.Client, info *Info) err
 }
 
 func pollSecurityState(ctx context.Context, c *client.Client, info *Info) error {
-	probeSecurityState := func() (isSecureBoot, bootedWithUki bool, err error) {
+	probeSecurityState := func() (isSecureBoot, bootedWithUki bool, fipsState specs.SecurityState_FIPSState, err error) {
 		if _, err = safe.StateGetByID[*meta.ResourceDefinition](ctx, c.COSI, strings.ToLower(runtime.SecurityStateType)); err != nil {
 			if !state.IsNotFoundError(err) {
-				return false, false, fmt.Errorf("failed to get security state rd: %w", err)
+				return false, false, specs.SecurityState_FIPS_STATE_DISABLED, fmt.Errorf("failed to get security state rd: %w", err)
 			}
 
-			return false, false, nil
+			return false, false, specs.SecurityState_FIPS_STATE_DISABLED, nil
 		}
 
 		securityState, err := safe.StateGetByID[*runtime.SecurityState](ctx, c.COSI, runtime.SecurityStateID)
 		if err != nil {
-			return false, false, fmt.Errorf("failed to get security state: %w", err)
+			return false, false, specs.SecurityState_FIPS_STATE_DISABLED, fmt.Errorf("failed to get security state: %w", err)
 		}
 
 		isSecureBoot = securityState.TypedSpec().SecureBoot
 		bootedWithUki = isSecureBoot || securityState.TypedSpec().BootedWithUKI
 
-		return isSecureBoot, bootedWithUki, nil
+		switch securityState.TypedSpec().FIPSState {
+		case runtime.FIPSStateDisabled:
+			fipsState = specs.SecurityState_FIPS_STATE_DISABLED
+		case runtime.FIPSStateEnabled:
+			fipsState = specs.SecurityState_FIPS_STATE_ENABLED
+		case runtime.FIPSStateStrict:
+			fipsState = specs.SecurityState_FIPS_STATE_STRICT
+		}
+
+		return isSecureBoot, bootedWithUki, fipsState, nil
 	}
 
-	isSecureBoot, bootedWithUki, err := probeSecurityState()
+	isSecureBoot, bootedWithUki, fipsState, err := probeSecurityState()
 	if err != nil {
 		return err
 	}
@@ -314,6 +358,7 @@ func pollSecurityState(ctx context.Context, c *client.Client, info *Info) error 
 	info.SecurityState = &specs.SecurityState{
 		SecureBoot:    isSecureBoot,
 		BootedWithUki: bootedWithUki,
+		FipsState:     fipsState,
 	}
 
 	return nil

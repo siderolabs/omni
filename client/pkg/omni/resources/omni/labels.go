@@ -211,6 +211,14 @@ const (
 	// tsgen:MachineStatusLabelTalosVersion
 	MachineStatusLabelTalosVersion = SystemLabelPrefix + "talos-version"
 
+	// MachineStatusLabelEnterprise is set if the machine runs Talos Enterprise.
+	// tsgen:MachineStatusLabelEnterprise
+	MachineStatusLabelEnterprise = SystemLabelPrefix + "enterprise"
+
+	// MachineStatusLabelFIPS is set if the machine runs Talos in FIPS mode, with the value "enabled" or "strict".
+	// tsgen:MachineStatusLabelFIPS
+	MachineStatusLabelFIPS = SystemLabelPrefix + "fips"
+
 	// MachineStatusLabelInstalled means that Talos is installed on the machine.
 	// tsgen:MachineStatusLabelInstalled
 	MachineStatusLabelInstalled = SystemLabelPrefix + "installed"
