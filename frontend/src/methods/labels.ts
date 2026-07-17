@@ -17,6 +17,8 @@ import {
   MachineStatusLabelCores,
   MachineStatusLabelCPU,
   MachineStatusLabelDisconnected,
+  MachineStatusLabelEnterprise,
+  MachineStatusLabelFIPS,
   MachineStatusLabelInstance,
   MachineStatusLabelInvalidState,
   MachineStatusLabelMem,
@@ -61,6 +63,8 @@ const labelClasses: Record<string, string> = {
 
   // Talos
   [MachineStatusLabelTalosVersion]: 'label-red',
+  [MachineStatusLabelEnterprise]: 'label-violet',
+  [MachineStatusLabelFIPS]: 'label-violet',
 
   // Connection state
   [MachineStatusLabelConnected]: 'label-green',

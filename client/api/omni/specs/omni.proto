@@ -22,12 +22,21 @@ message MachineSpec {
   bool use_grpc_tunnel = 5;
 }
 
-// SecurityState describes the UKI and secure boot information of the machine.
+// SecurityState describes the security state of the machine: UKI, secure boot and FIPS information.
 message SecurityState {
+  // FIPSState describes the FIPS state of the machine.
+  enum FIPSState {
+    FIPS_STATE_DISABLED = 0;
+    FIPS_STATE_ENABLED = 1;
+    FIPS_STATE_STRICT = 2;
+  }
+
   // SecureBoot is true if secure boot is detected to be available and enabled.
   bool secure_boot = 1; // use existing logic
   // BootedWithUki is true if the machine is booted with a UKI. Always true if secure boot is enabled.
   bool booted_with_uki = 2;
+  // FipsState is the FIPS state reported by the machine.
+  FIPSState fips_state = 3;
 }
 
 message Overlay {
@@ -266,6 +275,9 @@ message MachineStatusSpec {
   SecurityState security_state = 21;
 
   string kernel_cmdline = 22;
+
+  // TalosVersionName is the Talos version name reported by the machine, e.g. "Talos Enterprise".
+  string talos_version_name = 23;
 }
 
 // TalosConfigSpec describes a Talos cluster config.
