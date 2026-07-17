@@ -4262,8 +4262,9 @@ type MachineSetSpec struct {
 	// Deprecated: Marked as deprecated in omni/specs/omni.proto.
 	MachineClass *MachineSetSpec_MachineAllocation `protobuf:"bytes,2,opt,name=machine_class,json=machineClass,proto3" json:"machine_class,omitempty"`
 	// BootstrapSpec defines the bootstrapping spec of the machine set.
-	// This field is immutable, only valid for the control plane machine set and used only once at the creation time.
+	// This field is only valid for the control plane machine set and used only once at the creation time.
 	// When set, the machine set won't be created from scratch, instead, it will be bootstrapped using the given spec.
+	// It can only be set at the creation time and cannot be changed afterwards, but it can be removed once the cluster is bootstrapped.
 	BootstrapSpec *MachineSetSpec_BootstrapSpec `protobuf:"bytes,3,opt,name=bootstrap_spec,json=bootstrapSpec,proto3" json:"bootstrap_spec,omitempty"`
 	// DeleteStrategy defines the delete strategy of the machine set.
 	DeleteStrategy MachineSetSpec_UpdateStrategy `protobuf:"varint,4,opt,name=delete_strategy,json=deleteStrategy,proto3,enum=specs.MachineSetSpec_UpdateStrategy" json:"delete_strategy,omitempty"`

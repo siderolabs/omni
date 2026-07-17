@@ -874,6 +874,49 @@ func TestMachineSetBootstrapSpecValidation(t *testing.T) {
 	err = st.Update(ctx, controlPlaneMachineSet)
 	assert.True(t, validated.IsValidationError(err), "expected validation error")
 	assert.ErrorContains(t, err, "bootstrap spec is immutable after creation")
+
+	// remove bootstrap spec before the cluster is bootstrapped - not allowed
+
+	controlPlaneMachineSet.TypedSpec().Value.BootstrapSpec = nil
+
+	err = st.Update(ctx, controlPlaneMachineSet)
+	assert.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "bootstrap spec can only be removed after the cluster is bootstrapped")
+
+	// mark the cluster as bootstrapped
+
+	bootstrapStatus := omnires.NewClusterBootstrapStatus(clusterID)
+	bootstrapStatus.TypedSpec().Value.Bootstrapped = true
+
+	require.NoError(t, st.Create(ctx, bootstrapStatus))
+
+	// change bootstrap spec after the cluster is bootstrapped - still not allowed
+
+	controlPlaneMachineSet.TypedSpec().Value.BootstrapSpec = &specs.MachineSetSpec_BootstrapSpec{
+		ClusterUuid: clusterUUID,
+		Snapshot:    "different",
+	}
+
+	err = st.Update(ctx, controlPlaneMachineSet)
+	assert.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "bootstrap spec is immutable after creation")
+
+	// remove bootstrap spec after the cluster is bootstrapped - allowed
+
+	controlPlaneMachineSet.TypedSpec().Value.BootstrapSpec = nil
+
+	assert.NoError(t, st.Update(ctx, controlPlaneMachineSet))
+
+	// add bootstrap spec back after removal - not allowed
+
+	controlPlaneMachineSet.TypedSpec().Value.BootstrapSpec = &specs.MachineSetSpec_BootstrapSpec{
+		ClusterUuid: clusterUUID,
+		Snapshot:    snapshotName,
+	}
+
+	err = st.Update(ctx, controlPlaneMachineSet)
+	assert.True(t, validated.IsValidationError(err), "expected validation error")
+	assert.ErrorContains(t, err, "bootstrap spec is immutable after creation")
 }
 
 func TestMachineSetBootstrapSnapshotValidation(t *testing.T) {

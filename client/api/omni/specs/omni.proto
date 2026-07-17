@@ -831,8 +831,9 @@ message MachineSetSpec {
   MachineAllocation machine_class = 2 [deprecated = true];
 
   // BootstrapSpec defines the bootstrapping spec of the machine set.
-  // This field is immutable, only valid for the control plane machine set and used only once at the creation time.
+  // This field is only valid for the control plane machine set and used only once at the creation time.
   // When set, the machine set won't be created from scratch, instead, it will be bootstrapped using the given spec.
+  // It can only be set at the creation time and cannot be changed afterwards, but it can be removed once the cluster is bootstrapped.
   BootstrapSpec bootstrap_spec = 3;
 
   // DeleteStrategy defines the delete strategy of the machine set.

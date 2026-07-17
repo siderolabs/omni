@@ -74,12 +74,12 @@ func machineSetValidationOptions(st state.State, etcdBackupStoreFactory store.Fa
 		}
 
 		if isControlPlane && oldRes == nil { // creating a new control plane machine set
-			bootstrapStatus, err := safe.StateGetByID[*omni.ClusterBootstrapStatus](ctx, st, clusterName)
-			if err != nil && !state.IsNotFoundError(err) {
-				return fmt.Errorf("error getting cluster bootstrap status: %w", err)
+			bootstrapped, err := clusterBootstrapped(ctx, st, clusterName)
+			if err != nil {
+				return err
 			}
 
-			if bootstrapStatus != nil && bootstrapStatus.TypedSpec().Value.GetBootstrapped() {
+			if bootstrapped {
 				return errors.New("adding control plane machine set to an already bootstrapped cluster is not allowed")
 			}
 		}
@@ -222,7 +222,26 @@ func validateBootstrapSpec(ctx context.Context, st state.State, etcdBackupStoreF
 	}
 
 	if oldres != nil { // this is an update
-		if !bootstrapSpec.EqualVT(oldres.TypedSpec().Value.GetBootstrapSpec()) {
+		oldBootstrapSpec := oldres.TypedSpec().Value.GetBootstrapSpec()
+
+		if bootstrapSpec == nil && oldBootstrapSpec != nil {
+			// the bootstrap spec has no effect after the cluster is bootstrapped, so it is safe to remove it at that point.
+			// removing it earlier would silently turn a restore from a backup into a fresh cluster bootstrap.
+			clusterName, _ := res.Metadata().Labels().Get(omni.LabelCluster)
+
+			bootstrapped, err := clusterBootstrapped(ctx, st, clusterName)
+			if err != nil {
+				return err
+			}
+
+			if !bootstrapped {
+				return errors.New("bootstrap spec can only be removed after the cluster is bootstrapped")
+			}
+
+			return nil
+		}
+
+		if !bootstrapSpec.EqualVT(oldBootstrapSpec) {
 			return errors.New("bootstrap spec is immutable after creation")
 		}
 
@@ -279,6 +298,15 @@ func validateBootstrapSpec(ctx context.Context, st state.State, etcdBackupStoreF
 	}
 
 	return nil
+}
+
+func clusterBootstrapped(ctx context.Context, st state.State, clusterName resource.ID) (bool, error) {
+	bootstrapStatus, err := safe.StateGetByID[*omni.ClusterBootstrapStatus](ctx, st, clusterName)
+	if err != nil && !state.IsNotFoundError(err) {
+		return false, fmt.Errorf("error getting cluster bootstrap status: %w", err)
+	}
+
+	return bootstrapStatus != nil && bootstrapStatus.TypedSpec().Value.GetBootstrapped(), nil
 }
 
 func validateBootstrapSnapshot(snapshot string) error {
