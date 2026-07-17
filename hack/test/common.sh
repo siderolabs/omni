@@ -70,7 +70,9 @@ if [[ "${AUTH_PROVIDER}" == "auth0" ]]; then
 else
   export AUTH_USERNAME="test-user@siderolabs.com"
   export AUTH_PASSWORD="test-password-1234"
-  export DEX_ISSUER="http://127.0.0.1:5556/dex"
+  # Use the omni hostname (resolving to 127.0.0.1 on the host) rather than 127.0.0.1,
+  # so the e2e test container can reach Dex through its --add-host host-gateway mapping.
+  export DEX_ISSUER="http://my-instance.omni.localhost:5556/dex"
   export DEX_OIDC_CLIENT_ID="omni"
   export DEX_OIDC_CLIENT_SECRET="omni-oidc-secret"
   export AUTH_PROVIDER_CONFIG="  oidc:
