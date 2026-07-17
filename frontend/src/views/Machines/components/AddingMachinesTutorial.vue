@@ -17,7 +17,10 @@ import {
 import TButton from '@/components/Button/TButton.vue'
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
 import { getDocsLink } from '@/methods'
+import { useIsEnterprise } from '@/methods/features'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+
+const isEnterpriseFactory = useIsEnterprise()
 
 const isDismissed = useLocalStorage('_add_first_machine_tutorial_dismissed', false)
 
@@ -68,8 +71,10 @@ const pxeBootCode =
         <p>AWS</p>
         <CodeBlock :code="awsCode"></CodeBlock>
 
-        <p>PXE boot</p>
-        <CodeBlock :code="pxeBootCode"></CodeBlock>
+        <template v-if="!isEnterpriseFactory">
+          <p>PXE boot</p>
+          <CodeBlock :code="pxeBootCode"></CodeBlock>
+        </template>
 
         <p>Download ISO</p>
         <CodeBlock code="omnictl download iso --arch amd64"></CodeBlock>

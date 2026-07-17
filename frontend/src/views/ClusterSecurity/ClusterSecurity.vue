@@ -31,7 +31,7 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { getDocsLink } from '@/methods'
-import { useFeatures } from '@/methods/features'
+import { useIsEnterprise } from '@/methods/features'
 import { useResourceList } from '@/methods/useResourceList'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import SeverityBadges from '@/views/ClusterSecurity/components/SeverityBadges.vue'
@@ -47,8 +47,7 @@ import ScanDetailsModal from '@/views/InstallationMedia/vulnerabilities/ScanDeta
 
 const { clusterId } = defineProps<{ clusterId: string }>()
 
-const { data: features } = useFeatures()
-const isEnterpriseFactory = computed(() => !!features.value?.spec.is_enterprise_image_factory)
+const isEnterpriseFactory = useIsEnterprise()
 
 const { data: clusterStatus, loading: statusLoading } = useResourceWatch<ClusterStatusSpec>(() => ({
   runtime: Runtime.Omni,

@@ -18,7 +18,7 @@ import {
   VirtualNamespace,
 } from '@/api/resources'
 import { getDocsLink } from '@/methods'
-import { useFeatures } from '@/methods/features'
+import { useFeatures, useIsEnterprise } from '@/methods/features'
 import { useImageFactoryAuth, withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
 import { useResourceGet } from '@/methods/useResourceGet'
 
@@ -30,6 +30,7 @@ export function usePresetDownloadLinks(
 
   const { data: features } = useFeatures()
   const auth = useImageFactoryAuth()
+  const isEnterpriseFactory = useIsEnterprise()
 
   const { data: selectedCloudProvider } = useResourceGet<PlatformConfigSpec>(() => ({
     skip: !toValue(presetRef).cloud,
@@ -131,22 +132,78 @@ export function usePresetDownloadLinks(
       }
     }
 
-    return selectedPlatform.value.spec.boot_methods.flatMap<DownloadLink>((bootMethod) => {
-      switch (bootMethod) {
-        case PlatformConfigSpecBootMethod.DISK_IMAGE: {
-          if (!platformDiskImagePath.value) return []
+    return selectedPlatform.value.spec.boot_methods
+      .filter((m) => !isEnterpriseFactory.value || m !== PlatformConfigSpecBootMethod.PXE)
+      .flatMap<DownloadLink>((bootMethod) => {
+        switch (bootMethod) {
+          case PlatformConfigSpecBootMethod.DISK_IMAGE: {
+            if (!platformDiskImagePath.value) return []
 
-          if (preset.secure_boot) {
+            if (preset.secure_boot) {
+              return {
+                label: 'SecureBoot Disk Image',
+                link: platformDiskImagePath.value,
+                withChecksums: true,
+                documentation: isMetal.value
+                  ? {
+                      label: 'SecureBoot documentation',
+                      link: getDocsLink(
+                        'talos',
+                        '/platform-specific-installations/bare-metal-platforms/secureboot',
+                        { talosVersion: preset.talos_version },
+                      ),
+                    }
+                  : undefined,
+              }
+            }
+
+            if (isMetal.value && qcow2DiskImagePath.value) {
+              return [
+                {
+                  label: 'Disk Image (raw)',
+                  link: platformDiskImagePath.value,
+                  withChecksums: true,
+                },
+                {
+                  label: 'Disk Image (qcow2)',
+                  link: qcow2DiskImagePath.value,
+                  withChecksums: true,
+                },
+              ]
+            }
+
+            return { label: 'Disk Image', link: platformDiskImagePath.value, withChecksums: true }
+          }
+
+          case PlatformConfigSpecBootMethod.ISO: {
+            if (!isoPath.value) return []
+
+            if (preset.secure_boot) {
+              return {
+                label: 'SecureBoot ISO',
+                link: isoPath.value,
+                withChecksums: true,
+                documentation: {
+                  label: 'SecureBoot documentation',
+                  link: getDocsLink(
+                    'talos',
+                    '/platform-specific-installations/bare-metal-platforms/secureboot',
+                    { talosVersion: preset.talos_version },
+                  ),
+                },
+              }
+            }
+
             return {
-              label: 'SecureBoot Disk Image',
-              link: platformDiskImagePath.value,
+              label: 'ISO',
+              link: isoPath.value,
               withChecksums: true,
               documentation: isMetal.value
                 ? {
-                    label: 'SecureBoot documentation',
+                    label: 'ISO documentation',
                     link: getDocsLink(
                       'talos',
-                      '/platform-specific-installations/bare-metal-platforms/secureboot',
+                      '/platform-specific-installations/bare-metal-platforms/iso',
                       { talosVersion: preset.talos_version },
                     ),
                   }
@@ -154,75 +211,29 @@ export function usePresetDownloadLinks(
             }
           }
 
-          if (isMetal.value && qcow2DiskImagePath.value) {
-            return [
-              { label: 'Disk Image (raw)', link: platformDiskImagePath.value, withChecksums: true },
-              { label: 'Disk Image (qcow2)', link: qcow2DiskImagePath.value, withChecksums: true },
-            ]
-          }
+          case PlatformConfigSpecBootMethod.PXE: {
+            if (!pxeBootURL.value) return []
 
-          return { label: 'Disk Image', link: platformDiskImagePath.value, withChecksums: true }
-        }
-
-        case PlatformConfigSpecBootMethod.ISO: {
-          if (!isoPath.value) return []
-
-          if (preset.secure_boot) {
             return {
-              label: 'SecureBoot ISO',
-              link: isoPath.value,
-              withChecksums: true,
-              documentation: {
-                label: 'SecureBoot documentation',
-                link: getDocsLink(
-                  'talos',
-                  '/platform-specific-installations/bare-metal-platforms/secureboot',
-                  { talosVersion: preset.talos_version },
-                ),
-              },
+              label: preset.secure_boot ? 'SecureBoot PXE (iPXE script)' : 'PXE boot (iPXE script)',
+              link: pxeBootURL.value,
+              copyOnly: true,
+              documentation: isMetal.value
+                ? {
+                    label: 'PXE documentation',
+                    link: getDocsLink(
+                      'talos',
+                      '/platform-specific-installations/bare-metal-platforms/pxe',
+                      { talosVersion: preset.talos_version },
+                    ),
+                  }
+                : undefined,
             }
           }
-
-          return {
-            label: 'ISO',
-            link: isoPath.value,
-            withChecksums: true,
-            documentation: isMetal.value
-              ? {
-                  label: 'ISO documentation',
-                  link: getDocsLink(
-                    'talos',
-                    '/platform-specific-installations/bare-metal-platforms/iso',
-                    { talosVersion: preset.talos_version },
-                  ),
-                }
-              : undefined,
-          }
         }
 
-        case PlatformConfigSpecBootMethod.PXE: {
-          if (!pxeBootURL.value) return []
-
-          return {
-            label: preset.secure_boot ? 'SecureBoot PXE (iPXE script)' : 'PXE boot (iPXE script)',
-            link: pxeBootURL.value,
-            copyOnly: true,
-            documentation: isMetal.value
-              ? {
-                  label: 'PXE documentation',
-                  link: getDocsLink(
-                    'talos',
-                    '/platform-specific-installations/bare-metal-platforms/pxe',
-                    { talosVersion: preset.talos_version },
-                  ),
-                }
-              : undefined,
-          }
-        }
-      }
-
-      return []
-    })
+        return []
+      })
   })
 
   return { links }

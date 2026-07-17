@@ -31,7 +31,7 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { getDocsLink, majorMinorVersion } from '@/methods'
-import { useFeatures } from '@/methods/features'
+import { useFeatures, useIsEnterprise } from '@/methods/features'
 import { useImageFactoryAuth, withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
@@ -63,7 +63,7 @@ const talosctlAvailable = computed(() => quirks.value?.spec.supports_factory_tal
 
 const { data: features } = useFeatures()
 const imageFactoryBaseURL = computed(() => features.value?.spec.image_factory_base_url)
-const isEnterpriseFactory = computed(() => features.value?.spec.is_enterprise_image_factory)
+const isEnterpriseFactory = useIsEnterprise()
 
 const imageFactoryAuth = useImageFactoryAuth()
 
@@ -118,9 +118,9 @@ const secureBootSuffix = computed(() => {
 // true if the platform supports boot methods other than disk-image.
 const notOnlyDiskImage = computed(
   () =>
-    selectedPlatform.value?.spec.boot_methods?.some(
-      (m) => m !== PlatformConfigSpecBootMethod.DISK_IMAGE,
-    ) ?? false,
+    selectedPlatform.value?.spec.boot_methods
+      ?.filter((m) => !isEnterpriseFactory.value || m !== PlatformConfigSpecBootMethod.PXE)
+      .some((m) => m !== PlatformConfigSpecBootMethod.DISK_IMAGE) ?? false,
 )
 
 const preset = computed(() => formStateToPreset(formState.value))
@@ -320,23 +320,25 @@ const VEXBaseURL = computed(() =>
       />
     </template>
 
-    <h3 class="text-sm text-naturals-n14">PXE Boot with booter</h3>
-    <p>
-      To easily PXE boot bare-metal machines using
-      <a
-        class="link-primary"
-        href="https://github.com/siderolabs/booter"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        booter
-      </a>
-      with this schematic, run the following command on a host in the same subnet:
-    </p>
-    <CodeBlock
-      :button-attrs="{ 'aria-label': 'Copy PXE booter docker run command' }"
-      :code="`docker run --rm --network host ghcr.io/siderolabs/booter:v0.3.0 --talos-version=v${resolvedTalosVersion} --schematic-id=${schematic.id}`"
-    />
+    <template v-if="!isEnterpriseFactory">
+      <h3 class="text-sm text-naturals-n14">PXE Boot with booter</h3>
+      <p>
+        To easily PXE boot bare-metal machines using
+        <a
+          class="link-primary"
+          href="https://github.com/siderolabs/booter"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          booter
+        </a>
+        with this schematic, run the following command on a host in the same subnet:
+      </p>
+      <CodeBlock
+        :button-attrs="{ 'aria-label': 'Copy PXE booter docker run command' }"
+        :code="`docker run --rm --network host ghcr.io/siderolabs/booter:v0.3.0 --talos-version=v${resolvedTalosVersion} --schematic-id=${schematic.id}`"
+      />
+    </template>
 
     <h3 class="text-sm text-naturals-n14">Documentation</h3>
     <ul class="ml-2 flex list-inside list-disc flex-col gap-2 text-primary-p3">

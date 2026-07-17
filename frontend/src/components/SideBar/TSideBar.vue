@@ -37,7 +37,7 @@ import TSidebarList from '@/components/SideBar/TSideBarList.vue'
 import UserInfo from '@/components/UserInfo/UserInfo.vue'
 import { setupBackupStatus } from '@/methods'
 import { useClusterPermissions, usePermissions } from '@/methods/auth'
-import { useFeatures } from '@/methods/features'
+import { useFeatures, useIsEnterprise } from '@/methods/features'
 import { useIdentity } from '@/methods/identity'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -48,6 +48,7 @@ const { avatar, fullname, identity } = useIdentity()
 
 const { data: featuresConfig } = useFeatures()
 const { canManageBackupStore, canManageUsers, canReadClusters, canReadMachines } = usePermissions()
+const isEnterpriseFactory = useIsEnterprise()
 
 const currentCluster = computed(() =>
   'cluster' in route.params ? route.params.cluster : undefined,
@@ -345,7 +346,7 @@ const clusterItems = computed(() => {
   ]
 
   if (
-    featuresConfig.value?.spec.is_enterprise_image_factory &&
+    isEnterpriseFactory.value &&
     cluster.value?.spec.talos_version &&
     gte(cluster.value.spec.talos_version, '1.13.0')
   ) {
