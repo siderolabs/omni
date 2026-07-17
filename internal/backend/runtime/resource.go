@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	"go.yaml.in/yaml/v4"
 	"google.golang.org/protobuf/proto"
 )
@@ -49,7 +48,6 @@ type Metadata struct {
 	ID          resource.ID         `json:"id" yaml:"id"`
 	Owner       resource.Owner      `json:"owner" yaml:"owner"`
 	Phase       string              `json:"phase" yaml:"phase"`
-	Node        string              `json:"node,omitempty" yaml:"node"`
 	Labels      map[string]string   `json:"labels,omitempty" yaml:"labels,omitempty"`
 	Annotations map[string]string   `json:"annotations,omitempty" yaml:"annotations,omitempty"`
 	Finalizers  resource.Finalizers `json:"finalizers,omitempty" yaml:"finalizers,omitempty"`
@@ -65,19 +63,10 @@ type Resource struct {
 }
 
 // ResourceOptions describes additional resource wrapper options.
-type ResourceOptions struct {
-	metadata *common.Metadata
-}
+type ResourceOptions struct{}
 
 // ResourceOption is a single resource creation option.
 type ResourceOption func(*ResourceOptions)
-
-// WithMetadata creates resource with Talos metadata.
-func WithMetadata(value *common.Metadata) ResourceOption {
-	return func(o *ResourceOptions) {
-		o.metadata = value
-	}
-}
 
 // NewResource creates new resource.
 func NewResource(r resource.Resource, options ...ResourceOption) (*Resource, error) {
@@ -97,10 +86,6 @@ func NewResource(r resource.Resource, options ...ResourceOption) (*Resource, err
 	}
 
 	parts := make([]string, 0, 3)
-	if opts.metadata != nil {
-		parts = append(parts, opts.metadata.Hostname)
-	}
-
 	parts = append(parts, r.Metadata().Namespace(), r.Metadata().ID())
 
 	res := &Resource{
@@ -108,10 +93,6 @@ func NewResource(r resource.Resource, options ...ResourceOption) (*Resource, err
 	}
 	if err = yaml.Unmarshal(data, &res); err != nil {
 		return nil, err
-	}
-
-	if opts.metadata != nil {
-		res.Metadata.Node = opts.metadata.Hostname
 	}
 
 	if wrapped, ok := r.Spec().(protobufWrapper); ok {

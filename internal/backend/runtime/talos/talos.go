@@ -13,7 +13,6 @@ import (
 	goruntime "runtime"
 
 	cosiresource "github.com/cosi-project/runtime/pkg/resource"
-	taloscommon "github.com/siderolabs/talos/pkg/machinery/api/common"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
@@ -118,9 +117,8 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 	opts := runtime.NewQueryOptions(setters...)
 
 	var (
-		c                *Client
-		err              error
-		responseMetadata *taloscommon.Metadata
+		c   *Client
+		err error
 	)
 
 	switch len(opts.Machines) {
@@ -128,7 +126,6 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 		c, err = r.GetClientForCluster(ctx, opts.Context)
 	case 1:
 		c, err = r.GetClientForMachine(ctx, opts.Machines[0])
-		responseMetadata = &taloscommon.Metadata{Hostname: opts.Machines[0]}
 	default:
 		return nil, errors.New("multiple machines are not supported for Get")
 	}
@@ -144,7 +141,7 @@ func (r *Runtime) Get(ctx context.Context, setters ...runtime.QueryOption) (any,
 		return nil, err
 	}
 
-	return runtime.NewResource(res, runtime.WithMetadata(responseMetadata))
+	return runtime.NewResource(res)
 }
 
 // List implements runtime.Runtime.
@@ -159,16 +156,14 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 
 	for _, machine := range opts.Machines {
 		var (
-			c                *Client
-			err              error
-			responseMetadata *taloscommon.Metadata
+			c   *Client
+			err error
 		)
 
 		if machine == "" {
 			c, err = r.GetClientForCluster(ctx, opts.Context)
 		} else {
 			c, err = r.GetClientForMachine(ctx, machine)
-			responseMetadata = &taloscommon.Metadata{Hostname: machine}
 		}
 
 		if err != nil {
@@ -183,7 +178,7 @@ func (r *Runtime) List(ctx context.Context, setters ...runtime.QueryOption) (run
 		}
 
 		for _, item := range items.Items {
-			resource, err := runtime.NewResource(item, runtime.WithMetadata(responseMetadata))
+			resource, err := runtime.NewResource(item)
 			if err != nil {
 				return runtime.ListResult{}, err
 			}

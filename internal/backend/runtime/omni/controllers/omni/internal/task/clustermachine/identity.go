@@ -186,17 +186,18 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.L
 				case *cluster.Identity:
 					clusterMachineIdentity.TypedSpec().Value.NodeIdentity = r.TypedSpec().NodeID
 				case *cluster.Config:
-					discoveryServiceEnabled := r.TypedSpec().DiscoveryEnabled &&
-						r.TypedSpec().RegistryServiceEnabled &&
-						r.TypedSpec().ServiceEndpoint != ""
+					// TODO: Update how we set discovery service endpoints with https://github.com/siderolabs/omni/issues/3024.
+					discoveryServiceEnabled := r.TypedSpec().DiscoveryEnabled && //nolint:staticcheck
+						r.TypedSpec().RegistryServiceEnabled && //nolint:staticcheck
+						r.TypedSpec().ServiceEndpoint != "" //nolint:staticcheck
 
 					if discoveryServiceEnabled {
 						protocol := "https://"
-						if r.TypedSpec().ServiceEndpointInsecure {
+						if r.TypedSpec().ServiceEndpointInsecure { //nolint:staticcheck
 							protocol = "http://"
 						}
 
-						clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint = protocol + r.TypedSpec().ServiceEndpoint
+						clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint = protocol + r.TypedSpec().ServiceEndpoint //nolint:staticcheck
 					} else {
 						clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint = ""
 					}

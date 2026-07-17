@@ -55,6 +55,7 @@ export type DiskSpec = {
   readonly?: boolean
   cdrom?: boolean
   model?: string
+  firmware_version?: string
   serial?: string
   modalias?: string
   wwid?: string
@@ -158,6 +159,7 @@ export type EncryptionSpec = {
   keySize?: number
   blockSize?: number
   perfOptions?: string[]
+  allowDiscards?: boolean
 }
 
 export type LocatorSpec = {
@@ -199,6 +201,8 @@ export type VolumeConfigSpec = {
   locator?: LocatorSpec
   mount?: MountSpec
   symlink?: SymlinkProvisioningSpec
+  trimEnabled?: boolean
+  trimInterval?: string
 }
 
 export type VolumeMountRequestSpec = {
@@ -245,9 +249,18 @@ export type VolumeStatusSpec = {
   encryptionLockedToState?: boolean
   encryptionSlot?: number
   tpmEncryptionOptions?: TPMEncryptionOptionsInfo
+  encryptionAllowDiscards?: boolean
+  trimEnabled?: boolean
+  trimInterval?: string
   mountSpec?: MountSpec
   symlink?: SymlinkProvisioningSpec
   errorMessage?: string
+}
+
+export type VolumeTrimScheduleSpec = {
+  filesystem?: string
+  interval?: string
+  nextTrim?: string
 }
 
 export type ZswapStatusSpec = {

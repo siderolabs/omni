@@ -3,6 +3,16 @@
 // Source of truth: yaml struct tags on the Go types in
 // github.com/siderolabs/talos/pkg/machinery/resources/
 
+export type LVMLogicalVolumeSpecSpec = {
+  vgName?: string
+  name?: string
+  type?: string
+  sizeBytes?: number
+  sizePercentVG?: number
+  mirrors?: number
+  stripes?: number
+}
+
 export type LVMLogicalVolumeStatusSpec = {
   path?: string
   dmPath?: string
@@ -39,6 +49,12 @@ export type LVMLogicalVolumeStatusSpec = {
   convertLV?: string
   whenFull?: string
   tags?: string[]
+  prettySize?: string
+}
+
+export type LVMPhysicalVolumeSpecSpec = {
+  device?: string
+  vgName?: string
 }
 
 export type LVMPhysicalVolumeStatusSpec = {
@@ -59,14 +75,23 @@ export type LVMPhysicalVolumeStatusSpec = {
   major?: string
   minor?: string
   tags?: string[]
+  prettySize?: string
+  prettyDeviceSize?: string
+  prettyFree?: string
 }
 
 export type LVMRefreshRequestSpec = {
   request?: number
 }
 
-export type LVMRefreshStatusSpec = {
-  request?: number
+export type LVMValidationErrorSpec = {
+  vgName?: string
+  message?: string
+}
+
+export type LVMVolumeGroupSpecSpec = {
+  name?: string
+  physicalVolumes?: string[]
 }
 
 export type LVMVolumeGroupStatusSpec = {
@@ -95,4 +120,6 @@ export type LVMVolumeGroupStatusSpec = {
   lockType?: string
   systemID?: string
   tags?: string[]
+  prettySize?: string
+  prettyFree?: string
 }

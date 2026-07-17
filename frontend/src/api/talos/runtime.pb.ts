@@ -10,6 +10,10 @@ export type APIServiceConfigSpec = {
   skipVerifyingClientCert?: boolean
 }
 
+export type BootIDSpec = {
+  bootID?: string
+}
+
 export type BootedEntrySpec = {
   bootedEntry?: string
 }
@@ -43,6 +47,12 @@ export type ExtensionServiceConfigSpec = {
 
 export type ExtensionServiceConfigStatusSpec = {
   specVersion?: string
+}
+
+export type ImageFactorySchematicSpec = {
+  schematicId?: string
+  flavor?: string
+  apiUrl?: string
 }
 
 export type KernelCmdlineSpec = {

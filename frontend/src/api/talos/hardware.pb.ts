@@ -3,6 +3,25 @@
 // Source of truth: yaml struct tags on the Go types in
 // github.com/siderolabs/talos/pkg/machinery/resources/
 
+export type CPUCoreSpec = {
+  socket?: string
+  coreID?: string
+  logicalCPUs?: number[]
+  vendorID?: string
+  cpuFamily?: string
+  model?: string
+  modelName?: string
+  stepping?: string
+  microcode?: string
+  cacheSize?: string
+  coresPerSocket?: number
+  threadsPerSocket?: number
+  flags?: string[]
+  bugs?: string[]
+  bogoMips?: number
+  addressSizes?: string
+}
+
 export type MemoryModuleSpec = {
   sizeMiB?: number
   deviceLocator?: string
@@ -55,6 +74,7 @@ export type SystemInformationSpec = {
   manufacturer?: string
   productName?: string
   version?: string
+  biosVersion?: string
   serialnumber?: string
   uuid?: string
   wakeUpType?: string

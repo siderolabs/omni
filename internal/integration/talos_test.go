@@ -63,75 +63,52 @@ func clearConnectionRefused(ctx context.Context, t *testing.T, c *talosclient.Cl
 	ctx, cancel := context.WithTimeout(ctx, backoff.DefaultConfig.MaxDelay)
 	defer cancel()
 
-	doRequest := func() error {
+	doRequest := func(node string) error {
 		innerCtx, innerCancel := context.WithTimeout(ctx, time.Second)
 		defer innerCancel()
 
-		_, err := c.Version(talosclient.WithNodes(innerCtx, nodes...))
+		_, err := c.Version(talosclient.WithNode(innerCtx, node))
 
 		return err
 	}
 
-	updateNodes := func() error {
-		var errs error
-
-		nodes = slices.DeleteFunc(nodes, func(node string) bool {
-			innerCtx, innerCancel := context.WithTimeout(ctx, time.Second)
-			defer innerCancel()
-
-			_, err := c.Version(talosclient.WithNode(innerCtx, node))
-
-			// drop only nodes that no longer resolve (removed during scale-down);
-			// keep nodes with transient errors so they're retried.
-			if status.Code(err) == codes.NotFound {
-				return true
-			}
-
-			errs = errors.Join(errs, err)
-
-			return false
-		})
-
-		return errs
-	}
-
 	require.NoError(t, retry.Constant(backoff.DefaultConfig.MaxDelay, retry.WithUnits(time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
-		for range numControlplanes {
-			err := doRequest()
-			if err == nil {
-				continue
-			}
-
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return retry.ExpectedError(err)
-			}
-
-			if strings.Contains(err.Error(), "connection refused") {
-				return retry.ExpectedError(err)
-			}
-
-			if strings.Contains(err.Error(), "connection reset by peer") {
-				return retry.ExpectedError(err)
-			}
-
-			//nolint:exhaustive
-			switch status.Code(err) {
-			case codes.DeadlineExceeded,
-				codes.Unavailable,
-				codes.Canceled:
-				return retry.ExpectedError(err)
-			case codes.NotFound:
-				updateErr := updateNodes()
-				if updateErr != nil {
-					return updateErr
+		for _, node := range nodes {
+			for range numControlplanes {
+				err := doRequest(node)
+				if err == nil {
+					continue
 				}
 
-				return retry.ExpectedError(err)
+				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+					return retry.ExpectedError(err)
+				}
+
+				if strings.Contains(err.Error(), "connection refused") {
+					return retry.ExpectedError(err)
+				}
+
+				if strings.Contains(err.Error(), "connection reset by peer") {
+					return retry.ExpectedError(err)
+				}
+
+				//nolint:exhaustive
+				switch status.Code(err) {
+				case codes.DeadlineExceeded,
+					codes.Unavailable,
+					codes.Canceled:
+					return retry.ExpectedError(err)
+				case codes.NotFound:
+					// node no longer resolves (removed during scale-down); drop it and keep retrying the rest.
+					nodes = slices.DeleteFunc(nodes, func(n string) bool { return n == node })
+
+					return retry.ExpectedError(err)
+				}
+
+				t.Logf("clear connection refused failed, error: %s", err)
+
+				return err
 			}
-
-			t.Logf("clear connection refused failed, error: %s", err)
-
-			return err
 		}
 
 		return nil
@@ -206,11 +183,13 @@ func AssertTalosAPIAccessViaOmni(testCtx context.Context, options *TestOptions, 
 
 		numControlPlanes := cpms.Len()
 
+		// This test exists specifically to exercise both the deprecated and current APIs side by side, so the
+		// deprecated calls should stay until WithNodes/common.Metadata are actually removed upstream.
 		assertTalosAPI := func(ctx context.Context, t *testing.T, c *talosclient.Client) {
 			clearConnectionRefused(ctx, t, c, numControlPlanes, machineIPs...)
 
 			// WithNodes - using IPs
-			version, err := c.Version(talosclient.WithNodes(ctx, machineIPs...))
+			version, err := c.Version(talosclient.WithNodes(ctx, machineIPs...)) //nolint:staticcheck
 			assert.NoError(t, err)
 			assert.Len(t, version.Messages, len(machineNames))
 
@@ -218,12 +197,12 @@ func AssertTalosAPIAccessViaOmni(testCtx context.Context, options *TestOptions, 
 				t,
 				xslices.ToSet(machineIPs),
 				xslices.ToSet(xslices.Map(version.Messages, func(m *machine.Version) string {
-					return m.GetMetadata().GetHostname()
+					return m.GetMetadata().GetHostname() //nolint:staticcheck
 				})),
 			)
 
 			// WithNodes - using node names
-			version, err = c.Version(talosclient.WithNodes(ctx, machineNames...))
+			version, err = c.Version(talosclient.WithNodes(ctx, machineNames...)) //nolint:staticcheck
 			assert.NoError(t, err)
 			assert.Len(t, version.Messages, len(machineNames))
 
@@ -231,7 +210,7 @@ func AssertTalosAPIAccessViaOmni(testCtx context.Context, options *TestOptions, 
 				t,
 				xslices.ToSet(machineIPs),
 				xslices.ToSet(xslices.Map(version.Messages, func(m *machine.Version) string {
-					return m.GetMetadata().GetHostname()
+					return m.GetMetadata().GetHostname() //nolint:staticcheck
 				})),
 			)
 
@@ -239,13 +218,13 @@ func AssertTalosAPIAccessViaOmni(testCtx context.Context, options *TestOptions, 
 			hostname, err := c.MachineClient.Hostname(talosclient.WithNode(ctx, machineIPs[0]), &emptypb.Empty{})
 			assert.NoError(t, err)
 			assert.Equal(t, machineNames[0], hostname.Messages[0].Hostname)
-			assert.Empty(t, hostname.Messages[0].GetMetadata().GetHostname())
+			assert.Empty(t, hostname.Messages[0].GetMetadata().GetHostname()) //nolint:staticcheck
 
 			// WithNode - using node name
 			hostname, err = c.MachineClient.Hostname(talosclient.WithNode(ctx, machineNames[0]), &emptypb.Empty{})
 			assert.NoError(t, err)
 			assert.Equal(t, machineNames[0], hostname.Messages[0].Hostname)
-			assert.Empty(t, hostname.Messages[0].GetMetadata().GetHostname())
+			assert.Empty(t, hostname.Messages[0].GetMetadata().GetHostname()) //nolint:staticcheck
 		}
 
 		t.Run("InstanceWideTalosconfig", func(t *testing.T) {
@@ -469,16 +448,18 @@ func AssertTalosVersion(testCtx context.Context, options *TestOptions, clusterNa
 				return retry.ExpectedError(ipErr)
 			}
 
-			resp, err := c.Version(talosclient.WithNodes(ctx, currentIPs...))
-			if err != nil {
-				return retry.ExpectedError(err)
-			}
+			expected := "v" + expectedVersion
 
-			for _, m := range resp.Messages {
-				expected := "v" + expectedVersion
+			for _, ip := range currentIPs {
+				resp, err := c.Version(talosclient.WithNode(ctx, ip))
+				if err != nil {
+					return retry.ExpectedError(err)
+				}
 
-				if expected != m.Version.Tag {
-					return retry.ExpectedErrorf("actual version doesn't match expected: %q != %q", m.Version.Tag, expected)
+				for _, m := range resp.Messages {
+					if expected != m.Version.Tag {
+						return retry.ExpectedErrorf("actual version doesn't match expected: %q != %q", m.Version.Tag, expected)
+					}
 				}
 			}
 

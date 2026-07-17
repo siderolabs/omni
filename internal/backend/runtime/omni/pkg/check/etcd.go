@@ -397,6 +397,7 @@ func getMemberState(ctx context.Context, talosConfig *omni.TalosConfig, clusterM
 	}
 
 	for _, info := range list {
+		//nolint:staticcheck // info.Metadata is deprecated but present in the legacy API, keep the check
 		if info.Metadata != nil && info.Metadata.Error != "" {
 			status.Error = info.Metadata.Error
 

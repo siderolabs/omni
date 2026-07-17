@@ -26,6 +26,12 @@ export type AffiliateSpec = {
   controlPlane?: ControlPlane
 }
 
+export type ServiceEndpoint = {
+  name?: string
+  endpoint?: string
+  insecure?: boolean
+}
+
 export type ConfigSpec = {
   discoveryEnabled?: boolean
   registryKubernetesEnabled?: boolean
@@ -34,6 +40,7 @@ export type ConfigSpec = {
   serviceEndpointInsecure?: boolean
   serviceEncryptionKey?: string
   serviceClusterID?: string
+  serviceEndpoints?: ServiceEndpoint[]
 }
 
 export type IdentitySpec = {

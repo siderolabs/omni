@@ -81,6 +81,10 @@ func patchKubelet(version string) Patcher {
 	}
 }
 
+// The inline API server config fields are deprecated in favor of separate config documents, but Omni still
+// relies on the inline form, so the deprecation is suppressed here.
+//
+//nolint:staticcheck
 func patchAPIServer(version string) Patcher {
 	img := fmt.Sprintf("%s:v%s", constants.KubernetesAPIServerImage, version)
 
@@ -146,6 +150,10 @@ func patchScheduler(version string) Patcher {
 	}
 }
 
+// The inline kube-proxy config fields are deprecated in favor of separate config documents, but Omni still relies on
+// the inline form, so the deprecation is suppressed here.
+//
+//nolint:staticcheck
 func patchKubeProxy(version string) Patcher {
 	img := fmt.Sprintf("%s:v%s", constants.KubeProxyImage, version)
 

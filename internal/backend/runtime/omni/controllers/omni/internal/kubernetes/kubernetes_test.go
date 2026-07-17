@@ -54,14 +54,14 @@ func TestComponentPatch(t *testing.T) {
 
 			componentVersionAssertion := map[kubernetes.Component]func(*testing.T, config.Provider, string){
 				kubernetes.APIServer: func(t *testing.T, cfg config.Provider, v string) {
-					assertVersion(t, v, cfg.Cluster().APIServer().Image())
-					assertVersion(t, v, cfg.Cluster().Proxy().Image())
+					assertVersion(t, v, cfg.K8sAPIServerConfig().Image())
+					assertVersion(t, v, cfg.K8sProxyConfig().Image())
 				},
-				kubernetes.ControllerManager: func(t *testing.T, _ config.Provider, v string) {
-					assertVersion(t, v, v1alpha1Cfg.ClusterConfig.ControllerManagerConfig.Image()) //nolint:staticcheck
+				kubernetes.ControllerManager: func(t *testing.T, cfg config.Provider, v string) {
+					assertVersion(t, v, cfg.K8sControllerManagerConfig().Image())
 				},
-				kubernetes.Scheduler: func(t *testing.T, _ config.Provider, v string) {
-					assertVersion(t, v, v1alpha1Cfg.ClusterConfig.SchedulerConfig.Image()) //nolint:staticcheck
+				kubernetes.Scheduler: func(t *testing.T, cfg config.Provider, v string) {
+					assertVersion(t, v, cfg.K8sSchedulerConfig().Image())
 				},
 				kubernetes.Kubelet: func(t *testing.T, cfg config.Provider, v string) {
 					assertVersion(t, v, cfg.Machine().Kubelet().Image())

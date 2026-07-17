@@ -36,13 +36,20 @@ export type APIServerConfigSpec = {
   localPort?: number
   serviceCIDR?: string[]
   extraArgs?: {[key: string]: ArgValues}
+  args?: string[]
   extraVolumes?: ExtraVolume[]
   environmentVariables?: {[key: string]: string}
   advertisedAddress?: string
   resources?: Resources
+  startupProbesEnabled?: boolean
+  useAuthenticationConfig?: boolean
 }
 
 export type AuditPolicyConfigSpec = {
+  config?: {[key: string]: unknown}
+}
+
+export type AuthenticationConfigSpec = {
   config?: {[key: string]: unknown}
 }
 
@@ -178,6 +185,9 @@ export type BootstrapManifestsConfigSpec = {
   proxyEnabled?: boolean
   proxyImage?: string
   proxyArgs?: string[]
+  proxyConfig?: {[key: string]: unknown}
+  proxyConfigChecksum?: string
+  proxyResources?: Resources
   coreDNSEnabled?: boolean
   coreDNSImage?: string
   dnsServiceIP?: string
@@ -189,6 +199,11 @@ export type BootstrapManifestsConfigSpec = {
   flannelKubeServicePort?: string
   flannelKubeNetworkPoliciesEnabled?: boolean
   flannelKubeNetworkPoliciesImage?: string
+  flannelBackendType?: string
+  flannelBackendPort?: number
+  flannelBackendMTU?: number
+  flannelBackendExtraConfig?: {[key: string]: unknown}
+  flannelResources?: Resources
   podSecurityPolicyEnabled?: boolean
   talosAPIServiceEnabled?: boolean
   cniName?: string

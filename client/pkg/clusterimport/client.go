@@ -182,6 +182,7 @@ func (c *talosClientWrapper) checkClusterHealth(ctx context.Context, node string
 			return healthErr
 		}
 
+		//nolint:staticcheck // Metadata is deprecated but present in the legacy API, keep the check
 		if msg.GetMetadata().GetError() != "" {
 			return fmt.Errorf("healthcheck error: %s", msg.GetMetadata().GetError())
 		}

@@ -912,6 +912,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 						mode := machine.ApplyConfigurationRequest_NO_REBOOT
 						if reboot {
+							//nolint:staticcheck // ApplyConfigurationRequest_REBOOT is deprecated in Talos 1.14, update the test when DefaultTalosVersion is set to 1.14
 							mode = machine.ApplyConfigurationRequest_REBOOT
 						}
 
@@ -1857,6 +1858,7 @@ func TestRevertRebootRequiringPatchRecoversMachine(t *testing.T) {
 			machineServices.Get(id).OnApplyConfig = func(_ context.Context, req *machine.ApplyConfigurationRequest, _ state.State, _ string) (*machine.ApplyConfigurationResponse, error) {
 				mode := machine.ApplyConfigurationRequest_NO_REBOOT
 				if strings.Contains(string(req.GetData()), brokenMarker) {
+					//nolint:staticcheck // ApplyConfigurationRequest_REBOOT is deprecated in Talos 1.14, update the test when DefaultTalosVersion is set to 1.14
 					mode = machine.ApplyConfigurationRequest_REBOOT
 				}
 

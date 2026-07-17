@@ -510,6 +510,7 @@ func (auditor *etcdAuditor) ensureSupportedVersion(ctx context.Context, c *talos
 
 		hostname := "*"
 
+		//nolint:staticcheck // Metadata is deprecated but present in the legacy API, keep the check
 		if m.Metadata != nil {
 			hostname = m.Metadata.Hostname
 		}
@@ -553,6 +554,7 @@ func (auditor *etcdAuditor) checkEtcdDirectory(ctx context.Context, client *clie
 		return false, checkNotExists(err)
 	}
 
+	//nolint:staticcheck // Metadata is deprecated but present in the legacy API, keep the check
 	if info.Metadata != nil && info.Metadata.Error != "" {
 		return false, fmt.Errorf("error checking etcd directory %q", info.Metadata.Error)
 	}

@@ -276,7 +276,7 @@ func (data *testData) prepareNode(ctx context.Context, t *testing.T, node string
 		schematicID = data.createExtensionStatuses(ctx, t, st, machineType)
 
 		if machineType == machinetype.TypeControlPlane {
-			apiServerConfig := k8s.NewAPIServerConfig()
+			apiServerConfig := k8s.NewAPIServerConfig(k8s.APIServerConfigID)
 			apiServerConfig.TypedSpec().Image = "registry.k8s.io/kube-apiserver:" + data.kubernetesVersion
 			require.NoError(t, st.Create(ctx, apiServerConfig))
 
