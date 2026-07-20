@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/spf13/cobra"
 
@@ -176,8 +177,7 @@ var (
 			name := args[0]
 
 			return access.WithClient(func(ctx context.Context, client *client.Client, _ access.ServerInfo) error {
-				err := client.Omni().State().TeardownAndDestroy(ctx, infra.NewProvider(name).Metadata())
-				if err != nil {
+				if err := client.Omni().State().TeardownAndDestroy(ctx, infra.NewProvider(name).Metadata()); err != nil && !state.IsNotFoundError(err) {
 					return fmt.Errorf("failed to delete infra provider: %w", err)
 				}
 
