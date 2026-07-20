@@ -133,6 +133,7 @@ if [[ -n "$ANOTHER_OMNI_VERSION" && -n "$INTEGRATION_PREPARE_TEST_ARGS" ]]; then
     -e SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
     --network host \
     --add-host=my-instance.omni.localhost:127.0.0.1 \
+    --add-host=omni.localhost:127.0.0.1 \
     "ghcr.io/siderolabs/omni-integration-test:${ANOTHER_OMNI_VERSION}" \
     --omni.talos-version="${TALOS_VERSION}" \
     --omni.stable-talos-version="${STABLE_TALOS_VERSION}" \
