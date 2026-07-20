@@ -6,6 +6,8 @@
 // Package kubernetes provides helpers for controller Kubernetes operations.
 package kubernetes
 
+import "github.com/siderolabs/talos/pkg/machinery/config"
+
 // Component is an enumeration of Kubernetes components.
 type Component string
 
@@ -25,16 +27,26 @@ var AllControlPlaneComponents = []Component{
 }
 
 // Patch returns a patcher for a specific component.
-func (c Component) Patch(version string) Patcher {
+func (c Component) Patch(vc *config.VersionContract, version string) (Patcher, error) {
 	switch c {
 	case APIServer:
-		return MultiPatcher(patchAPIServer(version), patchKubeProxy(version))
+		apiServerPatch, err := patchAPIServer(vc, version)
+		if err != nil {
+			return Patcher{}, err
+		}
+
+		kubeProxyPatch, err := patchKubeProxy(vc, version)
+		if err != nil {
+			return Patcher{}, err
+		}
+
+		return MultiPatcher(apiServerPatch, kubeProxyPatch)
 	case ControllerManager:
-		return patchControllerManager(version)
+		return patchControllerManager(vc, version)
 	case Scheduler:
-		return patchScheduler(version)
+		return patchScheduler(vc, version)
 	case Kubelet:
-		return patchKubelet(version)
+		return patchKubelet(vc, version)
 	default:
 		panic("unknown component")
 	}

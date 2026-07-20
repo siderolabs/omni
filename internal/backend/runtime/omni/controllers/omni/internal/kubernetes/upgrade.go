@@ -13,6 +13,7 @@ import (
 	"github.com/siderolabs/gen/maps"
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/talos/pkg/machinery/config"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
@@ -56,7 +57,11 @@ func (path *UpgradePath) BlockedNodes() []string {
 // CalculateUpgradePath calculates the upgrade path for the cluster.
 //
 //nolint:gocyclo,cyclop,gocognit
-func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *omni.KubernetesStatus, desiredVersion string) *UpgradePath {
+func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *omni.KubernetesStatus, desiredVersion string, vc *config.VersionContract) (*UpgradePath, error) {
+	if vc == nil {
+		return nil, fmt.Errorf("version contract must not be nil")
+	}
+
 	upgradePath := &UpgradePath{
 		ClusterID: kubernetesStatus.Metadata().ID(),
 	}
@@ -75,11 +80,14 @@ func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *om
 		}
 	}
 
-	appPatch := func(nodename string, component Component, pending bool) {
+	appPatch := func(nodename string, component Component, pending bool) error {
 		machineID, ok := nodenameToMachineMap.ControlPlanes[nodename]
 
 		if ok && component.Valid() {
-			patch := component.Patch(desiredVersion)
+			patch, err := component.Patch(vc, desiredVersion)
+			if err != nil {
+				return fmt.Errorf("failed to build patch for node %q component %q: %w", nodename, component, err)
+			}
 
 			addImagesToNode(nodename, patch.UsedImages)
 
@@ -93,19 +101,24 @@ func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *om
 				})
 			}
 		}
+
+		return nil
 	}
 
-	kubeletPatch := func(nodename string, pending bool) {
+	kubeletPatch := func(nodename string, pending bool) error {
 		machineID, ok := nodenameToMachineMap.ControlPlanes[nodename]
 		if !ok {
 			machineID, ok = nodenameToMachineMap.Workers[nodename]
 		}
 
 		if !ok {
-			return
+			return nil
 		}
 
-		patch := Kubelet.Patch(desiredVersion)
+		patch, err := Kubelet.Patch(vc, desiredVersion)
+		if err != nil {
+			return fmt.Errorf("failed to build kubelet patch for node %q: %w", nodename, err)
+		}
 
 		addImagesToNode(nodename, patch.UsedImages)
 
@@ -120,6 +133,8 @@ func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *om
 				Blocked:     locked, // Upgrade step is blocked from progressing because the machine is locked
 			})
 		}
+
+		return nil
 	}
 
 	unreadyApps := map[pair.Pair[string, Component]]struct{}{}
@@ -136,7 +151,9 @@ func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *om
 				delete(unreadyApps, pair.MakePair(controlPlane.Nodename, Component(app.App)))
 			}
 
-			appPatch(controlPlane.Nodename, Component(app.App), app.Version != desiredVersion)
+			if err := appPatch(controlPlane.Nodename, Component(app.App), app.Version != desiredVersion); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -147,7 +164,9 @@ func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *om
 			delete(unreadyNodes, nodeInfo.Nodename)
 		}
 
-		kubeletPatch(nodeInfo.Nodename, nodeInfo.KubeletVersion != desiredVersion)
+		if err := kubeletPatch(nodeInfo.Nodename, nodeInfo.KubeletVersion != desiredVersion); err != nil {
+			return nil, err
+		}
 	}
 
 	switch {
@@ -170,12 +189,16 @@ func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *om
 
 	// try appending patches for not ready apps, as they might not show up, but still require patching
 	for notReadyApp := range unreadyApps {
-		appPatch(notReadyApp.F1, notReadyApp.F2, true)
+		if err := appPatch(notReadyApp.F1, notReadyApp.F2, true); err != nil {
+			return nil, err
+		}
 	}
 
 	// try appending patches for not ready nodes, as they might not show up, but still require patching
 	for notReadyNode := range unreadyNodes {
-		kubeletPatch(notReadyNode, true)
+		if err := kubeletPatch(notReadyNode, true); err != nil {
+			return nil, err
+		}
 	}
 
 	slices.SortFunc(upgradePath.Steps, func(a, b UpgradeStep) int {
@@ -199,5 +222,5 @@ func CalculateUpgradePath(nodenameToMachineMap *MachineMap, kubernetesStatus *om
 		upgradePath.AllNodesToRequiredImages[node] = requiredImages
 	}
 
-	return upgradePath
+	return upgradePath, nil
 }

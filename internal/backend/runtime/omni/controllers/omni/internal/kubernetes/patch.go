@@ -6,10 +6,14 @@
 package kubernetes
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
+	"github.com/siderolabs/talos/pkg/machinery/config"
+	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	"github.com/siderolabs/talos/pkg/machinery/config/configpatcher"
+	"github.com/siderolabs/talos/pkg/machinery/config/generate/stdpatches"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 )
 
@@ -41,134 +45,117 @@ func (p UpgradeStep) Less(other UpgradeStep) bool {
 	return p.Component.Less(other.Component)
 }
 
-// Patcher returns the instructions to patch v1alpha1.Config to upgrade a specific component.
+// Patcher holds a machine config patch that upgrades a specific component.
 // It also returns the list of images used by it.
 type Patcher struct {
-	Apply      func(*v1alpha1.Config)
+	Patch      []byte
 	UsedImages []string
 }
 
 // MultiPatcher combines several patches.
-func MultiPatcher(patchers ...Patcher) Patcher {
+func MultiPatcher(patchers ...Patcher) (Patcher, error) {
+	if len(patchers) == 0 {
+		return Patcher{}, fmt.Errorf("at least one patcher is required")
+	}
+
+	merged := patchers[0].Patch
+
+	for _, p := range patchers[1:] {
+		var err error
+
+		merged, err = MergePatch(merged, p.Patch)
+		if err != nil {
+			return Patcher{}, err
+		}
+	}
+
 	return Patcher{
-		Apply: func(config *v1alpha1.Config) {
-			for _, patcher := range patchers {
-				patcher.Apply(config)
-			}
-		},
+		Patch: merged,
 		UsedImages: xslices.FlatMap(patchers, func(p Patcher) []string {
 			return p.UsedImages
 		}),
-	}
+	}, nil
 }
 
-func patchKubelet(version string) Patcher {
+// MergePatch merges a new patch into an existing patch.
+func MergePatch(existing, newPatch []byte) ([]byte, error) {
+	if len(bytes.TrimSpace(existing)) == 0 {
+		return newPatch, nil
+	}
+
+	if len(bytes.TrimSpace(newPatch)) == 0 {
+		return existing, nil
+	}
+
+	base, err := configloader.NewFromBytes(existing)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse existing patch: %w", err)
+	}
+
+	patch, err := configpatcher.LoadPatch(newPatch)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse new patch: %w", err)
+	}
+
+	merged, err := configpatcher.Apply(configpatcher.WithConfig(base), []configpatcher.Patch{patch})
+	if err != nil {
+		return nil, fmt.Errorf("failed to merge patch: %w", err)
+	}
+
+	return merged.Bytes()
+}
+
+func patchKubelet(vc *config.VersionContract, version string) (Patcher, error) {
 	img := fmt.Sprintf("%s:v%s", constants.KubeletImage, version)
 
-	return Patcher{
-		Apply: func(config *v1alpha1.Config) {
-			if config.MachineConfig == nil {
-				config.MachineConfig = &v1alpha1.MachineConfig{}
-			}
-
-			if config.MachineConfig.MachineKubelet == nil {
-				config.MachineConfig.MachineKubelet = &v1alpha1.KubeletConfig{}
-			}
-
-			config.MachineConfig.MachineKubelet.KubeletImage = img
-		},
-		UsedImages: []string{img},
+	data, err := stdpatches.WithKubeletImage(vc, img)
+	if err != nil {
+		return Patcher{}, fmt.Errorf("failed to build kubelet patch: %w", err)
 	}
+
+	return Patcher{Patch: data, UsedImages: []string{img}}, nil
 }
 
-// The inline API server config fields are deprecated in favor of separate config documents, but Omni still
-// relies on the inline form, so the deprecation is suppressed here.
-//
-//nolint:staticcheck
-func patchAPIServer(version string) Patcher {
+func patchAPIServer(vc *config.VersionContract, version string) (Patcher, error) {
 	img := fmt.Sprintf("%s:v%s", constants.KubernetesAPIServerImage, version)
 
-	return Patcher{
-		Apply: func(config *v1alpha1.Config) {
-			if config.ClusterConfig == nil {
-				config.ClusterConfig = &v1alpha1.ClusterConfig{}
-			}
-
-			if config.ClusterConfig.APIServerConfig == nil {
-				config.ClusterConfig.APIServerConfig = &v1alpha1.APIServerConfig{}
-			}
-
-			config.ClusterConfig.APIServerConfig.ContainerImage = img
-		},
-		UsedImages: []string{img},
+	data, err := stdpatches.WithKubeAPIServerImage(vc, img)
+	if err != nil {
+		return Patcher{}, fmt.Errorf("failed to build kube-apiserver patch: %w", err)
 	}
+
+	return Patcher{Patch: data, UsedImages: []string{img}}, nil
 }
 
-// The inline controller manager config fields are deprecated in favor of separate config documents, but Omni still
-// relies on the inline form, so the deprecation is suppressed here.
-//
-//nolint:staticcheck
-func patchControllerManager(version string) Patcher {
+func patchControllerManager(vc *config.VersionContract, version string) (Patcher, error) {
 	img := fmt.Sprintf("%s:v%s", constants.KubernetesControllerManagerImage, version)
 
-	return Patcher{
-		Apply: func(config *v1alpha1.Config) {
-			if config.ClusterConfig == nil {
-				config.ClusterConfig = &v1alpha1.ClusterConfig{}
-			}
-
-			if config.ClusterConfig.ControllerManagerConfig == nil {
-				config.ClusterConfig.ControllerManagerConfig = &v1alpha1.ControllerManagerConfig{}
-			}
-
-			config.ClusterConfig.ControllerManagerConfig.ContainerImage = img
-		},
-		UsedImages: []string{img},
+	data, err := stdpatches.WithKubeControllerManagerImage(vc, img)
+	if err != nil {
+		return Patcher{}, fmt.Errorf("failed to build kube-controller-manager patch: %w", err)
 	}
+
+	return Patcher{Patch: data, UsedImages: []string{img}}, nil
 }
 
-// The inline scheduler config fields are deprecated in favor of separate config documents, but Omni still relies on
-// the inline form, so the deprecation is suppressed here.
-//
-//nolint:staticcheck
-func patchScheduler(version string) Patcher {
+func patchScheduler(vc *config.VersionContract, version string) (Patcher, error) {
 	img := fmt.Sprintf("%s:v%s", constants.KubernetesSchedulerImage, version)
 
-	return Patcher{
-		Apply: func(config *v1alpha1.Config) {
-			if config.ClusterConfig == nil {
-				config.ClusterConfig = &v1alpha1.ClusterConfig{}
-			}
-
-			if config.ClusterConfig.SchedulerConfig == nil {
-				config.ClusterConfig.SchedulerConfig = &v1alpha1.SchedulerConfig{}
-			}
-
-			config.ClusterConfig.SchedulerConfig.ContainerImage = img
-		},
-		UsedImages: []string{img},
+	data, err := stdpatches.WithKubeSchedulerImage(vc, img)
+	if err != nil {
+		return Patcher{}, fmt.Errorf("failed to build kube-scheduler patch: %w", err)
 	}
+
+	return Patcher{Patch: data, UsedImages: []string{img}}, nil
 }
 
-// The inline kube-proxy config fields are deprecated in favor of separate config documents, but Omni still relies on
-// the inline form, so the deprecation is suppressed here.
-//
-//nolint:staticcheck
-func patchKubeProxy(version string) Patcher {
+func patchKubeProxy(vc *config.VersionContract, version string) (Patcher, error) {
 	img := fmt.Sprintf("%s:v%s", constants.KubeProxyImage, version)
 
-	return Patcher{
-		Apply: func(config *v1alpha1.Config) {
-			if config.ClusterConfig == nil {
-				config.ClusterConfig = &v1alpha1.ClusterConfig{}
-			}
-
-			if config.ClusterConfig.ProxyConfig == nil {
-				config.ClusterConfig.ProxyConfig = &v1alpha1.ProxyConfig{}
-			}
-
-			config.ClusterConfig.ProxyConfig.ContainerImage = img
-		},
-		UsedImages: []string{img},
+	data, err := stdpatches.WithKubeProxyImage(vc, img)
+	if err != nil {
+		return Patcher{}, fmt.Errorf("failed to build kube-proxy patch: %w", err)
 	}
+
+	return Patcher{Patch: data, UsedImages: []string{img}}, nil
 }

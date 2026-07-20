@@ -13,8 +13,9 @@ import (
 	"testing"
 
 	"github.com/siderolabs/talos/pkg/machinery/config"
-	"github.com/siderolabs/talos/pkg/machinery/config/container"
-	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
+	"github.com/siderolabs/talos/pkg/machinery/config/configpatcher"
+	"github.com/siderolabs/talos/pkg/machinery/config/generate"
+	"github.com/siderolabs/talos/pkg/machinery/config/machine"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -40,37 +41,57 @@ func TestComponentPatch(t *testing.T) {
 		assert.Equal(t, v, strings.TrimLeft(tag, "v"))
 	}
 
-	for i := range 10 {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
+	componentVersionAssertion := map[kubernetes.Component]func(*testing.T, config.Provider, string){
+		kubernetes.APIServer: func(t *testing.T, cfg config.Provider, v string) {
+			assertVersion(t, v, cfg.K8sAPIServerConfig().Image())
+			assertVersion(t, v, cfg.K8sProxyConfig().Image())
+		},
+		kubernetes.ControllerManager: func(t *testing.T, cfg config.Provider, v string) {
+			assertVersion(t, v, cfg.K8sControllerManagerConfig().Image())
+		},
+		kubernetes.Scheduler: func(t *testing.T, cfg config.Provider, v string) {
+			assertVersion(t, v, cfg.K8sSchedulerConfig().Image())
+		},
+		kubernetes.Kubelet: func(t *testing.T, cfg config.Provider, v string) {
+			assertVersion(t, v, cfg.Machine().Kubelet().Image())
+		},
+	}
+
+	for _, vc := range []*config.VersionContract{config.TalosVersion1_13, config.TalosVersion1_14} {
+		t.Run(vc.String(), func(t *testing.T) {
 			t.Parallel()
 
-			components := append(slices.Clone(kubernetes.AllControlPlaneComponents), kubernetes.Kubelet)
-			rand.Shuffle(len(components), func(i, j int) {
-				components[i], components[j] = components[j], components[i]
-			})
+			for i := range 10 {
+				t.Run(strconv.Itoa(i), func(t *testing.T) {
+					t.Parallel()
 
-			v1alpha1Cfg := &v1alpha1.Config{}
-			cfg := container.NewV1Alpha1(v1alpha1Cfg)
+					components := append(slices.Clone(kubernetes.AllControlPlaneComponents), kubernetes.Kubelet)
+					rand.Shuffle(len(components), func(i, j int) {
+						components[i], components[j] = components[j], components[i]
+					})
 
-			componentVersionAssertion := map[kubernetes.Component]func(*testing.T, config.Provider, string){
-				kubernetes.APIServer: func(t *testing.T, cfg config.Provider, v string) {
-					assertVersion(t, v, cfg.K8sAPIServerConfig().Image())
-					assertVersion(t, v, cfg.K8sProxyConfig().Image())
-				},
-				kubernetes.ControllerManager: func(t *testing.T, cfg config.Provider, v string) {
-					assertVersion(t, v, cfg.K8sControllerManagerConfig().Image())
-				},
-				kubernetes.Scheduler: func(t *testing.T, cfg config.Provider, v string) {
-					assertVersion(t, v, cfg.K8sSchedulerConfig().Image())
-				},
-				kubernetes.Kubelet: func(t *testing.T, cfg config.Provider, v string) {
-					assertVersion(t, v, cfg.Machine().Kubelet().Image())
-				},
-			}
+					in, err := generate.NewInput("component-patch-test", "https://127.0.0.1/", "1.34.0", generate.WithVersionContract(vc))
+					require.NoError(t, err)
 
-			for _, component := range components {
-				component.Patch("1.2.3").Apply(v1alpha1Cfg)
-				componentVersionAssertion[component](t, cfg, "1.2.3")
+					cfg, err := in.Config(machine.TypeControlPlane)
+					require.NoError(t, err)
+
+					for _, component := range components {
+						patcher, err := component.Patch(vc, "1.2.3")
+						require.NoError(t, err)
+
+						patch, err := configpatcher.LoadPatch(patcher.Patch)
+						require.NoError(t, err)
+
+						patched, err := configpatcher.Apply(configpatcher.WithConfig(cfg), []configpatcher.Patch{patch})
+						require.NoError(t, err)
+
+						cfg, err = patched.Config()
+						require.NoError(t, err)
+
+						componentVersionAssertion[component](t, cfg, "1.2.3")
+					}
+				})
 			}
 		})
 	}

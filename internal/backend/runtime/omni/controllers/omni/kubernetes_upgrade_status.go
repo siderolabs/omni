@@ -6,9 +6,9 @@
 package omni
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
@@ -16,9 +16,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
-	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
+	"github.com/siderolabs/talos/pkg/machinery/config"
 	"go.uber.org/zap"
-	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -111,8 +110,25 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 					return fmt.Errorf("failed to build nodename to machine map: %w", err)
 				}
 
+				clusterConfigVersion, err := safe.ReaderGet[*omni.ClusterConfigVersion](ctx, r, omni.NewClusterConfigVersion(cluster.Metadata().ID()).Metadata())
+				if err != nil {
+					if state.IsNotFoundError(err) {
+						return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
+					}
+
+					return err
+				}
+
+				vc, err := config.ParseContractFromVersion(clusterConfigVersion.TypedSpec().Value.Version)
+				if err != nil {
+					return fmt.Errorf("failed to parse version contract: %w", err)
+				}
+
 				// check if all Kubernetes components are ready
-				upgradePath := kubernetes.CalculateUpgradePath(nodenameToMachineMap, kubernetesStatus, cluster.TypedSpec().Value.KubernetesVersion)
+				upgradePath, err := kubernetes.CalculateUpgradePath(nodenameToMachineMap, kubernetesStatus, cluster.TypedSpec().Value.KubernetesVersion, vc)
+				if err != nil {
+					return fmt.Errorf("failed to calculate upgrade path: %w", err)
+				}
 
 				upgradeStatus.Metadata().Labels().Set(omni.LabelCluster, cluster.Metadata().ID())
 
@@ -248,6 +264,9 @@ func NewKubernetesUpgradeStatusController() *KubernetesUpgradeStatusController {
 		qtransform.WithExtraMappedInput[*omni.ClusterStatus](
 			qtransform.MapperSameID[*omni.Cluster](),
 		),
+		qtransform.WithExtraMappedInput[*omni.ClusterConfigVersion](
+			qtransform.MapperSameID[*omni.Cluster](),
+		),
 		qtransform.WithExtraMappedInput[*omni.KubernetesStatus](
 			qtransform.MapperSameID[*omni.Cluster](),
 		),
@@ -343,8 +362,6 @@ func applyUpgradePatches(ctx context.Context, r controller.Writer, cluster *omni
 		if err := safe.WriterModify(ctx, r,
 			omni.NewConfigPatch(fmt.Sprintf("900-cm-%s-kubernetes-upgrade", patch.MachineID)),
 			func(configPatch *omni.ConfigPatch) error {
-				var cfg v1alpha1.Config
-
 				buffer, err := configPatch.TypedSpec().Value.GetUncompressedData()
 				if err != nil {
 					return err
@@ -352,20 +369,13 @@ func applyUpgradePatches(ctx context.Context, r controller.Writer, cluster *omni
 
 				defer buffer.Free()
 
-				patchData := buffer.Data()
-
-				if len(patchData) > 0 {
-					if err = yaml.Unmarshal(patchData, &cfg); err != nil {
-						return err
-					}
+				merged, err := kubernetes.MergePatch(buffer.Data(), patch.Patch.Patch)
+				if err != nil {
+					return fmt.Errorf("failed to merge kubernetes upgrade patch: %w", err)
 				}
 
-				oldCfg := cfg.DeepCopy()
-
-				patch.Patch.Apply(&cfg)
-
 				// patch is already applied, skip it
-				if reflect.DeepEqual(oldCfg, cfg) {
+				if bytes.Equal(buffer.Data(), merged) {
 					return nil
 				}
 
@@ -373,12 +383,7 @@ func applyUpgradePatches(ctx context.Context, r controller.Writer, cluster *omni
 				configPatch.Metadata().Labels().Set(omni.LabelClusterMachine, patch.MachineID)
 				configPatch.Metadata().Labels().Set(omni.LabelSystemPatch, "")
 
-				data, err := yaml.Marshal(cfg)
-				if err != nil {
-					return err
-				}
-
-				if err = configPatch.TypedSpec().Value.SetUncompressedData(data); err != nil {
+				if err = configPatch.TypedSpec().Value.SetUncompressedData(merged); err != nil {
 					return err
 				}
 

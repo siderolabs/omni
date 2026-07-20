@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/siderolabs/talos/pkg/machinery/config"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -647,7 +648,8 @@ func TestUpgradePath(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			upgradePath := kubernetes.CalculateUpgradePath(test.machineMap, test.kubernetesStatus, test.desiredVersion)
+			upgradePath, err := kubernetes.CalculateUpgradePath(test.machineMap, test.kubernetesStatus, test.desiredVersion, config.TalosVersion1_14)
+			require.NoError(t, err)
 			assert.Equal(t, test.expected.AllComponentsReady, upgradePath.AllComponentsReady)
 			assert.Equal(t, test.expected.NotReadyStatus, upgradePath.NotReadyStatus)
 			assert.Equal(t, test.expected.BlockedNodes(), upgradePath.BlockedNodes())
