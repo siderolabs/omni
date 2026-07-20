@@ -160,6 +160,7 @@ export const LabelMachineSet = "omni.sidero.dev/machine-set";
 export const LabelClusterMachine = "omni.sidero.dev/cluster-machine";
 export const LabelMachine = "omni.sidero.dev/machine";
 export const LabelSystemPatch = "omni.sidero.dev/system-patch";
+export const LabelDisabled = "omni.sidero.dev/disabled";
 export const LabelSystemManifest = "omni.sidero.dev/system-manifest";
 export const LabelExposedServiceAlias = "omni.sidero.dev/exposed-service-alias";
 export const LabelHasGeneratedExposedServiceAlias = "omni.sidero.dev/has-generated-exposed-service-alias";

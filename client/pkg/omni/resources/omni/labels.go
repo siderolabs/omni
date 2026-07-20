@@ -49,6 +49,10 @@ const (
 	// tsgen:LabelSystemPatch
 	LabelSystemPatch = SystemLabelPrefix + "system-patch"
 
+	// LabelDisabled marks a config patch as disabled, so it is skipped when the config patches are applied to the machines.
+	// tsgen:LabelDisabled
+	LabelDisabled = SystemLabelPrefix + "disabled"
+
 	// LabelSystemManifest marks the manifest as the system manifest, so it shouldn't be editable by the user.
 	// tsgen:LabelSystemManifest
 	LabelSystemManifest = SystemLabelPrefix + "system-manifest"

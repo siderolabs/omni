@@ -333,7 +333,10 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 
 // getMachinePatches collects the running machine-level config patches for the machine, ordered by ID (lower ID = lower priority).
 func getMachinePatches(ctx context.Context, r controller.Reader, machineID resource.ID) ([]string, error) {
-	list, err := safe.ReaderListAll[*omni.ConfigPatch](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelMachine, machineID)))
+	list, err := safe.ReaderListAll[*omni.ConfigPatch](ctx, r, state.WithLabelQuery(
+		resource.LabelEqual(omni.LabelMachine, machineID),
+		resource.LabelExists(omni.LabelDisabled, resource.NotMatches),
+	))
 	if err != nil {
 		return nil, err
 	}

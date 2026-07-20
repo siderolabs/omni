@@ -5,25 +5,30 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { reactiveOmit } from '@vueuse/core'
 import {
   DropdownMenuItem,
   type DropdownMenuItemEmits,
   type DropdownMenuItemProps,
-  useEmitAsProps,
+  useForwardPropsEmits,
 } from 'reka-ui'
 
 import type { IconType } from '@/components/Icon/TIcon.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 
+// eslint-disable-next-line vue/define-props-destructuring
 const props = defineProps<
   DropdownMenuItemProps & {
     icon?: IconType
     danger?: boolean
   }
 >()
+
 const emit = defineEmits<DropdownMenuItemEmits>()
 
-const emitsAsProps = useEmitAsProps(emit)
+const dropdownMenuItemProps = reactiveOmit(props, 'icon', 'danger')
+
+const forwarded = useForwardPropsEmits(dropdownMenuItemProps, emit)
 </script>
 
 <template>
@@ -34,7 +39,7 @@ const emitsAsProps = useEmitAsProps(emit)
         ? 'text-red-r1 not-data-disabled:hover:text-primary-p1'
         : 'not-data-disabled:hover:text-naturals-n12'
     "
-    v-bind="{ ...props, ...emitsAsProps }"
+    v-bind="forwarded"
   >
     <TIcon v-if="icon" class="h-4 w-4 transition-colors" :icon />
     <span class="text-xs transition-colors">

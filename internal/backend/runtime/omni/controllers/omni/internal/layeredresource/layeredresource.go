@@ -15,6 +15,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
+	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -27,7 +28,7 @@ type Helper[T generic.ResourceWithRD] struct {
 
 // NewHelper creates a new helper for managing layered resources.
 func NewHelper[T generic.ResourceWithRD](ctx context.Context, r controller.Reader) (*Helper[T], error) {
-	allResources, err := safe.ReaderListAll[T](ctx, r)
+	allResources, err := safe.ReaderListAll[T](ctx, r, state.WithLabelQuery(resource.LabelExists(omni.LabelDisabled, resource.NotMatches)))
 	if err != nil {
 		return nil, err
 	}

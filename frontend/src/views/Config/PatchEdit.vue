@@ -32,6 +32,7 @@ import {
   DefaultNamespace,
   LabelCluster,
   LabelClusterMachine,
+  LabelDisabled,
   LabelHostname,
   LabelMachine,
   LabelMachineSet,
@@ -46,9 +47,12 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
+import Switch from '@/components/Switch/Switch.vue'
+import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions, usePermissions } from '@/methods/auth'
+import { isConfigPatchDisabled } from '@/methods/config-patch'
 import { machineSetTitle, sortMachineSetIds } from '@/methods/machineset'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
@@ -90,6 +94,7 @@ const config = ref('')
 const weight = ref(0)
 const patchName = ref('User defined patch')
 const patchDescription = ref('')
+const patchEnabled = ref(true)
 
 enum PatchType {
   Cluster = 'Cluster',
@@ -231,6 +236,7 @@ const loadPatch = () => {
 
   if (configPatch.value?.spec?.data) {
     config.value = configPatch.value.spec.data
+    patchEnabled.value = !isConfigPatchDisabled(configPatch.value.metadata.labels)
   }
 }
 
@@ -360,6 +366,7 @@ const saveConfig = async () => {
   }
 
   currentPatch.metadata.annotations ??= {}
+  currentPatch.metadata.labels ??= {}
   currentPatch.spec.data = config.value
 
   if (patchName.value) {
@@ -372,6 +379,12 @@ const saveConfig = async () => {
     currentPatch.metadata.annotations[ConfigPatchDescription] = patchDescription.value
   } else {
     delete currentPatch.metadata.annotations[ConfigPatchDescription]
+  }
+
+  if (patchEnabled.value) {
+    delete currentPatch.metadata.labels[LabelDisabled]
+  } else {
+    currentPatch.metadata.labels[LabelDisabled] = ''
   }
 
   saving.value = true
@@ -414,6 +427,14 @@ const canManageConfigPatches = computed(() =>
     <PageContainer class="flex grow flex-col overflow-hidden">
       <PageHeader :title="title" :subtitle="subtitle" :notes="notes" />
       <ManagedByTemplatesWarning />
+      <TAlert
+        v-if="state === State.Exists && !patchEnabled"
+        class="mb-4"
+        title="Disabled"
+        type="warn"
+      >
+        This config patch is disabled and is not applied to any machines.
+      </TAlert>
       <div v-if="state === State.NotExists" class="mb-4 flex items-center gap-3">
         <TInput v-model="patchName" title="Name" />
         <TInput v-model="patchDescription" class="flex-1" title="Description" />
@@ -454,6 +475,9 @@ const canManageConfigPatches = computed(() =>
     >
       <TButton class="secondary" @click="() => $router.push(back)">Back</TButton>
       <div class="flex-1" />
+
+      <Switch v-model="patchEnabled" :disabled="!canManageConfigPatches" label="Enabled" />
+
       <TButton
         variant="highlighted"
         :disabled="!canManageConfigPatches || saving"

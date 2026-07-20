@@ -28,14 +28,18 @@ import {
   LabelMachineSet,
   LabelSystemPatch,
 } from '@/api/resources'
-import IconButton from '@/components/Button/IconButton.vue'
+import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
+import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
 import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
+import TStatus from '@/components/Status/TStatus.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import { TCommonStatuses } from '@/constants'
 import { useClusterPermissions, usePermissions } from '@/methods/auth'
+import { isConfigPatchDisabled, setConfigPatchDisabled } from '@/methods/config-patch'
 import {
   controlPlaneTitle,
   defaultWorkersTitle,
@@ -43,6 +47,7 @@ import {
   workersTitlePrefix,
 } from '@/methods/machineset'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import { showError } from '@/notification'
 import ConfigPatchDestroyModal from '@/views/Config/components/ConfigPatchDestroyModal.vue'
 
 const { machine, cluster } = defineProps<{
@@ -114,6 +119,7 @@ interface RouteItem {
   route: RouteLocationRaw
   id: string
   description?: string
+  disabled: boolean
 }
 
 const patchTypeCluster = 'Cluster'
@@ -182,6 +188,7 @@ const routes = computed(() => {
       route: getRouteForPatch(item.metadata.id),
       id: item.metadata.id!,
       description: item.metadata.annotations?.[ConfigPatchDescription],
+      disabled: isConfigPatchDisabled(item.metadata.labels),
     }
 
     const labels = item.metadata.labels || {}
@@ -249,6 +256,23 @@ const canManageConfigPatches = computed(() => {
 
   return false
 })
+
+const togglingPatchId = ref<string>()
+
+const toggleDisabled = async (item: RouteItem) => {
+  togglingPatchId.value = item.id
+
+  try {
+    await setConfigPatchDisabled(item.id, !item.disabled)
+  } catch (e) {
+    showError(
+      `Failed to ${item.disabled ? 'Enable' : 'Disable'} The Config Patch`,
+      e instanceof Error ? e.message : String(e),
+    )
+  } finally {
+    togglingPatchId.value = undefined
+  }
+}
 </script>
 
 <template>
@@ -280,58 +304,78 @@ const canManageConfigPatches = computed(() => {
               : `on the account`
         }}
       </TAlert>
-      <Disclosure v-for="group in routes" v-else :key="group.name" as="div" :default-open="true">
+      <Disclosure
+        v-for="group in routes"
+        v-else
+        :key="group.name"
+        as="div"
+        :default-open="true"
+        class="[--actions-col:--spacing(6)]"
+      >
         <template #default="{ open }">
-          <DisclosureButton as="div" class="disclosure">
+          <DisclosureButton
+            as="div"
+            class="grid cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] gap-4 bg-naturals-n1 px-4 py-3 text-xs font-bold text-naturals-n11 transition-colors duration-200 select-none hover:text-naturals-n14"
+          >
+            <WordHighlighter
+              :text-to-highlight="group.name"
+              :query="filter"
+              highlight-class="bg-naturals-n14"
+            />
+
+            <div>ID</div>
+            <div class="col-span-2">Description</div>
+
             <TIcon
               icon="arrow-up"
-              class="absolute top-0 right-4 bottom-0 m-auto h-4 w-4"
+              class="size-4 justify-self-center"
               :class="{ 'rotate-180': open }"
             />
-            <div class="grid grid-cols-4">
-              <WordHighlighter
-                :text-to-highlight="group.name"
-                :query="filter"
-                highlight-class="bg-naturals-n14"
-              />
-              <div>ID</div>
-              <div class="col-span-2">Description</div>
-            </div>
           </DisclosureButton>
+
           <DisclosurePanel>
             <div
               v-for="item in group.items"
               :key="item.name"
-              class="relative my-2 grid w-full cursor-pointer grid-cols-4 items-center gap-2 px-4 py-2 text-xs transition-colors duration-200 hover:bg-naturals-n3 hover:text-naturals-n12"
+              class="my-1 grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] items-center gap-2 px-4 py-2 text-xs transition-colors duration-200 select-none hover:bg-naturals-n3 hover:text-naturals-n12"
+              :class="{ 'opacity-50': item.disabled }"
               @click="() => $router.push(item.route)"
             >
-              <IconButton
-                :disabled="!canManageConfigPatches"
-                icon="delete"
-                class="absolute top-0 right-3 bottom-0 m-auto"
-                @click.stop="
-                  () => {
-                    configPatchDestroyModalOpen = true
-                    configPatchDestroyModalPatchId = item.id
-                  }
-                "
-              />
-              <div class="pointer-events-none flex items-center gap-4">
-                <DocumentIcon class="h-4 w-4" />
+              <div class="flex min-w-0 items-center gap-4">
+                <DocumentIcon class="size-4 shrink-0" />
+
                 <WordHighlighter
                   :text-to-highlight="item.name"
                   :query="filter"
                   highlight-class="bg-naturals-n14"
+                  class="truncate"
                 />
+
+                <TStatus v-if="item.disabled" :title="TCommonStatuses.DISABLED" />
               </div>
+
               <WordHighlighter
                 :text-to-highlight="item.id"
                 :query="filter"
-                highlight-class="pointer-events-none bg-naturals-n14"
+                highlight-class="bg-naturals-n14"
               />
-              <div class="pointer-events-none col-span-2 truncate">
+
+              <div class="col-span-2 truncate">
                 {{ item.description }}
               </div>
+
+              <TActionsBox aria-label="patch actions">
+                <TActionsBoxItem
+                  :icon="item.disabled ? 'check-in-circle-classic' : 'no-symbol'"
+                  @select="toggleDisabled(item)"
+                >
+                  {{ item.disabled ? 'Enable' : 'Disable' }}
+                </TActionsBoxItem>
+
+                <TActionsBoxItem danger icon="delete" @select="toggleDisabled(item)">
+                  Delete
+                </TActionsBoxItem>
+              </TActionsBox>
             </div>
           </DisclosurePanel>
         </template>
@@ -345,11 +389,3 @@ const canManageConfigPatches = computed(() => {
     />
   </div>
 </template>
-
-<style scoped>
-@reference "../../index.css";
-
-.disclosure {
-  @apply relative cursor-pointer bg-naturals-n1 px-4 py-3 text-xs font-bold text-naturals-n11 transition-colors duration-200 select-none hover:text-naturals-n14;
-}
-</style>

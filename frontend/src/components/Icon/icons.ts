@@ -108,6 +108,7 @@ export const icons = {
   'machines-manual': defineAsyncComponent(() => import('../icons/IconMachinesManual.vue')),
   minus: defineAsyncComponent(() => import('../icons/IconMinus.vue')),
   'no-connection': defineAsyncComponent(() => import('../icons/IconNoConnection.vue')),
+  'no-symbol': defineAsyncComponent(() => import('../icons/IconNoSymbol.vue')),
   nodes: defineAsyncComponent(() => import('../icons/IconNodes.vue')),
   'ongoing-tasks': defineAsyncComponent(() => import('../icons/IconOngoingTasks.vue')),
   overview: defineAsyncComponent(() => import('../icons/IconOverview.vue')),
