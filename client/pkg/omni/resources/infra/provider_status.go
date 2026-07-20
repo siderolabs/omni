@@ -54,6 +54,10 @@ func (ProviderStatusExtension) ResourceDefinition() meta.ResourceDefinitionSpec 
 				Name:     "Description",
 				JSONPath: "{.description}",
 			},
+			{
+				Name:     "Version",
+				JSONPath: "{.version}",
+			},
 		},
 	}
 }

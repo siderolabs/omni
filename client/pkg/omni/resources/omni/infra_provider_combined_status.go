@@ -54,6 +54,14 @@ func (InfraProviderCombinedStatusExtension) ResourceDefinition() meta.ResourceDe
 				Name:     "Description",
 				JSONPath: "{.description}",
 			},
+			{
+				Name:     "Version",
+				JSONPath: "{.version}",
+			},
+			{
+				Name:     "Connected",
+				JSONPath: "{.health.connected}",
+			},
 		},
 	}
 }

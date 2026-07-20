@@ -65,6 +65,7 @@ func NewCombinedStatusController(healthCheckInterval time.Duration) *CombinedSta
 					infraProviderStatus.TypedSpec().Value.Description = providerStatus.TypedSpec().Value.Description
 					infraProviderStatus.TypedSpec().Value.Icon = providerStatus.TypedSpec().Value.Icon
 					infraProviderStatus.TypedSpec().Value.Name = providerStatus.TypedSpec().Value.Name
+					infraProviderStatus.TypedSpec().Value.Version = providerStatus.TypedSpec().Value.Version
 
 					infraProviderStatus.TypedSpec().Value.Health.Initialized = true
 				}

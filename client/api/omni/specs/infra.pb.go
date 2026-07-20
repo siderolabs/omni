@@ -656,6 +656,7 @@ type InfraProviderStatusSpec struct {
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	Icon          string                 `protobuf:"bytes,4,opt,name=icon,proto3" json:"icon,omitempty"`
+	Version       string                 `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -714,6 +715,13 @@ func (x *InfraProviderStatusSpec) GetDescription() string {
 func (x *InfraProviderStatusSpec) GetIcon() string {
 	if x != nil {
 		return x.Icon
+	}
+	return ""
+}
+
+func (x *InfraProviderStatusSpec) GetVersion() string {
+	if x != nil {
+		return x.Version
 	}
 	return ""
 }
@@ -913,12 +921,13 @@ const file_omni_specs_infra_proto_rawDesc = "" +
 	"\x13POWER_STATE_UNKNOWN\x10\x00\x12\x13\n" +
 	"\x0fPOWER_STATE_OFF\x10\x01\x12\x12\n" +
 	"\x0ePOWER_STATE_ON\x10\x02\"\x13\n" +
-	"\x11InfraProviderSpec\"{\n" +
+	"\x11InfraProviderSpec\"\x95\x01\n" +
 	"\x17InfraProviderStatusSpec\x12\x16\n" +
 	"\x06schema\x18\x01 \x01(\tR\x06schema\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x12\n" +
-	"\x04icon\x18\x04 \x01(\tR\x04icon\"\x8b\x01\n" +
+	"\x04icon\x18\x04 \x01(\tR\x04icon\x12\x18\n" +
+	"\aversion\x18\x05 \x01(\tR\aversion\"\x8b\x01\n" +
 	"\x1dInfraProviderHealthStatusSpec\x12T\n" +
 	"\x18last_heartbeat_timestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x16lastHeartbeatTimestamp\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error\"I\n" +

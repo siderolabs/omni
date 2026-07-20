@@ -148,7 +148,7 @@ const openRotateSecretKey = async (name: string) => {
             <div
               v-for="item in items"
               :key="item.metadata.id"
-              class="grid grid-cols-4 items-center rounded border border-naturals-n5 bg-naturals-n1 p-3"
+              class="grid grid-cols-5 items-center rounded border border-naturals-n5 bg-naturals-n1 p-3"
               :class="{ 'border-dashed': !item.spec.name }"
             >
               <div class="flex items-center gap-3">
@@ -167,6 +167,13 @@ const openRotateSecretKey = async (name: string) => {
                     ID: {{ item.metadata.id }}
                   </span>
                 </div>
+              </div>
+
+              <div
+                class="truncate text-xs text-naturals-n13"
+                :class="{ 'opacity-50': !item.spec.version }"
+              >
+                {{ item.spec.version || 'Unknown version' }}
               </div>
 
               <Tooltip :description="item.spec.health?.error" placement="top-start">

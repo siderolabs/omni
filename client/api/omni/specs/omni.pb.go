@@ -7705,6 +7705,7 @@ type InfraProviderCombinedStatusSpec struct {
 	Description   string                                  `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	Icon          string                                  `protobuf:"bytes,3,opt,name=icon,proto3" json:"icon,omitempty"`
 	Health        *InfraProviderCombinedStatusSpec_Health `protobuf:"bytes,4,opt,name=health,proto3" json:"health,omitempty"`
+	Version       string                                  `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7765,6 +7766,13 @@ func (x *InfraProviderCombinedStatusSpec) GetHealth() *InfraProviderCombinedStat
 		return x.Health
 	}
 	return nil
+}
+
+func (x *InfraProviderCombinedStatusSpec) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
 }
 
 type MachineConfigDiffSpec struct {
@@ -12052,12 +12060,13 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	" DiscoveryAffiliateDeleteTaskSpec\x12\x1d\n" +
 	"\n" +
 	"cluster_id\x18\x01 \x01(\tR\tclusterId\x12<\n" +
-	"\x1adiscovery_service_endpoint\x18\x02 \x01(\tR\x18discoveryServiceEndpoint\"\x92\x02\n" +
+	"\x1adiscovery_service_endpoint\x18\x02 \x01(\tR\x18discoveryServiceEndpoint\"\xac\x02\n" +
 	"\x1fInfraProviderCombinedStatusSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x12\n" +
 	"\x04icon\x18\x03 \x01(\tR\x04icon\x12E\n" +
-	"\x06health\x18\x04 \x01(\v2-.specs.InfraProviderCombinedStatusSpec.HealthR\x06health\x1a^\n" +
+	"\x06health\x18\x04 \x01(\v2-.specs.InfraProviderCombinedStatusSpec.HealthR\x06health\x12\x18\n" +
+	"\aversion\x18\x05 \x01(\tR\aversion\x1a^\n" +
 	"\x06Health\x12\x1c\n" +
 	"\tconnected\x18\x01 \x01(\bR\tconnected\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12 \n" +

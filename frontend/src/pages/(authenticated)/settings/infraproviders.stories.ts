@@ -37,6 +37,7 @@ export const Default: Story = {
                   .dataUri({ type: 'svg-base64' })
                   .replace('data:image/svg+xml;base64,', ''),
                 description: faker.hacker.phrase(),
+                version: `v${faker.system.semver()}`,
                 health: {
                   connected: faker.datatype.boolean(),
                   error: faker.helpers.maybe(() => faker.hacker.phrase()),

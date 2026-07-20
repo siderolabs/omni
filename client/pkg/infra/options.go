@@ -23,6 +23,7 @@ type Options struct {
 	imageFactory               provision.FactoryClient
 	healthCheckFunc            HealthCheckFunc
 	omniEndpoint               string
+	version                    string
 	clientOptions              []client.Option
 	concurrency                uint
 	healthCheckInterval        time.Duration
@@ -83,6 +84,13 @@ func WithHealthCheckFunc(healthCheckFunc HealthCheckFunc) Option {
 func WithHealthCheckInterval(interval time.Duration) Option {
 	return func(o *Options) {
 		o.healthCheckInterval = interval
+	}
+}
+
+// WithVersion sets the version reported by the infra provider.
+func WithVersion(version string) Option {
+	return func(o *Options) {
+		o.version = version
 	}
 }
 

@@ -186,6 +186,7 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 	providerStatus.TypedSpec().Value.Name = provider.config.Name
 	providerStatus.TypedSpec().Value.Description = provider.config.Description
 	providerStatus.TypedSpec().Value.Icon = provider.config.Icon
+	providerStatus.TypedSpec().Value.Version = options.version
 
 	err = st.Create(ctx, providerStatus)
 	if err != nil {

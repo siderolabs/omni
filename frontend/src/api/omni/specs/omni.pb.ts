@@ -1043,6 +1043,7 @@ export type InfraProviderCombinedStatusSpec = {
   description?: string
   icon?: string
   health?: InfraProviderCombinedStatusSpecHealth
+  version?: string
 }
 
 export type MachineConfigDiffSpec = {

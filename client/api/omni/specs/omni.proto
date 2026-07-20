@@ -1545,6 +1545,7 @@ message InfraProviderCombinedStatusSpec {
   }
 
   Health health = 4;
+  string version = 5;
 }
 
 message MachineConfigDiffSpec {

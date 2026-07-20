@@ -149,14 +149,15 @@ var (
 
 				writer := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
 
-				fmt.Fprintf(writer, "ID\tNAME\tDESCRIPTION\tCONNECTED\tERROR\n") //nolint:errcheck
+				fmt.Fprintf(writer, "ID\tNAME\tVERSION\tDESCRIPTION\tCONNECTED\tERROR\n") //nolint:errcheck
 
 				for ps := range infraProviders.All() {
 					fmt.Fprintf( //nolint:errcheck
 						writer,
-						"%s\t%s\t%s\t%t\t%s\n",
+						"%s\t%s\t%s\t%s\t%t\t%s\n",
 						ps.Metadata().ID(),
 						ps.TypedSpec().Value.Name,
+						ps.TypedSpec().Value.Version,
 						ps.TypedSpec().Value.Description,
 						ps.TypedSpec().Value.Health.Connected,
 						ps.TypedSpec().Value.Health.Error,

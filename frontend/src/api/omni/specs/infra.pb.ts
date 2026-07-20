@@ -78,6 +78,7 @@ export type InfraProviderStatusSpec = {
   name?: string
   description?: string
   icon?: string
+  version?: string
 }
 
 export type InfraProviderHealthStatusSpec = {
