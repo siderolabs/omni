@@ -186,21 +186,7 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.L
 				case *cluster.Identity:
 					clusterMachineIdentity.TypedSpec().Value.NodeIdentity = r.TypedSpec().NodeID
 				case *cluster.Config:
-					// TODO: Update how we set discovery service endpoints with https://github.com/siderolabs/omni/issues/3024.
-					discoveryServiceEnabled := r.TypedSpec().DiscoveryEnabled && //nolint:staticcheck
-						r.TypedSpec().RegistryServiceEnabled && //nolint:staticcheck
-						r.TypedSpec().ServiceEndpoint != "" //nolint:staticcheck
-
-					if discoveryServiceEnabled {
-						protocol := "https://"
-						if r.TypedSpec().ServiceEndpointInsecure { //nolint:staticcheck
-							protocol = "http://"
-						}
-
-						clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint = protocol + r.TypedSpec().ServiceEndpoint //nolint:staticcheck
-					} else {
-						clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint = ""
-					}
+					clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint = discoveryServiceEndpoint(r)
 				case *k8s.Nodename:
 					clusterMachineIdentity.TypedSpec().Value.Nodename = r.TypedSpec().Nodename
 				case *k8s.NodeIP:
@@ -221,6 +207,41 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.L
 			}
 		}
 	}
+}
+
+// discoveryServiceEndpoint extracts the discovery service endpoint from the cluster config resource.
+//
+// It prefers the endpoints list introduced in Talos 1.14 and falls back to the legacy single-endpoint fields for machines running older Talos versions.
+//
+// TODO: handle multiple discovery service endpoints with https://github.com/siderolabs/omni/issues/3024. Until then, only the first endpoint is used.
+func discoveryServiceEndpoint(res *cluster.Config) string {
+	spec := res.TypedSpec()
+
+	if len(spec.ServiceEndpoints) > 0 && spec.ServiceEndpoints[0].Endpoint != "" {
+		endpoint := spec.ServiceEndpoints[0]
+
+		protocol := "https://"
+		if endpoint.Insecure {
+			protocol = "http://"
+		}
+
+		return protocol + endpoint.Endpoint
+	}
+
+	legacyDiscoveryServiceEnabled := spec.DiscoveryEnabled && //nolint:staticcheck
+		spec.RegistryServiceEnabled && //nolint:staticcheck
+		spec.ServiceEndpoint != "" //nolint:staticcheck
+
+	if legacyDiscoveryServiceEnabled {
+		protocol := "https://"
+		if spec.ServiceEndpointInsecure { //nolint:staticcheck
+			protocol = "http://"
+		}
+
+		return protocol + spec.ServiceEndpoint //nolint:staticcheck
+	}
+
+	return ""
 }
 
 func (spec IdentityCollectorTaskSpec) shouldRunLegacyEtcdMemberIDCollector(ctx context.Context, client *client.Client) (bool, error) {
