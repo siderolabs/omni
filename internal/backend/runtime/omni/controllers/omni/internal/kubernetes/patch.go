@@ -157,5 +157,6 @@ func patchKubeProxy(vc *config.VersionContract, version string) (Patcher, error)
 		return Patcher{}, fmt.Errorf("failed to build kube-proxy patch: %w", err)
 	}
 
-	return Patcher{Patch: data, UsedImages: []string{img}}, nil
+	// UsedImages is deliberately left empty so the kube-proxy image is not pre-pulled.
+	return Patcher{Patch: data}, nil
 }

@@ -40,7 +40,6 @@ func TestUpgradePath(t *testing.T) {
 		if controlPlane {
 			images = append(
 				images,
-				fmt.Sprintf("%s:v%s", constants.KubeProxyImage, desiredVersion),
 				fmt.Sprintf("%s:v%s", constants.KubernetesSchedulerImage, desiredVersion),
 				fmt.Sprintf("%s:v%s", constants.KubernetesAPIServerImage, desiredVersion),
 				fmt.Sprintf("%s:v%s", constants.KubernetesControllerManagerImage, desiredVersion),
