@@ -18,6 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/optional"
+	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
@@ -69,6 +70,11 @@ func (ctrl *ClusterMachineTeardownController) Settings() controller.QSettings {
 				Type:      omni.ClusterMachineIdentityType,
 				Kind:      controller.InputQMapped,
 			},
+			{
+				Namespace: resources.DefaultNamespace,
+				Type:      omni.MachineStatusSnapshotType,
+				Kind:      controller.InputQMapped,
+			},
 		},
 		Outputs: []controller.Output{
 			{
@@ -93,6 +99,10 @@ func (ctrl *ClusterMachineTeardownController) MapInput(ctx context.Context, logg
 		return mapper(ctx, logger, r, ptr)
 	case omni.ClusterSecretsType:
 		mapper := mappers.MapByClusterLabel[*omni.ClusterMachine]()
+
+		return mapper(ctx, logger, r, ptr)
+	case omni.MachineStatusSnapshotType:
+		mapper := qtransform.MapperSameID[*omni.ClusterMachine]()
 
 		return mapper(ctx, logger, r, ptr)
 	case omni.MachineSetType:
@@ -150,6 +160,14 @@ func (ctrl *ClusterMachineTeardownController) Reconcile(ctx context.Context, log
 	if clusterMachine.Metadata().Finalizers().Has(ClusterMachineConfigControllerName) {
 		logger.Info("skipping teardown, waiting for reset")
 
+		// Early affiliate deletion: if the machine has stopped re-registering with the discovery
+		// service (entered RESETTING or a later stage), create the DiscoveryAffiliateDeleteTask
+		// immediately rather than waiting for the full reset cycle (machine entering MAINTENANCE).
+		// This significantly reduces the time for the discovery service to reflect the removal.
+		if err := ctrl.maybeEarlyDeleteAffiliate(ctx, r, logger, clusterMachine); err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -167,6 +185,43 @@ func (ctrl *ClusterMachineTeardownController) Reconcile(ctx context.Context, log
 	}
 
 	return r.RemoveFinalizer(ctx, ptr, ctrl.Name())
+}
+
+// maybeEarlyDeleteAffiliate creates the DiscoveryAffiliateDeleteTask as soon as the machine enters
+// the RESETTING stage or beyond, without waiting for the full reset cycle to complete.
+// This is safe because once the machine enters RESETTING, its Talos discovery controller has stopped
+// and the machine will no longer re-register its affiliate with the discovery service.
+func (ctrl *ClusterMachineTeardownController) maybeEarlyDeleteAffiliate(
+	ctx context.Context,
+	r controller.QRuntime,
+	logger *zap.Logger,
+	clusterMachine *omni.ClusterMachine,
+) error {
+	machineStatusSnapshot, err := safe.ReaderGetByID[*omni.MachineStatusSnapshot](ctx, r, clusterMachine.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	stage := machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage()
+
+	switch stage {
+	case machineapi.MachineStatusEvent_RESETTING,
+		machineapi.MachineStatusEvent_REBOOTING,
+		machineapi.MachineStatusEvent_INSTALLING,
+		machineapi.MachineStatusEvent_BOOTING,
+		machineapi.MachineStatusEvent_MAINTENANCE:
+	default:
+		// Machine is still in a running state and may re-register with the discovery service.
+		return nil
+	}
+
+	logger.Info("machine has stopped re-registering, creating early affiliate delete task", zap.Stringer("stage", stage))
+
+	return ctrl.createDiscoveryAffiliateDeleteTask(ctx, r, clusterMachine)
 }
 
 func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
@@ -199,9 +254,43 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 
 	clusterMachineIdentity := clusterMachineIdentities[clusterMachine.Metadata().ID()]
 
-	secrets, err := safe.ReaderGet[*omni.ClusterSecrets](ctx, r, omni.NewClusterSecrets(
-		clusterName,
-	).Metadata())
+	if clusterMachineIdentity == nil {
+		return nil
+	}
+
+	if err = ctrl.createDiscoveryAffiliateDeleteTask(ctx, r, clusterMachine); err != nil {
+		return err
+	}
+
+	if nodeNameOccurrences[clusterMachineIdentity.TypedSpec().Value.Nodename] == 1 {
+		if err = ctrl.deleteNodeFromKubernetes(ctx, clusterMachine, clusterMachineIdentity, logger); err != nil {
+			logger.Warn("failed to delete the discovery service affiliate or the Kubernetes node for the cluster machine", zap.Error(err))
+		}
+	}
+
+	return nil
+}
+
+func (ctrl *ClusterMachineTeardownController) createDiscoveryAffiliateDeleteTask(
+	ctx context.Context,
+	r controller.QRuntime,
+	clusterMachine *omni.ClusterMachine,
+) error {
+	clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return fmt.Errorf("failed to determine cluster name of the cluster machine %s", clusterMachine.Metadata().ID())
+	}
+
+	clusterMachineIdentity, err := safe.ReaderGetByID[*omni.ClusterMachineIdentity](ctx, r, clusterMachine.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil
+		}
+
+		return fmt.Errorf("error getting cluster machine identity %q: %w", clusterMachine.Metadata().ID(), err)
+	}
+
+	secrets, err := safe.ReaderGet[*omni.ClusterSecrets](ctx, r, omni.NewClusterSecrets(clusterName).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -215,36 +304,24 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 		return fmt.Errorf("failed to convert cluster %q secrets bundle to secrets bundle: %w", clusterName, err)
 	}
 
-	if clusterMachineIdentity == nil {
-		return nil
-	}
-
 	nodeID := clusterMachineIdentity.TypedSpec().Value.GetNodeIdentity()
 
 	discoveryServiceEndpoint := clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint
-	if discoveryServiceEndpoint != "" {
-		if err = safe.WriterModify(ctx, r, omni.NewDiscoveryAffiliateDeleteTask(nodeID), func(res *omni.DiscoveryAffiliateDeleteTask) error {
-			helpers.CopyAllLabels(clusterMachineIdentity, res)
-
-			// set the cluster-machine label for informational/debugging purposes
-			res.Metadata().Labels().Set(omni.LabelClusterMachine, clusterMachine.Metadata().ID())
-
-			res.TypedSpec().Value.ClusterId = bundle.Cluster.ID
-			res.TypedSpec().Value.DiscoveryServiceEndpoint = discoveryServiceEndpoint
-
-			return nil
-		}); err != nil {
-			return err
-		}
+	if discoveryServiceEndpoint == "" {
+		return nil
 	}
 
-	if nodeNameOccurrences[clusterMachineIdentity.TypedSpec().Value.Nodename] == 1 {
-		if err = ctrl.deleteNodeFromKubernetes(ctx, clusterMachine, clusterMachineIdentity, logger); err != nil {
-			logger.Warn("failed to delete the discovery service affiliate or the Kubernetes node for the cluster machine", zap.Error(err))
-		}
-	}
+	return safe.WriterModify(ctx, r, omni.NewDiscoveryAffiliateDeleteTask(nodeID), func(res *omni.DiscoveryAffiliateDeleteTask) error {
+		helpers.CopyAllLabels(clusterMachineIdentity, res)
 
-	return nil
+		// set the cluster-machine label for informational/debugging purposes
+		res.Metadata().Labels().Set(omni.LabelClusterMachine, clusterMachine.Metadata().ID())
+
+		res.TypedSpec().Value.ClusterId = bundle.Cluster.ID
+		res.TypedSpec().Value.DiscoveryServiceEndpoint = discoveryServiceEndpoint
+
+		return nil
+	})
 }
 
 func (ctrl *ClusterMachineTeardownController) deleteNodeFromKubernetes(ctx context.Context, clusterMachine *omni.ClusterMachine,
