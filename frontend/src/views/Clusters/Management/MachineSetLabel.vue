@@ -18,9 +18,8 @@ defineProps<Props>()
 
 <template>
   <div
-    class="resource-label select-none"
+    class="resource-label rounded border select-none"
     :class="[
-      'rounded border',
       checked ? 'border-current/50' : 'border-transparent',
       disabled
         ? 'cursor-not-allowed opacity-50'

@@ -37,8 +37,8 @@ const description = computed(() => {
 <template>
   <Tooltip :description="description" :delay-duration="500" placement="bottom-start">
     <button
-      class="inline-flex items-center gap-1"
-      :class="['resource-label', label.labelClass, small ? 'max-w-50' : 'max-w-75']"
+      class="resource-label inline-flex items-center gap-1"
+      :class="[label.labelClass, small ? 'max-w-50' : 'max-w-75']"
       v-bind="$attrs"
       @click.stop="$emit('selectLabel')"
     >

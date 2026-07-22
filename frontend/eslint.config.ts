@@ -93,6 +93,7 @@ export default withVueTs(
       'vue/no-v-text': 'error',
       'vue/padding-line-between-blocks': 'error',
       'vue/prefer-define-options': 'error',
+      'vue/prefer-separate-static-class': 'error',
       'vue/prefer-use-template-ref': 'error',
       'vue/require-default-prop': 'off',
       'vue/require-macro-variable-name': 'error',
