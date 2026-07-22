@@ -64,9 +64,9 @@ func Test_TalosCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -125,9 +125,9 @@ func Test_TalosCARotation(t *testing.T) {
 					),
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil)))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -223,9 +223,9 @@ func Test_TalosCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -289,9 +289,9 @@ func Test_TalosCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -359,9 +359,9 @@ func Test_TalosCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -433,9 +433,9 @@ func Test_TalosCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -507,9 +507,9 @@ func Test_TalosCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -639,9 +639,9 @@ func Test_KubernetesCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -700,9 +700,9 @@ func Test_KubernetesCARotation(t *testing.T) {
 					),
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil)))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -807,9 +807,9 @@ func Test_KubernetesCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -882,9 +882,9 @@ func Test_KubernetesCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -961,9 +961,9 @@ func Test_KubernetesCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -1044,9 +1044,9 @@ func Test_KubernetesCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 			},
 			func(ctx context.Context, testContext testutils.TestContext) {
@@ -1127,9 +1127,9 @@ func Test_KubernetesCARotation(t *testing.T) {
 						&fakeKubernetesClientFactory{},
 					),
 				))
-				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+				require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 				require.NoError(t, testContext.Runtime.RegisterQController(
-					machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 				))
 				require.NoError(t, testContext.Runtime.RegisterQController(secretsctrl.NewSecretsController(nil)))
 			},
@@ -1192,9 +1192,9 @@ func Test_ConcurrentRotationRejection(t *testing.T) {
 					&fakeKubernetesClientFactory{},
 				),
 			))
-			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 			require.NoError(t, testContext.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 			))
 		},
 		func(ctx context.Context, testContext testutils.TestContext) {
@@ -1241,9 +1241,9 @@ func Test_ComponentIsolationDuringRotation(t *testing.T) {
 					&fakeKubernetesClientFactory{},
 				),
 			))
-			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController("test.factory", nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
+			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewClusterMachineConfigController(nil, "ghcr.io/siderolabs/installer", omnicfg.Registries{})))
 			require.NoError(t, testContext.Runtime.RegisterQController(
-				machineconfig.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil)),
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
 			))
 		},
 		func(ctx context.Context, testContext testutils.TestContext) {

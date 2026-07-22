@@ -136,7 +136,19 @@ func runDownload(ctx context.Context, cmd *cobra.Command, client *client.Client,
 	}
 
 	mediaBuildOpts := download.MediaBuildOptions{
-		Format: downloadCmdFlags.format,
+		Format:     downloadCmdFlags.format,
+		FactoryURL: preset.TypedSpec().Value.ImageFactoryUrl,
+	}
+
+	if preset.TypedSpec().Value.ImageFactoryUrl == "" {
+		var features *omni.FeaturesConfig
+
+		features, err = safe.ReaderGetByID[*omni.FeaturesConfig](ctx, client.Omni().State(), omni.FeaturesConfigID)
+		if err != nil {
+			return fmt.Errorf("failed to get features config: %w", err)
+		}
+
+		mediaBuildOpts.FactoryURL = features.TypedSpec().Value.ImageFactoryBaseUrl
 	}
 
 	switch {

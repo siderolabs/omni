@@ -135,11 +135,12 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 	case virtual.QuirksType:
 		return v.quirks(ctx, ptr)
 	case virtual.ImageFactoryAuthType:
-		if ptr.ID() != virtual.ImageFactoryAuthID {
-			return nil, stateerrors.ErrNotFound(ptr)
+		res, err := v.imageFactoryAuth(ctx, ptr)
+		if err != nil {
+			return nil, err
 		}
 
-		return v.imageFactoryAuth(ctx, ptr)
+		return res, nil
 	default:
 		return nil, stateerrors.ErrUnsupported(fmt.Errorf("unsupported resource type for get %q", ptr.Type()))
 	}
@@ -481,20 +482,40 @@ func (v *State) quirks(_ context.Context, ptr resource.Pointer) (*virtual.Quirks
 	return res, nil
 }
 
-func (v *State) imageFactoryAuth(_ context.Context, _ resource.Pointer) (*virtual.ImageFactoryAuth, error) {
-	res := virtual.NewImageFactoryAuth()
+func (v *State) imageFactoryAuth(_ context.Context, ptr resource.Pointer) (*virtual.ImageFactoryAuth, error) {
+	res := virtual.NewImageFactoryAuth(ptr.ID())
 
-	version, err := resource.ParseVersion("1")
-	if err != nil {
-		return nil, err
+	primaryFactory := v.registryConfig.GetPrimaryFactory()
+
+	factories := []config.Factory{primaryFactory}
+
+	if secondaryFactory, ok := v.registryConfig.GetSecondaryFactory(); ok {
+		factories = append(factories, secondaryFactory)
 	}
 
-	res.Metadata().SetVersion(version)
+	url := ptr.ID()
 
-	res.TypedSpec().Value.Username = v.registryConfig.GetImageFactoryUsername()
-	res.TypedSpec().Value.Password = v.registryConfig.GetImageFactoryPassword()
+	if ptr.ID() == virtual.ImageFactoryAuthID {
+		url = primaryFactory.GetUrl()
+	}
 
-	return res, nil
+	for _, factory := range factories {
+		if strings.TrimRight(factory.GetUrl(), "/") == strings.TrimRight(url, "/") {
+			res.TypedSpec().Value.Username = factory.GetUsername()
+			res.TypedSpec().Value.Password = factory.GetPassword()
+
+			version, err := resource.ParseVersion("1")
+			if err != nil {
+				return nil, err
+			}
+
+			res.Metadata().SetVersion(version)
+
+			return res, nil
+		}
+	}
+
+	return nil, stateerrors.ErrNotFound(ptr)
 }
 
 func fetchSupportEnabled(ctx context.Context, stripeClient *stripe.Client, stripeSubscriptionItemID string, eligibleProducts []string) (bool, error) {

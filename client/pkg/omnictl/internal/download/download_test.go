@@ -351,20 +351,13 @@ func TestImageFactoryCredentials(t *testing.T) {
 
 	ctx := t.Context()
 
-	newFeatures := func(enterprise bool) *omni.FeaturesConfig {
-		features := omni.NewFeaturesConfig(omni.FeaturesConfigID)
-		features.TypedSpec().Value.IsEnterpriseImageFactory = enterprise
-
-		return features
-	}
-
 	t.Run("public factory returns no credentials without reading the auth resource", func(t *testing.T) {
 		t.Parallel()
 
 		// State is intentionally empty: a public factory must not require the auth resource.
 		st := newTestState(t)
 
-		username, password, err := download.ImageFactoryCredentials(ctx, st, newFeatures(false))
+		username, password, err := download.ImageFactoryCredentials(ctx, st, "")
 		require.NoError(t, err)
 		require.Empty(t, username)
 		require.Empty(t, password)
@@ -375,25 +368,15 @@ func TestImageFactoryCredentials(t *testing.T) {
 
 		st := newTestState(t)
 
-		auth := virtual.NewImageFactoryAuth()
+		auth := virtual.NewImageFactoryAuth("https://factory.talos.dev")
 		auth.TypedSpec().Value.Username = "omni-e2e-test"
 		auth.TypedSpec().Value.Password = "s3cr3t"
 		require.NoError(t, st.Create(ctx, auth))
 
-		username, password, err := download.ImageFactoryCredentials(ctx, st, newFeatures(true))
+		username, password, err := download.ImageFactoryCredentials(ctx, st, auth.Metadata().ID())
 		require.NoError(t, err)
 		require.Equal(t, "omni-e2e-test", username)
 		require.Equal(t, "s3cr3t", password)
-	})
-
-	t.Run("enterprise factory errors when the auth resource is missing", func(t *testing.T) {
-		t.Parallel()
-
-		st := newTestState(t)
-
-		_, _, err := download.ImageFactoryCredentials(ctx, st, newFeatures(true))
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "failed to get image factory auth")
 	})
 }
 

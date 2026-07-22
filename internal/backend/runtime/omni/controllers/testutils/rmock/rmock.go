@@ -272,6 +272,7 @@ machine:
 			Platform:             "metal",
 			SchematicInitialized: true,
 			SecurityState:        &specs.SecurityState{SecureBoot: false},
+			ImageFactoryHost:     imageFactoryHost,
 		}
 
 		return nil
@@ -338,7 +339,6 @@ machine:
 		_, isControlPlane := clusterMachine.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 
 		installImage, err := installimage.Build(
-			imageFactoryHost,
 			machineConfigGenOptions.Metadata().ID(),
 			machineConfigGenOptions.TypedSpec().Value.InstallImage,
 			"ghcr.io/siderolabs/installer",
@@ -406,7 +406,7 @@ machine:
 	setOwner[*omni.ClusterMachineStatus](omnictrl.NewClusterMachineStatusController().ControllerName)
 	setOwner[*omni.ClusterSecrets](secrets.NewSecretsController(nil).ControllerName)
 	setOwner[*omni.ClusterMachineConfig](omnictrl.NewClusterMachineController().ControllerName)
-	setOwner[*omni.MachineConfigGenOptions](omnictrl.NewMachineConfigGenOptionsController().ControllerName)
+	setOwner[*omni.MachineConfigGenOptions](omnictrl.NewMachineConfigGenOptionsController(nil).ControllerName)
 	setOwner[*omni.TalosConfig](secrets.NewTalosConfigController(omnictrl.DefaultDebounceDuration).ControllerName)
 	setOwner[*omni.Machine](omnictrl.NewMachineController().ControllerName)
 	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController().ControllerName)

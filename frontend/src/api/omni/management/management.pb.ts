@@ -196,10 +196,12 @@ export type CreateSchematicRequest = {
   overlay?: CreateSchematicRequestOverlay
   bootloader?: SchematicBootloader
   embedded_machine_config?: string
+  image_factory_url?: string
 }
 
 export type CreateSchematicFromRawRequest = {
   raw_schematic?: Uint8Array
+  talos_version?: string
 }
 
 export type CreateSchematicResponse = {

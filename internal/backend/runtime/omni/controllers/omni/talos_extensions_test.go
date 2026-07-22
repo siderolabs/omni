@@ -26,9 +26,9 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/extensions"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 )
 
@@ -232,7 +232,9 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosExtensionsController(imageFactoryClient)))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewTalosExtensionsController(
+		imagefactory.NewClients(suite.state, imageFactoryClient),
+	)))
 
 	versions := []string{
 		"0.14.0", "1.6.0", "200.0.0",
@@ -243,6 +245,7 @@ func (suite *TalosExtensionsSuite) TestReconcile() {
 	for _, v := range versions {
 		version := omni.NewTalosVersion(v)
 		version.TypedSpec().Value.Version = v
+		version.TypedSpec().Value.ImageFactoryUrl = imageFactoryClient.URL()
 
 		suite.Require().NoError(suite.state.Create(ctx, version))
 	}

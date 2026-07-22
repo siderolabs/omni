@@ -20,9 +20,9 @@ import (
 const ImageFactoryAuthID = "image-factory-auth"
 
 // NewImageFactoryAuth creates a new ImageFactoryAuth resource.
-func NewImageFactoryAuth() *ImageFactoryAuth {
+func NewImageFactoryAuth(id string) *ImageFactoryAuth {
 	return typed.NewResource[ImageFactoryAuthSpec, ImageFactoryAuthExtension](
-		resource.NewMetadata(resources.VirtualNamespace, ImageFactoryAuthType, ImageFactoryAuthID, resource.VersionUndefined),
+		resource.NewMetadata(resources.VirtualNamespace, ImageFactoryAuthType, id, resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ImageFactoryAuthSpec{}),
 	)
 }

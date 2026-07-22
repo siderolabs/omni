@@ -14,6 +14,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/download"
@@ -107,6 +108,7 @@ func validateCreateFlags(cmd *cobra.Command) error {
 	return nil
 }
 
+//nolint:gocyclo,cyclop
 func createPreset(ctx context.Context, cmd *cobra.Command, client *client.Client, name string) error {
 	arch, err := download.ParseArch(createCmdFlags.arch)
 	if err != nil {
@@ -158,6 +160,16 @@ func createPreset(ctx context.Context, cmd *cobra.Command, client *client.Client
 		}
 	}
 
+	imageFactoryClients, err := imagefactory.NewClientsFromState(ctx, client.Omni().State())
+	if err != nil {
+		return err
+	}
+
+	imageFactoryClient, err := imageFactoryClients.ForTalosVersion(ctx, talosVersion)
+	if err != nil {
+		return err
+	}
+
 	spec := &specs.InstallationMediaConfigSpec{
 		TalosVersion:          talosVersion,
 		Architecture:          arch,
@@ -167,6 +179,7 @@ func createPreset(ctx context.Context, cmd *cobra.Command, client *client.Client
 		SecureBoot:            createCmdFlags.secureBoot,
 		Bootloader:            bootloader,
 		EmbeddedMachineConfig: embeddedMachineConfig,
+		ImageFactoryUrl:       imageFactoryClient.URL(),
 	}
 
 	switch {

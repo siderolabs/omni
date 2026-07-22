@@ -30,7 +30,7 @@ func TestReconcile(t *testing.T) {
 	defer cancel()
 
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
-		ctrl := machineupgrade.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil))
+		ctrl := machineupgrade.NewStatusController(testutils.NewImageFactoryClients(t, testContext.State), testutils.NewLifecycleManager(t, testContext.State, nil))
 
 		require.NoError(t, testContext.Runtime.RegisterQController(ctrl))
 	}, func(ctx context.Context, testContext testutils.TestContext) {
@@ -76,8 +76,12 @@ func TestReconcile(t *testing.T) {
 		currentSchematicID, err := initialSchematic.ID()
 		require.NoError(t, err)
 
+		// Talos version older than 1.13: the controller must fall back to the legacy MachineService.Upgrade.
+		const talosVersion = "v1.11.3"
+
 		schematicConfiguration := omni.NewSchematicConfiguration(id)
 		schematicConfiguration.TypedSpec().Value.SchematicId = currentSchematicID
+		schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
 		require.NoError(t, st.Create(ctx, schematicConfiguration))
 
 		currentSchematicRaw, err := initialSchematic.Marshal()
@@ -87,9 +91,6 @@ func TestReconcile(t *testing.T) {
 
 		updatedSchematicID, err := updatedSchematic.ID()
 		require.NoError(t, err)
-
-		// Talos version older than 1.13: the controller must fall back to the legacy MachineService.Upgrade.
-		const talosVersion = "v1.11.3"
 
 		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
 			res.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")
@@ -190,7 +191,7 @@ func TestReconcileLifecycleUpgrade(t *testing.T) {
 	defer cancel()
 
 	testutils.WithRuntime(ctx, t, testutils.TestOptions{}, func(ctx context.Context, testContext testutils.TestContext) {
-		ctrl := machineupgrade.NewStatusController(testutils.NewLifecycleManager(testContext.State, nil))
+		ctrl := machineupgrade.NewStatusController(testutils.NewImageFactoryClients(t, testContext.State), testutils.NewLifecycleManager(t, testContext.State, nil))
 
 		require.NoError(t, testContext.Runtime.RegisterQController(ctrl))
 	}, func(ctx context.Context, testContext testutils.TestContext) {
@@ -218,17 +219,18 @@ func TestReconcileLifecycleUpgrade(t *testing.T) {
 		currentSchematicRaw, err := initialSchematic.Marshal()
 		require.NoError(t, err)
 
+		// Talos version 1.13+: the controller must use Talos's LifecycleService.Upgrade.
+		const talosVersion = "1.13.4"
+
 		schematicConfiguration := omni.NewSchematicConfiguration(id)
 		schematicConfiguration.TypedSpec().Value.SchematicId = currentSchematicID
+		schematicConfiguration.TypedSpec().Value.TalosVersion = talosVersion
 		require.NoError(t, st.Create(ctx, schematicConfiguration))
 
 		updatedSchematic := updateKernelArgs(ctx, t, st, initialSchematic, id, []string{"updated-arg"})
 
 		updatedSchematicID, err := updatedSchematic.ID()
 		require.NoError(t, err)
-
-		// Talos version 1.13+: the controller must use Talos's LifecycleService.Upgrade.
-		const talosVersion = "1.13.4"
 
 		_, err = safe.StateUpdateWithConflicts(ctx, st, ms.Metadata(), func(res *omni.MachineStatus) error {
 			res.Metadata().Annotations().Set(omni.KernelArgsInitialized, "")

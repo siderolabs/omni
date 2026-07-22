@@ -7,7 +7,6 @@ package schematic_test
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -33,12 +32,12 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 45*time.Second)
 	defer cancel()
 
-	factory := &mockImageFactoryClient{}
+	factory := &testutils.ImageFactoryClientMock{}
 
 	testutils.WithRuntime(
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, testContext testutils.TestContext) {
-			require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(factory)))
+			require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(testutils.NewFactoryClientSet(factory))))
 			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
 		},
 		func(ctx context.Context, testContext testutils.TestContext) {
@@ -50,6 +49,27 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			machineSet := "machineset"
 
 			const talosVersion = "1.7.0"
+
+			// rebootInto simulates the machine rebooting into the schematic the factory just built for it:
+			// the node now reports that schematic as its own booted one (Raw + FullId), exactly like a real
+			// machine would after Omni generated a new schematic and the machine reinstalled/rebooted into it.
+			// Without this, the machine's Raw would lag the desired schematic and the controller's
+			// "desired == booted, skip the factory" early-exit would fire spuriously.
+			rebootInto := func(id string) {
+				s, ok := factory.Get(id)
+				r.True(ok, "schematic %q was not uploaded to the factory", id)
+
+				raw, err := s.Marshal()
+				r.NoError(err)
+
+				_, err = safe.StateUpdateWithConflicts(ctx, st, omni.NewMachineStatus(machineName).Metadata(), func(res *omni.MachineStatus) error {
+					res.TypedSpec().Value.Schematic.Raw = string(raw)
+					res.TypedSpec().Value.Schematic.FullId = id
+
+					return nil
+				})
+				r.NoError(err)
+			}
 
 			cluster := omni.NewCluster(clusterName)
 			cluster.TypedSpec().Value.TalosVersion = talosVersion
@@ -115,6 +135,8 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 				},
 			)
 
+			rebootInto(expectedSchematic)
+
 			// while allocated to a cluster, the machine extensions status carries the cluster-related labels
 			rtestutils.AssertResources(
 				ctx, t, st, []string{machineName},
@@ -146,6 +168,8 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 				},
 			)
 
+			rebootInto(expectedSchematic)
+
 			// override extensions list for the machine set
 			extensionsConfiguration = omni.NewExtensionsConfiguration("machineset")
 			extensionsConfiguration.TypedSpec().Value.Extensions = []string{
@@ -169,7 +193,8 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 				},
 			)
 
-			// set overlay on the machine status by writing the raw YAML. The controller sources overlay from Raw.
+			// Set an overlay on the machine status by writing the raw YAML: the controller sources the overlay
+			// from Raw, so this simulates a machine that booted into a schematic carrying an overlay.
 			overlayRaw, err := (&schematic.Schematic{
 				Overlay: schematic.Overlay{
 					Name:  "rpi_generic",
@@ -202,6 +227,8 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 				},
 			)
 
+			rebootInto(expectedSchematic)
+
 			// override schematics on the machine level
 			extensionsConfiguration = omni.NewExtensionsConfiguration("zzzz")
 			extensionsConfiguration.TypedSpec().Value.Extensions = []string{
@@ -228,6 +255,8 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 				},
 			)
 
+			rebootInto(expectedSchematic)
+
 			// update extensions
 			_, err = safe.StateUpdateWithConflicts(ctx, st, extensionsConfiguration.Metadata(), func(res *omni.ExtensionsConfiguration) error {
 				res.TypedSpec().Value.Extensions = nil
@@ -249,6 +278,8 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 				},
 			)
 
+			rebootInto(expectedSchematic)
+
 			// reset everything to the default state, should revert back to the initial set of extensions
 
 			rtestutils.DestroyAll[*omni.ExtensionsConfiguration](ctx, t, st)
@@ -267,6 +298,8 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 				},
 			)
+
+			rebootInto(expectedSchematic)
 
 			_, err = safe.StateUpdateWithConflicts(ctx, st, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
 				res.TypedSpec().Value.InitialTalosVersion = "1.5.0"
@@ -292,6 +325,8 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 					assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 				},
 			)
+
+			rebootInto(expectedSchematic)
 
 			// set empty extensions list for the cluster, should keep the old schematic ID
 			extensionsConfiguration.TypedSpec().Value.Extensions = []string{}
@@ -351,6 +386,8 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 				},
 			)
 
+			rebootInto(expectedSchematic)
+
 			// create kernel args, should change the schematic ID
 
 			kernelArgs := omni.NewKernelArgs(machineName)
@@ -378,6 +415,8 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 				},
 			)
 
+			rebootInto(expectedSchematic)
+
 			// set the UKI to false, the schematic should no more contain the kernel args (as updating them is not supported)
 
 			_, err = safe.StateUpdateWithConflicts(ctx, st, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
@@ -401,6 +440,8 @@ func TestSchematicConfigurationReconcile(t *testing.T) {
 			rtestutils.AssertResources(ctx, t, st, []string{machineName}, func(schematicConfiguration *omni.SchematicConfiguration, assertion *assert.Assertions) {
 				assertion.Equal(expectedSchematic, schematicConfiguration.TypedSpec().Value.SchematicId)
 			})
+
+			rebootInto(expectedSchematic)
 
 			// update the MachineStatus to simulate an actual change of the schematic (e.g., the schematic change caused an upgrade)
 			_, err = safe.StateUpdateWithConflicts(ctx, st, machineStatus.Metadata(), func(res *omni.MachineStatus) error {
@@ -468,12 +509,12 @@ func TestSchematicConfigurationPreservesRawFields(t *testing.T) {
 
 	const factoryOwner = "customer-acme"
 
-	factory := &mockImageFactoryClient{Owner: factoryOwner}
+	factory := &testutils.ImageFactoryClientMock{Owner: factoryOwner}
 
 	testutils.WithRuntime(
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, testContext testutils.TestContext) {
-			require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(factory)))
+			require.NoError(t, testContext.Runtime.RegisterQController(schematicctrl.NewConfigurationController(testutils.NewFactoryClientSet(factory))))
 			require.NoError(t, testContext.Runtime.RegisterQController(omnictrl.NewMachineExtensionsController()))
 		},
 		func(ctx context.Context, testContext testutils.TestContext) {
@@ -567,7 +608,7 @@ func TestSchematicConfigurationPreservesRawFields(t *testing.T) {
 			// If the controller computed the SchematicId locally (off the patched-but-not-owned schematic)
 			// instead of trusting the factory's response, publishedID would not match the factory's
 			// owner-tagged storage key and this lookup would miss.
-			stored, ok := factory.get(publishedID)
+			stored, ok := factory.Get(publishedID)
 			r.True(ok, "controller-published schematic %q was not uploaded to the factory", publishedID)
 
 			// Factory-injected owner must come through on the stored body.
@@ -587,52 +628,4 @@ func TestSchematicConfigurationPreservesRawFields(t *testing.T) {
 			assert.Equal(t, []string{"console=ttyS0"}, stored.Customization.ExtraKernelArgs)
 		},
 	)
-}
-
-// mockImageFactoryClient is an in-process fake of the image factory client interface.
-// It computes the canonical id of every schematic it receives and stores it for later
-// inspection by tests, so tests can verify what the controller actually uploaded
-// without going through HTTP serialization round-trip.
-//
-// If Owner is set, every submitted schematic is tagged with that owner before its id
-// is computed and stored. This mirrors the Enterprise factory's behavior of stamping
-// the customer's owner onto every upload, and lets tests verify that the controller
-// uses the id returned by the factory as the source of truth (not a locally computed one).
-type mockImageFactoryClient struct {
-	schematics map[string]schematic.Schematic
-	Owner      string
-	mu         sync.Mutex
-}
-
-func (m *mockImageFactoryClient) EnsureSchematic(_ context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error) {
-	if m.Owner != "" {
-		inputSchematic.Owner = m.Owner
-	}
-
-	id, err := inputSchematic.ID()
-	if err != nil {
-		return "", nil, err
-	}
-
-	stored := inputSchematic
-
-	m.mu.Lock()
-	if m.schematics == nil {
-		m.schematics = map[string]schematic.Schematic{}
-	}
-
-	m.schematics[id] = stored
-	m.mu.Unlock()
-
-	return id, &stored, nil
-}
-
-// get is a test helper for reading back what the controller uploaded.
-func (m *mockImageFactoryClient) get(id string) (schematic.Schematic, bool) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	s, ok := m.schematics[id]
-
-	return s, ok
 }

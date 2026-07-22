@@ -8,19 +8,35 @@ package lifecycle_test
 import (
 	"testing"
 
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
+	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
 
+func newManagerForTest(t *testing.T) *lifecycle.Manager {
+	t.Helper()
+
+	c, err := imagefactory.NewClient("factory.talos.dev", "", "")
+	require.NoError(t, err)
+
+	return lifecycle.NewManager(zapNop(t), imagefactory.NewClients(
+		state.WrapCore(namespaced.NewState(inmem.Build)),
+		c,
+	), "ghcr.io/siderolabs/installer", nil, nil)
+}
+
 func TestCheckTalosVersion(t *testing.T) {
 	t.Parallel()
 
-	m := lifecycle.NewManager(zapNop(t), "factory", "ghcr.io/siderolabs/installer", nil, nil)
+	m := newManagerForTest(t)
 
 	for _, tc := range []struct {
 		name    string
@@ -58,7 +74,7 @@ func TestKindString(t *testing.T) {
 func TestInFlightGuard(t *testing.T) {
 	t.Parallel()
 
-	m := lifecycle.NewManager(zapNop(t), "factory", "ghcr.io/siderolabs/installer", nil, nil)
+	m := newManagerForTest(t)
 
 	require.True(t, m.AcquireForTest("machine-1"), "first acquire should succeed")
 	require.False(t, m.AcquireForTest("machine-1"), "second acquire should be rejected while held")
@@ -71,7 +87,7 @@ func TestInFlightGuard(t *testing.T) {
 func TestRunRejectsWhenInFlight(t *testing.T) {
 	t.Parallel()
 
-	m := lifecycle.NewManager(zapNop(t), "factory", "ghcr.io/siderolabs/installer", nil, nil)
+	m := newManagerForTest(t)
 
 	require.True(t, m.AcquireForTest("machine-1"))
 
@@ -83,7 +99,7 @@ func TestRunRejectsWhenInFlight(t *testing.T) {
 func TestRunReleasesSlotOnFailure(t *testing.T) {
 	t.Parallel()
 
-	m := lifecycle.NewManager(zapNop(t), "factory.talos.dev", "ghcr.io/siderolabs/installer", nil, nil)
+	m := newManagerForTest(t)
 
 	// No platform metadata → the flow fails fast in buildInstallImage.
 	ms := omni.NewMachineStatus("machine-1")

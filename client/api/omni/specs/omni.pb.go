@@ -3529,6 +3529,9 @@ type ClusterMachineConfigStatusSpec struct {
 	// debounces such operations: the controller waits until the machine reboots and its boot
 	// ID changes before acting again.
 	PreRebootBootId string `protobuf:"bytes,11,opt,name=pre_reboot_boot_id,json=preRebootBootId,proto3" json:"pre_reboot_boot_id,omitempty"`
+	// ImageFactoryUrl is the URL of the image factory that was used to build the install image for the
+	// last successful Talos install/upgrade.
+	ImageFactoryUrl string `protobuf:"bytes,12,opt,name=image_factory_url,json=imageFactoryUrl,proto3" json:"image_factory_url,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -3615,6 +3618,13 @@ func (x *ClusterMachineConfigStatusSpec) GetCompressedRedactedMachineConfig() []
 func (x *ClusterMachineConfigStatusSpec) GetPreRebootBootId() string {
 	if x != nil {
 		return x.PreRebootBootId
+	}
+	return ""
+}
+
+func (x *ClusterMachineConfigStatusSpec) GetImageFactoryUrl() string {
+	if x != nil {
+		return x.ImageFactoryUrl
 	}
 	return ""
 }
@@ -3998,7 +4008,12 @@ type TalosVersionSpec struct {
 	// UpgradableTalosVersions is the pre-computed list of Talos versions a machine running this version can be upgraded to.
 	UpgradableTalosVersions []string `protobuf:"bytes,4,rep,name=upgradable_talos_versions,json=upgradableTalosVersions,proto3" json:"upgradable_talos_versions,omitempty"`
 	// Unsupported is true when this Talos version is not confirmed to be working with Omni.
-	Unsupported   bool `protobuf:"varint,5,opt,name=unsupported,proto3" json:"unsupported,omitempty"`
+	Unsupported bool `protobuf:"varint,5,opt,name=unsupported,proto3" json:"unsupported,omitempty"`
+	// ImageFactoryUrl is the URL of the image factory that provides this Talos version.
+	// When a version is available from both the primary and the secondary factory, the primary wins.
+	ImageFactoryUrl string `protobuf:"bytes,6,opt,name=image_factory_url,json=imageFactoryUrl,proto3" json:"image_factory_url,omitempty"`
+	// IsEnterprise is true when the factory providing this version is an Enterprise Image Factory.
+	IsEnterprise  bool `protobuf:"varint,7,opt,name=is_enterprise,json=isEnterprise,proto3" json:"is_enterprise,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4064,6 +4079,20 @@ func (x *TalosVersionSpec) GetUpgradableTalosVersions() []string {
 func (x *TalosVersionSpec) GetUnsupported() bool {
 	if x != nil {
 		return x.Unsupported
+	}
+	return false
+}
+
+func (x *TalosVersionSpec) GetImageFactoryUrl() string {
+	if x != nil {
+		return x.ImageFactoryUrl
+	}
+	return ""
+}
+
+func (x *TalosVersionSpec) GetIsEnterprise() bool {
+	if x != nil {
+		return x.IsEnterprise
 	}
 	return false
 }
@@ -5486,12 +5515,16 @@ type FeaturesConfigSpec struct {
 	ImageFactoryPxeBaseUrl string `protobuf:"bytes,9,opt,name=image_factory_pxe_base_url,json=imageFactoryPxeBaseUrl,proto3" json:"image_factory_pxe_base_url,omitempty"`
 	// Account represents omni account information.
 	Account *Account `protobuf:"bytes,10,opt,name=account,proto3" json:"account,omitempty"`
-	// IsEnterpriseImageFactory is true when the configured image factory URL is an enterprise one.
+	// IsEnterpriseImageFactory is true when the primary image factory URL is an enterprise one.
 	IsEnterpriseImageFactory bool `protobuf:"varint,11,opt,name=is_enterprise_image_factory,json=isEnterpriseImageFactory,proto3" json:"is_enterprise_image_factory,omitempty"`
 	// PosthogSettings enables PostHog analytics on the frontend side.
 	PosthogSettings *PosthogSettings `protobuf:"bytes,12,opt,name=posthog_settings,json=posthogSettings,proto3" json:"posthog_settings,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// SecondaryImageFactoryBaseUrl is the base URL of the secondary image factory, empty when none is configured.
+	SecondaryImageFactoryBaseUrl string `protobuf:"bytes,13,opt,name=secondary_image_factory_base_url,json=secondaryImageFactoryBaseUrl,proto3" json:"secondary_image_factory_base_url,omitempty"`
+	// SecondaryImageFactoryPxeBaseUrl is the base URL of the secondary image factory PXE server.
+	SecondaryImageFactoryPxeBaseUrl string `protobuf:"bytes,14,opt,name=secondary_image_factory_pxe_base_url,json=secondaryImageFactoryPxeBaseUrl,proto3" json:"secondary_image_factory_pxe_base_url,omitempty"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *FeaturesConfigSpec) Reset() {
@@ -5606,6 +5639,20 @@ func (x *FeaturesConfigSpec) GetPosthogSettings() *PosthogSettings {
 		return x.PosthogSettings
 	}
 	return nil
+}
+
+func (x *FeaturesConfigSpec) GetSecondaryImageFactoryBaseUrl() string {
+	if x != nil {
+		return x.SecondaryImageFactoryBaseUrl
+	}
+	return ""
+}
+
+func (x *FeaturesConfigSpec) GetSecondaryImageFactoryPxeBaseUrl() string {
+	if x != nil {
+		return x.SecondaryImageFactoryPxeBaseUrl
+	}
+	return ""
 }
 
 type UserPilotSettings struct {
@@ -7833,8 +7880,11 @@ type InstallationMediaConfigSpec struct {
 	MachineLabels         map[string]string                  `protobuf:"bytes,10,rep,name=machine_labels,json=machineLabels,proto3" json:"machine_labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Bootloader            management.SchematicBootloader     `protobuf:"varint,11,opt,name=bootloader,proto3,enum=management.SchematicBootloader" json:"bootloader,omitempty"`
 	EmbeddedMachineConfig string                             `protobuf:"bytes,12,opt,name=embedded_machine_config,json=embeddedMachineConfig,proto3" json:"embedded_machine_config,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// ImageFactoryUrl is the URL of the image factory this preset targets. Download is blocked when this
+	// factory is no longer configured in Omni (orphaned).
+	ImageFactoryUrl string `protobuf:"bytes,13,opt,name=image_factory_url,json=imageFactoryUrl,proto3" json:"image_factory_url,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *InstallationMediaConfigSpec) Reset() {
@@ -7947,6 +7997,13 @@ func (x *InstallationMediaConfigSpec) GetBootloader() management.SchematicBootlo
 func (x *InstallationMediaConfigSpec) GetEmbeddedMachineConfig() string {
 	if x != nil {
 		return x.EmbeddedMachineConfig
+	}
+	return ""
+}
+
+func (x *InstallationMediaConfigSpec) GetImageFactoryUrl() string {
+	if x != nil {
+		return x.ImageFactoryUrl
 	}
 	return ""
 }
@@ -10380,8 +10437,11 @@ type MachineConfigGenOptionsSpec_InstallImage struct {
 	Platform string `protobuf:"bytes,6,opt,name=platform,proto3" json:"platform,omitempty"`
 	// SecurityState is used to decide the secure boot enablement in the install image.
 	SecurityState *SecurityState `protobuf:"bytes,7,opt,name=security_state,json=securityState,proto3" json:"security_state,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// ImageFactoryHost is the host of the image factory to build the install image from.
+	// When empty, the primary factory is used as a fallback.
+	ImageFactoryHost string `protobuf:"bytes,8,opt,name=image_factory_host,json=imageFactoryHost,proto3" json:"image_factory_host,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *MachineConfigGenOptionsSpec_InstallImage) Reset() {
@@ -10454,6 +10514,13 @@ func (x *MachineConfigGenOptionsSpec_InstallImage) GetSecurityState() *SecurityS
 		return x.SecurityState
 	}
 	return nil
+}
+
+func (x *MachineConfigGenOptionsSpec_InstallImage) GetImageFactoryHost() string {
+	if x != nil {
+		return x.ImageFactoryHost
+	}
+	return ""
 }
 
 type KubernetesUsageSpec_Quantity struct {
@@ -11583,7 +11650,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\vClusterUUID\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\"4\n" +
 	"\x18ClusterConfigVersionSpec\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\"\xef\x03\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\"\x9b\x04\n" +
 	"\x1eClusterMachineConfigStatusSpec\x12C\n" +
 	"\x1ecluster_machine_config_version\x18\x03 \x01(\tR\x1bclusterMachineConfigVersion\x12A\n" +
 	"\x1dcluster_machine_config_sha256\x18\x05 \x01(\tR\x1aclusterMachineConfigSha256\x12*\n" +
@@ -11593,7 +11660,8 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x1fredacted_current_machine_config\x18\t \x01(\tR\x1credactedCurrentMachineConfig\x12K\n" +
 	"\"compressed_redacted_machine_config\x18\n" +
 	" \x01(\fR\x1fcompressedRedactedMachineConfig\x12+\n" +
-	"\x12pre_reboot_boot_id\x18\v \x01(\tR\x0fpreRebootBootIdJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x04\x10\x05\"\x98\x02\n" +
+	"\x12pre_reboot_boot_id\x18\v \x01(\tR\x0fpreRebootBootId\x12*\n" +
+	"\x11image_factory_url\x18\f \x01(\tR\x0fimageFactoryUrlJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x04\x10\x05\"\x98\x02\n" +
 	"\x19MachinePendingUpdatesSpec\x12B\n" +
 	"\aupgrade\x18\x01 \x01(\v2(.specs.MachinePendingUpdatesSpec.UpgradeR\aupgrade\x12\x1f\n" +
 	"\vconfig_diff\x18\x02 \x01(\tR\n" +
@@ -11627,7 +11695,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\ahealthy\x18\x03 \x01(\bR\ahealthy\x12\x18\n" +
 	"\astopped\x18\x04 \x01(\bR\astoppedJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03\"1\n" +
 	"\x15KubernetesVersionSpec\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\"\xf0\x01\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\"\xc1\x02\n" +
 	"\x10TalosVersionSpec\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12D\n" +
 	"\x1ecompatible_kubernetes_versions\x18\x02 \x03(\tR\x1ccompatibleKubernetesVersions\x12\x1e\n" +
@@ -11635,7 +11703,9 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"deprecated\x18\x03 \x01(\bR\n" +
 	"deprecated\x12:\n" +
 	"\x19upgradable_talos_versions\x18\x04 \x03(\tR\x17upgradableTalosVersions\x12 \n" +
-	"\vunsupported\x18\x05 \x01(\bR\vunsupported\"\xe7\x02\n" +
+	"\vunsupported\x18\x05 \x01(\bR\vunsupported\x12*\n" +
+	"\x11image_factory_url\x18\x06 \x01(\tR\x0fimageFactoryUrl\x12#\n" +
+	"\ris_enterprise\x18\a \x01(\bR\fisEnterprise\"\xe7\x02\n" +
 	"\x15InstallationMediaSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\"\n" +
 	"\farchitecture\x18\x02 \x01(\tR\farchitecture\x12\x18\n" +
@@ -11809,7 +11879,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x05error\x18\x05 \x01(\tR\x05error\x12,\n" +
 	"\x12has_explicit_alias\x18\x06 \x01(\bR\x10hasExplicitAlias\"R\n" +
 	"\x1eClusterWorkloadProxyStatusSpec\x120\n" +
-	"\x14num_exposed_services\x18\x01 \x01(\rR\x12numExposedServices\"\xf8\x05\n" +
+	"\x14num_exposed_services\x18\x01 \x01(\rR\x12numExposedServices\"\x8f\a\n" +
 	"\x12FeaturesConfigSpec\x128\n" +
 	"\x18enable_workload_proxying\x18\x01 \x01(\bR\x16enableWorkloadProxying\x12K\n" +
 	"\x14etcd_backup_settings\x18\x02 \x01(\v2\x19.specs.EtcdBackupSettingsR\x12etcdBackupSettings\x12<\n" +
@@ -11823,7 +11893,9 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\aaccount\x18\n" +
 	" \x01(\v2\x0e.specs.AccountR\aaccount\x12=\n" +
 	"\x1bis_enterprise_image_factory\x18\v \x01(\bR\x18isEnterpriseImageFactory\x12A\n" +
-	"\x10posthog_settings\x18\f \x01(\v2\x16.specs.PosthogSettingsR\x0fposthogSettings\"0\n" +
+	"\x10posthog_settings\x18\f \x01(\v2\x16.specs.PosthogSettingsR\x0fposthogSettings\x12F\n" +
+	" secondary_image_factory_base_url\x18\r \x01(\tR\x1csecondaryImageFactoryBaseUrl\x12M\n" +
+	"$secondary_image_factory_pxe_base_url\x18\x0e \x01(\tR\x1fsecondaryImageFactoryPxeBaseUrl\"0\n" +
 	"\x11UserPilotSettings\x12\x1b\n" +
 	"\tapp_token\x18\x01 \x01(\tR\bappToken\"E\n" +
 	"\x0fPosthogSettings\x12\x17\n" +
@@ -11852,17 +11924,18 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"metaValues\x12#\n" +
 	"\rprovider_data\x18\x04 \x01(\tR\fproviderData\x126\n" +
 	"\vgrpc_tunnel\x18\x05 \x01(\x0e2\x15.specs.GrpcTunnelModeR\n" +
-	"grpcTunnel\"\xb0\x03\n" +
+	"grpcTunnel\"\xde\x03\n" +
 	"\x1bMachineConfigGenOptionsSpec\x12!\n" +
 	"\finstall_disk\x18\x01 \x01(\tR\vinstallDisk\x12T\n" +
-	"\rinstall_image\x18\x02 \x01(\v2/.specs.MachineConfigGenOptionsSpec.InstallImageR\finstallImage\x1a\x97\x02\n" +
+	"\rinstall_image\x18\x02 \x01(\v2/.specs.MachineConfigGenOptionsSpec.InstallImageR\finstallImage\x1a\xc5\x02\n" +
 	"\fInstallImage\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12!\n" +
 	"\fschematic_id\x18\x02 \x01(\tR\vschematicId\x123\n" +
 	"\x15schematic_initialized\x18\x03 \x01(\bR\x14schematicInitialized\x12+\n" +
 	"\x11schematic_invalid\x18\x04 \x01(\bR\x10schematicInvalid\x12\x1a\n" +
 	"\bplatform\x18\x06 \x01(\tR\bplatform\x12;\n" +
-	"\x0esecurity_state\x18\a \x01(\v2\x14.specs.SecurityStateR\rsecurityStateJ\x04\b\x05\x10\x06\"=\n" +
+	"\x0esecurity_state\x18\a \x01(\v2\x14.specs.SecurityStateR\rsecurityState\x12,\n" +
+	"\x12image_factory_host\x18\b \x01(\tR\x10imageFactoryHostJ\x04\b\x05\x10\x06\"=\n" +
 	"\x13EtcdAuditResultSpec\x12&\n" +
 	"\x0fetcd_member_ids\x18\x01 \x03(\x04R\retcdMemberIds\"$\n" +
 	"\x0eKubeconfigSpec\x12\x12\n" +
@@ -12072,7 +12145,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12 \n" +
 	"\vinitialized\x18\x03 \x01(\bR\vinitialized\"+\n" +
 	"\x15MachineConfigDiffSpec\x12\x12\n" +
-	"\x04diff\x18\x01 \x01(\tR\x04diff\"\xd0\x06\n" +
+	"\x04diff\x18\x01 \x01(\tR\x04diff\"\xfc\x06\n" +
 	"\x1bInstallationMediaConfigSpec\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12B\n" +
 	"\farchitecture\x18\x02 \x01(\x0e2\x1e.specs.PlatformConfigSpec.ArchR\farchitecture\x12-\n" +
@@ -12092,7 +12165,8 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\n" +
 	"bootloader\x18\v \x01(\x0e2\x1f.management.SchematicBootloaderR\n" +
 	"bootloader\x126\n" +
-	"\x17embedded_machine_config\x18\f \x01(\tR\x15embeddedMachineConfig\x1a#\n" +
+	"\x17embedded_machine_config\x18\f \x01(\tR\x15embeddedMachineConfig\x12*\n" +
+	"\x11image_factory_url\x18\r \x01(\tR\x0fimageFactoryUrl\x1a#\n" +
 	"\x05Cloud\x12\x1a\n" +
 	"\bplatform\x18\x01 \x01(\tR\bplatform\x1aH\n" +
 	"\x03SBC\x12\x18\n" +

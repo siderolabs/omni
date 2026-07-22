@@ -11,7 +11,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 	"github.com/siderolabs/omni/internal/pkg/config"
@@ -31,16 +31,17 @@ func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client
 	enableBreakGlassConfigs bool, kubernetesRuntime KubernetesRuntime, talosconfigProvider TalosconfigProvider,
 	opts ...ManagementServerOption,
 ) *ManagementServer {
+	imageFactoryClients := imagefactory.NewClients(st, imageFactoryClient)
+
 	server := &ManagementServer{
 		omniState:           st,
-		imageFactoryClient:  imageFactoryClient,
+		imageFactoryClients: imageFactoryClients,
 		logger:              logger,
 		cfg:                 &config.Params{Features: config.Features{EnableBreakGlassConfigs: new(enableBreakGlassConfigs)}},
 		kubernetesRuntime:   kubernetesRuntime,
 		talosconfigProvider: talosconfigProvider,
-		lifecycleManager:    lifecycle.NewManager(logger, "test-factory", "ghcr.io/siderolabs/installer", nil, nil),
-
 		auditLogFollowLease: auditLogFollowDefaultLease,
+		lifecycleManager:    lifecycle.NewManager(logger, imageFactoryClients, "ghcr.io/siderolabs/installer", nil, nil),
 	}
 
 	for _, opt := range opts {

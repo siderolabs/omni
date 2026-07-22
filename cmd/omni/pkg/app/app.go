@@ -19,12 +19,12 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend"
 	"github.com/siderolabs/omni/internal/backend/discovery"
 	"github.com/siderolabs/omni/internal/backend/dns"
-	"github.com/siderolabs/omni/internal/backend/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/resourcelogger"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
@@ -83,13 +83,11 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		}
 	}
 
-	imageFactoryClient, err := imagefactory.NewClient(
-		cfg.Registries.GetImageFactoryBaseURL(),
-		cfg.Registries.GetImageFactoryUsername(),
-		cfg.Registries.GetImageFactoryPassword(),
-	)
+	primaryFactory := cfg.Registries.GetPrimaryFactory()
+
+	imageFactoryClients, err := setupImageFactoryClients(cfg, state)
 	if err != nil {
-		return fmt.Errorf("failed to set up image factory client: %w", err)
+		return err
 	}
 
 	linkCounterDeltaCh := make(chan siderolink.LinkCounterDeltas)
@@ -103,7 +101,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	lifecycleManager := lifecycle.NewManager(
 		logger.With(logging.Component("talos_lifecycle")),
-		imageFactoryClient.Host(),
+		imageFactoryClients,
 		cfg.Registries.GetTalos(),
 		kubernetesRuntime,
 		talosClientFactory,
@@ -111,7 +109,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	omniRuntime, err := omni.NewRuntime(
 		cfg, talosClientFactory, dnsService, workloadProxyReconciler, resourceLogger,
-		imageFactoryClient, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
+		imageFactoryClients, linkCounterDeltaCh, siderolinkEventsCh, installEventCh, state,
 		prometheus.DefaultRegisterer, discoveryClientCache, kubernetesRuntime, talosRuntime,
 		lifecycleManager, logger.With(logging.Component("omni_runtime")),
 	)
@@ -161,9 +159,22 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		return fmt.Errorf("failed to write auth parameters to state: %w", err)
 	}
 
-	imageFactoryPXEBaseURL, err := cfg.GetImageFactoryPXEBaseURL()
+	imageFactoryPXEBaseURL, err := primaryFactory.PXEBaseURL()
 	if err != nil {
 		return fmt.Errorf("failed to get image factory PXE base URL: %w", err)
+	}
+
+	var secondaryImageFactoryBaseURL, secondaryImageFactoryPXEBaseURL string
+
+	if secondaryFactory, ok := cfg.Registries.GetSecondaryFactory(); ok {
+		secondaryImageFactoryBaseURL = secondaryFactory.GetUrl()
+
+		secondaryPXE, pxeErr := secondaryFactory.PXEBaseURL()
+		if pxeErr != nil {
+			return fmt.Errorf("failed to get secondary image factory PXE base URL: %w", pxeErr)
+		}
+
+		secondaryImageFactoryPXEBaseURL = secondaryPXE.String()
 	}
 
 	if err = features.UpdateResources(ctx, state.Default(), logger, features.Params{
@@ -173,8 +184,10 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		EtcdBackupMinInterval:           cfg.EtcdBackup.GetMinInterval(),
 		EtcdBackupMaxInterval:           cfg.EtcdBackup.GetMaxInterval(),
 		AuditLogEnabled:                 cfg.Logs.Audit.GetEnabled(),
-		ImageFactoryBaseURL:             cfg.Registries.GetImageFactoryBaseURL(),
+		ImageFactoryBaseURL:             primaryFactory.GetUrl(),
 		ImageFactoryPXEBaseURL:          imageFactoryPXEBaseURL,
+		SecondaryImageFactoryBaseURL:    secondaryImageFactoryBaseURL,
+		SecondaryImageFactoryPXEBaseURL: secondaryImageFactoryPXEBaseURL,
 		UserPilotAppToken:               cfg.Account.UserPilot.GetAppToken(),
 		PosthogAPIKey:                   cfg.Account.Posthog.GetApiKey(),
 		PosthogAPIHost:                  cfg.Account.Posthog.GetApiHost(),
@@ -194,7 +207,7 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		state,
 		dnsService,
 		workloadProxyReconciler,
-		imageFactoryClient,
+		imageFactoryClients,
 		linkCounterDeltaCh,
 		siderolinkEventsCh,
 		installEventCh,
@@ -215,4 +228,40 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 	}
 
 	return nil
+}
+
+// setupImageFactoryClients builds the image factory clients for the primary and (optional) secondary factories.
+func setupImageFactoryClients(cfg *config.Params, state *omni.State) (*imagefactory.Clients, error) {
+	primaryFactory := cfg.Registries.GetPrimaryFactory()
+
+	imageFactoryClient, err := imagefactory.NewClient(
+		primaryFactory.GetUrl(),
+		primaryFactory.GetUsername(),
+		primaryFactory.GetPassword(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set up image factory client: %w", err)
+	}
+
+	clients := imagefactory.NewClients(
+		state.Default(),
+		imageFactoryClient,
+	)
+
+	if secondaryFactory, ok := cfg.Registries.GetSecondaryFactory(); ok {
+		var secondaryFactoryClient *imagefactory.Client
+
+		secondaryFactoryClient, err = imagefactory.NewClient(
+			secondaryFactory.GetUrl(),
+			secondaryFactory.GetUsername(),
+			secondaryFactory.GetPassword(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to set up secondary image factory client: %w", err)
+		}
+
+		clients.SetSecondary(secondaryFactoryClient)
+	}
+
+	return clients, nil
 }

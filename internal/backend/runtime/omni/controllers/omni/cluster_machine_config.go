@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/config/machine"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
@@ -53,7 +55,7 @@ const ClusterMachineConfigControllerName = "ClusterMachineConfigController"
 type ClusterMachineConfigController = qtransform.QController[*omni.ClusterMachine, *omni.ClusterMachineConfig]
 
 // NewClusterMachineConfigController initializes ClusterMachineConfigController.
-func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors []string, talosRegistry string, registries omnicfg.Registries) *ClusterMachineConfigController {
+func NewClusterMachineConfigController(registryMirrors []string, talosRegistry string, registries omnicfg.Registries) *ClusterMachineConfigController {
 	return qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterMachine, *omni.ClusterMachineConfig]{
 			Name: ClusterMachineConfigControllerName,
@@ -64,7 +66,7 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 				return omni.NewClusterMachine(machineConfig.Metadata().ID())
 			},
 			TransformFunc: func(ctx context.Context, r controller.Reader, logger *zap.Logger, clusterMachine *omni.ClusterMachine, machineConfig *omni.ClusterMachineConfig) error {
-				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, imageFactoryHost, talosRegistry, registries)
+				return reconcileClusterMachineConfig(ctx, r, logger, clusterMachine, machineConfig, registryMirrors, talosRegistry, registries)
 			},
 		},
 		qtransform.WithExtraMappedInput[*omni.ClusterMachineConfigPatches](
@@ -103,7 +105,6 @@ func reconcileClusterMachineConfig(
 	clusterMachine *omni.ClusterMachine,
 	machineConfig *omni.ClusterMachineConfig,
 	registryMirrors []string,
-	imageFactoryHost string,
 	talosRegistry string,
 	registries omnicfg.Registries,
 ) error {
@@ -201,6 +202,11 @@ func reconcileClusterMachineConfig(
 		return err
 	}
 
+	helper := clusterMachineConfigControllerHelper{
+		talosRegistry: talosRegistry,
+		registries:    registries,
+	}
+
 	inputs := []resource.Resource{
 		clusterMachineSecrets,
 		loadBalancerConfig,
@@ -210,7 +216,20 @@ func reconcileClusterMachineConfig(
 		machineJoinConfig,
 	}
 
-	if !helpers.UpdateInputsVersions(machineConfig, inputs...) {
+	inputsChanged := helpers.UpdateInputsVersions(machineConfig, inputs...)
+
+	// The image factory configuration (URLs and credentials) is a controller-level setting and
+	// is not part of the tracked resource inputs, so configuring an additional image factory does
+	// not bump the input versions. Force a regeneration when multiple factories are configured but
+	// the existing config is still missing the registry auth for some of them, otherwise
+	// UpdateInputsVersions would short-circuit the reconcile and the config would never be
+	// regenerated to include the auth for the newly configured factory.
+	missingFactoryAuth, err := helper.configMissingFactoryAuth(machineConfig)
+	if err != nil {
+		return err
+	}
+
+	if !inputsChanged && !missingFactoryAuth {
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("config inputs not changed"))
 	}
 
@@ -234,12 +253,6 @@ func reconcileClusterMachineConfig(
 		logger.Error("secure boot status is not detected, skip reconcile")
 
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("secure boot status for machine %q is not yet set", machineConfigGenOptions.Metadata().ID())
-	}
-
-	helper := clusterMachineConfigControllerHelper{
-		imageFactoryHost: imageFactoryHost,
-		talosRegistry:    talosRegistry,
-		registries:       registries,
 	}
 
 	configGenOptions := make([]generate.Option, 0, len(registryMirrors))
@@ -293,22 +306,26 @@ func reconcileClusterMachineConfig(
 }
 
 type clusterMachineConfigControllerHelper struct {
-	registries       omnicfg.Registries
-	imageFactoryHost string
-	talosRegistry    string
+	registries    omnicfg.Registries
+	talosRegistry string
 }
 
 func (helper clusterMachineConfigControllerHelper) buildRegistryAuthPatch() (string, error) {
-	authDoc, err := imagefactoryauth.BuildDoc(helper.registries)
+	authDocs, err := imagefactoryauth.BuildDocs(helper.registries)
 	if err != nil {
 		return "", fmt.Errorf("failed to build image factory registry auth doc: %w", err)
 	}
 
-	if authDoc == nil {
+	if len(authDocs) == 0 {
 		return "", nil
 	}
 
-	authConfig, err := container.New(authDoc)
+	docs := make([]documentconfig.Document, 0, len(authDocs))
+	for _, authDoc := range authDocs {
+		docs = append(docs, authDoc)
+	}
+
+	authConfig, err := container.New(docs...)
 	if err != nil {
 		return "", err
 	}
@@ -319,6 +336,55 @@ func (helper clusterMachineConfigControllerHelper) buildRegistryAuthPatch() (str
 	}
 
 	return string(authBytes), nil
+}
+
+// configMissingFactoryAuth reports whether more than one image factory is configured with
+// credentials and the existing machine config is missing the registry auth document for any of
+// them. It is used to force a config regeneration for machines whose config was generated before
+// the additional factory was configured, since the factory configuration is not tracked as a
+// resource input.
+func (helper clusterMachineConfigControllerHelper) configMissingFactoryAuth(machineConfig *omni.ClusterMachineConfig) (bool, error) {
+	authDocs, err := imagefactoryauth.BuildDocs(helper.registries)
+	if err != nil {
+		return false, err
+	}
+
+	buffer, err := machineConfig.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return false, err
+	}
+
+	defer buffer.Free()
+
+	data := buffer.Data()
+	if len(data) == 0 {
+		return false, nil
+	}
+
+	cfg, err := configloader.NewFromBytes(data)
+	if err != nil {
+		return false, err
+	}
+
+	present := make(map[string]struct{})
+
+	for _, doc := range cfg.Documents() {
+		if doc.Kind() != cri.RegistryAuthConfig {
+			continue
+		}
+
+		if named, ok := doc.(documentconfig.NamedDocument); ok {
+			present[named.Name()] = struct{}{}
+		}
+	}
+
+	for _, authDoc := range authDocs {
+		if _, ok := present[authDoc.Name()]; !ok {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.ClusterMachineConfig, data []byte) (bool, error) {
@@ -374,7 +440,26 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, fmt.Errorf("talos version is not set on the resource %s", clusterConfigVersion.Metadata())
 	}
 
-	installImage, err := installimage.Build(helper.imageFactoryHost, configGenOptions.Metadata().ID(), configGenOptions.TypedSpec().Value.InstallImage, helper.talosRegistry)
+	installImageSpec := configGenOptions.TypedSpec().Value.InstallImage
+
+	// Migration code, if the factory URL is not populated yet, use the secondary factory URL if configured
+	// As the second factory should be the old one we're migrating from
+	if installImageSpec.ImageFactoryHost == "" {
+		fallbackURL := helper.registries.GetImageFactoryBaseURL()
+
+		if f, ok := helper.registries.GetSecondaryFactory(); ok {
+			fallbackURL = f.GetUrl()
+		}
+
+		url, err := url.Parse(fallbackURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse image factory URL %q: %w", fallbackURL, err)
+		}
+
+		installImageSpec.ImageFactoryHost = url.Host
+	}
+
+	installImage, err := installimage.Build(configGenOptions.Metadata().ID(), installImageSpec, helper.talosRegistry)
 	if err != nil {
 		return nil, err
 	}

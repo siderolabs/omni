@@ -108,13 +108,15 @@ func generate() (err error) {
 	ensure.NoError(os.Setenv("CAROOT", certsDir))
 	ensure.NoError(os.MkdirAll("./hack/generate-certs/certs", 0o755))
 
-	mkcertArgs := []string{
+	mkcertArgs := make([]string, 0, 5+len(cfg.AdditionalHosts))
+	mkcertArgs = append(
+		mkcertArgs,
 		"-cert-file",
 		"./hack/generate-certs/certs/localhost.pem",
 		"-key-file",
 		"./hack/generate-certs/certs/localhost-key.pem",
 		cfg.Host,
-	}
+	)
 
 	mkcertArgs = append(mkcertArgs, cfg.AdditionalHosts...)
 

@@ -273,6 +273,32 @@ type EulaAccept struct {
 	Name *string `json:"name,omitempty,omitzero" yaml:"name,omitempty"`
 }
 
+type Factories struct {
+	// Primary is the primary Image Factory configuration.
+	Primary Factory `json:"primary" yaml:"primary"`
+
+	// Secondary is the secondary Image Factory configuration.
+	Secondary Factory `json:"secondary" yaml:"secondary"`
+}
+
+type Factory struct {
+	// Password is the password used to authenticate against the Image Factory
+	// Enterprise service.
+	Password *string `json:"password,omitempty,omitzero" yaml:"password,omitempty"`
+
+	// PxeURL is the base URL of the Image Factory PXE endpoint used to build custom
+	// PXE boot images.
+	PxeURL *string `json:"pxeURL,omitempty,omitzero" yaml:"pxeURL,omitempty"`
+
+	// URL is the base URL of the Image Factory service used to build custom machine
+	// images.
+	Url *string `json:"url,omitempty,omitzero" yaml:"url,omitempty"`
+
+	// Username is the username used to authenticate against the Image Factory
+	// Enterprise service.
+	Username *string `json:"username,omitempty,omitzero" yaml:"username,omitempty"`
+}
+
 type Features struct {
 	// DisableControllerRuntimeCache controls whether the controller-runtime cache is
 	// disabled. When disabled, etcd is accessed for all reads. Recommended to be
@@ -598,20 +624,31 @@ type RateLimits struct {
 }
 
 type Registries struct {
+	// Factories contains the primary and secondary Image Factory configurations.
+	Factories Factories `json:"factories" yaml:"factories"`
+
 	// ImageFactoryBaseURL is the base URL of the Image Factory service used to build
 	// custom machine images.
+	//
+	// Deprecated: use factories.primary.url instead.
 	ImageFactoryBaseURL *string `json:"imageFactoryBaseURL" yaml:"imageFactoryBaseURL"`
 
 	// ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used
 	// to build custom PXE boot images.
+	//
+	// Deprecated: use factories.primary.pxeURL instead.
 	ImageFactoryPXEBaseURL *string `json:"imageFactoryPXEBaseURL,omitempty,omitzero" yaml:"imageFactoryPXEBaseURL,omitempty"`
 
 	// ImageFactoryPassword is the password used to authenticate against the Image
 	// Factory Enterprise service.
+	//
+	// Deprecated: use factories.primary.password instead.
 	ImageFactoryPassword *string `json:"imageFactoryPassword,omitempty,omitzero" yaml:"imageFactoryPassword,omitempty"`
 
 	// ImageFactoryUsername is the username used to authenticate against the Image
 	// Factory Enterprise service.
+	//
+	// Deprecated: use factories.primary.username instead.
 	ImageFactoryUsername *string `json:"imageFactoryUsername,omitempty,omitzero" yaml:"imageFactoryUsername,omitempty"`
 
 	// Kubernetes is the Kubernetes container registry configuration.

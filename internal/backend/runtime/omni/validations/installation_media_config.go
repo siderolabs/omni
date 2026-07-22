@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -23,7 +24,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/virtual/pkg/factory/configs"
 )
 
-//nolint:gocognit
+//nolint:gocognit,gocyclo,cyclop
 func installationMediaConfigValidationOptions(st state.State) []validated.StateOption {
 	validateInstallationMedia := func(ctx context.Context, res *omni.InstallationMediaConfig) error {
 		if res.Metadata().Phase() == resource.PhaseTearingDown {
@@ -82,6 +83,24 @@ func installationMediaConfigValidationOptions(st state.State) []validated.StateO
 			// supports embedded config, so only gate when a concrete version is pinned.
 			if spec.GetEmbeddedMachineConfig() != "" && !quirks.New(talosVersion).SupportsEmbeddedConfig() {
 				return fmt.Errorf("embedded machine config is not supported by Talos version %q", spec.GetTalosVersion())
+			}
+		}
+
+		if factoryURL := spec.GetImageFactoryUrl(); factoryURL != "" {
+			featuresConfig, err := safe.StateGet[*omni.FeaturesConfig](ctx, st, omni.NewFeaturesConfig(omni.FeaturesConfigID).Metadata())
+			if err != nil && !state.IsNotFoundError(err) {
+				return fmt.Errorf("failed to look up features config: %w", err)
+			}
+
+			if featuresConfig != nil {
+				configured := []string{
+					strings.TrimRight(featuresConfig.TypedSpec().Value.GetImageFactoryBaseUrl(), "/"),
+					strings.TrimRight(featuresConfig.TypedSpec().Value.GetSecondaryImageFactoryBaseUrl(), "/"),
+				}
+
+				if !slices.Contains(configured, strings.TrimRight(factoryURL, "/")) {
+					return fmt.Errorf("image factory %q is not configured in Omni", factoryURL)
+				}
 			}
 		}
 

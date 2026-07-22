@@ -14,9 +14,9 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 )
 
-// NewInstallImage builds an install image spec for the machine using the given target Talos version and schematic ID, deriving the platform, security state and
-// schematic-invalid flag from the machine's status.
-func NewInstallImage(machineStatus *MachineStatus, talosVersion, schematicID string, schematicInitialized bool) *specs.MachineConfigGenOptionsSpec_InstallImage {
+// NewInstallImage builds an install image spec for the machine using the given target Talos version, schematic ID and image factory host, deriving the platform,
+// security state and schematic-invalid flag from the machine's status.
+func NewInstallImage(machineStatus *MachineStatus, talosVersion, schematicID, imageFactoryHost string, schematicInitialized bool) *specs.MachineConfigGenOptionsSpec_InstallImage {
 	spec := machineStatus.TypedSpec().Value
 
 	installImage := &specs.MachineConfigGenOptionsSpec_InstallImage{
@@ -25,6 +25,7 @@ func NewInstallImage(machineStatus *MachineStatus, talosVersion, schematicID str
 		SchematicInitialized: schematicInitialized,
 		SecurityState:        spec.SecurityState,
 		Platform:             spec.GetPlatformMetadata().GetPlatform(),
+		ImageFactoryHost:     imageFactoryHost,
 	}
 
 	if schematicInitialized {
