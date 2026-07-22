@@ -183,7 +183,7 @@ function labelFromValue(value?: T) {
 
       <SelectPortal>
         <SelectContent
-          class="relative z-50 max-h-[min(--spacing(70),var(--reka-select-content-available-height))] min-w-(--reka-select-trigger-width) translate-y-1 space-y-1 overflow-hidden rounded border border-naturals-n4 bg-naturals-n3 p-1.5 text-xs slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+          class="relative z-50 max-h-[min(--spacing(70),var(--reka-select-content-available-height))] min-w-(--reka-select-trigger-width) translate-y-1 space-y-1 overflow-hidden rounded border border-naturals-n4 bg-naturals-n3 p-1.5 text-xs [--arrow-size:--spacing(4)] slide-in-from-top-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
           position="popper"
           side="bottom"
         >
@@ -197,8 +197,10 @@ function labelFromValue(value?: T) {
             @keydown.stop="() => {}"
           />
 
-          <SelectScrollUpButton>
-            <TIcon icon="arrow-up" class="mx-auto size-4" />
+          <SelectScrollUpButton
+            class="z-10 -mb-(--arrow-size) bg-linear-to-b from-naturals-n3 from-25% to-transparent"
+          >
+            <TIcon icon="arrow-up" class="mx-auto size-(--arrow-size)" />
           </SelectScrollUpButton>
 
           <SelectViewport>
@@ -231,8 +233,10 @@ function labelFromValue(value?: T) {
             </Tooltip>
           </SelectViewport>
 
-          <SelectScrollDownButton>
-            <TIcon icon="arrow-down" class="mx-auto size-4" />
+          <SelectScrollDownButton
+            class="z-10 -mt-(--arrow-size) bg-linear-to-t from-naturals-n3 from-25% to-transparent"
+          >
+            <TIcon icon="arrow-down" class="mx-auto size-(--arrow-size)" />
           </SelectScrollDownButton>
         </SelectContent>
       </SelectPortal>
