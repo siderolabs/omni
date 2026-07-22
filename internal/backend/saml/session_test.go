@@ -270,3 +270,59 @@ func TestRoleCompare(t *testing.T) {
 
 	require.Equal(t, -1, role.Operator.Compare(role.Admin))
 }
+
+func TestMatchSAMLLabelRuleNone(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	noneRoleToInactive := auth.NewSAMLLabelRule("assign-none-to-inactive")
+	noneRoleToInactive.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/omni-none"}
+	noneRoleToInactive.TypedSpec().Value.AssignRole = string(role.None)
+	noneRoleToInactive.TypedSpec().Value.UpdateOnEachLogin = true
+
+	// None role rule should be returned (not nil)
+	matchedRule := saml.MatchSAMLLabelRule(
+		[]*auth.SAMLLabelRule{noneRoleToInactive},
+		map[string]string{
+			"saml.omni.sidero.dev/role/omni-none": "",
+		}, logger,
+	)
+
+	require.NotNil(t, matchedRule)
+	require.EqualValues(t, matchedRule.TypedSpec().Value.AssignRole, role.None)
+	require.True(t, matchedRule.TypedSpec().Value.UpdateOnEachLogin)
+}
+
+func TestMatchSAMLLabelRuleNoneWithHigherRulePresent(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	noneRule := auth.NewSAMLLabelRule("assign-none")
+	noneRule.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/omni-none"}
+	noneRule.TypedSpec().Value.AssignRole = string(role.None)
+
+	readerRule := auth.NewSAMLLabelRule("assign-reader")
+	readerRule.TypedSpec().Value.MatchLabels = []string{"saml.omni.sidero.dev/role/omni-reader"}
+	readerRule.TypedSpec().Value.AssignRole = string(role.Reader)
+
+	// User with only None label → returns None rule
+	matchedRule := saml.MatchSAMLLabelRule(
+		[]*auth.SAMLLabelRule{noneRule, readerRule},
+		map[string]string{
+			"saml.omni.sidero.dev/role/omni-none": "",
+		}, logger,
+	)
+
+	require.NotNil(t, matchedRule)
+	require.EqualValues(t, matchedRule.TypedSpec().Value.AssignRole, role.None)
+
+	// User with both labels → Reader wins (highest role)
+	matchedRule = saml.MatchSAMLLabelRule(
+		[]*auth.SAMLLabelRule{noneRule, readerRule},
+		map[string]string{
+			"saml.omni.sidero.dev/role/omni-none":   "",
+			"saml.omni.sidero.dev/role/omni-reader": "",
+		}, logger,
+	)
+
+	require.NotNil(t, matchedRule)
+	require.EqualValues(t, matchedRule.TypedSpec().Value.AssignRole, role.Reader)
+}

@@ -399,7 +399,7 @@ func MatchSAMLLabelRule(samlLabelRules []*auth.SAMLLabelRule, samlLabels map[str
 				continue
 			}
 
-			if samlRole.Compare(maxRole) == -1 {
+			if rule == nil || samlRole.Compare(maxRole) == -1 {
 				rule = labelRule
 			}
 
