@@ -336,8 +336,6 @@ func calculateUsage(pods []*corev1.Pod, nodes []*corev1.Node, usage *virtual.Kub
 		spec.Pods = &specs.KubernetesUsageSpec_Pod{}
 	}
 
-	spec.Pods.Count = int32(len(pods))
-
 	spec.Cpu.Limits = 0
 	spec.Mem.Limits = 0
 	spec.Storage.Limits = 0
@@ -346,7 +344,16 @@ func calculateUsage(pods []*corev1.Pod, nodes []*corev1.Node, usage *virtual.Kub
 	spec.Mem.Requests = 0
 	spec.Storage.Requests = 0
 
+	var activePods int32
+
 	for _, pod := range pods {
+		// skip terminal pods (e.g., Succeeded, or Failed/Evicted) - they no longer consume node resources.
+		if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
+			continue
+		}
+
+		activePods++
+
 		requests, limits := resourcehelper.PodRequestsAndLimits(pod)
 
 		spec.Cpu.Limits += limits.Cpu().AsApproximateFloat64()
@@ -357,6 +364,8 @@ func calculateUsage(pods []*corev1.Pod, nodes []*corev1.Node, usage *virtual.Kub
 		spec.Mem.Requests += requests.Memory().AsApproximateFloat64()
 		spec.Storage.Requests += requests.StorageEphemeral().AsApproximateFloat64()
 	}
+
+	spec.Pods.Count = activePods
 
 	spec.Cpu.Capacity = 0
 	spec.Mem.Capacity = 0
