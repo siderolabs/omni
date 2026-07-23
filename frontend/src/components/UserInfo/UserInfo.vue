@@ -10,6 +10,7 @@ import { computed } from 'vue'
 
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
+import { AuthType, authType } from '@/methods'
 import { useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
 
@@ -29,7 +30,7 @@ const {
   email?: string
 }>()
 
-const auth0 = useAuth0()
+const auth0 = authType.value === AuthType.Auth0 ? useAuth0() : null
 
 const identity = computed(
   () => email || auth0?.user?.value?.email?.toLowerCase() || identityStorage.value,
