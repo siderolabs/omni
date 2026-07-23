@@ -59,7 +59,7 @@ const updateExtension = (extension: TalosExtensionsSpecInfo, enabled: boolean) =
 </script>
 
 <template>
-  <div class="flex min-h-36 flex-col gap-2 overflow-hidden">
+  <div class="flex flex-col gap-2 overflow-hidden">
     <TInput v-model="filterExtensions" icon="search" />
 
     <div class="grid grid-cols-4 bg-naturals-n4 py-2 pl-2 text-xs text-naturals-n13 uppercase">

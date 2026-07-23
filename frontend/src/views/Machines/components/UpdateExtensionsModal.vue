@@ -164,15 +164,17 @@ const updateExtensionsConfig = async () => {
     title="Update Extensions"
     action-label="Update"
     :loading="!status"
+    class="w-screen max-w-3xl"
+    content-class="flex flex-col overflow-hidden"
     @confirm="updateExtensions"
   >
     <ExtensionsPicker
       v-if="status"
       v-model="enabledExtensions"
       :talos-version="status.spec.talos_version!.slice(1)"
-      class="flex-1"
       :indeterminate="indeterminate"
       :immutable-extensions="immutableExtensions"
+      class="h-120"
     />
   </Modal>
 </template>

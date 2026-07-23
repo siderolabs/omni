@@ -65,6 +65,8 @@ const updateExtensions = () => {
     title="Select Extensions"
     :loading="!machineStatus?.spec.talos_version"
     action-label="Save"
+    class="w-screen max-w-3xl"
+    content-class="flex flex-col gap-2 overflow-hidden"
     @confirm="updateExtensions"
   >
     <template #description>
@@ -72,17 +74,15 @@ const updateExtensions = () => {
       {{ getMachineName(machineStatus) }}.
     </template>
 
-    <div class="flex flex-col gap-2">
-      <TButton variant="subtle" icon="reset" class="self-end" @click="selectedExtensionMap = {}">
-        Clear selection
-      </TButton>
+    <TButton variant="subtle" icon="reset" class="self-end" @click="selectedExtensionMap = {}">
+      Clear selection
+    </TButton>
 
-      <ExtensionsPicker
-        v-if="machineStatus?.spec.talos_version"
-        v-model="selectedExtensionMap"
-        :talos-version="machineStatus.spec.talos_version.slice(1)"
-        class="max-h-150 max-w-3xl"
-      />
-    </div>
+    <ExtensionsPicker
+      v-if="machineStatus?.spec.talos_version"
+      v-model="selectedExtensionMap"
+      :talos-version="machineStatus.spec.talos_version.slice(1)"
+      class="h-120"
+    />
   </Modal>
 </template>
