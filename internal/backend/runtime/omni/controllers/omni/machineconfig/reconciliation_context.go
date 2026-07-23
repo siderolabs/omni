@@ -99,6 +99,14 @@ func checkMachineStatus(ctx context.Context, r controller.Reader, machineStatus 
 		if !infraMachineStatus.TypedSpec().Value.ReadyToUse {
 			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is managed by static infra provider but is not ready to use")
 		}
+
+		// Interim guard: right after a wipe the machine still reports its old system disk, so DecideOp
+		// treats it as installed and runs config-apply, whose install races the LifecycleService install
+		// and corrupts the disk. Wait until Omni also sees no disk. The provider Installed flag is wipe-aware.
+		// TODO: drop once .machine.install is removed from the config for Talos >= 1.13 clusters.
+		if !infraMachineStatus.TypedSpec().Value.Installed && omni.GetMachineStatusSystemDisk(machineStatus) != "" {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine was wiped but still reports a stale system disk")
+		}
 	}
 
 	return nil

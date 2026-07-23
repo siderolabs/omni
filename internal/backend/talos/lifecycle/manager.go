@@ -9,6 +9,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/siderolabs/go-kubernetes/kubernetes/nodedrain"
 	"github.com/siderolabs/talos/pkg/machinery/api/common"
 	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
@@ -33,19 +34,22 @@ type TalosClientFactory interface {
 
 // Manager runs Talos's LifecycleService install/upgrade for a single machine, one in-flight op per machine.
 type Manager struct {
-	logger                   *zap.Logger
-	containerdInstance       *common.ContainerdInstance
 	kubernetesClientProvider KubernetesClientProvider
 	talosClientFactory       TalosClientFactory
+	logger                   *zap.Logger
+	containerdInstance       *common.ContainerdInstance
 	inFlight                 map[string]struct{}
+	installEventCh           chan<- resource.ID
 	imageFactoryHost         string
 	talosRegistry            string
-
-	mu sync.Mutex
+	mu                       sync.Mutex
 }
 
 // NewManager creates a Manager. kubernetesClients may be nil for callers that never cordon/drain.
-func NewManager(logger *zap.Logger, imageFactoryHost, talosRegistry string, kubernetesClientProvider KubernetesClientProvider, talosClientFactory TalosClientFactory) *Manager {
+// installEventCh may be nil for callers that don't track install completion (e.g. tests).
+func NewManager(logger *zap.Logger, imageFactoryHost, talosRegistry string, kubernetesClientProvider KubernetesClientProvider,
+	talosClientFactory TalosClientFactory, installEventCh chan<- resource.ID,
+) *Manager {
 	return &Manager{
 		logger:                   logger,
 		imageFactoryHost:         imageFactoryHost,
@@ -56,7 +60,8 @@ func NewManager(logger *zap.Logger, imageFactoryHost, talosRegistry string, kube
 			Driver:    common.ContainerDriver_CONTAINERD,
 			Namespace: common.ContainerdNamespace_NS_SYSTEM,
 		},
-		inFlight: map[string]struct{}{},
+		inFlight:       map[string]struct{}{},
+		installEventCh: installEventCh,
 	}
 }
 
@@ -259,6 +264,16 @@ func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {
 
 	if err = m.reboot(ctx, talosClient, op.MachineID, cfg); err != nil {
 		return WrapErr(err, "failed to reboot machine after install/upgrade")
+	}
+
+	// The install succeeded and the machine rebooted into it. This path emits no Talos boot event for
+	// the event sink to catch, so signal it here to bump InstallEventId.
+	if op.Kind == KindInstall && m.installEventCh != nil {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case m.installEventCh <- op.MachineID:
+		}
 	}
 
 	return nil

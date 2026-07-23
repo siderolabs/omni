@@ -38,7 +38,7 @@ func NewManagementServer(st state.State, imageFactoryClient *imagefactory.Client
 		cfg:                 &config.Params{Features: config.Features{EnableBreakGlassConfigs: new(enableBreakGlassConfigs)}},
 		kubernetesRuntime:   kubernetesRuntime,
 		talosconfigProvider: talosconfigProvider,
-		lifecycleManager:    lifecycle.NewManager(logger, "test-factory", "ghcr.io/siderolabs/installer", nil, nil),
+		lifecycleManager:    lifecycle.NewManager(logger, "test-factory", "ghcr.io/siderolabs/installer", nil, nil, nil),
 
 		auditLogFollowLease: auditLogFollowDefaultLease,
 	}

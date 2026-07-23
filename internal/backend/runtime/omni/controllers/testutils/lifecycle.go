@@ -107,5 +107,6 @@ func NewLifecycleManager(st state.State, k8sProvider lifecycle.KubernetesClientP
 		testTalosRegistry,
 		k8sProvider,
 		socketTalosClientFactory{st: st},
+		nil,
 	)
 }
