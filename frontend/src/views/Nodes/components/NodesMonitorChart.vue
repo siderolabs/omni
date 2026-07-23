@@ -275,33 +275,26 @@ watchEffect(() => {
 
 <template>
   <div class="flex flex-col">
-    <div class="flex justify-between">
-      <div v-if="title" class="w-full pl-3 text-left text-xs text-naturals-n13">
-        {{ title }}
-      </div>
-      <div v-if="total" class="w-full pr-3 text-right text-xs">
-        {{ total }}
-      </div>
+    <div class="flex justify-between px-3 text-xs">
+      <span v-if="title" class="text-naturals-n13">{{ title }}</span>
+      <span v-if="total">{{ total }}</span>
     </div>
-    <div id="chartContainer" class="flex-1">
-      <div v-if="err || loading" class="flex h-full w-full flex-row items-center justify-center">
-        <div
-          v-if="err"
-          class="flex w-1/2 items-center justify-center gap-4 text-sm text-neutral-500"
-        >
-          <div class="flex-0">
-            <ExclamationCircleIcon class="h-6 w-6" />
-          </div>
-          <div v-if="errCode === Code.UNAVAILABLE">Talos API is not ready yet</div>
-          <div v-else>{{ err }}</div>
-        </div>
-        <TSpinner v-else class="h-5 w-5" />
+
+    <div class="chart-container h-45">
+      <div v-if="err || loading" class="flex h-full items-center justify-center">
+        <span v-if="err" class="flex items-center justify-center gap-4 text-sm text-naturals-n9">
+          <ExclamationCircleIcon class="size-6" />
+          {{ errCode === Code.UNAVAILABLE ? 'Talos API is not ready yet' : err }}
+        </span>
+
+        <TSpinner v-else class="size-5" />
       </div>
+
       <VueApexCharts
         v-show="!err && !loading"
         ref="chartRef"
         width="100%"
-        :height="180"
+        height="100%"
         type="area"
         :options="initOptions"
         :series="[]"
@@ -313,16 +306,16 @@ watchEffect(() => {
 <style scoped>
 @reference "../../../index.css";
 
-#chartContainer :deep(.apexcharts-tooltip) {
+.chart-container :deep(.apexcharts-tooltip) {
   @apply bg-naturals-n3 px-3 py-2.5 text-naturals-n14;
 }
-#chartContainer :deep(.apexcharts-tooltip-title) {
+.chart-container :deep(.apexcharts-tooltip-title) {
   @apply bg-naturals-n3 text-naturals-n14;
 }
-#chartContainer :deep(.apexcharts-xaxistooltip-bottom) {
+.chart-container :deep(.apexcharts-xaxistooltip-bottom) {
   @apply hidden;
 }
-#chartContainer :deep(.apexcharts-tooltip .apexcharts-tooltip-series-group.active) {
+.chart-container :deep(.apexcharts-tooltip .apexcharts-tooltip-series-group.active) {
   @apply bg-naturals-n3;
 }
 </style>
