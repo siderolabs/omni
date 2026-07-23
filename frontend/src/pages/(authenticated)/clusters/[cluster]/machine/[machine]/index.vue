@@ -45,7 +45,7 @@ import TAlert from '@/components/TAlert.vue'
 import { TCommonStatuses } from '@/constants'
 import { getStatus } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
-import { useMachineServices } from '@/methods/useMachineServices'
+import { supportsMaintenanceEvents, useMachineServices } from '@/methods/useMachineServices'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachinePhase from '@/views/ClusterMachines/ClusterMachinePhase.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
@@ -60,8 +60,6 @@ const context = computed(() => ({
   cluster: route.params.cluster,
   node: route.params.machine,
 }))
-
-const { data: services, err: servicesErr, errCode: servicesErrCode } = useMachineServices(context)
 
 const configApplyStatusToConfigApplyStatusName = (status?: ConfigApplyStatus): string => {
   switch (status) {
@@ -130,6 +128,21 @@ const { data: machineStatus } = useResourceWatch<MachineStatusLinkSpec>(() => ({
     namespace: MetricsNamespace,
   },
 }))
+
+const supportsEvents = computed(
+  () =>
+    !!machineStatus.value?.spec.message_status?.talos_version &&
+    supportsMaintenanceEvents(
+      machineStatus.value.spec.message_status.maintenance ?? false,
+      machineStatus.value.spec.message_status.talos_version,
+    ),
+)
+
+const {
+  data: services,
+  err: servicesErr,
+  errCode: servicesErrCode,
+} = useMachineServices(context, supportsEvents)
 
 const { data: clusterMachineStatus } = useResourceWatch<ClusterMachineStatusSpec>(() => ({
   runtime: Runtime.Omni,

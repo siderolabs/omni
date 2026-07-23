@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { refThrottled } from '@vueuse/core'
+import { coerce, gte } from 'semver'
 import { type MaybeRefOrGetter, ref, toValue, watchEffect } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -14,6 +15,14 @@ import { withAbortController, withContext, withRuntime } from '@/api/options'
 import { MachineService, type ServiceEvent } from '@/api/talos/machine/machine.pb'
 import { TCommonStatuses } from '@/constants'
 
+export function supportsMaintenanceEvents(maintenance: boolean, talosVersion: string): boolean {
+  if (!maintenance) return true
+
+  const version = coerce(talosVersion)
+
+  return version !== null && gte(version, '1.13.0')
+}
+
 interface Service {
   name?: string
   state?: string
@@ -21,7 +30,10 @@ interface Service {
   events?: ServiceEvent[]
 }
 
-export function useMachineServices(context: MaybeRefOrGetter<RuntimeContext>) {
+export function useMachineServices(
+  context: MaybeRefOrGetter<RuntimeContext>,
+  supportsEvents: MaybeRefOrGetter<boolean> = true,
+) {
   const data = ref<Service[]>([])
   const loading = ref(true)
   const err = ref<Error>()
@@ -85,6 +97,8 @@ export function useMachineServices(context: MaybeRefOrGetter<RuntimeContext>) {
   })
 
   watchEffect((onCleanup) => {
+    if (!toValue(supportsEvents)) return
+
     const stream = subscribe(
       MachineService.Events,
       {},

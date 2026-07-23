@@ -155,7 +155,11 @@ export class Stream<R, T> {
           // break the loop if run ended without any errors
           break
         } catch (e) {
-          if (e.code === Code.INVALID_ARGUMENT || e.code === Code.PERMISSION_DENIED) {
+          if (
+            e.code === Code.INVALID_ARGUMENT ||
+            e.code === Code.PERMISSION_DENIED ||
+            e.code === Code.UNIMPLEMENTED
+          ) {
             return
           }
 

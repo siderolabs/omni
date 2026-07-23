@@ -13,7 +13,9 @@ import type { Data } from '@/api/common/common.pb'
 import { Runtime } from '@/api/common/omni.pb'
 import type { Stream } from '@/api/grpc'
 import { ManagementService } from '@/api/omni/management/management.pb'
+import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { withContext, withRuntime } from '@/api/options'
+import { DefaultNamespace, MachineStatusType } from '@/api/resources'
 import { type LogsRequest, MachineService } from '@/api/talos/machine/machine.pb'
 import LogViewer from '@/components/LogViewer/LogViewer.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
@@ -22,7 +24,8 @@ import TInput from '@/components/TInput/TInput.vue'
 import type { LogLine } from '@/methods/logs'
 import { DefaultLogParser, LineDelimitedLogParser, setupLogStream } from '@/methods/logs'
 import { formatISO } from '@/methods/time'
-import { useMachineServices } from '@/methods/useMachineServices'
+import { supportsMaintenanceEvents, useMachineServices } from '@/methods/useMachineServices'
+import { useResourceWatch } from '@/methods/useResourceWatch'
 
 const { clusterId, machineId, service } = defineProps<{
   clusterId?: string
@@ -43,7 +46,25 @@ const CONTROLLER_RUNTIME = 'controller-runtime' // service with logs that isn't 
 // 'machine' check to continue support for /logs/machine but it is equivalent to /logs
 const isMachineLogs = computed(() => !service || service === MACHINE_LOGS)
 
-const { data: services } = useMachineServices(context)
+const { data: machineStatus } = useResourceWatch<MachineStatusSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    id: machineId,
+    type: MachineStatusType,
+    namespace: DefaultNamespace,
+  },
+}))
+
+const supportsEvents = computed(
+  () =>
+    !!machineStatus.value?.spec.talos_version &&
+    supportsMaintenanceEvents(
+      machineStatus.value?.spec.maintenance ?? false,
+      machineStatus.value.spec.talos_version,
+    ),
+)
+
+const { data: services } = useMachineServices(context, supportsEvents)
 
 const servicesSelectValues = computed(() => [
   MACHINE_LOGS,
