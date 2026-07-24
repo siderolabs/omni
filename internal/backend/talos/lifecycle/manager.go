@@ -175,20 +175,6 @@ func (m *Manager) GetForMachine(ctx context.Context, machineID string) (*talos.C
 	return m.talosClientFactory.GetForMachine(ctx, machineID)
 }
 
-// CheckAlive does a quick Version call on the machine's Talos client, so callers can fail fast instead of committing the full operation to an unresponsive machine.
-func (m *Manager) CheckAlive(ctx context.Context, machineID string) error {
-	talosClient, err := m.GetForMachine(ctx, machineID)
-	if err != nil {
-		return err
-	}
-
-	if _, err = talosClient.Version(ctx); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // Run performs the install or upgrade synchronously, returning when the machine has been rebooted into the target Talos or on error.
 // Returns ErrAlreadyInFlight if another operation holds this machine.
 func (m *Manager) Run(ctx context.Context, op Operation, opts ...Option) error {

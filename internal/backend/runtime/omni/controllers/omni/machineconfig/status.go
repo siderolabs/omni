@@ -59,7 +59,6 @@ const (
 
 // LifecycleManager owns the node-side install/upgrade work. The controller decides timing.
 type LifecycleManager interface {
-	CheckAlive(ctx context.Context, machineID string) error
 	GetForMachine(ctx context.Context, machineID string) (*talos.Client, error)
 	Run(ctx context.Context, op lifecycle.Operation, opts ...lifecycle.Option) error
 	FinalizeReboot(ctx context.Context, opts ...lifecycle.Option) error
@@ -566,8 +565,14 @@ func (ctrl *StatusController) runMaintenanceLifecycle(
 	}
 
 	// Wait if we already triggered the install/upgrade and the node hasn't rebooted yet.
-	if preRebootBootID := rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId; preRebootBootID != "" && rc.bootID == preRebootBootID {
-		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot after %s: %s", operationName, machineID)
+	if preRebootBootID := rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId; preRebootBootID != "" {
+		if rc.bootID == preRebootBootID {
+			return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot after %s: %s", operationName, machineID)
+		}
+
+		if omni.GetMachineStatusSystemDisk(rc.machineStatus) == "" {
+			return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine status to get valid system disk after %s: %s", operationName, machineID)
+		}
 	}
 
 	if stage := rc.machineStatusSnapshot.TypedSpec().Value.GetMachineStatus().GetStage(); stage != machineapi.MachineStatusEvent_MAINTENANCE {
@@ -577,13 +582,21 @@ func (ctrl *StatusController) runMaintenanceLifecycle(
 	probeCtx, probeCancel := context.WithTimeout(ctx, lifecycle.LivenessProbeTimeout)
 	defer probeCancel()
 
-	if err := ctrl.lifecycleManager.CheckAlive(probeCtx, machineID); err != nil {
-		logger.Info("liveness probe before "+operationName+" failed, will retry", zap.String("machine", machineID), zap.Error(err))
+	installed, err := ctrl.checkInstalledImage(probeCtx, rc)
+	if err != nil {
+		logger.Info("version check before "+operationName+" failed, will retry", zap.String("machine", machineID), zap.Error(err))
 
 		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
 	}
 
-	if err := ctrl.acquireUpgradeLock(ctx, r, rc); err != nil {
+	if installed.atTarget && omni.GetMachineStatusSystemDisk(rc.machineStatus) != "" {
+		rc.machineConfigStatus.TypedSpec().Value.TalosVersion = installed.version
+		rc.machineConfigStatus.TypedSpec().Value.SchematicId = installed.schematic
+
+		return true, nil
+	}
+
+	if err = ctrl.acquireUpgradeLock(ctx, r, rc); err != nil {
 		return false, err
 	}
 
@@ -607,7 +620,7 @@ func (ctrl *StatusController) runMaintenanceLifecycle(
 		zap.String("version", operation.Version),
 		zap.String("disk", operation.Disk))
 
-	err := ctrl.lifecycleManager.Run(ctx, operation, lifecycle.WithProgress(func(msg string) {
+	err = ctrl.lifecycleManager.Run(ctx, operation, lifecycle.WithProgress(func(msg string) {
 		logger.Debug(operationName+" progress", zap.String("machine", machineID), zap.String("message", msg))
 	}))
 
@@ -654,6 +667,11 @@ func (ctrl *StatusController) runClusterLifecycle(
 		return false, fmt.Errorf("cluster machine %q has no cluster label", machineID)
 	}
 
+	// Wait if we already triggered the upgrade and the node hasn't rebooted yet.
+	if preRebootBootID := rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId; preRebootBootID != "" && preRebootBootID == rc.bootID {
+		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot after upgrade: %s", machineID)
+	}
+
 	installed, err := ctrl.checkInstalledImage(ctx, rc)
 	if err != nil {
 		logger.Info("version check before upgrade failed, will retry", zap.String("machine", machineID), zap.Error(err))
@@ -666,11 +684,6 @@ func (ctrl *StatusController) runClusterLifecycle(
 		rc.machineConfigStatus.TypedSpec().Value.SchematicId = installed.schematic
 
 		return true, nil
-	}
-
-	// Wait if we already triggered the upgrade and the node hasn't rebooted yet.
-	if preRebootBootID := rc.machineConfigStatus.TypedSpec().Value.PreRebootBootId; preRebootBootID != "" && preRebootBootID == rc.bootID {
-		return false, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for machine to reboot after upgrade: %s", machineID)
 	}
 
 	nodeName, err := ctrl.getNodeName(ctx, r, machineID)

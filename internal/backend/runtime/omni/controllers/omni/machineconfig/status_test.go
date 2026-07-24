@@ -1098,6 +1098,80 @@ func TestMachineConfigStatusController(t *testing.T) {
 		)
 	})
 
+	// maintenanceUpgradeConvergesOnLiveVersion verifies that after a maintenance upgrade reboots, a cached
+	// MachineStatus still reporting the pre-upgrade version (the post-reboot lag) does not cause a second
+	// upgrade: the controller reads the live version, sees the machine already at the target, and converges
+	// on it. Without the live re-check the stale version mismatch would re-run the upgrade and reboot the
+	// machine again. The schematic is marked invalid so the re-check turns purely on the version, isolating
+	// the version lag.
+	t.Run("maintenanceUpgradeConvergesOnLiveVersion", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
+			func(_ context.Context, tc testutils.TestContext) {
+				require.NoError(t, tc.Runtime.RegisterQController(
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
+				))
+			},
+			func(ctx context.Context, tc testutils.TestContext) {
+				st := tc.State
+				machineServices := testutils.NewMachineServices(t, st)
+
+				// The machine has Talos on disk and is booted in maintenance, but its cached MachineStatus
+				// still lags at the pre-upgrade version. An invalid schematic keeps the re-check version-only.
+				_, machines := createCluster(
+					ctx, t, st, machineServices, "maint-upgrade-converged", 1, 0,
+					withMachineStatusModifier(func(res *omni.MachineStatus) error {
+						res.TypedSpec().Value.Maintenance = true
+						res.TypedSpec().Value.TalosVersion = maintenanceMachineVersion
+						res.TypedSpec().Value.Schematic.Invalid = true
+
+						return nil
+					}),
+				)
+
+				id := machines[0].Metadata().ID()
+
+				// Set the live version before the trigger resources below, so the controller cannot fire an
+				// upgrade before it can observe the machine is already at the target. The node reports the
+				// target version even though the cached MachineStatus still reports the old one.
+				machineServices.Get(id).SetVersionHandler(func(context.Context, *emptypb.Empty) (*machine.VersionResponse, error) {
+					return &machine.VersionResponse{
+						Messages: []*machine.Version{{Version: &machine.VersionInfo{Tag: "v" + maintenanceTargetVersion}}},
+					}, nil
+				})
+
+				rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+					res.TypedSpec().Value.InstallImage.TalosVersion = maintenanceTargetVersion
+
+					return nil
+				}))
+
+				rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+					res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_MAINTENANCE}
+					res.TypedSpec().Value.BootId = "boot-converged"
+
+					return nil
+				}))
+
+				// The config status converges to the live version with the reboot marker left empty. Had the
+				// controller re-triggered instead, it would have recorded the boot ID and never stamped the
+				// target version here, so this pair of positive checks rules out a spurious upgrade.
+				rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+					a.Equal(maintenanceTargetVersion, res.TypedSpec().Value.TalosVersion)
+					a.Empty(res.TypedSpec().Value.PreRebootBootId)
+				})
+
+				assert.Empty(t, machineServices.Get(id).GetLifecycleUpgradeRequests(), "a machine already at the target must not be upgraded again")
+				assert.Empty(t, machineServices.Get(id).GetLifecycleInstallRequests())
+			},
+		)
+	})
+
 	// maintenanceLifecycleError verifies a failed operation surfaces the error in LastConfigError
 	// (returning a raw error would make qtransform drop the output write) and does not record the boot
 	// ID, so the operation is retried.
