@@ -3529,8 +3529,13 @@ type ClusterMachineConfigStatusSpec struct {
 	// debounces such operations: the controller waits until the machine reboots and its boot
 	// ID changes before acting again.
 	PreRebootBootId string `protobuf:"bytes,11,opt,name=pre_reboot_boot_id,json=preRebootBootId,proto3" json:"pre_reboot_boot_id,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// AppliedHighPriorityConfigHash is the hash of the high-priority config documents (image factory
+	// registry auth and custom CA / trusted roots) that were last successfully applied to the machine.
+	// It is compared against the desired high-priority hash to decide whether high-priority config
+	// changes are pending and must be applied before an upgrade/install.
+	AppliedHighPriorityConfigHash string `protobuf:"bytes,12,opt,name=applied_high_priority_config_hash,json=appliedHighPriorityConfigHash,proto3" json:"applied_high_priority_config_hash,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *ClusterMachineConfigStatusSpec) Reset() {
@@ -3615,6 +3620,13 @@ func (x *ClusterMachineConfigStatusSpec) GetCompressedRedactedMachineConfig() []
 func (x *ClusterMachineConfigStatusSpec) GetPreRebootBootId() string {
 	if x != nil {
 		return x.PreRebootBootId
+	}
+	return ""
+}
+
+func (x *ClusterMachineConfigStatusSpec) GetAppliedHighPriorityConfigHash() string {
+	if x != nil {
+		return x.AppliedHighPriorityConfigHash
 	}
 	return ""
 }
@@ -11635,7 +11647,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\vClusterUUID\x12\x12\n" +
 	"\x04uuid\x18\x01 \x01(\tR\x04uuid\"4\n" +
 	"\x18ClusterConfigVersionSpec\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\"\xef\x03\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\"\xb9\x04\n" +
 	"\x1eClusterMachineConfigStatusSpec\x12C\n" +
 	"\x1ecluster_machine_config_version\x18\x03 \x01(\tR\x1bclusterMachineConfigVersion\x12A\n" +
 	"\x1dcluster_machine_config_sha256\x18\x05 \x01(\tR\x1aclusterMachineConfigSha256\x12*\n" +
@@ -11645,7 +11657,8 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x1fredacted_current_machine_config\x18\t \x01(\tR\x1credactedCurrentMachineConfig\x12K\n" +
 	"\"compressed_redacted_machine_config\x18\n" +
 	" \x01(\fR\x1fcompressedRedactedMachineConfig\x12+\n" +
-	"\x12pre_reboot_boot_id\x18\v \x01(\tR\x0fpreRebootBootIdJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x04\x10\x05\"\x98\x02\n" +
+	"\x12pre_reboot_boot_id\x18\v \x01(\tR\x0fpreRebootBootId\x12H\n" +
+	"!applied_high_priority_config_hash\x18\f \x01(\tR\x1dappliedHighPriorityConfigHashJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x04\x10\x05\"\x98\x02\n" +
 	"\x19MachinePendingUpdatesSpec\x12B\n" +
 	"\aupgrade\x18\x01 \x01(\v2(.specs.MachinePendingUpdatesSpec.UpgradeR\aupgrade\x12\x1f\n" +
 	"\vconfig_diff\x18\x02 \x01(\tR\n" +

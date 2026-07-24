@@ -24,7 +24,10 @@ import (
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -2129,7 +2132,7 @@ func TestClusterLifecycleUpgrade(t *testing.T) {
 
 			// Request a same-minor upgrade: both the machine and the target support the LifecycleService API,
 			// so this must take the cluster lifecycle path rather than the legacy one.
-			targetVersion := "1.13.99"
+			targetVersion := "1.13.6"
 
 			rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
 				res.TypedSpec().Value.InstallImage.TalosVersion = targetVersion
@@ -2191,7 +2194,7 @@ func TestClusterLifecycleConvergesOnLiveVersion(t *testing.T) {
 				installedSchematic = res.TypedSpec().Value.SchematicId
 			})
 
-			targetVersion := "1.13.99"
+			targetVersion := "1.13.6"
 
 			// The node already runs the target version live, even though the cached MachineStatus still
 			// reports the old one (the post-reboot lag the re-check is meant to absorb).
@@ -2305,7 +2308,7 @@ func TestClusterLifecycleHoldsUpgradeLockUntilFinalized(t *testing.T) {
 				return nil
 			}))
 
-			targetVersion := "1.13.99"
+			targetVersion := "1.13.6"
 
 			rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
 				res.TypedSpec().Value.InstallImage.TalosVersion = targetVersion
@@ -2434,7 +2437,7 @@ func TestClusterLifecycleForfeitsEtcdLeadership(t *testing.T) {
 			nodeName := "node-" + id
 			provider.SetClientset(testutils.NewFakeKubernetesClientset(nodeName))
 
-			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.99")
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.6")
 
 			// The control-plane node forfeits etcd leadership before its reboot.
 			require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -2476,7 +2479,7 @@ func TestClusterLifecycleSkipsEtcdForfeitForLoneControlPlane(t *testing.T) {
 			nodeName := "node-" + id
 			provider.SetClientset(testutils.NewFakeKubernetesClientset(nodeName))
 
-			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.99")
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.6")
 
 			// Wait until the upgrade has run (boot ID recorded): the forfeit, if any, happens during the run.
 			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
@@ -2485,6 +2488,265 @@ func TestClusterLifecycleSkipsEtcdForfeitForLoneControlPlane(t *testing.T) {
 
 			// A lone control plane must not forfeit leadership.
 			assert.Zero(t, machineServices.Get(id).GetEtcdForfeitLeadershipCount())
+		},
+	)
+}
+
+// addHighPriorityConfig injects high-priority config documents — image factory registry auth
+// (cri.RegistryAuthConfig) and a custom CA / trusted roots (security.TrustedRootsConfig) — into the
+// machine's rendered ClusterMachineConfig, so the status controller sees a high-priority config change.
+func addHighPriorityConfig(ctx context.Context, t *testing.T, st state.State, id string) {
+	rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.ClusterMachineConfig) error {
+		buffer, err := res.TypedSpec().Value.GetUncompressedData()
+		if err != nil {
+			return err
+		}
+
+		defer buffer.Free()
+
+		provider, err := configloader.NewFromBytes(buffer.Data())
+		if err != nil {
+			return err
+		}
+
+		authDoc := cri.NewRegistryAuthConfigV1Alpha1("registry.example.com")
+		authDoc.RegistryUsername = "user"
+		authDoc.RegistryPassword = "pass"
+
+		caDoc := security.NewTrustedRootsConfigV1Alpha1()
+		caDoc.MetaName = "custom-ca"
+		caDoc.Certificates = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----"
+
+		docs := append(provider.Documents(), authDoc, caDoc)
+
+		ctr, err := container.New(docs...)
+		if err != nil {
+			return err
+		}
+
+		data, err := ctr.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
+		if err != nil {
+			return err
+		}
+
+		return res.TypedSpec().Value.SetUncompressedData(data)
+	}))
+}
+
+// TestClusterUpgradeDeferredForHighPriorityConfig verifies that when an in-cluster machine has both a
+// pending upgrade and a pending high-priority config change (image factory registry auth / custom CA),
+// the upgrade is deferred and the config is applied first — the upgrade pulls the installer image and
+// needs those credentials/CA on the machine already.
+func TestClusterUpgradeDeferredForHighPriorityConfig(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	provider := &testutils.FakeKubernetesProvider{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, provider)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			clusterName := "cluster-hp-defer"
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			id := machines[0].Metadata().ID()
+
+			// Wait for the initial config to be applied (records the empty high-priority hash baseline).
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			nodeName := "node-" + id
+			provider.SetClientset(testutils.NewFakeKubernetesClientset(nodeName))
+
+			// Make config apply require a reboot so the applied high-priority hash is never recorded and the
+			// change stays pending, keeping the upgrade deferred for the whole test.
+			machineServices.ForEach(func(m *testutils.MachineServiceMock) {
+				m.OnApplyConfig = func(_ context.Context, _ *machine.ApplyConfigurationRequest, _ state.State, _ string) (*machine.ApplyConfigurationResponse, error) {
+					//nolint:staticcheck // ApplyConfigurationRequest_REBOOT is deprecated in Talos 1.14, update the test when DefaultTalosVersion is set to 1.14
+					mode := machine.ApplyConfigurationRequest_REBOOT
+
+					return &machine.ApplyConfigurationResponse{
+						Messages: []*machine.ApplyConfiguration{{Mode: mode}},
+					}, nil
+				}
+			})
+
+			// A high-priority config change is now pending. Wait until the controller has actually observed
+			// and pushed it (an apply request carrying the high-priority docs) BEFORE requesting the upgrade.
+			// The upgrade trigger and the config change are separate resources, so if the upgrade became
+			// visible to the controller first it would run against a config with no high-priority docs yet
+			// (highPriorityPending still false). Waiting for the apply pins the doc into the controller's
+			// cache (COSI caches are monotonic), making the deferral deterministic.
+			addHighPriorityConfig(ctx, t, st, id)
+
+			require.EventuallyWithT(t, func(collect *assert.CollectT) {
+				requests := machineServices.Get(id).GetApplyRequests()
+				if !assert.NotEmpty(collect, requests) {
+					return
+				}
+
+				assert.Contains(collect, string(requests[len(requests)-1].GetData()), "RegistryAuthConfig")
+			}, time.Second*5, 50*time.Millisecond)
+
+			// Now request a version upgrade. The high-priority change stays pending (config apply requires a
+			// reboot, so its hash is never recorded), so the upgrade is deferred and no LifecycleService.Upgrade
+			// is issued.
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.6")
+
+			require.Never(t, func() bool {
+				return len(machineServices.Get(id).GetLifecycleUpgradeRequests()) > 0
+			}, time.Second, 50*time.Millisecond)
+		},
+	)
+}
+
+// TestClusterUpgradeProceedsAfterHighPriorityConfigApplied verifies the deferral is temporary: once the
+// high-priority config has been applied, the upgrade is no longer pending and proceeds normally.
+func TestClusterUpgradeProceedsAfterHighPriorityConfigApplied(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+	t.Cleanup(cancel)
+
+	provider := &testutils.FakeKubernetesProvider{}
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, provider)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+
+			clusterName := "cluster-hp-proceed"
+
+			machineServices := testutils.NewMachineServices(t, st)
+
+			_, machines := createCluster(ctx, t, st, machineServices, clusterName, 1, 0)
+			id := machines[0].Metadata().ID()
+
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+			})
+
+			nodeName := "node-" + id
+			provider.SetClientset(testutils.NewFakeKubernetesClientset(nodeName))
+
+			// Config apply succeeds without a reboot (mock default), so the applied high-priority hash is
+			// recorded and the change stops being pending.
+			addHighPriorityConfig(ctx, t, st, id)
+
+			triggerClusterUpgrade(ctx, t, st, clusterName, id, nodeName, "1.13.10")
+
+			// The upgrade eventually runs (boot ID recorded and a LifecycleService.Upgrade is issued), proving
+			// the deferral released once the high-priority config was applied.
+			rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+				a.NotEmpty(res.TypedSpec().Value.PreRebootBootId)
+			})
+
+			require.NotEmpty(t, machineServices.Get(id).GetLifecycleUpgradeRequests())
+		},
+	)
+}
+
+// TestMaintenanceInstallGatedOnHighPriorityConfig verifies that a maintenance-mode machine with
+// high-priority config documents is not installed/upgraded by the status controller until the
+// maintenance config controller has applied the config it generated for the machine's current
+// connection (matched by the siderolink public key).
+func TestMaintenanceInstallGatedOnHighPriorityConfig(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{},
+		func(_ context.Context, tc testutils.TestContext) {
+			require.NoError(t, tc.Runtime.RegisterQController(
+				machineconfig.NewStatusController(testutils.NewLifecycleManager(tc.State, nil)),
+			))
+		},
+		func(ctx context.Context, tc testutils.TestContext) {
+			st := tc.State
+			machineServices := testutils.NewMachineServices(t, st)
+
+			clusterName := "maint-hp-gate"
+
+			_, machines := createCluster(
+				ctx, t, st, machineServices, clusterName, 1, 0,
+				withMachineStatusModifier(func(res *omni.MachineStatus) error {
+					res.TypedSpec().Value.Maintenance = true
+					res.TypedSpec().Value.TalosVersion = maintenanceMachineVersion
+					res.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{} // no system disk -> install
+
+					return nil
+				}),
+			)
+			id := machines[0].Metadata().ID()
+
+			// The high-priority config must be present before the install can be triggered.
+			addHighPriorityConfig(ctx, t, st, id)
+
+			// The machine's current siderolink public key.
+			rmock.Mock[*siderolink.Link](ctx, t, st, options.WithID(id), options.Modify(func(res *siderolink.Link) error {
+				res.TypedSpec().Value.Connected = true
+				res.TypedSpec().Value.NodePublicKey = "pk-current"
+
+				return nil
+			}))
+
+			rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+				res.TypedSpec().Value.InstallImage.TalosVersion = maintenanceTargetVersion
+
+				return nil
+			}))
+
+			rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineStatusSnapshot) error {
+				res.TypedSpec().Value.MachineStatus = &machine.MachineStatusEvent{Stage: machine.MachineStatusEvent_MAINTENANCE}
+				res.TypedSpec().Value.BootId = "boot-maint-gate"
+
+				return nil
+			}))
+
+			// The maintenance config controller applied its config, but for a previous connection (stale public
+			// key), so the install stays gated.
+			rmock.Mock[*omni.MaintenanceConfigStatus](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MaintenanceConfigStatus) error {
+				res.TypedSpec().Value.LastAppliedConfigHash = "maintenance-hash"
+				res.TypedSpec().Value.PublicKeyAtLastApply = "pk-stale"
+
+				return nil
+			}))
+
+			require.Never(t, func() bool {
+				return len(machineServices.Get(id).GetLifecycleInstallRequests()) > 0
+			}, time.Second, 50*time.Millisecond)
+
+			// The maintenance config controller applies its config for the current connection.
+			rmock.Mock[*omni.MaintenanceConfigStatus](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MaintenanceConfigStatus) error {
+				res.TypedSpec().Value.LastAppliedConfigHash = "maintenance-hash"
+				res.TypedSpec().Value.PublicKeyAtLastApply = "pk-current"
+
+				return nil
+			}))
+
+			// The install now proceeds.
+			require.EventuallyWithT(t, func(collect *assert.CollectT) {
+				assert.NotEmpty(collect, machineServices.Get(id).GetLifecycleInstallRequests())
+			}, time.Second*5, 50*time.Millisecond)
 		},
 	)
 }

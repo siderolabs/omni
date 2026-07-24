@@ -624,6 +624,12 @@ message ClusterMachineConfigStatusSpec {
   // debounces such operations: the controller waits until the machine reboots and its boot
   // ID changes before acting again.
   string pre_reboot_boot_id = 11;
+
+  // AppliedHighPriorityConfigHash is the hash of the high-priority config documents (image factory
+  // registry auth and custom CA / trusted roots) that were last successfully applied to the machine.
+  // It is compared against the desired high-priority hash to decide whether high-priority config
+  // changes are pending and must be applied before an upgrade/install.
+  string applied_high_priority_config_hash = 12;
 }
 
 message MachinePendingUpdatesSpec {
