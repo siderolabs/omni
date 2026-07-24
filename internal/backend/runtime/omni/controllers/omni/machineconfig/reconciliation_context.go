@@ -7,8 +7,11 @@ package machineconfig
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -18,12 +21,17 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/crypto/x509"
 	"github.com/siderolabs/gen/xerrors"
+	talosconfig "github.com/siderolabs/talos/pkg/machinery/config/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
@@ -37,14 +45,24 @@ type ReconciliationContext struct {
 	clusterMachine        *omni.ClusterMachine
 	installImage          *specs.MachineConfigGenOptionsSpec_InstallImage
 
-	lastConfigError       string
-	installDisk           string
-	bootID                string
+	lastConfigError string
+	installDisk     string
+	bootID          string
+	// highPriorityHash is the hash of the high-priority config documents (image factory registry auth
+	// and custom CA / trusted roots) present in the desired config. Empty when there are none.
+	highPriorityHash      string
 	redactedMachineConfig []byte
+
+	lifecycleOp lifecycle.Op
 
 	configUpdatesAllowed bool
 	locked               bool
-	lifecycleOp          lifecycle.Op
+	// highPriorityPending is true when the desired high-priority config documents differ from the ones
+	// last applied to the machine, so they must be applied before any upgrade/install.
+	highPriorityPending bool
+	// maintenanceConfigApplied is true when the maintenance config controller has applied the config it
+	// generated (which carries the high-priority documents) for the machine's current connection.
+	maintenanceConfigApplied bool
 }
 
 // hasPendingLifecycleOperation returns true when an upgrade/install action needs to run before config can be applied.
@@ -163,6 +181,14 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, fmt.Errorf("failed to redact secrets: %w", err)
 	}
 
+	rc.highPriorityHash, err = computeHighPriorityHash(config.Documents())
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute high-priority config hash: %w", err)
+	}
+
+	rc.highPriorityPending = rc.highPriorityHash != "" &&
+		rc.highPriorityHash != machineConfigStatus.TypedSpec().Value.AppliedHighPriorityConfigHash
+
 	if !rc.locked {
 		if rc.locked, err = checkClusterReady(ctx, r, machineConfig); err != nil {
 			return nil, err
@@ -246,10 +272,83 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 
 	rc.bootID = rc.machineStatusSnapshot.TypedSpec().Value.BootId
 
+	maintenanceConfigStatus, err := safe.ReaderGetByID[*omni.MaintenanceConfigStatus](ctx, r, machineConfig.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	link, err := safe.ReaderGetByID[*siderolinkres.Link](ctx, r, machineConfig.Metadata().ID())
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	rc.maintenanceConfigApplied = maintenanceConfigStatus != nil && link != nil &&
+		link.TypedSpec().Value.Connected &&
+		link.TypedSpec().Value.NodePublicKey != "" &&
+		maintenanceConfigStatus.TypedSpec().Value.LastAppliedConfigHash != "" &&
+		maintenanceConfigStatus.TypedSpec().Value.PublicKeyAtLastApply != "" &&
+		maintenanceConfigStatus.TypedSpec().Value.PublicKeyAtLastApply == link.TypedSpec().Value.NodePublicKey
+
 	rc.lifecycleOp = lifecycle.DecideOp(rc.machineStatus, rc.installImage, schematicMismatch, talosVersionMismatch)
 	if rc.lifecycleOp == lifecycle.OpMaintenanceInstall && rc.installDisk == "" {
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install disk is not yet selected", machineConfig.Metadata().ID())
 	}
 
 	return rc, nil
+}
+
+// computeHighPriorityHash returns a stable hash of the high-priority config documents present in the
+// desired machine config: image factory registry auth (cri.RegistryAuthConfigV1Alpha1) and custom CA /
+// trusted roots (security.TrustedRootsConfigV1Alpha1). These must already be on the machine before any
+// upgrade/install can pull the installer image from a private image factory or a registry behind a
+// custom CA. It returns an empty string when there are no such documents.
+func computeHighPriorityHash(documents []talosconfig.Document) (string, error) {
+	var highPriority []talosconfig.Document
+
+	for _, doc := range documents {
+		switch doc.(type) {
+		case *cri.RegistryAuthConfigV1Alpha1, *security.TrustedRootsConfigV1Alpha1:
+			highPriority = append(highPriority, doc)
+		}
+	}
+
+	if len(highPriority) == 0 {
+		return "", nil
+	}
+
+	// Sort by kind and name so the hash is independent of the document ordering in the config.
+	slices.SortStableFunc(highPriority, func(a, b talosconfig.Document) int {
+		return strings.Compare(documentKey(a), documentKey(b))
+	})
+
+	hash := sha256.New()
+
+	for _, doc := range highPriority {
+		ctr, err := container.New(doc)
+		if err != nil {
+			return "", fmt.Errorf("failed to wrap high-priority document: %w", err)
+		}
+
+		data, err := ctr.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
+		if err != nil {
+			return "", fmt.Errorf("failed to encode high-priority document: %w", err)
+		}
+
+		hash.Write(data)
+		hash.Write([]byte{0})
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// documentKey returns a stable sort key for a config document based on its API version, kind and
+// (optional) name.
+func documentKey(doc talosconfig.Document) string {
+	key := doc.APIVersion() + "/" + doc.Kind()
+
+	if named, ok := doc.(talosconfig.NamedDocument); ok {
+		key += "/" + named.Name()
+	}
+
+	return key
 }

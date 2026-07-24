@@ -961,6 +961,7 @@ func (m *ClusterMachineConfigStatusSpec) CloneVT() *ClusterMachineConfigStatusSp
 	r.SchematicId = m.SchematicId
 	r.RedactedCurrentMachineConfig = m.RedactedCurrentMachineConfig
 	r.PreRebootBootId = m.PreRebootBootId
+	r.AppliedHighPriorityConfigHash = m.AppliedHighPriorityConfigHash
 	if rhs := m.CompressedRedactedMachineConfig; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -4622,6 +4623,9 @@ func (this *ClusterMachineConfigStatusSpec) EqualVT(that *ClusterMachineConfigSt
 		return false
 	}
 	if this.PreRebootBootId != that.PreRebootBootId {
+		return false
+	}
+	if this.AppliedHighPriorityConfigHash != that.AppliedHighPriorityConfigHash {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10531,6 +10535,13 @@ func (m *ClusterMachineConfigStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (in
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.AppliedHighPriorityConfigHash) > 0 {
+		i -= len(m.AppliedHighPriorityConfigHash)
+		copy(dAtA[i:], m.AppliedHighPriorityConfigHash)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.AppliedHighPriorityConfigHash)))
+		i--
+		dAtA[i] = 0x62
 	}
 	if len(m.PreRebootBootId) > 0 {
 		i -= len(m.PreRebootBootId)
@@ -17858,6 +17869,10 @@ func (m *ClusterMachineConfigStatusSpec) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.PreRebootBootId)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.AppliedHighPriorityConfigHash)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -27547,6 +27562,38 @@ func (m *ClusterMachineConfigStatusSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.PreRebootBootId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AppliedHighPriorityConfigHash", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AppliedHighPriorityConfigHash = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
