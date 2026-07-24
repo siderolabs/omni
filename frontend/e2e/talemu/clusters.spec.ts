@@ -2,6 +2,9 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import fs from 'node:fs/promises'
+import os from 'node:os'
+
 import { faker } from '@faker-js/faker'
 import { milliseconds } from 'date-fns'
 import { loadAll } from 'js-yaml'
@@ -169,5 +172,67 @@ test('Scale cluster using machine classes', async ({ omnictl, cluster, page }, t
       )
 
     expect(prevMachinesUntouched, 'Previous machines were not recreated').toBeTruthy()
+  })
+})
+
+test('Manage patches', async ({ cluster, page }, testInfo) => {
+  await test.step('Visit cluster page', async () => {
+    await page.goto('/')
+    await page.getByRole('link', { name: 'Clusters' }).click()
+
+    await expect(page).toHaveURL('/clusters')
+    await expect(page.getByRole('heading', { name: 'Clusters', exact: true })).toBeVisible()
+    await page.getByRole('link', { name: cluster.name }).click()
+  })
+
+  await test.step('Add a cluster patch', async () => {
+    await page.getByRole('link', { name: 'Config Patches' }).click()
+    await page.getByRole('link', { name: 'Create Patch' }).click()
+
+    const envPatch = await fs.readFile(
+      new URL('../common/patches/env_config_patch.yaml', import.meta.url),
+      'utf8',
+    )
+    await testInfo.attach('env_config_patch.yaml', {
+      body: envPatch,
+      contentType: 'application/yaml',
+    })
+
+    await page.evaluate((text) => navigator.clipboard.writeText(text), envPatch)
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(envPatch)
+
+    await page
+      .getByRole('textbox', { name: 'Editor content' })
+      .press(`${os.platform() === 'darwin' ? 'Meta' : 'Control'}+v`)
+    await expect(page.getByText('variables:')).toBeVisible()
+
+    await page.getByRole('textbox', { name: 'Name' }).fill('My favourite patch')
+    await page.getByRole('textbox', { name: 'Description' }).fill('A patch for all to remember')
+
+    await page.getByRole('button', { name: 'Save' }).click()
+  })
+
+  await test.step('Disable / Enable a patch', async () => {
+    await page.getByLabel('patch actions').click()
+    await page.getByRole('menuitem', { name: 'Disable' }).click()
+
+    await expect(page.getByText('Disabled')).toBeVisible()
+
+    await page.getByLabel('patch actions').click()
+    await page.getByRole('menuitem', { name: 'Enable' }).click()
+
+    await expect(page.getByText('Disabled')).toBeHidden()
+  })
+
+  await test.step('Delete a patch', async () => {
+    await expect(page.getByText('My favourite patch')).toBeVisible()
+
+    await page.getByLabel('patch actions').click()
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
+
+    await expect(page.getByText('Please confirm the action')).toBeVisible()
+    await page.getByRole('button', { name: 'Destroy' }).click()
+
+    await expect(page.getByText('My favourite patch')).toBeHidden()
   })
 })

@@ -372,7 +372,16 @@ const toggleDisabled = async (item: RouteItem) => {
                   {{ item.disabled ? 'Enable' : 'Disable' }}
                 </TActionsBoxItem>
 
-                <TActionsBoxItem danger icon="delete" @select="toggleDisabled(item)">
+                <TActionsBoxItem
+                  danger
+                  icon="delete"
+                  @select="
+                    () => {
+                      configPatchDestroyModalOpen = true
+                      configPatchDestroyModalPatchId = item.id
+                    }
+                  "
+                >
                   Delete
                 </TActionsBoxItem>
               </TActionsBox>

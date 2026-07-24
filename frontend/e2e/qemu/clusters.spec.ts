@@ -275,7 +275,10 @@ test('add control plane patch', async ({ page }, testInfo) => {
   })
 
   await test.step('Add EnvironmentConfig patch', async () => {
-    const envPatch = await fs.readFile(new URL('./env_config_patch.yaml', import.meta.url), 'utf8')
+    const envPatch = await fs.readFile(
+      new URL('../common/patches/env_config_patch.yaml', import.meta.url),
+      'utf8',
+    )
     await testInfo.attach('env_config_patch.yaml', {
       body: envPatch,
       contentType: 'application/yaml',
@@ -334,7 +337,10 @@ test('exposed services', async ({ page, omnictl }, testInfo) => {
   })
 
   await test.step('Add service via k8s manifests', async () => {
-    const rawManifest = await fs.readFile(new URL('./k8s_manifest.yaml', import.meta.url), 'utf8')
+    const rawManifest = await fs.readFile(
+      new URL('../common/patches/k8s_manifest.yaml', import.meta.url),
+      'utf8',
+    )
     const parsedManifest = load(rawManifest) as { metadata: { labels?: Record<string, string> } }
 
     parsedManifest.metadata.labels = {
