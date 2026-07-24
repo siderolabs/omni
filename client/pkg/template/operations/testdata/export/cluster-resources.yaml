@@ -25,6 +25,7 @@ spec:
     enableworkloadproxy: true
     diskencryption: true
     useembeddeddiscoveryservice: true
+    enablenodeauditskip: true
   backupconfiguration:
     interval:
       seconds: 7200

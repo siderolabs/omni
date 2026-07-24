@@ -384,6 +384,7 @@ func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch)
 			DiskEncryption:              spec.GetFeatures().GetDiskEncryption(),
 			EnableWorkloadProxy:         spec.GetFeatures().GetEnableWorkloadProxy(),
 			UseEmbeddedDiscoveryService: spec.GetFeatures().GetUseEmbeddedDiscoveryService(),
+			EnableNodeAuditSkip:         spec.GetFeatures().GetEnableNodeAuditSkip(),
 			BackupConfiguration: models.BackupConfiguration{
 				Interval: backupIntervalDuration,
 			},

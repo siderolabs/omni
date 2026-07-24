@@ -59,6 +59,9 @@ type Features struct {
 	EnableWorkloadProxy bool `yaml:"enableWorkloadProxy,omitempty"`
 	// UseEmbeddedDiscoveryService enables the use of embedded discovery service.
 	UseEmbeddedDiscoveryService bool `yaml:"useEmbeddedDiscoveryService,omitempty"`
+	// EnableNodeAuditSkip allows the omni.sidero.dev/node-audit-skip annotation on Kubernetes nodes
+	// to exempt them from the Kubernetes node audit.
+	EnableNodeAuditSkip bool `yaml:"enableNodeAuditSkip,omitempty"`
 	// BackupConfiguration contains backup configuration settings.
 	BackupConfiguration BackupConfiguration `yaml:"backupConfiguration,omitempty"`
 }
@@ -135,6 +138,7 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 	clusterResource.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
 		EnableWorkloadProxy:         cluster.Features.EnableWorkloadProxy,
 		UseEmbeddedDiscoveryService: cluster.Features.UseEmbeddedDiscoveryService,
+		EnableNodeAuditSkip:         cluster.Features.EnableNodeAuditSkip,
 	}
 
 	clusterResource.TypedSpec().Value.KubernetesVersion = strings.TrimLeft(cluster.Kubernetes.Version, "v")
