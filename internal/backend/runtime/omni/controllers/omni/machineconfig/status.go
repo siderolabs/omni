@@ -28,6 +28,7 @@ import (
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
+	"github.com/siderolabs/talos/pkg/machinery/resources/block"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -1099,7 +1100,18 @@ func (ctrl *StatusController) reset(
 		}
 	}
 
-	err = c.ResetGeneric(ctx, &machineapi.ResetRequest{
+	return ctrl.resetMachine(ctx, c, logger, graceful, machineID, machineStatus.TypedSpec().Value.TalosVersion)
+}
+
+func (ctrl *StatusController) resetMachine(
+	ctx context.Context,
+	c *client.Client,
+	logger *zap.Logger,
+	graceful bool,
+	machineID resource.ID,
+	talosVersionStr string,
+) error {
+	resetRequest := &machineapi.ResetRequest{
 		Graceful: graceful,
 		Reboot:   true,
 		SystemPartitionsToWipe: []*machineapi.ResetPartitionSpec{
@@ -1112,20 +1124,65 @@ func (ctrl *StatusController) reset(
 				Wipe:  true,
 			},
 		},
-	})
-	if err == nil {
-		attempt := ctrl.ongoingResets.handleReset(machineID)
-		logger.Info("resetting node", zap.Uint("attempt", attempt), zap.Bool("graceful", graceful))
-
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("check back when machine '%s' gets into maintenance mode", machineID)
 	}
 
-	logger.Error(
-		"failed resetting node",
-		zap.Error(err),
-	)
+	talosVersion, err := semver.ParseTolerant(talosVersionStr)
+	if err != nil {
+		return fmt.Errorf("failed to parse talos version %q: %w", talosVersionStr, err)
+	}
 
-	return fmt.Errorf("failed resetting node '%s': %w", machineID, err)
+	if talosVersion.GTE(semver.MustParse("1.14.0-beta.0")) {
+		for _, label := range []string{
+			constants.CRIContainerdVolumeID,
+			constants.KubeletDataVolumeID,
+			constants.EtcdDataVolumeID,
+			constants.LogVolumeID,
+		} {
+			var exists bool
+
+			exists, err = volumeExists(ctx, c, label)
+			if err != nil {
+				return fmt.Errorf("failed to check if volume %q exists on machine '%s': %w", label, machineID, err)
+			}
+
+			if !exists {
+				continue
+			}
+
+			resetRequest.SystemPartitionsToWipe = append(resetRequest.SystemPartitionsToWipe, &machineapi.ResetPartitionSpec{
+				Label: label,
+				Wipe:  true,
+			})
+		}
+	}
+
+	err = c.ResetGeneric(ctx, resetRequest)
+	if err != nil {
+		logger.Error(
+			"failed resetting node",
+			zap.Error(err),
+		)
+
+		return fmt.Errorf("failed resetting node '%s': %w", machineID, err)
+	}
+
+	attempt := ctrl.ongoingResets.handleReset(machineID)
+	logger.Info("resetting node", zap.Uint("attempt", attempt), zap.Bool("graceful", graceful))
+
+	return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("check back when machine '%s' gets into maintenance mode", machineID)
+}
+
+func volumeExists(ctx context.Context, c *client.Client, label string) (bool, error) {
+	volumeStatus, err := safe.StateGetByID[*block.VolumeStatus](ctx, c.COSI, label)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return volumeStatus.TypedSpec().Location != "", nil
 }
 
 func (ctrl *StatusController) shouldReset(

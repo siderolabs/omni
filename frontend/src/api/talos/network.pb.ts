@@ -30,6 +30,43 @@ export type AddressStatusSpec = {
   priority?: number
 }
 
+export type BGPBFDConfigSpec = {
+  transmitInterval?: string
+  receiveInterval?: string
+  detectMultiplier?: number
+}
+
+export type BGPNeighborConfigSpec = {
+  address?: string
+  link?: string
+  peerASN?: number
+  holdTime?: string
+  bfd?: BGPBFDConfigSpec
+}
+
+export type BGPPeerConfigSpec = {
+  localASN?: number
+  routerID?: string
+  routeSource?: string
+  advertiseLinks?: string[]
+  multipath?: boolean
+  maxPaths?: number
+  neighbors?: BGPNeighborConfigSpec[]
+}
+
+export type BGPPeerStatusSpec = {
+  peer?: string
+  localASN?: number
+  peerASN?: number
+  state?: string
+  routerID?: string
+  since?: string
+  received?: number
+  advertised?: number
+  accepted?: number
+  bfdState?: string
+}
+
 export type DNSResolveCacheSpec = {
   status?: string
 }
@@ -373,6 +410,7 @@ export type DHCP4OperatorSpec = {
   routeMetric?: number
   skipHostnameRequest?: boolean
   clientIdentifier?: ClientIdentifierSpec
+  skipRoutes?: boolean
 }
 
 export type DHCP6OperatorSpec = {
@@ -410,6 +448,12 @@ export type OperatorSpecSpec = {
   layer?: string
 }
 
+export type RouteNextHop = {
+  gateway?: string
+  outLinkName?: string
+  weight?: number
+}
+
 export type RouteSpecSpec = {
   family?: string
   dst?: string
@@ -424,6 +468,7 @@ export type RouteSpecSpec = {
   protocol?: string
   layer?: string
   mtu?: number
+  nextHops?: RouteNextHop[]
 }
 
 export type NameServerSpec = {
@@ -501,6 +546,7 @@ export type RouteStatusSpec = {
   flags?: string
   protocol?: string
   mtu?: number
+  nextHops?: RouteNextHop[]
 }
 
 export type RoutingRuleSpecSpec = {

@@ -77,7 +77,7 @@ func TestMergePatch(t *testing.T) {
 			assertTag(t, "v1.2.4", patchedCfg.K8sProxyConfig().Image())
 			assertTag(t, "v1.2.3", patchedCfg.K8sControllerManagerConfig().Image())
 			assertTag(t, "v1.2.3", patchedCfg.K8sSchedulerConfig().Image())
-			assertTag(t, "v1.2.3", patchedCfg.Machine().Kubelet().Image())
+			assertTag(t, "v1.2.3", patchedCfg.K8sKubeletConfig().Image())
 		})
 	}
 }

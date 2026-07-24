@@ -132,6 +132,7 @@ export type PartitionSpec = {
 export type FilesystemSpec = {
   type?: string
   label?: string
+  minAllocationGroupSize?: number
 }
 
 export type ProvisioningSpec = {
