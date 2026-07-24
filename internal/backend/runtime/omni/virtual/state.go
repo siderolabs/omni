@@ -134,12 +134,6 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 		return v.support(ctx, ptr)
 	case virtual.QuirksType:
 		return v.quirks(ctx, ptr)
-	case virtual.ImageFactoryAuthType:
-		if ptr.ID() != virtual.ImageFactoryAuthID {
-			return nil, stateerrors.ErrNotFound(ptr)
-		}
-
-		return v.imageFactoryAuth(ctx, ptr)
 	default:
 		return nil, stateerrors.ErrUnsupported(fmt.Errorf("unsupported resource type for get %q", ptr.Type()))
 	}
@@ -477,22 +471,6 @@ func (v *State) quirks(_ context.Context, ptr resource.Pointer) (*virtual.Quirks
 		SupportsFactoryTalosctl:  q.SupportsFactoryTalosctlDownload(),
 		SupportsEmbeddedConfig:   q.SupportsEmbeddedConfig(),
 	}
-
-	return res, nil
-}
-
-func (v *State) imageFactoryAuth(_ context.Context, _ resource.Pointer) (*virtual.ImageFactoryAuth, error) {
-	res := virtual.NewImageFactoryAuth()
-
-	version, err := resource.ParseVersion("1")
-	if err != nil {
-		return nil, err
-	}
-
-	res.Metadata().SetVersion(version)
-
-	res.TypedSpec().Value.Username = v.registryConfig.GetImageFactoryUsername()
-	res.TypedSpec().Value.Password = v.registryConfig.GetImageFactoryPassword()
 
 	return res, nil
 }

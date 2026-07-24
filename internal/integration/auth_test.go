@@ -1361,7 +1361,7 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
-				resource:       virtual.NewImageFactoryAuth(),
+				resource:       omni.NewImageFactoryAuth(uuid.NewString()),
 				allowedVerbSet: readOnlyVerbSet,
 			},
 		}...)

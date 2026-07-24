@@ -13,22 +13,18 @@ import (
 
 	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
 
-	omnicfg "github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
-// BuildDoc returns a RegistryAuthConfig doc for the image factory based on the
-// configured credentials. Returns nil if no credentials are configured.
-//
-//nolint:nilnil
-func BuildDoc(registries omnicfg.Registries) (*cri.RegistryAuthConfigV1Alpha1, error) {
-	username := registries.GetImageFactoryUsername()
-	password := registries.GetImageFactoryPassword()
+func buildDoc(auth *omni.ImageFactoryAuth) (*cri.RegistryAuthConfigV1Alpha1, error) {
+	username := auth.TypedSpec().Value.Username
+	password := auth.TypedSpec().Value.Password
 
 	if username == "" || password == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
-	u, err := url.Parse(registries.GetImageFactoryBaseURL())
+	u, err := url.Parse(auth.Metadata().ID())
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image factory base URL: %w", err)
 	}
@@ -38,4 +34,28 @@ func BuildDoc(registries omnicfg.Registries) (*cri.RegistryAuthConfigV1Alpha1, e
 	doc.RegistryPassword = password
 
 	return doc, nil
+}
+
+// BuildDocs returns RegistryAuthConfig docs for every configured image factory that has
+// credentials set: the primary factory and, when configured, the secondary factory.
+// Factories without credentials are skipped. Returns nil if none are configured.
+func BuildDocs(creds []*omni.ImageFactoryAuth) ([]*cri.RegistryAuthConfigV1Alpha1, error) {
+	if len(creds) == 0 {
+		return nil, nil
+	}
+
+	var docs []*cri.RegistryAuthConfigV1Alpha1
+
+	for _, auth := range creds {
+		doc, err := buildDoc(auth)
+		if err != nil {
+			return nil, err
+		}
+
+		if doc != nil {
+			docs = append(docs, doc)
+		}
+	}
+
+	return docs, nil
 }

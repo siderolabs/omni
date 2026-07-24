@@ -1745,3 +1745,8 @@ message MachineConfigExtractionStatusSpec {
   // Error is set if the machine's incoming config could not be preserved as an editable config patch (e.g. it contains fields not allowed in a config patch). No patch is created in that case.
   string error = 2;
 }
+
+message ImageFactoryAuthSpec {
+  string username = 1;
+  string password = 2;
+}

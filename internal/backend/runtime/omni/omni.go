@@ -267,7 +267,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			omnictrl.NewMaintenanceClientFactory(talosClientFactory),
 			cfg.Services.Siderolink.GetEventSinkPort(),
 			cfg.Services.Siderolink.GetLogServerPort(),
-			cfg.Registries,
+			st.Default(),
 		),
 		omnictrl.NewDiscoveryAffiliateDeleteTaskController(discoveryClientCache),
 		omnictrl.NewServiceAccountStatusController(),

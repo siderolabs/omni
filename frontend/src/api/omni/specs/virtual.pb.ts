@@ -114,8 +114,3 @@ export type QuirksSpec = {
   supports_factory_talosctl?: boolean
   supports_embedded_config?: boolean
 }
-
-export type ImageFactoryAuthSpec = {
-  username?: string
-  password?: string
-}

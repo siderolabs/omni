@@ -2,9 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-package virtual
+package omni
 
 import (
+	"strings"
+
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/meta"
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
@@ -14,15 +16,10 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 )
 
-// ImageFactoryAuthID is the default and the only allowed ID for ImageFactoryAuth resource.
-//
-// tsgen:ImageFactoryAuthID
-const ImageFactoryAuthID = "image-factory-auth"
-
 // NewImageFactoryAuth creates a new ImageFactoryAuth resource.
-func NewImageFactoryAuth() *ImageFactoryAuth {
+func NewImageFactoryAuth(id string) *ImageFactoryAuth {
 	return typed.NewResource[ImageFactoryAuthSpec, ImageFactoryAuthExtension](
-		resource.NewMetadata(resources.VirtualNamespace, ImageFactoryAuthType, ImageFactoryAuthID, resource.VersionUndefined),
+		resource.NewMetadata(resources.DefaultNamespace, ImageFactoryAuthType, strings.TrimRight(id, "/"), resource.VersionUndefined),
 		protobuf.NewResourceSpec(&specs.ImageFactoryAuthSpec{}),
 	)
 }
@@ -48,7 +45,7 @@ func (ImageFactoryAuthExtension) ResourceDefinition() meta.ResourceDefinitionSpe
 	return meta.ResourceDefinitionSpec{
 		Type:             ImageFactoryAuthType,
 		Aliases:          []resource.Type{},
-		DefaultNamespace: resources.VirtualNamespace,
+		DefaultNamespace: resources.DefaultNamespace,
 		PrintColumns: []meta.PrintColumn{
 			{
 				Name:     "Username",

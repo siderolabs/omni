@@ -114,8 +114,3 @@ message QuirksSpec {
   bool supports_factory_talosctl = 2;
   bool supports_embedded_config = 3;
 }
-
-message ImageFactoryAuthSpec {
-  string username = 1;
-  string password = 2;
-}

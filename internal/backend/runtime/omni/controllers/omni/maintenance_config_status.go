@@ -21,12 +21,14 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xerrors"
+	"github.com/siderolabs/gen/xslices"
 	machine "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config"
 	talosconfig "github.com/siderolabs/talos/pkg/machinery/config/config"
 	"github.com/siderolabs/talos/pkg/machinery/config/configpatcher"
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	configres "github.com/siderolabs/talos/pkg/machinery/resources/config"
@@ -41,7 +43,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/imagefactoryauth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
-	omnicfg "github.com/siderolabs/omni/internal/pkg/config"
 )
 
 // MaintenanceClientFactory creates a MaintenanceClient for the given machine.
@@ -90,8 +91,11 @@ func (c maintenanceClient) ApplyConfiguration(ctx context.Context, req *machine.
 type MaintenanceConfigStatusController = qtransform.QController[*siderolinkres.Link, *omni.MaintenanceConfigStatus]
 
 // NewMaintenanceConfigStatusController initializes MaintenanceConfigStatusController.
-func NewMaintenanceConfigStatusController(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int, registries omnicfg.Registries) *MaintenanceConfigStatusController {
-	helper := newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory, eventSinkPort, logServerPort, registries)
+func NewMaintenanceConfigStatusController(
+	maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int,
+	state state.State,
+) *MaintenanceConfigStatusController {
+	helper := newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory, eventSinkPort, logServerPort, state)
 
 	return qtransform.NewQController(
 		qtransform.Settings[*siderolinkres.Link, *omni.MaintenanceConfigStatus]{
@@ -132,11 +136,12 @@ type maintenanceBasePatch struct {
 }
 
 type maintenanceConfigStatusControllerHelper struct {
-	getMaintenanceConfigPatch func(talosVersion string) (maintenanceBasePatch, error)
+	getMaintenanceConfigPatch func(ctx context.Context, talosVersion string) (maintenanceBasePatch, error)
 	maintenanceClientFactory  MaintenanceClientFactory
 }
 
-func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int, registries omnicfg.Registries,
+func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory MaintenanceClientFactory, eventSinkPort, logServerPort int,
+	state state.State,
 ) *maintenanceConfigStatusControllerHelper {
 	buildPatch := func(extraDocs ...talosconfig.Document) (maintenanceBasePatch, error) {
 		cfg, err := siderolink.NewJoinOptions(
@@ -161,36 +166,77 @@ func newMaintenanceConfigStatusControllerHelper(maintenanceClientFactory Mainten
 		return maintenanceBasePatch{patch: patch, data: configBytes}, nil
 	}
 
-	basePatch := sync.OnceValues(func() (maintenanceBasePatch, error) {
-		return buildPatch()
-	})
+	var (
+		patchWithRegistryAuth   *maintenanceBasePatch
+		patchWithRegistryAuthMu sync.Mutex
 
-	patchWithRegistryAuth := sync.OnceValues(func() (maintenanceBasePatch, error) {
-		authDoc, err := imagefactoryauth.BuildDoc(registries)
+		basePatch   *maintenanceBasePatch
+		basePatchMu sync.Mutex
+	)
+
+	getBasePatch := func() (maintenanceBasePatch, error) {
+		basePatchMu.Lock()
+		defer basePatchMu.Unlock()
+
+		if basePatch != nil {
+			return *basePatch, nil
+		}
+
+		p, err := buildPatch()
+		if err != nil {
+			return maintenanceBasePatch{}, fmt.Errorf("error building base patch: %w", err)
+		}
+
+		basePatch = &p
+
+		return p, nil
+	}
+
+	getPatchWithRegistryAuth := func(ctx context.Context) (maintenanceBasePatch, error) {
+		patchWithRegistryAuthMu.Lock()
+		defer patchWithRegistryAuthMu.Unlock()
+
+		if patchWithRegistryAuth != nil {
+			return *patchWithRegistryAuth, nil
+		}
+
+		auths, err := safe.ReaderListAll[*omni.ImageFactoryAuth](ctx, state)
+		if err != nil {
+			return maintenanceBasePatch{}, fmt.Errorf("error listing ImageFactoryAuth resources: %w", err)
+		}
+
+		if auths.Len() == 0 {
+			return getBasePatch()
+		}
+
+		authDoc, err := imagefactoryauth.BuildDocs(slices.Collect(auths.All()))
 		if err != nil {
 			return maintenanceBasePatch{}, fmt.Errorf("error building registry auth doc: %w", err)
 		}
 
-		if authDoc == nil {
-			return basePatch()
+		p, err := buildPatch(xslices.Map(authDoc, func(doc *cri.RegistryAuthConfigV1Alpha1) talosconfig.Document { return doc })...)
+		if err != nil {
+			return maintenanceBasePatch{}, fmt.Errorf("error building patch with registry auth: %w", err)
 		}
 
-		return buildPatch(authDoc)
-	})
+		patchWithRegistryAuth = &p
+
+		return p, nil
+	}
 
 	return &maintenanceConfigStatusControllerHelper{
 		maintenanceClientFactory: maintenanceClientFactory,
-		getMaintenanceConfigPatch: func(talosVersion string) (maintenanceBasePatch, error) {
+		getMaintenanceConfigPatch: func(ctx context.Context, talosVersion string) (maintenanceBasePatch, error) {
 			vc, err := config.ParseContractFromVersion(talosVersion)
 			if err != nil {
 				return maintenanceBasePatch{}, fmt.Errorf("failed to parse contract from version: %w", err)
 			}
 
 			if vc.MultidocNetworkConfigSupported() {
-				return patchWithRegistryAuth()
+				return getPatchWithRegistryAuth(ctx)
 			}
 
-			return basePatch()
+			return getBasePatch()
 		},
 	}
 }
@@ -248,7 +294,7 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 		return fmt.Errorf("error collecting machine config patches: %w", err)
 	}
 
-	baseConfig, err := helper.getMaintenanceConfigPatch(talosVersion)
+	baseConfig, err := helper.getMaintenanceConfigPatch(ctx, talosVersion)
 	if err != nil {
 		return fmt.Errorf("error building machine config: %w", err)
 	}

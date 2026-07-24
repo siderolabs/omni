@@ -477,11 +477,11 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.ClusterSecretsRotationStatusType,
 		omni.RotateTalosCAType,
 		omni.RotateKubernetesCAType,
+		omni.ImageFactoryAuthType,
 		omni.UpgradeRolloutType,
 		omni.KubernetesHealthCheckType,
 		system.ResourceLabelsType[*omni.MachineStatus](),
 		virtual.SupportType,
-		virtual.ImageFactoryAuthType,
 		virtual.LabelsCompletionType,
 		virtual.SBCConfigType,
 		virtual.CloudPlatformConfigType,
@@ -619,6 +619,7 @@ func filterAccessByType(access state.Access) error {
 		omni.FeaturesConfigType,
 		omni.ImagePullRequestType,
 		omni.ImagePullStatusType,
+		omni.ImageFactoryAuthType,
 		omni.InfraProviderCombinedStatusType,
 		omni.KubernetesStatusType,
 		omni.KubernetesUpgradeManifestStatusType,
@@ -679,7 +680,6 @@ func filterAccessByType(access state.Access) error {
 		virtual.KubernetesUsageType,
 		virtual.LabelsCompletionType,
 		virtual.QuirksType,
-		virtual.ImageFactoryAuthType,
 		virtual.ClusterPermissionsType:
 		// allow read access only. these resources are either managed by controllers or plugins (e.g., infra provider plugins)
 		if access.Verb.Readonly() {

@@ -8,49 +8,88 @@ package imagefactoryauth_test
 import (
 	"testing"
 
+	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/resource/protobuf"
+	"github.com/cosi-project/runtime/pkg/resource/typed"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/omni/resources"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/imagefactoryauth"
-	omnicfg "github.com/siderolabs/omni/internal/pkg/config"
 )
 
-func TestBuildDoc(t *testing.T) {
+func newImageFactoryAuth(id, username, password string) *omni.ImageFactoryAuth {
+	return typed.NewResource[omni.ImageFactoryAuthSpec, omni.ImageFactoryAuthExtension](
+		resource.NewMetadata(resources.DefaultNamespace, omni.ImageFactoryAuthType, id, resource.VersionUndefined),
+		protobuf.NewResourceSpec(&specs.ImageFactoryAuthSpec{
+			Username: username,
+			Password: password,
+		}),
+	)
+}
+
+func TestBuildDocs(t *testing.T) {
 	t.Parallel()
 
 	t.Run("no credentials returns nil", func(t *testing.T) {
 		t.Parallel()
 
-		doc, err := imagefactoryauth.BuildDoc(omnicfg.Registries{})
+		docs, err := imagefactoryauth.BuildDocs(nil)
 		require.NoError(t, err)
-		assert.Nil(t, doc)
+		assert.Empty(t, docs)
 	})
 
-	t.Run("only username returns nil", func(t *testing.T) {
+	t.Run("only primary credentials", func(t *testing.T) {
 		t.Parallel()
 
-		registries := omnicfg.Registries{}
-		registries.SetImageFactoryUsername("user")
+		creds := []*omni.ImageFactoryAuth{
+			newImageFactoryAuth("https://factory.example.org", "user", "pass"),
+		}
 
-		doc, err := imagefactoryauth.BuildDoc(registries)
+		docs, err := imagefactoryauth.BuildDocs(creds)
 		require.NoError(t, err)
-		assert.Nil(t, doc)
+		require.Len(t, docs, 1)
+
+		assert.Equal(t, "factory.example.org", docs[0].Name())
+		assert.Equal(t, "user", docs[0].Username())
+		assert.Equal(t, "pass", docs[0].Password())
 	})
 
-	t.Run("credentials configured", func(t *testing.T) {
+	t.Run("primary and secondary credentials", func(t *testing.T) {
 		t.Parallel()
 
-		registries := omnicfg.Registries{}
-		registries.SetImageFactoryBaseURL("https://factory.example.org")
-		registries.SetImageFactoryUsername("user")
-		registries.SetImageFactoryPassword("pass")
+		creds := []*omni.ImageFactoryAuth{
+			newImageFactoryAuth("https://factory.example.org", "user", "pass"),
+			newImageFactoryAuth("https://factory.secondary.example.org", "secondary-user", "secondary-pass"),
+		}
 
-		doc, err := imagefactoryauth.BuildDoc(registries)
+		docs, err := imagefactoryauth.BuildDocs(creds)
 		require.NoError(t, err)
-		require.NotNil(t, doc)
+		require.Len(t, docs, 2)
 
-		assert.Equal(t, "factory.example.org", doc.Name())
-		assert.Equal(t, "user", doc.Username())
-		assert.Equal(t, "pass", doc.Password())
+		assert.Equal(t, "factory.example.org", docs[0].Name())
+		assert.Equal(t, "user", docs[0].Username())
+		assert.Equal(t, "pass", docs[0].Password())
+
+		assert.Equal(t, "factory.secondary.example.org", docs[1].Name())
+		assert.Equal(t, "secondary-user", docs[1].Username())
+		assert.Equal(t, "secondary-pass", docs[1].Password())
+	})
+
+	t.Run("factory without credentials is skipped", func(t *testing.T) {
+		t.Parallel()
+
+		creds := []*omni.ImageFactoryAuth{
+			newImageFactoryAuth("https://factory.example.org", "user", "pass"),
+			newImageFactoryAuth("https://factory.secondary.example.org", "", ""),
+		}
+
+		docs, err := imagefactoryauth.BuildDocs(creds)
+		require.NoError(t, err)
+		require.Len(t, docs, 1)
+
+		assert.Equal(t, "factory.example.org", docs[0].Name())
 	})
 }

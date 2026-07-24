@@ -12,7 +12,6 @@ func init() {
 	registry.MustRegisterResource(ClusterPermissionsType, &ClusterPermissions{})
 	registry.MustRegisterResource(KubernetesUsageType, &KubernetesUsage{})
 	registry.MustRegisterResource(PermissionsType, &Permissions{})
-	registry.MustRegisterResource(ImageFactoryAuthType, &ImageFactoryAuth{})
 	registry.MustRegisterResource(LabelsCompletionType, &LabelsCompletion{})
 	registry.MustRegisterResource(AdvertisedEndpointsType, &AdvertisedEndpoints{})
 	registry.MustRegisterResource(SBCConfigType, &SBCConfig{})

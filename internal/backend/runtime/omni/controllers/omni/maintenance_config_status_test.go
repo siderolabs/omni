@@ -22,7 +22,6 @@ import (
 	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
-	omnicfg "github.com/siderolabs/omni/internal/pkg/config"
 	siderolinkomni "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
 
@@ -60,7 +59,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestMaintenanceConfigStatus()
 	}
 
 	// Register the controller and start the runtime
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, omnicfg.Registries{})
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
@@ -185,12 +184,13 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestImageFactoryRegistryAut
 		return maintenanceClient, nil
 	}
 
-	registries := omnicfg.Registries{}
-	registries.SetImageFactoryBaseURL("https://factory.example.org")
-	registries.SetImageFactoryUsername("factory-user")
-	registries.SetImageFactoryPassword("factory-pass")
+	auth := omnires.NewImageFactoryAuth("https://factory.example.org")
+	auth.TypedSpec().Value.Username = "factory-user"
+	auth.TypedSpec().Value.Password = "factory-pass"
 
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, registries)
+	suite.Require().NoError(suite.state.Create(suite.ctx, auth))
+
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 
@@ -276,7 +276,7 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestMachineConfigPatchPrese
 		return maintenanceClient, nil
 	}
 
-	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, omnicfg.Registries{})
+	controller := omni.NewMaintenanceConfigStatusController(maintenanceClientFactory, 123, 456, suite.state)
 
 	suite.Require().NoError(suite.runtime.RegisterQController(controller))
 

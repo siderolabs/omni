@@ -684,7 +684,7 @@ func ImageFactoryCredentials(ctx context.Context, st state.State, features *omni
 		return "", "", nil
 	}
 
-	auth, err := safe.ReaderGetByID[*virtual.ImageFactoryAuth](ctx, st, virtual.ImageFactoryAuthID)
+	auth, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, st, strings.TrimRight(features.TypedSpec().Value.GetImageFactoryBaseUrl(), "/"))
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get image factory auth: %w", err)
 	}

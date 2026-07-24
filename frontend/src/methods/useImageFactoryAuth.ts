@@ -5,9 +5,10 @@
 import { computed, effectScope } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { ImageFactoryAuthSpec } from '@/api/omni/specs/virtual.pb'
-import { ImageFactoryAuthID, ImageFactoryAuthType, VirtualNamespace } from '@/api/resources'
-import { useResourceGet } from '@/methods/useResourceGet'
+import type { ImageFactoryAuthSpec } from '@/api/omni/specs/omni.pb'
+import { DefaultNamespace, ImageFactoryAuthType } from '@/api/resources'
+
+import { useResourceList } from './useResourceList'
 
 let auth: ReturnType<typeof initImageFactoryAuth> | undefined
 
@@ -19,16 +20,15 @@ export function useImageFactoryAuth() {
 
 function initImageFactoryAuth() {
   return effectScope(true).run(() => {
-    const { data } = useResourceGet<ImageFactoryAuthSpec>({
+    const { data } = useResourceList<ImageFactoryAuthSpec>({
       runtime: Runtime.Omni,
       resource: {
-        namespace: VirtualNamespace,
+        namespace: DefaultNamespace,
         type: ImageFactoryAuthType,
-        id: ImageFactoryAuthID,
       },
     })
 
-    return computed(() => data.value?.spec)
+    return computed(() => data.value[0]?.spec)
   })!
 }
 

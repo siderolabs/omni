@@ -1157,3 +1157,8 @@ export type MachineConfigExtractionStatusSpec = {
   initialized?: boolean
   error?: string
 }
+
+export type ImageFactoryAuthSpec = {
+  username?: string
+  password?: string
+}

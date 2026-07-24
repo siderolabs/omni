@@ -375,12 +375,15 @@ func TestImageFactoryCredentials(t *testing.T) {
 
 		st := newTestState(t)
 
-		auth := virtual.NewImageFactoryAuth()
+		auth := omni.NewImageFactoryAuth("https://factory.example.org")
 		auth.TypedSpec().Value.Username = "omni-e2e-test"
 		auth.TypedSpec().Value.Password = "s3cr3t"
 		require.NoError(t, st.Create(ctx, auth))
 
-		username, password, err := download.ImageFactoryCredentials(ctx, st, newFeatures(true))
+		features := newFeatures(true)
+		features.TypedSpec().Value.ImageFactoryBaseUrl = "https://factory.example.org"
+
+		username, password, err := download.ImageFactoryCredentials(ctx, st, features)
 		require.NoError(t, err)
 		require.Equal(t, "omni-e2e-test", username)
 		require.Equal(t, "s3cr3t", password)

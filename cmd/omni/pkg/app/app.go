@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/cosi-project/runtime/pkg/resource"
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/go-logr/zapr"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -162,6 +163,10 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		return fmt.Errorf("failed to write auth parameters to state: %w", err)
 	}
 
+	if err = ensureImageFactoryAuthResources(ctx, state, cfg); err != nil {
+		return fmt.Errorf("failed to ensure ImageFactoryAuth resources: %w", err)
+	}
+
 	imageFactoryPXEBaseURL, err := cfg.GetImageFactoryPXEBaseURL()
 	if err != nil {
 		return fmt.Errorf("failed to get image factory PXE base URL: %w", err)
@@ -213,6 +218,40 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	if err := server.Run(ctx); err != nil {
 		return fmt.Errorf("failed to run server: %w", err)
+	}
+
+	return nil
+}
+
+func ensureImageFactoryAuthResources(ctx context.Context, state *omni.State, config *config.Params) error {
+	visited := map[string]struct{}{}
+
+	if config.Registries.ImageFactoryUsername != nil && config.Registries.ImageFactoryPassword != nil {
+		// a single URL for now, but will be changed in the next PRs
+		url := config.Registries.GetImageFactoryBaseURL()
+		visited[url] = struct{}{}
+
+		if err := safe.StateModify(ctx, state.Default(), omnires.NewImageFactoryAuth(url), func(res *omnires.ImageFactoryAuth) error {
+			res.TypedSpec().Value.Username = config.Registries.GetImageFactoryUsername()
+			res.TypedSpec().Value.Password = config.Registries.GetImageFactoryPassword()
+
+			return nil
+		}); err != nil {
+			return fmt.Errorf("failed to modify ImageFactoryAuth resource: %w", err)
+		}
+	}
+
+	auths, err := safe.ReaderListAll[*omnires.ImageFactoryAuth](ctx, state.Default())
+	if err != nil {
+		return fmt.Errorf("failed to list ImageFactoryAuth resources: %w", err)
+	}
+
+	for auth := range auths.All() {
+		if _, ok := visited[auth.Metadata().ID()]; !ok {
+			if err := state.Default().Destroy(ctx, auth.Metadata()); err != nil {
+				return fmt.Errorf("failed to delete ImageFactoryAuth resource %s: %w", auth.Metadata().ID(), err)
+			}
+		}
 	}
 
 	return nil

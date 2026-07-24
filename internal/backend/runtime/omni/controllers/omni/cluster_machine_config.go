@@ -91,6 +91,16 @@ func NewClusterMachineConfigController(imageFactoryHost string, registryMirrors 
 		qtransform.WithExtraMappedInput[*siderolink.MachineJoinConfig](
 			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
+		qtransform.WithExtraMappedInput[*omni.ImageFactoryAuth](
+			func(ctx context.Context, _ *zap.Logger, r controller.QRuntime, _ controller.ReducedResourceMetadata) ([]resource.Pointer, error) {
+				clusterMachines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, r)
+				if err != nil {
+					return nil, err
+				}
+
+				return slices.Collect(clusterMachines.Pointers()), nil
+			},
+		),
 		qtransform.WithConcurrency(2),
 	)
 }
@@ -210,6 +220,30 @@ func reconcileClusterMachineConfig(
 		machineJoinConfig,
 	}
 
+	var imageFactories safe.List[*omni.ImageFactoryAuth]
+
+	initialTalosVersion := clusterConfigVersion.TypedSpec().Value.Version
+
+	if quirks.New(initialTalosVersion).SupportsMultidoc() {
+		var vc *config.VersionContract
+
+		vc, err = config.ParseContractFromVersion(initialTalosVersion)
+		if err != nil {
+			return fmt.Errorf("failed to parse contract from version: %w", err)
+		}
+
+		if vc.MultidocNetworkConfigSupported() {
+			imageFactories, err = safe.ReaderListAll[*omni.ImageFactoryAuth](ctx, r)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	for imageFactory := range imageFactories.All() {
+		inputs = append(inputs, imageFactory)
+	}
+
 	if !helpers.UpdateInputsVersions(machineConfig, inputs...) {
 		return xerrors.NewTagged[qtransform.SkipReconcileTag](errors.New("config inputs not changed"))
 	}
@@ -254,7 +288,7 @@ func reconcileClusterMachineConfig(
 	}
 
 	conf, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, clusterMachineSecrets, loadBalancerConfig,
-		cluster, clusterConfigVersion, machineConfigGenOptions, configGenOptions, machineJoinConfig)
+		cluster, clusterConfigVersion, machineConfigGenOptions, configGenOptions, machineJoinConfig, imageFactories)
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
 
@@ -298,27 +332,31 @@ type clusterMachineConfigControllerHelper struct {
 	talosRegistry    string
 }
 
-func (helper clusterMachineConfigControllerHelper) buildRegistryAuthPatch() (string, error) {
-	authDoc, err := imagefactoryauth.BuildDoc(helper.registries)
+func (helper clusterMachineConfigControllerHelper) buildRegistryAuthPatch(creds safe.List[*omni.ImageFactoryAuth]) (string, error) {
+	if creds.Len() == 0 {
+		return "", nil
+	}
+
+	authDocs, err := imagefactoryauth.BuildDocs(slices.Collect(creds.All()))
 	if err != nil {
 		return "", fmt.Errorf("failed to build image factory registry auth doc: %w", err)
 	}
 
-	if authDoc == nil {
+	if len(authDocs) == 0 {
 		return "", nil
 	}
 
-	authConfig, err := container.New(authDoc)
+	docs := make([]documentconfig.Document, 0, len(authDocs))
+	for _, authDoc := range authDocs {
+		docs = append(docs, authDoc)
+	}
+
+	authConfig, err := container.New(docs...)
 	if err != nil {
 		return "", err
 	}
 
-	authBytes, err := authConfig.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
-	if err != nil {
-		return "", err
-	}
-
-	return string(authBytes), nil
+	return authConfig.EncodeString()
 }
 
 func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.ClusterMachineConfig, data []byte) (bool, error) {
@@ -351,6 +389,7 @@ func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.Cluste
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches,
 	clusterMachineSecrets *omni.ClusterMachineSecrets, loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion,
 	configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option, machineJoinConfig *siderolink.MachineJoinConfig,
+	imageFactories safe.List[*omni.ImageFactoryAuth],
 ) (config.Provider, error) {
 	clusterName := cluster.Metadata().ID()
 
@@ -454,27 +493,17 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		)
 	}
 
-	// [TODO]: this should check current (minimum) version of the cluster (or current Talos version of the machine)
 	if quirks.New(initialTalosVersion).SupportsMultidoc() {
 		patchList = append(patchList, machineJoinConfig.TypedSpec().Value.Config.Config)
+	}
 
-		var vc *config.VersionContract
+	authPatch, authErr := helper.buildRegistryAuthPatch(imageFactories)
+	if authErr != nil {
+		return nil, authErr
+	}
 
-		vc, err = config.ParseContractFromVersion(initialTalosVersion)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse contract from version: %w", err)
-		}
-
-		if vc.MultidocNetworkConfigSupported() {
-			authPatch, authErr := helper.buildRegistryAuthPatch()
-			if authErr != nil {
-				return nil, authErr
-			}
-
-			if authPatch != "" {
-				patchList = append(patchList, authPatch)
-			}
-		}
+	if authPatch != "" {
+		patchList = append(patchList, authPatch)
 	}
 
 	patches, err := configpatcher.LoadPatches(patchList)
