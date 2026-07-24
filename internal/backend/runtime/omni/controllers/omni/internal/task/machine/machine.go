@@ -48,6 +48,7 @@ type SchematicInfo struct {
 // Info contains information gathered about a machine.
 type Info struct { //nolint:govet
 	TalosVersion       *string
+	TalosVersionName   *string
 	Arch               *string
 	MachineLabels      *omni.MachineLabels
 	InfraMachineStatus *infra.MachineStatus
@@ -258,6 +259,12 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 		runtime.MachineStatusType: {
 			namespace: runtime.NamespaceName,
 		},
+		runtime.VersionType: {
+			namespace: runtime.NamespaceName,
+		},
+		runtime.SecurityStateType: {
+			namespace: runtime.NamespaceName,
+		},
 		runtime.DiagnosticType: {
 			namespace: runtime.NamespaceName,
 		},
@@ -354,9 +361,17 @@ func (spec CollectTaskSpec) RunTask(ctx context.Context, logger *zap.Logger, not
 				case state.Bootstrapped, state.Noop:
 					// ignore
 				case state.Created, state.Updated, state.Destroyed:
-					// poll machine version on each machine status update
-					if event.Resource.Metadata().Type() == runtime.MachineStatusType {
+					// poll machine version on each machine status or version update
+					if event.Resource.Metadata().Type() == runtime.MachineStatusType ||
+						event.Resource.Metadata().Type() == runtime.VersionType {
 						markPollerDirty("version")
+
+						break waitLoop
+					}
+
+					// the security state has its own poller, as the FIPS state follows the installed image
+					if event.Resource.Metadata().Type() == runtime.SecurityStateType {
+						markPollerDirty("securityState")
 
 						break waitLoop
 					}

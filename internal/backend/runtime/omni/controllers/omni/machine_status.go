@@ -419,6 +419,10 @@ func (ctrl *MachineStatusController) handleNotification(ctx context.Context, r c
 			}
 		}
 
+		if event.TalosVersionName != nil {
+			spec.TalosVersionName = *event.TalosVersionName
+		}
+
 		if spec.Network == nil {
 			spec.Network = &specs.MachineStatusSpec_NetworkStatus{}
 		}
