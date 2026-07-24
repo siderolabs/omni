@@ -100,12 +100,26 @@ func checkMachineStatus(ctx context.Context, r controller.Reader, machineStatus 
 			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is managed by static infra provider but is not ready to use")
 		}
 
-		// Interim guard: right after a wipe the machine still reports its old system disk, so DecideOp
-		// treats it as installed and runs config-apply, whose install races the LifecycleService install
-		// and corrupts the disk. Wait until Omni also sees no disk. The provider Installed flag is wipe-aware.
+		// Interim guards for the window where the provider and Omni disagree on whether Talos is
+		// installed, because Omni's observed system disk lags the provider's wipe-aware Installed flag.
+		// Reconciling on the stale view makes DecideOp pick the wrong lifecycle op, so wait until the two
+		// agree. Both directions must be covered:
+		//   - right after a wipe the machine still reports its old disk, so DecideOp would run config-apply
+		//     whose install races the LifecycleService install and corrupts the disk.
+		//   - right after an install the machine reports no disk yet, so DecideOp wrongly decides another
+		//     install is needed. Talos rejects that install as already installed and the manager falls back
+		//     to a full upgrade, needlessly reinstalling and rebooting into the version already on disk,
+		//     which can take long enough to miss the readiness check.
 		// TODO: drop once .machine.install is removed from the config for Talos >= 1.13 clusters.
-		if !infraMachineStatus.TypedSpec().Value.Installed && omni.GetMachineStatusSystemDisk(machineStatus) != "" {
+		installed := infraMachineStatus.TypedSpec().Value.Installed
+		hasSystemDisk := omni.GetMachineStatusSystemDisk(machineStatus) != ""
+
+		if !installed && hasSystemDisk {
 			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine was wiped but still reports a stale system disk")
+		}
+
+		if installed && !hasSystemDisk {
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine is installed but still reports no system disk")
 		}
 	}
 
