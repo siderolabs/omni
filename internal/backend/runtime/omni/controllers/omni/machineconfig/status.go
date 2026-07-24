@@ -37,6 +37,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
@@ -163,6 +164,12 @@ func NewStatusController(lifecycleManager LifecycleManager) *StatusController {
 		qtransform.WithExtraMappedInput[*omni.UpgradeRollout](
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachineConfig](),
 		),
+		qtransform.WithExtraMappedInput[*omni.MaintenanceConfigStatus](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
+		),
+		qtransform.WithExtraMappedInput[*siderolinkres.Link](
+			qtransform.MapperSameID[*omni.ClusterMachineConfig](),
+		),
 		qtransform.WithExtraOutputs(controller.Output{
 			Type: omni.NodeForceDestroyRequestType,
 			Kind: controller.OutputShared,
@@ -280,6 +287,12 @@ func (ctrl *StatusController) reconcileRunning(
 
 	machineConfigStatus.TypedSpec().Value.ClusterMachineConfigSha256 = shaSumString
 
+	// The machine now carries the desired config (either just applied, or already in sync), so its
+	// high-priority documents are up to date. Recording the hash clears highPriorityPending; it also
+	// backfills already-configured machines on the first reconcile after this feature is deployed,
+	// without a re-apply (the whole-config sha still matches, so applyConfig above is skipped).
+	machineConfigStatus.TypedSpec().Value.AppliedHighPriorityConfigHash = rc.highPriorityHash
+
 	machineConfigStatus.TypedSpec().Value.LastConfigError = ""
 
 	if _, err = helpers.TeardownAndDestroy(ctx, r, omni.NewMachinePendingUpdates(machineConfig.Metadata().ID()).Metadata()); err != nil {
@@ -361,26 +374,51 @@ func (ctrl *StatusController) reconcileUpgrade(
 	}
 
 	if rc.hasPendingLifecycleOperation() {
-		inSync, err := ctrl.upgrade(ctx, logger, r, rc)
-		if err != nil {
-			// Only release the config-update lock when the machine is specifically blocked
-			// waiting for a free upgrade slot. It will not apply its config until it upgrades,
-			// so holding the slot just starves machines that only need a config change. On other
-			// (transient) upgrade failures the lock is kept, so a machine still completing its
-			// config reboot is not disturbed.
-			if errors.Is(err, errAcquireUpgradeLock) {
-				if releaseErr := ctrl.releaseConfigUpdateLock(ctx, r, rc.clusterMachine); releaseErr != nil {
-					return fmt.Errorf("failed to release config update lock: %w", releaseErr)
+		switch {
+		// If high-priority config (image factory registry auth / custom CA) changes are pending on an
+		// in-cluster machine, defer the upgrade and let the config be applied first: the upgrade pulls
+		// the installer image and needs those credentials/CA to be on the machine already. We neither
+		// call ctrl.upgrade nor skip-reconcile, so the flow falls through to applyConfig below. The
+		// TalosVersion/SchematicId are not recorded because hasPendingLifecycleOperation() stays true,
+		// so the version-recording branch below is not entered. The upgrade is retried on a later
+		// reconcile, once the high-priority config is applied and no longer pending.
+		case rc.lifecycleOp == lifecycle.OpClusterUpgrade && rc.highPriorityPending:
+			logger.Info("deferring upgrade until high-priority config is applied", zap.String("machine", rc.ID()))
+
+		// A machine being installed/upgraded while still in maintenance mode has its config — including the
+		// high-priority documents — applied by the maintenance config controller, not by this one. Block the
+		// install/upgrade until that controller has applied the config it generated for the current
+		// connection, otherwise the installer image pull would run before the credentials/CA are on the
+		// machine. Only gate when there are high-priority documents: for machines the maintenance controller
+		// never applies config to (e.g. non-multidoc Talos) highPriorityHash is empty, so the gate stays open.
+		case (rc.lifecycleOp == lifecycle.OpMaintenanceInstall || rc.lifecycleOp == lifecycle.OpMaintenanceUpgrade) &&
+			rc.highPriorityHash != "" && !rc.maintenanceConfigApplied:
+			logger.Info("waiting for maintenance config controller to apply high-priority config before install/upgrade", zap.String("machine", rc.ID()))
+
+			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("waiting for maintenance config controller to apply high-priority config: %s", rc.ID())
+
+		default:
+			inSync, err := ctrl.upgrade(ctx, logger, r, rc)
+			if err != nil {
+				// Only release the config-update lock when the machine is specifically blocked
+				// waiting for a free upgrade slot. It will not apply its config until it upgrades,
+				// so holding the slot just starves machines that only need a config change. On other
+				// (transient) upgrade failures the lock is kept, so a machine still completing its
+				// config reboot is not disturbed.
+				if errors.Is(err, errAcquireUpgradeLock) {
+					if releaseErr := ctrl.releaseConfigUpdateLock(ctx, r, rc.clusterMachine); releaseErr != nil {
+						return fmt.Errorf("failed to release config update lock: %w", releaseErr)
+					}
 				}
+
+				return err
 			}
 
-			return err
-		}
+			if !inSync {
+				logger.Info("the machine talos version is out of sync, the config is not applied", zap.String("machine", rc.ID()))
 
-		if !inSync {
-			logger.Info("the machine talos version is out of sync, the config is not applied", zap.String("machine", rc.ID()))
-
-			return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine talos version is out of sync: %s", rc.ID())
+				return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine talos version is out of sync: %s", rc.ID())
+			}
 		}
 	} else {
 		// The cached view can read None while the machine we triggered is still mid-reboot. Applying then
