@@ -64,7 +64,7 @@ const icons: Record<AlertType, IconType> = {
         >
           {{ title }}
         </h3>
-        <div v-if="$slots.default" class="text-sm font-normal">
+        <div v-if="$slots.default" class="text-sm font-normal whitespace-pre-wrap">
           <p>
             <slot></slot>
           </p>
