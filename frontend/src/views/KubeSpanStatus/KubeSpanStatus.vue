@@ -109,8 +109,6 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
   const target = machineNodenameMap.value.get(peer.spec.label!)
 
   if (target?.metadata.id) router.push({ params: { machine: target.metadata.id } })
-
-  canvasRef.value?.resetView()
 }
 </script>
 
@@ -132,12 +130,12 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
         >
           <div class="flex items-center gap-4 text-xs text-naturals-n11">
             <div class="flex items-center gap-1.5">
-              <div class="h-0.5 w-5 rounded bg-green-g1"></div>
+              <div class="h-0 w-5 border-t-2 border-green-g1"></div>
               <span>Online</span>
             </div>
 
             <div class="flex items-center gap-1.5">
-              <div class="h-0.5 w-5 rounded bg-red-r1"></div>
+              <div class="h-0 w-5 border-t-2 border-dashed border-red-r1"></div>
               <span>Offline</span>
             </div>
 
@@ -151,11 +149,9 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
             </div>
           </div>
 
-          <div class="text-xs text-naturals-n10/55">
-            Drag to pan · drag card to move · scroll to zoom
-          </div>
+          <div class="text-xs text-naturals-n10/55">Drag to pan · scroll to zoom</div>
 
-          <div class="flex overflow-hidden rounded border border-naturals-n4 bg-naturals-n2">
+          <div class="flex overflow-hidden rounded border border-naturals-n4 bg-naturals-n1">
             <IconButton
               icon="plus"
               aria-label="zoom in"
@@ -170,9 +166,9 @@ function onPeerClick(peer: Resource<PeerStatusSpec>) {
             />
             <IconButton
               icon="fullscreen"
-              aria-label="reset view"
+              aria-label="fit view"
               class="rounded-none"
-              @click="canvasRef?.resetView"
+              @click="canvasRef?.fitView"
             />
           </div>
         </div>

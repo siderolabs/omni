@@ -34,6 +34,8 @@
     "@jsonforms/vue": "^3.8.0",
     "@jsonforms/vue-vanilla": "^3.8.0",
     "@tanstack/vue-virtual": "^3.13.34",
+    "@vue-flow/background": "^1.3.2",
+    "@vue-flow/core": "^1.48.2",
     "@vueuse/components": "^14.3.0",
     "@vueuse/core": "^14.3.0",
     "@vueuse/integrations": "^14.3.0",
