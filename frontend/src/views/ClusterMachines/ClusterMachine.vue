@@ -121,7 +121,10 @@ const updateLock = async () => {
     </div>
 
     <div class="flex items-center justify-end">
-      <Tooltip v-if="machine.spec.last_config_error" :description="machine.spec.last_config_error">
+      <Tooltip
+        v-if="machine.spec.last_config_error"
+        :description="machine.spec.last_config_error.trim()"
+      >
         <TIcon icon="error" class="mx-1.5 h-4 w-4 text-red-400" />
       </Tooltip>
 

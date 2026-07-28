@@ -235,7 +235,7 @@ const servicesSectionHeadingId = useId()
       title="Configuration Error"
       type="error"
     >
-      {{ clusterMachineStatus?.spec?.last_config_error }}
+      {{ clusterMachineStatus?.spec?.last_config_error.trim() }}
     </TAlert>
     <ul class="overview-data-list">
       <li class="overview-data-item">
