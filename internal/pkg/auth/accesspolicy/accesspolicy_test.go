@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
 
+	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
@@ -163,6 +164,37 @@ func TestInvalidRole(t *testing.T) {
 
 	err := accesspolicy.Validate(accessPolicy)
 	assert.ErrorContains(t, err, "unknown role")
+}
+
+// TestUnassignableRole covers the roles that parse but must not be reachable through an access policy.
+// This fails open if the check is dropped, since both roles parse successfully.
+func TestUnassignableRole(t *testing.T) {
+	for _, r := range []role.Role{role.Auditor, role.InfraProvider} {
+		t.Run(string(r), func(t *testing.T) {
+			accessPolicy := getAccessPolicy(t, aclValidRaw)
+
+			accessPolicy.TypedSpec().Value.Rules[1].Role = string(r)
+
+			err := accesspolicy.Validate(accessPolicy)
+			assert.ErrorContains(t, err, "cannot be assigned by an access policy")
+		})
+	}
+}
+
+// TestAssignableRolesStillAccepted checks only that the assignability check does not fire. The fixture
+// carries its own expectations that a changed rule role trips, so a bare NoError would not isolate this.
+func TestAssignableRolesStillAccepted(t *testing.T) {
+	for _, r := range []role.Role{role.None, role.Reader, role.Operator, role.Admin} {
+		t.Run(string(r), func(t *testing.T) {
+			accessPolicy := getAccessPolicy(t, aclValidRaw)
+
+			accessPolicy.TypedSpec().Value.Rules[1].Role = string(r)
+
+			if err := accesspolicy.Validate(accessPolicy); err != nil {
+				assert.NotContains(t, err.Error(), "cannot be assigned by an access policy")
+			}
+		})
+	}
 }
 
 func getAccessPolicy(t *testing.T, raw []byte) *auth.AccessPolicy {

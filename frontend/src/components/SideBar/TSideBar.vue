@@ -47,7 +47,8 @@ const route = useRoute()
 const { avatar, fullname, identity } = useIdentity()
 
 const { data: featuresConfig } = useFeatures()
-const { canManageBackupStore, canManageUsers, canReadClusters, canReadMachines } = usePermissions()
+const { canManageBackupStore, canManageUsers, canReadAuditLog, canReadClusters, canReadMachines } =
+  usePermissions()
 const isEnterpriseFactory = useIsEnterprise()
 
 const currentCluster = computed(() =>
@@ -268,8 +269,13 @@ const rootItems = computed(() => {
     result.push(item)
   }
 
-  if (canManageUsers.value || (backupStatus.value.configurable && canManageBackupStore.value)) {
-    const subItems: SideBarItem[] = [
+  const canManageSettings =
+    canManageUsers.value || (backupStatus.value.configurable && canManageBackupStore.value)
+
+  const settingsItems: SideBarItem[] = []
+
+  if (canManageSettings) {
+    settingsItems.push(
       {
         name: 'Users',
         route: getRoute('Users', '/settings/users'),
@@ -290,29 +296,33 @@ const rootItems = computed(() => {
         route: getRoute('Backups', '/settings/backups'),
         icon: 'rollback',
       },
-    ]
+    )
+  }
 
-    if (featuresConfig.value?.spec.audit_log_enabled) {
-      subItems.push({
-        name: 'Audit Logs',
-        route: getRoute('AuditLogs', '/settings/audit-logs'),
-        icon: 'document',
-      })
-    }
+  if (featuresConfig.value?.spec.audit_log_enabled && canReadAuditLog.value) {
+    settingsItems.push({
+      name: 'Audit Logs',
+      route: getRoute('AuditLogs', '/settings/audit-logs'),
+      icon: 'document',
+    })
+  }
 
-    if (featuresConfig.value?.spec.stripe_settings?.enabled) {
-      subItems.push({
-        name: 'Billing',
-        route: 'https://billing.stripe.com/p/login/8wMcOC8z51GgdPi144',
-        regularLink: true,
-        icon: 'dashboard',
-      })
-    }
+  if (canManageSettings && featuresConfig.value?.spec.stripe_settings?.enabled) {
+    settingsItems.push({
+      name: 'Billing',
+      route: 'https://billing.stripe.com/p/login/8wMcOC8z51GgdPi144',
+      regularLink: true,
+      icon: 'dashboard',
+    })
+  }
 
+  // an Auditor on an instance with the audit log disabled qualifies for the group but gets no items
+  // in it, and a group with no sub items renders as an inert row.
+  if (settingsItems.length > 0) {
     result.push({
       name: 'Settings',
       icon: 'settings',
-      subItems,
+      subItems: settingsItems,
     })
   }
 

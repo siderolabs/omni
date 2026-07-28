@@ -294,8 +294,11 @@ func (v *State) permissions(ctx context.Context) (*virtual.Permissions, error) {
 	isAdmin := userRole.Check(role.Admin) == nil
 	permissions.TypedSpec().Value.CanManageUsers = isAdmin
 	permissions.TypedSpec().Value.CanManageBackupStore = isAdmin
-	permissions.TypedSpec().Value.CanReadAuditLog = isAdmin
 	permissions.TypedSpec().Value.CanManageJoinTokens = isAdmin
+
+	// audit log access is restricted by exact role, so that Operator does not get it by outranking Auditor.
+	// This shares its definition with the check on the ReadAuditLog RPC so the two cannot drift.
+	permissions.TypedSpec().Value.CanReadAuditLog = role.CanReadAuditLog(userRole)
 
 	if !permissions.TypedSpec().Value.CanCreateClusters {
 		_, err := safe.StateGet[*authres.AccessPolicy](ctx, v.PrimaryState, authres.NewAccessPolicy().Metadata())

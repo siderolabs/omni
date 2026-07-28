@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/cosi/labels"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
+	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/accesspolicy"
 	"github.com/siderolabs/omni/internal/pkg/config"
 )
@@ -152,8 +153,11 @@ func samlLabelRuleValidationOptions() []validated.StateOption {
 			return fmt.Errorf("assignroleonregistration is deprecated, please use assignrole instead")
 		}
 
-		if _, err := role.Parse(res.TypedSpec().Value.AssignRole); err != nil {
+		parsedRole, err := role.Parse(res.TypedSpec().Value.AssignRole)
+		if err != nil {
 			multiErr = multierror.Append(multiErr, err)
+		} else if !auth.RoleAssignableByPolicy(parsedRole) {
+			multiErr = multierror.Append(multiErr, fmt.Errorf("role %q cannot be assigned by a SAML label rule", parsedRole))
 		}
 
 		if _, err := labels.ParseSelectors(res.TypedSpec().Value.GetMatchLabels()); err != nil {

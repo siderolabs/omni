@@ -557,7 +557,8 @@ func (s *managementServer) KubernetesUpgradePreChecks(ctx context.Context, req *
 func (s *managementServer) ReadAuditLog(req *management.ReadAuditLogRequest, srv grpc.ServerStreamingServer[management.ReadAuditLogResponse]) error {
 	ctx := srv.Context()
 
-	_, err := s.authCheckGRPC(ctx, auth.WithRole(role.Admin))
+	// checked by exact role, as Operator must not be able to read the audit log despite outranking Auditor.
+	_, err := s.authCheckGRPC(ctx, auth.WithExactRoles(role.AuditLogRoles...))
 	if err != nil {
 		return err
 	}

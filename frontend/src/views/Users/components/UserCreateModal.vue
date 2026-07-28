@@ -8,7 +8,7 @@ included in the LICENSE file.
 import { ref, watchEffect } from 'vue'
 
 import { ManagementService } from '@/api/omni/management/management.pb'
-import { RoleAdmin, RoleNone, RoleOperator, RoleReader } from '@/api/resources'
+import { RoleAdmin, RoleAuditor, RoleNone, RoleOperator, RoleReader } from '@/api/resources'
 import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TInput from '@/components/TInput/TInput.vue'
@@ -20,7 +20,7 @@ const open = defineModel<boolean>('open', { default: false })
 
 const { canManageUsers } = usePermissions()
 
-const roles = [RoleNone, RoleReader, RoleOperator, RoleAdmin]
+const roles = [RoleNone, RoleReader, RoleAuditor, RoleOperator, RoleAdmin]
 
 const identity = ref('')
 const role = ref(RoleReader)

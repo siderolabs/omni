@@ -7,6 +7,7 @@ package role
 
 import (
 	"fmt"
+	"slices"
 )
 
 // Role represents a user role.
@@ -28,6 +29,14 @@ const (
 	// tsgen:RoleReader
 	Reader Role = "Reader"
 
+	// Auditor is a role that has read-only capability, plus the capability to read the audit log.
+	//
+	// Reading the audit log is restricted to this role and Admin, so it is checked by exact role match
+	// rather than by the ordering below.
+	//
+	// tsgen:RoleAuditor
+	Auditor Role = "Auditor"
+
 	// Operator is a role that has read/write capability.
 	//
 	// tsgen:RoleOperator
@@ -39,7 +48,18 @@ const (
 	Admin Role = "Admin"
 )
 
-var roles = []Role{None, InfraProvider, Reader, Operator, Admin}
+var roles = []Role{None, InfraProvider, Reader, Auditor, Operator, Admin}
+
+// AuditLogRoles are the roles allowed to read the audit log.
+//
+// Operator outranks Auditor in the ordering above yet is deliberately absent, so audit log access is
+// checked by exact role rather than by rank. This is the single source of that policy.
+var AuditLogRoles = []Role{Auditor, Admin}
+
+// CanReadAuditLog reports whether the role is allowed to read the audit log.
+func CanReadAuditLog(r Role) bool {
+	return slices.Contains(AuditLogRoles, r)
+}
 
 var indexes = func() map[Role]int {
 	result := make(map[Role]int, len(roles))
@@ -117,6 +137,11 @@ func (r Role) Compare(another Role) int {
 }
 
 // Min returns the least capable role from the given roles.
+//
+// Audit log access is not a point on the ordering: Auditor sits below Operator, yet only Auditor and Admin
+// may read it. Capping by rank alone would therefore grant audit log access to a combination where no input
+// had it, for example an Operator holding a key registered as Auditor. The result keeps audit log access
+// only when every input has it, and falls back to Reader otherwise.
 func Min(first Role, role ...Role) (Role, error) {
 	result := first
 
@@ -125,16 +150,24 @@ func Min(first Role, role ...Role) (Role, error) {
 		return "", fmt.Errorf("unknown first role in min check: %q", first)
 	}
 
+	canReadAuditLog := CanReadAuditLog(first)
+
 	for i, currentRole := range role {
 		currentIndex, currentIndexOk := indexes[currentRole]
 		if !currentIndexOk {
 			return "", fmt.Errorf("unknown role in min check at index %d: %q", i, currentRole)
 		}
 
+		canReadAuditLog = canReadAuditLog && CanReadAuditLog(currentRole)
+
 		if currentIndex < resultIndex {
 			result = currentRole
 			resultIndex = currentIndex
 		}
+	}
+
+	if result == Auditor && !canReadAuditLog {
+		return Reader, nil
 	}
 
 	return result, nil

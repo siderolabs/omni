@@ -72,6 +72,7 @@ export const InfraProviderServiceAccountDomain = "infra-provider.serviceaccount.
 export const RoleNone = "None";
 export const RoleInfraProvider = "InfraProvider";
 export const RoleReader = "Reader";
+export const RoleAuditor = "Auditor";
 export const RoleOperator = "Operator";
 export const RoleAdmin = "Admin";
 export const DefaultNamespace = "default";

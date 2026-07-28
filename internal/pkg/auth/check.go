@@ -78,6 +78,18 @@ func WithExactRoles(roles ...role.Role) CheckOption {
 	}
 }
 
+// policyAssignableRoles are the roles an access policy or a SAML label rule may assign.
+//
+// This is an allowlist rather than a denylist so that a newly added role is unassignable until someone
+// deliberately allows it. Auditor is absent because audit log access is not expressible as a point on the
+// role ordering, and InfraProvider because it is a service identity rather than a user role.
+var policyAssignableRoles = []role.Role{role.None, role.Reader, role.Operator, role.Admin}
+
+// RoleAssignableByPolicy reports whether an access policy or a SAML label rule may assign the role.
+func RoleAssignableByPolicy(r role.Role) bool {
+	return slices.Contains(policyAssignableRoles, r)
+}
+
 // WithValidSignature checks if the context has a valid signature.
 //
 // If the required role set via WithRole is other than role.None, this setting is ignored and the signature is always checked.
@@ -154,7 +166,9 @@ func Check(ctx context.Context, opt ...CheckOption) (CheckResult, error) {
 		found := slices.Contains(opts.ExactRoles, ctxRole)
 
 		if !found {
-			return CheckResult{}, fmt.Errorf("%w: required exact roles not found", ErrUnauthorized)
+			// deliberately not phrased as an insufficient role: an exact-role check can reject an actor
+			// that outranks every allowed role, which is the point of using one.
+			return CheckResult{}, fmt.Errorf("%w: role %q is not one of the allowed roles %v", ErrUnauthorized, ctxRole, opts.ExactRoles)
 		}
 	} else if opts.Role != role.None {
 		err := ctxRole.Check(opts.Role)

@@ -7,7 +7,7 @@ included in the LICENSE file.
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue'
 
-import { RoleAdmin, RoleNone, RoleOperator, RoleReader } from '@/api/resources'
+import { RoleAdmin, RoleAuditor, RoleNone, RoleOperator, RoleReader } from '@/api/resources'
 import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TInput from '@/components/TInput/TInput.vue'
@@ -26,7 +26,7 @@ const open = defineModel<boolean>('open', { default: false })
 
 const { canManageUsers } = usePermissions()
 
-const roles = [RoleNone, RoleReader, RoleOperator, RoleAdmin]
+const roles = [RoleNone, RoleReader, RoleAuditor, RoleOperator, RoleAdmin]
 
 const isCreating = ref(false)
 const name = ref('')

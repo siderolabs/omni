@@ -456,6 +456,22 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 		assert.ErrorContainsf(t, err, "insufficient role", "unexpected error: %v", err)
 	}
 
+	// the audit log is gated by exact role rather than by rank, so a denied actor is not "insufficient":
+	// an Operator is rejected while outranking the allowed Auditor.
+	assertDisallowedRoleFailure := func(t *testing.T, err error) {
+		assert.Equalf(t, codes.PermissionDenied, status.Code(err), "unexpected error: %v", err)
+	}
+
+	readAuditLog := func(ctx context.Context, cli *client.Client) error {
+		for _, err := range cli.Management().ReadAuditLog(ctx, nil) {
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
 	return func(t *testing.T) {
 		testCases := []apiAuthzTestCase{
 			// Management API tests - global
@@ -701,21 +717,22 @@ func AssertAPIAuthz(rootCtx context.Context, rootCli *client.Client, clientFacto
 					return err
 				},
 			},
-			// Audit log
+			// Audit log, allowed for an Admin and denied for the Operator right below it.
 			{
 				namePrefix:    "audit-logs",
 				requiredRole:  role.Admin,
 				assertSuccess: assertSuccess,
-				assertFailure: assertMissingRoleFailure,
-				fn: func(ctx context.Context, cli *client.Client) error {
-					for _, err := range cli.Management().ReadAuditLog(ctx, nil) {
-						if err != nil {
-							return err
-						}
-					}
-
-					return nil
-				},
+				assertFailure: assertDisallowedRoleFailure,
+				fn:            readAuditLog,
+			},
+			// The same, for the Auditor the role exists to serve: allowed even though it does not
+			// outrank the rejected Operator above, and denied for the Reader right below it.
+			{
+				namePrefix:    "audit-logs-auditor",
+				requiredRole:  role.Auditor,
+				assertSuccess: assertSuccess,
+				assertFailure: assertDisallowedRoleFailure,
+				fn:            readAuditLog,
 			},
 		}
 

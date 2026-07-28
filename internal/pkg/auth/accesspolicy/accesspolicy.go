@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	pkgauth "github.com/siderolabs/omni/internal/pkg/auth"
 )
 
 // GroupPrefix is the special prefix used in the AccessPolicy rules to denote a group of users or clusters.
@@ -129,8 +130,11 @@ func Validate(accessPolicy *auth.AccessPolicy) error {
 	// check rules
 	for _, rule := range accessPolicySpec.GetRules() {
 		if rule.Role != "" {
-			if _, err := role.Parse(rule.Role); err != nil {
+			parsedRole, err := role.Parse(rule.Role)
+			if err != nil {
 				validationErrs = multierror.Append(validationErrs, err)
+			} else if !pkgauth.RoleAssignableByPolicy(parsedRole) {
+				validationErrs = multierror.Append(validationErrs, fmt.Errorf("role %q cannot be assigned by an access policy", parsedRole))
 			}
 		}
 	}

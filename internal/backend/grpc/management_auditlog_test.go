@@ -63,17 +63,44 @@ func TestReadAuditLogFailsClosedOnAuditError(t *testing.T) {
 	require.Empty(t, stream.sent)
 }
 
-func TestReadAuditLogRequiresAdmin(t *testing.T) {
-	auditor := &auditLogAccessAuditor{}
-	server := newAuditLogTestServer(t, auditor)
+// auditLogRoles covers the whole role ordering. Reading the audit log is allowed for exactly Auditor and
+// Admin, so Operator is denied even though it outranks Auditor.
+var auditLogRoles = []struct {
+	role    role.Role
+	allowed bool
+}{
+	{role.None, false},
+	{role.InfraProvider, false},
+	{role.Reader, false},
+	{role.Auditor, true},
+	{role.Operator, false},
+	{role.Admin, true},
+}
 
-	stream := &auditLogStream{ctx: managementPowerTestContext(t.Context(), "user@example.com", role.Operator)}
+func TestReadAuditLogRequiresAuditorOrAdmin(t *testing.T) {
+	for _, tt := range auditLogRoles {
+		t.Run(string(tt.role), func(t *testing.T) {
+			auditor := &auditLogAccessAuditor{events: [][]byte{[]byte(`{"event_type":"create"}`)}}
+			server := newAuditLogTestServer(t, auditor)
 
-	err := server.ReadAuditLog(&management.ReadAuditLogRequest{}, stream)
-	require.Equal(t, codes.PermissionDenied, status.Code(err))
+			stream := &auditLogStream{ctx: managementPowerTestContext(t.Context(), "user@example.com", tt.role)}
 
-	require.Nil(t, auditor.accessFilters)
-	require.False(t, auditor.readerCalled)
+			err := server.ReadAuditLog(&management.ReadAuditLogRequest{}, stream)
+
+			if !tt.allowed {
+				require.Equal(t, codes.PermissionDenied, status.Code(err))
+				require.Nil(t, auditor.accessFilters)
+				require.False(t, auditor.readerCalled)
+
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, auditor.accessFilters)
+			require.True(t, auditor.readerCalled)
+			require.Equal(t, [][]byte{[]byte(`{"event_type":"create"}`)}, stream.sent)
+		})
+	}
 }
 
 func TestFollowAuditLogRejectsIncompatibleFields(t *testing.T) {
@@ -111,15 +138,37 @@ func TestFollowAuditLogRejectsIncompatibleFields(t *testing.T) {
 	}
 }
 
-func TestFollowAuditLogRequiresAdmin(t *testing.T) {
-	auditor := &auditLogAccessAuditor{}
-	server := newAuditLogTestServer(t, auditor)
+func TestFollowAuditLogRequiresAuditorOrAdmin(t *testing.T) {
+	for _, tt := range auditLogRoles {
+		if tt.allowed {
+			// the success path needs a lease-bounded reader, which the dedicated follow tests cover.
+			continue
+		}
 
-	stream := &auditLogStream{ctx: managementPowerTestContext(t.Context(), "user@example.com", role.Operator)}
+		t.Run(string(tt.role), func(t *testing.T) {
+			auditor := &auditLogAccessAuditor{}
+			server := newAuditLogTestServer(t, auditor)
+
+			stream := &auditLogStream{ctx: managementPowerTestContext(t.Context(), "user@example.com", tt.role)}
+
+			err := server.ReadAuditLog(&management.ReadAuditLogRequest{Follow: true}, stream)
+			require.Equal(t, codes.PermissionDenied, status.Code(err))
+			require.Empty(t, stream.numResponses())
+		})
+	}
+}
+
+func TestFollowAuditLogAllowsAuditor(t *testing.T) {
+	auditor := &auditLogAccessAuditor{}
+	server := newAuditLogTestServer(t, auditor, grpcomni.WithAuditLogFollowLease(100*time.Millisecond))
+
+	stream := &auditLogStream{ctx: managementPowerTestContext(t.Context(), "auditor@example.com", role.Auditor)}
 
 	err := server.ReadAuditLog(&management.ReadAuditLogRequest{Follow: true}, stream)
-	require.Equal(t, codes.PermissionDenied, status.Code(err))
-	require.Empty(t, stream.numResponses())
+	require.NoError(t, err, "an Auditor must be allowed to follow the audit log")
+
+	require.True(t, auditor.followAudited)
+	require.Len(t, stream.snapshotResponses(), 1, "the auditor must receive the acknowledgment")
 }
 
 func TestFollowAuditLogFailsClosedOnAuditError(t *testing.T) {

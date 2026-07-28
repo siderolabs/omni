@@ -13,6 +13,7 @@ import type { UserSpec } from '@/api/omni/specs/auth.pb'
 import {
   DefaultNamespace,
   RoleAdmin,
+  RoleAuditor,
   RoleNone,
   RoleOperator,
   RoleReader,
@@ -34,7 +35,7 @@ const open = defineModel<boolean>('open', { default: false })
 
 const { canManageUsers } = usePermissions()
 
-const roles = [RoleNone, RoleReader, RoleOperator, RoleAdmin]
+const roles = [RoleNone, RoleReader, RoleAuditor, RoleOperator, RoleAdmin]
 
 const role = ref<string>()
 const isEditing = ref(false)
