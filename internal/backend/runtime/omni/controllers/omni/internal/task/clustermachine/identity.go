@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/netip"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -186,7 +187,16 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.L
 				case *cluster.Identity:
 					clusterMachineIdentity.TypedSpec().Value.NodeIdentity = r.TypedSpec().NodeID
 				case *cluster.Config:
-					clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint = discoveryServiceEndpoint(r)
+					endpoints := discoveryServiceEndpoints(r)
+
+					clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoints = endpoints
+
+					// keep the deprecated singular field populated for back-compat with in-flight resources
+					if len(endpoints) > 0 {
+						clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint = endpoints[0]
+					} else {
+						clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint = ""
+					}
 				case *k8s.Nodename:
 					clusterMachineIdentity.TypedSpec().Value.Nodename = r.TypedSpec().Nodename
 				case *k8s.NodeIP:
@@ -209,39 +219,48 @@ func (spec IdentityCollectorTaskSpec) RunTask(ctx context.Context, logger *zap.L
 	}
 }
 
-// discoveryServiceEndpoint extracts the discovery service endpoint from the cluster config resource.
-//
-// It prefers the endpoints list introduced in Talos 1.14 and falls back to the legacy single-endpoint fields for machines running older Talos versions.
-//
-// TODO: handle multiple discovery service endpoints with https://github.com/siderolabs/omni/issues/3024. Until then, only the first endpoint is used.
-func discoveryServiceEndpoint(res *cluster.Config) string {
-	spec := res.TypedSpec()
+// discoveryServiceEndpoints returns the discovery service endpoints (as full URLs) the node registers
+// with. Talos 1.14+ carries all endpoints in ServiceEndpoints, older Talos exposes only the single
+// deprecated fields, which are read as a fallback.
+func discoveryServiceEndpoints(cfg *cluster.Config) []string {
+	spec := cfg.TypedSpec()
 
-	if len(spec.ServiceEndpoints) > 0 && spec.ServiceEndpoints[0].Endpoint != "" {
-		endpoint := spec.ServiceEndpoints[0]
+	// Prefer the endpoints list introduced in Talos 1.14, skipping any entry with an empty endpoint.
+	endpoints := make([]string, 0, len(spec.ServiceEndpoints))
 
-		protocol := "https://"
-		if endpoint.Insecure {
-			protocol = "http://"
+	for _, endpoint := range spec.ServiceEndpoints {
+		if endpoint.Endpoint == "" {
+			continue
 		}
 
-		return protocol + endpoint.Endpoint
+		endpoints = append(endpoints, discoveryServiceEndpointURL(endpoint.Endpoint, endpoint.Insecure))
 	}
 
-	legacyDiscoveryServiceEnabled := spec.DiscoveryEnabled && //nolint:staticcheck
-		spec.RegistryServiceEnabled && //nolint:staticcheck
-		spec.ServiceEndpoint != "" //nolint:staticcheck
-
-	if legacyDiscoveryServiceEnabled {
-		protocol := "https://"
-		if spec.ServiceEndpointInsecure { //nolint:staticcheck
-			protocol = "http://"
-		}
-
-		return protocol + spec.ServiceEndpoint //nolint:staticcheck
+	if len(endpoints) > 0 {
+		return endpoints
 	}
 
-	return ""
+	// Fall back to the deprecated single-endpoint fields, populated by Talos < 1.14.
+	if spec.DiscoveryEnabled && spec.RegistryServiceEnabled && spec.ServiceEndpoint != "" { //nolint:staticcheck
+		return []string{discoveryServiceEndpointURL(spec.ServiceEndpoint, spec.ServiceEndpointInsecure)} //nolint:staticcheck
+	}
+
+	return nil
+}
+
+// discoveryServiceEndpointURL normalizes a discovery endpoint into a full URL with a scheme. Talos may
+// store either a bare host:port (legacy fields) or a full URL (1.14 documents), so a scheme is only
+// prepended when missing.
+func discoveryServiceEndpointURL(endpoint string, insecure bool) string {
+	if strings.Contains(endpoint, "://") {
+		return endpoint
+	}
+
+	if insecure {
+		return "http://" + endpoint
+	}
+
+	return "https://" + endpoint
 }
 
 func (spec IdentityCollectorTaskSpec) shouldRunLegacyEtcdMemberIDCollector(ctx context.Context, client *client.Client) (bool, error) {

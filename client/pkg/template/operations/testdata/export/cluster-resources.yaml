@@ -20,17 +20,34 @@ metadata:
     - SecretsController
 spec:
   kubernetesversion: 1.28.2
-  talosversion: 1.5.5
+  talosversion: 1.14.0
   features:
     enableworkloadproxy: true
     diskencryption: true
     useembeddeddiscoveryservice: true
+    disablepublicdiscoveryservice: false
     enablenodeauditskip: true
   backupconfiguration:
     interval:
       seconds: 7200
       nanos: 0
     enabled: true
+---
+
+
+
+################################ ClusterStatus - carries the initial (creation) Talos version
+metadata:
+  namespace: default
+  type: ClusterStatuses.omni.sidero.dev
+  id: export-test
+  version: 1
+  owner: ClusterStatusController
+  phase: running
+  created: 2023-12-07T13:36:21Z
+  updated: 2023-12-08T15:43:10Z
+spec:
+  initialtalosversion: 1.14.0
 ---
 
 

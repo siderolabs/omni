@@ -62,6 +62,41 @@ func TestDiscoveryAffiliateDeleteTaskReconcile(t *testing.T) {
 	})
 }
 
+// TestDiscoveryAffiliateDeleteTaskMultipleEndpoints verifies that the affiliate is removed from every endpoint it was
+// registered with before the task is cleaned up.
+func TestDiscoveryAffiliateDeleteTaskMultipleEndpoints(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		mock := &discoveryClientCacheMock{}
+
+		testutils.WithRuntime(
+			t.Context(),
+			t,
+			testutils.TestOptions{},
+			func(_ context.Context, tc testutils.TestContext) {
+				require.NoError(t, tc.Runtime.RegisterQController(omnictrl.NewDiscoveryAffiliateDeleteTaskController(mock)))
+			},
+			func(ctx context.Context, tc testutils.TestContext) {
+				task := omni.NewDiscoveryAffiliateDeleteTask("affiliate1")
+				task.TypedSpec().Value.ClusterId = "cluster1"
+				task.TypedSpec().Value.DiscoveryServiceEndpoints = []string{"endpoint1", "endpoint2"}
+
+				require.NoError(t, tc.State.Create(ctx, task, state.WithCreateOwner(omnictrl.ClusterMachineTeardownControllerName)))
+
+				rtestutils.AssertNoResource[*omni.DiscoveryAffiliateDeleteTask](ctx, t, tc.State, task.Metadata().ID())
+
+				synctest.Wait()
+
+				assert.ElementsMatch(t, []affiliateDelete{
+					{"endpoint1", "cluster1", "affiliate1"},
+					{"endpoint2", "cluster1", "affiliate1"},
+				}, mock.calls())
+			},
+		)
+	})
+}
+
 // TestDiscoveryAffiliateDeleteTaskExpiration verifies that while the affiliate cannot be deleted the task is retained,
 // and once enough time passes for the discovery service to have pruned the affiliate itself, the task is cleaned up
 // without attempting a deletion.

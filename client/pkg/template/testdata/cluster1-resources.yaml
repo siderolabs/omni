@@ -17,6 +17,7 @@ spec:
         diskencryption: true
         useembeddeddiscoveryservice: false
         enablenodeauditskip: false
+        disablepublicdiscoveryservice: false
     backupconfiguration: null
 ---
 metadata:

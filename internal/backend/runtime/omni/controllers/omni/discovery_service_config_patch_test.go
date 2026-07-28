@@ -28,38 +28,72 @@ func (suite *DiscoveryServiceConfigPatchSuite) TestReconcile() {
 	suite.startRuntime()
 
 	port := 1234
-	controller := omnictrl.NewDiscoveryServiceConfigPatchController(port)
+	embeddedEndpoint := "http://" + net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(port))
 
-	suite.Require().NoError(suite.runtime.RegisterQController(controller))
+	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewDiscoveryServiceConfigPatchController(port)))
 
-	clusterStatus := omni.NewClusterStatus("test-cluster-1")
-	patchID := omnictrl.DiscoveryServiceConfigPatchPrefix + clusterStatus.Metadata().ID()
+	assertPatchData := func(clusterID string, contains ...string) {
+		patchID := omnictrl.DiscoveryServiceConfigPatchPrefix + clusterID
 
-	clusterStatus.TypedSpec().Value.UseEmbeddedDiscoveryService = true
+		rtestutils.AssertResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, patchID, func(r *omni.ConfigPatch, assertion *assert.Assertions) {
+			buffer, err := r.TypedSpec().Value.GetUncompressedData()
+			assertion.NoError(err)
 
-	suite.Require().NoError(suite.state.Create(suite.ctx, clusterStatus))
+			defer buffer.Free()
 
-	// assert that the new clusterStatus is marked to use the embedded discovery service
-	rtestutils.AssertResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, patchID, func(r *omni.ConfigPatch, assertion *assert.Assertions) {
-		buffer, err := r.TypedSpec().Value.GetUncompressedData()
-		assertion.NoError(err)
+			data := string(buffer.Data())
 
-		defer buffer.Free()
+			for _, c := range contains {
+				assertion.Contains(data, c)
+			}
+		})
+	}
 
-		data := string(buffer.Data())
+	// the discovery patch format is decided from the creation version, surfaced as InitialTalosVersion on
+	// ClusterStatus by the ClusterStatusController, not the current running version.
+	createCluster := func(id, initialTalosVersion string, useEmbedded, usePublic bool) {
+		status := omni.NewClusterStatus(id)
+		status.TypedSpec().Value.UseEmbeddedDiscoveryService = useEmbedded
+		status.TypedSpec().Value.DisablePublicDiscoveryService = !usePublic
+		status.TypedSpec().Value.InitialTalosVersion = initialTalosVersion
+		suite.Require().NoError(suite.state.Create(suite.ctx, status))
+	}
 
-		assertion.Contains(data, "http://"+net.JoinHostPort(siderolink.ListenHost, strconv.Itoa(port)))
-	})
+	// embedded only on a cluster created with Talos < 1.14 uses the legacy .cluster.discovery block
+	createCluster("test-cluster-legacy", "1.9.0", true, false)
+	assertPatchData("test-cluster-legacy", "discovery:", "registries:", embeddedEndpoint)
 
-	_, err := safe.StateUpdateWithConflicts[*omni.ClusterStatus](suite.ctx, suite.state, clusterStatus.Metadata(), func(res *omni.ClusterStatus) error {
+	// a cluster created with < 1.14 but with the current version 1.14 (upgraded) still uses the legacy block
+	createCluster("test-cluster-upgraded", "1.13.0", true, false)
+	assertPatchData("test-cluster-upgraded", "discovery:", "registries:", embeddedEndpoint)
+
+	// embedded only on a cluster created with Talos 1.14+ overrides the base public "default" document
+	createCluster("test-cluster-embedded", "1.14.0", true, false)
+	assertPatchData("test-cluster-embedded", "kind: DiscoveryServiceConfig", "name: default", embeddedEndpoint)
+
+	// embedded + public on a cluster created with Talos 1.14+ adds a distinct document alongside the base "default"
+	createCluster("test-cluster-both", "1.14.0", true, true)
+	assertPatchData("test-cluster-both", "kind: DiscoveryServiceConfig", "name: omni-embedded", embeddedEndpoint)
+
+	// everything off on a cluster created with Talos 1.14+ removes the base public "default" document
+	createCluster("test-cluster-disabled", "1.14.0", false, false)
+	assertPatchData("test-cluster-disabled", "kind: DiscoveryServiceConfig", "name: default", "$patch: delete")
+
+	// public only (the base config default) produces no patch
+	createCluster("test-cluster-public", "1.14.0", false, true)
+
+	rtestutils.AssertNoResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, omnictrl.DiscoveryServiceConfigPatchPrefix+"test-cluster-public")
+
+	// switching an embedded-only cluster back to public only removes the patch
+	_, err := safe.StateUpdateWithConflicts[*omni.ClusterStatus](suite.ctx, suite.state, omni.NewClusterStatus("test-cluster-embedded").Metadata(), func(res *omni.ClusterStatus) error {
 		res.TypedSpec().Value.UseEmbeddedDiscoveryService = false
+		res.TypedSpec().Value.DisablePublicDiscoveryService = false
 
 		return nil
 	})
 	suite.Require().NoError(err)
 
-	// assert that the config patch is removed
-	rtestutils.AssertNoResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, patchID)
+	rtestutils.AssertNoResource[*omni.ConfigPatch](suite.ctx, suite.T(), suite.state, omnictrl.DiscoveryServiceConfigPatchPrefix+"test-cluster-embedded")
 }
 
 func TestDiscoveryServiceConfigPatchSuite(t *testing.T) {

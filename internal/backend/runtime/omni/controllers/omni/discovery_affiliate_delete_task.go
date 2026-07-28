@@ -7,7 +7,9 @@ package omni
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -21,6 +23,9 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 )
+
+// affiliateDeleteTimeout bounds each per-endpoint AffiliateDelete call independently of the reconcile context.
+const affiliateDeleteTimeout = 30 * time.Second
 
 // DiscoveryClientCache is an interface for interacting with discovery services.
 type DiscoveryClientCache interface {
@@ -79,13 +84,19 @@ func (ctrl *DiscoveryAffiliateDeleteTaskController) Reconcile(ctx context.Contex
 		return err
 	}
 
+	endpoints := res.TypedSpec().Value.DiscoveryServiceEndpoints
+	if len(endpoints) == 0 && res.TypedSpec().Value.DiscoveryServiceEndpoint != "" {
+		// fall back to the deprecated singular field for tasks written by the previous version
+		endpoints = []string{res.TypedSpec().Value.DiscoveryServiceEndpoint}
+	}
+
 	expiredOnDiscoveryService := res.Metadata().Created().Add(ctrl.affiliateTTL).Before(time.Now())
 	if expiredOnDiscoveryService {
 		logger.Info(
 			"skipping affiliate delete, already expired on discovery service",
 			zap.String("cluster_id", res.TypedSpec().Value.ClusterId),
 			zap.String("affiliate_id", res.Metadata().ID()),
-			zap.String("endpoint", res.TypedSpec().Value.DiscoveryServiceEndpoint),
+			zap.Strings("endpoints", endpoints),
 		)
 	}
 
@@ -93,20 +104,37 @@ func (ctrl *DiscoveryAffiliateDeleteTaskController) Reconcile(ctx context.Contex
 	affiliateAlreadyDeleted := expiredOnDiscoveryService || isTearingDown
 
 	if !affiliateAlreadyDeleted {
-		endpoint := res.TypedSpec().Value.DiscoveryServiceEndpoint
 		clusterID := res.TypedSpec().Value.ClusterId
 		affiliateID := res.Metadata().ID()
+		deleteErrs := make([]error, len(endpoints))
 
-		if err = ctrl.discoveryClientCache.AffiliateDelete(ctx, endpoint, clusterID, affiliateID); err != nil {
-			return fmt.Errorf("error deleting affiliate %q/%q from %q: %w", clusterID, affiliateID, endpoint, err)
+		var wg sync.WaitGroup
+
+		for i, endpoint := range endpoints {
+			wg.Go(func() {
+				callCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), affiliateDeleteTimeout)
+				defer cancel()
+
+				if deleteErr := ctrl.discoveryClientCache.AffiliateDelete(callCtx, endpoint, clusterID, affiliateID); deleteErr != nil {
+					deleteErrs[i] = fmt.Errorf("error deleting affiliate %q/%q from %q: %w", clusterID, affiliateID, endpoint, deleteErr)
+
+					return
+				}
+
+				logger.Info(
+					"deleted the affiliate from the discovery service",
+					zap.String("cluster_id", clusterID),
+					zap.String("affiliate_id", affiliateID),
+					zap.String("endpoint", endpoint),
+				)
+			})
 		}
 
-		logger.Info(
-			"deleted the affiliate from the discovery service",
-			zap.String("cluster_id", clusterID),
-			zap.String("affiliate_id", affiliateID),
-			zap.String("endpoint", endpoint),
-		)
+		wg.Wait()
+
+		if err = errors.Join(deleteErrs...); err != nil {
+			return err
+		}
 	}
 
 	destroyReady, err := helpers.TeardownAndDestroy(ctx, r, ptr, controller.WithOwner(ClusterMachineTeardownControllerName))

@@ -18,6 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/xslices"
+	"github.com/siderolabs/talos/pkg/machinery/config"
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
@@ -48,7 +49,18 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, inclu
 		return nil, err
 	}
 
-	clusterModel, err := transformClusterToModel(resources.cluster, resources.patches.cluster)
+	var initialTalosVersion string
+
+	clusterStatus, err := safe.StateGetByID[*omni.ClusterStatus](ctx, st, clusterID)
+	if err != nil && !state.IsNotFoundError(err) {
+		return nil, err
+	}
+
+	if clusterStatus != nil {
+		initialTalosVersion = clusterStatus.TypedSpec().Value.GetInitialTalosVersion()
+	}
+
+	clusterModel, err := transformClusterToModel(resources.cluster, resources.patches.cluster, initialTalosVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +367,7 @@ func transformMachineSetToModel(machineSet *omni.MachineSet, nodes []*omni.Machi
 	}, nil
 }
 
-func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch) (models.Cluster, error) {
+func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch, initialTalosVersion string) (models.Cluster, error) {
 	spec := cluster.TypedSpec().Value
 	backupIntervalDuration := time.Duration(0)
 
@@ -366,6 +378,25 @@ func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch)
 	patchModels, err := transformConfigPatchesToModels(patches)
 	if err != nil {
 		return models.Cluster{}, err
+	}
+
+	features := models.Features{
+		DiskEncryption:              spec.GetFeatures().GetDiskEncryption(),
+		EnableWorkloadProxy:         spec.GetFeatures().GetEnableWorkloadProxy(),
+		UseEmbeddedDiscoveryService: spec.GetFeatures().GetUseEmbeddedDiscoveryService(),
+		EnableNodeAuditSkip:         spec.GetFeatures().GetEnableNodeAuditSkip(),
+		BackupConfiguration: models.BackupConfiguration{
+			Interval: backupIntervalDuration,
+		},
+	}
+
+	// The public discovery service is only a settable option on clusters created with Talos 1.14+, so emit its
+	// actual value there and omit it otherwise.
+	if initialTalosVersion != "" {
+		if vc, vcErr := config.ParseContractFromVersion(initialTalosVersion); vcErr == nil && vc.DiscoveryServiceMultidocConfig() {
+			disabled := spec.GetFeatures().GetDisablePublicDiscoveryService()
+			features.DisablePublicDiscoveryService = &disabled
+		}
 	}
 
 	return models.Cluster{
@@ -380,16 +411,8 @@ func transformClusterToModel(cluster *omni.Cluster, patches []*omni.ConfigPatch)
 		Talos: models.TalosCluster{
 			Version: "v" + spec.GetTalosVersion(),
 		},
-		Features: models.Features{
-			DiskEncryption:              spec.GetFeatures().GetDiskEncryption(),
-			EnableWorkloadProxy:         spec.GetFeatures().GetEnableWorkloadProxy(),
-			UseEmbeddedDiscoveryService: spec.GetFeatures().GetUseEmbeddedDiscoveryService(),
-			EnableNodeAuditSkip:         spec.GetFeatures().GetEnableNodeAuditSkip(),
-			BackupConfiguration: models.BackupConfiguration{
-				Interval: backupIntervalDuration,
-			},
-		},
-		Patches: patchModels,
+		Features: features,
+		Patches:  patchModels,
 	}, nil
 }
 

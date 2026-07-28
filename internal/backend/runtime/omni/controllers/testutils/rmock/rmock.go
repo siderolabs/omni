@@ -70,6 +70,12 @@ func init() {
 		return nil
 	})
 
+	addDefaults(func(_ context.Context, _ state.State, res *omni.ClusterConfigVersion) error {
+		res.TypedSpec().Value.Version = "v" + constants.DefaultTalosVersion
+
+		return nil
+	})
+
 	addDefaults(func(_ context.Context, _ state.State, res *omni.ClusterStatus) error {
 		res.TypedSpec().Value.Available = true
 		res.TypedSpec().Value.ControlplaneReady = true

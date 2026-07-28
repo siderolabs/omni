@@ -92,6 +92,7 @@ func (ctrl *ClusterMachineIdentityController) Run(ctx context.Context, r control
 				_, isCp := clusterMachineIdentity.Metadata().Labels().Get(omni.LabelControlPlaneRole)
 				spec := clusterMachineIdentity.TypedSpec().Value
 				res.TypedSpec().Value.DiscoveryServiceEndpoint = spec.DiscoveryServiceEndpoint
+				res.TypedSpec().Value.DiscoveryServiceEndpoints = spec.DiscoveryServiceEndpoints
 
 				switch {
 				case !isCp:

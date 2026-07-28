@@ -24,6 +24,7 @@ import {
   type TalosUpgradeStatusSpec,
   TalosUpgradeStatusSpecPhase,
 } from '@/api/omni/specs/omni.pb'
+import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb'
 import { withRuntime } from '@/api/options'
 import {
   ClusterLocked,
@@ -35,6 +36,7 @@ import {
   KubernetesUsageType,
   LabelCluster,
   TalosUpgradeStatusType,
+  VersionContractType,
   VirtualNamespace,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
@@ -50,11 +52,12 @@ import {
   revertTalosUpgrade,
 } from '@/methods/cluster'
 import { useFeatures } from '@/methods/features'
+import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachines from '@/views/ClusterMachines/ClusterMachines.vue'
 import ClusterEtcdBackupCheckbox from '@/views/Clusters/ClusterEtcdBackupCheckbox.vue'
 import ClusterWorkloadProxyingCheckbox from '@/views/Clusters/ClusterWorkloadProxyingCheckbox.vue'
-import EmbeddedDiscoveryServiceCheckbox from '@/views/Clusters/EmbeddedDiscoveryServiceCheckbox.vue'
+import DiscoveryServiceSwitcher from '@/views/Clusters/DiscoveryServiceSwitcher.vue'
 import NodeAuditSkipCheckbox from '@/views/Clusters/NodeAuditSkipCheckbox.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 import OverviewRightPanel from '@/views/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
@@ -70,13 +73,10 @@ type Props = {
 const { currentCluster } = defineProps<Props>()
 
 const enableWorkloadProxy = ref(false)
-const useEmbeddedDiscoveryService = ref(false)
 const enableNodeAuditSkip = ref(false)
 
 watchEffect(() => {
   enableWorkloadProxy.value = currentCluster.spec.features?.enable_workload_proxy || false
-  useEmbeddedDiscoveryService.value =
-    currentCluster.spec.features?.use_embedded_discovery_service || false
   enableNodeAuditSkip.value = currentCluster.spec.features?.enable_node_audit_skip || false
 })
 
@@ -135,14 +135,40 @@ const isEmbeddedDiscoveryServiceAvailable = computed(
     (features.value?.spec.embedded_discovery_service ?? false),
 )
 
-async function toggleUseEmbeddedDiscoveryService(value: boolean) {
+// Keeping the public service alongside the embedded one needs the multi-doc DiscoveryServiceConfig, which Talos
+// uses only for clusters created with 1.14+. ClusterStatus carries that creation version as initialTalosVersion,
+// and the VersionContract virtual resource reports whether that version supports the multi-doc config.
+const { data: versionContract } = useResourceGet<VersionContractSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: VirtualNamespace,
+    type: VersionContractType,
+    id: clusterStatus.value?.spec.initial_talos_version ?? '',
+  },
+  skip: !clusterStatus.value?.spec.initial_talos_version,
+}))
+
+const supportsPublicDiscovery = computed(
+  () => versionContract.value?.spec.discovery_service_multidoc_config ?? false,
+)
+
+async function setDiscoveryFeatures(useEmbedded: boolean, disablePublic: boolean) {
   const resource = JSON.parse(JSON.stringify(currentCluster)) as typeof currentCluster
 
   resource.spec.features ||= {}
-  resource.spec.features.use_embedded_discovery_service = value
+  resource.spec.features.use_embedded_discovery_service = useEmbedded
+  resource.spec.features.disable_public_discovery_service = disablePublic
 
   await ResourceService.Update(resource, currentCluster.metadata.version, withRuntime(Runtime.Omni))
 }
+
+const useEmbeddedDiscovery = computed(
+  () => currentCluster.spec.features?.use_embedded_discovery_service ?? false,
+)
+
+const disablePublicDiscovery = computed(
+  () => currentCluster.spec.features?.disable_public_discovery_service ?? false,
+)
 
 async function setClusterWorkloadProxy(value: boolean) {
   const resource = JSON.parse(JSON.stringify(currentCluster)) as typeof currentCluster
@@ -436,11 +462,6 @@ const machineLockedForSecretRotation = computed(() => {
               :disabled="!canManageClusterFeatures || !features?.spec.enable_workload_proxying"
               @update:model-value="(value) => setClusterWorkloadProxy(value)"
             />
-            <EmbeddedDiscoveryServiceCheckbox
-              :model-value="useEmbeddedDiscoveryService"
-              :disabled="!canManageClusterFeatures || !isEmbeddedDiscoveryServiceAvailable"
-              @update:model-value="(value) => toggleUseEmbeddedDiscoveryService(value)"
-            />
             <NodeAuditSkipCheckbox
               :model-value="enableNodeAuditSkip"
               :disabled="!canManageClusterFeatures"
@@ -450,6 +471,16 @@ const machineLockedForSecretRotation = computed(() => {
               :backup-status="backupStatus"
               :cluster="currentCluster.spec"
               @update:cluster="(spec) => setClusterEtcdBackupsConfig(spec)"
+            />
+            <DiscoveryServiceSwitcher
+              :use-embedded="useEmbeddedDiscovery"
+              :disable-public="disablePublicDiscovery"
+              :embedded-available="isEmbeddedDiscoveryServiceAvailable"
+              :public-configurable="supportsPublicDiscovery"
+              :disabled="!canManageClusterFeatures"
+              @change="
+                ({ useEmbedded, disablePublic }) => setDiscoveryFeatures(useEmbedded, disablePublic)
+              "
             />
           </div>
         </div>

@@ -58,7 +58,7 @@ import ClusterEtcdBackupCheckbox from '@/views/Clusters/ClusterEtcdBackupCheckbo
 import ClusterMenu from '@/views/Clusters/ClusterMenu.vue'
 import ClusterWorkloadProxyingCheckbox from '@/views/Clusters/ClusterWorkloadProxyingCheckbox.vue'
 import UntaintSingleNodeModal from '@/views/Clusters/components/UntaintSingleNodeModal.vue'
-import EmbeddedDiscoveryServiceCheckbox from '@/views/Clusters/EmbeddedDiscoveryServiceCheckbox.vue'
+import DiscoveryServiceSwitcher from '@/views/Clusters/DiscoveryServiceSwitcher.vue'
 import ClusterMachineItem from '@/views/Clusters/Management/ClusterMachineItem.vue'
 import MachineSets from '@/views/Clusters/Management/MachineSets.vue'
 import NodeAuditSkipCheckbox from '@/views/Clusters/NodeAuditSkipCheckbox.vue'
@@ -159,9 +159,18 @@ const isEmbeddedDiscoveryServiceAvailable = computed(
   () => features.value?.spec.embedded_discovery_service ?? false,
 )
 
+const supportsPublicDiscovery = computed(
+  () => versionContract.value?.spec.discovery_service_multidoc_config ?? false,
+)
+
 watchEffect(() => {
   if (!isEmbeddedDiscoveryServiceAvailable.value) {
     state.value.cluster.features.useEmbeddedDiscoveryService = false
+  }
+
+  // the public service can only be turned off on Talos 1.14+; keep it on for older clusters
+  if (!supportsPublicDiscovery.value) {
+    state.value.cluster.features.disablePublicDiscoveryService = false
   }
 })
 
@@ -339,10 +348,6 @@ const list = useTemplateRef('list')
           v-model="state.cluster.features.enableWorkloadProxy"
           :disabled="!features?.spec.enable_workload_proxying"
         />
-        <EmbeddedDiscoveryServiceCheckbox
-          v-model="state.cluster.features.useEmbeddedDiscoveryService"
-          :disabled="!isEmbeddedDiscoveryServiceAvailable"
-        />
         <NodeAuditSkipCheckbox v-model="state.cluster.features.enableNodeAuditSkip" />
         <ClusterEtcdBackupCheckbox
           :backup-status="backupStatus"
@@ -352,6 +357,18 @@ const list = useTemplateRef('list')
           @update:cluster="
             (spec) => {
               state.cluster.etcdBackupConfig = spec.backup_configuration
+            }
+          "
+        />
+        <DiscoveryServiceSwitcher
+          :use-embedded="state.cluster.features.useEmbeddedDiscoveryService ?? false"
+          :disable-public="state.cluster.features.disablePublicDiscoveryService ?? false"
+          :embedded-available="isEmbeddedDiscoveryServiceAvailable"
+          :public-configurable="supportsPublicDiscovery"
+          @change="
+            ({ useEmbedded, disablePublic }) => {
+              state.cluster.features.useEmbeddedDiscoveryService = useEmbedded
+              state.cluster.features.disablePublicDiscoveryService = disablePublic
             }
           "
         />

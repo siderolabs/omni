@@ -305,6 +305,11 @@ message ClusterSpec {
     // to exempt them from the Kubernetes node audit. Disabled by default to prevent unauthorized
     // node hijacking by anyone with permissions to annotate nodes inside the cluster.
     bool enable_node_audit_skip = 4;
+    // DisablePublicDiscoveryService turns the public discovery service off for the cluster.
+    //
+    // Public discovery is on by default, so this is an opt-out. It is an independent toggle and can
+    // only be configured for clusters created with Talos 1.14+.
+    bool disable_public_discovery_service = 5;
   }
 
   reserved 1;
@@ -499,7 +504,18 @@ message ClusterMachineIdentitySpec {
   // It contains the protocol prefix (http://|https://) and the port.
   //
   // It is empty if discovery service is not enabled.
+  //
+  // Superseded by discovery_service_endpoints; still populated with the first endpoint for back-compat.
   string discovery_service_endpoint = 9;
+
+  // DiscoveryServiceEndpoints are all the discovery service endpoints the node registers with.
+  // Each contains the protocol prefix (http://|https://) and the port.
+  //
+  // Talos accepts grpc:// on a DiscoveryServiceConfig document but normalizes it away before reporting
+  // the endpoint, so only the two prefixes above ever reach Omni.
+  //
+  // It is empty if discovery service is not enabled.
+  repeated string discovery_service_endpoints = 10;
 }
 
 enum ConfigApplyStatus {
@@ -597,6 +613,13 @@ message ClusterStatusSpec {
 
   // KubernetesVersion is the Kubernetes version of the cluster, copied from the Cluster spec.
   string kubernetes_version = 10;
+
+  // DisablePublicDiscoveryService indicates the public discovery service is turned off for this cluster.
+  // It is only valid for clusters created with Talos 1.14+ (the multi-document DiscoveryServiceConfig).
+  bool disable_public_discovery_service = 11;
+
+  // InitialTalosVersion is the Talos version the cluster was created with.
+  string initial_talos_version = 12;
 }
 
 // ClusterUUID keeps the UUID of the cluster.
@@ -1565,7 +1588,10 @@ message NodeForceDestroyRequestSpec {}
 
 message DiscoveryAffiliateDeleteTaskSpec {
   string cluster_id = 1;
+  // Superseded by discovery_service_endpoints; still populated with the first endpoint for back-compat.
   string discovery_service_endpoint = 2;
+  // DiscoveryServiceEndpoints are all the discovery service endpoints the affiliate must be removed from.
+  repeated string discovery_service_endpoints = 3;
 }
 
 // InfraProviderCombinedStatusSpec unifies ProviderStatus and ProviderHealthStatus.

@@ -501,6 +501,7 @@ func (v *State) versionContract(_ context.Context, ptr resource.Pointer) (*virtu
 		KubeSpanMultidocConfig:            vc.VolumeConfigEncryptionSupported(),
 		MultidocKubernetesConfigSupported: vc.MultidocKubernetesConfigSupported(),
 		MultidocNetworkConfigSupported:    vc.MultidocNetworkConfigSupported(),
+		DiscoveryServiceMultidocConfig:    vc.DiscoveryServiceMultidocConfig(),
 	}
 
 	return res, nil

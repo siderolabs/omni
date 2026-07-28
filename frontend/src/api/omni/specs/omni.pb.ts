@@ -365,6 +365,7 @@ export type ClusterSpecFeatures = {
   disk_encryption?: boolean
   use_embedded_discovery_service?: boolean
   enable_node_audit_skip?: boolean
+  disable_public_discovery_service?: boolean
 }
 
 export type ClusterSpec = {
@@ -468,6 +469,7 @@ export type ClusterMachineIdentitySpec = {
   nodename?: string
   node_ips?: string[]
   discovery_service_endpoint?: string
+  discovery_service_endpoints?: string[]
 }
 
 export type ClusterMachineStatusSpecProvisionStatus = {
@@ -504,6 +506,8 @@ export type ClusterStatusSpec = {
   use_embedded_discovery_service?: boolean
   talos_version?: string
   kubernetes_version?: string
+  disable_public_discovery_service?: boolean
+  initial_talos_version?: string
 }
 
 export type ClusterUUID = {
@@ -1045,6 +1049,7 @@ export type NodeForceDestroyRequestSpec = {
 export type DiscoveryAffiliateDeleteTaskSpec = {
   cluster_id?: string
   discovery_service_endpoint?: string
+  discovery_service_endpoints?: string[]
 }
 
 export type InfraProviderCombinedStatusSpecHealth = {

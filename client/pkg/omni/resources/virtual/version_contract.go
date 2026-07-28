@@ -29,7 +29,7 @@ const (
 	VersionContractType = resource.Type("VersionContract.omni.sidero.dev")
 )
 
-// VersionContract resource describes the current Stripe subscription plan.
+// VersionContract resource exposes the Talos version contract capabilities for a given version, keyed by the version ID.
 type VersionContract = typed.Resource[VersionContractSpec, VersionContractExtension]
 
 // VersionContractSpec wraps specs.VersionContractSpec.

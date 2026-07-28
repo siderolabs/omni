@@ -119,4 +119,5 @@ export type VersionContractSpec = {
   kube_span_multidoc_config?: boolean
   multidoc_kubernetes_config_supported?: boolean
   multidoc_network_config_supported?: boolean
+  discovery_service_multidoc_config?: boolean
 }

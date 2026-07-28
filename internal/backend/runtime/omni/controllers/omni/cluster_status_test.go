@@ -178,6 +178,7 @@ func TestClusterStatusReconcile(t *testing.T) {
 					clusterName := tt.name
 
 					cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
+					rmock.Mock[*omni.ClusterConfigVersion](ctx, t, st, options.WithID(clusterName))
 
 					if tt.cpMachineSet != nil {
 						cpMS := rmock.Mock[*omni.MachineSet](
@@ -258,6 +259,132 @@ func TestClusterStatusReconcile(t *testing.T) {
 	}
 }
 
+func TestClusterStatusDiscoveryServices(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct { //nolint:govet
+		name                     string
+		talosVersion             string
+		configVersion            string // pinned ClusterConfigVersion (creation version); defaults to talosVersion when empty
+		embeddedDisabledInstance bool   // the embedded discovery service is turned off for the whole Omni instance
+		features                 *specs.ClusterSpec_Features
+		wantEmbedded             bool
+		wantPublic               bool
+	}{
+		{
+			name:         "public only by default",
+			talosVersion: "1.14.0",
+			features:     &specs.ClusterSpec_Features{},
+			wantEmbedded: false,
+			wantPublic:   true,
+		},
+		{
+			name:         "embedded only",
+			talosVersion: "1.14.0",
+			features:     &specs.ClusterSpec_Features{UseEmbeddedDiscoveryService: true, DisablePublicDiscoveryService: true},
+			wantEmbedded: true,
+			wantPublic:   false,
+		},
+		{
+			name:         "embedded and public on 1.14",
+			talosVersion: "1.14.0",
+			features:     &specs.ClusterSpec_Features{UseEmbeddedDiscoveryService: true},
+			wantEmbedded: true,
+			wantPublic:   true,
+		},
+		{
+			// the public opt-out only takes effect alongside the embedded service, so the cluster is never
+			// left without any discovery service
+			name:         "public opt-out without embedded keeps public",
+			talosVersion: "1.14.0",
+			features:     &specs.ClusterSpec_Features{DisablePublicDiscoveryService: true},
+			wantEmbedded: false,
+			wantPublic:   true,
+		},
+		{
+			// the instance-wide embedded service is turned off after the cluster was set to embedded-only: no
+			// cluster write happens to re-validate the pair, so the resolver has to keep public discovery
+			name:                     "embedded-only falls back to public when the instance disables embedded",
+			talosVersion:             "1.14.0",
+			embeddedDisabledInstance: true,
+			features:                 &specs.ClusterSpec_Features{UseEmbeddedDiscoveryService: true, DisablePublicDiscoveryService: true},
+			wantEmbedded:             false,
+			wantPublic:               true,
+		},
+		{
+			// created at 1.13 (legacy base): the public opt-out has no effect, public stays on
+			name:          "disable public ignored on legacy base",
+			talosVersion:  "1.14.0",
+			configVersion: "v1.13.0",
+			features:      &specs.ClusterSpec_Features{DisablePublicDiscoveryService: true},
+			wantEmbedded:  false,
+			wantPublic:    true,
+		},
+		{
+			name:         "embedded unsupported below 1.5",
+			talosVersion: "1.4.0",
+			features:     &specs.ClusterSpec_Features{UseEmbeddedDiscoveryService: true},
+			wantEmbedded: false,
+			wantPublic:   true,
+		},
+		{
+			// on the legacy single-endpoint format embedded replaces the public endpoint, but the resolved
+			// public flag stays at its default (the user never disabled public, and it can't be turned off on < 1.14)
+			name:         "embedded on legacy leaves the public flag at default",
+			talosVersion: "1.9.0",
+			features:     &specs.ClusterSpec_Features{UseEmbeddedDiscoveryService: true},
+			wantEmbedded: true,
+			wantPublic:   true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			defer cancel()
+
+			testutils.WithRuntime(
+				ctx,
+				t,
+				testutils.TestOptions{},
+				func(_ context.Context, testContext testutils.TestContext) {
+					require.NoError(t, testContext.Runtime.RegisterQController(
+						omnictrl.NewClusterStatusController(!tt.embeddedDisabledInstance),
+					))
+				},
+				func(ctx context.Context, testContext testutils.TestContext) {
+					cluster := rmock.Mock[*omni.Cluster](
+						ctx, t, testContext.State,
+						options.WithID(tt.name),
+						options.Modify(func(res *omni.Cluster) error {
+							res.TypedSpec().Value.TalosVersion = tt.talosVersion
+							res.TypedSpec().Value.Features = tt.features
+
+							return nil
+						}),
+					)
+
+					// model the pinned config-generation version separately from the current running version
+					configVersion := tt.configVersion
+					if configVersion == "" {
+						configVersion = "v" + tt.talosVersion
+					}
+
+					clusterConfigVersion := omni.NewClusterConfigVersion(cluster.Metadata().ID())
+					clusterConfigVersion.TypedSpec().Value.Version = configVersion
+					require.NoError(t, testContext.State.Create(ctx, clusterConfigVersion))
+
+					rtestutils.AssertResources(ctx, t, testContext.State, []resource.ID{cluster.Metadata().ID()},
+						func(status *omni.ClusterStatus, a *assert.Assertions) {
+							a.Equal(tt.wantEmbedded, status.TypedSpec().Value.UseEmbeddedDiscoveryService)
+							a.Equal(tt.wantPublic, !status.TypedSpec().Value.DisablePublicDiscoveryService)
+						})
+				},
+			)
+		})
+	}
+}
+
 func TestClusterStatusImportedTaint(t *testing.T) {
 	t.Parallel()
 
@@ -276,6 +403,7 @@ func TestClusterStatusImportedTaint(t *testing.T) {
 				clusterName := "imported-no-rotation"
 
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
+				rmock.Mock[*omni.ClusterConfigVersion](ctx, t, st, options.WithID(clusterName))
 
 				rmock.Mock[*omni.ClusterSecrets](
 					ctx, t, st,
@@ -311,6 +439,7 @@ func TestClusterStatusImportedTaint(t *testing.T) {
 				clusterName := "imported-both-rotated"
 
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
+				rmock.Mock[*omni.ClusterConfigVersion](ctx, t, st, options.WithID(clusterName))
 
 				rmock.Mock[*omni.ClusterSecrets](
 					ctx, t, st,
@@ -368,6 +497,7 @@ func TestClusterStatusImportedTaint(t *testing.T) {
 				clusterName := "imported-talos-only"
 
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
+				rmock.Mock[*omni.ClusterConfigVersion](ctx, t, st, options.WithID(clusterName))
 
 				rmock.Mock[*omni.ClusterSecrets](
 					ctx, t, st,
@@ -411,6 +541,7 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 				rotationTime := time.Now()
 
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
+				rmock.Mock[*omni.ClusterConfigVersion](ctx, t, st, options.WithID(clusterName))
 
 				// Create ClusterSecrets without rotation timestamps initially, so the
 				// break glass taint can be set before the rotation timestamps are recorded.
@@ -476,6 +607,7 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 				breakGlassTime := time.Now()
 
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
+				rmock.Mock[*omni.ClusterConfigVersion](ctx, t, st, options.WithID(clusterName))
 
 				rmock.Mock[*omni.ClusterSecrets](
 					ctx, t, st,
@@ -542,6 +674,7 @@ func TestClusterStatusBreakGlassTaint(t *testing.T) {
 				breakGlassTime := time.Now().Add(-1 * time.Hour)
 
 				cluster := rmock.Mock[*omni.Cluster](ctx, t, st, options.WithID(clusterName))
+				rmock.Mock[*omni.ClusterConfigVersion](ctx, t, st, options.WithID(clusterName))
 
 				// Only Talos CA rotated
 				rmock.Mock[*omni.ClusterSecrets](

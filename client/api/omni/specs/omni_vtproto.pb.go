@@ -445,6 +445,7 @@ func (m *ClusterSpec_Features) CloneVT() *ClusterSpec_Features {
 	r.DiskEncryption = m.DiskEncryption
 	r.UseEmbeddedDiscoveryService = m.UseEmbeddedDiscoveryService
 	r.EnableNodeAuditSkip = m.EnableNodeAuditSkip
+	r.DisablePublicDiscoveryService = m.DisablePublicDiscoveryService
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -818,6 +819,11 @@ func (m *ClusterMachineIdentitySpec) CloneVT() *ClusterMachineIdentitySpec {
 		copy(tmpContainer, rhs)
 		r.NodeIps = tmpContainer
 	}
+	if rhs := m.DiscoveryServiceEndpoints; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.DiscoveryServiceEndpoints = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -906,6 +912,8 @@ func (m *ClusterStatusSpec) CloneVT() *ClusterStatusSpec {
 	r.UseEmbeddedDiscoveryService = m.UseEmbeddedDiscoveryService
 	r.TalosVersion = m.TalosVersion
 	r.KubernetesVersion = m.KubernetesVersion
+	r.DisablePublicDiscoveryService = m.DisablePublicDiscoveryService
+	r.InitialTalosVersion = m.InitialTalosVersion
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2856,6 +2864,11 @@ func (m *DiscoveryAffiliateDeleteTaskSpec) CloneVT() *DiscoveryAffiliateDeleteTa
 	r := new(DiscoveryAffiliateDeleteTaskSpec)
 	r.ClusterId = m.ClusterId
 	r.DiscoveryServiceEndpoint = m.DiscoveryServiceEndpoint
+	if rhs := m.DiscoveryServiceEndpoints; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.DiscoveryServiceEndpoints = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -3973,6 +3986,9 @@ func (this *ClusterSpec_Features) EqualVT(that *ClusterSpec_Features) bool {
 	if this.EnableNodeAuditSkip != that.EnableNodeAuditSkip {
 		return false
 	}
+	if this.DisablePublicDiscoveryService != that.DisablePublicDiscoveryService {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -4426,6 +4442,15 @@ func (this *ClusterMachineIdentitySpec) EqualVT(that *ClusterMachineIdentitySpec
 	if this.DiscoveryServiceEndpoint != that.DiscoveryServiceEndpoint {
 		return false
 	}
+	if len(this.DiscoveryServiceEndpoints) != len(that.DiscoveryServiceEndpoints) {
+		return false
+	}
+	for i, vx := range this.DiscoveryServiceEndpoints {
+		vy := that.DiscoveryServiceEndpoints[i]
+		if vx != vy {
+			return false
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -4560,6 +4585,12 @@ func (this *ClusterStatusSpec) EqualVT(that *ClusterStatusSpec) bool {
 		return false
 	}
 	if this.KubernetesVersion != that.KubernetesVersion {
+		return false
+	}
+	if this.DisablePublicDiscoveryService != that.DisablePublicDiscoveryService {
+		return false
+	}
+	if this.InitialTalosVersion != that.InitialTalosVersion {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7244,6 +7275,15 @@ func (this *DiscoveryAffiliateDeleteTaskSpec) EqualVT(that *DiscoveryAffiliateDe
 	if this.DiscoveryServiceEndpoint != that.DiscoveryServiceEndpoint {
 		return false
 	}
+	if len(this.DiscoveryServiceEndpoints) != len(that.DiscoveryServiceEndpoints) {
+		return false
+	}
+	for i, vx := range this.DiscoveryServiceEndpoints {
+		vy := that.DiscoveryServiceEndpoints[i]
+		if vx != vy {
+			return false
+		}
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -9143,6 +9183,16 @@ func (m *ClusterSpec_Features) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.DisablePublicDiscoveryService {
+		i--
+		if m.DisablePublicDiscoveryService {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
 	if m.EnableNodeAuditSkip {
 		i--
 		if m.EnableNodeAuditSkip {
@@ -10119,6 +10169,15 @@ func (m *ClusterMachineIdentitySpec) MarshalToSizedBufferVT(dAtA []byte) (int, e
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.DiscoveryServiceEndpoints) > 0 {
+		for iNdEx := len(m.DiscoveryServiceEndpoints) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.DiscoveryServiceEndpoints[iNdEx])
+			copy(dAtA[i:], m.DiscoveryServiceEndpoints[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.DiscoveryServiceEndpoints[iNdEx])))
+			i--
+			dAtA[i] = 0x52
+		}
+	}
 	if len(m.DiscoveryServiceEndpoint) > 0 {
 		i -= len(m.DiscoveryServiceEndpoint)
 		copy(dAtA[i:], m.DiscoveryServiceEndpoint)
@@ -10383,6 +10442,23 @@ func (m *ClusterStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.InitialTalosVersion) > 0 {
+		i -= len(m.InitialTalosVersion)
+		copy(dAtA[i:], m.InitialTalosVersion)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.InitialTalosVersion)))
+		i--
+		dAtA[i] = 0x62
+	}
+	if m.DisablePublicDiscoveryService {
+		i--
+		if m.DisablePublicDiscoveryService {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
 	}
 	if len(m.KubernetesVersion) > 0 {
 		i -= len(m.KubernetesVersion)
@@ -15633,6 +15709,15 @@ func (m *DiscoveryAffiliateDeleteTaskSpec) MarshalToSizedBufferVT(dAtA []byte) (
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.DiscoveryServiceEndpoints) > 0 {
+		for iNdEx := len(m.DiscoveryServiceEndpoints) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.DiscoveryServiceEndpoints[iNdEx])
+			copy(dAtA[i:], m.DiscoveryServiceEndpoints[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.DiscoveryServiceEndpoints[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if len(m.DiscoveryServiceEndpoint) > 0 {
 		i -= len(m.DiscoveryServiceEndpoint)
 		copy(dAtA[i:], m.DiscoveryServiceEndpoint)
@@ -17416,6 +17501,9 @@ func (m *ClusterSpec_Features) SizeVT() (n int) {
 	if m.EnableNodeAuditSkip {
 		n += 2
 	}
+	if m.DisablePublicDiscoveryService {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -17791,6 +17879,12 @@ func (m *ClusterMachineIdentitySpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if len(m.DiscoveryServiceEndpoints) > 0 {
+		for _, s := range m.DiscoveryServiceEndpoints {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -17908,6 +18002,13 @@ func (m *ClusterStatusSpec) SizeVT() (n int) {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	l = len(m.KubernetesVersion)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.DisablePublicDiscoveryService {
+		n += 2
+	}
+	l = len(m.InitialTalosVersion)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -19954,6 +20055,12 @@ func (m *DiscoveryAffiliateDeleteTaskSpec) SizeVT() (n int) {
 	l = len(m.DiscoveryServiceEndpoint)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.DiscoveryServiceEndpoints) > 0 {
+		for _, s := range m.DiscoveryServiceEndpoints {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -24050,6 +24157,26 @@ func (m *ClusterSpec_Features) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.EnableNodeAuditSkip = bool(v != 0)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisablePublicDiscoveryService", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisablePublicDiscoveryService = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -26494,6 +26621,38 @@ func (m *ClusterMachineIdentitySpec) UnmarshalVT(dAtA []byte) error {
 			}
 			m.DiscoveryServiceEndpoint = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DiscoveryServiceEndpoints", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DiscoveryServiceEndpoints = append(m.DiscoveryServiceEndpoints, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -27274,6 +27433,58 @@ func (m *ClusterStatusSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.KubernetesVersion = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisablePublicDiscoveryService", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DisablePublicDiscoveryService = bool(v != 0)
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InitialTalosVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.InitialTalosVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -40278,6 +40489,38 @@ func (m *DiscoveryAffiliateDeleteTaskSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.DiscoveryServiceEndpoint = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DiscoveryServiceEndpoints", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DiscoveryServiceEndpoints = append(m.DiscoveryServiceEndpoints, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

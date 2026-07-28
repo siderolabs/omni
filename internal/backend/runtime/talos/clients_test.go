@@ -62,7 +62,7 @@ func TestGetClientForCluster(t *testing.T) {
 		clusterStatus := omni.NewClusterStatus(clusterName)
 		clusterStatus.TypedSpec().Value.Available = true
 
-		require.NoError(t, testContext.State.Create(ctx, clusterStatus), state.WithCreateOwner((&omnictrl.ClusterStatusController{}).Name()))
+		require.NoError(t, testContext.State.Create(ctx, clusterStatus), state.WithCreateOwner(omnictrl.ClusterStatusControllerName))
 
 		require.NoError(t, testContext.State.Create(ctx, talosconfig))
 

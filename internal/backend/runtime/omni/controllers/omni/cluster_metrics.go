@@ -103,17 +103,19 @@ func (ctrl *ClusterMetricsController) Run(ctx context.Context, r controller.Runt
 
 func (ctrl *ClusterMetricsController) FeatureMetrics(clusters iter.Seq[*omni.Cluster]) map[string]uint32 {
 	const (
-		featureWorkloadProxy            = "workload_proxy"
-		featureDiskEncryption           = "disk_encryption"
-		featureEmbeddedDiscoveryService = "embedded_discovery_service"
-		featureEnableNodeAuditSkip      = "node_audit_skip"
+		featureWorkloadProxy                 = "workload_proxy"
+		featureDiskEncryption                = "disk_encryption"
+		featureEmbeddedDiscoveryService      = "embedded_discovery_service"
+		featureEnableNodeAuditSkip           = "node_audit_skip"
+		featureDisablePublicDiscoveryService = "disable_public_discovery_service"
 	)
 
 	featuresByCluster := map[string]uint32{
-		featureWorkloadProxy:            0,
-		featureDiskEncryption:           0,
-		featureEmbeddedDiscoveryService: 0,
-		featureEnableNodeAuditSkip:      0,
+		featureWorkloadProxy:                 0,
+		featureDiskEncryption:                0,
+		featureEmbeddedDiscoveryService:      0,
+		featureEnableNodeAuditSkip:           0,
+		featureDisablePublicDiscoveryService: 0,
 	}
 
 	for cluster := range clusters {
@@ -131,6 +133,10 @@ func (ctrl *ClusterMetricsController) FeatureMetrics(clusters iter.Seq[*omni.Clu
 
 		if cluster.TypedSpec().Value.GetFeatures().GetEnableNodeAuditSkip() {
 			featuresByCluster[featureEnableNodeAuditSkip]++
+		}
+
+		if cluster.TypedSpec().Value.GetFeatures().GetDisablePublicDiscoveryService() {
+			featuresByCluster[featureDisablePublicDiscoveryService]++
 		}
 	}
 

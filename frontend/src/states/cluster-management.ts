@@ -121,6 +121,7 @@ export type Cluster = {
     encryptDisks?: boolean
     enableWorkloadProxy?: boolean
     useEmbeddedDiscoveryService?: boolean
+    disablePublicDiscoveryService?: boolean
     enableNodeAuditSkip?: boolean
   }
   systemExtensions?: string[]
@@ -316,6 +317,14 @@ export class State {
       cluster.spec.features = {
         ...cluster.spec.features,
         use_embedded_discovery_service: this.cluster.features.useEmbeddedDiscoveryService,
+      }
+    }
+
+    // public discovery is on by default. Only send the opt-out when it was explicitly turned off (Talos 1.14+)
+    if (this.cluster.features.disablePublicDiscoveryService) {
+      cluster.spec.features = {
+        ...cluster.spec.features,
+        disable_public_discovery_service: true,
       }
     }
 
@@ -716,6 +725,7 @@ export const populateExisting = async (clusterName: string) => {
       enableWorkloadProxy: cluster.spec.features?.enable_workload_proxy,
       encryptDisks: cluster.spec.features?.disk_encryption,
       useEmbeddedDiscoveryService: cluster.spec.features?.use_embedded_discovery_service,
+      disablePublicDiscoveryService: cluster.spec.features?.disable_public_discovery_service,
       enableNodeAuditSkip: cluster.spec.features?.enable_node_audit_skip,
     },
     etcdBackupConfig: {

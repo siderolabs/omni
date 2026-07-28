@@ -14,25 +14,25 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/task/clustermachine"
 )
 
-func TestDiscoveryServiceEndpoint(t *testing.T) {
+func TestDiscoveryServiceEndpoints(t *testing.T) {
 	for _, tt := range []struct {
 		name     string
-		expected string
 		spec     cluster.ConfigSpec
+		expected []string
 	}{
 		{
 			name:     "empty",
-			expected: "",
+			expected: nil,
 		},
 		{
-			name: "service endpoints",
+			name: "multiple service endpoints are all returned",
 			spec: cluster.ConfigSpec{
 				ServiceEndpoints: []cluster.ServiceEndpoint{
 					{Name: "primary", Endpoint: "discovery.talos.dev:443"},
 					{Name: "secondary", Endpoint: "discovery.example.org:443"},
 				},
 			},
-			expected: "https://discovery.talos.dev:443",
+			expected: []string{"https://discovery.talos.dev:443", "https://discovery.example.org:443"},
 		},
 		{
 			name: "insecure service endpoint",
@@ -41,7 +41,16 @@ func TestDiscoveryServiceEndpoint(t *testing.T) {
 					{Name: "primary", Endpoint: "discovery.talos.dev:80", Insecure: true},
 				},
 			},
-			expected: "http://discovery.talos.dev:80",
+			expected: []string{"http://discovery.talos.dev:80"},
+		},
+		{
+			name: "full URL endpoints are kept as-is",
+			spec: cluster.ConfigSpec{
+				ServiceEndpoints: []cluster.ServiceEndpoint{
+					{Name: "primary", Endpoint: "https://discovery.talos.dev/"},
+				},
+			},
+			expected: []string{"https://discovery.talos.dev/"},
 		},
 		{
 			name: "legacy fields",
@@ -50,7 +59,7 @@ func TestDiscoveryServiceEndpoint(t *testing.T) {
 				RegistryServiceEnabled: true,
 				ServiceEndpoint:        "discovery.talos.dev:443",
 			},
-			expected: "https://discovery.talos.dev:443",
+			expected: []string{"https://discovery.talos.dev:443"},
 		},
 		{
 			name: "insecure legacy fields",
@@ -60,7 +69,7 @@ func TestDiscoveryServiceEndpoint(t *testing.T) {
 				ServiceEndpoint:         "discovery.talos.dev:80",
 				ServiceEndpointInsecure: true,
 			},
-			expected: "http://discovery.talos.dev:80",
+			expected: []string{"http://discovery.talos.dev:80"},
 		},
 		{
 			name: "legacy fields with service registry disabled",
@@ -68,7 +77,7 @@ func TestDiscoveryServiceEndpoint(t *testing.T) {
 				DiscoveryEnabled: true,
 				ServiceEndpoint:  "discovery.talos.dev:443",
 			},
-			expected: "",
+			expected: nil,
 		},
 		{
 			name: "empty service endpoint value falls back to legacy fields",
@@ -80,7 +89,7 @@ func TestDiscoveryServiceEndpoint(t *testing.T) {
 				RegistryServiceEnabled: true,
 				ServiceEndpoint:        "legacy.talos.dev:443",
 			},
-			expected: "https://legacy.talos.dev:443",
+			expected: []string{"https://legacy.talos.dev:443"},
 		},
 		{
 			name: "service endpoints take precedence over legacy fields",
@@ -92,14 +101,14 @@ func TestDiscoveryServiceEndpoint(t *testing.T) {
 				RegistryServiceEnabled: true,
 				ServiceEndpoint:        "legacy.talos.dev:443",
 			},
-			expected: "https://discovery.talos.dev:443",
+			expected: []string{"https://discovery.talos.dev:443"},
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			res := cluster.NewConfig(cluster.NamespaceName, cluster.ConfigID)
 			*res.TypedSpec() = tt.spec
 
-			assert.Equal(t, tt.expected, clustermachine.DiscoveryServiceEndpoint(res))
+			assert.Equal(t, tt.expected, clustermachine.DiscoveryServiceEndpoints(res))
 		})
 	}
 }

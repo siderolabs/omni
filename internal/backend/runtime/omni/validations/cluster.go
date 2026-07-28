@@ -16,6 +16,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/hashicorp/go-multierror"
+	machineryconfig "github.com/siderolabs/talos/pkg/machinery/config"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
@@ -119,9 +120,42 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 		return nil
 	}
 
-	validateEmbeddedDiscoveryServiceSetting := func(oldRes, newRes *omni.Cluster) error {
+	validateDiscoveryServiceSetting := func(ctx context.Context, oldRes, newRes *omni.Cluster) error {
+		// The public discovery service is on by default and can only be configured on the Talos 1.14+.
+		// On create the config version does not exist yet, so the cluster's Talos version is the effective
+		// one. Disabling it on an older cluster is rejected regardless of the embedded toggle.
+		if newRes.TypedSpec().Value.GetFeatures().GetDisablePublicDiscoveryService() {
+			talosVersion := newRes.TypedSpec().Value.GetTalosVersion()
+
+			if oldRes != nil {
+				clusterConfigVersion, err := safe.StateGetByID[*omni.ClusterConfigVersion](ctx, st, newRes.Metadata().ID())
+				if err != nil && !state.IsNotFoundError(err) {
+					return err
+				}
+
+				if clusterConfigVersion != nil && clusterConfigVersion.TypedSpec().Value.Version != "" {
+					talosVersion = clusterConfigVersion.TypedSpec().Value.Version
+				}
+			}
+
+			vc, err := machineryconfig.ParseContractFromVersion(talosVersion)
+			if err != nil {
+				return fmt.Errorf("failed to parse Talos version contract: %w", err)
+			}
+
+			if !vc.DiscoveryServiceMultidocConfig() {
+				return errors.New("the public discovery service can only be configured for clusters created with Talos 1.14 or newer")
+			}
+
+			// Turning the public service off while the embedded one is not enabled would leave the cluster with no
+			// discovery service at all, which is not supported through the cluster features.
+			if !newRes.TypedSpec().Value.GetFeatures().GetUseEmbeddedDiscoveryService() {
+				return errors.New("the discovery service cannot be disabled entirely: keep the public discovery service enabled or enable the embedded discovery service")
+			}
+		}
+
 		newValue := newRes.TypedSpec().Value.GetFeatures().GetUseEmbeddedDiscoveryService()
-		if !newValue { // feature being disabled is always valid
+		if !newValue { // embedded feature being disabled is always valid
 			return nil
 		}
 
@@ -154,7 +188,7 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 				multiErr = multierror.Append(multiErr, err)
 			}
 
-			if err := validateEmbeddedDiscoveryServiceSetting(nil, res); err != nil {
+			if err := validateDiscoveryServiceSetting(ctx, nil, res); err != nil {
 				multiErr = multierror.Append(multiErr, err)
 			}
 
@@ -212,7 +246,7 @@ func clusterValidationOptions(st state.State, etcdBackupConfig config.EtcdBackup
 				multiErr = multierror.Append(multiErr, err)
 			}
 
-			if err := validateEmbeddedDiscoveryServiceSetting(existingRes, newRes); err != nil {
+			if err := validateDiscoveryServiceSetting(ctx, existingRes, newRes); err != nil {
 				multiErr = multierror.Append(multiErr, err)
 			}
 

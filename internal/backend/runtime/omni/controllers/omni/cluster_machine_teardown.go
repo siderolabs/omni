@@ -221,8 +221,13 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 
 	nodeID := clusterMachineIdentity.TypedSpec().Value.GetNodeIdentity()
 
-	discoveryServiceEndpoint := clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint
-	if discoveryServiceEndpoint != "" {
+	discoveryServiceEndpoints := clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoints
+	if len(discoveryServiceEndpoints) == 0 && clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint != "" {
+		// fall back to the deprecated singular field for identities written by the previous version
+		discoveryServiceEndpoints = []string{clusterMachineIdentity.TypedSpec().Value.DiscoveryServiceEndpoint}
+	}
+
+	if len(discoveryServiceEndpoints) > 0 {
 		if err = safe.WriterModify(ctx, r, omni.NewDiscoveryAffiliateDeleteTask(nodeID), func(res *omni.DiscoveryAffiliateDeleteTask) error {
 			helpers.CopyAllLabels(clusterMachineIdentity, res)
 
@@ -230,7 +235,9 @@ func (ctrl *ClusterMachineTeardownController) teardownNodeMember(
 			res.Metadata().Labels().Set(omni.LabelClusterMachine, clusterMachine.Metadata().ID())
 
 			res.TypedSpec().Value.ClusterId = bundle.Cluster.ID
-			res.TypedSpec().Value.DiscoveryServiceEndpoint = discoveryServiceEndpoint
+			res.TypedSpec().Value.DiscoveryServiceEndpoints = discoveryServiceEndpoints
+			// keep the deprecated singular field populated for back-compat
+			res.TypedSpec().Value.DiscoveryServiceEndpoint = discoveryServiceEndpoints[0]
 
 			return nil
 		}); err != nil {

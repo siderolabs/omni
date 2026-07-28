@@ -287,6 +287,7 @@ func (m *VersionContractSpec) CloneVT() *VersionContractSpec {
 	r.KubeSpanMultidocConfig = m.KubeSpanMultidocConfig
 	r.MultidocKubernetesConfigSupported = m.MultidocKubernetesConfigSupported
 	r.MultidocNetworkConfigSupported = m.MultidocNetworkConfigSupported
+	r.DiscoveryServiceMultidocConfig = m.DiscoveryServiceMultidocConfig
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -717,6 +718,9 @@ func (this *VersionContractSpec) EqualVT(that *VersionContractSpec) bool {
 		return false
 	}
 	if this.MultidocNetworkConfigSupported != that.MultidocNetworkConfigSupported {
+		return false
+	}
+	if this.DiscoveryServiceMultidocConfig != that.DiscoveryServiceMultidocConfig {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1749,6 +1753,16 @@ func (m *VersionContractSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.DiscoveryServiceMultidocConfig {
+		i--
+		if m.DiscoveryServiceMultidocConfig {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.MultidocNetworkConfigSupported {
 		i--
 		if m.MultidocNetworkConfigSupported {
@@ -2144,6 +2158,9 @@ func (m *VersionContractSpec) SizeVT() (n int) {
 		n += 2
 	}
 	if m.MultidocNetworkConfigSupported {
+		n += 2
+	}
+	if m.DiscoveryServiceMultidocConfig {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -4599,6 +4616,26 @@ func (m *VersionContractSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.MultidocNetworkConfigSupported = bool(v != 0)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DiscoveryServiceMultidocConfig", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DiscoveryServiceMultidocConfig = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

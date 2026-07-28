@@ -570,6 +570,142 @@ func TestClusterUseEmbeddedDiscoveryServiceValidation(t *testing.T) {
 		cluster.TypedSpec().Value.Features.UseEmbeddedDiscoveryService = false
 		require.NoError(t, st.Update(ctx, cluster))
 	})
+
+	t.Run("disabling public rejected on Talos < 1.14", func(t *testing.T) {
+		t.Parallel()
+
+		_, st := buildState(config.EmbeddedDiscoveryService{
+			Enabled: new(true),
+		})
+
+		talosVersion := omnires.NewTalosVersion("1.13.0")
+		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.1"}
+
+		require.NoError(t, st.Create(ctx, talosVersion))
+
+		cluster := omnires.NewCluster("test")
+		cluster.TypedSpec().Value.TalosVersion = "1.13.0"
+		cluster.TypedSpec().Value.KubernetesVersion = "1.30.1"
+		cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
+			UseEmbeddedDiscoveryService:   true,
+			DisablePublicDiscoveryService: true,
+		}
+
+		err := st.Create(ctx, cluster)
+
+		require.True(t, validated.IsValidationError(err), "expected validation error")
+		assert.ErrorContains(t, err, "Talos 1.14 or newer")
+	})
+
+	t.Run("disabling public accepted on Talos 1.14+", func(t *testing.T) {
+		t.Parallel()
+
+		_, st := buildState(config.EmbeddedDiscoveryService{
+			Enabled: new(true),
+		})
+
+		talosVersion := omnires.NewTalosVersion("1.14.0")
+		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.1"}
+
+		require.NoError(t, st.Create(ctx, talosVersion))
+
+		cluster := omnires.NewCluster("test")
+		cluster.TypedSpec().Value.TalosVersion = "1.14.0"
+		cluster.TypedSpec().Value.KubernetesVersion = "1.30.1"
+		cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
+			UseEmbeddedDiscoveryService:   true,
+			DisablePublicDiscoveryService: true,
+		}
+
+		require.NoError(t, st.Create(ctx, cluster))
+	})
+
+	t.Run("disabling public rejected on Talos < 1.14 even without embedded", func(t *testing.T) {
+		t.Parallel()
+
+		_, st := buildState(config.EmbeddedDiscoveryService{
+			Enabled: new(true),
+		})
+
+		talosVersion := omnires.NewTalosVersion("1.13.0")
+		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.1"}
+
+		require.NoError(t, st.Create(ctx, talosVersion))
+
+		// the public opt-out alone (embedded off) still requires a 1.14+ config
+		cluster := omnires.NewCluster("test")
+		cluster.TypedSpec().Value.TalosVersion = "1.13.0"
+		cluster.TypedSpec().Value.KubernetesVersion = "1.30.1"
+		cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
+			DisablePublicDiscoveryService: true,
+		}
+
+		err := st.Create(ctx, cluster)
+
+		require.True(t, validated.IsValidationError(err), "expected validation error")
+		assert.ErrorContains(t, err, "Talos 1.14 or newer")
+	})
+
+	t.Run("disabling public rejected when cluster was created before 1.14", func(t *testing.T) {
+		t.Parallel()
+
+		innerSt, st := buildState(config.EmbeddedDiscoveryService{
+			Enabled: new(true),
+		})
+
+		for _, v := range []string{"1.13.0", "1.14.0"} {
+			talosVersion := omnires.NewTalosVersion(v)
+			talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.1"}
+
+			require.NoError(t, st.Create(ctx, talosVersion))
+		}
+
+		// the cluster was created at 1.13 (legacy base config), pinned by ClusterConfigVersion, then upgraded to 1.14
+		configVersion := omnires.NewClusterConfigVersion("test")
+		configVersion.TypedSpec().Value.Version = "v1.13.0"
+		require.NoError(t, innerSt.Create(ctx, configVersion))
+
+		cluster := omnires.NewCluster("test")
+		cluster.TypedSpec().Value.TalosVersion = "1.13.0"
+		cluster.TypedSpec().Value.KubernetesVersion = "1.30.1"
+		cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{UseEmbeddedDiscoveryService: true}
+		require.NoError(t, innerSt.Create(ctx, cluster)) // use innerSt to skip validation on the initial state
+
+		// upgrade to 1.14 and try to disable public - rejected because the base config format is pinned to 1.13
+		cluster.TypedSpec().Value.TalosVersion = "1.14.0"
+		cluster.TypedSpec().Value.Features.DisablePublicDiscoveryService = true
+
+		err := st.Update(ctx, cluster)
+
+		require.True(t, validated.IsValidationError(err), "expected validation error")
+		assert.ErrorContains(t, err, "created with Talos 1.14")
+	})
+
+	t.Run("disabling discovery entirely rejected on Talos 1.14+", func(t *testing.T) {
+		t.Parallel()
+
+		_, st := buildState(config.EmbeddedDiscoveryService{
+			Enabled: new(true),
+		})
+
+		talosVersion := omnires.NewTalosVersion("1.14.0")
+		talosVersion.TypedSpec().Value.CompatibleKubernetesVersions = []string{"1.30.1"}
+
+		require.NoError(t, st.Create(ctx, talosVersion))
+
+		// public off with the embedded service also off would leave the cluster without any discovery service
+		cluster := omnires.NewCluster("test")
+		cluster.TypedSpec().Value.TalosVersion = "1.14.0"
+		cluster.TypedSpec().Value.KubernetesVersion = "1.30.1"
+		cluster.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
+			DisablePublicDiscoveryService: true,
+		}
+
+		err := st.Create(ctx, cluster)
+
+		require.True(t, validated.IsValidationError(err), "expected validation error")
+		assert.ErrorContains(t, err, "cannot be disabled entirely")
+	})
 }
 
 func TestRelationLabelsValidation(t *testing.T) {

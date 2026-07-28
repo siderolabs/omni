@@ -3115,9 +3115,19 @@ type ClusterMachineIdentitySpec struct {
 	// It contains the protocol prefix (http://|https://) and the port.
 	//
 	// It is empty if discovery service is not enabled.
+	//
+	// Superseded by discovery_service_endpoints; still populated with the first endpoint for back-compat.
 	DiscoveryServiceEndpoint string `protobuf:"bytes,9,opt,name=discovery_service_endpoint,json=discoveryServiceEndpoint,proto3" json:"discovery_service_endpoint,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	// DiscoveryServiceEndpoints are all the discovery service endpoints the node registers with.
+	// Each contains the protocol prefix (http://|https://) and the port.
+	//
+	// Talos accepts grpc:// on a DiscoveryServiceConfig document but normalizes it away before reporting
+	// the endpoint, so only the two prefixes above ever reach Omni.
+	//
+	// It is empty if discovery service is not enabled.
+	DiscoveryServiceEndpoints []string `protobuf:"bytes,10,rep,name=discovery_service_endpoints,json=discoveryServiceEndpoints,proto3" json:"discovery_service_endpoints,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ClusterMachineIdentitySpec) Reset() {
@@ -3183,6 +3193,13 @@ func (x *ClusterMachineIdentitySpec) GetDiscoveryServiceEndpoint() string {
 		return x.DiscoveryServiceEndpoint
 	}
 	return ""
+}
+
+func (x *ClusterMachineIdentitySpec) GetDiscoveryServiceEndpoints() []string {
+	if x != nil {
+		return x.DiscoveryServiceEndpoints
+	}
+	return nil
 }
 
 // ClusterMachineStatusSpec
@@ -3382,8 +3399,13 @@ type ClusterStatusSpec struct {
 	TalosVersion string `protobuf:"bytes,9,opt,name=talos_version,json=talosVersion,proto3" json:"talos_version,omitempty"`
 	// KubernetesVersion is the Kubernetes version of the cluster, copied from the Cluster spec.
 	KubernetesVersion string `protobuf:"bytes,10,opt,name=kubernetes_version,json=kubernetesVersion,proto3" json:"kubernetes_version,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// DisablePublicDiscoveryService indicates the public discovery service is turned off for this cluster.
+	// It is only valid for clusters created with Talos 1.14+ (the multi-document DiscoveryServiceConfig).
+	DisablePublicDiscoveryService bool `protobuf:"varint,11,opt,name=disable_public_discovery_service,json=disablePublicDiscoveryService,proto3" json:"disable_public_discovery_service,omitempty"`
+	// InitialTalosVersion is the Talos version the cluster was created with.
+	InitialTalosVersion string `protobuf:"bytes,12,opt,name=initial_talos_version,json=initialTalosVersion,proto3" json:"initial_talos_version,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ClusterStatusSpec) Reset() {
@@ -3482,6 +3504,20 @@ func (x *ClusterStatusSpec) GetTalosVersion() string {
 func (x *ClusterStatusSpec) GetKubernetesVersion() string {
 	if x != nil {
 		return x.KubernetesVersion
+	}
+	return ""
+}
+
+func (x *ClusterStatusSpec) GetDisablePublicDiscoveryService() bool {
+	if x != nil {
+		return x.DisablePublicDiscoveryService
+	}
+	return false
+}
+
+func (x *ClusterStatusSpec) GetInitialTalosVersion() string {
+	if x != nil {
+		return x.InitialTalosVersion
 	}
 	return ""
 }
@@ -7774,11 +7810,14 @@ func (*NodeForceDestroyRequestSpec) Descriptor() ([]byte, []int) {
 }
 
 type DiscoveryAffiliateDeleteTaskSpec struct {
-	state                    protoimpl.MessageState `protogen:"open.v1"`
-	ClusterId                string                 `protobuf:"bytes,1,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
-	DiscoveryServiceEndpoint string                 `protobuf:"bytes,2,opt,name=discovery_service_endpoint,json=discoveryServiceEndpoint,proto3" json:"discovery_service_endpoint,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	ClusterId string                 `protobuf:"bytes,1,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
+	// Superseded by discovery_service_endpoints; still populated with the first endpoint for back-compat.
+	DiscoveryServiceEndpoint string `protobuf:"bytes,2,opt,name=discovery_service_endpoint,json=discoveryServiceEndpoint,proto3" json:"discovery_service_endpoint,omitempty"`
+	// DiscoveryServiceEndpoints are all the discovery service endpoints the affiliate must be removed from.
+	DiscoveryServiceEndpoints []string `protobuf:"bytes,3,rep,name=discovery_service_endpoints,json=discoveryServiceEndpoints,proto3" json:"discovery_service_endpoints,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *DiscoveryAffiliateDeleteTaskSpec) Reset() {
@@ -7823,6 +7862,13 @@ func (x *DiscoveryAffiliateDeleteTaskSpec) GetDiscoveryServiceEndpoint() string 
 		return x.DiscoveryServiceEndpoint
 	}
 	return ""
+}
+
+func (x *DiscoveryAffiliateDeleteTaskSpec) GetDiscoveryServiceEndpoints() []string {
+	if x != nil {
+		return x.DiscoveryServiceEndpoints
+	}
+	return nil
 }
 
 // InfraProviderCombinedStatusSpec unifies ProviderStatus and ProviderHealthStatus.
@@ -9664,8 +9710,13 @@ type ClusterSpec_Features struct {
 	// to exempt them from the Kubernetes node audit. Disabled by default to prevent unauthorized
 	// node hijacking by anyone with permissions to annotate nodes inside the cluster.
 	EnableNodeAuditSkip bool `protobuf:"varint,4,opt,name=enable_node_audit_skip,json=enableNodeAuditSkip,proto3" json:"enable_node_audit_skip,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// DisablePublicDiscoveryService turns the public discovery service off for the cluster.
+	//
+	// Public discovery is on by default, so this is an opt-out. It is an independent toggle and can
+	// only be configured for clusters created with Talos 1.14+.
+	DisablePublicDiscoveryService bool `protobuf:"varint,5,opt,name=disable_public_discovery_service,json=disablePublicDiscoveryService,proto3" json:"disable_public_discovery_service,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *ClusterSpec_Features) Reset() {
@@ -9722,6 +9773,13 @@ func (x *ClusterSpec_Features) GetUseEmbeddedDiscoveryService() bool {
 func (x *ClusterSpec_Features) GetEnableNodeAuditSkip() bool {
 	if x != nil {
 		return x.EnableNodeAuditSkip
+	}
+	return false
+}
+
+func (x *ClusterSpec_Features) GetDisablePublicDiscoveryService() bool {
+	if x != nil {
+		return x.DisablePublicDiscoveryService
 	}
 	return false
 }
@@ -11651,17 +11709,18 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x0fTalosConfigSpec\x12\x0e\n" +
 	"\x02ca\x18\x01 \x01(\tR\x02ca\x12\x10\n" +
 	"\x03crt\x18\x02 \x01(\tR\x03crt\x12\x10\n" +
-	"\x03key\x18\x03 \x01(\tR\x03key\"\xce\x03\n" +
+	"\x03key\x18\x03 \x01(\tR\x03key\"\x97\x04\n" +
 	"\vClusterSpec\x12-\n" +
 	"\x12kubernetes_version\x18\x02 \x01(\tR\x11kubernetesVersion\x12#\n" +
 	"\rtalos_version\x18\x03 \x01(\tR\ftalosVersion\x127\n" +
 	"\bfeatures\x18\x04 \x01(\v2\x1b.specs.ClusterSpec.FeaturesR\bfeatures\x12H\n" +
-	"\x14backup_configuration\x18\x05 \x01(\v2\x15.specs.EtcdBackupConfR\x13backupConfiguration\x1a\xe1\x01\n" +
+	"\x14backup_configuration\x18\x05 \x01(\v2\x15.specs.EtcdBackupConfR\x13backupConfiguration\x1a\xaa\x02\n" +
 	"\bFeatures\x122\n" +
 	"\x15enable_workload_proxy\x18\x01 \x01(\bR\x13enableWorkloadProxy\x12'\n" +
 	"\x0fdisk_encryption\x18\x02 \x01(\bR\x0ediskEncryption\x12C\n" +
 	"\x1euse_embedded_discovery_service\x18\x03 \x01(\bR\x1buseEmbeddedDiscoveryService\x123\n" +
-	"\x16enable_node_audit_skip\x18\x04 \x01(\bR\x13enableNodeAuditSkipJ\x04\b\x01\x10\x02\"\x12\n" +
+	"\x16enable_node_audit_skip\x18\x04 \x01(\bR\x13enableNodeAuditSkip\x12G\n" +
+	" disable_public_discovery_service\x18\x05 \x01(\bR\x1ddisablePublicDiscoveryServiceJ\x04\b\x01\x10\x02\"\x12\n" +
 	"\x10ClusterTaintSpec\"a\n" +
 	"\x0eEtcdBackupConf\x125\n" +
 	"\binterval\x18\x01 \x01(\v2\x19.google.protobuf.DurationR\binterval\x12\x18\n" +
@@ -11723,13 +11782,15 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x14grub_use_uki_cmdline\x18\x06 \x01(\bR\x11grubUseUkiCmdlineJ\x04\b\x02\x10\x03\"_\n" +
 	" RedactedClusterMachineConfigSpec\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\tR\x04data\x12'\n" +
-	"\x0fcompressed_data\x18\x02 \x01(\fR\x0ecompressedData\"\xdc\x01\n" +
+	"\x0fcompressed_data\x18\x02 \x01(\fR\x0ecompressedData\"\x9c\x02\n" +
 	"\x1aClusterMachineIdentitySpec\x12#\n" +
 	"\rnode_identity\x18\x01 \x01(\tR\fnodeIdentity\x12$\n" +
 	"\x0eetcd_member_id\x18\x02 \x01(\x04R\fetcdMemberId\x12\x1a\n" +
 	"\bnodename\x18\x03 \x01(\tR\bnodename\x12\x19\n" +
 	"\bnode_ips\x18\b \x03(\tR\anodeIps\x12<\n" +
-	"\x1adiscovery_service_endpoint\x18\t \x01(\tR\x18discoveryServiceEndpoint\"\xda\x05\n" +
+	"\x1adiscovery_service_endpoint\x18\t \x01(\tR\x18discoveryServiceEndpoint\x12>\n" +
+	"\x1bdiscovery_service_endpoints\x18\n" +
+	" \x03(\tR\x19discoveryServiceEndpoints\"\xda\x05\n" +
 	"\x18ClusterMachineStatusSpec\x12\x14\n" +
 	"\x05ready\x18\x01 \x01(\bR\x05ready\x12;\n" +
 	"\x05stage\x18\x02 \x01(\x0e2%.specs.ClusterMachineStatusSpec.StageR\x05stage\x12)\n" +
@@ -11765,7 +11826,7 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x05total\x18\x01 \x01(\rR\x05total\x12\x18\n" +
 	"\ahealthy\x18\x02 \x01(\rR\ahealthy\x12\x1c\n" +
 	"\tconnected\x18\x03 \x01(\rR\tconnected\x12\x1c\n" +
-	"\trequested\x18\x04 \x01(\rR\trequested\"\xb7\x04\n" +
+	"\trequested\x18\x04 \x01(\rR\trequested\"\xb4\x05\n" +
 	"\x11ClusterStatusSpec\x12\x1c\n" +
 	"\tavailable\x18\x01 \x01(\bR\tavailable\x12+\n" +
 	"\bmachines\x18\x02 \x01(\v2\x0f.specs.MachinesR\bmachines\x124\n" +
@@ -11777,7 +11838,9 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x1euse_embedded_discovery_service\x18\b \x01(\bR\x1buseEmbeddedDiscoveryService\x12#\n" +
 	"\rtalos_version\x18\t \x01(\tR\ftalosVersion\x12-\n" +
 	"\x12kubernetes_version\x18\n" +
-	" \x01(\tR\x11kubernetesVersion\"S\n" +
+	" \x01(\tR\x11kubernetesVersion\x12G\n" +
+	" disable_public_discovery_service\x18\v \x01(\bR\x1ddisablePublicDiscoveryService\x122\n" +
+	"\x15initial_talos_version\x18\f \x01(\tR\x13initialTalosVersion\"S\n" +
 	"\x05Phase\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -12269,11 +12332,12 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x1bMaintenanceConfigStatusSpec\x126\n" +
 	"\x18public_key_at_last_apply\x18\x01 \x01(\tR\x14publicKeyAtLastApply\x127\n" +
 	"\x18last_applied_config_hash\x18\x02 \x01(\tR\x15lastAppliedConfigHash\"\x1d\n" +
-	"\x1bNodeForceDestroyRequestSpec\"\x7f\n" +
+	"\x1bNodeForceDestroyRequestSpec\"\xbf\x01\n" +
 	" DiscoveryAffiliateDeleteTaskSpec\x12\x1d\n" +
 	"\n" +
 	"cluster_id\x18\x01 \x01(\tR\tclusterId\x12<\n" +
-	"\x1adiscovery_service_endpoint\x18\x02 \x01(\tR\x18discoveryServiceEndpoint\"\xac\x02\n" +
+	"\x1adiscovery_service_endpoint\x18\x02 \x01(\tR\x18discoveryServiceEndpoint\x12>\n" +
+	"\x1bdiscovery_service_endpoints\x18\x03 \x03(\tR\x19discoveryServiceEndpoints\"\xac\x02\n" +
 	"\x1fInfraProviderCombinedStatusSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x12\n" +

@@ -5,5 +5,5 @@
 
 package clustermachine
 
-// DiscoveryServiceEndpoint is exported for testing purposes.
-var DiscoveryServiceEndpoint = discoveryServiceEndpoint
+// DiscoveryServiceEndpoints is exported for testing purposes.
+var DiscoveryServiceEndpoints = discoveryServiceEndpoints

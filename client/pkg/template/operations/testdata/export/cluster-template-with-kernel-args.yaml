@@ -50,11 +50,12 @@ kubernetes:
                   image: alpine
                   command: ["sh", "-c", "kubectl get nodes"]
 talos:
-  version: v1.5.5
+  version: v1.14.0
 features:
   diskEncryption: true
   enableWorkloadProxy: true
   useEmbeddedDiscoveryService: true
+  disablePublicDiscoveryService: false
   enableNodeAuditSkip: true
   backupConfiguration:
     interval: 2h0m0s

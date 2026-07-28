@@ -52,13 +52,16 @@ type Cluster struct { //nolint:govet
 }
 
 // Features defines cluster-wide features.
-type Features struct {
+type Features struct { //nolint:govet // field order matches the serialized YAML, do not reorder for alignment
 	// DiskEncryption enables KMS encryption.
 	DiskEncryption bool `yaml:"diskEncryption,omitempty"`
 	// EnableWorkloadProxy enables workload proxy.
 	EnableWorkloadProxy bool `yaml:"enableWorkloadProxy,omitempty"`
 	// UseEmbeddedDiscoveryService enables the use of embedded discovery service.
 	UseEmbeddedDiscoveryService bool `yaml:"useEmbeddedDiscoveryService,omitempty"`
+	// DisablePublicDiscoveryService turns the public discovery service off. It is on by default (unset or false),
+	// and can only be turned off for clusters created with Talos 1.14+.
+	DisablePublicDiscoveryService *bool `yaml:"disablePublicDiscoveryService,omitempty"`
 	// EnableNodeAuditSkip allows the omni.sidero.dev/node-audit-skip annotation on Kubernetes nodes
 	// to exempt them from the Kubernetes node audit.
 	EnableNodeAuditSkip bool `yaml:"enableNodeAuditSkip,omitempty"`
@@ -136,9 +139,10 @@ func (cluster *Cluster) Translate(ctx TranslateContext) ([]resource.Resource, er
 	cluster.Descriptors.Apply(clusterResource)
 
 	clusterResource.TypedSpec().Value.Features = &specs.ClusterSpec_Features{
-		EnableWorkloadProxy:         cluster.Features.EnableWorkloadProxy,
-		UseEmbeddedDiscoveryService: cluster.Features.UseEmbeddedDiscoveryService,
-		EnableNodeAuditSkip:         cluster.Features.EnableNodeAuditSkip,
+		EnableWorkloadProxy:           cluster.Features.EnableWorkloadProxy,
+		UseEmbeddedDiscoveryService:   cluster.Features.UseEmbeddedDiscoveryService,
+		DisablePublicDiscoveryService: cluster.Features.DisablePublicDiscoveryService != nil && *cluster.Features.DisablePublicDiscoveryService,
+		EnableNodeAuditSkip:           cluster.Features.EnableNodeAuditSkip,
 	}
 
 	clusterResource.TypedSpec().Value.KubernetesVersion = strings.TrimLeft(cluster.Kubernetes.Version, "v")
