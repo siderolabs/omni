@@ -5,32 +5,42 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { useRouteHash } from '@vueuse/router'
+import { computed, type Ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type {
-  ClusterKubernetesManifestsStatusSpec,
-  ClusterKubernetesManifestsStatusSpecGroupStatus,
-} from '@/api/omni/specs/omni.pb'
-import {
-  ClusterKubernetesManifestsStatusSpecGroupStatusPhase,
-  ClusterKubernetesManifestsStatusSpecManifestStatusPhase,
-  KubernetesManifestGroupSpecMode,
-} from '@/api/omni/specs/omni.pb'
+import type { ClusterKubernetesManifestsStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterKubernetesManifestsStatusType, DefaultNamespace } from '@/api/resources'
-import TListItem from '@/components/List/TListItem.vue'
+import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import StatsItem from '@/components/Stats/StatsItem.vue'
+import TabButton from '@/components/Tabs/TabButton.vue'
+import TabContent from '@/components/Tabs/TabContent.vue'
+import Tabs from '@/components/Tabs/Tabs.vue'
 import TAlert from '@/components/TAlert.vue'
+import { getDocsLink } from '@/methods'
 import { useResourceWatch } from '@/methods/useResourceWatch'
+import ClusterManifestsStatusGraph from '@/views/Clusters/ClusterManifestsStatusGraph.vue'
+import ClusterManifestsStatusList from '@/views/Clusters/ClusterManifestsStatusList.vue'
+
+enum TabType {
+  GRAPH = '#graph',
+  LIST = '#list',
+}
 
 const { cluster } = defineProps<{
   cluster: string
 }>()
 
-const { data, loading, err } = useResourceWatch<ClusterKubernetesManifestsStatusSpec>(() => ({
+const routeHash = useRouteHash(TabType.GRAPH) as Ref<TabType>
+
+const {
+  data: manifestsStatus,
+  loading: manifestsStatusLoading,
+  err: manifestsStatusErr,
+} = useResourceWatch<ClusterKubernetesManifestsStatusSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
     namespace: DefaultNamespace,
@@ -39,194 +49,125 @@ const { data, loading, err } = useResourceWatch<ClusterKubernetesManifestsStatus
   },
 }))
 
-const groups = computed(() => {
-  if (!data.value?.spec.groups) return []
+const inSyncCount = computed(
+  () => (manifestsStatus.value?.spec.total ?? 0) - (manifestsStatus.value?.spec.out_of_sync ?? 0),
+)
 
-  return Object.entries(data.value.spec.groups).map(([id, group]) => ({
-    id,
-    ...group,
-    manifestsList: Object.entries(group.manifests ?? {}).map(([manifestId, manifest]) => ({
-      id: manifestId,
-      ...manifest,
-    })),
-  }))
-})
-
-const inSyncCount = computed(() => {
-  return (data.value?.spec.total ?? 0) - (data.value?.spec.out_of_sync ?? 0)
-})
-
-const groupPhaseName = (phase?: ClusterKubernetesManifestsStatusSpecGroupStatusPhase) => {
-  switch (phase) {
-    case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PENDING:
-      return 'Pending'
-    case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PROGRESSING:
-      return 'Progressing'
-    case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.APPLIED:
-      return 'Applied'
-    case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.DELETING:
-      return 'Deleting'
-    default:
-      return 'Unknown'
-  }
-}
-
-const manifestPhaseName = (phase?: ClusterKubernetesManifestsStatusSpecManifestStatusPhase) => {
-  switch (phase) {
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING:
-      return 'Pending'
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED:
-      return 'Applied'
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.DELETING:
-      return 'Deleting'
-    default:
-      return 'Unknown'
-  }
-}
-
-const modeName = (mode?: KubernetesManifestGroupSpecMode) => {
-  switch (mode) {
-    case KubernetesManifestGroupSpecMode.FULL:
-      return 'Full'
-    case KubernetesManifestGroupSpecMode.ONE_TIME:
-      return 'One-Time'
-    default:
-      return 'Unknown'
-  }
-}
-
-const groupPhaseClass = (phase?: ClusterKubernetesManifestsStatusSpecGroupStatusPhase) => {
-  switch (phase) {
-    case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.APPLIED:
-      return 'text-green-g1'
-    case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PENDING:
-      return 'text-yellow-y1'
-    case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.PROGRESSING:
-      return 'text-primary-p3'
-    case ClusterKubernetesManifestsStatusSpecGroupStatusPhase.DELETING:
-      return 'text-red-r1'
-    default:
-      return 'text-naturals-n9'
-  }
-}
-
-const manifestPhaseClass = (phase?: ClusterKubernetesManifestsStatusSpecManifestStatusPhase) => {
-  switch (phase) {
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED:
-      return 'text-green-g1'
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.PENDING:
-      return 'text-yellow-y1'
-    case ClusterKubernetesManifestsStatusSpecManifestStatusPhase.DELETING:
-      return 'text-red-r1'
-    default:
-      return 'text-naturals-n9'
-  }
-}
-
-const manifestCount = (group: ClusterKubernetesManifestsStatusSpecGroupStatus) => {
-  return Object.keys(group.manifests ?? {}).length
-}
-
-const groupInSyncCount = (group: ClusterKubernetesManifestsStatusSpecGroupStatus) => {
-  return Object.values(group.manifests ?? {}).filter(
-    (m) => m.phase === ClusterKubernetesManifestsStatusSpecManifestStatusPhase.APPLIED,
-  ).length
-}
+const hasManifests = computed(() => Object.keys(manifestsStatus.value?.spec.groups ?? {}).length)
 </script>
 
 <template>
-  <PageContainer class="flex flex-col">
+  <PageContainer class="@container flex h-full flex-col">
     <PageHeader :title="`Manifests Status — ${cluster}`">
-      <template v-if="data">
-        <StatsItem title="Total" :value="data.spec.total ?? 0" icon="document-text" />
+      <template v-if="manifestsStatus && hasManifests">
+        <StatsItem title="Total" :value="manifestsStatus.spec.total ?? 0" icon="document-text" />
         <StatsItem title="In Sync" :value="inSyncCount" icon="check-in-circle" />
         <StatsItem
-          v-if="data.spec.out_of_sync"
+          v-if="manifestsStatus.spec.out_of_sync"
           title="Out of Sync"
-          :value="data.spec.out_of_sync"
+          :value="manifestsStatus.spec.out_of_sync"
           icon="warning"
         />
       </template>
     </PageHeader>
 
-    <div v-if="loading" class="flex h-40 items-center justify-center">
+    <div v-if="manifestsStatusLoading" class="flex h-40 items-center justify-center">
       <TSpinner class="h-6 w-6" />
     </div>
 
-    <TAlert v-else-if="err" title="Error" type="error">
-      {{ err }}
+    <TAlert v-else-if="manifestsStatusErr" title="Error" type="error">
+      {{ manifestsStatusErr }}
     </TAlert>
 
-    <TAlert v-else-if="!data" title="No Manifests Status" type="info">
-      No manifests status available for this cluster.
+    <TAlert v-else-if="manifestsStatus?.spec.last_error" title="Manifest Error" type="error">
+      {{ manifestsStatus.spec.last_error }}
     </TAlert>
 
-    <TAlert v-else-if="data.spec.last_error" title="Manifest Error" type="error">
-      {{ data.spec.last_error }}
-    </TAlert>
-
-    <TAlert v-else-if="groups.length === 0" title="No Manifest Groups" type="info">
-      No manifest groups found for this cluster.
-    </TAlert>
-
-    <TListItem
-      v-for="group in groups"
-      v-else
-      :key="group.id"
-      :aria-label="group.id"
-      disable-border-on-expand
+    <div
+      v-else-if="!hasManifests"
+      class="@container flex grow flex-col items-center justify-center overflow-y-auto"
     >
-      <div class="flex flex-1 items-center gap-4">
-        <span class="font-bold">{{ group.id }}</span>
-        <span class="resource-label label-green" :class="groupPhaseClass(group.phase)">
-          {{ groupPhaseName(group.phase) }}
-        </span>
-        <span class="text-xs text-naturals-n9">
-          Mode:
-          <span class="text-naturals-n13">{{ modeName(group.mode) }}</span>
-        </span>
-        <span class="text-xs text-naturals-n9">
-          {{ groupInSyncCount(group) }}/{{ manifestCount(group) }} in sync
-        </span>
+      <div class="flex flex-col items-center gap-3 text-center">
+        <div class="flex size-14 items-center justify-center rounded-full bg-naturals-n3">
+          <TIcon icon="document-text" class="size-7 text-primary-p3" />
+        </div>
+
+        <h1 class="text-xl font-medium text-naturals-n14">No Manifest Groups</h1>
+
+        <p class="max-w-xl text-sm text-naturals-n11">
+          Omni tracks the Kubernetes bootstrap manifests it manages for this cluster — things like
+          CNI, CSI, and other add-ons — and reports whether the cluster's live state matches what
+          was applied. No manifest groups have been reported for this cluster yet.
+        </p>
+
+        <a
+          :href="getDocsLink('omni', '/cluster-management/sync-kubernetes-manifests')"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="link-primary inline-flex items-center gap-1 text-sm"
+        >
+          Learn more about syncing Kubernetes manifests
+          <TIcon icon="external-link" class="size-3.5" />
+        </a>
       </div>
 
-      <template #details>
-        <div v-if="group.manifestsList.length === 0">No manifests in this group.</div>
-        <div v-else class="flex flex-col gap-1" role="table">
-          <div role="rowgroup">
-            <div
-              class="grid grid-cols-[repeat(4,1fr)_auto] gap-2 px-2 py-1 text-xs font-bold text-naturals-n9"
-              role="row"
-            >
-              <div role="columnheader">ID</div>
-              <div role="columnheader">Kind</div>
-              <div role="columnheader">Name</div>
-              <div role="columnheader">Namespace</div>
-              <div role="columnheader">Status</div>
-            </div>
-          </div>
-
-          <div role="rowgroup">
-            <div
-              v-for="manifest in group.manifestsList"
-              :key="manifest.id"
-              class="grid grid-cols-[repeat(4,1fr)_auto] gap-2 rounded px-2 py-1.5 text-xs hover:bg-naturals-n3"
-              role="row"
-              :aria-label="manifest.id"
-            >
-              <div class="truncate text-naturals-n13" :title="manifest.id" role="cell">
-                {{ manifest.id }}
-              </div>
-              <div class="text-naturals-n11" role="cell">{{ manifest.kind || '—' }}</div>
-              <div class="text-naturals-n11" role="cell">{{ manifest.name || '—' }}</div>
-              <div class="text-naturals-n11" role="cell">{{ manifest.namespace || '—' }}</div>
-              <div :class="manifestPhaseClass(manifest.phase)" role="cell">
-                {{ manifestPhaseName(manifest.phase) }}
-              </div>
-            </div>
-          </div>
+      <div class="grid max-w-3xl gap-3 py-6 @2xl:grid-cols-3">
+        <div class="flex flex-col items-center gap-2 rounded-lg bg-naturals-n2 p-4 text-center">
+          <TIcon icon="pods" class="size-5 text-naturals-n13" />
+          <h3 class="text-sm font-medium text-naturals-n14">Grouped manifests</h3>
+          <p class="text-xs text-naturals-n11">
+            Related Kubernetes objects are grouped so you can see the state of each bootstrap
+            component at a glance.
+          </p>
         </div>
+
+        <div class="flex flex-col items-center gap-2 rounded-lg bg-naturals-n2 p-4 text-center">
+          <TIcon icon="check-in-circle" class="size-5 text-naturals-n13" />
+          <h3 class="text-sm font-medium text-naturals-n14">Sync tracking</h3>
+          <p class="text-xs text-naturals-n11">
+            Each object is compared against the cluster's live state to detect drift from what Omni
+            applied.
+          </p>
+        </div>
+
+        <div class="flex flex-col items-center gap-2 rounded-lg bg-naturals-n2 p-4 text-center">
+          <TIcon icon="list-bullet" class="size-5 text-naturals-n13" />
+          <h3 class="text-sm font-medium text-naturals-n14">Graph &amp; list views</h3>
+          <p class="text-xs text-naturals-n11">
+            Once available, manifests can be explored as a dependency graph or as a flat, filterable
+            list.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <Tabs
+      v-else-if="manifestsStatus"
+      v-model="routeHash"
+      tabs-list-class="mb-2"
+      class="grow overflow-y-hidden"
+    >
+      <template #triggers>
+        <TabButton class="flex items-center gap-1" :value="TabType.GRAPH">
+          <TIcon icon="pods" aria-hidden="true" class="size-4" />
+          Graph
+        </TabButton>
+
+        <TabButton class="flex items-center gap-1" :value="TabType.LIST">
+          <TIcon icon="list-bullet" aria-hidden="true" class="size-4" />
+          List
+        </TabButton>
       </template>
-    </TListItem>
+
+      <template #contents>
+        <TabContent class="grow overflow-y-auto" :value="TabType.GRAPH">
+          <ClusterManifestsStatusGraph class="h-full" :manifests-status />
+        </TabContent>
+
+        <TabContent class="grow overflow-y-auto" :value="TabType.LIST">
+          <ClusterManifestsStatusList class="h-full" :manifests-status />
+        </TabContent>
+      </template>
+    </Tabs>
   </PageContainer>
 </template>

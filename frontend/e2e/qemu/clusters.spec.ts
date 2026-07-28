@@ -324,6 +324,8 @@ test('exposed services', async ({ page, omnictl }, testInfo) => {
   })
 
   await test.step('Verify workload proxy manifest applied', async () => {
+    await page.getByRole('tab', { name: 'List', exact: true }).click()
+
     const workloadProxyRow = page.getByRole('row', {
       name: `cluster-${clusterName}-workload-proxy`,
     })

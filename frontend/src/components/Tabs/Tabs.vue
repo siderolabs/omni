@@ -4,10 +4,11 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends StringOrNumber = StringOrNumber">
 import { reactiveOmit } from '@vueuse/core'
 import type { ClassValue } from 'clsx'
 import {
+  type StringOrNumber,
   TabsIndicator,
   TabsList,
   TabsRoot,
@@ -18,13 +19,13 @@ import {
 
 import { cn } from '@/methods/utils'
 
-interface Props extends TabsRootProps {
+interface Props extends TabsRootProps<T> {
   tabsListClass?: ClassValue
 }
 
 // eslint-disable-next-line vue/define-props-destructuring
 const props = defineProps<Props>()
-const emit = defineEmits<TabsRootEmits>()
+const emit = defineEmits<TabsRootEmits<T>>()
 
 const tabsRootProps = reactiveOmit(props, 'tabsListClass')
 const forwarded = useForwardPropsEmits(tabsRootProps, emit)
