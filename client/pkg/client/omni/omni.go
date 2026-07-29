@@ -28,8 +28,9 @@ import (
 
 // Options defines additional Omni client options.
 type Options struct {
-	retryLogger     *zap.Logger
-	infraProviderID string
+	retryLogger       *zap.Logger
+	infraProviderID   string
+	disableWatchRetry bool
 }
 
 // Option define an additional Omni client option.
@@ -46,6 +47,18 @@ func WithProviderID(id string) Option {
 func WithRetryLogger(lg *zap.Logger) Option {
 	return func(o *Options) {
 		o.retryLogger = lg
+	}
+}
+
+// WithDisableWatchRetry disables the transparent retry of broken watch streams.
+//
+// By default a broken stream is resumed from the last bookmark without notifying the caller,
+// and the replayed events carry no marker of having caught up. Consumers that must know whether
+// their view is current can disable it, so that a stream failure surfaces as an error and they
+// can resynchronize from scratch.
+func WithDisableWatchRetry() Option {
+	return func(o *Options) {
+		o.disableWatchRetry = true
 	}
 }
 
@@ -69,7 +82,13 @@ func NewClient(conn *grpc.ClientConn, options ...Option) *Client {
 		o(&c.options)
 	}
 
-	c.state = state.WrapCore(client.NewAdapter(v1alpha1.NewStateClient(c), client.WithRetryLogger(c.options.retryLogger)))
+	adapterOptions := []client.AdapterOption{client.WithRetryLogger(c.options.retryLogger)}
+
+	if c.options.disableWatchRetry {
+		adapterOptions = append(adapterOptions, client.WithDisableWatchRetry())
+	}
+
+	c.state = state.WrapCore(client.NewAdapter(v1alpha1.NewStateClient(c), adapterOptions...))
 
 	return c
 }
