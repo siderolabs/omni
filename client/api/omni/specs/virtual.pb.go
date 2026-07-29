@@ -995,6 +995,50 @@ func (x *QuirksSpec) GetSupportsEmbeddedConfig() bool {
 	return false
 }
 
+type VersionContractSpec struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	KubeSpanMultidocConfig bool                   `protobuf:"varint,1,opt,name=kube_span_multidoc_config,json=kubeSpanMultidocConfig,proto3" json:"kube_span_multidoc_config,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *VersionContractSpec) Reset() {
+	*x = VersionContractSpec{}
+	mi := &file_omni_specs_virtual_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VersionContractSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VersionContractSpec) ProtoMessage() {}
+
+func (x *VersionContractSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_omni_specs_virtual_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VersionContractSpec.ProtoReflect.Descriptor instead.
+func (*VersionContractSpec) Descriptor() ([]byte, []int) {
+	return file_omni_specs_virtual_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *VersionContractSpec) GetKubeSpanMultidocConfig() bool {
+	if x != nil {
+		return x.KubeSpanMultidocConfig
+	}
+	return false
+}
+
 type LabelsCompletionSpec_Values struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Items         []string               `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
@@ -1004,7 +1048,7 @@ type LabelsCompletionSpec_Values struct {
 
 func (x *LabelsCompletionSpec_Values) Reset() {
 	*x = LabelsCompletionSpec_Values{}
-	mi := &file_omni_specs_virtual_proto_msgTypes[10]
+	mi := &file_omni_specs_virtual_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1016,7 +1060,7 @@ func (x *LabelsCompletionSpec_Values) String() string {
 func (*LabelsCompletionSpec_Values) ProtoMessage() {}
 
 func (x *LabelsCompletionSpec_Values) ProtoReflect() protoreflect.Message {
-	mi := &file_omni_specs_virtual_proto_msgTypes[10]
+	mi := &file_omni_specs_virtual_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1142,7 +1186,9 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"QuirksSpec\x12<\n" +
 	"\x1asupports_unified_installer\x18\x01 \x01(\bR\x18supportsUnifiedInstaller\x12:\n" +
 	"\x19supports_factory_talosctl\x18\x02 \x01(\bR\x17supportsFactoryTalosctl\x128\n" +
-	"\x18supports_embedded_config\x18\x03 \x01(\bR\x16supportsEmbeddedConfigB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"\x18supports_embedded_config\x18\x03 \x01(\bR\x16supportsEmbeddedConfig\"P\n" +
+	"\x13VersionContractSpec\x129\n" +
+	"\x19kube_span_multidoc_config\x18\x01 \x01(\bR\x16kubeSpanMultidocConfigB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_virtual_proto_rawDescOnce sync.Once
@@ -1157,7 +1203,7 @@ func file_omni_specs_virtual_proto_rawDescGZIP() []byte {
 }
 
 var file_omni_specs_virtual_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_omni_specs_virtual_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_omni_specs_virtual_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_omni_specs_virtual_proto_goTypes = []any{
 	(PlatformConfigSpec_BootMethod)(0),  // 0: specs.PlatformConfigSpec.BootMethod
 	(PlatformConfigSpec_Arch)(0),        // 1: specs.PlatformConfigSpec.Arch
@@ -1171,15 +1217,16 @@ var file_omni_specs_virtual_proto_goTypes = []any{
 	(*OfficeHoursConfig)(nil),           // 9: specs.OfficeHoursConfig
 	(*SupportSpec)(nil),                 // 10: specs.SupportSpec
 	(*QuirksSpec)(nil),                  // 11: specs.QuirksSpec
-	(*LabelsCompletionSpec_Values)(nil), // 12: specs.LabelsCompletionSpec.Values
-	nil,                                 // 13: specs.LabelsCompletionSpec.ItemsEntry
+	(*VersionContractSpec)(nil),         // 12: specs.VersionContractSpec
+	(*LabelsCompletionSpec_Values)(nil), // 13: specs.LabelsCompletionSpec.Values
+	nil,                                 // 14: specs.LabelsCompletionSpec.ItemsEntry
 }
 var file_omni_specs_virtual_proto_depIdxs = []int32{
-	13, // 0: specs.LabelsCompletionSpec.items:type_name -> specs.LabelsCompletionSpec.ItemsEntry
+	14, // 0: specs.LabelsCompletionSpec.items:type_name -> specs.LabelsCompletionSpec.ItemsEntry
 	1,  // 1: specs.PlatformConfigSpec.architectures:type_name -> specs.PlatformConfigSpec.Arch
 	0,  // 2: specs.PlatformConfigSpec.boot_methods:type_name -> specs.PlatformConfigSpec.BootMethod
 	9,  // 3: specs.SupportSpec.office_hours:type_name -> specs.OfficeHoursConfig
-	12, // 4: specs.LabelsCompletionSpec.ItemsEntry.value:type_name -> specs.LabelsCompletionSpec.Values
+	13, // 4: specs.LabelsCompletionSpec.ItemsEntry.value:type_name -> specs.LabelsCompletionSpec.Values
 	5,  // [5:5] is the sub-list for method output_type
 	5,  // [5:5] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
@@ -1198,7 +1245,7 @@ func file_omni_specs_virtual_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_omni_specs_virtual_proto_rawDesc), len(file_omni_specs_virtual_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -12,15 +12,24 @@ import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-import type { ClusterSpec, ClusterStatusSpec, ConfigPatchSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  ClusterConfigVersionSpec,
+  ClusterSpec,
+  ClusterStatusSpec,
+  ConfigPatchSpec,
+} from '@/api/omni/specs/omni.pb'
+import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb'
 import { withRuntime } from '@/api/options'
 import {
+  ClusterConfigVersionType,
   ClusterStatusType,
   ClusterType,
   ConfigPatchName,
   ConfigPatchType,
   DefaultNamespace,
   LabelCluster,
+  VersionContractType,
+  VirtualNamespace,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import CodeBlock from '@/components/CodeBlock/CodeBlock.vue'
@@ -32,6 +41,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
 import { useClusterPermissions } from '@/methods/auth'
+import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 
@@ -50,7 +60,26 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
   },
 }))
 
-const talosVersion = computed(() => cluster.value?.spec.talos_version)
+const { data: clusterConfig } = useResourceWatch<ClusterConfigVersionSpec>(() => ({
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterConfigVersionType,
+    id: clusterId,
+  },
+  runtime: Runtime.Omni,
+}))
+
+const talosVersion = computed(() => clusterConfig.value?.spec.version)
+
+const { data: versionContract } = useResourceGet<VersionContractSpec>(() => ({
+  skip: !talosVersion.value,
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: VirtualNamespace,
+    type: VersionContractType,
+    id: talosVersion.value,
+  },
+}))
 
 const { data: clusterStatus } = useResourceWatch<ClusterStatusSpec>(() => ({
   runtime: Runtime.Omni,
@@ -91,7 +120,16 @@ const features: { icon: IconType; title: string; description: string }[] = [
 // The Talos machine config patch that enables KubeSpan for the whole cluster.
 // Cluster discovery must be enabled for KubeSpan to work; it is on by default,
 // but we set it explicitly to be safe.
-const kubeSpanPatch = `machine:
+const kubeSpanPatch = computed(() => {
+  if (!versionContract.value) return
+
+  if (versionContract.value.spec.kube_span_multidoc_config) {
+    return `apiVersion: v1alpha1
+kind: KubeSpanConfig
+enabled: true`
+  }
+
+  return `machine:
   network:
     kubespan:
       enabled: true
@@ -99,6 +137,7 @@ cluster:
   discovery:
     enabled: true
 `
+})
 
 const confirmOpen = ref(false)
 const enabling = ref(false)
@@ -120,7 +159,7 @@ async function enableKubeSpan() {
       },
     },
     spec: {
-      data: kubeSpanPatch,
+      data: kubeSpanPatch.value,
     },
   }
 
@@ -210,13 +249,13 @@ async function enableKubeSpan() {
             </p>
           </div>
 
-          <CodeBlock>{{ kubeSpanPatch }}</CodeBlock>
+          <CodeBlock v-if="kubeSpanPatch">{{ kubeSpanPatch }}</CodeBlock>
 
           <div class="flex flex-wrap items-center gap-3">
             <TButton
               variant="highlighted"
               icon="cloud-connection"
-              :disabled="!canManageConfigPatches || requested"
+              :disabled="!kubeSpanPatch || !canManageConfigPatches || requested"
               @click="confirmOpen = true"
             >
               {{ requested ? 'KubeSpan enabling…' : 'Enable KubeSpan' }}

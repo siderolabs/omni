@@ -6,31 +6,89 @@ import { createWatchStreamHandler } from '@msw/helpers.ts'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 
-import type { ClusterSpec, ClusterStatusSpec } from '@/api/omni/specs/omni.pb.ts'
-import type { ClusterPermissionsSpec } from '@/api/omni/specs/virtual.pb.ts'
+import type { Resource } from '@/api/grpc.ts'
+import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb.ts'
+import type {
+  ClusterConfigVersionSpec,
+  ClusterSpec,
+  ClusterStatusSpec,
+} from '@/api/omni/specs/omni.pb.ts'
+import type { ClusterPermissionsSpec, VersionContractSpec } from '@/api/omni/specs/virtual.pb.ts'
 import {
+  ClusterConfigVersionType,
+  ClusterPermissionsType,
   ClusterStatusType,
   ClusterType,
   DefaultNamespace,
+  VersionContractType,
   VirtualNamespace,
 } from '@/api/resources.ts'
 
 import KubeSpanStatusQuickStart from './KubeSpanStatusQuickStart.vue'
 
 const clusterId = 'my-cluster'
+const talosVersion = 'v1.10.0'
 
 const clusterHandler = createWatchStreamHandler<ClusterSpec>({
   expectedOptions: {
     namespace: DefaultNamespace,
     type: ClusterType,
+    id: clusterId,
   },
   initialResources: [
     {
-      spec: { talos_version: 'v1.10.0' },
-      metadata: { namespace: DefaultNamespace, type: ClusterType, id: clusterId },
+      spec: {
+        talos_version: talosVersion,
+      },
+      metadata: {
+        namespace: DefaultNamespace,
+        type: ClusterType,
+        id: clusterId,
+      },
     },
   ],
 }).handler
+
+const clusterConfigHandler = createWatchStreamHandler<ClusterConfigVersionSpec>({
+  expectedOptions: {
+    namespace: DefaultNamespace,
+    type: ClusterConfigVersionType,
+    id: clusterId,
+  },
+  initialResources: [
+    {
+      spec: { version: talosVersion },
+      metadata: {
+        namespace: DefaultNamespace,
+        type: ClusterConfigVersionType,
+        id: clusterId,
+      },
+    },
+  ],
+}).handler
+
+function versionContractHandler(spec: VersionContractSpec) {
+  return http.post<never, GetRequest, GetResponse>(
+    '/omni.resources.ResourceService/Get',
+    async ({ request }) => {
+      const { id, type, namespace } = await request.clone().json()
+
+      if (id !== talosVersion || type !== VersionContractType || namespace !== VirtualNamespace)
+        return
+
+      return HttpResponse.json({
+        body: JSON.stringify({
+          metadata: {
+            namespace: VirtualNamespace,
+            type: VersionContractType,
+            id: talosVersion,
+          },
+          spec,
+        } as Resource<VersionContractSpec>),
+      })
+    },
+  )
+}
 
 function clusterStatusHandler(total: number) {
   return createWatchStreamHandler<ClusterStatusSpec>({
@@ -48,13 +106,25 @@ function clusterStatusHandler(total: number) {
 }
 
 function permissionsHandler(spec: ClusterPermissionsSpec) {
-  return http.post('/omni.resources.ResourceService/Get', () =>
-    HttpResponse.json({
-      body: JSON.stringify({
-        metadata: { namespace: VirtualNamespace, id: clusterId },
-        spec,
-      }),
-    }),
+  return http.post<never, GetRequest, GetResponse>(
+    '/omni.resources.ResourceService/Get',
+    async ({ request }) => {
+      const { id, type, namespace } = await request.clone().json()
+
+      if (id !== clusterId || type !== ClusterPermissionsType || namespace !== VirtualNamespace)
+        return
+
+      return HttpResponse.json({
+        body: JSON.stringify({
+          metadata: {
+            namespace: VirtualNamespace,
+            type: ClusterPermissionsType,
+            id: clusterId,
+          },
+          spec,
+        } as Resource<ClusterPermissionsSpec>),
+      })
+    },
   )
 }
 
@@ -81,8 +151,24 @@ export const Default = {
   parameters: {
     msw: {
       handlers: [
+        versionContractHandler({ kube_span_multidoc_config: true }),
         permissionsHandler({ can_manage_config_patches: true }),
         clusterHandler,
+        clusterConfigHandler,
+        clusterStatusHandler(6),
+      ],
+    },
+  },
+} satisfies Story
+
+export const NoMultidoc = {
+  parameters: {
+    msw: {
+      handlers: [
+        versionContractHandler({ kube_span_multidoc_config: false }),
+        permissionsHandler({ can_manage_config_patches: true }),
+        clusterHandler,
+        clusterConfigHandler,
         clusterStatusHandler(6),
       ],
     },
@@ -93,8 +179,10 @@ export const ReadOnly = {
   parameters: {
     msw: {
       handlers: [
+        versionContractHandler({ kube_span_multidoc_config: true }),
         permissionsHandler({ can_manage_config_patches: false }),
         clusterHandler,
+        clusterConfigHandler,
         clusterStatusHandler(6),
       ],
     },
@@ -105,8 +193,10 @@ export const LargeCluster = {
   parameters: {
     msw: {
       handlers: [
+        versionContractHandler({ kube_span_multidoc_config: true }),
         permissionsHandler({ can_manage_config_patches: true }),
         clusterHandler,
+        clusterConfigHandler,
         clusterStatusHandler(64),
       ],
     },

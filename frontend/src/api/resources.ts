@@ -308,6 +308,7 @@ export const QuirksType = "Quirks.omni.sidero.dev";
 export const SBCConfigType = "SBCConfigs.omni.sidero.dev";
 export const SupportID = "support";
 export const SupportType = "Supports.omni.sidero.dev";
+export const VersionContractType = "VersionContract.omni.sidero.dev";
 export const MetalNetworkPlatformConfig = 10;
 export const LabelsMeta = 12;
 export const NamespaceType = "Namespaces.meta.cosi.dev";

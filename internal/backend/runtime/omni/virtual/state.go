@@ -18,6 +18,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	machineryConfig "github.com/siderolabs/talos/pkg/machinery/config"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	"github.com/stripe/stripe-go/v85"
 	"go.uber.org/zap"
@@ -134,6 +135,8 @@ func (v *State) Get(ctx context.Context, ptr resource.Pointer, opts ...state.Get
 		return v.support(ctx, ptr)
 	case virtual.QuirksType:
 		return v.quirks(ctx, ptr)
+	case virtual.VersionContractType:
+		return v.versionContract(ctx, ptr)
 	default:
 		return nil, stateerrors.ErrUnsupported(fmt.Errorf("unsupported resource type for get %q", ptr.Type()))
 	}
@@ -473,6 +476,29 @@ func (v *State) quirks(_ context.Context, ptr resource.Pointer) (*virtual.Quirks
 		SupportsUnifiedInstaller: q.SupportsUnifiedInstaller(),
 		SupportsFactoryTalosctl:  q.SupportsFactoryTalosctlDownload(),
 		SupportsEmbeddedConfig:   q.SupportsEmbeddedConfig(),
+	}
+
+	return res, nil
+}
+
+func (v *State) versionContract(_ context.Context, ptr resource.Pointer) (*virtual.VersionContract, error) {
+	res := virtual.NewVersionContract(ptr.ID())
+
+	version, err := resource.ParseVersion("1")
+	if err != nil {
+		return nil, err
+	}
+
+	var vc *machineryConfig.VersionContract
+
+	vc, err = machineryConfig.ParseContractFromVersion(ptr.ID())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse contract from version: %w", err)
+	}
+
+	res.Metadata().SetVersion(version)
+	res.TypedSpec().Value = &specs.VersionContractSpec{
+		KubeSpanMultidocConfig: vc.KubeSpanMultidocConfig(),
 	}
 
 	return res, nil

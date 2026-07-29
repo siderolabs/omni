@@ -510,6 +510,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		virtual.CurrentUserType,
 		virtual.ClusterPermissionsType,
 		virtual.QuirksType,
+		virtual.VersionContractType,
 		virtual.PermissionsType:
 		// allow access with just valid signature
 		_, err = auth.CheckGRPC(ctx, auth.WithValidSignature(true))
@@ -680,6 +681,7 @@ func filterAccessByType(access state.Access) error {
 		virtual.KubernetesUsageType,
 		virtual.LabelsCompletionType,
 		virtual.QuirksType,
+		virtual.VersionContractType,
 		virtual.ClusterPermissionsType:
 		// allow read access only. these resources are either managed by controllers or plugins (e.g., infra provider plugins)
 		if access.Verb.Readonly() {

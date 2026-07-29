@@ -114,3 +114,7 @@ export type QuirksSpec = {
   supports_factory_talosctl?: boolean
   supports_embedded_config?: boolean
 }
+
+export type VersionContractSpec = {
+  kube_span_multidoc_config?: boolean
+}

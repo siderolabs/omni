@@ -114,3 +114,7 @@ message QuirksSpec {
   bool supports_factory_talosctl = 2;
   bool supports_embedded_config = 3;
 }
+
+message VersionContractSpec {
+  bool kube_span_multidoc_config = 1;
+}
