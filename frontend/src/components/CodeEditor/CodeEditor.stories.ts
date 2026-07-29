@@ -14,7 +14,7 @@ const meta: Meta<typeof CodeEditor> = {
   argTypes: {
     talosVersion: {
       control: 'select',
-      options: Array(7)
+      options: Array(8)
         .fill(null)
         .map((_, index) => `1.${index + 7}`),
     },
