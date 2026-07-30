@@ -64,6 +64,11 @@ const blockdevices = computed(() => item.spec.hardware?.blockdevices || [])
 const systemDiskPath = computed(
   () => blockdevices.value.find((device) => device.system_disk)?.linux_name,
 )
+
+// TODO: This filter is a diverged copy of the backend's install disk candidate logic, which also
+//       filters by minimum size and virtual bus path and puts USB disks last. The filtering should be
+//       centralized on the backend. See internal/backend/runtime/omni/controllers/omni/machine_config_gen_options.go
+//       and https://github.com/siderolabs/omni/issues/3199.
 const disks = computed(() =>
   blockdevices.value
     .filter((device) => !device.readonly && device.type !== 'CD')

@@ -28,6 +28,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -1066,6 +1067,66 @@ func TestMachineConfigStatusController(t *testing.T) {
 		)
 	})
 
+	// maintenanceInstallConfigDisk verifies which disk a maintenance install targets: the disk in the
+	// merged machine config (where the user's install disk patch lands) wins over the automatically
+	// picked default on MachineConfigGenOptions, and the default is used when the config carries no
+	// install disk.
+	t.Run("maintenanceInstallConfigDisk", func(t *testing.T) {
+		t.Parallel()
+
+		for i, tt := range []struct {
+			name         string
+			genOptsDisk  string
+			configDisk   string
+			expectedDisk string
+		}{
+			{name: "config disk overrides default", genOptsDisk: "/dev/vda", configDisk: "/dev/vdb", expectedDisk: "/dev/vdb"},
+			{name: "no config disk falls back to default", genOptsDisk: "/dev/vda", configDisk: "", expectedDisk: "/dev/vda"},
+			{name: "config disk works without default", genOptsDisk: "", configDisk: "/dev/vdb", expectedDisk: "/dev/vdb"},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+				t.Cleanup(cancel)
+
+				clusterName := fmt.Sprintf("maint-install-config-disk-%d", i)
+				bootID := fmt.Sprintf("boot-before-install-%d", i)
+
+				testutils.WithRuntime(
+					ctx, t, testutils.TestOptions{},
+					func(_ context.Context, tc testutils.TestContext) {
+						require.NoError(t, tc.Runtime.RegisterQController(
+							machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+						))
+					},
+					func(ctx context.Context, tc testutils.TestContext) {
+						st := tc.State
+						machineServices := testutils.NewMachineServices(t, st)
+
+						id := setupMaintenanceMachineWithHook(ctx, t, st, machineServices, clusterName, false, bootID, func(id string) {
+							setConfigInstallDisk(ctx, t, st, id, tt.configDisk)
+
+							rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineConfigGenOptions) error {
+								res.TypedSpec().Value.InstallDisk = tt.genOptsDisk
+
+								return nil
+							}))
+						})
+
+						rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+							a.Equal(bootID, res.TypedSpec().Value.PreRebootBootId)
+						})
+
+						installs := machineServices.Get(id).GetLifecycleInstallRequests()
+						require.NotEmpty(t, installs)
+						assert.Equal(t, tt.expectedDisk, installs[0].GetDestination().GetDisk())
+					},
+				)
+			})
+		}
+	})
+
 	// maintenanceUpgrade verifies a maintenance machine that already has Talos on disk gets a
 	// LifecycleService.Upgrade (not Install).
 	t.Run("maintenanceUpgrade", func(t *testing.T) {
@@ -2031,6 +2092,17 @@ func setupMaintenanceMachine(
 	clusterName string, hasSystemDisk bool, bootID string,
 	configureService ...func(*testutils.MachineServiceMock),
 ) string {
+	return setupMaintenanceMachineWithHook(ctx, t, st, machineServices, clusterName, hasSystemDisk, bootID, nil, configureService...)
+}
+
+// setupMaintenanceMachineWithHook is setupMaintenanceMachine with a hook that runs right before the
+// trigger resources are mocked, i.e. before the controller can start the install/upgrade operation.
+func setupMaintenanceMachineWithHook(
+	ctx context.Context, t *testing.T, st state.State, machineServices *testutils.MachineServices,
+	clusterName string, hasSystemDisk bool, bootID string,
+	beforeTrigger func(id string),
+	configureService ...func(*testutils.MachineServiceMock),
+) string {
 	_, machines := createCluster(
 		ctx, t, st, machineServices, clusterName, 1, 0,
 		withMachineStatusModifier(func(res *omni.MachineStatus) error {
@@ -2060,6 +2132,10 @@ func setupMaintenanceMachine(
 		return nil
 	}))
 
+	if beforeTrigger != nil {
+		beforeTrigger(id)
+	}
+
 	// The maintenance config controller has applied its config for the current connection, so the
 	// install/upgrade gate in reconcileUpgrade is open.
 	markMaintenanceConfigApplied(ctx, t, st, id)
@@ -2072,6 +2148,44 @@ func setupMaintenanceMachine(
 	}))
 
 	return id
+}
+
+// setConfigInstallDisk replaces the install disk in the machine's merged config.
+// An empty disk removes the install section from the config entirely.
+func setConfigInstallDisk(ctx context.Context, t *testing.T, st state.State, id, disk string) {
+	rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.ClusterMachineConfig) error {
+		buf, err := res.TypedSpec().Value.GetUncompressedData()
+		if err != nil {
+			return err
+		}
+
+		defer buf.Free()
+
+		cfg, err := configloader.NewFromBytes(buf.Data())
+		if err != nil {
+			return err
+		}
+
+		patched, err := cfg.PatchV1Alpha1(func(c *v1alpha1.Config) error {
+			if disk == "" {
+				c.MachineConfig.MachineInstall = nil
+			} else {
+				c.MachineConfig.MachineInstall.InstallDisk = disk
+			}
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		data, err := patched.EncodeBytes(encoder.WithComments(encoder.CommentsDisabled))
+		if err != nil {
+			return err
+		}
+
+		return res.TypedSpec().Value.SetUncompressedData(data)
+	}))
 }
 
 // markMaintenanceConfigApplied sets up a machine so the status controller's maintenance install/upgrade

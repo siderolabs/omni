@@ -136,7 +136,7 @@ func (rc *ReconciliationContext) ID() string {
 
 // BuildReconciliationContext is the COSI reader dependent method to build the reconciliation context.
 //
-//nolint:gocognit,gocyclo,cyclop
+//nolint:gocognit,gocyclo,cyclop,maintidx
 func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 	machineConfig *omni.ClusterMachineConfig, machineConfigStatus *omni.ClusterMachineConfigStatus,
 ) (*ReconciliationContext, error) {
@@ -234,7 +234,21 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install image not found", machineConfig.Metadata().ID())
 	}
 
+	// Start with the automatically picked default install disk, then let the merged machine config
+	// override it: the config carries the user's install disk config patch (.machine.install.disk),
+	// while MachineConfigGenOptions only carries the default.
+	//
+	// TODO: This is an interim fix to respect the user's disk selection.
+	//       Since .machine.install is deprecated for removal, the install disk should stop being
+	//       managed through a config patch and become a first-class resource instead.
+	//       See https://github.com/siderolabs/omni/issues/3199.
 	rc.installDisk = genOptions.TypedSpec().Value.InstallDisk
+
+	// Machine() is nil when the config carries no v1alpha1 document.
+	// Install() is never nil, it returns an empty section when the config has none.
+	if m := config.Machine(); m != nil && m.Install().Disk() != "" {
+		rc.installDisk = m.Install().Disk()
+	}
 
 	schematicMismatch := false
 

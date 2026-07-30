@@ -97,12 +97,27 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 		)
 	}
 
+	// TODO: This logic does not take the user's install disk selection into account.
+	//       If there's an existing system disk, it picks it as the install disk (which is a no-op after installation anyway),
+	//       otherwise, it runs the disk selection logic to pick the most suitable disk.
+	//       The user's install disk preference is a config patch (.machine.install.disk) at the moment,
+	//       so it is read later from the merged machine config, in machineconfig.BuildReconciliationContext.
+	//       When we introduce a first-class resource for the install disk, e.g., MachineInstallDiskConfig,
+	//       we should probably read it already here and apply the override it contains.
+	//       See https://github.com/siderolabs/omni/issues/3199.
+
 	if machineStatus.TypedSpec().Value.Hardware == nil {
 		return
 	}
 
 	installDisk := omni.GetMachineStatusSystemDisk(machineStatus)
 
+	// Base install disk determination: not read only, above the min size, not virtual, etc.
+	//
+	// TODO: The frontend disk dropdown has a diverged copy of this candidate filtering (it only excludes
+	//       read-only and CD devices), while the default disk itself is already read from this resource.
+	//       The filtering should be centralized on the backend.
+	//       See frontend/src/views/Clusters/Management/ClusterMachineItem.vue and https://github.com/siderolabs/omni/issues/3199.
 	if installDisk == "" {
 		const transportUSB = "usb"
 
