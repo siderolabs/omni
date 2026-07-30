@@ -17,7 +17,7 @@ import THeader from '@/components/THeader/THeader.vue'
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col">
+  <div class="flex min-h-dvh flex-col">
     <THeader />
 
     <div class="flex flex-1 flex-col items-center justify-center gap-4">

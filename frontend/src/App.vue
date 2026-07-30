@@ -37,7 +37,7 @@ const darkThemeEnabled = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-screen flex-col" :class="{ dark: darkThemeEnabled }">
+  <div class="flex h-dvh flex-col" :class="{ dark: darkThemeEnabled }">
     <AppToast />
 
     <THeader

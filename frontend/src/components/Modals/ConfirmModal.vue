@@ -61,7 +61,7 @@ const forwarded = useForwardPropsEmits(alertDialogRootProps, emit)
       />
 
       <AlertDialogContent
-        class="fixed inset-0 z-30 m-auto flex h-max max-h-screen w-max max-w-screen flex-col rounded-sm bg-naturals-n3 p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
+        class="fixed inset-0 z-30 m-auto flex h-max max-h-dvh w-max max-w-screen flex-col rounded-sm bg-naturals-n3 p-8 zoom-in-75 zoom-out-75 fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in"
       >
         <div class="mb-5 flex shrink-0 flex-col">
           <AlertDialogTitle class="font-medium text-naturals-n14">{{ title }}</AlertDialogTitle>

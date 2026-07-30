@@ -67,7 +67,7 @@ const forwarded = useForwardPropsEmits(dialogRootProps, emit)
       <DialogContent
         :class="
           cn(
-            'fixed inset-0 z-30 m-auto flex h-max max-h-screen w-max max-w-screen flex-col rounded-sm bg-naturals-n3 px-(--padding-x) py-8 zoom-in-75 zoom-out-75 [--padding-x:--spacing(8)] fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in',
+            'fixed inset-0 z-30 m-auto flex h-max max-h-dvh w-max max-w-screen flex-col rounded-sm bg-naturals-n3 px-(--padding-x) py-8 zoom-in-75 zoom-out-75 [--padding-x:--spacing(8)] fade-in fade-out data-[state=closed]:animate-out data-[state=open]:animate-in',
             $attrs.class,
           )
         "
