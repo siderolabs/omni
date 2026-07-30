@@ -23,6 +23,8 @@ import (
 )
 
 // BenchmarkComputeDiff tests various state transitions of the diff logic.
+//
+//nolint:staticcheck
 func BenchmarkComputeDiff(b *testing.B) {
 	modifiedConfigBytes := modifyConfig(b, baseConfigBytes, func(c *v1alpha1.Config) {
 		c.MachineConfig.MachineFiles = append(
@@ -135,6 +137,8 @@ var emptyToPopulatedDiff string
 var populatedToEmptyDiff string
 
 // TestComputeDiff tests the ComputeDiff function with various state transitions.
+//
+//nolint:staticcheck
 func TestComputeDiff(t *testing.T) {
 	modifiedConfigBytes := modifyConfig(t, baseConfigBytes, func(c *v1alpha1.Config) {
 		c.MachineConfig.MachineFiles = append(

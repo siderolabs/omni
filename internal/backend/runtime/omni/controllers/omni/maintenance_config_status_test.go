@@ -284,8 +284,9 @@ func (suite *MaintenanceConfigStatusControllerSuite) TestMachineConfigPatchPrese
 
 	// a machine-level config patch which carries a partial config document to preserve (TrustedRootsConfig) and a v1alpha1 document which must be stripped in maintenance mode
 	const patchData = `machine:
-  install:
-    disk: /dev/sda
+  features:
+    hostDNS:
+      enabled: true
 ---
 apiVersion: v1alpha1
 kind: TrustedRootsConfig
@@ -344,9 +345,8 @@ certificates: |
 	suite.Contains(dataStr, "my-enterprise-ca")
 	suite.Contains(dataStr, "omni-kmsg")
 
-	// the v1alpha1 document is stripped, so the machine is not installed and stays in maintenance mode
-	suite.NotContains(dataStr, "/dev/sda")
-	suite.NotContains(dataStr, "install:")
+	// the v1alpha1 document is stripped
+	suite.NotContains(dataStr, "hostDNS:")
 }
 
 func TestMaintenanceConfigStatusControllerSuite(t *testing.T) {

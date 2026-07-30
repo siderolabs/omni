@@ -472,6 +472,7 @@ func assertNoResource[R rtestutils.ResourceWithRD](suite *OmniSuite, r R) {
 	rtestutils.AssertNoResource[R](suite.ctx, suite.T(), suite.state, r.Metadata().ID())
 }
 
+//nolint:unparam
 func (suite *OmniSuite) createCluster(clusterName string, controlPlanes, workers int) (*omni.Cluster, []*omni.ClusterMachine) {
 	return suite.createClusterWithTalosVersion(clusterName, controlPlanes, workers, TalosVersion)
 }

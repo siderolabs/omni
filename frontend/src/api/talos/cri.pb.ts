@@ -5,6 +5,12 @@
 import type { PEMEncodedCertificateAndKey } from '../common/common.pb'
 
 
+export type BaseRuntimeSpecConfigSpec = {[key: string]: unknown}
+
+export type CustomizationConfigSpec = {
+  content?: string
+}
+
 export type ImageCacheConfigSpec = {
   status?: string
   copyStatus?: string

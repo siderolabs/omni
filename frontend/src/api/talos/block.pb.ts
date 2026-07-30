@@ -38,6 +38,10 @@ export type DiscoveredVolumeSpec = {
   partition_index?: number
 }
 
+export type DiscoveredVolumesStatusSpec = {
+  ready?: boolean
+}
+
 export type DiscoveryRefreshRequestSpec = {
   request?: number
 }
@@ -66,6 +70,20 @@ export type DiskSpec = {
   rotational?: boolean
   secondary_disks?: string[]
   symlinks?: string[]
+}
+
+export type FSScrubScheduleSpec = {
+  filesystem?: string
+  interval?: string
+  nextScrub?: string
+}
+
+export type FSScrubStatusSpec = {
+  mountpoint?: string
+  interval?: string
+  time?: string
+  duration?: string
+  status?: string
 }
 
 export type MountRequestSpec = {
@@ -132,6 +150,7 @@ export type PartitionSpec = {
 export type FilesystemSpec = {
   type?: string
   label?: string
+  minAllocationGroupSize?: number
 }
 
 export type ProvisioningSpec = {
@@ -203,6 +222,8 @@ export type VolumeConfigSpec = {
   symlink?: SymlinkProvisioningSpec
   trimEnabled?: boolean
   trimInterval?: string
+  scrubEnabled?: boolean
+  scrubInterval?: string
 }
 
 export type VolumeMountRequestSpec = {
@@ -252,6 +273,8 @@ export type VolumeStatusSpec = {
   encryptionAllowDiscards?: boolean
   trimEnabled?: boolean
   trimInterval?: string
+  scrubEnabled?: boolean
+  scrubInterval?: string
   mountSpec?: MountSpec
   symlink?: SymlinkProvisioningSpec
   errorMessage?: string

@@ -251,7 +251,7 @@ func updateConfig(t *testing.T, existingConfig []byte, nodeLabelsToAdd map[strin
 	require.NoError(t, err)
 
 	config, err = config.PatchV1Alpha1(func(config *v1alpha1.Config) error {
-		config.MachineConfig.MachineNodeLabels = nodeLabelsToAdd
+		config.MachineConfig.MachineNodeLabels = nodeLabelsToAdd //nolint:staticcheck
 
 		return nil
 	})

@@ -30,6 +30,55 @@ export type AddressStatusSpec = {
   priority?: number
 }
 
+export type BGPBFDConfigSpec = {
+  transmitInterval?: string
+  receiveInterval?: string
+  detectMultiplier?: number
+}
+
+export type BGPNeighborConfigSpec = {
+  address?: string
+  link?: string
+  peerASN?: number
+  holdTime?: string
+  bfd?: BGPBFDConfigSpec
+  localASN?: number
+  passive?: boolean
+}
+
+export type BGPImportRouteSpec = {
+  bgpInstance?: string
+  prefixes?: string[]
+}
+
+export type BGPInstanceConfigSpec = {
+  localASN?: number
+  routerID?: string
+  routeSource?: string
+  advertiseLinks?: string[]
+  multipath?: boolean
+  maxPaths?: number
+  neighbors?: BGPNeighborConfigSpec[]
+  vrf?: string
+  vrfTable?: string
+  importRoutes?: BGPImportRouteSpec[]
+  installRoutes?: boolean
+}
+
+export type BGPPeerStatusSpec = {
+  peer?: string
+  localASN?: number
+  peerASN?: number
+  state?: string
+  routerID?: string
+  since?: string
+  received?: number
+  advertised?: number
+  accepted?: number
+  bfdState?: string
+  instance?: string
+}
+
 export type DNSResolveCacheSpec = {
   status?: string
 }
@@ -222,6 +271,10 @@ export type VRFSlave = {
   masterName?: string
 }
 
+export type VethSpec = {
+  peerName?: string
+}
+
 export type LinkSpecSpec = {
   name?: string
   logical?: boolean
@@ -238,6 +291,7 @@ export type LinkSpecSpec = {
   bridgeMaster?: BridgeMasterSpec
   vrfMaster?: VRFMasterSpec
   wireguard?: WireguardSpec
+  veth?: VethSpec
   layer?: string
   multicast?: boolean
 }
@@ -276,6 +330,7 @@ export type LinkStatusSpec = {
   bondMaster?: BondMasterSpec
   vrfMaster?: VRFMasterSpec
   wireguard?: WireguardSpec
+  veth?: VethSpec
 }
 
 export type NfTablesIfNameMatch = {
@@ -373,6 +428,7 @@ export type DHCP4OperatorSpec = {
   routeMetric?: number
   skipHostnameRequest?: boolean
   clientIdentifier?: ClientIdentifierSpec
+  skipRoutes?: boolean
 }
 
 export type DHCP6OperatorSpec = {
@@ -410,6 +466,12 @@ export type OperatorSpecSpec = {
   layer?: string
 }
 
+export type RouteNextHop = {
+  gateway?: string
+  outLinkName?: string
+  weight?: number
+}
+
 export type RouteSpecSpec = {
   family?: string
   dst?: string
@@ -424,6 +486,7 @@ export type RouteSpecSpec = {
   protocol?: string
   layer?: string
   mtu?: number
+  nextHops?: RouteNextHop[]
 }
 
 export type NameServerSpec = {
@@ -437,6 +500,7 @@ export type ResolverSpecSpec = {
   nameServers?: NameServerSpec[]
   layer?: string
   searchDomains?: string[]
+  searchDomainsOverridden?: boolean
 }
 
 export type TimeServerSpecSpec = {
@@ -501,6 +565,7 @@ export type RouteStatusSpec = {
   flags?: string
   protocol?: string
   mtu?: number
+  nextHops?: RouteNextHop[]
 }
 
 export type RoutingRuleSpecSpec = {

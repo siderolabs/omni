@@ -2168,9 +2168,9 @@ func setConfigInstallDisk(ctx context.Context, t *testing.T, st state.State, id,
 
 		patched, err := cfg.PatchV1Alpha1(func(c *v1alpha1.Config) error {
 			if disk == "" {
-				c.MachineConfig.MachineInstall = nil
+				c.MachineConfig.MachineInstall = nil //nolint:staticcheck
 			} else {
-				c.MachineConfig.MachineInstall.InstallDisk = disk
+				c.MachineConfig.MachineInstall.InstallDisk = disk //nolint:staticcheck
 			}
 
 			return nil

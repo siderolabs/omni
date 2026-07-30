@@ -373,7 +373,7 @@ func newContext(input Input, talosCli talosClientWrapper, imageFactoryClients *i
 				return nil, fmt.Errorf("expected StrategicMergePatch, got %T", patch)
 			}
 
-			patchBytes, patchErr := provider.Provider().Bytes()
+			patchBytes, patchErr := provider.Bytes()
 			if patchErr != nil {
 				return nil, fmt.Errorf("failed to get bytes from patch for node %q: %w", node, patchErr)
 			}

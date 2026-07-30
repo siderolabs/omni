@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/config/machine"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/k8s"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
@@ -319,10 +320,29 @@ func reconcileClusterMachineConfig(
 		machineConfig.TypedSpec().Value.WithoutComments = true
 	}
 
+	useUKICmdline, err := grubUseUKICmdline(conf, initialTalosVersion)
+	if err != nil {
+		return err
+	}
+
 	machineConfig.TypedSpec().Value.GenerationError = ""
-	machineConfig.TypedSpec().Value.GrubUseUkiCmdline = conf.Machine().Install().GrubUseUKICmdline()
+	machineConfig.TypedSpec().Value.GrubUseUkiCmdline = useUKICmdline
 
 	return nil
+}
+
+func grubUseUKICmdline(cfg config.Provider, initialTalosVersion string) (bool, error) {
+	versionContract, err := config.ParseContractFromVersion(initialTalosVersion)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse contract from version: %w", err)
+	}
+
+	// Talos 1.14 onwards does not support `machine.install` and grubUseUKICmdline is always set to true.
+	if versionContract.UnattendedInstallConfig() {
+		return true, nil
+	}
+
+	return cfg.Machine().Install().GrubUseUKICmdline(), nil
 }
 
 type clusterMachineConfigControllerHelper struct {
@@ -488,7 +508,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 				clusterAcceptedCAs = append(clusterAcceptedCAs, &x509.PEMEncodedCertificate{Crt: clusterMachineSecrets.TypedSpec().Value.Rotation.ExtraCerts.K8S.Crt})
 			}
 
-			config.ClusterConfig.ClusterAcceptedCAs = clusterAcceptedCAs
+			config.ClusterConfig.ClusterAcceptedCAs = clusterAcceptedCAs //nolint:staticcheck
 
 			return nil
 		})
@@ -565,7 +585,12 @@ func stripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error
 		return cfg, nil
 	}
 
-	allowedRoles := cfg.Machine().Features().KubernetesTalosAPIAccess().AllowedRoles()
+	talosAPIAccess := cfg.K8sTalosAPIAccessConfig()
+	if talosAPIAccess == nil {
+		return cfg, nil
+	}
+
+	allowedRoles := talosAPIAccess.AllowedRoles()
 	if len(allowedRoles) == 0 {
 		return cfg, nil
 	}
@@ -585,6 +610,18 @@ func stripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error
 		return cfg, nil
 	}
 
+	// KubeTalosAPIAccessConfig is used, short-circuit
+	if cfg.Has(k8s.KubeTalosAPIAccessConfig) {
+		return container.PatchDocument(
+			cfg,
+			func(access *k8s.KubeTalosAPIAccessConfigV1Alpha1) error {
+				access.AccessAllowedRoles = filteredAllowedRoles
+
+				return nil
+			},
+		)
+	}
+
 	configDocs := cfg.Documents()
 	updatedDocs := make([]documentconfig.Document, 0, len(configDocs))
 
@@ -592,7 +629,7 @@ func stripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error
 		if document.APIVersion() == "" && document.Kind() == v1alpha1.Version {
 			v1alpha1Config := cfg.RawV1Alpha1() // this ensures that we get a writeable copy of v1alpha1 config
 
-			v1alpha1Config.MachineConfig.MachineFeatures.KubernetesTalosAPIAccessConfig.AccessAllowedRoles = filteredAllowedRoles
+			v1alpha1Config.MachineConfig.MachineFeatures.KubernetesTalosAPIAccessConfig.AccessAllowedRoles = filteredAllowedRoles //nolint:staticcheck
 
 			updatedDocs = append(updatedDocs, v1alpha1Config)
 

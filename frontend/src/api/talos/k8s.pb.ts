@@ -80,6 +80,8 @@ export type ControllerManagerConfigSpec = {
   extraVolumes?: ExtraVolume[]
   environmentVariables?: {[key: string]: string}
   resources?: Resources
+  nodeCIDRMaskSizeIPv4?: number
+  nodeCIDRMaskSizeIPv6?: number
 }
 
 export type EndpointSpec = {
@@ -132,7 +134,7 @@ export type KubeletConfigSpec = {
   disableManifestsDirectory?: boolean
   enableFSQuotaMonitoring?: boolean
   credentialProviderConfig?: {[key: string]: unknown}
-  allowSchedulingOnControlPlane?: boolean
+  registerWithTaints?: {[key: string]: string}
 }
 
 export type KubeletKubeconfigSpec = {
@@ -146,6 +148,10 @@ export type KubeletSpecSpec = {
   expectedNodename?: string
   config?: {[key: string]: unknown}
   credentialProviderConfig?: {[key: string]: unknown}
+}
+
+export type KubeletStatusSpec = {
+  image?: string
 }
 
 export type KubePrismStatusesSpec = {

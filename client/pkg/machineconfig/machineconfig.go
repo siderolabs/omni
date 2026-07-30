@@ -58,6 +58,11 @@ func Generate(input GenerateInput) (GenerateOutput, error) {
 
 	genOptions = append(genOptions, generate.WithSecretsBundle(input.Secrets))
 
+	// For Talos 1.14+, skip generating unattended config
+	if versionContract.UnattendedInstallConfig() {
+		genOptions = append(genOptions, generate.WithSkipUnattendedInstallConfig(true))
+	}
+
 	genInput, err := generate.NewInput(
 		input.ClusterID,
 		input.SiderolinkEndpoint,

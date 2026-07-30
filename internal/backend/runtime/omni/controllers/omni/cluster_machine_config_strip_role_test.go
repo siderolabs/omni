@@ -58,7 +58,7 @@ func TestStripTalosAPIAccessOSAdminRole(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Len(t, cfg.Documents(), 3)
-		assert.Equal(t, cfg.Machine().Features().KubernetesTalosAPIAccess().AllowedRoles(), []string{string(talosrole.EtcdBackup), string(talosrole.Reader)})
+		assert.Equal(t, cfg.K8sTalosAPIAccessConfig().AllowedRoles(), []string{string(talosrole.EtcdBackup), string(talosrole.Reader)})
 	})
 
 	t.Run("nil machine features", func(t *testing.T) {
@@ -101,7 +101,8 @@ func v1alpha1Cfg() *v1alpha1.Config {
 	return &v1alpha1.Config{
 		MachineConfig: &v1alpha1.MachineConfig{
 			MachineFeatures: &v1alpha1.FeaturesConfig{
-				KubernetesTalosAPIAccessConfig: &v1alpha1.KubernetesTalosAPIAccessConfig{
+				KubernetesTalosAPIAccessConfig: &v1alpha1.KubernetesTalosAPIAccessConfig{ //nolint:staticcheck
+					AccessEnabled:      new(true),
 					AccessAllowedRoles: []string{string(talosrole.EtcdBackup), string(talosrole.Admin), string(talosrole.Reader)},
 				},
 			},

@@ -216,13 +216,46 @@ func init() {
 		return err
 	})
 
-	addDefaults(func(ctx context.Context, st state.State, res *omni.ClusterMachineConfigPatches) error {
-		return res.TypedSpec().Value.SetUncompressedPatches([]string{
-			`---
-machine:
-  install:
-    disk: "/dev/vda"`,
-		})
+	addDefaults(func(ctx context.Context, st state.State, res *omni.ClusterConfigVersion) error {
+		cluster, err := safe.ReaderGetByID[*omni.Cluster](ctx, st, res.Metadata().ID())
+		if err != nil {
+			return err
+		}
+
+		res.TypedSpec().Value.Version = "v" + cluster.TypedSpec().Value.TalosVersion
+
+		return nil
+	})
+
+	addDefaults(func(ctx context.Context, st state.State, res *omni.ClusterMachineSecrets) error {
+		clusterMachine, err := safe.ReaderGetByID[*omni.ClusterMachine](ctx, st, res.Metadata().ID())
+		if err != nil {
+			return err
+		}
+
+		helpers.CopyLabels(clusterMachine, res, omni.LabelCluster, omni.LabelMachineSet, omni.LabelWorkerRole, omni.LabelControlPlaneRole)
+
+		clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
+		if !ok {
+			return errors.New("ClusterMachine missing cluster label")
+		}
+
+		clusterSecrets, err := safe.ReaderGetByID[*omni.ClusterSecrets](ctx, st, clusterName)
+		if err != nil {
+			return err
+		}
+
+		// without a rotation in progress the machine secrets are a verbatim copy of the cluster ones
+		res.TypedSpec().Value.Data = clusterSecrets.TypedSpec().Value.Data
+
+		return nil
+	})
+
+	addDefaults(func(_ context.Context, _ state.State, res *omni.LoadBalancerConfig) error {
+		res.TypedSpec().Value.BindPort = "6443"
+		res.TypedSpec().Value.SiderolinkEndpoint = "https://siderolink:6443"
+
+		return nil
 	})
 
 	addDefaults(func(ctx context.Context, st state.State, res *omni.TalosConfig) error {
