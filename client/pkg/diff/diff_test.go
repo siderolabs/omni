@@ -25,8 +25,8 @@ import (
 // BenchmarkComputeDiff tests various state transitions of the diff logic.
 func BenchmarkComputeDiff(b *testing.B) {
 	modifiedConfigBytes := modifyConfig(b, baseConfigBytes, func(c *v1alpha1.Config) {
-		c.MachineConfig.MachineFiles = append(
-			c.MachineConfig.MachineFiles,
+		c.MachineConfig.MachineFiles = append( //nolint:staticcheck
+			c.MachineConfig.MachineFiles, //nolint:staticcheck
 			&v1alpha1.MachineFile{
 				FileContent:     "aaa",
 				FilePermissions: 0o777,
@@ -37,7 +37,7 @@ func BenchmarkComputeDiff(b *testing.B) {
 	})
 
 	installChangeConfigBytes := modifyConfig(b, baseConfigBytes, func(c *v1alpha1.Config) {
-		c.MachineConfig.MachineInstall.InstallDisk = "/dev/sdb"
+		c.MachineConfig.MachineInstall.InstallDisk = "/dev/sdb" //nolint:staticcheck
 	})
 
 	b.ResetTimer()
@@ -137,8 +137,8 @@ var populatedToEmptyDiff string
 // TestComputeDiff tests the ComputeDiff function with various state transitions.
 func TestComputeDiff(t *testing.T) {
 	modifiedConfigBytes := modifyConfig(t, baseConfigBytes, func(c *v1alpha1.Config) {
-		c.MachineConfig.MachineFiles = append(
-			c.MachineConfig.MachineFiles,
+		c.MachineConfig.MachineFiles = append( //nolint:staticcheck
+			c.MachineConfig.MachineFiles, //nolint:staticcheck
 			&v1alpha1.MachineFile{
 				FileContent:     "aaa",
 				FilePermissions: 0o777,

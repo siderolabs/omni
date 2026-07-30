@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/k8s"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/network"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/siderolink"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
@@ -58,7 +59,35 @@ func TestStripTalosAPIAccessOSAdminRole(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Len(t, cfg.Documents(), 3)
-		assert.Equal(t, cfg.Machine().Features().KubernetesTalosAPIAccess().AllowedRoles(), []string{string(talosrole.EtcdBackup), string(talosrole.Reader)})
+		assert.Equal(t, []string{string(talosrole.EtcdBackup), string(talosrole.Reader)}, cfg.K8sTalosAPIAccessConfig().AllowedRoles())
+	})
+
+	t.Run("os:admin role in KubeTalosAPIAccessConfig document", func(t *testing.T) {
+		ctr, err := container.New(
+			siderolinkCfg(t),
+			kubeTalosAPIAccessCfg(),
+			networkDefaultActionCfg(),
+		)
+		require.NoError(t, err)
+
+		cfg, err := omni.StripTalosAPIAccessOSAdminRole(ctr)
+		require.NoError(t, err)
+
+		assert.Len(t, cfg.Documents(), 3)
+		assert.Equal(t, []string{string(talosrole.EtcdBackup), string(talosrole.Reader)}, cfg.K8sTalosAPIAccessConfig().AllowedRoles())
+	})
+
+	t.Run("no talos API access config", func(t *testing.T) {
+		ctr, err := container.New(
+			siderolinkCfg(t),
+			networkDefaultActionCfg(),
+		)
+		require.NoError(t, err)
+
+		cfg, err := omni.StripTalosAPIAccessOSAdminRole(ctr)
+		require.NoError(t, err)
+
+		assert.Len(t, cfg.Documents(), 2)
 	})
 
 	t.Run("nil machine features", func(t *testing.T) {
@@ -107,6 +136,13 @@ func v1alpha1Cfg() *v1alpha1.Config {
 			},
 		},
 	}
+}
+
+func kubeTalosAPIAccessCfg() *k8s.KubeTalosAPIAccessConfigV1Alpha1 {
+	cfg := k8s.NewKubeTalosAPIAccessConfigV1Alpha1()
+	cfg.AccessAllowedRoles = []string{string(talosrole.EtcdBackup), string(talosrole.Admin), string(talosrole.Reader)}
+
+	return cfg
 }
 
 func networkDefaultActionCfg() *network.DefaultActionConfigV1Alpha1 {

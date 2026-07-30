@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/config/machine"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/k8s"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/imager/quirks"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
@@ -320,7 +321,7 @@ func reconcileClusterMachineConfig(
 	}
 
 	machineConfig.TypedSpec().Value.GenerationError = ""
-	machineConfig.TypedSpec().Value.GrubUseUkiCmdline = conf.Machine().Install().GrubUseUKICmdline()
+	machineConfig.TypedSpec().Value.GrubUseUkiCmdline = conf.UnattendedInstallConfig() != nil || conf.Machine().Install().GrubUseUKICmdline()
 
 	return nil
 }
@@ -488,7 +489,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 				clusterAcceptedCAs = append(clusterAcceptedCAs, &x509.PEMEncodedCertificate{Crt: clusterMachineSecrets.TypedSpec().Value.Rotation.ExtraCerts.K8S.Crt})
 			}
 
-			config.ClusterConfig.ClusterAcceptedCAs = clusterAcceptedCAs
+			config.ClusterConfig.ClusterAcceptedCAs = clusterAcceptedCAs //nolint:staticcheck
 
 			return nil
 		})
@@ -565,7 +566,12 @@ func stripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error
 		return cfg, nil
 	}
 
-	allowedRoles := cfg.Machine().Features().KubernetesTalosAPIAccess().AllowedRoles()
+	talosAPIAccessConfig := cfg.K8sTalosAPIAccessConfig()
+	if talosAPIAccessConfig == nil {
+		return cfg, nil
+	}
+
+	allowedRoles := talosAPIAccessConfig.AllowedRoles()
 	if len(allowedRoles) == 0 {
 		return cfg, nil
 	}
@@ -589,17 +595,28 @@ func stripTalosAPIAccessOSAdminRole(cfg config.Provider) (config.Provider, error
 	updatedDocs := make([]documentconfig.Document, 0, len(configDocs))
 
 	for _, document := range configDocs {
-		if document.APIVersion() == "" && document.Kind() == v1alpha1.Version {
-			v1alpha1Config := cfg.RawV1Alpha1() // this ensures that we get a writeable copy of v1alpha1 config
+		switch doc := document.(type) {
+		case *k8s.KubeTalosAPIAccessConfigV1Alpha1:
+			// Talos 1.14+ carries the allowed roles in this dedicated document instead of the legacy
+			// .machine.features.kubernetesTalosAPIAccess field.
+			doc.AccessAllowedRoles = filteredAllowedRoles
 
-			v1alpha1Config.MachineConfig.MachineFeatures.KubernetesTalosAPIAccessConfig.AccessAllowedRoles = filteredAllowedRoles
+			updatedDocs = append(updatedDocs, doc)
+		case *v1alpha1.Config:
+			if doc.MachineConfig != nil && doc.MachineConfig.MachineFeatures != nil && doc.MachineConfig.MachineFeatures.KubernetesTalosAPIAccessConfig != nil { //nolint:staticcheck
+				v1alpha1Config := cfg.RawV1Alpha1() // this ensures that we get a writeable copy of v1alpha1 config
 
-			updatedDocs = append(updatedDocs, v1alpha1Config)
+				v1alpha1Config.MachineConfig.MachineFeatures.KubernetesTalosAPIAccessConfig.AccessAllowedRoles = filteredAllowedRoles //nolint:staticcheck
 
-			continue
+				updatedDocs = append(updatedDocs, v1alpha1Config)
+
+				continue
+			}
+
+			updatedDocs = append(updatedDocs, document)
+		default:
+			updatedDocs = append(updatedDocs, document)
 		}
-
-		updatedDocs = append(updatedDocs, document)
 	}
 
 	return container.New(updatedDocs...)

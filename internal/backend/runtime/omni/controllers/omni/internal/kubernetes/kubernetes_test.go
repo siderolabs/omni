@@ -53,7 +53,7 @@ func TestComponentPatch(t *testing.T) {
 			assertVersion(t, v, cfg.K8sSchedulerConfig().Image())
 		},
 		kubernetes.Kubelet: func(t *testing.T, cfg config.Provider, v string) {
-			assertVersion(t, v, cfg.Machine().Kubelet().Image())
+			assertVersion(t, v, cfg.K8sKubeletConfig().Image())
 		},
 	}
 

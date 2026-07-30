@@ -538,6 +538,14 @@ func (suite *OmniSuite) createClusterWithTalosVersion(clusterName string, contro
 		machineStatus.TypedSpec().Value.PlatformMetadata = &specs.MachineStatusSpec_PlatformMetadata{
 			Platform: talosconstants.PlatformMetal,
 		}
+		machineStatus.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{
+			Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{
+				{
+					LinuxName: testInstallDisk,
+					Size:      6e9,
+				},
+			},
+		}
 
 		if i < controlPlanes {
 			clusterMachine.Metadata().Labels().Set(omni.LabelControlPlaneRole, "")

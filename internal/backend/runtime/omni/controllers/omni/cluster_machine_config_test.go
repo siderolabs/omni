@@ -21,6 +21,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/machine"
+	"github.com/siderolabs/talos/pkg/machinery/config/types/runtime"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/version"
 	"github.com/stretchr/testify/assert"
@@ -452,6 +453,30 @@ func (suite *ClusterMachineConfigSuite) TestGenerateWithoutComments() {
 	}
 }
 
+func installImage(cfg config.Provider) string {
+	if unattended := cfg.UnattendedInstallConfig(); unattended != nil {
+		return unattended.InstallerImage()
+	}
+
+	return cfg.Machine().Install().Image()
+}
+
+// zeroInstallImage clears the install image on cfg in-place, regardless of whether it is carried by the
+// legacy v1alpha1 install config or by the UnattendedInstallConfig document.
+func zeroInstallImage(cfg config.Provider) {
+	if cfg.UnattendedInstallConfig() != nil {
+		for _, doc := range cfg.Documents() {
+			if unattended, ok := doc.(*runtime.UnattendedInstallConfigV1Alpha1); ok {
+				unattended.Installer.Image = ""
+			}
+		}
+
+		return
+	}
+
+	cfg.RawV1Alpha1().MachineConfig.MachineInstall.InstallImage = "" //nolint:staticcheck
+}
+
 func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVersions []string) {
 	initialVersion := talosVersions[0]
 	upgradeVersions := talosVersions[1:]
@@ -484,7 +509,7 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 			previousConfig, err = configloader.NewFromBytes(configData)
 			suite.Require().NoError(err)
 
-			assertions.Contains(previousConfig.Machine().Install().Image(), initialVersion)
+			assertions.Contains(installImage(previousConfig), initialVersion)
 		},
 	)
 
@@ -552,15 +577,20 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityFrom(talosVer
 		suite.T().Fatalf("untested initial version: %s", initialVersion)
 	}
 
-	suite.Equal(manifestDirectoryDisabled, finalConfig.Machine().Kubelet().DisableManifestsDirectory(), "disableManifestsDirectory value has changed unexpectedly")
+	suite.Equal(manifestDirectoryDisabled, finalConfig.K8sKubeletConfig().DisableManifestsDirectory(), "disableManifestsDirectory value has changed unexpectedly")
 	suite.Equal(legacyMirrorRemoved, len(finalConfig.RegistryMirrorConfigs()) == 0, "legacy registry mirror value has changed unexpectedly")
 	suite.Equal(diskQuotaSupportEnabled, finalConfig.Machine().Features().DiskQuotaSupportEnabled(), "diskQuotaSupport feature value has changed unexpectedly")
 	hostDNSConfig := finalConfig.NetworkHostDNSConfig()
 	suite.Equal(hostDNSEnabled, hostDNSConfig != nil && hostDNSConfig.HostDNSEnabled(), "hostDNS feature value has changed unexpectedly")
 	suite.Equal(hostDNSForwardKubeDNSToHost, hostDNSConfig != nil && hostDNSConfig.ForwardKubeDNSToHost(), "hostDNS.forwardKubeDNSToHost value has changed unexpectedly")
-	suite.Equal(kubePrismEnabled, finalConfig.Machine().Features().KubePrism().Enabled(), "kubePrism feature value has changed unexpectedly")
-	suite.Equal(nodeHasLabelsSet, len(finalConfig.Machine().NodeLabels()) > 0, "node labels value has changed unexpectedly")
-	suite.Equal(grubUseUkiCmdlineSet, finalConfig.Machine().Install().GrubUseUKICmdline(), "grubUseUkiCmdline value has changed unexpectedly")
+	suite.Equal(kubePrismEnabled, finalConfig.K8sKubePrismConfig() != nil, "kubePrism feature value has changed unexpectedly")
+
+	nodeLabels := finalConfig.K8sNodeConfig().Labels()
+	delete(nodeLabels, talosconstants.LabelNodeRoleControlPlane)
+	suite.Equal(nodeHasLabelsSet, len(nodeLabels) > 0, "node labels value has changed unexpectedly")
+
+	cfgGrubUseUkiCmdlineSet := finalConfig.UnattendedInstallConfig() != nil || finalConfig.Machine().Install().GrubUseUKICmdline()
+	suite.Equal(grubUseUkiCmdlineSet, cfgGrubUseUkiCmdlineSet, "grubUseUkiCmdline value has changed unexpectedly")
 }
 
 func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityTo(previousTalosVersion, upgradeTalosVersion string,
@@ -595,8 +625,8 @@ func (suite *ClusterMachineConfigSuite) testConfigEncodingStabilityTo(previousTa
 			currentConfig, err = configloader.NewFromBytes(configData)
 			suite.Require().NoError(err)
 
-			previousInstallImage := previousConfig.Machine().Install().Image()
-			currentInstallImage := currentConfig.Machine().Install().Image()
+			previousInstallImage := installImage(previousConfig)
+			currentInstallImage := installImage(currentConfig)
 
 			if !assertions.Containsf(currentInstallImage, upgradeTalosVersion, "the install image in the config is not updated yet to have the new version %q", upgradeTalosVersion) {
 				return
@@ -619,8 +649,8 @@ func (suite *ClusterMachineConfigSuite) configsAreEqual(first, second config.Pro
 	first = first.Clone()
 	second = second.Clone()
 
-	first.RawV1Alpha1().MachineConfig.MachineInstall.InstallImage = ""
-	second.RawV1Alpha1().MachineConfig.MachineInstall.InstallImage = ""
+	zeroInstallImage(first)
+	zeroInstallImage(second)
 
 	firstData, err := first.EncodeString(encoder.WithComments(encoder.CommentsDisabled))
 	suite.Require().NoError(err)
