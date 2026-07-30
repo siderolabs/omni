@@ -358,22 +358,22 @@ func (ctrl *ClusterManifestsStatusController) updateStatus(
 				omniconsts.SSAOmniUserInventory,
 				omniconsts.SSAOmniOneTimeSyncInventory,
 			} {
+				manifests := manifestsByInventory[inventory]
+
 				inv, err := ssa.GetInventory(ctx, client.Clientset(), constants.KubernetesInventoryNamespace, inventory)
 				if err != nil {
 					return fmt.Errorf("failed to get inventory %q: %w", inventory, err)
 				}
 
 				for _, obj := range inv.Get() {
-					id := utils.FmtObjMetadata(obj)
+					id, groupName, ok := manifestGroupForObject(obj, manifestsGroups, manifests)
+					if !ok {
+						continue
+					}
 
 					objMetadata := object.ObjMetadata(obj)
 
 					visited[id] = struct{}{}
-
-					groupName, ok := manifestsGroups[id]
-					if !ok {
-						continue
-					}
 
 					_, err = getResource(id, objMetadata)
 					if err != nil {
@@ -531,9 +531,9 @@ func (ctrl *ClusterManifestsStatusController) sync(
 	})
 
 	for _, change := range changes {
-		group := groups[change.Subject]
+		id, group, _ := manifestGroupForObject(change.ObjMetadata, groups, objects)
 
-		obj := objectsMap[change.Subject]
+		obj := objectsMap[id]
 		if obj == nil {
 			continue
 		}
@@ -557,6 +557,35 @@ func (ctrl *ClusterManifestsStatusController) sync(
 	}
 
 	return nil
+}
+
+func manifestGroupForObject(
+	obj fluxobject.ObjMetadata,
+	groups map[string]string,
+	manifests []*unstructured.Unstructured,
+) (string, string, bool) {
+	id := utils.FmtObjMetadata(obj)
+
+	group, ok := groups[id]
+	if ok || obj.Namespace != "" {
+		return id, group, ok
+	}
+
+	for _, manifest := range manifests {
+		manifestObj := fluxobject.UnstructuredToObjMetadata(manifest)
+		if manifestObj.GroupKind != obj.GroupKind || manifestObj.Name != obj.Name {
+			continue
+		}
+
+		manifestID := utils.FmtObjMetadata(manifestObj)
+		group, ok = groups[manifestID]
+
+		if ok {
+			return manifestID, group, true
+		}
+	}
+
+	return id, "", false
 }
 
 func webhookError(err error) bool {

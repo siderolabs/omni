@@ -3,6 +3,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: {{ .Namespace }}
+  # Verify that manifest status tracking handles a namespace which the API
+  # server strips from a cluster-scoped resource.
+  namespace: ignored
 ---
 {{- end }}
 apiVersion: apps/v1

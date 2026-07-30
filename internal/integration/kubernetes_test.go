@@ -668,6 +668,13 @@ func AssertKubernetesManifestsSync(testCtx context.Context, rootClient *client.C
 				assert.Equal(specs.ClusterKubernetesManifestsStatusSpec_ManifestStatus_APPLIED, status.Phase)
 			}
 
+			status, ok = group.Manifests["Namespace/ignored/nginx"]
+			assert.True(ok, "manifests should contain Namespace/ignored/nginx, got: %v", group.Manifests)
+
+			if ok {
+				assert.Equal(specs.ClusterKubernetesManifestsStatusSpec_ManifestStatus_APPLIED, status.Phase)
+			}
+
 			assert.Len(group.Manifests, 2)
 			assert.Len(r.TypedSpec().Value.Groups, 2)
 		})
