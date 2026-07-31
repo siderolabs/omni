@@ -122,6 +122,57 @@ allowedKubernetesNamespaces:
 			expectedError: "1 error occurred:\n\t* element \"os:admin\" is not allowed in field \"allowedRoles\"\n\n",
 		},
 		{
+			// the legacy spelling of KubeAPIServerCAConfig and KubeServiceAccountConfig
+			name: "cluster CA and service account signing key",
+			config: strings.TrimSpace(`
+cluster:
+  ca:
+    crt: YWFhCg==
+    key: YmJiCg==
+  serviceAccount:
+    key: YmJiCg==
+`),
+			expectedError: `2 errors occurred:
+	* overriding "cluster.ca" is not allowed in the config patch
+	* overriding "cluster.serviceAccount" is not allowed in the config patch
+
+`,
+		},
+		{
+			// "serviceAccount: {}" blanks the generated key on merge, so it is as forbidden as
+			// spelling the key out
+			name: "empty service account map",
+			config: strings.TrimSpace(`
+cluster:
+  serviceAccount: {}
+`),
+			expectedError: "1 error occurred:\n\t* overriding \"cluster.serviceAccount\" is not allowed in the config patch\n\n",
+		},
+		{
+			name: "service account signing key in its own document",
+			config: strings.TrimSpace(`
+apiVersion: v1alpha1
+kind: KubeServiceAccountConfig
+issuer:
+  privateKey: LS0tCg==
+  issuerURL: https://172.20.0.1:6443
+`),
+			expectedError: "1 error occurred:\n\t* overriding \"issuer.privateKey\" is not allowed in the config patch\n\n",
+		},
+		{
+			// the rest of the document is the user's to set, only the signing key is Omni's
+			name: "service account document without the signing key",
+			config: strings.TrimSpace(`
+apiVersion: v1alpha1
+kind: KubeServiceAccountConfig
+accepted:
+  publicKeys:
+    - LS0tCg==
+  audiences:
+    - https://172.20.0.1:6443
+`),
+		},
+		{
 			name: "talos API access document without the admin role",
 			config: strings.TrimSpace(`
 apiVersion: v1alpha1
@@ -321,6 +372,58 @@ kind: HostnameConfig
 		{
 			name:            "nothing but forbidden documents",
 			config:          "apiVersion: v1alpha1\nkind: UnattendedInstallConfig\ninstaller:\n  image: example.com/installer:v1.14.0",
+			sanitizedConfig: "",
+		},
+		{
+			name: "cluster CA and service account signing key",
+			config: strings.TrimSpace(`
+cluster:
+  ca:
+    crt: YWFhCg==
+    key: YmJiCg==
+  serviceAccount:
+    key: YmJiCg==
+  network:
+    dnsDomain: cluster.local
+`),
+			sanitizedConfig: strings.TrimSpace(`
+cluster:
+  network:
+    dnsDomain: cluster.local
+`),
+		},
+		{
+			// a leftover "serviceAccount: {}" would blank the generated key on apply, so the whole
+			// patch has to go
+			name:            "nothing but the service account signing key",
+			config:          "cluster:\n  serviceAccount:\n    key: YmJiCg==",
+			sanitizedConfig: "",
+		},
+		{
+			name:            "nothing but an empty service account map",
+			config:          "cluster:\n  serviceAccount: {}",
+			sanitizedConfig: "",
+		},
+		{
+			name: "service account signing key is stripped from its document",
+			config: strings.TrimSpace(`
+apiVersion: v1alpha1
+kind: KubeServiceAccountConfig
+issuer:
+  privateKey: LS0tCg==
+  issuerURL: https://172.20.0.1:6443
+`),
+			sanitizedConfig: strings.TrimSpace(`
+apiVersion: v1alpha1
+issuer:
+  issuerURL: https://172.20.0.1:6443
+kind: KubeServiceAccountConfig
+`),
+		},
+		{
+			// nothing but the kind header would be left, which patches nothing
+			name:            "document holding only the service account signing key",
+			config:          "apiVersion: v1alpha1\nkind: KubeServiceAccountConfig\nissuer:\n  privateKey: LS0tCg==",
 			sanitizedConfig: "",
 		},
 		{

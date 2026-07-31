@@ -36,7 +36,9 @@ var forbiddenFields = []string{
 	"cluster.secret",
 	"cluster.aescbcEncryptionSecret",
 	"cluster.secretboxEncryptionSecret",
+	"cluster.ca",
 	"cluster.acceptedCAs",
+	"cluster.serviceAccount",
 	"machine.token",
 	"machine.ca",
 	"machine.type",
@@ -51,6 +53,10 @@ var forbiddenDocuments = map[string]struct{}{
 	talosk8s.KubeEtcdEncryptionConfig:        {}, // cluster.secretboxEncryptionSecret, cluster.aescbcEncryptionSecret
 	talosk8s.KubeAPIServerCAConfig:           {}, // the Kubernetes CA, private key included
 	talosk8s.KubeAggregatorCAConfig:          {}, // the aggregator CA, private key included
+}
+
+var documentForbiddenFields = map[string][]string{
+	talosk8s.KubeServiceAccountConfig: {"issuer.privateKey"},
 }
 
 type forbiddenElements = map[string]map[any]struct{}
@@ -146,7 +152,7 @@ func ValidateConfigPatch(data []byte) error {
 func validateConfigPatchDocument(document map[string]any) error {
 	var multiErr error
 
-	for _, field := range forbiddenFields {
+	for _, field := range documentFields(document) {
 		if _, ok := getField(document, field); ok {
 			multiErr = multierror.Append(multiErr, fmt.Errorf("overriding %q is not allowed in the config patch", field))
 		}
@@ -179,6 +185,16 @@ func documentKind(document map[string]any) (string, bool) {
 	kind, ok := document["kind"].(string)
 
 	return kind, ok
+}
+
+// documentFields returns the field restrictions that apply to the document.
+func documentFields(document map[string]any) []string {
+	kind, ok := documentKind(document)
+	if !ok {
+		return forbiddenFields
+	}
+
+	return documentForbiddenFields[kind]
 }
 
 // documentElements returns the element restrictions that apply to the document.
@@ -216,8 +232,9 @@ func SanitizeConfigPatch(data []byte) ([]byte, error) {
 
 		sanitized := sanitizeConfigPatch(patch)
 
-		// a patch that held nothing but Omni-controlled fields is dropped rather than emitted empty
-		if len(sanitized) == 0 {
+		// a patch that held nothing but Omni-controlled fields is dropped rather than emitted as an
+		// empty document, or as a kind header that patches nothing
+		if isEmptyDocument(sanitized) {
 			continue
 		}
 
@@ -228,7 +245,7 @@ func SanitizeConfigPatch(data []byte) ([]byte, error) {
 }
 
 func sanitizeConfigPatch(config map[string]any) map[string]any {
-	for _, field := range forbiddenFields {
+	for _, field := range documentFields(config) {
 		if _, ok := getField(config, field); ok {
 			removeField(config, field)
 		}
@@ -264,6 +281,17 @@ func sanitizeConfigPatch(config map[string]any) map[string]any {
 	}
 
 	return config
+}
+
+// isEmptyDocument reports whether the document carries nothing beyond its meta header.
+func isEmptyDocument(document map[string]any) bool {
+	for key := range document {
+		if key != "apiVersion" && key != "kind" {
+			return false
+		}
+	}
+
+	return true
 }
 
 func getField(config map[string]any, field string) (any, bool) {
