@@ -117,4 +117,6 @@ message QuirksSpec {
 
 message VersionContractSpec {
   bool kube_span_multidoc_config = 1;
+  bool multidoc_kubernetes_config_supported = 2;
+  bool multidoc_network_config_supported = 3;
 }

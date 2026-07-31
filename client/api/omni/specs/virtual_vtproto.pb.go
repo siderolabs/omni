@@ -285,6 +285,8 @@ func (m *VersionContractSpec) CloneVT() *VersionContractSpec {
 	}
 	r := new(VersionContractSpec)
 	r.KubeSpanMultidocConfig = m.KubeSpanMultidocConfig
+	r.MultidocKubernetesConfigSupported = m.MultidocKubernetesConfigSupported
+	r.MultidocNetworkConfigSupported = m.MultidocNetworkConfigSupported
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -709,6 +711,12 @@ func (this *VersionContractSpec) EqualVT(that *VersionContractSpec) bool {
 		return false
 	}
 	if this.KubeSpanMultidocConfig != that.KubeSpanMultidocConfig {
+		return false
+	}
+	if this.MultidocKubernetesConfigSupported != that.MultidocKubernetesConfigSupported {
+		return false
+	}
+	if this.MultidocNetworkConfigSupported != that.MultidocNetworkConfigSupported {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1741,6 +1749,26 @@ func (m *VersionContractSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.MultidocNetworkConfigSupported {
+		i--
+		if m.MultidocNetworkConfigSupported {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.MultidocKubernetesConfigSupported {
+		i--
+		if m.MultidocKubernetesConfigSupported {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
 	if m.KubeSpanMultidocConfig {
 		i--
 		if m.KubeSpanMultidocConfig {
@@ -2110,6 +2138,12 @@ func (m *VersionContractSpec) SizeVT() (n int) {
 	var l int
 	_ = l
 	if m.KubeSpanMultidocConfig {
+		n += 2
+	}
+	if m.MultidocKubernetesConfigSupported {
+		n += 2
+	}
+	if m.MultidocNetworkConfigSupported {
 		n += 2
 	}
 	n += len(m.unknownFields)
@@ -4525,6 +4559,46 @@ func (m *VersionContractSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.KubeSpanMultidocConfig = bool(v != 0)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MultidocKubernetesConfigSupported", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.MultidocKubernetesConfigSupported = bool(v != 0)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MultidocNetworkConfigSupported", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.MultidocNetworkConfigSupported = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])

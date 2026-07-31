@@ -996,10 +996,12 @@ func (x *QuirksSpec) GetSupportsEmbeddedConfig() bool {
 }
 
 type VersionContractSpec struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	KubeSpanMultidocConfig bool                   `protobuf:"varint,1,opt,name=kube_span_multidoc_config,json=kubeSpanMultidocConfig,proto3" json:"kube_span_multidoc_config,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"open.v1"`
+	KubeSpanMultidocConfig            bool                   `protobuf:"varint,1,opt,name=kube_span_multidoc_config,json=kubeSpanMultidocConfig,proto3" json:"kube_span_multidoc_config,omitempty"`
+	MultidocKubernetesConfigSupported bool                   `protobuf:"varint,2,opt,name=multidoc_kubernetes_config_supported,json=multidocKubernetesConfigSupported,proto3" json:"multidoc_kubernetes_config_supported,omitempty"`
+	MultidocNetworkConfigSupported    bool                   `protobuf:"varint,3,opt,name=multidoc_network_config_supported,json=multidocNetworkConfigSupported,proto3" json:"multidoc_network_config_supported,omitempty"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *VersionContractSpec) Reset() {
@@ -1035,6 +1037,20 @@ func (*VersionContractSpec) Descriptor() ([]byte, []int) {
 func (x *VersionContractSpec) GetKubeSpanMultidocConfig() bool {
 	if x != nil {
 		return x.KubeSpanMultidocConfig
+	}
+	return false
+}
+
+func (x *VersionContractSpec) GetMultidocKubernetesConfigSupported() bool {
+	if x != nil {
+		return x.MultidocKubernetesConfigSupported
+	}
+	return false
+}
+
+func (x *VersionContractSpec) GetMultidocNetworkConfigSupported() bool {
+	if x != nil {
+		return x.MultidocNetworkConfigSupported
 	}
 	return false
 }
@@ -1186,9 +1202,11 @@ const file_omni_specs_virtual_proto_rawDesc = "" +
 	"QuirksSpec\x12<\n" +
 	"\x1asupports_unified_installer\x18\x01 \x01(\bR\x18supportsUnifiedInstaller\x12:\n" +
 	"\x19supports_factory_talosctl\x18\x02 \x01(\bR\x17supportsFactoryTalosctl\x128\n" +
-	"\x18supports_embedded_config\x18\x03 \x01(\bR\x16supportsEmbeddedConfig\"P\n" +
+	"\x18supports_embedded_config\x18\x03 \x01(\bR\x16supportsEmbeddedConfig\"\xec\x01\n" +
 	"\x13VersionContractSpec\x129\n" +
-	"\x19kube_span_multidoc_config\x18\x01 \x01(\bR\x16kubeSpanMultidocConfigB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
+	"\x19kube_span_multidoc_config\x18\x01 \x01(\bR\x16kubeSpanMultidocConfig\x12O\n" +
+	"$multidoc_kubernetes_config_supported\x18\x02 \x01(\bR!multidocKubernetesConfigSupported\x12I\n" +
+	"!multidoc_network_config_supported\x18\x03 \x01(\bR\x1emultidocNetworkConfigSupportedB2Z0github.com/siderolabs/omni/client/api/omni/specsb\x06proto3"
 
 var (
 	file_omni_specs_virtual_proto_rawDescOnce sync.Once
