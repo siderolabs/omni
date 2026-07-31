@@ -21,7 +21,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jxskiss/base62 v1.1.0
 	github.com/klauspost/compress v1.19.1
-	github.com/mattn/go-isatty v0.0.23
+	github.com/mattn/go-isatty v0.0.24
 	github.com/neticdk/go-stdlib v1.0.1
 	github.com/planetscale/vtprotobuf v0.6.1-0.20260702190614-8ae5a48058df
 	github.com/sergi/go-diff v1.4.0
@@ -31,7 +31,7 @@ require (
 	github.com/siderolabs/image-factory v1.4.0
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.16
-	github.com/siderolabs/talos/pkg/machinery v1.14.0-beta.0.0.20260729134436-6170ad8b9e0c
+	github.com/siderolabs/talos/pkg/machinery v1.14.0-beta.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/xlab/treeprint v1.2.0

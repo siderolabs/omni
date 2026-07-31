@@ -18,4 +18,6 @@ export type StatusSpec = {
   synced?: boolean
   epoch?: number
   syncDisabled?: boolean
+  spikeDetected?: boolean
+  consecutiveSpikes?: number
 }
