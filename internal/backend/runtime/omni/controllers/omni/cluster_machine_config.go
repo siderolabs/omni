@@ -28,6 +28,7 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/container"
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate"
+	"github.com/siderolabs/talos/pkg/machinery/config/generate/rotatepatcher"
 	machineapi "github.com/siderolabs/talos/pkg/machinery/config/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/k8s"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
@@ -494,26 +495,26 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 
 	cfg := genOutput.Config
 
-	if clusterMachineSecrets.TypedSpec().Value.GetRotation() != nil {
+	if rotation := clusterMachineSecrets.TypedSpec().Value.GetRotation(); rotation != nil {
 		cfg, err = cfg.PatchV1Alpha1(func(config *v1alpha1.Config) error {
 			machineAcceptedCAs := []*x509.PEMEncodedCertificate{{Crt: secretsBundle.Certs.OS.Crt}}
-			if clusterMachineSecrets.TypedSpec().Value.GetRotation().GetExtraCerts().GetOs() != nil {
-				machineAcceptedCAs = append(machineAcceptedCAs, &x509.PEMEncodedCertificate{Crt: clusterMachineSecrets.TypedSpec().Value.Rotation.ExtraCerts.Os.Crt})
+			if rotation.GetExtraCerts().GetOs() != nil {
+				machineAcceptedCAs = append(machineAcceptedCAs, &x509.PEMEncodedCertificate{Crt: rotation.ExtraCerts.Os.Crt})
 			}
 
 			config.MachineConfig.MachineAcceptedCAs = machineAcceptedCAs
-
-			clusterAcceptedCAs := []*x509.PEMEncodedCertificate{{Crt: secretsBundle.Certs.K8s.Crt}}
-			if clusterMachineSecrets.TypedSpec().Value.GetRotation().GetExtraCerts().GetK8S() != nil {
-				clusterAcceptedCAs = append(clusterAcceptedCAs, &x509.PEMEncodedCertificate{Crt: clusterMachineSecrets.TypedSpec().Value.Rotation.ExtraCerts.K8S.Crt})
-			}
-
-			config.ClusterConfig.ClusterAcceptedCAs = clusterAcceptedCAs //nolint:staticcheck
 
 			return nil
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to patch machine config: %w", err)
+		}
+
+		if extraK8s := rotation.GetExtraCerts().GetK8S(); extraK8s != nil {
+			cfg, err = rotatepatcher.K8sAddAcceptedCA(extraK8s.Crt)(cfg)
+			if err != nil {
+				return nil, fmt.Errorf("failed to add the accepted Kubernetes CA: %w", err)
+			}
 		}
 	}
 
