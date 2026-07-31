@@ -16,7 +16,24 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/internal/backend/logging"
 )
+
+// noKnownEndpointError is what wireguard-go reports when it has to send to a peer it has never heard from.
+//
+// It comes from an inline errors.New, so there is no sentinel to compare against.
+const noKnownEndpointError = "no known endpoint for peer"
+
+// wireguardLogger builds the logger for the WireGuard device.
+//
+// A peer keeps its configuration while its machine is offline, so every keepalive-triggered handshake
+// attempt fails until that machine dials in, and wireguard-go reports each failure. That works out to
+// about one warning every four seconds per offline machine, which buries everything else once a few of
+// them pile up. Nothing is lost by dropping them, since the Link resource already reports whether a
+// machine is connected.
+func wireguardLogger(logger *zap.Logger) *zap.Logger {
+	return logging.DropMessagesContaining(logging.IncreaseLevel(logger, zap.InfoLevel), noKnownEndpointError)
+}
 
 // WireguardHandler abstraction around peer handler and wgDevice.
 type WireguardHandler interface {

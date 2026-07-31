@@ -489,7 +489,7 @@ func (manager *Manager) startWireguard(ctx context.Context, eg *errgroup.Group, 
 			}
 		}()
 
-		return manager.wgHandler.Run(ctx, logging.IncreaseLevel(manager.logger, zap.InfoLevel))
+		return manager.wgHandler.Run(ctx, wireguardLogger(manager.logger))
 	})
 
 	return nil
