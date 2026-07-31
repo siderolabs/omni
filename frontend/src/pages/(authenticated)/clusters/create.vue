@@ -5,7 +5,6 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { dump } from 'js-yaml'
 import { compare } from 'semver'
 import type { Ref } from 'vue'
 import { computed, onMounted, ref, useTemplateRef, watch, watchEffect } from 'vue'
@@ -18,6 +17,7 @@ import type {
   MachineStatusSpec,
   TalosVersionSpec,
 } from '@/api/omni/specs/omni.pb'
+import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb'
 import {
   DefaultKubernetesVersion,
   DefaultNamespace,
@@ -31,6 +31,8 @@ import {
   PatchBaseWeightCluster,
   PatchBaseWeightMachineSet,
   TalosVersionType,
+  VersionContractType,
+  VirtualNamespace,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
@@ -47,6 +49,8 @@ import { usePermissions } from '@/methods/auth'
 import { ClusterCommandError, clusterSync, nextAvailableClusterName } from '@/methods/cluster'
 import { machineCompatibleWithCluster } from '@/methods/compat'
 import { useFeatures } from '@/methods/features'
+import { getPatch } from '@/methods/getPatch'
+import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import { initState, PatchID } from '@/states/cluster-management'
@@ -88,10 +92,6 @@ const removeLabels = (_: string, ...keys: string[]) => {
   state.value.removeClusterLabels(keys)
 }
 
-const supportsEncryption = computed(
-  () => compare(state.value.cluster.talosVersion ?? '', 'v1.5.0') >= 0,
-)
-
 const router = useRouter()
 
 const kubernetesVersionSelector = useTemplateRef('kubernetesVersionSelector')
@@ -103,6 +103,16 @@ const { data: talosVersionsList } = useResourceWatch<TalosVersionSpec>({
     namespace: DefaultNamespace,
   },
 })
+
+const { data: versionContract } = useResourceGet<VersionContractSpec>(() => ({
+  skip: !state.value.cluster.talosVersion,
+  runtime: Runtime.Omni,
+  resource: {
+    type: VersionContractType,
+    namespace: VirtualNamespace,
+    id: state.value.cluster.talosVersion!,
+  },
+}))
 
 const reset = ref(0)
 
@@ -194,11 +204,7 @@ const createCluster_ = async (untaint: boolean) => {
 
   if (untaint) {
     state.value.controlPlanes().patches[PatchID.Untaint] = {
-      data: dump({
-        cluster: {
-          allowSchedulingOnControlPlanes: true,
-        },
-      }),
+      data: await getPatch(versionContract.value!.spec, 'untaintNode'),
       weight: PatchBaseWeightMachineSet,
       systemPatch: true,
     }
@@ -327,11 +333,7 @@ const list = useTemplateRef('list')
               <p>Once cluster is created it is not possible to update encryption settings.</p>
             </div>
           </template>
-          <TCheckbox
-            v-model="state.cluster.features.encryptDisks"
-            label="Encrypt Disks"
-            :disabled="!supportsEncryption"
-          />
+          <TCheckbox v-model="state.cluster.features.encryptDisks" label="Encrypt Disks" />
         </Tooltip>
         <ClusterWorkloadProxyingCheckbox
           v-model="state.cluster.features.enableWorkloadProxy"
@@ -390,6 +392,7 @@ const list = useTemplateRef('list')
           <ClusterMachineItem
             v-for="item in items"
             :key="item.metadata.id"
+            :version-contract
             :version-mismatch="detectVersionMismatch(item)"
             :auto-install-notice="detectAutoInstallNotice(item)"
             :reset="reset"

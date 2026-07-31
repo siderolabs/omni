@@ -5,6 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { computedAsync } from '@vueuse/core'
 import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -41,6 +42,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
 import { useClusterPermissions } from '@/methods/auth'
+import { getPatch } from '@/methods/getPatch'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
@@ -120,23 +122,10 @@ const features: { icon: IconType; title: string; description: string }[] = [
 // The Talos machine config patch that enables KubeSpan for the whole cluster.
 // Cluster discovery must be enabled for KubeSpan to work; it is on by default,
 // but we set it explicitly to be safe.
-const kubeSpanPatch = computed(() => {
+const kubeSpanPatch = computedAsync(() => {
   if (!versionContract.value) return
 
-  if (versionContract.value.spec.kube_span_multidoc_config) {
-    return `apiVersion: v1alpha1
-kind: KubeSpanConfig
-enabled: true`
-  }
-
-  return `machine:
-  network:
-    kubespan:
-      enabled: true
-cluster:
-  discovery:
-    enabled: true
-`
+  return getPatch(versionContract.value.spec, 'kubeSpan')
 })
 
 const confirmOpen = ref(false)
