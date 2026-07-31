@@ -275,6 +275,7 @@ func collectNodeInfo(ctx context.Context, talosCli talosClientWrapper, node stri
 	return info, nil
 }
 
+//nolint:gocognit
 func newContext(input Input, talosCli talosClientWrapper, imageFactoryClients *imagefactory.Clients, nodeInfoMap map[string]nodeInfo,
 	joinOptions *siderolink.JoinOptions, omniState state.State, clusterID string, versions Versions,
 ) (*Context, error) {
@@ -381,6 +382,11 @@ func newContext(input Input, talosCli talosClientWrapper, imageFactoryClients *i
 			sanitizedDiffBytes, patchErr := omni.SanitizeConfigPatch(patchBytes)
 			if patchErr != nil {
 				return nil, fmt.Errorf("failed to sanitize config patch for node %q: %w", node, patchErr)
+			}
+
+			// An empty patch would fail validation on create, so skip instead.
+			if len(sanitizedDiffBytes) == 0 {
+				continue
 			}
 
 			configPatchID := fmt.Sprintf("%d-%s", (i+1)*10, info.machineID)

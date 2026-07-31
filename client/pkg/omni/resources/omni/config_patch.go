@@ -18,6 +18,9 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
+	taloscluster "github.com/siderolabs/talos/pkg/machinery/config/types/cluster"
+	talosk8s "github.com/siderolabs/talos/pkg/machinery/config/types/k8s"
+	talosruntime "github.com/siderolabs/talos/pkg/machinery/config/types/runtime"
 	talosrole "github.com/siderolabs/talos/pkg/machinery/role"
 	"go.yaml.in/yaml/v4"
 
@@ -41,9 +44,28 @@ var forbiddenFields = []string{
 	"machine.acceptedCAs",
 }
 
-var forbiddenSliceElements = map[string]map[any]struct{}{
+var forbiddenDocuments = map[string]struct{}{
+	talosruntime.UnattendedInstallConfigKind: {}, // not supported in Omni
+	taloscluster.DiscoveryIdentityKind:       {}, // cluster.id, cluster.secret
+	talosk8s.KubeClusterConfig:               {}, // cluster.clusterName, cluster.controlPlane.endpoint
+	talosk8s.KubeEtcdEncryptionConfig:        {}, // cluster.secretboxEncryptionSecret, cluster.aescbcEncryptionSecret
+	talosk8s.KubeAPIServerCAConfig:           {}, // the Kubernetes CA, private key included
+	talosk8s.KubeAggregatorCAConfig:          {}, // the aggregator CA, private key included
+}
+
+type forbiddenElements = map[string]map[any]struct{}
+
+var forbiddenSliceElements = forbiddenElements{
 	"machine.features.kubernetesTalosAPIAccess.allowedRoles": {
 		string(talosrole.Admin): {},
+	},
+}
+
+var documentForbiddenSliceElements = map[string]forbiddenElements{
+	talosk8s.KubeTalosAPIAccessConfig: {
+		"allowedRoles": {
+			string(talosrole.Admin): {},
+		},
 	},
 }
 
@@ -95,23 +117,43 @@ func ValidateConfigPatch(data []byte) error {
 		return err
 	}
 
-	var config map[string]any
-
-	err = yaml.Unmarshal(data, &config)
+	documents, err := decodeFromYAML(data)
 	if err != nil {
 		return err
 	}
 
 	var multiErr error
 
+	// every document has to be checked: the v1alpha1 one that forbiddenFields describes can appear
+	// at any position, and a forbidden document can appear more than once
+	for _, document := range documents {
+		if kind, ok := documentKind(document); ok {
+			if _, forbidden := forbiddenDocuments[kind]; forbidden {
+				multiErr = multierror.Append(multiErr, fmt.Errorf("the %q document is not allowed in the config patch", kind))
+
+				continue
+			}
+		}
+
+		if documentErr := validateConfigPatchDocument(document); documentErr != nil {
+			multiErr = multierror.Append(multiErr, documentErr)
+		}
+	}
+
+	return multiErr
+}
+
+func validateConfigPatchDocument(document map[string]any) error {
+	var multiErr error
+
 	for _, field := range forbiddenFields {
-		if _, ok := getField(config, field); ok {
+		if _, ok := getField(document, field); ok {
 			multiErr = multierror.Append(multiErr, fmt.Errorf("overriding %q is not allowed in the config patch", field))
 		}
 	}
 
-	for field, forbiddenElementSet := range forbiddenSliceElements {
-		val, ok := getField(config, field)
+	for field, forbiddenElementSet := range documentElements(document) {
+		val, ok := getField(document, field)
 		if !ok {
 			continue
 		}
@@ -131,6 +173,24 @@ func ValidateConfigPatch(data []byte) error {
 	return multiErr
 }
 
+// documentKind returns the kind of a multi-document config document. The legacy v1alpha1 document
+// carries no kind, so it reports false.
+func documentKind(document map[string]any) (string, bool) {
+	kind, ok := document["kind"].(string)
+
+	return kind, ok
+}
+
+// documentElements returns the element restrictions that apply to the document.
+func documentElements(document map[string]any) forbiddenElements {
+	kind, ok := documentKind(document)
+	if !ok {
+		return forbiddenSliceElements
+	}
+
+	return documentForbiddenSliceElements[kind]
+}
+
 // SanitizeConfigPatch parses the config patch data using Talos config loader,
 // then sanitizes that the config patch so it doesn't have fields that are controlled by omni.
 func SanitizeConfigPatch(data []byte) ([]byte, error) {
@@ -145,9 +205,23 @@ func SanitizeConfigPatch(data []byte) ([]byte, error) {
 	}
 
 	sanitizedPatches := make([]map[string]any, 0, len(patches))
+
 	for _, patch := range patches {
-		sanitizePatch := sanitizeConfigPatch(patch)
-		sanitizedPatches = append(sanitizedPatches, sanitizePatch)
+		// filter out patches for forbidden documents altogether
+		if kind, ok := documentKind(patch); ok {
+			if _, forbidden := forbiddenDocuments[kind]; forbidden {
+				continue
+			}
+		}
+
+		sanitized := sanitizeConfigPatch(patch)
+
+		// a patch that held nothing but Omni-controlled fields is dropped rather than emitted empty
+		if len(sanitized) == 0 {
+			continue
+		}
+
+		sanitizedPatches = append(sanitizedPatches, sanitized)
 	}
 
 	return encodeToYAML(sanitizedPatches)
@@ -171,7 +245,7 @@ func sanitizeConfigPatch(config map[string]any) map[string]any {
 		}
 	}
 
-	for field, forbiddenElementSet := range forbiddenSliceElements {
+	for field, forbiddenElementSet := range documentElements(config) {
 		val, ok := getField(config, field)
 		if !ok {
 			continue
@@ -293,6 +367,11 @@ func removeFieldElement(m map[string]any, field string, element any) {
 }
 
 func encodeToYAML(docs []map[string]any) ([]byte, error) {
+	// the encoder rejects a Close without a document, which happens when every document was dropped
+	if len(docs) == 0 {
+		return nil, nil
+	}
+
 	var buf bytes.Buffer
 
 	enc := yaml.NewEncoder(&buf)
