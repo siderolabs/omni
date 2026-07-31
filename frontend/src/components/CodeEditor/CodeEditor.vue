@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script lang="ts">
 import * as monaco from 'monaco-editor'
-import { configureMonacoYaml, type SchemasSettings } from 'monaco-yaml'
+import { configureMonacoYaml, type JSONSchema, type SchemasSettings } from 'monaco-yaml'
 
 import { getDocsLink } from '@/methods'
 import configSchemas from '@/schemas'
@@ -39,20 +39,40 @@ const configSchemaMap = Object.entries(configSchemas).map(
     [path.replace(/\.\/config_(.*)\.schema\.json/, '$1').replace('_', '.'), schema] as const,
 )
 
+function withPatchDelete(node: boolean | JSONSchema, version: string): boolean | JSONSchema {
+  if (typeof node !== 'object') return node
+
+  if (node.properties) {
+    node.properties.$patch = {
+      type: 'string',
+      title: '$patch',
+      enum: ['delete'],
+      description: `Delete the configuration block with a strategic merge delete patch.\nSee ${getDocsLink('talos', '/configure-your-talos-cluster/system-configuration/patching', { talosVersion: version })}`,
+    }
+
+    for (const key in node.properties) {
+      if (key === '$patch') continue
+
+      node.properties[key] = withPatchDelete(node.properties[key], version)
+    }
+  }
+
+  // Map-shaped schemas (e.g. `taints`, `labels`) use `patternProperties` instead of
+  // `properties`, so their value schemas need patching too.
+  if (node.patternProperties) {
+    for (const key in node.patternProperties) {
+      node.patternProperties[key] = withPatchDelete(node.patternProperties[key], version)
+    }
+  }
+
+  return node
+}
+
 const versionedSchemas = configSchemaMap.map(([version, origSchema]) => {
   const schema: typeof origSchema = JSON.parse(JSON.stringify(origSchema))
 
   for (const name in schema.$defs) {
-    const def = schema.$defs[name as keyof typeof schema.$defs]
-
-    if (def.properties) {
-      def.properties.$patch = {
-        type: 'string',
-        title: '$patch',
-        enum: ['delete'],
-        description: `Delete the configuration block with a strategic merge delete patch.\nSee ${getDocsLink('talos', '/configure-your-talos-cluster/system-configuration/patching', { talosVersion: version })}`,
-      }
-    }
+    schema.$defs[name] = withPatchDelete(schema.$defs[name], version) as JSONSchema
   }
 
   return {
