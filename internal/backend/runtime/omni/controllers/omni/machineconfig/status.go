@@ -1169,7 +1169,18 @@ func (ctrl *StatusController) reset(
 		}
 	}
 
-	err = c.ResetGeneric(ctx, &machineapi.ResetRequest{
+	return ctrl.resetMachine(ctx, c, logger, graceful, machineID, machineStatus.TypedSpec().Value.TalosVersion)
+}
+
+func (ctrl *StatusController) resetMachine(
+	ctx context.Context,
+	c *client.Client,
+	logger *zap.Logger,
+	graceful bool,
+	machineID resource.ID,
+	talosVersionStr string,
+) error {
+	resetRequest := &machineapi.ResetRequest{
 		Graceful: graceful,
 		Reboot:   true,
 		SystemPartitionsToWipe: []*machineapi.ResetPartitionSpec{
@@ -1182,20 +1193,37 @@ func (ctrl *StatusController) reset(
 				Wipe:  true,
 			},
 		},
-	})
-	if err == nil {
-		attempt := ctrl.ongoingResets.handleReset(machineID)
-		logger.Info("resetting node", zap.Uint("attempt", attempt), zap.Bool("graceful", graceful))
-
-		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("check back when machine '%s' gets into maintenance mode", machineID)
 	}
 
-	logger.Error(
-		"failed resetting node",
-		zap.Error(err),
-	)
+	talosVersion, err := semver.ParseTolerant(talosVersionStr)
+	if err != nil {
+		return fmt.Errorf("failed to parse talos version %q: %w", talosVersionStr, err)
+	}
 
-	return fmt.Errorf("failed resetting node '%s': %w", machineID, err)
+	if talosVersion.GTE(semver.MustParse("1.14.0-beta.1")) {
+		resetRequest.SystemPartitionsToWipe = append(
+			resetRequest.SystemPartitionsToWipe,
+			&machineapi.ResetPartitionSpec{Label: constants.CRIContainerdVolumeID, Wipe: true},
+			&machineapi.ResetPartitionSpec{Label: constants.KubeletDataVolumeID, Wipe: true},
+			&machineapi.ResetPartitionSpec{Label: constants.EtcdDataVolumeID, Wipe: true},
+			&machineapi.ResetPartitionSpec{Label: constants.LogVolumeID, Wipe: true},
+		)
+	}
+
+	err = c.ResetGeneric(ctx, resetRequest)
+	if err != nil {
+		logger.Error(
+			"failed resetting node",
+			zap.Error(err),
+		)
+
+		return fmt.Errorf("failed resetting node '%s': %w", machineID, err)
+	}
+
+	attempt := ctrl.ongoingResets.handleReset(machineID)
+	logger.Info("resetting node", zap.Uint("attempt", attempt), zap.Bool("graceful", graceful))
+
+	return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("check back when machine '%s' gets into maintenance mode", machineID)
 }
 
 func (ctrl *StatusController) shouldReset(

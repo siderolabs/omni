@@ -1811,6 +1811,130 @@ func createCluster(
 	return cluster, machines
 }
 
+// TestResetSystemPartitionsToWipe verifies which system partitions Omni asks Talos
+// to wipe on reset: Talos 1.14.0-beta.1+ additionally wipes the CRI, KUBELET, ETCD
+// and LOG volumes. Omni always requests all of them regardless of whether they
+// exist on the machine - Talos itself skips labels with no matching volume.
+//
+// It also guards against a Talos version carrying a "v" prefix, which must be parsed
+// without panicking the controller.
+func TestResetSystemPartitionsToWipe(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name           string
+		talosVersion   string
+		expectedLabels []string
+	}{
+		{
+			name:           "pre-1.14 wipes STATE and EPHEMERAL only",
+			talosVersion:   "1.13.0",
+			expectedLabels: []string{"EPHEMERAL", "STATE"},
+		},
+		{
+			name:           "1.14 also wipes CRI, KUBELET, ETCD and LOG",
+			talosVersion:   "1.14.1",
+			expectedLabels: []string{"EPHEMERAL", "STATE", "CRI", "KUBELET", "ETCD", "LOG"},
+		},
+		{
+			name:           "1.14 alpha predates the beta.1 cutoff and wipes STATE and EPHEMERAL only",
+			talosVersion:   "1.14.0-alpha.2",
+			expectedLabels: []string{"EPHEMERAL", "STATE"},
+		},
+		{
+			name:           "1.14 beta.0 predates the beta.1 cutoff and wipes STATE and EPHEMERAL only",
+			talosVersion:   "1.14.0-beta.0",
+			expectedLabels: []string{"EPHEMERAL", "STATE"},
+		},
+		{
+			name:           "1.14 beta.1 meets the cutoff and also wipes CRI, KUBELET, ETCD and LOG",
+			talosVersion:   "1.14.0-beta.1",
+			expectedLabels: []string{"EPHEMERAL", "STATE", "CRI", "KUBELET", "ETCD", "LOG"},
+		},
+		{
+			name:           "v-prefixed version is parsed without panicking",
+			talosVersion:   "v1.14.1",
+			expectedLabels: []string{"EPHEMERAL", "STATE", "CRI", "KUBELET", "ETCD", "LOG"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+			t.Cleanup(cancel)
+
+			testutils.WithRuntime(
+				ctx, t, testutils.TestOptions{DisableCache: true},
+				func(_ context.Context, testContext testutils.TestContext) {
+					require.NoError(t, testContext.Runtime.RegisterQController(
+						machineconfig.NewStatusController(testutils.NewLifecycleManager(t, testContext.State, nil)),
+					))
+				},
+				func(ctx context.Context, testContext testutils.TestContext) {
+					machineServices := testutils.NewMachineServices(t, testContext.State)
+
+					resetHandler := func(ctx context.Context, _ *machine.ResetRequest, st state.State, id string) (*machine.ResetResponse, error) {
+						if err := safe.StateModify(
+							ctx, st, omni.NewMachineStatusSnapshot(id),
+							func(res *omni.MachineStatusSnapshot) error {
+								res.TypedSpec().Value.MachineStatus.Stage = machine.MachineStatusEvent_MAINTENANCE
+
+								return nil
+							},
+						); err != nil {
+							return nil, err
+						}
+
+						return &machine.ResetResponse{}, nil
+					}
+
+					_, machines := createCluster(ctx, t, testContext.State, machineServices, "reset-partitions", 3, 3)
+
+					machineServices.ForEach(func(m *testutils.MachineServiceMock) {
+						m.OnReset = resetHandler
+					})
+
+					ids := xslices.Map(machines, func(m *omni.ClusterMachine) string {
+						return m.Metadata().ID()
+					})
+
+					// Let the machines configure with the default version (matching the cluster,
+					// so no upgrade is required), then pin the reported Talos version before tearing
+					// down: the reset path reads it to decide which partitions to wipe.
+					rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+						a.NotEmpty(res.TypedSpec().Value.ClusterMachineConfigSha256)
+					})
+
+					for _, id := range ids {
+						require.NoError(t, safe.StateModify(ctx, testContext.State, omni.NewMachineStatus(id), func(res *omni.MachineStatus) error {
+							res.TypedSpec().Value.TalosVersion = tt.talosVersion
+
+							return nil
+						}))
+					}
+
+					rmock.Destroy[*omni.ClusterMachineConfig](ctx, t, testContext.State, ids)
+
+					for _, id := range ids {
+						rtestutils.AssertNoResource[*omni.ClusterMachineConfigStatus](ctx, t, testContext.State, id)
+					}
+
+					machineServices.ForEach(func(machineServer *testutils.MachineServiceMock) {
+						requests := machineServer.GetResetRequests()
+						require.NotEmpty(t, requests)
+
+						labels := xslices.Map(requests[len(requests)-1].SystemPartitionsToWipe, func(p *machine.ResetPartitionSpec) string {
+							return p.Label
+						})
+
+						assert.ElementsMatch(t, tt.expectedLabels, labels)
+					})
+				},
+			)
+		})
+	}
+}
+
 // TestUpgradeLockReleasedBeforeConfigApply is a regression test for siderolabs/omni#2805.
 //
 // Once a machine is in sync, it must release the upgrade lock before entering the
