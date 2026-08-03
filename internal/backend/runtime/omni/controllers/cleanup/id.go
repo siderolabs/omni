@@ -33,9 +33,7 @@ func (h *SameIDHandler[I, O]) FinalizerRemoval(ctx context.Context, r controller
 		resource.VersionUndefined,
 	)
 
-	// Use GetUncached to bypass the controller runtime cache. A cached miss here would cause the handler to skip cleanup permanently (the finalizer gets removed
-	// and the orphaned resource is never retried).
-	res, err := r.GetUncached(ctx, md)
+	res, err := r.Get(ctx, md)
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return nil
@@ -101,9 +99,7 @@ func IDHandleFunc[I, O generic.ResourceWithRD](getIDFunc GetIDFunc[I], blockIfOw
 			resource.VersionUndefined,
 		)
 
-		// Use GetUncached to bypass the controller runtime cache. A cached miss here would cause the handler to skip cleanup permanently (the finalizer gets removed
-		// and the orphaned resource is never retried).
-		res, err := r.GetUncached(ctx, md)
+		res, err := r.Get(ctx, md)
 		if err != nil {
 			if state.IsNotFoundError(err) {
 				return nil

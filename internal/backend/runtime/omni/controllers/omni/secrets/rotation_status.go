@@ -33,7 +33,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/secretrotation"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/sequence"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 )
 
 // RotationStatusControllerName is the name of the SecretRotationStatusController.
@@ -184,13 +183,6 @@ func (s *Rotator) createInitialStage(currentPhase specs.SecretRotationSpec_Phase
 		version, _ = rotationStatus.Metadata().Annotations().Get(omni.RotateKubernetesCAVersion)
 		shouldRotateKubernetesCA := rotateKubernetesCA != nil && version != rotateKubernetesCA.Metadata().Version().String()
 
-		// We should use an uncached reader if we need to do a rotation. This is because a rotation is a one-time operation, therefore
-		// we cannot tolerate stale reads during it - eventual consistency doesn't work for us here.
-		// We have observed a flake in the unit tests, caused by a stale read of ClusterMachineStatus resources.
-		if shouldRotateTalosCA || shouldRotateKubernetesCA {
-			r = uncached.ReaderWriter(r)
-		}
-
 		rotationStatus.TypedSpec().Value.Component = specs.SecretRotationSpec_NONE
 		rotationStatus.TypedSpec().Value.Phase = currentPhase
 		rotationStatus.TypedSpec().Value.Status = ""
@@ -310,7 +302,7 @@ func (s *Rotator) addRotationStage(previousPhase, currentPhase specs.SecretRotat
 	sequenceContext sequence.Context[*omni.ClusterSecrets, *omni.ClusterSecretsRotationStatus],
 ) error {
 	return func(ctx context.Context, logger *zap.Logger, sequenceContext sequence.Context[*omni.ClusterSecrets, *omni.ClusterSecretsRotationStatus]) error {
-		r := uncached.ReaderWriter(sequenceContext.Runtime)
+		r := sequenceContext.Runtime
 		clusterSecrets := sequenceContext.Input
 		rotationStatus := sequenceContext.Output
 		rotationStatus.TypedSpec().Value.Phase = currentPhase

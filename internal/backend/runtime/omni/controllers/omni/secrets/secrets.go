@@ -30,7 +30,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 )
 
 // Controller creates omni.ClusterSecrets for each inputed omni.Cluster.
@@ -87,19 +86,7 @@ func NewSecretsController(etcdBackupStoreFactory store.Factory) *Controller {
 					return err
 				}
 
-				// Here, we need to use uncached reader, since once Secrets is created, it will never be attempted again,
-				// because of this, we cannot tolerate a stale read - later reconciliation will not put things back in order.
-				// The precise sequence of events we want to avoid is:
-				//
-				// t0: ImportedClusterSecrets is created
-				// t1: Control Plane MachineSet is created
-				// t2: The controller wakes up due to MachineSet was mapped to Cluster:
-				// - it can read the MachineSet and proceeds
-				// - despite ImportedClusterSecrets was created before, it is not yet visible to the controller due to the controller runtime cache
-				// - the controller proceeds to create a new bundle
-				// t3: ImportedClusterSecrets notification wakes up the controller, but the bundle is already there, the controller does not do anything
-
-				ics, err := safe.ReaderGetByID[*omni.ImportedClusterSecrets](ctx, uncached.Reader(r), cluster.Metadata().ID())
+				ics, err := safe.ReaderGetByID[*omni.ImportedClusterSecrets](ctx, r, cluster.Metadata().ID())
 				if err != nil && !state.IsNotFoundError(err) {
 					return err
 				}

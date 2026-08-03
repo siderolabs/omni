@@ -41,7 +41,6 @@ import (
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/imagefactoryauth"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
@@ -278,8 +277,7 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 	}
 
 	// wait for the machine's incoming config to be extracted before applying anything, otherwise we could overwrite (and lose) the config the machine arrived with before it is preserved.
-	// read uncached, to avoid acting on a stale (or not yet visible) extraction status.
-	extractionStatus, err := safe.ReaderGetByID[*omni.MachineConfigExtractionStatus](ctx, uncached.Reader(r), link.Metadata().ID())
+	extractionStatus, err := safe.ReaderGetByID[*omni.MachineConfigExtractionStatus](ctx, r, link.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return err
 	}
@@ -288,8 +286,7 @@ func (helper *maintenanceConfigStatusControllerHelper) transform(ctx context.Con
 		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("machine config has not been extracted yet")
 	}
 
-	// read machine config patches uncached, to avoid acting on a stale (or not yet visible) just-extracted preserved config patch
-	machinePatches, err := getMachinePatches(ctx, uncached.Reader(r), link.Metadata().ID())
+	machinePatches, err := getMachinePatches(ctx, r, link.Metadata().ID())
 	if err != nil {
 		return fmt.Errorf("error collecting machine config patches: %w", err)
 	}
