@@ -12,12 +12,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type {
+  ClusterConfigVersionSpec,
   ClusterSpec,
   MachineConfigGenOptionsSpec,
   MachineStatusSpec,
 } from '@/api/omni/specs/omni.pb'
 import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb'
 import {
+  ClusterConfigVersionType,
   DefaultNamespace,
   LabelNoManualAllocation,
   MachineConfigGenOptionsType,
@@ -139,17 +141,26 @@ const {
   runtime: Runtime.Omni,
 })
 
+const { data: clusterConfigVersion } = useResourceGet<ClusterConfigVersionSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: ClusterConfigVersionType,
+    id: currentCluster.metadata.id,
+  },
+}))
+
 const {
   data: versionContract,
   loading: versionContractLoading,
   error: versionContractErr,
 } = useResourceGet<VersionContractSpec>(() => ({
-  skip: !state.value.cluster.talosVersion,
+  skip: !clusterConfigVersion.value?.spec.version,
   runtime: Runtime.Omni,
   resource: {
     namespace: VirtualNamespace,
     type: VersionContractType,
-    id: state.value.cluster.talosVersion!,
+    id: clusterConfigVersion.value?.spec.version,
   },
 }))
 
