@@ -405,7 +405,7 @@ const list = useTemplateRef('list')
 
           <AddingMachinesTutorial class="mt-4" />
         </template>
-        <template #default="{ items, searchQuery }">
+        <template v-if="versionContract" #default="{ items, searchQuery }">
           <ClusterMachineItem
             v-for="item in items"
             :key="item.metadata.id"

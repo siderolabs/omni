@@ -48,7 +48,7 @@ const {
   autoInstallNotice = null,
 } = defineProps<{
   item: Resource<MachineStatusSpec & MachineConfigGenOptionsSpec>
-  versionContract?: Resource<VersionContractSpec>
+  versionContract: Resource<VersionContractSpec>
   reset?: number
   searchQuery?: string
   versionMismatch: string | null
@@ -189,7 +189,7 @@ const setInstallDisk = async (value: string) => {
     return
   }
 
-  const patch = await getPatch(versionContract!.spec, 'machineInstallDisk', { disk: value })
+  const patch = await getPatch(versionContract.spec, 'machineInstallDisk', { disk: value })
 
   machineSetNode.value.patches[installDiskPatchID.value] = {
     data: patch,
@@ -202,8 +202,6 @@ const setInstallDisk = async (value: string) => {
 const systemExtensions = ref<string[]>()
 
 const exampleConfigPatch = computedAsync(async () => {
-  if (!versionContract?.spec) return
-
   const patch = await getPatch(versionContract.spec, 'hostname', {
     hostname: item.metadata.id ?? '',
   })

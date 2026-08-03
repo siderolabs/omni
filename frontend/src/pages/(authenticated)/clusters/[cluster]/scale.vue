@@ -16,6 +16,7 @@ import type {
   MachineConfigGenOptionsSpec,
   MachineStatusSpec,
 } from '@/api/omni/specs/omni.pb'
+import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb'
 import {
   DefaultNamespace,
   LabelNoManualAllocation,
@@ -25,6 +26,8 @@ import {
   MachineStatusLabelReadyToUse,
   MachineStatusLabelReportingEvents,
   MachineStatusType,
+  VersionContractType,
+  VirtualNamespace,
 } from '@/api/resources'
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
@@ -33,6 +36,7 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { ClusterCommandError, clusterSync } from '@/methods/cluster'
 import { machineCompatibleWithCluster } from '@/methods/compat'
+import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
 import { populateExisting, state } from '@/states/cluster-management'
@@ -42,11 +46,9 @@ import MachineSets from '@/views/Clusters/Management/MachineSets.vue'
 
 definePage({ name: 'ClusterScale' })
 
-type Props = {
+const { currentCluster } = defineProps<{
   currentCluster: Resource<ClusterSpec>
-}
-
-defineProps<Props>()
+}>()
 
 const route = useRoute()
 const router = useRouter()
@@ -137,12 +139,33 @@ const {
   runtime: Runtime.Omni,
 })
 
+const {
+  data: versionContract,
+  loading: versionContractLoading,
+  error: versionContractErr,
+} = useResourceGet<VersionContractSpec>(() => ({
+  skip: !state.value.cluster.talosVersion,
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: VirtualNamespace,
+    type: VersionContractType,
+    id: state.value.cluster.talosVersion!,
+  },
+}))
+
 const machineConfigGenOptionsMap = computed(() =>
   Object.fromEntries(machineConfigGenOptions.value.map((c) => [c.metadata.id!, c])),
 )
 
-const loading = computed(() => machineStatusesLoading.value || machineConfigGenOptionsLoading.value)
-const err = computed(() => machineStatusesErr.value || machineConfigGenOptionsErr.value)
+const loading = computed(
+  () =>
+    machineStatusesLoading.value ||
+    machineConfigGenOptionsLoading.value ||
+    versionContractLoading.value,
+)
+const err = computed(
+  () => machineStatusesErr.value || machineConfigGenOptionsErr.value || versionContractErr.value,
+)
 const data = computed(() =>
   machineStatuses.value.map<Resource<MachineStatusSpec & MachineConfigGenOptionsSpec>>((m) => ({
     ...m,
@@ -173,11 +196,12 @@ const data = computed(() =>
         Machine is available when it is connected, not allocated and is reporting Talos events.
       </TAlert>
 
-      <template v-else>
+      <template v-else-if="versionContract">
         <ClusterMachineItem
           v-for="item in data"
           :key="item.metadata.id"
           :item="item"
+          :version-contract
           :version-mismatch="detectVersionMismatch(item)"
           :auto-install-notice="detectAutoInstallNotice(item)"
         />
