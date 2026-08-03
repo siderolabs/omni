@@ -2,6 +2,7 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import { faker } from '@faker-js/faker'
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
@@ -44,7 +45,6 @@ export const WithData = {
               },
               spec: {
                 dev_path: '/dev/vda',
-                pretty_size: '20 GB',
                 size: 21474836480,
                 transport: 'virtio',
               },
@@ -66,7 +66,6 @@ export const WithData = {
               },
               spec: {
                 dev_path: '/dev/vda',
-                pretty_size: '20 GB',
                 size: 21474836480,
                 type: 'disk',
               },
@@ -83,7 +82,6 @@ export const WithData = {
                 parent: 'vda',
                 partition_index: 1,
                 partition_label: 'EFI',
-                pretty_size: '105 MB',
                 size: 105906176,
                 type: 'partition',
               },
@@ -100,7 +98,6 @@ export const WithData = {
                 parent: 'vda',
                 partition_index: 2,
                 partition_label: 'BOOT',
-                pretty_size: '1.0 GB',
                 size: 1073741824,
                 type: 'partition',
               },
@@ -117,7 +114,6 @@ export const WithData = {
                 parent: 'vda',
                 partition_index: 3,
                 partition_label: 'STATE',
-                pretty_size: '104 MB',
                 size: 104857600,
                 type: 'partition',
               },
@@ -134,9 +130,25 @@ export const WithData = {
                 parent: 'vda',
                 partition_index: 4,
                 partition_label: 'EPHEMERAL',
-                pretty_size: '4.1 GB',
                 size: 4131389440,
-                uuid: 'faa1a56a-4934-4317-b6d1-272712353c5c',
+                uuid: faker.string.uuid(),
+                type: 'partition',
+              },
+            },
+            {
+              metadata: {
+                id: 'vda5',
+                namespace: TalosRuntimeNamespace,
+                type: TalosDiscoveredVolumeType,
+              },
+              spec: {
+                dev_path: '/dev/vda4',
+                name: 'xfs',
+                parent: 'vda',
+                partition_index: 4,
+                partition_label: 'USER',
+                size: 3267896320,
+                uuid: faker.string.uuid(),
                 type: 'partition',
               },
             },
@@ -244,7 +256,6 @@ export const WithCdrom: Story = {
               spec: {
                 cdrom: true,
                 dev_path: '/dev/sr0',
-                pretty_size: '750 MB',
                 size: 786432000,
                 readonly: true,
                 transport: 'ata',
@@ -260,7 +271,6 @@ export const WithCdrom: Story = {
               spec: {
                 cdrom: true,
                 dev_path: '/dev/sr1',
-                pretty_size: '0 B',
                 size: 0,
                 readonly: true,
               },
@@ -284,7 +294,6 @@ export const WithCdrom: Story = {
               spec: {
                 dev_path: '/dev/sr0',
                 name: 'iso9660',
-                pretty_size: '750 MB',
                 size: 786432000,
                 type: 'disk',
               },
@@ -301,7 +310,6 @@ export const WithCdrom: Story = {
               spec: {
                 dev_path: '/dev/sr1',
                 name: '',
-                pretty_size: '0 B',
                 size: 0,
                 type: 'disk',
               },
@@ -339,7 +347,6 @@ export const WithLuksEncryption: Story = {
               },
               spec: {
                 dev_path: '/dev/vda',
-                pretty_size: '20 GB',
                 size: 21474836480,
                 transport: 'virtio',
               },
@@ -354,7 +361,6 @@ export const WithLuksEncryption: Story = {
               },
               spec: {
                 dev_path: '/dev/dm-0',
-                pretty_size: '104 MB',
                 size: 104857600,
               },
             },
@@ -379,7 +385,6 @@ export const WithLuksEncryption: Story = {
                 parent: 'vda',
                 partition_index: 1,
                 partition_label: 'EFI',
-                pretty_size: '105 MB',
                 size: 105906176,
                 type: 'partition',
               },
@@ -398,7 +403,6 @@ export const WithLuksEncryption: Story = {
                 parent: 'vda',
                 partition_index: 2,
                 partition_label: 'EPHEMERAL',
-                pretty_size: '19 GB',
                 size: 20265148416,
                 type: 'partition',
               },

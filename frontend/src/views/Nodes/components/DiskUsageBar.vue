@@ -32,25 +32,46 @@ const unallocatedPercent = computed(() => {
   return Math.max(0, partitionPercent(diskSize - usedSpace.value, diskSize))
 })
 
-const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
-  const fsType = volume.spec.name?.toLowerCase()
-  const label = volume.spec.partition_label?.toLowerCase()
+const knownLabelColors = {
+  efi: 'bg-yellow-500',
+  boot: 'bg-orange-500',
+  state: 'bg-purple-500',
+  ephemeral: 'bg-blue-500',
+}
 
-  if (label?.includes('efi')) return 'bg-yellow-500'
-  if (label?.includes('boot')) return 'bg-orange-500'
-  if (label?.includes('state')) return 'bg-purple-500'
-  if (label?.includes('ephemeral')) return 'bg-blue-500'
-  if (fsType?.includes('luks')) return 'bg-indigo-500'
-  if (fsType?.includes('xfs') || fsType?.includes('ext')) return 'bg-green-600'
-  if (fsType?.includes('vfat') || fsType?.includes('fat')) return 'bg-yellow-600'
-  if (fsType?.includes('swap')) return 'bg-red-500'
-  return 'bg-naturals-n9'
+const unknownLabelColors = computed(
+  () =>
+    new Map(
+      volumes
+        .filter((v) => {
+          const label = v.spec.partition_label?.toLowerCase()
+
+          return !label || !(label in knownLabelColors)
+        })
+        .map((v, i) => {
+          const hue = ((i + 1) * 137.508) % 360
+
+          return [v.metadata.id!, `hsl(${hue.toFixed(1)}deg 55% 30%)`] as const
+        }),
+    ),
+)
+
+const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
+  const label = volume.spec.partition_label?.toLowerCase() as keyof typeof knownLabelColors
+
+  return label ? knownLabelColors[label] : undefined
+}
+
+const getVolumeStyle = (volume: Resource<DiscoveredVolumeSpec>) => {
+  const color = unknownLabelColors.value.get(volume.metadata.id!)
+
+  return color ? { backgroundColor: color } : undefined
 }
 </script>
 
 <template>
   <div>
-    <div class="flex h-8 w-full overflow-hidden rounded bg-naturals-n5">
+    <div class="flex h-8 w-full overflow-hidden rounded bg-naturals-n5 text-xs">
       <div
         v-for="volume in volumes"
         :key="volume.metadata.id"
@@ -58,12 +79,13 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
         :class="getVolumeClass(volume)"
         :style="{
           width: `${partitionPercent(volume.spec.size, disk.spec.size)}%`,
+          ...getVolumeStyle(volume),
         }"
-        class="flex min-w-0 items-center justify-center overflow-hidden text-xs text-naturals-n14 last:border-r-0"
+        class="flex min-w-0 items-center justify-center overflow-hidden text-naturals-n14 last:border-r-0"
       >
         <span
           v-if="partitionPercent(volume.spec.size, disk.spec.size) > 10"
-          class="truncate px-1.5 text-xs font-medium drop-shadow-xs drop-shadow-black"
+          class="truncate px-1.5 font-medium drop-shadow-xs drop-shadow-black"
         >
           {{ volume.spec.partition_label || volume.spec.label || '' }}
           <span class="opacity-80">
@@ -71,13 +93,19 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
           </span>
         </span>
       </div>
+
       <div
         v-if="unallocatedPercent > 0"
         :style="{ width: `${unallocatedPercent}%` }"
         title="Unallocated"
-        class="flex min-w-0 items-center justify-center overflow-hidden text-xs text-naturals-n12"
+        class="flex min-w-0 items-center justify-center overflow-hidden bg-[repeating-linear-gradient(-45deg,var(--stripe-color),var(--stripe-color)_var(--stripe-size),transparent_var(--stripe-size),transparent_calc(var(--stripe-size)*2))] text-naturals-n12 [--stripe-color:var(--color-naturals-n7)] [--stripe-size:12px]"
       >
-        <span v-if="unallocatedPercent > 10" class="truncate px-1.5">Unallocated</span>
+        <span
+          v-if="unallocatedPercent > 10"
+          class="truncate px-1.5 font-medium drop-shadow-xs drop-shadow-black"
+        >
+          Unallocated
+        </span>
       </div>
     </div>
 
@@ -87,7 +115,11 @@ const getVolumeClass = (volume: Resource<DiscoveredVolumeSpec>) => {
         :key="'legend-' + volume.metadata.id"
         class="flex items-center gap-1.5"
       >
-        <span class="inline-block size-2.5 rounded-sm" :class="getVolumeClass(volume)" />
+        <span
+          class="inline-block size-2.5 rounded-sm"
+          :class="getVolumeClass(volume)"
+          :style="getVolumeStyle(volume)"
+        />
         <span class="font-medium text-naturals-n12">
           {{ volume.spec.partition_label || volume.spec.label || volume.spec.dev_path }}
         </span>
