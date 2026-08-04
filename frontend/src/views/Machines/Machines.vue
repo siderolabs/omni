@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
-import { useRouteQuery } from '@vueuse/router'
 import { computed, ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -126,7 +125,7 @@ const sortOptions = [
 ]
 
 const filterLabels = useLabelRouteQuery()
-const filterValue = useRouteQuery('q', '')
+const filterValue = ref('')
 
 const docsLink = getDocsLink('omni', '/explanation/infrastructure-providers')
 const openDocs = () => window.open(docsLink, '_blank')?.focus()
@@ -178,6 +177,7 @@ function unselectDeletedMachines(machineIds: string[]) {
 <template>
   <PageContainer class="h-full">
     <TList
+      v-model:filter-value="filterValue"
       :opts="{
         type: undefined as unknown as MachineStatusLinkSpec,
         runtime: Runtime.Omni,
@@ -191,7 +191,6 @@ function unselectDeletedMachines(machineIds: string[]) {
       search
       pagination
       :sort-options="sortOptions"
-      :filter-value="filterValue"
     >
       <template #norecords>
         <TAlert
