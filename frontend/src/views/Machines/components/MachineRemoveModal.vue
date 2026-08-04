@@ -18,6 +18,9 @@ const { clusters, machines } = defineProps<{
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
+const emit = defineEmits<{
+  deleted: [machineIds: string[]]
+}>()
 
 const isRemoving = ref(false)
 
@@ -30,22 +33,35 @@ watchEffect(() => {
 const remove = async () => {
   isRemoving.value = true
 
-  try {
-    await Promise.all(machines.map(removeMachine))
+  const result = (await Promise.allSettled(machines.map(removeMachine))).map((r, i) => ({
+    ...r,
+    machineId: machines[i],
+  }))
 
-    showSuccess(
-      `The ${pluralize('machine', machines.length)} "${machines.join('", "')}" ${pluralize('was', machines.length)} removed`,
-    )
+  const passes = result.filter((r) => r.status === 'fulfilled')
+  const fails = result.filter((r) => r.status === 'rejected')
 
-    open.value = false
-  } catch (e) {
-    showError(
-      `Failed to remove the ${pluralize('machine', machines.length)}`,
-      e instanceof Error ? e.message : String(e),
-    )
-  } finally {
-    isRemoving.value = false
+  if (passes.length) {
+    showSuccess(`${pluralize('machine', passes.length)} removed`)
   }
+
+  if (fails.length) {
+    showError(
+      `Failed to remove ${pluralize('machine', fails.length)}`,
+      fails
+        .map((f) => (f.reason instanceof Error ? f.reason.message : String(f.reason)))
+        .join('\n'),
+    )
+  } else {
+    open.value = false
+  }
+
+  isRemoving.value = false
+
+  emit(
+    'deleted',
+    passes.map((p) => p.machineId),
+  )
 }
 </script>
 

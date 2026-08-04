@@ -162,6 +162,13 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
     selectedMachines.value.delete(id)
   }
 }
+
+function unselectRemovedMachines(machineIds: string[]) {
+  machineIds.forEach((id) => selectedMachines.value.delete(id))
+  machineRemoveModal.value.machines = machineRemoveModal.value.machines.filter(
+    (m) => !machineIds.includes(m),
+  )
+}
 </script>
 
 <template>
@@ -371,6 +378,7 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
       v-model:open="machineRemoveModal.open"
       :machines="machineRemoveModal.machines"
       :clusters="machineRemoveModal.clusters"
+      @deleted="unselectRemovedMachines"
     />
   </PageContainer>
 </template>
