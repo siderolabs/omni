@@ -123,7 +123,7 @@ watch(searchOption, () => (currentPage.value = 1))
         />
       </div>
 
-      <Pagination v-model:current-page="currentPage" :page-count="pageCount" />
+      <Pagination v-model:current-page="currentPage" :page-count="pageCount" class="mt-6" />
     </div>
   </PageContainer>
 </template>

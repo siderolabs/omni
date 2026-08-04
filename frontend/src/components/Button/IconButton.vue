@@ -74,14 +74,14 @@ const dynamicProps = computed(() => {
     v-bind="dynamicProps"
     :class="
       cn(
-        'h-6 w-6 rounded align-top text-naturals-n11 transition-all duration-100 hover:bg-naturals-n7 hover:text-naturals-n13 disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-naturals-n7',
+        'rounded p-1 leading-none text-naturals-n11 transition-all duration-100 hover:bg-naturals-n7 hover:text-naturals-n13 disabled:pointer-events-none disabled:cursor-not-allowed disabled:text-naturals-n7',
         { 'text-red-r1': danger },
         className,
       )
     "
   >
     <slot>
-      <TIcon class="h-full w-full cursor-pointer p-1" :class="iconClasses" :icon="icon" />
+      <TIcon class="size-4 cursor-pointer" :class="iconClasses" :icon="icon" />
     </slot>
   </component>
 </template>

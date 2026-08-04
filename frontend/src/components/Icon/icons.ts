@@ -51,6 +51,8 @@ export const icons = {
   ),
   'check-in-circle': defineAsyncComponent(() => import('../icons/IconCheckInCircle.vue')),
   check: defineAsyncComponent(() => import('../icons/IconCheck.vue')),
+  'chevron-double-left': defineAsyncComponent(() => import('../icons/IconChevronDoubleLeft.vue')),
+  'chevron-double-right': defineAsyncComponent(() => import('../icons/IconChevronDoubleRight.vue')),
   'chevron-down': defineAsyncComponent(() => import('../icons/IconChevronDown.vue')),
   'chevron-left': defineAsyncComponent(() => import('../icons/IconChevronLeft.vue')),
   'chevron-right': defineAsyncComponent(() => import('../icons/IconChevronRight.vue')),
