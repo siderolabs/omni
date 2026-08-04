@@ -135,20 +135,20 @@ func AssertUnallocatedMachineDestroyFlow(testCtx context.Context, options *TestO
 
 		require := require.New(t)
 
-		pickUnallocatedMachines(ctx, t, st, 1, nil, func(machineIDs []string) {
-			rtestutils.Destroy[*siderolink.Link](ctx, t, st, machineIDs)
+		machineIDs := pickUnallocatedMachines(ctx, t, st, 1, nil)
 
-			rtestutils.AssertNoResource[*omni.Machine](ctx, t, st, machineIDs[0])
-			rtestutils.AssertNoResource[*omni.MachineStatus](ctx, t, st, machineIDs[0])
+		rtestutils.Destroy[*siderolink.Link](ctx, t, st, machineIDs)
 
-			// reboot a machine
-			require.NoError(restartAMachineFunc(ctx, machineIDs[0]))
+		rtestutils.AssertNoResource[*omni.Machine](ctx, t, st, machineIDs[0])
+		rtestutils.AssertNoResource[*omni.MachineStatus](ctx, t, st, machineIDs[0])
 
-			// machine should re-register and become available
-			rtestutils.AssertResources(ctx, t, st, machineIDs, func(machine *omni.MachineStatus, assert *assert.Assertions) {
-				_, ok := machine.Metadata().Labels().Get(omni.MachineStatusLabelAvailable)
-				assert.True(ok)
-			})
+		// reboot a machine
+		require.NoError(restartAMachineFunc(ctx, machineIDs[0]))
+
+		// machine should re-register and become available
+		rtestutils.AssertResources(ctx, t, st, machineIDs, func(machine *omni.MachineStatus, assert *assert.Assertions) {
+			_, ok := machine.Metadata().Labels().Get(omni.MachineStatusLabelAvailable)
+			assert.True(ok)
 		})
 	}
 }
@@ -195,26 +195,26 @@ func AssertControlPlaneForceReplaceMachine(testCtx context.Context, st state.Sta
 
 		id := freezeMachine(ctx, t, st, clusterName, options.FreezeAMachineFunc, omni.LabelControlPlaneRole)
 
-		pickUnallocatedMachines(ctx, t, st, 1, nil, func(machineIDs []resource.ID) {
-			t.Logf("Adding machine %q to control plane", machineIDs[0])
+		machineIDs := pickUnallocatedMachines(ctx, t, st, 1, nil)
 
-			bindMachine(ctx, t, st, bindMachineOptions{
-				clusterName:  clusterName,
-				role:         omni.LabelControlPlaneRole,
-				machineID:    machineIDs[0],
-				talosVersion: options.MachineOptions.TalosVersion,
-			})
+		t.Logf("Adding machine %q to control plane", machineIDs[0])
 
-			// assert that machines got allocated (label available is removed)
-			rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
-				assert.True(machineStatus.Metadata().Labels().Matches(
-					resource.LabelTerm{
-						Key:    omni.MachineStatusLabelAvailable,
-						Op:     resource.LabelOpExists,
-						Invert: true,
-					},
-				), resourceDetails(machineStatus))
-			})
+		bindMachine(ctx, t, st, bindMachineOptions{
+			clusterName:  clusterName,
+			role:         omni.LabelControlPlaneRole,
+			machineID:    machineIDs[0],
+			talosVersion: options.MachineOptions.TalosVersion,
+		})
+
+		// assert that machines got allocated (label available is removed)
+		rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
+			assert.True(machineStatus.Metadata().Labels().Matches(
+				resource.LabelTerm{
+					Key:    omni.MachineStatusLabelAvailable,
+					Op:     resource.LabelOpExists,
+					Invert: true,
+				},
+			), resourceDetails(machineStatus))
 		})
 
 		wipeMachine(ctx, t, st, id, options.WipeAMachineFunc)

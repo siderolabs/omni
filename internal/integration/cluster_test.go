@@ -39,6 +39,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/virtual"
 )
 
@@ -99,58 +100,58 @@ func CreateCluster(testCtx context.Context, testOptions *TestOptions, options Cl
 		st := testOptions.omniClient.Omni().State()
 		require := require.New(t)
 
-		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, options.PickFilterFunc, func(machineIDs []resource.ID) {
-			if !options.SkipExtensionCheckOnCreate {
-				checkExtensionsWithRetries(ctx, t, testOptions, []string{HelloWorldServiceExtensionName}, machineIDs)
-			}
+		machineIDs := pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, options.PickFilterFunc)
 
-			if options.BeforeClusterCreateFunc != nil {
-				options.BeforeClusterCreateFunc(ctx, t, testOptions.omniClient, machineIDs)
-			}
+		if !options.SkipExtensionCheckOnCreate {
+			checkExtensionsWithRetries(ctx, t, testOptions, []string{HelloWorldServiceExtensionName}, machineIDs)
+		}
 
-			cluster := omni.NewCluster(options.Name)
-			cluster.TypedSpec().Value.TalosVersion = options.MachineOptions.TalosVersion
-			cluster.TypedSpec().Value.KubernetesVersion = options.MachineOptions.KubernetesVersion
-			cluster.TypedSpec().Value.Features = withEmbeddedDiscoveryService(options.Features)
-			cluster.TypedSpec().Value.BackupConfiguration = options.EtcdBackup
+		if options.BeforeClusterCreateFunc != nil {
+			options.BeforeClusterCreateFunc(ctx, t, testOptions.omniClient, machineIDs)
+		}
 
-			require.NoError(st.Create(ctx, cluster))
+		cluster := omni.NewCluster(options.Name)
+		cluster.TypedSpec().Value.TalosVersion = options.MachineOptions.TalosVersion
+		cluster.TypedSpec().Value.KubernetesVersion = options.MachineOptions.KubernetesVersion
+		cluster.TypedSpec().Value.Features = withEmbeddedDiscoveryService(options.Features)
+		cluster.TypedSpec().Value.BackupConfiguration = options.EtcdBackup
 
-			if options.AllowSchedulingOnControlPlanes {
-				ensureAllowSchedulingOnControlPlanesConfigPatch(ctx, t, st, options.Name)
-			}
+		require.NoError(st.Create(ctx, cluster))
 
-			for i := range options.ControlPlanes {
-				t.Logf("Adding machine %q to control plane (cluster %q)", machineIDs[i], options.Name)
-				bindMachine(ctx, t, st, bindMachineOptions{
-					clusterName:                    options.Name,
-					role:                           omni.LabelControlPlaneRole,
-					machineID:                      machineIDs[i],
-					restoreFromEtcdBackupClusterID: options.RestoreFromEtcdBackupClusterID,
-					talosVersion:                   options.MachineOptions.TalosVersion,
-				})
-			}
+		if options.AllowSchedulingOnControlPlanes {
+			ensureAllowSchedulingOnControlPlanesConfigPatch(ctx, t, st, options.Name)
+		}
 
-			for i := options.ControlPlanes; i < options.ControlPlanes+options.Workers; i++ {
-				t.Logf("Adding machine %q to workers (cluster %q)", machineIDs[i], options.Name)
-				bindMachine(ctx, t, st, bindMachineOptions{
-					clusterName:  options.Name,
-					role:         omni.LabelWorkerRole,
-					machineID:    machineIDs[i],
-					talosVersion: options.MachineOptions.TalosVersion,
-				})
-			}
-
-			// assert that machines got allocated (label available is removed)
-			rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
-				assert.True(machineStatus.Metadata().Labels().Matches(
-					resource.LabelTerm{
-						Key:    omni.MachineStatusLabelAvailable,
-						Op:     resource.LabelOpExists,
-						Invert: true,
-					},
-				), resourceDetails(machineStatus))
+		for i := range options.ControlPlanes {
+			t.Logf("Adding machine %q to control plane (cluster %q)", machineIDs[i], options.Name)
+			bindMachine(ctx, t, st, bindMachineOptions{
+				clusterName:                    options.Name,
+				role:                           omni.LabelControlPlaneRole,
+				machineID:                      machineIDs[i],
+				restoreFromEtcdBackupClusterID: options.RestoreFromEtcdBackupClusterID,
+				talosVersion:                   options.MachineOptions.TalosVersion,
 			})
+		}
+
+		for i := options.ControlPlanes; i < options.ControlPlanes+options.Workers; i++ {
+			t.Logf("Adding machine %q to workers (cluster %q)", machineIDs[i], options.Name)
+			bindMachine(ctx, t, st, bindMachineOptions{
+				clusterName:  options.Name,
+				role:         omni.LabelWorkerRole,
+				machineID:    machineIDs[i],
+				talosVersion: options.MachineOptions.TalosVersion,
+			})
+		}
+
+		// assert that machines got allocated (label available is removed)
+		rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
+			assert.True(machineStatus.Metadata().Labels().Matches(
+				resource.LabelTerm{
+					Key:    omni.MachineStatusLabelAvailable,
+					Op:     resource.LabelOpExists,
+					Invert: true,
+				},
+			), resourceDetails(machineStatus))
 		})
 	}
 }
@@ -204,7 +205,7 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 			})
 		} else {
 			createOrUpdate(ctx, t, st, machineClass, func(r *omni.MachineClass) error {
-				r.TypedSpec().Value.MatchLabels = []string{omni.MachineStatusLabelConnected}
+				r.TypedSpec().Value.MatchLabels = []string{omni.MachineStatusLabelConnected + ",!" + pickedByManualAllocation}
 				r.TypedSpec().Value.AutoProvision = nil
 
 				return nil
@@ -250,43 +251,43 @@ func ScaleClusterUp(testCtx context.Context, st state.State, options ClusterOpti
 		ctx, cancel := context.WithTimeout(testCtx, options.ScalingTimeout)
 		defer cancel()
 
-		pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, options.PickFilterFunc, func(machineIDs []resource.ID) {
-			for i := range options.ControlPlanes {
-				t.Logf("Adding machine %q to control plane (cluster %q)", machineIDs[i], options.Name)
+		machineIDs := pickUnallocatedMachines(ctx, t, st, options.ControlPlanes+options.Workers, options.PickFilterFunc)
 
-				bindMachine(ctx, t, st, bindMachineOptions{
-					clusterName:  options.Name,
-					role:         omni.LabelControlPlaneRole,
-					machineID:    machineIDs[i],
-					talosVersion: options.MachineOptions.TalosVersion,
-				})
-			}
+		for i := range options.ControlPlanes {
+			t.Logf("Adding machine %q to control plane (cluster %q)", machineIDs[i], options.Name)
 
-			for i := options.ControlPlanes; i < options.ControlPlanes+options.Workers; i++ {
-				t.Logf("Adding machine %q to workers (cluster %q)", machineIDs[i], options.Name)
-
-				bindMachine(ctx, t, st, bindMachineOptions{
-					clusterName:  options.Name,
-					role:         omni.LabelWorkerRole,
-					machineID:    machineIDs[i],
-					talosVersion: options.MachineOptions.TalosVersion,
-				})
-			}
-
-			// assert that machines got allocated (label available is removed)
-			rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
-				assert.True(machineStatus.Metadata().Labels().Matches(
-					resource.LabelTerm{
-						Key:    omni.MachineStatusLabelAvailable,
-						Op:     resource.LabelOpExists,
-						Invert: true,
-					},
-				), resourceDetails(machineStatus))
+			bindMachine(ctx, t, st, bindMachineOptions{
+				clusterName:  options.Name,
+				role:         omni.LabelControlPlaneRole,
+				machineID:    machineIDs[i],
+				talosVersion: options.MachineOptions.TalosVersion,
 			})
+		}
 
-			// assert that ClusterMachines got created
-			rtestutils.AssertResources(ctx, t, st, machineIDs, func(*omni.ClusterMachine, *assert.Assertions) {})
+		for i := options.ControlPlanes; i < options.ControlPlanes+options.Workers; i++ {
+			t.Logf("Adding machine %q to workers (cluster %q)", machineIDs[i], options.Name)
+
+			bindMachine(ctx, t, st, bindMachineOptions{
+				clusterName:  options.Name,
+				role:         omni.LabelWorkerRole,
+				machineID:    machineIDs[i],
+				talosVersion: options.MachineOptions.TalosVersion,
+			})
+		}
+
+		// assert that machines got allocated (label available is removed)
+		rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
+			assert.True(machineStatus.Metadata().Labels().Matches(
+				resource.LabelTerm{
+					Key:    omni.MachineStatusLabelAvailable,
+					Op:     resource.LabelOpExists,
+					Invert: true,
+				},
+			), resourceDetails(machineStatus))
 		})
+
+		// assert that ClusterMachines got created
+		rtestutils.AssertResources(ctx, t, st, machineIDs, func(*omni.ClusterMachine, *assert.Assertions) {})
 	}
 }
 
@@ -340,36 +341,36 @@ func ReplaceControlPlanes(testCtx context.Context, st state.State, options Clust
 			state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, options.Name), resource.LabelExists(omni.LabelControlPlaneRole)),
 		)
 
-		pickUnallocatedMachines(ctx, t, st, len(existingControlPlanes), options.PickFilterFunc, func(machineIDs []resource.ID) {
-			for _, machineID := range machineIDs {
-				t.Logf("Adding machine %q to control plane (cluster %q)", machineID, options.Name)
+		machineIDs := pickUnallocatedMachines(ctx, t, st, len(existingControlPlanes), options.PickFilterFunc)
 
-				bindMachine(ctx, t, st, bindMachineOptions{
-					clusterName:  options.Name,
-					role:         omni.LabelControlPlaneRole,
-					machineID:    machineID,
-					talosVersion: options.MachineOptions.TalosVersion,
-				})
-			}
+		for _, machineID := range machineIDs {
+			t.Logf("Adding machine %q to control plane (cluster %q)", machineID, options.Name)
 
-			t.Logf("Removing machines %q from control planes (cluster %q)", existingControlPlanes, options.Name)
-
-			rtestutils.Destroy[*omni.MachineSetNode](ctx, t, st, existingControlPlanes)
-
-			// assert that machines got allocated (label available is removed)
-			rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
-				assert.True(machineStatus.Metadata().Labels().Matches(
-					resource.LabelTerm{
-						Key:    omni.MachineStatusLabelAvailable,
-						Op:     resource.LabelOpExists,
-						Invert: true,
-					},
-				), resourceDetails(machineStatus))
+			bindMachine(ctx, t, st, bindMachineOptions{
+				clusterName:  options.Name,
+				role:         omni.LabelControlPlaneRole,
+				machineID:    machineID,
+				talosVersion: options.MachineOptions.TalosVersion,
 			})
+		}
 
-			// assert that ClusterMachines got created
-			rtestutils.AssertResources(ctx, t, st, machineIDs, func(*omni.ClusterMachine, *assert.Assertions) {})
+		t.Logf("Removing machines %q from control planes (cluster %q)", existingControlPlanes, options.Name)
+
+		rtestutils.Destroy[*omni.MachineSetNode](ctx, t, st, existingControlPlanes)
+
+		// assert that machines got allocated (label available is removed)
+		rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
+			assert.True(machineStatus.Metadata().Labels().Matches(
+				resource.LabelTerm{
+					Key:    omni.MachineStatusLabelAvailable,
+					Op:     resource.LabelOpExists,
+					Invert: true,
+				},
+			), resourceDetails(machineStatus))
 		})
+
+		// assert that ClusterMachines got created
+		rtestutils.AssertResources(ctx, t, st, machineIDs, func(*omni.ClusterMachine, *assert.Assertions) {})
 	}
 }
 
@@ -864,14 +865,53 @@ func getMachineSetNodes(ctx context.Context, t *testing.T, st state.State, clust
 	return machineIDs
 }
 
-// machineAllocationLock makes sure that only one test allocates machines at a time.
-var machineAllocationLock sync.Mutex
+// pickedByManualAllocation marks machines picked by pickUnallocatedMachines, so that the server-side
+// machine allocation (machine-class based machine sets) does not grab them: every machine class used
+// in the tests must exclude this label in its match selector.
+const pickedByManualAllocation = "picked-by-manual-allocation"
 
-func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, count int, filterFunc PickFilterFunc, f func([]resource.ID)) {
-	machineAllocationLock.Lock()
-	defer machineAllocationLock.Unlock()
+// machineReservationSet holds the IDs of the machines currently reserved by running tests.
+type machineReservationSet struct {
+	ids map[resource.ID]struct{}
+	mx  sync.Mutex
+}
 
-	result := make([]resource.ID, 0, count)
+// reservedLocked reports whether the machine is reserved. The caller must hold mx.
+func (s *machineReservationSet) reservedLocked(id resource.ID) bool {
+	_, reserved := s.ids[id]
+
+	return reserved
+}
+
+// reserveLocked adds the machine to the reservation set. The caller must hold mx.
+func (s *machineReservationSet) reserveLocked(id resource.ID) {
+	s.ids[id] = struct{}{}
+}
+
+// release removes the machines from the reservation set.
+func (s *machineReservationSet) release(ids []resource.ID) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	for _, id := range ids {
+		delete(s.ids, id)
+	}
+}
+
+// machineReservations pins the machines picked by a test until that test finishes, so that concurrent
+// tests do not pick them up while they are not (yet) allocated to a cluster, e.g. before the initial
+// binding, between a cluster destroy and a re-bind of the same machine, or during a maintenance
+// install of a machine which is never bound to a cluster at all.
+//
+// The lock also serializes the picks themselves, so that a machine cannot be picked twice before
+// getting reserved. It only protects against concurrent picks: the server-side machine allocation
+// is kept away from the picked machines via the pickedByManualAllocation label instead.
+var machineReservations = machineReservationSet{ids: map[resource.ID]struct{}{}}
+
+// pickUnallocatedMachines picks machines which are not allocated to any cluster and not picked by
+// another still-running test, and reserves them for the test t until it finishes.
+func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, count int, filterFunc PickFilterFunc) []resource.ID {
+	var result []resource.ID
 
 	if filterFunc == nil {
 		filterFunc = func(*omni.MachineStatus, []*omni.MachineStatus) bool { return true }
@@ -879,65 +919,182 @@ func pickUnallocatedMachines(ctx context.Context, t *testing.T, st state.State, 
 
 	logger := zaptest.NewLogger(t)
 
+	loggedLeakedMarkers := map[resource.ID]struct{}{}
+
 	err := retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
-		result = result[:0] // clear the result between retries
+		var attemptErr error
 
-		machineStatuses, err := safe.StateListAll[*omni.MachineStatus](ctx, st, state.WithLabelQuery(resource.LabelExists(omni.MachineStatusLabelAvailable)))
-		if err != nil {
-			return err
-		}
+		result, attemptErr = pickUnallocatedMachinesAttempt(ctx, st, count, filterFunc, logger, loggedLeakedMarkers)
 
-		nodeList, err := st.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, "", resource.VersionUndefined))
-		if err != nil {
-			return err
-		}
-
-		nodeMap := xslices.ToMap(nodeList.Items, func(node resource.Resource) (resource.ID, resource.Resource) {
-			return node.Metadata().ID(), node
-		})
-
-		shuffledMachineStatuses := slices.Collect(machineStatuses.All())
-		rand.Shuffle(len(shuffledMachineStatuses), func(i, j int) {
-			shuffledMachineStatuses[i], shuffledMachineStatuses[j] = shuffledMachineStatuses[j], shuffledMachineStatuses[i]
-		})
-
-		pickedMachineStatuses := make([]*omni.MachineStatus, 0, count)
-
-		for _, machineStatus := range shuffledMachineStatuses {
-			allocatedNode, isAllocated := nodeMap[machineStatus.Metadata().ID()]
-			if isAllocated {
-				allocatedCluster, _ := allocatedNode.Metadata().Labels().Get(omni.LabelCluster)
-
-				logger.Error("machine has the label available but is still allocated to a cluster",
-					zap.String("machine_id", machineStatus.Metadata().ID()),
-					zap.String("allocated_cluster", allocatedCluster))
-
-				continue
-			}
-
-			if filterFunc(machineStatus, pickedMachineStatuses) {
-				pickedMachineStatuses = append(pickedMachineStatuses, machineStatus)
-			}
-
-			if len(pickedMachineStatuses) >= count {
-				break
-			}
-		}
-
-		if len(pickedMachineStatuses) < count {
-			return retry.ExpectedErrorf("not enough machines: available %d, requested %d", len(pickedMachineStatuses), count)
-		}
-
-		for _, ms := range pickedMachineStatuses {
-			result = append(result, ms.Metadata().ID())
-		}
-
-		return nil
+		return attemptErr
 	})
 
 	require.NoError(t, err)
 
-	f(result)
+	// Register the cleanup before the fallible marker work below, so that a failure in it cannot
+	// leak the in-memory reservations or already written markers.
+	t.Cleanup(func() {
+		releasePickedMachines(ctx, t, st, result)
+	})
+
+	// Also reserve the picked machines against the server-side machine allocation: mark them with a
+	// label which the machine classes used in the tests exclude, and wait for the label to become
+	// visible on the label projection which the allocation matches against.
+	for _, id := range result {
+		require.NoError(t, safe.StateModify(ctx, st, omni.NewMachineLabels(id), func(machineLabels *omni.MachineLabels) error {
+			machineLabels.Metadata().Labels().Set(pickedByManualAllocation, "")
+
+			return nil
+		}))
+	}
+
+	rtestutils.AssertResources(ctx, t, st, result, func(labels *system.ResourceLabels[*omni.MachineStatus], assert *assert.Assertions) {
+		_, ok := labels.Metadata().Labels().Get(pickedByManualAllocation)
+
+		assert.True(ok)
+	})
+
+	return result
+}
+
+// pickUnallocatedMachinesAttempt makes a single scan over the available machines under the reservation
+// lock and reserves the picked ones before releasing it.
+func pickUnallocatedMachinesAttempt(ctx context.Context, st state.State, count int, filterFunc PickFilterFunc,
+	logger *zap.Logger, loggedLeakedMarkers map[resource.ID]struct{},
+) ([]resource.ID, error) {
+	machineReservations.mx.Lock()
+	defer machineReservations.mx.Unlock()
+
+	machineStatuses, err := safe.StateListAll[*omni.MachineStatus](ctx, st, state.WithLabelQuery(resource.LabelExists(omni.MachineStatusLabelAvailable)))
+	if err != nil {
+		return nil, err
+	}
+
+	nodeList, err := st.List(ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, "", resource.VersionUndefined))
+	if err != nil {
+		return nil, err
+	}
+
+	nodeMap := xslices.ToMap(nodeList.Items, func(node resource.Resource) (resource.ID, resource.Resource) {
+		return node.Metadata().ID(), node
+	})
+
+	shuffledMachineStatuses := slices.Collect(machineStatuses.All())
+	rand.Shuffle(len(shuffledMachineStatuses), func(i, j int) {
+		shuffledMachineStatuses[i], shuffledMachineStatuses[j] = shuffledMachineStatuses[j], shuffledMachineStatuses[i]
+	})
+
+	pickedMachineStatuses := make([]*omni.MachineStatus, 0, count)
+
+	for _, machineStatus := range shuffledMachineStatuses {
+		if machineReservations.reservedLocked(machineStatus.Metadata().ID()) {
+			continue
+		}
+
+		allocatedNode, isAllocated := nodeMap[machineStatus.Metadata().ID()]
+		if isAllocated {
+			allocatedCluster, _ := allocatedNode.Metadata().Labels().Get(omni.LabelCluster)
+
+			logger.Error("machine has the label available but is still allocated to a cluster",
+				zap.String("machine_id", machineStatus.Metadata().ID()),
+				zap.String("allocated_cluster", allocatedCluster))
+
+			continue
+		}
+
+		if _, marked := machineStatus.Metadata().Labels().Get(pickedByManualAllocation); marked {
+			if _, logged := loggedLeakedMarkers[machineStatus.Metadata().ID()]; !logged {
+				loggedLeakedMarkers[machineStatus.Metadata().ID()] = struct{}{}
+
+				logger.Error("available machine carries the manual allocation marker but is not reserved by any test",
+					zap.String("machine_id", machineStatus.Metadata().ID()))
+			}
+		}
+
+		if filterFunc(machineStatus, pickedMachineStatuses) {
+			pickedMachineStatuses = append(pickedMachineStatuses, machineStatus)
+		}
+
+		if len(pickedMachineStatuses) >= count {
+			break
+		}
+	}
+
+	if len(pickedMachineStatuses) < count {
+		return nil, retry.ExpectedErrorf("not enough machines: available %d, requested %d", len(pickedMachineStatuses), count)
+	}
+
+	result := make([]resource.ID, 0, count)
+
+	for _, ms := range pickedMachineStatuses {
+		result = append(result, ms.Metadata().ID())
+
+		machineReservations.reserveLocked(ms.Metadata().ID())
+	}
+
+	return result, nil
+}
+
+// releasePickedMachines removes the manual allocation markers from the machines and releases their
+// in-memory reservations.
+func releasePickedMachines(ctx context.Context, t *testing.T, st state.State, ids []resource.ID) {
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
+	defer cancel()
+
+	// Release the in-memory reservations last and unconditionally, even when the marker removal
+	// below fails: a permanently reserved machine is worse than a leaked marker, which the pick
+	// scans at least report.
+	defer machineReservations.release(ids)
+
+	removed := make([]resource.ID, 0, len(ids))
+
+	for _, id := range ids {
+		if err := safe.StateModify(cleanupCtx, st, omni.NewMachineLabels(id), func(machineLabels *omni.MachineLabels) error {
+			machineLabels.Metadata().Labels().Delete(pickedByManualAllocation)
+
+			return nil
+		}); err != nil {
+			t.Errorf("failed to remove the manual allocation marker from machine %q: %v", id, err)
+
+			continue
+		}
+
+		removed = append(removed, id)
+	}
+
+	// Wait for the marker removal to propagate before releasing the in-memory reservations, so
+	// that the next picker of the machine cannot pass its marker visibility wait on this test's
+	// stale marker and then lose the machine to the server-side allocation when the removal lands.
+	// A failure here only re-widens that handoff window, and the pick scans report leaked markers
+	// anyway, so log it instead of failing an already finished test.
+	if err := waitManualAllocationMarkersGone(cleanupCtx, st, removed); err != nil {
+		t.Logf("failed to wait for the manual allocation markers to be removed: %v", err)
+	}
+}
+
+// waitManualAllocationMarkersGone waits until the manual allocation marker is no longer visible on the
+// machine status label projections of the given machines. A missing projection counts as gone, since a
+// machine unknown to Omni cannot be allocated.
+func waitManualAllocationMarkersGone(ctx context.Context, st state.State, ids []resource.ID) error {
+	return retry.Constant(time.Minute).RetryWithContext(ctx, func(ctx context.Context) error {
+		for _, id := range ids {
+			labels, err := safe.StateGetByID[*system.ResourceLabels[*omni.MachineStatus]](ctx, st, id)
+			if err != nil {
+				if state.IsNotFoundError(err) {
+					continue
+				}
+
+				// wrap to keep retrying on transient read errors, the enclosing context enforces the deadline
+				return retry.ExpectedError(err)
+			}
+
+			if _, ok := labels.Metadata().Labels().Get(pickedByManualAllocation); ok {
+				return retry.ExpectedErrorf("machine %q still carries the manual allocation marker", id)
+			}
+		}
+
+		return nil
+	})
 }
 
 func createOrUpdate[T resource.Resource](ctx context.Context, t *testing.T, s state.State, res T, update func(T) error, createOpts ...state.CreateOption) {
@@ -998,9 +1155,6 @@ func waitMachineSetNodesSync(ctx context.Context, t *testing.T, st state.State, 
 }
 
 func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.State, options ClusterOptions, machineClass *omni.MachineClass) {
-	machineAllocationLock.Lock()
-	defer machineAllocationLock.Unlock()
-
 	for _, role := range []string{omni.LabelControlPlaneRole, omni.LabelWorkerRole} {
 		id := omni.WorkersResourceID(options.Name)
 		machineCount := options.Workers

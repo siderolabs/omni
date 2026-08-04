@@ -1199,25 +1199,30 @@ eventually reports the upgrade target as its running Talos version.`)
 
 		options.claimMachines(t, 1)
 
-		// machineID is set by the MachineShouldBeInstalledInMaintenanceMode and consumed by the MachineShouldBeUpgradedInMaintenanceMode so both run against the same machine.
-		var machineID resource.ID
-
+		// Install and upgrade run in a single subtest: the machine picked by the install step is
+		// reserved only until the test that picked it finishes, so the upgrade step must share that
+		// test to keep the machine protected from concurrent tests.
 		t.Run(
-			"MachineShouldBeInstalledInMaintenanceMode",
-			AssertMachineShouldBeInstalledInMaintenanceMode(
-				t.Context(), options,
-				options.MachineOptions.TalosVersion,
-				&machineID,
-			),
-		)
+			"MachineShouldBeInstalledAndUpgradedInMaintenanceMode",
+			func(t *testing.T) {
+				// machineID is set by the install assertion and consumed by the upgrade assertion so both run against the same machine.
+				var machineID resource.ID
 
-		t.Run(
-			"MachineShouldBeUpgradedInMaintenanceMode",
-			AssertMachineShouldBeUpgradedViaMaintenanceLifecycle(
-				t.Context(), options,
-				&machineID,
-				options.AnotherTalosVersion,
-			),
+				AssertMachineShouldBeInstalledInMaintenanceMode(
+					t.Context(), options,
+					options.MachineOptions.TalosVersion,
+					&machineID,
+				)(t)
+
+				// The upgrade step below may skip the whole subtest even though the install step above ran to completion.
+				t.Log("maintenance install step done, starting the maintenance upgrade step")
+
+				AssertMachineShouldBeUpgradedViaMaintenanceLifecycle(
+					t.Context(), options,
+					&machineID,
+					options.AnotherTalosVersion,
+				)(t)
+			},
 		)
 	}
 }

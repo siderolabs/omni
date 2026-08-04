@@ -125,11 +125,7 @@ func AssertMachineConfigPatchAppliedInMaintenance(testCtx context.Context, optio
 			return machineStatus.TypedSpec().Value.Maintenance
 		}
 
-		var machineID resource.ID
-
-		pickUnallocatedMachines(ctx, t, omniState, 1, inMaintenance, func(machineIDs []resource.ID) {
-			machineID = machineIDs[0]
-		})
+		machineID := pickUnallocatedMachines(ctx, t, omniState, 1, inMaintenance)[0]
 
 		t.Logf("applying a config patch to maintenance machine %q", machineID)
 

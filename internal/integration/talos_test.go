@@ -1024,37 +1024,33 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 		omniClient := options.omniClient
 		omniState := omniClient.Omni().State()
 
-		var allocatedMachineIDs []resource.ID
-
 		t.Logf("creating a cluster on version %q", talosVersion1)
 
-		pickUnallocatedMachines(ctx, t, omniState, 1, nil, func(machineIDs []resource.ID) {
-			allocatedMachineIDs = machineIDs
+		allocatedMachineIDs := pickUnallocatedMachines(ctx, t, omniState, 1, nil)
 
-			cluster := omni.NewCluster(clusterName)
-			cluster.TypedSpec().Value.TalosVersion = talosVersion1
-			cluster.TypedSpec().Value.KubernetesVersion = kubernetesVersion
+		cluster := omni.NewCluster(clusterName)
+		cluster.TypedSpec().Value.TalosVersion = talosVersion1
+		cluster.TypedSpec().Value.KubernetesVersion = kubernetesVersion
 
-			require.NoError(omniState.Create(ctx, cluster))
+		require.NoError(omniState.Create(ctx, cluster))
 
-			t.Logf("Adding machine %q to control plane (cluster %q, version %q)", machineIDs[0], clusterName, talosVersion1)
-			bindMachine(ctx, t, omniState, bindMachineOptions{
-				clusterName:  clusterName,
-				role:         omni.LabelControlPlaneRole,
-				machineID:    machineIDs[0],
-				talosVersion: talosVersion1,
-			})
+		t.Logf("Adding machine %q to control plane (cluster %q, version %q)", allocatedMachineIDs[0], clusterName, talosVersion1)
+		bindMachine(ctx, t, omniState, bindMachineOptions{
+			clusterName:  clusterName,
+			role:         omni.LabelControlPlaneRole,
+			machineID:    allocatedMachineIDs[0],
+			talosVersion: talosVersion1,
+		})
 
-			// assert that machines got allocated (label available is removed)
-			rtestutils.AssertResources(ctx, t, omniState, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
-				assert.True(machineStatus.Metadata().Labels().Matches(
-					resource.LabelTerm{
-						Key:    omni.MachineStatusLabelAvailable,
-						Op:     resource.LabelOpExists,
-						Invert: true,
-					},
-				), resourceDetails(machineStatus))
-			})
+		// assert that machines got allocated (label available is removed)
+		rtestutils.AssertResources(ctx, t, omniState, allocatedMachineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
+			assert.True(machineStatus.Metadata().Labels().Matches(
+				resource.LabelTerm{
+					Key:    omni.MachineStatusLabelAvailable,
+					Op:     resource.LabelOpExists,
+					Invert: true,
+				},
+			), resourceDetails(machineStatus))
 		})
 
 		assertClusterReady := func(expectedVersion string) {
@@ -1073,7 +1069,7 @@ func AssertMachineShouldBeUpgradedInMaintenanceMode(
 		t.Logf("creating a cluster on version %q using same machines", talosVersion2)
 
 		// re-create the cluster on talosVersion2
-		cluster := omni.NewCluster(clusterName)
+		cluster = omni.NewCluster(clusterName)
 		cluster.TypedSpec().Value.TalosVersion = talosVersion2
 		cluster.TypedSpec().Value.KubernetesVersion = kubernetesVersion
 
@@ -1127,11 +1123,7 @@ func AssertMachineShouldBeInstalledInMaintenanceMode(testCtx context.Context, op
 			return machineStatus.TypedSpec().Value.Maintenance && !installed && installDisk(machineStatus) != ""
 		}
 
-		var machineID resource.ID
-
-		pickUnallocatedMachines(ctx, t, omniState, 1, notInstalledMaintenance, func(machineIDs []resource.ID) {
-			machineID = machineIDs[0]
-		})
+		machineID := pickUnallocatedMachines(ctx, t, omniState, 1, notInstalledMaintenance)[0]
 
 		machineStatus, err := safe.StateGetByID[*omni.MachineStatus](ctx, omniState, machineID)
 		require.NoError(t, err)

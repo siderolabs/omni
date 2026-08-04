@@ -63,7 +63,6 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 			additionalWorkersName           = "additional-workers"
 			lockDelete                      = "lockDelete"
 			machineClassBasedMachineSetName = "additional-workers-machine-class"
-			pickedByManualAllocation        = "picked-by-manual-allocation"
 		)
 
 		require := require.New(t)
@@ -82,99 +81,64 @@ func AssertClusterTemplateFlow(testCtx context.Context, st state.State, options 
 			rtestutils.Destroy[*omni.MachineClass](testCtx, t, st, []string{machineClassName})
 		})
 
-		var (
-			machineIDs                     []resource.ID
-			opts                           tmplOptions
-			tmpl1                          []byte
-			automaticallyAllocatedMachines []string
-		)
+		machineIDs := pickUnallocatedMachines(ctx, t, st, 5, nil)
 
-		pickUnallocatedMachines(ctx, t, st, 5, nil, func(mIDs []resource.ID) {
-			machineIDs = mIDs
+		opts := tmplOptions{
+			KubernetesVersion:               "v" + options.KubernetesVersion,
+			TalosVersion:                    "v" + options.TalosVersion,
+			MachineClass:                    machineClassName,
+			MachineClassBasedMachineSetName: machineClassBasedMachineSetName,
 
-			opts = tmplOptions{
-				KubernetesVersion:               "v" + options.KubernetesVersion,
-				TalosVersion:                    "v" + options.TalosVersion,
-				MachineClass:                    machineClassName,
-				MachineClassBasedMachineSetName: machineClassBasedMachineSetName,
+			CP: machineIDs[:3],
+			W:  machineIDs[3:],
+		}
 
-				CP: machineIDs[:3],
-				W:  machineIDs[3:],
-			}
+		tmpl1 := renderTemplate(t, cluster1Tmpl, opts)
 
-			for _, m := range mIDs {
-				err = safe.StateModify(ctx, st, omni.NewMachineLabels(m), func(labels *omni.MachineLabels) error {
-					labels.Metadata().Labels().Set(pickedByManualAllocation, "")
+		require.NoError(operations.ValidateTemplate(bytes.NewReader(tmpl1), nil))
 
-					return nil
-				})
+		t.Log("creating template cluster")
 
-				require.NoError(err)
+		require.NoError(operations.SyncTemplate(ctx, bytes.NewReader(tmpl1), os.Stderr, st, operations.SyncOptions{
+			Verbose: true,
+		}, nil))
 
-				t.Cleanup(func() {
-					err = safe.StateModify(testCtx, st, omni.NewMachineLabels(m), func(labels *omni.MachineLabels) error {
-						labels.Metadata().Labels().Delete(pickedByManualAllocation)
+		// assert that machines got allocated (label available is removed)
+		rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
+			assert.True(machineStatus.Metadata().Labels().Matches(
+				resource.LabelTerm{
+					Key:    omni.MachineStatusLabelAvailable,
+					Op:     resource.LabelOpExists,
+					Invert: true,
+				},
+			), resourceDetails(machineStatus))
+		})
 
-						return nil
-					})
+		machineSet, err := safe.ReaderGetByID[*omni.MachineSet](ctx, st, clusterName+"-"+machineClassBasedMachineSetName)
+		require.NoError(err)
 
-					require.NoError(err)
-				})
-			}
+		automaticallyAllocatedMachines := rtestutils.ResourceIDs[*omni.MachineSetNode](ctx, t, st, state.WithLabelQuery(
+			resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()),
+		))
 
-			rtestutils.AssertResources(ctx, t, st, mIDs, func(status *omni.MachineStatus, assert *assert.Assertions) {
-				_, ok := status.Metadata().Labels().Get(pickedByManualAllocation)
+		require.Greater(len(automaticallyAllocatedMachines), 0)
 
-				assert.True(ok)
-			})
+		// add finalizer on the machine set node to make the test fail if it tries to delete the machine set node unexpectedly
+		require.NoError(st.AddFinalizer(
+			ctx,
+			omni.NewMachineSetNode(automaticallyAllocatedMachines[0], machineSet).Metadata(),
+			lockDelete,
+		))
 
-			tmpl1 = renderTemplate(t, cluster1Tmpl, opts)
-
-			require.NoError(operations.ValidateTemplate(bytes.NewReader(tmpl1), nil))
-
-			t.Log("creating template cluster")
-
-			require.NoError(operations.SyncTemplate(ctx, bytes.NewReader(tmpl1), os.Stderr, st, operations.SyncOptions{
-				Verbose: true,
-			}, nil))
-
-			// assert that machines got allocated (label available is removed)
-			rtestutils.AssertResources(ctx, t, st, machineIDs, func(machineStatus *omni.MachineStatus, assert *assert.Assertions) {
-				assert.True(machineStatus.Metadata().Labels().Matches(
-					resource.LabelTerm{
-						Key:    omni.MachineStatusLabelAvailable,
-						Op:     resource.LabelOpExists,
-						Invert: true,
-					},
-				), resourceDetails(machineStatus))
-			})
-
-			machineSet, err := safe.ReaderGetByID[*omni.MachineSet](ctx, st, clusterName+"-"+machineClassBasedMachineSetName)
-			require.NoError(err)
-
-			automaticallyAllocatedMachines = rtestutils.ResourceIDs[*omni.MachineSetNode](ctx, t, st, state.WithLabelQuery(
-				resource.LabelEqual(omni.LabelMachineSet, machineSet.Metadata().ID()),
-			))
-
-			require.Greater(len(automaticallyAllocatedMachines), 0)
-
-			// add finalizer on the machine set node to make the test fail if it tries to delete the machine set node unexpectedly
-			require.NoError(st.AddFinalizer(
-				ctx,
-				omni.NewMachineSetNode(automaticallyAllocatedMachines[0], machineSet).Metadata(),
+		t.Cleanup(func() {
+			err = st.RemoveFinalizer(
+				testCtx,
+				omni.NewMachineSetNode(
+					automaticallyAllocatedMachines[0],
+					omni.NewMachineSet(""),
+				).Metadata(),
 				lockDelete,
-			))
-
-			t.Cleanup(func() {
-				err = st.RemoveFinalizer(
-					testCtx,
-					omni.NewMachineSetNode(
-						automaticallyAllocatedMachines[0],
-						omni.NewMachineSet(""),
-					).Metadata(),
-					lockDelete,
-				)
-			})
+			)
 		})
 
 		t.Log("wait for cluster to be ready")
