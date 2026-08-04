@@ -6,148 +6,194 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = true
-previous = "v1.8.0"
+previous = "v1.9.0"
 
-[notes.maintenance-config-patches]
-title = "Machine Config Patches in Maintenance Mode"
+[notes.audit-log-follow]
+title = "Following the Audit Log"
 description = """\
-Omni can now apply machine-level config patches while a machine is still in maintenance mode, not just after it joins a cluster. The patches go on top \
-of the configuration the machine already runs, next to the SideroLink documents Omni manages, and Omni will not apply a document that installs Talos \
-and pulls the machine out of maintenance. Omni also keeps whatever configuration a machine connects with as a low-priority, user-owned patch. So a \
-machine that arrives with its own config (say a TrustedRootsConfig document) keeps it, and your own patches still win.
+The audit log read API gains a follow mode. After serving the backlog the stream stays open and delivers new events as they are written, in insertion \
+order. Followed events carry their ids, and a stream can start from an id received earlier, so a consumer resumes exactly where it left off. The start \
+position can also be given as a timestamp. A follow stream ends cleanly after a bounded time rather than staying open indefinitely, and the client \
+continues from the last id it received. `omnictl` performs that reconnect automatically. `omnictl audit-log` gains a `--follow` flag to tail the log \
+live and a `--since` flag to start from a relative time in either mode. Reading the audit log now produces an audit log event of its own, recording who \
+read it, the time range requested and the filters used, and the new event type can itself be filtered on.
 """
 
-[notes.maintenance-install-upgrade]
-title = "Install and Upgrade Talos in Maintenance Mode"
+[notes.auditor-role]
+title = "Auditor Role"
 description = """\
-A new streaming management API installs or upgrades Talos on machines booted in maintenance mode. It comes with `omnictl` install and upgrade \
-subcommands and frontend modals that stream installer progress live. This feature uses Talos's LifecycleService API, which became available in v1.13.0. \
-So it works with any Talos version starting from v1.13.0.
+Reading the audit log required the Admin role, so anything that consumes audit events also had to hold user management and full administrative access \
+to every managed Kubernetes cluster. The new Auditor role grants read access plus the audit log and nothing else. It is matched by exact role rather \
+than by rank, so an Operator, which outranks an Auditor, still cannot read the audit log. It can be assigned to users and service accounts, but not \
+through access policies or SAML label rules, which now reject roles that are not meant to be assigned that way.
 """
 
-[notes.talos-upgrade-cap]
-title = "Talos Upgrade Targets Capped at the Latest Supported Release"
+[notes.cluster-security-page]
+title = "Cluster Security Page"
 description = """\
-Each Omni release now declares the latest Talos minor version it can support end to end. Cluster create and update, the maintenance upgrade API, the \
-upgrade status computation, and every version picker in the UI all read this same cap, so you can no longer pick a Talos version newer than the \
-running Omni supports.
+A new cluster security page lists the vulnerabilities of the images a running cluster uses, together with the upgrade paths that clear them, and the \
+scan details can be filtered by severity. Vulnerability scanning requires the Image Factory Enterprise. Against the public factory the page reports \
+that scanning is unavailable instead of showing results.
 """
 
-[notes.embedded-machine-config]
-title = "Embedded Machine Config for Installation Media"
+[notes.config-patch-secrets]
+title = "Kubernetes CA and Service Account Key Rejected in Config Patches"
 description = """\
-Installation media can now carry an embedded machine configuration, so a machine applies it on first boot before it ever reaches Omni. You can set \
-it from the frontend or with `omnictl` when creating installation media, and Omni stores it on the schematic request alongside the rest of the media \
-config. The option is exposed only where the underlying stack reports support for it, through a new `supports_embedded_config` quirk.
+Config patches can no longer set the Kubernetes certificate authority or the service account signing key, which Omni generates and owns. This holds for \
+every cluster, not only for clusters on the new Talos 1.14 document layout, and it covers the v1alpha1 fields as well as the Talos 1.14 documents that \
+carry the same material. An already stored patch keeps working while it stays unchanged. Changing one that sets either of them is rejected, so such a \
+patch has to be corrected before it can be edited again.
 """
 
-[notes.extension-catalog-validation]
-title = "Talos Extension Names Validated Against the Catalog"
+[notes.disable-config-patches]
+title = "Disabling Config Patches"
 description = """\
-Extension names on installation media configs, machine request sets, and extensions configurations are now validated against the Talos extensions \
-catalog for the relevant Talos version. Unknown names, duplicates, and oversized lists are rejected, and when no Talos version is set the default \
-version's catalog is used so the names still get checked. Names without a namespace are looked up under `siderolabs/`, so older clients that send the \
-documented short form keep working. The `omnictl installation media create` command now resolves short or partial extension names to canonical form \
-before sending, replacing the client-side catalog check it used to do.
+A config patch can now be disabled. It is retained as a resource but is never applied.
 """
 
-[notes.cluster-healthcheck-jobs]
-title = "Cluster Health Check Jobs"
+[notes.discovery-service-config]
+title = "Discovery Service Configuration Reworked"
 description = """\
-Cluster templates now support health check jobs that gate Talos upgrades. Omni creates the jobs when a Talos upgrade is running and re-runs them on \
-an interval until they succeed, re-creating a job whenever it fails. The checks run before each node upgrade in the upgrade status controller, and if \
-any defined health check fails Omni drops the available upgrade quota to zero, blocking further upgrades until the checks pass. You can read more \
-about this feature on the [docs](https://docs.siderolabs.com/omni/cluster-management/gate-talos-upgrades-with-healthchecks).
+Talos 1.14 replaces the single discovery endpoint with a configuration that can register a machine with more than one discovery service at once, and \
+Omni now removes a departing machine's affiliate from every endpoint it used. A cluster used to pick either the public discovery service or the \
+embedded one. For clusters created with Talos 1.14 or newer it can now also use both at the same time.
 """
 
-[notes.schematic-preservation]
-title = "Schematic Contents Preserved on Update"
+[notes.enterprise-fips-labels]
+title = "Talos Enterprise and FIPS Machine Labels"
 description = """\
-When Omni changes a machine's schematic, it now touches only the fields it manages (extensions and kernel args) and leaves the rest alone, instead of \
-rebuilding the schematic from scratch. It reads the full schematic from the machine or the Image Factory and stores it as is.
-"""
-
-[notes.platform-tags-labels]
-title = "Platform Tags Exposed as Machine Labels"
-description = """\
-Talos PlatformMetadata tags (for example EC2 instance tags) now appear as editable, removable machine labels in Omni. Omni fills them in once, when \
-the machine first joins, and your own custom labels win on any key conflict.
-"""
-
-[notes.node-audit-skip]
-title = "Opt-In Skip of Kubernetes Node Audit"
-description = """\
-The Kubernetes node audit deletes nodes that no ClusterMachine backs. You can now skip it for individual nodes, which helps with virtual nodes such as \
-VirtualKubelet. A node is skipped only when it has the `omni.sidero.dev/node-audit-skip` annotation and the cluster owner has turned on the matching \
-cluster feature, so a workload cannot annotate its own way out of the audit.
-"""
-
-[notes.image-factory-enterprise]
-title = "Support for Image Factory Enterprise"
-description = """\
-Two new config options, `registries.imageFactoryUsername` and `registries.imageFactoryPassword`, let Omni authenticate to the Image Factory Enterprise with \
-HTTP basic auth.
-"""
-
-[notes.etcd-write-rate-limit]
-title = "Per-Class etcd Write Rate Limiting"
-description = """\
-You can now throttle etcd writes by payload size, with separate budgets for end users, infra providers, and internal callers. It is off by default and \
-turns on via `storage.rateLimits.etcd.*`. Four new Prometheus series report throttle wait time, admitted writes, rejected writes, and rejected bytes, \
-labeled by class. The failure counters also carry a reason of timeout or oversize.
-"""
-
-[notes.log-ingestion-rate-limit]
-title = "Per-Machine Log Ingestion Rate Limit"
-description = """\
-Log ingestion now uses a per-machine token bucket, so one noisy machine can no longer overwhelm the log store. It is off by default to keep backwards compatibility.
-"""
-
-[notes.helm-wireguard-lb-ip]
-title = "Static loadBalancerIP for the WireGuard Service in Helm"
-description = """\
-The Helm chart has a new `service.wireguard.loadBalancerIP` value for setting a static load balancer IP on the WireGuard Kubernetes Service. It is \
-rendered only when the WireGuard service type is `LoadBalancer`.
-"""
-
-[notes.kubernetes-manifests-ui]
-title = "Kubernetes Manifests Status in the UI"
-description = """\
-The frontend now shows the status of a cluster's synced Kubernetes manifests.
-"""
-
-[notes.omnictl-cluster-status]
-title = "Node Names and Locked Status in `omnictl cluster status`"
-description = """\
-The `omnictl cluster status` tree now prints each machine's Kubernetes node name in parentheses after its UUID, so you can match a machine to the \
-upgrade status lines that reference node names. A "Locked" indicator shows up whenever a machine is locked.
-"""
-
-[notes.media-wizard-vuln-items]
-title = "SBOM, VEX, and Vulnerability Scan on the Installation Media Wizard"
-description = """\
-The installation media wizard's confirmation page now shows SBOM and VEX links plus the vulnerability scan and modal, the same as the Image Factory. \
-This shows up only when you use the Image Factory Enterprise.
-"""
-
-[notes.frontend-kubespan-status]
-title = "KubeSpan Status View"
-description = """\
-A new graphical view shows KubeSpan peer status for a cluster machine.
-"""
-
-[notes.supply-chain]
-title = "Signed Images and SBOM Release Artifacts"
-description = """\
-Omni releases now ship an SBOM built from the Go modules as a release artifact, and Sidero Labs signs the published container images during release.
+Machines running Talos Enterprise now get an `omni.sidero.dev/enterprise` label, and machines running Talos in FIPS mode get an `omni.sidero.dev/fips` \
+label carrying either `enabled` or `strict`. Like the other labels Omni manages, they cannot be removed by the user, and they are cleared when a \
+machine reverts to a regular build. Both values are read over the Talos API and watched for changes, since they follow the installed image. Older \
+Talos versions do not report them, so machines running those get no labels.
 """
 
 [notes.frontend-qol]
 title = "Frontend Quality-of-Life Improvements"
 description = """\
-A round of UI improvements across Omni. The home screen has a reworked "Welcome to Omni" card. An unhealthy infrastructure provider shows its error on \
-hover, the machine details panel shows the SMBIOS serial number, and kernel args editing moved into a modal. Config diffs have a sort-order toggle, \
-version pickers sort newest first and scroll to the current selection, and Talos and Kubernetes update calls now report their errors. The disks view \
-got several cleanups, pods sort by status, power-state icons have tooltips, Omni shows a loading indicator when it is slow to start, and the rewritten \
-log viewer scrolls to the bottom reliably. Machine patches no longer offer the cluster-machine patch option and surface an error when a machine is not part of a cluster.
+Machine names are shown the same way everywhere, using the hostname with the machine UUID as a fallback, and the machine stage is dimmed while a \
+machine is unhealthy, with the last known status still shown. The home page replaces the radial bars with segmented ones and splits the machine stats \
+into connection and allocation, which used to be mixed together, and it now also shows the ongoing operations that were previously only in the \
+top-right dropdown. The CPU usage chart stacks its system and user areas and labels them as percentages, and the Kubernetes manifests status is drawn \
+as a graph. In the disk view, unallocated space is striped so it reads apart from allocated space, and volumes Omni does not recognize cycle through \
+distinct colors. Errors from machine service queries appear inline on the page instead of as a toast, with retries and backoff, and an unreachable Talos \
+API is reported as not ready yet rather than as a generic failure. The config editor can toggle word wrap from its context menu, and `$patch: delete` is \
+accepted everywhere the patch validation allows it. On an Auth0 instance the very first user lands on the signup page instead of the login page, and PXE \
+boot is hidden when Omni runs against the Image Factory Enterprise.
+"""
+
+[notes.infra-provider-names]
+title = "Infrastructure Provider Names Validated as DNS Labels"
+description = """\
+An infrastructure provider id must now be a valid DNS label, so lowercase letters, digits and dashes only. Ids with uppercase letters, underscores or \
+spaces used to be accepted and caused failures further along. They are rejected at creation now.
+"""
+
+[notes.infra-provider-versions]
+title = "Infra Provider Versions in the UI and CLI"
+description = """\
+The UI and the CLI now show the version of an infrastructure provider.
+"""
+
+[notes.install-disk-selection]
+title = "Install Disk Selection Respected on Maintenance Installs"
+description = """\
+Machines on Talos 1.13 or newer are installed through the Talos lifecycle API, which takes the install disk as an explicit argument. Omni passed the \
+automatically picked default there, so a disk chosen through the UI or a cluster template was ignored and Talos could be installed to a different disk \
+than the one selected. Omni now reads the install disk from the machine's effective configuration, where the selection is already applied on top of \
+the default.
+"""
+
+[notes.installer-exit-codes]
+title = "Permanent Install Failures Stop Retrying"
+description = """\
+Talos installers from 1.14 report a distinct exit code per failure instead of one generic code, and Omni now reads them. A failure caused by invalid \
+input or an unsupported operation cannot succeed until the machine configuration or the install options change, so Omni records the reason on the machine \
+and stops retrying. Everything else stays retryable, including the single exit code that pre-1.14 installers report for every failure.
+"""
+
+[notes.kube-proxy-prepull]
+title = "No kube-proxy Pre-Pull on Kubernetes Upgrades"
+description = """\
+Kubernetes upgrades no longer pre-pull the kube-proxy image, on any cluster. Clusters that use a kube-proxy replacement such as Cilium turn kube-proxy \
+off, and pre-pulling an image they never run consumed bandwidth needlessly.
+"""
+
+[notes.kubespan-quickstart]
+title = "KubeSpan Quick Start"
+description = """\
+Rather than disabling the KubeSpan tab for a cluster that does not have KubeSpan enabled, Omni now shows a quick start page there with a short \
+explanation, a link to the docs, the config patch it would apply, and a button that applies it. The suggested patch matches what the cluster supports, \
+so a cluster on multi-document configs is offered the newer form. The page warns about the network overhead, which matters most on larger clusters. The \
+KubeSpan status view also tells offline peers apart by shape and line style on top of color, which helps with red and green color blindness.
+"""
+
+[notes.logout-route]
+title = "Logout URL"
+description = """\
+Every Omni instance now answers at `/logout`, whatever its authentication type. SAML and OIDC instances were already served by the backend, and Auth0 \
+instances now have a page that performs the logout, so the same URL ends a session everywhere.
+"""
+
+[notes.lifecycle-install-upgrade]
+title = "Installs and Upgrades Through Talos's LifecycleService"
+description = """\
+On machines running Talos 1.13 or newer, Omni installs and upgrades through Talos's LifecycleService and runs the sequence itself: pull the installer, \
+install or upgrade to disk, forfeit etcd leadership on control planes, cordon and drain the node, then reboot. Same-minor installs on maintenance \
+machines take this explicit path now, instead of letting a config apply trigger the install, and cluster creation and scale-up bring a maintenance-mode \
+machine to the cluster's Talos version when the two differ by a minor version. Machines on older Talos keep using the classic path, and each machine's \
+running version and schematic decide which one it takes.
+"""
+
+[notes.metrics]
+title = "New and Newly Exposed Metrics"
+description = """\
+`omni_machine_logs_ingested_bytes_total` counts the bytes of machine log messages written to storage. Two gauges that were being kept up to date but \
+never registered are now exposed on the Prometheus endpoint as well, one for the number of CPU cores across all machines and one for the number of \
+active virtual state watches.
+"""
+
+[notes.multiple-image-factories]
+title = "Multiple Image Factories"
+description = """\
+Omni can now run against two image factories, a primary and a secondary, which makes it possible to migrate from one to the other. They are configured \
+under `registries.factories.primary` and `registries.factories.secondary`, each taking a URL, a PXE URL, and Image Factory Enterprise credentials. The \
+flat `imageFactoryBaseURL`, `imageFactoryPXEBaseURL`, `imageFactoryUsername` and `imageFactoryPassword` options are deprecated in favor of the primary \
+block. They still work on their own, but once the primary block carries a URL they are ignored completely, so credentials meant for one factory are \
+never sent to another.
+"""
+
+[notes.node-audit-skip-config]
+title = "Node Audit Skip Configurable in the UI and Cluster Templates"
+description = """\
+The node audit skip cluster feature, which exempts a Kubernetes node carrying the `omni.sidero.dev/node-audit-skip` annotation from the node audit, can \
+now be turned on from the cluster create page and the cluster overview, and set in cluster templates.
+"""
+
+[notes.reset-wipes-more-volumes]
+title = "Machine Reset Wipes More Volumes on Talos 1.14"
+description = """\
+On Talos 1.14 and newer, resetting a machine also wipes the container runtime, kubelet, etcd and log volumes, on top of the state and ephemeral \
+partitions it wiped before. Machines on earlier Talos versions still have only those two wiped.
+"""
+
+[notes.search-filter-url]
+title = "Search, Filter and Sort Kept in the URL"
+description = """\
+Search terms, filters and sort order are now part of the URL, so a narrowed-down view survives a reload and can be shared as a link.
+"""
+
+[notes.support-bundle-contents]
+title = "Richer Support Bundles"
+description = """\
+Support bundles now also carry in-flight machine update state and the inputs Omni uses to generate machine configurations.
+"""
+
+[notes.talos-114-config]
+title = "Talos 1.14 Configuration Support"
+description = """\
+Talos 1.14 moves cluster identity, certificate authorities, encryption secrets and Talos API access rules out of the single v1alpha1 document into \
+documents of their own, and Omni understands the new layout. Kubernetes component images for upgrades are patched in the shape the cluster's version \
+contract calls for, Kubernetes CA rotation writes the accepted CA wherever the generated configuration keeps it, and the Talos API access restriction \
+follows its own document. The frontend validates patches against the 1.14 schema and generates 1.14 variants of the patches it writes.
 """
