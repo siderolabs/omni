@@ -42,12 +42,12 @@ const remove = async () => {
   const fails = result.filter((r) => r.status === 'rejected')
 
   if (passes.length) {
-    showSuccess(`${pluralize('machine', passes.length)} removed`)
+    showSuccess(`Removed ${pluralize('machine', passes.length, passes.length > 1)}`)
   }
 
   if (fails.length) {
     showError(
-      `Failed to remove ${pluralize('machine', fails.length)}`,
+      `Failed to remove ${pluralize('machine', fails.length, fails.length > 1)}`,
       fails
         .map((f) => (f.reason instanceof Error ? f.reason.message : String(f.reason)))
         .join('\n'),
