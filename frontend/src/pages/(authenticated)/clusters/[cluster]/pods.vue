@@ -14,7 +14,7 @@ import { Runtime } from '@/api/common/omni.pb'
 import { kubernetes } from '@/api/resources'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
-import TPagination from '@/components/Pagination/TPagination.vue'
+import Pagination from '@/components/Pagination/Pagination.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -101,7 +101,7 @@ const filteredItems = computed(() =>
         <li class="w-1/3">Node</li>
       </ul>
 
-      <TPagination :items="filteredItems" :per-page="9" :search-option="searchOption">
+      <Pagination :items="filteredItems" :per-page="9" :search-option="searchOption">
         <template #default="{ paginatedItems }">
           <div>
             <TPodsItem
@@ -112,7 +112,7 @@ const filteredItems = computed(() =>
             />
           </div>
         </template>
-      </TPagination>
+      </Pagination>
     </div>
   </PageContainer>
 </template>
