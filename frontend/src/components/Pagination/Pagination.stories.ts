@@ -7,12 +7,9 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import Pagination from './Pagination.vue'
 
 const meta: Meta<typeof Pagination> = {
-  // https://github.com/storybookjs/storybook/issues/24238
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  component: Pagination as any,
+  component: Pagination,
   args: {
-    items: Array(100),
-    searchOption: '',
+    pageCount: 12,
   },
 }
 

@@ -4,26 +4,18 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts" generic="T = unknown">
-import { computed, ref, watch } from 'vue'
+<script setup lang="ts">
+import { computed, ref } from 'vue'
 
 import TIcon from '@/components/Icon/TIcon.vue'
 
-const {
-  items,
-  perPage = 8,
-  searchOption,
-} = defineProps<{
-  items: T[]
-  perPage?: number
-  searchOption: string
+const { pageCount } = defineProps<{
+  pageCount: number
 }>()
 
+const currentPage = defineModel<number>('current-page', { default: 1 })
+
 const DOTS = '...'
-const currentPage = ref(1)
-const totalPageCount = computed(() => {
-  return Math.ceil(items.length / perPage)
-})
 const range = (start: number, end: number) => {
   const length = end - start + 1
   return Array.from({ length }, (_, idx) => idx + start)
@@ -31,23 +23,23 @@ const range = (start: number, end: number) => {
 const siblingCount = ref(1)
 const paginationRange = computed(() => {
   const totalPageNumbers = siblingCount.value + 5
-  if (totalPageNumbers >= totalPageCount.value) {
-    return range(1, totalPageCount.value)
+  if (totalPageNumbers >= pageCount) {
+    return range(1, pageCount)
   }
   const leftSiblingIndex = Math.max(currentPage.value - siblingCount.value, 1)
-  const rightSiblingIndex = Math.min(currentPage.value + siblingCount.value, totalPageCount.value)
+  const rightSiblingIndex = Math.min(currentPage.value + siblingCount.value, pageCount)
   const shouldShowLeftDots = leftSiblingIndex > 2
-  const shouldShowRightDots = rightSiblingIndex < totalPageCount.value - 2
+  const shouldShowRightDots = rightSiblingIndex < pageCount - 2
   const firstPageIndex = 1
-  const lastPageIndex = totalPageCount.value
+  const lastPageIndex = pageCount
   if (!shouldShowLeftDots && shouldShowRightDots) {
     const leftItemCount = 3 + 2 * siblingCount.value
     const leftRange = range(1, leftItemCount)
-    return [...leftRange, DOTS, totalPageCount.value]
+    return [...leftRange, DOTS, pageCount]
   }
   if (shouldShowLeftDots && !shouldShowRightDots) {
     const rightItemCount = 3 + 2 * siblingCount.value
-    const rightRange = range(totalPageCount.value - rightItemCount + 1, totalPageCount.value)
+    const rightRange = range(pageCount - rightItemCount + 1, pageCount)
     return [firstPageIndex, DOTS, ...rightRange]
   }
   if (shouldShowLeftDots && shouldShowRightDots) {
@@ -75,28 +67,17 @@ const onPageClick = (value: number | string) => {
     currentPage.value = +value
   }
 }
-watch(
-  () => searchOption,
-  () => {
-    currentPage.value = 1
-  },
-)
 
 const isInvisible = computed(() => {
   return (
-    !totalPageCount.value ||
+    !pageCount ||
     currentPage.value === 0 ||
     (paginationRange.value && paginationRange.value.length < 2)
   )
 })
-
-const filteredItems = computed(() => {
-  return items.slice((currentPage.value - 1) * perPage).slice(0, perPage)
-})
 </script>
 
 <template>
-  <slot :paginated-items="filteredItems" />
   <div class="pagination" :style="{ opacity: isInvisible ? 0 : 1 }">
     <TIcon
       icon="chevron-left"
@@ -122,7 +103,7 @@ const filteredItems = computed(() => {
     <TIcon
       icon="chevron-right"
       class="pagination__icon"
-      :class="{ 'pagination__icon--passive': currentPage === totalPageCount }"
+      :class="{ 'pagination__icon--passive': currentPage === pageCount }"
       @click="onNext"
     />
   </div>
