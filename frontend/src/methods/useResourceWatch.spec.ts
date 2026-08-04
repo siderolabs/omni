@@ -128,6 +128,104 @@ describe('useResourceWatch', () => {
     })
   })
 
+  test('total ignores pre-bootstrap replay counts and reflects the real total once bootstrapped', async () => {
+    const { pushEvents } = createWatchStreamMock({ skipBootstrap: true })
+
+    const { total } = renderComposable(() =>
+      useResourceWatch<MachineSpec>({
+        runtime: Runtime.Omni,
+        resource: { type: MachineType, namespace: DefaultNamespace },
+      }),
+    )
+
+    // Events replayed before BOOTSTRAPPED carry a running replay count, not
+    // the real total — these must not be reflected yet.
+    await pushEvents(
+      createCreatedEvent<MachineSpec>(
+        { metadata: { id: '1', namespace: 'default', type: MachineType }, spec: {} },
+        1,
+      ),
+      createCreatedEvent<MachineSpec>(
+        { metadata: { id: '2', namespace: 'default', type: MachineType }, spec: {} },
+        2,
+      ),
+    )
+    await nextTick()
+    expect(total.value).toBe(0)
+
+    await pushEvents(createBootstrapEvent(42))
+
+    await waitFor(() => expect(total.value).toBe(42))
+  })
+
+  test('total tracks live create/destroy events once bootstrapped', async () => {
+    const { pushEvents } = createWatchStreamMock({ skipBootstrap: true })
+
+    const machine1: Resource<MachineSpec> = {
+      metadata: { id: '1', namespace: 'default', type: MachineType },
+      spec: {},
+    }
+    const machine2: Resource<MachineSpec> = {
+      metadata: { id: '2', namespace: 'default', type: MachineType },
+      spec: {},
+    }
+
+    const { total } = renderComposable(() =>
+      useResourceWatch<MachineSpec>({
+        runtime: Runtime.Omni,
+        resource: { type: MachineType, namespace: DefaultNamespace },
+      }),
+    )
+
+    await pushEvents(createCreatedEvent(machine1), createBootstrapEvent(1))
+    await waitFor(() => expect(total.value).toBe(1))
+
+    await pushEvents(createCreatedEvent(machine2, 2))
+    await waitFor(() => expect(total.value).toBe(2))
+
+    await pushEvents(createDestroyedEvent(machine2, 1))
+    await waitFor(() => expect(total.value).toBe(1))
+  })
+
+  test('total stays at its last known value across a stream reconnect', async () => {
+    const { pushEvents, closeStream } = createWatchStreamMock({ skipBootstrap: true })
+
+    const { total, loading } = renderComposable(() =>
+      useResourceWatch<MachineSpec>({
+        runtime: Runtime.Omni,
+        resource: { type: MachineType, namespace: DefaultNamespace },
+      }),
+    )
+
+    await pushEvents(
+      createCreatedEvent<MachineSpec>(
+        { metadata: { id: '1', namespace: 'default', type: MachineType }, spec: {} },
+        1,
+      ),
+      createBootstrapEvent(5),
+    )
+    await waitFor(() => expect(total.value).toBe(5))
+
+    await closeStream(new Error('network error'))
+
+    // Reconnecting must not flash the total back to 0 while the new
+    // subscription is bootstrapping.
+    expect(total.value).toBe(5)
+
+    await pushEvents(
+      createCreatedEvent<MachineSpec>(
+        { metadata: { id: '2', namespace: 'default', type: MachineType }, spec: {} },
+        1,
+      ),
+      createBootstrapEvent(7),
+    )
+
+    await waitFor(() => {
+      expect(loading.value).toBe(false)
+      expect(total.value).toBe(7)
+    })
+  })
+
   test('updates single resource data after watch events', async () => {
     const { pushEvents } = createWatchStreamMock({ skipBootstrap: true })
 

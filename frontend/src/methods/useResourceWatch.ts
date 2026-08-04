@@ -126,7 +126,6 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
   const bootstrapped = ref(false)
 
   const lastData: typeof data = ref([])
-  const lastTotal = ref(0)
 
   const { err, errCode, loading } = useWatchStream<Resource<TSpec, TStatus>>(opts, {
     onMessage(message, spec) {
@@ -135,10 +134,6 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
       switch (message.event?.event_type) {
         case EventType.BOOTSTRAPPED:
           bootstrapped.value = true
-          total.value = message.total ?? 0
-
-          lastData.value = []
-          lastTotal.value = 0
           break
         case EventType.UPDATED:
         case EventType.CREATED:
@@ -164,39 +159,34 @@ function useWatchMulti<TSpec = unknown, TStatus = unknown>(
             data.value.splice(index, 0, item)
           }
 
-          total.value = message.total ?? 0
-
           break
         case EventType.DESTROYED:
           data.value = data.value.filter((r) => itemID(r) !== itemID(spec.res!))
-          total.value = message.total ?? 0
 
           break
       }
+
+      if (bootstrapped.value) total.value = message.total ?? 0
     },
     onStart() {
       // Store intermediate value incase we disconnected.
       // This prevents a loading flash on screen until new items are bootstrapped.
       lastData.value = data.value
-      lastTotal.value = total.value
 
       data.value = []
-      total.value = 0
       bootstrapped.value = false
     },
     onStop() {
       data.value = []
-      total.value = 0
       bootstrapped.value = false
 
       lastData.value = data.value
-      lastTotal.value = total.value
     },
   })
 
   return {
     data: computed(() => (bootstrapped.value ? data.value : lastData.value)),
-    total: computed(() => (bootstrapped.value ? total.value : lastTotal.value)),
+    total,
     err,
     errCode,
     loading,
