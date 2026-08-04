@@ -221,6 +221,12 @@ func (ctrl *StatusController) reconcileRunning(
 	}
 
 	if err = ctrl.reconcileUpgrade(ctx, logger, r, rc); err != nil {
+		// LifecycleManager reported that underlying Talos API call failed with a permanent error,
+		// so we don't retry the operation and just record the error in status.
+		if lifecycle.IsPermanentInstallerFailure(err) {
+			return nil
+		}
+
 		return err
 	}
 
@@ -682,6 +688,12 @@ func (ctrl *StatusController) runMaintenanceLifecycle(
 		logger.Info(operationName+" already in flight", zap.String("machine", machineID))
 
 		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
+	case lifecycle.IsPermanentInstallerFailure(err):
+		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, fmt.Sprintf("%s failed", operationName)).Error()
+
+		logger.Error(operationName+" failed permanently", zap.String("machine", machineID), zap.Error(err))
+
+		return false, err
 	case err != nil:
 		// Returning a raw error would make qtransform drop the output write and lose LastConfigError.
 		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, fmt.Sprintf("%s failed", operationName)).Error()
@@ -790,6 +802,12 @@ func (ctrl *StatusController) runClusterLifecycle(
 		logger.Info("upgrade already in flight", zap.String("machine", machineID))
 
 		return false, controller.NewRequeueInterval(lifecycle.RetryInterval)
+	case lifecycle.IsPermanentInstallerFailure(err):
+		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, "upgrade failed").Error()
+
+		logger.Error("upgrade failed permanently", zap.String("machine", machineID), zap.Error(err))
+
+		return false, err
 	case err != nil:
 		// Returning a raw error would make qtransform drop the output write and lose LastConfigError.
 		rc.machineConfigStatus.TypedSpec().Value.LastConfigError = lifecycle.WrapErr(err, "upgrade failed").Error()

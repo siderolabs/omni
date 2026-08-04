@@ -14,6 +14,7 @@ import (
 
 	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
 	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
+	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -252,8 +253,8 @@ func relayProgress(
 			}
 		}
 	case *machineapi.LifecycleServiceInstallProgress_ExitCode:
-		if payload.ExitCode != 0 {
-			return status.Errorf(codes.Internal, "%s failed with exit code %d", operationLabel, payload.ExitCode)
+		if payload.ExitCode != constants.ExitSuccess {
+			return &InstallerExitError{Operation: operationLabel, Code: payload.ExitCode}
 		}
 	}
 

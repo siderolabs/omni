@@ -28,8 +28,10 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/encoder"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/cri"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/security"
+	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	ktesting "k8s.io/client-go/testing"
@@ -1260,7 +1262,9 @@ func TestMachineConfigStatusController(t *testing.T) {
 				id := setupMaintenanceMachine(
 					ctx, t, st, machineServices, "maint-error", false, "boot-error",
 					func(svc *testutils.MachineServiceMock) {
-						svc.SetLifecycleInstallHandler(func(*machine.LifecycleServiceInstallRequest) error {
+						svc.SetLifecycleInstallHandler(func(
+							*machine.LifecycleServiceInstallRequest, grpc.ServerStreamingServer[machine.LifecycleServiceInstallResponse],
+						) error {
 							return errors.New("installer blew up")
 						})
 					},
@@ -1268,6 +1272,49 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 				rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
 					a.Contains(res.TypedSpec().Value.LastConfigError, "installer blew up")
+					a.Empty(res.TypedSpec().Value.PreRebootBootId, "a failed operation must not record the boot ID")
+				})
+			},
+		)
+	})
+
+	// maintenanceLifecyclePermanentExitCode verifies the installer's exit code is translated into a
+	// reason the operator can act on, rather than the bare number Talos reports.
+	t.Run("maintenanceLifecyclePermanentExitCode", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
+			func(_ context.Context, tc testutils.TestContext) {
+				require.NoError(t, tc.Runtime.RegisterQController(
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+				))
+			},
+			func(ctx context.Context, tc testutils.TestContext) {
+				st := tc.State
+				machineServices := testutils.NewMachineServices(t, st)
+
+				id := setupMaintenanceMachine(
+					ctx, t, st, machineServices, "maint-exit-code", false, "boot-exit-code",
+					func(svc *testutils.MachineServiceMock) {
+						svc.SetLifecycleInstallHandler(func(
+							_ *machine.LifecycleServiceInstallRequest, srv grpc.ServerStreamingServer[machine.LifecycleServiceInstallResponse],
+						) error {
+							return srv.Send(&machine.LifecycleServiceInstallResponse{
+								Progress: &machine.LifecycleServiceInstallProgress{
+									Response: &machine.LifecycleServiceInstallProgress_ExitCode{ExitCode: constants.ExitInvalidInput},
+								},
+							})
+						})
+					},
+				)
+
+				rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+					a.Contains(res.TypedSpec().Value.LastConfigError, "machine configuration")
+					a.Contains(res.TypedSpec().Value.LastConfigError, "installer exit code 2")
 					a.Empty(res.TypedSpec().Value.PreRebootBootId, "a failed operation must not record the boot ID")
 				})
 			},
@@ -1304,7 +1351,9 @@ func TestMachineConfigStatusController(t *testing.T) {
 				id := setupMaintenanceMachine(
 					ctx, t, st, machineServices, "maint-inflight", false, "boot-inflight",
 					func(svc *testutils.MachineServiceMock) {
-						svc.SetLifecycleInstallHandler(func(*machine.LifecycleServiceInstallRequest) error {
+						svc.SetLifecycleInstallHandler(func(
+							*machine.LifecycleServiceInstallRequest, grpc.ServerStreamingServer[machine.LifecycleServiceInstallResponse],
+						) error {
 							once.Do(func() { close(installEntered) })
 							<-release
 

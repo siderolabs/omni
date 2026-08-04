@@ -8,9 +8,16 @@ package lifecycle
 import (
 	"context"
 
+	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
+
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
+
+// RelayProgressForTest exposes relayProgress to external tests.
+func RelayProgressForTest(progress *machineapi.LifecycleServiceInstallProgress, operationLabel string, send func(string)) error {
+	return relayProgress(progress, operationLabel, send)
+}
 
 // BuildInstallImageForTest exposes buildInstallImage to external tests.
 func (m *Manager) BuildInstallImageForTest(

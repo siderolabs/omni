@@ -233,7 +233,25 @@ func (ctrl *StatusController) transform(ctx context.Context, r controller.Reader
 			return nil
 		}
 
-		return err
+		// A bare requeue is the "come back later" signal from ctrl.upgrade, not a failed upgrade,
+		// so leave the status alone and let it through.
+		if reqErr, ok := errors.AsType[*controller.RequeueError](err); ok && reqErr.Err() == nil {
+			return err
+		}
+
+		logger.Error("Talos upgrade failed", zap.Error(err))
+
+		status.TypedSpec().Value.Phase = specs.MachineUpgradeStatusSpec_Unknown
+		status.TypedSpec().Value.Status = ""
+		status.TypedSpec().Value.Error = err.Error()
+
+		// LifecycleManager reported that underlying Talos API call failed with a permanent error,
+		// so we don't retry the operation and just record the error in status.
+		if lifecycle.IsPermanentInstallerFailure(err) {
+			return nil
+		}
+
+		return controller.NewRequeueInterval(lifecycle.RetryInterval)
 	}
 
 	logger.Info("Talos upgrade initiated")

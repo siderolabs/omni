@@ -11,6 +11,8 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
+	machineapi "github.com/siderolabs/talos/pkg/machinery/api/machine"
+	"github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -81,5 +83,59 @@ func TestBuildInstallImage(t *testing.T) {
 
 		_, err := m.BuildInstallImageForTest(t.Context(), "machine-bare", bare, "", nil)
 		require.Error(t, err)
+	})
+}
+
+func TestRelayProgress(t *testing.T) {
+	t.Parallel()
+
+	t.Run("messages are split into lines and prefixed", func(t *testing.T) {
+		t.Parallel()
+
+		var got []string
+
+		err := lifecycle.RelayProgressForTest(
+			&machineapi.LifecycleServiceInstallProgress{
+				Response: &machineapi.LifecycleServiceInstallProgress_Message{Message: "wiping disk  \n\nwriting image\n"},
+			},
+			"installation",
+			func(msg string) { got = append(got, msg) },
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{"[talos] wiping disk", "[talos] writing image"}, got)
+	})
+
+	t.Run("a zero exit code reports success", func(t *testing.T) {
+		t.Parallel()
+
+		err := lifecycle.RelayProgressForTest(
+			&machineapi.LifecycleServiceInstallProgress{
+				Response: &machineapi.LifecycleServiceInstallProgress_ExitCode{ExitCode: constants.ExitSuccess},
+			},
+			"installation",
+			nil,
+		)
+		assert.NoError(t, err)
+	})
+
+	t.Run("a non-zero exit code becomes a classified installer error", func(t *testing.T) {
+		t.Parallel()
+
+		err := lifecycle.RelayProgressForTest(
+			&machineapi.LifecycleServiceInstallProgress{
+				Response: &machineapi.LifecycleServiceInstallProgress_ExitCode{ExitCode: constants.ExitInvalidInput},
+			},
+			"installation",
+			nil,
+		)
+		require.Error(t, err)
+
+		var exitErr *lifecycle.InstallerExitError
+
+		require.ErrorAs(t, err, &exitErr)
+		assert.Equal(t, "installation", exitErr.Operation)
+		assert.EqualValues(t, constants.ExitInvalidInput, exitErr.Code)
+		assert.True(t, lifecycle.IsPermanentInstallerFailure(err))
 	})
 }

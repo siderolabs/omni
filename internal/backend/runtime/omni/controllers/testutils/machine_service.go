@@ -179,8 +179,8 @@ type MachineServiceMock struct {
 	versionHandler          func(ctx context.Context, _ *emptypb.Empty) (*machine.VersionResponse, error)
 	readHandler             func(*machine.ReadRequest, grpc.ServerStreamingServer[common.Data]) error
 
-	lifecycleInstallHandler func(*machine.LifecycleServiceInstallRequest) error
-	lifecycleUpgradeHandler func(*machine.LifecycleServiceUpgradeRequest) error
+	lifecycleInstallHandler func(*machine.LifecycleServiceInstallRequest, grpc.ServerStreamingServer[machine.LifecycleServiceInstallResponse]) error
+	lifecycleUpgradeHandler func(*machine.LifecycleServiceUpgradeRequest, grpc.ServerStreamingServer[machine.LifecycleServiceUpgradeResponse]) error
 	rebootHandler           func() error
 
 	lifecycleInstallRequests []*machine.LifecycleServiceInstallRequest
@@ -387,27 +387,27 @@ type lifecycleServiceMock struct {
 	ms *MachineServiceMock
 }
 
-func (l *lifecycleServiceMock) Install(req *machine.LifecycleServiceInstallRequest, _ grpc.ServerStreamingServer[machine.LifecycleServiceInstallResponse]) error {
+func (l *lifecycleServiceMock) Install(req *machine.LifecycleServiceInstallRequest, srv grpc.ServerStreamingServer[machine.LifecycleServiceInstallResponse]) error {
 	l.ms.lock.Lock()
 	l.ms.lifecycleInstallRequests = append(l.ms.lifecycleInstallRequests, req)
 	handler := l.ms.lifecycleInstallHandler
 	l.ms.lock.Unlock()
 
 	if handler != nil {
-		return handler(req)
+		return handler(req, srv)
 	}
 
 	return nil
 }
 
-func (l *lifecycleServiceMock) Upgrade(req *machine.LifecycleServiceUpgradeRequest, _ grpc.ServerStreamingServer[machine.LifecycleServiceUpgradeResponse]) error {
+func (l *lifecycleServiceMock) Upgrade(req *machine.LifecycleServiceUpgradeRequest, srv grpc.ServerStreamingServer[machine.LifecycleServiceUpgradeResponse]) error {
 	l.ms.lock.Lock()
 	l.ms.lifecycleUpgradeRequests = append(l.ms.lifecycleUpgradeRequests, req)
 	handler := l.ms.lifecycleUpgradeHandler
 	l.ms.lock.Unlock()
 
 	if handler != nil {
-		return handler(req)
+		return handler(req, srv)
 	}
 
 	return nil
@@ -421,14 +421,22 @@ func (imageServiceMock) Pull(*machine.ImageServicePullRequest, grpc.ServerStream
 	return nil
 }
 
-func (ms *MachineServiceMock) SetLifecycleInstallHandler(handler func(*machine.LifecycleServiceInstallRequest) error) {
+// SetLifecycleInstallHandler sets the handler for LifecycleService.Install. The handler gets the
+// server stream so it can relay installer progress, including a non-zero exit code.
+func (ms *MachineServiceMock) SetLifecycleInstallHandler(
+	handler func(*machine.LifecycleServiceInstallRequest, grpc.ServerStreamingServer[machine.LifecycleServiceInstallResponse]) error,
+) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
 	ms.lifecycleInstallHandler = handler
 }
 
-func (ms *MachineServiceMock) SetLifecycleUpgradeHandler(handler func(*machine.LifecycleServiceUpgradeRequest) error) {
+// SetLifecycleUpgradeHandler sets the handler for LifecycleService.Upgrade. The handler gets the
+// server stream so it can relay installer progress, including a non-zero exit code.
+func (ms *MachineServiceMock) SetLifecycleUpgradeHandler(
+	handler func(*machine.LifecycleServiceUpgradeRequest, grpc.ServerStreamingServer[machine.LifecycleServiceUpgradeResponse]) error,
+) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()
 
