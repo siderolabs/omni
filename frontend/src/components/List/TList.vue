@@ -5,11 +5,11 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts" generic="T = unknown">
-import { useLocalStorage } from '@vueuse/core'
+import { useLocalStorage, useOffsetPagination } from '@vueuse/core'
 import { useRouteQuery } from '@vueuse/router'
 import { computed, ref, watch } from 'vue'
 
-import TIcon from '@/components/Icon/TIcon.vue'
+import Pagination from '@/components/Pagination/Pagination.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -34,8 +34,6 @@ defineExpose({
 const emit = defineEmits<{
   filterChanged: [string | undefined]
 }>()
-
-const dots = '...'
 
 const { pagination, search, opts, sortOptions, filterOptions, filterValue, filterCaption } =
   defineProps<{
@@ -87,10 +85,6 @@ const filterValueComputed = computed(() => {
   return filterValue !== undefined ? filterValue : filterValueInternal.value
 })
 
-const offset = computed(() => {
-  return (currentPage.value - 1) * selectedItemsPerPage.value
-})
-
 const sortByState = computed(() => {
   if (!sortOptions) {
     return {}
@@ -115,7 +109,7 @@ const paginationState = computed(() => {
 
   return {
     limit: selectedItemsPerPage.value,
-    offset: offset.value,
+    offset: (currentPage.value - 1) * selectedItemsPerPage.value,
   }
 })
 
@@ -161,6 +155,9 @@ const searchState = computed<Pick<WatchOptions, 'searchFor' | 'selectors'>>(() =
   return res
 })
 
+// Close sidepanel when changing page
+watch(currentPage, () => (sidePanelOpen.value = false))
+
 // reset the pagination when the search query changes
 watch([() => opts, searchState], (curr, prev) => {
   if (JSON.stringify(curr) !== JSON.stringify(prev)) currentPage.value = 1
@@ -172,39 +169,6 @@ const searchQuery = computed(() => {
   }
 
   return searchState.value.searchFor.join(' ')
-})
-
-const paginationRange = computed(() => {
-  let ranges: number[][]
-  if (totalPageCount.value < 20) {
-    ranges = [[1, totalPageCount.value]]
-  } else {
-    if (currentPage.value < 5 || currentPage.value > totalPageCount.value - 4) {
-      ranges = [
-        [1, 5],
-        [totalPageCount.value - 4, totalPageCount.value],
-      ]
-    } else {
-      ranges = [
-        [1, 3],
-        [currentPage.value - 1, currentPage.value + 1],
-        [totalPageCount.value - 2, totalPageCount.value],
-      ]
-    }
-  }
-
-  const res: (string | number)[] = []
-  for (let i: number = 0; i < ranges.length; i++) {
-    for (let j: number = ranges[i][0]; j <= ranges[i][1]; j++) {
-      res.push(j)
-    }
-
-    if (i !== ranges.length - 1) {
-      res.push(dots)
-    }
-  }
-
-  return res
 })
 
 const {
@@ -219,30 +183,11 @@ const {
   ...sortByState.value,
 }))
 
-const totalPageCount = computed(() => {
-  return Math.ceil(total.value / selectedItemsPerPage.value)
+const { pageCount } = useOffsetPagination({
+  total,
+  pageSize: selectedItemsPerPage,
+  page: currentPage,
 })
-
-const showPageSelector = computed(() => {
-  return pagination && totalPageCount.value > 1
-})
-
-const prevPage = () => {
-  currentPage.value = Math.max(1, currentPage.value - 1)
-}
-
-const nextPage = () => {
-  currentPage.value = Math.min(totalPageCount.value, currentPage.value + 1)
-}
-
-const openPage = (page: number | string) => {
-  if (page === dots) {
-    return
-  }
-
-  currentPage.value = page as number
-  sidePanelOpen.value = false
-}
 </script>
 
 <template>
@@ -330,38 +275,7 @@ const openPage = (page: number | string) => {
         </div>
       </div>
 
-      <div v-if="showPageSelector" class="mt-4 flex items-center justify-end gap-2">
-        <TIcon
-          icon="chevron-left"
-          class="size-5 cursor-pointer fill-current transition-all duration-200 hover:text-naturals-n10"
-          :class="currentPage === 1 ? 'text-naturals-n6' : 'text-naturals-n8'"
-          @click="prevPage"
-        />
-
-        <div class="flex items-center gap-2 transition-all duration-200">
-          <span
-            v-for="(item, index) in paginationRange ?? []"
-            :key="index"
-            class="flex size-7 items-center justify-center rounded transition-all duration-200 select-none"
-            :class="[
-              item === currentPage ? 'bg-naturals-n4 text-naturals-n12' : 'text-naturals-n8',
-              item === dots
-                ? 'cursor-default hover:text-naturals-n8'
-                : 'cursor-pointer hover:text-naturals-n9',
-            ]"
-            @click="() => openPage(item)"
-          >
-            {{ item }}
-          </span>
-        </div>
-
-        <TIcon
-          icon="chevron-right"
-          class="size-5 cursor-pointer fill-current transition-all duration-200 hover:text-naturals-n10"
-          :class="[currentPage === totalPageCount ? 'text-naturals-n6' : 'text-naturals-n8']"
-          @click="nextPage"
-        />
-      </div>
+      <Pagination v-if="pagination" v-model:current-page="currentPage" :page-count="pageCount" />
     </div>
 
     <div
