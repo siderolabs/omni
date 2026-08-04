@@ -5,25 +5,24 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts" generic="T = unknown">
-import { computed, ref, toRefs, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import TIcon from '@/components/Icon/TIcon.vue'
 
-type Props = {
+const {
+  items,
+  perPage = 8,
+  searchOption,
+} = defineProps<{
   items: T[]
   perPage?: number
   searchOption: string
-}
+}>()
 
-const props = withDefaults(defineProps<Props>(), {
-  perPage: 8,
-})
-
-const { items, perPage, searchOption } = toRefs(props)
 const DOTS = '...'
 const currentPage = ref(1)
 const totalPageCount = computed(() => {
-  return Math.ceil(items.value.length / perPage.value)
+  return Math.ceil(items.length / perPage)
 })
 const range = (start: number, end: number) => {
   const length = end - start + 1
@@ -77,7 +76,7 @@ const onPageClick = (value: number | string) => {
   }
 }
 watch(
-  () => searchOption.value,
+  () => searchOption,
   () => {
     currentPage.value = 1
   },
@@ -92,7 +91,7 @@ const isInvisible = computed(() => {
 })
 
 const filteredItems = computed(() => {
-  return items.value.slice((currentPage.value - 1) * perPage.value).slice(0, perPage.value)
+  return items.slice((currentPage.value - 1) * perPage).slice(0, perPage)
 })
 </script>
 
