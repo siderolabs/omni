@@ -5,9 +5,10 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useOffsetPagination } from '@vueuse/core'
 import { useRouteQuery } from '@vueuse/router'
 import type { PodSpec as V1PodSpec, PodStatus as V1PodStatus } from 'kubernetes-types/core/v1'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -76,6 +77,18 @@ const filteredItems = computed(() =>
     })
     .toSorted((a, b) => phaseToNum(a.status?.phase) - phaseToNum(b.status?.phase)),
 )
+
+const { pageCount, currentPage, currentPageSize } = useOffsetPagination({
+  total: () => filteredItems.value.length,
+  pageSize: 9,
+})
+
+const paginatedItems = computed(() => {
+  const start = (currentPage.value - 1) * currentPageSize.value
+  return filteredItems.value.slice(start, start + currentPageSize.value)
+})
+
+watch(searchOption, () => (currentPage.value = 1))
 </script>
 
 <template>
@@ -101,18 +114,16 @@ const filteredItems = computed(() =>
         <li class="w-1/3">Node</li>
       </ul>
 
-      <Pagination :items="filteredItems" :per-page="9" :search-option="searchOption">
-        <template #default="{ paginatedItems }">
-          <div>
-            <TPodsItem
-              v-for="(item, idx) in paginatedItems"
-              :key="`${item.metadata.namespace}/${item.metadata.name || idx}`"
-              :search-option="searchOption"
-              :item="item"
-            />
-          </div>
-        </template>
-      </Pagination>
+      <div>
+        <TPodsItem
+          v-for="(item, idx) in paginatedItems"
+          :key="`${item.metadata.namespace}/${item.metadata.name || idx}`"
+          :search-option="searchOption"
+          :item="item"
+        />
+      </div>
+
+      <Pagination v-model:current-page="currentPage" :page-count="pageCount" />
     </div>
   </PageContainer>
 </template>
