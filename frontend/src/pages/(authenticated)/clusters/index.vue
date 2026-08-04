@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { useRouteQuery } from '@vueuse/router'
+import { ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { ClusterStatusMetricsSpec, ClusterStatusSpec } from '@/api/omni/specs/omni.pb'
@@ -45,7 +45,7 @@ const { data } = useResourceWatch<ClusterStatusMetricsSpec>({
 })
 
 const filterLabels = useLabelRouteQuery()
-const filterValue = useRouteQuery('q', '')
+const filterValue = ref('')
 
 const sortOptions = [
   { id: 'id', desc: 'ID ⬆' },
@@ -64,6 +64,7 @@ const filterOptions = [
 <template>
   <PageContainer>
     <TList
+      v-model:filter-value="filterValue"
       :opts="{
         type: undefined as unknown as ClusterStatusSpec,
         runtime: Runtime.Omni,
@@ -81,7 +82,6 @@ const filterOptions = [
       filter-caption="Status"
       :sort-options="sortOptions"
       :filter-options="filterOptions"
-      :filter-value="filterValue"
     >
       <template #norecords>
         <TAlert type="info" title="No clusters found">

@@ -8,6 +8,7 @@ included in the LICENSE file.
 import { useLocalStorage, useOffsetPagination } from '@vueuse/core'
 import { useRouteQuery } from '@vueuse/router'
 import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 import Pagination from '@/components/Pagination/Pagination.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
@@ -20,32 +21,19 @@ import {
   type WatchOptionsMulti,
 } from '@/methods/useResourceWatch'
 
-defineExpose({
-  addFilterLabel: (label: { key: string; value?: string }) => {
-    const selector = `${label.key}:${label.value}`
-    if (filterValueInternal.value.includes(selector)) {
-      return
-    }
-
-    filterValueInternal.value += (filterValueInternal.value ? ' ' : '') + selector
-  },
-})
-
 const emit = defineEmits<{
   filterChanged: [string | undefined]
 }>()
 
-const { pagination, search, opts, sortOptions, filterOptions, filterValue, filterCaption } =
-  defineProps<{
-    pagination?: boolean
-    search?: boolean
-    // type: T is the only way to type the generic
-    opts: WatchOptionsMulti & { type: T }
-    sortOptions?: { id: string; desc: string; descending?: boolean }[]
-    filterOptions?: { query?: string; desc: string }[]
-    filterValue?: string
-    filterCaption?: string
-  }>()
+const { pagination, search, opts, sortOptions, filterOptions, filterCaption } = defineProps<{
+  pagination?: boolean
+  search?: boolean
+  // type: T is the only way to type the generic
+  opts: WatchOptionsMulti & { type: T }
+  sortOptions?: { id: string; desc: string; descending?: boolean }[]
+  filterOptions?: { query?: string; desc: string }[]
+  filterCaption?: string
+}>()
 
 const itemsPerPage = [5, 10, 25, 50, 100]
 
@@ -69,7 +57,25 @@ const filterOptionsVariants = computed(() => {
   })
 })
 
-const filterValueInternal = useRouteQuery('q', '')
+const route = useRoute()
+const filterValue = defineModel<string>('filterValue', { default: '' })
+const filterValueRoute = useRouteQuery<string>('q', '')
+
+watch(
+  filterValueRoute,
+  (value) => {
+    // No `q` param means the URL has no opinion
+    if (route.query.q === undefined) return
+
+    if (filterValue.value !== value) filterValue.value = value
+  },
+  { immediate: true },
+)
+
+watch(filterValue, (value) => {
+  if (filterValueRoute.value !== value) filterValueRoute.value = value
+})
+
 const currentPage = ref(1)
 const selectedItemsPerPage = useLocalStorage('itemsPerPage', 10)
 const selectedSortOption = useRouteQuery('sort', sortOptionsVariants?.value?.[0])
@@ -79,10 +85,6 @@ const sidePanelSelectedItemId = ref<string>()
 
 watch(selectedFilterOption, () => {
   emit('filterChanged', selectedFilterOption.value)
-})
-
-const filterValueComputed = computed(() => {
-  return filterValue !== undefined ? filterValue : filterValueInternal.value
 })
 
 const sortByState = computed(() => {
@@ -118,7 +120,7 @@ const searchState = computed<Pick<WatchOptions, 'searchFor' | 'selectors'>>(() =
     return {}
   }
 
-  const parts = filterValueComputed.value.split(' ')
+  const parts = filterValue.value.split(' ')
   const selectors: string[] = []
   const searchFor: string[] = []
 
@@ -202,7 +204,7 @@ const { pageCount } = useOffsetPagination({
       <div class="flex grow flex-col gap-4 overflow-hidden">
         <template v-if="pagination || search || (pagination && itemsPerPage?.length > 1)">
           <slot name="input">
-            <TInput v-if="search" v-model="filterValueInternal" icon="search" />
+            <TInput v-if="search" v-model="filterValue" icon="search" />
           </slot>
 
           <div class="flex justify-between gap-2">
