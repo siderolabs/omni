@@ -52,8 +52,8 @@ function unselectDeletedMachines(machineIds: string[]) {
       }"
       filter-caption="Acceptance status"
       :filter-options="[
-        { desc: 'Pending', query: 'pending' },
-        { desc: 'Rejected', query: 'rejected' },
+        { label: 'Pending', value: 'pending' },
+        { label: 'Rejected', value: 'rejected' },
       ]"
       search
       pagination
@@ -139,6 +139,7 @@ function unselectDeletedMachines(machineIds: string[]) {
                   <WordHighlighter
                     :query="searchQuery"
                     :text-to-highlight="item.metadata.id"
+                    split-by-space
                     highlight-class="bg-naturals-n14"
                   />
                 </div>

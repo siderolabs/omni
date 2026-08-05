@@ -5,9 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts" generic="T = unknown">
-import { useRouteQuery } from '@vueuse/router'
-import { computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { watch } from 'vue'
 
 import Pagination from '@/components/Pagination/Pagination.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
@@ -15,12 +13,9 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import { useResourcePagination } from '@/methods/resource/useResourcePagination'
+import { type ResourceFilterOption, useResourceSearch } from '@/methods/resource/useResourceSearch'
 import { type ResourceSortOption, useResourceSort } from '@/methods/resource/useResourceSort'
-import {
-  useResourceWatch,
-  type WatchOptions,
-  type WatchOptionsMulti,
-} from '@/methods/useResourceWatch'
+import { useResourceWatch, type WatchOptionsMulti } from '@/methods/useResourceWatch'
 
 const emit = defineEmits<{
   filterChanged: [string | undefined]
@@ -31,17 +26,19 @@ const {
   search,
   opts,
   sortOptions = [],
-  filterOptions,
-  filterCaption,
+  filterOptions = [],
+  filterCaption = 'Filter',
 } = defineProps<{
   pagination?: boolean
   search?: boolean
   // type: T is the only way to type the generic
   opts: WatchOptionsMulti & { type: T }
   sortOptions?: ResourceSortOption[]
-  filterOptions?: { query?: string; desc: string }[]
+  filterOptions?: ResourceFilterOption[]
   filterCaption?: string
 }>()
+
+const filterValue = defineModel<string>('filterValue', { default: '' })
 
 const {
   watchOptions: sortByState,
@@ -58,94 +55,19 @@ const {
   pageSizeSelectValues: itemsPerPage,
 } = useResourcePagination()
 
-const filterOptionsVariants = computed(() => {
-  if (!filterOptions) {
-    return []
-  }
-
-  return filterOptions.map((opt) => {
-    return opt.desc
-  })
-})
-
-const route = useRoute()
-const filterValue = defineModel<string>('filterValue', { default: '' })
-const filterValueRoute = useRouteQuery<string>('q', '')
-
-watch(
-  filterValueRoute,
-  (value) => {
-    // No `q` param means the URL has no opinion
-    if (route.query.q === undefined) return
-
-    if (filterValue.value !== value) filterValue.value = value
-  },
-  { immediate: true },
-)
-
-watch(filterValue, (value) => {
-  if (filterValueRoute.value !== value) filterValueRoute.value = value
-})
-
-const selectedFilterOption = useRouteQuery('filter', filterOptionsVariants.value?.[0])
+const {
+  watchOptions: searchState,
+  searchQuery,
+  selectedFilterOption,
+} = useResourceSearch({ filterValue, filterOptions: () => filterOptions })
 
 watch(selectedFilterOption, () => {
   emit('filterChanged', selectedFilterOption.value)
 })
 
-const searchState = computed<Pick<WatchOptions, 'searchFor' | 'selectors'>>(() => {
-  if (!search) {
-    return {}
-  }
-
-  const parts = filterValue.value.split(' ')
-  const selectors: string[] = []
-  const searchFor: string[] = []
-
-  if (selectedFilterOption.value) {
-    const selectedOptionQuery = filterOptions?.find(
-      (item) => item.desc === selectedFilterOption.value,
-    )?.query
-
-    if (selectedOptionQuery) {
-      searchFor.push(selectedOptionQuery)
-    }
-  }
-
-  for (const part of parts) {
-    const match = part.match(/^(.+):(.*)$/)
-
-    if (!match || match.length < 3) {
-      if (part) searchFor.push(part)
-
-      continue
-    }
-
-    selectors.push(`${match[1]}=${match[2]}`)
-  }
-
-  const res: { selectors?: string[]; searchFor?: string[] } = {
-    selectors: (opts.selectors ?? []).concat(selectors),
-  }
-
-  if (searchFor.length > 0) {
-    res.searchFor = searchFor
-  }
-
-  return res
-})
-
 // reset the pagination when the search query changes
 watch([() => opts, searchState, selectedItemsPerPage], (curr, prev) => {
   if (JSON.stringify(curr) !== JSON.stringify(prev)) currentPage.value = 1
-})
-
-const searchQuery = computed(() => {
-  if (!searchState.value.searchFor) {
-    return undefined
-  }
-
-  return searchState.value.searchFor.join(' ')
 })
 
 const {
@@ -158,6 +80,7 @@ const {
     ...(pagination ? paginationState.value : {}),
     ...searchState.value,
     ...sortByState.value,
+    selectors: [...(opts.selectors ?? []), ...(searchState.value.selectors ?? [])],
   }),
   { total },
 )
@@ -190,11 +113,10 @@ defineExpose({
 
           <div class="flex flex-wrap items-center gap-2">
             <TSelectList
-              v-if="filterOptions"
-              :title="filterCaption ?? 'Filter'"
-              :default-value="selectedFilterOption || ''"
-              :values="filterOptionsVariants"
-              @checked-value="(value) => (selectedFilterOption = value)"
+              v-if="filterOptions.length"
+              v-model="selectedFilterOption"
+              :title="filterCaption"
+              :values="filterOptions"
             />
 
             <TSelectList

@@ -4,7 +4,7 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts" generic="T extends string | number">
+<script setup lang="ts" generic="T extends string | number | undefined">
 import { useMounted } from '@vueuse/core'
 import {
   Label,
@@ -28,6 +28,15 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 
+type Item =
+  | T
+  | {
+      label: string
+      value?: T
+      disabled?: boolean
+      tooltip?: string
+    }
+
 const {
   variant = 'default',
   title = '',
@@ -38,7 +47,7 @@ const {
   variant?: 'default' | 'breadcrumb'
   title?: string
   defaultValue?: T
-  values: T[] | { label: string; value: T; disabled?: boolean; tooltip?: string }[]
+  values: Item[]
   disabled?: boolean
   searcheable?: boolean
   hideSelectedSmallScreens?: boolean
@@ -62,19 +71,15 @@ const focusSearch = ref(false)
 const triggerId = useId()
 
 defineExpose({
-  selectItem: (value: T) => {
+  selectItem: (value?: T) => {
     selectedItem.value = value
   },
 })
 
 // Passing this as a default option to defineModel doesn't work due to the macro's limitations
 onBeforeMount(() => {
-  if (
-    typeof defaultValue !== 'undefined' &&
-    typeof selectedItem.value === 'undefined' &&
-    selectedItem.value !== defaultValue
-  ) {
-    selectedItem.value = defaultValue
+  if (typeof defaultValue !== 'undefined' && typeof selectedItem.value === 'undefined') {
+    selectedItem.value = defaultValue as T | undefined
   }
 })
 
@@ -97,6 +102,8 @@ const onOpen = async (open: boolean) => {
 
 function itemLabel(item: T | { label: string }) {
   switch (typeof item) {
+    case 'undefined':
+      return '-'
     case 'string':
       return item
     case 'number':
@@ -106,29 +113,34 @@ function itemLabel(item: T | { label: string }) {
   }
 }
 
-function itemValue(item: T | { value: T }) {
+function itemValue(item?: Item) {
   switch (typeof item) {
+    case 'undefined':
+      // undefined and '' are invalid values for reka-ui's Select
+      return null
     case 'string':
     case 'number':
       return item
     default:
-      return item.value
+      return itemValue(item.value)
   }
 }
 
-function itemDisabled(item: T | { disabled?: boolean }): boolean {
+function itemDisabled(item?: Item) {
   return typeof item === 'object' && !!item.disabled
 }
 
-function itemTooltip(item: T | { tooltip?: string }): string | undefined {
+function itemTooltip(item?: Item) {
   return typeof item === 'object' ? item.tooltip : undefined
 }
 
-function labelFromValue(value?: T) {
-  if (typeof value === 'undefined') return ''
+function labelFromValue(value?: T | null) {
+  // We translate undefined to null, translate it back here
+  if (value === null) value = undefined
 
   const item = values.find((v) => {
     switch (typeof v) {
+      case 'undefined':
       case 'string':
       case 'number':
         return value === v
@@ -137,7 +149,7 @@ function labelFromValue(value?: T) {
     }
   })
 
-  if (!item) return value
+  if (!item) return ''
 
   return itemLabel(item)
 }
@@ -206,7 +218,7 @@ function labelFromValue(value?: T) {
           <SelectViewport>
             <Tooltip
               v-for="item in filteredValues"
-              :key="itemValue(item)"
+              :key="itemValue(item) ?? 'undefined'"
               :description="itemTooltip(item)"
               :disabled="!itemTooltip(item)"
               placement="right"
