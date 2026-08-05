@@ -212,7 +212,7 @@ defineExpose({
             <slot name="extra-controls" :selected-filter-option />
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <TSelectList
               v-if="filterOptions"
               :title="filterCaption ?? 'Filter'"
