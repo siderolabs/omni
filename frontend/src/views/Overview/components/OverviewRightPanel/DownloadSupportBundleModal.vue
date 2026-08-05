@@ -16,6 +16,7 @@ import type { ClusterMachineIdentitySpec } from '@/api/omni/specs/omni.pb'
 import { withAbortController } from '@/api/options'
 import { ClusterMachineIdentityType, DefaultNamespace, LabelCluster } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
+import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import type { IconType } from '@/components/Icon/TIcon.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import Modal from '@/components/Modals/Modal.vue'
@@ -63,6 +64,11 @@ const { data } = useResourceWatch<ClusterMachineIdentitySpec>(() => ({
 
 const downloading = ref(false)
 const downloadedURL = ref<string>()
+const encrypt = ref(true)
+
+// the filename has to match what was actually downloaded, so freeze the toggle once the
+// request goes out.
+const encryptLocked = computed(() => downloading.value || downloadedURL.value !== undefined)
 
 const closeText = computed(() => {
   return downloadedURL.value ? 'Close' : 'Cancel'
@@ -90,6 +96,7 @@ watchEffect(() => {
   expanded.value = {}
   downloading.value = false
   downloadedURL.value = undefined
+  encrypt.value = true
 })
 
 const download = async () => {
@@ -103,6 +110,7 @@ const download = async () => {
     await ManagementService.GetSupportBundle(
       {
         cluster: clusterId,
+        encrypt: encrypt.value,
       },
       ({ bundle_data, progress }) => {
         if (progress?.source) {
@@ -148,7 +156,9 @@ const download = async () => {
         if (bundle_data) {
           const data = bundle_data as unknown as string // bundle_data is actually not a Uint8Array, but a base64 string
           const rawData = b64Decode(data) as Uint8Array<ArrayBuffer>
-          const blob = new Blob([rawData], { type: 'application/zip' })
+          const blob = new Blob([rawData], {
+            type: encrypt.value ? 'application/octet-stream' : 'application/zip',
+          })
 
           downloadedURL.value = window.URL.createObjectURL(blob)
         }
@@ -170,7 +180,7 @@ async function confirm() {
   }
 
   if (downloadedURL.value) {
-    downloadFile(downloadedURL.value, 'support.zip')
+    downloadFile(downloadedURL.value, encrypt.value ? 'support.zip.age' : 'support.zip')
   }
 }
 
@@ -188,6 +198,22 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
     @confirm="confirm"
   >
     <template #description>Cluster: {{ clusterId }}</template>
+
+    <div class="mb-4">
+      <Tooltip
+        description="To encrypt to your own key as well, so that you can open the bundle too, use omnictl support --encryption-recipients."
+      >
+        <TCheckbox v-model="encrypt" :disabled="encryptLocked" label="Encrypt for Sidero Labs" />
+      </Tooltip>
+
+      <p class="mt-1 ml-5.5 text-xs text-naturals-n9">
+        {{
+          encrypt
+            ? 'Only Sidero Labs team will be able to open the bundle, so it is safe to attach to an issue or a ticket.'
+            : 'The bundle is downloaded as a plain archive. Anyone you share it with can read it.'
+        }}
+      </p>
+    </div>
 
     <div class="space-y-2">
       <div

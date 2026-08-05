@@ -24,6 +24,8 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"go.yaml.in/yaml/v4"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
@@ -33,6 +35,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/client/pkg/panichandler"
+	"github.com/siderolabs/omni/client/pkg/supportbundle"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	slink "github.com/siderolabs/omni/internal/pkg/siderolink"
 )
@@ -41,6 +44,13 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 	ctx := serv.Context()
 
 	authCtx, _, err := s.checkClusterAuthorization(ctx, req.Cluster, role.Operator)
+	if err != nil {
+		return err
+	}
+
+	var b bytes.Buffer
+
+	archiveOutput, flushEncryption, err := encryptedOutput(req, &b, serv)
 	if err != nil {
 		return err
 	}
@@ -86,10 +96,8 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 
 	progress := make(chan bundle.Progress)
 
-	var b bytes.Buffer
-
 	options := bundle.NewOptions(
-		bundle.WithArchiveOutput(&b),
+		bundle.WithArchiveOutput(archiveOutput),
 		bundle.WithKubernetesClient(kubernetesClient),
 		bundle.WithTalosClientProvider(func(ctx context.Context, machineID string) (context.Context, *client.Client, error) {
 			c, clientErr := s.talosRuntime.GetClientForMachine(ctx, machineID)
@@ -153,9 +161,46 @@ func (s *managementServer) GetSupportBundle(req *management.GetSupportBundleRequ
 		return err
 	}
 
+	if err = flushEncryption(); err != nil {
+		return err
+	}
+
 	return serv.Send(&management.GetSupportBundleResponse{
 		BundleData: b.Bytes(),
 	})
+}
+
+// encryptedOutput wraps dst with an age layer when the request asks for encryption, and reports the
+// recipients to the client before any collection happens.
+//
+// The returned flush must be called once the archive is finalized, to write out the trailing age data.
+func encryptedOutput(
+	req *management.GetSupportBundleRequest,
+	dst io.Writer,
+	serv grpc.ServerStreamingServer[management.GetSupportBundleResponse],
+) (io.Writer, func() error, error) {
+	if !req.Encrypt {
+		if len(req.EncryptionRecipients) > 0 || req.EncryptionNoDefaultRecipients {
+			return nil, nil, status.Error(codes.InvalidArgument, "encryption recipients cannot be set when encryption is disabled")
+		}
+
+		return dst, func() error { return nil }, nil
+	}
+
+	// set the age layer up before collecting anything, so a malformed recipient key fails right away
+	encWriter, recipients, err := supportbundle.Encrypt(dst, supportbundle.EncryptionOptions{
+		Recipients:          req.EncryptionRecipients,
+		NoDefaultRecipients: req.EncryptionNoDefaultRecipients,
+	})
+	if err != nil {
+		return nil, nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	if err = serv.Send(&management.GetSupportBundleResponse{EncryptionRecipients: recipients}); err != nil {
+		return nil, nil, err
+	}
+
+	return encWriter, encWriter.Close, nil
 }
 
 func (s *managementServer) writeResource(res resource.Resource) *collectors.Collector {

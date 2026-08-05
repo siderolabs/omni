@@ -534,6 +534,13 @@ func (m *GetSupportBundleRequest) CloneVT() *GetSupportBundleRequest {
 	}
 	r := new(GetSupportBundleRequest)
 	r.Cluster = m.Cluster
+	r.Encrypt = m.Encrypt
+	r.EncryptionNoDefaultRecipients = m.EncryptionNoDefaultRecipients
+	if rhs := m.EncryptionRecipients; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.EncryptionRecipients = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -576,6 +583,11 @@ func (m *GetSupportBundleResponse) CloneVT() *GetSupportBundleResponse {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
 		r.BundleData = tmpBytes
+	}
+	if rhs := m.EncryptionRecipients; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.EncryptionRecipients = tmpContainer
 	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -1746,6 +1758,21 @@ func (this *GetSupportBundleRequest) EqualVT(that *GetSupportBundleRequest) bool
 	if this.Cluster != that.Cluster {
 		return false
 	}
+	if this.Encrypt != that.Encrypt {
+		return false
+	}
+	if len(this.EncryptionRecipients) != len(that.EncryptionRecipients) {
+		return false
+	}
+	for i, vx := range this.EncryptionRecipients {
+		vy := that.EncryptionRecipients[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.EncryptionNoDefaultRecipients != that.EncryptionNoDefaultRecipients {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1798,6 +1825,15 @@ func (this *GetSupportBundleResponse) EqualVT(that *GetSupportBundleResponse) bo
 	}
 	if string(this.BundleData) != string(that.BundleData) {
 		return false
+	}
+	if len(this.EncryptionRecipients) != len(that.EncryptionRecipients) {
+		return false
+	}
+	for i, vx := range this.EncryptionRecipients {
+		vy := that.EncryptionRecipients[i]
+		if vx != vy {
+			return false
+		}
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
@@ -3826,6 +3862,35 @@ func (m *GetSupportBundleRequest) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.EncryptionNoDefaultRecipients {
+		i--
+		if m.EncryptionNoDefaultRecipients {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.EncryptionRecipients) > 0 {
+		for iNdEx := len(m.EncryptionRecipients) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.EncryptionRecipients[iNdEx])
+			copy(dAtA[i:], m.EncryptionRecipients[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.EncryptionRecipients[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if m.Encrypt {
+		i--
+		if m.Encrypt {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.Cluster) > 0 {
 		i -= len(m.Cluster)
 		copy(dAtA[i:], m.Cluster)
@@ -3929,6 +3994,15 @@ func (m *GetSupportBundleResponse) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.EncryptionRecipients) > 0 {
+		for iNdEx := len(m.EncryptionRecipients) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.EncryptionRecipients[iNdEx])
+			copy(dAtA[i:], m.EncryptionRecipients[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.EncryptionRecipients[iNdEx])))
+			i--
+			dAtA[i] = 0x1a
+		}
 	}
 	if len(m.BundleData) > 0 {
 		i -= len(m.BundleData)
@@ -5722,6 +5796,18 @@ func (m *GetSupportBundleRequest) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	if m.Encrypt {
+		n += 2
+	}
+	if len(m.EncryptionRecipients) > 0 {
+		for _, s := range m.EncryptionRecipients {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	if m.EncryptionNoDefaultRecipients {
+		n += 2
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -5767,6 +5853,12 @@ func (m *GetSupportBundleResponse) SizeVT() (n int) {
 	l = len(m.BundleData)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.EncryptionRecipients) > 0 {
+		for _, s := range m.EncryptionRecipients {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
 	}
 	n += len(m.unknownFields)
 	return n
@@ -9670,6 +9762,78 @@ func (m *GetSupportBundleRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Cluster = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Encrypt", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Encrypt = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EncryptionRecipients", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EncryptionRecipients = append(m.EncryptionRecipients, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EncryptionNoDefaultRecipients", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.EncryptionNoDefaultRecipients = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -9975,6 +10139,38 @@ func (m *GetSupportBundleResponse) UnmarshalVT(dAtA []byte) error {
 			if m.BundleData == nil {
 				m.BundleData = []byte{}
 			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EncryptionRecipients", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.EncryptionRecipients = append(m.EncryptionRecipients, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

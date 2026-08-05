@@ -6,6 +6,7 @@ go 1.26.5
 replace go.yaml.in/yaml/v4 v4.0.0-rc.6 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260711085733-86003acec573
 
 require (
+	filippo.io/age v1.3.1
 	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/ProtonMail/gopenpgp/v3 v3.4.1
 	github.com/adrg/xdg v0.5.3
@@ -28,6 +29,7 @@ require (
 	github.com/siderolabs/gen v0.8.7
 	github.com/siderolabs/go-api-signature v0.3.13
 	github.com/siderolabs/go-kubeconfig v0.1.2
+	github.com/siderolabs/go-talos-support v0.3.1
 	github.com/siderolabs/image-factory v1.4.0
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.16
@@ -37,9 +39,10 @@ require (
 	github.com/xlab/treeprint v1.2.0
 	go.uber.org/zap v1.28.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
+	golang.org/x/crypto v0.54.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/term v0.45.0
-	google.golang.org/grpc v1.82.1
+	google.golang.org/grpc v1.83.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/apimachinery v0.36.3
 	k8s.io/client-go v0.36.3
@@ -49,6 +52,8 @@ require (
 
 require (
 	cel.dev/expr v0.25.2 // indirect
+	filippo.io/edwards25519 v1.2.0 // indirect
+	filippo.io/hpke v0.4.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
@@ -123,7 +128,6 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
-	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/exp v0.0.0-20260709172345-9ea1abe57597 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect

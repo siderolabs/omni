@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -21,21 +22,51 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omnictl/internal/access"
+	"github.com/siderolabs/omni/client/pkg/supportbundle"
 )
 
 var supportCmdFlags struct {
-	cluster string
-	output  string
-	verbose bool
+	cluster                       string
+	output                        string
+	encryptionRecipients          []string
+	verbose                       bool
+	noEncryption                  bool
+	encryptionNoDefaultRecipients bool
 }
 
 // supportCmd represents the get (resources) command.
 var supportCmd = &cobra.Command{
 	Use:   "support [local-path]",
 	Short: "Download the support bundle for a cluster",
-	Long:  `The command collects all non-sensitive information for the cluster from the Omni state.`,
-	Args:  cobra.NoArgs,
+	Long: `The command collects all non-sensitive information for the cluster from the Omni state.
+
+By default, the generated bundle is encrypted using age encryption to the list of recipients
+set by the members of the 'siderolabs' GitHub organization. The encrypted bundle by default will
+only be decryptable by the Sidero Labs team, but you can also specify additional recipients using the
+--encryption-recipients flag, or disable encryption completely using the --no-encryption flag.
+Default encryption recipients can be removed by setting --encryption-no-default-recipients flag.`,
+	Args: cobra.NoArgs,
 	RunE: func(*cobra.Command, []string) error {
+		if supportCmdFlags.noEncryption && (len(supportCmdFlags.encryptionRecipients) > 0 || supportCmdFlags.encryptionNoDefaultRecipients) {
+			return errors.New("--encryption-recipients and --encryption-no-default-recipients cannot be used with --no-encryption")
+		}
+
+		if supportCmdFlags.output == "" {
+			supportCmdFlags.output = "support.zip"
+
+			if !supportCmdFlags.noEncryption {
+				supportCmdFlags.output += ".age"
+			}
+		}
+
+		// parse the recipient keys here rather than inside the client callback, so a bad one fails
+		// before we authenticate and pull down the whole bundle.
+		if !supportCmdFlags.noEncryption {
+			if _, _, err := supportbundle.Encrypt(io.Discard, encryptionOptions()); err != nil {
+				return err
+			}
+		}
+
 		return access.WithClient(createSupportBundle())
 	},
 }
@@ -116,6 +147,7 @@ func createSupportBundle() func(ctx context.Context, client *client.Client, _ ac
 			return nil
 		})
 
+		// the bundle is encrypted here rather than on the server, so this works against any Omni version.
 		data, err := client.Management().GetSupportBundle(ctx, supportCmdFlags.cluster, progress)
 		if err != nil {
 			return err
@@ -136,9 +168,59 @@ func createSupportBundle() func(ctx context.Context, client *client.Client, _ ac
 
 		defer f.Close() //nolint:errcheck
 
-		_, err = f.Write(data)
+		recipients, err := writeBundle(f, data, !supportCmdFlags.noEncryption, encryptionOptions())
+		if err != nil {
+			return err
+		}
 
-		return err
+		printRecipients(recipients)
+
+		return nil
+	}
+}
+
+func encryptionOptions() supportbundle.EncryptionOptions {
+	return supportbundle.EncryptionOptions{
+		Recipients:          supportCmdFlags.encryptionRecipients,
+		NoDefaultRecipients: supportCmdFlags.encryptionNoDefaultRecipients,
+	}
+}
+
+// writeBundle writes the downloaded bundle to dst, wrapping it in an age layer when encrypting, and
+// reports the recipients able to open it.
+func writeBundle(dst io.Writer, data []byte, encrypt bool, o supportbundle.EncryptionOptions) ([]string, error) {
+	if !encrypt {
+		_, err := dst.Write(data)
+
+		return nil, err
+	}
+
+	encWriter, recipients, err := supportbundle.Encrypt(dst, o)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = encWriter.Write(data); err != nil {
+		return nil, err
+	}
+
+	// flush the age layer before reporting success.
+	if err = encWriter.Close(); err != nil {
+		return nil, err
+	}
+
+	return recipients, nil
+}
+
+func printRecipients(recipients []string) {
+	if len(recipients) == 0 {
+		return
+	}
+
+	fmt.Fprintln(os.Stderr, "Support bundle encrypted to the following recipients:")
+
+	for _, r := range recipients {
+		fmt.Fprintf(os.Stderr, "  - %s\n", r)
 	}
 }
 
@@ -222,8 +304,20 @@ func showProgress(progress <-chan *management.GetSupportBundleResponse_Progress,
 
 func init() {
 	supportCmd.Flags().StringVarP(&supportCmdFlags.cluster, "cluster", "c", "", "cluster to use")
-	supportCmd.Flags().StringVarP(&supportCmdFlags.output, "output", "O", "support.zip", "support bundle output")
+	supportCmd.Flags().StringVarP(&supportCmdFlags.output, "output", "O", "", "support bundle output (default \"support.zip.age\", or \"support.zip\" with --no-encryption)")
 	supportCmd.Flags().BoolVarP(&supportCmdFlags.verbose, "verbose", "v", false, "verbose output")
+	supportCmd.Flags().BoolVar(
+		&supportCmdFlags.noEncryption, "no-encryption", false,
+		"do not encrypt the support bundle (output is written as-is)",
+	)
+	supportCmd.Flags().StringArrayVar(
+		&supportCmdFlags.encryptionRecipients, "encryption-recipients", nil,
+		"additional age recipients (SSH or age public keys) to encrypt the support bundle to (can be specified multiple times)",
+	)
+	supportCmd.Flags().BoolVar(
+		&supportCmdFlags.encryptionNoDefaultRecipients, "encryption-no-default-recipients", false,
+		"do not encrypt to the default recipients, only to the ones provided via --encryption-recipients",
+	)
 
 	supportCmd.MarkFlagRequired("cluster") //nolint:errcheck
 

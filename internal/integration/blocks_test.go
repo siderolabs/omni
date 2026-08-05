@@ -254,6 +254,10 @@ func AssertClusterCreateAndReady(ctx context.Context, testOptions *TestOptions, 
 			"AssertSupportBundleContents",
 			AssertSupportBundleContents(ctx, omniClient, options.Name),
 		},
+		subTest{
+			"AssertEncryptedSupportBundle",
+			AssertEncryptedSupportBundle(ctx, omniClient, options.Name),
+		},
 	).Append(
 		extraTests...,
 	).Append(

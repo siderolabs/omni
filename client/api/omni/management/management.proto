@@ -191,6 +191,15 @@ message CreateSchematicResponse {
 
 message GetSupportBundleRequest {
   string cluster = 1;
+
+  // Encrypt the bundle with age, to public SSH keys of the public members of the siderolabs GitHub organization.
+  //
+  // Opt-in, so that clients which predate encryption keep receiving a plain zip.
+  bool encrypt = 2;
+  // Extra recipients: SSH public keys (ssh-rsa, ssh-ed25519) or "age1..." recipients.
+  repeated string encryption_recipients = 3;
+  // Encrypt only to encryption_recipients, skipping the built-in Sidero Labs ones.
+  bool encryption_no_default_recipients = 4;
 }
 
 message GetSupportBundleResponse {
@@ -204,6 +213,8 @@ message GetSupportBundleResponse {
 
   Progress progress = 1;
   bytes bundle_data = 2;
+  // Who can decrypt the bundle, sent once before collection starts. Empty when not encrypting.
+  repeated string encryption_recipients = 3;
 }
 
 enum AuditLogEventType {

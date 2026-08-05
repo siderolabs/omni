@@ -11,6 +11,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
@@ -20,6 +22,8 @@ import (
 	"testing"
 	"time"
 
+	"filippo.io/age"
+	"filippo.io/age/agessh"
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
@@ -36,6 +40,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
+	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/codes"
@@ -1318,57 +1323,111 @@ func AssertSupportBundleContents(testCtx context.Context, cli *client.Client, cl
 
 		require.NoError(eg.Wait())
 
-		archive, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+		assertSupportBundleContents(t, data, clusterName, machines)
+	}
+}
+
+// assertSupportBundleContents checks that a support bundle archive holds the Omni resources, machine
+// logs, Kubernetes manifests and Talos data it is meant to collect.
+func assertSupportBundleContents(t *testing.T, data []byte, clusterName string, machines safe.List[*omni.ClusterMachine]) {
+	require := require.New(t)
+
+	archive, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	require.NoError(err)
+
+	readArchiveFile := func(path string) []byte {
+		var (
+			f    fs.File
+			data []byte
+		)
+
+		f, err = archive.Open(path)
 		require.NoError(err)
 
-		readArchiveFile := func(path string) []byte {
-			var (
-				f    fs.File
-				data []byte
-			)
+		defer f.Close() //nolint:errcheck
 
-			f, err = archive.Open(path)
-			require.NoError(err)
+		data, err = io.ReadAll(f)
+		require.NoError(err)
 
-			defer f.Close() //nolint:errcheck
+		return data
+	}
 
-			data, err = io.ReadAll(f)
-			require.NoError(err)
+	// check some resource that always exists
+	require.NotEmpty(readArchiveFile(fmt.Sprintf("omni/resources/Clusters.omni.sidero.dev-%s.yaml", clusterName)))
 
-			return data
+	machines.ForEach(func(cm *omni.ClusterMachine) {
+		require.NotEmpty(readArchiveFile(fmt.Sprintf("omni/machine-logs/%s.log", cm.Metadata().ID())))
+	})
+
+	// check kubernetes resources
+	require.NotEmpty(readArchiveFile("kubernetesResources/systemPods.yaml"))
+	require.NotEmpty(readArchiveFile("kubernetesResources/nodes.yaml"))
+
+	nodes := map[string]struct{}{}
+
+	for _, file := range archive.File {
+		if strings.HasPrefix(file.Name, "omni/") || strings.HasPrefix(file.Name, "kubernetesResources/") {
+			continue
 		}
 
-		// check some resource that always exists
-		require.NotEmpty(readArchiveFile(fmt.Sprintf("omni/resources/Clusters.omni.sidero.dev-%s.yaml", clusterName)))
-
-		machines.ForEach(func(cm *omni.ClusterMachine) {
-			require.NotEmpty(readArchiveFile(fmt.Sprintf("omni/machine-logs/%s.log", cm.Metadata().ID())))
-		})
-
-		// check kubernetes resources
-		require.NotEmpty(readArchiveFile("kubernetesResources/systemPods.yaml"))
-		require.NotEmpty(readArchiveFile("kubernetesResources/nodes.yaml"))
-
-		nodes := map[string]struct{}{}
-
-		for _, file := range archive.File {
-			if strings.HasPrefix(file.Name, "omni/") || strings.HasPrefix(file.Name, "kubernetesResources/") {
-				continue
-			}
-
-			base, _, ok := strings.Cut(file.Name, "/")
-			if !ok {
-				continue
-			}
-
-			nodes[base] = struct{}{}
+		base, _, ok := strings.Cut(file.Name, "/")
+		if !ok {
+			continue
 		}
 
-		// check some Talos resources
-		for n := range nodes {
-			require.NotEmpty(readArchiveFile(fmt.Sprintf("%s/dmesg.log", n)))
-			require.NotEmpty(readArchiveFile(fmt.Sprintf("%s/service-logs/machined.log", n)))
-			require.NotEmpty(readArchiveFile(fmt.Sprintf("%s/resources/nodenames.kubernetes.talos.dev.yaml", n)))
-		}
+		nodes[base] = struct{}{}
+	}
+
+	// check some Talos resources
+	for n := range nodes {
+		require.NotEmpty(readArchiveFile(fmt.Sprintf("%s/dmesg.log", n)))
+		require.NotEmpty(readArchiveFile(fmt.Sprintf("%s/service-logs/machined.log", n)))
+		require.NotEmpty(readArchiveFile(fmt.Sprintf("%s/resources/nodenames.kubernetes.talos.dev.yaml", n)))
+	}
+}
+
+// AssertEncryptedSupportBundle gets an encrypted Omni support bundle, decrypts it with a generated
+// SSH key passed as an extra recipient, and checks the archive inside.
+func AssertEncryptedSupportBundle(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
+	return func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(testCtx, 30*time.Second)
+		defer cancel()
+
+		require := require.New(t)
+
+		machines, err := safe.ReaderListAll[*omni.ClusterMachine](ctx, cli.Omni().State(), state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)))
+		require.NoError(err)
+
+		publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+		require.NoError(err)
+
+		sshPublicKey, err := ssh.NewPublicKey(publicKey)
+		require.NoError(err)
+
+		identity, err := agessh.NewEd25519Identity(privateKey)
+		require.NoError(err)
+
+		recipient := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(sshPublicKey)))
+
+		bundle, err := cli.Management().GetSupportBundleWithRequest(ctx, &management.GetSupportBundleRequest{
+			Cluster:              clusterName,
+			Encrypt:              true,
+			EncryptionRecipients: []string{recipient},
+		}, nil)
+		require.NoError(err)
+
+		require.True(bytes.HasPrefix(bundle.Data, []byte("age-encryption.org/v1")), "support bundle is not age-encrypted")
+
+		// the reported recipients are the Sidero Labs defaults plus the key we asked for.
+		require.Greater(len(bundle.EncryptionRecipients), 1)
+		require.Contains(bundle.EncryptionRecipients, recipient)
+
+		decrypted, err := age.Decrypt(bytes.NewReader(bundle.Data), identity)
+		require.NoError(err)
+
+		data, err := io.ReadAll(decrypted)
+		require.NoError(err)
+
+		assertSupportBundleContents(t, data, clusterName, machines)
 	}
 }

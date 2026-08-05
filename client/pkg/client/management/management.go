@@ -256,18 +256,41 @@ func (client *Client) DestroyUser(ctx context.Context, email string) error {
 	return err
 }
 
-// GetSupportBundle generates support bundle on Omni server and returns it to the client.
+// SupportBundle is the result of a support bundle request.
+type SupportBundle struct {
+	// Data is the zip archive, wrapped in an age layer when the request asked for encryption.
+	Data []byte
+
+	// EncryptionRecipients lists who can decrypt Data. It is empty when the bundle is not encrypted.
+	EncryptionRecipients []string
+}
+
+// GetSupportBundle generates an unencrypted support bundle on the Omni server and returns it to the client.
 func (client *Client) GetSupportBundle(ctx context.Context, cluster string, progress chan *management.GetSupportBundleResponse_Progress) ([]byte, error) {
+	bundle, err := client.GetSupportBundleWithRequest(ctx, &management.GetSupportBundleRequest{Cluster: cluster}, progress)
+	if err != nil {
+		return nil, err
+	}
+
+	return bundle.Data, nil
+}
+
+// GetSupportBundleWithRequest generates a support bundle on the Omni server and returns it to the client.
+func (client *Client) GetSupportBundleWithRequest(
+	ctx context.Context,
+	req *management.GetSupportBundleRequest,
+	progress chan *management.GetSupportBundleResponse_Progress,
+) (*SupportBundle, error) {
 	if progress != nil {
 		defer close(progress)
 	}
 
-	serv, err := client.conn.GetSupportBundle(ctx, &management.GetSupportBundleRequest{
-		Cluster: cluster,
-	})
+	serv, err := client.conn.GetSupportBundle(ctx, req)
 	if err != nil {
 		return nil, err
 	}
+
+	bundle := &SupportBundle{}
 
 	for {
 		msg, err := serv.Recv()
@@ -276,7 +299,16 @@ func (client *Client) GetSupportBundle(ctx context.Context, cluster string, prog
 		}
 
 		if msg.BundleData != nil {
-			return msg.BundleData, nil
+			bundle.Data = msg.BundleData
+
+			return bundle, nil
+		}
+
+		// the recipients arrive once, before collection starts, in a message that carries no progress
+		if msg.Progress == nil {
+			bundle.EncryptionRecipients = msg.EncryptionRecipients
+
+			continue
 		}
 
 		if progress == nil {

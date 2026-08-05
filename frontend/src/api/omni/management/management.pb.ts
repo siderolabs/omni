@@ -213,6 +213,9 @@ export type CreateSchematicResponse = {
 
 export type GetSupportBundleRequest = {
   cluster?: string
+  encrypt?: boolean
+  encryption_recipients?: string[]
+  encryption_no_default_recipients?: boolean
 }
 
 export type GetSupportBundleResponseProgress = {
@@ -226,6 +229,7 @@ export type GetSupportBundleResponseProgress = {
 export type GetSupportBundleResponse = {
   progress?: GetSupportBundleResponseProgress
   bundle_data?: Uint8Array
+  encryption_recipients?: string[]
 }
 
 export type ReadAuditLogRequest = {

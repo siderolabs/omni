@@ -22,6 +22,9 @@ type ManagementServer = managementServer
 // AuditLogFollowBatchSize is exported for testing.
 const AuditLogFollowBatchSize = auditLogFollowBatchSize
 
+// EncryptedOutput is exported for testing.
+var EncryptedOutput = encryptedOutput
+
 type AuthServer = authServer
 
 // ManagementServerOption configures a test management server.

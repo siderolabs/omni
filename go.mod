@@ -77,7 +77,7 @@ require (
 	github.com/siderolabs/go-loadbalancer v0.5.0
 	github.com/siderolabs/go-pointer v1.0.1
 	github.com/siderolabs/go-retry v0.3.3
-	github.com/siderolabs/go-talos-support v0.3.0
+	github.com/siderolabs/go-talos-support v0.3.1
 	github.com/siderolabs/grpc-proxy v0.5.2
 	github.com/siderolabs/image-factory v1.4.0
 	github.com/siderolabs/kms-client v0.2.0
@@ -124,6 +124,7 @@ require (
 	cel.dev/expr v0.25.2 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
+	filippo.io/edwards25519 v1.2.0 // indirect
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect

@@ -1685,10 +1685,18 @@ func (x *CreateSchematicResponse) GetSchematicYml() string {
 }
 
 type GetSupportBundleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Cluster       string                 `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Cluster string                 `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
+	// Encrypt the bundle with age, to public SSH keys of the public members of the siderolabs GitHub organization.
+	//
+	// Opt-in, so that clients which predate encryption keep receiving a plain zip.
+	Encrypt bool `protobuf:"varint,2,opt,name=encrypt,proto3" json:"encrypt,omitempty"`
+	// Extra recipients: SSH public keys (ssh-rsa, ssh-ed25519) or "age1..." recipients.
+	EncryptionRecipients []string `protobuf:"bytes,3,rep,name=encryption_recipients,json=encryptionRecipients,proto3" json:"encryption_recipients,omitempty"`
+	// Encrypt only to encryption_recipients, skipping the built-in Sidero Labs ones.
+	EncryptionNoDefaultRecipients bool `protobuf:"varint,4,opt,name=encryption_no_default_recipients,json=encryptionNoDefaultRecipients,proto3" json:"encryption_no_default_recipients,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *GetSupportBundleRequest) Reset() {
@@ -1728,12 +1736,35 @@ func (x *GetSupportBundleRequest) GetCluster() string {
 	return ""
 }
 
+func (x *GetSupportBundleRequest) GetEncrypt() bool {
+	if x != nil {
+		return x.Encrypt
+	}
+	return false
+}
+
+func (x *GetSupportBundleRequest) GetEncryptionRecipients() []string {
+	if x != nil {
+		return x.EncryptionRecipients
+	}
+	return nil
+}
+
+func (x *GetSupportBundleRequest) GetEncryptionNoDefaultRecipients() bool {
+	if x != nil {
+		return x.EncryptionNoDefaultRecipients
+	}
+	return false
+}
+
 type GetSupportBundleResponse struct {
-	state         protoimpl.MessageState             `protogen:"open.v1"`
-	Progress      *GetSupportBundleResponse_Progress `protobuf:"bytes,1,opt,name=progress,proto3" json:"progress,omitempty"`
-	BundleData    []byte                             `protobuf:"bytes,2,opt,name=bundle_data,json=bundleData,proto3" json:"bundle_data,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state      protoimpl.MessageState             `protogen:"open.v1"`
+	Progress   *GetSupportBundleResponse_Progress `protobuf:"bytes,1,opt,name=progress,proto3" json:"progress,omitempty"`
+	BundleData []byte                             `protobuf:"bytes,2,opt,name=bundle_data,json=bundleData,proto3" json:"bundle_data,omitempty"`
+	// Who can decrypt the bundle, sent once before collection starts. Empty when not encrypting.
+	EncryptionRecipients []string `protobuf:"bytes,3,rep,name=encryption_recipients,json=encryptionRecipients,proto3" json:"encryption_recipients,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *GetSupportBundleResponse) Reset() {
@@ -1776,6 +1807,13 @@ func (x *GetSupportBundleResponse) GetProgress() *GetSupportBundleResponse_Progr
 func (x *GetSupportBundleResponse) GetBundleData() []byte {
 	if x != nil {
 		return x.BundleData
+	}
+	return nil
+}
+
+func (x *GetSupportBundleResponse) GetEncryptionRecipients() []string {
+	if x != nil {
+		return x.EncryptionRecipients
 	}
 	return nil
 }
@@ -3575,13 +3613,17 @@ const file_omni_management_management_proto_rawDesc = "" +
 	"\fschematic_id\x18\x01 \x01(\tR\vschematicId\x12\x17\n" +
 	"\apxe_url\x18\x02 \x01(\tR\x06pxeUrl\x12.\n" +
 	"\x13grpc_tunnel_enabled\x18\x03 \x01(\bR\x11grpcTunnelEnabled\x12#\n" +
-	"\rschematic_yml\x18\x04 \x01(\tR\fschematicYml\"3\n" +
+	"\rschematic_yml\x18\x04 \x01(\tR\fschematicYml\"\xcb\x01\n" +
 	"\x17GetSupportBundleRequest\x12\x18\n" +
-	"\acluster\x18\x01 \x01(\tR\acluster\"\x82\x02\n" +
+	"\acluster\x18\x01 \x01(\tR\acluster\x12\x18\n" +
+	"\aencrypt\x18\x02 \x01(\bR\aencrypt\x123\n" +
+	"\x15encryption_recipients\x18\x03 \x03(\tR\x14encryptionRecipients\x12G\n" +
+	" encryption_no_default_recipients\x18\x04 \x01(\bR\x1dencryptionNoDefaultRecipients\"\xb7\x02\n" +
 	"\x18GetSupportBundleResponse\x12I\n" +
 	"\bprogress\x18\x01 \x01(\v2-.management.GetSupportBundleResponse.ProgressR\bprogress\x12\x1f\n" +
 	"\vbundle_data\x18\x02 \x01(\fR\n" +
-	"bundleData\x1az\n" +
+	"bundleData\x123\n" +
+	"\x15encryption_recipients\x18\x03 \x03(\tR\x14encryptionRecipients\x1az\n" +
 	"\bProgress\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12\x14\n" +
