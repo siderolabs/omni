@@ -15,6 +15,7 @@ import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import { type ResourceSortOption, useResourceSort } from '@/methods/resource/useResourceSort'
 import {
   useResourceWatch,
   type WatchOptions,
@@ -25,27 +26,30 @@ const emit = defineEmits<{
   filterChanged: [string | undefined]
 }>()
 
-const { pagination, search, opts, sortOptions, filterOptions, filterCaption } = defineProps<{
+const {
+  pagination,
+  search,
+  opts,
+  sortOptions = [],
+  filterOptions,
+  filterCaption,
+} = defineProps<{
   pagination?: boolean
   search?: boolean
   // type: T is the only way to type the generic
   opts: WatchOptionsMulti & { type: T }
-  sortOptions?: { id: string; desc: string; descending?: boolean }[]
+  sortOptions?: ResourceSortOption[]
   filterOptions?: { query?: string; desc: string }[]
   filterCaption?: string
 }>()
 
 const itemsPerPage = [5, 10, 25, 50, 100]
 
-const sortOptionsVariants = computed(() => {
-  if (!sortOptions) {
-    return []
-  }
-
-  return sortOptions.map((opt) => {
-    return opt.desc
-  })
-})
+const {
+  watchOptions: sortByState,
+  selectValues: sortOptionsVariants,
+  selectedValue: selectedSortOption,
+} = useResourceSort({ sortOptions: () => sortOptions })
 
 const filterOptionsVariants = computed(() => {
   if (!filterOptions) {
@@ -78,28 +82,10 @@ watch(filterValue, (value) => {
 
 const currentPage = ref(1)
 const selectedItemsPerPage = useLocalStorage('itemsPerPage', 10)
-const selectedSortOption = useRouteQuery('sort', sortOptionsVariants?.value?.[0])
 const selectedFilterOption = useRouteQuery('filter', filterOptionsVariants.value?.[0])
 
 watch(selectedFilterOption, () => {
   emit('filterChanged', selectedFilterOption.value)
-})
-
-const sortByState = computed(() => {
-  if (!sortOptions) {
-    return {}
-  }
-
-  for (const opt of sortOptions) {
-    if (opt.desc === selectedSortOption?.value) {
-      return {
-        sortByField: opt.id,
-        sortDescending: opt.descending,
-      }
-    }
-  }
-
-  return {}
 })
 
 const paginationState = computed(() => {
@@ -222,16 +208,11 @@ defineExpose({
             />
 
             <TSelectList
-              v-if="sortOptions"
+              v-if="sortOptions.length"
+              v-model="selectedSortOption"
               title="Sort by"
               hide-selected-small-screens
-              :default-value="selectedSortOption || ''"
               :values="sortOptionsVariants"
-              @checked-value="
-                (value: string) => {
-                  selectedSortOption = value
-                }
-              "
             />
 
             <TSelectList

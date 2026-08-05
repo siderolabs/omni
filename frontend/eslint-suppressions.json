@@ -83,7 +83,7 @@
   },
   "src/components/List/TList.vue": {
     "vue/no-ref-object-reactivity-loss": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/Tabs/TabContent.vue": {
