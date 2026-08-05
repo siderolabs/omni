@@ -295,7 +295,7 @@ watch(
       </template>
 
       <template #extra-controls>
-        <div class="flex w-full items-center justify-between">
+        <div class="flex w-full flex-wrap items-center justify-between gap-2">
           <TButton
             variant="primary"
             icon="delete"
@@ -365,7 +365,7 @@ watch(
     </TList>
 
     <div
-      class="overflow-hidden max-lg:absolute max-lg:inset-0 max-lg:z-10 lg:transition-all"
+      class="shrink-0 overflow-hidden max-lg:absolute max-lg:inset-0 max-lg:z-10 lg:transition-all"
       :class="sidePanelOpen ? 'max-lg:w-full lg:w-sm' : 'pointer-events-none opacity-0 lg:w-0'"
     >
       <MachineDetailsPanel
