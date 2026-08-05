@@ -32,7 +32,6 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
 
@@ -267,8 +266,7 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, errors.New("failed to get machine set name from the machine config resource")
 	}
 
-	// A stale allow value could apply a config while updates are blocked.
-	machineSetConfigStatus, err := safe.ReaderGetByID[*omni.MachineSetConfigStatus](ctx, uncached.Reader(r), machineSetName)
+	machineSetConfigStatus, err := safe.ReaderGetByID[*omni.MachineSetConfigStatus](ctx, r, machineSetName)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}

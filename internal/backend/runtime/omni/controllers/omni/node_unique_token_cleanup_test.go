@@ -43,8 +43,7 @@ func (suite *MachineStatusSnapshotControllerSuite) TestNodeUniqueTokenCleanup() 
 
 	link := siderolink.NewLink(token.Metadata().ID(), &specs.SiderolinkSpec{})
 
-	// Create the link before recreating the token. The controller reads the link uncached, so an
-	// existing link is always observed and the token is never treated as orphaned, even on a busy runner.
+	// Create the link before recreating the token, so the token is never treated as orphaned.
 	suite.Require().NoError(suite.state.Create(ctx, link))
 	suite.Require().NoError(suite.state.Create(ctx, token))
 

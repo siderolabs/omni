@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"testing"
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
@@ -398,6 +399,16 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 
 // RuntimeCacheOptions returns the COSI runtime cache options.
 func RuntimeCacheOptions() []options.Option {
+	if testing.Testing() {
+		// In unit tests, no resources are marked as cached, which effectively disables the resource cache.
+		//
+		// The in-memory state used by unit tests does not (yet) provide the cross-resource watch event ordering
+		// the cache needs to stay consistent, so unit tests exercise controller logic against the state directly.
+		// The cache is exercised by the integration tests, which run against the etcd-backed state.
+		// Remove this once the in-memory state provides the same ordering guarantees as the etcd one.
+		return nil
+	}
+
 	return []options.Option{
 		safe.WithResourceCache[*omni.BackupData](),
 		safe.WithResourceCache[*omni.ConfigPatch](),

@@ -43,7 +43,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
 	talosutils "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/talos"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/talos/lifecycle"
 )
@@ -913,11 +912,9 @@ func (ctrl *StatusController) etcdForfeitHook(rc *ReconciliationContext, cluster
 	}
 }
 
-// listClusterMachines lists the cluster's ClusterMachines uncached, so callers see the freshest finalizer set.
+// listClusterMachines lists the cluster's ClusterMachines.
 func (ctrl *StatusController) listClusterMachines(ctx context.Context, r controller.ReaderWriter, clusterName string) ([]resource.Resource, error) {
-	qruntime := r.(controller.QRuntime) //nolint:forcetypeassert,errcheck
-
-	list, err := qruntime.ListUncached(
+	list, err := r.List(
 		ctx,
 		omni.NewClusterMachine("").Metadata(),
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, clusterName)),
@@ -1271,9 +1268,7 @@ func (ctrl *StatusController) shouldReset(
 		return false, fmt.Errorf("finalizer: failed to get cluster status '%s': %w", clusterName, err)
 	}
 
-	// Read the Machine uncached: a cached read can briefly still report a Machine that is being torn
-	// down or destroyed as present and running, so the reset decision below could be made on stale data.
-	machine, err := safe.ReaderGetByID[*omni.Machine](ctx, uncached.Reader(r), machineID)
+	machine, err := safe.ReaderGetByID[*omni.Machine](ctx, r, machineID)
 	if err != nil {
 		if state.IsNotFoundError(err) {
 			return false, nil
@@ -1477,15 +1472,12 @@ func (ctrl *StatusController) acquireConfigUpdateLock(ctx context.Context, r con
 		return errors.New("failed to get machine set name from the cluster machine")
 	}
 
-	// A stale strategy could exceed the configured update parallelism.
-	machineSetConfigStatus, err := safe.ReaderGetByID[*omni.MachineSetConfigStatus](ctx, uncached.Reader(r), machineSetName)
+	machineSetConfigStatus, err := safe.ReaderGetByID[*omni.MachineSetConfigStatus](ctx, r, machineSetName)
 	if err != nil {
 		return err
 	}
 
-	qruntime := r.(controller.QRuntime) //nolint:forcetypeassert,errcheck
-
-	clusterMachines, err := qruntime.ListUncached(
+	clusterMachines, err := r.List(
 		ctx,
 		omni.NewClusterMachine("").Metadata(),
 		state.WithLabelQuery(resource.LabelEqual(omni.LabelMachineSet, machineSetName)),

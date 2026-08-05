@@ -223,7 +223,7 @@ func (ctrl *MachineSetNodeController) MapInput(
 }
 
 func (ctrl *MachineSetNodeController) getAllMachineSetNodes(ctx context.Context, r controller.QRuntime, opts ...state.ListOption) (safe.List[*omni.MachineSetNode], error) {
-	items, err := r.ListUncached(
+	items, err := r.List(
 		ctx, resource.NewMetadata(resources.DefaultNamespace, omni.MachineSetNodeType, "", resource.VersionUndefined),
 		opts...,
 	)

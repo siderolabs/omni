@@ -32,7 +32,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/set"
-	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 )
 
 // ConfigurationControllerName is the name of the SchematicConfiguration controller.
@@ -333,7 +332,7 @@ func newMachineCustomization(ctx context.Context, r controller.Reader, ms *omni.
 		return mc, nil
 	}
 
-	machineExtensions, err := safe.ReaderGetByID[*omni.MachineExtensions](ctx, uncached.Reader(r), ms.Metadata().ID())
+	machineExtensions, err := safe.ReaderGetByID[*omni.MachineExtensions](ctx, r, ms.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return mc, err
 	}
@@ -412,11 +411,7 @@ func determineKernelArgs(ctx context.Context, machineStatus *omni.MachineStatus,
 		return machineStatus.TypedSpec().Value.Schematic.KernelArgs, nil
 	}
 
-	// Read the KernelArgs resource with the given ID, bypassing the resource cache.
-	// We need this to avoid stale reads of the KernelArgs resource: there can be cases where the omni.KernelArgsInitialized annotation is present in the MachineStatus,
-	// but the KernelArgs resource is not yet visible due to the resource cache, which can cause unwanted Talos upgrades through a schematic id update.
-	kernelArgs, err := safe.ReaderGetByID[*omni.KernelArgs](ctx, uncached.Reader(r), machineStatus.Metadata().ID())
-
+	kernelArgs, err := safe.ReaderGetByID[*omni.KernelArgs](ctx, r, machineStatus.Metadata().ID())
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
 	}
