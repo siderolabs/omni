@@ -55,9 +55,9 @@ const sortOptions = [
 ]
 
 const filterOptions = [
-  { desc: 'All' },
-  { desc: 'Ready', query: 'ready' },
-  { desc: 'Not Ready', query: '!ready' },
+  { label: 'All' },
+  { label: 'Ready', value: 'ready' },
+  { label: 'Not Ready', value: '!ready' },
 ]
 </script>
 
