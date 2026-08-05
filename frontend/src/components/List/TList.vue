@@ -80,8 +80,6 @@ const currentPage = ref(1)
 const selectedItemsPerPage = useLocalStorage('itemsPerPage', 10)
 const selectedSortOption = useRouteQuery('sort', sortOptionsVariants?.value?.[0])
 const selectedFilterOption = useRouteQuery('filter', filterOptionsVariants.value?.[0])
-const sidePanelOpen = ref(false)
-const sidePanelSelectedItemId = ref<string>()
 
 watch(selectedFilterOption, () => {
   emit('filterChanged', selectedFilterOption.value)
@@ -157,9 +155,6 @@ const searchState = computed<Pick<WatchOptions, 'searchFor' | 'selectors'>>(() =
   return res
 })
 
-// Close sidepanel when changing page
-watch(currentPage, () => (sidePanelOpen.value = false))
-
 // reset the pagination when the search query changes
 watch([() => opts, searchState], (curr, prev) => {
   if (JSON.stringify(curr) !== JSON.stringify(prev)) currentPage.value = 1
@@ -190,109 +185,87 @@ const { pageCount } = useOffsetPagination({
   pageSize: selectedItemsPerPage,
   page: currentPage,
 })
+
+defineExpose({
+  items,
+  searchQuery,
+  currentPage,
+})
 </script>
 
 <template>
-  <div class="flex h-full gap-2 overflow-hidden">
-    <div class="flex max-w-full grow flex-col gap-2">
-      <slot
-        name="header"
-        :items-count="total"
-        :filtered="searchState.searchFor?.length || searchState.selectors?.length"
-      />
+  <div class="flex max-w-full flex-col gap-2">
+    <slot
+      name="header"
+      :items-count="total"
+      :filtered="searchState.searchFor?.length || searchState.selectors?.length"
+    />
 
-      <div class="flex grow flex-col gap-4 overflow-hidden">
-        <template v-if="pagination || search || (pagination && itemsPerPage?.length > 1)">
-          <slot name="input">
-            <TInput v-if="search" v-model="filterValue" icon="search" />
-          </slot>
+    <div class="flex grow flex-col gap-4 overflow-hidden">
+      <template v-if="pagination || search || (pagination && itemsPerPage.length > 1)">
+        <slot name="input">
+          <TInput v-if="search" v-model="filterValue" icon="search" />
+        </slot>
 
-          <div class="flex justify-between gap-2">
-            <div class="grow">
-              <slot name="extra-controls" :selected-filter-option />
-            </div>
-
-            <div class="flex items-center gap-2">
-              <TSelectList
-                v-if="filterOptions"
-                :title="filterCaption ?? 'Filter'"
-                :default-value="selectedFilterOption || ''"
-                :values="filterOptionsVariants"
-                @checked-value="(value) => (selectedFilterOption = value)"
-              />
-
-              <TSelectList
-                v-if="sortOptions"
-                title="Sort by"
-                hide-selected-small-screens
-                :default-value="selectedSortOption || ''"
-                :values="sortOptionsVariants"
-                @checked-value="
-                  (value: string) => {
-                    selectedSortOption = value
-                  }
-                "
-              />
-
-              <TSelectList
-                v-if="itemsPerPage?.length > 1 && pagination"
-                v-model="selectedItemsPerPage"
-                title="Items per Page"
-                :values="itemsPerPage"
-                @checked-value="currentPage = 1"
-              />
-            </div>
-          </div>
-        </template>
-
-        <div class="grow overflow-auto">
-          <div v-if="loading" class="flex size-full flex-row items-center justify-center">
-            <TSpinner class="absolute top-2/4 size-6" />
+        <div class="flex justify-between gap-2">
+          <div class="grow">
+            <slot name="extra-controls" :selected-filter-option />
           </div>
 
-          <slot v-else-if="err" name="error" :err="err">
-            <TAlert title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
-          </slot>
+          <div class="flex items-center gap-2">
+            <TSelectList
+              v-if="filterOptions"
+              :title="filterCaption ?? 'Filter'"
+              :default-value="selectedFilterOption || ''"
+              :values="filterOptionsVariants"
+              @checked-value="(value) => (selectedFilterOption = value)"
+            />
 
-          <slot v-else-if="items.length === 0" name="norecords">
-            <TAlert type="info" title="No Records">
-              No entries of the requested resource type are found on the server.
-            </TAlert>
-          </slot>
-
-          <div v-show="!loading && !err && items.length > 0" class="size-full">
-            <slot
-              :items="items"
-              :search-query="searchQuery"
-              :side-panel-open
-              :side-panel-selected-item-id
-              :open-panel="
-                (id: string) => {
-                  sidePanelOpen = !sidePanelOpen || sidePanelSelectedItemId !== id
-                  sidePanelSelectedItemId = id
+            <TSelectList
+              v-if="sortOptions"
+              title="Sort by"
+              hide-selected-small-screens
+              :default-value="selectedSortOption || ''"
+              :values="sortOptionsVariants"
+              @checked-value="
+                (value: string) => {
+                  selectedSortOption = value
                 }
               "
             />
+
+            <TSelectList
+              v-if="itemsPerPage.length > 1 && pagination"
+              v-model="selectedItemsPerPage"
+              title="Items per Page"
+              :values="itemsPerPage"
+              @checked-value="currentPage = 1"
+            />
           </div>
         </div>
+      </template>
+
+      <div class="grow overflow-auto">
+        <div v-if="loading" class="flex size-full flex-row items-center justify-center">
+          <TSpinner class="absolute top-2/4 size-6" />
+        </div>
+
+        <slot v-else-if="err" name="error" :err="err">
+          <TAlert title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
+        </slot>
+
+        <slot v-else-if="items.length === 0" name="norecords">
+          <TAlert type="info" title="No Records">
+            No entries of the requested resource type are found on the server.
+          </TAlert>
+        </slot>
+
+        <div v-show="!loading && !err && items.length > 0" class="size-full">
+          <slot :items="items" :search-query="searchQuery" />
+        </div>
       </div>
-
-      <Pagination v-if="pagination" v-model:current-page="currentPage" :page-count="pageCount" />
     </div>
 
-    <div
-      v-if="$slots.sidePanel"
-      class="overflow-hidden max-lg:absolute max-lg:inset-0 max-lg:z-10 lg:transition-all"
-      :class="sidePanelOpen ? 'max-lg:w-full lg:w-sm' : 'pointer-events-none opacity-0 lg:w-0'"
-    >
-      <slot
-        name="sidePanel"
-        :items
-        :search-query
-        :side-panel-open
-        :side-panel-selected-item-id
-        :close-panel="() => (sidePanelOpen = false)"
-      />
-    </div>
+    <Pagination v-if="pagination" v-model:current-page="currentPage" :page-count="pageCount" />
   </div>
 </template>

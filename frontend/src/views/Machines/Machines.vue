@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -54,6 +54,7 @@ const { filter, provider } = defineProps<{
   provider?: string
 }>()
 
+const listRef = useTemplateRef('listRef')
 const showUUID = useLocalStorage<'hostname' | 'uuid'>('_machines_list_show_uuid', 'hostname')
 
 const maintenaceUpdateModalOpen = ref(false)
@@ -62,6 +63,8 @@ const maintenaceInstallModalOpen = ref(false)
 const maintenaceUpdateModalMachine = ref<string>()
 const maintenaceUpgradeModalMachine = ref<string>()
 const maintenaceInstallModalMachine = ref<string>()
+const sidePanelOpen = ref(false)
+const sidePanelSelectedItemId = ref<string>()
 
 const machineDeleteModal = ref({
   open: false,
@@ -172,11 +175,18 @@ function unselectDeletedMachines(machineIds: string[]) {
     (m) => !machineIds.includes(m.id),
   )
 }
+
+// Close sidepanel when changing page
+watch(
+  () => listRef.value?.currentPage,
+  () => (sidePanelOpen.value = false),
+)
 </script>
 
 <template>
-  <PageContainer class="h-full">
+  <PageContainer class="flex h-full gap-2">
     <TList
+      ref="listRef"
       v-model:filter-value="filterValue"
       :opts="{
         type: undefined as unknown as MachineStatusLinkSpec,
@@ -191,6 +201,7 @@ function unselectDeletedMachines(machineIds: string[]) {
       search
       pagination
       :sort-options="sortOptions"
+      class="grow"
     >
       <template #norecords>
         <TAlert
@@ -307,9 +318,7 @@ function unselectDeletedMachines(machineIds: string[]) {
         </div>
       </template>
 
-      <template
-        #default="{ items, searchQuery, sidePanelOpen, sidePanelSelectedItemId, openPanel }"
-      >
+      <template #default="{ items, searchQuery }">
         <MachineItem
           v-for="item in items"
           :key="item.metadata.id"
@@ -319,7 +328,12 @@ function unselectDeletedMachines(machineIds: string[]) {
           :selected="selectedMachines.has(item.metadata.id ?? '')"
           :show-u-u-i-d="showUUID === 'uuid'"
           @update:selected="(v) => updateSelected(item, v)"
-          @open-panel="openPanel(item.metadata.id ?? '')"
+          @open-panel="
+            () => {
+              sidePanelOpen = !sidePanelOpen || sidePanelSelectedItemId !== item.metadata.id
+              sidePanelSelectedItemId = item.metadata.id
+            }
+          "
           @filter-labels="(label) => (filterLabels = addLabel(filterLabels, label))"
           @open-maintenance-update="
             (machine) => {
@@ -348,16 +362,20 @@ function unselectDeletedMachines(machineIds: string[]) {
           "
         />
       </template>
-
-      <template #sidePanel="{ items, searchQuery, sidePanelSelectedItemId, closePanel }">
-        <MachineDetailsPanel
-          :machine="items.find((i) => i.metadata.id === sidePanelSelectedItemId)"
-          :search-query="searchQuery"
-          class="h-full"
-          @close="closePanel"
-        />
-      </template>
     </TList>
+
+    <div
+      class="overflow-hidden max-lg:absolute max-lg:inset-0 max-lg:z-10 lg:transition-all"
+      :class="sidePanelOpen ? 'max-lg:w-full lg:w-sm' : 'pointer-events-none opacity-0 lg:w-0'"
+    >
+      <MachineDetailsPanel
+        v-if="listRef"
+        :machine="listRef.items.find((i) => i.metadata.id === sidePanelSelectedItemId)"
+        :search-query="listRef.searchQuery"
+        class="h-full"
+        @close="sidePanelOpen = false"
+      />
+    </div>
 
     <MaintenanceUpdateModal
       v-if="maintenaceUpdateModalMachine"
