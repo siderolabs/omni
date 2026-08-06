@@ -71,12 +71,6 @@ const {
   }),
   { total },
 )
-
-defineExpose({
-  items,
-  searchQuery,
-  currentPage,
-})
 </script>
 
 <template>
