@@ -86,6 +86,14 @@ export default defineConfig({
       dependencies: ['eula'],
     },
     {
+      name: 'saml',
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+      testMatch: 'saml/**/*.spec.ts',
+      dependencies: ['eula'],
+    },
+    {
       name: 'talemu',
       use: {
         ...devices['Desktop Chrome'],

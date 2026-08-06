@@ -1,0 +1,82 @@
+{
+  "realm": "omni",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "users": [
+    {
+      "username": "${AUTH_USERNAME}",
+      "email": "${AUTH_USERNAME}",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Test",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${AUTH_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "${BASE_URL}saml/metadata",
+      "name": "Omni",
+      "protocol": "saml",
+      "enabled": true,
+      "adminUrl": "${BASE_URL}saml/acs",
+      "redirectUris": ["${BASE_URL}*"],
+      "frontchannelLogout": true,
+      "attributes": {
+        "saml.authnstatement": "true",
+        "saml.assertion.signature": "true",
+        "saml.server.signature": "true",
+        "saml.client.signature": "false",
+        "saml.force.post.binding": "true",
+        "saml.signature.algorithm": "RSA_SHA256",
+        "saml_name_id_format": "email",
+        "saml_force_name_id_format": "true",
+        "saml_single_logout_service_url_post": "${BASE_URL}saml/slo",
+        "saml_single_logout_service_url_redirect": "${BASE_URL}saml/slo"
+      },
+      "protocolMappers": [
+        {
+          "name": "X500 email",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": {
+            "attribute.nameformat": "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+            "user.attribute": "email",
+            "friendly.name": "email",
+            "attribute.name": "urn:oid:1.2.840.113549.1.9.1"
+          }
+        },
+        {
+          "name": "X500 givenName",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": {
+            "attribute.nameformat": "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+            "user.attribute": "firstName",
+            "friendly.name": "givenName",
+            "attribute.name": "urn:oid:2.5.4.42"
+          }
+        },
+        {
+          "name": "X500 surname",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": {
+            "attribute.nameformat": "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+            "user.attribute": "lastName",
+            "friendly.name": "surname",
+            "attribute.name": "urn:oid:2.5.4.4"
+          }
+        }
+      ]
+    }
+  ]
+}

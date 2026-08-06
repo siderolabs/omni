@@ -57,7 +57,8 @@ export VAULT_ADDR=http://127.0.0.1:8200
 export VAULT_TOKEN=dev-o-token
 export AUTH_PROVIDER="${AUTH_PROVIDER:-dex}"
 
-if [[ "${AUTH_PROVIDER}" == "auth0" ]]; then
+case "${AUTH_PROVIDER}" in
+auth0)
   export AUTH_USERNAME="${AUTH0_TEST_USERNAME}"
   export AUTH_PASSWORD="${AUTH0_TEST_PASSWORD}"
   export AUTH0_CLIENT_ID="${AUTH0_CLIENT_ID}"
@@ -66,8 +67,23 @@ if [[ "${AUTH_PROVIDER}" == "auth0" ]]; then
     enabled: true
     clientID: ${AUTH0_CLIENT_ID}
     domain: ${AUTH0_DOMAIN}"
+  ;;
 
-else
+saml)
+  export AUTH_USERNAME="test-user@siderolabs.com"
+  export AUTH_PASSWORD="test-password-1234"
+  export KEYCLOAK_URL="http://my-instance.omni.localhost:8080"
+  export KEYCLOAK_REALM="omni"
+  export SAML_METADATA_URL="${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/saml/descriptor"
+  export AUTH_PROVIDER_CONFIG="  saml:
+    enabled: true
+    url: ${SAML_METADATA_URL}
+    nameIDFormat: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+    labelRules:
+      Role: role"
+  ;;
+
+*)
   export AUTH_USERNAME="test-user@siderolabs.com"
   export AUTH_PASSWORD="test-password-1234"
   # Use the omni hostname (resolving to 127.0.0.1 on the host) rather than 127.0.0.1,
@@ -85,7 +101,8 @@ else
       - profile
       - email
     allowUnverifiedEmail: true"
-fi
+  ;;
+esac
 
 export OMNI_CONFIG="${TEST_OUTPUTS_DIR}/config.yaml"
 export MAX_USERS="${MAX_USERS:-0}"
@@ -230,6 +247,55 @@ function prepare_dex() {
 
 function dex_cleanup() {
   docker rm -f "${DEX_CONTAINER_NAME}" || true
+}
+
+KEYCLOAK_CONTAINER_NAME=keycloak-dev
+KEYCLOAK_DOCKER_IMAGE=quay.io/keycloak/keycloak:26.7.1
+function prepare_keycloak() {
+  # Start Keycloak, the local SAML IdP used for browser-based auth in the SAML suite.
+  # It must be up before Omni starts, because Omni fetches the IdP metadata from
+  # SAML_METADATA_URL while building its HTTP mux and refuses to start if that fails.
+  local keycloak_dir="${TEST_OUTPUTS_DIR}/keycloak"
+  mkdir -p "${keycloak_dir}"
+
+  # Restrict envsubst to our own variables, as with the Dex config, so nothing else in
+  # the realm gets expanded.
+  envsubst '${BASE_URL} ${AUTH_USERNAME} ${AUTH_PASSWORD}' \
+    <hack/test/templates/keycloak-realm.json >"${keycloak_dir}/omni-realm.json"
+
+  # Publish a single port instead of joining the host network: Keycloak also binds a
+  # management listener on 9000, which MinIO already owns in these suites.
+  docker run --rm -d -p 8080:8080 \
+    -e KC_HOSTNAME="${KEYCLOAK_URL}" \
+    -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+    -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+    -v "${keycloak_dir}/omni-realm.json:/opt/keycloak/data/import/omni-realm.json:ro" \
+    --name "${KEYCLOAK_CONTAINER_NAME}" "${KEYCLOAK_DOCKER_IMAGE}" \
+    start-dev --import-realm
+
+  # The realm descriptor only answers once the import has finished, and it is the exact
+  # URL Omni fetches, so it beats the health endpoint as a readiness signal.
+  local i
+  for i in $(seq 1 90); do
+    if curl -sf "${SAML_METADATA_URL}" >/dev/null; then
+      break
+    fi
+
+    if [[ "$i" -eq 90 ]]; then
+      echo "Error: Keycloak did not become ready in time" >&2
+      docker logs "${KEYCLOAK_CONTAINER_NAME}" >&2 || true
+
+      return 1
+    fi
+
+    sleep 1
+  done
+}
+
+function keycloak_cleanup() {
+  # SAML failures are hard to diagnose from the Omni side alone, so keep the IdP logs.
+  docker logs "${KEYCLOAK_CONTAINER_NAME}" &>"${TEST_OUTPUTS_DIR}/keycloak.log" || true
+  docker rm -f "${KEYCLOAK_CONTAINER_NAME}" || true
 }
 
 MINIO_CONTAINER_NAME=minio-dev
