@@ -88,6 +88,7 @@ func RegisterHandlers(m *samlsp.Middleware, mux *http.ServeMux, logger *zap.Logg
 
 	md := http.HandlerFunc(m.ServeMetadata)
 	promLabel := prometheus.Labels{"handler": "saml"}
+	sloHandler := createSLOHandler(m, advertisedURL, logger)
 
 	mux.Handle("/saml/", monitoring.NewHandler(
 		logging.NewHandler(m, logger),
@@ -100,9 +101,34 @@ func RegisterHandlers(m *samlsp.Middleware, mux *http.ServeMux, logger *zap.Logg
 	))
 
 	mux.Handle("/saml/slo", monitoring.NewHandler(
-		logging.NewHandler(createSLOHandler(m, advertisedURL, logger), logger),
+		logging.NewHandler(sloHandler, logger),
 		promLabel,
 	))
+
+	// The middleware resolves the ACS path internally rather than through the mux, so
+	// giving it an entry of its own is what allows a LogoutResponse to be split off
+	// before the middleware tries to read it as a login response.
+	mux.Handle("/saml/acs", monitoring.NewHandler(
+		logging.NewHandler(routeLogoutResponse(m, sloHandler), logger),
+		promLabel,
+	))
+}
+
+// routeLogoutResponse sends a LogoutResponse that arrives over the HTTP-Redirect
+// binding to the SLO handler rather than the ACS handler.
+//
+// A LogoutResponse reaches the ACS when the IdP has no dedicated SLO URL and
+// falls back to a single SAML processing URL for every endpoint.
+func routeLogoutResponse(acs http.Handler, slo http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Query().Get("SAMLResponse") != "" {
+			slo(w, r)
+
+			return
+		}
+
+		acs.ServeHTTP(w, r)
+	}
 }
 
 // CreateLogoutHandler returns an HTTP handler that performs SAML Single Logout.
@@ -114,11 +140,10 @@ func CreateLogoutHandler(m *samlsp.Middleware, advertisedURL string, logger *zap
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		data, ok := readNameIDCookie(r)
-
-		deleteNameIDCookie(w)
-
 		if !ok {
 			logger.Debug("no SAML SLO cookie, skipping SLO")
+
+			deleteNameIDCookie(w)
 
 			http.Redirect(w, r, advertisedURL, http.StatusSeeOther)
 
@@ -129,6 +154,8 @@ func CreateLogoutHandler(m *samlsp.Middleware, advertisedURL string, logger *zap
 		if sloURL == "" {
 			logger.Debug("IdP does not advertise SLO redirect endpoint, skipping SLO")
 
+			deleteNameIDCookie(w)
+
 			http.Redirect(w, r, advertisedURL, http.StatusSeeOther)
 
 			return
@@ -137,6 +164,8 @@ func CreateLogoutHandler(m *samlsp.Middleware, advertisedURL string, logger *zap
 		req, err := m.ServiceProvider.MakeLogoutRequest(sloURL, data.NameID)
 		if err != nil {
 			logger.Error("failed to build SAML logout request", zap.Error(err))
+
+			deleteNameIDCookie(w)
 
 			http.Redirect(w, r, advertisedURL, http.StatusSeeOther)
 

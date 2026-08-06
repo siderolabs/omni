@@ -26,13 +26,14 @@ import (
 const (
 	testAdvertisedURL = "https://omni.example.com"
 	testIDPSLOURL     = "https://idp.example.com/saml"
+	testNameID        = "user@example.com"
 )
 
 // makeSLOCookie builds a saml_name_id cookie value the same way CreateSession does.
-func makeSLOCookie(t *testing.T, nameID, format, sessionIndex string) *http.Cookie {
+func makeSLOCookie(t *testing.T, format, sessionIndex string) *http.Cookie {
 	t.Helper()
 
-	data := map[string]string{"n": nameID}
+	data := map[string]string{"n": testNameID}
 
 	if format != "" {
 		data["f"] = format
@@ -57,9 +58,9 @@ func newMiddleware(t *testing.T, sloEndpoint string) *samlsp.Middleware {
 	rootURL, err := url.Parse("https://omni.example.com")
 	require.NoError(t, err)
 
-	metadataURL := rootURL.JoinPath("saml", "metadata")
-	acsURL := rootURL.JoinPath("saml", "acs")
-	sloURL := rootURL.JoinPath("saml", "slo")
+	metadataURL := rootURL.ResolveReference(&url.URL{Path: "saml/metadata"})
+	acsURL := rootURL.ResolveReference(&url.URL{Path: "saml/acs"})
+	sloURL := rootURL.ResolveReference(&url.URL{Path: "saml/slo"})
 
 	sp := saml.ServiceProvider{
 		MetadataURL: *metadataURL,
@@ -109,7 +110,7 @@ func TestCreateLogoutHandler_NoSLOEndpoint(t *testing.T) {
 	handler := omnisaml.CreateLogoutHandler(newMiddleware(t, ""), testAdvertisedURL, zaptest.NewLogger(t))
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/logout", nil)
-	req.AddCookie(makeSLOCookie(t, "user@example.com", "", ""))
+	req.AddCookie(makeSLOCookie(t, "", ""))
 
 	rec := httptest.NewRecorder()
 
@@ -128,7 +129,7 @@ func TestCreateLogoutHandler_RedirectsToSLO(t *testing.T) {
 	handler := omnisaml.CreateLogoutHandler(newMiddleware(t, testIDPSLOURL), testAdvertisedURL, zaptest.NewLogger(t))
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/logout", nil)
-	req.AddCookie(makeSLOCookie(t, "user@example.com", "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", "_session123"))
+	req.AddCookie(makeSLOCookie(t, "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", "_session123"))
 
 	rec := httptest.NewRecorder()
 
@@ -148,7 +149,36 @@ func TestCreateLogoutHandler_RedirectsToSLO(t *testing.T) {
 	assert.NotEmpty(t, redirectURL.Query().Get("SAMLRequest"))
 	assert.Equal(t, testAdvertisedURL, redirectURL.Query().Get("RelayState"))
 
-	assertNameIDCookieCleared(t, resp)
+	// The cookie has to survive until the IdP answers, otherwise a speculative GET
+	// that never follows the redirect would leave the real navigation unable to
+	// build a LogoutRequest.
+	assertNameIDCookieKept(t, resp)
+}
+
+func TestCreateLogoutHandler_RepeatedRequestStillRedirectsToSLO(t *testing.T) {
+	handler := omnisaml.CreateLogoutHandler(newMiddleware(t, testIDPSLOURL), testAdvertisedURL, zaptest.NewLogger(t))
+	cookie := makeSLOCookie(t, "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", "_session123")
+
+	for range 2 {
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/logout", nil)
+		req.AddCookie(cookie)
+
+		rec := httptest.NewRecorder()
+
+		handler(rec, req)
+
+		resp := rec.Result()
+		location := resp.Header.Get("Location")
+		_ = resp.Body.Close() //nolint:errcheck
+
+		assert.Equal(t, http.StatusFound, resp.StatusCode)
+
+		redirectURL, err := url.Parse(location)
+		require.NoError(t, err)
+
+		assert.Equal(t, "idp.example.com", redirectURL.Host)
+		assert.NotEmpty(t, redirectURL.Query().Get("SAMLRequest"))
+	}
 }
 
 func TestCreateLogoutHandler_InvalidCookieValue(t *testing.T) {
@@ -195,7 +225,7 @@ func TestSLOHandler_InvalidResponse_ClearsCookieAndRedirects(t *testing.T) {
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/saml/slo", strings.NewReader("SAMLResponse="+url.QueryEscape(samlResponse)))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.AddCookie(makeSLOCookie(t, "user@example.com", "", ""))
+	req.AddCookie(makeSLOCookie(t, "", ""))
 
 	rec := httptest.NewRecorder()
 
@@ -233,6 +263,52 @@ func TestSLOHandler_NoCookie(t *testing.T) {
 	assert.Equal(t, testAdvertisedURL, resp.Header.Get("Location"))
 
 	assertNameIDCookieCleared(t, resp)
+}
+
+func TestACS_LogoutResponseOverRedirectBinding(t *testing.T) {
+	m := newMiddleware(t, testIDPSLOURL)
+	mux := http.NewServeMux()
+
+	omnisaml.RegisterHandlers(m, mux, zaptest.NewLogger(t), testAdvertisedURL)
+
+	// An IdP without forced POST binding answers the LogoutRequest by redirecting the
+	// browser back to the ACS URL with the response in the query string.
+	samlResponse := base64.StdEncoding.EncodeToString([]byte(`<samlp:LogoutResponse xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_fake" Version="2.0"/>`))
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet,
+		"/saml/acs?SAMLResponse="+url.QueryEscape(samlResponse)+"&RelayState="+url.QueryEscape(testAdvertisedURL), nil)
+	req.AddCookie(makeSLOCookie(t, "", ""))
+
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	resp := rec.Result()
+	defer resp.Body.Close() //nolint:errcheck
+
+	assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+	assert.Equal(t, testAdvertisedURL, resp.Header.Get("Location"))
+
+	assertNameIDCookieCleared(t, resp)
+}
+
+// RegisterHandlers gives the ACS path its own mux entry as a literal, so that literal
+// has to keep matching the path the middleware resolves for itself. A mismatch is silent:
+// the request falls through to the middleware, which does not recognize the path either.
+func TestACSPathMatchesServiceProvider(t *testing.T) {
+	assert.Equal(t, "/saml/acs", newMiddleware(t, testIDPSLOURL).ServiceProvider.AcsURL.Path)
+}
+
+func assertNameIDCookieKept(t *testing.T, resp *http.Response) {
+	t.Helper()
+
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == omnisaml.NameIDCookieName {
+			t.Errorf("expected saml_name_id cookie to be left untouched, got value %q with MaxAge %d", cookie.Value, cookie.MaxAge)
+
+			return
+		}
+	}
 }
 
 func assertNameIDCookieCleared(t *testing.T, resp *http.Response) {
