@@ -889,13 +889,7 @@ func makeMux(
 
 	muxHandle("/", frontendHandler, "static")
 
-	if err := registerAuthHandlers(
-		mux,
-		samlHandler,
-		oidcProvider,
-		logger,
-		cfg,
-	); err != nil {
+	if err := registerAuthHandlers(mux, samlHandler, oidcProvider, logger, cfg); err != nil {
 		return nil, err
 	}
 
@@ -944,7 +938,13 @@ func makeMux(
 	return mux, nil
 }
 
-func registerAuthHandlers(mux *http.ServeMux, samlHandler *samlsp.Middleware, oidcProvider *coidc.Provider, logger *zap.Logger, cfg *config.Params) error {
+func registerAuthHandlers(
+	mux *http.ServeMux,
+	samlHandler *samlsp.Middleware,
+	oidcProvider *coidc.Provider,
+	logger *zap.Logger,
+	cfg *config.Params,
+) error {
 	var (
 		loginHandler  http.HandlerFunc
 		logoutHandler http.HandlerFunc
@@ -980,7 +980,7 @@ func registerAuthHandlers(mux *http.ServeMux, samlHandler *samlsp.Middleware, oi
 	}
 
 	if logoutHandler != nil {
-		mux.Handle("/logout", monitoring.NewHandler(
+		mux.Handle(auth.IdPLogoutPath, monitoring.NewHandler(
 			logging.NewHandler(logoutHandler, logger),
 			promLabel,
 		))

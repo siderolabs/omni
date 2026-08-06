@@ -20,12 +20,11 @@ import type {
 } from '@/api/omni/specs/virtual.pb'
 import { withRuntime } from '@/api/options'
 import {
-  AuthFlowQueryParam,
   ClusterPermissionsType,
   CurrentUserID,
   CurrentUserType,
   DefaultNamespace,
-  FrontendAuthFlow,
+  IdPLogoutPath,
   JoinTokenType,
   PermissionsID,
   PermissionsType,
@@ -230,7 +229,7 @@ export function useLogout() {
         },
       })
     } else {
-      redirectToURL(`/logout?${AuthFlowQueryParam}=${FrontendAuthFlow}`)
+      redirectToURL(IdPLogoutPath)
     }
   }
 }
