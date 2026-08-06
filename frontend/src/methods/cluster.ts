@@ -14,6 +14,7 @@ import type {
   ClusterSpec,
   EtcdManualBackupSpec,
   KubernetesUpgradeStatusSpec,
+  MachineInstallDiskConfigSpec,
   MachineSetSpec,
   TalosUpgradeStatusSpec,
 } from '@/api/omni/specs/omni.pb'
@@ -31,6 +32,7 @@ import {
   LabelMachine,
   LabelMachineSet,
   LabelManagedByMachineSetNodeController,
+  MachineInstallDiskConfigType,
   MachineSetNodeType,
   MachineSetType,
   TalosUpgradeStatusType,
@@ -76,6 +78,65 @@ const updateResource = async <T extends Resource>(
   updater(resource)
 
   await ResourceService.Update<T>(resource, resource.metadata.version, withRuntime(Runtime.Omni))
+}
+
+// reconcileInstallDiskConfigs applies the install disk intents collected from the cluster
+// creation and scaling flows: a dev path creates or updates the machine's
+// MachineInstallDiskConfig, null deletes it (back to automatic selection).
+// MachineInstallDiskConfig is machine-scoped and survives cluster membership, so it
+// deliberately never goes through clusterSync: the generic diff would create-conflict on a
+// config surviving from a previous cluster and delete configs of machines outside the synced
+// cluster. Must complete BEFORE clusterSync so the selection is committed before any
+// MachineSetNode makes a machine installable.
+export const reconcileInstallDiskConfigs = async (intents: Record<string, string | null>) => {
+  for (const [machineID, disk] of Object.entries(intents)) {
+    const metadata = {
+      namespace: DefaultNamespace,
+      type: MachineInstallDiskConfigType,
+      id: machineID,
+    }
+
+    try {
+      if (disk === null) {
+        try {
+          await ResourceService.Delete(metadata, withRuntime(Runtime.Omni))
+        } catch (e) {
+          if (e.code !== Code.NOT_FOUND) {
+            throw e
+          }
+        }
+
+        continue
+      }
+
+      let existing: Resource<MachineInstallDiskConfigSpec> | undefined
+
+      try {
+        existing = await ResourceService.Get(metadata, withRuntime(Runtime.Omni))
+      } catch (e) {
+        if (e.code !== Code.NOT_FOUND) {
+          throw e
+        }
+      }
+
+      if (existing) {
+        existing.spec.disk = disk
+        delete existing.spec.disk_selector
+
+        await ResourceService.Update(existing, existing.metadata.version, withRuntime(Runtime.Omni))
+      } else {
+        await ResourceService.Create<Resource<MachineInstallDiskConfigSpec>>(
+          { metadata, spec: { disk } },
+          withRuntime(Runtime.Omni),
+        )
+      }
+    } catch (e) {
+      throw new ClusterCommandError(
+        `Failed to Update the Install Disk Selection of Machine ${machineID}`,
+        `The operation failed with the error: ${e.message}`,
+      )
+    }
+  }
 }
 
 const timeout = 10 * 60 * 1000 // 10 minutes

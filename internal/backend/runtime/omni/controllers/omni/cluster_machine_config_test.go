@@ -29,6 +29,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/installdisk"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
@@ -128,6 +129,7 @@ func createConfigTestCluster(ctx context.Context, t *testing.T, st state.State, 
 		rmock.Mock[*omni.ClusterMachineSecrets](ctx, t, st, options.SameID(m))
 		rmock.Mock[*omni.Machine](ctx, t, st, options.SameID(m))
 		rmock.Mock[*omni.ClusterMachineConfigPatches](ctx, t, st, options.SameID(m))
+		rmock.Mock[*omni.MachineInstallDiskStatus](ctx, t, st, options.SameID(m))
 
 		rmock.Mock[*siderolink.Link](
 			ctx, t, st, options.SameID(m),
@@ -150,7 +152,6 @@ func mockGenOptions(ctx context.Context, t *testing.T, st state.State, machineID
 	rmock.Mock[*omni.MachineConfigGenOptions](
 		ctx, t, st, options.WithID(machineID),
 		options.Modify(func(res *omni.MachineConfigGenOptions) error {
-			res.TypedSpec().Value.InstallDisk = testInstallDisk
 			res.TypedSpec().Value.InstallImage.TalosVersion = talosVersion
 			res.TypedSpec().Value.InstallImage.ImageFactoryHost = imageFactoryHost
 
@@ -228,6 +229,7 @@ func TestClusterMachineConfigReconcile(t *testing.T) {
 
 					assertions.Equal(expectedType, cfg.Machine().Type())
 					assertions.Equal(testInstallDisk, cfg.Machine().Install().Disk())
+					assertions.Equal(testInstallDisk, res.TypedSpec().Value.InstallDisk)
 					assertions.Equal(
 						fmt.Sprintf("%s/%s-installer/%s:v%s", imageFactoryHost, talosconstants.PlatformMetal, defaultSchematic, talosVersion),
 						cfg.Machine().Install().Image(),
@@ -647,4 +649,144 @@ func createJoinParams(ctx context.Context, st state.State, t *testing.T) {
 
 	require.NoError(t, st.Create(ctx, params))
 	require.NoError(t, st.Create(ctx, siderolink.NewConfig()))
+}
+
+// TestClusterMachineConfigInstallDiskSync verifies the install disk sync check: the config render
+// is held while the install disk resolution does not reflect the current selection (the selection
+// hash on the status does not match the selection), and the very first rendered config version
+// already carries the disk of the caught-up resolution. A config rendered from the stale
+// resolution would show up as an extra version carrying the stale disk.
+func TestClusterMachineConfigInstallDiskSync(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	testutils.WithRuntime(
+		ctx, t, testutils.TestOptions{}, registerClusterMachineConfigControllers(t),
+		func(ctx context.Context, tc testutils.TestContext) {
+			const (
+				selector = `disk.dev_path == "/dev/vdz"`
+
+				// the machine IDs of createConfigTestCluster are deterministic
+				machineID = "talos-default-disk-sync-node-0"
+			)
+
+			// The user's selection exists BEFORE anything of the cluster: the fixture then mocks
+			// the resolution with an empty selection hash, so no moment exists at which the
+			// renderer could produce a config from the selection-less resolution without the
+			// sync check holding it.
+			installDiskConfig := omni.NewMachineInstallDiskConfig(machineID)
+			installDiskConfig.TypedSpec().Value.DiskSelector = selector
+			require.NoError(t, tc.State.Create(ctx, installDiskConfig))
+
+			_, machines := createConfigTestCluster(ctx, t, tc.State, "talos-default-disk-sync", 0, "1.10.0")
+
+			require.Equal(t, machineID, machines[0].Metadata().ID())
+
+			// the resolution catches up: re-mock the status with the matching selection hash and
+			// the disk the selector picks
+			rmock.Mock[*omni.MachineInstallDiskStatus](ctx, t, tc.State, options.WithID(machineID), options.Modify(func(res *omni.MachineInstallDiskStatus) error {
+				res.TypedSpec().Value.Disk = "/dev/vdz"
+				res.TypedSpec().Value.SelectionHash = installdisk.SelectionHash(installDiskConfig)
+
+				return nil
+			}))
+
+			rtestutils.AssertResource(ctx, t, tc.State, machineID, func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
+				assertions.Equal("/dev/vdz", machineConfigOf(t, res).Machine().Install().Disk())
+				assertions.Equal("/dev/vdz", res.TypedSpec().Value.InstallDisk)
+
+				// the held renders must not have produced a config from the stale resolution: the
+				// caught-up disk must be there from the very first version
+				assertions.Equal("1", res.Metadata().Version().String())
+			})
+		},
+	)
+}
+
+// TestClusterMachineConfigInstallDiskReassert verifies that a config patch cannot make the
+// rendered bytes carry a different install disk than the one recorded on the config: new patches
+// carrying .machine.install.disk are rejected at the API, but patches written before that
+// restriction still flow through the patch collection, and the disk config generation produced
+// must win over them in both directions. A patch deleting the whole install section is the
+// accepted exception: the section stays deleted, and such a config cannot install anywhere.
+func TestClusterMachineConfigInstallDiskReassert(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name         string
+		cluster      string
+		talosVersion string
+		patch        string
+		expectedDisk string
+	}{
+		{
+			// the patch overrides the generated disk: the verified disk must win
+			name:         "override",
+			cluster:      "talos-default-disk-reassert-override",
+			talosVersion: "1.10.0",
+			patch: `machine:
+  install:
+    disk: /dev/not-the-verified-disk
+  network:
+    hostname: reassert-marker`,
+			expectedDisk: testInstallDisk,
+		},
+		{
+			// the patch deletes the install section: it stays deleted, nothing to disagree with
+			name:         "section deleted",
+			cluster:      "talos-default-disk-reassert-deleted",
+			talosVersion: "1.10.0",
+			patch: `machine:
+  install:
+    $patch: delete
+  network:
+    hostname: reassert-marker`,
+			expectedDisk: "",
+		},
+		{
+			// a 1.14+ contract renders no install section: a patch must not smuggle a disk in
+			name:         "injected into a section-less contract",
+			cluster:      "talos-default-disk-reassert-injected",
+			talosVersion: "1.14.1",
+			patch: `machine:
+  install:
+    disk: /dev/not-the-verified-disk
+  network:
+    hostname: reassert-marker`,
+			expectedDisk: "",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+			t.Cleanup(cancel)
+
+			testutils.WithRuntime(
+				ctx, t, testutils.TestOptions{}, registerClusterMachineConfigControllers(t),
+				func(ctx context.Context, tc testutils.TestContext) {
+					_, machines := createConfigTestCluster(ctx, t, tc.State, tt.cluster, 0, tt.talosVersion)
+
+					machineID := machines[0].Metadata().ID()
+
+					appendPatch(ctx, t, tc.State, machineID, tt.patch)
+
+					rtestutils.AssertResource(ctx, t, tc.State, machineID, func(res *omni.ClusterMachineConfig, assertions *assert.Assertions) {
+						assertions.Empty(res.TypedSpec().Value.GenerationError)
+
+						cfg := machineConfigOf(t, res)
+
+						// the hostname proves this render consumed the patch
+						assertions.Equal("reassert-marker", cfg.RawV1Alpha1().MachineConfig.MachineNetwork.NetworkHostname) //nolint:staticcheck
+						assertions.Equal(tt.expectedDisk, cfg.Machine().Install().Disk())
+
+						// the recorded disk always carries the verified value, whatever the bytes say
+						assertions.Equal(testInstallDisk, res.TypedSpec().Value.InstallDisk)
+					})
+				},
+			)
+		})
+	}
 }

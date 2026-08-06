@@ -22,7 +22,6 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
-	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/template/internal/models"
 )
@@ -32,10 +31,10 @@ type clusterResources struct {
 	extensions   *layeredResources[*omni.ExtensionsConfiguration]
 	healthchecks *layeredResources[*omni.KubernetesHealthCheck]
 
-	machineSetNodes            map[string][]*omni.MachineSetNode
-	kernelArgs                 map[string]*omni.KernelArgs
-	clusterMachineInstallDisks map[string]string
-	manifests                  []*omni.KubernetesManifestGroup
+	machineSetNodes    map[string][]*omni.MachineSetNode
+	kernelArgs         map[string]*omni.KernelArgs
+	installDiskConfigs map[string]*omni.MachineInstallDiskConfig
+	manifests          []*omni.KubernetesManifestGroup
 
 	cluster *omni.Cluster
 
@@ -105,7 +104,7 @@ func ExportTemplate(ctx context.Context, st state.State, clusterID string, inclu
 				machineSetNode,
 				resources.kernelArgs[machineSetNode.Metadata().ID()],
 				resources.patches.clusterMachine[machineSetNode.Metadata().ID()],
-				resources.clusterMachineInstallDisks[machineSetNode.Metadata().ID()],
+				resources.installDiskConfigs[machineSetNode.Metadata().ID()],
 				includeKernelArgs,
 			)
 			if transformErr != nil {
@@ -207,8 +206,20 @@ func transformConfigPatchesToModels(configPatches []*omni.ConfigPatch) (models.P
 	return patchModels, nil
 }
 
+// transformInstallDiskConfigToModel maps the install disk selection back into the template model.
+func transformInstallDiskConfigToModel(installDiskConfig *omni.MachineInstallDiskConfig) models.MachineInstall {
+	if installDiskConfig == nil {
+		return models.MachineInstall{}
+	}
+
+	return models.MachineInstall{
+		Disk:         installDiskConfig.TypedSpec().Value.Disk,
+		DiskSelector: installDiskConfig.TypedSpec().Value.DiskSelector,
+	}
+}
+
 func transformMachineSetNodeToModel(machineSetNode *omni.MachineSetNode, kernelArgsRes *omni.KernelArgs,
-	patches []*omni.ConfigPatch, installDisk string, includeKernelArgs bool,
+	patches []*omni.ConfigPatch, installDiskConfig *omni.MachineInstallDiskConfig, includeKernelArgs bool,
 ) (models.Machine, error) {
 	_, locked := machineSetNode.Metadata().Annotations().Get(omni.MachineLocked)
 
@@ -224,10 +235,8 @@ func transformMachineSetNodeToModel(machineSetNode *omni.MachineSetNode, kernelA
 		Name:        models.MachineID(machineSetNode.Metadata().ID()),
 		Descriptors: getUserDescriptors(machineSetNode),
 		Locked:      locked,
-		Install: models.MachineInstall{
-			Disk: installDisk,
-		},
-		Patches: patchModels,
+		Install:     transformInstallDiskConfigToModel(installDiskConfig),
+		Patches:     patchModels,
 	}
 
 	if !includeKernelArgs {
@@ -441,6 +450,28 @@ func getUserDescriptors(res resource.Resource) models.Descriptors {
 	}
 }
 
+// collectInstallDiskConfigs looks up the machine-scoped install disk selection of every machine set node.
+func collectInstallDiskConfigs(
+	ctx context.Context, st state.State, machineSetNodes map[string][]*omni.MachineSetNode,
+) (map[string]*omni.MachineInstallDiskConfig, error) {
+	installDiskConfigs := map[string]*omni.MachineInstallDiskConfig{}
+
+	for _, machineSetNodesOfSet := range machineSetNodes {
+		for _, machineSetNode := range machineSetNodesOfSet {
+			installDiskConfig, err := safe.StateGetByID[*omni.MachineInstallDiskConfig](ctx, st, machineSetNode.Metadata().ID())
+			if err != nil && !state.IsNotFoundError(err) {
+				return nil, fmt.Errorf("error getting install disk config for machine set node %q: %w", machineSetNode.Metadata().ID(), err)
+			}
+
+			if installDiskConfig != nil {
+				installDiskConfigs[machineSetNode.Metadata().ID()] = installDiskConfig
+			}
+		}
+	}
+
+	return installDiskConfigs, nil
+}
+
 func collectClusterResources(ctx context.Context, st state.State, clusterID string, includeKernelArgs bool) (clusterResources, error) {
 	cluster, err := safe.StateGetByID[*omni.Cluster](ctx, st, clusterID)
 	if err != nil {
@@ -499,22 +530,12 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 		}
 	}
 
-	clusterMachineInstallDisks := map[string]string{}
+	installDiskConfigs, err := collectInstallDiskConfigs(ctx, st, machineSetNodes)
+	if err != nil {
+		return clusterResources{}, err
+	}
 
-	patches, err := collectResourceLayers[*omni.ConfigPatch](ctx, st, clusterID, func(item *omni.ConfigPatch) bool {
-		if clusterMachineLabel, ok := item.Metadata().Labels().Get(omni.LabelClusterMachine); ok {
-			installDisk := getInstallDiskFromConfigPatch(item)
-			if installDisk != "" {
-				clusterMachineInstallDisks[clusterMachineLabel] = installDisk
-
-				// this is an install disk patch, therefore it will be set as the machine's install disk on the Machine model,
-				// not in patches, so we skip adding it to the set of regular patches
-				return true
-			}
-		}
-
-		return false
-	})
+	patches, err := collectResourceLayers[*omni.ConfigPatch](ctx, st, clusterID, nil)
 	if err != nil {
 		return clusterResources{}, err
 	}
@@ -546,15 +567,15 @@ func collectClusterResources(ctx context.Context, st state.State, clusterID stri
 	}
 
 	return clusterResources{
-		cluster:                    cluster,
-		machineSets:                slices.AppendSeq(make([]*omni.MachineSet, 0, machineSetList.Len()), machineSetList.All()),
-		machineSetNodes:            machineSetNodes,
-		kernelArgs:                 machineKernelArgs,
-		patches:                    patches,
-		extensions:                 extensions,
-		healthchecks:               healthchecks,
-		clusterMachineInstallDisks: clusterMachineInstallDisks,
-		manifests:                  manifests,
+		cluster:            cluster,
+		machineSets:        slices.AppendSeq(make([]*omni.MachineSet, 0, machineSetList.Len()), machineSetList.All()),
+		machineSetNodes:    machineSetNodes,
+		kernelArgs:         machineKernelArgs,
+		patches:            patches,
+		extensions:         extensions,
+		healthchecks:       healthchecks,
+		installDiskConfigs: installDiskConfigs,
+		manifests:          manifests,
 	}, nil
 }
 
@@ -699,54 +720,6 @@ func collectResourceLayers[T meta.ResourceWithRD](ctx context.Context, st state.
 	})
 
 	return res, nil
-}
-
-func getInstallDiskFromConfigPatch(configPatch *omni.ConfigPatch) string {
-	clusterMachine, ok := configPatch.Metadata().Labels().Get(omni.LabelClusterMachine)
-	if !ok {
-		return ""
-	}
-
-	expectedID := fmt.Sprintf("%03d-cm-%s-install-disk", constants.PatchWeightInstallDisk, clusterMachine)
-	if configPatch.Metadata().ID() != expectedID {
-		return ""
-	}
-
-	var data map[string]any
-
-	buffer, err := configPatch.TypedSpec().Value.GetUncompressedData()
-	if err != nil {
-		return "" // ignore the error, as it will be caught by the validation later
-	}
-
-	defer buffer.Free()
-
-	patchData := buffer.Data()
-
-	if err = yaml.Unmarshal(patchData, &data); err != nil {
-		return "" // ignore the error, as it will be caught by the validation later
-	}
-
-	machine, ok := data["machine"].(map[string]any)
-	if !ok {
-		return ""
-	}
-
-	install, ok := machine["install"].(map[string]any)
-	if !ok {
-		return ""
-	}
-
-	if slices.ContainsFunc([]map[string]any{data, machine, install}, func(m map[string]any) bool { return len(m) != 1 }) {
-		return "" // there is some data in the patch other than the install disk, so it cannot be converted into install.disk block in the Machine model
-	}
-
-	disk, ok := install["disk"].(string)
-	if !ok {
-		return ""
-	}
-
-	return disk
 }
 
 func listToMap[K comparable, T resource.Resource](list safe.List[T], keyFunc func(T) K) map[K]T {

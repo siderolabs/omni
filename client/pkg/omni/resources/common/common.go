@@ -40,6 +40,7 @@ var UserManagedResourceTypes = []resource.Type{
 	omni.InfraMachineBMCConfigType,
 	omni.InfraMachineConfigType,
 	omni.InstallationMediaConfigType,
+	omni.MachineInstallDiskConfigType,
 	omni.NodeForceDestroyRequestType,
 	omni.KubernetesManifestGroupType,
 	infra.ProviderType,

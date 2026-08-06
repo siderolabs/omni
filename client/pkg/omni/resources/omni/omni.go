@@ -70,6 +70,8 @@ func init() {
 	registry.MustRegisterResource(MachineConfigGenOptionsType, &MachineConfigGenOptions{})
 	registry.MustRegisterResource(MachineExtensionsStatusType, &MachineExtensionsStatus{})
 	registry.MustRegisterResource(MachineExtensionsType, &MachineExtensions{})
+	registry.MustRegisterResource(MachineInstallDiskConfigType, &MachineInstallDiskConfig{})
+	registry.MustRegisterResource(MachineInstallDiskStatusType, &MachineInstallDiskStatus{})
 	registry.MustRegisterResource(MachineRequestSetType, &MachineRequestSet{})
 	registry.MustRegisterResource(MachineRequestSetStatusType, &MachineRequestSetStatus{})
 	registry.MustRegisterResource(MachinePendingUpdatesType, &MachinePendingUpdates{})

@@ -16,7 +16,6 @@ const patches = new Map(
 )
 
 export interface Patches {
-  machineInstallDisk: { disk: string }
   kubeSpan: undefined
   hostname: { hostname: string }
   untaintNode: undefined
@@ -27,7 +26,6 @@ type Patch = keyof Patches
 const resolvers: {
   [T in Patch]: (vcSpec: VersionContractSpec) => string
 } = {
-  machineInstallDisk: () => 'machineInstallDisk',
   kubeSpan: (vcSpec) => (vcSpec.kube_span_multidoc_config ? 'kubeSpanMultiDoc' : 'kubeSpanLegacy'),
   hostname: (vcSpec) =>
     vcSpec.multidoc_network_config_supported ? 'hostnameMultiDoc' : 'hostnameLegacy',

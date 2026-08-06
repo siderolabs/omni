@@ -16,11 +16,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
+	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/siderolabs/crypto/x509"
+	"github.com/siderolabs/gen/xerrors"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config/configloader"
@@ -1068,22 +1072,19 @@ func TestMachineConfigStatusController(t *testing.T) {
 		)
 	})
 
-	// maintenanceInstallConfigDisk verifies which disk a maintenance install targets: the disk in the
-	// merged machine config wins over the default on MachineConfigGenOptions, and the default is used
-	// when the config disk is empty. The config carries its disk from its very first version (shaped
-	// through the gen options its mock preset renders from), matching the contract that the selection
-	// is settled before the machine becomes installable. The gen options re-mock in the setup then
-	// resets the default disk to /dev/vda, making the config disk and the default diverge.
-	t.Run("maintenanceInstallConfigDisk", func(t *testing.T) {
+	// maintenanceInstallDisk verifies which disk a maintenance install targets: the disk recorded
+	// on the ClusterMachineConfig, which the rmock preset fills from the mocked resolution (the
+	// default is /dev/vda). The config carries its disk from its very first version, matching the
+	// contract that the selection is settled before the machine becomes installable.
+	t.Run("maintenanceInstallDisk", func(t *testing.T) {
 		t.Parallel()
 
 		for i, tt := range []struct {
 			name         string
-			configDisk   string
-			expectedDisk string
+			resolvedDisk string
 		}{
-			{name: "config disk overrides default", configDisk: "/dev/vdb", expectedDisk: "/dev/vdb"},
-			{name: "empty config disk falls back to default", configDisk: "", expectedDisk: "/dev/vda"},
+			{name: "selected disk", resolvedDisk: "/dev/vdb"},
+			{name: "default disk", resolvedDisk: "/dev/vda"},
 		} {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
@@ -1091,7 +1092,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 				ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 				t.Cleanup(cancel)
 
-				clusterName := fmt.Sprintf("maint-install-config-disk-%d", i)
+				clusterName := fmt.Sprintf("maint-install-disk-%d", i)
 				bootID := fmt.Sprintf("boot-before-install-%d", i)
 
 				testutils.WithRuntime(
@@ -1107,8 +1108,8 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 						id := setupMaintenanceMachineWithClusterOpts(ctx, t, st, machineServices, clusterName, false, bootID,
 							[]createClusterOption{
-								withGenOptionsModifier(func(res *omni.MachineConfigGenOptions) error {
-									res.TypedSpec().Value.InstallDisk = tt.configDisk
+								withInstallDiskStatusModifier(func(res *omni.MachineInstallDiskStatus) error {
+									res.TypedSpec().Value.Disk = tt.resolvedDisk
 
 									return nil
 								}),
@@ -1120,11 +1121,65 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 						installs := machineServices.Get(id).GetLifecycleInstallRequests()
 						require.NotEmpty(t, installs)
-						assert.Equal(t, tt.expectedDisk, installs[0].GetDestination().GetDisk())
+						assert.Equal(t, tt.resolvedDisk, installs[0].GetDestination().GetDisk())
 					},
 				)
 			})
 		}
+	})
+
+	// maintenanceInstallHeldWithoutDisk verifies the recorded-disk guard end to end: while the
+	// config carries no recorded install disk the install is held, and once the resolution catches
+	// up and the config is re-rendered with the disk recorded, the install fires on it. Exactly one
+	// install with the resolved disk proves both halves (a leaked install during the held phase
+	// would show up as an extra request or an empty destination).
+	t.Run("maintenanceInstallHeldWithoutDisk", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		t.Cleanup(cancel)
+
+		const bootID = "boot-before-install-held"
+
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{},
+			func(_ context.Context, tc testutils.TestContext) {
+				require.NoError(t, tc.Runtime.RegisterQController(
+					machineconfig.NewStatusController(testutils.NewLifecycleManager(t, tc.State, nil)),
+				))
+			},
+			func(ctx context.Context, tc testutils.TestContext) {
+				st := tc.State
+				machineServices := testutils.NewMachineServices(t, st)
+
+				id := setupMaintenanceMachineWithClusterOpts(ctx, t, st, machineServices, "maint-install-held", false, bootID,
+					[]createClusterOption{
+						withInstallDiskStatusModifier(func(res *omni.MachineInstallDiskStatus) error {
+							res.TypedSpec().Value.Disk = ""
+							res.TypedSpec().Value.Message = "no disk matches the install disk selector"
+
+							return nil
+						}),
+					})
+
+				// resolve the disk and re-render the config: the disk rides the config, so the
+				// re-mocked config's preset picks the new resolution up and records it
+				rmock.Mock[*omni.MachineInstallDiskStatus](ctx, t, st, options.WithID(id), options.Modify(func(res *omni.MachineInstallDiskStatus) error {
+					res.TypedSpec().Value.Disk = "/dev/vdc"
+
+					return nil
+				}))
+				rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id))
+
+				rtestutils.AssertResource(ctx, t, st, id, func(res *omni.ClusterMachineConfigStatus, a *assert.Assertions) {
+					a.Equal(bootID, res.TypedSpec().Value.PreRebootBootId)
+				})
+
+				installs := machineServices.Get(id).GetLifecycleInstallRequests()
+				require.Len(t, installs, 1)
+				assert.Equal(t, "/dev/vdc", installs[0].GetDestination().GetDisk())
+			},
+		)
 	})
 
 	// maintenanceUpgrade verifies a maintenance machine that already has Talos on disk gets a
@@ -1687,9 +1742,9 @@ func TestMachineConfigStatusController(t *testing.T) {
 type createClusterOption func(*createClusterOptions)
 
 type createClusterOptions struct {
-	machineStatusModifier func(*omni.MachineStatus) error
-	genOptionsModifier    func(*omni.MachineConfigGenOptions) error
-	clusterOpts           []options.MockOption
+	machineStatusModifier     func(*omni.MachineStatus) error
+	installDiskStatusModifier func(*omni.MachineInstallDiskStatus) error
+	clusterOpts               []options.MockOption
 }
 
 // withClusterMockOption forwards an option to the cluster Mock call.
@@ -1708,12 +1763,12 @@ func withMachineStatusModifier(fn func(*omni.MachineStatus) error) createCluster
 	}
 }
 
-// withGenOptionsModifier applies an additional modifier to every MachineConfigGenOptions created by
-// createCluster, before the ClusterMachineConfig preset renders the config from the gen options, so
+// withInstallDiskStatusModifier applies an additional modifier to every MachineInstallDiskStatus
+// created by createCluster, before the ClusterMachineConfig preset renders the config from it, so
 // the very first version of the config reflects the modification, e.g. its install disk.
-func withGenOptionsModifier(fn func(*omni.MachineConfigGenOptions) error) createClusterOption {
+func withInstallDiskStatusModifier(fn func(*omni.MachineInstallDiskStatus) error) createClusterOption {
 	return func(o *createClusterOptions) {
-		o.genOptionsModifier = fn
+		o.installDiskStatusModifier = fn
 	}
 }
 
@@ -1860,13 +1915,15 @@ func createCluster(
 		rmock.Mock[*omni.ClusterMachineConfigPatches](ctx, t, st, options.SameID(machine))
 		rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.SameID(machine))
 
-		genOptionsOpts := []options.MockOption{options.SameID(machine)}
+		rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.SameID(machine))
 
-		if clusterOpts.genOptionsModifier != nil {
-			genOptionsOpts = append(genOptionsOpts, options.Modify(clusterOpts.genOptionsModifier))
+		installDiskStatusOpts := []options.MockOption{options.SameID(machine)}
+
+		if clusterOpts.installDiskStatusModifier != nil {
+			installDiskStatusOpts = append(installDiskStatusOpts, options.Modify(clusterOpts.installDiskStatusModifier))
 		}
 
-		rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, genOptionsOpts...)
+		rmock.Mock[*omni.MachineInstallDiskStatus](ctx, t, st, installDiskStatusOpts...)
 		rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.SameID(machine))
 	}
 
@@ -3055,4 +3112,85 @@ func TestMaintenanceInstallGatedOnHighPriorityConfig(t *testing.T) {
 			}, time.Second*5, 50*time.Millisecond)
 		},
 	)
+}
+
+// stateReader adapts a bare state.State into a controller.Reader for calling
+// BuildReconciliationContext directly, without a controller runtime in between.
+// Uncached reads delegate to the same state: there is no cache to bypass.
+type stateReader struct {
+	st state.State
+}
+
+func (r stateReader) Get(ctx context.Context, ptr resource.Pointer, opts ...state.GetOption) (resource.Resource, error) {
+	return r.st.Get(ctx, ptr, opts...)
+}
+
+func (r stateReader) List(ctx context.Context, kind resource.Kind, opts ...state.ListOption) (resource.List, error) {
+	return r.st.List(ctx, kind, opts...)
+}
+
+func (r stateReader) GetUncached(ctx context.Context, ptr resource.Pointer, opts ...state.GetOption) (resource.Resource, error) {
+	return r.st.Get(ctx, ptr, opts...)
+}
+
+func (r stateReader) ListUncached(ctx context.Context, kind resource.Kind, opts ...state.ListOption) (resource.List, error) {
+	return r.st.List(ctx, kind, opts...)
+}
+
+func (stateReader) ContextWithTeardown(ctx context.Context, _ resource.Pointer) (context.Context, error) {
+	return ctx, nil
+}
+
+// TestBuildReconciliationContextHeldWithoutDisk pins the recorded-disk guard directly, without
+// the timing of a running controller in between: a config carrying no recorded install disk must
+// skip the reconcile of an uninstalled machine independent of the lifecycle op, so no path
+// (lifecycle install or legacy config apply) can act before a config rendered from a verified
+// resolution exists.
+func TestBuildReconciliationContextHeldWithoutDisk(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	machineServices := testutils.NewMachineServices(t, st)
+
+	_, machines := createCluster(
+		ctx, t, st, machineServices, "guard-test", 1, 0,
+		withMachineStatusModifier(func(res *omni.MachineStatus) error {
+			// no system disk: the guard only ever holds machines before their first install
+			res.TypedSpec().Value.Hardware = &specs.MachineStatusSpec_HardwareStatus{}
+
+			return nil
+		}),
+		withInstallDiskStatusModifier(func(res *omni.MachineInstallDiskStatus) error {
+			res.TypedSpec().Value.Disk = ""
+			res.TypedSpec().Value.Message = "no disk matches the install disk selector"
+
+			return nil
+		}),
+	)
+
+	id := machines[0].Metadata().ID()
+
+	machineConfig, err := safe.StateGetByID[*omni.ClusterMachineConfig](ctx, st, id)
+	require.NoError(t, err)
+
+	_, err = machineconfig.BuildReconciliationContext(ctx, stateReader{st: st}, machineConfig, omni.NewClusterMachineConfigStatus(id))
+	require.Error(t, err)
+	require.True(t, xerrors.TagIs[qtransform.SkipReconcileTag](err), "a config with no recorded install disk must skip the reconcile for an uninstalled machine")
+	require.ErrorContains(t, err, "carries no verified install disk")
+
+	// positive control: with the disk resolved and the config re-rendered, the context is not
+	// held on the install disk
+	rmock.Mock[*omni.MachineInstallDiskStatus](ctx, t, st, options.WithID(id))
+	rmock.Mock[*omni.ClusterMachineConfig](ctx, t, st, options.WithID(id))
+
+	machineConfig, err = safe.StateGetByID[*omni.ClusterMachineConfig](ctx, st, id)
+	require.NoError(t, err)
+
+	_, err = machineconfig.BuildReconciliationContext(ctx, stateReader{st: st}, machineConfig, omni.NewClusterMachineConfigStatus(id))
+	if err != nil {
+		require.NotContains(t, err.Error(), "carries no verified install disk")
+	}
 }

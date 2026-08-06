@@ -14,7 +14,7 @@ import type { Resource } from '@/api/grpc'
 import type {
   ClusterConfigVersionSpec,
   ClusterSpec,
-  MachineConfigGenOptionsSpec,
+  MachineInstallDiskStatusSpec,
   MachineStatusSpec,
 } from '@/api/omni/specs/omni.pb'
 import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb'
@@ -22,7 +22,7 @@ import {
   ClusterConfigVersionType,
   DefaultNamespace,
   LabelNoManualAllocation,
-  MachineConfigGenOptionsType,
+  MachineInstallDiskStatusType,
   MachineStatusLabelAvailable,
   MachineStatusLabelInvalidState,
   MachineStatusLabelReadyToUse,
@@ -36,7 +36,7 @@ import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
-import { ClusterCommandError, clusterSync } from '@/methods/cluster'
+import { ClusterCommandError, clusterSync, reconcileInstallDiskConfigs } from '@/methods/cluster'
 import { machineCompatibleWithCluster } from '@/methods/compat'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
@@ -73,6 +73,10 @@ const clusterName = route.params.cluster
 
 const scaleCluster = async () => {
   try {
+    // commit the install disk selections first, so they are in place before any MachineSetNode
+    // makes a machine installable (the config resource never goes through clusterSync)
+    await reconcileInstallDiskConfigs(state.value.installDiskIntents())
+
     await clusterSync(state.value.resources(), existingResources.value)
   } catch (e) {
     if (e instanceof ClusterCommandError) {
@@ -130,12 +134,12 @@ const {
 })
 
 const {
-  data: machineConfigGenOptions,
-  loading: machineConfigGenOptionsLoading,
-  err: machineConfigGenOptionsErr,
-} = useResourceWatch<MachineConfigGenOptionsSpec>({
+  data: installDiskStatuses,
+  loading: installDiskStatusesLoading,
+  err: installDiskStatusesErr,
+} = useResourceWatch<MachineInstallDiskStatusSpec>({
   resource: {
-    type: MachineConfigGenOptionsType,
+    type: MachineInstallDiskStatusType,
     namespace: DefaultNamespace,
   },
   runtime: Runtime.Omni,
@@ -164,25 +168,25 @@ const {
   },
 }))
 
-const machineConfigGenOptionsMap = computed(() =>
-  Object.fromEntries(machineConfigGenOptions.value.map((c) => [c.metadata.id!, c])),
+const installDiskStatusMap = computed(() =>
+  Object.fromEntries(installDiskStatuses.value.map((c) => [c.metadata.id!, c])),
 )
 
 const loading = computed(
   () =>
     machineStatusesLoading.value ||
-    machineConfigGenOptionsLoading.value ||
+    installDiskStatusesLoading.value ||
     versionContractLoading.value,
 )
 const err = computed(
-  () => machineStatusesErr.value || machineConfigGenOptionsErr.value || versionContractErr.value,
+  () => machineStatusesErr.value || installDiskStatusesErr.value || versionContractErr.value,
 )
 const data = computed(() =>
-  machineStatuses.value.map<Resource<MachineStatusSpec & MachineConfigGenOptionsSpec>>((m) => ({
+  machineStatuses.value.map<Resource<MachineStatusSpec & MachineInstallDiskStatusSpec>>((m) => ({
     ...m,
     spec: {
       ...m.spec,
-      ...machineConfigGenOptionsMap.value[m.metadata.id!]?.spec,
+      ...installDiskStatusMap.value[m.metadata.id!]?.spec,
     },
   })),
 )

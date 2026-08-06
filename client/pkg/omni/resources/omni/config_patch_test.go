@@ -59,6 +59,18 @@ cluster:
 `,
 		},
 		{
+			// the install disk is managed through the MachineInstallDiskConfig resource, and a
+			// patch overriding it would silently disagree with the disk recorded on the rendered
+			// config
+			name: "install disk",
+			config: strings.TrimSpace(`
+machine:
+  install:
+    disk: /dev/sdb
+`),
+			expectedError: "1 error occurred:\n\t* overriding \"machine.install.disk\" is not allowed in the config patch\n\n",
+		},
+		{
 			name: "different configs",
 			config: strings.TrimSpace(`
 machine:

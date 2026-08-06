@@ -101,6 +101,28 @@ message MachineStatusSpec {
       bool readonly = 12;
       // Transport is the disk transport.
       string transport = 13;
+      // DevPath is the device path (e.g. `/dev/sda`) as reported by Talos.
+      string dev_path = 14;
+      // IoSize is the optimal I/O size of the disk in bytes.
+      uint64 io_size = 15;
+      // SectorSize is the logical sector size of the disk in bytes.
+      uint64 sector_size = 16;
+      // Modalias is the modalias of the disk device.
+      string modalias = 17;
+      // SubSystem is the subsystem path of the disk device.
+      string sub_system = 18;
+      // Rotational is true for spinning disks.
+      bool rotational = 19;
+      // Cdrom is true for CD-ROM devices.
+      bool cdrom = 20;
+      // PrettySize is the human-readable disk size.
+      string pretty_size = 21;
+      // SecondaryDisks lists the disks this device is composed of (e.g. RAID members, device-mapper parents).
+      repeated string secondary_disks = 22;
+      // Symlinks lists the stable symlink paths of the device (e.g. `/dev/disk/by-id/...`).
+      repeated string symlinks = 23;
+      // FirmwareVersion is the firmware version of the disk.
+      string firmware_version = 24;
     }
 
     // CPU information.
@@ -474,6 +496,13 @@ message ClusterMachineConfigSpec {
 
   // GrubUseUkiCmdline indicates the .machine.install.grubUseUKICmdline status.
   bool grub_use_uki_cmdline = 6;
+
+  // InstallDisk is the install disk this config version was rendered for, verified against the
+  // machine's install disk selection at render time. The install acts on this recorded value, and
+  // the rendered config bytes can never carry a different non-empty disk (patches touching the
+  // field are rejected or overridden at render). Empty only on configs rendered before the field
+  // existed.
+  string install_disk = 7;
 }
 
 // ClusterMachineConfigSpec stores generated Talos node machine config.
@@ -1274,7 +1303,7 @@ message MachineConfigGenOptionsSpec {
     string image_factory_host = 8;
   }
 
-  string install_disk = 1;
+  reserved 1; // was install_disk, superseded by ClusterMachineConfigSpec.install_disk
 
   // InstallImage contains the information needed to build the install image URL of a machine to be used by the Talos installer.
   InstallImage install_image = 2;
@@ -1814,4 +1843,30 @@ message MachineConfigExtractionStatusSpec {
 message ImageFactoryAuthSpec {
   string username = 1;
   string password = 2;
+}
+
+// MachineInstallDiskConfigSpec describes the user's install disk selection for a machine.
+// Exactly one of Disk and DiskSelector is set.
+message MachineInstallDiskConfigSpec {
+  // DiskSelector selects the install disk by a CEL expression evaluated against each of the machine's disks (Talos disk locator environment).
+  string disk_selector = 1;
+  // Disk selects the install disk by its dev path.
+  string disk = 2;
+}
+
+// MachineInstallDiskStatusSpec describes the resolved install disk of a machine.
+message MachineInstallDiskStatusSpec {
+  // Disk is the resolved install disk dev path, empty while unresolved. The resolution is computed
+  // asynchronously from the selection, so it can lag behind it: ClusterMachineConfigController,
+  // the only backend consumer, reads it through installdisk.GetResolved, which checks it against
+  // the current selection. Everything downstream acts on the disk recorded on ClusterMachineConfig.
+  string disk = 1;
+  // Candidates lists the dev paths eligible for automatic disk selection.
+  repeated string candidates = 2;
+  // Message explains why Disk is empty, or carries extra information about the resolved disk.
+  string message = 3;
+  // SelectionHash is the hash of the MachineInstallDiskConfig fields this resolution was computed
+  // from, empty when it was computed without one. Comparing it against the hash of the current
+  // selection tells whether the resolution is stale.
+  string selection_hash = 4;
 }

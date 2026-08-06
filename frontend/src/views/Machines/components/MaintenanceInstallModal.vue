@@ -14,9 +14,18 @@ import {
   MaintenanceLifecycleRequestOperation,
   ManagementService,
 } from '@/api/omni/management/management.pb'
-import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  MachineInstallDiskStatusSpec,
+  MachineStatusSpec,
+  TalosVersionSpec,
+} from '@/api/omni/specs/omni.pb'
 import { withAbortController } from '@/api/options'
-import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/resources'
+import {
+  DefaultNamespace,
+  MachineInstallDiskStatusType,
+  MachineStatusType,
+  TalosVersionType,
+} from '@/api/resources'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
@@ -79,22 +88,33 @@ watch(open, (open) => {
   inProgressFromServer.value = false
 })
 
-// installable disks: skip read-only devices, CD-ROMs, and any device missing a linux_name (the
-// install target is the linux_name path — without one there's nothing to pass to Talos).
-const disks = computed(
-  () =>
-    machine.value?.spec.hardware?.blockdevices?.flatMap((device) => {
-      if (device.readonly || device.type === 'CD' || !device.linux_name) {
-        return []
-      }
+// The backend resolves the installable disks and the default centrally
+// (MachineInstallDiskStatus), the dropdown just renders them.
+const { data: installDiskStatus } = useResourceWatch<MachineInstallDiskStatusSpec>(() => ({
+  skip: !open.value,
+  resource: {
+    type: MachineInstallDiskStatusType,
+    namespace: DefaultNamespace,
+    id: machineId,
+  },
+  runtime: Runtime.Omni,
+}))
 
-      return [device.linux_name]
-    }) ?? [],
-)
+const disks = computed(() => {
+  const candidates = installDiskStatus.value?.spec.candidates ?? []
+  const resolved = installDiskStatus.value?.spec.disk
 
-watch(disks, (newDisks) => {
-  if (!selectedDisk.value || !newDisks.includes(selectedDisk.value)) {
-    selectedDisk.value = newDisks[0] ?? ''
+  // the resolved disk may sit outside the candidates (an explicit selector can target any disk)
+  if (resolved && !candidates.includes(resolved)) {
+    return [resolved, ...candidates]
+  }
+
+  return candidates
+})
+
+watch(installDiskStatus, (status) => {
+  if (!selectedDisk.value || !disks.value.includes(selectedDisk.value)) {
+    selectedDisk.value = status?.spec.disk || (disks.value[0] ?? '')
   }
 })
 
@@ -238,7 +258,16 @@ const doInstall = async () => {
       </TAlert>
 
       <template v-if="!showProgress">
-        <TSelectList v-model="selectedDisk" title="Install Disk" :values="disks" class="self-end" />
+        <div class="flex items-center justify-end gap-2">
+          <span
+            v-if="installDiskStatus?.spec.message"
+            :title="installDiskStatus.spec.message"
+            class="max-w-64 truncate text-xs text-naturals-n9"
+          >
+            {{ installDiskStatus.spec.message }}
+          </span>
+          <TSelectList v-model="selectedDisk" title="Install Disk" :values="disks" />
+        </div>
 
         <span v-if="!Object.keys(installVersions).length">No versions found</span>
 

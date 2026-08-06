@@ -42,8 +42,10 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/installdisk"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/imagefactoryauth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	omnicfg "github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -79,6 +81,12 @@ func NewClusterMachineConfigController(registryMirrors []string, talosRegistry s
 		qtransform.WithExtraMappedInput[*omni.MachineConfigGenOptions](
 			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
+		qtransform.WithExtraMappedInput[*omni.MachineInstallDiskStatus](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
+		),
+		qtransform.WithExtraMappedInput[*omni.MachineInstallDiskConfig](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
+		),
 		qtransform.WithExtraMappedInput[*omni.Cluster](
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
 		),
@@ -106,6 +114,30 @@ func NewClusterMachineConfigController(registryMirrors []string, talosRegistry s
 		),
 		qtransform.WithConcurrency(2),
 	)
+}
+
+// getResolvedInstallDisk returns the verified install disk of the machine: the resolution from the
+// (cache-read) status, held until it reflects the current selection, which is read uncached as
+// installdisk.GetResolved requires. The MachineInstallDiskConfig input declaration is what makes
+// the uncached read legal (controllers may only read declared inputs), on top of waking this
+// controller on selection edits, so the input is mandatory, not a wake-up optimization.
+//
+// Running this at the render is what keeps everything downstream check-free: the verified disk is
+// recorded on the ClusterMachineConfig next to the rendered bytes, so consumers like the install
+// decision act on the disk recorded on the exact config version they act on.
+func getResolvedInstallDisk(ctx context.Context, r controller.Reader, machineID resource.ID, installDiskStatus *omni.MachineInstallDiskStatus) (string, error) {
+	installDiskConfig, err := safe.ReaderGetByID[*omni.MachineInstallDiskConfig](ctx, uncached.Reader(r), machineID)
+	if err != nil && !state.IsNotFoundError(err) {
+		return "", fmt.Errorf("failed to get the install disk config %q: %w", machineID, err)
+	}
+
+	disk, inSync := installdisk.GetResolved(installDiskConfig, installDiskStatus)
+	if !inSync {
+		return "", xerrors.NewTaggedf[qtransform.SkipReconcileTag](
+			"the install disk resolution of %q does not reflect the current install disk selection yet", machineID)
+	}
+
+	return disk, nil
 }
 
 //nolint:gocognit,cyclop,gocyclo,maintidx
@@ -213,6 +245,26 @@ func reconcileClusterMachineConfig(
 		return err
 	}
 
+	installDiskStatus, err := safe.ReaderGetByID[*omni.MachineInstallDiskStatus](ctx, r, clusterMachine.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
+		}
+
+		return err
+	}
+
+	installDisk, err := getResolvedInstallDisk(ctx, r, clusterMachine.Metadata().ID(), installDiskStatus)
+	if err != nil {
+		return err
+	}
+
+	// The disk is rendered into the config for version contracts that still carry the install
+	// section, and those reject an empty disk, so hold the render until the disk is resolved.
+	if installDisk == "" {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("install disk is not resolved yet: %s", installDiskStatus.TypedSpec().Value.Message)
+	}
+
 	inputs := []resource.Resource{
 		clusterMachineSecrets,
 		loadBalancerConfig,
@@ -220,6 +272,7 @@ func reconcileClusterMachineConfig(
 		clusterMachineConfigPatches,
 		machineConfigGenOptions,
 		machineJoinConfig,
+		installDiskStatus,
 	}
 
 	var imageFactories safe.List[*omni.ImageFactoryAuth]
@@ -289,7 +342,7 @@ func reconcileClusterMachineConfig(
 	}
 
 	conf, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, clusterMachineSecrets, loadBalancerConfig,
-		cluster, clusterConfigVersion, machineConfigGenOptions, configGenOptions, machineJoinConfig, imageFactories)
+		cluster, clusterConfigVersion, machineConfigGenOptions, installDisk, configGenOptions, machineJoinConfig, imageFactories)
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
 
@@ -328,6 +381,10 @@ func reconcileClusterMachineConfig(
 
 	machineConfig.TypedSpec().Value.GenerationError = ""
 	machineConfig.TypedSpec().Value.GrubUseUkiCmdline = useUKICmdline
+
+	// The install acts on this recorded value (the config is its primary input), so the disk it
+	// uses and the config bytes rendered from it can never disagree.
+	machineConfig.TypedSpec().Value.InstallDisk = installDisk
 
 	return nil
 }
@@ -407,7 +464,7 @@ func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.Cluste
 //nolint:gocyclo,cyclop,gocognit
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches,
 	clusterMachineSecrets *omni.ClusterMachineSecrets, loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion,
-	configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option, machineJoinConfig *siderolink.MachineJoinConfig,
+	configGenOptions *omni.MachineConfigGenOptions, installDisk string, extraGenOptions []generate.Option, machineJoinConfig *siderolink.MachineJoinConfig,
 	imageFactories safe.List[*omni.ImageFactoryAuth],
 ) (config.Provider, error) {
 	clusterName := cluster.Metadata().ID()
@@ -485,7 +542,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		ExtraGenOptions:          extraGenOptions,
 		IsControlPlane:           machineType == machineapi.TypeControlPlane,
 		SiderolinkEndpoint:       loadbalancer.TypedSpec().Value.SiderolinkEndpoint,
-		InstallDisk:              configGenOptions.TypedSpec().Value.InstallDisk,
+		InstallDisk:              installDisk,
 		InstallImage:             installImage,
 		Secrets:                  secretsBundle,
 	})
@@ -569,12 +626,59 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, fmt.Errorf("failed to get patched config: %w", err)
 	}
 
+	patchedConfig, err = reassertInstallDisk(cfg, patchedConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	strippedConfig, err := stripTalosAPIAccessOSAdminRole(patchedConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build talos api access feature allowed roles patch: %w", err)
 	}
 
 	return strippedConfig, nil
+}
+
+// reassertInstallDisk forces the install disk of the patched config back to the disk config
+// generation produced. Patches may not move the disk in either direction, or the rendered bytes
+// could disagree with the disk recorded on the ClusterMachineConfig. New patches carrying the
+// field are rejected outright, this neutralizes the ones written before that restriction: the
+// disk is forced back on contracts that render an install section, and a patch-smuggled section
+// is dropped on contracts that render none (an install section is invalid without a disk anyway).
+// A patch deleting the whole install section is left alone: such a config cannot install
+// anywhere, the same dead end it was before the restriction.
+func reassertInstallDisk(generatedConfig, patchedConfig config.Provider) (config.Provider, error) {
+	generatedDisk := ""
+	if generatedConfig.Machine() != nil {
+		generatedDisk = generatedConfig.Machine().Install().Disk()
+	}
+
+	if patchedConfig.Machine() == nil || patchedConfig.Machine().Install().Disk() == generatedDisk {
+		return patchedConfig, nil
+	}
+
+	patchedConfig, err := patchedConfig.PatchV1Alpha1(func(v1alpha1Config *v1alpha1.Config) error {
+		if v1alpha1Config.MachineConfig == nil {
+			return nil
+		}
+
+		if generatedDisk == "" {
+			v1alpha1Config.MachineConfig.MachineInstall = nil //nolint:staticcheck
+
+			return nil
+		}
+
+		if v1alpha1Config.MachineConfig.MachineInstall != nil { //nolint:staticcheck
+			v1alpha1Config.MachineConfig.MachineInstall.InstallDisk = generatedDisk //nolint:staticcheck
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to re-assert the install disk on the patched config: %w", err)
+	}
+
+	return patchedConfig, nil
 }
 
 // stripTalosAPIAccessOSAdminRole ensures that the OS admin role is never included in the allowed roles of the

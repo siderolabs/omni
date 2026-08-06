@@ -12,13 +12,9 @@ import { computed, ref, watch } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
-import type { MachineConfigGenOptionsSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { MachineInstallDiskStatusSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb.ts'
-import {
-  LabelControlPlaneRole,
-  PatchBaseWeightClusterMachine,
-  PatchWeightInstallDisk,
-} from '@/api/resources'
+import { LabelControlPlaneRole, PatchBaseWeightClusterMachine } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import ConfigPatchEditModal from '@/components/Modals/ConfigPatchEditModal.vue'
@@ -28,7 +24,7 @@ import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { useMachineName } from '@/methods/node'
 import type { MachineSetNode } from '@/states/cluster-management'
-import { PatchID, state } from '@/states/cluster-management'
+import { automaticInstallDisk, state } from '@/states/cluster-management'
 import CreateExtensionsModal from '@/views/Clusters/components/CreateExtensionsModal.vue'
 import MachineItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 
@@ -47,7 +43,7 @@ const {
   versionMismatch,
   autoInstallNotice = null,
 } = defineProps<{
-  item: Resource<MachineStatusSpec & MachineConfigGenOptionsSpec>
+  item: Resource<MachineStatusSpec & MachineInstallDiskStatusSpec>
   versionContract: Resource<VersionContractSpec>
   reset?: number
   searchQuery?: string
@@ -64,20 +60,26 @@ const machineSetIndex = ref<number>()
 const configPatchEditModalOpen = ref(false)
 const createExtensionsModalOpen = ref(false)
 const blockdevices = computed(() => item.spec.hardware?.blockdevices || [])
-const systemDiskPath = computed(
-  () => blockdevices.value.find((device) => device.system_disk)?.linux_name,
-)
+const systemDiskPath = computed(() => {
+  const systemDisk = blockdevices.value.find((device) => device.system_disk)
 
-// TODO: This filter is a diverged copy of the backend's install disk candidate logic, which also
-//       filters by minimum size and virtual bus path and puts USB disks last. The filtering should be
-//       centralized on the backend. See internal/backend/runtime/omni/controllers/omni/machine_config_gen_options.go
-//       and https://github.com/siderolabs/omni/issues/3199.
-const disks = computed(() =>
-  blockdevices.value
-    .filter((device) => !device.readonly && device.type !== 'CD')
-    .map((device) => device.linux_name!),
-)
-const defaultInstallDisk = computed(() => item.spec.install_disk ?? disks.value[0])
+  // dev_path with a linux_name fallback for machines polled before the dev_path field existed
+  return systemDisk?.dev_path || systemDisk?.linux_name
+})
+
+// The backend resolves the install disk and the eligible candidates centrally
+// (MachineInstallDiskStatus), the dropdown just renders them. The resolved disk may sit outside
+// the candidates (an explicit selector can target any disk), so it is included explicitly.
+const resolvedInstallDisk = computed(() => item.spec.disk)
+const disks = computed(() => {
+  const candidates = item.spec.candidates ?? []
+
+  if (resolvedInstallDisk.value && !candidates.includes(resolvedInstallDisk.value)) {
+    return [automaticInstallDisk, resolvedInstallDisk.value, ...candidates]
+  }
+
+  return [automaticInstallDisk, ...candidates]
+})
 
 watch(
   state.value,
@@ -181,23 +183,33 @@ const options = computed(() => {
 })
 
 const machinePatchID = computed(() => `cm-${item.metadata.id}`)
-const installDiskPatchID = computed(() => `cm-${item.metadata.id}-${PatchID.InstallDisk}`)
 
-const setInstallDisk = async (value: string) => {
-  if (value === defaultInstallDisk.value) {
-    delete machineSetNode.value.patches[installDiskPatchID.value]
+// The selection is an intent recorded only when the user touches the dropdown: a dev path means
+// create-or-update the MachineInstallDiskConfig, "automatic" means delete it, and re-picking the
+// currently resolved disk clears the intent so an untouched machine gets no writes at all.
+const setInstallDisk = (value: string) => {
+  if (value === automaticInstallDisk) {
+    machineSetNode.value.installDiskConfig = null
     return
   }
 
-  const patch = await getPatch(versionContract.spec, 'machineInstallDisk', { disk: value })
-
-  machineSetNode.value.patches[installDiskPatchID.value] = {
-    data: patch,
-    systemPatch: true,
-    weight: PatchWeightInstallDisk,
-    nameAnnotation: PatchID.InstallDisk,
+  if (value === resolvedInstallDisk.value) {
+    delete machineSetNode.value.installDiskConfig
+    return
   }
+
+  machineSetNode.value.installDiskConfig = value
 }
+
+const shownInstallDisk = computed(() => {
+  const intent = machineSetNode.value.installDiskConfig
+
+  if (intent === null) {
+    return automaticInstallDisk
+  }
+
+  return intent ?? resolvedInstallDisk.value ?? automaticInstallDisk
+})
 
 const systemExtensions = ref<string[]>()
 
@@ -247,18 +259,25 @@ const onSavePatchConfig = (config: string) => {
         </span>
 
         <template v-if="machineSetIndex !== undefined">
+          <span
+            v-if="item.spec.message"
+            :title="item.spec.message"
+            class="max-w-48 truncate text-xs text-naturals-n9"
+          >
+            {{ item.spec.message }}
+          </span>
           <div
             v-if="systemDiskPath"
             class="cursor-not-allowed rounded border border-naturals-n6 py-1.5 pr-8 pl-3 text-naturals-n11"
           >
             Install Disk: {{ systemDiskPath }}
           </div>
-          <div v-else>
+          <div v-else class="flex items-center gap-2">
             <TSelectList
               class="h-7"
               title="Install Disk"
               :values="disks"
-              :default-value="defaultInstallDisk"
+              :default-value="shownInstallDisk"
               @checked-value="setInstallDisk"
             />
           </div>

@@ -19,11 +19,13 @@ var canonicalResourceOrder = map[resource.Type]int{
 	omni.ClusterType:                 1,
 	omni.ExtensionsConfigurationType: 2,
 	omni.ConfigPatchType:             3,
-	omni.KubernetesManifestGroupType: 4,
-	omni.KubernetesHealthCheckType:   5,
-	omni.MachineSetType:              6,
-	omni.MachineSetNodeType:          7,
-	omni.KernelArgsType:              8,
+	// the install disk selection must be committed before the MachineSetNode makes the machine installable
+	omni.MachineInstallDiskConfigType: 4,
+	omni.KubernetesManifestGroupType:  5,
+	omni.KubernetesHealthCheckType:    6,
+	omni.MachineSetType:               7,
+	omni.MachineSetNodeType:           8,
+	omni.KernelArgsType:               9,
 }
 
 func sortResources[T any](s []T, mapper func(T) resource.Metadata) {

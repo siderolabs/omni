@@ -159,6 +159,25 @@ func (m *MachineStatusSpec_HardwareStatus_BlockDevice) CloneVT() *MachineStatusS
 	r.SystemDisk = m.SystemDisk
 	r.Readonly = m.Readonly
 	r.Transport = m.Transport
+	r.DevPath = m.DevPath
+	r.IoSize = m.IoSize
+	r.SectorSize = m.SectorSize
+	r.Modalias = m.Modalias
+	r.SubSystem = m.SubSystem
+	r.Rotational = m.Rotational
+	r.Cdrom = m.Cdrom
+	r.PrettySize = m.PrettySize
+	r.FirmwareVersion = m.FirmwareVersion
+	if rhs := m.SecondaryDisks; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.SecondaryDisks = tmpContainer
+	}
+	if rhs := m.Symlinks; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Symlinks = tmpContainer
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -762,6 +781,7 @@ func (m *ClusterMachineConfigSpec) CloneVT() *ClusterMachineConfigSpec {
 	r.GenerationError = m.GenerationError
 	r.WithoutComments = m.WithoutComments
 	r.GrubUseUkiCmdline = m.GrubUseUkiCmdline
+	r.InstallDisk = m.InstallDisk
 	if rhs := m.Data; rhs != nil {
 		tmpBytes := make([]byte, len(rhs))
 		copy(tmpBytes, rhs)
@@ -2057,7 +2077,6 @@ func (m *MachineConfigGenOptionsSpec) CloneVT() *MachineConfigGenOptionsSpec {
 		return (*MachineConfigGenOptionsSpec)(nil)
 	}
 	r := new(MachineConfigGenOptionsSpec)
-	r.InstallDisk = m.InstallDisk
 	r.InstallImage = m.InstallImage.CloneVT()
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
@@ -3333,6 +3352,48 @@ func (m *ImageFactoryAuthSpec) CloneMessageVT() proto.Message {
 	return m.CloneVT()
 }
 
+func (m *MachineInstallDiskConfigSpec) CloneVT() *MachineInstallDiskConfigSpec {
+	if m == nil {
+		return (*MachineInstallDiskConfigSpec)(nil)
+	}
+	r := new(MachineInstallDiskConfigSpec)
+	r.DiskSelector = m.DiskSelector
+	r.Disk = m.Disk
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *MachineInstallDiskConfigSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *MachineInstallDiskStatusSpec) CloneVT() *MachineInstallDiskStatusSpec {
+	if m == nil {
+		return (*MachineInstallDiskStatusSpec)(nil)
+	}
+	r := new(MachineInstallDiskStatusSpec)
+	r.Disk = m.Disk
+	r.Message = m.Message
+	r.SelectionHash = m.SelectionHash
+	if rhs := m.Candidates; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Candidates = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *MachineInstallDiskStatusSpec) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (this *MachineSpec) EqualVT(that *MachineSpec) bool {
 	if this == that {
 		return true
@@ -3520,6 +3581,51 @@ func (this *MachineStatusSpec_HardwareStatus_BlockDevice) EqualVT(that *MachineS
 		return false
 	}
 	if this.Transport != that.Transport {
+		return false
+	}
+	if this.DevPath != that.DevPath {
+		return false
+	}
+	if this.IoSize != that.IoSize {
+		return false
+	}
+	if this.SectorSize != that.SectorSize {
+		return false
+	}
+	if this.Modalias != that.Modalias {
+		return false
+	}
+	if this.SubSystem != that.SubSystem {
+		return false
+	}
+	if this.Rotational != that.Rotational {
+		return false
+	}
+	if this.Cdrom != that.Cdrom {
+		return false
+	}
+	if this.PrettySize != that.PrettySize {
+		return false
+	}
+	if len(this.SecondaryDisks) != len(that.SecondaryDisks) {
+		return false
+	}
+	for i, vx := range this.SecondaryDisks {
+		vy := that.SecondaryDisks[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if len(this.Symlinks) != len(that.Symlinks) {
+		return false
+	}
+	for i, vx := range this.Symlinks {
+		vy := that.Symlinks[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.FirmwareVersion != that.FirmwareVersion {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -4381,6 +4487,9 @@ func (this *ClusterMachineConfigSpec) EqualVT(that *ClusterMachineConfigSpec) bo
 		return false
 	}
 	if this.GrubUseUkiCmdline != that.GrubUseUkiCmdline {
+		return false
+	}
+	if this.InstallDisk != that.InstallDisk {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6187,9 +6296,6 @@ func (this *MachineConfigGenOptionsSpec) EqualVT(that *MachineConfigGenOptionsSp
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.InstallDisk != that.InstallDisk {
-		return false
-	}
 	if !this.InstallImage.EqualVT(that.InstallImage) {
 		return false
 	}
@@ -7923,6 +8029,62 @@ func (this *ImageFactoryAuthSpec) EqualMessageVT(thatMsg proto.Message) bool {
 	}
 	return this.EqualVT(that)
 }
+func (this *MachineInstallDiskConfigSpec) EqualVT(that *MachineInstallDiskConfigSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.DiskSelector != that.DiskSelector {
+		return false
+	}
+	if this.Disk != that.Disk {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MachineInstallDiskConfigSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*MachineInstallDiskConfigSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+func (this *MachineInstallDiskStatusSpec) EqualVT(that *MachineInstallDiskStatusSpec) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Disk != that.Disk {
+		return false
+	}
+	if len(this.Candidates) != len(that.Candidates) {
+		return false
+	}
+	for i, vx := range this.Candidates {
+		vy := that.Candidates[i]
+		if vx != vy {
+			return false
+		}
+	}
+	if this.Message != that.Message {
+		return false
+	}
+	if this.SelectionHash != that.SelectionHash {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MachineInstallDiskStatusSpec) EqualMessageVT(thatMsg proto.Message) bool {
+	that, ok := thatMsg.(*MachineInstallDiskStatusSpec)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
 func (m *MachineSpec) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -8269,6 +8431,107 @@ func (m *MachineStatusSpec_HardwareStatus_BlockDevice) MarshalToSizedBufferVT(dA
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.FirmwareVersion) > 0 {
+		i -= len(m.FirmwareVersion)
+		copy(dAtA[i:], m.FirmwareVersion)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.FirmwareVersion)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xc2
+	}
+	if len(m.Symlinks) > 0 {
+		for iNdEx := len(m.Symlinks) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Symlinks[iNdEx])
+			copy(dAtA[i:], m.Symlinks[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Symlinks[iNdEx])))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xba
+		}
+	}
+	if len(m.SecondaryDisks) > 0 {
+		for iNdEx := len(m.SecondaryDisks) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.SecondaryDisks[iNdEx])
+			copy(dAtA[i:], m.SecondaryDisks[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.SecondaryDisks[iNdEx])))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xb2
+		}
+	}
+	if len(m.PrettySize) > 0 {
+		i -= len(m.PrettySize)
+		copy(dAtA[i:], m.PrettySize)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.PrettySize)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xaa
+	}
+	if m.Cdrom {
+		i--
+		if m.Cdrom {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
+	}
+	if m.Rotational {
+		i--
+		if m.Rotational {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x98
+	}
+	if len(m.SubSystem) > 0 {
+		i -= len(m.SubSystem)
+		copy(dAtA[i:], m.SubSystem)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.SubSystem)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x92
+	}
+	if len(m.Modalias) > 0 {
+		i -= len(m.Modalias)
+		copy(dAtA[i:], m.Modalias)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Modalias)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
+	}
+	if m.SectorSize != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.SectorSize))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	if m.IoSize != 0 {
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(m.IoSize))
+		i--
+		dAtA[i] = 0x78
+	}
+	if len(m.DevPath) > 0 {
+		i -= len(m.DevPath)
+		copy(dAtA[i:], m.DevPath)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.DevPath)))
+		i--
+		dAtA[i] = 0x72
 	}
 	if len(m.Transport) > 0 {
 		i -= len(m.Transport)
@@ -10047,6 +10310,13 @@ func (m *ClusterMachineConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.InstallDisk) > 0 {
+		i -= len(m.InstallDisk)
+		copy(dAtA[i:], m.InstallDisk)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.InstallDisk)))
+		i--
+		dAtA[i] = 0x3a
 	}
 	if m.GrubUseUkiCmdline {
 		i--
@@ -13701,13 +13971,6 @@ func (m *MachineConfigGenOptionsSpec) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i--
 		dAtA[i] = 0x12
 	}
-	if len(m.InstallDisk) > 0 {
-		i -= len(m.InstallDisk)
-		copy(dAtA[i:], m.InstallDisk)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.InstallDisk)))
-		i--
-		dAtA[i] = 0xa
-	}
 	return len(dAtA) - i, nil
 }
 
@@ -16975,6 +17238,116 @@ func (m *ImageFactoryAuthSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
+func (m *MachineInstallDiskConfigSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MachineInstallDiskConfigSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MachineInstallDiskConfigSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.Disk) > 0 {
+		i -= len(m.Disk)
+		copy(dAtA[i:], m.Disk)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Disk)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.DiskSelector) > 0 {
+		i -= len(m.DiskSelector)
+		copy(dAtA[i:], m.DiskSelector)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.DiskSelector)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MachineInstallDiskStatusSpec) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MachineInstallDiskStatusSpec) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MachineInstallDiskStatusSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i -= len(m.unknownFields)
+		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.SelectionHash) > 0 {
+		i -= len(m.SelectionHash)
+		copy(dAtA[i:], m.SelectionHash)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.SelectionHash)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Message) > 0 {
+		i -= len(m.Message)
+		copy(dAtA[i:], m.Message)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Message)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Candidates) > 0 {
+		for iNdEx := len(m.Candidates) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Candidates[iNdEx])
+			copy(dAtA[i:], m.Candidates[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Candidates[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Disk) > 0 {
+		i -= len(m.Disk)
+		copy(dAtA[i:], m.Disk)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.Disk)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *MachineSpec) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -17143,6 +17516,50 @@ func (m *MachineStatusSpec_HardwareStatus_BlockDevice) SizeVT() (n int) {
 	l = len(m.Transport)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.DevPath)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.IoSize != 0 {
+		n += 1 + protohelpers.SizeOfVarint(uint64(m.IoSize))
+	}
+	if m.SectorSize != 0 {
+		n += 2 + protohelpers.SizeOfVarint(uint64(m.SectorSize))
+	}
+	l = len(m.Modalias)
+	if l > 0 {
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SubSystem)
+	if l > 0 {
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Rotational {
+		n += 3
+	}
+	if m.Cdrom {
+		n += 3
+	}
+	l = len(m.PrettySize)
+	if l > 0 {
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.SecondaryDisks) > 0 {
+		for _, s := range m.SecondaryDisks {
+			l = len(s)
+			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.Symlinks) > 0 {
+		for _, s := range m.Symlinks {
+			l = len(s)
+			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.FirmwareVersion)
+	if l > 0 {
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -17829,6 +18246,10 @@ func (m *ClusterMachineConfigSpec) SizeVT() (n int) {
 	}
 	if m.GrubUseUkiCmdline {
 		n += 2
+	}
+	l = len(m.InstallDisk)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -19250,10 +19671,6 @@ func (m *MachineConfigGenOptionsSpec) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.InstallDisk)
-	if l > 0 {
-		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
-	}
 	if m.InstallImage != nil {
 		l = m.InstallImage.SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
@@ -20562,6 +20979,52 @@ func (m *ImageFactoryAuthSpec) SizeVT() (n int) {
 	return n
 }
 
+func (m *MachineInstallDiskConfigSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.DiskSelector)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.Disk)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MachineInstallDiskStatusSpec) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Disk)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.Candidates) > 0 {
+		for _, s := range m.Candidates {
+			l = len(s)
+			n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.Message)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.SelectionHash)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *MachineSpec) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -21661,6 +22124,308 @@ func (m *MachineStatusSpec_HardwareStatus_BlockDevice) UnmarshalVT(dAtA []byte) 
 				return io.ErrUnexpectedEOF
 			}
 			m.Transport = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DevPath", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DevPath = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IoSize", wireType)
+			}
+			m.IoSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.IoSize |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SectorSize", wireType)
+			}
+			m.SectorSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.SectorSize |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Modalias", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Modalias = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SubSystem", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SubSystem = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 19:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rotational", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Rotational = bool(v != 0)
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cdrom", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Cdrom = bool(v != 0)
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrettySize", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PrettySize = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 22:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SecondaryDisks", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SecondaryDisks = append(m.SecondaryDisks, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 23:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Symlinks", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Symlinks = append(m.Symlinks, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 24:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FirmwareVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FirmwareVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -26306,6 +27071,38 @@ func (m *ClusterMachineConfigSpec) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.GrubUseUkiCmdline = bool(v != 0)
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InstallDisk", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.InstallDisk = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -35255,38 +36052,6 @@ func (m *MachineConfigGenOptionsSpec) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: MachineConfigGenOptionsSpec: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field InstallDisk", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return protohelpers.ErrIntOverflow
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return protohelpers.ErrInvalidLength
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.InstallDisk = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field InstallImage", wireType)
@@ -43928,6 +44693,300 @@ func (m *ImageFactoryAuthSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Password = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MachineInstallDiskConfigSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MachineInstallDiskConfigSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MachineInstallDiskConfigSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DiskSelector", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DiskSelector = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Disk", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Disk = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MachineInstallDiskStatusSpec) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return protohelpers.ErrIntOverflow
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MachineInstallDiskStatusSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MachineInstallDiskStatusSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Disk", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Disk = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Candidates", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Candidates = append(m.Candidates, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Message = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SelectionHash", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SelectionHash = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

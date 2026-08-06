@@ -1,3 +1,0 @@
-machine:
-  install:
-    disk: '{{disk}}'

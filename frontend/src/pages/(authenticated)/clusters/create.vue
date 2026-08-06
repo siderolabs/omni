@@ -13,7 +13,7 @@ import { useRouter } from 'vue-router'
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type {
-  MachineConfigGenOptionsSpec,
+  MachineInstallDiskStatusSpec,
   MachineStatusSpec,
   TalosVersionSpec,
 } from '@/api/omni/specs/omni.pb'
@@ -22,7 +22,7 @@ import {
   DefaultKubernetesVersion,
   DefaultNamespace,
   LabelNoManualAllocation,
-  MachineConfigGenOptionsType,
+  MachineInstallDiskStatusType,
   MachineStatusLabelAvailable,
   MachineStatusLabelInvalidState,
   MachineStatusLabelReadyToUse,
@@ -46,7 +46,12 @@ import TInput from '@/components/TInput/TInput.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { setupBackupStatus } from '@/methods'
 import { usePermissions } from '@/methods/auth'
-import { ClusterCommandError, clusterSync, nextAvailableClusterName } from '@/methods/cluster'
+import {
+  ClusterCommandError,
+  clusterSync,
+  nextAvailableClusterName,
+  reconcileInstallDiskConfigs,
+} from '@/methods/cluster'
 import { machineCompatibleWithCluster } from '@/methods/compat'
 import { useFeatures } from '@/methods/features'
 import { getPatch } from '@/methods/getPatch'
@@ -220,6 +225,10 @@ const createCluster_ = async (untaint: boolean) => {
   }
 
   try {
+    // commit the install disk selections first, so they are in place before any MachineSetNode
+    // makes a machine installable (the config resource never goes through clusterSync)
+    await reconcileInstallDiskConfigs(state.value.installDiskIntents())
+
     await clusterSync(state.value.resources())
   } catch (e) {
     if (e.message && e.message.indexOf('already exists') >= 0) {
@@ -249,16 +258,16 @@ const createCluster_ = async (untaint: boolean) => {
   router.push({ name: 'ClusterOverview', params: { cluster: clusterName! } })
 }
 
-const { data: machineConfigGenOptions } = useResourceWatch<MachineConfigGenOptionsSpec>({
+const { data: installDiskStatuses } = useResourceWatch<MachineInstallDiskStatusSpec>({
   resource: {
-    type: MachineConfigGenOptionsType,
+    type: MachineInstallDiskStatusType,
     namespace: DefaultNamespace,
   },
   runtime: Runtime.Omni,
 })
 
-const machineConfigGenOptionsMap = computed(() =>
-  Object.fromEntries(machineConfigGenOptions.value.map((c) => [c.metadata.id!, c])),
+const installDiskStatusMap = computed(() =>
+  Object.fromEntries(installDiskStatuses.value.map((c) => [c.metadata.id!, c])),
 )
 
 const talosVersions = computed(() =>
@@ -417,7 +426,7 @@ const list = useTemplateRef('list')
               ...item,
               spec: {
                 ...item.spec,
-                ...machineConfigGenOptionsMap[item.metadata.id!]?.spec,
+                ...installDiskStatusMap[item.metadata.id!]?.spec,
               },
             }"
             :search-query="searchQuery"

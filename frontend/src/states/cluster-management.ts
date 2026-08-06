@@ -73,8 +73,11 @@ export const unlimited = 'unlimited'
 export enum PatchID {
   Default = '',
   Untaint = 'untaint',
-  InstallDisk = 'install-disk',
 }
+
+// automaticInstallDisk is the install disk dropdown entry expressing "no explicit selection,
+// let the backend pick": it deletes any existing MachineInstallDiskConfig on submit.
+export const automaticInstallDisk = 'Automatic'
 
 const labelClasses = ['label-red', 'label-orange', 'label-blue']
 
@@ -109,6 +112,12 @@ export interface MachineSet {
 export interface MachineSetNode {
   patches: Record<string, ConfigPatch>
   systemExtensions?: string[]
+  // installDiskConfig is the install disk intent, recorded only when the user touches the
+  // dropdown: a dev path creates or updates the MachineInstallDiskConfig, null deletes it
+  // (back to automatic selection), undefined leaves whatever exists untouched. It is
+  // deliberately NOT part of resources(): the resource is machine-scoped and persistent, so
+  // it must never enter the create/diff/delete cluster sync (see reconcileInstallDiskConfigs).
+  installDiskConfig?: string | null
 }
 
 export type Cluster = {
@@ -284,6 +293,24 @@ export class State {
 
   controlPlanes(): MachineSet {
     return this.machineSets[0]
+  }
+
+  // installDiskIntents collects the install disk intents of the machines assigned to a machine
+  // set: machine ID to dev path (create or update) or null (delete). Untouched machines are
+  // absent. Reconciled by reconcileInstallDiskConfigs BEFORE the cluster sync, so the selection
+  // is committed before any MachineSetNode makes a machine installable.
+  installDiskIntents(): Record<string, string | null> {
+    const intents: Record<string, string | null> = {}
+
+    for (const machineSet of this.machineSets) {
+      for (const [machineID, node] of Object.entries(machineSet.machines)) {
+        if (node.installDiskConfig !== undefined) {
+          intents[machineID] = node.installDiskConfig
+        }
+      }
+    }
+
+    return intents
   }
 
   resources(): Resource[] {

@@ -12,7 +12,7 @@ import type { GetRequest, ListRequest, ListResponse } from '@/api/omni/resources
 import type {
   EtcdBackupOverallStatusSpec,
   FeaturesConfigSpec,
-  MachineConfigGenOptionsSpec,
+  MachineInstallDiskStatusSpec,
   MachineStatusSpec,
   TalosVersionSpec,
 } from '@/api/omni/specs/omni.pb'
@@ -25,7 +25,7 @@ import {
   EtcdBackupOverallStatusType,
   FeaturesConfigID,
   FeaturesConfigType,
-  MachineConfigGenOptionsType,
+  MachineInstallDiskStatusType,
   MachineStatusLabelAvailable,
   MachineStatusLabelReadyToUse,
   MachineStatusLabelReportingEvents,
@@ -81,18 +81,19 @@ export const Data: Story = {
             })),
         }).handler,
 
-        createWatchStreamHandler<MachineConfigGenOptionsSpec>({
+        createWatchStreamHandler<MachineInstallDiskStatusSpec>({
           expectedOptions: {
-            type: MachineConfigGenOptionsType,
+            type: MachineInstallDiskStatusType,
             namespace: DefaultNamespace,
           },
           initialResources: machineIDs.map((id) => ({
             spec: {
-              install_disk: '/dev/sda',
+              disk: '/dev/sda',
+              candidates: ['/dev/sda', '/dev/sdb'],
             },
             metadata: {
               id,
-              type: MachineConfigGenOptionsType,
+              type: MachineInstallDiskStatusType,
               namespace: DefaultNamespace,
             },
           })),
