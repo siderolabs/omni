@@ -327,7 +327,7 @@ const toggleDisabled = async (item: RouteItem) => {
             <div class="col-span-2">Description</div>
 
             <TIcon
-              icon="arrow-up"
+              icon="chevron-up"
               class="size-4 justify-self-center"
               :class="{ 'rotate-180': open }"
             />

@@ -126,12 +126,12 @@ onMounted(() => focus && inputRef.value?.focus())
       <div v-if="type === 'number'" class="-my-1 flex flex-col select-none">
         <TIcon
           class="h-2 w-2 rotate-180 text-naturals-n12 hover:text-naturals-n14"
-          icon="arrow-down"
+          icon="chevron-down"
           @click="updateValue(numberValue + step)"
         />
         <TIcon
           class="h-2 w-2 text-naturals-n12 hover:text-naturals-n14"
-          icon="arrow-down"
+          icon="chevron-down"
           @click="updateValue(numberValue - step)"
         />
       </div>

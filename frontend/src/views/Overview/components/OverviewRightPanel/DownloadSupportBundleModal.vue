@@ -223,7 +223,7 @@ const { canDownloadSupportBundle } = useClusterPermissions(computed(() => cluste
       >
         <div class="flex items-center gap-2 overflow-x-hidden p-3 px-3 text-naturals-n12">
           <IconButton
-            icon="arrow-up"
+            icon="chevron-up"
             class="shrink-0 transition-transform"
             :class="{ 'rotate-180': expanded[source] }"
             @click="() => (expanded[source] = !expanded[source])"

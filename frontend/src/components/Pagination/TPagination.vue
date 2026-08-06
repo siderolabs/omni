@@ -100,7 +100,7 @@ const filteredItems = computed(() => {
   <slot :paginated-items="filteredItems" />
   <div class="pagination" :style="{ opacity: isInvisible ? 0 : 1 }">
     <TIcon
-      icon="arrow-left"
+      icon="chevron-left"
       class="pagination__icon"
       :class="{ 'pagination__icon--passive': currentPage === 1 }"
       @click="onPrevious"
@@ -121,7 +121,7 @@ const filteredItems = computed(() => {
       </span>
     </div>
     <TIcon
-      icon="arrow-right"
+      icon="chevron-right"
       class="pagination__icon"
       :class="{ 'pagination__icon--passive': currentPage === totalPageCount }"
       @click="onNext"

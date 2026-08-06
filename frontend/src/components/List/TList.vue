@@ -332,7 +332,7 @@ const openPage = (page: number | string) => {
 
       <div v-if="showPageSelector" class="mt-4 flex items-center justify-end gap-2">
         <TIcon
-          icon="arrow-left"
+          icon="chevron-left"
           class="size-5 cursor-pointer fill-current transition-all duration-200 hover:text-naturals-n10"
           :class="currentPage === 1 ? 'text-naturals-n6' : 'text-naturals-n8'"
           @click="prevPage"
@@ -356,7 +356,7 @@ const openPage = (page: number | string) => {
         </div>
 
         <TIcon
-          icon="arrow-right"
+          icon="chevron-right"
           class="size-5 cursor-pointer fill-current transition-all duration-200 hover:text-naturals-n10"
           :class="[currentPage === totalPageCount ? 'text-naturals-n6' : 'text-naturals-n8']"
           @click="nextPage"
