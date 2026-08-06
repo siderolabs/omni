@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
-import { computed, ref, useTemplateRef, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -30,15 +30,20 @@ import {
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import TButtonGroup from '@/components/Button/TButtonGroup.vue'
-import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import Pagination from '@/components/Pagination/Pagination.vue'
+import TSelectList from '@/components/SelectList/TSelectList.vue'
+import TSpinner from '@/components/Spinner/TSpinner.vue'
 import StatsItem from '@/components/Stats/StatsItem.vue'
 import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
 import { addLabel, selectors as labelsToSelectors, useLabelRouteQuery } from '@/methods/labels'
 import { MachineFilterOption } from '@/methods/machine'
 import { getMachineName } from '@/methods/node'
+import { useResourcePagination } from '@/methods/resource/useResourcePagination'
+import { useResourceSearch } from '@/methods/resource/useResourceSearch'
+import { useResourceSort } from '@/methods/resource/useResourceSort'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
@@ -54,7 +59,6 @@ const { filter, provider } = defineProps<{
   provider?: string
 }>()
 
-const listRef = useTemplateRef('listRef')
 const showUUID = useLocalStorage<'hostname' | 'uuid'>('_machines_list_show_uuid', 'hostname')
 
 const maintenaceUpdateModalOpen = ref(false)
@@ -130,6 +134,45 @@ const sortOptions = [
 const filterLabels = useLabelRouteQuery()
 const filterValue = ref('')
 
+const {
+  watchOptions: sortByState,
+  selectValues: sortSelectValues,
+  selectedValue: sortSelectedValue,
+} = useResourceSort({ sortOptions })
+
+const { watchOptions: searchState, searchQuery } = useResourceSearch({ filterValue })
+
+const {
+  total,
+  watchOptions: paginationState,
+  currentPage,
+  currentPageSize,
+  pageCount,
+  pageSizeSelectValues,
+} = useResourcePagination({
+  resetOn: [selectors, searchState],
+})
+
+const {
+  data: items,
+  err,
+  loading,
+} = useResourceWatch<MachineStatusLinkSpec>(
+  () => ({
+    runtime: Runtime.Omni,
+    resource: {
+      type: MachineStatusLinkType,
+      namespace: MetricsNamespace,
+    },
+    selectUsingOR: true,
+    ...paginationState.value,
+    ...searchState.value,
+    ...sortByState.value,
+    selectors: [...selectors.value, ...(searchState.value.selectors ?? [])],
+  }),
+  { total },
+)
+
 const docsLink = getDocsLink('omni', '/explanation/infrastructure-providers')
 const openDocs = () => window.open(docsLink, '_blank')?.focus()
 
@@ -177,111 +220,44 @@ function unselectDeletedMachines(machineIds: string[]) {
 }
 
 // Close sidepanel when changing page
-watch(
-  () => listRef.value?.currentPage,
-  () => (sidePanelOpen.value = false),
-)
+watch(currentPage, () => (sidePanelOpen.value = false))
 </script>
 
 <template>
   <PageContainer class="flex h-full gap-2">
-    <TList
-      ref="listRef"
-      v-model:filter-value="filterValue"
-      :opts="{
-        type: undefined as unknown as MachineStatusLinkSpec,
-        runtime: Runtime.Omni,
-        resource: {
-          type: MachineStatusLinkType,
-          namespace: MetricsNamespace,
-        },
-        selectors,
-        selectUsingOR: true,
-      }"
-      search
-      pagination
-      :sort-options="sortOptions"
-      class="grow"
-    >
-      <template #norecords>
-        <TAlert
-          v-if="filter === MachineFilterOption.Managed && infraProviderStatuses.length === 0"
-          type="info"
-          title="No Infrastructure Providers Connected"
-        >
-          <div class="flex gap-1">
-            Check the
-            <TButton variant="subtle" size="xs" @click="openDocs">documentation</TButton>
-            on how to configure and use infrastructure providers.
-          </div>
-        </TAlert>
+    <div class="flex max-w-full grow flex-col gap-2">
+      <div v-if="!filter" class="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <h1 class="text-xl font-medium text-naturals-n14 max-md:basis-full">Machines</h1>
 
-        <TAlert
-          v-else-if="filter === MachineFilterOption.Manual"
-          type="info"
-          title="No Machines Found"
-        >
-          <div class="flex gap-1">
-            Download and boot the
-            <TButton
-              is="router-link"
-              :to="{ name: 'InstallationMedia' }"
-              variant="subtle"
-              size="xs"
-            >
-              installation media
-            </TButton>
-            to connect machines to your Omni instance.
-          </div>
-        </TAlert>
+        <StatsItem title="Total" :value="total" icon="nodes" />
 
-        <TAlert v-else type="info" title="No Machines Found">
-          <div class="flex gap-1">
-            No entries of the requested resource type are found on the server.
-          </div>
-        </TAlert>
+        <template v-if="!searchState.searchFor?.length && !searchState.selectors?.length">
+          <StatsItem
+            title="Allocated"
+            :value="machineStatusMetrics?.spec.allocated_machines_count ?? 0"
+            icon="arrow-right-square"
+          />
 
-        <AddingMachinesTutorial class="mt-4" />
-      </template>
+          <StatsItem title="Capacity" :value="`${getCapacity(machineStatusMetrics)}%`" icon="box" />
+        </template>
+      </div>
 
-      <template #header="{ itemsCount, filtered }">
-        <div v-if="!filter" class="flex flex-wrap items-center gap-x-6 gap-y-2">
-          <h1 class="text-xl font-medium text-naturals-n14 max-md:basis-full">Machines</h1>
+      <PageHeader
+        v-else-if="filter === MachineFilterOption.Manual"
+        title="Manually Joined Machines"
+      />
 
-          <StatsItem title="Total" :value="itemsCount" icon="nodes" />
+      <PageHeader
+        v-else-if="filter === MachineFilterOption.Managed"
+        title="Machines Managed by the Infrastructure Providers"
+      />
 
-          <template v-if="!filtered">
-            <StatsItem
-              title="Allocated"
-              :value="machineStatusMetrics?.spec.allocated_machines_count ?? 0"
-              icon="arrow-right-square"
-            />
+      <PageHeader
+        v-else-if="provider"
+        :title="`Machines Managed by the Infrastructure Provider ${provider}`"
+      />
 
-            <StatsItem
-              title="Capacity"
-              :value="`${getCapacity(machineStatusMetrics)}%`"
-              icon="box"
-            />
-          </template>
-        </div>
-
-        <PageHeader
-          v-else-if="filter === MachineFilterOption.Manual"
-          title="Manually Joined Machines"
-        />
-
-        <PageHeader
-          v-else-if="filter === MachineFilterOption.Managed"
-          title="Machines Managed by the Infrastructure Providers"
-        />
-
-        <PageHeader
-          v-else-if="provider"
-          :title="`Machines Managed by the Infrastructure Provider ${provider}`"
-        />
-      </template>
-
-      <template #input>
+      <div class="flex grow flex-col gap-4 overflow-hidden">
         <LabelsInput
           v-model:filter-labels="filterLabels"
           v-model:filter-value="filterValue"
@@ -292,86 +268,153 @@ watch(
           }"
           class="w-full"
         />
-      </template>
 
-      <template #extra-controls>
-        <div class="flex w-full flex-wrap items-center justify-between gap-2">
-          <TButton
-            variant="primary"
-            icon="delete"
-            :disabled="!selectedMachines.size"
-            @click="deleteMachines"
-          >
-            <span class="contents max-md:hidden">Delete selected</span>
-          </TButton>
+        <div class="flex justify-between gap-2">
+          <div class="grow">
+            <div class="flex w-full flex-wrap items-center justify-between gap-2">
+              <TButton
+                variant="primary"
+                icon="delete"
+                :disabled="!selectedMachines.size"
+                @click="deleteMachines"
+              >
+                <span class="contents max-md:hidden">Delete selected</span>
+              </TButton>
 
-          <span class="flex items-center gap-1 text-xs">
-            Display
-            <TButtonGroup
-              v-model="showUUID"
-              :options="[
-                { label: 'Hostnames', value: 'hostname' },
-                { label: 'UUIDs', value: 'uuid' },
-              ]"
+              <span class="flex items-center gap-1 text-xs">
+                Display
+                <TButtonGroup
+                  v-model="showUUID"
+                  :options="[
+                    { label: 'Hostnames', value: 'hostname' },
+                    { label: 'UUIDs', value: 'uuid' },
+                  ]"
+                />
+              </span>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <TSelectList
+              v-model="sortSelectedValue"
+              title="Sort by"
+              hide-selected-small-screens
+              :values="sortSelectValues"
             />
-          </span>
-        </div>
-      </template>
 
-      <template #default="{ items, searchQuery }">
-        <MachineItem
-          v-for="item in items"
-          :key="item.metadata.id"
-          :machine="item"
-          :search-query="searchQuery"
-          :panel-open="sidePanelOpen && item.metadata.id === sidePanelSelectedItemId"
-          :selected="selectedMachines.has(item.metadata.id ?? '')"
-          :show-u-u-i-d="showUUID === 'uuid'"
-          @update:selected="(v) => updateSelected(item, v)"
-          @open-panel="
-            () => {
-              sidePanelOpen = !sidePanelOpen || sidePanelSelectedItemId !== item.metadata.id
-              sidePanelSelectedItemId = item.metadata.id
-            }
-          "
-          @filter-labels="(label) => (filterLabels = addLabel(filterLabels, label))"
-          @open-maintenance-update="
-            (machine) => {
-              maintenaceUpdateModalMachine = machine
-              maintenaceUpdateModalOpen = true
-            }
-          "
-          @open-maintenance-upgrade="
-            (machine) => {
-              maintenaceUpgradeModalMachine = machine
-              maintenaceUpgradeModalOpen = true
-            }
-          "
-          @open-maintenance-install="
-            (machine) => {
-              maintenaceInstallModalMachine = machine
-              maintenaceInstallModalOpen = true
-            }
-          "
-          @open-machine-delete="
-            (machine, name, clusters) => {
-              machineDeleteModal.open = true
-              machineDeleteModal.machines = [{ id: machine, name }]
-              machineDeleteModal.clusters = clusters
-            }
-          "
-        />
-      </template>
-    </TList>
+            <TSelectList
+              v-model="currentPageSize"
+              title="Items per Page"
+              :values="pageSizeSelectValues"
+            />
+          </div>
+        </div>
+
+        <div class="grow overflow-auto">
+          <div v-if="loading" class="flex size-full flex-row items-center justify-center">
+            <TSpinner class="absolute top-2/4 size-6" />
+          </div>
+
+          <TAlert v-else-if="err" title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
+
+          <template v-else-if="items.length === 0">
+            <TAlert
+              v-if="filter === MachineFilterOption.Managed && infraProviderStatuses.length === 0"
+              type="info"
+              title="No Infrastructure Providers Connected"
+            >
+              <div class="flex gap-1">
+                Check the
+                <TButton variant="subtle" size="xs" @click="openDocs">documentation</TButton>
+                on how to configure and use infrastructure providers.
+              </div>
+            </TAlert>
+
+            <TAlert
+              v-else-if="filter === MachineFilterOption.Manual"
+              type="info"
+              title="No Machines Found"
+            >
+              <div class="flex gap-1">
+                Download and boot the
+                <TButton
+                  is="router-link"
+                  :to="{ name: 'InstallationMedia' }"
+                  variant="subtle"
+                  size="xs"
+                >
+                  installation media
+                </TButton>
+                to connect machines to your Omni instance.
+              </div>
+            </TAlert>
+
+            <TAlert v-else type="info" title="No Machines Found">
+              <div class="flex gap-1">
+                No entries of the requested resource type are found on the server.
+              </div>
+            </TAlert>
+
+            <AddingMachinesTutorial class="mt-4" />
+          </template>
+
+          <div v-show="!loading && !err && items.length > 0" class="size-full">
+            <MachineItem
+              v-for="item in items"
+              :key="item.metadata.id"
+              :machine="item"
+              :search-query="searchQuery"
+              :panel-open="sidePanelOpen && item.metadata.id === sidePanelSelectedItemId"
+              :selected="selectedMachines.has(item.metadata.id ?? '')"
+              :show-u-u-i-d="showUUID === 'uuid'"
+              @update:selected="(v) => updateSelected(item, v)"
+              @open-panel="
+                () => {
+                  sidePanelOpen = !sidePanelOpen || sidePanelSelectedItemId !== item.metadata.id
+                  sidePanelSelectedItemId = item.metadata.id
+                }
+              "
+              @filter-labels="(label) => (filterLabels = addLabel(filterLabels, label))"
+              @open-maintenance-update="
+                (machine) => {
+                  maintenaceUpdateModalMachine = machine
+                  maintenaceUpdateModalOpen = true
+                }
+              "
+              @open-maintenance-upgrade="
+                (machine) => {
+                  maintenaceUpgradeModalMachine = machine
+                  maintenaceUpgradeModalOpen = true
+                }
+              "
+              @open-maintenance-install="
+                (machine) => {
+                  maintenaceInstallModalMachine = machine
+                  maintenaceInstallModalOpen = true
+                }
+              "
+              @open-machine-delete="
+                (machine, name, clusters) => {
+                  machineDeleteModal.open = true
+                  machineDeleteModal.machines = [{ id: machine, name }]
+                  machineDeleteModal.clusters = clusters
+                }
+              "
+            />
+          </div>
+        </div>
+      </div>
+
+      <Pagination v-model:current-page="currentPage" :page-count="pageCount" />
+    </div>
 
     <div
       class="shrink-0 overflow-hidden max-lg:absolute max-lg:inset-0 max-lg:z-10 lg:transition-all"
       :class="sidePanelOpen ? 'max-lg:w-full lg:w-sm' : 'pointer-events-none opacity-0 lg:w-0'"
     >
       <MachineDetailsPanel
-        v-if="listRef"
-        :machine="listRef.items.find((i) => i.metadata.id === sidePanelSelectedItemId)"
-        :search-query="listRef.searchQuery"
+        :machine="items.find((i) => i.metadata.id === sidePanelSelectedItemId)"
+        :search-query="searchQuery"
         class="h-full"
         @close="sidePanelOpen = false"
       />
