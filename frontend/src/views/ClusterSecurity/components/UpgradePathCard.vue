@@ -69,7 +69,7 @@ const canExpand = computed(() => !!diff && (diff.resolved.length > 0 || diff.int
           v-if="canExpand"
           size="sm"
           variant="secondary"
-          :icon="expanded ? 'arrow-up' : 'arrow-down'"
+          :icon="expanded ? 'chevron-up' : 'chevron-down'"
           icon-position="right"
           @click="expanded = !expanded"
         >

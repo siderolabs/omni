@@ -177,7 +177,7 @@ function labelFromValue(value?: T) {
           </span>
         </SelectValue>
         <SelectIcon>
-          <TIcon class="size-4 fill-current transition-all duration-300" icon="arrow-down" />
+          <TIcon class="size-4 fill-current transition-all duration-300" icon="chevron-down" />
         </SelectIcon>
       </SelectTrigger>
 
@@ -200,7 +200,7 @@ function labelFromValue(value?: T) {
           <SelectScrollUpButton
             class="z-10 -mb-(--arrow-size) bg-linear-to-b from-naturals-n3 from-25% to-transparent"
           >
-            <TIcon icon="arrow-up" class="mx-auto size-(--arrow-size)" />
+            <TIcon icon="chevron-up" class="mx-auto size-(--arrow-size)" />
           </SelectScrollUpButton>
 
           <SelectViewport>
@@ -236,7 +236,7 @@ function labelFromValue(value?: T) {
           <SelectScrollDownButton
             class="z-10 -mt-(--arrow-size) bg-linear-to-t from-naturals-n3 from-25% to-transparent"
           >
-            <TIcon icon="arrow-down" class="mx-auto size-(--arrow-size)" />
+            <TIcon icon="chevron-down" class="mx-auto size-(--arrow-size)" />
           </SelectScrollDownButton>
         </SelectContent>
       </SelectPortal>

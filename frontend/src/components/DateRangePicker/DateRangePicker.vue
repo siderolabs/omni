@@ -106,14 +106,14 @@ const id = useId()
             <DateRangePickerPrev
               class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent bg-transparent text-naturals-n10 hover:border-naturals-n6 hover:bg-naturals-n5 hover:text-naturals-n13 focus:outline-none active:bg-naturals-n4"
             >
-              <TIcon icon="arrow-left" class="h-4 w-4" />
+              <TIcon icon="chevron-left" class="h-4 w-4" />
             </DateRangePickerPrev>
 
             <DateRangePickerHeading class="text-sm font-medium text-naturals-n13" />
             <DateRangePickerNext
               class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent bg-transparent text-naturals-n10 hover:border-naturals-n6 hover:bg-naturals-n5 hover:text-naturals-n13 focus:outline-none active:bg-naturals-n4"
             >
-              <TIcon icon="arrow-right" class="h-4 w-4" />
+              <TIcon icon="chevron-right" class="h-4 w-4" />
             </DateRangePickerNext>
           </DateRangePickerHeader>
           <div class="flex flex-col space-y-4 pt-4 sm:flex-row sm:space-y-0 sm:space-x-4">

@@ -108,13 +108,13 @@ function measureElement(el?: Element | ComponentPublicInstance | null) {
         <div class="flex gap-1">
           <IconButton
             :disabled="!matchedLines.length"
-            icon="arrow-up"
+            icon="chevron-up"
             aria-label="Previous match"
             @click="prevMatch"
           />
           <IconButton
             :disabled="!matchedLines.length"
-            icon="arrow-down"
+            icon="chevron-down"
             aria-label="Next match"
             @click="nextMatch"
           />

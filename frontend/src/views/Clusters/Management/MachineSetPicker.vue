@@ -86,7 +86,7 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
           class="flex origin-(--reka-popover-content-transform-origin) flex-col items-center gap-1 rounded bg-naturals-n3 p-1 text-xs slide-in-from-right-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
         >
           <IconButton
-            icon="arrow-up"
+            icon="chevron-up"
             @click="optionsView?.$el.scrollBy({ top: -24, behavior: 'smooth' })"
           />
           <RadioGroup
@@ -115,7 +115,7 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
             </RadioGroupOption>
           </RadioGroup>
           <IconButton
-            icon="arrow-down"
+            icon="chevron-down"
             @click="optionsView?.$el.scrollBy({ top: 24, behavior: 'smooth' })"
           />
         </PopoverContent>
@@ -123,7 +123,7 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
 
       <PopoverTrigger class="group flex h-6 items-center gap-1 px-1">
         <TIcon
-          icon="arrow-left"
+          icon="chevron-left"
           class="mx-1 h-3 w-3 text-naturals-n7 transition-all group-hover:scale-125 group-hover:text-naturals-n14"
         />
         <template v-if="pickedOption">
