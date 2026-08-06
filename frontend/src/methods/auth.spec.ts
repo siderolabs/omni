@@ -13,7 +13,7 @@ import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import { AuthService } from '@/api/omni/auth/auth.pb'
 import type { ClusterPermissionsSpec } from '@/api/omni/specs/virtual.pb'
-import { ClusterPermissionsType, VirtualNamespace } from '@/api/resources'
+import { ClusterPermissionsType, IdPLogoutPath, VirtualNamespace } from '@/api/resources'
 import { AuthType, authType } from '@/methods'
 import { useClusterPermissions, useLogout } from '@/methods/auth'
 import { useIdentity } from '@/methods/identity'
@@ -164,7 +164,7 @@ describe('useLogout', () => {
   })
 
   test.each([AuthType.SAML, AuthType.OIDC, AuthType.None])(
-    'should redirect to logout URL when authType is %s',
+    'should redirect to the identity provider logout when authType is %s',
     async (mockAuthType) => {
       vi.mocked(AuthService.RevokePublicKey).mockResolvedValue(
         {} as Awaited<ReturnType<typeof AuthService.RevokePublicKey>>,
@@ -175,7 +175,7 @@ describe('useLogout', () => {
       await logout()
 
       expect(mockAuth0.logout).not.toHaveBeenCalled()
-      expect(window.location.href).toBe('/logout?flow=frontend')
+      expect(window.location.href).toBe(IdPLogoutPath)
       expect(mockKeys.clear).toHaveBeenCalled()
       expect(mockIdentity.clear).toHaveBeenCalled()
     },

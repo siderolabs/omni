@@ -36,4 +36,12 @@ const (
 	//
 	// tsgen:WorkloadProxyAuthFlow
 	ProxyAuthFlow = "workload-proxy"
+
+	// IdPLogoutPath is the path that ends the identity provider session, for SAML and OIDC.
+	//
+	// The frontend sends the browser here after revoking its public key, to finish the
+	// logout it serves at /logout.
+	//
+	// tsgen:IdPLogoutPath
+	IdPLogoutPath = "/idp-logout"
 )

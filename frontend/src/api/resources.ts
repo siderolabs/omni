@@ -10,6 +10,7 @@ export const AuthFlowQueryParam = "flow";
 export const CLIAuthFlow = "cli";
 export const FrontendAuthFlow = "frontend";
 export const WorkloadProxyAuthFlow = "workload-proxy";
+export const IdPLogoutPath = "/idp-logout";
 export const SignatureHeaderKey = "x-sidero-signature";
 export const TimestampHeaderKey = "x-sidero-timestamp";
 export const PayloadHeaderKey = "x-sidero-payload";

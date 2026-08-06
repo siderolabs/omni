@@ -9,7 +9,6 @@ import { onBeforeMount } from 'vue'
 
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
-import { AuthType, authType } from '@/methods'
 import { useLogout } from '@/methods/auth'
 
 definePage({
@@ -19,10 +18,6 @@ definePage({
 const logout = useLogout()
 
 onBeforeMount(() => {
-  // For SAML and OIDC the backend registers its own /logout handler
-  // Hard reload to hit backend forcibly if we are here accidentally
-  if (authType.value !== AuthType.Auth0) window.location.reload()
-
   logout()
 })
 </script>
