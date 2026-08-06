@@ -47,27 +47,24 @@ const {
 } = useResourceSort({ sortOptions: () => sortOptions })
 
 const {
+  watchOptions: searchState,
+  searchQuery,
+  selectedFilterOption,
+} = useResourceSearch({ filterValue, filterOptions: () => filterOptions })
+
+const {
   total,
   watchOptions: paginationState,
   currentPage,
   currentPageSize: selectedItemsPerPage,
   pageCount,
   pageSizeSelectValues: itemsPerPage,
-} = useResourcePagination()
-
-const {
-  watchOptions: searchState,
-  searchQuery,
-  selectedFilterOption,
-} = useResourceSearch({ filterValue, filterOptions: () => filterOptions })
+} = useResourcePagination({
+  resetOn: [() => opts, searchState],
+})
 
 watch(selectedFilterOption, () => {
   emit('filterChanged', selectedFilterOption.value)
-})
-
-// reset the pagination when the search query changes
-watch([() => opts, searchState, selectedItemsPerPage], (curr, prev) => {
-  if (JSON.stringify(curr) !== JSON.stringify(prev)) currentPage.value = 1
 })
 
 const {
@@ -101,7 +98,7 @@ defineExpose({
     />
 
     <div class="flex grow flex-col gap-4 overflow-hidden">
-      <template v-if="pagination || search || (pagination && itemsPerPage.length > 1)">
+      <template v-if="pagination || search">
         <slot name="input">
           <TInput v-if="search" v-model="filterValue" icon="search" />
         </slot>
@@ -128,7 +125,7 @@ defineExpose({
             />
 
             <TSelectList
-              v-if="itemsPerPage.length > 1 && pagination"
+              v-if="pagination"
               v-model="selectedItemsPerPage"
               title="Items per Page"
               :values="itemsPerPage"
