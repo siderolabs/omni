@@ -159,7 +159,7 @@ function unselectDeletedMachines(machineIds: string[]) {
 
     <MachineDeleteModal
       v-model:open="deleteModalOpen"
-      :machines="Array.from(selectedMachines)"
+      :machines="Array.from(selectedMachines).map((id) => ({ id }))"
       @deleted="unselectDeletedMachines"
     />
 

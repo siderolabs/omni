@@ -22,7 +22,10 @@ const meta: Meta<typeof MachineDeleteModal> = {
   component: MachineDeleteModal,
   args: {
     open: true,
-    machines: faker.helpers.multiple(faker.hacker.noun),
+    machines: faker.helpers.multiple(() => ({
+      id: faker.string.uuid(),
+      name: faker.hacker.noun(),
+    })),
     clusters: [],
   },
   parameters: {
