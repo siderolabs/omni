@@ -39,6 +39,7 @@ import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
 import { addLabel, selectors as labelsToSelectors, useLabelRouteQuery } from '@/methods/labels'
 import { MachineFilterOption } from '@/methods/machine'
+import { getMachineName } from '@/methods/node'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
@@ -65,7 +66,7 @@ const maintenaceInstallModalMachine = ref<string>()
 
 const machineDeleteModal = ref({
   open: false,
-  machines: [] as string[],
+  machines: [] as { id: string; name?: string }[],
   clusters: [] as string[],
 })
 
@@ -140,7 +141,10 @@ const { data: machineStatusMetrics } = useResourceWatch<MachineStatusMetricsSpec
 })
 
 function deleteMachines() {
-  const machines = [...selectedMachines.value.keys()]
+  const machines = [...selectedMachines.value.values()].map((m) => ({
+    id: m.metadata.id!,
+    name: getMachineName(m),
+  }))
   const clusters = [...selectedMachines.value.values()]
     .map((m) => m.spec.message_status?.cluster)
     .filter((m) => typeof m === 'string')
@@ -166,7 +170,7 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
 function unselectDeletedMachines(machineIds: string[]) {
   machineIds.forEach((id) => selectedMachines.value.delete(id))
   machineDeleteModal.value.machines = machineDeleteModal.value.machines.filter(
-    (m) => !machineIds.includes(m),
+    (m) => !machineIds.includes(m.id),
   )
 }
 </script>
@@ -336,10 +340,10 @@ function unselectDeletedMachines(machineIds: string[]) {
               maintenaceInstallModalOpen = true
             }
           "
-          @open-machine-remove="
-            (machine, clusters) => {
+          @open-machine-delete="
+            (machine, name, clusters) => {
               machineDeleteModal.open = true
-              machineDeleteModal.machines = [machine]
+              machineDeleteModal.machines = [{ id: machine, name }]
               machineDeleteModal.clusters = clusters
             }
           "

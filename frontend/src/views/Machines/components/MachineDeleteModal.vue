@@ -14,7 +14,7 @@ import { showError, showSuccess } from '@/notification'
 
 const { clusters = [], machines } = defineProps<{
   clusters?: string[]
-  machines: string[]
+  machines: { id: string; name?: string }[]
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
@@ -33,10 +33,12 @@ watchEffect(() => {
 async function onConfirm() {
   isDeleting.value = true
 
-  const result = (await Promise.allSettled(machines.map(deleteMachine))).map((r, i) => ({
-    ...r,
-    machineId: machines[i],
-  }))
+  const result = (await Promise.allSettled(machines.map(({ id }) => deleteMachine(id)))).map(
+    (r, i) => ({
+      ...r,
+      machineId: machines[i].id,
+    }),
+  )
 
   const passes = result.filter((r) => r.status === 'fulfilled')
   const fails = result.filter((r) => r.status === 'rejected')
@@ -76,8 +78,8 @@ async function onConfirm() {
   >
     <div class="flex flex-col gap-4 text-xs">
       <ul class="list-inside list-disc">
-        <li v-for="machine in machines" :key="machine">
-          <code>{{ machine }}</code>
+        <li v-for="machine in machines" :key="machine.id">
+          <code>{{ machine.name ?? machine.id }}</code>
         </li>
       </ul>
 
