@@ -75,7 +75,7 @@ const versionsList = computed(() =>
         quirks.value.find((q) => q.metadata.id === v.spec.version)?.spec.supports_factory_talosctl,
     )
     .map((v) => v.spec.version!)
-    .sort(compare),
+    .sort((a, b) => compare(b, a)),
 )
 
 const binariesList = computed(() =>

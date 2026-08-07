@@ -62,7 +62,7 @@ const talosVersions = computed(() => [
       disabled: unsupported,
       tooltip: unsupported ? `This Omni release does not support Talos ${version}.` : undefined,
     }))
-    .sort((a, b) => compare(a.value, b.value)),
+    .sort((a, b) => compare(b.value, a.value)),
 ])
 
 const joinTokens = computed(() => [

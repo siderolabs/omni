@@ -100,7 +100,7 @@ const talosVersionOptions = computed(() =>
   talosVersionList.value
     .filter((v) => !v.spec.deprecated)
     .map((v) => v.spec.version!)
-    .sort(compare),
+    .sort((a, b) => compare(b, a)),
 )
 
 const joinTokenOptions = computed(() =>
