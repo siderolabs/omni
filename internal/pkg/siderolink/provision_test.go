@@ -278,6 +278,53 @@ func TestProvision(t *testing.T) {
 		})
 	}
 
+	t.Run("divergent pending machine does not rewrite the link address", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		defer cancel()
+
+		state, provisionHandler := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
+
+		linkSubnet := "fdae:41e4:649b:9303::1:1/64"
+
+		request := &pb.ProvisionRequest{
+			NodeUuid:        "machine-divergent-pending",
+			NodePublicKey:   genKey(),
+			TalosVersion:    new("v1.9.0"),
+			JoinToken:       new(validToken),
+			NodeUniqueToken: &validToken,
+		}
+
+		link := siderolinkres.NewLink(request.NodeUuid, &specs.SiderolinkSpec{
+			NodePublicKey: request.NodePublicKey,
+			NodeSubnet:    linkSubnet,
+		})
+
+		require.NoError(t, state.Create(ctx, link))
+
+		// a leftover pending machine for the same public key carrying a different
+		// address must never overwrite the link's address on re-provision
+		pendingMachine := siderolinkres.NewPendingMachine(request.NodePublicKey, &specs.SiderolinkSpec{
+			NodePublicKey: request.NodePublicKey,
+			NodeSubnet:    "fdae:41e4:649b:9303::2:2/64",
+		})
+
+		require.NoError(t, state.Create(ctx, pendingMachine))
+
+		response, err := provisionHandler.Provision(ctx, request)
+		require.NoError(t, err)
+
+		require.Equal(t, linkSubnet, response.NodeAddressPrefix)
+
+		rtestutils.AssertResources(
+			ctx, t, state, []string{request.NodeUuid},
+			func(r *siderolinkres.Link, assertion *assert.Assertions) {
+				assertion.Equal(linkSubnet, r.TypedSpec().Value.NodeSubnet)
+			},
+		)
+	})
+
 	for _, mode := range []struct {
 		name string
 		mode config.SiderolinkServiceJoinTokensMode

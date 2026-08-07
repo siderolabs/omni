@@ -260,7 +260,7 @@ func updateNodeUniqueToken(ctx context.Context, logger *zap.Logger, st state.Sta
 	)
 }
 
-func updateResource[T res](ctx context.Context, logger *zap.Logger,
+func updateResource[T res](ctx context.Context,
 	st state.State, provisionContext *provisionContext, r T, annotationsToAdd []string, annotationsToRemove []string,
 ) (T, error) {
 	return safe.StateUpdateWithConflicts(ctx, st, r.Metadata(), func(link T) error {
@@ -268,12 +268,6 @@ func updateResource[T res](ctx context.Context, logger *zap.Logger,
 
 		if link.Metadata().Type() == siderolinkres.PendingMachineType {
 			link.Metadata().Annotations().Set("timestamp", time.Now().String())
-		}
-
-		if provisionContext.pendingMachine != nil {
-			s.NodeSubnet = provisionContext.pendingMachine.TypedSpec().Value.NodeSubnet
-
-			logger.Info("updated subnet", zap.String("subnet", s.NodeSubnet))
 		}
 
 		var err error
@@ -448,7 +442,7 @@ func establishLink[T res](ctx context.Context, h *ProvisionHandler, provisionCon
 			return nil, err
 		}
 
-		link, err = updateResource(ctx, logger, st, provisionContext, link, annotationsToAdd, annotationsToRemove)
+		link, err = updateResource(ctx, st, provisionContext, link, annotationsToAdd, annotationsToRemove)
 		if err != nil {
 			if state.IsPhaseConflictError(err) {
 				return nil, status.Errorf(codes.AlreadyExists, "the machine with the same UUID is already registered in Omni and is in the tearing down phase")
