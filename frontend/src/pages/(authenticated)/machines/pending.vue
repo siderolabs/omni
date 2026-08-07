@@ -21,7 +21,7 @@ import TableCell from '@/components/Table/TableCell.vue'
 import TableRoot from '@/components/Table/TableRoot.vue'
 import TableRow from '@/components/Table/TableRow.vue'
 import MachineAccept from '@/views/Machines/components/MachineAccept.vue'
-import MachineDelete from '@/views/Machines/components/MachineDelete.vue'
+import MachineDeleteModal from '@/views/Machines/components/MachineDeleteModal.vue'
 import MachineReject from '@/views/Machines/components/MachineReject.vue'
 import MachineUnreject from '@/views/Machines/components/MachineUnreject.vue'
 
@@ -33,6 +33,10 @@ const acceptModalOpen = ref(false)
 const deleteModalOpen = ref(false)
 const rejectModalOpen = ref(false)
 const unrejectModalOpen = ref(false)
+
+function unselectDeletedMachines(machineIds: string[]) {
+  machineIds.forEach((id) => selectedMachines.value.delete(id))
+}
 </script>
 
 <template>
@@ -153,10 +157,10 @@ const unrejectModalOpen = ref(false)
       @confirmed="selectedMachines.clear()"
     />
 
-    <MachineDelete
+    <MachineDeleteModal
       v-model:open="deleteModalOpen"
       :machines="Array.from(selectedMachines)"
-      @confirmed="selectedMachines.clear()"
+      @deleted="unselectDeletedMachines"
     />
 
     <MachineReject

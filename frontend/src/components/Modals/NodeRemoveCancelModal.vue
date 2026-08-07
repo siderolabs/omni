@@ -53,7 +53,7 @@ const canRestore = computed(
   () => clusterMachine.value && clusterMachine.value.metadata.phase !== 'Running',
 )
 
-async function restore() {
+async function onConfirm() {
   if (!canRestore.value || !clusterMachine.value) return
 
   isRestoring.value = true
@@ -61,13 +61,13 @@ async function restore() {
   try {
     await restoreNode(clusterMachine.value)
 
-    showSuccess(`The Machine ${nodeName.value} was Restored`)
+    showSuccess(`Node ${nodeName.value} was restored`)
     open.value = false
   } catch (e) {
     if (e instanceof ClusterCommandError) {
       showError(e.errorNotification.title, e.errorNotification.details)
     } else {
-      showError('Failed to Restore The Node', e instanceof Error ? e.message : String(e))
+      showError('Failed to restore the node', e instanceof Error ? e.message : String(e))
     }
   } finally {
     isRestoring.value = false
@@ -78,11 +78,11 @@ async function restore() {
 <template>
   <ConfirmModal
     v-model:open="open"
-    title="Cancel machine destroy"
+    title="Cancel machine removal"
     action-label="Restore Machine"
     :loading="clusterMachineLoading || isRestoring"
     :disabled="!canRestore || isRestoring || !!clusterMachineErr"
-    @confirm="restore"
+    @confirm="onConfirm"
   >
     <template #description>Node {{ nodeName }}</template>
 

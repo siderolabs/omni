@@ -42,7 +42,7 @@ import { MachineFilterOption } from '@/methods/machine'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
-import MachineRemoveModal from '@/views/Machines/components/MachineRemoveModal.vue'
+import MachineDeleteModal from '@/views/Machines/components/MachineDeleteModal.vue'
 import MaintenanceInstallModal from '@/views/Machines/components/MaintenanceInstallModal.vue'
 import MaintenanceUpdateModal from '@/views/Machines/components/MaintenanceUpdateModal.vue'
 import MaintenanceUpgradeModal from '@/views/Machines/components/MaintenanceUpgradeModal.vue'
@@ -63,7 +63,7 @@ const maintenaceUpdateModalMachine = ref<string>()
 const maintenaceUpgradeModalMachine = ref<string>()
 const maintenaceInstallModalMachine = ref<string>()
 
-const machineRemoveModal = ref({
+const machineDeleteModal = ref({
   open: false,
   machines: [] as string[],
   clusters: [] as string[],
@@ -139,13 +139,13 @@ const { data: machineStatusMetrics } = useResourceWatch<MachineStatusMetricsSpec
   runtime: Runtime.Omni,
 })
 
-function deleteItems() {
+function deleteMachines() {
   const machines = [...selectedMachines.value.keys()]
   const clusters = [...selectedMachines.value.values()]
     .map((m) => m.spec.message_status?.cluster)
     .filter((m) => typeof m === 'string')
 
-  machineRemoveModal.value = {
+  machineDeleteModal.value = {
     open: true,
     machines: machines,
     clusters: [...new Set(clusters)],
@@ -163,9 +163,9 @@ function updateSelected(machine: Resource<MachineStatusLinkSpec>, v?: boolean) {
   }
 }
 
-function unselectRemovedMachines(machineIds: string[]) {
+function unselectDeletedMachines(machineIds: string[]) {
   machineIds.forEach((id) => selectedMachines.value.delete(id))
-  machineRemoveModal.value.machines = machineRemoveModal.value.machines.filter(
+  machineDeleteModal.value.machines = machineDeleteModal.value.machines.filter(
     (m) => !machineIds.includes(m),
   )
 }
@@ -286,7 +286,7 @@ function unselectRemovedMachines(machineIds: string[]) {
             variant="primary"
             icon="delete"
             :disabled="!selectedMachines.size"
-            @click="deleteItems"
+            @click="deleteMachines"
           >
             <span class="contents max-md:hidden">Delete selected</span>
           </TButton>
@@ -338,9 +338,9 @@ function unselectRemovedMachines(machineIds: string[]) {
           "
           @open-machine-remove="
             (machine, clusters) => {
-              machineRemoveModal.open = true
-              machineRemoveModal.machines = [machine]
-              machineRemoveModal.clusters = clusters
+              machineDeleteModal.open = true
+              machineDeleteModal.machines = [machine]
+              machineDeleteModal.clusters = clusters
             }
           "
         />
@@ -374,11 +374,11 @@ function unselectRemovedMachines(machineIds: string[]) {
       :machine-id="maintenaceInstallModalMachine"
     />
 
-    <MachineRemoveModal
-      v-model:open="machineRemoveModal.open"
-      :machines="machineRemoveModal.machines"
-      :clusters="machineRemoveModal.clusters"
-      @deleted="unselectRemovedMachines"
+    <MachineDeleteModal
+      v-model:open="machineDeleteModal.open"
+      :machines="machineDeleteModal.machines"
+      :clusters="machineDeleteModal.clusters"
+      @deleted="unselectDeletedMachines"
     />
   </PageContainer>
 </template>

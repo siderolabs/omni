@@ -30,7 +30,7 @@ import ClusterMachinePhase from './ClusterMachinePhase.vue'
 
 const { machine } = defineProps<{
   machine: Resource<ClusterMachineStatusSpec>
-  deleteDisabled?: boolean
+  removeDisabled?: boolean
   hasDiagnosticInfo?: boolean
 }>()
 
@@ -148,7 +148,7 @@ const updateLock = async () => {
       <NodeContextMenu
         :cluster-machine-status="machine"
         :cluster-name="clusterName"
-        :delete-disabled="deleteDisabled!"
+        :remove-disabled="removeDisabled!"
       />
     </div>
   </div>

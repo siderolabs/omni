@@ -19,18 +19,18 @@ import {
 } from '@/api/resources'
 import { controlPlaneMachineSetId } from '@/methods/machineset'
 
-import NodeDestroyModal from './NodeDestroyModal.vue'
+import NodeRemoveModal from './NodeRemoveModal.vue'
 
 const clusterId = faker.word.noun()
 const machineId = faker.string.uuid()
 const nodeName = `machine-${machineId}`
 
-const meta: Meta<typeof NodeDestroyModal> = {
-  component: NodeDestroyModal,
+const meta: Meta<typeof NodeRemoveModal> = {
+  component: NodeRemoveModal,
   args: {
     open: true,
     'onUpdate:open': fn(),
-    onOnDestroy: fn(),
+    onOnRemove: fn(),
     clusterId,
     machineId,
   },

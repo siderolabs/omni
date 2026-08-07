@@ -118,7 +118,7 @@ export const removeMachineLabels = async (machineID: string, ...keys: string[]) 
   }
 }
 
-export const removeMachine = async (id: string) => {
+export async function deleteMachine(id: string) {
   await ResourceService.Teardown(
     {
       namespace: DefaultNamespace,

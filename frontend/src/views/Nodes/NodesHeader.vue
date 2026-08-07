@@ -16,9 +16,9 @@ import {
   MachineType,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
-import NodeDestroyCancelModal from '@/components/Modals/NodeDestroyCancelModal.vue'
-import NodeDestroyModal from '@/components/Modals/NodeDestroyModal.vue'
 import NodeRebootModal from '@/components/Modals/NodeRebootModal.vue'
+import NodeRemoveCancelModal from '@/components/Modals/NodeRemoveCancelModal.vue'
+import NodeRemoveModal from '@/components/Modals/NodeRemoveModal.vue'
 import NodeShutdownModal from '@/components/Modals/NodeShutdownModal.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useClusterPermissions } from '@/methods/auth'
@@ -34,8 +34,8 @@ const { clusterId, machineId } = defineProps<{
 const powerOnModalOpen = ref(false)
 const nodeShutdownModalOpen = ref(false)
 const nodeRebootModalOpen = ref(false)
-const nodeDestroyModalOpen = ref(false)
-const nodeDestroyCancelModalOpen = ref(false)
+const nodeRemoveModalOpen = ref(false)
+const nodeRemoveCancelModalOpen = ref(false)
 
 const { data: machineSetNode, loading } = useResourceWatch<MachineSetNodeSpec>(() => ({
   resource: {
@@ -109,14 +109,14 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
       </TButton>
       <TButton
         v-if="machineSetNode"
-        class="header-button delete-button"
+        class="header-button text-red-r1 hover:text-red-r1 active:text-red-r1"
         icon="delete"
         icon-position="left"
         variant="secondary"
         :disabled="!canRemoveMachines"
-        @click="nodeDestroyModalOpen = true"
+        @click="nodeRemoveModalOpen = true"
       >
-        Destroy
+        Remove
       </TButton>
       <TButton
         v-else-if="!loading"
@@ -125,9 +125,9 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
         icon-position="left"
         variant="secondary"
         :disabled="!canAddClusterMachines"
-        @click="nodeDestroyCancelModalOpen = true"
+        @click="nodeRemoveCancelModalOpen = true"
       >
-        Cancel Destroy
+        Cancel Remove
       </TButton>
     </div>
 
@@ -145,11 +145,11 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
       :machine-id="machineId"
     />
 
-    <NodeDestroyModal
-      v-model:open="nodeDestroyModalOpen"
+    <NodeRemoveModal
+      v-model:open="nodeRemoveModalOpen"
       :cluster-id="clusterId"
       :machine-id="machineId"
-      @on-destroy="
+      @on-remove="
         $router.push({
           name: 'ClusterOverview',
           params: { cluster: clusterId },
@@ -157,7 +157,7 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
       "
     />
 
-    <NodeDestroyCancelModal v-model:open="nodeDestroyCancelModalOpen" :machine-id="machineId" />
+    <NodeRemoveCancelModal v-model:open="nodeRemoveCancelModalOpen" :machine-id="machineId" />
   </div>
 </template>
 
@@ -178,9 +178,5 @@ const { canRebootMachines, canRemoveMachines, canAddClusterMachines } = useClust
 
 .header-button:not(:first-child):not(:last-child) {
   border-radius: 0;
-}
-
-.delete-button {
-  @apply text-red-r1 hover:text-red-r1 active:text-red-r1;
 }
 </style>

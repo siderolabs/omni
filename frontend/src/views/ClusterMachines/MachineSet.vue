@@ -238,7 +238,7 @@ function isMachineSetScalable(
         class="border-t border-naturals-n4 last-of-type:rounded-b-md"
         :has-diagnostic-info="nodesWithDiagnostics?.has(machine.metadata.id!)"
         :machine="machine"
-        :delete-disabled="!canRemoveMachine"
+        :remove-disabled="!canRemoveMachine"
       />
 
       <MachineRequest

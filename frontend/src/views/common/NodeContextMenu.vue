@@ -13,9 +13,9 @@ import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ClusterMachineStatusSpecStage } from '@/api/omni/specs/omni.pb'
 import TActionsBox from '@/components/ActionsBox/TActionsBox.vue'
 import TActionsBoxItem from '@/components/ActionsBox/TActionsBoxItem.vue'
-import NodeDestroyCancelModal from '@/components/Modals/NodeDestroyCancelModal.vue'
-import NodeDestroyModal from '@/components/Modals/NodeDestroyModal.vue'
 import NodeRebootModal from '@/components/Modals/NodeRebootModal.vue'
+import NodeRemoveCancelModal from '@/components/Modals/NodeRemoveCancelModal.vue'
+import NodeRemoveModal from '@/components/Modals/NodeRemoveModal.vue'
 import NodeShutdownModal from '@/components/Modals/NodeShutdownModal.vue'
 import { useClusterPermissions } from '@/methods/auth'
 
@@ -23,14 +23,14 @@ const { copy } = useClipboard()
 
 const { clusterName, clusterMachineStatus } = defineProps<{
   clusterName: string
-  deleteDisabled?: boolean
+  removeDisabled?: boolean
   clusterMachineStatus: Resource<ClusterMachineStatusSpec>
 }>()
 
 const nodeShutdownModalOpen = ref(false)
 const nodeRebootModalOpen = ref(false)
-const nodeDestroyModalOpen = ref(false)
-const nodeDestroyCancelModalOpen = ref(false)
+const nodeRemoveModalOpen = ref(false)
+const nodeRemoveCancelModalOpen = ref(false)
 
 const { canRebootMachines, canAddClusterMachines, canRemoveMachines } = useClusterPermissions(
   () => clusterName,
@@ -67,17 +67,17 @@ const copyMachineID = () => {
         canAddClusterMachines
       "
       icon="rollback"
-      @select="nodeDestroyCancelModalOpen = true"
+      @select="nodeRemoveCancelModalOpen = true"
     >
-      Cancel Destroy
+      Cancel Remove
     </TActionsBoxItem>
     <TActionsBoxItem
-      v-else-if="!deleteDisabled && canRemoveMachines"
+      v-else-if="!removeDisabled && canRemoveMachines"
       icon="delete"
       danger
-      @select="nodeDestroyModalOpen = true"
+      @select="nodeRemoveModalOpen = true"
     >
-      Destroy
+      Remove
     </TActionsBoxItem>
   </TActionsBox>
 
@@ -96,16 +96,16 @@ const copyMachineID = () => {
     :machine-id="clusterMachineStatus.metadata.id!"
   />
 
-  <NodeDestroyModal
-    v-if="nodeDestroyModalOpen"
-    v-model:open="nodeDestroyModalOpen"
+  <NodeRemoveModal
+    v-if="nodeRemoveModalOpen"
+    v-model:open="nodeRemoveModalOpen"
     :cluster-id="clusterName"
     :machine-id="clusterMachineStatus.metadata.id!"
   />
 
-  <NodeDestroyCancelModal
-    v-if="nodeDestroyCancelModalOpen"
-    v-model:open="nodeDestroyCancelModalOpen"
+  <NodeRemoveCancelModal
+    v-if="nodeRemoveCancelModalOpen"
+    v-model:open="nodeRemoveCancelModalOpen"
     :machine-id="clusterMachineStatus.metadata.id!"
   />
 </template>

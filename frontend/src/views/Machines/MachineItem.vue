@@ -255,7 +255,7 @@ const canUseLifecycleUpgrade = computed(() => {
                 $emit('openMachineRemove', machine.metadata.id!, clusterName ? [clusterName!] : [])
               "
             >
-              Remove Machine
+              Delete Machine
             </TActionsBoxItem>
           </TActionsBox>
         </div>
