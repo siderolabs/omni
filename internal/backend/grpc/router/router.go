@@ -206,7 +206,7 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 }
 
 func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) (proxy.Backend, error) {
-	clusterID := getClusterName(md)
+	requestedCluster := getClusterName(md)
 
 	nodes, err := resolveNodes(r.nodeResolver, md)
 	if err != nil {
@@ -220,15 +220,16 @@ func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) (proxy.Bac
 
 	// No specific nodes targeted: return a cluster-scoped backend with round-robin across CP nodes.
 	if len(nodes) == 0 {
-		if clusterID == "" {
+		if requestedCluster == "" {
 			return nil, status.Error(codes.InvalidArgument, "at least one of cluster, node, or nodes must be specified")
 		}
 
-		return r.getForCluster(ctx, clusterID)
+		return r.getForCluster(ctx, requestedCluster)
 	}
 
-	// If cluster name was not provided via gRPC metadata, infer it from the resolved nodes.
+	// Cluster-scoped routing infers the cluster from the resolved nodes when not provided via gRPC metadata.
 	// They are checked earlier for being in the same cluster, so we can simply pick it from the first one.
+	clusterID := requestedCluster
 	if clusterID == "" {
 		clusterID = nodes[0].Cluster
 	}
@@ -239,8 +240,9 @@ func (r *Router) getTalosBackend(ctx context.Context, md metadata.MD) (proxy.Bac
 		return r.getForCluster(ctx, clusterID)
 	}
 
-	// Single "node" header: connect directly to the node via SideroLink.
-	return r.getForMachine(ctx, clusterID, nodes[0])
+	// Single "node" header: connect directly to the node via SideroLink. The transport is decided from the
+	// machine's own state, so the requested cluster (not the inferred one) is passed through for validation.
+	return r.getForMachine(ctx, requestedCluster, nodes[0])
 }
 
 // getForCluster returns a backend that load-balances across all healthy CP nodes of the cluster.
@@ -291,9 +293,28 @@ func (r *Router) getForCluster(ctx context.Context, clusterID string) (proxy.Bac
 }
 
 // getForMachine returns a backend connected directly to a specific node's SideroLink address.
-func (r *Router) getForMachine(ctx context.Context, clusterID string, node dns.Info) (proxy.Backend, error) {
+//
+// The transport is determined by the machine's actual state, not by the caller: a machine in maintenance mode is reached
+// over the insecure maintenance connection, a configured machine over its cluster's mTLS connection. A requested cluster
+// that contradicts the machine (it is still in maintenance, or belongs to a different cluster) is rejected rather than
+// silently honored, so a secure request is never quietly downgraded to an insecure one.
+func (r *Router) getForMachine(ctx context.Context, requestedCluster string, node dns.Info) (proxy.Backend, error) {
 	if node.ManagementEndpoint == "" {
 		return nil, status.Errorf(codes.Unavailable, "node %q has no management endpoint", node.Name)
+	}
+
+	machineStatus, err := safe.StateGet[*omni.MachineStatus](ctx, r.cosiState, omni.NewMachineStatus(node.ID).Metadata())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, status.Errorf(codes.NotFound, "machine %q not found", node.ID)
+		}
+
+		return nil, err
+	}
+
+	clusterID, err := resolveMachineConnection(node.ID, requestedCluster, machineStatus)
+	if err != nil {
+		return nil, err
 	}
 
 	cacheKey := buildCacheKey(clusterID, node.ID)
@@ -339,6 +360,34 @@ func (r *Router) getForMachine(ctx context.Context, clusterID string, node dns.I
 
 		return res.Val.(proxy.Backend), nil //nolint:errcheck,forcetypeassert
 	}
+}
+
+// resolveMachineConnection determines which cluster to connect to a single machine with, validating the caller-requested
+// cluster against the machine's actual state. An empty returned cluster means the insecure maintenance connection.
+//
+// The requested cluster is never silently overridden: if it contradicts the machine (the machine is still in maintenance
+// mode, or belongs to a different cluster) an error is returned instead, so a secure request is never downgraded to an
+// insecure one. When no cluster is requested, the transport follows the machine's own state.
+func resolveMachineConnection(machineID, requestedCluster string, machineStatus *omni.MachineStatus) (string, error) {
+	maintenance := machineStatus.TypedSpec().Value.Maintenance
+	machineCluster := machineStatus.TypedSpec().Value.Cluster
+
+	if requestedCluster != "" {
+		if maintenance {
+			return "", status.Errorf(codes.FailedPrecondition,
+				"machine %q is in maintenance mode and is not reachable over the cluster connection, omit the cluster to use the maintenance connection", machineID)
+		}
+
+		if machineCluster != requestedCluster {
+			return "", status.Errorf(codes.NotFound, "machine %q does not belong to cluster %q", machineID, requestedCluster)
+		}
+	}
+
+	if maintenance {
+		return "", nil
+	}
+
+	return machineCluster, nil
 }
 
 func buildCacheKey(clusterID, machineID string) string {
