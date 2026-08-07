@@ -5,12 +5,17 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
-import type { MachineStatusSpec } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, LabelCluster, MachineStatusType } from '@/api/resources'
+import type { ClusterMachineStatusSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import {
+  ClusterMachineStatusType,
+  DefaultNamespace,
+  LabelCluster,
+  MachineStatusType,
+} from '@/api/resources'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TabButton from '@/components/Tabs/TabButton.vue'
@@ -28,6 +33,8 @@ const route = useRoute()
 const clusterId = computed(() => route.params.cluster)
 const machineId = computed(() => route.params.machine)
 
+const configErrorDismissed = ref(false)
+
 const { canReadMachineConfig, canReadConfigPatches, canReadMachinePendingUpdates } =
   useClusterPermissions(clusterId)
 
@@ -35,6 +42,15 @@ const { data: machine, loading: machineLoading } = useResourceWatch<MachineStatu
   runtime: Runtime.Omni,
   resource: {
     type: MachineStatusType,
+    namespace: DefaultNamespace,
+    id: machineId.value,
+  },
+}))
+
+const { data: clusterMachine } = useResourceWatch<ClusterMachineStatusSpec>(() => ({
+  runtime: Runtime.Omni,
+  resource: {
+    type: ClusterMachineStatusType,
     namespace: DefaultNamespace,
     id: machineId.value,
   },
@@ -104,7 +120,18 @@ const routes = computed(() => {
 
 <template>
   <div v-if="machine && isPartOfCluster" class="flex h-full flex-col pt-6">
-    <NodesHeader :cluster-id="clusterId" :machine-id="machineId" class="px-4 md:px-6" />
+    <div class="mb-7 flex flex-col gap-4 px-4 md:px-6">
+      <NodesHeader :cluster-id="clusterId" :machine-id="machineId" />
+
+      <TAlert
+        v-if="clusterMachine?.spec.last_config_error?.trim() && !configErrorDismissed"
+        :dismiss="{ name: 'Dismiss', action: () => (configErrorDismissed = true) }"
+        title="Configuration Error"
+        type="error"
+      >
+        {{ clusterMachine.spec.last_config_error.trim() }}
+      </TAlert>
+    </div>
 
     <Tabs
       :model-value="$route.name?.toString()"
@@ -131,7 +158,7 @@ const routes = computed(() => {
           class="grow overflow-y-auto"
           :value="to.name"
         >
-          <RouterView />
+          <RouterView v-if="machine && clusterMachine" :machine :cluster-machine />
         </TabContent>
       </template>
     </Tabs>

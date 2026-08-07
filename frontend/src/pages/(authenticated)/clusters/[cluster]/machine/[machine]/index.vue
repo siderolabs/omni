@@ -8,17 +8,16 @@ included in the LICENSE file.
 import type { NodeSpec as V1NodeSpec, NodeStatus as V1NodeStatus } from 'kubernetes-types/core/v1'
 import { DateTime } from 'luxon'
 import prettyBytes from 'pretty-bytes'
-import { computed, ref, useId } from 'vue'
+import { computed, useId } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
+import type { Resource } from '@/api/grpc'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import { ConfigApplyStatus } from '@/api/omni/specs/omni.pb'
 import {
-  ClusterMachineStatusType,
-  DefaultNamespace,
   kubernetes,
   MachineStatusLinkType,
   MetricsNamespace,
@@ -41,7 +40,6 @@ import TListItem from '@/components/List/TListItem.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TStatus from '@/components/Status/TStatus.vue'
 import Tag from '@/components/Tag/Tag.vue'
-import TAlert from '@/components/TAlert.vue'
 import { TCommonStatuses } from '@/constants'
 import { getStatus } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
@@ -54,6 +52,10 @@ import NodeDiagnosticWarnings from '@/views/Nodes/NodeDiagnosticWarnings.vue'
 import NodeServiceEvents from '@/views/Nodes/NodeServiceEvents.vue'
 
 definePage({ name: 'NodeOverview' })
+
+const { clusterMachine } = defineProps<{
+  clusterMachine: Resource<ClusterMachineStatusSpec>
+}>()
 
 const route = useRoute()
 const context = computed(() => ({
@@ -73,8 +75,6 @@ const configApplyStatusToConfigApplyStatusName = (status?: ConfigApplyStatus): s
       return 'Unknown'
   }
 }
-
-const alertDismissed = ref(false)
 
 const { data: nodename } = useResourceWatch<NodenameSpec>(() => ({
   runtime: Runtime.Talos,
@@ -143,15 +143,6 @@ const {
   err: servicesErr,
   errCode: servicesErrCode,
 } = useMachineServices(context, supportsEvents)
-
-const { data: clusterMachineStatus } = useResourceWatch<ClusterMachineStatusSpec>(() => ({
-  runtime: Runtime.Omni,
-  resource: {
-    type: ClusterMachineStatusType,
-    namespace: DefaultNamespace,
-    id: route.params.machine,
-  },
-}))
 
 const roles = computed(() =>
   Object.keys(node.value?.metadata.labels ?? {})
@@ -228,15 +219,6 @@ const servicesSectionHeadingId = useId()
 
 <template>
   <PageContainer class="overview">
-    <TAlert
-      v-if="clusterMachineStatus?.spec?.last_config_error && !alertDismissed"
-      :dismiss="{ name: 'Dismiss', action: () => (alertDismissed = true) }"
-      class="mb-4"
-      title="Configuration Error"
-      type="error"
-    >
-      {{ clusterMachineStatus?.spec?.last_config_error.trim() }}
-    </TAlert>
     <ul class="overview-data-list">
       <li class="overview-data-item">
         <h4 class="overview-data-heading">Kubernetes</h4>
@@ -303,9 +285,7 @@ const servicesSectionHeadingId = useId()
           <p class="overview-data-name">Config Status</p>
           <TStatus
             :title="
-              configApplyStatusToConfigApplyStatusName(
-                clusterMachineStatus?.spec?.config_apply_status,
-              )
+              configApplyStatusToConfigApplyStatusName(clusterMachine.spec.config_apply_status)
             "
           />
         </div>
@@ -314,11 +294,7 @@ const servicesSectionHeadingId = useId()
         <h4 class="overview-data-heading">Machine Status</h4>
         <div class="overview-data-row">
           <p class="overview-data-name">Stage</p>
-          <ClusterMachinePhase
-            v-if="clusterMachineStatus"
-            :machine="clusterMachineStatus"
-            class="text-xs"
-          />
+          <ClusterMachinePhase :machine="clusterMachine" class="text-xs" />
         </div>
         <div v-if="talosMachineStatus" class="overview-data-row">
           <p class="overview-data-name">Unmet Conditions</p>
