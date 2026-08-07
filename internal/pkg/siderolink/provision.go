@@ -278,12 +278,13 @@ func updateResource[T res](ctx context.Context, logger *zap.Logger,
 
 		var err error
 
-		s.NodePublicKey = provisionContext.request.NodePublicKey
-
-		s.VirtualAddrport, err = generateVirtualAddrPort(provisionContext.useWireguardOverGRPC)
+		// resolve the virtual address-port before overwriting the public key: keeping it depends on the key staying the same
+		s.VirtualAddrport, err = resolveVirtualAddrPort(provisionContext, s)
 		if err != nil {
 			return err
 		}
+
+		s.NodePublicKey = provisionContext.request.NodePublicKey
 
 		updateAnnotations(link, annotationsToAdd, annotationsToRemove)
 
@@ -548,7 +549,7 @@ func generateLinkSpec(provisionContext *provisionContext) (*specs.SiderolinkSpec
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("error parsing Wireguard key: %s", err))
 	}
 
-	virtualAddrPort, err := generateVirtualAddrPort(provisionContext.useWireguardOverGRPC)
+	virtualAddrPort, err := resolveVirtualAddrPort(provisionContext, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -561,11 +562,45 @@ func generateLinkSpec(provisionContext *provisionContext) (*specs.SiderolinkSpec
 	}, nil
 }
 
-func generateVirtualAddrPort(generate bool) (string, error) {
-	if !generate {
+// resolveVirtualAddrPort returns the virtual address-port for the machine's WireGuard peer.
+//
+// The virtual address-port belongs to the public key: it is allocated once and kept for as long as the
+// machine keeps that key and the tunnel mode stays enabled. The pending machine and its successor link
+// then share one peer and one tunnel token, and re-provisioning does not tear the peer down. A fresh
+// one is generated only on the first contact with a key, after a key rotation (Talos generates a new
+// WireGuard key on every boot), or when the tunnel mode is switched off and on.
+//
+// current is the spec being updated in place, if any. It takes precedence over the pre-provision
+// snapshots, which may be stale.
+func resolveVirtualAddrPort(provisionContext *provisionContext, current *specs.SiderolinkSpec) (string, error) {
+	if !provisionContext.useWireguardOverGRPC {
 		return "", nil
 	}
 
+	candidates := make([]*specs.SiderolinkSpec, 0, 3)
+
+	if current != nil {
+		candidates = append(candidates, current)
+	}
+
+	if provisionContext.link != nil {
+		candidates = append(candidates, provisionContext.link.TypedSpec().Value)
+	}
+
+	if provisionContext.pendingMachine != nil {
+		candidates = append(candidates, provisionContext.pendingMachine.TypedSpec().Value)
+	}
+
+	for _, spec := range candidates {
+		if spec.NodePublicKey == provisionContext.request.NodePublicKey && spec.VirtualAddrport != "" {
+			return spec.VirtualAddrport, nil
+		}
+	}
+
+	return generateVirtualAddrPort()
+}
+
+func generateVirtualAddrPort() (string, error) {
 	generated, err := wireguard.GenerateRandomNodeAddr(wireguard.VirtualNetworkPrefix())
 	if err != nil {
 		return "", fmt.Errorf("error generating random virtual node address: %w", err)
