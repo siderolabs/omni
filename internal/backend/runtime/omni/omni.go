@@ -55,6 +55,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/image"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/infraprovider"
+	installdiskctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/installdisk"
 	kernelargsctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/kernelargs"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/kubernetes"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machine"
@@ -281,6 +282,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		secrets.NewSecretRotationStatusController(&secrets.KubernetesClientFactory{}),
 		machineupgrade.NewStatusController(imageFactoryClients, lifecycleManager),
 		kernelargsctrl.NewStatusController(),
+		installdiskctrl.NewStatusController(),
 		talosupgrade.NewStatusController(kubernetesRuntime),
 		infraprovider.NewCombinedStatusController(constants.InfraProviderHealthCheckInterval),
 		machine.NewStatusLinkController(linkCounterDeltaCh),
@@ -450,6 +452,8 @@ func RuntimeCacheOptions() []options.Option {
 		safe.WithResourceCache[*omni.MachineClass](),
 		safe.WithResourceCache[*omni.MachineConfigGenOptions](),
 		safe.WithResourceCache[*omni.MachineExtensions](),
+		safe.WithResourceCache[*omni.MachineInstallDiskConfig](),
+		safe.WithResourceCache[*omni.MachineInstallDiskStatus](),
 		safe.WithResourceCache[*omni.MachineExtensionsStatus](),
 		safe.WithResourceCache[*omni.MachineLabels](),
 		safe.WithResourceCache[*omni.MachineSet](),

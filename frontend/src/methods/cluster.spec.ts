@@ -6,14 +6,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { Code } from '@/api/google/rpc/code.pb'
 import { ResourceService } from '@/api/grpc'
 import { withRuntime } from '@/api/options'
 import { ClusterType, DefaultNamespace } from '@/api/resources'
-import { nextAvailableClusterName } from '@/methods/cluster'
+import { nextAvailableClusterName, reconcileInstallDiskConfigs } from '@/methods/cluster'
 
 vi.mock('@/api/grpc', () => ({
   ResourceService: {
     List: vi.fn(async () => []),
+    Get: vi.fn(async () => ({})),
+    Create: vi.fn(async () => ({})),
+    Update: vi.fn(async () => ({})),
+    Delete: vi.fn(async () => ({})),
   },
 }))
 
@@ -119,5 +124,77 @@ describe('nextAvailableClusterName', () => {
     const name = await nextAvailableClusterName('test-cluster')
 
     expect(name).toBe('test-cluster-1')
+  })
+})
+
+describe('reconcileInstallDiskConfigs', () => {
+  const notFound = () => Object.assign(new Error('not found'), { code: Code.NOT_FOUND })
+
+  beforeEach(() => {
+    vi.mocked(ResourceService.Get).mockReset()
+    vi.mocked(ResourceService.Create).mockReset()
+    vi.mocked(ResourceService.Update).mockReset()
+    vi.mocked(ResourceService.Delete).mockReset()
+  })
+
+  it('creates a config when none exists', async () => {
+    vi.mocked(ResourceService.Get).mockRejectedValue(notFound())
+
+    await reconcileInstallDiskConfigs({ 'machine-1': '/dev/sdb' })
+
+    expect(ResourceService.Create).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(ResourceService.Create).mock.calls[0][0]).toMatchObject({
+      metadata: { id: 'machine-1' },
+      spec: { disk: '/dev/sdb' },
+    })
+    expect(ResourceService.Update).not.toHaveBeenCalled()
+  })
+
+  it('updates an existing config in place, replacing a disk selector', async () => {
+    vi.mocked(ResourceService.Get).mockResolvedValue({
+      metadata: { id: 'machine-1', version: '3' },
+      spec: { disk_selector: 'disk.serial == "old"' },
+    })
+
+    await reconcileInstallDiskConfigs({ 'machine-1': '/dev/sdc' })
+
+    expect(ResourceService.Create).not.toHaveBeenCalled()
+    expect(ResourceService.Update).toHaveBeenCalledTimes(1)
+
+    const updated = vi.mocked(ResourceService.Update).mock.calls[0][0] as {
+      spec: Record<string, unknown>
+    }
+
+    expect(updated.spec.disk).toBe('/dev/sdc')
+    expect(updated.spec).not.toHaveProperty('disk_selector')
+  })
+
+  it('deletes on reset to automatic and tolerates a missing config', async () => {
+    vi.mocked(ResourceService.Delete).mockRejectedValue(notFound())
+
+    await reconcileInstallDiskConfigs({ 'machine-1': null })
+
+    expect(ResourceService.Delete).toHaveBeenCalledTimes(1)
+    expect(ResourceService.Create).not.toHaveBeenCalled()
+    expect(ResourceService.Update).not.toHaveBeenCalled()
+  })
+
+  it('performs no calls for an empty intent set', async () => {
+    await reconcileInstallDiskConfigs({})
+
+    expect(ResourceService.Get).not.toHaveBeenCalled()
+    expect(ResourceService.Create).not.toHaveBeenCalled()
+    expect(ResourceService.Update).not.toHaveBeenCalled()
+    expect(ResourceService.Delete).not.toHaveBeenCalled()
+  })
+
+  it('wraps unexpected errors', async () => {
+    vi.mocked(ResourceService.Get).mockRejectedValue(
+      Object.assign(new Error('boom'), { code: Code.INTERNAL }),
+    )
+
+    await expect(reconcileInstallDiskConfigs({ 'machine-1': '/dev/sdb' })).rejects.toThrowError(
+      /The operation failed with the error: boom/,
+    )
   })
 })

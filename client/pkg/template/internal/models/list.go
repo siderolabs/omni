@@ -184,7 +184,7 @@ func (l List) Translate(fc FileContext) ([]resource.Resource, error) {
 		resourceIDs[r.Metadata().Type()][r.Metadata().ID()] = struct{}{}
 
 		switch r.Metadata().Type() {
-		case omni.ClusterType, omni.KernelArgsType:
+		case omni.ClusterType, omni.KernelArgsType, omni.MachineInstallDiskConfigType: // machine-scoped resources carry no cluster label
 			continue
 		default:
 		}

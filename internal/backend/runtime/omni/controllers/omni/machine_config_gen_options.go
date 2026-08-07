@@ -6,29 +6,21 @@
 package omni
 
 import (
-	"cmp"
 	"context"
-	"slices"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/controller/generic/qtransform"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
-	"github.com/siderolabs/gen/xslices"
-	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"go.uber.org/zap"
 
-	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
 // MachineConfigGenOptionsControllerName is the name of the MachineConfigGenOptionsController.
 const MachineConfigGenOptionsControllerName = "MachineConfigGenOptionsController"
 
-//tsgen:installDiskMinSize
-const installDiskMinSize = 5e9 // 5GB
-
-// MachineConfigGenOptionsController creates a patch that configures machine install disk automatically.
+// MachineConfigGenOptionsController maintains the machine config generation inputs, currently the install image.
 type MachineConfigGenOptionsController = qtransform.QController[*omni.MachineStatus, *omni.MachineConfigGenOptions]
 
 // NewMachineConfigGenOptionsController initializes MachineConfigGenOptionsController.
@@ -85,7 +77,7 @@ func NewMachineConfigGenOptionsController(imageFactoryClients ImageFactoryClient
 	)
 }
 
-// GenInstallConfig creates a config patch with an automatically picked install disk.
+// GenInstallConfig fills the install image of the machine config generation options.
 func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVersion *omni.ClusterMachineTalosVersion, genOptions *omni.MachineConfigGenOptions, imageFactoryHost string) {
 	if clusterMachineTalosVersion != nil {
 		genOptions.TypedSpec().Value.InstallImage = omni.NewInstallImage(
@@ -96,53 +88,4 @@ func GenInstallConfig(machineStatus *omni.MachineStatus, clusterMachineTalosVers
 			machineStatus.TypedSpec().Value.SchematicReady(),
 		)
 	}
-
-	// TODO: This logic does not take the user's install disk selection into account.
-	//       If there's an existing system disk, it picks it as the install disk (which is a no-op after installation anyway),
-	//       otherwise, it runs the disk selection logic to pick the most suitable disk.
-	//       The user's install disk preference is a config patch (.machine.install.disk) at the moment,
-	//       so it is read later from the merged machine config, in machineconfig.BuildReconciliationContext.
-	//       When we introduce a first-class resource for the install disk, e.g., MachineInstallDiskConfig,
-	//       we should probably read it already here and apply the override it contains.
-	//       See https://github.com/siderolabs/omni/issues/3199.
-
-	if machineStatus.TypedSpec().Value.Hardware == nil {
-		return
-	}
-
-	installDisk := omni.GetMachineStatusSystemDisk(machineStatus)
-
-	// Base install disk determination: not read only, above the min size, not virtual, etc.
-	//
-	// TODO: The frontend disk dropdown has a diverged copy of this candidate filtering (it only excludes
-	//       read-only and CD devices), while the default disk itself is already read from this resource.
-	//       The filtering should be centralized on the backend.
-	//       See frontend/src/views/Clusters/Management/ClusterMachineItem.vue and https://github.com/siderolabs/omni/issues/3199.
-	if installDisk == "" {
-		const transportUSB = "usb"
-
-		candidates := machineStatus.TypedSpec().Value.Hardware.Blockdevices
-
-		candidates = xslices.Filter(candidates, func(disk *specs.MachineStatusSpec_HardwareStatus_BlockDevice) bool {
-			return !disk.Readonly && disk.Type != storage.Disk_CD.String() && disk.Size > installDiskMinSize && disk.BusPath != "/virtual"
-		})
-
-		sortFunc := func(a, b *specs.MachineStatusSpec_HardwareStatus_BlockDevice) int {
-			if a.Transport == transportUSB && b.Transport != transportUSB {
-				return 1
-			} else if b.Transport == transportUSB && a.Transport != transportUSB {
-				return -1
-			}
-
-			return cmp.Compare(a.Size, b.Size)
-		}
-
-		slices.SortFunc(candidates, sortFunc)
-
-		if len(candidates) > 0 {
-			installDisk = candidates[0].LinuxName
-		}
-	}
-
-	genOptions.TypedSpec().Value.InstallDisk = installDisk
 }

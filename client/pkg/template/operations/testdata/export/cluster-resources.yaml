@@ -566,27 +566,18 @@ spec:
 
 
 
-################################ Special Config Patches - install disk
+################################ Install disk selection
 metadata:
   namespace: default
-  type: ConfigPatches.omni.sidero.dev
-  id: 000-cm-3f8b33d2-52b1-42ed-8505-4025ddbc31f1-install-disk
+  type: MachineInstallDiskConfigs.omni.sidero.dev
+  id: 3f8b33d2-52b1-42ed-8505-4025ddbc31f1
   version: 1
   owner:
   phase: running
   created: 2023-12-07T23:14:47Z
   updated: 1970-01-01T00:00:00Z
-  labels:
-    omni.sidero.dev/cluster: export-test
-    omni.sidero.dev/cluster-machine: 3f8b33d2-52b1-42ed-8505-4025ddbc31f1
-    omni.sidero.dev/system-patch:
-  annotations:
-    name: install-disk
 spec:
-  data: |
-    machine:
-      install:
-        disk: /dev/sdc
+  disk: /dev/sdc
 
 ---
 ################################ Control Planes extensions

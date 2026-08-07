@@ -234,20 +234,17 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install image not found", machineConfig.Metadata().ID())
 	}
 
-	// Start with the automatically picked default install disk, then let the merged machine config
-	// override it: the config carries the user's install disk config patch (.machine.install.disk),
-	// while MachineConfigGenOptions only carries the default.
-	//
-	// TODO: This is an interim fix to respect the user's disk selection.
-	//       Since .machine.install is deprecated for removal, the install disk should stop being
-	//       managed through a config patch and become a first-class resource instead.
-	//       See https://github.com/siderolabs/omni/issues/3199.
-	rc.installDisk = genOptions.TypedSpec().Value.InstallDisk
+	// The install disk rides the config itself: ClusterMachineConfigController records the verified
+	// disk on the config version it renders, so the disk used for an install and the config bytes
+	// it acts on can never disagree.
+	rc.installDisk = machineConfig.TypedSpec().Value.InstallDisk
 
-	// Machine() is nil when the config carries no v1alpha1 document.
-	// Install() is never nil, it returns an empty section when the config has none.
-	if m := config.Machine(); m != nil && m.Install().Disk() != "" {
-		rc.installDisk = m.Install().Disk()
+	// An empty recorded disk means the config was rendered by an older Omni version. Hold
+	// uninstalled machines until the config is re-rendered with the disk. Installed machines
+	// proceed, since upgrades and config applies do not consume the disk.
+	if rc.installDisk == "" && omni.GetMachineStatusSystemDisk(rc.machineStatus) == "" {
+		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag](
+			"%q config carries no verified install disk yet", machineConfig.Metadata().ID())
 	}
 
 	schematicMismatch := false
@@ -304,9 +301,6 @@ func BuildReconciliationContext(ctx context.Context, r controller.Reader,
 		maintenanceConfigStatus.TypedSpec().Value.PublicKeyAtLastApply == link.TypedSpec().Value.NodePublicKey
 
 	rc.lifecycleOp = lifecycle.DecideOp(rc.machineStatus, rc.installImage, schematicMismatch, talosVersionMismatch)
-	if rc.lifecycleOp == lifecycle.OpMaintenanceInstall && rc.installDisk == "" {
-		return nil, xerrors.NewTaggedf[qtransform.SkipReconcileTag]("%q install disk is not yet selected", machineConfig.Metadata().ID())
-	}
 
 	return rc, nil
 }
