@@ -46,19 +46,19 @@ const { clusterId, machineId } = defineProps<{
 
 const open = defineModel<boolean>('open', { default: false })
 const emit = defineEmits<{
-  onDestroy: []
+  onRemove: []
 }>()
 
-const isDestroying = ref(false)
+const isRemoving = ref(false)
 const forceEtcdLeave = ref(false)
-const forceDestroy = ref(false)
+const forceDelete = ref(false)
 
 watchEffect(() => {
   if (open.value) return
 
-  isDestroying.value = false
+  isRemoving.value = false
   forceEtcdLeave.value = false
-  forceDestroy.value = false
+  forceDelete.value = false
 })
 
 const {
@@ -117,8 +117,8 @@ const node = computed(
     clusterMachineStatus.value?.metadata.labels?.[ClusterMachineStatusLabelNodeName] || machineId,
 )
 
-const destroyNode = async () => {
-  isDestroying.value = true
+async function onConfirm() {
+  isRemoving.value = true
 
   try {
     const resources: DeleteRequest[] = []
@@ -126,7 +126,7 @@ const destroyNode = async () => {
 
     if (isControlPlane.value && controlPlaneCount.value === 1) {
       throw new ClusterCommandError(
-        `Failed to Destroy Node ${machineId}`,
+        `Failed to remove node ${machineId}`,
         'The cluster should have at least one control plane running',
       )
     }
@@ -159,11 +159,11 @@ const destroyNode = async () => {
           withRuntime(Runtime.Omni),
         )
       }
-    } else if (!forceDestroy.value && !currentMachineSetNode.value) {
+    } else if (!forceDelete.value && !currentMachineSetNode.value) {
       // if this is not a force-delete, and the node is not found, it is an error
       throw new ClusterCommandError(
-        `Failed to Destroy Node ${machineId}`,
-        'The node with such id is not part of the cluster',
+        `Failed to remove node ${machineId}`,
+        'The node is not part of the cluster',
       )
     }
 
@@ -172,7 +172,7 @@ const destroyNode = async () => {
       resources.push({ id, namespace, type })
     }
 
-    if (forceDestroy.value) {
+    if (forceDelete.value) {
       links.push({
         id: machineId,
         namespace: DefaultNamespace,
@@ -185,20 +185,20 @@ const destroyNode = async () => {
 
     const messages = ['The machine set is scaling down.']
     if (forceEtcdLeave.value) messages.push('Force leave etcd was requested.')
-    if (forceDestroy.value) messages.push('Force destroy was requested.')
+    if (forceDelete.value) messages.push('Force delete was requested.')
 
-    showSuccess(`The Machine ${node.value} was Removed From the Machine Set`, messages.join(' '))
+    showSuccess(`The Machine ${node.value} was removed from the Machine Set`, messages.join(' '))
 
-    emit('onDestroy')
+    emit('onRemove')
     open.value = false
   } catch (e) {
     if (e instanceof ClusterCommandError) {
       showError(e.errorNotification.title, e.errorNotification.details)
     } else {
-      showError('Failed to Destroy The Node', e instanceof Error ? e.message : String(e))
+      showError('Failed to remove the node', e instanceof Error ? e.message : String(e))
     }
   } finally {
-    isDestroying.value = false
+    isRemoving.value = false
   }
 }
 </script>
@@ -206,11 +206,11 @@ const destroyNode = async () => {
 <template>
   <ConfirmModal
     v-model:open="open"
-    title="Destroy machine"
-    action-label="Destroy"
+    title="Remove machine"
+    action-label="Remove"
     :disabled="!!clusterMachineStatusErr || !!machineSetNodesErr"
-    :loading="clusterMachineStatusLoading || machineSetNodesLoading || isDestroying"
-    @confirm="destroyNode"
+    :loading="clusterMachineStatusLoading || machineSetNodesLoading || isRemoving"
+    @confirm="onConfirm"
   >
     <template #description>Node {{ node }}</template>
 
@@ -242,14 +242,14 @@ const destroyNode = async () => {
         <Tooltip>
           <template #description>
             <p class="w-96">
-              Force destroying the machine will skip wiping the machine and will remove it from the
+              Force deleting the machine will skip wiping the machine and will delete it from the
               Omni account completely. It will be necessary to manually wipe the machine to add it
               to the Omni account again. Use this option only in case if the machine is already down
               and will not come back up.
             </p>
           </template>
 
-          <TCheckbox v-model="forceDestroy" label="force destroy" />
+          <TCheckbox v-model="forceDelete" label="force delete" />
         </Tooltip>
       </div>
 

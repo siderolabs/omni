@@ -15,13 +15,13 @@ import {
   DefaultNamespace,
 } from '@/api/resources'
 
-import NodeDestroyCancelModal from './NodeDestroyCancelModal.vue'
+import NodeRemoveCancelModal from './NodeRemoveCancelModal.vue'
 
 const machineId = faker.string.uuid()
 const name = `machine-${machineId}`
 
-const meta: Meta<typeof NodeDestroyCancelModal> = {
-  component: NodeDestroyCancelModal,
+const meta: Meta<typeof NodeRemoveCancelModal> = {
+  component: NodeRemoveCancelModal,
   args: {
     open: true,
     'onUpdate:open': fn(),

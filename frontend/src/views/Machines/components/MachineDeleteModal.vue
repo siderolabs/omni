@@ -9,11 +9,11 @@ import pluralize from 'pluralize'
 import { ref, watchEffect } from 'vue'
 
 import ConfirmModal from '@/components/Modals/ConfirmModal.vue'
-import { removeMachine } from '@/methods/machine'
+import { deleteMachine } from '@/methods/machine'
 import { showError, showSuccess } from '@/notification'
 
-const { clusters, machines } = defineProps<{
-  clusters: string[]
+const { clusters = [], machines } = defineProps<{
+  clusters?: string[]
   machines: string[]
 }>()
 
@@ -22,18 +22,18 @@ const emit = defineEmits<{
   deleted: [machineIds: string[]]
 }>()
 
-const isRemoving = ref(false)
+const isDeleting = ref(false)
 
 watchEffect(() => {
   if (open.value) return
 
-  isRemoving.value = false
+  isDeleting.value = false
 })
 
-const remove = async () => {
-  isRemoving.value = true
+async function onConfirm() {
+  isDeleting.value = true
 
-  const result = (await Promise.allSettled(machines.map(removeMachine))).map((r, i) => ({
+  const result = (await Promise.allSettled(machines.map(deleteMachine))).map((r, i) => ({
     ...r,
     machineId: machines[i],
   }))
@@ -42,12 +42,12 @@ const remove = async () => {
   const fails = result.filter((r) => r.status === 'rejected')
 
   if (passes.length) {
-    showSuccess(`Removed ${pluralize('machine', passes.length, passes.length > 1)}`)
+    showSuccess(`Deleted ${pluralize('machine', passes.length, passes.length > 1)}`)
   }
 
   if (fails.length) {
     showError(
-      `Failed to remove ${pluralize('machine', fails.length, fails.length > 1)}`,
+      `Failed to delete ${pluralize('machine', fails.length, fails.length > 1)}`,
       fails
         .map((f) => (f.reason instanceof Error ? f.reason.message : String(f.reason)))
         .join('\n'),
@@ -56,7 +56,7 @@ const remove = async () => {
     open.value = false
   }
 
-  isRemoving.value = false
+  isDeleting.value = false
 
   emit(
     'deleted',
@@ -68,14 +68,14 @@ const remove = async () => {
 <template>
   <ConfirmModal
     v-model:open="open"
-    :title="`Destroy ${pluralize('machine', machines.length, true)}`"
-    :loading="isRemoving"
-    action-label="Remove"
+    :title="`Delete ${pluralize('Machine', machines.length, machines.length !== 1)}`"
+    :loading="isDeleting"
+    action-label="Delete"
     content-class="max-w-xl"
-    @confirm="remove"
+    @confirm="onConfirm"
   >
     <div class="flex flex-col gap-4 text-xs">
-      <ul class="list-inside list-disc text-xs">
+      <ul class="list-inside list-disc">
         <li v-for="machine in machines" :key="machine">
           <code>{{ machine }}</code>
         </li>
@@ -95,7 +95,7 @@ const remove = async () => {
           >
             {{ cluster }}
           </code>
-          Destroying the {{ pluralize('machine', machines.length) }} should be only used as a last
+          Deleting the {{ pluralize('machine', machines.length) }} should be only used as a last
           resort, e.g. in a case of a hardware failure.
         </p>
 
@@ -107,12 +107,19 @@ const remove = async () => {
         <p>
           If you want to remove the {{ pluralize('machine', machines.length) }} from the
           {{ pluralize('clusters', clusters.length) }}, please use the
-          <RouterLink :to="{ name: 'ClusterOverview', params: { cluster: clusters[0] } }">
-            cluster overview page
+          <RouterLink
+            class="link-primary"
+            :to="{ name: 'ClusterOverview', params: { cluster: clusters[0] } }"
+          >
+            Cluster Overview
           </RouterLink>
-          .
+          page.
         </p>
       </template>
+
+      <p v-else class="text-primary-p2">
+        The {{ pluralize('machine', machines.length) }} will be deleted from Omni.
+      </p>
     </div>
   </ConfirmModal>
 </template>

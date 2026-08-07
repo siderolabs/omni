@@ -16,10 +16,10 @@ import type {
 import type { ConfigPatchSpec } from '@/api/omni/specs/omni.pb.ts'
 import { ConfigPatchType, DefaultNamespace } from '@/api/resources.ts'
 
-import MachineRemoveModal from './MachineRemoveModal.vue'
+import MachineDeleteModal from './MachineDeleteModal.vue'
 
-const meta: Meta<typeof MachineRemoveModal> = {
-  component: MachineRemoveModal,
+const meta: Meta<typeof MachineDeleteModal> = {
+  component: MachineDeleteModal,
   args: {
     open: true,
     machines: faker.helpers.multiple(faker.hacker.noun),
