@@ -277,7 +277,7 @@ async function enableKubeSpan() {
       <p class="text-sm text-naturals-n11">
         A cluster-wide config patch enabling KubeSpan will be created.
         <br />
-        This applies immediately and may trigger graceful reboots of the cluster nodes.
+        This applies immediately and may disrupt live traffic.
         <br />
         Please confirm the action.
       </p>
