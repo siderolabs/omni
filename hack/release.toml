@@ -5,7 +5,7 @@ project_name = "Omni"
 github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
-pre_release = true
+pre_release = false
 previous = "v1.9.0"
 
 [notes.audit-log-follow]
@@ -79,7 +79,10 @@ as a graph. In the disk view, unallocated space is striped so it reads apart fro
 distinct colors. Errors from machine service queries appear inline on the page instead of as a toast, with retries and backoff, and an unreachable Talos \
 API is reported as not ready yet rather than as a generic failure. The config editor can toggle word wrap from its context menu, and `$patch: delete` is \
 accepted everywhere the patch validation allows it. On an Auth0 instance the very first user lands on the signup page instead of the login page, and PXE \
-boot is hidden when Omni runs against the Image Factory Enterprise.
+boot is hidden when Omni runs against the Image Factory Enterprise. A node's last configuration error is now shown on every one of its tabs, not just \
+the overview, and Talos and Kubernetes version dropdowns list versions newest first. The machine delete confirmation lists hostnames instead of raw \
+UUIDs. Removing machines is named consistently: deleting a machine or a pending machine is "Delete", removing one from a cluster is "Remove", and the \
+destructive machine option reads "Force Delete" instead of "Force Destroy".
 """
 
 [notes.infra-provider-names]
@@ -175,6 +178,16 @@ title = "Machine Reset Wipes More Volumes on Talos 1.14"
 description = """\
 On Talos 1.14 and newer, resetting a machine also wipes the container runtime, kubelet, etcd and log volumes, on top of the state and ephemeral \
 partitions it wiped before. Machines on earlier Talos versions still have only those two wiped.
+"""
+
+[notes.saml-single-logout]
+title = "More Reliable SAML Single Logout"
+description = """\
+Single logout on a SAML instance could silently fail to reach the identity provider. The cookie tracking the logout was cleared as soon as the logout \
+request was built rather than once the identity provider confirmed it, so any repeated request to `/logout`, including the browser's own retries, found \
+nothing left to send and the identity provider session survived. A logout response delivered over the HTTP-Redirect binding, rather than as a POST, also \
+failed to parse and left the user on the forbidden page even though the identity provider had already completed the logout; that binding is now handled \
+on its own endpoint.
 """
 
 [notes.search-filter-url]
