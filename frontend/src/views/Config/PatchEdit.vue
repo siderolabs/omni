@@ -82,10 +82,12 @@ const { data: configPatch, loading: patchWatchLoading } = useResourceWatch<Confi
       id: patchId,
     },
   }),
-  (e) => {
-    if (e.event?.event_type === EventType.BOOTSTRAPPED) {
-      bootstrapped.value = true
-    }
+  {
+    onMessage(e) {
+      if (e.event?.event_type === EventType.BOOTSTRAPPED) {
+        bootstrapped.value = true
+      }
+    },
   },
 )
 

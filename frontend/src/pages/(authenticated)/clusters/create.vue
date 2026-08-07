@@ -290,7 +290,16 @@ const onSavePatchConfig = (config: string) => {
   }
 }
 
-const list = useTemplateRef('list')
+const filterValue = ref('')
+
+const addFilterLabel = (label: { key: string; value?: string }) => {
+  const selector = `${label.key}:${label.value}`
+  if (filterValue.value.includes(selector)) {
+    return
+  }
+
+  filterValue.value += (filterValue.value ? ' ' : '') + selector
+}
 </script>
 
 <template>
@@ -377,7 +386,7 @@ const list = useTemplateRef('list')
       <MachineSets />
       <div class="text-naturals-n13">Available Machines</div>
       <TList
-        ref="list"
+        v-model:filter-value="filterValue"
         :opts="{
           type: undefined as unknown as MachineStatusSpec,
           resource: {
@@ -421,7 +430,7 @@ const list = useTemplateRef('list')
               },
             }"
             :search-query="searchQuery"
-            @filter-label="list?.addFilterLabel"
+            @filter-label="addFilterLabel"
           />
         </template>
       </TList>

@@ -31,7 +31,7 @@ const dropdownOpen = ref(false)
       <TIcon
         class="flex h-4 w-4 items-center justify-center fill-current transition-transform duration-300"
         :class="{ '-rotate-180': dropdownOpen }"
-        icon="arrow-down"
+        icon="chevron-down"
       />
     </PopoverTrigger>
 

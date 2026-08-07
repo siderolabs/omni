@@ -113,13 +113,13 @@ const moveDownClicked = (index: string | number) => {
         >
           <IconButton
             v-if="p.moveUp"
-            icon="arrow-up"
+            icon="chevron-up"
             :disabled="index === 0"
             @click="() => moveUpClicked(index)"
           />
           <IconButton
             v-if="p.moveDown"
-            icon="arrow-down"
+            icon="chevron-down"
             :disabled="index === control.data.length - 1"
             @click="() => moveDownClicked(index)"
           />

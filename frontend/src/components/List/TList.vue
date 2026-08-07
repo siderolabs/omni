@@ -5,378 +5,140 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts" generic="T = unknown">
-import { useLocalStorage } from '@vueuse/core'
-import { useRouteQuery } from '@vueuse/router'
-import { computed, ref, watch } from 'vue'
-
-import TIcon from '@/components/Icon/TIcon.vue'
+import Pagination from '@/components/Pagination/Pagination.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
-import {
-  useResourceWatch,
-  type WatchOptions,
-  type WatchOptionsMulti,
-} from '@/methods/useResourceWatch'
+import { useResourcePagination } from '@/methods/resource/useResourcePagination'
+import { type ResourceFilterOption, useResourceSearch } from '@/methods/resource/useResourceSearch'
+import { type ResourceSortOption, useResourceSort } from '@/methods/resource/useResourceSort'
+import { useResourceWatch, type WatchOptionsMulti } from '@/methods/useResourceWatch'
 
-defineExpose({
-  addFilterLabel: (label: { key: string; value?: string }) => {
-    const selector = `${label.key}:${label.value}`
-    if (filterValueInternal.value.includes(selector)) {
-      return
-    }
-
-    filterValueInternal.value += (filterValueInternal.value ? ' ' : '') + selector
-  },
-})
-
-const emit = defineEmits<{
-  filterChanged: [string | undefined]
+const {
+  pagination,
+  search,
+  opts,
+  sortOptions = [],
+  filterOptions = [],
+  filterCaption = 'Filter',
+} = defineProps<{
+  pagination?: boolean
+  search?: boolean
+  // type: T is the only way to type the generic
+  opts: WatchOptionsMulti & { type: T }
+  sortOptions?: ResourceSortOption[]
+  filterOptions?: ResourceFilterOption[]
+  filterCaption?: string
 }>()
 
-const dots = '...'
+const filterValue = defineModel<string>('filterValue', { default: '' })
 
-const { pagination, search, opts, sortOptions, filterOptions, filterValue, filterCaption } =
-  defineProps<{
-    pagination?: boolean
-    search?: boolean
-    // type: T is the only way to type the generic
-    opts: WatchOptionsMulti & { type: T }
-    sortOptions?: { id: string; desc: string; descending?: boolean }[]
-    filterOptions?: { query?: string; desc: string }[]
-    filterValue?: string
-    filterCaption?: string
-  }>()
+const {
+  watchOptions: sortByState,
+  selectValues: sortOptionsVariants,
+  selectedValue: selectedSortOption,
+} = useResourceSort({ sortOptions: () => sortOptions })
 
-const itemsPerPage = [5, 10, 25, 50, 100]
+const {
+  watchOptions: searchState,
+  searchQuery,
+  selectedFilterOption,
+} = useResourceSearch({ filterValue, filterOptions: () => filterOptions })
 
-const sortOptionsVariants = computed(() => {
-  if (!sortOptions) {
-    return []
-  }
-
-  return sortOptions.map((opt) => {
-    return opt.desc
-  })
-})
-
-const filterOptionsVariants = computed(() => {
-  if (!filterOptions) {
-    return []
-  }
-
-  return filterOptions.map((opt) => {
-    return opt.desc
-  })
-})
-
-const filterValueInternal = useRouteQuery('q', '')
-const currentPage = ref(1)
-const selectedItemsPerPage = useLocalStorage('itemsPerPage', 10)
-const selectedSortOption = useRouteQuery('sort', sortOptionsVariants?.value?.[0])
-const selectedFilterOption = useRouteQuery('filter', filterOptionsVariants.value?.[0])
-const sidePanelOpen = ref(false)
-const sidePanelSelectedItemId = ref<string>()
-
-watch(selectedFilterOption, () => {
-  emit('filterChanged', selectedFilterOption.value)
-})
-
-const filterValueComputed = computed(() => {
-  return filterValue !== undefined ? filterValue : filterValueInternal.value
-})
-
-const offset = computed(() => {
-  return (currentPage.value - 1) * selectedItemsPerPage.value
-})
-
-const sortByState = computed(() => {
-  if (!sortOptions) {
-    return {}
-  }
-
-  for (const opt of sortOptions) {
-    if (opt.desc === selectedSortOption?.value) {
-      return {
-        sortByField: opt.id,
-        sortDescending: opt.descending,
-      }
-    }
-  }
-
-  return {}
-})
-
-const paginationState = computed(() => {
-  if (!pagination) {
-    return {}
-  }
-
-  return {
-    limit: selectedItemsPerPage.value,
-    offset: offset.value,
-  }
-})
-
-const searchState = computed<Pick<WatchOptions, 'searchFor' | 'selectors'>>(() => {
-  if (!search) {
-    return {}
-  }
-
-  const parts = filterValueComputed.value.split(' ')
-  const selectors: string[] = []
-  const searchFor: string[] = []
-
-  if (selectedFilterOption.value) {
-    const selectedOptionQuery = filterOptions?.find(
-      (item) => item.desc === selectedFilterOption.value,
-    )?.query
-
-    if (selectedOptionQuery) {
-      searchFor.push(selectedOptionQuery)
-    }
-  }
-
-  for (const part of parts) {
-    const match = part.match(/^(.+):(.*)$/)
-
-    if (!match || match.length < 3) {
-      if (part) searchFor.push(part)
-
-      continue
-    }
-
-    selectors.push(`${match[1]}=${match[2]}`)
-  }
-
-  const res: { selectors?: string[]; searchFor?: string[] } = {
-    selectors: (opts.selectors ?? []).concat(selectors),
-  }
-
-  if (searchFor.length > 0) {
-    res.searchFor = searchFor
-  }
-
-  return res
-})
-
-// reset the pagination when the search query changes
-watch([() => opts, searchState], (curr, prev) => {
-  if (JSON.stringify(curr) !== JSON.stringify(prev)) currentPage.value = 1
-})
-
-const searchQuery = computed(() => {
-  if (!searchState.value.searchFor) {
-    return undefined
-  }
-
-  return searchState.value.searchFor.join(' ')
-})
-
-const paginationRange = computed(() => {
-  let ranges: number[][]
-  if (totalPageCount.value < 20) {
-    ranges = [[1, totalPageCount.value]]
-  } else {
-    if (currentPage.value < 5 || currentPage.value > totalPageCount.value - 4) {
-      ranges = [
-        [1, 5],
-        [totalPageCount.value - 4, totalPageCount.value],
-      ]
-    } else {
-      ranges = [
-        [1, 3],
-        [currentPage.value - 1, currentPage.value + 1],
-        [totalPageCount.value - 2, totalPageCount.value],
-      ]
-    }
-  }
-
-  const res: (string | number)[] = []
-  for (let i: number = 0; i < ranges.length; i++) {
-    for (let j: number = ranges[i][0]; j <= ranges[i][1]; j++) {
-      res.push(j)
-    }
-
-    if (i !== ranges.length - 1) {
-      res.push(dots)
-    }
-  }
-
-  return res
+const {
+  total,
+  watchOptions: paginationState,
+  currentPage,
+  currentPageSize: selectedItemsPerPage,
+  pageCount,
+  pageSizeSelectValues: itemsPerPage,
+} = useResourcePagination({
+  resetOn: [() => opts, searchState],
 })
 
 const {
   data: items,
   err,
   loading,
-  total,
-} = useResourceWatch<T>(() => ({
-  ...opts,
-  ...paginationState.value,
-  ...searchState.value,
-  ...sortByState.value,
-}))
-
-const totalPageCount = computed(() => {
-  return Math.ceil(total.value / selectedItemsPerPage.value)
-})
-
-const showPageSelector = computed(() => {
-  return pagination && totalPageCount.value > 1
-})
-
-const prevPage = () => {
-  currentPage.value = Math.max(1, currentPage.value - 1)
-}
-
-const nextPage = () => {
-  currentPage.value = Math.min(totalPageCount.value, currentPage.value + 1)
-}
-
-const openPage = (page: number | string) => {
-  if (page === dots) {
-    return
-  }
-
-  currentPage.value = page as number
-  sidePanelOpen.value = false
-}
+} = useResourceWatch<T>(
+  () => ({
+    ...opts,
+    ...(pagination ? paginationState.value : {}),
+    ...searchState.value,
+    ...sortByState.value,
+    selectors: [...(opts.selectors ?? []), ...(searchState.value.selectors ?? [])],
+  }),
+  { total },
+)
 </script>
 
 <template>
-  <div class="flex h-full gap-2 overflow-hidden">
-    <div class="flex max-w-full grow flex-col gap-2">
-      <slot
-        name="header"
-        :items-count="total"
-        :filtered="searchState.searchFor?.length || searchState.selectors?.length"
-      />
+  <div class="flex max-w-full flex-col gap-2">
+    <slot
+      name="header"
+      :items-count="total"
+      :filtered="searchState.searchFor?.length || searchState.selectors?.length"
+    />
 
-      <div class="flex grow flex-col gap-4 overflow-hidden">
-        <template v-if="pagination || search || (pagination && itemsPerPage?.length > 1)">
-          <slot name="input">
-            <TInput v-if="search" v-model="filterValueInternal" icon="search" />
-          </slot>
+    <div class="flex grow flex-col gap-4 overflow-hidden">
+      <template v-if="pagination || search">
+        <slot name="input">
+          <TInput v-if="search" v-model="filterValue" icon="search" />
+        </slot>
 
-          <div class="flex justify-between gap-2">
-            <div class="grow">
-              <slot name="extra-controls" :selected-filter-option />
-            </div>
-
-            <div class="flex items-center gap-2">
-              <TSelectList
-                v-if="filterOptions"
-                :title="filterCaption ?? 'Filter'"
-                :default-value="selectedFilterOption || ''"
-                :values="filterOptionsVariants"
-                @checked-value="(value) => (selectedFilterOption = value)"
-              />
-
-              <TSelectList
-                v-if="sortOptions"
-                title="Sort by"
-                hide-selected-small-screens
-                :default-value="selectedSortOption || ''"
-                :values="sortOptionsVariants"
-                @checked-value="
-                  (value: string) => {
-                    selectedSortOption = value
-                  }
-                "
-              />
-
-              <TSelectList
-                v-if="itemsPerPage?.length > 1 && pagination"
-                v-model="selectedItemsPerPage"
-                title="Items per Page"
-                :values="itemsPerPage"
-                @checked-value="currentPage = 1"
-              />
-            </div>
-          </div>
-        </template>
-
-        <div class="grow overflow-auto">
-          <div v-if="loading" class="flex size-full flex-row items-center justify-center">
-            <TSpinner class="absolute top-2/4 size-6" />
+        <div class="flex justify-between gap-2">
+          <div class="grow">
+            <slot name="extra-controls" :selected-filter-option />
           </div>
 
-          <slot v-else-if="err" name="error" :err="err">
-            <TAlert title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
-          </slot>
+          <div class="flex flex-wrap items-center gap-2">
+            <TSelectList
+              v-if="filterOptions.length"
+              v-model="selectedFilterOption"
+              :title="filterCaption"
+              :values="filterOptions"
+            />
 
-          <slot v-else-if="items.length === 0" name="norecords">
-            <TAlert type="info" title="No Records">
-              No entries of the requested resource type are found on the server.
-            </TAlert>
-          </slot>
+            <TSelectList
+              v-if="sortOptions.length"
+              v-model="selectedSortOption"
+              title="Sort by"
+              hide-selected-small-screens
+              :values="sortOptionsVariants"
+            />
 
-          <div v-show="!loading && !err && items.length > 0" class="size-full">
-            <slot
-              :items="items"
-              :search-query="searchQuery"
-              :side-panel-open
-              :side-panel-selected-item-id
-              :open-panel="
-                (id: string) => {
-                  sidePanelOpen = !sidePanelOpen || sidePanelSelectedItemId !== id
-                  sidePanelSelectedItemId = id
-                }
-              "
+            <TSelectList
+              v-if="pagination"
+              v-model="selectedItemsPerPage"
+              title="Items per Page"
+              :values="itemsPerPage"
             />
           </div>
         </div>
-      </div>
+      </template>
 
-      <div v-if="showPageSelector" class="mt-4 flex items-center justify-end gap-2">
-        <TIcon
-          icon="arrow-left"
-          class="size-5 cursor-pointer fill-current transition-all duration-200 hover:text-naturals-n10"
-          :class="currentPage === 1 ? 'text-naturals-n6' : 'text-naturals-n8'"
-          @click="prevPage"
-        />
-
-        <div class="flex items-center gap-2 transition-all duration-200">
-          <span
-            v-for="(item, index) in paginationRange ?? []"
-            :key="index"
-            class="flex size-7 items-center justify-center rounded transition-all duration-200 select-none"
-            :class="[
-              item === currentPage ? 'bg-naturals-n4 text-naturals-n12' : 'text-naturals-n8',
-              item === dots
-                ? 'cursor-default hover:text-naturals-n8'
-                : 'cursor-pointer hover:text-naturals-n9',
-            ]"
-            @click="() => openPage(item)"
-          >
-            {{ item }}
-          </span>
+      <div class="grow overflow-auto">
+        <div v-if="loading" class="flex size-full flex-row items-center justify-center">
+          <TSpinner class="absolute top-2/4 size-6" />
         </div>
 
-        <TIcon
-          icon="arrow-right"
-          class="size-5 cursor-pointer fill-current transition-all duration-200 hover:text-naturals-n10"
-          :class="[currentPage === totalPageCount ? 'text-naturals-n6' : 'text-naturals-n8']"
-          @click="nextPage"
-        />
+        <slot v-else-if="err" name="error" :err="err">
+          <TAlert title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
+        </slot>
+
+        <slot v-else-if="items.length === 0" name="norecords">
+          <TAlert type="info" title="No Records">
+            No entries of the requested resource type are found on the server.
+          </TAlert>
+        </slot>
+
+        <div v-show="!loading && !err && items.length > 0" class="size-full">
+          <slot :items="items" :search-query="searchQuery" />
+        </div>
       </div>
     </div>
 
-    <div
-      v-if="$slots.sidePanel"
-      class="overflow-hidden max-lg:absolute max-lg:inset-0 max-lg:z-10 lg:transition-all"
-      :class="sidePanelOpen ? 'max-lg:w-full lg:w-sm' : 'pointer-events-none opacity-0 lg:w-0'"
-    >
-      <slot
-        name="sidePanel"
-        :items
-        :search-query
-        :side-panel-open
-        :side-panel-selected-item-id
-        :close-panel="() => (sidePanelOpen = false)"
-      />
-    </div>
+    <Pagination v-if="pagination" v-model:current-page="currentPage" :page-count="pageCount" />
   </div>
 </template>

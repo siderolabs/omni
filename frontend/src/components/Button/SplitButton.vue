@@ -58,7 +58,7 @@ const { width } = useElementSize(triggerRef)
             'px-2': size === 'md',
             'px-1': size === 'sm',
           }"
-          icon="arrow-down"
+          icon="chevron-down"
         />
       </DropdownMenuTrigger>
     </div>

@@ -81,16 +81,6 @@
       "count": 1
     }
   },
-  "src/components/List/TList.vue": {
-    "vue/no-ref-object-reactivity-loss": {
-      "count": 2
-    }
-  },
-  "src/components/Pagination/TPagination.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
-  },
   "src/components/Tabs/TabContent.vue": {
     "vue/define-props-destructuring": {
       "count": 1

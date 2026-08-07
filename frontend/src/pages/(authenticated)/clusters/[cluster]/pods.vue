@@ -5,16 +5,17 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { useOffsetPagination } from '@vueuse/core'
 import { useRouteQuery } from '@vueuse/router'
 import type { PodSpec as V1PodSpec, PodStatus as V1PodStatus } from 'kubernetes-types/core/v1'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { kubernetes } from '@/api/resources'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
-import TPagination from '@/components/Pagination/TPagination.vue'
+import Pagination from '@/components/Pagination/Pagination.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
@@ -76,6 +77,18 @@ const filteredItems = computed(() =>
     })
     .toSorted((a, b) => phaseToNum(a.status?.phase) - phaseToNum(b.status?.phase)),
 )
+
+const { pageCount, currentPage, currentPageSize } = useOffsetPagination({
+  total: () => filteredItems.value.length,
+  pageSize: 9,
+})
+
+const paginatedItems = computed(() => {
+  const start = (currentPage.value - 1) * currentPageSize.value
+  return filteredItems.value.slice(start, start + currentPageSize.value)
+})
+
+watch(searchOption, () => (currentPage.value = 1))
 </script>
 
 <template>
@@ -101,18 +114,16 @@ const filteredItems = computed(() =>
         <li class="w-1/3">Node</li>
       </ul>
 
-      <TPagination :items="filteredItems" :per-page="9" :search-option="searchOption">
-        <template #default="{ paginatedItems }">
-          <div>
-            <TPodsItem
-              v-for="(item, idx) in paginatedItems"
-              :key="`${item.metadata.namespace}/${item.metadata.name || idx}`"
-              :search-option="searchOption"
-              :item="item"
-            />
-          </div>
-        </template>
-      </TPagination>
+      <div>
+        <TPodsItem
+          v-for="(item, idx) in paginatedItems"
+          :key="`${item.metadata.namespace}/${item.metadata.name || idx}`"
+          :search-option="searchOption"
+          :item="item"
+        />
+      </div>
+
+      <Pagination v-model:current-page="currentPage" :page-count="pageCount" class="mt-6" />
     </div>
   </PageContainer>
 </template>

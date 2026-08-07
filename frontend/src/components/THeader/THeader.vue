@@ -139,7 +139,7 @@ function dismissNotification(id: string) {
 
       <div class="flex items-center gap-2">
         <TButton
-          icon="arrow-left"
+          icon="chevron-left"
           icon-position="left"
           :disabled="currentOffset === 0"
           @click="currentOffset = Math.max(0, currentOffset - 1)"
@@ -148,7 +148,7 @@ function dismissNotification(id: string) {
         </TButton>
 
         <TButton
-          icon="arrow-right"
+          icon="chevron-right"
           :disabled="currentOffset >= notifications.length - 1"
           @click="currentOffset = Math.min(notifications.length - 1, currentOffset + 1)"
         >
