@@ -19,6 +19,10 @@ import MachinesPending from './pending.vue'
 
 const meta: Meta<typeof MachinesPending> = {
   component: MachinesPending,
+  parameters: {
+    layout: 'fullscreen',
+  },
+  decorators: [() => ({ template: '<div class="h-screen"><story/></div>' })],
 }
 
 export default meta
