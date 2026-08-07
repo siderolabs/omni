@@ -5,8 +5,6 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts" generic="T = unknown">
-import { watch } from 'vue'
-
 import Pagination from '@/components/Pagination/Pagination.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
@@ -16,10 +14,6 @@ import { useResourcePagination } from '@/methods/resource/useResourcePagination'
 import { type ResourceFilterOption, useResourceSearch } from '@/methods/resource/useResourceSearch'
 import { type ResourceSortOption, useResourceSort } from '@/methods/resource/useResourceSort'
 import { useResourceWatch, type WatchOptionsMulti } from '@/methods/useResourceWatch'
-
-const emit = defineEmits<{
-  filterChanged: [string | undefined]
-}>()
 
 const {
   pagination,
@@ -61,10 +55,6 @@ const {
   pageSizeSelectValues: itemsPerPage,
 } = useResourcePagination({
   resetOn: [() => opts, searchState],
-})
-
-watch(selectedFilterOption, () => {
-  emit('filterChanged', selectedFilterOption.value)
 })
 
 const {
