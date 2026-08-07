@@ -90,7 +90,7 @@ const supportedK8sVersions = computed(() =>
   (status.value?.spec.upgrade_versions ?? [])
     .concat(status.value?.spec.last_upgrade_version ?? '')
     .filter((v) => !!v)
-    .sort(compare),
+    .sort((a, b) => compare(b, a)),
 )
 
 interface VersionGroup {
@@ -104,7 +104,7 @@ interface VersionGroup {
 }
 
 const groupedK8sVersions = computed(() => {
-  const oldestSupportedVersion = supportedK8sVersions.value[0]
+  const oldestSupportedVersion = supportedK8sVersions.value.at(-1)!
   const clusterTalosVersion = allTalosVersions.value.find(
     (v) => v.spec.version === cluster.value?.spec.talos_version,
   )

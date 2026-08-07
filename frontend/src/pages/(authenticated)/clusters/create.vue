@@ -119,7 +119,7 @@ const reset = ref(0)
 const kubernetesVersions: Ref<string[]> = computed(() => {
   for (const version of talosVersionsList.value) {
     if (version.spec.version === state.value.cluster.talosVersion) {
-      return version.spec.compatible_kubernetes_versions ?? []
+      return version.spec.compatible_kubernetes_versions?.sort((a, b) => compare(b, a)) ?? []
     }
   }
 
@@ -148,8 +148,8 @@ watch(kubernetesVersions, (k8sVersions) => {
       return
     }
 
-    // select the latest supported Kubernetes version by the chosen Talos version (k8sVersions are sorted on backend)
-    kubernetesVersionSelector?.value?.selectItem(k8sVersions[k8sVersions.length - 1])
+    // select the latest supported Kubernetes version by the chosen Talos version
+    kubernetesVersionSelector.value?.selectItem(k8sVersions[0])
   }
 })
 
@@ -270,7 +270,7 @@ const talosVersions = computed(() =>
       disabled: unsupported,
       tooltip: unsupported ? `This Omni release does not support Talos ${version}.` : undefined,
     }))
-    .sort((a, b) => compare(a.value, b.value)),
+    .sort((a, b) => compare(b.value, a.value)),
 )
 
 const hasConfigs = computed(() => {
