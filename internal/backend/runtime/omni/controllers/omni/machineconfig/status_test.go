@@ -576,7 +576,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 			)
 
 			rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.MachinePendingUpdates, assert *assert.Assertions) {
-				assert.NotEmpty(res.TypedSpec().Value.ConfigDiff)
+				assert.True(res.TypedSpec().Value.HasConfigDiff())
 			})
 
 			rmock.Mock[*omni.MachineStatus](
@@ -761,7 +761,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 				)
 
 				rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.MachinePendingUpdates, assert *assert.Assertions) {
-					assert.NotEmpty(res.TypedSpec().Value.ConfigDiff)
+					assert.True(res.TypedSpec().Value.HasConfigDiff())
 				})
 
 				// unlock all machines
@@ -848,8 +848,16 @@ func TestMachineConfigStatusController(t *testing.T) {
 				)
 
 				rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.MachinePendingUpdates, assert *assert.Assertions) {
-					assert.NotEmpty(res.TypedSpec().Value.ConfigDiff)
-					assert.LessOrEqual(len(res.TypedSpec().Value.ConfigDiff), diff.MaxBytes)
+					buf, err := res.TypedSpec().Value.GetUncompressedData()
+
+					assert.NoError(err)
+
+					if err == nil {
+						defer buf.Free()
+					}
+
+					assert.NotEmpty(buf.Data())
+					assert.LessOrEqual(len(buf.Data()), diff.MaxBytes)
 				})
 			},
 		)
@@ -1050,7 +1058,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 					if len(ids) != 0 {
 						rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.MachinePendingUpdates, assert *assert.Assertions) {
-							assert.NotEmpty(res.TypedSpec().Value.ConfigDiff)
+							assert.True(res.TypedSpec().Value.HasConfigDiff())
 						})
 					}
 

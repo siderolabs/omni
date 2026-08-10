@@ -12,6 +12,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/siderolabs/gen/ensure"
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/stretchr/testify/require"
@@ -21,6 +22,14 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/machineset"
 )
+
+func newMachinePendingUpdatesWithConfigDiff(id, configDiff string) *omni.MachinePendingUpdates {
+	res := omni.NewMachinePendingUpdates(id)
+
+	ensure.NoError(res.TypedSpec().Value.SetUncompressedData([]byte(configDiff)))
+
+	return res
+}
 
 func newClusterMachineStatus(id string, stage specs.ClusterMachineStatusSpec_Stage, ready, connected bool) *omni.ClusterMachineStatus {
 	res := omni.NewClusterMachineStatus(id)
@@ -123,12 +132,8 @@ func TestStatusHandler(t *testing.T) {
 				omni.NewClusterMachineConfigStatus("b"),
 			},
 			pendingMachineUpdates: []*omni.MachinePendingUpdates{
-				withSpecSetter(omni.NewMachinePendingUpdates("a"), func(res *omni.MachinePendingUpdates) {
-					res.TypedSpec().Value.ConfigDiff = "-"
-				}),
-				withSpecSetter(omni.NewMachinePendingUpdates("b"), func(res *omni.MachinePendingUpdates) {
-					res.TypedSpec().Value.ConfigDiff = "-"
-				}),
+				newMachinePendingUpdatesWithConfigDiff("a", "-"),
+				newMachinePendingUpdatesWithConfigDiff("b", "-"),
 			},
 			expectedStatus: &specs.MachineSetStatusSpec{
 				Phase: specs.MachineSetPhase_Reconfiguring,
@@ -397,12 +402,8 @@ func TestStatusHandler(t *testing.T) {
 				omni.NewClusterMachineConfigStatus("b"),
 			},
 			pendingMachineUpdates: []*omni.MachinePendingUpdates{
-				withSpecSetter(omni.NewMachinePendingUpdates("a"), func(res *omni.MachinePendingUpdates) {
-					res.TypedSpec().Value.ConfigDiff = "something"
-				}),
-				withSpecSetter(omni.NewMachinePendingUpdates("b"), func(res *omni.MachinePendingUpdates) {
-					res.TypedSpec().Value.ConfigDiff = "something"
-				}),
+				newMachinePendingUpdatesWithConfigDiff("a", "something"),
+				newMachinePendingUpdatesWithConfigDiff("b", "something"),
 			},
 			expectedStatus: &specs.MachineSetStatusSpec{
 				Phase: specs.MachineSetPhase_Reconfiguring,

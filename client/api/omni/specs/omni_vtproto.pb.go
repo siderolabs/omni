@@ -1016,6 +1016,11 @@ func (m *MachinePendingUpdatesSpec) CloneVT() *MachinePendingUpdatesSpec {
 	r := new(MachinePendingUpdatesSpec)
 	r.Upgrade = m.Upgrade.CloneVT()
 	r.ConfigDiff = m.ConfigDiff
+	if rhs := m.CompressedConfigDiff; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.CompressedConfigDiff = tmpBytes
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -2926,6 +2931,11 @@ func (m *MachineConfigDiffSpec) CloneVT() *MachineConfigDiffSpec {
 	}
 	r := new(MachineConfigDiffSpec)
 	r.Diff = m.Diff
+	if rhs := m.CompressedDiff; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.CompressedDiff = tmpBytes
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -4725,6 +4735,9 @@ func (this *MachinePendingUpdatesSpec) EqualVT(that *MachinePendingUpdatesSpec) 
 		return false
 	}
 	if this.ConfigDiff != that.ConfigDiff {
+		return false
+	}
+	if string(this.CompressedConfigDiff) != string(that.CompressedConfigDiff) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -7357,6 +7370,9 @@ func (this *MachineConfigDiffSpec) EqualVT(that *MachineConfigDiffSpec) bool {
 		return false
 	}
 	if this.Diff != that.Diff {
+		return false
+	}
+	if string(this.CompressedDiff) != string(that.CompressedDiff) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -10825,6 +10841,13 @@ func (m *MachinePendingUpdatesSpec) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if len(m.CompressedConfigDiff) > 0 {
+		i -= len(m.CompressedConfigDiff)
+		copy(dAtA[i:], m.CompressedConfigDiff)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CompressedConfigDiff)))
+		i--
+		dAtA[i] = 0x1a
 	}
 	if len(m.ConfigDiff) > 0 {
 		i -= len(m.ConfigDiff)
@@ -15896,6 +15919,13 @@ func (m *MachineConfigDiffSpec) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.CompressedDiff) > 0 {
+		i -= len(m.CompressedDiff)
+		copy(dAtA[i:], m.CompressedDiff)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.CompressedDiff)))
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.Diff) > 0 {
 		i -= len(m.Diff)
 		copy(dAtA[i:], m.Diff)
@@ -18134,6 +18164,10 @@ func (m *MachinePendingUpdatesSpec) SizeVT() (n int) {
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
+	l = len(m.CompressedConfigDiff)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -20123,6 +20157,10 @@ func (m *MachineConfigDiffSpec) SizeVT() (n int) {
 	var l int
 	_ = l
 	l = len(m.Diff)
+	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	l = len(m.CompressedDiff)
 	if l > 0 {
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
@@ -28322,6 +28360,40 @@ func (m *MachinePendingUpdatesSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ConfigDiff = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompressedConfigDiff", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CompressedConfigDiff = append(m.CompressedConfigDiff[:0], dAtA[iNdEx:postIndex]...)
+			if m.CompressedConfigDiff == nil {
+				m.CompressedConfigDiff = []byte{}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -40942,6 +41014,40 @@ func (m *MachineConfigDiffSpec) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Diff = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CompressedDiff", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CompressedDiff = append(m.CompressedDiff[:0], dAtA[iNdEx:postIndex]...)
+			if m.CompressedDiff == nil {
+				m.CompressedDiff = []byte{}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

@@ -1587,9 +1587,7 @@ func (ctrl *StatusController) computePendingUpdates(ctx context.Context, r contr
 			res.TypedSpec().Value.Upgrade = nil
 		}
 
-		res.TypedSpec().Value.ConfigDiff = configDiff
-
-		return nil
+		return res.TypedSpec().Value.SetUncompressedData([]byte(configDiff))
 	})
 }
 

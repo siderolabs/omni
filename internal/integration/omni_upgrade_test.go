@@ -129,7 +129,7 @@ func AssertNoPendingMachineUpdates(testCtx context.Context, options *TestOptions
 			require.NoError(t, err)
 
 			assert.Empty(t, res.TypedSpec().Value.Upgrade)
-			assert.Empty(t, res.TypedSpec().Value.ConfigDiff)
+			assert.False(t, res.TypedSpec().Value.HasConfigDiff())
 		}
 	}
 }

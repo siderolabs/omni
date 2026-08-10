@@ -200,7 +200,7 @@ func NewReconciliationContext(
 			return false
 		}
 
-		return m.TypedSpec().Value.ConfigDiff != ""
+		return m.TypedSpec().Value.HasConfigDiff()
 	}))
 	rc.idsUpgrading = toSet(xslices.Filter(machinePendingUpdates, func(m *omni.MachinePendingUpdates) bool {
 		return m.TypedSpec().Value.Upgrade != nil

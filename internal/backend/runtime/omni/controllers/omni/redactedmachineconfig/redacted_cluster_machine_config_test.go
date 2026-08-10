@@ -240,8 +240,12 @@ func updateConfigAssertDiff(ctx context.Context, t *testing.T, st state.State, c
 	assert.Truef(t, strings.HasPrefix(res.Metadata().ID(), expectedPrefix), "expected diff ID to have the prefix %q, got %q", expectedPrefix, res.Metadata().ID())
 	assert.Equalf(t, state.Created, event.Type, "expected event type to be %s, got %s", state.Created, event.Type.String())
 
-	diff := res.TypedSpec().Value.Diff
-	require.Contains(t, diff, fmt.Sprintf("+        %s: %s", testKey, testVal))
+	buffer, err := res.TypedSpec().Value.GetUncompressedData()
+	require.NoError(t, err)
+
+	defer buffer.Free()
+
+	require.Contains(t, string(buffer.Data()), fmt.Sprintf("+        %s: %s", testKey, testVal))
 
 	return res.Metadata().ID()
 }
