@@ -5,22 +5,22 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { vueRouter } from 'storybook-vue3-router'
 
-import * as MachineArchStories from '@/pages/(authenticated)/machines/installation-media/create/arch.stories'
+import { handlers as machineArchHandlers } from '@/pages/(authenticated)/machines/installation-media/create/arch.mocks'
 import MachineArch from '@/pages/(authenticated)/machines/installation-media/create/arch.vue'
-import * as CloudProviderStories from '@/pages/(authenticated)/machines/installation-media/create/cloud-provider.stories'
+import { handlers as cloudProviderHandlers } from '@/pages/(authenticated)/machines/installation-media/create/cloud-provider.mocks'
 import CloudProvider from '@/pages/(authenticated)/machines/installation-media/create/cloud-provider.vue'
-import * as ConfirmationStories from '@/pages/(authenticated)/machines/installation-media/create/confirmation.stories'
+import { handlers as confirmationHandlers } from '@/pages/(authenticated)/machines/installation-media/create/confirmation.mocks'
 import Confirmation from '@/pages/(authenticated)/machines/installation-media/create/confirmation.vue'
-import * as ExtraArgsStories from '@/pages/(authenticated)/machines/installation-media/create/extra-args.stories'
+import { handlers as extraArgsHandlers } from '@/pages/(authenticated)/machines/installation-media/create/extra-args.mocks'
 import ExtraArgs from '@/pages/(authenticated)/machines/installation-media/create/extra-args.vue'
 import Entry from '@/pages/(authenticated)/machines/installation-media/create/index.vue'
-import * as SBCTypeStories from '@/pages/(authenticated)/machines/installation-media/create/sbc-type.stories'
+import { handlers as sbcTypeHandlers } from '@/pages/(authenticated)/machines/installation-media/create/sbc-type.mocks'
 import SBCType from '@/pages/(authenticated)/machines/installation-media/create/sbc-type.vue'
-import * as SystemExtensionsStories from '@/pages/(authenticated)/machines/installation-media/create/system-extensions.stories'
+import { handlers as systemExtensionHandlers } from '@/pages/(authenticated)/machines/installation-media/create/system-extensions.mocks'
 import SystemExtensions from '@/pages/(authenticated)/machines/installation-media/create/system-extensions.vue'
-import * as TalosVersionStories from '@/pages/(authenticated)/machines/installation-media/create/talos-version.stories'
+import { handlers as talosVersionHandlers } from '@/pages/(authenticated)/machines/installation-media/create/talos-version.mocks'
 import TalosVersion from '@/pages/(authenticated)/machines/installation-media/create/talos-version.vue'
-import * as SavePresetModalStories from '@/views/InstallationMedia/SavePresetModal.stories'
+import { handlers as savePresetModalHandlers } from '@/views/InstallationMedia/SavePresetModal.mocks'
 
 import InstallationMediaCreate from './create.vue'
 
@@ -85,18 +85,17 @@ export const Default: Story = {
       { initialRoute: '/entry' },
     ),
   ],
-  parameters: {
-    msw: {
-      handlers: [
-        ...SavePresetModalStories.Default.parameters.msw.handlers,
-        ...CloudProviderStories.Default.parameters.msw.handlers,
-        ...ConfirmationStories.Default.parameters.msw.handlers,
-        ...ExtraArgsStories.Default.parameters.msw.handlers,
-        ...MachineArchStories.Default.parameters.msw.handlers,
-        ...SBCTypeStories.Default.parameters.msw.handlers,
-        ...SystemExtensionsStories.Default.parameters.msw.handlers,
-        ...TalosVersionStories.Default.parameters.msw.handlers,
-      ],
-    },
+
+  beforeEach({ msw }) {
+    msw.use(
+      ...savePresetModalHandlers,
+      ...cloudProviderHandlers,
+      ...confirmationHandlers,
+      ...extraArgsHandlers,
+      ...machineArchHandlers,
+      ...sbcTypeHandlers,
+      ...systemExtensionHandlers,
+      ...talosVersionHandlers,
+    )
   },
 }

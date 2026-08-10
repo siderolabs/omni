@@ -27,30 +27,28 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<ClusterSpec>({
-          expectedOptions: {
-            type: ClusterType,
-            namespace: DefaultNamespace,
-            id: clusterId,
-          },
-          initialResources: [
-            {
-              spec: {},
-              metadata: {
-                type: ClusterType,
-                namespace: DefaultNamespace,
-                id: clusterId,
-                annotations: {
-                  [ResourceManagedByClusterTemplates]: '',
-                },
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<ClusterSpec>({
+        expectedOptions: {
+          type: ClusterType,
+          namespace: DefaultNamespace,
+          id: clusterId,
+        },
+        initialResources: [
+          {
+            spec: {},
+            metadata: {
+              type: ClusterType,
+              namespace: DefaultNamespace,
+              id: clusterId,
+              annotations: {
+                [ResourceManagedByClusterTemplates]: '',
               },
             },
-          ],
-        }).handler,
-      ],
-    },
+          },
+        ],
+      }).handler,
+    )
   },
 }

@@ -6,7 +6,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { delay, http, HttpResponse } from 'msw'
 import { fn } from 'storybook/test'
 
-import type { DeleteRequest, DeleteResponse } from '@/api/omni/resources/resources.pb.ts'
+import type { DeleteRequest, DeleteResponse } from '@/api/omni/resources/resources.pb'
 
 import InfraProviderDeleteModal from './InfraProviderDeleteModal.vue'
 
@@ -23,18 +23,16 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        http.post<never, DeleteRequest, DeleteResponse>(
-          '/omni.resources.ResourceService/Delete',
-          async () => {
-            await delay()
+  beforeEach({ msw }) {
+    msw.use(
+      http.post<never, DeleteRequest, DeleteResponse>(
+        '/omni.resources.ResourceService/Delete',
+        async () => {
+          await delay()
 
-            return HttpResponse.json({})
-          },
-        ),
-      ],
-    },
+          return HttpResponse.json({})
+        },
+      ),
+    )
   },
 }

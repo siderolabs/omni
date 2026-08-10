@@ -2,11 +2,12 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import '@storybook/vue3-vite'
+import 'storybook/internal/csf'
 
-import type { MswParameters } from 'msw-storybook-addon'
+import type { SetupWorker } from 'msw/browser'
 
-declare module '@storybook/vue3-vite' {
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  interface Parameters extends MswParameters {}
+declare module 'storybook/internal/csf' {
+  interface StoryContext {
+    msw: SetupWorker
+  }
 }

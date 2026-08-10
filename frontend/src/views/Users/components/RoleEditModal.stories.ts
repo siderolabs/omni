@@ -7,12 +7,12 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { delay, http, HttpResponse } from 'msw'
 import { fn } from 'storybook/test'
 
-import type { Empty } from '@/api/google/protobuf/empty.pb.ts'
-import type { Resource } from '@/api/grpc.ts'
-import type { UpdateUserRequest } from '@/api/omni/management/management.pb.ts'
-import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb.ts'
+import type { Empty } from '@/api/google/protobuf/empty.pb'
+import type { Resource } from '@/api/grpc'
+import type { UpdateUserRequest } from '@/api/omni/management/management.pb'
+import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
 import type { UserSpec } from '@/api/omni/specs/auth.pb'
-import { DefaultNamespace, RoleAdmin, UserType } from '@/api/resources.ts'
+import { DefaultNamespace, RoleAdmin, UserType } from '@/api/resources'
 
 import RoleEditModal from './RoleEditModal.vue'
 
@@ -21,43 +21,42 @@ const userId = faker.string.uuid()
 
 const meta: Meta<typeof RoleEditModal> = {
   component: RoleEditModal,
+
   args: {
     open: true,
     'onUpdate:open': fn(),
   },
-  parameters: {
-    msw: {
-      handlers: [
-        http.post<never, GetRequest, GetResponse>(
-          '/omni.resources.ResourceService/Get',
-          async ({ request }) => {
-            const { id, type, namespace } = await request.clone().json()
 
-            if (type !== UserType || namespace !== DefaultNamespace) {
-              return
-            }
+  beforeEach({ msw }) {
+    msw.use(
+      http.post<never, GetRequest, GetResponse>(
+        '/omni.resources.ResourceService/Get',
+        async ({ request }) => {
+          const { id, type, namespace } = await request.clone().json()
 
-            await delay()
+          if (type !== UserType || namespace !== DefaultNamespace) {
+            return
+          }
 
-            return HttpResponse.json({
-              body: JSON.stringify({
-                metadata: { namespace, type, id },
-                spec: { role: RoleAdmin },
-              } as Resource<UserSpec>),
-            })
-          },
-        ),
+          await delay()
 
-        http.post<never, UpdateUserRequest, Empty>(
-          '/management.ManagementService/UpdateUser',
-          async () => {
-            await delay()
+          return HttpResponse.json({
+            body: JSON.stringify({
+              metadata: { namespace, type, id },
+              spec: { role: RoleAdmin },
+            } as Resource<UserSpec>),
+          })
+        },
+      ),
+      http.post<never, UpdateUserRequest, Empty>(
+        '/management.ManagementService/UpdateUser',
+        async () => {
+          await delay()
 
-            return HttpResponse.json({})
-          },
-        ),
-      ],
-    },
+          return HttpResponse.json({})
+        },
+      ),
+    )
   },
 }
 

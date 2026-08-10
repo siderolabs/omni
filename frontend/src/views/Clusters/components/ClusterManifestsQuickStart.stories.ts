@@ -13,4 +13,4 @@ const meta: Meta<typeof ClusterManifestsQuickStart> = {
 export default meta
 type Story = StoryObj<typeof ClusterManifestsQuickStart>
 
-export const Default = {} satisfies Story
+export const Default: Story = {}

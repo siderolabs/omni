@@ -25,68 +25,63 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<InfraMachineSpec>({
-          expectedOptions: {
-            type: InfraMachineType,
-            namespace: InfraProviderNamespace,
-            search_for: ['pending'],
-          },
-          totalResults: 100,
-          initialResources: ({ limit = 10, offset = 0 }) => {
-            faker.seed(offset)
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<InfraMachineSpec>({
+        expectedOptions: {
+          type: InfraMachineType,
+          namespace: InfraProviderNamespace,
+          search_for: ['pending'],
+        },
+        totalResults: 100,
+        initialResources: ({ limit = 10, offset = 0 }) => {
+          faker.seed(offset)
 
-            return faker.helpers.multiple<Resource<InfraMachineSpec>>(
-              () => ({
-                spec: {},
-                metadata: {
-                  id: faker.string.uuid(),
-                  labels: {
-                    [LabelInfraProviderID]: 'bare-metal',
-                    [LabelMachinePendingAccept]: '',
-                  },
+          return faker.helpers.multiple<Resource<InfraMachineSpec>>(
+            () => ({
+              spec: {},
+              metadata: {
+                id: faker.string.uuid(),
+                labels: {
+                  [LabelInfraProviderID]: 'bare-metal',
+                  [LabelMachinePendingAccept]: '',
                 },
-              }),
-              { count: limit },
-            )
-          },
-        }).handler,
+              },
+            }),
+            { count: limit },
+          )
+        },
+      }).handler,
+      createWatchStreamHandler<InfraMachineSpec>({
+        expectedOptions: {
+          type: InfraMachineType,
+          namespace: InfraProviderNamespace,
+          search_for: ['rejected'],
+        },
+        totalResults: 100,
+        initialResources: ({ limit = 10, offset = 0 }) => {
+          faker.seed(offset + 1)
 
-        createWatchStreamHandler<InfraMachineSpec>({
-          expectedOptions: {
-            type: InfraMachineType,
-            namespace: InfraProviderNamespace,
-            search_for: ['rejected'],
-          },
-          totalResults: 100,
-          initialResources: ({ limit = 10, offset = 0 }) => {
-            faker.seed(offset + 1)
-
-            return faker.helpers.multiple<Resource<InfraMachineSpec>>(
-              () => ({
-                spec: {},
-                metadata: {
-                  id: faker.string.uuid(),
-                  labels: {
-                    [LabelInfraProviderID]: 'bare-metal',
-                  },
+          return faker.helpers.multiple<Resource<InfraMachineSpec>>(
+            () => ({
+              spec: {},
+              metadata: {
+                id: faker.string.uuid(),
+                labels: {
+                  [LabelInfraProviderID]: 'bare-metal',
                 },
-              }),
-              { count: limit },
-            )
-          },
-        }).handler,
-      ],
-    },
+              },
+            }),
+            { count: limit },
+          )
+        },
+      }).handler,
+    )
   },
 }
 
 export const NoData: Story = {
-  parameters: {
-    msw: {
-      handlers: [createWatchStreamHandler().handler],
-    },
+  beforeEach({ msw }) {
+    msw.use(createWatchStreamHandler().handler)
   },
 }

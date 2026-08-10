@@ -28,62 +28,58 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<JoinTokenStatusSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: JoinTokenStatusType,
-            id: token,
-          },
-          initialResources: [
-            {
-              spec: {
-                use_count: machineCount.toString(),
-                warnings: faker.helpers.multiple(
-                  () => ({
-                    machine: faker.hacker.noun(),
-                    message: faker.lorem.lines(1),
-                  }),
-                  { count: machineCount - 1 },
-                ),
-              },
-              metadata: {
-                namespace: DefaultNamespace,
-                type: JoinTokenStatusType,
-                id: token,
-              },
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<JoinTokenStatusSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: JoinTokenStatusType,
+          id: token,
+        },
+        initialResources: [
+          {
+            spec: {
+              use_count: machineCount.toString(),
+              warnings: faker.helpers.multiple(
+                () => ({
+                  machine: faker.hacker.noun(),
+                  message: faker.lorem.lines(1),
+                }),
+                { count: machineCount - 1 },
+              ),
             },
-          ],
-        }).handler,
-      ],
-    },
+            metadata: {
+              namespace: DefaultNamespace,
+              type: JoinTokenStatusType,
+              id: token,
+            },
+          },
+        ],
+      }).handler,
+    )
   },
 }
 
 export const NoWarnings: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<JoinTokenStatusSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: JoinTokenStatusType,
-            id: token,
-          },
-          initialResources: [
-            {
-              spec: {},
-              metadata: {
-                namespace: DefaultNamespace,
-                type: JoinTokenStatusType,
-                id: token,
-              },
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<JoinTokenStatusSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: JoinTokenStatusType,
+          id: token,
+        },
+        initialResources: [
+          {
+            spec: {},
+            metadata: {
+              namespace: DefaultNamespace,
+              type: JoinTokenStatusType,
+              id: token,
             },
-          ],
-        }).handler,
-      ],
-    },
+          },
+        ],
+      }).handler,
+    )
   },
 }

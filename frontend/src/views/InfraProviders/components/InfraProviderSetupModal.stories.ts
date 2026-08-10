@@ -7,18 +7,18 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { delay, http, HttpResponse } from 'msw'
 import { fn } from 'storybook/test'
 
-import type { Resource } from '@/api/grpc.ts'
+import type { Resource } from '@/api/grpc'
 import type {
   CreateServiceAccountRequest,
   CreateServiceAccountResponse,
-} from '@/api/omni/management/management.pb.ts'
+} from '@/api/omni/management/management.pb'
 import type {
   CreateRequest,
   CreateResponse,
   GetRequest,
   GetResponse,
-} from '@/api/omni/resources/resources.pb.ts'
-import type { AdvertisedEndpointsSpec } from '@/api/omni/specs/virtual.pb.ts'
+} from '@/api/omni/resources/resources.pb'
+import type { AdvertisedEndpointsSpec } from '@/api/omni/specs/virtual.pb'
 import { AdvertisedEndpointsID, AdvertisedEndpointsType, VirtualNamespace } from '@/api/resources'
 
 import InfraProviderSetupModal from './InfraProviderSetupModal.vue'
@@ -35,47 +35,40 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        http.post<never, CreateRequest, CreateResponse>(
-          '/omni.resources.ResourceService/Create',
-          async () => {
-            await delay()
+  beforeEach({ msw }) {
+    msw.use(
+      http.post<never, CreateRequest, CreateResponse>(
+        '/omni.resources.ResourceService/Create',
+        async () => {
+          await delay()
 
-            return HttpResponse.json({})
-          },
-        ),
+          return HttpResponse.json({})
+        },
+      ),
+      http.post<never, CreateServiceAccountRequest, CreateServiceAccountResponse>(
+        '/management.ManagementService/CreateServiceAccount',
+        async () => {
+          await delay()
 
-        http.post<never, CreateServiceAccountRequest, CreateServiceAccountResponse>(
-          '/management.ManagementService/CreateServiceAccount',
-          async () => {
-            await delay()
+          return HttpResponse.json({})
+        },
+      ),
+      http.post<never, GetRequest, GetResponse>('/omni.resources.ResourceService/Get', async () => {
+        await delay()
 
-            return HttpResponse.json({})
-          },
-        ),
-
-        http.post<never, GetRequest, GetResponse>(
-          '/omni.resources.ResourceService/Get',
-          async () => {
-            await delay()
-
-            return HttpResponse.json({
-              body: JSON.stringify({
-                spec: {
-                  grpc_api_url: faker.internet.url(),
-                },
-                metadata: {
-                  namespace: VirtualNamespace,
-                  type: AdvertisedEndpointsType,
-                  id: AdvertisedEndpointsID,
-                },
-              } satisfies Resource<AdvertisedEndpointsSpec>),
-            })
-          },
-        ),
-      ],
-    },
+        return HttpResponse.json({
+          body: JSON.stringify({
+            spec: {
+              grpc_api_url: faker.internet.url(),
+            },
+            metadata: {
+              namespace: VirtualNamespace,
+              type: AdvertisedEndpointsType,
+              id: AdvertisedEndpointsID,
+            },
+          } satisfies Resource<AdvertisedEndpointsSpec>),
+        })
+      }),
+    )
   },
 }

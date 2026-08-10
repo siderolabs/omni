@@ -53,83 +53,76 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<ClusterSpec>({
-          expectedOptions: {
-            type: ClusterType,
-            namespace: DefaultNamespace,
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<ClusterSpec>({
+        expectedOptions: {
+          type: ClusterType,
+          namespace: DefaultNamespace,
+        },
+        initialResources: [
+          {
+            spec: { talos_version: talosVersions.find((v) => semver.minor(v) === minTalos) },
+            metadata: {},
           },
-          initialResources: [
+        ],
+      }).handler,
+      createWatchStreamHandler<KubernetesUpgradeStatusSpec>({
+        expectedOptions: {
+          type: KubernetesUpgradeStatusType,
+          namespace: DefaultNamespace,
+        },
+        initialResources: () => {
+          const upgrade_versions = k8sVersions.filter((v) => [28, 29].includes(semver.minor(v)))
+
+          const [last_upgrade_version] = upgrade_versions
+            .filter((v) => semver.minor(v) === 28)
+            .splice(-3, 1)
+
+          return [
             {
-              spec: { talos_version: talosVersions.find((v) => semver.minor(v) === minTalos) },
+              spec: { last_upgrade_version, upgrade_versions },
               metadata: {},
             },
-          ],
-        }).handler,
+          ]
+        },
+      }).handler,
+      createWatchStreamHandler<KubernetesVersionSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: KubernetesVersionType,
+        },
+        initialResources: k8sVersions.map<Resource<KubernetesVersionSpec>>((version) => ({
+          spec: { version },
+          metadata: { id: version },
+        })),
+      }).handler,
+      createWatchStreamHandler<TalosVersionSpec>({
+        expectedOptions: {
+          type: TalosVersionType,
+          namespace: DefaultNamespace,
+        },
+        initialResources: talosVersions.map<Resource<TalosVersionSpec>>((version) => {
+          const minor = semver.minor(version)
 
-        createWatchStreamHandler<KubernetesUpgradeStatusSpec>({
-          expectedOptions: {
-            type: KubernetesUpgradeStatusType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: () => {
-            const upgrade_versions = k8sVersions.filter((v) => [28, 29].includes(semver.minor(v)))
-
-            const [last_upgrade_version] = upgrade_versions
-              .filter((v) => semver.minor(v) === 28)
-              .splice(-3, 1)
-
-            return [
-              {
-                spec: { last_upgrade_version, upgrade_versions },
-                metadata: {},
-              },
-            ]
-          },
-        }).handler,
-
-        createWatchStreamHandler<KubernetesVersionSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: KubernetesVersionType,
-          },
-          initialResources: k8sVersions.map<Resource<KubernetesVersionSpec>>((version) => ({
-            spec: { version },
+          return {
+            spec: {
+              version,
+              compatible_kubernetes_versions:
+                minor === minTalos
+                  ? k8sVersions.slice(0, Math.floor(k8sVersions.length / 2))
+                  : k8sVersions.slice(Math.ceil(k8sVersions.length / 2)),
+            },
             metadata: { id: version },
-          })),
-        }).handler,
-
-        createWatchStreamHandler<TalosVersionSpec>({
-          expectedOptions: {
-            type: TalosVersionType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: talosVersions.map<Resource<TalosVersionSpec>>((version) => {
-            const minor = semver.minor(version)
-
-            return {
-              spec: {
-                version,
-                compatible_kubernetes_versions:
-                  minor === minTalos
-                    ? k8sVersions.slice(0, Math.floor(k8sVersions.length / 2))
-                    : k8sVersions.slice(Math.ceil(k8sVersions.length / 2)),
-              },
-              metadata: { id: version },
-            }
-          }),
-        }).handler,
-      ],
-    },
+          }
+        }),
+      }).handler,
+    )
   },
 }
 
 export const NoData: Story = {
-  parameters: {
-    msw: {
-      handlers: [createWatchStreamHandler().handler],
-    },
+  beforeEach({ msw }) {
+    msw.use(createWatchStreamHandler().handler)
   },
 }

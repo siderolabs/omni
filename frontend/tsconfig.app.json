@@ -1,7 +1,7 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "typed-router.d.ts"],
-  "exclude": ["src/**/*.spec.*", "src/**/*.stories.*"],
+  "exclude": ["src/**/*.spec.*", "src/**/*.mocks.*", "src/**/*.stories.*"],
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable", "ES2025.Iterator"],
 

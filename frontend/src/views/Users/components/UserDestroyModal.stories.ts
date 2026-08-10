@@ -7,42 +7,41 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { delay, http, HttpResponse } from 'msw'
 import { fn } from 'storybook/test'
 
-import type { Empty } from '@/api/google/protobuf/empty.pb.ts'
+import type { Empty } from '@/api/google/protobuf/empty.pb'
 import type {
   DestroyServiceAccountRequest,
   DestroyUserRequest,
-} from '@/api/omni/management/management.pb.ts'
+} from '@/api/omni/management/management.pb'
 
 import UserDestroyModal from './UserDestroyModal.vue'
 
 const meta: Meta<typeof UserDestroyModal> = {
   component: UserDestroyModal,
+
   args: {
     open: true,
     'onUpdate:open': fn(),
   },
-  parameters: {
-    msw: {
-      handlers: [
-        http.post<never, DestroyServiceAccountRequest, Empty>(
-          '/management.ManagementService/DestroyServiceAccount',
-          async () => {
-            await delay()
 
-            return HttpResponse.json({})
-          },
-        ),
+  beforeEach({ msw }) {
+    msw.use(
+      http.post<never, DestroyServiceAccountRequest, Empty>(
+        '/management.ManagementService/DestroyServiceAccount',
+        async () => {
+          await delay()
 
-        http.post<never, DestroyUserRequest, Empty>(
-          '/management.ManagementService/DestroyUser',
-          async () => {
-            await delay()
+          return HttpResponse.json({})
+        },
+      ),
+      http.post<never, DestroyUserRequest, Empty>(
+        '/management.ManagementService/DestroyUser',
+        async () => {
+          await delay()
 
-            return HttpResponse.json({})
-          },
-        ),
-      ],
-    },
+          return HttpResponse.json({})
+        },
+      ),
+    )
   },
 }
 

@@ -19,8 +19,10 @@ import {
   LabelClusterMachine,
   MachineExtensionsStatusType,
 } from '@/api/resources'
-import * as ExtensionsPickerStories from '@/views/Extensions/ExtensionsPicker.stories'
-import { fakeExtensions } from '@/views/Extensions/fakeData'
+import {
+  fakeExtensions,
+  handlers as extensionsPickerHandlers,
+} from '@/views/Extensions/ExtensionsPicker.mocks'
 
 import UpdateExtensionsModal from './UpdateExtensionsModal.vue'
 
@@ -46,7 +48,7 @@ const extensions = faker.helpers.arrayElements(fakeExtensions, 20).map((e) => ({
 }))
 
 const baseHandlers = [
-  ...ExtensionsPickerStories.Data.parameters.msw.handlers,
+  ...extensionsPickerHandlers,
 
   createWatchStreamHandler<MachineExtensionsStatusSpec>({
     expectedOptions: {
@@ -71,72 +73,66 @@ const baseHandlers = [
 ]
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        ...baseHandlers,
-
-        createWatchStreamHandler<ExtensionsConfigurationSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: ExtensionsConfigurationType,
-            selectors: {
-              [LabelCluster]: clusterId,
+  beforeEach({ msw }) {
+    msw.use(
+      ...baseHandlers,
+      createWatchStreamHandler<ExtensionsConfigurationSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: ExtensionsConfigurationType,
+          selectors: {
+            [LabelCluster]: clusterId,
+          },
+        },
+        initialResources: [
+          {
+            metadata: {
+              namespace: DefaultNamespace,
+              type: ExtensionsConfigurationType,
+              id: faker.string.uuid(),
+              labels: {
+                [LabelCluster]: clusterId,
+                [LabelClusterMachine]: faker.string.uuid(),
+              },
+            },
+            spec: {
+              extensions: extensions.map((e) => e.name),
             },
           },
-          initialResources: [
-            {
-              metadata: {
-                namespace: DefaultNamespace,
-                type: ExtensionsConfigurationType,
-                id: faker.string.uuid(),
-                labels: {
-                  [LabelCluster]: clusterId,
-                  [LabelClusterMachine]: faker.string.uuid(),
-                },
-              },
-              spec: {
-                extensions: extensions.map((e) => e.name),
-              },
-            },
-          ],
-        }).handler,
-      ],
-    },
+        ],
+      }).handler,
+    )
   },
 }
 
 export const Indeterminate: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        ...baseHandlers,
-
-        createWatchStreamHandler<ExtensionsConfigurationSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: ExtensionsConfigurationType,
-            selectors: {
-              [LabelCluster]: clusterId,
+  beforeEach({ msw }) {
+    msw.use(
+      ...baseHandlers,
+      createWatchStreamHandler<ExtensionsConfigurationSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: ExtensionsConfigurationType,
+          selectors: {
+            [LabelCluster]: clusterId,
+          },
+        },
+        initialResources: [
+          {
+            metadata: {
+              namespace: DefaultNamespace,
+              type: ExtensionsConfigurationType,
+              id: faker.string.uuid(),
+              labels: {
+                [LabelCluster]: clusterId,
+              },
+            },
+            spec: {
+              extensions: extensions.map((e) => e.name),
             },
           },
-          initialResources: [
-            {
-              metadata: {
-                namespace: DefaultNamespace,
-                type: ExtensionsConfigurationType,
-                id: faker.string.uuid(),
-                labels: {
-                  [LabelCluster]: clusterId,
-                },
-              },
-              spec: {
-                extensions: extensions.map((e) => e.name),
-              },
-            },
-          ],
-        }).handler,
-      ],
-    },
+        ],
+      }).handler,
+    )
   },
 }

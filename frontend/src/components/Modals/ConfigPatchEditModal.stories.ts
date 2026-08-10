@@ -37,15 +37,13 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        http.post<never, ValidateConfigRequest, Empty>(
-          '/management.ManagementService/ValidateConfig',
-          () => HttpResponse.json({}),
-        ),
-      ],
-    },
+  beforeEach({ msw }) {
+    msw.use(
+      http.post<never, ValidateConfigRequest, Empty>(
+        '/management.ManagementService/ValidateConfig',
+        () => HttpResponse.json({}),
+      ),
+    )
   },
 }
 
@@ -53,18 +51,17 @@ export const InvalidConfigError: Story = {
   args: {
     config: 'Try saving me',
   },
-  parameters: {
-    msw: {
-      handlers: [
-        http.post<never, ValidateConfigRequest, Empty>(
-          '/management.ManagementService/ValidateConfig',
-          () =>
-            HttpResponse.json(
-              { code: Code.INVALID_ARGUMENT, message: 'Everything is bad!' },
-              { status: 400 },
-            ),
-        ),
-      ],
-    },
+
+  beforeEach({ msw }) {
+    msw.use(
+      http.post<never, ValidateConfigRequest, Empty>(
+        '/management.ManagementService/ValidateConfig',
+        () =>
+          HttpResponse.json(
+            { code: Code.INVALID_ARGUMENT, message: 'Everything is bad!' },
+            { status: 400 },
+          ),
+      ),
+    )
   },
 }

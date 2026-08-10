@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
-import { createWatchStreamHandler } from '@msw/helpers.ts'
+import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { fn } from 'storybook/test'
 
@@ -11,13 +11,13 @@ import type {
   MachineStatusSpec,
   TalosExtensionsSpec,
   TalosExtensionsSpecInfo,
-} from '@/api/omni/specs/omni.pb.ts'
+} from '@/api/omni/specs/omni.pb'
 import {
   DefaultNamespace,
   DefaultTalosVersion,
   MachineStatusType,
   TalosExtensionsType,
-} from '@/api/resources.ts'
+} from '@/api/resources'
 
 import CreateExtensionsModal from './CreateExtensionsModal.vue'
 
@@ -38,54 +38,51 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<MachineStatusSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: MachineStatusType,
-            id: machine,
-          },
-          initialResources: [
-            {
-              spec: {
-                schematic: { extensions: [] },
-                network: { hostname: faker.internet.domainWord() },
-                talos_version: `v${DefaultTalosVersion}`,
-              },
-              metadata: {
-                namespace: DefaultNamespace,
-                type: MachineStatusType,
-                id: machine,
-              },
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<MachineStatusSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: MachineStatusType,
+          id: machine,
+        },
+        initialResources: [
+          {
+            spec: {
+              schematic: { extensions: [] },
+              network: { hostname: faker.internet.domainWord() },
+              talos_version: `v${DefaultTalosVersion}`,
             },
-          ],
-        }).handler,
-
-        createWatchStreamHandler<TalosExtensionsSpec>({
-          expectedOptions: {
-            type: TalosExtensionsType,
-            namespace: DefaultNamespace,
-            id: DefaultTalosVersion,
-          },
-          initialResources: [
-            {
-              spec: {
-                items: faker.helpers.multiple<TalosExtensionsSpecInfo>(
-                  () => ({
-                    name: `siderolabs/${faker.helpers.slugify(faker.word.words({ count: { min: 1, max: 3 } }).toLowerCase())}`,
-                    author: faker.company.name(),
-                    version: faker.system.semver(),
-                  }),
-                  { count: 50 },
-                ),
-              },
-              metadata: {},
+            metadata: {
+              namespace: DefaultNamespace,
+              type: MachineStatusType,
+              id: machine,
             },
-          ],
-        }).handler,
-      ],
-    },
+          },
+        ],
+      }).handler,
+      createWatchStreamHandler<TalosExtensionsSpec>({
+        expectedOptions: {
+          type: TalosExtensionsType,
+          namespace: DefaultNamespace,
+          id: DefaultTalosVersion,
+        },
+        initialResources: [
+          {
+            spec: {
+              items: faker.helpers.multiple<TalosExtensionsSpecInfo>(
+                () => ({
+                  name: `siderolabs/${faker.helpers.slugify(faker.word.words({ count: { min: 1, max: 3 } }).toLowerCase())}`,
+                  author: faker.company.name(),
+                  version: faker.system.semver(),
+                }),
+                { count: 50 },
+              ),
+            },
+            metadata: {},
+          },
+        ],
+      }).handler,
+    )
   },
 }

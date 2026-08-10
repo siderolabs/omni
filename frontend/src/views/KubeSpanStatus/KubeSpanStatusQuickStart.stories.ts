@@ -2,18 +2,18 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { createWatchStreamHandler } from '@msw/helpers.ts'
+import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 
-import type { Resource } from '@/api/grpc.ts'
-import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb.ts'
+import type { Resource } from '@/api/grpc'
+import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
 import type {
   ClusterConfigVersionSpec,
   ClusterSpec,
   ClusterStatusSpec,
-} from '@/api/omni/specs/omni.pb.ts'
-import type { ClusterPermissionsSpec, VersionContractSpec } from '@/api/omni/specs/virtual.pb.ts'
+} from '@/api/omni/specs/omni.pb'
+import type { ClusterPermissionsSpec, VersionContractSpec } from '@/api/omni/specs/virtual.pb'
 import {
   ClusterConfigVersionType,
   ClusterPermissionsType,
@@ -22,7 +22,7 @@ import {
   DefaultNamespace,
   VersionContractType,
   VirtualNamespace,
-} from '@/api/resources.ts'
+} from '@/api/resources'
 
 import KubeSpanStatusQuickStart from './KubeSpanStatusQuickStart.vue'
 
@@ -147,58 +147,50 @@ const meta: Meta<typeof KubeSpanStatusQuickStart> = {
 export default meta
 type Story = StoryObj<typeof KubeSpanStatusQuickStart>
 
-export const Default = {
-  parameters: {
-    msw: {
-      handlers: [
-        versionContractHandler({ kube_span_multidoc_config: true }),
-        permissionsHandler({ can_manage_config_patches: true }),
-        clusterHandler,
-        clusterConfigHandler,
-        clusterStatusHandler(6),
-      ],
-    },
+export const Default: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      versionContractHandler({ kube_span_multidoc_config: true }),
+      permissionsHandler({ can_manage_config_patches: true }),
+      clusterHandler,
+      clusterConfigHandler,
+      clusterStatusHandler(6),
+    )
   },
-} satisfies Story
+}
 
-export const NoMultidoc = {
-  parameters: {
-    msw: {
-      handlers: [
-        versionContractHandler({ kube_span_multidoc_config: false }),
-        permissionsHandler({ can_manage_config_patches: true }),
-        clusterHandler,
-        clusterConfigHandler,
-        clusterStatusHandler(6),
-      ],
-    },
+export const NoMultidoc: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      versionContractHandler({ kube_span_multidoc_config: false }),
+      permissionsHandler({ can_manage_config_patches: true }),
+      clusterHandler,
+      clusterConfigHandler,
+      clusterStatusHandler(6),
+    )
   },
-} satisfies Story
+}
 
-export const ReadOnly = {
-  parameters: {
-    msw: {
-      handlers: [
-        versionContractHandler({ kube_span_multidoc_config: true }),
-        permissionsHandler({ can_manage_config_patches: false }),
-        clusterHandler,
-        clusterConfigHandler,
-        clusterStatusHandler(6),
-      ],
-    },
+export const ReadOnly: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      versionContractHandler({ kube_span_multidoc_config: true }),
+      permissionsHandler({ can_manage_config_patches: false }),
+      clusterHandler,
+      clusterConfigHandler,
+      clusterStatusHandler(6),
+    )
   },
-} satisfies Story
+}
 
-export const LargeCluster = {
-  parameters: {
-    msw: {
-      handlers: [
-        versionContractHandler({ kube_span_multidoc_config: true }),
-        permissionsHandler({ can_manage_config_patches: true }),
-        clusterHandler,
-        clusterConfigHandler,
-        clusterStatusHandler(64),
-      ],
-    },
+export const LargeCluster: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      versionContractHandler({ kube_span_multidoc_config: true }),
+      permissionsHandler({ can_manage_config_patches: true }),
+      clusterHandler,
+      clusterConfigHandler,
+      clusterStatusHandler(64),
+    )
   },
-} satisfies Story
+}

@@ -11,7 +11,7 @@ import { RouterView } from 'vue-router'
 import { GrpcTunnelMode, type InstallationMediaConfigSpec } from '@/api/omni/specs/omni.pb'
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import { DefaultNamespace, DefaultTalosVersion, InstallationMediaConfigType } from '@/api/resources'
-import * as ConfirmationStories from '@/pages/(authenticated)/machines/installation-media/create/confirmation.stories'
+import { handlers as confirmationHandlers } from '@/pages/(authenticated)/machines/installation-media/create/confirmation.mocks'
 
 import InstallationMediaReview from './[presetId].vue'
 
@@ -22,7 +22,7 @@ const meta: Meta<typeof InstallationMediaReview> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default = {
+export const Default: Story = {
   decorators: [
     vueRouter(
       [
@@ -34,38 +34,36 @@ export const Default = {
       { initialRoute: '/preset-id' },
     ),
   ],
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<InstallationMediaConfigSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: InstallationMediaConfigType,
-            id: 'preset-id',
-          },
-          initialResources: [
-            {
-              spec: {
-                architecture: PlatformConfigSpecArch.ARM64,
-                talos_version: DefaultTalosVersion,
-                machine_labels: { 'my-label': 'my-value' },
-                install_extensions: ['siderolabs/potato', 'siderolabs/tomato'],
-                kernel_args: '-console console=tty0',
-                secure_boot: true,
-                grpc_tunnel: GrpcTunnelMode.DISABLED,
-                join_token: faker.string.alphanumeric(44),
-              },
-              metadata: {
-                namespace: DefaultNamespace,
-                type: InstallationMediaConfigType,
-                id: 'preset-id',
-              },
-            },
-          ],
-        }).handler,
 
-        ...ConfirmationStories.Default.parameters.msw.handlers,
-      ],
-    },
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<InstallationMediaConfigSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: InstallationMediaConfigType,
+          id: 'preset-id',
+        },
+        initialResources: [
+          {
+            spec: {
+              architecture: PlatformConfigSpecArch.ARM64,
+              talos_version: DefaultTalosVersion,
+              machine_labels: { 'my-label': 'my-value' },
+              install_extensions: ['siderolabs/potato', 'siderolabs/tomato'],
+              kernel_args: '-console console=tty0',
+              secure_boot: true,
+              grpc_tunnel: GrpcTunnelMode.DISABLED,
+              join_token: faker.string.alphanumeric(44),
+            },
+            metadata: {
+              namespace: DefaultNamespace,
+              type: InstallationMediaConfigType,
+              id: 'preset-id',
+            },
+          },
+        ],
+      }).handler,
+      ...confirmationHandlers,
+    )
   },
-} satisfies Story
+}

@@ -29,43 +29,41 @@ type Story = StoryObj<typeof meta>
 const userIds = faker.helpers.multiple(() => faker.string.uuid(), { count: 100 })
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<IdentityStatusSpec>({
-          expectedOptions: {
-            type: IdentityStatusType,
-            namespace: EphemeralNamespace,
-          },
-          totalResults: userIds.length,
-          initialResources: ({ limit = 5, offset = 0 }) => {
-            faker.seed(offset)
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<IdentityStatusSpec>({
+        expectedOptions: {
+          type: IdentityStatusType,
+          namespace: EphemeralNamespace,
+        },
+        totalResults: userIds.length,
+        initialResources: ({ limit = 5, offset = 0 }) => {
+          faker.seed(offset)
 
-            return faker.helpers.multiple<Resource<IdentityStatusSpec>>(
-              (_, i) => ({
-                spec: {
-                  user_id: userIds[i + offset],
-                  role: faker.person.jobType(),
+          return faker.helpers.multiple<Resource<IdentityStatusSpec>>(
+            (_, i) => ({
+              spec: {
+                user_id: userIds[i + offset],
+                role: faker.person.jobType(),
+              },
+              metadata: {
+                type: IdentityType,
+                namespace: DefaultNamespace,
+                id: faker.internet.email(),
+                labels: {
+                  [LabelIdentityUserID]: userIds[i + offset],
+                  ...faker.helpers
+                    .multiple(() => `${SAMLLabelPrefix}${faker.company.buzzNoun()}`, {
+                      count: { min: 0, max: 3 },
+                    })
+                    .reduce((prev, curr) => ({ ...prev, [curr]: '' }), {}),
                 },
-                metadata: {
-                  type: IdentityType,
-                  namespace: DefaultNamespace,
-                  id: faker.internet.email(),
-                  labels: {
-                    [LabelIdentityUserID]: userIds[i + offset],
-                    ...faker.helpers
-                      .multiple(() => `${SAMLLabelPrefix}${faker.company.buzzNoun()}`, {
-                        count: { min: 0, max: 3 },
-                      })
-                      .reduce((prev, curr) => ({ ...prev, [curr]: '' }), {}),
-                  },
-                },
-              }),
-              { count: limit },
-            )
-          },
-        }).handler,
-      ],
-    },
+              },
+            }),
+            { count: limit },
+          )
+        },
+      }).handler,
+    )
   },
 }

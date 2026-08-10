@@ -24,69 +24,67 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<OngoingTaskSpec>({
-          expectedOptions: {
-            namespace: EphemeralNamespace,
-            type: OngoingTaskType,
-          },
-          initialResources: faker.helpers.multiple(
-            () => ({
-              metadata: {
-                id: faker.string.uuid(),
-                created: formatRFC3339(faker.date.recent()),
-              },
-              spec: {
-                title: faker.string.uuid(),
-                ...faker.helpers.arrayElement([
-                  {
-                    kubernetes_upgrade: {
-                      last_upgrade_version: faker.system.semver(),
-                      current_upgrade_version: faker.system.semver(),
-                      phase: KubernetesUpgradeStatusSpecPhase.Upgrading,
-                    },
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<OngoingTaskSpec>({
+        expectedOptions: {
+          namespace: EphemeralNamespace,
+          type: OngoingTaskType,
+        },
+        initialResources: faker.helpers.multiple(
+          () => ({
+            metadata: {
+              id: faker.string.uuid(),
+              created: formatRFC3339(faker.date.recent()),
+            },
+            spec: {
+              title: faker.string.uuid(),
+              ...faker.helpers.arrayElement([
+                {
+                  kubernetes_upgrade: {
+                    last_upgrade_version: faker.system.semver(),
+                    current_upgrade_version: faker.system.semver(),
+                    phase: KubernetesUpgradeStatusSpecPhase.Upgrading,
                   },
-                  {
-                    talos_upgrade: {
-                      last_upgrade_version: faker.system.semver(),
-                      current_upgrade_version: faker.system.semver(),
-                      phase: TalosUpgradeStatusSpecPhase.Upgrading,
-                    },
+                },
+                {
+                  talos_upgrade: {
+                    last_upgrade_version: faker.system.semver(),
+                    current_upgrade_version: faker.system.semver(),
+                    phase: TalosUpgradeStatusSpecPhase.Upgrading,
                   },
-                  {
-                    talos_upgrade: {
-                      last_upgrade_version: faker.system.semver(),
-                      phase: TalosUpgradeStatusSpecPhase.Reverting,
-                    },
+                },
+                {
+                  talos_upgrade: {
+                    last_upgrade_version: faker.system.semver(),
+                    phase: TalosUpgradeStatusSpecPhase.Reverting,
                   },
-                  {
-                    machine_upgrade: {
-                      schematic_id: faker.string.hexadecimal({
-                        prefix: '',
-                        casing: 'lower',
-                        length: 64,
-                      }),
-                      current_schematic_id: faker.string.hexadecimal({
-                        prefix: '',
-                        casing: 'lower',
-                        length: 64,
-                      }),
-                    },
+                },
+                {
+                  machine_upgrade: {
+                    schematic_id: faker.string.hexadecimal({
+                      prefix: '',
+                      casing: 'lower',
+                      length: 64,
+                    }),
+                    current_schematic_id: faker.string.hexadecimal({
+                      prefix: '',
+                      casing: 'lower',
+                      length: 64,
+                    }),
                   },
-                  {
-                    destroy: {
-                      phase: 'Destroying: 2 machine sets, 3 machines',
-                    },
+                },
+                {
+                  destroy: {
+                    phase: 'Destroying: 2 machine sets, 3 machines',
                   },
-                ]),
-              },
-            }),
-            { count: 10 },
-          ),
-        }).handler,
-      ],
-    },
+                },
+              ]),
+            },
+          }),
+          { count: 10 },
+        ),
+      }).handler,
+    )
   },
 }

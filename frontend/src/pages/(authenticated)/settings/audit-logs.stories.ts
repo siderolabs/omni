@@ -89,17 +89,13 @@ function makeHandler(count: number) {
 }
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [makeHandler(1000)],
-    },
+  beforeEach({ msw }) {
+    msw.use(makeHandler(1000))
   },
 }
 
 export const Empty: Story = {
-  parameters: {
-    msw: {
-      handlers: [makeHandler(0)],
-    },
+  beforeEach({ msw }) {
+    msw.use(makeHandler(0))
   },
 }

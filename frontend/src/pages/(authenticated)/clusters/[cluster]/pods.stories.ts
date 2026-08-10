@@ -26,65 +26,61 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<V1PodSpec, V1PodStatus>({
-          expectedOptions: { type: kubernetes.pod },
-          initialResources: () => {
-            faker.seed(0)
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<V1PodSpec, V1PodStatus>({
+        expectedOptions: { type: kubernetes.pod },
+        initialResources: () => {
+          faker.seed(0)
 
-            const containers: V1Container[] = [
-              {
+          const containers: V1Container[] = [
+            {
+              name: faker.helpers.slugify(
+                [faker.hacker.verb(), faker.hacker.adjective()].join(' '),
+              ),
+              image: `${faker.internet.domainName()}/${faker.internet.domainWord()}:v${faker.system.semver()}`,
+            },
+          ]
+
+          return faker.helpers.multiple(
+            () => ({
+              metadata: {
                 name: faker.helpers.slugify(
-                  [faker.hacker.verb(), faker.hacker.adjective()].join(' '),
+                  [faker.hacker.verb(), faker.hacker.adjective(), faker.hacker.noun()].join(' '),
                 ),
-                image: `${faker.internet.domainName()}/${faker.internet.domainWord()}:v${faker.system.semver()}`,
+                namespace: 'kube-system',
               },
-            ]
-
-            return faker.helpers.multiple(
-              () => ({
-                metadata: {
-                  name: faker.helpers.slugify(
-                    [faker.hacker.verb(), faker.hacker.adjective(), faker.hacker.noun()].join(' '),
+              spec: {
+                nodeName: `machine-${faker.string.uuid()}`,
+                containers,
+              },
+              status: {
+                startTime: formatRFC3339(faker.date.past()),
+                podIP: faker.internet.ipv4(),
+                containerStatuses: containers.map(
+                  () =>
+                    ({
+                      ready: faker.datatype.boolean(),
+                      restartCount: faker.number.int(10),
+                    }) as V1ContainerStatus,
+                ),
+                phase: faker.helpers.arrayElement(
+                  Object.values(TPodsViewFilterOptions).filter(
+                    (o) => o !== TPodsViewFilterOptions.ALL,
                   ),
-                  namespace: 'kube-system',
-                },
-                spec: {
-                  nodeName: `machine-${faker.string.uuid()}`,
-                  containers,
-                },
-                status: {
-                  startTime: formatRFC3339(faker.date.past()),
-                  podIP: faker.internet.ipv4(),
-                  containerStatuses: containers.map(
-                    () =>
-                      ({
-                        ready: faker.datatype.boolean(),
-                        restartCount: faker.number.int(10),
-                      }) as V1ContainerStatus,
-                  ),
-                  phase: faker.helpers.arrayElement(
-                    Object.values(TPodsViewFilterOptions).filter(
-                      (o) => o !== TPodsViewFilterOptions.ALL,
-                    ),
-                  ),
-                },
-              }),
-              { count: 20 },
-            )
-          },
-        }).handler,
-      ],
-    },
+                ),
+              },
+            }),
+            { count: 20 },
+          )
+        },
+      }).handler,
+    )
   },
 }
 
 export const NoData: Story = {
-  parameters: {
-    msw: {
-      handlers: [createWatchStreamHandler().handler],
-    },
+  beforeEach({ msw }) {
+    msw.use(createWatchStreamHandler().handler)
   },
 }

@@ -239,14 +239,12 @@ const systemStatHandler = http.post('/machine.MachineService/SystemStat', () => 
 })
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        perfStreamHandler(TalosCPUType, cpuSpecAt),
-        perfStreamHandler(TalosMemoryType, memSpecAt),
-        processesHandler,
-        systemStatHandler,
-      ],
-    },
+  beforeEach({ msw }) {
+    msw.use(
+      perfStreamHandler(TalosCPUType, cpuSpecAt),
+      perfStreamHandler(TalosMemoryType, memSpecAt),
+      processesHandler,
+      systemStatHandler,
+    )
   },
 }

@@ -20,35 +20,33 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<InfraProviderCombinedStatusSpec>({
-          expectedOptions: {
-            namespace: EphemeralNamespace,
-            type: InfraProviderCombinedStatusType,
-          },
-          initialResources: faker.helpers.multiple<Resource<InfraProviderCombinedStatusSpec>>(
-            () => ({
-              metadata: { id: faker.string.uuid() },
-              spec: {
-                name: faker.animal.cat(),
-                icon: faker.image
-                  .dataUri({ type: 'svg-base64' })
-                  .replace('data:image/svg+xml;base64,', ''),
-                description: faker.hacker.phrase(),
-                version: `v${faker.system.semver()}`,
-                health: {
-                  connected: faker.datatype.boolean(),
-                  error: faker.helpers.maybe(() => faker.hacker.phrase()),
-                  initialized: faker.datatype.boolean(),
-                },
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<InfraProviderCombinedStatusSpec>({
+        expectedOptions: {
+          namespace: EphemeralNamespace,
+          type: InfraProviderCombinedStatusType,
+        },
+        initialResources: faker.helpers.multiple<Resource<InfraProviderCombinedStatusSpec>>(
+          () => ({
+            metadata: { id: faker.string.uuid() },
+            spec: {
+              name: faker.animal.cat(),
+              icon: faker.image
+                .dataUri({ type: 'svg-base64' })
+                .replace('data:image/svg+xml;base64,', ''),
+              description: faker.hacker.phrase(),
+              version: `v${faker.system.semver()}`,
+              health: {
+                connected: faker.datatype.boolean(),
+                error: faker.helpers.maybe(() => faker.hacker.phrase()),
+                initialized: faker.datatype.boolean(),
               },
-            }),
-            { count: 10 },
-          ),
-        }).handler,
-      ],
-    },
+            },
+          }),
+          { count: 10 },
+        ),
+      }).handler,
+    )
   },
 }

@@ -95,25 +95,19 @@ function machineSetNodesHandler(count: number) {
 }
 
 export const Worker: Story = {
-  parameters: {
-    msw: {
-      handlers: [clusterMachineStatusHandler(false), machineSetNodesHandler(3)],
-    },
+  beforeEach({ msw }) {
+    msw.use(clusterMachineStatusHandler(false), machineSetNodesHandler(3))
   },
 }
 
 export const ControlPlane: Story = {
-  parameters: {
-    msw: {
-      handlers: [clusterMachineStatusHandler(true), machineSetNodesHandler(2)],
-    },
+  beforeEach({ msw }) {
+    msw.use(clusterMachineStatusHandler(true), machineSetNodesHandler(2))
   },
 }
 
 export const ControlPlaneQuorumWarning: Story = {
-  parameters: {
-    msw: {
-      handlers: [clusterMachineStatusHandler(true), machineSetNodesHandler(3)],
-    },
+  beforeEach({ msw }) {
+    msw.use(clusterMachineStatusHandler(true), machineSetNodesHandler(3))
   },
 }

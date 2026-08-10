@@ -15,7 +15,7 @@ import {
   type ClusterKubernetesManifestsStatusSpecGroupStatus,
   type ClusterKubernetesManifestsStatusSpecManifestStatus,
   ClusterKubernetesManifestsStatusSpecManifestStatusPhase,
-} from '@/api/omni/specs/omni.pb.ts'
+} from '@/api/omni/specs/omni.pb'
 
 import ClusterManifestsGroupNode, {
   type ClusterManifestsGroupNodeData,

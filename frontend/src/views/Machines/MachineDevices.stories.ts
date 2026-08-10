@@ -40,50 +40,46 @@ const classes = faker.helpers.multiple(
 )
 
 export const Data: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<PCIDeviceSpec>({
-          expectedOptions: {
-            namespace: TalosHardwareNamespace,
-            type: TalosPCIDeviceType,
-          },
-          initialResources: faker.helpers.multiple(
-            (_, i) => {
-              const classNode = faker.helpers.maybe(() => faker.helpers.arrayElement(classes))
-              const subclassNode = classNode?.subclasses
-                ? faker.helpers.maybe(() => faker.helpers.arrayElement(classes))
-                : undefined
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<PCIDeviceSpec>({
+        expectedOptions: {
+          namespace: TalosHardwareNamespace,
+          type: TalosPCIDeviceType,
+        },
+        initialResources: faker.helpers.multiple(
+          (_, i) => {
+            const classNode = faker.helpers.maybe(() => faker.helpers.arrayElement(classes))
+            const subclassNode = classNode?.subclasses
+              ? faker.helpers.maybe(() => faker.helpers.arrayElement(classes))
+              : undefined
 
-              return {
-                metadata: {
-                  namespace: TalosHardwareNamespace,
-                  type: TalosPCIDeviceType,
-                  id: `0000:00:${String(i).padStart(2, '0')}.0`,
-                },
-                spec: {
-                  class: classNode?.label,
-                  class_id: classNode?.id,
-                  subclass: subclassNode?.label,
-                  subclass_id: subclassNode?.id,
-                  vendor: faker.company.name(),
-                  product: faker.commerce.productName(),
-                  driver: faker.hacker.abbreviation(),
-                },
-              }
-            },
-            { count: 300 },
-          ),
-        }).handler,
-      ],
-    },
+            return {
+              metadata: {
+                namespace: TalosHardwareNamespace,
+                type: TalosPCIDeviceType,
+                id: `0000:00:${String(i).padStart(2, '0')}.0`,
+              },
+              spec: {
+                class: classNode?.label,
+                class_id: classNode?.id,
+                subclass: subclassNode?.label,
+                subclass_id: subclassNode?.id,
+                vendor: faker.company.name(),
+                product: faker.commerce.productName(),
+                driver: faker.hacker.abbreviation(),
+              },
+            }
+          },
+          { count: 300 },
+        ),
+      }).handler,
+    )
   },
 }
 
 export const NoData: Story = {
-  parameters: {
-    msw: {
-      handlers: [createWatchStreamHandler().handler],
-    },
+  beforeEach({ msw }) {
+    msw.use(createWatchStreamHandler().handler)
   },
 }

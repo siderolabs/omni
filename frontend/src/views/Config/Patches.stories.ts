@@ -200,81 +200,72 @@ type Story = StoryObj<typeof meta>
 /** Cluster-scoped view with patches spread across every group and full manage permissions. */
 export const Cluster: Story = {
   args: { cluster: CLUSTER },
-  parameters: {
-    msw: {
-      handlers: [clusterPatchesHandler(), machineStatusesHandler, clusterPermissionsHandler(true)],
-    },
+
+  beforeEach({ msw }) {
+    msw.use(clusterPatchesHandler(), machineStatusesHandler, clusterPermissionsHandler(true))
   },
 }
 
 /** Same data, but the user cannot manage patches — create, toggle and delete are disabled. */
 export const ClusterReadOnly: Story = {
   args: { cluster: CLUSTER },
-  parameters: {
-    msw: {
-      handlers: [clusterPatchesHandler(), machineStatusesHandler, clusterPermissionsHandler(false)],
-    },
+
+  beforeEach({ msw }) {
+    msw.use(clusterPatchesHandler(), machineStatusesHandler, clusterPermissionsHandler(false))
   },
 }
 
 /** Machine-scoped view: patches attached to a single machine. */
 export const Machine: Story = {
   args: { machine: MACHINE },
-  parameters: {
-    msw: {
-      handlers: [
-        clusterPatchesHandler([
-          makePatch({
-            id: '500-machine-network',
-            name: 'machine-network',
-            description: 'Static network configuration for this machine',
-            labels: { [LabelMachine]: MACHINE },
-          }),
-          makePatch({
-            id: '500-machine-disabled',
-            name: 'experimental',
-            description: 'A disabled experimental patch',
-            disabled: true,
-            labels: { [LabelMachine]: MACHINE },
-          }),
-        ]),
-        machineStatusesHandler,
-        machinePermissionsHandler(true),
-      ],
-    },
+
+  beforeEach({ msw }) {
+    msw.use(
+      clusterPatchesHandler([
+        makePatch({
+          id: '500-machine-network',
+          name: 'machine-network',
+          description: 'Static network configuration for this machine',
+          labels: { [LabelMachine]: MACHINE },
+        }),
+        makePatch({
+          id: '500-machine-disabled',
+          name: 'experimental',
+          description: 'A disabled experimental patch',
+          disabled: true,
+          labels: { [LabelMachine]: MACHINE },
+        }),
+      ]),
+      machineStatusesHandler,
+      machinePermissionsHandler(true),
+    )
   },
 }
 
 /** No patches associated — renders the empty-state alert. */
 export const Empty: Story = {
   args: { cluster: CLUSTER },
-  parameters: {
-    msw: {
-      handlers: [
-        clusterPatchesHandler([]),
-        machineStatusesHandler,
-        clusterPermissionsHandler(true),
-      ],
-    },
+
+  beforeEach({ msw }) {
+    msw.use(clusterPatchesHandler([]), machineStatusesHandler, clusterPermissionsHandler(true))
   },
 }
 
 /** Watches never bootstrap — the loading spinner stays visible. */
 export const Loading: Story = {
   args: { cluster: CLUSTER },
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<ConfigPatchSpec>({
-          skipBootstrap: true,
-          expectedOptions: { namespace: DefaultNamespace, type: ConfigPatchType },
-        }).handler,
-        createWatchStreamHandler<ClusterMachineStatusSpec>({
-          skipBootstrap: true,
-          expectedOptions: { namespace: DefaultNamespace, type: ClusterMachineStatusType },
-        }).handler,
-        clusterPermissionsHandler(true),
-      ],
-    },
+
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<ConfigPatchSpec>({
+        skipBootstrap: true,
+        expectedOptions: { namespace: DefaultNamespace, type: ConfigPatchType },
+      }).handler,
+      createWatchStreamHandler<ClusterMachineStatusSpec>({
+        skipBootstrap: true,
+        expectedOptions: { namespace: DefaultNamespace, type: ClusterMachineStatusType },
+      }).handler,
+      clusterPermissionsHandler(true),
+    )
   },
 }
