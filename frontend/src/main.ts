@@ -79,9 +79,9 @@ async function setupApp() {
     authType.value = AuthType.Auth0
 
     const searchParams = new URLSearchParams(window.location.search)
-    const signupDisabled =
-      searchParams.get('error') === 'invalid_request' &&
-      searchParams.get('error_description') === 'signup is disabled'
+
+    // If there is any kind of error response from auth0, defensively assume signup isn't supported
+    const signupDisabled = typeof searchParams.get('error') === 'string'
 
     const requestSignup = !authConfig.spec.has_initial_user && !signupDisabled
 
