@@ -11,10 +11,10 @@ import { computed, ref, watch } from 'vue'
 import { type RouteLocationRaw, useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
-import { EventType } from '@/api/omni/resources/resources.pb'
 import {
   type ClusterMachineStatusSpec,
   type ClusterSpec,
@@ -64,43 +64,52 @@ type Props = {
   clusterId?: string
 }
 
-const { patchId, machineId, clusterId, back } = defineProps<Props>()
+const { patchId: initialPatchId, machineId, clusterId, back } = defineProps<Props>()
 
-const bootstrapped = ref(false)
 const { canManageMachineConfigPatches, canReadMachineConfigPatches } = usePermissions()
 const {
   canReadConfigPatches: canReadClusterConfigPatches,
   canManageConfigPatches: canManageClusterMachineConfigPatches,
 } = useClusterPermissions(() => clusterId)
 
-const { data: configPatch, loading: patchWatchLoading } = useResourceWatch<ConfigPatchSpec>(
+const { data: configPatch, loading: configPatchLoading } = useResourceWatch<ConfigPatchSpec>(
   () => ({
     runtime: Runtime.Omni,
     resource: {
       namespace: DefaultNamespace,
       type: ConfigPatchType,
-      id: patchId,
+      id: initialPatchId,
     },
   }),
-  (e) => {
-    if (e.event?.event_type === EventType.BOOTSTRAPPED) {
-      bootstrapped.value = true
-    }
-  },
 )
 
-const config = ref('')
-
-const weight = ref(0)
-const patchName = ref('User defined patch')
-const patchDescription = ref('')
-const patchEnabled = ref(true)
+enum State {
+  Unknown = 0,
+  Exists = 1,
+  NotExists = 2,
+}
 
 enum PatchType {
   Cluster = 'Cluster',
   ClusterMachine = 'Cluster Machine',
   Machine = 'Machine',
 }
+
+const MIN_WEIGHT = 100
+const MAX_WEIGHT = 900
+
+const weight = ref(0)
+const invalidWeight = computed(() => weight.value < MIN_WEIGHT || weight.value > MAX_WEIGHT)
+
+const config = ref('')
+
+const patchId = computed(() =>
+  !invalidWeight.value ? initialPatchId.replace(/^\d+-/, `${weight.value}-`) : initialPatchId,
+)
+const patchName = ref('')
+const patchDescription = ref('')
+const patchType = ref<string>()
+const patchEnabled = ref(true)
 
 const { data: machine } = useResourceWatch<MachineStatusSpec>(() => ({
   skip: !machineId,
@@ -150,12 +159,6 @@ const checkEncryption = (model: monaco.editor.ITextModel, tokens: monaco.Token[]
   }
 
   return markers
-}
-
-let selectedPatchType: string
-
-const setPatchType = (value: string) => {
-  selectedPatchType = value
 }
 
 const { data: machineSets } = useResourceWatch<MachineSetSpec>(() => ({
@@ -211,54 +214,6 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(() => ({
 
 const router = useRouter()
 
-watch(weight, (value: number) => {
-  if (value < 100 || value > 900) {
-    return
-  }
-
-  let id = patchId
-  const match = /^\d+-(.+)/.exec(id)
-  if (match) {
-    id = match[1]
-  }
-
-  router.replace({ params: { patch: `${value}-${id}` } })
-})
-
-const loadPatch = () => {
-  const match = /^(\d+)-.+/.exec(patchId)
-
-  if (match) {
-    weight.value = Math.min(999, Math.max(0, parseInt(match[1])))
-  } else {
-    weight.value = 500
-  }
-
-  if (configPatch.value?.spec?.data) {
-    config.value = configPatch.value.spec.data
-    patchEnabled.value = !isConfigPatchDisabled(configPatch.value.metadata.labels)
-  }
-}
-
-const patchWatchOptions = ref()
-
-const updatePatchWatchOptions = () => {
-  patchWatchOptions.value = {
-    runtime: Runtime.Omni,
-    resource: {
-      namespace: DefaultNamespace,
-      type: ConfigPatchType,
-      id: patchId,
-    },
-  }
-}
-
-updatePatchWatchOptions()
-watch(() => patchId, updatePatchWatchOptions)
-
-loadPatch()
-watch(configPatch, loadPatch)
-
 const patchTypes = computed(() => {
   if (clusterId && machineId) {
     return [PatchType.ClusterMachine, PatchType.Machine]
@@ -271,14 +226,8 @@ const patchTypes = computed(() => {
   return [PatchType.Cluster, ...machineSetTitles.value, ...machines.value]
 })
 
-enum State {
-  Unknown = 0,
-  Exists = 1,
-  NotExists = 2,
-}
-
 const state = computed(() => {
-  if (!bootstrapped.value) {
+  if (configPatchLoading.value) {
     return State.Unknown
   }
 
@@ -301,28 +250,10 @@ const title = computed(() => {
   return 'Loading...'
 })
 
-const subtitle = computed(() => {
-  if (state.value === State.Unknown) {
-    return ''
-  }
-
-  return `Patch ID: ${patchId}`
-})
-
-const notes = computed(() => {
-  if (state.value === State.Exists || state.value === State.NotExists) {
-    return 'Note: Patches are applied immediately on creation/modification, and may result in graceful reboots.'
-  }
-
-  return ''
-})
-
 const saving = ref(false)
 
 const getPatchLabels = () => {
-  const patchType = selectedPatchType ?? patchTypes.value[0]
-
-  if (!patchType || patchType === PatchType.Machine) {
+  if (!patchType.value || patchType.value === PatchType.Machine) {
     return {
       [LabelMachine]: machineId!,
     }
@@ -337,13 +268,13 @@ const getPatchLabels = () => {
     [LabelCluster]: cluster,
   }
 
-  const machineID = nodeIDMap.value[patchType]
+  const machineID = nodeIDMap.value[patchType.value]
 
-  if (patchType === PatchType.ClusterMachine || machineID) {
+  if (patchType.value === PatchType.ClusterMachine || machineID) {
     labels[LabelClusterMachine] = machineID ?? machine.value?.metadata.id
   }
 
-  const machineSetID = machineSetIDMap.value[patchType]
+  const machineSetID = machineSetIDMap.value[patchType.value]
 
   if (machineSetID) {
     labels[LabelMachineSet] = machineSetID
@@ -353,13 +284,13 @@ const getPatchLabels = () => {
 }
 
 const saveConfig = async () => {
-  const create = state.value === State.NotExists
+  if (invalidWeight.value) return
 
   const currentPatch: Resource<ConfigPatchSpec> = configPatch.value || {
     metadata: {
       namespace: DefaultNamespace,
       type: ConfigPatchType,
-      id: patchId,
+      id: patchId.value,
       labels: getPatchLabels(),
     },
     spec: {},
@@ -375,7 +306,7 @@ const saveConfig = async () => {
     delete currentPatch.metadata.annotations[ConfigPatchName]
   }
 
-  if (patchName.value) {
+  if (patchDescription.value) {
     currentPatch.metadata.annotations[ConfigPatchDescription] = patchDescription.value
   } else {
     delete currentPatch.metadata.annotations[ConfigPatchDescription]
@@ -390,23 +321,18 @@ const saveConfig = async () => {
   saving.value = true
 
   try {
-    if (!create) {
+    if (state.value === State.Exists) {
       await ResourceService.Update(currentPatch, undefined, withRuntime(Runtime.Omni))
     } else {
-      if (weight.value < 100 || weight.value > 900) {
-        throw new Error('User patch weight must be in range 100-900')
-      }
-
       await ResourceService.Create(currentPatch, withRuntime(Runtime.Omni))
     }
 
-    configPatch.value = currentPatch
-    router.push(back)
+    router.replace(back)
   } catch (e) {
-    if (e.code === Code.INVALID_ARGUMENT) {
+    if (e instanceof RequestError && e.code === Code.INVALID_ARGUMENT) {
       showError('The Config is Invalid', e.message?.replace('failed to validate: ', ''))
     } else {
-      showError('Failed to Update the Config', e.message)
+      showError('Failed to Update the Config', e instanceof Error ? e.message : String(e))
     }
   } finally {
     saving.value = false
@@ -420,12 +346,60 @@ const canReadConfigPatches = computed(() =>
 const canManageConfigPatches = computed(() =>
   clusterId ? canManageClusterMachineConfigPatches.value : canManageMachineConfigPatches.value,
 )
+
+watch(
+  configPatch,
+  (patch) => {
+    const match = /^(\d+)-.+/.exec(initialPatchId)
+
+    if (match) {
+      weight.value = Math.min(MAX_WEIGHT, Math.max(MIN_WEIGHT, parseInt(match[1])))
+    } else {
+      weight.value = 500
+    }
+
+    if (!patch) {
+      patchName.value = 'User defined patch'
+      patchDescription.value = ''
+      patchEnabled.value = true
+      patchType.value = patchTypes.value[0]
+
+      return
+    }
+
+    const { labels = {}, annotations = {} } = patch.metadata
+
+    config.value = patch.spec.data ?? ''
+    patchName.value = annotations[ConfigPatchName] ?? ''
+    patchDescription.value = annotations[ConfigPatchDescription] ?? ''
+    patchEnabled.value = !isConfigPatchDisabled(labels)
+
+    switch (true) {
+      case LabelMachineSet in labels:
+        patchType.value = machineSetTitle(clusterId, labels[LabelMachineSet])
+        break
+      case LabelClusterMachine in labels:
+        patchType.value = PatchType.ClusterMachine
+        break
+      case LabelMachine in labels:
+        patchType.value = PatchType.Machine
+        break
+      default:
+        patchType.value = PatchType.Cluster
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
   <div class="flex h-full flex-col">
     <PageContainer class="flex grow flex-col overflow-hidden">
-      <PageHeader :title="title" :subtitle="subtitle" :notes="notes" />
+      <PageHeader
+        :title="title"
+        :subtitle="`Patch ID: ${patchId}`"
+        notes="Note: Patches are applied immediately on creation/modification, and may result in graceful reboots."
+      />
       <ManagedByTemplatesWarning />
       <TAlert
         v-if="state === State.Exists && !patchEnabled"
@@ -440,23 +414,22 @@ const canManageConfigPatches = computed(() =>
         <TInput v-model="patchDescription" class="flex-1" title="Description" />
         <TSelectList
           v-if="patchTypes.length"
+          v-model="patchType"
           title="Patch Target"
-          :default-value="patchTypes[0]"
           :values="patchTypes"
-          @checked-value="setPatchType"
         />
-        <Tooltip :open="weight < 100 || weight > 900" placement="bottom-start">
+        <Tooltip :open="invalidWeight" placement="bottom-start">
           <TInput v-model="weight" type="number" title="Weight" class="w-28" />
           <template #description>
             <div class="flex items-center gap-2 rounded bg-naturals-n3 p-2 text-xs">
               <TIcon icon="warning" class="h-5 w-5 fill-current text-yellow-y1" />
-              Weight should be in range of 100-900.
+              Weight should be in range of {{ MIN_WEIGHT }}-{{ MAX_WEIGHT }}.
             </div>
           </template>
         </Tooltip>
       </div>
       <div class="font-sm flex-1 overflow-y-hidden rounded bg-naturals-n1 px-2 py-3">
-        <div v-if="patchWatchLoading" class="flex h-full w-full items-center justify-center">
+        <div v-if="configPatchLoading" class="flex h-full w-full items-center justify-center">
           <TSpinner class="h-6 w-6" />
         </div>
 
@@ -480,7 +453,7 @@ const canManageConfigPatches = computed(() =>
 
       <TButton
         variant="highlighted"
-        :disabled="!canManageConfigPatches || saving"
+        :disabled="!canManageConfigPatches || configPatchLoading || invalidWeight || saving"
         @click="saveConfig"
       >
         <TSpinner v-if="saving" class="h-5 w-5" />
