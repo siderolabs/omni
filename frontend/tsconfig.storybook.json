@@ -3,6 +3,7 @@
   "include": [
     ".storybook/**/*",
     "msw/**/*",
+    "src/**/*.mocks.*",
     "src/**/*.stories.*",
     "src/types/**/*",
     "env.d.ts",

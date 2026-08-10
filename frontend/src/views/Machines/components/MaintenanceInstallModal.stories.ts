@@ -8,9 +8,9 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { delay, http, HttpResponse } from 'msw'
 import { compare, minor } from 'semver'
 
-import { Code } from '@/api/google/rpc/code.pb.ts'
+import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
-import type { MaintenanceLifecycleResponse } from '@/api/omni/management/management.pb.ts'
+import type { MaintenanceLifecycleResponse } from '@/api/omni/management/management.pb'
 import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/resources'
 
@@ -52,107 +52,102 @@ const meta: Meta<typeof MaintenanceInstallModal> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Data = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<TalosVersionSpec>({
-          expectedOptions: {
-            type: TalosVersionType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: talosVersions,
-        }).handler,
-
-        createWatchStreamHandler<MachineStatusSpec>({
-          expectedOptions: {
-            type: MachineStatusType,
-            namespace: DefaultNamespace,
-            id: machineId,
-          },
-          initialResources: [
-            {
-              spec: {
-                talos_version: `v${talosVersions.filter((s) => !s.spec.deprecated).at(-(talosVersions.length / 4))?.spec.version}`,
-                hardware: {
-                  blockdevices: [
-                    {
-                      linux_name: '/dev/sda',
-                      model: 'QEMU HARDDISK',
-                      size: '107374182400',
-                      type: 'HDD',
-                    },
-                    {
-                      linux_name: '/dev/sdb',
-                      model: 'QEMU HARDDISK',
-                      size: '53687091200',
-                      type: 'SSD',
-                    },
-                  ],
-                },
-              },
-              metadata: {
-                type: MachineStatusType,
-                namespace: DefaultNamespace,
-                id: machineId,
-              },
-            },
-          ],
-        }).handler,
-
-        http.post('/management.ManagementService/MaintenanceLifecycle', () => {
-          faker.seed(42)
-
-          const enc = new TextEncoder()
-
-          const stream = new ReadableStream<Uint8Array>({
-            async start(c) {
-              await delay(1_000)
-
-              for (let i = 0; i < 25; i++) {
-                const response: MaintenanceLifecycleResponse = {
-                  message: faker.hacker.phrase(),
-                }
-
-                await delay(faker.number.int({ min: 50, max: 250 }))
-
-                c.enqueue(enc.encode(JSON.stringify(response) + '\n'))
-              }
-
-              c.close()
-            },
-          })
-
-          return new HttpResponse(stream, {
-            headers: {
-              'content-type': 'application/json',
-              'Grpc-metadata-content-type': 'application/grpc',
-            },
-          })
-        }),
-      ],
+const handlers = [
+  createWatchStreamHandler<TalosVersionSpec>({
+    expectedOptions: {
+      type: TalosVersionType,
+      namespace: DefaultNamespace,
     },
+    initialResources: talosVersions,
+  }).handler,
+  createWatchStreamHandler<MachineStatusSpec>({
+    expectedOptions: {
+      type: MachineStatusType,
+      namespace: DefaultNamespace,
+      id: machineId,
+    },
+    initialResources: [
+      {
+        spec: {
+          talos_version: `v${talosVersions.filter((s) => !s.spec.deprecated).at(-(talosVersions.length / 4))?.spec.version}`,
+          hardware: {
+            blockdevices: [
+              {
+                linux_name: '/dev/sda',
+                model: 'QEMU HARDDISK',
+                size: '107374182400',
+                type: 'HDD',
+              },
+              {
+                linux_name: '/dev/sdb',
+                model: 'QEMU HARDDISK',
+                size: '53687091200',
+                type: 'SSD',
+              },
+            ],
+          },
+        },
+        metadata: {
+          type: MachineStatusType,
+          namespace: DefaultNamespace,
+          id: machineId,
+        },
+      },
+    ],
+  }).handler,
+  http.post('/management.ManagementService/MaintenanceLifecycle', () => {
+    faker.seed(42)
+
+    const enc = new TextEncoder()
+
+    const stream = new ReadableStream<Uint8Array>({
+      async start(c) {
+        await delay(1_000)
+
+        for (let i = 0; i < 25; i++) {
+          const response: MaintenanceLifecycleResponse = {
+            message: faker.hacker.phrase(),
+          }
+
+          await delay(faker.number.int({ min: 50, max: 250 }))
+
+          c.enqueue(enc.encode(JSON.stringify(response) + '\n'))
+        }
+
+        c.close()
+      },
+    })
+
+    return new HttpResponse(stream, {
+      headers: {
+        'content-type': 'application/json',
+        'Grpc-metadata-content-type': 'application/grpc',
+      },
+    })
+  }),
+]
+
+export const Data: Story = {
+  beforeEach({ msw }) {
+    msw.use(...handlers)
   },
-} satisfies Story
+}
 
 export const AlreadyInProgress: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        http.post('/management.ManagementService/MaintenanceLifecycle', () =>
-          HttpResponse.json(
-            {
-              error: {
-                code: Code.FAILED_PRECONDITION,
-                message: `a maintenance lifecycle operation is already in progress for machine "${machineId}`,
-              },
+  beforeEach({ msw }) {
+    msw.use(
+      http.post('/management.ManagementService/MaintenanceLifecycle', () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: Code.FAILED_PRECONDITION,
+              message: `a maintenance lifecycle operation is already in progress for machine "${machineId}`,
             },
-            { status: 400 },
-          ),
+          },
+          { status: 400 },
         ),
-
-        ...Data.parameters.msw.handlers,
-      ],
-    },
+      ),
+      ...handlers,
+    )
   },
 }

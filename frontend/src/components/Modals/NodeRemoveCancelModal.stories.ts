@@ -77,17 +77,13 @@ function clusterMachineStatusHandler() {
 }
 
 export const Running: Story = {
-  parameters: {
-    msw: {
-      handlers: [clusterMachineHandler('Running'), clusterMachineStatusHandler()],
-    },
+  beforeEach({ msw }) {
+    msw.use(clusterMachineHandler('Running'), clusterMachineStatusHandler())
   },
 }
 
 export const NotRunning: Story = {
-  parameters: {
-    msw: {
-      handlers: [clusterMachineHandler('Destroying'), clusterMachineStatusHandler()],
-    },
+  beforeEach({ msw }) {
+    msw.use(clusterMachineHandler('Destroying'), clusterMachineStatusHandler())
   },
 }

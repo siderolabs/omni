@@ -8,7 +8,7 @@
     "env.d.ts",
     "typed-router.d.ts"
   ],
-  "exclude": ["src/**/*.stories.*"],
+  "exclude": ["src/**/*.mocks.*", "src/**/*.stories.*"],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.vitest.tsbuildinfo",
 

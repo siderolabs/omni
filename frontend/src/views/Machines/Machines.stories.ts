@@ -167,54 +167,46 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<MachineStatusLinkSpec>({
-          expectedOptions: {
-            type: MachineStatusLinkType,
-            namespace: MetricsNamespace,
-          },
-          totalResults: machineIds.length,
-          initialResources: ({ limit = 5, offset = 0 }) => machines.slice(0, offset + limit),
-        }).handler,
-
-        createWatchStreamHandler<MachineStatusMetricsSpec>({
-          expectedOptions: {
-            type: MachineStatusMetricsType,
-            namespace: EphemeralNamespace,
-            id: MachineStatusMetricsID,
-          },
-          initialResources: [metrics],
-        }).handler,
-
-        createWatchStreamHandler<InfraProviderStatusSpec>({
-          expectedOptions: {
-            type: InfraProviderStatusType,
-            namespace: InfraProviderNamespace,
-          },
-          initialResources: [],
-        }).handler,
-
-        createWatchStreamHandler({
-          expectedOptions: {
-            id: MachineStatusType,
-            type: LabelsCompletionType,
-            namespace: VirtualNamespace,
-          },
-          initialResources: [],
-        }).handler,
-
-        permissionsHandler,
-      ],
-    },
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<MachineStatusLinkSpec>({
+        expectedOptions: {
+          type: MachineStatusLinkType,
+          namespace: MetricsNamespace,
+        },
+        totalResults: machineIds.length,
+        initialResources: ({ limit = 5, offset = 0 }) => machines.slice(0, offset + limit),
+      }).handler,
+      createWatchStreamHandler<MachineStatusMetricsSpec>({
+        expectedOptions: {
+          type: MachineStatusMetricsType,
+          namespace: EphemeralNamespace,
+          id: MachineStatusMetricsID,
+        },
+        initialResources: [metrics],
+      }).handler,
+      createWatchStreamHandler<InfraProviderStatusSpec>({
+        expectedOptions: {
+          type: InfraProviderStatusType,
+          namespace: InfraProviderNamespace,
+        },
+        initialResources: [],
+      }).handler,
+      createWatchStreamHandler({
+        expectedOptions: {
+          id: MachineStatusType,
+          type: LabelsCompletionType,
+          namespace: VirtualNamespace,
+        },
+        initialResources: [],
+      }).handler,
+      permissionsHandler,
+    )
   },
 }
 
 export const NoData: Story = {
-  parameters: {
-    msw: {
-      handlers: [createWatchStreamHandler().handler, permissionsHandler],
-    },
+  beforeEach({ msw }) {
+    msw.use(createWatchStreamHandler().handler, permissionsHandler)
   },
 }

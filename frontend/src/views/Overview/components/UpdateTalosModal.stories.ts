@@ -7,7 +7,7 @@ import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { compare, minor } from 'semver'
 
-import type { Resource } from '@/api/grpc.ts'
+import type { Resource } from '@/api/grpc'
 import type { TalosUpgradeStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, TalosUpgradeStatusType, TalosVersionType } from '@/api/resources'
 
@@ -48,41 +48,38 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<TalosUpgradeStatusSpec>({
-          expectedOptions: {
-            type: TalosUpgradeStatusType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: () => {
-            const [last_upgrade_version] = versions.splice(Math.round(versions.length / 2), 1)
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<TalosUpgradeStatusSpec>({
+        expectedOptions: {
+          type: TalosUpgradeStatusType,
+          namespace: DefaultNamespace,
+        },
+        initialResources: () => {
+          const [last_upgrade_version] = versions.splice(Math.round(versions.length / 2), 1)
 
-            return [
-              {
-                spec: {
-                  last_upgrade_version,
-                  upgrade_versions: versions,
-                },
-                metadata: {
-                  id: faker.string.uuid(),
-                  type: TalosUpgradeStatusType,
-                  namespace: DefaultNamespace,
-                },
+          return [
+            {
+              spec: {
+                last_upgrade_version,
+                upgrade_versions: versions,
               },
-            ]
-          },
-        }).handler,
-
-        createWatchStreamHandler<TalosVersionSpec>({
-          expectedOptions: {
-            type: TalosVersionType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: talosVersions,
-        }).handler,
-      ],
-    },
+              metadata: {
+                id: faker.string.uuid(),
+                type: TalosUpgradeStatusType,
+                namespace: DefaultNamespace,
+              },
+            },
+          ]
+        },
+      }).handler,
+      createWatchStreamHandler<TalosVersionSpec>({
+        expectedOptions: {
+          type: TalosVersionType,
+          namespace: DefaultNamespace,
+        },
+        initialResources: talosVersions,
+      }).handler,
+    )
   },
 }

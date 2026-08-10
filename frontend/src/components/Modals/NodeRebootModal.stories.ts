@@ -19,7 +19,7 @@ import {
   DefaultNamespace,
   VirtualNamespace,
 } from '@/api/resources'
-import type { Reboot, RebootRequest, RebootResponse } from '@/api/talos/machine/machine.pb.ts'
+import type { Reboot, RebootRequest, RebootResponse } from '@/api/talos/machine/machine.pb'
 
 import NodeRebootModal from './NodeRebootModal.vue'
 
@@ -103,39 +103,27 @@ function rebootHandler(messages?: Reboot[]) {
 }
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        clusterMachineStatusHandler(nodeName),
-        clusterPermissionsHandler(true),
-        rebootHandler(),
-      ],
-    },
+  beforeEach({ msw }) {
+    msw.use(clusterMachineStatusHandler(nodeName), clusterPermissionsHandler(true), rebootHandler())
   },
 }
 
 export const Errors: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        clusterMachineStatusHandler(nodeName),
-        clusterPermissionsHandler(true),
-        rebootHandler(
-          faker.helpers.multiple(() => ({ metadata: { error: faker.hacker.phrase() } })),
-        ),
-      ],
-    },
+  beforeEach({ msw }) {
+    msw.use(
+      clusterMachineStatusHandler(nodeName),
+      clusterPermissionsHandler(true),
+      rebootHandler(faker.helpers.multiple(() => ({ metadata: { error: faker.hacker.phrase() } }))),
+    )
   },
 }
 
 export const NoPermission: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        clusterMachineStatusHandler(nodeName),
-        clusterPermissionsHandler(false),
-        rebootHandler(),
-      ],
-    },
+  beforeEach({ msw }) {
+    msw.use(
+      clusterMachineStatusHandler(nodeName),
+      clusterPermissionsHandler(false),
+      rebootHandler(),
+    )
   },
 }

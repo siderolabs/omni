@@ -6,21 +6,25 @@ import '../src/index.css'
 
 import { faker } from '@faker-js/faker'
 import { type Preview } from '@storybook/vue3-vite'
-import { initialize, mswLoader } from 'msw-storybook-addon'
+import { setupWorker } from 'msw/browser'
+import { mswLoader } from 'msw-storybook-addon/csf3'
 import { vueRouter } from 'storybook-vue3-router'
 import { createMemoryHistory } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
 
 import AppToast from '../src/components/AppToast/AppToast.vue'
 
-// Initialize MSW
-initialize({ onUnhandledRequest: 'bypass' })
-
 const preview: Preview = {
   beforeEach() {
     faker.seed(0)
   },
-  loaders: [mswLoader],
+  loaders: [
+    mswLoader(async () => {
+      const worker = setupWorker()
+      await worker.start({ onUnhandledRequest: 'bypass' })
+      return worker
+    }),
+  ],
   decorators: [
     vueRouter(undefined, {
       vueRouterOptions: {

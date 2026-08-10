@@ -19,31 +19,29 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<NotificationSpec>({
-          expectedOptions: {
-            namespace: EphemeralNamespace,
-            type: NotificationType,
-          },
-          initialResources: faker.helpers.multiple(
-            () => ({
-              metadata: {
-                namespace: EphemeralNamespace,
-                type: NotificationType,
-                id: faker.string.uuid(),
-              },
-              spec: {
-                type: faker.helpers.enumValue(NotificationSpecType),
-                title: faker.commerce.productName(),
-                body: faker.commerce.productDescription(),
-              },
-            }),
-            { count: 20 },
-          ),
-        }).handler,
-      ],
-    },
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<NotificationSpec>({
+        expectedOptions: {
+          namespace: EphemeralNamespace,
+          type: NotificationType,
+        },
+        initialResources: faker.helpers.multiple(
+          () => ({
+            metadata: {
+              namespace: EphemeralNamespace,
+              type: NotificationType,
+              id: faker.string.uuid(),
+            },
+            spec: {
+              type: faker.helpers.enumValue(NotificationSpecType),
+              title: faker.commerce.productName(),
+              body: faker.commerce.productDescription(),
+            },
+          }),
+          { count: 20 },
+        ),
+      }).handler,
+    )
   },
 }

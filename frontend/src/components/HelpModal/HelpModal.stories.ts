@@ -23,18 +23,14 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [getSupportEnabledHandler(true)],
-    },
+  beforeEach({ msw }) {
+    msw.use(getSupportEnabledHandler(true))
   },
 }
 
 export const NoSupport: Story = {
-  parameters: {
-    msw: {
-      handlers: [getSupportEnabledHandler(false)],
-    },
+  beforeEach({ msw }) {
+    msw.use(getSupportEnabledHandler(false))
   },
 }
 

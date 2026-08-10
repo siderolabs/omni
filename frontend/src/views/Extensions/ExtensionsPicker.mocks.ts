@@ -3,8 +3,11 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
+import { createWatchStreamHandler } from '@msw/helpers'
 
 import type { TalosExtensionsSpecInfo } from '@/api/omni/specs/omni.pb'
+import type { TalosExtensionsSpec } from '@/api/omni/specs/omni.pb'
+import { DefaultNamespace, DefaultTalosVersion, TalosExtensionsType } from '@/api/resources'
 
 export const fakeExtensions = faker.helpers.multiple(
   () => ({
@@ -15,3 +18,19 @@ export const fakeExtensions = faker.helpers.multiple(
   }),
   { count: 50 },
 ) satisfies TalosExtensionsSpecInfo[]
+
+export const handlers = [
+  createWatchStreamHandler<TalosExtensionsSpec>({
+    expectedOptions: {
+      id: DefaultTalosVersion,
+      type: TalosExtensionsType,
+      namespace: DefaultNamespace,
+    },
+    initialResources: [
+      {
+        spec: { items: fakeExtensions },
+        metadata: {},
+      },
+    ],
+  }).handler,
+]

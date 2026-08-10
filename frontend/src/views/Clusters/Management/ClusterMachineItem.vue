@@ -13,7 +13,7 @@ import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
 import type { MachineConfigGenOptionsSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
-import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb.ts'
+import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb'
 import {
   LabelControlPlaneRole,
   PatchBaseWeightClusterMachine,
@@ -23,7 +23,7 @@ import IconButton from '@/components/Button/IconButton.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import ConfigPatchEditModal from '@/components/Modals/ConfigPatchEditModal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
-import { getPatch } from '@/methods/getPatch.ts'
+import { getPatch } from '@/methods/getPatch'
 import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { useMachineName } from '@/methods/node'

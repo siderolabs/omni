@@ -40,101 +40,97 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
-          const { type, namespace } = await request.clone().json()
+  beforeEach({ msw }) {
+    msw.use(
+      http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
+        const { type, namespace } = await request.clone().json()
 
-          if (type !== ClusterPermissionsType || namespace !== VirtualNamespace) return
+        if (type !== ClusterPermissionsType || namespace !== VirtualNamespace) return
 
-          return HttpResponse.json({
-            body: JSON.stringify({
-              spec: { can_download_support_bundle: true },
-              metadata: {
-                namespace: VirtualNamespace,
-                type: ClusterPermissionsType,
-                id: CLUSTER_ID,
-              },
-            } as Resource<ClusterPermissionsSpec>),
-          })
-        }),
-
-        createWatchStreamHandler<ClusterMachineIdentitySpec>({
-          expectedOptions: {
+        return HttpResponse.json({
+          body: JSON.stringify({
+            spec: { can_download_support_bundle: true },
+            metadata: {
+              namespace: VirtualNamespace,
+              type: ClusterPermissionsType,
+              id: CLUSTER_ID,
+            },
+          } as Resource<ClusterPermissionsSpec>),
+        })
+      }),
+      createWatchStreamHandler<ClusterMachineIdentitySpec>({
+        expectedOptions: {
+          type: ClusterMachineIdentityType,
+          namespace: DefaultNamespace,
+          selectors: {
+            [LabelCluster]: CLUSTER_ID,
+          },
+        },
+        initialResources: NODE_IPS.map((ip) => ({
+          spec: {
+            node_ips: [ip],
+            nodename: faker.helpers.slugify(
+              [faker.hacker.adjective(), faker.hacker.verb(), faker.hacker.noun()]
+                .join(' ')
+                .toLowerCase(),
+            ),
+          },
+          metadata: {
             type: ClusterMachineIdentityType,
             namespace: DefaultNamespace,
-            selectors: {
+            id: faker.string.uuid(),
+            labels: {
               [LabelCluster]: CLUSTER_ID,
             },
           },
-          initialResources: NODE_IPS.map((ip) => ({
-            spec: {
-              node_ips: [ip],
-              nodename: faker.helpers.slugify(
-                [faker.hacker.adjective(), faker.hacker.verb(), faker.hacker.noun()]
-                  .join(' ')
-                  .toLowerCase(),
-              ),
+        })),
+      }).handler,
+      http.post<never, GetSupportBundleRequest>(
+        '/management.ManagementService/GetSupportBundle',
+        () => {
+          const stream = new ReadableStream<Uint8Array>({
+            async start(c) {
+              faker.seed(0)
+
+              const enc = new TextEncoder()
+
+              const sources = ['omni', 'cluster', ...NODE_IPS]
+
+              const events = sources.flatMap((source) => {
+                const total = faker.number.int({ min: 30, max: 200 })
+
+                return faker.helpers.multiple<GetSupportBundleResponse>(
+                  () => ({
+                    progress: {
+                      source,
+                      total,
+                      state: `collect ${faker.system.fileName({ extensionCount: { min: 1, max: 2 } })}`,
+                    },
+                  }),
+                  { count: total },
+                )
+              })
+
+              for (const event of events) {
+                await delay(1)
+
+                c.enqueue(enc.encode(JSON.stringify(event) + '\n'))
+              }
+
+              c.enqueue(enc.encode(JSON.stringify({ bundle_data: 'foo' }) + '\n'))
+
+              c.close()
             },
-            metadata: {
-              type: ClusterMachineIdentityType,
-              namespace: DefaultNamespace,
-              id: faker.string.uuid(),
-              labels: {
-                [LabelCluster]: CLUSTER_ID,
-              },
+          })
+
+          return new HttpResponse(stream, {
+            headers: {
+              'content-type': 'application/json',
+              'Grpc-metadata-content-type': 'application/grpc',
             },
-          })),
-        }).handler,
-
-        http.post<never, GetSupportBundleRequest>(
-          '/management.ManagementService/GetSupportBundle',
-          () => {
-            const stream = new ReadableStream<Uint8Array>({
-              async start(c) {
-                faker.seed(0)
-
-                const enc = new TextEncoder()
-
-                const sources = ['omni', 'cluster', ...NODE_IPS]
-
-                const events = sources.flatMap((source) => {
-                  const total = faker.number.int({ min: 30, max: 200 })
-
-                  return faker.helpers.multiple<GetSupportBundleResponse>(
-                    () => ({
-                      progress: {
-                        source,
-                        total,
-                        state: `collect ${faker.system.fileName({ extensionCount: { min: 1, max: 2 } })}`,
-                      },
-                    }),
-                    { count: total },
-                  )
-                })
-
-                for (const event of events) {
-                  await delay(1)
-
-                  c.enqueue(enc.encode(JSON.stringify(event) + '\n'))
-                }
-
-                c.enqueue(enc.encode(JSON.stringify({ bundle_data: 'foo' }) + '\n'))
-
-                c.close()
-              },
-            })
-
-            return new HttpResponse(stream, {
-              headers: {
-                'content-type': 'application/json',
-                'Grpc-metadata-content-type': 'application/grpc',
-              },
-            })
-          },
-        ),
-      ],
-    },
+          })
+        },
+      ),
+    )
   },
 }

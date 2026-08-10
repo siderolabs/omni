@@ -110,249 +110,234 @@ const clusterMachineIds = (clusterLabel: string): string[] =>
   )
 
 export const Data: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<ClusterStatusSpec>({
-          expectedOptions: {
-            type: ClusterStatusType,
-            namespace: DefaultNamespace,
-          },
-          totalResults: 30,
-          initialResources: ({ limit = 5, offset = 0 }) => {
-            faker.seed(offset)
-            return faker.helpers.multiple<Resource<ClusterStatusSpec>>(
-              () => ({
-                spec: {
-                  machines: { total: 3, healthy: 3 },
-                  phase: faker.helpers.enumValue(ClusterStatusSpecPhase),
-                  ready: faker.datatype.boolean(),
-                  talos_version: faker.system.semver(),
-                  kubernetes_version: faker.system.semver(),
-                },
-                metadata: {
-                  annotations: faker.helpers.maybe(() => ({ [ClusterLocked]: '' })),
-                  id: faker.helpers
-                    .slugify(faker.word.words({ count: { min: 1, max: 3 } }))
-                    .toLocaleLowerCase(),
-                  namespace: DefaultNamespace,
-                  created: faker.date.anytime().toISOString(),
-                  labels: Object.fromEntries(
-                    faker.helpers.multiple(
-                      () => [
-                        faker.hacker.noun(),
-                        faker.helpers.maybe(() => faker.hacker.adjective()) ?? '',
-                      ],
-                      { count: { min: 0, max: 5 } },
-                    ),
-                  ),
-                },
-              }),
-              { count: limit },
-            )
-          },
-        }).handler,
-
-        createWatchStreamHandler<ClusterStatusMetricsSpec>({
-          expectedOptions: {
-            type: ClusterStatusMetricsType,
-            namespace: EphemeralNamespace,
-          },
-          initialResources: [{ spec: { not_ready_count: 3 }, metadata: {} }],
-        }).handler,
-
-        createWatchStreamHandler<MachineSetSpec>({
-          expectedOptions: {
-            type: MachineSetType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: ({ selectors: { [LabelCluster]: clusterLabel = '' } = {} }) => {
-            faker.seed(clusterLabel.split('').reduce((prev, curr) => prev + curr.charCodeAt(0), 0))
-
-            return [
-              {
-                spec: {},
-                metadata: {
-                  id: `${clusterLabel}-${ControlPlanesIDSuffix}`,
-                  labels: {
-                    [LabelCluster]: clusterLabel,
-                    [LabelControlPlaneRole]: '',
-                  } as Record<string, string>,
-                },
-              },
-              {
-                spec: {},
-                metadata: {
-                  id: `${clusterLabel}-${DefaultWorkersIDSuffix}`,
-                  labels: {
-                    [LabelCluster]: clusterLabel,
-                    [LabelWorkerRole]: '',
-                  } as Record<string, string>,
-                },
-              },
-            ]
-          },
-        }).handler,
-
-        createWatchStreamHandler<ClusterDiagnosticsSpec>({
-          expectedOptions: {
-            type: ClusterDiagnosticsType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: ({ id: clusterID = '' }) => {
-            const machineIds = clusterMachineIds(clusterID)
-
-            faker.seed(seedFromId(clusterID))
-
-            const nodes = machineIds
-              .filter(() => faker.datatype.boolean())
-              .map((id) => ({ id, num_diagnostics: faker.number.int({ min: 1, max: 10 }) }))
-
-            return [{ spec: { nodes }, metadata: { id: clusterID } }]
-          },
-        }).handler,
-
-        createWatchStreamHandler<MachineSetStatusSpec>({
-          expectedOptions: {
-            type: MachineSetStatusType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: ({ id = '' }) => {
-            faker.seed(id.split('').reduce((prev, curr) => prev + curr.charCodeAt(0), 0))
-
-            const machineCount = faker.number.int({ max: 5 })
-            const healthyCount = faker.number.int({ max: machineCount })
-            const label = id.includes(ControlPlanesIDSuffix)
-              ? LabelControlPlaneRole
-              : LabelWorkerRole
-
-            return [
-              {
-                spec: {
-                  phase: faker.helpers.enumValue(MachineSetPhase),
-                  ready: faker.datatype.boolean(),
-                  machines: { total: machineCount, healthy: healthyCount },
-                  machine_allocation: faker.helpers.maybe<MachineSetSpecMachineAllocation>(() => ({
-                    allocation_type: faker.helpers.enumValue(MachineSetSpecMachineAllocationType),
-                    machine_count: faker.number.int({ min: 1, max: 5 }),
-                    name: faker.helpers
-                      .slugify(faker.word.words({ count: { min: 1, max: 3 } }))
-                      .toLocaleLowerCase(),
-                  })),
-                  locked_updates: faker.helpers.maybe(() => faker.number.int({ min: 1, max: 10 })),
-                },
-                metadata: {
-                  id,
-                  labels: {
-                    [LabelCluster]: id
-                      .replace(`-${ControlPlanesIDSuffix}`, '')
-                      .replace(`-${DefaultWorkersIDSuffix}`, ''),
-                    [label]: '',
-                  },
-                },
-              },
-            ]
-          },
-        }).handler,
-
-        createWatchStreamHandler<ClusterMachineStatusSpec>({
-          expectedOptions: {
-            type: ClusterMachineStatusType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: ({
-            selectors: {
-              [LabelCluster]: clusterLabel = '',
-              [LabelMachineSet]: machineSetLabel = '',
-            } = {},
-          }) => clusterMachineStatuses(clusterLabel, machineSetLabel),
-        }).handler,
-
-        createWatchStreamHandler<ClusterMachineRequestStatusSpec>({
-          expectedOptions: {
-            type: ClusterMachineRequestStatusType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: ({ selectors: { [LabelMachineSet]: machineSetLabel = '' } = {} }) => {
-            faker.seed(
-              machineSetLabel.split('').reduce((prev, curr) => prev + curr.charCodeAt(0), 0),
-            )
-
-            return faker.helpers.multiple<Resource<ClusterMachineRequestStatusSpec>>(
-              () => ({
-                spec: {
-                  machine_uuid: faker.string.uuid(),
-                  ...faker.helpers.arrayElement([
-                    {
-                      stage: ClusterMachineRequestStatusSpecStage.PENDING,
-                      status: 'Waiting for the infra provider to start provision',
-                    },
-                    {
-                      stage: ClusterMachineRequestStatusSpecStage.DEPROVISIONING,
-                      status: 'Waiting for the infra provider to finish teardown',
-                    },
-                    {
-                      stage: ClusterMachineRequestStatusSpecStage.PROVISIONED,
-                      status: 'Waiting for the machine to join Omni',
-                    },
-                    {
-                      stage: ClusterMachineRequestStatusSpecStage.FAILED,
-                      status: `Provision Failed: ${faker.hacker.phrase()}`,
-                    },
-                    { stage: ClusterMachineRequestStatusSpecStage.PROVISIONING },
-                    { stage: ClusterMachineRequestStatusSpecStage.PENDING },
-                    { stage: ClusterMachineRequestStatusSpecStage.UNKNOWN },
-                  ]),
-                },
-                metadata: {
-                  id: faker.string.uuid(),
-                },
-              }),
-              {
-                count: { min: 1, max: 5 },
-              },
-            )
-          },
-        }).handler,
-
-        http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
-          const { type, namespace } = await request.clone().json()
-
-          if (type !== ClusterPermissionsType || namespace !== VirtualNamespace) return
-
-          return HttpResponse.json({
-            body: JSON.stringify({
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<ClusterStatusSpec>({
+        expectedOptions: {
+          type: ClusterStatusType,
+          namespace: DefaultNamespace,
+        },
+        totalResults: 30,
+        initialResources: ({ limit = 5, offset = 0 }) => {
+          faker.seed(offset)
+          return faker.helpers.multiple<Resource<ClusterStatusSpec>>(
+            () => ({
               spec: {
-                can_add_machines: true,
-                can_remove_machines: true,
-                can_reboot_machines: true,
-                can_update_kubernetes: true,
-                can_download_kubeconfig: true,
-                can_sync_kubernetes_manifests: true,
-                can_update_talos: true,
-                can_download_talosconfig: true,
-                can_read_config_patches: true,
-                can_manage_config_patches: true,
-                can_manage_cluster_features: true,
-                can_download_support_bundle: true,
+                machines: { total: 3, healthy: 3 },
+                phase: faker.helpers.enumValue(ClusterStatusSpecPhase),
+                ready: faker.datatype.boolean(),
+                talos_version: faker.system.semver(),
+                kubernetes_version: faker.system.semver(),
               },
               metadata: {
-                namespace: VirtualNamespace,
-                type: ClusterPermissionsType,
-                id: 'talos-test-cluster',
+                annotations: faker.helpers.maybe(() => ({ [ClusterLocked]: '' })),
+                id: faker.helpers
+                  .slugify(faker.word.words({ count: { min: 1, max: 3 } }))
+                  .toLocaleLowerCase(),
+                namespace: DefaultNamespace,
+                created: faker.date.anytime().toISOString(),
+                labels: Object.fromEntries(
+                  faker.helpers.multiple(
+                    () => [
+                      faker.hacker.noun(),
+                      faker.helpers.maybe(() => faker.hacker.adjective()) ?? '',
+                    ],
+                    { count: { min: 0, max: 5 } },
+                  ),
+                ),
               },
-            } as Resource<ClusterPermissionsSpec>),
-          })
-        }),
-      ],
-    },
+            }),
+            { count: limit },
+          )
+        },
+      }).handler,
+      createWatchStreamHandler<ClusterStatusMetricsSpec>({
+        expectedOptions: {
+          type: ClusterStatusMetricsType,
+          namespace: EphemeralNamespace,
+        },
+        initialResources: [{ spec: { not_ready_count: 3 }, metadata: {} }],
+      }).handler,
+      createWatchStreamHandler<MachineSetSpec>({
+        expectedOptions: {
+          type: MachineSetType,
+          namespace: DefaultNamespace,
+        },
+        initialResources: ({ selectors: { [LabelCluster]: clusterLabel = '' } = {} }) => {
+          faker.seed(clusterLabel.split('').reduce((prev, curr) => prev + curr.charCodeAt(0), 0))
+
+          return [
+            {
+              spec: {},
+              metadata: {
+                id: `${clusterLabel}-${ControlPlanesIDSuffix}`,
+                labels: {
+                  [LabelCluster]: clusterLabel,
+                  [LabelControlPlaneRole]: '',
+                } as Record<string, string>,
+              },
+            },
+            {
+              spec: {},
+              metadata: {
+                id: `${clusterLabel}-${DefaultWorkersIDSuffix}`,
+                labels: {
+                  [LabelCluster]: clusterLabel,
+                  [LabelWorkerRole]: '',
+                } as Record<string, string>,
+              },
+            },
+          ]
+        },
+      }).handler,
+      createWatchStreamHandler<ClusterDiagnosticsSpec>({
+        expectedOptions: {
+          type: ClusterDiagnosticsType,
+          namespace: DefaultNamespace,
+        },
+        initialResources: ({ id: clusterID = '' }) => {
+          const machineIds = clusterMachineIds(clusterID)
+
+          faker.seed(seedFromId(clusterID))
+
+          const nodes = machineIds
+            .filter(() => faker.datatype.boolean())
+            .map((id) => ({ id, num_diagnostics: faker.number.int({ min: 1, max: 10 }) }))
+
+          return [{ spec: { nodes }, metadata: { id: clusterID } }]
+        },
+      }).handler,
+      createWatchStreamHandler<MachineSetStatusSpec>({
+        expectedOptions: {
+          type: MachineSetStatusType,
+          namespace: DefaultNamespace,
+        },
+        initialResources: ({ id = '' }) => {
+          faker.seed(id.split('').reduce((prev, curr) => prev + curr.charCodeAt(0), 0))
+
+          const machineCount = faker.number.int({ max: 5 })
+          const healthyCount = faker.number.int({ max: machineCount })
+          const label = id.includes(ControlPlanesIDSuffix) ? LabelControlPlaneRole : LabelWorkerRole
+
+          return [
+            {
+              spec: {
+                phase: faker.helpers.enumValue(MachineSetPhase),
+                ready: faker.datatype.boolean(),
+                machines: { total: machineCount, healthy: healthyCount },
+                machine_allocation: faker.helpers.maybe<MachineSetSpecMachineAllocation>(() => ({
+                  allocation_type: faker.helpers.enumValue(MachineSetSpecMachineAllocationType),
+                  machine_count: faker.number.int({ min: 1, max: 5 }),
+                  name: faker.helpers
+                    .slugify(faker.word.words({ count: { min: 1, max: 3 } }))
+                    .toLocaleLowerCase(),
+                })),
+                locked_updates: faker.helpers.maybe(() => faker.number.int({ min: 1, max: 10 })),
+              },
+              metadata: {
+                id,
+                labels: {
+                  [LabelCluster]: id
+                    .replace(`-${ControlPlanesIDSuffix}`, '')
+                    .replace(`-${DefaultWorkersIDSuffix}`, ''),
+                  [label]: '',
+                },
+              },
+            },
+          ]
+        },
+      }).handler,
+      createWatchStreamHandler<ClusterMachineStatusSpec>({
+        expectedOptions: {
+          type: ClusterMachineStatusType,
+          namespace: DefaultNamespace,
+        },
+        initialResources: ({
+          selectors: {
+            [LabelCluster]: clusterLabel = '',
+            [LabelMachineSet]: machineSetLabel = '',
+          } = {},
+        }) => clusterMachineStatuses(clusterLabel, machineSetLabel),
+      }).handler,
+      createWatchStreamHandler<ClusterMachineRequestStatusSpec>({
+        expectedOptions: {
+          type: ClusterMachineRequestStatusType,
+          namespace: DefaultNamespace,
+        },
+        initialResources: ({ selectors: { [LabelMachineSet]: machineSetLabel = '' } = {} }) => {
+          faker.seed(machineSetLabel.split('').reduce((prev, curr) => prev + curr.charCodeAt(0), 0))
+
+          return faker.helpers.multiple<Resource<ClusterMachineRequestStatusSpec>>(
+            () => ({
+              spec: {
+                machine_uuid: faker.string.uuid(),
+                ...faker.helpers.arrayElement([
+                  {
+                    stage: ClusterMachineRequestStatusSpecStage.PENDING,
+                    status: 'Waiting for the infra provider to start provision',
+                  },
+                  {
+                    stage: ClusterMachineRequestStatusSpecStage.DEPROVISIONING,
+                    status: 'Waiting for the infra provider to finish teardown',
+                  },
+                  {
+                    stage: ClusterMachineRequestStatusSpecStage.PROVISIONED,
+                    status: 'Waiting for the machine to join Omni',
+                  },
+                  {
+                    stage: ClusterMachineRequestStatusSpecStage.FAILED,
+                    status: `Provision Failed: ${faker.hacker.phrase()}`,
+                  },
+                  { stage: ClusterMachineRequestStatusSpecStage.PROVISIONING },
+                  { stage: ClusterMachineRequestStatusSpecStage.PENDING },
+                  { stage: ClusterMachineRequestStatusSpecStage.UNKNOWN },
+                ]),
+              },
+              metadata: {
+                id: faker.string.uuid(),
+              },
+            }),
+            {
+              count: { min: 1, max: 5 },
+            },
+          )
+        },
+      }).handler,
+      http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
+        const { type, namespace } = await request.clone().json()
+
+        if (type !== ClusterPermissionsType || namespace !== VirtualNamespace) return
+
+        return HttpResponse.json({
+          body: JSON.stringify({
+            spec: {
+              can_add_machines: true,
+              can_remove_machines: true,
+              can_reboot_machines: true,
+              can_update_kubernetes: true,
+              can_download_kubeconfig: true,
+              can_sync_kubernetes_manifests: true,
+              can_update_talos: true,
+              can_download_talosconfig: true,
+              can_read_config_patches: true,
+              can_manage_config_patches: true,
+              can_manage_cluster_features: true,
+              can_download_support_bundle: true,
+            },
+            metadata: {
+              namespace: VirtualNamespace,
+              type: ClusterPermissionsType,
+              id: 'talos-test-cluster',
+            },
+          } as Resource<ClusterPermissionsSpec>),
+        })
+      }),
+    )
   },
 }
 
 export const NoData: Story = {
-  parameters: {
-    msw: {
-      handlers: [createWatchStreamHandler().handler],
-    },
+  beforeEach({ msw }) {
+    msw.use(createWatchStreamHandler().handler)
   },
 }

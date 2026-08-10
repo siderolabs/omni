@@ -19,11 +19,38 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
-          const { id, type, namespace } = await request.clone().json()
+  beforeEach({ msw }) {
+    msw.use(
+      http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
+        const { id, type, namespace } = await request.clone().json()
+
+        if (
+          id !== EulaAcceptanceID ||
+          type !== EulaAcceptanceType ||
+          namespace !== DefaultNamespace
+        ) {
+          return
+        }
+
+        return HttpResponse.json(
+          {
+            body: {
+              code: Code.NOT_FOUND,
+              message:
+                "failed to get: resource EulaAcceptances.omni.sidero.dev(default/eula@undefined) doesn't exist",
+            },
+          },
+          { status: 404 },
+        )
+      }),
+      http.post<never, CreateRequest, CreateResponse>(
+        '/omni.resources.ResourceService/Create',
+        async ({ request }) => {
+          const { resource } = await request.clone().json()
+
+          if (!resource?.metadata) return
+
+          const { id, type, namespace } = resource.metadata
 
           if (
             id !== EulaAcceptanceID ||
@@ -33,41 +60,11 @@ export const Default: Story = {
             return
           }
 
-          return HttpResponse.json(
-            {
-              body: {
-                code: Code.NOT_FOUND,
-                message:
-                  "failed to get: resource EulaAcceptances.omni.sidero.dev(default/eula@undefined) doesn't exist",
-              },
-            },
-            { status: 404 },
-          )
-        }),
+          await delay(1_000)
 
-        http.post<never, CreateRequest, CreateResponse>(
-          '/omni.resources.ResourceService/Create',
-          async ({ request }) => {
-            const { resource } = await request.clone().json()
-
-            if (!resource?.metadata) return
-
-            const { id, type, namespace } = resource.metadata
-
-            if (
-              id !== EulaAcceptanceID ||
-              type !== EulaAcceptanceType ||
-              namespace !== DefaultNamespace
-            ) {
-              return
-            }
-
-            await delay(1_000)
-
-            return HttpResponse.json({})
-          },
-        ),
-      ],
-    },
+          return HttpResponse.json({})
+        },
+      ),
+    )
   },
 }

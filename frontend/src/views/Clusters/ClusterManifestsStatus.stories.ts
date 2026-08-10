@@ -265,29 +265,27 @@ const defaultYAMLByGroupId = Object.fromEntries(
 )
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<ClusterKubernetesManifestsStatusSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: ClusterKubernetesManifestsStatusType,
-            id: clusterId,
-          },
-          initialResources: [
-            {
-              metadata: {
-                namespace: DefaultNamespace,
-                type: ClusterKubernetesManifestsStatusType,
-                id: clusterId,
-              },
-              spec: makeSpec(4, defaultGroups),
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<ClusterKubernetesManifestsStatusSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: ClusterKubernetesManifestsStatusType,
+          id: clusterId,
+        },
+        initialResources: [
+          {
+            metadata: {
+              namespace: DefaultNamespace,
+              type: ClusterKubernetesManifestsStatusType,
+              id: clusterId,
             },
-          ],
-        }).handler,
-        manifestGroupGetHandler(defaultYAMLByGroupId),
-      ],
-    },
+            spec: makeSpec(4, defaultGroups),
+          },
+        ],
+      }).handler,
+      manifestGroupGetHandler(defaultYAMLByGroupId),
+    )
   },
 }
 
@@ -328,43 +326,39 @@ const withErrorYAMLByGroupId = {
 }
 
 export const WithError: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<ClusterKubernetesManifestsStatusSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: ClusterKubernetesManifestsStatusType,
-            id: clusterId,
-          },
-          initialResources: [
-            {
-              metadata: {
-                namespace: DefaultNamespace,
-                type: ClusterKubernetesManifestsStatusType,
-                id: clusterId,
-              },
-              spec: makeSpec(
-                3,
-                {
-                  [withErrorGroupIds.workloadProxy]: withErrorGroups.workloadProxy.status,
-                  [withErrorGroupIds.certManager]: withErrorGroups.certManager.status,
-                },
-                'failed to apply manifest cert-manager/CustomResourceDefinition/certificates.cert-manager.io: the server could not find the requested resource',
-              ),
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<ClusterKubernetesManifestsStatusSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: ClusterKubernetesManifestsStatusType,
+          id: clusterId,
+        },
+        initialResources: [
+          {
+            metadata: {
+              namespace: DefaultNamespace,
+              type: ClusterKubernetesManifestsStatusType,
+              id: clusterId,
             },
-          ],
-        }).handler,
-        manifestGroupGetHandler(withErrorYAMLByGroupId),
-      ],
-    },
+            spec: makeSpec(
+              3,
+              {
+                [withErrorGroupIds.workloadProxy]: withErrorGroups.workloadProxy.status,
+                [withErrorGroupIds.certManager]: withErrorGroups.certManager.status,
+              },
+              'failed to apply manifest cert-manager/CustomResourceDefinition/certificates.cert-manager.io: the server could not find the requested resource',
+            ),
+          },
+        ],
+      }).handler,
+      manifestGroupGetHandler(withErrorYAMLByGroupId),
+    )
   },
 }
 
 export const NoData: Story = {
-  parameters: {
-    msw: {
-      handlers: [createWatchStreamHandler().handler],
-    },
+  beforeEach({ msw }) {
+    msw.use(createWatchStreamHandler().handler)
   },
 }

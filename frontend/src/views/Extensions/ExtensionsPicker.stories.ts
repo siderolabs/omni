@@ -5,11 +5,10 @@
 import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
-import type { TalosExtensionsSpec } from '@/api/omni/specs/omni.pb'
-import { DefaultNamespace, DefaultTalosVersion, TalosExtensionsType } from '@/api/resources'
+import { DefaultTalosVersion } from '@/api/resources'
 
+import { fakeExtensions, handlers } from './ExtensionsPicker.mocks'
 import ExtensionsPicker from './ExtensionsPicker.vue'
-import { fakeExtensions } from './fakeData'
 
 const meta: Meta<typeof ExtensionsPicker> = {
   component: ExtensionsPicker,
@@ -22,7 +21,7 @@ const meta: Meta<typeof ExtensionsPicker> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Data = {
+export const Data: Story = {
   args: {
     indeterminate: true,
     modelValue: {
@@ -33,31 +32,14 @@ export const Data = {
       [fakeExtensions[1].name]: true,
     },
   },
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<TalosExtensionsSpec>({
-          expectedOptions: {
-            id: DefaultTalosVersion,
-            type: TalosExtensionsType,
-            namespace: DefaultNamespace,
-          },
-          initialResources: [
-            {
-              spec: { items: fakeExtensions },
-              metadata: {},
-            },
-          ],
-        }).handler,
-      ],
-    },
+
+  beforeEach({ msw }) {
+    msw.use(...handlers)
   },
-} satisfies Story
+}
 
 export const NoData: Story = {
-  parameters: {
-    msw: {
-      handlers: [createWatchStreamHandler().handler],
-    },
+  beforeEach({ msw }) {
+    msw.use(createWatchStreamHandler().handler)
   },
 }

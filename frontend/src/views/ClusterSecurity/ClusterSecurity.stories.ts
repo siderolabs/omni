@@ -185,114 +185,108 @@ type Story = StoryObj<typeof meta>
 
 /** A homogeneous cluster: one schematic, one architecture, three machines. */
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        featuresHandler,
-        clusterStatusHandler,
-        talosVersionsHandler,
-        createWatchStreamHandler<ClusterMachineConfigStatusSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: ClusterMachineConfigStatusType,
-            selectors: { [LabelCluster]: CLUSTER },
-          },
-          initialResources: [
-            configStatus('machine-1', SCHEMATIC_CP, LabelControlPlaneRole),
-            configStatus('machine-2', SCHEMATIC_CP, LabelWorkerRole),
-            configStatus('machine-3', SCHEMATIC_CP, LabelWorkerRole),
-          ],
-        }).handler,
-        createWatchStreamHandler<MachineStatusSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: MachineStatusType,
-            selectors: { [LabelCluster]: CLUSTER },
-          },
-          initialResources: [
-            machineStatus('machine-1', 'amd64'),
-            machineStatus('machine-2', 'amd64'),
-            machineStatus('machine-3', 'amd64'),
-          ],
-        }).handler,
-        scanHandler,
-      ],
-    },
+  beforeEach({ msw }) {
+    msw.use(
+      featuresHandler,
+      clusterStatusHandler,
+      talosVersionsHandler,
+      createWatchStreamHandler<ClusterMachineConfigStatusSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: ClusterMachineConfigStatusType,
+          selectors: { [LabelCluster]: CLUSTER },
+        },
+        initialResources: [
+          configStatus('machine-1', SCHEMATIC_CP, LabelControlPlaneRole),
+          configStatus('machine-2', SCHEMATIC_CP, LabelWorkerRole),
+          configStatus('machine-3', SCHEMATIC_CP, LabelWorkerRole),
+        ],
+      }).handler,
+      createWatchStreamHandler<MachineStatusSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: MachineStatusType,
+          selectors: { [LabelCluster]: CLUSTER },
+        },
+        initialResources: [
+          machineStatus('machine-1', 'amd64'),
+          machineStatus('machine-2', 'amd64'),
+          machineStatus('machine-3', 'amd64'),
+        ],
+      }).handler,
+      scanHandler,
+    )
   },
 }
 
 /** A heterogeneous cluster: control plane and workers use different schematics and architectures. */
 export const HeterogeneousCluster: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        featuresHandler,
-        clusterStatusHandler,
-        talosVersionsHandler,
-        createWatchStreamHandler<ClusterMachineConfigStatusSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: ClusterMachineConfigStatusType,
-            selectors: { [LabelCluster]: CLUSTER },
-          },
-          initialResources: [
-            configStatus('machine-1', SCHEMATIC_CP, LabelControlPlaneRole),
-            configStatus('machine-2', SCHEMATIC_WORKER, LabelWorkerRole),
-            configStatus('machine-3', SCHEMATIC_WORKER, LabelWorkerRole),
-          ],
-        }).handler,
-        createWatchStreamHandler<MachineStatusSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: MachineStatusType,
-            selectors: { [LabelCluster]: CLUSTER },
-          },
-          initialResources: [
-            machineStatus('machine-1', 'amd64'),
-            machineStatus('machine-2', 'arm64'),
-            machineStatus('machine-3', 'arm64'),
-          ],
-        }).handler,
-        scanHandler,
-      ],
-    },
+  beforeEach({ msw }) {
+    msw.use(
+      featuresHandler,
+      clusterStatusHandler,
+      talosVersionsHandler,
+      createWatchStreamHandler<ClusterMachineConfigStatusSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: ClusterMachineConfigStatusType,
+          selectors: { [LabelCluster]: CLUSTER },
+        },
+        initialResources: [
+          configStatus('machine-1', SCHEMATIC_CP, LabelControlPlaneRole),
+          configStatus('machine-2', SCHEMATIC_WORKER, LabelWorkerRole),
+          configStatus('machine-3', SCHEMATIC_WORKER, LabelWorkerRole),
+        ],
+      }).handler,
+      createWatchStreamHandler<MachineStatusSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: MachineStatusType,
+          selectors: { [LabelCluster]: CLUSTER },
+        },
+        initialResources: [
+          machineStatus('machine-1', 'amd64'),
+          machineStatus('machine-2', 'arm64'),
+          machineStatus('machine-3', 'arm64'),
+        ],
+      }).handler,
+      scanHandler,
+    )
   },
 }
 
 /** A cluster already on the latest available Talos version — no upgrade paths. */
 export const NoUpgradesAvailable: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        featuresHandler,
-        createWatchStreamHandler<ClusterStatusSpec>({
-          expectedOptions: { namespace: DefaultNamespace, type: ClusterStatusType, id: CLUSTER },
-          initialResources: [
-            {
-              metadata: { namespace: DefaultNamespace, type: ClusterStatusType, id: CLUSTER },
-              spec: { talos_version: MINOR_VERSION, available: true },
-            },
-          ],
-        }).handler,
-        talosVersionsHandler,
-        createWatchStreamHandler<ClusterMachineConfigStatusSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: ClusterMachineConfigStatusType,
-            selectors: { [LabelCluster]: CLUSTER },
+  beforeEach({ msw }) {
+    msw.use(
+      featuresHandler,
+      createWatchStreamHandler<ClusterStatusSpec>({
+        expectedOptions: { namespace: DefaultNamespace, type: ClusterStatusType, id: CLUSTER },
+        initialResources: [
+          {
+            metadata: { namespace: DefaultNamespace, type: ClusterStatusType, id: CLUSTER },
+            spec: { talos_version: MINOR_VERSION, available: true },
           },
-          initialResources: [configStatus('machine-1', SCHEMATIC_CP, LabelControlPlaneRole)],
-        }).handler,
-        createWatchStreamHandler<MachineStatusSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: MachineStatusType,
-            selectors: { [LabelCluster]: CLUSTER },
-          },
-          initialResources: [machineStatus('machine-1', 'amd64')],
-        }).handler,
-        scanHandler,
-      ],
-    },
+        ],
+      }).handler,
+      talosVersionsHandler,
+      createWatchStreamHandler<ClusterMachineConfigStatusSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: ClusterMachineConfigStatusType,
+          selectors: { [LabelCluster]: CLUSTER },
+        },
+        initialResources: [configStatus('machine-1', SCHEMATIC_CP, LabelControlPlaneRole)],
+      }).handler,
+      createWatchStreamHandler<MachineStatusSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: MachineStatusType,
+          selectors: { [LabelCluster]: CLUSTER },
+        },
+        initialResources: [machineStatus('machine-1', 'amd64')],
+      }).handler,
+      scanHandler,
+    )
   },
 }

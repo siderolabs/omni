@@ -12,7 +12,7 @@ import type { Resource } from '@/api/grpc'
 import type {
   MachinePowerOffRequest,
   MachinePowerOffResponse,
-} from '@/api/omni/management/management.pb.ts'
+} from '@/api/omni/management/management.pb'
 import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
 import type { ClusterPermissionsSpec } from '@/api/omni/specs/virtual.pb'
@@ -104,13 +104,11 @@ function powerOffHandler() {
 }
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        clusterMachineStatusHandler(nodeName),
-        clusterPermissionsHandler(true),
-        powerOffHandler(),
-      ],
-    },
+  beforeEach({ msw }) {
+    msw.use(
+      clusterMachineStatusHandler(nodeName),
+      clusterPermissionsHandler(true),
+      powerOffHandler(),
+    )
   },
 }

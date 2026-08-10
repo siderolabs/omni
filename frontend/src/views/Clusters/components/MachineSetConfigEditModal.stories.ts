@@ -5,9 +5,9 @@
 import { faker } from '@faker-js/faker'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
-import { MachineSetSpecUpdateStrategy } from '@/api/omni/specs/omni.pb.ts'
-import { LabelControlPlaneRole, LabelWorkerRole } from '@/api/resources.ts'
-import type { MachineSet } from '@/states/cluster-management.ts'
+import { MachineSetSpecUpdateStrategy } from '@/api/omni/specs/omni.pb'
+import { LabelControlPlaneRole, LabelWorkerRole } from '@/api/resources'
+import type { MachineSet } from '@/states/cluster-management'
 
 import MachineSetConfigEditModal from './MachineSetConfigEditModal.vue'
 

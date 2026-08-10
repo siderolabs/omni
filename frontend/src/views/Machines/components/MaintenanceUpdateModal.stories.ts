@@ -12,7 +12,7 @@ import type { Resource } from '@/api/grpc'
 import type {
   MaintenanceUpgradeRequest,
   MaintenanceUpgradeResponse,
-} from '@/api/omni/management/management.pb.ts'
+} from '@/api/omni/management/management.pb'
 import type { MachineStatusLinkSpec } from '@/api/omni/specs/ephemeral.pb'
 import { type TalosVersionSpec } from '@/api/omni/specs/omni.pb'
 import {
@@ -21,7 +21,7 @@ import {
   MetricsNamespace,
   TalosVersionType,
 } from '@/api/resources'
-import { MachineStatusEventMachineStage } from '@/api/talos/machine/machine.pb.ts'
+import { MachineStatusEventMachineStage } from '@/api/talos/machine/machine.pb'
 
 import MaintenanceUpdate from './MaintenanceUpdateModal.vue'
 
@@ -106,17 +106,13 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
-  parameters: {
-    msw: {
-      handlers: handlers(),
-    },
+  beforeEach({ msw }) {
+    msw.use(...handlers())
   },
 }
 
 export const AlreadyInProgress: Story = {
-  parameters: {
-    msw: {
-      handlers: handlers(MachineStatusEventMachineStage.INSTALLING),
-    },
+  beforeEach({ msw }) {
+    msw.use(...handlers(MachineStatusEventMachineStage.INSTALLING))
   },
 }

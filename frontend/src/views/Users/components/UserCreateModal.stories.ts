@@ -6,7 +6,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { delay, http, HttpResponse } from 'msw'
 import { fn } from 'storybook/test'
 
-import type { CreateUserRequest, CreateUserResponse } from '@/api/omni/management/management.pb.ts'
+import type { CreateUserRequest, CreateUserResponse } from '@/api/omni/management/management.pb'
 
 import UserCreateModal from './UserCreateModal.vue'
 
@@ -22,18 +22,16 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-  parameters: {
-    msw: {
-      handlers: [
-        http.post<never, CreateUserRequest, CreateUserResponse>(
-          '/management.ManagementService/CreateUser',
-          async () => {
-            await delay()
+  beforeEach({ msw }) {
+    msw.use(
+      http.post<never, CreateUserRequest, CreateUserResponse>(
+        '/management.ManagementService/CreateUser',
+        async () => {
+          await delay()
 
-            return HttpResponse.json({})
-          },
-        ),
-      ],
-    },
+          return HttpResponse.json({})
+        },
+      ),
+    )
   },
 }

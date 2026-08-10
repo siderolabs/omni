@@ -8,7 +8,7 @@ import type { StorybookConfig } from '@storybook/vue3-vite'
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.stories.ts'],
-  addons: ['@chromatic-com/storybook', '@storybook/addon-a11y'],
+  addons: ['@chromatic-com/storybook', '@storybook/addon-a11y', 'msw-storybook-addon'],
   framework: {
     name: '@storybook/vue3-vite',
     options: {},

@@ -1,0 +1,232 @@
+// Copyright (c) 2026 Sidero Labs, Inc.
+//
+// Use of this software is governed by the Business Source License
+// included in the LICENSE file.
+import { faker } from '@faker-js/faker'
+import { createWatchStreamHandler } from '@msw/helpers'
+import { dump } from 'js-yaml'
+import { delay, http, HttpResponse } from 'msw'
+
+import type { Resource } from '@/api/grpc'
+import {
+  type CreateSchematicRequest,
+  type CreateSchematicResponse,
+} from '@/api/omni/management/management.pb'
+import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
+import { type FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
+import {
+  type PlatformConfigSpec,
+  PlatformConfigSpecArch,
+  PlatformConfigSpecBootMethod,
+  type QuirksSpec,
+  type SBCConfigSpec,
+} from '@/api/omni/specs/virtual.pb'
+import {
+  CloudPlatformConfigType,
+  DefaultNamespace,
+  FeaturesConfigID,
+  FeaturesConfigType,
+  LabelsMeta,
+  MetalPlatformConfigType,
+  PlatformMetalID,
+  QuirksType,
+  SBCConfigType,
+  VirtualNamespace,
+} from '@/api/resources'
+import type { TalosctlDownloadsResponse } from '@/methods/useTalosctlDownloads'
+import report from '@/views/InstallationMedia/vulnerabilities/sample-report.json'
+import type { ScansResponse } from '@/views/InstallationMedia/vulnerabilities/useVulnerabilityReport'
+
+export const handlers = [
+  createWatchStreamHandler<FeaturesConfigSpec>({
+    expectedOptions: {
+      namespace: DefaultNamespace,
+      type: FeaturesConfigType,
+      id: FeaturesConfigID,
+    },
+    initialResources: [
+      {
+        spec: {
+          image_factory_base_url: 'https://factory-enterprise.talos.dev',
+          image_factory_pxe_base_url: 'https://pxe.factory-enterprise.talos.dev',
+          is_enterprise_image_factory: true,
+        },
+        metadata: {
+          namespace: DefaultNamespace,
+          type: FeaturesConfigType,
+          id: FeaturesConfigID,
+        },
+      },
+    ],
+  }).handler,
+  http.post<never, GetRequest, GetResponse>(
+    '/omni.resources.ResourceService/Get',
+    async ({ request }) => {
+      const { id, type, namespace } = await request.clone().json()
+
+      if (type !== QuirksType || namespace !== VirtualNamespace) return
+
+      return HttpResponse.json({
+        body: JSON.stringify({
+          metadata: {
+            namespace,
+            type,
+            id,
+          },
+          spec: {
+            supports_unified_installer: true,
+            supports_factory_talosctl: true,
+          },
+        } satisfies Resource<QuirksSpec>),
+      })
+    },
+  ),
+  http.get<{ version: string }>('/api/talosctl/downloads/:version', ({ params: { version } }) => {
+    const downloads = faker.helpers
+      .multiple(faker.hacker.noun, { count: 5 })
+      .map(
+        (name) =>
+          `https://factory.talos.dev/talosctl/v${version}/talosctl-${name}-${faker.helpers.arrayElement(['amd64', 'arm64'])}`,
+      )
+
+    return HttpResponse.json<TalosctlDownloadsResponse>({
+      status: '',
+      downloads,
+    })
+  }),
+  http.get<{ version: string }>(
+    '/api/vulns/:schematicId/:talosVersion/:arch/report.json',
+    async () => {
+      await delay(2_000)
+
+      return HttpResponse.json<ScansResponse>({
+        status: '',
+        report,
+      })
+    },
+  ),
+  http.post<never, GetRequest, GetResponse>(
+    '/omni.resources.ResourceService/Get',
+    async ({ request }) => {
+      const { type, namespace } = await request.clone().json()
+
+      if (type !== CloudPlatformConfigType || namespace !== VirtualNamespace) return
+
+      return HttpResponse.json({
+        body: JSON.stringify({
+          metadata: {
+            namespace,
+            type,
+            id: faker.string.uuid(),
+          },
+          spec: {
+            label: faker.commerce.productName(),
+            description: faker.commerce.productDescription(),
+            documentation: faker.helpers.maybe(() => faker.system.directoryPath()),
+            architectures: faker.helpers.arrayElements(
+              faker.helpers.uniqueArray(() => faker.helpers.enumValue(PlatformConfigSpecArch), 2),
+              { min: 1, max: 2 },
+            ),
+            secure_boot_supported: faker.datatype.boolean(),
+            min_version: faker.helpers.maybe(
+              () =>
+                `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
+            ),
+          },
+        } satisfies Resource<PlatformConfigSpec>),
+      })
+    },
+  ),
+  http.post<never, GetRequest, GetResponse>(
+    '/omni.resources.ResourceService/Get',
+    async ({ request }) => {
+      const { type, namespace } = await request.clone().json()
+
+      if (type !== SBCConfigType || namespace !== VirtualNamespace) return
+
+      return HttpResponse.json({
+        body: JSON.stringify({
+          metadata: {
+            namespace,
+            type,
+            id: faker.string.uuid(),
+          },
+          spec: {
+            label: faker.commerce.productName(),
+            documentation: faker.helpers.maybe(() => faker.system.directoryPath()),
+            min_version: faker.helpers.maybe(
+              () =>
+                `1.${faker.number.int({ min: 6, max: 11 })}.${faker.number.int({ min: 0, max: 10 })}`,
+            ),
+          },
+        } satisfies Resource<SBCConfigSpec>),
+      })
+    },
+  ),
+  http.post<never, GetRequest, GetResponse>(
+    '/omni.resources.ResourceService/Get',
+    async ({ request }) => {
+      const { id, type, namespace } = await request.clone().json()
+
+      if (
+        id !== PlatformMetalID ||
+        type !== MetalPlatformConfigType ||
+        namespace !== VirtualNamespace
+      )
+        return
+
+      return HttpResponse.json({
+        body: JSON.stringify({
+          metadata: {
+            namespace,
+            type,
+            id,
+          },
+          spec: {
+            label: 'Bare Metal',
+            description: faker.commerce.productDescription(),
+            documentation: '/talos-guides/install/bare-metal-platforms/',
+            architectures: [PlatformConfigSpecArch.AMD64, PlatformConfigSpecArch.ARM64],
+            secure_boot_supported: false,
+            boot_methods: [
+              PlatformConfigSpecBootMethod.DISK_IMAGE,
+              PlatformConfigSpecBootMethod.ISO,
+              PlatformConfigSpecBootMethod.PXE,
+            ],
+            disk_image_suffix: 'raw.zst',
+          },
+        } satisfies Resource<PlatformConfigSpec>),
+      })
+    },
+  ),
+  http.post<never, CreateSchematicRequest, CreateSchematicResponse>(
+    '/management.ManagementService/CreateSchematic',
+    async ({ request }) => {
+      await delay(2_000)
+
+      const { talos_version, join_token } = await request.clone().json()
+
+      const schematic_id = faker.string.uuid()
+
+      return HttpResponse.json({
+        schematic_id,
+        pxe_url: `https://pxe.factory.talos.dev/pxe/${schematic_id}/${talos_version}/metal-arm64`,
+        schematic_yml: dump(
+          {
+            customization: {
+              extraKernelArgs: [
+                `siderolink.api=grpc://192.168.1.175:8090?grpc_tunnel=true&jointoken=${join_token}`,
+                'talos.events.sink=[fdae:41e4:649b:9303::1]:8091',
+                'talos.logging.kernel=tcp://[fdae:41e4:649b:9303::1]:8092',
+                '-console',
+                'console=tty0',
+              ],
+              meta: [{ key: LabelsMeta, value: 'machineLabels: {}\n' }],
+            },
+          },
+          { lineWidth: Number.MAX_SAFE_INTEGER },
+        ),
+      })
+    },
+  ),
+]

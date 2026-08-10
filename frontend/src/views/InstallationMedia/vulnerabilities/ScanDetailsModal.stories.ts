@@ -3,12 +3,12 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
-import { createWatchStreamHandler } from '@msw/helpers.ts'
+import { createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 
-import type { FeaturesConfigSpec } from '@/api/omni/specs/omni.pb.ts'
-import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb.ts'
-import { DefaultNamespace, FeaturesConfigID, FeaturesConfigType } from '@/api/resources.ts'
+import type { FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
+import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
+import { DefaultNamespace, FeaturesConfigID, FeaturesConfigType } from '@/api/resources'
 
 import report from './sample-report.json'
 import ScanDetailsModal from './ScanDetailsModal.vue'
@@ -33,30 +33,29 @@ export const Default: Story = {
   args: {
     matches: report.matches,
   },
-  parameters: {
-    msw: {
-      handlers: [
-        createWatchStreamHandler<FeaturesConfigSpec>({
-          expectedOptions: {
-            namespace: DefaultNamespace,
-            type: FeaturesConfigType,
-            id: FeaturesConfigID,
-          },
-          initialResources: [
-            {
-              spec: {
-                image_factory_base_url: 'https://factory-enterprise.talos.dev',
-                image_factory_pxe_base_url: 'https://pxe.factory-enterprise.talos.dev',
-              },
-              metadata: {
-                namespace: DefaultNamespace,
-                type: FeaturesConfigType,
-                id: FeaturesConfigID,
-              },
+
+  beforeEach({ msw }) {
+    msw.use(
+      createWatchStreamHandler<FeaturesConfigSpec>({
+        expectedOptions: {
+          namespace: DefaultNamespace,
+          type: FeaturesConfigType,
+          id: FeaturesConfigID,
+        },
+        initialResources: [
+          {
+            spec: {
+              image_factory_base_url: 'https://factory-enterprise.talos.dev',
+              image_factory_pxe_base_url: 'https://pxe.factory-enterprise.talos.dev',
             },
-          ],
-        }).handler,
-      ],
-    },
+            metadata: {
+              namespace: DefaultNamespace,
+              type: FeaturesConfigType,
+              id: FeaturesConfigID,
+            },
+          },
+        ],
+      }).handler,
+    )
   },
 }
