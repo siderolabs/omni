@@ -7,10 +7,10 @@ included in the LICENSE file.
 <script setup lang="ts">
 import prettyBytes from 'pretty-bytes'
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import { Code } from '@/api/google/rpc/code.pb'
+import type { RuntimeContext } from '@/api/options'
 import {
   TalosDiscoveredVolumeType,
   TalosDiskType,
@@ -22,13 +22,18 @@ import TIcon from '@/components/Icon/TIcon.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
-import { getContext } from '@/context'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import DiskPartitionTable from '@/views/Nodes/components/DiskPartitionTable.vue'
 import DiskUsageBar from '@/views/Nodes/components/DiskUsageBar.vue'
 
-const route = useRoute()
-const context = computed(() => getContext(route))
+const { machineId } = defineProps<{
+  machineId: string
+  clusterId?: string
+}>()
+
+const context = computed<RuntimeContext>(() => ({
+  node: machineId,
+}))
 
 const {
   data: disks,

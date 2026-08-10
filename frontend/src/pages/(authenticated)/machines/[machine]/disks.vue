@@ -11,5 +11,5 @@ definePage({ name: 'MachineDisks' })
 </script>
 
 <template>
-  <MachineDisks />
+  <MachineDisks :machine-id="$route.params.machine" />
 </template>

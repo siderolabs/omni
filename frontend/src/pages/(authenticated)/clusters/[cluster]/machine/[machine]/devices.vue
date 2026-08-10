@@ -11,5 +11,5 @@ definePage({ name: 'NodeDevices' })
 </script>
 
 <template>
-  <MachineDevices />
+  <MachineDevices :machine-id="$route.params.machine" :cluster-id="$route.params.cluster" />
 </template>

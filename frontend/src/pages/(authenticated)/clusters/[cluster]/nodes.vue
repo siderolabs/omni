@@ -12,6 +12,7 @@ import { useRoute } from 'vue-router'
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
 import type { ClusterMachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type { RuntimeContext } from '@/api/options'
 import {
   ClusterMachineStatusLabelNodeName,
   ClusterMachineStatusType,
@@ -26,31 +27,32 @@ import TGroupAnimation from '@/components/Animation/TGroupAnimation.vue'
 import TList from '@/components/List/TList.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
-import { getContext } from '@/context'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import NodesItem from '@/views/Nodes/components/NodesItem.vue'
 
 definePage({ name: 'Nodes' })
 
 const route = useRoute()
-const context = getContext()
+const context = computed<RuntimeContext>(() => ({
+  cluster: route.params.cluster,
+}))
 
-const { data: v1Nodes } = useResourceWatch<V1NodeSpec, V1NodeStatus>({
+const { data: v1Nodes } = useResourceWatch<V1NodeSpec, V1NodeStatus>(() => ({
   runtime: Runtime.Kubernetes,
   resource: {
     type: kubernetes.node,
   },
-  context,
-})
+  context: context.value,
+}))
 
-const { data: talosMembers } = useResourceWatch<MemberSpec>({
+const { data: talosMembers } = useResourceWatch<MemberSpec>(() => ({
   runtime: Runtime.Talos,
   resource: {
     type: TalosMemberType,
     namespace: TalosClusterNamespace,
   },
-  context,
-})
+  context: context.value,
+}))
 
 const v1NodesMap = computed(() =>
   Object.fromEntries(v1Nodes.value.map((n) => [n.metadata.name!, n])),

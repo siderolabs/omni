@@ -19,14 +19,13 @@ import {
   KubernetesSyncManifestResponseResponseType,
   ManagementService,
 } from '@/api/omni/management/management.pb'
-import { withContext } from '@/api/options'
+import { type RuntimeContext, withContext } from '@/api/options'
 import TButton from '@/components/Button/TButton.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
-import { getContext } from '@/context'
 import { showSuccess } from '@/notification'
 
 definePage({ name: 'KubernetesManifestSync' })
@@ -34,7 +33,9 @@ definePage({ name: 'KubernetesManifestSync' })
 const textDecoder = new TextDecoder()
 
 const route = useRoute()
-const context = computed(() => getContext(route))
+const context = computed<RuntimeContext>(() => ({
+  cluster: route.params.cluster,
+}))
 
 const loading = ref(true)
 const loaded = ref(false)
