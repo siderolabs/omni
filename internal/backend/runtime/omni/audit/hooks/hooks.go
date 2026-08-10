@@ -506,8 +506,16 @@ func machineConfigDiffCreate(_ context.Context, data *auditlog.Data, res resourc
 	initPtrField(&data.MachineConfigDiff)
 
 	data.MachineConfigDiff.ID = machineConfigDiff.Metadata().ID()
-	data.MachineConfigDiff.Diff = machineConfigDiff.TypedSpec().Value.Diff
 	data.MachineConfigDiff.ClusterID, _ = machineConfigDiff.Metadata().Labels().Get(omni.LabelCluster)
+
+	buffer, err := machineConfigDiff.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return err
+	}
+
+	defer buffer.Free()
+
+	data.MachineConfigDiff.Diff = string(buffer.Data())
 
 	return nil
 }

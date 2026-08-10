@@ -252,11 +252,9 @@ func (ctrl *Controller) saveDiff(ctx context.Context, r controller.ReaderWriter,
 		res.Metadata().Annotations().Set(ctrl.modifiedAtAnnotationKey, modifiedAt)
 		res.Metadata().Labels().Set(omni.LabelMachine, cmcr.Metadata().ID())
 
-		res.TypedSpec().Value.Diff = diffStr
-
 		helpers.CopyAllLabels(cmcr, res)
 
-		return nil
+		return res.TypedSpec().Value.SetUncompressedData([]byte(diffStr))
 	}); err != nil {
 		return fmt.Errorf("failed to write diff: %w", err)
 	}

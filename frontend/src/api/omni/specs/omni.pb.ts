@@ -541,6 +541,7 @@ export type MachinePendingUpdatesSpecUpgrade = {
 export type MachinePendingUpdatesSpec = {
   upgrade?: MachinePendingUpdatesSpecUpgrade
   config_diff?: string
+  compressed_config_diff?: Uint8Array
 }
 
 export type ClusterBootstrapStatusSpec = {
@@ -1068,6 +1069,7 @@ export type InfraProviderCombinedStatusSpec = {
 
 export type MachineConfigDiffSpec = {
   diff?: string
+  compressed_diff?: Uint8Array
 }
 
 export type InstallationMediaConfigSpecCloud = {

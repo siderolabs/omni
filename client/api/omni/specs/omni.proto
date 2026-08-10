@@ -682,8 +682,16 @@ message MachinePendingUpdatesSpec {
 
   // Upgrade represents pending machine upgrade.
   Upgrade upgrade = 1;
-  // ConfigDiff represents the redacted machine config diff.
+
+  // ConfigDiff represents the redacted machine config diff. It is only set if the diff is not compressed. Otherwise, CompressedConfigDiff is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   string config_diff = 2;
+
+  // CompressedConfigDiff represents the redacted machine config diff. It is only set if the diff is compressed. Otherwise, ConfigDiff is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+  bytes compressed_config_diff = 3;
 }
 
 // ClusterBootstrapStatusSpec keeps track of bootstrap calls for a cluster.
@@ -1611,7 +1619,15 @@ message InfraProviderCombinedStatusSpec {
 }
 
 message MachineConfigDiffSpec {
+  // Diff contains the redacted machine config diff. It is only set if the diff is not compressed. Otherwise, CompressedDiff is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
   string diff = 1;
+
+  // CompressedDiff contains the redacted machine config diff. It is only set if the diff is compressed. Otherwise, Diff is set instead.
+  //
+  // Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+  bytes compressed_diff = 2;
 }
 
 message InstallationMediaConfigSpec {

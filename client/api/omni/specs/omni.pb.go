@@ -3749,10 +3749,16 @@ type MachinePendingUpdatesSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Upgrade represents pending machine upgrade.
 	Upgrade *MachinePendingUpdatesSpec_Upgrade `protobuf:"bytes,1,opt,name=upgrade,proto3" json:"upgrade,omitempty"`
-	// ConfigDiff represents the redacted machine config diff.
-	ConfigDiff    string `protobuf:"bytes,2,opt,name=config_diff,json=configDiff,proto3" json:"config_diff,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// ConfigDiff represents the redacted machine config diff. It is only set if the diff is not compressed. Otherwise, CompressedConfigDiff is set instead.
+	//
+	// Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+	ConfigDiff string `protobuf:"bytes,2,opt,name=config_diff,json=configDiff,proto3" json:"config_diff,omitempty"`
+	// CompressedConfigDiff represents the redacted machine config diff. It is only set if the diff is compressed. Otherwise, ConfigDiff is set instead.
+	//
+	// Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+	CompressedConfigDiff []byte `protobuf:"bytes,3,opt,name=compressed_config_diff,json=compressedConfigDiff,proto3" json:"compressed_config_diff,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *MachinePendingUpdatesSpec) Reset() {
@@ -3797,6 +3803,13 @@ func (x *MachinePendingUpdatesSpec) GetConfigDiff() string {
 		return x.ConfigDiff
 	}
 	return ""
+}
+
+func (x *MachinePendingUpdatesSpec) GetCompressedConfigDiff() []byte {
+	if x != nil {
+		return x.CompressedConfigDiff
+	}
+	return nil
 }
 
 // ClusterBootstrapStatusSpec keeps track of bootstrap calls for a cluster.
@@ -7949,10 +7962,17 @@ func (x *InfraProviderCombinedStatusSpec) GetVersion() string {
 }
 
 type MachineConfigDiffSpec struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Diff          string                 `protobuf:"bytes,1,opt,name=diff,proto3" json:"diff,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Diff contains the redacted machine config diff. It is only set if the diff is not compressed. Otherwise, CompressedDiff is set instead.
+	//
+	// Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+	Diff string `protobuf:"bytes,1,opt,name=diff,proto3" json:"diff,omitempty"`
+	// CompressedDiff contains the redacted machine config diff. It is only set if the diff is compressed. Otherwise, Diff is set instead.
+	//
+	// Deprecated: use accessor methods GetUncompressedData/SetUncompressedData to manage this field.
+	CompressedDiff []byte `protobuf:"bytes,2,opt,name=compressed_diff,json=compressedDiff,proto3" json:"compressed_diff,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *MachineConfigDiffSpec) Reset() {
@@ -7990,6 +8010,13 @@ func (x *MachineConfigDiffSpec) GetDiff() string {
 		return x.Diff
 	}
 	return ""
+}
+
+func (x *MachineConfigDiffSpec) GetCompressedDiff() []byte {
+	if x != nil {
+		return x.CompressedDiff
+	}
+	return nil
 }
 
 type InstallationMediaConfigSpec struct {
@@ -11864,11 +11891,12 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	" \x01(\fR\x1fcompressedRedactedMachineConfig\x12+\n" +
 	"\x12pre_reboot_boot_id\x18\v \x01(\tR\x0fpreRebootBootId\x12H\n" +
 	"!applied_high_priority_config_hash\x18\f \x01(\tR\x1dappliedHighPriorityConfigHash\x12,\n" +
-	"\x12image_factory_host\x18\r \x01(\tR\x10imageFactoryHostJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x04\x10\x05\"\x98\x02\n" +
+	"\x12image_factory_host\x18\r \x01(\tR\x10imageFactoryHostJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x04\x10\x05\"\xce\x02\n" +
 	"\x19MachinePendingUpdatesSpec\x12B\n" +
 	"\aupgrade\x18\x01 \x01(\v2(.specs.MachinePendingUpdatesSpec.UpgradeR\aupgrade\x12\x1f\n" +
 	"\vconfig_diff\x18\x02 \x01(\tR\n" +
-	"configDiff\x1a\x95\x01\n" +
+	"configDiff\x124\n" +
+	"\x16compressed_config_diff\x18\x03 \x01(\fR\x14compressedConfigDiff\x1a\x95\x01\n" +
 	"\aUpgrade\x12%\n" +
 	"\x0efrom_schematic\x18\x01 \x01(\tR\rfromSchematic\x12!\n" +
 	"\fto_schematic\x18\x02 \x01(\tR\vtoSchematic\x12!\n" +
@@ -12347,9 +12375,10 @@ const file_omni_specs_omni_proto_rawDesc = "" +
 	"\x06Health\x12\x1c\n" +
 	"\tconnected\x18\x01 \x01(\bR\tconnected\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12 \n" +
-	"\vinitialized\x18\x03 \x01(\bR\vinitialized\"+\n" +
+	"\vinitialized\x18\x03 \x01(\bR\vinitialized\"T\n" +
 	"\x15MachineConfigDiffSpec\x12\x12\n" +
-	"\x04diff\x18\x01 \x01(\tR\x04diff\"\xfc\x06\n" +
+	"\x04diff\x18\x01 \x01(\tR\x04diff\x12'\n" +
+	"\x0fcompressed_diff\x18\x02 \x01(\fR\x0ecompressedDiff\"\xfc\x06\n" +
 	"\x1bInstallationMediaConfigSpec\x12#\n" +
 	"\rtalos_version\x18\x01 \x01(\tR\ftalosVersion\x12B\n" +
 	"\farchitecture\x18\x02 \x01(\x0e2\x1e.specs.PlatformConfigSpec.ArchR\farchitecture\x12-\n" +
