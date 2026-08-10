@@ -305,7 +305,7 @@ const toggleDisabled = async (item: RouteItem) => {
         }}
       </TAlert>
       <Disclosure
-        v-for="group in routes"
+        v-for="(group, index) in routes"
         v-else
         :key="group.name"
         as="div"
@@ -314,8 +314,9 @@ const toggleDisabled = async (item: RouteItem) => {
       >
         <template #default="{ open }">
           <DisclosureButton
-            as="div"
-            class="grid cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] gap-4 bg-naturals-n1 px-4 py-3 text-xs font-bold text-naturals-n11 transition-colors duration-200 select-none hover:text-naturals-n14"
+            :id="`disclosure-${index}`"
+            class="grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] gap-4 bg-naturals-n1 px-4 py-3 text-left text-xs font-bold text-naturals-n11 transition-colors duration-200 select-none hover:text-naturals-n14"
+            :aria-label="group.name"
           >
             <WordHighlighter
               :text-to-highlight="group.name"
@@ -323,8 +324,8 @@ const toggleDisabled = async (item: RouteItem) => {
               highlight-class="bg-naturals-n14"
             />
 
-            <div>ID</div>
-            <div class="col-span-2">Description</div>
+            <span>ID</span>
+            <span class="col-span-2">Description</span>
 
             <TIcon
               icon="arrow-up"
@@ -334,57 +335,61 @@ const toggleDisabled = async (item: RouteItem) => {
           </DisclosureButton>
 
           <DisclosurePanel>
-            <div
-              v-for="item in group.items"
-              :key="item.name"
-              class="my-1 grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] items-center gap-2 px-4 py-2 text-xs transition-colors duration-200 select-none hover:bg-naturals-n3 hover:text-naturals-n12"
-              :class="{ 'opacity-50': item.disabled }"
-              @click="() => $router.push(item.route)"
-            >
-              <div class="flex min-w-0 items-center gap-4">
-                <DocumentIcon class="size-4 shrink-0" />
+            <div role="list" :aria-labelledby="`disclosure-${index}`">
+              <div
+                v-for="item in group.items"
+                :key="item.name"
+                class="my-1 grid w-full cursor-pointer grid-cols-[repeat(4,1fr)_var(--actions-col)] items-center gap-2 px-4 py-2 text-xs transition-colors duration-200 select-none hover:bg-naturals-n3 hover:text-naturals-n12"
+                :class="{ 'opacity-50': item.disabled }"
+                role="listitem"
+                :aria-label="item.id"
+                @click="() => $router.push(item.route)"
+              >
+                <div class="flex min-w-0 items-center gap-4">
+                  <DocumentIcon class="size-4 shrink-0" />
+
+                  <WordHighlighter
+                    :text-to-highlight="item.name"
+                    :query="filter"
+                    highlight-class="bg-naturals-n14"
+                    class="truncate"
+                  />
+
+                  <TStatus v-if="item.disabled" :title="TCommonStatuses.DISABLED" />
+                </div>
 
                 <WordHighlighter
-                  :text-to-highlight="item.name"
+                  :text-to-highlight="item.id"
                   :query="filter"
                   highlight-class="bg-naturals-n14"
-                  class="truncate"
                 />
 
-                <TStatus v-if="item.disabled" :title="TCommonStatuses.DISABLED" />
+                <div class="col-span-2 truncate">
+                  {{ item.description }}
+                </div>
+
+                <TActionsBox aria-label="patch actions">
+                  <TActionsBoxItem
+                    :icon="item.disabled ? 'check-in-circle-classic' : 'no-symbol'"
+                    @select="toggleDisabled(item)"
+                  >
+                    {{ item.disabled ? 'Enable' : 'Disable' }}
+                  </TActionsBoxItem>
+
+                  <TActionsBoxItem
+                    danger
+                    icon="delete"
+                    @select="
+                      () => {
+                        configPatchDestroyModalOpen = true
+                        configPatchDestroyModalPatchId = item.id
+                      }
+                    "
+                  >
+                    Delete
+                  </TActionsBoxItem>
+                </TActionsBox>
               </div>
-
-              <WordHighlighter
-                :text-to-highlight="item.id"
-                :query="filter"
-                highlight-class="bg-naturals-n14"
-              />
-
-              <div class="col-span-2 truncate">
-                {{ item.description }}
-              </div>
-
-              <TActionsBox aria-label="patch actions">
-                <TActionsBoxItem
-                  :icon="item.disabled ? 'check-in-circle-classic' : 'no-symbol'"
-                  @select="toggleDisabled(item)"
-                >
-                  {{ item.disabled ? 'Enable' : 'Disable' }}
-                </TActionsBoxItem>
-
-                <TActionsBoxItem
-                  danger
-                  icon="delete"
-                  @select="
-                    () => {
-                      configPatchDestroyModalOpen = true
-                      configPatchDestroyModalPatchId = item.id
-                    }
-                  "
-                >
-                  Delete
-                </TActionsBoxItem>
-              </TActionsBox>
             </div>
           </DisclosurePanel>
         </template>
