@@ -185,14 +185,17 @@ test('Manage patches', async ({ cluster, page }, testInfo) => {
     await page.getByRole('link', { name: cluster.name }).click()
   })
 
+  const envPatch = await fs.readFile(
+    new URL('../common/patches/env_config_patch.yaml', import.meta.url),
+    'utf8',
+  )
+
+  let patchId: string
+
   await test.step('Add a cluster patch', async () => {
-    await page.getByRole('link', { name: 'Config Patches' }).click()
+    await page.getByRole('main').getByRole('link', { name: 'Config Patches' }).click()
     await page.getByRole('link', { name: 'Create Patch' }).click()
 
-    const envPatch = await fs.readFile(
-      new URL('../common/patches/env_config_patch.yaml', import.meta.url),
-      'utf8',
-    )
     await testInfo.attach('env_config_patch.yaml', {
       body: envPatch,
       contentType: 'application/yaml',
@@ -208,8 +211,62 @@ test('Manage patches', async ({ cluster, page }, testInfo) => {
 
     await page.getByRole('textbox', { name: 'Name' }).fill('My favourite patch')
     await page.getByRole('textbox', { name: 'Description' }).fill('A patch for all to remember')
+    await page.getByRole('spinbutton', { name: 'Weight' }).fill('600')
+
+    await expect(page.getByText('Patch ID: 600-')).toBeVisible()
+
+    // Patch ID is auto-generated, must be extracted
+    const patchReg = /^Patch ID: ([0-9a-zA-z-]+)$/
+    const text = await page.getByText(patchReg).innerText()
+    patchId = text.trim().match(patchReg)![1]
 
     await page.getByRole('button', { name: 'Save' }).click()
+
+    const item = page.getByRole('listitem', { name: patchId })
+
+    await expect(item).toBeVisible()
+    await expect.soft(item.getByText('My favourite patch')).toBeVisible()
+    await expect.soft(item.getByText('A patch for all to remember')).toBeVisible()
+    expect.soft(patchId).toMatch(/^600-.+/)
+
+    await item.click()
+
+    await expect(page.getByText('APP_REGION: us-east-1')).toBeVisible()
+    await page.getByRole('button', { name: 'Back' }).click()
+  })
+
+  await test.step('Edit a cluster patch', async () => {
+    await page.getByRole('listitem', { name: patchId }).click()
+
+    const envPatchEdited = envPatch.replace('us-east-1', 'us-west-1')
+
+    await testInfo.attach('env_config_patch_edited.yaml', {
+      body: envPatchEdited,
+      contentType: 'application/yaml',
+    })
+
+    await page.evaluate((text) => navigator.clipboard.writeText(text), envPatchEdited)
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(envPatchEdited)
+
+    const editor = page.getByRole('textbox', { name: 'Editor content' })
+
+    await editor.press('Control+a')
+    await editor.press('Delete')
+    await editor.press(`${os.platform() === 'darwin' ? 'Meta' : 'Control'}+v`)
+
+    await page.getByRole('button', { name: 'Save' }).click()
+
+    const item = page.getByRole('listitem', { name: patchId })
+
+    await expect(item).toBeVisible()
+    await expect.soft(item.getByText('My favourite patch')).toBeVisible()
+    await expect.soft(item.getByText('A patch for all to remember')).toBeVisible()
+    expect.soft(patchId).toMatch(/^600-.+/)
+
+    await item.click()
+
+    await expect(page.getByText('APP_REGION: us-west-1')).toBeVisible()
+    await page.getByRole('button', { name: 'Back' }).click()
   })
 
   await test.step('Disable / Enable a patch', async () => {
