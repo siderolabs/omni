@@ -46,8 +46,23 @@ func (m *Manager) buildInstallImage(ctx context.Context, machineID string, ms *o
 	}
 
 	if target != nil {
+		// The target is the spec of a cached resource, so patch a copy of it instead of writing through into the cache.
+		target = target.CloneVT()
+
 		if target.TalosVersion == "" {
 			target.TalosVersion = version
+		}
+
+		// A machine enrolled before Omni started tracking the image factory host per machine may still have none:
+		// resolve it the same way as for a machine without a target install image instead of failing the install.
+		// See https://github.com/siderolabs/omni/issues/3247.
+		if target.ImageFactoryHost == "" {
+			imageFactoryClient, err := m.imageFactoryClients.ForTalosVersion(ctx, target.TalosVersion)
+			if err != nil {
+				return "", fmt.Errorf("failed to get image factory client for Talos version %q: %w", target.TalosVersion, err)
+			}
+
+			target.ImageFactoryHost = imageFactoryClient.Host()
 		}
 
 		return installimage.Build(machineID, target, m.talosRegistry)
