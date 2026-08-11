@@ -32,6 +32,7 @@ import TAlert from '@/components/TAlert.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { getDocsLink } from '@/methods'
 import { useIsEnterprise } from '@/methods/features'
+import { useResolvedFactory } from '@/methods/useResolvedFactory'
 import { useResourceList } from '@/methods/useResourceList'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import SeverityBadges from '@/views/ClusterSecurity/components/SeverityBadges.vue'
@@ -58,27 +59,6 @@ const { data: clusterStatus, loading: statusLoading } = useResourceWatch<Cluster
   },
 }))
 
-const { data: configStatuses, loading: configLoading } =
-  useResourceWatch<ClusterMachineConfigStatusSpec>(() => ({
-    skip: !isEnterpriseFactory.value,
-    runtime: Runtime.Omni,
-    resource: {
-      namespace: DefaultNamespace,
-      type: ClusterMachineConfigStatusType,
-    },
-    selectors: [`${LabelCluster}=${clusterId}`],
-  }))
-
-const { data: machineStatuses } = useResourceWatch<MachineStatusSpec>(() => ({
-  skip: !isEnterpriseFactory.value,
-  runtime: Runtime.Omni,
-  resource: {
-    namespace: DefaultNamespace,
-    type: MachineStatusType,
-  },
-  selectors: [`${LabelCluster}=${clusterId}`],
-}))
-
 const { data: talosVersions } = useResourceList<TalosVersionSpec>(() => ({
   skip: !isEnterpriseFactory.value,
   runtime: Runtime.Omni,
@@ -89,6 +69,35 @@ const { data: talosVersions } = useResourceList<TalosVersionSpec>(() => ({
 }))
 
 const currentVersion = computed(() => clusterStatus.value?.spec.talos_version)
+
+const talosVersion = computed(() =>
+  talosVersions.value.find((v) => v.metadata.id === currentVersion.value),
+)
+
+const { url: factoryUrl } = useResolvedFactory(() => talosVersion.value?.spec.image_factory_url)
+
+const isTalosVersionEnterpriseFactory = computed(() => talosVersion.value?.spec.is_enterprise)
+
+const { data: configStatuses, loading: configLoading } =
+  useResourceWatch<ClusterMachineConfigStatusSpec>(() => ({
+    skip: !isEnterpriseFactory.value || !isTalosVersionEnterpriseFactory.value,
+    runtime: Runtime.Omni,
+    resource: {
+      namespace: DefaultNamespace,
+      type: ClusterMachineConfigStatusType,
+    },
+    selectors: [`${LabelCluster}=${clusterId}`],
+  }))
+
+const { data: machineStatuses } = useResourceWatch<MachineStatusSpec>(() => ({
+  skip: !isEnterpriseFactory.value || !isTalosVersionEnterpriseFactory.value,
+  runtime: Runtime.Omni,
+  resource: {
+    namespace: DefaultNamespace,
+    type: MachineStatusType,
+  },
+  selectors: [`${LabelCluster}=${clusterId}`],
+}))
 
 const archByMachine = computed(
   () => new Map(machineStatuses.value.map((m) => [m.metadata.id!, m.spec.hardware?.arch])),
@@ -230,6 +239,14 @@ function openDetails(schematicId: string, arch: string, version: string, matches
       Vulnerability scanning requires the enterprise image factory.
     </TAlert>
 
+    <TAlert
+      v-else-if="!isTalosVersionEnterpriseFactory"
+      type="info"
+      title="Vulnerability scanning unavailable"
+    >
+      Vulnerability scanning requires using a talos version from the enterprise image factory.
+    </TAlert>
+
     <p v-else-if="initialLoading" class="flex items-center gap-1.5 text-sm text-naturals-n11">
       <TSpinner class="size-4" />
       Loading cluster information…
@@ -317,11 +334,12 @@ function openDetails(schematicId: string, arch: string, version: string, matches
     </template>
 
     <ScanDetailsModal
-      v-if="detailsModal"
+      v-if="detailsModal && factoryUrl"
       v-model:open="detailsModal.open"
       :matches="detailsModal.matches"
       :schematic-id="detailsModal.schematicId"
       :talos-version="detailsModal.version"
+      :factory-url
       :arch="archEnum(detailsModal.arch)"
     />
   </section>

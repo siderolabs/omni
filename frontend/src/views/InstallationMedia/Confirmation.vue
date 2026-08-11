@@ -34,7 +34,6 @@ import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { getDocsLink, majorMinorVersion } from '@/methods'
-import { useImageFactoryAuth, withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
 import { useResolvedFactory } from '@/methods/useResolvedFactory'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useTalosctlDownloads } from '@/methods/useTalosctlDownloads'
@@ -76,21 +75,13 @@ const { data: talosVersion } = useResourceGet<TalosVersionSpec>(() => ({
   },
 }))
 
-const { base: factoryBaseURL, credentials: factoryCredentialsRef } = useResolvedFactory(
+const { url: factoryUrl, credentials: imageFactoryAuth } = useResolvedFactory(
   () => talosVersion.value?.spec.image_factory_url,
 )
 
 const isEnterpriseFactory = computed(() => talosVersion.value?.spec.is_enterprise)
 
-const imageFactoryAuth = useImageFactoryAuth(
-  computed(() => talosVersion.value?.spec.image_factory_url),
-)
-
-const { data: talosctlPathsRaw } = useTalosctlDownloads(() => resolvedTalosVersion.value)
-
-const talosctlPaths = computed(() =>
-  talosctlPathsRaw.value.map((path) => withImageFactoryAuth(path, imageFactoryAuth.value)!),
-)
+const { data: talosctlPaths } = useTalosctlDownloads(resolvedTalosVersion)
 
 const { data: selectedCloudProvider } = useResourceGet<PlatformConfigSpec>(() => ({
   skip: formState.value.hardwareType !== 'cloud',
@@ -152,15 +143,17 @@ const resolvedPreset = computed(() => ({
 const { schematic, schematicLoading, schematicError } = usePresetSchematic(resolvedPreset)
 const schematicId = computed(() => schematic.value?.id ?? '')
 
-const { links } = usePresetDownloadLinks(schematicId, resolvedPreset)
+const { links, orphaned } = usePresetDownloadLinks(schematicId, resolvedPreset)
 
-const factoryHost = computed(() => (factoryBaseURL.value ? new URL(factoryBaseURL.value).host : ''))
+const factoryHost = computed(() => (factoryUrl.value ? new URL(factoryUrl.value).host : ''))
 
-const installerImage = computed(() =>
-  supportsUnifiedInstaller.value
+const installerImage = computed(() => {
+  if (!factoryHost.value) return
+
+  return supportsUnifiedInstaller.value
     ? `${factoryHost.value}/${formState.value.hardwareType}-installer${secureBootSuffix.value}/${schematicId.value}:${resolvedTalosVersion.value}`
-    : `${factoryHost.value}/installer/${schematicId.value}:${resolvedTalosVersion.value}`,
-)
+    : `${factoryHost.value}/installer/${schematicId.value}:${resolvedTalosVersion.value}`
+})
 
 const quote = (input: string) => {
   if (/["\s\\]/.test(input) && !/'/.test(input)) {
@@ -175,16 +168,18 @@ const quote = (input: string) => {
 }
 
 const clusterCreateCommand = computed(() => {
+  if (!factoryUrl.value) return
+
   const parts = [
     'talosctl cluster create qemu',
-    `--image-factory-url=${factoryBaseURL.value}`,
+    `--image-factory-url=${factoryUrl.value}`,
     `--schematic-id=${schematicId.value}`,
     `--talos-version=v${resolvedTalosVersion.value}`,
   ]
 
   // The local cluster pulls the installer from the factory that serves this version, so it must
   // authenticate with that factory's credentials.
-  const { username, password } = factoryCredentialsRef.value ?? {}
+  const { username, password } = imageFactoryAuth.value ?? {}
   if (username && password) {
     parts.push(`--image-factory-auth=${quote(`${username}:${password}`)}`)
   }
@@ -193,22 +188,23 @@ const clusterCreateCommand = computed(() => {
 })
 
 const SPDXBaseURL = computed(() =>
-  factoryBaseURL.value
-    ? `${factoryBaseURL.value}/spdx/${schematicId.value}/v${resolvedTalosVersion.value}/amd64`
+  factoryUrl.value
+    ? `${factoryUrl.value}/spdx/${schematicId.value}/v${resolvedTalosVersion.value}/amd64`
     : '',
 )
 
 const VEXBaseURL = computed(() =>
-  factoryBaseURL.value ? `${factoryBaseURL.value}/vex/v${resolvedTalosVersion.value}/vex.json` : '',
+  factoryUrl.value ? `${factoryUrl.value}/vex/v${resolvedTalosVersion.value}/vex.json` : '',
 )
 </script>
 
 <template>
   <div v-if="schematic" class="flex flex-col gap-4 text-xs">
     <Scan
-      v-if="isEnterpriseFactory"
+      v-if="isEnterpriseFactory && factoryUrl"
       :schematic-id
       :talos-version="resolvedTalosVersion"
+      :factory-url="factoryUrl"
       :arch="formState.machineArch!"
     />
 
@@ -242,8 +238,13 @@ const VEXBaseURL = computed(() =>
     <p v-else-if="selectedSBC">Use the following disk image for {{ selectedSBC.spec.label }}:</p>
 
     <dl class="flex flex-col gap-2">
+      <TAlert v-if="orphaned" title="Orphaned" type="warn">
+        The factory used to create this preset is no longer configured with Omni
+      </TAlert>
+
       <template
         v-for="{ label, link, documentation, withChecksums, copyOnly } in links"
+        v-else
         :key="link"
       >
         <dt class="font-medium text-naturals-n14 not-first-of-type:mt-2">
@@ -313,7 +314,7 @@ const VEXBaseURL = computed(() =>
       </template>
     </dl>
 
-    <template v-if="notOnlyDiskImage">
+    <template v-if="notOnlyDiskImage && installerImage">
       <h3 class="text-sm text-naturals-n14">Initial Installation</h3>
       <p>
         For the initial installation of Talos Linux (not applicable for disk image boot), add the
@@ -326,7 +327,7 @@ const VEXBaseURL = computed(() =>
       />
     </template>
 
-    <template v-if="gte(resolvedTalosVersion, '1.12.0-alpha.2')">
+    <template v-if="gte(resolvedTalosVersion, '1.12.0-alpha.2') && clusterCreateCommand">
       <h3 class="text-sm text-naturals-n14">Local Test Cluster</h3>
       <p>
         To create a local Talos Linux test cluster from this schematic on macOS (Apple Silicon) or

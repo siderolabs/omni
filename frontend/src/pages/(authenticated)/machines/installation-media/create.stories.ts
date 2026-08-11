@@ -90,7 +90,7 @@ export const Default: Story = {
     msw.use(
       ...savePresetModalHandlers,
       ...cloudProviderHandlers,
-      ...confirmationHandlers,
+      ...confirmationHandlers(),
       ...extraArgsHandlers,
       ...machineArchHandlers,
       ...sbcTypeHandlers,

@@ -7,7 +7,6 @@ import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 import { Runtime } from '@/api/common/omni.pb'
 import type { ImageFactoryAuthSpec } from '@/api/omni/specs/omni.pb'
 import { DefaultNamespace, ImageFactoryAuthType } from '@/api/resources'
-import { useFeatures } from '@/methods/features'
 import { useResourceGet } from '@/methods/useResourceGet'
 
 export interface FactoryCredentials {
@@ -15,22 +14,9 @@ export interface FactoryCredentials {
   password?: string
 }
 
-// ImageFactoryAuth resources are keyed by the factory URL with any trailing slash stripped.
-function trimTrailingSlash(url: string): string {
-  return url.replace(/\/+$/, '')
-}
-
 // useImageFactoryAuth reads the credentials of a specific image factory, identified by its URL.
-// It falls back to the primary factory when no URL is given, and resolves to undefined for a
-// factory that has no credentials configured (i.e. a public one).
 export function useImageFactoryAuth(factoryURL?: MaybeRefOrGetter<string | undefined>) {
-  const { data: features } = useFeatures()
-
-  const id = computed(() => {
-    const url = toValue(factoryURL) || features.value?.spec.image_factory_base_url
-
-    return url ? trimTrailingSlash(url) : undefined
-  })
+  const id = computed(() => toValue(factoryURL)?.replace(/\/+$/, ''))
 
   const { data } = useResourceGet<ImageFactoryAuthSpec>(() => ({
     runtime: Runtime.Omni,
@@ -57,5 +43,5 @@ export function withImageFactoryAuth(url: string, credentials?: FactoryCredentia
   u.username = credentials.username
   u.password = credentials.password
 
-  return u.toString()
+  return u.href.replace(/\/$/, '')
 }

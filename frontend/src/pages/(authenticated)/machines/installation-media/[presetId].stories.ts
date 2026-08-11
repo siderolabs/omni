@@ -63,7 +63,7 @@ export const Default: Story = {
           },
         ],
       }).handler,
-      ...confirmationHandlers,
+      ...confirmationHandlers(),
     )
   },
 }

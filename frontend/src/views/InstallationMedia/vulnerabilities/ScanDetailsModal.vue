@@ -10,7 +10,6 @@ import { computed, ref, watchEffect } from 'vue'
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import TButton from '@/components/Button/TButton.vue'
 import Modal from '@/components/Modals/Modal.vue'
-import { useFeatures } from '@/methods/features'
 import SeverityBadges from '@/views/ClusterSecurity/components/SeverityBadges.vue'
 import VulnerabilityList from '@/views/ClusterSecurity/components/VulnerabilityList.vue'
 import type { Match } from '@/views/InstallationMedia/vulnerabilities/ReportTypes'
@@ -19,17 +18,18 @@ const {
   matches,
   schematicId,
   talosVersion,
+  factoryUrl,
   arch: archEnum,
 } = defineProps<{
   matches: Match[]
   schematicId: string
   talosVersion: string
+  factoryUrl: string
   arch: PlatformConfigSpecArch
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
 
-const { data: features } = useFeatures()
 const severityFilter = ref<string>()
 
 watchEffect(() => {
@@ -87,7 +87,7 @@ function toggleSeverityFilter(severity: string) {
           >
             <TButton
               is="a"
-              :href="`${features?.spec.image_factory_base_url}/scans/${schematicId}/v${talosVersion}/${arch}/${filename}`"
+              :href="`${factoryUrl}/scans/${schematicId}/v${talosVersion}/${arch}/${filename}`"
               target="_blank"
               rel="noopener noreferrer"
               size="sm"
