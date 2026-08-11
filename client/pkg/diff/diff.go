@@ -18,9 +18,12 @@ import (
 // human can meaningfully review it and the algorithmic cost becomes prohibitive.
 const MaxLines = 75_000
 
+// MaxBytes is the maximum size of the diff returned.
+const MaxBytes = 512 * 1024
+
 // Compute returns a unified diff (without the --- / +++ header) between two
-// byte slices. For inputs whose combined line count exceeds MaxLines it returns
-// a short summary instead.
+// byte slices. Inputs past MaxLines, or a diff past MaxBytes, yield a short
+// summary instead.
 func Compute(previousData, newData []byte) (string, error) {
 	if bytes.Equal(previousData, newData) {
 		return "", nil
@@ -30,7 +33,7 @@ func Compute(previousData, newData []byte) (string, error) {
 	newLines := bytes.Count(newData, []byte("\n"))
 
 	if prevLines+newLines > MaxLines {
-		return fmt.Sprintf("@@ -%d,%d +%d,%d @@ diff too large to display\n", 1, prevLines, 1, newLines), nil
+		return tooLargeSummary(prevLines, newLines), nil
 	}
 
 	result, err := myers.Diff(
@@ -55,5 +58,13 @@ func Compute(previousData, newData []byte) (string, error) {
 		result = after
 	}
 
+	if len(result) > MaxBytes {
+		return tooLargeSummary(prevLines, newLines), nil
+	}
+
 	return result, nil
+}
+
+func tooLargeSummary(prevLines, newLines int) string {
+	return fmt.Sprintf("@@ -%d,%d +%d,%d @@ diff too large to display\n", 1, prevLines, 1, newLines)
 }

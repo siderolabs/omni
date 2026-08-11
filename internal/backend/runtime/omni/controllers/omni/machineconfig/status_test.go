@@ -37,6 +37,7 @@ import (
 	ktesting "k8s.io/client-go/testing"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/diff"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -788,6 +789,67 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 				machineServices.ForEach(func(machineServer *testutils.MachineServiceMock) {
 					assert.GreaterOrEqual(t, len(machineServer.GetResetRequests()), 1)
+				})
+			},
+		)
+	})
+
+	// A config big enough to make the plaintext diff outgrow the state backend's request
+	// limit must still produce a storable MachinePendingUpdates, otherwise every reconcile
+	// fails on the write and the machine never gets its config.
+	t.Run("largeConfigDiff", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*30)
+		t.Cleanup(cancel)
+
+		testutils.WithRuntime(
+			ctx, t, testutils.TestOptions{}, addControllers,
+			func(ctx context.Context, testContext testutils.TestContext) {
+				machineServices := testutils.NewMachineServices(t, testContext.State)
+
+				cluster, machines := createCluster(ctx, t, testContext.State, machineServices, "large-config-diff", 1, 1)
+
+				ids := xslices.Map(machines, func(m *omni.ClusterMachine) string {
+					return m.Metadata().ID()
+				})
+
+				// Lock the machines so the pending updates resource sticks around long
+				// enough to assert on, instead of being applied and destroyed.
+				rmock.MockList[*omni.MachineSetNode](
+					ctx, t, testContext.State,
+					options.IDs(ids),
+					options.ItemOptions(
+						options.Modify(func(r *omni.MachineSetNode) error {
+							r.Metadata().Annotations().Set(omni.MachineLocked, "")
+
+							return nil
+						}),
+					),
+				)
+
+				awaitAllMachinesConfigured(ctx, t, testContext.State, cluster.Metadata().ID())
+
+				// One inline manifest per line, the shape that defeats a line-count bound.
+				largeConfig := []byte("cluster:\n  inlineManifests:\n")
+				for i := range 8 {
+					largeConfig = fmt.Appendf(largeConfig, "    - name: manifest-%d\n      contents: %s\n",
+						i, strings.Repeat("x", 128*1024))
+				}
+
+				rmock.MockList[*omni.ClusterMachineConfig](
+					ctx, t, testContext.State,
+					options.IDs(ids),
+					options.ItemOptions(
+						options.Modify(func(r *omni.ClusterMachineConfig) error {
+							return r.TypedSpec().Value.SetUncompressedData(largeConfig)
+						}),
+					),
+				)
+
+				rtestutils.AssertResources(ctx, t, testContext.State, ids, func(res *omni.MachinePendingUpdates, assert *assert.Assertions) {
+					assert.NotEmpty(res.TypedSpec().Value.ConfigDiff)
+					assert.LessOrEqual(len(res.TypedSpec().Value.ConfigDiff), diff.MaxBytes)
 				})
 			},
 		)
