@@ -19,7 +19,6 @@ import {
 } from '@/api/resources'
 import { getDocsLink } from '@/methods'
 import { useIsEnterprise } from '@/methods/features'
-import { withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
 import { useResolvedFactory } from '@/methods/useResolvedFactory'
 import { useResourceGet } from '@/methods/useResourceGet'
 
@@ -69,76 +68,73 @@ export function usePresetDownloadLinks(
     }
   })
 
-  // Resolve which configured factory this preset targets. The preset stores the factory URL it was
-  // created against; when that URL is no longer among the configured factories the preset is orphaned
-  // and its images can no longer be downloaded.
-  const {
-    base: factoryBaseURL,
-    pxe: factoryPxeBaseURL,
-    credentials,
-    orphaned,
-  } = useResolvedFactory(() => toValue(presetRef).image_factory_url)
+  const { url: factoryBaseURL, pxeUrl: factoryPxeBaseURL } = useResolvedFactory(
+    () => toValue(presetRef).image_factory_url,
+  )
+
+  // If the resolved factory is no longer configured in Omni, this preset is orphaned
+  const orphaned = computed(() => !factoryBaseURL.value)
 
   const imageBaseURL = computed(() =>
-    withImageFactoryAuth(
-      `${factoryBaseURL.value}/image/${toValue(schematicId)}/${toValue(presetRef).talos_version}`,
-      credentials.value,
-    ),
+    factoryBaseURL.value
+      ? `${factoryBaseURL.value}/image/${toValue(schematicId)}/${toValue(presetRef).talos_version}`
+      : undefined,
   )
 
   const pxeBaseURL = computed(() =>
-    withImageFactoryAuth(
-      `${factoryPxeBaseURL.value}/pxe/${toValue(schematicId)}/${toValue(presetRef).talos_version}`,
-      credentials.value,
-    ),
+    factoryPxeBaseURL.value
+      ? `${factoryPxeBaseURL.value}/pxe/${toValue(schematicId)}/${toValue(presetRef).talos_version}`
+      : undefined,
   )
 
-  const sbcDiskImagePath = computed(() => `${imageBaseURL.value}/metal-${arch.value}.raw.xz`)
+  const sbcDiskImagePath = computed(() =>
+    imageBaseURL.value ? `${imageBaseURL.value}/metal-${arch.value}.raw.xz` : undefined,
+  )
 
   const pxeBootURL = computed(() =>
-    selectedPlatform.value
+    selectedPlatform.value && pxeBaseURL.value
       ? `${pxeBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}${secureBootSuffix.value}`
       : undefined,
   )
 
   const platformDiskImagePath = computed(() =>
-    selectedPlatform.value
+    selectedPlatform.value && imageBaseURL.value
       ? `${imageBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}${secureBootSuffix.value}.${selectedPlatform.value.spec.disk_image_suffix}`
       : undefined,
   )
 
   const qcow2DiskImagePath = computed(() =>
-    selectedPlatform.value
+    selectedPlatform.value && imageBaseURL.value
       ? `${imageBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}.qcow2`
       : undefined,
   )
 
   const isoPath = computed(() =>
-    selectedPlatform.value
+    selectedPlatform.value && imageBaseURL.value
       ? `${imageBaseURL.value}/${selectedPlatform.value.metadata.id}-${arch.value}${secureBootSuffix.value}.iso`
       : undefined,
   )
 
-  const links = computed(() => {
+  interface DownloadLink {
+    label: string
+    link: string
+    withChecksums?: boolean
+    copyOnly?: boolean
+    documentation?: {
+      label: string
+      link: string
+    }
+  }
+
+  const links = computed<DownloadLink[]>(() => {
     const preset = toValue(presetRef)
 
-    if (preset.sbc) {
+    if (preset.sbc && sbcDiskImagePath.value) {
       return [{ label: 'Disk Image', link: sbcDiskImagePath.value, withChecksums: true }]
     }
 
     if (!selectedPlatform.value?.spec.boot_methods) {
       return []
-    }
-
-    interface DownloadLink {
-      label: string
-      link: string
-      withChecksums?: boolean
-      copyOnly?: boolean
-      documentation?: {
-        label: string
-        link: string
-      }
     }
 
     return selectedPlatform.value.spec.boot_methods

@@ -13,7 +13,11 @@ import {
   type CreateSchematicResponse,
 } from '@/api/omni/management/management.pb'
 import type { GetRequest, GetResponse } from '@/api/omni/resources/resources.pb'
-import { type FeaturesConfigSpec } from '@/api/omni/specs/omni.pb'
+import {
+  type FeaturesConfigSpec,
+  type ImageFactoryAuthSpec,
+  type TalosVersionSpec,
+} from '@/api/omni/specs/omni.pb'
 import {
   type PlatformConfigSpec,
   PlatformConfigSpecArch,
@@ -26,18 +30,20 @@ import {
   DefaultNamespace,
   FeaturesConfigID,
   FeaturesConfigType,
+  ImageFactoryAuthType,
   LabelsMeta,
   MetalPlatformConfigType,
   PlatformMetalID,
   QuirksType,
   SBCConfigType,
+  TalosVersionType,
   VirtualNamespace,
 } from '@/api/resources'
 import type { TalosctlDownloadsResponse } from '@/methods/useTalosctlDownloads'
 import report from '@/views/InstallationMedia/vulnerabilities/sample-report.json'
 import type { ScansResponse } from '@/views/InstallationMedia/vulnerabilities/useVulnerabilityReport'
 
-export const handlers = [
+export const handlers = (enterprise = true) => [
   createWatchStreamHandler<FeaturesConfigSpec>({
     expectedOptions: {
       namespace: DefaultNamespace,
@@ -46,11 +52,18 @@ export const handlers = [
     },
     initialResources: [
       {
-        spec: {
-          image_factory_base_url: 'https://factory-enterprise.talos.dev',
-          image_factory_pxe_base_url: 'https://pxe.factory-enterprise.talos.dev',
-          is_enterprise_image_factory: true,
-        },
+        spec: enterprise
+          ? {
+              image_factory_base_url: 'https://factory-enterprise.talos.dev',
+              image_factory_pxe_base_url: 'https://pxe.factory-enterprise.talos.dev',
+              secondary_image_factory_base_url: 'https://factory.talos.dev',
+              secondary_image_factory_pxe_base_url: 'https://pxe.factory.talos.dev',
+              is_enterprise_image_factory: true,
+            }
+          : {
+              image_factory_base_url: 'https://factory.talos.dev',
+              image_factory_pxe_base_url: 'https://pxe.factory.talos.dev',
+            },
         metadata: {
           namespace: DefaultNamespace,
           type: FeaturesConfigType,
@@ -59,6 +72,51 @@ export const handlers = [
       },
     ],
   }).handler,
+  http.post<never, GetRequest, GetResponse>(
+    '/omni.resources.ResourceService/Get',
+    async ({ request }) => {
+      const { id, type, namespace } = await request.clone().json()
+
+      if (type !== TalosVersionType || namespace !== DefaultNamespace) return
+
+      return HttpResponse.json({
+        body: JSON.stringify({
+          metadata: {
+            namespace,
+            type,
+            id,
+          },
+          spec: {
+            is_enterprise: enterprise,
+          },
+        } satisfies Resource<TalosVersionSpec>),
+      })
+    },
+  ),
+  http.post<never, GetRequest, GetResponse>(
+    '/omni.resources.ResourceService/Get',
+    async ({ request }) => {
+      const { id, type, namespace } = await request.clone().json()
+
+      if (type !== ImageFactoryAuthType || namespace !== DefaultNamespace) return
+
+      return HttpResponse.json({
+        body: JSON.stringify({
+          metadata: {
+            namespace,
+            type,
+            id,
+          },
+          spec: enterprise
+            ? {
+                username: 'admin',
+                password: '123',
+              }
+            : {},
+        } satisfies Resource<ImageFactoryAuthSpec>),
+      })
+    },
+  ),
   http.post<never, GetRequest, GetResponse>(
     '/omni.resources.ResourceService/Get',
     async ({ request }) => {

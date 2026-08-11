@@ -29,7 +29,7 @@ import TIcon from '@/components/Icon/TIcon.vue'
         icon: 'size-5 shrink-0 self-center *:size-full',
         content: 'flex flex-col gap-1',
         title: 'text-sm text-naturals-n14',
-        description: 'overflow-auto text-xs text-naturals-n11',
+        description: 'overflow-auto text-xs whitespace-pre-wrap text-naturals-n11',
 
         error: 'border-l-4 border-l-red-r1 text-red-r1',
         success: 'border-l-4 border-l-green-g1 text-green-g1',

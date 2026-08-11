@@ -154,6 +154,8 @@ const schematicId = computed(() => schematic.value?.id ?? '')
 
 const { schematic } = usePresetSchematic(resolvedPreset)
 const { links, orphaned } = usePresetDownloadLinks(schematicId, resolvedPreset)
+
+const orphanedError = 'The factory used to create this preset is no longer configured with Omni'
 </script>
 
 <template>
@@ -208,7 +210,7 @@ const { links, orphaned } = usePresetDownloadLinks(schematicId, resolvedPreset)
 
             <TableCell class="w-0">
               <div class="flex gap-1">
-                <Tooltip description="Download">
+                <Tooltip :description="orphaned ? orphanedError : 'Download'">
                   <IconButton
                     is="a"
                     :href="link"
@@ -220,7 +222,7 @@ const { links, orphaned } = usePresetDownloadLinks(schematicId, resolvedPreset)
                   />
                 </Tooltip>
 
-                <Tooltip description="Copy link">
+                <Tooltip :description="orphaned ? orphanedError : 'Copy link'">
                   <IconButton
                     aria-label="copy link"
                     icon="copy"

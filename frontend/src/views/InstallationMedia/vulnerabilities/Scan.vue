@@ -16,9 +16,10 @@ import TAlert from '@/components/TAlert.vue'
 import ScanDetailsModal from '@/views/InstallationMedia/vulnerabilities/ScanDetailsModal.vue'
 import { useVulnerabilityReport } from '@/views/InstallationMedia/vulnerabilities/useVulnerabilityReport'
 
-const { schematicId, talosVersion, arch } = defineProps<{
+const { schematicId, talosVersion, factoryUrl, arch } = defineProps<{
   schematicId: string
   talosVersion: string
+  factoryUrl: string
   arch: PlatformConfigSpecArch
 }>()
 
@@ -78,6 +79,7 @@ const {
     :matches="matches"
     :schematic-id
     :talos-version
+    :factory-url
     :arch
   />
 </template>
