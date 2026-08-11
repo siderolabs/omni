@@ -63,6 +63,13 @@ export enum CreateSchematicRequestSiderolinkGRPCTunnelMode {
   ENABLED = 2,
 }
 
+export enum BootAssetURLRequestBootAssetKind {
+  BOOT_ASSET_KIND_UNSET = 0,
+  BOOT_ASSET_KIND_PXE = 1,
+  BOOT_ASSET_KIND_ISO = 2,
+  BOOT_ASSET_KIND_DISK = 3,
+}
+
 export enum MaintenanceLifecycleRequestOperation {
   OPERATION_UNSPECIFIED = 0,
   OPERATION_INSTALL = 1,
@@ -209,6 +216,24 @@ export type CreateSchematicResponse = {
   pxe_url?: string
   grpc_tunnel_enabled?: boolean
   schematic_yml?: string
+}
+
+export type BootAssetURLRequest = {
+  talos_version?: string
+  schematic_id?: string
+  standalone_url?: boolean
+  boot_asset_kind?: BootAssetURLRequestBootAssetKind
+  platform?: string
+  architecture?: string
+  format?: string
+  secure_boot?: boolean
+}
+
+export type BootAssetURLResponse = {
+  url?: string
+  headers?: {[key: string]: string}
+  image_factory_host?: string
+  storage_key?: string
 }
 
 export type GetSupportBundleRequest = {
@@ -404,6 +429,9 @@ export class ManagementService {
   }
   static CreateSchematicFromRaw(req: CreateSchematicFromRawRequest, ...options: fm.fetchOption[]): Promise<CreateSchematicResponse> {
     return fm.fetchReq<CreateSchematicFromRawRequest, CreateSchematicResponse>("POST", `/management.ManagementService/CreateSchematicFromRaw`, req, ...options)
+  }
+  static GetBootAssetURL(req: BootAssetURLRequest, ...options: fm.fetchOption[]): Promise<BootAssetURLResponse> {
+    return fm.fetchReq<BootAssetURLRequest, BootAssetURLResponse>("POST", `/management.ManagementService/GetBootAssetURL`, req, ...options)
   }
   static GetSupportBundle(req: GetSupportBundleRequest, entityNotifier: fm.NotifyStreamEntityArrival<GetSupportBundleResponse>, ...options: fm.fetchOption[]): Promise<void> {
     return fm.fetchStreamingRequest<GetSupportBundleRequest, GetSupportBundleResponse>("POST", `/management.ManagementService/GetSupportBundle`, req, entityNotifier, ...options)

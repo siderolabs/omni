@@ -189,6 +189,63 @@ message CreateSchematicResponse {
   string schematic_yml = 4;
 }
 
+message BootAssetURLRequest {
+  // BootAssetKind is one of the asset kinds the image factory serves. The comments show the shape of
+  // the name the factory serves the asset under, which Omni assembles from the fields below.
+  enum BootAssetKind {
+    BOOT_ASSET_KIND_UNSET = 0;
+    // <platform>-<arch>[-secureboot], served from the factory's PXE endpoint.
+    BOOT_ASSET_KIND_PXE = 1;
+    // <platform>-<arch>[-secureboot].iso
+    BOOT_ASSET_KIND_ISO = 2;
+    // <platform>-<arch>[-secureboot].<format>
+    BOOT_ASSET_KIND_DISK = 3;
+  }
+
+  // TalosVersion selects the image factory the same way asset URLs do.
+  string talos_version = 1;
+  // SchematicId is the ID the image factory returned for a schematic, e.g. from CreateSchematicFromRaw.
+  string schematic_id = 2;
+  // StandaloneUrl makes Omni return a URL containing everything needed, e.g. the credentials or token
+  // in the URL itself, instead of returning them in the headers.
+  //
+  // Such a URL is as sensitive as the credentials it carries. Anything it is written into, like an
+  // iPXE script or a task log, exposes them to whoever can read it.
+  //
+  // When this is set, Headers on the response will be empty. It is implied for PXE assets, which are
+  // fetched by firmware that cannot send headers.
+  bool standalone_url = 3;
+  BootAssetKind boot_asset_kind = 4;
+
+  // Platform, Architecture, Format and SecureBoot name the asset. Omni assembles the image factory
+  // filename out of them, so callers never encode the naming convention themselves.
+  //
+  // Platform is the Talos platform, e.g. "metal" or "nocloud".
+  string platform = 5;
+  string architecture = 6;
+  // Format is the disk image format of the disk kind, e.g. "raw.xz" or "qcow2.gz", and unused by every
+  // other kind, whose format the kind itself implies.
+  string format = 7;
+  bool secure_boot = 8;
+}
+
+message BootAssetURLResponse {
+  string url = 1;
+  // Headers must be sent with the request fetching the URL. Empty when the image factory needs no
+  // authentication, or when it travels inside the URL instead.
+  map<string, string> headers = 2;
+  // ImageFactoryHost is the same host as in the URL. Purely informative: to fetch the asset, only the
+  // URL and the headers should be used.
+  string image_factory_host = 3;
+  // StorageKey identifies the asset the URL points at, for callers that store what they download. It
+  // changes only when the asset itself does, so it is stable across credential rotation, unlike the URL,
+  // which can carry credentials or a token.
+  //
+  // Treat it as opaque. Omni may change how it is derived, which costs a caller one re-download of the
+  // assets it already holds.
+  string storage_key = 4;
+}
+
 message GetSupportBundleRequest {
   string cluster = 1;
 
@@ -424,6 +481,7 @@ service ManagementService {
   rpc KubernetesSyncManifests(KubernetesSyncManifestRequest) returns (stream KubernetesSyncManifestResponse);
   rpc CreateSchematic(CreateSchematicRequest) returns (CreateSchematicResponse);
   rpc CreateSchematicFromRaw(CreateSchematicFromRawRequest) returns (CreateSchematicResponse);
+  rpc GetBootAssetURL(BootAssetURLRequest) returns (BootAssetURLResponse);
   rpc GetSupportBundle(GetSupportBundleRequest) returns (stream GetSupportBundleResponse);
   rpc ReadAuditLog(ReadAuditLogRequest) returns (stream ReadAuditLogResponse);
   rpc MaintenanceUpgrade(MaintenanceUpgradeRequest) returns (MaintenanceUpgradeResponse);

@@ -13,6 +13,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -365,6 +366,157 @@ func (suite *GrpcSuite) TestSchematicCreate() {
 
 			require.EqualValues(t, req.MetaValues, meta)
 			require.Equal(t, append(args, req.ExtraKernelArgs...), config.Customization.ExtraKernelArgs)
+		})
+	}
+}
+
+// TestBootAssetURL pins the server-side boot asset build: Omni assembles the image factory filename
+// from the asset spec, picks the factory serving that Talos version, and places the credentials where
+// the caller can use them.
+func (suite *GrpcSuite) TestBootAssetURL() {
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*5)
+	defer cancel()
+
+	features := omni.NewFeaturesConfig(omni.FeaturesConfigID)
+	features.TypedSpec().Value.ImageFactoryBaseUrl = "https://factory.example.org"
+	features.TypedSpec().Value.ImageFactoryPxeBaseUrl = "https://pxe.factory.example.org"
+
+	suite.Require().NoError(suite.state.Create(ctx, features))
+
+	factoryAuth := omni.NewImageFactoryAuth("https://factory.example.org")
+	factoryAuth.TypedSpec().Value.Username = "user"
+	factoryAuth.TypedSpec().Value.Password = "hunter2"
+
+	suite.Require().NoError(suite.state.Create(ctx, factoryAuth))
+
+	client := management.NewManagementServiceClient(suite.conn)
+
+	const schematicID = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
+
+	for _, tt := range []struct {
+		name         string
+		request      *management.BootAssetURLRequest
+		expectedURL  string
+		expectHeader bool
+	}{
+		{
+			name: "disk image with credentials in the headers",
+			request: &management.BootAssetURLRequest{
+				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK,
+				Platform:      "nocloud",
+				Architecture:  "amd64",
+				Format:        "raw.xz",
+			},
+			expectedURL:  "https://factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz",
+			expectHeader: true,
+		},
+		{
+			name: "standalone disk image carries them in the URL",
+			request: &management.BootAssetURLRequest{
+				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK,
+				Platform:      "nocloud",
+				Architecture:  "amd64",
+				Format:        "qcow2",
+				StandaloneUrl: true,
+			},
+			expectedURL: "https://user:hunter2@factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.qcow2",
+		},
+		{
+			name: "secure boot ISO",
+			request: &management.BootAssetURLRequest{
+				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO,
+				Platform:      "metal",
+				Architecture:  "amd64",
+				SecureBoot:    true,
+			},
+			expectedURL:  "https://factory.example.org/image/" + schematicID + "/v1.13.0/metal-amd64-secureboot.iso",
+			expectHeader: true,
+		},
+		{
+			// PXE firmware cannot send headers, so the URL carries the credentials even unasked.
+			name: "PXE is always standalone",
+			request: &management.BootAssetURLRequest{
+				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_PXE,
+				Platform:      "metal",
+				Architecture:  "amd64",
+			},
+			expectedURL: "https://user:hunter2@pxe.factory.example.org/pxe/" + schematicID + "/v1.13.0/metal-amd64",
+		},
+	} {
+		suite.Run(tt.name, func() {
+			tt.request.TalosVersion = "1.13.0"
+			tt.request.SchematicId = schematicID
+
+			resp, err := client.GetBootAssetURL(ctx, tt.request)
+			suite.Require().NoError(err)
+
+			suite.Require().Equal(tt.expectedURL, resp.Url)
+			suite.Require().Equal("factory.example.org", strings.TrimPrefix(resp.ImageFactoryHost, "pxe."))
+
+			if tt.expectHeader {
+				suite.Require().Equal(map[string]string{"Authorization": "Basic dXNlcjpodW50ZXIy"}, resp.Headers)
+			} else {
+				suite.Require().Empty(resp.Headers)
+			}
+		})
+	}
+
+	for _, tt := range []struct {
+		request *management.BootAssetURLRequest
+		name    string
+	}{
+		{
+			name:    "kind unset",
+			request: &management.BootAssetURLRequest{Platform: "metal", Architecture: "amd64"},
+		},
+		{
+			// These fields become URL path segments, so traversal has to be refused outright.
+			name: "platform traversal",
+			request: &management.BootAssetURLRequest{
+				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO,
+				Platform:      "../../secret",
+				Architecture:  "amd64",
+			},
+		},
+		{
+			name: "disk without a format",
+			request: &management.BootAssetURLRequest{
+				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK,
+				Platform:      "nocloud",
+				Architecture:  "amd64",
+			},
+		},
+		{
+			// The schematic ID and the Talos version become path segments too.
+			name: "schematic ID traversal",
+			request: &management.BootAssetURLRequest{
+				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO,
+				Platform:      "metal",
+				Architecture:  "amd64",
+				SchematicId:   "../../..",
+			},
+		},
+		{
+			name: "Talos version traversal",
+			request: &management.BootAssetURLRequest{
+				BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO,
+				Platform:      "metal",
+				Architecture:  "amd64",
+				TalosVersion:  "1.13.0/../..",
+			},
+		},
+	} {
+		suite.Run(tt.name, func() {
+			if tt.request.TalosVersion == "" {
+				tt.request.TalosVersion = "1.13.0"
+			}
+
+			if tt.request.SchematicId == "" {
+				tt.request.SchematicId = schematicID
+			}
+
+			_, err := client.GetBootAssetURL(ctx, tt.request)
+			suite.Require().Equal(codes.InvalidArgument, status.Code(err))
 		})
 	}
 }

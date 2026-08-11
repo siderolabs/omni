@@ -7,6 +7,7 @@ package infra_test
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -34,6 +35,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/infra"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
 	"github.com/siderolabs/omni/client/pkg/jointoken"
@@ -43,10 +45,23 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
-type imageFactoryClientMock struct{}
+// The image factory these tests configure their fake Omni with. Deliberately not the public one, so a
+// provider that falls back to the default factory URL shows up as a failure.
+const (
+	testFactoryURL      = "https://factory.example.org"
+	testFactoryPXEURL   = "https://pxe.factory.example.org"
+	testFactoryUsername = "user"
+	testFactoryPassword = "pass"
+)
 
-func (i *imageFactoryClientMock) EnsureSchematic(_ context.Context, schematic schematic.Schematic, talosVersion string) (string, error) {
-	return schematic.ID()
+// testBootAssetSpec is the asset the steps below ask for when only the schematic behind it matters.
+var testBootAssetSpec = provision.BootAssetSpec{
+	AssetSpec: imagefactory.AssetSpec{
+		Kind:         imagefactory.BootAssetKindDisk,
+		Platform:     "nocloud",
+		Architecture: "amd64",
+		Format:       "raw.xz",
+	},
 }
 
 type ms struct {
@@ -158,34 +173,49 @@ func validateConnectionParams(_ context.Context, _ *zap.Logger, pctx provision.C
 	return nil
 }
 
+// genSchematic pins the schematic the machine request generates, which EnsureBootAsset reports back as
+// the ID of the schematic it ensured.
 func genSchematic(ctx context.Context, logger *zap.Logger, pctx provision.Context[*TestResource]) error {
 	if pctx.ConnectionParams.CustomDataEncoded {
-		_, err := pctx.GenerateSchematicID(ctx, logger)
+		_, err := pctx.EnsureBootAsset(ctx, logger, testBootAssetSpec)
 		if err == nil {
 			return errors.New("generating schematics with the connection params must be not allowed")
 		}
 	} else {
-		schematic, err := pctx.GenerateSchematicID(ctx, logger)
+		asset, err := pctx.EnsureBootAsset(ctx, logger, testBootAssetSpec)
 		if err != nil {
 			return err
 		}
 
 		expectedSchematic := "4e2a2ec4368100c1b21d4fa7be47f3d38ddab9185f34fc187f82400b1e20da17"
 
-		if schematic != expectedSchematic {
-			return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, schematic)
+		if asset.SchematicID != expectedSchematic {
+			return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, asset.SchematicID)
 		}
 	}
 
-	schematic, err := pctx.GenerateSchematicID(ctx, logger, provision.WithoutConnectionParams())
+	asset, err := pctx.EnsureBootAsset(ctx, logger, testBootAssetSpec, provision.WithoutConnectionParams())
 	if err != nil {
 		return err
 	}
 
 	expectedSchematic := "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
 
-	if schematic != expectedSchematic {
-		return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, schematic)
+	if asset.SchematicID != expectedSchematic {
+		return fmt.Errorf("expected schematic id to be %s got %s", expectedSchematic, asset.SchematicID)
+	}
+
+	embedded, err := pctx.EnsureBootAsset(
+		ctx, logger, testBootAssetSpec,
+		provision.WithoutConnectionParams(),
+		provision.WithEmbeddedMachineConfig("version: v1alpha1\nmachine: {}\n"),
+	)
+	if err != nil {
+		return err
+	}
+
+	if embedded.SchematicID == expectedSchematic {
+		return errors.New("expected the embedded machine config to change the schematic id")
 	}
 
 	return nil
@@ -370,7 +400,17 @@ func setupInfra(ctx context.Context, t *testing.T, p provision.Provisioner[*Test
 	logger := zaptest.NewLogger(t)
 
 	features := omni.NewFeaturesConfig(omni.FeaturesConfigID)
+	features.TypedSpec().Value.ImageFactoryBaseUrl = testFactoryURL
+	features.TypedSpec().Value.ImageFactoryPxeBaseUrl = testFactoryPXEURL
+	features.TypedSpec().Value.IsEnterpriseImageFactory = true
+
 	require.NoError(t, state.Create(ctx, features))
+
+	factoryAuth := omni.NewImageFactoryAuth(testFactoryURL)
+	factoryAuth.TypedSpec().Value.Username = testFactoryUsername
+	factoryAuth.TypedSpec().Value.Password = testFactoryPassword
+
+	require.NoError(t, state.Create(ctx, factoryAuth))
 
 	pc := infra.ProviderConfig{
 		Name:        "Test Provider",
@@ -384,7 +424,24 @@ func setupInfra(ctx context.Context, t *testing.T, p provision.Provisioner[*Test
 
 	eg, ctx := errgroup.WithContext(ctx)
 
-	opts = append(opts, infra.WithState(state), infra.WithImageFactoryClient(&imageFactoryClientMock{}))
+	// Stands in for Omni: ensuring the schematic is local to the test, and the asset is built from the
+	// image factory configuration in the state, exactly as an older server's fallback would.
+	opts = append(opts, infra.WithState(state), infra.WithBootAssetResolver(
+		func(ctx context.Context, talosVersion string, schematic schematic.Schematic, spec provision.BootAssetSpec) (imagefactory.BootAsset, error) {
+			schematicID, err := schematic.ID()
+			if err != nil {
+				return imagefactory.BootAsset{}, err
+			}
+
+			return imagefactory.ResolveBootAsset(ctx, state, talosVersion, imagefactory.AssetSpec{
+				Kind:         spec.Kind,
+				Platform:     spec.Platform,
+				Architecture: spec.Architecture,
+				Format:       spec.Format,
+				SecureBoot:   spec.SecureBoot,
+			}, schematicID, spec.StandaloneURL)
+		},
+	))
 
 	eg.Go(func() error {
 		return provider.Run(ctx, logger, opts...)
@@ -430,6 +487,124 @@ func (p *stepProvisioner) ProvisionSteps() []provision.Step[*TestResource] {
 
 func (p *stepProvisioner) Deprovision(context.Context, *zap.Logger, *TestResource, *infrares.MachineRequest) error {
 	return nil
+}
+
+func TestProvisionStepImageFactory(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	type bootAssets struct {
+		disk imagefactory.BootAsset
+		pxe  imagefactory.BootAsset
+	}
+
+	resolved := make(chan bootAssets, 1)
+
+	p := &stepProvisioner{
+		steps: []provision.Step[*TestResource]{
+			provision.NewStep("resolveFactory", func(ctx context.Context, logger *zap.Logger, pctx provision.Context[*TestResource]) error {
+				disk, err := pctx.EnsureBootAsset(ctx, logger, provision.BootAssetSpec{
+					AssetSpec: imagefactory.AssetSpec{
+						Kind:         imagefactory.BootAssetKindDisk,
+						Platform:     "nocloud",
+						Architecture: "amd64",
+						Format:       "raw.xz",
+					},
+				})
+				if err != nil {
+					return err
+				}
+
+				pxe, err := pctx.EnsureBootAsset(ctx, logger, provision.BootAssetSpec{
+					AssetSpec: imagefactory.AssetSpec{
+						Kind:         imagefactory.BootAssetKindPXE,
+						Platform:     "metal",
+						Architecture: "amd64",
+					},
+				})
+				if err != nil {
+					return err
+				}
+
+				// The controller resumes at the recorded step, so this can run more than once for the same
+				// request. Only the first resolution is asserted, and a re-run must not block on it.
+				select {
+				case resolved <- bootAssets{disk: disk, pxe: pxe}:
+				default:
+				}
+
+				return nil
+			}),
+		},
+	}
+
+	st := setupInfra(ctx, t, p)
+	createSiderolinkConfigs(ctx, t, st)
+
+	machineRequest := infrares.NewMachineRequest("image-factory-test")
+	machineRequest.Metadata().Labels().Set(omni.LabelInfraProviderID, providerID)
+	machineRequest.TypedSpec().Value.TalosVersion = "v1.13.0"
+
+	require.NoError(t, st.Create(ctx, machineRequest))
+
+	rtestutils.AssertResources(ctx, t, st, []string{machineRequest.Metadata().ID()}, func(mrs *infrares.MachineRequestStatus, assert *assert.Assertions) {
+		assert.Equal(specs.MachineRequestStatusSpec_PROVISIONED, mrs.TypedSpec().Value.Stage)
+	})
+
+	var assets bootAssets
+
+	select {
+	case assets = <-resolved:
+	case <-ctx.Done():
+		require.Fail(t, "the provision step did not report the boot assets")
+	}
+
+	// The mock factory client returns the schematic's own ID, so the URL carries whatever the step's
+	// machine request generated.
+	require.Contains(t, assets.disk.URL, "https://factory.example.org/image/")
+	require.Contains(t, assets.disk.URL, "/v1.13.0/nocloud-amd64.raw.xz")
+
+	// A disk image is fetched by the provider itself, so the credentials come back as a header and the
+	// URL stays clean.
+	require.Equal(t, "Basic "+base64.StdEncoding.EncodeToString([]byte(testFactoryUsername+":"+testFactoryPassword)),
+		assets.disk.Headers.Get("Authorization"))
+	require.NotContains(t, assets.disk.URL, testFactoryPassword)
+
+	// PXE firmware cannot send headers, so those credentials have to ride in the URL instead.
+	require.Contains(t, assets.pxe.URL,
+		"https://"+testFactoryUsername+":"+testFactoryPassword+"@pxe.factory.example.org/pxe/")
+	require.Contains(t, assets.pxe.URL, "/v1.13.0/metal-amd64")
+	require.Empty(t, assets.pxe.Headers)
+}
+
+// TestProvisionContextWithoutResolver pins the error a hand-built Context reports, since provider step
+// tests construct one without a way to reach Omni.
+func TestProvisionContextWithoutResolver(t *testing.T) {
+	t.Parallel()
+
+	machineRequest := infrares.NewMachineRequest("no-state-test")
+	machineRequest.TypedSpec().Value.TalosVersion = "v1.13.0"
+
+	pctx := provision.NewContext(
+		machineRequest,
+		infrares.NewMachineRequestStatus("no-state-test"),
+		NewTestResource("test-namespace", "r"),
+		provision.ConnectionParams{},
+		nil,
+		nil,
+	)
+
+	_, err := pctx.EnsureBootAsset(t.Context(), zaptest.NewLogger(t), provision.BootAssetSpec{
+		AssetSpec: imagefactory.AssetSpec{
+			Kind:         imagefactory.BootAssetKindDisk,
+			Platform:     "nocloud",
+			Architecture: "amd64",
+			Format:       "raw.xz",
+		},
+	})
+	require.ErrorContains(t, err, "provision context has no boot asset resolver")
 }
 
 func TestProvisionStepFailurePersistsError(t *testing.T) {

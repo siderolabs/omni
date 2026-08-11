@@ -32,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/constants"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/meta"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
@@ -693,16 +694,7 @@ func DownloadImageTo(ctx context.Context, client *client.Client, image ImageInfo
 
 // ImageFactoryCredentials returns the credentials to authenticate installation media downloads against the configured image factory.
 func ImageFactoryCredentials(ctx context.Context, st state.State, url string) (username, password string, err error) {
-	auth, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, st, strings.TrimRight(url, "/"))
-	if err != nil {
-		if state.IsNotFoundError(err) {
-			return "", "", nil
-		}
-
-		return "", "", fmt.Errorf("failed to get image factory auth: %w", err)
-	}
-
-	return auth.TypedSpec().Value.GetUsername(), auth.TypedSpec().Value.GetPassword(), nil
+	return imagefactory.Credentials(ctx, st, url)
 }
 
 func filterMedia[T any](ctx context.Context, client *client.Client, check func(value *omni.InstallationMedia) (T, bool)) ([]T, error) {

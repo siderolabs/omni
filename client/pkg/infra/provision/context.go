@@ -18,22 +18,19 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
-// FactoryClient ensures that the given schematic exists in the image factory.
-type FactoryClient interface {
-	EnsureSchematic(context.Context, schematic.Schematic, string) (string, error)
-}
-
 // SchematicOptions is used during schematic ID generation.
 type SchematicOptions struct {
-	overlay              *schematic.Overlay
-	kernelArgs           []string
-	extensions           []string
-	metaValues           []schematic.MetaValue
-	skipConnectionParams bool
+	overlay               *schematic.Overlay
+	embeddedMachineConfig string
+	kernelArgs            []string
+	extensions            []string
+	metaValues            []schematic.MetaValue
+	skipConnectionParams  bool
 }
 
 // SchematicOption is the optional argument to the GetSchematicID method.
@@ -79,6 +76,13 @@ func WithOverlay(overlay schematic.Overlay) SchematicOption {
 	}
 }
 
+// WithEmbeddedMachineConfig adds embedded machine config to the schematic.
+func WithEmbeddedMachineConfig(config string) SchematicOption {
+	return func(so *SchematicOptions) {
+		so.embeddedMachineConfig = config
+	}
+}
+
 // ConnectionParams represents kernel params and join config for making the machine join Omni.
 type ConnectionParams struct {
 	JoinConfig string
@@ -87,33 +91,79 @@ type ConnectionParams struct {
 	CustomDataEncoded bool
 }
 
+// BootAssetSpec names the boot asset a provision step wants, without saying how the image factory
+// spells it, and says how the provider intends to fetch it.
+type BootAssetSpec struct {
+	// AssetSpec names the asset. It is embedded rather than restated so that a field added to it reaches
+	// every caller, instead of being dropped by one of the conversions along the way.
+	imagefactory.AssetSpec
+
+	// StandaloneURL asks for a URL that needs no headers, for a fetch this provider does not perform
+	// itself: a hypervisor download API handed a bare URL, for instance. Any authentication then
+	// travels inside the URL and Headers comes back empty.
+	StandaloneURL bool
+}
+
+// BootAssetResolver ensures the schematic exists and returns the boot asset built from it.
+//
+// The infra library wires one that goes through Omni's management API, so that newer Omni versions can
+// apply image factory changes this library predates.
+type BootAssetResolver func(ctx context.Context, talosVersion string, schematic schematic.Schematic, spec BootAssetSpec) (imagefactory.BootAsset, error)
+
 // NewContext creates a new provision context.
 func NewContext[T resource.Resource](
 	machineRequest *infra.MachineRequest,
 	machineRequestStatus *infra.MachineRequestStatus,
-	state T,
+	providerState T,
 	connectionParams ConnectionParams,
-	imageFactory FactoryClient,
 	runtime controller.QRuntime,
+	bootAssetResolver BootAssetResolver,
 ) Context[T] {
 	return Context[T]{
 		machineRequest:       machineRequest,
 		MachineRequestStatus: machineRequestStatus,
-		State:                state,
+		State:                providerState,
 		ConnectionParams:     connectionParams,
-		imageFactory:         imageFactory,
 		runtime:              runtime,
+		bootAssetResolver:    bootAssetResolver,
 	}
 }
 
 // Context keeps all context which might be required for the provision calls.
 type Context[T resource.Resource] struct {
 	machineRequest       *infra.MachineRequest
-	imageFactory         FactoryClient
 	MachineRequestStatus *infra.MachineRequestStatus
 	runtime              controller.QRuntime
+	bootAssetResolver    BootAssetResolver
 	State                T
 	ConnectionParams     ConnectionParams
+}
+
+// EnsureBootAsset returns the boot asset named by the spec, for the machine request's Talos version and
+// the schematic generated from the machine request and the given options.
+//
+// It ensures the schematic exists on the image factory Omni is configured with and then resolves the
+// asset, so a provision step never handles a schematic ID, a factory URL, or a filename convention.
+//
+// Fetch BootAsset.URL, sending BootAsset.Headers when they are not empty. See imagefactory.BootAsset
+// for the full contract: the URL is opaque and can carry secrets, so it does not belong in a log line
+// verbatim, it is not a stable input for a persisted name, and it can be short-lived, so use it
+// promptly rather than storing it.
+func (context *Context[T]) EnsureBootAsset(ctx context.Context, logger *zap.Logger, spec BootAssetSpec, opts ...SchematicOption) (imagefactory.BootAsset, error) {
+	// Built before the resolver is checked, so that a schematic the options cannot produce is reported as
+	// such rather than as a missing resolver.
+	schematic, err := context.buildSchematic(logger, opts...)
+	if err != nil {
+		return imagefactory.BootAsset{}, err
+	}
+
+	// The resolver goes through Omni, which owns the schematic upload as well as naming and locating the
+	// asset. A provider given only a COSI state has no way to reach it and has to supply its own.
+	if context.bootAssetResolver == nil {
+		return imagefactory.BootAsset{}, errors.New("provision context has no boot asset resolver, the infra provider needs an Omni API client")
+	}
+
+	return context.bootAssetResolver(ctx, context.GetTalosVersion(), schematic, spec)
 }
 
 // GetRequestID returns machine request id.
@@ -167,9 +217,8 @@ func (context *Context[T]) CreateConfigPatch(ctx context.Context, name string, d
 	})
 }
 
-// GenerateSchematicID generate the final schematic out of the machine request.
-// This method also calls the image factory and uploads the schematic there.
-func (context *Context[T]) GenerateSchematicID(ctx context.Context, logger *zap.Logger, opts ...SchematicOption) (string, error) {
+// buildSchematic assembles the schematic out of the machine request and the given options.
+func (context *Context[T]) buildSchematic(logger *zap.Logger, opts ...SchematicOption) (schematic.Schematic, error) {
 	var schematicOptions SchematicOptions
 
 	for _, o := range opts {
@@ -188,6 +237,7 @@ func (context *Context[T]) GenerateSchematicID(ctx context.Context, logger *zap.
 			SystemExtensions: schematic.SystemExtensions{
 				OfficialExtensions: context.machineRequest.TypedSpec().Value.Extensions,
 			},
+			EmbeddedMachineConfiguration: schematicOptions.embeddedMachineConfig,
 		},
 	}
 
@@ -227,7 +277,7 @@ func (context *Context[T]) GenerateSchematicID(ctx context.Context, logger *zap.
 
 	if !schematicOptions.skipConnectionParams {
 		if context.ConnectionParams.CustomDataEncoded {
-			return "", errors.New(`the provider is configured to embed connection parameters into the schematic, but it also includes a machine request ID, which is not allowed
+			return schematic.Schematic{}, errors.New(`the provider is configured to embed connection parameters into the schematic, but it also includes a machine request ID, which is not allowed
 in the connection parameters in the schematic. If the machine request ID must be part of the connection parameters,
 provide them to the machine through another mechanism using the infrastructure provider`)
 		}
@@ -242,7 +292,14 @@ provide them to the machine through another mechanism using the infrastructure p
 
 	res.Customization.ExtraKernelArgs = append(res.Customization.ExtraKernelArgs, schematicOptions.kernelArgs...)
 
-	logger.Info("creating schematic", zap.Reflect("schematic", res))
+	// An embedded machine config is a Talos machine config, so it can carry cluster secrets and join
+	// tokens. Log the schematic without it.
+	logged := res
+	if logged.Customization.EmbeddedMachineConfiguration != "" {
+		logged.Customization.EmbeddedMachineConfiguration = "<redacted>"
+	}
 
-	return context.imageFactory.EnsureSchematic(ctx, res, context.GetTalosVersion())
+	logger.Info("creating schematic", zap.Reflect("schematic", logged))
+
+	return res, nil
 }

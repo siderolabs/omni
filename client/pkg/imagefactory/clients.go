@@ -6,13 +6,17 @@ package imagefactory
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/image-factory/pkg/schematic"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
 
@@ -60,12 +64,17 @@ func NewClientsFromState(ctx context.Context, st state.State) (*Clients, error) 
 		return nil, err
 	}
 
-	username, password, err := getFactoryCreds(ctx, st, config.TypedSpec().Value.ImageFactoryBaseUrl)
+	baseURL := config.TypedSpec().Value.ImageFactoryBaseUrl
+	if baseURL == "" {
+		baseURL = constants.ImageFactoryBaseURL
+	}
+
+	username, password, err := credentialsAllowingDenied(ctx, st, baseURL)
 	if err != nil {
 		return nil, err
 	}
 
-	primaryClient, err := NewClient(config.TypedSpec().Value.ImageFactoryBaseUrl, username, password)
+	primaryClient, err := NewClient(baseURL, username, password)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +82,7 @@ func NewClientsFromState(ctx context.Context, st state.State) (*Clients, error) 
 	clients := NewClients(st, primaryClient)
 
 	if config.TypedSpec().Value.SecondaryImageFactoryBaseUrl != "" {
-		secondaryUsername, secondaryPassword, err := getFactoryCreds(ctx, st, config.TypedSpec().Value.SecondaryImageFactoryBaseUrl)
+		secondaryUsername, secondaryPassword, err := credentialsAllowingDenied(ctx, st, config.TypedSpec().Value.SecondaryImageFactoryBaseUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -89,17 +98,33 @@ func NewClientsFromState(ctx context.Context, st state.State) (*Clients, error) 
 	return clients, nil
 }
 
-func getFactoryCreds(ctx context.Context, st state.State, url string) (string, string, error) {
-	auth, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, st, normalizeFactoryURL(url))
-	if err != nil && !state.IsNotFoundError(err) {
+// credentialsAllowingDenied reads the credentials for a factory, treating a denied read as "no credentials".
+//
+// An Omni that predates ImageFactoryAuth, or a caller whose role cannot read it, denies the read outright.
+// Callers that only need to reach a factory serving assets anonymously should still get there, and one that
+// does need credentials fails on its own with a 401 naming the factory.
+func credentialsAllowingDenied(ctx context.Context, st state.State, factoryURL string) (username, password string, err error) {
+	username, password, err = Credentials(ctx, st, factoryURL)
+	if err != nil && status.Code(err) != codes.PermissionDenied {
 		return "", "", err
 	}
 
-	if auth == nil {
-		return "", "", nil
+	return username, password, nil
+}
+
+// Credentials returns the basic auth credentials for the image factory at the given URL, or empty strings
+// when that factory has none configured.
+func Credentials(ctx context.Context, st state.State, factoryURL string) (username, password string, err error) {
+	auth, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, st, normalizeFactoryURL(factoryURL))
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return "", "", nil
+		}
+
+		return "", "", fmt.Errorf("failed to get image factory auth: %w", err)
 	}
 
-	return auth.TypedSpec().Value.Username, auth.TypedSpec().Value.Password, nil
+	return auth.TypedSpec().Value.GetUsername(), auth.TypedSpec().Value.GetPassword(), nil
 }
 
 // SetSecondary configures the secondary image factory client.
@@ -151,19 +176,32 @@ func (c *Clients) ForHost(host string) FactoryClient {
 	return nil
 }
 
-// ForTalosVersion returns the image factory client configured for the given Talos version, falling back to the primary client when no version is found or the version does not specify a factory URL.
-func (c *Clients) ForTalosVersion(ctx context.Context, v string) (FactoryClient, error) {
-	version, err := safe.ReaderGetByID[*omni.TalosVersion](ctx, c.st, strings.TrimLeft(v, "v"))
-	if err != nil && !state.IsNotFoundError(err) {
-		return nil, err
-	}
+// recordedFactoryURLForVersion returns the URL of the factory Omni recorded for the given Talos version,
+// or an empty string when the version is unknown or carries no URL.
+func recordedFactoryURLForVersion(ctx context.Context, st state.State, talosVersion string) (string, error) {
+	version, err := safe.ReaderGetByID[*omni.TalosVersion](ctx, st, strings.TrimLeft(talosVersion, "v"))
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return "", nil
+		}
 
-	if version == nil {
-		return c.Primary(), nil
+		return "", err
 	}
 
 	// The recorded URL may predate the canonicalization in NewClient, so normalize both sides.
-	versionURL := normalizeFactoryURL(version.TypedSpec().Value.ImageFactoryUrl)
+	return normalizeFactoryURL(version.TypedSpec().Value.GetImageFactoryUrl()), nil
+}
+
+// ForTalosVersion returns the image factory client configured for the given Talos version, falling back to the primary client when no version is found or the version does not specify a factory URL.
+func (c *Clients) ForTalosVersion(ctx context.Context, v string) (FactoryClient, error) {
+	recordedURL, err := recordedFactoryURLForVersion(ctx, c.st, v)
+	if err != nil {
+		return nil, err
+	}
+
+	if recordedURL == "" {
+		return c.Primary(), nil
+	}
 
 	clients := []FactoryClient{c.primary}
 	if c.secondary != nil {
@@ -171,7 +209,7 @@ func (c *Clients) ForTalosVersion(ctx context.Context, v string) (FactoryClient,
 	}
 
 	for _, client := range clients {
-		if normalizeFactoryURL(client.URL()) == versionURL {
+		if normalizeFactoryURL(client.URL()) == recordedURL {
 			return client, nil
 		}
 	}

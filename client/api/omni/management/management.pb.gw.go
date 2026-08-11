@@ -406,6 +406,33 @@ func local_request_ManagementService_CreateSchematicFromRaw_0(ctx context.Contex
 	return msg, metadata, err
 }
 
+func request_ManagementService_GetBootAssetURL_0(ctx context.Context, marshaler runtime.Marshaler, client ManagementServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq BootAssetURLRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
+	msg, err := client.GetBootAssetURL(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_ManagementService_GetBootAssetURL_0(ctx context.Context, marshaler runtime.Marshaler, server ManagementServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq BootAssetURLRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.GetBootAssetURL(ctx, &protoReq)
+	return msg, metadata, err
+}
+
 func request_ManagementService_GetSupportBundle_0(ctx context.Context, marshaler runtime.Marshaler, client ManagementServiceClient, req *http.Request, pathParams map[string]string) (ManagementService_GetSupportBundleClient, runtime.ServerMetadata, error) {
 	var (
 		protoReq GetSupportBundleRequest
@@ -1005,6 +1032,26 @@ func RegisterManagementServiceHandlerServer(ctx context.Context, mux *runtime.Se
 		}
 		forward_ManagementService_CreateSchematicFromRaw_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
+	mux.Handle(http.MethodPost, pattern_ManagementService_GetBootAssetURL_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/management.ManagementService/GetBootAssetURL", runtime.WithHTTPPathPattern("/management.ManagementService/GetBootAssetURL"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_ManagementService_GetBootAssetURL_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_ManagementService_GetBootAssetURL_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
 
 	mux.Handle(http.MethodPost, pattern_ManagementService_GetSupportBundle_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
@@ -1504,6 +1551,23 @@ func RegisterManagementServiceHandlerClient(ctx context.Context, mux *runtime.Se
 		}
 		forward_ManagementService_CreateSchematicFromRaw_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
+	mux.Handle(http.MethodPost, pattern_ManagementService_GetBootAssetURL_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/management.ManagementService/GetBootAssetURL", runtime.WithHTTPPathPattern("/management.ManagementService/GetBootAssetURL"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_ManagementService_GetBootAssetURL_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_ManagementService_GetBootAssetURL_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
 	mux.Handle(http.MethodPost, pattern_ManagementService_GetSupportBundle_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -1743,6 +1807,7 @@ var (
 	pattern_ManagementService_KubernetesSyncManifests_0    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "KubernetesSyncManifests"}, ""))
 	pattern_ManagementService_CreateSchematic_0            = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "CreateSchematic"}, ""))
 	pattern_ManagementService_CreateSchematicFromRaw_0     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "CreateSchematicFromRaw"}, ""))
+	pattern_ManagementService_GetBootAssetURL_0            = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "GetBootAssetURL"}, ""))
 	pattern_ManagementService_GetSupportBundle_0           = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "GetSupportBundle"}, ""))
 	pattern_ManagementService_ReadAuditLog_0               = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "ReadAuditLog"}, ""))
 	pattern_ManagementService_MaintenanceUpgrade_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"management.ManagementService", "MaintenanceUpgrade"}, ""))
@@ -1773,6 +1838,7 @@ var (
 	forward_ManagementService_KubernetesSyncManifests_0    = runtime.ForwardResponseStream
 	forward_ManagementService_CreateSchematic_0            = runtime.ForwardResponseMessage
 	forward_ManagementService_CreateSchematicFromRaw_0     = runtime.ForwardResponseMessage
+	forward_ManagementService_GetBootAssetURL_0            = runtime.ForwardResponseMessage
 	forward_ManagementService_GetSupportBundle_0           = runtime.ForwardResponseStream
 	forward_ManagementService_ReadAuditLog_0               = runtime.ForwardResponseStream
 	forward_ManagementService_MaintenanceUpgrade_0         = runtime.ForwardResponseMessage

@@ -7,6 +7,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -31,6 +32,7 @@ import (
 	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/client/pkg/siderolink"
 	"github.com/siderolabs/omni/internal/pkg/auth"
+	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 )
 
 // CreateSchematic implements managementServer.
@@ -173,6 +175,57 @@ func (s *managementServer) CreateSchematicFromRaw(ctx context.Context, request *
 
 	return &management.CreateSchematicResponse{
 		SchematicId: schematicID,
+	}, nil
+}
+
+// bootAssetKinds maps the wire enum onto the kinds the image factory serves.
+var bootAssetKinds = map[management.BootAssetURLRequest_BootAssetKind]imagefactory.BootAssetKind{
+	management.BootAssetURLRequest_BOOT_ASSET_KIND_PXE:  imagefactory.BootAssetKindPXE,
+	management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO:  imagefactory.BootAssetKindISO,
+	management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK: imagefactory.BootAssetKindDisk,
+}
+
+// GetBootAssetURL implements managementServer.
+func (s *managementServer) GetBootAssetURL(ctx context.Context, request *management.BootAssetURLRequest) (*management.BootAssetURLResponse, error) {
+	if _, err := auth.CheckGRPC(ctx, auth.WithExactRoles(role.InfraProvider, role.Operator, role.Admin)); err != nil {
+		return nil, err
+	}
+
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	kind, ok := bootAssetKinds[request.BootAssetKind]
+	if !ok {
+		return nil, status.Errorf(codes.InvalidArgument, "unknown boot asset kind %s", request.BootAssetKind)
+	}
+
+	spec := imagefactory.AssetSpec{
+		Kind:         kind,
+		Platform:     request.Platform,
+		Architecture: request.Architecture,
+		Format:       request.Format,
+		SecureBoot:   request.SecureBoot,
+	}
+
+	asset, err := imagefactory.ResolveBootAsset(ctx, s.omniState, request.TalosVersion, spec, request.SchematicId, request.StandaloneUrl)
+	if err != nil {
+		if errors.Is(err, imagefactory.ErrInvalidInput) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+
+		return nil, status.Errorf(codes.Internal, "failed to resolve the boot asset: %s", err)
+	}
+
+	headers := make(map[string]string, len(asset.Headers))
+
+	for name := range asset.Headers {
+		headers[name] = asset.Headers.Get(name)
+	}
+
+	return &management.BootAssetURLResponse{
+		Url:              asset.URL,
+		Headers:          headers,
+		ImageFactoryHost: asset.ImageFactoryHost,
+		StorageKey:       asset.StorageKey,
 	}, nil
 }
 

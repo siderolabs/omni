@@ -20,7 +20,7 @@ type HealthCheckFunc func(context.Context) error
 // Options defines additional infra provider options.
 type Options struct {
 	state                      state.State
-	imageFactory               provision.FactoryClient
+	bootAssetResolver          provision.BootAssetResolver
 	healthCheckFunc            HealthCheckFunc
 	omniEndpoint               string
 	version                    string
@@ -40,10 +40,13 @@ func WithClientOptions(options ...client.Option) Option {
 	}
 }
 
-// WithImageFactoryClient sets up the image factory client explicitly.
-func WithImageFactoryClient(imageFactory provision.FactoryClient) Option {
+// WithBootAssetResolver sets up the boot asset resolver explicitly.
+//
+// The infra provider builds one over its Omni API client, so this is for the setups that have no such
+// client, such as one configured with WithState, and for tests.
+func WithBootAssetResolver(resolver provision.BootAssetResolver) Option {
 	return func(o *Options) {
-		o.imageFactory = imageFactory
+		o.bootAssetResolver = resolver
 	}
 }
 

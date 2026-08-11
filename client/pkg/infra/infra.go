@@ -8,9 +8,9 @@ package infra
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
-	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/controller/runtime"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -18,24 +18,21 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource/protobuf"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/image-factory/pkg/schematic"
 	"go.uber.org/zap"
 	"go.yaml.in/yaml/v4"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
+	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/client/omni"
+	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/infra/controllers"
-	"github.com/siderolabs/omni/client/pkg/infra/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/infra/internal/resources"
 	"github.com/siderolabs/omni/client/pkg/infra/provision"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/infra"
-	omnires "github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	"github.com/siderolabs/omni/client/pkg/omni/resources/system"
 )
-
-// proxiedImageFactoryMinVersion is the minimum Omni version that supports proxying image factory requests
-// through the management API. Older servers don't expose CreateSchematicFromRaw, so the provider has to
-// reach the image factory directly.
-var proxiedImageFactoryMinVersion = semver.Version{Major: 1, Minor: 9}
 
 // ProviderConfig defines the schema, human-readable provider name and description.
 type ProviderConfig struct {
@@ -140,10 +137,12 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		return fmt.Errorf("invalid infra provider configuration: either WithOmniEndpoint or WithState option should be used")
 	}
 
-	if options.imageFactory == nil {
-		options.imageFactory, err = newImageFactoryClient(ctx, c, st, logger)
-		if err != nil {
-			return err
+	// Boot assets are resolved through Omni, so a provider given only a state has no way to reach one:
+	// such a setup has to supply its own resolver.
+	bootAssetResolver := options.bootAssetResolver
+	if bootAssetResolver == nil && c != nil {
+		bootAssetResolver = func(ctx context.Context, talosVersion string, schematic schematic.Schematic, spec provision.BootAssetSpec) (imagefactory.BootAsset, error) {
+			return EnsureBootAsset(ctx, c, talosVersion, schematic, spec)
 		}
 	}
 
@@ -161,9 +160,9 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 		provider.id,
 		provider.provisioner,
 		options.concurrency,
-		options.imageFactory,
 		options.encodeRequestIDsIntoTokens,
 		rds,
+		bootAssetResolver,
 	)); err != nil {
 		return err
 	}
@@ -207,57 +206,124 @@ func (provider *Provider[T]) Run(ctx context.Context, logger *zap.Logger, opts .
 	return runtime.Run(ctx)
 }
 
-// newImageFactoryClient picks the image factory client implementation based on the Omni server version.
-// Omni >= 1.9 supports proxying through the management API; older servers (and configurations without
-// an Omni API client) require talking to the image factory directly. The endpoint is taken from
-// FeaturesConfig.ImageFactoryBaseUrl when set, otherwise NewDirectClient falls back to the default
-// public Talos image factory URL.
-func newImageFactoryClient(ctx context.Context, c *client.Client, st state.State, logger *zap.Logger) (provision.FactoryClient, error) {
-	useProxied := c != nil
-
-	if useProxied {
-		supported, err := supportsProxiedImageFactory(ctx, st, logger)
-		if err != nil {
-			return nil, err
-		}
-
-		useProxied = supported
-	}
-
-	if useProxied {
-		return imagefactory.NewProxiedClient(c)
-	}
-
-	features, err := safe.ReaderGetByID[*omnires.FeaturesConfig](ctx, st, omnires.FeaturesConfigID)
+// EnsureSchematic uploads the schematic through Omni and returns the ID the image factory gave it.
+//
+// The schematic goes to whichever image factory Omni is configured with for the given Talos version, so
+// a caller needs no factory endpoint or credentials of its own. An empty version means Omni's default
+// Talos version.
+func EnsureSchematic(ctx context.Context, c *client.Client, talosVersion string, schematic schematic.Schematic) (string, error) {
+	raw, err := schematic.Marshal()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get features config: %w", err)
+		return "", fmt.Errorf("failed to marshal the schematic: %w", err)
 	}
 
-	return imagefactory.NewDirectClient(imagefactory.ClientOptions{
-		FactoryEndpoint: features.TypedSpec().Value.ImageFactoryBaseUrl,
-	})
+	resp, err := c.Management().CreateSchematicFromRaw(ctx, raw, talosVersion)
+	if err != nil {
+		return "", schematicError(err)
+	}
+
+	return resp.SchematicId, nil
 }
 
-// supportsProxiedImageFactory returns true if the Omni server is new enough to proxy image factory requests
-// through the management API. If the version can't be determined it defaults to true so that the provider
-// keeps using the new API path.
-func supportsProxiedImageFactory(ctx context.Context, st state.State, logger *zap.Logger) (bool, error) {
-	sysVersion, err := safe.ReaderGetByID[*system.SysVersion](ctx, st, system.SysVersionID)
-	if err != nil {
-		return false, fmt.Errorf("failed to get Omni system version: %w", err)
+func schematicError(err error) error {
+	if status.Code(err) == codes.Unimplemented {
+		return fmt.Errorf("this infra provider requires Omni 1.8 or newer, which the server it is connected to does not appear to be: %w", err)
 	}
 
-	backendVersion := sysVersion.TypedSpec().Value.BackendVersion
+	return fmt.Errorf("failed to create the schematic through Omni: %w", err)
+}
 
-	v, err := semver.ParseTolerant(strings.TrimPrefix(backendVersion, "v"))
+// EnsureBootAsset ensures the schematic exists on the image factory Omni is configured with, and
+// returns the boot asset the given spec names, built from it.
+//
+// Providers that run a provision step should call Context.EnsureBootAsset instead, which builds the
+// schematic out of the machine request for them. This is for the ones that never build a provision
+// context, such as a provider serving its own iPXE endpoint.
+//
+// Fetch BootAsset.URL, sending BootAsset.Headers when they are not empty. See imagefactory.BootAsset
+// for the full contract.
+func EnsureBootAsset(
+	ctx context.Context,
+	c *client.Client,
+	talosVersion string,
+	schematic schematic.Schematic,
+	spec provision.BootAssetSpec,
+) (imagefactory.BootAsset, error) {
+	schematicID, err := EnsureSchematic(ctx, c, talosVersion, schematic)
 	if err != nil {
-		logger.Warn("failed to parse Omni backend version, assuming proxied image factory API is supported",
-			zap.String("backend_version", backendVersion), zap.Error(err))
-
-		return true, nil
+		return imagefactory.BootAsset{}, err
 	}
 
-	return v.GTE(proxiedImageFactoryMinVersion), nil
+	return resolveBootAsset(ctx, c, talosVersion, spec, schematicID)
+}
+
+// bootAssetKinds maps the kinds this library names onto the wire enum.
+var bootAssetKinds = map[imagefactory.BootAssetKind]management.BootAssetURLRequest_BootAssetKind{
+	imagefactory.BootAssetKindPXE:  management.BootAssetURLRequest_BOOT_ASSET_KIND_PXE,
+	imagefactory.BootAssetKindISO:  management.BootAssetURLRequest_BOOT_ASSET_KIND_ISO,
+	imagefactory.BootAssetKindDisk: management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK,
+}
+
+// resolveBootAsset asks Omni to name and locate the asset, where the server decides how it is
+// authenticated. That is what lets factory auth schemes evolve without updating this library: the
+// caller applies whatever the server returns.
+//
+// A server that predates the boot asset API answers Unimplemented, and the asset is built here instead
+// from the image factory configuration in Omni's state, which every version exposes.
+func resolveBootAsset(
+	ctx context.Context,
+	c *client.Client,
+	talosVersion string,
+	spec provision.BootAssetSpec,
+	schematicID string,
+) (imagefactory.BootAsset, error) {
+	kind, ok := bootAssetKinds[spec.Kind]
+	if !ok {
+		return imagefactory.BootAsset{}, fmt.Errorf("unknown boot asset kind %q", spec.Kind)
+	}
+
+	resp, err := c.Management().GetBootAssetURL(ctx, &management.BootAssetURLRequest{
+		TalosVersion:  talosVersion,
+		SchematicId:   schematicID,
+		StandaloneUrl: spec.StandaloneURL,
+		BootAssetKind: kind,
+		Platform:      spec.Platform,
+		Architecture:  spec.Architecture,
+		Format:        spec.Format,
+		SecureBoot:    spec.SecureBoot,
+	})
+	if err != nil {
+		if status.Code(err) != codes.Unimplemented {
+			return imagefactory.BootAsset{}, fmt.Errorf("failed to get the boot asset URL from Omni: %w", err)
+		}
+
+		return imagefactory.ResolveBootAsset(ctx, c.Omni().State(), talosVersion, spec.AssetSpec, schematicID, spec.StandaloneURL)
+	}
+
+	asset := bootAssetFromResponse(resp)
+	asset.SchematicID = schematicID
+
+	return asset, nil
+}
+
+// bootAssetFromResponse converts the management API response into the client-side type.
+func bootAssetFromResponse(resp *management.BootAssetURLResponse) imagefactory.BootAsset {
+	var headers http.Header
+
+	if len(resp.Headers) > 0 {
+		headers = make(http.Header, len(resp.Headers))
+
+		for name, value := range resp.Headers {
+			headers.Set(name, value)
+		}
+	}
+
+	return imagefactory.BootAsset{
+		URL:              resp.Url,
+		Headers:          headers,
+		StorageKey:       resp.StorageKey,
+		ImageFactoryHost: resp.ImageFactoryHost,
+	}
 }
 
 func getResourceDefinitions(ctx context.Context, state state.State) (map[string]struct{}, error) {

@@ -36,6 +36,7 @@ const (
 	ManagementService_KubernetesSyncManifests_FullMethodName    = "/management.ManagementService/KubernetesSyncManifests"
 	ManagementService_CreateSchematic_FullMethodName            = "/management.ManagementService/CreateSchematic"
 	ManagementService_CreateSchematicFromRaw_FullMethodName     = "/management.ManagementService/CreateSchematicFromRaw"
+	ManagementService_GetBootAssetURL_FullMethodName            = "/management.ManagementService/GetBootAssetURL"
 	ManagementService_GetSupportBundle_FullMethodName           = "/management.ManagementService/GetSupportBundle"
 	ManagementService_ReadAuditLog_FullMethodName               = "/management.ManagementService/ReadAuditLog"
 	ManagementService_MaintenanceUpgrade_FullMethodName         = "/management.ManagementService/MaintenanceUpgrade"
@@ -69,6 +70,7 @@ type ManagementServiceClient interface {
 	KubernetesSyncManifests(ctx context.Context, in *KubernetesSyncManifestRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[KubernetesSyncManifestResponse], error)
 	CreateSchematic(ctx context.Context, in *CreateSchematicRequest, opts ...grpc.CallOption) (*CreateSchematicResponse, error)
 	CreateSchematicFromRaw(ctx context.Context, in *CreateSchematicFromRawRequest, opts ...grpc.CallOption) (*CreateSchematicResponse, error)
+	GetBootAssetURL(ctx context.Context, in *BootAssetURLRequest, opts ...grpc.CallOption) (*BootAssetURLResponse, error)
 	GetSupportBundle(ctx context.Context, in *GetSupportBundleRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetSupportBundleResponse], error)
 	ReadAuditLog(ctx context.Context, in *ReadAuditLogRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ReadAuditLogResponse], error)
 	MaintenanceUpgrade(ctx context.Context, in *MaintenanceUpgradeRequest, opts ...grpc.CallOption) (*MaintenanceUpgradeResponse, error)
@@ -250,6 +252,16 @@ func (c *managementServiceClient) CreateSchematicFromRaw(ctx context.Context, in
 	return out, nil
 }
 
+func (c *managementServiceClient) GetBootAssetURL(ctx context.Context, in *BootAssetURLRequest, opts ...grpc.CallOption) (*BootAssetURLResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BootAssetURLResponse)
+	err := c.cc.Invoke(ctx, ManagementService_GetBootAssetURL_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *managementServiceClient) GetSupportBundle(ctx context.Context, in *GetSupportBundleRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetSupportBundleResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &ManagementService_ServiceDesc.Streams[2], ManagementService_GetSupportBundle_FullMethodName, cOpts...)
@@ -425,6 +437,7 @@ type ManagementServiceServer interface {
 	KubernetesSyncManifests(*KubernetesSyncManifestRequest, grpc.ServerStreamingServer[KubernetesSyncManifestResponse]) error
 	CreateSchematic(context.Context, *CreateSchematicRequest) (*CreateSchematicResponse, error)
 	CreateSchematicFromRaw(context.Context, *CreateSchematicFromRawRequest) (*CreateSchematicResponse, error)
+	GetBootAssetURL(context.Context, *BootAssetURLRequest) (*BootAssetURLResponse, error)
 	GetSupportBundle(*GetSupportBundleRequest, grpc.ServerStreamingServer[GetSupportBundleResponse]) error
 	ReadAuditLog(*ReadAuditLogRequest, grpc.ServerStreamingServer[ReadAuditLogResponse]) error
 	MaintenanceUpgrade(context.Context, *MaintenanceUpgradeRequest) (*MaintenanceUpgradeResponse, error)
@@ -489,6 +502,9 @@ func (UnimplementedManagementServiceServer) CreateSchematic(context.Context, *Cr
 }
 func (UnimplementedManagementServiceServer) CreateSchematicFromRaw(context.Context, *CreateSchematicFromRawRequest) (*CreateSchematicResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateSchematicFromRaw not implemented")
+}
+func (UnimplementedManagementServiceServer) GetBootAssetURL(context.Context, *BootAssetURLRequest) (*BootAssetURLResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetBootAssetURL not implemented")
 }
 func (UnimplementedManagementServiceServer) GetSupportBundle(*GetSupportBundleRequest, grpc.ServerStreamingServer[GetSupportBundleResponse]) error {
 	return status.Error(codes.Unimplemented, "method GetSupportBundle not implemented")
@@ -788,6 +804,24 @@ func _ManagementService_CreateSchematicFromRaw_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ManagementService_GetBootAssetURL_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BootAssetURLRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagementServiceServer).GetBootAssetURL(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ManagementService_GetBootAssetURL_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagementServiceServer).GetBootAssetURL(ctx, req.(*BootAssetURLRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ManagementService_GetSupportBundle_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(GetSupportBundleRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -1055,6 +1089,10 @@ var ManagementService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateSchematicFromRaw",
 			Handler:    _ManagementService_CreateSchematicFromRaw_Handler,
+		},
+		{
+			MethodName: "GetBootAssetURL",
+			Handler:    _ManagementService_GetBootAssetURL_Handler,
 		},
 		{
 			MethodName: "MaintenanceUpgrade",
