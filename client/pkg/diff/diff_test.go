@@ -259,22 +259,6 @@ func TestComputeDiff_LargeInput(t *testing.T) {
 func TestComputeDiff_MemoryBudget(t *testing.T) {
 	const memoryBudget = 50 * 1024 * 1024 // 50 MB hard ceiling
 
-	// generateLines builds a YAML-like blob with exactly n newline-terminated lines.
-	// When variant > 0 every variant-th line is changed so the diff is non-trivial.
-	generateLines := func(n, variant int) []byte {
-		var sb strings.Builder
-
-		for i := range n {
-			if variant > 0 && i%variant == 0 {
-				fmt.Fprintf(&sb, "line-%d-variant-%d\n", i, variant)
-			} else {
-				fmt.Fprintf(&sb, "line-%d\n", i)
-			}
-		}
-
-		return []byte(sb.String())
-	}
-
 	tests := []struct {
 		old         func() []byte
 		new         func() []byte
@@ -341,6 +325,14 @@ func TestComputeDiff_MemoryBudget(t *testing.T) {
 			new:         func() []byte { return generateLines(38000, 1) },
 			maxMemBytes: 1 * 1024 * 1024, // summary path allocates almost nothing
 		},
+		{
+			// Few enough lines to reach the myers pass, so the full diff gets built and
+			// then dropped for exceeding MaxBytes. The budget covers that wasted work.
+			name:        "few long lines (diff over MaxBytes, returns summary)",
+			old:         func() []byte { return longLines("a") },
+			new:         func() []byte { return longLines("b") },
+			maxMemBytes: 20 * 1024 * 1024,
+		},
 	}
 
 	for _, tt := range tests {
@@ -373,6 +365,96 @@ func TestComputeDiff_MemoryBudget(t *testing.T) {
 				formatBytes(allocated), formatBytes(tt.maxMemBytes))
 		})
 	}
+}
+
+// TestComputeDiff_ByteBound covers inputs that stay under MaxLines but still produce
+// a diff too big to persist as a resource field.
+func TestComputeDiff_ByteBound(t *testing.T) {
+	t.Run("few long lines", func(t *testing.T) {
+		old := longLines("a")
+		newData := longLines("b")
+
+		require.Less(t, bytes.Count(old, []byte("\n"))+bytes.Count(newData, []byte("\n")), diff.MaxLines,
+			"input must stay under the line bound so the byte bound is what fires")
+
+		result, err := diff.Compute(old, newData)
+		require.NoError(t, err)
+		assert.Contains(t, result, "diff too large to display")
+	})
+
+	t.Run("many short lines", func(t *testing.T) {
+		// Replacing every one of many short lines: the diff carries both sides plus a
+		// +/- prefix per line, so it outgrows the inputs.
+		old := generateLines(16500, 0)
+		newData := generateLines(16500, 1)
+
+		require.Less(t, bytes.Count(old, []byte("\n"))+bytes.Count(newData, []byte("\n")), diff.MaxLines,
+			"input must stay under the line bound so the byte bound is what fires")
+
+		result, err := diff.Compute(old, newData)
+		require.NoError(t, err)
+		assert.Contains(t, result, "diff too large to display")
+	})
+
+	t.Run("large inputs with a small diff are returned in full", func(t *testing.T) {
+		// Two configs far bigger than MaxBytes that differ in a couple of short lines:
+		// the diff is small, so it has to come back in full. The long lines trail the
+		// changes to keep them out of the hunk's context.
+		old := append(generateLines(20, 0), longLines("a")...)
+		newData := append(generateLines(20, 10), longLines("a")...)
+
+		require.Greater(t, len(old)+len(newData), diff.MaxBytes)
+
+		result, err := diff.Compute(old, newData)
+		require.NoError(t, err)
+		require.LessOrEqual(t, len(result), diff.MaxBytes)
+		assert.NotContains(t, result, "diff too large to display")
+		assert.Contains(t, result, "+line-0-variant-10")
+	})
+
+	t.Run("result under MaxBytes is returned in full", func(t *testing.T) {
+		old := generateLines(1000, 0)
+		newData := generateLines(1000, 10)
+
+		result, err := diff.Compute(old, newData)
+		require.NoError(t, err)
+		require.LessOrEqual(t, len(result), diff.MaxBytes)
+		assert.NotContains(t, result, "diff too large to display")
+	})
+}
+
+// longLines mimics cluster.inlineManifests: three lines of 200 KiB, each holding a
+// whole manifest. Two of these blobs sit inside MaxLines, yet replacing them yields
+// a diff past MaxBytes. The marker makes the lines differ between the two sides.
+func longLines(marker string) []byte {
+	const (
+		lines   = 3
+		lineLen = 200 * 1024
+	)
+
+	var sb strings.Builder
+
+	for range lines {
+		fmt.Fprintf(&sb, "  - contents: %s%s\n", marker, strings.Repeat("x", lineLen))
+	}
+
+	return []byte(sb.String())
+}
+
+// generateLines builds a YAML-like blob with exactly n newline-terminated lines.
+// When variant > 0 every variant-th line is changed so the diff is non-trivial.
+func generateLines(n, variant int) []byte {
+	var sb strings.Builder
+
+	for i := range n {
+		if variant > 0 && i%variant == 0 {
+			fmt.Fprintf(&sb, "line-%d-variant-%d\n", i, variant)
+		} else {
+			fmt.Fprintf(&sb, "line-%d\n", i)
+		}
+	}
+
+	return []byte(sb.String())
 }
 
 func formatBytes(b uint64) string {
