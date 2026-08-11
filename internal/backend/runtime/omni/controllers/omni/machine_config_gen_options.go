@@ -66,11 +66,15 @@ func NewMachineConfigGenOptionsController(imageFactoryClients ImageFactoryClient
 				imageFactoryHost := imageFactoryClient.Host()
 
 				// Migration code: do not change image factory URL if it was already set in the options and the Talos version and schematic ID match the cluster machine Talos version.
-				// Image factory URL will only be upgraded when the Talos version or schematic ID changes, or when the image factory URL is empty.
+				// Image factory URL will only be upgraded when the Talos version or schematic ID changes.
 				if options.TypedSpec().Value.InstallImage != nil && clusterMachineTalosVersion != nil &&
 					(options.TypedSpec().Value.InstallImage.TalosVersion == talosVersion &&
 						options.TypedSpec().Value.InstallImage.SchematicId == schematicID) {
 					imageFactoryHost = options.TypedSpec().Value.InstallImage.ImageFactoryHost
+				}
+
+				if clusterMachineTalosVersion == nil {
+					backfillImageFactoryHost(options.TypedSpec().Value.InstallImage, imageFactoryClients, imageFactoryHost)
 				}
 
 				GenInstallConfig(machineStatus, clusterMachineTalosVersion, options, imageFactoryHost)
@@ -83,6 +87,22 @@ func NewMachineConfigGenOptionsController(imageFactoryClients ImageFactoryClient
 		),
 		qtransform.WithIgnoreTeardownUntil(), // keep the resource until everyone else is done with Machine
 	)
+}
+
+func backfillImageFactoryHost(installImage *specs.MachineConfigGenOptionsSpec_InstallImage, imageFactoryClients ImageFactoryClientProvider, fallbackHost string) {
+	if installImage == nil || installImage.ImageFactoryHost != "" {
+		return
+	}
+
+	// The secondary factory is the one Omni is migrating away from, so it is the factory the schematic of a machine
+	// enrolled before the host was tracked was created on.
+	if secondary, ok := imageFactoryClients.Secondary(); ok {
+		installImage.ImageFactoryHost = secondary.Host()
+
+		return
+	}
+
+	installImage.ImageFactoryHost = fallbackHost
 }
 
 // GenInstallConfig creates a config patch with an automatically picked install disk.
