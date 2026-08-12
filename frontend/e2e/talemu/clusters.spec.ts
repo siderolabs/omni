@@ -216,7 +216,7 @@ test('Manage patches', async ({ cluster, page }, testInfo) => {
     await expect(page.getByText('Patch ID: 600-')).toBeVisible()
 
     // Patch ID is auto-generated, must be extracted
-    const patchReg = /^Patch ID: ([0-9a-zA-z-]+)$/
+    const patchReg = /^Patch ID: ([0-9a-zA-Z-]+)$/
     const text = await page.getByText(patchReg).innerText()
     patchId = text.trim().match(patchReg)![1]
 
