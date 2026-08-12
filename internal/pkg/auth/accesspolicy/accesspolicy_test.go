@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -195,6 +196,20 @@ func TestAssignableRolesStillAccepted(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateUndefinedGroupReferences(t *testing.T) {
+	accessPolicy := getAccessPolicy(t, aclValidRaw)
+
+	// add a rule referencing non-existent user group and cluster group
+	accessPolicy.TypedSpec().Value.Rules = append(accessPolicy.TypedSpec().Value.Rules, &specs.AccessPolicyRule{
+		Users:    []string{"group/non-existent-user-group"},
+		Clusters: []string{"group/non-existent-cluster-group"},
+	})
+
+	err := accesspolicy.Validate(accessPolicy)
+	assert.ErrorContains(t, err, `rule references undefined user group "non-existent-user-group"`)
+	assert.ErrorContains(t, err, `rule references undefined cluster group "non-existent-cluster-group"`)
 }
 
 func getAccessPolicy(t *testing.T, raw []byte) *auth.AccessPolicy {
