@@ -10,9 +10,7 @@ import { expect, test } from '../auth_fixtures'
 
 test.describe.configure({ mode: 'parallel' })
 
-test('Download installation media', async ({ page }, testInfo) => {
-  test.slow()
-
+test.beforeEach(async ({ page }) => {
   await test.step('Go to wizard', async () => {
     await page.goto('/')
     await page
@@ -35,6 +33,10 @@ test('Download installation media', async ({ page }, testInfo) => {
 
     await expect(firstStepHeading).toBeVisible()
   })
+})
+
+test('Create, download, and delete an installation media', async ({ page }, testInfo) => {
+  test.slow()
 
   await test.step('Entry step', async () => {
     await page.getByRole('radio', { name: 'Bare-metal Machine' }).click()
@@ -215,5 +217,37 @@ test('Download installation media', async ({ page }, testInfo) => {
 
     await expect(page.getByText(`Deleted preset ${savedPresetName}`)).toBeVisible()
     await expect(presetRow).toBeHidden()
+  })
+})
+
+test('Reset wizard state', async ({ page }) => {
+  await test.step('Entry step', async () => {
+    await page.getByRole('radio', { name: 'Single Board Computer' }).click()
+    await expect(page.getByRole('radio', { name: 'Single Board Computer' })).toBeChecked()
+
+    await page.getByRole('link', { name: 'Next' }).click()
+  })
+
+  await test.step('Talos version step', async () => {
+    await page.getByRole('link', { name: 'Next' }).click()
+  })
+
+  await test.step('Architecture step', async () => {
+    await page.getByRole('link', { name: 'Next' }).click()
+  })
+
+  await test.step('System extensions step', async () => {
+    await page.getByRole('link', { name: 'Next' }).click()
+  })
+
+  await test.step('Extra args step', async () => {
+    await page.getByRole('link', { name: 'Next' }).click()
+  })
+
+  await test.step('Reset wizard', async () => {
+    await page.getByRole('button', { name: 'reset wizard' }).click()
+
+    await expect(page.getByText('Hardware Type')).toBeVisible()
+    await expect(page.getByRole('radio', { name: 'Bare-metal Machine' })).toBeChecked()
   })
 })

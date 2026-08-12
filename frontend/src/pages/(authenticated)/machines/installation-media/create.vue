@@ -133,13 +133,18 @@ function onStepperChange(stepperValue?: number) {
 }
 
 const savePresetModalOpen = ref(false)
+
+// This is to prevent rendering intermediary views when resetting wizard state
+const isFormResetting = computed(
+  () => currentStepName.value !== 'InstallationMediaCreateEntry' && !formState.value.hardwareType,
+)
 </script>
 
 <template>
   <PageContainer disable-padding class="flex h-full flex-col">
     <div class="flex grow flex-col gap-6 overflow-auto p-6">
       <h1 class="shrink-0 text-xl font-medium text-naturals-n14">Create New Media</h1>
-      <RouterView v-model="formState" />
+      <RouterView v-if="!isFormResetting" v-model="formState" />
     </div>
 
     <div
