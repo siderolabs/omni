@@ -130,7 +130,13 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	setCallbackCookie(w, r, "state", state)
 
-	http.Redirect(w, r, h.oauth2Config.AuthCodeURL(state), http.StatusFound)
+	// The provider session outlives an Omni logout whenever there is no end-session endpoint, so every
+	// login asks for credentials rather than accepting whoever the provider still has. Without this,
+	// logging out returns the same user immediately. Auth0 gets the same effect from a short max_age, and
+	// SAML from ForceAuthn.
+	forceReauth := oauth2.SetAuthURLParam("prompt", "login")
+
+	http.Redirect(w, r, h.oauth2Config.AuthCodeURL(state, forceReauth), http.StatusFound)
 }
 
 // Logout handles the logout flow of OIDC auth.

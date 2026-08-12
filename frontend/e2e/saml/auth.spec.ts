@@ -34,12 +34,16 @@ test('Auth flow', async ({ page }) => {
   })
 
   await test.step('Logout', async () => {
+    // Keycloak answering the LogoutRequest is what proves Single Logout ran, and it has to be watched for
+    // rather than inferred from the login form: every login now carries ForceAuthn, so that form appears
+    // whether or not the IdP session was ended.
+    const logoutResponse = page.waitForRequest((request) => request.url().includes('/saml/slo'))
+
     await page.getByRole('button', { name: 'user actions' }).click()
     await page.getByRole('menuitem', { name: 'Log Out' }).click()
 
-    // Landing back on the login form means Single Logout ended the Keycloak session too.
-    // If the LogoutRequest had been rejected, Keycloak would answer the next /login
-    // redirect from its own SSO cookie and drop us straight back on the home page.
+    await logoutResponse
+
     await expect(page.getByRole('heading', { name: 'Sign in to your account' })).toBeVisible()
   })
 })

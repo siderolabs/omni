@@ -6,20 +6,27 @@
 package saml_test
 
 import (
+	"bytes"
+	"compress/flate"
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 
+	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
+	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
 	"github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/siderolabs/omni/client/api/omni/specs"
 	omnisaml "github.com/siderolabs/omni/internal/backend/saml"
 )
 
@@ -87,6 +94,74 @@ func newMiddleware(t *testing.T, sloEndpoint string) *samlsp.Middleware {
 	}
 
 	return &samlsp.Middleware{ServiceProvider: sp}
+}
+
+// startAuthFlow builds a handler the way the server does and drives one login through it, returning the
+// response so both the AuthnRequest and the cookies it set can be inspected.
+func startAuthFlow(t *testing.T) *http.Response {
+	t.Helper()
+
+	m, err := omnisaml.NewHandler(
+		state.WrapCore(namespaced.NewState(inmem.Build)),
+		&specs.AuthConfigSpec_SAML{Metadata: "testdata/samlsp_metadata.xml"},
+		zaptest.NewLogger(t),
+		testAdvertisedURL,
+	)
+	require.NoError(t, err)
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/login?flow=frontend", nil)
+	rec := httptest.NewRecorder()
+
+	m.HandleStartAuthFlow(rec, req)
+
+	return rec.Result()
+}
+
+// TestLoginForcesReauthentication pins the behavior that makes logging out of Omni mean something. The
+// IdP session survives an Omni logout whenever single logout is unavailable, so without ForceAuthn the
+// next AuthnRequest is answered with the user who just logged out.
+func TestLoginForcesReauthentication(t *testing.T) {
+	resp := startAuthFlow(t)
+	defer resp.Body.Close() //nolint:errcheck
+
+	require.Equal(t, http.StatusFound, resp.StatusCode)
+
+	redirectURL, err := url.Parse(resp.Header.Get("Location"))
+	require.NoError(t, err)
+
+	deflated, err := base64.StdEncoding.DecodeString(redirectURL.Query().Get("SAMLRequest"))
+	require.NoError(t, err)
+
+	r := flate.NewReader(bytes.NewReader(deflated))
+	defer r.Close() //nolint:errcheck
+
+	authnRequest, err := io.ReadAll(r)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(authnRequest), `ForceAuthn="true"`)
+}
+
+// TestTrackedRequestOutlastsAPerson guards the cookie that correlates the AuthnRequest with the response.
+// The library defaults it to MaxIssueDelay, 90 seconds, which was ample while this was a silent redirect.
+// Now that every login means typing a password and clearing MFA, a short lifetime sends anyone who takes
+// their time to /forbidden instead of into Omni.
+func TestTrackedRequestOutlastsAPerson(t *testing.T) {
+	resp := startAuthFlow(t)
+	defer resp.Body.Close() //nolint:errcheck
+
+	for _, cookie := range resp.Cookies() {
+		if !strings.HasPrefix(cookie.Name, "saml_") {
+			continue
+		}
+
+		assert.Greater(t, cookie.MaxAge, int(saml.MaxIssueDelay.Seconds()),
+			"the tracked request cookie %q expires after %ds, too soon for a password and an MFA challenge",
+			cookie.Name, cookie.MaxAge)
+
+		return
+	}
+
+	t.Error("expected the auth flow to set a tracked request cookie")
 }
 
 func TestCreateLogoutHandler_NoCookie(t *testing.T) {
