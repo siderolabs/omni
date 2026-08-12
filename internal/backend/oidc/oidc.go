@@ -50,7 +50,7 @@ func NewProvider(store Storage, issuerEndpoint string) (*Provider, error) {
 
 	cfg := &op.Config{
 		CryptoKey:                cryptoKey,
-		DefaultLogoutRedirectURI: "/logout",
+		DefaultLogoutRedirectURI: "/",
 		CodeMethodS256:           true,
 		AuthMethodPost:           true,
 		AuthMethodPrivateKeyJWT:  true,
