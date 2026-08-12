@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/crewjam/saml"
@@ -29,6 +30,10 @@ import (
 
 // NameIDCookieName is the cookie used to store the SAML session data for SLO.
 const NameIDCookieName = "saml_name_id"
+
+// trackedRequestTTL is how long a pending AuthnRequest stays matchable, sized for a person completing a
+// password and an MFA challenge rather than for a redirect.
+const trackedRequestTTL = 15 * time.Minute
 
 // sloSessionData holds the SAML assertion fields needed to build a LogoutRequest.
 type sloSessionData struct {
@@ -50,9 +55,13 @@ func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.L
 	}
 
 	opts := samlsp.Options{
-		URL:               *rootURL,
-		IDPMetadata:       idpMetadata,
-		LogoutBindings:    []string{saml.HTTPRedirectBinding, saml.HTTPPostBinding},
+		URL:            *rootURL,
+		IDPMetadata:    idpMetadata,
+		LogoutBindings: []string{saml.HTTPRedirectBinding, saml.HTTPPostBinding},
+		// The IdP session outlives an Omni logout whenever single logout is unavailable, so asking it to
+		// re-authenticate is what stops it answering with whoever it still has. Without this, logging out
+		// lands the same user straight back inside, and switching users is impossible.
+		ForceAuthn:        true,
 		AllowIDPInitiated: true,
 	}
 
@@ -64,6 +73,11 @@ func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.L
 
 	requestTracker := samlsp.DefaultRequestTracker(opts, &serviceProvider)
 	requestTracker.Codec = &Encoder{}
+	// The library defaults this to MaxIssueDelay, 90 seconds, which was ample while the trip to the IdP
+	// was a silent redirect. Now that ForceAuthn makes every login a password and an MFA challenge, the
+	// cookie has to outlast a person: lose it and CreateSession cannot match the response to its request,
+	// which ends at /forbidden.
+	requestTracker.MaxAge = trackedRequestTTL
 
 	m := &samlsp.Middleware{
 		ServiceProvider: serviceProvider,
