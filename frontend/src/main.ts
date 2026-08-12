@@ -106,6 +106,11 @@ async function setupApp() {
   app.mount('#app')
 }
 
+// A preloadError generally means Omni was updated in the background. Reload the page in this case.
+window.addEventListener('vite:preloadError', () => {
+  window.location.reload()
+})
+
 initState()
 
 setupApp()

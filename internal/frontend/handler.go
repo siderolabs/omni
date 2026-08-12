@@ -118,6 +118,7 @@ func (handler *StaticHandler) serveFile(w http.ResponseWriter, r *http.Request, 
 			w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, immutable", handler.maxAgeSec))
 			http.ServeContent(w, r, file.Name(), handler.modTime, file)
 		} else {
+			w.Header().Set("Cache-Control", "no-cache")
 			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
 			b := make([]byte, 10)
