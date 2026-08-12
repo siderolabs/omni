@@ -5,9 +5,8 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts" generic="T = unknown">
-import { useLocalStorage, useOffsetPagination } from '@vueuse/core'
 import { useRouteQuery } from '@vueuse/router'
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import Pagination from '@/components/Pagination/Pagination.vue'
@@ -15,6 +14,7 @@ import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import TInput from '@/components/TInput/TInput.vue'
+import { useResourcePagination } from '@/methods/resource/useResourcePagination'
 import { type ResourceSortOption, useResourceSort } from '@/methods/resource/useResourceSort'
 import {
   useResourceWatch,
@@ -43,13 +43,20 @@ const {
   filterCaption?: string
 }>()
 
-const itemsPerPage = [5, 10, 25, 50, 100]
-
 const {
   watchOptions: sortByState,
   selectValues: sortOptionsVariants,
   selectedValue: selectedSortOption,
 } = useResourceSort({ sortOptions: () => sortOptions })
+
+const {
+  total,
+  watchOptions: paginationState,
+  currentPage,
+  currentPageSize: selectedItemsPerPage,
+  pageCount,
+  pageSizeSelectValues: itemsPerPage,
+} = useResourcePagination()
 
 const filterOptionsVariants = computed(() => {
   if (!filterOptions) {
@@ -80,23 +87,10 @@ watch(filterValue, (value) => {
   if (filterValueRoute.value !== value) filterValueRoute.value = value
 })
 
-const currentPage = ref(1)
-const selectedItemsPerPage = useLocalStorage('itemsPerPage', 10)
 const selectedFilterOption = useRouteQuery('filter', filterOptionsVariants.value?.[0])
 
 watch(selectedFilterOption, () => {
   emit('filterChanged', selectedFilterOption.value)
-})
-
-const paginationState = computed(() => {
-  if (!pagination) {
-    return {}
-  }
-
-  return {
-    limit: selectedItemsPerPage.value,
-    offset: (currentPage.value - 1) * selectedItemsPerPage.value,
-  }
 })
 
 const searchState = computed<Pick<WatchOptions, 'searchFor' | 'selectors'>>(() => {
@@ -142,7 +136,7 @@ const searchState = computed<Pick<WatchOptions, 'searchFor' | 'selectors'>>(() =
 })
 
 // reset the pagination when the search query changes
-watch([() => opts, searchState], (curr, prev) => {
+watch([() => opts, searchState, selectedItemsPerPage], (curr, prev) => {
   if (JSON.stringify(curr) !== JSON.stringify(prev)) currentPage.value = 1
 })
 
@@ -158,19 +152,15 @@ const {
   data: items,
   err,
   loading,
-  total,
-} = useResourceWatch<T>(() => ({
-  ...opts,
-  ...paginationState.value,
-  ...searchState.value,
-  ...sortByState.value,
-}))
-
-const { pageCount } = useOffsetPagination({
-  total,
-  pageSize: selectedItemsPerPage,
-  page: currentPage,
-})
+} = useResourceWatch<T>(
+  () => ({
+    ...opts,
+    ...(pagination ? paginationState.value : {}),
+    ...searchState.value,
+    ...sortByState.value,
+  }),
+  { total },
+)
 
 defineExpose({
   items,
@@ -220,7 +210,6 @@ defineExpose({
               v-model="selectedItemsPerPage"
               title="Items per Page"
               :values="itemsPerPage"
-              @checked-value="currentPage = 1"
             />
           </div>
         </div>

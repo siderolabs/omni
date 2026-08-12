@@ -119,12 +119,14 @@ const { err, errCode, loading } = useResourceWatch<T>(
     ...watchOpts,
     tailEvents: tailEvents.value,
   }),
-  ({ event }, { res, old }) => {
-    switch (event?.event_type) {
-      case EventType.UPDATED:
-        if (res && old) handlePoint(res, old)
-        break
-    }
+  {
+    onMessage({ event }, { res, old }) {
+      switch (event?.event_type) {
+        case EventType.UPDATED:
+          if (res && old) handlePoint(res, old)
+          break
+      }
+    },
   },
 )
 

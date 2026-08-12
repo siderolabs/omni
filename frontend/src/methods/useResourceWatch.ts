@@ -64,35 +64,46 @@ interface WatchMulti<TSpec, TStatus> extends WatchBase {
   total: Ref<number>
 }
 
+interface ExtraOptions<TSpec, TStatus> {
+  onMessage?: Callback<Resource<TSpec, TStatus>>
+}
+
+interface ExtraOptionsMulti<TSpec, TStatus> extends ExtraOptions<TSpec, TStatus> {
+  /**
+   * Allow passing in an external total ref to prevent a circular dependency
+   * with pagination tooling
+   */
+  total?: Ref<number>
+}
+
 export function useResourceWatch<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptionsSingle>,
-  callback?: Callback<Resource<TSpec, TStatus>>,
+  extraOpts?: ExtraOptions<TSpec, TStatus>,
 ): WatchSingle<TSpec, TStatus>
 
 export function useResourceWatch<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptionsMulti>,
-  callback?: Callback<Resource<TSpec, TStatus>>,
+  extraOpts?: ExtraOptionsMulti<TSpec, TStatus>,
 ): WatchMulti<TSpec, TStatus>
 
 export function useResourceWatch<TSpec, TStatus>(
   opts: MaybeRefOrGetter<WatchOptions>,
-  callback?: Callback<Resource<TSpec, TStatus>>,
+  extraOpts: ExtraOptions<TSpec, TStatus> | ExtraOptionsMulti<TSpec, TStatus> = {},
 ) {
-  // Type guards unfortunately don't narrow generic types
-  return isWatchOptionsSingle(opts as MaybeRefOrGetter<WatchOptions>)
-    ? useWatchSingle<TSpec, TStatus>(opts as MaybeRefOrGetter<WatchOptionsSingle>, callback)
-    : useWatchMulti<TSpec, TStatus>(opts as MaybeRefOrGetter<WatchOptionsMulti>, callback)
+  return isWatchOptionsSingle(opts)
+    ? useWatchSingle<TSpec, TStatus>(opts, extraOpts)
+    : useWatchMulti<TSpec, TStatus>(opts, extraOpts)
 }
 
 function useWatchSingle<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptionsSingle>,
-  callback?: Callback<Resource<TSpec, TStatus>>,
+  { onMessage }: ExtraOptions<TSpec, TStatus>,
 ): WatchSingle<TSpec, TStatus> {
   const data = ref<Resource<TSpec, TStatus>>()
 
   const { err, errCode, loading } = useWatchStream<Resource<TSpec, TStatus>>(opts, {
     onMessage(message, spec) {
-      callback?.(message, spec)
+      onMessage?.(message, spec)
 
       switch (message.event?.event_type) {
         case EventType.UPDATED:
@@ -119,17 +130,16 @@ function useWatchSingle<TSpec = unknown, TStatus = unknown>(
 
 function useWatchMulti<TSpec = unknown, TStatus = unknown>(
   opts: MaybeRefOrGetter<WatchOptionsMulti>,
-  callback?: Callback<Resource<TSpec, TStatus>>,
+  { onMessage, total = ref(0) }: ExtraOptionsMulti<TSpec, TStatus>,
 ): WatchMulti<TSpec, TStatus> {
   const data: Ref<ResourceSort<Resource<TSpec, TStatus>>[]> = ref([])
-  const total = ref(0)
   const bootstrapped = ref(false)
 
   const lastData: typeof data = ref([])
 
   const { err, errCode, loading } = useWatchStream<Resource<TSpec, TStatus>>(opts, {
     onMessage(message, spec) {
-      callback?.(message, spec)
+      onMessage?.(message, spec)
 
       switch (message.event?.event_type) {
         case EventType.BOOTSTRAPPED:

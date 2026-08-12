@@ -34,10 +34,12 @@ const { data: cluster } = useResourceWatch<ClusterSpec>(
       id: route.params.cluster,
     },
   }),
-  (message) => {
-    if (message.event?.event_type === EventType.BOOTSTRAPPED) {
-      bootstrapped.value = true
-    }
+  {
+    onMessage(message) {
+      if (message.event?.event_type === EventType.BOOTSTRAPPED) {
+        bootstrapped.value = true
+      }
+    },
   },
 )
 </script>
