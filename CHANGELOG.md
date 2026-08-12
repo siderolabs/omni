@@ -1,3 +1,46 @@
+## [Omni 1.10.1](https://github.com/siderolabs/omni/releases/tag/v1.10.1) (2026-08-12)
+
+Welcome to the v1.10.1 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Edward Sammut Alessi
+* Oguz Kilcan
+* Artem Chernyshev
+* Utku Ozdemir
+
+### Changes
+<details><summary>14 commits</summary>
+<p>
+
+* [`a694edef`](https://github.com/siderolabs/omni/commit/a694edefb6ffe7a4d087cf117010ee1b54d85d19) fix(frontend): fix reset wizard
+* [`7aa7a7e4`](https://github.com/siderolabs/omni/commit/7aa7a7e45796c6fd2cc9fb12a08bd52c5c6a656d) fix: compress diffs in the machine pending updates and diff history
+* [`dd1b1dd9`](https://github.com/siderolabs/omni/commit/dd1b1dd97caa689965d851c8e48b9d9e06c0a713) fix: force re-authentication at the IdP so logout takes effect
+* [`b5303320`](https://github.com/siderolabs/omni/commit/b5303320a1e07f43743daebfbc68316b01adc8a6) fix: keep a machine's tunnel peer address stable across provisions
+* [`1005ec0d`](https://github.com/siderolabs/omni/commit/1005ec0d6861530ac4c0a50be18820952ce7c429) fix(frontend): return no-cache for index.html
+* [`c9ba2048`](https://github.com/siderolabs/omni/commit/c9ba2048b23266eba610549f2de42f021e95ac3a) fix: don't sign users out of Omni on Kubernetes OIDC logout
+* [`3b82989e`](https://github.com/siderolabs/omni/commit/3b82989e10ac85c3bc9b7b01c48099c1c3cb1f8c) fix(frontend): add missing credentials to security pages
+* [`a2058e20`](https://github.com/siderolabs/omni/commit/a2058e20057594c17d137048eac11e8e9bbe69ce) chore(frontend): bump dependencies
+* [`8a8fd2a1`](https://github.com/siderolabs/omni/commit/8a8fd2a1b4ae7f2033f5f0978a63e343f7a7477b) test(frontend): add edit patch e2e test
+* [`4d1ed5bb`](https://github.com/siderolabs/omni/commit/4d1ed5bb52f55687b47240ab79ad333ac9822d43) fix(frontend): fix patch edit dropping fields
+* [`80b2e858`](https://github.com/siderolabs/omni/commit/80b2e8586cbfbd7ae0659e57f47ca0385ba74fb9) fix: backfill the image factory host of machines enrolled before 1.10
+* [`f28cdc77`](https://github.com/siderolabs/omni/commit/f28cdc77ae07228952384d2e47c871ec9b575af7) fix: bound the machine config diff by bytes, not just lines
+* [`0e125928`](https://github.com/siderolabs/omni/commit/0e12592832ee1bfd0ff3ad9c5b155503774ef035) fix(frontend): be more defensive about signup errors
+* [`6b91ddb6`](https://github.com/siderolabs/omni/commit/6b91ddb679421ff75406cc0e2f3474565c3bb90a) fix: log out of Omni and the IdP when /logout is opened directly
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.10.0](https://github.com/siderolabs/omni/releases/tag/v1.10.0)
+
 ## [Omni 1.10.0](https://github.com/siderolabs/omni/releases/tag/v1.10.0) (2026-08-07)
 
 Welcome to the v1.10.0 release of Omni!
