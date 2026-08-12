@@ -15,7 +15,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	"github.com/siderolabs/talos/pkg/machinery/config"
-	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -29,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 	"github.com/siderolabs/omni/internal/backend/services/workloadproxy"
 	omniconfig "github.com/siderolabs/omni/internal/pkg/config"
+	"github.com/siderolabs/omni/internal/pkg/testsecrets"
 )
 
 func TestOperatorTalosconfig(t *testing.T) {
@@ -57,7 +57,7 @@ func TestOperatorTalosconfig(t *testing.T) {
 
 	secrets := omni.NewClusterSecrets("cluster1")
 
-	bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), config.TalosVersion1_7)
+	bundle, err := testsecrets.Bundle(config.TalosVersion1_7)
 	require.NoError(t, err)
 
 	data, err := json.Marshal(bundle)

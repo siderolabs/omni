@@ -23,7 +23,6 @@ import (
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	clientconfig "github.com/siderolabs/talos/pkg/machinery/client/config"
 	machineryconfig "github.com/siderolabs/talos/pkg/machinery/config"
-	talossecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -48,6 +47,7 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/ctxstore"
+	"github.com/siderolabs/omni/internal/pkg/testsecrets"
 )
 
 //go:embed testdata/admin-kubeconfig.yaml
@@ -167,7 +167,7 @@ func TestGenerateConfigs(t *testing.T) {
 
 		secrets := omni.NewClusterSecrets(clusterName)
 
-		bundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), machineryconfig.TalosVersion1_7)
+		bundle, err := testsecrets.Bundle(machineryconfig.TalosVersion1_7)
 		require.NoError(t, err)
 
 		var data []byte

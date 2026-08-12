@@ -24,6 +24,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	"github.com/siderolabs/omni/internal/pkg/testsecrets"
 )
 
 func TestUpdateInputsVersions(t *testing.T) {
@@ -102,7 +103,7 @@ func TestGetTalosClient(t *testing.T) {
 
 				talosConfig := omni.NewTalosConfig(cluster.Metadata().ID())
 
-				bundle, err := secrets.NewBundle(secrets.NewFixedClock(time.Now()), config.TalosVersion1_10)
+				bundle, err := testsecrets.Bundle(config.TalosVersion1_10)
 				require.NoError(t, err)
 
 				talosConfig.TypedSpec().Value.Ca = base64.StdEncoding.EncodeToString(bundle.Certs.OS.Crt)

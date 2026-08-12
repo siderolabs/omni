@@ -34,6 +34,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
 	testoptions "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
+	"github.com/siderolabs/omni/internal/pkg/testsecrets"
 )
 
 //nolint:maintidx,dupl
@@ -67,7 +68,7 @@ func Test_Talosconfig(t *testing.T) {
 
 				require.NoError(t, st.Create(ctx, machineSet))
 
-				secretsBundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), config.TalosVersion1_11)
+				secretsBundle, err := testsecrets.Bundle(config.TalosVersion1_11)
 				require.NoError(t, err)
 				data, err := json.Marshal(secretsBundle)
 				require.NoError(t, err)
@@ -150,7 +151,7 @@ func Test_Talosconfig(t *testing.T) {
 
 				require.NoError(t, st.Create(ctx, machineSet))
 
-				secretsBundle, err := talossecrets.NewBundle(talossecrets.NewFixedClock(time.Now()), config.TalosVersion1_11)
+				secretsBundle, err := testsecrets.Bundle(config.TalosVersion1_11)
 				require.NoError(t, err)
 				data, err := json.Marshal(secretsBundle)
 				require.NoError(t, err)

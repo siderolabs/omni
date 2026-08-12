@@ -8,20 +8,19 @@ package certs_test
 import (
 	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/siderolabs/talos/pkg/machinery/config"
-	"github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	"github.com/siderolabs/talos/pkg/machinery/role"
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/certs"
+	"github.com/siderolabs/omni/internal/pkg/testsecrets"
 )
 
 func TestIsTalosCertificateStale(t *testing.T) {
-	bundle, err := secrets.NewBundle(secrets.NewFixedClock(time.Now()), config.TalosVersionCurrent)
+	bundle, err := testsecrets.Bundle(config.TalosVersionCurrent)
 	require.NoError(t, err)
 
 	data, err := json.Marshal(bundle)

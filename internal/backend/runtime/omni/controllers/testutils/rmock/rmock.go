@@ -9,7 +9,6 @@ package rmock
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"time"
 
@@ -19,7 +18,6 @@ import (
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config"
-	gensecrets "github.com/siderolabs/talos/pkg/machinery/config/generate/secrets"
 	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/role"
 
@@ -35,6 +33,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/talosupgrade"
 	"github.com/siderolabs/omni/internal/pkg/certs"
 	"github.com/siderolabs/omni/internal/pkg/constants"
+	"github.com/siderolabs/omni/internal/pkg/testsecrets"
 )
 
 const (
@@ -212,12 +211,7 @@ func init() {
 			return err
 		}
 
-		bundle, err := gensecrets.NewBundle(gensecrets.NewFixedClock(time.Now()), vc)
-		if err != nil {
-			return err
-		}
-
-		res.TypedSpec().Value.Data, err = json.Marshal(bundle)
+		res.TypedSpec().Value.Data, err = testsecrets.BundleData(vc)
 
 		return err
 	})

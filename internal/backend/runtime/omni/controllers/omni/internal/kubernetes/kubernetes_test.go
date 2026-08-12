@@ -21,6 +21,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/image"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/kubernetes"
+	"github.com/siderolabs/omni/internal/pkg/testsecrets"
 )
 
 func TestComponentLess(t *testing.T) {
@@ -70,7 +71,11 @@ func TestComponentPatch(t *testing.T) {
 						components[i], components[j] = components[j], components[i]
 					})
 
-					in, err := generate.NewInput("component-patch-test", "https://127.0.0.1/", "1.34.0", generate.WithVersionContract(vc))
+					secretsBundle, err := testsecrets.Bundle(vc)
+					require.NoError(t, err)
+
+					in, err := generate.NewInput("component-patch-test", "https://127.0.0.1/", "1.34.0",
+						generate.WithVersionContract(vc), generate.WithSecretsBundle(secretsBundle))
 					require.NoError(t, err)
 
 					cfg, err := in.Config(machine.TypeControlPlane)

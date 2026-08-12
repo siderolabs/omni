@@ -13,6 +13,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/talos/pkg/machinery/config/bundle"
+	"github.com/siderolabs/talos/pkg/machinery/config/generate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -24,6 +25,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
+	"github.com/siderolabs/omni/internal/pkg/testsecrets"
 )
 
 func TestGetClientForCluster(t *testing.T) {
@@ -41,11 +43,15 @@ func TestGetClientForCluster(t *testing.T) {
 		_, err := clientFactory.GetForCluster(ctx, clusterName)
 		require.True(t, talos.IsClientNotReadyError(err))
 
+		secretsBundle, err := testsecrets.Bundle(nil)
+		require.NoError(t, err)
+
 		configBundle, err := bundle.NewBundle(bundle.WithInputOptions(
 			&bundle.InputOptions{
 				ClusterName: clusterName,
 				Endpoint:    "https://127.0.0.1:6443",
 				KubeVersion: "1.36.1",
+				GenOptions:  []generate.Option{generate.WithSecretsBundle(secretsBundle)},
 			},
 		))
 		require.NoError(t, err)
@@ -171,11 +177,15 @@ func TestClientLifecycle(t *testing.T) {
 
 		// --- Setup: cluster credentials ---
 
+		secretsBundle, err := testsecrets.Bundle(nil)
+		require.NoError(t, err)
+
 		configBundle, err := bundle.NewBundle(bundle.WithInputOptions(
 			&bundle.InputOptions{
 				ClusterName: clusterName,
 				Endpoint:    "https://127.0.0.1:6443",
 				KubeVersion: "1.36.1",
+				GenOptions:  []generate.Option{generate.WithSecretsBundle(secretsBundle)},
 			},
 		))
 		require.NoError(t, err)
@@ -370,11 +380,15 @@ func TestClusterClientEvictedOnClusterLeave(t *testing.T) {
 		const clusterName = "alpha"
 
 		// Cluster credentials, required to build a secure cluster client.
+		secretsBundle, err := testsecrets.Bundle(nil)
+		require.NoError(t, err)
+
 		configBundle, err := bundle.NewBundle(bundle.WithInputOptions(
 			&bundle.InputOptions{
 				ClusterName: clusterName,
 				Endpoint:    "https://127.0.0.1:6443",
 				KubeVersion: "1.36.1",
+				GenOptions:  []generate.Option{generate.WithSecretsBundle(secretsBundle)},
 			},
 		))
 		require.NoError(t, err)

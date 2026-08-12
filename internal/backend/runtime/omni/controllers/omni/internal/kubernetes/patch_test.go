@@ -17,6 +17,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/image"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/kubernetes"
+	"github.com/siderolabs/omni/internal/pkg/testsecrets"
 )
 
 // TestMergePatch verifies that patches for several components accumulate into a single machine patch.
@@ -49,7 +50,11 @@ func TestMergePatch(t *testing.T) {
 			accumulated, err = kubernetes.MergePatch(accumulated, newAPIServerPatch.Patch)
 			require.NoError(t, err)
 
-			in, err := generate.NewInput("merge-patch-test", "https://127.0.0.1/", "1.34.0", generate.WithVersionContract(vc))
+			secretsBundle, err := testsecrets.Bundle(vc)
+			require.NoError(t, err)
+
+			in, err := generate.NewInput("merge-patch-test", "https://127.0.0.1/", "1.34.0",
+				generate.WithVersionContract(vc), generate.WithSecretsBundle(secretsBundle))
 			require.NoError(t, err)
 
 			cfg, err := in.Config(machine.TypeControlPlane)

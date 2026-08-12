@@ -38,7 +38,7 @@ func (suite *CertRefreshTickSuite) TestReconcile() {
 			suite.Require().Equal(state.Created, ev.Type)
 
 			ticks++
-		case <-time.After(500 * time.Millisecond):
+		case <-suite.ctx.Done():
 			suite.Require().FailNow("timeout waiting for tick")
 		}
 

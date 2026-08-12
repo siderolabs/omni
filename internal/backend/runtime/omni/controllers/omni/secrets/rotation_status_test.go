@@ -45,6 +45,9 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/constants"
 )
 
+// testTimeout bounds each subtest. It is generous on purpose, so that the tests survive CPU starvation on overloaded CI runners, especially when the race detector multiplies the cost.
+const testTimeout = 30 * time.Second
+
 //nolint:maintidx
 func Test_TalosCARotation(t *testing.T) {
 	t.Parallel()
@@ -53,7 +56,7 @@ func Test_TalosCARotation(t *testing.T) {
 	t.Run("no rotation", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -113,7 +116,7 @@ func Test_TalosCARotation(t *testing.T) {
 	t.Run("rotation", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -212,7 +215,7 @@ func Test_TalosCARotation(t *testing.T) {
 	t.Run("cluster locked", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -278,7 +281,7 @@ func Test_TalosCARotation(t *testing.T) {
 	t.Run("cluster unhealthy", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -348,7 +351,7 @@ func Test_TalosCARotation(t *testing.T) {
 	t.Run("machine locked", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -422,7 +425,7 @@ func Test_TalosCARotation(t *testing.T) {
 	t.Run("machine unhealthy", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -496,7 +499,7 @@ func Test_TalosCARotation(t *testing.T) {
 	t.Run("rotation ongoing", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -628,7 +631,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 	t.Run("no rotation", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -688,7 +691,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 	t.Run("rotation", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -796,7 +799,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 	t.Run("cluster locked", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -871,7 +874,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 	t.Run("cluster unhealthy", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -950,7 +953,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 	t.Run("machine locked", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -1033,7 +1036,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 	t.Run("machine unhealthy", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -1116,7 +1119,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 	t.Run("rotation ongoing", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+		ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 		t.Cleanup(cancel)
 
 		testutils.WithRuntime(
@@ -1181,7 +1184,7 @@ func Test_KubernetesCARotation(t *testing.T) {
 func Test_ConcurrentRotationRejection(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(t.Context(), time.Second*20)
+	ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 	t.Cleanup(cancel)
 
 	testutils.WithRuntime(
@@ -1230,7 +1233,7 @@ func Test_ConcurrentRotationRejection(t *testing.T) {
 func Test_ComponentIsolationDuringRotation(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(t.Context(), time.Second*15)
+	ctx, cancel := context.WithTimeout(t.Context(), testTimeout)
 	t.Cleanup(cancel)
 
 	testutils.WithRuntime(
