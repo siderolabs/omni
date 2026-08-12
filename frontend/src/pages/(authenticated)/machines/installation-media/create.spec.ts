@@ -134,6 +134,10 @@ describe('InstallationMediaCreate', () => {
   })
 
   test('renders correct content for different routes', async () => {
+    useFormState().formState.value = {
+      hardwareType: 'metal',
+    }
+
     await router.push({ name: 'InstallationMediaCreateTalosVersion' })
     await router.isReady()
 
