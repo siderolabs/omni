@@ -9,7 +9,10 @@ package integration_test
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"slices"
+	"strconv"
 	"testing"
 	"time"
 
@@ -21,11 +24,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
+	siderolinkres "github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
+	siderolinkclient "github.com/siderolabs/omni/client/pkg/siderolink"
 )
-
-const testPatch = `apiVersion: v1alpha1
-kind: EventSinkConfig
-endpoint: '[fdae:41e4:649b:9303::1]:8091'`
 
 // AssertMaintenanceTestConfigIsPresent asserts that the test configuration is present on a machine in maintenance mode.
 func AssertMaintenanceTestConfigIsPresent(ctx context.Context, omniState state.State, cluster resource.ID, machineIndex int) TestFunc {
@@ -45,6 +46,14 @@ func AssertMaintenanceTestConfigIsPresent(ctx context.Context, omniState state.S
 		require.Less(t, machineIndex, len(ids), "machine index out of range")
 
 		machineID := ids[machineIndex]
+
+		// Build the expected event sink endpoint the same way the machine config generation builds it.
+		apiConfig, err := safe.StateGetByID[*siderolinkres.APIConfig](timeoutCtx, omniState, siderolinkres.ConfigID)
+		require.NoError(t, err)
+
+		sinkEndpoint := net.JoinHostPort(siderolinkclient.GetListenHost(), strconv.Itoa(int(apiConfig.TypedSpec().Value.EventsPort)))
+
+		testPatch := fmt.Sprintf("apiVersion: v1alpha1\nkind: EventSinkConfig\nendpoint: '%s'", sinkEndpoint)
 
 		rtestutils.AssertResource[*omni.RedactedClusterMachineConfig](timeoutCtx, t, omniState, machineID, func(r *omni.RedactedClusterMachineConfig, assertion *assert.Assertions) {
 			buffer, bufferErr := r.TypedSpec().Value.GetUncompressedData()

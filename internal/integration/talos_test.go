@@ -496,6 +496,11 @@ const upgradeGateClosedMessage = "upgrade gate is closed: cluster is not marked 
 // Kubernetes cluster.
 const talemuInfraProviderID = "talemu"
 
+// talemuKernelArg is the kernel arg every talemu-emulated machine reports, in both the infra provider
+// and the static mode. Machines of the static mode join on their own and have no infra provider label,
+// so the kernel args are the only way to detect them.
+const talemuKernelArg = "talemu=1"
+
 // clusterUsesEmulatedMachines reports whether the cluster's machines are provided by the talemu emulator.
 // Emulated machines don't run a real Kubernetes cluster, so workload-based healthchecks can't be exercised.
 func clusterUsesEmulatedMachines(ctx context.Context, t *testing.T, st state.State, clusterName string) bool {
@@ -504,6 +509,10 @@ func clusterUsesEmulatedMachines(ctx context.Context, t *testing.T, st state.Sta
 
 	for machine := range machines.All() {
 		if providerID, _ := machine.Metadata().Labels().Get(omni.LabelInfraProviderID); providerID == talemuInfraProviderID {
+			return true
+		}
+
+		if slices.Contains(strings.Fields(machine.TypedSpec().Value.KernelCmdline), talemuKernelArg) {
 			return true
 		}
 	}
@@ -848,6 +857,21 @@ func AssertTalosExtensionsUpdateFlow(testCtx context.Context, client *client.Cli
 	}
 }
 
+// isInvalidArgumentError checks if the error has the gRPC code InvalidArgument. The state client loses
+// the gRPC status when it wraps server errors, so as a fallback, the code is matched in the error message.
+func isInvalidArgumentError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var grpcStatus interface{ GRPCStatus() *status.Status }
+	if errors.As(err, &grpcStatus) {
+		return grpcStatus.GRPCStatus().Code() == codes.InvalidArgument
+	}
+
+	return strings.Contains(err.Error(), "rpc error: code = "+codes.InvalidArgument.String())
+}
+
 // AssertTalosUpgradeIsRevertible tries to upgrade to invalid Talos version, and verifies that upgrade starts, fails, and can be reverted.
 func AssertTalosUpgradeIsRevertible(testCtx context.Context, st state.State, clusterName, currentTalosVersion string) TestFunc {
 	return func(t *testing.T) {
@@ -866,6 +890,12 @@ func AssertTalosUpgradeIsRevertible(testCtx context.Context, st state.State, clu
 
 			return nil
 		})
+		if isInvalidArgumentError(err) {
+			// The disable-validation annotation set above only works on debug builds of Omni. A release
+			// build rejects the fake version on the update, so there is no failed upgrade to revert.
+			t.Skipf("this Omni rejects the fake version, skipping the revert flow: %s", err)
+		}
+
 		require.NoError(t, err)
 
 		// upgrade should start

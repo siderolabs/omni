@@ -329,6 +329,12 @@ func AssertKubernetesUpgradeIsRevertible(testCtx context.Context, st state.State
 
 			return nil
 		})
+		if isInvalidArgumentError(err) {
+			// The disable-validation annotation set above only works on debug builds of Omni. A release
+			// build rejects the fake version on the update, so there is no failed upgrade to revert.
+			t.Skipf("this Omni rejects the fake version, skipping the revert flow: %s", err)
+		}
+
 		require.NoError(t, err)
 
 		// upgrade should start
