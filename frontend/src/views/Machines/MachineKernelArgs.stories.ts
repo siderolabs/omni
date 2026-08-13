@@ -15,8 +15,8 @@ const machineId = faker.string.uuid()
 
 const meta: Meta<typeof MachineKernelArgs> = {
   component: MachineKernelArgs,
-  parameters: {
-    machine: machineId,
+  args: {
+    machineId,
   },
 }
 

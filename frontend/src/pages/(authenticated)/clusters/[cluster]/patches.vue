@@ -17,6 +17,6 @@ definePage({ name: 'ClusterConfigPatches' })
     <div class="flex items-start">
       <PageHeader class="flex-1" :title="`Cluster ${$route.params.cluster} Config Patches`" />
     </div>
-    <Patches :cluster="$route.params.cluster" />
+    <Patches :cluster-id="$route.params.cluster" />
   </PageContainer>
 </template>

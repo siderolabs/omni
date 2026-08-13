@@ -16,8 +16,8 @@ import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import EditKernelArgsModal from '@/views/Machines/EditKernelArgsModal.vue'
 
-const { machine } = defineProps<{
-  machine: string
+const { machineId } = defineProps<{
+  machineId: string
 }>()
 
 const editKernelArgsModalOpen = ref(false)
@@ -25,7 +25,7 @@ const editKernelArgsModalOpen = ref(false)
 const { data: status } = useResourceWatch<KernelArgsStatusSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
-    id: machine,
+    id: machineId,
     namespace: DefaultNamespace,
     type: KernelArgsStatusType,
   },
@@ -34,7 +34,7 @@ const { data: status } = useResourceWatch<KernelArgsStatusSpec>(() => ({
 const { data: kernelArgs } = useResourceWatch<KernelArgsSpec>(() => ({
   runtime: Runtime.Omni,
   resource: {
-    id: machine,
+    id: machineId,
     namespace: DefaultNamespace,
     type: KernelArgsType,
   },
@@ -45,30 +45,46 @@ const currentCmdline = computed(() => status.value?.spec.current_cmdline ?? '')
 </script>
 
 <template>
-  <PageContainer class="flex flex-col gap-2">
-    <div class="text-sm font-semibold text-naturals-n14">Current Kernel Cmdline</div>
-    <code class="rounded bg-naturals-n6 px-2.5 py-2 font-mono text-xs text-naturals-n13">
-      {{ currentCmdline || 'none' }}
-    </code>
+  <PageContainer>
+    <dl class="flex flex-col gap-2">
+      <dt id="current-kernel-cmdline" class="text-sm font-semibold text-naturals-n14">
+        Current Kernel Cmdline
+      </dt>
+      <dd
+        aria-labelledby="current-kernel-cmdline"
+        class="rounded bg-naturals-n6 px-2.5 py-2 text-xs"
+      >
+        <code class="font-mono break-all whitespace-pre-wrap text-naturals-n13">
+          {{ currentCmdline || 'none' }}
+        </code>
+      </dd>
 
-    <div class="text-sm font-semibold text-naturals-n14">Extra Kernel Args</div>
-    <div class="my-0.5 flex items-center gap-2 rounded bg-naturals-n6 pr-2">
-      <code class="flex-1 rounded bg-naturals-n6 px-2.5 py-2 font-mono text-xs text-naturals-n13">
-        {{ currentArgs || 'none' }}
-      </code>
+      <dt id="extra-kernel-args" class="text-sm font-semibold text-naturals-n14">
+        Extra Kernel Args
+      </dt>
+      <dd
+        aria-labelledby="extra-kernel-args"
+        class="my-0.5 flex items-center gap-2 rounded bg-naturals-n6 pr-2 text-xs"
+      >
+        <code
+          class="flex-1 rounded bg-naturals-n6 px-2.5 py-2 font-mono break-all whitespace-pre-wrap text-naturals-n13"
+        >
+          {{ currentArgs || 'none' }}
+        </code>
 
-      <Tooltip description="Edit Extra Kernel Args">
-        <IconButton
-          aria-label="Edit Extra Kernel Args"
-          icon="edit"
-          @click="editKernelArgsModalOpen = true"
-        />
-      </Tooltip>
-    </div>
+        <Tooltip description="Edit Extra Kernel Args">
+          <IconButton
+            aria-label="Edit Extra Kernel Args"
+            icon="edit"
+            @click="editKernelArgsModalOpen = true"
+          />
+        </Tooltip>
+      </dd>
+    </dl>
 
     <EditKernelArgsModal
       v-model:open="editKernelArgsModalOpen"
-      :machine-id="machine"
+      :machine-id="machineId"
       :kernel-args
       :kernel-args-status="status"
     />

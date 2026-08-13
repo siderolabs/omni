@@ -11,5 +11,5 @@ definePage({ name: 'MachineKernelArgs' })
 </script>
 
 <template>
-  <MachineKernelArgs :machine="$route.params.machine" />
+  <MachineKernelArgs :machine-id="$route.params.machine" />
 </template>
