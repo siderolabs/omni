@@ -50,9 +50,9 @@ import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 import ConfigPatchDestroyModal from '@/views/Config/components/ConfigPatchDestroyModal.vue'
 
-const { machine, cluster } = defineProps<{
-  cluster?: string
-  machine?: string
+const { machineId, clusterId } = defineProps<{
+  clusterId?: string
+  machineId?: string
 }>()
 
 const filter = useRouteQuery('q', '')
@@ -61,16 +61,16 @@ const configPatchDestroyModalPatchId = ref<string>()
 
 const { canManageMachineConfigPatches } = usePermissions()
 const { canManageConfigPatches: canManageClusterMachineConfigPatches } = useClusterPermissions(
-  () => cluster,
+  () => clusterId,
 )
 
 const selectors = computed(() => {
   const res: string[] = []
 
-  if (machine) {
-    res.push(`${LabelMachine}=${machine}`, `${LabelClusterMachine}=${machine}`)
-  } else if (cluster) {
-    res.push(`${LabelCluster}=${cluster}`)
+  if (machineId) {
+    res.push(`${LabelMachine}=${machineId}`, `${LabelClusterMachine}=${machineId}`)
+  } else if (clusterId) {
+    res.push(`${LabelCluster}=${clusterId}`)
   } else {
     return
   }
@@ -125,32 +125,32 @@ interface RouteItem {
 const patchTypeCluster = 'Cluster'
 
 function getRouteForPatch(patch = `500-${uuidv4()}`): RouteLocationRaw {
-  if (cluster && machine) {
+  if (clusterId && machineId) {
     return {
       name: 'ClusterMachinePatchEdit',
       params: {
-        cluster,
-        machine,
+        cluster: clusterId,
+        machine: machineId,
         patch,
       },
     }
   }
 
-  if (cluster) {
+  if (clusterId) {
     return {
       name: 'ClusterPatchEdit',
       params: {
-        cluster,
+        cluster: clusterId,
         patch,
       },
     }
   }
 
-  if (machine) {
+  if (machineId) {
     return {
       name: 'MachinePatchEdit',
       params: {
-        machine,
+        machine: machineId,
         patch,
       },
     }
@@ -201,7 +201,7 @@ const routes = computed(() => {
     } else if (labels[LabelMachineSet]) {
       const id = labels[LabelMachineSet]
 
-      const title = machineSetTitle(cluster, id)
+      const title = machineSetTitle(clusterId, id)
 
       addToGroup(`${title}`, r)
     } else if (labels[LabelCluster]) {
@@ -251,8 +251,8 @@ const routes = computed(() => {
 })
 
 const canManageConfigPatches = computed(() => {
-  if (cluster) return canManageClusterMachineConfigPatches.value
-  if (machine) return canManageMachineConfigPatches.value
+  if (clusterId) return canManageClusterMachineConfigPatches.value
+  if (machineId) return canManageMachineConfigPatches.value
 
   return false
 })
@@ -297,10 +297,10 @@ const toggleDisabled = async (item: RouteItem) => {
       <TAlert v-else-if="patches.length === 0" title="No Config Patches" type="info">
         There are no config patches
         {{
-          machine
-            ? `associated with machine ${machine}`
-            : cluster
-              ? `associated with cluster ${cluster}`
+          machineId
+            ? `associated with machine ${machineId}`
+            : clusterId
+              ? `associated with cluster ${clusterId}`
               : `on the account`
         }}
       </TAlert>

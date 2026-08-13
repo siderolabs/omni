@@ -199,7 +199,7 @@ type Story = StoryObj<typeof meta>
 
 /** Cluster-scoped view with patches spread across every group and full manage permissions. */
 export const Cluster: Story = {
-  args: { cluster: CLUSTER },
+  args: { clusterId: CLUSTER },
 
   beforeEach({ msw }) {
     msw.use(clusterPatchesHandler(), machineStatusesHandler, clusterPermissionsHandler(true))
@@ -208,7 +208,7 @@ export const Cluster: Story = {
 
 /** Same data, but the user cannot manage patches — create, toggle and delete are disabled. */
 export const ClusterReadOnly: Story = {
-  args: { cluster: CLUSTER },
+  args: { clusterId: CLUSTER },
 
   beforeEach({ msw }) {
     msw.use(clusterPatchesHandler(), machineStatusesHandler, clusterPermissionsHandler(false))
@@ -217,7 +217,7 @@ export const ClusterReadOnly: Story = {
 
 /** Machine-scoped view: patches attached to a single machine. */
 export const Machine: Story = {
-  args: { machine: MACHINE },
+  args: { machineId: MACHINE },
 
   beforeEach({ msw }) {
     msw.use(
@@ -244,7 +244,7 @@ export const Machine: Story = {
 
 /** No patches associated — renders the empty-state alert. */
 export const Empty: Story = {
-  args: { cluster: CLUSTER },
+  args: { clusterId: CLUSTER },
 
   beforeEach({ msw }) {
     msw.use(clusterPatchesHandler([]), machineStatusesHandler, clusterPermissionsHandler(true))
@@ -253,7 +253,7 @@ export const Empty: Story = {
 
 /** Watches never bootstrap — the loading spinner stays visible. */
 export const Loading: Story = {
-  args: { cluster: CLUSTER },
+  args: { clusterId: CLUSTER },
 
   beforeEach({ msw }) {
     msw.use(

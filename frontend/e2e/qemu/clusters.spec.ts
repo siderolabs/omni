@@ -82,6 +82,18 @@ test('machine overview tabs', async ({ page }) => {
     await page.getByRole('tab', { name: 'Extensions', exact: true }).click()
     await expect.soft(page.getByText('siderolabs/hello-world-service')).toBeVisible()
   })
+
+  await test.step('Validate kernel args tab', async () => {
+    await page.getByRole('tab', { name: 'Kernel Args', exact: true }).click()
+
+    const cmdLine = page.getByLabel('Current Kernel Cmdline')
+    const extraArgs = page.getByLabel('Extra Kernel Args', { exact: true })
+
+    await expect.soft(cmdLine.getByText('siderolink.api=')).toBeVisible()
+    await expect.soft(cmdLine.getByText('talos.events.sink=')).toBeVisible()
+    await expect.soft(cmdLine.getByText('talos.logging.kernel=')).toBeVisible()
+    await expect.soft(extraArgs.getByText('console=tty0 console=ttyS0')).toBeVisible()
+  })
 })
 
 test('create cluster', async ({ page }) => {
@@ -526,6 +538,16 @@ test('node overview tabs', async ({ page }) => {
     await page.getByRole('tab', { name: 'Extensions', exact: true }).click()
     await expect(page.getByText('siderolabs/hello-world-service')).toBeVisible()
     await expect(page.getByText('siderolabs/usb-modem-drivers')).toBeVisible()
+  })
+
+  await test.step('Validate kernel args tab', async () => {
+    await page.getByRole('tab', { name: 'Kernel Args', exact: true }).click()
+
+    const cmdLine = page.getByLabel('Current Kernel Cmdline')
+    const extraArgs = page.getByLabel('Extra Kernel Args', { exact: true })
+
+    await expect.soft(cmdLine.getByText('talos.platform=metal')).toBeVisible()
+    await expect.soft(extraArgs.getByText('console=tty0 console=ttyS0')).toBeVisible()
   })
 
   await page.getByRole('link', { name: 'Clusters' }).click()

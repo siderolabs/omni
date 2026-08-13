@@ -13,6 +13,6 @@ definePage({ name: 'MachineConfigPatches' })
 
 <template>
   <PageContainer>
-    <Patches :machine="$route.params.machine" />
+    <Patches :machine-id="$route.params.machine" />
   </PageContainer>
 </template>

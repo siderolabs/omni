@@ -13,6 +13,6 @@ definePage({ name: 'NodePatches' })
 
 <template>
   <PageContainer>
-    <Patches :cluster="$route.params.cluster" :machine="$route.params.machine" />
+    <Patches :cluster-id="$route.params.cluster" :machine-id="$route.params.machine" />
   </PageContainer>
 </template>
