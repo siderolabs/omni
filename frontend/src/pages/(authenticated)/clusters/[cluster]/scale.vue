@@ -5,9 +5,10 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { computedAsync } from '@vueuse/core'
 import pluralize from 'pluralize'
-import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { Runtime } from '@/api/common/omni.pb'
 import type { Resource } from '@/api/grpc'
@@ -34,10 +35,16 @@ import {
 import ManagedByTemplatesWarning from '@/components/ManagedByTemplatesWarning.vue'
 import PageContainer from '@/components/PageContainer/PageContainer.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import Pagination from '@/components/Pagination/Pagination.vue'
+import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
 import { ClusterCommandError, clusterSync } from '@/methods/cluster'
 import { machineCompatibleWithCluster } from '@/methods/compat'
+import { addLabel, type Label, selectors } from '@/methods/labels'
+import { useResourcePagination } from '@/methods/resource/useResourcePagination'
+import { useResourceSearch } from '@/methods/resource/useResourceSearch'
+import { useLabelCompletions } from '@/methods/useLabelCompletions'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
@@ -45,6 +52,7 @@ import { populateExisting, state } from '@/states/cluster-management'
 import ClusterMenu from '@/views/Clusters/ClusterMenu.vue'
 import ClusterMachineItem from '@/views/Clusters/Management/ClusterMachineItem.vue'
 import MachineSets from '@/views/Clusters/Management/MachineSets.vue'
+import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 
 definePage({ name: 'ClusterScale' })
 
@@ -52,10 +60,15 @@ const { currentCluster } = defineProps<{
   currentCluster: Resource<ClusterSpec>
 }>()
 
-const route = useRoute()
 const router = useRouter()
 
+const loadingResources = ref(true)
+const existingResources = computedAsync(() => populateExisting(currentCluster.metadata.id!), [], {
+  evaluating: loadingResources,
+})
+
 const quorumWarning = computed(() => {
+  if (loadingResources.value) return
   if (typeof state.value.controlPlanesCount === 'string') {
     return undefined
   }
@@ -68,8 +81,6 @@ const quorumWarning = computed(() => {
 
   return `${pluralize('Control Plane', totalMachines, true)} will not provide fault-tolerance with etcd quorum requirements. The total number of control plane machines must be an odd number to ensure etcd stability. Please add one more machine or remove one.`
 })
-
-const clusterName = route.params.cluster
 
 const scaleCluster = async () => {
   try {
@@ -86,11 +97,14 @@ const scaleCluster = async () => {
     return
   }
 
-  await router.push({ name: 'ClusterOverview', params: { cluster: clusterName as string } })
+  await router.push({
+    name: 'ClusterOverview',
+    params: { cluster: currentCluster.metadata.id! },
+  })
 
   showSuccess(
     'Updated Cluster Configuration',
-    `Cluster name: ${clusterName}, control planes: ${state.value.controlPlanesCount}, workers: ${state.value.workersCount}`,
+    `Cluster name: ${currentCluster.metadata.id}, control planes: ${state.value.controlPlanesCount}, workers: ${state.value.workersCount}`,
   )
 }
 
@@ -104,30 +118,53 @@ const detectAutoInstallNotice = (machine: Resource<MachineStatusSpec>) => {
   return compat.ok && compat.willAutoInstall ? compat.reason : null
 }
 
-const existingResources = ref<Resource[]>([])
-onMounted(async () => {
-  existingResources.value = await populateExisting(clusterName as string)
+const filterLabels = ref<Label[]>([])
+const filterValue = ref('')
+
+const { match, completions } = useLabelCompletions({
+  resourceType: MachineStatusType,
+  filterValue,
+})
+
+const { watchOptions: searchState, searchQuery } = useResourceSearch({ filterValue })
+
+const {
+  total,
+  watchOptions: paginationState,
+  currentPage,
+  currentPageSize: selectedItemsPerPage,
+  pageCount,
+  pageSizeSelectValues: itemsPerPage,
+} = useResourcePagination({
+  resetOn: [searchState],
 })
 
 const {
   data: machineStatuses,
   loading: machineStatusesLoading,
   err: machineStatusesErr,
-} = useResourceWatch<MachineStatusSpec>({
-  resource: {
-    namespace: DefaultNamespace,
-    type: MachineStatusType,
-  },
-  selectors: [
-    `${MachineStatusLabelAvailable}`,
-    `${MachineStatusLabelReadyToUse}`,
-    `!${MachineStatusLabelInvalidState}`,
-    `${MachineStatusLabelReportingEvents}`,
-    `!${LabelNoManualAllocation}`,
-  ],
-  runtime: Runtime.Omni,
-  sortByField: 'created',
-})
+} = useResourceWatch<MachineStatusSpec>(
+  () => ({
+    resource: {
+      namespace: DefaultNamespace,
+      type: MachineStatusType,
+    },
+    runtime: Runtime.Omni,
+    sortByField: 'created',
+    ...paginationState.value,
+    ...searchState.value,
+    selectors: [
+      `${MachineStatusLabelAvailable}`,
+      `${MachineStatusLabelReadyToUse}`,
+      `!${MachineStatusLabelInvalidState}`,
+      `${MachineStatusLabelReportingEvents}`,
+      `!${LabelNoManualAllocation}`,
+      ...(selectors(filterLabels.value) ?? []),
+      ...(searchState.value.selectors ?? []),
+    ],
+  }),
+  { total },
+)
 
 const {
   data: machineConfigGenOptions,
@@ -189,34 +226,63 @@ const data = computed(() =>
 </script>
 
 <template>
-  <PageContainer disable-padding class="flex h-full flex-col gap-3 pt-6">
+  <PageContainer disable-padding class="flex h-full flex-col pt-6">
     <PageHeader :title="`Add Machines to Cluster ${$route.params.cluster}`" class="px-6" />
 
-    <div v-if="existingResources.length > 0" class="grow overflow-y-auto px-6 pb-6">
+    <div
+      v-if="existingResources.length > 0"
+      class="flex grow flex-col gap-4 overflow-y-auto px-6 pb-6"
+    >
       <ManagedByTemplatesWarning :resource="currentCluster" />
 
       <div class="text-naturals-n13">Machine Sets</div>
       <MachineSets />
       <div class="text-naturals-n13">Available Machines</div>
 
-      <div v-if="loading" class="flex size-full items-center justify-center">
-        <TSpinner class="size-6" />
-      </div>
-      <TAlert v-else-if="err" title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
-      <TAlert v-else-if="!data.length" type="info" title="No Machines Available">
-        Machine is available when it is connected, not allocated and is reporting Talos events.
-      </TAlert>
+      <div class="flex h-max max-w-full shrink-0 flex-col gap-2">
+        <div class="flex grow flex-col gap-4 overflow-hidden">
+          <LabelsInput
+            v-model:filter-labels="filterLabels"
+            v-model:filter-value="filterValue"
+            :match
+            :completions
+            class="w-full"
+          />
 
-      <template v-else-if="versionContract">
-        <ClusterMachineItem
-          v-for="item in data"
-          :key="item.metadata.id"
-          :item="item"
-          :version-contract
-          :version-mismatch="detectVersionMismatch(item)"
-          :auto-install-notice="detectAutoInstallNotice(item)"
-        />
-      </template>
+          <TSelectList
+            v-model="selectedItemsPerPage"
+            class="self-end"
+            title="Items per Page"
+            :values="itemsPerPage"
+          />
+
+          <div class="grow overflow-auto">
+            <div v-if="loading" class="flex size-full items-center justify-center">
+              <TSpinner class="size-6" />
+            </div>
+            <TAlert v-else-if="err" title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
+            <TAlert v-else-if="!data.length" type="info" title="No Machines Available">
+              Machine is available when it is connected, not allocated and is reporting Talos
+              events.
+            </TAlert>
+
+            <div v-else-if="versionContract" class="size-full">
+              <ClusterMachineItem
+                v-for="item in data"
+                :key="item.metadata.id"
+                :item="item"
+                :search-query
+                :version-contract
+                :version-mismatch="detectVersionMismatch(item)"
+                :auto-install-notice="detectAutoInstallNotice(item)"
+                @filter-label="filterLabels = addLabel(filterLabels, $event)"
+              />
+            </div>
+          </div>
+        </div>
+
+        <Pagination v-model:current-page="currentPage" :page-count="pageCount" />
+      </div>
     </div>
 
     <div v-else class="flex flex-1 items-center justify-center">
@@ -228,6 +294,7 @@ const data = computed(() =>
     >
       <ClusterMenu
         class="w-full"
+        :loading="loadingResources"
         :control-planes="state.controlPlanesCount"
         :workers="state.workersCount"
         :on-submit="scaleCluster"

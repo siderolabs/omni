@@ -17,6 +17,7 @@ const { controlPlanes, workers } = defineProps<{
   onSubmit: () => void
   onReset?: () => void
   warning?: string
+  loading?: boolean
   disabled?: boolean
 }>()
 
@@ -40,7 +41,7 @@ const workersCount = computed(() => {
 <template>
   <div class="flex items-center gap-4">
     <div class="flex grow flex-col">
-      <p class="text-xs text-naturals-n8">
+      <p v-if="!loading" class="text-xs text-naturals-n8">
         <span class="text-naturals-n13">{{ controlPlaneCount }}, {{ workersCount }}</span>
         selected
       </p>
