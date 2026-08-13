@@ -50,6 +50,8 @@ import { ClusterCommandError, clusterSync, nextAvailableClusterName } from '@/me
 import { machineCompatibleWithCluster } from '@/methods/compat'
 import { useFeatures } from '@/methods/features'
 import { getPatch } from '@/methods/getPatch'
+import { addLabel, type Label, selectors } from '@/methods/labels'
+import { useLabelCompletions } from '@/methods/useLabelCompletions'
 import { useResourceGet } from '@/methods/useResourceGet'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError, showSuccess } from '@/notification'
@@ -63,6 +65,7 @@ import ClusterMachineItem from '@/views/Clusters/Management/ClusterMachineItem.v
 import MachineSets from '@/views/Clusters/Management/MachineSets.vue'
 import NodeAuditSkipCheckbox from '@/views/Clusters/NodeAuditSkipCheckbox.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
+import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
 
 definePage({ name: 'ClusterCreate' })
@@ -290,16 +293,13 @@ const onSavePatchConfig = (config: string) => {
   }
 }
 
+const filterLabels = ref<Label[]>([])
 const filterValue = ref('')
 
-const addFilterLabel = (label: { key: string; value?: string }) => {
-  const selector = `${label.key}:${label.value}`
-  if (filterValue.value.includes(selector)) {
-    return
-  }
-
-  filterValue.value += (filterValue.value ? ' ' : '') + selector
-}
+const { match, completions } = useLabelCompletions({
+  resourceType: MachineStatusType,
+  filterValue,
+})
 </script>
 
 <template>
@@ -400,6 +400,7 @@ const addFilterLabel = (label: { key: string; value?: string }) => {
             `!${MachineStatusLabelInvalidState}`,
             `${MachineStatusLabelReportingEvents}`,
             `!${LabelNoManualAllocation}`,
+            ...(selectors(filterLabels) ?? []),
           ],
           sortByField: 'created',
         }"
@@ -414,6 +415,17 @@ const addFilterLabel = (label: { key: string; value?: string }) => {
 
           <AddingMachinesTutorial class="mt-4" />
         </template>
+
+        <template #input>
+          <LabelsInput
+            v-model:filter-labels="filterLabels"
+            v-model:filter-value="filterValue"
+            :match
+            :completions
+            class="w-full"
+          />
+        </template>
+
         <template v-if="versionContract" #default="{ items, searchQuery }">
           <ClusterMachineItem
             v-for="item in items"
@@ -430,7 +442,7 @@ const addFilterLabel = (label: { key: string; value?: string }) => {
               },
             }"
             :search-query="searchQuery"
-            @filter-label="addFilterLabel"
+            @filter-label="filterLabels = addLabel(filterLabels, $event)"
           />
         </template>
       </TList>

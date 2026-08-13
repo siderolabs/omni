@@ -12,11 +12,12 @@ import type { GetRequest, ListRequest, ListResponse } from '@/api/omni/resources
 import type {
   EtcdBackupOverallStatusSpec,
   FeaturesConfigSpec,
+  MachineClassSpec,
   MachineConfigGenOptionsSpec,
   MachineStatusSpec,
   TalosVersionSpec,
 } from '@/api/omni/specs/omni.pb'
-import type { PermissionsSpec } from '@/api/omni/specs/virtual.pb'
+import type { PermissionsSpec, VersionContractSpec } from '@/api/omni/specs/virtual.pb'
 import {
   ClusterType,
   DefaultNamespace,
@@ -34,6 +35,7 @@ import {
   PermissionsID,
   PermissionsType,
   TalosVersionType,
+  VersionContractType,
   VirtualNamespace,
 } from '@/api/resources'
 
@@ -44,6 +46,7 @@ const meta: Meta<typeof ClusterCreate> = {
   parameters: {
     layout: 'fullscreen',
   },
+  decorators: [() => ({ template: '<div class="h-screen"><story/></div>' })],
 }
 
 export default meta
@@ -133,6 +136,13 @@ export const Data: Story = {
           },
         })),
       }).handler,
+      createWatchStreamHandler<MachineClassSpec>({
+        expectedOptions: {
+          type: MachineStatusType,
+          namespace: DefaultNamespace,
+        },
+        initialResources: [],
+      }).handler,
       createWatchStreamHandler<FeaturesConfigSpec>({
         expectedOptions: {
           type: FeaturesConfigType,
@@ -195,6 +205,33 @@ export const Data: Story = {
               id: PermissionsID,
             },
           } as Resource<PermissionsSpec>),
+        })
+      }),
+      http.post<never, GetRequest>('/omni.resources.ResourceService/Get', async ({ request }) => {
+        const { type, namespace, id } = await request.clone().json()
+
+        if (
+          type !== VersionContractType ||
+          namespace !== VirtualNamespace ||
+          id !== DefaultTalosVersion
+        ) {
+          return
+        }
+
+        return HttpResponse.json({
+          body: JSON.stringify({
+            spec: {
+              discovery_service_multidoc_config: true,
+              kube_span_multidoc_config: true,
+              multidoc_kubernetes_config_supported: true,
+              multidoc_network_config_supported: true,
+            } satisfies VersionContractSpec,
+            metadata: {
+              namespace: VirtualNamespace,
+              type: VersionContractType,
+              id: DefaultTalosVersion,
+            },
+          } as Resource<VersionContractSpec>),
         })
       }),
       http.post<never, ListRequest, ListResponse>(
