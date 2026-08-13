@@ -42,8 +42,10 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/installdisk"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/imagefactoryauth"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/mappers"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/uncached"
 	omnicfg "github.com/siderolabs/omni/internal/pkg/config"
 )
 
@@ -79,6 +81,12 @@ func NewClusterMachineConfigController(registryMirrors []string, talosRegistry s
 		qtransform.WithExtraMappedInput[*omni.MachineConfigGenOptions](
 			qtransform.MapperSameID[*omni.ClusterMachine](),
 		),
+		qtransform.WithExtraMappedInput[*omni.MachineInstallDiskStatus](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
+		),
+		qtransform.WithExtraMappedInput[*omni.MachineInstallDiskConfig](
+			qtransform.MapperSameID[*omni.ClusterMachine](),
+		),
 		qtransform.WithExtraMappedInput[*omni.Cluster](
 			mappers.MapClusterResourceToLabeledResources[*omni.ClusterMachine](),
 		),
@@ -106,6 +114,35 @@ func NewClusterMachineConfigController(registryMirrors []string, talosRegistry s
 		),
 		qtransform.WithConcurrency(2),
 	)
+}
+
+// getResolvedInstallDisk returns the install disk of the machine, checked to be in sync with the
+// current install disk selection. When the install disk resolution is stale, the reconcile is
+// skipped, and it runs again when the resolution catches up.
+//
+// The selection is read without the cache, as installdisk.GetResolved requires. Note that the
+// MachineInstallDiskConfig input declaration on this controller is required for that read, since
+// controllers can only read their declared inputs. It is not there only to trigger the controller
+// on selection edits.
+//
+// Running this check at config generation time keeps everything downstream simple. The checked disk is
+// recorded on the ClusterMachineConfig next to the config data, so the consumers (e.g., the
+// install logic) use the disk recorded on the exact config version they work on, and need no
+// checks of their own.
+func getResolvedInstallDisk(ctx context.Context, r controller.Reader, machineID resource.ID, installDiskStatus *omni.MachineInstallDiskStatus) (string, error) {
+	installDiskConfig, err := safe.ReaderGetByID[*omni.MachineInstallDiskConfig](ctx, uncached.Reader(r), machineID)
+	if err != nil && !state.IsNotFoundError(err) {
+		return "", fmt.Errorf("failed to get the install disk config %q: %w", machineID, err)
+	}
+
+	disk, inSync := installdisk.GetResolved(installDiskConfig, installDiskStatus)
+	if !inSync {
+		return "", xerrors.NewTaggedf[qtransform.SkipReconcileTag](
+			"the install disk resolution of %q is stale, waiting for it to catch up with the selection", machineID,
+		)
+	}
+
+	return disk, nil
 }
 
 //nolint:gocognit,cyclop,gocyclo,maintidx
@@ -213,6 +250,28 @@ func reconcileClusterMachineConfig(
 		return err
 	}
 
+	installDiskStatus, err := safe.ReaderGetByID[*omni.MachineInstallDiskStatus](ctx, r, clusterMachine.Metadata().ID())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return xerrors.NewTagged[qtransform.SkipReconcileTag](err)
+		}
+
+		return err
+	}
+
+	installDisk, err := getResolvedInstallDisk(ctx, r, clusterMachine.Metadata().ID(), installDiskStatus)
+	if err != nil {
+		return err
+	}
+
+	// Do not generate the config until the disk is resolved, on every version contract. Older
+	// contracts put the disk into the config data and reject an empty one. Newer contracts do not
+	// carry the disk in the config, but still need it recorded on the resource for the install
+	// logic.
+	if installDisk == "" {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("install disk is not resolved yet: %s", installDiskStatus.TypedSpec().Value.Message)
+	}
+
 	inputs := []resource.Resource{
 		clusterMachineSecrets,
 		loadBalancerConfig,
@@ -220,6 +279,7 @@ func reconcileClusterMachineConfig(
 		clusterMachineConfigPatches,
 		machineConfigGenOptions,
 		machineJoinConfig,
+		installDiskStatus,
 	}
 
 	var imageFactories safe.List[*omni.ImageFactoryAuth]
@@ -289,7 +349,7 @@ func reconcileClusterMachineConfig(
 	}
 
 	conf, err := helper.generateConfig(clusterMachine, clusterMachineConfigPatches, clusterMachineSecrets, loadBalancerConfig,
-		cluster, clusterConfigVersion, machineConfigGenOptions, configGenOptions, machineJoinConfig, imageFactories)
+		cluster, clusterConfigVersion, machineConfigGenOptions, installDisk, configGenOptions, machineJoinConfig, imageFactories)
 	if err != nil {
 		machineConfig.TypedSpec().Value.GenerationError = err.Error()
 
@@ -328,6 +388,10 @@ func reconcileClusterMachineConfig(
 
 	machineConfig.TypedSpec().Value.GenerationError = ""
 	machineConfig.TypedSpec().Value.GrubUseUkiCmdline = useUKICmdline
+
+	// The install uses this recorded value. Because it is recorded on the config itself, the disk
+	// the install uses and the config data can never disagree.
+	machineConfig.TypedSpec().Value.InstallDisk = installDisk
 
 	return nil
 }
@@ -407,7 +471,7 @@ func (helper clusterMachineConfigControllerHelper) configsEqual(old *omni.Cluste
 //nolint:gocyclo,cyclop,gocognit
 func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine *omni.ClusterMachine, clusterMachineConfigPatches *omni.ClusterMachineConfigPatches,
 	clusterMachineSecrets *omni.ClusterMachineSecrets, loadbalancer *omni.LoadBalancerConfig, cluster *omni.Cluster, clusterConfigVersion *omni.ClusterConfigVersion,
-	configGenOptions *omni.MachineConfigGenOptions, extraGenOptions []generate.Option, machineJoinConfig *siderolink.MachineJoinConfig,
+	configGenOptions *omni.MachineConfigGenOptions, installDisk string, extraGenOptions []generate.Option, machineJoinConfig *siderolink.MachineJoinConfig,
 	imageFactories safe.List[*omni.ImageFactoryAuth],
 ) (config.Provider, error) {
 	clusterName := cluster.Metadata().ID()
@@ -485,7 +549,7 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		ExtraGenOptions:          extraGenOptions,
 		IsControlPlane:           machineType == machineapi.TypeControlPlane,
 		SiderolinkEndpoint:       loadbalancer.TypedSpec().Value.SiderolinkEndpoint,
-		InstallDisk:              configGenOptions.TypedSpec().Value.InstallDisk,
+		InstallDisk:              installDisk,
 		InstallImage:             installImage,
 		Secrets:                  secretsBundle,
 	})
@@ -569,12 +633,67 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 		return nil, fmt.Errorf("failed to get patched config: %w", err)
 	}
 
+	patchedConfig, err = overrideInstallDisk(cfg, patchedConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	strippedConfig, err := stripTalosAPIAccessOSAdminRole(patchedConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build talos api access feature allowed roles patch: %w", err)
 	}
 
 	return strippedConfig, nil
+}
+
+// overrideInstallDisk sets the install disk of the patched config back to the disk the config
+// generation produced. Config patches must not change the disk in either direction, otherwise
+// the config data could disagree with the disk recorded on the ClusterMachineConfig.
+//
+// Creating new patches carrying the disk is not allowed, so this only overrides the patches
+// created before that restriction. On the version contracts whose config carries an install
+// section, the disk is set back. On the newer contracts whose config has no install section, a
+// section brought in by a patch is removed completely, as an install section without a disk
+// would not be valid.
+//
+// A patch deleting the whole install section is left alone. The old-style install driven by the
+// config then has nothing to work with, which was the case before this restriction too. Machines
+// installed over the install API are not affected, as that path uses the disk recorded on the
+// resource.
+func overrideInstallDisk(generatedConfig, patchedConfig config.Provider) (config.Provider, error) {
+	generatedDisk := ""
+	if generatedConfig.Machine() != nil {
+		generatedDisk = generatedConfig.Machine().Install().Disk()
+	}
+
+	if patchedConfig.Machine() == nil || patchedConfig.Machine().Install().Disk() == generatedDisk {
+		return patchedConfig, nil
+	}
+
+	patchedConfig, err := patchedConfig.PatchV1Alpha1(func(v1alpha1Config *v1alpha1.Config) error {
+		// This is reachable: a patch can delete the whole machine section while the v1alpha1
+		// document remains, and the accessor used above hides that by returning an empty struct.
+		if v1alpha1Config.MachineConfig == nil {
+			return nil
+		}
+
+		if generatedDisk == "" {
+			v1alpha1Config.MachineConfig.MachineInstall = nil //nolint:staticcheck
+
+			return nil
+		}
+
+		if v1alpha1Config.MachineConfig.MachineInstall != nil { //nolint:staticcheck
+			v1alpha1Config.MachineConfig.MachineInstall.InstallDisk = generatedDisk //nolint:staticcheck
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to override the install disk on the patched config: %w", err)
+	}
+
+	return patchedConfig, nil
 }
 
 // stripTalosAPIAccessOSAdminRole ensures that the OS admin role is never included in the allowed roles of the

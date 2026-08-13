@@ -100,7 +100,8 @@ var (
 		omni.KernelArgsStatusType,
 		omni.MachineExtensionsStatusType,
 		omni.MachineExtensionsType,
-		omni.NodeForceDestroyRequestType, // cluster label is not strictly required to be present on this resource, except when the cluster access is granted via ACLs
+		omni.MachineInstallDiskStatusType, // the cluster label is present only when the machine is allocated to a cluster
+		omni.NodeForceDestroyRequestType,  // cluster label is not strictly required to be present on this resource, except when the cluster access is granted via ACLs
 		omni.DiscoveryAffiliateDeleteTaskType,
 		omni.RedactedClusterMachineConfigType,
 		omni.MachineConfigDiffType,
@@ -463,6 +464,8 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.MachineClassType,
 		omni.MachineExtensionsStatusType,
 		omni.MachineExtensionsType,
+		omni.MachineInstallDiskConfigType,
+		omni.MachineInstallDiskStatusType,
 		omni.MachineStatusType,
 		omni.MachineStatusSnapshotType,
 		omni.MachineStatusLinkType,
@@ -657,6 +660,7 @@ func filterAccessByType(access state.Access) error {
 		omni.SchematicConfigurationType,
 		omni.MachineExtensionsStatusType,
 		omni.MachineExtensionsType,
+		omni.MachineInstallDiskStatusType,
 		omni.MachineStatusMetricsType,
 		omni.NotificationType,
 		omni.UpgradeRolloutType,

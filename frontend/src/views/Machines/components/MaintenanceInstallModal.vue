@@ -14,14 +14,24 @@ import {
   MaintenanceLifecycleRequestOperation,
   ManagementService,
 } from '@/api/omni/management/management.pb'
-import type { MachineStatusSpec, TalosVersionSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  MachineInstallDiskStatusSpec,
+  MachineStatusSpec,
+  TalosVersionSpec,
+} from '@/api/omni/specs/omni.pb'
 import { withAbortController } from '@/api/options'
-import { DefaultNamespace, MachineStatusType, TalosVersionType } from '@/api/resources'
+import {
+  DefaultNamespace,
+  MachineInstallDiskStatusType,
+  MachineStatusType,
+  TalosVersionType,
+} from '@/api/resources'
 import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import Modal from '@/components/Modals/Modal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TAlert from '@/components/TAlert.vue'
 import { majorMinorVersion } from '@/methods'
+import { installDiskSelectItems } from '@/methods/installdisk'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import { showError } from '@/notification'
 
@@ -79,22 +89,29 @@ watch(open, (open) => {
   inProgressFromServer.value = false
 })
 
-// installable disks: skip read-only devices, CD-ROMs, and any device missing a linux_name (the
-// install target is the linux_name path — without one there's nothing to pass to Talos).
-const disks = computed(
-  () =>
-    machine.value?.spec.hardware?.blockdevices?.flatMap((device) => {
-      if (device.readonly || device.type === 'CD' || !device.linux_name) {
-        return []
-      }
+// The backend resolves the installable disks and the default centrally
+// (MachineInstallDiskStatus), and the dropdown just renders them.
+const { data: installDiskStatus } = useResourceWatch<MachineInstallDiskStatusSpec>(() => ({
+  skip: !open.value,
+  resource: {
+    type: MachineInstallDiskStatusType,
+    namespace: DefaultNamespace,
+    id: machineId,
+  },
+  runtime: Runtime.Omni,
+}))
 
-      return [device.linux_name]
-    }) ?? [],
-)
+const disks = computed(() => installDiskSelectItems(installDiskStatus.value?.spec))
 
-watch(disks, (newDisks) => {
-  if (!selectedDisk.value || !newDisks.includes(selectedDisk.value)) {
-    selectedDisk.value = newDisks[0] ?? ''
+// The default is the resolved disk, and only when it is among the offered entries: the
+// resolution can point at a non-selectable disk (e.g. a selector matching an md array
+// member), and neither it nor the first entry must become the selection on their own.
+watch(installDiskStatus, (status) => {
+  const values = disks.value.map((item) => item.value)
+  const resolved = status?.spec.disk
+
+  if (!selectedDisk.value || !values.includes(selectedDisk.value)) {
+    selectedDisk.value = resolved && values.includes(resolved) ? resolved : ''
   }
 })
 
@@ -238,14 +255,23 @@ const doInstall = async () => {
       </TAlert>
 
       <template v-if="!showProgress">
-        <TSelectList v-model="selectedDisk" title="Install Disk" :values="disks" class="self-end" />
+        <div class="flex items-center justify-end gap-2">
+          <span
+            v-if="installDiskStatus?.spec.message"
+            :title="installDiskStatus.spec.message"
+            class="max-w-64 truncate text-xs text-naturals-n9"
+          >
+            {{ installDiskStatus.spec.message }}
+          </span>
+          <TSelectList v-model="selectedDisk" title="Install Disk" :values="disks" />
+        </div>
 
         <span v-if="!Object.keys(installVersions).length">No versions found</span>
 
         <RadioGroup
           id="talos-install-version"
           v-model="selectedVersion"
-          class="flex flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
+          class="flex max-h-80 flex-1 flex-col gap-2 overflow-y-auto text-naturals-n13"
         >
           <template v-for="(group, label) in installVersions" :key="label">
             <RadioGroupLabel

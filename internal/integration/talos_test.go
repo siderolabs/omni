@@ -1274,7 +1274,7 @@ func AssertMachineShouldBeUpgradedViaMaintenanceLifecycle(
 
 func installDisk(machineStatus *omni.MachineStatus) string {
 	for _, dev := range machineStatus.TypedSpec().Value.GetHardware().GetBlockdevices() {
-		if dev.GetReadonly() || dev.GetType() == "CD" {
+		if dev.GetReadonly() || dev.GetType() == "CD" || omni.IsCompositeBlockDevice(dev) {
 			continue
 		}
 

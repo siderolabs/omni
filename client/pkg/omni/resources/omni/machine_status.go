@@ -177,6 +177,12 @@ func ReconcileMachineStatusLabels(machineStatus *MachineStatus) {
 		storageSize := uint64(0)
 
 		for _, blockDevice := range machineStatus.TypedSpec().Value.GetHardware().GetBlockdevices() {
+			// disks built on top of other disks (md arrays, device-mapper volumes) are backed by
+			// other devices in the list, so counting them would inflate the total
+			if IsCompositeBlockDevice(blockDevice) {
+				continue
+			}
+
 			storageSize += blockDevice.GetSize()
 		}
 
@@ -265,6 +271,12 @@ func ReconcileMachineStatusLabels(machineStatus *MachineStatus) {
 
 		return optional.None[string]()
 	})
+}
+
+// IsCompositeBlockDevice reports whether the block device is composed of other devices
+// (an md array, a device-mapper or LVM volume).
+func IsCompositeBlockDevice(disk *specs.MachineStatusSpec_HardwareStatus_BlockDevice) bool {
+	return len(disk.SecondaryDisks) > 0 || disk.BusPath == "/virtual"
 }
 
 // GetMachineStatusSystemDisk looks up a system disk for the Talos machine.

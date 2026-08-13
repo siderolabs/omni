@@ -857,6 +857,11 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 		kernelArgs := omni.NewKernelArgs(uuid.New().String())
 		kernelArgsStatus := omni.NewKernelArgsStatus(uuid.New().String())
 
+		installDiskConfig := omni.NewMachineInstallDiskConfig(uuid.New().String())
+		installDiskConfig.TypedSpec().Value.Disk = "/dev/vda"
+
+		installDiskStatus := omni.NewMachineInstallDiskStatus(uuid.New().String())
+
 		joinToken := siderolink.NewJoinToken(uuid.New().String())
 
 		defaultJoinToken, err := safe.StateGetByID[*siderolink.DefaultJoinToken](rootCtx, rootCli.Omni().State(), siderolink.DefaultJoinTokenID)
@@ -959,6 +964,14 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 			{
 				resource:       kernelArgsStatus,
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
+				resource:       installDiskConfig,
+				allowedVerbSet: allVerbsSet,
+			},
+			{
+				resource:       installDiskStatus,
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{

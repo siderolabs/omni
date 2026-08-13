@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
-	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -23,171 +22,6 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils/rmock/options"
 )
-
-func TestGenInstallConfig(t *testing.T) {
-	for _, tt := range []struct {
-		name                string
-		talosVersion        string
-		machineStatusSpec   *specs.MachineStatusSpec
-		expectedInstallDisk string
-	}{
-		{
-			name: "empty",
-		},
-		{
-			name:              "nohw",
-			machineStatusSpec: &specs.MachineStatusSpec{},
-		},
-		{
-			name: "single disk",
-			machineStatusSpec: &specs.MachineStatusSpec{
-				Hardware: &specs.MachineStatusSpec_HardwareStatus{
-					Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{
-						{
-							LinuxName: "/dev/sda",
-							Size:      8e9,
-						},
-					},
-				},
-			},
-			expectedInstallDisk: "/dev/sda",
-		},
-		{
-			name: "not matched",
-			machineStatusSpec: &specs.MachineStatusSpec{
-				Hardware: &specs.MachineStatusSpec_HardwareStatus{
-					Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{
-						{
-							LinuxName: "/dev/sda",
-							Size:      4e9,
-						},
-						{
-							LinuxName: "/dev/sda",
-							Size:      8e9,
-							Type:      storage.Disk_CD.String(),
-						},
-						{
-							LinuxName: "/dev/sda",
-							Size:      4e9,
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "matched not usb not virtual",
-			machineStatusSpec: &specs.MachineStatusSpec{
-				Hardware: &specs.MachineStatusSpec_HardwareStatus{
-					Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{
-						{
-							LinuxName: "/dev/sda",
-							Size:      8e9,
-							Transport: "usb",
-						},
-						{
-							LinuxName: "/dev/dm-0",
-							Size:      8e9,
-							BusPath:   "/virtual",
-						},
-						{
-							LinuxName: "/dev/sdb",
-							Size:      10e9,
-						},
-						{
-							LinuxName: "/dev/sdc",
-							Size:      14e9,
-						},
-						{
-							LinuxName: "/dev/sdf",
-							Size:      7e9,
-							Transport: "usb",
-						},
-						{
-							LinuxName: "/dev/dm-1",
-							Size:      7e9,
-							BusPath:   "/virtual",
-						},
-					},
-				},
-			},
-			expectedInstallDisk: "/dev/sdb",
-		},
-		{
-			name: "select by size",
-			machineStatusSpec: &specs.MachineStatusSpec{
-				Hardware: &specs.MachineStatusSpec_HardwareStatus{
-					Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{
-						{
-							Size:      25165824000,
-							LinuxName: "/dev/sda",
-							Transport: "sata",
-							Type:      "HDD",
-						},
-						{
-							Size:      6442450944,
-							LinuxName: "/dev/vdb",
-							Transport: "usb",
-							Type:      "HDD",
-						},
-						{
-							Size:      6442450944,
-							LinuxName: "/dev/vda",
-							Transport: "virtio",
-							Type:      "HDD",
-						},
-						{
-							Size:      6442450943,
-							LinuxName: "/dev/vdc",
-							Transport: "usb",
-							Type:      "HDD",
-						},
-					},
-				},
-			},
-			expectedInstallDisk: "/dev/vda",
-		},
-		{
-			name: "system disk",
-			machineStatusSpec: &specs.MachineStatusSpec{
-				Hardware: &specs.MachineStatusSpec_HardwareStatus{
-					Blockdevices: []*specs.MachineStatusSpec_HardwareStatus_BlockDevice{
-						{
-							LinuxName: "/dev/sda",
-							Size:      8e9,
-						},
-						{
-							LinuxName:  "/dev/sdb",
-							Size:       10e9,
-							SystemDisk: true,
-						},
-						{
-							LinuxName: "/dev/sdc",
-							Size:      14e9,
-						},
-					},
-				},
-			},
-			expectedInstallDisk: "/dev/sdb",
-		},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			ms := omni.NewMachineStatus("id")
-
-			if tt.machineStatusSpec != nil {
-				ms.TypedSpec().Value = tt.machineStatusSpec
-			}
-
-			talosVersion := omni.NewClusterMachineTalosVersion("id")
-			talosVersion.TypedSpec().Value.TalosVersion = tt.talosVersion
-
-			genOptions := omni.NewMachineConfigGenOptions("id")
-
-			omnictrl.GenInstallConfig(ms, talosVersion, genOptions, "factory.talos.dev")
-
-			assert.Equal(t, tt.expectedInstallDisk, genOptions.TypedSpec().Value.InstallDisk)
-		})
-	}
-}
 
 // TestMachineConfigGenOptionsFactoryHost covers which image factory host the controller records in the
 // install image of a machine that already has MachineConfigGenOptions, i.e. what an Omni upgrade leaves
@@ -211,9 +45,6 @@ func TestMachineConfigGenOptionsFactoryHost(t *testing.T) {
 
 		installedTalosVersion = "1.9.3"
 		upgradeTalosVersion   = "1.10.0"
-
-		// the install disk the controller picks from the mocked machine status hardware
-		expectedInstallDisk = "sda"
 	)
 
 	// installImage is the install image of the machine as it is stored in the state before the
@@ -291,7 +122,19 @@ func TestMachineConfigGenOptionsFactoryHost(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 			t.Cleanup(cancel)
 
-			const machineID = "machine-1"
+			// The machine under test, and a second "fence" machine seeded with an empty factory
+			// host, so that its backfill is always an observable write. Both are seeded before
+			// the runtime starts, the initial reconcile queue is ordered by ID, and the
+			// controller runs its default single worker. Therefore, once the fence machine is
+			// backfilled, the machine under test has been reconciled too. This way, the
+			// keep-the-host cases assert on the reconciled value, not on the seeded one, as a
+			// no-change reconcile leaves no trace of its own on the resource.
+			const (
+				machineID      = "machine-1"
+				fenceMachineID = "machine-2"
+			)
+
+			require.Less(t, machineID, fenceMachineID, "the fence works only when the machine under test is reconciled first")
 
 			testutils.WithRuntime(
 				ctx, t, testutils.TestOptions{},
@@ -333,17 +176,33 @@ func TestMachineConfigGenOptionsFactoryHost(t *testing.T) {
 					rmock.Mock[*omni.MachineConfigGenOptions](
 						ctx, t, tc.State, options.WithID(machineID),
 						options.Modify(func(res *omni.MachineConfigGenOptions) error {
-							res.TypedSpec().Value.InstallDisk = ""
 							res.TypedSpec().Value.InstallImage = tt.storedInstallImage.CloneVT()
+
+							return nil
+						}),
+					)
+
+					rmock.Mock[*omni.MachineStatus](ctx, t, tc.State, options.WithID(fenceMachineID))
+					rmock.Mock[*omni.MachineConfigGenOptions](
+						ctx, t, tc.State, options.WithID(fenceMachineID),
+						options.Modify(func(res *omni.MachineConfigGenOptions) error {
+							res.TypedSpec().Value.InstallImage = installImage(installedTalosVersion, "")
 
 							return nil
 						}),
 					)
 				},
 				func(ctx context.Context, tc testutils.TestContext) {
+					fenceFactoryHost := primaryFactoryHost
+					if tt.withSecondary {
+						fenceFactoryHost = secondaryFactoryHost
+					}
+
+					rtestutils.AssertResource(ctx, t, tc.State, fenceMachineID, func(res *omni.MachineConfigGenOptions, assertions *assert.Assertions) {
+						assertions.Equal(fenceFactoryHost, res.TypedSpec().Value.InstallImage.GetImageFactoryHost())
+					})
+
 					rtestutils.AssertResource(ctx, t, tc.State, machineID, func(res *omni.MachineConfigGenOptions, assertions *assert.Assertions) {
-						// the install disk is only ever written by the controller, so it marks the resource as reconciled
-						assertions.Equal(expectedInstallDisk, res.TypedSpec().Value.InstallDisk)
 						assertions.Equal(tt.expectedFactoryHost, res.TypedSpec().Value.InstallImage.GetImageFactoryHost())
 					})
 				},

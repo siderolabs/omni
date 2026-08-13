@@ -6,6 +6,7 @@ import isEqual from 'lodash/isEqual'
 import type { Ref } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
+import { RequestError } from '@/api/fetch.pb'
 import { Code } from '@/api/google/rpc/code.pb'
 import type { Resource } from '@/api/grpc'
 import { ResourceService } from '@/api/grpc'
@@ -14,6 +15,7 @@ import type {
   ClusterSpec,
   EtcdManualBackupSpec,
   KubernetesUpgradeStatusSpec,
+  MachineInstallDiskConfigSpec,
   MachineSetSpec,
   TalosUpgradeStatusSpec,
 } from '@/api/omni/specs/omni.pb'
@@ -31,19 +33,13 @@ import {
   LabelMachine,
   LabelMachineSet,
   LabelManagedByMachineSetNodeController,
+  MachineInstallDiskConfigType,
   MachineSetNodeType,
   MachineSetType,
   TalosUpgradeStatusType,
 } from '@/api/resources'
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
 import { parseLabels } from '@/methods/labels'
-
-export type MachineConfig = {
-  role?: string
-  configPatch: string
-  installDisk?: string
-  id?: string
-}
 
 const createResources = async (resources: Resource[]) => {
   for (const resource of resources) {
@@ -52,7 +48,7 @@ const createResources = async (resources: Resource[]) => {
     } catch (e) {
       throw new ClusterCommandError(
         `Failed to Create ${resource.metadata.type}(${resource.metadata.namespace}/${resource.metadata.id}})`,
-        `The resource creation failed with the error: ${e.message}`,
+        `The resource creation failed with the error: ${e instanceof Error ? e.message : String(e)}`,
       )
     }
   }
@@ -76,6 +72,76 @@ const updateResource = async <T extends Resource>(
   await ResourceService.Update<T>(resource, resource.metadata.version, withRuntime(Runtime.Omni))
 }
 
+// reconcileInstallDiskConfigs applies the pending install disk selections collected from the
+// cluster creation and scaling flows. A dev path creates or updates the MachineInstallDiskConfig
+// of the machine, null deletes it (back to automatic selection).
+//
+// MachineInstallDiskConfig is machine-scoped and survives the cluster membership, so it must
+// never go through clusterSync. The generic diff there would fail creating a config surviving
+// from a previous cluster, and would delete the configs of the machines outside the synced
+// cluster. Also, this must complete BEFORE clusterSync, so that the selection is in place before
+// any MachineSetNode makes a machine installable.
+export async function reconcileInstallDiskConfigs(
+  pendingSelections: Record<string, string | null>,
+) {
+  for (const [machineID, disk] of Object.entries(pendingSelections)) {
+    const metadata = {
+      namespace: DefaultNamespace,
+      type: MachineInstallDiskConfigType,
+      id: machineID,
+    }
+
+    try {
+      if (disk === null) {
+        try {
+          await ResourceService.Delete(metadata, withRuntime(Runtime.Omni))
+        } catch (e) {
+          if (!(e instanceof RequestError) || e.code !== Code.NOT_FOUND) {
+            throw e
+          }
+        }
+
+        continue
+      }
+
+      let existing: Resource<MachineInstallDiskConfigSpec> | undefined
+
+      try {
+        existing = await ResourceService.Get(metadata, withRuntime(Runtime.Omni))
+      } catch (e) {
+        if (!(e instanceof RequestError) || e.code !== Code.NOT_FOUND) {
+          throw e
+        }
+      }
+
+      if (existing) {
+        await ResourceService.Update(
+          {
+            ...existing,
+            spec: {
+              ...existing.spec,
+              disk,
+              disk_selector: undefined,
+            },
+          },
+          existing.metadata.version,
+          withRuntime(Runtime.Omni),
+        )
+      } else {
+        await ResourceService.Create<Resource<MachineInstallDiskConfigSpec>>(
+          { metadata, spec: { disk } },
+          withRuntime(Runtime.Omni),
+        )
+      }
+    } catch (e) {
+      throw new ClusterCommandError(
+        `Failed to Update the Install Disk Selection of Machine ${machineID}`,
+        `The operation failed with the error: ${e instanceof Error ? e.message : String(e)}`,
+      )
+    }
+  }
+}
+
 const timeout = 10 * 60 * 1000 // 10 minutes
 
 export const destroyResources = async (resources: DeleteRequest[], phase?: Ref<string>) => {
@@ -87,7 +153,7 @@ export const destroyResources = async (resources: DeleteRequest[], phase?: Ref<s
 
       await ResourceService.Delete(request, withRuntime(Runtime.Omni), withTimeout(timeout))
     } catch (e) {
-      if (e.code !== Code.NOT_FOUND) {
+      if (!(e instanceof RequestError) || e.code !== Code.NOT_FOUND) {
         throw e
       }
     }
@@ -103,7 +169,7 @@ export const teardownResources = async (resources: DeleteRequest[], phase?: Ref<
 
       await ResourceService.Teardown(request, withRuntime(Runtime.Omni), withTimeout(timeout))
     } catch (e) {
-      if (e.code !== Code.NOT_FOUND) {
+      if (!(e instanceof RequestError) || e.code !== Code.NOT_FOUND) {
         throw e
       }
     }
@@ -201,7 +267,7 @@ export const clusterSync = async (resources: Resource[], old?: Resource[]) => {
           await ResourceService.Delete(res, withRuntime(Runtime.Omni))
       }
     } catch (e) {
-      if (e.code !== Code.NOT_FOUND) {
+      if (!(e instanceof RequestError) || e.code !== Code.NOT_FOUND) {
         throw e
       }
     }
@@ -283,7 +349,7 @@ export const restoreNode = async (clusterMachine: Resource) => {
   } catch (e) {
     throw new ClusterCommandError(
       'Failed To Rollback Machine Set Node',
-      `Failed to restore machine set node ${clusterMachine.metadata.id} for ${clusterName}: ${e.message}`,
+      `Failed to restore machine set node ${clusterMachine.metadata.id} for ${clusterName}: ${e instanceof Error ? e.message : String(e)}`,
     )
   }
 }
@@ -432,7 +498,7 @@ export const triggerEtcdBackup = async (clusterID: string) => {
 
     exists = true
   } catch (e) {
-    if (e.code !== Code.NOT_FOUND) {
+    if (!(e instanceof RequestError) || e.code !== Code.NOT_FOUND) {
       throw e
     }
 

@@ -316,6 +316,30 @@ func TestBuildConfigPatchSkipsOnEmptyConfig(t *testing.T) {
 	require.Nil(t, patch)
 }
 
+// TestBuildConfigPatchRejectsV1Alpha1MachineDocuments pins a pre-existing property the install
+// disk restriction relies on: NO v1alpha1 document with a machine section is ever preserved
+// here. This is because re-encoding such a document always emits the machine type and token
+// keys (the machinery types have no omitempty on them), and those are forbidden patch fields.
+// Therefore, forbidding machine.install.disk cannot newly reject a config this path would
+// otherwise have preserved.
+func TestBuildConfigPatchRejectsV1Alpha1MachineDocuments(t *testing.T) {
+	t.Parallel()
+
+	observed := []byte(`version: v1alpha1
+machine:
+    install:
+        disk: /dev/nvme0n1
+    network:
+        hostname: keep-me
+cluster: {}
+`)
+
+	patch, reason, err := (&machineconfig.ExtractionController{}).BuildConfigPatch("machine-1", observed)
+	require.NoError(t, err)
+	require.NotEmpty(t, reason)
+	require.Nil(t, patch)
+}
+
 func TestBuildConfigPatchRejectsConfigWithForbiddenFields(t *testing.T) {
 	t.Parallel()
 

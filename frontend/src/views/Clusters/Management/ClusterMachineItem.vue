@@ -8,27 +8,30 @@ included in the LICENSE file.
 import { computedAsync } from '@vueuse/core'
 import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, watchEffect } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import type { Resource } from '@/api/grpc'
-import type { MachineConfigGenOptionsSpec, MachineStatusSpec } from '@/api/omni/specs/omni.pb'
+import type {
+  MachineInstallDiskConfigSpec,
+  MachineInstallDiskStatusSpec,
+  MachineStatusSpec,
+} from '@/api/omni/specs/omni.pb'
 import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb'
-import {
-  LabelControlPlaneRole,
-  PatchBaseWeightClusterMachine,
-  PatchWeightInstallDisk,
-} from '@/api/resources'
+import { LabelControlPlaneRole, PatchBaseWeightClusterMachine } from '@/api/resources'
 import IconButton from '@/components/Button/IconButton.vue'
 import TListItem from '@/components/List/TListItem.vue'
 import ConfigPatchEditModal from '@/components/Modals/ConfigPatchEditModal.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
+import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { getPatch } from '@/methods/getPatch'
+import type { InstallDiskSelectItem } from '@/methods/installdisk'
+import { installDiskFallbackItem, installDiskSelectItems } from '@/methods/installdisk'
 import type { Label } from '@/methods/labels'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
 import { useMachineName } from '@/methods/node'
 import type { MachineSetNode } from '@/states/cluster-management'
-import { PatchID, state } from '@/states/cluster-management'
+import { automaticInstallDisk, selectorInstallDisk, state } from '@/states/cluster-management'
 import CreateExtensionsModal from '@/views/Clusters/components/CreateExtensionsModal.vue'
 import MachineItemLabels from '@/views/ItemLabels/ItemLabels.vue'
 
@@ -41,13 +44,23 @@ defineEmits<{
 
 const {
   item,
+  installDiskStatus,
+  installDiskConfig,
   versionContract,
   reset = undefined,
   searchQuery = undefined,
   versionMismatch,
   autoInstallNotice = null,
 } = defineProps<{
-  item: Resource<MachineStatusSpec & MachineConfigGenOptionsSpec>
+  item: Resource<MachineStatusSpec>
+  /**
+   * List of machine disks
+   */
+  installDiskStatus?: Resource<MachineInstallDiskStatusSpec>
+  /**
+   * Current disk selection
+   */
+  installDiskConfig?: Resource<MachineInstallDiskConfigSpec>
   versionContract: Resource<VersionContractSpec>
   reset?: number
   searchQuery?: string
@@ -64,20 +77,73 @@ const machineSetIndex = ref<number>()
 const configPatchEditModalOpen = ref(false)
 const createExtensionsModalOpen = ref(false)
 const blockdevices = computed(() => item.spec.hardware?.blockdevices || [])
-const systemDiskPath = computed(
-  () => blockdevices.value.find((device) => device.system_disk)?.linux_name,
-)
+const systemDiskPath = computed(() => {
+  const systemDisk = blockdevices.value.find((device) => device.system_disk)
 
-// TODO: This filter is a diverged copy of the backend's install disk candidate logic, which also
-//       filters by minimum size and virtual bus path and puts USB disks last. The filtering should be
-//       centralized on the backend. See internal/backend/runtime/omni/controllers/omni/machine_config_gen_options.go
-//       and https://github.com/siderolabs/omni/issues/3199.
-const disks = computed(() =>
-  blockdevices.value
-    .filter((device) => !device.readonly && device.type !== 'CD')
-    .map((device) => device.linux_name!),
-)
-const defaultInstallDisk = computed(() => item.spec.install_disk ?? disks.value[0])
+  // dev_path with a linux_name fallback for machines polled before the dev_path field existed
+  return systemDisk?.dev_path || systemDisk?.linux_name
+})
+
+const existingDisk = computed(() => installDiskConfig?.spec.disk)
+const existingSelector = computed(() => installDiskConfig?.spec.disk_selector)
+
+const disks = computed(() => {
+  // the backend evaluates and orders the disks, the entries just render its verdicts
+  const selectItems = installDiskSelectItems(installDiskStatus?.spec)
+  // The two resources are independent, so the parenthesized disk is attached only when the
+  // selection hash on the status agrees with the entry: empty hash for "Auto", non-empty for
+  // "Selector".
+  const selectionHash = installDiskStatus?.spec.selection_hash
+  const resolvedInstallDisk = installDiskStatus?.spec.disk
+
+  const automaticLabel =
+    !installDiskConfig && resolvedInstallDisk && !selectionHash
+      ? `${automaticInstallDisk} (${resolvedInstallDisk})`
+      : automaticInstallDisk
+
+  const items: InstallDiskSelectItem[] = [{ label: automaticLabel, value: automaticInstallDisk }]
+
+  if (existingSelector.value) {
+    items.push({
+      label:
+        resolvedInstallDisk && selectionHash
+          ? `${selectorInstallDisk} (${resolvedInstallDisk})`
+          : selectorInstallDisk,
+      value: selectorInstallDisk,
+      tooltip: existingSelector.value,
+    })
+  }
+
+  const added = new Set<string>(selectItems.map((item) => item.value))
+
+  // a disk referenced by the existing selection or the resolution but absent from the offered
+  // entries gets a fallback entry (pickable or disabled, see installDiskFallbackItem)
+  for (const disk of [existingDisk.value, resolvedInstallDisk]) {
+    if (disk && !added.has(disk)) {
+      added.add(disk)
+      items.push(installDiskFallbackItem(disk, installDiskStatus?.spec))
+    }
+  }
+
+  return [...items, ...selectItems]
+})
+
+// A pending pick whose entry disappears (e.g. the disk turns out to be an md array member on
+// the next poll) is cleared, so a selection the dropdown no longer offers cannot be submitted.
+// The status check skips the transient empty state of a reconnecting watch.
+watchEffect(() => {
+  const pendingSelection = machineSetNode.value.installDiskConfig
+
+  if (typeof pendingSelection !== 'string' || !installDiskStatus) {
+    return
+  }
+
+  const values = disks.value.filter((entry) => !entry.disabled).map((entry) => entry.value)
+
+  if (!values.includes(pendingSelection)) {
+    delete machineSetNode.value.installDiskConfig
+  }
+})
 
 watch(
   state.value,
@@ -181,23 +247,38 @@ const options = computed(() => {
 })
 
 const machinePatchID = computed(() => `cm-${item.metadata.id}`)
-const installDiskPatchID = computed(() => `cm-${item.metadata.id}-${PatchID.InstallDisk}`)
 
-const setInstallDisk = async (value: string) => {
-  if (value === defaultInstallDisk.value) {
-    delete machineSetNode.value.patches[installDiskPatchID.value]
-    return
-  }
+// The dropdown selection is a pending choice, recorded only when the user touches the
+// dropdown and applied on submit (see reconcileInstallDiskConfigs). An untouched machine gets
+// no writes at all. Picking a concrete disk always pins it, even when it equals the
+// automatically resolved one.
+const selectedInstallDisk = computed<string>({
+  get() {
+    const pendingSelection = machineSetNode.value.installDiskConfig
 
-  const patch = await getPatch(versionContract.spec, 'machineInstallDisk', { disk: value })
+    if (pendingSelection === null) return automaticInstallDisk
+    if (pendingSelection !== undefined) return pendingSelection
+    if (existingDisk.value) return existingDisk.value
+    if (existingSelector.value) return selectorInstallDisk
 
-  machineSetNode.value.patches[installDiskPatchID.value] = {
-    data: patch,
-    systemPatch: true,
-    weight: PatchWeightInstallDisk,
-    nameAnnotation: PatchID.InstallDisk,
-  }
-}
+    return automaticInstallDisk
+  },
+  set(value) {
+    switch (value) {
+      // "Auto" always records the delete: the config watch may not have delivered yet, and
+      // deleting a missing selection is tolerated on submit.
+      case automaticInstallDisk:
+        machineSetNode.value.installDiskConfig = null
+        break
+      case selectorInstallDisk:
+      case existingDisk.value:
+        delete machineSetNode.value.installDiskConfig
+        break
+      default:
+        machineSetNode.value.installDiskConfig = value
+    }
+  },
+})
 
 const systemExtensions = ref<string[]>()
 
@@ -247,21 +328,22 @@ const onSavePatchConfig = (config: string) => {
         </span>
 
         <template v-if="machineSetIndex !== undefined">
-          <div
-            v-if="systemDiskPath"
-            class="cursor-not-allowed rounded border border-naturals-n6 py-1.5 pr-8 pl-3 text-naturals-n11"
-          >
-            Install Disk: {{ systemDiskPath }}
-          </div>
-          <div v-else>
-            <TSelectList
-              class="h-7"
-              title="Install Disk"
-              :values="disks"
-              :default-value="defaultInstallDisk"
-              @checked-value="setInstallDisk"
-            />
-          </div>
+          <Tooltip :description="installDiskStatus?.spec.message" placement="bottom">
+            <div
+              v-if="systemDiskPath"
+              class="cursor-not-allowed rounded border border-naturals-n6 py-1.5 pr-8 pl-3 text-naturals-n11"
+            >
+              Install Disk: {{ systemDiskPath }}
+            </div>
+            <div v-else>
+              <TSelectList
+                v-model="selectedInstallDisk"
+                class="h-7"
+                title="Install Disk"
+                :values="disks"
+              />
+            </div>
+          </Tooltip>
         </template>
 
         <MachineSetPicker v-model="machineSetIndex" :options="options" />

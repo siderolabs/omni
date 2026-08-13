@@ -28,6 +28,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/installimage"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/installdisk"
 	machineconfigctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/machineconfig"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/secrets"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/talosupgrade"
@@ -39,6 +40,10 @@ import (
 const (
 	defaultSchematic = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
 	imageFactoryHost = "factory-test.talos.dev"
+
+	// defaultInstallDisk is the MachineInstallDiskStatus preset disk, also used as the fallback
+	// by the ClusterMachineConfig preset when the status is not mocked.
+	defaultInstallDisk = "/dev/vda"
 )
 
 var (
@@ -298,7 +303,6 @@ func init() {
 			}
 		}
 
-		res.TypedSpec().Value.InstallDisk = "/dev/vda"
 		res.TypedSpec().Value.InstallImage = &specs.MachineConfigGenOptionsSpec_InstallImage{
 			TalosVersion:         talosVersion,
 			SchematicId:          defaultSchematic,
@@ -306,6 +310,15 @@ func init() {
 			SchematicInitialized: true,
 			SecurityState:        &specs.SecurityState{SecureBoot: false},
 			ImageFactoryHost:     imageFactoryHost,
+		}
+
+		return nil
+	})
+
+	addDefaults(func(_ context.Context, _ state.State, res *omni.MachineInstallDiskStatus) error {
+		res.TypedSpec().Value.Disk = defaultInstallDisk
+		res.TypedSpec().Value.Disks = []*specs.MachineInstallDiskStatusSpec_Disk{
+			{DevPath: defaultInstallDisk, Selectable: true},
 		}
 
 		return nil
@@ -345,6 +358,19 @@ func init() {
 		machineConfigGenOptions, err := safe.ReaderGetByID[*omni.MachineConfigGenOptions](ctx, st, res.Metadata().ID())
 		if err != nil {
 			return err
+		}
+
+		// Fall back to the default disk when the install disk status is not mocked. Most tests
+		// don't care about the disk, and the default matches the MachineInstallDiskStatus preset.
+		installDisk := defaultInstallDisk
+
+		installDiskStatus, err := safe.ReaderGetByID[*omni.MachineInstallDiskStatus](ctx, st, res.Metadata().ID())
+		if err != nil && !state.IsNotFoundError(err) {
+			return err
+		}
+
+		if installDiskStatus != nil {
+			installDisk = installDiskStatus.TypedSpec().Value.Disk
 		}
 
 		clusterName, ok := clusterMachine.Metadata().Labels().Get(omni.LabelCluster)
@@ -387,7 +413,7 @@ func init() {
 			InitialKubernetesVersion: cluster.TypedSpec().Value.KubernetesVersion,
 			IsControlPlane:           isControlPlane,
 			SiderolinkEndpoint:       "localhost:6443",
-			InstallDisk:              machineConfigGenOptions.TypedSpec().Value.InstallDisk,
+			InstallDisk:              installDisk,
 			InstallImage:             installImage,
 			Secrets:                  secretsBundle,
 		})
@@ -401,6 +427,8 @@ func init() {
 		if err != nil {
 			return err
 		}
+
+		res.TypedSpec().Value.InstallDisk = installDisk
 
 		return res.TypedSpec().Value.SetUncompressedData(data)
 	})
@@ -440,6 +468,7 @@ func init() {
 	setOwner[*omni.ClusterSecrets](secrets.NewSecretsController(nil).ControllerName)
 	setOwner[*omni.ClusterMachineConfig](omnictrl.NewClusterMachineController().ControllerName)
 	setOwner[*omni.MachineConfigGenOptions](omnictrl.NewMachineConfigGenOptionsController(nil).ControllerName)
+	setOwner[*omni.MachineInstallDiskStatus](installdisk.NewStatusController().ControllerName)
 	setOwner[*omni.TalosConfig](secrets.NewTalosConfigController(omnictrl.DefaultDebounceDuration).ControllerName)
 	setOwner[*omni.Machine](omnictrl.NewMachineController().ControllerName)
 	setOwner[*omni.MachineSetStatus](omnictrl.NewMachineSetStatusController().ControllerName)

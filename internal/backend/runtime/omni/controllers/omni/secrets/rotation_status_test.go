@@ -1480,6 +1480,7 @@ url: tcp://[fdae:41e4:649b:9303::1]:8092`,
 		rmock.Mock[*omni.ClusterMachineConfigPatches](ctx, t, st, options.SameID(machine))
 		rmock.Mock[*omni.MachineStatusSnapshot](ctx, t, st, options.SameID(machine))
 		rmock.Mock[*omni.MachineConfigGenOptions](ctx, t, st, options.SameID(machine))
+		rmock.Mock[*omni.MachineInstallDiskStatus](ctx, t, st, options.SameID(machine))
 	}
 
 	return cluster, machines

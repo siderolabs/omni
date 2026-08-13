@@ -17,6 +17,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/siderolabs/gen/value"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/talos/pkg/machinery/api/storage"
 	"github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/nethelpers"
@@ -403,22 +404,35 @@ func pollDisks(ctx context.Context, c *client.Client, info *Info) error {
 				return nil
 			}
 
-			if len(spec.SecondaryDisks) > 0 || spec.BusPath == "/virtual" { // not a real disk, e.g., a device mapper device (lvm)
-				return nil
-			}
-
+			// Disks built on top of other disks (md arrays and device-mapper volumes, i.e.,
+			// SecondaryDisks is non-empty or the bus path is virtual) are kept on purpose, as
+			// install disk selectors may target them. The resolver excludes them from the
+			// automatic install disk selection instead.
+			// The vendor-supplied sysfs strings are sanitized, because invalid UTF-8 in any
+			// proto3 string field would fail marshaling the whole machine status.
 			info.Blockdevices = append(info.Blockdevices, &specs.MachineStatusSpec_HardwareStatus_BlockDevice{
-				Size:       spec.Size,
-				Model:      spec.Model,
-				LinuxName:  filepath.Join("/dev", disk.Metadata().ID()),
-				Serial:     spec.Serial,
-				Uuid:       spec.UUID,
-				Wwid:       strings.ToValidUTF8(spec.WWID, ""),
-				Type:       diskType.String(),
-				BusPath:    spec.BusPath,
-				SystemDisk: systemDisk != nil && disk.Metadata().ID() == systemDisk.TypedSpec().DiskID,
-				Readonly:   spec.Readonly,
-				Transport:  spec.Transport,
+				Size:            spec.Size,
+				Model:           strings.ToValidUTF8(spec.Model, ""),
+				LinuxName:       filepath.Join("/dev", disk.Metadata().ID()),
+				Serial:          strings.ToValidUTF8(spec.Serial, ""),
+				Uuid:            spec.UUID,
+				Wwid:            strings.ToValidUTF8(spec.WWID, ""),
+				Type:            diskType.String(),
+				BusPath:         spec.BusPath,
+				SystemDisk:      systemDisk != nil && disk.Metadata().ID() == systemDisk.TypedSpec().DiskID,
+				Readonly:        spec.Readonly,
+				Transport:       spec.Transport,
+				DevPath:         spec.DevPath,
+				IoSize:          uint64(spec.IOSize),
+				SectorSize:      uint64(spec.SectorSize),
+				Modalias:        strings.ToValidUTF8(spec.Modalias, ""),
+				SubSystem:       spec.SubSystem,
+				Rotational:      spec.Rotational,
+				Cdrom:           spec.CDROM,
+				PrettySize:      spec.PrettySize,
+				SecondaryDisks:  spec.SecondaryDisks,
+				Symlinks:        xslices.Map(spec.Symlinks, func(s string) string { return strings.ToValidUTF8(s, "") }),
+				FirmwareVersion: strings.ToValidUTF8(spec.FirmwareVersion, ""),
 			})
 
 			return nil

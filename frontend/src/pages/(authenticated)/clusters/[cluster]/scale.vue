@@ -15,7 +15,8 @@ import type { Resource } from '@/api/grpc'
 import type {
   ClusterConfigVersionSpec,
   ClusterSpec,
-  MachineConfigGenOptionsSpec,
+  MachineInstallDiskConfigSpec,
+  MachineInstallDiskStatusSpec,
   MachineStatusSpec,
 } from '@/api/omni/specs/omni.pb'
 import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb'
@@ -23,7 +24,8 @@ import {
   ClusterConfigVersionType,
   DefaultNamespace,
   LabelNoManualAllocation,
-  MachineConfigGenOptionsType,
+  MachineInstallDiskConfigType,
+  MachineInstallDiskStatusType,
   MachineStatusLabelAvailable,
   MachineStatusLabelInvalidState,
   MachineStatusLabelReadyToUse,
@@ -39,7 +41,7 @@ import Pagination from '@/components/Pagination/Pagination.vue'
 import TSelectList from '@/components/SelectList/TSelectList.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
-import { ClusterCommandError, clusterSync } from '@/methods/cluster'
+import { ClusterCommandError, clusterSync, reconcileInstallDiskConfigs } from '@/methods/cluster'
 import { machineCompatibleWithCluster } from '@/methods/compat'
 import { addLabel, type Label, selectors } from '@/methods/labels'
 import { useResourcePagination } from '@/methods/resource/useResourcePagination'
@@ -84,6 +86,10 @@ const quorumWarning = computed(() => {
 
 const scaleCluster = async () => {
   try {
+    // commit the install disk selections first, so they are in place before any MachineSetNode
+    // makes a machine installable (the config resource never goes through clusterSync)
+    await reconcileInstallDiskConfigs(state.value.pendingInstallDisks())
+
     await clusterSync(state.value.resources(), existingResources.value)
   } catch (e) {
     if (e instanceof ClusterCommandError) {
@@ -167,16 +173,28 @@ const {
 )
 
 const {
-  data: machineConfigGenOptions,
-  loading: machineConfigGenOptionsLoading,
-  err: machineConfigGenOptionsErr,
-} = useResourceWatch<MachineConfigGenOptionsSpec>({
+  data: installDiskStatuses,
+  loading: installDiskStatusesLoading,
+  err: installDiskStatusesErr,
+} = useResourceWatch<MachineInstallDiskStatusSpec>(() => ({
   resource: {
-    type: MachineConfigGenOptionsType,
+    type: MachineInstallDiskStatusType,
     namespace: DefaultNamespace,
   },
   runtime: Runtime.Omni,
-})
+}))
+
+const {
+  data: installDiskConfigs,
+  loading: installDiskConfigsLoading,
+  err: installDiskConfigsErr,
+} = useResourceWatch<MachineInstallDiskConfigSpec>(() => ({
+  resource: {
+    type: MachineInstallDiskConfigType,
+    namespace: DefaultNamespace,
+  },
+  runtime: Runtime.Omni,
+}))
 
 const { data: clusterConfigVersion } = useResourceGet<ClusterConfigVersionSpec>(() => ({
   runtime: Runtime.Omni,
@@ -201,27 +219,28 @@ const {
   },
 }))
 
-const machineConfigGenOptionsMap = computed(() =>
-  Object.fromEntries(machineConfigGenOptions.value.map((c) => [c.metadata.id!, c])),
+const diskStatusMap = computed(() =>
+  Object.fromEntries(installDiskStatuses.value.map((d) => [d.metadata.id!, d])),
+)
+
+const diskConfigMap = computed(() =>
+  Object.fromEntries(installDiskConfigs.value.map((d) => [d.metadata.id!, d])),
 )
 
 const loading = computed(
   () =>
     machineStatusesLoading.value ||
-    machineConfigGenOptionsLoading.value ||
+    installDiskStatusesLoading.value ||
+    installDiskConfigsLoading.value ||
     versionContractLoading.value,
 )
+
 const err = computed(
-  () => machineStatusesErr.value || machineConfigGenOptionsErr.value || versionContractErr.value,
-)
-const data = computed(() =>
-  machineStatuses.value.map<Resource<MachineStatusSpec & MachineConfigGenOptionsSpec>>((m) => ({
-    ...m,
-    spec: {
-      ...m.spec,
-      ...machineConfigGenOptionsMap.value[m.metadata.id!]?.spec,
-    },
-  })),
+  () =>
+    machineStatusesErr.value ||
+    installDiskStatusesErr.value ||
+    installDiskConfigsErr.value ||
+    versionContractErr.value,
 )
 </script>
 
@@ -261,16 +280,18 @@ const data = computed(() =>
               <TSpinner class="size-6" />
             </div>
             <TAlert v-else-if="err" title="Failed to Fetch Data" type="error">{{ err }}.</TAlert>
-            <TAlert v-else-if="!data.length" type="info" title="No Machines Available">
+            <TAlert v-else-if="!machineStatuses.length" type="info" title="No Machines Available">
               Machine is available when it is connected, not allocated and is reporting Talos
               events.
             </TAlert>
 
             <div v-else-if="versionContract" class="size-full">
               <ClusterMachineItem
-                v-for="item in data"
+                v-for="item in machineStatuses"
                 :key="item.metadata.id"
                 :item="item"
+                :install-disk-status="diskStatusMap[item.metadata.id!]"
+                :install-disk-config="diskConfigMap[item.metadata.id!]"
                 :search-query
                 :version-contract
                 :version-mismatch="detectVersionMismatch(item)"

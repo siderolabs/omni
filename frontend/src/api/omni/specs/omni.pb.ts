@@ -275,6 +275,17 @@ export type MachineStatusSpecHardwareStatusBlockDevice = {
   system_disk?: boolean
   readonly?: boolean
   transport?: string
+  dev_path?: string
+  io_size?: string
+  sector_size?: string
+  modalias?: string
+  sub_system?: string
+  rotational?: boolean
+  cdrom?: boolean
+  pretty_size?: string
+  secondary_disks?: string[]
+  symlinks?: string[]
+  firmware_version?: string
 }
 
 export type MachineStatusSpecHardwareStatus = {
@@ -456,6 +467,7 @@ export type ClusterMachineConfigSpec = {
   compressed_data?: Uint8Array
   without_comments?: boolean
   grub_use_uki_cmdline?: boolean
+  install_disk?: string
 }
 
 export type RedactedClusterMachineConfigSpec = {
@@ -836,7 +848,6 @@ export type MachineConfigGenOptionsSpecInstallImage = {
 }
 
 export type MachineConfigGenOptionsSpec = {
-  install_disk?: string
   install_image?: MachineConfigGenOptionsSpecInstallImage
 }
 
@@ -1184,4 +1195,23 @@ export type MachineConfigExtractionStatusSpec = {
 export type ImageFactoryAuthSpec = {
   username?: string
   password?: string
+}
+
+export type MachineInstallDiskConfigSpec = {
+  disk_selector?: string
+  disk?: string
+}
+
+export type MachineInstallDiskStatusSpecDisk = {
+  dev_path?: string
+  selectable?: boolean
+  skip_reason?: string
+  members?: string[]
+}
+
+export type MachineInstallDiskStatusSpec = {
+  disk?: string
+  message?: string
+  selection_hash?: string
+  disks?: MachineInstallDiskStatusSpecDisk[]
 }

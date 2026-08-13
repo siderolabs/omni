@@ -565,3 +565,90 @@ func filterWith(vals ...string) func(string) bool {
 		return slices.Contains(vals, cur)
 	}
 }
+
+func (suite *MigrationSuite) TestMachineInstallDiskConfigsFromPatches() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	newPatch := func(id, machineID, content string, finalizers ...string) *omni.ConfigPatch {
+		patch := omni.NewConfigPatch(id)
+		patch.Metadata().Labels().Set(omni.LabelClusterMachine, machineID)
+
+		for _, finalizer := range finalizers {
+			patch.Metadata().Finalizers().Add(finalizer)
+		}
+
+		suite.Require().NoError(patch.TypedSpec().Value.SetUncompressedData([]byte(content)))
+
+		return patch
+	}
+
+	// a machine-generated selection patch, with a finalizer as the patch collector leaves behind
+	wellKnown := newPatch("000-cm-machine-1-install-disk", "machine-1", "machine:\n  install:\n    disk: /dev/vdb\n", "ClusterMachineConfigPatchesController")
+	suite.Require().NoError(suite.state.Create(ctx, wellKnown))
+
+	// A machine whose config was already created by a previous partially-failed run (crashed
+	// between the config create and the patch delete). The config must be preserved, and the
+	// patch must still be deleted.
+	interrupted := newPatch("000-cm-machine-4-install-disk", "machine-4", "machine:\n  install:\n    disk: /dev/vdz\n")
+	suite.Require().NoError(suite.state.Create(ctx, interrupted))
+
+	preExisting := omni.NewMachineInstallDiskConfig("machine-4")
+	preExisting.TypedSpec().Value.DiskSelector = `disk.dev_path == "/dev/vdy"`
+	suite.Require().NoError(suite.state.Create(ctx, preExisting))
+
+	// a patch at the well-known ID modified to carry more than the disk, treated as hand-written and left alone
+	mutated := newPatch("000-cm-machine-2-install-disk", "machine-2", "machine:\n  install:\n    disk: /dev/vdb\n  network:\n    hostname: h\n")
+	suite.Require().NoError(suite.state.Create(ctx, mutated))
+
+	// a generic hand-written patch, left alone
+	handWritten := newPatch("400-cm-machine-3-custom", "machine-3", "machine:\n  install:\n    disk: /dev/vdc\n")
+	suite.Require().NoError(suite.state.Create(ctx, handWritten))
+
+	// a patch of a template-managed cluster, so the translated resource must stay template-managed
+	templatedCluster := omni.NewCluster("templated-cluster")
+	templatedCluster.Metadata().Annotations().Set(omni.ResourceManagedByClusterTemplates, "")
+	suite.Require().NoError(suite.state.Create(ctx, templatedCluster))
+
+	templated := newPatch("000-cm-machine-5-install-disk", "machine-5", "machine:\n  install:\n    disk: /dev/vdb\n")
+	templated.Metadata().Labels().Set(omni.LabelCluster, "templated-cluster")
+	suite.Require().NoError(suite.state.Create(ctx, templated))
+
+	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("machineInstallDiskConfigsFromPatches")))
+	suite.Require().NoError(err)
+
+	// the well-known patch is translated and deleted
+	installDiskConfig, err := safe.ReaderGetByID[*omni.MachineInstallDiskConfig](ctx, suite.state, "machine-1")
+	suite.Require().NoError(err)
+	suite.Require().Equal("/dev/vdb", installDiskConfig.TypedSpec().Value.Disk)
+
+	_, err = safe.ReaderGetByID[*omni.ConfigPatch](ctx, suite.state, wellKnown.Metadata().ID())
+	suite.Require().True(state.IsNotFoundError(err), "the well-known install disk patch should be deleted")
+
+	// the mutated and generic patches are untouched, no configs are created for them
+	for _, machineID := range []string{"machine-2", "machine-3"} {
+		_, err = safe.ReaderGetByID[*omni.MachineInstallDiskConfig](ctx, suite.state, machineID)
+		suite.Require().True(state.IsNotFoundError(err), "no install disk config should be created for %s", machineID)
+	}
+
+	_, err = safe.ReaderGetByID[*omni.ConfigPatch](ctx, suite.state, mutated.Metadata().ID())
+	suite.Require().NoError(err)
+
+	_, err = safe.ReaderGetByID[*omni.ConfigPatch](ctx, suite.state, handWritten.Metadata().ID())
+	suite.Require().NoError(err)
+
+	// the templated machine's config carries the managed-by-template annotation
+	templatedConfig, err := safe.ReaderGetByID[*omni.MachineInstallDiskConfig](ctx, suite.state, "machine-5")
+	suite.Require().NoError(err)
+
+	_, managedByTemplates := templatedConfig.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates)
+	suite.Require().True(managedByTemplates, "the config translated from a template-managed cluster's patch must stay template-managed")
+
+	// the interrupted machine, whose pre-existing config is preserved while the patch is still deleted
+	installDiskConfig, err = safe.ReaderGetByID[*omni.MachineInstallDiskConfig](ctx, suite.state, "machine-4")
+	suite.Require().NoError(err)
+	suite.Require().Equal(`disk.dev_path == "/dev/vdy"`, installDiskConfig.TypedSpec().Value.DiskSelector, "a pre-existing config must not be overwritten")
+
+	_, err = safe.ReaderGetByID[*omni.ConfigPatch](ctx, suite.state, interrupted.Metadata().ID())
+	suite.Require().True(state.IsNotFoundError(err), "the patch of the interrupted machine should be deleted")
+}

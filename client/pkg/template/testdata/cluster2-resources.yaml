@@ -165,25 +165,18 @@ spec: {}
 ---
 metadata:
     namespace: default
-    type: ConfigPatches.omni.sidero.dev
-    id: 000-cm-430d882a-51a8-48b3-ae00-90c5b0b5b0b0-install-disk
+    type: MachineInstallDiskConfigs.omni.sidero.dev
+    id: 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
     version: undefined
     owner:
     phase: running
     created: 0001-01-01T00:00:00Z
     updated: 0001-01-01T00:00:00Z
-    labels:
-        omni.sidero.dev/cluster: my-first-cluster
-        omni.sidero.dev/cluster-machine: 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
-        omni.sidero.dev/system-patch:
     annotations:
-        name: install-disk
+        omni.sidero.dev/managed-by-cluster-templates:
 spec:
-    data: |
-        machine:
-            install:
-                disk: /dev/vdb
-    compresseddata: []
+    diskselector: disk.dev_path == "/dev/vdb"
+    disk: ""
 ---
 metadata:
     namespace: default

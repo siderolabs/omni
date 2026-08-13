@@ -720,8 +720,10 @@ type bindMachineOptions struct {
 }
 
 func bindMachine(ctx context.Context, t *testing.T, st state.State, bindOpts bindMachineOptions) {
-	configPatchInstallDisk := omni.NewConfigPatch(
-		fmt.Sprintf("000-%s-%s-install-disk", bindOpts.clusterName, bindOpts.machineID),
+	installDiskConfig := omni.NewMachineInstallDiskConfig(bindOpts.machineID)
+
+	configPatchNodeLabels := omni.NewConfigPatch(
+		fmt.Sprintf("000-%s-%s-node-labels", bindOpts.clusterName, bindOpts.machineID),
 		pair.MakePair(omni.LabelCluster, bindOpts.clusterName),
 		pair.MakePair(omni.LabelClusterMachine, bindOpts.machineID),
 	)
@@ -732,15 +734,18 @@ func bindMachine(ctx context.Context, t *testing.T, st state.State, bindOpts bin
 		pair.MakePair(omni.LabelClusterMachine, bindOpts.machineID),
 	)
 
-	createOrUpdate(ctx, t, st, configPatchInstallDisk, func(cps *omni.ConfigPatch) error {
+	createOrUpdate(ctx, t, st, installDiskConfig, func(config *omni.MachineInstallDiskConfig) error {
+		config.TypedSpec().Value.Disk = "/dev/vda"
+
+		return nil
+	})
+
+	createOrUpdate(ctx, t, st, configPatchNodeLabels, func(cps *omni.ConfigPatch) error {
 		cps.Metadata().Labels().Set(omni.LabelCluster, bindOpts.clusterName)
 		cps.Metadata().Labels().Set(omni.LabelClusterMachine, bindOpts.machineID)
 
 		patch := map[string]any{
 			"machine": map[string]any{
-				"install": map[string]any{
-					"disk": "/dev/vda",
-				},
 				"nodeLabels": map[string]any{
 					nodeLabel: bindOpts.machineID,
 				},

@@ -237,13 +237,19 @@ func (t *Template) actualResources(ctx context.Context, st state.State, expected
 
 		if resourceType == omni.MachineSetNodeType {
 			for _, node := range filteredItems {
-				kernelArgs, getErr := st.Get(ctx, omni.NewKernelArgs(node.Metadata().ID()).Metadata())
-				if getErr != nil && !state.IsNotFoundError(getErr) {
-					return nil, getErr
-				}
+				// machine-scoped resources carry no cluster label, discover them by the node ID
+				for _, machineScoped := range []*resource.Metadata{
+					omni.NewKernelArgs(node.Metadata().ID()).Metadata(),
+					omni.NewMachineInstallDiskConfig(node.Metadata().ID()).Metadata(),
+				} {
+					machineScopedResource, getErr := st.Get(ctx, *machineScoped)
+					if getErr != nil && !state.IsNotFoundError(getErr) {
+						return nil, getErr
+					}
 
-				if kernelArgs != nil {
-					actualResources = append(actualResources, kernelArgs)
+					if machineScopedResource != nil {
+						actualResources = append(actualResources, machineScopedResource)
+					}
 				}
 			}
 		}
@@ -309,7 +315,7 @@ func (t *Template) Delete(ctx context.Context, st state.State) (*SyncResult, err
 	toUpdate := make([]UpdateChange, 0, len(actualResources))
 
 	for _, actualResource := range actualResources {
-		updateChange, destroyRes, handleErr := getOperationForNoMoreExpectedResource(actualResource, clusterName)
+		updateChange, destroyRes, handleErr := getOperationForNoMoreExpectedResource(actualResource, clusterName, nil)
 		if handleErr != nil {
 			return nil, handleErr
 		}
@@ -355,6 +361,14 @@ func (t *Template) Sync(ctx context.Context, st state.State) (*SyncResult, error
 		return metadataKey(*r.Metadata()), r
 	})
 
+	expectedMachineSetNodeIDs := map[resource.ID]struct{}{}
+
+	for _, expectedResource := range expectedResources {
+		if expectedResource.Metadata().Type() == omni.MachineSetNodeType {
+			expectedMachineSetNodeIDs[expectedResource.Metadata().ID()] = struct{}{}
+		}
+	}
+
 	var (
 		syncResult SyncResult
 		toDelete   []resource.Resource
@@ -372,7 +386,7 @@ func (t *Template) Sync(ctx context.Context, st state.State) (*SyncResult, error
 				syncResult.Update = append(syncResult.Update, UpdateChange{Old: actualResource, New: expectedResource})
 			}
 		} else {
-			updateRes, destroyRes, handleErr := getOperationForNoMoreExpectedResource(actualResource, clusterName)
+			updateRes, destroyRes, handleErr := getOperationForNoMoreExpectedResource(actualResource, clusterName, expectedMachineSetNodeIDs)
 			if handleErr != nil {
 				return nil, handleErr
 			}
@@ -405,7 +419,9 @@ func (t *Template) Sync(ctx context.Context, st state.State) (*SyncResult, error
 	return &syncResult, nil
 }
 
-func getOperationForNoMoreExpectedResource(actualResource resource.Resource, clusterName string) (update *UpdateChange, destroy resource.Resource, err error) {
+func getOperationForNoMoreExpectedResource(actualResource resource.Resource, clusterName string, expectedMachineSetNodeIDs map[resource.ID]struct{}) (
+	update *UpdateChange, destroy resource.Resource, err error,
+) {
 	switch actualResource.Metadata().Type() {
 	case omni.KernelArgsType:
 		_, hasManagedByTemplatesAnnotation := actualResource.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates)
@@ -417,6 +433,26 @@ func getOperationForNoMoreExpectedResource(actualResource resource.Resource, clu
 		expectedKernelArgs.Metadata().Annotations().Delete(omni.ResourceManagedByClusterTemplates)
 
 		return &UpdateChange{Old: actualResource, New: expectedKernelArgs}, nil, nil
+	case omni.MachineInstallDiskConfigType:
+		_, hasManagedByTemplatesAnnotation := actualResource.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates)
+		if !hasManagedByTemplatesAnnotation {
+			return nil, nil, nil
+		}
+
+		// The install section was removed while the machine stays in the template. This means the
+		// author asked to return to automatic disk selection, which only deleting the resource
+		// can express.
+		if _, machineStillExpected := expectedMachineSetNodeIDs[actualResource.Metadata().ID()]; machineStillExpected {
+			return nil, actualResource, nil
+		}
+
+		// The machine left the template, or the template is being deleted. Release the ownership
+		// and keep the resource, as the selection is a machine property that survives the cluster
+		// membership.
+		released := actualResource.DeepCopy()
+		released.Metadata().Annotations().Delete(omni.ResourceManagedByClusterTemplates)
+
+		return &UpdateChange{Old: actualResource, New: released}, nil, nil
 	default:
 		// check that actual resource belongs to the cluster to avoid removing resources from other clusters
 		if actualResource.Metadata().Type() != omni.ClusterType {
@@ -431,7 +467,8 @@ func getOperationForNoMoreExpectedResource(actualResource resource.Resource, clu
 
 // validateNoResourceConflictOnCreate checks that creating expectedResource will not conflict with existing resources in the state.
 func validateNoResourceConflictOnCreate(ctx context.Context, st state.State, expectedResource resource.Resource) error {
-	if expectedResource.Metadata().Type() == omni.KernelArgsType { // no cluster relation, nothing to check
+	switch expectedResource.Metadata().Type() {
+	case omni.KernelArgsType, omni.MachineInstallDiskConfigType: // no cluster relation, nothing to check
 		return nil
 	}
 

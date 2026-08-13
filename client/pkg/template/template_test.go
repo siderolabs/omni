@@ -579,7 +579,7 @@ func TestSync(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Clusters.omni.sidero.dev(default/my-first-cluster)",
-		"ConfigPatches.omni.sidero.dev(default/000-cm-430d882a-51a8-48b3-ae00-90c5b0b5b0b0-install-disk)",
+		"MachineInstallDiskConfigs.omni.sidero.dev(default/430d882a-51a8-48b3-ae00-90c5b0b5b0b0)",
 		"MachineSetNodes.omni.sidero.dev(default/430d882a-51a8-48b3-ab00-d4b5b0b5b0b0)",
 	}, xslices.Map(sync2.Update, func(u template.UpdateChange) string { return resource.String(u.New) }))
 
@@ -715,7 +715,18 @@ func TestDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Empty(t, syncDelete.Create)
-	assert.Empty(t, syncDelete.Update)
+
+	// Deleting the template releases the machine-scoped install disk config instead of
+	// destroying it, as the selection is a machine property that survives the cluster membership.
+	assert.Equal(t, []string{
+		"MachineInstallDiskConfigs.omni.sidero.dev(default/430d882a-51a8-48b3-ae00-90c5b0b5b0b0)",
+	}, xslices.Map(syncDelete.Update, func(u template.UpdateChange) string { return resource.String(u.New) }))
+
+	for _, u := range syncDelete.Update {
+		_, managed := u.New.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates)
+		assert.False(t, managed, "the released install disk config must lose the managed-by-template annotation")
+	}
+
 	assert.Len(t, syncDelete.Destroy, 2)
 	assert.Len(t, syncDelete.Destroy[0], 0)
 	assert.Len(t, syncDelete.Destroy[1], 1)
@@ -975,6 +986,120 @@ func removeKernelArgs(t *testing.T, in []byte) []byte {
 		err := enc.Encode(&doc)
 		require.NoError(t, err)
 	}
+
+	return out.Bytes()
+}
+
+func TestSync_InstallDisk_Lifecycle(t *testing.T) {
+	t.Chdir("testdata")
+
+	root := openTestRoot(t)
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+	ctx := t.Context()
+
+	templ, err := template.Load(bytes.NewReader(cluster1), template.WithRoot(root))
+	require.NoError(t, err)
+
+	syncRes, err := templ.Sync(ctx, st)
+	require.NoError(t, err)
+
+	for _, r := range syncRes.Create {
+		require.NoError(t, st.Create(ctx, r))
+	}
+
+	const machineID = "430d882a-51a8-48b3-ae00-90c5b0b5b0b0"
+
+	installDiskConfigMD := resource.NewMetadata(resources.DefaultNamespace, omni.MachineInstallDiskConfigType, machineID, resource.VersionUndefined)
+
+	installDiskConfig, err := st.Get(ctx, installDiskConfigMD)
+	require.NoError(t, err)
+
+	_, managed := installDiskConfig.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates)
+	assert.True(t, managed, "the install disk config should be managed by the template")
+
+	// Removing the install section while the machine stays in the template destroys the config,
+	// as that is the only way the template author can return the machine to automatic selection.
+	clusterWithoutInstall := removeMachineInstall(t, cluster1)
+
+	templRemoved, err := template.Load(bytes.NewReader(clusterWithoutInstall), template.WithRoot(root))
+	require.NoError(t, err)
+
+	syncResRemoved, err := templRemoved.Sync(ctx, st)
+	require.NoError(t, err)
+
+	destroyed := false
+
+	for _, phase := range syncResRemoved.Destroy {
+		for _, r := range phase {
+			if r.Metadata().Type() == omni.MachineInstallDiskConfigType && r.Metadata().ID() == machineID {
+				destroyed = true
+			}
+		}
+	}
+
+	assert.True(t, destroyed, "removing the install stanza while the machine stays must destroy the install disk config")
+
+	// a user-created config (no managed-by-template annotation) is never touched by the template sync
+	require.NoError(t, st.Destroy(ctx, installDiskConfigMD))
+
+	userConfig := omni.NewMachineInstallDiskConfig(machineID)
+	userConfig.TypedSpec().Value.DiskSelector = `disk.serial == "user-choice"`
+	require.NoError(t, st.Create(ctx, userConfig))
+
+	syncResUser, err := templRemoved.Sync(ctx, st)
+	require.NoError(t, err)
+
+	for _, phase := range syncResUser.Destroy {
+		for _, r := range phase {
+			assert.NotEqual(t, omni.MachineInstallDiskConfigType, r.Metadata().Type(), "a user-created install disk config must not be destroyed")
+		}
+	}
+
+	for _, u := range syncResUser.Update {
+		assert.NotEqual(t, omni.MachineInstallDiskConfigType, u.New.Metadata().Type(), "a user-created install disk config must not be updated")
+	}
+}
+
+func removeMachineInstall(t *testing.T, in []byte) []byte {
+	t.Helper()
+
+	var out bytes.Buffer
+
+	dec := yaml.NewDecoder(bytes.NewReader(in))
+	enc := yaml.NewEncoder(&out)
+	enc.SetIndent(2)
+
+	for {
+		var doc yaml.Node
+		if err := dec.Decode(&doc); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			require.NoError(t, err)
+		}
+
+		if len(doc.Content) > 0 && doc.Content[0].Kind == yaml.MappingNode {
+			mapNode := doc.Content[0]
+
+			var newContent []*yaml.Node
+
+			for i := 0; i < len(mapNode.Content); i += 2 {
+				if mapNode.Content[i].Value == "install" {
+					continue
+				}
+
+				newContent = append(newContent, mapNode.Content[i], mapNode.Content[i+1])
+			}
+
+			mapNode.Content = newContent
+		}
+
+		require.NoError(t, enc.Encode(&doc))
+	}
+
+	require.NoError(t, enc.Close())
 
 	return out.Bytes()
 }

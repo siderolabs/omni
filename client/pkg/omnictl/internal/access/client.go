@@ -202,8 +202,12 @@ If you want to enable the version validation and disable this warning, set githu
 	}
 
 	// compare the API versions
-	if sysVersion.TypedSpec().Value.BackendApiVersion != version.API {
-		return semver.Version{}, fmt.Errorf("client API version mismatch: backend API version %v, client API version %v", sysVersion.TypedSpec().Value.BackendApiVersion, version.API)
+	if backendAPIVersion := sysVersion.TypedSpec().Value.BackendApiVersion; backendAPIVersion > version.API {
+		return semver.Version{}, fmt.Errorf("omnictl is too old for this Omni instance, please update omnictl: "+
+			"backend API version %v, client API version %v", backendAPIVersion, version.API)
+	} else if backendAPIVersion < version.API {
+		return semver.Version{}, fmt.Errorf("omnictl is newer than this Omni instance, please update Omni or use a matching omnictl: "+
+			"backend API version %v, client API version %v", backendAPIVersion, version.API)
 	}
 
 	return parsedVersion, nil

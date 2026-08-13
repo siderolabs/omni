@@ -59,6 +59,11 @@ func TestReconcileMachineStatusLabels(t *testing.T) {
 						{
 							Size: 400 * 1000 * 1000 * 1000,
 						},
+						{
+							// a disk built on top of another disk (a dm-crypt volume), counting it would double the total
+							Size:           400 * 1000 * 1000 * 1000,
+							SecondaryDisks: []string{"sdb"},
+						},
 					},
 				},
 				Network: &specs.MachineStatusSpec_NetworkStatus{

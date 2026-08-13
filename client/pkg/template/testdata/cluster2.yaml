@@ -29,7 +29,7 @@ machines:
 kind: Machine
 name: 430d882a-51a8-48b3-ae00-90c5b0b5b0b0
 install:
-  disk: /dev/vdb
+  diskSelector: disk.dev_path == "/dev/vdb"
 patches: # ClusterMachine ConfigPatch
   - name: my-address
     inline:

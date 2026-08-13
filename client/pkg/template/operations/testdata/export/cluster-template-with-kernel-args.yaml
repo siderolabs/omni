@@ -178,6 +178,8 @@ patches:
 kind: Machine
 name: 024780fe-b0d6-43e0-a868-b142ba0a67a6
 locked: true
+install:
+  diskSelector: disk.transport == "nvme"
 patches:
   - idOverride: 500-1104d832-79fb-4121-a67f-752fa8f763e9
     annotations:

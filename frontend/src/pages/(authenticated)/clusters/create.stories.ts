@@ -13,7 +13,8 @@ import type {
   EtcdBackupOverallStatusSpec,
   FeaturesConfigSpec,
   MachineClassSpec,
-  MachineConfigGenOptionsSpec,
+  MachineInstallDiskConfigSpec,
+  MachineInstallDiskStatusSpec,
   MachineStatusSpec,
   TalosVersionSpec,
 } from '@/api/omni/specs/omni.pb'
@@ -26,7 +27,8 @@ import {
   EtcdBackupOverallStatusType,
   FeaturesConfigID,
   FeaturesConfigType,
-  MachineConfigGenOptionsType,
+  MachineInstallDiskConfigType,
+  MachineInstallDiskStatusType,
   MachineStatusLabelAvailable,
   MachineStatusLabelReadyToUse,
   MachineStatusLabelReportingEvents,
@@ -82,18 +84,47 @@ export const Data: Story = {
             },
           })),
       }).handler,
-      createWatchStreamHandler<MachineConfigGenOptionsSpec>({
+      createWatchStreamHandler<MachineInstallDiskConfigSpec>({
         expectedOptions: {
-          type: MachineConfigGenOptionsType,
+          type: MachineInstallDiskConfigType,
+          namespace: DefaultNamespace,
+        },
+        // one explicit disk selection and one disk selector, so the dropdown selection kinds render
+        initialResources: [
+          {
+            spec: { disk: '/dev/sdb' },
+            metadata: {
+              id: machineIDs[1],
+              type: MachineInstallDiskConfigType,
+              namespace: DefaultNamespace,
+            },
+          },
+          {
+            spec: { disk_selector: 'disk.transport == "nvme"' },
+            metadata: {
+              id: machineIDs[2],
+              type: MachineInstallDiskConfigType,
+              namespace: DefaultNamespace,
+            },
+          },
+        ],
+      }).handler,
+      createWatchStreamHandler<MachineInstallDiskStatusSpec>({
+        expectedOptions: {
+          type: MachineInstallDiskStatusType,
           namespace: DefaultNamespace,
         },
         initialResources: machineIDs.map((id) => ({
           spec: {
-            install_disk: '/dev/sda',
+            disk: '/dev/sda',
+            disks: [
+              { dev_path: '/dev/sda', selectable: true },
+              { dev_path: '/dev/sdb', selectable: true },
+            ],
           },
           metadata: {
             id,
-            type: MachineConfigGenOptionsType,
+            type: MachineInstallDiskStatusType,
             namespace: DefaultNamespace,
           },
         })),

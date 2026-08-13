@@ -10,12 +10,6 @@ import type { VersionContractSpec } from '@/api/omni/specs/virtual.pb'
 import { getPatch } from './getPatch'
 
 describe('getPatch', () => {
-  test('substitutes args into the machineInstallDisk patch', async () => {
-    const patch = await getPatch({}, 'machineInstallDisk', { disk: '/dev/sda' })
-
-    expect(load(patch)).toEqual({ machine: { install: { disk: '/dev/sda' } } })
-  })
-
   test('substitutes args into the legacy hostname patch', async () => {
     const vcSpec: VersionContractSpec = { multidoc_network_config_supported: false }
 

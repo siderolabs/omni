@@ -13,6 +13,7 @@ import (
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"go.uber.org/zap"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
@@ -444,6 +445,151 @@ func makeMachineRequestsOwnerEmpty(ctx context.Context, st state.State, _ *zap.L
 		if err = changeOwner(ctx, st, machineRequest, ""); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// legacyInstallDiskPatchWeight is the historical weight of the generated install disk selection
+// patches. It is copied here, because the shared constant goes away with the patch mechanism.
+const legacyInstallDiskPatchWeight = 0
+
+// legacyInstallDiskFromPatch returns the disk path carried by a generated install disk selection
+// patch. It returns an empty string when the patch is not exactly one.
+//
+// A patch is recognized by the exact generated shape: the well-known ID formed from the cluster
+// machine label, and a body containing nothing but the single install disk value. A patch at the
+// well-known ID that was modified to carry anything else is treated as hand-written.
+//
+// This is a private copy of the recognition logic the template export used to perform, with an
+// owner check on top, so that controller-owned resources can never match. The export-side code is
+// deleted together with the patch mechanism, and migrations must not depend on living helpers.
+//
+// The whole recognition deliberately lives here instead of list-time filters. The owner cannot be
+// filtered at list time anyway, and a one-shot migration gains nothing from splitting the exact
+// shape across two places.
+func legacyInstallDiskFromPatch(configPatch *omni.ConfigPatch) string {
+	// the generated selection patches are user-owned, so anything else is not one of them
+	if configPatch.Metadata().Owner() != "" {
+		return ""
+	}
+
+	clusterMachine, ok := configPatch.Metadata().Labels().Get(omni.LabelClusterMachine)
+	if !ok {
+		return ""
+	}
+
+	expectedID := fmt.Sprintf("%03d-cm-%s-install-disk", legacyInstallDiskPatchWeight, clusterMachine)
+	if configPatch.Metadata().ID() != expectedID {
+		return ""
+	}
+
+	buffer, err := configPatch.TypedSpec().Value.GetUncompressedData()
+	if err != nil {
+		return ""
+	}
+
+	defer buffer.Free()
+
+	var data map[string]any
+
+	if err = yaml.Unmarshal(buffer.Data(), &data); err != nil {
+		return ""
+	}
+
+	machine, ok := data["machine"].(map[string]any)
+	if !ok {
+		return ""
+	}
+
+	install, ok := machine["install"].(map[string]any)
+	if !ok {
+		return ""
+	}
+
+	if len(data) != 1 || len(machine) != 1 || len(install) != 1 {
+		return ""
+	}
+
+	disk, ok := install["disk"].(string)
+	if !ok {
+		return ""
+	}
+
+	return disk
+}
+
+// machineInstallDiskConfigsFromPatches translates the generated install disk selection patches
+// into MachineInstallDiskConfig resources and deletes them. The patches were written by the
+// cluster creation UI and by cluster templates before the install disk became a dedicated
+// resource. The translation is required, because such patches no longer influence the install
+// disk (the resolved disk overrides them at config generation time). Without it, the user's explicit choice
+// would silently turn into automatic selection.
+//
+// The migration is idempotent. The resource create is skipped when it already exists, and the
+// patch deletion is the completion marker, so a re-run after a partial failure completes the
+// remaining work.
+func machineInstallDiskConfigsFromPatches(ctx context.Context, st state.State, logger *zap.Logger, _ migrationContext) error {
+	configPatches, err := safe.ReaderListAll[*omni.ConfigPatch](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	for configPatch := range configPatches.All() {
+		disk := legacyInstallDiskFromPatch(configPatch)
+		if disk == "" {
+			continue
+		}
+
+		machineID, _ := configPatch.Metadata().Labels().Get(omni.LabelClusterMachine)
+
+		installDiskConfig := omni.NewMachineInstallDiskConfig(machineID)
+		installDiskConfig.TypedSpec().Value.Disk = disk
+
+		// A patch of a template-managed cluster was written by the template, so the resource it
+		// translates to must stay template-managed. Without the annotation, removing the install
+		// section from the template after the upgrade would preserve the selection as a user
+		// choice instead of returning the machine to automatic selection.
+		//
+		// The template-managed marker has to come from the cluster: template syncs never put it
+		// on the patches themselves, only on the cluster. A missing cluster (e.g., deleted halfway
+		// when the old Omni stopped) leaves the marker unknowable, and the selection is preserved
+		// as a user choice, which loses nothing.
+		if clusterName, ok := configPatch.Metadata().Labels().Get(omni.LabelCluster); ok {
+			cluster, getErr := safe.ReaderGetByID[*omni.Cluster](ctx, st, clusterName)
+			if getErr != nil && !state.IsNotFoundError(getErr) {
+				return fmt.Errorf("failed to get the cluster %q of the install disk patch %q: %w", clusterName, configPatch.Metadata().ID(), getErr)
+			}
+
+			if cluster != nil {
+				if _, managedByTemplates := cluster.Metadata().Annotations().Get(omni.ResourceManagedByClusterTemplates); managedByTemplates {
+					installDiskConfig.Metadata().Annotations().Set(omni.ResourceManagedByClusterTemplates, "")
+				}
+			}
+		}
+
+		// Create, not an upsert: a conflict means a previous interrupted run already created the
+		// resource, and it must be kept as is, not rewritten.
+		if err = st.Create(ctx, installDiskConfig); err != nil && !state.IsConflictError(err) {
+			return fmt.Errorf("failed to create the install disk config for machine %q: %w", machineID, err)
+		}
+
+		if _, err = safe.StateUpdateWithConflicts(ctx, st, configPatch.Metadata(), func(res *omni.ConfigPatch) error {
+			for _, finalizer := range *res.Metadata().Finalizers() {
+				res.Metadata().Finalizers().Remove(finalizer)
+			}
+
+			return nil
+		}, state.WithExpectedPhaseAny()); err != nil {
+			return fmt.Errorf("failed to drop the finalizers of the install disk patch %q: %w", configPatch.Metadata().ID(), err)
+		}
+
+		if err = st.Destroy(ctx, configPatch.Metadata()); err != nil {
+			return fmt.Errorf("failed to destroy the install disk patch %q: %w", configPatch.Metadata().ID(), err)
+		}
+
+		logger.Info("translated the install disk patch into a machine install disk config",
+			zap.String("machine", machineID), zap.String("disk", disk))
 	}
 
 	return nil

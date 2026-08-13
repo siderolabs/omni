@@ -11,6 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-multierror"
 	"github.com/siderolabs/gen/pair"
+	"github.com/siderolabs/talos/pkg/machinery/cel"
+	"github.com/siderolabs/talos/pkg/machinery/cel/celenv"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -54,7 +56,10 @@ type Machine struct { //nolint:govet
 // MachineInstall provides machine install configuration.
 type MachineInstall struct {
 	// Disk device name.
-	Disk string `yaml:"disk"`
+	Disk string `yaml:"disk,omitempty"`
+
+	// DiskSelector is a CEL expression selecting the install disk, mutually exclusive with Disk.
+	DiskSelector string `yaml:"diskSelector,omitempty"`
 }
 
 // Validate the list of machines.
@@ -79,6 +84,16 @@ func (id MachineID) Validate() error {
 
 // Validate the model.
 func (install *MachineInstall) Validate() error {
+	if install.Disk != "" && install.DiskSelector != "" {
+		return fmt.Errorf("install.disk and install.diskSelector are mutually exclusive")
+	}
+
+	if install.DiskSelector != "" {
+		if _, err := cel.ParseBooleanExpression(install.DiskSelector, celenv.DiskLocator()); err != nil {
+			return fmt.Errorf("install.diskSelector is not a valid boolean disk expression: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -106,31 +121,13 @@ func (machine *Machine) Validate(opts ValidateOptions) error {
 func (machine *Machine) Translate(ctx TranslateContext) ([]resource.Resource, error) {
 	var resourceList []resource.Resource
 
-	if machine.Install.Disk != "" {
-		patch := Patch{
-			Name: "install-disk",
-			Inline: NewInlineContent(map[string]any{
-				"machine": map[string]any{
-					"install": map[string]any{
-						"disk": machine.Install.Disk,
-					},
-				},
-			}),
-		}
+	if machine.Install.Disk != "" || machine.Install.DiskSelector != "" {
+		installDiskConfig := omni.NewMachineInstallDiskConfig(resource.ID(machine.Name))
+		installDiskConfig.Metadata().Annotations().Set(omni.ResourceManagedByClusterTemplates, "")
+		installDiskConfig.TypedSpec().Value.Disk = machine.Install.Disk
+		installDiskConfig.TypedSpec().Value.DiskSelector = machine.Install.DiskSelector
 
-		patchResource, err := patch.Translate(
-			ctx,
-			fmt.Sprintf("cm-%s", machine.Name),
-			constants.PatchWeightInstallDisk,
-			pair.MakePair(omni.LabelCluster, ctx.ClusterName),
-			pair.MakePair(omni.LabelClusterMachine, string(machine.Name)),
-			pair.MakePair(omni.LabelSystemPatch, ""),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		resourceList = append(resourceList, patchResource)
+		resourceList = append(resourceList, installDiskConfig)
 	}
 
 	patches, err := machine.Patches.Translate(

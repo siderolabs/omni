@@ -73,8 +73,16 @@ export const unlimited = 'unlimited'
 export enum PatchID {
   Default = '',
   Untaint = 'untaint',
-  InstallDisk = 'install-disk',
 }
+
+// automaticInstallDisk is the install disk dropdown entry meaning "no explicit selection, let
+// the backend pick". Selecting it deletes the existing MachineInstallDiskConfig on submit.
+export const automaticInstallDisk = 'Auto'
+
+// selectorInstallDisk is the install disk dropdown entry shown when the machine has an existing
+// disk selector selection. Re-selecting it clears the pending choice, keeping the selector
+// untouched.
+export const selectorInstallDisk = 'Selector'
 
 const labelClasses = ['label-red', 'label-orange', 'label-blue']
 
@@ -109,6 +117,13 @@ export interface MachineSet {
 export interface MachineSetNode {
   patches: Record<string, ConfigPatch>
   systemExtensions?: string[]
+  // installDiskConfig is the pending install disk selection. It is recorded only when the user
+  // touches the dropdown. A dev path creates or updates the MachineInstallDiskConfig, null
+  // deletes it (back to automatic selection), and undefined leaves whatever exists untouched.
+  // It is deliberately NOT part of resources(), because the resource is machine-scoped and
+  // persistent, so it must never enter the create/diff/delete cluster sync (see
+  // reconcileInstallDiskConfigs).
+  installDiskConfig?: string | null
 }
 
 export type Cluster = {
@@ -284,6 +299,25 @@ export class State {
 
   controlPlanes(): MachineSet {
     return this.machineSets[0]
+  }
+
+  // pendingInstallDisks collects the pending install disk selections of the machines assigned
+  // to a machine set, as a map of the machine ID to a dev path (create or update) or null
+  // (delete). Untouched machines are absent. reconcileInstallDiskConfigs applies these BEFORE
+  // the cluster sync, so that the selection is in place before any MachineSetNode makes a
+  // machine installable.
+  pendingInstallDisks() {
+    const pending: Record<string, string | null> = {}
+
+    for (const machineSet of this.machineSets) {
+      for (const [machineID, node] of Object.entries(machineSet.machines)) {
+        if (node.installDiskConfig !== undefined) {
+          pending[machineID] = node.installDiskConfig
+        }
+      }
+    }
+
+    return pending
   }
 
   resources(): Resource[] {
