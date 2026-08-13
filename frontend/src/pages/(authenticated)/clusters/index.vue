@@ -15,8 +15,6 @@ import {
   ClusterStatusType,
   DefaultNamespace,
   EphemeralNamespace,
-  LabelsCompletionType,
-  VirtualNamespace,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import TList from '@/components/List/TList.vue'
@@ -27,6 +25,7 @@ import TAlert from '@/components/TAlert.vue'
 import { getDocsLink } from '@/methods'
 import { usePermissions } from '@/methods/auth'
 import { addLabel, selectors, useLabelRouteQuery } from '@/methods/labels'
+import { useLabelCompletions } from '@/methods/useLabelCompletions'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterItem from '@/views/Clusters/ClusterItem.vue'
 import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
@@ -46,6 +45,11 @@ const { data } = useResourceWatch<ClusterStatusMetricsSpec>({
 
 const filterLabels = useLabelRouteQuery()
 const filterValue = ref('')
+
+const { match, completions } = useLabelCompletions({
+  resourceType: ClusterStatusType,
+  filterValue,
+})
 
 const sortOptions = [
   { id: 'id', desc: 'ID ⬆' },
@@ -125,11 +129,8 @@ const filterOptions = [
         <LabelsInput
           v-model:filter-labels="filterLabels"
           v-model:filter-value="filterValue"
-          :completions-resource="{
-            id: ClusterStatusType,
-            type: LabelsCompletionType,
-            namespace: VirtualNamespace,
-          }"
+          :match
+          :completions
           class="w-full"
         />
       </template>

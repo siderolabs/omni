@@ -20,13 +20,11 @@ import {
   LabelInfraProviderID,
   LabelIsManagedByStaticInfraProvider,
   LabelMachineRequest,
-  LabelsCompletionType,
   MachineStatusLinkType,
   MachineStatusMetricsID,
   MachineStatusMetricsType,
   MachineStatusType,
   MetricsNamespace,
-  VirtualNamespace,
 } from '@/api/resources'
 import TButton from '@/components/Button/TButton.vue'
 import TButtonGroup from '@/components/Button/TButtonGroup.vue'
@@ -44,6 +42,7 @@ import { getMachineName } from '@/methods/node'
 import { useResourcePagination } from '@/methods/resource/useResourcePagination'
 import { useResourceSearch } from '@/methods/resource/useResourceSearch'
 import { useResourceSort } from '@/methods/resource/useResourceSort'
+import { useLabelCompletions } from '@/methods/useLabelCompletions'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import LabelsInput from '@/views/ItemLabels/LabelsInput.vue'
 import AddingMachinesTutorial from '@/views/Machines/components/AddingMachinesTutorial.vue'
@@ -133,6 +132,11 @@ const sortOptions = [
 
 const filterLabels = useLabelRouteQuery()
 const filterValue = ref('')
+
+const { match, completions } = useLabelCompletions({
+  resourceType: MachineStatusType,
+  filterValue,
+})
 
 const {
   watchOptions: sortByState,
@@ -261,11 +265,8 @@ watch(currentPage, () => (sidePanelOpen.value = false))
         <LabelsInput
           v-model:filter-labels="filterLabels"
           v-model:filter-value="filterValue"
-          :completions-resource="{
-            id: MachineStatusType,
-            type: LabelsCompletionType,
-            namespace: VirtualNamespace,
-          }"
+          :match
+          :completions
           class="w-full"
         />
 
