@@ -21,25 +21,29 @@ import { formatDuration, parseDuration } from '@/methods/time'
 
 const editingBackupConfig = ref(false)
 
+interface ClusterBackupConfiguration {
+  backup_configuration?: {
+    interval?: GoogleProtobufDuration
+    enabled?: boolean
+  }
+}
+
 interface Props {
-  cluster: { backup_configuration?: { interval?: GoogleProtobufDuration; enabled?: boolean } }
   backupStatus: BackupsStatus
 }
 
-const { cluster } = defineProps<Props>()
+defineProps<Props>()
+
+const cluster = defineModel<ClusterBackupConfiguration>('cluster', { required: true })
 
 const { canManageBackupStore } = usePermissions()
 
-const emit = defineEmits<{
-  'update:cluster': [Props['cluster']]
-}>()
-
 const enabled = computed(() => {
-  return cluster.backup_configuration?.enabled === true
+  return cluster.value.backup_configuration?.enabled === true
 })
 
 const interval = computed(() => {
-  const value = cluster.backup_configuration?.interval
+  const value = cluster.value.backup_configuration?.interval
 
   if (!value || value.trim() === '0') {
     return undefined
@@ -51,14 +55,14 @@ const interval = computed(() => {
 const backupIntervalPreview = ref<number>()
 
 const toggleBackupsEnabled = (enabled: boolean) => {
-  emit('update:cluster', {
-    ...cluster,
+  cluster.value = {
+    ...cluster.value,
     backup_configuration: {
-      ...cluster.backup_configuration,
-      interval: cluster.backup_configuration?.interval || `${60 * 60}s`,
+      ...cluster.value.backup_configuration,
+      interval: cluster.value.backup_configuration?.interval || `${60 * 60}s`,
       enabled,
     },
-  })
+  }
 }
 
 const startEditingBackupInterval = () => {
@@ -69,17 +73,13 @@ const startEditingBackupInterval = () => {
 const updateBackupInterval = () => {
   editingBackupConfig.value = false
 
-  const c = { ...cluster }
-
-  if (!c.backup_configuration) {
-    c.backup_configuration = {}
+  cluster.value = {
+    ...cluster.value,
+    backup_configuration: {
+      ...cluster.value.backup_configuration,
+      interval: formatDuration(Duration.fromDurationLike({ hours: backupIntervalPreview.value })),
+    },
   }
-
-  c.backup_configuration.interval = formatDuration(
-    Duration.fromDurationLike({ hours: backupIntervalPreview.value }),
-  )
-
-  emit('update:cluster', c)
 }
 </script>
 

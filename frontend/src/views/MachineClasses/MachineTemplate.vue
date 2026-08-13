@@ -21,16 +21,17 @@ enum GRPCTunnelMode {
   Disabled = 'Disabled',
 }
 
-const { infraProvider, initialLabels, kernelArguments, providerConfig, grpcTunnel } = defineProps<{
+const { infraProvider } = defineProps<{
   infraProvider: string
-  initialLabels: Record<string, LabelSelectItem>
-  kernelArguments: string
-  providerConfig: Record<string, unknown>
-  grpcTunnel: GrpcTunnelMode
 }>()
 
+const kernelArguments = defineModel<string>('kernelArguments')
+const initialLabels = defineModel<Record<string, LabelSelectItem>>('initialLabels')
+const providerConfig = defineModel<Record<string, unknown>>('providerConfig', { required: true })
+const grpcTunnel = defineModel<GrpcTunnelMode>('grpcTunnel', { required: true })
+
 const defaultTunnelMode = (() => {
-  switch (grpcTunnel) {
+  switch (grpcTunnel.value) {
     default:
     case GrpcTunnelMode.UNSET:
       return GRPCTunnelMode.Default
@@ -40,13 +41,6 @@ const defaultTunnelMode = (() => {
       return GRPCTunnelMode.Enabled
   }
 })()
-
-const emit = defineEmits<{
-  'update:kernel-arguments': [string | undefined]
-  'update:initial-labels': [Record<string, LabelSelectItem> | undefined]
-  'update:provider-config': [Record<string, unknown>]
-  'update:grpc-tunnel': [GrpcTunnelMode]
-}>()
 
 const { data: infraProviderStatus } = useResourceWatch<InfraProviderStatusSpec>(() => ({
   skip: !infraProvider,
@@ -61,13 +55,13 @@ const { data: infraProviderStatus } = useResourceWatch<InfraProviderStatusSpec>(
 const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
   switch (value) {
     case GRPCTunnelMode.Default:
-      emit('update:grpc-tunnel', GrpcTunnelMode.UNSET)
+      grpcTunnel.value = GrpcTunnelMode.UNSET
       break
     case GRPCTunnelMode.Enabled:
-      emit('update:grpc-tunnel', GrpcTunnelMode.ENABLED)
+      grpcTunnel.value = GrpcTunnelMode.ENABLED
       break
     case GRPCTunnelMode.Disabled:
-      emit('update:grpc-tunnel', GrpcTunnelMode.DISABLED)
+      grpcTunnel.value = GrpcTunnelMode.DISABLED
       break
   }
 }
@@ -80,18 +74,11 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
     <div class="flex flex-col divide-y divide-naturals-n4 border-t-8 border-naturals-n4 text-xs">
       <div class="flex items-center justify-between gap-2 px-4 py-2">
         <span class="whitespace-nowrap">Kernel Arguments</span>
-        <TInput
-          class="h-7 w-56"
-          :model-value="kernelArguments"
-          @update:model-value="(value) => $emit('update:kernel-arguments', value)"
-        />
+        <TInput v-model="kernelArguments" class="h-7 w-56" />
       </div>
       <div class="flex items-center justify-between gap-2 px-4 py-2">
         <span class="whitespace-nowrap">Initial Labels</span>
-        <Labels
-          :model-value="initialLabels"
-          @update:model-value="(value) => $emit('update:initial-labels', value)"
-        />
+        <Labels v-model="initialLabels" />
       </div>
       <div class="flex items-center justify-between gap-2 px-4 py-2">
         <span class="whitespace-nowrap">Use gRPC Tunnel</span>
@@ -109,11 +96,7 @@ const updateGRPCTunnelMode = (value: GRPCTunnelMode) => {
       {{ infraProviderStatus.spec.name }} Provider Config
     </div>
     <div class="flex flex-col divide-y divide-naturals-n4 border-t-8 border-naturals-n4 text-xs">
-      <JsonForm
-        :model-value="providerConfig"
-        :json-schema="infraProviderStatus.spec.schema"
-        @update:model-value="(value) => $emit('update:provider-config', value)"
-      />
+      <JsonForm v-model="providerConfig" :json-schema="infraProviderStatus.spec.schema" />
     </div>
   </div>
 </template>

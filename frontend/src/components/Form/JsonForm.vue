@@ -23,7 +23,7 @@ import { JsonForms } from '@jsonforms/vue'
 import { vanillaRenderers } from '@jsonforms/vue-vanilla'
 import { type ErrorObject } from 'ajv'
 import { dump } from 'js-yaml'
-import { computed, ref, toRefs, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { ManagementService } from '@/api/omni/management/management.pb'
 
@@ -40,12 +40,8 @@ import TimeControlRenderer from './TimeControlRenderer.vue'
 
 const errors = ref<ErrorObject[]>([])
 
-const emit = defineEmits<{
-  'update:model-value': [Record<string, unknown>]
-}>()
-
-const onChange = async (event: { data: Record<string, unknown>; errors: unknown }) => {
-  emit('update:model-value', event.data)
+const onChange = (event: { data: Record<string, unknown>; errors: unknown }) => {
+  modelValue.value = event.data
 }
 
 const renderers = [
@@ -92,12 +88,12 @@ const renderers = [
   ...vanillaRenderers,
 ]
 
-const props = defineProps<{
+const { jsonSchema } = defineProps<{
   jsonSchema: string
-  modelValue: unknown
 }>()
 
-const { jsonSchema, modelValue } = toRefs(props)
+const modelValue = defineModel<unknown>({ required: true })
+
 const schema = ref<JsonSchema>()
 const err = ref<Error>()
 
@@ -105,23 +101,19 @@ const renderSchema = () => {
   err.value = undefined
 
   try {
-    schema.value = JSON.parse(jsonSchema.value)
+    schema.value = JSON.parse(jsonSchema)
   } catch (e) {
     err.value = e
   }
 }
 
-watch(modelValue, (val) => {
-  updateErrors(val)
-})
-
 const updateErrors = async (data: unknown) => {
-  if (!jsonSchema.value) {
+  if (!jsonSchema) {
     return
   }
 
   const response = await ManagementService.ValidateJSONSchema({
-    schema: jsonSchema.value,
+    schema: jsonSchema,
     data: dump(data),
   })
 
@@ -137,11 +129,8 @@ const updateErrors = async (data: unknown) => {
     })) ?? []
 }
 
-watch(jsonSchema, renderSchema)
-
-renderSchema()
-
-updateErrors(modelValue.value)
+watch(() => jsonSchema, renderSchema, { immediate: true })
+watch(modelValue, updateErrors, { immediate: true })
 
 const uiSchema = computed(() => {
   if (!schema.value) {

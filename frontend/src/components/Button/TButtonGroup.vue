@@ -4,7 +4,7 @@ Copyright (c) 2026 Sidero Labs, Inc.
 Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends string | number">
 import { RadioGroup, RadioGroupOption } from '@headlessui/vue'
 
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
@@ -13,7 +13,7 @@ type Props = {
   deselectEnabled?: boolean
   options: {
     label: string
-    value: string | number
+    value: T
     disabled?: boolean
     tooltip?: string
   }[]
@@ -21,7 +21,7 @@ type Props = {
 
 defineProps<Props>()
 
-const modelValue = defineModel<string | number>()
+const modelValue = defineModel<T>()
 </script>
 
 <template>

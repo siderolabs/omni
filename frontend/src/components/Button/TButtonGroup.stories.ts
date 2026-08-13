@@ -9,7 +9,9 @@ import { fn } from 'storybook/test'
 import TButtonGroup from './TButtonGroup.vue'
 
 const meta: Meta<typeof TButtonGroup> = {
-  component: TButtonGroup,
+  // https://github.com/storybookjs/storybook/issues/24238
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  component: TButtonGroup as any,
   args: {
     'onUpdate:modelValue': fn(),
     deselectEnabled: true,

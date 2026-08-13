@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { computed, ref, toRefs } from 'vue'
+import { computed, ref } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -20,15 +20,7 @@ import IconButton from '@/components/Button/IconButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TList from '@/components/List/TList.vue'
 
-const props = defineProps<{
-  infraProvider?: string
-}>()
-
-const emit = defineEmits<{
-  'update:infra-provider': [string]
-}>()
-
-const { infraProvider } = toRefs(props)
+const infraProvider = defineModel<string>('infraProvider')
 
 const selectingProvider = ref(false)
 const showAllProviders = computed(() => {
@@ -51,8 +43,7 @@ const setInfraProvider = (item: Resource<InfraProviderStatusSpec>) => {
   }
 
   selectingProvider.value = false
-
-  emit('update:infra-provider', item.metadata.id!)
+  infraProvider.value = item.metadata.id
 }
 </script>
 

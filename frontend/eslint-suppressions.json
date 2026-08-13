@@ -42,17 +42,6 @@
       "count": 4
     }
   },
-  "src/components/Form/JsonForm.vue": {
-    "vue/custom-event-name-casing": {
-      "count": 1
-    },
-    "vue/define-props-destructuring": {
-      "count": 1
-    },
-    "vue/no-ref-object-reactivity-loss": {
-      "count": 1
-    }
-  },
   "src/components/Form/NumberRenderer.vue": {
     "vue/define-props-destructuring": {
       "count": 1
@@ -91,25 +80,7 @@
       "count": 1
     }
   },
-  "src/views/Clusters/Management/MachineSetConfig.vue": {
-    "vue/no-setup-props-reactivity-loss": {
-      "count": 5
-    }
-  },
   "src/views/Home/HomeGeneralInformationCopyable.vue": {
-    "vue/define-props-destructuring": {
-      "count": 1
-    }
-  },
-  "src/views/MachineClasses/MachineTemplate.vue": {
-    "vue/custom-event-name-casing": {
-      "count": 6
-    }
-  },
-  "src/views/MachineClasses/ProviderConfig.vue": {
-    "vue/custom-event-name-casing": {
-      "count": 1
-    },
     "vue/define-props-destructuring": {
       "count": 1
     }

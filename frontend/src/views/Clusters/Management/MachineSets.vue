@@ -34,16 +34,11 @@ const addWorkers = () => {
       <MachineSetConfig
         v-for="(machineSet, index) in state.machineSets"
         :key="machineSet.name"
+        v-model="state.machineSets[index]"
         :talos-version="state.cluster.talosVersion"
         :machine-classes="machineClasses"
-        :model-value="machineSet"
         :no-remove="index < 2"
-        :on-remove="
-          () => {
-            state.removeMachineSet(index)
-          }
-        "
-        @update:model-value="(value) => (state.machineSets[index] = value)"
+        @on-remove="state.removeMachineSet(index)"
       />
     </ul>
   </div>
