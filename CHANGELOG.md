@@ -1,3 +1,32 @@
+## [Omni 1.10.2](https://github.com/siderolabs/omni/releases/tag/v1.10.2) (2026-08-14)
+
+Welcome to the v1.10.2 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Edward Sammut Alessi
+* Oguz Kilcan
+
+### Changes
+<details><summary>2 commits</summary>
+<p>
+
+* [`93fb429b4`](https://github.com/siderolabs/omni/commit/93fb429b4fca8a6f87d36fb8bd3a3fe65604c9b0) chore: rekres and bump go
+* [`024fe1e4c`](https://github.com/siderolabs/omni/commit/024fe1e4c63250806a621fafa9977c1756aff846) fix(frontend): fix incorrect machine route params
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.10.1](https://github.com/siderolabs/omni/releases/tag/v1.10.1)
+
 ## [Omni 1.10.1](https://github.com/siderolabs/omni/releases/tag/v1.10.1) (2026-08-12)
 
 Welcome to the v1.10.1 release of Omni!
