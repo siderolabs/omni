@@ -21,7 +21,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jxskiss/base62 v1.1.0
-	github.com/klauspost/compress v1.19.1
+	github.com/klauspost/compress v1.19.2
 	github.com/mattn/go-isatty v0.0.24
 	github.com/neticdk/go-stdlib v1.0.1
 	github.com/planetscale/vtprotobuf v0.6.1-0.20260702190614-8ae5a48058df
