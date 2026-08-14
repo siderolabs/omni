@@ -25,6 +25,7 @@ import {
 import App from '@/App.vue'
 import AppUnavailable, { appUnavailableError } from '@/AppUnavailable.vue'
 import { AuthType, authType, eulaAccepted, suspended } from '@/methods'
+import { registerPreloadListener } from '@/methods/registerPreloadListener'
 import router from '@/router'
 
 import { withRuntime, withTimeout } from './api/options'
@@ -106,10 +107,7 @@ async function setupApp() {
   app.mount('#app')
 }
 
-// A preloadError generally means Omni was updated in the background. Reload the page in this case.
-window.addEventListener('vite:preloadError', () => {
-  window.location.reload()
-})
+registerPreloadListener()
 
 initState()
 
