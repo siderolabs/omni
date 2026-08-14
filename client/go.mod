@@ -30,7 +30,7 @@ require (
 	github.com/siderolabs/go-api-signature v0.3.13
 	github.com/siderolabs/go-kubeconfig v0.1.2
 	github.com/siderolabs/go-talos-support v0.3.1
-	github.com/siderolabs/image-factory v1.5.0
+	github.com/siderolabs/image-factory v1.5.1-0.20260820101753-25561f7ee883
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.17
 	github.com/siderolabs/talos/pkg/machinery v1.14.0-rc.1

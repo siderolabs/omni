@@ -186,25 +186,14 @@ const clusterCreateCommand = computed(() => {
 
   return parts.join(' ')
 })
-
-const SPDXBaseURL = computed(() =>
-  factoryUrl.value
-    ? `${factoryUrl.value}/spdx/${schematicId.value}/v${resolvedTalosVersion.value}/amd64`
-    : '',
-)
-
-const VEXBaseURL = computed(() =>
-  factoryUrl.value ? `${factoryUrl.value}/vex/v${resolvedTalosVersion.value}/vex.json` : '',
-)
 </script>
 
 <template>
   <div v-if="schematic" class="flex flex-col gap-4 text-xs">
     <Scan
-      v-if="isEnterpriseFactory && factoryUrl"
+      v-if="isEnterpriseFactory"
       :schematic-id
       :talos-version="resolvedTalosVersion"
-      :factory-url="factoryUrl"
       :arch="formState.machineArch!"
     />
 
@@ -510,22 +499,6 @@ const VEXBaseURL = computed(() =>
         </dd>
       </dl>
     </template>
-
-    <h3 class="text-sm text-naturals-n14">SBOM (SPDX)</h3>
-    <a v-if="isEnterpriseFactory" :href="SPDXBaseURL" class="link-primary max-w-max">
-      {{ SPDXBaseURL }}
-    </a>
-    <span v-else>
-      SBOM (SPDX) bundle is only available through the Talos Linux Image Factory Enterprise.
-    </span>
-
-    <h3 class="text-sm text-naturals-n14">VEX (Vulnerability Exploitability eXchange)</h3>
-    <a v-if="isEnterpriseFactory" :href="VEXBaseURL" class="link-primary max-w-max">
-      {{ VEXBaseURL }}
-    </a>
-    <span v-else>
-      VEX document is only available through the Talos Linux Image Factory Enterprise.
-    </span>
   </div>
 
   <div v-else class="flex flex-col gap-4">

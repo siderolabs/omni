@@ -9,7 +9,6 @@ package backend
 import (
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -21,11 +20,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
-	"github.com/blang/semver/v4"
 	coidc "github.com/coreos/go-oidc/v3/oidc"
 	"github.com/cosi-project/runtime/api/v1alpha1"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -43,6 +40,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	service "github.com/siderolabs/discovery-service/pkg/service"
 	"github.com/siderolabs/discovery-service/pkg/storage"
+	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-api-signature/pkg/pgp"
 	"github.com/siderolabs/go-api-signature/pkg/serviceaccount"
 	"github.com/siderolabs/go-retry/retry"
@@ -69,6 +67,7 @@ import (
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/health"
+	"github.com/siderolabs/omni/internal/backend/imagefactory/artifacts"
 	"github.com/siderolabs/omni/internal/backend/k8sproxy"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
@@ -86,10 +85,10 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 	"github.com/siderolabs/omni/internal/pkg/auth/actor"
 	"github.com/siderolabs/omni/internal/pkg/auth/auth0"
+	"github.com/siderolabs/omni/internal/pkg/auth/httpauth"
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
 	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
 	serviceaccountmgmt "github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
-	"github.com/siderolabs/omni/internal/pkg/cache"
 	"github.com/siderolabs/omni/internal/pkg/compress"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
@@ -206,15 +205,17 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}
 
-	mux, err := s.makeMux(oidcProvider) //nolint:contextcheck
+	authInterceptors, err := s.getAuthInterceptors(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create auth interceptors: %w", err)
+	}
+
+	mux, err := s.makeMux(ctx, oidcProvider, authInterceptors)
 	if err != nil {
 		return err
 	}
 
-	serverOptions, err := s.buildServerOptions(ctx)
-	if err != nil {
-		return err
-	}
+	serverOptions := s.buildServerOptions(authInterceptors) //nolint:contextcheck
 
 	runtimes := map[string]backendruntime.Runtime{
 		kubernetes.Name:   backendruntime.NewProxyRuntime(s.kubernetesRuntime),
@@ -327,13 +328,14 @@ func (s *Server) Run(ctx context.Context) error {
 	return eg.Wait()
 }
 
-func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
+func (s *Server) makeMux(ctx context.Context, oidcProvider *oidc.Provider, authInterceptors []interceptorCreator) (*http.ServeMux, error) {
 	samlHandler, err := func() (*samlsp.Middleware, error) {
 		if !s.authConfig.TypedSpec().Value.Saml.Enabled {
 			return nil, nil //nolint:nilnil
 		}
 
 		return saml.NewHandler(
+			ctx,
 			s.omniRuntime.ValidatedState(),
 			s.authConfig.TypedSpec().Value.Saml,
 			s.logger,
@@ -361,6 +363,7 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 		s.imageFactoryClients,
 		s.logger,
 		s.cfg,
+		authInterceptors,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mux: %w", err)
@@ -434,11 +437,12 @@ func (s *Server) makeProxyServer(ctx context.Context, eg *errgroup.Group) (*grpc
 // Logging is installed as the first middleware (even before recovery middleware) in the chain
 // so that request in the form it was received and status sent on the wire is logged (error/success).
 // It also tracks the whole duration of the request, including other middleware overhead.
-func (s *Server) buildServerOptions(ctx context.Context) ([]grpc.ServerOption, error) {
+func (s *Server) buildServerOptions(authInterceptors []interceptorCreator) []grpc.ServerOption {
 	recoveryOpt := grpc_recovery.WithRecoveryHandler(recoveryHandler(s.logger))
 	messageProducer := grpcutil.LogLevelOverridingMessageProducer(grpc_zap.DefaultMessageProducer)
 	logLevelOverrideUnaryInterceptor, logLevelOverrideStreamInterceptor := grpcutil.LogLevelInterceptors() //nolint:contextcheck
 
+	//nolint:prealloc
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
 		grpc_ctxtags.UnaryServerInterceptor(),
 		logLevelOverrideUnaryInterceptor,
@@ -459,6 +463,7 @@ func (s *Server) buildServerOptions(ctx context.Context) ([]grpc.ServerOption, e
 		),
 	}
 
+	//nolint:prealloc
 	streamInterceptors := []grpc.StreamServerInterceptor{
 		grpc_ctxtags.StreamServerInterceptor(),
 		logLevelOverrideStreamInterceptor,
@@ -483,11 +488,6 @@ func (s *Server) buildServerOptions(ctx context.Context) ([]grpc.ServerOption, e
 		),
 	}
 
-	authInterceptors, err := s.getAuthInterceptors(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	for _, authInterceptor := range authInterceptors {
 		unaryInterceptors = append(unaryInterceptors, authInterceptor.Unary())
 		streamInterceptors = append(streamInterceptors, authInterceptor.Stream())
@@ -501,7 +501,7 @@ func (s *Server) buildServerOptions(ctx context.Context) ([]grpc.ServerOption, e
 		grpc.MaxRecvMsgSize(constants.GRPCMaxMessageSize),
 		grpc.ChainUnaryInterceptor(unaryInterceptors...),
 		grpc.ChainStreamInterceptor(streamInterceptors...),
-	}, nil
+	}
 }
 
 type interceptorCreator interface {
@@ -863,8 +863,16 @@ func makeMux(
 	imageFactoryClients *imagefactory.Clients,
 	logger *zap.Logger,
 	cfg *config.Params,
+	authInterceptors []interceptorCreator,
 ) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
+
+	// requireAuth protects an HTTP route with the same auth checks a gRPC method gets, at the given role.
+	requireAuth := httpauth.Middleware(
+		xslices.Map(authInterceptors, func(ic interceptorCreator) grpc.UnaryServerInterceptor { return ic.Unary() }),
+		func(w http.ResponseWriter, status string, code int) { artifacts.WriteError(w, logger, status, code) },
+		logger,
+	)
 
 	muxHandle := func(route string, handler http.Handler, value string) {
 		mux.Handle(route, monitoring.NewHandler(
@@ -906,20 +914,12 @@ func makeMux(
 		return nil, err
 	}
 
-	talosctlHandler, err := makeTalosctlHandler(imageFactoryClients, logger)
-	if err != nil {
-		return nil, err
-	}
-
-	vulnsHandler, err := makeScanHandler(imageFactoryClients, logger)
-	if err != nil {
-		return nil, err
-	}
-
 	muxHandle("/exposed/service", workloadProxyRedirect, "exposed-service-redirect")
 	muxHandle("/api/omnictl/", http.StripPrefix("/api/omnictl/", omnictlHndlr), "files")
-	muxHandle("/api/talosctl/downloads/{version}", talosctlHandler, "talosctl-downloads")
-	muxHandle("/api/vulns/{schematicID}/{talosVersion}/{arch}/report.json", vulnsHandler, "vulns-report")
+	muxHandle("/api/talosctl/downloads/{version}", artifacts.NewTalosctlHandler(imageFactoryClients, logger), "talosctl-downloads")
+	muxHandle("GET /api/vulns/{schematicID}/{talosVersion}/{arch}/{filename}", requireAuth(artifacts.NewScanHandler(imageFactoryClients, logger), role.Reader), "vulns-report")
+	muxHandle("GET /api/sbom/{schematicID}/{talosVersion}/{arch}", requireAuth(artifacts.NewSbomHandler(imageFactoryClients, logger), role.Reader), "spdx-bundle")
+	muxHandle("GET /api/vex/{talosVersion}", requireAuth(artifacts.NewVEXHandler(imageFactoryClients, logger), role.Reader), "vex-document")
 	// actually enabled only in debug build
 	muxHandle("/debug/", debug.NewHandler(omniRuntime.GetCOSIRuntime(), state.Default()), "debug")
 
@@ -1259,141 +1259,6 @@ func runPprofServer(ctx context.Context, bindAddress string, l *zap.Logger) erro
 	l = l.With(zap.String("server", bindAddress), zap.String("server_type", "pprof"))
 
 	return services.NewInsecure(bindAddress, mux).Run(ctx, l)
-}
-
-//nolint:unparam
-func makeTalosctlHandler(imageFactoryClients *imagefactory.Clients, logger *zap.Logger) (http.Handler, error) {
-	// The list of versions does not update very often, so we can cache it.
-	var cacherMap sync.Map
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		type result struct {
-			Status    string   `json:"status"`
-			Downloads []string `json:"downloads,omitempty"`
-		}
-
-		writeResult := func(a any, code int) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(code)
-
-			if err := json.NewEncoder(w).Encode(a); err != nil {
-				logger.Error("failed to encode result", zap.Error(err))
-			}
-		}
-
-		talosVersion := r.PathValue("version")
-		if _, err := semver.ParseTolerant(talosVersion); err != nil {
-			logger.Info("invalid Talos version", zap.Error(err))
-			writeResult(result{Status: "invalid Talos version"}, http.StatusBadRequest)
-
-			return
-		}
-
-		actual, _ := cacherMap.LoadOrStore(talosVersion, &cache.Value[[]string]{Duration: time.Hour})
-
-		cacher, ok := actual.(*cache.Value[[]string])
-		if !ok {
-			logger.Error("failed to load version cache")
-			writeResult(result{Status: "failed to load version cache"}, http.StatusInternalServerError)
-
-			return
-		}
-
-		ctx := actor.MarkContextAsInternalActor(r.Context())
-
-		data, err := cacher.GetOrUpdate(func() ([]string, error) {
-			imageFactoryClient, err := imageFactoryClients.ForTalosVersion(ctx, talosVersion)
-			if err != nil {
-				return nil, err
-			}
-
-			return imageFactoryClient.TalosctlList(ctx, talosVersion)
-		})
-		if err != nil {
-			logger.Error("failed to get latest talosctl release", zap.Error(err))
-			writeResult(result{Status: "failed to get latest talosctl release"}, http.StatusInternalServerError)
-
-			return
-		}
-
-		writeResult(result{
-			Status:    "ok",
-			Downloads: data,
-		}, http.StatusOK)
-	}), nil
-}
-
-//nolint:unparam
-func makeScanHandler(imageFactoryClients *imagefactory.Clients, logger *zap.Logger) (http.Handler, error) {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		type result struct {
-			Status string          `json:"status"`
-			Report json.RawMessage `json:"report,omitempty"`
-		}
-
-		writeResult := func(a any, code int) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(code)
-
-			if err := json.NewEncoder(w).Encode(a); err != nil {
-				logger.Error("failed to encode result", zap.Error(err))
-			}
-		}
-
-		schematicID := r.PathValue("schematicID")
-		talosVersion := r.PathValue("talosVersion")
-		arch := r.PathValue("arch")
-
-		if _, err := semver.ParseTolerant(talosVersion); err != nil {
-			logger.Info("invalid Talos version", zap.Error(err))
-			writeResult(result{
-				Status: "invalid Talos version",
-			}, http.StatusBadRequest)
-
-			return
-		}
-
-		ctx := actor.MarkContextAsInternalActor(r.Context())
-
-		imageFactoryClient, err := imageFactoryClients.ForTalosVersion(ctx, talosVersion)
-		if err != nil {
-			logger.Error(
-				"failed to get image factory client",
-				zap.Error(err),
-				zap.String("schematicID", schematicID),
-				zap.String("talosVersion", talosVersion),
-				zap.String("arch", arch),
-			)
-
-			writeResult(result{
-				Status: "failed to get image factory client",
-			}, http.StatusInternalServerError)
-
-			return
-		}
-
-		data, err := imageFactoryClient.ScanReport(ctx, schematicID, talosVersion, arch, "report.json")
-		if err != nil {
-			logger.Error(
-				"failed to get scan report",
-				zap.Error(err),
-				zap.String("schematicID", schematicID),
-				zap.String("talosVersion", talosVersion),
-				zap.String("arch", arch),
-			)
-
-			writeResult(result{
-				Status: "failed to get scan report",
-			}, http.StatusInternalServerError)
-
-			return
-		}
-
-		writeResult(result{
-			Status: "ok",
-			Report: data,
-		}, http.StatusOK)
-	}), nil
 }
 
 // Auditor is a common interface for audit log.

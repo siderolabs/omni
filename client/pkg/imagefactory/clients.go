@@ -31,7 +31,15 @@ type FactoryClient interface {
 	ExtensionsVersions(context.Context, string) ([]client.ExtensionInfo, error)
 	CachedIsEnterprise() bool
 	TalosctlList(ctx context.Context, talosVersion string) ([]string, error)
+	ReportsClient
+}
+
+// ReportsClient is the part of the contract covering a factory's security reports: the vulnerability
+// scan of a schematic, its SBOM bundle, and the VEX document of a Talos version.
+type ReportsClient interface {
 	ScanReport(ctx context.Context, schematicID, talosVersion, arch, filename string) ([]byte, error)
+	SPDXBundle(ctx context.Context, schematicID, talosVersion, arch string) ([]byte, error)
+	VEXDocument(ctx context.Context, talosVersion string) ([]byte, error)
 }
 
 // Clients holds the configured image factory clients: a required primary and an optional secondary.

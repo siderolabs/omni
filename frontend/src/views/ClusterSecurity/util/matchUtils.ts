@@ -6,7 +6,7 @@ import type {
   Match,
   RelatedVulnerability,
   Vulnerability,
-} from '@/views/InstallationMedia/vulnerabilities/ReportTypes'
+} from '@/views/ClusterSecurity/util/ReportTypes'
 
 // Severities ordered from most to least important, used for sorting and grouping.
 const SEVERITY_ORDER = ['Critical', 'High', 'Medium', 'Low', 'Negligible', 'Unknown'] as const

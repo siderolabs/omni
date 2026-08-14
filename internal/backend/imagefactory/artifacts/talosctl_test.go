@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package backend_test
+package artifacts_test
 
 import (
 	"net/http"
@@ -18,7 +18,7 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
-	backend "github.com/siderolabs/omni/internal/backend"
+	"github.com/siderolabs/omni/internal/backend/imagefactory/artifacts"
 )
 
 func TestTalosctlHandlerRejectsInvalidVersion(t *testing.T) {
@@ -43,8 +43,7 @@ func TestTalosctlHandlerRejectsInvalidVersion(t *testing.T) {
 
 	imageFactoryClients := imagefactory.NewClients(st, imageFactoryClient)
 
-	handler, err := backend.MakeTalosctlHandler(imageFactoryClients, zaptest.NewLogger(t))
-	require.NoError(t, err)
+	handler := artifacts.NewTalosctlHandler(imageFactoryClients, zaptest.NewLogger(t))
 
 	validReq := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/talosctl/downloads/v1.2.3", nil)
 	validReq.SetPathValue("version", "v1.2.3")
