@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni
 
-go 1.26.5
+go 1.26.6
 
 replace (
 	// forked saml library that has the fix for Fusion Auth ACS parsing
