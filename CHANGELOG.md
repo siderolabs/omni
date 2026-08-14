@@ -1,3 +1,30 @@
+## [Omni 1.10.3](https://github.com/siderolabs/omni/releases/tag/v1.10.3) (2026-08-14)
+
+Welcome to the v1.10.3 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Edward Sammut Alessi
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`8bce1ddbd`](https://github.com/siderolabs/omni/commit/8bce1ddbd4d52e7d151433d687c16e773c4c7657) fix(frontend): check for navigation in preload error events
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.10.2](https://github.com/siderolabs/omni/releases/tag/v1.10.2)
+
 ## [Omni 1.10.2](https://github.com/siderolabs/omni/releases/tag/v1.10.2) (2026-08-14)
 
 Welcome to the v1.10.2 release of Omni!
