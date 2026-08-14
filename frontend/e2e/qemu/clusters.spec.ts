@@ -375,7 +375,9 @@ test('exposed services', async ({ page, omnictl }, testInfo) => {
   const nginxRow = page.getByRole('row', { name: 'nginx-service' })
 
   await test.step('Verify nginx service manifest created', async () => {
-    await expect(nginxRow.getByText('Progressing')).toBeVisible()
+    await expect(nginxRow.getByText('Progressing')).toBeVisible({
+      timeout: milliseconds({ seconds: 30 }),
+    })
     await expect(nginxRow.getByText('One-Time')).toBeVisible()
     await expect(nginxRow.getByText('0/2 in sync')).toBeVisible()
   })

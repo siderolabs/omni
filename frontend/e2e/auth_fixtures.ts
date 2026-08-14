@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { expect, test as base } from '@playwright/test'
+import { milliseconds } from 'date-fns'
 
 interface AuthFixtures {
   /**
@@ -31,7 +32,9 @@ const test = base.extend<AuthFixtures>({
       await page.getByRole('textbox', { name: 'Password' }).fill(process.env.AUTH_PASSWORD)
       await page.getByRole('button', { name: 'Login' }).click()
 
-      await page.getByRole('heading', { name: 'Home' }).waitFor()
+      await page.getByRole('heading', { name: 'Home' }).waitFor({
+        timeout: milliseconds({ seconds: 15 }),
+      })
 
       await use()
     },

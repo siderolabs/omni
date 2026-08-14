@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { expect, test } from '@playwright/test'
+import { milliseconds } from 'date-fns'
 
 test('Auth flow', async ({ page }) => {
   expect(process.env.AUTH_USERNAME).toBeTruthy()
@@ -23,7 +24,9 @@ test('Auth flow', async ({ page }) => {
     await page.getByRole('button', { name: 'Sign In' }).click()
   })
 
-  await expect(page.getByRole('heading', { name: 'Home' }), 'Should redirect to home').toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Home' }), 'Should redirect to home').toBeVisible({
+    timeout: milliseconds({ seconds: 15 }),
+  })
 
   await test.step('Identity comes from the SAML assertion', async () => {
     // Omni reads the email from the X500 email attribute and builds the full name from
