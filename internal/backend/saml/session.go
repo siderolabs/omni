@@ -51,12 +51,19 @@ type UserInfo struct {
 }
 
 // NewSessionProvider creates a new SessionProvider.
-func NewSessionProvider(state state.State, tracker samlsp.RequestTracker, logger *zap.Logger, attributeRules map[string]string) *SessionProvider {
+func NewSessionProvider(
+	state state.State,
+	tracker samlsp.RequestTracker,
+	logger *zap.Logger,
+	attributeRules map[string]string,
+	recoveryAdmin string,
+) *SessionProvider {
 	return &SessionProvider{
 		state:          state,
 		tracker:        tracker,
 		logger:         logger,
 		attributeRules: attributeRules,
+		recoveryAdmin:  strings.ToLower(recoveryAdmin),
 	}
 }
 
@@ -67,6 +74,7 @@ type SessionProvider struct {
 	tracker        samlsp.RequestTracker
 	logger         *zap.Logger
 	attributeRules map[string]string
+	recoveryAdmin  string
 }
 
 // CreateSession is called when we have received a valid SAML assertion and
@@ -305,6 +313,16 @@ func (sp *SessionProvider) ensureUser(ctx context.Context, email string, samlLab
 			r = role.Role(getRoleFromRule(samlLabelRule))
 			updateOnEachLogin = samlLabelRule.TypedSpec().Value.UpdateOnEachLogin
 		}
+	}
+
+	if sp.recoveryAdmin != "" && email == sp.recoveryAdmin && r != role.Admin {
+		sp.logger.Warn(
+			"skipping SAML role update for the recovery admin",
+			zap.String("email", email),
+			zap.String("rule_role", string(r)),
+		)
+
+		updateOnEachLogin = false
 	}
 
 	if err = user.Ensure(ctx, sp.state, email, r, updateOnEachLogin); err != nil {

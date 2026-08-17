@@ -71,6 +71,7 @@ examples:
     initialUsers:
       - initial-user-1@example.com
       - initial-user-2@example.com
+    recoveryAdmin: admin@example.com
   logs:
     level: info
     format: json

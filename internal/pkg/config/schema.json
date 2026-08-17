@@ -869,6 +869,11 @@
             "type": "string"
           }
         },
+        "recoveryAdmin": {
+          "description": "RecoveryAdmin is the email of a user raised to the Admin role on every Omni start. The user must already exist. Once configured, SAML label rules never lower its role. Intended as a break-glass path when a misconfigured SAML rule removes admin access from everyone.",
+          "x-cli-flag": "recovery-admin",
+          "type": "string"
+        },
         "keyPruner": {
           "description": "KeyPruner contains configuration for the public keys pruner (cleanup of old/expired keys).",
           "$ref": "#/definitions/KeyPrunerConfig"

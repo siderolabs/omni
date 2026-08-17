@@ -51,6 +51,60 @@ func EnsureInitialResources(ctx context.Context, st state.State, logger *zap.Log
 	return multiErr
 }
 
+// ElevateRecoveryAdmin raises the user with the given email to the Admin role.
+func ElevateRecoveryAdmin(ctx context.Context, st state.State, logger *zap.Logger, email string) error {
+	if email == "" {
+		return nil
+	}
+
+	email = strings.ToLower(email)
+
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
+	identity, err := safe.StateGet[*auth.Identity](ctx, st, auth.NewIdentity(email).Metadata())
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			logger.Error("recovery admin not found, skipping role elevation", zap.String("email", email))
+
+			return nil
+		}
+
+		return err
+	}
+
+	if _, isServiceAccount := identity.Metadata().Labels().Get(auth.LabelIdentityTypeServiceAccount); isServiceAccount {
+		logger.Error("recovery admin is a service account, skipping role elevation", zap.String("email", email))
+
+		return nil
+	}
+
+	var previousRole string
+
+	if _, err = safe.StateUpdateWithConflicts(
+		ctx, st,
+		auth.NewUser(identity.TypedSpec().Value.UserId).Metadata(),
+		func(user *auth.User) error {
+			previousRole = user.TypedSpec().Value.Role
+
+			user.TypedSpec().Value.Role = string(role.Admin)
+
+			return nil
+		},
+	); err != nil {
+		return err
+	}
+
+	if previousRole != string(role.Admin) {
+		logger.Info(
+			"elevated recovery admin, existing sessions must log out and back in to pick up the new role",
+			zap.String("email", email),
+			zap.String("previous_role", previousRole),
+		)
+	}
+
+	return nil
+}
+
 // Create creates a new user with the given email and role.
 // It returns the user ID. It fails if a user with the given email already exists.
 func Create(ctx context.Context, st state.State, email, userRole string) (string, error) {

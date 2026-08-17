@@ -46,6 +46,12 @@ type Auth struct {
 	// Oidc contains OIDC authentication provider configuration.
 	Oidc OIDC `json:"oidc" yaml:"oidc"`
 
+	// RecoveryAdmin is the email of a user raised to the Admin role on every Omni
+	// start. The user must already exist. Once configured, SAML label rules never
+	// lower its role. Intended as a break-glass path when a misconfigured SAML rule
+	// removes admin access from everyone.
+	RecoveryAdmin *string `json:"recoveryAdmin,omitempty,omitzero" yaml:"recoveryAdmin,omitempty"`
+
 	// Saml contains SAML authentication provider configuration.
 	Saml SAML `json:"saml" yaml:"saml"`
 

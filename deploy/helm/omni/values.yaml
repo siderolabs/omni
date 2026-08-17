@@ -312,6 +312,10 @@ config:
     #initialUsers:
     #  - initial-user-1@example.com
     #  - initial-user-2@example.com
+    # RecoveryAdmin is the email of a user raised to the Admin role on every Omni start. The user must already
+    # exist. Once configured, SAML label rules never lower its role. Intended as a break-glass path when a
+    # misconfigured SAML rule removes admin access from everyone.
+    #recoveryAdmin: admin@example.com
     # @ignored
     # KeyPruner contains configuration for the public keys pruner (cleanup of old/expired keys).
     keyPruner:

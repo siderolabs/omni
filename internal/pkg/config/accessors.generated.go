@@ -39,6 +39,17 @@ func (s *Account) SetName(v string) {
 	s.Name = &v
 }
 
+func (s *Auth) GetRecoveryAdmin() string {
+	if s == nil || s.RecoveryAdmin == nil {
+		return *new(string)
+	}
+	return *s.RecoveryAdmin
+}
+
+func (s *Auth) SetRecoveryAdmin(v string) {
+	s.RecoveryAdmin = &v
+}
+
 func (s *Auth) GetSuspended() bool {
 	if s == nil || s.Suspended == nil {
 		return *new(bool)

@@ -126,6 +126,11 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		return fmt.Errorf("failed to write initial user resources to state: %w", err)
 	}
 
+	err = user.ElevateRecoveryAdmin(ctx, state.Default(), logger, cfg.Auth.GetRecoveryAdmin())
+	if err != nil {
+		return fmt.Errorf("failed to elevate the recovery admin: %w", err)
+	}
+
 	if cfg.EulaAccept.GetName() != "" && cfg.EulaAccept.GetEmail() != "" {
 		if err = eula.Accept(ctx, state.Default(), eula.AcceptParams{Name: cfg.EulaAccept.GetName(), Email: cfg.EulaAccept.GetEmail()}); err != nil {
 			return fmt.Errorf("failed to accept EULA: %w", err)

@@ -333,7 +333,13 @@ func (s *Server) makeMux(oidcProvider *oidc.Provider) (*http.ServeMux, error) {
 			return nil, nil //nolint:nilnil
 		}
 
-		return saml.NewHandler(s.omniRuntime.ValidatedState(), s.authConfig.TypedSpec().Value.Saml, s.logger, s.cfg.Services.Api.URL())
+		return saml.NewHandler(
+			s.omniRuntime.ValidatedState(),
+			s.authConfig.TypedSpec().Value.Saml,
+			s.logger,
+			s.cfg.Services.Api.URL(),
+			s.cfg.Auth.GetRecoveryAdmin(),
+		)
 	}()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create SAML handler: %w", err)

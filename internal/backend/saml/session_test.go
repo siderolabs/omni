@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
 	"github.com/cosi-project/runtime/pkg/state/impl/namespaced"
@@ -25,6 +26,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/access/role"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/internal/backend/saml"
+	"github.com/siderolabs/omni/internal/pkg/auth/user"
 )
 
 func TestUserInfo(t *testing.T) {
@@ -114,7 +116,7 @@ func TestReadLabelsFromAssertion(t *testing.T) {
 
 	sp := saml.NewSessionProvider(s, nil, zaptest.NewLogger(t), map[string]string{
 		"identity": saml.IdentityAttribute,
-	})
+	}, "")
 
 	authConfig := auth.NewAuthConfig()
 	authConfig.TypedSpec().Value.Saml = &specs.AuthConfigSpec_SAML{
@@ -325,4 +327,131 @@ func TestMatchSAMLLabelRuleNoneWithHigherRulePresent(t *testing.T) {
 
 	require.NotNil(t, matchedRule)
 	require.EqualValues(t, matchedRule.TypedSpec().Value.AssignRole, role.Reader)
+}
+
+const (
+	lockedOutEmail = "locked-out@example.com"
+	colleagueEmail = "colleague@example.com"
+	developerLabel = "saml.omni.sidero.dev/role/developer"
+)
+
+// setupEnsureUser builds a state with two Admin users and one label rule, so ensureUser takes the
+// "users already exist" branch and resolves a rule instead of bootstrapping the first admin.
+func setupEnsureUser(ctx context.Context, t *testing.T, assignRole role.Role, updateOnEachLogin bool) state.State {
+	t.Helper()
+
+	st := state.WrapCore(namespaced.NewState(inmem.Build))
+
+	for _, email := range []string{lockedOutEmail, colleagueEmail} {
+		require.NoError(t, user.Ensure(ctx, st, email, role.Admin, false))
+	}
+
+	rule := auth.NewSAMLLabelRule("assign-to-developer")
+	rule.TypedSpec().Value.MatchLabels = []string{developerLabel}
+	rule.TypedSpec().Value.AssignRole = string(assignRole)
+	rule.TypedSpec().Value.UpdateOnEachLogin = updateOnEachLogin
+
+	require.NoError(t, st.Create(ctx, rule))
+
+	return st
+}
+
+func roleOf(ctx context.Context, t *testing.T, st state.State, email string) string {
+	t.Helper()
+
+	identity, err := safe.StateGetByID[*auth.Identity](ctx, st, email)
+	require.NoError(t, err)
+
+	usr, err := safe.StateGetByID[*auth.User](ctx, st, identity.TypedSpec().Value.UserId)
+	require.NoError(t, err)
+
+	return usr.TypedSpec().Value.Role
+}
+
+func TestEnsureUserRecoveryAdmin(t *testing.T) {
+	t.Parallel()
+
+	samlLabels := map[string]string{developerLabel: ""}
+
+	for _, tt := range []struct {
+		name              string
+		recoveryAdmin     string
+		assignRole        role.Role
+		expectedRole      role.Role
+		updateOnEachLogin bool
+	}{
+		{
+			name:              "recovery admin is not demoted",
+			recoveryAdmin:     lockedOutEmail,
+			assignRole:        role.Reader,
+			updateOnEachLogin: true,
+			expectedRole:      role.Admin,
+		},
+		{
+			name:              "recovery admin is not stripped of every role",
+			recoveryAdmin:     lockedOutEmail,
+			assignRole:        role.None,
+			updateOnEachLogin: true,
+			expectedRole:      role.Admin,
+		},
+		{
+			name:              "recovery admin still matches a rule that assigns Admin",
+			recoveryAdmin:     lockedOutEmail,
+			assignRole:        role.Admin,
+			updateOnEachLogin: true,
+			expectedRole:      role.Admin,
+		},
+		{
+			name:              "email is matched case-insensitively",
+			recoveryAdmin:     "Locked-Out@Example.com",
+			assignRole:        role.Reader,
+			updateOnEachLogin: true,
+			expectedRole:      role.Admin,
+		},
+		{
+			name:              "everyone else is still demoted",
+			assignRole:        role.Reader,
+			updateOnEachLogin: true,
+			expectedRole:      role.Reader,
+		},
+		{
+			name:          "a rule without updateOnEachLogin changes nobody",
+			recoveryAdmin: lockedOutEmail,
+			assignRole:    role.Reader,
+			expectedRole:  role.Admin,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			st := setupEnsureUser(ctx, t, tt.assignRole, tt.updateOnEachLogin)
+
+			sp := saml.NewSessionProvider(st, nil, zaptest.NewLogger(t), nil, tt.recoveryAdmin)
+
+			require.NoError(t, sp.EnsureUser(ctx, lockedOutEmail, samlLabels))
+
+			require.EqualValues(t, tt.expectedRole, roleOf(ctx, t, st, lockedOutEmail))
+
+			// the guard only covers the configured email, everyone else keeps what they had
+			require.EqualValues(t, role.Admin, roleOf(ctx, t, st, colleagueEmail))
+		})
+	}
+}
+
+// TestEnsureUserRecoveryAdminNotCreated checks that a recovery admin with no identity yet is registered
+// with the role its label rule assigns. Elevation happens on the next restart, not here.
+func TestEnsureUserRecoveryAdminNotCreated(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	st := setupEnsureUser(ctx, t, role.Reader, true)
+
+	const newcomer = "newcomer@example.com"
+
+	sp := saml.NewSessionProvider(st, nil, zaptest.NewLogger(t), nil, newcomer)
+
+	require.NoError(t, sp.EnsureUser(ctx, newcomer, map[string]string{developerLabel: ""}))
+
+	require.EqualValues(t, role.Reader, roleOf(ctx, t, st, newcomer))
 }

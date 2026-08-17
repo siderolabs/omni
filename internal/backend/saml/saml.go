@@ -43,7 +43,7 @@ type sloSessionData struct {
 }
 
 // NewHandler creates new SAML handler.
-func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.Logger, apiURL string) (*samlsp.Middleware, error) {
+func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.Logger, apiURL, recoveryAdmin string) (*samlsp.Middleware, error) {
 	idpMetadata, err := readMetadata(cfg)
 	if err != nil {
 		return nil, err
@@ -88,6 +88,7 @@ func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.L
 			requestTracker,
 			logger.With(logging.Component("saml_session")),
 			cfg.AttributeRules,
+			recoveryAdmin,
 		),
 		RequestTracker:   requestTracker,
 		AssertionHandler: samlsp.DefaultAssertionHandler(samlsp.Options{}),

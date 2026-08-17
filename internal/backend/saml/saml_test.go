@@ -106,6 +106,7 @@ func startAuthFlow(t *testing.T) *http.Response {
 		&specs.AuthConfigSpec_SAML{Metadata: "testdata/samlsp_metadata.xml"},
 		zaptest.NewLogger(t),
 		testAdvertisedURL,
+		"",
 	)
 	require.NoError(t, err)
 
