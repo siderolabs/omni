@@ -1007,3 +1007,11 @@ spec:
   defaultBuildTags:
     - memory.counters # enable memory counters in modernc.org/memory
     - libc.memexpvar # enable memexpvar in modernc.org/libc to export the counters
+---
+kind: common.Gitattributes
+spec:
+  additionalContent:
+    - "*.generated.go linguist-generated=true"
+    - "*.pb.gw.go linguist-generated=true"
+    - "*.pb.ts linguist-generated=true"
+    - frontend/src/api/resources.ts linguist-generated=true
