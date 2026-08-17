@@ -8,7 +8,7 @@ included in the LICENSE file.
 import { vOnClickOutside } from '@vueuse/components'
 import { Duration } from 'luxon'
 import pluralize from 'pluralize'
-import { computed, ref, watchEffect } from 'vue'
+import { computed, ref } from 'vue'
 
 import type { Duration as GoogleProtobufDuration } from '@/api/google/protobuf/duration.pb'
 import IconButton from '@/components/Button/IconButton.vue'
@@ -49,12 +49,6 @@ const interval = computed(() => {
 })
 
 const backupIntervalPreview = ref<number>()
-const backupIntervalHours = ref<number>()
-
-watchEffect(() => {
-  backupIntervalPreview.value = interval.value?.hours ?? 1
-  backupIntervalHours.value = backupIntervalPreview.value
-})
 
 const toggleBackupsEnabled = (enabled: boolean) => {
   emit('update:cluster', {
@@ -69,12 +63,10 @@ const toggleBackupsEnabled = (enabled: boolean) => {
 
 const startEditingBackupInterval = () => {
   backupIntervalPreview.value = interval.value?.hours ?? 1
-  backupIntervalHours.value = backupIntervalPreview.value
   editingBackupConfig.value = true
 }
 
 const updateBackupInterval = () => {
-  backupIntervalHours.value = backupIntervalPreview.value
   editingBackupConfig.value = false
 
   const c = { ...cluster }
@@ -84,7 +76,7 @@ const updateBackupInterval = () => {
   }
 
   c.backup_configuration.interval = formatDuration(
-    Duration.fromDurationLike({ hours: backupIntervalHours.value }),
+    Duration.fromDurationLike({ hours: backupIntervalPreview.value }),
   )
 
   emit('update:cluster', c)
