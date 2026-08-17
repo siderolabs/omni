@@ -6,7 +6,7 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { vOnClickOutside } from '@vueuse/components'
-import { Duration } from 'luxon'
+import { formatDuration, hoursToSeconds, minutesToSeconds } from 'date-fns'
 import pluralize from 'pluralize'
 import { computed, ref } from 'vue'
 
@@ -17,7 +17,6 @@ import TCheckbox from '@/components/Checkbox/TCheckbox.vue'
 import TInput from '@/components/TInput/TInput.vue'
 import type { BackupsStatus } from '@/methods'
 import { usePermissions } from '@/methods/auth'
-import { formatDuration, parseDuration } from '@/methods/time'
 
 const editingBackupConfig = ref(false)
 
@@ -42,31 +41,32 @@ const enabled = computed(() => {
   return cluster.value.backup_configuration?.enabled === true
 })
 
-const interval = computed(() => {
+const hours = computed(() => {
   const value = cluster.value.backup_configuration?.interval
 
   if (!value || value.trim() === '0') {
-    return undefined
+    return 1
   }
 
-  return parseDuration(value).shiftTo('hours')
+  // Not using secondsToHours to preserve fractional hours
+  return parseInt(value) / 3600
 })
 
-const backupIntervalPreview = ref<number>()
+const backupIntervalPreview = ref(1)
 
 const toggleBackupsEnabled = (enabled: boolean) => {
   cluster.value = {
     ...cluster.value,
     backup_configuration: {
       ...cluster.value.backup_configuration,
-      interval: cluster.value.backup_configuration?.interval || `${60 * 60}s`,
+      interval: cluster.value.backup_configuration?.interval || `${minutesToSeconds(60)}s`,
       enabled,
     },
   }
 }
 
 const startEditingBackupInterval = () => {
-  backupIntervalPreview.value = interval.value?.hours ?? 1
+  backupIntervalPreview.value = hours.value
   editingBackupConfig.value = true
 }
 
@@ -77,7 +77,7 @@ const updateBackupInterval = () => {
     ...cluster.value,
     backup_configuration: {
       ...cluster.value.backup_configuration,
-      interval: formatDuration(Duration.fromDurationLike({ hours: backupIntervalPreview.value })),
+      interval: `${hoursToSeconds(backupIntervalPreview.value)}s`,
     },
   }
 }
@@ -112,7 +112,7 @@ const updateBackupInterval = () => {
     <div v-else-if="enabled" class="flex h-6 items-center gap-2 text-xs">
       <span>Interval:</span>
       <template v-if="!editingBackupConfig">
-        <span class="text-naturals-n13">{{ interval?.toHuman() }}</span>
+        <span class="text-naturals-n13">{{ formatDuration({ hours }) }}</span>
         <IconButton v-if="!editingBackupConfig" icon="edit" @click="startEditingBackupInterval" />
       </template>
       <template v-else>

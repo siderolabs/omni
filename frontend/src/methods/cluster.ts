@@ -38,8 +38,6 @@ import {
 import type { Metadata } from '@/api/v1alpha1/resource.pb'
 import { parseLabels } from '@/methods/labels'
 
-import { isoNow } from './time'
-
 export type MachineConfig = {
   role?: string
   configPatch: string
@@ -444,7 +442,7 @@ export const triggerEtcdBackup = async (clusterID: string) => {
     }
   }
 
-  manualBackup.spec.backup_at = isoNow()
+  manualBackup.spec.backup_at = new Date().toISOString()
 
   if (!exists) {
     return await ResourceService.Create(manualBackup, withRuntime(Runtime.Omni))

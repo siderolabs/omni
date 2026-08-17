@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import { useRouteQuery } from '@vueuse/router'
-import { DateTime } from 'luxon'
 import { computed, ref, watchEffect } from 'vue'
 
 import type { Data } from '@/api/common/common.pb'
@@ -113,10 +112,10 @@ const parsers: Record<string, (line: string) => LogLine> = {
   },
   kubelet(line) {
     const parsed = JSON.parse(line)
-    const date = DateTime.fromSeconds(parseFloat(parsed.ts) / 1000)
+    const date = new Date(parseFloat(parsed.ts))
 
     return {
-      date: date.toISO() ?? undefined,
+      date: date.toISOString(),
       msg: `[${parsed.level ?? 'info'}] ${parsed.msg} ${formatLoggingContext(parsed, 'msg', 'ts', 'level')}`,
     }
   },

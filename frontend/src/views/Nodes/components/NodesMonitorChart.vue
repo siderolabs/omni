@@ -10,7 +10,7 @@ import 'apexcharts/area'
 import { ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import { refDebounced } from '@vueuse/core'
 import type { ApexOptions } from 'apexcharts'
-import { DateTime } from 'luxon'
+import { parseISO } from 'date-fns'
 import { computed, ref, useTemplateRef, watch, watchEffect } from 'vue'
 import VueApexCharts from 'vue3-apexcharts/core'
 
@@ -91,7 +91,7 @@ const handlePoint = (resource: Resource<T>, old: Resource<T>) => {
     let point: Point = data[key]
     const updated = resource.metadata.updated
     if (updated) {
-      point = [DateTime.fromISO(updated.toString()).toMillis(), point]
+      point = [parseISO(updated.toString()).getTime(), point]
     }
 
     if (!points[meta.index]) points[meta.index] = []

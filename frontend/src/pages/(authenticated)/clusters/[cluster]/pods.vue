@@ -5,7 +5,7 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { useOffsetPagination } from '@vueuse/core'
+import { useNow, useOffsetPagination } from '@vueuse/core'
 import { useRouteQuery } from '@vueuse/router'
 import type { PodSpec as V1PodSpec, PodStatus as V1PodStatus } from 'kubernetes-types/core/v1'
 import { computed, watch } from 'vue'
@@ -26,6 +26,7 @@ import TPodsItem from '@/views/Pods/TPodsItem.vue'
 
 definePage({ name: 'Pods' })
 
+const now = useNow()
 const route = useRoute()
 const filterOption = useRouteQuery('filter', TPodsViewFilterOptions.ALL)
 const searchOption = useRouteQuery('q', '')
@@ -120,6 +121,7 @@ watch(searchOption, () => (currentPage.value = 1))
           :key="`${item.metadata.namespace}/${item.metadata.name || idx}`"
           :search-option="searchOption"
           :item="item"
+          :now
         />
       </div>
 

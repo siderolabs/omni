@@ -2,94 +2,26 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
+import {
+  formatDate,
+  formatDistanceToNowStrict,
+  formatRFC7231,
+  fromUnixTime,
+  parseISO,
+} from 'date-fns'
 
-import type { DurationLike, DurationLikeObject } from 'luxon'
-import { DateTime, Duration } from 'luxon'
-
-export const relativeISO = (input: string): string => {
-  return parseISO(input).toRelative()!
+export function relativeISO(input: string) {
+  return formatDistanceToNowStrict(parseISO(input), { addSuffix: true })
 }
 
-export const formatISO = (input: string, format?: string): string => {
-  if (!format) {
-    format = 'dd/MM/yyyy HH:mm:ss'
-  }
-
-  return parseISO(input).toFormat(format)
+export function formatISO(input: string, format = 'dd/MM/yyyy HH:mm:ss') {
+  return formatDate(parseISO(input), format)
 }
 
-export const isoNow = (add?: DurationLike): string => {
-  let date = DateTime.now()
+export function formatFullDateTime(time?: string) {
+  if (!time) return 'Never'
 
-  if (add) {
-    date = date.plus(add)
-  }
+  const date = /^\d+$/.test(time) ? fromUnixTime(parseInt(time)) : parseISO(time)
 
-  return date.setLocale('en-US').toUTC().toISO()
-}
-
-export const parseDuration = (input: string): Duration => {
-  const units: Record<'h' | 'm' | 's', keyof DurationLikeObject> = {
-    h: 'hours',
-    m: 'minutes',
-    s: 'seconds',
-  }
-
-  let buffer = ''
-
-  const duration: DurationLikeObject = {}
-
-  for (const s of input) {
-    if (units[s as keyof typeof units]) {
-      if (duration[units[s as keyof typeof units]] !== undefined) {
-        throw new Error(`failed to parse duration ${input}`)
-      }
-
-      const value = +buffer
-
-      if (buffer === null || buffer === '' || isNaN(value)) {
-        throw new Error(`failed to parse duration ${input}`)
-      }
-
-      buffer = ''
-
-      duration[units[s as keyof typeof units]] = value
-
-      continue
-    }
-
-    buffer += s
-  }
-
-  if (buffer !== '') {
-    throw new Error(`failed to parse duration ${input}`)
-  }
-
-  return Duration.fromDurationLike(duration)
-}
-
-export const formatDuration = (duration: Duration): string => {
-  let res = ''
-
-  duration = duration.shiftTo('seconds')
-
-  for (const units of [['seconds', 's']]) {
-    const key = units[0]
-    const suffix = units[1]
-
-    const value = duration.get(key as keyof DurationLikeObject)
-    if (value > 0) {
-      res += `${value}${suffix}`
-    }
-  }
-
-  if (res === '') {
-    res = '0'
-  }
-
-  return res
-}
-
-const parseISO = (input: string): DateTime => {
-  return DateTime.fromISO(input).setLocale('en-US').toLocal()
+  return formatRFC7231(date)
 }

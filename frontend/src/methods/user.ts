@@ -3,6 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
+import { add } from 'date-fns'
 import { enums, generateKey } from 'openpgp/lightweight'
 
 import { ManagementService } from '@/api/omni/management/management.pb'
@@ -12,13 +13,11 @@ import {
   ServiceAccountDomain,
 } from '@/api/resources'
 
-import { isoNow } from './time'
-
 export const createJoinToken = async (name: string, expirationDays?: number) => {
   let expirationTime: string | undefined
 
   if (expirationDays !== undefined) {
-    expirationTime = isoNow({ days: expirationDays })
+    expirationTime = add(new Date(), { days: expirationDays }).toISOString()
   }
 
   await ManagementService.CreateJoinToken({ expiration_time: expirationTime, name })

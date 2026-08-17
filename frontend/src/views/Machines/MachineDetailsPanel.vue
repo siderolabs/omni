@@ -5,7 +5,6 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { DateTime } from 'luxon'
 import pluralize from 'pluralize'
 import prettyBytes from 'pretty-bytes'
 import { computed, h } from 'vue'
@@ -22,6 +21,7 @@ import {
 } from '@/api/resources'
 import type { SystemInformationSpec } from '@/api/talos/hardware.pb'
 import { useMachineName } from '@/methods/node'
+import { formatFullDateTime } from '@/methods/time'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import MachineItemInfoCard from '@/views/Machines/MachineItemInfoCard.vue'
 import CloseButton from '@/views/Modals/CloseButton.vue'
@@ -75,16 +75,10 @@ const memorymodules = computed(() =>
 
 const clusterName = computed(() => machine?.spec.message_status?.cluster)
 
-const formatTime = (time?: string) => {
-  if (!time) return 'Never'
-
-  const dt = /^\d+$/.test(time) ? DateTime.fromSeconds(parseInt(time)) : DateTime.fromISO(time)
-
-  return dt.setLocale('en').toLocaleString(DateTime.DATETIME_FULL_WITH_SECONDS)
-}
-
-const machineLastAlive = computed(() => formatTime(machine?.spec.siderolink_counter?.last_alive))
-const machineCreatedAt = computed(() => formatTime(machine?.spec.machine_created_at))
+const machineLastAlive = computed(() =>
+  formatFullDateTime(machine?.spec.siderolink_counter?.last_alive),
+)
+const machineCreatedAt = computed(() => formatFullDateTime(machine?.spec.machine_created_at))
 const secureBoot = computed(() => {
   const securityState = machine?.spec.message_status?.security_state
   if (!securityState) return 'Unknown'

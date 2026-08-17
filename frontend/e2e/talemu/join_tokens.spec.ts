@@ -146,7 +146,7 @@ test('Create new join token', async ({ page }) => {
     await expect(row.getByText(NEW_TOKEN)).toBeVisible()
     await expect(row.getByText('Default')).toBeHidden()
     await expect(row.getByText('Active')).toBeVisible()
-    await expect(row.getByText('in 13 days')).toBeVisible()
+    await expect(row.getByText('in 14 days')).toBeVisible()
     await expect(row.getByText(HIDDEN_TOKEN)).toBeVisible()
   })
 })

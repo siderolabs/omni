@@ -6,7 +6,6 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import type { NodeSpec as V1NodeSpec, NodeStatus as V1NodeStatus } from 'kubernetes-types/core/v1'
-import { DateTime } from 'luxon'
 import prettyBytes from 'pretty-bytes'
 import { computed, useId } from 'vue'
 import { useRoute } from 'vue-router'
@@ -43,6 +42,7 @@ import Tag from '@/components/Tag/Tag.vue'
 import { TCommonStatuses } from '@/constants'
 import { getStatus } from '@/methods'
 import { addMachineLabels, removeMachineLabels } from '@/methods/machine'
+import { formatFullDateTime } from '@/methods/time'
 import { supportsMaintenanceEvents, useMachineServices } from '@/methods/useMachineServices'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import ClusterMachinePhase from '@/views/ClusterMachines/ClusterMachinePhase.vue'
@@ -151,18 +151,6 @@ const roles = computed(() =>
 )
 
 const status = computed(() => getStatus(node.value!))
-
-const timeGetter = (time: string | undefined) => {
-  if (time) {
-    const dt: DateTime = /^\d+$/.exec(time)
-      ? DateTime.fromSeconds(parseInt(time))
-      : DateTime.fromISO(time)
-
-    return dt.setLocale('en').toLocaleString(DateTime.DATETIME_FULL_WITH_SECONDS)
-  }
-
-  return 'Never'
-}
 
 const getCPUInfo = () => {
   const processors = machineStatus.value?.spec.message_status?.hardware?.processors
@@ -311,7 +299,7 @@ const servicesSectionHeadingId = useId()
           <div class="overview-data-row">
             <p class="overview-data-name">Last Active</p>
             <p class="overview-data">
-              {{ timeGetter(machineStatus.spec.siderolink_counter?.last_alive) }}
+              {{ formatFullDateTime(machineStatus.spec.siderolink_counter?.last_alive) }}
             </p>
           </div>
           <div class="overview-data-row">

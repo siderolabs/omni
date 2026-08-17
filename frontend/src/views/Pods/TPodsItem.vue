@@ -5,8 +5,8 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
+import { differenceInSeconds, parseISO } from 'date-fns'
 import type { Pod as V1Pod } from 'kubernetes-types/core/v1'
-import { DateTime } from 'luxon'
 import { CollapsibleContent, CollapsibleRoot, CollapsibleTrigger } from 'reka-ui'
 import { computed } from 'vue'
 import WordHighlighter from 'vue-word-highlighter'
@@ -14,7 +14,8 @@ import WordHighlighter from 'vue-word-highlighter'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TStatus from '@/components/Status/TStatus.vue'
 
-const { item } = defineProps<{
+const { item, now } = defineProps<{
+  now: Date
   searchOption: string
   item: V1Pod
 }>()
@@ -27,10 +28,19 @@ const restartCount = computed(() =>
   item.status?.containerStatuses?.reduce((amount, reducer) => amount + reducer.restartCount, 0),
 )
 
-const getAge = (age: string) =>
-  DateTime.now()
-    .diff(DateTime.fromISO(age), ['days', 'hours', 'minutes'])
-    .toFormat("dd'd' hh'h' mm'm'")
+const age = computed(() => {
+  if (!item.status?.startTime) return ''
+
+  const totalMinutes = Math.floor(differenceInSeconds(now, parseISO(item.status.startTime)) / 60)
+
+  const days = Math.floor(totalMinutes / 1440)
+  const hours = Math.floor((totalMinutes % 1440) / 60)
+  const minutes = totalMinutes % 60
+
+  const pad = (n: number) => n.toString().padStart(2, '0')
+
+  return `${pad(days)}d ${pad(hours)}h ${pad(minutes)}m`
+})
 </script>
 
 <template>
@@ -94,7 +104,7 @@ const getAge = (age: string) =>
         <div class="flex w-1/6 flex-col gap-1.75">
           <p>Age</p>
           <p class="text-naturals-n13">
-            {{ item.status?.startTime ? getAge(item.status.startTime) : '' }}
+            {{ age }}
           </p>
         </div>
 
