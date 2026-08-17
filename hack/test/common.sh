@@ -7,17 +7,18 @@
 
 set -eoux pipefail
 
-# Omni is served from "https://my-instance.omni.localhost:8099"
-# Exposed services through workload proxying follow the pattern: "https://sngmph-my-instance.proxy-us.omni.localhost:8099/"
+export WORKLOAD_PROXY_HOST="omni.localhost"
+export HOST="my-instance.${WORKLOAD_PROXY_HOST}"
+
+# Omni is served from "https://${HOST}:8099"
+# Exposed services through workload proxying follow the pattern: "https://sngmph-my-instance.proxy-us.${WORKLOAD_PROXY_HOST}:8099/"
 # The TLS key and cert, hack/certs/localhost-key.pem and hack/certs/localhost.pem contain the SANs:
-# - localhost
-# - *.localhost
-# - my-instance.omni.localhost
-# - *.my-instance.omni.localhost
+# - ${HOST}
+# - *.${WORKLOAD_PROXY_HOST}
 #
-# Write "my-instance.omni.localhost" to /etc/hosts to avoid problems with the name resolution.
-echo "127.0.0.1 my-instance.omni.localhost" | tee -a /etc/hosts
-echo "127.0.0.1 omni.localhost" | tee -a /etc/hosts
+# Write "${HOST}" to /etc/hosts to avoid problems with the name resolution.
+echo "127.0.0.1 ${HOST}" | tee -a /etc/hosts
+echo "127.0.0.1 ${WORKLOAD_PROXY_HOST}" | tee -a /etc/hosts
 
 # Settings.
 
@@ -52,7 +53,7 @@ export JOIN_TOKEN=testonly
 export TEST_OUTPUTS_DIR=${GITHUB_WORKSPACE:-/tmp}/integration-test
 export SLEEP_AFTER_FAILURE=${SLEEP_AFTER_FAILURE:-0}
 export CI="${CI}"
-export BASE_URL=https://my-instance.omni.localhost:8099/
+export BASE_URL="https://${HOST}:8099/"
 export VAULT_ADDR=http://127.0.0.1:8200
 export VAULT_TOKEN=dev-o-token
 export AUTH_PROVIDER="${AUTH_PROVIDER:-dex}"
@@ -72,7 +73,7 @@ auth0)
 saml)
   export AUTH_USERNAME="test-user@siderolabs.com"
   export AUTH_PASSWORD="test-password-1234"
-  export KEYCLOAK_URL="http://my-instance.omni.localhost:8080"
+  export KEYCLOAK_URL="http://${HOST}:8080"
   export KEYCLOAK_REALM="omni"
   export SAML_METADATA_URL="${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/saml/descriptor"
   export AUTH_PROVIDER_CONFIG="  saml:
@@ -88,7 +89,7 @@ saml)
   export AUTH_PASSWORD="test-password-1234"
   # Use the omni hostname (resolving to 127.0.0.1 on the host) rather than 127.0.0.1,
   # so the e2e test container can reach Dex through its --add-host host-gateway mapping.
-  export DEX_ISSUER="http://my-instance.omni.localhost:5556/dex"
+  export DEX_ISSUER="http://${HOST}:5556/dex"
   export DEX_OIDC_CLIENT_ID="omni"
   export DEX_OIDC_CLIENT_SECRET="omni-oidc-secret"
   export AUTH_PROVIDER_CONFIG="  oidc:

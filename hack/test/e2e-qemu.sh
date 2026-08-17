@@ -96,7 +96,7 @@ docker run --rm \
   -e PROJECT="qemu" \
   -v "${TEST_OUTPUTS_DIR}/e2e/playwright-report:/tmp/test/playwright-report" \
   -v "${TEST_OUTPUTS_DIR}/e2e/support-bundles:/tmp/test/test-results/support-bundles/" \
-  --add-host=my-instance.omni.localhost:host-gateway \
+  --add-host="${HOST}:host-gateway" \
   e2etest
 
 # No cleanup here, as it runs in the CI as a container in a pod.
