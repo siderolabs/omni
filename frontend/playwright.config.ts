@@ -13,6 +13,8 @@ import dotenv from 'dotenv'
  */
 dotenv.config({ quiet: true })
 
+const permissions = ['clipboard-read', 'clipboard-write']
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -25,7 +27,7 @@ export default defineConfig({
   reporter: process.env.CI ? [['html'], ['list'], ['github']] : [['html'], ['list']],
   use: {
     baseURL: process.env.BASE_URL,
-    permissions: ['clipboard-read', 'clipboard-write'],
+    permissions,
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
     ignoreHTTPSErrors: true,
@@ -65,12 +67,33 @@ export default defineConfig({
       dependencies: ['eula'],
     },
     {
-      name: 'talemu',
+      name: 'talemu-chrome',
       use: {
         ...devices['Desktop Chrome'],
       },
       testMatch: 'talemu/**/*.spec.ts',
       dependencies: ['eula', 'talemu-setup'],
+    },
+    {
+      name: 'talemu-firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        // Firefox does not support clipboard permissions
+        permissions: permissions.filter((p) => !p.startsWith('clipboard')),
+        launchOptions: {
+          firefoxUserPrefs: {
+            // Firefox specific flag to always allow clipboard access
+            'dom.events.testing.asyncClipboard': true,
+          },
+        },
+      },
+      testMatch: 'talemu/**/*.spec.ts',
+      dependencies: ['eula', 'talemu-setup'],
+    },
+    {
+      name: 'talemu',
+      testMatch: /(?!)/,
+      dependencies: ['talemu-chrome', 'talemu-firefox'],
     },
     {
       name: 'qemu',
