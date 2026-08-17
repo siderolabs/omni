@@ -132,8 +132,8 @@ if [[ -n "$ANOTHER_OMNI_VERSION" && -n "$INTEGRATION_PREPARE_TEST_ARGS" ]]; then
     -e SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
     -e SSL_CERT_DIR=hack/certs:/etc/ssl/certs \
     --network host \
-    --add-host="${HOST}:127.0.0.1" \
-    --add-host="${WORKLOAD_PROXY_HOST}:127.0.0.1" \
+    --add-host="${OMNI_HOST}:127.0.0.1" \
+    --add-host="${OMNI_DOMAIN}:127.0.0.1" \
     "ghcr.io/siderolabs/omni-integration-test:${ANOTHER_OMNI_VERSION}" \
     --omni.talos-version="${TALOS_VERSION}" \
     --omni.stable-talos-version="${STABLE_TALOS_VERSION}" \

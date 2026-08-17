@@ -57,7 +57,7 @@ SIDEROLINK_DEV_JOIN_TOKEN="${JOIN_TOKEN}" \
 # in its own network namespace, so on the host network the UI tests randomly flake.
 #
 # The --add-host mapping covers Keycloak as well as Omni, since both are served under
-# $HOST.
+# ${OMNI_HOST}.
 cd frontend/
 docker buildx build --load . -t e2etest
 docker run --rm \
@@ -67,7 +67,7 @@ docker run --rm \
   -e BASE_URL="$BASE_URL" \
   -e PROJECT="saml" \
   -v "${TEST_OUTPUTS_DIR}/e2e/playwright-report:/tmp/test/playwright-report" \
-  --add-host="${HOST}:host-gateway" \
+  --add-host="${OMNI_HOST}:host-gateway" \
   e2etest
 
 # No cleanup here, as it runs in the CI as a container in a pod.

@@ -76,7 +76,7 @@ docker run --rm \
   -e BASE_URL="$BASE_URL" \
   -e PROJECT="talemu" \
   -v "${TEST_OUTPUTS_DIR}/e2e/playwright-report:/tmp/test/playwright-report" \
-  --add-host="${HOST}:host-gateway" \
+  --add-host="${OMNI_HOST}:host-gateway" \
   e2etest
 
 # No cleanup here, as it runs in the CI as a container in a pod.
