@@ -39,5 +39,11 @@ func (JWTPublicKeyExtension) ResourceDefinition() meta.ResourceDefinitionSpec {
 		Type:             JWTPublicKeyType,
 		Aliases:          []resource.Type{},
 		DefaultNamespace: NamespaceName,
+		PrintColumns: []meta.PrintColumn{
+			{
+				Name:     "Expiration",
+				JSONPath: "{.expiration}",
+			},
+		},
 	}
 }

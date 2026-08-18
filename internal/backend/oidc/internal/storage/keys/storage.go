@@ -12,15 +12,14 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"slices"
 	"sync"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/google/uuid"
-	"github.com/siderolabs/gen/xslices"
 	oidczitadel "github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
 	"go.uber.org/zap"
@@ -33,59 +32,89 @@ import (
 
 // Storage implements JWT key signing storage around resource state.
 //
+// The stored public key resources are the single source of truth for token verification:
+// deleting a key resource invalidates all the tokens signed by it on their next use.
+//
 //nolint:govet
 type Storage struct {
 	st     state.State
 	logger *zap.Logger
 
-	mu           sync.Mutex
-	currentKey   op.SigningKey
-	activeKeySet []op.Key
+	mu         sync.Mutex
+	currentKey op.SigningKey
 }
 
 // NewStorage creates a new Storage.
 func NewStorage(st state.State, logger *zap.Logger) *Storage {
-	result := &Storage{
+	return &Storage{
 		st:     st,
 		logger: logger,
 	}
-
-	return result
 }
 
-// KeySet implements the op.Storage interface.
+// KeySet returns the public keys of all stored valid signing keys.
 //
 // It will be called to get the current (public) keys, among others for the keys_endpoint or for validating access_tokens on the userinfo_endpoint, ...
-func (s *Storage) KeySet() ([]op.Key, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *Storage) KeySet(ctx context.Context) ([]op.Key, error) {
+	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	if s.activeKeySet != nil {
-		return s.activeKeySet, nil
+	keys, err := safe.StateListAll[*oidc.JWTPublicKey](ctx, s.st)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, errors.New("no active key set")
+	keySet := make([]op.Key, 0, keys.Len())
+
+	for res := range keys.All() {
+		key, valid, err := parseKey(res)
+		if err != nil {
+			// skip the key instead of failing the whole set, so a single broken key
+			// does not take down the verification of the tokens signed by the others
+			s.logger.Error("failed to parse a stored OIDC key", zap.String("key_id", res.Metadata().ID()), zap.Error(err))
+
+			continue
+		}
+
+		if valid {
+			keySet = append(keySet, key)
+		}
+	}
+
+	return keySet, nil
 }
 
 // GetPublicKeyByID looks up the public key with the given ID.
-func (s *Storage) GetPublicKeyByID(keyID string) (any, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *Storage) GetPublicKeyByID(ctx context.Context, keyID string) (any, error) {
+	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	if s.activeKeySet == nil {
-		return nil, errors.New("no active key set")
+	res, err := safe.StateGetByID[*oidc.JWTPublicKey](ctx, s.st, keyID)
+	if err != nil {
+		if state.IsNotFoundError(err) {
+			return nil, fmt.Errorf("key not found, ID %q", keyID)
+		}
+
+		return nil, err
 	}
 
-	idx := slices.IndexFunc(s.activeKeySet, func(key op.Key) bool { return key.ID() == keyID })
-	if idx == -1 {
-		return nil, fmt.Errorf("key not found, ID %q", keyID)
+	key, valid, err := parseKey(res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse the key with ID %q: %w", keyID, err)
 	}
 
-	return s.activeKeySet[idx].Key(), nil
+	if !valid {
+		return nil, fmt.Errorf("key is no longer valid, ID %q", keyID)
+	}
+
+	return key.Key(), nil
 }
 
 // GetCurrentSigningKey returns the active and currently used signing key.
-func (s *Storage) GetCurrentSigningKey() (op.SigningKey, error) {
+//
+// If the key resource was deleted from the state, e.g., by an administrator to invalidate the tokens signed by it,
+// a replacement key is generated and stored before it is returned.
+func (s *Storage) GetCurrentSigningKey(ctx context.Context) (op.SigningKey, error) {
+	ctx = actor.MarkContextAsInternalActor(ctx)
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -93,36 +122,42 @@ func (s *Storage) GetCurrentSigningKey() (op.SigningKey, error) {
 		return nil, errors.New("no current key")
 	}
 
-	return s.currentKey, nil
-}
+	res, err := safe.StateGetByID[*oidc.JWTPublicKey](ctx, s.st, s.currentKey.ID())
 
-// Options is a set of options for the key refresher.
-type Options struct {
-	keyCh chan<- op.SigningKey
-}
+	switch {
+	case state.IsNotFoundError(err):
+		// fall through to the replacement below
+	case err != nil:
+		return nil, err
+	default:
+		_, valid, parseErr := parseKey(res)
+		if parseErr != nil {
+			return nil, fmt.Errorf("failed to parse the current key with ID %q: %w", s.currentKey.ID(), parseErr)
+		}
 
-// Opts is a functional option for the key refresher.
-type Opts func(*Options)
-
-// WithKeyCh sets the channel to send the generated key to.
-func WithKeyCh(keyCh chan<- op.SigningKey) Opts {
-	return func(o *Options) {
-		o.keyCh = keyCh
+		if valid {
+			return s.currentKey, nil
+		}
 	}
+
+	s.logger.Info("current OIDC signing key is no longer valid, replacing it", zap.String("key_id", s.currentKey.ID()))
+
+	key, err := s.generateAndStoreKey(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failure to replace the signing key: %w", err)
+	}
+
+	s.currentKey = key
+
+	return key, nil
 }
 
 // RunRefreshKey runs the key refresher in a loop.
-func (s *Storage) RunRefreshKey(ctx context.Context, opts ...Opts) error {
+func (s *Storage) RunRefreshKey(ctx context.Context) error {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	var options Options
-
-	for _, opt := range opts {
-		opt(&options)
-	}
-
 	for ctx.Err() == nil {
-		err := s.runRefreshKey(ctx, options.keyCh)
+		err := s.runRefreshKey(ctx)
 		if err == nil {
 			return nil
 		}
@@ -144,46 +179,26 @@ func (s *Storage) RunRefreshKey(ctx context.Context, opts ...Opts) error {
 	return nil
 }
 
-func (s *Storage) runRefreshKey(ctx context.Context, ch chan<- op.SigningKey) error {
+func (s *Storage) runRefreshKey(ctx context.Context) error {
 	ticker := time.NewTicker(external.KeyRotationInterval)
 	defer ticker.Stop()
 
 	for ctx.Err() == nil {
 		// renew the key
-		privateKey, err := s.generateKey()
+		key, err := s.generateAndStoreKey(ctx)
 		if err != nil {
-			return fmt.Errorf("failure to generate the key: %w", err)
-		}
-
-		keyID := uuid.NewString()
-
-		if err = s.storeKey(ctx, keyID, privateKey); err != nil {
-			return fmt.Errorf("failure to store the key: %w", err)
+			return err
 		}
 
 		if err = s.cleanupOldKeys(ctx); err != nil {
 			return fmt.Errorf("failure to cleanup old keys: %w", err)
 		}
 
-		key := &signingKey{
-			id:        keyID,
-			key:       privateKey,
-			algorithm: jose.RS256,
-		}
-
 		s.mu.Lock()
 		s.currentKey = key
 		s.mu.Unlock()
 
-		s.logger.Info("new OIDC signing key generated", zap.String("key_id", keyID))
-
-		if ch != nil {
-			select {
-			case ch <- key:
-			case <-ctx.Done():
-				return nil
-			}
-		}
+		s.logger.Info("new OIDC signing key generated", zap.String("key_id", key.ID()))
 
 		select {
 		case <-ctx.Done():
@@ -195,8 +210,23 @@ func (s *Storage) runRefreshKey(ctx context.Context, ch chan<- op.SigningKey) er
 	return nil
 }
 
-func (s *Storage) generateKey() (*rsa.PrivateKey, error) {
-	return rsa.GenerateKey(rand.Reader, 2048)
+func (s *Storage) generateAndStoreKey(ctx context.Context) (*signingKey, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, fmt.Errorf("failure to generate the key: %w", err)
+	}
+
+	keyID := uuid.NewString()
+
+	if err = s.storeKey(ctx, keyID, privateKey); err != nil {
+		return nil, fmt.Errorf("failure to store the key: %w", err)
+	}
+
+	return &signingKey{
+		id:        keyID,
+		key:       privateKey,
+		algorithm: jose.RS256,
+	}, nil
 }
 
 func (s *Storage) storeKey(ctx context.Context, keyID string, privateKey *rsa.PrivateKey) error {
@@ -222,8 +252,6 @@ func (s *Storage) cleanupOldKeys(ctx context.Context) error {
 		return err
 	}
 
-	newKeySet := make([]op.Key, 0, keys.Len())
-
 	for key := range keys.All() {
 		if time.Now().After(key.TypedSpec().Value.Expiration.AsTime()) {
 			s.logger.Info(
@@ -235,28 +263,8 @@ func (s *Storage) cleanupOldKeys(ctx context.Context) error {
 			if err = s.st.Destroy(ctx, key.Metadata()); err != nil {
 				return err
 			}
-		} else {
-			pKey, err := x509.ParsePKCS1PublicKey(key.TypedSpec().Value.PublicKey)
-			if err != nil {
-				return err
-			}
-
-			newKeySet = append(newKeySet, &publicKey{
-				id:        key.Metadata().ID(),
-				algorithm: jose.RS256,
-				publicKey: pKey,
-			})
 		}
 	}
-
-	s.logger.Info(
-		"active OIDC public signing keys",
-		zap.Strings("key_ids", xslices.Map(newKeySet, func(key op.Key) string { return key.ID() })),
-	)
-
-	s.mu.Lock()
-	s.activeKeySet = newKeySet
-	s.mu.Unlock()
 
 	return nil
 }
@@ -269,6 +277,25 @@ func (s *Storage) MaxTokenLifetime() time.Duration {
 	}
 
 	return external.OIDCTokenLifetime
+}
+
+// parseKey converts a stored public key resource into a key set entry.
+//
+// The second return value reports whether the key is still valid for verifying tokens:
+// an expired key or a key which is being destroyed must not be trusted.
+func parseKey(res *oidc.JWTPublicKey) (op.Key, bool, error) {
+	pKey, err := x509.ParsePKCS1PublicKey(res.TypedSpec().Value.PublicKey)
+	if err != nil {
+		return nil, false, err
+	}
+
+	valid := res.Metadata().Phase() == resource.PhaseRunning && time.Now().Before(res.TypedSpec().Value.Expiration.AsTime())
+
+	return &publicKey{
+		id:        res.Metadata().ID(),
+		algorithm: jose.RS256,
+		publicKey: pKey,
+	}, valid, nil
 }
 
 //nolint:govet

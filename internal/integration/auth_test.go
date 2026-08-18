@@ -1383,11 +1383,14 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 			},
 		}...)
 
+		testCases = append(testCases, resourceAuthzTestCase{
+			resource:       oidc.NewJWTPublicKey(uuid.New().String()),
+			allowedVerbSet: xslices.ToSet([]state.Verb{state.Get, state.List, state.Destroy}),
+			isAdminOnly:    true,
+		})
+
 		// no access resources
 		testCases = append(testCases, []resourceAuthzTestCase{
-			{
-				resource: oidc.NewJWTPublicKey(uuid.New().String()),
-			},
 			{
 				resource: system.NewDBVersion(uuid.New().String()),
 			},
