@@ -98,7 +98,7 @@ const {
       />
 
       <HomeGeneralInformationCopyable
-        title="API Endpoint"
+        title="SideroLink API Endpoint"
         :value="apiConfigData?.spec.machine_api_advertised_url"
       />
 
