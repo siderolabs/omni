@@ -18,7 +18,7 @@ import {
   VirtualNamespace,
 } from '@/api/resources'
 import { getDocsLink } from '@/methods'
-import { useIsEnterprise } from '@/methods/features'
+import { useFeatures, useIsEnterprise } from '@/methods/features'
 import { useResolvedFactory } from '@/methods/useResolvedFactory'
 import { useResourceGet } from '@/methods/useResourceGet'
 
@@ -29,6 +29,7 @@ export function usePresetDownloadLinks(
   const isMetal = computed(() => !toValue(presetRef).cloud && !toValue(presetRef).sbc)
 
   const isEnterpriseFactory = useIsEnterprise()
+  const { data: features } = useFeatures()
 
   const { data: selectedCloudProvider } = useResourceGet<PlatformConfigSpec>(() => ({
     skip: !toValue(presetRef).cloud,
@@ -118,7 +119,9 @@ export function usePresetDownloadLinks(
   interface DownloadLink {
     label: string
     link: string
-    withChecksums?: boolean
+    linkBare: string
+    linkSha256?: string
+    linkSha512?: string
     copyOnly?: boolean
     documentation?: {
       label: string
@@ -126,11 +129,59 @@ export function usePresetDownloadLinks(
     }
   }
 
+  function constructSearchParams(imageUrl: string) {
+    const accountName = features.value?.spec.account?.name ?? 'default'
+    const talosVersion = toValue(presetRef).talos_version
+    const imageName = imageUrl.split('/').at(-1)
+
+    return new URLSearchParams([['filename', `omni-${accountName}-${talosVersion}-${imageName}`]])
+  }
+
+  function toDownloadLink({
+    label,
+    link,
+    search,
+    withChecksums,
+  }: {
+    label: string
+    link: string
+    search?: URLSearchParams
+    withChecksums?: boolean
+  }): DownloadLink {
+    const url = new URL(link)
+
+    if (search) {
+      for (const [key, value] of search) {
+        url.searchParams.set(key, value)
+      }
+    }
+
+    const downloadLink: DownloadLink = {
+      label,
+      link: url.toString(),
+      linkBare: link,
+    }
+
+    if (withChecksums) {
+      downloadLink.linkSha256 = `${link}.sha256`
+      downloadLink.linkSha512 = `${link}.sha512`
+    }
+
+    return downloadLink
+  }
+
   const links = computed<DownloadLink[]>(() => {
     const preset = toValue(presetRef)
 
     if (preset.sbc && sbcDiskImagePath.value) {
-      return [{ label: 'Disk Image', link: sbcDiskImagePath.value, withChecksums: true }]
+      return [
+        toDownloadLink({
+          label: 'Disk Image',
+          link: sbcDiskImagePath.value,
+          search: constructSearchParams(sbcDiskImagePath.value),
+          withChecksums: true,
+        }),
+      ]
     }
 
     if (!selectedPlatform.value?.spec.boot_methods) {
@@ -146,9 +197,12 @@ export function usePresetDownloadLinks(
 
             if (preset.secure_boot) {
               return {
-                label: 'SecureBoot Disk Image',
-                link: platformDiskImagePath.value,
-                withChecksums: true,
+                ...toDownloadLink({
+                  label: 'SecureBoot Disk Image',
+                  link: platformDiskImagePath.value,
+                  search: constructSearchParams(platformDiskImagePath.value),
+                  withChecksums: true,
+                }),
                 documentation: isMetal.value
                   ? {
                       label: 'SecureBoot documentation',
@@ -164,20 +218,27 @@ export function usePresetDownloadLinks(
 
             if (isMetal.value && qcow2DiskImagePath.value) {
               return [
-                {
+                toDownloadLink({
                   label: 'Disk Image (raw)',
                   link: platformDiskImagePath.value,
+                  search: constructSearchParams(platformDiskImagePath.value),
                   withChecksums: true,
-                },
-                {
+                }),
+                toDownloadLink({
                   label: 'Disk Image (qcow2)',
                   link: qcow2DiskImagePath.value,
+                  search: constructSearchParams(qcow2DiskImagePath.value),
                   withChecksums: true,
-                },
+                }),
               ]
             }
 
-            return { label: 'Disk Image', link: platformDiskImagePath.value, withChecksums: true }
+            return toDownloadLink({
+              label: 'Disk Image',
+              link: platformDiskImagePath.value,
+              search: constructSearchParams(platformDiskImagePath.value),
+              withChecksums: true,
+            })
           }
 
           case PlatformConfigSpecBootMethod.ISO: {
@@ -185,9 +246,12 @@ export function usePresetDownloadLinks(
 
             if (preset.secure_boot) {
               return {
-                label: 'SecureBoot ISO',
-                link: isoPath.value,
-                withChecksums: true,
+                ...toDownloadLink({
+                  label: 'SecureBoot ISO',
+                  link: isoPath.value,
+                  search: constructSearchParams(isoPath.value),
+                  withChecksums: true,
+                }),
                 documentation: {
                   label: 'SecureBoot documentation',
                   link: getDocsLink(
@@ -200,9 +264,12 @@ export function usePresetDownloadLinks(
             }
 
             return {
-              label: 'ISO',
-              link: isoPath.value,
-              withChecksums: true,
+              ...toDownloadLink({
+                label: 'ISO',
+                link: isoPath.value,
+                search: constructSearchParams(isoPath.value),
+                withChecksums: true,
+              }),
               documentation: isMetal.value
                 ? {
                     label: 'ISO documentation',
@@ -220,8 +287,12 @@ export function usePresetDownloadLinks(
             if (!pxeBootURL.value) return []
 
             return {
-              label: preset.secure_boot ? 'SecureBoot PXE (iPXE script)' : 'PXE boot (iPXE script)',
-              link: pxeBootURL.value,
+              ...toDownloadLink({
+                label: preset.secure_boot
+                  ? 'SecureBoot PXE (iPXE script)'
+                  : 'PXE boot (iPXE script)',
+                link: pxeBootURL.value,
+              }),
               copyOnly: true,
               documentation: isMetal.value
                 ? {
