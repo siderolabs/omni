@@ -1,3 +1,35 @@
+## [Omni 1.10.4](https://github.com/siderolabs/omni/releases/tag/v1.10.4) (2026-08-18)
+
+Welcome to the v1.10.4 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Revoking Kubernetes Access Tokens
+
+Admins can now list the keys which sign the Kubernetes access tokens and delete them using omnictl. Deleting a key immediately invalidates all the tokens signed by it, such as the long-lived service account kubeconfigs, without a restart. Deleting the most recent key is safe: a replacement is generated automatically when the next token is issued. The key deletions are recorded in the audit log.
+
+
+### Contributors
+
+* Utku Ozdemir
+
+### Changes
+<details><summary>1 commit</summary>
+<p>
+
+* [`bc586e4f`](https://github.com/siderolabs/omni/commit/bc586e4f7955e185d2c22c92832e4b031a5ed8d9) feat: allow listing and deleting the Kubernetes token signing keys
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.10.3](https://github.com/siderolabs/omni/releases/tag/v1.10.3)
+
 ## [Omni 1.10.3](https://github.com/siderolabs/omni/releases/tag/v1.10.3) (2026-08-14)
 
 Welcome to the v1.10.3 release of Omni!

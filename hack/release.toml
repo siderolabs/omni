@@ -6,4 +6,12 @@ github_repo = "siderolabs/omni"
 match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 
 pre_release = false
-previous = "v1.10.2"
+previous = "v1.10.3"
+
+[notes.token-signing-key-deletion]
+title = "Revoking Kubernetes Access Tokens"
+description = """\
+Admins can now list the keys which sign the Kubernetes access tokens and delete them using omnictl. Deleting a key immediately invalidates all the \
+tokens signed by it, such as the long-lived service account kubeconfigs, without a restart. Deleting the most recent key is safe: a replacement is \
+generated automatically when the next token is issued. The key deletions are recorded in the audit log.
+"""
