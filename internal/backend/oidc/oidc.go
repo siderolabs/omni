@@ -85,6 +85,6 @@ func (p *Provider) AuthenticateRequest(requestID, identity string) error {
 type Storage interface {
 	op.Storage
 	AuthenticateRequest(requestID, identity string) error
-	GetPublicKeyByID(keyID string) (any, error)
+	GetPublicKeyByID(ctx context.Context, keyID string) (any, error)
 	Run(context.Context) error
 }

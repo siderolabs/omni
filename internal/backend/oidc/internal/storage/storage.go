@@ -56,13 +56,13 @@ func (s *Storage) Health(context.Context) error {
 // KeySet implements the op.Storage interface.
 //
 // It will be called to get the current (public) keys, among others for the keys_endpoint or for validating access_tokens on the userinfo_endpoint, ...
-func (s *Storage) KeySet(context.Context) ([]op.Key, error) {
-	return s.keyStorage.KeySet()
+func (s *Storage) KeySet(ctx context.Context) ([]op.Key, error) {
+	return s.keyStorage.KeySet(ctx)
 }
 
 // GetPublicKeyByID looks up the public key with the given ID.
-func (s *Storage) GetPublicKeyByID(keyID string) (any, error) {
-	return s.keyStorage.GetPublicKeyByID(keyID)
+func (s *Storage) GetPublicKeyByID(ctx context.Context, keyID string) (any, error) {
+	return s.keyStorage.GetPublicKeyByID(ctx, keyID)
 }
 
 // GetClientByClientID implements the op.Storage interface.
@@ -195,8 +195,8 @@ func (s *Storage) RevokeToken(ctx context.Context, token string, userID string, 
 }
 
 // SigningKey returns the active and currently used signing key.
-func (s *Storage) SigningKey(context.Context) (op.SigningKey, error) {
-	return s.keyStorage.GetCurrentSigningKey()
+func (s *Storage) SigningKey(ctx context.Context) (op.SigningKey, error) {
+	return s.keyStorage.GetCurrentSigningKey(ctx)
 }
 
 // GetRefreshTokenInfo implements the op.Storage interface.

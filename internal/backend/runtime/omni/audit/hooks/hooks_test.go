@@ -7,10 +7,14 @@ package hooks_test
 
 import (
 	"context"
+	"errors"
+	"io"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/state-sqlite/pkg/sqlitexx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,6 +24,7 @@ import (
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	authres "github.com/siderolabs/omni/client/pkg/omni/resources/auth"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/common"
+	"github.com/siderolabs/omni/client/pkg/omni/resources/oidc"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/auditlog"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/audit/hooks"
@@ -111,6 +116,90 @@ func TestPublicKeyCreatePreservesActorSession(t *testing.T) {
 		assert.Equal(t, "Operator", string(ad.Session.Role), "Session.Role should be set from the public key")
 		assert.Equal(t, "sa-key-fingerprint", ad.Session.Fingerprint, "Session.Fingerprint should be set to the public key ID")
 	})
+}
+
+func TestJWTPublicKeyAudit(t *testing.T) {
+	t.Parallel()
+
+	db := testDB(t)
+
+	cfg := config.LogsAudit{Enabled: new(true)}
+	l, err := audit.NewLog(t.Context(), cfg, db, zaptest.NewLogger(t))
+	require.NoError(t, err)
+
+	hooks.Init(l)
+
+	key := oidc.NewJWTPublicKey("test-key-id")
+
+	tornDownKey := oidc.NewJWTPublicKey("test-key-id")
+	tornDownKey.Metadata().SetPhase(resource.PhaseTearingDown)
+
+	teardownFn := l.LogTeardown(key.Metadata())
+	require.NotNil(t, teardownFn)
+
+	destroyFn := l.LogDestroy(key.Metadata())
+	require.NotNil(t, destroyFn)
+
+	// internal operations carry no audit data in the context and the hooks are not marked
+	// for the internal agent, so e.g. the key rotation pruning an expired key writes no event
+	require.NoError(t, teardownFn(t.Context(), key, tornDownKey))
+	require.NoError(t, destroyFn(t.Context(), key.Metadata()))
+	assert.Empty(t, readAuditEvents(t, l))
+
+	// an admin teardown writes a single attributed event, as it alone already stops
+	// the key from being trusted
+	teardownData := auditlog.Data{
+		Session: auditlog.Session{
+			Email: "admin@siderolabs.com",
+			Role:  "Admin",
+		},
+	}
+
+	teardownCtx := ctxstore.WithValue(t.Context(), &teardownData)
+	require.NoError(t, teardownFn(teardownCtx, key, tornDownKey))
+
+	events := readAuditEvents(t, l)
+	assert.Equal(t, 1, strings.Count(events, "test-key-id"))
+	assert.Contains(t, events, "admin@siderolabs.com")
+
+	// an admin destroy writes another attributed event
+	destroyData := auditlog.Data{
+		Session: auditlog.Session{
+			Email: "admin@siderolabs.com",
+			Role:  "Admin",
+		},
+	}
+
+	destroyCtx := ctxstore.WithValue(t.Context(), &destroyData)
+	require.NoError(t, destroyFn(destroyCtx, key.Metadata()))
+
+	events = readAuditEvents(t, l)
+	assert.Equal(t, 2, strings.Count(events, "test-key-id"))
+	assert.Equal(t, 1, strings.Count(events, `"destroy"`))
+}
+
+func readAuditEvents(t *testing.T, l *audit.Log) string {
+	t.Helper()
+
+	rdr, err := l.Reader(t.Context(), auditlog.ReadFilters{End: time.Now().Add(5 * time.Second)})
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, rdr.Close()) }()
+
+	var sb strings.Builder
+
+	for {
+		data, err := rdr.Read()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		require.NoError(t, err)
+
+		sb.Write(data)
+	}
+
+	return sb.String()
 }
 
 func testDB(t *testing.T) *sqlitexx.Pool {

@@ -1022,16 +1022,14 @@ func (s *Server) runMetricsServer(ctx context.Context) error {
 }
 
 type oidcStore interface {
-	GetPublicKeyByID(keyID string) (any, error)
+	GetPublicKeyByID(ctx context.Context, keyID string) (any, error)
 }
 
 func (s *Server) runK8sProxyServer(
 	ctx context.Context,
 	oidcStorage oidcStore,
 ) error {
-	keyFunc := func(_ context.Context, keyID string) (any, error) {
-		return oidcStorage.GetPublicKeyByID(keyID)
-	}
+	keyFunc := oidcStorage.GetPublicKeyByID
 
 	clusterUUIDResolver := func(ctx context.Context, clusterID string) (resource.ID, error) {
 		ctx = actor.MarkContextAsInternalActor(ctx)
