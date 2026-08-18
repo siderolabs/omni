@@ -844,6 +844,8 @@ func TestComposeHealthCheckJob(t *testing.T) {
 	// namespace defaults when the manifest doesn't set one
 	assert.Equal(t, talosupgrade.DefaultHealthCheckNamespace, job.Namespace)
 	assert.Equal(t, talosupgrade.HealthCheckRunnerName, job.Labels["app.kubernetes.io/name"])
+	// the pod template carries the runner label too, so the runner pods can be cleaned up
+	assert.Equal(t, talosupgrade.HealthCheckRunnerName, job.Spec.Template.Labels["app.kubernetes.io/name"])
 	assert.NotEmpty(t, job.Annotations[talosupgrade.HealthCheckConfigHashAnnotation])
 
 	// the user's spec is preserved
@@ -895,6 +897,19 @@ func TestFailedContainerMessage(t *testing.T) {
 
 	// no terminated containers -> empty
 	assert.Empty(t, talosupgrade.FailedContainerMessage([]corev1.Pod{{}}))
+}
+
+func TestComposeHealthCheckJob_KeepsPodTemplateLabels(t *testing.T) {
+	t.Parallel()
+
+	manifest := "apiVersion: batch/v1\nkind: Job\nspec:\n  template:\n    metadata:\n      labels:\n        mine: label\n    spec:\n      containers:\n        - name: check\n          image: alpine\n"
+
+	job, err := talosupgrade.ComposeHealthCheckJob("omni-healthcheck-x", manifest)
+	require.NoError(t, err)
+
+	// the runner label is added without dropping the user's own pod template labels
+	assert.Equal(t, "label", job.Spec.Template.Labels["mine"])
+	assert.Equal(t, talosupgrade.HealthCheckRunnerName, job.Spec.Template.Labels["app.kubernetes.io/name"])
 }
 
 func TestComposeHealthCheckJob_NamespaceFromManifest(t *testing.T) {

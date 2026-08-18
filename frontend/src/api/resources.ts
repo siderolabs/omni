@@ -146,6 +146,7 @@ export const InstallationMediaConfigType = "InstallationMediaConfigs.omni.sidero
 export const KernelArgsType = "KernelArgs.omni.sidero.dev";
 export const KernelArgsStatusType = "KernelArgsStatuses.omni.sidero.dev";
 export const KubernetesHealthCheckType = "KubernetesHealthChecks.omni.sidero.dev";
+export const KubernetesHealthCheckStatusType = "KubernetesHealthCheckStatuses.omni.sidero.dev";
 export const KubernetesManifestGroupType = "KubernetesManifestGroups.omni.sidero.dev";
 export const KubernetesStatusType = "KubernetesStatuses.omni.sidero.dev";
 export const KubernetesUpgradeManifestStatusType = "KubernetesUpgradeManifestStatuses.omni.sidero.dev";

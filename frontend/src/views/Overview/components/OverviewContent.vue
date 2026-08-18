@@ -60,6 +60,7 @@ import ClusterWorkloadProxyingCheckbox from '@/views/Clusters/ClusterWorkloadPro
 import DiscoveryServiceSwitcher from '@/views/Clusters/DiscoveryServiceSwitcher.vue'
 import NodeAuditSkipCheckbox from '@/views/Clusters/NodeAuditSkipCheckbox.vue'
 import ItemLabels from '@/views/ItemLabels/ItemLabels.vue'
+import ClusterHealthChecks from '@/views/Overview/components/ClusterHealthChecks.vue'
 import OverviewRightPanel from '@/views/Overview/components/OverviewRightPanel/OverviewRightPanel.vue'
 
 // Do not show stats if the cluster has more than this number of machines.
@@ -405,7 +406,7 @@ const machineLockedForSecretRotation = computed(() => {
             class="h-6 w-6"
           />
           <TIcon v-else icon="loading" class="h-6 w-6 animate-spin text-yellow-y1" />
-          <div class="flex-1">
+          <div class="min-w-0 flex-1 wrap-break-word">
             {{ talosUpgradeStatus.spec.status }}
             <template v-if="talosUpgradeStatus.spec.status && !clusterLocked">
               - {{ talosUpgradeStatus.spec.step }}
@@ -427,6 +428,7 @@ const machineLockedForSecretRotation = computed(() => {
           </TButton>
         </div>
       </div>
+      <ClusterHealthChecks :cluster-id="clusterId" />
       <div
         v-if="secretRotationStatus && secretRotationStatus.spec.status"
         class="mb-5 rounded bg-naturals-n2 pt-5"

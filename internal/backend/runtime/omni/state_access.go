@@ -111,6 +111,7 @@ var (
 		infra.InfraMachineType,
 		infra.InfraMachineStatusType,
 		omni.KubernetesHealthCheckType,
+		omni.KubernetesHealthCheckStatusType,
 	})
 
 	// userManagedResourceTypeSet is the set of resource types that are managed by the user.
@@ -484,6 +485,7 @@ func filterAccess(ctx context.Context, access state.Access) error {
 		omni.ImageFactoryAuthType,
 		omni.UpgradeRolloutType,
 		omni.KubernetesHealthCheckType,
+		omni.KubernetesHealthCheckStatusType,
 		system.ResourceLabelsType[*omni.MachineStatus](),
 		virtual.SupportType,
 		virtual.LabelsCompletionType,
@@ -664,6 +666,7 @@ func filterAccessByType(access state.Access) error {
 		omni.MachineStatusMetricsType,
 		omni.NotificationType,
 		omni.UpgradeRolloutType,
+		omni.KubernetesHealthCheckStatusType,
 		authres.AuthConfigType,
 		authres.IdentityType,
 		authres.IdentityLastActiveType,

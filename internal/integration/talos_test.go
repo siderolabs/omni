@@ -486,6 +486,11 @@ const upgradeGateConfigMapName = "omni-upgrade-gate"
 // under, so its kubectl has permission to read the gate ConfigMap.
 const upgradeGateRunnerSA = "omni-upgrade-gate-runner"
 
+// healthCheckRunnerSelector matches the healthcheck runner pods Omni creates in the workload cluster. It
+// mirrors the app.kubernetes.io/name label set by the talosupgrade controller, which the integration tests
+// cannot import.
+const healthCheckRunnerSelector = "app.kubernetes.io/name=omni-health-checker"
+
 // upgradeGateClosedMessage is what the gating healthcheck Job prints to stderr when the workload is unhealthy.
 // The container exits non-zero and the kubelet captures this output as the pod's termination message, which Omni
 // surfaces in the upgrade status step (rather than the opaque "BackoffLimitExceeded" Job condition reason). The
@@ -627,6 +632,15 @@ func assertUpgradeHeldByHealthCheck(ctx context.Context, t *testing.T, st state.
 		// the failing healthcheck container's stderr must bubble up into the upgrade status step
 		assert.Contains(r.TypedSpec().Value.Step, upgradeGateClosedMessage, resourceDetails(r))
 	})
+
+	// the failure output must also be captured in the healthcheck's own status, so it stays readable in the UI
+	// after the runner job and its pod are deleted
+	rtestutils.AssertResources(ctx, t, st, []resource.ID{healthCheckID}, func(r *omni.KubernetesHealthCheckStatus, assert *assert.Assertions) {
+		assert.Equal(specs.KubernetesHealthCheckStatusSpec_FAILED, r.TypedSpec().Value.State, resourceDetails(r))
+		assert.Contains(r.TypedSpec().Value.Output, upgradeGateClosedMessage, resourceDetails(r))
+		assert.Equal(corev1.NamespaceDefault, r.TypedSpec().Value.JobNamespace, resourceDetails(r))
+		assert.NotEmpty(r.TypedSpec().Value.JobName, resourceDetails(r))
+	})
 }
 
 // upgradedMachineCount returns how many of the cluster's machines currently report the given Talos version.
@@ -687,7 +701,10 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, managementC
 		// Set up an advanced cluster healthcheck that gates the upgrade on a workload being "healthy", to
 		// verify Omni holds the rollout and reports the healthcheck status until the workload reports healthy.
 		// This needs a real Kubernetes cluster, so it is skipped when the machines are emulated by talemu.
-		var releaseUpgradeGate func()
+		var (
+			releaseUpgradeGate     func()
+			assertRunnersCleanedUp func()
+		)
 
 		if clusterUsesEmulatedMachines(ctx, t, st, clusterName) {
 			t.Log("machines are emulated, skipping the advanced healthcheck gating")
@@ -756,6 +773,29 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, managementC
 				t.Log("marking the workload healthy to release the upgrade gate")
 				applyUpgradeGate(kubeCtx, t, kubeClient, "true")
 			}
+
+			// Omni deletes each runner job as soon as it reaches a terminal state, and its pods with it, so
+			// nothing is left behind in the workload cluster once the upgrade is done.
+			assertRunnersCleanedUp = func() {
+				t.Log("healthcheck runner pods should be cleaned up after the upgrade")
+
+				require.Eventually(t, func() bool {
+					pods, listErr := kubeClient.CoreV1().Pods(corev1.NamespaceAll).List(ctx, metav1.ListOptions{
+						LabelSelector: healthCheckRunnerSelector,
+					})
+					if listErr != nil {
+						t.Logf("failed to list healthcheck runner pods: %v", listErr)
+
+						return false
+					}
+
+					if len(pods.Items) > 0 {
+						t.Logf("still waiting for %d healthcheck runner pod(s) to be cleaned up", len(pods.Items))
+					}
+
+					return len(pods.Items) == 0
+				}, time.Minute, 2*time.Second, "expected no healthcheck runner pods to be left in the cluster")
+			}
 		}
 
 		t.Logf("upgrading cluster %q to %q", clusterName, newTalosVersion)
@@ -788,6 +828,10 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, managementC
 			assert.Equal(newTalosVersion, r.TypedSpec().Value.LastUpgradeVersion, resourceDetails(r))
 			assert.Empty(r.TypedSpec().Value.Step, resourceDetails(r))
 		})
+
+		if assertRunnersCleanedUp != nil {
+			assertRunnersCleanedUp()
+		}
 
 		// TODO: Remove below code block when this test starts testing upgrades from Talos 1.11 to 1.12.
 		// Pin etcd version with ConfigPatch for Talos 1.11

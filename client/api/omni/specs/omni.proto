@@ -1849,6 +1849,33 @@ message KubernetesHealthCheckSpec {
   google.protobuf.Duration interval = 2;
 }
 
+// KubernetesHealthCheckStatusSpec is the outcome of the last run of a KubernetesHealthCheck.
+//
+// The runner job is deleted as soon as it reaches a terminal state, so the failure output is captured here
+// while the job's pod still exists: it stays readable after the pod, the job and the upgrade itself are gone.
+message KubernetesHealthCheckStatusSpec {
+  enum State {
+    UNKNOWN = 0;
+    // RUNNING means the runner job is executing and Omni is waiting for it to finish.
+    RUNNING = 1;
+    // FAILED means the last run of the healthcheck failed, holding the upgrade.
+    FAILED = 2;
+    // PASSED means the last run of the healthcheck succeeded.
+    PASSED = 3;
+  }
+
+  State state = 1;
+  // Error is a short, single-line description of the last failure, suitable for a table cell.
+  string error = 2;
+  // Output is the full output of the last failed run: the tail of the failing container's output, captured by
+  // the kubelet as the pod's termination message. Empty when the check has never failed or produced no output.
+  string output = 3;
+  // JobNamespace and JobName locate the runner job in the workload cluster, so a running check's progress can
+  // be inspected with `kubectl logs -n <job_namespace> job/<job_name>`.
+  string job_namespace = 4;
+  string job_name = 5;
+}
+
 // MachineConfigExtractionStatusSpec tracks whether the config a machine arrived with has been extracted into a config patch.
 message MachineConfigExtractionStatusSpec {
   // Initialized is set once the machine's incoming config has been extracted (or determined to be empty / not preservable).

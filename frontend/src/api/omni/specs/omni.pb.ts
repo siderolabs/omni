@@ -227,6 +227,13 @@ export enum ClusterKubernetesManifestsStatusSpecGroupStatusPhase {
   DELETING = 4,
 }
 
+export enum KubernetesHealthCheckStatusSpecState {
+  UNKNOWN = 0,
+  RUNNING = 1,
+  FAILED = 2,
+  PASSED = 3,
+}
+
 export type MachineSpec = {
   management_address?: string
   connected?: boolean
@@ -1185,6 +1192,14 @@ export type ClusterKubernetesManifestsStatusSpec = {
 export type KubernetesHealthCheckSpec = {
   job?: string
   interval?: GoogleProtobufDuration.Duration
+}
+
+export type KubernetesHealthCheckStatusSpec = {
+  state?: KubernetesHealthCheckStatusSpecState
+  error?: string
+  output?: string
+  job_namespace?: string
+  job_name?: string
 }
 
 export type MachineConfigExtractionStatusSpec = {

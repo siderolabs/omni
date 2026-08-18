@@ -1049,6 +1049,10 @@ func AssertResourceAuthz(rootCtx context.Context, rootCli *client.Client, client
 				allowedVerbSet: readOnlyVerbSet,
 			},
 			{
+				resource:       omni.NewKubernetesHealthCheckStatus(uuid.New().String()),
+				allowedVerbSet: readOnlyVerbSet,
+			},
+			{
 				resource:       omni.NewClusterConfigVersion(uuid.New().String()),
 				allowedVerbSet: readOnlyVerbSet,
 			},

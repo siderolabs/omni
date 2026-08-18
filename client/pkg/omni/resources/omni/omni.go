@@ -47,6 +47,7 @@ func init() {
 	registry.MustRegisterResource(ExposedServiceType, &ExposedService{})
 	registry.MustRegisterResource(FeaturesConfigType, &FeaturesConfig{})
 	registry.MustRegisterResource(KubernetesHealthCheckType, &KubernetesHealthCheck{})
+	registry.MustRegisterResource(KubernetesHealthCheckStatusType, &KubernetesHealthCheckStatus{})
 	registry.MustRegisterResource(ImagePullRequestType, &ImagePullRequest{})
 	registry.MustRegisterResource(ImagePullStatusType, &ImagePullStatus{})
 	registry.MustRegisterResource(ImportedClusterSecretsType, &ImportedClusterSecrets{})

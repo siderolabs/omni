@@ -101,6 +101,10 @@ func NewStatusController(kubernetesRuntime KubernetesRuntime) *TalosUpgradeStatu
 					return err
 				}
 
+				if err := ctrl.reconcileHealthCheckStatuses(ctx, r, logger, cluster, upgradeStatus); err != nil {
+					return err
+				}
+
 				return ctrl.reconcileUpgradeVersions(ctx, r, logger, cluster, upgradeStatus)
 			},
 			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, cluster *omni.Cluster) error {
@@ -125,6 +129,20 @@ func NewStatusController(kubernetesRuntime KubernetesRuntime) *TalosUpgradeStatu
 
 				if !ready {
 					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("upgrade rollout %q tearing down", omni.NewUpgradeRollout(cluster.Metadata().ID()).Metadata().ID())
+				}
+
+				healthCheckStatuses, err := safe.ReaderListAll[*omni.KubernetesHealthCheckStatus](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())))
+				if err != nil {
+					return err
+				}
+
+				ready, err = helpers.TeardownAndDestroyAll(ctx, r, healthCheckStatuses.Pointers())
+				if err != nil {
+					return err
+				}
+
+				if !ready {
+					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("healthcheck statuses are still tearing down")
 				}
 
 				return nil
@@ -177,6 +195,12 @@ func NewStatusController(kubernetesRuntime KubernetesRuntime) *TalosUpgradeStatu
 		qtransform.WithExtraOutputs(
 			controller.Output{
 				Type: omni.UpgradeRolloutType,
+				Kind: controller.OutputExclusive,
+			},
+		),
+		qtransform.WithExtraOutputs(
+			controller.Output{
+				Type: omni.KubernetesHealthCheckStatusType,
 				Kind: controller.OutputExclusive,
 			},
 		),
@@ -335,18 +359,13 @@ func (ctrl *TalosUpgradeStatusController) updateRolloutState(ctx context.Context
 
 	// Gate the rollout on the cluster-wide healthchecks in between node upgrades: only while an upgrade is
 	// actually in progress, when the cluster is otherwise healthy (all machines ready) and nothing is
-	// currently upgrading. Reverts and clusters already up to date skip healthchecks entirely, so a broken
-	// cluster can always be rolled back.
+	// currently upgrading.
 	healthChecks := healthCheckResult{ready: true}
 
-	//nolint:exhaustive // healthchecks only gate the in-progress upgrade phases; other phases skip them
-	switch upgradeStatus.TypedSpec().Value.Phase {
-	case specs.TalosUpgradeStatusSpec_Upgrading, specs.TalosUpgradeStatusSpec_UpdatingMachineSchematics:
-		if notReadyMachinesCounts == 0 && len(outdatedMachines.upgrading) == 0 {
-			healthChecks, err = ctrl.runHealthChecks(ctx, r, logger, cluster)
-			if err != nil {
-				return err
-			}
+	if gatesOnHealthChecks(upgradeStatus.TypedSpec().Value.Phase) && notReadyMachinesCounts == 0 && len(outdatedMachines.upgrading) == 0 {
+		healthChecks, err = ctrl.runHealthChecks(ctx, r, logger, cluster)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -598,11 +617,21 @@ type healthCheckResult struct {
 	ready    bool
 }
 
-// healthCheckRunnerStatus is the result of evaluating a single healthcheck (or its runner pod): whether it is
-// ready/passing and, when it isn't, a human-readable detail explaining why.
+// healthCheckRunnerStatus is the result of evaluating a single healthcheck (or its runner pod): the state it is
+// in and, when it isn't passing, a human-readable detail explaining why.
 type healthCheckRunnerStatus struct {
 	detail string
-	ready  bool
+	// output is the full, untruncated output of a failed run. The runner job is deleted as soon as it fails, so
+	// this is captured while its pod still exists and is the only copy that outlives it.
+	output       string
+	jobNamespace string
+	jobName      string
+	state        specs.KubernetesHealthCheckStatusSpec_State
+}
+
+// ready reports whether the healthcheck is passing, i.e. it does not hold the upgrade.
+func (s healthCheckRunnerStatus) ready() bool {
+	return s.state == specs.KubernetesHealthCheckStatusSpec_PASSED
 }
 
 // runHealthChecks runs all cluster-wide healthchecks once. A failing or still-running healthcheck holds the
@@ -611,7 +640,7 @@ type healthCheckRunnerStatus struct {
 //
 // Each healthcheck is executed in a runner pod that is created fresh on each attempt and deleted once it reaches a terminal state,
 // so the next attempt runs a fresh check. A non-nil error is only returned for unexpected Kubernetes API or manifest-parsing errors.
-func (ctrl *TalosUpgradeStatusController) runHealthChecks(ctx context.Context, r controller.Reader, logger *zap.Logger, cluster *omni.Cluster) (healthCheckResult, error) {
+func (ctrl *TalosUpgradeStatusController) runHealthChecks(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, cluster *omni.Cluster) (healthCheckResult, error) {
 	healthchecks, err := safe.ReaderListAll[*omni.KubernetesHealthCheck](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID())))
 	if err != nil {
 		return healthCheckResult{}, err
@@ -636,12 +665,16 @@ func (ctrl *TalosUpgradeStatusController) runHealthChecks(ctx context.Context, r
 
 	// run all healthchecks so the status reflects every failing one, not just the first
 	for healthcheck := range healthchecks.All() {
-		outcome, err := runHealthCheck(ctx, client, healthcheck)
+		outcome, err := runHealthCheck(ctx, client, logger, healthcheck)
 		if err != nil {
 			return healthCheckResult{}, err
 		}
 
-		if outcome.ready {
+		if err = updateHealthCheckStatus(ctx, r, healthcheck, outcome); err != nil {
+			return healthCheckResult{}, err
+		}
+
+		if outcome.ready() {
 			continue
 		}
 
@@ -679,10 +712,131 @@ func (ctrl *TalosUpgradeStatusController) runHealthChecks(ctx context.Context, r
 	return healthCheckResult{ready: true}, nil
 }
 
+// updateHealthCheckStatus records the outcome of a healthcheck run in its KubernetesHealthCheckStatus, so it is
+// visible in the UI.
+//
+// The failure output is only overwritten by a new failure and cleared once the check passes: the runner job is
+// deleted the moment it fails, so the very next run flips the state to RUNNING, and clearing the output there
+// would throw away the only remaining copy of why the check failed.
+func updateHealthCheckStatus(ctx context.Context, r controller.Writer, healthcheck *omni.KubernetesHealthCheck, outcome healthCheckRunnerStatus) error {
+	return safe.WriterModify(ctx, r, omni.NewKubernetesHealthCheckStatus(healthcheck.Metadata().ID()), func(res *omni.KubernetesHealthCheckStatus) error {
+		helpers.CopyLabels(healthcheck, res, omni.LabelCluster)
+
+		res.TypedSpec().Value.State = outcome.state
+		res.TypedSpec().Value.JobNamespace = outcome.jobNamespace
+		res.TypedSpec().Value.JobName = outcome.jobName
+
+		switch outcome.state {
+		case specs.KubernetesHealthCheckStatusSpec_FAILED:
+			res.TypedSpec().Value.Error = truncate(singleLine(outcome.detail), healthCheckOutputLimit)
+			res.TypedSpec().Value.Output = outcome.output
+		case specs.KubernetesHealthCheckStatusSpec_PASSED:
+			// the check is healthy again - drop the previous failure
+			res.TypedSpec().Value.Error = ""
+			res.TypedSpec().Value.Output = ""
+		case specs.KubernetesHealthCheckStatusSpec_RUNNING, specs.KubernetesHealthCheckStatusSpec_UNKNOWN:
+			// keep the previous failure readable while the next attempt runs
+		}
+
+		return nil
+	})
+}
+
+// gatesOnHealthChecks reports whether an upgrade in the given phase is gated on the cluster healthchecks.
+// Reverts and clusters already up to date skip healthchecks entirely, so a broken cluster can always be rolled
+// back.
+func gatesOnHealthChecks(phase specs.TalosUpgradeStatusSpec_Phase) bool {
+	switch phase { //nolint:exhaustive // healthchecks only gate the in-progress upgrade phases
+	case specs.TalosUpgradeStatusSpec_Upgrading, specs.TalosUpgradeStatusSpec_UpdatingMachineSchematics:
+		return true
+	default:
+		return false
+	}
+}
+
+// reconcileHealthCheckStatuses keeps the healthcheck statuses in sync with the healthchecks themselves. It runs
+// on every reconcile rather than from the gated path, which is only reached mid-upgrade: otherwise a status
+// would outlive its healthcheck (and a healthcheck recreated under the same ID would inherit the stale
+// failure), and a check still running when the upgrade finished or was canceled would report RUNNING forever.
+//
+// Statuses of existing healthchecks are kept after the upgrade completes, so the last outcome stays visible.
+func (ctrl *TalosUpgradeStatusController) reconcileHealthCheckStatuses(ctx context.Context, r controller.ReaderWriter,
+	logger *zap.Logger, cluster *omni.Cluster, upgradeStatus *omni.TalosUpgradeStatus,
+) error {
+	clusterQuery := state.WithLabelQuery(resource.LabelEqual(omni.LabelCluster, cluster.Metadata().ID()))
+
+	healthchecks, err := safe.ReaderListAll[*omni.KubernetesHealthCheck](ctx, r, clusterQuery)
+	if err != nil {
+		return err
+	}
+
+	statuses, err := safe.ReaderListAll[*omni.KubernetesHealthCheckStatus](ctx, r, clusterQuery)
+	if err != nil {
+		return err
+	}
+
+	existing := make(map[resource.ID]struct{}, healthchecks.Len())
+
+	for healthcheck := range healthchecks.All() {
+		existing[healthcheck.Metadata().ID()] = struct{}{}
+	}
+
+	toDestroy := xiter.Filter(func(r resource.Pointer) bool {
+		_, ok := existing[r.ID()]
+
+		return !ok
+	}, statuses.Pointers())
+
+	if _, err = helpers.TeardownAndDestroyAll(ctx, r, toDestroy); err != nil {
+		return err
+	}
+
+	if gatesOnHealthChecks(upgradeStatus.TypedSpec().Value.Phase) {
+		// runHealthChecks keeps the statuses of the remaining healthchecks current
+		return nil
+	}
+
+	// Nothing polls the runner jobs outside the gated path, so a status left in RUNNING would keep reporting a
+	// check that is not running anymore.
+	stale := make([]resource.ID, 0, statuses.Len())
+
+	for status := range statuses.All() {
+		if _, ok := existing[status.Metadata().ID()]; !ok {
+			continue // destroyed above along with its healthcheck
+		}
+
+		if status.TypedSpec().Value.State == specs.KubernetesHealthCheckStatusSpec_RUNNING {
+			stale = append(stale, status.Metadata().ID())
+		}
+	}
+
+	if len(stale) == 0 {
+		return nil
+	}
+
+	// the runners those statuses were waiting on are not being watched by anyone either - tear them down
+	ctrl.cleanupHealthCheckRunners(ctx, logger, cluster)
+
+	for _, id := range stale {
+		if err = safe.WriterModify(ctx, r, omni.NewKubernetesHealthCheckStatus(id), func(res *omni.KubernetesHealthCheckStatus) error {
+			res.TypedSpec().Value.State = specs.KubernetesHealthCheckStatusSpec_UNKNOWN
+			res.TypedSpec().Value.JobNamespace = ""
+			res.TypedSpec().Value.JobName = ""
+
+			// the last failure stays readable: only the state and the job reference are stale
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // runHealthCheck ensures the healthcheck's Job exists and reports its outcome. The Job is created fresh on each
 // attempt and deleted once it reaches a terminal state, so the next attempt runs a fresh check. A non-nil error
 // is only returned for unexpected Kubernetes API or manifest-parsing errors.
-func runHealthCheck(ctx context.Context, client *kubernetes.Client, healthcheck *omni.KubernetesHealthCheck) (healthCheckRunnerStatus, error) {
+func runHealthCheck(ctx context.Context, client *kubernetes.Client, logger *zap.Logger, healthcheck *omni.KubernetesHealthCheck) (healthCheckRunnerStatus, error) {
 	jobName := HealthCheckRunnerNamePrefix + healthcheck.Metadata().ID()
 
 	desiredJob, err := ComposeHealthCheckJob(jobName, healthcheck.TypedSpec().Value.GetJob())
@@ -690,7 +844,7 @@ func runHealthCheck(ctx context.Context, client *kubernetes.Client, healthcheck 
 		return healthCheckRunnerStatus{}, err
 	}
 
-	return ensureHealthCheckJob(ctx, client, desiredJob)
+	return ensureHealthCheckJob(ctx, client, logger, desiredJob)
 }
 
 // ComposeHealthCheckJob parses the user-provided Job manifest and re-asserts the fields Omni relies on to track
@@ -722,6 +876,13 @@ func ComposeHealthCheckJob(jobName, manifest string) (*batchv1.Job, error) {
 
 	job.Labels["app.kubernetes.io/name"] = HealthCheckRunnerName
 
+	// the same label goes on the pod template, so the runner pods can be found and cleaned up as well
+	if job.Spec.Template.Labels == nil {
+		job.Spec.Template.Labels = map[string]string{}
+	}
+
+	job.Spec.Template.Labels["app.kubernetes.io/name"] = HealthCheckRunnerName
+
 	if job.Annotations == nil {
 		job.Annotations = map[string]string{}
 	}
@@ -750,8 +911,15 @@ func ComposeHealthCheckJob(jobName, manifest string) (*batchv1.Job, error) {
 //
 // The job is also re-created when the manifest changes, and a job that is still being torn down is reported as
 // "running" until it is gone.
-func ensureHealthCheckJob(ctx context.Context, client *kubernetes.Client, desiredJob *batchv1.Job) (healthCheckRunnerStatus, error) {
+func ensureHealthCheckJob(ctx context.Context, client *kubernetes.Client, logger *zap.Logger, desiredJob *batchv1.Job) (healthCheckRunnerStatus, error) {
 	jobs := client.Clientset().BatchV1().Jobs(desiredJob.Namespace)
+
+	running := healthCheckRunnerStatus{
+		state:        specs.KubernetesHealthCheckStatusSpec_RUNNING,
+		detail:       healthCheckJobRunningDetail,
+		jobNamespace: desiredJob.Namespace,
+		jobName:      desiredJob.Name,
+	}
 
 	job, err := jobs.Get(ctx, desiredJob.Name, v1.GetOptions{})
 
@@ -762,55 +930,66 @@ func ensureHealthCheckJob(ctx context.Context, client *kubernetes.Client, desire
 			return healthCheckRunnerStatus{}, fmt.Errorf("failed to create healthcheck job: %w", err)
 		}
 
-		return healthCheckRunnerStatus{detail: healthCheckJobRunningDetail}, nil
+		return running, nil
 	case err != nil:
 		return healthCheckRunnerStatus{}, err
 	case job.DeletionTimestamp != nil:
 		// the previous job is still being torn down; wait for it to disappear before re-creating
-		return healthCheckRunnerStatus{detail: healthCheckJobRunningDetail}, nil
+		return running, nil
 	case job.Annotations[HealthCheckConfigHashAnnotation] != desiredJob.Annotations[HealthCheckConfigHashAnnotation]:
 		// the job manifest changed - re-create the job to run the new check
-		if err = deleteHealthCheckJob(ctx, client, job.Namespace, job.Name); err != nil {
+		if err = deleteHealthCheckJob(ctx, client, logger, job.Namespace, job.Name); err != nil {
 			return healthCheckRunnerStatus{}, err
 		}
 
-		return healthCheckRunnerStatus{detail: healthCheckJobRunningDetail}, nil
+		return running, nil
 	}
 
 	if JobComplete(job) {
 		// the check succeeded - delete the job and let the upgrade proceed
-		if err = deleteHealthCheckJob(ctx, client, job.Namespace, job.Name); err != nil {
+		if err = deleteHealthCheckJob(ctx, client, logger, job.Namespace, job.Name); err != nil {
 			return healthCheckRunnerStatus{}, err
 		}
 
-		return healthCheckRunnerStatus{ready: true}, nil
+		return healthCheckRunnerStatus{
+			state:        specs.KubernetesHealthCheckStatusSpec_PASSED,
+			jobNamespace: job.Namespace,
+			jobName:      job.Name,
+		}, nil
 	}
 
 	if condition := JobFailedCondition(job); condition != nil {
 		// the check failed - prefer the container's output (captured in the pod status), falling back to the
-		// job's failure condition (e.g. "BackoffLimitExceeded") when no output is available, then re-create
-		// the job to retry
-		detail := healthCheckJobFailureOutput(ctx, client, job)
-		if detail == "" {
-			detail = "healthcheck job failed"
+		// job's failure condition (e.g. "BackoffLimitExceeded") when no output is available. This has to happen
+		// before the job is deleted below: once its pods are gone, the output is unrecoverable.
+		output := healthCheckJobFailureOutput(ctx, client, job)
+		if output == "" {
+			output = "healthcheck job failed"
 			if condition.Reason != "" {
-				detail = condition.Reason
+				output = condition.Reason
 			}
 
 			if condition.Message != "" {
-				detail += ": " + condition.Message
+				output += ": " + condition.Message
 			}
 		}
 
-		if err = deleteHealthCheckJob(ctx, client, job.Namespace, job.Name); err != nil {
+		// re-create the job to retry
+		if err = deleteHealthCheckJob(ctx, client, logger, job.Namespace, job.Name); err != nil {
 			return healthCheckRunnerStatus{}, err
 		}
 
-		return healthCheckRunnerStatus{detail: detail}, nil
+		return healthCheckRunnerStatus{
+			state:        specs.KubernetesHealthCheckStatusSpec_FAILED,
+			detail:       output,
+			output:       output,
+			jobNamespace: job.Namespace,
+			jobName:      job.Name,
+		}, nil
 	}
 
 	// the job is still running - re-check on the next interval
-	return healthCheckRunnerStatus{detail: healthCheckJobRunningDetail}, nil
+	return running, nil
 }
 
 // JobComplete reports whether the job has completed successfully.
@@ -842,7 +1021,7 @@ func JobFailedCondition(job *batchv1.Job) *batchv1.JobCondition {
 // pod status without streaming logs. It is best-effort: an empty string is returned when nothing is available.
 func healthCheckJobFailureOutput(ctx context.Context, client *kubernetes.Client, job *batchv1.Job) string {
 	pods, err := client.Clientset().CoreV1().Pods(job.Namespace).List(ctx, v1.ListOptions{
-		LabelSelector: "batch.kubernetes.io/job-name=" + job.Name,
+		LabelSelector: jobPodSelector(job.Name),
 	})
 	if err != nil {
 		return ""
@@ -898,9 +1077,9 @@ func (ctrl *TalosUpgradeStatusController) cleanupHealthCheckRunners(ctx context.
 	deleteHealthCheckRunnerObjects(ctx, logger, client)
 }
 
-// deleteHealthCheckRunnerObjects best-effort deletes the runner jobs across all namespaces (a healthcheck job
-// can pick its own namespace), selected by the runner label. All errors are swallowed (logged): cleanup must
-// not block the upgrade and is retried on the next reconcile.
+// deleteHealthCheckRunnerObjects best-effort deletes the runner jobs and their pods across all namespaces (a
+// healthcheck job can pick its own namespace), selected by the runner label. All errors are swallowed (logged):
+// cleanup must not block the upgrade and is retried on the next reconcile.
 func deleteHealthCheckRunnerObjects(ctx context.Context, logger *zap.Logger, client *kubernetes.Client) {
 	listOptions := v1.ListOptions{LabelSelector: healthCheckRunnerSelector}
 
@@ -912,16 +1091,37 @@ func deleteHealthCheckRunnerObjects(ctx context.Context, logger *zap.Logger, cli
 	}
 
 	for _, job := range jobList.Items {
-		if err = deleteHealthCheckJob(ctx, client, job.Namespace, job.Name); err != nil {
+		if err = deleteHealthCheckJob(ctx, client, logger, job.Namespace, job.Name); err != nil {
 			logger.Warn("failed to clean up healthcheck runner job",
 				zap.String("namespace", job.Namespace), zap.String("job", job.Name), zap.Error(err))
 		}
 	}
+
+	podList, err := client.Clientset().CoreV1().Pods(corev1.NamespaceAll).List(ctx, v1.ListOptions{LabelSelector: jobNameLabel})
+	if err != nil {
+		logger.Warn("failed to list healthcheck runner pods for cleanup", zap.Error(err))
+
+		return
+	}
+
+	for _, pod := range podList.Items {
+		if !strings.HasPrefix(pod.Labels[jobNameLabel], HealthCheckRunnerNamePrefix) {
+			continue
+		}
+
+		if err = client.Clientset().CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, v1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			logger.Warn("failed to clean up healthcheck runner pod",
+				zap.String("namespace", pod.Namespace), zap.String("pod", pod.Name), zap.Error(err))
+		}
+	}
 }
 
-// deleteHealthCheckJob deletes the healthcheck runner job and its pods (background propagation); it is a no-op
-// if the job is already gone.
-func deleteHealthCheckJob(ctx context.Context, client *kubernetes.Client, namespace, jobName string) error {
+// deleteHealthCheckJob deletes the healthcheck runner job and its pods; it is a no-op if the job is already gone.
+//
+// Only failing to delete the job itself is reported back: that leaves the runner in place, so the next attempt
+// would observe the stale job. A pod that cannot be deleted is logged and swept up by
+// deleteHealthCheckRunnerObjects later, rather than discarding the outcome of a check that already ran.
+func deleteHealthCheckJob(ctx context.Context, client *kubernetes.Client, logger *zap.Logger, namespace, jobName string) error {
 	propagation := v1.DeletePropagationBackground
 
 	if err := client.Clientset().BatchV1().Jobs(namespace).Delete(ctx, jobName, v1.DeleteOptions{
@@ -931,7 +1131,32 @@ func deleteHealthCheckJob(ctx context.Context, client *kubernetes.Client, namesp
 		return fmt.Errorf("failed to delete healthcheck job: %w", err)
 	}
 
+	// Background propagation only queues the pods for garbage collection, so delete them explicitly: the job is
+	// already gone at this point, so nothing re-creates them. Their own grace period applies - force deleting
+	// would not help, as it's the job tracking finalizer, not the grace period, that keeps a pod around.
+	if err := client.Clientset().CoreV1().Pods(namespace).DeleteCollection(ctx, v1.DeleteOptions{}, v1.ListOptions{
+		LabelSelector: jobPodSelector(jobName),
+	}); err != nil && !apierrors.IsNotFound(err) {
+		logger.Warn("failed to delete healthcheck job pods",
+			zap.String("namespace", namespace), zap.String("job", jobName), zap.Error(err))
+	}
+
 	return nil
+}
+
+// jobNameLabel is set by the job controller on every pod it creates, carrying the name of the owning job.
+const jobNameLabel = "batch.kubernetes.io/job-name"
+
+// jobPodSelector selects the pods belonging to the job with the given name.
+func jobPodSelector(jobName string) string {
+	return jobNameLabel + "=" + jobName
+}
+
+// singleLine collapses every run of whitespace in s into a single space, so the multi-line output of a
+// healthcheck container can be stored in a one-line field without breaking the rendering of a table cell or a
+// status column.
+func singleLine(s string) string {
+	return strings.Join(strings.Fields(s), " ")
 }
 
 // truncate shortens s to at most limit characters, appending an ellipsis when it was cut.
