@@ -38,6 +38,8 @@ test.beforeEach(async ({ page }) => {
 test('Create, download, and delete an installation media', async ({ page }, testInfo) => {
   test.slow()
 
+  const talosVersion = '1.12.0'
+
   await test.step('Entry step', async () => {
     await page.getByRole('radio', { name: 'Bare-metal Machine' }).click()
     await expect(page.getByRole('radio', { name: 'Bare-metal Machine' })).toBeChecked()
@@ -47,9 +49,9 @@ test('Create, download, and delete an installation media', async ({ page }, test
 
   await test.step('Talos version step', async () => {
     await page.getByRole('combobox', { name: 'Choose Talos Linux Version' }).click()
-    await page.getByRole('option', { name: '1.12.0' }).click()
+    await page.getByRole('option', { name: talosVersion }).click()
     await expect(page.getByRole('combobox', { name: 'Choose Talos Linux Version' })).toHaveText(
-      '1.12.0',
+      talosVersion,
     )
 
     await page.getByRole('combobox', { name: 'Join Token' }).click()
@@ -163,19 +165,19 @@ test('Create, download, and delete an installation media', async ({ page }, test
 
     await expect(
       page.getByText(
-        `https://factory.talos.dev/image/${schematicId}/1.12.0/metal-arm64-secureboot.iso`,
+        `https://factory.talos.dev/image/${schematicId}/${talosVersion}/metal-arm64-secureboot.iso`,
       ),
     ).toBeVisible()
 
     await expect(
       page.getByText(
-        `https://factory.talos.dev/image/${schematicId}/1.12.0/metal-arm64-secureboot.raw.zst`,
+        `https://factory.talos.dev/image/${schematicId}/${talosVersion}/metal-arm64-secureboot.raw.zst`,
       ),
     ).toBeVisible()
 
     await expect(
       page.getByText(
-        `https://pxe.factory.talos.dev/pxe/${schematicId}/1.12.0/metal-arm64-secureboot`,
+        `https://pxe.factory.talos.dev/pxe/${schematicId}/${talosVersion}/metal-arm64-secureboot`,
       ),
     ).toBeVisible()
 
@@ -199,7 +201,9 @@ test('Create, download, and delete an installation media', async ({ page }, test
 
     await expect
       .poll(async () => await page.evaluate(() => navigator.clipboard.readText()))
-      .toBe(`https://factory.talos.dev/image/${schematicId}/1.12.0/metal-arm64-secureboot.iso`)
+      .toBe(
+        `https://factory.talos.dev/image/${schematicId}/${talosVersion}/metal-arm64-secureboot.iso?filename=omni-default-${talosVersion}-metal-arm64-secureboot.iso`,
+      )
 
     // Note: Skipping testing of download as it is flaky and doesn't test anything about the frontend
 

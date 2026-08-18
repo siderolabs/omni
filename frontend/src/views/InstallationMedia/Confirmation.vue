@@ -243,7 +243,7 @@ const VEXBaseURL = computed(() =>
       </TAlert>
 
       <template
-        v-for="{ label, link, documentation, withChecksums, copyOnly } in links"
+        v-for="{ label, link, linkBare, linkSha256, linkSha512, documentation, copyOnly } in links"
         v-else
         :key="link"
       >
@@ -270,46 +270,46 @@ const VEXBaseURL = computed(() =>
           </template>
 
           <a v-else class="link-primary" :href="link" target="_blank" rel="noopener noreferrer">
-            {{ link }}
+            {{ linkBare }}
           </a>
 
-          <template v-if="withChecksums">
-            <Tooltip
-              :disabled="isEnterpriseFactory"
-              description="Checksums are only available through the Talos Linux Enterprise Image Factory."
+          <Tooltip
+            v-if="linkSha256"
+            :disabled="isEnterpriseFactory"
+            description="Checksums are only available through the Talos Linux Enterprise Image Factory."
+          >
+            <TButton
+              is="a"
+              :disabled="!isEnterpriseFactory"
+              :href="linkSha256"
+              target="_blank"
+              rel="noopener noreferrer"
+              size="sm"
+              :icon="isEnterpriseFactory ? 'arrow-down-tray' : 'locked'"
+              icon-position="left"
             >
-              <TButton
-                is="a"
-                :disabled="!isEnterpriseFactory"
-                :href="`${link}.sha256`"
-                target="_blank"
-                rel="noopener noreferrer"
-                size="sm"
-                :icon="isEnterpriseFactory ? 'arrow-down-tray' : 'locked'"
-                icon-position="left"
-              >
-                sha256
-              </TButton>
-            </Tooltip>
+              sha256
+            </TButton>
+          </Tooltip>
 
-            <Tooltip
-              :disabled="isEnterpriseFactory"
-              description="Checksums are only available through the Talos Linux Enterprise Image Factory."
+          <Tooltip
+            v-if="linkSha512"
+            :disabled="isEnterpriseFactory"
+            description="Checksums are only available through the Talos Linux Enterprise Image Factory."
+          >
+            <TButton
+              is="a"
+              :disabled="!isEnterpriseFactory"
+              :href="linkSha512"
+              target="_blank"
+              rel="noopener noreferrer"
+              size="sm"
+              :icon="isEnterpriseFactory ? 'arrow-down-tray' : 'locked'"
+              icon-position="left"
             >
-              <TButton
-                is="a"
-                :disabled="!isEnterpriseFactory"
-                :href="`${link}.sha512`"
-                target="_blank"
-                rel="noopener noreferrer"
-                size="sm"
-                :icon="isEnterpriseFactory ? 'arrow-down-tray' : 'locked'"
-                icon-position="left"
-              >
-                sha512
-              </TButton>
-            </Tooltip>
-          </template>
+              sha512
+            </TButton>
+          </Tooltip>
         </dd>
       </template>
     </dl>
