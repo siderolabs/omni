@@ -93,6 +93,7 @@ export type MountRequestSpec = {
   detached?: boolean
   disableAccessTime?: boolean
   secure?: boolean
+  noExec?: boolean
   requesters?: string[]
   requesterIDs?: string[]
 }
@@ -205,6 +206,7 @@ export type MountSpec = {
   bindTarget?: string
   parameters?: ParameterSpec[]
   secure?: boolean
+  noExec?: boolean
 }
 
 export type SymlinkProvisioningSpec = {
@@ -233,6 +235,7 @@ export type VolumeMountRequestSpec = {
   detached?: boolean
   disableAccessTime?: boolean
   secure?: boolean
+  noExec?: boolean
 }
 
 export type VolumeMountStatusSpec = {
@@ -243,6 +246,7 @@ export type VolumeMountStatusSpec = {
   detached?: boolean
   disableAccessTime?: boolean
   secure?: boolean
+  noExec?: boolean
 }
 
 export type TPMEncryptionOptionsInfo = {

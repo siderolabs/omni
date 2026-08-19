@@ -12,6 +12,7 @@ import (
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/talos/pkg/machinery/config"
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/validated"
@@ -44,7 +45,9 @@ func validateImportedClusterSecrets(ctx context.Context, st state.State, res *om
 		return fmt.Errorf("failed to unmarshal imported cluster secret: %w", err)
 	}
 
-	err = bundle.Validate()
+	// Validate reads only two flags off the contract: Kubernetes disabled and etcd disabled. An
+	// imported cluster always runs both, so TalosVersionCurrent leaves every check enabled.
+	err = bundle.Validate(config.TalosVersionCurrent)
 	if err != nil {
 		return fmt.Errorf("failed to validate imported cluster secret: %w", err)
 	}
