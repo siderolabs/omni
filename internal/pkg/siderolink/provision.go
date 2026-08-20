@@ -113,7 +113,7 @@ func (h *ProvisionHandler) runCleanup(ctx context.Context) error {
 			for machine := range pendingMachines.All() {
 				if time.Since(machine.Metadata().Updated()) > time.Second*30 || machine.Metadata().Phase() == resource.PhaseTearingDown {
 					if err = h.removePendingMachine(ctx, machine); err != nil {
-						h.logger.Error("failed to remove pending machine", zap.Error(err), zap.String("id", machine.Metadata().ID()))
+						h.logger.Error("failed to remove pending machine", append(pendingMachineFields(machine), zap.Error(err))...)
 					}
 				}
 			}
@@ -125,7 +125,9 @@ func (h *ProvisionHandler) runCleanup(ctx context.Context) error {
 func (h *ProvisionHandler) Provision(ctx context.Context, req *pb.ProvisionRequest) (*pb.ProvisionResponse, error) {
 	ctx = actor.MarkContextAsInternalActor(ctx)
 
-	provisionContext, err := h.buildProvisionContext(ctx, req)
+	logger := h.logger.With(zap.String("machine", req.GetNodeUuid()))
+
+	provisionContext, err := h.buildProvisionContext(ctx, logger, req)
 	if err != nil {
 		return nil, err
 	}
@@ -138,9 +140,9 @@ func (h *ProvisionHandler) Provision(ctx context.Context, req *pb.ProvisionReque
 		)
 	}
 
-	resp, err := h.provision(ctx, provisionContext)
+	resp, err := h.provision(ctx, logger, provisionContext)
 	if err != nil && status.Code(err) == codes.Unknown {
-		h.logger.Error("failed to handle machine provision request", zap.Error(err))
+		logger.Error("failed to handle machine provision request", zap.Error(err))
 
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
@@ -286,9 +288,8 @@ func updateResource[T res](ctx context.Context,
 	})
 }
 
-func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *provisionContext) (*pb.ProvisionResponse, error) {
-	logger := h.logger.With(
-		zap.String("machine", provisionContext.request.NodeUuid),
+func (h *ProvisionHandler) provision(ctx context.Context, logger *zap.Logger, provisionContext *provisionContext) (*pb.ProvisionResponse, error) {
+	logger = logger.With(
 		zap.Bool("node_unique_tokens_enabled", provisionContext.nodeUniqueTokensEnabled),
 		zap.Bool("supports_secure_join_tokens", provisionContext.supportsSecureJoinTokens),
 		zap.Bool("has_valid_join_token", provisionContext.hasValidJoinToken),
@@ -303,7 +304,7 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 			return nil, status.Error(codes.PermissionDenied, "unauthorized")
 		}
 
-		return establishLink[*siderolinkres.Link](ctx, h, provisionContext, nil, nil)
+		return establishLink[*siderolinkres.Link](ctx, h, logger, provisionContext, nil, nil)
 	}
 
 	if !provisionContext.isAuthorizedSecureFlow() {
@@ -316,7 +317,7 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 	// put the machine into the limbo state by creating the pending machine resource
 	// the controller will then pick it up and create a wireguard peer for it
 	if provisionContext.requestNodeUniqueToken == nil {
-		return establishLink[*siderolinkres.PendingMachine](ctx, h, provisionContext, nil, nil)
+		return establishLink[*siderolinkres.PendingMachine](ctx, h, logger, provisionContext, nil, nil)
 	}
 
 	annotationsToAdd := []string{}
@@ -332,7 +333,7 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 		annotationsToAdd = append(annotationsToAdd, siderolinkres.ForceValidNodeUniqueToken)
 	}
 
-	response, err := establishLink[*siderolinkres.Link](ctx, h, provisionContext, annotationsToAdd, annotationsToRemove)
+	response, err := establishLink[*siderolinkres.Link](ctx, h, logger, provisionContext, annotationsToAdd, annotationsToRemove)
 	if err != nil {
 		if errors.Is(err, errUUIDConflict) {
 			logger.Info("detected UUID conflict", zap.String("peer", provisionContext.request.NodePublicKey))
@@ -340,7 +341,7 @@ func (h *ProvisionHandler) provision(ctx context.Context, provisionContext *prov
 			// link is there, but the token doesn't match and the fingerprint differs, keep the machine in the limbo state
 			// mark pending machine as having the UUID conflict, PendingMachineStatus controller should inject the new UUID
 			// and the machine will re-join
-			return establishLink[*siderolinkres.PendingMachine](ctx, h, provisionContext, []string{siderolinkres.PendingMachineUUIDConflict}, nil)
+			return establishLink[*siderolinkres.PendingMachine](ctx, h, logger, provisionContext, []string{siderolinkres.PendingMachineUUIDConflict}, nil)
 		}
 
 		return nil, err
@@ -396,14 +397,25 @@ func (h *ProvisionHandler) removePendingMachine(ctx context.Context, pendingMach
 		return err
 	}
 
-	h.logger.Info("cleaned up the pending machine link after grace period", zap.String("id", pendingMachine.Metadata().ID()))
+	h.logger.Info("cleaned up the pending machine link after grace period", pendingMachineFields(pendingMachine)...)
 
 	return nil
 }
 
-func establishLink[T res](ctx context.Context, h *ProvisionHandler, provisionContext *provisionContext, annotationsToAdd []string, annotationsToRemove []string,
+// pendingMachineFields describes a pending machine in the logs: it is keyed by the node public key,
+// so the machine ID is only available as a label.
+func pendingMachineFields(pendingMachine *siderolinkres.PendingMachine) []zap.Field {
+	machineID, _ := pendingMachine.Metadata().Labels().Get(omni.MachineUUID)
+
+	return []zap.Field{
+		zap.String("machine", machineID),
+		zap.String("peer_key", pendingMachine.Metadata().ID()),
+	}
+}
+
+func establishLink[T res](ctx context.Context, h *ProvisionHandler, logger *zap.Logger, provisionContext *provisionContext,
+	annotationsToAdd []string, annotationsToRemove []string,
 ) (*pb.ProvisionResponse, error) {
-	logger := h.logger
 	st := h.state
 
 	link, err := newLink[T](provisionContext, annotationsToAdd, annotationsToRemove)
@@ -604,7 +616,7 @@ func generateVirtualAddrPort() (string, error) {
 }
 
 //nolint:gocyclo,cyclop
-func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.ProvisionRequest) (*provisionContext, error) {
+func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, logger *zap.Logger, req *pb.ProvisionRequest) (*provisionContext, error) {
 	link, err := safe.StateGetByID[*siderolinkres.Link](ctx, h.state, req.NodeUuid)
 	if err != nil && !state.IsNotFoundError(err) {
 		return nil, err
@@ -630,7 +642,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 		return nil, err
 	}
 
-	requestJoinToken, err = h.getJoinToken(ctx, req.GetJoinToken())
+	requestJoinToken, err = h.getJoinToken(ctx, logger, req.GetJoinToken())
 	if err != nil {
 		return nil, err
 	}
@@ -727,7 +739,7 @@ func (h *ProvisionHandler) buildProvisionContext(ctx context.Context, req *pb.Pr
 	}, nil
 }
 
-func (h *ProvisionHandler) validateTokenWithExtraData(ctx context.Context, linkToken jointoken.JoinToken) (*jointoken.JoinToken, error) {
+func (h *ProvisionHandler) validateTokenWithExtraData(ctx context.Context, logger *zap.Logger, linkToken jointoken.JoinToken) (*jointoken.JoinToken, error) {
 	var joinToken string
 
 	// if the token version is V2, we should validate against the individual join token
@@ -735,7 +747,7 @@ func (h *ProvisionHandler) validateTokenWithExtraData(ctx context.Context, linkT
 		providerJoinConfig, err := safe.ReaderGetByID[*siderolinkres.ProviderJoinConfig](ctx, h.state, providerID)
 		if err != nil {
 			if state.IsNotFoundError(err) {
-				h.logger.Warn("machine join token rejected: the provider is not registered in the system", zap.Error(err))
+				logger.Warn("machine join token rejected: the provider is not registered in the system", zap.Error(err))
 
 				return nil, nil //nolint:nilnil
 			}
@@ -758,7 +770,7 @@ func (h *ProvisionHandler) validateTokenWithExtraData(ctx context.Context, linkT
 		}
 
 		if joinTokenStatus.TypedSpec().Value.State != specs.JoinTokenStatusSpec_ACTIVE {
-			h.logger.Warn("machine join token rejected: the default join token is not active")
+			logger.Warn("machine join token rejected: the default join token is not active")
 
 			return nil, nil //nolint:nilnil
 		}
@@ -773,7 +785,7 @@ func (h *ProvisionHandler) validateTokenWithExtraData(ctx context.Context, linkT
 	return &linkToken, nil
 }
 
-func (h *ProvisionHandler) getJoinToken(ctx context.Context, tokenString string) (*jointoken.JoinToken, error) {
+func (h *ProvisionHandler) getJoinToken(ctx context.Context, logger *zap.Logger, tokenString string) (*jointoken.JoinToken, error) {
 	if tokenString == "" {
 		return nil, nil //nolint:nilnil
 	}
@@ -782,14 +794,14 @@ func (h *ProvisionHandler) getJoinToken(ctx context.Context, tokenString string)
 
 	linkToken, err := jointoken.Parse(tokenString)
 	if err != nil {
-		h.logger.Warn("machine join token rejected: invalid join token", zap.Error(err))
+		logger.Warn("machine join token rejected: invalid join token", zap.Error(err))
 
 		return nil, status.Errorf(codes.PermissionDenied, "invalid join token %s", err)
 	}
 
 	// verify the token against the default token or provider token if using v1 version
 	if linkToken.Version != jointoken.VersionPlain {
-		return h.validateTokenWithExtraData(ctx, linkToken)
+		return h.validateTokenWithExtraData(ctx, logger, linkToken)
 	}
 
 	var tokenStatus *siderolinkres.JoinTokenStatus
