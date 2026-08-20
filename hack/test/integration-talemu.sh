@@ -10,7 +10,8 @@ set -eoux pipefail
 # Load common functions and variables.
 source ./hack/test/common.sh
 
-TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/siderolabs/talemu-infra-provider:latest
+#TALEMU_INFRA_PROVIDER_IMAGE=ghcr.io/siderolabs/talemu-infra-provider:latest
+TALEMU_INFRA_PROVIDER_IMAGE=docker.io/ouzklcn/talemu-infra-provider:200825001
 TALEMU_CONTAINER_NAME=talemu
 PROMETHEUS_CONTAINER_NAME=talemu-prom
 
