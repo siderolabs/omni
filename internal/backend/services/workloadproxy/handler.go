@@ -20,6 +20,16 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth"
 )
 
+// Fetch metadata request headers, see https://developer.mozilla.org/en-US/docs/Glossary/Fetch_metadata_request_header.
+const (
+	secFetchSiteHeader = "Sec-Fetch-Site"
+	secFetchModeHeader = "Sec-Fetch-Mode"
+	secFetchDestHeader = "Sec-Fetch-Dest"
+
+	secFetchModeNavigate = "navigate"
+	secFetchDestDocument = "document"
+)
+
 // ProxyProvider is a provider of HTTP proxies for the exposed services.
 type ProxyProvider interface {
 	GetProxy(alias string) (http.Handler, resource.ID, error)
@@ -111,6 +121,10 @@ func (h *HTTPHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 
+	if !h.checkFetchMetadata(writer, request) {
+		return
+	}
+
 	alias := h.parseServiceAliasFromHost(request)
 	if alias == "" {
 		http.NotFound(writer, request)
@@ -166,9 +180,56 @@ func (h *HTTPHandler) isWorkloadProxyRequest(request *http.Request) bool {
 	return false
 }
 
+// checkFetchMetadata decides whether a request may reach an exposed service at all, before any
+// credential is looked at.
+//
+// A browser attaches the Lax auth cookies to a top-level navigation whatever page it started from,
+// which is what makes a link to an exposed service work. Anything else a cross-origin page can
+// start, a subresource load or a form post, is refused here rather than sent to the login flow,
+// since re-authenticating a request nobody asked for only completes it.
+//
+// A request without fetch metadata passes. Browsers are the only clients that attach these cookies
+// on their own, and every browser that does so also sends these headers, so their absence means the
+// caller presented the credential deliberately.
+func (h *HTTPHandler) checkFetchMetadata(writer http.ResponseWriter, request *http.Request) (valid bool) {
+	switch request.Header.Get(secFetchSiteHeader) {
+	case "", "same-origin", "same-site", "none":
+		return true
+	}
+
+	safeMethod := request.Method == http.MethodGet || request.Method == http.MethodHead
+
+	if request.Header.Get(secFetchModeHeader) == secFetchModeNavigate &&
+		request.Header.Get(secFetchDestHeader) == secFetchDestDocument &&
+		safeMethod {
+		return true
+	}
+
+	h.logger.Warn(
+		"reject cross-site workload proxy request",
+		zap.String("request_uri", request.Host+request.URL.RequestURI()),
+		zap.String("method", request.Method),
+		zap.String("sec_fetch_mode", request.Header.Get(secFetchModeHeader)),
+		zap.String("sec_fetch_dest", request.Header.Get(secFetchDestHeader)),
+	)
+
+	http.Error(writer, "cross-site request to an exposed service is not allowed", http.StatusForbidden)
+
+	return false
+}
+
 func (h *HTTPHandler) checkCookies(writer http.ResponseWriter, request *http.Request, clusterID resource.ID) (valid bool) {
 	publicKeyID, publicKeyIDSignatureBase64 := h.getSignatureCookies(request)
 	if publicKeyID == "" || publicKeyIDSignatureBase64 == "" {
+		// Only a navigation can come back from the login flow with a cookie. A subresource fetch would
+		// get HTML in place of the asset and no cookie either way. A page manifest is the usual one to
+		// hit this, since the browser requests it with credentials omitted.
+		if mode := request.Header.Get(secFetchModeHeader); mode != "" && mode != secFetchModeNavigate {
+			http.Error(writer, "unauthenticated", http.StatusUnauthorized)
+
+			return false
+		}
+
 		h.redirectToLogin(writer, request)
 
 		return false
