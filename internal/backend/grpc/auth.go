@@ -47,6 +47,13 @@ const (
 	awaitPublicKeyConfirmationTimeout = 5 * time.Minute
 )
 
+// workloadProxyCookieSameSite is Lax so that a link to an exposed service still works when someone
+// follows it from outside the instance domain. Strict withholds these cookies on that navigation and
+// turns the click into a full login round trip for a person who is already logged in. The proxy
+// handler reads fetch metadata to refuse cross-site subresource loads and unsafe methods, which is
+// the part SameSite cannot express on its own.
+const workloadProxyCookieSameSite = http.SameSiteLaxMode
+
 type authServer struct {
 	authpb.UnimplementedAuthServiceServer
 
@@ -265,7 +272,7 @@ func (s *authServer) RevokePublicKey(ctx context.Context, request *authpb.Revoke
 			HttpOnly: true,
 			Secure:   true,
 			Domain:   s.workloadProxyCookieDomain,
-			SameSite: http.SameSiteStrictMode,
+			SameSite: workloadProxyCookieSameSite,
 		},
 		&http.Cookie{
 			Name:     workloadproxy.PublicKeyIDSignatureBase64Cookie,
@@ -274,7 +281,7 @@ func (s *authServer) RevokePublicKey(ctx context.Context, request *authpb.Revoke
 			HttpOnly: true,
 			Secure:   true,
 			Domain:   s.workloadProxyCookieDomain,
-			SameSite: http.SameSiteStrictMode,
+			SameSite: workloadProxyCookieSameSite,
 		},
 	); err != nil {
 		return nil, err
@@ -364,7 +371,7 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 					HttpOnly: true,
 					Secure:   true,
 					Domain:   s.workloadProxyCookieDomain,
-					SameSite: http.SameSiteStrictMode,
+					SameSite: workloadProxyCookieSameSite,
 				},
 				&http.Cookie{
 					Name:     workloadproxy.PublicKeyIDSignatureBase64Cookie,
@@ -374,7 +381,7 @@ func (s *authServer) ConfirmPublicKey(ctx context.Context, request *authpb.Confi
 					HttpOnly: true,
 					Secure:   true,
 					Domain:   s.workloadProxyCookieDomain,
-					SameSite: http.SameSiteStrictMode,
+					SameSite: workloadProxyCookieSameSite,
 				},
 			); err != nil {
 				return nil, err

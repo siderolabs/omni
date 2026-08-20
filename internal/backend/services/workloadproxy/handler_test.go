@@ -296,6 +296,183 @@ func TestHandlerUseOmniSubdomainEmptySubdomain(t *testing.T) {
 	})
 }
 
+func TestHandlerFetchMetadata(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	mainURL, err := url.Parse("https://omni.example.com")
+	require.NoError(t, err)
+
+	for _, test := range []struct {
+		name       string
+		site       string
+		mode       string
+		dest       string
+		method     string
+		withCookie bool
+		wantCode   int
+	}{
+		{
+			name:       "link followed from another site",
+			site:       "cross-site",
+			mode:       "navigate",
+			dest:       "document",
+			method:     http.MethodGet,
+			withCookie: true,
+			wantCode:   http.StatusOK,
+		},
+		{
+			name:       "head request from another site",
+			site:       "cross-site",
+			mode:       "navigate",
+			dest:       "document",
+			method:     http.MethodHead,
+			withCookie: true,
+			wantCode:   http.StatusOK,
+		},
+		{
+			name:       "typed into the address bar",
+			site:       "none",
+			mode:       "navigate",
+			dest:       "document",
+			method:     http.MethodGet,
+			withCookie: true,
+			wantCode:   http.StatusOK,
+		},
+		{
+			name:       "link followed from the omni ui",
+			site:       "same-site",
+			mode:       "navigate",
+			dest:       "document",
+			method:     http.MethodGet,
+			withCookie: true,
+			wantCode:   http.StatusOK,
+		},
+		{
+			name:       "asset of the exposed service itself",
+			site:       "same-origin",
+			mode:       "no-cors",
+			dest:       "image",
+			method:     http.MethodGet,
+			withCookie: true,
+			wantCode:   http.StatusOK,
+		},
+		{
+			name:       "client that sends no fetch metadata",
+			method:     http.MethodPost,
+			withCookie: true,
+			wantCode:   http.StatusOK,
+		},
+		{
+			name:       "image loaded by a cross-origin page",
+			site:       "cross-site",
+			mode:       "no-cors",
+			dest:       "image",
+			method:     http.MethodGet,
+			withCookie: true,
+			wantCode:   http.StatusForbidden,
+		},
+		{
+			name:       "fetch from a cross-origin page",
+			site:       "cross-site",
+			mode:       "cors",
+			dest:       "empty",
+			method:     http.MethodGet,
+			withCookie: true,
+			wantCode:   http.StatusForbidden,
+		},
+		{
+			name:       "framed by a cross-origin page",
+			site:       "cross-site",
+			mode:       "navigate",
+			dest:       "iframe",
+			method:     http.MethodGet,
+			withCookie: true,
+			wantCode:   http.StatusForbidden,
+		},
+		{
+			name:       "form posted from a cross-origin page",
+			site:       "cross-site",
+			mode:       "navigate",
+			dest:       "document",
+			method:     http.MethodPost,
+			withCookie: true,
+			wantCode:   http.StatusForbidden,
+		},
+		{
+			name:     "unauthenticated navigation goes to login",
+			site:     "cross-site",
+			mode:     "navigate",
+			dest:     "document",
+			method:   http.MethodGet,
+			wantCode: http.StatusSeeOther,
+		},
+		{
+			name:     "unauthenticated manifest fetch is refused",
+			site:     "same-origin",
+			mode:     "cors",
+			dest:     "manifest",
+			method:   http.MethodGet,
+			wantCode: http.StatusUnauthorized,
+		},
+		{
+			name:     "unauthenticated client without fetch metadata goes to login",
+			method:   http.MethodGet,
+			wantCode: http.StatusSeeOther,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			next := &mockHandler{}
+			proxyProvider := &mockProxyProvider{}
+			accessValidator := &mockAccessValidator{}
+			logger := zaptest.NewLogger(t)
+
+			handler, err := workloadproxy.NewHTTPHandler(next, proxyProvider, accessValidator, mainURL, "proxy", true, logger, redirectSignature)
+			require.NoError(t, err)
+
+			req, err := http.NewRequestWithContext(ctx, test.method, "https://grafana.proxy.omni.example.com/dashboard", nil)
+			require.NoError(t, err)
+
+			for header, value := range map[string]string{
+				"Sec-Fetch-Site": test.site,
+				"Sec-Fetch-Mode": test.mode,
+				"Sec-Fetch-Dest": test.dest,
+			} {
+				if value != "" {
+					req.Header.Set(header, value)
+				}
+			}
+
+			if test.withCookie {
+				req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDCookie, Value: testPublicKeyID})
+				req.AddCookie(&http.Cookie{Name: workloadproxy.PublicKeyIDSignatureBase64Cookie, Value: base64.StdEncoding.EncodeToString([]byte("test-signed-public-key-id"))})
+			}
+
+			rr := httptest.NewRecorder()
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, test.wantCode, rr.Code)
+
+			switch test.wantCode {
+			case http.StatusOK:
+				require.Equal(t, []string{"grafana"}, proxyProvider.aliases)
+				require.Equal(t, []string{testPublicKeyID}, accessValidator.publicKeyIDs)
+			case http.StatusForbidden:
+				// the request is refused before the alias is even looked up
+				require.Empty(t, proxyProvider.aliases)
+				require.Empty(t, accessValidator.publicKeyIDs)
+			default:
+				require.Empty(t, accessValidator.publicKeyIDs)
+			}
+		})
+	}
+}
+
 func testUseOmniSubdomainWithCookies(ctx context.Context, t *testing.T, mainURL *url.URL, subdomain, requestURL, expectedAlias string) {
 	t.Helper()
 
