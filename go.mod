@@ -9,8 +9,8 @@ replace (
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
 
-	// fix for https://github.com/yaml/go-yaml/issues/376
-	go.yaml.in/yaml/v4 v4.0.0-rc.6 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260711085733-86003acec573
+	// includes fix https://github.com/yaml/go-yaml/pull/380
+	go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a
 )
 
 tool github.com/atombender/go-jsonschema
