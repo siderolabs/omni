@@ -24,7 +24,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
+	"go.uber.org/zap/zaptest/observer"
 	"golang.org/x/sync/errgroup"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	"google.golang.org/grpc/codes"
@@ -64,7 +66,7 @@ func newPendingMachineStatusController(installedCallback func(machine *siderolin
 	)
 }
 
-//nolint:maintidx
+//nolint:maintidx,gocognit
 func TestProvision(t *testing.T) {
 	t.Parallel()
 
@@ -837,5 +839,55 @@ func TestProvision(t *testing.T) {
 			NodeUniqueToken: new(uniqueToken),
 		})
 		require.NoError(t, err)
+	})
+
+	t.Run("all provision logs have the machine id", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second*5)
+		t.Cleanup(cancel)
+
+		st, _ := setup(ctx, t, config.SiderolinkServiceJoinTokensModeStrict)
+
+		observedCore, observedLogs := observer.New(zapcore.DebugLevel)
+
+		provisionHandler := siderolink.NewProvisionHandler(zap.New(observedCore), st, config.SiderolinkServiceJoinTokensModeStrict, false, 0)
+
+		uniqueToken, tokenErr := jointoken.NewNodeUniqueToken(uuid.NewString(), uuid.NewString()).Encode()
+		require.NoError(t, tokenErr)
+
+		// rejected join: the warning about the join token should still be attributed to the machine
+		_, err := provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+			NodeUuid:        "rejected-machine",
+			NodePublicKey:   genKey(),
+			TalosVersion:    new("v1.9.0"),
+			JoinToken:       new("not-a-valid-token"),
+			NodeUniqueToken: new(uniqueToken),
+		})
+		require.Equal(t, codes.PermissionDenied, status.Code(err))
+
+		// successful join
+		_, err = provisionHandler.Provision(ctx, &pb.ProvisionRequest{
+			NodeUuid:        "accepted-machine",
+			NodePublicKey:   genKey(),
+			TalosVersion:    new("v1.9.0"),
+			JoinToken:       new(validToken),
+			NodeUniqueToken: new(uniqueToken),
+		})
+		require.NoError(t, err)
+
+		entries := observedLogs.All()
+
+		require.NotEmpty(t, entries)
+
+		for _, entry := range entries {
+			machine, ok := entry.ContextMap()["machine"]
+
+			assert.True(t, ok, "log entry %q has no machine id", entry.Message)
+			assert.NotEmpty(t, machine, "log entry %q has an empty machine id", entry.Message)
+		}
+
+		assert.NotEmpty(t, observedLogs.FilterField(zap.String("machine", "rejected-machine")).All())
+		assert.NotEmpty(t, observedLogs.FilterField(zap.String("machine", "accepted-machine")).All())
 	})
 }
