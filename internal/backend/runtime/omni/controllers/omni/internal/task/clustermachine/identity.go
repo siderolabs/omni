@@ -264,6 +264,9 @@ func discoveryServiceEndpointURL(endpoint string, insecure bool) string {
 }
 
 func (spec IdentityCollectorTaskSpec) shouldRunLegacyEtcdMemberIDCollector(ctx context.Context, client *client.Client) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
 	versionResp, err := client.Version(ctx)
 	if err != nil {
 		return false, fmt.Errorf("error getting version: %w", err)
