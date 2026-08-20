@@ -21,7 +21,7 @@ const MinTalosVersion = "1.9.0"
 
 // LatestSupportedTalosVersion is the highest Talos release Omni officially supports as an upgrade target.
 // tsgen:LatestSupportedTalosVersion
-const LatestSupportedTalosVersion = "1.13"
+const LatestSupportedTalosVersion = "1.14"
 
 // TalosEnterpriseVersionName is the version name reported by Talos Enterprise builds.
 const TalosEnterpriseVersionName = "Talos Enterprise"
