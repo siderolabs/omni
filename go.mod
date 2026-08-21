@@ -4,13 +4,13 @@ go 1.26.6
 
 replace (
 	// forked saml library that has the fix for Fusion Auth ACS parsing
-	github.com/crewjam/saml => github.com/unix4ever/saml v0.0.0-20250630213700-66b137182abe
+	github.com/crewjam/saml => github.com/unix4ever/saml 34930b26d33b
 
 	// use nested module
 	github.com/siderolabs/omni/client => ./client
 
 	// includes fix https://github.com/yaml/go-yaml/pull/380
-	go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a
+	go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 c4a5514d019f
 )
 
 tool github.com/atombender/go-jsonschema
@@ -21,15 +21,15 @@ require (
 	github.com/ProtonMail/gopenpgp/v3 v3.4.1
 	github.com/akutz/memconn v0.1.1-0.20211110233653-dae351d188b3
 	github.com/auth0/go-jwt-middleware/v3 v3.3.0
-	github.com/aws/aws-sdk-go-v2 v1.43.6
-	github.com/aws/aws-sdk-go-v2/config v1.32.37
-	github.com/aws/aws-sdk-go-v2/credentials v1.19.36
-	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.3.14
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.107.2
+	github.com/aws/aws-sdk-go-v2 v1.43.7
+	github.com/aws/aws-sdk-go-v2/config v1.32.38
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.37
+	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.3.15
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.107.3
 	github.com/aws/smithy-go v1.27.8
 	github.com/benbjohnson/clock v1.3.5
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cenkalti/backoff/v5 v5.0.3
+	github.com/cenkalti/backoff/v7 v7.0.0
 	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/cosi-project/runtime v1.16.2
 	github.com/cosi-project/state-etcd v0.7.0
@@ -46,7 +46,7 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/google/cel-go v0.31.0
+	github.com/google/cel-go v0.32.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.21.9
 	github.com/google/uuid v1.6.0
@@ -82,7 +82,7 @@ require (
 	github.com/siderolabs/grpc-proxy v0.5.2
 	github.com/siderolabs/image-factory v1.5.0
 	github.com/siderolabs/kms-client v0.2.0
-	github.com/siderolabs/omni/client v1.9.3
+	github.com/siderolabs/omni/client v1.10.4
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.17
 	github.com/siderolabs/talos/pkg/machinery v1.14.0-rc.1
@@ -90,7 +90,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.12.1
-	github.com/stripe/stripe-go/v85 v85.2.0
+	github.com/stripe/stripe-go/v86 v86.3.0
 	github.com/zitadel/logging v0.7.0
 	github.com/zitadel/oidc/v3 v3.49.2
 	go.etcd.io/bbolt v1.5.0
@@ -112,9 +112,9 @@ require (
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20241231184526-a9ab2273dd10
 	google.golang.org/grpc v1.83.1
 	google.golang.org/protobuf v1.36.12
-	k8s.io/api v0.37.0-rc.0
-	k8s.io/apimachinery v0.37.0-rc.0
-	k8s.io/client-go v0.37.0-rc.0
+	k8s.io/api v0.37.0-rc.1
+	k8s.io/apimachinery v0.37.0-rc.1
+	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/klog/v2 v2.140.0
 	sigs.k8s.io/cli-utils v0.37.2
 	sigs.k8s.io/controller-runtime v0.24.1
@@ -133,7 +133,7 @@ require (
 	github.com/ProtonMail/gopenpgp/v2 v2.10.0 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
-	github.com/atombender/go-jsonschema v0.23.1 // indirect
+	github.com/atombender/go-jsonschema v0.24.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.18 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.37 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.22.32 // indirect

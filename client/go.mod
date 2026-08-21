@@ -3,7 +3,7 @@ module github.com/siderolabs/omni/client
 go 1.26.6
 
 // includes fix https://github.com/yaml/go-yaml/pull/380
-replace go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a
+replace go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 c4a5514d019f
 
 require (
 	filippo.io/age v1.3.1
@@ -44,9 +44,9 @@ require (
 	golang.org/x/term v0.45.0
 	google.golang.org/grpc v1.83.1
 	google.golang.org/protobuf v1.36.12
-	k8s.io/apimachinery v0.37.0-rc.0
-	k8s.io/client-go v0.37.0-rc.0
-	k8s.io/kubectl v0.36.3
+	k8s.io/apimachinery v0.37.0-rc.1
+	k8s.io/client-go v11.0.0+incompatible
+	k8s.io/kubectl v0.36.4
 	sigs.k8s.io/cli-utils v0.37.2
 )
 
