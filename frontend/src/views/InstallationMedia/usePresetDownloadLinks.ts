@@ -19,6 +19,7 @@ import {
 } from '@/api/resources'
 import { getDocsLink } from '@/methods'
 import { useFeatures, useIsEnterprise } from '@/methods/features'
+import { withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
 import { useResolvedFactory } from '@/methods/useResolvedFactory'
 import { useResourceGet } from '@/methods/useResourceGet'
 
@@ -69,8 +70,22 @@ export function usePresetDownloadLinks(
     }
   })
 
-  const { url: factoryBaseURL, pxeUrl: factoryPxeBaseURL } = useResolvedFactory(
-    () => toValue(presetRef).image_factory_url,
+  const {
+    url: factoryBaseURLRaw,
+    pxeUrl: factoryPxeBaseURLRaw,
+    credentials,
+  } = useResolvedFactory(() => toValue(presetRef).image_factory_url)
+
+  const factoryBaseURL = computed(() =>
+    factoryBaseURLRaw.value
+      ? withImageFactoryAuth(factoryBaseURLRaw.value, credentials.value)
+      : undefined,
+  )
+
+  const factoryPxeBaseURL = computed(() =>
+    factoryPxeBaseURLRaw.value
+      ? withImageFactoryAuth(factoryPxeBaseURLRaw.value, credentials.value)
+      : undefined,
   )
 
   // If the resolved factory is no longer configured in Omni, this preset is orphaned

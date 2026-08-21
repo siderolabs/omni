@@ -5,7 +5,7 @@
 import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 
 import { useFeatures } from '@/methods/features'
-import { useImageFactoryAuth, withImageFactoryAuth } from '@/methods/useImageFactoryAuth'
+import { useImageFactoryAuth } from '@/methods/useImageFactoryAuth'
 
 // useResolvedFactory resolves a factory URL (as recorded on the selected Talos version) to the
 // configured image factory that serves it. All assets of a given Talos version - image, PXE,
@@ -47,17 +47,8 @@ export function useResolvedFactory(factoryURL?: MaybeRefOrGetter<string | undefi
 
   const credentials = useImageFactoryAuth(() => resolvedFactory.value?.base)
 
-  const url = computed(() =>
-    resolvedFactory.value?.base
-      ? withImageFactoryAuth(resolvedFactory.value.base, credentials.value)
-      : undefined,
-  )
-
-  const pxeUrl = computed(() =>
-    resolvedFactory.value?.pxe
-      ? withImageFactoryAuth(resolvedFactory.value.pxe, credentials.value)
-      : undefined,
-  )
+  const url = computed(() => resolvedFactory.value?.base)
+  const pxeUrl = computed(() => resolvedFactory.value?.pxe)
 
   return { url, pxeUrl, credentials }
 }
