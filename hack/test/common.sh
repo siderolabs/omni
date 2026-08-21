@@ -39,12 +39,12 @@ else
   LATEST_STABLE_OMNI=$(head -n 1 <<<"${STABLE_OMNI_TAGS}")
 fi
 
-export TALOS_VERSION=1.13.8
+export TALOS_VERSION=1.14.0-rc.1
 export KUBERNETES_VERSION=1.36.3
 # To use in:
 # - Omni upgrade tests, to prevent Talos changes interfering with Omni changes
 # - Talos minor upgrade tests
-export STABLE_TALOS_VERSION=1.12.11
+export STABLE_TALOS_VERSION=1.13.8
 export ANOTHER_OMNI_VERSION="${ANOTHER_OMNI_VERSION:-$LATEST_STABLE_OMNI}"
 export ANOTHER_KUBERNETES_VERSION=1.35.7
 
@@ -505,6 +505,17 @@ function create_machines() {
     "${cluster_create_args[@]}"
 }
 
+function version_at_least() {
+  local version="${1#v}"
+  local want_major="$2"
+  local want_minor="$3"
+  local major minor
+
+  IFS='.' read -r major minor _ <<<"${version}"
+
+  ((major > want_major || (major == want_major && minor >= want_minor)))
+}
+
 function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_version, skip_kubeconfig (true/false), allow_scheduling_on_control_planes (true/false)
   declare -A args
   for arg in "$@"; do
@@ -552,7 +563,12 @@ function create_talos_cluster { # args: name, cp_count, wk_count, cidr, talos_ve
   )
 
   if [[ "${allow_scheduling_on_control_planes}" == "true" ]]; then
-    cluster_create_args+=("--config-patch-control-plane={\"cluster\":{\"allowSchedulingOnControlPlanes\":true}}")
+    if version_at_least "${talos_version}" 1 14; then
+      # shellcheck disable=SC2016
+      cluster_create_args+=('--config-patch-control-plane={"apiVersion":"v1alpha1","kind":"KubeNodeConfig","taints":{"node-role.kubernetes.io/control-plane":{"$patch":"delete"}}}')
+    else
+      cluster_create_args+=('--config-patch-control-plane={"cluster":{"allowSchedulingOnControlPlanes":true}}')
+    fi
   fi
 
   "${ARTIFACTS}/talosctl" cluster create dev \

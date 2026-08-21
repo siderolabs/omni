@@ -27,6 +27,7 @@ import (
 	"github.com/siderolabs/gen/pair"
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/go-retry/retry"
+	machineryconfig "github.com/siderolabs/talos/pkg/machinery/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -119,7 +120,7 @@ func CreateCluster(testCtx context.Context, testOptions *TestOptions, options Cl
 		require.NoError(st.Create(ctx, cluster))
 
 		if options.AllowSchedulingOnControlPlanes {
-			ensureAllowSchedulingOnControlPlanesConfigPatch(ctx, t, st, options.Name)
+			ensureAllowSchedulingOnControlPlanesConfigPatch(ctx, t, st, options.Name, options.MachineOptions.TalosVersion)
 		}
 
 		for i := range options.ControlPlanes {
@@ -177,18 +178,18 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 		kubespanEnabler := omni.NewConfigPatch(fmt.Sprintf("%s-kubespan-enabler", options.Name))
 		kubespanEnabler.Metadata().Labels().Set(omni.LabelCluster, options.Name)
 
-		err := kubespanEnabler.TypedSpec().Value.SetUncompressedData([]byte(`machine:
-  network:
-    kubespan:
-      enabled: true
-`))
-		require.NoError(err)
+		kubeSpanPatchData := kubeSpanLegacyPatch
+		if talosVersionContract(t, options.MachineOptions.TalosVersion).KubeSpanMultidocConfig() {
+			kubeSpanPatchData = kubeSpanPatch
+		}
+
+		require.NoError(kubespanEnabler.TypedSpec().Value.SetUncompressedData([]byte(kubeSpanPatchData)))
 
 		require.NoError(st.Create(ctx, cluster))
 		require.NoError(st.Create(ctx, kubespanEnabler))
 
 		if options.AllowSchedulingOnControlPlanes {
-			ensureAllowSchedulingOnControlPlanesConfigPatch(ctx, t, st, options.Name)
+			ensureAllowSchedulingOnControlPlanesConfigPatch(ctx, t, st, options.Name, options.MachineOptions.TalosVersion)
 		}
 
 		machineClass := omni.NewMachineClass(options.Name)
@@ -216,14 +217,72 @@ func CreateClusterWithMachineClass(testCtx context.Context, st state.State, opti
 	}
 }
 
-func ensureAllowSchedulingOnControlPlanesConfigPatch(ctx context.Context, t *testing.T, st state.State, clusterID resource.ID) {
+// kubeSpanLegacyPatch enables KubeSpan on Talos versions without the KubeSpanConfig document.
+const kubeSpanLegacyPatch = `machine:
+  network:
+    kubespan:
+      enabled: true
+`
+
+// kubeSpanPatch enables KubeSpan on Talos versions that take it as a standalone document.
+const kubeSpanPatch = `apiVersion: v1alpha1
+kind: KubeSpanConfig
+enabled: true
+`
+
+// nodeLabelPatch builds the patch that labels the machine's Kubernetes node with its machine ID.
+//
+// Talos 1.14 keeps node labels in the KubeNodeConfig document, and rejects a config that also sets
+// .machine.nodeLabels. Older Talos has no such document, and takes the labels in v1alpha1 only.
+func nodeLabelPatch(t *testing.T, talosVersion, machineID string) []byte {
+	if talosVersionContract(t, talosVersion).MultidocKubernetesConfigSupported() {
+		return fmt.Appendf(nil, `apiVersion: v1alpha1
+kind: KubeNodeConfig
+labels:
+  %s: %s
+`, nodeLabel, machineID)
+	}
+
+	return fmt.Appendf(nil, `machine:
+  nodeLabels:
+    %s: %s
+`, nodeLabel, machineID)
+}
+
+// untaintControlPlanesLegacyPatch removes the control plane taint on Talos versions without the multi-doc
+// Kubernetes config.
+const untaintControlPlanesLegacyPatch = `cluster:
+  allowSchedulingOnControlPlanes: true
+`
+
+// untaintControlPlanesPatch removes the control plane taint on Talos 1.14 and later. Those versions hold the taint
+// in the KubeNodeConfig document, and reject a config that also sets cluster.allowSchedulingOnControlPlanes.
+const untaintControlPlanesPatch = `apiVersion: v1alpha1
+kind: KubeNodeConfig
+taints:
+  node-role.kubernetes.io/control-plane:
+    $patch: delete
+`
+
+func talosVersionContract(t *testing.T, talosVersion string) *machineryconfig.VersionContract {
+	versionContract, err := machineryconfig.ParseContractFromVersion(talosVersion)
+	require.NoError(t, err)
+
+	return versionContract
+}
+
+// ensureAllowSchedulingOnControlPlanesConfigPatch untaints the control planes of the cluster.
+func ensureAllowSchedulingOnControlPlanesConfigPatch(ctx context.Context, t *testing.T, st state.State, clusterID resource.ID, talosVersion string) {
+	patchData := untaintControlPlanesLegacyPatch
+	if talosVersionContract(t, talosVersion).MultidocKubernetesConfigSupported() {
+		patchData = untaintControlPlanesPatch
+	}
+
 	createOrUpdate(ctx, t, st, omni.NewConfigPatch(fmt.Sprintf("400-%s-control-planes-untaint", clusterID)), func(patch *omni.ConfigPatch) error {
 		patch.Metadata().Labels().Set(omni.LabelCluster, clusterID)
 		patch.Metadata().Labels().Set(omni.LabelMachineSet, omni.ControlPlanesResourceID(clusterID))
 
-		return patch.TypedSpec().Value.SetUncompressedData([]byte(`cluster:
-  allowSchedulingOnControlPlanes: true
-`))
+		return patch.TypedSpec().Value.SetUncompressedData([]byte(patchData))
 	})
 }
 
@@ -744,20 +803,7 @@ func bindMachine(ctx context.Context, t *testing.T, st state.State, bindOpts bin
 		cps.Metadata().Labels().Set(omni.LabelCluster, bindOpts.clusterName)
 		cps.Metadata().Labels().Set(omni.LabelClusterMachine, bindOpts.machineID)
 
-		patch := map[string]any{
-			"machine": map[string]any{
-				"nodeLabels": map[string]any{
-					nodeLabel: bindOpts.machineID,
-				},
-			},
-		}
-
-		patchBytes, err := yaml.Marshal(patch)
-		if err != nil {
-			return err
-		}
-
-		return cps.TypedSpec().Value.SetUncompressedData(patchBytes)
+		return cps.TypedSpec().Value.SetUncompressedData(nodeLabelPatch(t, bindOpts.talosVersion, bindOpts.machineID))
 	})
 
 	createOrUpdate(ctx, t, st, configPatchHostname, func(cps *omni.ConfigPatch) error {
@@ -1209,10 +1255,7 @@ func updateMachineClassMachineSets(ctx context.Context, t *testing.T, st state.S
 			cps.Metadata().Labels().Set(omni.LabelCluster, options.Name)
 			cps.Metadata().Labels().Set(omni.LabelClusterMachine, machineID)
 
-			return cps.TypedSpec().Value.SetUncompressedData(fmt.Appendf(nil, `machine:
-  nodeLabels:
-    %s: %s
-`, nodeLabel, machineID))
+			return cps.TypedSpec().Value.SetUncompressedData(nodeLabelPatch(t, options.MachineOptions.TalosVersion, machineID))
 		})
 	}
 }

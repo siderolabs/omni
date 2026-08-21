@@ -13,7 +13,7 @@ const SecureBoot = "secureboot"
 
 // DefaultTalosVersion is pre-selected in the UI, default image and used in the integration tests.
 // tsgen:DefaultTalosVersion
-const DefaultTalosVersion = "1.13.8"
+const DefaultTalosVersion = "1.14.0-rc.1"
 
 // MinTalosVersion allowed to be used when creating the cluster.
 // tsgen:MinTalosVersion
@@ -21,7 +21,7 @@ const MinTalosVersion = "1.9.0"
 
 // LatestSupportedTalosVersion is the highest Talos release Omni officially supports as an upgrade target.
 // tsgen:LatestSupportedTalosVersion
-const LatestSupportedTalosVersion = "1.13"
+const LatestSupportedTalosVersion = "1.14"
 
 // TalosEnterpriseVersionName is the version name reported by Talos Enterprise builds.
 const TalosEnterpriseVersionName = "Talos Enterprise"

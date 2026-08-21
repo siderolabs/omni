@@ -34,12 +34,10 @@ import (
 	"github.com/siderolabs/go-retry/retry"
 	"github.com/siderolabs/talos/pkg/machinery/api/machine"
 	talosclient "github.com/siderolabs/talos/pkg/machinery/client"
-	talosconstants "github.com/siderolabs/talos/pkg/machinery/constants"
 	"github.com/siderolabs/talos/pkg/machinery/resources/cluster"
 	"github.com/siderolabs/talos/pkg/machinery/resources/etcd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.yaml.in/yaml/v4"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/backoff"
@@ -832,38 +830,6 @@ func AssertTalosUpgradeFlow(testCtx context.Context, st state.State, managementC
 		if assertRunnersCleanedUp != nil {
 			assertRunnersCleanedUp()
 		}
-
-		// TODO: Remove below code block when this test starts testing upgrades from Talos 1.11 to 1.12.
-		// Pin etcd version with ConfigPatch for Talos 1.11
-		// This is needed for tests that downgrade Talos 1.11 to 1.10.
-		// Talos 1.11 comes with etcd 3.6 which introduced a new DB format that's not compatible with etcd 3.5 used by Talos 1.10.
-		if strings.HasPrefix(newTalosVersion, "1.11") {
-			t.Logf("Pinning etcd version to %s for Talos v1.11", talosconstants.DefaultEtcdVersion)
-
-			configPatchEtcd := omni.NewConfigPatch(
-				fmt.Sprintf("001-%s-pin-etcd", clusterName),
-			)
-
-			createOrUpdate(ctx, t, st, configPatchEtcd, func(res *omni.ConfigPatch) error {
-				res.Metadata().Labels().Set(omni.LabelCluster, clusterName)
-				res.Metadata().Labels().Set(omni.LabelMachineSet, omni.ControlPlanesResourceID(clusterName))
-
-				patch := map[string]any{
-					"cluster": map[string]any{
-						"etcd": map[string]any{
-							"image": fmt.Sprintf("%s:%s", talosconstants.EtcdImage, talosconstants.DefaultEtcdVersion),
-						},
-					},
-				}
-
-				patchBytes, yamlErr := yaml.Marshal(patch)
-				if yamlErr != nil {
-					return yamlErr
-				}
-
-				return res.TypedSpec().Value.SetUncompressedData(patchBytes)
-			})
-		}
 	}
 }
 
@@ -968,21 +934,45 @@ func AssertTalosUpgradeIsRevertible(testCtx context.Context, st state.State, clu
 	}
 }
 
+// skipUncancelableUpgrade skips the upgrade cancellation test on the clusters where canceling an
+// upgrade cannot work.
+func skipUncancelableUpgrade(ctx context.Context, t *testing.T, st state.State, clusterName, currentTalosVersion, newTalosVersion string) {
+	// Canceling an upgrade means catching it mid-flight and redirecting it. That needs a stable
+	// in-flight window: on real hardware a reboot takes long enough that exactly one machine is
+	// upgrading when the revert lands and the rollout stays serialized. Emulated machines complete an
+	// upgrade in a couple of seconds, faster than the rollout loop and this test's watch-then-revert
+	// react, so the revert never catches a clean mid-flight state and the per-machine targets churn
+	// instead of settling.
+	if clusterUsesEmulatedMachines(ctx, t, st, clusterName) {
+		t.Skip("upgrade cancellation needs real (slow) reboots to catch an upgrade mid-flight; emulated machines complete upgrades before the revert can take effect")
+	}
+
+	// Canceling an in-flight upgrade downgrades the machine that already took the new version, and a
+	// control plane cannot be downgraded across a Talos minor: the etcd of the older Talos refuses a
+	// data directory written by the newer one, and pinning the newer etcd instead fails because the
+	// older Talos writes a configuration that etcd no longer accepts. The same cancellation behavior
+	// is covered by the suite that stays within a single minor.
+	if minorOf(t, currentTalosVersion) != minorOf(t, newTalosVersion) {
+		t.Skipf("upgrade cancellation would downgrade %s to %s across a Talos minor, which a control plane cannot survive", currentTalosVersion, newTalosVersion)
+	}
+}
+
+// minorOf returns the major.minor of a Talos version, so that two versions can be compared for being
+// in the same minor release.
+func minorOf(t *testing.T, version string) string {
+	parsed, err := semver.ParseTolerant(version)
+	require.NoError(t, err)
+
+	return fmt.Sprintf("%d.%d", parsed.Major, parsed.Minor)
+}
+
 // AssertTalosUpgradeIsCancelable tries to upgrade Talos version, and verifies that upgrade starts on one of the nodes and immediately reverts it back.
 func AssertTalosUpgradeIsCancelable(testCtx context.Context, st state.State, clusterName, currentTalosVersion, newTalosVersion string) TestFunc {
 	return func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(testCtx, 15*time.Minute)
 		defer cancel()
 
-		// Canceling an upgrade means catching it mid-flight and redirecting it. That needs a stable
-		// in-flight window: on real hardware a reboot takes long enough that exactly one machine is
-		// upgrading when the revert lands and the rollout stays serialized. Emulated machines complete an
-		// upgrade in a couple of seconds, faster than the rollout loop and this test's watch-then-revert
-		// react, so the revert never catches a clean mid-flight state and the per-machine targets churn
-		// instead of settling. Skip it there, matching how the healthcheck gating is skipped for emulation.
-		if clusterUsesEmulatedMachines(ctx, t, st, clusterName) {
-			t.Skip("upgrade cancellation needs real (slow) reboots to catch an upgrade mid-flight; emulated machines complete upgrades before the revert can take effect")
-		}
+		skipUncancelableUpgrade(ctx, t, st, clusterName, currentTalosVersion, newTalosVersion)
 
 		t.Logf("apply upgrade to %s", newTalosVersion)
 
