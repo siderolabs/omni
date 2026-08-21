@@ -43,8 +43,8 @@ type sloSessionData struct {
 }
 
 // NewHandler creates new SAML handler.
-func NewHandler(state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.Logger, apiURL, recoveryAdmin string) (*samlsp.Middleware, error) {
-	idpMetadata, err := readMetadata(cfg)
+func NewHandler(ctx context.Context, state state.State, cfg *specs.AuthConfigSpec_SAML, logger *zap.Logger, apiURL, recoveryAdmin string) (*samlsp.Middleware, error) {
+	idpMetadata, err := readMetadata(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -254,14 +254,14 @@ func readNameIDCookie(r *http.Request) (sloSessionData, bool) {
 	return data, true
 }
 
-func readMetadata(cfg *specs.AuthConfigSpec_SAML) (*saml.EntityDescriptor, error) {
+func readMetadata(ctx context.Context, cfg *specs.AuthConfigSpec_SAML) (*saml.EntityDescriptor, error) {
 	if cfg.Url != "" {
 		idpMetadataURL, err := url.Parse(cfg.Url)
 		if err != nil {
 			return nil, err
 		}
 
-		return samlsp.FetchMetadata(context.Background(), http.DefaultClient,
+		return samlsp.FetchMetadata(ctx, http.DefaultClient,
 			*idpMetadataURL)
 	}
 

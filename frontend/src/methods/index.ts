@@ -264,3 +264,38 @@ export function downloadFile(url: string, filename?: string) {
   a.click()
   a.remove()
 }
+
+/**
+ * Reads an error body as the reason to show for a failed API download. Omni's API routes report a
+ * failure as `{"status": "..."}`, so the reason is that status rather than the raw JSON.
+ */
+async function readErrorReason(response: Response): Promise<string | undefined> {
+  const text = (await response.text()).trim()
+  if (!text) return undefined
+
+  try {
+    const { status } = JSON.parse(text)
+
+    return typeof status === 'string' && status ? status : text
+  } catch {
+    return text
+  }
+}
+
+export async function downloadAPIFile(path: string, filename: string) {
+  const response = await fetch(path)
+
+  if (!response.ok) {
+    const reason = await readErrorReason(response)
+
+    throw new Error(reason ?? `${response.status} ${response.statusText}`)
+  }
+
+  const url = window.URL.createObjectURL(await response.blob())
+
+  try {
+    downloadFile(url, filename)
+  } finally {
+    window.URL.revokeObjectURL(url)
+  }
+}

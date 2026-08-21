@@ -149,6 +149,14 @@ func (s *stubFactoryClient) ScanReport(context.Context, string, string, string, 
 	return nil, nil
 }
 
+func (s *stubFactoryClient) SPDXBundle(context.Context, string, string, string) ([]byte, error) {
+	return nil, nil
+}
+
+func (s *stubFactoryClient) VEXDocument(context.Context, string) ([]byte, error) {
+	return nil, nil
+}
+
 // TestFetchTalosVersions verifies the two configured factories are independent: a failure fetching one
 // never fails the other, the failed factory's URL is reported so its versions can be preserved, and the
 // primary still overwrites the secondary for versions present in both.

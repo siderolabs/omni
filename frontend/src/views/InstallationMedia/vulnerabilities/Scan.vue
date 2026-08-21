@@ -6,34 +6,31 @@ included in the LICENSE file.
 -->
 <script setup lang="ts">
 import pluralize from 'pluralize'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { PlatformConfigSpecArch } from '@/api/omni/specs/virtual.pb'
 import TButton from '@/components/Button/TButton.vue'
 import TIcon from '@/components/Icon/TIcon.vue'
 import TSpinner from '@/components/Spinner/TSpinner.vue'
 import TAlert from '@/components/TAlert.vue'
+import { useVulnerabilityReport } from '@/views/ClusterSecurity/util/securityReports'
 import ScanDetailsModal from '@/views/InstallationMedia/vulnerabilities/ScanDetailsModal.vue'
-import { useVulnerabilityReport } from '@/views/InstallationMedia/vulnerabilities/useVulnerabilityReport'
 
-const { schematicId, talosVersion, factoryUrl, arch } = defineProps<{
+const { schematicId, talosVersion, arch } = defineProps<{
   schematicId: string
   talosVersion: string
-  factoryUrl: string
   arch: PlatformConfigSpecArch
 }>()
 
 const scanDetailsModalOpen = ref(false)
 
-const {
-  data: matches,
-  loading,
-  err,
-} = useVulnerabilityReport(() => ({
+const { data, loading, err } = useVulnerabilityReport(() => ({
   arch,
   schematicId,
   talosVersion,
 }))
+
+const matches = computed(() => data.value?.matches)
 </script>
 
 <template>
@@ -79,7 +76,6 @@ const {
     :matches="matches"
     :schematic-id
     :talos-version
-    :factory-url
     :arch
   />
 </template>

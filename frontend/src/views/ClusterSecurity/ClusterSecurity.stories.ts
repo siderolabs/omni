@@ -28,7 +28,7 @@ import {
   TalosVersionType,
 } from '@/api/resources'
 import ClusterSecurity from '@/views/ClusterSecurity/ClusterSecurity.vue'
-import type { Match } from '@/views/InstallationMedia/vulnerabilities/ReportTypes'
+import type { Match, VulnerabilityReport } from '@/views/ClusterSecurity/util/ReportTypes'
 
 import sampleReport from '../InstallationMedia/vulnerabilities/sample-report.json'
 
@@ -158,7 +158,7 @@ const talosVersionsHandler = http.post<never, ListRequest, ListResponse>(
       items: TALOS_VERSIONS.map((version) =>
         JSON.stringify({
           metadata: { namespace, type, id: version },
-          spec: { version },
+          spec: { version, is_enterprise: true },
         } satisfies Resource<TalosVersionSpec>),
       ),
     })
@@ -168,9 +168,8 @@ const talosVersionsHandler = http.post<never, ListRequest, ListResponse>(
 // Resolves a vulnerability report for any (schematic, version, arch) the page asks for.
 const scanHandler = http.get('/api/vulns/:schematic/:version/:arch/report.json', ({ params }) => {
   return HttpResponse.json({
-    status: 'done',
-    report: { matches: matchesForVersion(params.version as string) },
-  })
+    matches: matchesForVersion(params.version as string),
+  } satisfies Pick<VulnerabilityReport, 'matches'>)
 })
 
 const meta: Meta<typeof ClusterSecurity> = {

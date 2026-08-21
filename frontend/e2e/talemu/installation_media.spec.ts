@@ -110,16 +110,6 @@ test('Create, download, and delete an installation media', async ({ page }, test
         'Vulnerability scan reports are only available through the Talos Linux Image Factory Enterprise.',
       ),
     ).toBeVisible()
-    await expect(
-      page.getByText(
-        'SBOM (SPDX) bundle is only available through the Talos Linux Image Factory Enterprise.',
-      ),
-    ).toBeVisible()
-    await expect(
-      page.getByText(
-        'VEX document is only available through the Talos Linux Image Factory Enterprise.',
-      ),
-    ).toBeVisible()
 
     await page.getByRole('button', { name: 'Copy schematic ID' }).click()
 

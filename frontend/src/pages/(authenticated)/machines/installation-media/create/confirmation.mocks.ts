@@ -40,8 +40,8 @@ import {
   VirtualNamespace,
 } from '@/api/resources'
 import type { TalosctlDownloadsResponse } from '@/methods/useTalosctlDownloads'
+import type { VulnerabilityReport } from '@/views/ClusterSecurity/util/ReportTypes'
 import report from '@/views/InstallationMedia/vulnerabilities/sample-report.json'
-import type { ScansResponse } from '@/views/InstallationMedia/vulnerabilities/useVulnerabilityReport'
 
 export const handlers = (enterprise = true) => [
   createWatchStreamHandler<FeaturesConfigSpec>({
@@ -157,10 +157,7 @@ export const handlers = (enterprise = true) => [
     async () => {
       await delay(2_000)
 
-      return HttpResponse.json<ScansResponse>({
-        status: '',
-        report,
-      })
+      return HttpResponse.json<VulnerabilityReport>(report as VulnerabilityReport)
     },
   ),
   http.post<never, GetRequest, GetResponse>(

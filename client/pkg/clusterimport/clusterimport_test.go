@@ -224,6 +224,14 @@ func (m *mockImageFactoryClient) ScanReport(_ context.Context, _, _, _, _ string
 	return nil, nil
 }
 
+func (m *mockImageFactoryClient) SPDXBundle(_ context.Context, _, _, _ string) ([]byte, error) {
+	return nil, nil
+}
+
+func (m *mockImageFactoryClient) VEXDocument(_ context.Context, _ string) ([]byte, error) {
+	return nil, nil
+}
+
 type testData struct {
 	omniState           state.State
 	input               *clusterimport.Input

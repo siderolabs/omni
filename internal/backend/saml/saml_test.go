@@ -102,6 +102,7 @@ func startAuthFlow(t *testing.T) *http.Response {
 	t.Helper()
 
 	m, err := omnisaml.NewHandler(
+		t.Context(),
 		state.WrapCore(namespaced.NewState(inmem.Build)),
 		&specs.AuthConfigSpec_SAML{Metadata: "testdata/samlsp_metadata.xml"},
 		zaptest.NewLogger(t),
