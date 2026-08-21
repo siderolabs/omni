@@ -551,6 +551,47 @@ func TestStatusController(t *testing.T) {
 						assertions.Equal(int32(1), res.TypedSpec().Value.MachineSetsUpgradeQuota[cpMachineSetID])
 						assertions.Equal(int32(1), res.TypedSpec().Value.MachineSetsUpgradeQuota[workerMachineSetID])
 					})
+
+				// A machine set that asks for more parallelism must get it, so that a regression which
+				// ignores the configured value is caught here rather than in an integration run.
+				_, err := safe.StateUpdateWithConflicts[*omni.MachineSet](ctx, st, omni.NewMachineSet(workerMachineSetID).Metadata(),
+					func(ms *omni.MachineSet) error {
+						ms.TypedSpec().Value.UpgradeStrategy = specs.MachineSetSpec_Rolling
+						ms.TypedSpec().Value.UpgradeStrategyConfig = &specs.MachineSetSpec_UpdateStrategyConfig{
+							Rolling: &specs.MachineSetSpec_RollingUpdateStrategyConfig{
+								MaxParallelism: 2,
+							},
+						}
+
+						return nil
+					})
+				require.NoError(t, err)
+
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.UpgradeRollout, assertions *assert.Assertions) {
+						assertions.Equal(int32(2), res.TypedSpec().Value.MachineSetsUpgradeQuota[workerMachineSetID])
+						assertions.Equal(int32(1), res.TypedSpec().Value.MachineSetsUpgradeQuota[cpMachineSetID])
+					})
+
+				// A not ready machine is counted cluster wide and subtracted from the quota of every
+				// machine set, so one machine going not ready (a control plane here) costs the worker
+				// set one of its two slots and zeroes out the control plane set, whose entry drops
+				// from the map entirely.
+				rmock.Mock[*omni.ClusterMachineStatus](ctx, t, st, testoptions.SameID(machines[0]),
+					testoptions.Modify(func(res *omni.ClusterMachineStatus) error {
+						helpers.CopyAllLabels(machines[0], res)
+
+						res.TypedSpec().Value.Stage = specs.ClusterMachineStatusSpec_BOOTING
+						res.TypedSpec().Value.Ready = false
+
+						return nil
+					}))
+
+				rtestutils.AssertResource(ctx, t, st, clusterName,
+					func(res *omni.UpgradeRollout, assertions *assert.Assertions) {
+						assertions.Equal(int32(1), res.TypedSpec().Value.MachineSetsUpgradeQuota[workerMachineSetID])
+						assertions.NotContains(res.TypedSpec().Value.MachineSetsUpgradeQuota, cpMachineSetID)
+					})
 			},
 		)
 	})

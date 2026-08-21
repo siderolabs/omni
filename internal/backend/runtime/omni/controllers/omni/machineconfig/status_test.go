@@ -991,7 +991,7 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 						mode := machine.ApplyConfigurationRequest_NO_REBOOT
 						if reboot {
-							//nolint:staticcheck // ApplyConfigurationRequest_REBOOT is deprecated in Talos 1.14, update the test when DefaultTalosVersion is set to 1.14
+							//nolint:staticcheck // Talos 1.9-1.13 answer an AUTO apply with REBOOT and MinTalosVersion is 1.9.0. Drop when MinTalosVersion moves past 1.13.
 							mode = machine.ApplyConfigurationRequest_REBOOT
 						}
 
@@ -2277,10 +2277,12 @@ func TestConfigUpdateLockReleasedWhenUpgradeBlocked(t *testing.T) {
 	)
 }
 
-// TestRevertRebootRequiringPatchRecoversMachine is a regression test for the flaky
-// TestIntegration/Suites/ConfigPatching/InvalidConfigPatchShouldBeReverted.
+// TestRevertRebootRequiringPatchRecoversMachine is a regression test for a machine getting stuck on a
+// reverted config patch. Its integration twin was removed with Talos 1.14, which no longer reboots on a
+// config apply, so this is the only coverage of the scenario, which stays real for machines on Talos 1.13
+// and older.
 //
-// It mirrors that scenario: a reboot-requiring config patch is applied, the machine reboots into
+// The scenario: a reboot-requiring config patch is applied, the machine reboots into
 // it, and the patch is removed before the machine confirms it. The controller has to re-apply the
 // reverted config so the machine reboots back into a good state, rather than treating it as already
 // in sync and leaving it stuck on the removed patch.
@@ -2318,7 +2320,7 @@ func TestRevertRebootRequiringPatchRecoversMachine(t *testing.T) {
 			machineServices.Get(id).OnApplyConfig = func(_ context.Context, req *machine.ApplyConfigurationRequest, _ state.State, _ string) (*machine.ApplyConfigurationResponse, error) {
 				mode := machine.ApplyConfigurationRequest_NO_REBOOT
 				if strings.Contains(string(req.GetData()), brokenMarker) {
-					//nolint:staticcheck // ApplyConfigurationRequest_REBOOT is deprecated in Talos 1.14, update the test when DefaultTalosVersion is set to 1.14
+					//nolint:staticcheck // Talos 1.9-1.13 answer an AUTO apply with REBOOT and MinTalosVersion is 1.9.0. Drop when MinTalosVersion moves past 1.13.
 					mode = machine.ApplyConfigurationRequest_REBOOT
 				}
 
@@ -3001,7 +3003,7 @@ func TestClusterUpgradeDeferredForHighPriorityConfig(t *testing.T) {
 			// change stays pending, keeping the upgrade deferred for the whole test.
 			machineServices.ForEach(func(m *testutils.MachineServiceMock) {
 				m.OnApplyConfig = func(_ context.Context, _ *machine.ApplyConfigurationRequest, _ state.State, _ string) (*machine.ApplyConfigurationResponse, error) {
-					//nolint:staticcheck // ApplyConfigurationRequest_REBOOT is deprecated in Talos 1.14, update the test when DefaultTalosVersion is set to 1.14
+					//nolint:staticcheck // Talos 1.9-1.13 answer an AUTO apply with REBOOT and MinTalosVersion is 1.9.0. Drop when MinTalosVersion moves past 1.13.
 					mode := machine.ApplyConfigurationRequest_REBOOT
 
 					return &machine.ApplyConfigurationResponse{

@@ -733,12 +733,12 @@ In between the scaling operations, assert that the cluster is ready and accessib
 func testRollingUpdateParallelism(options *TestOptions) TestFunc {
 	return func(t *testing.T) {
 		t.Log(`
-Tests rolling update & scale down strategies for concurrency control for worker machine sets.
+Tests the concurrency controls of worker machine sets.
 
 - create a 1+3 cluster
-- update the worker configs with rolling strategy using maxParallelism of 2
-- scale down the workers to 0 with rolling strategy using maxParallelism of 2
-- assert that the maxParallelism of 2 was respected and used in both operations,`)
+- roll out a config update with a rolling strategy capped at 2, and assert it reaches every worker
+- change the worker schematic with an upgrade strategy capped at 2, and assert that at most two workers upgrade at once
+- scale down the workers to 0 with a delete strategy capped at 2`)
 
 		t.Parallel()
 
@@ -762,9 +762,20 @@ Tests rolling update & scale down strategies for concurrency control for worker 
 		assertClusterAndAPIReady(t, clusterName, options)
 
 		t.Run(
-			"WorkersUpdateShouldBeRolledOutWithMaxParallelism",
-			AssertWorkerNodesRollingConfigUpdate(t.Context(), options.omniClient, clusterName, 2),
+			"WorkersConfigUpdateShouldReachEveryMachine",
+			AssertWorkerNodesConfigUpdateRolloutCompletes(t.Context(), options.omniClient, clusterName, 2),
 		)
+
+		assertClusterAndAPIReady(t, clusterName, options)
+
+		t.Run(
+			"WorkersUpgradeShouldRespectMaxParallelism",
+			// util-linux-tools keeps the change real even on boot media that already carry the other two
+			AssertWorkerNodesUpgradeParallelism(t.Context(), options.omniClient, clusterName, 2,
+				[]string{HelloWorldServiceExtensionName, extensions.OfficialPrefix + "qemu-guest-agent", extensions.OfficialPrefix + "util-linux-tools"}),
+		)
+
+		assertClusterAndAPIReady(t, clusterName, options)
 
 		t.Run(
 			"WorkersShouldScaleDownWithMaxParallelism",
@@ -875,15 +886,8 @@ Tests applying various config patching, including "broken" config patches which 
 		assertClusterAndAPIReady(t, clusterName, options)
 
 		t.Run(
-			"ConfigPatchWithRebootShouldBeApplied",
-			AssertConfigPatchWithReboot(t.Context(), options, clusterName),
-		)
-
-		assertClusterAndAPIReady(t, clusterName, options)
-
-		t.Run(
-			"InvalidConfigPatchShouldBeReverted",
-			AssertRevertBrokenConfigPatch(t.Context(), options.omniClient, clusterName),
+			"ConfigPatchWritingFileShouldBeApplied",
+			AssertConfigPatchWritingFileIsApplied(t.Context(), options, clusterName),
 		)
 
 		assertClusterAndAPIReady(t, clusterName, options)
@@ -1210,7 +1214,7 @@ eventually reports the upgrade target as its running Talos version.`)
 
 				AssertMachineShouldBeInstalledInMaintenanceMode(
 					t.Context(), options,
-					options.MachineOptions.TalosVersion,
+					options.AnotherTalosVersion,
 					&machineID,
 				)(t)
 
@@ -1220,7 +1224,7 @@ eventually reports the upgrade target as its running Talos version.`)
 				AssertMachineShouldBeUpgradedViaMaintenanceLifecycle(
 					t.Context(), options,
 					&machineID,
-					options.AnotherTalosVersion,
+					options.MachineOptions.TalosVersion,
 				)(t)
 			},
 		)
