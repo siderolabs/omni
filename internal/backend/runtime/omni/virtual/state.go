@@ -498,7 +498,7 @@ func (v *State) versionContract(_ context.Context, ptr resource.Pointer) (*virtu
 
 	res.Metadata().SetVersion(version)
 	res.TypedSpec().Value = &specs.VersionContractSpec{
-		KubeSpanMultidocConfig:            vc.VolumeConfigEncryptionSupported(),
+		KubeSpanMultidocConfig:            vc.KubeSpanMultidocConfig(),
 		MultidocKubernetesConfigSupported: vc.MultidocKubernetesConfigSupported(),
 		MultidocNetworkConfigSupported:    vc.MultidocNetworkConfigSupported(),
 		DiscoveryServiceMultidocConfig:    vc.DiscoveryServiceMultidocConfig(),
