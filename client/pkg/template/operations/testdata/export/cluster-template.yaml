@@ -9,18 +9,6 @@ kubernetes:
   version: v1.28.2
   manifests:
     - inline: |
-        apiVersion: v1
-        kind: ConfigMap
-        metadata:
-          name: monitoring-config
-          namespace: monitoring
-        data:
-          prometheus.yaml: |
-            global:
-              scrape_interval: 15s
-      name: monitoring-config
-      mode: full
-    - inline: |
         apiVersion: batch/v1
         kind: Job
         metadata:
@@ -35,6 +23,18 @@ kubernetes:
               restartPolicy: Never
       name: bootstrap-job
       mode: one-time
+    - inline: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: monitoring-config
+          namespace: monitoring
+        data:
+          prometheus.yaml: |
+            global:
+              scrape_interval: 15s
+      name: monitoring-config
+      mode: full
   healthchecks:
     - idOverride: cluster-export-test-nodes-ready
       job: |

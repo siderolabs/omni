@@ -671,7 +671,7 @@ spec:
 metadata:
   namespace: default
   type: KubernetesManifestGroups.omni.sidero.dev
-  id: 200-cluster-export-test-monitoring-config
+  id: cluster-export-test-monitoring-config
   version: 1
   owner:
   phase: running
@@ -698,7 +698,7 @@ spec:
 metadata:
   namespace: default
   type: KubernetesManifestGroups.omni.sidero.dev
-  id: 201-cluster-export-test-bootstrap-job
+  id: cluster-export-test-bootstrap-job
   version: 1
   owner:
   phase: running

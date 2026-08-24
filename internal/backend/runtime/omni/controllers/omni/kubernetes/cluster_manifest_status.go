@@ -612,8 +612,8 @@ func manifestGroupForObject(
 
 // isIdentityOwnedByGroup reports whether the given manifest identity is currently declared by the given group,
 // as opposed to merely being declared by some other, unrelated group.
-func isIdentityOwnedByGroup(groupManifestIDs map[string]map[string]struct{}, groupName, id string) bool {
-	ids, ok := groupManifestIDs[groupName]
+func isIdentityOwnedByGroup(groupManifestIDs map[string]map[string]struct{}, groupID, id string) bool {
+	ids, ok := groupManifestIDs[groupID]
 	if !ok {
 		return false
 	}

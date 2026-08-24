@@ -23,7 +23,7 @@ spec:
 metadata:
     namespace: default
     type: KubernetesManifestGroups.omni.sidero.dev
-    id: 200-cluster-manifest-test-cluster-my-inline-manifest
+    id: cluster-manifest-test-cluster-my-inline-manifest
     version: undefined
     owner:
     phase: running
@@ -48,7 +48,7 @@ spec:
 metadata:
     namespace: default
     type: KubernetesManifestGroups.omni.sidero.dev
-    id: 201-cluster-manifest-test-cluster-my-file-manifest
+    id: cluster-manifest-test-cluster-my-file-manifest
     version: undefined
     owner:
     phase: running
