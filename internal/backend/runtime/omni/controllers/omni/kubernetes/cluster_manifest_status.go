@@ -435,7 +435,7 @@ func (ctrl *ClusterManifestsStatusController) updateStatus(
 						continue
 					}
 
-					if _, ownedByAnotherLiveGroup := manifestsGroups[id]; ownedByAnotherLiveGroup {
+					if currentOwner, ok := manifestsGroups[id]; ok && currentOwner != groupName {
 						// this identity moved to a different, currently-live group (e.g. this group was torn down
 						// and recreated under a new ID) rather than actually being removed from the cluster — the
 						// underlying object isn't going away, so purge this stale entry immediately instead of
