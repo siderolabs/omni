@@ -1,3 +1,40 @@
+## [Omni 1.10.5](https://github.com/siderolabs/omni/releases/tag/v1.10.5) (2026-08-24)
+
+Welcome to the v1.10.5 release of Omni!
+
+
+
+Please try out the release binaries and report any issues at
+https://github.com/siderolabs/omni/issues.
+
+### Contributors
+
+* Edward Sammut Alessi
+* Andrey Smirnov
+* Artem Chernyshev
+* Oguz Kilcan
+
+### Changes
+<details><summary>7 commits</summary>
+<p>
+
+* [`0f61f97fc`](https://github.com/siderolabs/omni/commit/0f61f97fc2deb99455c9cb2f94ef38ef5b77dd72) test: fix talemu version to v1.0.0-6-g9326528
+* [`f3e43cf2d`](https://github.com/siderolabs/omni/commit/f3e43cf2de51d208213659ed65fa22864280f931) fix: provide machine id consistently in provision API logs
+* [`51470e023`](https://github.com/siderolabs/omni/commit/51470e023a25a26dcc514818308f3d422b260455) fix: add missing timeout to the version API call in the identity task
+* [`f74555395`](https://github.com/siderolabs/omni/commit/f74555395470c777df503c8d5ada12e007047c0d) fix: change incorrect version contract for kubespan
+* [`6c0985051`](https://github.com/siderolabs/omni/commit/6c0985051a5987937c7f3f1477d45aec57f410c6) fix: stop a link to an exposed service from starting a login flow
+* [`1029e9c37`](https://github.com/siderolabs/omni/commit/1029e9c3794282ea456e0aa188d517e6a401d0e8) feat(frontend): add filename param to image downloads
+* [`b49f605bc`](https://github.com/siderolabs/omni/commit/b49f605bca9d934d7cb47422d2fa2f4e8ada3894) fix(frontend): fix etcd backup interval not editable
+</p>
+</details>
+
+### Dependency Changes
+
+This release has no dependency changes
+
+Previous release can be found at [v1.10.4](https://github.com/siderolabs/omni/releases/tag/v1.10.4)
+
+
 ## [Omni 1.10.4](https://github.com/siderolabs/omni/releases/tag/v1.10.4) (2026-08-18)
 
 Welcome to the v1.10.4 release of Omni!
