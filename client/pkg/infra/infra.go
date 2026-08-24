@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller/generic"
 	"github.com/cosi-project/runtime/pkg/controller/runtime"
@@ -23,6 +24,7 @@ import (
 	"go.yaml.in/yaml/v4"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/client"
@@ -277,21 +279,12 @@ func resolveBootAsset(
 	spec provision.BootAssetSpec,
 	schematicID string,
 ) (imagefactory.BootAsset, error) {
-	kind, ok := bootAssetKinds[spec.Kind]
-	if !ok {
-		return imagefactory.BootAsset{}, fmt.Errorf("unknown boot asset kind %q", spec.Kind)
+	request, err := bootAssetRequest(talosVersion, schematicID, spec)
+	if err != nil {
+		return imagefactory.BootAsset{}, err
 	}
 
-	resp, err := c.Management().GetBootAssetURL(ctx, &management.BootAssetURLRequest{
-		TalosVersion:  talosVersion,
-		SchematicId:   schematicID,
-		StandaloneUrl: spec.StandaloneURL,
-		BootAssetKind: kind,
-		Platform:      spec.Platform,
-		Architecture:  spec.Architecture,
-		Format:        spec.Format,
-		SecureBoot:    spec.SecureBoot,
-	})
+	resp, err := c.Management().GetBootAssetURL(ctx, request)
 	if err != nil {
 		if status.Code(err) != codes.Unimplemented {
 			return imagefactory.BootAsset{}, fmt.Errorf("failed to get the boot asset URL from Omni: %w", err)
@@ -306,6 +299,33 @@ func resolveBootAsset(
 	return asset, nil
 }
 
+// bootAssetRequest converts a provision step's spec into the management API request.
+func bootAssetRequest(talosVersion, schematicID string, spec provision.BootAssetSpec) (*management.BootAssetURLRequest, error) {
+	kind, ok := bootAssetKinds[spec.Kind]
+	if !ok {
+		return nil, fmt.Errorf("unknown boot asset kind %q", spec.Kind)
+	}
+
+	request := &management.BootAssetURLRequest{
+		TalosVersion:  talosVersion,
+		SchematicId:   schematicID,
+		StandaloneUrl: spec.StandaloneURL,
+		BootAssetKind: kind,
+		Platform:      spec.Platform,
+		Architecture:  spec.Architecture,
+		Format:        spec.Format,
+		SecureBoot:    spec.SecureBoot,
+	}
+
+	// A zero duration on the wire would look like a request for no lifetime at all, so it stays unset and
+	// Omni applies its own default.
+	if spec.DownloadTokenTTL != 0 {
+		request.DownloadTokenTtl = durationpb.New(spec.DownloadTokenTTL)
+	}
+
+	return request, nil
+}
+
 // bootAssetFromResponse converts the management API response into the client-side type.
 func bootAssetFromResponse(resp *management.BootAssetURLResponse) imagefactory.BootAsset {
 	var headers http.Header
@@ -318,11 +338,20 @@ func bootAssetFromResponse(resp *management.BootAssetURLResponse) imagefactory.B
 		}
 	}
 
+	var expiresAt time.Time
+
+	// An Omni that predates the field, or a factory whose downloads do not expire, sends nothing, and
+	// AsTime would turn that into the Unix epoch rather than the zero time the field documents.
+	if resp.ExpiresAt != nil {
+		expiresAt = resp.ExpiresAt.AsTime()
+	}
+
 	return imagefactory.BootAsset{
 		URL:              resp.Url,
 		Headers:          headers,
 		StorageKey:       resp.StorageKey,
 		ImageFactoryHost: resp.ImageFactoryHost,
+		ExpiresAt:        expiresAt,
 	}
 }
 

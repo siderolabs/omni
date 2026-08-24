@@ -14,11 +14,14 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/siderolabs/talos/pkg/machinery/platforms"
+	"go.uber.org/zap"
 
 	"github.com/siderolabs/omni/client/pkg/constants"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
@@ -140,6 +143,15 @@ type BootAsset struct {
 	// authentication, or when it travels inside the URL instead.
 	Headers http.Header
 
+	// ExpiresAt is when URL stops working, for a caller that does not perform the fetch itself and has
+	// to know how long the URL it passed on stays good. Zero when the URL does not expire: an anonymous
+	// factory, or one authenticated with credentials rather than a token.
+	//
+	// It is an estimate. The factory confirms only that it granted the lifetime Omni asked for, never the
+	// instant it started counting, and it allows another 30s of clock leeway when verifying. Treat it as
+	// the earliest moment the URL may stop working.
+	ExpiresAt time.Time
+
 	// URL of the boot asset.
 	URL string
 
@@ -166,7 +178,13 @@ type BootAsset struct {
 // logged BootAsset would leak them. What remains identifies the asset just as well. This covers %v and
 // zap.Any, which prefer a Stringer, but not reflection or json.Marshal.
 func (a BootAsset) String() string {
-	return fmt.Sprintf("BootAsset{host: %q, schematic: %q, key: %q}", a.ImageFactoryHost, a.SchematicID, a.StorageKey)
+	var expires string
+
+	if !a.ExpiresAt.IsZero() {
+		expires = ", expires: " + a.ExpiresAt.Format(time.RFC3339)
+	}
+
+	return fmt.Sprintf("BootAsset{host: %q, schematic: %q, key: %q%s}", a.ImageFactoryHost, a.SchematicID, a.StorageKey, expires)
 }
 
 // storageKey derives the identity of an asset from everything that decides its content: the factory
@@ -185,15 +203,136 @@ func storageKey(factoryBaseURL, pathPrefix, schematicID, version, filename strin
 	return hex.EncodeToString(digest[:])
 }
 
+// ResolveOption configures how an asset is resolved. With no options, the download is authenticated with
+// the basic auth credentials Omni holds.
+type ResolveOption func(*resolveOptions)
+
+type resolveOptions struct {
+	downloadTokens *DownloadTokenOptions
+}
+
+// DownloadTokenOptions is what Omni needs to authenticate a download with a token issued by the factory
+// rather than with the basic auth credentials it holds.
+type DownloadTokenOptions struct {
+	Factories *Clients
+	Logger    *zap.Logger
+	TTL       time.Duration
+}
+
+// logger returns the logger the caller supplied, or a no-op one.
+func (o *DownloadTokenOptions) logger() *zap.Logger {
+	if o == nil || o.Logger == nil {
+		return zap.NewNop()
+	}
+
+	return o.Logger
+}
+
+// defaultDownloadTokenTTL is what Omni asks for when the caller asks for nothing.
+const defaultDownloadTokenTTL = 5 * time.Minute
+
+// downloadTokenRequestTimeout bounds the token request on its own, since the factory client's timeout is
+// sized for the slowest thing it does.
+const downloadTokenRequestTimeout = 30 * time.Second
+
+// WithDownloadTokens authenticates an image download with a short-lived token issued by the factory
+// instead of the basic auth credentials Omni holds.
+func WithDownloadTokens(opts DownloadTokenOptions) ResolveOption {
+	return func(o *resolveOptions) {
+		o.downloadTokens = &opts
+	}
+}
+
+// requestDownloadToken returns a token authenticating a download from the factory at baseURL and the
+// moment it stops working.
+func requestDownloadToken(ctx context.Context, baseURL string, opts *DownloadTokenOptions) (string, time.Time, bool, error) {
+	// A caller that cannot ask for a token, such as the provider-side fallback against an older Omni,
+	// passes nothing.
+	if opts == nil || opts.Factories == nil {
+		return "", time.Time{}, false, nil
+	}
+
+	logger := opts.logger()
+
+	factory := opts.Factories.ForURL(baseURL)
+	if factory == nil {
+		logger.Warn("no image factory client is configured for the factory serving this asset, so no download token was requested",
+			zap.String("factory_url", baseURL))
+
+		return "", time.Time{}, false, nil
+	}
+
+	ttl := opts.TTL
+	if ttl == 0 {
+		ttl = defaultDownloadTokenTTL
+	}
+
+	tokenCtx, cancel := context.WithTimeout(ctx, downloadTokenRequestTimeout)
+	defer cancel()
+
+	requestedAt := time.Now()
+	token, err := factory.DownloadToken(tokenCtx, ttl)
+
+	switch {
+	case err == nil && token == "":
+		logger.Warn("the image factory returned an empty download token",
+			zap.String("factory_url", baseURL))
+
+		return "", time.Time{}, false, nil
+	case err == nil:
+		return token, requestedAt.Add(ttl), true, nil
+	case client.IsHTTPErrorCode(err, http.StatusNotFound), client.IsHTTPErrorCode(err, http.StatusMethodNotAllowed):
+		logger.Debug("the image factory does not issue download tokens",
+			zap.String("factory_url", baseURL), zap.Error(err))
+
+		return "", time.Time{}, false, nil
+	case client.IsInvalidSchematicError(err):
+		if opts.TTL != 0 {
+			logger.Warn("the image factory refused the requested download token lifetime",
+				zap.String("factory_url", baseURL), zap.Duration("ttl", ttl), zap.Error(err))
+
+			return "", time.Time{}, false, fmt.Errorf("%w: the image factory refused a download token lifetime of %s: %w", ErrInvalidInput, ttl, err)
+		}
+
+		logger.Warn("the image factory refused the default download token lifetime",
+			zap.String("factory_url", baseURL), zap.Duration("ttl", ttl), zap.Error(err))
+
+		return "", time.Time{}, false, nil
+	case ctx.Err() != nil:
+		return "", time.Time{}, false, fmt.Errorf("failed to request an image factory download token: %w: %w", ctx.Err(), err)
+	default:
+		logger.Warn("failed to obtain an image factory download token",
+			zap.String("factory_url", baseURL), zap.Error(err))
+
+		return "", time.Time{}, false, nil
+	}
+}
+
 // ResolveBootAsset returns the boot asset the given schematic produces, served by whichever image
 // factory Omni uses for the given Talos version. An empty version means the default Talos version.
 //
 // Set standalone when the fetch cannot carry headers, such as a hypervisor download API handed a bare
 // URL: any authentication then travels inside the URL and Headers comes back empty. The PXE kind is
 // always resolved that way, since the firmware fetching the script cannot send headers either.
-func ResolveBootAsset(ctx context.Context, st state.State, talosVersion string, spec AssetSpec, schematicID string, standalone bool) (BootAsset, error) {
+//
+// Headers can come back empty without standalone too, since a factory issuing download tokens
+// authenticates the download inside the URL for every caller. Send Headers whenever it is not empty,
+// instead of deciding from what was asked for.
+func ResolveBootAsset(
+	ctx context.Context, st state.State, talosVersion string, spec AssetSpec, schematicID string, standalone bool, opts ...ResolveOption,
+) (BootAsset, error) {
+	var options resolveOptions
+
+	for _, opt := range opts {
+		opt(&options)
+	}
+
 	if err := spec.Validate(); err != nil {
 		return BootAsset{}, err
+	}
+
+	if options.downloadTokens != nil && options.downloadTokens.TTL < 0 {
+		return BootAsset{}, fmt.Errorf("%w: download token lifetime %s is negative", ErrInvalidInput, options.downloadTokens.TTL)
 	}
 
 	if talosVersion == "" {
@@ -237,11 +376,32 @@ func ResolveBootAsset(ctx context.Context, st state.State, talosVersion string, 
 	switch {
 	case resolved.username == "" || resolved.password == "":
 		// The factory serves this anonymously, so there is nothing to place.
-	case standalone || spec.Kind == BootAssetKindPXE:
+	case spec.Kind == BootAssetKindPXE:
 		assetURL.User = url.UserPassword(resolved.username, resolved.password)
 	default:
-		asset.Headers = http.Header{
-			"Authorization": []string{"Basic " + base64.StdEncoding.EncodeToString([]byte(resolved.username+":"+resolved.password))},
+		token, expiresAt, ok, err := requestDownloadToken(ctx, resolved.baseURL, options.downloadTokens)
+
+		switch {
+		case err != nil:
+			return BootAsset{}, err
+		case ok:
+			query := assetURL.Query()
+			query.Set("token", token)
+			assetURL.RawQuery = query.Encode()
+
+			asset.ExpiresAt = expiresAt
+		case standalone:
+			assetURL.User = url.UserPassword(resolved.username, resolved.password)
+
+			options.downloadTokens.logger().Debug("authenticating the boot asset download with credentials in the URL",
+				zap.String("factory_url", resolved.baseURL))
+		default:
+			asset.Headers = http.Header{
+				"Authorization": []string{"Basic " + base64.StdEncoding.EncodeToString([]byte(resolved.username+":"+resolved.password))},
+			}
+
+			options.downloadTokens.logger().Debug("authenticating the boot asset download with a credentials header",
+				zap.String("factory_url", resolved.baseURL))
 		}
 	}
 

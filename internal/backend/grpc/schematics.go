@@ -22,6 +22,7 @@ import (
 	"go.yaml.in/yaml/v4"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/access/role"
@@ -206,7 +207,13 @@ func (s *managementServer) GetBootAssetURL(ctx context.Context, request *managem
 		SecureBoot:   request.SecureBoot,
 	}
 
-	asset, err := imagefactory.ResolveBootAsset(ctx, s.omniState, request.TalosVersion, spec, request.SchematicId, request.StandaloneUrl)
+	downloadTokens := imagefactory.WithDownloadTokens(imagefactory.DownloadTokenOptions{
+		Factories: s.imageFactoryClients,
+		Logger:    s.logger,
+		TTL:       request.DownloadTokenTtl.AsDuration(),
+	})
+
+	asset, err := imagefactory.ResolveBootAsset(ctx, s.omniState, request.TalosVersion, spec, request.SchematicId, request.StandaloneUrl, downloadTokens)
 	if err != nil {
 		if errors.Is(err, imagefactory.ErrInvalidInput) {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -221,12 +228,18 @@ func (s *managementServer) GetBootAssetURL(ctx context.Context, request *managem
 		headers[name] = asset.Headers.Get(name)
 	}
 
-	return &management.BootAssetURLResponse{
+	response := &management.BootAssetURLResponse{
 		Url:              asset.URL,
 		Headers:          headers,
 		ImageFactoryHost: asset.ImageFactoryHost,
 		StorageKey:       asset.StorageKey,
-	}, nil
+	}
+
+	if !asset.ExpiresAt.IsZero() {
+		response.ExpiresAt = timestamppb.New(asset.ExpiresAt)
+	}
+
+	return response, nil
 }
 
 func (s *managementServer) getOverlay(ctx context.Context, req *management.CreateSchematicRequest) (schematic.Overlay, error) {

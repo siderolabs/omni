@@ -9,6 +9,7 @@ import (
 	"context"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/cosi-project/runtime/pkg/state/impl/inmem"
@@ -121,6 +122,15 @@ func (i *ImageFactoryClientMock) SPDXBundle(_ context.Context, _, _, _ string) (
 
 func (i *ImageFactoryClientMock) VEXDocument(_ context.Context, _ string) ([]byte, error) {
 	return nil, nil
+}
+
+// DownloadToken answers 404, the same as a factory below 1.5.0 or one with authentication disabled.
+//
+// No controller resolves a boot asset, so nothing here depends on the answer: the method exists because
+// FactoryClient requires it. Token behavior is covered where it is actually reached, in
+// client/pkg/imagefactory and internal/backend/grpc.
+func (i *ImageFactoryClientMock) DownloadToken(_ context.Context, _ time.Duration) (string, error) {
+	return "", &client.HTTPError{Code: http.StatusNotFound, Message: "not found"}
 }
 
 // Get is a test helper for reading back what the controller uploaded.

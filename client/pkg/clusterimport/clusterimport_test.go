@@ -212,6 +212,10 @@ func (m *mockImageFactoryClient) ExtensionsVersions(_ context.Context, _ string)
 	return nil, nil
 }
 
+func (m *mockImageFactoryClient) DownloadToken(_ context.Context, _ time.Duration) (string, error) {
+	return "", &client.HTTPError{Code: http.StatusNotFound, Message: "not found"}
+}
+
 func (m *mockImageFactoryClient) CachedIsEnterprise() bool {
 	return false
 }

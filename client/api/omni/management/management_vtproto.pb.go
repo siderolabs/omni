@@ -541,6 +541,7 @@ func (m *BootAssetURLRequest) CloneVT() *BootAssetURLRequest {
 	r.Architecture = m.Architecture
 	r.Format = m.Format
 	r.SecureBoot = m.SecureBoot
+	r.DownloadTokenTtl = (*durationpb.Duration)((*durationpb1.Duration)(m.DownloadTokenTtl).CloneVT())
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = make([]byte, len(m.unknownFields))
 		copy(r.unknownFields, m.unknownFields)
@@ -560,6 +561,7 @@ func (m *BootAssetURLResponse) CloneVT() *BootAssetURLResponse {
 	r.Url = m.Url
 	r.ImageFactoryHost = m.ImageFactoryHost
 	r.StorageKey = m.StorageKey
+	r.ExpiresAt = (*timestamppb.Timestamp)((*timestamppb1.Timestamp)(m.ExpiresAt).CloneVT())
 	if rhs := m.Headers; rhs != nil {
 		tmpContainer := make(map[string]string, len(rhs))
 		for k, v := range rhs {
@@ -1829,6 +1831,9 @@ func (this *BootAssetURLRequest) EqualVT(that *BootAssetURLRequest) bool {
 	if this.SecureBoot != that.SecureBoot {
 		return false
 	}
+	if !(*durationpb1.Duration)(this.DownloadTokenTtl).EqualVT((*durationpb1.Duration)(that.DownloadTokenTtl)) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1864,6 +1869,9 @@ func (this *BootAssetURLResponse) EqualVT(that *BootAssetURLResponse) bool {
 		return false
 	}
 	if this.StorageKey != that.StorageKey {
+		return false
+	}
+	if !(*timestamppb1.Timestamp)(this.ExpiresAt).EqualVT((*timestamppb1.Timestamp)(that.ExpiresAt)) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3989,6 +3997,16 @@ func (m *BootAssetURLRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.DownloadTokenTtl != nil {
+		size, err := (*durationpb1.Duration)(m.DownloadTokenTtl).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
 	if m.SecureBoot {
 		i--
 		if m.SecureBoot {
@@ -4081,6 +4099,16 @@ func (m *BootAssetURLResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.ExpiresAt != nil {
+		size, err := (*timestamppb1.Timestamp)(m.ExpiresAt).MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
 	}
 	if len(m.StorageKey) > 0 {
 		i -= len(m.StorageKey)
@@ -6114,6 +6142,10 @@ func (m *BootAssetURLRequest) SizeVT() (n int) {
 	if m.SecureBoot {
 		n += 2
 	}
+	if m.DownloadTokenTtl != nil {
+		l = (*durationpb1.Duration)(m.DownloadTokenTtl).SizeVT()
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -6142,6 +6174,10 @@ func (m *BootAssetURLResponse) SizeVT() (n int) {
 	}
 	l = len(m.StorageKey)
 	if l > 0 {
+		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.ExpiresAt != nil {
+		l = (*timestamppb1.Timestamp)(m.ExpiresAt).SizeVT()
 		n += 1 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -10311,6 +10347,42 @@ func (m *BootAssetURLRequest) UnmarshalVT(dAtA []byte) error {
 				}
 			}
 			m.SecureBoot = bool(v != 0)
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DownloadTokenTtl", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.DownloadTokenTtl == nil {
+				m.DownloadTokenTtl = &durationpb.Duration{}
+			}
+			if err := (*durationpb1.Duration)(m.DownloadTokenTtl).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protohelpers.Skip(dAtA[iNdEx:])
@@ -10584,6 +10656,42 @@ func (m *BootAssetURLResponse) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.StorageKey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAt", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ExpiresAt == nil {
+				m.ExpiresAt = &timestamppb.Timestamp{}
+			}
+			if err := (*timestamppb1.Timestamp)(m.ExpiresAt).UnmarshalVT(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

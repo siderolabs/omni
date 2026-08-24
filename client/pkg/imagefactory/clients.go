@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -21,7 +22,7 @@ import (
 )
 
 // FactoryClient is the contract Omni controllers rely on for interacting with a single image factory.
-type FactoryClient interface {
+type FactoryClient interface { //nolint:interfacebloat
 	EnsureSchematic(ctx context.Context, inputSchematic schematic.Schematic) (string, *schematic.Schematic, error)
 	SchematicGet(ctx context.Context, id string) (*schematic.Schematic, error)
 	Host() string
@@ -31,6 +32,7 @@ type FactoryClient interface {
 	ExtensionsVersions(context.Context, string) ([]client.ExtensionInfo, error)
 	CachedIsEnterprise() bool
 	TalosctlList(ctx context.Context, talosVersion string) ([]string, error)
+	DownloadToken(ctx context.Context, ttl time.Duration) (string, error)
 	ReportsClient
 }
 

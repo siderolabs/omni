@@ -33,7 +33,9 @@ import (
 	"go.uber.org/zap/zaptest"
 	"go.yaml.in/yaml/v4"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/imagefactory"
 	"github.com/siderolabs/omni/client/pkg/infra"
@@ -736,5 +738,85 @@ func TestProvisionStepMutationsRestricted(t *testing.T) {
 
 		_, hasForbidden := mrs.Metadata().Labels().Get(forbiddenLabel)
 		assert.False(hasForbidden)
+	})
+}
+
+// TestBootAssetWireConversion covers the two conversions between a provision step's spec and the
+// management API, since a provider only ever gets what these two carry across.
+func TestBootAssetWireConversion(t *testing.T) {
+	t.Parallel()
+
+	const schematicID = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
+
+	diskSpec := func() provision.BootAssetSpec {
+		return provision.BootAssetSpec{
+			AssetSpec: imagefactory.AssetSpec{
+				Kind:         imagefactory.BootAssetKindDisk,
+				Platform:     "nocloud",
+				Architecture: "amd64",
+				Format:       "raw.xz",
+			},
+		}
+	}
+
+	t.Run("the request carries the lifetime the step asked for", func(t *testing.T) {
+		t.Parallel()
+
+		spec := diskSpec()
+		spec.DownloadTokenTTL = 90 * time.Minute
+
+		request, err := infra.BootAssetRequest("v1.13.0", schematicID, spec)
+		require.NoError(t, err)
+
+		require.Equal(t, 90*time.Minute, request.DownloadTokenTtl.AsDuration())
+		require.Equal(t, management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK, request.BootAssetKind)
+		require.Equal(t, schematicID, request.SchematicId)
+	})
+
+	t.Run("a step that asks for no lifetime sends none", func(t *testing.T) {
+		t.Parallel()
+
+		request, err := infra.BootAssetRequest("v1.13.0", schematicID, diskSpec())
+		require.NoError(t, err)
+
+		// Unset rather than zero, so Omni can tell "no preference" from a lifetime and apply its default.
+		require.Nil(t, request.DownloadTokenTtl)
+	})
+
+	t.Run("an unknown kind is refused", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := infra.BootAssetRequest("v1.13.0", schematicID, provision.BootAssetSpec{})
+		require.Error(t, err)
+	})
+
+	t.Run("the response carries the expiry back", func(t *testing.T) {
+		t.Parallel()
+
+		expiresAt := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
+
+		asset := infra.BootAssetFromResponse(&management.BootAssetURLResponse{
+			Url:              "https://factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz?token=abcd",
+			ImageFactoryHost: "factory.example.org",
+			StorageKey:       "key",
+			ExpiresAt:        timestamppb.New(expiresAt),
+		})
+
+		require.Equal(t, expiresAt, asset.ExpiresAt)
+		require.Empty(t, asset.Headers)
+	})
+
+	t.Run("a response without an expiry leaves it zero", func(t *testing.T) {
+		t.Parallel()
+
+		// An Omni that predates the field, or a factory authenticating with credentials, sends nothing.
+		// Reading that as the Unix epoch would look like a URL that expired in 1970.
+		asset := infra.BootAssetFromResponse(&management.BootAssetURLResponse{
+			Url:     "https://factory.example.org/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz",
+			Headers: map[string]string{"Authorization": "Basic dXNlcjpwYXNz"},
+		})
+
+		require.Zero(t, asset.ExpiresAt)
+		require.Equal(t, "Basic dXNlcjpwYXNz", asset.Headers.Get("Authorization"))
 	})
 }

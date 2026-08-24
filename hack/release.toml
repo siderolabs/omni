@@ -17,4 +17,12 @@ platform, architecture and format. Omni creates the schematic, picks the factory
 including the secure boot variant, and answers with a URL and whatever headers the fetch has to carry. A provider that cannot attach a header, because \
 PXE firmware or a hypervisor download API performs the fetch, asks for a self-contained URL instead. Carrying this through the Omni client library for \
 infrastructure providers meant breaking changes, so a provider has to be updated to the new API, and once it is, it needs Omni 1.8 or newer.
+
+Image downloads are now authenticated with a short-lived download token issued by the factory rather than with the factory credentials, so a provider \
+receives something that expires and that only downloads, instead of a credential valid on every factory route until someone rotates it. A provision \
+step that hands the URL to something else, such as a hypervisor import queue that starts later, asks for the lifetime it needs and is told when the \
+URL stops working. A factory that does not issue tokens keeps working unchanged, and so does PXE: the factory accepts a token only on image downloads, \
+and the iPXE script it serves passes on the credentials it was fetched with, so a PXE asset still carries them. Two things change for provider authors. \
+A URL is no longer stable for a given asset, since each one carries a fresh token, so compare the storage key rather than the URL when deciding whether \
+something has already been fetched. And a URL now expires, so fetch it promptly or ask for a lifetime that covers the delay.
 """

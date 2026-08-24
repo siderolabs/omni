@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/controller"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -98,9 +99,17 @@ type BootAssetSpec struct {
 	// every caller, instead of being dropped by one of the conversions along the way.
 	imagefactory.AssetSpec
 
+	// DownloadTokenTTL is how long this provider needs the URL to keep working for a factory that
+	// authenticates downloads with a token. Zero takes Omni's default, which assumes the fetch happens
+	// right away.
+	DownloadTokenTTL time.Duration
+
 	// StandaloneURL asks for a URL that needs no headers, for a fetch this provider does not perform
 	// itself: a hypervisor download API handed a bare URL, for instance. Any authentication then
 	// travels inside the URL and Headers comes back empty.
+	//
+	// Leaving it unset does not promise headers: a factory that authenticates downloads with a token puts
+	// it in the URL either way. Send Headers whenever it is not empty, instead of deciding from this field.
 	StandaloneURL bool
 }
 
@@ -148,7 +157,8 @@ type Context[T resource.Resource] struct {
 // Fetch BootAsset.URL, sending BootAsset.Headers when they are not empty. See imagefactory.BootAsset
 // for the full contract: the URL is opaque and can carry secrets, so it does not belong in a log line
 // verbatim, it is not a stable input for a persisted name, and it can be short-lived, so use it
-// promptly rather than storing it.
+// promptly rather than storing it. BootAsset.ExpiresAt says when it stops working, for a provider that
+// hands it on rather than fetching it, and BootAssetSpec.DownloadTokenTTL asks for a longer one.
 func (context *Context[T]) EnsureBootAsset(ctx context.Context, logger *zap.Logger, spec BootAssetSpec, opts ...SchematicOption) (imagefactory.BootAsset, error) {
 	// Built before the resolver is checked, so that a schematic the options cannot produce is reported as
 	// such rather than as a missing resolver.

@@ -7,15 +7,21 @@ package imagefactory_test
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
+	"github.com/siderolabs/image-factory/pkg/client"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -804,4 +810,409 @@ func TestResolveBootAssetRejectsInvalidPathSegments(t *testing.T) {
 	asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.14.0-alpha.0", diskSpec(), schematicID, false)
 	require.NoError(t, err)
 	require.Contains(t, asset.URL, "/v1.14.0-alpha.0/")
+}
+
+// fakeFactoryClient is an imagefactory.FactoryClient that does only the two things resolving a boot asset
+// asks of one: report the URL it serves, so ForURL can find it, and issue a download token.
+type fakeFactoryClient struct {
+	imagefactory.FactoryClient
+
+	err   error
+	token string
+	url   string
+
+	// onRequest runs while the token request is in flight, for a test that has to change something under it,
+	// such as canceling the caller.
+	onRequest func()
+
+	deadline time.Time
+
+	requests []time.Duration
+
+	hasDeadline bool
+
+	mu sync.Mutex
+}
+
+func (f *fakeFactoryClient) URL() string { return f.url }
+
+func (f *fakeFactoryClient) DownloadToken(ctx context.Context, ttl time.Duration) (string, error) {
+	f.mu.Lock()
+	f.requests = append(f.requests, ttl)
+	f.deadline, f.hasDeadline = ctx.Deadline()
+	f.mu.Unlock()
+
+	if f.onRequest != nil {
+		f.onRequest()
+	}
+
+	return f.token, f.err
+}
+
+// calls returns the lifetimes DownloadToken was asked for, in order.
+func (f *fakeFactoryClient) calls() []time.Duration {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return slices.Clone(f.requests)
+}
+
+// tokenDeadline returns the deadline the last token request ran under.
+func (f *fakeFactoryClient) tokenDeadline() (time.Time, bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return f.deadline, f.hasDeadline
+}
+
+// newIssuer is a fake configured for the primary factory, which is the one every case here resolves
+// against unless it is testing what happens when none is.
+func newIssuer(token string, err error) *fakeFactoryClient {
+	return &fakeFactoryClient{url: primaryURL, token: token, err: err}
+}
+
+func withIssuer(t *testing.T, st state.State, issuer imagefactory.FactoryClient, ttl time.Duration) imagefactory.ResolveOption {
+	t.Helper()
+
+	return imagefactory.WithDownloadTokens(imagefactory.DownloadTokenOptions{
+		Factories: imagefactory.NewClients(st, issuer),
+		Logger:    zaptest.NewLogger(t),
+		TTL:       ttl,
+	})
+}
+
+// authenticatedState is the common setup: a primary factory Omni holds credentials for.
+func authenticatedState(ctx context.Context, t *testing.T) state.State {
+	t.Helper()
+
+	st := newTestState(t)
+
+	createFeaturesConfig(ctx, t, st, nil)
+	createFactoryAuth(ctx, t, st, primaryURL, "user", "hunter2")
+
+	return st
+}
+
+// TestResolveBootAssetDownloadTokenRequest covers the deadline the token request runs under, and what a
+// caller gets when its own context ends first.
+func TestResolveBootAssetDownloadTokenRequest(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+
+	const (
+		token = "eyJhbGciOiJFUzI1NiJ9.fake.token"
+
+		// requestTimeout pins imagefactory's unexported deadline for the token request.
+		requestTimeout = 30 * time.Second
+	)
+
+	t.Run("the request runs under a deadline of its own", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+		issuer := newIssuer(token, nil)
+
+		before := time.Now()
+
+		_, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		require.NoError(t, err)
+
+		// Without one, a factory that accepts the connection and never answers holds the resolve for the factory
+		// client's own timeout, which is half an hour.
+		deadline, ok := issuer.tokenDeadline()
+		require.True(t, ok)
+		require.WithinRange(t, deadline, before.Add(requestTimeout), time.Now().Add(requestTimeout))
+	})
+
+	t.Run("a caller that goes away is not answered with credentials", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+
+		callerCtx, cancel := context.WithCancel(ctx)
+		t.Cleanup(cancel)
+
+		// Canceled while the request is in flight, which is what a caller hanging up looks like.
+		issuer := newIssuer("", errors.New("connection reset"))
+		issuer.onRequest = cancel
+
+		_, err := imagefactory.ResolveBootAsset(callerCtx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, issuer, 0))
+		require.ErrorIs(t, err, context.Canceled)
+	})
+}
+
+// TestResolveBootAssetDownloadToken covers the authentication a caller gets for an asset under /image/
+// when the factory issues download tokens, and the credential fallback for every factory that does not.
+func TestResolveBootAssetDownloadToken(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+
+	const (
+		token         = "eyJhbGciOiJFUzI1NiJ9.fake.token"
+		authorization = "Basic dXNlcjpodW50ZXIy" // user:hunter2
+
+		// defaultTTL pins imagefactory's unexported default, which matches the factory's own documented
+		// default. Omni sends it explicitly so that the expiry it reports back is knowable.
+		defaultTTL = 5 * time.Minute
+	)
+
+	assetPath := "/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz"
+
+	t.Run("a token replaces the userinfo on a standalone image", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+		issuer := newIssuer(token, nil)
+
+		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, issuer, 0))
+		require.NoError(t, err)
+
+		require.Equal(t, primaryURL+assetPath+"?token="+url.QueryEscape(token), asset.URL)
+		require.Empty(t, asset.Headers)
+		require.NotContains(t, asset.URL, "hunter2", "the credential must not travel alongside the token")
+	})
+
+	t.Run("a token replaces the header on a non-standalone image", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+		issuer := newIssuer(token, nil)
+
+		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		require.NoError(t, err)
+
+		require.Equal(t, primaryURL+assetPath+"?token="+url.QueryEscape(token), asset.URL)
+		require.Empty(t, asset.Headers, "a token in the URL leaves nothing for the headers to carry")
+	})
+
+	t.Run("PXE keeps its credentials and never asks for a token", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+		issuer := newIssuer(token, nil)
+
+		// The factory reads ?token= only under /image/, and its iPXE script propagates basic auth alone, so
+		// a token would authenticate neither the script nor what it boots.
+		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", pxeSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		require.NoError(t, err)
+
+		require.Equal(t, "https://user:hunter2@pxe.factory.example.org/pxe/"+schematicID+"/v1.13.0/metal-amd64", asset.URL)
+		require.Empty(t, issuer.calls(), "a token that cannot be used must not be requested")
+		require.Zero(t, asset.ExpiresAt)
+	})
+
+	t.Run("an anonymous factory never asks for a token", func(t *testing.T) {
+		t.Parallel()
+
+		st := newTestState(t)
+		createFeaturesConfig(ctx, t, st, nil)
+
+		issuer := newIssuer(token, nil)
+
+		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		require.NoError(t, err)
+
+		require.Equal(t, primaryURL+assetPath, asset.URL)
+		require.Empty(t, asset.Headers)
+		require.Empty(t, issuer.calls(), "there is nothing to authenticate")
+		require.Zero(t, asset.ExpiresAt)
+	})
+
+	t.Run("the lifetime asked for reaches the factory and comes back as the expiry", func(t *testing.T) {
+		t.Parallel()
+
+		for name, tt := range map[string]struct {
+			requested time.Duration
+			expected  time.Duration
+		}{
+			// Never zero: a lifetime Omni did not send is a lifetime Omni cannot report back as an expiry.
+			"nothing requested takes Omni's default": {requested: 0, expected: defaultTTL},
+			"a requested lifetime is sent unchanged": {requested: 90 * time.Minute, expected: 90 * time.Minute},
+		} {
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+
+				st := authenticatedState(ctx, t)
+				issuer := newIssuer(token, nil)
+
+				before := time.Now()
+
+				asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, tt.requested))
+				require.NoError(t, err)
+
+				require.Equal(t, []time.Duration{tt.expected}, issuer.calls())
+				require.WithinRange(t, asset.ExpiresAt, before.Add(tt.expected), time.Now().Add(tt.expected))
+			})
+		}
+	})
+
+	t.Run("a factory that does not issue tokens falls back to credentials", func(t *testing.T) {
+		t.Parallel()
+
+		// 404 is a factory below 1.5.0, 405 a route that exists for other methods.
+		// Neither is a failure: it is what most deployments look like.
+		for name, err := range map[string]error{
+			"404": &client.HTTPError{Code: http.StatusNotFound, Message: "not found"},
+			"405": &client.HTTPError{Code: http.StatusMethodNotAllowed, Message: "method not allowed"},
+			// A transient problem must not fail the resolve, since falling back is never worse than what a
+			// factory without token support gets.
+			"a transient failure": errors.New("connection reset"),
+		} {
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+
+				st := authenticatedState(ctx, t)
+
+				standalone, resolveErr := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, newIssuer("", err), 0))
+				require.NoError(t, resolveErr)
+				require.Equal(t, "https://user:hunter2@factory.example.org"+assetPath, standalone.URL)
+				require.Zero(t, standalone.ExpiresAt)
+
+				withHeaders, resolveErr := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, newIssuer("", err), 0))
+				require.NoError(t, resolveErr)
+				require.Equal(t, primaryURL+assetPath, withHeaders.URL)
+				require.Equal(t, authorization, withHeaders.Headers.Get("Authorization"))
+				require.Zero(t, withHeaders.ExpiresAt)
+			})
+		}
+	})
+
+	t.Run("a refused lifetime the caller asked for is the caller's error", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+
+		// The factory refuses anything outside its configured bounds with a 400. Silently handing back a
+		// long-lived credential instead would answer a request the caller did not make.
+		_, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false,
+			withIssuer(t, st, newIssuer("", &client.InvalidSchematicError{}), 100*time.Hour))
+
+		require.ErrorIs(t, err, imagefactory.ErrInvalidInput)
+		require.Contains(t, err.Error(), "100h0m0s")
+	})
+
+	t.Run("a refused default lifetime is not the caller's error", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+
+		// Omni's own guess is not the caller's request, so a factory whose bounds exclude it falls back
+		// rather than failing a provision over a value the caller never chose.
+		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false,
+			withIssuer(t, st, newIssuer("", &client.InvalidSchematicError{}), 0))
+
+		require.NoError(t, err)
+		require.Equal(t, authorization, asset.Headers.Get("Authorization"))
+		require.Zero(t, asset.ExpiresAt)
+	})
+
+	t.Run("a 200 carrying no token falls back", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+
+		// Placing an empty token would build a URL with no credentials anywhere, which only fails at the
+		// download, with nothing in Omni's logs pointing at the token.
+		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, true, withIssuer(t, st, newIssuer("", nil), 0))
+		require.NoError(t, err)
+
+		require.Equal(t, "https://user:hunter2@factory.example.org"+assetPath, asset.URL)
+		require.NotContains(t, asset.URL, "token=")
+		require.Zero(t, asset.ExpiresAt)
+	})
+
+	t.Run("an unroutable factory falls back", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+
+		// A token must come from the factory serving the asset and no other, so a client set with nothing
+		// configured for it issues nothing at all.
+		issuer := &fakeFactoryClient{url: "https://other.example.org", token: token}
+
+		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, issuer, 0))
+		require.NoError(t, err)
+
+		require.Equal(t, authorization, asset.Headers.Get("Authorization"))
+		require.Empty(t, issuer.calls())
+	})
+
+	t.Run("a resolve with no token issuer behaves as it did before tokens", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+
+		// This is the provider-side fallback against an Omni that predates the boot asset API.
+		asset, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+		require.NoError(t, err)
+
+		require.Equal(t, authorization, asset.Headers.Get("Authorization"))
+		require.Zero(t, asset.ExpiresAt)
+	})
+
+	t.Run("the storage key and the log line are unaffected", func(t *testing.T) {
+		t.Parallel()
+
+		st := authenticatedState(ctx, t)
+
+		// The key must not move when a token appears, or every provider re-downloads everything it stores.
+		withToken, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false, withIssuer(t, st, newIssuer(token, nil), 0))
+		require.NoError(t, err)
+
+		withCredentials, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", diskSpec(), schematicID, false)
+		require.NoError(t, err)
+
+		require.Equal(t, withCredentials.StorageKey, withToken.StorageKey)
+
+		for _, rendered := range []string{withToken.String(), fmt.Sprintf("%v", withToken)} {
+			require.NotContains(t, rendered, token, "a logged asset must not leak the token")
+			require.NotContains(t, rendered, withToken.URL)
+			require.Contains(t, rendered, withToken.StorageKey)
+			require.Contains(t, rendered, "expires", "the expiry explains a download failing later, and is not a secret")
+		}
+	})
+}
+
+// TestResolveBootAssetNegativeTokenLifetime covers a lifetime the caller got wrong. It is refused the same
+// way for every asset kind, not only for the ones that would have requested a token, so that a bad value
+// cannot pass unnoticed against the public factory and fail only against an authenticated one.
+func TestResolveBootAssetNegativeTokenLifetime(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+
+	const token = "eyJhbGciOiJFUzI1NiJ9.fake.token"
+
+	// The client sends the ttl parameter only when it is positive, so a negative one would reach the
+	// factory as no lifetime at all and come back as an expiry in the past. It is refused the same way
+	// for every kind, including the two that never request a token: accepting it there would let a bad
+	// value through against the public factory and fail only against an authenticated one.
+	for name, tt := range map[string]struct {
+		spec      imagefactory.AssetSpec
+		anonymous bool
+	}{
+		"disk, which would have requested one": {spec: diskSpec()},
+		"PXE, which never requests one":        {spec: pxeSpec()},
+		"an anonymous factory":                 {spec: diskSpec(), anonymous: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			st := newTestState(t)
+			createFeaturesConfig(ctx, t, st, nil)
+
+			if !tt.anonymous {
+				createFactoryAuth(ctx, t, st, primaryURL, "user", "hunter2")
+			}
+
+			issuer := newIssuer(token, nil)
+
+			_, err := imagefactory.ResolveBootAsset(ctx, st, "1.13.0", tt.spec, schematicID, false, withIssuer(t, st, issuer, -time.Hour))
+
+			require.ErrorIs(t, err, imagefactory.ErrInvalidInput)
+			require.Empty(t, issuer.calls(), "a lifetime that cannot be honored must not reach the factory")
+		})
+	}
 }

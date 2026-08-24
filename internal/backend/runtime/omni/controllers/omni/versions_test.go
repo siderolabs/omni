@@ -8,7 +8,9 @@ package omni_test
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/siderolabs/gen/xslices"
 	"github.com/siderolabs/image-factory/pkg/client"
@@ -155,6 +157,10 @@ func (s *stubFactoryClient) SPDXBundle(context.Context, string, string, string) 
 
 func (s *stubFactoryClient) VEXDocument(context.Context, string) ([]byte, error) {
 	return nil, nil
+}
+
+func (s *stubFactoryClient) DownloadToken(context.Context, time.Duration) (string, error) {
+	return "", &client.HTTPError{Code: http.StatusNotFound, Message: "not found"}
 }
 
 // TestFetchTalosVersions verifies the two configured factories are independent: a failure fetching one

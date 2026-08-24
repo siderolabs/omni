@@ -13,6 +13,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -25,6 +27,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/siderolabs/omni/client/api/omni/management"
 	"github.com/siderolabs/omni/client/pkg/meta"
@@ -32,13 +35,94 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/siderolink"
 )
 
+// The credentials the boot asset tests configure on both sides: the ImageFactoryAuth resource Omni reads
+// for the fallback, and the factory client Omni requests a download token with.
+const (
+	testFactoryUsername = "user"
+	testFactoryPassword = "hunter2"
+
+	// testFactoryAuthorization is the two of them as the factory sees them on the wire.
+	testFactoryAuthorization = "Basic dXNlcjpodW50ZXIy"
+)
+
 type imageFactoryMock struct {
 	listener   net.Listener
 	schematics map[string]schematic.Schematic
-	eg         errgroup.Group
-	address    string
+
+	// downloadToken decides what POST /download-token answers, returning a status and either the token
+	// or an error body. Nil answers 404, which is what an unregistered route returns and so stands in for
+	// every factory that does not issue tokens.
+	downloadToken func(ttl string) (int, string)
+
+	eg      errgroup.Group
+	address string
+
+	// tokenTTLs records the ttl query parameter of every request, so a test can check what Omni asked for.
+	tokenTTLs []string
+
+	// tokenAuth records the Authorization header of every request, so a test can check that Omni
+	// authenticates the token request rather than relying on the route being open.
+	tokenAuth []string
 
 	schematicMu sync.Mutex
+	tokenMu     sync.Mutex
+}
+
+// setDownloadToken installs what POST /download-token answers and forgets the requests so far, so each
+// case reads only its own.
+func (m *imageFactoryMock) setDownloadToken(handler func(ttl string) (int, string)) {
+	m.tokenMu.Lock()
+	defer m.tokenMu.Unlock()
+
+	m.downloadToken = handler
+	m.tokenTTLs = nil
+	m.tokenAuth = nil
+}
+
+// downloadTokenTTLs returns the lifetimes asked for since the last setDownloadToken, in order.
+func (m *imageFactoryMock) downloadTokenTTLs() []string {
+	m.tokenMu.Lock()
+	defer m.tokenMu.Unlock()
+
+	return slices.Clone(m.tokenTTLs)
+}
+
+// downloadTokenAuth returns the Authorization header of every token request since the last
+// setDownloadToken, in order.
+func (m *imageFactoryMock) downloadTokenAuth() []string {
+	m.tokenMu.Lock()
+	defer m.tokenMu.Unlock()
+
+	return slices.Clone(m.tokenAuth)
+}
+
+func (m *imageFactoryMock) handleDownloadToken(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	m.tokenMu.Lock()
+	m.tokenTTLs = append(m.tokenTTLs, r.URL.Query().Get("ttl"))
+	m.tokenAuth = append(m.tokenAuth, r.Header.Get("Authorization"))
+	handler := m.downloadToken
+	m.tokenMu.Unlock()
+
+	if handler == nil {
+		rw.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	code, body := handler(r.URL.Query().Get("ttl"))
+
+	if code != http.StatusOK {
+		rw.WriteHeader(code)
+		rw.Write([]byte(body)) //nolint:errcheck
+
+		return
+	}
+
+	rw.Header().Add("Content-Type", "application/json")
+
+	// The shape the pinned client decodes. It reads access_token and discards the rest, which is why Omni
+	// derives the expiry from the lifetime it sent rather than from expires_in.
+	rw.Write(fmt.Appendf(nil, `{"access_token":%q,"token_type":"Bearer","expires_in":300}`, body)) //nolint:errcheck
 }
 
 func (m *imageFactoryMock) run(ctx context.Context) error {
@@ -59,6 +143,7 @@ func (m *imageFactoryMock) serve(ctx context.Context) {
 	router.POST("/schematics", m.handleSchematics)
 	router.GET("/schematics/:id", m.handleSchematicGet)
 	router.GET("/versions", m.handleVersions)
+	router.POST("/download-token", m.handleDownloadToken)
 
 	server := http.Server{
 		Handler: router,
@@ -454,7 +539,7 @@ func (suite *GrpcSuite) TestBootAssetURL() {
 			suite.Require().Equal("factory.example.org", strings.TrimPrefix(resp.ImageFactoryHost, "pxe."))
 
 			if tt.expectHeader {
-				suite.Require().Equal(map[string]string{"Authorization": "Basic dXNlcjpodW50ZXIy"}, resp.Headers)
+				suite.Require().Equal(map[string]string{"Authorization": testFactoryAuthorization}, resp.Headers)
 			} else {
 				suite.Require().Empty(resp.Headers)
 			}
@@ -519,4 +604,161 @@ func (suite *GrpcSuite) TestBootAssetURL() {
 			suite.Require().Equal(codes.InvalidArgument, status.Code(err))
 		})
 	}
+}
+
+// TestBootAssetToken covers what a caller gets when the factory Omni is configured with issues download
+// tokens: a URL that expires and only downloads, instead of the long-lived credential that works on every
+// factory route.
+//
+// TestBootAssetURL points FeaturesConfig at a factory no client is configured for, so it pins the
+// credential fallback. This points it at the mock, so ForURL finds the client and the token is issued.
+func (suite *GrpcSuite) TestBootAssetToken() {
+	ctx, cancel := context.WithTimeout(suite.ctx, time.Second*30)
+	defer cancel()
+
+	const (
+		token       = "eyJhbGciOiJFUzI1NiJ9.fake.token"
+		schematicID = "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"
+	)
+
+	features := omni.NewFeaturesConfig(omni.FeaturesConfigID)
+	features.TypedSpec().Value.ImageFactoryBaseUrl = suite.imageFactory.address
+
+	suite.Require().NoError(suite.state.Create(ctx, features))
+
+	factoryAuth := omni.NewImageFactoryAuth(suite.imageFactory.address)
+	factoryAuth.TypedSpec().Value.Username = testFactoryUsername
+	factoryAuth.TypedSpec().Value.Password = testFactoryPassword
+
+	suite.Require().NoError(suite.state.Create(ctx, factoryAuth))
+
+	client := management.NewManagementServiceClient(suite.conn)
+
+	newRequest := func() *management.BootAssetURLRequest {
+		return &management.BootAssetURLRequest{
+			TalosVersion:  "1.13.0",
+			SchematicId:   schematicID,
+			BootAssetKind: management.BootAssetURLRequest_BOOT_ASSET_KIND_DISK,
+			Platform:      "nocloud",
+			Architecture:  "amd64",
+			Format:        "raw.xz",
+		}
+	}
+
+	assetPath := "/image/" + schematicID + "/v1.13.0/nocloud-amd64.raw.xz"
+
+	issuesToken := func(string) (int, string) { return http.StatusOK, token }
+
+	suite.Run("no requested lifetime takes Omni's default", func() {
+		suite.imageFactory.setDownloadToken(issuesToken)
+
+		before := time.Now()
+
+		resp, err := client.GetBootAssetURL(ctx, newRequest())
+		suite.Require().NoError(err)
+
+		suite.Require().Equal(suite.imageFactory.address+assetPath+"?token="+url.QueryEscape(token), resp.Url)
+		suite.Require().Empty(resp.Headers, "a token in the URL leaves nothing for the headers to carry")
+
+		// Sent explicitly rather than left to the factory, since the granted lifetime is the one thing the
+		// factory does not report back and the expiry has to come from somewhere.
+		suite.Require().Equal([]string{"5m0s"}, suite.imageFactory.downloadTokenTTLs())
+
+		// A token is scoped to the identity that asked for it, so an unauthenticated request would either be
+		// refused or scoped to nobody. Omni has to present its factory credentials to get one.
+		suite.Require().Equal([]string{testFactoryAuthorization}, suite.imageFactory.downloadTokenAuth())
+
+		suite.Require().NotNil(resp.ExpiresAt)
+		suite.Require().WithinRange(resp.ExpiresAt.AsTime(), before.Add(5*time.Minute), time.Now().Add(5*time.Minute))
+	})
+
+	suite.Run("a requested lifetime reaches the factory and moves the expiry", func() {
+		suite.imageFactory.setDownloadToken(issuesToken)
+
+		request := newRequest()
+		request.DownloadTokenTtl = durationpb.New(time.Hour)
+
+		before := time.Now()
+
+		resp, err := client.GetBootAssetURL(ctx, request)
+		suite.Require().NoError(err)
+
+		suite.Require().Equal([]string{"1h0m0s"}, suite.imageFactory.downloadTokenTTLs())
+		suite.Require().NotNil(resp.ExpiresAt)
+		suite.Require().WithinRange(resp.ExpiresAt.AsTime(), before.Add(time.Hour), time.Now().Add(time.Hour))
+	})
+
+	suite.Run("a standalone URL carries the token too", func() {
+		suite.imageFactory.setDownloadToken(issuesToken)
+
+		request := newRequest()
+		request.StandaloneUrl = true
+
+		resp, err := client.GetBootAssetURL(ctx, request)
+		suite.Require().NoError(err)
+
+		suite.Require().Equal(suite.imageFactory.address+assetPath+"?token="+url.QueryEscape(token), resp.Url)
+		suite.Require().NotContains(resp.Url, "hunter2", "the credential must not travel alongside the token")
+	})
+
+	suite.Run("a refused lifetime is InvalidArgument", func() {
+		// The factory answers 400 for anything outside its configured bounds. The caller chose the lifetime,
+		// so it learns its request was refused rather than quietly receiving a long-lived credential.
+		suite.imageFactory.setDownloadToken(func(string) (int, string) {
+			return http.StatusBadRequest, "ttl must be between 30s and 8h"
+		})
+
+		request := newRequest()
+		request.DownloadTokenTtl = durationpb.New(100 * time.Hour)
+
+		_, err := client.GetBootAssetURL(ctx, request)
+		suite.Require().Equal(codes.InvalidArgument, status.Code(err))
+
+		// The bounds are the whole point of passing the factory's own body on rather than summarizing it:
+		// they are what the caller needs to pick a lifetime that works.
+		suite.Require().Contains(status.Convert(err).Message(), "between 30s and 8h")
+		suite.Require().Contains(status.Convert(err).Message(), "100h0m0s")
+	})
+
+	suite.Run("a rejected token request falls back to credentials", func() {
+		// The credentials Omni requests the token with come from its startup configuration. If a factory
+		// refuses them, the resolve must still answer rather than failing a provision.
+		suite.imageFactory.setDownloadToken(func(string) (int, string) {
+			return http.StatusUnauthorized, "unauthorized"
+		})
+
+		resp, err := client.GetBootAssetURL(ctx, newRequest())
+		suite.Require().NoError(err)
+
+		suite.Require().Equal(suite.imageFactory.address+assetPath, resp.Url)
+		suite.Require().Equal(map[string]string{"Authorization": testFactoryAuthorization}, resp.Headers)
+		suite.Require().Nil(resp.ExpiresAt)
+	})
+
+	suite.Run("a negative lifetime is InvalidArgument", func() {
+		suite.imageFactory.setDownloadToken(issuesToken)
+
+		request := newRequest()
+		request.DownloadTokenTtl = durationpb.New(-time.Hour)
+
+		_, err := client.GetBootAssetURL(ctx, request)
+		suite.Require().Equal(codes.InvalidArgument, status.Code(err))
+
+		// It never reaches the factory, since the client would drop a non-positive lifetime and the factory
+		// would grant its own default instead, leaving Omni reporting an expiry in the past.
+		suite.Require().Empty(suite.imageFactory.downloadTokenTTLs())
+	})
+
+	suite.Run("a factory that does not issue tokens falls back to credentials", func() {
+		// Nil answers 404, exactly as an unregistered route does: every build below 1.5.0, every community
+		// build, and any factory with its own authentication disabled.
+		suite.imageFactory.setDownloadToken(nil)
+
+		resp, err := client.GetBootAssetURL(ctx, newRequest())
+		suite.Require().NoError(err)
+
+		suite.Require().Equal(suite.imageFactory.address+assetPath, resp.Url)
+		suite.Require().Equal(map[string]string{"Authorization": testFactoryAuthorization}, resp.Headers)
+		suite.Require().Nil(resp.ExpiresAt, "a credential does not expire, so there is nothing to report")
+	})
 }

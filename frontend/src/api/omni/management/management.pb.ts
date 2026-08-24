@@ -227,6 +227,7 @@ export type BootAssetURLRequest = {
   architecture?: string
   format?: string
   secure_boot?: boolean
+  download_token_ttl?: GoogleProtobufDuration.Duration
 }
 
 export type BootAssetURLResponse = {
@@ -234,6 +235,7 @@ export type BootAssetURLResponse = {
   headers?: {[key: string]: string}
   image_factory_host?: string
   storage_key?: string
+  expires_at?: GoogleProtobufTimestamp.Timestamp
 }
 
 export type GetSupportBundleRequest = {
