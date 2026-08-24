@@ -584,7 +584,8 @@ func transformManifestsToModels(manifests []*omni.KubernetesManifestGroup) (mode
 		return nil, nil
 	}
 
-	// sort by resource ID to preserve the original weight ordering
+	// sort by resource ID (which is name-based) for a deterministic, stable export order;
+	// manifest apply order doesn't depend on declaration order, so this doesn't need to match the original list order
 	slices.SortFunc(manifests, func(a, b *omni.KubernetesManifestGroup) int {
 		return strings.Compare(a.Metadata().ID(), b.Metadata().ID())
 	})

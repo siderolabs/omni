@@ -226,6 +226,7 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 	}
 
 	manifestsGroups := map[string]string{}
+	groupManifestIDs := map[string]map[string]struct{}{}
 	groups := make(map[string]*specs.KubernetesManifestGroupSpec, manifestList.Len())
 
 	err = manifestList.ForEachErr(func(res *omni.KubernetesManifestGroup) error {
@@ -264,10 +265,19 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 
 		manifestsByInventory[inventory] = append(manifestsByInventory[inventory], manifests...)
 
+		groupID := res.Metadata().ID()
+		ids := make(map[string]struct{}, len(manifests))
+
 		for _, m := range manifests {
 			id := utils.FmtUnstructured(m)
-			manifestsGroups[id] = res.Metadata().ID()
+			manifestsGroups[id] = groupID
+			ids[id] = struct{}{}
 		}
+
+		// a fully-applied ONE_TIME group returns above before reaching this point, and a partially-applied
+		// one only records its still-pending identities here — both are fine, since the staleness check below
+		// unconditionally skips ONE_TIME groups regardless of this map's contents.
+		groupManifestIDs[groupID] = ids
 
 		return nil
 	})
@@ -278,7 +288,7 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 	id := cluster.Metadata().ID()
 
 	// update the status before applying manifests to set pending status for new manifests
-	clusterKubernetesManifestsStatus, err = ctrl.updateStatus(ctx, r, client, id, groups, manifestsGroups, manifestsByInventory, nil)
+	clusterKubernetesManifestsStatus, err = ctrl.updateStatus(ctx, r, client, id, groups, manifestsGroups, groupManifestIDs, manifestsByInventory, nil)
 	if err != nil {
 		return err
 	}
@@ -307,7 +317,7 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 	}
 
 	// update the status once again after the run is finished
-	clusterKubernetesManifestsStatus, err = ctrl.updateStatus(ctx, r, client, id, groups, manifestsGroups, manifestsByInventory, &lastError)
+	clusterKubernetesManifestsStatus, err = ctrl.updateStatus(ctx, r, client, id, groups, manifestsGroups, groupManifestIDs, manifestsByInventory, &lastError)
 	if err != nil {
 		return err
 	}
@@ -327,6 +337,7 @@ func (ctrl *ClusterManifestsStatusController) updateStatus(
 	clusterName string,
 	groups map[string]*specs.KubernetesManifestGroupSpec,
 	manifestsGroups map[string]string,
+	groupManifestIDs map[string]map[string]struct{},
 	manifestsByInventory map[string][]*unstructured.Unstructured,
 	lastError *string,
 ) (*omni.ClusterKubernetesManifestsStatus, error) {
@@ -412,14 +423,25 @@ func (ctrl *ClusterManifestsStatusController) updateStatus(
 				}
 			}
 
-			// set deleting status for manifests that are not in manifestsGroups and exist in the status (e.g. manifests that were deleted)
+			// set deleting status for manifests that are no longer owned by their recorded group and exist in the status
+			// (e.g. manifests that were deleted, or whose owning group was torn down and recreated under a new ID)
 			for groupName, group := range r.TypedSpec().Value.Groups {
 				for id, manifest := range group.Manifests {
-					if _, ok := manifestsGroups[id]; ok {
+					if isIdentityOwnedByGroup(groupManifestIDs, groupName, id) {
 						continue
 					}
 
 					if group.Mode == specs.KubernetesManifestGroupSpec_ONE_TIME {
+						continue
+					}
+
+					if _, ownedByAnotherLiveGroup := manifestsGroups[id]; ownedByAnotherLiveGroup {
+						// this identity moved to a different, currently-live group (e.g. this group was torn down
+						// and recreated under a new ID) rather than actually being removed from the cluster — the
+						// underlying object isn't going away, so purge this stale entry immediately instead of
+						// waiting for a live-resource check that will never see it disappear.
+						r.TypedSpec().Value.DeleteManifestStatus(groupName, id)
+
 						continue
 					}
 
@@ -586,6 +608,19 @@ func manifestGroupForObject(
 	}
 
 	return id, "", false
+}
+
+// isIdentityOwnedByGroup reports whether the given manifest identity is currently declared by the given group,
+// as opposed to merely being declared by some other, unrelated group.
+func isIdentityOwnedByGroup(groupManifestIDs map[string]map[string]struct{}, groupName, id string) bool {
+	ids, ok := groupManifestIDs[groupName]
+	if !ok {
+		return false
+	}
+
+	_, ok = ids[id]
+
+	return ok
 }
 
 func webhookError(err error) bool {

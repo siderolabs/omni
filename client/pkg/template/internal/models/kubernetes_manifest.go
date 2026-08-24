@@ -119,13 +119,13 @@ func (km *KubernetesManifest) Validate(opts ValidateOptions) error {
 }
 
 // Translate the model into a resource.
-func (km *KubernetesManifest) Translate(ctx TranslateContext, prefix string, weight int, labels ...pair.Pair[string, string]) (*omni.KubernetesManifestGroup, error) {
+func (km *KubernetesManifest) Translate(ctx TranslateContext, prefix string, labels ...pair.Pair[string, string]) (*omni.KubernetesManifestGroup, error) {
 	name := km.Name
 	if name == "" {
 		name = km.File
 	}
 
-	id := fmt.Sprintf("%03d-%s-%s", weight, prefix, name)
+	id := fmt.Sprintf("%s-%s", prefix, name)
 
 	var (
 		raw []byte
@@ -194,11 +194,11 @@ func (k KubernetesManifestsList) Validate(opts ValidateOptions) error {
 }
 
 // Translate the list of KubernetesManifests into a list of resources.
-func (l KubernetesManifestsList) Translate(ctx TranslateContext, prefix string, baseWeight int, labels ...pair.Pair[string, string]) ([]resource.Resource, error) {
+func (l KubernetesManifestsList) Translate(ctx TranslateContext, prefix string, labels ...pair.Pair[string, string]) ([]resource.Resource, error) {
 	resources := make([]resource.Resource, 0, len(l))
 
-	for i, manifest := range l {
-		r, err := manifest.Translate(ctx, prefix, baseWeight+i, labels...)
+	for _, manifest := range l {
+		r, err := manifest.Translate(ctx, prefix, labels...)
 		if err != nil {
 			return nil, err
 		}
