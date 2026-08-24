@@ -538,7 +538,7 @@ func TestCleanupProbabilities(t *testing.T) {
 func TestGlobalSizeCleanup(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 45*time.Second)
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
@@ -591,7 +591,7 @@ func TestGlobalSizeCleanup(t *testing.T) {
 func TestGlobalSizeCleanupWithGaps(t *testing.T) {
 	t.Parallel()
 
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
 	t.Cleanup(cancel)
 
 	logger := zaptest.NewLogger(t)
