@@ -32,6 +32,7 @@ import (
 	"github.com/siderolabs/omni/internal/backend/logging"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/clustermachine"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/schematic"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/migration"
 )
@@ -355,6 +356,41 @@ func (suite *MigrationSuite) TestChangeClusterMachineConfigPatchesOwner() {
 
 	suite.Assert().Equal(owner, cmcpTearingDown.Metadata().Owner())
 	suite.Assert().Equal(resource.PhaseTearingDown, cmcpTearingDown.Metadata().Phase())
+}
+
+// TestChangeImageFactoryAuthOwner covers adopting the credentials that the Omni startup path used to
+// write unowned into the controller that maintains them now. Without this the controller can never
+// modify them, and no factory credentials are provisioned at all.
+func (suite *MigrationSuite) TestChangeImageFactoryAuthOwner() {
+	ctx, cancel := context.WithTimeout(suite.T().Context(), 10*time.Second)
+	defer cancel()
+
+	unowned := omni.NewImageFactoryAuth("https://factory.example.com")
+	unowned.TypedSpec().Value.Username = "factory-user"
+	unowned.TypedSpec().Value.Password = "factory-pass"
+
+	suite.Require().NoError(suite.state.Create(ctx, unowned))
+
+	// A resource already owned by the controller must survive untouched.
+	alreadyOwned := omni.NewImageFactoryAuth("https://secondary.example.com")
+	suite.Require().NoError(alreadyOwned.Metadata().SetOwner(imagefactory.AuthControllerName))
+	suite.Require().NoError(suite.state.Create(ctx, alreadyOwned, state.WithCreateOwner(imagefactory.AuthControllerName)))
+
+	_, err := suite.manager.Run(ctx, migration.WithFilter(filterWith("changeImageFactoryAuthOwner")))
+	suite.Require().NoError(err)
+
+	adopted, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, suite.state, unowned.Metadata().ID())
+	suite.Require().NoError(err)
+
+	suite.Assert().Equal(imagefactory.AuthControllerName, adopted.Metadata().Owner())
+	suite.Assert().Equal("factory-user", adopted.TypedSpec().Value.GetUsername())
+	suite.Assert().Equal("factory-pass", adopted.TypedSpec().Value.GetPassword())
+
+	untouched, err := safe.ReaderGetByID[*omni.ImageFactoryAuth](ctx, suite.state, alreadyOwned.Metadata().ID())
+	suite.Require().NoError(err)
+
+	suite.Assert().Equal(imagefactory.AuthControllerName, untouched.Metadata().Owner())
+	suite.Assert().Equal(alreadyOwned.Metadata().Version(), untouched.Metadata().Version())
 }
 
 func (suite *MigrationSuite) TestDropSchematicResource() {

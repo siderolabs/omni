@@ -23,6 +23,7 @@ import (
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/cluster"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/clustermachine"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/imagefactory"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/schematic"
 )
 
@@ -229,6 +230,30 @@ func changeClusterMachineConfigPatchesOwner(ctx context.Context, st state.State,
 
 	for cmcp := range clusterMachineConfigPatches.All() {
 		if err = changeOwner(ctx, st, cmcp, controllerName); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// changeImageFactoryAuthOwner adopts the ImageFactoryAuth resources into ImageFactoryAuthController.
+//
+// They used to be written by the Omni startup path with no owner, and the controller that now
+// maintains them — and that also issues the access tokens they carry — cannot modify a
+// resource it does not own.
+func changeImageFactoryAuthOwner(ctx context.Context, st state.State, _ *zap.Logger, _ migrationContext) error {
+	auths, err := safe.ReaderListAll[*omni.ImageFactoryAuth](ctx, st)
+	if err != nil {
+		return err
+	}
+
+	for auth := range auths.All() {
+		if auth.Metadata().Owner() == imagefactory.AuthControllerName {
+			continue
+		}
+
+		if err = changeOwner(ctx, st, auth, imagefactory.AuthControllerName); err != nil {
 			return err
 		}
 	}

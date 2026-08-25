@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/cosi-project/runtime/pkg/resource"
-	"github.com/cosi-project/runtime/pkg/safe"
 	"github.com/go-logr/zapr"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -168,10 +167,6 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 		return fmt.Errorf("failed to write auth parameters to state: %w", err)
 	}
 
-	if err = ensureImageFactoryAuthResources(ctx, state, cfg); err != nil {
-		return fmt.Errorf("failed to ensure ImageFactoryAuth resources: %w", err)
-	}
-
 	factoryURLs, err := resolveFactoryURLs(&cfg.Registries)
 	if err != nil {
 		return err
@@ -225,52 +220,6 @@ func Run(ctx context.Context, state *omni.State, cfg *config.Params, logger *zap
 
 	if err := server.Run(ctx); err != nil {
 		return fmt.Errorf("failed to run server: %w", err)
-	}
-
-	return nil
-}
-
-// ensureImageFactoryAuthResources creates an ImageFactoryAuth resource for each configured factory that
-// has credentials, and prunes the resources of the factories which are no longer configured.
-func ensureImageFactoryAuthResources(ctx context.Context, state *omni.State, cfg *config.Params) error {
-	factories := []config.Factory{cfg.Registries.GetPrimaryFactory()}
-
-	if secondary, ok := cfg.Registries.GetSecondaryFactory(); ok {
-		factories = append(factories, secondary)
-	}
-
-	visited := map[string]struct{}{}
-
-	for _, factory := range factories {
-		if factory.GetUsername() == "" || factory.GetPassword() == "" {
-			continue
-		}
-
-		res := omnires.NewImageFactoryAuth(factory.GetUrl())
-
-		visited[res.Metadata().ID()] = struct{}{}
-
-		if err := safe.StateModify(ctx, state.Default(), res, func(res *omnires.ImageFactoryAuth) error {
-			res.TypedSpec().Value.Username = factory.GetUsername()
-			res.TypedSpec().Value.Password = factory.GetPassword()
-
-			return nil
-		}); err != nil {
-			return fmt.Errorf("failed to modify ImageFactoryAuth resource: %w", err)
-		}
-	}
-
-	auths, err := safe.ReaderListAll[*omnires.ImageFactoryAuth](ctx, state.Default())
-	if err != nil {
-		return fmt.Errorf("failed to list ImageFactoryAuth resources: %w", err)
-	}
-
-	for auth := range auths.All() {
-		if _, ok := visited[auth.Metadata().ID()]; !ok {
-			if err := state.Default().Destroy(ctx, auth.Metadata()); err != nil {
-				return fmt.Errorf("failed to delete ImageFactoryAuth resource %s: %w", auth.Metadata().ID(), err)
-			}
-		}
 	}
 
 	return nil
