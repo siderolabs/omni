@@ -14,10 +14,13 @@ export type AdjtimeStatusSpec = {
   state?: string
 }
 
+export type NTPStatusSpec = {
+  spikeDetected?: boolean
+  consecutiveSpikes?: number
+}
+
 export type StatusSpec = {
   synced?: boolean
   epoch?: number
   syncDisabled?: boolean
-  spikeDetected?: boolean
-  consecutiveSpikes?: number
 }

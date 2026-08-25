@@ -56,3 +56,10 @@ export type ContainerSpecSpec = {
   resources?: ContainerResourcesSpec
   dependsOn?: ContainerDependsOnSpec
 }
+
+export type ContainerImageStatusSpec = {
+  phase?: string
+  image?: string
+  digest?: string
+  error?: string
+}

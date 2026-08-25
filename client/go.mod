@@ -33,7 +33,7 @@ require (
 	github.com/siderolabs/image-factory v1.5.0
 	github.com/siderolabs/proto-codec v0.1.4
 	github.com/siderolabs/siderolink v0.3.17
-	github.com/siderolabs/talos/pkg/machinery v1.14.0-rc.1
+	github.com/siderolabs/talos/pkg/machinery v1.14.0-rc.2
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/xlab/treeprint v1.2.0
@@ -44,9 +44,9 @@ require (
 	golang.org/x/term v0.45.0
 	google.golang.org/grpc v1.83.1
 	google.golang.org/protobuf v1.36.12
-	k8s.io/apimachinery v0.37.0-rc.0
-	k8s.io/client-go v0.37.0-rc.0
-	k8s.io/kubectl v0.36.3
+	k8s.io/apimachinery v0.37.0-rc.1
+	k8s.io/client-go v0.37.0-rc.1
+	k8s.io/kubectl v0.36.4
 	sigs.k8s.io/cli-utils v0.37.2
 )
 
@@ -143,9 +143,9 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/api v0.37.0-rc.0 // indirect
-	k8s.io/cli-runtime v0.36.3 // indirect
-	k8s.io/component-base v0.36.3 // indirect
+	k8s.io/api v0.37.0-rc.1 // indirect
+	k8s.io/cli-runtime v0.36.4 // indirect
+	k8s.io/component-base v0.36.4 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260721132016-d427ff9ee9ad // indirect
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3 // indirect
