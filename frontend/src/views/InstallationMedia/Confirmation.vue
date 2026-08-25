@@ -5,7 +5,6 @@ Use of this software is governed by the Business Source License
 included in the LICENSE file.
 -->
 <script setup lang="ts">
-import { gte } from 'semver'
 import { computed } from 'vue'
 
 import { Runtime } from '@/api/common/omni.pb'
@@ -75,9 +74,7 @@ const { data: talosVersion } = useResourceGet<TalosVersionSpec>(() => ({
   },
 }))
 
-const { url: factoryUrl, credentials: imageFactoryAuth } = useResolvedFactory(
-  () => talosVersion.value?.spec.image_factory_url,
-)
+const { url: factoryUrl } = useResolvedFactory(() => talosVersion.value?.spec.image_factory_url)
 
 const isEnterpriseFactory = computed(() => talosVersion.value?.spec.is_enterprise)
 
@@ -153,38 +150,6 @@ const installerImage = computed(() => {
   return supportsUnifiedInstaller.value
     ? `${factoryHost.value}/${formState.value.hardwareType}-installer${secureBootSuffix.value}/${schematicId.value}:${resolvedTalosVersion.value}`
     : `${factoryHost.value}/installer/${schematicId.value}:${resolvedTalosVersion.value}`
-})
-
-const quote = (input: string) => {
-  if (/["\s\\]/.test(input) && !/'/.test(input)) {
-    return "'" + input.replace(/(['])/g, '\\$1') + "'"
-  }
-
-  if (/["'\s]/.test(input)) {
-    return '"' + input.replace(/(["\\$`!])/g, '\\$1') + '"'
-  }
-
-  return String(input).replace(/([A-Za-z]:)?([#!"$&'()*,:;<=>?@[\\\]^`{|}])/g, '$1\\$2')
-}
-
-const clusterCreateCommand = computed(() => {
-  if (!factoryUrl.value) return
-
-  const parts = [
-    'talosctl cluster create qemu',
-    `--image-factory-url=${factoryUrl.value}`,
-    `--schematic-id=${schematicId.value}`,
-    `--talos-version=v${resolvedTalosVersion.value}`,
-  ]
-
-  // The local cluster pulls the installer from the factory that serves this version, so it must
-  // authenticate with that factory's credentials.
-  const { username, password } = imageFactoryAuth.value ?? {}
-  if (username && password) {
-    parts.push(`--image-factory-auth=${quote(`${username}:${password}`)}`)
-  }
-
-  return parts.join(' ')
 })
 </script>
 
@@ -313,18 +278,6 @@ const clusterCreateCommand = computed(() => {
       <CodeBlock
         :button-attrs="{ 'aria-label': 'Copy create Talos test cluster command' }"
         :code="installerImage"
-      />
-    </template>
-
-    <template v-if="gte(resolvedTalosVersion, '1.12.0-alpha.2') && clusterCreateCommand">
-      <h3 class="text-sm text-naturals-n14">Local Test Cluster</h3>
-      <p>
-        To create a local Talos Linux test cluster from this schematic on macOS (Apple Silicon) or
-        Linux, run:
-      </p>
-      <CodeBlock
-        :button-attrs="{ 'aria-label': 'Copy create Talos test cluster command' }"
-        :code="clusterCreateCommand"
       />
     </template>
 

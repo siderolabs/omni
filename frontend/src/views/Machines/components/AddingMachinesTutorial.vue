@@ -63,15 +63,16 @@ const pxeBootCode =
       <p>To add your first machine create Installation Media and put it onto your machine.</p>
 
       <div class="space-y-2">
-        <p>Local testing</p>
-        <CodeBlock
-          code="talosctl cluster create qemu --omni-api-endpoint $(omnictl jointoken omni-endpoint) --workers 0 --controlplanes 3"
-        ></CodeBlock>
-
-        <p>AWS</p>
-        <CodeBlock :code="awsCode"></CodeBlock>
-
+        <!-- TODO: Update these commands for enterprise support -->
         <template v-if="!isEnterpriseFactory">
+          <p>Local testing</p>
+          <CodeBlock
+            code="talosctl cluster create qemu --omni-api-endpoint $(omnictl jointoken omni-endpoint) --workers 0 --controlplanes 3"
+          ></CodeBlock>
+
+          <p>AWS</p>
+          <CodeBlock :code="awsCode"></CodeBlock>
+
           <p>PXE boot</p>
           <CodeBlock :code="pxeBootCode"></CodeBlock>
         </template>
