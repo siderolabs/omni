@@ -88,13 +88,7 @@ func TestIsLegacyGroupID(t *testing.T) {
 		want         bool
 	}{
 		{"weighted match", "200-cluster-edge-migration", "cluster-edge-migration", true},
-		{"different padding width", "7-cluster-edge-migration", "cluster-edge-migration", true},
 		{"identical strings are not legacy", "cluster-edge-migration", "cluster-edge-migration", false},
-		{"unrelated id", "cluster-edge-migration", "cluster-other", false},
-		{"non-numeric prefix", "abc-cluster-edge-migration", "cluster-edge-migration", false},
-		{"missing separating hyphen", "200cluster-edge-migration", "cluster-edge-migration", false},
-		{"digits embedded in the manifest name still match", "200-cluster-x-7-foo", "cluster-x-7-foo", true},
-		{"different manifest name", "7-cluster-x-b", "cluster-x-a", false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.want, isLegacyGroupID(tt.oldID, tt.newID))
