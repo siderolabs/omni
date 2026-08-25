@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -251,8 +252,21 @@ func (ctrl *ClusterManifestsStatusController) reconcileRunning(ctx context.Conte
 		}
 
 		if res.TypedSpec().Value.Mode == specs.KubernetesManifestGroupSpec_ONE_TIME {
+			newID := res.Metadata().ID()
+
 			// skip adding manifests to the oneTimeManifests list as it's one time and was applied
-			if clusterKubernetesManifestsStatus.TypedSpec().Value.IsGroupApplied(res.Metadata().ID()) {
+			if clusterKubernetesManifestsStatus.TypedSpec().Value.IsGroupApplied(newID) {
+				return nil
+			}
+
+			// also treat it as already applied if it was fully applied under its pre-ID-scheme-change
+			// (weighted) id, the underlying resource was already destroyed by the same sync that
+			// recreated it under newID, so this is our only chance to see the old record.
+			if legacy := matchLegacyAppliedGroups(clusterKubernetesManifestsStatus.TypedSpec().Value.Groups, newID); len(legacy) > 0 {
+				if len(legacy) > 1 {
+					logger.Warn("multiple legacy one-time manifest group ids match", zap.String("new_id", newID), zap.Strings("legacy_ids", legacy))
+				}
+
 				return nil
 			}
 
@@ -469,6 +483,27 @@ func (ctrl *ClusterManifestsStatusController) updateStatus(
 				}
 			}
 
+			// migrate any legacy, pre-ID-scheme-change ONE_TIME group statuses onto their new,
+			// unweighted ids before UpdateGroups runs below, UpdateGroups unconditionally drops any
+			// ONE_TIME group whose underlying resource is gone, which includes the just-vacated
+			// legacy id on this very pass, so this must happen first or the source is lost.
+			for newID, kmg := range groups {
+				if kmg.Mode != specs.KubernetesManifestGroupSpec_ONE_TIME {
+					continue
+				}
+
+				if _, alreadyLive := r.TypedSpec().Value.Groups[newID]; alreadyLive {
+					continue
+				}
+
+				legacy := matchLegacyAppliedGroups(r.TypedSpec().Value.Groups, newID)
+				if len(legacy) == 0 {
+					continue
+				}
+
+				r.TypedSpec().Value.MigrateAppliedGroup(legacy[0], newID)
+			}
+
 			if lastError != nil {
 				r.TypedSpec().Value.LastError = *lastError
 			}
@@ -621,6 +656,62 @@ func isIdentityOwnedByGroup(groupManifestIDs map[string]map[string]struct{}, gro
 	_, ok = ids[id]
 
 	return ok
+}
+
+// isLegacyGroupID reports whether oldID is exactly the pre-ID-scheme-change (weighted) form of newID,
+// i.e. oldID == fmt.Sprintf("%d-", weight) + newID for some non-negative integer weight.
+func isLegacyGroupID(oldID, newID string) bool {
+	if !strings.HasSuffix(oldID, newID) {
+		return false
+	}
+
+	prefix := oldID[:len(oldID)-len(newID)]
+
+	if len(prefix) < 2 || prefix[len(prefix)-1] != '-' {
+		return false
+	}
+
+	digits := prefix[:len(prefix)-1]
+	if digits == "" {
+		return false
+	}
+
+	for _, c := range digits {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+
+	return true
+}
+
+// matchLegacyAppliedGroups returns the ids, sorted for determinism, of every entry in groups that is
+// (a) structurally the pre-ID-scheme-change form of newID per isLegacyGroupID, (b) recorded as a
+// ONE_TIME group, and (c) fully APPLIED — i.e. is a safe "already fully applied" migration source for
+// newID. In the expected case at most one id is returned; more than one is an anomaly the caller
+// should log, not something this function resolves.
+func matchLegacyAppliedGroups(groups map[string]*specs.ClusterKubernetesManifestsStatusSpec_GroupStatus, newID string) []string {
+	var matches []string
+
+	for id, group := range groups {
+		if group.Mode != specs.KubernetesManifestGroupSpec_ONE_TIME {
+			continue
+		}
+
+		if group.Phase != specs.ClusterKubernetesManifestsStatusSpec_GroupStatus_APPLIED {
+			continue
+		}
+
+		if !isLegacyGroupID(id, newID) {
+			continue
+		}
+
+		matches = append(matches, id)
+	}
+
+	sort.Strings(matches)
+
+	return matches
 }
 
 func webhookError(err error) bool {

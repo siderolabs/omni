@@ -110,3 +110,30 @@ func (x *ClusterKubernetesManifestsStatusSpec) IsGroupApplied(group string) bool
 
 	return false
 }
+
+// MigrateAppliedGroup renames a legacy, already-fully-applied ONE_TIME group's status entry from
+// oldID to newID. Per-manifest identity keys inside the group (e.g. "Job/kube-system/foo") are
+// content-derived and are not affected by the COSI group id scheme, so this is a pure map-key rename,
+// no manifest-level data is touched.
+func (x *ClusterKubernetesManifestsStatusSpec) MigrateAppliedGroup(oldID, newID string) {
+	if x.Groups == nil {
+		return
+	}
+
+	legacy, ok := x.Groups[oldID]
+	if !ok {
+		return
+	}
+
+	if legacy.Mode != KubernetesManifestGroupSpec_ONE_TIME || legacy.Phase != ClusterKubernetesManifestsStatusSpec_GroupStatus_APPLIED {
+		return
+	}
+
+	delete(x.Groups, oldID)
+
+	if _, exists := x.Groups[newID]; exists {
+		return
+	}
+
+	x.Groups[newID] = legacy
+}
