@@ -60,12 +60,8 @@ included in the LICENSE file.
     @apply bg-naturals-n0 text-naturals-n11 antialiased;
   }
 
-  *::-webkit-scrollbar {
-    @apply h-1.5 w-1.5 bg-transparent;
-  }
-
-  *::-webkit-scrollbar-thumb {
-    @apply h-1.5 w-1.5 rounded-sm border border-naturals-n4 bg-naturals-n5;
+  * {
+    @apply scrollbar-thin scrollbar-thumb-naturals-n5 scrollbar-track-transparent;
   }
 
   button:not(:disabled),

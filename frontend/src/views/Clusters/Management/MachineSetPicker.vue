@@ -92,7 +92,7 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
           <RadioGroup
             ref="optionsView"
             v-model="machineSetIndex"
-            class="no-scrollbar scroll flex h-30 flex-col items-center gap-0.5 overflow-y-auto"
+            class="flex h-30 scrollbar-none flex-col items-center gap-0.5 overflow-y-auto"
             @scroll.stop
           >
             <RadioGroupOption
@@ -138,15 +138,3 @@ function toggleOption(option: PickerOption, index: number, checked: boolean) {
     </PopoverRoot>
   </div>
 </template>
-
-<style scoped>
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-/* Hide scrollbar for IE, Edge and Firefox */
-.no-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-}
-</style>
