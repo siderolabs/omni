@@ -14,6 +14,11 @@ import (
 )
 
 // AnotherTalosVersion is used in the integration tests for Talos upgrade.
+//
+// It must stay within the same minor as DefaultTalosVersion. Canceling an upgrade downgrades the machine
+// that already took the new version, a control plane cannot cross a Talos minor downward, and the upgrade
+// cancellation test skips itself on a cross-minor pair, so letting these versions drift apart would
+// silently drop that coverage from every suite.
 const AnotherTalosVersion = "1.13.7"
 
 // StableTalosVersion is used in the integration tests for Talos upgrade between minor versions.

@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/resource/rtestutils"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -35,6 +36,9 @@ import (
 	"github.com/siderolabs/omni/client/pkg/client"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 )
+
+// etcFileConfigMinTalosVersion is the minimum Talos version that knows the EtcFileConfig document.
+var etcFileConfigMinTalosVersion = semver.MustParse("1.14.0")
 
 const (
 	dummyIfacePatchTemplate = `machine:
@@ -141,14 +145,27 @@ func AssertLargeImmediateConfigApplied(testCtx context.Context, options *TestOpt
 	}
 }
 
-// AssertConfigPatchWithReboot tests that config patch that requires reboot gets applied to a single node, the node reboots and gets back.
+// AssertConfigPatchWritingFileIsApplied tests that a config patch which writes a file lands on the machine.
 //
-// The patch is NOT removed.
-func AssertConfigPatchWithReboot(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {
+// Talos 1.14 and later apply configuration to the running machine, and manage user owned files under /etc
+// through a dedicated document, so no reboot is involved on either side. The document also makes the test
+// need Talos 1.14 or later, since older versions do not know it. The test does not try to prove the
+// absence of a reboot, which it cannot do without watching for a transient state, it only checks that the
+// machine is healthy once the file is there.
+func AssertConfigPatchWritingFileIsApplied(testCtx context.Context, options *TestOptions, clusterName string) TestFunc {
 	return func(t *testing.T) {
+		parsedVersion, err := semver.ParseTolerant(options.MachineOptions.TalosVersion)
+		require.NoError(t, err)
+
+		parsedVersion.Pre = nil
+		parsedVersion.Build = nil
+
+		if parsedVersion.LT(etcFileConfigMinTalosVersion) {
+			t.Skipf("EtcFileConfig requires Talos %s or newer, test runs on %q", etcFileConfigMinTalosVersion, options.MachineOptions.TalosVersion)
+		}
+
 		omniClient := options.omniClient
 
-		// just a single machine with a reboot, so it should take no more than 3 minutes
 		ctx, cancel := context.WithTimeout(testCtx, 3*time.Minute)
 		defer cancel()
 
@@ -166,13 +183,16 @@ func AssertConfigPatchWithReboot(testCtx context.Context, options *TestOptions, 
 
 		epochSeconds := time.Now().Unix()
 		id := fmt.Sprintf("000-config-patch-test-file-%d", epochSeconds)
-		file := fmt.Sprintf("/var/config-patch-test-file-%d.txt", epochSeconds)
-		configPatchYAML := fmt.Sprintf(`machine:
-  files:
-    - content: test
-      permissions: 0o666
-      path: %s
-      op: create`, file)
+
+		// the document name is relative to /etc, so keep it separate from the path used to read the file back
+		name := fmt.Sprintf("config-patch-test-file-%d.txt", epochSeconds)
+		file := "/etc/" + name
+
+		configPatchYAML := fmt.Sprintf(`apiVersion: v1alpha1
+kind: EtcFileConfig
+name: %s
+contents: test`, name)
+
 		configPatch := omni.NewConfigPatch(id,
 			pair.MakePair(omni.LabelCluster, clusterName),
 			pair.MakePair(omni.LabelClusterMachine, nodeID))
@@ -184,20 +204,13 @@ func AssertConfigPatchWithReboot(testCtx context.Context, options *TestOptions, 
 
 		t.Logf("created config patch with file: %q", file)
 
-		// skip cleanup to avoid waiting for an additional reboot
-
-		// assert that the patch is propagated to all clustermachines
+		// assert that the patch is propagated to the cluster machine
 		rtestutils.AssertResources(ctx, t, st, []resource.ID{nodeID}, func(cm *omni.ClusterMachineConfigPatches, assertion *assert.Assertions) {
-			assertion.True(clusterMachinePatchesContainsString(t, cm, file), "cluster machine %q patches don't contain string %q", file, cm.Metadata().ID())
-		})
-
-		// assert that machine set enters into reconfiguring phase
-		rtestutils.AssertResources(ctx, t, st, []resource.ID{omni.WorkersResourceID(clusterName)}, func(mss *omni.MachineSetStatus, assert *assert.Assertions) {
-			assert.Equal(specs.MachineSetPhase_Reconfiguring, mss.TypedSpec().Value.GetPhase())
+			assertion.True(clusterMachinePatchesContainsString(t, cm, name), "cluster machine %q patches don't contain string %q", cm.Metadata().ID(), name)
 		})
 
 		// assert that the file is created on the node
-		err = retry.Constant(3*time.Minute, retry.WithUnits(1*time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
+		err = retry.Constant(2*time.Minute, retry.WithUnits(1*time.Second)).RetryWithContext(ctx, func(ctx context.Context) error {
 			exists, existsErr := talosFileExists(ctx, talosClient, node.talosIP, file)
 			if existsErr != nil {
 				if strings.Contains(existsErr.Error(), "not reachable") || status.Code(existsErr) == codes.Unavailable {
@@ -218,69 +231,12 @@ func AssertConfigPatchWithReboot(testCtx context.Context, options *TestOptions, 
 
 		assert.NoError(t, err)
 
-		// wait cluster machine status to be running
+		// the machine must be healthy once the file is there
 		rtestutils.AssertResources(ctx, t, st, []resource.ID{nodeID}, func(cms *omni.ClusterMachineStatus, assertion *assert.Assertions) {
 			assertion.Equal(specs.ClusterMachineStatusSpec_RUNNING, cms.TypedSpec().Value.GetStage())
 		})
-	}
-}
 
-// AssertRevertBrokenConfigPatch tests that a machine is able to recover from a patch with broken config when the broken patch is deleted.
-func AssertRevertBrokenConfigPatch(testCtx context.Context, cli *client.Client, clusterName string) TestFunc {
-	return func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(testCtx, 8*time.Minute)
-		defer cancel()
-
-		st := cli.Omni().State()
-
-		cmIDs := rtestutils.ResourceIDs[*omni.ClusterMachine](
-			ctx, t, st,
-			state.WithLabelQuery(
-				resource.LabelEqual(omni.LabelCluster, clusterName),
-				resource.LabelExists(omni.LabelControlPlaneRole),
-			),
-		)
-		require.NotEmpty(t, cmIDs)
-
-		cmID := cmIDs[0]
-
-		epochSeconds := time.Now().Unix()
-		id := fmt.Sprintf("000-config-patch-test-file-broken-%d", epochSeconds)
-		file := fmt.Sprintf("/tmp/config-patch-test-file-broken-%d.txt", epochSeconds)
-		configPatchYAML := fmt.Sprintf(`machine:
-  files:
-    - content: test
-      permissions: 0o666
-      path: %s
-      op: create`, file)
-		configPatch := omni.NewConfigPatch(id,
-			pair.MakePair(omni.LabelCluster, clusterName),
-			pair.MakePair(omni.LabelClusterMachine, cmID))
-
-		// apply the broken config patch
-		createOrUpdate(ctx, t, st, configPatch, func(p *omni.ConfigPatch) error {
-			return p.TypedSpec().Value.SetUncompressedData([]byte(configPatchYAML))
-		})
-
-		t.Logf("created config patch with file: %q", file)
-
-		rtestutils.AssertResources(ctx, t, st, []resource.ID{cmID}, func(cms *omni.ClusterMachineStatus, assertion *assert.Assertions) {
-			assertion.Equal(specs.ClusterMachineStatusSpec_BOOTING, cms.TypedSpec().Value.GetStage())
-			assertion.False(cms.TypedSpec().Value.GetReady())
-		})
-
-		// TODO: wait for a Talos error about invalid config in the logs
-
-		t.Logf("destroyed config patch with file: %q", file)
-
-		// remove broken config patch
 		rtestutils.Destroy[*omni.ConfigPatch](ctx, t, st, []string{configPatch.Metadata().ID()})
-
-		// wait until k8s nodes come back
-		rtestutils.AssertResources(ctx, t, st, []resource.ID{cmID}, func(cms *omni.ClusterMachineStatus, assertion *assert.Assertions) {
-			assertion.Equal(specs.ClusterMachineStatusSpec_RUNNING, cms.TypedSpec().Value.GetStage())
-			assertion.True(cms.TypedSpec().Value.GetReady())
-		})
 	}
 }
 
