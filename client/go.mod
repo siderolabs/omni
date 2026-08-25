@@ -1,6 +1,6 @@
 module github.com/siderolabs/omni/client
 
-go 1.26.6
+go 1.26.7
 
 // includes fix https://github.com/yaml/go-yaml/pull/380
 replace go.yaml.in/yaml/v4 => github.com/oguzkilcan/go-yaml/v4 v4.0.0-20260820085924-a037b5d5fa9a
