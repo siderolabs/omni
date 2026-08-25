@@ -555,28 +555,12 @@ config:
     #talos: ghcr.io/siderolabs/installer
     # Kubernetes is the Kubernetes container registry configuration.
     #kubernetes: ghcr.io/siderolabs/kubelet
-    # ImageFactoryBaseURL is the base URL of the Image Factory service used to build custom machine images.
-    #
-    # Deprecated: use factories.primary.url instead.
-    #imageFactoryBaseURL: https://factory.talos.dev
-    # ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.
-    #
-    # Deprecated: use factories.primary.pxeURL instead.
-    #imageFactoryPXEBaseURL: ""
-    # ImageFactoryUsername is the username used to authenticate against the Image Factory Enterprise service.
-    #
-    # Deprecated: use factories.primary.username instead.
-    #imageFactoryUsername: ""
-    # ImageFactoryPassword is the password used to authenticate against the Image Factory Enterprise service.
-    #
-    # Deprecated: use factories.primary.password instead.
-    #imageFactoryPassword: ""
     # Factories contains the primary and secondary Image Factory configurations.
     factories:
       # Primary is the primary Image Factory configuration.
       primary:
         # URL is the base URL of the Image Factory service used to build custom machine images.
-        #url: ""
+        #url: https://factory.talos.dev
         # PxeURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.
         #pxeURL: ""
         # Username is the username used to authenticate against the Image Factory Enterprise service.

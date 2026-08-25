@@ -501,9 +501,6 @@ func (helper clusterMachineConfigControllerHelper) generateConfig(clusterMachine
 	// Migration code, if the factory URL is not populated yet, use the secondary factory URL if configured
 	// As the second factory should be the old one we're migrating from
 	if installImageSpec.ImageFactoryHost == "" {
-		// Resolve the primary factory rather than reading registries.factories.primary directly: a
-		// deployment still using the deprecated flat imageFactory* config leaves that block empty, and
-		// falling back to an empty URL would yield an empty host and fail the install image build.
 		primaryFactory := helper.registries.GetPrimaryFactory()
 		fallbackURL := primaryFactory.GetUrl()
 

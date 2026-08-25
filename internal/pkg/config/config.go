@@ -230,14 +230,6 @@ func (p *Params) GetOIDCIssuerEndpoint() (string, error) {
 
 // Environment variable names that override config values after merging.
 const (
-	// EnvImageFactoryUsername and EnvImageFactoryPassword set the deprecated flat imageFactory*
-	// fields.
-	//
-	// Deprecated: use EnvPrimaryFactoryUsername/EnvPrimaryFactoryPassword instead.
-	EnvImageFactoryUsername = "OMNI_IMAGE_FACTORY_USERNAME"
-	// Deprecated: use EnvPrimaryFactoryUsername/EnvPrimaryFactoryPassword instead.
-	EnvImageFactoryPassword = "OMNI_IMAGE_FACTORY_PASSWORD"
-
 	EnvPrimaryFactoryUsername   = "OMNI_PRIMARY_FACTORY_USERNAME"
 	EnvPrimaryFactoryPassword   = "OMNI_PRIMARY_FACTORY_PASSWORD"
 	EnvSecondaryFactoryUsername = "OMNI_SECONDARY_FACTORY_USERNAME"
@@ -245,27 +237,8 @@ const (
 )
 
 // applyEnvOverrides overrides config values from environment variables, when set.
-//
-// It runs after the config file and flags have been merged, so the environment always wins over
-// the input it targets. The per-factory vars set factories.{primary,secondary}.* directly, while
-// the deprecated pair sets the flat imageFactory* fields that GetPrimaryFactory only consults as a
-// fallback. The resulting precedence for the primary factory credentials is therefore:
-//
-//	OMNI_PRIMARY_FACTORY_* > factories.primary.* > OMNI_IMAGE_FACTORY_* > flat imageFactory*
-//
-// Note that the schema requires a username and a password to be set together, so supplying only
-// one half of a pair fails validation.
+// Env overrides win over all other sources (defaults, files, flags).
 func (p *Params) applyEnvOverrides() {
-	//nolint:staticcheck
-	if v, ok := os.LookupEnv(EnvImageFactoryUsername); ok {
-		p.Registries.SetImageFactoryUsername(v)
-	}
-
-	//nolint:staticcheck
-	if v, ok := os.LookupEnv(EnvImageFactoryPassword); ok {
-		p.Registries.SetImageFactoryPassword(v)
-	}
-
 	for _, factory := range []struct {
 		target      *Factory
 		usernameEnv string

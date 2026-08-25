@@ -633,30 +633,6 @@ type Registries struct {
 	// Factories contains the primary and secondary Image Factory configurations.
 	Factories Factories `json:"factories" yaml:"factories"`
 
-	// ImageFactoryBaseURL is the base URL of the Image Factory service used to build
-	// custom machine images.
-	//
-	// Deprecated: use factories.primary.url instead.
-	ImageFactoryBaseURL *string `json:"imageFactoryBaseURL" yaml:"imageFactoryBaseURL"`
-
-	// ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used
-	// to build custom PXE boot images.
-	//
-	// Deprecated: use factories.primary.pxeURL instead.
-	ImageFactoryPXEBaseURL *string `json:"imageFactoryPXEBaseURL,omitempty,omitzero" yaml:"imageFactoryPXEBaseURL,omitempty"`
-
-	// ImageFactoryPassword is the password used to authenticate against the Image
-	// Factory Enterprise service.
-	//
-	// Deprecated: use factories.primary.password instead.
-	ImageFactoryPassword *string `json:"imageFactoryPassword,omitempty,omitzero" yaml:"imageFactoryPassword,omitempty"`
-
-	// ImageFactoryUsername is the username used to authenticate against the Image
-	// Factory Enterprise service.
-	//
-	// Deprecated: use factories.primary.username instead.
-	ImageFactoryUsername *string `json:"imageFactoryUsername,omitempty,omitzero" yaml:"imageFactoryUsername,omitempty"`
-
 	// Kubernetes is the Kubernetes container registry configuration.
 	Kubernetes *string `json:"kubernetes" yaml:"kubernetes"`
 

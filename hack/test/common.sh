@@ -351,7 +351,9 @@ function prepare_omni_config() {
   local registries_body=""
 
   if [[ -n "${OMNI_IMAGE_FACTORY_BASE_URL:-}" ]]; then
-    registries_body+="  imageFactoryBaseURL: ${OMNI_IMAGE_FACTORY_BASE_URL}"$'\n'
+    registries_body+="  factories:
+    primary:
+      url: ${OMNI_IMAGE_FACTORY_BASE_URL}"$'\n'
   fi
 
   registries_body+="${REGISTRY_MIRRORS_BODY}"

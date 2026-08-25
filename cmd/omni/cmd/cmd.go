@@ -341,17 +341,6 @@ func defineRegistriesFlags(b *FlagBinder, flagConfig *config.Params) {
 	b.StringVar("registries.talos", &flagConfig.Registries.Talos)
 	b.StringVar("registries.kubernetes", &flagConfig.Registries.Kubernetes)
 
-	// Deprecated image factory flags, superseded by the --primary-factory-* flags below.
-	// These intentionally target the deprecated fields to preserve backward compatibility.
-	//nolint:staticcheck
-	b.deprecatedStringAlias("image-factory-address", "use --primary-factory-url", &flagConfig.Registries.ImageFactoryBaseURL)
-	//nolint:staticcheck
-	b.deprecatedStringAlias("image-factory-pxe-address", "use --primary-factory-pxe-url", &flagConfig.Registries.ImageFactoryPXEBaseURL)
-	//nolint:staticcheck
-	b.deprecatedStringAlias("image-factory-username", "use --primary-factory-username", &flagConfig.Registries.ImageFactoryUsername)
-	//nolint:staticcheck
-	b.deprecatedStringAlias("image-factory-password", "use --primary-factory-password", &flagConfig.Registries.ImageFactoryPassword)
-
 	primary := &flagConfig.Registries.Factories.Primary
 	b.StringVar("registries.factories.primary.url", &primary.Url)
 	b.StringVar("registries.factories.primary.pxeURL", &primary.PxeURL)

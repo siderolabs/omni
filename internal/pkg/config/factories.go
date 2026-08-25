@@ -12,34 +12,12 @@ import (
 
 // GetPrimaryFactory returns the resolved primary Image Factory configuration. This is the factory
 // that Omni uses for all its Image Factory operations today.
-//
-// A registries.factories.primary block that specifies a URL is self-contained: the deprecated flat
-// imageFactory* fields are ignored entirely. Otherwise credentials configured for the old factory
-// would be sent to a newly configured one, which is both wrong and a way to leak them.
-//
-// Without a URL under registries.factories.primary, the deprecated fields are used instead (they
-// still carry the default factory URL), with any field set on the primary block winning.
 func (s *Registries) GetPrimaryFactory() Factory {
-	primary := s.Factories.Primary
-
-	if primary.GetUrl() != "" {
-		return primary
-	}
-
-	var resolved Factory
-
-	resolved.SetUrl(s.GetImageFactoryBaseURL())
-	resolved.SetPxeURL(firstNonEmpty(primary.GetPxeURL(), s.GetImageFactoryPXEBaseURL()))
-	resolved.SetUsername(firstNonEmpty(primary.GetUsername(), s.GetImageFactoryUsername()))
-	resolved.SetPassword(firstNonEmpty(primary.GetPassword(), s.GetImageFactoryPassword()))
-
-	return resolved
+	return s.Factories.Primary
 }
 
 // GetSecondaryFactory returns the configured secondary Image Factory configuration and true,
 // or a zero Factory and false when no secondary factory is configured.
-//
-// There is no deprecated fallback for the secondary factory, as it is a new concept.
 func (s *Registries) GetSecondaryFactory() (Factory, bool) {
 	secondary := s.Factories.Secondary
 	if secondary.GetUrl() == "" {
@@ -64,14 +42,4 @@ func (f Factory) PXEBaseURL() (*url.URL, error) {
 	u.Host = fmt.Sprintf("pxe.%s", u.Host)
 
 	return u, nil
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, v := range values {
-		if v != "" {
-			return v
-		}
-	}
-
-	return ""
 }

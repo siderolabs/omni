@@ -1183,50 +1183,6 @@ func (s *Posthog) SetApiKey(v string) {
 	s.ApiKey = &v
 }
 
-func (s *Registries) GetImageFactoryBaseURL() string {
-	if s == nil || s.ImageFactoryBaseURL == nil {
-		return *new(string)
-	}
-	return *s.ImageFactoryBaseURL
-}
-
-func (s *Registries) SetImageFactoryBaseURL(v string) {
-	s.ImageFactoryBaseURL = &v
-}
-
-func (s *Registries) GetImageFactoryPXEBaseURL() string {
-	if s == nil || s.ImageFactoryPXEBaseURL == nil {
-		return *new(string)
-	}
-	return *s.ImageFactoryPXEBaseURL
-}
-
-func (s *Registries) SetImageFactoryPXEBaseURL(v string) {
-	s.ImageFactoryPXEBaseURL = &v
-}
-
-func (s *Registries) GetImageFactoryPassword() string {
-	if s == nil || s.ImageFactoryPassword == nil {
-		return *new(string)
-	}
-	return *s.ImageFactoryPassword
-}
-
-func (s *Registries) SetImageFactoryPassword(v string) {
-	s.ImageFactoryPassword = &v
-}
-
-func (s *Registries) GetImageFactoryUsername() string {
-	if s == nil || s.ImageFactoryUsername == nil {
-		return *new(string)
-	}
-	return *s.ImageFactoryUsername
-}
-
-func (s *Registries) SetImageFactoryUsername(v string) {
-	s.ImageFactoryUsername = &v
-}
-
 func (s *Registries) GetKubernetes() string {
 	if s == nil || s.Kubernetes == nil {
 		return *new(string)

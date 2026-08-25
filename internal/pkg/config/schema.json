@@ -146,13 +146,8 @@
       "required": [
         "talos",
         "kubernetes",
-        "imageFactoryBaseURL",
         "factories"
       ],
-      "dependentRequired": {
-        "imageFactoryUsername": ["imageFactoryPassword"],
-        "imageFactoryPassword": ["imageFactoryUsername"]
-      },
       "properties": {
         "talos": {
           "type": "string",
@@ -173,35 +168,6 @@
           "goJSONSchema": {
             "type": "*string"
           }
-        },
-        "imageFactoryBaseURL": {
-          "type": "string",
-          "description": "ImageFactoryBaseURL is the base URL of the Image Factory service used to build custom machine images.\n\nDeprecated: use factories.primary.url instead.",
-          "x-cli-flag": "image-factory-address",
-          "deprecated": true,
-          "minLength": 1,
-          "default": "https://factory.talos.dev",
-          "goJSONSchema": {
-            "type": "*string"
-          }
-        },
-        "imageFactoryPXEBaseURL": {
-          "description": "ImageFactoryPXEBaseURL is the base URL of the Image Factory PXE endpoint used to build custom PXE boot images.\n\nDeprecated: use factories.primary.pxeURL instead.",
-          "x-cli-flag": "image-factory-pxe-address",
-          "deprecated": true,
-          "type": "string"
-        },
-        "imageFactoryUsername": {
-          "description": "ImageFactoryUsername is the username used to authenticate against the Image Factory Enterprise service.\n\nDeprecated: use factories.primary.username instead.",
-          "x-cli-flag": "image-factory-username",
-          "deprecated": true,
-          "type": "string"
-        },
-        "imageFactoryPassword": {
-          "description": "ImageFactoryPassword is the password used to authenticate against the Image Factory Enterprise service.\n\nDeprecated: use factories.primary.password instead.",
-          "x-cli-flag": "image-factory-password",
-          "deprecated": true,
-          "type": "string"
         },
         "factories": {
           "description": "Factories contains the primary and secondary Image Factory configurations.",
@@ -232,8 +198,13 @@
         "primary": {
           "description": "Primary is the primary Image Factory configuration.",
           "$ref": "#/definitions/Factory",
+          "required": ["url"],
           "properties": {
-            "url": { "x-cli-flag": "primary-factory-url" },
+            "url": {
+              "x-cli-flag": "primary-factory-url",
+              "default": "https://factory.talos.dev",
+              "minLength": 1
+            },
             "pxeURL": { "x-cli-flag": "primary-factory-pxe-url" },
             "username": { "x-cli-flag": "primary-factory-username" },
             "password": { "x-cli-flag": "primary-factory-password" }

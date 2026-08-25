@@ -28,4 +28,6 @@ storage:
 registries:
   talos:  factory.talos.dev
   kubernetes:  registry.k8s.io
-  imageFactoryBaseURL:  https://factory.talos.dev
+  factories:
+    primary:
+      url: https://factory.talos.dev

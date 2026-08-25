@@ -279,22 +279,6 @@ func TestValidateConfig(t *testing.T) {
 		},
 
 		{
-			name:   "image factory username without password",
-			config: configFull,
-			configModifyFunc: func(cfg *config.Params) {
-				cfg.Registries.SetImageFactoryUsername("user")
-			},
-			validateErr: `config value ".registries.imageFactoryPassword" or flag "--image-factory-password": is required when "imageFactoryUsername" is set`,
-		},
-		{
-			name:   "image factory password without username",
-			config: configFull,
-			configModifyFunc: func(cfg *config.Params) {
-				cfg.Registries.SetImageFactoryPassword("pass")
-			},
-			validateErr: `config value ".registries.imageFactoryUsername" or flag "--image-factory-username": is required when "imageFactoryPassword" is set`,
-		},
-		{
 			name:   "primary factory username without password",
 			config: configFull,
 			configModifyFunc: func(cfg *config.Params) {
@@ -492,7 +476,7 @@ func TestSchemaDefaults(t *testing.T) {
 	assert.Equal(t, "ghcr.io/siderolabs/kubelet", p.Registries.GetKubernetes())
 
 	// registries.factories: with nothing configured, the primary factory resolves to the
-	// deprecated field default, and there is no secondary factory.
+	// field default, and there is no secondary factory.
 	primaryFactory := p.Registries.GetPrimaryFactory()
 	assert.Equal(t, "https://factory.talos.dev", primaryFactory.GetUrl())
 
@@ -613,89 +597,6 @@ func TestSchemaDefaults(t *testing.T) {
 // TestFactories verifies the resolution of the primary/secondary factories, including the
 // "new wins, deprecated fallback" rule for the primary factory.
 func TestFactories(t *testing.T) {
-	t.Run("deprecated fields only", func(t *testing.T) {
-		p, err := config.FromBytes([]byte(`
-registries:
-  imageFactoryBaseURL: https://old.example.com
-  imageFactoryPXEBaseURL: https://pxe.old.example.com
-  imageFactoryUsername: old-user
-  imageFactoryPassword: old-pass
-`))
-		require.NoError(t, err)
-
-		primary := p.Registries.GetPrimaryFactory()
-		assert.Equal(t, "https://old.example.com", primary.GetUrl())
-		assert.Equal(t, "https://pxe.old.example.com", primary.GetPxeURL())
-		assert.Equal(t, "old-user", primary.GetUsername())
-		assert.Equal(t, "old-pass", primary.GetPassword())
-
-		_, hasSecondary := p.Registries.GetSecondaryFactory()
-		assert.False(t, hasSecondary)
-	})
-
-	t.Run("primary wins over deprecated", func(t *testing.T) {
-		p, err := config.FromBytes([]byte(`
-registries:
-  imageFactoryBaseURL: https://old.example.com
-  imageFactoryUsername: old-user
-  imageFactoryPassword: old-pass
-  factories:
-    primary:
-      url: https://new.example.com
-      username: new-user
-      password: new-pass
-`))
-		require.NoError(t, err)
-
-		primary := p.Registries.GetPrimaryFactory()
-		assert.Equal(t, "https://new.example.com", primary.GetUrl())
-		assert.Equal(t, "new-user", primary.GetUsername())
-		assert.Equal(t, "new-pass", primary.GetPassword())
-	})
-
-	t.Run("a primary factory URL ignores the deprecated credentials", func(t *testing.T) {
-		// The deprecated credentials belong to the deprecated factory URL: they must not be carried
-		// over to a different factory configured under registries.factories.primary.
-		p, err := config.FromBytes([]byte(`
-registries:
-  imageFactoryBaseURL: https://old.example.com
-  imageFactoryPXEBaseURL: https://pxe.old.example.com
-  imageFactoryUsername: old-user
-  imageFactoryPassword: old-pass
-  factories:
-    primary:
-      url: https://new.example.com
-`))
-		require.NoError(t, err)
-
-		primary := p.Registries.GetPrimaryFactory()
-		assert.Equal(t, "https://new.example.com", primary.GetUrl())
-		assert.Empty(t, primary.GetUsername())
-		assert.Empty(t, primary.GetPassword())
-		assert.Empty(t, primary.GetPxeURL(), "the deprecated PXE URL points at the deprecated factory")
-	})
-
-	t.Run("primary credentials without a primary URL still fill in over the deprecated ones", func(t *testing.T) {
-		// Only the credentials were migrated to the new-style config; the URL still comes from the
-		// deprecated field, so the two describe the same factory and may be combined.
-		p, err := config.FromBytes([]byte(`
-registries:
-  imageFactoryBaseURL: https://old.example.com
-  imageFactoryUsername: old-user
-  imageFactoryPassword: old-pass
-  factories:
-    primary:
-      username: new-user
-      password: new-pass
-`))
-		require.NoError(t, err)
-
-		primary := p.Registries.GetPrimaryFactory()
-		assert.Equal(t, "https://old.example.com", primary.GetUrl())
-		assert.Equal(t, "new-user", primary.GetUsername())
-		assert.Equal(t, "new-pass", primary.GetPassword())
-	})
-
 	t.Run("secondary factory", func(t *testing.T) {
 		p, err := config.FromBytes([]byte(`
 registries:
@@ -798,30 +699,5 @@ registries:
 		primary := cfg.Registries.GetPrimaryFactory()
 		assert.Equal(t, "env-primary-user", primary.GetUsername())
 		assert.Equal(t, "env-primary-pass", primary.GetPassword())
-	})
-
-	t.Run("configured primary credentials win over the deprecated env vars", func(t *testing.T) {
-		t.Setenv(config.EnvImageFactoryUsername, "legacy-env-user")
-		t.Setenv(config.EnvImageFactoryPassword, "legacy-env-pass")
-
-		cfg := initConfig(t, `
-registries:
-  factories:
-    primary:
-      url: https://primary.example.com
-      username: config-user
-      password: config-pass
-`)
-
-		primary := cfg.Registries.GetPrimaryFactory()
-		assert.Equal(t, "config-user", primary.GetUsername())
-		assert.Equal(t, "config-pass", primary.GetPassword())
-
-		// The deprecated env vars still drive the primary factory when nothing more specific is set.
-		cfg = initConfig(t, "registries: {}\n")
-
-		primary = cfg.Registries.GetPrimaryFactory()
-		assert.Equal(t, "legacy-env-user", primary.GetUsername())
-		assert.Equal(t, "legacy-env-pass", primary.GetPassword())
 	})
 }

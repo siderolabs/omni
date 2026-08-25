@@ -8,6 +8,14 @@ match_deps = "^github.com/((talos-systems|siderolabs)/[a-zA-Z0-9-]+)$"
 pre_release = true
 previous = "v1.9.0"
 
+[notes.aaa-upgrade-nodes]
+title = "Urgent Upgrade Notes **(No, really, you MUST read this before you upgrade)**"
+description = """\
+The deprecated flat Image Factory config fields have been removed. Please migrate to `registries.factories.primary`.
+
+Legacy `--image-factory-*` flags and `OMNI_IMAGE_FACTORY_USERNAME`/`OMNI_IMAGE_FACTORY_PASSWORD` env vars are removed; use `--primary-factory-*` and `OMNI_PRIMARY_FACTORY_USERNAME`/`OMNI_PRIMARY_FACTORY_PASSWORD`.
+"""
+
 [notes.infra-provider-boot-assets]
 title = "Infrastructure Providers Use the Image Factory Omni Is Configured With"
 description = """\
