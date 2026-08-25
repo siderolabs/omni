@@ -115,6 +115,14 @@ func (i *ImageFactoryClientMock) ScanReport(_ context.Context, _, _, _, _ string
 	return nil, nil
 }
 
+func (i *ImageFactoryClientMock) SPDXBundle(_ context.Context, _, _, _ string) ([]byte, error) {
+	return nil, nil
+}
+
+func (i *ImageFactoryClientMock) VEXDocument(_ context.Context, _ string) ([]byte, error) {
+	return nil, nil
+}
+
 // Get is a test helper for reading back what the controller uploaded.
 func (m *ImageFactoryClientMock) Get(id string) (schematic.Schematic, bool) {
 	m.mu.Lock()

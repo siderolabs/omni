@@ -9,8 +9,8 @@ import { computed } from 'vue'
 
 import TIcon from '@/components/Icon/TIcon.vue'
 import { cn } from '@/methods/utils'
-import { countBySeverity } from '@/views/InstallationMedia/vulnerabilities/matchUtils'
-import type { Match } from '@/views/InstallationMedia/vulnerabilities/ReportTypes'
+import { countBySeverity } from '@/views/ClusterSecurity/util/matchUtils'
+import type { Match } from '@/views/ClusterSecurity/util/ReportTypes'
 
 const { matches, activeFilter } = defineProps<{
   matches: Match[]

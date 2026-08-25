@@ -189,3 +189,18 @@ export function createDestroyedEvent<TSpec = unknown, TStatus = unknown>(
 ) {
   return createWatchResponse(EventType.DESTROYED, resource, undefined, total)
 }
+
+/**
+ * Encodes a value the way the gRPC gateway carries a proto `bytes` field: as JSON, base64-encoded.
+ *
+ * The generated client types such a field as `Uint8Array`, so a handler returning one has to claim
+ * that type for what is really a base64 string.
+ */
+export function createBytesPayload(value: unknown): Uint8Array {
+  const bytes = new TextEncoder().encode(JSON.stringify(value))
+
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+
+  return window.btoa(binary) as unknown as Uint8Array
+}

@@ -3,11 +3,15 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 import { faker } from '@faker-js/faker'
-import { createWatchStreamHandler } from '@msw/helpers'
+import { createBytesPayload, createWatchStreamHandler } from '@msw/helpers'
 import { dump } from 'js-yaml'
 import { delay, http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
+import type {
+  VulnerabilityReportRequest,
+  VulnerabilityReportResponse,
+} from '@/api/omni/imagefactory/imagefactory.pb'
 import {
   type CreateSchematicRequest,
   type CreateSchematicResponse,
@@ -40,8 +44,8 @@ import {
   VirtualNamespace,
 } from '@/api/resources'
 import type { TalosctlDownloadsResponse } from '@/methods/useTalosctlDownloads'
+import type { VulnerabilityReport } from '@/views/ClusterSecurity/util/ReportTypes'
 import report from '@/views/InstallationMedia/vulnerabilities/sample-report.json'
-import type { ScansResponse } from '@/views/InstallationMedia/vulnerabilities/useVulnerabilityReport'
 
 export const handlers = (enterprise = true) => [
   createWatchStreamHandler<FeaturesConfigSpec>({
@@ -152,15 +156,12 @@ export const handlers = (enterprise = true) => [
       downloads,
     })
   }),
-  http.get<{ version: string }>(
-    '/api/vulns/:schematicId/:talosVersion/:arch/report.json',
+  http.post<never, VulnerabilityReportRequest, VulnerabilityReportResponse>(
+    '/imagefactory.ImageFactoryService/VulnerabilityReport',
     async () => {
       await delay(2_000)
 
-      return HttpResponse.json<ScansResponse>({
-        status: '',
-        report,
-      })
+      return HttpResponse.json({ data: createBytesPayload(report as VulnerabilityReport) })
     },
   ),
   http.post<never, GetRequest, GetResponse>(

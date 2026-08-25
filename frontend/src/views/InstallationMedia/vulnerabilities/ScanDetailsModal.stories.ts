@@ -16,7 +16,6 @@ const meta: Meta<typeof ScanDetailsModal> = {
     open: true,
     schematicId: faker.string.uuid(),
     arch: PlatformConfigSpecArch.AMD64,
-    factoryUrl: 'https://factory-enterprise.talos.dev',
     talosVersion: '1.13.0',
   },
   parameters: {

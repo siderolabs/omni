@@ -726,6 +726,9 @@ spec:
     - source: client/api/omni/oidc/oidc.proto
       subdirectory: omni/oidc
       genGateway: true
+    - source: client/api/omni/imagefactory/imagefactory.proto
+      subdirectory: omni/imagefactory
+      genGateway: true
     - source: client/api/omni/specs/auth.proto
       subdirectory: omni/specs
       genGateway: true
@@ -822,6 +825,9 @@ spec:
       genGateway: true
     - source: client/api/omni/oidc/oidc.proto
       subdirectory: omni/oidc
+      genGateway: true
+    - source: client/api/omni/imagefactory/imagefactory.proto
+      subdirectory: omni/imagefactory
       genGateway: true
     - source: https://raw.githubusercontent.com/siderolabs/go-api-signature/v0.3.12/api/auth/auth.proto
       subdirectory: omni/auth

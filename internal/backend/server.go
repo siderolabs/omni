@@ -9,7 +9,6 @@ package backend
 import (
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -21,11 +20,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
-	"github.com/blang/semver/v4"
 	coidc "github.com/coreos/go-oidc/v3/oidc"
 	"github.com/cosi-project/runtime/api/v1alpha1"
 	"github.com/cosi-project/runtime/pkg/resource"
@@ -69,6 +66,7 @@ import (
 	grpcomni "github.com/siderolabs/omni/internal/backend/grpc"
 	"github.com/siderolabs/omni/internal/backend/grpc/router"
 	"github.com/siderolabs/omni/internal/backend/health"
+	"github.com/siderolabs/omni/internal/backend/imagefactory/artifacts"
 	"github.com/siderolabs/omni/internal/backend/k8sproxy"
 	"github.com/siderolabs/omni/internal/backend/logging"
 	"github.com/siderolabs/omni/internal/backend/monitoring"
@@ -89,7 +87,6 @@ import (
 	"github.com/siderolabs/omni/internal/pkg/auth/interceptor"
 	oidcauth "github.com/siderolabs/omni/internal/pkg/auth/oidc"
 	serviceaccountmgmt "github.com/siderolabs/omni/internal/pkg/auth/serviceaccount"
-	"github.com/siderolabs/omni/internal/pkg/cache"
 	"github.com/siderolabs/omni/internal/pkg/compress"
 	"github.com/siderolabs/omni/internal/pkg/config"
 	"github.com/siderolabs/omni/internal/pkg/errgroup"
@@ -906,20 +903,9 @@ func makeMux(
 		return nil, err
 	}
 
-	talosctlHandler, err := makeTalosctlHandler(imageFactoryClients, logger)
-	if err != nil {
-		return nil, err
-	}
-
-	vulnsHandler, err := makeScanHandler(imageFactoryClients, logger)
-	if err != nil {
-		return nil, err
-	}
-
 	muxHandle("/exposed/service", workloadProxyRedirect, "exposed-service-redirect")
 	muxHandle("/api/omnictl/", http.StripPrefix("/api/omnictl/", omnictlHndlr), "files")
-	muxHandle("/api/talosctl/downloads/{version}", talosctlHandler, "talosctl-downloads")
-	muxHandle("/api/vulns/{schematicID}/{talosVersion}/{arch}/report.json", vulnsHandler, "vulns-report")
+	muxHandle("/api/talosctl/downloads/{version}", artifacts.NewTalosctlHandler(imageFactoryClients, logger), "talosctl-downloads")
 	// actually enabled only in debug build
 	muxHandle("/debug/", debug.NewHandler(omniRuntime.GetCOSIRuntime(), state.Default()), "debug")
 
@@ -1259,141 +1245,6 @@ func runPprofServer(ctx context.Context, bindAddress string, l *zap.Logger) erro
 	l = l.With(zap.String("server", bindAddress), zap.String("server_type", "pprof"))
 
 	return services.NewInsecure(bindAddress, mux).Run(ctx, l)
-}
-
-//nolint:unparam
-func makeTalosctlHandler(imageFactoryClients *imagefactory.Clients, logger *zap.Logger) (http.Handler, error) {
-	// The list of versions does not update very often, so we can cache it.
-	var cacherMap sync.Map
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		type result struct {
-			Status    string   `json:"status"`
-			Downloads []string `json:"downloads,omitempty"`
-		}
-
-		writeResult := func(a any, code int) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(code)
-
-			if err := json.NewEncoder(w).Encode(a); err != nil {
-				logger.Error("failed to encode result", zap.Error(err))
-			}
-		}
-
-		talosVersion := r.PathValue("version")
-		if _, err := semver.ParseTolerant(talosVersion); err != nil {
-			logger.Info("invalid Talos version", zap.Error(err))
-			writeResult(result{Status: "invalid Talos version"}, http.StatusBadRequest)
-
-			return
-		}
-
-		actual, _ := cacherMap.LoadOrStore(talosVersion, &cache.Value[[]string]{Duration: time.Hour})
-
-		cacher, ok := actual.(*cache.Value[[]string])
-		if !ok {
-			logger.Error("failed to load version cache")
-			writeResult(result{Status: "failed to load version cache"}, http.StatusInternalServerError)
-
-			return
-		}
-
-		ctx := actor.MarkContextAsInternalActor(r.Context())
-
-		data, err := cacher.GetOrUpdate(func() ([]string, error) {
-			imageFactoryClient, err := imageFactoryClients.ForTalosVersion(ctx, talosVersion)
-			if err != nil {
-				return nil, err
-			}
-
-			return imageFactoryClient.TalosctlList(ctx, talosVersion)
-		})
-		if err != nil {
-			logger.Error("failed to get latest talosctl release", zap.Error(err))
-			writeResult(result{Status: "failed to get latest talosctl release"}, http.StatusInternalServerError)
-
-			return
-		}
-
-		writeResult(result{
-			Status:    "ok",
-			Downloads: data,
-		}, http.StatusOK)
-	}), nil
-}
-
-//nolint:unparam
-func makeScanHandler(imageFactoryClients *imagefactory.Clients, logger *zap.Logger) (http.Handler, error) {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		type result struct {
-			Status string          `json:"status"`
-			Report json.RawMessage `json:"report,omitempty"`
-		}
-
-		writeResult := func(a any, code int) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(code)
-
-			if err := json.NewEncoder(w).Encode(a); err != nil {
-				logger.Error("failed to encode result", zap.Error(err))
-			}
-		}
-
-		schematicID := r.PathValue("schematicID")
-		talosVersion := r.PathValue("talosVersion")
-		arch := r.PathValue("arch")
-
-		if _, err := semver.ParseTolerant(talosVersion); err != nil {
-			logger.Info("invalid Talos version", zap.Error(err))
-			writeResult(result{
-				Status: "invalid Talos version",
-			}, http.StatusBadRequest)
-
-			return
-		}
-
-		ctx := actor.MarkContextAsInternalActor(r.Context())
-
-		imageFactoryClient, err := imageFactoryClients.ForTalosVersion(ctx, talosVersion)
-		if err != nil {
-			logger.Error(
-				"failed to get image factory client",
-				zap.Error(err),
-				zap.String("schematicID", schematicID),
-				zap.String("talosVersion", talosVersion),
-				zap.String("arch", arch),
-			)
-
-			writeResult(result{
-				Status: "failed to get image factory client",
-			}, http.StatusInternalServerError)
-
-			return
-		}
-
-		data, err := imageFactoryClient.ScanReport(ctx, schematicID, talosVersion, arch, "report.json")
-		if err != nil {
-			logger.Error(
-				"failed to get scan report",
-				zap.Error(err),
-				zap.String("schematicID", schematicID),
-				zap.String("talosVersion", talosVersion),
-				zap.String("arch", arch),
-			)
-
-			writeResult(result{
-				Status: "failed to get scan report",
-			}, http.StatusInternalServerError)
-
-			return
-		}
-
-		writeResult(result{
-			Status: "ok",
-			Report: data,
-		}, http.StatusOK)
-	}), nil
 }
 
 // Auditor is a common interface for audit log.

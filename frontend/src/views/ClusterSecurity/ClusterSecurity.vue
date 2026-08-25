@@ -32,18 +32,18 @@ import TAlert from '@/components/TAlert.vue'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { getDocsLink } from '@/methods'
 import { useIsEnterprise } from '@/methods/features'
-import { useResolvedFactory } from '@/methods/useResolvedFactory'
 import { useResourceList } from '@/methods/useResourceList'
 import { useResourceWatch } from '@/methods/useResourceWatch'
 import SeverityBadges from '@/views/ClusterSecurity/components/SeverityBadges.vue'
 import UpgradePathCard from '@/views/ClusterSecurity/components/UpgradePathCard.vue'
+import type { Match } from '@/views/ClusterSecurity/util/ReportTypes'
+import { archFromString, archToString } from '@/views/ClusterSecurity/util/securityReports'
 import {
   scanKey,
   type ScanRequest,
   useClusterVulnerabilityScans,
 } from '@/views/ClusterSecurity/util/useClusterVulnerabilityScans'
 import { computeUpgradeTargets, diffMatches } from '@/views/ClusterSecurity/util/vulnerabilityDiff'
-import type { Match } from '@/views/InstallationMedia/vulnerabilities/ReportTypes'
 import ScanDetailsModal from '@/views/InstallationMedia/vulnerabilities/ScanDetailsModal.vue'
 
 const { clusterId } = defineProps<{ clusterId: string }>()
@@ -73,8 +73,6 @@ const currentVersion = computed(() => clusterStatus.value?.spec.talos_version)
 const talosVersion = computed(() =>
   talosVersions.value.find((v) => v.metadata.id === currentVersion.value),
 )
-
-const { url: factoryUrl } = useResolvedFactory(() => talosVersion.value?.spec.image_factory_url)
 
 const isTalosVersionEnterpriseFactory = computed(() => talosVersion.value?.spec.is_enterprise)
 
@@ -106,7 +104,7 @@ const archByMachine = computed(
 interface Combo {
   key: string
   schematicId: string
-  arch: string
+  arch: PlatformConfigSpecArch
   machineCount: number
   includesControlPlane: boolean
 }
@@ -117,9 +115,11 @@ const combos = computed(() => {
 
   for (const cfg of configStatuses.value) {
     const schematicId = cfg.spec.schematic_id
-    const arch = archByMachine.value.get(cfg.metadata.id!)
+    // A machine on an architecture no scan is published for is left out rather than shown as a
+    // failing row: there is nothing to fetch for it.
+    const arch = archFromString(archByMachine.value.get(cfg.metadata.id!))
 
-    if (!schematicId || !arch) continue
+    if (!schematicId || arch === undefined) continue
 
     const key = `${schematicId}|${arch}`
     const existing = map.get(key)
@@ -162,7 +162,11 @@ const scanRequests = computed<ScanRequest[]>(() => {
   ]
 
   return combos.value.flatMap((combo) =>
-    versions.map((version) => ({ schematicId: combo.schematicId, arch: combo.arch, version })),
+    versions.map((version) => ({
+      schematicId: combo.schematicId,
+      arch: combo.arch,
+      version,
+    })),
   )
 })
 
@@ -193,19 +197,20 @@ const comboReports = computed(() =>
 
 const initialLoading = computed(() => statusLoading.value || configLoading.value)
 
-function archEnum(arch: string) {
-  return arch === 'arm64' ? PlatformConfigSpecArch.ARM64 : PlatformConfigSpecArch.AMD64
-}
-
 const detailsModal = ref<{
   open: boolean
   schematicId: string
-  arch: string
+  arch: PlatformConfigSpecArch
   version: string
   matches: Match[]
 }>()
 
-function openDetails(schematicId: string, arch: string, version: string, matches: Match[]) {
+function openDetails(
+  schematicId: string,
+  arch: PlatformConfigSpecArch,
+  version: string,
+  matches: Match[],
+) {
   detailsModal.value = { open: true, schematicId, arch, version, matches }
 }
 </script>
@@ -276,7 +281,7 @@ function openDetails(schematicId: string, arch: string, version: string, matches
           </h2>
 
           <div class="flex flex-wrap items-center gap-2">
-            <span class="resource-label label-orange">{{ combo.arch }}</span>
+            <span class="resource-label label-orange">{{ archToString(combo.arch) }}</span>
             <span class="resource-label label-blue">
               {{ combo.includesControlPlane ? 'control plane' : 'worker' }}
             </span>
@@ -334,13 +339,12 @@ function openDetails(schematicId: string, arch: string, version: string, matches
     </template>
 
     <ScanDetailsModal
-      v-if="detailsModal && factoryUrl"
+      v-if="detailsModal"
       v-model:open="detailsModal.open"
       :matches="detailsModal.matches"
       :schematic-id="detailsModal.schematicId"
       :talos-version="detailsModal.version"
-      :factory-url
-      :arch="archEnum(detailsModal.arch)"
+      :arch="detailsModal.arch"
     />
   </section>
 </template>

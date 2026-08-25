@@ -88,6 +88,7 @@ func MakeServiceServers(
 		&oidcServer{
 			provider: oidcProvider,
 		},
+		newImageFactoryServer(imageFactoryClients, logger.With(logging.Component("image_factory_server"))),
 		newManagementServer(
 			cfg,
 			omniRuntime.ValidatedState(),

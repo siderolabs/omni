@@ -2,11 +2,15 @@
 //
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
-import { createWatchStreamHandler } from '@msw/helpers'
+import { createBytesPayload, createWatchStreamHandler } from '@msw/helpers'
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { http, HttpResponse } from 'msw'
 
 import type { Resource } from '@/api/grpc'
+import type {
+  VulnerabilityReportRequest,
+  VulnerabilityReportResponse,
+} from '@/api/omni/imagefactory/imagefactory.pb'
 import type { ListRequest, ListResponse } from '@/api/omni/resources/resources.pb'
 import type {
   ClusterMachineConfigStatusSpec,
@@ -28,7 +32,7 @@ import {
   TalosVersionType,
 } from '@/api/resources'
 import ClusterSecurity from '@/views/ClusterSecurity/ClusterSecurity.vue'
-import type { Match } from '@/views/InstallationMedia/vulnerabilities/ReportTypes'
+import type { Match, VulnerabilityReport } from '@/views/ClusterSecurity/util/ReportTypes'
 
 import sampleReport from '../InstallationMedia/vulnerabilities/sample-report.json'
 
@@ -158,7 +162,7 @@ const talosVersionsHandler = http.post<never, ListRequest, ListResponse>(
       items: TALOS_VERSIONS.map((version) =>
         JSON.stringify({
           metadata: { namespace, type, id: version },
-          spec: { version },
+          spec: { version, is_enterprise: true },
         } satisfies Resource<TalosVersionSpec>),
       ),
     })
@@ -166,12 +170,18 @@ const talosVersionsHandler = http.post<never, ListRequest, ListResponse>(
 )
 
 // Resolves a vulnerability report for any (schematic, version, arch) the page asks for.
-const scanHandler = http.get('/api/vulns/:schematic/:version/:arch/report.json', ({ params }) => {
-  return HttpResponse.json({
-    status: 'done',
-    report: { matches: matchesForVersion(params.version as string) },
-  })
-})
+const scanHandler = http.post<never, VulnerabilityReportRequest, VulnerabilityReportResponse>(
+  '/imagefactory.ImageFactoryService/VulnerabilityReport',
+  async ({ request }) => {
+    const { talos_version } = await request.clone().json()
+
+    return HttpResponse.json({
+      data: createBytesPayload({
+        matches: matchesForVersion(talos_version!),
+      } satisfies Pick<VulnerabilityReport, 'matches'>),
+    })
+  },
+)
 
 const meta: Meta<typeof ClusterSecurity> = {
   component: ClusterSecurity,

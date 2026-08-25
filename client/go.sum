@@ -238,8 +238,8 @@ github.com/siderolabs/go-retry v0.3.3 h1:zKV+S1vumtO72E6sYsLlmIdV/G/GcYSBLiEx/c9
 github.com/siderolabs/go-retry v0.3.3/go.mod h1:Ff/VGc7v7un4uQg3DybgrmOWHEmJ8BzZds/XNn/BqMI=
 github.com/siderolabs/go-talos-support v0.3.1 h1:2cIct5nxGby8B7NNALO5WL3WbCe9S1se/3/nT0H/x7Q=
 github.com/siderolabs/go-talos-support v0.3.1/go.mod h1:3fljgD3YQGB2+nJfWLLt482/C8epdqge70fWH+VtuiU=
-github.com/siderolabs/image-factory v1.5.0 h1:M7Q5mQT+UiHjrr6MPyI+cgiN8/72b3O0ZuUgo8jMydE=
-github.com/siderolabs/image-factory v1.5.0/go.mod h1:masgG35/ehdoyxv9ZtZ5wAtzaXrQUDTACqLF2FGTa2w=
+github.com/siderolabs/image-factory v1.5.1-0.20260820101753-25561f7ee883 h1:Ua6Pvzon2lSkLA4+UM69IbdBbLwMoXzOQICIJzr1uMQ=
+github.com/siderolabs/image-factory v1.5.1-0.20260820101753-25561f7ee883/go.mod h1:masgG35/ehdoyxv9ZtZ5wAtzaXrQUDTACqLF2FGTa2w=
 github.com/siderolabs/net v0.4.0 h1:1bOgVay/ijPkJz4qct98nHsiB/ysLQU0KLoBC4qLm7I=
 github.com/siderolabs/net v0.4.0/go.mod h1:/ibG+Hm9HU27agp5r9Q3eZicEfjquzNzQNux5uEk0kM=
 github.com/siderolabs/proto-codec v0.1.4 h1:AcrLot/251qAa35GYhSqDeEKF3bygOlNaYJSrl7MPNQ=

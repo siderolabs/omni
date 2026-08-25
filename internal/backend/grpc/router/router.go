@@ -181,6 +181,7 @@ func (r *Router) Director(ctx context.Context, fullMethodName string) (proxy.Mod
 	switch {
 	case strings.HasPrefix(fullMethodName, "auth."),
 		strings.HasPrefix(fullMethodName, "config."),
+		strings.HasPrefix(fullMethodName, "imagefactory."),
 		strings.HasPrefix(fullMethodName, "management."),
 		strings.HasPrefix(fullMethodName, "oidc."),
 		strings.HasPrefix(fullMethodName, "omni."):

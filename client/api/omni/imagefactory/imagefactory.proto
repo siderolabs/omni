@@ -1,0 +1,78 @@
+syntax = "proto3";
+package imagefactory;
+
+option go_package = "github.com/siderolabs/omni/client/api/omni/imagefactory";
+
+// Arch is the machine architecture an artifact is built for.
+enum Arch {
+  UNKNOWN_ARCH = 0;
+  AMD64 = 1;
+  ARM64 = 2;
+}
+
+// VulnerabilityReportFormat selects the format a vulnerability scan report is served in. The
+// factory publishes the same scan under each of these.
+enum VulnerabilityReportFormat {
+  UNKNOWN_FORMAT = 0;
+  // Grype's native JSON report.
+  JSON = 1;
+  // SARIF, as consumed by code scanning tools.
+  SARIF = 2;
+  // CycloneDX VEX.
+  CYCLONEDX = 3;
+  // The human-readable table Grype prints.
+  TABLE = 4;
+}
+
+message VulnerabilityReportRequest {
+  // SchematicID is the hex-encoded SHA-256 of the schematic the report covers.
+  string schematic_id = 1;
+  // TalosVersion is the Talos version the schematic was built for.
+  string talos_version = 2;
+  // Arch is the architecture the schematic was built for.
+  Arch arch = 3;
+  // Format is the format to serve the report in.
+  VulnerabilityReportFormat format = 4;
+}
+
+message VulnerabilityReportResponse {
+  // Data is the report, in the requested format.
+  bytes data = 1;
+}
+
+message SBOMRequest {
+  // SchematicID is the hex-encoded SHA-256 of the schematic the SBOM covers.
+  string schematic_id = 1;
+  // TalosVersion is the Talos version the schematic was built for.
+  string talos_version = 2;
+  // Arch is the architecture the schematic was built for.
+  Arch arch = 3;
+}
+
+message SBOMResponse {
+  // Data is the SPDX bundle, as JSON.
+  bytes data = 1;
+}
+
+message VEXDocumentRequest {
+  // TalosVersion is the Talos version the document covers.
+  string talos_version = 1;
+}
+
+message VEXDocumentResponse {
+  // Data is the OpenVEX document, as JSON.
+  bytes data = 1;
+}
+
+// ImageFactoryService serves the image factory artifacts Omni proxies on the caller's behalf, so
+// the frontend never talks to the image factory directly.
+service ImageFactoryService {
+  // VulnerabilityReport returns the vulnerability scan report of a schematic.
+  rpc VulnerabilityReport(VulnerabilityReportRequest) returns (VulnerabilityReportResponse);
+
+  // SBOM returns the SPDX bundle of a schematic.
+  rpc SBOM(SBOMRequest) returns (SBOMResponse);
+
+  // VEXDocument returns the VEX document of a Talos version.
+  rpc VEXDocument(VEXDocumentRequest) returns (VEXDocumentResponse);
+}
