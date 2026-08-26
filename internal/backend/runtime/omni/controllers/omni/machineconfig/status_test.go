@@ -480,9 +480,12 @@ func TestMachineConfigStatusController(t *testing.T) {
 
 			awaitAllMachinesConfigured(ctx, t, testContext.State, clusterName)
 
-			// Schematic ID should be set after initial config apply
+			// Schematic ID should be set after initial config apply, and so should the
+			// image factory host: they describe the same installed image and are
+			// recorded together everywhere else.
 			rtestutils.AssertResource(ctx, t, testContext.State, id, func(res *omni.ClusterMachineConfigStatus, assert *assert.Assertions) {
 				assert.NotEmpty(res.TypedSpec().Value.SchematicId)
+				assert.NotEmpty(res.TypedSpec().Value.ImageFactoryHost)
 			})
 
 			// Mark the machine as having an invalid schematic
