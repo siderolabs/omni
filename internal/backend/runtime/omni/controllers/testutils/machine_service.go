@@ -306,6 +306,11 @@ func (ms *MachineServiceMock) GetBootstrapRequests() []*machine.BootstrapRequest
 	return ms.bootstrapRequests
 }
 
+// GetEtcdRecoverRequestCount returns the number of etcd recover requests received.
+func (ms *MachineServiceMock) GetEtcdRecoverRequestCount() uint64 {
+	return ms.etcdRecoverRequestCount.Load()
+}
+
 func (ms *MachineServiceMock) Reset(ctx context.Context, req *machine.ResetRequest) (*machine.ResetResponse, error) {
 	ms.lock.Lock()
 	defer ms.lock.Unlock()

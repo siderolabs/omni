@@ -25,15 +25,15 @@ import (
 //go:embed data/kube-service-exposer-manifest.tmpl.yaml
 var kubeServiceExposerManifestTemplate string
 
-// ClusterWorkloadProxyController is a controller that manages cluster workload proxy setting.
-type ClusterWorkloadProxyController struct {
+// WorkloadProxyController is a controller that manages cluster workload proxy setting.
+type WorkloadProxyController struct {
 	*qtransform.QController[*omni.Cluster, *omni.KubernetesManifestGroup]
 	manifestData []byte
 }
 
-// NewClusterWorkloadProxyController creates a new cluster workload proxy controller.
-func NewClusterWorkloadProxyController(workloadProxyEnabled bool) (*ClusterWorkloadProxyController, error) {
-	ctrl := &ClusterWorkloadProxyController{}
+// NewWorkloadProxyController creates a new cluster workload proxy controller.
+func NewWorkloadProxyController(workloadProxyEnabled bool) (*WorkloadProxyController, error) {
+	ctrl := &WorkloadProxyController{}
 
 	if workloadProxyEnabled {
 		manifestData, err := getManifestData()
@@ -65,7 +65,7 @@ func NewClusterWorkloadProxyController(workloadProxyEnabled bool) (*ClusterWorkl
 	return ctrl, nil
 }
 
-func (ctrl *ClusterWorkloadProxyController) transform(_ context.Context, _ controller.Reader, logger *zap.Logger,
+func (ctrl *WorkloadProxyController) transform(_ context.Context, _ controller.Reader, logger *zap.Logger,
 	cluster *omni.Cluster, kubernetesManifestGroup *omni.KubernetesManifestGroup,
 ) error {
 	if ctrl.manifestData == nil || !cluster.TypedSpec().Value.GetFeatures().GetEnableWorkloadProxy() {

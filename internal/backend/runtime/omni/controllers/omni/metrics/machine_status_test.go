@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package omni_test
+package metrics_test
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/metrics"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/testutils"
 )
 
@@ -78,7 +78,7 @@ func TestMachineStatusMetricsController_RegistrationLimit(t *testing.T) {
 			testutils.WithRuntime(
 				ctx, t, testutils.TestOptions{},
 				func(_ context.Context, tc testutils.TestContext) {
-					require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewMachineStatusMetricsController(tt.maxRegistered)))
+					require.NoError(t, tc.Runtime.RegisterController(metrics.NewMachineStatusMetricsController(tt.maxRegistered)))
 				},
 				func(ctx context.Context, tc testutils.TestContext) {
 					for _, id := range tt.machineIDs {
@@ -112,7 +112,7 @@ func TestMachineStatusMetricsController_RegistrationLimit(t *testing.T) {
 func TestMachineStatusMetricsController_UnsupportedTalosVersion(t *testing.T) {
 	t.Parallel()
 
-	require.True(t, omnictrl.UnsupportedTalosVersionNotificationEnabled, "this test assumes UnsupportedTalosVersionNotificationEnabled is true")
+	require.True(t, metrics.UnsupportedTalosVersionNotificationEnabled, "this test assumes UnsupportedTalosVersionNotificationEnabled is true")
 
 	for _, tt := range []struct {
 		machineVersions         map[string]string
@@ -156,7 +156,7 @@ func TestMachineStatusMetricsController_UnsupportedTalosVersion(t *testing.T) {
 			testutils.WithRuntime(
 				ctx, t, testutils.TestOptions{},
 				func(_ context.Context, tc testutils.TestContext) {
-					require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewMachineStatusMetricsController(0)))
+					require.NoError(t, tc.Runtime.RegisterController(metrics.NewMachineStatusMetricsController(0)))
 				},
 				func(ctx context.Context, tc testutils.TestContext) {
 					for id, version := range tt.machineVersions {
@@ -196,7 +196,7 @@ func TestMachineStatusMetricsController_CollectMetrics(t *testing.T) {
 	t.Parallel()
 
 	registry := prometheus.NewPedanticRegistry()
-	require.NoError(t, registry.Register(omnictrl.NewMachineStatusMetricsController(0)))
+	require.NoError(t, registry.Register(metrics.NewMachineStatusMetricsController(0)))
 
 	families, err := registry.Gather()
 	require.NoError(t, err)
@@ -222,7 +222,7 @@ func TestMachineStatusMetricsController_UnsupportedTalosVersionTeardown(t *testi
 	testutils.WithRuntime(
 		ctx, t, testutils.TestOptions{},
 		func(_ context.Context, tc testutils.TestContext) {
-			require.NoError(t, tc.Runtime.RegisterController(omnictrl.NewMachineStatusMetricsController(0)))
+			require.NoError(t, tc.Runtime.RegisterController(metrics.NewMachineStatusMetricsController(0)))
 		},
 		func(ctx context.Context, tc testutils.TestContext) {
 			ms := omni.NewMachineStatus("m1")

@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package omni
+package cluster
 
 import (
 	"context"
@@ -26,18 +26,22 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/pkg/check"
 )
 
-// ControlPlaneStatusController creates ControlPlaneStatus resource for controlplane MachineSets.
-type ControlPlaneStatusController = qtransform.QController[*omni.MachineSet, *omni.ControlPlaneStatus]
-
 const (
 	// ControlPlaneCheckTimeout is the timeout for the controlplane checks.
 	ControlPlaneCheckTimeout = 5 * time.Minute
 	requeueTimeout           = 30 * time.Minute
 )
 
+// ControlPlaneStatusController creates ControlPlaneStatus resource for controlplane MachineSets.
+type ControlPlaneStatusController struct {
+	*qtransform.QController[*omni.MachineSet, *omni.ControlPlaneStatus]
+}
+
 // NewControlPlaneStatusController initializes ControlPlaneStatusController.
 func NewControlPlaneStatusController() *ControlPlaneStatusController {
-	return qtransform.NewQController(
+	ctrl := &ControlPlaneStatusController{}
+
+	ctrl.QController = qtransform.NewQController(
 		qtransform.Settings[*omni.MachineSet, *omni.ControlPlaneStatus]{
 			Name: "ControlPlaneStatusController",
 			MapMetadataFunc: func(machineSet *omni.MachineSet) *omni.ControlPlaneStatus {
@@ -46,83 +50,7 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 			UnmapMetadataFunc: func(cpStatus *omni.ControlPlaneStatus) *omni.MachineSet {
 				return omni.NewMachineSet(cpStatus.Metadata().ID())
 			},
-			TransformFunc: func(ctx context.Context, r controller.Reader, _ *zap.Logger, machineSet *omni.MachineSet, cpStatus *omni.ControlPlaneStatus) error {
-				if _, isControlplane := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole); !isControlplane {
-					return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("not a controlplane machineset")
-				}
-
-				clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
-				if !ok {
-					return fmt.Errorf("failed to get cluster name from the machine set %s", machineSet.Metadata().ID())
-				}
-
-				cpStatus.Metadata().Labels().Set(omni.LabelCluster, clusterName)
-
-				spec := cpStatus.TypedSpec().Value
-
-				// set a timeout to run the checks
-				ctx, cancel := context.WithTimeout(ctx, ControlPlaneCheckTimeout)
-				defer cancel()
-
-				handlers := []struct {
-					check     func(context.Context, controller.Reader, string) error
-					condition specs.ConditionType
-				}{
-					{
-						condition: specs.ConditionType_WireguardConnection,
-						check:     check.Connection,
-					},
-					{
-						condition: specs.ConditionType_Etcd,
-						check:     check.Etcd,
-					},
-				}
-
-				var (
-					interruptReason string
-					interrupted     bool
-				)
-
-				var checkErr error
-
-				for _, handler := range handlers {
-					if interrupted {
-						spec.SetCondition(
-							handler.condition,
-							specs.ControlPlaneStatusSpec_Condition_Unknown,
-							specs.ControlPlaneStatusSpec_Condition_Error,
-							interruptReason,
-						)
-
-						continue
-					}
-
-					err := handler.check(ctx, r, clusterName)
-					if err != nil {
-						var checkFail *check.Error
-
-						if errors.As(err, &checkFail) {
-							spec.SetCondition(handler.condition, checkFail.Status, checkFail.Severity, checkFail.Error())
-
-							interrupted = checkFail.Interrupt
-							interruptReason = fmt.Sprintf("The check wasn't run because the condition check %q has failed", handler.condition.String())
-							checkErr = errors.Join(checkErr, err)
-
-							continue
-						}
-
-						return err
-					}
-
-					spec.SetCondition(handler.condition, specs.ControlPlaneStatusSpec_Condition_Ready, specs.ControlPlaneStatusSpec_Condition_Info, "")
-				}
-
-				if checkErr != nil {
-					return checkErr
-				}
-
-				return controller.NewRequeueInterval(requeueTimeout)
-			},
+			TransformFunc: ctrl.transform,
 		},
 		qtransform.WithExtraMappedInput[*omni.TalosConfig](
 			mappers.MapClusterResourceToLabeledResources[*omni.MachineSet](),
@@ -153,4 +81,85 @@ func NewControlPlaneStatusController() *ControlPlaneStatusController {
 		),
 		qtransform.WithConcurrency(4),
 	)
+
+	return ctrl
+}
+
+//nolint:gocyclo
+func (*ControlPlaneStatusController) transform(ctx context.Context, r controller.Reader, _ *zap.Logger, machineSet *omni.MachineSet, cpStatus *omni.ControlPlaneStatus) error {
+	if _, isControlplane := machineSet.Metadata().Labels().Get(omni.LabelControlPlaneRole); !isControlplane {
+		return xerrors.NewTaggedf[qtransform.SkipReconcileTag]("not a controlplane machineset")
+	}
+
+	clusterName, ok := machineSet.Metadata().Labels().Get(omni.LabelCluster)
+	if !ok {
+		return fmt.Errorf("failed to get cluster name from the machine set %s", machineSet.Metadata().ID())
+	}
+
+	cpStatus.Metadata().Labels().Set(omni.LabelCluster, clusterName)
+
+	spec := cpStatus.TypedSpec().Value
+
+	// set a timeout to run the checks
+	ctx, cancel := context.WithTimeout(ctx, ControlPlaneCheckTimeout)
+	defer cancel()
+
+	handlers := []struct {
+		check     func(context.Context, controller.Reader, string) error
+		condition specs.ConditionType
+	}{
+		{
+			condition: specs.ConditionType_WireguardConnection,
+			check:     check.Connection,
+		},
+		{
+			condition: specs.ConditionType_Etcd,
+			check:     check.Etcd,
+		},
+	}
+
+	var (
+		interruptReason string
+		interrupted     bool
+	)
+
+	var checkErr error
+
+	for _, handler := range handlers {
+		if interrupted {
+			spec.SetCondition(
+				handler.condition,
+				specs.ControlPlaneStatusSpec_Condition_Unknown,
+				specs.ControlPlaneStatusSpec_Condition_Error,
+				interruptReason,
+			)
+
+			continue
+		}
+
+		err := handler.check(ctx, r, clusterName)
+		if err != nil {
+			var checkFail *check.Error
+
+			if errors.As(err, &checkFail) {
+				spec.SetCondition(handler.condition, checkFail.Status, checkFail.Severity, checkFail.Error())
+
+				interrupted = checkFail.Interrupt
+				interruptReason = fmt.Sprintf("The check wasn't run because the condition check %q has failed", handler.condition.String())
+				checkErr = errors.Join(checkErr, err)
+
+				continue
+			}
+
+			return err
+		}
+
+		spec.SetCondition(handler.condition, specs.ControlPlaneStatusSpec_Condition_Ready, specs.ControlPlaneStatusSpec_Condition_Info, "")
+	}
+
+	if checkErr != nil {
+		return checkErr
+	}
+
+	return controller.NewRequeueInterval(requeueTimeout)
 }

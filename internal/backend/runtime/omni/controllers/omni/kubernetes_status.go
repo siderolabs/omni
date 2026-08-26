@@ -26,8 +26,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/siderolabs/omni/client/api/common"
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	cosihelpers "github.com/siderolabs/omni/client/pkg/cosi/helpers"
 	"github.com/siderolabs/omni/client/pkg/image"
@@ -38,6 +40,14 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/helpers"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/exposedservice"
 )
+
+// KubernetesRuntime defines the interface for interacting with the Kubernetes runtime.
+type KubernetesRuntime interface {
+	DestroyClient(string)
+	GetClient(ctx context.Context, cluster string) (*kubernetes.Client, error)
+	GetKubeconfig(ctx context.Context, context *common.Context) (*rest.Config, error)
+	StartCacheManager(ctx context.Context) error
+}
 
 // KubernetesStatusController manages KubernetesStatus resource lifecycle.
 //

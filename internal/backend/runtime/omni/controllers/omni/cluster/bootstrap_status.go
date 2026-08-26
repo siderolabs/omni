@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package omni
+package cluster
 
 import (
 	"context"
@@ -26,126 +26,33 @@ import (
 	"github.com/siderolabs/omni/internal/backend/runtime/talos"
 )
 
-// ClusterBootstrapStatusController manages ClusterStatus resource lifecycle.
-//
-// ClusterBootstrapStatusController applies the generated machine config on each corresponding machine.
-type ClusterBootstrapStatusController = qtransform.QController[*omni.ClusterStatus, *omni.ClusterBootstrapStatus]
+// BootstrapStatusController bootstraps clusters and keeps track of their bootstrap state.
+type BootstrapStatusController struct {
+	*qtransform.QController[*omni.ClusterStatus, *omni.ClusterBootstrapStatus]
 
-// ClusterBootstrapStatusControllerName is the name of the ClusterBootstrapStatusController.
-const ClusterBootstrapStatusControllerName = "ClusterBootstrapStatusController"
+	etcdBackupStoreFactory store.Factory
+}
 
-// NewClusterBootstrapStatusController initializes ClusterBootstrapStatusController.
-//
-//nolint:gocognit
-func NewClusterBootstrapStatusController(etcdBackupStoreFactory store.Factory) *ClusterBootstrapStatusController {
-	return qtransform.NewQController(
+// BootstrapStatusControllerName is the name of the BootstrapStatusController.
+const BootstrapStatusControllerName = "ClusterBootstrapStatusController"
+
+// NewBootstrapStatusController initializes BootstrapStatusController.
+func NewBootstrapStatusController(etcdBackupStoreFactory store.Factory) *BootstrapStatusController {
+	ctrl := &BootstrapStatusController{
+		etcdBackupStoreFactory: etcdBackupStoreFactory,
+	}
+
+	ctrl.QController = qtransform.NewQController(
 		qtransform.Settings[*omni.ClusterStatus, *omni.ClusterBootstrapStatus]{
-			Name: ClusterBootstrapStatusControllerName,
+			Name: BootstrapStatusControllerName,
 			MapMetadataFunc: func(clusterStatus *omni.ClusterStatus) *omni.ClusterBootstrapStatus {
 				return omni.NewClusterBootstrapStatus(clusterStatus.Metadata().ID())
 			},
 			UnmapMetadataFunc: func(bootstrapStatus *omni.ClusterBootstrapStatus) *omni.ClusterStatus {
 				return omni.NewClusterStatus(bootstrapStatus.Metadata().ID())
 			},
-			TransformExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, logger *zap.Logger, clusterStatus *omni.ClusterStatus, bootstrapStatus *omni.ClusterBootstrapStatus) error {
-				cpMachineSet, err := safe.ReaderGetByID[*omni.MachineSet](ctx, r, omni.ControlPlanesResourceID(clusterStatus.Metadata().ID()))
-				if err != nil {
-					if state.IsNotFoundError(err) { // missing control-plane, mark the cluster as non-bootstrapped
-						bootstrapStatus.TypedSpec().Value.Bootstrapped = false
-
-						return nil
-					}
-
-					return fmt.Errorf("error getting control plane machineset for cluster '%s': %w", clusterStatus.Metadata().ID(), err)
-				}
-
-				if cpMachineSet.Metadata().Phase() == resource.PhaseTearingDown {
-					bootstrapStatus.TypedSpec().Value.Bootstrapped = false
-
-					return r.RemoveFinalizer(ctx, cpMachineSet.Metadata(), ClusterBootstrapStatusControllerName)
-				}
-
-				if !cpMachineSet.Metadata().Finalizers().Has(ClusterBootstrapStatusControllerName) {
-					if err = r.AddFinalizer(ctx, cpMachineSet.Metadata(), ClusterBootstrapStatusControllerName); err != nil {
-						return fmt.Errorf("error adding finalizer to control plane machineset for cluster '%s': %w", clusterStatus.Metadata().ID(), err)
-					}
-				}
-
-				if bootstrapStatus.TypedSpec().Value.Bootstrapped {
-					return nil
-				}
-
-				if !clusterStatus.TypedSpec().Value.Available {
-					return nil
-				}
-
-				if !clusterStatus.TypedSpec().Value.HasConnectedControlPlanes {
-					return nil
-				}
-
-				if _, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting); ok {
-					logger.Info("cluster is being imported, therefore it's already been bootstrapped", zap.String("cluster_id", clusterStatus.Metadata().ID()))
-
-					bootstrapStatus.TypedSpec().Value.Bootstrapped = true
-
-					return nil
-				}
-
-				talosCli, err := getTalosClientForBootstrap(ctx, r, clusterStatus.Metadata().ID())
-				if err != nil {
-					if talos.IsClientNotReadyError(err) {
-						return nil
-					}
-
-					return fmt.Errorf("error getting talos client for cluster '%s': %w", clusterStatus.Metadata().ID(), err)
-				}
-
-				defer func() {
-					if e := talosCli.Close(); e != nil {
-						logger.Error("failed to close talos client", zap.Error(e))
-					}
-				}()
-
-				bootstrapSpec := cpMachineSet.TypedSpec().Value.GetBootstrapSpec()
-				recoverEtcd := bootstrapSpec != nil
-
-				if recoverEtcd {
-					logger.Info(
-						"recovering etcd from backup",
-						zap.String("cluster_id", clusterStatus.Metadata().ID()),
-						zap.String("cluster_uuid", bootstrapSpec.GetClusterUuid()),
-						zap.String("snapshot", bootstrapSpec.GetSnapshot()),
-					)
-
-					if err = recoverEtcdFromBackup(ctx, r, talosCli, etcdBackupStoreFactory, bootstrapSpec); err != nil {
-						return err
-					}
-				}
-
-				if err = talosCli.Bootstrap(ctx, &machine.BootstrapRequest{
-					RecoverEtcd: recoverEtcd,
-				}); err != nil {
-					return fmt.Errorf("error bootstrapping cluster '%s': %w", clusterStatus.Metadata().ID(), err)
-				}
-
-				logger.Info("bootstrapping cluster", zap.String("cluster_id", clusterStatus.Metadata().ID()))
-
-				bootstrapStatus.TypedSpec().Value.Bootstrapped = true
-
-				return nil
-			},
-			FinalizerRemovalExtraOutputFunc: func(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, clusterStatus *omni.ClusterStatus) error {
-				cpMachineSet, err := safe.ReaderGetByID[*omni.MachineSet](ctx, r, omni.ControlPlanesResourceID(clusterStatus.Metadata().ID()))
-				if err != nil && !state.IsNotFoundError(err) {
-					return err
-				}
-
-				if cpMachineSet != nil {
-					return r.RemoveFinalizer(ctx, cpMachineSet.Metadata(), ClusterBootstrapStatusControllerName)
-				}
-
-				return nil
-			},
+			TransformExtraOutputFunc:        ctrl.reconcile,
+			FinalizerRemovalExtraOutputFunc: ctrl.finalizerRemoval,
 		},
 		qtransform.WithExtraMappedInput[*omni.TalosConfig](
 			qtransform.MapperSameID[*omni.ClusterStatus](),
@@ -166,11 +73,135 @@ func NewClusterBootstrapStatusController(etcdBackupStoreFactory store.Factory) *
 		),
 		qtransform.WithConcurrency(4),
 	)
+
+	return ctrl
+}
+
+func (ctrl *BootstrapStatusController) reconcile(
+	ctx context.Context,
+	r controller.ReaderWriter,
+	logger *zap.Logger,
+	clusterStatus *omni.ClusterStatus,
+	bootstrapStatus *omni.ClusterBootstrapStatus,
+) error {
+	cpMachineSet, err := safe.ReaderGetByID[*omni.MachineSet](ctx, r, omni.ControlPlanesResourceID(clusterStatus.Metadata().ID()))
+	if err != nil {
+		if state.IsNotFoundError(err) { // missing control-plane, mark the cluster as non-bootstrapped
+			bootstrapStatus.TypedSpec().Value.Bootstrapped = false
+
+			return nil
+		}
+
+		return fmt.Errorf("error getting control plane machineset for cluster '%s': %w", clusterStatus.Metadata().ID(), err)
+	}
+
+	if cpMachineSet.Metadata().Phase() == resource.PhaseTearingDown {
+		bootstrapStatus.TypedSpec().Value.Bootstrapped = false
+
+		return r.RemoveFinalizer(ctx, cpMachineSet.Metadata(), BootstrapStatusControllerName)
+	}
+
+	if !cpMachineSet.Metadata().Finalizers().Has(BootstrapStatusControllerName) {
+		if err = r.AddFinalizer(ctx, cpMachineSet.Metadata(), BootstrapStatusControllerName); err != nil {
+			return fmt.Errorf("error adding finalizer to control plane machineset for cluster '%s': %w", clusterStatus.Metadata().ID(), err)
+		}
+	}
+
+	if bootstrapStatus.TypedSpec().Value.Bootstrapped {
+		return nil
+	}
+
+	if !clusterStatus.TypedSpec().Value.Available {
+		return nil
+	}
+
+	if !clusterStatus.TypedSpec().Value.HasConnectedControlPlanes {
+		return nil
+	}
+
+	if _, ok := clusterStatus.Metadata().Labels().Get(omni.LabelClusterTaintedByImporting); ok {
+		logger.Info("cluster is being imported, therefore it's already been bootstrapped", zap.String("cluster_id", clusterStatus.Metadata().ID()))
+
+		bootstrapStatus.TypedSpec().Value.Bootstrapped = true
+
+		return nil
+	}
+
+	return ctrl.bootstrapCluster(ctx, r, logger, cpMachineSet, bootstrapStatus)
+}
+
+func (ctrl *BootstrapStatusController) bootstrapCluster(
+	ctx context.Context,
+	r controller.Reader,
+	logger *zap.Logger,
+	cpMachineSet *omni.MachineSet,
+	bootstrapStatus *omni.ClusterBootstrapStatus,
+) error {
+	clusterID := bootstrapStatus.Metadata().ID()
+
+	talosCli, err := ctrl.getTalosClient(ctx, r, clusterID)
+	if err != nil {
+		if talos.IsClientNotReadyError(err) {
+			return nil
+		}
+
+		return fmt.Errorf("error getting talos client for cluster '%s': %w", clusterID, err)
+	}
+
+	defer func() {
+		if e := talosCli.Close(); e != nil {
+			logger.Error("failed to close talos client", zap.Error(e))
+		}
+	}()
+
+	bootstrapSpec := cpMachineSet.TypedSpec().Value.GetBootstrapSpec()
+	recoverEtcd := bootstrapSpec != nil
+
+	if recoverEtcd {
+		logger.Info(
+			"recovering etcd from backup",
+			zap.String("cluster_id", clusterID),
+			zap.String("cluster_uuid", bootstrapSpec.GetClusterUuid()),
+			zap.String("snapshot", bootstrapSpec.GetSnapshot()),
+		)
+
+		if err = ctrl.recoverEtcdFromBackup(ctx, r, talosCli, bootstrapSpec); err != nil {
+			return err
+		}
+	}
+
+	if err = talosCli.Bootstrap(ctx, &machine.BootstrapRequest{
+		RecoverEtcd: recoverEtcd,
+	}); err != nil {
+		return fmt.Errorf("error bootstrapping cluster '%s': %w", clusterID, err)
+	}
+
+	logger.Info("bootstrapping cluster", zap.String("cluster_id", clusterID))
+
+	bootstrapStatus.TypedSpec().Value.Bootstrapped = true
+
+	return nil
+}
+
+func (ctrl *BootstrapStatusController) finalizerRemoval(ctx context.Context, r controller.ReaderWriter, _ *zap.Logger, clusterStatus *omni.ClusterStatus) error {
+	cpMachineSet, err := safe.ReaderGetByID[*omni.MachineSet](ctx, r, omni.ControlPlanesResourceID(clusterStatus.Metadata().ID()))
+	if err != nil && !state.IsNotFoundError(err) {
+		return err
+	}
+
+	if cpMachineSet != nil {
+		return r.RemoveFinalizer(ctx, cpMachineSet.Metadata(), BootstrapStatusControllerName)
+	}
+
+	return nil
 }
 
 // recoverEtcdFromBackup recovers etcd of the given cluster using the given bootstrap spec.
-func recoverEtcdFromBackup(ctx context.Context, r controller.Reader, talosCli *client.Client,
-	etcdBackupStoreFactory store.Factory, bootstrapSpec *specs.MachineSetSpec_BootstrapSpec,
+func (ctrl *BootstrapStatusController) recoverEtcdFromBackup(
+	ctx context.Context,
+	r controller.Reader,
+	talosCli *client.Client,
+	bootstrapSpec *specs.MachineSetSpec_BootstrapSpec,
 ) error {
 	clusterUUIDs, err := safe.ReaderListAll[*omni.ClusterUUID](ctx, r, state.WithLabelQuery(resource.LabelEqual(omni.LabelClusterUUID, bootstrapSpec.GetClusterUuid())))
 	if err != nil {
@@ -188,7 +219,7 @@ func recoverEtcdFromBackup(ctx context.Context, r controller.Reader, talosCli *c
 		return fmt.Errorf("failed to get backup data for cluster %q: %w", clusterID, err)
 	}
 
-	backupStore, err := etcdBackupStoreFactory.GetStore()
+	backupStore, err := ctrl.etcdBackupStoreFactory.GetStore()
 	if err != nil {
 		return fmt.Errorf("failed to get backup store: %w", err)
 	}
@@ -215,7 +246,7 @@ func recoverEtcdFromBackup(ctx context.Context, r controller.Reader, talosCli *c
 	return nil
 }
 
-func getTalosClientForBootstrap(ctx context.Context, r controller.Reader, clusterName string) (*client.Client, error) {
+func (ctrl *BootstrapStatusController) getTalosClient(ctx context.Context, r controller.Reader, clusterName string) (*client.Client, error) {
 	talosConfig, err := safe.ReaderGet[*omni.TalosConfig](ctx, r, omni.NewTalosConfig(clusterName).Metadata())
 	if err != nil {
 		if state.IsNotFoundError(err) {

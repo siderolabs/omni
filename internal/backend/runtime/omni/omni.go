@@ -147,7 +147,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		return nil, err
 	}
 
-	clusterWorkloadProxyController, err := cluster.NewClusterWorkloadProxyController(
+	clusterWorkloadProxyController, err := cluster.NewWorkloadProxyController(
 		cfg.Services.WorkloadProxy.GetEnabled(),
 	)
 	if err != nil {
@@ -157,16 +157,16 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 	controllers := []controller.Controller{
 		&metricsctrl.UserMetricsController{},
 		omnictrl.NewCertRefreshTickController(constants.CertificateValidityTime / 10), // issue ticks at 10% of the validity, as we refresh certificates at 50% of the validity
-		omnictrl.NewClusterController(kubernetesRuntime),
+		cluster.NewController(kubernetesRuntime),
 		omnictrl.NewMachineSetController(),
 		&omnictrl.ClusterMachineIdentityController{},
-		&omnictrl.ClusterMachineStatusMetricsController{},
+		&metricsctrl.ClusterMachineStatusMetricsController{},
 		omnictrl.NewClusterMachineController(),
 		&omnictrl.ClusterMachineEncryptionController{},
-		&omnictrl.ClusterMetricsController{},
-		&omnictrl.ClusterStatusMetricsController{},
+		&metricsctrl.ClusterMetricsController{},
+		&metricsctrl.ClusterStatusMetricsController{},
 		&omnictrl.ConfigPatchCleanupController{},
-		&omnictrl.ConfigPatchMetricsController{},
+		&metricsctrl.ConfigPatchMetricsController{},
 		omnictrl.NewEtcdBackupOverallStatusController(),
 		backupController,
 		omnictrl.NewImagePullStatusController(&image.TalosImageClient{
@@ -179,7 +179,7 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 			LBConfig: cfg.Services.LoadBalancer,
 		},
 		omnictrl.NewMachineCleanupController(),
-		omnictrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines()),
+		metricsctrl.NewMachineStatusMetricsController(cfg.Account.GetMaxRegisteredMachines()),
 		omnictrl.NewVersionsController(imageFactoryClients, st.Default(), cfg.Features.GetEnableTalosPreReleaseVersions(), cfg.Registries.GetKubernetes()),
 		omnictrl.NewClusterLoadBalancerController(
 			cfg.Services.LoadBalancer.GetMinPort(),
@@ -209,8 +209,8 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		destroy.NewController[*siderolinkres.Link](optional.Some[uint](4)),
 
 		omnictrl.NewBackupDataController(),
-		omnictrl.NewClusterBootstrapStatusController(etcdBackupStoreFactory),
-		omnictrl.NewClusterConfigVersionController(),
+		cluster.NewBootstrapStatusController(etcdBackupStoreFactory),
+		cluster.NewConfigVersionController(),
 		omnictrl.NewClusterDestroyStatusController(),
 		omnictrl.NewMachineSetDestroyStatusController(),
 		omnictrl.NewClusterEndpointController(),
@@ -228,9 +228,9 @@ func NewRuntime(cfg *config.Params, talosClientFactory *talos.ClientFactory, dns
 		omnictrl.NewClusterMachineEncryptionKeyController(),
 		omnictrl.NewClusterMachineStatusController(),
 		omnictrl.NewClusterStatusController(cfg.Services.EmbeddedDiscoveryService.GetEnabled()),
-		omnictrl.NewClusterDiagnosticsController(),
-		omnictrl.NewClusterUUIDController(),
-		omnictrl.NewControlPlaneStatusController(),
+		cluster.NewDiagnosticsController(),
+		cluster.NewUUIDController(),
+		cluster.NewControlPlaneStatusController(),
 		omnictrl.NewDiscoveryServiceConfigPatchController(cfg.Services.EmbeddedDiscoveryService.GetPort()),
 		omnictrl.NewKubernetesNodeAuditController(omnictrl.NewGetKubernetesClientFunc(kubernetesRuntime), time.Minute),
 		omnictrl.NewEtcdBackupEncryptionController(),

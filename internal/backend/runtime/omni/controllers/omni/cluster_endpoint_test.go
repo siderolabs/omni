@@ -14,6 +14,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	clusterctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/cluster"
 )
 
 type ClusterEndpointSuite struct {
@@ -23,11 +24,11 @@ type ClusterEndpointSuite struct {
 func (suite *ClusterEndpointSuite) TestReconcile() {
 	suite.startRuntime()
 
-	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewClusterController(suite.kubernetesRuntime)))
+	suite.Require().NoError(suite.runtime.RegisterController(clusterctrl.NewController(suite.kubernetesRuntime)))
 	suite.Require().NoError(suite.runtime.RegisterController(omnictrl.NewMachineSetController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterMachineStatusController()))
 	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterEndpointController()))
-	suite.Require().NoError(suite.runtime.RegisterQController(omnictrl.NewClusterConfigVersionController()))
+	suite.Require().NoError(suite.runtime.RegisterQController(clusterctrl.NewConfigVersionController()))
 
 	clusterName := "talos-default-44"
 

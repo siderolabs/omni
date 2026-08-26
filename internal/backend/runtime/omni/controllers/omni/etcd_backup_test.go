@@ -45,6 +45,7 @@ import (
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/backend/runtime/kubernetes"
 	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	clusterctrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/cluster"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/etcdbackup/store"
 	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/internal/etcdbackup/crypt"
@@ -61,8 +62,8 @@ func beforeStart(st state.State, t *testing.T, rt *runtime.Runtime) {
 	logger := zaptest.NewLogger(t)
 	kubernetesRuntime := kubernetes.NewWithTTL(st, 0, logger, "", "", "")
 
-	require.NoError(t, rt.RegisterController(omnictrl.NewClusterController(kubernetesRuntime)))
-	require.NoError(t, rt.RegisterQController(omnictrl.NewClusterUUIDController()))
+	require.NoError(t, rt.RegisterController(clusterctrl.NewController(kubernetesRuntime)))
+	require.NoError(t, rt.RegisterQController(clusterctrl.NewUUIDController()))
 	require.NoError(t, rt.RegisterQController(omnictrl.NewEtcdBackupEncryptionController()))
 	require.NoError(t, rt.RegisterQController(omnictrl.NewBackupDataController()))
 }

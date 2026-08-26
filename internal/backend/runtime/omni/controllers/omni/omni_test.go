@@ -84,7 +84,6 @@ type machineService struct {
 	storage.UnimplementedStorageServiceServer
 
 	etcdMembers             *machine.EtcdMemberListResponse
-	bootstrapRequests       []*machine.BootstrapRequest
 	etcdRecoverRequestCount atomic.Uint64
 	files                   map[string][]string
 	serviceList             *machine.ServiceListResponse
@@ -125,20 +124,8 @@ func (ms *machineService) ApplyConfiguration(_ context.Context, req *machine.App
 	}, nil
 }
 
-func (ms *machineService) Bootstrap(_ context.Context, req *machine.BootstrapRequest) (*machine.BootstrapResponse, error) {
-	ms.lock.Lock()
-	defer ms.lock.Unlock()
-
-	ms.bootstrapRequests = append(ms.bootstrapRequests, req)
-
+func (ms *machineService) Bootstrap(context.Context, *machine.BootstrapRequest) (*machine.BootstrapResponse, error) {
 	return &machine.BootstrapResponse{}, nil
-}
-
-func (ms *machineService) getBootstrapRequests() []*machine.BootstrapRequest {
-	ms.lock.Lock()
-	defer ms.lock.Unlock()
-
-	return ms.bootstrapRequests
 }
 
 func (ms *machineService) Reset(ctx context.Context, req *machine.ResetRequest) (*machine.ResetResponse, error) {

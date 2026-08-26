@@ -3,7 +3,7 @@
 // Use of this software is governed by the Business Source License
 // included in the LICENSE file.
 
-package omni_test
+package metrics_test
 
 import (
 	"maps"
@@ -15,14 +15,14 @@ import (
 
 	"github.com/siderolabs/omni/client/api/omni/specs"
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
-	omnictrl "github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni"
+	"github.com/siderolabs/omni/internal/backend/runtime/omni/controllers/omni/metrics"
 )
 
 // TestAllClusterFeaturesReported ensures that all features defined in ClusterSpec_Features
 // are reported in the metrics. By this we make sure that when we introduce a new feature flag,
 // we don't forget to report it in the metrics.
 func TestAllClusterFeaturesReported(t *testing.T) {
-	controller := omnictrl.ClusterMetricsController{}
+	controller := metrics.ClusterMetricsController{}
 
 	features := getFeatures()
 	featureMetrics := controller.FeatureMetrics(slices.Values([]*omni.Cluster(nil)))
