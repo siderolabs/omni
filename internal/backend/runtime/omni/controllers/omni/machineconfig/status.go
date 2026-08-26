@@ -451,8 +451,10 @@ func (ctrl *StatusController) reconcileUpgrade(
 
 			if rc.machineStatus.TypedSpec().Value.GetSchematic().GetInvalid() {
 				rc.machineConfigStatus.TypedSpec().Value.SchematicId = ""
+				rc.machineConfigStatus.TypedSpec().Value.ImageFactoryHost = ""
 			} else {
 				rc.machineConfigStatus.TypedSpec().Value.SchematicId = rc.installImage.SchematicId
+				rc.machineConfigStatus.TypedSpec().Value.ImageFactoryHost = rc.installImage.ImageFactoryHost
 			}
 		}
 	}
