@@ -24,6 +24,7 @@ import (
 
 	"github.com/siderolabs/omni/client/pkg/omni/resources/omni"
 	"github.com/siderolabs/omni/internal/pkg/config"
+	omnijsonschema "github.com/siderolabs/omni/internal/pkg/jsonschema"
 )
 
 //go:embed testdata/config-full.yaml
@@ -102,17 +103,58 @@ func TestValidateStateConfig(t *testing.T) {
 	assert.NoError(t, cfg.ValidateState(ctx, state))
 }
 
+// validateConfigCase is one config-validation expectation: load `config`, apply
+// `configModifyFunc`, then require that loading or validation fails with the named substring, or
+// that both succeed when neither is set.
+type validateConfigCase struct {
+	name             string
+	configModifyFunc func(cfg *config.Params)
+	validateErr      string
+	loadErr          string
+	config           []byte
+}
+
+func (tt validateConfigCase) run(t *testing.T, schema *omnijsonschema.Schema) {
+	cfg, err := config.FromBytes(tt.config)
+	if tt.loadErr != "" {
+		require.ErrorContains(t, err, tt.loadErr)
+
+		return
+	}
+
+	if tt.configModifyFunc != nil {
+		tt.configModifyFunc(cfg)
+	}
+
+	require.NoError(t, err)
+
+	err = cfg.Validate(schema)
+
+	if tt.validateErr != "" {
+		var validationErr *jsonschema.ValidationError
+
+		require.ErrorAs(t, err, &validationErr)
+		require.ErrorContains(t, err, tt.validateErr)
+
+		return
+	}
+
+	require.NoError(t, err)
+}
+
+// setCompleteFactoryOAuth2 configures a factory with a full set of OAuth2 client credentials.
+func setCompleteFactoryOAuth2(factory *config.Factory) {
+	factory.OAuth2.SetDomain("tenant.example.com")
+	factory.OAuth2.SetAudience("https://image-factory.example.com")
+	factory.OAuth2.SetClientID("client_id")
+	factory.OAuth2.SetClientSecret("client_secret")
+}
+
 func TestValidateConfig(t *testing.T) {
 	schema, parseErr := config.ParseSchema()
 	require.NoError(t, parseErr)
 
-	for _, tt := range []struct {
-		name             string
-		configModifyFunc func(cfg *config.Params)
-		validateErr      string
-		loadErr          string
-		config           []byte
-	}{
+	for _, tt := range []validateConfigCase{
 		// --- Valid configs ---
 
 		{
@@ -277,7 +319,21 @@ func TestValidateConfig(t *testing.T) {
 			config:      backups,
 			validateErr: "'not' failed",
 		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.run(t, schema)
+		})
+	}
+}
 
+// TestValidateFactoryAuthConfig covers the credentials a factory may be configured with: basic auth
+// and OAuth2 client credentials, each of which must be complete, and which a factory may
+// not carry at the same time.
+func TestValidateFactoryAuthConfig(t *testing.T) {
+	schema, parseErr := config.ParseSchema()
+	require.NoError(t, parseErr)
+
+	for _, tt := range []validateConfigCase{
 		{
 			name:   "image factory username without password",
 			config: configFull,
@@ -315,33 +371,55 @@ func TestValidateConfig(t *testing.T) {
 			},
 			validateErr: `config value ".registries.factories.secondary.password" or flag "--secondary-factory-password": is required when "username" is set`,
 		},
+
+		{
+			name:   "primary factory oauth2 clientID without clientSecret",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Registries.Factories.Primary.OAuth2.SetClientID("client_id")
+			},
+			validateErr: `config value ".registries.factories.primary.oAuth2.clientSecret" or flag "--primary-factory-oauth2-client-secret": is required when "clientID" is set`,
+		},
+		{
+			name:   "secondary factory oauth2 clientID without clientSecret",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Registries.Factories.Secondary.OAuth2.SetClientID("client_id")
+			},
+			validateErr: `config value ".registries.factories.secondary.oAuth2.clientSecret" or flag "--secondary-factory-oauth2-client-secret": is required when "clientID" is set`,
+		},
+
+		{
+			name:   "primary factory with both basic auth and oauth2",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				cfg.Registries.Factories.Primary.SetUsername("factory-user")
+				cfg.Registries.Factories.Primary.SetPassword("factory-pass")
+				setCompleteFactoryOAuth2(&cfg.Registries.Factories.Primary)
+			},
+			// A factory accepts one mechanism or the other, so configuring both is a mistake rather
+			// than a preference to be resolved at runtime.
+			validateErr: "'not' failed",
+		},
+		{
+			// configFull already gives the secondary factory a username and password.
+			name:   "secondary factory with both basic auth and oauth2",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				setCompleteFactoryOAuth2(&cfg.Registries.Factories.Secondary)
+			},
+			validateErr: "'not' failed",
+		},
+		{
+			name:   "factory with oauth2 and no basic auth",
+			config: configFull,
+			configModifyFunc: func(cfg *config.Params) {
+				setCompleteFactoryOAuth2(&cfg.Registries.Factories.Primary)
+			},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := config.FromBytes(tt.config)
-			if tt.loadErr != "" {
-				require.ErrorContains(t, err, tt.loadErr)
-
-				return
-			}
-
-			if tt.configModifyFunc != nil {
-				tt.configModifyFunc(cfg)
-			}
-
-			require.NoError(t, err)
-
-			err = cfg.Validate(schema)
-
-			if tt.validateErr != "" {
-				var validationErr *jsonschema.ValidationError
-
-				require.ErrorAs(t, err, &validationErr)
-				require.ErrorContains(t, err, tt.validateErr)
-
-				return
-			}
-
-			require.NoError(t, err)
+			tt.run(t, schema)
 		})
 	}
 }

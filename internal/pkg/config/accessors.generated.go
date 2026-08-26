@@ -534,6 +534,50 @@ func (s *Factory) SetUsername(v string) {
 	s.Username = &v
 }
 
+func (s *FactoryOAuth2) GetAudience() string {
+	if s == nil || s.Audience == nil {
+		return *new(string)
+	}
+	return *s.Audience
+}
+
+func (s *FactoryOAuth2) SetAudience(v string) {
+	s.Audience = &v
+}
+
+func (s *FactoryOAuth2) GetClientID() string {
+	if s == nil || s.ClientID == nil {
+		return *new(string)
+	}
+	return *s.ClientID
+}
+
+func (s *FactoryOAuth2) SetClientID(v string) {
+	s.ClientID = &v
+}
+
+func (s *FactoryOAuth2) GetClientSecret() string {
+	if s == nil || s.ClientSecret == nil {
+		return *new(string)
+	}
+	return *s.ClientSecret
+}
+
+func (s *FactoryOAuth2) SetClientSecret(v string) {
+	s.ClientSecret = &v
+}
+
+func (s *FactoryOAuth2) GetDomain() string {
+	if s == nil || s.Domain == nil {
+		return *new(string)
+	}
+	return *s.Domain
+}
+
+func (s *FactoryOAuth2) SetDomain(v string) {
+	s.Domain = &v
+}
+
 func (s *Features) GetDisableControllerRuntimeCache() bool {
 	if s == nil || s.DisableControllerRuntimeCache == nil {
 		return *new(bool)
